@@ -212,6 +212,20 @@ export async function runCoachTurn(
         .update({ pending_photo_url: input.photoUrl })
         .eq('id', conversation.id);
     }
+
+    // Photo caption debrief detection: when a photo arrives with a multi-sentence
+    // narrative caption ("learned X, next time Y"), the user is debriefing AND
+    // attaching evidence in one shot. The category prompt only tells the bot to
+    // attach + critique — without this addendum it never calls log_debrief and
+    // the narrative is lost.
+    const caption = (input.caption ?? '').trim();
+    const captionLooksLikeDebrief = caption.length > 40 && /[.,;!?]/.test(caption);
+    if (captionLooksLikeDebrief) {
+      const lastAssistantMsg = recentHistory.filter(m => m.role === 'assistant').slice(-1)[0]?.content ?? '';
+      const stepIdMatch = lastAssistantMsg.match(/\(([0-9a-f-]{36})\)/i);
+      const stepIdHint = stepIdMatch ? ` Use step_id=${stepIdMatch[1]} for log_debrief unless attach_step_evidence returns a different id.` : '';
+      systemPrompt += `\n\nPHOTO + DEBRIEF DETECTED: The user's caption is a multi-sentence retrospective ("${caption.slice(0, 120)}${caption.length > 120 ? '…' : ''}"). After attach_step_evidence, you MUST also call log_debrief on the same step — split the caption into what_learned (insight / what went well) and what_to_change (what they'd do next time / gear or technique fix). Do NOT skip log_debrief — the narrative is the lesson, the photo is just evidence.${stepIdHint}`;
+    }
   } else {
     const userText = input.text;
     systemPrompt = buildSystemPrompt(channel, userCtx);
