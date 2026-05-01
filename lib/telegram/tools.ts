@@ -9,7 +9,6 @@ import { z } from 'zod';
 import { zodToJsonSchema } from 'zod-to-json-schema';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Tool } from '@anthropic-ai/sdk/resources/messages';
-import { isFeatureAvailable } from '../subscriptions/sailorTiers';
 import type { AuthContext } from '../../services/mcp/server';
 import { buildStepButtons, buildCreatedStepButtons, buildPhotoAttachButtons, buildSubStepButtons } from './formatting';
 import type { InlineKeyboardButton } from './formatting';
@@ -37,6 +36,32 @@ interface TelegramToolDef {
 // ---------------------------------------------------------------------------
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * Returns the offset in minutes from UTC for the given IANA timezone at a given instant.
+ * Positive for east-of-UTC (e.g. Asia/Hong_Kong → 480).
+ */
+function tzOffsetMinutes(tz: string, at: Date): number {
+  const dtf = new Intl.DateTimeFormat('en-US', {
+    timeZone: tz,
+    hour12: false,
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit',
+  });
+  const parts = dtf.formatToParts(at).reduce<Record<string, string>>((acc, p) => {
+    if (p.type !== 'literal') acc[p.type] = p.value;
+    return acc;
+  }, {});
+  const asUTC = Date.UTC(
+    Number(parts.year),
+    Number(parts.month) - 1,
+    Number(parts.day),
+    Number(parts.hour === '24' ? '0' : parts.hour),
+    Number(parts.minute),
+    Number(parts.second),
+  );
+  return Math.round((asUTC - at.getTime()) / 60000);
+}
 
 async function resolveInterestId(
   supabase: SupabaseClient,
@@ -259,7 +284,7 @@ const TOOLS: TelegramToolDef[] = [
         // Preferred path: offset from server's "today"
         resolvedDate = new Date(serverNow);
         resolvedDate.setUTCDate(resolvedDate.getUTCDate() + offsetDays);
-        console.log(`[create_step] Date from offset: ${offsetDays} days → ${resolvedDate.toISOString().split('T')[0]}`);
+        console.warn(`[create_step] Date from offset: ${offsetDays} days → ${resolvedDate.toISOString().split('T')[0]}`);
       } else if (input.starts_at) {
         // Fallback: validate LLM-provided ISO date isn't hallucinated
         const parsed = new Date(input.starts_at as string);
@@ -271,11 +296,11 @@ const TOOLS: TelegramToolDef[] = [
           resolvedDate = serverNow;
         } else {
           resolvedDate = parsed;
-          console.log(`[create_step] Using validated starts_at: ${input.starts_at}`);
+          console.warn(`[create_step] Using validated starts_at: ${input.starts_at}`);
         }
       } else {
         resolvedDate = serverNow;
-        console.log(`[create_step] No date provided, using today: ${serverNow.toISOString().split('T')[0]}`);
+        console.warn(`[create_step] No date provided, using today: ${serverNow.toISOString().split('T')[0]}`);
       }
 
       // Apply time of day if provided
@@ -287,7 +312,7 @@ const TOOLS: TelegramToolDef[] = [
       }
 
       const startsAtISO = resolvedDate.toISOString();
-      console.log(`[create_step] Final starts_at: ${startsAtISO} (title: ${input.title})`);
+      console.warn(`[create_step] Final starts_at: ${startsAtISO} (title: ${input.title})`);
 
       const interest = await resolveInterestId(supabase, input.interest as string);
       if (!interest) {
@@ -1000,7 +1025,7 @@ const TOOLS: TelegramToolDef[] = [
 
       if (error) return { error: error.message };
 
-      const progressMap = new Map((progress ?? []).map((p: any) => [p.competency_id, p]));
+      const _progressMap = new Map((progress ?? []).map((p: any) => [p.competency_id, p]));
       const statuses = ['not_started', 'learning', 'practicing', 'checkoff_ready', 'validated', 'competent'];
       const byStatus: Record<string, number> = {};
       for (const s of statuses) byStatus[s] = 0;
@@ -1034,7 +1059,7 @@ const TOOLS: TelegramToolDef[] = [
       let interestId = input.interest_id as string | undefined;
       if (!interestId) {
         // Try user_interests table first
-        const { data: interests, error: uiErr } = await supabase
+        const { data: interests, error: _uiErr } = await supabase
           .from('user_interests')
           .select('interest_id')
           .eq('user_id', auth.userId)
@@ -1551,15 +1576,15 @@ const TOOLS: TelegramToolDef[] = [
   },
 
   // -----------------------------------------------------------------------
-  // log_observation — save the user's narrative/debrief as an observation
+  // log_observation — single in-the-moment note (during practice)
   // -----------------------------------------------------------------------
   {
     name: 'log_observation',
     description:
-      'Log an observation or debrief note on a step. Use this to capture what the user reports about their experience — what they did, how it went, what they learned, what they struggled with. The observation appears on the Act/Train tab and is visible to faculty.',
+      'Log a SHORT, IN-THE-MOMENT observation on a step — something the user noticed mid-practice ("the wind shifted right", "felt my form break down on rep 8"). Single moment, one fragment. Appended to act.notes so a chronological log builds up. NOT for end-of-step debriefs — for retrospective reflection use log_debrief instead.',
     schema: z.object({
       step_id: z.string().describe('The step UUID to log the observation on'),
-      observation: z.string().describe('The observation text to save — summarize the user\'s account of what happened, preserving key details about skills demonstrated, challenges encountered, and self-reflections'),
+      observation: z.string().describe('A single in-the-moment observation — keep it tight, one moment'),
     }),
     requiresWrite: true,
     handler: async (
@@ -1621,6 +1646,438 @@ const TOOLS: TelegramToolDef[] = [
       };
     },
   },
+
+  // -----------------------------------------------------------------------
+  // log_debrief — structured end-of-step retrospective (writes to Review tab)
+  // -----------------------------------------------------------------------
+  {
+    name: 'log_debrief',
+    description:
+      'Log a structured DEBRIEF on a step — used AFTER an activity is done, when the user reflects on what happened across the whole session. Synthesizes their narrative into what_learned (went well, key insights), what_to_change (what they would do differently), and next_step_notes (focus for next time). Writes to the Review tab — fields the user sees on the Critique screen. Use this whenever the user gives a multi-sentence past-tense recap of a step. Prefer this over log_observation for end-of-session reflection.',
+    schema: z.object({
+      step_id: z.string().describe('The step UUID to debrief'),
+      what_learned: z.string().optional().describe('What went well + key insights/learnings from the session. Synthesize the user\'s positive observations.'),
+      what_to_change: z.string().optional().describe('What the user would do differently next time, or what didn\'t work.'),
+      next_step_notes: z.string().optional().describe('Focus area or specific intent for the next session, if the user mentioned one.'),
+      overall_rating: z.number().int().min(1).max(5).optional().describe('1-5 self-rating ONLY if the user explicitly stated one — never invent.'),
+    }),
+    requiresWrite: true,
+    handler: async (
+      input: Record<string, unknown>,
+      supabase: SupabaseClient,
+      auth: AuthContext,
+    ) => {
+      const stepId = input.step_id as string;
+      const { data: step, error } = await supabase
+        .from('timeline_steps')
+        .select('id, title, metadata')
+        .eq('id', stepId)
+        .eq('user_id', auth.userId)
+        .single();
+
+      if (error || !step) {
+        return { error: error?.message ?? 'Step not found' };
+      }
+
+      const metadata = (step.metadata ?? {}) as Record<string, unknown>;
+      const review = (metadata.review ?? {}) as Record<string, unknown>;
+      const today = new Date().toISOString().split('T')[0];
+      const stamp = `[${today} via Telegram]`;
+
+      // Append (don't clobber) so existing user-typed text on the Critique tab survives.
+      const appendField = (existing: unknown, incoming: unknown): string | undefined => {
+        if (typeof incoming !== 'string' || !incoming.trim()) return existing as string | undefined;
+        const tagged = `${stamp} ${incoming.trim()}`;
+        const cur = typeof existing === 'string' && existing.trim() ? existing.trim() : '';
+        return cur ? `${cur}\n\n${tagged}` : tagged;
+      };
+
+      const reviewUpdates: Record<string, unknown> = { ...review };
+      const wl = appendField(review.what_learned, input.what_learned);
+      const tc = appendField(review.deviation_reason, input.what_to_change);
+      const nn = appendField(review.next_step_notes, input.next_step_notes);
+      if (wl !== undefined) reviewUpdates.what_learned = wl;
+      if (tc !== undefined) reviewUpdates.deviation_reason = tc;
+      if (nn !== undefined) reviewUpdates.next_step_notes = nn;
+      if (typeof input.overall_rating === 'number') {
+        reviewUpdates.overall_rating = input.overall_rating;
+      }
+
+      const { error: updateError } = await supabase
+        .from('timeline_steps')
+        .update({
+          metadata: { ...metadata, review: reviewUpdates },
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', stepId)
+        .eq('user_id', auth.userId);
+
+      if (updateError) {
+        return { error: updateError.message };
+      }
+
+      return {
+        debriefed: true,
+        step_id: step.id,
+        step_title: step.title,
+        wrote: {
+          what_learned: typeof input.what_learned === 'string',
+          what_to_change: typeof input.what_to_change === 'string',
+          next_step_notes: typeof input.next_step_notes === 'string',
+          overall_rating: typeof input.overall_rating === 'number',
+        },
+      };
+    },
+  },
+
+  // -----------------------------------------------------------------------
+  // get_today_plan — daily brief: steps starting today (pending/in_progress)
+  // -----------------------------------------------------------------------
+  {
+    name: 'get_today_plan',
+    description:
+      "Get today's plan — pending and in-progress steps that are scheduled for today. " +
+      "Use when the user asks 'what's on my plate today?', '/today', or wants a daily brief. " +
+      "Pass the user's IANA timezone (e.g. 'Asia/Hong_Kong') if known so 'today' is local, not UTC.",
+    schema: z.object({
+      timezone: z.string().optional().describe("IANA timezone like 'Asia/Hong_Kong'. Defaults to UTC."),
+    }),
+    handler: async (input, supabase, auth) => {
+      const tz = ((input as { timezone?: string }).timezone || 'UTC').trim();
+      // Compute the start of "today" in the given IANA tz, then convert to UTC instants.
+      const now = new Date();
+      let todayStart: Date;
+      let todayEnd: Date;
+      try {
+        const ymd = new Intl.DateTimeFormat('en-CA', { timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit' }).format(now);
+        // ymd like "2026-05-01". Find the UTC instant that corresponds to 00:00 in tz.
+        const offsetMin = tzOffsetMinutes(tz, new Date(`${ymd}T12:00:00Z`));
+        todayStart = new Date(`${ymd}T00:00:00Z`);
+        todayStart.setUTCMinutes(todayStart.getUTCMinutes() - offsetMin);
+        todayEnd = new Date(todayStart);
+        todayEnd.setUTCDate(todayEnd.getUTCDate() + 1);
+      } catch {
+        // Invalid tz → fall back to UTC
+        todayStart = new Date();
+        todayStart.setUTCHours(0, 0, 0, 0);
+        todayEnd = new Date(todayStart);
+        todayEnd.setUTCDate(todayEnd.getUTCDate() + 1);
+      }
+
+      const { data, error } = await supabase
+        .from('timeline_steps')
+        .select('id, title, description, category, status, starts_at, interest_id')
+        .eq('user_id', auth.userId)
+        .in('status', ['pending', 'in_progress'])
+        .gte('starts_at', todayStart.toISOString())
+        .lt('starts_at', todayEnd.toISOString())
+        .order('starts_at', { ascending: true })
+        .limit(5);
+
+      if (error) return { error: error.message };
+
+      const interestIds = [...new Set((data ?? []).map((s: Record<string, unknown>) => s.interest_id as string).filter(Boolean))];
+      const interestMap: Record<string, { name: string; slug: string }> = {};
+      if (interestIds.length > 0) {
+        const { data: interests } = await supabase
+          .from('interests')
+          .select('id, name, slug')
+          .in('id', interestIds);
+        for (const i of interests ?? []) {
+          interestMap[i.id] = { name: i.name, slug: i.slug };
+        }
+      }
+
+      const steps = (data ?? []).map((s: Record<string, unknown>) => ({
+        ...s,
+        interest: interestMap[s.interest_id as string] ?? null,
+      }));
+
+      // Display the local date the user means, not the UTC instant.
+      const localYmd = (() => {
+        try {
+          return new Intl.DateTimeFormat('en-CA', { timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+        } catch {
+          return todayStart.toISOString().split('T')[0];
+        }
+      })();
+
+      return {
+        date: localYmd,
+        timezone: tz,
+        count: steps.length,
+        steps,
+      };
+    },
+  },
+
+  // -----------------------------------------------------------------------
+  // save_url_to_playbook — enqueue forwarded URL as inbox item
+  // -----------------------------------------------------------------------
+  {
+    name: 'save_url_to_playbook',
+    description:
+      "Save a URL (article, YouTube link, video, document) into the user's playbook inbox for later " +
+      "ingestion. Use when the user forwards or sends a URL they want to remember/process. " +
+      "If interest is omitted, defaults to the user's first active interest.",
+    schema: z.object({
+      url: z.string().describe('The URL to save'),
+      title: z.string().optional().describe('Optional title for the resource'),
+      interest: z.string().optional().describe('Interest slug, name, or UUID. Defaults to first active interest.'),
+    }),
+    requiresWrite: true,
+    handler: async (input, supabase, auth) => {
+      const url = (input.url as string)?.trim();
+      if (!url) return { error: 'URL is required' };
+      if (!/^https?:\/\//i.test(url)) return { error: 'URL must start with http:// or https://' };
+
+      // Resolve interest
+      let interestId: string | null = null;
+      if (input.interest) {
+        const interest = await resolveInterestId(supabase, input.interest as string);
+        if (!interest) return { error: `Could not find interest "${input.interest}"` };
+        interestId = interest.id;
+      } else {
+        const { data: userInterest } = await supabase
+          .from('user_interests')
+          .select('interest_id')
+          .eq('user_id', auth.userId)
+          .eq('is_active', true)
+          .limit(1)
+          .maybeSingle();
+        interestId = (userInterest?.interest_id as string) ?? null;
+        if (!interestId) {
+          return { error: 'No active interest found. Add an interest first or pass one explicitly.' };
+        }
+      }
+
+      // Find or create the playbook for (user, interest)
+      let { data: playbook } = await supabase
+        .from('playbooks')
+        .select('id, name')
+        .eq('user_id', auth.userId)
+        .eq('interest_id', interestId)
+        .maybeSingle();
+
+      if (!playbook) {
+        const { data: created, error: createErr } = await supabase
+          .from('playbooks')
+          .insert({ user_id: auth.userId, interest_id: interestId, name: 'My Playbook' })
+          .select('id, name')
+          .single();
+        if (createErr) return { error: `Failed to create playbook: ${createErr.message}` };
+        playbook = created;
+      }
+
+      // Insert inbox item
+      const { data: item, error: insertErr } = await supabase
+        .from('playbook_inbox_items')
+        .insert({
+          playbook_id: playbook.id,
+          user_id: auth.userId,
+          kind: 'url',
+          title: (input.title as string) ?? null,
+          source_url: url,
+          status: 'pending',
+        })
+        .select('id, source_url, status')
+        .single();
+
+      if (insertErr) return { error: `Failed to save: ${insertErr.message}` };
+
+      return {
+        saved: true,
+        inbox_item_id: item.id,
+        playbook_id: playbook.id,
+        url: item.source_url,
+        message: `Saved to your inbox. Send /inbox to process pending items.`,
+      };
+    },
+  },
+
+  // -----------------------------------------------------------------------
+  // get_inbox_status — summarize pending playbook inbox items
+  // -----------------------------------------------------------------------
+  {
+    name: 'get_inbox_status',
+    description:
+      "Get the user's playbook inbox status — counts of pending items per playbook and a recent list. " +
+      "Use when the user asks '/inbox', 'what's pending?', or wants to know what's queued for ingestion.",
+    schema: z.object({}),
+    handler: async (_input, supabase, auth) => {
+      const { data: pending, error } = await supabase
+        .from('playbook_inbox_items')
+        .select('id, playbook_id, kind, title, source_url, status, created_at')
+        .eq('user_id', auth.userId)
+        .eq('status', 'pending')
+        .order('created_at', { ascending: false })
+        .limit(20);
+
+      if (error) return { error: error.message };
+
+      const items = pending ?? [];
+      const playbookIds = [...new Set(items.map(i => i.playbook_id as string))];
+
+      const playbookMap: Record<string, { name: string; interest_id: string }> = {};
+      if (playbookIds.length > 0) {
+        const { data: playbooks } = await supabase
+          .from('playbooks')
+          .select('id, name, interest_id')
+          .in('id', playbookIds);
+        for (const p of playbooks ?? []) {
+          playbookMap[p.id] = { name: p.name, interest_id: p.interest_id };
+        }
+      }
+
+      // Aggregate per playbook
+      const byPlaybook: Record<string, { name: string; playbook_id: string; pending_count: number }> = {};
+      for (const item of items) {
+        const pid = item.playbook_id as string;
+        const name = playbookMap[pid]?.name ?? 'Playbook';
+        if (!byPlaybook[pid]) {
+          byPlaybook[pid] = { name, playbook_id: pid, pending_count: 0 };
+        }
+        byPlaybook[pid].pending_count++;
+      }
+
+      return {
+        total_pending: items.length,
+        by_playbook: Object.values(byPlaybook),
+        recent: items.slice(0, 5).map(i => ({
+          id: i.id,
+          kind: i.kind,
+          title: i.title,
+          url: i.source_url,
+          playbook: playbookMap[i.playbook_id as string]?.name ?? null,
+        })),
+      };
+    },
+  },
+
+  // -----------------------------------------------------------------------
+  // process_inbox — invoke playbook-ingest-inbox edge function
+  // -----------------------------------------------------------------------
+  {
+    name: 'process_inbox',
+    description:
+      "Trigger ingestion of pending playbook inbox items. Use after save_url_to_playbook or " +
+      "when the user asks to 'process my inbox'. Pass playbook_id; if omitted, processes the " +
+      "playbook with the most pending items.",
+    schema: z.object({
+      playbook_id: z.string().optional().describe('Playbook UUID to process. If omitted, picks the one with the most pending items.'),
+    }),
+    requiresWrite: true,
+    handler: async (input, supabase, auth) => {
+      let playbookId = input.playbook_id as string | undefined;
+
+      if (!playbookId) {
+        // Find the playbook with the most pending items
+        const { data: pending } = await supabase
+          .from('playbook_inbox_items')
+          .select('playbook_id')
+          .eq('user_id', auth.userId)
+          .eq('status', 'pending')
+          .limit(100);
+        const counts: Record<string, number> = {};
+        for (const row of pending ?? []) {
+          const pid = row.playbook_id as string;
+          counts[pid] = (counts[pid] ?? 0) + 1;
+        }
+        const [topPid] = Object.entries(counts).sort((a, b) => b[1] - a[1])[0] ?? [];
+        if (!topPid) return { processed: 0, message: 'No pending items to process.' };
+        playbookId = topPid;
+      }
+
+      const supabaseUrl = process.env.SUPABASE_URL || process.env.EXPO_PUBLIC_SUPABASE_URL;
+      const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+      if (!supabaseUrl || !serviceRoleKey) return { error: 'Server not configured' };
+
+      // Invoke the edge function with service-role key. The function reads
+      // the user from the JWT — we pass the service-role key here only because
+      // we trust this code path (auth was already verified upstream).
+      try {
+        const response = await fetch(`${supabaseUrl}/functions/v1/playbook-ingest-inbox`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${serviceRoleKey}`,
+            'x-user-id': auth.userId,
+          },
+          body: JSON.stringify({ playbook_id: playbookId, requested_by: auth.userId }),
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          return { error: (data as { error?: string }).error ?? `Ingest failed (${response.status})` };
+        }
+        return {
+          processed: true,
+          playbook_id: playbookId,
+          ...(data as Record<string, unknown>),
+        };
+      } catch (e) {
+        return { error: `Failed to trigger ingest: ${String(e)}` };
+      }
+    },
+  },
+
+  // -----------------------------------------------------------------------
+  // reflect_on_resource — capture user's reflection on an ingested resource
+  // -----------------------------------------------------------------------
+  {
+    name: 'reflect_on_resource',
+    description:
+      "Save a user's reflection on a playbook resource (article, video, etc.) and trigger " +
+      "concept proposals. Use after a resource is ingested when the user shares what they " +
+      "took away from it.",
+    schema: z.object({
+      resource_id: z.string().describe('The playbook_resources UUID'),
+      reflection: z.string().describe('The user\'s reflection text'),
+    }),
+    requiresWrite: true,
+    handler: async (input, supabase, auth) => {
+      const resourceId = input.resource_id as string;
+      const reflection = (input.reflection as string)?.trim();
+      if (!reflection) return { error: 'reflection text required' };
+
+      // Verify ownership of the resource before invoking the edge function
+      const { data: resource } = await supabase
+        .from('playbook_resources')
+        .select('id, user_id, title')
+        .eq('id', resourceId)
+        .maybeSingle();
+
+      if (!resource) return { error: 'Resource not found' };
+      if (resource.user_id !== auth.userId) return { error: 'Resource does not belong to user' };
+
+      const supabaseUrl = process.env.SUPABASE_URL || process.env.EXPO_PUBLIC_SUPABASE_URL;
+      const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+      if (!supabaseUrl || !serviceRoleKey) return { error: 'Server not configured' };
+
+      try {
+        const response = await fetch(`${supabaseUrl}/functions/v1/playbook-reflect-resource`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${serviceRoleKey}`,
+            'x-user-id': auth.userId,
+          },
+          body: JSON.stringify({ resource_id: resourceId, reflection_text: reflection }),
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          return { error: (data as { error?: string }).error ?? `Reflection failed (${response.status})` };
+        }
+        return {
+          saved: true,
+          resource_id: resourceId,
+          resource_title: resource.title,
+          ...(data as Record<string, unknown>),
+        };
+      } catch (e) {
+        return { error: `Failed to save reflection: ${String(e)}` };
+      }
+    },
+  },
 ];
 
 // ---------------------------------------------------------------------------
@@ -1634,7 +2091,7 @@ export function getAnthropicTools(): Tool[] {
   return TOOLS.map(tool => {
     const jsonSchema = zodToJsonSchema(tool.schema, { target: 'openApi3' });
     // Remove $schema and other top-level keys that Anthropic doesn't expect
-    const { $schema, ...inputSchema } = jsonSchema as Record<string, unknown>;
+    const { $schema: _$schema, ...inputSchema } = jsonSchema as Record<string, unknown>;
     return {
       name: tool.name,
       description: tool.description,
@@ -1689,7 +2146,8 @@ export function getToolResponseKeyboard(
     if (result.error) return null;
 
     switch (toolName) {
-      case 'get_student_timeline': {
+      case 'get_student_timeline':
+      case 'get_today_plan': {
         const steps = result.steps as { id: string; title: string; status: string }[] | undefined;
         if (!steps?.length) return null;
 
@@ -1701,6 +2159,27 @@ export function getToolResponseKeyboard(
 
         const buttons = buildStepButtons(steps);
         return buttons.length > 0 ? buttons : null;
+      }
+
+      case 'get_inbox_status': {
+        const totalPending = (result.total_pending as number) ?? 0;
+        if (totalPending === 0) return null;
+        const byPlaybook = (result.by_playbook as { playbook_id: string; name: string; pending_count: number }[]) ?? [];
+        // Show one "Process: <Playbook> (N)" button per playbook with pending items, max 3
+        return byPlaybook.slice(0, 3).map(p => [{
+          text: `⚙️ Process ${p.name} (${p.pending_count})`,
+          callback_data: `process_inbox:${p.playbook_id}`,
+        }]);
+      }
+
+      case 'save_url_to_playbook': {
+        if (!result.saved) return null;
+        const playbookId = result.playbook_id as string | undefined;
+        if (!playbookId) return null;
+        return [[{
+          text: '⚙️ Process inbox now',
+          callback_data: `process_inbox:${playbookId}`,
+        }]];
       }
 
       case 'create_step': {
