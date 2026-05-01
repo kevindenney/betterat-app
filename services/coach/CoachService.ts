@@ -188,6 +188,7 @@ export async function runCoachTurn(
   let systemPrompt: string;
   let historyEntry: string;
   let uploadedPhotoUrl = '';
+  let photoCaptionForDebrief = ''; // non-empty when we should fall back to log_debrief server-side
 
   if (input.kind === 'photo') {
     const captionText = input.caption || "What is this? If it's food, analyze and log the nutrition.";
@@ -221,6 +222,7 @@ export async function runCoachTurn(
     const caption = (input.caption ?? '').trim();
     const captionLooksLikeDebrief = caption.length > 40 && /[.,;!?]/.test(caption);
     if (captionLooksLikeDebrief) {
+      photoCaptionForDebrief = caption;
       const lastAssistantMsg = recentHistory.filter(m => m.role === 'assistant').slice(-1)[0]?.content ?? '';
       const stepIdMatch = lastAssistantMsg.match(/\(([0-9a-f-]{36})\)/i);
       const stepIdHint = stepIdMatch ? ` Use step_id=${stepIdMatch[1]} for log_debrief unless attach_step_evidence returns a different id.` : '';
@@ -307,6 +309,8 @@ export async function runCoachTurn(
   let iterations = 0;
   let lastActionRows: CoachActionRow[] | null = null;
   let attachEvidenceCalled = false;
+  let logDebriefCalled = false;
+  let attachedStepId: string | undefined;
   const mentionedSteps: CoachMentionedStep[] = [];
 
   while (response.stop_reason === 'tool_use' && iterations < MAX_TOOL_ITERATIONS) {
@@ -326,6 +330,11 @@ export async function runCoachTurn(
       if (block.name === 'attach_step_evidence' && uploadedPhotoUrl) {
         toolInput = { ...block.input, photo_url: uploadedPhotoUrl };
         attachEvidenceCalled = true;
+        const sid = (block.input as { step_id?: unknown }).step_id;
+        if (typeof sid === 'string' && sid) attachedStepId = sid;
+      }
+      if (block.name === 'log_debrief') {
+        logDebriefCalled = true;
       }
 
       const toolStart = Date.now();
@@ -369,6 +378,37 @@ export async function runCoachTurn(
   }
   console.warn(`[coach] Tool loop done: ${iterations} iterations, stop_reason=${response.stop_reason}`);
 
+  // ---- Server-side log_debrief fallback ----------------------------------
+  // When the user sent a photo with a multi-sentence narrative caption, the
+  // model is *supposed* to call log_debrief after attach_step_evidence. In
+  // practice Haiku frequently stops after the attach + critique text, leaving
+  // the lesson stranded in act.media_uploads[].caption with nothing on the
+  // Critique tab. If we got here with a debrief-shaped caption, an attach
+  // landed, and log_debrief never ran — write the debrief ourselves.
+  if (
+    photoCaptionForDebrief &&
+    attachEvidenceCalled &&
+    !logDebriefCalled &&
+    attachedStepId
+  ) {
+    const split = splitCaptionForDebrief(photoCaptionForDebrief);
+    console.warn(
+      `[coach] log_debrief fallback: attaching narrative to step ${attachedStepId}`,
+      JSON.stringify(split).slice(0, 200),
+    );
+    try {
+      const fallbackResult = await executeTool(
+        'log_debrief',
+        { step_id: attachedStepId, ...split },
+        supabase,
+        auth,
+      );
+      console.warn('[coach] log_debrief fallback result:', fallbackResult.slice(0, 200));
+    } catch (err) {
+      console.error('[coach] log_debrief fallback failed:', err);
+    }
+  }
+
   // ---- Extract final text ------------------------------------------------
   const textBlocks = response.content.filter(
     (b): b is Anthropic.TextBlock => b.type === 'text',
@@ -408,4 +448,23 @@ export async function runCoachTurn(
     mentionedSteps,
     iterations,
   };
+}
+
+/**
+ * Heuristic split of a debrief-style photo caption into structured fields.
+ * Looks for the first "next time / next session / plan to / will replace / ..."
+ * style clause and treats text before it as what_learned, after as what_to_change.
+ * Falls back to putting the whole caption in what_learned.
+ */
+function splitCaptionForDebrief(caption: string): { what_learned?: string; what_to_change?: string } {
+  const text = caption.trim();
+  if (!text) return {};
+  const re = /\b(next\s+(?:time|session|race|run)|going\s+to|plan(?:ning)?\s+to|i'?ll\s+|i\s+will\s+|need\s+to\s+|gotta\s+|should\s+|want\s+to\s+)/i;
+  const m = text.match(re);
+  if (m && typeof m.index === 'number' && m.index > 20) {
+    const before = text.slice(0, m.index).replace(/[\s.;,—-]+$/, '').trim();
+    const after = text.slice(m.index).trim();
+    if (before && after) return { what_learned: before, what_to_change: after };
+  }
+  return { what_learned: text };
 }
