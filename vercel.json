@@ -44,16 +44,11 @@
       ]
     }
   ],
-  "redirects": [
-    {
-      "source": "/community/2027-hk-dragon-worlds",
-      "destination": "/connect?segment=discuss&community=2027-hk-dragon-worlds",
-      "permanent": false
-    }
-  ],
+  "redirects": [],
   "crons": [
     { "path": "/api/cron/telegram-digest?type=morning", "schedule": "0 8 * * *" },
-    { "path": "/api/cron/telegram-digest?type=evening", "schedule": "0 20 * * *" }
+    { "path": "/api/cron/telegram-digest?type=evening", "schedule": "0 20 * * *" },
+    { "path": "/api/cron/coach-nudge", "schedule": "0 * * * *" }
   ],
   "rewrites": [
     {

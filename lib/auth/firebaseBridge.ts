@@ -80,6 +80,11 @@ export const BRIDGE_TOKEN_PARAM = 'bridge_token';
 export const ACCESS_TOKEN_PARAM = 'rf_access_token';
 export const REFRESH_TOKEN_PARAM = 'rf_refresh_token';
 
+// Optional redirect target for the bridge — lets HKDW (or anything else)
+// hand off to a specific in-app path after the session is established.
+// Path-only, same-origin; sanitized in `extractNextRedirectFromUrl`.
+export const NEXT_REDIRECT_PARAM = 'next';
+
 // ============================================================================
 // API FUNCTIONS
 // ============================================================================
@@ -416,9 +421,33 @@ export function cleanAuthTokensFromUrl(url: string): string {
     urlObj.searchParams.delete(AUTH_TOKEN_PARAM);
     urlObj.searchParams.delete(ACCESS_TOKEN_PARAM);
     urlObj.searchParams.delete(REFRESH_TOKEN_PARAM);
+    urlObj.searchParams.delete(NEXT_REDIRECT_PARAM);
     return urlObj.toString();
   } catch {
     return url;
+  }
+}
+
+/**
+ * Extract the optional `next` redirect param from a bridge URL.
+ *
+ * Only same-origin paths are allowed (must start with `/` and not `//`).
+ * Length is capped to keep history clean and avoid open-redirect-style abuse.
+ *
+ * @param url - The URL to parse
+ * @returns A sanitized path (including query/hash) or null
+ */
+export function extractNextRedirectFromUrl(url: string): string | null {
+  try {
+    const urlObj = new URL(url);
+    const raw = urlObj.searchParams.get(NEXT_REDIRECT_PARAM);
+    if (!raw) return null;
+    // Same-origin path only. Reject protocols and protocol-relative URLs.
+    if (!raw.startsWith('/') || raw.startsWith('//')) return null;
+    if (raw.length > 1024) return null;
+    return raw;
+  } catch {
+    return null;
   }
 }
 

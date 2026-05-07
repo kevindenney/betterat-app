@@ -64,15 +64,6 @@ export default function CommunityDetailScreen() {
   const insets = useSafeAreaInsets();
   const queryClient = useQueryClient();
   const { user, signedIn } = useAuth();
-  const normalizedSlug = Array.isArray(slug) ? slug[0] : slug;
-
-  // Safety redirect for Dragon Worlds browser entrypoint so users land in tabbed Connect experience.
-  useEffect(() => {
-    if (Platform.OS !== 'web') return;
-    if (normalizedSlug !== '2027-hk-dragon-worlds') return;
-    router.replace('/connect?segment=discuss&community=2027-hk-dragon-worlds');
-  }, [normalizedSlug, router]);
-
   // Track if we've refetched after auth became available
   const hasRefetchedAfterAuth = useRef(false);
 
@@ -357,6 +348,22 @@ export default function CommunityDetailScreen() {
         options={{
           title: community.name,
           headerBackTitle: 'Back',
+          // Cold deep-links (e.g. HKDW token bridge → /community/<slug>) have
+          // no prior history, so the default back gesture has nowhere to go.
+          // Render an explicit back button that falls back to the home tabs.
+          headerLeft: () => (
+            <Pressable
+              onPress={() => {
+                if (router.canGoBack()) router.back();
+                else router.replace('/(tabs)' as any);
+              }}
+              hitSlop={8}
+              accessibilityRole="button"
+              accessibilityLabel="Back"
+            >
+              <Ionicons name="chevron-back" size={28} color={IOS_COLORS.systemBlue} />
+            </Pressable>
+          ),
           headerRight: () => (
             <Pressable
               onPress={() => {

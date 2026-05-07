@@ -10,6 +10,7 @@ import { initSentry } from '@/lib/sentry';
 initSentry();
 import {
   extractSessionTokensFromUrl,
+  extractNextRedirectFromUrl,
   setSessionFromBridgeTokens,
   exchangeBridgeTokenForSession,
   cleanAuthTokensFromUrl,
@@ -256,6 +257,12 @@ function FirebaseBridgeHandler() {
         return; // No tokens present
       }
 
+      // Capture optional `next` redirect target before we strip query params.
+      // This lets HKDW (or any caller) hand off to a specific in-app path
+      // (e.g. /blueprint/dragon-worlds-2027-peak-performance?auto_subscribe=1)
+      // instead of the default Discuss landing.
+      const nextRedirect = extractNextRedirectFromUrl(currentUrl);
+
       bridgeProcessedRef.current = true;
       console.log('[FirebaseBridge] Processing auth tokens from URL, type:', tokens.type);
 
@@ -300,10 +307,20 @@ function FirebaseBridgeHandler() {
                 // Notify parent app (Dragon Worlds WebView) of success
                 notifyAuthSuccess('session-established');
 
-                // Navigate into the main tab experience so web users retain tab navigation.
-                // Use Connect with Discuss segment preselected for Dragon Worlds context.
-                console.log('[FirebaseBridge] Navigating to Connect tab (Discuss segment)');
-                router.replace('/connect?segment=discuss&community=2027-hk-dragon-worlds');
+                // Decide where to land:
+                //   1. Explicit `?next=...` from caller → honor it (sanitized,
+                //      same-origin, path-only — see extractNextRedirectFromUrl).
+                //   2. Otherwise stay on the current path. The URL has already
+                //      been cleaned of tokens above, so deep links like
+                //      /blueprint/...?rf_access_token=... and
+                //      /community/<slug>?rf_access_token=... just render where
+                //      the user landed once the session is live.
+                if (nextRedirect) {
+                  console.log('[FirebaseBridge] Navigating to next redirect:', nextRedirect);
+                  router.replace(nextRedirect as any);
+                } else {
+                  console.log('[FirebaseBridge] No redirect; staying on current path');
+                }
                 return;
               }
               // Wait 200ms before next attempt
