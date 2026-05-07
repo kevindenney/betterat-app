@@ -29,6 +29,7 @@ import {
 import { triggerHaptic } from '@/lib/haptics';
 import { CommunityDetailHeader } from '@/components/community/CommunityDetailHeader';
 import { CommunityMembersModal } from '@/components/community/CommunityMembersModal';
+import { HKDWWelcomeCard } from '@/components/community/HKDWWelcomeCard';
 import { FeedPostCard } from '@/components/venue/feed/FeedPostCard';
 import {
   useCommunityBySlug,
@@ -279,6 +280,13 @@ export default function CommunityDetailScreen() {
             onMembersPress={handleMembersPress}
           />
 
+          {/*
+            Welcome card pinned for sailors landing on the official Dragon
+            Worlds 2027 community. Without this, the page is a dead end —
+            no signpost to prep plan, races, or profile. Dismissible.
+          */}
+          <HKDWWelcomeCard visible={community.slug === '2027-hk-dragon-worlds' && !!signedIn} />
+
         {/* Section Divider */}
         <View style={styles.sectionDivider}>
           <View style={styles.sectionHeader}>
@@ -315,7 +323,7 @@ export default function CommunityDetailScreen() {
       </>
       );
     },
-    [community, handleJoinToggle, isJoinPending, isMembershipLoading, handleMembersPress, feedSort, feedPostType, openSortPicker, openFilterPicker, handleCreatePost, canPost, posts.length]
+    [community, signedIn, handleJoinToggle, isJoinPending, isMembershipLoading, handleMembersPress, feedSort, feedPostType, openSortPicker, openFilterPicker, handleCreatePost, canPost, posts.length]
   );
 
   const ListEmpty = useMemo(
