@@ -347,35 +347,29 @@ export default function CommunityDetailScreen() {
       <Stack.Screen
         options={{
           title: community.name,
-          headerBackTitle: 'Back',
-          // Cold deep-links (e.g. HKDW token bridge → /community/<slug>) have
-          // no prior history, so the default back gesture has nowhere to go.
-          // Render an explicit back button that falls back to the home tabs.
-          headerLeft: () => (
-            <Pressable
-              onPress={() => {
-                if (router.canGoBack()) router.back();
-                else router.replace('/(tabs)' as any);
-              }}
-              hitSlop={8}
-              accessibilityRole="button"
-              accessibilityLabel="Back"
-            >
-              <Ionicons name="chevron-back" size={28} color={IOS_COLORS.systemBlue} />
-            </Pressable>
-          ),
-          headerRight: () => (
-            <Pressable
-              onPress={() => {
-                // TODO: Community settings/menu
-              }}
-              hitSlop={8}
-            >
-              <Ionicons name="ellipsis-horizontal" size={24} color={IOS_COLORS.systemBlue} />
-            </Pressable>
-          ),
+          headerShown: false,
         }}
       />
+      {/*
+        Floating back button overlay.
+        The page is edge-to-edge by design (the orange gradient hero is the
+        first row of CommunityDetailHeader, so a system header would clash).
+        Cold deep-links (e.g. HKDW token bridge → /community/<slug>) have no
+        prior history, so router.back() has nowhere to go — fall back to the
+        home tabs in that case.
+      */}
+      <Pressable
+        onPress={() => {
+          if (router.canGoBack()) router.back();
+          else router.replace('/(tabs)' as any);
+        }}
+        hitSlop={12}
+        accessibilityRole="button"
+        accessibilityLabel="Back"
+        style={[styles.floatingBack, { top: insets.top + 8 }]}
+      >
+        <Ionicons name="chevron-back" size={24} color="#FFFFFF" />
+      </Pressable>
       <FlatList
         data={posts}
         keyExtractor={(item) => item.id}
@@ -423,6 +417,17 @@ export default function CommunityDetailScreen() {
 }
 
 const styles = StyleSheet.create({
+  floatingBack: {
+    position: 'absolute',
+    left: 12,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(0, 0, 0, 0.35)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 10,
+  },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
