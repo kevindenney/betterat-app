@@ -68,7 +68,7 @@ const STATUS_CONFIG: Record<string, { color: string; icon: string; label: string
 export default function BlueprintPage() {
   const { slug, auto_subscribe } = useLocalSearchParams<{ slug: string; auto_subscribe?: string }>();
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, ready: authReady, loading: authLoading } = useAuth();
 
   const { data: blueprint, isLoading: blueprintLoading } = useBlueprint(slug);
   const { data: steps, isLoading: stepsLoading } = useBlueprintSteps(blueprint?.id);
@@ -195,6 +195,26 @@ export default function BlueprintPage() {
     if (auto_subscribe !== '1') return;
     if (!blueprint) return;
 
+    // Wait for auth to settle before deciding signed-in vs signed-out.
+    // Without this, a brief `user === null` window during auth bootstrap
+    // (e.g. immediately after returnTo round-trip from /(auth)/login)
+    // causes a flash-redirect to login before useAuth() hydrates.
+    if (!authReady || authLoading) return;
+
+    // Hold off while the FirebaseBridgeHandler is establishing the session
+    // from URL tokens. Otherwise we race with the bridge: the blueprint page
+    // sees `!user`, redirects to /(auth)/login, then the bridge finishes and
+    // replaceState's the (now-stale) blueprint URL back over the login URL.
+    // Same pattern AuthGate uses in app/_layout.tsx.
+    if (
+      Platform.OS === 'web' &&
+      typeof window !== 'undefined' &&
+      (window.location.search.includes('rf_access_token=') ||
+        window.location.search.includes('rf_bridge_token='))
+    ) {
+      return;
+    }
+
     // Signed-out: route through login, preserving the auto_subscribe flag so
     // we resume after auth.
     if (!user) {
@@ -276,7 +296,7 @@ export default function BlueprintPage() {
         console.warn('[BlueprintPage] auto-subscribe failed:', err);
       })
       .finally(stripParam);
-  }, [auto_subscribe, user, blueprint, subscription, slug, router, subscribeMutation, allInterests, addInterest, switchInterest]);
+  }, [auto_subscribe, user, authReady, authLoading, blueprint, subscription, slug, router, subscribeMutation, allInterests, addInterest, switchInterest]);
 
   const blueprintInterestSlug = blueprint?.interest_id
     ? allInterests.find((i) => i.id === blueprint.interest_id)?.slug
