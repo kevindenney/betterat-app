@@ -1287,6 +1287,13 @@ export function AuthProvider({children}:{children: React.ReactNode}) {
         try {
           const params = new URLSearchParams(window.location.search)
           const returnTo = params.get('returnTo')
+          // [TRAIL] persist click-time state for diagnostic post-mortems
+          try {
+            const arr = JSON.parse(window.localStorage.getItem('auth_trail') || '[]')
+            arr.push({ t: Date.now(), stage: 'oauth_click', data: { url: window.location.href, returnTo, willStash: !!(returnTo && returnTo.startsWith('/')) } })
+            while (arr.length > 50) arr.shift()
+            window.localStorage.setItem('auth_trail', JSON.stringify(arr))
+          } catch {}
           if (returnTo && returnTo.startsWith('/')) {
             window.sessionStorage.setItem('oauth_return_to', returnTo)
           }
@@ -1407,6 +1414,13 @@ export function AuthProvider({children}:{children: React.ReactNode}) {
         try {
           const params = new URLSearchParams(window.location.search)
           const returnTo = params.get('returnTo')
+          // [TRAIL] persist click-time state for diagnostic post-mortems
+          try {
+            const arr = JSON.parse(window.localStorage.getItem('auth_trail') || '[]')
+            arr.push({ t: Date.now(), stage: 'oauth_click', data: { url: window.location.href, returnTo, willStash: !!(returnTo && returnTo.startsWith('/')) } })
+            while (arr.length > 50) arr.shift()
+            window.localStorage.setItem('auth_trail', JSON.stringify(arr))
+          } catch {}
           if (returnTo && returnTo.startsWith('/')) {
             window.sessionStorage.setItem('oauth_return_to', returnTo)
           }

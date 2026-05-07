@@ -13,6 +13,19 @@ import AsyncStorage from '@react-native-async-storage/async-storage'
 
 const logger = createLogger('OAuthCallback')
 
+// [TRAIL] Persist a diagnostic trail of the OAuth flow to localStorage so we
+// can post-mortem failures by reading it via Chrome DevTools after the fact.
+// Capped to last 50 entries. Key: 'auth_trail'.
+const trail = (stage: string, data?: any) => {
+  try {
+    if (typeof window === 'undefined') return
+    const arr = JSON.parse(window.localStorage.getItem('auth_trail') || '[]')
+    arr.push({ t: Date.now(), stage, data })
+    while (arr.length > 50) arr.shift()
+    window.localStorage.setItem('auth_trail', JSON.stringify(arr))
+  } catch {}
+}
+
 type PersonaRole = 'sailor' | 'coach' | 'club'
 
 // Storage key for pending persona from signup flow
@@ -45,9 +58,25 @@ export default function Callback(){
     }
     ran.current = true
 
+    trail('callback:enter', {
+      url: window.location.href,
+      hash: window.location.hash,
+      search: window.location.search,
+      sessionStorage: {
+        oauth_return_to: window.sessionStorage.getItem('oauth_return_to'),
+        auth_settling_at: window.sessionStorage.getItem('auth_settling_at'),
+      },
+      sbKeys: Object.keys(window.localStorage).filter(k => k.startsWith('sb-')),
+    })
+
     // Safety timeout - if callback takes longer than 10s, force redirect
     const safetyTimeout = setTimeout(() => {
       logger.error('Safety timeout triggered after 10 seconds')
+      trail('callback:safety_timeout_fired', {
+        url: window.location.href,
+        oauth_return_to: window.sessionStorage.getItem('oauth_return_to'),
+        auth_settling_at: window.sessionStorage.getItem('auth_settling_at'),
+      })
       router.replace(getDashboardRoute(null) as any)
     }, 10000)
 
@@ -58,18 +87,36 @@ export default function Callback(){
         const accessToken = hashParams.get('access_token')
         const refreshToken = hashParams.get('refresh_token')
 
+        // [TRAIL] Also capture query for PKCE detection
+        const queryParams = new URLSearchParams(window.location.search)
+        const codeParam = queryParams.get('code')
+        trail('callback:parsed_url', {
+          hasAccessToken: !!accessToken,
+          hasRefreshToken: !!refreshToken,
+          hasCodeParam: !!codeParam,
+          hashLen: window.location.hash.length,
+          searchLen: window.location.search.length,
+        })
+
         if (!accessToken) {
+          trail('callback:no_access_token:start_getSession')
           // If we don't see tokens in the hash, check if a session already exists (e.g. user reloaded /callback)
           const { data: existingSession } = await supabase.auth.getSession()
+          trail('callback:no_access_token:getSession_returned', {
+            hasSession: !!existingSession.session,
+            userId: existingSession.session?.user?.id,
+          })
           if (existingSession.session?.user) {
             const destination = getDashboardRoute(existingSession.session.user.user_metadata?.user_type ?? null)
             logger.warn('No access token in callback but session exists, routing to dashboard:', destination)
+            trail('callback:no_access_token:routing_dashboard', { destination })
             clearTimeout(safetyTimeout)
             router.replace(destination as any)
             return
           }
 
           logger.error('No access token in OAuth callback')
+          trail('callback:no_access_token:routing_login')
           setStatus('Something went wrong. Redirecting to login...')
           clearTimeout(safetyTimeout)
           setTimeout(() => router.replace('/(auth)/login'), 2000)
@@ -78,13 +125,21 @@ export default function Callback(){
 
         setStatus('Signing you in...')
 
+        trail('callback:setSession:start')
         const {data: tokenData, error: tokenError} = await supabase.auth.setSession({
           access_token: accessToken,
           refresh_token: refreshToken || ''
         })
+        trail('callback:setSession:returned', {
+          hasError: !!tokenError,
+          errorMsg: tokenError?.message,
+          hasSession: !!tokenData?.session,
+          userId: tokenData?.session?.user?.id,
+        })
 
         if (tokenError) {
           logger.error('Token exchange error:', tokenError)
+          trail('callback:setSession_error_routing_login', { errorMsg: tokenError?.message })
           setStatus('Something went wrong. Redirecting to login...')
           clearTimeout(safetyTimeout)
           setTimeout(() => router.replace('/(auth)/login'), 2000)
@@ -262,6 +317,7 @@ export default function Callback(){
           if (typeof window !== 'undefined') {
             try {
               const fromSession = window.sessionStorage.getItem('oauth_return_to')
+              trail('callback:returnTo:read_sessionStorage', { fromSession })
               if (fromSession && fromSession.startsWith('/')) {
                 returnTo = fromSession
                 window.sessionStorage.removeItem('oauth_return_to')
@@ -273,9 +329,11 @@ export default function Callback(){
             if (returnTo) {
               await AsyncStorage.removeItem('post_onboarding_return_to')
             }
+            trail('callback:returnTo:read_asyncStorage', { returnTo })
           }
           if (returnTo) {
             logger.info('Redirecting to returnTo:', returnTo)
+            trail('callback:routing_returnTo', { returnTo })
             setStatus('Almost there...')
             setTimeout(() => {
               router.replace(returnTo as any)
@@ -283,6 +341,7 @@ export default function Callback(){
           } else {
             const dest = getDashboardRoute(effectiveUserType ?? null)
             logger.info('Redirecting to dashboard:', dest)
+            trail('callback:routing_dashboard_no_returnTo', { dest, effectiveUserType })
             setStatus('Almost there...')
             setTimeout(() => {
               router.replace(dest as any)
