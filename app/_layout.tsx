@@ -267,6 +267,24 @@ function FirebaseBridgeHandler() {
       bridgeProcessedRef.current = true;
       console.log('[FirebaseBridge] Processing auth tokens from URL, type:', tokens.type);
 
+      // Always strip bridge tokens from the URL — whether the exchange
+      // succeeds or fails. Leaving stale `rf_access_token=` in the address
+      // bar (a) leaks them in browser history and (b) traps any downstream
+      // page logic that gates on "wait for bridge to finish" (e.g. the
+      // blueprint auto-subscribe effect) because it never sees the URL
+      // get cleaned on the failure path. Cleaning here lets the page
+      // fall through to its normal signed-out flow.
+      const stripBridgeTokensFromUrl = () => {
+        try {
+          const cleanUrl = cleanAuthTokensFromUrl(window.location.href);
+          if (cleanUrl !== window.location.href) {
+            window.history.replaceState(null, '', cleanUrl);
+          }
+        } catch (e) {
+          console.warn('[FirebaseBridge] Failed to clean URL:', e);
+        }
+      };
+
       try {
         let success = false;
 
@@ -282,10 +300,7 @@ function FirebaseBridgeHandler() {
 
         if (success) {
           console.log('[FirebaseBridge] Session established successfully');
-
-          // Clean the URL by removing the tokens
-          const cleanUrl = cleanAuthTokensFromUrl(currentUrl);
-          window.history.replaceState(null, '', cleanUrl);
+          stripBridgeTokensFromUrl();
 
           // Verify the session is actually working by checking getUser()
           const maxAttempts = 10;
@@ -336,10 +351,12 @@ function FirebaseBridgeHandler() {
           waitForSession();
         } else {
           console.error('[FirebaseBridge] Failed to establish session');
+          stripBridgeTokensFromUrl();
           notifyAuthFailure('Session exchange failed');
         }
       } catch (error) {
         console.error('[FirebaseBridge] Error processing auth tokens:', error);
+        stripBridgeTokensFromUrl();
         notifyAuthFailure(error instanceof Error ? error.message : 'Unknown error');
       }
     };
