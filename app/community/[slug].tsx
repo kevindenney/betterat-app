@@ -361,7 +361,7 @@ export default function CommunityDetailScreen() {
       <Pressable
         onPress={() => {
           if (router.canGoBack()) router.back();
-          else router.replace('/(tabs)' as any);
+          else router.replace('/races' as any);
         }}
         hitSlop={12}
         accessibilityRole="button"
