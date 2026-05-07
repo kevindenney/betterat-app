@@ -40,6 +40,7 @@ import {
 } from '@expo-google-fonts/manrope';
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { LogBox, Platform } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 // Suppress known warnings for native modules not available in Expo Go
 // These errors occur because expo-notifications and expo-device require a development build
@@ -401,7 +402,11 @@ function AuthGate() {
     if (!ready || loading) return;
 
     const firstSegment = segments[0] ?? '';
-    const publicSegments = ['index', '(auth)', 'privacy', 'welcome', 'callback'];
+    // `blueprint` is a public marketing page that handles its own
+    // signed-out → /(auth)/login?returnTo=... redirect (with auto_subscribe
+    // round-trip support). Letting AuthGate redirect to `/` would clobber
+    // the auto_subscribe deep-link from HKDW.
+    const publicSegments = ['index', '(auth)', 'privacy', 'welcome', 'callback', 'blueprint'];
     const isPublicRoute = !firstSegment || publicSegments.includes(firstSegment);
 
     if (isPublicRoute) return;
@@ -585,28 +590,30 @@ export default function RootLayout() {
   }, []);
 
   return (
-    <ErrorBoundary>
-      <QueryClientProvider client={queryClient}>
-        <GluestackUIProvider mode="light">
-          <StripeProvider>
-            <AuthProvider>
-              <OrganizationProvider>
-                <InterestProvider>
-                <ContextualHintProvider>
-                <ToastProvider>
-                  <WebAlertProvider>
-                  <PushNotificationHandler>
-                    <StackWithSplash />
-                  </PushNotificationHandler>
-                  </WebAlertProvider>
-                </ToastProvider>
-                </ContextualHintProvider>
-              </InterestProvider>
-              </OrganizationProvider>
-            </AuthProvider>
-          </StripeProvider>
-        </GluestackUIProvider>
-      </QueryClientProvider>
-    </ErrorBoundary>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <ErrorBoundary>
+        <QueryClientProvider client={queryClient}>
+          <GluestackUIProvider mode="light">
+            <StripeProvider>
+              <AuthProvider>
+                <OrganizationProvider>
+                  <InterestProvider>
+                  <ContextualHintProvider>
+                  <ToastProvider>
+                    <WebAlertProvider>
+                    <PushNotificationHandler>
+                      <StackWithSplash />
+                    </PushNotificationHandler>
+                    </WebAlertProvider>
+                  </ToastProvider>
+                  </ContextualHintProvider>
+                </InterestProvider>
+                </OrganizationProvider>
+              </AuthProvider>
+            </StripeProvider>
+          </GluestackUIProvider>
+        </QueryClientProvider>
+      </ErrorBoundary>
+    </GestureHandlerRootView>
   )
 }
