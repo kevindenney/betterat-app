@@ -59,13 +59,39 @@ const POST_TYPE_FILTERS: (PostType | 'all')[] = [
 ];
 
 export default function CommunityDetailScreen() {
-  const { slug } = useLocalSearchParams<{ slug: string }>();
+  const { slug, post: postIdParam } = useLocalSearchParams<{ slug: string; post?: string }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const queryClient = useQueryClient();
-  const { user, signedIn } = useAuth();
+  const { user, signedIn, ready, loading } = useAuth();
   // Track if we've refetched after auth became available
   const hasRefetchedAfterAuth = useRef(false);
+  // Deep-link: HKDW's "Open in browser" button on a post produces
+  // /community/<slug>?post=<id>. Auto-open the post detail once on mount.
+  const hasHandledPostParamRef = useRef(false);
+  useEffect(() => {
+    if (hasHandledPostParamRef.current) return;
+    if (!postIdParam) return;
+    if (!signedIn) return;
+    hasHandledPostParamRef.current = true;
+    router.push(`/venue/post/${postIdParam}`);
+  }, [postIdParam, signedIn, router]);
+
+  // Signed-out deep-link: round-trip through login so we land back on this
+  // URL (with `?post=`) and auto-open the post. Mirrors the blueprint
+  // page's pattern. AuthGate keeps `community` public so this redirect
+  // wins instead of bouncing to `/`.
+  const hasRedirectedToLoginRef = useRef(false);
+  useEffect(() => {
+    if (hasRedirectedToLoginRef.current) return;
+    if (!ready || loading) return;
+    if (signedIn) return;
+    hasRedirectedToLoginRef.current = true;
+    const returnTo = postIdParam
+      ? `/community/${slug}?post=${postIdParam}`
+      : `/community/${slug}`;
+    router.replace({ pathname: '/(auth)/login', params: { returnTo } } as any);
+  }, [ready, loading, signedIn, slug, postIdParam, router]);
 
   // State
   const [feedSort, setFeedSort] = useState<FeedSortType>('hot');

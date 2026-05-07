@@ -419,7 +419,12 @@ function AuthGate() {
     // signed-out → /(auth)/login?returnTo=... redirect (with auto_subscribe
     // round-trip support). Letting AuthGate redirect to `/` would clobber
     // the auto_subscribe deep-link from HKDW.
-    const publicSegments = ['index', '(auth)', 'privacy', 'welcome', 'callback', 'blueprint'];
+    //
+    // `community` deep-links from HKDW Discuss (`/community/<slug>?post=<id>`)
+    // also need to round-trip through login so the post detail opens after
+    // sign-in. The community screen redirects signed-out visitors to
+    // `/(auth)/login?returnTo=...` itself.
+    const publicSegments = ['index', '(auth)', 'privacy', 'welcome', 'callback', 'blueprint', 'community'];
     const isPublicRoute = !firstSegment || publicSegments.includes(firstSegment);
 
     if (isPublicRoute) return;
