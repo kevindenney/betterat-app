@@ -401,6 +401,19 @@ function AuthGate() {
   useEffect(() => {
     if (!ready || loading) return;
 
+    // Hold off if the FirebaseBridgeHandler is about to sign the user in from
+    // URL tokens. Otherwise we race with the bridge: AuthGate redirects to /
+    // first because signedIn is still false, then the bridge finishes auth and
+    // the user lands on the wrong page (tab default instead of the deep link).
+    if (
+      Platform.OS === 'web' &&
+      typeof window !== 'undefined' &&
+      (window.location.search.includes('rf_access_token=') ||
+        window.location.search.includes('rf_bridge_token='))
+    ) {
+      return;
+    }
+
     const firstSegment = segments[0] ?? '';
     // `blueprint` is a public marketing page that handles its own
     // signed-out → /(auth)/login?returnTo=... redirect (with auto_subscribe
