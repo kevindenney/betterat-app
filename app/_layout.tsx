@@ -441,7 +441,7 @@ function AuthGate() {
     // also need to round-trip through login so the post detail opens after
     // sign-in. The community screen redirects signed-out visitors to
     // `/(auth)/login?returnTo=...` itself.
-    const publicSegments = ['index', '(auth)', 'privacy', 'welcome', 'callback', 'blueprint', 'community'];
+    const publicSegments = ['index', '(auth)', 'privacy', 'welcome', 'callback', 'blueprint', 'community', 'pricing', 'institutions', 'how-it-works'];
     const isPublicRoute = !firstSegment || publicSegments.includes(firstSegment);
 
     if (isPublicRoute) return;
