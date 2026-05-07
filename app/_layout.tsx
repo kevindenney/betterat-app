@@ -431,6 +431,23 @@ function AuthGate() {
       return;
     }
 
+    // Hold off in the brief window after callback.tsx has called
+    // supabase.auth.setSession() but before AuthProvider's onAuthStateChange
+    // listener has broadcast signedIn=true. Without this, OAuth users land on
+    // /(tabs)/races, AuthGate reads stale signedIn=false, and bounces them to
+    // `/` (the public marketing page).
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
+      try {
+        const settlingAt = window.sessionStorage.getItem('auth_settling_at');
+        if (settlingAt && Date.now() - parseInt(settlingAt, 10) < 3000) {
+          return;
+        }
+        if (settlingAt) {
+          window.sessionStorage.removeItem('auth_settling_at');
+        }
+      } catch {}
+    }
+
     const firstSegment = segments[0] ?? '';
     // `blueprint` is a public marketing page that handles its own
     // signed-out → /(auth)/login?returnTo=... redirect (with auto_subscribe

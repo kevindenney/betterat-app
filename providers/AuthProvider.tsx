@@ -314,8 +314,9 @@ export function AuthProvider({children}:{children: React.ReactNode}) {
         .eq('id', uid)
         .maybeSingle()
 
+      // 20s timeout — 5s was tripping on slow networks and wiping state.
       const timeoutPromise = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error('Profile fetch timeout after 5 seconds')), 5000)
+        setTimeout(() => reject(new Error('Profile fetch timeout after 20 seconds')), 20000)
       )
 
       const { data, error } = await Promise.race([queryPromise, timeoutPromise]) as any
@@ -386,13 +387,17 @@ export function AuthProvider({children}:{children: React.ReactNode}) {
       profileFetchInProgress.current = null
       return resolvedProfile
     } catch (error) {
-      // On timeout or error, default to 'sailor' so user can still use the app
+      // On timeout, NEVER overwrite an already-loaded profile (a transient
+      // network blip would otherwise wipe name / avatar / home_club / etc.).
+      // If nothing is loaded yet, also leave userProfile as-is and return
+      // null — the consumer can show a loading state and the next fetch
+      // attempt will fill it in. The previous behavior of stubbing
+      // { id, user_type: 'sailor' } caused real users to be silently
+      // demoted to a blank sailor profile on slow networks.
       const isTimeout = error instanceof Error && error.message.includes('timeout')
       if (isTimeout) {
-        setUserType('sailor' as UserType)
-        setUserProfile({ id: uid, user_type: 'sailor' })
         profileFetchInProgress.current = null
-        return { id: uid, user_type: 'sailor' }
+        return null
       }
 
       profileFetchInProgress.current = null
@@ -1273,6 +1278,21 @@ export function AuthProvider({children}:{children: React.ReactNode}) {
         authDebugLog('🔍 [LOGIN] Stored pending persona in localStorage:', persona)
       }
 
+      // Preserve a `returnTo` query param across the OAuth redirect so users
+      // who arrive at /login?returnTo=/community/...?post=... actually land
+      // on the post (not the default dashboard) after sign-in. The OAuth
+      // redirect drops our URL, so we stash it before jumping out and the
+      // callback reads it back.
+      if (typeof window !== 'undefined') {
+        try {
+          const params = new URLSearchParams(window.location.search)
+          const returnTo = params.get('returnTo')
+          if (returnTo && returnTo.startsWith('/')) {
+            window.sessionStorage.setItem('oauth_return_to', returnTo)
+          }
+        } catch {}
+      }
+
       if (Platform.OS === 'web') {
         // Dynamic origin configuration - works on any port
         const currentOrigin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000'
@@ -1376,6 +1396,21 @@ export function AuthProvider({children}:{children: React.ReactNode}) {
       if (persona && typeof window !== 'undefined' && typeof window.localStorage !== 'undefined') {
         window.localStorage.setItem('oauth_pending_persona', persona)
         authDebugLog('🔍 [LOGIN] Stored pending persona in localStorage:', persona)
+      }
+
+      // Preserve a `returnTo` query param across the OAuth redirect so users
+      // who arrive at /login?returnTo=/community/...?post=... actually land
+      // on the post (not the default dashboard) after sign-in. The OAuth
+      // redirect drops our URL, so we stash it before jumping out and the
+      // callback reads it back.
+      if (typeof window !== 'undefined') {
+        try {
+          const params = new URLSearchParams(window.location.search)
+          const returnTo = params.get('returnTo')
+          if (returnTo && returnTo.startsWith('/')) {
+            window.sessionStorage.setItem('oauth_return_to', returnTo)
+          }
+        } catch {}
       }
 
       if (Platform.OS === 'web') {

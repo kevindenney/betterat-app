@@ -105,6 +105,15 @@ export default function Callback(){
 
       setStatus('Loading your profile...')
 
+      // Mark "auth is settling" so AuthGate can hold off on the next route
+      // bounce. Supabase's onAuthStateChange listener is async; if we navigate
+      // to a protected route before it broadcasts, AuthGate sees signedIn=false
+      // and kicks the user back to `/`. Mirrors the existing rf_access_token
+      // hold-off pattern in app/_layout.tsx.
+      try {
+        window.sessionStorage.setItem('auth_settling_at', String(Date.now()))
+      } catch {}
+
       // Clean up URL hash immediately
       try {
         window.history.replaceState(null, '', '/callback')
@@ -245,10 +254,27 @@ export default function Callback(){
             router.replace(onboardingRoute as any)
           }, 100)
         } else {
-          // Check if user was redirected from a blueprint page (or similar)
-          const returnTo = await AsyncStorage.getItem('post_onboarding_return_to')
+          // Check for a returnTo destination, preferring the one captured from
+          // the URL right before the OAuth redirect (web sessionStorage). Falls
+          // back to the older AsyncStorage key used by other flows (e.g.
+          // blueprint auto-subscribe).
+          let returnTo: string | null = null
+          if (typeof window !== 'undefined') {
+            try {
+              const fromSession = window.sessionStorage.getItem('oauth_return_to')
+              if (fromSession && fromSession.startsWith('/')) {
+                returnTo = fromSession
+                window.sessionStorage.removeItem('oauth_return_to')
+              }
+            } catch {}
+          }
+          if (!returnTo) {
+            returnTo = await AsyncStorage.getItem('post_onboarding_return_to')
+            if (returnTo) {
+              await AsyncStorage.removeItem('post_onboarding_return_to')
+            }
+          }
           if (returnTo) {
-            await AsyncStorage.removeItem('post_onboarding_return_to')
             logger.info('Redirecting to returnTo:', returnTo)
             setStatus('Almost there...')
             setTimeout(() => {
