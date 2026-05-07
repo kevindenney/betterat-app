@@ -5,6 +5,13 @@ import { createLogger } from '@/lib/utils/logger';
 
 const logger = createLogger('supabase');
 
+// [DIAG] Bundle freshness marker — bump this string after each diagnostic
+// edit to confirm the browser is loading the new code rather than serving
+// a stale cached bundle. If you don't see this exact string in console at
+// page load, you're looking at an old bundle.
+// eslint-disable-next-line no-console
+console.info('[SUPABASE-DIAG] bundle marker: 2026-04-25-abort-instrumentation-v1');
+
 // Validate required environment variables at startup
 const expoExtra = (Constants.expoConfig?.extra ?? (Constants as any).manifest2?.extra ?? {}) as Record<string, string | undefined>;
 const envSupabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL?.trim();
@@ -109,7 +116,14 @@ export const supabase = createClient(
       storage: ExpoSecureStorage,
       autoRefreshToken: true,
       persistSession: true,
-      detectSessionInUrl: false
+      detectSessionInUrl: false,
+      // Force implicit flow (#access_token in URL hash) to match the manual
+      // hash-parsing logic in app/(auth)/callback.tsx. Supabase v2 defaults to
+      // PKCE which returns ?code=... in the query string — without
+      // detectSessionInUrl: true or an explicit exchangeCodeForSession() call,
+      // PKCE returns leave us with no session and the callback safety timeout
+      // fires after 10s, dumping the user back on the marketing landing.
+      flowType: 'implicit'
     },
     realtime: {
       params: {
@@ -122,17 +136,55 @@ export const supabase = createClient(
       },
       fetch: (url, options = {}) => {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), SUPABASE_REQUEST_TIMEOUT_MS);
+        // [DIAG] Track which path triggered the abort so we can tell timeout
+        // from external (caller-supplied) signal abort in console output.
+        let abortReason: 'timeout' | 'external' | null = null;
+        const startedAt = Date.now();
+        const urlStr = typeof url === 'string' ? url : (url as URL | Request).toString();
+        const shortUrl = urlStr.replace(/^https?:\/\/[^/]+/, '').slice(0, 120);
+
+        const timeoutId = setTimeout(() => {
+          abortReason = 'timeout';
+          // eslint-disable-next-line no-console
+          console.warn('[SUPABASE-FETCH] TIMEOUT after', SUPABASE_REQUEST_TIMEOUT_MS, 'ms', shortUrl);
+          controller.abort();
+        }, SUPABASE_REQUEST_TIMEOUT_MS);
 
         // Merge with any existing signal
         const existingSignal = options.signal;
         if (existingSignal) {
-          existingSignal.addEventListener('abort', () => controller.abort());
+          if (existingSignal.aborted) {
+            abortReason = 'external';
+            // eslint-disable-next-line no-console
+            console.warn('[SUPABASE-FETCH] PRE-ABORTED before request', shortUrl, 'reason:', (existingSignal as any).reason);
+            controller.abort();
+          } else {
+            existingSignal.addEventListener('abort', () => {
+              if (abortReason === null) {
+                abortReason = 'external';
+                const elapsed = Date.now() - startedAt;
+                // eslint-disable-next-line no-console
+                console.warn('[SUPABASE-FETCH] EXTERNAL ABORT after', elapsed, 'ms', shortUrl, 'reason:', (existingSignal as any).reason);
+              }
+              controller.abort();
+            });
+          }
         }
 
-        return fetch(url, { ...options, signal: controller.signal }).finally(() => {
-          clearTimeout(timeoutId);
-        });
+        return fetch(url, { ...options, signal: controller.signal })
+          .catch(err => {
+            const elapsed = Date.now() - startedAt;
+            // Surface the real abort path so future timeout regressions are
+            // immediately attributable (timeout vs caller-cancelled).
+            // eslint-disable-next-line no-console
+            console.warn(
+              `[SUPABASE-FETCH] threw name=${err?.name} elapsedMs=${elapsed} abortReason=${abortReason} url=${shortUrl}`
+            );
+            throw err;
+          })
+          .finally(() => {
+            clearTimeout(timeoutId);
+          });
       },
     }
   }
