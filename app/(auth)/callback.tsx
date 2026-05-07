@@ -1,7 +1,7 @@
 import {useEffect, useRef, useState} from 'react'
 import {router} from 'expo-router'
 import {supabase} from '@/services/supabase'
-import {logSession, dumpSbStorage} from '@/utils/authDebug'
+import {dumpSbStorage} from '@/utils/authDebug'
 import {getDashboardRoute} from '@/lib/utils/userTypeRouting'
 import {extractOAuthDisplayName} from '@/lib/utils/oauthName'
 import {ActivityIndicator, Image, View, Text,
@@ -159,8 +159,12 @@ export default function Callback(){
 
         if (setSessionRaceResult.kind === 'timeout') {
           // Manual fallback: decode JWT, build a session, write to localStorage
-          // in Supabase v2 storage format, then call getSession() so the client
-          // picks it up and broadcasts SIGNED_IN.
+          // in Supabase v2 storage format, then HARD-NAVIGATE to the
+          // destination so the next page's supabase client re-initializes from
+          // the fresh stored session. The current client is stuck on
+          // initializePromise (its initial refresh of a stale stored token
+          // never resolved) so any further supabase call here will also hang.
+          // A full page load sidesteps the wedged client entirely.
           trail('callback:setSession:timeout_falling_back')
           try {
             const parts = accessToken.split('.')
@@ -190,23 +194,40 @@ export default function Callback(){
               window.localStorage.setItem(`sb-${ref}-auth-token`, JSON.stringify(sessionData))
               trail('callback:setSession:manual_write_storage', { ref, userId: user.id })
             }
-            // Trigger the client to read from storage. getSession() reads the
-            // local cache without making a network call, then broadcasts.
-            const getSessionPromise = supabase.auth.getSession()
-            const getSessionTimeout = new Promise<null>(resolve =>
-              setTimeout(() => resolve(null), 2000)
-            )
-            const getSessionResult: any = await Promise.race([getSessionPromise, getSessionTimeout])
-            if (getSessionResult?.data?.session) {
-              session = getSessionResult.data.session
-              trail('callback:setSession:manual_write_getSession_ok', { userId: session.user?.id })
-            } else {
-              // Even if getSession didn't return, the storage write succeeded.
-              // AuthProvider on next mount will pick it up. Use our synthesized
-              // session for the rest of this callback's logic.
-              session = sessionData
-              trail('callback:setSession:manual_write_using_synth_session', { userId: user.id })
+
+            // Compute the destination from the same sources the normal-path
+            // routing checks, then hard-navigate. We can't use router.replace()
+            // because expo-router's navigation needs the JS context that's
+            // about to be replaced, but more importantly we WANT a full page
+            // load so the new supabase client picks up the fresh session.
+            let destination: string | null = null
+            try {
+              const fromSession = window.sessionStorage.getItem('oauth_return_to')
+              if (fromSession && fromSession.startsWith('/')) {
+                destination = fromSession
+                window.sessionStorage.removeItem('oauth_return_to')
+              }
+            } catch {}
+            if (!destination) {
+              try {
+                destination = await AsyncStorage.getItem('post_onboarding_return_to')
+                if (destination) {
+                  await AsyncStorage.removeItem('post_onboarding_return_to')
+                }
+              } catch {}
             }
+            if (!destination) destination = getDashboardRoute(null) as string
+
+            // Mark auth as settling so AuthGate on the destination page holds
+            // off the bounce-to-/ until onAuthStateChange broadcasts.
+            try {
+              window.sessionStorage.setItem('auth_settling_at', String(Date.now()))
+            } catch {}
+
+            trail('callback:setSession:manual_write_hard_nav', { destination })
+            clearTimeout(safetyTimeout)
+            window.location.replace(destination)
+            return
           } catch (e) {
             tokenError = e
             trail('callback:setSession:manual_write_failed', { err: String(e) })
@@ -231,7 +252,9 @@ export default function Callback(){
           return
         }
 
-        await logSession(supabase, 'AFTER_MANUAL_EXCHANGE')
+        // logSession() calls supabase.auth.getSession() which awaits the same
+        // initializePromise that may be wedged behind a hung token refresh —
+        // do NOT await it on the critical path. dumpSbStorage is sync.
         dumpSbStorage()
 
         if (!session?.user) {
