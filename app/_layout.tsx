@@ -459,7 +459,11 @@ function AuthGate() {
     // sign-in. The community screen redirects signed-out visitors to
     // `/(auth)/login?returnTo=...` itself.
     const publicSegments = ['index', '(auth)', 'privacy', 'welcome', 'callback', 'blueprint', 'community', 'pricing', 'institutions', 'how-it-works'];
-    const isPublicRoute = !firstSegment || publicSegments.includes(firstSegment);
+    // /venue/post/<id> is a publicly shareable permalink — sailors arriving
+    // from HKDW Discuss "Open in browser" (Android) or iOS in-app linking
+    // both land here without auth. Other /venue/* routes stay protected.
+    const isPublicVenuePost = firstSegment === 'venue' && segments[1] === 'post';
+    const isPublicRoute = !firstSegment || publicSegments.includes(firstSegment) || isPublicVenuePost;
 
     if (isPublicRoute) return;
 
