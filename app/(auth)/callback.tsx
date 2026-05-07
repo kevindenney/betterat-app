@@ -64,12 +64,14 @@ export default function Callback(){
           if (existingSession.session?.user) {
             const destination = getDashboardRoute(existingSession.session.user.user_metadata?.user_type ?? null)
             logger.warn('No access token in callback but session exists, routing to dashboard:', destination)
+            clearTimeout(safetyTimeout)
             router.replace(destination as any)
             return
           }
 
           logger.error('No access token in OAuth callback')
           setStatus('Something went wrong. Redirecting to login...')
+          clearTimeout(safetyTimeout)
           setTimeout(() => router.replace('/(auth)/login'), 2000)
           return
         }
@@ -84,6 +86,7 @@ export default function Callback(){
         if (tokenError) {
           logger.error('Token exchange error:', tokenError)
           setStatus('Something went wrong. Redirecting to login...')
+          clearTimeout(safetyTimeout)
           setTimeout(() => router.replace('/(auth)/login'), 2000)
           return
         }
@@ -95,6 +98,7 @@ export default function Callback(){
         if (!session?.user) {
           logger.warn('No session after OAuth callback')
           setStatus('Something went wrong. Redirecting to login...')
+          clearTimeout(safetyTimeout)
           setTimeout(() => router.replace('/(auth)/login'), 2000)
           return
         }
