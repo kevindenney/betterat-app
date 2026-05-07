@@ -69,16 +69,20 @@ export default function Callback(){
       sbKeys: Object.keys(window.localStorage).filter(k => k.startsWith('sb-')),
     })
 
-    // Safety timeout - if callback takes longer than 10s, force redirect
+    // Safety timeout - if callback takes longer than 25s, force redirect.
+    // 25s sits under the supabase fetch wrapper's 30s timeout so a hung
+    // /auth/v1/user validation call inside setSession() can resolve or fail
+    // naturally before we give up; the previous 10s window fired in the
+    // middle of setSession on slow LTE connections, dumping users on /.
     const safetyTimeout = setTimeout(() => {
-      logger.error('Safety timeout triggered after 10 seconds')
+      logger.error('Safety timeout triggered after 25 seconds')
       trail('callback:safety_timeout_fired', {
         url: window.location.href,
         oauth_return_to: window.sessionStorage.getItem('oauth_return_to'),
         auth_settling_at: window.sessionStorage.getItem('auth_settling_at'),
       })
       router.replace(getDashboardRoute(null) as any)
-    }, 10000)
+    }, 25000)
 
     const run = async ()=>{
       try {
@@ -124,6 +128,14 @@ export default function Callback(){
         }
 
         setStatus('Signing you in...')
+
+        // Stash auth_settling_at BEFORE setSession runs. setSession can take
+        // several seconds on slow networks (it calls /auth/v1/user to validate
+        // the token), and if the safety timeout fires mid-call, AuthGate must
+        // still see this hold-off marker and not bounce the user to /.
+        try {
+          window.sessionStorage.setItem('auth_settling_at', String(Date.now()))
+        } catch {}
 
         trail('callback:setSession:start')
         const {data: tokenData, error: tokenError} = await supabase.auth.setSession({
