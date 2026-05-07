@@ -69,28 +69,29 @@ export default function CommunityDetailScreen() {
   const hasRefetchedAfterAuth = useRef(false);
   // Deep-link: HKDW's "Open in browser" button on a post produces
   // /community/<slug>?post=<id>. Auto-open the post detail once on mount.
+  // /venue/post/<id> is fully public, so we can route there even for
+  // signed-out visitors — matches iOS behavior where Discuss links open
+  // the post directly without login.
   const hasHandledPostParamRef = useRef(false);
   useEffect(() => {
     if (hasHandledPostParamRef.current) return;
     if (!postIdParam) return;
-    if (!signedIn) return;
+    if (!ready || loading) return;
     hasHandledPostParamRef.current = true;
-    router.push(`/venue/post/${postIdParam}`);
-  }, [postIdParam, signedIn, router]);
+    router.replace(`/venue/post/${postIdParam}` as any);
+  }, [postIdParam, ready, loading, router]);
 
-  // Signed-out deep-link: round-trip through login so we land back on this
-  // URL (with `?post=`) and auto-open the post. Mirrors the blueprint
-  // page's pattern. AuthGate keeps `community` public so this redirect
-  // wins instead of bouncing to `/`.
+  // Signed-out without ?post=<id>: round-trip through login so we land
+  // back on this URL after sign-in. AuthGate keeps `community` public so
+  // this redirect wins instead of bouncing to `/`.
   const hasRedirectedToLoginRef = useRef(false);
   useEffect(() => {
     if (hasRedirectedToLoginRef.current) return;
     if (!ready || loading) return;
     if (signedIn) return;
+    if (postIdParam) return; // handled by the post-deep-link effect above
     hasRedirectedToLoginRef.current = true;
-    const returnTo = postIdParam
-      ? `/community/${slug}?post=${postIdParam}`
-      : `/community/${slug}`;
+    const returnTo = `/community/${slug}`;
     router.replace({ pathname: '/(auth)/login', params: { returnTo } } as any);
   }, [ready, loading, signedIn, slug, postIdParam, router]);
 
