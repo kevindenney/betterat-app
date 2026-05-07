@@ -66,14 +66,14 @@ const STATUS_CONFIG: Record<string, { color: string; icon: string; label: string
 };
 
 export default function BlueprintPage() {
-  const { slug } = useLocalSearchParams<{ slug: string }>();
+  const { slug, auto_subscribe } = useLocalSearchParams<{ slug: string; auto_subscribe?: string }>();
   const router = useRouter();
   const { user } = useAuth();
 
   const { data: blueprint, isLoading: blueprintLoading } = useBlueprint(slug);
   const { data: steps, isLoading: stepsLoading } = useBlueprintSteps(blueprint?.id);
   const { data: subscription } = useBlueprintSubscription(blueprint?.id);
-  const { allInterests, switchInterest } = useInterest();
+  const { allInterests, switchInterest, addInterest } = useInterest();
   const subscribeMutation = useSubscribe();
   const unsubscribeMutation = useUnsubscribe();
   const adoptStepMutation = useAdoptBlueprintStep();
@@ -185,6 +185,98 @@ export default function BlueprintPage() {
       }
     });
   }, [user, blueprint, slug, hasPurchased, isSubscribed]);
+
+  // Auto-subscribe when arriving with ?auto_subscribe=1 (e.g. from the HKDW
+  // "Open Worlds 2027 prep plan" CTA). Free/public blueprints only — paid
+  // blueprints route through the existing purchase flow.
+  const autoSubscribeTriggered = useRef(false);
+  useEffect(() => {
+    if (autoSubscribeTriggered.current) return;
+    if (auto_subscribe !== '1') return;
+    if (!blueprint) return;
+
+    // Signed-out: route through login, preserving the auto_subscribe flag so
+    // we resume after auth.
+    if (!user) {
+      autoSubscribeTriggered.current = true;
+      const returnTo = `/blueprint/${slug}?auto_subscribe=1`;
+      router.replace({ pathname: '/(auth)/login', params: { returnTo } } as any);
+      return;
+    }
+
+    // Don't auto-subscribe to paid blueprints — let the user see the price.
+    if (blueprint.access_level === 'paid') return;
+
+    // Already subscribed (or subscription query is still loading and we'll
+    // re-run when it resolves). Once we know the answer, strip the param.
+    if (subscription === undefined) return;
+
+    autoSubscribeTriggered.current = true;
+
+    const stripParam = () => {
+      if (Platform.OS === 'web' && typeof window !== 'undefined') {
+        const u = new URL(window.location.href);
+        u.searchParams.delete('auto_subscribe');
+        window.history.replaceState({}, '', u.pathname + u.search + u.hash);
+      }
+    };
+
+    if (subscription) {
+      stripParam();
+      return;
+    }
+
+    subscribeMutation
+      .mutateAsync(blueprint.id)
+      .then(async () => {
+        setJustSubscribed(true);
+        if (blueprint.user_id !== user.id) {
+          NotificationService
+            .notifyBlueprintSubscribed({
+              blueprintOwnerId: blueprint.user_id,
+              subscriberId: user.id,
+              subscriberName: user.user_metadata?.full_name || user.email || 'Someone',
+              blueprintId: blueprint.id,
+              blueprintTitle: blueprint.title,
+            })
+            .catch(() => {});
+        }
+
+        // Switch the user's active interest to the blueprint's interest so a
+        // back-arrow / next visit lands them where the steps actually live.
+        // Adding to user_interests first prevents InterestProvider's
+        // "auto-correct active slug" effect from immediately reverting it.
+        const targetInterestSlug = blueprint.interest_id
+          ? allInterests.find((i) => i.id === blueprint.interest_id)?.slug
+          : null;
+        if (targetInterestSlug) {
+          try {
+            await addInterest(targetInterestSlug);
+            await switchInterest(targetInterestSlug);
+          } catch (e) {
+            console.warn('[BlueprintPage] interest switch failed:', e);
+          }
+        }
+
+        // Set a one-shot welcome flag so the timeline shows a welcome card
+        // after we navigate away from the blueprint page.
+        try {
+          await AsyncStorage.setItem(
+            `betterat_blueprint_welcome:${slug}`,
+            String(Date.now()),
+          );
+        } catch {}
+
+        // Route the sailor to their timeline. The blueprint page is the
+        // pitch; the timeline is the product. Use replace so the back-arrow
+        // doesn't return them to the now-stale blueprint page.
+        router.replace('/(tabs)/races' as any);
+      })
+      .catch((err) => {
+        console.warn('[BlueprintPage] auto-subscribe failed:', err);
+      })
+      .finally(stripParam);
+  }, [auto_subscribe, user, blueprint, subscription, slug, router, subscribeMutation, allInterests, addInterest, switchInterest]);
 
   const blueprintInterestSlug = blueprint?.interest_id
     ? allInterests.find((i) => i.id === blueprint.interest_id)?.slug

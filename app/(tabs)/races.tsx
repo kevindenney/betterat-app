@@ -9,6 +9,7 @@ import {
 import { IOS_COLORS } from '@/components/cards/constants';
 import { TimelineGridView } from '@/components/cards/TimelineGridView';
 import { openInterestSwitcher } from '@/components/InterestSwitcher';
+import { BlueprintWelcomeCard } from '@/components/races/BlueprintWelcomeCard';
 
 import {
   PreRaceStrategySection,
@@ -4983,6 +4984,23 @@ export default function RacesScreen() {
           blueprintLabel={existingBlueprintsForInterest && existingBlueprintsForInterest.length > 0 ? 'Manage Blueprint' : 'Publish as Blueprint'}
           isBlueprintPublished={existingBlueprintsForInterest?.some(bp => bp.is_published)}
         />
+
+        {/* One-shot welcome card shown after a sailor lands via the HKDW
+            auto-subscribe flow. Floats below the toolbar so it doesn't shift
+            the timeline; dismissible. */}
+        {isSailingInterest && (
+          <View
+            style={{
+              position: 'absolute',
+              top: toolbarHeight + 4,
+              left: 0,
+              right: 0,
+              zIndex: 90,
+            }}
+          >
+            <BlueprintWelcomeCard enabled={isSailingInterest} />
+          </View>
+        )}
 
         {/* One-shot pulse ring drawn on top of the toolbar + button after the
             sample-signup nudge is dismissed. Pure visual hint, ignores touches. */}
