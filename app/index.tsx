@@ -11,7 +11,7 @@ import { getLastTabRoute } from '@/lib/utils/userTypeRouting';
 import { useAuth } from '@/providers/AuthProvider';
 import { hasPersistedSessionHint, hasPersistedSessionHintAsync } from '@/services/supabase';
 import { router } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Platform, StyleSheet, Text, View } from 'react-native';
 
 export default function LandingPage() {
@@ -19,6 +19,14 @@ export default function LandingPage() {
   const [isRedirecting, setIsRedirecting] = useState(false);
   const [showSkeleton, setShowSkeleton] = useState(() => hasPersistedSessionHint());
 
+  // Once we've confirmed the user is signed-out, never re-arm the
+  // skeleton. Without this, the async `hasPersistedSessionHintAsync`
+  // check (effect 2) and the "stale-hint clear" branch (effect 3)
+  // ping-pong on stale persisted hints — the async resolves true,
+  // re-arms the skeleton, the auth-resolved effect clears it, the
+  // async re-fires (deps changed back), and the page flickers
+  // forever. Visible on slower-settling Android Chrome.
+  const skeletonLockedOff = useRef(false);
   const isNative = Platform.OS !== 'web';
 
   // Native: always redirect (to dashboard or login)
@@ -33,11 +41,11 @@ export default function LandingPage() {
     }
   }, [isNative, ready, loading, isRedirecting, signedIn, userProfile]);
 
-  // Web: check for persisted session hint
+  // Web: check for persisted session hint (one-shot)
   useEffect(() => {
-    if (isNative || showSkeleton) return;
+    if (isNative || showSkeleton || skeletonLockedOff.current) return;
     hasPersistedSessionHintAsync().then((hasSession) => {
-      if (hasSession) setShowSkeleton(true);
+      if (hasSession && !skeletonLockedOff.current) setShowSkeleton(true);
     });
   }, [isNative, showSkeleton]);
 
@@ -48,9 +56,11 @@ export default function LandingPage() {
     if (signedIn) {
       setIsRedirecting(true);
       router.replace(getLastTabRoute(userProfile?.user_type ?? null));
-    } else if (showSkeleton) {
-      // Session hint was stale — stop showing skeleton, show logo
-      setShowSkeleton(false);
+    } else {
+      // Session hint was stale (or never existed). Lock the skeleton
+      // off so the async hint check can't re-arm it after this point.
+      skeletonLockedOff.current = true;
+      if (showSkeleton) setShowSkeleton(false);
     }
   }, [isNative, signedIn, ready, userProfile, loading, isRedirecting, showSkeleton]);
 
