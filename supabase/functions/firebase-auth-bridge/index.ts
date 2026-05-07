@@ -366,62 +366,77 @@ serve(async (req) => {
       }
     }
 
-    // Generate real Supabase session using Admin API
-    // Step 1: Generate a magic link for the user
-    const generateLinkResponse = await fetch(`${SUPABASE_URL}/auth/v1/admin/generate_link`, {
-      method: 'POST',
-      headers: {
-        'apikey': SUPABASE_SERVICE_KEY,
-        'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        type: 'magiclink',
-        email: firebaseUser.email.toLowerCase(),
-        options: {
-          data: {
-            firebase_bridge: true,
-            firebase_uid: firebaseUser.localId,
-          },
+    // Generate real Supabase session using Admin API.
+    //
+    // The magic-link flow is racy: when two parallel bridge calls
+    // generate links for the same email, Supabase invalidates the
+    // older link's hashed_token when the newer one is issued. The
+    // slower call's verify() then 401s and we 500.
+    //
+    // Defense-in-depth: if verify fails, regenerate the link and try
+    // once more. The HKDW client also serializes calls, but external
+    // / future callers (WebView reloads, deep links) can still race.
+    // deno-lint-ignore no-explicit-any
+    async function generateAndVerify(): Promise<any> {
+      const generateLinkResponse = await fetch(`${SUPABASE_URL}/auth/v1/admin/generate_link`, {
+        method: 'POST',
+        headers: {
+          'apikey': SUPABASE_SERVICE_KEY,
+          'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
+          'Content-Type': 'application/json',
         },
-      }),
-    });
+        body: JSON.stringify({
+          type: 'magiclink',
+          email: firebaseUser.email.toLowerCase(),
+          options: {
+            data: {
+              firebase_bridge: true,
+              firebase_uid: firebaseUser.localId,
+            },
+          },
+        }),
+      });
 
-    if (!generateLinkResponse.ok) {
-      const errorText = await generateLinkResponse.text();
-      console.error('Failed to generate magic link:', errorText);
-      throw new Error('Failed to generate session link');
+      if (!generateLinkResponse.ok) {
+        const errorText = await generateLinkResponse.text();
+        throw new Error(`generate_link failed: ${generateLinkResponse.status} ${errorText}`);
+      }
+
+      const linkData = await generateLinkResponse.json();
+      const tokenHash = linkData.properties?.hashed_token || linkData.hashed_token;
+
+      if (!tokenHash) {
+        throw new Error(`generate_link returned no hashed_token: ${JSON.stringify(linkData)}`);
+      }
+
+      const verifyResponse = await fetch(`${SUPABASE_URL}/auth/v1/verify`, {
+        method: 'POST',
+        headers: {
+          'apikey': SUPABASE_SERVICE_KEY,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          type: 'magiclink',
+          token_hash: tokenHash,
+        }),
+      });
+
+      if (!verifyResponse.ok) {
+        const errorText = await verifyResponse.text();
+        throw new Error(`verify failed: ${verifyResponse.status} ${errorText}`);
+      }
+
+      return await verifyResponse.json();
     }
 
-    const linkData = await generateLinkResponse.json();
-    console.log('[Auth Bridge] Generate link response:', JSON.stringify(linkData));
-    const tokenHash = linkData.properties?.hashed_token || linkData.hashed_token;
-
-    if (!tokenHash) {
-      console.error('[Auth Bridge] No hashed_token in response:', JSON.stringify(linkData));
-      throw new Error('Failed to get verification token: ' + JSON.stringify(linkData));
+    // deno-lint-ignore no-explicit-any
+    let sessionData: any;
+    try {
+      sessionData = await generateAndVerify();
+    } catch (firstErr) {
+      console.warn('[Auth Bridge] First generate+verify attempt failed, retrying once:', firstErr);
+      sessionData = await generateAndVerify();
     }
-
-    // Step 2: Verify the token to get a real session
-    const verifyResponse = await fetch(`${SUPABASE_URL}/auth/v1/verify`, {
-      method: 'POST',
-      headers: {
-        'apikey': SUPABASE_SERVICE_KEY,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        type: 'magiclink',
-        token_hash: tokenHash,
-      }),
-    });
-
-    if (!verifyResponse.ok) {
-      const errorText = await verifyResponse.text();
-      console.error('Failed to verify token:', errorText);
-      throw new Error('Failed to create session');
-    }
-
-    const sessionData = await verifyResponse.json();
 
     if (!sessionData.access_token) {
       console.error('No access_token in verify response:', sessionData);
