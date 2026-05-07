@@ -138,16 +138,89 @@ export default function Callback(){
         } catch {}
 
         trail('callback:setSession:start')
-        const {data: tokenData, error: tokenError} = await supabase.auth.setSession({
+        // Race setSession() against a 5s timeout. setSession internally calls
+        // /auth/v1/user to validate the access_token; on flaky LTE this hangs
+        // for >25s and trips the safety timeout, dumping users on /. The JWT
+        // itself is signed by Supabase, so if validation hangs we fall back to
+        // decoding it locally and writing the session to storage directly. The
+        // user's subsequent PostgREST/RPC calls will validate the JWT server
+        // side, so we lose nothing security-wise.
+        const setSessionPromise = supabase.auth.setSession({
           access_token: accessToken,
           refresh_token: refreshToken || ''
-        })
-        trail('callback:setSession:returned', {
-          hasError: !!tokenError,
-          errorMsg: tokenError?.message,
-          hasSession: !!tokenData?.session,
-          userId: tokenData?.session?.user?.id,
-        })
+        }).then(r => ({ kind: 'resolved' as const, ...r }))
+        const setSessionTimeoutPromise = new Promise<{kind: 'timeout'}>(resolve =>
+          setTimeout(() => resolve({ kind: 'timeout' }), 5000)
+        )
+        const setSessionRaceResult = await Promise.race([setSessionPromise, setSessionTimeoutPromise])
+
+        let session: any = null
+        let tokenError: any = null
+
+        if (setSessionRaceResult.kind === 'timeout') {
+          // Manual fallback: decode JWT, build a session, write to localStorage
+          // in Supabase v2 storage format, then call getSession() so the client
+          // picks it up and broadcasts SIGNED_IN.
+          trail('callback:setSession:timeout_falling_back')
+          try {
+            const parts = accessToken.split('.')
+            const b64 = parts[1].replace(/-/g, '+').replace(/_/g, '/')
+            const padded = b64 + '==='.slice((b64.length + 3) % 4)
+            const payload = JSON.parse(atob(padded))
+            const user = {
+              id: payload.sub,
+              email: payload.email,
+              app_metadata: payload.app_metadata || { provider: 'email', providers: ['email'] },
+              user_metadata: payload.user_metadata || {},
+              aud: payload.aud || 'authenticated',
+              role: payload.role || 'authenticated',
+              created_at: new Date((payload.iat || Math.floor(Date.now()/1000)) * 1000).toISOString(),
+            }
+            const sessionData = {
+              access_token: accessToken,
+              refresh_token: refreshToken || '',
+              token_type: 'bearer',
+              expires_in: (payload.exp || 0) - Math.floor(Date.now()/1000),
+              expires_at: payload.exp,
+              user,
+            }
+            const url = (process.env.EXPO_PUBLIC_SUPABASE_URL || '').trim()
+            const ref = url.match(/https:\/\/([^.]+)\.supabase\.co/)?.[1]
+            if (ref && typeof window !== 'undefined') {
+              window.localStorage.setItem(`sb-${ref}-auth-token`, JSON.stringify(sessionData))
+              trail('callback:setSession:manual_write_storage', { ref, userId: user.id })
+            }
+            // Trigger the client to read from storage. getSession() reads the
+            // local cache without making a network call, then broadcasts.
+            const getSessionPromise = supabase.auth.getSession()
+            const getSessionTimeout = new Promise<null>(resolve =>
+              setTimeout(() => resolve(null), 2000)
+            )
+            const getSessionResult: any = await Promise.race([getSessionPromise, getSessionTimeout])
+            if (getSessionResult?.data?.session) {
+              session = getSessionResult.data.session
+              trail('callback:setSession:manual_write_getSession_ok', { userId: session.user?.id })
+            } else {
+              // Even if getSession didn't return, the storage write succeeded.
+              // AuthProvider on next mount will pick it up. Use our synthesized
+              // session for the rest of this callback's logic.
+              session = sessionData
+              trail('callback:setSession:manual_write_using_synth_session', { userId: user.id })
+            }
+          } catch (e) {
+            tokenError = e
+            trail('callback:setSession:manual_write_failed', { err: String(e) })
+          }
+        } else {
+          tokenError = setSessionRaceResult.error
+          session = setSessionRaceResult.data?.session
+          trail('callback:setSession:returned', {
+            hasError: !!tokenError,
+            errorMsg: tokenError?.message,
+            hasSession: !!session,
+            userId: session?.user?.id,
+          })
+        }
 
         if (tokenError) {
           logger.error('Token exchange error:', tokenError)
@@ -161,7 +234,6 @@ export default function Callback(){
         await logSession(supabase, 'AFTER_MANUAL_EXCHANGE')
         dumpSbStorage()
 
-        const session = tokenData?.session
         if (!session?.user) {
           logger.warn('No session after OAuth callback')
           setStatus('Something went wrong. Redirecting to login...')
