@@ -71,7 +71,7 @@ export function StudentProgressSection({ blueprintId, blueprintSteps, interestId
   if (!progress || progress.length === 0) {
     return (
       <View style={s.container}>
-        <Text style={s.title}>Student Progress</Text>
+        <Text style={s.title}>Subscriber progress</Text>
         <Text style={s.emptyText}>No subscribers yet</Text>
       </View>
     );
@@ -89,7 +89,7 @@ export function StudentProgressSection({ blueprintId, blueprintSteps, interestId
 
   return (
     <View style={s.container}>
-      <Text style={s.title}>Student Progress</Text>
+      <Text style={s.title}>Subscriber progress</Text>
       <Text style={s.summary}>
         {progress.length} subscriber{progress.length !== 1 ? 's' : ''} · {avgCompletion}% avg
         completion
@@ -215,13 +215,16 @@ function SubscriberRow({
             );
           })}
 
-          {/* Competency summary */}
-          {compProgress && compProgress.length > 0 && (
-            <View style={s.compSummary}>
-              <Text style={s.compSummaryTitle}>COMPETENCY PROGRESS</Text>
-              {compProgress
-                .filter((cp) => cp.progress !== null)
-                .map((cp) => {
+          {/* Competency summary — only render header if there are competencies
+              with progress, otherwise the section was showing a bare title
+              with no rows beneath it. */}
+          {(() => {
+            const withProgress = compProgress?.filter((cp) => cp.progress !== null) ?? [];
+            if (withProgress.length === 0) return null;
+            return (
+              <View style={s.compSummary}>
+                <Text style={s.compSummaryTitle}>COMPETENCY PROGRESS</Text>
+                {withProgress.map((cp) => {
                   const statusCfg = COMPETENCY_STATUS_CONFIG[cp.progress!.status];
                   return (
                     <View key={cp.id} style={s.compRow}>
@@ -237,8 +240,9 @@ function SubscriberRow({
                     </View>
                   );
                 })}
-            </View>
-          )}
+              </View>
+            );
+          })()}
         </View>
       )}
     </View>
