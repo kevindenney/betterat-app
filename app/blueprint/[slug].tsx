@@ -399,25 +399,46 @@ export default function BlueprintPage() {
     router.push('/(tabs)/races' as any);
   }, [blueprint?.interest_id, allInterests, switchInterest, router]);
 
-  const handleAdoptAll = useCallback(async () => {
-    if (!subscription || !blueprint || !steps?.length) return;
+  // Adopt every blueprint step into the user's timeline. Returns the
+  // adopted record for the FIRST blueprint step (ordered as in `steps`)
+  // so callers can deep-link the user straight into Step 1.
+  const handleAdoptAll = useCallback(async (): Promise<TimelineStepRecord | null> => {
+    if (!subscription || !blueprint || !steps?.length) return null;
     setAdoptingAll(true);
     let count = 0;
+    let firstAdopted: TimelineStepRecord | null = null;
     for (const step of steps) {
       try {
-        await adoptStepMutation.mutateAsync({
+        const adopted = await adoptStepMutation.mutateAsync({
           sourceStepId: step.id,
           interestId: blueprint.interest_id,
           subscriptionId: subscription.id,
         });
         count++;
+        if (!firstAdopted) firstAdopted = adopted;
       } catch {
         // Step may already be adopted — continue
       }
     }
     setAdoptedCount(count);
     setAdoptingAll(false);
+    return firstAdopted;
   }, [subscription, blueprint, steps, adoptStepMutation]);
+
+  // Adopt all steps, then deep-link the user into their adopted Step 1.
+  // Used as the primary post-subscribe CTA so the next action is concrete
+  // ("Start Step 1: <title>") rather than abstract ("Add steps to timeline").
+  const handleStartFirstStep = useCallback(async () => {
+    if (!blueprint?.interest_id) return;
+    const firstAdopted = await handleAdoptAll();
+    if (!firstAdopted) return;
+    // Switch to the blueprint's interest so the step opens in the right context.
+    const interest = allInterests.find((i) => i.id === blueprint.interest_id);
+    if (interest) {
+      await switchInterest(interest.slug);
+    }
+    router.push(`/step/${firstAdopted.id}` as any);
+  }, [blueprint?.interest_id, handleAdoptAll, allInterests, switchInterest, router]);
 
   // Build "What's included" summary from step metadata
   const includedSummary = useMemo(() => {
@@ -542,7 +563,7 @@ export default function BlueprintPage() {
             </Pressable>
           ) : !isOwner && !isSubscribed && !hasPurchased ? (
             <Pressable style={styles.stickyCTA} onPress={handleSubscribe}>
-              <Text style={styles.stickyCTAText}>Subscribe</Text>
+              <Text style={styles.stickyCTAText}>Start plan</Text>
             </Pressable>
           ) : isOwner ? (
             <View style={styles.stickyOwnerBadge}>
@@ -621,9 +642,12 @@ export default function BlueprintPage() {
                 {blueprint.author_name ?? 'Anonymous'}
               </Text>
               <Text style={styles.authorMeta}>
-                {blueprint.subscriber_count} subscriber
-                {blueprint.subscriber_count !== 1 ? 's' : ''} · {totalCount} step
-                {totalCount !== 1 ? 's' : ''}
+                {/* Hide low subscriber counts from non-owners — "2 subscribers"
+                    on a launch day reads as "nobody's here." Owner still sees
+                    the count so they can monitor adoption. */}
+                {isOwner || blueprint.subscriber_count >= 10
+                  ? `${blueprint.subscriber_count} subscriber${blueprint.subscriber_count !== 1 ? 's' : ''} · ${totalCount} step${totalCount !== 1 ? 's' : ''}`
+                  : `${totalCount} step${totalCount !== 1 ? 's' : ''}`}
               </Text>
               {blueprint.author_bio ? (
                 <Text style={styles.authorBio} numberOfLines={2}>{blueprint.author_bio}</Text>
@@ -673,7 +697,7 @@ export default function BlueprintPage() {
                 ) : (
                   <>
                     <Ionicons name="add-circle-outline" size={18} color="#FFFFFF" />
-                    <Text style={styles.subscribeBtnText}>Subscribe to Blueprint</Text>
+                    <Text style={styles.subscribeBtnText}>Start this plan</Text>
                   </>
                 )}
               </Pressable>
@@ -712,23 +736,23 @@ export default function BlueprintPage() {
                 <>
                   <View style={styles.successBanner}>
                     <Ionicons name="checkmark-circle" size={20} color={C.green} />
-                    <Text style={styles.successText}>Subscribed! You'll get updates when new steps are added.</Text>
+                    <Text style={styles.successText}>You're in. Let's get started.</Text>
                   </View>
-
-                  <Text style={styles.nextStepLabel}>What's next?</Text>
 
                   <Pressable
                     style={styles.adoptBtn}
-                    onPress={handleAdoptAll}
+                    onPress={handleStartFirstStep}
                     disabled={adoptingAll}
                   >
                     {adoptingAll ? (
                       <ActivityIndicator size="small" color="#FFFFFF" />
                     ) : (
                       <>
-                        <Ionicons name="download-outline" size={16} color="#FFFFFF" />
-                        <Text style={styles.adoptBtnText}>
-                          Add {steps?.length ?? 0} steps to my timeline
+                        <Ionicons name="play" size={16} color="#FFFFFF" />
+                        <Text style={styles.adoptBtnText} numberOfLines={1}>
+                          {steps?.[0]?.title
+                            ? `Start Step 1: ${steps[0].title}`
+                            : 'Start Step 1'}
                         </Text>
                       </>
                     )}
@@ -738,8 +762,8 @@ export default function BlueprintPage() {
                     style={styles.viewTimelineBtn}
                     onPress={() => navigateToTimeline()}
                   >
-                    <Ionicons name="arrow-forward" size={16} color={C.accent} />
-                    <Text style={styles.viewTimelineBtnText}>Go to my timeline</Text>
+                    <Ionicons name="list-outline" size={16} color={C.accent} />
+                    <Text style={styles.viewTimelineBtnText}>See all steps in my timeline</Text>
                   </Pressable>
                 </>
               )}
