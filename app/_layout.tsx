@@ -285,6 +285,24 @@ function FirebaseBridgeHandler() {
         }
       };
 
+      // After bridge cleanup, re-broadcast the URL through Expo Router so
+      // page-level effects (e.g. blueprint's auto_subscribe) re-fire with
+      // the cleaned URL. history.replaceState alone updates the address bar
+      // but doesn't notify expo-router, so useLocalSearchParams stays stale
+      // and effects gated on "bridge tokens present" never re-evaluate.
+      // This matters most on the failure path: stale HKDW tokens land here,
+      // setSession fails silently, URL is cleaned — without a router event
+      // the blueprint page sits idle instead of routing through login.
+      const rebroadcastCleanUrlToRouter = () => {
+        try {
+          const cleanUrl = cleanAuthTokensFromUrl(window.location.href);
+          const path = new URL(cleanUrl).pathname + new URL(cleanUrl).search;
+          router.replace(path as any);
+        } catch (e) {
+          console.warn('[FirebaseBridge] Failed to rebroadcast URL:', e);
+        }
+      };
+
       try {
         let success = false;
 
@@ -335,7 +353,8 @@ function FirebaseBridgeHandler() {
                   console.log('[FirebaseBridge] Navigating to next redirect:', nextRedirect);
                   router.replace(nextRedirect as any);
                 } else {
-                  console.log('[FirebaseBridge] No redirect; staying on current path');
+                  console.log('[FirebaseBridge] No redirect; rebroadcasting clean URL');
+                  rebroadcastCleanUrlToRouter();
                 }
                 return;
               }
@@ -352,11 +371,13 @@ function FirebaseBridgeHandler() {
         } else {
           console.error('[FirebaseBridge] Failed to establish session');
           stripBridgeTokensFromUrl();
+          rebroadcastCleanUrlToRouter();
           notifyAuthFailure('Session exchange failed');
         }
       } catch (error) {
         console.error('[FirebaseBridge] Error processing auth tokens:', error);
         stripBridgeTokensFromUrl();
+        rebroadcastCleanUrlToRouter();
         notifyAuthFailure(error instanceof Error ? error.message : 'Unknown error');
       }
     };

@@ -190,6 +190,12 @@ export default function BlueprintPage() {
   // "Open Worlds 2027 prep plan" CTA). Free/public blueprints only — paid
   // blueprints route through the existing purchase flow.
   const autoSubscribeTriggered = useRef(false);
+  // Tick used to actively re-evaluate this effect while the
+  // FirebaseBridgeHandler is still working on URL tokens. Without it the
+  // effect early-returns once and never retries (deps don't change), so a
+  // bridge failure leaves the user stranded on the blueprint URL with the
+  // landing-page experience.
+  const [bridgePollTick, setBridgePollTick] = useState(0);
   useEffect(() => {
     if (autoSubscribeTriggered.current) return;
     if (auto_subscribe !== '1') return;
@@ -206,13 +212,20 @@ export default function BlueprintPage() {
     // sees `!user`, redirects to /(auth)/login, then the bridge finishes and
     // replaceState's the (now-stale) blueprint URL back over the login URL.
     // Same pattern AuthGate uses in app/_layout.tsx.
+    //
+    // We poll instead of return-and-forget because the bridge's URL cleanup
+    // uses history.replaceState, which doesn't broadcast to expo-router —
+    // so useLocalSearchParams stays stable and the effect's deps never
+    // change. Without polling, a stale-token bridge failure leaves the
+    // signed-out user on the blueprint URL forever.
     if (
       Platform.OS === 'web' &&
       typeof window !== 'undefined' &&
       (window.location.search.includes('rf_access_token=') ||
         window.location.search.includes('rf_bridge_token='))
     ) {
-      return;
+      const t = setTimeout(() => setBridgePollTick((n) => n + 1), 400);
+      return () => clearTimeout(t);
     }
 
     // Signed-out: route through login, preserving the auto_subscribe flag so
@@ -296,7 +309,7 @@ export default function BlueprintPage() {
         console.warn('[BlueprintPage] auto-subscribe failed:', err);
       })
       .finally(stripParam);
-  }, [auto_subscribe, user, authReady, authLoading, blueprint, subscription, slug, router, subscribeMutation, allInterests, addInterest, switchInterest]);
+  }, [auto_subscribe, user, authReady, authLoading, blueprint, subscription, slug, router, subscribeMutation, allInterests, addInterest, switchInterest, bridgePollTick]);
 
   const blueprintInterestSlug = blueprint?.interest_id
     ? allInterests.find((i) => i.id === blueprint.interest_id)?.slug
