@@ -840,7 +840,7 @@ export default function BlueprintPage() {
                   <Pressable
                     style={styles.manageBtn}
                     onPress={async () => {
-                      const url = `${Platform.OS === 'web' ? window.location.origin : 'https://betterat.com'}/blueprint/${blueprint.slug}`;
+                      const url = `${Platform.OS === 'web' ? window.location.origin : 'https://better.at'}/blueprint/${blueprint.slug}`;
                       if (Platform.OS === 'web') {
                         await navigator.clipboard?.writeText(url);
                       } else {
