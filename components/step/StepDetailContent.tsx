@@ -3,11 +3,12 @@
  */
 
 import React, { useMemo, useCallback, useRef, useState, useEffect } from 'react';
-import { View, Text, TextInput, Pressable, ActivityIndicator, StyleSheet, Platform } from 'react-native';
+import { View, Text, TextInput, Pressable, ActivityIndicator, StyleSheet, Platform, Alert } from 'react-native';
+import { showAlert } from '@/lib/utils/crossPlatformAlert';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useQueryClient } from '@tanstack/react-query';
-import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
+import { IOS_COLORS as _IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
 import { STEP_COLORS } from '@/lib/step-theme';
 import { getStepCategoryLabels } from '@/lib/step-category-config';
 import { IOSPillTabs, usePillTabs } from '@/components/ui/ios/IOSPillTabs';
@@ -19,7 +20,7 @@ import { ActTab } from './ActTab';
 import { ReviewTab } from './ReviewTab';
 // BrainDumpEntry now embedded in PlanTab
 import { AIStructureReview } from './AIStructureReview';
-import type { StepPlanData, StepActData, StepReviewData, StepMetadata, BrainDumpData, StepCollaborator, AnyExtractedEntity, DateEnrichment, ExtractedPersonEntity } from '@/types/step-detail';
+import type { StepPlanData, StepActData as _StepActData, StepReviewData as _StepReviewData, StepMetadata, BrainDumpData, StepCollaborator as _StepCollaborator, AnyExtractedEntity, DateEnrichment, ExtractedPersonEntity } from '@/types/step-detail';
 import type { TimelineStepStatus } from '@/types/timeline-steps';
 import { useAuth } from '@/providers/AuthProvider';
 import { useInterest } from '@/providers/InterestProvider';
@@ -107,6 +108,7 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp }: StepDetail
         },
       },
     );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stepId, updateStep, queryClient]);
 
   const handleTitleChange = useCallback((text: string) => {
@@ -236,6 +238,7 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp }: StepDetail
     if (dump.extracted_urls.length > 0 && user?.id && currentInterest?.id) {
       saveUrlsToLibrary(dump.extracted_urls, user.id, currentInterest.id)
         .then((savedIds) => {
+          // eslint-disable-next-line no-console
           console.log('[BrainDump] Library save returned IDs:', savedIds);
           savedLibraryIdsRef.current = savedIds;
         })
@@ -489,9 +492,26 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp }: StepDetail
   const handlePromptStepDate = useCallback(() => {
     if (!step || !isOwner) return;
     const existing = step.starts_at ? new Date(step.starts_at).toISOString().slice(0, 10) : '';
-    const input = window.prompt('Set date (YYYY-MM-DD):', existing);
-    if (input === null) return;
-    handleSetStepDate(input.trim());
+    if (Platform.OS === 'web') {
+      const input = window.prompt('Set date (YYYY-MM-DD):', existing);
+      if (input === null) return;
+      handleSetStepDate(input.trim());
+      return;
+    }
+    if (Platform.OS === 'ios') {
+      Alert.prompt(
+        'Set date',
+        'YYYY-MM-DD',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Save', onPress: (text) => { if (text != null) handleSetStepDate(text.trim()); } },
+        ],
+        'plain-text',
+        existing,
+      );
+      return;
+    }
+    showAlert('Set date', 'Date editing is available on iOS and the web. Android picker is coming soon.');
   }, [step, isOwner, handleSetStepDate]);
 
   const handleClearStepDate = useCallback(() => {
@@ -516,9 +536,26 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp }: StepDetail
   const handlePromptDueDate = useCallback(() => {
     if (!step || !isOwner) return;
     const existing = step.due_at ? new Date(step.due_at).toISOString().slice(0, 10) : '';
-    const input = window.prompt('Set due date (YYYY-MM-DD):', existing);
-    if (input === null) return;
-    handleSetDueDate(input.trim());
+    if (Platform.OS === 'web') {
+      const input = window.prompt('Set due date (YYYY-MM-DD):', existing);
+      if (input === null) return;
+      handleSetDueDate(input.trim());
+      return;
+    }
+    if (Platform.OS === 'ios') {
+      Alert.prompt(
+        'Set due date',
+        'YYYY-MM-DD',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Save', onPress: (text) => { if (text != null) handleSetDueDate(text.trim()); } },
+        ],
+        'plain-text',
+        existing,
+      );
+      return;
+    }
+    showAlert('Set due date', 'Due-date editing is available on iOS and the web. Android picker is coming soon.');
   }, [step, isOwner, handleSetDueDate]);
 
   const handleClearDueDate = useCallback(() => {
@@ -536,7 +573,7 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp }: StepDetail
     );
     updateStep.mutate({ stepId, input: { status: nextStatus } });
   }, [step, stepId, isOwner, updateStep, queryClient]);
-  const prevSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const _prevSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Stable refs so debounced timeouts and unmount cleanup always see latest values
   const serverPlanDataRef = useRef(serverPlanData);
@@ -562,6 +599,7 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp }: StepDetail
         { onSuccess: () => setLastSavedWithFlash(new Date()) },
       );
     }, 800);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Flush any pending plan save on unmount only
