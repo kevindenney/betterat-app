@@ -45,7 +45,7 @@ export function ActTab({ stepId, dateEnrichment, onNextTab, readOnly, footer, in
       ) : dateEnrichment && !hasConditions ? (
         <View style={styles.conditionsUnavailable}>
           <Ionicons name="cloud-offline-outline" size={16} color={IOS_COLORS.tertiaryLabel} />
-          <Text style={styles.conditionsUnavailableText}>Weather data not available for this date</Text>
+          <Text style={styles.conditionsUnavailableText}>Conditions data unavailable for this date</Text>
         </View>
       ) : null}
 

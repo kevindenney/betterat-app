@@ -71,7 +71,7 @@ export function MeasurementReview({
       <View style={styles.header}>
         <View style={styles.headerLeft}>
           <Ionicons name="analytics-outline" size={14} color={C.accent} />
-          <Text style={styles.sectionLabel}>SESSION DATA</Text>
+          <Text style={styles.sectionLabel}>STEP DATA</Text>
         </View>
         {!readOnly && unverifiedCount > 0 && (
           <Pressable onPress={handleVerifyAll} hitSlop={8}>

@@ -685,7 +685,7 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp }: StepDetail
       <View style={styles.header}>
         <View style={styles.sessionRow}>
           <View style={styles.sessionBadge}>
-            <Text style={styles.sessionBadgeText}>SESSION</Text>
+            <Text style={styles.sessionBadgeText}>STEP</Text>
           </View>
           {isOwner && lastSaved && (
             <View style={styles.autoSaveIndicator}>

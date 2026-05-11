@@ -77,7 +77,7 @@ export function StepPlanQuestions({
   const [linkedResources, setLinkedResources] = useState<LibraryResourceRecord[]>([]);
   const [linkedConcepts, setLinkedConcepts] = useState<{ id: string; title: string; slug?: string }[]>([]);
   const [aiLoading, setAiLoading] = useState(false);
-  const [aiSuggestion, setAiSuggestion] = useState('');
+  const [_aiSuggestion, setAiSuggestion] = useState('');
   const [showManualFields, setShowManualFields] = useState(false);
   const [refinementChat, setRefinementChat] = useState<ChatMessage[]>([]);
   const [refinementInput, setRefinementInput] = useState('');
@@ -286,6 +286,7 @@ export function StepPlanQuestions({
       return;
     }
     getResourcesByIds(linkedIds).then(setLinkedResources).catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [linkedIds.join(',')]);
 
   // Load linked concepts from step_playbook_links
@@ -600,6 +601,7 @@ export function StepPlanQuestions({
     } finally {
       setAiLoading(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [aiLoading, buildEnrichedCtx, debouncedSave, step?.title, stepId, updateStep]);
 
   const handleRefinementSend = useCallback(async () => {
@@ -1172,7 +1174,7 @@ RULES:
           style={[styles.connectionSpaceInput, readOnly && styles.readOnlyInput]}
           value={localConnectionSpace}
           onChangeText={readOnly ? undefined : handleConnectionSpaceChange}
-          placeholder={readOnly ? '' : "Where will you connect? (Discord, Zoom, in person...)"}
+          placeholder={readOnly ? '' : "Where will you connect? (online or in person)"}
           placeholderTextColor={IOS_COLORS.tertiaryLabel}
           editable={!readOnly}
         />

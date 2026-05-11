@@ -146,6 +146,7 @@ export function StepDrawContent({ stepId, readOnly, interestId, interestName, in
       setLocalNotes(actData.notes ?? '');
       initializedRef.current = true;
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [step]);
 
   // Auto-transition to in_progress when Draw tab is first viewed (owner only)
@@ -161,13 +162,16 @@ export function StepDrawContent({ stepId, readOnly, interestId, interestName, in
         updateStep.mutate({ stepId, input: { status: 'in_progress' } });
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [step]);
 
   // Load linked resources
+  const linkedIdsKey = linkedIds.join(',');
   useEffect(() => {
     if (linkedIds.length === 0) { setLinkedResources([]); return; }
     getResourcesByIds(linkedIds).then(setLinkedResources).catch(() => {});
-  }, [linkedIds.join(',')]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [linkedIdsKey]);
 
   const metadataRef = useRef(metadata);
   metadataRef.current = metadata;
@@ -1027,7 +1031,7 @@ export function StepDrawContent({ stepId, readOnly, interestId, interestName, in
         </View>
       ) : (
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>SESSION NOTES</Text>
+          <Text style={styles.sectionTitle}>STEP NOTES</Text>
           <TextInput
             style={styles.textArea}
             value={localNotes}
