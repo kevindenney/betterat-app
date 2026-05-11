@@ -29,160 +29,6 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const isWideScreen = SCREEN_WIDTH > 768;
 
 // =====================================================
-// Mock Data for Demo
-// =====================================================
-
-const MOCK_CLUB_PROFILE = {
-  id: 'demo-club-001',
-  name: 'Royal Harbour Yacht Club',
-  logo_url: null,
-  member_count: 342,
-  active_boats: 127,
-  established: 1892,
-  location: 'Sydney Harbour, NSW',
-  stripe_connected: true,
-  onboarding_complete: true,
-};
-
-const MOCK_EVENTS: ClubEvent[] = [
-  {
-    id: 'evt-001',
-    club_id: 'demo-club-001',
-    title: 'Summer Twilight Series',
-    description: 'Weekly twilight racing every Wednesday through summer',
-    event_type: 'race_series',
-    start_date: addDays(new Date(), 5).toISOString(),
-    end_date: addDays(new Date(), 65).toISOString(),
-    registration_opens: addDays(new Date(), -14).toISOString(),
-    registration_closes: addDays(new Date(), 2).toISOString(),
-    max_participants: 60,
-    allow_waitlist: true,
-    registration_fee: 150,
-    currency: 'AUD',
-    payment_required: true,
-    status: 'registration_open',
-    visibility: 'public',
-    boat_classes: ['J/70', 'Etchells', 'Dragon', 'Sydney 38'],
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  },
-  {
-    id: 'evt-002',
-    club_id: 'demo-club-001',
-    title: 'Australia Day Regatta',
-    description: 'Annual flagship regatta celebrating Australia Day',
-    event_type: 'regatta',
-    start_date: addDays(new Date(), 56).toISOString(),
-    end_date: addDays(new Date(), 58).toISOString(),
-    registration_opens: addDays(new Date(), -7).toISOString(),
-    registration_closes: addDays(new Date(), 50).toISOString(),
-    max_participants: 120,
-    allow_waitlist: true,
-    registration_fee: 350,
-    currency: 'AUD',
-    payment_required: true,
-    status: 'registration_open',
-    visibility: 'public',
-    boat_classes: ['IRC', 'ORC', 'PHS', 'Multihull'],
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  },
-  {
-    id: 'evt-003',
-    club_id: 'demo-club-001',
-    title: 'Youth Sailing Camp',
-    description: 'Week-long intensive training for junior sailors',
-    event_type: 'training',
-    start_date: addDays(new Date(), 21).toISOString(),
-    end_date: addDays(new Date(), 26).toISOString(),
-    max_participants: 24,
-    allow_waitlist: true,
-    registration_fee: 495,
-    currency: 'AUD',
-    payment_required: true,
-    status: 'published',
-    visibility: 'public',
-    boat_classes: ['Optimist', 'Laser', 'RS Feva'],
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  },
-  {
-    id: 'evt-004',
-    club_id: 'demo-club-001',
-    title: 'Commodore\'s Cocktail Party',
-    description: 'Annual members social event',
-    event_type: 'social',
-    start_date: addDays(new Date(), 14).toISOString(),
-    end_date: addDays(new Date(), 14).toISOString(),
-    max_participants: 150,
-    allow_waitlist: false,
-    registration_fee: 75,
-    currency: 'AUD',
-    payment_required: true,
-    status: 'registration_open',
-    visibility: 'club',
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  },
-  {
-    id: 'evt-005',
-    club_id: 'demo-club-001',
-    title: 'Offshore Safety Course',
-    description: 'AS Cat 2+ offshore safety certification',
-    event_type: 'training',
-    start_date: addDays(new Date(), 35).toISOString(),
-    end_date: addDays(new Date(), 36).toISOString(),
-    max_participants: 20,
-    allow_waitlist: true,
-    registration_fee: 650,
-    currency: 'AUD',
-    payment_required: true,
-    status: 'draft',
-    visibility: 'public',
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  },
-];
-
-const MOCK_STATS: Record<string, EventRegistrationStats> = {
-  'evt-001': { total_registrations: 47, approved_count: 42, pending_count: 5, waitlist_count: 3, total_paid: 6300 },
-  'evt-002': { total_registrations: 28, approved_count: 23, pending_count: 5, waitlist_count: 0, total_paid: 8050 },
-  'evt-003': { total_registrations: 18, approved_count: 16, pending_count: 2, waitlist_count: 0, total_paid: 7920 },
-  'evt-004': { total_registrations: 89, approved_count: 85, pending_count: 4, waitlist_count: 0, total_paid: 6375 },
-  'evt-005': { total_registrations: 0, approved_count: 0, pending_count: 0, waitlist_count: 0, total_paid: 0 },
-};
-
-const MOCK_RECENT_ACTIVITY = [
-  { id: 'act-1', type: 'registration', message: 'Sarah Chen registered for Summer Twilight Series', time: '5 min ago', icon: 'person-add' },
-  { id: 'act-2', type: 'payment', message: '$350 received from Mike Thompson', time: '23 min ago', icon: 'card' },
-  { id: 'act-3', type: 'document', message: 'NOR v2.1 published for Australia Day Regatta', time: '1 hr ago', icon: 'document-text' },
-  { id: 'act-4', type: 'registration', message: '3 new entries pending approval', time: '2 hrs ago', icon: 'time' },
-  { id: 'act-5', type: 'message', message: 'PRO confirmed for Summer Twilight Series', time: '3 hrs ago', icon: 'checkmark-circle' },
-];
-
-const MOCK_TEAM_MEMBERS = [
-  { id: 'tm-1', name: 'James Morrison', role: 'Race Officer', avatar: null, initials: 'JM', status: 'active' },
-  { id: 'tm-2', name: 'Emily Watson', role: 'Scorer', avatar: null, initials: 'EW', status: 'active' },
-  { id: 'tm-3', name: 'David Chen', role: 'Safety Officer', avatar: null, initials: 'DC', status: 'pending' },
-  { id: 'tm-4', name: 'Lisa Park', role: 'Registration', avatar: null, initials: 'LP', status: 'active' },
-];
-
-const MOCK_FINANCIAL_SUMMARY = {
-  thisMonth: { collected: 28645, pending: 4200, refunded: 350 },
-  lastMonth: { collected: 22100, pending: 0, refunded: 150 },
-  ytd: { collected: 156780, pending: 4200, refunded: 2100 },
-};
-
-const MOCK_ONBOARDING_STEPS = [
-  { id: 'profile', label: 'Club profile', completed: true },
-  { id: 'stripe', label: 'Connect payments', completed: true },
-  { id: 'team', label: 'Invite race team', completed: true },
-  { id: 'event', label: 'Create first event', completed: true },
-  { id: 'nor', label: 'Upload NOR/SI', completed: true },
-  { id: 'members', label: 'Import members', completed: true },
-];
-
-// =====================================================
 // Types
 // =====================================================
 
@@ -222,10 +68,29 @@ export default function EventsScreen() {
   const [selectedMonth, setSelectedMonth] = useState(new Date());
   const [selectedCalendarDate, setSelectedCalendarDate] = useState<Date | null>(null);
   const [showOnboarding, setShowOnboarding] = useState(true);
-  const useMockData = true;
 
-  // Use mock data for demo purposes
-  const effectiveClubProfile = useMockData ? MOCK_CLUB_PROFILE : clubProfile;
+  const effectiveClubProfile = clubProfile as
+    | {
+        name?: string | null;
+        club_name?: string | null;
+        organization_name?: string | null;
+        member_count?: number | null;
+        active_boats?: number | null;
+      }
+    | null;
+
+  const clubDisplayName =
+    effectiveClubProfile?.club_name ||
+    effectiveClubProfile?.organization_name ||
+    effectiveClubProfile?.name ||
+    'Club Operations HQ';
+
+  const clubInitials = clubDisplayName
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((word) => word[0]?.toUpperCase() ?? '')
+    .join('') || 'CL';
 
   // Toast helper function
   const showToast = useCallback((title: string, description: string, action: 'info' | 'success' | 'warning' | 'error' = 'info') => {
@@ -253,13 +118,6 @@ export default function EventsScreen() {
   const loadEvents = useCallback(async () => {
     try {
       setLoading(true);
-      
-      if (useMockData) {
-        // Use mock data
-        setEvents(MOCK_EVENTS);
-        setEventStats(MOCK_STATS);
-      } else {
-        // Real data
       const data = await EventService.getUpcomingEvents(20);
       setEvents(data);
 
@@ -278,16 +136,14 @@ export default function EventsScreen() {
         if (stats) statsMap[id] = stats;
       });
       setEventStats(statsMap);
-      }
     } catch (error) {
       console.error('Error loading events:', error);
-      // Fallback to mock data on error
-      setEvents(MOCK_EVENTS);
-      setEventStats(MOCK_STATS);
+      setEvents([]);
+      setEventStats({});
     } finally {
       setLoading(false);
     }
-  }, [useMockData]);
+  }, []);
 
   useEffect(() => {
     void loadEvents();
@@ -367,8 +223,6 @@ export default function EventsScreen() {
         label: 'Active Events',
         value: `${upcomingEvents.length}`,
         subValue: `${openRegistration} accepting entries`,
-        trend: 'up',
-        trendValue: '+3 this month',
         icon: 'calendar',
         color: '#3B82F6',
       },
@@ -377,8 +231,8 @@ export default function EventsScreen() {
         label: 'Total Entries',
         value: `${totalRegistrations}`,
         subValue: `${pendingApprovals} pending approval`,
-        trend: pendingApprovals > 0 ? 'neutral' : 'up',
-        trendValue: pendingApprovals > 0 ? 'Action needed' : 'All processed',
+        trend: pendingApprovals > 0 ? 'neutral' : undefined,
+        trendValue: pendingApprovals > 0 ? 'Action needed' : undefined,
         icon: 'people',
         color: '#10B981',
       },
@@ -387,8 +241,6 @@ export default function EventsScreen() {
         label: 'Revenue',
         value: `$${totalRevenue.toLocaleString()}`,
         subValue: 'This season',
-        trend: 'up',
-        trendValue: '+18% vs last year',
         icon: 'trending-up',
         color: '#8B5CF6',
       },
@@ -402,10 +254,9 @@ export default function EventsScreen() {
     { key: 'social', icon: 'wine', label: 'Social Event', route: '/club/event/create?type=social', color: '#EC4899' },
   ];
 
-  const onboardingProgress = useMemo(() => {
-    const completed = MOCK_ONBOARDING_STEPS.filter(s => s.completed).length;
-    return Math.round((completed / MOCK_ONBOARDING_STEPS.length) * 100);
-  }, []);
+  // Onboarding banner is hidden until we wire real club setup tracking.
+  const onboardingProgress = 100;
+  const onboardingSteps: { id: string; label: string; completed: boolean }[] = [];
 
   // Calendar logic
   const calendarDays = useMemo(() => {
@@ -460,7 +311,7 @@ export default function EventsScreen() {
             </View>
 
             <View style={styles.onboardingSteps}>
-              {MOCK_ONBOARDING_STEPS.slice(0, 3).map((step) => (
+              {onboardingSteps.slice(0, 3).map((step) => (
                 <View key={step.id} style={styles.onboardingStep}>
                   <View style={[styles.stepIcon, step.completed && styles.stepIconComplete]}>
                     <Ionicons 
@@ -495,12 +346,10 @@ export default function EventsScreen() {
         <View style={styles.heroContent}>
           <View style={styles.heroLeft}>
             <View style={styles.clubBadge}>
-              <ThemedText style={styles.clubInitials}>RH</ThemedText>
+              <ThemedText style={styles.clubInitials}>{clubInitials}</ThemedText>
             </View>
             <View style={styles.heroText}>
-              <ThemedText style={styles.heroTitle}>
-                {effectiveClubProfile?.name || 'Club Operations HQ'}
-              </ThemedText>
+              <ThemedText style={styles.heroTitle}>{clubDisplayName}</ThemedText>
             <ThemedText style={styles.heroSubtitle}>
               {highlightEvent
                   ? `Next up: ${highlightEvent.title} ${formatDistanceToNow(new Date(highlightEvent.start_date), { addSuffix: true })}`
@@ -525,12 +374,12 @@ export default function EventsScreen() {
         {/* Stats strip */}
         <View style={styles.statsStrip}>
           <View style={styles.statItem}>
-            <ThemedText style={styles.statValue}>{effectiveClubProfile?.member_count || 342}</ThemedText>
+            <ThemedText style={styles.statValue}>{effectiveClubProfile?.member_count ?? 0}</ThemedText>
             <ThemedText style={styles.statLabel}>Members</ThemedText>
           </View>
           <View style={styles.statDivider} />
           <View style={styles.statItem}>
-            <ThemedText style={styles.statValue}>{effectiveClubProfile?.active_boats || 127}</ThemedText>
+            <ThemedText style={styles.statValue}>{effectiveClubProfile?.active_boats ?? 0}</ThemedText>
             <ThemedText style={styles.statLabel}>Active Boats</ThemedText>
           </View>
           <View style={styles.statDivider} />
@@ -609,12 +458,7 @@ export default function EventsScreen() {
   const [selectedEvent, setSelectedEvent] = useState<ClubEvent | null>(null);
 
   const handleEventPress = (event: ClubEvent) => {
-    // Check if this is a mock event (mock IDs start with 'evt-')
-    if (useMockData && event.id.startsWith('evt-')) {
-      setSelectedEvent(event);
-    } else {
-      router.push(`/event/${event.id}`);
-    }
+    router.push(`/event/${event.id}`);
   };
 
   const closeEventPreview = () => setSelectedEvent(null);
@@ -765,22 +609,16 @@ export default function EventsScreen() {
         </TouchableOpacity>
                     </View>
       <View style={styles.activityList}>
-        {MOCK_RECENT_ACTIVITY.map((activity) => (
-          <View key={activity.id} style={styles.activityItem}>
-            <View style={[styles.activityIcon, { backgroundColor: activity.type === 'payment' ? '#D1FAE5' : activity.type === 'registration' ? '#DBEAFE' : '#F3E8FF' }]}>
-              <Ionicons 
-                name={activity.icon as any} 
-                size={16} 
-                color={activity.type === 'payment' ? '#10B981' : activity.type === 'registration' ? '#3B82F6' : '#8B5CF6'} 
-              />
-                      </View>
-            <View style={styles.activityContent}>
-              <ThemedText style={styles.activityMessage}>{activity.message}</ThemedText>
-              <ThemedText style={styles.activityTime}>{activity.time}</ThemedText>
-                        </View>
-                    </View>
-        ))}
-                  </View>
+        <View style={styles.activityItem}>
+          <View style={[styles.activityIcon, { backgroundColor: '#F3F4F6' }]}>
+            <Ionicons name="time-outline" size={16} color="#9CA3AF" />
+          </View>
+          <View style={styles.activityContent}>
+            <ThemedText style={styles.activityMessage}>No recent activity yet</ThemedText>
+            <ThemedText style={styles.activityTime}>Registrations and payments will appear here</ThemedText>
+          </View>
+        </View>
+      </View>
     </View>
   );
 
@@ -794,65 +632,54 @@ export default function EventsScreen() {
         </TouchableOpacity>
       </View>
       <View style={styles.teamGrid}>
-        {MOCK_TEAM_MEMBERS.map((member) => (
-          <View key={member.id} style={styles.teamMember}>
-            <View style={[styles.memberAvatar, member.status === 'pending' && styles.memberAvatarPending]}>
-              <ThemedText style={styles.memberInitials}>{member.initials}</ThemedText>
-            </View>
-            <View style={styles.memberInfo}>
-              <ThemedText style={styles.memberName}>{member.name}</ThemedText>
-              <ThemedText style={styles.memberRole}>{member.role}</ThemedText>
-            </View>
-            {member.status === 'pending' && (
-              <View style={styles.pendingBadge}>
-                <ThemedText style={styles.pendingText}>Pending</ThemedText>
-              </View>
-          )}
+        <View style={styles.teamMember}>
+          <View style={[styles.memberAvatar, { backgroundColor: '#F3F4F6' }]}>
+            <Ionicons name="people-outline" size={20} color="#9CA3AF" />
+          </View>
+          <View style={styles.memberInfo}>
+            <ThemedText style={styles.memberName}>No team members yet</ThemedText>
+            <ThemedText style={styles.memberRole}>Invite race officers and scorers</ThemedText>
+          </View>
         </View>
-        ))}
       </View>
     </View>
   );
 
-  const renderFinancialSummary = () => (
+  const renderFinancialSummary = () => {
+    const totalCollected = Object.values(eventStats).reduce((sum, s) => sum + (s?.total_paid ?? 0), 0);
+    return (
     <View style={styles.financialSection}>
             <View style={styles.sectionHeader}>
         <ThemedText style={styles.sectionTitle}>Financial Summary</ThemedText>
-        <TouchableOpacity onPress={() => {
-          if (useMockData) {
-            showToast('Demo Mode', 'Financial details and Stripe payouts would be available here in production with a connected club account.', 'info');
-          } else {
-            router.push('/club/earnings');
-          }
-        }}>
+        <TouchableOpacity onPress={() => router.push('/club/earnings')}>
           <ThemedText style={styles.seeAllText}>Details</ThemedText>
         </TouchableOpacity>
             </View>
       <View style={styles.financialCards}>
         <View style={styles.financialCard}>
-          <ThemedText style={styles.financialLabel}>This Month</ThemedText>
+          <ThemedText style={styles.financialLabel}>Collected to date</ThemedText>
           <ThemedText style={styles.financialValue}>
-            ${MOCK_FINANCIAL_SUMMARY.thisMonth.collected.toLocaleString()}
+            ${totalCollected.toLocaleString()}
                   </ThemedText>
           <View style={styles.financialMeta}>
             <ThemedText style={styles.financialPending}>
-              ${MOCK_FINANCIAL_SUMMARY.thisMonth.pending.toLocaleString()} pending
+              Across {events.length} event{events.length === 1 ? '' : 's'}
             </ThemedText>
           </View>
         </View>
         <View style={styles.financialCard}>
-          <ThemedText style={styles.financialLabel}>Year to Date</ThemedText>
-          <ThemedText style={styles.financialValue}>
-            ${MOCK_FINANCIAL_SUMMARY.ytd.collected.toLocaleString()}
-          </ThemedText>
-          <View style={styles.financialTrend}>
-            <Ionicons name="trending-up" size={14} color="#10B981" />
-            <ThemedText style={styles.financialTrendText}>+24% vs last year</ThemedText>
+          <ThemedText style={styles.financialLabel}>Payouts</ThemedText>
+          <ThemedText style={styles.financialValue}>—</ThemedText>
+          <View style={styles.financialMeta}>
+            <ThemedText style={styles.financialPending}>
+              Connect Stripe to track payouts
+            </ThemedText>
           </View>
         </View>
       </View>
     </View>
-  );
+    );
+  };
 
   const renderCalendar = () => {
     const monthName = format(selectedMonth, 'MMMM yyyy');
