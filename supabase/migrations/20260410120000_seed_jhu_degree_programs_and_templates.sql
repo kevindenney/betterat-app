@@ -16,7 +16,7 @@ BEGIN;
 -- 1. Degree Programs
 -- ─────────────────────────────────────────────────────────────────────────────
 
-DO $$
+DO $outer$
 DECLARE
   v_org_id uuid := '678e149e-2abb-422c-ac61-b76756a2150e'; -- JHU School of Nursing
   v_nursing_id uuid := 'bec249c5-6412-4d16-bb84-bfcfb887ff67'; -- nursing interest
@@ -28,8 +28,7 @@ BEGIN
 
 -- MSN Entry into Nursing
 INSERT INTO programs (organization_id, domain, title, description, type, status, metadata)
-VALUES (
-  v_org_id, 'nursing',
+SELECT v_org_id, 'nursing',
   'MSN Entry into Nursing',
   'JHU''s pre-licensure pathway for career changers and second-degree students. 5 semesters, 1000+ clinical hours, 95% NCLEX pass rate.',
   'program', 'active',
@@ -40,11 +39,12 @@ VALUES (
     'nclex_pass_rate', 0.95,
     'program_path', 'msn-entry-into-nursing'
   )
+WHERE NOT EXISTS (
+  SELECT 1 FROM programs WHERE organization_id = v_org_id AND title = 'MSN Entry into Nursing'
 )
-ON CONFLICT DO NOTHING
 RETURNING id INTO v_msn_id;
 
--- If already exists, fetch the id
+-- If already existed, fetch the id
 IF v_msn_id IS NULL THEN
   SELECT id INTO v_msn_id FROM programs
   WHERE organization_id = v_org_id AND title = 'MSN Entry into Nursing' LIMIT 1;
@@ -52,8 +52,7 @@ END IF;
 
 -- DNP — Family NP
 INSERT INTO programs (organization_id, domain, title, description, type, status, metadata)
-VALUES (
-  v_org_id, 'nursing',
+SELECT v_org_id, 'nursing',
   'DNP — Family NP',
   'Doctor of Nursing Practice with Family Nurse Practitioner specialty. Prepares advanced practice nurses for primary care across the lifespan.',
   'program', 'active',
@@ -64,8 +63,9 @@ VALUES (
     'clinical_hours', 1500,
     'program_path', 'dnp-family-np'
   )
+WHERE NOT EXISTS (
+  SELECT 1 FROM programs WHERE organization_id = v_org_id AND title = 'DNP — Family NP'
 )
-ON CONFLICT DO NOTHING
 RETURNING id INTO v_dnp_fnp_id;
 
 IF v_dnp_fnp_id IS NULL THEN
@@ -75,8 +75,7 @@ END IF;
 
 -- DNP — Psych Mental Health NP
 INSERT INTO programs (organization_id, domain, title, description, type, status, metadata)
-VALUES (
-  v_org_id, 'nursing',
+SELECT v_org_id, 'nursing',
   'DNP — Psych Mental Health NP',
   'Doctor of Nursing Practice with Psychiatric Mental Health NP specialty. Prepares advanced practice nurses for psychiatric assessment, psychopharmacology, and therapeutic interventions.',
   'program', 'active',
@@ -87,8 +86,9 @@ VALUES (
     'clinical_hours', 1500,
     'program_path', 'dnp-psych-mental-health-np'
   )
+WHERE NOT EXISTS (
+  SELECT 1 FROM programs WHERE organization_id = v_org_id AND title = 'DNP — Psych Mental Health NP'
 )
-ON CONFLICT DO NOTHING
 RETURNING id INTO v_dnp_pmhnp_id;
 
 IF v_dnp_pmhnp_id IS NULL THEN
@@ -98,8 +98,7 @@ END IF;
 
 -- Healthcare Organizational Leadership MSN
 INSERT INTO programs (organization_id, domain, title, description, type, status, metadata)
-VALUES (
-  v_org_id, 'nursing',
+SELECT v_org_id, 'nursing',
   'Healthcare Organizational Leadership MSN',
   'Prepares nurse leaders for executive roles in healthcare systems. Combines leadership theory, financial management, health policy, and practicum experience.',
   'program', 'active',
@@ -110,8 +109,9 @@ VALUES (
     'practicum_hours', 504,
     'program_path', 'hol-msn'
   )
+WHERE NOT EXISTS (
+  SELECT 1 FROM programs WHERE organization_id = v_org_id AND title = 'Healthcare Organizational Leadership MSN'
 )
-ON CONFLICT DO NOTHING
 RETURNING id INTO v_hol_id;
 
 IF v_hol_id IS NULL THEN
@@ -137,7 +137,7 @@ FROM (VALUES
    jsonb_build_object('semester', 2, 'sort_order', 2, 'category', 'clinical')),
   ('Pediatric Nursing',
    'Pediatric assessment, family-centered care, developmental milestones, clinical at Kennedy Krieger Institute',
-   'course', 'active',
+   'course', 'live',
    jsonb_build_object('semester', 3, 'sort_order', 3, 'category', 'clinical')),
   ('Maternal-Newborn',
    'Maternal-newborn care, prenatal assessment, labor & delivery, postpartum — clinical at JH Bayview',
@@ -175,7 +175,7 @@ FROM (VALUES
    jsonb_build_object('semester', 1, 'sort_order', 2, 'category', 'foundational')),
   ('Health Assessment',
    'Comprehensive health assessment, differential diagnosis, clinical reasoning',
-   'course', 'active',
+   'course', 'live',
    jsonb_build_object('semester', 2, 'sort_order', 3, 'category', 'clinical')),
   ('Evidence-Based Practice',
    'Evidence-based practice, quality improvement methods, translational research',
@@ -213,7 +213,7 @@ FROM (VALUES
    jsonb_build_object('semester', 1, 'sort_order', 2, 'category', 'foundational')),
   ('Therapeutic Modalities',
    'Therapeutic modalities — CBT, DBT, motivational interviewing, crisis intervention',
-   'course', 'active',
+   'course', 'live',
    jsonb_build_object('semester', 2, 'sort_order', 3, 'category', 'clinical')),
   ('Psychiatric Assessment',
    'Psychiatric assessment across the lifespan, standardized screening tools',
@@ -247,7 +247,7 @@ FROM (VALUES
    jsonb_build_object('semester', 1, 'sort_order', 1, 'category', 'foundational')),
   ('Financial Management',
    'Financial management in healthcare — budgeting, resource allocation, cost analysis',
-   'course', 'active',
+   'course', 'live',
    jsonb_build_object('semester', 2, 'sort_order', 2, 'category', 'foundational')),
   ('Quality & Safety Science',
    'Quality & safety science, evidence-based practice, performance improvement',
@@ -332,6 +332,13 @@ ON CONFLICT (organization_id, path_name, sort_order) DO NOTHING;
 --    These are world-readable concepts every nursing subscriber inherits
 -- ─────────────────────────────────────────────────────────────────────────────
 
+-- Idempotency: only seed concepts on a fresh DB (no existing nursing baselines).
+-- playbook_concepts has UNIQUE (playbook_id, slug) which is non-distinct on NULL,
+-- so ON CONFLICT DO NOTHING would not catch dupes here.
+IF NOT EXISTS (
+  SELECT 1 FROM playbook_concepts
+  WHERE interest_id = v_nursing_id AND origin = 'platform_baseline'
+) THEN
 INSERT INTO playbook_concepts (
   interest_id, slug, title, body_md, origin, metadata
 )
@@ -398,13 +405,16 @@ VALUES
    'platform_baseline',
    jsonb_build_object('category', 'core-practice'))
 ON CONFLICT DO NOTHING;
+END IF;
+
+END $outer$;
 
 -- ─────────────────────────────────────────────────────────────────────────────
 -- 5. Link programs to interest via metadata (for useOrgPrograms query)
 -- ─────────────────────────────────────────────────────────────────────────────
 
 -- Ensure programs have interest_id set (if column exists from later migration)
-DO $$
+DO $link$
 BEGIN
   IF EXISTS (
     SELECT 1 FROM information_schema.columns
@@ -416,8 +426,6 @@ BEGIN
       AND domain = 'nursing'
       AND interest_id IS NULL;
   END IF;
-END $$;
-
-END; -- close DO block
+END $link$;
 
 COMMIT;
