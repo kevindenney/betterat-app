@@ -31,7 +31,7 @@ export interface NavItem {
   icon: keyof typeof Ionicons.glyphMap;
 }
 
-type WorkspaceNavContext = {
+export type WorkspaceNavContext = {
   organizationType?: string | null;
   activeDomain?: string | null;
   isOrgAdmin?: boolean;
@@ -45,6 +45,27 @@ const isProgramWorkspace = (
   if (domain === 'sailing') return false;
   if (domain === 'nursing' || domain === 'drawing' || domain === 'fitness' || domain === 'health-and-fitness' || domain === 'lac-craft-business') return true;
   return organizationType === 'institution';
+};
+
+/**
+ * Get the route to the user's primary timeline / event tab.
+ *
+ * - Org admins in a program workspace land on `/(tabs)/events`.
+ * - Learners (sailing, nursing, etc.) land on `/(tabs)/races` — the file-based
+ *   route segment is sailing-era, but the tab *title* is vocabulary-resolved
+ *   (e.g. "Race" / "Clinical" / "Practice") via `getEventTabTitle`.
+ *
+ * This helper centralizes the route literal so the future rename tracked as
+ * audit finding E5 only needs to touch one place.
+ */
+export const getEventTabRoute = (workspaceContext?: WorkspaceNavContext): string => {
+  if (
+    workspaceContext?.isOrgAdmin &&
+    isProgramWorkspace(workspaceContext.organizationType, workspaceContext.activeDomain)
+  ) {
+    return '/(tabs)/events';
+  }
+  return '/(tabs)/races';
 };
 
 // =============================================================================
@@ -203,7 +224,7 @@ export function getNavItemsForUserType(
   primary: NavItem[];
   secondary: NavItem[];
 } {
-  const normalizedDomain = String(workspaceContext?.activeDomain || '').toLowerCase().trim();
+  const _normalizedDomain = String(workspaceContext?.activeDomain || '').toLowerCase().trim();
 
   switch (userType) {
     case 'coach':

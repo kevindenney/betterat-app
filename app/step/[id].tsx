@@ -13,6 +13,7 @@ import { useLocalSearchParams, Stack, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { StepDetailContent } from '@/components/step/StepDetailContent';
 import { useVocabulary } from '@/hooks/useVocabulary';
+import { getEventTabRoute } from '@/lib/navigation-config';
 
 export default function StepDetailScreen() {
   const { id, readOnly } = useLocalSearchParams<{ id: string; readOnly?: string }>();
@@ -29,7 +30,7 @@ export default function StepDetailScreen() {
           <Text style={styles.errorText}>No step ID provided</Text>
           <Text
             style={styles.errorLink}
-            onPress={() => router.canGoBack() ? router.back() : router.replace('/(tabs)/races')}
+            onPress={() => router.canGoBack() ? router.back() : router.replace(getEventTabRoute() as any)}
           >
             Go back
           </Text>
@@ -50,7 +51,7 @@ export default function StepDetailScreen() {
               headerLeft: () => (
                 <Text
                   style={styles.webBackButton}
-                  onPress={() => router.canGoBack() ? router.back() : router.replace('/(tabs)/races')}
+                  onPress={() => router.canGoBack() ? router.back() : router.replace(getEventTabRoute() as any)}
                 >
                   ← Back
                 </Text>
