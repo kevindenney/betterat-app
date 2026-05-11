@@ -101,6 +101,7 @@ import { StepDetailContent } from '@/components/step/StepDetailContent';
 // PeerTimelinesFooter peer sections now integrated into BlueprintProgressStrip
 import { BlueprintProgressStrip } from '@/components/blueprint/BlueprintProgressStrip';
 import { BlueprintPanelsStack } from '@/components/cards/BlueprintPanelsStack';
+import { ForYouSection } from '@/components/blueprint/ForYouSection';
 import { PublishBlueprintSheet } from '@/components/blueprint/PublishBlueprintSheet';
 import { useUserBlueprints, useSubscribedBlueprints, useSuggestedNextSteps, useAdoptBlueprintStep, useDismissBlueprintStep, useAutoAdoptSubscribedSteps } from '@/hooks/useBlueprint';
 import { useScrollToolbarHide } from '@/hooks/useScrollToolbarHide';
@@ -4494,21 +4495,30 @@ export default function RacesScreen() {
                 pendingNewStepId={pendingNewStepIdRef.current}
                 onPendingScrollConsumed={() => { pendingNewStepIdRef.current = null; }}
                 renderFooter={!isViewingOtherTimeline ? () => (
-                  <BlueprintPanelsStack
-                    interestId={currentInterest?.id}
-                    subscribedBlueprints={subscribedBlueprints ?? []}
-                    myTimelineSteps={myTimelineSteps}
-                    onOpenAdoptedStep={(stepId) => {
-                      // Directly select + scroll to the step in-place. We set
-                      // the pending-scroll ref so TimelineGridView's scroll
-                      // effect triggers; otherwise selectedRaceId only
-                      // highlights the tile and the user sees no change if
-                      // the step is below the fold.
-                      pendingNewStepIdRef.current = stepId;
-                      setSelectedRaceId(stepId);
-                      setHasManuallySelected(true);
-                    }}
-                  />
+                  <>
+                    <ForYouSection
+                      interestId={currentInterest?.id}
+                      interestSlug={currentInterest?.slug}
+                      orgId={activeOrganization?.id}
+                      orgName={activeOrganization?.name}
+                      hasOrg={!!activeOrganization}
+                    />
+                    <BlueprintPanelsStack
+                      interestId={currentInterest?.id}
+                      subscribedBlueprints={subscribedBlueprints ?? []}
+                      myTimelineSteps={myTimelineSteps}
+                      onOpenAdoptedStep={(stepId) => {
+                        // Directly select + scroll to the step in-place. We set
+                        // the pending-scroll ref so TimelineGridView's scroll
+                        // effect triggers; otherwise selectedRaceId only
+                        // highlights the tile and the user sees no change if
+                        // the step is below the fold.
+                        pendingNewStepIdRef.current = stepId;
+                        setSelectedRaceId(stepId);
+                        setHasManuallySelected(true);
+                      }}
+                    />
+                  </>
                 ) : undefined}
               />
             </View>
