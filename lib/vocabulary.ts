@@ -35,6 +35,7 @@ export const FALLBACK_VOCABULARY: VocabularyMap = {
   'Practice': 'Practice Session',
   'Institution': 'Yacht Club',
   'Coach': 'Sailing Coach',
+  'Coaches': 'Coaches',
   'Passport': 'Sailor Record',
   'Period': 'Season',
   'Milestone': 'First Win',
@@ -57,6 +58,7 @@ const NURSING_VOCABULARY: VocabularyMap = {
   'Practice': 'Skills Lab',
   'Institution': 'Clinical Site',
   'Coach': 'Preceptor',
+  'Coaches': 'Preceptors',
   'Passport': 'Clinical Portfolio',
   'Period': 'Rotation',
   'Milestone': 'Competency',
@@ -322,6 +324,7 @@ export async function fetchVocabulary(interestId: string, interestSlug?: string)
     if (!data || data.length === 0) {
       if (!emptyVocabularyLoggedInterests.has(interestId)) {
         emptyVocabularyLoggedInterests.add(interestId);
+        // eslint-disable-next-line no-console
         console.debug('[vocabulary] No rows returned for interest; using fallback', {
           interestId,
           interestSlug: interestSlug ?? null,

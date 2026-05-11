@@ -23,6 +23,7 @@ import { IOSSegmentedControl } from '@/components/ui/ios/IOSSegmentedControl';
 import { TabScreenToolbar } from '@/components/ui/TabScreenToolbar';
 import { useScrollToolbarHide } from '@/hooks/useScrollToolbarHide';
 import { useInterest } from '@/providers/InterestProvider';
+import { useVocabulary } from '@/hooks/useVocabulary';
 import { useAuth } from '@/providers/AuthProvider';
 import { useOrganization } from '@/providers/OrganizationProvider';
 import { useOrgMembers } from '@/hooks/useOrgMembers';
@@ -88,19 +89,21 @@ export default function LearnScreen() {
   const isDesktop = mounted && width > 768;
 
   const { currentInterest } = useInterest();
+  const { vocab } = useVocabulary();
   const interestSlug = String(currentInterest?.slug || '').trim().toLowerCase();
   const isSailingInterest = interestSlug === 'sail-racing' || interestSlug.includes('sail');
   const { data: betterAtCourses, isLoading: betterAtLoading } = useCourses();
   const filteredCourses = useMemo(() => betterAtCourses ?? [], [betterAtCourses]);
   const courseTabLabel = isSailingInterest ? 'Training' : 'Courses';
   const courseSectionLabel = isSailingInterest ? 'Training' : 'Courses';
+  const coachesTabLabel = vocab('Coaches');
   const learnSegments = useMemo(
     () => [
       { value: 'courses' as const, label: courseTabLabel },
-      { value: 'coaches' as const, label: 'Coaches' },
+      { value: 'coaches' as const, label: coachesTabLabel },
       { value: 'people' as const, label: 'People' },
     ],
-    [courseTabLabel]
+    [courseTabLabel, coachesTabLabel]
   );
   const {
     results: organizationResults,
@@ -353,7 +356,7 @@ export default function LearnScreen() {
       joined_at: null,
     };
 
-    const missingColumnMap: Array<[string, string]> = [
+    const missingColumnMap: [string, string][] = [
       ['membership_status', 'organization_memberships.membership_status'],
       ['status', 'organization_memberships.status'],
       ['is_verified', 'organization_memberships.is_verified'],
