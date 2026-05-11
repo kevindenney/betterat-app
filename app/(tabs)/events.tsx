@@ -24,6 +24,7 @@ import { ThemedView } from '@/components/themed-view';
 import EventService, { ClubEvent, EventRegistrationStats } from '@/services/eventService';
 import { useClubWorkspace } from '@/hooks/useClubWorkspace';
 import { Toast, ToastTitle, ToastDescription, useToast } from '@/components/ui/toast';
+import { useAuth } from '@/providers/AuthProvider';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const isWideScreen = SCREEN_WIDTH > 768;
@@ -61,6 +62,17 @@ export default function EventsScreen() {
   const router = useRouter();
   const toast = useToast();
   const { clubProfile } = useClubWorkspace();
+  const { userType, loading: authLoading } = useAuth();
+
+  // /events is the club admin dashboard. Sailors/learners shouldn't see it —
+  // bounce them to /races. We wait for auth to settle so we don't redirect
+  // during the brief window before userType hydrates.
+  useEffect(() => {
+    if (authLoading) return;
+    if (userType && userType !== 'club') {
+      router.replace('/(tabs)/races' as any);
+    }
+  }, [authLoading, userType, router]);
   
   const [events, setEvents] = useState<ClubEvent[]>([]);
   const [loading, setLoading] = useState(true);
