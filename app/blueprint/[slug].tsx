@@ -15,7 +15,7 @@ import {
   Platform,
   ActivityIndicator,
   Modal,
-  Animated,
+  Share,
   useWindowDimensions,
   type ViewStyle,
   type NativeSyntheticEvent,
@@ -27,6 +27,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@/providers/AuthProvider';
 import { useInterest } from '@/providers/InterestProvider';
+import { getEventTabRoute } from '@/lib/navigation-config';
 import {
   useBlueprint,
   useBlueprintSteps,
@@ -97,7 +98,7 @@ export default function BlueprintPage() {
   const [showStickyHeader, setShowStickyHeader] = useState(false);
   const [peerTimelines, setPeerTimelines] = useState<PeerTimeline[]>([]);
   const { width: screenWidth } = useWindowDimensions();
-  const isDesktop = Platform.OS === 'web' && screenWidth > 640;
+  const _isDesktop = Platform.OS === 'web' && screenWidth > 640;
 
   // Fetch peer subscriber timelines for non-owners
   const isOwnerForPeers = user?.id === blueprint?.user_id;
@@ -109,6 +110,7 @@ export default function BlueprintPage() {
       blueprint.interest_id,
       blueprint.title,
     ).then(setPeerTimelines);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [blueprint?.id, user?.id, isOwnerForPeers]);
 
   useEffect(() => {
@@ -133,12 +135,15 @@ export default function BlueprintPage() {
     const sessionId = params.get('session_id');
     const bpId = params.get('blueprint_id');
     const purchasedParam = params.get('purchased');
+    // eslint-disable-next-line no-console
     console.log('[BlueprintPage] Stripe return check:', { sessionId, bpId, purchasedParam, blueprintId: blueprint?.id, userId: user?.id });
     if (sessionId && bpId) {
+      // eslint-disable-next-line no-console
       console.log('[BlueprintPage] Verifying purchase via session_id...');
       // Retry verification — webhook may not have fired yet when Stripe redirects back
       const verifyWithRetry = async (attempts = 0): Promise<void> => {
         const verified = await blueprintPaymentService.verifyPurchase(sessionId, bpId);
+        // eslint-disable-next-line no-console
         console.log('[BlueprintPage] verifyPurchase result:', verified, 'attempt:', attempts);
         if (verified) {
           setHasPurchased(true);
@@ -155,8 +160,10 @@ export default function BlueprintPage() {
       // Clean up URL params
       window.history.replaceState({}, '', window.location.pathname);
     } else if (purchasedParam === 'true' && blueprint?.id && user?.id) {
+      // eslint-disable-next-line no-console
       console.log('[BlueprintPage] Checking purchase via purchased=true fallback...');
       checkBlueprintPurchase(user.id, blueprint.id).then(({ purchased }) => {
+        // eslint-disable-next-line no-console
         console.log('[BlueprintPage] checkBlueprintPurchase result:', purchased);
         if (purchased) {
           setHasPurchased(true);
@@ -303,7 +310,7 @@ export default function BlueprintPage() {
         // Route the sailor to their timeline. The blueprint page is the
         // pitch; the timeline is the product. Use replace so the back-arrow
         // doesn't return them to the now-stale blueprint page.
-        router.replace('/(tabs)/races' as any);
+        router.replace(getEventTabRoute() as any);
       })
       .catch((err) => {
         console.warn('[BlueprintPage] auto-subscribe failed:', err);
@@ -348,6 +355,7 @@ export default function BlueprintPage() {
           .catch(() => {}); // non-blocking
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, blueprint, isSubscribed, subscribeMutation, unsubscribeMutation, router]);
 
   const handlePurchase = useCallback(async () => {
@@ -396,6 +404,7 @@ export default function BlueprintPage() {
     } finally {
       setPurchasing(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, blueprint, router]);
 
   // Keep ref in sync so auto-purchase effect can call it
@@ -409,7 +418,7 @@ export default function BlueprintPage() {
         await switchInterest(interest.slug);
       }
     }
-    router.push('/(tabs)/races' as any);
+    router.push(getEventTabRoute() as any);
   }, [blueprint?.interest_id, allInterests, switchInterest, router]);
 
   // Adopt every blueprint step into the user's timeline. Returns the
@@ -559,7 +568,7 @@ export default function BlueprintPage() {
       <View style={styles.navHeader}>
         <Pressable
           style={styles.backBtn}
-          onPress={() => router.canGoBack() ? router.back() : router.replace('/(tabs)/races' as any)}
+          onPress={() => router.canGoBack() ? router.back() : router.replace(getEventTabRoute() as any)}
         >
           <Ionicons name="arrow-back" size={20} color={C.accent} />
           <Text style={styles.backBtnText}>Back</Text>
@@ -844,7 +853,6 @@ export default function BlueprintPage() {
                       if (Platform.OS === 'web') {
                         await navigator.clipboard?.writeText(url);
                       } else {
-                        const { Share } = require('react-native');
                         await Share.share({ url, message: `Check out my blueprint: ${url}` });
                       }
                     }}
@@ -1389,7 +1397,7 @@ const peerStyles = StyleSheet.create({
 // Step card component (horizontal timeline) — kept for potential reuse
 // ---------------------------------------------------------------------------
 
-function StepCard({
+function _StepCard({
   step,
   index,
   total,
