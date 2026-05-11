@@ -20,6 +20,7 @@ import { useAuth } from '@/providers/AuthProvider';
 import { CoachWorkspaceProvider } from '@/providers/CoachWorkspaceProvider';
 import { FeatureTourProvider, useFeatureTourContext } from '@/providers/FeatureTourProvider';
 import { useInterest } from '@/providers/InterestProvider';
+import { useOrganization } from '@/providers/OrganizationProvider';
 import { Ionicons } from '@expo/vector-icons';
 import type { BottomTabBarButtonProps } from '@react-navigation/bottom-tabs';
 import { useFocusEffect } from '@react-navigation/native';
@@ -77,9 +78,17 @@ const TAB_SWEEP_CONTEXT_COPY: Record<
 };
 
 function TabLayoutInner() {
-  const { userType, user, clubProfile, personaLoading, isGuest, capabilities } = useAuth();
+  const { userType, user, clubProfile: _clubProfile, personaLoading, isGuest, capabilities } = useAuth();
   const { currentInterest } = useInterest();
   const { vocabulary } = useVocabulary();
+  const { memberships, activeDomain, activeOrganization } = useOrganization();
+  const isOrgAdmin = useMemo(() => {
+    const ADMIN_ROLES = new Set(['admin', 'manager', 'owner']);
+    return memberships.some(
+      (m) => ADMIN_ROLES.has(String(m.role || '').toLowerCase())
+        && ['active', 'verified'].includes(String(m.membership_status || m.status || '').toLowerCase())
+    );
+  }, [memberships]);
   const unreadMessageCount = useUnreadMessageCount(user?.id);
   const router = useRouter();
   const routerRef = useRef(router);
@@ -94,7 +103,7 @@ function TabLayoutInner() {
   // On narrow web (< 768px) the sidebar starts collapsed; on wide (>= 1024px) it's pinned open.
   const isWeb = Platform.OS === 'web';
   const useWebSidebar = isWeb && FEATURE_FLAGS.USE_WEB_SIDEBAR_LAYOUT;
-  const isWideWeb = isWeb && windowWidth >= WEB_SIDEBAR_MIN_WIDTH;
+  const _isWideWeb = isWeb && windowWidth >= WEB_SIDEBAR_MIN_WIDTH;
   const hideGlobalNavigationHeader = !isWeb && ROUTES_WITH_CUSTOM_TOOLBAR.some(
     (route) => pathname === route || pathname.startsWith(`${route}/`)
   );
@@ -132,8 +141,12 @@ function TabLayoutInner() {
   // Get tabs based on user type and capabilities
   // Sailors with coaching capability will see both sailor and coach tabs
   const tabs = useMemo(
-    () => getTabsForUserType(userType ?? null, isGuest, capabilities, vocabulary),
-    [userType, isGuest, capabilities, vocabulary],
+    () => getTabsForUserType(userType ?? null, isGuest, capabilities, vocabulary, {
+      organizationType: activeOrganization?.organization_type ?? null,
+      activeDomain: activeDomain ?? null,
+      isOrgAdmin,
+    }),
+    [userType, isGuest, capabilities, vocabulary, activeOrganization?.organization_type, activeDomain, isOrgAdmin],
   );
   const [hasRedirected, setHasRedirected] = useState(false);
   const [tabSweepVisitedTabs, setTabSweepVisitedTabs] = useState<Set<string>>(new Set());
@@ -203,6 +216,7 @@ function TabLayoutInner() {
     }
 
     routerRef.current.replace(targetRoute as Parameters<typeof router.replace>[0]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isTourActive, currentStep]);
 
   useEffect(() => {
@@ -228,6 +242,7 @@ function TabLayoutInner() {
     }
 
     wasTourActiveRef.current = false;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isTourActive, isTourComplete]);
 
   const isTabVisible = (name: string) => tabs.some(t => t.name === name);
@@ -246,6 +261,7 @@ function TabLayoutInner() {
       return () => {
         sub.remove();
       };
+      // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [navigation])
   );
 
@@ -266,6 +282,7 @@ function TabLayoutInner() {
   // iOS HIG-style tab button for sailors: icon + label with proper touch handling
   const renderSailorTabButton = useCallback(
     (tabName: string, tabTitle: string, tabConfig?: TabConfig) =>
+      // eslint-disable-next-line react/display-name
       (props: BottomTabBarButtonProps) => {
         const { accessibilityState, onPress, style } = props;
         // Use pathname-based active detection since accessibilityState.selected is undefined
@@ -335,7 +352,7 @@ function TabLayoutInner() {
   const tabBarInactiveColor = isClubUser ? 'rgba(148,163,184,0.7)' : IOS_COLORS.systemGray;
 
   const racesTab = findTab('races');
-  const dashboardTab = findTab('dashboard'); // Legacy for non-sailor user types
+  const _dashboardTab = findTab('dashboard'); // Legacy for non-sailor user types
   const calendarTab = findTab('calendar');
   const fleetTab = findTab('fleet');
   const boatTab = findTab('boat/index');
@@ -344,12 +361,12 @@ function TabLayoutInner() {
   const learnTab = findTab('learn');
   const reflectTab = findTab('reflect');
   const coursesTab = findTab('courses');
-  const connectTab = findTab('connect');
+  const _connectTab = findTab('connect');
   const discoverTab = findTab('discover');
   const searchTab = findTab('search');
   const playbookTab = findTab('playbook');
-  const followTab = findTab('follow');
-  const communityTab = findTab('community');
+  const _followTab = findTab('follow');
+  const _communityTab = findTab('community');
   const strategyTab = findTab('strategy');
   const mapTab = findTab('map');
   const clientsTab = findTab('clients');
