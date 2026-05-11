@@ -42,9 +42,15 @@ export function resolveActiveOrgId({ activeOrganizationId, memberships }: Resolv
   const providerId = String(activeOrganizationId || '').trim();
   if (providerId && isUuid(providerId)) return providerId;
 
+  // Must align with the server-side invite trigger
+  // (`get_org_membership_role` in 20260302220000_enforce_org_invite_role_issuance.sql),
+  // which only accepts `status IN ('active','verified')`. If we fall back on rows
+  // where `membership_status` is active but `status` is pending/rejected, we'll
+  // hand the wrong org to admin actions and the server will 400.
   const activeMembership = memberships.find((membership) => {
-    const rawStatus = String(membership.membership_status ?? membership.status ?? '').trim() || null;
-    return isActiveMembership(rawStatus);
+    const status = String(membership.status ?? '').trim() || null;
+    const membershipStatus = String(membership.membership_status ?? '').trim() || null;
+    return isActiveMembership(status) && (membershipStatus === null || isActiveMembership(membershipStatus));
   });
 
   if (!activeMembership) return null;

@@ -70,6 +70,9 @@ export default function InviteTokenPage() {
 
   useEffect(() => {
     loadInviteDetails();
+    // loadInviteDetails reads only `token`; adding it as a dep would cause
+    // an infinite refetch loop since it's redeclared each render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
   const loadInviteDetails = async () => {
@@ -185,15 +188,27 @@ export default function InviteTokenPage() {
   };
 
   const handleDecline = async () => {
-    if (!token) return;
+    // Send signed-in users straight to their main tab, guests to the landing
+    // page — skips the AuthGate flicker that happens when navigating to `/`.
+    const destination: Parameters<typeof router.replace>[0] = isGuest
+      ? '/'
+      : ('/(tabs)/races' as any);
+
+    if (!token) {
+      router.replace(destination);
+      return;
+    }
     setResponding(true);
+    // Best-effort: try to record the decline, but always navigate the user
+    // away so they aren't stranded on an error banner (e.g. when the
+    // signed-in account doesn't match the invitee email).
     try {
       await organizationInviteService.declineInviteByTokenForCurrentUser(token);
-      router.replace('/');
-    } catch (err: any) {
-      setError(err?.message || 'Failed to decline invite');
+    } catch {
+      // Swallow — user intent is to leave this screen, not retry.
     } finally {
       setResponding(false);
+      router.replace(destination);
     }
   };
 
