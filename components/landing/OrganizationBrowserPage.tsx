@@ -7,7 +7,7 @@ import { ScrollFix } from './ScrollFix';
 import { GroupSection } from './GroupSection';
 import { PersonTimelineRow } from './PersonTimelineRow';
 import { SubscribeCTA } from './SubscribeCTA';
-import { getInterest, getOrganization, type SampleCohort } from '@/lib/landing/sampleData';
+import { getInterest, getOrganization } from '@/lib/landing/sampleData';
 import { useAuth } from '@/providers/AuthProvider';
 import { useInterest } from '@/providers/InterestProvider';
 import { useOrganizationBlueprints, useBlueprintSteps, useSubscribe, useUnsubscribe, useBlueprintSubscription } from '@/hooks/useBlueprint';
@@ -65,10 +65,10 @@ export function OrganizationBrowserPage({ interestSlug, orgSlug }: OrganizationB
   const [dbOrg, setDbOrg] = useState<{ name: string; slug: string } | null>(null);
   const displayOrg = org || (dbOrg ? { ...dbOrg, programs: [], partners: [], teams: [], cohorts: [] } : null);
 
-  // Look up the real org from DB by matching name/slug
+  // Look up the real org from DB by matching name/slug.
+  // Runs for both logged-out visitors (to resolve the org by slug) and
+  // logged-in users (to also check membership/join state).
   useEffect(() => {
-    if (!isLoggedIn) return;
-
     const lookupOrg = async () => {
       try {
         // Look up interest_id for blueprint publishing
@@ -100,7 +100,7 @@ export function OrganizationBrowserPage({ interestSlug, orgSlug }: OrganizationB
           }
         }
 
-        console.log('[OrgBrowserPage] Org match:', match ? { id: match.id, slug: match.slug, join_mode: match.join_mode } : 'NONE');
+        console.warn('[OrgBrowserPage] Org match:', match ? { id: match.id, slug: match.slug, join_mode: match.join_mode } : 'NONE');
         if (match) {
           setDbOrgId(match.id);
           setJoinMode(match.join_mode);
@@ -109,23 +109,25 @@ export function OrganizationBrowserPage({ interestSlug, orgSlug }: OrganizationB
           const { data: countData, error: countErr } = await supabase.rpc('get_org_blueprint_count', {
             org_uuid: match.id,
           });
-          console.log('[OrgBrowserPage] Blueprint count RPC:', { countData, countErr });
+          console.warn('[OrgBrowserPage] Blueprint count RPC:', { countData, countErr });
           if (typeof countData === 'number') setBlueprintCount(countData);
 
-          // Check existing membership
-          const { data: membership } = await supabase
-            .from('organization_memberships')
-            .select('membership_status,status')
-            .eq('organization_id', match.id)
-            .eq('user_id', user!.id)
-            .order('created_at', { ascending: false })
-            .limit(1);
+          // Check existing membership (logged-in users only)
+          if (user?.id) {
+            const { data: membership } = await supabase
+              .from('organization_memberships')
+              .select('membership_status,status')
+              .eq('organization_id', match.id)
+              .eq('user_id', user.id)
+              .order('created_at', { ascending: false })
+              .limit(1);
 
-          console.log('[OrgBrowserPage] Membership check:', membership);
-          if (membership && membership.length > 0) {
-            const status = membership[0].membership_status || membership[0].status;
-            if (status === 'active') setJoinState('joined');
-            else if (status === 'pending') setJoinState('pending');
+            console.warn('[OrgBrowserPage] Membership check:', membership);
+            if (membership && membership.length > 0) {
+              const status = membership[0].membership_status || membership[0].status;
+              if (status === 'active') setJoinState('joined');
+              else if (status === 'pending') setJoinState('pending');
+            }
           }
         }
       } catch (err) {
@@ -133,6 +135,9 @@ export function OrganizationBrowserPage({ interestSlug, orgSlug }: OrganizationB
       }
     };
     lookupOrg();
+    // org is derived from sample data via getOrganization(interestSlug, orgSlug),
+    // so it changes only when those keys change — both are already in the deps.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLoggedIn, org?.name, orgSlug, user?.id]);
 
   // Check which programs the user is already subscribed to
@@ -221,9 +226,9 @@ export function OrganizationBrowserPage({ interestSlug, orgSlug }: OrganizationB
     }
 
     try {
-      console.log('[OrgBrowserPage] requestJoin:', { orgId: dbOrgId, mode: joinMode });
+      console.warn('[OrgBrowserPage] requestJoin:', { orgId: dbOrgId, mode: joinMode });
       const result = await organizationDiscoveryService.requestJoin({ orgId: dbOrgId, mode: joinMode! });
-      console.log('[OrgBrowserPage] requestJoin result:', result);
+      console.warn('[OrgBrowserPage] requestJoin result:', result);
       if (result.status === 'active' || result.status === 'existing') {
         setJoinState('joined');
         showAlert('Joined', `You've joined ${org!.name}. Welcome!`);

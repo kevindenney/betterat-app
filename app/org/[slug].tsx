@@ -13,6 +13,7 @@ import { useLocalSearchParams, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/services/supabase';
 import type { BlueprintRecord } from '@/types/blueprint';
+import type { ProgramRecord } from '@/services/ProgramService';
 import { isMissingSupabaseColumn } from '@/lib/utils/supabaseSchemaFallback';
 
 // ── Design tokens (matching blueprint page) ──────────────────────────
@@ -101,6 +102,7 @@ export default function PublicOrganizationPage() {
   const [errorText, setErrorText] = useState<string | null>(null);
   const [org, setOrg] = useState<OrgRow | null>(null);
   const [blueprints, setBlueprints] = useState<BlueprintRecord[]>([]);
+  const [programs, setPrograms] = useState<ProgramRecord[]>([]);
   const [people, setPeople] = useState<PersonDisplay[]>([]);
 
   useEffect(() => {
@@ -202,6 +204,16 @@ export default function PublicOrganizationPage() {
           };
         });
 
+        // Fetch active programs (degree programs etc.) so they can be surfaced
+        // alongside blueprints. Programs are the canonical entity; blueprints
+        // are templates that may belong to a program.
+        const programsResult = await supabase
+          .from('programs')
+          .select('*')
+          .eq('organization_id', orgRow.id)
+          .in('status', ['draft', 'planned', 'active'])
+          .order('title', { ascending: true });
+
         // Fetch published blueprints
         const bpResult = await supabase
           .from('timeline_blueprints')
@@ -212,6 +224,9 @@ export default function PublicOrganizationPage() {
 
         if (!cancelled) {
           setOrg(orgRow);
+          if (!programsResult.error) {
+            setPrograms((programsResult.data as any[]) ?? []);
+          }
           if (!bpResult.error) {
             setBlueprints((bpResult.data as any[]) ?? []);
           }
@@ -237,6 +252,29 @@ export default function PublicOrganizationPage() {
 
   const coaches = useMemo(() => people.filter((p) => p.isCoach), [people]);
   const members = useMemo(() => people.filter((p) => !p.isCoach), [people]);
+
+  // Degree programs = active programs with a program_path in metadata (e.g.
+  // 'msn-entry-into-nursing'). Programs without program_path are legacy/internal
+  // (e.g. clinical_rotation containers) and should not be promoted here.
+  const degreePrograms = useMemo(
+    () =>
+      programs.filter((p) => {
+        const path = (p.metadata as Record<string, unknown> | null)?.program_path;
+        return typeof path === 'string' && path.length > 0;
+      }),
+    [programs],
+  );
+
+  // Only show blueprints that are linked to a surfaced degree program. This
+  // hides blueprints attached to legacy programs (which would otherwise leak
+  // into the public org page).
+  const visibleBlueprints = useMemo(() => {
+    if (degreePrograms.length === 0) return blueprints;
+    const programIds = new Set(degreePrograms.map((p) => p.id));
+    return blueprints.filter((bp) => bp.program_id && programIds.has(bp.program_id));
+  }, [blueprints, degreePrograms]);
+
+  const programCount = degreePrograms.length + visibleBlueprints.length;
 
   const Container = Platform.OS === 'web' ? View : SafeAreaView;
 
@@ -291,8 +329,8 @@ export default function PublicOrganizationPage() {
           <Text style={styles.heroTitle}>{org.name}</Text>
           <View style={styles.statsRow}>
             <View style={styles.statItem}>
-              <Text style={styles.statValue}>{blueprints.length}</Text>
-              <Text style={styles.statLabel}>Program{blueprints.length !== 1 ? 's' : ''}</Text>
+              <Text style={styles.statValue}>{programCount}</Text>
+              <Text style={styles.statLabel}>Program{programCount !== 1 ? 's' : ''}</Text>
             </View>
             <View style={styles.statDivider} />
             <View style={styles.statItem}>
@@ -307,12 +345,65 @@ export default function PublicOrganizationPage() {
           </View>
         </View>
 
+        {/* Degree Programs */}
+        {degreePrograms.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Degree Programs</Text>
+            <View style={styles.blueprintGrid}>
+              {degreePrograms.map((prog) => {
+                const meta = (prog.metadata as Record<string, unknown> | null) ?? {};
+                const degreeType = typeof meta.degree_type === 'string' ? meta.degree_type : null;
+                const semesters = typeof meta.duration_semesters === 'number' ? meta.duration_semesters : null;
+                const clinical = typeof meta.clinical_hours === 'number'
+                  ? meta.clinical_hours
+                  : typeof meta.practicum_hours === 'number'
+                    ? meta.practicum_hours
+                    : null;
+                const passRate = typeof meta.nclex_pass_rate === 'number' ? meta.nclex_pass_rate : null;
+                return (
+                  <View key={prog.id} style={styles.blueprintCard}>
+                    <View style={styles.blueprintCardIcon}>
+                      <Ionicons name="school" size={22} color={C.accent} />
+                    </View>
+                    <Text style={styles.blueprintCardTitle}>{prog.title}</Text>
+                    {prog.description ? (
+                      <Text style={styles.blueprintCardDesc} numberOfLines={3}>{prog.description}</Text>
+                    ) : null}
+                    {(degreeType || semesters || clinical || passRate !== null) && (
+                      <View style={styles.degreeMetaRow}>
+                        {degreeType && (
+                          <View style={styles.degreeBadge}>
+                            <Text style={styles.degreeBadgeText}>{degreeType}</Text>
+                          </View>
+                        )}
+                        {semesters !== null && (
+                          <Text style={styles.degreeMetaText}>{semesters} semesters</Text>
+                        )}
+                        {clinical !== null && (
+                          <Text style={styles.degreeMetaText}>
+                            {clinical.toLocaleString()} clinical hrs
+                          </Text>
+                        )}
+                        {passRate !== null && (
+                          <Text style={styles.degreeMetaText}>
+                            {Math.round(passRate * 100)}% NCLEX pass
+                          </Text>
+                        )}
+                      </View>
+                    )}
+                  </View>
+                );
+              })}
+            </View>
+          </View>
+        )}
+
         {/* Programs & Blueprints */}
-        {blueprints.length > 0 && (
+        {visibleBlueprints.length > 0 && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Programs & Blueprints</Text>
             <View style={styles.blueprintGrid}>
-              {blueprints.map((bp) => (
+              {visibleBlueprints.map((bp) => (
                 <Pressable
                   key={bp.id}
                   style={({ pressed }) => [styles.blueprintCard, pressed && styles.cardPressed]}
@@ -615,6 +706,29 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
     color: C.accent,
+  },
+  degreeMetaRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 4,
+  },
+  degreeBadge: {
+    backgroundColor: C.accentBg,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  degreeBadgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: C.accent,
+    letterSpacing: 0.3,
+  },
+  degreeMetaText: {
+    fontSize: 11,
+    color: C.labelMid,
   },
 
   // People
