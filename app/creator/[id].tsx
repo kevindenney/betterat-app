@@ -80,7 +80,7 @@ function relativeDate(dateStr: string): string {
 export default function BlueprintDetailScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { user } = useAuth();
+  const { user: _user } = useAuth();
   const { data: blueprint, isLoading: bpLoading, refetch: refetchBp } = useBlueprintById(id);
   const { data: blueprintSteps, isLoading: stepsLoading, refetch: refetchSteps } = useBlueprintSteps(id);
   const { data: subscriberProgress, isLoading: subLoading, refetch: refetchSubs } = useBlueprintSubscriberProgress(id);
@@ -117,7 +117,7 @@ export default function BlueprintDetailScreen() {
 
   const handleShare = useCallback(async () => {
     if (!blueprint) return;
-    const url = `https://betterat.com/blueprint/${blueprint.slug}`;
+    const url = `https://better.at/blueprint/${blueprint.slug}`;
     if (Platform.OS === 'web') {
       try { await navigator.clipboard.writeText(url); } catch { /* ignore */ }
     } else {

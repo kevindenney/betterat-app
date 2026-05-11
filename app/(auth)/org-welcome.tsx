@@ -19,7 +19,7 @@ interface ActionCard {
 }
 
 export default function OrgWelcomeScreen() {
-  const { interest, orgName, orgId } = useLocalSearchParams<{
+  const { interest, orgName, orgId: _orgId } = useLocalSearchParams<{
     interest?: string;
     orgName?: string;
     orgId?: string;
@@ -171,7 +171,7 @@ export default function OrgWelcomeScreen() {
                 Your shareable link
               </Text>
               <Text style={{ fontSize: 13, color: '#64748B', marginTop: 2 }}>
-                betterat.com/{orgName
+                better.at/{orgName
                   ? orgName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
                   : orgLabel}
               </Text>

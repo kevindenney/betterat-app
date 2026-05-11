@@ -127,7 +127,7 @@ serve(async (req: Request) => {
           mcc: '7941', // Sports clubs, fields, and promoters
           name: profile?.full_name || 'Creator',
           product_description: 'Digital learning blueprints and content',
-          url: `https://betterat.com/creator/${targetUserId}`,
+          url: `https://better.at/creator/${targetUserId}`,
         },
         metadata: {
           user_id: targetUserId,
@@ -151,7 +151,7 @@ serve(async (req: Request) => {
     }
 
     // Create account onboarding link
-    const baseUrl = Deno.env.get('APP_URL') || 'https://betterat.com';
+    const baseUrl = Deno.env.get('APP_URL') || 'https://better.at';
 
     const accountLink = await stripe.accountLinks.create({
       account: accountId,

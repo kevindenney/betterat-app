@@ -18,6 +18,7 @@ import {
   Platform,
   Share,
   ActivityIndicator,
+  Linking,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -161,7 +162,7 @@ export function PublishBlueprintSheet({
   const handleConnectStripe = useCallback(async () => {
     if (!user?.id) return;
     setStripeLoading(true);
-    const baseUrl = Platform.OS === 'web' ? window.location.origin : 'https://betterat.com';
+    const baseUrl = Platform.OS === 'web' ? window.location.origin : 'https://better.at';
     const result = await StripeConnectService.startOnboarding(
       user.id,
       `${baseUrl}/settings?stripe_return=true`,
@@ -173,7 +174,6 @@ export function PublishBlueprintSheet({
         window.location.href = result.url;
       } else {
         // On native, open in browser
-        const { Linking } = require('react-native');
         Linking.openURL(result.url);
       }
     } else {
@@ -288,6 +288,7 @@ export function PublishBlueprintSheet({
       console.error('[PublishBlueprintSheet] Publish failed:', err);
       showAlert('Publish Failed', err?.message || 'Something went wrong. Please try again.');
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, title, description, slug, interestId, isEditing, activeBlueprint, createBlueprint, updateBlueprint, onClose, selectedOrgId, selectedProgramId, accessLevel, priceDollars]);
 
   const handleUnpublish = useCallback(async () => {
@@ -300,7 +301,7 @@ export function PublishBlueprintSheet({
   }, [activeBlueprint, updateBlueprint, onClose]);
 
   const handleShareLink = useCallback(async () => {
-    const url = `${Platform.OS === 'web' ? window.location.origin : 'https://betterat.com'}/blueprint/${slug}`;
+    const url = `${Platform.OS === 'web' ? window.location.origin : 'https://better.at'}/blueprint/${slug}`;
     if (Platform.OS === 'web') {
       await navigator.clipboard?.writeText(url);
     } else {
@@ -404,7 +405,7 @@ export function PublishBlueprintSheet({
                 Your timeline is now subscribable{selectedOrgId ? ' under your organization' : ''}.
               </Text>
               <View style={styles.urlRow}>
-                <Text style={styles.urlPrefix}>betterat.com</Text>
+                <Text style={styles.urlPrefix}>better.at</Text>
                 <Text style={styles.urlSlug}>{blueprintUrl}</Text>
                 <Pressable style={styles.copyBtn} onPress={handleShareLink}>
                   <Ionicons name="copy-outline" size={14} color={C.accent} />
@@ -790,7 +791,7 @@ export function PublishBlueprintSheet({
           <View style={styles.field}>
             <Text style={styles.fieldLabel}>Blueprint URL</Text>
             <View style={styles.urlRow}>
-              <Text style={styles.urlPrefix}>betterat.com</Text>
+              <Text style={styles.urlPrefix}>better.at</Text>
               <Text style={styles.urlSlug}>{blueprintUrl}</Text>
               {isEditing && activeBlueprint?.is_published && (
                 <Pressable style={styles.copyBtn} onPress={handleShareLink}>
