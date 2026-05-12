@@ -21,6 +21,11 @@ import {
   MAX_CONVERSATION_MESSAGES,
   MAX_TOOL_ITERATIONS,
 } from '../../services/capture/types';
+import {
+  parseButtonPayload,
+  runButtonAction,
+  statusLabel,
+} from '../../services/capture/actions';
 
 // Bigger raw bodies for media-heavy webhooks; allow up to 120s for tool chains.
 export const maxDuration = 120;
@@ -112,12 +117,8 @@ async function handleButtonReply(
     return;
   }
 
-  const colonIdx = buttonId.indexOf(':');
-  if (colonIdx < 0) return;
-  const action = buttonId.slice(0, colonIdx);
-  const rest = buttonId.slice(colonIdx + 1);
-  if (!action || !rest) return;
-  const stepId = action === 'substep_done' ? rest.slice(0, rest.indexOf(':')) : rest;
+  const action = parseButtonPayload(buttonId);
+  if (action.kind === 'invalid') return;
 
   const { data: link } = await supabase
     .from('whatsapp_links')
@@ -133,100 +134,61 @@ async function handleButtonReply(
 
   const auth = await resolveAuthContext(supabase, link.user_id);
 
-  // Photo attach
-  if (action === 'attach') {
+  // For attach actions, pre-fetch the pending photo URL from the WhatsApp
+  // conversations table (channel-specific key shape).
+  let pendingPhotoUrl: string | null = null;
+  if (action.kind === 'attach') {
     const { data: convo } = await supabase
       .from('whatsapp_conversations')
       .select('pending_photo_url')
       .eq('whatsapp_phone', phone)
       .maybeSingle();
+    pendingPhotoUrl = (convo?.pending_photo_url as string | null) ?? null;
 
-    const photoUrl = convo?.pending_photo_url as string | null;
-    if (!photoUrl) {
+    if (!pendingPhotoUrl) {
       await sendText(phone, 'No photo to attach — send a photo first.');
       return;
     }
+  }
 
-    const result = await executeTool(
-      'attach_step_evidence',
-      { step_id: stepId, photo_url: photoUrl, caption: 'Added via WhatsApp' },
-      supabase,
-      auth,
-    );
+  const result = await runButtonAction(action, {
+    supabase,
+    auth,
+    channel: 'whatsapp',
+    pendingPhotoUrl,
+  });
 
-    const parsed = JSON.parse(result);
-    if (parsed.error) {
-      await sendText(phone, `Error: ${parsed.error}`);
-      return;
-    }
+  if (!result.ok) {
+    await sendText(phone, `Error: ${result.error}`);
+    return;
+  }
 
+  if (result.kind === 'attach') {
     await supabase
       .from('whatsapp_conversations')
       .update({ pending_photo_url: null })
       .eq('whatsapp_phone', phone);
 
-    await sendText(phone, `📎 Photo attached as evidence to *${parsed.step_title ?? 'step'}*`);
+    await sendText(phone, `📎 Photo attached as evidence to *${result.stepTitle ?? 'step'}*`);
     return;
   }
 
-  // Detail
-  if (action === 'detail') {
-    const detailResult = await executeTool('get_step_detail', { step_id: stepId }, supabase, auth);
-    const detailParsed = JSON.parse(detailResult);
-    if (detailParsed.error) {
-      await sendText(phone, `Error: ${detailParsed.error}`);
-      return;
-    }
-    const title = detailParsed.title ?? 'Step';
-    const subs = (detailParsed.sub_steps ?? []) as { completed: boolean; text: string }[];
-    const subList = subs.length
-      ? '\n' + subs.map(ss => `${ss.completed ? '☑️' : '⬜'} ${ss.text}`).join('\n')
+  if (result.kind === 'detail') {
+    const title = result.title ?? 'Step';
+    const subList = result.subSteps.length
+      ? '\n' + result.subSteps.map(ss => `${ss.completed ? '☑️' : '⬜'} ${ss.text}`).join('\n')
       : '';
     await sendText(phone, `📋 *${title}*${subList}`);
     return;
   }
 
-  // Sub-step toggle
-  if (action === 'substep_done') {
-    const subStepId = rest.slice(rest.indexOf(':') + 1);
-    if (!stepId || !subStepId) return;
-    const result = await executeTool(
-      'toggle_sub_step',
-      { step_id: stepId, sub_step_id: subStepId, completed: true },
-      supabase,
-      auth,
-    );
-    const parsed = JSON.parse(result);
-    if (parsed.error) {
-      await sendText(phone, `Error: ${parsed.error}`);
-      return;
-    }
-    await sendText(phone, `☑️ *${parsed.sub_step_title ?? 'Sub-step'}* marked done. ${parsed.progress ?? ''}`);
+  if (result.kind === 'substep_done') {
+    await sendText(phone, `☑️ *${result.subStepTitle ?? 'Sub-step'}* marked done. ${result.progress ?? ''}`);
     return;
   }
 
-  // Status update (done/wip/skip)
-  const statusMap: Record<string, string> = {
-    done: 'completed',
-    wip: 'in_progress',
-    skip: 'skipped',
-  };
-  const newStatus = statusMap[action];
-  if (!newStatus) return;
-
-  const result = await executeTool(
-    'update_step_status',
-    { step_id: stepId, status: newStatus },
-    supabase,
-    auth,
-  );
-  const parsed = JSON.parse(result);
-  if (parsed.error) {
-    await sendText(phone, `Error: ${parsed.error}`);
-    return;
-  }
-  const label = newStatus === 'completed' ? '✅ Done' : newStatus === 'in_progress' ? '▶️ Started' : '⏭️ Skipped';
-  await sendText(phone, `${label}: ${parsed.step?.title ?? 'step'}`);
+  // result.kind === 'status'
+  await sendText(phone, `${statusLabel(result.newStatus)}: ${result.stepTitle ?? 'step'}`);
 }
 
 // ---------------------------------------------------------------------------

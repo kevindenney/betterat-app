@@ -20,6 +20,11 @@ import {
   MAX_CONVERSATION_MESSAGES,
   MAX_TOOL_ITERATIONS,
 } from '../../services/capture/types';
+import {
+  parseButtonPayload,
+  runButtonAction,
+  statusLabel,
+} from '../../services/capture/actions';
 
 // Allow up to 120s for multi-tool chains (debrief flow: 5+ tool calls with AI analysis)
 export const maxDuration = 120;
@@ -74,22 +79,13 @@ async function handleCallbackQuery(
     return;
   }
 
-  // Parse callback data: "done:<step_id>" | "wip:<step_id>" | "skip:<step_id>" | "attach:<step_id>" | "substep_done:<step_id>:<sub_step_id>"
-  const colonIdx = data.indexOf(':');
-  if (colonIdx < 0) {
+  const action = parseButtonPayload(data);
+  if (action.kind === 'invalid') {
     await answerCallbackQuery(queryId, 'Invalid action');
     return;
   }
-  const action = data.slice(0, colonIdx);
-  const rest = data.slice(colonIdx + 1);
-  if (!action || !rest) {
-    await answerCallbackQuery(queryId, 'Invalid action');
-    return;
-  }
-  // For substep_done, rest = "<step_id>:<sub_step_id>"; for others, rest = "<step_id>"
-  const stepId = action === 'substep_done' ? rest.slice(0, rest.indexOf(':')) : rest;
 
-  // Resolve auth
+  // Resolve auth (Telegram-specific link table)
   const { data: link } = await supabase
     .from('telegram_links')
     .select('user_id, linked_at')
@@ -105,123 +101,72 @@ async function handleCallbackQuery(
   const auth = await resolveAuthContext(supabase, link.user_id);
   const chatId = cbMessage.chat?.id;
 
-  // Handle photo attachment callback
-  if (action === 'attach') {
-    // Look up pending photo from conversation
+  // For attach actions, pre-fetch the pending photo URL from the Telegram
+  // conversations table (channel-specific key shape).
+  let pendingPhotoUrl: string | null = null;
+  if (action.kind === 'attach') {
     const { data: convo } = await supabase
       .from('telegram_conversations')
       .select('pending_photo_url')
       .eq('telegram_chat_id', chatId)
       .maybeSingle();
+    pendingPhotoUrl = (convo?.pending_photo_url as string | null) ?? null;
 
-    const photoUrl = convo?.pending_photo_url as string | null;
-    if (!photoUrl) {
+    if (!pendingPhotoUrl) {
       await answerCallbackQuery(queryId, 'No photo to attach — send a photo first');
       return;
     }
+  }
 
-    // Attach the photo to the step
-    const result = await executeTool(
-      'attach_step_evidence',
-      { step_id: stepId, photo_url: photoUrl, caption: 'Added via Telegram' },
-      supabase,
-      auth,
-    );
+  const result = await runButtonAction(action, {
+    supabase,
+    auth,
+    channel: 'telegram',
+    pendingPhotoUrl,
+  });
 
-    const parsed = JSON.parse(result);
-    if (parsed.error) {
-      await answerCallbackQuery(queryId, `Error: ${parsed.error}`);
-      return;
-    }
+  if (!result.ok) {
+    await answerCallbackQuery(queryId, `Error: ${result.error}`);
+    return;
+  }
 
+  if (result.kind === 'attach') {
     // Clear pending photo
     await supabase
       .from('telegram_conversations')
       .update({ pending_photo_url: null })
       .eq('telegram_chat_id', chatId);
 
-    await answerCallbackQuery(queryId, `📎 Photo attached to: ${parsed.step_title ?? 'step'}`);
+    await answerCallbackQuery(queryId, `📎 Photo attached to: ${result.stepTitle ?? 'step'}`);
     if (chatId) {
-      await sendMessage(chatId, `📎 Photo attached as evidence to *${parsed.step_title ?? 'step'}*`);
+      await sendMessage(chatId, `📎 Photo attached as evidence to *${result.stepTitle ?? 'step'}*`);
     }
     return;
   }
 
-  // Handle "View Step" detail callback
-  if (action === 'detail') {
-    const detailResult = await executeTool('get_step_detail', { step_id: stepId }, supabase, auth);
-    const detailParsed = JSON.parse(detailResult);
-    if (detailParsed.error) {
-      await answerCallbackQuery(queryId, `Error: ${detailParsed.error}`);
-      return;
-    }
+  if (result.kind === 'detail') {
     await answerCallbackQuery(queryId);
     if (chatId) {
-      const title = detailParsed.title ?? 'Step';
-      const subs = (detailParsed.sub_steps ?? []) as { completed: boolean; text: string }[];
-      const subList = subs.length
-        ? '\n' + subs.map((ss: { completed: boolean; text: string }) => `${ss.completed ? '☑️' : '⬜'} ${ss.text}`).join('\n')
+      const title = result.title ?? 'Step';
+      const subList = result.subSteps.length
+        ? '\n' + result.subSteps.map(ss => `${ss.completed ? '☑️' : '⬜'} ${ss.text}`).join('\n')
         : '';
       await sendMessage(chatId, `📋 *${title}*${subList}`);
     }
     return;
   }
 
-  // Handle sub-step toggle callback
-  if (action === 'substep_done') {
-    const subStepId = rest.slice(rest.indexOf(':') + 1);
-    if (!stepId || !subStepId) {
-      await answerCallbackQuery(queryId, 'Invalid sub-step action');
-      return;
-    }
-
-    const toggleResult = await executeTool(
-      'toggle_sub_step',
-      { step_id: stepId, sub_step_id: subStepId, completed: true },
-      supabase,
-      auth,
-    );
-
-    const toggleParsed = JSON.parse(toggleResult);
-    if (toggleParsed.error) {
-      await answerCallbackQuery(queryId, `Error: ${toggleParsed.error}`);
-      return;
-    }
-
-    await answerCallbackQuery(queryId, `☑️ ${toggleParsed.sub_step_title ?? 'Sub-step'} done!`);
+  if (result.kind === 'substep_done') {
+    await answerCallbackQuery(queryId, `☑️ ${result.subStepTitle ?? 'Sub-step'} done!`);
     if (chatId) {
-      await sendMessage(chatId, `☑️ *${toggleParsed.sub_step_title ?? 'Sub-step'}* marked done\\! ${toggleParsed.progress ?? ''}`);
+      // MarkdownV2: escape '!' as '\!'.
+      await sendMessage(chatId, `☑️ *${result.subStepTitle ?? 'Sub-step'}* marked done\\! ${result.progress ?? ''}`);
     }
     return;
   }
 
-  // Handle status update callbacks (done/wip/skip)
-  const statusMap: Record<string, string> = {
-    done: 'completed',
-    wip: 'in_progress',
-    skip: 'skipped',
-  };
-  const newStatus = statusMap[action];
-  if (!newStatus) {
-    await answerCallbackQuery(queryId, 'Unknown action');
-    return;
-  }
-
-  const result = await executeTool(
-    'update_step_status',
-    { step_id: stepId, status: newStatus },
-    supabase,
-    auth,
-  );
-
-  const parsed = JSON.parse(result);
-  if (parsed.error) {
-    await answerCallbackQuery(queryId, `Error: ${parsed.error}`);
-    return;
-  }
-
-  const label = newStatus === 'completed' ? '✅ Done' : newStatus === 'in_progress' ? '▶️ Started' : '⏭️ Skipped';
-  await answerCallbackQuery(queryId, `${label}: ${parsed.step?.title ?? 'step'}`);
+  // result.kind === 'status'
+  await answerCallbackQuery(queryId, `${statusLabel(result.newStatus)}: ${result.stepTitle ?? 'step'}`);
 }
 
 // ---------------------------------------------------------------------------
