@@ -37,17 +37,15 @@ const WebSidebarNav = Platform.OS === 'web'
 // Web sidebar should be desktop-only; phones/tablets use tab UX.
 const WEB_SIDEBAR_MIN_WIDTH = 1024;
 
-const TAB_SWEEP_REQUIRED_TABS = ['discover', 'learn', 'reflect'] as const;
+const TAB_SWEEP_REQUIRED_TABS = ['discover', 'reflect'] as const;
 const isTabSweepRequiredTab = (tabName: string) =>
   TAB_SWEEP_REQUIRED_TABS.some((requiredTab) => requiredTab === tabName);
 const TAB_SWEEP_ROUTE_MAP: Record<(typeof TAB_SWEEP_REQUIRED_TABS)[number], string> = {
   discover: '/discover',
-  learn: '/learn',
   reflect: '/reflect',
 };
 const TAB_SWEEP_META: Record<(typeof TAB_SWEEP_REQUIRED_TABS)[number], { label: string; icon: keyof typeof Ionicons.glyphMap }> = {
   discover: { label: 'Discover', icon: 'compass-outline' },
-  learn: { label: 'Learn', icon: 'school-outline' },
   reflect: { label: 'Reflect', icon: 'stats-chart-outline' },
 };
 const ROUTES_WITH_CUSTOM_TOOLBAR = [
@@ -66,10 +64,6 @@ const TAB_SWEEP_CONTEXT_COPY: Record<
   discover: {
     description: 'Browse interests, organizations, people, and community forums.',
     emptyHint: 'Start by exploring interests or finding people to follow.',
-  },
-  learn: {
-    description: 'Browse tactical courses and continue training plans.',
-    emptyHint: 'If a filter is empty, switch to All Courses.',
   },
   reflect: {
     description: 'Review race history, progress trends, and season metrics.',
@@ -358,7 +352,6 @@ function TabLayoutInner() {
   const boatTab = findTab('boat/index');
   const profileTab = findTab('profile');
   const settingsTab = findTab('settings');
-  const learnTab = findTab('learn');
   const reflectTab = findTab('reflect');
   const coursesTab = findTab('courses');
   const _connectTab = findTab('connect');
@@ -543,23 +536,13 @@ function TabLayoutInner() {
             href: null,
           }}
         />
-        {/* Tab 4: Learn */}
+        {/* Learn route stays addressable via deep links from Playbook/Discover,
+            but is no longer rendered in the tab bar (see redesign spec §4
+            and docs/audit/visual-redesign-gap-step-detail.md §3.5). */}
         <Tabs.Screen
           name="learn"
           options={{
-            title: learnTab?.title ?? 'Learn',
-            tabBarIcon: isSailorUser ? () => null : ({ color, size, focused }) => (
-              <Ionicons
-                name={getIconName(learnTab, focused, learnTab?.iconFocused ?? 'school', learnTab?.icon ?? 'school-outline') as any}
-                size={size}
-                color={color}
-              />
-            ),
-            tabBarButton: !isTabVisible('learn')
-              ? () => null
-              : isSailorUser
-                ? renderSailorTabButton('learn', learnTab?.title ?? 'Learn', learnTab)
-                : undefined,
+            href: null,
           }}
         />
         {/* Tab 5: Reflect (Progress/Stats) */}

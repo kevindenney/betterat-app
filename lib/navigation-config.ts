@@ -110,7 +110,6 @@ export const getTabsForUserType = (
       { name: 'races', title: eventTitle, icon: 'flag-outline', iconFocused: 'flag' },
       { name: 'playbook', title: 'Playbook', icon: 'book-outline', iconFocused: 'book' },
       { name: 'discover', title: 'Discover', icon: 'compass-outline', iconFocused: 'compass' },
-      { name: 'learn', title: 'Learn', icon: 'school-outline', iconFocused: 'school' },
       { name: 'reflect', title: 'Reflect', icon: 'stats-chart-outline', iconFocused: 'stats-chart' },
     ];
   }
@@ -145,7 +144,6 @@ export const getTabsForUserType = (
       { name: 'races', title: eventTitle, icon: 'flag-outline', iconFocused: 'flag' },
       { name: 'playbook', title: 'Playbook', icon: 'book-outline', iconFocused: 'book' },
       { name: 'discover', title: 'Discover', icon: 'compass-outline', iconFocused: 'compass' },
-      { name: 'learn', title: 'Learn', icon: 'school-outline', iconFocused: 'school' },
       { name: 'reflect', title: 'Reflect', icon: 'stats-chart-outline', iconFocused: 'stats-chart' },
     ];
 
@@ -174,7 +172,6 @@ export const SAILOR_NAV_ITEMS: NavItem[] = [
   { key: 'races', label: 'Race', route: '/(tabs)/races', icon: 'flag-outline' },
   { key: 'playbook', label: 'Playbook', route: '/(tabs)/playbook', icon: 'book-outline' },
   { key: 'discover', label: 'Discover', route: '/(tabs)/discover', icon: 'compass-outline' },
-  { key: 'learn', label: 'Learn', route: '/(tabs)/learn', icon: 'school-outline' },
   { key: 'reflect', label: 'Reflect', route: '/(tabs)/reflect', icon: 'stats-chart-outline' },
 ];
 
