@@ -44,8 +44,8 @@ interface StepFilterBarProps {
 
 const STATUS_OPTIONS: { key: string | null; label: string; icon: string }[] = [
   { key: null, label: 'All', icon: 'apps-outline' },
-  { key: 'pending', label: 'Plan', icon: 'bulb-outline' },
-  { key: 'in_progress', label: 'Do', icon: 'play-circle-outline' },
+  { key: 'pending', label: 'Before', icon: 'bulb-outline' },
+  { key: 'in_progress', label: 'During', icon: 'play-circle-outline' },
   { key: 'completed', label: 'Done', icon: 'checkmark-circle-outline' },
 ];
 

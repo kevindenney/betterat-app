@@ -23,7 +23,6 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { STEP_COLORS } from '@/lib/step-theme';
 import { useStepDetail, useUpdateStepMetadata } from '@/hooks/useStepDetail';
 import { useUpdateStep } from '@/hooks/useTimelineSteps';
 import { useAuth } from '@/providers/AuthProvider';
@@ -37,7 +36,14 @@ import { useCompetenciesForInterest } from '@/hooks/useCompetencies';
 import { useQueryClient } from '@tanstack/react-query';
 import type { StepReviewData, StepActData, StepPlanData, StepMetadata, BrainDumpData } from '@/types/step-detail';
 import type { Competency } from '@/types/competency';
-import { getReviewSections, getReviewSectionContent } from '@/lib/step/getReviewSections';
+import {
+  getReviewSections,
+  getReviewSectionContent,
+  REVIEW_PROMPTS,
+  REVIEW_PROMPT_LABELS,
+  type ReviewSectionPrompt,
+} from '@/lib/step/getReviewSections';
+import { ReviewPromptSection } from '@/components/step/ReviewPromptSection';
 import { ShareStepSheet } from '@/components/step/ShareStepSheet';
 import { InstructorAssessmentSection } from '@/components/step/InstructorAssessmentSection';
 import { MeasurementReview } from '@/components/step/MeasurementReview';
@@ -49,7 +55,6 @@ import { PlaybookAIService } from '@/services/ai/PlaybookAIService';
 import { getActiveConversation, completeConversation } from '@/services/AIConversationService';
 import { extractInsights } from '@/services/AIMemoryService';
 import { getDailyTargets } from '@/services/NutritionService';
-import type { StepMeasurements } from '@/types/measurements';
 import type { NutritionTargets } from '@/types/nutrition';
 
 // ---------------------------------------------------------------------------
@@ -233,10 +238,16 @@ export function StepCritiqueContent({ stepId, onNextStepCreated, readOnly }: Ste
   const initializedRef = useRef(false);
   const [playbookIngesting, setPlaybookIngesting] = useState(false);
 
-  const metadata = (step?.metadata ?? {}) as StepMetadata;
-  const planData: StepPlanData = metadata.plan ?? {};
-  const actData: StepActData = metadata.act ?? {};
-  const reviewData: StepReviewData = metadata.review ?? {};
+  const metadata = React.useMemo(
+    () => (step?.metadata ?? {}) as StepMetadata,
+    [step?.metadata],
+  );
+  const planData: StepPlanData = React.useMemo(() => metadata.plan ?? {}, [metadata.plan]);
+  const actData: StepActData = React.useMemo(() => metadata.act ?? {}, [metadata.act]);
+  const reviewData: StepReviewData = React.useMemo(
+    () => metadata.review ?? {},
+    [metadata.review],
+  );
   // Step A (read-side compat): normalized view of review across v1 flat fields
   // and v2 sections[]. Seed effect below reads from this, so once Step B starts
   // dual-writing sections[], the Critique tab will pick up the v2 shape with no
@@ -297,6 +308,8 @@ export function StepCritiqueContent({ stepId, onNextStepCreated, readOnly }: Ste
       // Refetch step data so extracted results appear
       queryClient.invalidateQueries({ queryKey: ['timeline-steps', 'detail', stepId] });
     })();
+    // queryClient is a stable singleton; intentionally omitted from deps.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id, step?.interest_id, stepId, actData.measurements, actData.nutrition, currentInterest?.slug]);
 
   // Competency assessment extraction — runs independently of conversation extraction
@@ -320,6 +333,9 @@ export function StepCritiqueContent({ stepId, onNextStepCreated, readOnly }: Ste
         queryClient.invalidateQueries({ queryKey: ['timeline-steps', 'detail', stepId] });
       }
     })();
+    // One-shot extraction gated by competencyExtractionRef; intentionally
+    // reads stable-at-mount snapshots of planData/actData/reviewData.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id, step?.interest_id, stepId, planData.competency_ids, planData.capability_goals]);
 
   // Seed from server. Read prompt-keyed content through the selector so that
@@ -346,6 +362,10 @@ export function StepCritiqueContent({ stepId, onNextStepCreated, readOnly }: Ste
       setLocalCapabilityRatings(reviewData.capability_progress ?? {});
       initializedRef.current = true;
     }
+    // One-shot seed gated by initializedRef; the reviewData/normalizedReview
+    // dependencies are intentionally omitted so later writes don't clobber
+    // local edits.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [step]);
 
   const metadataRef = useRef(metadata);
@@ -396,6 +416,46 @@ export function StepCritiqueContent({ stepId, onNextStepCreated, readOnly }: Ste
     [debouncedSaveReview],
   );
 
+  // Per-prompt render config for the canonical review-prompt loop.
+  // Three prompts bind to legacy flat-field state + handlers (writes stay flat
+  // until Step E flips to sections[]). The other two are read-only views over
+  // captured sections from the bot/voice channels (Step B+).
+  const promptRenderConfig: Record<
+    ReviewSectionPrompt,
+    {
+      icon?: { name: React.ComponentProps<typeof Ionicons>['name']; color: string };
+      editable?: { value: string; onChange: (next: string) => void; placeholder: string };
+    }
+  > = {
+    what_happened: {},
+    what_worked: {
+      icon: { name: 'thumbs-up', color: C.accent },
+    },
+    what_didnt: {
+      icon: { name: 'locate-outline', color: C.coral },
+      editable: {
+        value: localToImprove,
+        onChange: handleToImproveChange,
+        placeholder: 'Need to slow down on contour edges...',
+      },
+    },
+    what_did_you_learn: {
+      icon: { name: 'school-outline', color: C.accent },
+      editable: {
+        value: localWentWell,
+        onChange: handleWentWellChange,
+        placeholder: 'My line weight was much more consistent today...',
+      },
+    },
+    anything_else: {
+      editable: {
+        value: localNextNotes,
+        onChange: handleNextNotesChange,
+        placeholder: 'What do you want to focus on next time?',
+      },
+    },
+  };
+
   const handleCapabilityRating = useCallback(
     (goal: string, rating: number) => {
       setLocalCapabilityRatings((prev) => {
@@ -409,11 +469,17 @@ export function StepCritiqueContent({ stepId, onNextStepCreated, readOnly }: Ste
 
   // Sub-step summary
   const subSteps = planData.how_sub_steps ?? [];
-  const subStepProgress = actData.sub_step_progress ?? {};
+  const subStepProgress = React.useMemo(
+    () => actData.sub_step_progress ?? {},
+    [actData.sub_step_progress],
+  );
   const completedCount = subSteps.filter((ss) => subStepProgress[ss.id]).length;
 
   // Capability goals (free-text + structured competencies)
-  const competencyIds = planData.competency_ids ?? [];
+  const competencyIds = React.useMemo(
+    () => planData.competency_ids ?? [],
+    [planData.competency_ids],
+  );
   const { data: allCompetencies } = useCompetenciesForInterest(step?.interest_id);
   const mappedCompetencies = React.useMemo(() => {
     if (!allCompetencies || competencyIds.length === 0) return [];
@@ -564,6 +630,9 @@ export function StepCritiqueContent({ stepId, onNextStepCreated, readOnly }: Ste
       const t = setTimeout(handleAiInsight, 500);
       return () => clearTimeout(t);
     }
+    // One-shot auto-trigger gated by autoTriggeredRef; handleAiInsight is
+    // intentionally read at mount and not added to deps.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [step, localWentWell, localToImprove, user?.id]);
 
   // --- Share ---
@@ -746,41 +815,32 @@ export function StepCritiqueContent({ stepId, onNextStepCreated, readOnly }: Ste
         </View>
       ) : null}
 
-      {/* ── WHAT WENT WELL? ── */}
-      <View style={s.sectionWrap}>
-        <View style={s.promptHeader}>
-          <Ionicons name="thumbs-up" size={18} color={C.accent} />
-          <Text style={s.promptTitle}>What went well?</Text>
-        </View>
-        <TextInput
-          style={s.inputBox}
-          value={localWentWell}
-          onChangeText={readOnly ? undefined : handleWentWellChange}
-          placeholder={readOnly ? '' : "My line weight was much more consistent today..."}
-          placeholderTextColor={C.labelLight}
-          multiline
-          textAlignVertical="top"
-          editable={!readOnly}
-        />
-      </View>
-
-      {/* ── WHAT TO IMPROVE? ── */}
-      <View style={s.sectionWrapTight}>
-        <View style={s.promptHeader}>
-          <Ionicons name="locate-outline" size={18} color={C.coral} />
-          <Text style={s.promptTitle}>What to improve?</Text>
-        </View>
-        <TextInput
-          style={s.inputBox}
-          value={localToImprove}
-          onChangeText={readOnly ? undefined : handleToImproveChange}
-          placeholder={readOnly ? '' : "Need to slow down on contour edges..."}
-          placeholderTextColor={C.labelLight}
-          multiline
-          textAlignVertical="top"
-          editable={!readOnly}
-        />
-      </View>
+      {/* ── REVIEW PROMPTS (canonical 5, dynamic) ──
+          Captured sections (bot/voice) render as cards; three of the prompts
+          also accept user edits that still write the legacy flat fields. Step E
+          will flip writes to sections[] and retire the flat fields. */}
+      {REVIEW_PROMPTS.map((prompt) => {
+        const sectionsForPrompt = normalizedReview.sections.filter((sec) => sec.prompt === prompt);
+        const promptCfg = promptRenderConfig[prompt];
+        const editable = promptCfg.editable
+          ? {
+              value: promptCfg.editable.value,
+              onChange: promptCfg.editable.onChange,
+              placeholder: promptCfg.editable.placeholder,
+              editable: !readOnly,
+            }
+          : undefined;
+        return (
+          <ReviewPromptSection
+            key={prompt}
+            prompt={prompt}
+            label={REVIEW_PROMPT_LABELS[prompt]}
+            sections={sectionsForPrompt}
+            icon={promptCfg.icon}
+            editable={editable}
+          />
+        );
+      })}
 
       {/* ── AI FEEDBACK ── (hidden for read-only / non-owners) */}
       {!readOnly && (
@@ -917,21 +977,6 @@ export function StepCritiqueContent({ stepId, onNextStepCreated, readOnly }: Ste
           </View>
         </View>
       )}
-
-      {/* ── NEXT SESSION NOTES ── */}
-      <View style={s.sectionWrap}>
-        <SectionLabel>NEXT SESSION</SectionLabel>
-        <TextInput
-          style={s.inputBox}
-          value={localNextNotes}
-          onChangeText={readOnly ? undefined : handleNextNotesChange}
-          placeholder={readOnly ? '' : "What do you want to focus on next time?"}
-          placeholderTextColor={C.labelLight}
-          multiline
-          textAlignVertical="top"
-          editable={!readOnly}
-        />
-      </View>
 
       {/* ── INSTRUCTOR ASSESSMENT ── (for blueprint authors viewing student steps with competencies) */}
       {readOnly && mappedCompetencies.length > 0 && (

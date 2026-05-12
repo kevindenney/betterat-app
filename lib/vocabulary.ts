@@ -270,9 +270,9 @@ export const INTEREST_FALLBACK_VOCABULARIES: Record<string, VocabularyMap> = {
 /** Generic fallback for interests without a specific vocabulary */
 const GENERIC_VOCABULARY: VocabularyMap = {
   'Learning Event': 'Practice',
-  'Plan Phase': 'Planning',
-  'Do Phase': 'Doing',
-  'Review Phase': 'Review',
+  'Plan Phase': 'Before',
+  'Do Phase': 'During',
+  'Review Phase': 'After',
   'Practice': 'Practice',
   'Institution': 'Organization',
   'Coach': 'Coach',

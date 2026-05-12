@@ -463,9 +463,9 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp }: StepDetail
   const categoryLabels = useMemo(() => getStepCategoryLabels(step?.category), [step?.category]);
 
   const tabs = useMemo(() => [
-    { value: 'plan' as const, label: categoryLabels.tabs.plan !== 'Prep' ? categoryLabels.tabs.plan : vocab('Plan Phase'), completed: isPlanComplete },
-    { value: 'act' as const, label: categoryLabels.tabs.act !== 'Train' ? categoryLabels.tabs.act : vocab('Do Phase'), completed: isActComplete },
-    { value: 'review' as const, label: categoryLabels.tabs.review !== 'Review' ? categoryLabels.tabs.review : vocab('Review Phase'), completed: isReviewComplete },
+    { value: 'plan' as const, label: categoryLabels.tabs.plan !== 'Before' ? categoryLabels.tabs.plan : vocab('Plan Phase'), completed: isPlanComplete },
+    { value: 'act' as const, label: categoryLabels.tabs.act !== 'During' ? categoryLabels.tabs.act : vocab('Do Phase'), completed: isActComplete },
+    { value: 'review' as const, label: categoryLabels.tabs.review !== 'After' ? categoryLabels.tabs.review : vocab('Review Phase'), completed: isReviewComplete },
   ], [vocab, isPlanComplete, isActComplete, isReviewComplete, categoryLabels]);
 
   // Auto-save status tracking — flash "Saved" for 3 seconds then fade
