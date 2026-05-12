@@ -20,6 +20,9 @@ module.exports = function (api) {
     plugins.push(["transform-remove-console", { exclude: ["error", "warn"] }]);
   }
 
+  // Required by react-native-reanimated v4 — must be the LAST plugin.
+  plugins.push("react-native-worklets/plugin");
+
   return {
     presets: [
       ["babel-preset-expo", { jsxImportSource: "nativewind" }],
