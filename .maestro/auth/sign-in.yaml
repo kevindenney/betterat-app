@@ -58,6 +58,37 @@ env:
     visible: ".*"
     timeout: 5000
 
+# ============================================================
+# PRECONDITION: ensure a signed-out start state.
+# On a hot sim the user may already be signed in. Detect by
+# checking for the main app shell ("Race") and sign out first
+# so the rest of the flow runs from a known state.
+# ============================================================
+- runFlow:
+    when:
+      visible: "Race"
+    commands:
+      - openLink: "betterat://account"
+      - extendedWaitUntil:
+          visible: "Account"
+          timeout: 5000
+      - scroll
+      - scroll
+      - extendedWaitUntil:
+          visible: "Sign Out"
+          timeout: 5000
+      - tapOn:
+          id: "account-sign-out-button"
+      - extendedWaitUntil:
+          visible: "Cancel"
+          timeout: 5000
+      - tapOn:
+          text: "Sign Out"
+          index: 1
+      - extendedWaitUntil:
+          visible: "Welcome back"
+          timeout: 15000
+
 # Navigate into Account then open Login
 - openLink: "betterat://account"
 - extendedWaitUntil:
