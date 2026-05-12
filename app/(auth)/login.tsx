@@ -1,5 +1,6 @@
 import { router } from 'expo-router';
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Image, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { showAlert, showConfirm } from '@/lib/utils/crossPlatformAlert';
 import { Ionicons } from '@expo/vector-icons';
@@ -87,6 +88,7 @@ const getAuthErrorMessage = (error: any): string => {
 };
 
 export default function Login() {
+  const { t } = useTranslation('auth');
   const { signIn, signInWithGoogle, signInWithApple, loading, enterGuestMode, signedIn, ready, userProfile, user } = useAuth();
   const { returnTo, inviteToken, blueprint } = useLocalSearchParams<{
     returnTo?: string;
@@ -360,7 +362,7 @@ export default function Login() {
               style={[styles.socialButton, loading && styles.buttonDisabled]}
             >
               <Ionicons name="call-outline" size={18} color="#1A1918" />
-              <Text style={styles.socialButtonText}>Continue with phone</Text>
+              <Text style={styles.socialButtonText}>{t('login.signInWithPhone')}</Text>
             </TouchableOpacity>
           </View>
 

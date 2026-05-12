@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Platform, ScrollView } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -36,6 +37,7 @@ const getSignupErrorMessage = (error: any): string => {
 type SignupStep = 'interest' | 'persona';
 
 export default function SignUp() {
+  const { t } = useTranslation('auth');
   const { signUp, signInWithGoogle, signInWithApple, loading: authLoading } = useAuth();
   const params = useLocalSearchParams<{
     persona?: string;
@@ -448,7 +450,7 @@ export default function SignUp() {
               disabled={isLoading}
             >
               <Ionicons name="call-outline" size={18} color="#1A1918" />
-              <Text style={styles.socialButtonText}>Continue with phone</Text>
+              <Text style={styles.socialButtonText}>{t('signup.signUpWithPhone')}</Text>
             </TouchableOpacity>
           </View>
 
