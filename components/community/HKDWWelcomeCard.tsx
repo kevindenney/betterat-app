@@ -40,8 +40,8 @@ interface CardItem {
 const ITEMS: CardItem[] = [
   {
     icon: 'compass-outline',
-    title: 'Your Worlds 2027 prep plan',
-    subtitle: 'Coach-built timeline, 8 steps',
+    title: 'Open your Worlds 2027 prep plan',
+    subtitle: 'Already on your timeline — tap to view',
     href: `/blueprint/${PREP_PLAN_SLUG}?auto_subscribe=1`,
   },
   {

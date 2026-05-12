@@ -1,3 +1,4 @@
+/* eslint-disable no-console -- Deno edge function uses console.* for runtime diagnostics; no logger available */
 /**
  * Firebase Auth Bridge Edge Function
  * Exchanges Firebase ID token for RegattaFlow/Supabase session
@@ -35,7 +36,17 @@ interface BridgeRequest {
     photoUrl?: string;
   };
   communitySlug?: string;
+  /**
+   * Optional blueprint slug to auto-subscribe the user to on first bridge.
+   * If omitted and `communitySlug` resolves to `2027-hk-dragon-worlds`, the
+   * Worlds-prep blueprint is used by default.
+   */
+  blueprintSlug?: string;
 }
+
+// Default blueprint to enroll Dragon Worlds bridge users into. Mirrors the
+// slug used by `components/community/HKDWWelcomeCard.tsx`.
+const HKDW_PREP_BLUEPRINT_SLUG = 'dragon-worlds-2027-peak-performance';
 
 // Direct Supabase REST API helper
 async function supabaseQuery(
@@ -363,6 +374,58 @@ serve(async (req) => {
           throw err;
         }
         console.log('[Auth Bridge] User already a community member');
+      }
+    }
+
+    // Auto-subscribe to the Dragon Worlds prep blueprint so the timeline is
+    // pre-loaded the first time the sailor opens BetterAt. The
+    // HKDWWelcomeCard still surfaces the blueprint with `?auto_subscribe=1`
+    // as a fallback for legacy users who landed before this bridge step ran.
+    const blueprintSlug =
+      body.blueprintSlug ||
+      (communitySlug === '2027-hk-dragon-worlds' ? HKDW_PREP_BLUEPRINT_SLUG : null);
+
+    if (blueprintSlug) {
+      try {
+        const blueprints = await supabaseQuery('timeline_blueprints', {
+          select: 'id',
+          filter: {
+            slug: `eq.${blueprintSlug}`,
+            is_published: 'eq.true',
+          },
+        });
+
+        if (blueprints?.[0]) {
+          console.log(
+            '[Auth Bridge] Auto-subscribing to blueprint:',
+            blueprintSlug,
+            'user:',
+            membershipUserId,
+          );
+          await supabaseQuery('blueprint_subscriptions', {
+            method: 'POST',
+            body: {
+              blueprint_id: blueprints[0].id,
+              subscriber_id: membershipUserId,
+              auto_adopt: false,
+            },
+            upsert: true,
+          });
+        } else {
+          console.warn(
+            '[Auth Bridge] Blueprint not found or unpublished, skipping subscribe:',
+            blueprintSlug,
+          );
+        }
+      } catch (err) {
+        // Don't fail the bridge if subscription fails - user can subscribe
+        // via the HKDWWelcomeCard fallback. Ignore duplicate-key errors.
+        const errorMsg = err instanceof Error ? err.message : String(err);
+        if (errorMsg.includes('duplicate key') || errorMsg.includes('23505')) {
+          console.log('[Auth Bridge] User already subscribed to blueprint');
+        } else {
+          console.error('[Auth Bridge] Blueprint auto-subscribe failed:', errorMsg);
+        }
       }
     }
 
