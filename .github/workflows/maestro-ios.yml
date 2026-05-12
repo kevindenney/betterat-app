@@ -1,0 +1,133 @@
+# Maestro iOS E2E
+#
+# Manual-trigger only (workflow_dispatch). Boots an iOS simulator on a
+# GitHub-hosted macOS runner, builds the Expo app, and runs Maestro flows.
+#
+# Cost note: GitHub-hosted macOS runners are billed at ~10x the Linux rate.
+# A full run (build + sim boot + flows) is roughly 20–30 min. Do NOT add
+# `on: push` / `pull_request` triggers without first measuring real cost
+# against the project budget — flip on a nightly cron or PR-label trigger
+# once the flow is stable.
+#
+# Issue: #21
+
+name: Maestro iOS E2E
+
+on:
+  workflow_dispatch:
+    inputs:
+      flow:
+        description: 'Maestro flow path (default: .maestro/auth/sign-in.yaml)'
+        required: false
+        default: '.maestro/auth/sign-in.yaml'
+      tags:
+        description: 'Optional --include-tags filter (e.g. "critical")'
+        required: false
+        default: ''
+
+concurrency:
+  group: maestro-ios-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  maestro-ios:
+    name: Maestro iOS (${{ inputs.flow }})
+    runs-on: macos-14
+    timeout-minutes: 60
+    env:
+      DEMO_PASSWORD: ${{ secrets.DEMO_PASSWORD }}
+      EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.EXPO_PUBLIC_SUPABASE_URL }}
+      EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.EXPO_PUBLIC_SUPABASE_ANON_KEY }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Maestro CLI
+        run: |
+          curl -fsSL "https://get.maestro.mobile.dev" | bash
+          echo "$HOME/.maestro/bin" >> "$GITHUB_PATH"
+
+      - name: Verify Maestro install
+        run: maestro --version
+
+      - name: List available iOS simulators
+        run: xcrun simctl list devices available
+
+      - name: Boot iPhone simulator
+        run: |
+          set -euo pipefail
+          # Pick the first available iPhone 15 (or fall back to any iPhone).
+          UDID=$(xcrun simctl list devices available \
+            | grep -E "iPhone 15( |\()" \
+            | head -n1 \
+            | grep -Eo "[A-F0-9-]{36}" || true)
+          if [ -z "${UDID}" ]; then
+            UDID=$(xcrun simctl list devices available \
+              | grep -E "iPhone " \
+              | head -n1 \
+              | grep -Eo "[A-F0-9-]{36}")
+          fi
+          if [ -z "${UDID}" ]; then
+            echo "No iPhone simulator available." >&2
+            exit 1
+          fi
+          echo "SIM_UDID=${UDID}" >> "$GITHUB_ENV"
+          xcrun simctl boot "${UDID}" || true
+          xcrun simctl bootstatus "${UDID}" -b
+
+      - name: Prebuild iOS native project
+        run: npx expo prebuild --platform ios --non-interactive
+
+      - name: Install CocoaPods
+        working-directory: ios
+        run: pod install --repo-update
+
+      - name: Build & install iOS app on simulator
+        run: |
+          set -euo pipefail
+          npx expo run:ios --device "${SIM_UDID}" --no-bundler &
+          BUILD_PID=$!
+          # Give the build up to 30 min to install; expo run:ios will then
+          # start the dev server which we don't need for Maestro — kill it
+          # once the .app is installed.
+          while ! xcrun simctl listapps "${SIM_UDID}" | grep -q "com.betterat.app"; do
+            if ! kill -0 "${BUILD_PID}" 2>/dev/null; then
+              echo "expo run:ios exited before app was installed." >&2
+              wait "${BUILD_PID}" || true
+              exit 1
+            fi
+            sleep 15
+          done
+          echo "App installed. Stopping background dev server."
+          kill "${BUILD_PID}" 2>/dev/null || true
+          wait "${BUILD_PID}" 2>/dev/null || true
+
+      - name: Run Maestro flow
+        run: |
+          set -euo pipefail
+          ARGS=("${{ inputs.flow }}")
+          if [ -n "${{ inputs.tags }}" ]; then
+            ARGS+=("--include-tags=${{ inputs.tags }}")
+          fi
+          maestro test "${ARGS[@]}"
+
+      - name: Upload Maestro debug output
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: maestro-debug-output
+          path: ~/.maestro/tests
+          if-no-files-found: warn
