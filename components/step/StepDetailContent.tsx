@@ -9,7 +9,8 @@ import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useQueryClient } from '@tanstack/react-query';
 import { IOS_COLORS as _IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
-import { STEP_COLORS } from '@/lib/step-theme';
+import { STEP_COLORS, STEP_PALETTE } from '@/lib/step-theme';
+import { text } from '@/lib/design-tokens';
 import { getStepCategoryLabels } from '@/lib/step-category-config';
 import { IOSPillTabs, usePillTabs } from '@/components/ui/ios/IOSPillTabs';
 import { useVocabulary } from '@/hooks/useVocabulary';
@@ -829,9 +830,9 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp }: StepDetail
           selectedValue={activeTab}
           onChange={setActiveTab}
           compact
-          accentColor={STEP_COLORS.accent}
+          accentColor={STEP_PALETTE.textPrimary}
           unselectedBgColor="transparent"
-          unselectedBorderColor={STEP_COLORS.tabBorder}
+          unselectedBorderColor={STEP_PALETTE.borderTertiary}
         />
       </View>
 
@@ -886,7 +887,7 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp }: StepDetail
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: STEP_COLORS.pageBg,
+    backgroundColor: STEP_PALETTE.bgPrimary,
   },
   centered: {
     flex: 1,
@@ -900,12 +901,12 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   header: {
-    backgroundColor: STEP_COLORS.headerBg,
+    backgroundColor: STEP_PALETTE.bgPrimary,
     paddingHorizontal: IOS_SPACING.md,
     paddingTop: IOS_SPACING.sm,
     paddingBottom: IOS_SPACING.md,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: STEP_COLORS.border,
+    borderBottomColor: STEP_PALETTE.borderTertiary,
   },
   sessionRow: {
     flexDirection: 'row',
@@ -913,15 +914,15 @@ const styles = StyleSheet.create({
     marginBottom: IOS_SPACING.xs,
   },
   sessionBadge: {
-    backgroundColor: STEP_COLORS.badgeBg,
+    backgroundColor: STEP_PALETTE.bgSecondary,
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 6,
   },
   sessionBadgeText: {
     fontSize: 10,
-    fontWeight: '700',
-    color: STEP_COLORS.badgeText,
+    fontWeight: '600',
+    color: STEP_PALETTE.textSecondary,
     letterSpacing: 1,
   },
   dueDateRow: {
@@ -995,9 +996,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   titleInput: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: STEP_COLORS.label,
+    ...text.serifTitle,
+    color: STEP_PALETTE.textPrimary,
     padding: 0,
     margin: 0,
     ...Platform.select({
@@ -1006,17 +1006,17 @@ const styles = StyleSheet.create({
   },
   description: {
     fontSize: 14,
-    color: STEP_COLORS.secondaryLabel,
+    color: STEP_PALETTE.textSecondary,
     marginTop: 4,
     lineHeight: 20,
   },
   tabsWrapper: {
-    backgroundColor: STEP_COLORS.headerBg,
+    backgroundColor: STEP_PALETTE.bgPrimary,
     paddingHorizontal: IOS_SPACING.md,
     paddingTop: IOS_SPACING.xs,
     paddingBottom: IOS_SPACING.sm,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: STEP_COLORS.border,
+    borderBottomColor: STEP_PALETTE.borderTertiary,
   },
   tabContent: {
     flex: 1,
@@ -1042,7 +1042,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: 'rgba(61,138,90,0.08)',
+    backgroundColor: STEP_PALETTE.bgSecondary,
     borderRadius: 10,
     paddingHorizontal: 12,
     paddingVertical: 8,
@@ -1050,7 +1050,7 @@ const styles = StyleSheet.create({
   },
   collaboratorBannerText: {
     fontSize: 13,
-    fontWeight: '600',
-    color: STEP_COLORS.accent,
+    fontWeight: '500',
+    color: STEP_PALETTE.textPrimary,
   },
 });
