@@ -1,7 +1,7 @@
-import { Link, router } from 'expo-router';
+import { router } from 'expo-router';
 import React, { useState, useEffect } from 'react';
 import { Image, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import { showAlert, showConfirm, showAlertWithButtons } from '@/lib/utils/crossPlatformAlert';
+import { showAlert, showConfirm } from '@/lib/utils/crossPlatformAlert';
 import { Ionicons } from '@expo/vector-icons';
 import type { ViewStyle } from 'react-native';
 import { useAuth } from '../../providers/AuthProvider';
@@ -10,6 +10,11 @@ import { isAppleSignInAvailable } from '@/lib/auth/nativeOAuth';
 import { getLastTabRoute } from '@/lib/utils/userTypeRouting';
 import { useLocalSearchParams } from 'expo-router';
 import * as AppleAuthentication from 'expo-apple-authentication';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import {
+  ONBOARDING_BLUEPRINT_KEY,
+  commitOnboardingBlueprint,
+} from '@/services/onboarding/commitSignupContext';
 
 const cardShadowStyle: ViewStyle =
   Platform.OS === 'web'
@@ -82,8 +87,21 @@ const getAuthErrorMessage = (error: any): string => {
 };
 
 export default function Login() {
-  const { signIn, signInWithGoogle, signInWithApple, loading, enterGuestMode, signedIn, ready, userProfile } = useAuth();
-  const { returnTo, inviteToken } = useLocalSearchParams<{ returnTo?: string; inviteToken?: string }>();
+  const { signIn, signInWithGoogle, signInWithApple, loading, enterGuestMode, signedIn, ready, userProfile, user } = useAuth();
+  const { returnTo, inviteToken, blueprint } = useLocalSearchParams<{
+    returnTo?: string;
+    inviteToken?: string;
+    blueprint?: string;
+  }>();
+  const blueprintRef = typeof blueprint === 'string' ? blueprint : undefined;
+
+  // Stash a ?blueprint= deep-link param into AsyncStorage so both the
+  // email-login (below) and OAuth-callback paths can pick it up and create
+  // the blueprint_subscriptions row after auth (onboarding plan §4 Step 3).
+  useEffect(() => {
+    if (!blueprintRef) return;
+    AsyncStorage.setItem(ONBOARDING_BLUEPRINT_KEY, blueprintRef).catch(() => {});
+  }, [blueprintRef]);
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -97,6 +115,29 @@ export default function Login() {
       isAppleSignInAvailable().then(setAppleSignInAvailable);
     }
   }, []);
+
+  // Once a session is established, drain any pending blueprint subscription
+  // queued by a ?blueprint= deep-link before the redirect side-effect fires.
+  // Safe across email + OAuth login (callback.tsx handles OAuth callback URLs,
+  // but if a user lands here already signed-in or finishes an email login,
+  // this is the only chance to commit). Idempotent on server.
+  useEffect(() => {
+    if (!ready || !signedIn || !user?.id) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const pending = await AsyncStorage.getItem(ONBOARDING_BLUEPRINT_KEY);
+        if (cancelled || !pending) return;
+        await commitOnboardingBlueprint(user.id, pending);
+        await AsyncStorage.removeItem(ONBOARDING_BLUEPRINT_KEY);
+      } catch {
+        // Non-fatal — user can resubscribe in-app.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [ready, signedIn, user?.id]);
 
   // Redirect after successful sign-in
   useEffect(() => {
@@ -122,7 +163,7 @@ export default function Login() {
     }
     const destination = getLastTabRoute(userProfile?.user_type ?? null);
     router.replace(destination as any);
-  }, [ready, signedIn, userProfile?.user_type, returnTo]);
+  }, [ready, signedIn, userProfile?.user_type, returnTo, inviteToken]);
 
   const onEmailLogin = async () => {
     setErrorMessage(null); // Clear previous errors

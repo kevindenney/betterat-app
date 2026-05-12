@@ -45,12 +45,16 @@ export default function SignUp() {
     org?: string;
     orgName?: string;
     returnTo?: string;
+    blueprint?: string;
+    blueprintName?: string;
   }>();
 
   // If interest comes from URL, skip the interest picker step
   const paramInterest = params.interest || undefined;
   const inviteToken = params.inviteToken || undefined;
   const returnTo = params.returnTo || undefined;
+  const blueprintRef = params.blueprint || undefined;
+  const blueprintName = params.blueprintName || undefined;
 
   const [selectedInterest, setSelectedInterest] = useState<string | undefined>(paramInterest);
   const [step, setStep] = useState<SignupStep>(paramInterest ? 'persona' : 'interest');
@@ -144,9 +148,13 @@ export default function SignUp() {
         interestSlug: selectedInterest,
         orgSlug: params.org ?? null,
         returnTo: returnTo ?? null,
+        blueprintRef: blueprintRef ?? null,
       });
       if (commit.interestSkipReason && commit.interestSkipReason !== 'no-slug') {
         console.warn('[Signup] interest commit skipped:', commit.interestSkipReason);
+      }
+      if (commit.blueprintSkipReason && commit.blueprintSkipReason !== 'no-ref') {
+        console.warn('[Signup] blueprint subscribe skipped:', commit.blueprintSkipReason);
       }
 
       if (inviteToken) {
@@ -197,6 +205,7 @@ export default function SignUp() {
         interestSlug: selectedInterest,
         orgSlug: params.org ?? null,
         returnTo: returnTo ?? null,
+        blueprintRef: blueprintRef ?? null,
       });
     } catch (error: any) {
       console.error('[Signup] Google sign-up error:', error);
@@ -213,6 +222,7 @@ export default function SignUp() {
         interestSlug: selectedInterest,
         orgSlug: params.org ?? null,
         returnTo: returnTo ?? null,
+        blueprintRef: blueprintRef ?? null,
       });
     } catch (error: any) {
       console.error('[Signup] Apple sign-up error:', error);
@@ -341,6 +351,18 @@ export default function SignUp() {
                 <Ionicons name="business-outline" size={14} color="#2563EB" />
                 <Text style={[styles.orgContextText, { color: '#2563EB' }]}>
                   Joining {params.orgName}
+                </Text>
+              </View>
+            </View>
+          )}
+
+          {/* Blueprint context badge — shown when arriving from a path share link */}
+          {(blueprintName || blueprintRef) && (
+            <View style={styles.orgContextRow}>
+              <View style={styles.orgContextBadge}>
+                <Ionicons name="map-outline" size={14} color="#2563EB" />
+                <Text style={[styles.orgContextText, { color: '#2563EB' }]}>
+                  Subscribing to {blueprintName || 'this path'}
                 </Text>
               </View>
             </View>

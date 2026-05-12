@@ -11,7 +11,9 @@ import {createLogger} from '@/lib/utils/logger'
 import {GuestStorageService} from '@/services/GuestStorageService'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import {
+  commitOnboardingBlueprint,
   commitOnboardingInterest,
+  ONBOARDING_BLUEPRINT_KEY,
   ONBOARDING_INTEREST_SLUG_KEY,
 } from '@/services/onboarding/commitSignupContext'
 
@@ -424,6 +426,29 @@ export default function Callback(){
             }
           } catch (e) {
             trail('callback:commitOnboardingInterest_error', { err: String(e) })
+          }
+
+          // Drain any pending blueprint subscription queued by a ?blueprint=
+          // deep-link (onboarding plan §4 Step 3). Idempotent and non-fatal —
+          // if it fails the user lands inside the app and can resubscribe.
+          try {
+            const pendingBlueprintRef = await AsyncStorage.getItem(
+              ONBOARDING_BLUEPRINT_KEY,
+            )
+            if (pendingBlueprintRef) {
+              const bpResult = await commitOnboardingBlueprint(
+                session.user.id,
+                pendingBlueprintRef,
+              )
+              trail('callback:commitOnboardingBlueprint', {
+                ref: pendingBlueprintRef,
+                committed: bpResult.blueprintCommitted,
+                reason: bpResult.blueprintSkipReason,
+              })
+              await AsyncStorage.removeItem(ONBOARDING_BLUEPRINT_KEY)
+            }
+          } catch (e) {
+            trail('callback:commitOnboardingBlueprint_error', { err: String(e) })
           }
         }
 

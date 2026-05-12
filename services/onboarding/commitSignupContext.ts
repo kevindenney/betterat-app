@@ -25,12 +25,26 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { supabase } from '@/services/supabase';
 import { createLogger } from '@/lib/utils/logger';
+import {
+  getBlueprintById,
+  getBlueprintBySlug,
+  subscribe as subscribeToBlueprint,
+} from '@/services/BlueprintService';
 
 const logger = createLogger('commitSignupContext');
 
 export const ONBOARDING_INTEREST_SLUG_KEY = 'onboarding_interest_slug';
 export const ONBOARDING_ORG_SLUG_KEY = 'onboarding_org_slug';
 export const POST_ONBOARDING_RETURN_TO_KEY = 'post_onboarding_return_to';
+/**
+ * Slug or UUID of a published blueprint shared via deep link
+ * (?blueprint=<slug-or-id>). When a userId is also present we create the
+ * blueprint_subscriptions row right after auth so the user lands inside the
+ * app already subscribed (per onboarding plan §4 Step 3).
+ */
+export const ONBOARDING_BLUEPRINT_KEY = 'onboarding_blueprint_ref';
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export interface SignupContextInput {
   /** If present, the interest is also committed to `user_interests` right now. */
@@ -38,6 +52,8 @@ export interface SignupContextInput {
   interestSlug?: string | null;
   orgSlug?: string | null;
   returnTo?: string | null;
+  /** Slug or UUID of a published blueprint to auto-subscribe to post-auth. */
+  blueprintRef?: string | null;
 }
 
 export interface SignupContextResult {
@@ -45,6 +61,10 @@ export interface SignupContextResult {
   interestCommitted: boolean;
   /** Why the DB commit was skipped or failed. Undefined on success. */
   interestSkipReason?: 'no-user-id' | 'no-slug' | 'unknown-slug' | 'db-error';
+  /** True when blueprint subscription was created (or already existed). */
+  blueprintCommitted?: boolean;
+  /** Why the blueprint subscribe was skipped or failed. Undefined on success. */
+  blueprintSkipReason?: 'no-user-id' | 'no-ref' | 'unknown-ref' | 'db-error';
 }
 
 function normalizeSlug(slug: string | null | undefined): string {
@@ -62,6 +82,7 @@ export async function commitSignupContext(
   const slug = normalizeSlug(input.interestSlug);
   const orgSlug = input.orgSlug?.trim() ?? '';
   const returnTo = input.returnTo?.trim() ?? '';
+  const blueprintRef = input.blueprintRef?.trim() ?? '';
 
   // Dual-write AsyncStorage. Existing display readers still depend on these.
   if (slug) {
@@ -73,15 +94,36 @@ export async function commitSignupContext(
   if (returnTo) {
     await AsyncStorage.setItem(POST_ONBOARDING_RETURN_TO_KEY, returnTo);
   }
-
-  if (!input.userId) {
-    return { interestCommitted: false, interestSkipReason: 'no-user-id' };
-  }
-  if (!slug) {
-    return { interestCommitted: false, interestSkipReason: 'no-slug' };
+  if (blueprintRef) {
+    await AsyncStorage.setItem(ONBOARDING_BLUEPRINT_KEY, blueprintRef);
   }
 
-  return commitOnboardingInterest(input.userId, slug);
+  const interestResult: SignupContextResult = !input.userId
+    ? { interestCommitted: false, interestSkipReason: 'no-user-id' }
+    : !slug
+      ? { interestCommitted: false, interestSkipReason: 'no-slug' }
+      : await commitOnboardingInterest(input.userId, slug);
+
+  // Best-effort blueprint subscribe. Failures here must not block signup
+  // navigation — the user can resubscribe in-app.
+  let blueprintCommitted: boolean | undefined;
+  let blueprintSkipReason: SignupContextResult['blueprintSkipReason'];
+  if (blueprintRef) {
+    if (!input.userId) {
+      blueprintCommitted = false;
+      blueprintSkipReason = 'no-user-id';
+    } else {
+      const sub = await commitOnboardingBlueprint(input.userId, blueprintRef);
+      blueprintCommitted = sub.blueprintCommitted;
+      blueprintSkipReason = sub.blueprintSkipReason;
+    }
+  }
+
+  return {
+    ...interestResult,
+    ...(blueprintCommitted !== undefined ? { blueprintCommitted } : {}),
+    ...(blueprintSkipReason ? { blueprintSkipReason } : {}),
+  };
 }
 
 /**
@@ -136,4 +178,45 @@ export async function commitOnboardingInterest(
   }
 
   return { interestCommitted: true };
+}
+
+/**
+ * Resolve a slug-or-UUID and create the blueprint_subscriptions row.
+ * Idempotent (BlueprintService.subscribe upserts on `blueprint_id,subscriber_id`).
+ * Reused by the OAuth callback after the session settles.
+ */
+export async function commitOnboardingBlueprint(
+  userId: string,
+  ref: string,
+): Promise<Pick<SignupContextResult, 'blueprintCommitted' | 'blueprintSkipReason'>> {
+  const trimmed = ref.trim();
+  if (!trimmed) {
+    return { blueprintCommitted: false, blueprintSkipReason: 'no-ref' };
+  }
+
+  try {
+    let blueprintId: string | null = null;
+    if (UUID_RE.test(trimmed)) {
+      const found = await getBlueprintById(trimmed);
+      blueprintId = found?.id ?? null;
+    } else {
+      const found = await getBlueprintBySlug(trimmed);
+      blueprintId = found?.id ?? null;
+    }
+
+    if (!blueprintId) {
+      logger.warn('Blueprint ref not found in catalog', { ref: trimmed });
+      return { blueprintCommitted: false, blueprintSkipReason: 'unknown-ref' };
+    }
+
+    await subscribeToBlueprint(userId, blueprintId);
+    return { blueprintCommitted: true };
+  } catch (err) {
+    logger.warn('Failed to subscribe to blueprint during onboarding', {
+      userId,
+      ref: trimmed,
+      err: (err as Error)?.message,
+    });
+    return { blueprintCommitted: false, blueprintSkipReason: 'db-error' };
+  }
 }
