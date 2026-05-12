@@ -1794,7 +1794,7 @@ const TOOLS: TelegramToolDef[] = [
   {
     name: 'log_debrief',
     description:
-      'Log a structured DEBRIEF on a step — used AFTER an activity is done, when the user reflects on what happened across the whole session. Synthesizes their narrative into what_learned (went well, key insights), what_to_change (what they would do differently), and next_step_notes (focus for next time). Writes to the Review tab — fields the user sees on the Critique screen. Use this whenever the user gives a multi-sentence past-tense recap of a step. Prefer this over log_observation for end-of-session reflection.',
+      'Log a structured DEBRIEF on a step — used AFTER an activity is done, when the user reflects on what happened across the whole session. Synthesizes their narrative into what_learned (went well, key insights), what_to_change (what they would do differently), and next_step_notes (focus for next time). Writes to the Review tab — fields the user sees on the Critique screen. MANDATORY whenever the user gives ANY past-tense reflection tied to a step ("my tacks were sharp today", "I learned X", "the run felt strong", multi-sentence recap, voice-note recap). You MUST invoke this tool — NEVER reply "Logged!" / "Got it" / "Saved" / "Already logged" without firing it. Hallucinated confirmations destroy the user\'s reflection silently. Prefer this over log_observation for any end-of-session reflection.',
     schema: z.object({
       step_id: z.string().describe('The step UUID to debrief'),
       what_learned: z.string().optional().describe('What went well + key insights/learnings from the session. Synthesize the user\'s positive observations.'),
