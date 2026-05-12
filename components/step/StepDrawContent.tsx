@@ -9,7 +9,7 @@ import { View, Text, TextInput, Pressable, Image, StyleSheet, Platform, Linking,
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
-import { STEP_COLORS } from '@/lib/step-theme';
+import { STEP_COLORS, STEP_PALETTE } from '@/lib/step-theme';
 import { ResourceTypeIcon } from '@/components/library/ResourceTypeIcon';
 import { useStepDetail, useUpdateStepMetadata } from '@/hooks/useStepDetail';
 import { useUpdateStep } from '@/hooks/useTimelineSteps';
@@ -248,10 +248,7 @@ export function StepDrawContent({ stepId, readOnly, interestId, interestName, in
     setEditingSubStep(null);
   }, [editingText, saveAct]);
 
-  const handleAskAi = useCallback((subStepText: string) => {
-    setPendingAiQuestion(`About this sub-step: "${subStepText}" — can you help me with this?`);
-    setExpandedSubStep(null);
-    // Scroll to chat section
+  const scrollToChat = useCallback(() => {
     setTimeout(() => {
       chatSectionRef.current?.measureLayout?.(
         scrollViewRef.current as any,
@@ -262,6 +259,12 @@ export function StepDrawContent({ stepId, readOnly, interestId, interestName, in
       );
     }, 150);
   }, []);
+
+  const handleAskAi = useCallback((subStepText: string) => {
+    setPendingAiQuestion(`About this sub-step: "${subStepText}" — can you help me with this?`);
+    setExpandedSubStep(null);
+    scrollToChat();
+  }, [scrollToChat]);
 
   const handleClearPendingQuestion = useCallback(() => {
     setPendingAiQuestion('');
@@ -474,26 +477,22 @@ export function StepDrawContent({ stepId, readOnly, interestId, interestName, in
 
   if (!step) return null;
 
-  const hasAnyActContent = Boolean(
-    completedCount > 0 || localNotes.trim() || mediaLinks.length > 0 ||
-    (actData.observations?.length ?? 0) > 0
-  );
-
   return (
     <View style={styles.container}>
-      {/* Welcome prompt when nothing recorded yet */}
-      {!hasAnyActContent && !readOnly && (
-        <View style={styles.emptyWelcome}>
-          <Ionicons name="rocket-outline" size={20} color={STEP_COLORS.accent} />
-          <View style={styles.emptyWelcomeContent}>
-            <Text style={styles.emptyWelcomeTitle}>Time to do the work</Text>
-            <Text style={styles.emptyWelcomeSubtitle}>
-              {subSteps.length > 0
-                ? 'Check off sub-steps as you go, capture notes and observations below.'
-                : 'Record what happens — add notes, photos, or observations as you go.'}
-            </Text>
-          </View>
-        </View>
+      {/* Capture hero — mockup 14. Tap to type, long-press for camera. */}
+      {!readOnly && (
+        <Pressable
+          onPress={scrollToChat}
+          onLongPress={IS_NATIVE ? () => handlePickMedia(true) : undefined}
+          delayLongPress={350}
+          style={({ pressed }) => [styles.captureHero, pressed && styles.captureHeroPressed]}
+        >
+          <Ionicons name="mic-outline" size={32} color={STEP_PALETTE.textPrimary} />
+          <Text style={styles.captureHeroTitle}>Capture this moment</Text>
+          <Text style={styles.captureHeroSubtitle}>
+            Tap to type · long-press for camera
+          </Text>
+        </Pressable>
       )}
 
       {/* Sub-step checklist */}
@@ -1064,27 +1063,28 @@ const styles = StyleSheet.create({
     paddingBottom: IOS_SPACING.md,
     gap: IOS_SPACING.md,
   },
-  emptyWelcome: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 10,
-    backgroundColor: `${STEP_COLORS.accent}08`,
-    borderRadius: 10,
-    padding: 12,
+  captureHero: {
+    backgroundColor: STEP_PALETTE.bgPrimary,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: STEP_PALETTE.borderSecondary,
+    borderRadius: 16,
+    paddingVertical: 28,
+    paddingHorizontal: 20,
+    alignItems: 'center',
+    gap: 12,
   },
-  emptyWelcomeContent: {
-    flex: 1,
-    gap: 2,
+  captureHeroPressed: {
+    backgroundColor: STEP_PALETTE.bgSecondary,
   },
-  emptyWelcomeTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: IOS_COLORS.label,
+  captureHeroTitle: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: STEP_PALETTE.textPrimary,
   },
-  emptyWelcomeSubtitle: {
-    fontSize: 13,
-    color: IOS_COLORS.secondaryLabel,
-    lineHeight: 18,
+  captureHeroSubtitle: {
+    fontSize: 12,
+    color: STEP_PALETTE.textTertiary,
+    letterSpacing: 0.2,
   },
   section: {
     gap: IOS_SPACING.xs,
