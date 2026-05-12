@@ -37,6 +37,7 @@ import { useCompetenciesForInterest } from '@/hooks/useCompetencies';
 import { useQueryClient } from '@tanstack/react-query';
 import type { StepReviewData, StepActData, StepPlanData, StepMetadata, BrainDumpData } from '@/types/step-detail';
 import type { Competency } from '@/types/competency';
+import { getReviewSections, getReviewSectionContent } from '@/lib/step/getReviewSections';
 import { ShareStepSheet } from '@/components/step/ShareStepSheet';
 import { InstructorAssessmentSection } from '@/components/step/InstructorAssessmentSection';
 import { MeasurementReview } from '@/components/step/MeasurementReview';
@@ -236,6 +237,15 @@ export function StepCritiqueContent({ stepId, onNextStepCreated, readOnly }: Ste
   const planData: StepPlanData = metadata.plan ?? {};
   const actData: StepActData = metadata.act ?? {};
   const reviewData: StepReviewData = metadata.review ?? {};
+  // Step A (read-side compat): normalized view of review across v1 flat fields
+  // and v2 sections[]. Seed effect below reads from this, so once Step B starts
+  // dual-writing sections[], the Critique tab will pick up the v2 shape with no
+  // further changes. For current production rows (v1 only) the synthesized
+  // sections content equals the flat-field strings, so behavior is identical.
+  const normalizedReview = React.useMemo(
+    () => getReviewSections(step?.metadata, step?.completed_at ?? step?.updated_at ?? null),
+    [step?.metadata, step?.completed_at, step?.updated_at],
+  );
 
   // Local state
   const [overallRating, setOverallRating] = useState(0);
@@ -312,13 +322,27 @@ export function StepCritiqueContent({ stepId, onNextStepCreated, readOnly }: Ste
     })();
   }, [user?.id, step?.interest_id, stepId, planData.competency_ids, planData.capability_goals]);
 
-  // Seed from server
+  // Seed from server. Read prompt-keyed content through the selector so that
+  // v2 sections[] take precedence when present (Step B+). For current v1 rows
+  // the selector synthesizes sections from the flat fields, so this is a no-op.
   useEffect(() => {
     if (step && !initializedRef.current) {
       setOverallRating(reviewData.overall_rating ?? 0);
-      setLocalWentWell(reviewData.what_learned ?? '');
-      setLocalToImprove(reviewData.deviation_reason ?? '');
-      setLocalNextNotes(reviewData.next_step_notes ?? '');
+      setLocalWentWell(
+        getReviewSectionContent(normalizedReview.sections, 'what_did_you_learn')
+          ?? reviewData.what_learned
+          ?? '',
+      );
+      setLocalToImprove(
+        getReviewSectionContent(normalizedReview.sections, 'what_didnt')
+          ?? reviewData.deviation_reason
+          ?? '',
+      );
+      setLocalNextNotes(
+        getReviewSectionContent(normalizedReview.sections, 'anything_else')
+          ?? reviewData.next_step_notes
+          ?? '',
+      );
       setLocalCapabilityRatings(reviewData.capability_progress ?? {});
       initializedRef.current = true;
     }
