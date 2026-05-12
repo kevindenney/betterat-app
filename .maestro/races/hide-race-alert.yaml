@@ -3,7 +3,7 @@
 #
 # This test verifies the crossPlatformAlert confirmation for
 # withdrawing/hiding a race from the user's timeline.
-appId: com.regattaflow.app
+appId: com.betterat.app
 tags:
   - races
   - alert

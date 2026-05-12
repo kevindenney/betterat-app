@@ -3,7 +3,7 @@
 #
 # This test validates the crossPlatformAlert migration works correctly by testing
 # the full sign-out confirmation flow after logging in.
-appId: com.regattaflow.app
+appId: com.betterat.app
 tags:
   - auth
   - alert
@@ -28,7 +28,7 @@ env:
 
 # Handle Expo dev launcher (dynamic host/port variants)
 - tapOn:
-    text: "RegattaFlow"
+    text: "BetterAt"
     optional: true
 - tapOn:
     text: "http://10.0.2.2:8082"
@@ -68,7 +68,7 @@ env:
     timeout: 5000
 
 # Navigate to account and open login
-- openLink: "exp+regattaflow-app://account"
+- openLink: "betterat://account"
 - extendedWaitUntil:
     visible: "Account"
     timeout: 10000
@@ -118,7 +118,7 @@ env:
 # ============================================================
 
 # Navigate to Account via deeplink
-- openLink: "exp+regattaflow-app://account"
+- openLink: "betterat://account"
 
 # Wait for Account modal
 - extendedWaitUntil:

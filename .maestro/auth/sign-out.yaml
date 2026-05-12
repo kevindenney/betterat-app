@@ -3,7 +3,7 @@
 #
 # PREREQUISITE: User must be signed in before running this test.
 # Run sign-in.yaml first if needed.
-appId: com.regattaflow.app
+appId: com.betterat.app
 tags:
   - auth
   - alert
@@ -19,7 +19,7 @@ tags:
     timeout: 30000
 
 # Navigate to account via deeplink
-- openLink: "exp+regattaflow-app://account"
+- openLink: "betterat://account"
 
 # Wait for Account modal to appear
 - extendedWaitUntil:

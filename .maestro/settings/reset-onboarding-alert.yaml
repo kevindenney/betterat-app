@@ -3,7 +3,7 @@
 #
 # This test verifies the crossPlatformAlert confirmation for
 # resetting the onboarding flow state.
-appId: com.regattaflow.app
+appId: com.betterat.app
 tags:
   - settings
   - alert

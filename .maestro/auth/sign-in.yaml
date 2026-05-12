@@ -1,6 +1,6 @@
 # Sign In Flow Test
 # Tests sign in through Account modal using stable testIDs
-appId: com.regattaflow.app
+appId: com.betterat.app
 tags:
   - auth
   - critical
@@ -19,7 +19,7 @@ env:
 
 # Handle Expo dev launcher (dynamic host/port variants)
 - tapOn:
-    text: "RegattaFlow"
+    text: "BetterAt"
     optional: true
 - tapOn:
     text: "http://10.0.2.2:8082"
@@ -59,7 +59,7 @@ env:
     timeout: 5000
 
 # Navigate into Account then open Login
-- openLink: "exp+regattaflow-app://account"
+- openLink: "betterat://account"
 - extendedWaitUntil:
     visible: "Account"
     timeout: 10000

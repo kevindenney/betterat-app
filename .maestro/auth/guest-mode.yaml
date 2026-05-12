@@ -1,6 +1,6 @@
 # Guest Mode Flow Test
 # Tests entering and using guest mode without authentication
-appId: com.regattaflow.app
+appId: com.betterat.app
 tags:
   - auth
   - guest

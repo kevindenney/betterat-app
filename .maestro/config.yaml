@@ -1,8 +1,8 @@
-# Maestro Configuration for RegattaFlow
+# Maestro Configuration for BetterAt
 # See: https://maestro.mobile.dev/reference/configuration
 
 # App configuration
-appId: com.regattaflow.app
+appId: com.betterat.app
 
 # Default flow settings
 flows:
