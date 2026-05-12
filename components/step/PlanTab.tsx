@@ -3,7 +3,7 @@
  */
 
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
-import { View, Text, TextInput, Pressable, ScrollView, StyleSheet, Platform, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, Pressable, ScrollView, StyleSheet, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
 import { STEP_COLORS } from '@/lib/step-theme';
@@ -22,7 +22,7 @@ import { DateEnrichmentCard } from './DateEnrichmentCard';
 import { createStep } from '@/services/TimelineStepService';
 import { useAuth } from '@/providers/AuthProvider';
 import { useInterest } from '@/providers/InterestProvider';
-import type { StepPlanData, StepCollaborator, StepLocation, SubStep, CrossInterestSuggestion, BrainDumpData } from '@/types/step-detail';
+import type { StepPlanData, StepCollaborator, StepLocation, SubStep, BrainDumpData } from '@/types/step-detail';
 import type { LibraryResourceRecord } from '@/types/library';
 import type { Competency } from '@/types/competency';
 import { useCompetenciesForInterest } from '@/hooks/useCompetencies';
@@ -80,6 +80,7 @@ export function PlanTab({
       return;
     }
     getResourcesByIds(linkedIds).then(setLinkedResources).catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [linkedIds.join(',')]);
 
   // Load linked concepts from step_playbook_links
@@ -162,6 +163,7 @@ export function PlanTab({
     onUpdate({ how_sub_steps: subSteps });
   }, [onUpdate]);
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const collaborators = planData.collaborators ?? [];
   const existingCollaboratorIds = useMemo(
     () => new Set(collaborators.map((c) => c.user_id ?? c.id)),
@@ -256,7 +258,7 @@ export function PlanTab({
       {/* Q1: What will you do? */}
       <PlanQuestionCard
         icon="bulb-outline"
-        title={catLabels.questions.what}
+        title="what"
         isComplete={q1Complete}
         defaultExpanded={!q1Complete}
       >
@@ -338,7 +340,7 @@ export function PlanTab({
       {/* Q2: How will you do it? */}
       <PlanQuestionCard
         icon="list-outline"
-        title={catLabels.questions.how}
+        title="how"
         isComplete={q2Complete}
         defaultExpanded={q1Complete && !q2Complete}
       >
@@ -352,7 +354,7 @@ export function PlanTab({
       {/* Q3: Why is this next? */}
       <PlanQuestionCard
         icon="help-circle-outline"
-        title={catLabels.questions.why}
+        title="why"
         isComplete={q3Complete}
       >
         <TextInput
@@ -370,7 +372,7 @@ export function PlanTab({
       {/* Q4: Who will you do this with? */}
       <PlanQuestionCard
         icon="people-outline"
-        title="Who will you do this with?"
+        title="who"
         isComplete={q4Complete}
       >
         {/* Collaborator pills */}
@@ -428,7 +430,7 @@ export function PlanTab({
       {/* Q5: Where will you do this? */}
       <PlanQuestionCard
         icon="location-outline"
-        title="Where will you do this?"
+        title="where"
         isComplete={q5Complete}
       >
         <TextInput
@@ -488,7 +490,7 @@ export function PlanTab({
       {(availableCompetencies ?? []).length > 0 && (
         <PlanQuestionCard
           icon="school-outline"
-          title="Competencies"
+          title="building toward"
           isComplete={Boolean(planData.competency_ids?.length)}
         >
           {/* Selected competency pills */}

@@ -882,7 +882,7 @@ RULES:
       {/* Q1: What will you do? */}
       <PlanQuestionCard
         icon="bulb-outline"
-        title={catLabels.questions.what}
+        title="what"
         isComplete={q1Complete}
         defaultExpanded={!q1Complete}
       >
@@ -1033,7 +1033,7 @@ RULES:
       {/* Q2: How will you do it? */}
       <PlanQuestionCard
         icon="list-outline"
-        title={catLabels.questions.how}
+        title="how"
         isComplete={q2Complete}
         defaultExpanded={q1Complete && !q2Complete}
       >
@@ -1071,7 +1071,7 @@ RULES:
       {/* Q3: Why is this next? */}
       <PlanQuestionCard
         icon="help-circle-outline"
-        title={catLabels.questions.why}
+        title="why"
         isComplete={q3Complete}
       >
         <TextInput
@@ -1107,7 +1107,7 @@ RULES:
       {/* Q4: Who will you do this with? */}
       <PlanQuestionCard
         icon="people-outline"
-        title="Who will you do this with?"
+        title="who"
         isComplete={q4Complete}
       >
         {/* Collaborator chips */}
@@ -1193,7 +1193,7 @@ RULES:
       {/* Where will you do this? */}
       <PlanQuestionCard
         icon="location-outline"
-        title="Where will you do this?"
+        title="where"
         isComplete={qWhereComplete}
       >
         <TextInput
@@ -1302,7 +1302,7 @@ RULES:
       {/* Q5: What skills are you developing? */}
       <PlanQuestionCard
         icon="trophy-outline"
-        title="What skills are you developing?"
+        title="building toward"
         isComplete={q5Complete}
       >
         {/* Current goals as chips */}

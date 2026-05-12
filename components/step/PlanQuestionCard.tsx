@@ -79,6 +79,7 @@ const styles = StyleSheet.create({
   },
   title: {
     ...text.sansEyebrow,
+    textTransform: 'none',
     color: STEP_PALETTE.textTertiary,
     flex: 1,
   },
