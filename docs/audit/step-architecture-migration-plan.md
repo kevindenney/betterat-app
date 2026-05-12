@@ -145,16 +145,18 @@ Drop into `StepCritiqueContent.tsx` and any AI-summary path. Ship behind a featu
 
 ---
 
-## 5. Open decisions
+## 5. Resolved decisions
 
-| # | Decision | Why it blocks |
-|---|---|---|
-| 1 | `next_step_notes` — keep as its own panel or fold into `anything_else`? | Affects Step E. The five canonical prompts don't include it; spec is silent on retention. |
-| 2 | Name of the recent-activity table (`step_recent_activity`, `recently_active_step`, etc.) and TTL semantics. | Blocks Step B writes. Suggest 7-day TTL via partial index, name `step_recent_activity`. |
-| 3 | Display rename — full rename everywhere (incl. analytics, deep links) or display-only? | Affects Step D blast radius. Recommend display-only. |
-| 4 | Card render convergence — keep card-specific compact components or render the same composition with a `compact` prop? | Affects Step D approach. Recommend compact prop. |
-| 5 | Instructor assessment and competency assessment — keep separate from `sections[]` or absorb? | Affects Critique refactor in Step D. Recommend keep separate; they have different write paths (instructor, not user/bot). |
-| 6 | Legacy `[YYYY-MM-DD via Telegram]` stamp inside string fields — strip during backfill or preserve as `captured_at`? | Affects Step E backfill SQL. Recommend parse-and-strip. |
+All resolved 2026-05-12. See `docs/audit/decisions-to-make.md` for full rationale.
+
+| # | Decision | Locked answer | Affects |
+|---|---|---|---|
+| D6 | `next_step_notes` panel | Fold into `anything_else` | Step E |
+| D1 | Recent-activity table | `step_recent_activity`, UPSERT on `(user_id, step_id)`, 7-day TTL, `source` column | Step B |
+| D3 | Display rename | Display-only; internal symbols stay `plan/act/review` | Step D |
+| D4 | Card render convergence | Shared `getReviewSections` selector, separate layout components | Step D |
+| D5 | Instructor + competency | Keep separate from `sections[]` | Step D |
+| D7 | Legacy `[via Telegram]` stamp | Parse + populate `captured_at`, snapshot raw blob before transform | Step E |
 
 ---
 
