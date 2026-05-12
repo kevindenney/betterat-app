@@ -22,7 +22,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
-      INTEGRATION_BASE_URL: https://regattaflow-app.vercel.app
+      INTEGRATION_BASE_URL: https://better.at
       EXPECTED_SKIP_IDS: db-assertions-availability
       INTEGRATION_AUTH_SAILING_BEARER: ${{ secrets.INTEGRATION_AUTH_SAILING_BEARER }}
       INTEGRATION_AUTH_INSTITUTION_BEARER: ${{ secrets.INTEGRATION_AUTH_INSTITUTION_BEARER }}
