@@ -13,10 +13,13 @@ import {
   generateLinkCode,
 } from '../../services/capture/auth';
 import {
+  buildSystemPrompt,
+  buildPhotoSystemPrompt,
+} from '../../services/capture/systemPrompt';
+import {
   APP_URL,
   MAX_CONVERSATION_MESSAGES,
   MAX_TOOL_ITERATIONS,
-  type UserContext,
 } from '../../services/capture/types';
 
 // Bigger raw bodies for media-heavy webhooks; allow up to 120s for tool chains.
@@ -26,71 +29,6 @@ export const maxDuration = 120;
 export const config = {
   api: { bodyParser: false },
 };
-
-// ---------------------------------------------------------------------------
-// System prompt — same intent as the Telegram webhook, channel-light. Kept
-// inline rather than imported because the Telegram prompt baked in some
-// Telegram-specific formatting rules ("avoid markdown headers — Telegram
-// doesn't render them") that also apply to WhatsApp.
-// ---------------------------------------------------------------------------
-
-const buildSystemPrompt = (userCtx?: UserContext) => {
-  const todayStr = new Date().toISOString().split('T')[0];
-
-  let userContextBlock = '';
-  if (userCtx) {
-    const parts: string[] = [];
-    if (userCtx.fullName) parts.push(`The user's name is ${userCtx.fullName}.`);
-    if (userCtx.activeInterest) parts.push(`They are currently working on: ${userCtx.activeInterest}.`);
-    if (userCtx.interestDescription) parts.push(`Context: ${userCtx.interestDescription}`);
-    if (userCtx.orgName) parts.push(`They are a member of ${userCtx.orgName}.`);
-    if (userCtx.location) parts.push(`Their location/region: ${userCtx.location}.`);
-    if (parts.length > 0) {
-      userContextBlock = `\n\nUSER CONTEXT:\n${parts.join('\n')}\nUse this context to tailor responses — reference their region, local resources, and domain when relevant.`;
-    }
-  }
-
-  return `You are the BetterAt AI assistant, helping users manage their timeline via WhatsApp.
-You help them track progress, create steps, mark tasks done, and plan next activities.
-Today's date is ${todayStr}. Use this as the reference for all date-related decisions.${userContextBlock}
-Keep responses concise — this is a chat interface, not a document.
-Use short paragraphs. Use *bold* for emphasis and _italic_ for secondary info.
-Use bullet points with - for lists. Use \`code\` for IDs or technical values.
-Avoid markdown headers — WhatsApp renders them literally.
-
-CRITICAL RULES:
-1. You MUST call tools to perform ANY action. NEVER pretend you did something without calling a tool.
-2. NEVER say "Done" without having actually called a tool.
-3. If the user wants to see their timeline, call get_student_timeline.
-4. If the user wants to add evidence/photos to a step, call attach_step_evidence.
-5. If the user wants nutrition logged, call log_nutrition with a step_id.
-6. If the user wants a new step, call create_step.
-7. NEVER fabricate step_ids. All IDs are UUIDs that come from tool results.
-8. When reporting tool results, ONLY report what the tool actually returned.
-
-STEP CREATION:
-- ALWAYS populate structured fields: what_will_you_do, sub_steps, capability_goals, location_name.
-- For dates: use date_offset_days (integer, 0=today, 1=tomorrow, -1=yesterday). NEVER pass starts_at with an ISO date string.
-
-DEBRIEF FLOW (when user describes what happened on a step):
-1. Find the correct step_id (check conversation history for [Steps: Title (UUID)], else call get_student_timeline).
-2. Call log_debrief for end-of-session retrospectives (split into what_learned / what_to_change / next_step_notes), or log_observation for short single-moment notes.
-3. Call get_step_detail — see the sub-steps.
-4. Call bulk_toggle_sub_steps — mark all completed sub-steps at once.
-5. If user asks for assessment: call analyze_step then save_competency_assessment.`;
-};
-
-const buildPhotoSystemPrompt = (userCtx?: UserContext) => `${buildSystemPrompt(userCtx)}
-
-The user has sent a photo. A photo_url has been uploaded and is available for you to attach to a step.
-
-CRITICAL: ALWAYS call get_student_timeline FIRST (with no interest filter) to see ALL the user's steps before deciding what to do.
-
-For food photos you must make TWO tool calls:
-1. attach_step_evidence — saves the photo on the Train tab
-2. log_nutrition with step_id — extracts nutritional data for the Review tab
-
-The uploaded photo URL is provided in the message as [Photo uploaded: URL]. Use this exact URL when calling attach_step_evidence.`;
 
 // ---------------------------------------------------------------------------
 // Raw body + HMAC verification
@@ -483,7 +421,7 @@ async function handleMessage(
 
   // Build user content (text or photo+caption)
   let userContent: Anthropic.ContentBlockParam[] | string;
-  let systemPrompt = buildSystemPrompt(userCtx);
+  let systemPrompt = buildSystemPrompt(userCtx, 'whatsapp');
   let historyEntry = `${historyPrefix}${userText}`;
   let uploadedPhotoUrl = '';
 
@@ -522,7 +460,7 @@ async function handleMessage(
         },
         { type: 'text' as const, text: `${captionText}${photoUrlNote}` },
       ];
-      systemPrompt = buildPhotoSystemPrompt(userCtx);
+      systemPrompt = buildPhotoSystemPrompt(userCtx, 'whatsapp');
       historyEntry = `[Sent a photo${message.image.caption ? `: ${message.image.caption}` : ''}]${photoUrl ? ` [url: ${photoUrl}]` : ''}`;
 
       if (photoUrl && conversation?.id) {
