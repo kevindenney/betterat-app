@@ -1,0 +1,67 @@
+{
+  "title": "Races",
+  "race": "Race",
+  "regatta": "Regatta",
+  "series": "Series",
+  "event": "Event",
+  "championship": "Championship",
+  "status": {
+    "scheduled": "Scheduled",
+    "started": "Started",
+    "completed": "Completed",
+    "abandoned": "Abandoned",
+    "cancelled": "Cancelled",
+    "postponed": "Postponed"
+  },
+  "details": {
+    "startTime": "Start Time",
+    "endTime": "End Time",
+    "venue": "Venue",
+    "course": "Course",
+    "fleet": "Fleet",
+    "division": "Division",
+    "class": "Class",
+    "competitors": "Competitors",
+    "distance": "Distance"
+  },
+  "conditions": {
+    "wind": "Wind",
+    "windDirection": "Wind Direction",
+    "windSpeed": "Wind Speed",
+    "waves": "Waves",
+    "current": "Current",
+    "visibility": "Visibility",
+    "temperature": "Temperature"
+  },
+  "actions": {
+    "addRace": "Add Race",
+    "editRace": "Edit Race",
+    "deleteRace": "Delete Race",
+    "startRace": "Start Race",
+    "finishRace": "Finish Race",
+    "abandonRace": "Abandon Race",
+    "viewResults": "View Results",
+    "enterResults": "Enter Results"
+  },
+  "registration": {
+    "register": "Register",
+    "registered": "Registered",
+    "notRegistered": "Not Registered",
+    "registrationOpen": "Registration Open",
+    "registrationClosed": "Registration Closed",
+    "deadline": "Registration Deadline"
+  },
+  "sailwave": {
+    "import": "Import from Sailwave",
+    "export": "Export to Sailwave",
+    "importSuccess": "Successfully imported from Sailwave",
+    "importError": "Failed to import Sailwave file",
+    "selectFile": "Select a .BLW file"
+  },
+  "empty": {
+    "noRaces": "No races found",
+    "noUpcoming": "No upcoming races",
+    "noPast": "No past races"
+  }
+}
+

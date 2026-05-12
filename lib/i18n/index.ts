@@ -22,6 +22,7 @@ import { initReactI18next } from 'react-i18next';
 
 // Import translation files
 import enAi from './locales/en/ai.json';
+import enAuth from './locales/en/auth.json';
 import enCommon from './locales/en/common.json';
 import enErrors from './locales/en/errors.json';
 import enNavigation from './locales/en/navigation.json';
@@ -117,14 +118,23 @@ import fiRaces from './locales/fi/races.json';
 import fiScoring from './locales/fi/scoring.json';
 import fiSettings from './locales/fi/settings.json';
 
+import hiAi from './locales/hi/ai.json';
+import hiAuth from './locales/hi/auth.json';
+import hiCommon from './locales/hi/common.json';
+import hiErrors from './locales/hi/errors.json';
+import hiNavigation from './locales/hi/navigation.json';
+import hiRaces from './locales/hi/races.json';
+import hiScoring from './locales/hi/scoring.json';
+import hiSettings from './locales/hi/settings.json';
+
 // ============================================================================
 // Configuration
 // ============================================================================
 
 /**
- * Supported locales - 12 European languages
+ * Supported locales - 12 European languages + Hindi (dev-context onboarding)
  */
-export const supportedLocales = ['en', 'de', 'fr', 'it', 'es', 'nl', 'pt', 'sv', 'da', 'pl', 'el', 'fi'] as const;
+export const supportedLocales = ['en', 'de', 'fr', 'it', 'es', 'nl', 'pt', 'sv', 'da', 'pl', 'el', 'fi', 'hi'] as const;
 export type SupportedLocale = (typeof supportedLocales)[number];
 
 /**
@@ -252,6 +262,15 @@ export const localeConfig: Record<SupportedLocale, LocaleConfig> = {
     numberFormat: { decimal: ',', thousands: ' ' },
     flag: '🇫🇮',
   },
+  hi: {
+    name: 'Hindi',
+    nativeName: 'हिन्दी',
+    dateFormat: 'DD/MM/YYYY',
+    timeFormat: 'HH:mm',
+    currency: 'INR',
+    numberFormat: { decimal: '.', thousands: ',' },
+    flag: '🇮🇳',
+  },
 };
 
 /**
@@ -265,6 +284,7 @@ export const namespaces = [
   'ai',
   'settings',
   'errors',
+  'auth',
 ] as const;
 
 export type TranslationNamespace = (typeof namespaces)[number];
@@ -282,6 +302,7 @@ const resources = {
     ai: enAi,
     settings: enSettings,
     errors: enErrors,
+    auth: enAuth,
   },
   de: {
     common: deCommon,
@@ -291,6 +312,7 @@ const resources = {
     ai: deAi,
     settings: deSettings,
     errors: deErrors,
+    auth: enAuth,
   },
   fr: {
     common: frCommon,
@@ -300,6 +322,7 @@ const resources = {
     ai: frAi,
     settings: frSettings,
     errors: frErrors,
+    auth: enAuth,
   },
   it: {
     common: itCommon,
@@ -309,6 +332,7 @@ const resources = {
     ai: itAi,
     settings: itSettings,
     errors: itErrors,
+    auth: enAuth,
   },
   es: {
     common: esCommon,
@@ -318,6 +342,7 @@ const resources = {
     ai: esAi,
     settings: esSettings,
     errors: esErrors,
+    auth: enAuth,
   },
   nl: {
     common: nlCommon,
@@ -327,6 +352,7 @@ const resources = {
     ai: nlAi,
     settings: nlSettings,
     errors: nlErrors,
+    auth: enAuth,
   },
   pt: {
     common: ptCommon,
@@ -336,6 +362,7 @@ const resources = {
     ai: ptAi,
     settings: ptSettings,
     errors: ptErrors,
+    auth: enAuth,
   },
   sv: {
     common: svCommon,
@@ -345,6 +372,7 @@ const resources = {
     ai: svAi,
     settings: svSettings,
     errors: svErrors,
+    auth: enAuth,
   },
   da: {
     common: daCommon,
@@ -354,6 +382,7 @@ const resources = {
     ai: daAi,
     settings: daSettings,
     errors: daErrors,
+    auth: enAuth,
   },
   pl: {
     common: plCommon,
@@ -363,6 +392,7 @@ const resources = {
     ai: plAi,
     settings: plSettings,
     errors: plErrors,
+    auth: enAuth,
   },
   el: {
     common: elCommon,
@@ -372,6 +402,7 @@ const resources = {
     ai: elAi,
     settings: elSettings,
     errors: elErrors,
+    auth: enAuth,
   },
   fi: {
     common: fiCommon,
@@ -381,6 +412,17 @@ const resources = {
     ai: fiAi,
     settings: fiSettings,
     errors: fiErrors,
+    auth: enAuth,
+  },
+  hi: {
+    common: hiCommon,
+    navigation: hiNavigation,
+    races: hiRaces,
+    scoring: hiScoring,
+    ai: hiAi,
+    settings: hiSettings,
+    errors: hiErrors,
+    auth: hiAuth,
   },
 };
 

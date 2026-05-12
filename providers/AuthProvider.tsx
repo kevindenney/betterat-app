@@ -13,6 +13,7 @@ import { logAuthEvent, logAuthState } from '@/utils/errToText'
 import { AuthApiError } from '@supabase/supabase-js'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { router } from 'expo-router'
+import i18n from '@/lib/i18n'
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { Platform } from 'react-native'
 import { UserCapabilities, DEFAULT_CAPABILITIES, CapabilityType } from '@/types/capabilities'
@@ -1047,12 +1048,12 @@ export function AuthProvider({children}:{children: React.ReactNode}) {
 
   function normalizePhone(input: string): string {
     const trimmed = input.trim().replace(/[\s\-()]/g, '')
-    if (!trimmed) throw new Error('Phone number is required')
+    if (!trimmed) throw new Error(i18n.t('auth:phone.errors.phoneRequired'))
     if (!trimmed.startsWith('+')) {
-      throw new Error('Phone must be E.164 format (e.g. +919812345678)')
+      throw new Error(i18n.t('auth:phone.errors.phoneFormat'))
     }
     if (!/^\+\d{6,16}$/.test(trimmed)) {
-      throw new Error('Invalid phone number format')
+      throw new Error(i18n.t('auth:phone.errors.phoneInvalid'))
     }
     return trimmed
   }
@@ -1081,7 +1082,7 @@ export function AuthProvider({children}:{children: React.ReactNode}) {
     const normalized = normalizePhone(phone)
     const trimmedCode = code.trim()
     if (!/^\d{4,8}$/.test(trimmedCode)) {
-      throw new Error('OTP code must be 4–8 digits')
+      throw new Error(i18n.t('auth:phone.errors.codeFormat'))
     }
 
     setLoading(true)
@@ -1095,7 +1096,7 @@ export function AuthProvider({children}:{children: React.ReactNode}) {
 
       const verifiedUser = data?.user
       if (!verifiedUser?.id) {
-        throw new Error('OTP verified but session is missing user')
+        throw new Error(i18n.t('auth:phone.errors.sessionMissing'))
       }
 
       // Detect "new user" by checking whether a `users` row already exists.

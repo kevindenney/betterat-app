@@ -1,0 +1,31 @@
+{
+  "tabs": {
+    "home": "होम",
+    "races": "दौड़",
+    "venues": "स्थानीय",
+    "learn": "सीखें",
+    "settings": "सेटिंग्स",
+    "profile": "प्रोफ़ाइल",
+    "club": "क्लब",
+    "fleet": "फ़्लीट",
+    "community": "समुदाय"
+  },
+  "headers": {
+    "dashboard": "डैशबोर्ड",
+    "myRaces": "मेरी दौड़",
+    "raceDetail": "दौड़ विवरण",
+    "venueDetail": "स्थान विवरण",
+    "settings": "सेटिंग्स",
+    "profile": "प्रोफ़ाइल",
+    "notifications": "सूचनाएँ",
+    "help": "मदद",
+    "about": "हमारे बारे में"
+  },
+  "menu": {
+    "signOut": "साइन आउट",
+    "switchAccount": "खाता बदलें",
+    "preferences": "प्राथमिकताएँ",
+    "support": "सहायता",
+    "feedback": "प्रतिक्रिया"
+  }
+}

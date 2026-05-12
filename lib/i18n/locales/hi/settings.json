@@ -1,0 +1,61 @@
+{
+  "title": "Settings",
+  "sections": {
+    "account": "Account",
+    "preferences": "Preferences",
+    "notifications": "Notifications",
+    "privacy": "Privacy",
+    "about": "About",
+    "support": "Support"
+  },
+  "account": {
+    "profile": "Profile",
+    "email": "Email",
+    "password": "Password",
+    "changePassword": "Change Password",
+    "subscription": "Subscription",
+    "manageSubscription": "Manage Subscription",
+    "signOut": "Sign Out",
+    "deleteAccount": "Delete Account"
+  },
+  "preferences": {
+    "language": "Language",
+    "units": "Units",
+    "metric": "Metric",
+    "imperial": "Imperial",
+    "dateFormat": "Date Format",
+    "timeFormat": "Time Format",
+    "theme": "Theme",
+    "light": "Light",
+    "dark": "Dark",
+    "system": "System"
+  },
+  "notifications": {
+    "push": "Push Notifications",
+    "email": "Email Notifications",
+    "raceReminders": "Race Reminders",
+    "results": "Results Updates",
+    "notices": "Notice Board",
+    "weather": "Weather Alerts"
+  },
+  "privacy": {
+    "dataSharing": "Data Sharing",
+    "analytics": "Analytics",
+    "locationServices": "Location Services",
+    "exportData": "Export My Data",
+    "privacyPolicy": "Privacy Policy"
+  },
+  "about": {
+    "version": "Version",
+    "termsOfService": "Terms of Service",
+    "licenses": "Licenses",
+    "rateApp": "Rate the App"
+  },
+  "support": {
+    "helpCenter": "Help Center",
+    "contactUs": "Contact Us",
+    "reportBug": "Report a Bug",
+    "featureRequest": "Feature Request"
+  }
+}
+

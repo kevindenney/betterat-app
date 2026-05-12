@@ -1,0 +1,49 @@
+{
+  "title": "AI Coach",
+  "strategy": {
+    "title": "Race Strategy",
+    "generate": "Generate Strategy",
+    "generating": "Generating strategy...",
+    "ready": "Your strategy is ready",
+    "executiveSummary": "Executive Summary",
+    "venueAnalysis": "Venue Analysis",
+    "weatherSummary": "Weather Summary",
+    "startStrategy": "Start Strategy",
+    "legByLeg": "Leg-by-Leg Tactics",
+    "contingencies": "Contingency Plans",
+    "keyReminders": "Key Reminders"
+  },
+  "coaching": {
+    "title": "AI Coaching",
+    "askQuestion": "Ask a question...",
+    "thinking": "Thinking...",
+    "suggestions": "Suggestions",
+    "learnMore": "Learn more"
+  },
+  "debrief": {
+    "title": "Race Debrief",
+    "whatWentWell": "What Went Well",
+    "improvements": "Areas for Improvement",
+    "keyLessons": "Key Lessons",
+    "practiceIdeas": "Practice Ideas"
+  },
+  "tuning": {
+    "title": "Boat Tuning",
+    "recommendations": "Recommendations",
+    "forConditions": "For current conditions",
+    "rigSettings": "Rig Settings",
+    "sailTrim": "Sail Trim"
+  },
+  "tokens": {
+    "usage": "AI Usage",
+    "remaining": "{{count}} tokens remaining",
+    "limit": "Monthly limit",
+    "unlimited": "Unlimited"
+  },
+  "errors": {
+    "generationFailed": "Failed to generate strategy",
+    "limitReached": "Monthly AI limit reached",
+    "tryAgain": "Please try again"
+  }
+}
+

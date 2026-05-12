@@ -1,0 +1,52 @@
+{
+  "general": {
+    "unknown": "एक अज्ञात त्रुटि हुई",
+    "network": "नेटवर्क त्रुटि। कृपया अपना कनेक्शन जाँचें।",
+    "server": "सर्वर त्रुटि। कृपया बाद में पुनः प्रयास करें।",
+    "timeout": "अनुरोध का समय समाप्त हो गया। कृपया पुनः प्रयास करें।",
+    "notFound": "नहीं मिला",
+    "unauthorized": "आप इस कार्य के लिए अधिकृत नहीं हैं",
+    "forbidden": "पहुँच अस्वीकृत",
+    "validation": "कृपया अपना इनपुट जाँचें"
+  },
+  "auth": {
+    "invalidCredentials": "अमान्य ईमेल या पासवर्ड",
+    "emailInUse": "ईमेल पहले से उपयोग में है",
+    "weakPassword": "पासवर्ड बहुत कमज़ोर है",
+    "sessionExpired": "आपका सत्र समाप्त हो गया है। कृपया फिर से साइन इन करें।",
+    "accountDisabled": "आपका खाता निष्क्रिय कर दिया गया है",
+    "invalidToken": "अमान्य या समाप्त टोकन"
+  },
+  "races": {
+    "loadFailed": "दौड़ लोड करने में विफल",
+    "createFailed": "दौड़ बनाने में विफल",
+    "updateFailed": "दौड़ अपडेट करने में विफल",
+    "deleteFailed": "दौड़ हटाने में विफल",
+    "registrationFailed": "पंजीकरण विफल",
+    "alreadyRegistered": "आप पहले से पंजीकृत हैं"
+  },
+  "scoring": {
+    "loadFailed": "परिणाम लोड करने में विफल",
+    "saveFailed": "परिणाम सहेजने में विफल",
+    "publishFailed": "परिणाम प्रकाशित करने में विफल",
+    "calculationFailed": "रैंकिंग गणना में विफल"
+  },
+  "ai": {
+    "generationFailed": "AI जनरेशन विफल",
+    "limitReached": "AI उपयोग सीमा पूरी हो गई",
+    "serviceUnavailable": "AI सेवा अस्थायी रूप से अनुपलब्ध"
+  },
+  "file": {
+    "uploadFailed": "फ़ाइल अपलोड विफल",
+    "downloadFailed": "फ़ाइल डाउनलोड विफल",
+    "invalidFormat": "अमान्य फ़ाइल प्रारूप",
+    "tooLarge": "फ़ाइल बहुत बड़ी है",
+    "importFailed": "आयात विफल",
+    "exportFailed": "निर्यात विफल"
+  },
+  "offline": {
+    "notAvailable": "यह सुविधा ऑफ़लाइन उपलब्ध नहीं है",
+    "syncFailed": "डेटा सिंक विफल",
+    "pending": "ऑनलाइन होने पर परिवर्तन सिंक होंगे"
+  }
+}

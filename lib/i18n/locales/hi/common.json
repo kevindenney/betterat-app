@@ -1,0 +1,91 @@
+{
+  "app": {
+    "name": "RegattaFlow",
+    "tagline": "AI-संचालित नौकायन इंटेलिजेंस"
+  },
+  "actions": {
+    "save": "सहेजें",
+    "cancel": "रद्द करें",
+    "delete": "हटाएँ",
+    "edit": "संपादित करें",
+    "confirm": "पुष्टि करें",
+    "back": "वापस",
+    "next": "अगला",
+    "done": "पूर्ण",
+    "retry": "पुनः प्रयास",
+    "close": "बंद करें",
+    "search": "खोजें",
+    "filter": "फ़िल्टर",
+    "sort": "क्रमबद्ध करें",
+    "refresh": "रिफ़्रेश",
+    "share": "साझा करें",
+    "export": "निर्यात",
+    "import": "आयात",
+    "add": "जोड़ें",
+    "remove": "हटाएँ",
+    "view": "देखें",
+    "select": "चुनें",
+    "continue": "जारी रखें",
+    "submit": "जमा करें",
+    "update": "अपडेट",
+    "create": "बनाएँ",
+    "download": "डाउनलोड",
+    "upload": "अपलोड",
+    "copy": "कॉपी",
+    "paste": "पेस्ट",
+    "reset": "रीसेट",
+    "apply": "लागू करें",
+    "clear": "साफ़ करें"
+  },
+  "status": {
+    "loading": "लोड हो रहा है...",
+    "saving": "सहेजा जा रहा है...",
+    "success": "सफल!",
+    "error": "त्रुटि",
+    "offline": "आप ऑफ़लाइन हैं",
+    "syncing": "सिंक हो रहा है...",
+    "processing": "संसाधित किया जा रहा है...",
+    "complete": "पूर्ण",
+    "pending": "लंबित",
+    "active": "सक्रिय",
+    "inactive": "निष्क्रिय",
+    "draft": "मसौदा",
+    "published": "प्रकाशित"
+  },
+  "time": {
+    "today": "आज",
+    "yesterday": "कल",
+    "tomorrow": "कल",
+    "now": "अभी",
+    "ago": "{{time}} पहले",
+    "in": "{{time}} में",
+    "minutes_one": "{{count}} मिनट",
+    "minutes_other": "{{count}} मिनट",
+    "hours_one": "{{count}} घंटा",
+    "hours_other": "{{count}} घंटे",
+    "days_one": "{{count}} दिन",
+    "days_other": "{{count}} दिन",
+    "weeks_one": "{{count}} सप्ताह",
+    "weeks_other": "{{count}} सप्ताह",
+    "months_one": "{{count}} माह",
+    "months_other": "{{count}} माह"
+  },
+  "validation": {
+    "required": "यह फ़ील्ड आवश्यक है",
+    "email": "कृपया मान्य ईमेल दर्ज करें",
+    "minLength": "कम से कम {{min}} अक्षर होने चाहिए",
+    "maxLength": "अधिकतम {{max}} अक्षर होने चाहिए",
+    "invalid": "अमान्य मान",
+    "passwordMismatch": "पासवर्ड मेल नहीं खाते"
+  },
+  "empty": {
+    "noData": "कोई डेटा उपलब्ध नहीं",
+    "noResults": "कोई परिणाम नहीं मिला",
+    "noItems": "दिखाने के लिए कोई आइटम नहीं"
+  },
+  "confirm": {
+    "delete": "क्या आप वाकई इसे हटाना चाहते हैं?",
+    "discard": "परिवर्तन छोड़ें?",
+    "leave": "क्या आप वाकई जाना चाहते हैं?"
+  }
+}

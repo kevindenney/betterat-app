@@ -1,0 +1,58 @@
+{
+  "title": "Scoring",
+  "results": "Results",
+  "standings": "Standings",
+  "points": "Points",
+  "position": "Position",
+  "totalPoints": "Total Points",
+  "netPoints": "Net Points",
+  "discards": "Discards",
+  "systems": {
+    "title": "Scoring System",
+    "lowPoint": "Low Point",
+    "highPoint": "High Point",
+    "bonusPoint": "Bonus Point",
+    "custom": "Custom"
+  },
+  "codes": {
+    "title": "Status Codes",
+    "DNF": "Did Not Finish",
+    "DNS": "Did Not Start",
+    "DNC": "Did Not Come",
+    "DSQ": "Disqualified",
+    "DNE": "Disqualified Not Excludable",
+    "OCS": "On Course Side",
+    "BFD": "Black Flag Disqualification",
+    "UFD": "U Flag Disqualification",
+    "ZFP": "Z Flag Penalty",
+    "SCP": "Scoring Penalty",
+    "RET": "Retired",
+    "RAF": "Retired After Finish",
+    "RDG": "Redress Given",
+    "DPI": "Discretionary Penalty",
+    "NSC": "Did Not Sail Course",
+    "TLE": "Time Limit Expired",
+    "AVG": "Average"
+  },
+  "actions": {
+    "enterResults": "Enter Results",
+    "publishResults": "Publish Results",
+    "calculateStandings": "Calculate Standings",
+    "applyPenalty": "Apply Penalty",
+    "grantRedress": "Grant Redress",
+    "exportResults": "Export Results"
+  },
+  "publication": {
+    "provisional": "Provisional",
+    "final": "Final",
+    "draft": "Draft",
+    "protestPeriod": "Protest Period"
+  },
+  "tieBreak": {
+    "title": "Tie Break",
+    "lastRace": "Best last race",
+    "mostFirsts": "Most first places",
+    "countback": "Countback"
+  }
+}
+

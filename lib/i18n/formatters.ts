@@ -5,8 +5,7 @@
  */
 
 import { format, parseISO, formatDistance as dateFnsFormatDistance, formatRelative, type Locale } from 'date-fns';
-import { de, fr, it, es, enGB, nl, pt, sv, da, pl, el, fi } from 'date-fns/locale';
-import i18n from './index';
+import { de, fr, it, es, enGB, nl, pt, sv, da, pl, el, fi, hi } from 'date-fns/locale';
 import { getCurrentLocale, getCurrentLocaleConfig, SupportedLocale } from './index';
 
 // ============================================================================
@@ -26,6 +25,7 @@ const dateFnsLocales: Record<SupportedLocale, Locale> = {
   pl: pl,
   el: el,
   fi: fi,
+  hi: hi,
 };
 
 /**

@@ -11,15 +11,14 @@
  *     name + interest + initial timeline state.
  *   - Returning user → routed to `/(tabs)/races` (timeline).
  *
- * No Hindi translation yet — the plan calls for a dedicated i18n pass.
- * This screen uses literal English so the surface is shippable and the
- * i18n migration can swap strings into a new `auth` namespace once it
- * lands.
+ * Strings live in the `auth` i18n namespace (`lib/i18n/locales/<lng>/auth.json`).
+ * Hindi translation ships with this screen for dev-context launch.
  */
 
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   ActivityIndicator,
   Platform,
@@ -50,6 +49,7 @@ type Stage = 'phone' | 'code';
 export default function PhoneAuthScreen() {
   const { sendPhoneOtp, verifyPhoneOtp } = useAuth();
   const { returnTo } = useLocalSearchParams<{ returnTo?: string }>();
+  const { t } = useTranslation('auth');
 
   const [stage, setStage] = useState<Stage>('phone');
   const [phone, setPhone] = useState('+');
@@ -64,7 +64,7 @@ export default function PhoneAuthScreen() {
       await sendPhoneOtp(phone);
       setStage('code');
     } catch (e: any) {
-      setError(e?.message ?? 'Could not send code. Please try again.');
+      setError(e?.message ?? t('phone.errors.sendFailed'));
     } finally {
       setBusy(false);
     }
@@ -87,7 +87,7 @@ export default function PhoneAuthScreen() {
         router.replace('/(tabs)/races');
       }
     } catch (e: any) {
-      setError(e?.message ?? 'Could not verify code. Please try again.');
+      setError(e?.message ?? t('phone.errors.verifyFailed'));
     } finally {
       setBusy(false);
     }
@@ -99,30 +99,30 @@ export default function PhoneAuthScreen() {
         style={styles.backButton}
         onPress={() => (stage === 'code' ? setStage('phone') : router.back())}
         accessibilityRole="button"
-        accessibilityLabel="Go back"
+        accessibilityLabel={t('common.goBack')}
       >
         <Ionicons name="chevron-back" size={24} color={C.labelDark} />
       </TouchableOpacity>
 
       <View style={styles.body}>
         <Text style={styles.title}>
-          {stage === 'phone' ? 'Continue with your phone' : 'Enter the code'}
+          {stage === 'phone' ? t('phone.title') : t('phone.codeTitle')}
         </Text>
         <Text style={styles.subtitle}>
           {stage === 'phone'
-            ? "We'll text you a one-time code. No password needed."
-            : `Enter the 6-digit code we texted to ${phone}.`}
+            ? t('phone.subtitle')
+            : t('phone.codeSubtitle', { phone })}
         </Text>
 
         {stage === 'phone' ? (
           <>
             <TextInput
               testID="phone-auth-phone-input"
-              accessibilityLabel="Phone number"
+              accessibilityLabel={t('phone.phoneLabel')}
               style={styles.input}
               value={phone}
               onChangeText={setPhone}
-              placeholder="+919812345678"
+              placeholder={t('phone.phonePlaceholder')}
               placeholderTextColor={C.labelLight}
               keyboardType={Platform.OS === 'web' ? 'default' : 'phone-pad'}
               autoComplete="tel"
@@ -130,18 +130,16 @@ export default function PhoneAuthScreen() {
               editable={!busy}
               autoCorrect={false}
             />
-            <Text style={styles.hint}>
-              Use the international format starting with + and your country code.
-            </Text>
+            <Text style={styles.hint}>{t('phone.phoneHint')}</Text>
           </>
         ) : (
           <TextInput
             testID="phone-auth-code-input"
-            accessibilityLabel="One-time code"
+            accessibilityLabel={t('phone.codeLabel')}
             style={styles.input}
             value={code}
             onChangeText={setCode}
-            placeholder="123456"
+            placeholder={t('phone.codePlaceholder')}
             placeholderTextColor={C.labelLight}
             keyboardType="number-pad"
             autoComplete="one-time-code"
@@ -169,14 +167,14 @@ export default function PhoneAuthScreen() {
             <ActivityIndicator color="#FFFFFF" />
           ) : (
             <Text style={styles.primaryButtonText}>
-              {stage === 'phone' ? 'Send code' : 'Verify'}
+              {stage === 'phone' ? t('phone.sendButton') : t('phone.verifyButton')}
             </Text>
           )}
         </TouchableOpacity>
 
         {stage === 'code' && (
           <TouchableOpacity onPress={handleSend} disabled={busy} style={styles.resendButton}>
-            <Text style={styles.resendText}>Resend code</Text>
+            <Text style={styles.resendText}>{t('phone.resendButton')}</Text>
           </TouchableOpacity>
         )}
       </View>
