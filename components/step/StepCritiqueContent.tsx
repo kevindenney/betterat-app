@@ -383,6 +383,47 @@ export function StepCritiqueContent({ stepId, onNextStepCreated, readOnly }: Ste
     [updateMetadata],
   );
 
+  /**
+   * Step Arch E — upsert a single `source: 'in_app'` section for the given
+   * prompt. Replaces any prior in_app entry for that prompt (one editable
+   * section per prompt); empty content removes the entry entirely. Bot
+   * sections (source: 'telegram'/'voice'/etc.) are append-only and untouched.
+   */
+  const debouncedSaveSection = useCallback(
+    (prompt: ReviewSectionPrompt, content: string) => {
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+      saveTimerRef.current = setTimeout(() => {
+        const current = metadataRef.current;
+        const review = (current.review ?? {}) as StepReviewData;
+        const existing = Array.isArray(review.sections) ? review.sections : [];
+        const filtered = existing.filter(
+          (s) => !(s && s.prompt === prompt && s.source === 'in_app'),
+        );
+        const trimmed = content.trim();
+        const nextSections = trimmed.length > 0
+          ? [
+              ...filtered,
+              {
+                prompt,
+                prompt_label: REVIEW_PROMPT_LABELS[prompt],
+                content,
+                source: 'in_app' as const,
+                captured_at: new Date().toISOString(),
+              },
+            ]
+          : filtered;
+        const nextReview: StepReviewData = { ...review, sections: nextSections };
+        if (typeof review.composed_at !== 'string') {
+          nextReview.composed_at = new Date().toISOString();
+        }
+        nextReview.composed_via = 'in_app';
+        updateMetadata.mutate({ review: nextReview });
+        setLastSavedLabel('Saved just now');
+      }, 600);
+    },
+    [updateMetadata],
+  );
+
   // Handlers
   const handleOverallRating = useCallback(
     (value: number) => {
@@ -395,25 +436,25 @@ export function StepCritiqueContent({ stepId, onNextStepCreated, readOnly }: Ste
   const handleWentWellChange = useCallback(
     (text: string) => {
       setLocalWentWell(text);
-      debouncedSaveReview({ what_learned: text });
+      debouncedSaveSection('what_did_you_learn', text);
     },
-    [debouncedSaveReview],
+    [debouncedSaveSection],
   );
 
   const handleToImproveChange = useCallback(
     (text: string) => {
       setLocalToImprove(text);
-      debouncedSaveReview({ deviation_reason: text });
+      debouncedSaveSection('what_didnt', text);
     },
-    [debouncedSaveReview],
+    [debouncedSaveSection],
   );
 
   const handleNextNotesChange = useCallback(
     (text: string) => {
       setLocalNextNotes(text);
-      debouncedSaveReview({ next_step_notes: text });
+      debouncedSaveSection('anything_else', text);
     },
-    [debouncedSaveReview],
+    [debouncedSaveSection],
   );
 
   // Per-prompt render config for the canonical review-prompt loop.
@@ -652,18 +693,18 @@ export function StepCritiqueContent({ stepId, onNextStepCreated, readOnly }: Ste
       const rawTitle = `Follow-up: ${step.title}`;
       const title = rawTitle.length > 60 ? rawTitle.slice(0, 57) + '...' : rawTitle;
       const nextPlan: StepPlanData = {
-        what_will_you_do: reviewData.next_step_notes ?? '',
+        what_will_you_do: (getReviewSectionContent(normalizedReview.sections, 'anything_else') ?? reviewData.next_step_notes ?? ''),
         how_sub_steps: unfinished,
         linked_resource_ids: planData.linked_resource_ids ?? [],
         capability_goals: planData.capability_goals ?? [],
       };
       const brainDump: BrainDumpData = {
-        raw_text: reviewData.next_step_notes ?? '',
+        raw_text: (getReviewSectionContent(normalizedReview.sections, 'anything_else') ?? reviewData.next_step_notes ?? ''),
         extracted_urls: [],
         extracted_people: planData.who_collaborators ?? [],
         extracted_topics: planData.capability_goals ?? [],
         source_step_id: step.id,
-        source_review_notes: reviewData.next_step_notes ?? '',
+        source_review_notes: (getReviewSectionContent(normalizedReview.sections, 'anything_else') ?? reviewData.next_step_notes ?? ''),
         created_at: new Date().toISOString(),
       };
       const created = await createStep({
@@ -680,7 +721,7 @@ export function StepCritiqueContent({ stepId, onNextStepCreated, readOnly }: Ste
     } catch {
       setCreatingNext(false);
     }
-  }, [user?.id, step, createdNextId, creatingNext, planData, subStepProgress, reviewData, queryClient, onNextStepCreated]);
+  }, [user?.id, step, createdNextId, creatingNext, planData, subStepProgress, reviewData, normalizedReview.sections, queryClient, onNextStepCreated]);
 
   // Media from act phase
   const actMedia: string[] = (actData as any).media_urls ?? [];

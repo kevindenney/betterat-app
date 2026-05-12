@@ -119,12 +119,43 @@ export interface StepCompetencyAssessment {
   gap_summary: string;
 }
 
+/**
+ * v2 review section — one prompt-keyed, source-tagged entry inside
+ * `metadata.review.sections[]`. See lib/step/getReviewSections.ts for the
+ * canonical prompt set and Step Arch A–E migration notes.
+ */
+export interface StepReviewSection {
+  prompt:
+    | 'what_happened'
+    | 'what_worked'
+    | 'what_didnt'
+    | 'what_did_you_learn'
+    | 'anything_else';
+  prompt_label: string;
+  content: string;
+  source:
+    | 'telegram'
+    | 'whatsapp'
+    | 'voice_transcript'
+    | 'voice'
+    | 'in_app'
+    | 'web'
+    | 'sms'
+    | 'legacy';
+  captured_at: string | null;
+  duration_seconds?: number;
+  ai_summary?: string;
+}
+
 export interface StepReviewData {
   overall_rating?: number;
   worked_to_plan?: boolean;
+  /** @deprecated Step Arch E — read via getReviewSections selector. */
   deviation_reason?: string;
+  /** @deprecated Step Arch E — read via getReviewSections selector. */
   what_learned?: string;
   capability_progress?: Record<string, number>;
+  /** @deprecated Step Arch E — read via getReviewSections selector. */
   next_step_notes?: string;
   instructor_assessment?: Record<string, InstructorCompetencyAssessment>;
   instructor_suggested_next?: string;  // instructor's suggested follow-up step
@@ -132,6 +163,12 @@ export interface StepReviewData {
   instructor_review_note?: string;     // reason for approval/revision request
   instructor_review_at?: string;       // ISO timestamp
   competency_assessment?: StepCompetencyAssessment;
+  /** v2 sections — prompt-keyed review entries. Source of truth post-Step-E. */
+  sections?: StepReviewSection[];
+  /** Source of the most recent write into sections[]. */
+  composed_via?: StepReviewSection['source'];
+  /** ISO timestamp of the first write into sections[] on this row. */
+  composed_at?: string;
 }
 
 export interface CrossInterestSuggestion {

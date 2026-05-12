@@ -18,6 +18,7 @@ import { useUpdateStep } from '@/hooks/useTimelineSteps';
 import { PlanTab } from './PlanTab';
 import { ActTab } from './ActTab';
 import { ReviewTab } from './ReviewTab';
+import { getReviewSections } from '@/lib/step/getReviewSections';
 // BrainDumpEntry now embedded in PlanTab
 import { AIStructureReview } from './AIStructureReview';
 import type { StepPlanData, StepActData as _StepActData, StepReviewData as _StepReviewData, StepMetadata, BrainDumpData, StepCollaborator as _StepCollaborator, AnyExtractedEntity, DateEnrichment, ExtractedPersonEntity } from '@/types/step-detail';
@@ -454,8 +455,11 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp }: StepDetail
     actData.media_links?.length ||
     (actData.sub_step_progress && Object.values(actData.sub_step_progress).some(Boolean))
   );
+  // Step Arch E — read review presence through the selector so v2 sections[]
+  // and pre-backfill flat fields both count. The selector synthesizes from
+  // flat fields when sections[] is missing.
   const isReviewComplete = Boolean(
-    reviewData.what_learned?.trim() ||
+    getReviewSections(metadata).sections.length > 0 ||
     (reviewData.capability_progress && Object.keys(reviewData.capability_progress).length > 0)
   );
 

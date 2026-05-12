@@ -1,9 +1,11 @@
 /**
- * Tests for Step Arch B/2 — log_debrief dual-write + central recently-active hook.
+ * Tests for Step Arch B/2 + E — log_debrief sections[]-only write +
+ * central recently-active hook.
  *
  * Strategy: mock SupabaseClient.from('timeline_steps') and supabase.rpc(),
  * call executeTool('log_debrief', ...), and inspect:
- *   - what was written to metadata.review (flat fields + sections[])
+ *   - what was written to metadata.review.sections[] (flat fields are
+ *     retired as of Step Arch E)
  *   - whether mark_step_active RPC was invoked with the right args
  */
 
@@ -88,13 +90,12 @@ const AUTH = {
 
 // ---------------------------------------------------------------------------
 
-describe('log_debrief — Step Arch B dual-write', () => {
+describe('log_debrief — sections[]-only writes (Step Arch E)', () => {
   beforeEach(() => {
-    delete process.env.BOT_V2_SECTIONS_ENABLED;
     delete process.env.BOT_RECENT_ACTIVITY_ENABLED;
   });
 
-  it('writes flat fields AND synthesizes sections[] from flat input (back-compat)', async () => {
+  it('synthesizes sections[] from flat input — no flat-field write (Step E)', async () => {
     const { supabase, recorded, current } = buildMockSupabase(freshStep());
 
     const raw = await executeTool(
@@ -116,10 +117,10 @@ describe('log_debrief — Step Arch B dual-write', () => {
     const written = recorded.updates[0].metadata as Record<string, unknown>;
     const review = written.review as Record<string, unknown>;
 
-    // Flat fields still populated for back-compat
-    expect(review.what_learned).toMatch(/Tacking timing/);
-    expect(review.deviation_reason).toMatch(/layline call/);
-    expect(review.next_step_notes).toMatch(/port-tack/);
+    // Flat fields are NO LONGER written (Step Arch E)
+    expect(review.what_learned).toBeUndefined();
+    expect(review.deviation_reason).toBeUndefined();
+    expect(review.next_step_notes).toBeUndefined();
 
     // v2 sections[] synthesized
     const sections = review.sections as Record<string, unknown>[];
@@ -219,23 +220,6 @@ describe('log_debrief — Step Arch B dual-write', () => {
 
     // Selector confirms a single normalized section.
     expect(getReviewSections(current.metadata).sections).toHaveLength(1);
-  });
-
-  it('does not write sections[] when BOT_V2_SECTIONS_ENABLED=false', async () => {
-    process.env.BOT_V2_SECTIONS_ENABLED = 'false';
-    const { supabase, recorded } = buildMockSupabase(freshStep());
-
-    await executeTool(
-      'log_debrief',
-      { step_id: STEP_ID, what_learned: 'Flag-off learning.' },
-      supabase,
-      AUTH,
-    );
-
-    const review = (recorded.updates[0].metadata as Record<string, unknown>).review as Record<string, unknown>;
-    expect(review.what_learned).toMatch(/Flag-off learning/);
-    expect(review.sections).toBeUndefined();
-    expect(review.composed_via).toBeUndefined();
   });
 
   it('ignores sections[] entries with unknown prompts or empty content', async () => {

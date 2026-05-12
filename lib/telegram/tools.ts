@@ -12,6 +12,8 @@ import type { Tool } from '@anthropic-ai/sdk/resources/messages';
 import type { AuthContext } from '../../services/mcp/server';
 import { buildStepButtons, buildCreatedStepButtons, buildPhotoAttachButtons, buildSubStepButtons } from './formatting';
 import type { InlineKeyboardButton } from './formatting';
+import { getReviewSections, getReviewSectionContent } from '@/lib/step/getReviewSections';
+import type { StepMetadata } from '@/types/step-detail';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -68,19 +70,16 @@ function tzOffsetMinutes(tz: string, at: Date): number {
 // ---------------------------------------------------------------------------
 
 /**
- * Feature flags for the dual-write rollout (Step Arch B).
+ * Feature flag for the recent-activity hook (Step Arch B).
  *
- * Rollback path: flip either env var to 'false' in Vercel and redeploy (or use
- * runtime env override). No code revert required, no schema revert required.
+ * Rollback path: set BOT_RECENT_ACTIVITY_ENABLED=false in Vercel and redeploy.
+ * No code revert required, no schema revert required.
  * See docs/audit/step-architecture-migration-plan.md §6 rollback plan.
  *
- *  - BOT_V2_SECTIONS_ENABLED       — controls log_debrief sections[] dual-write
- *  - BOT_RECENT_ACTIVITY_ENABLED   — controls step_recent_activity hook
+ * BOT_V2_SECTIONS_ENABLED has been retired in Step Arch E — bot output is
+ * now sections[]-only with no fallback. To rollback v2 writes, revert the
+ * Step E commit (no env-var toggle exists anymore).
  */
-function isV2SectionsEnabled(): boolean {
-  return (process.env.BOT_V2_SECTIONS_ENABLED ?? 'true').toLowerCase() !== 'false';
-}
-
 function isRecentActivityEnabled(): boolean {
   return (process.env.BOT_RECENT_ACTIVITY_ENABLED ?? 'true').toLowerCase() !== 'false';
 }
@@ -1327,12 +1326,19 @@ const TOOLS: TelegramToolDef[] = [
           const compIds = (s.metadata?.plan?.competency_ids as string[]) ?? [];
           return compIds.includes(comp.id);
         })
-        .map((s: any) => ({
-          title: s.title,
-          status: s.status,
-          plan: s.metadata?.plan?.what_will_you_do || null,
-          learned: s.metadata?.review?.what_learned || null,
-        }));
+        .map((s: any) => {
+          const sections = getReviewSections(s.metadata as StepMetadata | undefined).sections;
+          const learned =
+            getReviewSectionContent(sections, 'what_did_you_learn') ??
+            s.metadata?.review?.what_learned ??
+            null;
+          return {
+            title: s.title,
+            status: s.status,
+            plan: s.metadata?.plan?.what_will_you_do || null,
+            learned,
+          };
+        });
 
       return {
         instruction: `Suggest a focused practice session for the competency "${comp.title}". Include a session title, 3-5 sub-steps, and a rationale. Consider the user's current level and past attempts. Be specific and actionable.`,
@@ -1829,40 +1835,26 @@ const TOOLS: TelegramToolDef[] = [
 
       const metadata = (step.metadata ?? {}) as Record<string, unknown>;
       const review = (metadata.review ?? {}) as Record<string, unknown>;
-      const today = new Date().toISOString().split('T')[0];
-      const stamp = `[${today} via Telegram]`;
 
-      // Append (don't clobber) so existing user-typed text on the Critique tab survives.
-      const appendField = (existing: unknown, incoming: unknown): string | undefined => {
-        if (typeof incoming !== 'string' || !incoming.trim()) return existing as string | undefined;
-        const tagged = `${stamp} ${incoming.trim()}`;
-        const cur = typeof existing === 'string' && existing.trim() ? existing.trim() : '';
-        return cur ? `${cur}\n\n${tagged}` : tagged;
-      };
-
+      // Step Arch E — flat-field writes retired. Bot output is now sections[]-only.
+      // The selector falls back to flat-field reads for two release cycles so
+      // pre-backfill rows keep rendering correctly until Step F drops them.
       const reviewUpdates: Record<string, unknown> = { ...review };
-      const wl = appendField(review.what_learned, input.what_learned);
-      const tc = appendField(review.deviation_reason, input.what_to_change);
-      const nn = appendField(review.next_step_notes, input.next_step_notes);
-      if (wl !== undefined) reviewUpdates.what_learned = wl;
-      if (tc !== undefined) reviewUpdates.deviation_reason = tc;
-      if (nn !== undefined) reviewUpdates.next_step_notes = nn;
       if (typeof input.overall_rating === 'number') {
         reviewUpdates.overall_rating = input.overall_rating;
       }
 
-      // ---- Step Arch B: dual-write into metadata.review.sections[] -----------
+      // ---- Step Arch B/E: write into metadata.review.sections[] --------------
       //
-      // Two paths converge here:
+      // Two input shapes converge here:
       //   1. `input.sections` provided (v2 shape) — write each entry directly.
-      //   2. Flat fields provided (current bot behavior) — synthesize equivalent
-      //      sections[] entries via LEGACY_FIELD_TO_PROMPT mapping.
+      //   2. Flat fields provided (current Gemini prompt shape) — synthesize
+      //      equivalent sections[] entries via LEGACY_FIELD_TO_PROMPT.
       //
-      // Both paths produce identical row shapes so the read-side selector
-      // can't tell them apart. Idempotent on re-call (digest-based dedupe).
-      // Feature-flagged via BOT_V2_SECTIONS_ENABLED.
+      // Both paths produce identical row shapes; the selector can't tell them
+      // apart. Idempotent on re-call (digest-based dedupe via mergeReviewSections).
       let v2Wrote = 0;
-      if (isV2SectionsEnabled()) {
+      {
         const capturedAt = new Date().toISOString();
         const v2Additions: ReviewSectionV2[] = [];
 
@@ -1882,8 +1874,8 @@ const TOOLS: TelegramToolDef[] = [
           }
         }
 
-        // Back-compat: synthesize from flat fields whenever the model emits the
-        // current shape. Keeps v2 row population live before the prompt update.
+        // Back-compat: synthesize from flat-field input names whenever the model
+        // emits the current shape. The system prompt still references these names.
         const flatInputs: [string, unknown][] = [
           ['what_learned', input.what_learned],
           ['deviation_reason', input.what_to_change],
