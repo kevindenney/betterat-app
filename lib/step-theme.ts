@@ -44,3 +44,32 @@ export const STEP_COLORS = {
   badgeBg: 'rgba(61,138,90,0.10)',
   badgeText: '#3D8A5A',
 } as const;
+
+/**
+ * Redesign palette (2026-05) — neutral warm cream + charcoal, no chromatic
+ * accents on step surfaces. See docs/redesign/betterat-redesign-spec.md §11.6
+ * and docs/audit/visual-redesign-gap-step-detail.md §2.4.
+ *
+ * Migration path: once every step surface reads from STEP_PALETTE, the legacy
+ * STEP_COLORS green/coral keys can be removed in a follow-up sweep.
+ */
+export const STEP_PALETTE = {
+  // Backgrounds
+  bgPrimary: '#FAFAF7',       // page + card surfaces
+  bgSecondary: '#F0EEE8',     // panel bg, preceptor-note cards
+  bgInfo: '#E5E1F0',          // "You" avatar / "from playbook" tile
+
+  // Text
+  textPrimary: '#2A2824',     // titles, primary body, dark CTA bg
+  textSecondary: '#58544A',   // sub-meta, status
+  textTertiary: '#8A8478',    // eyebrows, timestamps
+  textInfo: '#5A4078',        // "You" avatar text, playbook accent
+
+  // Borders
+  borderSecondary: '#C8C2B4', // outlined buttons, secondary outlines
+  borderTertiary: '#DDD8CA',  // hairlines, dividers
+
+  // CTA (primary action = dark text-primary on bg-primary)
+  ctaBg: '#2A2824',
+  ctaText: '#FAFAF7',
+} as const;
