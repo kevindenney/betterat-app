@@ -55,7 +55,7 @@ export function InsightsSection({
             <View style={[styles.iconCircle, { backgroundColor: `${IOS_COLORS.purple}15` }]}>
               <Brain size={16} color={IOS_COLORS.purple} />
             </View>
-            <Text style={styles.insightTitle}>AI Coach Insights</Text>
+            <Text style={styles.insightTitle}>Race Insights</Text>
           </View>
 
           {aiInsights.summary && (

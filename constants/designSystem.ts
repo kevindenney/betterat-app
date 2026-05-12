@@ -448,7 +448,7 @@ export const buttons = {
   },
 
   // AI - AI-powered actions
-  // Examples: "Generate AI Strategy", "AI Course Prediction", "Ask AI Coach"
+  // Examples: "Generate AI Strategy", "AI Course Prediction", "AI Venue Intelligence"
   ai: {
     background: colors.ai[600],
     text: colors.text.inverse,
@@ -731,7 +731,6 @@ export function getRaceStatusColors(status: RaceStatusType) {
  * - "AI Course Prediction" card
  * - "AI Venue Intelligence" section
  * - "AI Matched" badge on coaches
- * - "Ask AI Coach" feature
  */
 
 /**
