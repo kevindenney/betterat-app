@@ -1,8 +1,20 @@
 # Step Architecture Migration Plan
 
-**Status**: Audit + migration plan, no code yet.
+**Status**: ✅ All 5 steps shipped. Plan retained for historical reference.
 **Audited**: 2026-05-12 against `docs/redesign/betterat-redesign-spec.md`, the bot-architecture addendum, and the late-12 addendum.
 **Scope**: Step data model, Critique tab implementation, bot's `log_debrief` tool, `metadata.review` shape, Before/During/After tabs.
+
+### Ship log
+
+| Step | Commit(s) | Notes |
+|---|---|---|
+| A — `getReviewSections` selector (dark-launch) | (Step A read-side normalizer, see `lib/step/getReviewSections.ts`) | Selector ships as the sole read path; flat-field reads synthesize into v1 sections. |
+| B — bot dual-write + `step_recent_activity` | `2f87f2b6`, `0ea6e4ce`, `b0165802` | New table + `mark_step_active` SECURITY DEFINER fn; bot dual-writes `sections[]`. |
+| C — CaptureService unification | `c34b6229`, `e6e0b3ae`, `aad40d1a`, `0575d8e1`, `fc6e9251` | Telegram + WhatsApp + in-app voice all funnel through `services/capture/CaptureService.ts`. |
+| D — Before/During/After rename + render convergence | `ebb358d0` | Display-only rename; After tab loops 5 canonical prompts with source/captured_at badges. |
+| E — backfill + retire legacy flat-field writes | `f56b3e52`, `d9a8ddaa`, `35fe3234` | SQL backfill + audit table; bot stops writing flat fields; remaining readers routed through selector. |
+
+Subsequent fix-ups: `13a212dc` (force `log_debrief` tool-call on past-tense reflections), `5f60d17f` (orphan log cleanup), `f51f7a6d` (Maestro after-tab persistence flow).
 
 ---
 
