@@ -484,7 +484,7 @@ async function handleMessage(
     sendOptions.replyMarkup = { inline_keyboard: lastKeyboard };
   }
 
-  console.log(`[telegram] Sending response (${responseText.length} chars), stop_reason=${response.stop_reason}...`);
+  console.log(`[telegram] Sending response (${responseText.length} chars, ${iterations} iterations)...`);
   let sendResult = await sendMessage(chatId, responseText, sendOptions);
   if (!sendResult.ok) {
     console.error(`[telegram] sendMessage FAILED (MarkdownV2+fallback): ${sendResult.description}`);
