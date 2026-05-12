@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BetterAt Redesign — Mockup Index</title>
+<style>
+:root {
+  --font-serif: 'Lyon Display', 'Iowan Old Style', Georgia, serif;
+  --font-sans: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif;
+  --color-bg: #FAFAF7;
+  --color-bg-section: #F0EEE8;
+  --color-text: #2A2824;
+  --color-text-2: #58544A;
+  --color-text-3: #8A8478;
+  --color-border: #DDD8CA;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  padding: 48px 24px 96px;
+  background: var(--color-bg);
+  font-family: var(--font-sans);
+  color: var(--color-text);
+  -webkit-font-smoothing: antialiased;
+  line-height: 1.55;
+}
+.container {
+  max-width: 720px;
+  margin: 0 auto;
+}
+h1 {
+  font-family: var(--font-serif);
+  font-size: 40px;
+  line-height: 1.15;
+  font-weight: 500;
+  margin: 0 0 16px;
+  letter-spacing: -0.015em;
+}
+.intro {
+  font-family: var(--font-serif);
+  font-size: 17px;
+  line-height: 1.6;
+  color: var(--color-text);
+  opacity: 0.92;
+  margin: 0 0 48px;
+}
+h2 {
+  font-size: 11px;
+  color: var(--color-text-3);
+  margin: 48px 0 18px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-weight: 500;
+}
+.group {
+  border-top: 0.5px solid var(--color-border);
+  padding-top: 24px;
+}
+.mockup {
+  display: block;
+  padding: 16px 0;
+  border-bottom: 0.5px solid var(--color-border);
+  text-decoration: none;
+  color: var(--color-text);
+}
+.mockup:hover {
+  background: var(--color-bg-section);
+  margin: 0 -16px;
+  padding: 16px 16px;
+}
+.mockup-title {
+  font-family: var(--font-serif);
+  font-size: 17px;
+  font-weight: 500;
+  margin: 0;
+  line-height: 1.3;
+}
+.mockup-desc {
+  margin: 6px 0 0;
+  font-size: 13px;
+  color: var(--color-text-2);
+  line-height: 1.5;
+}
+.mockup-file {
+  margin: 6px 0 0;
+  font-size: 11px;
+  color: var(--color-text-3);
+  font-family: 'SF Mono', 'Menlo', monospace;
+  letter-spacing: 0.02em;
+}
+.note {
+  background: var(--color-bg-section);
+  border-radius: 12px;
+  padding: 20px 24px;
+  margin: 24px 0 0;
+}
+.note p {
+  margin: 0;
+  font-size: 13px;
+  color: var(--color-text-2);
+  line-height: 1.6;
+}
+</style>
+</head>
+<body>
+<div class="container">
+
+<h1>BetterAt Redesign<br>Mockup Index</h1>
+
+<p class="intro">Visual surfaces produced during the redesign session of May 11–12, 2026. Each mockup is a standalone HTML file viewable in any browser. Read alongside <code>betterat-redesign-spec.md</code> and <code>decisions-log.md</code>.</p>
+
+<div class="note">
+  <p><strong>Status note:</strong> The first batch of mockups (1-16) was extracted from the earlier session transcript. Additional mockups (17+) from the continuation session need to be saved separately — see the conversation transcript and the spec for descriptions. Recreating those 27 surfaces as standalone files is engineering work to be completed.</p>
+</div>
+
+<h2>Step interior — narrative states</h2>
+<div class="group">
+  <a class="mockup" href="01_betterat_focused_step_narrative_now.html">
+    <p class="mockup-title">Step Now state — voice-first capture</p>
+    <p class="mockup-desc">The During tab for a step happening now. Single big hold-to-speak button. Running log. Minimal chrome.</p>
+    <p class="mockup-file">01_betterat_focused_step_narrative_now.html</p>
+  </a>
+  <a class="mockup" href="02_betterat_focused_step_narrative_past.html">
+    <p class="mockup-title">Step Past state — reflection</p>
+    <p class="mockup-desc">The After tab for a completed step. User's words in serif, mentor note as quoted block, capability sparklines.</p>
+    <p class="mockup-file">02_betterat_focused_step_narrative_past.html</p>
+  </a>
+  <a class="mockup" href="03_betterat_focused_step_narrative_future.html">
+    <p class="mockup-title">Step Future state — intention</p>
+    <p class="mockup-desc">The Before tab for an upcoming step. Composition-style: What/Why/Building toward/How/Who/Where.</p>
+    <p class="mockup-file">03_betterat_focused_step_narrative_future.html</p>
+  </a>
+  <a class="mockup" href="04_betterat_focused_step_narrative_future_v2.html">
+    <p class="mockup-title">Step Future state — refinement</p>
+    <p class="mockup-desc">Iteration on the Before tab with revised visual treatment.</p>
+    <p class="mockup-file">04_betterat_focused_step_narrative_future_v2.html</p>
+  </a>
+  <a class="mockup" href="05_betterat_focused_step_narrative_past_v2.html">
+    <p class="mockup-title">Step Past state — refinement</p>
+    <p class="mockup-desc">Iteration on the After tab.</p>
+    <p class="mockup-file">05_betterat_focused_step_narrative_past_v2.html</p>
+  </a>
+</div>
+
+<h2>Composition and planning</h2>
+<div class="group">
+  <a class="mockup" href="06_betterat_focused_step_planning_composition.html">
+    <p class="mockup-title">Step planning composition</p>
+    <p class="mockup-desc">The compose-a-new-step surface with the named fields.</p>
+    <p class="mockup-file">06_betterat_focused_step_planning_composition.html</p>
+  </a>
+</div>
+
+<h2>Cross-domain stress tests</h2>
+<div class="group">
+  <a class="mockup" href="07_betterat_past_state_award_winning.html">
+    <p class="mockup-title">Past state — award-winning treatment</p>
+    <p class="mockup-desc">Aesthetic refinement of the After tab.</p>
+    <p class="mockup-file">07_betterat_past_state_award_winning.html</p>
+  </a>
+  <a class="mockup" href="08_betterat_drawing_past_state.html">
+    <p class="mockup-title">Drawing — Maya's After tab</p>
+    <p class="mockup-desc">Solo drawing practitioner reflecting on a session. Visual evidence as primary content.</p>
+    <p class="mockup-file">08_betterat_drawing_past_state.html</p>
+  </a>
+  <a class="mockup" href="09_betterat_drawing_future_state.html">
+    <p class="mockup-title">Drawing — Maya's Before tab</p>
+    <p class="mockup-desc">Planning a drawing session. Aesthetic concepts in the Building toward section.</p>
+    <p class="mockup-file">09_betterat_drawing_future_state.html</p>
+  </a>
+  <a class="mockup" href="10_betterat_nursing_group_sim_past.html">
+    <p class="mockup-title">Nursing — group sim shared step</p>
+    <p class="mockup-desc">Four nursing students reflecting on a shared simulation. Room as place metadata. Cast as shared participants.</p>
+    <p class="mockup-file">10_betterat_nursing_group_sim_past.html</p>
+  </a>
+  <a class="mockup" href="11_betterat_sailing_race_past.html">
+    <p class="mockup-title">Sailing — race After tab</p>
+    <p class="mockup-desc">Sailing race reflection. Conditions, fleet results, individual reflection.</p>
+    <p class="mockup-file">11_betterat_sailing_race_past.html</p>
+  </a>
+  <a class="mockup" href="12_betterat_sailing_race_with_interaction.html">
+    <p class="mockup-title">Sailing race — fleet-level interaction</p>
+    <p class="mockup-desc">Race with cross-boat interaction surfaces; cohort patterns visible.</p>
+    <p class="mockup-file">12_betterat_sailing_race_with_interaction.html</p>
+  </a>
+  <a class="mockup" href="13_betterat_blueprint_multi_crew_race.html">
+    <p class="mockup-title">Multi-crew race blueprint</p>
+    <p class="mockup-desc">A shared race step viewed across multiple participating boats.</p>
+    <p class="mockup-file">13_betterat_blueprint_multi_crew_race.html</p>
+  </a>
+</div>
+
+<h2>AI integration patterns</h2>
+<div class="group">
+  <a class="mockup" href="14_betterat_now_capture_with_ai.html">
+    <p class="mockup-title">During tab — AI conditions extraction</p>
+    <p class="mockup-desc">Voice capture with AI inferring conditions, locations, capabilities mentioned.</p>
+    <p class="mockup-file">14_betterat_now_capture_with_ai.html</p>
+  </a>
+  <a class="mockup" href="15_betterat_after_state_pattern_surfacing.html">
+    <p class="mockup-title">After state — pattern surfacing</p>
+    <p class="mockup-desc">Post-reflection AI pattern detection. "Third time this question has come up."</p>
+    <p class="mockup-file">15_betterat_after_state_pattern_surfacing.html</p>
+  </a>
+</div>
+
+<h2>Authorial and cohort surfaces</h2>
+<div class="group">
+  <a class="mockup" href="16_betterat_blueprint_author_cohort_view.html">
+    <p class="mockup-title">Path author cohort view</p>
+    <p class="mockup-desc">Kevin viewing his nine sailors on the worldwide path. Pattern surfacing, attention prompts.</p>
+    <p class="mockup-file">16_betterat_blueprint_author_cohort_view.html</p>
+  </a>
+</div>
+
+<h2>Mockups from continuation session (not yet saved as standalone files)</h2>
+<div class="group">
+  <a class="mockup" style="cursor: default; pointer-events: none;">
+    <p class="mockup-title">Pre-race analysis surface (v1, v2)</p>
+    <p class="mockup-desc">Four-section analysis (Start/Upwind/Downwind/Rig tune), source chips, voice query affordance. Editable.</p>
+    <p class="mockup-file">— see spec section 5.1, recreate from conversation transcript</p>
+  </a>
+  <a class="mockup" style="cursor: default; pointer-events: none;">
+    <p class="mockup-title">Post-race debrief with pattern tracking</p>
+    <p class="mockup-desc">Plan vs. outcome in freeform prose. Questions to sit with. Pattern tracking annotations.</p>
+    <p class="mockup-file">— see spec section 5.3</p>
+  </a>
+  <a class="mockup" style="cursor: default; pointer-events: none;">
+    <p class="mockup-title">Step close with next-step affordance</p>
+    <p class="mockup-desc">Carry forward section at end of After tab with AI-extracted forward intentions.</p>
+    <p class="mockup-file">— see spec section 5.7</p>
+  </a>
+  <a class="mockup" style="cursor: default; pointer-events: none;">
+    <p class="mockup-title">New step composition sheet</p>
+    <p class="mockup-desc">Path-aware composition with inherited context (path, capability, crew). Quoted reflection as Why.</p>
+    <p class="mockup-file">— see spec section 5.4</p>
+  </a>
+  <a class="mockup" style="cursor: default; pointer-events: none;">
+    <p class="mockup-title">Two-boat speed tune (shared step)</p>
+    <p class="mockup-desc">Pegasus and Valkyrie sharing a tune session. "What we found" collaborative findings + individual reflections.</p>
+    <p class="mockup-file">— see spec section 5.5</p>
+  </a>
+  <a class="mockup" style="cursor: default; pointer-events: none;">
+    <p class="mockup-title">Fleet race (15 boats, shared step)</p>
+    <p class="mockup-desc">Cohort race with AI pattern detection across 15 reflections and authorial response.</p>
+    <p class="mockup-file">— see spec section 5.5</p>
+  </a>
+  <a class="mockup" style="cursor: default; pointer-events: none;">
+    <p class="mockup-title">User paths in interest</p>
+    <p class="mockup-desc">Felix's three paths (Sam's local, Kevin's worldwide, Stuart's intensive) inside Sail Racing interest.</p>
+    <p class="mockup-file">— see spec section 7.4</p>
+  </a>
+  <a class="mockup" style="cursor: default; pointer-events: none;">
+    <p class="mockup-title">Multi-author path (Patricia & Linda's JHU MSN path)</p>
+    <p class="mockup-desc">Co-authored path with per-step authorship via avatar chips. Institutional sponsor block.</p>
+    <p class="mockup-file">— see spec section 7.1</p>
+  </a>
+  <a class="mockup" style="cursor: default; pointer-events: none;">
+    <p class="mockup-title">Add step from paths picker</p>
+    <p class="mockup-desc">Voice composition + path-grouped suggestions + AI-extracted intentions + compose-from-scratch.</p>
+    <p class="mockup-file">— see spec section 5.4</p>
+  </a>
+  <a class="mockup" style="cursor: default; pointer-events: none;">
+    <p class="mockup-title">Path step adoption sheet</p>
+    <p class="mockup-desc">Adopting Sam's Tuesday fleet practice. Author's framing as quoted block; user's why on top; cohort signal.</p>
+    <p class="mockup-file">— see spec section 5.4</p>
+  </a>
+  <a class="mockup" style="cursor: default; pointer-events: none;">
+    <p class="mockup-title">Concept in planning surface</p>
+    <p class="mockup-desc">Bear-away concept node pulled into Wednesday's planning. Synthesized understanding, resources, questions, patterns.</p>
+    <p class="mockup-file">— see spec section 6.2</p>
+  </a>
+  <a class="mockup" style="cursor: default; pointer-events: none;">
+    <p class="mockup-title">Playbook ingestion after reflection</p>
+    <p class="mockup-desc">Approve additions to existing concept, new concept suggestion, question identification, resource notes prompt.</p>
+    <p class="mockup-file">— see spec section 6.11</p>
+  </a>
+  <a class="mockup" style="cursor: default; pointer-events: none;">
+    <p class="mockup-title">Playbook sharing controls</p>
+    <p class="mockup-desc">Four levels: private, read-only mentor access, collaborative, published concepts.</p>
+    <p class="mockup-file">— see spec section 6.12</p>
+  </a>
+  <a class="mockup" style="cursor: default; pointer-events: none;">
+    <p class="mockup-title">Sunita's home (rural India context, Hindi)</p>
+    <p class="mockup-desc">Voice-first home with Devanagari typography. SHG, CRP message, financial benefits.</p>
+    <p class="mockup-file">— see spec section 12.6</p>
+  </a>
+  <a class="mockup" style="cursor: default; pointer-events: none;">
+    <p class="mockup-title">PRADAN org page (multi-layer institutional)</p>
+    <p class="mockup-desc">SHG → VO → PRADAN → JSLPS → NRLM as layered support. Paths and schemes surfaced.</p>
+    <p class="mockup-file">— see spec section 9.3</p>
+  </a>
+  <a class="mockup" style="cursor: default; pointer-events: none;">
+    <p class="mockup-title">Aberdeen Boat Club org page</p>
+    <p class="mockup-desc">Club org page with member-only and open paths, events, member preview.</p>
+    <p class="mockup-file">— see spec section 9.2</p>
+  </a>
+  <a class="mockup" style="cursor: default; pointer-events: none;">
+    <p class="mockup-title">Health Care for the Homeless org page</p>
+    <p class="mockup-desc">Non-profit org page with follow/volunteer affordances and student rotation opportunities.</p>
+    <p class="mockup-file">— see spec section 9.2</p>
+  </a>
+  <a class="mockup" style="cursor: default; pointer-events: none;">
+    <p class="mockup-title">Path authoring flow (Emily's knitting path)</p>
+    <p class="mockup-desc">Consumer path authoring from playbook. Pricing, publishing disclosures, draft state.</p>
+    <p class="mockup-file">— see spec section 7.6</p>
+  </a>
+  <a class="mockup" style="cursor: default; pointer-events: none;">
+    <p class="mockup-title">Author dashboard (Emily's knitting cohort)</p>
+    <p class="mockup-desc">14 subscribers, earnings, "where your attention helps most" AI surfacing, premium tier tracking.</p>
+    <p class="mockup-file">— see spec section 8.3</p>
+  </a>
+  <a class="mockup" style="cursor: default; pointer-events: none;">
+    <p class="mockup-title">Step close with next-on-timeline</p>
+    <p class="mockup-desc">Bottom of After tab showing Tuesday's preview. "Swipe left to open it."</p>
+    <p class="mockup-file">— see spec section 5.7</p>
+  </a>
+  <a class="mockup" style="cursor: default; pointer-events: none;">
+    <p class="mockup-title">Step transition hinge</p>
+    <p class="mockup-desc">Mid-swipe surface showing "3 days" between Saturday and Tuesday with what happened between.</p>
+    <p class="mockup-file">— see spec section 5.7</p>
+  </a>
+  <a class="mockup" style="cursor: default; pointer-events: none;">
+    <p class="mockup-title">Timeline overview with Now bar</p>
+    <p class="mockup-desc">Pull-down destination from any step. Now bar marking present, past muted, future ahead.</p>
+    <p class="mockup-file">— see spec section 5.10</p>
+  </a>
+  <a class="mockup" style="cursor: default; pointer-events: none;">
+    <p class="mockup-title">Inbox</p>
+    <p class="mockup-desc">"For your attention" framing. From path authors / cohort / playbook. Conservative defaults.</p>
+    <p class="mockup-file">— see spec section 14.4</p>
+  </a>
+  <a class="mockup" style="cursor: default; pointer-events: none;">
+    <p class="mockup-title">Reflect tab home</p>
+    <p class="mockup-desc">Year-so-far framing. Vision, capability arcs as line drawings, moments returned to, where thinking has shifted.</p>
+    <p class="mockup-file">— see spec section 15</p>
+  </a>
+  <a class="mockup" style="cursor: default; pointer-events: none;">
+    <p class="mockup-title">Vision evolution detail</p>
+    <p class="mockup-desc">Three Vision drafts on vertical timeline with editorial annotations. "What stayed the same."</p>
+    <p class="mockup-file">— see spec section 15.5</p>
+  </a>
+  <a class="mockup" style="cursor: default; pointer-events: none;">
+    <p class="mockup-title">Discover → Paths (redesigned)</p>
+    <p class="mockup-desc">Topic chips, authors to follow, curated paths, cohort signal, authoring nudge. Absorbed Learn tab function.</p>
+    <p class="mockup-file">— see spec section 16</p>
+  </a>
+  <a class="mockup" style="cursor: default; pointer-events: none;">
+    <p class="mockup-title">JHU institutional onboarding</p>
+    <p class="mockup-desc">Three curriculum approach options. Migration mapping. "What this is not" expectation management.</p>
+    <p class="mockup-file">— see spec section 17</p>
+  </a>
+</div>
+
+<h2>How to view these</h2>
+<div class="group">
+  <p style="font-size: 14px; color: var(--color-text-2); line-height: 1.6; margin: 0 0 16px;">Each <code>.html</code> file is standalone. Open in any browser. The widgets use CSS variables and embedded styles, so they should render correctly on their own. Tabler icons load from CDN.</p>
+  <p style="font-size: 14px; color: var(--color-text-2); line-height: 1.6; margin: 0;">To regenerate the missing mockups from the continuation session, refer to the Claude conversation transcript or the descriptions in <code>betterat-redesign-spec.md</code>. Each surface's design rationale is documented in the spec.</p>
+</div>
+
+</div>
+</body>
+</html>
