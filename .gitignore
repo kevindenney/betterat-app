@@ -68,3 +68,6 @@ TasteHK_GourmetGuide_EN.pdf
 
 # claude code worktrees
 .claude/worktrees/
+
+# Supabase CLI auto-managed temp files
+supabase/.temp/
