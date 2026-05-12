@@ -10,6 +10,10 @@ import {createLogger} from '@/lib/utils/logger'
 // Sample data is created in profile-setup.tsx or races.tsx fallback
 import {GuestStorageService} from '@/services/GuestStorageService'
 import AsyncStorage from '@react-native-async-storage/async-storage'
+import {
+  commitOnboardingInterest,
+  ONBOARDING_INTEREST_SLUG_KEY,
+} from '@/services/onboarding/commitSignupContext'
 
 const logger = createLogger('OAuthCallback')
 
@@ -392,6 +396,35 @@ export default function Callback(){
           setTimeout(() => router.replace(destination as any), 100)
           clearTimeout(safetyTimeout)
           return
+        }
+
+        // Fix OAuth-callback bypass surfaced by D2 audit (§2.1):
+        // signup.tsx dual-writes onboarding_interest_slug to AsyncStorage
+        // before redirecting to the OAuth provider. Now that the session is
+        // established, commit that interest to user_interests so downstream
+        // onboarding screens read from a DB source of truth, not a fragile
+        // AsyncStorage hint. Idempotent via upsert. Leave the AsyncStorage
+        // key in place — display readers still rely on it during this
+        // dual-write release.
+        if (session?.user?.id) {
+          try {
+            const pendingInterestSlug = await AsyncStorage.getItem(
+              ONBOARDING_INTEREST_SLUG_KEY,
+            )
+            if (pendingInterestSlug) {
+              const result = await commitOnboardingInterest(
+                session.user.id,
+                pendingInterestSlug,
+              )
+              trail('callback:commitOnboardingInterest', {
+                slug: pendingInterestSlug,
+                committed: result.interestCommitted,
+                reason: result.interestSkipReason,
+              })
+            }
+          } catch (e) {
+            trail('callback:commitOnboardingInterest_error', { err: String(e) })
+          }
         }
 
         // Route based on the effective user type

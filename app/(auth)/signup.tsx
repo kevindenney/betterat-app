@@ -9,9 +9,9 @@ import { showAlert } from '@/lib/utils/crossPlatformAlert';
 import { normalizePersonaParam, type PersonaRole } from '@/lib/auth/signupPersona';
 import { getOnboardingContext } from '@/lib/onboarding/interestContext';
 import { SAMPLE_INTERESTS } from '@/lib/landing/sampleData';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { OnboardingStateService } from '@/services/onboarding/OnboardingStateService';
 import { FeatureTourService } from '@/services/onboarding/FeatureTourService';
+import { commitSignupContext } from '@/services/onboarding/commitSignupContext';
 
 // Helper to get user-friendly error messages for signup
 const getSignupErrorMessage = (error: any): string => {
@@ -36,7 +36,7 @@ const getSignupErrorMessage = (error: any): string => {
 type SignupStep = 'interest' | 'persona';
 
 export default function SignUp() {
-  const { signUp, signInWithGoogle, signInWithApple, loading: authLoading, enterGuestMode } = useAuth();
+  const { signUp, signInWithGoogle, signInWithApple, loading: authLoading } = useAuth();
   const params = useLocalSearchParams<{
     persona?: string;
     interest?: string;
@@ -132,20 +132,24 @@ export default function SignUp() {
     try {
       const result = await signUp(trimmedEmail, trimmedUsername, password, persona);
 
-      // Store interest and org context for onboarding steps to read
-      if (selectedInterest) {
-        console.log('[Signup] storing onboarding_interest_slug:', JSON.stringify(selectedInterest));
-        await AsyncStorage.setItem('onboarding_interest_slug', selectedInterest);
-      } else {
-        console.warn('[Signup] selectedInterest is falsy — NOT storing onboarding_interest_slug');
-      }
-      if (params.org) {
-        await AsyncStorage.setItem('onboarding_org_slug', params.org);
+      if (!selectedInterest) {
+        console.warn('[Signup] selectedInterest is falsy — NOT committing onboarding_interest_slug');
       }
 
-      // Store invite token for post-signup acceptance
+      // Persist interest + org + returnTo (AsyncStorage dual-write) and commit
+      // the interest to user_interests immediately on the email path where we
+      // already have the userId. See services/onboarding/commitSignupContext.
+      const commit = await commitSignupContext({
+        userId: result?.user?.id ?? null,
+        interestSlug: selectedInterest,
+        orgSlug: params.org ?? null,
+        returnTo: returnTo ?? null,
+      });
+      if (commit.interestSkipReason && commit.interestSkipReason !== 'no-slug') {
+        console.warn('[Signup] interest commit skipped:', commit.interestSkipReason);
+      }
+
       if (inviteToken) {
-        await AsyncStorage.setItem('pending_invite_token', inviteToken);
         router.replace(`/invite/${inviteToken}` as any);
         return;
       }
@@ -165,10 +169,6 @@ export default function SignUp() {
           } catch (profileErr) {
             console.warn('[Signup] Post-signup state save failed, continuing:', profileErr);
           }
-        }
-        // If coming from a blueprint page, store returnTo so post-onboarding can redirect back
-        if (returnTo) {
-          await AsyncStorage.setItem('post_onboarding_return_to', returnTo);
         }
         router.replace('/onboarding/trial-activation');
       } else if (persona === 'club') {
@@ -191,18 +191,13 @@ export default function SignUp() {
     setErrorMessage(null);
     try {
       await signInWithGoogle(persona);
-      if (selectedInterest) {
-        await AsyncStorage.setItem('onboarding_interest_slug', selectedInterest);
-      }
-      if (params.org) {
-        await AsyncStorage.setItem('onboarding_org_slug', params.org);
-      }
-      if (inviteToken) {
-        await AsyncStorage.setItem('pending_invite_token', inviteToken);
-      }
-      if (returnTo) {
-        await AsyncStorage.setItem('post_onboarding_return_to', returnTo);
-      }
+      // OAuth has no userId until callback.tsx runs after the redirect;
+      // dual-write AsyncStorage now, DB commit happens post-callback.
+      await commitSignupContext({
+        interestSlug: selectedInterest,
+        orgSlug: params.org ?? null,
+        returnTo: returnTo ?? null,
+      });
     } catch (error: any) {
       console.error('[Signup] Google sign-up error:', error);
       const friendlyMessage = getSignupErrorMessage(error);
@@ -214,18 +209,11 @@ export default function SignUp() {
     setErrorMessage(null);
     try {
       await signInWithApple(persona);
-      if (selectedInterest) {
-        await AsyncStorage.setItem('onboarding_interest_slug', selectedInterest);
-      }
-      if (params.org) {
-        await AsyncStorage.setItem('onboarding_org_slug', params.org);
-      }
-      if (inviteToken) {
-        await AsyncStorage.setItem('pending_invite_token', inviteToken);
-      }
-      if (returnTo) {
-        await AsyncStorage.setItem('post_onboarding_return_to', returnTo);
-      }
+      await commitSignupContext({
+        interestSlug: selectedInterest,
+        orgSlug: params.org ?? null,
+        returnTo: returnTo ?? null,
+      });
     } catch (error: any) {
       console.error('[Signup] Apple sign-up error:', error);
       const friendlyMessage = getSignupErrorMessage(error);

@@ -19,7 +19,9 @@ import { createLogger } from '@/lib/utils/logger';
 const logger = createLogger('OnboardingStateService');
 
 const STORAGE_KEY = 'regattaflow_onboarding_state';
-const FLOW_KEY = 'regattaflow_onboarding_flow';
+// Removed: FLOW_KEY ('regattaflow_onboarding_flow') — defined but never read
+// or written per D2 audit §1.2/§3.1 finding 4. The useNewFlow toggle is
+// in-memory only; persisted flow type is not used.
 const ONBOARDING_SEEN_KEY = 'regattaflow_onboarding_seen';
 const CACHED_USERNAME_KEY = 'regattaflow_cached_username';
 
