@@ -17,6 +17,7 @@ import {
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '@/providers/AuthProvider';
 import { useInterest } from '@/providers/InterestProvider';
 import {
@@ -28,6 +29,10 @@ import { supabase } from '@/services/supabase';
 import { NotificationService } from '@/services/NotificationService';
 import { useOrganizationBlueprints } from '@/hooks/useBlueprint';
 import { BlueprintPickerCard } from '@/components/onboarding/BlueprintPickerCard';
+import {
+  ONBOARDING_INTEREST_SLUG_KEY,
+  ONBOARDING_ORG_SLUG_KEY,
+} from '@/services/onboarding/commitSignupContext';
 
 /** Role keys that indicate an admin-level org role */
 const ADMIN_ROLE_KEYS = new Set([
@@ -53,6 +58,7 @@ export default function InviteTokenPage() {
 
   const [invite, setInvite] = useState<OrganizationInviteRecord | null>(null);
   const [orgName, setOrgName] = useState<string | null>(null);
+  const [orgSlug, setOrgSlug] = useState<string | null>(null);
   const [orgInterestSlug, setOrgInterestSlug] = useState<string | null>(null);
   const [inviterName, setInviterName] = useState<string | null>(null);
   const [programName, setProgramName] = useState<string | null>(null);
@@ -103,11 +109,12 @@ export default function InviteTokenPage() {
       if (inviteData.organization_id) {
         const { data: org } = await supabase
           .from('organizations')
-          .select('name,interest_slug')
+          .select('name,slug,interest_slug')
           .eq('id', inviteData.organization_id)
           .single();
         if (org) {
           setOrgName(org.name);
+          setOrgSlug(org.slug || null);
           setOrgInterestSlug(org.interest_slug || null);
         }
       }
@@ -281,12 +288,42 @@ export default function InviteTokenPage() {
       router.replace('/(tabs)/races' as any);
     };
 
-    const handlePostAcceptNav = () => {
+    const handlePostAcceptNav = async () => {
       if (isAdminRole) {
         router.replace('/organization/members' as any);
-      } else if (isFacultyRole) {
+        return;
+      }
+      if (isFacultyRole) {
         setWelcomeStep('blueprints');
-      } else if (publishedBlueprints.length > 0) {
+        return;
+      }
+
+      // Non-admin / non-faculty members: route through the richer
+      // /onboarding/org-welcome catalog (programs + people + manifesto).
+      // Stash AsyncStorage so org-welcome can pick up the same context.
+      // Issue #11 / onboarding plan §4 Step 2.
+      if (orgSlug) {
+        try {
+          await AsyncStorage.setItem(ONBOARDING_ORG_SLUG_KEY, orgSlug);
+        } catch {
+          // Non-critical — org-welcome will fall back to error state.
+        }
+      }
+      if (orgInterestSlug) {
+        try {
+          await AsyncStorage.setItem(ONBOARDING_INTEREST_SLUG_KEY, orgInterestSlug);
+        } catch {
+          // Non-critical.
+        }
+      }
+      if (orgSlug) {
+        router.replace('/onboarding/org-welcome?fromInvite=1' as any);
+        return;
+      }
+
+      // No org slug to hand off — fall back to prior behavior so the
+      // accept screen never strands the user.
+      if (publishedBlueprints.length > 0) {
         setWelcomeStep('blueprints');
       } else if (orgInterestSlug) {
         router.replace(`/${orgInterestSlug}` as any);

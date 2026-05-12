@@ -22,7 +22,7 @@ import {
   Linking,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '@/services/supabase';
 import {
@@ -45,8 +45,31 @@ interface OrgOnboardingConfig {
 
 type JoinPhase = 'loading' | 'joined' | 'pending' | 'blocked' | 'error';
 
+// Interests whose `app/<slug>/[orgSlug].tsx` route exists today. When the user
+// arrives here via the /invite/[token] flow (issue #11) and the org's interest
+// is in this set, the Continue button takes them straight to the org-catalog
+// page that blends real + sample timelines. Otherwise we fall back to the
+// races tab so the user never lands on a 404.
+const INTERESTS_WITH_ORG_CATALOG = new Set<string>([
+  'design',
+  'drawing',
+  'fiber-arts',
+  'fitness',
+  'global-health',
+  'golf',
+  'health-and-fitness',
+  'knitting',
+  'lifelong-learning',
+  'nursing',
+  'painting-printing',
+  'regenerative-agriculture',
+  'sail-racing',
+]);
+
 export default function OrgWelcomeScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams<{ fromInvite?: string }>();
+  const fromInvite = params.fromInvite === '1';
   const { user } = useAuth();
   const { addInterest, switchInterest, currentInterest } = useInterest();
 
@@ -77,6 +100,7 @@ export default function OrgWelcomeScreen() {
 
   useEffect(() => {
     initAndJoin();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const initAndJoin = async () => {
@@ -200,8 +224,20 @@ export default function OrgWelcomeScreen() {
     if (manifestoId && manifestoText.trim()) {
       await updateManifesto(manifestoId, { content: manifestoText }).catch(() => {});
     }
+
+    // Invite flow: route into the org catalog (programs + people + sample timelines)
+    // when one exists for this interest; otherwise drop the user onto their timeline.
+    if (fromInvite) {
+      if (interestSlug && orgSlug && INTERESTS_WITH_ORG_CATALOG.has(interestSlug)) {
+        router.replace(`/${interestSlug}/${orgSlug}` as any);
+        return;
+      }
+      router.replace('/(tabs)/races' as any);
+      return;
+    }
+
     router.replace('/onboarding/explore-interests');
-  }, [router, manifestoId, manifestoText]);
+  }, [router, manifestoId, manifestoText, fromInvite, interestSlug, orgSlug]);
 
   if (phase === 'loading') {
     return (
