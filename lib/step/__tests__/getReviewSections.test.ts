@@ -110,7 +110,6 @@ describe('getReviewSections', () => {
     it('returns v2 sections unchanged when well-formed', () => {
       const metadata: StepMetadata = {
         review: {
-          // @ts-expect-error — v2 shape not yet in StepReviewData; this selector is the forward boundary.
           sections: [
             {
               prompt: 'what_happened',
@@ -142,31 +141,28 @@ describe('getReviewSections', () => {
     });
 
     it('uses canonical label when prompt_label missing', () => {
-      const metadata: StepMetadata = {
+      const metadata = {
         review: {
-          // @ts-expect-error — v2 shape
           sections: [{ prompt: 'what_happened', content: 'X', source: 'telegram' }],
         },
-      };
+      } as unknown as StepMetadata;
       const result = getReviewSections(metadata);
       expect(result.sections[0].prompt_label).toBe('What happened?');
     });
 
     it('falls back to legacy source for unknown source strings', () => {
-      const metadata: StepMetadata = {
+      const metadata = {
         review: {
-          // @ts-expect-error — v2 shape
           sections: [{ prompt: 'what_worked', content: 'X', source: 'pigeon_carrier' }],
         },
-      };
+      } as unknown as StepMetadata;
       expect(getReviewSections(metadata).sections[0].source).toBe('legacy');
     });
 
     it('prefers v2 when both v1 flat fields and v2 sections[] are present', () => {
-      const metadata: StepMetadata = {
+      const metadata = {
         review: {
           what_learned: 'legacy text',
-          // @ts-expect-error — v2 shape
           sections: [
             {
               prompt: 'what_did_you_learn',
@@ -176,7 +172,7 @@ describe('getReviewSections', () => {
             },
           ],
         },
-      };
+      } as unknown as StepMetadata;
       const result = getReviewSections(metadata);
       expect(result.version).toBe('2.0');
       expect(result.sections).toHaveLength(1);
@@ -190,59 +186,55 @@ describe('getReviewSections', () => {
 
   describe('malformed inputs', () => {
     it('drops sections missing prompt', () => {
-      const metadata: StepMetadata = {
+      const metadata = {
         review: {
-          // @ts-expect-error — v2 shape
           sections: [
             { content: 'no prompt', source: 'telegram' },
             { prompt: 'what_worked', content: 'kept', source: 'telegram' },
           ],
         },
-      };
+      } as unknown as StepMetadata;
       const result = getReviewSections(metadata);
       expect(result.sections).toHaveLength(1);
       expect(result.sections[0].content).toBe('kept');
     });
 
     it('drops sections with unknown prompt', () => {
-      const metadata: StepMetadata = {
+      const metadata = {
         review: {
-          // @ts-expect-error — v2 shape
           sections: [
             { prompt: 'mystery_question', content: 'X', source: 'telegram' },
             { prompt: 'what_worked', content: 'kept', source: 'telegram' },
           ],
         },
-      };
+      } as unknown as StepMetadata;
       const result = getReviewSections(metadata);
       expect(result.sections).toHaveLength(1);
       expect(result.sections[0].prompt).toBe('what_worked');
     });
 
     it('drops sections with empty content', () => {
-      const metadata: StepMetadata = {
+      const metadata = {
         review: {
-          // @ts-expect-error — v2 shape
           sections: [
             { prompt: 'what_worked', content: '', source: 'telegram' },
             { prompt: 'what_worked', content: '   ', source: 'telegram' },
             { prompt: 'what_didnt', content: 'kept', source: 'telegram' },
           ],
         },
-      };
+      } as unknown as StepMetadata;
       const result = getReviewSections(metadata);
       expect(result.sections).toHaveLength(1);
       expect(result.sections[0].prompt).toBe('what_didnt');
     });
 
     it('falls back to v1 synthesis when sections[] is present but entirely malformed', () => {
-      const metadata: StepMetadata = {
+      const metadata = {
         review: {
           what_learned: 'I learned something.',
-          // @ts-expect-error — v2 shape
           sections: [{ garbage: true }, null, 'string-not-object'],
         },
-      };
+      } as unknown as StepMetadata;
       const result = getReviewSections(metadata);
       expect(result.version).toBe('1.0');
       expect(result.sections).toHaveLength(1);
@@ -250,24 +242,22 @@ describe('getReviewSections', () => {
     });
 
     it('returns empty when sections[] is non-array', () => {
-      const metadata: StepMetadata = {
-        // @ts-expect-error — testing malformed JSONB
+      const metadata = {
         review: { sections: 'not-an-array' },
-      };
+      } as unknown as StepMetadata;
       expect(getReviewSections(metadata).sections).toEqual([]);
     });
 
     it('ignores non-numeric duration_seconds', () => {
-      const metadata: StepMetadata = {
+      const metadata = {
         review: {
-          // @ts-expect-error — v2 shape
           sections: [
             { prompt: 'what_worked', content: 'X', source: 'telegram', duration_seconds: 'forty' },
             { prompt: 'what_didnt', content: 'Y', source: 'telegram', duration_seconds: NaN },
             { prompt: 'what_happened', content: 'Z', source: 'telegram', duration_seconds: 12 },
           ],
         },
-      };
+      } as unknown as StepMetadata;
       const result = getReviewSections(metadata);
       expect(result.sections[0].duration_seconds).toBeUndefined();
       expect(result.sections[1].duration_seconds).toBeUndefined();

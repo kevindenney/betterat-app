@@ -15,7 +15,8 @@
 import { supabase } from '@/services/supabase';
 import type { LibraryResourceRecord } from '@/types/library';
 import { getCourseCompletionPercent } from '@/types/library';
-import type { StepPlanData, StepReviewData, StepActData, CrossInterestSuggestion, ChatMessage, BrainDumpData, ExtractedUrl } from '@/types/step-detail';
+import type { StepPlanData, StepReviewData, StepActData, StepMetadata, CrossInterestSuggestion, ChatMessage, BrainDumpData, ExtractedUrl } from '@/types/step-detail';
+import { getReviewSections, getReviewSectionContent } from '@/lib/step/getReviewSections';
 import { sailorBoatService, type SailorBoat } from '@/services/SailorBoatService';
 import { equipmentService, type BoatEquipment } from '@/services/EquipmentService';
 import { getUserLibrary, getResources } from '@/services/LibraryService';
@@ -142,6 +143,19 @@ export async function gatherEnrichedContext(
 }
 
 /**
+ * Step Arch E — Read review prompt content from sections[] when present,
+ * falling back to legacy flat fields. Used by step-history summarizers.
+ */
+function readReviewPrompt(
+  metadata: unknown,
+  prompt: 'what_did_you_learn' | 'anything_else',
+  flatFallback: string | undefined,
+): string {
+  const sections = getReviewSections(metadata as StepMetadata | undefined).sections;
+  return getReviewSectionContent(sections, prompt) ?? flatFallback ?? '';
+}
+
+/**
  * Full step history (up to 10 most recent completed + in-progress).
  */
 async function getFullStepHistory(userId: string, interestId: string): Promise<StepHistoryEntry[]> {
@@ -167,8 +181,8 @@ async function getFullStepHistory(userId: string, interestId: string): Promise<S
         title: row.title,
         status: row.status,
         what: plan.what_will_you_do ?? '',
-        learned: review.what_learned ?? '',
-        nextNotes: review.next_step_notes ?? '',
+        learned: readReviewPrompt(row.metadata, 'what_did_you_learn', review.what_learned),
+        nextNotes: readReviewPrompt(row.metadata, 'anything_else', review.next_step_notes),
         capabilityRatings: review.capability_progress ?? {},
         subStepsCompleted: subSteps.filter((s) => progress[s.id]).length,
         subStepsTotal: subSteps.length,
@@ -289,7 +303,7 @@ async function getFollowedUsersActivity(
       byUser.get(name)!.push({
         title: s.title,
         what: plan.what_will_you_do ?? '',
-        learned: review.what_learned ?? '',
+        learned: readReviewPrompt(s.metadata, 'what_did_you_learn', review.what_learned),
       });
     }
 
@@ -1063,8 +1077,8 @@ export async function getRecentStepSummaries(
     return {
       title: row.title,
       what: plan.what_will_you_do ?? '',
-      learned: review.what_learned ?? '',
-      nextNotes: review.next_step_notes ?? '',
+      learned: readReviewPrompt(row.metadata, 'what_did_you_learn', review.what_learned),
+      nextNotes: readReviewPrompt(row.metadata, 'anything_else', review.next_step_notes),
     };
   });
 }

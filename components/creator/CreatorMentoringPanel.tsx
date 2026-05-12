@@ -19,6 +19,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useStepDetail, useUpdateStepMetadata } from '@/hooks/useStepDetail';
 import { useAuth } from '@/providers/AuthProvider';
 import { NotificationService } from '@/services/NotificationService';
+import { getReviewSections, getReviewSectionContent } from '@/lib/step/getReviewSections';
+import type { StepMetadata } from '@/types/step-detail';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -143,6 +145,13 @@ export function CreatorMentoringPanel({ stepId }: Props) {
   const review: ReviewMetadata =
     (step?.metadata as Record<string, unknown> | undefined)?.review as ReviewMetadata ?? {};
 
+  // Step Arch E — read what_learned via selector (sections[] preferred over flat field).
+  const whatLearnedFromSections = getReviewSectionContent(
+    getReviewSections(step?.metadata as StepMetadata | undefined).sections,
+    'what_did_you_learn',
+  );
+  const whatLearnedDisplay = whatLearnedFromSections ?? review.what_learned ?? null;
+
   // ---- Review decision state ----
   const [selectedStatus, setSelectedStatus] =
     useState<InstructorReviewStatus | null>(null);
@@ -196,7 +205,7 @@ export function CreatorMentoringPanel({ stepId }: Props) {
         reviewStatus: selectedStatus,
       }).catch(() => {}); // fire-and-forget
     }
-  }, [selectedStatus, reviewNote, updateMetadata]);
+  }, [selectedStatus, reviewNote, updateMetadata, step?.title, step?.user_id, stepId, user?.id, user?.user_metadata?.full_name]);
 
   const handleSaveSuggestion = useCallback(async () => {
     await updateMetadata.mutateAsync({
@@ -397,7 +406,7 @@ export function CreatorMentoringPanel({ stepId }: Props) {
       {/* ---- Student's Review Summary (read-only) ---- */}
       {(review.overall_rating != null ||
         review.worked_to_plan != null ||
-        review.what_learned) && (
+        whatLearnedDisplay) && (
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Student's Review</Text>
 
@@ -437,11 +446,11 @@ export function CreatorMentoringPanel({ stepId }: Props) {
             </View>
           )}
 
-          {review.what_learned ? (
+          {whatLearnedDisplay ? (
             <View style={styles.summaryBlock}>
               <Text style={styles.summaryLabel}>What they learned</Text>
               <Text style={styles.summaryText}>
-                {review.what_learned}
+                {whatLearnedDisplay}
               </Text>
             </View>
           ) : null}

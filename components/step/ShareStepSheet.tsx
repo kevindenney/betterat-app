@@ -28,7 +28,8 @@ import { IOS_COLORS, IOS_TYPOGRAPHY, IOS_SPACING, IOS_RADIUS } from '@/lib/desig
 import { STEP_COLORS } from '@/lib/step-theme';
 import { triggerHaptic } from '@/lib/haptics';
 import { useCreateFollowerPost } from '@/hooks/useFollowerPosts';
-import type { StepPlanData, StepActData, StepReviewData, MediaUpload } from '@/types/step-detail';
+import type { StepPlanData, StepActData, StepReviewData, MediaUpload, StepMetadata } from '@/types/step-detail';
+import { getReviewSections, getReviewSectionContent } from '@/lib/step/getReviewSections';
 
 // =============================================================================
 // TYPES
@@ -65,10 +66,15 @@ export function ShareStepSheet({
   const [linkCopied, setLinkCopied] = useState(false);
   const [copyingLink, setCopyingLink] = useState(false);
 
-  const capabilityGoals = planData.capability_goals ?? [];
-  const capabilityRatings = reviewData.capability_progress ?? {};
-  const mediaUploads: MediaUpload[] = actData.media_uploads ?? [];
-  const whatLearned = reviewData.what_learned ?? '';
+  const capabilityGoals = useMemo(() => planData.capability_goals ?? [], [planData.capability_goals]);
+  const capabilityRatings = useMemo(() => reviewData.capability_progress ?? {}, [reviewData.capability_progress]);
+  const mediaUploads: MediaUpload[] = useMemo(() => actData.media_uploads ?? [], [actData.media_uploads]);
+  // Step Arch E — read via selector (sections[] preferred over flat field).
+  const whatLearned =
+    getReviewSectionContent(
+      getReviewSections({ review: reviewData } as StepMetadata).sections,
+      'what_did_you_learn',
+    ) ?? reviewData.what_learned ?? '';
   const whatTheyDid = planData.what_will_you_do ?? '';
 
   // Build the post content from step data

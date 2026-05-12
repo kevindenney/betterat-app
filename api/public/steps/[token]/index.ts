@@ -7,6 +7,8 @@
 
 import { createClient } from '@supabase/supabase-js';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { getReviewSections, getReviewSectionContent } from '../../../../lib/step/getReviewSections';
+import type { StepMetadata } from '../../../../types/step-detail';
 
 const supabaseUrl = process.env.SUPABASE_URL || process.env.EXPO_PUBLIC_SUPABASE_URL || '';
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
@@ -23,15 +25,15 @@ export interface PublicStepInfo {
   interest: { name: string } | null;
   plan: {
     what: string | null;
-    how_sub_steps: Array<{ text: string; completed: boolean }>;
+    how_sub_steps: { text: string; completed: boolean }[];
     why: string | null;
     capability_goals: string[];
     collaborator_names: string[];
   };
   act: {
     notes: string | null;
-    media_uploads: Array<{ uri: string; type: string; caption?: string }>;
-    media_links: Array<{ url: string; platform: string; caption?: string }>;
+    media_uploads: { uri: string; type: string; caption?: string }[];
+    media_links: { url: string; platform: string; caption?: string }[];
     sub_step_progress: Record<string, boolean>;
   };
   review: {
@@ -112,16 +114,24 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const planData = metadata.plan || {};
     const actData = metadata.act || {};
     const reviewData = metadata.review || {};
+    const normalizedReview = getReviewSections(
+      metadata as StepMetadata,
+      step.completed_at ?? null,
+    );
+    const learnedFromSections = getReviewSectionContent(
+      normalizedReview.sections,
+      'what_did_you_learn',
+    );
 
     // Build collaborator display names (no user_ids)
-    const collaborators: Array<{ display_name?: string }> = planData.collaborators || [];
+    const collaborators: { display_name?: string }[] = planData.collaborators || [];
     const legacyNames: string[] = planData.who_collaborators || [];
     const collaboratorNames = collaborators.length > 0
       ? collaborators.map((c: any) => c.display_name || 'Someone').filter(Boolean)
       : legacyNames;
 
     // Sanitize sub-steps (text only, no IDs leaked)
-    const subSteps: Array<{ text: string; completed: boolean }> = (planData.how_sub_steps || []).map(
+    const subSteps: { text: string; completed: boolean }[] = (planData.how_sub_steps || []).map(
       (ss: any) => ({
         text: ss.text || '',
         completed: !!ss.completed,
@@ -129,7 +139,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     );
 
     // Sanitize media uploads (URIs only, no internal IDs)
-    const mediaUploads: Array<{ uri: string; type: string; caption?: string }> = (
+    const mediaUploads: { uri: string; type: string; caption?: string }[] = (
       actData.media_uploads || []
     ).map((m: any) => ({
       uri: m.uri || '',
@@ -138,7 +148,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }));
 
     // Media links
-    const mediaLinks: Array<{ url: string; platform: string; caption?: string }> = (
+    const mediaLinks: { url: string; platform: string; caption?: string }[] = (
       actData.media_links || []
     ).map((m: any) => ({
       url: m.url || '',
@@ -169,7 +179,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       },
       review: {
         overall_rating: reviewData.overall_rating ?? null,
-        what_learned: reviewData.what_learned || null,
+        what_learned: learnedFromSections || reviewData.what_learned || null,
         capability_progress: reviewData.capability_progress || {},
       },
       created_at: step.created_at,

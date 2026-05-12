@@ -20,6 +20,8 @@ import {
 import { Text } from '@/components/ui/text';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/services/supabase';
+import { getReviewSections, getReviewSectionContent } from '@/lib/step/getReviewSections';
+import type { StepMetadata } from '@/types/step-detail';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -35,15 +37,15 @@ interface StepData {
   interest: { name: string } | null;
   plan: {
     what: string | null;
-    how_sub_steps: Array<{ text: string; completed: boolean }>;
+    how_sub_steps: { text: string; completed: boolean }[];
     why: string | null;
     capability_goals: string[];
     collaborator_names: string[];
   };
   act: {
     notes: string | null;
-    media_uploads: Array<{ uri: string; type: string; caption?: string }>;
-    media_links: Array<{ url: string; platform: string; caption?: string }>;
+    media_uploads: { uri: string; type: string; caption?: string }[];
+    media_links: { url: string; platform: string; caption?: string }[];
     sub_step_progress: Record<string, boolean>;
   };
   review: {
@@ -114,8 +116,10 @@ async function fetchStepFromSupabase(shareToken: string): Promise<StepData | nul
   const planData = metadata.plan || {};
   const actData = metadata.act || {};
   const reviewData = metadata.review || {};
+  const normalizedReview = getReviewSections(metadata as StepMetadata, step.completed_at ?? null);
+  const learnedFromSections = getReviewSectionContent(normalizedReview.sections, 'what_did_you_learn');
 
-  const collaborators: Array<{ display_name?: string }> = planData.collaborators || [];
+  const collaborators: { display_name?: string }[] = planData.collaborators || [];
   const legacyNames: string[] = planData.who_collaborators || [];
   const collaboratorNames = collaborators.length > 0
     ? collaborators.map((c: any) => c.display_name || 'Someone').filter(Boolean)
@@ -155,7 +159,7 @@ async function fetchStepFromSupabase(shareToken: string): Promise<StepData | nul
     },
     review: {
       overall_rating: reviewData.overall_rating ?? null,
-      what_learned: reviewData.what_learned || null,
+      what_learned: learnedFromSections || reviewData.what_learned || null,
       capability_progress: reviewData.capability_progress || {},
     },
     created_at: step.created_at,
