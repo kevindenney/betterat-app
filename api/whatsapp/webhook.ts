@@ -10,6 +10,7 @@ import {
   createSupabaseClient,
   resolveAuthContext,
   generateLinkCode,
+  loadUserContext,
 } from '../../services/capture/auth';
 import {
   buildSystemPrompt,
@@ -306,36 +307,9 @@ async function handleMessage(
     .update({ last_inbound_at: new Date().toISOString() })
     .eq('whatsapp_phone', phone);
 
-  // Auth context
+  // Auth context + user context for system prompt
   const auth = await resolveAuthContext(supabase, userId);
-
-  // User context for system prompt
-  let userCtx: UserContext | undefined;
-  try {
-    const [profileRes, interestRes, orgRes] = await Promise.all([
-      supabase.from('profiles').select('full_name, bio').eq('id', userId).maybeSingle(),
-      supabase
-        .from('user_interests')
-        .select('interest_id, interests!inner(name, description)')
-        .eq('user_id', userId)
-        .eq('is_active', true)
-        .limit(1)
-        .maybeSingle(),
-      auth.clubId
-        ? supabase.from('organizations').select('name').eq('id', auth.clubId).maybeSingle()
-        : Promise.resolve({ data: null }),
-    ]);
-    const interest = interestRes.data as any;
-    userCtx = {
-      fullName: profileRes.data?.full_name ?? undefined,
-      activeInterest: interest?.interests?.name ?? undefined,
-      interestDescription: interest?.interests?.description ?? undefined,
-      orgName: orgRes.data?.name ?? undefined,
-      location: profileRes.data?.bio ?? undefined,
-    };
-  } catch (e) {
-    console.error('[whatsapp] Failed to fetch user context:', e);
-  }
+  const userCtx = await loadUserContext(supabase, userId, auth.clubId);
 
   // Voice transcription
   let userText = text;

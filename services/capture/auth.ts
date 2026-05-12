@@ -15,6 +15,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { normalizeTier } from '../../lib/subscriptions/sailorTiers';
 import type { AuthContext } from '../mcp/server';
+import type { UserContext } from './types';
 
 /**
  * Build a Supabase client backed by the service-role key. Returns null when
@@ -102,6 +103,57 @@ export async function resolveAuthContext(
     clubId,
     tier: normalizeTier(userRow?.subscription_tier),
   };
+}
+
+/**
+ * Fetch the per-user context block woven into the CaptureService system prompt:
+ * full name + bio (location), active interest + its description, and the
+ * org name (when the user has an active membership). Returns undefined when
+ * none of the lookups produce any data — caller still calls buildSystemPrompt
+ * which handles undefined gracefully.
+ *
+ * Identical fetch shape across Telegram + WhatsApp + in-app voice so the
+ * Anthropic prompt cache hits across surfaces.
+ */
+export async function loadUserContext(
+  supabase: ReturnType<typeof createClient>,
+  userId: string,
+  clubId: string | null,
+): Promise<UserContext | undefined> {
+  try {
+    const [profileRes, interestRes, orgRes] = await Promise.all([
+      supabase.from('profiles').select('full_name, bio').eq('id', userId).maybeSingle(),
+      supabase
+        .from('user_interests')
+        .select('interest_id, interests!inner(name, description)')
+        .eq('user_id', userId)
+        .eq('is_active', true)
+        .limit(1)
+        .maybeSingle(),
+      clubId
+        ? supabase.from('organizations').select('name').eq('id', clubId).maybeSingle()
+        : Promise.resolve({ data: null }),
+    ]);
+
+    const interest = interestRes.data as
+      | { interests?: { name?: string | null; description?: string | null } | null }
+      | null;
+    const profile = profileRes.data as
+      | { full_name?: string | null; bio?: string | null }
+      | null;
+    const org = orgRes.data as { name?: string | null } | null;
+
+    return {
+      fullName: profile?.full_name ?? undefined,
+      activeInterest: interest?.interests?.name ?? undefined,
+      interestDescription: interest?.interests?.description ?? undefined,
+      orgName: org?.name ?? undefined,
+      location: profile?.bio ?? undefined,
+    };
+  } catch (e) {
+    console.error('[capture] loadUserContext failed:', e);
+    return undefined;
+  }
 }
 
 /**
