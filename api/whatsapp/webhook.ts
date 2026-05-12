@@ -1,14 +1,23 @@
+/* eslint-disable no-console -- Vercel function: console is the canonical logging path. */
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { waitUntil } from '@vercel/functions';
 import crypto from 'node:crypto';
-import { createClient } from '@supabase/supabase-js';
 import Anthropic from '@anthropic-ai/sdk';
 import { sendText, sendInteractive, markRead, downloadMedia } from '../../lib/whatsapp/client';
 import { buildButtonPayload } from '../../lib/whatsapp/formatting';
 import { getAnthropicTools, executeTool } from '../../lib/telegram/tools';
 import { transcribeVoiceNote } from '../../lib/telegram/transcription';
-import { normalizeTier } from '../../lib/subscriptions/sailorTiers';
-import type { AuthContext } from '../../services/mcp/server';
+import {
+  createSupabaseClient,
+  resolveAuthContext,
+  generateLinkCode,
+} from '../../services/capture/auth';
+import {
+  APP_URL,
+  MAX_CONVERSATION_MESSAGES,
+  MAX_TOOL_ITERATIONS,
+  type UserContext,
+} from '../../services/capture/types';
 
 // Bigger raw bodies for media-heavy webhooks; allow up to 120s for tool chains.
 export const maxDuration = 120;
@@ -18,24 +27,12 @@ export const config = {
   api: { bodyParser: false },
 };
 
-const MAX_TOOL_ITERATIONS = 8;
-const MAX_CONVERSATION_MESSAGES = 10;
-const APP_URL = process.env.EXPO_PUBLIC_APP_URL || 'https://better.at';
-
 // ---------------------------------------------------------------------------
 // System prompt — same intent as the Telegram webhook, channel-light. Kept
 // inline rather than imported because the Telegram prompt baked in some
 // Telegram-specific formatting rules ("avoid markdown headers — Telegram
 // doesn't render them") that also apply to WhatsApp.
 // ---------------------------------------------------------------------------
-
-interface UserContext {
-  fullName?: string;
-  activeInterest?: string;
-  interestDescription?: string;
-  orgName?: string;
-  location?: string;
-}
 
 const buildSystemPrompt = (userCtx?: UserContext) => {
   const todayStr = new Date().toISOString().split('T')[0];
@@ -94,85 +91,6 @@ For food photos you must make TWO tool calls:
 2. log_nutrition with step_id — extracts nutritional data for the Review tab
 
 The uploaded photo URL is provided in the message as [Photo uploaded: URL]. Use this exact URL when calling attach_step_evidence.`;
-
-// ---------------------------------------------------------------------------
-// Auth helpers (mirrored from api/telegram/webhook.ts)
-// ---------------------------------------------------------------------------
-
-async function resolveClubId(
-  supabase: ReturnType<typeof createClient>,
-  userId: string,
-): Promise<string | null> {
-  const selects = [
-    'active_organization_id, organization_id, club_id',
-    'organization_id, club_id',
-    'club_id',
-  ];
-
-  for (const fields of selects) {
-    const { data, error } = await supabase
-      .from('users')
-      .select(fields)
-      .eq('id', userId)
-      .maybeSingle();
-
-    if (error) {
-      const code = String(error?.code ?? '');
-      const msg = String(error?.message ?? '').toLowerCase();
-      if (['42703', 'PGRST204', 'PGRST205'].includes(code) || msg.includes('column')) continue;
-      break;
-    }
-
-    const row = (data || {}) as Record<string, unknown>;
-    const candidate = row.active_organization_id ?? row.organization_id ?? row.club_id ?? null;
-    if (candidate && typeof candidate === 'string') return candidate;
-  }
-
-  const { data: membership } = await supabase
-    .from('organization_memberships')
-    .select('organization_id')
-    .eq('user_id', userId)
-    .in('status', ['active', 'verified'])
-    .limit(1)
-    .maybeSingle();
-
-  return membership?.organization_id ?? null;
-}
-
-function generateLinkCode(): string {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  let code = '';
-  for (let i = 0; i < 6; i++) code += chars[Math.floor(Math.random() * chars.length)];
-  return code;
-}
-
-function createSupabaseClient() {
-  const supabaseUrl = process.env.SUPABASE_URL || process.env.EXPO_PUBLIC_SUPABASE_URL;
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!supabaseUrl || !serviceRoleKey) return null;
-  return createClient(supabaseUrl, serviceRoleKey, {
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
-}
-
-async function resolveAuthContext(
-  supabase: ReturnType<typeof createClient>,
-  userId: string,
-): Promise<AuthContext> {
-  const clubId = await resolveClubId(supabase, userId);
-  const { data: userRow } = await supabase
-    .from('users')
-    .select('subscription_tier, email')
-    .eq('id', userId)
-    .maybeSingle();
-
-  return {
-    userId,
-    email: userRow?.email ?? null,
-    clubId,
-    tier: normalizeTier(userRow?.subscription_tier),
-  };
-}
 
 // ---------------------------------------------------------------------------
 // Raw body + HMAC verification

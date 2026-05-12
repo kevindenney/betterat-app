@@ -1,32 +1,25 @@
+/* eslint-disable no-console -- Vercel function: console is the canonical logging path. */
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { waitUntil } from '@vercel/functions';
-import { createClient } from '@supabase/supabase-js';
 import Anthropic from '@anthropic-ai/sdk';
 import { sendMessage, sendChatAction, answerCallbackQuery, downloadFile } from '../../lib/telegram/client';
 import { getAnthropicTools, executeTool, getToolResponseKeyboard } from '../../lib/telegram/tools';
-import { normalizeTier } from '../../lib/subscriptions/sailorTiers';
 import { transcribeVoiceNote } from '../../lib/telegram/transcription';
 import type { InlineKeyboardButton } from '../../lib/telegram/formatting';
-import type { AuthContext } from '../../services/mcp/server';
+import {
+  createSupabaseClient,
+  resolveAuthContext,
+  generateLinkCode,
+} from '../../services/capture/auth';
+import {
+  APP_URL,
+  MAX_CONVERSATION_MESSAGES,
+  MAX_TOOL_ITERATIONS,
+  type UserContext,
+} from '../../services/capture/types';
 
 // Allow up to 120s for multi-tool chains (debrief flow: 5+ tool calls with AI analysis)
 export const maxDuration = 120;
-
-// ---------------------------------------------------------------------------
-// Constants
-// ---------------------------------------------------------------------------
-
-const MAX_TOOL_ITERATIONS = 8;
-const MAX_CONVERSATION_MESSAGES = 10;
-const APP_URL = process.env.EXPO_PUBLIC_APP_URL || 'https://better.at';
-
-interface UserContext {
-  fullName?: string;
-  activeInterest?: string;
-  interestDescription?: string;
-  orgName?: string;
-  location?: string;
-}
 
 const buildSystemPrompt = (userCtx?: UserContext) => {
   const todayStr = new Date().toISOString().split('T')[0];
@@ -144,59 +137,6 @@ IMPORTANT: Do NOT pass an interest filter to get_student_timeline. The user has 
 The uploaded photo URL is provided in the message as [Photo uploaded: URL]. Use this exact URL when calling attach_step_evidence.`;
 
 // ---------------------------------------------------------------------------
-// Auth helpers (mirrored from api/mcp.ts)
-// ---------------------------------------------------------------------------
-
-async function resolveClubId(
-  supabase: ReturnType<typeof createClient>,
-  userId: string,
-): Promise<string | null> {
-  const selects = [
-    'active_organization_id, organization_id, club_id',
-    'organization_id, club_id',
-    'club_id',
-  ];
-
-  for (const fields of selects) {
-    const { data, error } = await supabase
-      .from('users')
-      .select(fields)
-      .eq('id', userId)
-      .maybeSingle();
-
-    if (error) {
-      const code = String(error?.code ?? '');
-      const msg = String(error?.message ?? '').toLowerCase();
-      if (['42703', 'PGRST204', 'PGRST205'].includes(code) || msg.includes('column')) continue;
-      break;
-    }
-
-    const row = (data || {}) as Record<string, unknown>;
-    const candidate = row.active_organization_id ?? row.organization_id ?? row.club_id ?? null;
-    if (candidate && typeof candidate === 'string') return candidate;
-  }
-
-  const { data: membership } = await supabase
-    .from('organization_memberships')
-    .select('organization_id')
-    .eq('user_id', userId)
-    .in('status', ['active', 'verified'])
-    .limit(1)
-    .maybeSingle();
-
-  return membership?.organization_id ?? null;
-}
-
-function generateLinkCode(): string {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // no O/0/1/I for readability
-  let code = '';
-  for (let i = 0; i < 6; i++) {
-    code += chars[Math.floor(Math.random() * chars.length)];
-  }
-  return code;
-}
-
-// ---------------------------------------------------------------------------
 // Telegram types (subset we need)
 // ---------------------------------------------------------------------------
 
@@ -224,40 +164,6 @@ interface TelegramUpdate {
     from: TelegramUser;
     message?: { chat: { id: number }; message_id: number };
     data?: string;
-  };
-}
-
-// ---------------------------------------------------------------------------
-// Supabase + Auth context helpers
-// ---------------------------------------------------------------------------
-
-function createSupabaseClient() {
-  const supabaseUrl = process.env.SUPABASE_URL || process.env.EXPO_PUBLIC_SUPABASE_URL;
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-  if (!supabaseUrl || !serviceRoleKey) return null;
-
-  return createClient(supabaseUrl, serviceRoleKey, {
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
-}
-
-async function resolveAuthContext(
-  supabase: ReturnType<typeof createClient>,
-  userId: string,
-): Promise<AuthContext> {
-  const clubId = await resolveClubId(supabase, userId);
-  const { data: userRow } = await supabase
-    .from('users')
-    .select('subscription_tier, email')
-    .eq('id', userId)
-    .maybeSingle();
-
-  return {
-    userId,
-    email: userRow?.email ?? null,
-    clubId,
-    tier: normalizeTier(userRow?.subscription_tier),
   };
 }
 
