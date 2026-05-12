@@ -283,7 +283,7 @@ describe('executeTool central hook — markStepActive', () => {
     expect(recorded.rpcCalls).toHaveLength(1);
     expect(recorded.rpcCalls[0]).toEqual({
       fn: 'mark_step_active',
-      args: { p_step_id: STEP_ID, p_source: 'telegram' },
+      args: { p_step_id: STEP_ID, p_source: 'telegram', p_user_id: USER_ID },
     });
   });
 

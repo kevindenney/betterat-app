@@ -164,12 +164,17 @@ async function markStepActive(
   supabase: SupabaseClient,
   stepId: string,
   source: 'telegram',
+  userId: string,
 ): Promise<void> {
   if (!isRecentActivityEnabled()) return;
   try {
+    // The webhook client uses the SERVICE_ROLE key (see api/telegram/webhook.ts),
+    // so auth.uid() is NULL inside the SECURITY DEFINER function. The function
+    // accepts p_user_id when the caller's JWT role is 'service_role'.
     const { error } = await supabase.rpc('mark_step_active', {
       p_step_id: stepId,
       p_source: source,
+      p_user_id: userId,
     });
     if (error) {
       console.warn(`[telegram] mark_step_active(${stepId}) failed:`, error.message);
@@ -2338,7 +2343,7 @@ export async function executeTool(
       const stepId = extractStepIdForActivity(name, input, result);
       if (stepId) {
         // Intentionally not awaited — recency is best-effort.
-        void markStepActive(supabase, stepId, 'telegram');
+        void markStepActive(supabase, stepId, 'telegram', auth.userId);
       }
     }
 
