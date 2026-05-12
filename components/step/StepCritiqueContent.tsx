@@ -44,6 +44,7 @@ import {
   type ReviewSectionPrompt,
 } from '@/lib/step/getReviewSections';
 import { ReviewPromptSection } from '@/components/step/ReviewPromptSection';
+import { STEP_PALETTE } from '@/lib/step-theme';
 import { ShareStepSheet } from '@/components/step/ShareStepSheet';
 import { InstructorAssessmentSection } from '@/components/step/InstructorAssessmentSection';
 import { MeasurementReview } from '@/components/step/MeasurementReview';
@@ -58,24 +59,30 @@ import { getDailyTargets } from '@/services/NutritionService';
 import type { NutritionTargets } from '@/types/nutrition';
 
 // ---------------------------------------------------------------------------
-// Design tokens from Pencil Critique Tab
+// After tab palette — neutralized to match the redesign (no green/coral/gold).
+// Re-maps the legacy semantic keys onto STEP_PALETTE so every reference in
+// this file picks up the new tones without touching every call site.
+// See docs/audit/visual-redesign-gap-step-detail.md §2.4.
 // ---------------------------------------------------------------------------
 const C = {
-  pageBg: '#F5F4F1',
-  cardBg: '#FFFFFF',
-  cardBorder: '#E5E4E1',
-  sectionLabel: '#9C9B99',
-  labelDark: '#1A1918',
-  labelMid: '#6D6C6A',
-  labelLight: '#D1D0CD',
-  accent: '#3D8A5A',       // forest green
-  accentGlow: '#C8F0D8',
-  coral: '#D89575',
-  gold: '#D4A64A',
-  dotInactive: '#EDECEA',
-  suggestionBg: '#FAFAF8',
-  badgeBg: '#EDECEA',
-  badgeText: '#6D6C6A',
+  pageBg: STEP_PALETTE.bgPrimary,
+  cardBg: STEP_PALETTE.bgPrimary,
+  cardBorder: STEP_PALETTE.borderTertiary,
+  sectionLabel: STEP_PALETTE.textTertiary,
+  labelDark: STEP_PALETTE.textPrimary,
+  labelMid: STEP_PALETTE.textSecondary,
+  labelLight: STEP_PALETTE.textTertiary,
+  // `accent`, `coral`, `gold` used to carry forest-green / warm-coral / amber
+  // hues — now collapsed onto charcoal so prompts, stars, and target chevrons
+  // read as quiet typography instead of chromatic accents.
+  accent: STEP_PALETTE.textPrimary,
+  accentGlow: STEP_PALETTE.bgSecondary,
+  coral: STEP_PALETTE.textPrimary,
+  gold: STEP_PALETTE.textPrimary,
+  dotInactive: STEP_PALETTE.bgSecondary,
+  suggestionBg: STEP_PALETTE.bgSecondary,
+  badgeBg: STEP_PALETTE.bgSecondary,
+  badgeText: STEP_PALETTE.textTertiary,
   radius: 12,
   radiusLg: 16,
 } as const;

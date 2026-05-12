@@ -14,24 +14,15 @@ import React from 'react';
 import { View, Text, TextInput, StyleSheet, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { formatRelativeTime } from '@/lib/i18n/formatters';
+import { STEP_PALETTE } from '@/lib/step-theme';
+import { text } from '@/lib/design-tokens';
 import type {
   NormalizedReviewSection,
   ReviewSectionPrompt,
   ReviewSectionSource,
 } from '@/lib/step/getReviewSections';
 
-// Local colors — kept in sync with StepCritiqueContent's C palette so the
-// section blends with the rest of the After tab.
 const C = {
-  cardBg: '#FFFFFF',
-  cardBorder: '#E5E4E1',
-  labelDark: '#1A1918',
-  labelMid: '#6D6C6A',
-  labelLight: '#D1D0CD',
-  accent: '#3D8A5A',
-  coral: '#D89575',
-  badgeBg: '#EDECEA',
-  badgeText: '#6D6C6A',
   radius: 12,
 } as const;
 
@@ -78,7 +69,7 @@ function CapturedCard({ section }: { section: NormalizedReviewSection }) {
     <View style={s.capturedCard}>
       <View style={s.capturedHeader}>
         <View style={s.sourceBadge}>
-          <Ionicons name={meta.icon} size={11} color={C.badgeText} />
+          <Ionicons name={meta.icon} size={11} color={STEP_PALETTE.textTertiary} />
           <Text style={s.sourceBadgeText}>{meta.label}</Text>
         </View>
         {captured ? <Text style={s.capturedTime}>{captured}</Text> : null}
@@ -92,7 +83,10 @@ export function ReviewPromptSection({
   prompt,
   label,
   sections,
-  icon,
+  // `icon` is intentionally accepted but ignored — the redesign favors plain
+  // eyebrow text over leading icons (see mockups 02/15). Kept on the prop
+  // surface so existing call sites compile without churn.
+  icon: _icon,
   editable,
 }: ReviewPromptSectionProps) {
   // Collapse empty prompts: no captured sections AND no editable input.
@@ -101,7 +95,6 @@ export function ReviewPromptSection({
   return (
     <View style={s.wrap} testID={`review-prompt-${prompt}`}>
       <View style={s.header}>
-        {icon ? <Ionicons name={icon.name} size={18} color={icon.color} /> : null}
         <Text style={s.title}>{label}</Text>
       </View>
       {sections.map((section, idx) => (
@@ -114,7 +107,7 @@ export function ReviewPromptSection({
           value={editable.value}
           onChangeText={editable.editable ? editable.onChange : undefined}
           placeholder={editable.editable ? editable.placeholder : ''}
-          placeholderTextColor={C.labelLight}
+          placeholderTextColor={STEP_PALETTE.textTertiary}
           multiline
           textAlignVertical="top"
           editable={editable.editable}
@@ -127,7 +120,7 @@ export function ReviewPromptSection({
 const s = StyleSheet.create({
   wrap: {
     gap: 10,
-    paddingTop: 16,
+    paddingTop: 18,
   },
   header: {
     flexDirection: 'row',
@@ -135,17 +128,15 @@ const s = StyleSheet.create({
     gap: 8,
   },
   title: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: C.labelDark,
+    ...text.sansEyebrow,
+    color: STEP_PALETTE.textTertiary,
   },
   capturedCard: {
-    backgroundColor: C.cardBg,
+    backgroundColor: STEP_PALETTE.bgSecondary,
     borderRadius: C.radius,
-    borderWidth: 1,
-    borderColor: C.cardBorder,
-    padding: 12,
-    gap: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    gap: 8,
   },
   capturedHeader: {
     flexDirection: 'row',
@@ -156,36 +147,33 @@ const s = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: C.badgeBg,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 10,
+    paddingHorizontal: 0,
+    paddingVertical: 0,
   },
   sourceBadgeText: {
     fontSize: 11,
-    fontWeight: '600',
-    color: C.badgeText,
-    letterSpacing: 0.5,
+    fontWeight: '500',
+    color: STEP_PALETTE.textTertiary,
+    letterSpacing: 0.4,
   },
   capturedTime: {
     fontSize: 11,
-    color: C.labelMid,
+    color: STEP_PALETTE.textTertiary,
   },
   capturedContent: {
-    fontSize: 13,
-    color: C.labelDark,
-    lineHeight: 19,
+    ...text.serifMeta,
+    color: STEP_PALETTE.textPrimary,
   },
   input: {
-    fontSize: 13,
-    color: C.labelDark,
-    lineHeight: 20,
-    backgroundColor: C.cardBg,
+    ...text.serifBody,
+    color: STEP_PALETTE.textPrimary,
+    backgroundColor: STEP_PALETTE.bgPrimary,
     borderRadius: C.radius,
-    borderWidth: 1,
-    borderColor: C.cardBorder,
-    padding: 14,
-    minHeight: 80,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: STEP_PALETTE.borderTertiary,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    minHeight: 96,
     ...Platform.select({
       web: { outlineStyle: 'none', resize: 'vertical' } as any,
     }),
