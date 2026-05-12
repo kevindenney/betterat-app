@@ -782,7 +782,7 @@ RULES:
         </Text>
         <Text style={styles.sectionSubtitle}>
           {showConversational
-            ? 'Chat with AI Coach or fill in the fields below'
+            ? 'Talk it through, or fill in the fields below'
             : catLabels.planSubheader}
         </Text>
       </View>
@@ -864,7 +864,7 @@ RULES:
         </View>
       )}
 
-      {/* Manual fields toggle — when AI Coach is shown, collapse form fields */}
+      {/* Manual fields toggle — when conversational input is shown, collapse form fields */}
       {showConversational && !showManualFields && (
         <Pressable
           style={styles.manualFieldsToggle}
@@ -876,7 +876,7 @@ RULES:
         </Pressable>
       )}
 
-      {/* Q1: What will you do? — hidden behind toggle when AI Coach is the entry point */}
+      {/* Q1: What will you do? — hidden behind toggle when conversational input is the entry point */}
       {(!showConversational || showManualFields) && (<>
 
       {/* Q1: What will you do? */}
@@ -919,7 +919,7 @@ RULES:
           <View style={styles.refinementContainer}>
             <View style={styles.aiSuggestionHeader}>
               <Ionicons name="sparkles" size={14} color={IOS_COLORS.systemPurple} />
-              <Text style={styles.aiSuggestionLabel}>AI Coach</Text>
+              <Text style={styles.aiSuggestionLabel}>Suggestion</Text>
             </View>
 
             {/* Chat thread */}

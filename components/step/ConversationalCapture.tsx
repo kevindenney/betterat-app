@@ -285,11 +285,11 @@ Respond with ONLY valid JSON:
 
   return (
     <View style={[styles.container, embedded && styles.containerEmbedded]}>
-      {/* Header */}
+      {/* Header — neutral framing per redesign spec §10.2 ("AI never speaks as itself") */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
           <Ionicons name="chatbubbles" size={14} color={IOS_COLORS.systemPurple} />
-          <Text style={styles.headerTitle}>AI Coach</Text>
+          <Text style={styles.headerTitle}>Talk it through</Text>
         </View>
       </View>
 

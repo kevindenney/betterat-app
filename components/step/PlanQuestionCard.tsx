@@ -4,10 +4,11 @@
  */
 
 import React from 'react';
-import { View, Text, StyleSheet, Platform } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
-import { STEP_COLORS } from '@/lib/step-theme';
+import { IOS_COLORS as _IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
+import { STEP_COLORS as _STEP_COLORS, STEP_PALETTE } from '@/lib/step-theme';
+import { text } from '@/lib/design-tokens';
 
 interface PlanQuestionCardProps {
   icon: string;
@@ -33,7 +34,7 @@ export function PlanQuestionCard({
             <Ionicons
               name={isComplete ? 'checkmark' : (icon as any)}
               size={16}
-              color={isComplete ? '#FFFFFF' : STEP_COLORS.accent}
+              color={isComplete ? STEP_PALETTE.ctaText : STEP_PALETTE.textSecondary}
             />
           </View>
           <Text style={[styles.title, isComplete && styles.titleComplete]}>{title}</Text>
@@ -46,23 +47,11 @@ export function PlanQuestionCard({
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: STEP_COLORS.cardBg,
+    backgroundColor: STEP_PALETTE.bgPrimary,
     borderRadius: 12,
     marginBottom: IOS_SPACING.sm,
-    borderWidth: 1,
-    borderColor: STEP_COLORS.cardBorder,
-    ...Platform.select({
-      web: {
-        boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
-      } as any,
-      default: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.04,
-        shadowRadius: 3,
-        elevation: 1,
-      },
-    }),
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: STEP_PALETTE.borderTertiary,
   },
   header: {
     flexDirection: 'row',
@@ -78,24 +67,23 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   iconCircle: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: STEP_COLORS.accentLight,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: STEP_PALETTE.bgSecondary,
     alignItems: 'center',
     justifyContent: 'center',
   },
   iconCircleComplete: {
-    backgroundColor: STEP_COLORS.complete,
+    backgroundColor: STEP_PALETTE.ctaBg,
   },
   title: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: IOS_COLORS.label,
+    ...text.sansEyebrow,
+    color: STEP_PALETTE.textTertiary,
     flex: 1,
   },
   titleComplete: {
-    color: IOS_COLORS.secondaryLabel,
+    color: STEP_PALETTE.textSecondary,
   },
   content: {
     paddingHorizontal: IOS_SPACING.md,
