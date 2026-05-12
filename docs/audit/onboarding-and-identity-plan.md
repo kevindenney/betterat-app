@@ -103,12 +103,26 @@ Per spec + late addendum:
 
 ### Step 1 — Stabilize current paths before redesigning (1–2 days)
 
+Per the D2 readers audit (`docs/audit/d2-asyncstorage-onboarding-audit.md`), the ad-hoc onboarding keys are:
+
+| Key | Status after Step 1 |
+|---|---|
+| `onboarding_interest_slug` | Refactor — dual-write to `user_interests`, then cut over |
+| `onboarding_interest_order` | **Preserve as-is** (transient UI ordering hint, used by `manifesto.tsx` + `choose-start.tsx`) |
+| `onboarding_org_slug` | Preserve (nav hint) |
+| `post_onboarding_return_to` | Preserve (nav hint) |
+| `pending_invite_token` | **Delete** — confirmed dead code (written 3× in `signup.tsx`, never read anywhere; `app/invite/[token].tsx` does no AsyncStorage) |
+| `FLOW_KEY` constant in `OnboardingStateService` | **Delete** — defined, never used |
+
 Before adding flows, fix the AsyncStorage-as-truth pattern in `signup.tsx`:
-- Move `onboarding_interest_slug` → write directly to `user_interests` at sign-up success (already protected by RLS).
-- Keep `pending_invite_token` and `post_onboarding_return_to` in AsyncStorage (they're navigation hints, not data of record).
+- Move `onboarding_interest_slug` → write directly to `user_interests` at sign-up success (already protected by RLS), dual-writing AsyncStorage for one release per D2 decision.
+- Keep `onboarding_interest_order`, `onboarding_org_slug`, and `post_onboarding_return_to` in AsyncStorage (navigation/UI hints, not data of record).
+- Delete `pending_invite_token` writes and the `FLOW_KEY` constant.
 - Add idempotency guards so repeated sign-up clicks don't double-insert.
 
-**Exit**: Interest exists in `user_interests` after signup before any further screen renders. AsyncStorage holds nav hints only.
+**Resolves OAuth callback bypass**: D2 surfaced that `signup.tsx`'s Google/Apple branches write 4 AsyncStorage keys, but OAuth redirects through `app/(auth)/callback.tsx`, which only reads `post_onboarding_return_to` — so the interest-slug writes on social paths may never fire. Moving `onboarding_interest_slug` to a server-side `user_interests` insert at auth-success time eliminates this bypass: the commit point becomes the auth event itself, not a pre-redirect AsyncStorage write. Step 1's dual-write **is** the fix for the OAuth callback bypass.
+
+**Exit**: Interest exists in `user_interests` after signup before any further screen renders, for both email and OAuth paths. AsyncStorage holds nav/UI hints only. Dead keys removed.
 
 ### Step 2 — Unify org-invite landing into spec'd post-accept catalog (3–5 days)
 
@@ -155,17 +169,19 @@ This is the biggest new piece — addresses **group-invited non-user**.
 
 ---
 
-## 5. Open decisions
+## 5. Resolved decisions
 
-| # | Decision | Why it blocks |
-|---|---|---|
-| 1 | **SAML/SSO** — is it needed for institutional cohort, or is Google Workspace OAuth enough for JHU/the first institutions? | Affects whether Step 2 is sufficient for institutional segment. Spec doesn't take a clear position. |
-| 2 | **CRP-assisted onboarding** — separate accounts with consent, or proxy/sub-accounts under a CRP? | Affects whether Step 5 is complete. Bigger model question; not blocking phone+OTP shipping. |
-| 3 | **Persona at signup** — keep three pills (sailor/club) or remove and infer? Memory `feedback_interest_terminology.md` says verbs are by tier; doesn't fix persona UI. | Affects Step 1 polish. |
-| 4 | **Read-only share scope** — step-level, blueprint-level, both? Time-limited? Revocable? | Affects Step 4 schema shape. Recommend revocable, optional expiry, scopes per target type. |
-| 5 | **What to do with `user_type`** column once capabilities are additive? Drop it? | Affects Step 1 cleanup; not urgent. Recommend retain for now (UI conditional logic uses it). |
-| 6 | **AsyncStorage onboarding state migration** — does anything depend on `hasSeenOnboarding` for upgrade paths? Wiping it logs out users in unintended ways? | Affects Step 1 safety. Audit before changing. |
-| 7 | **Trial gating** — is gating actually enforced anywhere, or is `subscription_status` advisory? If the spec wants enforcement, that's a separate scope. | Affects whether trial is in this plan at all. |
+All resolved 2026-05-12. See `docs/audit/decisions-to-make.md` for full rationale.
+
+| # | Decision | Locked answer | Affects |
+|---|---|---|---|
+| D12 | SAML/SSO | Google Workspace OAuth only; confirm with JHU IT first | Step 2 sufficiency |
+| D11 | CRP-assisted onboarding | v1: learner owns account. Long-term: dual-keyed CRP role (separate build) | Step 5 / dev-context pilot |
+| D8 | Persona pill at signup | Remove pill; default learner; org-setup via separate entry | Step 1 polish |
+| D10 | Read-only share scope | Steps + blueprints only, revocable, optional expiry, unguessable tokens, rate-limited | Step 4 schema |
+| D9 | `user_type` column | Retain; do not migrate now | Step 1 cleanup |
+| D2 | AsyncStorage migration safety | Audit readers, then dual-write for one release before cutover | Step 1 safety |
+| D13 | Trial gating | Soft gate at day 14 (nudges/banners); confirm pricing intent | Cross-cutting / out of current scope |
 
 ---
 
