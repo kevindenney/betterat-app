@@ -1,3 +1,4 @@
+/* eslint-disable no-console -- this layout uses console.* deliberately for auth-bridge & font-loader diagnostics that we want visible in browser/native logs */
 import { ErrorBoundary } from '@/components/ui/error';
 import { GluestackUIProvider } from '@/components/ui/gluestack-ui-provider';
 import { NetworkStatusBanner } from '@/components/ui/network';
@@ -5,9 +6,6 @@ import { PushNotificationHandler } from '@/components/notifications/PushNotifica
 import '@/global.css';
 import { initializeImageCache } from '@/lib/imageConfig';
 import { initSentry } from '@/lib/sentry';
-
-// Initialize Sentry as early as possible
-initSentry();
 import {
   extractSessionTokensFromUrl,
   extractNextRedirectFromUrl,
@@ -38,9 +36,15 @@ import {
   Manrope_600SemiBold,
   Manrope_700Bold,
 } from '@expo-google-fonts/manrope';
-import React, { useEffect, useState, useCallback, useRef } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { LogBox, Platform } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+
+// Initialize i18n (must be imported before any components that use translations)
+import '@/lib/i18n';
+
+// Initialize Sentry as early as possible
+initSentry();
 
 // Suppress known warnings for native modules not available in Expo Go
 // These errors occur because expo-notifications and expo-device require a development build
@@ -82,12 +86,9 @@ if (Platform.OS !== 'web' && __DEV__) {
   }
 }
 
-// Initialize i18n (must be imported before any components that use translations)
-import '@/lib/i18n';
-
 let FontFaceObserverModule: any = null;
 try {
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
   FontFaceObserverModule = require('fontfaceobserver');
 } catch (error) {
   FontFaceObserverModule = null;
@@ -479,7 +480,7 @@ function AuthGate() {
     // also need to round-trip through login so the post detail opens after
     // sign-in. The community screen redirects signed-out visitors to
     // `/(auth)/login?returnTo=...` itself.
-    const publicSegments = ['index', '(auth)', 'privacy', 'welcome', 'callback', 'blueprint', 'community', 'pricing', 'institutions', 'how-it-works'];
+    const publicSegments = ['index', '(auth)', 'privacy', 'welcome', 'callback', 'blueprint', 'community', 'pricing', 'institutions', 'how-it-works', 'share'];
     // /venue/post/<id> is a publicly shareable permalink — sailors arriving
     // from HKDW Discuss "Open in browser" (Android) or iOS in-app linking
     // both land here without auth. Other /venue/* routes stay protected.
@@ -498,7 +499,7 @@ function AuthGate() {
 }
 
 function StackWithSplash() {
-  const {state} = useAuth()
+  useAuth();
 
   return (
     <>
@@ -519,7 +520,7 @@ function StackWithSplash() {
 
 export default function RootLayout() {
   // Load Manrope font family from Google Fonts
-  const [fontsLoaded] = useFonts({
+  useFonts({
     Manrope_400Regular,
     Manrope_600SemiBold,
     Manrope_700Bold,
