@@ -9,9 +9,11 @@ import {
 
 describe('aiModels config', () => {
   describe('getModelForTask', () => {
-    it('returns budget model for simple tasks', () => {
-      expect(getModelForTask('voice-transcription')).toBe(BUDGET_MODEL);
-      expect(getModelForTask('simple-extraction')).toBe(BUDGET_MODEL);
+    // Client config always returns gemini-2.5-flash (DEFAULT_MODEL === BUDGET_MODEL);
+    // edge functions perform real provider routing via AI_PROVIDER / AI_TASK_* env vars.
+    it('returns default model for simple tasks', () => {
+      expect(getModelForTask('voice-transcription')).toBe(DEFAULT_MODEL);
+      expect(getModelForTask('simple-extraction')).toBe(DEFAULT_MODEL);
     });
 
     it('returns default model for standard tasks', () => {
@@ -19,13 +21,18 @@ describe('aiModels config', () => {
       expect(getModelForTask('session-planning')).toBe(DEFAULT_MODEL);
     });
 
-    it('returns premium model for complex tasks', () => {
-      expect(getModelForTask('multi-step-reasoning')).toBe(PREMIUM_MODEL);
-      expect(getModelForTask('code-generation')).toBe(PREMIUM_MODEL);
+    it('returns default model for complex tasks (client routing is flat)', () => {
+      expect(getModelForTask('multi-step-reasoning')).toBe(DEFAULT_MODEL);
+      expect(getModelForTask('code-generation')).toBe(DEFAULT_MODEL);
     });
 
     it('falls back to default model for unknown tasks', () => {
       expect(getModelForTask('unknown-task-type')).toBe(DEFAULT_MODEL);
+    });
+
+    it('exposes a premium tier model id distinct from default', () => {
+      expect(PREMIUM_MODEL).not.toBe(DEFAULT_MODEL);
+      expect(BUDGET_MODEL).toBe(DEFAULT_MODEL);
     });
   });
 
@@ -48,9 +55,11 @@ describe('aiModels config', () => {
       expect(cost).toBe(0);
     });
 
-    it('calculates positive cost for known models', () => {
-      const cost = estimateCost(DEFAULT_MODEL, 1000, 1000);
-      expect(cost).toBeGreaterThan(0);
+    it('calculates non-negative cost for known models', () => {
+      // DEFAULT_MODEL is gemini-2.5-flash which is free tier (cost === 0).
+      // Premium tier returns a positive cost.
+      expect(estimateCost(DEFAULT_MODEL, 1000, 1000)).toBe(0);
+      expect(estimateCost(PREMIUM_MODEL, 1000, 1000)).toBeGreaterThan(0);
     });
   });
 });

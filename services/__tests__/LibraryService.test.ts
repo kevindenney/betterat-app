@@ -12,8 +12,19 @@ jest.mock('@/lib/utils/logger', () => ({
   }),
 }));
 
+// jest.mock() calls above must be hoisted before these imports; disable
+// import/first so the mock declarations stay at the top of the file.
+/* eslint-disable import/first */
 import { supabase } from '../supabase';
-import { mockSupabaseResponse, mockSupabaseError } from '../../test/helpers/supabaseMock';
+import * as LibraryServiceModule from '../LibraryService';
+import { mockSupabaseResponse } from '../../test/helpers/supabaseMock';
+/* eslint-enable import/first */
+
+const {
+  getUserLibrary,
+  markLessonCompleted,
+  getResources,
+} = LibraryServiceModule;
 
 const fromMock = supabase.from as jest.Mock;
 
@@ -41,7 +52,6 @@ describe('LibraryService', () => {
       const builder = chainBuilder(mockSupabaseResponse(existing));
       fromMock.mockReturnValue(builder);
 
-      const { getUserLibrary } = require('../LibraryService');
       const result = await getUserLibrary('u1', 'i1');
 
       expect(result).toEqual(existing);
@@ -62,12 +72,13 @@ describe('LibraryService', () => {
         return callCount === 1 ? findBuilder : createBuilder;
       });
 
-      const { getUserLibrary } = require('../LibraryService');
       const result = await getUserLibrary('u1', 'i1');
 
       expect(result).toEqual(created);
       expect(createBuilder.insert).toHaveBeenCalledWith(
-        expect.objectContaining({ user_id: 'u1', interest_id: 'i1', name: 'My Library' }),
+        // LibraryService is a compat shim over the renamed Playbook tables;
+        // default library name is now "My Playbook".
+        expect.objectContaining({ user_id: 'u1', interest_id: 'i1', name: 'My Playbook' }),
       );
     });
   });
@@ -100,7 +111,6 @@ describe('LibraryService', () => {
         return callCount === 1 ? fetchBuilder : updateBuilder;
       });
 
-      const { markLessonCompleted } = require('../LibraryService');
       await markLessonCompleted('res-1', 'lesson-2');
 
       const updateArg = updateBuilder.update.mock.calls[0][0];
@@ -123,7 +133,6 @@ describe('LibraryService', () => {
         return callCount === 1 ? fetchBuilder : updateBuilder;
       });
 
-      const { markLessonCompleted } = require('../LibraryService');
       await markLessonCompleted('res-1', 'lesson-1');
 
       const updateArg = updateBuilder.update.mock.calls[0][0];
@@ -138,11 +147,11 @@ describe('LibraryService', () => {
       const builder = chainBuilder(mockSupabaseResponse(resources));
       fromMock.mockReturnValue(builder);
 
-      const { getResources } = require('../LibraryService');
       const result = await getResources('lib-1');
 
       expect(result).toEqual(resources);
-      expect(builder.eq).toHaveBeenCalledWith('library_id', 'lib-1');
+      // Column was renamed library_id → playbook_id; LibraryService is a shim.
+      expect(builder.eq).toHaveBeenCalledWith('playbook_id', 'lib-1');
     });
 
     it('applies resource_type filter when provided', async () => {
@@ -150,12 +159,11 @@ describe('LibraryService', () => {
       const builder = chainBuilder(mockSupabaseResponse(resources));
       fromMock.mockReturnValue(builder);
 
-      const { getResources } = require('../LibraryService');
       await getResources('lib-1', { resourceType: 'book' });
 
-      // eq should be called for library_id AND resource_type
+      // eq should be called for playbook_id AND resource_type
       const eqCalls = builder.eq.mock.calls;
-      expect(eqCalls).toContainEqual(['library_id', 'lib-1']);
+      expect(eqCalls).toContainEqual(['playbook_id', 'lib-1']);
       expect(eqCalls).toContainEqual(['resource_type', 'book']);
     });
   });

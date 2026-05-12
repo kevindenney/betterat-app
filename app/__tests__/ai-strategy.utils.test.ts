@@ -3,7 +3,7 @@ import {
   deriveStrategySummary,
   isDocumentSelectionCancelled,
   normalizeStrategyUploadError,
-} from '@/app/ai-strategy.utils';
+} from '@/lib/ai-strategy.utils';
 import type { RaceStrategy } from '@/services/aiService';
 
 describe('ai-strategy upload utils', () => {
@@ -14,7 +14,13 @@ describe('ai-strategy upload utils', () => {
   });
 
   it('normalizes upload error messages with fallback', () => {
-    expect(normalizeStrategyUploadError({ message: ' Network issue ' })).toBe('Network issue');
+    // Messages mentioning "network" get expanded to a connectivity hint.
+    expect(normalizeStrategyUploadError({ message: ' Network issue ' })).toBe(
+      'Network issue while generating strategy. Check your connection and retry.'
+    );
+    expect(normalizeStrategyUploadError({ message: ' Some other error ' })).toBe(
+      'Some other error'
+    );
     expect(normalizeStrategyUploadError({ message: '' })).toBe(
       'Unable to generate strategy from this document.'
     );

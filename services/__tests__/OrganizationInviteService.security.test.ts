@@ -3,11 +3,18 @@ import path from 'path';
 
 const mockFrom = jest.fn();
 const mockRpc = jest.fn();
+const mockGetUser = jest.fn().mockResolvedValue({
+  data: { user: { id: 'user-test', email: 'tester@example.com' } },
+  error: null,
+});
 
 jest.mock('../supabase', () => ({
   supabase: {
     from: (...args: unknown[]) => mockFrom(...args),
     rpc: (...args: unknown[]) => mockRpc(...args),
+    auth: {
+      getUser: (...args: unknown[]) => mockGetUser(...args),
+    },
   },
 }));
 

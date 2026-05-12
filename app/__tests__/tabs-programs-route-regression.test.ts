@@ -24,7 +24,8 @@ describe('tabs programs route regression', () => {
 
     expect(layoutSource).toContain('name="programs"');
     expect(layoutSource).toContain('name="race-management"');
-    expect(layoutSource).toContain("href: isTabVisible('programs') ? undefined : null");
-    expect(layoutSource).toContain("href: isTabVisible('race-management') ? undefined : null");
+    // After f0f35634 visibility is gated via tabBarButton, not href.
+    expect(layoutSource).toContain("tabBarButton: !isTabVisible('programs')");
+    expect(layoutSource).toContain("tabBarButton: !isTabVisible('race-management')");
   });
 });

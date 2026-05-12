@@ -28,9 +28,11 @@ describe('coach retention cron contract', () => {
     expect(source).toContain('skippedInvalidWeeklyRecaps');
   });
 
-  it('registers coach retention cron schedule in vercel config', () => {
+  it('keeps coach retention cron endpoint unregistered in vercel.json (cost optimization)', () => {
+    // Intentionally removed in 9c9d0bae after the endpoint returned 401 on
+    // every invocation (~2k wasted calls/month). Re-registering requires
+    // proving the auth path works first; this guard documents the decision.
     const source = readFile('vercel.json');
-    expect(source).toContain('/api/cron/coach-retention-loop');
-    expect(source).toContain('"0 13 * * *"');
+    expect(source).not.toContain('/api/cron/coach-retention-loop');
   });
 });

@@ -14,7 +14,8 @@ describe('QA matrix automation hook contracts', () => {
     expect(source).toContain('Invite required');
     expect(source).toContain('Use invite token');
     expect(source).toContain('Restricted');
-    expect(source).toContain('Recommended for your cohort');
+    // Cohort surface was simplified to a pill row labelled "Your cohort(s)".
+    expect(source).toContain('Your cohort');
     expect(source).toContain('Leave organization?');
   });
 
@@ -29,15 +30,17 @@ describe('QA matrix automation hook contracts', () => {
     expect(source).toContain("setSortOption('role')");
   });
 
-  it('keeps cohort and template authoring cues available', () => {
+  it('keeps cohort and blueprint authoring cues available', () => {
     const cohortsSource = read('app/organization/cohorts.tsx');
     const cohortDetailSource = read('app/organization/cohort/[cohortId].tsx');
-    const templatesSource = read('app/organization/templates.tsx');
+    // Route is still /organization/templates for back-compat; screen is now
+    // the Blueprints management surface (templates.tsx header comment).
+    const blueprintsSource = read('app/organization/templates.tsx');
 
     expect(cohortsSource).toContain('Create cohort');
     expect(cohortDetailSource).toContain('Add members');
-    expect(templatesSource).toContain('Save template');
-    expect(templatesSource).toContain('Assign to cohorts');
-    expect(templatesSource).toContain('Using organization context:');
+    expect(blueprintsSource).toContain('Generate blueprint');
+    expect(blueprintsSource).toContain('New blueprint');
+    expect(blueprintsSource).toContain('Create empty blueprint');
   });
 });

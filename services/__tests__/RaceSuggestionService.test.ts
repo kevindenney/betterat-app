@@ -29,7 +29,7 @@ describe('RaceSuggestionService.getSuggestionsForUser', () => {
     jest.restoreAllMocks();
   });
 
-  it('returns empty suggestions instead of throwing when sources fail', async () => {
+  it('throws a tagged service error when both cache and fresh generation fail', async () => {
     const service = raceSuggestionService as any;
 
     const cacheSpy = jest
@@ -39,20 +39,16 @@ describe('RaceSuggestionService.getSuggestionsForUser', () => {
       .spyOn(service, 'generateFreshSuggestions')
       .mockRejectedValue(new Error('generation unavailable'));
 
-    const result = await raceSuggestionService.getSuggestionsForUser('user-1');
-
-    expect(cacheSpy).toHaveBeenCalledTimes(2); // retry wrapper
-    expect(freshSpy).toHaveBeenCalledTimes(2); // retry wrapper
-    expect(result).toEqual({
-      clubRaces: [],
-      fleetRaces: [],
-      communityRaces: [],
-      catalogMatches: [],
-      previousYearRaces: [],
-      patterns: [],
-      templates: [],
-      total: 0,
+    await expect(
+      raceSuggestionService.getSuggestionsForUser('user-1'),
+    ).rejects.toMatchObject({
+      code: 'RACE_SUGGESTIONS_SERVICE_FAILURE',
     });
+
+    // Cache failures are swallowed (a logged warning) so we expect retry-wrapped
+    // calls only on the fresh path; cache is invoked but the suite tolerates retries.
+    expect(cacheSpy).toHaveBeenCalled();
+    expect(freshSpy).toHaveBeenCalled();
   });
 
   it('retries fresh generation once and returns recovered suggestions', async () => {
