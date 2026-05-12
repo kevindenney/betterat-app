@@ -116,6 +116,20 @@ type AuthCtx = {
   signOut: () => Promise<void>
   signInWithGoogle: (persona?: PersonaRole) => Promise<void>
   signInWithApple: (persona?: PersonaRole) => Promise<void>
+  /**
+   * Request an SMS OTP for the given E.164 phone number. Used by the
+   * dev-context phone-first onboarding entry (see plan §4 Step 5).
+   * Throws on Supabase errors (network, rate limit, invalid number).
+   */
+  sendPhoneOtp: (phone: string) => Promise<void>
+  /**
+   * Verify an SMS OTP code. On success the Supabase session is set, which
+   * triggers onAuthStateChange to populate user/profile state. Callers can
+   * then complete name + interest entry. Returns true when a new account
+   * was just created so the caller can show name-entry; false when the
+   * phone was already linked to a profile.
+   */
+  verifyPhoneOtp: (phone: string, code: string) => Promise<{ isNewUser: boolean }>
   enterGuestMode: () => void
   /** True if user was authenticated at some point in this session (helps detect token expiry vs. fresh visit) */
   wasAuthenticated: boolean
@@ -148,6 +162,8 @@ const Ctx = createContext<AuthCtx>({
   signOut: async () => {},
   signInWithGoogle: async () => {},
   signInWithApple: async () => {},
+  sendPhoneOtp: async () => {},
+  verifyPhoneOtp: async () => ({ isNewUser: false }),
   enterGuestMode: () => {},
   wasAuthenticated: false,
   biometricAvailable: false,
@@ -1019,6 +1035,92 @@ export function AuthProvider({children}:{children: React.ReactNode}) {
     // Note: Don't set loading(false) in finally - let onAuthStateChange handle it
   }
 
+  // ---------------------------------------------------------------------------
+  // Phone + OTP (plan §4 Step 5 — dev-context onboarding)
+  //
+  // Supabase ships the rate limiter + country allow-list server-side; we only
+  // surface a couple of normalization conveniences here:
+  //   - trim whitespace
+  //   - require leading "+" so callers don't accidentally send domestic-format
+  //     numbers (Supabase requires E.164).
+  // ---------------------------------------------------------------------------
+
+  function normalizePhone(input: string): string {
+    const trimmed = input.trim().replace(/[\s\-()]/g, '')
+    if (!trimmed) throw new Error('Phone number is required')
+    if (!trimmed.startsWith('+')) {
+      throw new Error('Phone must be E.164 format (e.g. +919812345678)')
+    }
+    if (!/^\+\d{6,16}$/.test(trimmed)) {
+      throw new Error('Invalid phone number format')
+    }
+    return trimmed
+  }
+
+  const sendPhoneOtp = async (phone: string) => {
+    const normalized = normalizePhone(phone)
+    setLoading(true)
+    try {
+      const { error } = await supabase.auth.signInWithOtp({
+        phone: normalized,
+        // shouldCreateUser:true is the default; making it explicit so future
+        // readers don't wonder. This is also what allows the
+        // dev-context-first onboarding entry: a brand-new phone owns a row.
+        options: { shouldCreateUser: true },
+      })
+      if (error) throw error
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const verifyPhoneOtp = async (
+    phone: string,
+    code: string,
+  ): Promise<{ isNewUser: boolean }> => {
+    const normalized = normalizePhone(phone)
+    const trimmedCode = code.trim()
+    if (!/^\d{4,8}$/.test(trimmedCode)) {
+      throw new Error('OTP code must be 4–8 digits')
+    }
+
+    setLoading(true)
+    try {
+      const { data, error } = await supabase.auth.verifyOtp({
+        phone: normalized,
+        token: trimmedCode,
+        type: 'sms',
+      })
+      if (error) throw error
+
+      const verifiedUser = data?.user
+      if (!verifiedUser?.id) {
+        throw new Error('OTP verified but session is missing user')
+      }
+
+      // Detect "new user" by checking whether a `users` row already exists.
+      // `created_at === last_sign_in_at` on the auth user is a reasonable
+      // signal too, but a profile lookup is the source of truth and lets
+      // the screen branch on "ask for name + interest" vs. "drop into
+      // timeline."
+      const { data: existingProfile } = await supabase
+        .from('users')
+        .select('id, full_name, onboarding_completed')
+        .eq('id', verifiedUser.id)
+        .maybeSingle()
+
+      setUser(verifiedUser)
+      setSignedIn(true)
+
+      const isNewUser = !existingProfile || !existingProfile.onboarding_completed
+      return { isNewUser }
+    } catch (error) {
+      setLoading(false)
+      throw error
+    }
+    // Don't clear loading on success — let onAuthStateChange settle it.
+  }
+
   const signOut = async () => {
     // Clear saved tab and view state so next login starts fresh
     clearLastTab();
@@ -1565,6 +1667,8 @@ export function AuthProvider({children}:{children: React.ReactNode}) {
       signOut,
       signInWithGoogle,
       signInWithApple,
+      sendPhoneOtp,
+      verifyPhoneOtp,
       enterGuestMode,
       wasAuthenticated: wasAuthenticatedRef.current,
       biometricAvailable: false,

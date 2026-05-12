@@ -347,6 +347,21 @@ export default function Login() {
                 </TouchableOpacity>
               )
             )}
+
+            {/* Phone + OTP — dev-context entry (plan §4 Step 5). Kept in the
+                social-buttons cluster so it visually sits with the
+                no-password options. */}
+            <TouchableOpacity
+              testID="login-phone-button"
+              accessibilityRole="button"
+              accessibilityLabel="phone-sign-in"
+              onPress={() => router.push('/(auth)/phone' as any)}
+              disabled={loading}
+              style={[styles.socialButton, loading && styles.buttonDisabled]}
+            >
+              <Ionicons name="call-outline" size={18} color="#1A1918" />
+              <Text style={styles.socialButtonText}>Continue with phone</Text>
+            </TouchableOpacity>
           </View>
 
           <View style={styles.dividerRow}>

@@ -438,6 +438,18 @@ export default function SignUp() {
                 </TouchableOpacity>
               )
             )}
+
+            {/* Phone + OTP — dev-context entry (plan §4 Step 5). */}
+            <TouchableOpacity
+              testID="signup-phone-button"
+              accessibilityRole="button"
+              style={[styles.socialButton, isLoading && styles.buttonDisabled]}
+              onPress={() => router.push('/(auth)/phone' as any)}
+              disabled={isLoading}
+            >
+              <Ionicons name="call-outline" size={18} color="#1A1918" />
+              <Text style={styles.socialButtonText}>Continue with phone</Text>
+            </TouchableOpacity>
           </View>
 
           {/* Divider */}
