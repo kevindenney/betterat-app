@@ -63,6 +63,142 @@ function tzOffsetMinutes(tz: string, at: Date): number {
   return Math.round((asUTC - at.getTime()) / 60000);
 }
 
+// ---------------------------------------------------------------------------
+// Step Arch B — write-side helpers
+// ---------------------------------------------------------------------------
+
+/**
+ * Feature flags for the dual-write rollout (Step Arch B).
+ *
+ * Rollback path: flip either env var to 'false' in Vercel and redeploy (or use
+ * runtime env override). No code revert required, no schema revert required.
+ * See docs/audit/step-architecture-migration-plan.md §6 rollback plan.
+ *
+ *  - BOT_V2_SECTIONS_ENABLED       — controls log_debrief sections[] dual-write
+ *  - BOT_RECENT_ACTIVITY_ENABLED   — controls step_recent_activity hook
+ */
+function isV2SectionsEnabled(): boolean {
+  return (process.env.BOT_V2_SECTIONS_ENABLED ?? 'true').toLowerCase() !== 'false';
+}
+
+function isRecentActivityEnabled(): boolean {
+  return (process.env.BOT_RECENT_ACTIVITY_ENABLED ?? 'true').toLowerCase() !== 'false';
+}
+
+/**
+ * Canonical prompts (mirrored from lib/step/getReviewSections.ts to avoid
+ * the bot package pulling in client deps via the @/types/step-detail chain).
+ * Source of truth: the selector. If you add a prompt there, add it here too.
+ */
+const REVIEW_PROMPTS = [
+  'what_happened',
+  'what_worked',
+  'what_didnt',
+  'what_did_you_learn',
+  'anything_else',
+] as const;
+
+type ReviewSectionPrompt = (typeof REVIEW_PROMPTS)[number];
+
+/**
+ * v1 flat-field → v2 section prompt mapping. Locked per D6:
+ * `next_step_notes` folds into `anything_else`. Mirrors the selector.
+ */
+const LEGACY_FIELD_TO_PROMPT: Record<string, ReviewSectionPrompt> = {
+  what_learned: 'what_did_you_learn',
+  deviation_reason: 'what_didnt',
+  next_step_notes: 'anything_else',
+};
+
+interface ReviewSectionV2 {
+  prompt: ReviewSectionPrompt;
+  content: string;
+  source: 'telegram';
+  captured_at: string;
+  /** Stable hash of (prompt, content) used for idempotent dedupe. */
+  digest: string;
+}
+
+function sectionDigest(prompt: string, content: string): string {
+  // Cheap non-crypto fingerprint — adequate for "did we already write this
+  // exact entry in this same tool call?" dedupe. Not used as a primary key.
+  let h = 5381;
+  const s = `${prompt}|${content.trim()}`;
+  for (let i = 0; i < s.length; i++) h = ((h << 5) + h) ^ s.charCodeAt(i);
+  return (h >>> 0).toString(16);
+}
+
+/**
+ * Append `additions` into the existing `metadata.review.sections[]` array,
+ * skipping any whose (prompt, content) digest already exists. Never throws.
+ */
+function mergeReviewSections(
+  existing: unknown,
+  additions: ReviewSectionV2[],
+): ReviewSectionV2[] {
+  const prior = Array.isArray(existing) ? (existing as Record<string, unknown>[]) : [];
+  const priorDigests = new Set<string>(
+    prior
+      .map((s) => {
+        const p = typeof s?.prompt === 'string' ? s.prompt : '';
+        const c = typeof s?.content === 'string' ? s.content : '';
+        return p && c ? sectionDigest(p, c) : null;
+      })
+      .filter((x): x is string => x !== null),
+  );
+  const out: ReviewSectionV2[] = prior as unknown as ReviewSectionV2[];
+  for (const a of additions) {
+    if (priorDigests.has(a.digest)) continue;
+    out.push(a);
+    priorDigests.add(a.digest);
+  }
+  return out;
+}
+
+/**
+ * Fire-and-forget: UPSERT into step_recent_activity via SECURITY DEFINER RPC.
+ * Errors are logged but never surface to the tool result — recency tracking
+ * must never break a tool call.
+ */
+async function markStepActive(
+  supabase: SupabaseClient,
+  stepId: string,
+  source: 'telegram',
+): Promise<void> {
+  if (!isRecentActivityEnabled()) return;
+  try {
+    const { error } = await supabase.rpc('mark_step_active', {
+      p_step_id: stepId,
+      p_source: source,
+    });
+    if (error) {
+      console.warn(`[telegram] mark_step_active(${stepId}) failed:`, error.message);
+    }
+  } catch (err) {
+    console.warn(`[telegram] mark_step_active(${stepId}) threw:`, err);
+  }
+}
+
+/**
+ * Extract a step_id to mark as recently active from a tool call.
+ * Returns the first of:
+ *   1. `input.step_id` (12 of 13 step-touching tools)
+ *   2. `result.step.id` for `create_step` (no input step_id)
+ * Returns null for tools that don't touch a step.
+ */
+function extractStepIdForActivity(
+  toolName: string,
+  input: Record<string, unknown>,
+  result: unknown,
+): string | null {
+  if (typeof input?.step_id === 'string' && input.step_id) return input.step_id;
+  if (toolName === 'create_step') {
+    const step = (result as { step?: { id?: unknown } } | null)?.step;
+    if (step && typeof step.id === 'string') return step.id;
+  }
+  return null;
+}
+
 async function resolveInterestId(
   supabase: SupabaseClient,
   ref: string,
@@ -1660,6 +1796,13 @@ const TOOLS: TelegramToolDef[] = [
       what_to_change: z.string().optional().describe('What the user would do differently next time, or what didn\'t work.'),
       next_step_notes: z.string().optional().describe('Focus area or specific intent for the next session, if the user mentioned one.'),
       overall_rating: z.number().int().min(1).max(5).optional().describe('1-5 self-rating ONLY if the user explicitly stated one — never invent.'),
+      // v2 sections[] shape — accepted but the legacy flat-field path remains
+      // canonical until the system prompt is updated in a later PR. See
+      // docs/audit/step-architecture-migration-plan.md §4 Step B.
+      sections: z.array(z.object({
+        prompt: z.enum(REVIEW_PROMPTS).describe('Canonical prompt key.'),
+        content: z.string().min(1).describe('User-authored response for this prompt.'),
+      })).optional().describe('OPTIONAL v2 shape. If provided, each entry is written to metadata.review.sections[] tagged source: \"telegram\". Prefer the flat fields above for now — the system prompt has not been updated to emit this shape yet.'),
     }),
     requiresWrite: true,
     handler: async (
@@ -1703,6 +1846,68 @@ const TOOLS: TelegramToolDef[] = [
         reviewUpdates.overall_rating = input.overall_rating;
       }
 
+      // ---- Step Arch B: dual-write into metadata.review.sections[] -----------
+      //
+      // Two paths converge here:
+      //   1. `input.sections` provided (v2 shape) — write each entry directly.
+      //   2. Flat fields provided (current bot behavior) — synthesize equivalent
+      //      sections[] entries via LEGACY_FIELD_TO_PROMPT mapping.
+      //
+      // Both paths produce identical row shapes so the read-side selector
+      // can't tell them apart. Idempotent on re-call (digest-based dedupe).
+      // Feature-flagged via BOT_V2_SECTIONS_ENABLED.
+      let v2Wrote = 0;
+      if (isV2SectionsEnabled()) {
+        const capturedAt = new Date().toISOString();
+        const v2Additions: ReviewSectionV2[] = [];
+
+        if (Array.isArray(input.sections)) {
+          for (const raw of input.sections as { prompt?: unknown; content?: unknown }[]) {
+            const prompt = typeof raw?.prompt === 'string' ? (raw.prompt as ReviewSectionPrompt) : null;
+            const content = typeof raw?.content === 'string' ? raw.content.trim() : '';
+            if (!prompt || !content) continue;
+            if (!(REVIEW_PROMPTS as readonly string[]).includes(prompt)) continue;
+            v2Additions.push({
+              prompt,
+              content,
+              source: 'telegram',
+              captured_at: capturedAt,
+              digest: sectionDigest(prompt, content),
+            });
+          }
+        }
+
+        // Back-compat: synthesize from flat fields whenever the model emits the
+        // current shape. Keeps v2 row population live before the prompt update.
+        const flatInputs: [string, unknown][] = [
+          ['what_learned', input.what_learned],
+          ['deviation_reason', input.what_to_change],
+          ['next_step_notes', input.next_step_notes],
+        ];
+        for (const [field, value] of flatInputs) {
+          if (typeof value !== 'string' || !value.trim()) continue;
+          const prompt = LEGACY_FIELD_TO_PROMPT[field];
+          if (!prompt) continue;
+          const content = value.trim();
+          v2Additions.push({
+            prompt,
+            content,
+            source: 'telegram',
+            captured_at: capturedAt,
+            digest: sectionDigest(prompt, content),
+          });
+        }
+
+        if (v2Additions.length > 0) {
+          const merged = mergeReviewSections(review.sections, v2Additions);
+          v2Wrote = merged.length - (Array.isArray(review.sections) ? review.sections.length : 0);
+          reviewUpdates.sections = merged;
+          // composed_at = first-write timestamp; composed_via = source of latest write.
+          if (typeof review.composed_at !== 'string') reviewUpdates.composed_at = capturedAt;
+          reviewUpdates.composed_via = 'telegram';
+        }
+      }
+
       const { error: updateError } = await supabase
         .from('timeline_steps')
         .update({
@@ -1725,6 +1930,7 @@ const TOOLS: TelegramToolDef[] = [
           what_to_change: typeof input.what_to_change === 'string',
           next_step_notes: typeof input.next_step_notes === 'string',
           overall_rating: typeof input.overall_rating === 'number',
+          sections_added: v2Wrote,
         },
       };
     },
@@ -2123,6 +2329,19 @@ export async function executeTool(
 
   try {
     const result = await tool.handler(input, supabase, auth);
+
+    // Step Arch B: mark the touched step as recently active. Central hook —
+    // fire-and-forget, never blocks the tool result. Only marks on success
+    // (handler may return {error: ...} which is still a "success" wrt the
+    // try/catch but we treat it as a no-touch).
+    if (!(result && typeof result === 'object' && 'error' in (result as object))) {
+      const stepId = extractStepIdForActivity(name, input, result);
+      if (stepId) {
+        // Intentionally not awaited — recency is best-effort.
+        void markStepActive(supabase, stepId, 'telegram');
+      }
+    }
+
     return JSON.stringify(result, null, 2);
   } catch (error) {
     console.error(`Tool execution error (${name}):`, error);
