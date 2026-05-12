@@ -229,7 +229,7 @@ const [interestSectionY, setInterestSectionY] = useState<number>(0);
     } finally {
       setUsernameSaving(false);
     }
-  }, [usernameDraft, username, user?.id]);
+  }, [usernameDraft, username, user]);
 
   // Inline profile save handler
   const handleProfileSave = useCallback(async (updates: ProfileUpdates) => {
@@ -333,7 +333,7 @@ const [interestSectionY, setInterestSectionY] = useState<number>(0);
           <View style={styles.dragHandle} />
           <View style={styles.headerRow}>
             <View style={{ flex: 1 }} />
-            <Text style={styles.headerTitle}>Account</Text>
+            <Text style={styles.headerTitle} testID="account-modal-title">Account</Text>
             <View style={{ flex: 1, alignItems: 'flex-end' }}>
               <TouchableOpacity onPress={handleDone} hitSlop={8}>
                 <Text style={styles.doneButton}>Done</Text>
@@ -392,7 +392,7 @@ const [interestSectionY, setInterestSectionY] = useState<number>(0);
         <View style={styles.dragHandle} />
         <View style={styles.headerRow}>
           <View style={{ flex: 1 }} />
-          <Text style={styles.headerTitle}>Account</Text>
+          <Text style={styles.headerTitle} testID="account-modal-title">Account</Text>
           <View style={{ flex: 1, alignItems: 'flex-end' }}>
             <TouchableOpacity onPress={handleDone} hitSlop={8}>
               <Text style={styles.doneButton}>Done</Text>

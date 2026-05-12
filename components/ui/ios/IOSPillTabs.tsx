@@ -77,6 +77,7 @@ function PillTab<T extends string>({
 
   return (
     <AnimatedPressable
+      testID={`pill-tab-${tab.value}`}
       style={[
         styles.pill,
         compact && styles.pillCompact,
@@ -160,7 +161,7 @@ export function IOSPillTabs<T extends string>({
 
   const TabsContent = (
     <View style={styles.tabsRow}>
-      {tabs.map((tab, index) => (
+      {tabs.map((tab) => (
         <PillTab
           key={tab.value}
           tab={tab}

@@ -1,0 +1,101 @@
+# After-tab persistence (Step Arch D verification)
+#
+# Verifies the canonical Step Arch D outcome: text typed into the
+# "What did you learn?" prompt on the After tab persists across an
+# app reload, written through the legacy flat-field path
+# (metadata.review.what_learned) and rendered back via the
+# getReviewSections selector.
+#
+# Preconditions:
+#   - demo-sailor signed in on the device (run sign-in.yaml first
+#     if needed)
+#   - STEP_ID env var = a real timeline_steps.id owned by demo-sailor
+#
+# What it does:
+#   1. Deep-link into the step detail screen.
+#   2. Switch to the After (review) tab via the pill-tab testID.
+#   3. Type a sentinel string into the what_did_you_learn input.
+#   4. Wait past the 600 ms debounce so updateMetadata fires.
+#   5. Kill + relaunch the app, deep-link back to the same step.
+#   6. Switch to After tab and assert the sentinel survived.
+appId: com.betterat.app
+tags:
+  - step
+  - critical
+  - regression
+env:
+  STEP_ID: ${STEP_ID}
+  SENTINEL: "MAESTRO E2E sentinel"
+---
+
+# --- Part 1: write the sentinel ---
+- launchApp
+- extendedWaitUntil:
+    visible: ".*"
+    timeout: 30000
+
+# Dismiss Expo dev launcher if present (no-op in release builds)
+- tapOn:
+    text: "BetterAt"
+    optional: true
+- tapOn:
+    text: "http://localhost:8081"
+    optional: true
+
+- openLink: "betterat://step/${STEP_ID}"
+- extendedWaitUntil:
+    visible:
+      id: "pill-tab-review"
+    timeout: 15000
+
+- tapOn:
+    id: "pill-tab-review"
+
+# Find the what_did_you_learn prompt input. The component renders 3
+# editable prompts (what_didnt, what_did_you_learn, anything_else);
+# we target the middle one which maps to flat field what_learned.
+- extendedWaitUntil:
+    visible:
+      id: "review-prompt-input-what_did_you_learn"
+    timeout: 10000
+- tapOn:
+    id: "review-prompt-input-what_did_you_learn"
+- eraseText
+- inputText: ${SENTINEL}
+
+# Hide keyboard so the autosave label is visible
+- hideKeyboard
+
+# Wait past the 600 ms debounce + network round-trip
+- waitForAnimationToEnd:
+    timeout: 3000
+
+# Confirm save happened
+- assertVisible: "Saved just now"
+
+# --- Part 2: reload and verify persistence ---
+- stopApp
+- launchApp
+- extendedWaitUntil:
+    visible: ".*"
+    timeout: 30000
+
+- tapOn:
+    text: "BetterAt"
+    optional: true
+- tapOn:
+    text: "http://localhost:8081"
+    optional: true
+
+- openLink: "betterat://step/${STEP_ID}"
+- extendedWaitUntil:
+    visible:
+      id: "pill-tab-review"
+    timeout: 15000
+- tapOn:
+    id: "pill-tab-review"
+
+- extendedWaitUntil:
+    visible: ${SENTINEL}
+    timeout: 10000
+- assertVisible: ${SENTINEL}

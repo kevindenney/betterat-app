@@ -89,6 +89,7 @@ function CapturedCard({ section }: { section: NormalizedReviewSection }) {
 }
 
 export function ReviewPromptSection({
+  prompt,
   label,
   sections,
   icon,
@@ -98,7 +99,7 @@ export function ReviewPromptSection({
   if (sections.length === 0 && !editable) return null;
 
   return (
-    <View style={s.wrap}>
+    <View style={s.wrap} testID={`review-prompt-${prompt}`}>
       <View style={s.header}>
         {icon ? <Ionicons name={icon.name} size={18} color={icon.color} /> : null}
         <Text style={s.title}>{label}</Text>
@@ -108,6 +109,7 @@ export function ReviewPromptSection({
       ))}
       {editable ? (
         <TextInput
+          testID={`review-prompt-input-${prompt}`}
           style={s.input}
           value={editable.value}
           onChangeText={editable.editable ? editable.onChange : undefined}
