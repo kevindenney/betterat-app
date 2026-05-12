@@ -2,10 +2,9 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { waitUntil } from '@vercel/functions';
 import crypto from 'node:crypto';
-import Anthropic from '@anthropic-ai/sdk';
+import type Anthropic from '@anthropic-ai/sdk';
 import { sendText, sendInteractive, markRead, downloadMedia } from '../../lib/whatsapp/client';
 import { buildButtonPayload } from '../../lib/whatsapp/formatting';
-import { getAnthropicTools, executeTool } from '../../lib/telegram/tools';
 import { transcribeVoiceNote } from '../../lib/telegram/transcription';
 import {
   createSupabaseClient,
@@ -19,13 +18,13 @@ import {
 import {
   APP_URL,
   MAX_CONVERSATION_MESSAGES,
-  MAX_TOOL_ITERATIONS,
 } from '../../services/capture/types';
 import {
   parseButtonPayload,
   runButtonAction,
   statusLabel,
 } from '../../services/capture/actions';
+import { runConversationTurn } from '../../services/capture/conversation';
 
 // Bigger raw bodies for media-heavy webhooks; allow up to 120s for tool chains.
 export const maxDuration = 120;
@@ -445,7 +444,7 @@ async function handleMessage(
     }
   }
 
-  const messages: Anthropic.MessageParam[] = [
+  const initialMessages: Anthropic.MessageParam[] = [
     ...recentHistory.map(m => ({
       role: m.role as 'user' | 'assistant',
       content: m.content,
@@ -453,84 +452,20 @@ async function handleMessage(
     { role: 'user' as const, content: userContent },
   ];
 
-  // Call Claude with cached system + tools (same as Telegram)
-  const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-  const tools = getAnthropicTools();
-
-  const cachedSystem: Anthropic.TextBlockParam = {
-    type: 'text',
-    text: systemPrompt,
-    cache_control: { type: 'ephemeral' },
-  };
-  const cachedTools = tools.map((tool, i) =>
-    i === tools.length - 1
-      ? { ...tool, cache_control: { type: 'ephemeral' as const } }
-      : tool,
-  );
-
-  let response = await anthropic.messages.create({
-    model: 'claude-haiku-4-5-20251001',
-    max_tokens: 1024,
-    system: [cachedSystem],
-    tools: cachedTools,
-    messages,
-  });
-
-  // Tool loop
-  let iterations = 0;
-  const mentionedStepIds: { id: string; title: string }[] = [];
-
-  while (response.stop_reason === 'tool_use' && iterations < MAX_TOOL_ITERATIONS) {
-    iterations++;
-    const toolUseBlocks = response.content.filter(
-      (b): b is Anthropic.ContentBlockParam & { type: 'tool_use'; id: string; name: string; input: Record<string, unknown> } =>
-        b.type === 'tool_use',
-    );
-
-    const toolResults: Anthropic.ToolResultBlockParam[] = [];
-    for (const block of toolUseBlocks) {
-      console.warn(`[whatsapp] Tool call #${iterations}: ${block.name}`, JSON.stringify(block.input).slice(0, 200));
-      let toolInput = block.input;
-      if (block.name === 'attach_step_evidence' && uploadedPhotoUrl) {
-        toolInput = { ...block.input, photo_url: uploadedPhotoUrl };
+  // Run Claude tool-use loop via shared CaptureService
+  const { responseText, iterations, mentionedStepIds } = await runConversationTurn({
+    systemPrompt,
+    messages: initialMessages,
+    supabase,
+    auth,
+    channel: 'whatsapp',
+    uploadedPhotoUrl: uploadedPhotoUrl || undefined,
+    onProgress: async (iteration) => {
+      if (iteration === 2) {
+        await sendText(phone, '_Processing... this may take a moment._');
       }
-      const result = await executeTool(block.name, toolInput, supabase, auth);
-      toolResults.push({
-        type: 'tool_result',
-        tool_use_id: block.id,
-        content: result,
-      });
-      try {
-        const parsed = JSON.parse(result);
-        if (parsed.step?.id && parsed.step?.title) {
-          mentionedStepIds.push({ id: parsed.step.id, title: parsed.step.title });
-        } else if (parsed.step_id && parsed.step_title) {
-          mentionedStepIds.push({ id: parsed.step_id, title: parsed.step_title });
-        }
-      } catch { /* ignore */ }
-    }
-
-    messages.push({ role: 'assistant', content: response.content as Anthropic.ContentBlockParam[] });
-    messages.push({ role: 'user', content: toolResults });
-
-    if (iterations === 2) {
-      await sendText(phone, '_Processing... this may take a moment._');
-    }
-
-    response = await anthropic.messages.create({
-      model: 'claude-haiku-4-5-20251001',
-      max_tokens: 1024,
-      system: [cachedSystem],
-      tools: cachedTools,
-      messages,
-    });
-  }
-
-  // Extract final text
-  const textBlocks = response.content.filter(
-    (b): b is Anthropic.TextBlock => b.type === 'text',
-  );
-  const responseText = textBlocks.map(b => b.text).join('\n\n') || "I processed your request but don't have anything to say.";
+    },
+  });
 
   // For now: text-only responses. Interactive button mapping (Done/Start/Attach)
   // can be added by porting getToolResponseKeyboard to a WhatsApp-flavored

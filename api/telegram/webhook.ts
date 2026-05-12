@@ -1,9 +1,9 @@
 /* eslint-disable no-console -- Vercel function: console is the canonical logging path. */
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { waitUntil } from '@vercel/functions';
-import Anthropic from '@anthropic-ai/sdk';
+import type Anthropic from '@anthropic-ai/sdk';
 import { sendMessage, sendChatAction, answerCallbackQuery, downloadFile } from '../../lib/telegram/client';
-import { getAnthropicTools, executeTool, getToolResponseKeyboard } from '../../lib/telegram/tools';
+import { getToolResponseKeyboard } from '../../lib/telegram/tools';
 import { transcribeVoiceNote } from '../../lib/telegram/transcription';
 import type { InlineKeyboardButton } from '../../lib/telegram/formatting';
 import {
@@ -18,13 +18,13 @@ import {
 import {
   APP_URL,
   MAX_CONVERSATION_MESSAGES,
-  MAX_TOOL_ITERATIONS,
 } from '../../services/capture/types';
 import {
   parseButtonPayload,
   runButtonAction,
   statusLabel,
 } from '../../services/capture/actions';
+import { runConversationTurn } from '../../services/capture/conversation';
 
 // Allow up to 120s for multi-tool chains (debrief flow: 5+ tool calls with AI analysis)
 export const maxDuration = 120;
@@ -464,7 +464,7 @@ async function handleMessage(
     }
   }
 
-  const messages: Anthropic.MessageParam[] = [
+  const initialMessages: Anthropic.MessageParam[] = [
     ...recentHistory.map(m => ({
       role: m.role as 'user' | 'assistant',
       content: m.content,
@@ -472,107 +472,34 @@ async function handleMessage(
     { role: 'user' as const, content: userContent },
   ];
 
-  // --- Call Claude ---
-  const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-  const tools = getAnthropicTools();
-
-  // Mark system prompt and tools for prompt caching — saves ~90% on repeated input tokens
-  const cachedSystem: Anthropic.TextBlockParam = {
-    type: 'text',
-    text: systemPrompt,
-    cache_control: { type: 'ephemeral' },
-  };
-
-  const cachedTools = tools.map((tool, i) =>
-    i === tools.length - 1
-      ? { ...tool, cache_control: { type: 'ephemeral' as const } }
-      : tool,
-  );
-
-  let response = await anthropic.messages.create({
-    model: 'claude-haiku-4-5-20251001',
-    max_tokens: 1024,
-    system: [cachedSystem],
-    tools: cachedTools,
-    messages,
-  });
-
-  // --- Tool use loop ---
-  let iterations = 0;
+  // --- Run Claude tool-use loop via shared CaptureService ---
   let lastKeyboard: InlineKeyboardButton[][] | null = null;
-  const mentionedStepIds: { id: string; title: string }[] = []; // Track step IDs for conversation context
 
-  while (response.stop_reason === 'tool_use' && iterations < MAX_TOOL_ITERATIONS) {
-    iterations++;
-
-    const toolUseBlocks = response.content.filter(
-      (b): b is Anthropic.ContentBlockParam & { type: 'tool_use'; id: string; name: string; input: Record<string, unknown> } =>
-        b.type === 'tool_use',
-    );
-
-    const toolResults: Anthropic.ToolResultBlockParam[] = [];
-    for (const block of toolUseBlocks) {
-      console.log(`[telegram] Tool call #${iterations}: ${block.name}`, JSON.stringify(block.input).slice(0, 200));
-      // Inject photo_url for attach_step_evidence — Claude often omits this optional param
-      let toolInput = block.input;
-      if (block.name === 'attach_step_evidence' && uploadedPhotoUrl) {
-        toolInput = { ...block.input, photo_url: uploadedPhotoUrl };
-      }
-      const toolStart = Date.now();
-      const result = await executeTool(block.name, toolInput, supabase, auth);
-      console.log(`[telegram] Tool result (${Date.now() - toolStart}ms): ${block.name}`, result.slice(0, 300));
-      toolResults.push({
-        type: 'tool_result',
-        tool_use_id: block.id,
-        content: result,
-      });
-      // Extract step IDs from tool results for conversation context
-      try {
-        const parsed = JSON.parse(result);
-        if (parsed.step?.id && parsed.step?.title) {
-          mentionedStepIds.push({ id: parsed.step.id, title: parsed.step.title });
-        } else if (parsed.step_id && parsed.step_title) {
-          mentionedStepIds.push({ id: parsed.step_id, title: parsed.step_title });
-        }
-      } catch { /* ignore parse errors */ }
-      // Check if this tool result warrants inline buttons
-      // When a photo is pending, show "Attach to" buttons instead of Start/Done
-      const keyboard = getToolResponseKeyboard(block.name, result, hasPhoto);
+  const { responseText, iterations, mentionedStepIds } = await runConversationTurn({
+    systemPrompt,
+    messages: initialMessages,
+    supabase,
+    auth,
+    channel: 'telegram',
+    uploadedPhotoUrl: uploadedPhotoUrl || undefined,
+    onToolResult: (toolName, rawResult) => {
+      // Telegram-only: inline-keyboard hints. When a photo is pending, show
+      // "Attach to" buttons instead of Start/Done.
+      const keyboard = getToolResponseKeyboard(toolName, rawResult, hasPhoto);
       if (keyboard !== null) {
         // Empty array = explicitly clear keyboard (e.g. after successful attachment)
         lastKeyboard = keyboard.length > 0 ? keyboard : null;
       }
-    }
-
-    messages.push({ role: 'assistant', content: response.content as Anthropic.ContentBlockParam[] });
-    messages.push({ role: 'user', content: toolResults });
-
-    // After 2nd tool call, send a progress message so user knows we're working
-    if (iterations === 2) {
-      await sendMessage(chatId, '_Processing... this may take a moment._');
-    } else {
-      await sendChatAction(chatId, 'typing');
-    }
-
-    console.log(`[telegram] Calling Claude iteration ${iterations + 1}...`);
-    const claudeStart = Date.now();
-    response = await anthropic.messages.create({
-      model: 'claude-haiku-4-5-20251001',
-      max_tokens: 1024,
-      system: [cachedSystem],
-      tools: cachedTools,
-      messages,
-    });
-    console.log(`[telegram] Claude response (${Date.now() - claudeStart}ms): stop_reason=${response.stop_reason}`);
-  }
-
-  console.log(`[telegram] Tool loop done: ${iterations} iterations, stop_reason=${response.stop_reason}`);
-
-  // --- Extract final text response ---
-  const textBlocks = response.content.filter(
-    (b): b is Anthropic.TextBlock => b.type === 'text',
-  );
-  const responseText = textBlocks.map(b => b.text).join('\n\n') || "I processed your request but don't have anything to say.";
+    },
+    onProgress: async (iteration) => {
+      // After 2nd tool call, send a progress message so user knows we're working
+      if (iteration === 2) {
+        await sendMessage(chatId, '_Processing... this may take a moment._');
+      } else {
+        await sendChatAction(chatId, 'typing');
+      }
+    },
+  });
 
   // --- Send to Telegram (with optional inline keyboard) ---
   const sendOptions: {
