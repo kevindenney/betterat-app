@@ -177,13 +177,13 @@ export function PrimaryAICoach({
       } catch (err) {
         logger.error('Failed to get advice', err);
         setError(
-          err instanceof Error ? err.message : 'AI Coach temporarily unavailable'
+          err instanceof Error ? err.message : 'AI analysis temporarily unavailable'
         );
         lastFetchPhaseRef.current = phase;
         setAdvice((prev) =>
           prev ?? {
             skill: skillForPhase,
-            primary: 'AI Coach temporarily unavailable. Using fallback guidance.',
+            primary: 'AI analysis temporarily unavailable. Using fallback guidance.',
             confidence: 'low',
             fetchedAt: new Date(),
           }
@@ -230,7 +230,7 @@ export function PrimaryAICoach({
         style={styles.minimizedButton}
       >
         <Sparkles size={18} color="#FFFFFF" />
-        <Text style={styles.minimizedText}>AI Coach</Text>
+        <Text style={styles.minimizedText}>AI Analysis</Text>
         {advice?.confidence && (
           <View
             style={[

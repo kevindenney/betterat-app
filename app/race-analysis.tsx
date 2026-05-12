@@ -80,7 +80,7 @@ const RaceAnalysisScreen = () => {
               <Sparkles color="#9333EA" size={20} />
             </View>
             <View className="flex-1">
-              <Text className="text-lg font-bold text-gray-800">AI Coach Analysis</Text>
+              <Text className="text-lg font-bold text-gray-800">AI Race Analysis</Text>
               <Badge
                 action={confidencePercent >= 70 ? 'success' : confidencePercent >= 50 ? 'warning' : 'muted'}
                 variant="solid"
@@ -299,7 +299,7 @@ const RaceAnalysisScreen = () => {
             className={`px-4 py-2 rounded-full ${activeTab === 'ai-coach' ? 'bg-purple-600' : 'bg-gray-200'}`}
             onPress={() => setActiveTab('ai-coach')}
           >
-            <Text className={activeTab === 'ai-coach' ? 'text-white' : 'text-gray-700'}>AI Coach</Text>
+            <Text className={activeTab === 'ai-coach' ? 'text-white' : 'text-gray-700'}>AI Analysis</Text>
           </TouchableOpacity>
 
           <TouchableOpacity

@@ -289,12 +289,12 @@ const RaceTimerProScreen = () => {
     setAiResponses([...aiResponses, newResponse]);
     setUserResponse('');
     
-    // Simulate AI coach response
+    // Simulate AI response
     setTimeout(() => {
       const aiResponse = {
         questionId: questionId + 100, // Different ID for AI response
         response: "That's a great observation. Consider reviewing your starting line approach in the video analysis.",
-        sender: "AI Coach",
+        sender: "AI",
         timestamp: new Date().toISOString()
       };
       setAiResponses(prev => [...prev, aiResponse]);
@@ -640,18 +640,18 @@ const RaceTimerProScreen = () => {
             ))}
           </View>
 
-          {/* AI Coach Interaction */}
+          {/* AI Analysis */}
           <View className="bg-white rounded-xl shadow">
             <View className="p-4 border-b border-gray-100">
-              <Text className="text-lg font-bold text-gray-800">AI Coach Feedback</Text>
-              <Text className="text-gray-600">Discuss your race performance with your AI coach</Text>
+              <Text className="text-lg font-bold text-gray-800">AI Analysis</Text>
+              <Text className="text-gray-600">Get AI feedback on your race performance</Text>
             </View>
             
             <ScrollView className="h-48 p-4 bg-gray-50">
               {aiResponses.length === 0 ? (
                 <View className="items-center justify-center h-full">
                   <MessageCircle color="#9CA3AF" size={32} />
-                  <Text className="text-gray-500 mt-2 text-center">Ask your AI coach about your race to get feedback</Text>
+                  <Text className="text-gray-500 mt-2 text-center">Ask about your race to get AI feedback</Text>
                 </View>
               ) : (
                 aiResponses.map((response, index) => (
@@ -672,7 +672,7 @@ const RaceTimerProScreen = () => {
             <View className="p-4 border-t border-gray-100 flex-row items-center">
               <TextInput
                 className="flex-1 bg-gray-100 rounded-full px-4 py-3 mr-2"
-                placeholder="Ask your AI coach about the race..."
+                placeholder="Ask about the race..."
                 value={userResponse}
                 onChangeText={setUserResponse}
               />
@@ -757,14 +757,14 @@ const RaceTimerProScreen = () => {
     <View className="flex-1 p-4">
       <Text className="text-lg font-bold text-gray-800 mb-4">Coach Feedback</Text>
       
-      {/* AI Coach */}
+      {/* AI Analysis */}
       <View className="bg-white rounded-xl shadow p-5 mb-5">
         <View className="flex-row items-center mb-4">
           <View className="w-14 h-14 rounded-full bg-blue-100 items-center justify-center mr-4">
             <MessageCircle color="#2563EB" size={28} />
           </View>
           <View>
-            <Text className="font-bold text-xl text-gray-800">AI Coach</Text>
+            <Text className="font-bold text-xl text-gray-800">AI Analysis</Text>
             <Text className="text-gray-600">Automated feedback system</Text>
           </View>
         </View>
