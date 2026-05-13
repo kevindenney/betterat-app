@@ -28,8 +28,8 @@ const options: AddRaceOption[] = [
   {
     id: 'ai-quick',
     icon: 'sparkles',
-    title: 'Quick Add with AI',
-    description: 'Paste race details or upload a PDF - AI will extract info',
+    title: 'Quick Add',
+    description: 'Paste race details or upload a PDF — we\'ll extract info',
     color: colors.ai[600],
   },
   {

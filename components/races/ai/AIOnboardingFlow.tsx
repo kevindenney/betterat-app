@@ -61,7 +61,7 @@ export function AIOnboardingFlow({ visible, onComplete, onSkip }: AIOnboardingFl
     <Modal visible transparent animationType="fade" onRequestClose={skip}>
       <View style={styles.backdrop}>
         <View style={styles.card}>
-          <Text style={styles.kicker}>AI Onboarding</Text>
+          <Text style={styles.kicker}>Onboarding</Text>
           <Text style={styles.title}>{current.title}</Text>
           <Text style={styles.body}>{current.body}</Text>
 

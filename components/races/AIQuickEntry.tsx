@@ -65,9 +65,9 @@ export const AIQuickEntry: React.FC<AIQuickEntryProps> = ({
         <View style={styles.aiIconContainer}>
           <Ionicons name="sparkles" size={32} color={colors.ai[600]} />
         </View>
-        <Text style={styles.heroTitle}>Quick Add with AI</Text>
+        <Text style={styles.heroTitle}>Quick Add</Text>
         <Text style={styles.heroSubtitle}>
-          Paste race details, upload a PDF, or enter a URL - AI will extract all the information
+          Paste race details, upload a PDF, or enter a URL — we'll extract all the information
         </Text>
       </View>
 
@@ -206,7 +206,7 @@ export const AIQuickEntry: React.FC<AIQuickEntryProps> = ({
             ) : (
               <>
                 <Ionicons name="sparkles" size={20} color="white" />
-                <Text style={styles.extractButtonText}>Extract with AI</Text>
+                <Text style={styles.extractButtonText}>Extract</Text>
               </>
             )}
           </Pressable>

@@ -48,6 +48,7 @@ export const ExtractionProgress: React.FC<ExtractionProgressProps> = ({
     );
     spin.start();
     return () => spin.stop();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const spin = spinValue.interpolate({
@@ -64,7 +65,7 @@ export const ExtractionProgress: React.FC<ExtractionProgressProps> = ({
         <Animated.View style={{ transform: [{ rotate: spin }] }}>
           <Ionicons name="sparkles" size={32} color={colors.ai[600]} />
         </Animated.View>
-        <Text style={styles.title}>AI is extracting race information</Text>
+        <Text style={styles.title}>Extracting race information</Text>
       </View>
 
       {/* Progress Bar */}

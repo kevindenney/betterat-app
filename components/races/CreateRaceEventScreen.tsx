@@ -14,7 +14,6 @@ import {
   ScrollView,
   StyleSheet,
   ActivityIndicator,
-  Platform
 } from 'react-native';
 import * as DocumentPicker from 'expo-document-picker';
 import { router } from 'expo-router';
@@ -327,14 +326,14 @@ export default function CreateRaceEventScreen() {
           <ActivityIndicator color="#fff" />
         ) : (
           <Text style={styles.createButtonText}>
-            {documents.length > 0 ? '🤖 Create & Process with AI' : 'Create Race Event'}
+            {documents.length > 0 ? 'Create & Process Documents' : 'Create Race Event'}
           </Text>
         )}
       </TouchableOpacity>
 
       {documents.length > 0 && (
         <Text style={styles.processingNote}>
-          AI will extract race course, marks, and strategy from your documents
+          We'll extract race course, marks, and strategy from your documents
         </Text>
       )}
     </ScrollView>
