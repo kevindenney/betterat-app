@@ -62,7 +62,7 @@ export function ProgressContent({
 
   // Season data for history section
   const { data: activeSeason } = useCurrentSeason();
-  const { data: userSeasons = [], isLoading: loadingSeasons } = useUserSeasons();
+  const { data: userSeasons = [], isLoading: _loadingSeasons } = useUserSeasons();
 
   // Build SeasonWithSummary list for slope graph
   const seasonsWithSummary = (userSeasons as any[]).filter(
@@ -73,7 +73,7 @@ export function ProgressContent({
   const {
     metrics,
     phaseMastery,
-    frameworkScores,
+    frameworkScores: _frameworkScores,
     outcomes,
     focusRecommendations,
     overallScore,
@@ -83,12 +83,12 @@ export function ProgressContent({
   } = useExcellenceMetrics(effectiveSeasonId);
 
   // Load learnable events
-  const { events: learningEvents, isLoading: eventsLoading } = useLearnableEvents({
+  const { events: learningEvents, isLoading: _eventsLoading } = useLearnableEvents({
     limit: 10,
   });
 
   // Load learning insights
-  const { insights } = useLearningInsights();
+  const { insights: _insights } = useLearningInsights();
   const { principles, isLoading: principlesLoading } = useSignaturePrinciples(5);
 
   // Handle pull-to-refresh
@@ -199,7 +199,7 @@ export function ProgressContent({
       <View style={styles.section}>
         <FocusRecommendations
           recommendations={focusRecommendations}
-          onDrillPress={(drill) => {
+          onDrillPress={(_drill) => {
             router.push('/(tabs)/learn');
           }}
         />
@@ -238,7 +238,7 @@ export function ProgressContent({
           </View>
         ) : (
           <Text style={styles.principlesEmpty}>
-            Complete a timeline step with AI analysis to start building your principles.
+            Complete a timeline step with analysis to start building your principles.
           </Text>
         )}
       </View>
@@ -252,7 +252,7 @@ export function ProgressContent({
               seasonsWithSummary={seasonsWithSummary}
               seasons={userSeasons}
               limit={5}
-              onSeasonPress={(seasonId) => {
+              onSeasonPress={(_seasonId) => {
                 // Future: navigate to season detail
               }}
               onViewAll={onOpenSeasonArchive}
@@ -269,7 +269,7 @@ export function ProgressContent({
             <PastRaceList
               races={outcomes.recentResults}
               limit={8}
-              onRacePress={(raceId) => {
+              onRacePress={(_raceId) => {
                 // Future: navigate to race detail
               }}
             />

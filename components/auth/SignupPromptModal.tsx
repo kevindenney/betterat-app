@@ -78,10 +78,10 @@ export default function SignupPromptModal({
         };
       case 'ai_analysis':
         return {
-          title: 'Unlock AI insights',
+          title: 'Unlock insights',
           message: `Get personalized suggestions and reflections on every ${eventSingular}.`,
           benefits: [
-            'Personalized AI suggestions',
+            'Personalized suggestions',
             'Reflection prompts that learn from you',
             'Progress insights over time',
             'A coach in your pocket',
@@ -122,7 +122,7 @@ export default function SignupPromptModal({
             `Unlimited ${eventPlural}`,
             'Sync across devices',
             'Cloud backup',
-            'Personalized AI suggestions',
+            'Personalized suggestions',
           ],
           icon: 'sparkles' as const,
         };
