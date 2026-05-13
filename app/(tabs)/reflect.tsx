@@ -619,7 +619,7 @@ function ProfileView({ toolbarHeight, onScroll, isDesktop }: ProfileViewProps) {
               <Ionicons name="rocket-outline" size={24} color="#2563EB" />
               <View style={styles.upgradePlanText}>
                 <Text style={styles.upgradePlanTitle}>Upgrade Plan</Text>
-                <Text style={styles.upgradePlanSubtitle}>Unlock unlimited races, AI, and more</Text>
+                <Text style={styles.upgradePlanSubtitle}>Unlock unlimited races, insights, and more</Text>
               </View>
             </View>
             <Ionicons name="chevron-forward" size={20} color="#94A3B8" />

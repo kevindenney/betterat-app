@@ -1055,7 +1055,7 @@ export function UnifiedDocumentInput({
         <View style={styles.headerLeft}>
           <Sparkles size={16} color={TUFTE_FORM_COLORS.aiAccent} />
           <Text style={styles.headerLabel}>RACE DOCUMENTS</Text>
-          <Text style={styles.headerOptional}>(AI extraction)</Text>
+          <Text style={styles.headerOptional}>(auto-extract)</Text>
           {extractionComplete && (
             <CheckCircle size={14} color={TUFTE_FORM_COLORS.success} style={styles.successIcon} />
           )}

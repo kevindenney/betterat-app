@@ -50,11 +50,11 @@ export function AIVenueInsightsCard({
       <View className="flex-row justify-between items-center mb-3">
         <View className="flex-row items-center">
           <Navigation color="#8B5CF6" size={20} />
-          <Text className="text-lg font-bold ml-2">🤖 AI Venue Intelligence</Text>
+          <Text className="text-lg font-bold ml-2">Venue Intelligence</Text>
         </View>
         <AccessibleTouchTarget
           onPress={onDismiss}
-          accessibilityLabel="Dismiss AI venue intelligence"
+          accessibilityLabel="Dismiss venue intelligence"
           accessibilityHint="Hide this card"
         >
           <X color="#6B7280" size={20} />

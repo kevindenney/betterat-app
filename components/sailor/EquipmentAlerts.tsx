@@ -171,10 +171,6 @@ export function EquipmentAlerts({ boatId }: EquipmentAlertsProps) {
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Equipment Alerts</Text>
-        <View style={styles.aiIndicator}>
-          <MaterialCommunityIcons name="robot" size={16} color="#8B5CF6" />
-          <Text style={styles.aiText}>AI-Powered</Text>
-        </View>
       </View>
 
       {/* Summary Cards */}

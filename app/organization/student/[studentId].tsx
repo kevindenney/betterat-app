@@ -336,7 +336,7 @@ export default function StudentDetailScreen() {
                         ) : null}
                       </>
                     ) : (
-                      <Text style={modal.noAssessment}>No AI assessment yet</Text>
+                      <Text style={modal.noAssessment}>No assessment yet</Text>
                     )}
                   </View>
                 ))

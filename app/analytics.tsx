@@ -87,7 +87,7 @@ export default function AnalyticsScreen() {
 
         {/* AI Recommendations */}
         <View className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl p-4">
-          <Text className="text-white text-lg font-bold mb-2">AI Recommendations</Text>
+          <Text className="text-white text-lg font-bold mb-2">Recommendations</Text>
           <Text className="text-blue-100">
             Based on your recent performance, consider focusing on light air tactics training and booking a coaching session for downwind speed optimization.
           </Text>

@@ -197,9 +197,6 @@ export function ThisWeekFocusCard({ playbookId, interestId, onOpenDrawer }: This
       <View style={styles.body}>
         <View style={styles.labelRow}>
           <Text style={styles.label}>THIS WEEK'S FOCUS</Text>
-          <View style={styles.aiBadge}>
-            <Text style={styles.aiBadgeText}>AI-suggested</Text>
-          </View>
         </View>
         <Text style={styles.title}>{renderBoldSegments(title)}</Text>
         {body ? (

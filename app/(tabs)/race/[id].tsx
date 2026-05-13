@@ -1347,7 +1347,7 @@ export default function RaceDetailScreen() {
               onPress={generateStrategy}
             >
               <MaterialCommunityIcons name="brain" size={20} color="#FFFFFF" />
-              <Text style={styles.generateButtonText}>Generate AI Strategy</Text>
+              <Text style={styles.generateButtonText}>Generate Strategy</Text>
             </TouchableOpacity>
 
             <View style={styles.secondaryActions}>
@@ -1410,7 +1410,7 @@ export default function RaceDetailScreen() {
               onPress={generateStrategy}
             >
               <MaterialCommunityIcons name="brain" size={20} color="#FFFFFF" />
-              <Text style={styles.generateButtonText}>Generate AI Strategy</Text>
+              <Text style={styles.generateButtonText}>Generate Strategy</Text>
             </TouchableOpacity>
           </View>
         </View>

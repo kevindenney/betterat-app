@@ -160,7 +160,7 @@ export default function FleetsScreen() {
           <View className="mb-6">
             <View className="flex-row items-center mb-4">
               <Zap size={20} className="text-yellow-500 mr-2" />
-              <Text className="text-lg font-semibold text-gray-800">AI Suggestions</Text>
+              <Text className="text-lg font-semibold text-gray-800">Suggestions</Text>
             </View>
             
             {aiSuggestions.map((fleet) => (

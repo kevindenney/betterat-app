@@ -467,7 +467,7 @@ export function AddResourceSheet({ visible, libraryId, interestName, onSubmit, o
                   ) : (
                     <>
                       <Ionicons name="sparkles" size={14} color={IOS_COLORS.systemPurple} />
-                      <Text style={styles.aiButtonText}>AI: Extract Lessons</Text>
+                      <Text style={styles.aiButtonText}>Extract Lessons</Text>
                     </>
                   )}
                 </Pressable>
