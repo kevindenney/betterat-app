@@ -1,5 +1,5 @@
 /**
- * AI Coach Analysis Card
+ * Race Analysis Card
  * Displays AI-generated race analysis with loading states
  */
 
@@ -7,7 +7,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { Sparkles, TrendingUp, ChevronRight, AlertCircle, RefreshCw, Clock } from 'lucide-react-native';
 import { Card } from '@/components/ui/card';
-import { Badge, BadgeText, BadgeIcon } from '@/components/ui/badge';
+import { Badge, BadgeText } from '@/components/ui/badge';
 import { Button, ButtonText, ButtonIcon } from '@/components/ui/button';
 import { useRaceAnalysis, useTriggerRaceAnalysis } from '@/hooks/useData';
 
@@ -22,7 +22,7 @@ interface AICoachCardProps {
 export function AICoachCard({
   timerSessionId,
   raceName = 'Race',
-  position,
+  position: _position,
   onViewDetails,
   autoTrigger = false,
 }: AICoachCardProps) {
@@ -72,7 +72,7 @@ export function AICoachCard({
           <View className="bg-purple-100 p-2 rounded-full mr-3">
             <Sparkles color="#9333EA" size={20} />
           </View>
-          <Text className="text-lg font-bold text-typography-900">AI Coach Analysis</Text>
+          <Text className="text-lg font-bold text-typography-900">Race Analysis</Text>
         </View>
         <View className="items-center py-6">
           <ActivityIndicator size="large" color="#9333EA" />
@@ -92,7 +92,7 @@ export function AICoachCard({
           <View className="bg-red-100 p-2 rounded-full mr-3">
             <AlertCircle color="#EF4444" size={20} />
           </View>
-          <Text className="text-lg font-bold text-typography-900">AI Coach Analysis</Text>
+          <Text className="text-lg font-bold text-typography-900">Race Analysis</Text>
         </View>
         <Text className="text-typography-500 mb-3">Unable to load analysis</Text>
         <Button action="primary" variant="outline" size="sm" onPress={handleTriggerAnalysis}>
@@ -110,10 +110,10 @@ export function AICoachCard({
           <View className="bg-purple-100 p-2 rounded-full mr-3">
             <Sparkles color="#9333EA" size={20} />
           </View>
-          <Text className="text-lg font-bold text-typography-900">AI Coach Analysis</Text>
+          <Text className="text-lg font-bold text-typography-900">Race Analysis</Text>
         </View>
         <Text className="text-typography-500 mb-3">
-          Get personalized insights on your race performance from AI Coach
+          Get personalized insights on your race performance
         </Text>
         <Button
           action="primary"
@@ -143,7 +143,7 @@ export function AICoachCard({
               <Sparkles color="#9333EA" size={20} />
             </View>
             <View className="flex-1">
-              <Text className="text-lg font-bold text-typography-900">AI Coach Analysis</Text>
+              <Text className="text-lg font-bold text-typography-900">Race Analysis</Text>
               <View className="flex-row items-center mt-1">
                 <Text className="text-typography-500 text-sm">{raceName}</Text>
                 {analysisAge && (
@@ -251,7 +251,7 @@ export function AICoachSummary({
     <TouchableOpacity className="py-2" onPress={onViewDetails}>
       <View className="flex-row items-center mb-1">
         <Sparkles color="#9333EA" size={14} />
-        <Text className="text-typography-500 text-xs font-semibold ml-1">AI COACH</Text>
+        <Text className="text-typography-500 text-xs font-semibold ml-1">ANALYSIS</Text>
       </View>
       <Text className="text-typography-700 text-sm" numberOfLines={2}>
         {topRecommendation}

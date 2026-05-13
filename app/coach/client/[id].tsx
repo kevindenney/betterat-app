@@ -65,6 +65,7 @@ export default function ClientDetailScreen() {
     if (coachId && clientId) {
       loadClientDetails();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [coachId, clientId, isCreateRoute, router]);
 
   const loadClientDetails = async () => {
@@ -280,7 +281,7 @@ export default function ClientDetailScreen() {
                 )}
                 {analysis.ai_coaching_feedback && analysis.ai_coaching_feedback.length > 0 && (
                   <View style={styles.analysisCoachBlock}>
-                    <ThemedText style={styles.analysisCoachTitle}>AI Coaching Highlights</ThemedText>
+                    <ThemedText style={styles.analysisCoachTitle}>Coaching Highlights</ThemedText>
                     {analysis.ai_coaching_feedback.slice(0, 2).map((feedback, idx) => (
                       <View key={idx} style={styles.analysisFeedback}>
                         <ThemedText style={styles.analysisFeedbackPhase}>

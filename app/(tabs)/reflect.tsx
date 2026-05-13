@@ -102,7 +102,7 @@ interface ProgressViewProps {
 function ProgressView({ toolbarHeight, onScroll, isDesktop }: ProgressViewProps) {
   const { data, loading, refresh } = useReflectData();
   const { userProfile } = useAuth();
-  const { currentInterest } = useInterest();
+  const { currentInterest: _currentInterest } = useInterest();
   const progressEventConfig = useInterestEventConfig();
   const labels = progressEventConfig.reflectConfig?.progressLabels;
   const pStats = progressEventConfig.reflectConfig?.progressStats;
@@ -204,7 +204,7 @@ function ProgressView({ toolbarHeight, onScroll, isDesktop }: ProgressViewProps)
           emptyText={labels?.performanceEmpty}
         />
 
-        {/* AI Coaching Insight - Pattern-based recommendations */}
+        {/* Coaching insight — pattern-based recommendations */}
         <CoachingInsightCard sailorId={userProfile?.id} />
 
         {/* My Skills — user-defined skill goals */}
