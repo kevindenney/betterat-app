@@ -8,8 +8,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import { CheckCircle, AlertCircle, Sparkles, AlertTriangle } from 'lucide-react-native';
-import { TUFTE_FORM_COLORS, TUFTE_FORM_SPACING } from '@/components/races/AddRaceDialog/tufteFormStyles';
-import { IOS_COLORS } from '@/components/cards/constants';
+import { TUFTE_FORM_COLORS } from '@/components/races/AddRaceDialog/tufteFormStyles';
 
 export type ExtractionStatus = 'idle' | 'fetching' | 'extracting' | 'completed' | 'failed';
 
@@ -40,7 +39,7 @@ interface ExtractionProgressProps {
 const STATUS_MESSAGES: Record<ExtractionStatus, string> = {
   idle: '',
   fetching: 'Fetching document...',
-  extracting: 'Analyzing with AI...',
+  extracting: 'Analyzing...',
   completed: 'Extraction complete',
   failed: 'Extraction failed',
 };
@@ -87,7 +86,7 @@ export function ExtractionProgress({
       const displayUrl = currentUrl.length > 50 ? currentUrl.substring(0, 50) + '...' : currentUrl;
       return status === 'fetching'
         ? `Fetching: ${displayUrl}`
-        : 'Analyzing with AI...';
+        : 'Analyzing...';
     }
     if (isProcessing) {
       return status === 'fetching'

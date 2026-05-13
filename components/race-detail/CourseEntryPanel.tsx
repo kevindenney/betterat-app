@@ -69,8 +69,8 @@ export function CourseEntryPanel({
   const [courseDescription, setCourseDescription] = useState('');
   const [courseVisibility, setCourseVisibility] = useState<'private' | 'venue' | 'public'>('venue');
   const [isSaving, setIsSaving] = useState(false);
-  const [extractedCourseName, setExtractedCourseName] = useState<string | null>(null);
-  const [extractedTotalDistance, setExtractedTotalDistance] = useState<number | null>(null);
+  const [extractedCourseName, _setExtractedCourseName] = useState<string | null>(null);
+  const [extractedTotalDistance, _setExtractedTotalDistance] = useState<number | null>(null);
 
   // Parse manual text input for coordinates
   const parseManualInput = useCallback((text: string): RouteWaypoint[] => {
@@ -91,7 +91,7 @@ export function CourseEntryPanel({
 
     let waypointIndex = 0;
 
-    lines.forEach((line, lineIndex) => {
+    lines.forEach((line, _lineIndex) => {
       const trimmedLine = line.trim();
       if (!trimmedLine) return;
 
@@ -585,10 +585,11 @@ export function CourseEntryPanel({
     } finally {
       setIsSaving(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
-    courseName, 
-    courseDescription, 
-    parsedWaypoints, 
+    courseName,
+    courseDescription,
+    parsedWaypoints,
     venueId, 
     venueName, 
     raceType, 
@@ -729,18 +730,18 @@ export function CourseEntryPanel({
         {isProcessing ? (
           <>
             <ActivityIndicator size="small" color="white" />
-            <Text style={styles.aiButtonText}>Extracting with AI...</Text>
+            <Text style={styles.aiButtonText}>Extracting...</Text>
           </>
         ) : (
           <>
             <MaterialCommunityIcons name="auto-fix" size={20} color="white" />
-            <Text style={styles.aiButtonText}>✨ AI Extract Waypoints</Text>
+            <Text style={styles.aiButtonText}>✨ Extract Waypoints</Text>
           </>
         )}
       </TouchableOpacity>
 
       <Text style={styles.tipText}>
-        💡 AI can find waypoints from raw sailing instructions text
+        💡 Waypoints can be extracted from raw sailing instructions text
       </Text>
     </View>
   );
@@ -772,7 +773,7 @@ export function CourseEntryPanel({
         {isProcessing ? (
           <>
             <ActivityIndicator size="small" color="white" />
-            <Text style={styles.primaryButtonText}>Analyzing with AI...</Text>
+            <Text style={styles.primaryButtonText}>Analyzing...</Text>
           </>
         ) : (
           <>
@@ -785,7 +786,7 @@ export function CourseEntryPanel({
       {isProcessing && (
         <View style={styles.processingNote}>
           <Text style={styles.processingNoteText}>
-            ⏳ This may take up to 60 seconds. The AI is fetching and analyzing the page...
+            ⏳ This may take up to 60 seconds while the page is fetched and analyzed...
           </Text>
         </View>
       )}
@@ -812,7 +813,7 @@ export function CourseEntryPanel({
           <View style={styles.uploadContent}>
             <ActivityIndicator size="large" color="#7C3AED" />
             <Text style={styles.uploadProcessingText}>
-              Processing document with AI...
+              Processing document...
             </Text>
           </View>
         ) : (

@@ -6,7 +6,7 @@
 
 import React, { useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
-import { FileText, CheckCircle, Edit, AlertCircle } from 'lucide-react-native';
+import { CheckCircle, Edit, AlertCircle } from 'lucide-react-native';
 
 interface PDFTextPreviewProps {
   text: string;
@@ -129,7 +129,7 @@ export const PDFTextPreview: React.FC<PDFTextPreviewProps> = ({
             onPress={onApprove}
           >
             <CheckCircle color="white" size={18} />
-            <Text className="text-white font-bold ml-2">Process with AI</Text>
+            <Text className="text-white font-bold ml-2">Process</Text>
           </TouchableOpacity>
         </View>
       </View>

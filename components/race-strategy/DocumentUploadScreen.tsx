@@ -107,7 +107,7 @@ export function DocumentUploadScreen({ onProcessingComplete }: DocumentUploadScr
         throw new Error(createError?.message || 'Failed to create race event');
       }
 
-      setStatus('Processing documents with AI...');
+      setStatus('Processing documents...');
 
       let extractedCourseName: string | undefined;
       let extractedDescription: string | undefined;
@@ -325,7 +325,7 @@ export function DocumentUploadScreen({ onProcessingComplete }: DocumentUploadScr
         disabled={processing}
       >
         <Text style={styles.processButtonText}>
-          {processing ? 'Processing...' : '🚀 Process Documents with AI'}
+          {processing ? 'Processing...' : '🚀 Process Documents'}
         </Text>
       </TouchableOpacity>
 

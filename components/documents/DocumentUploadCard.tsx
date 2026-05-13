@@ -82,7 +82,7 @@ export const DocumentUploadCard: React.FC<DocumentUploadCardProps> = ({
       return;
     }
 
-    const userIdToUse = user?.id || debugUserId;
+    const _userIdToUse = user?.id || debugUserId;
 
     if (typeof window !== 'undefined') {
       // Web-compatible alert for document type selection
@@ -147,6 +147,7 @@ export const DocumentUploadCard: React.FC<DocumentUploadCardProps> = ({
         ]
       );
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   const uploadDocumentWithType = useCallback(async (
@@ -212,6 +213,7 @@ export const DocumentUploadCard: React.FC<DocumentUploadCardProps> = ({
     } finally {
       setIsUploading(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, onDocumentUploaded]);
 
   const processDocument = async (document: StoredDocument) => {
@@ -310,7 +312,7 @@ export const DocumentUploadCard: React.FC<DocumentUploadCardProps> = ({
       {isProcessing && (
         <View style={styles.processingCard}>
           <ActivityIndicator size="large" color="#007AFF" />
-          <Text style={styles.processingText}>Analyzing document with AI...</Text>
+          <Text style={styles.processingText}>Analyzing document...</Text>
         </View>
       )}
 

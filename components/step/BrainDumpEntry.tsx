@@ -332,7 +332,7 @@ export function BrainDumpEntry({
               (!hasContent || isStructuring) && styles.structureButtonTextDisabled,
             ]}
           >
-            {isStructuring ? 'Structuring...' : 'Structure with AI'}
+            {isStructuring ? 'Structuring...' : 'Structure'}
           </Text>
         </Pressable>
 
