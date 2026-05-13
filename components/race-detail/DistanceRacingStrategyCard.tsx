@@ -32,7 +32,7 @@ interface DistanceRacingStrategy {
   routePlanning: {
     recommendedRoute: string;
     keyWaypoints: string[];
-    decisionGates: Array<{ waypoint: string; decision: string }>;
+    decisionGates: { waypoint: string; decision: string }[];
   };
   weatherRouting: {
     strategy: string;
@@ -51,7 +51,7 @@ interface DistanceRacingStrategyCardProps {
   raceId: string;
   raceName: string;
   raceEventId?: string;
-  routeWaypoints?: Array<{ name: string; latitude: number; longitude: number }>;
+  routeWaypoints?: { name: string; latitude: number; longitude: number }[];
   totalDistanceNm?: number;
   raceDate?: string;
   venueId?: string;
@@ -60,7 +60,7 @@ interface DistanceRacingStrategyCardProps {
 export function DistanceRacingStrategyCard({
   raceId,
   raceName,
-  raceEventId,
+  raceEventId: _raceEventId,
   routeWaypoints = [],
   totalDistanceNm,
   raceDate,
@@ -189,6 +189,7 @@ export function DistanceRacingStrategyCard({
     } finally {
       setLoading(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, loadStrategyContent]);
 
   useEffect(() => {
@@ -271,6 +272,7 @@ export function DistanceRacingStrategyCard({
       logger.debug('[DistanceRacingStrategyCard] Auto-generating distance racing strategy on mount');
       generateStrategy();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loading, strategy, error, user]);
 
   const generateStrategy = async () => {
@@ -465,12 +467,12 @@ export function DistanceRacingStrategyCard({
       if (errorMessage.includes('timeout')) {
         userFriendlyError = 'Strategy generation timed out. Please try again.';
       } else if (errorMessage.includes('API') || errorMessage.includes('400') || errorMessage.includes('401')) {
-        userFriendlyError = 'AI service temporarily unavailable. Using fallback strategy.';
+        userFriendlyError = 'Strategy service temporarily unavailable. Using fallback strategy.';
         // Generate fallback strategy
         generateFallbackStrategy();
         return;
       } else if (errorMessage.includes('credit') || errorMessage.includes('balance')) {
-        userFriendlyError = 'AI service credits exhausted. Using fallback strategy.';
+        userFriendlyError = 'Strategy service credits exhausted. Using fallback strategy.';
         generateFallbackStrategy();
         return;
       }

@@ -36,6 +36,7 @@ export function AIValidationScreen({
 
   useEffect(() => {
     loadRaceEvent();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [raceEventId]);
 
   const loadRaceEvent = async () => {
@@ -144,7 +145,7 @@ export function AIValidationScreen({
       <View style={styles.header}>
         <Text style={styles.title}>Course Extracted from Documents</Text>
         <View style={styles.confidenceContainer}>
-          <Text style={styles.confidenceLabel}>AI Confidence:</Text>
+          <Text style={styles.confidenceLabel}>Confidence:</Text>
           <View style={[styles.confidenceBadge, { backgroundColor: confidenceColor }]}>
             <Text style={styles.confidenceText}>{confidencePercentage}%</Text>
           </View>
@@ -208,7 +209,7 @@ export function AIValidationScreen({
             </Text>
             {raceEvent.marks
               .sort((a, b) => (a.sequence_number || 999) - (b.sequence_number || 999))
-              .map((mark, index) => (
+              .map((mark, _index) => (
                 <View key={mark.id} style={styles.markItem}>
                   <View style={styles.markHeader}>
                     <Text style={styles.markName}>

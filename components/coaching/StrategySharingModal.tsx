@@ -505,10 +505,10 @@ export function StrategySharingModal({
       }
 
       if (raceStrategy.upwind_tactics) {
-        addSection('⬆️', 'AI Upwind Tactics', raceStrategy.upwind_tactics);
+        addSection('⬆️', 'Upwind Tactics', raceStrategy.upwind_tactics);
       }
       if (raceStrategy.downwind_tactics) {
-        addSection('⬇️', 'AI Downwind Tactics', raceStrategy.downwind_tactics);
+        addSection('⬇️', 'Downwind Tactics', raceStrategy.downwind_tactics);
       }
     }
 
