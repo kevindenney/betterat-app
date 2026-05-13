@@ -62,7 +62,7 @@ export const VoiceNoteRecorder: React.FC<VoiceNoteRecorderProps> = ({
   const [isProcessing, setIsProcessing] = useState(false);
 
   // Animation values
-  const recordingAnimation = useRef(new Animated.Value(1)).current;
+  const _recordingAnimation = useRef(new Animated.Value(1)).current;
   const pulseAnimation = useRef(new Animated.Value(1)).current;
   const waveAnimation = useRef(new Animated.Value(0)).current;
 
@@ -121,6 +121,7 @@ export const VoiceNoteRecorder: React.FC<VoiceNoteRecorderProps> = ({
         timerRef.current = null;
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [recordingState.isRecording]);
 
   const startRecording = async () => {
@@ -439,7 +440,7 @@ export const VoiceNoteRecorder: React.FC<VoiceNoteRecorderProps> = ({
                 <Ionicons name="mic-off" size={48} color="#CCC" />
                 <Text style={styles.emptyStateText}>No voice notes yet</Text>
                 <Text style={styles.emptyStateSubtext}>
-                  Record your racing observations for AI analysis
+                  Record your racing observations for analysis
                 </Text>
               </View>
             }

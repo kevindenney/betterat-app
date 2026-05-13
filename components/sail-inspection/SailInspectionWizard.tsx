@@ -5,7 +5,7 @@
  * Manages the full inspection workflow from start to completion.
  */
 
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -13,7 +13,6 @@ import {
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
-  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
@@ -65,7 +64,7 @@ const INSPECTION_ZONES: SailZone[] = ['head', 'leech', 'foot', 'luff', 'battens'
 
 export function SailInspectionWizard({
   equipmentId,
-  boatId,
+  boatId: _boatId,
   sailName,
   sailType,
   sailContext,
@@ -77,12 +76,12 @@ export function SailInspectionWizard({
   const [step, setStep] = useState<WizardStep>('mode-select');
   const [session, setSession] = useState<InspectionSession | null>(null);
   const [currentZoneIndex, setCurrentZoneIndex] = useState(0);
-  const [selectedZone, setSelectedZone] = useState<SailZone | null>(null);
+  const [_selectedZone, setSelectedZone] = useState<SailZone | null>(null);
   const [zoneResults, setZoneResults] = useState<Map<SailZone, ZoneAnalysisResult>>(new Map());
   const [isLoading, setIsLoading] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [showPhotoModal, setShowPhotoModal] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [_error, setError] = useState<string | null>(null);
 
   // Derived state
   const currentZone = INSPECTION_ZONES[currentZoneIndex];
@@ -242,7 +241,7 @@ export function SailInspectionWizard({
         <View style={styles.modeContent}>
           <Text style={styles.modeCardTitle}>Guided Inspection</Text>
           <Text style={styles.modeCardDesc}>
-            Step-by-step inspection of each zone with AI analysis
+            Step-by-step inspection of each zone with analysis
           </Text>
           <View style={styles.modeBadge}>
             <Text style={styles.modeBadgeText}>Recommended</Text>

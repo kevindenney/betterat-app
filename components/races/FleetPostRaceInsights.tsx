@@ -157,20 +157,20 @@ export function FleetPostRaceInsights({
           .filter((value): value is string => typeof value === 'string');
 
         // Build sailor profiles from both sources
-        let sailorProfiles: Array<{
+        let sailorProfiles: {
           id: string;
           user_id: string;
           home_club?: string | null;
           boat_class_preferences?: any;
-        }> = [];
+        }[] = [];
 
         // Resolve sailor profiles for analysis rows (race_analysis.sailor_id points to sailor_profiles.id)
-        let profilesFromAnalysis: Array<{
+        let profilesFromAnalysis: {
           id: string;
           user_id: string;
           home_club?: string | null;
           boat_class_preferences?: any;
-        }> = [];
+        }[] = [];
         if (analysisSailorProfileIds.length > 0) {
           const { data: analysisProfiles, error: analysisProfilesError } = await supabase
             .from('sailor_profiles')
@@ -224,7 +224,7 @@ export function FleetPostRaceInsights({
         logger.debug('[FleetPostRaceInsights] ✅ Loaded', sailorProfiles.length, 'unique sailor profiles');
 
         // Get user names
-        let userDirectory: Array<{ id: string; full_name?: string | null }> = [];
+        let userDirectory: { id: string; full_name?: string | null }[] = [];
         if (uniqueUserIds.length > 0) {
           const { data: usersData, error: usersError } = await supabase
             .from('users')
@@ -239,12 +239,12 @@ export function FleetPostRaceInsights({
         }
 
         // Build structured analyses map from the direct query
-        let structuredAnalyses: Array<{
+        let structuredAnalyses: {
           sailor_id: string;
           overall_satisfaction?: number | null;
           key_learnings?: any;
           updated_at?: string | null;
-        }> = allAnalyses.map(a => ({
+        }[] = allAnalyses.map(a => ({
           sailor_id: a.sailor_id,
           overall_satisfaction: a.overall_satisfaction,
           key_learnings: a.key_learnings,
@@ -252,11 +252,11 @@ export function FleetPostRaceInsights({
         }));
 
         // Get AI summaries for sessions
-        let aiSummaries: Array<{
+        let aiSummaries: {
           timer_session_id: string;
           overall_summary?: string | null;
           created_at?: string | null;
-        }> = [];
+        }[] = [];
 
         if (sessionIds.length > 0) {
           const { data: aiData, error: aiError } = await supabase
@@ -489,7 +489,7 @@ export function FleetPostRaceInsights({
               </Text>
             ) : (
               <Text className="text-sm text-slate-500 mt-2">
-                Awaiting AI analysis and notes.
+                Awaiting analysis and notes.
               </Text>
             )}
 

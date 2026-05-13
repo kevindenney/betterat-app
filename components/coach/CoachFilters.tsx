@@ -360,7 +360,7 @@ export default function CoachFilters({ filters, onApply, onClose }: CoachFilters
               Minimum Match Score (0-1)
             </Text>
             <Text style={styles.sectionDescription}>
-              Filter coaches by AI match score. Higher scores indicate better alignment with your goals.
+              Filter coaches by match score. Higher scores indicate better alignment with your goals.
             </Text>
             <TextInput
               style={styles.matchScoreInput}

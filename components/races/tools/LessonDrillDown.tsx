@@ -16,7 +16,6 @@ import {
   Pressable,
   StyleSheet,
   Linking,
-  Platform,
 } from 'react-native';
 import * as LucideIcons from 'lucide-react-native';
 
@@ -115,7 +114,7 @@ const AI_TOOLS: AITool[] = [
     icon: LucideIcons.BookOpen,
     color: '#4285F4',
     bgColor: '#E8F0FE',
-    getUrl: (prompt) => `https://notebooklm.google.com/`,
+    getUrl: (_prompt) => `https://notebooklm.google.com/`,
   },
 ];
 
@@ -229,10 +228,10 @@ export function LessonDrillDown({ item, accent, onBack }: LessonDrillDownProps) 
       <View style={ls.aiSection}>
         <View style={ls.aiHeader}>
           <LucideIcons.Zap size={15} color={C.orange} />
-          <Text style={ls.aiTitle}>Explore with AI</Text>
+          <Text style={ls.aiTitle}>Explore further</Text>
         </View>
         <Text style={ls.aiDescription}>
-          Take this topic deeper with an AI assistant
+          Take this topic deeper with an assistant
         </Text>
         <View style={ls.aiTools}>
           {AI_TOOLS.map((tool) => {

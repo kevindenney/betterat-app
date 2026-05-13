@@ -85,7 +85,7 @@ export function ConditionsBriefCard({
     return (
       <Pressable style={styles.generateButton} onPress={generateBrief}>
         <Sparkles size={16} color={COLORS.purple} />
-        <Text style={styles.generateButtonText}>AI Conditions Brief</Text>
+        <Text style={styles.generateButtonText}>Conditions Brief</Text>
         <Text style={styles.generateButtonHint}>Personal tactics from your Playbook</Text>
       </Pressable>
     );
@@ -125,7 +125,7 @@ export function ConditionsBriefCard({
     <View style={styles.container}>
       <Pressable style={styles.header} onPress={() => setExpanded(!expanded)}>
         <Sparkles size={14} color={COLORS.purple} />
-        <Text style={styles.headerText}>AI Conditions Brief</Text>
+        <Text style={styles.headerText}>Conditions Brief</Text>
         {expanded
           ? <ChevronUp size={16} color={COLORS.gray} />
           : <ChevronDown size={16} color={COLORS.gray} />}
