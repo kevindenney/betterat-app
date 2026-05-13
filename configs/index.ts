@@ -5,20 +5,6 @@
  * event cards, content modules, debrief, AI analysis, and the reflect tab.
  */
 
-export { SAILING_EVENT_CONFIG } from './sailing'
-export { NURSING_EVENT_CONFIG } from './nursing'
-export { DRAWING_EVENT_CONFIG } from './drawing'
-export { DESIGN_EVENT_CONFIG } from './design'
-export { FITNESS_EVENT_CONFIG } from './fitness'
-export { KNITTING_EVENT_CONFIG } from './knitting'
-export { FIBER_ARTS_EVENT_CONFIG } from './fiber-arts'
-export { PAINTING_PRINTING_EVENT_CONFIG } from './painting-printing'
-export { LIFELONG_LEARNING_EVENT_CONFIG } from './lifelong-learning'
-export { REGENERATIVE_AGRICULTURE_EVENT_CONFIG } from './regenerative-agriculture'
-export { GLOBAL_HEALTH_EVENT_CONFIG } from './global-health'
-export { SELF_MASTERY_EVENT_CONFIG } from './self-mastery'
-export { GENERIC_EVENT_CONFIG, makeGenericEventConfig } from './generic'
-
 import type { InterestEventConfig } from '@/types/interestEventConfig'
 import { SAILING_EVENT_CONFIG } from './sailing'
 import { NURSING_EVENT_CONFIG } from './nursing'
@@ -33,6 +19,20 @@ import { REGENERATIVE_AGRICULTURE_EVENT_CONFIG } from './regenerative-agricultur
 import { GLOBAL_HEALTH_EVENT_CONFIG } from './global-health'
 import { SELF_MASTERY_EVENT_CONFIG } from './self-mastery'
 import { makeGenericEventConfig, GENERIC_EVENT_CONFIG } from './generic'
+
+export { SAILING_EVENT_CONFIG } from './sailing'
+export { NURSING_EVENT_CONFIG } from './nursing'
+export { DRAWING_EVENT_CONFIG } from './drawing'
+export { DESIGN_EVENT_CONFIG } from './design'
+export { FITNESS_EVENT_CONFIG } from './fitness'
+export { KNITTING_EVENT_CONFIG } from './knitting'
+export { FIBER_ARTS_EVENT_CONFIG } from './fiber-arts'
+export { PAINTING_PRINTING_EVENT_CONFIG } from './painting-printing'
+export { LIFELONG_LEARNING_EVENT_CONFIG } from './lifelong-learning'
+export { REGENERATIVE_AGRICULTURE_EVENT_CONFIG } from './regenerative-agriculture'
+export { GLOBAL_HEALTH_EVENT_CONFIG } from './global-health'
+export { SELF_MASTERY_EVENT_CONFIG } from './self-mastery'
+export { GENERIC_EVENT_CONFIG, makeGenericEventConfig } from './generic'
 
 /**
  * Lookup map: interest slug → event config.

@@ -8,11 +8,6 @@ import React from 'react';
 import { View, StyleSheet, Text, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
-interface InteractivePlayerProps {
-  componentName: string;
-  onComplete?: () => void;
-}
-
 // Import interactive components
 import { StartingSequenceInteractive } from './interactives/StartingSequenceInteractive';
 import { SetCourseInteractive } from './interactives/SetCourseInteractive';
@@ -68,6 +63,11 @@ import { TeamRacingReadTheRaceInteractive } from './interactives/TeamRacingReadT
 import { TeamRacingCommsInteractive } from './interactives/TeamRacingCommsInteractive';
 import { TeamRacingCoveringInteractive } from './interactives/TeamRacingCoveringInteractive';
 import { TeamRacingStartInteractive } from './interactives/TeamRacingStartInteractive';
+
+interface InteractivePlayerProps {
+  componentName: string;
+  onComplete?: () => void;
+}
 
 // Component registry
 const INTERACTIVE_COMPONENTS: Record<string, React.ComponentType<any>> = {

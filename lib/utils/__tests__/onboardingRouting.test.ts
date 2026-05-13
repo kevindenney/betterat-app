@@ -1,12 +1,12 @@
-jest.mock('../userTypeRouting', () => ({
-  getDashboardRoute: () => '/(tabs)/dashboard',
-}));
-
 import {
   getOnboardingStartRoute,
   getOrganizationOnboardingRoute,
   guardOnboardingRouteForDomain,
 } from '../onboardingRouting';
+
+jest.mock('../userTypeRouting', () => ({
+  getDashboardRoute: () => '/(tabs)/dashboard',
+}));
 
 describe('onboarding routing domain guard', () => {
   it('keeps sailing sailor onboarding start route unchanged', () => {

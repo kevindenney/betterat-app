@@ -1,3 +1,5 @@
+import { organizationInviteRolePresetService } from '../OrganizationInviteRolePresetService';
+
 const mockListDomainCatalog = jest.fn();
 
 jest.mock('../ProgramService', () => ({
@@ -5,8 +7,6 @@ jest.mock('../ProgramService', () => ({
     listDomainCatalog: (...args: unknown[]) => mockListDomainCatalog(...args),
   },
 }));
-
-import { organizationInviteRolePresetService } from '../OrganizationInviteRolePresetService';
 
 describe('OrganizationInviteRolePresetService', () => {
   beforeEach(() => {

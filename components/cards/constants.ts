@@ -7,6 +7,24 @@
  */
 
 import { Dimensions } from 'react-native';
+import {
+  SNAP_SPRING_CONFIG,
+  DETAIL_SNAP_SPRING_CONFIG,
+  PRESS_SPRING_CONFIG,
+  FOCUS_SPRING_CONFIG,
+  VELOCITY_THRESHOLD,
+  GESTURE_ACTIVE_OFFSET,
+  GESTURE_LOCK_DISTANCE,
+  GESTURE_UNLOCK_DELAY,
+  DECELERATION_RATE,
+  CARD_SCALE,
+  CARD_OPACITY,
+  CARD_WIDTH_RATIO,
+  PEEK_WIDTH_RATIO,
+  INITIAL_NUM_TO_RENDER,
+  MAX_TO_RENDER_PER_BATCH,
+  WINDOW_SIZE,
+} from '@/constants/navigationAnimations';
 
 // =============================================================================
 // TUFTE DESIGN SYSTEM
@@ -71,24 +89,6 @@ export const IOS_COLORS = {
   // Separator
   separator: '#3C3C434A',
 } as const;
-import {
-  SNAP_SPRING_CONFIG,
-  DETAIL_SNAP_SPRING_CONFIG,
-  PRESS_SPRING_CONFIG,
-  FOCUS_SPRING_CONFIG,
-  VELOCITY_THRESHOLD,
-  GESTURE_ACTIVE_OFFSET,
-  GESTURE_LOCK_DISTANCE,
-  GESTURE_UNLOCK_DELAY,
-  DECELERATION_RATE,
-  CARD_SCALE,
-  CARD_OPACITY,
-  CARD_WIDTH_RATIO,
-  PEEK_WIDTH_RATIO,
-  INITIAL_NUM_TO_RENDER,
-  MAX_TO_RENDER_PER_BATCH,
-  WINDOW_SIZE,
-} from '@/constants/navigationAnimations';
 
 // =============================================================================
 // RE-EXPORTS

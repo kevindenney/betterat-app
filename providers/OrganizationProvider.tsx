@@ -6,9 +6,9 @@ import { supabase } from '@/services/supabase';
 import { isMissingSupabaseColumn } from '@/lib/utils/supabaseSchemaFallback';
 import { createLogger } from '@/lib/utils/logger';
 import { isAbortError } from '@/lib/utils/fetchWithTimeout';
+import type { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 
 const logger = createLogger('OrganizationProvider');
-import type { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 
 export type OrganizationType =
   | 'club'
