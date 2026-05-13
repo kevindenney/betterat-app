@@ -12,8 +12,8 @@ interface AIOnboardingFlowProps {
 
 const STEPS = [
   {
-    title: 'Meet AI Coach',
-    body: 'Get phase-aware advice before and during races.',
+    title: 'Phase-aware advice',
+    body: 'Get tactical guidance before and during races.',
   },
   {
     title: 'Use Skill Buttons',

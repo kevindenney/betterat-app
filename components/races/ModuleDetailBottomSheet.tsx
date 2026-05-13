@@ -58,7 +58,6 @@ import {
   KeyboardAvoidingView,
   Image,
   TouchableOpacity,
-  ScrollView,
   Alert,
 } from 'react-native';
 import { showAlert } from '@/lib/utils/crossPlatformAlert';
@@ -261,11 +260,11 @@ interface ModuleContent {
   /** AI Coach insight — Socratic, builds on past experience */
   aiCoach: { title: string; body: string; question: string };
   /** From Your Network — what peers/preceptor have shared */
-  network: Array<{ name: string; role: string; tip: string }>;
+  network: { name: string; role: string; tip: string }[];
   /** Your History — past module entries summary */
   history: { summary: string; detail: string };
   /** Optional: structured items to display (checklists, med lists, etc.) */
-  items?: Array<{ label: string; detail: string; status?: 'alert' | 'ok' | 'info' }>;
+  items?: { label: string; detail: string; status?: 'alert' | 'ok' | 'info' }[];
   /** Optional: drillable lesson items (replaces static items with interactive lessons) */
   drillableItems?: boolean;
   /** Optional: alert or safety callout */
@@ -943,12 +942,12 @@ function ClinicalReasoningFeedbackPanel({
 // RICH CONTENT TOOLBAR
 // =============================================================================
 
-const TOOLBAR_ACTIONS: Array<{
+const TOOLBAR_ACTIONS: {
   type: Attachment['type'];
   icon: React.ComponentType<any>;
   label: string;
   color: string;
-}> = [
+}[] = [
   { type: 'photo', icon: LucideIcons.Camera, label: 'Photo', color: '#34C759' },
   { type: 'video', icon: LucideIcons.Video, label: 'Video', color: '#FF2D55' },
   { type: 'document', icon: LucideIcons.FileText, label: 'Document', color: '#5856D6' },
@@ -1965,7 +1964,7 @@ function AICoachSection({
     <View style={s.section}>
       <View style={s.sectionHeader}>
         <LucideIcons.Sparkles size={15} color="#F59E0B" />
-        <Text style={[s.sectionTitle, { color: '#D97706' }]}>AI Coach</Text>
+        <Text style={[s.sectionTitle, { color: '#D97706' }]}>Coaching</Text>
       </View>
       <View style={s.coachCard}>
         <Text style={s.coachTitle}>{title}</Text>
@@ -2398,7 +2397,7 @@ export function ModuleDetailBottomSheet({
   const hydrateModuleArtifact = useCallback((content: {
     toolValues: Record<string,string>;
     notes: string;
-    attachments: Array<{id: string; type: string; label: string; uri?: string}>;
+    attachments: {id: string; type: string; label: string; uri?: string}[];
     mappedCompetencyIds?: string[];
   }) => {
     if (!moduleId) return;
@@ -2719,6 +2718,7 @@ export function ModuleDetailBottomSheet({
     } finally {
       setIsFeedbackLoading(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     artifactContext,
     config.interestSlug,

@@ -64,6 +64,7 @@ export function TrainChatPanel({
       onPendingQuestionConsumed?.();
       setTimeout(() => inputRef.current?.focus(), 100);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pendingQuestion]);
 
   // Build system prompt with manifesto + insights + step context
@@ -191,7 +192,7 @@ Guidelines:
     <View style={styles.container}>
       <View style={styles.header}>
         <Ionicons name="sparkles" size={14} color={IOS_COLORS.systemPurple} />
-        <Text style={styles.headerTitle}>AI Coach</Text>
+        <Text style={styles.headerTitle}>Coaching</Text>
       </View>
 
       <ScrollView

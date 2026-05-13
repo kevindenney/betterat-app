@@ -216,10 +216,10 @@ export function PeerStepSheet({
                   style={styles.primaryButton}
                   onPress={handleOpenMyStep}
                   accessibilityRole="button"
-                  accessibilityLabel="Open my version and ask the AI Coach"
+                  accessibilityLabel="Open my version and ask for help"
                 >
                   <Ionicons name="chatbubbles-outline" size={18} color="#FFFFFF" />
-                  <Text style={styles.primaryButtonText}>Open & ask AI Coach</Text>
+                  <Text style={styles.primaryButtonText}>Open & ask for help</Text>
                 </Pressable>
               )}
 

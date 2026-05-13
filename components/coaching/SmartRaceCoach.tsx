@@ -83,7 +83,7 @@ const PHASE_TO_SKILL: Record<RacePhase, keyof typeof SKILL_IDS> = {
 };
 
 export function SmartRaceCoach({
-  raceId,
+  raceId: _raceId,
   raceData,
   position,
   minimal = false,
@@ -94,7 +94,7 @@ export function SmartRaceCoach({
   const [loading, setLoading] = useState(false);
   const [expanded, setExpanded] = useState(!minimal);
   const [dismissed, setDismissed] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [_error, _setError] = useState<string | null>(null);
   const fadeAnim = useState(new Animated.Value(1))[0]; // Start visible!
   const canUseNativeDriver = Platform.OS !== 'web';
 
@@ -122,6 +122,7 @@ export function SmartRaceCoach({
       setExpanded(true);
       animateIn();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [advice, minimal]);
 
   const animateIn = () => {
@@ -154,7 +155,7 @@ export function SmartRaceCoach({
       console.error('Failed to fetch advice:', error);
       setAdvice({
         phase: currentPhase,
-        primary: 'AI Coach temporarily unavailable. Using fallback guidance.',
+        primary: 'Coaching temporarily unavailable. Using fallback guidance.',
         confidence: 'low',
         timestamp: new Date(),
       });
@@ -177,7 +178,7 @@ export function SmartRaceCoach({
         className="flex-row items-center gap-2 bg-purple-600 px-4 py-3 rounded-full shadow-lg"
       >
         <Sparkles size={20} color="white" />
-        <Text className="text-white font-semibold">Ask AI Coach</Text>
+        <Text className="text-white font-semibold">Ask for advice</Text>
       </Pressable>
     );
   }
@@ -195,7 +196,7 @@ export function SmartRaceCoach({
         <View className="flex-row items-center gap-2">
           <Sparkles size={24} color="white" />
           <View>
-            <Text className="text-white font-bold text-base">AI Race Coach</Text>
+            <Text className="text-white font-bold text-base">Race Coaching</Text>
             <Text className="text-purple-200 text-xs">{getPhaseLabel(phase)}</Text>
           </View>
         </View>
@@ -220,7 +221,7 @@ export function SmartRaceCoach({
       {!expanded && (
         <View className="px-4 py-3 bg-purple-50">
           <Text className="text-sm font-semibold text-purple-900">
-            {loading ? 'Getting tactical advice...' : advice?.primary || 'Tap to get AI coaching advice'}
+            {loading ? 'Getting tactical advice...' : advice?.primary || 'Tap to get tactical advice'}
           </Text>
         </View>
       )}
@@ -237,7 +238,7 @@ export function SmartRaceCoach({
                   Analyzing conditions...
                 </Text>
                 <Text className="text-purple-700 text-xs mt-1">
-                  Getting tactical advice from AI Coach
+                  Getting tactical advice
                 </Text>
               </View>
             )}

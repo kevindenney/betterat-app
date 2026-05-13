@@ -140,8 +140,8 @@ export function PhaseSkillButtons({
       showAlert(title, message);
     } catch (error) {
       logger.error('Skill invocation failed', error);
-      const message = 'Unable to get AI advice right now. Please try again.';
-      showAlert('AI Coach unavailable', message);
+      const message = 'Unable to get advice right now. Please try again.';
+      showAlert('Coaching unavailable', message);
     } finally {
       setLoadingSkill(null);
     }

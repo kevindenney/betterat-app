@@ -54,7 +54,7 @@ export function QuickSkillButtons({
     } catch (error) {
       console.error('❌ Error invoking skill:', error);
 
-      showAlert('Unable to get advice', 'The AI Coach is temporarily unavailable. Please try again.');
+      showAlert('Unable to get advice', 'Coaching is temporarily unavailable. Please try again.');
     } finally {
       setLoadingSkill(null);
     }
@@ -63,7 +63,7 @@ export function QuickSkillButtons({
   return (
     <View className={className}>
       <Text className="text-sm font-semibold text-gray-700 mb-2 px-4">
-        Quick AI Coaching
+        Quick Coaching
       </Text>
 
       <ScrollView
