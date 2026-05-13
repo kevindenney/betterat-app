@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, TextInput, Alert, Animated, Dimensions } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, TextInput, Animated } from 'react-native';
 import {
   Play,
   Pause,
@@ -12,44 +12,21 @@ import {
   Navigation,
   Users,
   MessageCircle,
-  CheckCircle,
-  AlertTriangle,
   ChevronLeft,
   Send,
   Mic,
   RotateCcw,
   Flag,
   Timer,
-  Zap,
   Activity,
   Compass,
-  Eye,
-  Target,
-  Calendar,
   BarChart3,
-  Award,
-  Wifi,
-  WifiOff,
-  Battery,
-  BatteryCharging,
-  Volume2,
-  VolumeX,
   Radio,
-  Share2,
-  Download,
-  Upload,
   Settings,
-  User,
   Bell,
-  BellOff,
-  Camera,
-  Video,
-  MicOff
 } from 'lucide-react-native';
 import { useOffline } from '@/hooks/useOffline';
 import { OfflineIndicator } from '@/components/ui/OfflineIndicator';
-
-const { width } = Dimensions.get('window');
 
 const RaceTimerProScreen = () => {
   const [timer, setTimer] = useState(300); // 5 minutes in seconds
@@ -61,22 +38,16 @@ const RaceTimerProScreen = () => {
   const [userResponse, setUserResponse] = useState('');
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const windAnimation = useRef(new Animated.Value(0)).current;
-  const boatPositionAnimation = useRef(new Animated.Value(0)).current;
 
   // Offline support
   const {
-    isOnline,
-    getCachedRace,
-    getCachedVenue,
-    getCachedStrategy,
-    getCachedWeather,
     saveGPSTrack,
-    logRaceEvent
+    logRaceEvent,
   } = useOffline();
 
-  // GPS tracking state
+  // GPS tracking state (gpsData held in closure for now; setter unused until live GPS lands)
   const [gpsTracking, setGpsTracking] = useState(false);
-  const [gpsData, setGpsData] = useState({
+  const [gpsData] = useState({
     latitude: 0,
     longitude: 0,
     speed: 0,
@@ -101,13 +72,13 @@ const RaceTimerProScreen = () => {
   const [newMessage, setNewMessage] = useState('');
   const [crewChannelActive, setCrewChannelActive] = useState(true);
 
-  // Wind conditions state
-  const [windData, setWindData] = useState({
+  // Wind conditions (static mock data; no live update path yet)
+  const windData = {
     speed: 12,
     direction: 315,
     gusts: 15,
-    pressure: 1013
-  });
+    pressure: 1013,
+  };
 
   // Mock race data
   const mockRaceData = {
@@ -170,6 +141,8 @@ const RaceTimerProScreen = () => {
         }),
       ])
     ).start();
+    // windAnimation is a useRef-backed Animated.Value with stable identity; safe to omit.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Start the timer and GPS tracking
@@ -643,15 +616,15 @@ const RaceTimerProScreen = () => {
           {/* AI Analysis */}
           <View className="bg-white rounded-xl shadow">
             <View className="p-4 border-b border-gray-100">
-              <Text className="text-lg font-bold text-gray-800">AI Analysis</Text>
-              <Text className="text-gray-600">Get AI feedback on your race performance</Text>
+              <Text className="text-lg font-bold text-gray-800">Race Analysis</Text>
+              <Text className="text-gray-600">Get feedback on your race performance</Text>
             </View>
             
             <ScrollView className="h-48 p-4 bg-gray-50">
               {aiResponses.length === 0 ? (
                 <View className="items-center justify-center h-full">
                   <MessageCircle color="#9CA3AF" size={32} />
-                  <Text className="text-gray-500 mt-2 text-center">Ask about your race to get AI feedback</Text>
+                  <Text className="text-gray-500 mt-2 text-center">Ask about your race to get feedback</Text>
                 </View>
               ) : (
                 aiResponses.map((response, index) => (
@@ -764,7 +737,7 @@ const RaceTimerProScreen = () => {
             <MessageCircle color="#2563EB" size={28} />
           </View>
           <View>
-            <Text className="font-bold text-xl text-gray-800">AI Analysis</Text>
+            <Text className="font-bold text-xl text-gray-800">Race Analysis</Text>
             <Text className="text-gray-600">Automated feedback system</Text>
           </View>
         </View>

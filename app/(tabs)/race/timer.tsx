@@ -1,7 +1,38 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, TextInput, Animated, Dimensions, Platform } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, TextInput, Animated, Platform } from 'react-native';
 import { showAlert, showAlertWithButtons } from '@/lib/utils/crossPlatformAlert';
 import { router } from 'expo-router';
+import {
+  Play,
+  Pause,
+  Square,
+  MapPin,
+  Clock,
+  Trophy,
+  Wind,
+  Thermometer,
+  Navigation,
+  Users,
+  MessageCircle,
+  ChevronLeft,
+  Send,
+  Mic,
+  RotateCcw,
+  Flag,
+  Timer,
+  Activity,
+  Compass,
+  BarChart3,
+  Radio,
+  Settings,
+  Bell,
+} from 'lucide-react-native';
+import { useAuth } from '@/providers/AuthProvider';
+import { supabase } from '@/services/supabase';
+import { RaceAnalysisService } from '@/services/RaceAnalysisService';
+import { SmartRaceCoach } from '@/components/coaching/SmartRaceCoach';
+import { QuickSkillButtons } from '@/components/coaching/QuickSkillButtons';
+import { isMissingIdColumn } from '@/lib/utils/supabaseSchemaFallback';
 
 // Dynamic import helper for expo-location (native only)
 let LocationModule: typeof import('expo-location') | null = null;
@@ -15,60 +46,6 @@ async function getLocationModule() {
   }
   return LocationModule;
 }
-import {
-  Play,
-  Pause,
-  Square,
-  MapPin,
-  Clock,
-  Trophy,
-  Wind,
-  Thermometer,
-  Navigation,
-  Users,
-  MessageCircle,
-  CheckCircle,
-  AlertTriangle,
-  ChevronLeft,
-  Send,
-  Mic,
-  RotateCcw,
-  Flag,
-  Timer,
-  Zap,
-  Activity,
-  Compass,
-  Eye,
-  Target,
-  Calendar,
-  BarChart3,
-  Award,
-  Wifi,
-  WifiOff,
-  Battery,
-  BatteryCharging,
-  Volume2,
-  VolumeX,
-  Radio,
-  Share2,
-  Download,
-  Upload,
-  Settings,
-  User,
-  Bell,
-  BellOff,
-  Camera,
-  Video,
-  MicOff
-} from 'lucide-react-native';
-import { useAuth } from '@/providers/AuthProvider';
-import { supabase } from '@/services/supabase';
-import { RaceAnalysisService } from '@/services/RaceAnalysisService';
-import { SmartRaceCoach } from '@/components/coaching/SmartRaceCoach';
-import { QuickSkillButtons } from '@/components/coaching/QuickSkillButtons';
-import { isMissingIdColumn } from '@/lib/utils/supabaseSchemaFallback';
-
-const { width } = Dimensions.get('window');
 
 const RaceTimerProScreen = () => {
   const { user } = useAuth();
@@ -81,7 +58,6 @@ const RaceTimerProScreen = () => {
   const [userResponse, setUserResponse] = useState('');
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const windAnimation = useRef(new Animated.Value(0)).current;
-  const boatPositionAnimation = useRef(new Animated.Value(0)).current;
 
   // GPS tracking state
   const [gpsTracking, setGpsTracking] = useState(false);
@@ -119,13 +95,13 @@ const RaceTimerProScreen = () => {
   const [newMessage, setNewMessage] = useState('');
   const [crewChannelActive, setCrewChannelActive] = useState(true);
 
-  // Wind conditions state
-  const [windData, setWindData] = useState({
+  // Wind conditions (static mock data; no live update path yet)
+  const windData = {
     speed: 12,
     direction: 315,
     gusts: 15,
-    pressure: 1013
-  });
+    pressure: 1013,
+  };
 
   // Mock race data
   const mockRaceData = {
@@ -188,6 +164,8 @@ const RaceTimerProScreen = () => {
         }),
       ])
     ).start();
+    // windAnimation is a useRef-backed Animated.Value with stable identity; safe to omit.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Request location permissions
@@ -423,8 +401,8 @@ const RaceTimerProScreen = () => {
       }
     }
 
-    // Create database session
-    const sessionId = await createTimerSession();
+    // Create database session (id captured server-side; we don't track it locally yet)
+    await createTimerSession();
 
     // Start GPS tracking
     if (locationPermissionGranted) {
@@ -686,7 +664,7 @@ const RaceTimerProScreen = () => {
           <Text className="text-xs text-blue-600 mt-2">Saving GPS track...</Text>
         )}
         {analyzingRace && (
-          <Text className="text-xs text-purple-600 mt-2">AI analyzing race...</Text>
+          <Text className="text-xs text-purple-600 mt-2">Analyzing race...</Text>
         )}
       </View>
 
@@ -802,7 +780,7 @@ const RaceTimerProScreen = () => {
             startTime: new Date(Date.now() + timer * 1000).toISOString(),
             weather: windData,
           }}
-          onSkillInvoked={(skillId, advice) => {
+          onSkillInvoked={(_skillId, _advice) => {
           }}
         />
       </View>
@@ -956,15 +934,15 @@ const RaceTimerProScreen = () => {
           {/* AI Analysis */}
           <View className="bg-white rounded-xl shadow">
             <View className="p-4 border-b border-gray-100">
-              <Text className="text-lg font-bold text-gray-800">AI Analysis</Text>
-              <Text className="text-gray-600">Get AI feedback on your race performance</Text>
+              <Text className="text-lg font-bold text-gray-800">Race Analysis</Text>
+              <Text className="text-gray-600">Get feedback on your race performance</Text>
             </View>
             
             <ScrollView className="h-48 p-4 bg-gray-50">
               {aiResponses.length === 0 ? (
                 <View className="items-center justify-center h-full">
                   <MessageCircle color="#9CA3AF" size={32} />
-                  <Text className="text-gray-500 mt-2 text-center">Ask about your race to get AI feedback</Text>
+                  <Text className="text-gray-500 mt-2 text-center">Ask about your race to get feedback</Text>
                 </View>
               ) : (
                 aiResponses.map((response, index) => (
@@ -1077,7 +1055,7 @@ const RaceTimerProScreen = () => {
             <MessageCircle color="#2563EB" size={28} />
           </View>
           <View>
-            <Text className="font-bold text-xl text-gray-800">AI Analysis</Text>
+            <Text className="font-bold text-xl text-gray-800">Race Analysis</Text>
             <Text className="text-gray-600">Automated feedback system</Text>
           </View>
         </View>
