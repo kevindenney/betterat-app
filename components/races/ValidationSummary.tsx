@@ -59,10 +59,10 @@ export function ValidationSummary({
   };
 
   const qualityMessages = {
-    excellent: 'AI extracted most data with high confidence. Review and confirm.',
-    good: 'AI extracted data successfully. Please verify key fields.',
-    fair: 'AI found some data but needs verification. Check all fields carefully.',
-    poor: 'AI struggled to extract data. Manual input may be needed.',
+    excellent: 'Extracted most data with high confidence. Review and confirm.',
+    good: 'Extracted data successfully. Please verify key fields.',
+    fair: 'Some data extracted but needs verification. Check all fields carefully.',
+    poor: 'Data extraction was incomplete. Manual input may be needed.',
   };
 
   return (

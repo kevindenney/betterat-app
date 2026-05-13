@@ -134,7 +134,7 @@ export function StrategyChatInterface({
   const handleDocumentUpload = async () => {
     showAlertWithButtons(
       'Upload Sailing Document',
-      'Upload sailing instructions, strategy guides, or tactical documents to enhance AI analysis.',
+      'Upload sailing instructions, strategy guides, or tactical documents to enhance analysis.',
       [
         { text: 'Cancel', style: 'cancel' },
         { text: 'Select PDF', onPress: () => uploadDocument('pdf') },

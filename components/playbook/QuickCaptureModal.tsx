@@ -44,7 +44,7 @@ const HERO: Record<CaptureMode, { icon: React.ComponentProps<typeof Ionicons>['n
   url: {
     icon: 'link',
     title: 'Drop a link into your inbox',
-    subtitle: 'Save it now, run "Ingest now" from the sidebar when you\'re ready to let the AI read it.',
+    subtitle: 'Save it now, run "Ingest now" from the sidebar when you\'re ready to process it.',
   },
   youtube: {
     icon: 'videocam',

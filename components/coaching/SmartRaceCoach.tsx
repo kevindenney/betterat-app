@@ -450,7 +450,7 @@ async function invokeSkill(skillName: keyof typeof SKILL_IDS, context: any): Pro
   } catch (error) {
     console.error('Skill invocation error:', error);
     return {
-      primary: 'Unable to get AI advice at this time',
+      primary: 'Unable to get advice at this time',
       confidence: 'low',
     };
   }
