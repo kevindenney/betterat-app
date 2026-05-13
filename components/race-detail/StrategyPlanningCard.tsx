@@ -77,7 +77,7 @@ const RACE_PHASES: PhaseConfig[] = [
 export function StrategyPlanningCard({ raceEventId, sailorId, coachId, onPlanUpdated }: StrategyPlanningCardProps) {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
+  const [_saving, _setSaving] = useState(false);
   const [plan, setPlan] = useState<RaceStrategyPlan>({});
   const [expandedPhase, setExpandedPhase] = useState<string | null>(null);
   const [aiSuggestions, setAiSuggestions] = useState<AIStrategySuggestions | null>(null);
@@ -93,6 +93,7 @@ export function StrategyPlanningCard({ raceEventId, sailorId, coachId, onPlanUpd
   useEffect(() => {
     loadStrategy();
     loadPhaseInsights();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [raceEventId, sailorId]);
 
   const loadStrategy = async () => {
@@ -329,7 +330,7 @@ export function StrategyPlanningCard({ raceEventId, sailorId, coachId, onPlanUpd
                     <View style={styles.aiSuggestionBox}>
                       <View style={styles.aiSuggestionHeader}>
                         <Ionicons name="bulb-outline" size={14} color={colors.accent.default} />
-                        <Text style={styles.aiSuggestionLabel}>AI Suggestion</Text>
+                        <Text style={styles.aiSuggestionLabel}>Suggestion</Text>
                       </View>
                       <Text style={styles.aiSuggestionText}>{aiSuggestion}</Text>
                     </View>

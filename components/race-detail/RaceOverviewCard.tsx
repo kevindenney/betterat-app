@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { StrategyCard } from './StrategyCard';
 import { supabase } from '@/services/supabase';
@@ -223,7 +223,7 @@ export function RaceOverviewCard({
         {/* AI Strategy Confidence */}
         {!loading && confidence !== null && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>AI STRATEGY CONFIDENCE</Text>
+            <Text style={styles.sectionTitle}>STRATEGY CONFIDENCE</Text>
             <View style={styles.confidenceContainer}>
               <View style={styles.confidenceBar}>
                 <View

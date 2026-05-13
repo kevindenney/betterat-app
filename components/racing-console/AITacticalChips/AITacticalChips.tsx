@@ -145,7 +145,7 @@ export function AITacticalChips({
             color={Colors.primary.blue}
           />
           <Text style={styles.headerTitle}>
-            {showPinnedOnly ? 'Pinned' : 'AI Tactical Recommendations'}
+            {showPinnedOnly ? 'Pinned' : 'Tactical Recommendations'}
           </Text>
         </View>
 

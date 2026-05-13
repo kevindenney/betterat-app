@@ -6,7 +6,6 @@ import {
   ScrollView,
   Modal,
   ActivityIndicator,
-  Platform,
 } from 'react-native';
 import { Text, Button, Card, Chip, ProgressBar } from 'react-native-paper';
 import { showAlert } from '@/lib/utils/crossPlatformAlert';
@@ -62,7 +61,7 @@ export default function OnXMapsInterface({
     showTacticalGrid: false,
   });
 
-  const [strategyState, setStrategyState] = useState<StrategyDisplayState>({
+  const [_strategyState, setStrategyState] = useState<StrategyDisplayState>({
     activeTab: 'overview',
     showExecutionTimer: false,
   });
@@ -71,12 +70,12 @@ export default function OnXMapsInterface({
   const [courseExtraction, setCourseExtraction] = useState<any>(null);
   const [venueIntelligence, setVenueIntelligence] = useState<any>(null);
   const [raceStrategy, setRaceStrategy] = useState<any>(null);
-  const [realTimeData, setRealTimeData] = useState<any>(null);
+  const [_realTimeData, _setRealTimeData] = useState<any>(null);
 
   // UI state
   const [showDocumentModal, setShowDocumentModal] = useState(false);
-  const [showStrategyModal, setShowStrategyModal] = useState(false);
-  const [showSimulationResults, setShowSimulationResults] = useState(false);
+  const [_showStrategyModal, setShowStrategyModal] = useState(false);
+  const [_showSimulationResults, setShowSimulationResults] = useState(false);
 
   // Refs
   const mapContainerRef = useRef<View>(null);
@@ -86,12 +85,14 @@ export default function OnXMapsInterface({
     if (venueId) {
       loadVenueIntelligence();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [venueId]);
 
   useEffect(() => {
     if (courseExtraction && visualizationState.courseId) {
       initializeCourseVisualization();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [courseExtraction, visualizationState.courseId]);
 
   // Document processing functions
@@ -105,7 +106,7 @@ export default function OnXMapsInterface({
       });
 
       // Select and parse document
-      const { documentUri, courseExtraction: extracted } =
+      const { documentUri: _documentUri, courseExtraction: extracted } =
         await DocumentParsingService.selectAndParseDocument();
 
       setDocumentState({
@@ -309,7 +310,7 @@ export default function OnXMapsInterface({
     try {
       if (!visualizationState.courseId) return;
 
-      const imageData = await RaceCourseVisualizationService.exportCourseImage(
+      const _imageData = await RaceCourseVisualizationService.exportCourseImage(
         visualizationState.courseId,
         {
           format: 'png',
@@ -468,7 +469,7 @@ export default function OnXMapsInterface({
       <Card.Content>
         <View style={styles.strategyHeader}>
           <MaterialIcons name="psychology" size={24} color="#FF9800" />
-          <Text variant="titleMedium">AI Race Strategy</Text>
+          <Text variant="titleMedium">Race Strategy</Text>
           <Chip icon="auto-awesome" mode="outlined" compact>
             Monte Carlo Optimized
           </Chip>
