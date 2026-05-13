@@ -291,14 +291,22 @@ Six independently shippable commits, in order. Each leaves the app fully functio
 - If `From last time you raced in this` (similar-past-context surface) is feasible from existing data, render it inline as ambient AI (no badge).
 - Visible diff: During tab looks like mockup 01 + 14.
 
-**Status as of `ecf81604`:** capture hero refined to mockup-14 copy ("Hold to
-speak" + "Photo or note · long-press camera"); unified `CaptureTimeline`
-merges observations + media uploads into one chronological feed with the 3px
-rule + tertiary timestamp + serif 14px body row pattern; `MediaUpload` gained
-`created_at?: string` and both upload paths populate it. Deferred to 6b/6c:
-distinguishing voice-transcribed vs typed observations (needs `Observation.source`
-field + bot pipeline plumbing), and "From last time you raced in this"
-ambient surface (needs a similar-prior-step query).
+**Status as of `b4f09be2`:** all three sub-pieces shipped.
+- Commit 6 (`ecf81604`) — capture-hero copy refined; unified `CaptureTimeline`
+  merges observations + media uploads chronologically with mockup-14 row
+  pattern; `MediaUpload.created_at` added.
+- Commit 6b (`71f57c73`) — `Observation.source: 'voice' | 'note'` added;
+  bot `log_observation` writes structured entries alongside the legacy notes
+  string; timeline displays the source label ("9:32 am · voice").
+- Commit 6c (`b4f09be2`) — `usePriorStepObservation` hook + `PastContextCard`
+  ambient surface: pulls the user's most recent prior observation in the
+  same interest and renders it as an italic quote. Hidden when no prior
+  observation exists.
+
+Remaining gap on the During tab: condition-matched past context (wind range,
+venue, water state). Deferred until structured `date_enrichment` is reliably
+present on historical steps — the v1 caption reads "Two weeks ago" rather
+than "same conditions" to stay honest.
 
 After commit 6, the step detail surface matches the mockups. Adjacent surfaces (PrimaryAICoach, AICoachCard, race timer, race analysis, reflect insight, onboarding pricing) remain unchanged and need their own follow-up audit.
 
