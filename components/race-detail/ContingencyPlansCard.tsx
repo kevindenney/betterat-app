@@ -214,7 +214,6 @@ export function ContingencyPlansCard({ raceId, scenarios: propScenarios }: Conti
           {isAIGenerated && (
             <View style={styles.aiBadge}>
               <MaterialCommunityIcons name="brain" size={14} color={colors.ai[700]} />
-              <Text style={styles.aiBadgeText}>AI</Text>
             </View>
           )}
           <View style={styles.badge}>
@@ -320,11 +319,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.sm,
     paddingVertical: 4,
     borderRadius: 12,
-  },
-  aiBadgeText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: colors.ai[700],
   },
   loadingContainer: {
     flexDirection: 'row',

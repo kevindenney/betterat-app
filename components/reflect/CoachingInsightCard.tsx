@@ -114,7 +114,6 @@ export function CoachingInsightCard({ sailorId }: CoachingInsightCardProps) {
             <Text style={styles.title}>Performance Pattern</Text>
             <View style={styles.aiBadge}>
               <Ionicons name="sparkles" size={10} color={IOS_COLORS.systemPurple} />
-              <Text style={styles.aiBadgeText}>AI</Text>
             </View>
           </View>
           <Text style={styles.subtitle}>
@@ -323,11 +322,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 6,
-  },
-  aiBadgeText: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: IOS_COLORS.systemPurple,
   },
   subtitle: {
     fontSize: 13,

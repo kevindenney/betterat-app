@@ -33,7 +33,7 @@ function getColor(colorName: string): string {
   return colors[colorName] || IOS_COLORS.systemBlue;
 }
 
-function getSentimentIcon(sentiment: string): keyof typeof Ionicons.glyphMap {
+function _getSentimentIcon(sentiment: string): keyof typeof Ionicons.glyphMap {
   switch (sentiment) {
     case 'positive':
       return 'arrow-up-circle';
@@ -207,9 +207,6 @@ export function InsightsCard({
         <View style={styles.titleRow}>
           <Ionicons name="bulb" size={18} color={IOS_COLORS.systemYellow} />
           <Text style={styles.title}>Insights</Text>
-          <View style={styles.aiBadge}>
-            <Text style={styles.aiBadgeText}>AI</Text>
-          </View>
         </View>
         {onSeeMore && insights.length > 2 && (
           <Pressable
@@ -272,17 +269,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: IOS_COLORS.label,
     letterSpacing: -0.41,
-  },
-  aiBadge: {
-    backgroundColor: IOS_COLORS.systemPurple + '20',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 6,
-  },
-  aiBadgeText: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: IOS_COLORS.systemPurple,
   },
   seeMoreButton: {
     flexDirection: 'row',
