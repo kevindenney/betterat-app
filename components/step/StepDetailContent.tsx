@@ -467,11 +467,16 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp }: StepDetail
   // Category-aware labels (nutrition steps get different text than strength steps)
   const categoryLabels = useMemo(() => getStepCategoryLabels(step?.category), [step?.category]);
 
+  // Tab labels follow categoryLabels directly — universal Before/During/After
+  // for the default category, with per-category overrides (NUTRITION → Plan/Log/Review,
+  // RACE_DAY_CHECK → Prep/Check/Debrief, READING → Plan/Read/Review). Per-interest
+  // vocabulary is NOT applied here — mockup 11 + visual-redesign-gap-step-detail
+  // audit §5 #2 calls for universal Before/During/After regardless of practice domain.
   const tabs = useMemo(() => [
-    { value: 'plan' as const, label: categoryLabels.tabs.plan !== 'Before' ? categoryLabels.tabs.plan : vocab('Plan Phase'), completed: isPlanComplete },
-    { value: 'act' as const, label: categoryLabels.tabs.act !== 'During' ? categoryLabels.tabs.act : vocab('Do Phase'), completed: isActComplete },
-    { value: 'review' as const, label: categoryLabels.tabs.review !== 'After' ? categoryLabels.tabs.review : vocab('Review Phase'), completed: isReviewComplete },
-  ], [vocab, isPlanComplete, isActComplete, isReviewComplete, categoryLabels]);
+    { value: 'plan' as const, label: categoryLabels.tabs.plan, completed: isPlanComplete },
+    { value: 'act' as const, label: categoryLabels.tabs.act, completed: isActComplete },
+    { value: 'review' as const, label: categoryLabels.tabs.review, completed: isReviewComplete },
+  ], [isPlanComplete, isActComplete, isReviewComplete, categoryLabels]);
 
   // Auto-save status tracking — flash "Saved" for 3 seconds then fade
   const [lastSaved, setLastSaved] = useState<Date | null>(null);

@@ -18,17 +18,12 @@ import {
   Users,
   XCircle,
   Clock,
-  FileText,
-  Sun,
-  Map,
 } from 'lucide-react-native';
 import React, { useCallback, useMemo, useState, useRef, Component, ErrorInfo, useEffect, Suspense } from 'react';
 import { ActionSheetIOS, LayoutAnimation, NativeScrollEvent, NativeSyntheticEvent, Platform, Pressable, Share, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ScrollView } from 'react-native-gesture-handler';
-import Animated, { useAnimatedStyle, useSharedValue, withSpring, runOnJS } from 'react-native-reanimated';
 import { IOSSegmentedControl } from '@/components/ui/ios';
-import { STEP_COLORS } from '@/lib/step-theme';
 import { showAlertWithButtons } from '@/lib/utils/crossPlatformAlert';
 import { AddToBlueprintSheet } from '@/components/blueprint/AddToBlueprintSheet';
 import { triggerHaptic } from '@/lib/haptics';
@@ -77,12 +72,6 @@ import { supabase } from '@/services/supabase';
 import { isMissingSupabaseColumn } from '@/lib/utils/supabaseSchemaFallback';
 import { isUuid } from '@/utils/uuid';
 import { ConfigDrivenPhaseContent } from './phases';
-// Heavy sailing-only phase components are code-split: only one of the three is
-// ever mounted at a time (based on the race's temporal phase), so lazy-loading
-// saves ~6500 lines of component parse cost on first card render.
-const AfterRaceContent = React.lazy(() => import('./phases/AfterRaceContent'));
-const DaysBeforeContent = React.lazy(() => import('./phases/DaysBeforeContent'));
-const OnWaterContent = React.lazy(() => import('./phases/OnWaterContent'));
 import { StepPlanQuestions } from '@/components/step/StepPlanQuestions';
 import { PlanQuestionCard } from '@/components/step/PlanQuestionCard';
 import { StepDrawContent } from '@/components/step/StepDrawContent';
@@ -90,7 +79,6 @@ import { DateEnrichmentCard } from '@/components/step/DateEnrichmentCard';
 import { StepCritiqueContent } from '@/components/step/StepCritiqueContent';
 import { StepFocusConcepts } from '@/components/step/StepFocusConcepts';
 import { StepProvenanceBanner } from '@/components/step/StepProvenanceBanner';
-// BrainDumpEntry now embedded in StepPlanQuestions/PlanTab
 import { AIStructureReview } from '@/components/step/AIStructureReview';
 import { CollaboratorPicker } from '@/components/step/CollaboratorPicker';
 import { DueDatePickerModal } from '@/components/step/DueDatePickerModal';
@@ -110,6 +98,14 @@ import { enableStepSharing } from '@/services/TimelineStepService';
 import { sailorBoatService } from '@/services/SailorBoatService';
 import { equipmentService } from '@/services/EquipmentService';
 import type { AnyExtractedEntity, DateEnrichment, ExtractedPersonEntity } from '@/types/step-detail';
+
+// Heavy sailing-only phase components are code-split: only one of the three is
+// ever mounted at a time (based on the race's temporal phase), so lazy-loading
+// saves ~6500 lines of component parse cost on first card render.
+const AfterRaceContent = React.lazy(() => import('./phases/AfterRaceContent'));
+const DaysBeforeContent = React.lazy(() => import('./phases/DaysBeforeContent'));
+const OnWaterContent = React.lazy(() => import('./phases/OnWaterContent'));
+// BrainDumpEntry now embedded in StepPlanQuestions/PlanTab
 
 // =============================================================================
 // iOS SYSTEM COLORS (Apple HIG)
@@ -131,15 +127,6 @@ const IOS_COLORS = {
   secondaryLabel: '#3C3C43',
   tertiaryLabel: '#3C3C4399',
 };
-
-// Distance racing purple theme
-const DISTANCE_COLORS = {
-  primary: '#7C3AED',
-  accent: '#8B5CF6',
-  badgeBg: '#EDE9FE',
-  badgeText: '#7C3AED',
-  routeBg: '#F5F3FF',
-} as const;
 
 const NURSING_CAPABILITY_TITLE_BY_ID = new globalThis.Map(
   NURSING_CORE_V1_CAPABILITIES.map((capability) => [capability.id, capability.title])
@@ -241,18 +228,6 @@ function calculateCountdown(date: string, startTime?: string): {
 }
 
 /**
- * Format date for display
- */
-function formatDate(date: string): string {
-  const d = new Date(date);
-  return d.toLocaleDateString('en-US', {
-    weekday: 'short',
-    month: 'short',
-    day: 'numeric',
-  });
-}
-
-/**
  * Format time for display
  */
 function formatTime(time?: string): string {
@@ -284,22 +259,6 @@ function buildNormalizedRaceDateTime(date?: string, startTime?: string): Date | 
   return normalized;
 }
 
-/**
- * Simplify rig setting label for compact display
- */
-function simplifyLabel(label: string): string {
-  // Shorten common labels
-  const shortenings: Record<string, string> = {
-    'Upper Shrouds': 'Uppers',
-    'Lower Shrouds': 'Lowers',
-    'Forestay Length': 'Forestay',
-    'Forestay Tension': 'Forestay',
-    'Mast Rake': 'Rake',
-    'Spreader Sweep': 'Spreaders',
-    'Backstay Tension': 'Backstay',
-  };
-  return shortenings[label] || label;
-}
 
 function parseStringIdList(value: unknown): string[] {
   if (Array.isArray(value)) {
@@ -326,58 +285,6 @@ function parseStringIdList(value: unknown): string[] {
   return [];
 }
 
-/**
- * Simplify rig setting value for compact display
- * Tufte principle: show only the essential data, nothing more
- */
-function simplifyValue(value: string): string {
-  if (!value) return '';
-
-  // Extract patterns in priority order
-  const extractions = [
-    // Loos gauge readings: "Loos PT-2M 14" or "Loos 12"
-    { pattern: /Loos(?:\s+PT-\d+\w*)?\s*(\d+)/i, format: (m: RegExpMatchArray) => `${m[1]}` },
-    // Tension words
-    { pattern: /^(Firm|Light|Moderate|Tight|Loose|Medium|Max|Min)/i, format: (m: RegExpMatchArray) => m[1] },
-    // Degrees: "1-2 degrees" or "5°"
-    { pattern: /(\d+(?:[.-]\d+)?)\s*(?:degrees?|°)/i, format: (m: RegExpMatchArray) => `${m[1]}°` },
-    // CM measurements: "1.86 cm" or "Fixed 1.86cm"
-    { pattern: /(\d+(?:\.\d+)?)\s*cm/i, format: (m: RegExpMatchArray) => `${m[1]}cm` },
-    // Turns: "minus 1 turn" or "2 turns"
-    { pattern: /(?:minus\s+)?(\d+)\s*turns?/i, format: (m: RegExpMatchArray) => `${m[1]}t` },
-    // Generic number at start
-    { pattern: /^(\d+(?:[.-]\d+)?)/i, format: (m: RegExpMatchArray) => m[1] },
-  ];
-
-  for (const { pattern, format } of extractions) {
-    const match = value.match(pattern);
-    if (match) {
-      return format(match);
-    }
-  }
-
-  // Fallback: very short excerpt
-  const cleaned = value
-    .replace(/\([^)]*\)/g, '')  // Remove parentheticals
-    .replace(/;.*$/, '')         // Remove after semicolon
-    .split(/\s+/)
-    .slice(0, 2)                 // First 2 words only
-    .join(' ');
-
-  return cleaned || '—';
-}
-
-/**
- * Format minutes in a compact way
- */
-function formatMinutesCompact(minutes: number): string {
-  if (minutes >= 60) {
-    const hours = Math.floor(minutes / 60);
-    const mins = minutes % 60;
-    return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
-  }
-  return `${minutes}m`;
-}
 
 /**
  * Format countdown in full format: "3d 2h until race"
@@ -414,28 +321,6 @@ function formatFullDate(date: string, time?: string): string {
 }
 
 /**
- * Tufte: Simplify race name
- * Remove club prefix (e.g., "RHKYC ") and redundant "- Race X" suffix
- */
-function simplifyRaceName(name: string): string {
-  if (!name) return '';
-
-  // Common club prefixes to remove (expand as needed)
-  const clubPrefixes = ['RHKYC', 'HKPBC', 'ABC', 'YC', 'SC', 'RC', 'HKSC', 'STC'];
-  let simplified = name;
-
-  // Remove club prefix if present at start
-  for (const prefix of clubPrefixes) {
-    const pattern = new RegExp(`^${prefix}\\s+`, 'i');
-    simplified = simplified.replace(pattern, '');
-  }
-
-  // Remove "- Race X" at the end since we show race number separately
-  simplified = simplified.replace(/\s*-\s*Race\s+\d+$/i, '');
-
-  return simplified.trim();
-}
-
 /**
  * Tufte: Determine active phase for inline progress bar
  * Returns the first incomplete phase, or null if all complete
@@ -541,32 +426,6 @@ function getRaceTypeBadge(raceType: 'fleet' | 'distance' | 'match' | 'team'): {
 }
 
 /**
- * Format tide state for display
- */
-function formatTideState(state: string): string {
-  const stateMap: Record<string, string> = {
-    flooding: 'Flood',
-    ebbing: 'Ebb',
-    slack: 'Slack',
-    rising: 'Rising',
-    falling: 'Falling',
-    high: 'High',
-    low: 'Low',
-  };
-  return stateMap[state] || state;
-}
-
-/**
- * Format temporal context for past races (Tufte: subtle hint when memories fade)
- */
-function formatTemporalContext(daysSince: number): string {
-  if (daysSince === 0) return 'Today';
-  if (daysSince === 1) return 'Yesterday';
-  if (daysSince >= 3) return `${daysSince} days ago · memories fade`;
-  return `${daysSince} days ago`;
-}
-
-/**
  * Get ordinal suffix for a number (1st, 2nd, 3rd, etc.)
  */
 function getOrdinalSuffix(n: number): string {
@@ -574,82 +433,6 @@ function getOrdinalSuffix(n: number): string {
   const v = n % 100;
   return s[(v - 20) % 10] || s[v] || s[0];
 }
-
-/**
- * Format multi-race results for display
- * Single race: "2nd of 18"
- * Multi-race: "R1: 2/18 · R2: 5/18"
- */
-function formatMultiRaceResults(
-  raceResults?: Array<{ raceNumber: number; position: number | null; fleetSize: number | null; keyMoment: string | null }>,
-  singlePosition?: number,
-  singleFleetSize?: number
-): string | null {
-  // Check for multi-race results first
-  if (raceResults && raceResults.length > 0) {
-    const resultsWithPosition = raceResults.filter(r => r.position != null);
-    if (resultsWithPosition.length === 0) return null;
-
-    if (raceResults.length === 1) {
-      // Single race - use full format
-      const r = resultsWithPosition[0];
-      return `${r.position}${getOrdinalSuffix(r.position!)} of ${r.fleetSize || '?'}`;
-    }
-
-    // Multi-race - compact format: "R1: 2/18 · R2: 5/18"
-    return resultsWithPosition
-      .map(r => `R${r.raceNumber}: ${r.position}/${r.fleetSize || '?'}`)
-      .join(' · ');
-  }
-
-  // Fall back to single result
-  if (singlePosition) {
-    return `${singlePosition}${getOrdinalSuffix(singlePosition)} of ${singleFleetSize || '?'}`;
-  }
-
-  return null;
-}
-
-/**
- * Format multi-race key moments for display
- * Single race: "Lost 3 places on downwind"
- * Multi-race: "R1: Good start · R2: Lost downwind"
- */
-function formatMultiRaceKeyMoments(
-  raceResults?: Array<{ raceNumber: number; position: number | null; fleetSize: number | null; keyMoment: string | null }>,
-  singleKeyMoment?: string
-): string | null {
-  // Check for multi-race key moments
-  if (raceResults && raceResults.length > 0) {
-    const resultsWithKeyMoment = raceResults.filter(r => r.keyMoment?.trim());
-    if (resultsWithKeyMoment.length === 0) return singleKeyMoment || null;
-
-    if (raceResults.length === 1 && resultsWithKeyMoment[0].keyMoment) {
-      // Single race - use full format
-      return resultsWithKeyMoment[0].keyMoment;
-    }
-
-    // Multi-race - show first 2 with prefix
-    return resultsWithKeyMoment
-      .slice(0, 2)
-      .map(r => `R${r.raceNumber}: ${r.keyMoment}`)
-      .join(' · ');
-  }
-
-  return singleKeyMoment || null;
-}
-
-/**
- * Arrival time options in minutes before the start
- */
-const ARRIVAL_TIME_OPTIONS = [
-  { minutes: 15, label: '15 min' },
-  { minutes: 30, label: '30 min' },
-  { minutes: 45, label: '45 min' },
-  { minutes: 60, label: '1 hour' },
-  { minutes: 90, label: '1.5 hrs' },
-  { minutes: 120, label: '2 hrs' },
-];
 
 /**
  * Calculate planned arrival time from race start and minutes before
@@ -662,22 +445,6 @@ function calculateArrivalTime(raceDate: string, startTime: string | undefined, m
   }
   d.setMinutes(d.getMinutes() - minutesBefore);
   return d.toISOString();
-}
-
-/**
- * Format arrival time for display
- */
-function formatArrivalTimeDisplay(plannedArrival: string, minutesBefore?: number): string {
-  if (minutesBefore) {
-    if (minutesBefore >= 60) {
-      const hours = Math.floor(minutesBefore / 60);
-      const mins = minutesBefore % 60;
-      return mins > 0 ? `${hours}h ${mins}m before` : `${hours}h before`;
-    }
-    return `${minutesBefore}m before`;
-  }
-  const d = new Date(plannedArrival);
-  return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
 }
 
 // =============================================================================
@@ -697,13 +464,13 @@ const VISIBILITY_OPTIONS: { value: TimelineStepVisibility; label: string; icon: 
 
 function RaceSummaryCardImpl({
   race,
-  cardType,
+  cardType: _cardType,
   isActive,
-  dimensions,
+  dimensions: _dimensions,
   canManage,
   onEdit,
   onDelete,
-  onRaceComplete,
+  onRaceComplete: _onRaceComplete,
   onOpenPostRaceInterview,
   userId,
   onDismiss,
@@ -736,7 +503,7 @@ function RaceSummaryCardImpl({
   const isSailing = interestSlug === 'sail-racing';
   // Vocab follows the step's interest when present (e.g. viewing another user's
   // step from a different interest), otherwise the viewer's active interest.
-  const { vocab } = useVocabulary(race.interest_id ?? currentInterest?.id);
+  const { vocab: _vocab } = useVocabulary(race.interest_id ?? currentInterest?.id);
 
   // Temporal phase state — for timeline steps, map status to the right tab
   const isTimelineStep = Boolean(race.isTimelineStep);
@@ -883,7 +650,7 @@ function RaceSummaryCardImpl({
   // Local brain dump state tracks the latest data (server metadata may lag behind)
   const [localBrainDump, setLocalBrainDump] = useState<BrainDumpData | undefined>(serverBrainDump);
   const brainDumpData = localBrainDump ?? serverBrainDump;
-  const hasPlanContent = Boolean(
+  const _hasPlanContent = Boolean(
     metadata?.plan?.what_will_you_do?.trim() ||
     (metadata?.plan?.how_sub_steps?.length && metadata?.plan?.how_sub_steps.some((s) => s.text.trim())) ||
     metadata?.plan?.collaborators?.length ||
@@ -1139,6 +906,7 @@ function RaceSummaryCardImpl({
   }, [updateStepMetadata]);
 
   const handleConversationalCreate = useCallback((conversationalPlan: Partial<StepPlanData>, suggestedTitle?: string) => {
+    // eslint-disable-next-line no-console
     console.log('[RaceSummaryCard] handleConversationalCreate:', { suggestedTitle, planKeys: Object.keys(conversationalPlan) });
     const currentPlan = (metadata?.plan ?? {}) as StepPlanData;
     updateStepMetadata.mutate({ plan: { ...currentPlan, ...conversationalPlan } });
@@ -1346,7 +1114,7 @@ function RaceSummaryCardImpl({
   }, [collaboratorId, isDeclining, queryClient, race.id]);
 
   // Handler to open detail sheet
-  const handleOpenDetail = useCallback((type: DetailCardType) => {
+  const _handleOpenDetail = useCallback((type: DetailCardType) => {
     setActiveDetailSheet(type);
   }, []);
 
@@ -1371,7 +1139,7 @@ function RaceSummaryCardImpl({
   }, [onContentScroll]);
 
   // Handler to open detailed review modal
-  const handleOpenDetailedReview = useCallback(() => {
+  const _handleOpenDetailedReview = useCallback(() => {
     setShowDetailedReview(true);
   }, []);
 
@@ -1392,12 +1160,12 @@ function RaceSummaryCardImpl({
   }, [currentPhase]);
 
   // Arrival plan section state
-  const [arrivalExpanded, setArrivalExpanded] = useState(false);
+  const [_arrivalExpanded, setArrivalExpanded] = useState(false);
   const [arrivalNotes, setArrivalNotes] = useState('');
 
   // Hook for race preparation data (includes arrival intentions)
   // Only load when this card is the active/selected one to avoid 69+ parallel requests
-  const { intentions, updateArrivalIntention, isSaving } = useRacePreparation({
+  const { intentions, updateArrivalIntention, isSaving: _isSaving } = useRacePreparation({
     regattaId: race.id,
     autoSave: true,
     debounceMs: 1000,
@@ -1405,7 +1173,7 @@ function RaceSummaryCardImpl({
   });
 
   // Hook for race analysis state (Tufte "absence as interface")
-  const { state: analysisState } = useRaceAnalysisState(race.id, race.date, userId, isActive);
+  const { state: _analysisState } = useRaceAnalysisState(race.id, race.date, userId, isActive);
 
   // Hook for race analysis data (actual content for display)
   const { analysisData } = useRaceAnalysisData(race.id, userId, isActive);
@@ -1413,15 +1181,17 @@ function RaceSummaryCardImpl({
   // Get current arrival intention
   const arrivalIntention = intentions.arrivalTime;
 
-  // Sync local notes with saved intention
+  // Sync local notes with saved intention — fires only when server notes change;
+  // local arrivalNotes is the diff target, not a trigger.
   React.useEffect(() => {
     if (arrivalIntention?.notes !== undefined && arrivalIntention.notes !== arrivalNotes) {
       setArrivalNotes(arrivalIntention.notes);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [arrivalIntention?.notes]);
 
   // Handle selecting an arrival time option
-  const handleSelectArrivalTime = useCallback((minutesBefore: number) => {
+  const _handleSelectArrivalTime = useCallback((minutesBefore: number) => {
     const plannedArrival = calculateArrivalTime(race.date ?? '', race.startTime, minutesBefore);
     updateArrivalIntention({
       plannedArrival,
@@ -1431,7 +1201,7 @@ function RaceSummaryCardImpl({
   }, [race.date, race.startTime, arrivalNotes, updateArrivalIntention]);
 
   // Handle notes change (on blur)
-  const handleArrivalNotesBlur = useCallback(() => {
+  const _handleArrivalNotesBlur = useCallback(() => {
     if (arrivalIntention) {
       updateArrivalIntention({
         ...arrivalIntention,
@@ -1441,7 +1211,7 @@ function RaceSummaryCardImpl({
   }, [arrivalIntention, arrivalNotes, updateArrivalIntention]);
 
   // Toggle arrival section
-  const toggleArrivalSection = useCallback(() => {
+  const _toggleArrivalSection = useCallback(() => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     setArrivalExpanded(prev => !prev);
   }, []);
@@ -1453,7 +1223,7 @@ function RaceSummaryCardImpl({
     return detectRaceType(race.name, explicit, distance) as 'fleet' | 'distance' | 'match' | 'team';
   }, [race.name, race.race_type, race.total_distance_nm]);
 
-  const isDistanceRace = detectedRaceType === 'distance';
+  const _isDistanceRace = detectedRaceType === 'distance';
 
   // Get phase completion counts for tab labels (Tufte: data in the labels)
   const { counts: phaseCounts } = usePhaseCompletionCounts({
@@ -1523,7 +1293,7 @@ function RaceSummaryCardImpl({
   const effectiveIsPast = isTimelineStep ? isExplicitlyCompleted : countdown.isPast;
 
   // Get urgency colors
-  const urgency = useMemo(
+  const _urgency = useMemo(
     () => getUrgencyColor(countdown.days, countdown.hours, effectiveIsPast),
     [countdown.days, countdown.hours, effectiveIsPast]
   );
@@ -1531,8 +1301,9 @@ function RaceSummaryCardImpl({
   // Extract distance race fields
   const totalDistanceNm = race.total_distance_nm;
   const timeLimitHours = race.time_limit_hours || race.time_limit_hours;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const routeWaypoints = race.route_waypoints || [];
-  const numberOfLegs = race.number_of_legs || routeWaypoints.length || 0;
+  const _numberOfLegs = race.number_of_legs || routeWaypoints.length || 0;
 
   // Extract conditions data
   const windData = race.wind;
@@ -1540,7 +1311,7 @@ function RaceSummaryCardImpl({
   const vhfChannel = race.vhf_channel;
 
   // Check if we have any conditions to show
-  const hasConditions = windData || tideData || vhfChannel;
+  const _hasConditions = windData || tideData || vhfChannel;
 
   // Fetch weather forecast for sparklines
   // Check multiple possible venue data sources (full venue object or raw coordinates)
@@ -1559,15 +1330,15 @@ function RaceSummaryCardImpl({
   const { data: forecastData } = useRaceWeatherForecast(venue, race.date, isActive && !!venue);
 
   // Extract additional data for Tufte density
-  const fleetSize = race.fleet_size || race.entry_count || race.competitors?.length;
+  const _fleetSize = race.fleet_size || race.entry_count || race.competitors?.length;
   const courseType = race.course_type || race.course?.type;
-  const courseDistance = race.course_distance_nm || race.total_distance_nm;
+  const _courseDistance = race.course_distance_nm || race.total_distance_nm;
   const boatClassName = race.boatClass || race.boat_class || race.class_name;
 
   // Get rig tuning recommendations (only for upcoming races)
   // Only fetch rig tuning when we have wind data to base recommendations on
   const hasWindData = !!(windData?.speedMin || windData?.speedMax);
-  const { settings: rigSettings } = useRaceTuningRecommendation({
+  const { settings: _rigSettings } = useRaceTuningRecommendation({
     className: boatClassName,
     windMin: windData?.speedMin,
     windMax: windData?.speedMax,
@@ -1577,7 +1348,7 @@ function RaceSummaryCardImpl({
 
   // Get race series/day position
   const seasonId = race.season_id;
-  const { data: seriesPosition } = useRaceSeriesPosition({
+  const { data: _seriesPosition } = useRaceSeriesPosition({
     raceId: race.id,
     raceDate: race.date ?? '',
     seasonId,
@@ -1734,8 +1505,6 @@ function RaceSummaryCardImpl({
     isNursingInterest,
     onMoveStepEarlier,
     onMoveStepLater,
-    onMoveStepToPlannedNext,
-    onMoveStepToCompletedMostRecent,
     onSetDueDate,
     isTimelineStep,
     currentVisibility,
@@ -1785,7 +1554,7 @@ function RaceSummaryCardImpl({
 
   const handleOverdueBadgePress = useCallback(() => {
     if (!isOverdue) return;
-    const actions: Array<{ text: string; onPress?: () => void; style?: 'default' | 'cancel' | 'destructive' }> = [];
+    const actions: { text: string; onPress?: () => void; style?: 'default' | 'cancel' | 'destructive' }[] = [];
     if (onMoveStepToCompletedMostRecent) {
       actions.push({ text: 'Mark Done', onPress: () => onMoveStepToCompletedMostRecent(race.id) });
     }
@@ -1804,18 +1573,19 @@ function RaceSummaryCardImpl({
   }, [isOverdue, isTimelineStep, onMoveStepToCompletedMostRecent, onMoveStepToPlannedNext, onOpenPostRaceInterview, race.id]);
 
   // Render race type badge component
-  const RaceTypeBadgeIcon = raceTypeBadge.icon;
+  const _RaceTypeBadgeIcon = raceTypeBadge.icon;
 
-  // Phase tabs data for IOSSegmentedControl — labels driven by interest vocab
-  // Tufte: Include completion counts directly in labels for maximum information density
-  // Timeline steps previously hardcoded "Plan/Do/Reflect" regardless of interest;
-  // we now resolve each phase through the vocabulary system so nursing reads
-  // "Pre-Clinical / On Shift / Debrief", sailing reads "Race Prep / On the Water /
-  // Debrief", etc. Falls back to eventConfig for non-timeline sailing races.
-  const timelineStepPhaseVocabKeys: Record<RacePhase, string> = {
-    days_before: 'Plan Phase',
-    on_water: 'Do Phase',
-    after_race: 'Review Phase',
+  // Phase tabs data for IOSSegmentedControl — labels are universal across
+  // interests per mockup 11 + visual-redesign-gap-step-detail audit §5 #2.
+  // The per-interest vocabulary ("Race Prep / On the Water / Debrief" etc.)
+  // is intentionally not applied here — the mockup uses Before/During/After
+  // universally so the tab control reads the same regardless of practice domain.
+  // Tufte: completion counts inline for information density.
+  // Falls back to eventConfig for non-timeline sailing races (legacy path).
+  const TIMELINE_STEP_PHASE_LABELS: Record<RacePhase, string> = {
+    days_before: 'Before',
+    on_water: 'During',
+    after_race: 'After',
   };
 
   const phaseTabs = useMemo(() => {
@@ -1823,14 +1593,15 @@ function RaceSummaryCardImpl({
       const count = phaseCounts[phase];
       const countLabel = formatPhaseCompletionLabel(count.completed, count.total);
       const phaseLabel = isTimelineStep
-        ? vocab(timelineStepPhaseVocabKeys[phase])
+        ? TIMELINE_STEP_PHASE_LABELS[phase]
         : (eventConfig.phaseLabels[phase]?.short ?? phase);
       return {
         value: phase,
         label: `${phaseLabel}${countLabel}`,
       };
     });
-  }, [phaseCounts, eventConfig.phaseLabels, isTimelineStep, vocab]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phaseCounts, eventConfig.phaseLabels, isTimelineStep]);
 
   // Handle phase tab change with haptic feedback
   const handlePhaseChange = useCallback((phase: RacePhase) => {
@@ -1839,6 +1610,8 @@ function RaceSummaryCardImpl({
       (window as any).__PERIOD_DEBUG__.log('RaceSummaryCard.phaseTab', eventConfig.phaseLabels[phase]?.short ?? phase, { phase, raceId: race.id });
     }
     setSelectedPhase(phase);
+    // eventConfig.phaseLabels is read only inside the debug branch; not worth re-creating the callback when phaseLabels change.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [race.id]);
 
   // Helper to render phase tabs with iOS segmented control style (Prep/Launch/Race/Review)
@@ -1884,7 +1657,7 @@ function RaceSummaryCardImpl({
       after_race: 'Critique what happened and define next focus',
     };
     const label = isTimelineStep
-      ? vocab(timelineStepPhaseVocabKeys[selectedPhase])
+      ? TIMELINE_STEP_PHASE_LABELS[selectedPhase]
       : (eventConfig.phaseLabels[selectedPhase]?.full
           ?? eventConfig.phaseLabels[selectedPhase]?.short
           ?? selectedPhase);
@@ -1897,9 +1670,10 @@ function RaceSummaryCardImpl({
       accent: accent[selectedPhase],
       icon: icons[selectedPhase],
     };
-  }, [selectedPhase, isTimelineStep, eventConfig.phaseLabels, vocab]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedPhase, isTimelineStep, eventConfig.phaseLabels]);
 
-  const renderPhaseIntro = () => (
+  const _renderPhaseIntro = () => (
     <View style={[styles.phaseIntro, { borderLeftColor: phaseIntro.accent }]}>
       <View style={[styles.phaseIntroIconWrap, { backgroundColor: phaseIntro.accent + '18' }]}>
         <Ionicons name={phaseIntro.icon} size={14} color={phaseIntro.accent} />
@@ -1941,6 +1715,9 @@ function RaceSummaryCardImpl({
     };
 
     return data;
+    // routeWaypoints uses `||` fallback to an array literal which changes identity per render;
+    // wrapping in a separate useMemo would be churn for a hot path, so we accept the dep warning.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [race, vhfChannel, detectedRaceType, boatClassName, windData, tideData, timeLimitHours, routeWaypoints, totalDistanceNm]);
 
   // Helper to render phase-specific content
@@ -2224,6 +2001,8 @@ function RaceSummaryCardImpl({
     };
 
     return data;
+    // race.course_name not in deps because it's bundled into `race.id`-keyed identity for this surface.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     race.id, race.name, race.date, race.startTime, windData, tideData, courseType,
     vhfChannel, fleetName, detectedRaceType, totalDistanceNm,
@@ -2235,12 +2014,12 @@ function RaceSummaryCardImpl({
   // ==========================================================================
 
   // Build full countdown text (e.g., "3d 2h until race")
-  const fullCountdownText = useMemo(() => {
+  const _fullCountdownText = useMemo(() => {
     return formatCountdownFull(countdown);
   }, [countdown]);
 
   // Build compact countdown text (e.g., "18h" or "2d") - for badges if needed
-  const compactCountdown = useMemo(() => {
+  const _compactCountdown = useMemo(() => {
     if (countdown.isPast) return null;
     if (countdown.days > 0) return `${countdown.days}d`;
     if (countdown.hours > 0) return `${countdown.hours}h`;
@@ -2253,7 +2032,7 @@ function RaceSummaryCardImpl({
   }, [countdown.days, countdown.hours, effectiveIsPast]);
 
   // Build season context text (e.g., "W26 · Race 2/10")
-  const seasonContextText = useMemo(() => {
+  const _seasonContextText = useMemo(() => {
     const parts: string[] = [];
     if (seasonWeek) parts.push(seasonWeek);
     if (raceNumber && totalRaces) parts.push(`Race ${raceNumber}/${totalRaces}`);
@@ -2262,7 +2041,7 @@ function RaceSummaryCardImpl({
   }, [seasonWeek, raceNumber, totalRaces]);
 
   // Build venue + datetime subtitle (e.g., "Victoria Harbour · Sat, Jan 25 10:30 AM")
-  const raceSubtitle = useMemo(() => {
+  const _raceSubtitle = useMemo(() => {
     const parts: string[] = [];
 
     // Get venue name from various possible sources, avoiding raw coordinates
@@ -2287,6 +2066,8 @@ function RaceSummaryCardImpl({
       : formatTime(race.startTime);
     parts.push(`${dateStr} ${timeStr}`);
     return parts.join(' · ');
+    // race.venue_data is read as a fallback inside but doesn't need to re-trigger the memo on its own.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [race.venue, race.date, race.startTime, race.venue_info, race.racing_area_name]);
 
   const nonSailingTypeLabel = useMemo(() => {
@@ -2303,7 +2084,7 @@ function RaceSummaryCardImpl({
   }, [eventConfig.eventNoun, eventConfig.eventSubtypes, isBlankActivitySubtype, race]);
 
   // Get active phase for inline progress bar
-  const activePhase = useMemo(() => {
+  const _activePhase = useMemo(() => {
     return getActivePhaseForProgress(phaseCounts, effectiveIsPast);
   }, [phaseCounts, effectiveIsPast]);
 
