@@ -41,7 +41,7 @@ interface StrategyData {
     boat_class: string | null;
     race_type: 'fleet' | 'distance' | null;
     total_distance_nm: number | null;
-    waypoints: Array<{ name: string; latitude: number; longitude: number }> | null;
+    waypoints: { name: string; latitude: number; longitude: number }[] | null;
   } | null;
   regatta: {
     id: string;
@@ -126,6 +126,7 @@ export default function PublicStrategyPage() {
 
   useEffect(() => {
     fetchStrategyData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
   const fetchStrategyData = async () => {
@@ -135,7 +136,7 @@ export default function PublicStrategyPage() {
       setLoading(true);
       
       // In development, try multiple endpoints with timeout
-      const endpoints: Array<{ url: string; timeout: number }> = [];
+      const endpoints: { url: string; timeout: number }[] = [];
       
       if (typeof window !== 'undefined') {
         const isLocalhost = 
@@ -612,15 +613,12 @@ export default function PublicStrategyPage() {
         </View>
       )}
 
-      {/* AI Insights */}
+      {/* Insights */}
       {hasAIInsights && (
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <MaterialCommunityIcons name="robot" size={20} color="#9333EA" />
-            <Text style={[styles.sectionTitle, { color: '#9333EA' }]}>AI Insights</Text>
-            <View style={styles.aiBadge}>
-              <Text style={styles.aiBadgeText}>AI</Text>
-            </View>
+            <Text style={[styles.sectionTitle, { color: '#9333EA' }]}>Insights</Text>
           </View>
           
           {data.ai_insights?.wind_strategy && (
@@ -1071,18 +1069,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#1E293B',
   },
-  // AI Insights
-  aiBadge: {
-    backgroundColor: '#F3E8FF',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 8,
-  },
-  aiBadgeText: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: '#9333EA',
-  },
+  // Insights
   aiRow: {
     flexDirection: 'row',
     marginBottom: 8,

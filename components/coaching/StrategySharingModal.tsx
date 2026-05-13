@@ -91,7 +91,7 @@ interface RaceInfo {
   raceType?: 'fleet' | 'distance';
   // Distance race specific
   totalDistanceNm?: number;
-  waypoints?: Array<{ name: string; latitude: number; longitude: number; distanceFromPrev?: number }>;
+  waypoints?: { name: string; latitude: number; longitude: number; distanceFromPrev?: number }[];
   // Additional race details
   startTime?: string;
   warningSignal?: string;
@@ -141,7 +141,7 @@ export function StrategySharingModal({
   const [crewMembers, setCrewMembers] = useState<CrewMember[]>([]);
   const [loading, setLoading] = useState(false);
   const [sharing, setSharing] = useState(false);
-  const [selectedCoach, setSelectedCoach] = useState<CoachProfile | null>(null);
+  const [_selectedCoach, _setSelectedCoach] = useState<CoachProfile | null>(null);
   const [selectedCrew, setSelectedCrew] = useState<string[]>([]);
   const [userNotes, setUserNotes] = useState<string>('');
   const [savingNotes, setSavingNotes] = useState(false);
@@ -159,6 +159,7 @@ export function StrategySharingModal({
     if (visible) {
       loadData();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible, sailorId, raceId]);
 
   const loadData = async () => {
@@ -1058,15 +1059,12 @@ export function StrategySharingModal({
           </View>
         )}
 
-        {/* AI Strategic Recommendations */}
+        {/* Strategic Recommendations */}
         {(raceStrategy?.wind_strategy || raceStrategy?.tide_strategy || raceStrategy?.current_strategy) && (
           <View style={styles.strategySection}>
             <View style={styles.sectionHeader}>
               <MaterialCommunityIcons name="robot" size={18} color="#9333EA" />
-              <Text style={[styles.sectionTitle, { color: '#9333EA' }]}>AI Strategic Recommendations</Text>
-              <View style={styles.aiBadge}>
-                <Text style={styles.aiBadgeText}>AI</Text>
-              </View>
+              <Text style={[styles.sectionTitle, { color: '#9333EA' }]}>Strategic Recommendations</Text>
             </View>
             {raceStrategy?.wind_strategy && (
               <View style={styles.aiRecommendation}>
@@ -1115,21 +1113,18 @@ export function StrategySharingModal({
 
         {/* AI Upwind/Downwind Tactics */}
         {raceStrategy?.upwind_tactics && (
-          <StrategySection icon="arrow-up-bold" title="AI Upwind Tactics" content={raceStrategy.upwind_tactics} isAI />
+          <StrategySection icon="arrow-up-bold" title="Upwind Tactics" content={raceStrategy.upwind_tactics} isAI />
         )}
         {raceStrategy?.downwind_tactics && (
-          <StrategySection icon="arrow-down-bold" title="AI Downwind Tactics" content={raceStrategy.downwind_tactics} isAI />
+          <StrategySection icon="arrow-down-bold" title="Downwind Tactics" content={raceStrategy.downwind_tactics} isAI />
         )}
 
-        {/* AI Insights */}
+        {/* Insights */}
         {strategy?.ai_strategy_suggestions?.contextualInsights?.length > 0 && (
           <View style={styles.strategySection}>
             <View style={styles.sectionHeader}>
               <MaterialCommunityIcons name="lightbulb" size={18} color="#9333EA" />
-              <Text style={[styles.sectionTitle, { color: '#9333EA' }]}>AI Insights</Text>
-              <View style={styles.aiBadge}>
-                <Text style={styles.aiBadgeText}>AI</Text>
-              </View>
+              <Text style={[styles.sectionTitle, { color: '#9333EA' }]}>Insights</Text>
             </View>
             {strategy.ai_strategy_suggestions.contextualInsights.map((insight, idx) => (
               <View key={idx} style={styles.insightItem}>
@@ -1599,11 +1594,6 @@ function StrategySection({ icon, title, content, isAI }: {
       <View style={styles.sectionHeader}>
         <MaterialCommunityIcons name={icon as any} size={18} color={isAI ? '#9333EA' : '#3B82F6'} />
         <Text style={[styles.sectionTitle, isAI && { color: '#9333EA' }]}>{title}</Text>
-        {isAI && (
-          <View style={styles.aiBadge}>
-            <Text style={styles.aiBadgeText}>AI</Text>
-          </View>
-        )}
       </View>
       <Text style={styles.sectionContent}>{content}</Text>
     </View>
@@ -1827,17 +1817,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#475569',
     lineHeight: 20,
-  },
-  aiBadge: {
-    backgroundColor: '#F3E8FF',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 8,
-  },
-  aiBadgeText: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: '#9333EA',
   },
   startLineInfo: {
     flexDirection: 'row',
