@@ -1,0 +1,683 @@
+{
+  "version": "2.11",
+  "children": [
+    {
+      "type": "frame",
+      "id": "x9bARr",
+      "x": 0,
+      "y": 0,
+      "name": "Race Prep · iOS Register",
+      "clip": true,
+      "width": 393,
+      "height": 852,
+      "fill": "$ground-neutral",
+      "cornerRadius": 40,
+      "layout": "vertical",
+      "children": [
+        {
+          "type": "frame",
+          "id": "CdsFk",
+          "name": "Status Bar",
+          "width": "fill_container",
+          "height": 54,
+          "padding": [
+            0,
+            24
+          ],
+          "justifyContent": "space_between",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "text",
+              "id": "OjZkD",
+              "name": "timeLabel",
+              "fill": "$text-primary",
+              "content": "9:41",
+              "fontFamily": "SF Pro Text",
+              "fontSize": 15,
+              "fontWeight": "600"
+            },
+            {
+              "type": "rectangle",
+              "cornerRadius": 19,
+              "id": "j7SJTe",
+              "name": "dynamicIsland",
+              "fill": "$text-primary",
+              "width": 126,
+              "height": 37
+            },
+            {
+              "type": "frame",
+              "id": "FPmbg",
+              "name": "batteryGroup",
+              "gap": 6,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "NSMod",
+                  "name": "signal",
+                  "fill": "$text-primary",
+                  "content": "signal",
+                  "fontFamily": "SF Pro Text",
+                  "fontSize": 12,
+                  "fontWeight": "normal"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "j0Zd0r",
+          "name": "Header",
+          "width": "fill_container",
+          "fill": "$white",
+          "layout": "vertical",
+          "gap": 4,
+          "padding": [
+            8,
+            20,
+            16,
+            20
+          ],
+          "children": [
+            {
+              "type": "text",
+              "id": "MRpwh",
+              "name": "titleText",
+              "fill": "$text-primary",
+              "content": "Tuesday · Race 4",
+              "fontFamily": "SF Pro Display",
+              "fontSize": 22,
+              "fontWeight": "700"
+            },
+            {
+              "type": "text",
+              "id": "BBgMn",
+              "name": "subtitleText",
+              "fill": "$text-secondary",
+              "content": "Composition · Wednesday evening",
+              "fontFamily": "SF Pro Text",
+              "fontSize": 15,
+              "fontWeight": "normal"
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "A2g8Z9",
+          "name": "Cards",
+          "width": "fill_container",
+          "height": "fill_container",
+          "fill": "$ground-neutral",
+          "layout": "vertical",
+          "gap": 16,
+          "padding": 20,
+          "children": [
+            {
+              "type": "frame",
+              "id": "d9iJ7R",
+              "name": "Beat Card · Start",
+              "width": "fill_container",
+              "fill": "$white",
+              "cornerRadius": 16,
+              "effect": {
+                "type": "shadow",
+                "shadowType": "outer",
+                "color": "#00000014",
+                "offset": {
+                  "x": 0,
+                  "y": 4
+                },
+                "blur": 12
+              },
+              "layout": "vertical",
+              "gap": 8,
+              "padding": 20,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "qJsGQ",
+                  "fill": "$text-secondary",
+                  "content": "START",
+                  "fontFamily": "SF Pro Text",
+                  "fontSize": 13,
+                  "fontWeight": "600",
+                  "letterSpacing": 1.2
+                },
+                {
+                  "type": "text",
+                  "id": "jT2Bg",
+                  "fill": "$text-primary",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Pin end is favored by about 8°. Boats will pile up there. Plan to start one boatlength to leeward of pin, accelerate at -10 and punch into clear air on starboard.",
+                  "lineHeight": 1.4,
+                  "fontFamily": "SF Pro Text",
+                  "fontSize": 17
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "UNlUq",
+              "name": "Beat Card · First Beat",
+              "width": "fill_container",
+              "fill": "$white",
+              "cornerRadius": 16,
+              "effect": {
+                "type": "shadow",
+                "shadowType": "outer",
+                "color": "#00000014",
+                "offset": {
+                  "x": 0,
+                  "y": 4
+                },
+                "blur": 12
+              },
+              "layout": "vertical",
+              "gap": 8,
+              "padding": 20,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "OqFGy",
+                  "fill": "$text-secondary",
+                  "content": "FIRST BEAT",
+                  "fontFamily": "SF Pro Text",
+                  "fontSize": 13,
+                  "fontWeight": "600",
+                  "letterSpacing": 1.2
+                },
+                {
+                  "type": "text",
+                  "id": "s0llQ",
+                  "fill": "$text-primary",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Right side is paying in this breeze. If the left fills in past ten degrees on starboard, I commit and tack.",
+                  "lineHeight": 1.4,
+                  "fontFamily": "SF Pro Text",
+                  "fontSize": 17
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "C739OC",
+              "name": "Card 3 · Contingency",
+              "width": "fill_container",
+              "fill": "$white",
+              "cornerRadius": 16,
+              "effect": {
+                "type": "shadow",
+                "shadowType": "outer",
+                "color": "#00000014",
+                "offset": {
+                  "x": 0,
+                  "y": 4
+                },
+                "blur": 12
+              },
+              "layout": "vertical",
+              "gap": 8,
+              "padding": 20,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "cIe4p",
+                  "name": "card3Label",
+                  "fill": "$text-secondary",
+                  "content": "CONTINGENCY",
+                  "fontFamily": "SF Pro Text",
+                  "fontSize": 13,
+                  "fontWeight": "600",
+                  "letterSpacing": 1.2
+                },
+                {
+                  "type": "text",
+                  "id": "yLT6a",
+                  "name": "card3Body",
+                  "fill": "$text-primary",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "If I'm behind at the windward mark, focus on speed not tactics. Don't try to dig out — make up boatlengths downwind.",
+                  "lineHeight": 1.4,
+                  "fontFamily": "SF Pro Text",
+                  "fontSize": 17,
+                  "fontWeight": "normal"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "FXxeI",
+      "x": 450,
+      "y": 0,
+      "name": "On the Water · Pass B",
+      "clip": true,
+      "width": 393,
+      "height": 852,
+      "fill": {
+        "type": "gradient",
+        "gradientType": "linear",
+        "enabled": true,
+        "rotation": 180,
+        "size": {
+          "height": 1
+        },
+        "colors": [
+          {
+            "color": "#000000",
+            "position": 0
+          },
+          {
+            "color": "#000000",
+            "position": 1
+          }
+        ]
+      },
+      "cornerRadius": 40,
+      "layout": "vertical",
+      "children": [
+        {
+          "type": "frame",
+          "id": "v6syy",
+          "name": "Status Bar",
+          "width": "fill_container",
+          "height": 54,
+          "padding": [
+            0,
+            24
+          ],
+          "justifyContent": "space_between",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "text",
+              "id": "eR6u3",
+              "name": "timeB",
+              "fill": "#FFFFFFE6",
+              "content": "14:23",
+              "fontFamily": "SF Pro Text",
+              "fontSize": 15,
+              "fontWeight": "600"
+            },
+            {
+              "type": "rectangle",
+              "cornerRadius": 19,
+              "id": "h5B1M",
+              "name": "islandB",
+              "fill": "#000000",
+              "width": 126,
+              "height": 37
+            },
+            {
+              "type": "frame",
+              "id": "G8tExj",
+              "name": "statusIcB",
+              "gap": 6,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "StJAy",
+                  "name": "statusGB",
+                  "fill": "#FFFFFFE6",
+                  "content": "●●● ▲ ▮",
+                  "fontFamily": "SF Pro Text",
+                  "fontSize": 12,
+                  "fontWeight": "normal"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "tfjLn",
+          "name": "Nav Row",
+          "width": "fill_container",
+          "height": 44,
+          "padding": [
+            0,
+            16
+          ],
+          "justifyContent": "space_between",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "text",
+              "id": "aOAuu",
+              "name": "backB",
+              "fill": "#FFFFFFB3",
+              "content": "‹",
+              "fontFamily": "SF Pro Display",
+              "fontSize": 28
+            },
+            {
+              "type": "frame",
+              "id": "ljv1z",
+              "name": "navRightB",
+              "gap": 16,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "WKQBG",
+                  "name": "searchB",
+                  "fill": "#FFFFFFB3",
+                  "content": "⌕",
+                  "fontFamily": "SF Pro Text",
+                  "fontSize": 18,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "text",
+                  "id": "wJ4Fs",
+                  "name": "menuB",
+                  "fill": "#FFFFFFB3",
+                  "content": "⋯",
+                  "fontFamily": "SF Pro Text",
+                  "fontSize": 18,
+                  "fontWeight": "normal"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "A9Gc0c",
+          "name": "Sub Tabs",
+          "width": "fill_container",
+          "height": 36,
+          "gap": 24,
+          "padding": [
+            0,
+            16
+          ],
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "text",
+              "id": "E4wcNF",
+              "name": "st1B",
+              "fill": "#FFFFFF80",
+              "content": "Race Prep",
+              "fontFamily": "SF Pro Text",
+              "fontSize": 15,
+              "fontWeight": "normal"
+            },
+            {
+              "type": "text",
+              "id": "u02Uf",
+              "name": "st2B",
+              "fill": "#FFFFFF",
+              "content": "On the Water",
+              "fontFamily": "SF Pro Text",
+              "fontSize": 15,
+              "fontWeight": "600"
+            },
+            {
+              "type": "text",
+              "id": "uJ9Ct",
+              "name": "st3B",
+              "fill": "#FFFFFF80",
+              "content": "Debrief",
+              "fontFamily": "SF Pro Text",
+              "fontSize": 15,
+              "fontWeight": "normal"
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "S3qGO",
+          "name": "Eyebrow",
+          "width": "fill_container",
+          "gap": 8,
+          "padding": [
+            12,
+            20
+          ],
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "ellipse",
+              "id": "pEReO",
+              "name": "liveDotB",
+              "fill": "$ios-coral",
+              "width": 8,
+              "height": 8
+            },
+            {
+              "type": "text",
+              "id": "VtMB3",
+              "name": "eyebrowLabel",
+              "fill": "#FFFFFFCC",
+              "content": "TUESDAY · RACE 4 · SECOND BEAT",
+              "fontFamily": "SF Pro Text",
+              "fontSize": 11,
+              "fontWeight": "600",
+              "letterSpacing": 0.5
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "dHOzy",
+          "name": "Rule Wrap",
+          "width": "fill_container",
+          "padding": [
+            4,
+            20,
+            0,
+            20
+          ],
+          "children": [
+            {
+              "type": "frame",
+              "id": "tH0r3",
+              "name": "Permission Rule · Load-bearing",
+              "width": "fill_container",
+              "fill": "#FFFFFFEB",
+              "cornerRadius": 20,
+              "stroke": {
+                "align": "inside",
+                "thickness": {
+                  "left": 4
+                },
+                "fill": "$ios-coral"
+              },
+              "effect": {
+                "type": "shadow",
+                "shadowType": "outer",
+                "color": "#0000001F",
+                "offset": {
+                  "x": 0,
+                  "y": 8
+                },
+                "blur": 20
+              },
+              "layout": "vertical",
+              "gap": 14,
+              "padding": 24,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "y4b5A",
+                  "name": "Rule Header",
+                  "width": "fill_container",
+                  "gap": 10,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "r50H2",
+                      "name": "flagGlyphB",
+                      "fill": "$ios-coral",
+                      "content": "⚑",
+                      "fontFamily": "SF Pro Text",
+                      "fontSize": 24,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "text",
+                      "id": "bFecV",
+                      "name": "eyebrowRule",
+                      "fill": "$ios-coral",
+                      "content": "YOUR PERMISSION RULE · WRITTEN THURSDAY",
+                      "fontFamily": "SF Pro Text",
+                      "fontSize": 11,
+                      "fontWeight": "600",
+                      "letterSpacing": 0.5
+                    }
+                  ]
+                },
+                {
+                  "type": "text",
+                  "id": "dtvh5",
+                  "name": "ruleTextB",
+                  "fill": "$text-primary",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "If the left fills in past ten degrees on starboard, I commit.",
+                  "lineHeight": 1.3,
+                  "fontFamily": "SF Pro Display",
+                  "fontSize": 24,
+                  "fontWeight": "600"
+                },
+                {
+                  "type": "frame",
+                  "id": "AV95B",
+                  "name": "Rule Status",
+                  "width": "fill_container",
+                  "gap": 8,
+                  "justifyContent": "space_between",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "mh8Ug",
+                      "name": "statusLeftB",
+                      "fill": "$text-secondary",
+                      "content": "Left at 8°. Rule not yet triggered.",
+                      "fontFamily": "SF Pro Text",
+                      "fontSize": 13,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "PmWd6",
+                      "name": "statusRightB",
+                      "gap": 6,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "ellipse",
+                          "id": "COM1A",
+                          "name": "pulseB",
+                          "fill": "$ios-coral",
+                          "width": 8,
+                          "height": 8
+                        },
+                        {
+                          "type": "text",
+                          "id": "MoINf",
+                          "name": "watchingB",
+                          "fill": "$ios-coral",
+                          "content": "watching",
+                          "fontFamily": "SF Pro Text",
+                          "fontSize": 13,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "IDAkA",
+          "name": "Running Log Container",
+          "width": "fill_container",
+          "height": "fill_container",
+          "layout": "vertical",
+          "padding": [
+            20,
+            20,
+            12,
+            20
+          ]
+        }
+      ]
+    }
+  ],
+  "variables": {
+    "font-body": {
+      "type": "string",
+      "value": "SF Pro Text"
+    },
+    "font-heading": {
+      "type": "string",
+      "value": "SF Pro Display"
+    },
+    "gray-6": {
+      "type": "color",
+      "value": "#F2F2F7"
+    },
+    "ground-neutral": {
+      "type": "color",
+      "value": "#F2F2F7"
+    },
+    "ios-blue": {
+      "type": "color",
+      "value": "#007AFF"
+    },
+    "ios-coral": {
+      "type": "color",
+      "value": "#FF6B6B"
+    },
+    "text-primary": {
+      "type": "color",
+      "value": "#000000"
+    },
+    "text-secondary": {
+      "type": "color",
+      "value": "#3C3C4399"
+    },
+    "type-lg": {
+      "type": "number",
+      "value": 17
+    },
+    "type-md": {
+      "type": "number",
+      "value": 15
+    },
+    "type-sm": {
+      "type": "number",
+      "value": 13
+    },
+    "type-xl": {
+      "type": "number",
+      "value": 22
+    },
+    "type-xs": {
+      "type": "number",
+      "value": 11
+    },
+    "white": {
+      "type": "color",
+      "value": "#FFFFFF"
+    }
+  }
+}

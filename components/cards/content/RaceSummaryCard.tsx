@@ -24,6 +24,7 @@ import { ActionSheetIOS, LayoutAnimation, NativeScrollEvent, NativeSyntheticEven
 import { Ionicons } from '@expo/vector-icons';
 import { ScrollView } from 'react-native-gesture-handler';
 import { IOSSegmentedControl } from '@/components/ui/ios';
+import { text } from '@/lib/design-tokens';
 import { showAlertWithButtons } from '@/lib/utils/crossPlatformAlert';
 import { AddToBlueprintSheet } from '@/components/blueprint/AddToBlueprintSheet';
 import { triggerHaptic } from '@/lib/haptics';
@@ -4446,10 +4447,11 @@ const styles = StyleSheet.create({
     letterSpacing: 0.2,
   },
   raceNameLarge: {
-    fontSize: 17,
-    fontWeight: '600',
+    // Serif title treatment per redesign commit 3 + mockup 01/06 — scaled to
+    // serifSubtitle (22pt) for the card variant, since the card width is half
+    // the full step-detail view where 28pt is used.
+    ...text.serifSubtitle,
     color: IOS_COLORS.label,
-    lineHeight: 22,
     marginBottom: 10,
   },
   raceNameInput: {
