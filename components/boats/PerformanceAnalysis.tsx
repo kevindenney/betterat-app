@@ -273,8 +273,8 @@ const FLEET_COMPARISON: FleetComparison[] = [
   },
 ];
 
-export function PerformanceAnalysis({ boatId }: PerformanceAnalysisProps) {
-  const [selectedPeriod, setSelectedPeriod] = useState('season');
+export function PerformanceAnalysis({ boatId: _boatId }: PerformanceAnalysisProps) {
+  const [_selectedPeriod, _setSelectedPeriod] = useState('season');
 
   const getTrendIcon = (trend: string) => {
     if (trend === 'up') return 'trending-up';
@@ -340,7 +340,7 @@ export function PerformanceAnalysis({ boatId }: PerformanceAnalysisProps) {
 
       {/* AI Insights */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>AI Insights</Text>
+        <Text style={styles.sectionTitle}>Insights</Text>
         {AI_INSIGHTS.map((insight) => (
           <View
             key={insight.id}
@@ -569,7 +569,7 @@ export function PerformanceAnalysis({ boatId }: PerformanceAnalysisProps) {
                   fill: idx === 0 ? '#3B82F6' : idx === 1 ? '#10B981' : '#EF4444',
                 },
               }}
-              labels={({ datum }) => ''}
+              labels={({ datum: _datum }) => ''}
               labelComponent={<VictoryTooltip />}
             />
           ))}
@@ -743,7 +743,7 @@ export function PerformanceAnalysis({ boatId }: PerformanceAnalysisProps) {
 
       {/* Enhanced AI Recommendations */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>AI Equipment Recommendations</Text>
+        <Text style={styles.sectionTitle}>Equipment Recommendations</Text>
         <View style={styles.aiRecommendationBox}>
           <Ionicons name="sparkles" size={24} color="#3B82F6" />
           <View style={{ flex: 1 }}>

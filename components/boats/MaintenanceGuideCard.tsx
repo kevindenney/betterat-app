@@ -3,14 +3,13 @@
  * Displays AI-generated or cached care instructions for equipment
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
-  ScrollView,
   Linking,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -79,7 +78,7 @@ export function MaintenanceGuideCard({ equipment, onGenerateGuide, compact = fal
           <>
             <Ionicons name="sparkles" size={16} color={isAIAvailable ? '#3B82F6' : '#94A3B8'} />
             <Text style={[styles.compactEmptyText, !isAIAvailable && { color: '#94A3B8' }]}>
-              {isAIAvailable ? 'Generate AI Care Guide' : 'AI Unavailable'}
+              {isAIAvailable ? 'Generate Care Guide' : 'Unavailable'}
             </Text>
           </>
         )}
@@ -96,8 +95,8 @@ export function MaintenanceGuideCard({ equipment, onGenerateGuide, compact = fal
         <Text style={styles.emptyTitle}>No Care Guide</Text>
         <Text style={styles.emptyDescription}>
           {isAIAvailable
-            ? 'Generate an AI-powered maintenance guide with care instructions, lubrication schedules, and performance tips'
-            : 'AI guide generation is not available. Add manual care instructions in equipment settings.'}
+            ? 'Generate a maintenance guide with care instructions, lubrication schedules, and performance tips'
+            : 'Guide generation is not available. Add manual care instructions in equipment settings.'}
         </Text>
         
         {equipment.manufacturer_doc_url && (
@@ -118,7 +117,7 @@ export function MaintenanceGuideCard({ equipment, onGenerateGuide, compact = fal
             ) : (
               <>
                 <Ionicons name="sparkles" size={18} color="#FFFFFF" />
-                <Text style={styles.generateButtonText}>Generate AI Guide</Text>
+                <Text style={styles.generateButtonText}>Generate Guide</Text>
               </>
             )}
           </TouchableOpacity>
