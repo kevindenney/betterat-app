@@ -50,7 +50,7 @@ const DETAIL_TYPE_TITLES: Record<DetailCardType, string> = {
   fleet: 'Fleet',
   regulatory: 'Regulatory',
   results: 'Results',
-  analysis: 'AI Analysis',
+  analysis: 'Analysis',
   fleet_insights: 'Fleet Insights',
   learning: 'Key Takeaway',
 };

@@ -130,7 +130,7 @@ export function RaceSummaryTile({
   const completedBadges: { label: string; color: string }[] = [];
   if (hasResult) completedBadges.push({ label: 'Result', color: COLORS.green });
   if (debriefComplete) completedBadges.push({ label: 'Debrief', color: COLORS.orange });
-  if (hasAIAnalysis) completedBadges.push({ label: 'AI Analysis', color: COLORS.purple });
+  if (hasAIAnalysis) completedBadges.push({ label: 'Analysis', color: COLORS.purple });
 
   return (
     <AnimatedPressable

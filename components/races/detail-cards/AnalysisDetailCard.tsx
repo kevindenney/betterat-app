@@ -57,7 +57,7 @@ function getConfidenceLabel(confidence: number): string {
 }
 
 export function AnalysisDetailCard({
-  raceId,
+  raceId: _raceId,
   hasDebrief,
   analysisSummary,
   analysisInsights,
@@ -114,7 +114,7 @@ export function AnalysisDetailCard({
           />
         </View>
         <View style={styles.headerText}>
-          <Text style={styles.headerTitle}>AI Analysis</Text>
+          <Text style={styles.headerTitle}>Analysis</Text>
           <Text style={styles.headerSubtitle}>Race insights & recommendations</Text>
         </View>
         <Animated.View style={chevronStyle}>
@@ -219,7 +219,7 @@ export function AnalysisDetailCard({
           </View>
           <Text style={styles.emptyTitle}>No debrief recorded</Text>
           <Text style={styles.emptySubtitle}>
-            Add a race debrief to get AI-powered insights
+            Add a race debrief to get insights
           </Text>
           {onAddDebrief && (
             <Pressable

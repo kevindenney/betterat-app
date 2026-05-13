@@ -10,21 +10,7 @@ import type { DetailCardType } from '@/constants/navigationAnimations';
 import type { DetailCardData } from '@/components/races/navigation/DetailCardPager';
 import { detectRaceType } from '@/lib/races/raceDataUtils';
 
-// Component exports - Upcoming race cards
-export { ConditionsDetailCard } from './ConditionsDetailCard';
-export { CourseDetailCard } from './CourseDetailCard';
-export { FleetDetailCard } from './FleetDetailCard';
-export { RegulatoryDetailCard } from './RegulatoryDetailCard';
-export { StrategyDetailCard } from './StrategyDetailCard';
-export { RigDetailCard } from './RigDetailCard';
-
-// Component exports - Completed race cards
-export { ResultsDetailCard } from './ResultsDetailCard';
-export { AnalysisDetailCard } from './AnalysisDetailCard';
-export { FleetInsightsDetailCard } from './FleetInsightsDetailCard';
-export { LearningDetailCard } from './LearningDetailCard';
-
-// Import components for render helper - Upcoming race cards
+// Imports for render helper - Upcoming race cards
 import { ConditionsDetailCard } from './ConditionsDetailCard';
 import { CourseDetailCard } from './CourseDetailCard';
 import { FleetDetailCard } from './FleetDetailCard';
@@ -32,11 +18,25 @@ import { RegulatoryDetailCard } from './RegulatoryDetailCard';
 import { StrategyDetailCard } from './StrategyDetailCard';
 import { RigDetailCard } from './RigDetailCard';
 
-// Import components for render helper - Completed race cards
+// Imports for render helper - Completed race cards
 import { ResultsDetailCard } from './ResultsDetailCard';
 import { AnalysisDetailCard } from './AnalysisDetailCard';
 import { FleetInsightsDetailCard } from './FleetInsightsDetailCard';
 import { LearningDetailCard } from './LearningDetailCard';
+
+// Component re-exports - Upcoming race cards
+export { ConditionsDetailCard } from './ConditionsDetailCard';
+export { CourseDetailCard } from './CourseDetailCard';
+export { FleetDetailCard } from './FleetDetailCard';
+export { RegulatoryDetailCard } from './RegulatoryDetailCard';
+export { StrategyDetailCard } from './StrategyDetailCard';
+export { RigDetailCard } from './RigDetailCard';
+
+// Component re-exports - Completed race cards
+export { ResultsDetailCard } from './ResultsDetailCard';
+export { AnalysisDetailCard } from './AnalysisDetailCard';
+export { FleetInsightsDetailCard } from './FleetInsightsDetailCard';
+export { LearningDetailCard } from './LearningDetailCard';
 
 /**
  * Race result data for completed races
@@ -147,7 +147,7 @@ function createCompletedRaceCards(raceData: RaceDataForDetailCards): RaceDetailC
     {
       type: 'analysis' as DetailCardType,
       id: `${raceData.id}-analysis`,
-      title: 'AI Analysis',
+      title: 'Analysis',
       raceId: raceData.id,
       raceData,
     },

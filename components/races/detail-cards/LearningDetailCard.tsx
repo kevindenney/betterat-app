@@ -43,7 +43,7 @@ interface LearningDetailCardProps {
 function getSourceLabel(source?: string | null): { icon: string; label: string; color: string } {
   switch (source) {
     case 'ai':
-      return { icon: 'sparkles', label: 'AI Analysis', color: IOS_COLORS.purple };
+      return { icon: 'sparkles', label: 'Analysis', color: IOS_COLORS.purple };
     case 'coach':
       return { icon: 'whistle', label: 'Coach Feedback', color: IOS_COLORS.cyan };
     case 'pattern':
@@ -54,7 +54,7 @@ function getSourceLabel(source?: string | null): { icon: string; label: string; 
 }
 
 export function LearningDetailCard({
-  raceId,
+  raceId: _raceId,
   keyLearning,
   focusNextRace,
   source,

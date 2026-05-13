@@ -56,6 +56,7 @@ export function RaceAnalysisView({ sessionId, raceName }: RaceAnalysisViewProps)
 
   useEffect(() => {
     loadAnalysis();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionId]);
 
   const loadAnalysis = async () => {
@@ -169,7 +170,7 @@ export function RaceAnalysisView({ sessionId, raceName }: RaceAnalysisViewProps)
               <Text className="text-white font-semibold ml-2">Generating...</Text>
             </>
           ) : (
-            <Text className="text-white font-semibold">Generate AI Analysis</Text>
+            <Text className="text-white font-semibold">Generate Analysis</Text>
           )}
         </TouchableOpacity>
 

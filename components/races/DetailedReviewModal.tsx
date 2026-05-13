@@ -73,7 +73,7 @@ export function DetailedReviewModal({
   onClose,
   onComplete,
 }: DetailedReviewModalProps) {
-  const { user } = useAuth();
+  const { user: _user } = useAuth();
   const [modalState, setModalState] = useState<ModalState>('nudges');
   const [analysisError, setAnalysisError] = useState<string | null>(null);
 
@@ -176,7 +176,7 @@ export function DetailedReviewModal({
         return (
           <View style={styles.statusContainer}>
             <ActivityIndicator size="large" color={IOS_COLORS.purple} />
-            <Text style={styles.statusTitle}>Generating AI Analysis</Text>
+            <Text style={styles.statusTitle}>Generating Analysis</Text>
             <Text style={styles.statusSubtitle}>
               Analyzing your detailed review against your past performance...
             </Text>
