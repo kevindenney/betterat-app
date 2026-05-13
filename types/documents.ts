@@ -52,13 +52,13 @@ export type SSISubtype =
  */
 export interface ClubDocumentAIExtraction {
   /** VHF channels mentioned in the document */
-  vhfChannels?: Array<{
+  vhfChannels?: {
     channel: string;
     purpose?: string;  // e.g., "Race Committee", "Safety"
-  }>;
+  }[];
 
   /** Course marks and their positions */
-  marks?: Array<{
+  marks?: {
     name: string;
     type?: string;  // e.g., "inflatable", "permanent", "virtual"
     position?: {
@@ -66,15 +66,15 @@ export interface ClubDocumentAIExtraction {
       lng: number;
     };
     description?: string;
-  }>;
+  }[];
 
   /** Emergency contacts */
-  emergencyContacts?: Array<{
+  emergencyContacts?: {
     name: string;
     phone?: string;
     vhfChannel?: string;
     role?: string;  // e.g., "Marine Rescue", "Coast Guard"
-  }>;
+  }[];
 
   /** Course information */
   courseInfo?: {
@@ -88,7 +88,7 @@ export interface ClubDocumentAIExtraction {
   /** Racing area boundaries */
   racingArea?: {
     name?: string;
-    boundaries?: Array<{ lat: number; lng: number }>;
+    boundaries?: { lat: number; lng: number }[];
   };
 
   /** Extraction metadata */

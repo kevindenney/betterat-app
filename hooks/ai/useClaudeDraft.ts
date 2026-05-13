@@ -26,7 +26,7 @@ export type ClaudeDocumentType =
 export interface ClaudeDocumentDraft {
   title: string;
   markdown: string;
-  sections: Array<{ heading: string; body: string }>;
+  sections: { heading: string; body: string }[];
   confidence: number | null;
 }
 

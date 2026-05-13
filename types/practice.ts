@@ -878,14 +878,14 @@ export interface PracticeSessionWith4Q extends PracticeSession {
   whySummary: {
     aiReasoning?: string;
     userRationale?: string;
-    linkedRaces?: Array<{ id: string; name: string; date: string }>;
+    linkedRaces?: { id: string; name: string; date: string }[];
   };
   howSummary: {
-    drills: Array<{
+    drills: {
       drill: Drill;
       instructions?: string;
       successCriteria?: string;
-    }>;
+    }[];
   };
 }
 
@@ -1241,7 +1241,7 @@ export function rowToDrillCrewTask(row: DrillCrewTaskRow): DrillCrewTask {
  *   const label = categoryMeta['starting']?.label;
  */
 export function buildDrillCategoryMap(
-  categories: Array<{ id: string; label: string; icon: string }>
+  categories: { id: string; label: string; icon: string }[]
 ): Record<string, { label: string; icon: string }> {
   const map: Record<string, { label: string; icon: string }> = {};
   for (const cat of categories) {
@@ -1260,7 +1260,7 @@ export function buildDrillCategoryMap(
  *   const label = skillLabels['equipment-prep'];
  */
 export function buildSkillAreaLabelMap(
-  skillAreas: Array<{ id: string; label: string }>
+  skillAreas: { id: string; label: string }[]
 ): Record<string, string> {
   const map: Record<string, string> = {};
   for (const area of skillAreas) {
@@ -1274,7 +1274,7 @@ export function buildSkillAreaLabelMap(
  * Returns the same shape as SKILL_AREA_CONFIG but driven by the interest config.
  */
 export function buildSkillAreaConfigMap(
-  skillAreas: Array<{ id: string; label: string }>
+  skillAreas: { id: string; label: string }[]
 ): Record<string, { label: string }> {
   const map: Record<string, { label: string }> = {};
   for (const area of skillAreas) {
@@ -1289,7 +1289,7 @@ export function buildSkillAreaConfigMap(
  */
 export function getDrillCategoryLabel(
   categoryId: string,
-  categories: Array<{ id: string; label: string; icon: string }>
+  categories: { id: string; label: string; icon: string }[]
 ): string {
   return categories.find((c) => c.id === categoryId)?.label ?? categoryId;
 }
@@ -1300,7 +1300,7 @@ export function getDrillCategoryLabel(
  */
 export function getSkillAreaLabel(
   skillAreaId: string,
-  skillAreas: Array<{ id: string; label: string }>
+  skillAreas: { id: string; label: string }[]
 ): string {
   return skillAreas.find((s) => s.id === skillAreaId)?.label ?? skillAreaId;
 }

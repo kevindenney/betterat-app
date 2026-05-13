@@ -225,7 +225,7 @@ export interface BriefingSchedule {
   /** Class flag description */
   classFlag?: string;
   /** Social events list */
-  socialEvents?: Array<{ time: string; event: string; location?: string }>;
+  socialEvents?: { time: string; event: string; location?: string }[];
 }
 
 /**

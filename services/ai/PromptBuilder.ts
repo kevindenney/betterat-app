@@ -83,7 +83,7 @@ When sailor preparation context is available, use it to provide more personalize
   };
 }
 
-export function buildSupportPrompt(club: ClubSummary, conversationHistory: Array<{ role: 'user' | 'assistant'; message: string }>, newQuestion: string) {
+export function buildSupportPrompt(club: ClubSummary, conversationHistory: { role: 'user' | 'assistant'; message: string }[], newQuestion: string) {
   const history = conversationHistory
     .slice(-6)
     .map(entry => `${entry.role === 'user' ? 'Member' : 'Assistant'}: ${entry.message}`)

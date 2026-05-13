@@ -12,7 +12,7 @@ import { useMemo } from 'react';
 // =============================================================================
 
 export interface RaceCourse {
-  legs?: Array<{ heading?: number }>;
+  legs?: { heading?: number }[];
   startLine?: { heading?: number };
 }
 

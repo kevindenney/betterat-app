@@ -40,8 +40,8 @@ interface UseDrillLibraryReturn {
   // Data
   drills: Drill[];
   filteredDrills: Drill[];
-  categories: Array<{ category: DrillCategory; count: number }>;
-  difficulties: Array<{ difficulty: DrillDifficulty; count: number }>;
+  categories: { category: DrillCategory; count: number }[];
+  difficulties: { difficulty: DrillDifficulty; count: number }[];
 
   // Filters
   selectedCategory: DrillCategory | null;

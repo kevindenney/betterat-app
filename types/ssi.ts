@@ -26,15 +26,15 @@ export interface SSIVHFChannels {
   /** Safety/distress channel */
   safety?: SSIVHFChannel;
   /** Start line specific channels */
-  startLines?: Array<{
+  startLines?: {
     channel: string;
     lineName: string;
-  }>;
+  }[];
   /** Other channels (e.g., finish, protest) */
-  other?: Array<{
+  other?: {
     channel: string;
     purpose: string;
-  }>;
+  }[];
 }
 
 /**
@@ -68,12 +68,12 @@ export interface SSIEmergencyContact {
 export interface SSIRacingArea {
   name?: string;
   description?: string;
-  boundaries?: Array<{ lat: number; lng: number }>;
-  prohibitedZones?: Array<{
+  boundaries?: { lat: number; lng: number }[];
+  prohibitedZones?: {
     name: string;
     reason: string;
-    boundaries?: Array<{ lat: number; lng: number }>;
-  }>;
+    boundaries?: { lat: number; lng: number }[];
+  }[];
 }
 
 /**

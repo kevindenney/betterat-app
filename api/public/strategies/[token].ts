@@ -30,7 +30,7 @@ export interface PublicStrategyInfo {
     boat_class: string | null;
     race_type: 'fleet' | 'distance' | null;
     total_distance_nm: number | null;
-    waypoints: Array<{ name: string; latitude: number; longitude: number }> | null;
+    waypoints: { name: string; latitude: number; longitude: number }[] | null;
   } | null;
   
   // Regatta info (if part of a regatta)

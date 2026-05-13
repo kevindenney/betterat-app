@@ -17,11 +17,11 @@ export interface RaceCourse {
     centerLat?: number;
     centerLon?: number;
   };
-  marks?: Array<{
+  marks?: {
     name: string;
     type: string;
     position?: { lat?: number; lng?: number };
-  }>;
+  }[];
 }
 
 export interface GPSPosition {

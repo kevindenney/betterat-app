@@ -48,12 +48,12 @@ type DashboardView =
   | 'publishing'
   | 'members';
 
-const NAV_ITEMS: Array<{
+const NAV_ITEMS: {
   id: DashboardView;
   label: string;
   icon: React.ComponentType<any>;
   requiresManagement?: boolean;
-}> = [
+}[] = [
   { id: 'dashboard', label: 'Overview', icon: LayoutDashboard },
   { id: 'events', label: 'Events', icon: CalendarDays, requiresManagement: true },
   { id: 'entries', label: 'Entries & Payments', icon: CreditCard, requiresManagement: true },
@@ -158,7 +158,7 @@ const ClubDashboardScreen = () => {
   const snapshot = snapshots[0] ?? null;
 
   const onRefresh = async () => {
-    const promises: Array<Promise<unknown>> = [refetch(), refetchSnapshots()];
+    const promises: Promise<unknown>[] = [refetch(), refetchSnapshots()];
     if (enableEntriesFetch) {
       promises.push(refetchEntries());
     }

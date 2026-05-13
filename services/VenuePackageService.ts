@@ -221,11 +221,11 @@ export class VenuePackageService {
   ): {
     totalSizeMB: number;
     totalTiles: number;
-    perVenue: Array<{ venue: SailingVenue; sizeMB: number; tiles: number }>;
+    perVenue: { venue: SailingVenue; sizeMB: number; tiles: number }[];
   } {
     let totalSizeMB = 0;
     let totalTiles = 0;
-    const perVenue: Array<{ venue: SailingVenue; sizeMB: number; tiles: number }> = [];
+    const perVenue: { venue: SailingVenue; sizeMB: number; tiles: number }[] = [];
 
     for (const venue of venues) {
       const pkg = this.createVenuePackage(venue, preset);

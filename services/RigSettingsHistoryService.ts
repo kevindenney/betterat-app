@@ -17,12 +17,12 @@ export interface RigSettingHistoryEntry {
   boatId?: string;
   regattaId?: string;
   raceEventId?: string;
-  settings: Array<{
+  settings: {
     key: string;
     label: string;
     value: string;
     unit?: string;
-  }>;
+  }[];
   windSpeedForecast?: number;
   windSpeedActual?: number;
   windDirectionForecast?: number;
@@ -283,8 +283,8 @@ class RigSettingsHistoryService {
    * Calculate deviation between actual and recommended settings
    */
   private calculateDeviation(
-    actual: Array<{ key: string; value: string }>,
-    recommended: Array<{ key: string; value: string }>
+    actual: { key: string; value: string }[],
+    recommended: { key: string; value: string }[]
   ): Record<string, { recommended: string; actual: string; delta?: string }> {
     const deviation: Record<string, { recommended: string; actual: string; delta?: string }> = {};
 

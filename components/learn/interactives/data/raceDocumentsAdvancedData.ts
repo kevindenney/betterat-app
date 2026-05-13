@@ -28,7 +28,7 @@ export interface DocumentScenario {
   documentType: string;
   relevantSection: string;
   question: string;
-  options: Array<{ id: string; text: string; isCorrect: boolean }>;
+  options: { id: string; text: string; isCorrect: boolean }[];
   explanation: string;
 }
 

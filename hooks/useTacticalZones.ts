@@ -21,7 +21,7 @@ import {
 
 interface UseTacticalZonesOptions {
   /** Filter by zone type */
-  filterTypes?: Array<TacticalZone['type']>;
+  filterTypes?: TacticalZone['type'][];
 
   /** Minimum confidence threshold (0-1) */
   minConfidence?: number;
@@ -180,7 +180,7 @@ export function useTacticalZoneLayerConfig(options: {
   showBorders?: boolean;
   showLabels?: boolean;
   showConfidence?: boolean;
-  filterTypes?: Array<TacticalZone['type']>;
+  filterTypes?: TacticalZone['type'][];
 } = {}) {
   const {
     opacity = 0.35,

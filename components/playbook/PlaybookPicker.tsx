@@ -49,7 +49,7 @@ interface PlaybookPickerProps {
 
 type Tab = 'resource' | 'concept' | 'qa' | 'past_learning';
 
-const TABS: Array<{ key: Tab; label: string; icon: keyof typeof Ionicons.glyphMap }> = [
+const TABS: { key: Tab; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
   { key: 'resource', label: 'Resources', icon: 'library-outline' },
   { key: 'concept', label: 'Concepts', icon: 'book-outline' },
   { key: 'qa', label: 'Q&A', icon: 'help-circle-outline' },

@@ -30,12 +30,12 @@ export interface Course {
     tier?: string;
   };
   whatYouLearn?: string[];
-  modules?: Array<{
+  modules?: {
     id: string;
     title: string;
     orderIndex: number;
     durationMinutes: number;
-    lessons?: Array<{
+    lessons?: {
       id: string;
       title: string;
       lessonType: string;
@@ -44,8 +44,8 @@ export interface Course {
       durationSeconds: number;
       isFreePreview?: boolean;
       description?: string;
-    }>;
-  }>;
+    }[];
+  }[];
   instructor?: {
     name: string;
     bio: string;

@@ -30,7 +30,7 @@ const COLORS = {
 };
 
 // Skill area options - even more condensed
-const SKILL_OPTIONS: Array<{ area: SkillArea; label: string }> = [
+const SKILL_OPTIONS: { area: SkillArea; label: string }[] = [
   { area: 'start-execution', label: 'starts' },
   { area: 'upwind-execution', label: 'upwind' },
   { area: 'downwind-speed', label: 'downwind' },

@@ -39,7 +39,7 @@ function parseTimestamp(value: string | null | undefined): Date | null {
 }
 
 export function computeDailyStreak(
-  activityTimestamps: Array<string | null | undefined>,
+  activityTimestamps: (string | null | undefined)[],
   now: Date = new Date()
 ): number {
   const dayKeys = new Set<string>();
@@ -60,7 +60,7 @@ export function computeDailyStreak(
 }
 
 export function countActiveDaysWithin(
-  activityTimestamps: Array<string | null | undefined>,
+  activityTimestamps: (string | null | undefined)[],
   days: number,
   now: Date = new Date()
 ): number {

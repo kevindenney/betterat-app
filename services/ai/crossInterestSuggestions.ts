@@ -282,12 +282,12 @@ export function generateSuggestions(
     activityByInterest.set(activity.interestSlug, activity);
   }
 
-  const scoredRefs: Array<{
+  const scoredRefs: {
     ref: CrossReference;
     refIndex: number;
     score: number;
     sourceActivity: UserInterestActivity;
-  }> = [];
+  }[] = [];
 
   for (const ref of relevantCrossRefs) {
     const sourceActivity = activityByInterest.get(ref.sourceInterest);

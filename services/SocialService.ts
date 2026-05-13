@@ -59,11 +59,11 @@ export interface UserFollowWithOptions {
 export interface LikeInfo {
   hasLiked: boolean;
   likeCount: number;
-  recentLikers?: Array<{
+  recentLikers?: {
     userId: string;
     displayName: string;
     avatarEmoji?: string;
-  }>;
+  }[];
 }
 
 // =============================================================================
@@ -238,7 +238,7 @@ class SocialServiceClass {
     regattaId: string,
     options?: { limit?: number; offset?: number }
   ): Promise<
-    Array<{ userId: string; displayName: string; avatarEmoji?: string }>
+    { userId: string; displayName: string; avatarEmoji?: string }[]
   > {
     const limit = options?.limit ?? 50;
     const offset = options?.offset ?? 0;

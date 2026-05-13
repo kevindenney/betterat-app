@@ -83,11 +83,11 @@ ${withDebrief.map((s: any) => `[${s.id}] ${s.starts_at?.slice(0, 10)} — ${s.ti
       temperature: 0.3,
     });
 
-    let patterns: Array<{
+    let patterns: {
       title?: string;
       body_md?: string;
-      evidence?: Array<Record<string, unknown>>;
-    }> = [];
+      evidence?: Record<string, unknown>[];
+    }[] = [];
     try {
       patterns = extractJson(aiText);
       if (!Array.isArray(patterns)) patterns = [];

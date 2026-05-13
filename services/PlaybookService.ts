@@ -512,7 +512,7 @@ export interface CreatePlaybookQAInput {
   user_id: string;
   question: string;
   answer_md: string;
-  sources?: Array<Record<string, unknown>>;
+  sources?: Record<string, unknown>[];
   pinned?: boolean;
 }
 
@@ -830,7 +830,7 @@ export async function acceptShare(
  */
 export async function getPlaybooksSharedWithMe(
   userId: string,
-): Promise<Array<PlaybookShareRecord & { playbook_name: string; interest_name: string; owner_email: string; owner_name: string }>> {
+): Promise<(PlaybookShareRecord & { playbook_name: string; interest_name: string; owner_email: string; owner_name: string })[]> {
   try {
     // First get the user's email
     const { data: profile } = await supabase
@@ -893,7 +893,7 @@ export async function getPlaybooksSharedWithMe(
  * Used by the instructor dashboard to show aggregate stats per student.
  */
 export async function getBatchSectionCounts(
-  playbooks: Array<{ playbook_id: string; interest_id: string }>,
+  playbooks: { playbook_id: string; interest_id: string }[],
 ): Promise<Map<string, PlaybookSectionCounts>> {
   const results = await Promise.all(
     playbooks.map(async (p) => {
@@ -997,7 +997,7 @@ export async function getStudentCompetencySummary(
  * Batch fetch competency summaries for multiple students.
  */
 export async function getBatchCompetencySummaries(
-  students: Array<{ user_id: string; interest_id: string }>,
+  students: { user_id: string; interest_id: string }[],
 ): Promise<Map<string, CompetencyProgressSummary>> {
   const results = await Promise.all(
     students.map(async (s) => {

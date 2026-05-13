@@ -229,8 +229,8 @@ ${sourceBlocks.join('\n\n')}`;
     let parsed: {
       answer_md?: string;
       sources?: unknown[];
-      concept_updates?: Array<{ concept_id: string; title: string; new_insight: string }>;
-      knowledge_gaps?: Array<{ topic: string; description: string }>;
+      concept_updates?: { concept_id: string; title: string; new_insight: string }[];
+      knowledge_gaps?: { topic: string; description: string }[];
     } = {};
     try {
       const cleaned = aiText.replace(/```(?:json)?\s*/g, '').replace(/```$/g, '').trim();

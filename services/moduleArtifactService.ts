@@ -9,7 +9,7 @@ export type ModuleArtifactEventType = 'regatta' | 'race_event' | 'timeline_step'
 export interface ModuleArtifactContent {
   toolValues: Record<string,string>;
   notes: string;
-  attachments: Array<{id: string; type: string; label: string; uri?: string}>;
+  attachments: {id: string; type: string; label: string; uri?: string}[];
   mappedCompetencyIds?: string[];
 }
 

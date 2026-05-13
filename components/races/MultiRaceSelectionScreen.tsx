@@ -154,7 +154,7 @@ export function MultiRaceSelectionScreen({
     }
     acc[seriesName].push({ race, index });
     return acc;
-  }, {} as Record<string, Array<{ race: ExtractedData; index: number }>>);
+  }, {} as Record<string, { race: ExtractedData; index: number }[]>);
 
   return (
     <View style={styles.container}>

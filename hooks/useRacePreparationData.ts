@@ -12,7 +12,7 @@ import type { RigPreset, RegulatoryDigestData, RegulatoryAcknowledgements } from
 interface CourseOutlineGroup {
   group: string;
   description: string;
-  courses: Array<{ name: string; sequence: string }>;
+  courses: { name: string; sequence: string }[];
 }
 
 interface ActiveRace {

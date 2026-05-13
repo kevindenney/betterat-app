@@ -138,10 +138,10 @@ ${staleConcepts.length > 0 ? staleConcepts.map((c: any) => `- [${c.id}] ${c.titl
     const parsed = extractJson<{
       summary_md?: string;
       focus_md?: string;
-      updated_pages?: Array<Record<string, unknown>>;
+      updated_pages?: Record<string, unknown>[];
       knowledge_health?: {
-        contradictions?: Array<{ concept_ids: string[]; description: string }>;
-        gaps?: Array<{ topic: string; description: string }>;
+        contradictions?: { concept_ids: string[]; description: string }[];
+        gaps?: { topic: string; description: string }[];
       };
     }>(aiText);
 

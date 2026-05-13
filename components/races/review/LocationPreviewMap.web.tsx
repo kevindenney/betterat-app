@@ -49,7 +49,7 @@ export function LocationPreviewMap({ latitude, longitude, width, height }: Locat
   const gridOffsetX = width / 2 - (TILE_SIZE + pixelInTileX);
   const gridOffsetY = height / 2 - (TILE_SIZE + pixelInTileY);
 
-  const tiles: Array<{ dx: number; dy: number; url: string }> = [];
+  const tiles: { dx: number; dy: number; url: string }[] = [];
   for (let dy = -1; dy <= 1; dy++) {
     for (let dx = -1; dx <= 1; dx++) {
       const tx = tileX + dx;

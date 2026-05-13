@@ -20,14 +20,14 @@ import { showAlert } from '@/lib/utils/crossPlatformAlert';
 type CoachingClientSkillLevel = 'beginner' | 'intermediate' | 'advanced' | 'expert';
 type CoachingClientStatus = 'active' | 'inactive' | 'completed';
 
-const SKILL_LEVELS: Array<{ key: CoachingClientSkillLevel; label: string }> = [
+const SKILL_LEVELS: { key: CoachingClientSkillLevel; label: string }[] = [
   { key: 'beginner', label: 'Beginner' },
   { key: 'intermediate', label: 'Intermediate' },
   { key: 'advanced', label: 'Advanced' },
   { key: 'expert', label: 'Pro' },
 ];
 
-const STATUSES: Array<{ key: CoachingClientStatus; label: string }> = [
+const STATUSES: { key: CoachingClientStatus; label: string }[] = [
   { key: 'active', label: 'Active' },
   { key: 'inactive', label: 'Paused' },
   { key: 'completed', label: 'Completed' },

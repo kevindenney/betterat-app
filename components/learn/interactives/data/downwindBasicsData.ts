@@ -244,11 +244,11 @@ export const DOWNWIND_BASICS_STEPS: DownwindBasicsStep[] = [
 export interface QuizQuestion {
   id: string;
   question: string;
-  options: Array<{
+  options: {
     id: string;
     text: string;
     isCorrect: boolean;
-  }>;
+  }[];
   explanation: string;
   hint?: string;
 }

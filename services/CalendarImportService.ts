@@ -16,11 +16,11 @@ export interface CalendarRace {
 export interface CalendarImportResult {
   success: boolean;
   races: CalendarRace[];
-  skipped: Array<{
+  skipped: {
     row: number;
     reason: string;
     data: any;
-  }>;
+  }[];
   error?: string;
 }
 
@@ -64,7 +64,7 @@ export class CalendarImportService {
       }
 
       const races: CalendarRace[] = [];
-      const skipped: Array<{ row: number; reason: string; data: any }> = [];
+      const skipped: { row: number; reason: string; data: any }[] = [];
 
       // Parse data rows
       for (let i = 1; i < lines.length; i++) {
@@ -184,10 +184,10 @@ export class CalendarImportService {
    */
   static validateRaces(races: CalendarRace[]): {
     valid: CalendarRace[];
-    invalid: Array<{ race: CalendarRace; reason: string }>;
+    invalid: { race: CalendarRace; reason: string }[];
   } {
     const valid: CalendarRace[] = [];
-    const invalid: Array<{ race: CalendarRace; reason: string }> = [];
+    const invalid: { race: CalendarRace; reason: string }[] = [];
 
     for (const race of races) {
       // Check required fields

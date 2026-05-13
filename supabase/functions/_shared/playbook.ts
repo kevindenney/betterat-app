@@ -90,13 +90,13 @@ export async function assertPlaybookOwnership(
  */
 export async function insertSuggestions(
   supabase: SupabaseClient,
-  rows: Array<{
+  rows: {
     playbook_id: string;
     user_id: string;
     kind: string;
     payload: Record<string, unknown>;
     provenance: Record<string, unknown>;
-  }>,
+  }[],
 ): Promise<number> {
   if (rows.length === 0) return 0;
   const withStatus = rows.map((r) => ({ ...r, status: 'pending' }));

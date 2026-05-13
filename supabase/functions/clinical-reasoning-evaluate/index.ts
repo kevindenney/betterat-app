@@ -12,7 +12,7 @@ interface EvaluateRequest {
 interface ArtifactContent {
   toolValues?: Record<string,string>;
   notes?: string;
-  attachments?: Array<{id: string; type: string; label: string; uri?: string}>;
+  attachments?: {id: string; type: string; label: string; uri?: string}[];
   mappedCompetencyIds?: string[];
 }
 
@@ -40,7 +40,7 @@ const getLevel = (textLength: number, completedSteps: number): EvaluationLevel =
   return 'developing';
 };
 
-const firstNonEmpty = (items: Array<string | undefined>): string | null => {
+const firstNonEmpty = (items: (string | undefined)[]): string | null => {
   for (const item of items) {
     if (item && item.trim().length > 0) return item.trim();
   }

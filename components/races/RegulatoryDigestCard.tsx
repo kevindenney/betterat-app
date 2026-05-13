@@ -61,11 +61,11 @@ export function RegulatoryDigestCard({
   acknowledgements,
   onToggle,
 }: RegulatoryDigestCardProps) {
-  const ackItems: Array<{
+  const ackItems: {
     key: keyof RegulatoryAcknowledgements;
     label: string;
     description: string;
-  }> = [
+  }[] = [
     {
       key: 'cleanRegatta',
       label: 'Clean Regatta commitments noted',

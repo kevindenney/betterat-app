@@ -20,18 +20,18 @@ interface VenueData {
     bestConditions: string;
     commonHazards: string[];
     localTactics: string[];
-    records: Array<{
+    records: {
       type: string;
       value: string;
       holder: string;
-    }>;
+    }[];
   };
-  services: Array<{
+  services: {
     type: string;
     name: string;
     contact: string;
     rating: number;
-  }>;
+  }[];
 }
 
 interface NearbyVenue {

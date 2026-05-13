@@ -405,12 +405,12 @@ export class TimeBasedForecastService {
   /**
    * Get forecast markers for time slider
    */
-  getForecastMarkers(series: ForecastTimeSeries): Array<{
+  getForecastMarkers(series: ForecastTimeSeries): {
     time: Date;
     label: string;
     color: string;
-  }> {
-    const markers: Array<{ time: Date; label: string; color: string }> = [];
+  }[] {
+    const markers: { time: Date; label: string; color: string }[] = [];
 
     // Add race start marker
     markers.push({

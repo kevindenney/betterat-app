@@ -422,7 +422,7 @@ class ClubDocumentService {
    */
   async reorderClubDocuments(
     clubId: string,
-    documentOrders: Array<{ id: string; displayOrder: number }>
+    documentOrders: { id: string; displayOrder: number }[]
   ): Promise<boolean> {
     try {
       // Update each document's display order

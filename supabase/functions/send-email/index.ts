@@ -14,10 +14,10 @@ interface EmailRequest {
   html: string;
   text?: string;
   replyTo?: string;
-  attachments?: Array<{
+  attachments?: {
     filename: string;
     content: string; // base64 encoded
-  }>;
+  }[];
 }
 
 serve(async (req: Request) => {

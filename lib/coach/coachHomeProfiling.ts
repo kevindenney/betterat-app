@@ -22,10 +22,10 @@ export type CoachHomeBaselineInput = {
   run_id: string;
   generated_at: string;
   budget_ms: number;
-  samples: Array<{
+  samples: {
     step: CoachHomeProfileStep;
     duration_ms: number;
-  }>;
+  }[];
 };
 
 export async function profileCoachHomeStep<T>(

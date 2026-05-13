@@ -295,13 +295,13 @@ export interface UnderwaterAnalysis {
     variability?: number;
 
     /** Collection of sampled current vectors for visualization */
-    samples?: Array<{
+    samples?: {
       lat: number;
       lng: number;
       speed: number;
       direction: number;
       timestamp?: string;
-    }>;
+    }[];
   };
 }
 

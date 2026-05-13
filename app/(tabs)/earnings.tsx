@@ -326,7 +326,7 @@ export default function EarningsScreen() {
   const defaultCurrency = summary?.transactions[0]?.currency || balanceCurrency || 'USD';
 
   const breakdownEntries = useMemo(() => {
-    if (!summary) return [] as Array<{ label: string; value: number }>;
+    if (!summary) return [] as { label: string; value: number }[];
     const entries = Object.entries(summary.breakdown || {})
       .filter(([, value]) => value > 0)
       .map(([key, value]) => ({

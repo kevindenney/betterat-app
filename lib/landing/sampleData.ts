@@ -37,7 +37,7 @@ export interface SampleCohort {
   name: string;
   people: SamplePerson[];
   isShared?: boolean;
-  partnerInterests?: Array<{ interestSlug: string; orgSlug?: string; orgName?: string }>;
+  partnerInterests?: { interestSlug: string; orgSlug?: string; orgName?: string }[];
 }
 
 export interface SampleOrganization {
@@ -54,8 +54,8 @@ export interface SampleProgram {
   name: string;
   type: 'degree' | 'certification' | 'course' | 'training' | 'residency' | 'fellowship' | 'retreat';
   description?: string;
-  offeredBy: Array<{ orgSlug: string; role: string }>;
-  coHostedWith?: Array<{ interestSlug: string; orgSlug: string; role: string }>;
+  offeredBy: { orgSlug: string; role: string }[];
+  coHostedWith?: { interestSlug: string; orgSlug: string; role: string }[];
   samplePeople: SamplePerson[];
 }
 
@@ -4327,7 +4327,7 @@ export function personSlug(name: string): string {
  *  Returns the person plus all interest/org contexts they appear in. */
 export interface PersonSearchResult {
   person: SamplePerson;
-  contexts: Array<{
+  contexts: {
     interestSlug: string;
     interestName: string;
     interestColor: string;
@@ -4336,7 +4336,7 @@ export interface PersonSearchResult {
     role?: string;          // role within this context
     timeline?: SampleTimelineStep[]; // per-interest timeline (for personal interests)
     isPersonal?: boolean;
-  }>;
+  }[];
 }
 
 export function findPersonBySlug(slug: string): PersonSearchResult | undefined {

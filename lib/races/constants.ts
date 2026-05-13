@@ -164,10 +164,10 @@ export interface RegulatoryAcknowledgements {
 export interface CourseOutlineGroup {
   group: string;
   description: string;
-  courses: Array<{
+  courses: {
     name: string;
     sequence: string;
-  }>;
+  }[];
 }
 
 // =============================================================================

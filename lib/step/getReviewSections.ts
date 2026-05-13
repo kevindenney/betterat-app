@@ -79,10 +79,10 @@ export interface NormalizedReview {
 // v1 → v2 mapping (locked per D6: next_step_notes folds into anything_else)
 // ---------------------------------------------------------------------------
 
-const LEGACY_FIELD_TO_PROMPT: Array<{
+const LEGACY_FIELD_TO_PROMPT: {
   field: keyof Pick<StepReviewData, 'what_learned' | 'deviation_reason' | 'next_step_notes'>;
   prompt: ReviewSectionPrompt;
-}> = [
+}[] = [
   { field: 'what_learned', prompt: 'what_did_you_learn' },
   { field: 'deviation_reason', prompt: 'what_didnt' },
   { field: 'next_step_notes', prompt: 'anything_else' },

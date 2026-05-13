@@ -339,7 +339,7 @@ export default function CatalogScreen() {
           isCoach: isCoachRole(row.role),
         }
       })
-      .filter(Boolean) as Array<{ id: string; name: string; email: string | null; role: string | null; isCoach: boolean }>
+      .filter(Boolean) as { id: string; name: string; email: string | null; role: string | null; isCoach: boolean }[]
   }, [selectedOrganizationMemberships, usersById])
 
   const selectedOrganizationCoaches = useMemo(

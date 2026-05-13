@@ -106,7 +106,7 @@ export const PerformanceMetrics: React.FC<PerformanceMetricsProps> = ({
 interface MetricCardProps {
   icon: string;
   title: string;
-  metrics: Array<{ label: string; value: string; color: string }>;
+  metrics: { label: string; value: string; color: string }[];
 }
 
 const MetricCard: React.FC<MetricCardProps> = ({ icon, title, metrics }) => (

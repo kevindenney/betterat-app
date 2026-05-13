@@ -15,7 +15,7 @@ import { SailorOverview } from './SailorOverview';
 
 interface EnhancedSailorOverviewProps {
   // Class data
-  classes: Array<{
+  classes: {
     id: string;
     name: string;
     sailNumber?: string;
@@ -27,13 +27,13 @@ interface EnhancedSailorOverviewProps {
       name: string;
       ratingSystem?: string | null;
     };
-  }>;
+  }[];
   activeClassId: string | null;
   onClassChange: (classId: string | null) => void;
   onAddBoat?: () => void;
 
   // Race data
-  upcomingRaces: Array<{
+  upcomingRaces: {
     id: string;
     title: string;
     venue: string;
@@ -46,7 +46,7 @@ interface EnhancedSailorOverviewProps {
     hasTuningGuides?: boolean;
     hasCrewAssigned?: boolean;
     classId?: string;
-  }>;
+  }[];
 
   // Stats
   stats: {

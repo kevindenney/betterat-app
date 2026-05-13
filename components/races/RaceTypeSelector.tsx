@@ -43,12 +43,12 @@ interface RaceTypeSelectorProps {
   showAllTypes?: boolean;
 }
 
-const RACE_TYPE_OPTIONS: Array<{
+const RACE_TYPE_OPTIONS: {
   type: RaceType;
   icon: typeof Sailboat;
   label: string;
   subtitle: string;
-}> = [
+}[] = [
   { type: 'fleet', icon: Sailboat, label: 'Fleet Racing', subtitle: 'Buoy courses' },
   { type: 'distance', icon: Navigation, label: 'Distance Racing', subtitle: 'Offshore / passage' },
   { type: 'match', icon: Target, label: 'Match Racing', subtitle: '1v1 competition' },

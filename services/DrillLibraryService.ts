@@ -349,7 +349,7 @@ class DrillLibraryServiceClass {
   /**
    * Get drill categories with counts
    */
-  async getCategoriesWithCounts(): Promise<Array<{ category: DrillCategory; count: number }>> {
+  async getCategoriesWithCounts(): Promise<{ category: DrillCategory; count: number }[]> {
     const { data, error } = await supabase
       .from('drills')
       .select('category')
@@ -377,7 +377,7 @@ class DrillLibraryServiceClass {
    * Get available difficulties
    */
   async getDifficultiesWithCounts(): Promise<
-    Array<{ difficulty: DrillDifficulty; count: number }>
+    { difficulty: DrillDifficulty; count: number }[]
   > {
     const { data, error } = await supabase
       .from('drills')

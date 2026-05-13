@@ -256,7 +256,7 @@ async function applyPatternDetected(
   const payload = suggestion.payload as {
     title?: string;
     body_md?: string;
-    evidence?: Array<Record<string, unknown>>;
+    evidence?: Record<string, unknown>[];
   };
   if (!payload.title) throw new Error('pattern_detected missing title');
   const { error } = await supabase.from('playbook_patterns').insert({
@@ -279,7 +279,7 @@ async function applyWeeklyReview(
     period_end?: string;
     summary_md?: string;
     focus_suggestion_md?: string | null;
-    updated_pages?: Array<Record<string, unknown>>;
+    updated_pages?: Record<string, unknown>[];
     knowledge_health?: Record<string, unknown> | null;
   };
   if (!payload.period_start || !payload.period_end || !payload.summary_md) {

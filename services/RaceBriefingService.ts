@@ -42,15 +42,15 @@ export interface RaceBriefing {
   
   // Strategic recommendations (AI-generated)
   strategy: {
-    keyPoints: Array<{
+    keyPoints: {
       title: string;
       content: string;
       priority: 'critical' | 'important' | 'consider';
-    }>;
-    decisionPoints: Array<{
+    }[];
+    decisionPoints: {
       question: string;
       options: string[];
-    }>;
+    }[];
     warnings: string[];
   };
   
@@ -72,31 +72,31 @@ export interface RaceBriefing {
   // Distance racing specific
   distanceRacing?: {
     routeOverview: string;
-    legBreakdown: Array<{
+    legBreakdown: {
       from: string;
       to: string;
       distance?: number;
       estimatedTime?: string;
       weatherAtLeg?: string;
       tactics?: string;
-    }>;
-    tideGates: Array<{
+    }[];
+    tideGates: {
       location: string;
       optimalTime: string;
       notes: string;
-    }>;
-    keyDecisions: Array<{
+    }[];
+    keyDecisions: {
       location: string;
       decision: string;
       options: string[];
-    }>;
+    }[];
   };
   
   // Important times
-  importantTimes: Array<{
+  importantTimes: {
     label: string;
     time: string;
-  }>;
+  }[];
   
   // Communications
   communications: {
@@ -247,8 +247,8 @@ class RaceBriefingServiceClass {
   /**
    * Build important times list from race data
    */
-  private buildImportantTimes(race: any, userBoatClass?: string): Array<{ label: string; time: string }> {
-    const times: Array<{ label: string; time: string }> = [];
+  private buildImportantTimes(race: any, userBoatClass?: string): { label: string; time: string }[] {
+    const times: { label: string; time: string }[] = [];
     
     if (race.skipper_briefing_time) {
       times.push({ label: 'Skipper Briefing', time: race.skipper_briefing_time });

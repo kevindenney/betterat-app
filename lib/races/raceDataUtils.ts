@@ -108,7 +108,7 @@ export function normalizeDirection(value: unknown): number | null {
 /**
  * Pick the first finite numeric value from an array of candidates
  */
-export function pickNumeric(values: Array<unknown>): number | null {
+export function pickNumeric(values: unknown[]): number | null {
   for (const candidate of values) {
     if (typeof candidate === 'number' && Number.isFinite(candidate)) {
       return candidate;

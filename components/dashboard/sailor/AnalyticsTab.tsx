@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { DashboardSection, DashboardKPICard } from '../shared';
 
 interface PerformanceData {
-  raceResults: Array<{
+  raceResults: {
     id: string;
     event: string;
     venue: string;
@@ -12,7 +12,7 @@ interface PerformanceData {
     position: number;
     fleet: number;
     conditions: string;
-  }>;
+  }[];
   stats: {
     totalRaces: number;
     avgPosition: number;
@@ -21,24 +21,24 @@ interface PerformanceData {
     improvementTrend: number;
     consistencyScore: number;
   };
-  venuePerformance: Array<{
+  venuePerformance: {
     venue: string;
     races: number;
     avgPosition: number;
     bestPosition: number;
-  }>;
-  conditionsAnalysis: Array<{
+  }[];
+  conditionsAnalysis: {
     conditions: string;
     races: number;
     avgPosition: number;
     strength: 'weak' | 'average' | 'strong';
-  }>;
-  equipmentCorrelation: Array<{
+  }[];
+  equipmentCorrelation: {
     setup: string;
     races: number;
     avgPosition: number;
     effectiveness: number;
-  }>;
+  }[];
 }
 
 interface AnalyticsTabProps {

@@ -140,7 +140,7 @@ export interface PlaybookPatternRecord {
   title: string;
   body_md: string;
   /** Array of `{ type: 'step' | 'concept' | 'resource', id: string, note?: string }` */
-  evidence: Array<Record<string, unknown>>;
+  evidence: Record<string, unknown>[];
   status: PatternStatus;
   created_at: string;
   updated_at: string;
@@ -158,12 +158,12 @@ export interface PlaybookReviewRecord {
   period_end: string;
   summary_md: string;
   focus_suggestion_md: string | null;
-  updated_pages: Array<Record<string, unknown>>;
+  updated_pages: Record<string, unknown>[];
   /** Health check results: contradictions, gaps, stale concepts */
   knowledge_health: {
-    contradictions?: Array<{ concept_ids: string[]; description: string }>;
-    gaps?: Array<{ topic: string; description: string }>;
-    stale_concepts?: Array<{ concept_id: string; title: string; last_updated: string }>;
+    contradictions?: { concept_ids: string[]; description: string }[];
+    gaps?: { topic: string; description: string }[];
+    stale_concepts?: { concept_id: string; title: string; last_updated: string }[];
   } | null;
   created_at: string;
 }
@@ -178,7 +178,7 @@ export interface PlaybookQARecord {
   user_id: string;
   question: string;
   answer_md: string;
-  sources: Array<Record<string, unknown>>;
+  sources: Record<string, unknown>[];
   pinned: boolean;
   created_at: string;
 }

@@ -757,13 +757,13 @@ class CompetitorService {
   /**
    * Get performance by boat class
    */
-  async getPerformanceByClass(): Promise<Array<{
+  async getPerformanceByClass(): Promise<{
     boat_class: string;
     races: number;
     avg_finish: number;
     podiums: number;
     best_finish: number;
-  }>> {
+  }[]> {
     const history = await this.getRaceHistory();
     
     const byClass = new Map<string, {
@@ -806,14 +806,14 @@ class CompetitorService {
   /**
    * Get performance trend (last N races)
    */
-  async getPerformanceTrend(races: number = 20): Promise<Array<{
+  async getPerformanceTrend(races: number = 20): Promise<{
     race_name: string;
     regatta_name: string;
     date: string;
     position: number;
     fleet_size: number;
     percentage: number;
-  }>> {
+  }[]> {
     const history = await this.getRaceHistory({ limit: races });
     
     // This would need fleet size data - simplified for now

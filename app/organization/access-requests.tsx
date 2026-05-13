@@ -264,7 +264,7 @@ export default function OrganizationAccessRequestsScreen() {
                 joined_at: null,
               };
 
-        const missingColumnFallbacks: Array<[string, string]> = [
+        const missingColumnFallbacks: [string, string][] = [
           ['membership_status', 'organization_memberships.membership_status'],
           ['status', 'organization_memberships.status'],
           ['is_verified', 'organization_memberships.is_verified'],

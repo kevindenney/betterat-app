@@ -180,7 +180,7 @@ Deno.serve(async (req: Request) => {
       ],
     } as Anthropic.Beta.MessageCreateParams);
 
-    const textBlocks = (response.content as Array<{ type: string; text?: string }>)
+    const textBlocks = (response.content as { type: string; text?: string }[])
       .filter((block) => block.type === "text" && typeof block.text === "string")
       .map((block) => block.text!.trim())
       .filter(Boolean);

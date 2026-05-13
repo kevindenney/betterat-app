@@ -74,7 +74,7 @@ export default function ArtifactQueueScreen() {
           .in('id', requesterIds);
         if (!usersError) {
           const nameMap: Record<string,string> = {};
-          for (const row of (usersData || []) as Array<{id: string; full_name?: string | null; email?: string | null}>) {
+          for (const row of (usersData || []) as {id: string; full_name?: string | null; email?: string | null}[]) {
             nameMap[row.id] = row.full_name || row.email || row.id;
           }
           setRequesterNameById(nameMap);

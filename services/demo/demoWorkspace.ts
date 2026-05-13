@@ -9,7 +9,7 @@ export interface DemoWorkspace {
     onboarding_step: string;
     onboarding_completed: boolean;
   };
-  races: Array<{
+  races: {
     id: string;
     name: string;
     venue: string;
@@ -19,11 +19,11 @@ export interface DemoWorkspace {
     wind: { direction: string; speedMin: number; speedMax: number };
     tide: { state: 'flooding' | 'ebbing' | 'slack'; height: number };
     strategy: string;
-  }>;
+  }[];
   boats: MockBoat[];
-  fleets: Array<{ id: string; name: string; members: number }>;
-  performanceHistory: Array<{ id: string; event: string; date: string; position: number; fleet: number }>;
-  timerSessions: Array<{ id: string; race: string; completedAt: string }>;
+  fleets: { id: string; name: string; members: number }[];
+  performanceHistory: { id: string; event: string; date: string; position: number; fleet: number }[];
+  timerSessions: { id: string; race: string; completedAt: string }[];
 }
 
 const formatRace = (race: MockRace) => ({

@@ -13,10 +13,10 @@ export interface CalendarEvent {
     name: string;
     email: string;
   };
-  attendees?: Array<{
+  attendees?: {
     name: string;
     email: string;
-  }>;
+  }[];
 }
 
 export class CalendarService {

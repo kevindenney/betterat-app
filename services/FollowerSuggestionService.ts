@@ -151,7 +151,7 @@ export class FollowerSuggestionService {
       .in('id', suggesterIds);
 
     if (!usersError && usersData) {
-      (usersData as Array<{ id?: string; full_name?: string | null }>).forEach((u) => {
+      (usersData as { id?: string; full_name?: string | null }[]).forEach((u) => {
         if (u?.id && u?.full_name) {
           namesById.set(u.id, u.full_name);
         }
@@ -163,8 +163,8 @@ export class FollowerSuggestionService {
       ]);
 
       const mergedProfiles = [
-        ...((profilesById.data || []) as Array<{ id?: string; user_id?: string; full_name?: string | null }>),
-        ...((profilesByUserId.data || []) as Array<{ id?: string; user_id?: string; full_name?: string | null }>),
+        ...((profilesById.data || []) as { id?: string; user_id?: string; full_name?: string | null }[]),
+        ...((profilesByUserId.data || []) as { id?: string; user_id?: string; full_name?: string | null }[]),
       ];
 
       mergedProfiles.forEach((p) => {

@@ -141,12 +141,12 @@ serve(async (req: Request) => {
     let ingested = 0;
     let failed = 0;
     const suggestionRows: Parameters<typeof insertSuggestions>[1] = [];
-    const aiPendingItems: Array<{
+    const aiPendingItems: {
       itemId: string;
       resourceId: string;
       resourceTitle: string;
       content: string;
-    }> = [];
+    }[] = [];
 
     for (const item of items) {
       try {
@@ -383,7 +383,7 @@ ${hasExistingConcepts ? `EXISTING CONCEPTS:\n${conceptsSummary}` : '(No existing
           temperature: 0.3,
         });
 
-        const proposals = extractJson<Array<Record<string, unknown>>>(aiText);
+        const proposals = extractJson<Record<string, unknown>[]>(aiText);
         const conceptIdSet = new Set((concepts ?? []).map((c: any) => c.id));
         if (Array.isArray(proposals)) {
           for (const p of proposals.slice(0, 4)) {

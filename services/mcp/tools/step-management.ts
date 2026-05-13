@@ -312,7 +312,7 @@ export function registerStepManagementTools(
       );
 
       // Gather suggestions from each blueprint
-      const suggestions: Array<{
+      const suggestions: {
         blueprint_title: string;
         blueprint_id: string;
         step_id: string;
@@ -320,7 +320,7 @@ export function registerStepManagementTools(
         description: string | null;
         category: string;
         sort_order: number;
-      }> = [];
+      }[] = [];
 
       for (const sub of filteredSubs) {
         const bp = (sub as any).timeline_blueprints;

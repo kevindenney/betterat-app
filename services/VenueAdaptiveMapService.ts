@@ -407,11 +407,11 @@ export class VenueAdaptiveMapService {
   /**
    * Get racing areas for multi-venue club
    */
-  getMultiVenueRacingAreas(venue: SailingVenue): Array<{
+  getMultiVenueRacingAreas(venue: SailingVenue): {
     name: string;
     coordinates: [number, number];
     description: string;
-  }> {
+  }[] {
     const name = venue.name.toLowerCase();
 
     // RHKYC has 3 racing areas

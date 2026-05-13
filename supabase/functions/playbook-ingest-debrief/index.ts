@@ -68,7 +68,7 @@ serve(async (req: Request) => {
       .from('playbook_concepts')
       .select('id, title, body_md')
       .or(`playbook_id.eq.${playbook.id},and(playbook_id.is.null,interest_id.eq.${step.interest_id})`);
-    const playbookConcepts = (allConcepts ?? []) as Array<{ id: string; title: string; body_md: string }>;
+    const playbookConcepts = (allConcepts ?? []) as { id: string; title: string; body_md: string }[];
 
     // Also load linked concepts from step_playbook_links for extra context
     const { data: links = [] } = await supabase
@@ -114,14 +114,14 @@ ${playbookConcepts.length === 0 ? '(none — this is a new playbook with no conc
       temperature: 0.3,
     });
 
-    let proposals: Array<{
+    let proposals: {
       type?: string;
       target_concept_id?: string;
       title?: string;
       body_md?: string;
       rationale?: string;
       related_concept_ids?: string[];
-    }> = [];
+    }[] = [];
     try {
       proposals = extractJson(aiText);
       if (!Array.isArray(proposals)) proposals = [];

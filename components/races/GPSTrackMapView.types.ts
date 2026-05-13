@@ -8,11 +8,11 @@ export interface GPSTrackMapViewProps {
   autoFollow?: boolean;
 
   // Additional tracks for fleet comparison
-  fleetTracks?: Array<{
+  fleetTracks?: {
     sailorName: string;
     color: string;
     trackPoints: GPSTrackPoint[];
-  }>;
+  }[];
 
   // Map region center (if not auto-following)
   initialRegion?: {
@@ -23,9 +23,9 @@ export interface GPSTrackMapViewProps {
   };
 
   // Course marks to display
-  courseMarks?: Array<{
+  courseMarks?: {
     name: string;
     latitude: number;
     longitude: number;
-  }>;
+  }[];
 }

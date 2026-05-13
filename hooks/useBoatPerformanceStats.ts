@@ -62,12 +62,12 @@ export function useBoatPerformanceStats({
 
       const results = (data || []).filter(
         (result) => typeof result.finish_position === 'number'
-      ) as Array<{
+      ) as {
         finish_position: number;
         total_boats?: number | null;
         race_date?: string | null;
         created_at?: string | null;
-      }>;
+      }[];
 
       const totalRaces = results.length;
 

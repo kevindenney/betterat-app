@@ -177,7 +177,7 @@ export function useReflectData() {
       }
 
       // Fetch timer sessions for time on water
-      let sessions: Array<{ id: string; regatta_id?: string | null; race_id?: string | null; start_time: string; end_time?: string | null }> | null = null;
+      let sessions: { id: string; regatta_id?: string | null; race_id?: string | null; start_time: string; end_time?: string | null }[] | null = null;
       let sessionsError: any = null;
       const sessionsPrimary = await supabase
         .from('race_timer_sessions')

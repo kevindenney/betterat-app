@@ -41,7 +41,7 @@ export interface RecurringInsight {
   id: string;
   type: 'win' | 'challenge';
   summary: string;
-  supportingRaces: Array<{ raceId: string; createdAt?: string }>;
+  supportingRaces: { raceId: string; createdAt?: string }[];
 }
 
 export interface AILearningSummary {

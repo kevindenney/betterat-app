@@ -33,7 +33,7 @@ export interface RaceEntryConfirmationData {
   entry_fee_amount: number;
   entry_fee_currency: string;
   payment_status: string;
-  crew_members: Array<{ name: string; role: string }>;
+  crew_members: { name: string; role: string }[];
   documents_complete: boolean;
 }
 
@@ -107,7 +107,7 @@ export class EmailService {
     subject: string;
     html: string;
     text: string;
-    attachments?: Array<{ content: string; filename: string; type: string }>;
+    attachments?: { content: string; filename: string; type: string }[];
     emailType: string;
   }): Promise<{ success: boolean; error?: string }> {
     try {

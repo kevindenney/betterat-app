@@ -4,7 +4,7 @@ export interface EventContext {
   clubId: string;
   event: any;
   club: any;
-  previousDocuments: Array<{ document_type: string; draft_text: string; created_at: string }>;
+  previousDocuments: { document_type: string; draft_text: string; created_at: string }[];
 }
 
 export interface RaceContext {

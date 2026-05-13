@@ -34,9 +34,9 @@ export interface UseEventAnalysisReturn {
   /** Universal analysis data (null if none exists) */
   analysis: AiEventAnalysis | null;
   /** Analysis sections config from current interest */
-  sectionConfigs: Array<{ id: string; label: string; description: string }>;
+  sectionConfigs: { id: string; label: string; description: string }[];
   /** Framework score configs from current interest */
-  frameworkConfigs: Array<{ id: string; label: string; description: string }>;
+  frameworkConfigs: { id: string; label: string; description: string }[];
   /** Loading state */
   isLoading: boolean;
   /** Error message */

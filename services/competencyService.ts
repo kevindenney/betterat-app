@@ -1162,7 +1162,7 @@ async function getNextAttemptNumbers(userId: string, competencyIds: string[]): P
   for (const competencyId of competencyIds) {
     nextByComp.set(competencyId, 1);
   }
-  for (const row of (data || []) as Array<{competency_id: string; attempt_number: number}>) {
+  for (const row of (data || []) as {competency_id: string; attempt_number: number}[]) {
     if (!nextByComp.has(row.competency_id)) continue;
     const current = nextByComp.get(row.competency_id) || 1;
     const candidateNext = (row.attempt_number || 0) + 1;
@@ -1203,7 +1203,7 @@ async function resolveNursingCompetencyIds(candidateIds: string[]): Promise<stri
   }
 
   const byTitle = new Map<string, string>();
-  for (const row of (data || []) as Array<{id: string; title: string}>) {
+  for (const row of (data || []) as {id: string; title: string}[]) {
     byTitle.set(row.title, row.id);
   }
 

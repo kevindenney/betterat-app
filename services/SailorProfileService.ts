@@ -645,14 +645,14 @@ class SailorProfileServiceClass {
     currentUserId?: string,
     options?: { limit?: number; offset?: number }
   ): Promise<{
-    users: Array<{
+    users: {
       userId: string;
       displayName: string;
       avatarUrl?: string;
       avatarEmoji?: string;
       avatarColor?: string;
       isFollowing: boolean;
-    }>;
+    }[];
     hasMore: boolean;
   }> {
     const limit = options?.limit ?? 50;
@@ -732,14 +732,14 @@ class SailorProfileServiceClass {
     currentUserId?: string,
     options?: { limit?: number; offset?: number }
   ): Promise<{
-    users: Array<{
+    users: {
       userId: string;
       displayName: string;
       avatarUrl?: string;
       avatarEmoji?: string;
       avatarColor?: string;
       isFollowing: boolean;
-    }>;
+    }[];
     hasMore: boolean;
   }> {
     const limit = options?.limit ?? 50;

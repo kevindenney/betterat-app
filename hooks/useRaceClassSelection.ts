@@ -18,13 +18,13 @@ export interface UseRaceClassSelectionParams {
     classId?: string | null;
     boatClass?: string | null;
     /** Database column: boat_classes JSONB array */
-    boat_classes?: Array<{ id?: string; name?: string }> | null;
+    boat_classes?: { id?: string; name?: string }[] | null;
     metadata?: {
       class_id?: string | null;
       classId?: string | null;
       class_name?: string | null;
     };
-    class_divisions?: Array<{ name?: string }>;
+    class_divisions?: { name?: string }[];
   } | null;
 }
 

@@ -324,27 +324,27 @@ export interface PhaseInfo {
  * Data needed to generate dynamic sections for distance races
  */
 export interface DistanceRaceData {
-  routeWaypoints?: Array<{
+  routeWaypoints?: {
     id: string;
     name: string;
     lat: number;
     lng: number;
     passingInstruction?: string;
-  }>;
-  legs?: Array<{
+  }[];
+  legs?: {
     legNumber: number;
     name: string;
     startLocation: string;
     endLocation: string;
     estimatedDurationHours?: number;
     followedByPeak?: string | null;
-  }>;
-  peaks?: Array<{
+  }[];
+  peaks?: {
     id: string;
     name: string;
     location: string;
     estimatedClimbHours: number;
-  }>;
+  }[];
   totalDistanceNm?: number;
   timeLimitHours?: number;
 }

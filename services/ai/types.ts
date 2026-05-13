@@ -114,10 +114,10 @@ export interface ClaudeAPIRequest {
   model: string;
   max_tokens: number;
   temperature?: number;
-  messages: Array<{
+  messages: {
     role: 'user' | 'assistant';
-    content: string | Array<any>;
-  }>;
+    content: string | any[];
+  }[];
   system?: string;
   metadata?: Record<string, any>;
 }
@@ -126,10 +126,10 @@ export interface ClaudeAPIResponse {
   id: string;
   type: 'message';
   role: 'assistant';
-  content: Array<{
+  content: {
     type: 'text' | 'thinking';
     text: string;
-  }>;
+  }[];
   model: string;
   stop_reason: string;
   stop_sequence: string | null;
@@ -184,14 +184,14 @@ export interface RaceContext {
   start_time: string;
   venue_id: string | null;
   racing_area_name: string | null;
-  marks: Array<{
+  marks: {
     id: string;
     mark_name: string | null;
     mark_type: string | null;
     latitude: number;
     longitude: number;
     rounding: string | null;
-  }>;
+  }[];
   weather_forecast: WeatherForecast | null;
   race_status: string | null;
 }
@@ -285,11 +285,11 @@ export interface EventDocumentDraftResponse {
   document_id: string;
   title: string;
   document_type: 'nor' | 'si' | 'amendment';
-  sections: Array<{
+  sections: {
     heading: string;
     content: string;
     order: number;
-  }>;
+  }[];
   draft_text: string; // Full formatted text
   metadata: {
     word_count: number;
@@ -315,11 +315,11 @@ export interface RaceDayCommsResponse {
 export interface SupportChatResponse {
   conversation_id: string;
   message: string;
-  suggested_actions: Array<{
+  suggested_actions: {
     label: string;
     action: 'navigate' | 'open_document' | 'contact_staff';
     parameters: Record<string, any>;
-  }>;
+  }[];
   confidence_score: number;
   escalation_needed: boolean;
 }
@@ -345,11 +345,11 @@ export interface DailySummaryResponse {
       count: number;
       details: string[];
     };
-    upcoming_events: Array<{
+    upcoming_events: {
       title: string;
       date: string;
       participants_count: number;
-    }>;
+    }[];
     action_items: string[];
   };
   summary_text: string; // Formatted summary

@@ -5,9 +5,9 @@
 interface ModuleContent {
   notesPrompt: string;
   aiCoach: { title: string; body: string; question: string };
-  network: Array<{ name: string; role: string; tip: string }>;
+  network: { name: string; role: string; tip: string }[];
   history: { summary: string; detail: string };
-  items?: Array<{ label: string; detail: string; status?: 'alert' | 'ok' | 'info' }>;
+  items?: { label: string; detail: string; status?: 'alert' | 'ok' | 'info' }[];
   alert?: { title: string; body: string };
   richContent?: boolean;
   drillableItems?: boolean;

@@ -659,7 +659,7 @@ class SafetyBoatService {
   async checkAllBoats(regattaId: string): Promise<{
     successful: number;
     failed: number;
-    results: Array<{ assignmentId: string; status: RadioStatus }>;
+    results: { assignmentId: string; status: RadioStatus }[];
   }> {
     // Get all deployed assignments
     const assignments = await this.getAssignments(regattaId, new Date().toISOString().split('T')[0]);

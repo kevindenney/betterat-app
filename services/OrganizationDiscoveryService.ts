@@ -283,7 +283,7 @@ class OrganizationDiscoveryService {
           verification_source: 'invite',
         };
 
-        const missingColumnFallbacks: Array<[string, string]> = [
+        const missingColumnFallbacks: [string, string][] = [
           ['membership_status', 'organization_memberships.membership_status'],
           ['is_verified', 'organization_memberships.is_verified'],
           ['verified_at', 'organization_memberships.verified_at'],

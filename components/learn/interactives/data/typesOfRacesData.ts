@@ -476,11 +476,11 @@ export const TYPES_OF_RACES_STEPS: RaceTypeStep[] = [
 export interface QuizQuestion {
   id: string;
   question: string;
-  options: Array<{
+  options: {
     id: string;
     text: string;
     isCorrect: boolean;
-  }>;
+  }[];
   explanation: string;
   hint?: string;
 }

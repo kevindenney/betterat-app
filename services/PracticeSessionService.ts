@@ -650,13 +650,13 @@ class PracticeSessionServiceClass {
    */
   async addFocusAreas(
     sessionId: string,
-    areas: Array<{
+    areas: {
       skillArea: SkillArea;
       priority: number;
       aiSuggested?: boolean;
       suggestionReason?: string;
       postSessionRating?: number;
-    }>
+    }[]
   ): Promise<void> {
     const rows = areas.map((area) => ({
       session_id: sessionId,
@@ -748,12 +748,12 @@ class PracticeSessionServiceClass {
    */
   async addDrills(
     sessionId: string,
-    drills: string[] | Array<{
+    drills: string[] | {
       drillId: string;
       orderIndex?: number;
       plannedDurationMinutes?: number;
       repetitions?: number;
-    }>
+    }[]
   ): Promise<void> {
     // Get current max order index
     const { data: existing } = await supabase

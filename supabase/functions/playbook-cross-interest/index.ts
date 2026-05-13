@@ -120,12 +120,12 @@ ${candidates.map((c, i) => `[${i}] ${c.item_type} ${c.item_id} (playbook ${c.sou
       temperature: 0.3,
     });
 
-    let picks: Array<{
+    let picks: {
       item_type?: 'concept' | 'resource';
       item_id?: string;
       target_playbook_id?: string;
       rationale?: string;
-    }> = [];
+    }[] = [];
     try {
       picks = extractJson(aiText);
       if (!Array.isArray(picks)) picks = [];

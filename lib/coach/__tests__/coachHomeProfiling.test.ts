@@ -7,7 +7,7 @@ import {
 
 describe('coachHomeProfiling helpers', () => {
   it('records step duration samples', async () => {
-    const samples: Array<{ step: any; durationMs: number }> = [];
+    const samples: { step: any; durationMs: number }[] = [];
     const value = await profileCoachHomeStep('core_queries', async () => 42, samples as any);
 
     expect(value).toBe(42);

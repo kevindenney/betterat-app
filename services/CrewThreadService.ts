@@ -882,12 +882,12 @@ export class CrewThreadService {
    * Search for users to add to a thread
    */
   static async searchUsers(query: string): Promise<{
-    users: Array<{
+    users: {
       id: string;
       fullName: string;
       avatarEmoji: string | null;
       avatarColor: string | null;
-    }>;
+    }[];
     error?: string;
   }> {
     try {
@@ -949,13 +949,13 @@ export class CrewThreadService {
    * Returns recent conversation contacts + people the user follows
    */
   static async getSuggestedContacts(limit: number = 10): Promise<{
-    users: Array<{
+    users: {
       id: string;
       fullName: string;
       avatarEmoji: string | null;
       avatarColor: string | null;
       source: 'recent' | 'following';
-    }>;
+    }[];
     error?: string;
   }> {
     try {

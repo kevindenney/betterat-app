@@ -943,13 +943,13 @@ class NotificationServiceClass {
   async getSentSuggestions(
     actorId: string,
     targetUserId: string,
-  ): Promise<Array<{
+  ): Promise<{
     id: string;
     stepTitle: string;
     stepDescription: string | null;
     isRead: boolean;
     createdAt: string;
-  }>> {
+  }[]> {
     const { data, error } = await supabase
       .from('social_notifications')
       .select('id, data, is_read, created_at')

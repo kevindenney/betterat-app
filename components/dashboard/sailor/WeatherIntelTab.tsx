@@ -14,14 +14,14 @@ interface WeatherData {
     humidity: number;
     visibility: number;
   };
-  forecast: Array<{
+  forecast: {
     time: string;
     windSpeed: number;
     windDirection: number;
     temperature: number;
     conditions: string;
     confidence: number;
-  }>;
+  }[];
   marine: {
     waveHeight: number;
     waveDirection: number;

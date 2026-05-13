@@ -332,12 +332,12 @@ class HandicapService {
   async importRatings(
     systemId: string,
     clubId: string,
-    ratings: Array<{
+    ratings: {
       sail_number: string;
       boat_name?: string;
       boat_class?: string;
       rating: number;
-    }>
+    }[]
   ): Promise<{ imported: number; errors: string[] }> {
     const errors: string[] = [];
     let imported = 0;

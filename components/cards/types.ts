@@ -512,7 +512,7 @@ export interface CardContentProps {
   /** Total races in current season/series (e.g., 10 for "Race 2 of 10") */
   totalRaces?: number;
   /** Timeline navigation - array of races for compact date axis */
-  timelineRaces?: Array<{
+  timelineRaces?: {
     id: string;
     date: string;
     raceType?: 'fleet' | 'distance' | 'match' | 'team';
@@ -520,7 +520,7 @@ export interface CardContentProps {
     name?: string;
     interestSlug?: string;
     metadata?: Record<string,unknown>;
-  }>;
+  }[];
   /** Timeline navigation - current race index */
   currentRaceIndex?: number;
   /** Timeline navigation - callback to jump to race */

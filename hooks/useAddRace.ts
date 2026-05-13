@@ -63,7 +63,7 @@ export interface RaceFormData {
   /** Route waypoints for distance races */
   routeWaypoints?: RouteWaypoint[];
   /** Racing area polygon coordinates */
-  racingAreaPolygon?: Array<{ lat: number; lng: number }>;
+  racingAreaPolygon?: { lat: number; lng: number }[];
   fleet?: {
     courseType?: string;
     numberOfLaps?: string;

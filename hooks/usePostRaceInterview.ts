@@ -25,7 +25,7 @@ export interface RaceTimerSession {
   start_time: string;
   end_time: string;
   duration_seconds: number;
-  track_points?: Array<unknown>;
+  track_points?: unknown[];
   [key: string]: unknown;
 }
 

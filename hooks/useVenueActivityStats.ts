@@ -27,7 +27,7 @@ export function useVenueActivityStats() {
         if (error || !data || cancelled) return;
 
         const map = new Map<string, VenueActivityStat>();
-        for (const row of data as Array<{ venue_id: string; post_count: number; last_active_at: string | null }>) {
+        for (const row of data as { venue_id: string; post_count: number; last_active_at: string | null }[]) {
           if (row.post_count > 0) {
             map.set(row.venue_id, {
               postCount: Number(row.post_count),

@@ -45,8 +45,8 @@ export function ReadOnlyChecklistProgress({
     if (!completions) return { completed: [], pending: [] };
 
     const items = Object.entries(completions);
-    const completed: Array<{ id: string; completion: ChecklistCompletion }> = [];
-    const pending: Array<{ id: string; completion: ChecklistCompletion }> = [];
+    const completed: { id: string; completion: ChecklistCompletion }[] = [];
+    const pending: { id: string; completion: ChecklistCompletion }[] = [];
 
     items.forEach(([id, completion]) => {
       if (completion.completed || completion.status === 'completed') {

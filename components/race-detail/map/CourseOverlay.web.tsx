@@ -9,13 +9,13 @@ import React from 'react';
 
 interface CourseOverlayProps {
   course: {
-    startLine: Array<{ latitude: number; longitude: number }>;
-    finishLine?: Array<{ latitude: number; longitude: number }>;
-    marks: Array<{
+    startLine: { latitude: number; longitude: number }[];
+    finishLine?: { latitude: number; longitude: number }[];
+    marks: {
       coordinate: { latitude: number; longitude: number };
       name?: string;
-    }>;
-    path: Array<{ latitude: number; longitude: number }>;
+    }[];
+    path: { latitude: number; longitude: number }[];
   };
   visible?: boolean;
 }

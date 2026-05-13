@@ -19,12 +19,12 @@ export interface RaceDataForCoordinates {
     racing_area_coordinates?: { lat?: number; lng?: number };
     venue_coordinates?: { lat?: number; lng?: number };
   };
-  route_waypoints?: Array<{
+  route_waypoints?: {
     latitude?: number;
     longitude?: number;
-  }>;
+  }[];
   racing_area_polygon?: {
-    coordinates?: Array<Array<number[]>>;
+    coordinates?: number[][][];
   };
 }
 
@@ -32,7 +32,7 @@ export interface UseVenueCoordinatesParams {
   /** Selected race data */
   selectedRaceData: RaceDataForCoordinates | null;
   /** Drawing racing area polygon points */
-  drawingRacingArea: Array<{ lat: number; lng: number }>;
+  drawingRacingArea: { lat: number; lng: number }[];
 }
 
 export interface UseVenueCoordinatesReturn {

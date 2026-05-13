@@ -66,7 +66,7 @@ export function ConceptDetail({ slug }: ConceptDetailProps) {
   interface QAEntry {
     question: string;
     answer: string;
-    sources: Array<{ type: string; id: string; label: string; url?: string }>;
+    sources: { type: string; id: string; label: string; url?: string }[];
   }
   const [askQuestion, setAskQuestion] = useState('');
   const [qaHistory, setQaHistory] = useState<QAEntry[]>([]);
@@ -74,7 +74,7 @@ export function ConceptDetail({ slug }: ConceptDetailProps) {
 
   // Related concepts (backlinks)
   const [relatedConcepts, setRelatedConcepts] = useState<
-    Array<{ id: string; title: string; slug: string }>
+    { id: string; title: string; slug: string }[]
   >([]);
 
   const handleAsk = async () => {

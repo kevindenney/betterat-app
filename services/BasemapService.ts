@@ -465,12 +465,12 @@ export function getBasemapStyle(type: BasemapType): any {
 /**
  * Get all basemap options for UI
  */
-export function getBasemapOptions(): Array<{
+export function getBasemapOptions(): {
   id: BasemapType;
   name: string;
   icon: string;
   description: string;
-}> {
+}[] {
   return basemapService.getAvailableBasemaps().map(b => ({
     id: b.id,
     name: b.name,
