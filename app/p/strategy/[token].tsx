@@ -377,7 +377,7 @@ export default function PublicStrategyPage() {
               color={hasAIInsights ? '#10B981' : '#CBD5E1'} 
             />
             <Text style={[styles.overviewLabel, !hasAIInsights && styles.overviewLabelEmpty]}>
-              AI Insights
+              Insights
             </Text>
           </View>
         </View>
@@ -617,7 +617,7 @@ export default function PublicStrategyPage() {
       {hasAIInsights && (
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <MaterialCommunityIcons name="robot" size={20} color="#9333EA" />
+            <MaterialCommunityIcons name="lightbulb-outline" size={20} color="#9333EA" />
             <Text style={[styles.sectionTitle, { color: '#9333EA' }]}>Insights</Text>
           </View>
           

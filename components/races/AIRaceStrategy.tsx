@@ -205,10 +205,6 @@ Be specific, actionable, and reference the proven frameworks from your knowledge
               </ButtonText>
             </Button>
           </View>
-
-          <Text className="text-xs text-gray-500 dark:text-gray-500 mt-3 text-center">
-            Powered by Claude Skills • Race Strategy Analyst
-          </Text>
         </ScrollView>
       )}
     </Card>

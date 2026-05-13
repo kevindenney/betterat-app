@@ -236,15 +236,6 @@ export function RaceLearningInsights({ onPreRaceReminderPress }: RaceLearningIns
           ))}
         </View>
       )}
-
-      {/* AI Attribution */}
-      {aiSummary && (
-        <View style={styles.attribution}>
-          <Text style={styles.attributionText}>
-            Powered by Claude AI • Race Learning Analyst
-          </Text>
-        </View>
-      )}
     </ScrollView>
   );
 }
@@ -515,15 +506,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 20,
     fontStyle: 'italic' as const,
-  },
-  attribution: {
-    paddingHorizontal: 16,
-    paddingBottom: 24,
-    alignItems: 'center',
-  },
-  attributionText: {
-    fontSize: 12,
-    color: '#9ca3af',
   },
   compactLoadingCard: {
     marginHorizontal: 16,

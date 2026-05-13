@@ -393,7 +393,7 @@ Respond with ONLY valid JSON:
             <Pressable style={styles.overlayContent} onPress={(e) => e.stopPropagation()}>
               <Text style={styles.overlayTitle}>Paste Notes</Text>
               <Text style={styles.overlaySubtitle}>
-                Dump a wall of text and the AI will help organize it
+                Dump a wall of text and we'll help organize it
               </Text>
               <TextInput
                 style={styles.overlayTextArea}

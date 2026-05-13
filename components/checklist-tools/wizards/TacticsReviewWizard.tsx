@@ -565,7 +565,7 @@ export function TacticsReviewWizard({
             <Sparkles size={16} color={IOS_COLORS.purple} />
             <Text style={styles.tipText}>
               After the race, review which decisions paid off. Your feedback
-              trains the AI for better recommendations.
+              sharpens future recommendations.
             </Text>
           </View>
         </ScrollView>

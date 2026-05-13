@@ -295,13 +295,13 @@ Return ONLY a valid JSON object. No markdown fences, no backticks, no explanatio
               <Text style={[styles.sectionTitle, { marginLeft: 8 }]}>Generate blueprint from curriculum</Text>
             </View>
             <Text style={{ fontSize: 13, color: '#64748B', marginBottom: 8 }}>
-              Describe your curriculum — the AI will create a blueprint with real steps your members can adopt.
+              Describe your curriculum — we'll create a blueprint with real steps your members can adopt.
             </Text>
             <TextInput
               style={styles.input}
               value={aiTitle}
               onChangeText={setAiTitle}
-              placeholder="Blueprint title (optional — AI will suggest one)"
+              placeholder="Blueprint title (optional — we'll suggest one)"
               placeholderTextColor="#94A3B8"
               editable={!aiGenerating}
             />

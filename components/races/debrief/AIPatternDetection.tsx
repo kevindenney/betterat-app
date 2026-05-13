@@ -176,7 +176,7 @@ export const AIPatternDetection: React.FC = () => {
 
           <PatternList
             title="Next focus items"
-            subtitle="High-impact gaps Claude is watching from your last races."
+            subtitle="High-impact gaps surfaced from your last races."
             patterns={profile.focusAreas}
             variant="warning"
           />

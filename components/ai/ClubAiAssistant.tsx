@@ -162,7 +162,7 @@ export function ClubAiAssistant({
           isSending ? (
             <View style={styles.typingIndicator}>
               <ActivityIndicator size="small" color="#2563EB" />
-              <Text style={styles.typingText}>Claude is drafting a reply…</Text>
+              <Text style={styles.typingText}>Drafting a reply…</Text>
             </View>
           ) : null
         }

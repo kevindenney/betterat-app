@@ -88,7 +88,7 @@ export default function PricingScreen() {
                             <Text style={styles.planName}>Plus</Text>
                             <Text style={styles.planPrice}>$9<Text style={styles.period}>/month</Text></Text>
                             <Text style={styles.annualPrice}>$89/year when billed annually</Text>
-                            <Text style={styles.planDesc}>AI-powered learning with 50,000 AI tokens per month.</Text>
+                            <Text style={styles.planDesc}>Personalized learning with 50,000 tokens per month.</Text>
                         </TouchableOpacity>
 
                         {/* Pro Plan */}
@@ -113,7 +113,7 @@ export default function PricingScreen() {
                             <Text style={styles.planName}>Pro</Text>
                             <Text style={styles.planPrice}>$29<Text style={styles.period}>/month</Text></Text>
                             <Text style={styles.annualPrice}>$249/year when billed annually</Text>
-                            <Text style={styles.planDesc}>Power user AI with 500,000 tokens per month. Priority support.</Text>
+                            <Text style={styles.planDesc}>Power user tier with 500,000 tokens per month. Priority support.</Text>
                         </TouchableOpacity>
                     </View>
 
@@ -125,7 +125,7 @@ export default function PricingScreen() {
                         </View>
                         <View style={styles.featureItem}>
                             <Ionicons name="checkmark-circle" size={20} color="#10B981" />
-                            <Text style={styles.featureText}>AI Insights & Suggestions</Text>
+                            <Text style={styles.featureText}>Insights & Suggestions</Text>
                         </View>
                         <View style={styles.featureItem}>
                             <Ionicons name="checkmark-circle" size={20} color="#10B981" />
