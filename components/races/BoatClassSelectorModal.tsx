@@ -232,7 +232,7 @@ export function BoatClassSelectorModal({
     onClose();
   };
 
-  const selectedClass = classes.find(c => c.id === selectedClassId);
+  const _selectedClass = classes.find(c => c.id === selectedClassId);
 
   return (
     <Modal
@@ -282,14 +282,14 @@ export function BoatClassSelectorModal({
                       <Text style={styles.noGuidesTitle}>No Tuning Guide Found</Text>
                       <Text style={styles.noGuidesText}>
                         We couldn't find a tuning guide for {selectedClassName} in your library. 
-                        Add one to unlock race-day rig checklists and AI-powered tuning recommendations.
+                        Add one to unlock race-day rig checklists and tuning recommendations.
                       </Text>
 
                       {/* AI Recommendations Available Badge */}
                       <View style={styles.aiBadge}>
                         <MaterialCommunityIcons name="robot-outline" size={16} color="#7C3AED" />
                         <Text style={styles.aiBadgeText}>
-                          AI recommendations available even without a guide
+                          Recommendations available even without a guide
                         </Text>
                       </View>
 

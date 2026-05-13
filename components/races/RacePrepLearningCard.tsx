@@ -127,7 +127,7 @@ export function RacePrepLearningCard({
         <View style={styles.emptyContent}>
           <Text style={styles.emptyTitle}>Personalized Race Insights</Text>
           <Text style={styles.emptyText}>
-            Complete races and add notes to unlock AI-powered insights tailored to your sailing style.
+            Complete races and add notes to unlock insights tailored to your sailing style.
           </Text>
         </View>
       </View>

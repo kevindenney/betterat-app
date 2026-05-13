@@ -803,7 +803,7 @@ export function StrategySharingModal({
                 color={(hasAIStrategy || hasAIInsights) ? '#10B981' : '#CBD5E1'} 
               />
               <Text style={[styles.completenessLabel, !(hasAIStrategy || hasAIInsights) && styles.completenessLabelEmpty]}>
-                AI Insights
+                Insights
               </Text>
             </View>
           </View>

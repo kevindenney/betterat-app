@@ -44,7 +44,7 @@ export const TacticalInsights: React.FC<TacticalInsightsProps> = ({
           <Ionicons name="bulb-outline" size={48} color="#CBD5E1" />
           <Text style={styles.emptyTitle}>No Race Data Available</Text>
           <Text style={styles.emptyDescription}>
-            Tactical insights are generated from GPS track data. Record a race with GPS tracking to receive AI-powered analysis of what worked, areas for improvement, and personalized recommendations.
+            Tactical insights are generated from GPS track data. Record a race with GPS tracking to receive analysis of what worked, areas for improvement, and personalized recommendations.
           </Text>
         </View>
       </View>

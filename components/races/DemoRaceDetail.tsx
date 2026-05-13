@@ -46,19 +46,19 @@ interface RegulatoryAcknowledgements {
 interface CourseOutlineGroup {
   group: string;
   description: string;
-  courses: Array<{
+  courses: {
     name: string;
     sequence: string;
-  }>;
+  }[];
 }
 
-function DemoRegulatoryDigestCard({ digest, acknowledgements, onToggle, onAddRace }: {
+function DemoRegulatoryDigestCard({ digest, acknowledgements, onToggle: _onToggle, onAddRace }: {
   digest: RegulatoryDigestData;
   acknowledgements: RegulatoryAcknowledgements;
   onToggle: (key: keyof RegulatoryAcknowledgements) => void;
   onAddRace?: () => void;
 }) {
-  const ackItems: Array<{ key: keyof RegulatoryAcknowledgements; label: string; description: string }> = [
+  const ackItems: { key: keyof RegulatoryAcknowledgements; label: string; description: string }[] = [
     {
       key: 'cleanRegatta',
       label: 'Clean Regatta commitments noted',
@@ -180,7 +180,7 @@ export function DemoRaceDetail({ race, onAddRace, onLogisticsSectionLayout, onRe
   const [selectedRigBand, setSelectedRigBand] = useState<string>('medium');
   const [demoNotes, setDemoNotes] = useState<string>('');
   // Pre-check some acknowledgements for demo to show what it looks like when items are acknowledged
-  const [regattaAcknowledgements, setRegattaAcknowledgements] = useState<RegulatoryAcknowledgements>({
+  const [regattaAcknowledgements, _setRegattaAcknowledgements] = useState<RegulatoryAcknowledgements>({
     cleanRegatta: true, // Pre-checked to show acknowledged state
     signOn: true, // Pre-checked to show acknowledged state
     safetyBriefing: false, // Leave one unchecked to show "2/3 ack'd"
@@ -223,7 +223,7 @@ export function DemoRaceDetail({ race, onAddRace, onLogisticsSectionLayout, onRe
   const handleDemoInteraction = () => {
     showAlertWithButtons(
       'Create Your Race',
-      'You\'re exploring demo mode! Create your first race to:\n\n- Save custom rig settings\n- Track tuning notes\n- Get AI-powered recommendations\n- Sync with your crew',
+      'You\'re exploring demo mode! Create your first race to:\n\n- Save custom rig settings\n- Track tuning notes\n- Get tuning recommendations\n- Sync with your crew',
       [
         { text: 'Create Race', onPress: onAddRace },
         { text: 'Keep Exploring', style: 'cancel' }
@@ -231,7 +231,7 @@ export function DemoRaceDetail({ race, onAddRace, onLogisticsSectionLayout, onRe
     );
   };
 
-  const handleToggleAcknowledgement = (key: keyof RegulatoryAcknowledgements) => {
+  const handleToggleAcknowledgement = (_key: keyof RegulatoryAcknowledgements) => {
     handleDemoInteraction();
   };
 
@@ -294,7 +294,7 @@ export function DemoRaceDetail({ race, onAddRace, onLogisticsSectionLayout, onRe
   const raceDate = new Date(race.date);
   const now = new Date();
   const raceStatus: 'past' | 'next' | 'future' = raceDate > now ? 'future' : 'past';
-  const isRaceFuture = raceDate > now;
+  const _isRaceFuture = raceDate > now;
 
   return (
     <View className="gap-4 mt-2">
