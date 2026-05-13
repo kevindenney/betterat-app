@@ -61,17 +61,13 @@ export default function ManifestoOnboardingScreen() {
   // Load ordered interest slugs from AsyncStorage and match to Interest objects (set once).
   // Reads both the ordered list and the primary slug to guarantee primary is always first.
   useEffect(() => {
-    console.log('[Manifesto] effect fired — orderedSetRef:', orderedSetRef.current, 'allInterests.length:', allInterests.length);
     if (orderedSetRef.current || allInterests.length === 0) return;
     Promise.all([
       AsyncStorage.getItem('onboarding_interest_order'),
       AsyncStorage.getItem('onboarding_interest_slug'),
     ]).then(([raw, primarySlug]) => {
-      console.log('[Manifesto] AsyncStorage read:', { raw, primarySlug, refAlreadySet: orderedSetRef.current });
       if (orderedSetRef.current) return;
       const bySlug = new Map(allInterests.map(i => [i.slug, i]));
-      const allSlugsInMap = Array.from(bySlug.keys());
-      console.log('[Manifesto] allInterests slugs (first 5):', allSlugsInMap.slice(0, 5), 'total:', allSlugsInMap.length);
 
       let slugs: string[] = [];
       if (raw) {
@@ -88,13 +84,9 @@ export default function ManifestoOnboardingScreen() {
         slugs = [primarySlug];
       }
 
-      console.log('[Manifesto] final slugs to resolve:', slugs);
-      const ordered = slugs.map(s => {
-        const found = bySlug.get(s);
-        if (!found) console.warn('[Manifesto] slug NOT FOUND in allInterests:', JSON.stringify(s));
-        return found;
-      }).filter((i): i is Interest => !!i);
-      console.log('[Manifesto] resolved ordered interests:', ordered.map(i => ({ slug: i.slug, name: i.name })));
+      const ordered = slugs
+        .map(s => bySlug.get(s))
+        .filter((i): i is Interest => !!i);
       if (ordered.length > 0) {
         orderedSetRef.current = true;
         setOrderedInterests(ordered);
@@ -147,8 +139,6 @@ export default function ManifestoOnboardingScreen() {
   );
 
   const finalizeOnboarding = useCallback(async () => {
-    console.log('[Manifesto] finalizeOnboarding — orderedInterests:', orderedInterests.map(i => i.slug));
-
     // If multiple interests, let user choose which timeline to start with
     if (orderedInterests.length > 1) {
       router.replace('/onboarding/choose-start');
@@ -157,7 +147,6 @@ export default function ManifestoOnboardingScreen() {
 
     // Single interest — go straight to app
     if (orderedInterests.length > 0) {
-      console.log('[Manifesto] switching to primary:', orderedInterests[0].slug);
       await switchInterest(orderedInterests[0].slug);
     }
     await OnboardingStateService.markOnboardingSeen();
@@ -252,7 +241,7 @@ export default function ManifestoOnboardingScreen() {
               </View>
               <Text style={styles.headline}>What's your vision?</Text>
               <Text style={styles.subheadline}>
-                Tell your AI coach what you're working toward in {interestName}. This helps personalize every suggestion.
+                Share what you're working toward in {interestName}. This shapes every suggestion.
               </Text>
             </Animated.View>
 

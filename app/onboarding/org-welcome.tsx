@@ -363,7 +363,7 @@ export default function OrgWelcomeScreen() {
                 What are you trying to achieve?
               </Text>
               <Text style={styles.manifestoHint}>
-                Tell your AI coach your goals for {currentInterest?.name || 'this program'}. You can always update this later.
+                Share your goals for {currentInterest?.name || 'this program'}. You can always update this later.
               </Text>
               <TextInput
                 style={styles.manifestoInput}
