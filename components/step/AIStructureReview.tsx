@@ -83,7 +83,7 @@ export function AIStructureReview({
   dateEnrichment,
   isEnrichingDate,
   isResolvingEntities,
-  entityResolutionError,
+  entityResolutionError: _entityResolutionError,
   onResolveAmbiguousPerson,
   onConfirm,
   onBack,
@@ -162,7 +162,7 @@ export function AIStructureReview({
         </Pressable>
         <View style={styles.headerTextGroup}>
           <Ionicons name="sparkles" size={16} color={IOS_COLORS.systemPurple} />
-          <Text style={styles.headerTitle}>AI Structured Plan</Text>
+          <Text style={styles.headerTitle}>Structured Plan</Text>
         </View>
       </View>
 

@@ -893,7 +893,7 @@ export function StepCritiqueContent({ stepId, onNextStepCreated, readOnly }: Ste
       {/* ── AI FEEDBACK ── (hidden for read-only / non-owners) */}
       {!readOnly && (
         <View style={s.sectionWrap}>
-          <SectionLabel>AI FEEDBACK</SectionLabel>
+          <SectionLabel>FEEDBACK</SectionLabel>
           {aiInsight ? (
             <View style={s.aiCard}>
               <View style={s.aiCardHeader}>

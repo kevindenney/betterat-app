@@ -48,7 +48,7 @@ export function WhatChatPanel({ chatHistory, onSend, onApply, onClear, isLoading
       <View style={styles.header}>
         <View style={styles.headerLeft}>
           <Ionicons name="sparkles" size={14} color={IOS_COLORS.systemPurple} />
-          <Text style={styles.headerTitle}>AI Chat</Text>
+          <Text style={styles.headerTitle}>Chat</Text>
         </View>
         {chatHistory.length > 0 && (
           <Pressable onPress={onClear} hitSlop={8}>
