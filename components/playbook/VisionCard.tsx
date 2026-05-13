@@ -24,6 +24,7 @@ export function VisionCard({ interestId, interestName }: VisionCardProps) {
 
   useEffect(() => {
     setText(manifesto?.content ?? '');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [manifesto?.id]);
 
   const handleChange = (next: string) => {
@@ -40,7 +41,7 @@ export function VisionCard({ interestId, interestName }: VisionCardProps) {
         <View style={styles.headerText}>
           <Text style={styles.title}>Vision</Text>
           <Text style={styles.subtitle}>
-            Why you're practicing {interestName}. Your AI coach reads this first.
+            Why you're practicing {interestName}. This anchors every suggestion.
           </Text>
         </View>
       </View>

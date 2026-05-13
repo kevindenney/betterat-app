@@ -105,8 +105,8 @@ export function SuggestionDrawer({
                 />
                 <Text style={styles.emptyTitle}>No pending suggestions</Text>
                 <Text style={styles.emptyBody}>
-                  Your AI coach will queue edits, new concepts, patterns, and
-                  weekly reviews here as you train and debrief.
+                  Edits, new concepts, patterns, and weekly reviews queue here
+                  as you train and debrief.
                 </Text>
               </View>
             ) : (

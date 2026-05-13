@@ -87,9 +87,9 @@ export function PatternsList() {
           <Ionicons name="analytics-outline" size={36} color={IOS_COLORS.tertiaryLabel} />
           <Text style={styles.emptyTitle}>No patterns yet</Text>
           <Text style={styles.emptyText}>
-            Once you have a handful of step debriefs, your AI coach will look
-            for correlations — things like "lane loss in breeze correlates with
-            undertensioned vang" — and surface them here.
+            Once you have a handful of step debriefs, patterns surface here —
+            things like "lane loss in breeze correlates with undertensioned
+            vang."
           </Text>
         </View>
       ) : (

@@ -26,8 +26,7 @@ export function SuggestionsBar({ pendingCount, onPress }: SuggestionsBarProps) {
         <Ionicons name="sparkles" size={16} color="#fff" />
       </View>
       <Text style={styles.text}>
-        {pendingCount} pending suggestion{pendingCount === 1 ? '' : 's'} from
-        your AI coach
+        {pendingCount} pending suggestion{pendingCount === 1 ? '' : 's'}
       </Text>
       <Ionicons name="chevron-forward" size={16} color="rgba(255,255,255,0.8)" />
     </Pressable>

@@ -64,8 +64,7 @@ export function QueuedSuggestionsPreview({
       </View>
       {top.length === 0 ? (
         <Text style={styles.empty}>
-          No pending suggestions. Your AI coach will post here as you train
-          and debrief.
+          No pending suggestions. They'll appear here as you train and debrief.
         </Text>
       ) : (
         <View style={styles.list}>
