@@ -188,7 +188,7 @@ export default function TelegramSettingsScreen(): React.ReactElement {
       <View style={{ flex: 1, backgroundColor: IOS_COLORS.systemGroupedBackground }}>
         <Stack.Screen options={{ title: 'Telegram' }} />
         <ScrollView contentContainerStyle={{ paddingTop: 32 }}>
-          <IOSListSection header="CONNECTED ACCOUNT" footer="Messages you send to the BetterAt bot on Telegram will be answered by your AI assistant.">
+          <IOSListSection header="CONNECTED ACCOUNT" footer="Messages you send to the BetterAt bot on Telegram are logged to your timeline and replied to automatically.">
             <IOSListItem
               title="Telegram"
               value={link.telegram_username ? `@${link.telegram_username}` : 'Connected'}
@@ -235,7 +235,7 @@ export default function TelegramSettingsScreen(): React.ReactElement {
       <ScrollView contentContainerStyle={{ paddingTop: 32 }}>
         <IOSListSection
           header="CONNECT TELEGRAM"
-          footer={"To connect your Telegram account:\n\n1. Open Telegram\n2. Search for the BetterAt bot\n3. Send any message\n4. Follow the link the bot sends you\n\nOnce connected, you can manage your timeline, track progress, and chat with your AI assistant directly from Telegram."}
+          footer={"To connect your Telegram account:\n\n1. Open Telegram\n2. Search for the BetterAt bot\n3. Send any message\n4. Follow the link the bot sends you\n\nOnce connected, you can manage your timeline, track progress, and capture sessions directly from Telegram."}
         >
           <IOSListItem
             title="Not Connected"

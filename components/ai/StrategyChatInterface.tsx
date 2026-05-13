@@ -15,14 +15,12 @@ import {
 } from 'react-native';
 import { showAlert, showAlertWithButtons } from '@/lib/utils/crossPlatformAlert';
 import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
 // import { BottomSheet } from '@gorhom/bottom-sheet'; // TODO: Re-enable with animation support
 import { DocumentProcessingService } from '@/services/ai/DocumentProcessingService';
 import type {
   StrategyChatMessage,
   StrategyInsight,
   DocumentUpload,
-  AnalysisRequest
 } from '@/lib/types/ai-knowledge';
 
 interface StrategyChatInterfaceProps {
@@ -46,7 +44,7 @@ export function StrategyChatInterface({
     {
       id: 'welcome',
       role: 'assistant',
-      content: 'Hello! I\'m your AI sailing strategist. Upload sailing documents or ask me about race tactics, rules, or strategy. How can I help you today?',
+      content: 'Upload sailing documents or ask about race tactics, rules, or strategy.',
       timestamp: new Date(),
       context
     }
@@ -67,6 +65,7 @@ export function StrategyChatInterface({
         });
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible, context]);
 
   const addMessage = (message: Partial<StrategyChatMessage>) => {
@@ -182,7 +181,7 @@ export function StrategyChatInterface({
 
     let response = `Based on my analysis of your sailing documents, here's what I found:\n\n`;
 
-    insights.forEach((insight, index) => {
+    insights.forEach((insight, _index) => {
       const emojiMap: Record<StrategyInsight['type'], string> = {
         tactical: '🎯',
         strategic: '🧭',
