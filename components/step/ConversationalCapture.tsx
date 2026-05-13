@@ -185,6 +185,7 @@ Guidelines:
 
       setOpeningMessage(opening);
     })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id, interestId, interestName]);
 
   const { messages, isLoading, sendMessage, complete } = useAIConversation({
@@ -417,7 +418,7 @@ Respond with ONLY valid JSON:
                   disabled={!pasteText.trim()}
                 >
                   <Ionicons name="send" size={16} color="#FFFFFF" />
-                  <Text style={styles.overlaySendText}>Send to AI</Text>
+                  <Text style={styles.overlaySendText}>Send</Text>
                 </Pressable>
               </View>
             </Pressable>

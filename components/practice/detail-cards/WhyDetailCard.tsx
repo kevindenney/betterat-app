@@ -174,7 +174,7 @@ export function WhyDetailCard({
             <View style={styles.section}>
               <View style={styles.sectionHeader}>
                 <Sparkles size={14} color={WHY_COLORS.ai} />
-                <Text style={styles.sectionLabel}>AI ANALYSIS</Text>
+                <Text style={styles.sectionLabel}>ANALYSIS</Text>
               </View>
               <View style={styles.aiBox}>
                 <Text style={styles.aiText}>{aiReasoning}</Text>

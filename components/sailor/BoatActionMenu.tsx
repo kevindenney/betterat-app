@@ -128,7 +128,7 @@ export function BoatActionMenu({
     {
       id: 'alert-subscription',
       label: 'Manage Alert Subscription',
-      description: 'Subscribe to AI alerts via SMS or email',
+      description: 'Subscribe to alerts via SMS or email',
       icon: 'notifications',
       iconLibrary: 'Ionicons',
       color: '#EF4444',

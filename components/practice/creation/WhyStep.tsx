@@ -135,7 +135,7 @@ export function WhyStep({
         ) : (
           <View style={styles.noAIBox}>
             <Brain size={32} color={IOS_COLORS.gray4} />
-            <Text style={styles.noAITitle}>No AI suggestion</Text>
+            <Text style={styles.noAITitle}>No suggestion</Text>
             <Text style={styles.noAISubtext}>
               Complete more races to get personalized practice recommendations
             </Text>

@@ -655,7 +655,7 @@ export function StepDrawContent({ stepId, readOnly, interestId, interestName, in
                         onPress={() => handleAskAi(displayText)}
                       >
                         <Ionicons name="sparkles" size={16} color={IOS_COLORS.systemPurple} />
-                        <Text style={[styles.actionText, { color: IOS_COLORS.systemPurple }]}>Ask AI about this</Text>
+                        <Text style={[styles.actionText, { color: IOS_COLORS.systemPurple }]}>Ask about this</Text>
                       </Pressable>
                     )}
 

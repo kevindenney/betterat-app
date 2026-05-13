@@ -106,7 +106,7 @@ export function AITacticalChips({
               size={16}
               color={Colors.primary.blue}
             />
-            <Text style={styles.refreshText}>Refresh AI</Text>
+            <Text style={styles.refreshText}>Refresh</Text>
           </TouchableOpacity>
         )}
       </View>

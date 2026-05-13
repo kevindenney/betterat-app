@@ -264,7 +264,7 @@ function FourQSummary({
     {
       key: 'why',
       label: 'WHY',
-      value: hasAI ? 'AI suggested' : hasRationale ? 'Has rationale' : 'Not set',
+      value: hasAI ? 'Suggested' : hasRationale ? 'Has rationale' : 'Not set',
       isSet: hasAI || hasRationale,
       color: PRACTICE_COLORS.ai,
     },

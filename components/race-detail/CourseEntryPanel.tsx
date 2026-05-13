@@ -718,7 +718,7 @@ export function CourseEntryPanel({
 
       <View style={styles.dividerRow}>
         <View style={styles.dividerLine} />
-        <Text style={styles.dividerText}>OR use AI</Text>
+        <Text style={styles.dividerText}>OR extract automatically</Text>
         <View style={styles.dividerLine} />
       </View>
 
