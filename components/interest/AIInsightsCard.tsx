@@ -51,7 +51,7 @@ export function AIInsightsCard({ interestId }: AIInsightsCardProps) {
     <View style={styles.container}>
       <View style={styles.header}>
         <Ionicons name="sparkles" size={16} color={IOS_COLORS.systemPurple} />
-        <Text style={styles.headerTitle}>AI Insights</Text>
+        <Text style={styles.headerTitle}>Insights</Text>
         {total > 0 && (
           <Text style={styles.headerSubtitle}>
             {total} learned{newThisWeek > 0 ? ` · ${newThisWeek} new this week` : ''}

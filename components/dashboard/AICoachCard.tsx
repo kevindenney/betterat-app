@@ -240,7 +240,7 @@ export function AICoachSummary({
         onPress={() => triggerAnalysis(timerSessionId)}
       >
         <Sparkles color="#9333EA" size={16} />
-        <Text className="text-purple-600 text-sm ml-2">Generate AI Insights</Text>
+        <Text className="text-purple-600 text-sm ml-2">Generate Insights</Text>
       </TouchableOpacity>
     );
   }

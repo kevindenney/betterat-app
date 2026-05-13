@@ -40,7 +40,7 @@ export interface AlertSubscriptionData {
 
 export function AlertSubscriptionModal({
   visible,
-  boatId,
+  boatId: _boatId,
   onClose,
   onSave,
 }: AlertSubscriptionModalProps) {
@@ -75,7 +75,7 @@ export function AlertSubscriptionModal({
           <TouchableOpacity onPress={onClose} style={styles.cancelButton}>
             <Text style={styles.cancelText}>Cancel</Text>
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>AI Alert Subscription</Text>
+          <Text style={styles.headerTitle}>Alert Subscription</Text>
           <TouchableOpacity onPress={handleSave} style={styles.saveButton}>
             <Text style={styles.saveText}>Save</Text>
           </TouchableOpacity>
@@ -86,7 +86,7 @@ export function AlertSubscriptionModal({
           <View style={styles.infoBanner}>
             <Ionicons name="information-circle" size={20} color="#3B82F6" />
             <Text style={styles.infoBannerText}>
-              Get AI-powered alerts for maintenance, equipment lifecycle, and
+              Get alerts for maintenance, equipment lifecycle, and
               performance optimization
             </Text>
           </View>
