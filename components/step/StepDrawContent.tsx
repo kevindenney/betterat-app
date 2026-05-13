@@ -19,6 +19,8 @@ import { getResourcesByIds } from '@/services/LibraryService';
 import type { StepPlanData, StepActData, StepMetadata, MediaLink, MediaLinkPlatform, MediaUpload, Observation } from '@/types/step-detail';
 import { ObservationLog } from './ObservationLog';
 import { CaptureTimeline } from './CaptureTimeline';
+import { PastContextCard } from './PastContextCard';
+import { usePriorStepObservation } from '@/hooks/usePriorStepObservation';
 import type { LibraryResourceRecord } from '@/types/library';
 import { TrainChatPanel } from '@/components/practice/phases/TrainChatPanel';
 
@@ -459,6 +461,14 @@ export function StepDrawContent({ stepId, readOnly, interestId, interestName, in
   const mediaUploads = actData.media_uploads ?? [];
   const observations = actData.observations ?? [];
 
+  // Past-context: surface the latest observation from the user's previous
+  // completed step in the same interest. Mockup 14 "From last time…".
+  const { data: priorObservation } = usePriorStepObservation({
+    currentStepId: stepId,
+    userId: user?.id,
+    interestId,
+  });
+
   const handleAddObservation = useCallback((obs: Observation) => {
     const current = metadataRef.current.act?.observations ?? [];
     const updated = [...current, obs];
@@ -716,6 +726,17 @@ export function StepDrawContent({ stepId, readOnly, interestId, interestName, in
         <View style={styles.observationInputContainer}>
           <ObservationLog onAdd={handleAddObservation} readOnly={readOnly} />
         </View>
+
+        {/* From-last-time ambient surface (mockup 14) */}
+        {priorObservation && (
+          <View style={styles.pastContextContainer}>
+            <PastContextCard
+              quote={priorObservation.observation.text}
+              completedAtIso={priorObservation.stepCompletedAt}
+              stepTitle={priorObservation.stepTitle}
+            />
+          </View>
+        )}
 
         {/* Fullscreen image preview modal */}
         <Modal
@@ -1049,6 +1070,9 @@ const styles = StyleSheet.create({
   },
   observationInputContainer: {
     marginTop: IOS_SPACING.sm,
+  },
+  pastContextContainer: {
+    marginTop: IOS_SPACING.md,
   },
   sectionHeader: {
     flexDirection: 'row',
