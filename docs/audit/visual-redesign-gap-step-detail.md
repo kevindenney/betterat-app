@@ -291,6 +291,15 @@ Six independently shippable commits, in order. Each leaves the app fully functio
 - If `From last time you raced in this` (similar-past-context surface) is feasible from existing data, render it inline as ambient AI (no badge).
 - Visible diff: During tab looks like mockup 01 + 14.
 
+**Status as of `ecf81604`:** capture hero refined to mockup-14 copy ("Hold to
+speak" + "Photo or note · long-press camera"); unified `CaptureTimeline`
+merges observations + media uploads into one chronological feed with the 3px
+rule + tertiary timestamp + serif 14px body row pattern; `MediaUpload` gained
+`created_at?: string` and both upload paths populate it. Deferred to 6b/6c:
+distinguishing voice-transcribed vs typed observations (needs `Observation.source`
+field + bot pipeline plumbing), and "From last time you raced in this"
+ambient surface (needs a similar-prior-step query).
+
 After commit 6, the step detail surface matches the mockups. Adjacent surfaces (PrimaryAICoach, AICoachCard, race timer, race analysis, reflect insight, onboarding pricing) remain unchanged and need their own follow-up audit.
 
 ---
