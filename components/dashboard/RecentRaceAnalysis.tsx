@@ -90,6 +90,7 @@ export function RecentRaceAnalysis() {
 
   useEffect(() => {
     loadRecentAnalysis();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   if (isLoading) {
@@ -117,12 +118,12 @@ export function RecentRaceAnalysis() {
     return (
       <View style={styles.container}>
         <View style={styles.header}>
-          <Text style={styles.title}>🤖 AI Race Analysis</Text>
+          <Text style={styles.title}>Race Analysis</Text>
         </View>
 
         <View style={styles.pendingSection}>
           <Text style={styles.pendingText}>
-            Your last race is ready for AI analysis
+            Your last race is ready for analysis
           </Text>
           <TouchableOpacity
             style={styles.analyzeButton}
@@ -132,7 +133,7 @@ export function RecentRaceAnalysis() {
             {isAnalyzing ? (
               <ActivityIndicator color="#fff" />
             ) : (
-              <Text style={styles.analyzeButtonText}>🤖 Analyze Race</Text>
+              <Text style={styles.analyzeButtonText}>Analyze Race</Text>
             )}
           </TouchableOpacity>
         </View>
@@ -151,8 +152,7 @@ export function RecentRaceAnalysis() {
       {/* Header */}
       <View style={styles.header}>
         <View>
-          <Text style={styles.title}>🤖 AI Race Analysis</Text>
-          <Text style={styles.subtitle}>Powered by Claude Sonnet 4.5</Text>
+          <Text style={styles.title}>Race Analysis</Text>
         </View>
         <View
           style={[

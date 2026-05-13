@@ -204,7 +204,7 @@ export function CoursePredictor({ regattaId, venueId, raceDate: _raceDate }: Cou
 
       {/* AI Reasoning */}
       <View style={styles.reasoningSection}>
-        <Text style={styles.reasoningTitle}>AI Analysis</Text>
+        <Text style={styles.reasoningTitle}>Analysis</Text>
         <Text style={styles.reasoningText}>{prediction.reasoning}</Text>
       </View>
 

@@ -42,7 +42,7 @@ const logger = createLogger('RaceStrategyTab');
 export function RaceStrategyTab({
   activeStrategy,
   strategyLibrary,
-  onGenerateStrategy,
+  onGenerateStrategy: _onGenerateStrategy,
   onViewStrategy,
   onUploadDocuments
 }: RaceStrategyTabProps) {
@@ -134,7 +134,7 @@ export function RaceStrategyTab({
           <View style={styles.strategyContent}>
             {selectedSection === 'overview' && (
               <View style={styles.overviewContent}>
-                <Text style={styles.sectionTitle}>AI Recommendations</Text>
+                <Text style={styles.sectionTitle}>Recommendations</Text>
                 {activeStrategy.aiRecommendations.map((rec, index) => (
                   <View key={index} style={styles.recommendationCard}>
                     <Ionicons name="bulb" size={16} color="#F59E0B" />
