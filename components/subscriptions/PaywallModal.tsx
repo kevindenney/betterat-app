@@ -88,10 +88,10 @@ export default function PaywallModal({
     switch (feature) {
       case 'ai_race_analysis':
         return {
-          title: '🧠 AI Race Strategy',
-          description: 'Get AI-powered tactical recommendations and Monte Carlo race simulations',
+          title: '🧠 Race Strategy',
+          description: 'Tactical recommendations and Monte Carlo race simulations',
           benefits: [
-            'AI tactical recommendations during races',
+            'Tactical recommendations during races',
             'Monte Carlo simulation with 1000+ scenarios',
             'Optimal course routing based on conditions',
             'Equipment setup optimization',
@@ -315,7 +315,7 @@ export default function PaywallModal({
   );
 }
 
-const { width } = Dimensions.get('window');
+const { width: _width } = Dimensions.get('window');
 
 const styles = StyleSheet.create({
   container: {

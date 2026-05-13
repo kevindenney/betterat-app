@@ -50,11 +50,11 @@ const FEATURE_CONTENT: Record<GatedFeature | 'default', FeatureContent> = {
     ],
   },
   ai_strategy: {
-    title: 'AI Insights & Suggestions',
-    message: 'Get AI-powered insights, suggestions, and progress analytics.',
+    title: 'Insights & Suggestions',
+    message: 'Get insights, suggestions, and progress analytics.',
     icon: 'analytics',
     benefits: [
-      'AI insights & suggestions',
+      'Insights & suggestions',
       'Smart recommendations',
       'Performance insights',
       'Progress analytics',
@@ -121,7 +121,7 @@ const FEATURE_CONTENT: Record<GatedFeature | 'default', FeatureContent> = {
     icon: 'rocket',
     benefits: [
       'Unlimited interests & steps',
-      'AI insights & suggestions',
+      'Insights & suggestions',
       'Telegram assistant',
       'Full feature access',
     ],

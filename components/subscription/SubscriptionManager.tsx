@@ -38,7 +38,7 @@ const webStripeService = {
       name: 'Free',
       price: 0,
       priceId: '',
-      features: ['Up to 3 learning interests', 'Basic timeline management', '5 AI queries per month']
+      features: ['Up to 3 learning interests', 'Basic timeline management', '5 queries per month']
     },
     {
       id: 'plus',
@@ -47,8 +47,8 @@ const webStripeService = {
       priceId: process.env.EXPO_PUBLIC_STRIPE_PLUS_MONTHLY_PRICE_ID || 'price_plus_monthly',
       features: [
         'Unlimited interests & steps',
-        '50,000 AI tokens per month',
-        'AI insights & suggestions',
+        '50,000 tokens per month',
+        'Insights & suggestions',
         'Telegram assistant',
         'Progress analytics',
         'Offline mode',
@@ -62,8 +62,8 @@ const webStripeService = {
       priceId: process.env.EXPO_PUBLIC_STRIPE_PRO_MONTHLY_PRICE_ID || 'price_pro_monthly',
       features: [
         'Everything in Plus',
-        '500,000 AI tokens per month',
-        'Priority AI processing',
+        '500,000 tokens per month',
+        'Priority processing',
         'MCP integrations',
         'Priority support',
       ]
@@ -384,7 +384,7 @@ export const SubscriptionManager: React.FC = () => {
             <Text style={styles.comparisonValue}>Unlimited</Text>
           </View>
           <View style={styles.comparisonRow}>
-            <Text style={styles.comparisonFeature}>AI Tokens</Text>
+            <Text style={styles.comparisonFeature}>Tokens</Text>
             <Text style={styles.comparisonValue}>5K/mo</Text>
             <Text style={styles.comparisonValue}>50K/mo</Text>
             <Text style={styles.comparisonValue}>500K/mo</Text>
