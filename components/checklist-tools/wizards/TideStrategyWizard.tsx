@@ -20,7 +20,6 @@ import {
   ScrollView,
   Pressable,
   StyleSheet,
-  Platform,
   ActivityIndicator,
   TextInput,
 } from 'react-native';
@@ -31,16 +30,11 @@ import {
   ChevronLeft,
   CheckCircle2,
   Waves,
-  Navigation,
   Clock,
   AlertTriangle,
-  TrendingUp,
-  TrendingDown,
-  Minus,
   Compass,
   Target,
   Sparkles,
-  Check,
   BookOpen,
   ArrowRight,
   ArrowUpRight,
@@ -51,7 +45,6 @@ import {
 import { useRouter } from 'expo-router';
 import { useForecastCheck } from '@/hooks/useForecastCheck';
 import { TinySparkline } from '@/components/shared/charts/TinySparkline';
-import type { ChecklistItem } from '@/types/checklists';
 import type { ChecklistToolProps } from '@/lib/checklists/toolRegistry';
 import type { SailingVenue } from '@/lib/types/global-venues';
 
@@ -107,9 +100,9 @@ interface CourseSideStrategy {
 }
 
 export function TideStrategyWizard({
-  item,
+  item: _item,
   regattaId,
-  boatId,
+  boatId: _boatId,
   onComplete,
   onCancel,
   venue,
@@ -125,7 +118,7 @@ export function TideStrategyWizard({
   const {
     currentForecast,
     isLoadingForecast,
-    forecastError,
+    forecastError: _forecastError,
   } = useForecastCheck({
     regattaId,
     venue: venue || null,
@@ -403,7 +396,10 @@ ${tideState.currentStrength === 'strong'
   }, []);
 
   // Step progress
-  const steps: WizardStep[] = ['tide_state', 'timeline', 'mark_approaches', 'course_sides', 'strategy_brief'];
+  const steps = useMemo<WizardStep[]>(
+    () => ['tide_state', 'timeline', 'mark_approaches', 'course_sides', 'strategy_brief'],
+    []
+  );
   const currentStepIndex = steps.indexOf(step);
   const progress = step === 'loading' ? 0 : (currentStepIndex + 1) / steps.length;
 
@@ -757,7 +753,7 @@ ${tideState.currentStrength === 'strong'
           </View>
           <Text style={styles.generateTitle}>Generate Strategy Brief</Text>
           <Text style={styles.generateDescription}>
-            Create an AI-powered summary of your current strategy for this race.
+            Create a summary of your current strategy for this race.
           </Text>
           <Pressable
             style={styles.generateButton}

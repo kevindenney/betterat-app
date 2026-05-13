@@ -18,7 +18,6 @@ import {
   ScrollView,
   Pressable,
   StyleSheet,
-  Platform,
   ActivityIndicator,
   TextInput,
 } from 'react-native';
@@ -37,7 +36,6 @@ import {
   Minus,
   Compass,
   Sparkles,
-  RefreshCw,
   BookOpen,
   ArrowRight,
   RotateCw,
@@ -47,7 +45,6 @@ import {
 import { useRouter } from 'expo-router';
 import { useForecastCheck } from '@/hooks/useForecastCheck';
 import { TinySparkline } from '@/components/shared/charts/TinySparkline';
-import type { ChecklistItem } from '@/types/checklists';
 import type { ChecklistToolProps } from '@/lib/checklists/toolRegistry';
 import type { SailingVenue } from '@/lib/types/global-venues';
 
@@ -97,9 +94,9 @@ interface ThermalAssessment {
 }
 
 export function WindShiftStrategyWizard({
-  item,
+  item: _item,
   regattaId,
-  boatId,
+  boatId: _boatId,
   onComplete,
   onCancel,
   venue,
@@ -115,7 +112,7 @@ export function WindShiftStrategyWizard({
   const {
     currentForecast,
     isLoadingForecast,
-    forecastError,
+    forecastError: _forecastError,
   } = useForecastCheck({
     regattaId,
     venue: venue || null,
@@ -379,7 +376,10 @@ ${shiftAnalysis.pattern === 'stable'
   }, []);
 
   // Step progress
-  const steps: WizardStep[] = ['conditions', 'shift_pattern', 'thermal', 'strategy_brief'];
+  const steps = useMemo<WizardStep[]>(
+    () => ['conditions', 'shift_pattern', 'thermal', 'strategy_brief'],
+    []
+  );
   const currentStepIndex = steps.indexOf(step);
   const progress = step === 'loading' ? 0 : (currentStepIndex + 1) / steps.length;
 
@@ -807,7 +807,7 @@ ${shiftAnalysis.pattern === 'stable'
           </View>
           <Text style={styles.generateTitle}>Generate Wind Playbook</Text>
           <Text style={styles.generateDescription}>
-            Create an AI-powered wind strategy summary for this race.
+            Create a wind strategy summary for this race.
           </Text>
           <Pressable
             style={styles.generateButton}
