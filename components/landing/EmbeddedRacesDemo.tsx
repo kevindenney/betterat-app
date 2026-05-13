@@ -15,7 +15,6 @@ import { RaceCard } from '@/components/races/RaceCard';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Platform, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
-import Svg, { Circle, G, Line, Path, Polygon, Rect, Text as SvgText } from 'react-native-svg';
 import type { FeatureId } from './FeatureDescriptions';
 
 interface EmbeddedRacesDemoProps {
@@ -275,7 +274,7 @@ export function EmbeddedRacesDemo({
   resetDelay = 10000,
   mode = 'phone',
   scrollable = false,
-  readOnly = false,
+  readOnly: _readOnly = false,
   hideHeader = false,
   highlightedFeature,
   onFeatureHighlighted,
@@ -296,21 +295,15 @@ export function EmbeddedRacesDemo({
   const raceCardsScrollViewRef = useRef<ScrollView>(null);
   const detailsScrollViewRef = useRef<ScrollView>(null);
   const [scrollX, setScrollX] = useState(0);
-  const [scrollContentWidth, setScrollContentWidth] = useState(0);
+  const [, setScrollContentWidth] = useState(0);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
   const hasAutoCentered = useRef(false);
   const { width: windowWidth } = useWindowDimensions();
   // Track actual container width for accurate centering calculations
   const [containerWidth, setContainerWidth] = useState(0);
-  const raceCardsContainerRef = useRef<View>(null);
   // Use container width if available, otherwise fall back to window width
   const SCREEN_WIDTH = containerWidth > 0 ? containerWidth : windowWidth;
-
-  // GPS Track visualization controls
-  const [showFleetTracks, setShowFleetTracks] = useState(true);
-  const [showLap1, setShowLap1] = useState(true);
-  const [showLap2, setShowLap2] = useState(true);
 
   // Mobile-native mode detection - auto-switch on mobile web browsers
   const isMobileWeb = Platform.OS === 'web' && windowWidth <= 480;
@@ -423,6 +416,8 @@ export function EmbeddedRacesDemo({
         date: getDemoDate(daysOffset),
       };
     });
+    // getDemoDate is a stable module-scope helper; runs once on mount.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   
   // Sort races chronologically (past first, then future) and find NOW point
@@ -441,6 +436,8 @@ export function EmbeddedRacesDemo({
       const raceDate = new Date(`${race.date}T${race.startTime}`);
       return raceDate > DEMO_NOW;
     });
+    // DEMO_NOW is a module-scope constant; never changes between renders.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sortedRaces]);
   
   // Find NOW index (between last past and first future)
@@ -457,6 +454,8 @@ export function EmbeddedRacesDemo({
     }
     // If all races are in the past, put NOW bar at the end
     return sortedRaces.length;
+    // DEMO_NOW is a module-scope constant; never changes between renders.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sortedRaces]);
   
   // Set initial selected race to next race
@@ -564,24 +563,7 @@ export function EmbeddedRacesDemo({
   
   // Race card dimensions (match RaceCard component)
   // RACE_CARD_WIDTH is now defined above as a responsive useMemo value
-  const RACE_CARD_HEIGHT = 400; // Original height
   const RACE_CARD_TOTAL_WIDTH = RACE_CARD_WIDTH + 16; // width + margin
-
-  // Content container left padding (must match raceCardsContent style)
-  const RACE_CARDS_LEFT_PADDING = Platform.OS === 'web'
-    ? (SCREEN_WIDTH > 768 ? 60 : SCREEN_WIDTH > 480 ? 16 : 12)
-    : 16;
-  const NOW_BAR_WIDTH = 2 + 8; // bar + margin
-  const ADD_RACE_CARD_WIDTH = RACE_CARD_WIDTH + 24 + 8; // card + margins (same as race cards)
-  
-  // Calculate expected content width for horizontal scroll
-  const expectedContentWidth = useMemo(() => {
-    const cardsWidth = sortedRaces.length * RACE_CARD_TOTAL_WIDTH;
-    const nowBarWidth = nowIndex < sortedRaces.length ? NOW_BAR_WIDTH : 0;
-    const addRaceCardWidth = ADD_RACE_CARD_WIDTH;
-    const padding = 32 + 32; // left + right padding
-    return cardsWidth + nowBarWidth + addRaceCardWidth + padding;
-  }, [sortedRaces.length, nowIndex]);
   
   // Auto-scroll to center on NOW bar (next race) - set initial position immediately to prevent flash
   // Wait for containerWidth to be measured on web for accurate centering
@@ -622,7 +604,7 @@ export function EmbeddedRacesDemo({
         });
       }
     }
-  }, [nextRace, sortedRaces.length, SCREEN_WIDTH, nowIndex, RACE_CARD_TOTAL_WIDTH, RACE_CARD_WIDTH, isVisible, containerWidth]);
+  }, [nextRace, sortedRaces, SCREEN_WIDTH, nowIndex, RACE_CARD_TOTAL_WIDTH, RACE_CARD_WIDTH, isVisible, containerWidth]);
 
   // Fallback: Show race cards after a delay even if scroll position isn't set
   // This ensures cards are always visible, even if auto-scroll logic fails
@@ -697,7 +679,7 @@ export function EmbeddedRacesDemo({
             ref.current.measureLayout(
               // @ts-ignore
               detailsScrollViewRef.current,
-              (x, y, width, height) => {
+              (_x, y, _width, _height) => {
                 detailsScrollViewRef.current?.scrollTo({
                   y: Math.max(0, y - 20),
                   animated: true,
@@ -841,6 +823,8 @@ export function EmbeddedRacesDemo({
     if (onFeatureHighlighted) {
       onFeatureHighlighted(highlightedFeature);
     }
+    // RACE_CARD_TOTAL_WIDTH / RACE_CARD_WIDTH derive from constants that don't change per render; scrollToSection is a stable callback reference.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [highlightedFeature, sortedRaces, nextRace, SCREEN_WIDTH, onFeatureHighlighted]);
 
   // Clear race card highlight when feature changes away from race-planning or gps-tracking
@@ -872,7 +856,7 @@ export function EmbeddedRacesDemo({
         ref.current.measureLayout(
           // @ts-ignore
           detailsScrollViewRef.current,
-          (x, y, width, height) => {
+          (_x, y, _width, _height) => {
             detailsScrollViewRef.current?.scrollTo({
               y: Math.max(0, y - 20),
               animated: true,
@@ -1373,7 +1357,7 @@ export function EmbeddedRacesDemo({
                 removeClippedSubviews={false}
               >
                 {/* Render past races first */}
-                {sortedRaces.slice(0, nowIndex).map((race: typeof DEMO_RACES[0], index: number) => {
+                {sortedRaces.slice(0, nowIndex).map((race: typeof DEMO_RACES[0], _index: number) => {
                   const isPast = race.raceStatus === 'past';
                   const isNext = race.raceStatus === 'next' || race.id === nextRace?.id;
                   const isHighlighted = (highlightedRaceCard === race.id) || (highlightedRaceId === race.id);
@@ -1506,10 +1490,9 @@ export function EmbeddedRacesDemo({
                 </View>
 
                 {/* Render future races */}
-                {sortedRaces.slice(nowIndex).map((race: typeof DEMO_RACES[0], index: number) => {
+                {sortedRaces.slice(nowIndex).map((race: typeof DEMO_RACES[0], _index: number) => {
                   const isPast = race.raceStatus === 'past';
                   const isNext = race.raceStatus === 'next' || race.id === nextRace?.id;
-                  const actualIndex = nowIndex + index;
                   const isHighlighted = (highlightedRaceCard === race.id) || (highlightedRaceId === race.id);
                   
                   return (
@@ -1734,7 +1717,7 @@ export function EmbeddedRacesDemo({
               >
                 <View style={styles.sectionHeader}>
                   <Ionicons name="sparkles" size={20} color="#3E92CC" />
-                  <Text style={styles.sectionTitle}>AI Strategy</Text>
+                  <Text style={styles.sectionTitle}>Strategy</Text>
                   <View style={styles.upgradeBadge}>
                     <Text style={styles.upgradeBadgeText}>Pro</Text>
                   </View>
@@ -2615,7 +2598,7 @@ export function EmbeddedRacesDemo({
               >
                 <View style={styles.sectionHeader}>
                   <Ionicons name="analytics" size={24} color="#8B5CF6" />
-                  <Text style={styles.sectionTitle}>Post Race AI Analysis</Text>
+                  <Text style={styles.sectionTitle}>Post Race Analysis</Text>
                 </View>
                 
                 <View style={styles.analysisContent}>
@@ -2897,13 +2880,6 @@ export function EmbeddedRacesDemo({
                     element.style.left = '50%';
                     element.style.transform = 'translateX(-50%)';
                   }
-                  
-                  const computedStyle = window.getComputedStyle(element);
-                  const rect = element.getBoundingClientRect();
-                  const parent = element.parentElement;
-                  const parentRect = parent?.getBoundingClientRect();
-                  const parentComputedStyle = parent ? window.getComputedStyle(parent) : null;
-                  
                 }
               }, 100);
             }
@@ -3363,7 +3339,7 @@ export function EmbeddedRacesDemo({
                   >
                 <View style={styles.sectionHeader}>
                   <Ionicons name="sparkles" size={20} color="#3E92CC" />
-                  <Text style={styles.sectionTitle}>AI Strategy</Text>
+                  <Text style={styles.sectionTitle}>Strategy</Text>
                 </View>
                 <View style={styles.strategyCard}>
                   <Text style={styles.strategyTitle}>Pre-Race Plan</Text>
@@ -3484,7 +3460,7 @@ export function EmbeddedRacesDemo({
                   >
                     <View style={styles.sectionHeader}>
                       <Ionicons name="analytics" size={20} color="#3E92CC" />
-                      <Text style={styles.sectionTitle}>Post Race AI Analysis</Text>
+                      <Text style={styles.sectionTitle}>Post Race Analysis</Text>
                     </View>
                     
                     <View style={styles.analysisContent}>
