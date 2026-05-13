@@ -69,7 +69,7 @@ function extractReviewExcerpt(meta: Record<string, unknown> | null): string | nu
 function extractCrew(meta: Record<string, unknown> | null): string[] {
   if (!meta) return [];
   const plan = meta.plan as Record<string, unknown> | undefined;
-  const collab = plan?.collaborators as Array<{ display_name?: string }> | undefined;
+  const collab = plan?.collaborators as { display_name?: string }[] | undefined;
   if (!Array.isArray(collab)) return [];
   return collab
     .map((c) => c.display_name ?? '')
@@ -123,7 +123,7 @@ export function RecentDebriefs({ interestId, playbookId }: RecentDebriefsProps) 
         <View style={styles.emptyCard}>
           <Text style={styles.empty}>
             When you write a reflection on a step, it shows up here and feeds the
-            AI suggestions queue.
+            suggestions queue.
           </Text>
           <Pressable
             style={styles.emptyAction}
@@ -191,7 +191,7 @@ export function RecentDebriefs({ interestId, playbookId }: RecentDebriefsProps) 
                     {wasRead ? (
                       <View style={styles.aiTag}>
                         <Ionicons name="sparkles" size={10} color={IOS_COLORS.systemPurple} />
-                        <Text style={styles.aiTagText}>AI read this</Text>
+                        <Text style={styles.aiTagText}>Read</Text>
                       </View>
                     ) : null}
                   </View>

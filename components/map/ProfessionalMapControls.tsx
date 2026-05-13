@@ -138,7 +138,7 @@ export function ProfessionalMapControls({
       icon: '🎯',
       label: 'Tactical Analysis',
       onPress: () => onModeChange('weather-analysis'),
-      description: 'AI race strategy analysis'
+      description: 'Race strategy analysis'
     },
     {
       id: 'performance',

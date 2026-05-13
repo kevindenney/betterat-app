@@ -7,13 +7,12 @@
  */
 
 import { NudgeList } from '@/components/checklist-tools/NudgeBanner';
-import { QuickAddSailButton, QuickAddSailForm } from '@/components/checklist-tools/QuickAddSailForm';
 import { SailInspectionWizard } from '@/components/sail-inspection';
 import { usePersonalizedNudges } from '@/hooks/useAdaptiveLearning';
 import { useAuth } from '@/providers/AuthProvider';
 import { formatSailDisplayName, getSailConditionColor, useSailInventory } from '@/hooks/useSailInventory';
 import type { ChecklistToolProps } from '@/lib/checklists/toolRegistry';
-import { SAIL_HINTS, WIND_RANGES, getWindRange, sailRecommendationService } from '@/services/ai/SailRecommendationService';
+import { SAIL_HINTS, getWindRange, sailRecommendationService } from '@/services/ai/SailRecommendationService';
 import { sailorRacePreparationService } from '@/services/SailorRacePreparationService';
 import type {
   SailRecommendation,
@@ -94,14 +93,14 @@ type SailCategory = 'mainsail' | 'headsail' | 'downwind';
 
 function normalizeRecommendationError(error: unknown): string {
   const message = (error as { message?: string })?.message?.toLowerCase?.() || '';
-  if (!message) return 'Unable to load AI sail guidance right now. Showing manual selection.';
+  if (!message) return 'Unable to load sail guidance right now. Showing manual selection.';
   if (message.includes('network') || message.includes('fetch')) {
-    return 'Network issue while loading AI sail guidance. Showing manual selection.';
+    return 'Network issue while loading sail guidance. Showing manual selection.';
   }
   if (message.includes('permission') || message.includes('not authorized') || message.includes('row-level security')) {
-    return 'AI sail guidance is unavailable for this account. Showing manual selection.';
+    return 'Sail guidance is unavailable for this account. Showing manual selection.';
   }
-  return 'AI sail guidance is temporarily unavailable. Showing manual selection.';
+  return 'Sail guidance is temporarily unavailable. Showing manual selection.';
 }
 
 export function SailSelectionWizard({
@@ -171,7 +170,7 @@ export function SailSelectionWizard({
   const [userNotes, setUserNotes] = useState(existingIntention?.userNotes || '');
   const [collapsedCategories, setCollapsedCategories] = useState<Set<SailCategory>>(new Set());
   const [isSaving, setIsSaving] = useState(false);
-  const [showQuickAddSail, setShowQuickAddSail] = useState(false);
+  const [_showQuickAddSail, setShowQuickAddSail] = useState(false);
   const [inspectingSail, setInspectingSail] = useState<SailInventoryItem | null>(null);
   const [addingToCategory, setAddingToCategory] = useState<SailCategory | null>(null);
   const [newSailName, setNewSailName] = useState('');
@@ -325,6 +324,7 @@ export function SailSelectionWizard({
     } finally {
       setIsAddingSail(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [boatId, addingToCategory, newSailName, newSailMaker, refreshSails]);
 
   // Handle delete sail with confirmation
@@ -791,7 +791,7 @@ export function SailSelectionWizard({
   };
 
   // Handle quick-add sail success
-  const handleQuickAddSuccess = useCallback(async () => {
+  const _handleQuickAddSuccess = useCallback(async () => {
     setShowQuickAddSail(false);
     await refreshSails();
   }, [refreshSails]);
@@ -803,10 +803,10 @@ export function SailSelectionWizard({
     return wind?.speedMin || wind?.speedMax || 10;
   }, [wind]);
 
-  const windRange = useMemo(() => getWindRange(windAvg), [windAvg]);
+  const _windRange = useMemo(() => getWindRange(windAvg), [windAvg]);
 
   // Handle navigation to boat management
-  const handleManageBoatSails = useCallback(() => {
+  const _handleManageBoatSails = useCallback(() => {
     if (boatId) {
       router.push(`/(tabs)/boat/${boatId}?tab=sails`);
       onCancel();

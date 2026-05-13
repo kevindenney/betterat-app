@@ -30,22 +30,18 @@ import {
   CloudSun,
   Wind,
   Waves,
-  Clock,
   AlertTriangle,
   TrendingUp,
   TrendingDown,
   Minus,
-  History,
   Sparkles,
   Check,
-  RefreshCw,
   BookOpen,
   ArrowRight,
 } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { useForecastCheck } from '@/hooks/useForecastCheck';
 import { TinySparkline } from '@/components/shared/charts/TinySparkline';
-import type { ChecklistItem } from '@/types/checklists';
 import type { ChecklistToolProps } from '@/lib/checklists/toolRegistry';
 import type { SailingVenue } from '@/lib/types/global-venues';
 import type { ForecastSnapshot, ForecastAnalysis } from '@/types/raceIntentions';
@@ -114,9 +110,9 @@ interface ForecastCheckWizardProps extends ChecklistToolProps {
 }
 
 export function ForecastCheckWizard({
-  item,
+  item: _item,
   regattaId,
-  boatId,
+  boatId: _boatId,
   onComplete,
   onCancel,
   venue,
@@ -134,13 +130,13 @@ export function ForecastCheckWizard({
     forecastError,
     snapshots,
     latestAnalysis,
-    lastCheckedAt,
+    lastCheckedAt: _lastCheckedAt,
     captureSnapshot,
-    isCapturing,
-    captureError,
+    isCapturing: _isCapturing,
+    captureError: _captureError,
     hasSnapshots,
-    hasChanges,
-    changeLevel,
+    hasChanges: _hasChanges,
+    changeLevel: _changeLevel,
   } = useForecastCheck({
     regattaId,
     venue: venue || null,
@@ -235,7 +231,7 @@ export function ForecastCheckWizard({
   }, [regattaId, onCancel, router]);
 
   // Get trend icon
-  const getTrendIcon = useCallback((trend: string) => {
+  const _getTrendIcon = useCallback((trend: string) => {
     switch (trend) {
       case 'building':
         return <TrendingUp size={16} color={IOS_COLORS.orange} />;
@@ -261,7 +257,7 @@ export function ForecastCheckWizard({
   }, []);
 
   // Handle capture and move to next step
-  const handleCapture = useCallback(async () => {
+  const _handleCapture = useCallback(async () => {
     try {
       const result = await captureSnapshot();
       setNewSnapshot(result.snapshot);
@@ -513,7 +509,7 @@ export function ForecastCheckWizard({
 
     // Build race events timeline
     const buildRaceEvents = () => {
-      const events: Array<{
+      const events: {
         time: string;
         label: string;
         wind: number;
@@ -521,7 +517,7 @@ export function ForecastCheckWizard({
         tide: number;
         tideState: string;
         wave?: number;
-      }> = [];
+      }[] = [];
 
       // Use passed raceStartTime if available, otherwise fall back to forecast-derived time
       const effectiveStartTime = raceStartTime || rw.raceStartTime;
@@ -1219,7 +1215,7 @@ export function ForecastCheckWizard({
                 : 'Stable Forecast'}
             </Text>
           </View>
-          <Text style={styles.overviewTitle}>AI Analysis</Text>
+          <Text style={styles.overviewTitle}>Analysis</Text>
         </View>
 
         {/* Summary */}

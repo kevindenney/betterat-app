@@ -122,7 +122,7 @@ export function EquipmentAlerts({ boatId }: EquipmentAlertsProps) {
     }
   };
 
-  const getSeverityIcon = (severity: string) => {
+  const _getSeverityIcon = (severity: string) => {
     switch (severity) {
       case 'urgent': return 'alert-circle';
       case 'warning': return 'warning';
@@ -262,7 +262,7 @@ export function EquipmentAlerts({ boatId }: EquipmentAlertsProps) {
                   <View style={styles.aiConfidence}>
                     <MaterialCommunityIcons name="robot" size={14} color="#8B5CF6" />
                     <Text style={styles.aiConfidenceText}>
-                      AI Confidence: {(alert.aiConfidence * 100).toFixed(0)}%
+                      Confidence: {(alert.aiConfidence * 100).toFixed(0)}%
                     </Text>
                   </View>
                 )}

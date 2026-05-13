@@ -230,6 +230,7 @@ export function AddResourceSheet({ visible, libraryId, interestName, onSubmit, o
     setCourseModules([]);
     setFileUploadMeta(null);
     setNoteContent('');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [title, url, resourceType, author, description, libraryId, onSubmit, isCourse, courseModules, fileUploadMeta, isNote, noteContent]);
 
   const handleAIDecompose = useCallback(async () => {
@@ -247,7 +248,7 @@ export function AddResourceSheet({ visible, libraryId, interestName, onSubmit, o
     } catch (err: any) {
       showAlert(
         'Could Not Extract Lessons',
-        err?.message || 'AI extraction failed. You can add lessons manually instead.',
+        err?.message || 'Extraction failed. You can add lessons manually instead.',
       );
     } finally {
       setIsDecomposing(false);
@@ -473,7 +474,7 @@ export function AddResourceSheet({ visible, libraryId, interestName, onSubmit, o
               </View>
               <Text style={styles.courseHint}>
                 {courseModules.length === 0
-                  ? 'Add lesson structure manually or use AI to extract it from the course info.'
+                  ? 'Add lesson structure manually or extract it from the course info.'
                   : `${courseModules.reduce((n, m) => n + m.lessons.length, 0)} lessons in ${courseModules.length} module${courseModules.length !== 1 ? 's' : ''}`}
               </Text>
               <CourseLessonEditor
