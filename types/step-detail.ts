@@ -17,6 +17,7 @@ export interface MediaUpload {
   uri: string;
   type: 'photo' | 'video';
   caption?: string;
+  created_at?: string; // ISO timestamp; optional for backwards compat with rows created before the unified timeline
 }
 
 export type MediaLinkPlatform =

@@ -18,6 +18,7 @@ import { supabase } from '@/services/supabase';
 import { getResourcesByIds } from '@/services/LibraryService';
 import type { StepPlanData, StepActData, StepMetadata, MediaLink, MediaLinkPlatform, MediaUpload, Observation } from '@/types/step-detail';
 import { ObservationLog } from './ObservationLog';
+import { CaptureTimeline } from './CaptureTimeline';
 import type { LibraryResourceRecord } from '@/types/library';
 import { TrainChatPanel } from '@/components/practice/phases/TrainChatPanel';
 
@@ -348,6 +349,7 @@ export function StepDrawContent({ stepId, readOnly, interestId, interestName, in
         uri: publicUrl,
         type: isVideo ? 'video' : 'photo',
         caption: undefined,
+        created_at: new Date().toISOString(),
       };
 
       const currentUploads = metadataRef.current.act?.media_uploads ?? [];
@@ -442,6 +444,7 @@ export function StepDrawContent({ stepId, readOnly, interestId, interestName, in
         uri: publicUrl,
         type: isVideo ? 'video' : 'photo',
         caption: undefined,
+        created_at: new Date().toISOString(),
       };
 
       const currentUploads = metadataRef.current.act?.media_uploads ?? [];
@@ -488,9 +491,9 @@ export function StepDrawContent({ stepId, readOnly, interestId, interestName, in
           style={({ pressed }) => [styles.captureHero, pressed && styles.captureHeroPressed]}
         >
           <Ionicons name="mic-outline" size={32} color={STEP_PALETTE.textPrimary} />
-          <Text style={styles.captureHeroTitle}>Capture this moment</Text>
+          <Text style={styles.captureHeroTitle}>Hold to speak</Text>
           <Text style={styles.captureHeroSubtitle}>
-            Tap to type · long-press for camera
+            Photo or note · long-press camera
           </Text>
         </Pressable>
       )}
@@ -697,57 +700,22 @@ export function StepDrawContent({ stepId, readOnly, interestId, interestName, in
         </View>
       )}
 
-      {/* Evidence */}
+      {/* Capture timeline + media input — replaces the legacy Evidence + Observations sections */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>EVIDENCE</Text>
-        {!readOnly && (
-          <Text style={styles.sectionHint}>Add photos, videos, or links to show what you made</Text>
-        )}
+        <CaptureTimeline
+          observations={observations}
+          mediaUploads={mediaUploads}
+          onRemoveObservation={handleRemoveObservation}
+          onRemoveMedia={handleRemoveUpload}
+          onUpdateMediaCaption={handleUpdateUploadCaption}
+          onPreviewMedia={setPreviewUri}
+          readOnly={readOnly}
+        />
 
-        {/* Uploaded photos/videos */}
-        {mediaUploads.length > 0 && (
-          <View style={styles.thumbnailGrid}>
-            {mediaUploads.map((upload) => (
-              <View key={upload.id} style={styles.thumbnailColumn}>
-                <Pressable
-                  style={styles.thumbnailWrapper}
-                  onPress={() => upload.type === 'photo' ? setPreviewUri(upload.uri) : undefined}
-                >
-                  <Image source={{ uri: upload.uri }} style={styles.thumbnail} />
-                  <View style={styles.thumbnailBadge}>
-                    <Ionicons
-                      name={upload.type === 'video' ? 'videocam' : 'image'}
-                      size={10}
-                      color="#FFFFFF"
-                    />
-                  </View>
-                  {!readOnly && (
-                    <Pressable
-                      style={styles.thumbnailRemove}
-                      onPress={() => handleRemoveUpload(upload.id)}
-                      hitSlop={6}
-                    >
-                      <Ionicons name="close-circle" size={18} color="rgba(255,255,255,0.9)" />
-                    </Pressable>
-                  )}
-                </Pressable>
-                {!readOnly ? (
-                  <TextInput
-                    style={styles.captionInput}
-                    defaultValue={upload.caption ?? ''}
-                    onChangeText={(text) => handleUpdateUploadCaption(upload.id, text)}
-                    placeholder="Add caption..."
-                    placeholderTextColor={IOS_COLORS.tertiaryLabel}
-                    numberOfLines={1}
-                    multiline={false}
-                  />
-                ) : upload.caption ? (
-                  <Text style={styles.captionInput}>{upload.caption}</Text>
-                ) : null}
-              </View>
-            ))}
-          </View>
-        )}
+        {/* Inline note input */}
+        <View style={styles.observationInputContainer}>
+          <ObservationLog onAdd={handleAddObservation} readOnly={readOnly} />
+        </View>
 
         {/* Fullscreen image preview modal */}
         <Modal
@@ -1003,16 +971,6 @@ export function StepDrawContent({ stepId, readOnly, interestId, interestName, in
         )}
       </View>
 
-      {/* Observation log */}
-      <View style={styles.section}>
-        <ObservationLog
-          observations={observations}
-          onAdd={handleAddObservation}
-          onRemove={handleRemoveObservation}
-          readOnly={readOnly}
-        />
-      </View>
-
       {/* Session notes — AI chat when context available, plain textarea fallback */}
       {interestId && interestName && !readOnly ? (
         <View ref={chatSectionRef} style={styles.section}>
@@ -1088,6 +1046,9 @@ const styles = StyleSheet.create({
   },
   section: {
     gap: IOS_SPACING.xs,
+  },
+  observationInputContainer: {
+    marginTop: IOS_SPACING.sm,
   },
   sectionHeader: {
     flexDirection: 'row',
