@@ -220,7 +220,7 @@ export function RaceStrategyTab({
             >
               <Ionicons name="compass" size={48} color="#FFFFFF" />
               <Text style={styles.emptyTitle}>No Active Strategy</Text>
-              <Text style={styles.emptyText}>Upload race documents or select an upcoming race to generate an AI-powered strategy</Text>
+              <Text style={styles.emptyText}>Upload race documents or select an upcoming race to generate a strategy</Text>
               <TouchableOpacity
                 style={styles.uploadButton}
                 onPress={onUploadDocuments}

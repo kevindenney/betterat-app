@@ -112,7 +112,7 @@ export default function OnXMapsInterface({
       setDocumentState({
         stage: 'parsing',
         progress: 40,
-        currentMessage: 'Extracting course information with AI...',
+        currentMessage: 'Extracting course information...',
       });
 
       setCourseExtraction(extracted);
@@ -158,7 +158,7 @@ export default function OnXMapsInterface({
       setDocumentState({
         stage: 'strategizing',
         progress: 90,
-        currentMessage: 'Generating AI race strategy...',
+        currentMessage: 'Generating race strategy...',
       });
 
       // Generate race strategy
@@ -586,7 +586,7 @@ export default function OnXMapsInterface({
                   Upload Sailing Instructions
                 </Text>
                 <Text variant="bodyMedium" style={styles.uploadDescription}>
-                  Transform any sailing instruction document into a 3D tactical race course with AI-powered strategy
+                  Transform any sailing instruction document into a 3D tactical race course with strategy
                 </Text>
                 <Button
                   mode="contained"

@@ -19,7 +19,7 @@ import {
 import { showAlert } from '@/lib/utils/crossPlatformAlert';
 import { Ionicons } from '@expo/vector-icons';
 import * as KeepAwake from 'expo-keep-awake';
-import { raceStrategyEngine, type RaceStrategy, type RaceConditions } from '@/services/ai/RaceStrategyEngine';
+import { type RaceStrategy, type RaceConditions } from '@/services/ai/RaceStrategyEngine';
 import { venueDetectionService, type SailingVenue } from '@/services/location/VenueDetectionService';
 
 // Dynamic import helper for expo-location (native only)
@@ -82,12 +82,12 @@ interface RaceDayInterfaceProps {
   onEmergencyAlert?: () => void;
 }
 
-const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
+const { width: screenWidth, height: _screenHeight } = Dimensions.get('window');
 const isTablet = screenWidth > 768;
 
 export const RaceDayInterface: React.FC<RaceDayInterfaceProps> = ({
   strategy,
-  onStrategyUpdate,
+  onStrategyUpdate: _onStrategyUpdate,
   onEmergencyAlert
 }) => {
   const [raceTimer, setRaceTimer] = useState<RaceTimer>({
@@ -98,12 +98,12 @@ export const RaceDayInterface: React.FC<RaceDayInterfaceProps> = ({
     raceElapsed: 0
   });
 
-  const [currentConditions, setCurrentConditions] = useState<RaceConditions | null>(null);
+  const [currentConditions, _setCurrentConditions] = useState<RaceConditions | null>(null);
   const [currentVenue, setCurrentVenue] = useState<SailingVenue | null>(null);
   const [tacticalAlerts, setTacticalAlerts] = useState<TacticalAlert[]>([]);
   const [activeView, setActiveView] = useState<'overview' | 'tactical' | 'conditions' | 'gps' | 'emergency'>('overview');
-  const [isRecording, setIsRecording] = useState(false);
-  const [raceNotes, setRaceNotes] = useState<string[]>([]);
+  const [_isRecording, _setIsRecording] = useState(false);
+  const [_raceNotes, setRaceNotes] = useState<string[]>([]);
   const [gpsData, setGpsData] = useState<GPSData | null>(null);
   const [racePosition, setRacePosition] = useState<RacePosition | null>(null);
   const [gpsPermission, setGpsPermission] = useState<'granted' | 'denied' | 'pending'>('pending');
@@ -155,6 +155,7 @@ export const RaceDayInterface: React.FC<RaceDayInterfaceProps> = ({
         clearInterval(timerRef.current);
       }
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const initializeVenueDetection = async () => {
@@ -250,7 +251,7 @@ export const RaceDayInterface: React.FC<RaceDayInterfaceProps> = ({
     }
   };
 
-  const updateRacePosition = (gps: GPSData) => {
+  const updateRacePosition = (_gps: GPSData) => {
     // Calculate race position based on GPS and strategy
     if (strategy && currentVenue) {
       // Mock calculation - in real implementation, this would use course marks and strategy
@@ -363,7 +364,7 @@ export const RaceDayInterface: React.FC<RaceDayInterfaceProps> = ({
         type: 'info',
         priority: 'important',
         title: '🧠 Strategy Loaded',
-        message: `AI strategy ready: ${strategy.strategy.overallApproach.slice(0, 50)}...`,
+        message: `Strategy ready: ${strategy.strategy.overallApproach.slice(0, 50)}...`,
         action: 'View Full Strategy'
       });
 
