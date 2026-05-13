@@ -204,10 +204,14 @@ export default function CoachDiscoveryScreen() {
 
   useEffect(() => {
     determineCoachingStatus();
+    // determineCoachingStatus closes over user; keying on user is the intent.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   useEffect(() => {
     loadCoaches();
+    // loadCoaches uses filters; keying on filters is the intent.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters]);
 
   // Auto-apply skill from URL param (e.g. from coaching insight cards)
@@ -220,20 +224,25 @@ export default function CoachDiscoveryScreen() {
       setSelectedSkills([skillParam]);
       setHasSubmittedNeeds(true);
     }
+    // Fires only when the URL skill param changes; hasSubmittedNeeds checked inside is a snapshot guard.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [skillParam]);
 
-  // Auto-run AI matching when skills are submitted
+  // Auto-run matching when skills are submitted
   useEffect(() => {
     if (hasSubmittedNeeds && user) {
       runAIMatching();
     }
+    // Fires only when hasSubmittedNeeds flips; user + runAIMatching read at call time.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hasSubmittedNeeds]);
 
-  // Auto-run AI matching for returning users
+  // Auto-run matching for returning users
   useEffect(() => {
     if (coachingStatus === 'has_coaches' && user && sailorData.classes.length > 0) {
       runAIMatching();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [coachingStatus, user, sailorData.classes.length]);
 
   const determineCoachingStatus = async () => {
@@ -613,9 +622,6 @@ export default function CoachDiscoveryScreen() {
         {/* Section header */}
         <View style={styles.matchResultsHeader}>
           <View style={styles.matchResultsHeaderLeft}>
-            <View style={styles.aiBadge}>
-              <Text style={styles.aiBadgeText}>AI MATCHED</Text>
-            </View>
             <Text style={styles.matchResultsContext}>{aiContext}</Text>
           </View>
         </View>
@@ -744,6 +750,8 @@ export default function CoachDiscoveryScreen() {
     setCoachingStatus('loading');
     determineCoachingStatus();
     loadCoaches();
+    // determineCoachingStatus + loadCoaches read latest user/filters at call time; stable identity not required for this retry handler.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   // Helper: get next upcoming session date for a given coach

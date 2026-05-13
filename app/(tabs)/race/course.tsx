@@ -3,7 +3,7 @@
  * Professional-grade race course visualization with comprehensive layer system
  */
 
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -28,16 +28,13 @@ import {
   Route,
   Play,
   Settings,
-  ChevronRight,
   ChevronLeft,
   Info,
   Download,
-  Eye,
-  EyeOff,
 } from 'lucide-react-native';
 import { WebMapView } from '@/components/map/WebMapView';
 
-const { width, height } = Dimensions.get('window');
+const { height } = Dimensions.get('window');
 
 // Layer categories matching OnX Maps
 interface MapLayers {
@@ -100,7 +97,6 @@ const CourseViewScreen = () => {
   // Map state
   const [viewMode, setViewMode] = useState<'2d' | '3d'>('3d');
   const [showLayerPanel, setShowLayerPanel] = useState(false);
-  const [selectedMark, setSelectedMark] = useState<string | null>(null);
   const [measurementMode, setMeasurementMode] = useState(false);
   const [routeSimulator, setRouteSimulator] = useState(false);
   const [baseMapStyle, setBaseMapStyle] = useState<'nautical' | 'satellite' | 'hybrid'>('nautical');
@@ -162,41 +158,6 @@ const CourseViewScreen = () => {
     },
     temp: 22,
   };
-
-  const marks = [
-    {
-      id: '1',
-      name: 'Start Line (Pin End)',
-      type: 'start',
-      lat: 22.2793,
-      lng: 114.1628,
-      description: 'Pin end - favored in NE wind',
-    },
-    {
-      id: '2',
-      name: 'Windward Mark',
-      type: 'windward',
-      lat: 22.2850,
-      lng: 114.1650,
-      description: 'Red buoy - 1.0nm from start',
-    },
-    {
-      id: '3',
-      name: 'Leeward Gate (Port)',
-      type: 'leeward',
-      lat: 22.2793,
-      lng: 114.1620,
-      description: 'Green buoy - downwind gate port',
-    },
-    {
-      id: '4',
-      name: 'Finish Line',
-      type: 'finish',
-      lat: 22.2800,
-      lng: 114.1640,
-      description: 'Committee boat line',
-    },
-  ];
 
   // Toggle layer
   const toggleLayer = useCallback((layerKey: keyof MapLayers) => {
@@ -517,7 +478,7 @@ const CourseViewScreen = () => {
             </Text>
             {layers.windVectors && <Text style={styles.layerChip}>🌬️ Wind</Text>}
             {layers.tidalCurrent && <Text style={styles.layerChip}>🌊 Tide</Text>}
-            {layers.favoredSide && <Text style={styles.layerChip}>🎯 AI Strategy</Text>}
+            {layers.favoredSide && <Text style={styles.layerChip}>🎯 Strategy</Text>}
           </View>
         )}
 

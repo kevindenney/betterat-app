@@ -62,15 +62,6 @@ export default function MapScreen() {
   const [courseVisualizationMode, setCourseVisualizationMode] = useState(false);
   const [extractedCourse, setExtractedCourse] = useState<RaceCourseExtraction | null>(null);
 
-  // Professional API keys (these would come from secure storage)
-  const apiKeys = {
-    // MapLibre is open source - no API key needed for mapping
-    'openweathermap': process.env.EXPO_PUBLIC_OPENWEATHERMAP_API_KEY || '',
-    'aisstream-api': '01037d15e391c289c1d106479d8870e1df107f65',
-    'meteomatics': 'demo-key',
-    'meteomatics-user': 'demo-user'
-  };
-
   const handleMarkPress = (mark: RaceMark) => {
     setSelectedMark(mark);
     showAlert(
@@ -246,7 +237,7 @@ export default function MapScreen() {
       {/* Mode Toggle */}
       <View style={styles.header}>
         <ThemedText type="title">
-          {courseVisualizationMode ? 'AI Course Visualization' :
+          {courseVisualizationMode ? 'Course Visualization' :
            professionalMode ? 'RegattaFlow Professional' : 'RegattaFlow Standard'}
         </ThemedText>
         <View style={styles.modeToggle}>

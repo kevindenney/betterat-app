@@ -38,6 +38,8 @@ export default function TeamInvitePage() {
 
   useEffect(() => {
     loadInviteDetails();
+    // loadInviteDetails closes over `code`; keying on code is the intent.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [code]);
 
   const loadInviteDetails = async () => {
@@ -165,7 +167,7 @@ export default function TeamInvitePage() {
           </View>
           <View style={styles.benefitRow}>
             <Ionicons name="checkmark-circle" size={20} color={IOS_COLORS.systemGreen} />
-            <Text style={styles.benefitText}>Unlimited AI queries</Text>
+            <Text style={styles.benefitText}>Unlimited queries</Text>
           </View>
           <View style={styles.benefitRow}>
             <Ionicons name="checkmark-circle" size={20} color={IOS_COLORS.systemGreen} />

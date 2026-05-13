@@ -284,7 +284,7 @@ export default function CoachArtifactReviewScreen() {
       status: 'validated',
       validated_at: new Date().toISOString(),
     };
-    let filters: Array<{column: string; value: string}> = [
+    const filters: { column: string; value: string }[] = [
       { column: 'artifact_id', value: artifactId },
       { column: 'status', value: 'unvalidated' },
       { column: 'clinical_context', value: 'clinical_reasoning_feedback' },
@@ -465,9 +465,9 @@ export default function CoachArtifactReviewScreen() {
             </View>
 
             <View style={styles.card}>
-              <Text style={styles.sectionTitle}>AI Evaluation</Text>
+              <Text style={styles.sectionTitle}>Evaluation</Text>
               {scoreItems.length === 0 ? (
-                <Text style={styles.fieldValue}>No AI evaluation found for v1 rubric.</Text>
+                <Text style={styles.fieldValue}>No evaluation found for v1 rubric.</Text>
               ) : (
                 scoreItems.map((score, index) => (
                   <View key={`${score.competencyId}-${index}`} style={styles.scoreBlock}>

@@ -10,7 +10,7 @@ import {
 import { showAlertWithButtons } from '@/lib/utils/crossPlatformAlert';
 import { Ionicons } from '@expo/vector-icons';
 import { useIsFocused } from '@react-navigation/native';
-import { format, formatDistanceToNow } from 'date-fns';
+import { format } from 'date-fns';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -27,8 +27,6 @@ import { buildInstitutionProgramItems, type InstitutionProgramItems } from '@/li
 import {
   programService,
   OrganizationAssessmentSummary,
-  ProgramRecord,
-  ProgramSessionRecord,
 } from '@/services/ProgramService';
 
 const UPCOMING_RACES = [
@@ -385,7 +383,8 @@ export default function RaceManagementScreen() {
     ];
   }, [
     activeItems.length,
-    assessmentSummary.finalized,
+    assessmentSummary.reviewed,
+    assessmentSummary.submitted,
     completedItems.length,
     isInstitutionWorkspace,
     upcomingItems.length,
@@ -627,7 +626,7 @@ export default function RaceManagementScreen() {
                   onPress={() => (allowRaceWorkflows ? openCommsModal(race.id, race.name) : undefined)}
                 >
                   <Ionicons name="sparkles-outline" size={18} color="#2563EB" />
-                  <ThemedText style={styles.cardButtonText}>AI update</ThemedText>
+                  <ThemedText style={styles.cardButtonText}>Draft update</ThemedText>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.cardButtonPrimary}

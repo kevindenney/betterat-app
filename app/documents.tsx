@@ -9,8 +9,6 @@ import {
   Text,
   TouchableOpacity,
   StyleSheet,
-  
-  Platform
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { DocumentUploadCard } from '@/components/documents/DocumentUploadCard';
@@ -27,15 +25,11 @@ export default function DocumentsScreen() {
 
   // Initialize sailing documents hook
   const {
-    uploading,
     uploadProgress,
     documents,
     recommendations,
-    uploadDocument,
-    searchDocuments,
-    getRecommendations,
     error,
-    clearError
+    clearError,
   } = useSailingDocuments(user?.id);
 
   // Temporary debug mode - show DocumentViewer even without auth to test database
@@ -45,7 +39,7 @@ export default function DocumentsScreen() {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.authRequired}>
-          <Text style={styles.authText}>Please sign in to access AI Document Processing</Text>
+          <Text style={styles.authText}>Please sign in to access Document Processing</Text>
           <Text style={styles.authSubtext}>
             Upload valuable sailing documents like tides/current strategy books, sailing instructions,
             and tactical guides for AI-powered insights
@@ -133,12 +127,12 @@ export default function DocumentsScreen() {
             {/* Document Upload Section */}
             <View style={styles.section}>
               <DocumentUploadCard
-                onDocumentUploaded={(doc) => {
+                onDocumentUploaded={(_doc) => {
 
                 }}
-                onAnalysisComplete={(analysis) => {
+                onAnalysisComplete={(_analysis) => {
                 }}
-                onCourseExtracted={(course) => {
+                onCourseExtracted={(_course) => {
 
                 }}
               />
@@ -163,7 +157,7 @@ export default function DocumentsScreen() {
             {/* Document Viewer Section */}
             <View style={styles.section}>
               <DocumentViewer
-                onInsightSelect={(insight) => {
+                onInsightSelect={(_insight) => {
 
                 }}
               />

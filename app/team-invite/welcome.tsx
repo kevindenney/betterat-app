@@ -19,7 +19,6 @@ import Animated, {
   useSharedValue,
   withDelay,
   withSpring,
-  withSequence,
 } from 'react-native-reanimated';
 import { useAuth } from '@/providers/AuthProvider';
 import { SubscriptionTeamService } from '@/services/SubscriptionTeamService';
@@ -50,6 +49,8 @@ export default function TeamWelcomePage() {
     checkScale.value = withDelay(200, withSpring(1, { damping: 12 }));
     titleOpacity.value = withDelay(400, withSpring(1));
     contentOpacity.value = withDelay(600, withSpring(1));
+    // Runs once on mount; shared values + loadTeam captured intentionally.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const loadTeam = async () => {
@@ -109,7 +110,7 @@ export default function TeamWelcomePage() {
               <Ionicons name="sparkles" size={20} color={IOS_COLORS.systemPurple} />
             </View>
             <View style={styles.featureText}>
-              <Text style={styles.featureTitle}>AI Strategy Analysis</Text>
+              <Text style={styles.featureTitle}>Strategy Analysis</Text>
               <Text style={styles.featureDesc}>Get personalized race insights</Text>
             </View>
           </View>

@@ -19,22 +19,16 @@ import { showAlert } from '@/lib/utils/crossPlatformAlert';
 import {
   ChevronLeft,
   Navigation,
-  Clock,
   Gauge,
-  Wind,
   MapPin,
-  Calendar,
   Share2,
   Sparkles,
   TrendingUp,
   Flag,
-  Waves,
   Target,
   Lightbulb,
   RefreshCw,
   Route,
-  Compass,
-  Timer,
 } from 'lucide-react-native';
 import { supabase } from '@/services/supabase';
 import { RaceAnalysisService } from '@/services/RaceAnalysisService';
@@ -83,11 +77,12 @@ export default function RaceSessionDetailScreen() {
   const [session, setSession] = useState<RaceSession | null>(null);
   const [analysis, setAnalysis] = useState<AICoachAnalysis | null>(null);
   const [loading, setLoading] = useState(true);
-  const [analysisLoading, setAnalysisLoading] = useState(false);
   const [generating, setGenerating] = useState(false);
 
   useEffect(() => {
     loadData();
+    // loadData reads sessionId via closure; keying on sessionId is the intent.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionId]);
 
   const loadData = async () => {
@@ -303,7 +298,7 @@ export default function RaceSessionDetailScreen() {
         <View style={styles.sectionContainer}>
           <View style={styles.sectionHeader}>
             <Sparkles size={20} color={IOS_COLORS.purple} />
-            <Text style={styles.sectionTitle}>AI Race Analysis</Text>
+            <Text style={styles.sectionTitle}>Race Analysis</Text>
           </View>
 
           {analysis ? (
