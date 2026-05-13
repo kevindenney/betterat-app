@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, ScrollView, ActivityIndicator, TouchableOpacity } from 'react-native';
 import { Card } from '@/components/ui/card';
 import { Button, ButtonText } from '@/components/ui/button';
-import { Sparkles, Brain, TrendingUp, Wind, Waves, Clock, AlertCircle } from 'lucide-react-native';
+import { Sparkles, Brain, AlertCircle } from 'lucide-react-native';
 import { enhancedAIClient } from '@/services/ai';
 import { createLogger } from '@/lib/utils/logger';
 
@@ -12,15 +12,9 @@ interface AIRaceStrategyProps {
   tidalData?: any;
 }
 
-interface StrategySection {
-  title: string;
-  content: string;
-  icon: string;
-}
-
 const logger = createLogger('AIRaceStrategy');
 
-export function AIRaceStrategy({ race, weatherData, tidalData }: AIRaceStrategyProps) {
+export function AIRaceStrategy({ race, weatherData: _weatherData, tidalData: _tidalData }: AIRaceStrategyProps) {
   const [loading, setLoading] = useState(false);
   const [strategy, setStrategy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -101,12 +95,7 @@ Be specific, actionable, and reference the proven frameworks from your knowledge
           <View className="flex-row items-center gap-2">
             <Sparkles size={24} color="#8b5cf6" />
             <Text className="text-lg font-semibold text-gray-900 dark:text-white">
-              AI Race Strategy
-            </Text>
-          </View>
-          <View className="bg-purple-100 dark:bg-purple-900/50 px-2 py-1 rounded-full">
-            <Text className="text-xs font-medium text-purple-700 dark:text-purple-300">
-              Powered by Claude
+              Race Strategy
             </Text>
           </View>
         </View>
@@ -182,7 +171,7 @@ Be specific, actionable, and reference the proven frameworks from your knowledge
         <View className="flex-row items-center gap-2">
           <Sparkles size={24} color="#8b5cf6" />
           <Text className="text-lg font-semibold text-gray-900 dark:text-white">
-            AI Race Strategy
+            Race Strategy
           </Text>
         </View>
         <View className="flex-row items-center gap-2">
