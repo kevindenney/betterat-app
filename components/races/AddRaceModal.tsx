@@ -292,12 +292,12 @@ export function AddRaceModal({ visible, onClose, onRaceAdded }: AddRaceModalProp
                 <View className="flex-row items-center gap-2 mb-2">
                   <Sparkles size={16} color="#0284c7" />
                   <Text className="text-sm font-semibold text-sky-900">
-                    AI will extract race details
+                    Race details extracted automatically
                   </Text>
                 </View>
                 <Text className="text-xs text-sky-700">
                   Paste race information, sailing instructions, or any text with race
-                  details. AI will automatically extract name, venue, date, and more.
+                  details. Name, venue, date, and more are extracted automatically.
                 </Text>
               </View>
 
@@ -350,12 +350,12 @@ export function AddRaceModal({ visible, onClose, onRaceAdded }: AddRaceModalProp
                 <View className="flex-row items-center gap-2 mb-2">
                   <Sparkles size={16} color="#0284c7" />
                   <Text className="text-sm font-semibold text-sky-900">
-                    AI Document Parsing
+                    Document Parsing
                   </Text>
                 </View>
                 <Text className="text-xs text-sky-700">
-                  Upload sailing instructions (PDF), race documents, or photos. AI will
-                  parse and extract all race details automatically.
+                  Upload sailing instructions (PDF), race documents, or photos. All race
+                  details are parsed and extracted automatically.
                 </Text>
               </View>
 

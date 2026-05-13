@@ -248,7 +248,7 @@ export default function CreateRaceEventScreen() {
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Documents (Optional)</Text>
         <Text style={styles.sectionSubtitle}>
-          AI will extract course and race details
+          Course and race details are extracted automatically
         </Text>
 
         <TouchableOpacity

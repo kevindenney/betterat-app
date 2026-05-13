@@ -109,7 +109,7 @@ export const AIPatternDetection: React.FC = () => {
         <View>
           <Text style={styles.title}>Learning Patterns</Text>
           <Text style={styles.subtitle}>
-            Claude tracks your recurring wins and the next focus items after every race.
+            Track your recurring wins and the next focus items after every race.
           </Text>
         </View>
         {user?.id && (
@@ -143,7 +143,7 @@ export const AIPatternDetection: React.FC = () => {
           <Ionicons name="analytics-outline" size={40} color="#9CA3AF" />
           <Text style={styles.emptyTitle}>Complete a race to unlock coaching patterns</Text>
           <Text style={styles.emptyDescription}>
-            Post-race analysis and GPS data help Claude learn what you repeat and what needs work.
+            Post-race analysis and GPS data reveal what you repeat and what needs work.
           </Text>
         </View>
       ) : profile ? (
@@ -259,7 +259,7 @@ const PatternList: React.FC<PatternListProps> = ({ title, subtitle, patterns, va
   const emptyMessage =
     variant === 'positive'
       ? 'No sustained strengths yet. Complete another race to build history.'
-      : 'No urgent focus items detected. Claude will flag new ones as they emerge.';
+      : 'No urgent focus items detected. New ones will surface as they emerge.';
 
   const borderColor = variant === 'positive' ? '#DCFCE7' : '#FEF3C7';
   const titleColor = variant === 'positive' ? '#047857' : '#B45309';

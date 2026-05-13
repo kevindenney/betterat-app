@@ -77,7 +77,7 @@ export default function EventDocumentsScreen() {
             setAiLoading(false);
         }
     }, [clubId, eventId]);
-    const loadDocuments = async () => {
+    const loadDocuments = useCallback(async () => {
         if (!clubId)
             return;
         try {
@@ -92,7 +92,7 @@ export default function EventDocumentsScreen() {
         finally {
             setLoading(false);
         }
-    };
+    }, [clubId, eventId]);
     const handleGenerateDraft = useCallback(async (overrides?: { documentType?: ClaudeDocumentType }) => {
         setOverrideDraft(null);
         setOverrideGeneratedAt(null);
@@ -106,7 +106,7 @@ export default function EventDocumentsScreen() {
             return;
         loadDocuments();
         loadAiDrafts();
-    }, [eventId, clubId, loadAiDrafts]);
+    }, [eventId, clubId, loadDocuments, loadAiDrafts]);
     const handleUpload = async (documentType: DocumentType) => {
         try {
             const result = await DocumentPicker.getDocumentAsync({
@@ -171,13 +171,13 @@ export default function EventDocumentsScreen() {
     const handleCopyDraft = async (item: AiGeneratedDocument) => {
         const copied = await copyToClipboard(item.draft_text);
         if (copied) {
-            showAlert('Copied', 'Claude draft copied to your clipboard.');
+            showAlert('Copied', 'Draft copied to your clipboard.');
         }
         else {
             showAlert('Clipboard unavailable', 'Copy is not supported on this device yet.');
         }
     };
-    const extractSections = (value: any): Array<{ heading: string; body: string }> => {
+    const extractSections = (value: any): { heading: string; body: string }[] => {
         if (!Array.isArray(value))
             return [];
         return value
@@ -332,14 +332,14 @@ export default function EventDocumentsScreen() {
         <View style={styles.section}>
           <View style={styles.aiHeader}>
             <View style={{ flex: 1 }}>
-              <ThemedText style={styles.sectionTitle}>Claude drafting</ThemedText>
+              <ThemedText style={styles.sectionTitle}>Document drafting</ThemedText>
               <ThemedText style={styles.sectionHelper}>
                 Generate NORs, SIs, notices, and amendments with your event data.
               </ThemedText>
             </View>
             <TouchableOpacity style={styles.aiButton} onPress={openGenerateModal}>
               <Ionicons name="sparkles" size={18} color="#FFFFFF" />
-              <ThemedText style={styles.aiButtonText}>Open Claude</ThemedText>
+              <ThemedText style={styles.aiButtonText}>New draft</ThemedText>
             </TouchableOpacity>
           </View>
 
@@ -350,9 +350,9 @@ export default function EventDocumentsScreen() {
             </View>
           ) : aiDrafts.length === 0 ? (
             <View style={styles.aiEmptyState}>
-              <ThemedText style={styles.aiEmptyTitle}>No AI drafts yet</ThemedText>
+              <ThemedText style={styles.aiEmptyTitle}>No drafts yet</ThemedText>
               <ThemedText style={styles.aiEmptySubtitle}>
-                Claude will store each draft here for review before you publish.
+                Drafts are stored here for review before you publish.
               </ThemedText>
             </View>
           ) : (

@@ -94,7 +94,7 @@ export function RaceCommsModal({
       <View style={styles.container}>
         <View style={styles.header}>
           <View style={{ flex: 1 }}>
-            <Text style={styles.title}>Claude race update</Text>
+            <Text style={styles.title}>Race update</Text>
             {raceName ? <Text style={styles.subtitle}>{raceName}</Text> : null}
           </View>
           <TouchableOpacity style={styles.closeButton} onPress={onClose}>
@@ -173,7 +173,7 @@ export function RaceCommsModal({
               <Ionicons name="sparkles-outline" size={42} color="#2563EB" style={{ marginBottom: 12 }} />
               <Text style={styles.placeholderTitle}>Draft race-day comms instantly</Text>
               <Text style={styles.placeholderText}>
-                Claude summarizes weather, registrations, and schedule to produce tailored updates for SMS,
+                Updates summarize weather, registrations, and schedule for SMS,
                 email, and the dock notice board.
               </Text>
             </View>

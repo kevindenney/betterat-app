@@ -442,11 +442,11 @@ export default function SettingsScreen() {
           </>
         )}
 
-        {/* Claude Assistant */}
-        <SectionHeader title="Claude Assistant" />
+        {/* Club Assistant */}
+        <SectionHeader title="Club Assistant" />
         <View style={styles.aiSection}>
           <Text style={styles.aiSectionHelper}>
-            Ask Claude to draft communications, plan events, or answer member questions using your club data.
+            Draft communications, plan events, or answer member questions using your club data.
           </Text>
           <ClubAiAssistant
             clubId={resolvedClubId}

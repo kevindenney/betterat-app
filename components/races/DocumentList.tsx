@@ -215,7 +215,7 @@ export function DocumentList({
             <Text style={styles.emptyTitle}>No Documents Yet</Text>
             <Text style={styles.emptyText}>
               Upload sailing instructions, NORs, and course diagrams.{'\n'}
-              AI will automatically extract course information.
+              Course information is extracted automatically.
             </Text>
           </View>
         }

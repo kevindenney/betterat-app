@@ -556,7 +556,7 @@ export function TufteAIExtractionSection({
           </Pressable>
 
           <Text style={styles.hint}>
-            AI will extract race name, date, location, and other details automatically.
+            Race name, date, location, and other details are extracted automatically.
           </Text>
         </View>
       )}

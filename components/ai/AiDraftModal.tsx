@@ -28,11 +28,11 @@ interface AiDraftModalProps {
   onDocumentTypeChange?: (documentType: ClaudeDocumentType) => void;
 }
 
-const DOCUMENT_OPTIONS: Array<{
+const DOCUMENT_OPTIONS: {
   value: ClaudeDocumentType;
   label: string;
   helper: string;
-}> = [
+}[] = [
   { value: 'nor', label: 'Notice of Race', helper: 'Eligibility, schedule, scoring, penalties' },
   { value: 'si', label: 'Sailing Instructions', helper: 'Courses, signals, time limits, safety' },
   { value: 'amendment', label: 'Amendment', helper: 'Update to NOR/SI with change log' },
@@ -88,7 +88,7 @@ export function AiDraftModal({
       <View style={styles.container}>
         <View style={styles.header}>
           <View>
-            <Text style={styles.title}>Claude document draft</Text>
+            <Text style={styles.title}>Document draft</Text>
             <Text style={styles.subtitle}>{activeOption.helper}</Text>
           </View>
           <TouchableOpacity onPress={onClose} style={styles.closeButton} accessibilityLabel="Close draft modal">
@@ -167,7 +167,7 @@ export function AiDraftModal({
               <Ionicons name="sparkles-outline" size={36} color="#2563EB" />
               <Text style={styles.placeholderTitle}>Generate a tailored document</Text>
               <Text style={styles.placeholderText}>
-                Claude uses your event data, recent registrations, and club profile to produce
+                Drafts use your event data, recent registrations, and club profile to produce
                 compliant wording in seconds. Pick a document type, then tap Generate.
               </Text>
             </View>

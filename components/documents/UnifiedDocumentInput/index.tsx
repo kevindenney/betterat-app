@@ -1198,7 +1198,7 @@ export function UnifiedDocumentInput({
 
           {/* Hint */}
           <Text style={styles.hint}>
-            AI will extract race name, date, location, VHF channels, and more from your document.
+            Race name, date, location, VHF channels, and more are extracted from your document.
           </Text>
         </View>
       )}

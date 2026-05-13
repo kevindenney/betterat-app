@@ -424,7 +424,7 @@ export default function AICoachMatchmaker() {
             <View style={styles.emptyState}>
               <Text style={styles.emptyStateTitle}>Ready to Find Your Perfect Coach?</Text>
               <Text style={styles.emptyStateText}>
-                Set your preferences and let our AI find coaches that match your learning style and goals.
+                Set your preferences and we'll find coaches that match your learning style and goals.
               </Text>
             </View>
           )

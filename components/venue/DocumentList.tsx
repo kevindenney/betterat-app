@@ -196,7 +196,7 @@ export function DocumentList({
       <Ionicons name="document-text-outline" size={48} color="#D1D5DB" />
       <ThemedText style={styles.emptyTitle}>No documents yet</ThemedText>
       <ThemedText style={styles.emptyText}>
-        Upload PDFs, guides, or link to videos about this venue. AI will extract key insights automatically.
+        Upload PDFs, guides, or link to videos about this venue. Key insights are extracted automatically.
       </ThemedText>
       <TouchableOpacity style={styles.uploadButton} onPress={onUploadDocument}>
         <Ionicons name="cloud-upload-outline" size={20} color="white" />

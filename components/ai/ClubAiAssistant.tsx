@@ -25,7 +25,7 @@ interface ClubAiAssistantProps {
 
 export function ClubAiAssistant({
   clubId,
-  title = 'Claude club assistant',
+  title = 'Club assistant',
   promptSuggestions,
   style,
   compact = false,
@@ -79,7 +79,7 @@ export function ClubAiAssistant({
           <Ionicons name="lock-closed-outline" size={28} color="#94A3B8" />
           <Text style={styles.placeholderTitle}>Connect your club workspace</Text>
           <Text style={styles.placeholderText}>
-            Finish onboarding to chat with Claude about member support, race briefs, and daily operations.
+            Finish onboarding to ask about member support, race briefs, and daily operations.
           </Text>
         </View>
       </View>
@@ -151,7 +151,7 @@ export function ClubAiAssistant({
           loading ? null : (
             <View style={styles.placeholder}>
               <Ionicons name="chatbubble-ellipses-outline" size={28} color="#94A3B8" />
-              <Text style={styles.placeholderTitle}>Ask Claude anything</Text>
+              <Text style={styles.placeholderTitle}>Ask anything</Text>
               <Text style={styles.placeholderText}>
                 Try a prompt below to get a tailored response for your club operations.
               </Text>
@@ -185,7 +185,7 @@ export function ClubAiAssistant({
       <View style={styles.inputRow}>
         <TextInput
           style={styles.input}
-          placeholder="Ask Claude for help…"
+          placeholder="Ask for help…"
           placeholderTextColor="#94A3B8"
           value={input}
           onChangeText={setInput}

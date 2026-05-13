@@ -121,7 +121,7 @@ export const ExtractionProgress: React.FC<ExtractionProgressProps> = ({
       <View style={styles.funFact}>
         <Ionicons name="bulb-outline" size={16} color={colors.warning[600]} />
         <Text style={styles.funFactText}>
-          Did you know? AI can extract course marks, start times, and even tactical notes from race documents
+          Did you know? Course marks, start times, and even tactical notes can be extracted from race documents
         </Text>
       </View>
     </View>

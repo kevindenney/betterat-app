@@ -265,7 +265,7 @@ export function DocumentUploadScreen({ onProcessingComplete }: DocumentUploadScr
           autoCorrect={false}
         />
         <Text style={styles.hint}>
-          AI will crawl the website to find race documents
+          We'll crawl the website to find race documents
         </Text>
       </View>
 

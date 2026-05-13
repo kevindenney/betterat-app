@@ -269,7 +269,7 @@ export function DocumentDetail({
                   <Ionicons name="time-outline" size={32} color="#D97706" />
                   <ThemedText style={styles.noInsightsTitle}>Extraction Pending</ThemedText>
                   <ThemedText style={styles.noInsightsText}>
-                    AI will analyze this document and extract key insights soon.
+                    This document will be analyzed and key insights extracted soon.
                   </ThemedText>
                 </>
               ) : document.extraction_status === 'processing' ? (
@@ -277,7 +277,7 @@ export function DocumentDetail({
                   <ActivityIndicator size="large" color="#2563EB" />
                   <ThemedText style={styles.noInsightsTitle}>Analyzing Document</ThemedText>
                   <ThemedText style={styles.noInsightsText}>
-                    AI is extracting wind patterns, tide strategies, and local tips...
+                    Extracting wind patterns, tide strategies, and local tips...
                   </ThemedText>
                 </>
               ) : (

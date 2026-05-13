@@ -455,7 +455,7 @@ export function DocumentUploader({
             <View style={styles.aiNoticeContent}>
               <ThemedText style={styles.aiNoticeTitle}>Extraction</ThemedText>
               <ThemedText style={styles.aiNoticeText}>
-                After uploading, AI will automatically extract key insights like wind patterns, tide strategies, and local tips.
+                After uploading, key insights like wind patterns, tide strategies, and local tips are extracted automatically.
               </ThemedText>
             </View>
           </View>

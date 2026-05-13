@@ -708,7 +708,7 @@ export function CourseMapWizard({
                 <ActivityIndicator size="large" color={IOS_COLORS.purple} />
                 <Text style={styles.extractingTitle}>Analyzing Course Diagram</Text>
                 <Text style={styles.extractingDescription}>
-                  AI is identifying marks, sequence, and rounding directions...
+                  Identifying marks, sequence, and rounding directions...
                 </Text>
               </View>
             </>
