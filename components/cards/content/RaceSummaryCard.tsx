@@ -25,6 +25,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { ScrollView } from 'react-native-gesture-handler';
 import { IOSSegmentedControl } from '@/components/ui/ios';
 import { text } from '@/lib/design-tokens';
+import { STEP_PALETTE } from '@/lib/step-theme';
 import { showAlertWithButtons } from '@/lib/utils/crossPlatformAlert';
 import { AddToBlueprintSheet } from '@/components/blueprint/AddToBlueprintSheet';
 import { triggerHaptic } from '@/lib/haptics';
@@ -1785,19 +1786,21 @@ function RaceSummaryCardImpl({
       const whyText = plan?.why_reasoning || '';
       const whereText = plan?.where_location?.name || '';
       const goals = plan?.capability_goals || [];
+      // Serif body for prose values per audit §1.6 + mockup 06 (serif 16-17px primary).
+      const proseStyle = { ...text.serifBody, fontSize: 16, lineHeight: 24, color: STEP_PALETTE.textPrimary };
       return (
         <View style={{ paddingHorizontal: 12, paddingTop: 8 }}>
           {nudgeBanner}
           {/* What */}
-          <PlanQuestionCard icon="bulb-outline" title="What will you do?" isComplete={!!whatText}>
-            <Text style={{ fontSize: 15, lineHeight: 22, color: '#374151', letterSpacing: -0.2 }}>
+          <PlanQuestionCard icon="bulb-outline" title="what" isComplete={!!whatText}>
+            <Text style={proseStyle}>
               {whatText}
             </Text>
           </PlanQuestionCard>
 
           {/* How — sub-steps */}
           {subSteps.length > 0 && (
-            <PlanQuestionCard icon="list-outline" title="How will you do it?" isComplete={subSteps.some((s: any) => s.completed)}>
+            <PlanQuestionCard icon="list-outline" title="how" isComplete={subSteps.some((s: any) => s.completed)}>
               {subSteps.map((s: any) => (
                 <View key={s.id} style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 8, marginBottom: 6 }}>
                   <Ionicons
@@ -1806,7 +1809,7 @@ function RaceSummaryCardImpl({
                     color={s.completed ? IOS_COLORS.green : '#9CA3AF'}
                     style={{ marginTop: 1 }}
                   />
-                  <Text style={{ fontSize: 15, lineHeight: 22, color: s.completed ? '#6B7280' : '#374151', flex: 1, textDecorationLine: s.completed ? 'line-through' : 'none' }}>
+                  <Text style={{ ...proseStyle, fontSize: 15, color: s.completed ? STEP_PALETTE.textTertiary : STEP_PALETTE.textPrimary, flex: 1, textDecorationLine: s.completed ? 'line-through' : 'none' }}>
                     {s.text}
                   </Text>
                 </View>
@@ -1816,8 +1819,8 @@ function RaceSummaryCardImpl({
 
           {/* Why */}
           {!!whyText && (
-            <PlanQuestionCard icon="help-circle-outline" title="Why is this next?" isComplete>
-              <Text style={{ fontSize: 15, lineHeight: 22, color: '#374151', letterSpacing: -0.2 }}>
+            <PlanQuestionCard icon="help-circle-outline" title="why" isComplete>
+              <Text style={proseStyle}>
                 {whyText}
               </Text>
             </PlanQuestionCard>
@@ -1825,8 +1828,8 @@ function RaceSummaryCardImpl({
 
           {/* Where */}
           {!!whereText && (
-            <PlanQuestionCard icon="location-outline" title="Where will you do this?" isComplete>
-              <Text style={{ fontSize: 15, lineHeight: 22, color: '#374151', letterSpacing: -0.2 }}>
+            <PlanQuestionCard icon="location-outline" title="where" isComplete>
+              <Text style={proseStyle}>
                 {whereText}
               </Text>
             </PlanQuestionCard>
@@ -1834,11 +1837,11 @@ function RaceSummaryCardImpl({
 
           {/* Capability goals */}
           {goals.length > 0 && (
-            <PlanQuestionCard icon="trophy-outline" title="Skills you're building" isComplete>
+            <PlanQuestionCard icon="trophy-outline" title="building toward" isComplete>
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
                 {goals.map((g: string) => (
-                  <View key={g} style={{ backgroundColor: '#EDE9FE', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 }}>
-                    <Text style={{ fontSize: 13, color: '#7C3AED', fontWeight: '500' }}>{g}</Text>
+                  <View key={g} style={{ backgroundColor: STEP_PALETTE.bgInfo, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 }}>
+                    <Text style={{ fontSize: 13, color: STEP_PALETTE.textInfo, fontWeight: '500' }}>{g}</Text>
                   </View>
                 ))}
               </View>
