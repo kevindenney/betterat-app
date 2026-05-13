@@ -4,3 +4,13 @@ public/bathymetry-sw.js
 public/widgets/
 mcp-vercel/dist/
 scripts/
+
+# Root-level scratch/debug scripts run via `npx tsx test-*.ts` — referenced
+# from docs (e.g. AI_RIG_TUNING_DEBUG_GUIDE.md), kept at root so the doc commands
+# stay copy-pasteable. Excluded from lint because they use intentional console
+# output for debugging.
+/test-*.ts
+/test-*.mjs
+
+# Example/reference code in examples/ — not shipped, not maintained as production.
+examples/
