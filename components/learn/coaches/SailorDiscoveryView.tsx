@@ -95,7 +95,7 @@ export function SailorDiscoveryView({ toolbarOffset = 0, onScroll }: SailorDisco
           onPress={() => router.push('/coach/discover')}
         >
           <Ionicons name="sparkles-outline" size={18} color="#FFFFFF" />
-          <Text style={sharedStyles.ctaButtonText}>AI Coach Matching</Text>
+          <Text style={sharedStyles.ctaButtonText}>Coach Matching</Text>
         </TouchableOpacity>
       </View>
 

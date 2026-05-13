@@ -78,6 +78,7 @@ export default function AICoachMatchmaker() {
     if (user) {
       loadSailorProfile();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   const loadSailorProfile = async () => {
@@ -357,7 +358,7 @@ export default function AICoachMatchmaker() {
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.title}>AI Coach Matchmaker</Text>
+        <Text style={styles.title}>Coach Matchmaker</Text>
         <Text style={styles.subtitle}>
           Find coaches perfectly matched to your learning style and goals
         </Text>
