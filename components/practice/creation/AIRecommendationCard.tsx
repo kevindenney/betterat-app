@@ -12,7 +12,6 @@ import {
   Text,
   View,
   TouchableOpacity,
-  Platform,
 } from 'react-native';
 import {
   Sparkles,
@@ -52,7 +51,7 @@ export function AIRecommendationCard({
         <View style={styles.headerContent}>
           <View style={styles.aiBadge}>
             <Sparkles size={14} color={IOS_COLORS.blue} />
-            <Text style={styles.aiBadgeText}>AI Suggestion</Text>
+            <Text style={styles.aiBadgeText}>Suggestion</Text>
           </View>
           <TouchableOpacity
             style={styles.dismissButton}

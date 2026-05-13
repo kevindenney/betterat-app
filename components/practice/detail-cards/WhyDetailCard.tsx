@@ -145,7 +145,7 @@ export function WhyDetailCard({
               <Brain size={18} color={IOS_COLORS.gray} />
             )}
             <Text style={styles.tufteValue}>
-              {hasAI ? 'AI Recommended' : 'Practice Rationale'}
+              {hasAI ? 'Recommended' : 'Practice Rationale'}
             </Text>
             {hasLinkedRaces && (
               <View style={styles.linkedBadge}>

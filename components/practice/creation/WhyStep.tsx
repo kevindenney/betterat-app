@@ -38,7 +38,7 @@ interface WhyStepProps {
   onAIReasoningChange: (reasoning: string) => void;
   onUserRationaleChange: (rationale: string) => void;
   onLinkRaces: (raceIds: string[]) => void;
-  linkedRaces?: Array<{ id: string; name: string; date: string }>;
+  linkedRaces?: { id: string; name: string; date: string }[];
 }
 
 function TrendIcon({ trend }: { trend: 'improving' | 'stable' | 'declining' }) {
@@ -106,9 +106,9 @@ function LinkedRaceCard({
 
 export function WhyStep({
   data,
-  onAIReasoningChange,
+  onAIReasoningChange: _onAIReasoningChange,
   onUserRationaleChange,
-  onLinkRaces,
+  onLinkRaces: _onLinkRaces,
   linkedRaces = [],
 }: WhyStepProps) {
   const hasAIReasoning = !!data.aiReasoning;
@@ -120,7 +120,7 @@ export function WhyStep({
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
           <Sparkles size={18} color={IOS_COLORS.cyan} />
-          <Text style={styles.sectionTitle}>AI Analysis</Text>
+          <Text style={styles.sectionTitle}>Analysis</Text>
           {hasAIReasoning && (
             <View style={styles.aiActiveBadge}>
               <Text style={styles.aiActiveText}>Active</Text>

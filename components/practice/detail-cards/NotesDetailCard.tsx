@@ -295,7 +295,7 @@ export function NotesDetailCard({
             <View style={styles.aiSuggestionSection}>
               <View style={styles.aiSuggestionHeader}>
                 <Sparkles size={16} color={IOS_COLORS.cyan} />
-                <Text style={styles.aiSuggestionLabel}>AI Suggestion</Text>
+                <Text style={styles.aiSuggestionLabel}>Suggestion</Text>
               </View>
               <Text style={styles.aiSuggestionText}>{aiNextFocusSuggestion}</Text>
               {onAcceptSuggestion && (

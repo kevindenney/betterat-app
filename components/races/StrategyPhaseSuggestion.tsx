@@ -15,7 +15,7 @@ interface StrategyPhaseSuggestionProps {
 }
 
 export function StrategyPhaseSuggestion({
-  phase,
+  phase: _phase,
   phaseLabel,
   pattern,
   aiSuggestion,
@@ -116,7 +116,7 @@ export function StrategyPhaseSuggestion({
             <View style={styles.suggestionBox}>
               <View style={styles.suggestionHeader}>
                 <Ionicons name="bulb" size={16} color={colors.accent.default} />
-                <Text style={styles.suggestionLabel}>AI Suggestion</Text>
+                <Text style={styles.suggestionLabel}>Suggestion</Text>
               </View>
               <Text style={styles.suggestionText}>{aiSuggestion}</Text>
             </View>
