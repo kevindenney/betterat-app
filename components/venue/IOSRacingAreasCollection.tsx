@@ -89,7 +89,7 @@ function VerificationBadge({ source, status, confirmationCount }: VerificationBa
   } else if (source === 'ai') {
     icon = 'sparkles';
     color = IOS_COLORS.systemPurple;
-    label = 'AI Suggested';
+    label = 'Suggested';
   }
 
   return (

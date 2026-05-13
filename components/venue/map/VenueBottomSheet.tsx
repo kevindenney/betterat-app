@@ -264,6 +264,7 @@ export function VenueBottomSheet({
     } else {
       sheetHeight.value = withSpring(PEEK, SPRING_CONFIG);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isPreviewMode]);
 
   const panGesture = Gesture.Pan()
@@ -404,7 +405,7 @@ export function VenueBottomSheet({
               <View style={styles.actionsRow}>
                 <ActionCircle
                   icon="sparkles-outline"
-                  label="AI Analysis"
+                  label="Analysis"
                   onPress={onAskAI}
                   disabled={loadingAI || isPreviewMode}
                 />

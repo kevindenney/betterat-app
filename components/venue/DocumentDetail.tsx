@@ -85,7 +85,7 @@ export function DocumentDetail({
       case 'processing':
         return {
           icon: 'sparkles',
-          label: 'AI is extracting insights...',
+          label: 'Extracting insights...',
           color: '#2563EB',
           bg: '#DBEAFE',
         };

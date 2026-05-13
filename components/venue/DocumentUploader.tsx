@@ -453,7 +453,7 @@ export function DocumentUploader({
           <View style={styles.aiNotice}>
             <Ionicons name="sparkles" size={20} color="#7C3AED" />
             <View style={styles.aiNoticeContent}>
-              <ThemedText style={styles.aiNoticeTitle}>AI Extraction</ThemedText>
+              <ThemedText style={styles.aiNoticeTitle}>Extraction</ThemedText>
               <ThemedText style={styles.aiNoticeText}>
                 After uploading, AI will automatically extract key insights like wind patterns, tide strategies, and local tips.
               </ThemedText>

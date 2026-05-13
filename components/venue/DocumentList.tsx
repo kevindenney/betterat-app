@@ -79,7 +79,7 @@ export function DocumentList({
       case 'processing':
         return { label: 'Extracting...', color: '#2563EB', bg: '#DBEAFE' };
       case 'completed':
-        return { label: 'AI Extracted', color: '#059669', bg: '#D1FAE5' };
+        return { label: 'Extracted', color: '#059669', bg: '#D1FAE5' };
       case 'failed':
         return { label: 'Failed', color: '#DC2626', bg: '#FEE2E2' };
       default:
