@@ -230,7 +230,7 @@ export function PrimaryAICoach({
         style={styles.minimizedButton}
       >
         <Sparkles size={18} color="#FFFFFF" />
-        <Text style={styles.minimizedText}>AI Analysis</Text>
+        <Text style={styles.minimizedText}>Analysis</Text>
         {advice?.confidence && (
           <View
             style={[

@@ -22,7 +22,7 @@ import { DocumentProcessingService } from '@/services/ai/DocumentProcessingServi
 import { useAuth } from '@/providers/AuthProvider';
 import type { StrategyInsight } from '@/lib/types/ai-knowledge';
 
-const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
+const { width: _screenWidth, height: _screenHeight } = Dimensions.get('window');
 
 interface DocumentViewerProps {
   onInsightSelect?: (insight: StrategyInsight) => void;
@@ -36,12 +36,13 @@ export const DocumentViewer: React.FC<DocumentViewerProps> = ({ onInsightSelect 
   const [documentAnalysis, setDocumentAnalysis] = useState<any>(null);
   const [queryResult, setQueryResult] = useState<StrategyInsight[]>([]);
   const [queryLoading, setQueryLoading] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, _setSearchQuery] = useState('');
 
   const documentProcessor = new DocumentProcessingService();
 
   useEffect(() => {
     loadDocuments();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   const loadDocuments = async () => {
@@ -143,7 +144,7 @@ export const DocumentViewer: React.FC<DocumentViewerProps> = ({ onInsightSelect 
             {/* Document Analysis */}
             {documentAnalysis && (
               <View style={styles.analysisSection}>
-                <Text style={styles.sectionTitle}>AI Analysis</Text>
+                <Text style={styles.sectionTitle}>Analysis</Text>
 
                 <View style={styles.analysisCard}>
                   <Text style={styles.analysisType}>
@@ -234,7 +235,7 @@ export const DocumentViewer: React.FC<DocumentViewerProps> = ({ onInsightSelect 
     <View style={styles.container}>
       {/* Knowledge Base Query */}
       <View style={styles.querySection}>
-        <Text style={styles.queryTitle}>Ask AI Strategy Assistant</Text>
+        <Text style={styles.queryTitle}>Ask Strategy Assistant</Text>
         <View style={styles.queryInputContainer}>
           <TouchableOpacity
             style={styles.queryButton}

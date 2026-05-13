@@ -160,7 +160,7 @@ export function SailorRaceInterface() {
             <View style={styles.strategyCard}>
               <ThemedText style={styles.cardTitle}>🎯 Strategy Planning</ThemedText>
               <ThemedText style={styles.cardDescription}>
-                AI-powered race strategy based on venue intelligence, weather forecasts, and your performance history
+                Race strategy based on venue intelligence, weather forecasts, and your performance history
               </ThemedText>
 
               <View style={styles.strategyFeatures}>
@@ -169,7 +169,7 @@ export function SailorRaceInterface() {
                   <View style={styles.featureContent}>
                     <ThemedText style={styles.featureTitle}>Document Analysis</ThemedText>
                     <ThemedText style={styles.featureDescription}>
-                      Upload sailing instructions for AI-powered course analysis
+                      Upload sailing instructions for course analysis
                     </ThemedText>
                   </View>
                 </View>

@@ -275,7 +275,7 @@ export function StrategyChatInterface({
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.headerLeft}>
-            <ThemedText style={styles.headerTitle}>🧠 AI Strategy Assistant</ThemedText>
+            <ThemedText style={styles.headerTitle}>🧠 Strategy Assistant</ThemedText>
             <ThemedText style={styles.headerSubtitle}>
               Powered by sailing knowledge base
             </ThemedText>

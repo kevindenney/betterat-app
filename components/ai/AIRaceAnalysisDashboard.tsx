@@ -348,7 +348,7 @@ export const AIRaceAnalysisDashboard: React.FC<AIRaceAnalysisDashboardProps> = (
             <Ionicons name="bulb" size={64} color="#CCC" />
             <Text style={styles.emptyStateTitle}>No Strategy Generated</Text>
             <Text style={styles.emptyStateText}>
-              Generate an AI-powered race strategy based on current conditions
+              Generate a race strategy based on current conditions
             </Text>
             <TouchableOpacity
               style={styles.generateButton}
