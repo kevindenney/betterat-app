@@ -1,5 +1,6 @@
 /**
- * StepProvenanceBanner — shows where a step came from (blueprint, copied, template).
+ * StepProvenanceBanner — shows where a step came from (blueprint, copied,
+ * template, or follow-up from a prior step).
  *
  * Two variants:
  * - compact: small badge for timeline cards ("From MSN Entry Curriculum")
@@ -11,6 +12,7 @@ import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useBlueprintWithAuthor } from '@/hooks/useBlueprint';
+import { useStepDetail } from '@/hooks/useStepDetail';
 import { STEP_COLORS } from '@/lib/step-theme';
 import type { TimelineStepSourceType } from '@/types/timeline-steps';
 
@@ -18,6 +20,8 @@ interface StepProvenanceBannerProps {
   sourceBlueprintId: string | null | undefined;
   sourceType: TimelineStepSourceType;
   copiedFromUserId?: string | null;
+  /** When set, this step was created as a follow-up from another step (via the Critique "Create Next Step" flow). Renders a "Follow-up to: …" row with tap-through. */
+  followUpToStepId?: string | null;
   variant: 'compact' | 'full';
 }
 
@@ -25,14 +29,47 @@ export function StepProvenanceBanner({
   sourceBlueprintId,
   sourceType,
   copiedFromUserId,
+  followUpToStepId,
   variant,
 }: StepProvenanceBannerProps) {
   const router = useRouter();
   const { data: blueprint } = useBlueprintWithAuthor(
     sourceType === 'blueprint' ? sourceBlueprintId : null,
   );
+  const { data: parentStep } = useStepDetail(followUpToStepId ?? undefined);
 
-  // Nothing to show for self-created steps
+  // Follow-up provenance — render first when present, even for manual steps.
+  if (followUpToStepId && parentStep) {
+    const parentTitle = parentStep.title || 'previous step';
+    if (variant === 'compact') {
+      return (
+        <View style={styles.compactBadge}>
+          <Ionicons name="git-branch-outline" size={10} color="#6366F1" />
+          <Text style={styles.compactText} numberOfLines={1}>
+            Follow-up
+          </Text>
+        </View>
+      );
+    }
+    return (
+      <View style={styles.fullContainer}>
+        <Pressable
+          style={styles.fullRow}
+          onPress={() => router.push(`/step/${followUpToStepId}` as any)}
+        >
+          <Ionicons name="git-branch-outline" size={16} color={STEP_COLORS.accent} />
+          <View style={styles.fullTextWrap}>
+            <Text style={styles.fullLabel} numberOfLines={1}>
+              Follow-up to: {parentTitle}
+            </Text>
+          </View>
+          <Ionicons name="chevron-forward" size={14} color={STEP_COLORS.secondaryLabel} />
+        </Pressable>
+      </View>
+    );
+  }
+
+  // Nothing to show for self-created steps without follow-up linkage
   if (sourceType === 'manual' || sourceType === 'program_session') return null;
 
   // Template steps without a blueprint — nothing useful to show in compact,

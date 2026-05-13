@@ -812,12 +812,13 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp }: StepDetail
           );
         })()}
 
-        {/* Step provenance — shows source blueprint with author profile link */}
-        {step.source_type !== 'manual' && (
+        {/* Step provenance — source blueprint OR follow-up chain */}
+        {(step.source_type !== 'manual' || brainDumpData?.source_step_id) && (
           <StepProvenanceBanner
             sourceBlueprintId={step.source_blueprint_id}
             sourceType={step.source_type}
             copiedFromUserId={step.copied_from_user_id}
+            followUpToStepId={brainDumpData?.source_step_id ?? null}
             variant="full"
           />
         )}
