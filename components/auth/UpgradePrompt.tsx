@@ -121,7 +121,7 @@ const FEATURE_CONTENT: Record<GatedFeature | 'default', FeatureContent> = {
     icon: 'rocket',
     benefits: [
       'Unlimited interests & steps',
-      'AI coaching & suggestions',
+      'AI insights & suggestions',
       'Telegram assistant',
       'Full feature access',
     ],

@@ -65,7 +65,7 @@ const PLANS: PlanTier[] = [
     features: [
       'Unlimited interests & steps',
       '50,000 AI tokens per month',
-      'AI coaching & suggestions',
+      'AI insights & suggestions',
       'Telegram assistant',
       'Progress analytics',
       'Offline mode',
@@ -98,8 +98,8 @@ const PLANS: PlanTier[] = [
 export default function PricingScreen() {
   const { width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
-  const { isGuest, user } = useAuth();
-  const params = useLocalSearchParams<{ upgrade?: string }>();
+  const { isGuest, user: _user } = useAuth();
+  const _params = useLocalSearchParams<{ upgrade?: string }>();
   const [billingPeriod, setBillingPeriod] = useState<BillingPeriod>('monthly');
 
   const isDesktop = width >= 768;

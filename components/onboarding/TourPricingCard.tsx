@@ -37,7 +37,7 @@ const TIER_DISPLAY_FEATURES: Partial<Record<SailorTier, string[]>> = {
   plus: [
     'Unlimited interests & steps',
     '50,000 AI tokens/month',
-    'AI coaching & suggestions',
+    'AI insights & suggestions',
     'Telegram assistant',
   ],
   pro: [

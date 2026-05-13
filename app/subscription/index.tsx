@@ -66,7 +66,7 @@ const PLANS: Plan[] = [
       '5 AI queries per month',
     ],
     limitations: [
-      'Unlimited AI coaching',
+      'Unlimited AI insights',
       'Telegram assistant',
       'Advanced analytics',
     ],
@@ -83,7 +83,7 @@ const PLANS: Plan[] = [
     features: [
       'Unlimited interests & steps',
       '50,000 AI tokens per month',
-      'AI coaching & suggestions',
+      'AI insights & suggestions',
       'Telegram assistant',
       'Progress analytics',
       'Offline mode',

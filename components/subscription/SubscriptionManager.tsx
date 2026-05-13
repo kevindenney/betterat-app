@@ -48,7 +48,7 @@ const webStripeService = {
       features: [
         'Unlimited interests & steps',
         '50,000 AI tokens per month',
-        'AI coaching & suggestions',
+        'AI insights & suggestions',
         'Telegram assistant',
         'Progress analytics',
         'Offline mode',
