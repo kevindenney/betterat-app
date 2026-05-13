@@ -5,7 +5,6 @@ import {
   StyleSheet,
   TouchableOpacity,
   ScrollView,
-  ActivityIndicator,
   Animated,
   Vibration,
 } from 'react-native';
@@ -102,6 +101,7 @@ function LiveAdviceDisplay({ advice, onDismiss }: LiveAdviceDisplayProps) {
     }, advice.timeRelevant * 1000);
 
     return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [advice]);
 
   const getPriorityColor = () => {
@@ -211,7 +211,7 @@ function PerformanceMetric({ metric }: PerformanceMetricProps) {
 }
 
 export default function LiveCoachingAssistant() {
-  const { user } = useAuth();
+  const { user: _user } = useAuth();
   const [isActive, setIsActive] = useState(false);
   const [currentAdvice, setCurrentAdvice] = useState(null);
   const [performanceMetrics, setPerformanceMetrics] = useState([]);
@@ -277,6 +277,7 @@ export default function LiveCoachingAssistant() {
       clearInterval(metricsInterval);
       clearInterval(durationInterval);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isActive]);
 
   const startSession = () => {
@@ -364,7 +365,7 @@ export default function LiveCoachingAssistant() {
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.title}>Live Coaching Assistant</Text>
-        <Text style={styles.subtitle}>AI-powered real-time guidance</Text>
+        <Text style={styles.subtitle}>Real-time guidance</Text>
       </View>
 
       {/* Session Controls */}
@@ -429,7 +430,7 @@ export default function LiveCoachingAssistant() {
       {/* Demo Notice */}
       <View style={styles.demoNotice}>
         <Text style={styles.demoText}>
-          🚧 Demo Mode: Using simulated sensor data and AI analysis
+          🚧 Demo Mode: Using simulated sensor data and analysis
         </Text>
       </View>
     </View>

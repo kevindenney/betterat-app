@@ -7,7 +7,6 @@ import {
   ScrollView,
   ActivityIndicator,
   Image,
-  Dimensions,
 } from 'react-native';
 import { showAlert } from '@/lib/utils/crossPlatformAlert';
 import { useAuth } from '@/providers/AuthProvider';
@@ -41,7 +40,7 @@ const ANALYTICS_TABS: AnalyticsTab[] = [
   { id: 'realtime', title: 'Real-Time', icon: '📊' },
   { id: 'trim', title: 'Sail Trim', icon: '⛵' },
   { id: 'sensors', title: 'Sensors', icon: '📡' },
-  { id: 'vision', title: 'Vision AI', icon: '👁️' },
+  { id: 'vision', title: 'Vision', icon: '👁️' },
 ];
 
 function TelemetryDisplay({ telemetry, sailTelemetry, performanceMetrics }: TelemetryDisplayProps) {
@@ -307,7 +306,7 @@ function SensorHealth({ health }: SensorHealthProps) {
 }
 
 export default function AdvancedAnalytics() {
-  const { user } = useAuth();
+  const { user: _user } = useAuth();
   const [activeTab, setActiveTab] = useState<AnalyticsTabId>('realtime');
   const [loading, setLoading] = useState(false);
   const [telemetry, setTelemetry] = useState<any>(null);
@@ -330,6 +329,7 @@ export default function AdvancedAnalytics() {
         updateInterval.current = null;
       }
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const initializeServices = async () => {
@@ -447,7 +447,7 @@ export default function AdvancedAnalytics() {
           <View style={styles.visionContainer}>
             <Text style={styles.visionTitle}>Computer Vision Analytics</Text>
             <Text style={styles.visionDescription}>
-              Use AI-powered computer vision to analyze sail trim, crew position, and boat handling techniques.
+              Use computer vision to analyze sail trim, crew position, and boat handling techniques.
             </Text>
 
             <TouchableOpacity
@@ -526,7 +526,7 @@ export default function AdvancedAnalytics() {
       {/* Demo Notice */}
       <View style={styles.demoNotice}>
         <Text style={styles.demoText}>
-          🚧 Demo: Simulated sensor data + AI vision analysis
+          🚧 Demo: Simulated sensor data + vision analysis
         </Text>
       </View>
     </View>
