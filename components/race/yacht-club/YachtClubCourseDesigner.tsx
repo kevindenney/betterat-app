@@ -624,7 +624,7 @@ export function YachtClubCourseDesigner({
                     onPress={handleDocumentUpload}
                   >
                     <ThemedText style={styles.aiUploadText}>🤖 Upload Sailing Instructions</ThemedText>
-                    <ThemedText style={styles.aiUploadSubtext}>AI extracts courses from PDFs</ThemedText>
+                    <ThemedText style={styles.aiUploadSubtext}>Extract courses from PDFs</ThemedText>
                   </TouchableOpacity>
                 </View>
             {[

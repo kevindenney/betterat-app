@@ -328,7 +328,7 @@ export function StartStrategyCard({
 
       const resolvedVenueId = await resolveVenueId();
       if (!resolvedVenueId) {
-        throw new Error('Venue is missing. Add a venue to this race to generate AI start strategy.');
+        throw new Error('Venue is missing. Add a venue to this race to generate a start strategy.');
       }
 
       // Generate venue-based strategy using AI

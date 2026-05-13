@@ -11,7 +11,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as DocumentPicker from 'expo-document-picker';
 import { useSSIUpload } from '@/hooks/useSSIUpload';
 import { SSIExtractionPreview } from './SSIExtractionPreview';
-import type { SSIExtraction, SSIUploadOptions } from '@/types/ssi';
+import type { SSIExtraction } from '@/types/ssi';
 
 interface SSIUploadSectionProps {
   /** Club ID to associate with the document */
@@ -40,7 +40,7 @@ export function SSIUploadSection({
   clubId,
   raceId,
   title = 'Sailing Instructions',
-  description = 'Upload the SSI document for AI extraction of VHF channels, marks, and emergency contacts.',
+  description = 'Upload the SSI document to extract VHF channels, marks, and emergency contacts.',
   showHeader = true,
   showPrivacyToggle = true,
   defaultIsShared = false,

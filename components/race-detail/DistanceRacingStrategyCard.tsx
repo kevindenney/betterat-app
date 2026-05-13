@@ -688,7 +688,7 @@ export function DistanceRacingStrategyCard({
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="small" color="#3B82F6" />
           <Text style={styles.loadingText}>Generating distance racing strategy...</Text>
-          <Text style={styles.loadingHint}>Using long-distance-racing-analyst AI skill</Text>
+          <Text style={styles.loadingHint}>Using long-distance-racing-analyst skill</Text>
         </View>
       );
     }
@@ -716,7 +716,7 @@ export function DistanceRacingStrategyCard({
           )}
           <TouchableOpacity style={styles.generateButton} onPress={generateStrategy}>
             <Text style={styles.generateButtonText}>
-              {error ? 'Retry AI Generation' : 'Generate Strategy'}
+              {error ? 'Retry Generation' : 'Generate Strategy'}
             </Text>
           </TouchableOpacity>
         </View>

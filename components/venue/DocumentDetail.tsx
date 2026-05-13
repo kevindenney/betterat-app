@@ -78,7 +78,7 @@ export function DocumentDetail({
       case 'pending':
         return {
           icon: 'time-outline',
-          label: 'Awaiting AI extraction',
+          label: 'Awaiting extraction',
           color: '#D97706',
           bg: '#FEF3C7',
         };

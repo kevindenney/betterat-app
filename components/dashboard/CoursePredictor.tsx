@@ -62,7 +62,7 @@ export function CoursePredictor({ regattaId, venueId, raceDate: _raceDate }: Cou
       predictedCourse: topCourseName,
       confidence: topCourse ? 0.6 : 0.35,
       reasoning: topCourse
-        ? 'Using configured venue course data as fallback while AI prediction is unavailable.'
+        ? 'Using configured venue course data as fallback while prediction is unavailable.'
         : 'No saved venue courses found. Prediction uses a conservative fallback.',
       alternatives,
     };
