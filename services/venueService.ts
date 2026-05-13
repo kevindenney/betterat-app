@@ -6,6 +6,14 @@
 
 import { Platform } from 'react-native';
 import { supabaseVenueService } from '@/services/venue/SupabaseVenueService';
+import { offlineService } from '@/services/offlineService';
+import type {
+  SailingVenue,
+  Coordinates,
+  CulturalBriefing,
+  AdaptationRequirement,
+  Language,
+} from '@/lib/types/global-venues';
 
 // Dynamic import helper for expo-location (native only)
 let LocationModule: typeof import('expo-location') | null = null;
@@ -19,14 +27,6 @@ async function getLocationModule() {
   }
   return LocationModule;
 }
-import { offlineService } from '@/services/offlineService';
-import type {
-  SailingVenue,
-  Coordinates,
-  CulturalBriefing,
-  AdaptationRequirement,
-  Language,
-} from '@/lib/types/global-venues';
 
 // ==================== Type Definitions ====================
 
@@ -313,7 +313,7 @@ export class VenueService {
     coordinates: Coordinates,
     maxDistanceKm: number = 500,
     limit: number = 10
-  ): Promise<Array<SailingVenue & { distance_km: number }>> {
+  ): Promise<(SailingVenue & { distance_km: number })[]> {
     return supabaseVenueService.getNearbyVenues(coordinates, maxDistanceKm, limit);
   }
 
