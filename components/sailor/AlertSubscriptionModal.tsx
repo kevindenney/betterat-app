@@ -214,7 +214,7 @@ export function AlertSubscriptionModal({
                 <View style={styles.alertTypeContent}>
                   <Text style={styles.alertTypeLabel}>Performance Tips</Text>
                   <Text style={styles.alertTypeDescription}>
-                    AI-powered optimization suggestions
+                    Optimization suggestions
                   </Text>
                 </View>
                 <Switch

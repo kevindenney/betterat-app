@@ -122,7 +122,7 @@ export function BoatEquipmentInventory({ boatId, classId, onEquipmentPress }: Bo
     }
 
     // Sort by category order
-    const sortedGroups: Array<{ category: string; name: string; items: BoatEquipment[] }> = [];
+    const sortedGroups: { category: string; name: string; items: BoatEquipment[] }[] = [];
     for (const [category, items] of Object.entries(groups)) {
       const categoryInfo = categories.find(c => c.id === category);
       sortedGroups.push({
@@ -306,7 +306,7 @@ export function BoatEquipmentInventory({ boatId, classId, onEquipmentPress }: Bo
             <Text style={styles.emptyText}>
               {selectedGroup !== 'all' || statusFilter !== 'all'
                 ? 'Try changing your filters or add new equipment'
-                : 'Add your boat\'s equipment to track maintenance and get AI-powered care recommendations'}
+                : 'Add your boat\'s equipment to track maintenance and get care recommendations'}
             </Text>
             <TouchableOpacity
               style={styles.emptyButton}

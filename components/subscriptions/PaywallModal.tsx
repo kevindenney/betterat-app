@@ -141,7 +141,7 @@ export default function PaywallModal({
           benefits: benefits || [
             'Unlimited race tracking and strategy',
             'Global venue intelligence',
-            'AI-powered race analysis',
+            'Race analysis',
             'Offline capabilities',
             'Performance analytics',
           ],
