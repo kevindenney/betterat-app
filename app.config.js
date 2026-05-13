@@ -19,11 +19,6 @@ module.exports = {
       scheme: 'betterat',
       hosts: ['auth', 'regattaflow.io'],
     },
-    splash: {
-      image: './assets/images/splash-icon.png',
-      resizeMode: 'contain',
-      backgroundColor: '#0a1832',
-    },
     ios: {
       supportsTablet: true,
       bundleIdentifier: 'com.betterat.app',
@@ -81,6 +76,15 @@ module.exports = {
     },
     plugins: [
       'expo-router',
+      [
+        'expo-splash-screen',
+        {
+          image: './assets/images/splash-icon.png',
+          imageWidth: 180,
+          resizeMode: 'contain',
+          backgroundColor: '#0a1832',
+        },
+      ],
       './plugins/withAndroidDependencyFix',
       './plugins/withGoogleMaps',
       'expo-apple-authentication',
