@@ -138,7 +138,7 @@ export function PlanReview({ data, onChange, readOnly = false }: PlanReviewProps
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Sparkles size={14} color={COLORS.orange} />
-            <Text style={styles.sectionLabel}>AI SUMMARY</Text>
+            <Text style={styles.sectionLabel}>SUMMARY</Text>
           </View>
           <View style={styles.aiSummaryCard}>
             <Text style={styles.aiSummaryText}>{data.aiSummary}</Text>

@@ -17,7 +17,7 @@
 import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import { StyleSheet, View, Text, Animated, Platform, UIManager, Modal, Pressable, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Sparkles, X, CheckCircle2 } from 'lucide-react-native';
+import { Sparkles, X } from 'lucide-react-native';
 
 import { CardRaceData } from '../../types';
 import { useRaceAnalysisState } from '@/hooks/useRaceAnalysisState';
@@ -35,7 +35,7 @@ import { RaceContentActions } from '@/components/races/RaceContentActions';
 import { EquipmentIssuesSheet } from '@/components/races/review/EquipmentIssuesSheet';
 import { RaceResultDetailSheet } from '@/components/races/review/RaceResultDetailSheet';
 import { EducationalChecklistSheet } from '@/components/races/review/EducationalChecklistSheet';
-import { PrepChecklistSection, PrepChecklistItemConfig } from '@/components/races/prep/PrepChecklistSection';
+import { PrepChecklistSection } from '@/components/races/prep/PrepChecklistSection';
 import type { ChecklistItemWithState } from '@/hooks/useRaceChecklist';
 import { CoachSelectionSheet } from '@/components/races/coaching';
 import { useSailorActiveCoaches } from '@/hooks/useSailorActiveCoaches';
@@ -89,7 +89,7 @@ function getOrdinalSuffix(n: number): string {
 function AfterRaceContentImpl({
   race,
   userId: propsUserId,
-  onOpenPostRaceInterview,
+  onOpenPostRaceInterview: _onOpenPostRaceInterview,
   isExpanded = true,
   refetchTrigger,
 }: AfterRaceContentProps) {
@@ -210,10 +210,10 @@ function AfterRaceContentImpl({
 
   // Analysis generation state
   const [isGeneratingAnalysis, setIsGeneratingAnalysis] = useState(false);
-  const [analysisError, setAnalysisError] = useState<string | null>(null);
+  const [_analysisError, setAnalysisError] = useState<string | null>(null);
 
   // Track when AI analysis is newly generated (for visual highlight)
-  const [isAIAnalysisNew, setIsAIAnalysisNew] = useState(false);
+  const [_isAIAnalysisNew, setIsAIAnalysisNew] = useState(false);
 
   // Toast notification for AI analysis completion
   const [showAIToast, setShowAIToast] = useState(false);
@@ -301,6 +301,7 @@ function AfterRaceContentImpl({
 
     if (shouldTrigger) {
       lastAutoTriggeredRaceId.current = race.id;
+      // eslint-disable-next-line no-console
       console.log('[AfterRaceContent] Auto-triggering AI analysis for race:', race.id);
       triggerAnalysis();
     }
@@ -444,7 +445,7 @@ function AfterRaceContentImpl({
   // ==========================================================================
 
   // Focus intent derived state
-  const hasPreviousFocus = !!activeIntent && activeIntent.status === 'active' && activeIntent.sourceRaceId !== race.id;
+  const _hasPreviousFocus = !!activeIntent && activeIntent.status === 'active' && activeIntent.sourceRaceId !== race.id;
   const hasFocusSet = !!intentFromThisRace;
 
   // AI enabled when result + debrief complete
@@ -513,6 +514,7 @@ function AfterRaceContentImpl({
         }
       }
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [
       hasAIAnalysis,
       analysisData?.timerSessionId,
@@ -648,10 +650,10 @@ function AfterRaceContentImpl({
         title="Race Review"
         subtitle={
           hasAIAnalysis
-            ? 'AI insights and race summary'
+            ? 'Insights and race summary'
             : canGenerateAI
-              ? 'Generating AI analysis...'
-              : 'Complete debrief to unlock AI analysis'
+              ? 'Generating analysis...'
+              : 'Complete debrief to unlock analysis'
         }
         accentColor={IOS_COLORS.purple}
         isComplete={reviewSectionComplete}
@@ -681,7 +683,7 @@ function AfterRaceContentImpl({
         }}
         items={[
           {
-            item: makeItem('ai_analysis', 'AI race analysis', !!hasAIAnalysis),
+            item: makeItem('ai_analysis', 'Race analysis', !!hasAIAnalysis),
             statusText: isGeneratingAnalysis
               ? 'Generating...'
               : hasAIAnalysis
@@ -939,7 +941,7 @@ function AfterRaceContentImpl({
         <Animated.View style={[styles.aiToast, { opacity: aiToastOpacity }]}>
           <View style={styles.aiToastContent}>
             <Sparkles size={16} color="#FFFFFF" />
-            <Text style={styles.aiToastText}>AI Analysis ready!</Text>
+            <Text style={styles.aiToastText}>Analysis ready!</Text>
           </View>
         </Animated.View>
       )}
