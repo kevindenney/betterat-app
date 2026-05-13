@@ -152,7 +152,7 @@ export function PreRaceStrategySection({
     } catch (error) {
       console.error('Error invoking skill:', error);
       setAdvice({
-        primary: 'Unable to get AI advice at this time',
+        primary: 'Unable to get advice at this time',
         confidence: 'low',
       });
     } finally {
