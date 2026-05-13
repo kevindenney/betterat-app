@@ -17,19 +17,6 @@ import {
   isHongKongVenue,
 } from '@/services/HongKongVenueIntelligence';
 import { supabase } from '@/services/supabase';
-
-// Dynamic import helper for expo-location (native only)
-let LocationModule: typeof import('expo-location') | null = null;
-
-async function getLocationModule() {
-  if (Platform.OS === 'web') {
-    return null;
-  }
-  if (!LocationModule) {
-    LocationModule = await import('expo-location');
-  }
-  return LocationModule;
-}
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import {
   Anchor,
@@ -47,6 +34,19 @@ import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { Platform, Pressable, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { showAlert } from '@/lib/utils/crossPlatformAlert';
 
+// Dynamic import helper for expo-location (native only)
+let LocationModule: typeof import('expo-location') | null = null;
+
+async function getLocationModule() {
+  if (Platform.OS === 'web') {
+    return null;
+  }
+  if (!LocationModule) {
+    LocationModule = await import('expo-location');
+  }
+  return LocationModule;
+}
+
 interface Boat {
   className: string;
   sailNumber: string;
@@ -61,11 +61,6 @@ interface Boat {
 interface Club {
   name: string;
   url?: string;
-}
-
-interface Venue {
-  name: string;
-  coordinates?: string;
 }
 
 interface Document {
@@ -139,9 +134,6 @@ export default function SailorOnboardingComprehensive() {
   const [homeVenue, setHomeVenue] = useState(
     chatData?.venues?.[0]?.name || ''
   );
-  const [regularVenues, setRegularVenues] = useState<Venue[]>(
-    chatData?.venues?.slice(1) || []
-  );
 
   // Section 4: Documents - Pre-populate from chat
   const [documents, setDocuments] = useState<Document[]>(
@@ -189,12 +181,6 @@ export default function SailorOnboardingComprehensive() {
   
   // Debounce timer for SI/NOR extraction
   const siNorExtractionTimerRef = useRef<NodeJS.Timeout | null>(null);
-
-  // Debug: Log race data on mount
-  React.useEffect(() => {
-    if (upcomingRaces.length > 0) {
-    }
-  }, []);
 
   const [submitting, setSubmitting] = useState(false);
   const [detectingLocation, setDetectingLocation] = useState(false);
@@ -298,6 +284,8 @@ export default function SailorOnboardingComprehensive() {
     }
 
     setAutoFilledForVenue(venueName);
+    // Intentionally fires only on homeVenue change; auto-fill mutations read latest state but should not re-trigger.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [homeVenue]);
 
   // Auto-detect location on mount (mobile only)
@@ -335,6 +323,8 @@ export default function SailorOnboardingComprehensive() {
     };
 
     detectLocation();
+    // Runs once on mount; intentionally does not re-fire if homeVenue changes via user input.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Handle text input change (just update state, don't extract yet)
@@ -364,6 +354,8 @@ export default function SailorOnboardingComprehensive() {
     siNorExtractionTimerRef.current = setTimeout(() => {
       extractSiNorData(text);
     }, 2000);
+    // extractSiNorData captured via timer; stable identity not required since it's invoked once per debounce tick.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Check if input is a URL
@@ -1489,12 +1481,12 @@ export default function SailorOnboardingComprehensive() {
                 📄 Paste SIs/NORs Text
               </Text>
               <Text className="text-xs text-purple-600 mb-2">
-                Copy/paste Sailing Instructions or Notice of Race text for AI analysis
+                Copy/paste Sailing Instructions or Notice of Race text for analysis
               </Text>
               <TextInput
                 value={siNorPasteData}
                 onChangeText={handleSiNorTextChange}
-                placeholder="Paste sailing instructions or NOR text here...&#10;AI will extract course details, marks, timing, etc."
+                placeholder="Paste sailing instructions or NOR text here...&#10;Course details, marks, timing, etc. are extracted automatically."
                 multiline
                 numberOfLines={6}
                 className="bg-white border border-purple-300 rounded-lg px-3 py-2 text-sm min-h-[120px]"
@@ -1504,7 +1496,7 @@ export default function SailorOnboardingComprehensive() {
                 <View className="flex-row items-center gap-2 mt-2 px-2">
                   <Loader size={14} color="#7C3AED" />
                   <Text className="text-purple-600 text-xs">
-                    AI is extracting race information...
+                    Extracting race information...
                   </Text>
                 </View>
               )}

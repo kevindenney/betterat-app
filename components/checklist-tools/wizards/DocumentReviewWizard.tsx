@@ -22,9 +22,6 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   X,
-  ChevronRight,
-  ChevronLeft,
-  ChevronDown,
   CheckCircle2,
   Circle,
   AlertTriangle,
@@ -43,7 +40,6 @@ import {
   Shield,
   Link2,
   Sparkles,
-  Loader2,
   RefreshCw,
   DollarSign,
   Trophy,
@@ -56,7 +52,6 @@ import type { ChecklistToolProps } from '@/lib/checklists/toolRegistry';
 import { useRaceDocuments } from '@/hooks/useRaceDocuments';
 import { useAuth } from '@/providers/AuthProvider';
 import type { RaceDocumentType } from '@/services/RaceDocumentService';
-import { documentExtractionService } from '@/services/DocumentExtractionService';
 
 // iOS System Colors
 const IOS_COLORS = {
@@ -715,330 +710,6 @@ const extractedItemStyles = StyleSheet.create({
   },
 });
 
-// ============================================================================
-// ExtractedDataSection Component - Shows comprehensive extracted race data
-// ============================================================================
-
-interface ExtractedDataSectionProps {
-  data: any;
-  expanded: boolean;
-  onToggle: () => void;
-}
-
-function ExtractedDataSection({ data, expanded, onToggle }: ExtractedDataSectionProps) {
-  // Count categories with data
-  const detailCount = [
-    data.schedule?.length,
-    data.minimumCrew || data.crewRequirements,
-    data.prohibitedAreas?.length,
-    data.entryFees?.length,
-    data.scoringFormulaDescription,
-    data.motoringDivisionAvailable,
-    data.routeWaypoints?.length,
-    data.classRules?.length,
-    data.organizingAuthority || data.eventWebsite,
-  ].filter(Boolean).length;
-
-  // Basic info fields count
-  const basicInfoCount = [
-    data.venue,
-    data.raceDate,
-    data.warningSignalTime,
-    data.vhfChannels?.[0] || data.vhfChannel,
-    data.raceType,
-  ].filter(Boolean).length;
-
-  return (
-    <View style={styles.extractedDataCard}>
-      {/* Header - always visible */}
-      <Pressable
-        style={styles.extractedDataHeader}
-        onPress={onToggle}
-        accessibilityRole="button"
-        accessibilityState={{ expanded }}
-      >
-        <View style={styles.extractedDataHeaderLeft}>
-          <Sparkles size={18} color={IOS_COLORS.green} />
-          <Text style={styles.extractedDataTitle}>Extracted Information</Text>
-          {detailCount > 0 && (
-            <View style={styles.extractedBadge}>
-              <Text style={styles.extractedBadgeText}>{basicInfoCount + detailCount}</Text>
-            </View>
-          )}
-        </View>
-        {detailCount > 0 && (
-          expanded ? (
-            <ChevronDown size={20} color={IOS_COLORS.gray} />
-          ) : (
-            <ChevronRight size={20} color={IOS_COLORS.gray} />
-          )
-        )}
-      </Pressable>
-
-      {/* Basic Info - always shown */}
-      <View style={styles.extractedBasicInfo}>
-        {data.venue && (
-          <View style={styles.extractedDataRow}>
-            <MapPin size={16} color={IOS_COLORS.green} />
-            <Text style={styles.extractedDataLabel}>Venue:</Text>
-            <Text style={styles.extractedDataValue}>{data.venue}</Text>
-          </View>
-        )}
-        {data.raceDate && (
-          <View style={styles.extractedDataRow}>
-            <Clock size={16} color={IOS_COLORS.orange} />
-            <Text style={styles.extractedDataLabel}>Date:</Text>
-            <Text style={styles.extractedDataValue}>{data.raceDate}</Text>
-          </View>
-        )}
-        {data.warningSignalTime && (
-          <View style={styles.extractedDataRow}>
-            <Flag size={16} color={IOS_COLORS.blue} />
-            <Text style={styles.extractedDataLabel}>Start:</Text>
-            <Text style={styles.extractedDataValue}>{data.warningSignalTime}</Text>
-          </View>
-        )}
-        {(data.vhfChannels?.[0] || data.vhfChannel) && (
-          <View style={styles.extractedDataRow}>
-            <Radio size={16} color={IOS_COLORS.purple} />
-            <Text style={styles.extractedDataLabel}>VHF:</Text>
-            <Text style={styles.extractedDataValue}>
-              Ch {data.vhfChannels?.[0]?.channel || data.vhfChannel}
-            </Text>
-          </View>
-        )}
-        {data.raceType && (
-          <View style={styles.extractedDataRow}>
-            <Sailboat size={16} color={IOS_COLORS.blue} />
-            <Text style={styles.extractedDataLabel}>Type:</Text>
-            <Text style={styles.extractedDataValue}>
-              {data.raceType === 'distance' ? 'Distance Race' :
-               data.raceType === 'match' ? 'Match Race' :
-               data.raceType === 'team' ? 'Team Race' : 'Fleet Race'}
-            </Text>
-          </View>
-        )}
-      </View>
-
-      {/* Expanded Details */}
-      {expanded && detailCount > 0 && (
-        <View style={styles.extractedDetailsContent}>
-          {/* Schedule */}
-          {data.schedule && data.schedule.length > 0 && (
-            <View style={styles.extractedSection}>
-              <View style={styles.extractedSectionHeader}>
-                <Calendar size={16} color={IOS_COLORS.orange} />
-                <Text style={styles.extractedSectionTitle}>Schedule</Text>
-              </View>
-              <View style={styles.extractedSectionContent}>
-                {data.schedule.map((event: any, i: number) => (
-                  <View key={i} style={styles.scheduleItem}>
-                    <Text style={styles.scheduleDate}>
-                      {event.date} {event.time}
-                    </Text>
-                    <Text style={styles.scheduleEvent}>
-                      {event.event}
-                      {event.mandatory && (
-                        <Text style={styles.mandatoryTag}> [MANDATORY]</Text>
-                      )}
-                    </Text>
-                    {event.location && (
-                      <Text style={styles.scheduleLocation}>{event.location}</Text>
-                    )}
-                  </View>
-                ))}
-              </View>
-            </View>
-          )}
-
-          {/* Route Waypoints */}
-          {data.routeWaypoints && data.routeWaypoints.length > 0 && (
-            <View style={styles.extractedSection}>
-              <View style={styles.extractedSectionHeader}>
-                <Navigation size={16} color={IOS_COLORS.blue} />
-                <Text style={styles.extractedSectionTitle}>Route</Text>
-              </View>
-              <View style={styles.extractedSectionContent}>
-                <Text style={styles.routeText}>
-                  {data.routeWaypoints.map((wp: any) => wp.name).join(' → ')}
-                </Text>
-              </View>
-            </View>
-          )}
-
-          {/* Crew Requirements */}
-          {(data.minimumCrew || data.crewRequirements || data.minorSailorRules) && (
-            <View style={styles.extractedSection}>
-              <View style={styles.extractedSectionHeader}>
-                <Users size={16} color={IOS_COLORS.purple} />
-                <Text style={styles.extractedSectionTitle}>Crew Requirements</Text>
-              </View>
-              <View style={styles.extractedSectionContent}>
-                {data.minimumCrew && (
-                  <Text style={styles.detailText}>
-                    Minimum crew: <Text style={styles.highlightText}>{data.minimumCrew}</Text>
-                  </Text>
-                )}
-                {data.crewRequirements && (
-                  <Text style={styles.detailText}>{data.crewRequirements}</Text>
-                )}
-                {data.minorSailorRules && (
-                  <Text style={styles.detailTextSecondary}>Under 18: {data.minorSailorRules}</Text>
-                )}
-              </View>
-            </View>
-          )}
-
-          {/* Prohibited Areas */}
-          {data.prohibitedAreas && data.prohibitedAreas.length > 0 && (
-            <View style={styles.extractedSection}>
-              <View style={styles.extractedSectionHeader}>
-                <AlertTriangle size={16} color={IOS_COLORS.red} />
-                <Text style={styles.extractedSectionTitle}>
-                  Prohibited Areas ({data.prohibitedAreas.length})
-                </Text>
-              </View>
-              <View style={styles.extractedSectionContent}>
-                {data.prohibitedAreas.map((area: any, i: number) => (
-                  <Text key={i} style={styles.listItem}>
-                    • {area.name}
-                    {area.description && area.description !== 'Out of bounds' && (
-                      <Text style={styles.listItemNote}> ({area.description})</Text>
-                    )}
-                  </Text>
-                ))}
-              </View>
-            </View>
-          )}
-
-          {/* Entry Fees */}
-          {data.entryFees && data.entryFees.length > 0 && (
-            <View style={styles.extractedSection}>
-              <View style={styles.extractedSectionHeader}>
-                <DollarSign size={16} color={IOS_COLORS.green} />
-                <Text style={styles.extractedSectionTitle}>Entry Fees</Text>
-              </View>
-              <View style={styles.extractedSectionContent}>
-                {data.entryFees.map((fee: any, i: number) => (
-                  <Text key={i} style={styles.detailText}>
-                    {fee.type}: <Text style={styles.highlightText}>{fee.amount}</Text>
-                    {fee.deadline && <Text style={styles.listItemNote}> (by {fee.deadline})</Text>}
-                  </Text>
-                ))}
-                {data.entryDeadline && (
-                  <Text style={styles.detailTextSecondary}>
-                    Entry deadline: {data.entryDeadline}
-                  </Text>
-                )}
-              </View>
-            </View>
-          )}
-
-          {/* Scoring */}
-          {data.scoringFormulaDescription && (
-            <View style={styles.extractedSection}>
-              <View style={styles.extractedSectionHeader}>
-                <Trophy size={16} color={IOS_COLORS.orange} />
-                <Text style={styles.extractedSectionTitle}>Scoring</Text>
-              </View>
-              <View style={styles.extractedSectionContent}>
-                <Text style={styles.detailText}>{data.scoringFormulaDescription}</Text>
-                {data.handicapSystem && (Array.isArray(data.handicapSystem) ? data.handicapSystem.length > 0 : data.handicapSystem) && (
-                  <Text style={styles.detailTextSecondary}>
-                    Handicap: {Array.isArray(data.handicapSystem) ? data.handicapSystem.join(', ') : String(data.handicapSystem)}
-                  </Text>
-                )}
-              </View>
-            </View>
-          )}
-
-          {/* Motoring Division */}
-          {data.motoringDivisionAvailable && (
-            <View style={styles.extractedSection}>
-              <View style={styles.extractedSectionHeader}>
-                <Ship size={16} color={IOS_COLORS.blue} />
-                <Text style={styles.extractedSectionTitle}>Motoring Division</Text>
-              </View>
-              <View style={styles.extractedSectionContent}>
-                <Text style={styles.detailText}>
-                  {data.motoringDivisionRules || 'Available - see sailing instructions'}
-                </Text>
-              </View>
-            </View>
-          )}
-
-          {/* Start/Finish Areas */}
-          {(data.startAreaName || data.finishAreaName) && (
-            <View style={styles.extractedSection}>
-              <View style={styles.extractedSectionHeader}>
-                <MapPin size={16} color={IOS_COLORS.blue} />
-                <Text style={styles.extractedSectionTitle}>Course Areas</Text>
-              </View>
-              <View style={styles.extractedSectionContent}>
-                {data.startAreaName && (
-                  <Text style={styles.detailText}>Start: {data.startAreaName}</Text>
-                )}
-                {data.finishAreaName && (
-                  <Text style={styles.detailText}>Finish: {data.finishAreaName}</Text>
-                )}
-              </View>
-            </View>
-          )}
-
-          {/* Rules & Requirements */}
-          {data.classRules && data.classRules.length > 0 && (
-            <View style={styles.extractedSection}>
-              <View style={styles.extractedSectionHeader}>
-                <Shield size={16} color={IOS_COLORS.gray} />
-                <Text style={styles.extractedSectionTitle}>Rules & Requirements</Text>
-              </View>
-              <View style={styles.extractedSectionContent}>
-                {data.classRules.map((rule: string, i: number) => (
-                  <Text key={i} style={styles.listItem}>• {rule}</Text>
-                ))}
-                {data.eligibilityRequirements && (
-                  <Text style={styles.detailTextSecondary}>
-                    Eligibility: {data.eligibilityRequirements}
-                  </Text>
-                )}
-              </View>
-            </View>
-          )}
-
-          {/* Contact & Organization */}
-          {(data.organizingAuthority || data.eventWebsite || data.contactEmail) && (
-            <View style={styles.extractedSection}>
-              <View style={styles.extractedSectionHeader}>
-                <FileText size={16} color={IOS_COLORS.gray} />
-                <Text style={styles.extractedSectionTitle}>Contact</Text>
-              </View>
-              <View style={styles.extractedSectionContent}>
-                {data.organizingAuthority && (
-                  <Text style={styles.detailText}>{data.organizingAuthority}</Text>
-                )}
-                {data.eventWebsite && (
-                  <Text style={styles.linkText}>{data.eventWebsite}</Text>
-                )}
-                {data.contactEmail && (
-                  <Text style={styles.linkText}>{data.contactEmail}</Text>
-                )}
-              </View>
-            </View>
-          )}
-        </View>
-      )}
-
-      {/* Expand prompt if collapsed and has details */}
-      {!expanded && detailCount > 0 && (
-        <Pressable style={styles.expandPrompt} onPress={onToggle}>
-          <Text style={styles.expandPromptText}>
-            Tap to see {detailCount} more detail{detailCount > 1 ? 's' : ''}: schedule, crew, fees, rules...
-          </Text>
-        </Pressable>
-      )}
-    </View>
-  );
-}
 
 interface DocumentReviewWizardProps extends ChecklistToolProps {
   /** Optional venue for context */
@@ -1048,10 +719,10 @@ interface DocumentReviewWizardProps extends ChecklistToolProps {
 export function DocumentReviewWizard({
   item,
   regattaId,
-  boatId,
+  boatId: _boatId,
   onComplete,
   onCancel,
-  venue,
+  venue: _venue,
 }: DocumentReviewWizardProps) {
   const router = useRouter();
   const { user } = useAuth();
@@ -1067,11 +738,9 @@ export function DocumentReviewWizard({
   const [urlValue, setUrlValue] = useState('');
   const [textContent, setTextContent] = useState('');
   const [isSubmittingUrl, setIsSubmittingUrl] = useState(false);
-  const [extractedDetailsExpanded, setExtractedDetailsExpanded] = useState(true);
 
   // Load documents for this race
   const {
-    documents,
     documentsForDisplay,
     loading: docsLoading,
     upload,
@@ -1081,9 +750,6 @@ export function DocumentReviewWizard({
     isExtracting,
     extractionResult,
     storedExtractionChecked,
-    typePickerVisible,
-    selectType,
-    dismissTypePicker,
     triggerExtraction,
     clearExtractionResult,
   } = useRaceDocuments({
@@ -1482,7 +1148,7 @@ export function DocumentReviewWizard({
               Extracting race data...
             </Text>
             <Text style={styles.extractionDescription}>
-              AI is parsing the document for entry, schedule, venue, and more
+              Parsing the document for entry, schedule, venue, and more
             </Text>
           </View>
         </View>

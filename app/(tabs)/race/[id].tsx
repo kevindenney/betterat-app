@@ -21,7 +21,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { RaceCourseExtractor } from '@/services/ai/RaceCourseExtractor';
 import { raceStrategyEngine, RaceStrategy, RaceConditions } from '@/services/ai/RaceStrategyEngine';
-import type { RaceCourseExtraction, TacticalRecommendation } from '@/lib/types/ai-knowledge';
+import type { TacticalRecommendation } from '@/lib/types/ai-knowledge';
 import type { CourseMark } from '@/types/raceEvents';
 import { RaceMapView } from '@/components/race-strategy/RaceMapView';
 import { QuickDrawMode } from '@/components/race-strategy/QuickDrawMode';
@@ -259,6 +259,10 @@ async function generateDocumentHash(content: string): Promise<string> {
   }
 }
 
+// ✨ REDIRECT TO NEW SCROLLABLE DESIGN ✨
+// Feature flag: Enable new Apple Weather-inspired scrollable design
+const USE_SCROLLABLE_DESIGN = true;
+
 export default function RaceDetailScreen() {
   const params = useLocalSearchParams<{
     id: string;
@@ -268,10 +272,6 @@ export default function RaceDetailScreen() {
   }>();
   const { id, tab, action, courseId } = params;
   const { user } = useAuth();
-
-  // ✨ REDIRECT TO NEW SCROLLABLE DESIGN ✨
-  // Feature flag: Enable new Apple Weather-inspired scrollable design
-  const USE_SCROLLABLE_DESIGN = true;
 
   // All hooks must be declared before any early returns to satisfy rules-of-hooks
   const [race, setRace] = useState<RaceDetails | null>(null);
@@ -317,6 +317,8 @@ export default function RaceDetailScreen() {
   useEffect(() => {
     if (USE_SCROLLABLE_DESIGN) return;
     loadRaceDetails();
+    // loadRaceDetails reads `id` from the outer closure; keying on id only is intentional.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   // Reset urlActionHandled when action parameter changes
@@ -369,6 +371,8 @@ export default function RaceDetailScreen() {
         logger.debug('[RaceDetail] Action already handled, skipping');
       }
     }
+    // Intentionally fires only when URL params change; reads of race/isQuickDrawMode/showCourseSelector are diagnostic logs.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab, action]);
 
   // If redirecting, show nothing
@@ -398,7 +402,7 @@ export default function RaceDetailScreen() {
 
         const importPromise = import('@/constants/mockData');
 
-        const { MOCK_RACES, getRaceWithLinks } = await Promise.race([importPromise, timeoutPromise]) as any;
+        const { getRaceWithLinks } = await Promise.race([importPromise, timeoutPromise]) as any;
 
         const linkedData = getRaceWithLinks(id);
 
@@ -629,9 +633,9 @@ export default function RaceDetailScreen() {
           logger.debug('[RaceDetail] Found race_event:', raceEvent.id);
 
           // Check for marks
-          const { data: marks, count } = await supabase
+          const { count } = await supabase
             .from('race_marks')
-            .select('*', { count: 'exact' })
+            .select('*', { count: 'exact', head: true })
             .eq('race_id', raceEvent.id);
 
           logger.debug('[RaceDetail] Found', count || 0, 'marks for race_event');
@@ -1072,7 +1076,7 @@ export default function RaceDetailScreen() {
           }
         }
 
-        const { data: updateData, error: updateError } = await supabase
+        const { error: updateError } = await supabase
           .from('regattas')
           .update({
             metadata: {
@@ -1421,7 +1425,7 @@ export default function RaceDetailScreen() {
             <ActivityIndicator size="large" color="#3B82F6" />
             <Text style={styles.generatingTitle}>Generating Race Strategy</Text>
             <Text style={styles.generatingText}>
-              AI is analyzing sailing instructions, conditions, and venue intelligence...
+              Analyzing sailing instructions, conditions, and venue intelligence...
             </Text>
             <View style={styles.generatingSteps}>
               <Text style={styles.generatingStep}>✓ Extracting race course</Text>
@@ -1840,7 +1844,7 @@ export default function RaceDetailScreen() {
     }
   };
 
-  const handleViewInStrategy = (documentId: string) => {
+  const handleViewInStrategy = (_documentId: string) => {
     setActiveTab('strategy');
   };
 
