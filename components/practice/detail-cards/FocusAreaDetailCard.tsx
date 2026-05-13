@@ -20,7 +20,7 @@ import {
   Platform,
   UIManager,
 } from 'react-native';
-import { Brain, TrendingUp, TrendingDown, Minus, Sparkles } from 'lucide-react-native';
+import { Brain, TrendingUp as _TrendingUp, TrendingDown as _TrendingDown, Minus as _Minus, Sparkles } from 'lucide-react-native';
 import Animated, {
   useAnimatedStyle,
   withTiming,
@@ -184,7 +184,6 @@ export function FocusAreaDetailCard({
               {primaryFocus.aiSuggested && (
                 <View style={styles.aiBadge}>
                   <Sparkles size={12} color={IOS_COLORS.cyan} />
-                  <Text style={styles.aiBadgeText}>AI</Text>
                 </View>
               )}
             </View>
@@ -336,11 +335,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 6,
-  },
-  aiBadgeText: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: IOS_COLORS.cyan,
   },
   confidenceRow: {
     flexDirection: 'row',

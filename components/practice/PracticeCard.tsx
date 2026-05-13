@@ -43,19 +43,19 @@ import {
   StyleSheet,
   Text,
   View,
-  useWindowDimensions,
+  useWindowDimensions as _useWindowDimensions,
 } from 'react-native';
 import {
-  PracticeSession,
+  PracticeSession as _PracticeSession,
   PracticeStatus,
   PracticeFocusArea,
   PracticeSessionDrill,
   PracticeSessionMember,
-  SkillArea,
+  SkillArea as _SkillArea,
   SKILL_AREA_CONFIG,
 } from '@/types/practice';
 
-const logger = createLogger('PracticeCard');
+const _logger = createLogger('PracticeCard');
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 // Practice-specific colors
@@ -324,14 +324,14 @@ export function PracticeCard({
   members = [],
   maxCrewSize = 4,
   isAISuggested = false,
-  aiSuggestionReason,
+  aiSuggestionReason: _aiSuggestionReason,
   aiReasoning,
   userRationale,
   hasCustomInstructions = false,
   hasSuccessCriteria = false,
   show4QSummary = true,
   overallRating,
-  reflectionNotes,
+  reflectionNotes: _reflectionNotes,
   isPrimary = false,
   isSelected = false,
   isDimmed = false,
@@ -370,6 +370,7 @@ export function PracticeCard({
   const [minuteTick, setMinuteTick] = useState(Math.floor(Date.now() / 60000));
   const countdown = useMemo(
     () => calculatePracticeCountdown(scheduledDate, scheduledStartTime),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [scheduledDate, scheduledStartTime, minuteTick]
   );
 
@@ -489,7 +490,6 @@ export function PracticeCard({
           {isAISuggested && (
             <View style={[styles.aiBadge, { backgroundColor: PRACTICE_COLORS.aiBg }]}>
               <Sparkles size={10} color={PRACTICE_COLORS.ai} />
-              <Text style={[styles.aiBadgeText, { color: PRACTICE_COLORS.ai }]}>AI</Text>
             </View>
           )}
 
@@ -768,11 +768,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 6,
-  },
-  aiBadgeText: {
-    fontSize: 9,
-    fontWeight: '700',
-    letterSpacing: 0.5,
   },
   durationBadge: {
     flexDirection: 'row',
