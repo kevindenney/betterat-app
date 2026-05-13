@@ -529,7 +529,7 @@ export const AIRaceAnalysisDashboard: React.FC<AIRaceAnalysisDashboardProps> = (
   return (
     <View style={[styles.container, style]}>
       <View style={styles.header}>
-        <Text style={styles.title}>AI Race Analysis</Text>
+        <Text style={styles.title}>Race Analysis</Text>
         <View style={styles.racePhaseSelector}>
           {(['pre_start', 'start_sequence', 'upwind', 'downwind'] as const).map(phase => (
             <TouchableOpacity

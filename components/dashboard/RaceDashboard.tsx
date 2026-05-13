@@ -18,11 +18,11 @@ import { Ionicons } from '@expo/vector-icons';
 import { showAlert, showConfirm, showAlertWithButtons } from '@/lib/utils/crossPlatformAlert';
 import { raceStrategyEngine, type RaceStrategy, type RaceConditions } from '@/services/ai/RaceStrategyEngine';
 import { venueDetectionService, type SailingVenue, type LocationUpdate } from '@/services/location/VenueDetectionService';
-import { DocumentProcessingService } from '@/services/ai/DocumentProcessingService';
+import { DocumentProcessingService as _DocumentProcessingService } from '@/services/ai/DocumentProcessingService';
 import RaceCourseVisualization3D from '@/components/strategy/RaceCourseVisualization3D';
 import RaceDayInterface from '@/components/racing/RaceDayInterface';
 import { AIRaceAnalysisDashboard } from '@/components/ai/AIRaceAnalysisDashboard';
-import type { DocumentAnalysis, RaceCourseExtraction } from '@/lib/types/ai-knowledge';
+import type { DocumentAnalysis, RaceCourseExtraction as _RaceCourseExtraction } from '@/lib/types/ai-knowledge';
 import { createLogger } from '@/lib/utils/logger';
 
 interface DashboardState {
@@ -79,6 +79,7 @@ export const RaceDashboard: React.FC = () => {
 
   useEffect(() => {
     initializeDashboard();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const initializeDashboard = async () => {
@@ -323,7 +324,7 @@ export const RaceDashboard: React.FC = () => {
         onPress={toggleAIAnalysis}
       >
         <Ionicons name="mic" size={32} color="white" />
-        <Text style={styles.actionButtonText}>AI Analysis</Text>
+        <Text style={styles.actionButtonText}>Analysis</Text>
         <Text style={styles.actionButtonSubtext}>Voice notes & insights</Text>
       </TouchableOpacity>
 
@@ -522,7 +523,7 @@ export const RaceDashboard: React.FC = () => {
       >
         <View style={styles.modalContainer}>
           <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>AI Race Analysis</Text>
+            <Text style={styles.modalTitle}>Race Analysis</Text>
             <TouchableOpacity onPress={toggleAIAnalysis}>
               <Ionicons name="close" size={24} color="#333" />
             </TouchableOpacity>

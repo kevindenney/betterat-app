@@ -102,6 +102,7 @@ export function PreRaceStrategySection({
     } else {
       fadeAnim.setValue(0);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [advice]);
 
   const handleSkillPress = async (skill: SkillDisplayDefinition) => {
@@ -368,7 +369,7 @@ export function PreRaceStrategySection({
             <Sparkles size={18} color="#9333EA" />
           </View>
           <View>
-            <Text className="text-base font-bold text-gray-900">AI Race Coach</Text>
+            <Text className="text-base font-bold text-gray-900">Race Coaching</Text>
             <Text className="text-xs text-gray-500">Tap any topic for instant advice</Text>
           </View>
         </View>
