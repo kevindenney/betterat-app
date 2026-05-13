@@ -1,11 +1,12 @@
 // @ts-nocheck
+/* eslint-disable react/no-unknown-property */
 
 /**
  * Professional Map Screen - Complete Integration
  * OnX Maps-level implementation with all professional features
  */
 
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import { StyleSheet, View, TouchableOpacity, Linking } from 'react-native';
 import { showAlert, showConfirm } from '@/lib/utils/crossPlatformAlert';
 import { ThemedView } from '@/components/themed-view';
@@ -47,11 +48,11 @@ export function ProfessionalMapScreen({
   venue,
   marks,
   initialWeather,
-  onMarkPress,
-  onMapPress,
+  onMarkPress: _onMarkPress,
+  onMapPress: _onMapPress,
   onWeatherUpdate,
-  onNavigationCalculated,
-  professionalMode = true
+  onNavigationCalculated: _onNavigationCalculated,
+  professionalMode: _professionalMode = true
 }: ProfessionalMapScreenProps) {
   // Map state
   const [currentMode, setCurrentMode] = useState<MapInteractionMode>('navigate');
@@ -72,15 +73,15 @@ export function ProfessionalMapScreen({
   // UI state
   const [showLayerMenu, setShowLayerMenu] = useState(false);
   const [showAIChat, setShowAIChat] = useState(false);
-  const [showMeasurementTools, setShowMeasurementTools] = useState(false);
-  const [showWeatherAnalysis, setShowWeatherAnalysis] = useState(false);
+  const [_showMeasurementTools, setShowMeasurementTools] = useState(false);
+  const [_showWeatherAnalysis, setShowWeatherAnalysis] = useState(false);
 
   // Data state
   const [currentWeather, setCurrentWeather] = useState<AdvancedWeatherConditions | null>(initialWeather || null);
   const [strategicInsights, setStrategicInsights] = useState<StrategyInsight[]>([]);
 
   // Venue bounds (would be loaded from venue data)
-  const venueBounds: BoundingBox = getVenueBounds(venue);
+  const _venueBounds: BoundingBox = getVenueBounds(venue);
 
   // Advanced map configuration
   const mapConfig: AdvancedMapConfig = {
@@ -174,7 +175,7 @@ export function ProfessionalMapScreen({
     showAlert('GPS Center', followingGPS ? 'GPS following disabled' : 'Centering on GPS location');
   }, [followingGPS]);
 
-  const handleWeatherUpdate = useCallback((weather: AdvancedWeatherConditions) => {
+  const _handleWeatherUpdate = useCallback((weather: AdvancedWeatherConditions) => {
     setCurrentWeather(weather);
     onWeatherUpdate?.(weather);
   }, [onWeatherUpdate]);
@@ -251,7 +252,7 @@ export function ProfessionalMapScreen({
         style={styles.aiChatButton}
         onPress={() => setShowAIChat(true)}
       >
-        <ThemedText style={styles.aiChatButtonText}>🧠 AI Strategy</ThemedText>
+        <ThemedText style={styles.aiChatButtonText}>🧠 Strategy</ThemedText>
       </TouchableOpacity>
 
       {/* Strategic Insights Panel */}
@@ -424,12 +425,17 @@ function RaceMark3D({
 }
 
 // Camera Controller Component
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function CameraController({
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   mode,
   bearing,
   pitch,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   followGPS,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   onBearingChange,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   onPitchChange
 }: {
   mode: MapInteractionMode;

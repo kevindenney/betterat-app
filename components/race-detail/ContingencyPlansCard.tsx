@@ -164,7 +164,7 @@ export function ContingencyPlansCard({ raceId, scenarios: propScenarios }: Conti
         </View>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="small" color={colors.primary[600]} />
-          <Text style={styles.loadingText}>Loading AI-generated contingencies...</Text>
+          <Text style={styles.loadingText}>Loading contingencies...</Text>
         </View>
       </View>
     );

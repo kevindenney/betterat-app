@@ -34,7 +34,7 @@ interface StartStrategyCardProps {
   venueId?: string;
   venueName?: string;
   venueCoordinates?: { lat: number; lng: number };
-  racingAreaPolygon?: Array<{ lat: number; lng: number }>;
+  racingAreaPolygon?: { lat: number; lng: number }[];
   weather?: {
     wind?: {
       speed: number;
@@ -59,11 +59,11 @@ export function StartStrategyCard({
   raceStartTime,
   venueId,
   venueName,
-  venueCoordinates,
+  venueCoordinates: _venueCoordinates,
   racingAreaPolygon,
   weather,
   onGenerate,
-  sailorId,
+  sailorId: _sailorId,
   raceEventId
 }: StartStrategyCardProps) {
   const { user } = useAuth();
@@ -250,6 +250,7 @@ export function StartStrategyCard({
       logger.debug('[StartStrategyCard] Auto-generating strategy on mount');
       generateStrategy();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loading, strategy, error, user]);
 
   const generateStrategy = async () => {
@@ -643,7 +644,7 @@ export function StartStrategyCard({
         <View style={styles.emptyState}>
           <ActivityIndicator size="large" color="#3B82F6" />
           <Text style={styles.emptyText}>
-            Generating AI-powered start strategy based on wind, current, and course layout...
+            Generating start strategy based on wind, current, and course layout...
           </Text>
         </View>
       );

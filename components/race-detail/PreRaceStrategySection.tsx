@@ -349,7 +349,7 @@ export function PreRaceStrategySection({
               <View className="flex-row items-center gap-1.5">
                 <Check size={12} color="#10B981" />
                 <Text className="text-[10px] text-gray-500">
-                  AI-generated coaching advice
+                  Coaching advice
                 </Text>
               </View>
               <ConfidenceBadge level={advice.confidence} />
@@ -419,7 +419,7 @@ export function PreRaceStrategySection({
                 Get race-winning advice
               </Text>
               <Text className="text-xs text-gray-600 mt-0.5">
-                Select a topic above to receive AI-powered tactical coaching
+                Select a topic above to receive tactical coaching
               </Text>
             </View>
           </View>

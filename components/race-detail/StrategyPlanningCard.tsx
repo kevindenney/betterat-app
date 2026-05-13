@@ -359,7 +359,7 @@ export function StrategyPlanningCard({ raceEventId, sailorId, coachId, onPlanUpd
             color={colors.accent.default}
           />
           <Text style={styles.aiToggleText}>
-            {showAiSuggestions ? 'Hide' : 'Show'} AI Suggestions
+            {showAiSuggestions ? 'Hide' : 'Show'} Suggestions
           </Text>
         </TouchableOpacity>
       )}
