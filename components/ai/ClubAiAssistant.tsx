@@ -111,7 +111,7 @@ export function ClubAiAssistant({
       <View style={styles.header}>
         <View>
           <Text style={styles.title}>{title}</Text>
-          <Text style={styles.subtitle}>AI answers from your schedules, members, and registrations.</Text>
+          <Text style={styles.subtitle}>Answers from your schedules, members, and registrations.</Text>
         </View>
         <TouchableOpacity onPress={refresh} disabled={loading || isSending}>
           <Ionicons name="refresh" size={20} color="#94A3B8" />

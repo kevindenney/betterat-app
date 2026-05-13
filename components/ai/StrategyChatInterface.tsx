@@ -318,7 +318,7 @@ export function StrategyChatInterface({
         {isTyping && (
           <View style={styles.typingContainer}>
             <View style={styles.typingBubble}>
-              <ThemedText style={styles.typingText}>AI is thinking...</ThemedText>
+              <ThemedText style={styles.typingText}>Thinking...</ThemedText>
               <View style={styles.typingDots}>
                 <View style={[styles.dot, styles.dot1]} />
                 <View style={[styles.dot, styles.dot2]} />

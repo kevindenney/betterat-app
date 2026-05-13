@@ -197,8 +197,8 @@ export const AIRaceAnalysisDashboard: React.FC<AIRaceAnalysisDashboardProps> = (
         id: `analysis_${Date.now()}`,
         timestamp: new Date(),
         type: 'strategy_generated',
-        title: 'AI Strategy Generated',
-        description: `AI strategy generated for ${strategy.venue.name}`,
+        title: 'Strategy Generated',
+        description: `Strategy generated for ${strategy.venue.name}`,
         data: strategy,
         confidence: strategy.confidence
       };
