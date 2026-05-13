@@ -81,6 +81,7 @@ export interface Observation {
   id: string;
   text: string;
   timestamp: string;
+  source?: 'voice' | 'note'; // voice = captured via bot (Telegram/WhatsApp/Coach), note = typed in-app. Optional for backwards compat with rows created before this field existed.
 }
 
 export interface StepActData {

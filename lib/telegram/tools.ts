@@ -1753,23 +1753,44 @@ const TOOLS: TelegramToolDef[] = [
       const metadata = (step.metadata ?? {}) as Record<string, unknown>;
       const act = (metadata.act ?? {}) as Record<string, unknown>;
 
+      const nowIso = new Date().toISOString();
+      const observationText = (input.observation as string).trim();
+
+      // 1. Append to act.notes (string) — read by competency extraction,
+      // share views, and bot internal state. Kept for backwards compat.
       const existingNotes = (act.notes as string) ?? '';
-      const timestamp = new Date().toISOString().split('T')[0];
-      const newNote = `[${timestamp} via Telegram] ${input.observation}`;
+      const dateStamp = nowIso.split('T')[0];
+      const newNote = `[${dateStamp} via Telegram] ${observationText}`;
       const updatedNotes = existingNotes ? `${existingNotes}\n\n${newNote}` : newNote;
+
+      // 2. Append to act.observations (structured array) — read by the
+      // During-tab unified CaptureTimeline. Source defaults to 'voice' since
+      // most bot captures are dictated; precise voice-vs-text detection
+      // requires modality plumbing through Anthropic message blocks.
+      const existingObservations = Array.isArray(act.observations)
+        ? (act.observations as Record<string, unknown>[])
+        : [];
+      const newObservation = {
+        id: `obs_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+        text: observationText,
+        timestamp: nowIso,
+        source: 'voice' as const,
+      };
+      const updatedObservations = [...existingObservations, newObservation];
 
       const actUpdates: Record<string, unknown> = {
         ...act,
         notes: updatedNotes,
+        observations: updatedObservations,
       };
 
       if (!act.started_at) {
-        actUpdates.started_at = new Date().toISOString();
+        actUpdates.started_at = nowIso;
       }
 
       const stepUpdate: Record<string, unknown> = {
         metadata: { ...metadata, act: actUpdates },
-        updated_at: new Date().toISOString(),
+        updated_at: nowIso,
       };
 
       if (step.status === 'pending') {

@@ -26,6 +26,7 @@ export function ObservationLog({ onAdd, readOnly }: ObservationLogProps) {
       id: `obs_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
       text: trimmed,
       timestamp: new Date().toISOString(),
+      source: 'note',
     });
     setText('');
   }, [text, onAdd]);

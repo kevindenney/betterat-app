@@ -33,7 +33,13 @@ interface CaptureTimelineProps {
 }
 
 type TimelineEntry =
-  | { kind: 'observation'; id: string; timestamp: string; text: string }
+  | {
+      kind: 'observation';
+      id: string;
+      timestamp: string;
+      text: string;
+      source: 'voice' | 'note';
+    }
   | {
       kind: 'media';
       id: string;
@@ -70,6 +76,7 @@ export function CaptureTimeline({
       id: o.id,
       timestamp: o.timestamp,
       text: o.text,
+      source: o.source ?? 'note',
     }));
     const media: TimelineEntry[] = mediaUploads.map((m) => ({
       kind: 'media' as const,
@@ -95,7 +102,7 @@ export function CaptureTimeline({
         const isLast = idx === entries.length - 1;
         const typeLabel =
           entry.kind === 'observation'
-            ? 'note'
+            ? entry.source
             : entry.mediaType === 'video'
               ? 'video'
               : 'photo';
