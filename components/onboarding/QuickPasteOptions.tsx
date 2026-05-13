@@ -116,7 +116,7 @@ Race Management 05/10/2025    TRUE  FALSE"
               </Text>
             </View>
             <Text className="text-xs text-purple-700 mb-2">
-              Copy/paste Sailing Instructions or Notice of Race text for AI analysis
+              Copy/paste Sailing Instructions or Notice of Race text for analysis
             </Text>
             <TextInput
               value={sinorText}

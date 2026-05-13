@@ -5,7 +5,7 @@
 
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, TextInput } from 'react-native';
-import { CheckCircle2, XCircle, Edit2, Anchor, MapPin, Users, Calendar, FileText } from 'lucide-react-native';
+import { Edit2, Anchor, MapPin, Users, Calendar, FileText } from 'lucide-react-native';
 
 export interface ExtractedEntity {
   type: 'boat' | 'club' | 'venue' | 'race' | 'document';
@@ -81,7 +81,7 @@ export function ExtractedDataPreview({
     <View className="mt-4 bg-sky-50 border border-sky-200 rounded-lg p-4">
       {/* Header */}
       <View className="flex-row items-center justify-between mb-3">
-        <Text className="text-sm font-semibold text-sky-900">AI Detected:</Text>
+        <Text className="text-sm font-semibold text-sky-900">Detected:</Text>
         <View className="flex-row gap-2">
           <TouchableOpacity
             onPress={onReject}

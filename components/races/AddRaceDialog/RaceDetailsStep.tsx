@@ -297,7 +297,7 @@ export function RaceDetailsStep({
           {hasAIData && (
             <View style={styles.aiExtractedBadge}>
               <Sparkles size={12} color={colors.ai[600]} />
-              <Text style={styles.aiExtractedText}>AI Extracted</Text>
+              <Text style={styles.aiExtractedText}>Extracted</Text>
             </View>
           )}
         </View>

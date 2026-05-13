@@ -135,7 +135,7 @@ function LegacyAddRaceDialog({ visible, onClose, onSave }: AddRaceDialogProps) {
   const getStepTitle = () => {
     if (step === 'type') return 'Add Race';
     if (step === 'input-method') return 'Add Race';
-    if (step === 'ai-extraction') return 'AI Extract';
+    if (step === 'ai-extraction') return 'Extract';
     if (selectedType) {
       const titles: Record<RaceType, string> = {
         fleet: 'Fleet Racing',

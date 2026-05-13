@@ -48,7 +48,7 @@ export function InputMethodStep({ raceType, onSelectMethod }: InputMethodStepPro
           <View style={styles.aiIconContainer}>
             <Sparkles size={32} color="#FFFFFF" />
           </View>
-          <Text style={styles.aiTitle}>AI Extract</Text>
+          <Text style={styles.aiTitle}>Extract</Text>
           <Text style={styles.aiSubtitle}>
             Paste text, upload PDF, or enter a URL
           </Text>
@@ -100,7 +100,7 @@ export function InputMethodStep({ raceType, onSelectMethod }: InputMethodStepPro
 
       {/* Info text */}
       <Text style={styles.infoText}>
-        AI extraction works best with Notice of Race (NOR), Sailing Instructions (SI), or race calendar entries
+        Extraction works best with Notice of Race (NOR), Sailing Instructions (SI), or race calendar entries
       </Text>
     </View>
   );

@@ -395,7 +395,7 @@ export function TufteAIExtractionSection({
         throw new Error(result.error || 'Failed to extract race details');
       }
 
-      const races = result.data.races || [];
+      const _races = result.data.races || [];
 
       // Check for multi-race detection
       if (result.data.multipleRaces && result.data.races && result.data.races.length > 1) {
@@ -444,11 +444,11 @@ export function TufteAIExtractionSection({
         onPress={onToggle}
         accessibilityRole="button"
         accessibilityState={{ expanded }}
-        accessibilityLabel="AI extraction section"
+        accessibilityLabel="Extraction section"
       >
         <View style={styles.headerLeft}>
           <Sparkles size={16} color={TUFTE_FORM_COLORS.aiAccent} />
-          <Text style={styles.headerLabel}>AI EXTRACTION</Text>
+          <Text style={styles.headerLabel}>EXTRACTION</Text>
           <Text style={styles.headerOptional}>(optional)</Text>
           {extractionComplete && (
             <CheckCircle size={14} color={TUFTE_FORM_COLORS.success} style={styles.successIcon} />

@@ -566,7 +566,7 @@ export function IOSAddRaceForm({ visible, onClose, onSave }: IOSAddRaceFormProps
                     <Sparkles size={16} color={IOS.colors.blue} />
                   </View>
                   <View>
-                    <Text style={styles.aiSectionTitle}>AI Extraction</Text>
+                    <Text style={styles.aiSectionTitle}>Extraction</Text>
                     <Text style={styles.aiSectionSubtitle}>
                       {aiExtractedFields.size > 0 ? 'Details extracted' : 'Add NOR/SI to auto-fill'}
                     </Text>

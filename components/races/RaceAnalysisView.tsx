@@ -90,7 +90,7 @@ export function RaceAnalysisView({ sessionId, raceName }: RaceAnalysisViewProps)
   const handleRegenerate = async () => {
     showConfirm(
       'Regenerate Analysis',
-      'This will create a new AI analysis. Continue?',
+      'This will create a new analysis. Continue?',
       async () => {
         try {
           setRegenerating(true);
@@ -126,7 +126,7 @@ export function RaceAnalysisView({ sessionId, raceName }: RaceAnalysisViewProps)
     return (
       <View className="flex-1 items-center justify-center p-8">
         <ActivityIndicator size="large" color="#0284c7" />
-        <Text className="text-gray-600 mt-4">Loading AI analysis...</Text>
+        <Text className="text-gray-600 mt-4">Loading analysis...</Text>
       </View>
     );
   }
@@ -139,7 +139,7 @@ export function RaceAnalysisView({ sessionId, raceName }: RaceAnalysisViewProps)
           No Analysis Available
         </Text>
         <Text className="text-gray-500 text-center mt-2 mb-6">
-          AI analysis hasn't been generated for this race yet.
+          Analysis hasn't been generated for this race yet.
         </Text>
 
         <TouchableOpacity
@@ -193,7 +193,7 @@ export function RaceAnalysisView({ sessionId, raceName }: RaceAnalysisViewProps)
       <View className="bg-sky-600 pt-12 pb-6 px-4">
         <View className="flex-row items-center justify-between mb-2">
           <View className="flex-1">
-            <Text className="text-white text-2xl font-bold">AI Race Analysis</Text>
+            <Text className="text-white text-2xl font-bold">Race Analysis</Text>
             {raceName && (
               <Text className="text-white/90 text-sm mt-1">{raceName}</Text>
             )}

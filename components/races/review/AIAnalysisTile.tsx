@@ -97,10 +97,10 @@ export function AIAnalysisTile({
   };
 
   const getAccessibilityLabel = () => {
-    if (hasAnalysis) return 'AI analysis complete. View insights';
-    if (isGenerating) return 'AI analysis generating';
-    if (canGenerate) return 'Generate AI analysis';
-    return 'AI analysis locked. Complete debrief first';
+    if (hasAnalysis) return 'Analysis complete. View insights';
+    if (isGenerating) return 'Analysis generating';
+    if (canGenerate) return 'Generate analysis';
+    return 'Analysis locked. Complete debrief first';
   };
 
   // Large format: analysis complete with insights
@@ -126,7 +126,7 @@ export function AIAnalysisTile({
         {/* Header row */}
         <View style={styles.header}>
           <Brain size={12} color={COLORS.purple} />
-          <Text style={styles.headerLabel}>AI ANALYSIS</Text>
+          <Text style={styles.headerLabel}>ANALYSIS</Text>
           {isNew && (
             <View style={styles.newBadge}>
               <Sparkles size={8} color="#FFFFFF" />
