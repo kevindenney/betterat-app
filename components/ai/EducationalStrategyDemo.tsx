@@ -6,7 +6,6 @@
 import React, { useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
 import { useSailingEducation, useVenueSailingEducation } from '@/hooks/useSailingEducation';
-import type { EnhancedEducationalStrategy } from '@/hooks/useSailingEducation';
 
 interface EducationalStrategyDemoProps {
   venueId?: string;
@@ -149,7 +148,7 @@ export const EducationalStrategyDemo: React.FC<EducationalStrategyDemoProps> = (
   return (
     <ScrollView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>🎓 Sailing Education AI Demo</Text>
+        <Text style={styles.title}>🎓 Sailing Education Demo</Text>
         <Text style={styles.subtitle}>
           Enhanced with Yacht Club Training Standards
         </Text>

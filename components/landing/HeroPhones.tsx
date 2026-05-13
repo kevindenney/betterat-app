@@ -1,6 +1,5 @@
 // @ts-nocheck - This component uses web-specific styles that conflict with RN types
 import { useAuth } from '@/providers/AuthProvider';
-import { supabase } from '@/services/supabase';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
@@ -74,7 +73,7 @@ export function HeroPhones() {
   const [mounted, setMounted] = React.useState(false);
   const [highlightedFeature, setHighlightedFeature] = React.useState<FeatureId | null>(null);
   const [zoomedFeature, setZoomedFeature] = React.useState<FeatureId | null>(null);
-  const [highlightedRaceId, setHighlightedRaceId] = React.useState<string | null>(null);
+  const [_highlightedRaceId, setHighlightedRaceId] = React.useState<string | null>(null);
   const [previewTab, setPreviewTab] = React.useState<LandingTab>('race');
 
   // Ensure we only check dimensions after mount to avoid hydration mismatch
@@ -82,10 +81,6 @@ export function HeroPhones() {
     setMounted(true);
   }, []);
 
-  const isDesktop = mounted && width > 1024; // MacBook on desktop (>1024px)
-  const isTablet = mounted && width > 768 && width <= 1024;
-  const isMobile = mounted && width <= 768;
-  const isSmallMobile = mounted && width <= 430; // iPhone Pro Max and smaller
   const shouldStackColumns = mounted && width <= 1200; // Stack below 1200px
   const nativePhoneWidth = Math.min(width * 0.62, 280);
   const nativePhoneHeight = Math.round(nativePhoneWidth * 2.1);
@@ -93,9 +88,6 @@ export function HeroPhones() {
   const heroPhoneHeight = Math.round(heroPhoneWidth * 1.95);
   const demoPhoneWidth = Math.min(Math.max(width * 0.24, 320), 430);
   const demoPhoneHeight = Math.round(demoPhoneWidth * 1.8);
-  const showDevControls =
-    (typeof __DEV__ !== 'undefined' && __DEV__) ||
-    process.env.EXPO_PUBLIC_SHOW_DEV_CONTROLS === 'true';
 
   const featureToPreviewTab = React.useCallback((featureId: FeatureId): LandingTab => {
     const map: Record<FeatureId, LandingTab> = {
@@ -513,17 +505,6 @@ export function HeroPhones() {
     }
   }, []);
 
-  // DEV: Logout function for testing
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    // Force reload to clear all state
-    if (Platform.OS === 'web') {
-      window.location.href = '/';
-    } else {
-      router.replace('/');
-    }
-  };
-
   const handleGetStarted = () => {
     // Always route to signup - signed-in users are auto-redirected from landing page
     router.push({
@@ -604,7 +585,7 @@ export function HeroPhones() {
             style={styles.heroSubtitle}
             {...(Platform.OS === 'web' ? { 'data-hero-subtitle': true } : {})}
           >
-            Plan faster, start cleaner, and make better tactical calls with AI built for competitive sailors.
+            Plan faster, start cleaner, and make better tactical calls — built for competitive sailors.
           </Text>
 
           <View style={styles.trustPills}>
@@ -614,7 +595,7 @@ export function HeroPhones() {
             </View>
             <View style={styles.trustPill}>
               <Ionicons name="flash-outline" size={14} color="#E3F2FD" />
-              <Text style={styles.trustPillText}>AI race strategy</Text>
+              <Text style={styles.trustPillText}>Race strategy</Text>
             </View>
             <View style={styles.trustPill}>
               <Ionicons name="people-outline" size={14} color="#E3F2FD" />
@@ -745,7 +726,7 @@ export function HeroPhones() {
             <FeatureDescriptions
               column="left"
               highlightedFeature={highlightedFeature}
-              onFeatureClick={(featureId, raceId, sectionId) => {
+              onFeatureClick={(featureId, raceId, _sectionId) => {
                 setHighlightedFeature(featureId);
                 setPreviewTab(featureToPreviewTab(featureId));
                 if (raceId) {
@@ -825,7 +806,7 @@ export function HeroPhones() {
             <FeatureDescriptions
               column="right"
               highlightedFeature={highlightedFeature}
-              onFeatureClick={(featureId, raceId, sectionId) => {
+              onFeatureClick={(featureId, raceId, _sectionId) => {
                 setHighlightedFeature(featureId);
                 setPreviewTab(featureToPreviewTab(featureId));
                 if (raceId) {

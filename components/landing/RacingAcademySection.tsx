@@ -412,7 +412,7 @@ export function RacingAcademySection() {
                 </View>
                 <Text style={styles.benefitTitle}>Interactive Learning</Text>
                 <Text style={styles.benefitText}>
-                  Not just videos — step through animated scenarios, practice decisions, get instant AI feedback
+                  Not just videos — step through animated scenarios, practice decisions, get instant feedback
                 </Text>
               </View>
 
@@ -420,7 +420,7 @@ export function RacingAcademySection() {
                 <View style={[styles.benefitIcon, { backgroundColor: '#DBEAFE' }]}>
                   <Ionicons name="analytics" size={32} color="#2196F3" />
                 </View>
-                <Text style={styles.benefitTitle}>AI-Powered Analysis</Text>
+                <Text style={styles.benefitTitle}>Connected Analysis</Text>
                 <Text style={styles.benefitText}>
                   Connect lessons to your actual race data. See where tactics apply to your sailing
                 </Text>
@@ -580,7 +580,7 @@ function CourseCard({ course, isDesktop, onPress, onEnroll }: CourseCardProps) {
             <View style={styles.quickStat}>
               <Ionicons name="flash-outline" size={14} color="#8B5CF6" />
               <Text style={[styles.quickStatText, { color: '#8B5CF6' }]}>
-                {course.skillsUsed.length} AI {course.skillsUsed.length === 1 ? 'tool' : 'tools'}
+                {course.skillsUsed.length} {course.skillsUsed.length === 1 ? 'tool' : 'tools'}
               </Text>
             </View>
           )}

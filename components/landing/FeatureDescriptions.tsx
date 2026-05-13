@@ -57,14 +57,14 @@ const LEFT_FEATURES: Feature[] = [
   },
   {
     id: 'ai-strategy',
-    title: 'AI Strategy Recommendations',
+    title: 'Strategy Recommendations',
     description: 'Receive intelligent race strategy suggestions for starts, upwind legs, and mark roundings.',
     icon: 'bulb-outline',
   },
   {
     id: 'post-race-analysis',
-    title: 'Post Race AI Analysis',
-    description: 'Analyze your race performance with AI-powered insights on tactics and boat handling.',
+    title: 'Post Race Analysis',
+    description: 'Analyze your race performance with insights on tactics and boat handling.',
     icon: 'analytics-outline',
   },
 ];
@@ -98,12 +98,12 @@ const RIGHT_FEATURES: Feature[] = [
 ];
 
 
-export function FeatureDescriptions({ 
-  highlightedFeature, 
-  onFeatureClick, 
+export function FeatureDescriptions({
+  highlightedFeature,
+  onFeatureClick,
   column,
-  zoomedFeature,
-  onFeatureZoom,
+  zoomedFeature: _zoomedFeature,
+  onFeatureZoom: _onFeatureZoom,
 }: FeatureDescriptionsProps) {
   const { width } = useWindowDimensions();
   const isMobile = width <= 768;
