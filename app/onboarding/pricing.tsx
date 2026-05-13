@@ -125,7 +125,7 @@ export default function PricingScreen() {
                         </View>
                         <View style={styles.featureItem}>
                             <Ionicons name="checkmark-circle" size={20} color="#10B981" />
-                            <Text style={styles.featureText}>AI Coaching & Suggestions</Text>
+                            <Text style={styles.featureText}>AI Insights & Suggestions</Text>
                         </View>
                         <View style={styles.featureItem}>
                             <Ionicons name="checkmark-circle" size={20} color="#10B981" />

@@ -12,7 +12,7 @@ import {
   Modal,
   TouchableOpacity,
   ScrollView,
-  Platform,
+  Platform as _Platform,
 } from 'react-native';
 import { ThemedText } from '@/components/themed-text';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -50,11 +50,11 @@ const FEATURE_CONTENT: Record<GatedFeature | 'default', FeatureContent> = {
     ],
   },
   ai_strategy: {
-    title: 'AI Coaching & Suggestions',
-    message: 'Get AI-powered coaching, suggestions, and progress insights.',
+    title: 'AI Insights & Suggestions',
+    message: 'Get AI-powered insights, suggestions, and progress analytics.',
     icon: 'analytics',
     benefits: [
-      'AI coaching & suggestions',
+      'AI insights & suggestions',
       'Smart recommendations',
       'Performance insights',
       'Progress analytics',
@@ -132,7 +132,7 @@ export default function UpgradePrompt({
   visible,
   onClose,
   feature,
-  context,
+  context: _context,
   tierSource,
   orgName,
 }: UpgradePromptProps) {
