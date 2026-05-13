@@ -7,6 +7,8 @@
  * Last Updated: October 2025
  */
 
+import { Platform } from 'react-native';
+
 // =============================================================================
 // TUFTE DESIGN TOKENS
 // =============================================================================
@@ -191,8 +193,6 @@ export const Spacing = {
 // =============================================================================
 // SHADOW SYSTEM
 // =============================================================================
-
-import { Platform } from 'react-native';
 
 /**
  * Shadow elevations for depth and hierarchy
@@ -447,8 +447,8 @@ export const buttons = {
     disabled: colors.neutral[300],
   },
 
-  // AI - AI-powered actions
-  // Examples: "Generate AI Strategy", "AI Course Prediction", "AI Venue Intelligence"
+  // AI - AI-powered actions (ambient marker only — never name the AI in the label)
+  // Examples: "Generate Strategy", "Predict Course", "Venue Intelligence"
   ai: {
     background: colors.ai[600],
     text: colors.text.inverse,
@@ -720,17 +720,22 @@ export function getRaceStatusColors(status: RaceStatusType) {
 /**
  * AI FEATURE GUIDELINES
  *
- * ALL AI-powered features must use purple (ai) colors:
- * - AI buttons → bg-purple-600 (ai.600)
- * - AI badges → bg-purple-100, border-purple-200, text-purple-700
- * - AI cards → purple border or gradient accent
- * - AI icons → text-purple-600
+ * Per visual-redesign spec §10.2: AI never speaks as itself. No bubble, no name,
+ * no avatar, no "AI" text label. Purple is an *ambient* marker only — pair it
+ * with a sparkle/brain icon and a feature-focused label, never the literal
+ * word "AI".
  *
- * Examples:
- * - "Generate AI Strategy" button
- * - "AI Course Prediction" card
- * - "AI Venue Intelligence" section
- * - "AI Matched" badge on coaches
+ * AI-powered surfaces use purple (ai) colors:
+ * - Buttons → bg-purple-600 (ai.600)
+ * - Badges → icon-only (sparkle/brain) on bg-purple-100; no "AI" Text
+ * - Cards → purple border or gradient accent
+ * - Icons → text-purple-600
+ *
+ * Label examples (drop the "AI" prefix):
+ * - "Generate Strategy" button (not "Generate AI Strategy")
+ * - "Course Prediction" card (not "AI Course Prediction")
+ * - "Venue Intelligence" section (not "AI Venue Intelligence")
+ * - "Matched" badge on coaches (not "AI Matched")
  */
 
 /**
@@ -778,7 +783,7 @@ export function getBadgeStyles(variant: keyof typeof badges) {
 /**
  * Check if a color combination meets WCAG AA contrast requirements
  */
-export function hasValidContrast(foreground: string, background: string): boolean {
+export function hasValidContrast(_foreground: string, _background: string): boolean {
   // This is a placeholder - in production, use a proper contrast checker library
   // like 'wcag-contrast' or similar
   return true;
