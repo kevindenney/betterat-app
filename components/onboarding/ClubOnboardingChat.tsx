@@ -11,6 +11,9 @@ import { supabase } from '@/services/supabase';
 import { useAuth } from '@/lib/contexts/AuthContext';
 import { useOrganization } from '@/providers/OrganizationProvider';
 import { getOnboardingContext } from '@/lib/onboarding/interestContext';
+import { createLogger } from '@/lib/utils/logger';
+
+const logger = createLogger('ClubOnboardingChat');
 
 interface OrgData {
   name: string;
@@ -117,7 +120,7 @@ export function ClubOnboardingChat({ interestSlug, onSkipToManual }: ClubOnboard
 
     // Debug: check auth state before calling edge function
     const { data: sessionData } = await supabase.auth.getSession();
-    console.log('[ClubOnboardingChat] Auth debug:', {
+    logger.debug('Auth debug:', {
       hasUser: !!user,
       userId: user?.id,
       hasSession: !!sessionData?.session,
@@ -162,7 +165,7 @@ export function ClubOnboardingChat({ interestSlug, onSkipToManual }: ClubOnboard
 
       const payloadMessages = conversation.map(({ role, content }) => ({ role, content }));
 
-      console.log('[ClubOnboardingChat] Invoking club-onboarding edge function:', {
+      logger.debug('Invoking club-onboarding edge function:', {
         messageCount: payloadMessages.length,
         interestSlug,
         organizationLabel: ctx.organizationLabel,
@@ -176,7 +179,7 @@ export function ClubOnboardingChat({ interestSlug, onSkipToManual }: ClubOnboard
         },
       });
 
-      console.log('[ClubOnboardingChat] Edge function response:', {
+      logger.debug('Edge function response:', {
         hasData: !!data,
         hasError: !!error,
         errorType: error?.constructor?.name,
@@ -250,7 +253,7 @@ export function ClubOnboardingChat({ interestSlug, onSkipToManual }: ClubOnboard
         },
       };
 
-      console.log('[ClubOnboardingChat] Creating org with payload:', JSON.stringify(orgPayload, null, 2));
+      logger.debug('Creating org with payload:', JSON.stringify(orgPayload, null, 2));
 
       const { data: org, error: orgError } = await supabase
         .from('organizations')
@@ -271,7 +274,7 @@ export function ClubOnboardingChat({ interestSlug, onSkipToManual }: ClubOnboard
         membership_status: 'active',
       };
 
-      console.log('[ClubOnboardingChat] Creating membership with payload:', JSON.stringify(memberPayload, null, 2));
+      logger.debug('Creating membership with payload:', JSON.stringify(memberPayload, null, 2));
 
       const { error: memberError } = await supabase
         .from('organization_memberships')
@@ -282,7 +285,7 @@ export function ClubOnboardingChat({ interestSlug, onSkipToManual }: ClubOnboard
         throw memberError;
       }
 
-      console.log('[ClubOnboardingChat] Org created:', org.id);
+      logger.debug('Org created:', org.id);
 
       // Refresh org provider so it picks up the new membership, then set it active
       await refreshMemberships();
@@ -408,7 +411,7 @@ export function ClubOnboardingChat({ interestSlug, onSkipToManual }: ClubOnboard
             }}>
               <ActivityIndicator size="small" color="#007AFF" />
               <Text style={{ marginLeft: 8, color: '#6B7280', fontSize: 14 }}>
-                AI is thinking...
+                Thinking...
               </Text>
             </View>
           )}

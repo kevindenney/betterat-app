@@ -10,7 +10,6 @@ import {
   TouchableOpacity,
   ScrollView,
   StyleSheet,
-  TextInput,
   ActivityIndicator
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -86,7 +85,7 @@ export const DeveloperDocumentUploader: React.FC = () => {
         { text: 'Cancel', style: 'cancel' }
       ]
     );
-  }, [handleQuickTraining]);
+  }, [handleQuickTraining, user]);
 
   const handleUploadFromFileSystem = useCallback(async () => {
     showAlertWithButtons(
@@ -190,7 +189,7 @@ export const DeveloperDocumentUploader: React.FC = () => {
             <Ionicons name="document" size={48} color="#ccc" />
             <Text style={styles.emptyStateTitle}>No training batches yet</Text>
             <Text style={styles.emptyStateText}>
-              Create training batches to enhance the AI with sailing knowledge
+              Create training batches to expand the sailing knowledge base
             </Text>
           </View>
         ) : (

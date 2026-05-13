@@ -27,6 +27,7 @@ import { createLogger } from '@/lib/utils/logger';
 // Only import DateTimePicker on native platforms
 let DateTimePicker: any = null;
 if (Platform.OS !== 'web') {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
   DateTimePicker = require('@react-native-community/datetimepicker').default;
 }
 
@@ -646,7 +647,7 @@ export default function NotificationsScreen(): React.ReactElement {
             onSwitchChange={(v) => updateUserPref('coaching_updates', v)}
           />
           <IOSListItem
-            title={isSailingCopy ? 'Venue Intelligence' : 'AI Insights'}
+            title={isSailingCopy ? 'Venue Intelligence' : 'Insights'}
             leadingIcon="analytics"
             leadingIconBackgroundColor={ICON_BACKGROUNDS.blue}
             trailingAccessory="switch"
