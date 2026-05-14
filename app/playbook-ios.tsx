@@ -249,6 +249,9 @@ export default function PlaybookIosPreview() {
                 title={concept.title}
                 state={derivePlaceholderState(concept)}
                 reflectionCount={undefined}
+                onPress={() =>
+                  router.push(`/concept-ios/${concept.slug}` as any)
+                }
               />
             ))}
           </ScrollView>

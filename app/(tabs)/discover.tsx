@@ -185,6 +185,12 @@ export default function DiscoverTab() {
             label: 'Notifications',
             onPress: () => router.push('/social-notifications'),
           },
+          {
+            icon: 'sparkles-outline',
+            sfSymbol: 'wand.and.stars',
+            label: 'Preview iOS register',
+            onPress: () => router.push('/discover-ios' as any),
+          },
         ]}
         onMeasuredHeight={setToolbarHeight}
         hidden={toolbarHidden}
