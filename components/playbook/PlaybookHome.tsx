@@ -21,6 +21,7 @@ import { TabScreenToolbar } from '@/components/ui/TabScreenToolbar';
 import { useScrollToolbarHide } from '@/hooks/useScrollToolbarHide';
 import { useInterest } from '@/providers/InterestProvider';
 import { useQueryClient } from '@tanstack/react-query';
+import { router } from 'expo-router';
 import {
   usePlaybook,
   usePlaybookSectionCounts,
@@ -247,6 +248,12 @@ export function PlaybookHome() {
             sfSymbol: 'sparkles',
             label: 'Get inspired',
             onPress: () => setInspirationWizardOpen(true),
+          },
+          {
+            icon: 'sparkles-outline',
+            sfSymbol: 'wand.and.stars',
+            label: 'Preview iOS register',
+            onPress: () => router.push('/playbook-ios' as any),
           },
         ]}
       />

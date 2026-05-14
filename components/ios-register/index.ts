@@ -20,3 +20,5 @@ export { CaptureCard, type CaptureKind } from './CaptureCard';
 export { AtmosphericBackground } from './AtmosphericBackground';
 export { LogEntry, type LogEntryKind, type LogEntryBeat } from './LogEntry';
 export { HeroMicComposer } from './HeroMicComposer';
+export { ConceptCard, type ConceptState } from './ConceptCard';
+export { ReflectionCard } from './ReflectionCard';
