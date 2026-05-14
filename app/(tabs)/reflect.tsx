@@ -26,6 +26,7 @@ import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
 import { IOS_COLORS } from '@/lib/design-tokens-ios';
+import { STEP_PALETTE } from '@/lib/step-theme';
 import { TabScreenToolbar } from '@/components/ui/TabScreenToolbar';
 import { IOSSegmentedControl } from '@/components/ui/ios/IOSSegmentedControl';
 import { useScrollToolbarHide } from '@/hooks/useScrollToolbarHide';
@@ -167,7 +168,7 @@ function ProgressView({ toolbarHeight, onScroll, isDesktop }: ProgressViewProps)
         <RefreshControl
           refreshing={refreshing}
           onRefresh={handleRefresh}
-          tintColor={IOS_COLORS.systemBlue}
+          tintColor={STEP_PALETTE.textTertiary}
         />
       }
     >
@@ -595,7 +596,7 @@ function ProfileView({ toolbarHeight, onScroll, isDesktop }: ProfileViewProps) {
         <RefreshControl
           refreshing={refreshing}
           onRefresh={handleRefresh}
-          tintColor={IOS_COLORS.systemBlue}
+          tintColor={STEP_PALETTE.textTertiary}
         />
       }
     >
@@ -616,13 +617,13 @@ function ProfileView({ toolbarHeight, onScroll, isDesktop }: ProfileViewProps) {
             activeOpacity={0.7}
           >
             <View style={styles.upgradePlanContent}>
-              <Ionicons name="rocket-outline" size={24} color="#2563EB" />
+              <Ionicons name="rocket-outline" size={24} color={STEP_PALETTE.textInfo} />
               <View style={styles.upgradePlanText}>
                 <Text style={styles.upgradePlanTitle}>Upgrade Plan</Text>
                 <Text style={styles.upgradePlanSubtitle}>Unlock unlimited races, insights, and more</Text>
               </View>
             </View>
-            <Ionicons name="chevron-forward" size={20} color="#94A3B8" />
+            <Ionicons name="chevron-forward" size={20} color={STEP_PALETTE.textTertiary} />
           </TouchableOpacity>
         )}
 
@@ -875,7 +876,7 @@ function RaceLogView({ toolbarHeight, onScroll, isDesktop }: RaceLogViewProps) {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={handleRefresh}
-            tintColor={IOS_COLORS.systemBlue}
+            tintColor={STEP_PALETTE.textTertiary}
           />
         }
         ListEmptyComponent={
@@ -1043,13 +1044,13 @@ const styles = StyleSheet.create({
   },
   emptyPrimaryButton: {
     marginTop: 6,
-    backgroundColor: '#2563EB',
+    backgroundColor: STEP_PALETTE.ctaBg,
     borderRadius: 10,
     paddingHorizontal: 16,
     paddingVertical: 10,
   },
   emptyPrimaryButtonText: {
-    color: '#FFFFFF',
+    color: STEP_PALETTE.ctaText,
     fontSize: 14,
     fontWeight: '700',
   },
@@ -1078,7 +1079,7 @@ const styles = StyleSheet.create({
   yearStatValue: {
     fontSize: 24,
     fontWeight: '700',
-    color: IOS_COLORS.systemBlue,
+    color: STEP_PALETTE.textPrimary,
     letterSpacing: -0.5,
   },
   yearStatLabel: {
@@ -1159,27 +1160,27 @@ const styles = StyleSheet.create({
   },
   emptyInlineButton: {
     marginTop: 2,
-    backgroundColor: '#2563EB',
+    backgroundColor: STEP_PALETTE.ctaBg,
     borderRadius: 10,
     paddingHorizontal: 14,
     paddingVertical: 8,
   },
   emptyInlineButtonText: {
-    color: '#FFFFFF',
+    color: STEP_PALETTE.ctaText,
     fontSize: 13,
     fontWeight: '700',
   },
-  // Upgrade Plan Card
+  // Upgrade Plan Card — bgInfo lavender + textInfo violet per redesign §2.4
   upgradePlanCard: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#EFF6FF',
+    backgroundColor: STEP_PALETTE.bgInfo,
     borderRadius: 14,
     padding: 16,
     marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#BFDBFE',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: STEP_PALETTE.borderTertiary,
   },
   upgradePlanContent: {
     flexDirection: 'row',
@@ -1193,11 +1194,11 @@ const styles = StyleSheet.create({
   upgradePlanTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#1E40AF',
+    color: STEP_PALETTE.textInfo,
   },
   upgradePlanSubtitle: {
     fontSize: 13,
-    color: '#3B82F6',
+    color: STEP_PALETTE.textSecondary,
     marginTop: 2,
   },
 });
