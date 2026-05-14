@@ -23,6 +23,9 @@ interface Props {
   /** When true, render firstLine in italic per iOS Notes/Messages convention.
    *  Defaults to true for voice source, false for note/ai. */
   italic?: boolean;
+  /** When true, render a small coral "first written" tag in the provenance
+   *  row. Used on Concept detail to mark the originating reflection. */
+  origin?: boolean;
   onPress?: () => void;
 }
 
@@ -32,6 +35,7 @@ export function ReflectionCard({
   source,
   provenance,
   italic,
+  origin,
   onPress,
 }: Props) {
   const renderItalic = italic ?? source === 'voice';
@@ -56,6 +60,11 @@ export function ReflectionCard({
       <View style={styles.provRow}>
         <SourceGlyph variant={source} size={20} />
         <Text style={styles.prov}>{provenance}</Text>
+        {origin && (
+          <View style={styles.originTag}>
+            <Text style={styles.originTagText}>first written</Text>
+          </View>
+        )}
       </View>
     </Pressable>
   );
@@ -120,5 +129,19 @@ const styles = StyleSheet.create({
     color: IOS_REGISTER.labelSecondary,
     letterSpacing: -0.1,
     flex: 1,
+  },
+  originTag: {
+    paddingVertical: 3,
+    paddingHorizontal: 8,
+    borderRadius: 999,
+    backgroundColor: IOS_REGISTER.accentMarkedContentTintStrong,
+    flexShrink: 0,
+  },
+  originTagText: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#E85A5A',
+    letterSpacing: 0.2,
+    textTransform: 'lowercase',
   },
 });
