@@ -8,6 +8,7 @@
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { IOS_COLORS, IOS_SHADOWS } from '@/lib/design-tokens-ios';
+import { STEP_PALETTE } from '@/lib/step-theme';
 import type { SailingDay } from '@/hooks/useReflectData';
 
 interface WeeklyCalendarProps {
@@ -153,8 +154,10 @@ const styles = StyleSheet.create({
   seeMore: {
     fontSize: 13,
     fontWeight: '500',
-    color: IOS_COLORS.systemBlue,
+    color: STEP_PALETTE.textPrimary,
     letterSpacing: -0.08,
+    textDecorationLine: 'underline',
+    textDecorationColor: STEP_PALETTE.textTertiary,
   },
   calendarRow: {
     flexDirection: 'row',
@@ -175,10 +178,10 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   dayLabelToday: {
-    color: IOS_COLORS.systemBlue,
+    color: STEP_PALETTE.textPrimary,
   },
   dayLabelFuture: {
-    color: IOS_COLORS.tertiaryLabel,
+    color: STEP_PALETTE.textTertiary,
   },
   dotContainer: {
     width: 32,
@@ -188,34 +191,37 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   dotContainerToday: {
-    backgroundColor: IOS_COLORS.systemBlue + '15',
+    backgroundColor: STEP_PALETTE.bgInfo,
   },
   dot: {
     width: 10,
     height: 10,
     borderRadius: 5,
   },
+  // Activity-type dots — three distinct ink shades (info violet / charcoal /
+  // tertiary tan) instead of blue/green/teal. Communicates type by tone density
+  // rather than chromatic color per redesign §11.6.
   dotRace: {
-    backgroundColor: IOS_COLORS.systemBlue,
+    backgroundColor: STEP_PALETTE.textInfo,
   },
   dotTraining: {
-    backgroundColor: IOS_COLORS.systemGreen,
+    backgroundColor: STEP_PALETTE.textPrimary,
   },
   dotLeisure: {
-    backgroundColor: IOS_COLORS.systemTeal,
+    backgroundColor: STEP_PALETTE.textTertiary,
   },
   dotMultiple: {
     width: 12,
     height: 12,
     borderRadius: 6,
     borderWidth: 2,
-    borderColor: IOS_COLORS.secondarySystemGroupedBackground,
+    borderColor: STEP_PALETTE.bgPrimary,
   },
   dotEmpty: {
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: IOS_COLORS.systemGray4,
+    backgroundColor: STEP_PALETTE.borderTertiary,
   },
   legend: {
     flexDirection: 'row',
@@ -224,7 +230,7 @@ const styles = StyleSheet.create({
     marginTop: 12,
     paddingTop: 12,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: IOS_COLORS.separator,
+    borderTopColor: STEP_PALETTE.borderTertiary,
   },
   legendItem: {
     flexDirection: 'row',
@@ -239,7 +245,7 @@ const styles = StyleSheet.create({
   legendText: {
     fontSize: 11,
     fontWeight: '500',
-    color: IOS_COLORS.secondaryLabel,
+    color: STEP_PALETTE.textTertiary,
   },
 });
 
