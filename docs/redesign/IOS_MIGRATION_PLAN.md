@@ -254,6 +254,32 @@ These are out of scope for the visual pass but should land before cutover. Captu
 
 ---
 
+## Resolved architecture decision (2026-05-14) — Reflection vs Competency Assessment
+
+**Question that surfaced during Phase 3:** does the iOS register's chronological-stack Debrief replace the existing form-based After tab entirely, or do form fields still survive somewhere? Confirmed by user.
+
+**Decision: split the After-phase into two distinct surfaces.**
+
+| Artifact | Surface | Owner | Shape | Status |
+|---|---|---|---|---|
+| **Reflection** (the student's narrative replay of what happened) | `/race/ios/debrief/[stepId]` chrono stack | Step user (student / sailor) | Time-ordered raw captures, no prompts | **Built (Phase 3)** |
+| **Competency Assessment** (graded rubric mapping captures → competency evidence) | NEW — not yet designed | Path author / preceptor / faculty | Form-based, per-competency rating + evidence basis | **Deferred to a later phase** — flagged for design |
+
+**Why the split:**
+- **JHU MSN students** (and any accredited program) require structured competency exposure documentation for CCNE / AACN / Title VIII / VA. Forms aren't optional — they're regulatory artifacts.
+- **But the student's reflection is narrative work.** Diekelmann-tradition narrative pedagogy + clinical reasoning models (Tanner) read better as a walked-through replay of captures than as form fields answering "what did you learn."
+- **The existing After tab collapses both into one surface,** which is why per-competency prompts repeat (WHAT DIDN'T / WHAT DID YOU LEARN / ANYTHING ELSE × N competencies). Each competency really wants assessment evidence, not its own reflection.
+- **Felix doesn't have an accrediting body**, so the collapse mostly worked for sailing. Emily does, so it doesn't.
+
+**What this means for the iOS register cutover:**
+
+- The chrono-stack Debrief surface (already built) is the canonical student-facing reflection. Visual pass complete.
+- The form-based competency assessment surface stays a separate Phase 5+ design problem. It's faculty-primary (path author left a note on a specific student's step — per the spec's §8.2 "Direct response to individual reflection" pattern), with the student seeing it as feedback rather than authoring it.
+- The data model already supports this: `StepReviewData.competency_assessment` (StepCompetencyAssessment with planned + additional competencies + evidence_basis) is the structured artifact. `review_data.sections` is the prose. Keep both fields; the new register just renders them on different surfaces.
+- **New follow-up:** a Competency Assessment surface needs a design from Claude Design when the next institutional handoff happens (Patricia / Linda MSN Capstone view).
+
+---
+
 ## Verification plan
 
 This is a planning artifact only. Verification once implementation begins:

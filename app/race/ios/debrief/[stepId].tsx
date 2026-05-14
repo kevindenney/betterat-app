@@ -24,6 +24,12 @@
  *   - No "compose reflection" mic (Debrief is reading, not capturing).
  *   - No per-capture AI commentary (each card stands on its own).
  *   - No score / placing / rating chrome (those live inside photo captions).
+ *   - No form-based competency assessment prompts (WHAT DIDN'T / WHAT DID
+ *     YOU LEARN / ANYTHING ELSE × N competencies). User-confirmed
+ *     2026-05-14: those move to a separate faculty/preceptor-facing
+ *     Competency Assessment surface — Debrief is the student's reflection,
+ *     not the graded artifact. See IOS_MIGRATION_PLAN.md "Resolved
+ *     architecture decision — Reflection vs Competency Assessment."
  *
  * Wire-up status:
  *   Real data:
