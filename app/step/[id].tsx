@@ -7,7 +7,7 @@
  */
 
 import React from 'react';
-import { View, Text, StyleSheet, Platform } from 'react-native';
+import { View, Text, StyleSheet, Platform, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, Stack, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -46,6 +46,17 @@ export default function StepDetailScreen() {
           title: vocab('Learning Event'),
           headerShown: true,
           headerBackTitle: 'Back',
+          headerRight: () => (
+            <Pressable
+              onPress={() => router.push(`/race/ios/${actualId}` as any)}
+              style={styles.iosPreviewBtn}
+              accessibilityLabel="Preview in iOS register"
+              hitSlop={8}
+            >
+              <Ionicons name="sparkles-outline" size={18} color="#007AFF" />
+              <Text style={styles.iosPreviewLabel}>iOS</Text>
+            </Pressable>
+          ),
           ...Platform.select({
             web: {
               headerLeft: () => (
@@ -96,5 +107,18 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#007AFF',
     paddingHorizontal: 8,
+  },
+  iosPreviewBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  iosPreviewLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#007AFF',
+    letterSpacing: -0.1,
   },
 });
