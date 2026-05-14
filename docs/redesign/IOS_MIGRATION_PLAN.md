@@ -319,6 +319,81 @@ This is a planning artifact only. Verification once implementation begins:
 - After Phase 3: Race Prep step detail in iOS sim matches the design file's beat structure + composer + crew list; user-authored rule renders inside Contingency.
 - After Phase 4: visual regression check that the 14 prior-commit surfaces still read coherently with the new chrome.
 
+---
+
+## Surface inventory — 11 iOS register previews shipped (Phases 0–5)
+
+All eleven Claude Design handoff surfaces have a preview route built and reachable. The index at `/dev/ios-previews` lists every surface with template paths.
+
+| # | Surface | Route | Type | Wire-up |
+|---|---|---|---|---|
+| 1 | Race Prep | `/race/ios/[stepId]` | re-skin existing | step + plan_data + collaborators + competencies + prior debrief quotes |
+| 2 | On the Water | `/race/ios/water/[stepId]` | fresh-build | observations + media_uploads (reverse chronological) |
+| 3 | Debrief | `/race/ios/debrief/[stepId]` | re-skin (architectural shift to chrono stack) | observations + media_uploads (chronological) |
+| 4 | Playbook home | `/playbook-ios` | re-skin (simplified per decision) | manifesto + concepts + recent reflections + inbox count badge |
+| 5 | Concept detail (Read mode) | `/concept-ios/[slug]` | re-skin existing | concept body_md + reflection trail (oldest tagged as "first written") |
+| 6 | Reflect home | `/reflect-ios` | re-skin existing | moments returned to wired; arc + thinking-shifted placeholder |
+| 7 | Discover Paths | `/discover-ios` | re-skin existing | placeholder catalog content (real catalog API not wired) |
+| 8 | Get Inspired modal | `/get-inspired-ios` | fresh-build | visual-only (analyze/build-plan pipeline deferred) |
+| 9 | Trophy of Becoming | `/trophy-ios` | fresh-build | placeholder (path-completion synthesis service deferred) |
+| 10 | Step transition hinge | `/hinge-ios` | fresh-build | placeholder tiles (adjacent-step detection deferred) |
+| 11 | Auth Welcome | `/auth-welcome-ios` | fresh-build (pre-auth) | static (no auth wiring — visual only) |
+
+### Entry points
+- Step surfaces: ⋮ overflow menu on any timeline-step card (Preview iOS · Race Prep / On the Water / Debrief)
+- Playbook home: toolbar capsule top-right on Playbook tab (✦ wand-and-stars)
+- Reflect home: toolbar capsule top-right on Reflect tab (✦ wand-and-stars)
+- Discover Paths: toolbar capsule top-right on Discover tab (✦ wand-and-stars)
+- Concept detail: tap any concept card on Playbook iOS shelf
+- Index (all 11): `/dev/ios-previews` — direct deep link
+
+### Component kit summary
+
+`components/ios-register/` houses 13 presentational components used across the 11 previews:
+
+| Component | Used by |
+|---|---|
+| `BeatCard` + `BeatBody` | Race Prep |
+| `CoralAIPromptCard` (blue / coral accent variants) | Race Prep, Debrief |
+| `CrewList` | Race Prep |
+| `ForecastTileGroup` | Race Prep |
+| `PermissionRuleCallout` (inline / pinned variants) | Race Prep, On the Water |
+| `QuoteCard` | Race Prep |
+| `SourceGlyph` (voice / note / ai variants) | Race Prep, Debrief, Playbook, Concept, Reflect |
+| `ToolbarComposer` | Race Prep |
+| `WorkingOnPill` | Race Prep |
+| `CaptureCard` | Debrief |
+| `AtmosphericBackground` | On the Water |
+| `LogEntry` | On the Water |
+| `HeroMicComposer` | On the Water |
+| `ConceptCard` | Playbook |
+| `ReflectionCard` (origin tag variant) | Playbook, Concept, Reflect |
+
+All components consume `IOS_REGISTER` colors and `IOS_REGISTER_TEXT` recipes from `lib/design-tokens-ios.ts` (Phase 0 foundation).
+
+---
+
+## What's left before cutover
+
+The visual pass is done. Eight follow-ups (listed earlier) are real data-layer + architectural work that the visual pass intentionally deferred. In priority order for cutover:
+
+1. **Competency Assessment surface** — the form-based artifact that splits from Debrief. Faculty-facing primary. Highest-priority because the existing After tab's form-based prompts can't retire until this lands.
+2. **Per-user concept state schema** — `practicing / learning / breakthrough` per concept per user. Powers ConceptCard state pills, Concept detail state pill, Race Prep WorkingOnPill state.
+3. **Concept ↔ step association** — surfaces the live-dot signal ("concept active in current step") and powers the per-concept reflection trail on Concept detail.
+4. **Weather service integration** — wires real conditions into ForecastTileGroup. Sailing-specific labels; per-interest mapping for clinical / drawing.
+5. **Prior-debrief quote query** — first-class field (`review_data.standout_quotes`) so the "From your last race" stack stops relying on text-shortening heuristics.
+6. **Concept-suggestion service** — powers the inline "FROM YOUR PLAYBOOK" coral AI prompt on Race Prep.
+7. **`step_rules` schema** — the user-authored Contingency rule needs a real data model. Currently placeholder text on Race Prep + On the Water.
+8. **Per-interest beat name mapping** — clinical (Briefing / Shift / Debrief) and other interest vocabularies. Currently sailing-only hardcoded.
+9. **Authoring flow for prose beats** — the open architectural question. Where does the user *write* `what` / `why` in the new register? Likely the bottom toolbar composer + AI placement, but needs a design.
+10. **Reflection-usage tracking** — powers Reflect home's "moments returned to" return-count badges with real data instead of placeholder counts.
+
+At cutover, the existing PlaybookHome.tsx loses ~80% of its rendered surface (decision documented above). Components that disappear from home: ThisWeekFocusCard, AskYourPlaybook, SuggestionsBar, QueuedSuggestionsPreview, WeeklyReviewsPreview, RecentDebriefs, SectionTabs. Run a deletion audit before the cutover commit.
+
+The existing form-shaped After tab retires when the chrono-stack Debrief becomes canonical (decision documented above). The Competency Assessment surface (#1 above) is the prerequisite.
+
+---
+
 ## Final action on ExitPlanMode approval
 
 Write this same content to `docs/redesign/IOS_MIGRATION_PLAN.md`. No other code changes in this pass — implementation waits for the user's review of the plan.
