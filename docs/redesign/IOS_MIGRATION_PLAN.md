@@ -280,6 +280,38 @@ These are out of scope for the visual pass but should land before cutover. Captu
 
 ---
 
+## Resolved register decisions (2026-05-15) — Faculty surfaces
+
+The 12th iOS surface (Competency Assessment, faculty-facing) baked in two register-level decisions that apply across any future faculty/preceptor/coach UI work.
+
+### Decision A — Faculty-surface density calibration
+
+Faculty surfaces and practitioner surfaces share the iOS register (same gray 6 ground, white 16px cards, SF Pro, two accents) but **information density is calibrated differently per user role**.
+
+| Treatment | Practitioner surface | Faculty surface |
+|---|---|---|
+| Card-stack gap | 24px (room to think) | **12px** (throughput) |
+| Section eyebrow padding | `32px 20px 12px` | **`4px 20px 12px`** (tighter) |
+| Meta lines | wrapped across multiple rows | **inline** with separator dots |
+| Title-block bottom padding | 24–32px | **22px** (compressed) |
+| Title size | 32pt regular | **28pt regular** (one notch down) |
+
+**Why:** practitioners are *composing* (Race Prep, Debrief, Concept detail, Playbook) — breathing room serves the act. Faculty are *grading* — working through a rubric, completing one step's review in one sitting, then moving to the next student's step. They need throughput. The calibration is the surface designer's call, not a token-level switch — same `IOS_REGISTER` tokens, different layout choices.
+
+**When to apply:** any surface whose primary user is a path author, preceptor, coach, or institutional reviewer rather than the practitioner whose step it is. Competency Assessment is the first; future faculty surfaces (cohort overview, author dashboard, preceptor sign-off, rotation summary) inherit the same density rule.
+
+### Decision B — Earned register exception: the rating segmented control
+
+The four-state segmented control on the Competency Assessment card is **44px tall with semibold active label**, vs the iOS-default 32px regular used everywhere else in the kit. This is the only iOS register surface that violates the segmented-control default.
+
+**Why earned:** the segmented control carries the grading decision — the single most consequential interaction on the surface, and the artifact's payload. A 32px control is the right size for switching views (Read/Work on Concept iOS) or filtering (Reflect three-tab). A 44px control with semibold active text is the right size for *deciding*. The active state needs to read as a commitment, not a selection.
+
+**The rule for future exceptions:** size up the segmented control only when (a) the action it carries is irreversible-or-near-irreversible without re-entry, AND (b) the surface's primary purpose IS that decision. Don't size up to draw attention; size up to acknowledge stakes. Most segmented controls remain 32px regular.
+
+This is the only exception in the kit. New surfaces should not add others without a comparable case.
+
+---
+
 ## Resolved architecture decision (2026-05-14) — Playbook home scope
 
 **Question that surfaced during Phase 5a:** the existing Playbook home has eight first-order sections (This Week's Focus / Vision / Ask your Playbook / Concepts-Resources-Patterns-Reviews-Q&A counters / Recent sessions / Suggestions queue / Raw Inbox / Shared with / Inherited from). The Claude Design's iOS register version simplifies to four (Vision / Concept shelf / Recent reflections / title block). Do the missing six survive the cutover by moving deeper, or do they stay at home?
@@ -321,23 +353,24 @@ This is a planning artifact only. Verification once implementation begins:
 
 ---
 
-## Surface inventory — 11 iOS register previews shipped (Phases 0–5)
+## Surface inventory — 12 iOS register previews shipped (Phases 0–5)
 
-All eleven Claude Design handoff surfaces have a preview route built and reachable. The index at `/dev/ios-previews` lists every surface with template paths.
+All twelve Claude Design handoff surfaces have a preview route built and reachable. The index at `/dev/ios-previews` lists every surface with template paths.
 
-| # | Surface | Route | Type | Wire-up |
-|---|---|---|---|---|
-| 1 | Race Prep | `/race/ios/[stepId]` | re-skin existing | step + plan_data + collaborators + competencies + prior debrief quotes |
-| 2 | On the Water | `/race/ios/water/[stepId]` | fresh-build | observations + media_uploads (reverse chronological) |
-| 3 | Debrief | `/race/ios/debrief/[stepId]` | re-skin (architectural shift to chrono stack) | observations + media_uploads (chronological) |
-| 4 | Playbook home | `/playbook-ios` | re-skin (simplified per decision) | manifesto + concepts + recent reflections + inbox count badge |
-| 5 | Concept detail (Read mode) | `/concept-ios/[slug]` | re-skin existing | concept body_md + reflection trail (oldest tagged as "first written") |
-| 6 | Reflect home | `/reflect-ios` | re-skin existing | moments returned to wired; arc + thinking-shifted placeholder |
-| 7 | Discover Paths | `/discover-ios` | re-skin existing | placeholder catalog content (real catalog API not wired) |
-| 8 | Get Inspired modal | `/get-inspired-ios` | fresh-build | visual-only (analyze/build-plan pipeline deferred) |
-| 9 | Trophy of Becoming | `/trophy-ios` | fresh-build | placeholder (path-completion synthesis service deferred) |
-| 10 | Step transition hinge | `/hinge-ios` | fresh-build | placeholder tiles (adjacent-step detection deferred) |
-| 11 | Auth Welcome | `/auth-welcome-ios` | fresh-build (pre-auth) | static (no auth wiring — visual only) |
+| # | Surface | Route | Type | User | Wire-up |
+|---|---|---|---|---|---|
+| 1 | Race Prep | `/race/ios/[stepId]` | re-skin existing | practitioner | step + plan_data + collaborators + competencies + prior debrief quotes |
+| 2 | On the Water | `/race/ios/water/[stepId]` | fresh-build | practitioner | observations + media_uploads (reverse chronological) |
+| 3 | Debrief | `/race/ios/debrief/[stepId]` | re-skin (architectural shift to chrono stack) | practitioner | observations + media_uploads (chronological) |
+| 4 | Playbook home | `/playbook-ios` | re-skin (simplified per decision) | practitioner | manifesto + concepts + recent reflections + inbox count badge |
+| 5 | Concept detail (Read mode) | `/concept-ios/[slug]` | re-skin existing | practitioner | concept body_md + reflection trail (oldest tagged as "first written") |
+| 6 | Reflect home | `/reflect-ios` | re-skin existing | practitioner | moments returned to wired; arc + thinking-shifted placeholder |
+| 7 | Discover Paths | `/discover-ios` | re-skin existing | practitioner | placeholder catalog content (real catalog API not wired) |
+| 8 | Get Inspired modal | `/get-inspired-ios` | fresh-build | practitioner | visual-only (analyze/build-plan pipeline deferred) |
+| 9 | Trophy of Becoming | `/trophy-ios` | fresh-build | practitioner | placeholder (path-completion synthesis service deferred) |
+| 10 | Step transition hinge | `/hinge-ios` | fresh-build | practitioner | placeholder tiles (adjacent-step detection deferred) |
+| 11 | Auth Welcome | `/auth-welcome-ios` | fresh-build (pre-auth) | n/a | static (no auth wiring — visual only) |
+| 12 | **Competency Assessment** | `/competency-assessment-ios/[stepId]` | **fresh-build (faculty)** | **faculty** | step.title + completed_at + capture count; competency list, AI capture surfacing, submit flow deferred |
 
 ### Entry points
 - Step surfaces: ⋮ overflow menu on any timeline-step card (Preview iOS · Race Prep / On the Water / Debrief)

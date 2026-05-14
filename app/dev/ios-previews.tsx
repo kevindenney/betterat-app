@@ -95,6 +95,18 @@ const ENTRIES: { section: string; items: PreviewEntry[] }[] = [
     ],
   },
   {
+    section: 'FACULTY SURFACE — needs a step ID',
+    items: [
+      {
+        title: 'Competency Assessment · iOS',
+        subtitle:
+          'Faculty rubric. 4-state segmented control (44px earned exception). Splits from student-facing Debrief.',
+        href: '/competency-assessment-ios/{stepId}',
+        needsStepId: true,
+      },
+    ],
+  },
+  {
     section: 'FRESH BUILDS — no editorial precedent',
     items: [
       {
