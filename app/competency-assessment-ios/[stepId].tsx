@@ -724,7 +724,10 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '400',
     color: IOS_REGISTER.label,
-    letterSpacing: -0.1,
+    // Tightened letter-spacing so "Distinguished" fits in the quarter-width
+    // segment at 13pt regular alongside Emerging / Developing / Proficient.
+    // Without this, the longest label truncates to "Distinguis…".
+    letterSpacing: -0.4,
   },
   segOptTextActive: {
     fontWeight: '600',
