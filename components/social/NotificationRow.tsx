@@ -35,8 +35,8 @@ import { getSafeImageUri } from '@/lib/utils/safeImageUri';
 import {
   IOS_COLORS,
   IOS_SPACING,
-  IOS_RADIUS,
 } from '@/lib/design-tokens-ios';
+import { STEP_PALETTE } from '@/lib/step-theme';
 
 // =============================================================================
 // TYPES
@@ -94,35 +94,11 @@ function getNotificationIcon(type: SocialNotification['type']) {
   }
 }
 
-function getIconBgColor(type: SocialNotification['type']): string {
-  switch (type) {
-    case 'new_follower':
-      return IOS_COLORS.systemBlue;
-    case 'race_like':
-      return IOS_COLORS.systemPink;
-    case 'race_comment':
-    case 'race_comment_reply':
-    case 'new_message':
-    case 'thread_mention':
-    case 'activity_comment':
-      return IOS_COLORS.systemGreen;
-    case 'followed_user_race':
-      return IOS_COLORS.systemOrange;
-    case 'followed_user_step_completed':
-      return IOS_COLORS.systemGreen;
-    case 'org_membership_approved':
-    case 'org_invite_accepted':
-    case 'org_invite_received':
-      return IOS_COLORS.systemIndigo;
-    case 'blueprint_subscribed':
-      return '#6D28D9';
-    case 'step_suggested':
-      return IOS_COLORS.systemBlue;
-    case 'step_reviewed':
-      return IOS_COLORS.systemGreen;
-    default:
-      return IOS_COLORS.systemGray;
-  }
+function getIconBgColor(_type: SocialNotification['type']): string {
+  // Per redesign §11.6 + secondary-surfaces audit decision (option b):
+  // notification type is communicated by the icon glyph shape, not by a
+  // chromatic background. All bg charcoal; the glyph remains white on top.
+  return STEP_PALETTE.ctaBg;
 }
 
 /** Get notification action text (without actor name) */

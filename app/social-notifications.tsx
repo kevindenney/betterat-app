@@ -39,6 +39,8 @@ import {
   IOS_SPACING,
   IOS_RADIUS,
 } from '@/lib/design-tokens-ios';
+import { fontFamily } from '@/lib/design-tokens';
+import { STEP_PALETTE } from '@/lib/step-theme';
 
 // =============================================================================
 // TYPES
@@ -276,7 +278,12 @@ export default function SocialNotificationsScreen() {
     staleTime: 30 * 1000,
   });
 
-  const followingMap = followingData || new Map<string, boolean>();
+  // Stable identity for the follow-map fallback so the two useCallbacks below
+  // that read it don't re-create on every render.
+  const followingMap = useMemo(
+    () => followingData || new Map<string, boolean>(),
+    [followingData],
+  );
 
   // Follow/unfollow mutation
   const toggleFollowMutation = useMutation({
@@ -388,10 +395,12 @@ export default function SocialNotificationsScreen() {
                 }
               }
               // Navigate based on type
+              // eslint-disable-next-line no-console
               console.log('[social-notifications] Tap:', { type: latest.type, data: latest.data, id: latest.id });
               if (latest.type === 'new_follower' && latest.actorId) {
                 router.push(`/sailor/${latest.actorId}`);
               } else if (latest.type === 'org_invite_received' && latest.data?.invite_token) {
+                // eslint-disable-next-line no-console
                 console.log('[social-notifications] Navigating to invite:', latest.data.invite_token);
                 router.push(`/invite/${latest.data.invite_token}` as any);
               } else if (latest.type === 'org_membership_approved') {
@@ -704,7 +713,7 @@ export default function SocialNotificationsScreen() {
             onPress={handleBack}
             hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}
           >
-            <ChevronLeft size={28} color={IOS_COLORS.systemBlue} />
+            <ChevronLeft size={28} color={STEP_PALETTE.textPrimary} />
           </Pressable>
         </View>
 
@@ -745,7 +754,7 @@ export default function SocialNotificationsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: IOS_COLORS.systemGroupedBackground,
+    backgroundColor: STEP_PALETTE.bgPrimary,
   },
 
   // Nav Bar (minimal)
@@ -754,7 +763,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: IOS_SPACING.sm,
     paddingBottom: IOS_SPACING.xs,
-    backgroundColor: IOS_COLORS.systemGroupedBackground,
+    backgroundColor: STEP_PALETTE.bgPrimary,
   },
   backButton: {
     padding: IOS_SPACING.xs,
@@ -782,14 +791,20 @@ const styles = StyleSheet.create({
     paddingBottom: IOS_SPACING.lg,
   },
   largeTitle: {
-    fontSize: 34,
-    fontWeight: '700',
-    color: IOS_COLORS.label,
-    letterSpacing: 0.4,
+    // Serif page header per redesign §11 (consistent with TabScreenToolbar large
+    // title — Activity is reached from a modal route, not a tab, so the toolbar
+    // doesn't provide this).
+    fontFamily: fontFamily.serif,
+    fontSize: 30,
+    fontWeight: '500',
+    color: STEP_PALETTE.textPrimary,
+    letterSpacing: -0.4,
   },
   markAllText: {
     fontSize: 15,
-    color: IOS_COLORS.systemBlue,
+    color: STEP_PALETTE.textPrimary,
+    textDecorationLine: 'underline',
+    textDecorationColor: STEP_PALETTE.textTertiary,
   },
   viewModeRow: {
     flexDirection: 'row',
@@ -802,21 +817,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: IOS_SPACING.md,
     paddingVertical: IOS_SPACING.xs,
     borderRadius: IOS_RADIUS.full,
-    backgroundColor: IOS_COLORS.secondarySystemGroupedBackground,
-    borderWidth: 1,
-    borderColor: IOS_COLORS.separator,
+    backgroundColor: 'transparent',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: STEP_PALETTE.borderSecondary,
   },
   viewModePillActive: {
-    backgroundColor: IOS_COLORS.systemBlue,
-    borderColor: IOS_COLORS.systemBlue,
+    backgroundColor: STEP_PALETTE.ctaBg,
+    borderColor: STEP_PALETTE.ctaBg,
   },
   viewModePillText: {
     fontSize: 13,
     fontWeight: '600',
-    color: IOS_COLORS.secondaryLabel,
+    color: STEP_PALETTE.textSecondary,
   },
   viewModePillTextActive: {
-    color: IOS_COLORS.white,
+    color: STEP_PALETTE.ctaText,
   },
 
   // Messages Section
@@ -835,13 +850,16 @@ const styles = StyleSheet.create({
     gap: IOS_SPACING.xs,
   },
   messagesTitle: {
+    // Section titles step down from page header — use serif body 20pt to
+    // distinguish from sans eyebrows below.
+    fontFamily: fontFamily.serif,
     fontSize: 20,
-    fontWeight: '600',
-    color: IOS_COLORS.label,
-    letterSpacing: -0.4,
+    fontWeight: '500',
+    color: STEP_PALETTE.textPrimary,
+    letterSpacing: -0.3,
   },
   messageBadge: {
-    backgroundColor: IOS_COLORS.systemBlue,
+    backgroundColor: STEP_PALETTE.textInfo,
     borderRadius: 10,
     minWidth: 20,
     height: 20,
@@ -852,7 +870,7 @@ const styles = StyleSheet.create({
   messageBadgeText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: STEP_PALETTE.ctaText,
   },
   seeAllRow: {
     flexDirection: 'row',
@@ -860,7 +878,7 @@ const styles = StyleSheet.create({
   },
   seeAllText: {
     fontSize: 15,
-    color: IOS_COLORS.tertiaryLabel,
+    color: STEP_PALETTE.textTertiary,
   },
 
   // Suggestions Section
@@ -874,10 +892,11 @@ const styles = StyleSheet.create({
     marginBottom: IOS_SPACING.sm,
   },
   suggestionsTitle: {
+    fontFamily: fontFamily.serif,
     fontSize: 20,
-    fontWeight: '600',
-    color: IOS_COLORS.label,
-    letterSpacing: -0.4,
+    fontWeight: '500',
+    color: STEP_PALETTE.textPrimary,
+    letterSpacing: -0.3,
   },
   suggestionsScrollContent: {
     paddingRight: IOS_SPACING.lg,
@@ -885,7 +904,7 @@ const styles = StyleSheet.create({
   },
   suggestionCard: {
     width: 130,
-    backgroundColor: IOS_COLORS.secondarySystemGroupedBackground,
+    backgroundColor: STEP_PALETTE.bgSecondary,
     borderRadius: IOS_RADIUS.md,
     padding: IOS_SPACING.md,
     alignItems: 'center',
@@ -927,7 +946,7 @@ const styles = StyleSheet.create({
     marginBottom: IOS_SPACING.sm,
   },
   suggestionFollowButton: {
-    backgroundColor: IOS_COLORS.systemBlue,
+    backgroundColor: STEP_PALETTE.ctaBg,
     borderRadius: IOS_RADIUS.full,
     paddingHorizontal: IOS_SPACING.lg,
     paddingVertical: IOS_SPACING.xs,
@@ -936,12 +955,12 @@ const styles = StyleSheet.create({
   suggestionFollowText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: STEP_PALETTE.ctaText,
   },
 
   // Notification row wrapper for rounded corners
   notificationRowWrapper: {
-    backgroundColor: IOS_COLORS.secondarySystemGroupedBackground,
+    backgroundColor: STEP_PALETTE.bgSecondary,
     overflow: 'hidden',
   },
   notificationRowFirst: {
@@ -956,7 +975,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     right: IOS_SPACING.md,
     top: IOS_SPACING.sm,
-    backgroundColor: IOS_COLORS.systemGray5,
+    backgroundColor: STEP_PALETTE.bgSecondary,
     borderRadius: IOS_RADIUS.full,
     paddingHorizontal: IOS_SPACING.xs,
     paddingVertical: 2,
@@ -965,14 +984,14 @@ const styles = StyleSheet.create({
   groupCountText: {
     fontSize: 11,
     fontWeight: '700',
-    color: IOS_COLORS.secondaryLabel,
+    color: STEP_PALETTE.textTertiary,
   },
 
-  // Section headers
+  // Section headers — sans uppercase eyebrow per audit §2.5
   sectionHeader: {
     paddingTop: IOS_SPACING.lg,
     paddingBottom: IOS_SPACING.sm,
-    backgroundColor: IOS_COLORS.systemGroupedBackground,
+    backgroundColor: STEP_PALETTE.bgPrimary,
   },
   sectionHeaderContent: {
     flexDirection: 'row',
@@ -980,13 +999,14 @@ const styles = StyleSheet.create({
     gap: IOS_SPACING.xs,
   },
   sectionTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: IOS_COLORS.label,
-    letterSpacing: -0.4,
+    fontSize: 12,
+    fontWeight: '500',
+    color: STEP_PALETTE.textTertiary,
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
   },
   sectionBadge: {
-    backgroundColor: IOS_COLORS.systemBlue,
+    backgroundColor: STEP_PALETTE.textInfo,
     borderRadius: 8,
     minWidth: 20,
     height: 20,
@@ -997,7 +1017,7 @@ const styles = StyleSheet.create({
   sectionBadgeText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: STEP_PALETTE.ctaText,
   },
 
   // Empty state
