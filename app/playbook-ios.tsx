@@ -60,7 +60,11 @@ import {
 } from '@/lib/design-tokens-ios';
 import { useInterest } from '@/providers/InterestProvider';
 import { useManifesto } from '@/hooks/useManifesto';
-import { usePlaybook, usePlaybookConcepts } from '@/hooks/usePlaybook';
+import {
+  usePlaybook,
+  usePlaybookConcepts,
+  usePlaybookInbox,
+} from '@/hooks/usePlaybook';
 import { useMyTimeline } from '@/hooks/useTimelineSteps';
 import type { PlaybookConceptRecord } from '@/types/playbook';
 import type {
@@ -86,6 +90,13 @@ export default function PlaybookIosPreview() {
   const { data: playbook, isLoading: isLoadingPlaybook } = usePlaybook(interestId);
   const { data: concepts } = usePlaybookConcepts(playbook?.id, interestId);
   const { data: timeline } = useMyTimeline(interestId);
+  const { data: inboxItems } = usePlaybookInbox(playbook?.id);
+
+  // Count of unprocessed inbox items — surfaces as a chrome badge top-right
+  // so the user notices items waiting to be ingested without the full inbox
+  // section dominating home.
+  const pendingInboxCount =
+    inboxItems?.filter((i) => i.status === 'pending').length ?? 0;
 
   const reflections = useMemo(
     () => buildRecentReflections(timeline ?? []),
@@ -116,10 +127,36 @@ export default function PlaybookIosPreview() {
         contentContainerStyle={styles.scroll}
         showsVerticalScrollIndicator={false}
       >
-        {/* Top chrome — root tab: no back chevron, just search + overflow */}
+        {/* Top chrome — root tab: no back chevron, just inbox + close.
+            Inbox badge surfaces unprocessed item count (coral when present)
+            so the user notices the Raw Inbox without it dominating home. */}
         <View style={styles.topChrome}>
           <View style={styles.leftPad} />
           <View style={styles.rightGlyphs}>
+            <Pressable
+              style={styles.glyphBtn}
+              hitSlop={8}
+              accessibilityLabel={
+                pendingInboxCount > 0
+                  ? `Raw Inbox — ${pendingInboxCount} unprocessed`
+                  : 'Raw Inbox'
+              }
+            >
+              <View style={styles.inboxIconWrap}>
+                <Ionicons
+                  name="mail-outline"
+                  size={22}
+                  color={IOS_REGISTER.accentUserAction}
+                />
+                {pendingInboxCount > 0 && (
+                  <View style={styles.inboxBadge}>
+                    <Text style={styles.inboxBadgeText}>
+                      {pendingInboxCount > 9 ? '9+' : pendingInboxCount}
+                    </Text>
+                  </View>
+                )}
+              </View>
+            </Pressable>
             <Pressable
               style={styles.glyphBtn}
               hitSlop={8}
@@ -426,6 +463,27 @@ const styles = StyleSheet.create({
     padding: 6,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  inboxIconWrap: {
+    position: 'relative',
+  },
+  inboxBadge: {
+    position: 'absolute',
+    top: -4,
+    right: -6,
+    minWidth: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: IOS_REGISTER.accentMarkedContent,
+    paddingHorizontal: 4,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  inboxBadgeText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    letterSpacing: 0,
   },
   banner: {
     flexDirection: 'row',
