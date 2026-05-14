@@ -15,6 +15,7 @@ import {
   StyleSheet,
   ActivityIndicator,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
 import { useAddInboxItem } from '@/hooks/usePlaybook';
@@ -69,6 +70,7 @@ export function QuickCaptureModal({
   onClose,
   onOpenInspiration,
 }: QuickCaptureModalProps) {
+  const insets = useSafeAreaInsets();
   const [mode, setMode] = useState<CaptureMode>('url');
   const [url, setUrl] = useState('');
   const [title, setTitle] = useState('');
@@ -167,7 +169,7 @@ export function QuickCaptureModal({
       onRequestClose={handleClose}
     >
       <View style={styles.container}>
-        <View style={styles.header}>
+        <View style={[styles.header, { paddingTop: insets.top + IOS_SPACING.md }]}>
           <Pressable onPress={handleClose} style={styles.headerBtn}>
             <Text style={styles.cancelText}>Cancel</Text>
           </Pressable>

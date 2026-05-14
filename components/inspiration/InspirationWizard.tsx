@@ -10,6 +10,7 @@
 
 import React, { useState, useCallback } from 'react';
 import { Modal, View, StyleSheet, Pressable, Text } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
 import { useInterest } from '@/providers/InterestProvider';
@@ -37,6 +38,7 @@ interface InspirationWizardProps {
 export function InspirationWizard({ visible, onClose }: InspirationWizardProps) {
   const { user } = useAuth();
   const { userInterests, proposeInterest } = useInterest();
+  const insets = useSafeAreaInsets();
 
   const [step, setStep] = useState<WizardStep>('capture');
   const [extraction, setExtraction] = useState<InspirationExtraction | null>(null);
@@ -133,8 +135,9 @@ export function InspirationWizard({ visible, onClose }: InspirationWizardProps) 
       onRequestClose={handleClose}
     >
       <View style={styles.container}>
-        {/* Header */}
-        <View style={styles.header}>
+        {/* Header — paddingTop respects the top safe-area inset so Cancel
+            stays tappable below the status bar / notch on Android. */}
+        <View style={[styles.header, { paddingTop: insets.top + IOS_SPACING.m }]}>
           {canGoBack ? (
             <Pressable onPress={handleBack} style={styles.headerButton}>
               <Ionicons name="chevron-back" size={20} color={IOS_COLORS.systemBlue} />
