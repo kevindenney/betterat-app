@@ -1450,6 +1450,11 @@ function RaceSummaryCardImpl({
         onPress: () => router.push(`/race/ios/${race.id}` as any),
       });
       items.push({
+        label: 'Preview iOS · On the Water',
+        icon: 'sparkles-outline',
+        onPress: () => router.push(`/race/ios/water/${race.id}` as any),
+      });
+      items.push({
         label: 'Preview iOS · Debrief',
         icon: 'sparkles-outline',
         onPress: () => router.push(`/race/ios/debrief/${race.id}` as any),

@@ -17,3 +17,6 @@ export { CrewList, type CrewMember } from './CrewList';
 export { ForecastTileGroup, type ForecastTile } from './ForecastTileGroup';
 export { ToolbarComposer, type ComposerTool } from './ToolbarComposer';
 export { CaptureCard, type CaptureKind } from './CaptureCard';
+export { AtmosphericBackground } from './AtmosphericBackground';
+export { LogEntry, type LogEntryKind, type LogEntryBeat } from './LogEntry';
+export { HeroMicComposer } from './HeroMicComposer';
