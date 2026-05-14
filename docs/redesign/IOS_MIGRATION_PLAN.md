@@ -280,6 +280,36 @@ These are out of scope for the visual pass but should land before cutover. Captu
 
 ---
 
+## Resolved architecture decision (2026-05-14) — Playbook home scope
+
+**Question that surfaced during Phase 5a:** the existing Playbook home has eight first-order sections (This Week's Focus / Vision / Ask your Playbook / Concepts-Resources-Patterns-Reviews-Q&A counters / Recent sessions / Suggestions queue / Raw Inbox / Shared with / Inherited from). The Claude Design's iOS register version simplifies to four (Vision / Concept shelf / Recent reflections / title block). Do the missing six survive the cutover by moving deeper, or do they stay at home?
+
+**Decision: match the design. The existing Playbook home over-stuffs the surface, and the iOS register strips it back to the Apple Books library treatment.**
+
+| Section in existing Playbook home | Status in iOS register |
+|---|---|
+| Title block (Playbook · Sail Racing) | Kept — Books "Library" treatment |
+| Vision card | Kept — frontispiece |
+| Working-on-this-season concept shelf | Kept — Books-spine horizontal scroll |
+| Recent reflections (3 entries) | Kept — capture-card grammar |
+| THIS WEEK'S FOCUS card | **Moved** to a deeper Reviews/Focus surface |
+| Ask your Playbook | **Moved** to a search/query affordance on the deeper search screen |
+| Concepts / Resources / Patterns / Reviews / Q&A counter tabs | **Moved** to a deeper section-navigator (the shelf IS the concepts; the others live one tap away) |
+| Recent sessions feed | **Folded into** Recent reflections; the iOS register doesn't separate "session that fed playbook" from "reflection that came out of it" |
+| Suggestions queue (Weekly Review / Focus) | **Moved** to a deeper inbox or surfaces inline (TBD) |
+| Raw Inbox | **Moved** to a deeper inbox screen — explicitly named in the spec as a private, processable area |
+| Shared with | **Moved** to a settings/sharing screen |
+| Inherited from | **Moved** to a path-relationship screen |
+
+**Why the simplification:**
+- The Books anchor only works if the home reads as a library, not a control panel. Eight sections at home defeats the reference.
+- "Where his playbook is moving" should be visible without scrolling. The breakthrough coral wash on the concept shelf does that work in three cards; the counters + suggestions + inbox dilute that signal.
+- The missing six sections aren't deleted — they're load-bearing, just relocated. Each gets its own screen (or its own tap-target) at the next layer of depth.
+
+**Implication for engineering:** at cutover, the existing PlaybookHome.tsx loses ~80% of its rendered surface. The components that disappear from home (ThisWeekFocusCard, AskYourPlaybook, SuggestionsBar, sidebar QueuedSuggestionsPreview, WeeklyReviewsPreview, RecentDebriefs, SectionTabs) either retire or move into deeper screens. Worth a deletion audit before the cutover commit.
+
+---
+
 ## Verification plan
 
 This is a planning artifact only. Verification once implementation begins:
