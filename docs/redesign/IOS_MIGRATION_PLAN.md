@@ -232,6 +232,28 @@ These move to Phase 5 with explicit "no editorial precedent" notes so they don't
 
 ---
 
+## Open architecture follow-ups (surfaced during Phase 3 wire-up)
+
+These are out of scope for the visual pass but should land before cutover. Captured here so they're not lost.
+
+1. **Authoring flow for prose beats.** The current Before tab has explicit `what / how / why / who` input fields. The iOS register renders 3 prose beat cards instead — but never specifies where the user *writes* `what` and `why`. The composer is the most likely answer, with AI helping route input into the right `plan_data` field. **Decision needed before cutover:** does the new register keep all four `plan_data` fields and surface them through a single composer, or does the schema simplify to free-form prose per beat?
+
+2. **Concept "active in this step" schema.** The 6px coral live-dot on the WorkingOnPill signals "concept active in current step" — but no table currently links concepts to steps. Need a `step_concepts` or `step_active_concepts` association. Until it exists, the concept pill stays hardcoded in the preview route.
+
+3. **Weather service integration.** ForecastTileGroup wants wind, sea, tide, sky for the step's location + start time. No weather service is wired today. Likely vendor: OpenWeatherMap (env var already exists: `OPENWEATHER_API_KEY`) or WeatherAPI Pro. The tile labels are sailing-specific (WIND/SEA/TIDE/SKY) — per-interest mapping needed (clinical: VITALS/ACUITY/CENSUS/?).
+
+4. **Prior-debrief quote query.** "From your last race" wants 1–2 quoted phrases from the most recent same-interest Debrief step. Need a `getRecentDebriefQuotes(userId, interestId)` service that pulls `review_data.standout_quotes` (or similar — that field doesn't exist yet) from the last N completed steps. The user has flagged voice/note source disambiguation as in scope (mic + bubble); AI-tagged source defers.
+
+5. **Concept-suggestion service for the AI prompt.** "FROM YOUR PLAYBOOK · You've written about *X* in N reflections — open as a concept?" needs a service that scans the user's recent reflections for repeated phrasings and proposes concept candidates. Substantial AI/NLP work — schedule after the visual pass.
+
+6. **Permission-rule schema (`step_rules`).** A user-authored rule attached to the Contingency beat. Per-step text + label, surfaced inline in the new register. Visual pass uses placeholder text; data layer follows.
+
+7. **Per-interest beat name mapping.** Currently hardcoded sailing-only in `app/race/ios/[stepId].tsx`. Needs to live in a per-interest config (alongside the existing Race Prep / On the Water / Debrief vocabulary system). Clinical mapping (Briefing / Shift / Debrief) is known; drawing defers until the first drawing user.
+
+8. **Active-interest mismatch on competency progress.** `useCompetencyProgress` queries by the *active* interest, not the *step's* interest. When viewing a step from a different interest (sailing step while nursing is active), pill statuses come back empty. Either: (a) introduce a stepId-scoped progress hook, or (b) accept the limitation since cross-interest viewing is rare.
+
+---
+
 ## Verification plan
 
 This is a planning artifact only. Verification once implementation begins:

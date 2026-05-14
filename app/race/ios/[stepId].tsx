@@ -55,7 +55,10 @@ import {
   IOS_REGISTER_TEXT,
 } from '@/lib/design-tokens-ios';
 import { useStepDetail } from '@/hooks/useStepDetail';
+import { useCompetenciesForInterest } from '@/hooks/useCompetencies';
+import { useCompetencyProgress } from '@/hooks/useCompetencyProgress';
 import type { StepPlanData, StepCollaborator } from '@/types/step-detail';
+import type { CompetencyStatus } from '@/types/competency';
 
 // --- Sailing-only beat name fallback (per migration plan decision #3) ---
 // When plan_data.how_sub_steps doesn't supply enough entries, fill in with
@@ -95,6 +98,57 @@ export default function RaceIosPreview() {
   const metaLines = buildMetaLines(step.description, step.location_name);
 
   const collaborators: StepCollaborator[] = plan.collaborators ?? [];
+  const competencyIds = plan.competency_ids ?? [];
+
+  return (
+    <RaceIosPreviewBody
+      step={step}
+      plan={plan}
+      eyebrow={eyebrow}
+      metaLines={metaLines}
+      collaborators={collaborators}
+      competencyIds={competencyIds}
+    />
+  );
+}
+
+interface PreviewBodyProps {
+  step: NonNullable<ReturnType<typeof useStepDetail>['data']>;
+  plan: StepPlanData;
+  eyebrow: string | null;
+  metaLines: string[];
+  collaborators: StepCollaborator[];
+  competencyIds: string[];
+}
+
+function RaceIosPreviewBody({
+  step,
+  plan,
+  eyebrow,
+  metaLines,
+  collaborators,
+  competencyIds,
+}: PreviewBodyProps) {
+  // Real competency titles for the step's interest.
+  const { data: allCompetencies } = useCompetenciesForInterest(step.interest_id);
+  // Per-user progress (scoped to the user's *active* interest — may be empty
+  // when viewing a step from a different interest).
+  const { competencies: competencyProgress } = useCompetencyProgress();
+
+  const workingOnCapabilities = competencyIds
+    .map((id) => {
+      const def = allCompetencies?.find((c) => c.id === id);
+      if (!def) return null;
+      const prog = competencyProgress?.find((c) => c.id === id);
+      return {
+        id,
+        title: def.title,
+        status: prog?.progress?.status ?? null,
+      };
+    })
+    .filter((c): c is { id: string; title: string; status: CompetencyStatus | null } =>
+      c !== null,
+    );
 
   // Map plan_data.how_sub_steps to beats. Use the sub-step text as the body
   // when present; fall back to the sailing-register name + placeholder body.
@@ -200,16 +254,26 @@ export default function RaceIosPreview() {
           Placeholder forecast · weather data layer pending
         </Text>
 
-        {/* Working-on pills — PLACEHOLDER until competency + concept queries
-            are mapped to plan_data.competency_ids */}
+        {/* Working-on pills — capabilities wired to plan_data.competency_ids;
+            concept pill stays hardcoded until concept-active-in-step schema
+            exists (see IOS_MIGRATION_PLAN.md follow-ups). */}
         <Text style={styles.sectHead}>WORKING ON</Text>
         <View style={styles.workPills}>
-          <WorkingOnPill
-            kind="capability"
-            name="Heavy-air helm work"
-            state="practicing"
-            icon="walk-outline"
-          />
+          {workingOnCapabilities.length === 0 ? (
+            <Text style={styles.emptyWorkingOn}>
+              No capabilities tagged on this step yet.
+            </Text>
+          ) : (
+            workingOnCapabilities.map((cap) => (
+              <WorkingOnPill
+                key={cap.id}
+                kind="capability"
+                name={cap.title}
+                state={cap.status ?? undefined}
+                icon="walk-outline"
+              />
+            ))
+          )}
           <WorkingOnPill
             kind="concept"
             name="Trust the shift, not just the side"
@@ -570,6 +634,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     gap: 8,
     alignItems: 'flex-start',
+  },
+  emptyWorkingOn: {
+    ...IOS_REGISTER_TEXT.beatMeta,
+    color: IOS_REGISTER.labelTertiary,
+    fontStyle: 'italic',
   },
   quoteStack: {
     paddingHorizontal: 16,
