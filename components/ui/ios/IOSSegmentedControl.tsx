@@ -8,7 +8,7 @@
 
 import React from 'react';
 import { View, Text, Pressable, StyleSheet, Platform } from 'react-native';
-import { STEP_PALETTE } from '@/lib/step-theme';
+import { IOS_COLORS, IOS_REGISTER } from '@/lib/design-tokens-ios';
 
 interface SegmentWithKey {
   key: string;
@@ -97,13 +97,14 @@ export function IOSSegmentedControl<T extends string = string>({
   );
 }
 
-// Redesign palette per secondary-surfaces audit §2.4 — neutral track + cream
-// pill, charcoal active text, info-violet badge. Single source-of-truth update
-// reflects across all 12 callsites (Reflect sub-tabs, Settings tabs, etc.).
+// iOS register palette (Phase 1b, supersedes audit commit 1478a03c) — iOS-
+// native track (system gray 5) + white pill + iOS blue active text, with
+// coral badges for "marked content" notification counts. Two accents, two
+// jobs: blue = user-actions/active-state, coral = AI-questions/marked-content.
 const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
-    backgroundColor: STEP_PALETTE.bgSecondary,
+    backgroundColor: IOS_COLORS.systemGray5,
     borderRadius: 9,
     padding: 2,
     height: 36,
@@ -114,15 +115,15 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   selectedSegment: {
-    backgroundColor: STEP_PALETTE.bgPrimary,
+    backgroundColor: IOS_REGISTER.cardBg,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.08,
+    shadowOpacity: 0.12,
     shadowRadius: 2,
     elevation: 2,
     ...Platform.select({
       web: {
-        boxShadow: '0 1px 3px rgba(42,40,36,0.08)',
+        boxShadow: '0 1px 3px rgba(0,0,0,0.12)',
       } as any,
       default: {},
     }),
@@ -141,14 +142,14 @@ const styles = StyleSheet.create({
   segmentText: {
     fontSize: 13,
     fontWeight: '500',
-    color: STEP_PALETTE.textTertiary,
+    color: IOS_REGISTER.labelSecondary,
   },
   selectedSegmentText: {
     fontWeight: '600',
-    color: STEP_PALETTE.textPrimary,
+    color: IOS_REGISTER.accentUserAction,
   },
   badge: {
-    backgroundColor: STEP_PALETTE.textInfo,
+    backgroundColor: IOS_REGISTER.accentMarkedContent,
     borderRadius: 8,
     minWidth: 16,
     height: 16,
@@ -159,7 +160,7 @@ const styles = StyleSheet.create({
   badgeText: {
     fontSize: 10,
     fontWeight: '700' as const,
-    color: STEP_PALETTE.ctaText,
+    color: '#FFFFFF',
   },
 });
 

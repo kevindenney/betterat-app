@@ -154,10 +154,8 @@ const styles = StyleSheet.create({
   seeMore: {
     fontSize: 13,
     fontWeight: '500',
-    color: STEP_PALETTE.textPrimary,
+    color: IOS_COLORS.systemBlue,
     letterSpacing: -0.08,
-    textDecorationLine: 'underline',
-    textDecorationColor: STEP_PALETTE.textTertiary,
   },
   calendarRow: {
     flexDirection: 'row',
@@ -178,10 +176,10 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   dayLabelToday: {
-    color: STEP_PALETTE.textPrimary,
+    color: IOS_COLORS.systemBlue,
   },
   dayLabelFuture: {
-    color: STEP_PALETTE.textTertiary,
+    color: IOS_COLORS.tertiaryLabel,
   },
   dotContainer: {
     width: 32,
@@ -191,7 +189,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   dotContainerToday: {
-    backgroundColor: STEP_PALETTE.bgInfo,
+    backgroundColor: IOS_COLORS.systemBlue + '15',
   },
   dot: {
     width: 10,

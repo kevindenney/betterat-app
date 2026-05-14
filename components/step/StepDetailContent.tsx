@@ -836,7 +836,6 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp }: StepDetail
           selectedValue={activeTab}
           onChange={setActiveTab}
           compact
-          accentColor={STEP_PALETTE.textPrimary}
           unselectedBgColor="transparent"
           unselectedBorderColor={STEP_PALETTE.borderTertiary}
         />

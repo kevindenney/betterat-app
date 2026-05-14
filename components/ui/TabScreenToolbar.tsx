@@ -29,8 +29,8 @@ import {
   IOS_COLORS,
   IOS_SHADOWS,
   IOS_ANIMATIONS,
+  IOS_TYPOGRAPHY,
 } from '@/lib/design-tokens-ios';
-import { fontFamily } from '@/lib/design-tokens';
 import { FEATURE_FLAGS } from '@/lib/featureFlags';
 import { triggerHaptic } from '@/lib/haptics';
 import { useWebDrawer } from '@/providers/WebDrawerProvider';
@@ -378,15 +378,14 @@ const styles = StyleSheet.create({
     minWidth: 60,
   },
   largeTitle: {
-    // Serif treatment for tab-page headers per redesign §11 + secondary-surfaces
-    // audit §2.5. Applies to Session/Playbook/Discover/Reflect headers (every
-    // screen that mounts a TabScreenToolbar). Sized down from the iOS native
-    // 34pt to 30pt to balance the serif weight visually.
-    fontFamily: fontFamily.serif,
-    fontSize: 30,
-    fontWeight: '500',
+    // SF Pro Large Title per iOS register (Phase 1, supersedes the serif
+    // treatment from audit commit ee631e61). Applies to Session/Playbook/
+    // Discover/Reflect headers (every screen mounting TabScreenToolbar).
+    fontSize: IOS_TYPOGRAPHY.largeTitle.fontSize,
+    fontWeight: IOS_TYPOGRAPHY.largeTitle.fontWeight,
+    lineHeight: IOS_TYPOGRAPHY.largeTitle.lineHeight,
+    letterSpacing: IOS_TYPOGRAPHY.largeTitle.letterSpacing,
     color: IOS_COLORS.label,
-    letterSpacing: -0.4,
   },
   loadingSpinner: {
     marginLeft: 0,
