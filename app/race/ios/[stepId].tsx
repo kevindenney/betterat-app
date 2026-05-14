@@ -13,12 +13,15 @@
  *     - plan_data.how_sub_steps → up to 3 beats (with sailing fallback
  *       names when fewer than 3 sub-steps exist)
  *     - plan_data.collaborators → crew list (with avatar initials)
+ *     - plan_data.competency_ids → working-on capability pills (titles
+ *       from useCompetenciesForInterest, statuses from useCompetencyProgress)
+ *     - Prior same-interest debrief sections → "From your last race"
+ *       quote stack (source glyph from review section source: voice/note)
  *
  *   Placeholder data (data-layer not wired yet):
  *     - Forecast tiles — hardcoded "WIND/SEA/TIDE/SKY" copy
- *     - "From your last race" quote stack — hardcoded
- *     - Working-on pills — hardcoded capability + concept
- *     - Permission rule callout — hardcoded sailing rule
+ *     - Concept pill (the live-dot one) — no step↔concept association yet
+ *     - Permission rule callout — hardcoded sailing rule (no step_rules schema)
  *     - Coral AI prompt card — hardcoded "From your playbook" offer
  *
  * Open at /race/ios/{stepId} to compare visually against /step/{stepId}.
