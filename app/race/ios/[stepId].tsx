@@ -57,8 +57,15 @@ import {
 import { useStepDetail } from '@/hooks/useStepDetail';
 import { useCompetenciesForInterest } from '@/hooks/useCompetencies';
 import { useCompetencyProgress } from '@/hooks/useCompetencyProgress';
-import type { StepPlanData, StepCollaborator } from '@/types/step-detail';
+import { useMyTimeline } from '@/hooks/useTimelineSteps';
+import type {
+  StepPlanData,
+  StepCollaborator,
+  StepReviewData,
+  StepReviewSection,
+} from '@/types/step-detail';
 import type { CompetencyStatus } from '@/types/competency';
+import type { SourceGlyphVariant } from '@/components/ios-register/SourceGlyph';
 
 // --- Sailing-only beat name fallback (per migration plan decision #3) ---
 // When plan_data.how_sub_steps doesn't supply enough entries, fill in with
@@ -134,6 +141,8 @@ function RaceIosPreviewBody({
   // Per-user progress (scoped to the user's *active* interest — may be empty
   // when viewing a step from a different interest).
   const { competencies: competencyProgress } = useCompetencyProgress();
+  // Prior debriefs in the same interest, for the "From your last race" stack.
+  const { data: timeline } = useMyTimeline(step.interest_id);
 
   const workingOnCapabilities = competencyIds
     .map((id) => {
@@ -149,6 +158,8 @@ function RaceIosPreviewBody({
     .filter((c): c is { id: string; title: string; status: CompetencyStatus | null } =>
       c !== null,
     );
+
+  const priorDebriefQuotes = buildPriorDebriefQuotes(timeline ?? [], step.id);
 
   // Map plan_data.how_sub_steps to beats. Use the sub-step text as the body
   // when present; fall back to the sailing-register name + placeholder body.
@@ -281,20 +292,24 @@ function RaceIosPreviewBody({
           />
         </View>
 
-        {/* Quotes — PLACEHOLDER until prior-step Debrief query is wired */}
-        <Text style={styles.sectHead}>FROM YOUR LAST RACE</Text>
-        <View style={styles.quoteStack}>
-          <QuoteCard
-            quote="The mistake wasn't the plan, it was not updating it when the breeze told me to."
-            provenance="Race 3 Debrief · Sunday morning"
-            source="voice"
-          />
-          <QuoteCard
-            quote="Trust the shift, not just the side."
-            provenance="First time you used these words · Wednesday"
-            source="ai"
-          />
-        </View>
+        {/* Prior-debrief quotes — wired to most recent same-interest completed
+            step with a review section. Source glyph maps from review section
+            source (telegram/voice → mic, in_app/web → bubble). */}
+        {priorDebriefQuotes.length > 0 && (
+          <>
+            <Text style={styles.sectHead}>FROM YOUR LAST RACE</Text>
+            <View style={styles.quoteStack}>
+              {priorDebriefQuotes.map((q, idx) => (
+                <QuoteCard
+                  key={idx}
+                  quote={q.quote}
+                  provenance={q.provenance}
+                  source={q.source}
+                />
+              ))}
+            </View>
+          </>
+        )}
 
         {/* Beats — wired to plan_data.how_sub_steps with sailing fallback */}
         <View style={styles.sectHeadRow}>
@@ -455,6 +470,88 @@ function buildMetaLines(
   }
   if (location) lines.push(location);
   return lines;
+}
+
+interface PriorDebriefQuote {
+  quote: string;
+  provenance: string;
+  source: SourceGlyphVariant;
+}
+
+/**
+ * Pull up to 2 quotable excerpts from the most recent same-interest
+ * completed step that has review sections with content. Prefers sections
+ * with shorter, sentence-shaped content (most quotable); skips long
+ * multi-paragraph dumps.
+ */
+function buildPriorDebriefQuotes(
+  timeline: {
+    id: string;
+    title: string;
+    completed_at: string | null;
+    metadata: Record<string, unknown>;
+  }[],
+  currentStepId: string,
+): PriorDebriefQuote[] {
+  const candidates = timeline
+    .filter((s) => s.id !== currentStepId && s.completed_at)
+    .filter((s) => {
+      const review = (s.metadata?.review_data as StepReviewData | undefined) ?? null;
+      return Boolean(review?.sections?.length);
+    })
+    .sort((a, b) => {
+      const at = a.completed_at ?? '';
+      const bt = b.completed_at ?? '';
+      return bt.localeCompare(at);
+    });
+
+  const mostRecent = candidates[0];
+  if (!mostRecent) return [];
+
+  const review = (mostRecent.metadata?.review_data as StepReviewData | undefined) ?? null;
+  const sections = (review?.sections ?? []).filter(
+    (s): s is StepReviewSection => Boolean(s.content?.trim()),
+  );
+
+  // Sentence-shaped sections (≤ 200 chars) read best as quote cards.
+  // Long sections get the first sentence only.
+  const provenanceDate = mostRecent.completed_at
+    ? format(parseISO(mostRecent.completed_at), 'EEEE')
+    : '';
+  const stepLabel = mostRecent.title ?? 'Previous step';
+
+  return sections.slice(0, 2).map((section) => ({
+    quote: shortenToQuotable(section.content),
+    provenance: `${stepLabel} Debrief${provenanceDate ? ` · ${provenanceDate}` : ''}`,
+    source: sourceVariantFor(section.source),
+  }));
+}
+
+function shortenToQuotable(text: string): string {
+  const trimmed = text.trim();
+  if (trimmed.length <= 200) return trimmed;
+  // First sentence; fall back to first 180 chars + ellipsis.
+  const sentence = trimmed.match(/^[^.!?]+[.!?]/)?.[0]?.trim();
+  if (sentence && sentence.length <= 200) return sentence;
+  return trimmed.slice(0, 180).trim() + '…';
+}
+
+function sourceVariantFor(
+  source: StepReviewSection['source'],
+): SourceGlyphVariant {
+  // Telegram / WhatsApp / SMS / voice / voice_transcript → mic
+  // in_app / web / legacy → bubble
+  // (lightbulb / AI-tagged variant deferred until data layer supports it.)
+  if (
+    source === 'voice' ||
+    source === 'voice_transcript' ||
+    source === 'telegram' ||
+    source === 'whatsapp' ||
+    source === 'sms'
+  ) {
+    return 'voice';
+  }
+  return 'note';
 }
 
 function deriveInitials(name: string): string {
