@@ -21,6 +21,13 @@ interface Props {
   children: React.ReactNode;
   primaryAction: { label: string; onPress: () => void };
   secondaryAction?: { label: string; onPress: () => void };
+  /**
+   * Primary button accent. Race Prep uses 'blue' (user action: "open as a
+   * concept"). Debrief uses 'coral' (system signal: "follow a thread the
+   * system noticed"). See the Debrief iOS register side rail's "Two
+   * accents, two jobs — with one local override" block.
+   */
+  primaryAccent?: 'blue' | 'coral';
 }
 
 export function CoralAIPromptCard({
@@ -28,7 +35,13 @@ export function CoralAIPromptCard({
   children,
   primaryAction,
   secondaryAction,
+  primaryAccent = 'blue',
 }: Props) {
+  const primaryBg =
+    primaryAccent === 'coral'
+      ? IOS_REGISTER.accentMarkedContent
+      : IOS_REGISTER.accentUserAction;
+
   return (
     <View style={styles.card}>
       <View style={styles.head}>
@@ -42,7 +55,7 @@ export function CoralAIPromptCard({
       <Text style={styles.body}>{children}</Text>
       <View style={styles.actions}>
         <Pressable
-          style={styles.btnFill}
+          style={[styles.btnFill, { backgroundColor: primaryBg }]}
           onPress={primaryAction.onPress}
           accessibilityRole="button"
         >
@@ -92,7 +105,6 @@ const styles = StyleSheet.create({
     gap: 14,
   },
   btnFill: {
-    backgroundColor: IOS_REGISTER.accentUserAction,
     paddingVertical: 9,
     paddingHorizontal: 16,
     borderRadius: 999,
