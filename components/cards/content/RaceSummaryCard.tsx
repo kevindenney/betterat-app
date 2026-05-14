@@ -1437,6 +1437,17 @@ function RaceSummaryCardImpl({
     if (isTimelineStep) {
       items.push({ label: 'Suggest to...', icon: 'paper-plane-outline', onPress: () => setShowSuggestSheet(true) });
     }
+    // iOS register preview — temporary review affordance (Phase 3 of the
+    // iOS register migration). Opens /race/ios/[stepId] which renders the
+    // step in the new iOS-native register kit alongside the existing layout.
+    // Remove when register cuts over or in-product register switcher lands.
+    if (isTimelineStep) {
+      items.push({
+        label: 'Preview iOS register',
+        icon: 'sparkles-outline',
+        onPress: () => router.push(`/race/ios/${race.id}` as any),
+      });
+    }
     // Add to Blueprint — only for owners with published blueprints
     if (isOwner && isTimelineStep && (userBlueprints ?? []).some((b) => b.is_published)) {
       items.push({ label: 'Add to Blueprint', icon: 'book-outline', onPress: handleAddToBlueprint });
