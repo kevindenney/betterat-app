@@ -18,7 +18,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
-import { STEP_COLORS } from '@/lib/step-theme';
+import { STEP_PALETTE } from '@/lib/step-theme';
 
 // =============================================================================
 // TYPES
@@ -92,7 +92,7 @@ export function StepFilterBar({ filters, onFiltersChange, availableGoals }: Step
               <Ionicons
                 name={opt.icon as any}
                 size={14}
-                color={isActive ? '#FFFFFF' : IOS_COLORS.secondaryLabel}
+                color={isActive ? STEP_PALETTE.ctaText : STEP_PALETTE.textSecondary}
               />
               <Text style={[styles.chipText, isActive && styles.chipTextActive]}>
                 {opt.label}
@@ -116,7 +116,7 @@ export function StepFilterBar({ filters, onFiltersChange, availableGoals }: Step
             <Ionicons
               name="trophy-outline"
               size={14}
-              color={filters.capabilityGoal !== null ? '#FFFFFF' : IOS_COLORS.secondaryLabel}
+              color={filters.capabilityGoal !== null ? STEP_PALETTE.ctaText : STEP_PALETTE.textSecondary}
             />
             <Text
               style={[
@@ -130,7 +130,7 @@ export function StepFilterBar({ filters, onFiltersChange, availableGoals }: Step
             <Ionicons
               name="chevron-down"
               size={12}
-              color={filters.capabilityGoal !== null ? '#FFFFFF' : IOS_COLORS.tertiaryLabel}
+              color={filters.capabilityGoal !== null ? STEP_PALETTE.ctaText : STEP_PALETTE.textTertiary}
             />
           </Pressable>
         )}
@@ -194,7 +194,7 @@ function GoalPickerOverlay({
               All Skills
             </Text>
             {selected === null && (
-              <Ionicons name="checkmark" size={18} color={STEP_COLORS.accent} />
+              <Ionicons name="checkmark" size={18} color={STEP_PALETTE.textPrimary} />
             )}
           </Pressable>
 
@@ -213,7 +213,7 @@ function GoalPickerOverlay({
                   {goal}
                 </Text>
                 {isActive && (
-                  <Ionicons name="checkmark" size={18} color={STEP_COLORS.accent} />
+                  <Ionicons name="checkmark" size={18} color={STEP_PALETTE.textPrimary} />
                 )}
               </Pressable>
             );
@@ -241,30 +241,30 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: IOS_COLORS.secondarySystemGroupedBackground,
+    backgroundColor: STEP_PALETTE.bgPrimary,
     borderRadius: 999,
     paddingHorizontal: 12,
     paddingVertical: 6,
-    borderWidth: 1,
-    borderColor: IOS_COLORS.systemGray5,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: STEP_PALETTE.borderTertiary,
   },
   chipActive: {
-    backgroundColor: STEP_COLORS.accent,
-    borderColor: STEP_COLORS.accent,
+    backgroundColor: STEP_PALETTE.ctaBg,
+    borderColor: STEP_PALETTE.ctaBg,
   },
   chipText: {
     fontSize: 13,
     fontWeight: '600',
-    color: IOS_COLORS.secondaryLabel,
+    color: STEP_PALETTE.textSecondary,
     maxWidth: 120,
   },
   chipTextActive: {
-    color: '#FFFFFF',
+    color: STEP_PALETTE.ctaText,
   },
   divider: {
-    width: 1,
+    width: StyleSheet.hairlineWidth,
     height: 20,
-    backgroundColor: IOS_COLORS.systemGray5,
+    backgroundColor: STEP_PALETTE.borderTertiary,
     marginHorizontal: 2,
   },
   clearChip: {
@@ -333,6 +333,6 @@ const styles = StyleSheet.create({
   },
   overlayRowTextActive: {
     fontWeight: '600',
-    color: STEP_COLORS.accent,
+    color: STEP_PALETTE.textPrimary,
   },
 });

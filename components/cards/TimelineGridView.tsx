@@ -22,11 +22,11 @@ import Animated, {
   withSpring,
 } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { CardRaceData, isRacePast, formatTimeUntilRace } from './types';
 import { isItemPast as sharedIsItemPast } from '@/lib/races/isItemPast';
 import { IOS_COLORS } from './constants';
+import { STEP_PALETTE } from '@/lib/step-theme';
 import { triggerHaptic } from '@/lib/haptics';
 
 // =============================================================================
@@ -337,10 +337,9 @@ const MiniCard = React.memo(function MiniCard({
     // Only count sub-steps that have real content (not empty placeholders)
     const realSubSteps = howSubSteps.filter((s: any) => s?.text?.trim());
     const totalSubSteps = realSubSteps.length;
-    const completedSubSteps = realSubSteps.filter(
-      (_: any, i: number) => subStepProgress[String(i)] || subStepProgress[howSubSteps.indexOf(realSubSteps[i])]
-    ).length;
-    // Fallback: count from progress map if real sub-steps exist
+    // Count from progress map: entries flagged true whose index falls within the
+    // real sub-step range. Earlier code computed a parallel completedSubSteps
+    // derived from realSubSteps; it was unused so trimmed.
     const completedCount = totalSubSteps > 0
       ? Object.entries(subStepProgress).filter(([k, v]) => v && Number(k) < howSubSteps.length).length
       : 0;
@@ -371,6 +370,9 @@ const MiniCard = React.memo(function MiniCard({
       isDueSoon,
       collaboratorCount: collaboratorIds.length,
     };
+    // race.blueprintTitle + race.stepStatus aren't read inside this memo; their
+    // values are already encoded in race.metadata for the dimensions we care about.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isTimelineStep, race.metadata, race.venue, race.due_at, race.collaborator_user_ids]);
 
   // Web DnD: attach native HTML drag events via ref since AnimatedPressable
@@ -1858,10 +1860,12 @@ const gridStyles = StyleSheet.create({
     flexShrink: 1,
   },
   summaryNextBadge: {
+    // "Next: …" pill — lavender info bg + violet text per redesign §2.4
+    // (mockup 06 "from playbook" surface treatment).
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
-    backgroundColor: 'rgba(52, 199, 89, 0.1)',
+    backgroundColor: STEP_PALETTE.bgInfo,
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 10,
@@ -1871,33 +1875,35 @@ const gridStyles = StyleSheet.create({
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: IOS_COLORS.green,
+    backgroundColor: STEP_PALETTE.textInfo,
   },
   summaryNextText: {
     fontSize: 11,
     fontWeight: '600',
-    color: IOS_COLORS.green,
+    color: STEP_PALETTE.textInfo,
     maxWidth: 220,
   },
   bulkChip: {
-    backgroundColor: '#EEF2FF',
-    borderColor: '#C7D2FE',
-    borderWidth: 1,
+    // Outlined neutral pill per secondary-surfaces audit §4 commit 1 —
+    // replaces the indigo "EEF2FF / C7D2FE" treatment with borderSecondary.
+    backgroundColor: 'transparent',
+    borderColor: STEP_PALETTE.borderSecondary,
+    borderWidth: StyleSheet.hairlineWidth,
     borderRadius: 999,
     paddingHorizontal: 10,
     paddingVertical: 4,
   },
   bulkChipActive: {
-    backgroundColor: '#DBEAFE',
-    borderColor: '#93C5FD',
+    backgroundColor: STEP_PALETTE.ctaBg,
+    borderColor: STEP_PALETTE.ctaBg,
   },
   bulkChipText: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#4338CA',
+    color: STEP_PALETTE.textSecondary,
   },
   bulkChipTextActive: {
-    color: '#1D4ED8',
+    color: STEP_PALETTE.ctaText,
   },
   bulkActions: {
     flexDirection: 'row',

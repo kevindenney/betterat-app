@@ -2159,7 +2159,7 @@ function RaceSummaryCardImpl({
                   <Ionicons
                     name={isTimelineDone ? 'checkmark-circle' : 'ellipse-outline'}
                     size={18}
-                    color={isTimelineDone ? IOS_COLORS.green : IOS_COLORS.secondaryLabel}
+                    color={isTimelineDone ? STEP_PALETTE.textPrimary : STEP_PALETTE.textTertiary}
                   />
                   <Text style={[styles.statusToggleText, isTimelineDone && styles.statusToggleTextDone]}>
                     {isTimelineDone ? 'Done' : 'Planned'}
@@ -2173,7 +2173,7 @@ function RaceSummaryCardImpl({
                   <Ionicons
                     name={isTimelineDone ? 'checkmark-circle' : 'ellipse-outline'}
                     size={18}
-                    color={isTimelineDone ? IOS_COLORS.green : IOS_COLORS.secondaryLabel}
+                    color={isTimelineDone ? STEP_PALETTE.textPrimary : STEP_PALETTE.textTertiary}
                   />
                   <Text style={[styles.statusToggleText, isTimelineDone && styles.statusToggleTextDone]}>
                     {isTimelineDone ? 'Done' : 'Planned'}
@@ -4361,18 +4361,19 @@ const styles = StyleSheet.create({
     letterSpacing: -0.2,
   },
   pastRaceBadge: {
-    backgroundColor: '#E8FAE9',
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 6,
+    // Status surfaced as text per redesign secondary-surfaces audit §4 commit 1
+    // — no fill chip, just textTertiary label sitting inline.
   },
   pastBadgeText: {
     fontSize: 11,
     fontWeight: '600',
-    color: IOS_COLORS.green,
+    color: STEP_PALETTE.textTertiary,
     letterSpacing: 0.5,
   },
   headerChipGroup: {
@@ -4405,19 +4406,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 8,
-    backgroundColor: '#F3F4F6',
+    // Neutral pill — drop the green fill on "Done", let the inline glyph + label
+    // carry status. Secondary-surfaces audit §4 commit 1.
+    backgroundColor: 'transparent',
   },
   statusToggleDone: {
-    backgroundColor: '#E8FAE9',
+    backgroundColor: 'transparent',
   },
   statusToggleText: {
     fontSize: 13,
     fontWeight: '600',
-    color: IOS_COLORS.secondaryLabel,
+    color: STEP_PALETTE.textSecondary,
     letterSpacing: -0.1,
   },
   statusToggleTextDone: {
-    color: IOS_COLORS.green,
+    color: STEP_PALETTE.textPrimary,
   },
   pinnedBadge: {
     flexDirection: 'row',
