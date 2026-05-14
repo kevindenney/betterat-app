@@ -967,6 +967,12 @@ export default function ReflectScreen() {
             label: 'Export progress',
             onPress: () => router.push('/account'),
           },
+          {
+            icon: 'sparkles-outline',
+            sfSymbol: 'wand.and.stars',
+            label: 'Preview iOS register',
+            onPress: () => router.push('/reflect-ios' as any),
+          },
         ]}
       >
         {/* Segmented Control */}
