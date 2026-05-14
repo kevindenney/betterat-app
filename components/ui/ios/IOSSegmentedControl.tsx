@@ -8,6 +8,7 @@
 
 import React from 'react';
 import { View, Text, Pressable, StyleSheet, Platform } from 'react-native';
+import { STEP_PALETTE } from '@/lib/step-theme';
 
 interface SegmentWithKey {
   key: string;
@@ -96,10 +97,13 @@ export function IOSSegmentedControl<T extends string = string>({
   );
 }
 
+// Redesign palette per secondary-surfaces audit §2.4 — neutral track + cream
+// pill, charcoal active text, info-violet badge. Single source-of-truth update
+// reflects across all 12 callsites (Reflect sub-tabs, Settings tabs, etc.).
 const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
-    backgroundColor: '#E8E8ED',
+    backgroundColor: STEP_PALETTE.bgSecondary,
     borderRadius: 9,
     padding: 2,
     height: 36,
@@ -110,15 +114,15 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   selectedSegment: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: STEP_PALETTE.bgPrimary,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.12,
+    shadowOpacity: 0.08,
     shadowRadius: 2,
     elevation: 2,
     ...Platform.select({
       web: {
-        boxShadow: '0 1px 3px rgba(0,0,0,0.12)',
+        boxShadow: '0 1px 3px rgba(42,40,36,0.08)',
       } as any,
       default: {},
     }),
@@ -137,14 +141,14 @@ const styles = StyleSheet.create({
   segmentText: {
     fontSize: 13,
     fontWeight: '500',
-    color: '#636366',
+    color: STEP_PALETTE.textTertiary,
   },
   selectedSegmentText: {
     fontWeight: '600',
-    color: '#000000',
+    color: STEP_PALETTE.textPrimary,
   },
   badge: {
-    backgroundColor: '#FF3B30',
+    backgroundColor: STEP_PALETTE.textInfo,
     borderRadius: 8,
     minWidth: 16,
     height: 16,
@@ -155,7 +159,7 @@ const styles = StyleSheet.create({
   badgeText: {
     fontSize: 10,
     fontWeight: '700' as const,
-    color: '#FFFFFF',
+    color: STEP_PALETTE.ctaText,
   },
 });
 
