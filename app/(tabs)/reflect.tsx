@@ -276,7 +276,6 @@ function ProfileView({ toolbarHeight, onScroll, isDesktop }: ProfileViewProps) {
     coachingData,
   } = useCoachingInsights(userProfile?.id);
   const [refreshing, setRefreshing] = useState(false);
-  const isFreeUser = !userProfile?.subscription_tier || userProfile?.subscription_tier === 'free';
 
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -609,23 +608,12 @@ function ProfileView({ toolbarHeight, onScroll, isDesktop }: ProfileViewProps) {
           vocab={vocab}
         />
 
-        {/* Upgrade Plan Card for free users */}
-        {isFreeUser && (
-          <TouchableOpacity
-            style={styles.upgradePlanCard}
-            onPress={() => router.push('/pricing')}
-            activeOpacity={0.7}
-          >
-            <View style={styles.upgradePlanContent}>
-              <Ionicons name="rocket-outline" size={24} color={STEP_PALETTE.textInfo} />
-              <View style={styles.upgradePlanText}>
-                <Text style={styles.upgradePlanTitle}>Upgrade Plan</Text>
-                <Text style={styles.upgradePlanSubtitle}>Unlock unlimited races, insights, and more</Text>
-              </View>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color={STEP_PALETTE.textTertiary} />
-          </TouchableOpacity>
-        )}
+        {/* Upgrade Plan Card — REMOVED per iOS register decision #5
+            (2026-05-14). Coral is reserved for AI-prompt + marked-content
+            semantics; the lavender promo banner doesn't have a home on
+            Reflect home in the new register. If/when paywall surfacing
+            returns to Reflect, it lives one tap deeper (Profile / Settings)
+            rather than dominating the contemplative root surface. */}
 
         {/* Phase 4: Social Stats */}
         <SocialStatsCard
@@ -1175,36 +1163,5 @@ const styles = StyleSheet.create({
     color: STEP_PALETTE.ctaText,
     fontSize: 13,
     fontWeight: '700',
-  },
-  // Upgrade Plan Card — bgInfo lavender + textInfo violet per redesign §2.4
-  upgradePlanCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: STEP_PALETTE.bgInfo,
-    borderRadius: 14,
-    padding: 16,
-    marginBottom: 16,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: STEP_PALETTE.borderTertiary,
-  },
-  upgradePlanContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    flex: 1,
-  },
-  upgradePlanText: {
-    flex: 1,
-  },
-  upgradePlanTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: STEP_PALETTE.textInfo,
-  },
-  upgradePlanSubtitle: {
-    fontSize: 13,
-    color: STEP_PALETTE.textSecondary,
-    marginTop: 2,
   },
 });

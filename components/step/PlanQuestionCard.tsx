@@ -79,7 +79,8 @@ const styles = StyleSheet.create({
   },
   title: {
     ...text.sansEyebrow,
-    textTransform: 'none',
+    // ALL-CAPS restored per iOS register decision #4 (reverses 0fcf2264).
+    // The sansEyebrow recipe already includes textTransform: 'uppercase'.
     color: STEP_PALETTE.textTertiary,
     flex: 1,
   },

@@ -46,30 +46,46 @@ export const STEP_COLORS = {
 } as const;
 
 /**
- * Redesign palette (2026-05) — neutral warm cream + charcoal, no chromatic
- * accents on step surfaces. See docs/redesign/betterat-redesign-spec.md §11.6
- * and docs/audit/visual-redesign-gap-step-detail.md §2.4.
+ * STEP_PALETTE values — iOS register (canonical from 2026-05-15).
  *
- * Migration path: once every step surface reads from STEP_PALETTE, the legacy
- * STEP_COLORS green/coral keys can be removed in a follow-up sweep.
+ * The editorial register's warm cream + charcoal values were superseded
+ * when the iOS register became canonical (per docs/redesign/
+ * IOS_MIGRATION_PLAN.md, "Resolved architecture decisions"). Rather than
+ * migrate 40 consumer files individually, the values themselves shift:
+ * every component reading STEP_PALETTE.bgPrimary now sees system gray 6,
+ * STEP_PALETTE.textPrimary now sees iOS black label, etc.
+ *
+ * KEEPING the STEP_PALETTE name (not renaming to IOS_REGISTER) avoids
+ * touching consumer files; the editorial-era variable names persist as
+ * stable identifiers with new values underneath. New components should
+ * reference IOS_REGISTER directly from @/lib/design-tokens-ios.
+ *
+ * For surfaces that still need an editorial-warm value (rare —
+ * marketing/landing pages may legitimately use cream), use the
+ * literals directly rather than reintroducing the editorial mapping.
+ *
+ * The "Two accents, two jobs" rule still applies: blue = user action /
+ * active state; coral = AI question / marked content. STEP_PALETTE
+ * values map to the neutral chrome part of the iOS register; the
+ * accents live on IOS_REGISTER.
  */
 export const STEP_PALETTE = {
-  // Backgrounds
-  bgPrimary: '#FAFAF7',       // page + card surfaces
-  bgSecondary: '#F0EEE8',     // panel bg, preceptor-note cards
-  bgInfo: '#E5E1F0',          // "You" avatar / "from playbook" tile
+  // Backgrounds — gray-6 ground + white cards (was cream + warm cream)
+  bgPrimary: '#F2F2F7',                 // system gray 6 — page ground
+  bgSecondary: '#FFFFFF',                // white card surface
+  bgInfo: 'rgba(255, 107, 107, 0.10)',  // coral tint — AI prompt fill (was lavender)
 
-  // Text
-  textPrimary: '#2A2824',     // titles, primary body, dark CTA bg
-  textSecondary: '#58544A',   // sub-meta, status
-  textTertiary: '#8A8478',    // eyebrows, timestamps
-  textInfo: '#5A4078',        // "You" avatar text, playbook accent
+  // Text — black + iOS opacity labels (was warm charcoal)
+  textPrimary: '#000000',                // iOS label
+  textSecondary: 'rgba(60, 60, 67, 0.62)',
+  textTertiary: 'rgba(60, 60, 67, 0.32)',
+  textInfo: '#FF6B6B',                   // coral (was violet)
 
-  // Borders
-  borderSecondary: '#C8C2B4', // outlined buttons, secondary outlines
-  borderTertiary: '#DDD8CA',  // hairlines, dividers
+  // Borders — iOS separator opacities (was warm grays)
+  borderSecondary: 'rgba(60, 60, 67, 0.20)',
+  borderTertiary: 'rgba(60, 60, 67, 0.20)',
 
-  // CTA (primary action = dark text-primary on bg-primary)
-  ctaBg: '#2A2824',
-  ctaText: '#FAFAF7',
+  // CTA — iOS blue replaces charcoal-on-cream
+  ctaBg: '#007AFF',                       // iOS blue
+  ctaText: '#FFFFFF',
 } as const;
