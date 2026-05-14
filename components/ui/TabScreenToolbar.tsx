@@ -24,13 +24,13 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
 import { SFSymbolIcon } from './SFSymbolIcon';
 import {
   IOS_COLORS,
   IOS_SHADOWS,
   IOS_ANIMATIONS,
 } from '@/lib/design-tokens-ios';
+import { fontFamily } from '@/lib/design-tokens';
 import { FEATURE_FLAGS } from '@/lib/featureFlags';
 import { triggerHaptic } from '@/lib/haptics';
 import { useWebDrawer } from '@/providers/WebDrawerProvider';
@@ -378,10 +378,15 @@ const styles = StyleSheet.create({
     minWidth: 60,
   },
   largeTitle: {
-    fontSize: 34,
-    fontWeight: '700',
+    // Serif treatment for tab-page headers per redesign §11 + secondary-surfaces
+    // audit §2.5. Applies to Session/Playbook/Discover/Reflect headers (every
+    // screen that mounts a TabScreenToolbar). Sized down from the iOS native
+    // 34pt to 30pt to balance the serif weight visually.
+    fontFamily: fontFamily.serif,
+    fontSize: 30,
+    fontWeight: '500',
     color: IOS_COLORS.label,
-    letterSpacing: -0.5,
+    letterSpacing: -0.4,
   },
   loadingSpinner: {
     marginLeft: 0,

@@ -15,8 +15,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, ScrollView, StyleSheet, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
 import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
+import { STEP_PALETTE } from '@/lib/step-theme';
 import { TabScreenToolbar } from '@/components/ui/TabScreenToolbar';
 import { useScrollToolbarHide } from '@/hooks/useScrollToolbarHide';
 import { useInterest } from '@/providers/InterestProvider';
@@ -278,7 +278,7 @@ export function PlaybookHome() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: IOS_COLORS.systemGroupedBackground,
+    backgroundColor: STEP_PALETTE.bgPrimary,
   },
   statusBarBackground: {
     position: 'absolute',
@@ -286,7 +286,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     zIndex: 99,
-    backgroundColor: 'rgba(242, 242, 247, 0.94)',
+    backgroundColor: 'rgba(250, 250, 247, 0.94)', // bgPrimary with alpha
   },
   scroll: {
     flex: 1,
@@ -348,7 +348,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     padding: IOS_SPACING.xl,
     gap: IOS_SPACING.md,
-    backgroundColor: IOS_COLORS.systemGroupedBackground,
+    backgroundColor: STEP_PALETTE.bgPrimary,
   },
   messageTitle: {
     fontSize: 20,
@@ -363,7 +363,7 @@ const styles = StyleSheet.create({
   },
   skeletonContainer: {
     flex: 1,
-    backgroundColor: IOS_COLORS.systemGroupedBackground,
+    backgroundColor: STEP_PALETTE.bgPrimary,
     padding: IOS_SPACING.lg,
   },
   skeletonHeader: {

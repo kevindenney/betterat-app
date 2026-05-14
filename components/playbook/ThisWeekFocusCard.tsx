@@ -9,6 +9,8 @@ import { ActivityIndicator, View, Text, Pressable, StyleSheet } from 'react-nati
 import { Ionicons } from '@expo/vector-icons';
 import { useQueryClient } from '@tanstack/react-query';
 import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
+import { fontFamily } from '@/lib/design-tokens';
+import { STEP_PALETTE } from '@/lib/step-theme';
 import { showAlertWithButtons } from '@/lib/utils/crossPlatformAlert';
 import { usePlaybookSuggestions, useAcceptSuggestion, useRejectSuggestion } from '@/hooks/usePlaybook';
 import { useMyTimeline } from '@/hooks/useTimelineSteps';
@@ -214,7 +216,7 @@ export function ThisWeekFocusCard({ playbookId, interestId, onOpenDrawer }: This
                 disabled={actionLoading}
               >
                 {actionLoading ? (
-                  <ActivityIndicator size="small" color="#fff" />
+                  <ActivityIndicator size="small" color={STEP_PALETTE.ctaText} />
                 ) : (
                   <Text style={styles.acceptBtnText}>Accept focus</Text>
                 )}
@@ -228,7 +230,7 @@ export function ThisWeekFocusCard({ playbookId, interestId, onOpenDrawer }: This
             </>
           ) : (
             <View style={styles.acceptedChip}>
-              <Ionicons name="checkmark-circle" size={12} color={IOS_COLORS.systemGreen} />
+              <Ionicons name="checkmark-circle" size={12} color={STEP_PALETTE.textPrimary} />
               <Text style={styles.acceptedText}>Accepted</Text>
             </View>
           )}
@@ -243,12 +245,14 @@ export function ThisWeekFocusCard({ playbookId, interestId, onOpenDrawer }: This
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: IOS_COLORS.secondarySystemGroupedBackground,
+    backgroundColor: STEP_PALETTE.bgPrimary,
     borderRadius: 14,
     padding: IOS_SPACING.lg,
     flexDirection: 'row',
     gap: IOS_SPACING.md,
     alignItems: 'flex-start',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: STEP_PALETTE.borderTertiary,
   },
   iconBox: {
     width: 40,
@@ -272,7 +276,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     letterSpacing: 0.5,
     textTransform: 'uppercase',
-    color: IOS_COLORS.secondaryLabel,
+    color: STEP_PALETTE.textTertiary,
   },
   aiBadge: {
     backgroundColor: '#fff6e5',
@@ -288,15 +292,19 @@ const styles = StyleSheet.create({
     color: '#8a5a00',
   },
   title: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: IOS_COLORS.label,
+    // Card title: serif body per audit §2.5 (mockup body-prose treatment).
+    fontFamily: fontFamily.serif,
+    fontSize: 19,
+    fontWeight: '500',
+    color: STEP_PALETTE.textPrimary,
     lineHeight: 26,
   },
   bodyText: {
-    fontSize: 14,
-    color: IOS_COLORS.secondaryLabel,
-    lineHeight: 20,
+    // Body prose: serif 16pt primary per audit §2.3.
+    fontFamily: fontFamily.serif,
+    fontSize: 16,
+    color: STEP_PALETTE.textSecondary,
+    lineHeight: 24,
     marginTop: 2,
   },
   actions: {
@@ -307,7 +315,8 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   acceptBtn: {
-    backgroundColor: IOS_COLORS.systemTeal,
+    // Primary CTA charcoal per redesign §2.4 (ctaBg / ctaText).
+    backgroundColor: STEP_PALETTE.ctaBg,
     paddingHorizontal: 12,
     paddingVertical: 7,
     borderRadius: 8,
@@ -315,11 +324,11 @@ const styles = StyleSheet.create({
   acceptBtnText: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#fff',
+    color: STEP_PALETTE.ctaText,
   },
   secondaryBtn: {
-    borderWidth: 1,
-    borderColor: IOS_COLORS.separator,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: STEP_PALETTE.borderSecondary,
     paddingHorizontal: 12,
     paddingVertical: 7,
     borderRadius: 8,
@@ -327,21 +336,22 @@ const styles = StyleSheet.create({
   secondaryBtnText: {
     fontSize: 12,
     fontWeight: '700',
-    color: IOS_COLORS.label,
+    color: STEP_PALETTE.textPrimary,
   },
   acceptedChip: {
+    // Accepted-state pill: neutral on bgSecondary instead of the green fill.
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 8,
-    backgroundColor: 'rgba(52, 199, 89, 0.12)',
+    backgroundColor: STEP_PALETTE.bgSecondary,
   },
   acceptedText: {
     fontSize: 11,
     fontWeight: '700',
-    color: IOS_COLORS.systemGreen,
+    color: STEP_PALETTE.textSecondary,
   },
   actionError: {
     fontSize: 12,
