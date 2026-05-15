@@ -1,0 +1,1507 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=1820" />
+<title>BetterAt — Practice Timeline · Canonical · 2026-05-15</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css" />
+<style>
+  :root {
+    /* iOS system palette */
+    --ios-blue:    #007AFF;
+    --ios-blue-tint: rgba(0, 122, 255, 0.10);
+    --ios-coral:   #FF6B6B;
+    --ios-coral-tint: rgba(255, 107, 107, 0.10);
+    --ios-green:   #34C759;
+
+    /* iOS neutrals — light mode */
+    --gray-6:      #F2F2F7;   /* system gray 6 — the ground */
+    --gray-5:      #E5E5EA;
+    --gray-4:      #D1D1D6;
+    --gray-3:      #C7C7CC;
+    --gray-2:      #AEAEB2;
+    --gray-1:      #8E8E93;
+    --label:       #1C1C1E;   /* primary text */
+    --label-2:     #3C3C43;   /* secondary */
+    --label-3:     rgba(60, 60, 67, 0.60);
+    --label-4:     rgba(60, 60, 67, 0.30);
+
+    /* Page stage — warm review chrome carried from prior passes */
+    --stage:          #EFEAD8;
+    --stage-text:     #6B6558;
+    --stage-ink:      #2A2824;
+    --stage-line:     rgba(34, 30, 20, 0.12);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display",
+                 "Helvetica Neue", Helvetica, Arial, sans-serif;
+    color: var(--label);
+    background: var(--stage);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+  button { font-family: inherit; }
+
+  /* ============= Page chrome (review surface) ============= */
+  .page { min-width: 1820px; padding: 56px 48px 80px; }
+  .page-head { max-width: 1720px; margin: 0 auto 48px; }
+  .page-head .eyebrow {
+    font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--stage-text); margin: 0 0 12px;
+  }
+  .page-head h1 {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 32px; line-height: 1.15; font-weight: 500;
+    letter-spacing: -0.015em; margin: 0 0 14px; color: var(--stage-ink);
+  }
+  .page-head h1 em { font-style: italic; }
+  .page-head p {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 17px; line-height: 1.55;
+    color: var(--stage-text); margin: 0; max-width: 940px;
+  }
+  .page-head p em { font-style: italic; }
+
+  .strip-head {
+    max-width: 1720px;
+    margin: 56px auto 22px;
+    padding-top: 28px;
+    border-top: 0.5px solid var(--stage-line);
+  }
+  .strip-head .eyebrow {
+    font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--stage-text); margin: 0 0 8px;
+  }
+  .strip-head h2 {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 22px; line-height: 1.25; font-weight: 500;
+    letter-spacing: -0.01em; margin: 0 0 8px; color: var(--stage-ink);
+  }
+  .strip-head h2 em { font-style: italic; }
+  .strip-head p {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 15px; line-height: 1.55;
+    color: var(--stage-text); margin: 0; max-width: 880px;
+  }
+
+  .row {
+    max-width: 1720px;
+    margin: 0 auto;
+    display: flex;
+    gap: 32px;
+    align-items: flex-start;
+    justify-content: center;
+  }
+  .col { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+  .col .caption {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+    font-size: 11px; letter-spacing: 0.10em;
+    text-transform: uppercase; color: var(--stage-text);
+    text-align: center;
+  }
+  .col .caption strong {
+    color: var(--stage-ink); font-weight: 600;
+  }
+
+  /* ============= Phone shell ============= */
+  .phone {
+    width: 393px;
+    height: 852px;
+    background: var(--gray-6);
+    border-radius: 56px;
+    border: 1px solid rgba(0, 0, 0, 0.18);
+    box-shadow:
+      0 30px 80px -40px rgba(34, 30, 20, 0.32),
+      0 2px 0 rgba(255,255,255,0.5) inset;
+    overflow: hidden;
+    position: relative;
+    isolation: isolate;
+  }
+  .phone .notch {
+    position: absolute; top: 11px; left: 50%; transform: translateX(-50%);
+    width: 116px; height: 34px; background: #0F0E0C; border-radius: 20px; z-index: 40;
+  }
+  .statusbar {
+    position: absolute; top: 0; left: 0; right: 0; height: 50px;
+    padding: 16px 32px 0; display: flex; align-items: center; justify-content: space-between;
+    font-weight: 600; font-size: 15px; color: #0A0A0A; z-index: 30; pointer-events: none;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+  }
+  .statusbar .right { display: flex; gap: 6px; align-items: center; }
+  .statusbar .right i { font-size: 15px; }
+  .home-indicator {
+    position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%);
+    width: 134px; height: 5px; border-radius: 3px;
+    background: rgba(0, 0, 0, 0.30); z-index: 45; pointer-events: none;
+  }
+
+  /* ============= Screen ground ============= */
+  .screen {
+    position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+    overflow: hidden;
+    padding-top: 50px;
+    background: var(--gray-6);
+  }
+
+  /* ============= Top header strip ============= */
+  /* Interest on the left, step counter in the middle, avatar on the right.
+     Sits on the ground, no chrome of its own — pure iOS large-title rhythm
+     compressed into one row. */
+  .top-header {
+    padding: 8px 18px 10px;
+    display: flex; align-items: center; justify-content: space-between;
+    height: 52px;
+  }
+  .top-header .interest {
+    display: inline-flex; align-items: baseline; gap: 8px;
+  }
+  .top-header .interest .name {
+    font-size: 17px; font-weight: 600; letter-spacing: -0.25px;
+    color: var(--label);
+  }
+  .top-header .interest .switcher {
+    font-size: 13px; color: var(--label-3);
+    display: inline-flex; align-items: center; gap: 2px;
+  }
+  .top-header .interest .switcher i { font-size: 14px; margin-left: -2px; }
+  .top-header .step-counter {
+    font-size: 13px; font-weight: 500;
+    color: var(--label-3);
+    letter-spacing: -0.05px;
+    font-variant-numeric: tabular-nums;
+  }
+  .top-header .avatar {
+    width: 32px; height: 32px; border-radius: 50%;
+    background: linear-gradient(135deg, #4E6A85 0%, #7C7B6E 100%);
+    display: inline-flex; align-items: center; justify-content: center;
+    color: #fff; font-size: 13px; font-weight: 600;
+    letter-spacing: -0.1px;
+    border: 0.5px solid rgba(0, 0, 0, 0.05);
+  }
+
+  /* ============= Timeline area ============= */
+  /* Three cards laid out side-by-side: peek-prev / center / peek-next.
+     Total row width exceeds the screen; row is centered horizontally so
+     peeks bleed off both edges. Only ~28px of each peek is visible.
+     The phone's overflow:hidden does the clipping. */
+  .timeline-area {
+    position: relative;
+    height: 666px;   /* fills full space between top-header and tab bar */
+    margin-top: 0;
+  }
+  .timeline-row {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 14px;
+    align-items: stretch;
+  }
+  .peek {
+    width: 268px;
+    border-radius: 22px;
+    background: #FFFFFF;
+    border: 0.5px solid rgba(0, 0, 0, 0.04);
+    box-shadow:
+      0 1px 2px rgba(0, 0, 0, 0.04),
+      0 6px 16px -8px rgba(0, 0, 0, 0.12);
+    /* Peeks render as silhouettes only — content within is masked from view
+       by being absent. The card's edge + corner + shadow does the work. */
+  }
+  .peek.dim { background: #FBFBFD; box-shadow: 0 1px 2px rgba(0,0,0,0.03), 0 4px 10px -8px rgba(0,0,0,0.08); }
+
+  .card {
+    width: 318px;
+    background: #FFFFFF;
+    border-radius: 22px;
+    border: 0.5px solid rgba(0, 0, 0, 0.04);
+    box-shadow:
+      0 1px 2px rgba(0, 0, 0, 0.06),
+      0 18px 38px -16px rgba(0, 0, 0, 0.20),
+      0 4px 10px -4px rgba(0, 0, 0, 0.08);
+    display: flex; flex-direction: column;
+    overflow: hidden;
+    height: 658px;
+    margin-top: 8px;
+  }
+  .peek { height: 658px; margin-top: 8px; }
+
+  /* Card head — title + meta */
+  .card-head {
+    padding: 22px 22px 14px;
+  }
+  .card-head .step-label {
+    font-size: 11px; font-weight: 600;
+    color: var(--ios-blue); letter-spacing: 0.5px;
+    text-transform: uppercase;
+    margin: 0 0 8px;
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .card-head .step-label .dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--ios-blue);
+  }
+  .card-head h3 {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
+    font-size: 22px; font-weight: 600; letter-spacing: -0.45px;
+    color: var(--label);
+    line-height: 1.18;
+    margin: 0; text-wrap: balance;
+  }
+  .card-head .step-meta {
+    margin-top: 10px;
+    font-size: 12px; color: var(--label-3);
+    letter-spacing: -0.05px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .card-head .step-meta .sep { color: var(--label-4); }
+
+  /* Phase tabs — iOS-native underline pattern */
+  .phase-tabs {
+    display: flex;
+    padding: 0 22px;
+    border-bottom: 0.5px solid var(--gray-5);
+    gap: 4px;
+  }
+  .phase-tab {
+    background: none; border: none; cursor: pointer;
+    padding: 10px 14px 12px;
+    font-family: inherit;
+    font-size: 13.5px; font-weight: 500;
+    color: var(--label-3); letter-spacing: -0.1px;
+    position: relative;
+  }
+  .phase-tab.on {
+    color: var(--ios-blue); font-weight: 600;
+  }
+  .phase-tab.on::after {
+    content: "";
+    position: absolute; left: 12px; right: 12px; bottom: -0.5px;
+    height: 2px; background: var(--ios-blue);
+    border-radius: 2px;
+  }
+  .phase-tab.done {
+    color: var(--label-2);
+  }
+  .phase-tab.done::before {
+    content: "";
+    display: inline-block; width: 6px; height: 6px;
+    border-radius: 50%; background: var(--ios-green);
+    margin-right: 6px; vertical-align: 1px;
+  }
+
+  /* Card body — scrolling area in real product; static here.
+     Clipped to the visible card; "more options" sits at the fold,
+     with a soft white fade indicating scrollability below. */
+  .card-body {
+    padding: 10px 22px 10px;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+    position: relative;
+  }
+  .card-body.fade::after {
+    content: "";
+    position: absolute; left: 0; right: 0; bottom: 0;
+    height: 24px;
+    background: linear-gradient(180deg, rgba(255,255,255,0) 0%, #fff 100%);
+    pointer-events: none;
+  }
+
+  /* ============= Plan phase content ============= */
+  .phase-eyebrow {
+    font-size: 10.5px; font-weight: 600;
+    color: var(--label-3); letter-spacing: 0.6px;
+    text-transform: uppercase;
+    margin: 4px 0 12px;
+  }
+  .plan-list { list-style: none; padding: 0; margin: 2px 0 0; }
+  .plan-list li {
+    padding: 3px 0;
+    display: grid;
+    grid-template-columns: 16px 1fr;
+    gap: 9px;
+    align-items: start;
+  }
+  .plan-list li:first-child { padding-top: 1px; }
+  .plan-list li .check {
+    width: 16px; height: 16px;
+    border-radius: 50%;
+    border: 1.5px solid var(--gray-3);
+    margin-top: 1px;
+    flex-shrink: 0;
+    background: #fff;
+  }
+  .plan-list li.checked .check {
+    background: var(--ios-blue);
+    border-color: var(--ios-blue);
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .plan-list li.checked .check::after {
+    content: "";
+    width: 9px; height: 5px;
+    border-left: 1.6px solid #fff;
+    border-bottom: 1.6px solid #fff;
+    transform: rotate(-45deg) translate(1px, -1px);
+  }
+  .plan-list li .text {
+    font-size: 13px; line-height: 1.34;
+    color: var(--label); letter-spacing: -0.15px;
+    text-wrap: pretty;
+  }
+  .plan-list li .text .tag {
+    display: inline-block;
+    margin-left: 6px;
+    padding: 1px 7px 2px;
+    border-radius: 999px;
+    background: var(--ios-coral-tint);
+    color: var(--ios-coral);
+    font-size: 10.5px; font-weight: 600;
+    letter-spacing: 0.1px;
+    vertical-align: 1px;
+  }
+  .plan-list li .sub {
+    font-size: 12.5px; color: var(--label-3);
+    letter-spacing: -0.1px; margin-top: 3px;
+  }
+  .add-row {
+    display: flex; align-items: center; gap: 10px;
+    padding: 14px 0 2px;
+    margin-top: 6px;
+    border-top: 0.5px solid var(--gray-5);
+    color: var(--ios-blue);
+    font-size: 15px; font-weight: 500;
+    letter-spacing: -0.2px;
+    cursor: pointer;
+  }
+  .add-row i { font-size: 19px; }
+
+  /* ============= Plan tab — full interior (Frame 1 only) ============= */
+  /* AI Coach card — the recommended path, top of the Plan content. */
+  .ai-coach {
+    margin: 0 0 6px;
+    padding: 8px 12px;
+    border-radius: 14px;
+    background:
+      linear-gradient(135deg, rgba(0, 122, 255, 0.10) 0%, rgba(0, 122, 255, 0.04) 100%);
+    border: 0.5px solid rgba(0, 122, 255, 0.18);
+    display: grid;
+    grid-template-columns: 30px 1fr 14px;
+    gap: 10px;
+    align-items: center;
+    cursor: pointer;
+  }
+  .ai-coach .glyph {
+    width: 30px; height: 30px; border-radius: 50%;
+    background: var(--ios-blue);
+    display: inline-flex; align-items: center; justify-content: center;
+    color: #fff;
+    box-shadow:
+      0 1px 2px rgba(0, 0, 0, 0.08),
+      0 3px 8px -4px rgba(0, 122, 255, 0.45);
+  }
+  .ai-coach .glyph i { font-size: 16px; }
+  .ai-coach .label {
+    font-size: 13.5px; font-weight: 600;
+    color: var(--label); letter-spacing: -0.2px;
+    line-height: 1.2;
+  }
+  .ai-coach .sub {
+    font-size: 11px; color: var(--label-3);
+    letter-spacing: -0.05px; line-height: 1.25;
+    margin-top: 1px;
+  }
+  .ai-coach .chev {
+    color: var(--label-3);
+    font-size: 14px;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+
+  /* Quiet "or fill in manually" divider — hairline on either side */
+  .or-manual {
+    display: flex; align-items: center; gap: 10px;
+    margin: 4px 0 6px;
+    font-size: 10.5px; color: var(--label-3);
+    letter-spacing: -0.05px;
+  }
+  .or-manual::before,
+  .or-manual::after {
+    content: "";
+    flex: 1;
+    height: 0.5px;
+    background: var(--gray-5);
+  }
+  .or-manual span { white-space: nowrap; }
+
+  /* Manual field — eyebrow label + body text */
+  .field {
+    padding: 6px 0 6px;
+    border-top: 0.5px solid var(--gray-5);
+  }
+  .field:first-of-type { border-top: none; padding-top: 2px; }
+  .field .eyebrow {
+    font-size: 9.5px; font-weight: 600;
+    color: var(--label-3); letter-spacing: 0.7px;
+    text-transform: uppercase;
+    margin: 0 0 3px;
+  }
+  .field .body {
+    font-size: 13px; line-height: 1.36;
+    color: var(--label); letter-spacing: -0.15px;
+    margin: 0; text-wrap: pretty;
+  }
+
+  /* Generate / add affordance row beneath the sub-step list */
+  .how-actions {
+    margin-top: 4px;
+    padding-top: 6px;
+    border-top: 0.5px solid var(--gray-5);
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 10px;
+  }
+  .how-actions .a {
+    background: none; border: none; padding: 3px 0;
+    font-family: inherit;
+    font-size: 12.5px; font-weight: 500;
+    color: var(--ios-blue);
+    letter-spacing: -0.1px;
+    display: inline-flex; align-items: center; gap: 5px;
+    cursor: pointer;
+  }
+  .how-actions .a i { font-size: 14px; }
+  .how-actions .a.gen {
+    color: var(--ios-blue);
+  }
+  .how-actions .a.gen i { color: var(--ios-blue); }
+
+  /* Capability chips — larger, coral, two states */
+  .cap-chips {
+    display: flex; flex-wrap: wrap; gap: 5px;
+    margin: 2px 0 4px;
+  }
+  .cap-chip {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 4px 10px 5px;
+    border-radius: 999px;
+    background: var(--ios-coral-tint);
+    color: var(--ios-coral);
+    font-size: 11.5px; font-weight: 600;
+    letter-spacing: -0.05px;
+    border: 0.5px solid transparent;
+  }
+  .cap-chip.outlined {
+    background: transparent;
+    color: var(--ios-coral);
+    border-color: rgba(255, 107, 107, 0.45);
+    font-weight: 500;
+  }
+  .cap-chip.empty {
+    background: transparent;
+    color: var(--label-3);
+    border: 0.5px dashed var(--gray-3);
+    padding: 4px 9px 5px;
+  }
+  .cap-chip i { font-size: 11px; }
+  .cap-caption {
+    font-size: 10.5px; color: var(--label-3);
+    letter-spacing: -0.05px;
+    margin: 3px 0 0;
+  }
+
+  /* More options — collapsed expander */
+  .more-options {
+    margin-top: 6px;
+    padding: 6px 0 0;
+    border-top: 0.5px solid var(--gray-5);
+    display: flex; align-items: center; gap: 4px;
+    font-size: 12px; color: var(--label-3);
+    letter-spacing: -0.1px;
+    cursor: pointer;
+  }
+  .more-options i { font-size: 14px; color: var(--label-3); }
+
+  /* Card head — compact variant for the dense Plan tab */
+  .card-head.compact { padding: 14px 22px 8px; }
+  .card-head.compact .step-label { margin: 0 0 6px; font-size: 10.5px; }
+  .card-head.compact h3 { font-size: 19px; line-height: 1.15; letter-spacing: -0.4px; }
+  .card-head.compact .step-meta { margin-top: 6px; font-size: 11.5px; }
+
+  /* ============= Do phase content ============= */
+  .do-log { padding: 0; margin: 0; list-style: none; }
+  .do-log li {
+    padding: 12px 0;
+    border-top: 0.5px solid var(--gray-5);
+    display: grid;
+    grid-template-columns: 44px 1fr;
+    gap: 10px;
+    align-items: start;
+  }
+  .do-log li:first-child { border-top: none; padding-top: 4px; }
+  .do-log .time {
+    font-size: 12px; color: var(--label-3);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.05px;
+    padding-top: 2px;
+  }
+  .do-log .entry-body { min-width: 0; }
+  .do-log .entry-body .obs {
+    font-size: 14.5px; line-height: 1.42;
+    color: var(--label); letter-spacing: -0.2px;
+    margin: 0; text-wrap: pretty;
+  }
+  .do-log .entry-body .obs.voice {
+    font-style: italic; color: var(--label);
+  }
+  .do-log .entry-body .kind {
+    margin-top: 4px;
+    font-size: 11px; color: var(--label-3);
+    display: inline-flex; align-items: center; gap: 5px;
+    letter-spacing: 0.02em;
+  }
+  .do-log .entry-body .kind i { font-size: 12px; color: var(--ios-blue); }
+  .do-log .entry-body .kind.flag i { color: var(--ios-coral); }
+  .do-log .entry-body .flag-pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: var(--ios-coral-tint);
+    color: var(--ios-coral);
+    font-size: 12.5px; font-weight: 500;
+    letter-spacing: -0.05px;
+  }
+  .do-log .entry-body .flag-pill i { font-size: 12px; }
+
+  /* ============= Reflect phase content ============= */
+  .prompt-group { margin: 0 0 4px; }
+  .prompt-block {
+    padding: 12px 0;
+    border-top: 0.5px solid var(--gray-5);
+  }
+  .prompt-block:first-of-type { border-top: none; padding-top: 0; }
+  .prompt-block .q {
+    font-size: 13px; font-weight: 600;
+    color: var(--label-2); letter-spacing: -0.1px;
+    margin: 0 0 6px;
+  }
+  .prompt-block .a {
+    font-size: 14.5px; line-height: 1.42;
+    color: var(--label); letter-spacing: -0.2px;
+    margin: 0; text-wrap: pretty;
+  }
+  .prompt-block .a.empty {
+    color: var(--label-3);
+    font-style: italic;
+  }
+  .evidence-row {
+    margin-top: 14px;
+    padding: 12px 14px;
+    border-radius: 14px;
+    background: var(--ios-coral-tint);
+    border: 0.5px solid rgba(255, 107, 107, 0.22);
+    display: grid;
+    grid-template-columns: 22px 1fr auto;
+    gap: 10px;
+    align-items: center;
+  }
+  .evidence-row i { color: var(--ios-coral); font-size: 18px; }
+  .evidence-row .lbl {
+    font-size: 13px; font-weight: 600;
+    color: #B83232; letter-spacing: -0.1px;
+  }
+  .evidence-row .lbl small {
+    display: block;
+    font-weight: 400;
+    color: #8B2A2A;
+    margin-top: 2px;
+    font-size: 11px;
+    letter-spacing: 0;
+  }
+  .evidence-row .add {
+    color: var(--ios-coral);
+    font-size: 14px;
+    font-weight: 600;
+  }
+  .reflect-foot {
+    margin-top: 14px;
+    padding: 12px 0 0;
+    border-top: 0.5px solid var(--gray-5);
+    font-size: 12px;
+    color: var(--label-3);
+    letter-spacing: -0.05px;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+
+  /* ============= Profile screen ============= */
+  .profile-screen {
+    padding: 50px 0 0;
+  }
+  .profile-hero {
+    padding: 18px 20px 16px;
+    display: flex; align-items: center; gap: 14px;
+  }
+  .profile-hero .ava {
+    width: 56px; height: 56px; border-radius: 50%;
+    background: linear-gradient(135deg, #4E6A85 0%, #7C7B6E 100%);
+    color: #fff; display: inline-flex;
+    align-items: center; justify-content: center;
+    font-size: 20px; font-weight: 600;
+    border: 0.5px solid rgba(0, 0, 0, 0.05);
+  }
+  .profile-hero .who { flex: 1; }
+  .profile-hero .who .name {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
+    font-size: 22px; font-weight: 600; letter-spacing: -0.4px;
+    color: var(--label); margin: 0;
+  }
+  .profile-hero .who .handle {
+    font-size: 13px; color: var(--label-3);
+    letter-spacing: -0.05px; margin: 2px 0 0;
+  }
+  .profile-hero .gear {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    background: rgba(0,0,0,0.04);
+    display: inline-flex; align-items: center; justify-content: center;
+    color: var(--label-2);
+    cursor: pointer; border: none;
+  }
+  .profile-hero .gear i { font-size: 18px; }
+
+  /* Interest selector — pill row, current interest filled blue */
+  .interest-row {
+    padding: 4px 16px 12px;
+    display: flex; gap: 8px;
+    overflow: hidden;
+  }
+  .interest-pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 6px 12px 7px;
+    border-radius: 999px;
+    background: #fff;
+    border: 0.5px solid var(--gray-4);
+    font-size: 13px; font-weight: 500;
+    color: var(--label-2);
+    letter-spacing: -0.1px;
+    white-space: nowrap;
+  }
+  .interest-pill i { font-size: 13px; }
+  .interest-pill.on {
+    background: var(--ios-blue);
+    border-color: var(--ios-blue);
+    color: #fff;
+  }
+  .interest-pill.more {
+    color: var(--label-3);
+    background: transparent;
+    border-color: transparent;
+  }
+
+  /* Section eyebrow inside Profile */
+  .profile-section-head {
+    padding: 18px 22px 8px;
+    font-size: 11px; font-weight: 600;
+    color: var(--label-3); letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+
+  /* Capability list — iOS grouped list */
+  .cap-group {
+    margin: 0 16px;
+    border-radius: 14px;
+    background: #fff;
+    border: 0.5px solid rgba(0, 0, 0, 0.04);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+    overflow: hidden;
+  }
+  .cap {
+    padding: 14px 16px;
+    border-top: 0.5px solid var(--gray-5);
+    display: grid;
+    grid-template-columns: 1fr auto;
+    grid-template-rows: auto auto;
+    column-gap: 12px;
+    row-gap: 4px;
+    align-items: center;
+  }
+  .cap:first-child { border-top: none; }
+  .cap .name {
+    font-size: 15.5px; font-weight: 500;
+    color: var(--label); letter-spacing: -0.25px;
+    grid-column: 1; grid-row: 1;
+  }
+  .cap .dots {
+    grid-column: 2; grid-row: 1;
+    display: inline-flex; gap: 4px; align-items: center;
+  }
+  .cap .dots .d {
+    width: 9px; height: 9px; border-radius: 50%;
+    background: var(--gray-4);
+  }
+  .cap .dots .d.f { background: var(--ios-blue); }
+  .cap.cert .dots .d.f { background: var(--ios-green); }
+  .cap .ev {
+    grid-column: 1 / -1; grid-row: 2;
+    font-size: 12.5px; color: var(--label-3);
+    letter-spacing: -0.05px;
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .cap .ev .cert-mark {
+    color: var(--ios-green); font-weight: 600;
+    display: inline-flex; align-items: center; gap: 3px;
+  }
+  .cap .ev .cert-mark i { font-size: 12px; }
+
+  .show-more {
+    margin: 12px 22px 0;
+    padding: 14px 0;
+    text-align: center;
+    color: var(--ios-blue);
+    font-size: 15px; font-weight: 500;
+    letter-spacing: -0.2px;
+    border-top: 0.5px solid var(--gray-5);
+    cursor: pointer;
+  }
+
+  .share-foot {
+    margin: 18px 16px 0;
+    padding: 14px 16px;
+    border-radius: 14px;
+    background: #fff;
+    border: 0.5px solid rgba(0, 0, 0, 0.04);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .share-foot .lbl {
+    display: inline-flex; align-items: center; gap: 8px;
+    color: var(--ios-blue);
+    font-size: 15px; font-weight: 500;
+    letter-spacing: -0.2px;
+  }
+  .share-foot .lbl i { font-size: 17px; }
+  .share-foot .vis {
+    color: var(--label-3);
+    font-size: 13px;
+    letter-spacing: -0.05px;
+  }
+
+  /* ============= Floating four-tab nav ============= */
+  /* iOS standard light tab bar — frosted white, hairline top, 4 equal tabs.
+     Active tab tinted iOS blue. */
+  .tabbar {
+    position: absolute;
+    left: 0; right: 0; bottom: 0;
+    height: 84px;
+    padding: 6px 0 24px;
+    background: rgba(255, 255, 255, 0.82);
+    -webkit-backdrop-filter: blur(28px) saturate(180%);
+    backdrop-filter: blur(28px) saturate(180%);
+    border-top: 0.5px solid rgba(0, 0, 0, 0.08);
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    align-items: center;
+    z-index: 25;
+  }
+  .tabbar .t {
+    display: flex; flex-direction: column; align-items: center; gap: 2px;
+    background: none; border: none; padding: 6px 0; cursor: pointer;
+    color: var(--gray-1);
+    font-size: 10px; font-weight: 500;
+    letter-spacing: 0.02em;
+  }
+  .tabbar .t i { font-size: 25px; line-height: 1; }
+  .tabbar .t.on { color: var(--ios-blue); }
+  .tabbar .t.on i { color: var(--ios-blue); }
+
+  /* ============= Side rail ============= */
+  .rail-row {
+    max-width: 1720px;
+    margin: 48px auto 0;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 40px;
+  }
+  .rail-col h4 {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 14px; letter-spacing: 0.01em;
+    color: var(--stage-ink); margin: 0 0 10px; font-weight: 500;
+  }
+  .rail-col p {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 14px; line-height: 1.6;
+    color: #4D4A43; margin: 0 0 10px;
+  }
+  .rail-col p strong { color: var(--stage-ink); font-weight: 500; }
+  .rail-col em { font-style: italic; }
+  .rail-col ul { list-style: none; padding: 0; margin: 6px 0 0; }
+  .rail-col ul li {
+    padding: 8px 0;
+    border-top: 0.5px dashed rgba(34, 30, 20, 0.14);
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 13.5px; line-height: 1.5;
+    color: #4D4A43;
+  }
+  .rail-col ul li:first-child { border-top: none; padding-top: 2px; }
+  .rail-col ul li strong {
+    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+    font-weight: 500; font-size: 11.5px;
+    color: var(--stage-ink); letter-spacing: 0.01em;
+    display: block; margin-bottom: 2px;
+  }
+
+  .legend {
+    max-width: 1720px;
+    margin: 28px auto 0;
+    padding: 22px 28px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.5);
+    border: 0.5px solid var(--stage-line);
+    display: flex; flex-wrap: wrap; gap: 24px;
+    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 12px; color: var(--stage-text);
+  }
+  .legend .item { display: inline-flex; align-items: center; gap: 8px; }
+  .legend .chip {
+    width: 14px; height: 14px; border-radius: 4px;
+    border: 0.5px solid rgba(0,0,0,0.1);
+  }
+  .legend .chip.gray { background: var(--gray-6); }
+  .legend .chip.white { background: #fff; }
+  .legend .chip.blue { background: var(--ios-blue); }
+  .legend .chip.coral { background: var(--ios-coral); }
+  .legend .chip.green { background: var(--ios-green); }
+  .legend .chip.dot {
+    border-radius: 50%;
+    background: var(--ios-blue);
+  }
+</style>
+</head>
+<body>
+
+<div class="page">
+
+  <header class="page-head">
+    <p class="eyebrow">BetterAt redesign · Practice Timeline · Canonical — 2026-05-15</p>
+    <h1>Practice as a horizontal timeline of steps, <em>each step a card with three phase tabs</em></h1>
+    <p>The Practice tab opens centered on the current step. Adjacent steps peek in as silhouettes from either edge &mdash; <em>spatial sequence, one focal item, more available</em>. Inside the card, the deliberate-practice loop renders as three always-visible tabs: <strong>Plan / Do / Reflect</strong>. Below, the bottom tab bar resolves to four destinations: Practice (the engine), Playbook (the library), Discover (the intake), and Profile (the credential surface that the practice loop produces). The four frames below show the same step across all three phases, then the Profile tab that the practice arc accumulates evidence into.</p>
+  </header>
+
+  <!-- =================================================================== -->
+  <!-- Strip — three phases of the same step                                 -->
+  <!-- =================================================================== -->
+
+  <section class="strip-head">
+    <p class="eyebrow">Frames 1 — 3</p>
+    <h2><em>Sail Racing · Step 6 of 11 · Light-air starts in shifty breeze</em></h2>
+    <p>The same step rendered across Plan, Do, and Reflect. The card, peeks, header, and tab bar are constant; only the active phase tab and the card body change. Phase memory is sticky per step &mdash; Felix lands on whichever phase he was last on for this specific step.</p>
+  </section>
+
+  <div class="row">
+
+    <!-- =============================================================== -->
+    <!-- Frame 1 · Practice tab — Plan active                              -->
+    <!-- =============================================================== -->
+    <div class="col">
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="statusbar">
+          <span>9:41</span>
+          <span class="right">
+            <i class="ti ti-cell-signal-4"></i>
+            <i class="ti ti-wifi"></i>
+            <i class="ti ti-battery-3"></i>
+          </span>
+        </div>
+
+        <div class="screen" data-screen-label="01 Practice · Plan">
+
+          <!-- Top header -->
+          <div class="top-header">
+            <div class="interest">
+              <span class="name">Sail Racing</span>
+              <span class="switcher"><i class="ti ti-chevron-down"></i></span>
+            </div>
+            <span class="step-counter">Step 6 of 11</span>
+            <div class="avatar">KD</div>
+          </div>
+
+          <!-- Timeline area -->
+          <div class="timeline-area">
+            <div class="timeline-row">
+
+              <!-- Left peek — silhouette only -->
+              <div class="peek dim" aria-hidden="true"></div>
+
+              <!-- Center card -->
+              <article class="card">
+                <header class="card-head compact">
+                  <p class="step-label"><span class="dot"></span>Current step</p>
+                  <h3>Light-air starts in shifty breeze</h3>
+                  <div class="step-meta">
+                    <span>Saturday · RHKYC Spring Series</span>
+                    <span class="sep">·</span>
+                    <span>Race 4</span>
+                  </div>
+                </header>
+
+                <nav class="phase-tabs" role="tablist">
+                  <button class="phase-tab on" role="tab" aria-selected="true">Plan</button>
+                  <button class="phase-tab" role="tab">Do</button>
+                  <button class="phase-tab" role="tab">Reflect</button>
+                </nav>
+
+                <div class="card-body fade">
+
+                  <!-- 1 · AI Coach card — recommended path -->
+                  <div class="ai-coach" role="button">
+                    <span class="glyph"><i class="ti ti-sparkles"></i></span>
+                    <div>
+                      <div class="label">Build with AI Coach</div>
+                      <div class="sub">Describe your race plan; I'll structure it</div>
+                    </div>
+                    <span class="chev"><i class="ti ti-chevron-right"></i></span>
+                  </div>
+
+                  <!-- 2 · or fill in manually -->
+                  <div class="or-manual"><span>or fill in manually</span></div>
+
+                  <!-- 3 · What will you do? -->
+                  <div class="field">
+                    <p class="eyebrow">What will you do?</p>
+                    <p class="body">Read the favored end and commit early to the pin in light-air shifty conditions.</p>
+                  </div>
+
+                  <!-- 4 · How will you do it? -->
+                  <div class="field">
+                    <p class="eyebrow">How will you do it?</p>
+                    <ul class="plan-list">
+                      <li>
+                        <span class="check"></span>
+                        <div>
+                          <div class="text">Pin-end approach if the line favors left more than 5°<span class="tag">Starts</span></div>
+                        </div>
+                      </li>
+                      <li>
+                        <span class="check"></span>
+                        <div>
+                          <div class="text">Hold a clear lane for the first 90 seconds, no early tack<span class="tag">Starts</span></div>
+                        </div>
+                      </li>
+                      <li>
+                        <span class="check"></span>
+                        <div>
+                          <div class="text">Re-check rig tune in harbor — 22 on V1 if it's over 14 kn<span class="tag">Boat&nbsp;tune</span></div>
+                        </div>
+                      </li>
+                    </ul>
+                    <div class="how-actions">
+                      <button class="a"><i class="ti ti-plus"></i>Add sub-step</button>
+                      <button class="a gen"><i class="ti ti-sparkles"></i>Generate</button>
+                    </div>
+                  </div>
+
+                  <!-- 5 · Why is this next? -->
+                  <div class="field">
+                    <p class="eyebrow">Why is this next?</p>
+                    <p class="body">Last week's debrief flagged starts as weakest. Tomorrow forecasts 8–12 kn with shifts — exactly the condition I struggle with.</p>
+                  </div>
+
+                  <!-- 6 · Capabilities this develops -->
+                  <div class="field">
+                    <p class="eyebrow">Capabilities this develops</p>
+                    <div class="cap-chips">
+                      <span class="cap-chip">Starts</span>
+                      <span class="cap-chip">Weather reading</span>
+                      <span class="cap-chip outlined">Boat tune</span>
+                      <span class="cap-chip empty"><i class="ti ti-plus"></i></span>
+                    </div>
+                    <p class="cap-caption">Auto-tagged from your plan · tap to edit</p>
+                  </div>
+
+                  <!-- 7 · More options (collapsed) -->
+                  <div class="more-options" role="button">
+                    <i class="ti ti-chevron-right"></i>
+                    <span>More options</span>
+                  </div>
+
+                </div>
+              </article>
+
+              <!-- Right peek -->
+              <div class="peek dim" aria-hidden="true"></div>
+
+            </div>
+          </div>
+
+          <nav class="tabbar">
+            <button class="t on" aria-current="page">
+              <i class="ti ti-flag-3-filled"></i>
+              <span>Practice</span>
+            </button>
+            <button class="t">
+              <i class="ti ti-book-2"></i>
+              <span>Playbook</span>
+            </button>
+            <button class="t">
+              <i class="ti ti-compass"></i>
+              <span>Discover</span>
+            </button>
+            <button class="t">
+              <i class="ti ti-user"></i>
+              <span>Profile</span>
+            </button>
+          </nav>
+        </div>
+
+        <div class="home-indicator"></div>
+      </div>
+      <div class="caption"><strong>Frame 1</strong> · Practice · Plan phase</div>
+    </div>
+
+    <!-- =============================================================== -->
+    <!-- Frame 2 · Practice tab — Do active                                -->
+    <!-- =============================================================== -->
+    <div class="col">
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="statusbar">
+          <span>13:54</span>
+          <span class="right">
+            <i class="ti ti-cell-signal-4"></i>
+            <i class="ti ti-wifi"></i>
+            <i class="ti ti-battery-3"></i>
+          </span>
+        </div>
+
+        <div class="screen" data-screen-label="02 Practice · Do">
+
+          <div class="top-header">
+            <div class="interest">
+              <span class="name">Sail Racing</span>
+              <span class="switcher"><i class="ti ti-chevron-down"></i></span>
+            </div>
+            <span class="step-counter">Step 6 of 11</span>
+            <div class="avatar">KD</div>
+          </div>
+
+          <div class="timeline-area">
+            <div class="timeline-row">
+
+              <div class="peek dim" aria-hidden="true"></div>
+
+              <article class="card">
+                <header class="card-head">
+                  <p class="step-label" style="color: var(--ios-coral)"><span class="dot" style="background: var(--ios-coral); box-shadow: 0 0 0 3px rgba(255,107,107,0.22)"></span>Live · in progress</p>
+                  <h3>Light-air starts in shifty breeze</h3>
+                  <div class="step-meta">
+                    <span>Saturday · 14:08 local</span>
+                    <span class="sep">·</span>
+                    <span>Race 4, beat 2</span>
+                  </div>
+                </header>
+
+                <nav class="phase-tabs" role="tablist">
+                  <button class="phase-tab done" role="tab">Plan</button>
+                  <button class="phase-tab on" role="tab" aria-selected="true">Do</button>
+                  <button class="phase-tab" role="tab">Reflect</button>
+                </nav>
+
+                <div class="card-body">
+                  <p class="phase-eyebrow">Captured during the activity · 6 entries</p>
+
+                  <ul class="do-log">
+                    <li>
+                      <span class="time">14:23</span>
+                      <div class="entry-body">
+                        <p class="obs voice">"Left filled in at eight degrees. Not committing yet. Rule said ten."</p>
+                        <div class="kind"><i class="ti ti-microphone"></i>Voice · beat 2</div>
+                      </div>
+                    </li>
+                    <li>
+                      <span class="time">14:18</span>
+                      <div class="entry-body">
+                        <p class="obs voice">"Three boats just banged left. Could be the shift. Could be tactical. Holding."</p>
+                        <div class="kind"><i class="ti ti-microphone"></i>Voice · beat 2</div>
+                      </div>
+                    </li>
+                    <li>
+                      <span class="time">14:14</span>
+                      <div class="entry-body">
+                        <span class="flag-pill"><i class="ti ti-flag-2"></i>flagged for debrief</span>
+                        <div class="kind flag"><i class="ti ti-flag-2"></i>Silent flag · beat 2</div>
+                      </div>
+                    </li>
+                    <li>
+                      <span class="time">14:11</span>
+                      <div class="entry-body">
+                        <p class="obs">Sam said hold our lane. Trust him.</p>
+                        <div class="kind"><i class="ti ti-pencil"></i>Typed · beat 2</div>
+                      </div>
+                    </li>
+                    <li>
+                      <span class="time">13:54</span>
+                      <div class="entry-body">
+                        <p class="obs voice">"Two minutes. Clean lane off the pin. Holding speed."</p>
+                        <div class="kind"><i class="ti ti-microphone"></i>Voice · pre-start</div>
+                      </div>
+                    </li>
+                    <li>
+                      <span class="time">13:22</span>
+                      <div class="entry-body">
+                        <p class="obs voice">"Course set. RC says wind 020. We've got 015."</p>
+                        <div class="kind"><i class="ti ti-microphone"></i>Voice · pre-start</div>
+                      </div>
+                    </li>
+                  </ul>
+
+                  <div class="add-row">
+                    <i class="ti ti-microphone"></i>
+                    <span>Capture a note</span>
+                  </div>
+                </div>
+              </article>
+
+              <div class="peek dim" aria-hidden="true"></div>
+
+            </div>
+          </div>
+
+          <nav class="tabbar">
+            <button class="t on" aria-current="page">
+              <i class="ti ti-flag-3-filled"></i>
+              <span>Practice</span>
+            </button>
+            <button class="t">
+              <i class="ti ti-book-2"></i>
+              <span>Playbook</span>
+            </button>
+            <button class="t">
+              <i class="ti ti-compass"></i>
+              <span>Discover</span>
+            </button>
+            <button class="t">
+              <i class="ti ti-user"></i>
+              <span>Profile</span>
+            </button>
+          </nav>
+        </div>
+
+        <div class="home-indicator"></div>
+      </div>
+      <div class="caption"><strong>Frame 2</strong> · Practice · Do phase</div>
+    </div>
+
+    <!-- =============================================================== -->
+    <!-- Frame 3 · Practice tab — Reflect active                            -->
+    <!-- =============================================================== -->
+    <div class="col">
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="statusbar">
+          <span>18:32</span>
+          <span class="right">
+            <i class="ti ti-cell-signal-4"></i>
+            <i class="ti ti-wifi"></i>
+            <i class="ti ti-battery-3"></i>
+          </span>
+        </div>
+
+        <div class="screen" data-screen-label="03 Practice · Reflect">
+
+          <div class="top-header">
+            <div class="interest">
+              <span class="name">Sail Racing</span>
+              <span class="switcher"><i class="ti ti-chevron-down"></i></span>
+            </div>
+            <span class="step-counter">Step 6 of 11</span>
+            <div class="avatar">KD</div>
+          </div>
+
+          <div class="timeline-area">
+            <div class="timeline-row">
+
+              <div class="peek dim" aria-hidden="true"></div>
+
+              <article class="card">
+                <header class="card-head">
+                  <p class="step-label" style="color: var(--label-3)"><span class="dot" style="background: var(--gray-2)"></span>Race complete · debrief open</p>
+                  <h3>Light-air starts in shifty breeze</h3>
+                  <div class="step-meta">
+                    <span>Saturday · finished 17:12</span>
+                    <span class="sep">·</span>
+                    <span>3rd in fleet</span>
+                  </div>
+                </header>
+
+                <nav class="phase-tabs" role="tablist">
+                  <button class="phase-tab done" role="tab">Plan</button>
+                  <button class="phase-tab done" role="tab">Do</button>
+                  <button class="phase-tab on" role="tab" aria-selected="true">Reflect</button>
+                </nav>
+
+                <div class="card-body">
+                  <p class="phase-eyebrow">Debrief · 3 prompts</p>
+
+                  <div class="prompt-group">
+                    <div class="prompt-block">
+                      <p class="q">What worked?</p>
+                      <p class="a">Pin-end start gave us a clean lane. Holding 90 seconds before tacking was right — boats that tacked early got rolled by the second row.</p>
+                    </div>
+                    <div class="prompt-block">
+                      <p class="q">What didn't?</p>
+                      <p class="a">Sat on the rule too long. Left filled to 9° and I held for 10. By the time I committed, two boats had already cashed the shift.</p>
+                    </div>
+                    <div class="prompt-block">
+                      <p class="q">What would you do differently?</p>
+                      <p class="a empty">Tap to capture…</p>
+                    </div>
+                  </div>
+
+                  <div class="evidence-row">
+                    <i class="ti ti-bookmark-plus"></i>
+                    <div class="lbl">Mark capability evidence
+                      <small>2 moments from this step are taggable</small>
+                    </div>
+                    <span class="add">Tag</span>
+                  </div>
+
+                  <div class="reflect-foot">
+                    <span>8 captures · 24 min of voice</span>
+                    <span style="color: var(--ios-blue); font-weight: 500;">Auto-summary →</span>
+                  </div>
+                </div>
+              </article>
+
+              <div class="peek dim" aria-hidden="true"></div>
+
+            </div>
+          </div>
+
+          <nav class="tabbar">
+            <button class="t on" aria-current="page">
+              <i class="ti ti-flag-3-filled"></i>
+              <span>Practice</span>
+            </button>
+            <button class="t">
+              <i class="ti ti-book-2"></i>
+              <span>Playbook</span>
+            </button>
+            <button class="t">
+              <i class="ti ti-compass"></i>
+              <span>Discover</span>
+            </button>
+            <button class="t">
+              <i class="ti ti-user"></i>
+              <span>Profile</span>
+            </button>
+          </nav>
+        </div>
+
+        <div class="home-indicator"></div>
+      </div>
+      <div class="caption"><strong>Frame 3</strong> · Practice · Reflect phase</div>
+    </div>
+
+    <!-- =============================================================== -->
+    <!-- Frame 4 · Profile tab (preview)                                   -->
+    <!-- =============================================================== -->
+    <div class="col">
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="statusbar">
+          <span>9:41</span>
+          <span class="right">
+            <i class="ti ti-cell-signal-4"></i>
+            <i class="ti ti-wifi"></i>
+            <i class="ti ti-battery-3"></i>
+          </span>
+        </div>
+
+        <div class="screen profile-screen" data-screen-label="04 Profile">
+
+          <div class="profile-hero">
+            <div class="ava">KD</div>
+            <div class="who">
+              <p class="name">Kevin Denney</p>
+              <p class="handle">@kdenney · Hong Kong</p>
+            </div>
+            <button class="gear" aria-label="Account"><i class="ti ti-dots"></i></button>
+          </div>
+
+          <div class="interest-row">
+            <span class="interest-pill on"><i class="ti ti-sailboat"></i>Sail Racing</span>
+            <span class="interest-pill"><i class="ti ti-stethoscope"></i>Nursing</span>
+            <span class="interest-pill more">2 more →</span>
+          </div>
+
+          <div class="profile-section-head">Sail Racing · capabilities</div>
+
+          <div class="cap-group">
+            <div class="cap">
+              <span class="name">Starts</span>
+              <span class="dots">
+                <span class="d f"></span><span class="d f"></span><span class="d f"></span><span class="d"></span><span class="d"></span>
+              </span>
+              <span class="ev">Evidence from 8 races</span>
+            </div>
+
+            <div class="cap">
+              <span class="name">Upwind speed</span>
+              <span class="dots">
+                <span class="d f"></span><span class="d f"></span><span class="d f"></span><span class="d f"></span><span class="d"></span>
+              </span>
+              <span class="ev">Evidence from 14 races</span>
+            </div>
+
+            <div class="cap">
+              <span class="name">Downwind tactics</span>
+              <span class="dots">
+                <span class="d f"></span><span class="d f"></span><span class="d"></span><span class="d"></span><span class="d"></span>
+              </span>
+              <span class="ev">Evidence from 5 races</span>
+            </div>
+
+            <div class="cap cert">
+              <span class="name">Rules knowledge</span>
+              <span class="dots">
+                <span class="d f"></span><span class="d f"></span><span class="d f"></span><span class="d f"></span><span class="d f"></span>
+              </span>
+              <span class="ev">
+                <span class="cert-mark"><i class="ti ti-rosette-discount-check-filled"></i>Certified RHKYC</span>
+                <span style="color: var(--label-4)">·</span>
+                <span>12 references</span>
+              </span>
+            </div>
+          </div>
+
+          <div class="show-more">+ Show 6 more capabilities</div>
+
+          <div class="share-foot">
+            <span class="lbl"><i class="ti ti-share-3"></i>Share profile</span>
+            <span class="vis">Edit visibility</span>
+          </div>
+
+          <nav class="tabbar">
+            <button class="t">
+              <i class="ti ti-flag-3"></i>
+              <span>Practice</span>
+            </button>
+            <button class="t">
+              <i class="ti ti-book-2"></i>
+              <span>Playbook</span>
+            </button>
+            <button class="t">
+              <i class="ti ti-compass"></i>
+              <span>Discover</span>
+            </button>
+            <button class="t on" aria-current="page">
+              <i class="ti ti-user-filled"></i>
+              <span>Profile</span>
+            </button>
+          </nav>
+        </div>
+
+        <div class="home-indicator"></div>
+      </div>
+      <div class="caption"><strong>Frame 4</strong> · Profile · capability map</div>
+    </div>
+
+  </div>
+
+  <!-- ============= Legend ============= -->
+  <div class="legend">
+    <span class="item"><span class="chip gray"></span>System gray 6 ground (#F2F2F7)</span>
+    <span class="item"><span class="chip white"></span>Card · rounded-rect, 22pt radius, layered shadow</span>
+    <span class="item"><span class="chip blue"></span>iOS blue actions · #007AFF (active phase, primary tab, capability dots)</span>
+    <span class="item"><span class="chip coral"></span>iOS coral · #FF6B6B (in-progress state, capability-evidence affordance)</span>
+    <span class="item"><span class="chip green"></span>iOS green · #34C759 (completed phase, certified credential)</span>
+  </div>
+
+  <!-- ============= Annotation rail ============= -->
+  <div class="rail-row">
+
+    <div class="rail-col">
+      <h4>The peek is a silhouette</h4>
+      <p>Adjacent step cards bleed off both edges of the timeline area. What's visible is <em>edge + corner + shadow only</em> — no title, no content, no metadata. The peek implies "more here" without trying to read.</p>
+      <p>Why so empty: the peek does spatial work, not informational work. If a user wants to know what step 5 was, they swipe or tap; they don't squint at a sliver.</p>
+      <p><strong>Two gestures, two scopes.</strong> Horizontal swipe pages between steps. Tap inside the card switches phase. No conflict.</p>
+    </div>
+
+    <div class="rail-col">
+      <h4>Phase tabs are always all three</h4>
+      <p>No gating, no progressive disclosure. Plan, Do, and Reflect are <em>always</em> tappable, even when empty. A user can land on Reflect to read the prompts before they've done any of the Do work; that's a valid use.</p>
+      <p>The <strong>green dot</strong> on a phase tab marks "this phase has content the user produced." It is ambient context, not a gate.</p>
+      <ul>
+        <li><strong>Active</strong>iOS blue label, blue underline, 0.5px hairline above tab strip.</li>
+        <li><strong>Done</strong>label in standard label color, 6px green dot prefix.</li>
+        <li><strong>Empty</strong>label in tertiary gray, no decoration.</li>
+      </ul>
+    </div>
+
+    <div class="rail-col">
+      <h4>State in the head, not the chrome</h4>
+      <p>The card's <em>step-label</em> row above the title carries the temporal state of this practice cycle. Frame 1 reads <em>Current step</em> in iOS blue. Frame 2 reads <em>Live · in progress</em> with the coral live dot from the On-the-Water register. Frame 3 reads <em>Race complete · debrief open</em> in tertiary gray.</p>
+      <p>Same grammar, three weights. The header strip and the tab bar don't have to know; they just render. <strong>Surface decides weight; chrome stays still.</strong></p>
+    </div>
+
+    <div class="rail-col">
+      <h4>Profile is the credential the loop produces</h4>
+      <p>Every Reflect-phase capability tag (Frame 3, coral evidence row) accumulates against the user's Profile. A capability shows progress dots and an evidence count linking back to the source steps.</p>
+      <p>Some capabilities are <em>progress-shaped</em> — five dots filling over time. Some are <em>credential-shaped</em> — a certification rosette next to references. Rules knowledge in Frame 4 is the credential case.</p>
+      <p><strong>The point of Practice is Profile.</strong> The loop on the left exists to feed the artifact on the right.</p>
+    </div>
+
+  </div>
+
+  <!-- ============= Spec rail ============= -->
+  <div class="rail-row" style="margin-top: 32px;">
+
+    <div class="rail-col">
+      <h4>Timeline geometry</h4>
+      <ul>
+        <li><strong>Center card</strong>318pt wide on a 393pt iPhone — 81%. Min height 612pt to feel "page-sized."</li>
+        <li><strong>Peek cards</strong>268pt wide, 14pt gap from center. ~28pt of each peek visible after centering and clipping.</li>
+        <li><strong>Card radius</strong>22pt — between the 14pt iOS Notes card radius and the 28pt Wallet pass radius. Reads as "a thing," not "a row."</li>
+        <li><strong>Shadow</strong>two-layer: 1pt hairline directly below + 18pt 38pt blur for depth. Peeks get a quieter version.</li>
+      </ul>
+    </div>
+
+    <div class="rail-col">
+      <h4>Phase content density</h4>
+      <ul>
+        <li><strong>Plan</strong>checklist with capability tags. Items can be checked off; tags drive the Profile aggregation. The <em>+ Add to plan</em> row is the only composer affordance.</li>
+        <li><strong>Do</strong>reverse-chronological log. Voice (italic), typed (regular), photo (thumbnail), silent-flag (coral pill) — same vocabulary as the editorial On-the-Water register.</li>
+        <li><strong>Reflect</strong>three prompt blocks (What worked / What didn't / What would you do differently) plus the coral evidence-tag affordance and a soft auto-summary route.</li>
+      </ul>
+    </div>
+
+    <div class="rail-col">
+      <h4>Bottom tab bar</h4>
+      <ul>
+        <li><strong>Practice</strong>flag-3 icon (filled when active). The engine.</li>
+        <li><strong>Playbook</strong>book-2 icon. The library.</li>
+        <li><strong>Discover</strong>compass icon. The intake.</li>
+        <li><strong>Profile · NEW</strong>user icon (filled when active). Renamed from Reflect. The credential.</li>
+        <li><strong>Tab bar surface</strong>iOS standard light material — 82% white over the gray-6 ground, 28pt blur, 0.5pt top hairline. 84pt tall including the safe-area inset.</li>
+      </ul>
+    </div>
+
+    <div class="rail-col">
+      <h4>What this canonical replaces</h4>
+      <p>Two prior canonicals are superseded by this one:</p>
+      <ul>
+        <li><strong>Race Prep iOS register Pass A</strong>full-screen Race Prep with internal three-phase tabs but no timeline-with-peek. Flag-disabled 2026-05-15.</li>
+        <li><strong>On the Water iOS register Pass B</strong>atmospheric-ground race detail. Naming didn't generalize past sailing; subsumed by <em>Do</em>.</li>
+      </ul>
+      <p>The <em>atmospheric ground</em>, <em>permission rule scaling</em>, <em>voice-italic transcription</em>, and <em>silent-flag capture</em> findings from those passes are preserved and ride forward inside the Do-phase content of each step.</p>
+    </div>
+
+  </div>
+
+</div>
+
+</body>
+</html>
