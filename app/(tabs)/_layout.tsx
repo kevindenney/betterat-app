@@ -46,7 +46,7 @@ const TAB_SWEEP_ROUTE_MAP: Record<(typeof TAB_SWEEP_REQUIRED_TABS)[number], stri
 };
 const TAB_SWEEP_META: Record<(typeof TAB_SWEEP_REQUIRED_TABS)[number], { label: string; icon: keyof typeof Ionicons.glyphMap }> = {
   discover: { label: 'Discover', icon: 'compass-outline' },
-  reflect: { label: 'Reflect', icon: 'stats-chart-outline' },
+  reflect: { label: 'Profile', icon: 'person-circle-outline' },
 };
 const ROUTES_WITH_CUSTOM_TOOLBAR = [
   '/discover',
@@ -66,8 +66,8 @@ const TAB_SWEEP_CONTEXT_COPY: Record<
     emptyHint: 'Start by exploring interests or finding people to follow.',
   },
   reflect: {
-    description: 'Review race history, progress trends, and season metrics.',
-    emptyHint: 'No history yet? Create your first race to start tracking.',
+    description: 'View your capability map, evidence, and shareable record.',
+    emptyHint: 'Your Profile fills in as Practice steps produce evidence.',
   },
 };
 
@@ -545,14 +545,16 @@ function TabLayoutInner() {
             href: null,
           }}
         />
-        {/* Tab 5: Reflect (Progress/Stats) */}
+        {/* Tab 5: Profile (capability record) — route name stays `reflect`
+            to avoid breaking deep links; only the bottom-tab label and
+            icon change in Phase A. See docs/redesign/PRACTICE_TIMELINE_CANONICAL.md. */}
         <Tabs.Screen
           name="reflect"
           options={{
-            title: reflectTab?.title ?? 'Reflect',
+            title: reflectTab?.title ?? 'Profile',
             tabBarIcon: isSailorUser ? () => null : ({ color, size, focused }) => (
               <Ionicons
-                name={getIconName(reflectTab, focused, reflectTab?.iconFocused ?? 'stats-chart', reflectTab?.icon ?? 'stats-chart-outline') as any}
+                name={getIconName(reflectTab, focused, reflectTab?.iconFocused ?? 'person-circle', reflectTab?.icon ?? 'person-circle-outline') as any}
                 size={size}
                 color={color}
               />
@@ -560,7 +562,7 @@ function TabLayoutInner() {
             tabBarButton: !isTabVisible('reflect')
               ? () => null
               : isSailorUser
-                ? renderSailorTabButton('reflect', reflectTab?.title ?? 'Reflect', reflectTab)
+                ? renderSailorTabButton('reflect', reflectTab?.title ?? 'Profile', reflectTab)
                 : undefined,
           }}
         />

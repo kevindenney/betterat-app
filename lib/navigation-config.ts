@@ -110,7 +110,7 @@ export const getTabsForUserType = (
       { name: 'races', title: eventTitle, icon: 'flag-outline', iconFocused: 'flag' },
       { name: 'playbook', title: 'Playbook', icon: 'book-outline', iconFocused: 'book' },
       { name: 'discover', title: 'Discover', icon: 'compass-outline', iconFocused: 'compass' },
-      { name: 'reflect', title: 'Reflect', icon: 'stats-chart-outline', iconFocused: 'stats-chart' },
+      { name: 'reflect', title: 'Profile', icon: 'person-circle-outline', iconFocused: 'person-circle' },
     ];
   }
 
@@ -144,7 +144,7 @@ export const getTabsForUserType = (
       { name: 'races', title: eventTitle, icon: 'flag-outline', iconFocused: 'flag' },
       { name: 'playbook', title: 'Playbook', icon: 'book-outline', iconFocused: 'book' },
       { name: 'discover', title: 'Discover', icon: 'compass-outline', iconFocused: 'compass' },
-      { name: 'reflect', title: 'Reflect', icon: 'stats-chart-outline', iconFocused: 'stats-chart' },
+      { name: 'reflect', title: 'Profile', icon: 'person-circle-outline', iconFocused: 'person-circle' },
     ];
 
     // Add coaching tabs if user has coaching capability
@@ -172,7 +172,7 @@ export const SAILOR_NAV_ITEMS: NavItem[] = [
   { key: 'races', label: 'Race', route: '/(tabs)/races', icon: 'flag-outline' },
   { key: 'playbook', label: 'Playbook', route: '/(tabs)/playbook', icon: 'book-outline' },
   { key: 'discover', label: 'Discover', route: '/(tabs)/discover', icon: 'compass-outline' },
-  { key: 'reflect', label: 'Reflect', route: '/(tabs)/reflect', icon: 'stats-chart-outline' },
+  { key: 'reflect', label: 'Profile', route: '/(tabs)/reflect', icon: 'person-circle-outline' },
 ];
 
 export const SAILOR_SECONDARY_ITEMS: NavItem[] = [
