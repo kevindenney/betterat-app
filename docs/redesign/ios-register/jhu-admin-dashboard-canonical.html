@@ -1,0 +1,2530 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=5360" />
+<title>BetterAt — Org Admin Dashboard · Canonical · 2026-05-15</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css" />
+<style>
+  :root {
+    /* iOS system palette — inherited from prior canonicals */
+    --ios-blue:        #007AFF;
+    --ios-blue-tint:   rgba(0, 122, 255, 0.10);
+    --ios-blue-strong: rgba(0, 122, 255, 0.18);
+    --ios-blue-deep:   #0060D4;
+    --ios-green:       #34C759;
+    --ios-green-tint:  rgba(52, 199, 89, 0.12);
+    --ios-amber:       #FF9500;
+    --ios-amber-tint:  rgba(255, 149, 0, 0.14);
+    --ios-coral:       #FF3B30;
+    --ios-coral-tint:  rgba(255, 59, 48, 0.10);
+    --ios-purple:      #5856D6;
+    --ios-teal:        #30B0C7;
+
+    /* iOS neutrals — light mode */
+    --gray-6:   #F5F5F7;   /* desktop ground (slightly cooler than iOS) */
+    --gray-5:   #ECECEE;
+    --gray-4:   #E0E0E4;
+    --gray-3:   #D1D1D6;
+    --gray-2:   #AEAEB2;
+    --gray-1:   #8E8E93;
+    --label:    #1C1C1E;
+    --label-2:  #3C3C43;
+    --label-3:  rgba(60, 60, 67, 0.62);
+    --label-4:  rgba(60, 60, 67, 0.32);
+    --label-5:  rgba(60, 60, 67, 0.18);
+
+    /* Tenant-placeholder institutional ink — clearly not any real
+       school. Used sparingly: monogram disc, the org-name strap, the
+       wordmark on the auth-style chrome. iOS blue still owns ACTIONS. */
+    --tenant-ink:   #1F2D52;
+    --tenant-ink-2: #364775;
+    --tenant-soft:  #EAEDF5;
+
+    /* Page stage — warm review chrome carried from prior canonicals */
+    --stage:        #EFEAD8;
+    --stage-text:   #6B6558;
+    --stage-ink:    #2A2824;
+    --stage-line:   rgba(34, 30, 20, 0.12);
+    --stage-line-soft: rgba(34, 30, 20, 0.06);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display",
+                 "Helvetica Neue", Helvetica, Arial, sans-serif;
+    color: var(--label);
+    background: var(--stage);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+  button, input, textarea { font-family: inherit; }
+
+  /* ============= Page chrome ============= */
+  .page { min-width: 5360px; padding: 56px 48px 96px; }
+  .page-head { max-width: 1240px; margin: 0 0 56px 32px; }
+  .page-head .eyebrow {
+    font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--stage-text); margin: 0 0 12px;
+  }
+  .page-head h1 {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 32px; line-height: 1.15; font-weight: 500;
+    letter-spacing: -0.015em; margin: 0 0 14px; color: var(--stage-ink);
+  }
+  .page-head h1 em { font-style: italic; }
+  .page-head p {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 17px; line-height: 1.55;
+    color: var(--stage-text); margin: 0; max-width: 1100px;
+    text-wrap: pretty;
+  }
+  .page-head p em { font-style: italic; }
+  .page-head p + p { margin-top: 12px; }
+  .page-head .crumbs {
+    display: flex; gap: 10px; align-items: center; margin: 22px 0 0; flex-wrap: wrap;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+    font-size: 12px; color: var(--stage-text); letter-spacing: 0.02em;
+  }
+  .page-head .crumbs .pill {
+    padding: 3px 10px; border-radius: 999px;
+    border: 0.5px solid var(--stage-line);
+    background: rgba(255,255,255,0.4);
+  }
+  .page-head .crumbs .sep { color: var(--stage-line); }
+
+  /* ============= Frame row ============= */
+  .frame-row {
+    display: flex;
+    gap: 36px;
+    align-items: flex-start;
+    padding: 0 8px;
+  }
+  .frame-col {
+    display: flex; flex-direction: column; gap: 22px;
+    width: 1280px;
+    flex: 0 0 1280px;
+  }
+
+  /* ============= Desktop window shell ============= */
+  .desktop {
+    width: 1280px;
+    height: 820px;
+    background: #FFFFFF;
+    border-radius: 14px;
+    border: 0.5px solid rgba(0,0,0,0.12);
+    box-shadow:
+      0 30px 80px -40px rgba(34, 30, 20, 0.34),
+      0 6px 18px -10px rgba(34, 30, 20, 0.16),
+      0 1px 0 rgba(255,255,255,0.6) inset;
+    overflow: hidden;
+    position: relative;
+    isolation: isolate;
+  }
+  .desktop .chrome {
+    height: 36px;
+    background: #F1F1F3;
+    border-bottom: 0.5px solid var(--gray-4);
+    display: flex; align-items: center; gap: 12px;
+    padding: 0 14px;
+  }
+  .desktop .chrome .lights { display: inline-flex; gap: 8px; }
+  .desktop .chrome .lights span {
+    width: 12px; height: 12px; border-radius: 50%;
+    display: inline-block;
+  }
+  .desktop .chrome .lights .r { background: #FF5F57; }
+  .desktop .chrome .lights .y { background: #FEBC2E; }
+  .desktop .chrome .lights .g { background: #28C840; }
+  .desktop .chrome .url {
+    flex: 1; display: flex; justify-content: center;
+  }
+  .desktop .chrome .url-inner {
+    height: 22px; padding: 0 14px; min-width: 360px; max-width: 540px;
+    border-radius: 6px; background: #FFFFFF;
+    border: 0.5px solid var(--gray-4);
+    display: inline-flex; align-items: center; gap: 8px;
+    font-size: 11px; color: var(--label-3);
+    font-family: -apple-system, "SF Pro Text", system-ui, sans-serif;
+  }
+  .desktop .chrome .url-inner i { font-size: 12px; color: var(--gray-1); }
+  .desktop .chrome .url-inner strong { color: var(--label-2); font-weight: 500; }
+
+  /* App body: sidebar | content */
+  .app {
+    position: absolute; top: 36px; left: 0; right: 0; bottom: 0;
+    display: flex;
+    background: var(--gray-6);
+  }
+
+  /* ============= Left sidebar (BetterAt product nav) ============= */
+  .sidebar {
+    width: 220px;
+    flex: 0 0 220px;
+    background: #FFFFFF;
+    border-right: 0.5px solid var(--gray-4);
+    display: flex; flex-direction: column;
+    padding: 14px 0 16px;
+  }
+  .sidebar .brand {
+    padding: 6px 18px 16px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .sidebar .brand .mark {
+    width: 26px; height: 26px; border-radius: 8px;
+    background: linear-gradient(135deg, #1C1C1E 0%, #3A3A3C 100%);
+    color: #fff;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 13px; letter-spacing: -0.5px;
+  }
+  .sidebar .brand .wordmark {
+    font-size: 14px; font-weight: 600; letter-spacing: -0.2px;
+    color: var(--label);
+  }
+  .sidebar .brand .wordmark span { color: var(--label-3); font-weight: 500; }
+  .sidebar .nav { display: flex; flex-direction: column; gap: 1px; padding: 6px 10px; }
+  .sidebar .nav .item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 9px 12px; border-radius: 8px;
+    font-size: 13.5px; color: var(--label-2);
+    cursor: default; letter-spacing: -0.1px;
+  }
+  .sidebar .nav .item i { font-size: 17px; color: var(--label-3); }
+  .sidebar .nav .item:hover { background: var(--gray-6); }
+  .sidebar .nav .item.on {
+    background: var(--ios-blue-tint);
+    color: var(--ios-blue);
+    font-weight: 600;
+  }
+  .sidebar .nav .item.on i { color: var(--ios-blue); }
+  .sidebar .nav .group-label {
+    font-size: 10px; font-weight: 600; letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--label-4);
+    padding: 18px 14px 6px;
+  }
+  .sidebar .spacer { flex: 1; }
+  .sidebar .footer {
+    padding: 10px 16px 0; border-top: 0.5px solid var(--gray-5);
+    margin: 8px 14px 0;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .sidebar .footer .av {
+    width: 28px; height: 28px; border-radius: 50%;
+    background: linear-gradient(135deg, #5E6B8A 0%, #2F3B5A 100%);
+    color: #fff; font-size: 11px; font-weight: 600;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .sidebar .footer .meta {
+    font-size: 12px; line-height: 1.2;
+  }
+  .sidebar .footer .meta .name { font-weight: 600; color: var(--label); }
+  .sidebar .footer .meta .role { color: var(--label-3); font-size: 11px; }
+
+  /* ============= Content column ============= */
+  .content {
+    flex: 1; display: flex; flex-direction: column;
+    min-width: 0;
+  }
+
+  /* Org strap — tenant identity, runs above the tab strip */
+  .org-strap {
+    height: 56px;
+    background: #FFFFFF;
+    border-bottom: 0.5px solid var(--gray-5);
+    display: flex; align-items: center;
+    padding: 0 24px;
+    gap: 14px;
+  }
+  .org-strap .shield {
+    width: 30px; height: 30px; border-radius: 50%;
+    background: var(--tenant-ink);
+    color: #FFFFFF; font-weight: 700; font-size: 14px;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    letter-spacing: -0.5px;
+    border: 0.5px solid rgba(0,0,0,0.06);
+  }
+  .org-strap .org-meta {
+    display: flex; flex-direction: column; line-height: 1.1;
+  }
+  .org-strap .org-meta .org-name {
+    font-size: 14px; font-weight: 600; color: var(--label);
+    letter-spacing: -0.1px;
+  }
+  .org-strap .org-meta .org-sub {
+    font-size: 11px; color: var(--label-3);
+    margin-top: 3px;
+  }
+  .org-strap .spacer { flex: 1; }
+  .org-strap .strap-actions { display: inline-flex; gap: 10px; align-items: center; }
+  .org-strap .icon-btn {
+    width: 30px; height: 30px; border-radius: 8px;
+    background: none; border: none; cursor: default;
+    display: inline-flex; align-items: center; justify-content: center;
+    color: var(--label-2);
+  }
+  .org-strap .icon-btn i { font-size: 17px; }
+  .org-strap .icon-btn:hover { background: var(--gray-6); }
+  .org-strap .icon-btn .badge {
+    position: absolute; top: 4px; right: 4px;
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--ios-coral);
+    border: 1.5px solid #fff;
+  }
+  .org-strap .icon-btn { position: relative; }
+  .org-strap .admin {
+    display: inline-flex; align-items: center; gap: 10px;
+    padding: 4px 10px 4px 4px; border-radius: 999px;
+    background: var(--gray-6); border: 0.5px solid var(--gray-5);
+    margin-left: 4px;
+  }
+  .org-strap .admin .av {
+    width: 24px; height: 24px; border-radius: 50%;
+    background: linear-gradient(135deg, #B07B5E, #6B4A35);
+    color: #fff; font-size: 11px; font-weight: 600;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .org-strap .admin .who {
+    font-size: 12.5px; color: var(--label); font-weight: 500;
+    letter-spacing: -0.1px;
+  }
+  .org-strap .admin i { font-size: 14px; color: var(--label-3); }
+
+  /* Tab strip below strap */
+  .tab-strip {
+    height: 44px;
+    background: #FFFFFF;
+    border-bottom: 0.5px solid var(--gray-4);
+    display: flex; align-items: stretch;
+    padding: 0 16px;
+    gap: 2px;
+  }
+  .tab-strip .tab {
+    padding: 0 16px;
+    display: inline-flex; align-items: center;
+    font-size: 13.5px; color: var(--label-3);
+    letter-spacing: -0.1px;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -0.5px;
+    cursor: default;
+  }
+  .tab-strip .tab.on {
+    color: var(--label);
+    font-weight: 600;
+    border-bottom-color: var(--label);
+  }
+  .tab-strip .spacer { flex: 1; }
+  .tab-strip .right {
+    display: inline-flex; align-items: center; gap: 14px;
+    padding-right: 8px;
+    font-size: 12px; color: var(--label-3);
+  }
+  .tab-strip .right .pill {
+    padding: 3px 9px; border-radius: 999px;
+    background: var(--gray-6); border: 0.5px solid var(--gray-5);
+    font-weight: 500;
+  }
+  .tab-strip .right .pill.live {
+    color: var(--ios-green); background: var(--ios-green-tint);
+    border-color: transparent;
+  }
+  .tab-strip .right .pill.live::before {
+    content: ""; display: inline-block;
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--ios-green); margin-right: 6px; vertical-align: 1px;
+  }
+
+  /* Main canvas — scrollable in real product */
+  .canvas {
+    flex: 1;
+    overflow: hidden;
+    padding: 24px 28px;
+    background: var(--gray-6);
+    position: relative;
+  }
+
+  /* ============= Dashboard grid ============= */
+  .dash-grid {
+    display: grid;
+    grid-template-columns: 1fr 320px;
+    gap: 22px;
+    height: 100%;
+  }
+  .dash-main { display: flex; flex-direction: column; gap: 22px; min-width: 0; }
+  .dash-side { display: flex; flex-direction: column; gap: 22px; min-width: 0; }
+
+  /* Onboarding card */
+  .onboard {
+    border-radius: 14px;
+    padding: 18px 22px;
+    background: linear-gradient(180deg, #EAF3FF 0%, #DCEBFE 100%);
+    border: 0.5px solid rgba(0, 122, 255, 0.22);
+    display: flex; align-items: center; gap: 18px;
+    position: relative;
+    box-shadow: 0 1px 0 rgba(255,255,255,0.6) inset;
+  }
+  .onboard .icon {
+    width: 40px; height: 40px; border-radius: 12px;
+    background: var(--ios-blue); color: #fff;
+    display: inline-flex; align-items: center; justify-content: center;
+    flex: 0 0 40px;
+    box-shadow: 0 4px 10px -4px rgba(0,122,255,0.45);
+  }
+  .onboard .icon i { font-size: 22px; }
+  .onboard .body { flex: 1; min-width: 0; }
+  .onboard .eyebrow {
+    font-size: 10.5px; letter-spacing: 0.10em;
+    text-transform: uppercase; font-weight: 600;
+    color: var(--ios-blue-deep); margin: 0 0 4px;
+  }
+  .onboard h3 {
+    font-size: 16px; font-weight: 600; letter-spacing: -0.2px;
+    margin: 0 0 4px; color: var(--label);
+  }
+  .onboard p {
+    margin: 0; font-size: 13px; color: var(--label-2); line-height: 1.45;
+  }
+  .onboard .actions { display: inline-flex; gap: 10px; align-items: center; }
+  .onboard .btn-primary {
+    height: 32px; padding: 0 14px; border-radius: 8px;
+    background: var(--ios-blue); color: #fff;
+    border: none; font-size: 13px; font-weight: 600;
+    letter-spacing: -0.1px; cursor: default;
+    box-shadow: 0 1px 0 rgba(255,255,255,0.18) inset;
+  }
+  .onboard .btn-ghost {
+    height: 32px; padding: 0 12px; border-radius: 8px;
+    background: transparent; color: var(--ios-blue);
+    border: none; font-size: 13px; font-weight: 500; cursor: default;
+  }
+  .onboard .dismiss {
+    width: 28px; height: 28px; border-radius: 8px;
+    border: none; background: transparent;
+    color: var(--label-3); cursor: default;
+    display: inline-flex; align-items: center; justify-content: center;
+    margin-left: -4px;
+  }
+  .onboard .dismiss i { font-size: 16px; }
+  .onboard .progress-dots {
+    display: inline-flex; gap: 5px; margin-top: 8px;
+  }
+  .onboard .progress-dots span {
+    width: 5px; height: 5px; border-radius: 50%;
+    background: rgba(0, 122, 255, 0.20);
+  }
+  .onboard .progress-dots span.on { background: var(--ios-blue); width: 16px; border-radius: 4px; }
+
+  /* Widget cards — shared */
+  .widget {
+    background: #FFFFFF; border-radius: 14px;
+    border: 0.5px solid var(--gray-4);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+    display: flex; flex-direction: column;
+  }
+  .widget .w-head {
+    padding: 14px 18px 6px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .widget .w-head .label {
+    font-size: 11px; letter-spacing: 0.06em;
+    text-transform: uppercase; font-weight: 600;
+    color: var(--label-3);
+  }
+  .widget .w-head .delta {
+    margin-left: auto;
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 11.5px; font-weight: 600;
+    color: var(--ios-green); letter-spacing: -0.1px;
+  }
+  .widget .w-head .delta.down { color: var(--ios-coral); }
+  .widget .w-head .delta i { font-size: 13px; }
+  .widget .w-head .menu {
+    margin-left: auto;
+    width: 24px; height: 24px; border-radius: 6px;
+    background: transparent; border: none;
+    display: inline-flex; align-items: center; justify-content: center;
+    color: var(--label-3);
+  }
+  .widget .w-head .menu i { font-size: 16px; }
+  .widget .w-body { padding: 4px 18px 18px; flex: 1; }
+
+  /* NCLEX big-stat */
+  .stat-row { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; }
+  .nclex {
+    padding: 16px 22px 18px;
+  }
+  .nclex .top-line {
+    display: flex; align-items: center; gap: 10px;
+  }
+  .nclex .top-line .label {
+    font-size: 11px; letter-spacing: 0.06em;
+    text-transform: uppercase; font-weight: 600;
+    color: var(--label-3);
+  }
+  .nclex .top-line .delta {
+    margin-left: auto;
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 11.5px; font-weight: 600;
+    color: var(--ios-green);
+  }
+  .nclex .top-line .delta i { font-size: 13px; }
+  .nclex h4 {
+    margin: 6px 0 2px;
+    font-size: 14px; font-weight: 600; letter-spacing: -0.1px;
+    color: var(--label);
+  }
+  .nclex .big {
+    margin: 2px 0 4px;
+    font-family: -apple-system, "SF Pro Display", system-ui, sans-serif;
+    font-size: 56px; font-weight: 600; letter-spacing: -0.03em;
+    color: var(--label); line-height: 1.0;
+    font-variant-numeric: tabular-nums;
+  }
+  .nclex .big .pct { font-size: 32px; color: var(--label-3); font-weight: 500; margin-left: 2px; }
+  .nclex .sub {
+    font-size: 12px; color: var(--label-3); margin: 4px 0 12px;
+  }
+  .nclex .spark {
+    height: 56px; margin-top: 4px;
+  }
+  .nclex .footnote {
+    margin-top: 10px;
+    font-size: 11.5px; color: var(--label-3);
+    display: flex; gap: 14px;
+  }
+  .nclex .footnote strong { color: var(--label-2); font-weight: 600; margin-right: 4px; }
+
+  /* Sites health */
+  .sites { padding: 16px 22px 18px; }
+  .sites .total {
+    font-size: 56px; font-weight: 600; letter-spacing: -0.03em;
+    color: var(--label); line-height: 1.0; font-variant-numeric: tabular-nums;
+  }
+  .sites .total-sub {
+    font-size: 12px; color: var(--label-3); margin: 4px 0 14px;
+  }
+  .sites .bar {
+    display: flex; height: 8px; border-radius: 4px; overflow: hidden;
+    background: var(--gray-5);
+  }
+  .sites .bar span { display: block; height: 100%; }
+  .sites .legend {
+    margin-top: 14px;
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 8px 16px;
+    font-size: 12px;
+  }
+  .sites .legend .row {
+    display: flex; align-items: center; gap: 8px;
+  }
+  .sites .legend .dot {
+    width: 8px; height: 8px; border-radius: 50%; flex: 0 0 8px;
+  }
+  .sites .legend .name { color: var(--label-2); flex: 1; }
+  .sites .legend .n { font-weight: 600; color: var(--label); font-variant-numeric: tabular-nums; }
+
+  /* Cohort comparison */
+  .cohorts { padding: 14px 18px 18px; }
+  .cohorts h4 {
+    margin: 4px 0 14px;
+    font-size: 14px; font-weight: 600; letter-spacing: -0.1px;
+    color: var(--label);
+  }
+  .cohort-row {
+    display: grid;
+    grid-template-columns: 130px 1fr 56px;
+    align-items: center;
+    gap: 14px;
+    padding: 10px 0;
+    border-top: 0.5px solid var(--gray-5);
+  }
+  .cohort-row:first-of-type { border-top: none; }
+  .cohort-row .name { font-size: 13px; font-weight: 500; color: var(--label); letter-spacing: -0.1px; }
+  .cohort-row .name .sub { display: block; font-size: 11px; color: var(--label-3); font-weight: 400; margin-top: 1px; }
+  .cohort-row .bar {
+    height: 10px; border-radius: 5px;
+    background: var(--gray-5);
+    position: relative; overflow: hidden;
+  }
+  .cohort-row .bar .fill {
+    position: absolute; left: 0; top: 0; bottom: 0;
+    border-radius: 5px;
+    background: linear-gradient(90deg, var(--ios-blue), var(--ios-teal));
+  }
+  .cohort-row .bar .fill.warm {
+    background: linear-gradient(90deg, var(--ios-amber), #FFB23E);
+  }
+  .cohort-row .bar .fill.muted {
+    background: var(--gray-3);
+  }
+  .cohort-row .val {
+    text-align: right;
+    font-size: 13px; font-weight: 600; color: var(--label);
+    font-variant-numeric: tabular-nums; letter-spacing: -0.2px;
+  }
+
+  /* Capability completion — radial style */
+  .cap {
+    padding: 14px 18px 18px;
+  }
+  .cap-grid {
+    display: grid; grid-template-columns: 132px 1fr; gap: 18px; align-items: center;
+  }
+  .cap-ring {
+    position: relative; width: 132px; height: 132px;
+  }
+  .cap-ring svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+  .cap-ring .center {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    text-align: center;
+  }
+  .cap-ring .center .n {
+    font-size: 28px; font-weight: 600; letter-spacing: -0.02em;
+    color: var(--label); font-variant-numeric: tabular-nums; line-height: 1;
+  }
+  .cap-ring .center .lbl {
+    font-size: 10.5px; color: var(--label-3);
+    letter-spacing: 0.04em; text-transform: uppercase;
+    margin-top: 4px; font-weight: 600;
+  }
+  .cap-list { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+  .cap-item {
+    display: grid; grid-template-columns: 1fr 38px;
+    gap: 10px; align-items: center;
+  }
+  .cap-item .label { font-size: 12px; color: var(--label-2); letter-spacing: -0.1px; }
+  .cap-item .label.muted { color: var(--label-3); }
+  .cap-item .dots { display: flex; gap: 3px; }
+  .cap-item .dots span {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--gray-4);
+  }
+  .cap-item .dots span.on { background: var(--ios-blue); }
+  .cap-item .dots span.warn { background: var(--ios-amber); }
+
+  /* Activity stream */
+  .activity { padding: 14px 18px 14px; }
+  .activity .a-row {
+    display: grid; grid-template-columns: 24px 1fr;
+    gap: 10px; padding: 10px 0;
+    border-top: 0.5px solid var(--gray-5);
+  }
+  .activity .a-row:first-of-type { border-top: none; }
+  .activity .a-row .ico {
+    width: 24px; height: 24px; border-radius: 50%;
+    display: inline-flex; align-items: center; justify-content: center;
+    flex: 0 0 24px;
+  }
+  .activity .a-row .ico i { font-size: 13px; }
+  .activity .a-row .ico.blue   { background: var(--ios-blue-tint);  color: var(--ios-blue); }
+  .activity .a-row .ico.green  { background: var(--ios-green-tint); color: var(--ios-green); }
+  .activity .a-row .ico.amber  { background: var(--ios-amber-tint); color: var(--ios-amber); }
+  .activity .a-row .ico.gray   { background: var(--gray-5);         color: var(--label-2); }
+  .activity .a-row .ico.purple { background: rgba(88, 86, 214, 0.12); color: var(--ios-purple); }
+  .activity .a-row .body { min-width: 0; font-size: 12.5px; color: var(--label-2); line-height: 1.42; }
+  .activity .a-row .body strong { color: var(--label); font-weight: 600; }
+  .activity .a-row .body .when {
+    font-size: 11px; color: var(--label-4);
+    margin-top: 2px; letter-spacing: -0.05px;
+  }
+  .activity .footer-link {
+    text-align: center; padding-top: 6px;
+    font-size: 12px; color: var(--ios-blue); font-weight: 500;
+  }
+
+  /* ============= Members table ============= */
+  .members {
+    display: flex; flex-direction: column; gap: 14px;
+    height: 100%;
+  }
+  .members-filterbar {
+    display: flex; align-items: center; gap: 14px;
+    background: #FFFFFF;
+    border: 0.5px solid var(--gray-4);
+    border-radius: 12px;
+    padding: 10px 12px;
+  }
+  .seg {
+    display: inline-flex; gap: 2px;
+    background: var(--gray-5);
+    padding: 2px;
+    border-radius: 8px;
+  }
+  .seg .opt {
+    padding: 5px 11px; border-radius: 6px;
+    font-size: 12.5px; color: var(--label-2); font-weight: 500;
+    letter-spacing: -0.1px; cursor: default;
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .seg .opt.on {
+    background: #FFFFFF; color: var(--label);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+  }
+  .seg .opt .n {
+    background: var(--gray-4); color: var(--label-2);
+    padding: 0 5px; border-radius: 4px;
+    font-size: 10px; font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+  .seg .opt.on .n { background: var(--gray-5); }
+  .role-chips { display: inline-flex; flex-wrap: wrap; gap: 6px; }
+  .role-chip {
+    padding: 4px 9px; border-radius: 999px;
+    font-size: 11.5px; font-weight: 500;
+    border: 0.5px solid var(--gray-4); background: #FFFFFF;
+    color: var(--label-2); letter-spacing: -0.1px;
+    cursor: default;
+  }
+  .role-chip.on {
+    background: var(--ios-blue-tint);
+    color: var(--ios-blue-deep);
+    border-color: transparent;
+    font-weight: 600;
+  }
+  .role-chip i { font-size: 10px; vertical-align: 0; margin-left: 3px; }
+  .filter-spacer { flex: 1; }
+  .search-input {
+    height: 30px; padding: 0 10px 0 30px;
+    border-radius: 8px; border: 0.5px solid var(--gray-4);
+    background: var(--gray-6);
+    font-size: 12.5px; color: var(--label-2);
+    width: 220px; position: relative;
+  }
+  .search-wrap { position: relative; }
+  .search-wrap i {
+    position: absolute; left: 9px; top: 50%; transform: translateY(-50%);
+    color: var(--label-3); font-size: 14px; pointer-events: none;
+  }
+  .invite-btn {
+    height: 32px; padding: 0 12px 0 10px;
+    border-radius: 8px; border: none;
+    background: var(--ios-blue); color: #fff;
+    font-size: 13px; font-weight: 600; letter-spacing: -0.1px;
+    display: inline-flex; align-items: center; gap: 5px; cursor: default;
+    box-shadow: 0 1px 0 rgba(255,255,255,0.18) inset, 0 1px 2px rgba(0, 122, 255, 0.30);
+  }
+  .invite-btn i { font-size: 15px; }
+
+  .members-table {
+    background: #FFFFFF; border-radius: 12px;
+    border: 0.5px solid var(--gray-4);
+    overflow: hidden;
+    flex: 1; display: flex; flex-direction: column;
+  }
+  .members-table .t-head {
+    display: grid;
+    grid-template-columns: 36px 2.0fr 1.6fr 1.2fr 0.9fr 36px;
+    gap: 14px;
+    padding: 10px 18px;
+    border-bottom: 0.5px solid var(--gray-5);
+    background: var(--gray-6);
+    font-size: 11px; letter-spacing: 0.06em;
+    text-transform: uppercase; color: var(--label-3); font-weight: 600;
+  }
+  .members-table .row {
+    display: grid;
+    grid-template-columns: 36px 2.0fr 1.6fr 1.2fr 0.9fr 36px;
+    gap: 14px; align-items: center;
+    padding: 11px 18px;
+    border-bottom: 0.5px solid var(--gray-5);
+    font-size: 13px;
+  }
+  .members-table .row:last-child { border-bottom: none; }
+  .members-table .row .av {
+    width: 32px; height: 32px; border-radius: 50%;
+    display: inline-flex; align-items: center; justify-content: center;
+    color: #fff; font-size: 11.5px; font-weight: 600;
+    border: 0.5px solid rgba(0,0,0,0.06);
+  }
+  .members-table .row .name { font-weight: 600; color: var(--label); letter-spacing: -0.1px; }
+  .members-table .row .email { font-size: 11.5px; color: var(--label-3); margin-top: 1px; }
+  .members-table .row .roles { display: inline-flex; flex-wrap: wrap; gap: 4px; }
+  .members-table .row .roles .r {
+    padding: 2px 8px; border-radius: 4px;
+    font-size: 11px; font-weight: 500;
+    background: var(--gray-5); color: var(--label-2);
+    letter-spacing: -0.1px;
+  }
+  .members-table .row .roles .r.member     { background: rgba(60,60,67,0.08); color: var(--label); }
+  .members-table .row .roles .r.preceptor  { background: rgba(0,122,255,0.10);  color: var(--ios-blue-deep); }
+  .members-table .row .roles .r.clinical   { background: rgba(88,86,214,0.12);  color: var(--ios-purple); }
+  .members-table .row .roles .r.instructor { background: rgba(48,176,199,0.14); color: #1B7D8F; }
+  .members-table .row .roles .r.evaluator  { background: rgba(255,149,0,0.15);  color: #A86200; }
+  .members-table .row .roles .r.admin      { background: rgba(255,59,48,0.10);  color: #B12B22; }
+  .members-table .row .cohort {
+    font-size: 12.5px; color: var(--label-2); letter-spacing: -0.1px;
+  }
+  .members-table .row .cohort .sub {
+    display: block; font-size: 11px; color: var(--label-3); margin-top: 1px;
+  }
+  .members-table .row .last {
+    font-size: 12.5px; color: var(--label-2); font-variant-numeric: tabular-nums; letter-spacing: -0.1px;
+  }
+  .members-table .row .last .sub { display: block; font-size: 11px; color: var(--label-3); margin-top: 1px; }
+  .members-table .row .menu {
+    width: 28px; height: 28px; border-radius: 6px;
+    background: transparent; border: none;
+    color: var(--label-3); cursor: default;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .members-table .row .menu i { font-size: 16px; }
+  .members-table .t-foot {
+    padding: 10px 18px; display: flex; align-items: center;
+    border-top: 0.5px solid var(--gray-5);
+    background: #FFFFFF;
+    font-size: 12px; color: var(--label-3);
+  }
+  .members-table .t-foot .spacer { flex: 1; }
+  .members-table .t-foot .pager { display: inline-flex; gap: 6px; align-items: center; }
+  .members-table .t-foot .pager .p {
+    width: 24px; height: 24px; border-radius: 6px;
+    border: 0.5px solid var(--gray-4); background: #FFFFFF;
+    color: var(--label-2); font-size: 11.5px; font-weight: 500;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .members-table .t-foot .pager .p.on { background: var(--gray-6); color: var(--label); border-color: var(--gray-3); }
+
+  /* Avatar gradients */
+  .av.a1 { background: linear-gradient(135deg,#7E96B9,#3E5A85); }
+  .av.a2 { background: linear-gradient(135deg,#C28969,#7C5236); }
+  .av.a3 { background: linear-gradient(135deg,#85A693,#4B7060); }
+  .av.a4 { background: linear-gradient(135deg,#C19BC5,#7F5A85); }
+  .av.a5 { background: linear-gradient(135deg,#D4A75E,#8A6826); }
+  .av.a6 { background: linear-gradient(135deg,#A4A6A8,#5E6266); }
+  .av.a7 { background: linear-gradient(135deg,#E08672,#A24A37); }
+  .av.a8 { background: linear-gradient(135deg,#6F8A98,#3A525E); }
+  .av.a9 { background: linear-gradient(135deg,#8B7AA9,#4F3F6D); }
+  .av.aA { background: linear-gradient(135deg,#B6AE85,#74683E); }
+
+  /* ============= Invitation modal (Frame 3) ============= */
+  .scrim {
+    position: absolute; inset: 0;
+    background: rgba(28, 28, 30, 0.42);
+    backdrop-filter: blur(2px);
+    -webkit-backdrop-filter: blur(2px);
+  }
+  .modal {
+    position: absolute; top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 560px;
+    background: #FFFFFF;
+    border-radius: 16px;
+    border: 0.5px solid rgba(0,0,0,0.06);
+    box-shadow:
+      0 30px 80px -20px rgba(0,0,0,0.30),
+      0 8px 22px -10px rgba(0,0,0,0.18);
+    overflow: hidden;
+    display: flex; flex-direction: column;
+    max-height: 92%;
+  }
+  .modal .m-head {
+    padding: 18px 22px 14px;
+    border-bottom: 0.5px solid var(--gray-5);
+    display: flex; align-items: center; gap: 12px;
+  }
+  .modal .m-head .shield {
+    width: 28px; height: 28px; border-radius: 50%;
+    background: var(--tenant-ink); color: #fff;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-family: "Iowan Old Style", Georgia, serif;
+    font-weight: 700; font-size: 13px;
+  }
+  .modal .m-head .title {
+    flex: 1;
+    font-size: 16px; font-weight: 600;
+    color: var(--label); letter-spacing: -0.2px;
+  }
+  .modal .m-head .title .sub {
+    display: block; font-size: 12px; color: var(--label-3);
+    font-weight: 400; margin-top: 2px; letter-spacing: 0;
+  }
+  .modal .m-head .x {
+    width: 28px; height: 28px; border-radius: 8px;
+    background: var(--gray-6); border: none;
+    color: var(--label-2); cursor: default;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .modal .m-head .x i { font-size: 16px; }
+  .modal .m-body {
+    padding: 18px 22px 4px;
+    overflow: auto;
+    flex: 1;
+  }
+  .field { margin-bottom: 16px; }
+  .field .lbl {
+    display: flex; align-items: baseline; gap: 8px;
+    margin: 0 0 6px;
+    font-size: 12.5px; font-weight: 600;
+    color: var(--label); letter-spacing: -0.1px;
+  }
+  .field .lbl .opt {
+    font-size: 11.5px; font-weight: 500;
+    color: var(--label-3); letter-spacing: 0;
+  }
+  .field .lbl .hint {
+    margin-left: auto;
+    font-size: 11.5px; color: var(--label-3);
+    font-weight: 400;
+  }
+  .field textarea, .field input[type=text] {
+    width: 100%;
+    padding: 10px 12px;
+    border-radius: 8px;
+    border: 0.5px solid var(--gray-4);
+    background: var(--gray-6);
+    font-size: 13px; color: var(--label);
+    line-height: 1.5;
+    resize: none;
+    letter-spacing: -0.1px;
+  }
+  .field textarea { min-height: 88px; }
+  .field textarea:focus, .field input:focus {
+    outline: 2px solid var(--ios-blue-strong);
+    outline-offset: 0px;
+    border-color: var(--ios-blue);
+    background: #fff;
+  }
+  .field textarea.with-tokens {
+    padding-top: 8px;
+  }
+  .email-tokens {
+    display: flex; flex-wrap: wrap; gap: 6px;
+    padding: 8px 10px 6px;
+    border-radius: 8px 8px 0 0;
+    border: 0.5px solid var(--gray-4); border-bottom: none;
+    background: var(--gray-6);
+  }
+  .email-tokens .tok {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: #FFFFFF;
+    border: 0.5px solid var(--gray-4);
+    border-radius: 6px;
+    padding: 3px 6px 3px 8px;
+    font-size: 12px; color: var(--label);
+    letter-spacing: -0.1px;
+  }
+  .email-tokens .tok i { font-size: 13px; color: var(--label-3); }
+  .email-tokens .tok.err {
+    background: rgba(255,59,48,0.06);
+    border-color: rgba(255,59,48,0.30);
+    color: #A6231C;
+  }
+  .email-tokens .tok.err i { color: #A6231C; }
+  .email-tokens .composing {
+    font-size: 12px; color: var(--label-3); padding: 3px 4px;
+    letter-spacing: -0.1px;
+  }
+  .email-tokens .composing .caret {
+    display: inline-block; width: 1px; height: 13px;
+    background: var(--ios-blue); margin-left: 1px; vertical-align: -2px;
+    animation: blink 1s steps(2) infinite;
+  }
+  @keyframes blink { 50% { opacity: 0; } }
+  .tokens-textarea {
+    width: 100%; min-height: 56px;
+    padding: 8px 12px 10px;
+    border-radius: 0 0 8px 8px;
+    border: 0.5px solid var(--gray-4); border-top: none;
+    background: #fff;
+    font-size: 12px; color: var(--label-3);
+    line-height: 1.5; letter-spacing: -0.1px;
+  }
+
+  /* Role radio cards */
+  .roles-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+  }
+  .role-card {
+    border: 0.5px solid var(--gray-4); border-radius: 10px;
+    padding: 10px 12px;
+    display: flex; align-items: flex-start; gap: 10px;
+    background: #fff; cursor: default;
+    transition: none;
+  }
+  .role-card .radio {
+    width: 18px; height: 18px; border-radius: 50%;
+    border: 1.5px solid var(--gray-3);
+    flex: 0 0 18px;
+    margin-top: 1px;
+    position: relative;
+  }
+  .role-card.on { border-color: var(--ios-blue); background: rgba(0,122,255,0.04); box-shadow: 0 0 0 1px var(--ios-blue) inset; }
+  .role-card.on .radio { border-color: var(--ios-blue); }
+  .role-card.on .radio::after {
+    content: ""; position: absolute; inset: 3px;
+    border-radius: 50%; background: var(--ios-blue);
+  }
+  .role-card .role-meta { flex: 1; min-width: 0; }
+  .role-card .role-name {
+    font-size: 13px; font-weight: 600; color: var(--label);
+    letter-spacing: -0.1px; line-height: 1.2;
+  }
+  .role-card .role-desc {
+    font-size: 11.5px; color: var(--label-3); margin-top: 3px;
+    line-height: 1.35;
+  }
+  .role-card .role-tag {
+    display: inline-flex; align-items: center; gap: 3px;
+    font-size: 10px; font-weight: 600; letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #A86200; padding: 1px 6px;
+    background: rgba(255,149,0,0.14); border-radius: 4px;
+    margin-top: 6px;
+  }
+  .role-card .role-tag i { font-size: 10px; }
+
+  .select-pill {
+    width: 100%; height: 38px;
+    padding: 0 12px;
+    border-radius: 8px;
+    border: 0.5px solid var(--gray-4);
+    background: var(--gray-6);
+    font-size: 13px; color: var(--label);
+    display: inline-flex; align-items: center; gap: 8px;
+    letter-spacing: -0.1px;
+  }
+  .select-pill .ph { color: var(--label-3); }
+  .select-pill .pill {
+    background: var(--ios-blue-tint); color: var(--ios-blue-deep);
+    padding: 2px 7px; border-radius: 999px;
+    font-size: 11px; font-weight: 600;
+  }
+  .select-pill i { margin-left: auto; color: var(--label-3); font-size: 16px; }
+
+  .modal .m-foot {
+    padding: 14px 22px 16px;
+    border-top: 0.5px solid var(--gray-5);
+    display: flex; align-items: center; gap: 10px;
+    background: #FAFAFA;
+  }
+  .modal .m-foot .note {
+    flex: 1; font-size: 11.5px; color: var(--label-3); line-height: 1.4;
+    letter-spacing: -0.05px;
+  }
+  .modal .m-foot .note strong { color: var(--label-2); font-weight: 600; }
+  .modal .m-foot .btn-cancel {
+    height: 34px; padding: 0 14px; border-radius: 8px;
+    background: transparent; border: none;
+    font-size: 13px; font-weight: 500;
+    color: var(--label-2); cursor: default;
+  }
+  .modal .m-foot .btn-send {
+    height: 34px; padding: 0 14px; border-radius: 8px;
+    background: var(--ios-blue); color: #fff; border: none;
+    font-size: 13px; font-weight: 600; letter-spacing: -0.1px; cursor: default;
+    box-shadow: 0 1px 2px rgba(0,122,255,0.30);
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .modal .m-foot .btn-send i { font-size: 15px; }
+
+  /* ============= Competencies (Frame 4) ============= */
+  .comp-grid {
+    display: grid;
+    grid-template-columns: 1fr 280px;
+    gap: 22px;
+    height: 100%;
+  }
+  .comp-stack { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+  .comp-hd-strap {
+    display: flex; align-items: center; gap: 14px;
+    background: #FFFFFF;
+    border: 0.5px solid var(--gray-4);
+    border-radius: 12px;
+    padding: 14px 18px;
+  }
+  .comp-hd-strap .hd-mark {
+    width: 38px; height: 38px; border-radius: 10px;
+    background: rgba(0,122,255,0.10); color: var(--ios-blue-deep);
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 700; letter-spacing: 0.04em;
+    flex: 0 0 38px;
+    font-family: "Iowan Old Style", Georgia, serif;
+  }
+  .comp-hd-strap .hd-meta { flex: 1; }
+  .comp-hd-strap .hd-meta h3 {
+    margin: 0 0 3px;
+    font-size: 14px; font-weight: 600; color: var(--label);
+    letter-spacing: -0.1px;
+  }
+  .comp-hd-strap .hd-meta p {
+    margin: 0; font-size: 12px; color: var(--label-3); line-height: 1.4;
+    max-width: 760px;
+  }
+  .comp-hd-strap .hd-actions { display: inline-flex; gap: 8px; }
+  .comp-hd-strap .hd-actions .btn {
+    height: 30px; padding: 0 12px;
+    border-radius: 8px; border: 0.5px solid var(--gray-4);
+    background: #fff; color: var(--label);
+    font-size: 12.5px; font-weight: 500; letter-spacing: -0.1px;
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .comp-hd-strap .hd-actions .btn i { font-size: 14px; color: var(--label-3); }
+
+  .acc {
+    background: #FFFFFF;
+    border: 0.5px solid var(--gray-4);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .acc + .acc { /* stack */ }
+  .acc-row {
+    padding: 12px 18px;
+    display: grid;
+    grid-template-columns: 22px 24px 1fr 110px 70px 60px 36px;
+    gap: 14px; align-items: center;
+    border-top: 0.5px solid var(--gray-5);
+    cursor: default;
+  }
+  .acc:first-child .acc-row:first-child,
+  .acc .acc-row:first-child { border-top: none; }
+  .acc-row .chev {
+    color: var(--label-3); font-size: 14px;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .acc-row .num {
+    font-family: "Iowan Old Style", Georgia, serif;
+    font-size: 14px; font-weight: 500; color: var(--label-3);
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+  }
+  .acc-row .title { font-size: 13.5px; font-weight: 600; color: var(--label); letter-spacing: -0.1px; }
+  .acc-row .title .sub {
+    display: block;
+    font-size: 11.5px; color: var(--label-3);
+    font-weight: 400; margin-top: 2px; letter-spacing: -0.05px;
+  }
+  .acc-row .caps {
+    font-size: 11.5px; color: var(--label-3);
+    letter-spacing: -0.05px;
+  }
+  .acc-row .caps strong { color: var(--label); font-weight: 600; }
+  .acc-row .pct-track {
+    height: 6px; border-radius: 3px;
+    background: var(--gray-5);
+    position: relative; overflow: hidden;
+  }
+  .acc-row .pct-track .fill {
+    position: absolute; left: 0; top: 0; bottom: 0;
+    background: var(--ios-blue);
+    border-radius: 3px;
+  }
+  .acc-row .pct-track .fill.warm { background: var(--ios-amber); }
+  .acc-row .pct-track .fill.muted { background: var(--gray-3); }
+  .acc-row .pct-val {
+    font-size: 12px; font-weight: 600; color: var(--label);
+    text-align: right;
+    font-variant-numeric: tabular-nums; letter-spacing: -0.1px;
+  }
+  .acc-row .menu {
+    width: 28px; height: 28px; border-radius: 6px;
+    background: transparent; border: none;
+    color: var(--label-3);
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .acc-row .menu i { font-size: 16px; }
+  .acc.open > .acc-row { background: var(--gray-6); }
+  .acc.open > .acc-row .chev { color: var(--label); transform: rotate(90deg); }
+
+  .acc-body {
+    border-top: 0.5px solid var(--gray-5);
+    padding: 14px 18px 16px;
+    background: #FAFAFB;
+    display: grid;
+    grid-template-columns: 1fr 240px;
+    gap: 22px;
+  }
+  .acc-body .left { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+  .sub-comp {
+    background: #FFFFFF;
+    border: 0.5px solid var(--gray-4);
+    border-radius: 10px;
+    padding: 12px 14px;
+    display: grid;
+    grid-template-columns: 1fr 100px 80px;
+    gap: 14px; align-items: center;
+  }
+  .sub-comp .sub-title {
+    font-size: 12.5px; font-weight: 600; color: var(--label);
+    letter-spacing: -0.1px;
+  }
+  .sub-comp .sub-title .src {
+    display: inline-flex; align-items: center; gap: 3px;
+    font-size: 10.5px; font-weight: 500; color: var(--label-3);
+    margin-left: 6px; padding: 1px 6px;
+    border: 0.5px solid var(--gray-4); border-radius: 999px;
+    vertical-align: 1px;
+  }
+  .sub-comp .sub-title .src i { font-size: 10px; }
+  .sub-comp .sub-meta {
+    font-size: 11.5px; color: var(--label-3); margin-top: 3px;
+    line-height: 1.4; letter-spacing: -0.05px;
+    font-weight: 400;
+  }
+  .sub-comp .sub-meta a, .sub-comp .sub-meta .lk {
+    color: var(--ios-blue); font-weight: 500;
+  }
+  .sub-comp .evidence {
+    font-size: 11.5px; color: var(--label-2); letter-spacing: -0.05px;
+  }
+  .sub-comp .evidence strong { color: var(--label); font-weight: 600; }
+  .sub-comp .pct-mini {
+    text-align: right;
+    font-size: 12px; font-weight: 600; color: var(--label);
+    font-variant-numeric: tabular-nums;
+  }
+  .sub-comp .pct-mini .bar {
+    height: 4px; border-radius: 2px;
+    background: var(--gray-5); margin-top: 4px; overflow: hidden;
+    position: relative;
+  }
+  .sub-comp .pct-mini .bar .fill {
+    position: absolute; left: 0; top: 0; bottom: 0;
+    background: var(--ios-blue); border-radius: 2px;
+  }
+  .sub-comp .pct-mini .bar .fill.warm { background: var(--ios-amber); }
+  .sub-comp .custom-link {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 11px; color: var(--ios-blue); font-weight: 500;
+    margin-top: 4px;
+  }
+  .sub-comp .custom-link i { font-size: 11px; }
+
+  .acc-body .side {
+    background: #FFFFFF;
+    border: 0.5px solid var(--gray-4);
+    border-radius: 10px;
+    padding: 12px 14px;
+  }
+  .acc-body .side h5 {
+    margin: 0 0 8px;
+    font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase;
+    font-weight: 600; color: var(--label-3);
+  }
+  .acc-body .side p {
+    margin: 0 0 8px;
+    font-size: 12px; color: var(--label-2); line-height: 1.45;
+    letter-spacing: -0.05px;
+  }
+  .acc-body .side .src-link {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 12px; color: var(--ios-blue); font-weight: 500;
+  }
+  .acc-body .side .src-link i { font-size: 12px; }
+  .acc-body .side .meta-list {
+    list-style: none; padding: 0; margin: 10px 0 0;
+    display: flex; flex-direction: column; gap: 8px;
+    font-size: 11.5px;
+  }
+  .acc-body .side .meta-list li {
+    display: flex; justify-content: space-between;
+    color: var(--label-2);
+  }
+  .acc-body .side .meta-list li strong { color: var(--label); font-weight: 600; }
+
+  .comp-rail {
+    display: flex; flex-direction: column; gap: 14px;
+    min-width: 0;
+  }
+  .rail-card {
+    background: #FFFFFF;
+    border: 0.5px solid var(--gray-4);
+    border-radius: 12px;
+    padding: 14px 16px;
+  }
+  .rail-card h5 {
+    margin: 0 0 8px;
+    font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase;
+    font-weight: 600; color: var(--label-3);
+  }
+  .rail-card .big-pct {
+    font-size: 34px; font-weight: 600; letter-spacing: -0.02em;
+    color: var(--label); font-variant-numeric: tabular-nums;
+    line-height: 1;
+  }
+  .rail-card .big-pct .pct { font-size: 18px; color: var(--label-3); font-weight: 500; margin-left: 1px; }
+  .rail-card .desc { font-size: 12px; color: var(--label-3); margin-top: 4px; line-height: 1.4; }
+  .rail-card .breakdown { margin-top: 12px; display: flex; flex-direction: column; gap: 8px; }
+  .rail-card .breakdown .b-row {
+    display: grid; grid-template-columns: 1fr auto; gap: 10px;
+    font-size: 12px; color: var(--label-2); align-items: center;
+  }
+  .rail-card .breakdown .b-row .bar {
+    grid-column: 1 / span 2;
+    height: 5px; border-radius: 3px; background: var(--gray-5);
+    position: relative; overflow: hidden;
+    margin-top: 2px;
+  }
+  .rail-card .breakdown .b-row .bar .fill {
+    position: absolute; left: 0; top: 0; bottom: 0;
+    background: var(--ios-blue); border-radius: 3px;
+  }
+  .rail-card .b-row .n { font-weight: 600; color: var(--label); font-variant-numeric: tabular-nums; }
+
+  /* ============= Frame caption ============= */
+  .frame-cap {
+    margin: 0;
+    padding: 6px 4px 0;
+    max-width: 1240px;
+  }
+  .frame-cap .eyebrow {
+    font-size: 10.5px; font-weight: 600;
+    color: var(--stage-text); letter-spacing: 0.10em;
+    text-transform: uppercase;
+    margin: 0 0 6px;
+  }
+  .frame-cap h3 {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 20px; font-weight: 500; letter-spacing: -0.012em;
+    color: var(--stage-ink); margin: 0 0 8px;
+    line-height: 1.2;
+  }
+  .frame-cap h3 em { font-style: italic; }
+  .frame-cap p {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 14.5px; line-height: 1.55;
+    color: var(--stage-text); margin: 0;
+    max-width: 1180px; text-wrap: pretty;
+  }
+  .frame-cap p em { font-style: italic; }
+  .frame-cap p + p { margin-top: 8px; }
+
+  /* ============= Commentary row ============= */
+  .commentary {
+    max-width: 5260px;
+    margin: 80px auto 0;
+    padding: 36px 32px 0;
+    border-top: 0.5px solid var(--stage-line);
+    display: grid;
+    grid-template-columns: 1.2fr 1fr 1fr 1fr;
+    gap: 40px;
+  }
+  .commentary .col h4 {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 17px; font-weight: 500; letter-spacing: -0.01em;
+    color: var(--stage-ink);
+    margin: 0 0 10px;
+  }
+  .commentary .col h4 em { font-style: italic; }
+  .commentary .col p {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 14px; line-height: 1.55; color: var(--stage-text);
+    margin: 0 0 10px;
+    text-wrap: pretty;
+  }
+  .commentary .col p em { font-style: italic; }
+  .commentary .col p strong { color: var(--stage-ink); font-weight: 600; }
+  .commentary .col ul {
+    margin: 0; padding-left: 18px;
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 13.5px; line-height: 1.55; color: var(--stage-text);
+  }
+  .commentary .col ul li { margin-bottom: 6px; }
+  .commentary .col ul li strong { color: var(--stage-ink); font-weight: 600; }
+
+  /* ============= Sticky responsive note ============= */
+  .resp-note {
+    margin: 28px 32px 0;
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 13px; color: var(--stage-text);
+    font-style: italic;
+    max-width: 1100px;
+  }
+</style>
+</head>
+<body>
+
+<div class="page" data-screen-label="01 Canonical Stage">
+
+  <!-- ============= Page head ============= -->
+  <header class="page-head">
+    <p class="eyebrow">BetterAt · Org Admin Dashboard · Canonical &nbsp;·&nbsp; 2026-05-15</p>
+    <h1>The desktop admin surface — <em>schools as tenants, not as a skin</em></h1>
+    <p>
+      This is the web surface administrators use to run a school of nursing on BetterAt: roster, cohorts, capability mapping, billing, and the org&rsquo;s public profile.
+      Sized for laptops and large monitors; mobile-responsive degradation exists but is not the canonical view.
+      Inherits the iOS register&rsquo;s palette and gravity — system grays for chrome, iOS blue for actions — but trades the phone shell for a sidebar + tab-strip layout.
+    </p>
+    <p>
+      The tenant on screen is <em>Westbrook University School of Nursing</em>, a placeholder we use across product canonicals.
+      Real institutions are themed at the strap-and-shield level only; product chrome, accent color, and typography stay constant across every tenant.
+    </p>
+    <div class="crumbs">
+      <span class="pill">Surface 4 of 5</span>
+      <span class="sep">/</span>
+      <span>Builds on the May 11 admin pass</span>
+      <span class="sep">/</span>
+      <span>Adds onboarding card &amp; invitation modal</span>
+      <span class="sep">/</span>
+      <span>Companion to <em>iOS register</em> canonical</span>
+    </div>
+  </header>
+
+  <!-- ============= Frame row ============= -->
+  <div class="frame-row">
+
+    <!-- ============================================================== -->
+    <!-- ===========           FRAME 1 — DASHBOARD            ========== -->
+    <!-- ============================================================== -->
+    <div class="frame-col" data-screen-label="02 Dashboard">
+      <div class="desktop">
+        <div class="chrome">
+          <div class="lights"><span class="r"></span><span class="y"></span><span class="g"></span></div>
+          <div class="url"><div class="url-inner">
+            <i class="ti ti-lock"></i>
+            <span><strong>betterat.app</strong>/orgs/westbrook-son/admin/dashboard</span>
+          </div></div>
+        </div>
+
+        <div class="app">
+
+          <!-- Sidebar -->
+          <aside class="sidebar">
+            <div class="brand">
+              <div class="mark">B</div>
+              <div class="wordmark">BetterAt <span>· Admin</span></div>
+            </div>
+
+            <div class="nav">
+              <div class="group-label">Product</div>
+              <div class="item"><i class="ti ti-stethoscope"></i><span>Clinical</span></div>
+              <div class="item"><i class="ti ti-book-2"></i><span>Playbook</span></div>
+              <div class="item"><i class="ti ti-compass"></i><span>Discover</span></div>
+              <div class="item"><i class="ti ti-school"></i><span>Learn</span></div>
+              <div class="item"><i class="ti ti-notebook"></i><span>Reflect</span></div>
+              <div class="item"><i class="ti ti-search"></i><span>Search</span></div>
+
+              <div class="group-label">Administration</div>
+              <div class="item on"><i class="ti ti-shield-check"></i><span>Org Admin</span></div>
+            </div>
+
+            <div class="spacer"></div>
+            <div class="footer">
+              <div class="av">PM</div>
+              <div class="meta">
+                <div class="name">Patricia Morrinson</div>
+                <div class="role">Org Admin · Westbrook</div>
+              </div>
+            </div>
+          </aside>
+
+          <!-- Content -->
+          <main class="content">
+            <div class="org-strap">
+              <div class="shield">W</div>
+              <div class="org-meta">
+                <div class="org-name">Westbrook University School of Nursing</div>
+                <div class="org-sub">Spring 2025 term · 412 active members · 47 clinical sites</div>
+              </div>
+              <div class="spacer"></div>
+              <div class="strap-actions">
+                <button class="icon-btn"><i class="ti ti-search"></i></button>
+                <button class="icon-btn"><i class="ti ti-bell"></i><span class="badge"></span></button>
+                <button class="icon-btn"><i class="ti ti-help-circle"></i></button>
+                <div class="admin">
+                  <div class="av">PM</div>
+                  <div class="who">Patricia M.</div>
+                  <i class="ti ti-chevron-down"></i>
+                </div>
+              </div>
+            </div>
+
+            <div class="tab-strip">
+              <div class="tab on">Dashboard</div>
+              <div class="tab">Members</div>
+              <div class="tab">Requests <span style="margin-left:6px;background:var(--ios-coral);color:#fff;font-size:10px;font-weight:600;padding:1px 6px;border-radius:999px;">3</span></div>
+              <div class="tab">Cohorts</div>
+              <div class="tab">Competencies</div>
+              <div class="tab">Blueprints</div>
+              <div class="tab">Billing</div>
+              <div class="tab">Settings</div>
+              <div class="spacer"></div>
+              <div class="right">
+                <span class="pill live">Term in session</span>
+                <span>Wk 11 of 16</span>
+              </div>
+            </div>
+
+            <div class="canvas">
+              <div class="dash-grid">
+
+                <!-- ===== Main column ===== -->
+                <div class="dash-main">
+
+                  <!-- Onboarding card -->
+                  <div class="onboard">
+                    <div class="icon"><i class="ti ti-route"></i></div>
+                    <div class="body">
+                      <p class="eyebrow">Welcome to Org Admin</p>
+                      <h3>Welcome, Patricia. Here&rsquo;s a quick tour of your dashboard.</h3>
+                      <p>Four minutes covers the roster, cohort setup, capability mapping, and how invitations and clinical-site approvals flow. You can come back to it anytime from <strong>Help</strong>.</p>
+                      <div class="progress-dots"><span class="on"></span><span></span><span></span><span></span></div>
+                    </div>
+                    <div class="actions">
+                      <button class="btn-ghost">Maybe later</button>
+                      <button class="btn-primary">Take the tour →</button>
+                    </div>
+                    <button class="dismiss" title="Dismiss"><i class="ti ti-x"></i></button>
+                  </div>
+
+                  <!-- Top stat row: NCLEX + Sites -->
+                  <div class="stat-row">
+
+                    <div class="widget nclex">
+                      <div class="top-line">
+                        <span class="label">NCLEX Readiness</span>
+                        <span class="delta"><i class="ti ti-trending-up"></i>+3.2 pts</span>
+                      </div>
+                      <div class="big">94<span class="pct">%</span></div>
+                      <h4>First-attempt pass rate</h4>
+                      <div class="sub">Spring 2025 MSN cohort · trailing 90 days · n = 86</div>
+                      <!-- Sparkline -->
+                      <svg class="spark" viewBox="0 0 300 56" preserveAspectRatio="none">
+                        <defs>
+                          <linearGradient id="sg1" x1="0" x2="0" y1="0" y2="1">
+                            <stop offset="0" stop-color="#007AFF" stop-opacity="0.22"/>
+                            <stop offset="1" stop-color="#007AFF" stop-opacity="0"/>
+                          </linearGradient>
+                        </defs>
+                        <path d="M0,38 L20,36 L40,40 L60,33 L80,30 L100,32 L120,26 L140,28 L160,22 L180,20 L200,16 L220,18 L240,12 L260,10 L280,8 L300,6 L300,56 L0,56 Z" fill="url(#sg1)"/>
+                        <path d="M0,38 L20,36 L40,40 L60,33 L80,30 L100,32 L120,26 L140,28 L160,22 L180,20 L200,16 L220,18 L240,12 L260,10 L280,8 L300,6" fill="none" stroke="#007AFF" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                      </svg>
+                      <div class="footnote">
+                        <span><strong>Nat&rsquo;l avg</strong> 88.6%</span>
+                        <span><strong>School last term</strong> 91%</span>
+                        <span><strong>Goal</strong> 92%</span>
+                      </div>
+                    </div>
+
+                    <div class="widget sites">
+                      <div class="top-line">
+                        <span class="label">Clinical Site Health</span>
+                        <span class="delta down"><i class="ti ti-trending-down"></i>−2 to Watch</span>
+                      </div>
+                      <div class="total">47</div>
+                      <div class="total-sub">Active partner sites · 6 added this term</div>
+                      <div class="bar">
+                        <span style="width:38.3%;background:var(--ios-green);"></span>
+                        <span style="width:44.7%;background:var(--ios-blue);"></span>
+                        <span style="width:12.8%;background:var(--ios-amber);"></span>
+                        <span style="width:4.2%;background:var(--ios-coral);"></span>
+                      </div>
+                      <div class="legend">
+                        <div class="row"><span class="dot" style="background:var(--ios-green)"></span><span class="name">Excellent</span><span class="n">18</span></div>
+                        <div class="row"><span class="dot" style="background:var(--ios-blue)"></span><span class="name">Good</span><span class="n">21</span></div>
+                        <div class="row"><span class="dot" style="background:var(--ios-amber)"></span><span class="name">Watch</span><span class="n">6</span></div>
+                        <div class="row"><span class="dot" style="background:var(--ios-coral)"></span><span class="name">Critical</span><span class="n">2</span></div>
+                      </div>
+                    </div>
+
+                  </div>
+
+                  <!-- Cohort comparison -->
+                  <div class="widget cohorts">
+                    <div class="w-head">
+                      <span class="label">Cohort Comparison</span>
+                      <span style="margin-left:8px;font-size:11.5px;color:var(--label-3);">capability completion %</span>
+                      <button class="menu" style="margin-left:auto"><i class="ti ti-dots"></i></button>
+                    </div>
+                    <div class="w-body" style="padding-top:8px;">
+                      <div class="cohort-row">
+                        <div class="name">Spring 2025 MSN<span class="sub">86 members · in progress</span></div>
+                        <div class="bar"><span class="fill" style="width:78%;"></span></div>
+                        <div class="val">78%</div>
+                      </div>
+                      <div class="cohort-row">
+                        <div class="name">Fall 2024 DNP<span class="sub">42 members · graduated</span></div>
+                        <div class="bar"><span class="fill" style="width:96%;"></span></div>
+                        <div class="val">96%</div>
+                      </div>
+                      <div class="cohort-row">
+                        <div class="name">Spring 2025 BSN<span class="sub">118 members · in progress</span></div>
+                        <div class="bar"><span class="fill" style="width:64%;"></span></div>
+                        <div class="val">64%</div>
+                      </div>
+                      <div class="cohort-row">
+                        <div class="name">Fall 2024 BSN<span class="sub">124 members · in finals</span></div>
+                        <div class="bar"><span class="fill warm" style="width:89%;"></span></div>
+                        <div class="val">89%</div>
+                      </div>
+                      <div class="cohort-row">
+                        <div class="name">Accelerated &rsquo;25<span class="sub">42 members · onboarding</span></div>
+                        <div class="bar"><span class="fill muted" style="width:21%;"></span></div>
+                        <div class="val">21%</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Capability completion -->
+                  <div class="widget cap">
+                    <div class="w-head">
+                      <span class="label">Capability Completion · AACN Essentials coverage</span>
+                      <span class="delta"><i class="ti ti-trending-up"></i>+6 pts vs. last term</span>
+                    </div>
+                    <div class="w-body" style="padding-top:6px;">
+                      <div class="cap-grid">
+                        <div class="cap-ring">
+                          <svg viewBox="0 0 132 132">
+                            <circle cx="66" cy="66" r="56" stroke="#ECECEE" stroke-width="14" fill="none"/>
+                            <circle cx="66" cy="66" r="56" stroke="#007AFF" stroke-width="14" fill="none"
+                              stroke-dasharray="263 352" stroke-linecap="round"/>
+                          </svg>
+                          <div class="center">
+                            <div class="n">74<span style="font-size:18px;color:var(--label-3);font-weight:500;">%</span></div>
+                            <div class="lbl">8 of 10 domains</div>
+                          </div>
+                        </div>
+                        <div class="cap-list">
+                          <div class="cap-item"><span class="label">1. Knowledge for Nursing Practice</span><div class="dots"><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span></div></div>
+                          <div class="cap-item"><span class="label">2. Person-Centered Care</span><div class="dots"><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span></div></div>
+                          <div class="cap-item"><span class="label">3. Population Health</span><div class="dots"><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span></span></div></div>
+                          <div class="cap-item"><span class="label">4. Scholarship for the Discipline</span><div class="dots"><span class="on"></span><span class="on"></span><span class="on"></span><span></span><span></span></div></div>
+                          <div class="cap-item"><span class="label">5. Quality &amp; Safety</span><div class="dots"><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span></div></div>
+                          <div class="cap-item"><span class="label">6. Interprofessional Partnerships</span><div class="dots"><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span></span></div></div>
+                          <div class="cap-item"><span class="label">7. Systems-Based Practice</span><div class="dots"><span class="on"></span><span class="on"></span><span></span><span></span><span></span></div></div>
+                          <div class="cap-item"><span class="label muted">8. Informatics &amp; Healthcare Tech</span><div class="dots"><span class="on"></span><span class="warn"></span><span></span><span></span><span></span></div></div>
+                          <div class="cap-item"><span class="label muted">9. Professionalism · <em style="color:var(--ios-amber)">needs mapping</em></span><div class="dots"><span class="warn"></span><span></span><span></span><span></span><span></span></div></div>
+                          <div class="cap-item"><span class="label muted">10. Personal · Professional · Leadership</span><div class="dots"><span class="on"></span><span class="on"></span><span class="on"></span><span></span><span></span></div></div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- ===== Side rail: activity ===== -->
+                <div class="dash-side">
+                  <div class="widget activity">
+                    <div class="w-head" style="padding-bottom:8px;">
+                      <span class="label">Recent Activity</span>
+                      <span style="margin-left:auto;font-size:11.5px;color:var(--ios-blue);font-weight:500;">Live</span>
+                    </div>
+                    <div class="w-body" style="padding-top:0;padding-bottom:8px;">
+                      <div class="a-row">
+                        <div class="ico blue"><i class="ti ti-user-plus"></i></div>
+                        <div class="body">
+                          <strong>14 invitations</strong> sent to Spring 2025 BSN cohort by <strong>Jordan&nbsp;Akello</strong>.
+                          <div class="when">just now</div>
+                        </div>
+                      </div>
+                      <div class="a-row">
+                        <div class="ico green"><i class="ti ti-check"></i></div>
+                        <div class="body">
+                          <strong>Mei&nbsp;Tanaka</strong> completed evaluation for <em>Capstone Sim Block 3</em>.
+                          <div class="when">12 min ago · scored 4.6 / 5</div>
+                        </div>
+                      </div>
+                      <div class="a-row">
+                        <div class="ico purple"><i class="ti ti-file-text"></i></div>
+                        <div class="body">
+                          Blueprint <strong>&ldquo;Pediatric Triage v3&rdquo;</strong> published to BSN cohorts.
+                          <div class="when">34 min ago · by R. Okafor</div>
+                        </div>
+                      </div>
+                      <div class="a-row">
+                        <div class="ico amber"><i class="ti ti-alert-triangle"></i></div>
+                        <div class="body">
+                          <strong>Mercy Springs Med Ctr</strong> moved to <em>Watch</em>: 2 evaluations overdue.
+                          <div class="when">1 hr ago</div>
+                        </div>
+                      </div>
+                      <div class="a-row">
+                        <div class="ico blue"><i class="ti ti-login-2"></i></div>
+                        <div class="body">
+                          <strong>22 members</strong> signed in this morning (Spring &rsquo;25 MSN).
+                          <div class="when">2 hr ago</div>
+                        </div>
+                      </div>
+                      <div class="a-row">
+                        <div class="ico gray"><i class="ti ti-mail-forward"></i></div>
+                        <div class="body">
+                          <strong>3 invitations</strong> awaiting confirmation (Org Admin role).
+                          <div class="when">3 hr ago · &gt; needs your review</div>
+                        </div>
+                      </div>
+                      <div class="a-row">
+                        <div class="ico green"><i class="ti ti-shield-check"></i></div>
+                        <div class="body">
+                          Clinical site <strong>St. Augustine&rsquo;s</strong> renewed agreement through Spring &rsquo;27.
+                          <div class="when">yesterday</div>
+                        </div>
+                      </div>
+                      <div class="footer-link">View all activity →</div>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+          </main>
+
+        </div>
+      </div>
+
+      <div class="frame-cap">
+        <p class="eyebrow">Frame 1 · Landing</p>
+        <h3>Dashboard &middot; <em>the school at a glance, before any drill-down</em></h3>
+        <p>
+          Five widgets earn their place: NCLEX as the headline outcome metric, Sites as the operational health signal, Cohorts to compare classes, Capability Completion to track AACN coverage, and a live Activity rail.
+          The onboarding card is dismissible and lives at the top of the dashboard only — it does not bleed into other tabs.
+        </p>
+      </div>
+    </div>
+
+    <!-- ============================================================== -->
+    <!-- ===========           FRAME 2 — MEMBERS              ========== -->
+    <!-- ============================================================== -->
+    <div class="frame-col" data-screen-label="03 Members">
+      <div class="desktop">
+        <div class="chrome">
+          <div class="lights"><span class="r"></span><span class="y"></span><span class="g"></span></div>
+          <div class="url"><div class="url-inner">
+            <i class="ti ti-lock"></i>
+            <span><strong>betterat.app</strong>/orgs/westbrook-son/admin/members?status=active</span>
+          </div></div>
+        </div>
+
+        <div class="app">
+
+          <aside class="sidebar">
+            <div class="brand">
+              <div class="mark">B</div>
+              <div class="wordmark">BetterAt <span>· Admin</span></div>
+            </div>
+            <div class="nav">
+              <div class="group-label">Product</div>
+              <div class="item"><i class="ti ti-stethoscope"></i><span>Clinical</span></div>
+              <div class="item"><i class="ti ti-book-2"></i><span>Playbook</span></div>
+              <div class="item"><i class="ti ti-compass"></i><span>Discover</span></div>
+              <div class="item"><i class="ti ti-school"></i><span>Learn</span></div>
+              <div class="item"><i class="ti ti-notebook"></i><span>Reflect</span></div>
+              <div class="item"><i class="ti ti-search"></i><span>Search</span></div>
+              <div class="group-label">Administration</div>
+              <div class="item on"><i class="ti ti-shield-check"></i><span>Org Admin</span></div>
+            </div>
+            <div class="spacer"></div>
+            <div class="footer">
+              <div class="av">PM</div>
+              <div class="meta">
+                <div class="name">Patricia Morrinson</div>
+                <div class="role">Org Admin · Westbrook</div>
+              </div>
+            </div>
+          </aside>
+
+          <main class="content">
+            <div class="org-strap">
+              <div class="shield">W</div>
+              <div class="org-meta">
+                <div class="org-name">Westbrook University School of Nursing</div>
+                <div class="org-sub">412 members · 7 pending · 2 awaiting confirmation</div>
+              </div>
+              <div class="spacer"></div>
+              <div class="strap-actions">
+                <button class="icon-btn"><i class="ti ti-search"></i></button>
+                <button class="icon-btn"><i class="ti ti-bell"></i><span class="badge"></span></button>
+                <button class="icon-btn"><i class="ti ti-help-circle"></i></button>
+                <div class="admin">
+                  <div class="av">PM</div>
+                  <div class="who">Patricia M.</div>
+                  <i class="ti ti-chevron-down"></i>
+                </div>
+              </div>
+            </div>
+            <div class="tab-strip">
+              <div class="tab">Dashboard</div>
+              <div class="tab on">Members</div>
+              <div class="tab">Requests <span style="margin-left:6px;background:var(--ios-coral);color:#fff;font-size:10px;font-weight:600;padding:1px 6px;border-radius:999px;">3</span></div>
+              <div class="tab">Cohorts</div>
+              <div class="tab">Competencies</div>
+              <div class="tab">Blueprints</div>
+              <div class="tab">Billing</div>
+              <div class="tab">Settings</div>
+              <div class="spacer"></div>
+              <div class="right">
+                <span class="pill live">Term in session</span>
+                <span>Wk 11 of 16</span>
+              </div>
+            </div>
+
+            <div class="canvas">
+              <div class="members">
+                <div class="members-filterbar">
+                  <div class="seg">
+                    <div class="opt on">Active <span class="n">412</span></div>
+                    <div class="opt">Pending <span class="n">7</span></div>
+                    <div class="opt">Rejected <span class="n">11</span></div>
+                    <div class="opt">All <span class="n">430</span></div>
+                  </div>
+                  <div class="role-chips">
+                    <div class="role-chip">Member <i class="ti ti-x"></i></div>
+                    <div class="role-chip on">Preceptor <i class="ti ti-x"></i></div>
+                    <div class="role-chip">Clinical Instructor</div>
+                    <div class="role-chip">Instructor</div>
+                    <div class="role-chip">Evaluator</div>
+                    <div class="role-chip">Org Admin</div>
+                  </div>
+                  <div class="filter-spacer"></div>
+                  <div class="search-wrap">
+                    <i class="ti ti-search"></i>
+                    <input class="search-input" placeholder="Search by name, email, cohort…" />
+                  </div>
+                  <button class="invite-btn"><i class="ti ti-plus"></i>Invite</button>
+                </div>
+
+                <div class="members-table">
+                  <div class="t-head">
+                    <span></span>
+                    <span>Member</span>
+                    <span>Role</span>
+                    <span>Cohort</span>
+                    <span>Last activity</span>
+                    <span></span>
+                  </div>
+
+                  <div class="row">
+                    <div class="av a1">AK</div>
+                    <div><div class="name">Adaeze Kalu</div><div class="email">a.kalu@westbrook.edu</div></div>
+                    <div class="roles"><span class="r preceptor">Preceptor</span><span class="r evaluator">Evaluator</span></div>
+                    <div class="cohort">Mercy Springs Med Ctr<span class="sub">since Fall 2023</span></div>
+                    <div class="last">2m ago<span class="sub">signed in</span></div>
+                    <button class="menu"><i class="ti ti-dots"></i></button>
+                  </div>
+
+                  <div class="row">
+                    <div class="av a2">EM</div>
+                    <div><div class="name">Emily Madsen</div><div class="email">emadsen@westbrook.edu</div></div>
+                    <div class="roles"><span class="r member">Member</span></div>
+                    <div class="cohort">Spring 2025 MSN<span class="sub">Adult-Gerontology</span></div>
+                    <div class="last">14m ago<span class="sub">debrief saved</span></div>
+                    <button class="menu"><i class="ti ti-dots"></i></button>
+                  </div>
+
+                  <div class="row">
+                    <div class="av a3">RO</div>
+                    <div><div class="name">Reginald Okafor</div><div class="email">r.okafor@westbrook.edu</div></div>
+                    <div class="roles"><span class="r instructor">Instructor</span><span class="r clinical">Clinical Instructor</span></div>
+                    <div class="cohort">Spring 2025 BSN<span class="sub">+ 2 more</span></div>
+                    <div class="last">1h ago<span class="sub">published blueprint</span></div>
+                    <button class="menu"><i class="ti ti-dots"></i></button>
+                  </div>
+
+                  <div class="row">
+                    <div class="av a4">SF</div>
+                    <div><div class="name">Sofia Fernández</div><div class="email">sfernandez@westbrook.edu</div></div>
+                    <div class="roles"><span class="r preceptor">Preceptor</span></div>
+                    <div class="cohort">St. Augustine&rsquo;s<span class="sub">since Spring 2024</span></div>
+                    <div class="last">3h ago<span class="sub">evaluation submitted</span></div>
+                    <button class="menu"><i class="ti ti-dots"></i></button>
+                  </div>
+
+                  <div class="row">
+                    <div class="av a5">MT</div>
+                    <div><div class="name">Mei Tanaka</div><div class="email">m.tanaka@westbrook.edu</div></div>
+                    <div class="roles"><span class="r member">Member</span></div>
+                    <div class="cohort">Spring 2025 MSN<span class="sub">Family NP</span></div>
+                    <div class="last">3h ago<span class="sub">capstone block 3</span></div>
+                    <button class="menu"><i class="ti ti-dots"></i></button>
+                  </div>
+
+                  <div class="row">
+                    <div class="av a6">JA</div>
+                    <div><div class="name">Jordan Akello</div><div class="email">jakello@westbrook.edu</div></div>
+                    <div class="roles"><span class="r admin">Org Admin</span></div>
+                    <div class="cohort">— <span class="sub">institution-wide</span></div>
+                    <div class="last">today<span class="sub">sent invitations</span></div>
+                    <button class="menu"><i class="ti ti-dots"></i></button>
+                  </div>
+
+                  <div class="row">
+                    <div class="av a7">LB</div>
+                    <div><div class="name">Liam Brennan</div><div class="email">l.brennan@westbrook.edu</div></div>
+                    <div class="roles"><span class="r evaluator">Evaluator</span><span class="r preceptor">Preceptor</span></div>
+                    <div class="cohort">Cedar Bay General<span class="sub">since Fall 2022</span></div>
+                    <div class="last">yesterday<span class="sub">3 evals overdue</span></div>
+                    <button class="menu"><i class="ti ti-dots"></i></button>
+                  </div>
+
+                  <div class="row">
+                    <div class="av a8">NP</div>
+                    <div><div class="name">Nikhil Patel</div><div class="email">n.patel@westbrook.edu</div></div>
+                    <div class="roles"><span class="r member">Member</span></div>
+                    <div class="cohort">Accelerated &rsquo;25<span class="sub">onboarding · wk 2</span></div>
+                    <div class="last">yesterday<span class="sub">profile set up</span></div>
+                    <button class="menu"><i class="ti ti-dots"></i></button>
+                  </div>
+
+                  <div class="row">
+                    <div class="av a9">CV</div>
+                    <div><div class="name">Camille Vargas</div><div class="email">c.vargas@westbrook.edu</div></div>
+                    <div class="roles"><span class="r clinical">Clinical Instructor</span></div>
+                    <div class="cohort">Fall 2024 BSN<span class="sub">Maternal Health rotation</span></div>
+                    <div class="last">2d ago<span class="sub">graded reflections</span></div>
+                    <button class="menu"><i class="ti ti-dots"></i></button>
+                  </div>
+
+                  <div class="row">
+                    <div class="av aA">HW</div>
+                    <div><div class="name">Harold Westbury</div><div class="email">hwestbury@westbrook.edu</div></div>
+                    <div class="roles"><span class="r instructor">Instructor</span></div>
+                    <div class="cohort">Spring 2025 MSN<span class="sub">+ 1 more</span></div>
+                    <div class="last">3d ago<span class="sub">on leave through May</span></div>
+                    <button class="menu"><i class="ti ti-dots"></i></button>
+                  </div>
+
+                  <div class="t-foot">
+                    <span>Showing 1–10 of 412</span>
+                    <div class="spacer"></div>
+                    <div class="pager">
+                      <div class="p"><i class="ti ti-chevron-left" style="font-size:13px;"></i></div>
+                      <div class="p on">1</div>
+                      <div class="p">2</div>
+                      <div class="p">3</div>
+                      <div class="p">…</div>
+                      <div class="p">42</div>
+                      <div class="p"><i class="ti ti-chevron-right" style="font-size:13px;"></i></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </main>
+
+        </div>
+      </div>
+
+      <div class="frame-cap">
+        <p class="eyebrow">Frame 2 · Roster</p>
+        <h3>Members &middot; <em>status segment, role chips, ten rows that show the mix</em></h3>
+        <p>
+          The default view is <em>Active</em> filtered down by role chip; Pending, Rejected, and All sit alongside but rarely lead. Role chips are <em>additive</em>, not exclusive — a member can carry preceptor and evaluator at once, and the row badges show all of them. The <em>Invite</em> button anchors the top-right so it&rsquo;s reachable without scroll.
+        </p>
+      </div>
+    </div>
+
+    <!-- ============================================================== -->
+    <!-- ===========    FRAME 3 — INVITATION MODAL            ========== -->
+    <!-- ============================================================== -->
+    <div class="frame-col" data-screen-label="04 Invitation modal">
+      <div class="desktop">
+        <div class="chrome">
+          <div class="lights"><span class="r"></span><span class="y"></span><span class="g"></span></div>
+          <div class="url"><div class="url-inner">
+            <i class="ti ti-lock"></i>
+            <span><strong>betterat.app</strong>/orgs/westbrook-son/admin/members?invite=open</span>
+          </div></div>
+        </div>
+
+        <div class="app">
+
+          <aside class="sidebar">
+            <div class="brand">
+              <div class="mark">B</div>
+              <div class="wordmark">BetterAt <span>· Admin</span></div>
+            </div>
+            <div class="nav">
+              <div class="group-label">Product</div>
+              <div class="item"><i class="ti ti-stethoscope"></i><span>Clinical</span></div>
+              <div class="item"><i class="ti ti-book-2"></i><span>Playbook</span></div>
+              <div class="item"><i class="ti ti-compass"></i><span>Discover</span></div>
+              <div class="item"><i class="ti ti-school"></i><span>Learn</span></div>
+              <div class="item"><i class="ti ti-notebook"></i><span>Reflect</span></div>
+              <div class="item"><i class="ti ti-search"></i><span>Search</span></div>
+              <div class="group-label">Administration</div>
+              <div class="item on"><i class="ti ti-shield-check"></i><span>Org Admin</span></div>
+            </div>
+            <div class="spacer"></div>
+            <div class="footer">
+              <div class="av">PM</div>
+              <div class="meta">
+                <div class="name">Patricia Morrinson</div>
+                <div class="role">Org Admin · Westbrook</div>
+              </div>
+            </div>
+          </aside>
+
+          <main class="content">
+            <div class="org-strap">
+              <div class="shield">W</div>
+              <div class="org-meta">
+                <div class="org-name">Westbrook University School of Nursing</div>
+                <div class="org-sub">412 members · 7 pending · 2 awaiting confirmation</div>
+              </div>
+              <div class="spacer"></div>
+              <div class="strap-actions">
+                <button class="icon-btn"><i class="ti ti-search"></i></button>
+                <button class="icon-btn"><i class="ti ti-bell"></i><span class="badge"></span></button>
+                <button class="icon-btn"><i class="ti ti-help-circle"></i></button>
+                <div class="admin">
+                  <div class="av">PM</div>
+                  <div class="who">Patricia M.</div>
+                  <i class="ti ti-chevron-down"></i>
+                </div>
+              </div>
+            </div>
+            <div class="tab-strip">
+              <div class="tab">Dashboard</div>
+              <div class="tab on">Members</div>
+              <div class="tab">Requests <span style="margin-left:6px;background:var(--ios-coral);color:#fff;font-size:10px;font-weight:600;padding:1px 6px;border-radius:999px;">3</span></div>
+              <div class="tab">Cohorts</div>
+              <div class="tab">Competencies</div>
+              <div class="tab">Blueprints</div>
+              <div class="tab">Billing</div>
+              <div class="tab">Settings</div>
+              <div class="spacer"></div>
+              <div class="right">
+                <span class="pill live">Term in session</span>
+                <span>Wk 11 of 16</span>
+              </div>
+            </div>
+
+            <!-- Members tab in background, dimmed by scrim -->
+            <div class="canvas">
+              <div class="members" style="opacity:0.5;filter:saturate(0.6);">
+                <div class="members-filterbar">
+                  <div class="seg">
+                    <div class="opt on">Active <span class="n">412</span></div>
+                    <div class="opt">Pending <span class="n">7</span></div>
+                    <div class="opt">Rejected <span class="n">11</span></div>
+                    <div class="opt">All <span class="n">430</span></div>
+                  </div>
+                  <div class="role-chips">
+                    <div class="role-chip">Member</div>
+                    <div class="role-chip on">Preceptor <i class="ti ti-x"></i></div>
+                    <div class="role-chip">Clinical Instructor</div>
+                    <div class="role-chip">Instructor</div>
+                    <div class="role-chip">Evaluator</div>
+                    <div class="role-chip">Org Admin</div>
+                  </div>
+                  <div class="filter-spacer"></div>
+                  <div class="search-wrap">
+                    <i class="ti ti-search"></i>
+                    <input class="search-input" placeholder="Search by name, email, cohort…" />
+                  </div>
+                  <button class="invite-btn"><i class="ti ti-plus"></i>Invite</button>
+                </div>
+                <div class="members-table">
+                  <div class="t-head">
+                    <span></span><span>Member</span><span>Role</span><span>Cohort</span><span>Last activity</span><span></span>
+                  </div>
+                  <div class="row">
+                    <div class="av a1">AK</div>
+                    <div><div class="name">Adaeze Kalu</div><div class="email">a.kalu@westbrook.edu</div></div>
+                    <div class="roles"><span class="r preceptor">Preceptor</span><span class="r evaluator">Evaluator</span></div>
+                    <div class="cohort">Mercy Springs Med Ctr<span class="sub">since Fall 2023</span></div>
+                    <div class="last">2m ago<span class="sub">signed in</span></div>
+                    <button class="menu"><i class="ti ti-dots"></i></button>
+                  </div>
+                  <div class="row">
+                    <div class="av a4">SF</div>
+                    <div><div class="name">Sofia Fernández</div><div class="email">sfernandez@westbrook.edu</div></div>
+                    <div class="roles"><span class="r preceptor">Preceptor</span></div>
+                    <div class="cohort">St. Augustine&rsquo;s<span class="sub">since Spring 2024</span></div>
+                    <div class="last">3h ago<span class="sub">evaluation submitted</span></div>
+                    <button class="menu"><i class="ti ti-dots"></i></button>
+                  </div>
+                  <div class="row">
+                    <div class="av a7">LB</div>
+                    <div><div class="name">Liam Brennan</div><div class="email">l.brennan@westbrook.edu</div></div>
+                    <div class="roles"><span class="r evaluator">Evaluator</span><span class="r preceptor">Preceptor</span></div>
+                    <div class="cohort">Cedar Bay General<span class="sub">since Fall 2022</span></div>
+                    <div class="last">yesterday<span class="sub">3 evals overdue</span></div>
+                    <button class="menu"><i class="ti ti-dots"></i></button>
+                  </div>
+                  <div class="row">
+                    <div class="av a3">RO</div>
+                    <div><div class="name">Reginald Okafor</div><div class="email">r.okafor@westbrook.edu</div></div>
+                    <div class="roles"><span class="r instructor">Instructor</span><span class="r clinical">Clinical Instructor</span></div>
+                    <div class="cohort">Spring 2025 BSN<span class="sub">+ 2 more</span></div>
+                    <div class="last">1h ago<span class="sub">published blueprint</span></div>
+                    <button class="menu"><i class="ti ti-dots"></i></button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Modal overlay -->
+              <div class="scrim"></div>
+              <div class="modal">
+                <div class="m-head">
+                  <div class="shield">W</div>
+                  <div class="title">
+                    Invite to Westbrook University School of Nursing
+                    <span class="sub">They&rsquo;ll receive an email from <strong>invitations@betterat.app</strong> with a one-tap accept link.</span>
+                  </div>
+                  <button class="x"><i class="ti ti-x"></i></button>
+                </div>
+
+                <div class="m-body">
+
+                  <!-- Email field with tokens -->
+                  <div class="field">
+                    <div class="lbl">Email addresses
+                      <span class="opt">required</span>
+                      <span class="hint">3 valid · 1 to fix</span>
+                    </div>
+                    <div class="email-tokens">
+                      <span class="tok"><i class="ti ti-mail"></i>maya.kowalski@westbrook.edu</span>
+                      <span class="tok"><i class="ti ti-mail"></i>j.thornton@westbrook.edu</span>
+                      <span class="tok"><i class="ti ti-mail"></i>a.lindqvist@westbrook.edu</span>
+                      <span class="tok err"><i class="ti ti-alert-circle"></i>r.osei@westbrook</span>
+                      <span class="composing">type or paste<span class="caret"></span></span>
+                    </div>
+                    <div class="tokens-textarea">
+                      One email per line, or comma-separated. Paste from a spreadsheet works too — we&rsquo;ll de-dupe against existing members.
+                    </div>
+                  </div>
+
+                  <!-- Role -->
+                  <div class="field">
+                    <div class="lbl">Role
+                      <span class="opt">choose one — applied to all invitees</span>
+                    </div>
+                    <div class="roles-grid">
+                      <div class="role-card">
+                        <div class="radio"></div>
+                        <div class="role-meta">
+                          <div class="role-name">Member</div>
+                          <div class="role-desc">Students, residents, fellows. Full learning surfaces.</div>
+                        </div>
+                      </div>
+                      <div class="role-card on">
+                        <div class="radio"></div>
+                        <div class="role-meta">
+                          <div class="role-name">Preceptor</div>
+                          <div class="role-desc">Mentors at clinical sites. Reviews and signs off on practice.</div>
+                        </div>
+                      </div>
+                      <div class="role-card">
+                        <div class="radio"></div>
+                        <div class="role-meta">
+                          <div class="role-name">Clinical Instructor</div>
+                          <div class="role-desc">Leads clinical rotations. Mid-cohort grading authority.</div>
+                        </div>
+                      </div>
+                      <div class="role-card">
+                        <div class="radio"></div>
+                        <div class="role-meta">
+                          <div class="role-name">Instructor</div>
+                          <div class="role-desc">Owns coursework, blueprints, and competency mapping.</div>
+                        </div>
+                      </div>
+                      <div class="role-card">
+                        <div class="radio"></div>
+                        <div class="role-meta">
+                          <div class="role-name">Evaluator</div>
+                          <div class="role-desc">Reads-and-signs only. No editing of member work.</div>
+                        </div>
+                      </div>
+                      <div class="role-card">
+                        <div class="radio"></div>
+                        <div class="role-meta">
+                          <div class="role-name">Org Admin</div>
+                          <div class="role-desc">Full admin surface, billing, and tenant settings.</div>
+                          <div class="role-tag"><i class="ti ti-shield-lock"></i>requires confirmation</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Cohort dropdown -->
+                  <div class="field">
+                    <div class="lbl">Assign to cohort
+                      <span class="opt">optional · preceptors are usually tied to a site instead</span>
+                    </div>
+                    <div class="select-pill">
+                      <span class="pill">Mercy Springs Med Ctr</span>
+                      <span class="ph">— or pick a different cohort / site</span>
+                      <i class="ti ti-chevron-down"></i>
+                    </div>
+                  </div>
+
+                  <!-- Personal message -->
+                  <div class="field">
+                    <div class="lbl">Personal message
+                      <span class="opt">optional</span>
+                      <span class="hint">visible only to invitees</span>
+                    </div>
+                    <textarea placeholder="Hi — we&rsquo;d love to have you precepting our Spring &rsquo;25 cohort on the AGNP rotation. Reach out if you&rsquo;d like to chat before accepting. — Patricia">Hi — we&rsquo;d love to have you precepting our Spring &rsquo;25 cohort on the AGNP rotation. Reach out if you&rsquo;d like to chat before accepting. — Patricia</textarea>
+                  </div>
+
+                </div>
+
+                <div class="m-foot">
+                  <div class="note">
+                    Invitations expire in <strong>14 days</strong>. We notify you when someone accepts.
+                  </div>
+                  <button class="btn-cancel">Cancel</button>
+                  <button class="btn-send"><i class="ti ti-send"></i>Send 3 invitations</button>
+                </div>
+              </div>
+            </div>
+
+          </main>
+
+        </div>
+      </div>
+
+      <div class="frame-cap">
+        <p class="eyebrow">Frame 3 · Invitation modal</p>
+        <h3>Invite &middot; <em>tokenized emails, six clear role cards, confirmation only where it counts</em></h3>
+        <p>
+          The composer treats emails as tokens so paste-from-spreadsheet is the dominant happy path; invalid addresses flag inline rather than failing on submit. Role is a single choice applied to the whole batch (mixed-role batches are vanishingly rare). Only <em>Org Admin</em> carries a &lsquo;requires confirmation&rsquo; tag — every other role is one-tap accept.
+        </p>
+      </div>
+    </div>
+
+    <!-- ============================================================== -->
+    <!-- ===========       FRAME 4 — COMPETENCIES             ========== -->
+    <!-- ============================================================== -->
+    <div class="frame-col" data-screen-label="05 Competencies">
+      <div class="desktop">
+        <div class="chrome">
+          <div class="lights"><span class="r"></span><span class="y"></span><span class="g"></span></div>
+          <div class="url"><div class="url-inner">
+            <i class="ti ti-lock"></i>
+            <span><strong>betterat.app</strong>/orgs/westbrook-son/admin/competencies</span>
+          </div></div>
+        </div>
+
+        <div class="app">
+
+          <aside class="sidebar">
+            <div class="brand">
+              <div class="mark">B</div>
+              <div class="wordmark">BetterAt <span>· Admin</span></div>
+            </div>
+            <div class="nav">
+              <div class="group-label">Product</div>
+              <div class="item"><i class="ti ti-stethoscope"></i><span>Clinical</span></div>
+              <div class="item"><i class="ti ti-book-2"></i><span>Playbook</span></div>
+              <div class="item"><i class="ti ti-compass"></i><span>Discover</span></div>
+              <div class="item"><i class="ti ti-school"></i><span>Learn</span></div>
+              <div class="item"><i class="ti ti-notebook"></i><span>Reflect</span></div>
+              <div class="item"><i class="ti ti-search"></i><span>Search</span></div>
+              <div class="group-label">Administration</div>
+              <div class="item on"><i class="ti ti-shield-check"></i><span>Org Admin</span></div>
+            </div>
+            <div class="spacer"></div>
+            <div class="footer">
+              <div class="av">PM</div>
+              <div class="meta">
+                <div class="name">Patricia Morrinson</div>
+                <div class="role">Org Admin · Westbrook</div>
+              </div>
+            </div>
+          </aside>
+
+          <main class="content">
+            <div class="org-strap">
+              <div class="shield">W</div>
+              <div class="org-meta">
+                <div class="org-name">Westbrook University School of Nursing</div>
+                <div class="org-sub">AACN Essentials framework · last reviewed Feb 2026</div>
+              </div>
+              <div class="spacer"></div>
+              <div class="strap-actions">
+                <button class="icon-btn"><i class="ti ti-search"></i></button>
+                <button class="icon-btn"><i class="ti ti-bell"></i><span class="badge"></span></button>
+                <button class="icon-btn"><i class="ti ti-help-circle"></i></button>
+                <div class="admin">
+                  <div class="av">PM</div>
+                  <div class="who">Patricia M.</div>
+                  <i class="ti ti-chevron-down"></i>
+                </div>
+              </div>
+            </div>
+            <div class="tab-strip">
+              <div class="tab">Dashboard</div>
+              <div class="tab">Members</div>
+              <div class="tab">Requests <span style="margin-left:6px;background:var(--ios-coral);color:#fff;font-size:10px;font-weight:600;padding:1px 6px;border-radius:999px;">3</span></div>
+              <div class="tab">Cohorts</div>
+              <div class="tab on">Competencies</div>
+              <div class="tab">Blueprints</div>
+              <div class="tab">Billing</div>
+              <div class="tab">Settings</div>
+              <div class="spacer"></div>
+              <div class="right">
+                <span class="pill live">Term in session</span>
+                <span>Wk 11 of 16</span>
+              </div>
+            </div>
+
+            <div class="canvas">
+              <div class="comp-grid">
+                <div class="comp-stack">
+
+                  <div class="comp-hd-strap">
+                    <div class="hd-mark">AACN</div>
+                    <div class="hd-meta">
+                      <h3>The Essentials: Core Competencies for Professional Nursing Education</h3>
+                      <p>Ten domains, mapped to Westbrook&rsquo;s capability set. Edit how each sub-competency appears to students with <em>Customize wording</em>. Tracking applies cohort-wide.</p>
+                    </div>
+                    <div class="hd-actions">
+                      <button class="btn"><i class="ti ti-history"></i>Audit log</button>
+                      <button class="btn"><i class="ti ti-download"></i>Export</button>
+                    </div>
+                  </div>
+
+                  <!-- Domains -->
+                  <div class="acc">
+                    <div class="acc-row">
+                      <i class="ti ti-chevron-right chev"></i>
+                      <span class="num">01</span>
+                      <div class="title">Knowledge for Nursing Practice<span class="sub">Integration of established and evolving disciplinary knowledge</span></div>
+                      <span class="caps"><strong>14</strong> capabilities</span>
+                      <div class="pct-track"><span class="fill" style="width:92%;"></span></div>
+                      <span class="pct-val">92%</span>
+                      <button class="menu"><i class="ti ti-dots"></i></button>
+                    </div>
+                  </div>
+
+                  <div class="acc open">
+                    <div class="acc-row">
+                      <i class="ti ti-chevron-right chev"></i>
+                      <span class="num">02</span>
+                      <div class="title">Person-Centered Care<span class="sub">Holistic, individualized, and respectful nursing care</span></div>
+                      <span class="caps"><strong>18</strong> capabilities</span>
+                      <div class="pct-track"><span class="fill" style="width:86%;"></span></div>
+                      <span class="pct-val">86%</span>
+                      <button class="menu"><i class="ti ti-dots"></i></button>
+                    </div>
+                    <div class="acc-body">
+                      <div class="left">
+                        <div class="sub-comp">
+                          <div>
+                            <div class="sub-title">2.1 Engage with the individual<span class="src"><i class="ti ti-link"></i>AACN 2.1</span></div>
+                            <div class="sub-meta">Evidence: 2 reflective notes + 1 preceptor sign-off. <a class="lk">Customize wording →</a></div>
+                          </div>
+                          <div class="evidence"><strong>74</strong>&nbsp;<span style="color:var(--label-3)">of 86</span></div>
+                          <div class="pct-mini">86%<div class="bar"><span class="fill" style="width:86%;"></span></div></div>
+                        </div>
+                        <div class="sub-comp">
+                          <div>
+                            <div class="sub-title">2.2 Conduct comprehensive assessments<span class="src"><i class="ti ti-link"></i>AACN 2.2</span></div>
+                            <div class="sub-meta">Evidence: head-to-toe sim + 3 logged encounters across 2 sites. <a class="lk">Customize wording →</a></div>
+                          </div>
+                          <div class="evidence"><strong>82</strong>&nbsp;<span style="color:var(--label-3)">of 86</span></div>
+                          <div class="pct-mini">95%<div class="bar"><span class="fill" style="width:95%;"></span></div></div>
+                        </div>
+                        <div class="sub-comp">
+                          <div>
+                            <div class="sub-title">2.3 Diagnosis &amp; differential reasoning<span class="src"><i class="ti ti-link"></i>AACN 2.3</span></div>
+                            <div class="sub-meta">Evidence: blueprint &ldquo;Diagnostic Reasoning v2&rdquo; — pre/post + clinical debrief. <a class="lk">Customize wording →</a></div>
+                          </div>
+                          <div class="evidence"><strong>58</strong>&nbsp;<span style="color:var(--label-3)">of 86</span></div>
+                          <div class="pct-mini">67%<div class="bar"><span class="fill warm" style="width:67%;"></span></div></div>
+                        </div>
+                        <div class="sub-comp">
+                          <div>
+                            <div class="sub-title">2.4 Plans of care<span class="src"><i class="ti ti-link"></i>AACN 2.4</span></div>
+                            <div class="sub-meta">Evidence: 5 written plans, including one IPC review. <a class="lk">Customize wording →</a></div>
+                          </div>
+                          <div class="evidence"><strong>79</strong>&nbsp;<span style="color:var(--label-3)">of 86</span></div>
+                          <div class="pct-mini">92%<div class="bar"><span class="fill" style="width:92%;"></span></div></div>
+                        </div>
+                        <div class="sub-comp">
+                          <div>
+                            <div class="sub-title">2.5 Intervention<span class="src"><i class="ti ti-link"></i>AACN 2.5</span></div>
+                            <div class="sub-meta">Evidence: shift-based logs + 1 preceptor narrative. <a class="lk">Customize wording →</a></div>
+                          </div>
+                          <div class="evidence"><strong>76</strong>&nbsp;<span style="color:var(--label-3)">of 86</span></div>
+                          <div class="pct-mini">88%<div class="bar"><span class="fill" style="width:88%;"></span></div></div>
+                        </div>
+                      </div>
+                      <aside class="side">
+                        <h5>Source</h5>
+                        <p>AACN <em>Essentials: Core Competencies for Professional Nursing Education</em> · Domain 2, sub-competencies 2.1–2.9.</p>
+                        <a class="src-link"><i class="ti ti-external-link"></i>View on aacnnursing.org</a>
+                        <ul class="meta-list">
+                          <li><span>Sub-competencies mapped</span><strong>9 / 9</strong></li>
+                          <li><span>Westbrook-customized</span><strong>3</strong></li>
+                          <li><span>Last reviewed</span><strong>Feb 14, 2026</strong></li>
+                          <li><span>Owner</span><strong>R. Okafor</strong></li>
+                        </ul>
+                      </aside>
+                    </div>
+                  </div>
+
+                  <div class="acc">
+                    <div class="acc-row">
+                      <i class="ti ti-chevron-right chev"></i>
+                      <span class="num">03</span>
+                      <div class="title">Population Health<span class="sub">Cross-sectoral collaboration to improve outcomes</span></div>
+                      <span class="caps"><strong>11</strong> capabilities</span>
+                      <div class="pct-track"><span class="fill" style="width:71%;"></span></div>
+                      <span class="pct-val">71%</span>
+                      <button class="menu"><i class="ti ti-dots"></i></button>
+                    </div>
+                  </div>
+
+                  <div class="acc">
+                    <div class="acc-row">
+                      <i class="ti ti-chevron-right chev"></i>
+                      <span class="num">04</span>
+                      <div class="title">Scholarship for the Nursing Discipline<span class="sub">Generation, synthesis, translation of nursing knowledge</span></div>
+                      <span class="caps"><strong>9</strong> capabilities</span>
+                      <div class="pct-track"><span class="fill warm" style="width:54%;"></span></div>
+                      <span class="pct-val">54%</span>
+                      <button class="menu"><i class="ti ti-dots"></i></button>
+                    </div>
+                  </div>
+
+                  <div class="acc">
+                    <div class="acc-row">
+                      <i class="ti ti-chevron-right chev"></i>
+                      <span class="num">05</span>
+                      <div class="title">Quality &amp; Safety<span class="sub">Systems-based culture of safety and continuous improvement</span></div>
+                      <span class="caps"><strong>13</strong> capabilities</span>
+                      <div class="pct-track"><span class="fill" style="width:88%;"></span></div>
+                      <span class="pct-val">88%</span>
+                      <button class="menu"><i class="ti ti-dots"></i></button>
+                    </div>
+                  </div>
+
+                  <div class="acc">
+                    <div class="acc-row">
+                      <i class="ti ti-chevron-right chev"></i>
+                      <span class="num">06</span>
+                      <div class="title">Interprofessional Partnerships<span class="sub">Intentional collaboration across professions and people</span></div>
+                      <span class="caps"><strong>10</strong> capabilities</span>
+                      <div class="pct-track"><span class="fill" style="width:78%;"></span></div>
+                      <span class="pct-val">78%</span>
+                      <button class="menu"><i class="ti ti-dots"></i></button>
+                    </div>
+                  </div>
+
+                  <div class="acc">
+                    <div class="acc-row">
+                      <i class="ti ti-chevron-right chev"></i>
+                      <span class="num">07</span>
+                      <div class="title">Systems-Based Practice<span class="sub">Responding to and leading within complex healthcare systems</span></div>
+                      <span class="caps"><strong>12</strong> capabilities</span>
+                      <div class="pct-track"><span class="fill warm" style="width:42%;"></span></div>
+                      <span class="pct-val">42%</span>
+                      <button class="menu"><i class="ti ti-dots"></i></button>
+                    </div>
+                  </div>
+
+                  <div class="acc">
+                    <div class="acc-row">
+                      <i class="ti ti-chevron-right chev"></i>
+                      <span class="num">08</span>
+                      <div class="title">Informatics &amp; Healthcare Technologies<span class="sub">Informatics processes and technologies to safely deliver care</span></div>
+                      <span class="caps"><strong>10</strong> capabilities</span>
+                      <div class="pct-track"><span class="fill muted" style="width:31%;"></span></div>
+                      <span class="pct-val">31%</span>
+                      <button class="menu"><i class="ti ti-dots"></i></button>
+                    </div>
+                  </div>
+
+                </div>
+
+                <!-- Rail -->
+                <div class="comp-rail">
+                  <div class="rail-card">
+                    <h5>Coverage at a glance</h5>
+                    <div class="big-pct">74<span class="pct">%</span></div>
+                    <div class="desc">Average sub-competency completion across all active members.</div>
+                    <div class="breakdown" style="margin-top:14px;">
+                      <div class="b-row"><span>BSN cohorts</span><span class="n">71%</span><div class="bar"><span class="fill" style="width:71%;"></span></div></div>
+                      <div class="b-row"><span>MSN cohorts</span><span class="n">82%</span><div class="bar"><span class="fill" style="width:82%;"></span></div></div>
+                      <div class="b-row"><span>DNP cohorts</span><span class="n">94%</span><div class="bar"><span class="fill" style="width:94%;"></span></div></div>
+                    </div>
+                  </div>
+
+                  <div class="rail-card">
+                    <h5>Needs attention</h5>
+                    <div style="display:flex;flex-direction:column;gap:10px;margin-top:4px;">
+                      <div style="display:flex;align-items:flex-start;gap:8px;font-size:12px;color:var(--label-2);">
+                        <i class="ti ti-alert-triangle" style="color:var(--ios-amber);font-size:14px;margin-top:2px;"></i>
+                        <span><strong style="color:var(--label);">Domain 9 — Professionalism</strong> not yet mapped to Westbrook capabilities.</span>
+                      </div>
+                      <div style="display:flex;align-items:flex-start;gap:8px;font-size:12px;color:var(--label-2);">
+                        <i class="ti ti-clock" style="color:var(--label-3);font-size:14px;margin-top:2px;"></i>
+                        <span>3 sub-competencies have no evidence requirements set.</span>
+                      </div>
+                      <div style="display:flex;align-items:flex-start;gap:8px;font-size:12px;color:var(--label-2);">
+                        <i class="ti ti-edit" style="color:var(--label-3);font-size:14px;margin-top:2px;"></i>
+                        <span>Domain 8 wording last edited 11 months ago — review for current language.</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="rail-card">
+                    <h5>Customization</h5>
+                    <div style="font-size:12px;color:var(--label-2);line-height:1.5;">
+                      Westbrook has overridden the wording on <strong style="color:var(--label);">12 sub-competencies</strong> for student-facing surfaces.
+                      <div style="margin-top:8px;">
+                        <a class="src-link" style="color:var(--ios-blue);font-weight:500;font-size:12px;">View customization audit →</a>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+          </main>
+
+        </div>
+      </div>
+
+      <div class="frame-cap">
+        <p class="eyebrow">Frame 4 · Competencies</p>
+        <h3>Competencies &middot; <em>the framework as it&rsquo;s actually configured</em></h3>
+        <p>
+          AACN&rsquo;s ten domains are the spine; everything beneath is the school&rsquo;s configuration on top. Domain 2 is opened to show evidence, source-link, and the per-row <em>Customize wording</em> affordance. The right rail surfaces what an admin needs to act on — unmapped domains, missing evidence requirements, wording overdue for review.
+        </p>
+      </div>
+    </div>
+
+  </div>
+
+  <p class="resp-note">
+    Mobile-responsive degradation exists — the tab strip collapses into a select, side rails stack under the main column, and the modal goes full-screen at &lt;640px — but the canonical view is desktop. Mobile shots live in the responsive companion canonical.
+  </p>
+
+  <!-- ============= Commentary ============= -->
+  <section class="commentary">
+    <div class="col">
+      <h4>What carried over from the iOS register</h4>
+      <p>
+        Stage chrome stays warm and serif so this surface reads as part of the same review series. Inside the desktop window the rules are iOS&rsquo;s: <strong>SF Pro</strong> across the UI, system grays for chrome, iOS blue as the single owner of action color. Cards are white with the same 0.5px hairline borders and modest two-stop shadow language from <em>Practice Timeline</em>.
+      </p>
+      <p>
+        Density is the visible difference. A desktop row holds five columns where a phone row held two; the chrome doesn&rsquo;t have to fight for vertical space, so widgets can breathe and stats can run large.
+      </p>
+    </div>
+    <div class="col">
+      <h4>Schools as <em>tenants</em></h4>
+      <p>
+        Every institution gets the same product chrome. What changes per tenant: the <strong>shield</strong> on the org strap, the <strong>org name</strong> beside it, and the <strong>capability customizations</strong> they choose under Competencies. iOS blue, sidebar layout, typography, and the entire tab grammar stay constant.
+      </p>
+      <p>
+        This is deliberate: an admin moving between two BetterAt orgs should never feel like they switched products. The placeholder &lsquo;W&rsquo; shield is what every new tenant gets until they upload their own mark.
+      </p>
+    </div>
+    <div class="col">
+      <h4>The onboarding card</h4>
+      <p>
+        New surface in this addendum. Lives on Dashboard <em>only</em>, dismissible with a sticky <strong>state per-user</strong>, and returns from <em>Help</em> if dismissed. The four progress dots correspond to the four sub-tours: roster, cohorts, capabilities, and invitation/site flow.
+      </p>
+      <p>
+        Visual gravity is intentionally low — iOS-blue accent on a soft gradient, no shadow stack — so it reads as a friendly utility, not a marketing banner.
+      </p>
+    </div>
+    <div class="col">
+      <h4>The invitation modal</h4>
+      <p>
+        The redesign moves from a one-email-at-a-time form to a <strong>tokenized batch composer</strong>. The dominant flow is paste-from-spreadsheet; invalid addresses flag inline rather than failing on submit; the &lsquo;send N invitations&rsquo; button reflects the live valid count.
+      </p>
+      <p>
+        Role is one-choice-per-batch. Org Admin is the only role that triggers a second-party confirmation step — every other invitation accepts in a single tap from the email.
+      </p>
+    </div>
+  </section>
+
+</div>
+
+</body>
+</html>
