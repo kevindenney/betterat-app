@@ -1,0 +1,1231 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=1520" />
+<title>BetterAt · Add Step Flow · Canonical — 2026-05-15</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css" />
+<style>
+  :root {
+    /* iOS system palette — matched to Practice Timeline / Plan Tab canonicals */
+    --ios-blue:        #007AFF;
+    --ios-blue-tint:   rgba(0, 122, 255, 0.10);
+    --ios-blue-strong: rgba(0, 122, 255, 0.18);
+    --ios-coral:       #FF6B6B;
+    --ios-coral-tint:  rgba(255, 107, 107, 0.10);
+    --ios-green:       #34C759;
+    --ios-green-tint:  rgba(52, 199, 89, 0.14);
+    --ios-purple:      #5856D6;
+
+    --gray-6:   #F2F2F7;
+    --gray-5:   #E5E5EA;
+    --gray-4:   #D1D1D6;
+    --gray-3:   #C7C7CC;
+    --gray-2:   #AEAEB2;
+    --gray-1:   #8E8E93;
+    --label:    #1C1C1E;
+    --label-2:  #3C3C43;
+    --label-3:  rgba(60, 60, 67, 0.60);
+    --label-4:  rgba(60, 60, 67, 0.30);
+
+    /* Warm review surface — carried across canonicals */
+    --stage:          #EFEAD8;
+    --stage-text:     #6B6558;
+    --stage-ink:      #2A2824;
+    --stage-line:     rgba(34, 30, 20, 0.12);
+    --stage-line-soft: rgba(34, 30, 20, 0.06);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display",
+                 "Helvetica Neue", Helvetica, Arial, sans-serif;
+    color: var(--label);
+    background: var(--stage);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+  button { font-family: inherit; }
+
+  /* ============= Page chrome ============= */
+  .page { min-width: 1520px; padding: 56px 48px 96px; }
+  .page-head { max-width: 1420px; margin: 0 auto 48px; }
+  .page-head .eyebrow {
+    font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--stage-text); margin: 0 0 12px;
+  }
+  .page-head h1 {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 32px; line-height: 1.15; font-weight: 500;
+    letter-spacing: -0.015em; margin: 0 0 14px; color: var(--stage-ink);
+  }
+  .page-head h1 em { font-style: italic; }
+  .page-head p {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 17px; line-height: 1.55;
+    color: var(--stage-text); margin: 0; max-width: 1100px;
+    text-wrap: pretty;
+  }
+  .page-head p em { font-style: italic; }
+  .page-head .crumbs {
+    display: flex; gap: 10px; align-items: center; margin: 22px 0 0; flex-wrap: wrap;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+    font-size: 12px; color: var(--stage-text); letter-spacing: 0.02em;
+  }
+  .page-head .crumbs .pill {
+    padding: 3px 10px; border-radius: 999px;
+    border: 0.5px solid var(--stage-line);
+    background: rgba(255,255,255,0.4);
+  }
+  .page-head .crumbs .sep { color: var(--stage-line); }
+
+  .strip-head {
+    max-width: 1420px;
+    margin: 36px auto 22px;
+    padding-top: 24px;
+    border-top: 0.5px solid var(--stage-line);
+  }
+  .strip-head .eyebrow {
+    font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--stage-text); margin: 0 0 8px;
+  }
+  .strip-head h2 {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 22px; line-height: 1.25; font-weight: 500;
+    letter-spacing: -0.01em; margin: 0 0 8px; color: var(--stage-ink);
+  }
+  .strip-head h2 em { font-style: italic; }
+  .strip-head p {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 15px; line-height: 1.55;
+    color: var(--stage-text); margin: 0; max-width: 980px;
+    text-wrap: pretty;
+  }
+
+  .row {
+    max-width: 1420px;
+    margin: 0 auto;
+    display: flex;
+    gap: 48px;
+    align-items: flex-start;
+    justify-content: center;
+  }
+  .col { display: flex; flex-direction: column; align-items: center; gap: 16px; }
+  .col .caption-block { text-align: center; }
+  .col .frame-label {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 18px; font-weight: 500; letter-spacing: -0.2px;
+    color: var(--stage-ink); margin: 0 0 4px;
+  }
+  .col .frame-label em { font-style: italic; }
+  .col .frame-sub {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 13px; font-style: italic;
+    color: var(--stage-text); margin: 0;
+    max-width: 360px; text-wrap: pretty; line-height: 1.4;
+  }
+
+  /* ============= Phone shell ============= */
+  .phone {
+    width: 393px;
+    height: 852px;
+    background: var(--gray-6);
+    border-radius: 56px;
+    border: 1px solid rgba(0, 0, 0, 0.18);
+    box-shadow:
+      0 30px 80px -40px rgba(34, 30, 20, 0.32),
+      0 2px 0 rgba(255,255,255,0.5) inset;
+    overflow: hidden;
+    position: relative;
+    isolation: isolate;
+  }
+  .phone .notch {
+    position: absolute; top: 11px; left: 50%; transform: translateX(-50%);
+    width: 116px; height: 34px; background: #0F0E0C; border-radius: 20px; z-index: 40;
+  }
+  .statusbar {
+    position: absolute; top: 0; left: 0; right: 0; height: 50px;
+    padding: 16px 32px 0; display: flex; align-items: center; justify-content: space-between;
+    font-weight: 600; font-size: 15px; color: #0A0A0A; z-index: 30; pointer-events: none;
+  }
+  .statusbar.on-dark { color: #fff; }
+  .statusbar .right { display: flex; gap: 6px; align-items: center; }
+  .statusbar .right i { font-size: 15px; }
+  .home-indicator {
+    position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%);
+    width: 134px; height: 5px; border-radius: 3px;
+    background: rgba(0, 0, 0, 0.30); z-index: 45; pointer-events: none;
+  }
+
+  /* ============= Screen ground ============= */
+  .screen {
+    position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+    overflow: hidden;
+    padding-top: 50px;
+    background: var(--gray-6);
+  }
+
+  /* ============= Top header strip (Practice tab) ============= */
+  .top-header {
+    padding: 8px 18px 10px;
+    display: flex; align-items: center; justify-content: space-between;
+    height: 52px;
+  }
+  .top-header .interest { display: inline-flex; align-items: baseline; gap: 8px; }
+  .top-header .interest .name {
+    font-size: 17px; font-weight: 600; letter-spacing: -0.25px; color: var(--label);
+  }
+  .top-header .interest .switcher {
+    font-size: 13px; color: var(--label-3);
+    display: inline-flex; align-items: center; gap: 2px;
+  }
+  .top-header .interest .switcher i { font-size: 14px; margin-left: -2px; }
+  .top-header .step-counter {
+    font-size: 13px; font-weight: 500;
+    color: var(--label-3); letter-spacing: -0.05px;
+    font-variant-numeric: tabular-nums;
+  }
+  .top-header .avatar {
+    width: 32px; height: 32px; border-radius: 50%;
+    background: linear-gradient(135deg, #4E6A85 0%, #7C7B6E 100%);
+    display: inline-flex; align-items: center; justify-content: center;
+    color: #fff; font-size: 13px; font-weight: 600; letter-spacing: -0.1px;
+    border: 0.5px solid rgba(0, 0, 0, 0.05);
+  }
+
+  /* ============= Timeline area (peek-card-peek) ============= */
+  .timeline-area { position: relative; height: 666px; }
+  .timeline-row {
+    position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+    display: flex; gap: 14px; align-items: stretch;
+  }
+  .peek {
+    width: 268px; height: 658px; margin-top: 8px;
+    border-radius: 22px;
+    background: #FBFBFD;
+    border: 0.5px solid rgba(0, 0, 0, 0.04);
+    box-shadow:
+      0 1px 2px rgba(0, 0, 0, 0.03),
+      0 4px 10px -8px rgba(0, 0, 0, 0.08);
+  }
+  .card {
+    width: 318px;
+    background: #FFFFFF;
+    border-radius: 22px;
+    border: 0.5px solid rgba(0, 0, 0, 0.04);
+    box-shadow:
+      0 1px 2px rgba(0, 0, 0, 0.06),
+      0 18px 38px -16px rgba(0, 0, 0, 0.20),
+      0 4px 10px -4px rgba(0, 0, 0, 0.08);
+    display: flex; flex-direction: column;
+    overflow: hidden;
+    height: 658px; margin-top: 8px;
+  }
+
+  /* Card head (zoomed-in / canonical Plan body) */
+  .card-head { padding: 14px 22px 8px; }
+  .card-head .step-label {
+    font-size: 10.5px; font-weight: 600;
+    color: var(--ios-blue); letter-spacing: 0.5px;
+    text-transform: uppercase;
+    margin: 0 0 6px;
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .card-head .step-label .dot {
+    width: 6px; height: 6px; border-radius: 50%; background: var(--ios-blue);
+  }
+  .card-head h3 {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
+    font-size: 19px; font-weight: 600; letter-spacing: -0.4px;
+    color: var(--label);
+    line-height: 1.15;
+    margin: 0; text-wrap: balance;
+  }
+  .card-head .step-meta {
+    margin-top: 6px;
+    font-size: 11.5px; color: var(--label-3); letter-spacing: -0.05px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .card-head .step-meta .sep { color: var(--label-4); }
+
+  /* Phase tabs */
+  .phase-tabs {
+    display: flex;
+    padding: 0 22px;
+    border-bottom: 0.5px solid var(--gray-5);
+    gap: 4px;
+  }
+  .phase-tab {
+    background: none; border: none; cursor: pointer;
+    padding: 10px 14px 12px;
+    font-family: inherit;
+    font-size: 13.5px; font-weight: 500;
+    color: var(--label-3); letter-spacing: -0.1px;
+    position: relative;
+    display: inline-flex; align-items: center; gap: 5px;
+  }
+  .phase-tab.on { color: var(--ios-blue); font-weight: 600; }
+  .phase-tab.on::after {
+    content: "";
+    position: absolute; left: 12px; right: 12px; bottom: -0.5px;
+    height: 2px; background: var(--ios-blue);
+    border-radius: 2px;
+  }
+  .phase-tab .ready {
+    width: 14px; height: 14px; border-radius: 50%;
+    background: var(--ios-green);
+    display: inline-flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .phase-tab .ready::after {
+    content: ""; width: 6px; height: 3px;
+    border-left: 1.5px solid #fff; border-bottom: 1.5px solid #fff;
+    transform: rotate(-45deg) translate(0.5px, -1px);
+  }
+
+  /* Card body — compressed Plan-filled body for the FAB scenes */
+  .card-body { padding: 10px 22px 10px; flex: 1; min-height: 0; overflow: hidden; position: relative; }
+  .card-body::after {
+    content: ""; position: absolute; left: 0; right: 0; bottom: 0;
+    height: 24px; background: linear-gradient(180deg, rgba(255,255,255,0) 0%, #fff 100%);
+    pointer-events: none;
+  }
+
+  .ai-coach-mini {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 2px 0 6px;
+    margin: 0 0 2px;
+    border-bottom: 0.5px solid var(--gray-5);
+  }
+  .ai-coach-mini .link {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: 12.5px; font-weight: 500;
+    color: var(--ios-blue); letter-spacing: -0.1px;
+  }
+  .ai-coach-mini .link i { font-size: 14px; }
+  .ai-coach-mini .saved {
+    font-size: 10.5px; color: var(--label-3); letter-spacing: -0.02px;
+    display: inline-flex; align-items: center; gap: 4px;
+  }
+  .ai-coach-mini .saved i { font-size: 11px; color: var(--ios-green); }
+
+  .field { padding: 6px 0 6px; border-top: 0.5px solid var(--gray-5); }
+  .field:first-of-type { border-top: none; padding-top: 3px; }
+  .field .eyebrow {
+    font-size: 9.5px; font-weight: 600;
+    color: var(--label-3); letter-spacing: 0.7px;
+    text-transform: uppercase; margin: 0 0 3px;
+  }
+  .field .body {
+    font-size: 12.5px; line-height: 1.34;
+    color: var(--label); letter-spacing: -0.15px;
+    margin: 0; text-wrap: pretty;
+  }
+  .plan-list { list-style: none; padding: 0; margin: 3px 0 0; }
+  .plan-list li {
+    padding: 3px 0;
+    display: grid; grid-template-columns: 16px 1fr; gap: 9px; align-items: start;
+  }
+  .plan-list li .check {
+    width: 16px; height: 16px; border-radius: 50%;
+    border: 1.5px solid var(--gray-3);
+    margin-top: 1px; flex-shrink: 0; background: #fff;
+  }
+  .plan-list li .text {
+    font-size: 13px; line-height: 1.34;
+    color: var(--label); letter-spacing: -0.15px; text-wrap: pretty;
+  }
+  .plan-list li .text .tag {
+    display: inline-block; margin-left: 6px;
+    padding: 1px 7px 2px;
+    border-radius: 999px;
+    background: var(--ios-coral-tint);
+    color: var(--ios-coral);
+    font-size: 10.5px; font-weight: 600; letter-spacing: 0.1px;
+    vertical-align: 1px;
+  }
+  .cap-chips { display: flex; flex-wrap: wrap; gap: 5px; margin: 4px 0 4px; }
+  .cap-chip {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 4px 10px 5px;
+    border-radius: 999px;
+    background: var(--ios-coral-tint); color: var(--ios-coral);
+    font-size: 11.5px; font-weight: 600; letter-spacing: -0.05px;
+    border: 0.5px solid transparent;
+  }
+  .cap-chip.outlined {
+    background: transparent; color: var(--ios-coral);
+    border-color: rgba(255, 107, 107, 0.45); font-weight: 500;
+  }
+
+  /* ============= FAB (Frame 1) ============= */
+  .fab {
+    position: absolute;
+    right: 16px;
+    bottom: 100px;            /* 16pt above 84pt tab bar */
+    width: 56px; height: 56px;
+    border-radius: 50%;
+    background: var(--ios-blue);
+    display: inline-flex; align-items: center; justify-content: center;
+    color: #fff;
+    box-shadow:
+      0 1px 2px rgba(0,0,0,0.10),
+      0 6px 14px -2px rgba(0, 122, 255, 0.45),
+      0 14px 30px -10px rgba(0, 122, 255, 0.45);
+    z-index: 28;
+    border: 0.5px solid rgba(255,255,255,0.18);
+  }
+  .fab .plus {
+    width: 22px; height: 22px;
+    position: relative;
+  }
+  .fab .plus::before,
+  .fab .plus::after {
+    content: "";
+    position: absolute;
+    background: #fff;
+    border-radius: 1.5px;
+  }
+  .fab .plus::before {
+    left: 50%; top: 2px; bottom: 2px; width: 2.5px;
+    transform: translateX(-50%);
+  }
+  .fab .plus::after {
+    top: 50%; left: 2px; right: 2px; height: 2.5px;
+    transform: translateY(-50%);
+  }
+  /* "Pressed" state for Frame 2 — slight scale + dim */
+  .fab.pressed {
+    transform: scale(0.96);
+    background: #0962C7;
+    box-shadow:
+      0 1px 2px rgba(0,0,0,0.10),
+      0 4px 10px -2px rgba(0, 122, 255, 0.35);
+  }
+  .fab.pressed .plus {
+    transform: rotate(45deg);
+    transition: transform 0.18s ease;
+  }
+
+  /* ============= Bottom tab bar ============= */
+  .tabbar {
+    position: absolute; left: 0; right: 0; bottom: 0;
+    height: 84px;
+    padding: 6px 0 24px;
+    background: rgba(255, 255, 255, 0.82);
+    -webkit-backdrop-filter: blur(28px) saturate(180%);
+    backdrop-filter: blur(28px) saturate(180%);
+    border-top: 0.5px solid rgba(0, 0, 0, 0.08);
+    display: grid; grid-template-columns: repeat(4, 1fr); align-items: center;
+    z-index: 25;
+  }
+  .tabbar .t {
+    display: flex; flex-direction: column; align-items: center; gap: 2px;
+    background: none; border: none; padding: 6px 0; cursor: pointer;
+    color: var(--gray-1);
+    font-size: 10px; font-weight: 500; letter-spacing: 0.02em;
+  }
+  .tabbar .t i { font-size: 25px; line-height: 1; }
+  .tabbar .t.on { color: var(--ios-blue); }
+  .tabbar .t.on i { color: var(--ios-blue); }
+
+  /* ============= Dim scrim for Frame 2 ============= */
+  .scrim {
+    position: absolute; inset: 0;
+    background: rgba(0, 0, 0, 0.32);
+    z-index: 50;
+  }
+
+  /* ============= iOS-native action sheet (Frame 2) ============= */
+  .action-sheet {
+    position: absolute;
+    left: 8px; right: 8px;
+    bottom: 8px;
+    z-index: 55;
+    display: flex; flex-direction: column;
+    gap: 8px;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+  }
+  .sheet-group {
+    background: rgba(248, 248, 250, 0.86);
+    -webkit-backdrop-filter: blur(40px) saturate(180%);
+    backdrop-filter: blur(40px) saturate(180%);
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 1px 0 rgba(0,0,0,0.04);
+  }
+  .sheet-title {
+    text-align: center;
+    padding: 14px 18px 12px;
+    font-size: 13px; font-weight: 500;
+    color: var(--label-3);
+    letter-spacing: -0.05px;
+    border-bottom: 0.5px solid rgba(60,60,67,0.12);
+  }
+  .sheet-option {
+    display: grid;
+    grid-template-columns: 44px 1fr auto;
+    gap: 12px;
+    align-items: center;
+    padding: 14px 18px;
+    cursor: pointer;
+    background: transparent;
+    border: none;
+    width: 100%;
+    text-align: left;
+    font-family: inherit;
+  }
+  .sheet-option + .sheet-option { border-top: 0.5px solid rgba(60,60,67,0.12); }
+  .sheet-option .icon {
+    width: 36px; height: 36px; border-radius: 10px;
+    background: var(--ios-blue);
+    display: inline-flex; align-items: center; justify-content: center;
+    color: #fff;
+  }
+  .sheet-option .icon i { font-size: 19px; }
+  .sheet-option.secondary .icon {
+    background: var(--gray-5); color: var(--label-2);
+  }
+  .sheet-option .text { display: flex; flex-direction: column; gap: 2px; }
+  .sheet-option .text .label {
+    font-size: 16px; font-weight: 600; letter-spacing: -0.3px;
+    color: var(--label);
+  }
+  .sheet-option .text .sub {
+    font-size: 12.5px; color: var(--label-3); letter-spacing: -0.1px;
+    line-height: 1.3;
+  }
+  .sheet-option .chev { color: var(--label-4); font-size: 16px; }
+
+  .sheet-cancel {
+    background: rgba(255, 255, 255, 0.96);
+    -webkit-backdrop-filter: blur(40px) saturate(180%);
+    backdrop-filter: blur(40px) saturate(180%);
+    border-radius: 14px;
+    border: none;
+    padding: 16px;
+    text-align: center;
+    font-family: inherit;
+    font-size: 17px; font-weight: 600;
+    color: var(--ios-blue);
+    letter-spacing: -0.4px;
+    cursor: pointer;
+    box-shadow: 0 1px 0 rgba(0,0,0,0.04);
+  }
+
+  /* ============= Frame 3 — AI Coach conversation ============= */
+  .conv-screen {
+    position: absolute; inset: 0;
+    padding-top: 50px;
+    background: #FFFFFF;
+    display: flex; flex-direction: column;
+  }
+  .conv-header {
+    height: 52px;
+    padding: 8px 14px;
+    display: grid; grid-template-columns: 70px 1fr 70px;
+    align-items: center;
+    border-bottom: 0.5px solid var(--gray-5);
+    background: rgba(255,255,255,0.92);
+    -webkit-backdrop-filter: blur(28px) saturate(180%);
+    backdrop-filter: blur(28px) saturate(180%);
+  }
+  .conv-header .cancel {
+    background: none; border: none; padding: 4px 0;
+    color: var(--ios-blue);
+    font-family: inherit; font-size: 16px; font-weight: 400;
+    letter-spacing: -0.3px;
+    display: inline-flex; align-items: center; gap: 2px; cursor: pointer;
+  }
+  .conv-header .cancel i { font-size: 18px; margin-left: -4px; }
+  .conv-header .title {
+    text-align: center;
+    font-size: 15px; font-weight: 600; letter-spacing: -0.3px;
+    color: var(--label);
+    display: flex; flex-direction: column; line-height: 1.15;
+  }
+  .conv-header .title .sub {
+    font-size: 10.5px; font-weight: 500; color: var(--label-3);
+    letter-spacing: -0.05px;
+  }
+  .conv-header .dismiss {
+    justify-self: end;
+    width: 30px; height: 30px; border-radius: 50%;
+    background: var(--gray-6); color: var(--label-2);
+    display: inline-flex; align-items: center; justify-content: center;
+    border: none; cursor: pointer;
+  }
+  .conv-header .dismiss i { font-size: 16px; }
+
+  .conv-body {
+    flex: 1;
+    overflow: hidden;
+    padding: 14px 14px 8px;
+    background: #FFFFFF;
+    display: flex; flex-direction: column; gap: 8px;
+    position: relative;
+  }
+
+  .bubble {
+    max-width: 78%;
+    padding: 8px 12px 9px;
+    border-radius: 18px;
+    font-size: 13.5px;
+    letter-spacing: -0.15px;
+    line-height: 1.32;
+    text-wrap: pretty;
+  }
+  .bubble.from-ai {
+    background: var(--gray-6);
+    color: var(--label);
+    align-self: flex-start;
+    border-bottom-left-radius: 5px;
+  }
+  .bubble.from-user {
+    background: var(--ios-blue);
+    color: #fff;
+    align-self: flex-end;
+    border-bottom-right-radius: 5px;
+  }
+  .ai-row {
+    display: flex; gap: 8px; align-items: flex-end;
+    align-self: flex-start;
+    max-width: 86%;
+  }
+  .ai-avatar {
+    width: 22px; height: 22px; border-radius: 50%;
+    background: linear-gradient(135deg, #007AFF 0%, #5856D6 100%);
+    color: #fff;
+    display: inline-flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .ai-avatar i { font-size: 12px; }
+  .ai-row .bubble { max-width: 100%; }
+
+  .typing {
+    background: var(--gray-6);
+    color: var(--label-2);
+    align-self: flex-start;
+    padding: 9px 12px;
+    border-radius: 18px;
+    border-bottom-left-radius: 5px;
+    font-size: 12.5px;
+    display: inline-flex; align-items: center; gap: 8px;
+    letter-spacing: -0.1px;
+  }
+  .typing .dots {
+    display: inline-flex; gap: 3px;
+  }
+  .typing .dots span {
+    width: 5px; height: 5px; border-radius: 50%;
+    background: var(--label-3);
+    display: inline-block;
+  }
+  .typing .dots span:nth-child(2) { opacity: 0.7; }
+  .typing .dots span:nth-child(3) { opacity: 0.5; }
+
+  /* Draft plan preview — mini Plan card */
+  .draft-card {
+    align-self: flex-start;
+    width: 100%;
+    background: #FFFFFF;
+    border-radius: 16px;
+    border: 0.5px solid var(--gray-4);
+    box-shadow:
+      0 1px 2px rgba(0,0,0,0.04),
+      0 10px 24px -10px rgba(0,0,0,0.12);
+    padding: 12px 14px 12px;
+    margin-top: 2px;
+    position: relative;
+  }
+  .draft-card::before {
+    content: "DRAFT";
+    position: absolute;
+    top: -8px; left: 14px;
+    background: var(--ios-blue);
+    color: #fff;
+    font-size: 9px; font-weight: 700; letter-spacing: 0.10em;
+    padding: 2px 7px 3px;
+    border-radius: 4px;
+  }
+  .draft-card .draft-title {
+    font-size: 14.5px; font-weight: 600; letter-spacing: -0.3px;
+    color: var(--label); line-height: 1.2;
+    margin: 2px 0 8px;
+    text-wrap: balance;
+  }
+  .draft-field { padding: 5px 0 5px; border-top: 0.5px solid var(--gray-5); }
+  .draft-field:first-of-type { border-top: none; padding-top: 2px; }
+  .draft-field .key {
+    font-size: 9px; font-weight: 700;
+    color: var(--label-3); letter-spacing: 0.8px;
+    text-transform: uppercase;
+    margin: 0 0 2px;
+  }
+  .draft-field .val {
+    font-size: 12.5px; line-height: 1.32;
+    color: var(--label); letter-spacing: -0.12px;
+    text-wrap: pretty; margin: 0;
+  }
+  .draft-list { list-style: none; padding: 0; margin: 2px 0 0; }
+  .draft-list li {
+    padding: 2px 0;
+    display: grid;
+    grid-template-columns: 14px 1fr;
+    gap: 7px;
+    align-items: start;
+  }
+  .draft-list li .check {
+    width: 14px; height: 14px; border-radius: 50%;
+    border: 1.5px solid var(--gray-3); background: #fff;
+    margin-top: 2px;
+  }
+  .draft-list li .text {
+    font-size: 12px; line-height: 1.32;
+    color: var(--label-2); letter-spacing: -0.1px;
+  }
+  .draft-list li .text .tag {
+    display: inline-block; margin-left: 5px;
+    padding: 1px 6px 2px;
+    border-radius: 999px;
+    background: var(--ios-coral-tint); color: var(--ios-coral);
+    font-size: 9.5px; font-weight: 600; letter-spacing: 0.1px;
+    vertical-align: 1px;
+  }
+  .draft-caps { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 3px; }
+  .draft-caps .chip {
+    padding: 2px 8px 3px;
+    border-radius: 999px;
+    background: var(--ios-coral-tint); color: var(--ios-coral);
+    font-size: 10.5px; font-weight: 600; letter-spacing: -0.05px;
+  }
+  .draft-caps .chip.outlined {
+    background: transparent;
+    border: 0.5px solid rgba(255,107,107,0.45);
+    color: var(--ios-coral); font-weight: 500;
+  }
+
+  .draft-actions {
+    display: flex; gap: 8px; margin-top: 8px;
+    align-self: flex-start; width: 100%;
+  }
+  .btn-accept {
+    flex: 1;
+    background: var(--ios-blue); color: #fff;
+    border: none; border-radius: 12px;
+    padding: 11px 12px;
+    font-family: inherit; font-size: 14px; font-weight: 600;
+    letter-spacing: -0.2px;
+    display: inline-flex; align-items: center; justify-content: center; gap: 5px;
+    cursor: pointer;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.08), 0 4px 10px -4px rgba(0,122,255,0.45);
+  }
+  .btn-accept i { font-size: 15px; }
+  .btn-refine {
+    background: transparent; color: var(--ios-blue);
+    border: none; padding: 11px 12px;
+    font-family: inherit; font-size: 14px; font-weight: 500;
+    letter-spacing: -0.2px;
+    cursor: pointer;
+  }
+
+  /* Composer */
+  .composer {
+    border-top: 0.5px solid var(--gray-5);
+    background: rgba(255,255,255,0.96);
+    -webkit-backdrop-filter: blur(28px) saturate(180%);
+    backdrop-filter: blur(28px) saturate(180%);
+    padding: 8px 12px 28px;
+    display: flex; align-items: center; gap: 8px;
+    z-index: 5;
+  }
+  .composer .input-wrap {
+    flex: 1;
+    background: var(--gray-6);
+    border: 0.5px solid var(--gray-5);
+    border-radius: 20px;
+    padding: 8px 38px 8px 14px;
+    position: relative;
+    font-size: 13.5px;
+    color: var(--label-3);
+    letter-spacing: -0.15px;
+    min-height: 36px;
+    display: flex; align-items: center;
+  }
+  .composer .input-wrap .placeholder { color: var(--label-3); }
+  .composer .input-wrap .mic {
+    position: absolute;
+    right: 8px; top: 50%; transform: translateY(-50%);
+    width: 26px; height: 26px; border-radius: 50%;
+    background: transparent;
+    color: var(--label-3);
+    display: inline-flex; align-items: center; justify-content: center;
+    border: none; cursor: pointer;
+  }
+  .composer .input-wrap .mic i { font-size: 16px; }
+  .composer .send {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    background: var(--ios-blue);
+    color: #fff;
+    border: none; cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+  }
+  .composer .send i { font-size: 18px; }
+
+  /* ============= Footer notes rail ============= */
+  .rail-row {
+    max-width: 1420px;
+    margin: 56px auto 0;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 48px;
+  }
+  .rail-col h4 {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 14px; letter-spacing: 0.01em;
+    color: var(--stage-ink); margin: 0 0 10px; font-weight: 500;
+  }
+  .rail-col h4 em { font-style: italic; }
+  .rail-col p {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 13.5px; line-height: 1.55;
+    color: #4D4A43; margin: 0 0 10px;
+    text-wrap: pretty;
+  }
+  .rail-col p strong { color: var(--stage-ink); font-weight: 500; }
+  .rail-col em { font-style: italic; }
+  .rail-col .sig {
+    display: inline-flex; align-items: center; gap: 6px;
+    margin-top: 4px;
+    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 11px; letter-spacing: 0.04em;
+    color: var(--stage-text);
+  }
+  .rail-col .sig .swatch {
+    display: inline-block;
+    width: 10px; height: 10px; border-radius: 3px;
+    border: 0.5px solid rgba(0,0,0,0.1);
+  }
+  .rail-col .sig .swatch.blue { background: var(--ios-blue); }
+  .rail-col .sig .swatch.green { background: var(--ios-green); }
+  .rail-col .sig .swatch.coral { background: var(--ios-coral); }
+  .rail-col .sig .swatch.purple { background: var(--ios-purple); }
+</style>
+</head>
+<body>
+
+<div class="page">
+
+  <header class="page-head">
+    <p class="eyebrow">BetterAt · Add Step Flow · Canonical — 2026-05-15</p>
+    <h1>Adding a step is <em>a floating plus, a two-option sheet, and a conversation</em> — never a form</h1>
+    <p>The Practice tab carries a single FAB in the bottom-right gutter. Tap reveals an iOS-native action sheet with exactly two paths: <em>Build with AI Coach</em> (primary, recommended) and <em>From a Blueprint</em> (secondary). The AI Coach path opens a full-screen conversational interface that produces a draftable Plan structure — the user accepts or keeps refining. No empty form, no field-by-field onboarding.</p>
+    <div class="crumbs">
+      <span class="pill">iPhone 16e · portrait · 393 × 852</span>
+      <span class="sep">·</span>
+      <span class="pill">Builds on <em>Practice Timeline · Canonical</em> &amp; <em>Plan Tab · Three States</em></span>
+      <span class="sep">·</span>
+      <span class="pill">Source spec · <em>PRACTICE_TIMELINE_ADD_STEP_ZOOMED_OUT_SOCIAL_ADDENDUM.md</em> — Surface 1</span>
+    </div>
+  </header>
+
+  <section class="strip-head">
+    <p class="eyebrow">Frames 1 — 3 · Add-step flow</p>
+    <h2><em>FAB resting · FAB menu open · AI Coach creating step</em></h2>
+    <p>The same Practice tab, dimmed and then replaced. The FAB is a single iOS-blue plus that becomes an action sheet, that becomes a Messages-style conversation, that produces a Plan card. Each surface uses native iOS conventions: 56pt FAB with elevation, 14pt grouped action sheet with frosted backdrop, system-message bubbles with assistant-distinct styling.</p>
+  </section>
+
+  <div class="row">
+
+    <!-- =============================================================== -->
+    <!-- Frame 1 · FAB resting on Practice tab                              -->
+    <!-- =============================================================== -->
+    <div class="col">
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="statusbar">
+          <span>9:14</span>
+          <span class="right">
+            <i class="ti ti-cell-signal-4"></i>
+            <i class="ti ti-wifi"></i>
+            <i class="ti ti-battery-3"></i>
+          </span>
+        </div>
+
+        <div class="screen" data-screen-label="01 FAB resting">
+
+          <div class="top-header">
+            <div class="interest">
+              <span class="name">Sail Racing</span>
+              <span class="switcher"><i class="ti ti-chevron-down"></i></span>
+            </div>
+            <span class="step-counter">Step 6 of 11</span>
+            <div class="avatar">KD</div>
+          </div>
+
+          <div class="timeline-area">
+            <div class="timeline-row">
+
+              <div class="peek" aria-hidden="true"></div>
+
+              <article class="card">
+                <header class="card-head">
+                  <p class="step-label"><span class="dot"></span>Current step</p>
+                  <h3>Light-air starts in shifty breeze</h3>
+                  <div class="step-meta">
+                    <span>Saturday · RHKYC Spring Series</span>
+                    <span class="sep">·</span>
+                    <span>Race 4</span>
+                  </div>
+                </header>
+
+                <nav class="phase-tabs" role="tablist">
+                  <button class="phase-tab on" role="tab" aria-selected="true">
+                    <span class="ready" aria-label="Plan ready"></span>
+                    Plan
+                  </button>
+                  <button class="phase-tab" role="tab">Do</button>
+                  <button class="phase-tab" role="tab">Reflect</button>
+                </nav>
+
+                <div class="card-body">
+
+                  <div class="ai-coach-mini">
+                    <span class="link"><i class="ti ti-sparkles"></i>Continue with AI Coach<i class="ti ti-chevron-right" style="font-size: 12px;"></i></span>
+                    <span class="saved"><i class="ti ti-check"></i>Saved</span>
+                  </div>
+
+                  <div class="field">
+                    <p class="eyebrow">What will you do?</p>
+                    <p class="body">Read the favored end and commit early to the pin in light-air shifty conditions.</p>
+                  </div>
+
+                  <div class="field">
+                    <p class="eyebrow">How will you do it?</p>
+                    <ul class="plan-list">
+                      <li>
+                        <span class="check"></span>
+                        <div><div class="text">Pin-end approach if the line favors left more than 5°<span class="tag">Starts</span></div></div>
+                      </li>
+                      <li>
+                        <span class="check"></span>
+                        <div><div class="text">Hold a clear lane for the first 90 seconds, no early tack<span class="tag">Starts</span></div></div>
+                      </li>
+                      <li>
+                        <span class="check"></span>
+                        <div><div class="text">Re-check rig tune in harbor — 22 on V1 if it's over 14 kn<span class="tag">Boat&nbsp;tune</span></div></div>
+                      </li>
+                    </ul>
+                  </div>
+
+                  <div class="field">
+                    <p class="eyebrow">Why is this next?</p>
+                    <p class="body">Last week's debrief flagged starts as weakest. Saturday forecasts 8–12 kn with shifts.</p>
+                  </div>
+
+                  <div class="field">
+                    <p class="eyebrow">Capabilities this develops</p>
+                    <div class="cap-chips">
+                      <span class="cap-chip">Starts</span>
+                      <span class="cap-chip">Weather reading</span>
+                      <span class="cap-chip outlined">Boat tune</span>
+                    </div>
+                  </div>
+
+                </div>
+              </article>
+
+              <div class="peek" aria-hidden="true"></div>
+
+            </div>
+          </div>
+
+          <!-- The FAB -->
+          <button class="fab" aria-label="Add a step">
+            <span class="plus" aria-hidden="true"></span>
+          </button>
+
+          <nav class="tabbar">
+            <button class="t on" aria-current="page">
+              <i class="ti ti-flag-3-filled"></i>
+              <span>Practice</span>
+            </button>
+            <button class="t">
+              <i class="ti ti-book-2"></i>
+              <span>Playbook</span>
+            </button>
+            <button class="t">
+              <i class="ti ti-compass"></i>
+              <span>Discover</span>
+            </button>
+            <button class="t">
+              <i class="ti ti-user"></i>
+              <span>Profile</span>
+            </button>
+          </nav>
+        </div>
+
+        <div class="home-indicator"></div>
+      </div>
+      <div class="caption-block">
+        <p class="frame-label"><em>FAB resting</em></p>
+        <p class="frame-sub">A single iOS-blue 56pt circle, 16pt from the right edge and 16pt above the tab bar. Two-layer shadow ties it to the surface; the plus glyph is centered.</p>
+      </div>
+    </div>
+
+    <!-- =============================================================== -->
+    <!-- Frame 2 · FAB menu open                                            -->
+    <!-- =============================================================== -->
+    <div class="col">
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="statusbar on-dark">
+          <span>9:14</span>
+          <span class="right">
+            <i class="ti ti-cell-signal-4"></i>
+            <i class="ti ti-wifi"></i>
+            <i class="ti ti-battery-3"></i>
+          </span>
+        </div>
+
+        <div class="screen" data-screen-label="02 FAB menu open">
+
+          <!-- Practice tab in background, dimmed -->
+          <div class="top-header">
+            <div class="interest">
+              <span class="name">Sail Racing</span>
+              <span class="switcher"><i class="ti ti-chevron-down"></i></span>
+            </div>
+            <span class="step-counter">Step 6 of 11</span>
+            <div class="avatar">KD</div>
+          </div>
+
+          <div class="timeline-area">
+            <div class="timeline-row">
+              <div class="peek" aria-hidden="true"></div>
+              <article class="card">
+                <header class="card-head">
+                  <p class="step-label"><span class="dot"></span>Current step</p>
+                  <h3>Light-air starts in shifty breeze</h3>
+                  <div class="step-meta">
+                    <span>Saturday · RHKYC Spring Series</span>
+                    <span class="sep">·</span>
+                    <span>Race 4</span>
+                  </div>
+                </header>
+                <nav class="phase-tabs" role="tablist">
+                  <button class="phase-tab on" role="tab" aria-selected="true">
+                    <span class="ready" aria-label="Plan ready"></span>
+                    Plan
+                  </button>
+                  <button class="phase-tab" role="tab">Do</button>
+                  <button class="phase-tab" role="tab">Reflect</button>
+                </nav>
+                <div class="card-body">
+                  <div class="ai-coach-mini">
+                    <span class="link"><i class="ti ti-sparkles"></i>Continue with AI Coach<i class="ti ti-chevron-right" style="font-size: 12px;"></i></span>
+                    <span class="saved"><i class="ti ti-check"></i>Saved</span>
+                  </div>
+                  <div class="field">
+                    <p class="eyebrow">What will you do?</p>
+                    <p class="body">Read the favored end and commit early to the pin in light-air shifty conditions.</p>
+                  </div>
+                  <div class="field">
+                    <p class="eyebrow">How will you do it?</p>
+                    <ul class="plan-list">
+                      <li><span class="check"></span><div><div class="text">Pin-end approach if line favors left &gt;5°<span class="tag">Starts</span></div></div></li>
+                      <li><span class="check"></span><div><div class="text">Hold a clear lane for first 90 seconds<span class="tag">Starts</span></div></div></li>
+                      <li><span class="check"></span><div><div class="text">Re-check rig tune — 22 on V1 over 14 kn<span class="tag">Boat&nbsp;tune</span></div></div></li>
+                    </ul>
+                  </div>
+                  <div class="field">
+                    <p class="eyebrow">Why is this next?</p>
+                    <p class="body">Starts flagged weakest in last debrief; Saturday forecasts 8–12 kn shifty.</p>
+                  </div>
+                </div>
+              </article>
+              <div class="peek" aria-hidden="true"></div>
+            </div>
+          </div>
+
+          <!-- Pressed FAB stays in place; plus rotates 45° toward × under the sheet -->
+          <button class="fab pressed" aria-label="Add a step (open)">
+            <span class="plus" aria-hidden="true"></span>
+          </button>
+
+          <nav class="tabbar">
+            <button class="t on" aria-current="page"><i class="ti ti-flag-3-filled"></i><span>Practice</span></button>
+            <button class="t"><i class="ti ti-book-2"></i><span>Playbook</span></button>
+            <button class="t"><i class="ti ti-compass"></i><span>Discover</span></button>
+            <button class="t"><i class="ti ti-user"></i><span>Profile</span></button>
+          </nav>
+
+          <!-- Scrim + Action sheet -->
+          <div class="scrim" aria-hidden="true"></div>
+
+          <div class="action-sheet" role="dialog" aria-label="Add a step">
+            <div class="sheet-group">
+              <div class="sheet-title">Add a step</div>
+              <button class="sheet-option">
+                <span class="icon"><i class="ti ti-sparkles"></i></span>
+                <span class="text">
+                  <span class="label">Build with AI Coach</span>
+                  <span class="sub">Describe what you want to practice</span>
+                </span>
+                <span class="chev"><i class="ti ti-chevron-right"></i></span>
+              </button>
+              <button class="sheet-option secondary">
+                <span class="icon"><i class="ti ti-book-2"></i></span>
+                <span class="text">
+                  <span class="label">From a Blueprint</span>
+                  <span class="sub">Use a saved or subscribed blueprint</span>
+                </span>
+                <span class="chev"><i class="ti ti-chevron-right"></i></span>
+              </button>
+            </div>
+            <button class="sheet-cancel">Cancel</button>
+          </div>
+        </div>
+
+        <div class="home-indicator"></div>
+      </div>
+      <div class="caption-block">
+        <p class="frame-label"><em>FAB menu open</em></p>
+        <p class="frame-sub">Native iOS action sheet with frosted backdrop. Two options only: AI Coach (primary, blue icon tile) and Blueprint (secondary, gray). Cancel pinned below.</p>
+      </div>
+    </div>
+
+    <!-- =============================================================== -->
+    <!-- Frame 3 · AI Coach creating step                                   -->
+    <!-- =============================================================== -->
+    <div class="col">
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="statusbar">
+          <span>9:15</span>
+          <span class="right">
+            <i class="ti ti-cell-signal-4"></i>
+            <i class="ti ti-wifi"></i>
+            <i class="ti ti-battery-3"></i>
+          </span>
+        </div>
+
+        <div class="conv-screen" data-screen-label="03 AI Coach creating step">
+
+          <header class="conv-header">
+            <button class="cancel"><i class="ti ti-chevron-left"></i>Cancel</button>
+            <div class="title">
+              <span>Build with AI Coach</span>
+              <span class="sub">New step · Sail Racing</span>
+            </div>
+            <button class="dismiss" aria-label="Dismiss"><i class="ti ti-x"></i></button>
+          </header>
+
+          <div class="conv-body">
+
+            <div class="ai-row">
+              <span class="ai-avatar"><i class="ti ti-sparkles"></i></span>
+              <div class="bubble from-ai">What kind of step do you want to add to your sailing timeline?</div>
+            </div>
+
+            <div class="bubble from-user">Want to practice heavy-air starts before Saturday</div>
+
+            <div class="ai-row">
+              <span class="ai-avatar"><i class="ti ti-sparkles"></i></span>
+              <div class="bubble from-ai">Got it. Heavy-air starts — you mentioned this is a weak spot in your last debrief. Let me draft a plan. What conditions are you expecting Saturday?</div>
+            </div>
+
+            <div class="bubble from-user">15–20 knots, choppy</div>
+
+            <div class="typing">
+              <span class="dots"><span></span><span></span><span></span></span>
+              Drafting your plan now…
+            </div>
+
+            <!-- Draft preview -->
+            <div class="draft-card">
+              <p class="draft-title">Heavy-air starts in 15–20 kn choppy conditions</p>
+
+              <div class="draft-field">
+                <p class="key">What</p>
+                <p class="val">Practice heavy-air starts in 15–20 kn choppy conditions.</p>
+              </div>
+
+              <div class="draft-field">
+                <p class="key">How — 3 sub-steps</p>
+                <ul class="draft-list">
+                  <li><span class="check"></span><div class="text">Set up boat for heavy-air rig tune<span class="tag">Boat&nbsp;tune</span></div></li>
+                  <li><span class="check"></span><div class="text">Practice 5 starts at upwind end of line<span class="tag">Starts</span></div></li>
+                  <li><span class="check"></span><div class="text">Debrief each start with focus on timing<span class="tag">Starts</span></div></li>
+                </ul>
+              </div>
+
+              <div class="draft-field">
+                <p class="key">Why</p>
+                <p class="val">Identified as weak spot in last week's debrief; conditions match Saturday's forecast.</p>
+              </div>
+
+              <div class="draft-field">
+                <p class="key">Capabilities</p>
+                <div class="draft-caps">
+                  <span class="chip">Starts</span>
+                  <span class="chip outlined">Boat tune</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="draft-actions">
+              <button class="btn-accept"><i class="ti ti-check"></i>Accept &amp; add to timeline</button>
+              <button class="btn-refine">Keep refining</button>
+            </div>
+
+          </div>
+
+          <div class="composer">
+            <div class="input-wrap">
+              <span class="placeholder">Reply to AI Coach…</span>
+              <button class="mic" aria-label="Voice input"><i class="ti ti-microphone"></i></button>
+            </div>
+            <button class="send" aria-label="Send"><i class="ti ti-arrow-up"></i></button>
+          </div>
+        </div>
+
+        <div class="home-indicator"></div>
+      </div>
+      <div class="caption-block">
+        <p class="frame-label"><em>AI Coach creating step</em></p>
+        <p class="frame-sub">Messages-style thread with distinct assistant styling (gray bubbles, gradient sparkle avatar). The draft Plan appears inline; two iOS-style buttons confirm or keep refining.</p>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- =================================================================== -->
+  <!-- Rail of notes                                                         -->
+  <!-- =================================================================== -->
+  <div class="rail-row">
+    <div class="rail-col">
+      <h4><em>One FAB, two paths, three taps to a plan</em></h4>
+      <p>The Practice tab carries exactly <strong>one floating affordance</strong>: a 56pt iOS-blue plus, anchored 16pt from the right edge and 16pt above the tab bar. It is the only entry point for adding steps. Tap once → sheet. Tap <em>Build with AI Coach</em> → conversation. Send one message → draft. Three taps minimum, no form to stare at.</p>
+      <span class="sig"><span class="swatch blue"></span>iOS blue · 56pt diameter · two-layer shadow tinted blue</span>
+    </div>
+    <div class="rail-col">
+      <h4>The sheet has <em>exactly two options</em></h4>
+      <p>An iOS-native action sheet using grouped frosted cards: <strong>Build with AI Coach</strong> (primary, blue icon tile) and <strong>From a Blueprint</strong> (secondary, gray icon tile). Each option carries a sub-label so the user understands the path before tapping. Cancel sits below, full-width, separated by an 8pt gap — standard iOS pattern.</p>
+      <span class="sig"><span class="swatch blue"></span>primary blue · gray secondary · backdrop-filter blur(40px) saturate(180%)</span>
+    </div>
+    <div class="rail-col">
+      <h4><em>Conversation produces a draft, not a form</em></h4>
+      <p>The AI Coach screen looks like Messages but reads as a creation tool: gray assistant bubbles with a sparkle-gradient avatar, blue user bubbles right-aligned. After two exchanges the assistant emits a <strong>draft Plan card</strong> inline — same field structure as the canonical Plan tab, compressed to ~75% scale. The user accepts (blue primary) or keeps refining (text button). No "submit" — just commitment or continued conversation.</p>
+      <span class="sig"><span class="swatch blue"></span>iOS blue user bubble · <span class="swatch purple"></span>blue→purple gradient avatar · <span class="swatch coral"></span>capability chips carry over from canonical</span>
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>
