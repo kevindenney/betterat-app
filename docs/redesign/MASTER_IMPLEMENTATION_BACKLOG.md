@@ -160,6 +160,35 @@ Total specs to write: 24.
 
 ## Section 4: Open Product Questions
 
+### P0 — Decide Before May 20
+
+**P0-01: Tab 1 canonical name across all interests**
+
+**Background:** Tab 1, the primary action tab for the deliberate-practice engine, currently uses per-interest community vocabulary via `getEventTabTitle` in `lib/navigation-config.ts`. Today's visible labels are:
+
+- Sailing -> `Race`
+- Nursing -> `Clinical`, from the vocabulary override for `Learning Event` = `Clinical Shift`
+- Drawing -> `Session`
+- Other interests -> `Practice` by default
+
+The A.10 resolution (`ec957e55`, 2026-05-15) explicitly preserved this per-interest model. The tab's identity is universal, but its visible label adapts to community vocabulary.
+
+**Question:** Is per-interest labeling actually the right long-term choice, or should BetterAt converge on a single canonical name across all interests?
+
+**Trade-off:** Per-interest labeling respects each community's actual language. A sailor sees `Race`; a nurse sees `Clinical`; a drawing user sees `Session`. This fits the user's mental model, but a multi-interest user sees the tab change names as they switch, and BetterAt becomes harder to explain externally as "the tab that is called Race, Clinical, Session, or Practice depending on context."
+
+Single canonical naming gives visual consistency, is easier to learn, and is easier to market. The cost is semantic mismatch: the chosen word will feel slightly off for at least one community.
+
+**Candidates considered:** `Practice` ties to deliberate-practice positioning but is slightly off for sailing. `Train` is action-oriented but sounds novice-coded for nursing. `Work` has broad craft/athletic fit but is generic. `Focus` captures intent but can feel business-like. `Steps` is literal but loses intent. `Today` is time-based and may imply too narrow a scope.
+
+**Before deciding:** user-test candidates with at least two real users from different interests, for example a Dragon sailor and an MSN nursing student, by asking what they would expect a tab labeled each candidate to do. Run a quick competitive scan: Whoop uses `Coaching`, Strava uses `Feed`, Duolingo uses `Learn`, Headspace uses `Today`. Decide whether BetterAt's identity is best framed as deliberate practice, deliberate work, or another product language.
+
+**Phases blocked:** none directly. The per-interest labels work today and can continue while execution proceeds. This decision affects marketing copy, onboarding, cross-product references in addendums/specs, and future Discover/Playbook copy that describes "your practice" versus "your work."
+
+**Recommended owner:** Kevin. This cannot be specced or auto-decided; it needs user input and product judgment.
+
+**Target decision date:** before May 20, ideally by May 18 so there are two days to update dependent user-facing copy.
+
 ### Practice timeline and workflow
 
 1. Current-step treatment: should visual styling distinguish “next step I have not started” from “currently in Do”?
