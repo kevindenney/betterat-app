@@ -204,48 +204,49 @@ Single canonical naming gives visual consistency, is easier to learn, and is eas
 8. Real-time plan collaboration: can collaborators edit a Plan together before Do starts?
 9. Voice input for AI Coach: does Plan support voice entry in v1?
 10. Plan versioning: if Plan changes after Do starts, do we preserve the old Plan for Reflect comparison?
+11. Data model generalization from `seasons` to `series` is deferred. Phase H.0 implements Series vocabulary as a presentation layer over the existing `seasons` / `season_regattas` model; see `specs/PHASE_H_SERIES_FEATURE_INTEGRATION_SPEC.md`. Revisit when a non-sailing interest demands interest-specific Series semantics.
 
 ### Social, privacy, and suggestions
 
-11. Privacy default for new steps: private, followers, or public?
-12. Follower approval: auto-approved, opt-in, mutual, or asymmetric?
-13. Notification model: when followed people/blueprints log steps, what notifications fire?
-14. Blueprint subscriber visibility: do creators see subscribers on their Profile?
-15. Copy permissions: when copying someone else’s step, what content is copied?
-16. Social discovery routing: how does Discover connect to follow/subscribe flows?
-17. Suggest authoring: where does a mentor/peer create a suggestion?
-18. Algorithmic suggestions: are AI suggestions allowed, and how are they distinguished?
-19. Suggestion-to-blueprint pipeline: can repeated suggestions become blueprint candidates?
-20. Cross-interest suggestions: can a source suggest steps outside the user’s active interest?
-21. Save-for-later surface: where do saved suggestions live?
+12. Privacy default for new steps: private, followers, or public?
+13. Follower approval: auto-approved, opt-in, mutual, or asymmetric?
+14. Notification model: when followed people/blueprints log steps, what notifications fire?
+15. Blueprint subscriber visibility: do creators see subscribers on their Profile?
+16. Copy permissions: when copying someone else’s step, what content is copied?
+17. Social discovery routing: how does Discover connect to follow/subscribe flows?
+18. Suggest authoring: where does a mentor/peer create a suggestion?
+19. Algorithmic suggestions: are AI suggestions allowed, and how are they distinguished?
+20. Suggestion-to-blueprint pipeline: can repeated suggestions become blueprint candidates?
+21. Cross-interest suggestions: can a source suggest steps outside the user’s active interest?
+22. Save-for-later surface: where do saved suggestions live?
 
 ### Institutional, catalog, and tenant model
 
-22. Org URL structure: `/jhu`, `/org/jhu-nursing`, or both?
-23. Public catalog SEO/indexing requirements.
-24. Newsroom content model: faculty posts, press, student spotlights, or something else?
-25. Featured blueprint curation: algorithmic, editorial, or hybrid?
-26. Nursing specialty taxonomy source: AACN, NCLEX, ANCC, or hybrid?
-27. People-to-follow ranking method.
-28. Default JHU invitation role: Preceptor or Member?
-29. Cohort assignment timing: invite, first sign-in, or admin-assigned later?
-30. JHU SAML/Shibboleth requirement and timeline.
+23. Org URL structure: `/jhu`, `/org/jhu-nursing`, or both?
+24. Public catalog SEO/indexing requirements.
+25. Newsroom content model: faculty posts, press, student spotlights, or something else?
+26. Featured blueprint curation: algorithmic, editorial, or hybrid?
+27. Nursing specialty taxonomy source: AACN, NCLEX, ANCC, or hybrid?
+28. People-to-follow ranking method.
+29. Default JHU invitation role: Preceptor or Member?
+30. Cohort assignment timing: invite, first sign-in, or admin-assigned later?
+31. JHU SAML/Shibboleth requirement and timeline.
 
 ### Blueprint creator and mentoring
 
-31. Blueprint versioning: do existing subscribers auto-upgrade when creators edit?
-32. Blueprint co-authoring: primary author plus contributors?
-33. Step template variable notation and metadata schema.
-34. Mentoring monetization: free, creator-tier paid, or subscriber-paid?
-35. Reflection comment threading: can subscribers reply to creator comments?
-36. Capability verification authority: peer/creator/institutional distinctions.
-37. Mentor response-time commitments if mentoring is paid.
+32. Blueprint versioning: do existing subscribers auto-upgrade when creators edit?
+33. Blueprint co-authoring: primary author plus contributors?
+34. Step template variable notation and metadata schema.
+35. Mentoring monetization: free, creator-tier paid, or subscriber-paid?
+36. Reflection comment threading: can subscribers reply to creator comments?
+37. Capability verification authority: peer/creator/institutional distinctions.
+38. Mentor response-time commitments if mentoring is paid.
 
 ### Search and AI
 
-38. AI Coach conversational flow is referenced but not fully designed.
-39. Search is cited in multiple specs but no global search UX is designed.
-40. Do and Reflect tab interiors are not yet designed to the same depth as Plan.
+39. AI Coach conversational flow is referenced but not fully designed.
+40. Search is cited in multiple specs but no global search UX is designed.
+41. Do and Reflect tab interiors are not yet designed to the same depth as Plan.
 
 ## Section 5: Cross-Cutting Concerns
 

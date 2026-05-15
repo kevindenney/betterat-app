@@ -340,3 +340,13 @@ Immediate rollback is one environment edit: `EXPO_PUBLIC_FF_PRACTICE_SERIES_IOS_
 - **All-history mode vs canonical Series frame:** current code supports `All Races` via `filterSeasonId=null`; the canonical says Series is the frame, not a filter. V1 should preserve all-history behavior but visually subordinate it unless product explicitly removes it.
 - **Card-level tap scope:** the canonical puts the `6 of 14` pill on the card. If threading `onJumpToPress` into card content is broad, keep the header counter as the v1 tap target rather than destabilizing card types.
 - **Gesture conflict:** the card-level counter must not steal horizontal card swipes. Use small, explicit `Pressable` hit targets and verify on simulator.
+
+## Data Model Scope (Out Of Scope For This Phase)
+
+This phase implements per-interest vocabulary (`Season` for sailing, `Term` for nursing, `Workshop` for drawing, `Block` for fitness, `Series` as default) as a **presentation layer** over the existing sailing-specific data model: `seasons`, `season_regattas`, `SeasonService`, and `useSeason`.
+
+Under the hood, every interest's `Series` is stored as a `season` row. The `getSeriesVocabulary()` / `getSeriesLabel()` helper maps interest to user-facing vocabulary at render time.
+
+For v1, this is sufficient: sailing users see `Season`, nursing users see `Term` or the configured `Period` vocabulary, and the underlying storage is identical. If future requirements demand interest-specific Series semantics, for example academic terms with different start/end semantics than a sailing season or workshops with iteration counts instead of date ranges, a Phase H.0 data-model successor should generalize `seasons` to a `series` table with per-interest configuration.
+
+This is not a blocker for May 20. The v1/v2 boundary is explicit: Phase H.0 makes Series feel native to every interest at the UI layer; data-model generalization is a separate future phase.
