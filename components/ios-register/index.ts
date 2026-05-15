@@ -40,3 +40,4 @@ export {
   type RaceLogConceptDot,
   type ReflectSubTab,
 } from './RaceLogScreen';
+export { LoadingNarration } from './LoadingNarration';

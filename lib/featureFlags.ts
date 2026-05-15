@@ -242,6 +242,18 @@ export const FEATURE_FLAGS = {
    * EXPO_PUBLIC_FF_RACE_LOG_IOS_REGISTER=false to revert in one toggle.
    */
   RACE_LOG_IOS_REGISTER: readBooleanEnv('EXPO_PUBLIC_FF_RACE_LOG_IOS_REGISTER', true),
+
+  /**
+   * Stage the Get Inspired iOS register **running state** — the canonical
+   * visual treatment of the "Loading-state narration" cross-cutting
+   * principle (see IOS_MIGRATION_PLAN.md). When the actual analyze/build-
+   * plan pipeline is wired, this flag gates the running-state surface
+   * appearing inside the existing Get Inspired modal. Until then, the
+   * flag is reachable only via the preview route at /get-inspired-ios-running.
+   * Defaults true; flip to false via
+   * EXPO_PUBLIC_FF_GET_INSPIRED_IOS_REGISTER=false to revert.
+   */
+  GET_INSPIRED_IOS_REGISTER: readBooleanEnv('EXPO_PUBLIC_FF_GET_INSPIRED_IOS_REGISTER', true),
 } as const;
 
 // =============================================================================
