@@ -256,6 +256,41 @@ These are out of scope for the visual pass but should land before cutover. Captu
 
 10. **Post-cutover cleanup pass on Playbook home.** After `PLAYBOOK_IOS_REGISTER` flag has been observed to hold (one week minimum), delete the live-but-unmounted components and hook: `ThisWeekFocusCard`, `AskYourPlaybook`, `SuggestionsBar`, `RecentDebriefs`, `WeeklyReviewsPreview`, `sidebar/QueuedSuggestionsPreview`, `SectionTabs`, and `usePlaybookRecentDebriefs` (consumer audit deferred from the cutover commit — confirm no other consumers before deleting the hook). The wand-and-stars "Preview iOS register" toolbar entry on `PlaybookHome.tsx` can also retire. The flag itself can be removed once we're confident the cutover is permanent.
 
+11. **`/step/[id]` vs `/race/ios/[stepId]` detail-surface split.** Today there are two different detail surfaces for the same underlying step:
+
+   - **`/step/[id]`** — the deep-edit surface with the full feature set: comments, sharing, collaborators, AI extraction, and other legacy step-management affordances. It is still reachable from older entry points.
+   - **`/race/ios/[stepId]`** — the iOS register Race Prep detail surface. After the Race Prep cards cutover, this becomes the new canonical tap target from cards. It is intentionally lighter and more composed than `/step/[id]`.
+
+   **Question:** do these surfaces merge, diverge, or coexist?
+
+   - **Merge** — `/step/[id]` also flips to an iOS register full-surface and somehow absorbs the full feature set. This requires designing iOS-register treatments for comments, sharing, collaborators, AI extraction, and any other deep-edit affordances that currently live only on the legacy surface.
+   - **Diverge** — `/step/[id]` stays legacy as a power-user or management surface, while `/race/ios/[stepId]` is the canonical user-facing detail surface for new Race Prep entry points. Two surfaces, two jobs.
+   - **Coexist for now** — defer the decision, accept the split, and revisit after production usage shows whether people actually discover and depend on `/step/[id]` through non-card entry points.
+
+   **Why this matters:**
+
+   - Architecture decision #4 answered the summary-vs-detail question. This is a different architecture question: when there are **two detail surfaces** with different feature density, what is the rule?
+   - User-visible behavior can get confusing: a card tap goes to the lighter iOS detail surface, while another menu path may still open the deeper legacy detail surface.
+   - Feature parity stays unresolved. If `/step/[id]` remains editorial/legacy while Race Prep detail goes iOS-native, the register is only partially applied across the Race tab.
+
+   **When to revisit:** after the Race Prep cards cutover has been live in production long enough to observe whether users find and use `/step/[id]` from non-card entry points, and whether those entry points still matter enough to justify a second full-surface migration.
+
+12. **Inline-action affordances on iOS-register summary cards.** The legacy `<CardGrid />` passed Edit / Delete / Hide / MarkDone / MarkNotDone / Upload-document / Race-complete / Open-post-race-interview / Dismiss-sample / Bulk-update-status / Bulk-delete / Reorder handlers down to each card. Cards exposed those affordances inline (overflow menus, swipe actions, long-press, header glyphs). `<RaceCardsScreen />` after the 2026-05-15 cutover exposes only **tap-through to `/race/ios/[stepId]`** — the card is now a pure summary surface in the Apple Books library register.
+
+   **Question:** which of those inline actions are still load-bearing on the summary surface, and how do they re-surface in the iOS register?
+
+   - **Tap-only purist option** — the summary is for orientation ("where am I in the season?"); every mutating action lives on the detail surface. Edit / Delete / MarkDone all migrate to `/race/ios/[stepId]`'s overflow chrome. Bulk operations move to a dedicated edit-mode (or are dropped if telemetry shows nobody used them).
+   - **Long-press / context-menu re-introduction** — keep the surface visually clean, but add an iOS-native long-press → context menu that lifts the most-used actions (Delete / MarkDone) without permanent card chrome. Matches the iOS Books long-press pattern.
+   - **Selective re-skin** — re-introduce a small set of actions per status: Open prep (current), View debrief (debriefed), Skip / Reschedule (planned). Status-specific affordances rather than the legacy bulk set.
+
+   **Why this matters:**
+
+   - The cutover ships with the tap-only contract. If users hit dead-ends ("how do I delete a step now?"), the register-level decision has to be revisited fast.
+   - Bulk operations (`onBulkUpdateStatus`, `onBulkDeleteRaces`, `onReorderRaces`) currently live behind the `hasTimelineSteps && !isSailingInterest` branch — they're already absent on the sailing path. Telemetry should confirm whether non-sailing personas still need them on the summary surface.
+   - The earned-exception principle says the current-card has an "Open prep →" CTA, but every other card is tap-the-whole-card. Adding inline actions would dilute that grammar.
+
+   **When to revisit:** after the cutover has been live long enough to observe whether users discover Edit / Delete / MarkDone on the detail surface, and whether support requests or telemetry suggest a missing affordance on the summary surface.
+
 ---
 
 ## Cross-cutting principles
@@ -356,9 +391,9 @@ Surfaces blocked on these design handoffs before their cutover can resume:
 | Discover-Orgs iOS | Discover tab cutover |
 | Discover-People iOS | Discover tab cutover |
 | Discover-Forums iOS | Discover tab cutover |
-| Race Prep cards iOS / timeline-grid summary iOS | Race Prep cutover (StepDetailContent + RaceSummaryCard together) |
+| ~~Race Prep cards iOS / timeline-grid summary iOS~~ | ~~Race Prep cutover (StepDetailContent + RaceSummaryCard together)~~ ✅ **Shipped 2026-05-15** — Race Prep cards iOS handoff landed; cards-grid cutover live behind `RACE_PREP_IOS_REGISTER` |
 
-Six design handoffs total. All blocked-cutover surfaces should remain reachable via their preview routes (`/reflect-ios`, `/discover-ios`, `/race/ios/[stepId]`) for review and testing; cutover commits resume once their respective design handoffs arrive.
+Five design handoffs still outstanding. The Race Prep cards handoff arrived 2026-05-15 and the cards-grid cutover shipped that day (see follow-up #11 for the remaining `/step/[id]` vs `/race/ios/[stepId]` detail-surface question, and follow-up #12 for inline-action affordances on the new summary surface). All other blocked-cutover surfaces remain reachable via their preview routes (`/reflect-ios`, `/discover-ios`) for review and testing; cutover commits resume once their respective design handoffs arrive.
 
 ---
 
@@ -441,7 +476,8 @@ All twelve Claude Design handoff surfaces have a preview route built and reachab
 
 | # | Surface | Route | Type | User | Wire-up |
 |---|---|---|---|---|---|
-| 1 | Race Prep | `/race/ios/[stepId]` | re-skin existing | practitioner | step + plan_data + collaborators + competencies + prior debrief quotes |
+| 1 | Race Prep — detail | `/race/ios/[stepId]` | re-skin existing | practitioner | step + plan_data + collaborators + competencies + prior debrief quotes |
+| 1b | Race Prep — cards (summary) | renders in `app/(tabs)/races.tsx` behind `RACE_PREP_IOS_REGISTER` | fresh-build summary surface | practitioner | **cutover shipped 2026-05-15** — `filteredCardGridRaces` adapted into `RaceCardItem[]`, tap-through to `/race/ios/[stepId]` |
 | 2 | On the Water | `/race/ios/water/[stepId]` | fresh-build | practitioner | observations + media_uploads (reverse chronological) |
 | 3 | Debrief | `/race/ios/debrief/[stepId]` | re-skin (architectural shift to chrono stack) | practitioner | observations + media_uploads (chronological) |
 | 4 | Playbook home | `/playbook-ios` | re-skin (simplified per decision) | practitioner | manifesto + concepts + recent reflections + inbox count badge |
@@ -464,7 +500,7 @@ All twelve Claude Design handoff surfaces have a preview route built and reachab
 
 ### Component kit summary
 
-`components/ios-register/` houses 13 presentational components used across the 11 previews:
+`components/ios-register/` houses 15 presentational components used across the 12 previews + the Race Prep cards canonical summary:
 
 | Component | Used by |
 |---|---|
@@ -483,6 +519,8 @@ All twelve Claude Design handoff surfaces have a preview route built and reachab
 | `HeroMicComposer` | On the Water |
 | `ConceptCard` | Playbook |
 | `ReflectionCard` (origin tag variant) | Playbook, Concept, Reflect |
+| `StepCard` (4 status variants + earned-exception current) | Race Prep cards |
+| `RaceCardsScreen` (title block + arc bar + horizontal scroller + across-the-arc summary) | Race Prep cards |
 
 All components consume `IOS_REGISTER` colors and `IOS_REGISTER_TEXT` recipes from `lib/design-tokens-ios.ts` (Phase 0 foundation).
 

@@ -132,13 +132,22 @@
       "commit": "ae0334fd"
     },
     {
-      "surface": "Race Prep",
+      "surface": "Race Prep cards (summary)",
       "preview_built": true,
-      "canonical_cutover_status": "blocked",
+      "canonical_cutover_status": "shipped",
       "legacy_retirement_blockers": [],
+      "blocked_by": [],
+      "commit": "01c6af34",
+      "shipped_on": "2026-05-15"
+    },
+    {
+      "surface": "Race Prep (detail)",
+      "preview_built": true,
+      "canonical_cutover_status": "routed-from-cards",
+      "legacy_retirement_blockers": [
+        "/step/[id] vs /race/ios/[stepId] detail-surface split (open architecture follow-up #11)"
+      ],
       "blocked_by": [
-        "Race Prep cards iOS / timeline-grid summary iOS design handoff",
-        "Per-interest beat name mapping",
         "Authoring flow for prose beats"
       ],
       "commit": "6d6389ef"
@@ -194,11 +203,6 @@
     }
   ],
   "design_handoff_backlog": [
-    {
-      "surface": "Race Prep cards iOS / timeline-grid summary iOS",
-      "unblocks": "Race Prep cutover for StepDetailContent and RaceSummaryCard together",
-      "priority": "high"
-    },
     {
       "surface": "Race Log iOS",
       "unblocks": "Reflect home cutover without functionality regression",

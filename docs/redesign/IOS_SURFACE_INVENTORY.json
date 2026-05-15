@@ -2,19 +2,37 @@
   "surfaces": [
     {
       "id": "race-prep-ios",
-      "title": "Race Prep iOS",
+      "title": "Race Prep iOS (detail)",
       "route": "/race/ios/<stepId>",
       "user": "Felix",
       "user_role": "practitioner",
       "type": "composition",
       "wire_up": "real",
       "preview_status": "shipped",
-      "canonical_status": "parked",
+      "canonical_status": "routed-from-cards",
       "entry_points": [
+        "Tap any card on Race Prep cards iOS (canonical)",
         "Overflow menu on any timeline-step card (Preview iOS · Race Prep)",
         "/dev/ios-previews"
       ],
       "design_handoff_html": ""
+    },
+    {
+      "id": "race-prep-cards-ios",
+      "title": "Race Prep cards iOS (summary)",
+      "route": "rendered in app/(tabs)/races.tsx behind FEATURE_FLAGS.RACE_PREP_IOS_REGISTER",
+      "user": "Felix",
+      "user_role": "practitioner",
+      "type": "summary",
+      "wire_up": "real",
+      "preview_status": "shipped",
+      "canonical_status": "shipped",
+      "shipped_in_commit": "01c6af34",
+      "shipped_on": "2026-05-15",
+      "entry_points": [
+        "Race tab cards-grid render path (default ON)"
+      ],
+      "design_handoff_html": "Race Prep cards - Felix sailing - iOS register.html"
     },
     {
       "id": "on-the-water-ios",
