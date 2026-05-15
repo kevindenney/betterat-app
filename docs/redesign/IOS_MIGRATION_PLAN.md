@@ -252,6 +252,10 @@ These are out of scope for the visual pass but should land before cutover. Captu
 
 8. **Active-interest mismatch on competency progress.** `useCompetencyProgress` queries by the *active* interest, not the *step's* interest. When viewing a step from a different interest (sailing step while nursing is active), pill statuses come back empty. Either: (a) introduce a stepId-scoped progress hook, or (b) accept the limitation since cross-interest viewing is rare.
 
+9. **Competency Assessment "0 captures" empty-state copy.** Designed surface only specified the populated state; rendering "0 captures across this step" on a step with no observations or media_uploads reads as awkward chrome. Either soften the copy ("No captures yet — open the step to log voice notes or photos") or hide the captures-context card entirely when count is zero. Not blocking; visual polish.
+
+10. **Post-cutover cleanup pass on Playbook home.** After `PLAYBOOK_IOS_REGISTER` flag has been observed to hold (one week minimum), delete the live-but-unmounted components and hook: `ThisWeekFocusCard`, `AskYourPlaybook`, `SuggestionsBar`, `RecentDebriefs`, `WeeklyReviewsPreview`, `sidebar/QueuedSuggestionsPreview`, `SectionTabs`, and `usePlaybookRecentDebriefs` (consumer audit deferred from the cutover commit — confirm no other consumers before deleting the hook). The wand-and-stars "Preview iOS register" toolbar entry on `PlaybookHome.tsx` can also retire. The flag itself can be removed once we're confident the cutover is permanent.
+
 ---
 
 ## Resolved architecture decision (2026-05-14) — Reflection vs Competency Assessment
@@ -277,6 +281,41 @@ These are out of scope for the visual pass but should land before cutover. Captu
 - The form-based competency assessment surface stays a separate Phase 5+ design problem. It's faculty-primary (path author left a note on a specific student's step — per the spec's §8.2 "Direct response to individual reflection" pattern), with the student seeing it as feedback rather than authoring it.
 - The data model already supports this: `StepReviewData.competency_assessment` (StepCompetencyAssessment with planned + additional competencies + evidence_basis) is the structured artifact. `review_data.sections` is the prose. Keep both fields; the new register just renders them on different surfaces.
 - **New follow-up:** a Competency Assessment surface needs a design from Claude Design when the next institutional handoff happens (Patricia / Linda MSN Capstone view).
+
+---
+
+## Resolved register decision (2026-05-15) — Summary vs detail surfaces
+
+**Rule:** level-of-detail surfaces get separate designs, not scaled-down versions of each other. Summary surfaces do navigation; detail surfaces do action. Cards, list items, and shelf entries are summaries. Open-step views, modal sheets, and full-page surfaces are details. These are different jobs and deserve different designs.
+
+**Where this came from:** the Race Prep cutover question. The iOS register Race Prep design is a 393pt-wide full-screen surface (beat cards, forecast tiles, composer, crew list). The existing `RaceSummaryCard.tsx` renders the same step's content *inline inside a timeline grid card* at ~200pt width. Three options were considered:
+
+1. **Scale the iOS register down into cards** — would break the design's intent (composer + crew list + forecast tiles don't scale down).
+2. **Cards stay legacy, detail cuts over** — leaves a register seam between the same step's summary and detail views.
+3. **Redesign the cards view as its own iOS register surface** — *picked*. The cards view is a summary surface and deserves a summary design, not a miniaturized detail.
+
+**Practical implication for the rest of the migration:**
+- Race Prep cutover is parked until the cards-view iOS design lands. When it does, both surfaces cut over together: `StepDetailContent` → iOS register full-surface; `RaceSummaryCard` → new card-summary iOS variant.
+- Future register decisions follow the same rule. If a list item or shelf entry needs an iOS register treatment, it gets its own design — never a shrunk version of the full-screen surface it links to.
+
+**The principle generalized:** "show less, with intent" is design work. "Show the same thing smaller" is engineering work. Summary surfaces are show-less-with-intent. Don't engineer-shrink them.
+
+---
+
+## Claude Design handoff backlog (2026-05-15)
+
+Surfaces blocked on these design handoffs before their cutover can resume:
+
+| Handoff needed | Blocks |
+|---|---|
+| Race Log iOS | Reflect home cutover (option 2 — full tab replacement without functionality regression) |
+| Profile iOS | Reflect home cutover |
+| Discover-Orgs iOS | Discover tab cutover |
+| Discover-People iOS | Discover tab cutover |
+| Discover-Forums iOS | Discover tab cutover |
+| Race Prep cards iOS / timeline-grid summary iOS | Race Prep cutover (StepDetailContent + RaceSummaryCard together) |
+
+Six design handoffs total. All blocked-cutover surfaces should remain reachable via their preview routes (`/reflect-ios`, `/discover-ios`, `/race/ios/[stepId]`) for review and testing; cutover commits resume once their respective design handoffs arrive.
 
 ---
 
