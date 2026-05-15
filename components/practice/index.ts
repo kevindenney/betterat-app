@@ -36,3 +36,5 @@ export { TufteReviewStep } from './TufteReviewStep';
 
 export { AddStepFab } from './AddStepFab';
 export type { AddStepFabProps } from './AddStepFab';
+export { AddStepActionSheet } from './AddStepActionSheet';
+export type { AddStepActionSheetProps } from './AddStepActionSheet';
