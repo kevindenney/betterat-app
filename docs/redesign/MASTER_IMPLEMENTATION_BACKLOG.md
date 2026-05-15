@@ -47,6 +47,8 @@ Visual canonicals verified in `docs/redesign/ios-register/`:
 - `mentoring-screens-canonical.html`
 - `discover-detail-trio-canonical.html`
 
+Decision: there are **12** valid HTML canonicals in the May 15 design set. `discover-detail-trio-canonical.html` is part of the Discover implementation input, not a legacy or duplicate artifact.
+
 ## Section 1: Phase Inventory
 
 | Phase | Description | Source docs | Visual canonical | Status | Est. commits | Dependencies | Flag default |
@@ -236,7 +238,7 @@ All production render switches must import kit components or domain components, 
 
 ## Contradictions and Inconsistencies
 
-1. **HTML canonical count mismatch:** the prompt says 11 HTML canonicals, but repo has 12. Extra file: `discover-detail-trio-canonical.html`.
+1. **HTML canonical count resolved:** repo has 12 valid May 15 HTML canonicals. `discover-detail-trio-canonical.html` is included as part of the Discover implementation input.
 2. **Flag policy resolved:** default-OFF flags are required for behavioral, layout, data, navigation, route, or data-model changes. Pure mechanical copy/label changes can ship unflagged only when reversible by one commit and no data/routes/control-flow/persistence/mounting changes are involved.
 3. **Practice route naming resolved:** canonical product language and user-facing URL should be `/practice`; the existing `app/(tabs)/races.tsx` implementation may remain short-term behind a `/practice` alias/redirect. `/races` stays as backwards-compatible legacy, not canonical product URL.
 4. **Discover source gap:** Discover visual canonical exists and older Discover architecture/spec docs exist, but the prompt’s “source spec documents” list does not include a new May 15 Discover addendum.
