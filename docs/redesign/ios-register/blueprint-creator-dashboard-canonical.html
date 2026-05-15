@@ -1,0 +1,2838 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=5360" />
+<title>BetterAt — Blueprint Creator Dashboard · Canonical · 2026-05-15</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css" />
+<style>
+  :root {
+    /* iOS system palette — inherited from prior canonicals */
+    --ios-blue:        #007AFF;
+    --ios-blue-tint:   rgba(0, 122, 255, 0.10);
+    --ios-blue-strong: rgba(0, 122, 255, 0.18);
+    --ios-blue-deep:   #0060D4;
+    --ios-green:       #34C759;
+    --ios-green-tint:  rgba(52, 199, 89, 0.12);
+    --ios-amber:       #FF9500;
+    --ios-amber-tint:  rgba(255, 149, 0, 0.14);
+    --ios-coral:       #FF3B30;
+    --ios-coral-tint:  rgba(255, 59, 48, 0.10);
+    --ios-purple:      #5856D6;
+    --ios-purple-tint: rgba(88, 86, 214, 0.12);
+    --ios-teal:        #30B0C7;
+
+    /* iOS neutrals — light mode */
+    --gray-6:   #F5F5F7;
+    --gray-5:   #ECECEE;
+    --gray-4:   #E0E0E4;
+    --gray-3:   #D1D1D6;
+    --gray-2:   #AEAEB2;
+    --gray-1:   #8E8E93;
+    --label:    #1C1C1E;
+    --label-2:  #3C3C43;
+    --label-3:  rgba(60, 60, 67, 0.62);
+    --label-4:  rgba(60, 60, 67, 0.32);
+    --label-5:  rgba(60, 60, 67, 0.18);
+
+    /* Creator identity ink — same role as the tenant ink on JHU, but
+       cooler & more individual. Used for the avatar disc on the strap
+       and small wordmark accents; iOS blue still owns ACTIONS. */
+    --creator-ink:   #1E3A4C;
+    --creator-ink-2: #2F5E78;
+    --creator-soft:  #E8EEF2;
+
+    /* Page stage — warm review chrome, matches every prior canonical */
+    --stage:        #EFEAD8;
+    --stage-text:   #6B6558;
+    --stage-ink:    #2A2824;
+    --stage-line:   rgba(34, 30, 20, 0.12);
+    --stage-line-soft: rgba(34, 30, 20, 0.06);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display",
+                 "Helvetica Neue", Helvetica, Arial, sans-serif;
+    color: var(--label);
+    background: var(--stage);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+  button, input, textarea { font-family: inherit; }
+
+  /* ============= Page chrome ============= */
+  .page { min-width: 5360px; padding: 56px 48px 96px; }
+  .page-head { max-width: 1240px; margin: 0 0 56px 32px; }
+  .page-head .eyebrow {
+    font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--stage-text); margin: 0 0 12px;
+  }
+  .page-head h1 {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 32px; line-height: 1.15; font-weight: 500;
+    letter-spacing: -0.015em; margin: 0 0 14px; color: var(--stage-ink);
+  }
+  .page-head h1 em { font-style: italic; }
+  .page-head p {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 17px; line-height: 1.55;
+    color: var(--stage-text); margin: 0; max-width: 1100px;
+    text-wrap: pretty;
+  }
+  .page-head p em { font-style: italic; }
+  .page-head p + p { margin-top: 12px; }
+  .page-head .crumbs {
+    display: flex; gap: 10px; align-items: center; margin: 22px 0 0; flex-wrap: wrap;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+    font-size: 12px; color: var(--stage-text); letter-spacing: 0.02em;
+  }
+  .page-head .crumbs .pill {
+    padding: 3px 10px; border-radius: 999px;
+    border: 0.5px solid var(--stage-line);
+    background: rgba(255,255,255,0.4);
+  }
+  .page-head .crumbs .sep { color: var(--stage-line); }
+
+  /* ============= Frame row ============= */
+  .frame-row {
+    display: flex; gap: 36px;
+    align-items: flex-start;
+    padding: 0 8px;
+  }
+  .frame-col {
+    display: flex; flex-direction: column; gap: 22px;
+    width: 1280px; flex: 0 0 1280px;
+  }
+
+  /* ============= Desktop window shell ============= */
+  .desktop {
+    width: 1280px; height: 820px;
+    background: #FFFFFF;
+    border-radius: 14px;
+    border: 0.5px solid rgba(0,0,0,0.12);
+    box-shadow:
+      0 30px 80px -40px rgba(34, 30, 20, 0.34),
+      0 6px 18px -10px rgba(34, 30, 20, 0.16),
+      0 1px 0 rgba(255,255,255,0.6) inset;
+    overflow: hidden;
+    position: relative;
+    isolation: isolate;
+  }
+  .desktop .chrome {
+    height: 36px;
+    background: #F1F1F3;
+    border-bottom: 0.5px solid var(--gray-4);
+    display: flex; align-items: center; gap: 12px;
+    padding: 0 14px;
+  }
+  .desktop .chrome .lights { display: inline-flex; gap: 8px; }
+  .desktop .chrome .lights span {
+    width: 12px; height: 12px; border-radius: 50%;
+    display: inline-block;
+  }
+  .desktop .chrome .lights .r { background: #FF5F57; }
+  .desktop .chrome .lights .y { background: #FEBC2E; }
+  .desktop .chrome .lights .g { background: #28C840; }
+  .desktop .chrome .url { flex: 1; display: flex; justify-content: center; }
+  .desktop .chrome .url-inner {
+    height: 22px; padding: 0 14px; min-width: 360px; max-width: 540px;
+    border-radius: 6px; background: #FFFFFF;
+    border: 0.5px solid var(--gray-4);
+    display: inline-flex; align-items: center; gap: 8px;
+    font-size: 11px; color: var(--label-3);
+  }
+  .desktop .chrome .url-inner i { font-size: 12px; color: var(--gray-1); }
+  .desktop .chrome .url-inner strong { color: var(--label-2); font-weight: 500; }
+
+  /* App body */
+  .app {
+    position: absolute; top: 36px; left: 0; right: 0; bottom: 0;
+    display: flex;
+    background: var(--gray-6);
+  }
+
+  /* ============= Left sidebar ============= */
+  .sidebar {
+    width: 220px; flex: 0 0 220px;
+    background: #FFFFFF;
+    border-right: 0.5px solid var(--gray-4);
+    display: flex; flex-direction: column;
+    padding: 14px 0 16px;
+  }
+  .sidebar .brand {
+    padding: 6px 18px 16px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .sidebar .brand .mark {
+    width: 26px; height: 26px; border-radius: 8px;
+    background: linear-gradient(135deg, #1C1C1E 0%, #3A3A3C 100%);
+    color: #fff;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 13px; letter-spacing: -0.5px;
+  }
+  .sidebar .brand .wordmark {
+    font-size: 14px; font-weight: 600; letter-spacing: -0.2px;
+    color: var(--label);
+  }
+  .sidebar .brand .wordmark span { color: var(--label-3); font-weight: 500; }
+  .sidebar .nav { display: flex; flex-direction: column; gap: 1px; padding: 6px 10px; }
+  .sidebar .nav .item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 9px 12px; border-radius: 8px;
+    font-size: 13.5px; color: var(--label-2);
+    cursor: default; letter-spacing: -0.1px;
+  }
+  .sidebar .nav .item i { font-size: 17px; color: var(--label-3); }
+  .sidebar .nav .item:hover { background: var(--gray-6); }
+  .sidebar .nav .item.on {
+    background: var(--ios-blue-tint);
+    color: var(--ios-blue);
+    font-weight: 600;
+  }
+  .sidebar .nav .item.on i { color: var(--ios-blue); }
+  .sidebar .nav .item .count {
+    margin-left: auto; font-size: 11px; color: var(--label-3);
+    font-variant-numeric: tabular-nums; font-weight: 500;
+  }
+  .sidebar .nav .item.on .count { color: var(--ios-blue); }
+  .sidebar .nav .group-label {
+    font-size: 10px; font-weight: 600; letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--label-4);
+    padding: 18px 14px 6px;
+  }
+  .sidebar .spacer { flex: 1; }
+  .sidebar .footer {
+    padding: 10px 16px 0; border-top: 0.5px solid var(--gray-5);
+    margin: 8px 14px 0;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .sidebar .footer .av {
+    width: 28px; height: 28px; border-radius: 50%;
+    background: linear-gradient(135deg, #4F7E96 0%, #1E3A4C 100%);
+    color: #fff; font-size: 11px; font-weight: 600;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .sidebar .footer .meta { font-size: 12px; line-height: 1.2; }
+  .sidebar .footer .meta .name { font-weight: 600; color: var(--label); }
+  .sidebar .footer .meta .role { color: var(--label-3); font-size: 11px; }
+
+  /* ============= Content column ============= */
+  .content { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+
+  /* Creator strap — replaces tenant org-strap */
+  .creator-strap {
+    height: 56px;
+    background: #FFFFFF;
+    border-bottom: 0.5px solid var(--gray-5);
+    display: flex; align-items: center;
+    padding: 0 24px;
+    gap: 14px;
+  }
+  .creator-strap .av-lg {
+    width: 32px; height: 32px; border-radius: 50%;
+    background: linear-gradient(135deg, #4F7E96 0%, #1E3A4C 100%);
+    color: #FFFFFF; font-weight: 600; font-size: 12px;
+    display: inline-flex; align-items: center; justify-content: center;
+    border: 0.5px solid rgba(0,0,0,0.06);
+    letter-spacing: -0.2px;
+  }
+  .creator-strap .who { display: flex; flex-direction: column; line-height: 1.1; }
+  .creator-strap .who .title {
+    font-size: 14px; font-weight: 600; color: var(--label);
+    letter-spacing: -0.1px;
+  }
+  .creator-strap .who .sub {
+    font-size: 11px; color: var(--label-3);
+    margin-top: 3px;
+  }
+  .creator-strap .spacer { flex: 1; }
+  .creator-strap .strap-actions { display: inline-flex; gap: 10px; align-items: center; }
+  .creator-strap .icon-btn {
+    width: 30px; height: 30px; border-radius: 8px;
+    background: none; border: none; cursor: default;
+    display: inline-flex; align-items: center; justify-content: center;
+    color: var(--label-2);
+    position: relative;
+  }
+  .creator-strap .icon-btn i { font-size: 17px; }
+  .creator-strap .icon-btn:hover { background: var(--gray-6); }
+  .creator-strap .icon-btn .badge {
+    position: absolute; top: 4px; right: 4px;
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--ios-coral);
+    border: 1.5px solid #fff;
+  }
+  .creator-strap .new-blueprint {
+    height: 34px; padding: 0 14px 0 11px; border-radius: 9px;
+    border: none; cursor: default;
+    background: var(--ios-blue); color: #fff;
+    font-size: 13px; font-weight: 600; letter-spacing: -0.1px;
+    display: inline-flex; align-items: center; gap: 6px;
+    box-shadow:
+      0 1px 0 rgba(255,255,255,0.18) inset,
+      0 1px 2px rgba(0,122,255,0.32),
+      0 4px 12px -4px rgba(0,122,255,0.34);
+    margin-left: 6px;
+  }
+  .creator-strap .new-blueprint i { font-size: 16px; }
+
+  /* Tab strip */
+  .tab-strip {
+    height: 44px;
+    background: #FFFFFF;
+    border-bottom: 0.5px solid var(--gray-4);
+    display: flex; align-items: stretch;
+    padding: 0 24px;
+    gap: 2px;
+  }
+  .tab-strip .tab {
+    padding: 0 16px;
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 13.5px; color: var(--label-3);
+    letter-spacing: -0.1px;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -0.5px;
+    cursor: default;
+  }
+  .tab-strip .tab.on {
+    color: var(--label);
+    font-weight: 600;
+    border-bottom-color: var(--label);
+  }
+  .tab-strip .tab .n {
+    background: var(--gray-5); color: var(--label-3);
+    padding: 1px 7px; border-radius: 999px;
+    font-size: 10.5px; font-weight: 600;
+    font-variant-numeric: tabular-nums; letter-spacing: 0;
+  }
+  .tab-strip .tab.on .n { background: var(--label); color: #fff; }
+  .tab-strip .spacer { flex: 1; }
+  .tab-strip .right {
+    display: inline-flex; align-items: center; gap: 12px;
+    padding-right: 8px;
+    font-size: 12px; color: var(--label-3);
+  }
+  .tab-strip .right .pill {
+    padding: 3px 9px; border-radius: 999px;
+    background: var(--gray-6); border: 0.5px solid var(--gray-5);
+    font-weight: 500;
+  }
+  .tab-strip .right .pill.live {
+    color: var(--ios-green); background: var(--ios-green-tint);
+    border-color: transparent;
+  }
+  .tab-strip .right .pill.live::before {
+    content: ""; display: inline-block;
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--ios-green); margin-right: 6px; vertical-align: 1px;
+  }
+
+  /* Canvas */
+  .canvas {
+    flex: 1;
+    overflow: hidden;
+    padding: 22px 24px;
+    background: var(--gray-6);
+    position: relative;
+  }
+
+  /* ============= Frame caption ============= */
+  .frame-cap { margin: 0; padding: 6px 4px 0; max-width: 1240px; }
+  .frame-cap .eyebrow {
+    font-size: 10.5px; font-weight: 600;
+    color: var(--stage-text); letter-spacing: 0.10em;
+    text-transform: uppercase; margin: 0 0 6px;
+  }
+  .frame-cap h3 {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 20px; font-weight: 500; letter-spacing: -0.012em;
+    color: var(--stage-ink); margin: 0 0 8px;
+    line-height: 1.2;
+  }
+  .frame-cap h3 em { font-style: italic; }
+  .frame-cap p {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 14.5px; line-height: 1.55;
+    color: var(--stage-text); margin: 0;
+    max-width: 1180px; text-wrap: pretty;
+  }
+  .frame-cap p em { font-style: italic; }
+
+  /* ===================================================================
+     FRAME 1 — BLUEPRINTS LIST
+     =================================================================== */
+  .bp-summary {
+    display: flex; align-items: stretch; gap: 22px;
+    background: #FFFFFF;
+    border: 0.5px solid var(--gray-4);
+    border-radius: 12px;
+    padding: 14px 20px;
+    margin-bottom: 18px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+  }
+  .bp-summary .stat { display: flex; flex-direction: column; gap: 3px; }
+  .bp-summary .stat + .stat {
+    padding-left: 22px;
+    border-left: 0.5px solid var(--gray-5);
+  }
+  .bp-summary .stat .label {
+    font-size: 10.5px; font-weight: 600; letter-spacing: 0.06em;
+    text-transform: uppercase; color: var(--label-3);
+  }
+  .bp-summary .stat .value {
+    font-size: 22px; font-weight: 600; letter-spacing: -0.02em;
+    color: var(--label); font-variant-numeric: tabular-nums;
+    line-height: 1.1;
+  }
+  .bp-summary .stat .value .unit {
+    font-size: 13px; color: var(--label-3); font-weight: 500;
+    margin-left: 2px;
+  }
+  .bp-summary .stat .sub { font-size: 11.5px; color: var(--label-3); }
+  .bp-summary .spacer { flex: 1; }
+  .bp-summary .view-toggle {
+    display: inline-flex; gap: 2px;
+    background: var(--gray-5);
+    padding: 2px;
+    border-radius: 8px;
+    align-self: center;
+  }
+  .bp-summary .view-toggle .opt {
+    padding: 5px 11px; border-radius: 6px;
+    font-size: 12px; color: var(--label-2); font-weight: 500;
+    display: inline-flex; align-items: center; gap: 6px;
+    cursor: default;
+  }
+  .bp-summary .view-toggle .opt i { font-size: 13px; }
+  .bp-summary .view-toggle .opt.on {
+    background: #FFFFFF; color: var(--label);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+  }
+
+  .bp-list { display: flex; flex-direction: column; gap: 12px; }
+  .bp-card {
+    background: #FFFFFF;
+    border: 0.5px solid var(--gray-4);
+    border-radius: 14px;
+    padding: 16px;
+    display: grid;
+    grid-template-columns: 132px 1fr 280px auto;
+    gap: 20px;
+    align-items: center;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+  }
+  .bp-card.draft { background: #FBFBFC; border-style: dashed; border-color: var(--gray-3); }
+
+  /* Cover placeholder — striped SVG with monospace label */
+  .bp-cover {
+    width: 132px; height: 88px;
+    border-radius: 9px;
+    overflow: hidden;
+    position: relative;
+    background:
+      repeating-linear-gradient(135deg,
+        rgba(255,255,255,0.18) 0 8px,
+        rgba(255,255,255,0) 8px 16px),
+      linear-gradient(160deg, var(--c1, #2F5E78), var(--c2, #1E3A4C));
+    color: rgba(255,255,255,0.86);
+    display: flex; flex-direction: column;
+    justify-content: space-between;
+    padding: 8px 10px;
+    border: 0.5px solid rgba(0,0,0,0.10);
+  }
+  .bp-cover.dragon  { --c1: #2F5E78; --c2: #1E3A4C; }
+  .bp-cover.light   { --c1: #98B0C4; --c2: #6B8AA0; }
+  .bp-cover.heavy   { --c1: #4A5568; --c2: #1A202C; }
+  .bp-cover.start   { --c1: #C99845; --c2: #8A6826; }
+  .bp-cover.rules   { --c1: #6B7A99; --c2: #3E4D6B; }
+  .bp-cover.placeholder {
+    background:
+      repeating-linear-gradient(135deg,
+        var(--gray-4) 0 8px,
+        var(--gray-5) 8px 16px);
+    color: var(--label-3);
+    border: 0.5px dashed var(--gray-3);
+  }
+  .bp-cover .tag {
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 9px; letter-spacing: 0.02em;
+    text-transform: lowercase;
+    align-self: flex-start;
+  }
+  .bp-cover .tag.dark { color: var(--label-3); }
+  .bp-cover .topic {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 15px; font-weight: 500; letter-spacing: -0.012em;
+    line-height: 1.1;
+    text-shadow: 0 1px 0 rgba(0,0,0,0.18);
+  }
+  .bp-cover .topic.dark { color: var(--label-2); text-shadow: none; font-style: italic; }
+
+  .bp-meta { min-width: 0; }
+  .bp-meta .row1 { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .bp-meta .name {
+    font-size: 16px; font-weight: 600; color: var(--label);
+    letter-spacing: -0.2px; line-height: 1.2;
+  }
+  .bp-meta .badge {
+    font-size: 10.5px; font-weight: 600; letter-spacing: 0;
+    padding: 2px 7px; border-radius: 4px;
+    text-transform: uppercase;
+  }
+  .bp-meta .badge.published { background: var(--ios-green-tint); color: #1E7A39; }
+  .bp-meta .badge.draft     { background: var(--gray-5); color: var(--label-3); }
+  .bp-meta .desc {
+    font-size: 12.5px; color: var(--label-3); line-height: 1.45;
+    margin: 6px 0 0;
+    max-width: 460px;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+  }
+  .bp-meta .row2 {
+    display: flex; align-items: center; gap: 0;
+    margin-top: 10px;
+    font-size: 12px; color: var(--label-2);
+  }
+  .bp-meta .row2 .item {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 0 12px;
+    border-right: 0.5px solid var(--gray-4);
+  }
+  .bp-meta .row2 .item:first-child { padding-left: 0; }
+  .bp-meta .row2 .item:last-child { border-right: none; }
+  .bp-meta .row2 .item i { font-size: 13px; color: var(--label-3); }
+  .bp-meta .row2 .item strong {
+    color: var(--label); font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+  .bp-meta .row2 .item .when { color: var(--label-3); }
+
+  .bp-chart {
+    width: 280px;
+    display: flex; flex-direction: column;
+    gap: 4px;
+  }
+  .bp-chart .chart-head {
+    display: flex; align-items: baseline; gap: 8px;
+  }
+  .bp-chart .chart-head .lbl {
+    font-size: 10.5px; font-weight: 600; letter-spacing: 0.06em;
+    text-transform: uppercase; color: var(--label-3);
+  }
+  .bp-chart .chart-head .delta {
+    margin-left: auto; font-size: 11.5px; font-weight: 600;
+    color: var(--ios-green); display: inline-flex; align-items: center; gap: 3px;
+  }
+  .bp-chart .chart-head .delta i { font-size: 12px; }
+  .bp-chart .chart-head .delta.zero { color: var(--label-3); }
+  .bp-chart svg { width: 100%; height: 56px; display: block; }
+  .bp-chart .chart-foot {
+    font-size: 10.5px; color: var(--label-3);
+    display: flex; justify-content: space-between;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .bp-actions {
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .bp-actions .btn {
+    height: 30px; padding: 0 12px; border-radius: 8px;
+    border: 0.5px solid var(--gray-4); background: #FFFFFF;
+    color: var(--label-2); font-size: 12.5px; font-weight: 500;
+    letter-spacing: -0.1px; cursor: default;
+    display: inline-flex; align-items: center; gap: 5px;
+  }
+  .bp-actions .btn i { font-size: 14px; }
+  .bp-actions .btn.primary {
+    background: var(--ios-blue); color: #fff;
+    border-color: transparent; font-weight: 600;
+  }
+  .bp-actions .icon-only {
+    width: 30px; height: 30px; padding: 0;
+    justify-content: center;
+  }
+
+  /* ===================================================================
+     FRAME 2 — EDITOR
+     =================================================================== */
+  .editor-toolbar {
+    height: 56px;
+    background: #FFFFFF;
+    border-bottom: 0.5px solid var(--gray-5);
+    display: flex; align-items: center;
+    padding: 0 24px;
+    gap: 14px;
+  }
+  .editor-toolbar .back {
+    display: inline-flex; align-items: center; gap: 8px;
+    color: var(--ios-blue); font-size: 14px; font-weight: 500;
+    letter-spacing: -0.1px;
+    cursor: default;
+  }
+  .editor-toolbar .back i { font-size: 18px; }
+  .editor-toolbar .divider {
+    width: 0.5px; height: 18px; background: var(--gray-4);
+    margin: 0 4px;
+  }
+  .editor-toolbar .doc-title {
+    font-size: 14px; font-weight: 600; color: var(--label);
+    letter-spacing: -0.1px;
+  }
+  .editor-toolbar .doc-sub {
+    font-size: 11.5px; color: var(--label-3);
+    margin-left: 8px;
+  }
+  .editor-toolbar .doc-sub i {
+    color: var(--ios-amber); font-size: 12px; vertical-align: -1px;
+  }
+  .editor-toolbar .spacer { flex: 1; }
+  .editor-toolbar .btn {
+    height: 32px; padding: 0 14px; border-radius: 8px;
+    border: 0.5px solid var(--gray-4); background: #FFFFFF;
+    color: var(--label-2); font-size: 13px; font-weight: 500;
+    letter-spacing: -0.1px; cursor: default;
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .editor-toolbar .btn i { font-size: 14px; }
+  .editor-toolbar .btn.primary {
+    background: var(--ios-blue); color: #fff;
+    border-color: transparent; font-weight: 600;
+    box-shadow: 0 1px 2px rgba(0,122,255,0.28);
+  }
+
+  .editor-grid {
+    display: grid;
+    grid-template-columns: 1fr 320px;
+    gap: 22px;
+    height: 100%;
+  }
+  .editor-main { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+  .editor-rail { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+
+  .ed-section-label {
+    font-size: 10.5px; font-weight: 600; letter-spacing: 0.10em;
+    text-transform: uppercase; color: var(--label-3);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .ed-section-label .count {
+    background: var(--gray-5); color: var(--label-2);
+    padding: 1px 7px; border-radius: 4px;
+    font-size: 10px; font-weight: 600;
+    font-variant-numeric: tabular-nums; letter-spacing: 0;
+  }
+  .ed-section-label .spacer { flex: 1; }
+  .ed-section-label .add-btn {
+    background: transparent;
+    border: 0.5px dashed var(--gray-3);
+    color: var(--ios-blue);
+    font-size: 11.5px; font-weight: 600; letter-spacing: -0.05px;
+    padding: 4px 10px; border-radius: 7px;
+    display: inline-flex; align-items: center; gap: 4px;
+    cursor: default;
+    text-transform: none;
+  }
+  .ed-section-label .add-btn i { font-size: 13px; }
+
+  /* Metadata card */
+  .ed-card {
+    background: #FFFFFF;
+    border: 0.5px solid var(--gray-4);
+    border-radius: 12px;
+    padding: 16px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+  }
+  .ed-meta {
+    display: grid;
+    grid-template-columns: 168px 1fr;
+    gap: 16px;
+  }
+  .ed-meta .cover-up {
+    width: 168px; height: 112px;
+    border-radius: 9px;
+    overflow: hidden;
+    position: relative;
+    background:
+      repeating-linear-gradient(135deg,
+        rgba(255,255,255,0.18) 0 8px,
+        rgba(255,255,255,0) 8px 16px),
+      linear-gradient(160deg, #2F5E78, #1E3A4C);
+    color: rgba(255,255,255,0.86);
+    padding: 10px;
+    display: flex; flex-direction: column; justify-content: space-between;
+    border: 0.5px solid rgba(0,0,0,0.10);
+  }
+  .ed-meta .cover-up .tag {
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 9px; letter-spacing: 0.02em;
+  }
+  .ed-meta .cover-up .topic {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 16px; line-height: 1.1;
+    text-shadow: 0 1px 0 rgba(0,0,0,0.18);
+  }
+  .ed-meta .cover-up .replace {
+    position: absolute; bottom: 8px; right: 8px;
+    background: rgba(0,0,0,0.36);
+    color: #fff; font-size: 10.5px; font-weight: 500;
+    padding: 3px 8px; border-radius: 6px;
+    display: inline-flex; align-items: center; gap: 4px;
+    backdrop-filter: blur(8px);
+  }
+  .ed-meta .cover-up .replace i { font-size: 12px; }
+
+  .ed-fields { display: flex; flex-direction: column; gap: 10px; }
+  .ed-field { display: flex; flex-direction: column; gap: 5px; }
+  .ed-field .lbl {
+    font-size: 10.5px; font-weight: 600; letter-spacing: 0.06em;
+    text-transform: uppercase; color: var(--label-3);
+  }
+  .ed-input {
+    height: 32px; padding: 0 10px;
+    border-radius: 8px; border: 0.5px solid var(--gray-3);
+    background: #FFFFFF; font-size: 13.5px; color: var(--label);
+    letter-spacing: -0.1px;
+    display: flex; align-items: center;
+  }
+  .ed-input.focused {
+    border-color: var(--ios-blue);
+    box-shadow: 0 0 0 3px rgba(0,122,255,0.14);
+  }
+  .ed-textarea {
+    min-height: 50px;
+    padding: 8px 10px;
+    border-radius: 8px; border: 0.5px solid var(--gray-3);
+    background: #FFFFFF; font-size: 13px; color: var(--label-2);
+    line-height: 1.45;
+    letter-spacing: -0.1px;
+  }
+
+  .ed-chips-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px 16px;
+    padding-top: 4px;
+  }
+  .ed-difficulty {
+    display: inline-flex;
+    background: var(--gray-5);
+    padding: 2px;
+    border-radius: 8px;
+    width: fit-content;
+  }
+  .ed-difficulty .opt {
+    padding: 5px 12px; border-radius: 6px;
+    font-size: 12px; color: var(--label-2); font-weight: 500;
+    cursor: default; letter-spacing: -0.1px;
+  }
+  .ed-difficulty .opt.on {
+    background: #FFFFFF; color: var(--label);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+    font-weight: 600;
+  }
+  .ed-chip {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 4px 10px; border-radius: 999px;
+    font-size: 11.5px; font-weight: 500;
+    background: var(--ios-blue-tint); color: var(--ios-blue-deep);
+    letter-spacing: -0.1px;
+  }
+  .ed-chip.cap {
+    background: #FFFFFF;
+    border: 0.5px solid var(--gray-3);
+    color: var(--label-2);
+  }
+  .ed-chip.add {
+    border: 0.5px dashed var(--gray-3);
+    background: transparent;
+    color: var(--label-3);
+  }
+  .ed-chip i { font-size: 11px; }
+  .ed-chip-group { display: flex; flex-wrap: wrap; gap: 6px; }
+
+  /* Steps list */
+  .steps-list {
+    background: #FFFFFF;
+    border: 0.5px solid var(--gray-4);
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+  }
+  .step-row {
+    display: grid;
+    grid-template-columns: 22px 36px 1fr auto;
+    gap: 10px; align-items: center;
+    padding: 9px 14px 9px 8px;
+    border-top: 0.5px solid var(--gray-5);
+    font-size: 13px;
+  }
+  .step-row:first-child { border-top: none; }
+  .step-row.stuck { background: linear-gradient(90deg, rgba(255,149,0,0.05), transparent 70%); }
+  .step-row .drag {
+    color: var(--label-4); font-size: 14px;
+    display: inline-flex; justify-content: center;
+    cursor: default;
+  }
+  .step-row:hover .drag { color: var(--label-3); }
+  .step-row .num {
+    width: 28px; height: 28px; border-radius: 7px;
+    background: var(--gray-6); border: 0.5px solid var(--gray-5);
+    color: var(--label-2); font-size: 12px; font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .step-row.stuck .num { background: var(--ios-amber-tint); color: #A86200; border-color: transparent; }
+  .step-row .body { min-width: 0; }
+  .step-row .body .title {
+    font-size: 13.5px; font-weight: 600; color: var(--label);
+    letter-spacing: -0.1px;
+  }
+  .step-row .body .desc {
+    font-size: 11.5px; color: var(--label-3);
+    margin-top: 1px;
+    overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
+  }
+  .step-row .stuck-flag {
+    margin-left: 6px; font-size: 10px; font-weight: 600;
+    color: #A86200; background: var(--ios-amber-tint);
+    padding: 1px 6px; border-radius: 4px;
+    text-transform: uppercase; letter-spacing: 0.04em;
+  }
+  .step-row .actions { display: inline-flex; gap: 2px; opacity: 0.7; }
+  .step-row .actions .ic {
+    width: 26px; height: 26px; border-radius: 6px;
+    color: var(--label-3); border: none; background: transparent;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .step-row .actions .ic i { font-size: 14px; }
+
+  /* Publishing rail */
+  .pub-card {
+    background: #FFFFFF;
+    border: 0.5px solid var(--gray-4);
+    border-radius: 12px;
+    padding: 14px 16px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+  }
+  .pub-card h5 {
+    margin: 0 0 10px;
+    font-size: 10.5px; font-weight: 600; letter-spacing: 0.10em;
+    text-transform: uppercase; color: var(--label-3);
+  }
+  .radio-row {
+    display: flex; align-items: flex-start; gap: 10px;
+    padding: 10px 12px; border-radius: 9px;
+    border: 0.5px solid var(--gray-4);
+    background: #FFFFFF;
+    cursor: default;
+  }
+  .radio-row + .radio-row { margin-top: 8px; }
+  .radio-row.on {
+    border-color: var(--ios-blue);
+    background: rgba(0,122,255,0.04);
+    box-shadow: 0 0 0 3px rgba(0,122,255,0.12);
+  }
+  .radio-row .dot {
+    width: 16px; height: 16px; border-radius: 50%;
+    border: 1.5px solid var(--gray-3); background: #FFFFFF;
+    flex: 0 0 16px;
+    margin-top: 2px;
+    position: relative;
+  }
+  .radio-row.on .dot {
+    border-color: var(--ios-blue);
+  }
+  .radio-row.on .dot::after {
+    content: "";
+    position: absolute; inset: 3px;
+    border-radius: 50%; background: var(--ios-blue);
+  }
+  .radio-row .label {
+    font-size: 13px; font-weight: 600; color: var(--label);
+    letter-spacing: -0.1px;
+  }
+  .radio-row .help {
+    font-size: 11.5px; color: var(--label-3);
+    margin-top: 2px; line-height: 1.4;
+  }
+
+  .price-grid {
+    display: grid; grid-template-columns: 1fr 1fr 1fr;
+    gap: 6px; margin-top: 10px;
+  }
+  .price-opt {
+    border: 0.5px solid var(--gray-4);
+    background: #FFFFFF;
+    border-radius: 9px;
+    padding: 9px 8px 8px;
+    text-align: center;
+    cursor: default;
+  }
+  .price-opt.on {
+    border-color: var(--ios-blue);
+    background: rgba(0,122,255,0.05);
+    box-shadow: 0 0 0 3px rgba(0,122,255,0.12);
+  }
+  .price-opt .top {
+    font-size: 14px; font-weight: 600; color: var(--label);
+    letter-spacing: -0.2px;
+    font-variant-numeric: tabular-nums;
+  }
+  .price-opt .bot {
+    font-size: 10.5px; color: var(--label-3);
+    margin-top: 1px;
+  }
+
+  /* ===================================================================
+     FRAME 3 — SUBSCRIBERS
+     =================================================================== */
+  .sub-filterbar {
+    display: flex; align-items: center; gap: 14px;
+    background: #FFFFFF;
+    border: 0.5px solid var(--gray-4);
+    border-radius: 12px;
+    padding: 10px 12px;
+    margin-bottom: 16px;
+  }
+  .seg {
+    display: inline-flex; gap: 2px;
+    background: var(--gray-5);
+    padding: 2px;
+    border-radius: 8px;
+  }
+  .seg .opt {
+    padding: 5px 11px; border-radius: 6px;
+    font-size: 12.5px; color: var(--label-2); font-weight: 500;
+    letter-spacing: -0.1px; cursor: default;
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .seg .opt.on {
+    background: #FFFFFF; color: var(--label);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+  }
+  .seg .opt .n {
+    background: var(--gray-4); color: var(--label-2);
+    padding: 0 5px; border-radius: 4px;
+    font-size: 10px; font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+  .seg .opt.on .n { background: var(--gray-5); }
+
+  .sub-filterbar .blueprint-pick {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 5px 10px;
+    border-radius: 8px; background: var(--gray-6);
+    border: 0.5px solid var(--gray-4);
+    font-size: 12px; color: var(--label-2);
+    letter-spacing: -0.1px;
+  }
+  .sub-filterbar .blueprint-pick i { font-size: 13px; color: var(--label-3); }
+  .sub-filterbar .blueprint-pick strong { color: var(--label); font-weight: 600; }
+
+  .sub-filterbar .spacer { flex: 1; }
+  .sub-filterbar .search {
+    height: 30px; padding: 0 10px 0 30px;
+    border-radius: 8px; border: 0.5px solid var(--gray-4);
+    background: var(--gray-6);
+    font-size: 12.5px; color: var(--label-2);
+    width: 200px; position: relative;
+    display: inline-flex; align-items: center;
+  }
+  .sub-filterbar .search-wrap { position: relative; }
+  .sub-filterbar .search-wrap i {
+    position: absolute; left: 9px; top: 50%; transform: translateY(-50%);
+    color: var(--label-3); font-size: 14px; pointer-events: none;
+  }
+  .sub-filterbar .bulk {
+    height: 30px; padding: 0 12px;
+    border-radius: 8px; border: 0.5px solid var(--gray-4);
+    background: #FFFFFF;
+    font-size: 12px; color: var(--label-2); font-weight: 500;
+    display: inline-flex; align-items: center; gap: 5px;
+  }
+  .sub-filterbar .bulk i { font-size: 13px; color: var(--label-3); }
+
+  .sub-table {
+    background: #FFFFFF; border-radius: 12px;
+    border: 0.5px solid var(--gray-4);
+    overflow: hidden;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+  }
+  .sub-table .t-head {
+    display: grid;
+    grid-template-columns: 1.8fr 1.4fr 1.1fr 1.1fr 1.3fr;
+    gap: 14px;
+    padding: 10px 18px;
+    border-bottom: 0.5px solid var(--gray-5);
+    background: var(--gray-6);
+    font-size: 11px; letter-spacing: 0.06em;
+    text-transform: uppercase; color: var(--label-3); font-weight: 600;
+  }
+  .sub-row {
+    display: grid;
+    grid-template-columns: 1.8fr 1.4fr 1.1fr 1.1fr 1.3fr;
+    gap: 14px; align-items: center;
+    padding: 11px 18px;
+    border-bottom: 0.5px solid var(--gray-5);
+    font-size: 13px;
+  }
+  .sub-row:last-child { border-bottom: none; }
+  .sub-row .person { display: flex; align-items: center; gap: 10px; min-width: 0; }
+  .sub-row .av {
+    width: 32px; height: 32px; border-radius: 50%;
+    display: inline-flex; align-items: center; justify-content: center;
+    color: #fff; font-size: 11.5px; font-weight: 600;
+    border: 0.5px solid rgba(0,0,0,0.06);
+    flex: 0 0 32px;
+    position: relative;
+  }
+  .sub-row .av .unread {
+    position: absolute; top: -2px; right: -2px;
+    width: 10px; height: 10px; border-radius: 50%;
+    background: var(--ios-coral);
+    border: 1.5px solid #fff;
+  }
+  .sub-row .name { font-weight: 600; color: var(--label); letter-spacing: -0.1px; }
+  .sub-row .handle { font-size: 11.5px; color: var(--label-3); margin-top: 1px; }
+  .sub-row .progress { display: flex; flex-direction: column; gap: 4px; }
+  .sub-row .progress .num {
+    font-size: 12.5px; color: var(--label-2);
+    font-variant-numeric: tabular-nums;
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .sub-row .progress .num strong { color: var(--label); font-weight: 600; }
+  .sub-row .progress .ahead {
+    font-size: 9.5px; font-weight: 700; letter-spacing: 0.06em;
+    color: #1B7D8F; background: rgba(48,176,199,0.16);
+    padding: 1px 6px; border-radius: 4px;
+    text-transform: uppercase;
+  }
+  .sub-row .progress .bar {
+    height: 4px; border-radius: 2px;
+    background: var(--gray-5);
+    position: relative; overflow: hidden;
+    max-width: 140px;
+  }
+  .sub-row .progress .bar .fill {
+    position: absolute; left: 0; top: 0; bottom: 0;
+    background: var(--ios-blue); border-radius: 2px;
+  }
+  .sub-row .progress .bar .fill.stalled { background: var(--ios-amber); }
+  .sub-row .progress .bar .fill.done    { background: var(--ios-purple); }
+  .sub-row .progress .bar .fill.ahead   { background: var(--ios-teal); }
+
+  .status-chip {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 3px 9px; border-radius: 999px;
+    font-size: 11.5px; font-weight: 600;
+    letter-spacing: -0.05px;
+  }
+  .status-chip::before {
+    content: ""; display: inline-block;
+    width: 6px; height: 6px; border-radius: 50%;
+  }
+  .status-chip.active    { background: var(--ios-green-tint); color: #1E7A39; }
+  .status-chip.active::before    { background: var(--ios-green); }
+  .status-chip.stalled   { background: var(--ios-amber-tint); color: #A86200; }
+  .status-chip.stalled::before   { background: var(--ios-amber); }
+  .status-chip.completed { background: var(--ios-purple-tint); color: #3D3BB0; }
+  .status-chip.completed::before { background: var(--ios-purple); }
+
+  .sub-row .when {
+    font-size: 12.5px; color: var(--label-2);
+    font-variant-numeric: tabular-nums;
+  }
+  .sub-row .when .sub-sub {
+    display: block; font-size: 11px; color: var(--label-3); margin-top: 1px;
+  }
+  .sub-row .actions { display: inline-flex; gap: 6px; }
+  .sub-row .actions .btn {
+    height: 28px; padding: 0 10px; border-radius: 7px;
+    border: 0.5px solid var(--gray-4); background: #FFFFFF;
+    color: var(--label-2); font-size: 12px; font-weight: 500;
+    display: inline-flex; align-items: center; gap: 4px;
+    cursor: default;
+  }
+  .sub-row .actions .btn i { font-size: 13px; color: var(--label-3); }
+  .sub-row .actions .btn.primary {
+    background: var(--ios-blue); color: #fff;
+    border-color: transparent; font-weight: 600;
+  }
+  .sub-row .actions .btn.primary i { color: #fff; }
+  .sub-row .actions .btn.unread {
+    border-color: transparent;
+    background: var(--ios-coral-tint); color: #B12B22;
+    font-weight: 600;
+  }
+  .sub-row .actions .btn.unread i { color: var(--ios-coral); }
+
+  /* Avatar gradients (re-used family) */
+  .av.a1 { background: linear-gradient(135deg,#7E96B9,#3E5A85); }
+  .av.a2 { background: linear-gradient(135deg,#C28969,#7C5236); }
+  .av.a3 { background: linear-gradient(135deg,#85A693,#4B7060); }
+  .av.a4 { background: linear-gradient(135deg,#C19BC5,#7F5A85); }
+  .av.a5 { background: linear-gradient(135deg,#D4A75E,#8A6826); }
+  .av.a6 { background: linear-gradient(135deg,#A4A6A8,#5E6266); }
+  .av.a7 { background: linear-gradient(135deg,#E08672,#A24A37); }
+  .av.a8 { background: linear-gradient(135deg,#6F8A98,#3A525E); }
+  .av.a9 { background: linear-gradient(135deg,#8B7AA9,#4F3F6D); }
+  .av.aA { background: linear-gradient(135deg,#B6AE85,#74683E); }
+  .av.aB { background: linear-gradient(135deg,#69A2A3,#2F6C6D); }
+
+  /* ===================================================================
+     FRAME 4 — INSIGHTS
+     =================================================================== */
+  .ins-grid {
+    display: grid;
+    grid-template-columns: 1fr 380px;
+    gap: 18px;
+    height: 100%;
+  }
+  .ins-main { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+  .ins-rail { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+
+  .ins-toolbar {
+    display: flex; align-items: center; gap: 12px;
+    background: #FFFFFF;
+    border: 0.5px solid var(--gray-4);
+    border-radius: 12px;
+    padding: 10px 12px;
+    margin-bottom: 14px;
+  }
+  .ins-toolbar .left-meta {
+    display: flex; flex-direction: column; gap: 1px;
+  }
+  .ins-toolbar .left-meta .top {
+    font-size: 12px; color: var(--label-2); font-weight: 600;
+    letter-spacing: -0.1px;
+  }
+  .ins-toolbar .left-meta .top strong { color: var(--label); }
+  .ins-toolbar .left-meta .sub {
+    font-size: 11px; color: var(--label-3);
+  }
+  .ins-toolbar .spacer { flex: 1; }
+  .ins-toolbar .export {
+    height: 30px; padding: 0 12px; border-radius: 8px;
+    border: 0.5px solid var(--gray-4); background: #FFFFFF;
+    color: var(--label-2); font-size: 12px; font-weight: 500;
+    display: inline-flex; align-items: center; gap: 5px;
+  }
+  .ins-toolbar .export i { font-size: 13px; color: var(--label-3); }
+
+  .widget {
+    background: #FFFFFF; border-radius: 12px;
+    border: 0.5px solid var(--gray-4);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+    padding: 14px 16px;
+  }
+  .widget .w-head {
+    display: flex; align-items: baseline; gap: 8px;
+    margin-bottom: 12px;
+  }
+  .widget .w-head .label {
+    font-size: 13px; font-weight: 600; color: var(--label);
+    letter-spacing: -0.1px;
+  }
+  .widget .w-head .sub {
+    font-size: 11.5px; color: var(--label-3);
+    margin-left: 4px;
+  }
+  .widget .w-head .spacer { flex: 1; }
+  .widget .w-head .delta {
+    font-size: 11.5px; font-weight: 600; color: var(--ios-green);
+    display: inline-flex; align-items: center; gap: 3px;
+  }
+  .widget .w-head .delta.down { color: var(--ios-coral); }
+  .widget .w-head .delta i { font-size: 12px; }
+
+  /* Heatmap */
+  .heatmap {
+    display: grid;
+    grid-template-columns: 28px 1fr 50px;
+    gap: 8px 12px;
+    align-items: center;
+    font-variant-numeric: tabular-nums;
+  }
+  .heatmap .num {
+    font-size: 11px; color: var(--label-3); text-align: right;
+    font-weight: 600;
+  }
+  .heatmap .step-name {
+    grid-column: 2 / 3;
+    font-size: 12px; color: var(--label-2);
+    display: flex; align-items: center; gap: 8px;
+    min-width: 0; letter-spacing: -0.05px;
+  }
+  .heatmap .step-name .nm {
+    overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
+  }
+  .heatmap .step-name .flag {
+    font-size: 9.5px; font-weight: 700; letter-spacing: 0.05em;
+    padding: 1px 5px; border-radius: 3px;
+    text-transform: uppercase;
+    color: #A86200; background: var(--ios-amber-tint);
+    flex: 0 0 auto;
+  }
+  .heatmap .step-name .flag.warn { color: #A86200; background: var(--ios-amber-tint); }
+  .heatmap .step-name .flag.low  { color: #8A580B; background: rgba(255,149,0,0.20); }
+  .heatmap .bar {
+    grid-column: 2 / 3;
+    height: 14px; border-radius: 4px;
+    background: var(--gray-5);
+    position: relative; overflow: hidden;
+  }
+  .heatmap .bar .fill {
+    position: absolute; left: 0; top: 0; bottom: 0;
+    background: var(--ios-blue); border-radius: 4px;
+  }
+  .heatmap .bar .fill.warn { background: var(--ios-amber); }
+  .heatmap .bar .fill.low  { background: #FF9500; }
+  .heatmap .val {
+    font-size: 11.5px; color: var(--label-2); font-weight: 600;
+    text-align: right;
+  }
+  .heatmap .row-pair {
+    display: contents;
+  }
+
+  /* Average time chart */
+  .avg-grid {
+    display: grid;
+    grid-template-columns: repeat(14, 1fr);
+    gap: 6px;
+    height: 112px;
+    align-items: end;
+  }
+  .avg-bar {
+    background: linear-gradient(180deg, var(--ios-blue), rgba(0,122,255,0.5));
+    border-radius: 4px 4px 0 0;
+    position: relative;
+    min-height: 4px;
+  }
+  .avg-bar.warn {
+    background: linear-gradient(180deg, var(--ios-amber), rgba(255,149,0,0.5));
+  }
+  .avg-bar .ttip {
+    position: absolute; top: -4px;
+    left: 50%; transform: translate(-50%, -100%);
+    font-size: 9.5px; color: var(--label-2); font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+  .avg-labels {
+    display: grid; grid-template-columns: repeat(14, 1fr);
+    gap: 6px; margin-top: 6px;
+    font-size: 10px; color: var(--label-3);
+    font-variant-numeric: tabular-nums; text-align: center;
+  }
+
+  /* Stall callout */
+  .stall-card {
+    background: linear-gradient(180deg, #FFF7E8 0%, #FEF1D6 100%);
+    border: 0.5px solid rgba(255,149,0,0.30);
+    border-radius: 12px;
+    padding: 14px 16px;
+  }
+  .stall-card h5 {
+    margin: 0 0 4px;
+    font-size: 10.5px; font-weight: 600; letter-spacing: 0.08em;
+    text-transform: uppercase; color: #8A580B;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .stall-card h5 i { font-size: 13px; }
+  .stall-card .lede {
+    font-size: 13px; font-weight: 600; color: var(--label);
+    letter-spacing: -0.1px;
+    margin: 4px 0 10px; line-height: 1.35;
+  }
+  .stall-row {
+    display: grid; grid-template-columns: 28px 1fr auto;
+    align-items: center; gap: 10px;
+    padding: 8px 0;
+    border-top: 0.5px solid rgba(255,149,0,0.22);
+  }
+  .stall-row:first-of-type { border-top: 0.5px solid rgba(255,149,0,0.22); }
+  .stall-row .num {
+    width: 28px; height: 28px; border-radius: 7px;
+    background: rgba(255,149,0,0.25);
+    color: #8A580B; font-size: 11.5px; font-weight: 600;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-variant-numeric: tabular-nums;
+  }
+  .stall-row .body {
+    font-size: 12px; color: var(--label-2);
+    line-height: 1.35;
+    min-width: 0;
+  }
+  .stall-row .body strong { color: var(--label); font-weight: 600; }
+  .stall-row .pct {
+    font-size: 18px; font-weight: 600; color: #8A580B;
+    letter-spacing: -0.02em; font-variant-numeric: tabular-nums;
+  }
+  .stall-card .cta {
+    margin-top: 10px;
+    background: transparent; border: none;
+    color: var(--ios-blue); font-size: 12px; font-weight: 600;
+    padding: 0; cursor: default;
+    display: inline-flex; align-items: center; gap: 4px;
+  }
+  .stall-card .cta i { font-size: 13px; }
+
+  /* Cohort grouped bar */
+  .cohort-multi {
+    display: flex; flex-direction: column; gap: 12px;
+  }
+  .cohort-multi .row { display: flex; align-items: center; gap: 10px; }
+  .cohort-multi .nm {
+    font-size: 11.5px; color: var(--label-2);
+    letter-spacing: -0.05px;
+    width: 96px; flex: 0 0 96px;
+  }
+  .cohort-multi .nm strong { color: var(--label); font-weight: 600; display: block; }
+  .cohort-multi .nm .sub { font-size: 10px; color: var(--label-3); margin-top: 1px; }
+  .cohort-multi .stacks {
+    flex: 1;
+    display: flex; flex-direction: column; gap: 3px;
+  }
+  .cohort-multi .stacks .b {
+    height: 9px; border-radius: 3px;
+    background: var(--gray-5); position: relative; overflow: hidden;
+  }
+  .cohort-multi .stacks .b .f {
+    position: absolute; left: 0; top: 0; bottom: 0;
+    background: var(--ios-blue); border-radius: 3px;
+  }
+  .cohort-multi .stacks .b .f.t { background: var(--ios-teal); }
+  .cohort-multi .stacks .b .f.p { background: var(--ios-purple); }
+  .cohort-multi .stacks .b .f.g { background: var(--ios-green); }
+  .cohort-multi .legend {
+    display: flex; flex-wrap: wrap; gap: 10px;
+    padding-top: 6px; margin-top: 2px;
+    font-size: 11px; color: var(--label-3);
+    border-top: 0.5px solid var(--gray-5);
+  }
+  .cohort-multi .legend .swatch {
+    display: inline-flex; align-items: center; gap: 5px;
+  }
+  .cohort-multi .legend .swatch .dot {
+    width: 8px; height: 8px; border-radius: 2px;
+  }
+
+  /* ============= Responsive note & commentary ============= */
+  .resp-note {
+    margin: 28px 32px 0;
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 14px; color: var(--stage-text);
+    max-width: 1180px; line-height: 1.55;
+    font-style: italic;
+  }
+  .commentary {
+    max-width: 5260px;
+    margin: 80px auto 0;
+    padding: 0 40px;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 40px;
+  }
+  .commentary .col h4 {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 17px; font-weight: 500; letter-spacing: -0.01em;
+    color: var(--stage-ink);
+    margin: 0 0 10px;
+  }
+  .commentary .col h4 em { font-style: italic; }
+  .commentary .col p {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 14px; line-height: 1.55; color: var(--stage-text);
+    margin: 0 0 10px;
+    text-wrap: pretty;
+  }
+  .commentary .col p em { font-style: italic; }
+  .commentary .col p strong { color: var(--stage-ink); font-weight: 600; }
+</style>
+</head>
+<body>
+
+<div class="page">
+
+  <!-- ============= Page head ============= -->
+  <header class="page-head">
+    <p class="eyebrow">BetterAt · Blueprint Creator Dashboard · Canonical &nbsp;·&nbsp; 2026-05-15</p>
+    <h1>The creator surface — <em>where blueprints are written, published, and watched</em></h1>
+    <p>
+      This is Surface 3 of the Five Surfaces addendum: the desktop console a creator uses to author blueprints, manage subscribers, and read the analytics that come back. The creator on screen is <em>Bram van Olphen</em>, a Dragon-class sailing coach whose flagship blueprint is <em>Dragon Worlds Prep</em> — a 14-step program with 28 paying subscribers.
+    </p>
+    <p>
+      The creator surface inherits the same product chrome as Org Admin: black BetterAt mark, sidebar product nav, white window on a warm review ground. iOS blue still owns actions; SF Pro still owns UI. What changes is the strap — instead of an institutional shield it shows the creator&rsquo;s own avatar and the words <em>Creator Dashboard</em>. The tools are different; the gravity isn&rsquo;t.
+    </p>
+    <div class="crumbs">
+      <span class="pill">Surface 3 of 5</span>
+      <span class="sep">/</span>
+      <span>Companion to <em>Org Admin</em> &amp; <em>iOS Register</em></span>
+      <span class="sep">/</span>
+      <span>Earnings tab cited only · Settings out of scope</span>
+      <span class="sep">/</span>
+      <span>Creation flow opens <em>AI Coach</em>; not covered here</span>
+    </div>
+  </header>
+
+  <!-- ============= Frame row ============= -->
+  <div class="frame-row">
+
+    <!-- ============================================================== -->
+    <!-- ===========         FRAME 1 — BLUEPRINTS               ======== -->
+    <!-- ============================================================== -->
+    <div class="frame-col" data-screen-label="01 Blueprints">
+      <div class="desktop">
+        <div class="chrome">
+          <div class="lights"><span class="r"></span><span class="y"></span><span class="g"></span></div>
+          <div class="url"><div class="url-inner">
+            <i class="ti ti-lock"></i>
+            <span><strong>betterat.app</strong>/creator/blueprints</span>
+          </div></div>
+        </div>
+
+        <div class="app">
+
+          <!-- Sidebar -->
+          <aside class="sidebar">
+            <div class="brand">
+              <div class="mark">B</div>
+              <div class="wordmark">BetterAt <span>· Creator</span></div>
+            </div>
+
+            <div class="nav">
+              <div class="group-label">Product</div>
+              <div class="item"><i class="ti ti-anchor"></i><span>Practice</span></div>
+              <div class="item"><i class="ti ti-book-2"></i><span>Playbook</span></div>
+              <div class="item"><i class="ti ti-compass"></i><span>Discover</span></div>
+              <div class="item"><i class="ti ti-school"></i><span>Learn</span></div>
+              <div class="item"><i class="ti ti-notebook"></i><span>Reflect</span></div>
+
+              <div class="group-label">Creator</div>
+              <div class="item on"><i class="ti ti-template"></i><span>Blueprints</span><span class="count">5</span></div>
+              <div class="item"><i class="ti ti-users"></i><span>Subscribers</span><span class="count">296</span></div>
+              <div class="item"><i class="ti ti-chart-line"></i><span>Insights</span></div>
+              <div class="item"><i class="ti ti-coin"></i><span>Earnings</span></div>
+              <div class="item"><i class="ti ti-settings"></i><span>Settings</span></div>
+            </div>
+
+            <div class="spacer"></div>
+            <div class="footer">
+              <div class="av">BvO</div>
+              <div class="meta">
+                <div class="name">Bram van Olphen</div>
+                <div class="role">Creator · Dragon class</div>
+              </div>
+            </div>
+          </aside>
+
+          <!-- Content -->
+          <main class="content">
+            <div class="creator-strap">
+              <div class="av-lg">BvO</div>
+              <div class="who">
+                <div class="title">Creator Dashboard</div>
+                <div class="sub">Bram van Olphen &middot; 5 blueprints &middot; 296 active subscribers</div>
+              </div>
+              <div class="spacer"></div>
+              <div class="strap-actions">
+                <button class="icon-btn"><i class="ti ti-search"></i></button>
+                <button class="icon-btn"><i class="ti ti-bell"></i><span class="badge"></span></button>
+                <button class="icon-btn"><i class="ti ti-help-circle"></i></button>
+                <button class="new-blueprint"><i class="ti ti-plus"></i>New Blueprint</button>
+              </div>
+            </div>
+
+            <div class="tab-strip">
+              <div class="tab on">Blueprints <span class="n">5</span></div>
+              <div class="tab">Subscribers <span class="n">296</span></div>
+              <div class="tab">Insights</div>
+              <div class="tab">Earnings</div>
+              <div class="tab">Settings</div>
+              <div class="spacer"></div>
+              <div class="right">
+                <span class="pill live">Public profile live</span>
+                <span>betterat.app/c/bram</span>
+              </div>
+            </div>
+
+            <div class="canvas">
+
+              <!-- Summary strip -->
+              <div class="bp-summary">
+                <div class="stat">
+                  <span class="label">Published</span>
+                  <span class="value">4<span class="unit"> / 5</span></span>
+                  <span class="sub">1 in draft</span>
+                </div>
+                <div class="stat">
+                  <span class="label">Active subscribers</span>
+                  <span class="value">296</span>
+                  <span class="sub">+14 last 30 days</span>
+                </div>
+                <div class="stat">
+                  <span class="label">Avg. completion</span>
+                  <span class="value">62<span class="unit">%</span></span>
+                  <span class="sub">across all published</span>
+                </div>
+                <div class="stat">
+                  <span class="label">Last 30 days</span>
+                  <span class="value">$842</span>
+                  <span class="sub">net after platform fee</span>
+                </div>
+                <div class="spacer"></div>
+                <div class="view-toggle">
+                  <span class="opt on"><i class="ti ti-list"></i>List</span>
+                  <span class="opt"><i class="ti ti-grid-dots"></i>Grid</span>
+                </div>
+              </div>
+
+              <!-- Blueprint cards -->
+              <div class="bp-list">
+
+                <!-- Card 1 — Dragon Worlds Prep -->
+                <div class="bp-card">
+                  <div class="bp-cover dragon">
+                    <span class="tag">cover · 12 wk</span>
+                    <span class="topic">Dragon Worlds<br/>Prep</span>
+                  </div>
+                  <div class="bp-meta">
+                    <div class="row1">
+                      <span class="name">Dragon Worlds Prep</span>
+                      <span class="badge published">Published</span>
+                    </div>
+                    <p class="desc">Twelve-week program for Dragon-class crews preparing for a regatta. Boat tune, starts in mixed air, mark-rounding under pressure, and a debrief framework.</p>
+                    <div class="row2">
+                      <span class="item"><i class="ti ti-stack-2"></i><strong>14</strong>&nbsp;steps</span>
+                      <span class="item"><i class="ti ti-users"></i><strong>28</strong>&nbsp;subscribers</span>
+                      <span class="item"><i class="ti ti-coin"></i>$9.99 / mo</span>
+                      <span class="item"><i class="ti ti-clock"></i><span class="when">Last edit 3 days ago</span></span>
+                    </div>
+                  </div>
+                  <div class="bp-chart">
+                    <div class="chart-head">
+                      <span class="lbl">Last 30 days</span>
+                      <span class="delta"><i class="ti ti-trending-up"></i>+6</span>
+                    </div>
+                    <svg viewBox="0 0 280 56" preserveAspectRatio="none">
+                      <defs>
+                        <linearGradient id="g1" x1="0" x2="0" y1="0" y2="1">
+                          <stop offset="0" stop-color="#007AFF" stop-opacity="0.22"/>
+                          <stop offset="1" stop-color="#007AFF" stop-opacity="0"/>
+                        </linearGradient>
+                      </defs>
+                      <path d="M0,46 L20,44 L40,42 L60,38 L80,34 L100,32 L120,28 L140,30 L160,24 L180,22 L200,18 L220,16 L240,14 L260,12 L280,8 L280,56 L0,56 Z" fill="url(#g1)"/>
+                      <path d="M0,46 L20,44 L40,42 L60,38 L80,34 L100,32 L120,28 L140,30 L160,24 L180,22 L200,18 L220,16 L240,14 L260,12 L280,8" fill="none" stroke="#007AFF" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <div class="chart-foot">
+                      <span>22 → 28</span><span>Apr 15 → May 15</span>
+                    </div>
+                  </div>
+                  <div class="bp-actions">
+                    <button class="btn primary"><i class="ti ti-edit"></i>Edit</button>
+                    <button class="btn">Preview</button>
+                    <button class="btn icon-only"><i class="ti ti-dots"></i></button>
+                  </div>
+                </div>
+
+                <!-- Card 2 — Light-Air Tactics (Draft) -->
+                <div class="bp-card draft">
+                  <div class="bp-cover placeholder">
+                    <span class="tag dark">cover · not set</span>
+                    <span class="topic dark">Light-Air<br/>Tactics</span>
+                  </div>
+                  <div class="bp-meta">
+                    <div class="row1">
+                      <span class="name">Light-Air Tactics</span>
+                      <span class="badge draft">Draft</span>
+                    </div>
+                    <p class="desc">Reading puffs in 4–7 knots: angle vs. pressure decisions, sail-trim micro-adjustments, and the patience problem. Started from the AI Coach scaffold last week.</p>
+                    <div class="row2">
+                      <span class="item"><i class="ti ti-stack-2"></i><strong>9</strong>&nbsp;steps</span>
+                      <span class="item"><i class="ti ti-users"></i><span style="color:var(--label-3);">not yet published</span></span>
+                      <span class="item"><i class="ti ti-clock"></i><span class="when">Last edit yesterday</span></span>
+                    </div>
+                  </div>
+                  <div class="bp-chart">
+                    <div class="chart-head">
+                      <span class="lbl">Pre-publish</span>
+                      <span class="delta zero">draft</span>
+                    </div>
+                    <svg viewBox="0 0 280 56" preserveAspectRatio="none">
+                      <path d="M0,30 L280,30" fill="none" stroke="var(--gray-3)" stroke-width="1" stroke-dasharray="3 4"/>
+                      <text x="140" y="34" text-anchor="middle" font-family="ui-monospace, monospace" font-size="9" fill="rgba(60,60,67,0.42)">no subscriber data yet</text>
+                    </svg>
+                    <div class="chart-foot">
+                      <span style="color:var(--label-4);">—</span><span>Apr 15 → May 15</span>
+                    </div>
+                  </div>
+                  <div class="bp-actions">
+                    <button class="btn primary"><i class="ti ti-edit"></i>Continue</button>
+                    <button class="btn">Preview</button>
+                    <button class="btn icon-only"><i class="ti ti-dots"></i></button>
+                  </div>
+                </div>
+
+                <!-- Card 3 — Heavy Weather Sailing -->
+                <div class="bp-card">
+                  <div class="bp-cover heavy">
+                    <span class="tag">cover · 16 wk</span>
+                    <span class="topic">Heavy Weather<br/>Sailing</span>
+                  </div>
+                  <div class="bp-meta">
+                    <div class="row1">
+                      <span class="name">Heavy Weather Sailing</span>
+                      <span class="badge published">Published</span>
+                    </div>
+                    <p class="desc">Twenty-one steps for sailing in 20+ knots: depowering, body-position, when to reef early, and the rule that has saved more rigs than any other.</p>
+                    <div class="row2">
+                      <span class="item"><i class="ti ti-stack-2"></i><strong>21</strong>&nbsp;steps</span>
+                      <span class="item"><i class="ti ti-users"></i><strong>47</strong>&nbsp;subscribers</span>
+                      <span class="item"><i class="ti ti-coin"></i>$9.99 / mo</span>
+                      <span class="item"><i class="ti ti-clock"></i><span class="when">Last edit 2 weeks ago</span></span>
+                    </div>
+                  </div>
+                  <div class="bp-chart">
+                    <div class="chart-head">
+                      <span class="lbl">Last 30 days</span>
+                      <span class="delta"><i class="ti ti-trending-up"></i>+3</span>
+                    </div>
+                    <svg viewBox="0 0 280 56" preserveAspectRatio="none">
+                      <defs>
+                        <linearGradient id="g3" x1="0" x2="0" y1="0" y2="1">
+                          <stop offset="0" stop-color="#007AFF" stop-opacity="0.22"/>
+                          <stop offset="1" stop-color="#007AFF" stop-opacity="0"/>
+                        </linearGradient>
+                      </defs>
+                      <path d="M0,30 L20,28 L40,32 L60,30 L80,26 L100,28 L120,24 L140,22 L160,24 L180,20 L200,22 L220,18 L240,20 L260,16 L280,18 L280,56 L0,56 Z" fill="url(#g3)"/>
+                      <path d="M0,30 L20,28 L40,32 L60,30 L80,26 L100,28 L120,24 L140,22 L160,24 L180,20 L200,22 L220,18 L240,20 L260,16 L280,18" fill="none" stroke="#007AFF" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <div class="chart-foot">
+                      <span>44 → 47</span><span>Apr 15 → May 15</span>
+                    </div>
+                  </div>
+                  <div class="bp-actions">
+                    <button class="btn primary"><i class="ti ti-edit"></i>Edit</button>
+                    <button class="btn">Preview</button>
+                    <button class="btn icon-only"><i class="ti ti-dots"></i></button>
+                  </div>
+                </div>
+
+                <!-- Card 4 — Tactical Starts -->
+                <div class="bp-card">
+                  <div class="bp-cover start">
+                    <span class="tag">cover · 8 wk</span>
+                    <span class="topic">Tactical<br/>Starts</span>
+                  </div>
+                  <div class="bp-meta">
+                    <div class="row1">
+                      <span class="name">Tactical Starts</span>
+                      <span class="badge published">Published</span>
+                    </div>
+                    <p class="desc">Bram&rsquo;s most-subscribed: the eleven-step start-line program. Time-on-distance, the back-up call, recovering from a bad timing, port-tack approaches.</p>
+                    <div class="row2">
+                      <span class="item"><i class="ti ti-stack-2"></i><strong>11</strong>&nbsp;steps</span>
+                      <span class="item"><i class="ti ti-users"></i><strong>132</strong>&nbsp;subscribers</span>
+                      <span class="item"><i class="ti ti-coin"></i>$9.99 / mo</span>
+                      <span class="item"><i class="ti ti-clock"></i><span class="when">Last edit 4 weeks ago</span></span>
+                    </div>
+                  </div>
+                  <div class="bp-chart">
+                    <div class="chart-head">
+                      <span class="lbl">Last 30 days</span>
+                      <span class="delta"><i class="ti ti-trending-up"></i>+12</span>
+                    </div>
+                    <svg viewBox="0 0 280 56" preserveAspectRatio="none">
+                      <defs>
+                        <linearGradient id="g4" x1="0" x2="0" y1="0" y2="1">
+                          <stop offset="0" stop-color="#007AFF" stop-opacity="0.22"/>
+                          <stop offset="1" stop-color="#007AFF" stop-opacity="0"/>
+                        </linearGradient>
+                      </defs>
+                      <path d="M0,42 L20,40 L40,38 L60,34 L80,36 L100,30 L120,32 L140,26 L160,24 L180,20 L200,18 L220,14 L240,12 L260,10 L280,8 L280,56 L0,56 Z" fill="url(#g4)"/>
+                      <path d="M0,42 L20,40 L40,38 L60,34 L80,36 L100,30 L120,32 L140,26 L160,24 L180,20 L200,18 L220,14 L240,12 L260,10 L280,8" fill="none" stroke="#007AFF" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <div class="chart-foot">
+                      <span>120 → 132</span><span>Apr 15 → May 15</span>
+                    </div>
+                  </div>
+                  <div class="bp-actions">
+                    <button class="btn primary"><i class="ti ti-edit"></i>Edit</button>
+                    <button class="btn">Preview</button>
+                    <button class="btn icon-only"><i class="ti ti-dots"></i></button>
+                  </div>
+                </div>
+
+                <!-- Card 5 — Race Rules Quiz -->
+                <div class="bp-card">
+                  <div class="bp-cover rules">
+                    <span class="tag">cover · 4 wk</span>
+                    <span class="topic">Race Rules<br/>Quiz</span>
+                  </div>
+                  <div class="bp-meta">
+                    <div class="row1">
+                      <span class="name">Race Rules Quiz</span>
+                      <span class="badge published">Published</span>
+                    </div>
+                    <p class="desc">Free six-step refresher on the rules that come up most often in fleet racing. Bram uses this as the on-ramp to the paid blueprints.</p>
+                    <div class="row2">
+                      <span class="item"><i class="ti ti-stack-2"></i><strong>6</strong>&nbsp;steps</span>
+                      <span class="item"><i class="ti ti-users"></i><strong>89</strong>&nbsp;subscribers</span>
+                      <span class="item"><i class="ti ti-coin"></i>Free</span>
+                      <span class="item"><i class="ti ti-clock"></i><span class="when">Last edit 8 weeks ago</span></span>
+                    </div>
+                  </div>
+                  <div class="bp-chart">
+                    <div class="chart-head">
+                      <span class="lbl">Last 30 days</span>
+                      <span class="delta"><i class="ti ti-trending-up"></i>+18</span>
+                    </div>
+                    <svg viewBox="0 0 280 56" preserveAspectRatio="none">
+                      <defs>
+                        <linearGradient id="g5" x1="0" x2="0" y1="0" y2="1">
+                          <stop offset="0" stop-color="#007AFF" stop-opacity="0.22"/>
+                          <stop offset="1" stop-color="#007AFF" stop-opacity="0"/>
+                        </linearGradient>
+                      </defs>
+                      <path d="M0,48 L20,42 L40,40 L60,38 L80,30 L100,32 L120,24 L140,26 L160,18 L180,22 L200,14 L220,16 L240,10 L260,12 L280,6 L280,56 L0,56 Z" fill="url(#g5)"/>
+                      <path d="M0,48 L20,42 L40,40 L60,38 L80,30 L100,32 L120,24 L140,26 L160,18 L180,22 L200,14 L220,16 L240,10 L260,12 L280,6" fill="none" stroke="#007AFF" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <div class="chart-foot">
+                      <span>71 → 89</span><span>Apr 15 → May 15</span>
+                    </div>
+                  </div>
+                  <div class="bp-actions">
+                    <button class="btn primary"><i class="ti ti-edit"></i>Edit</button>
+                    <button class="btn">Preview</button>
+                    <button class="btn icon-only"><i class="ti ti-dots"></i></button>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+          </main>
+
+        </div>
+      </div>
+
+      <div class="frame-cap">
+        <p class="eyebrow">Frame 1 · Blueprints landing</p>
+        <h3>Blueprints &middot; <em>the creator&rsquo;s shelf, with growth on the right of every spine</em></h3>
+        <p>
+          Five cards: one draft sits among four published. The dashed border on the draft is the only visual difference at a glance — same shape, same actions, same chart slot (rendered empty rather than hidden, so the layout doesn&rsquo;t reflow once data starts coming in). The sparkline on the right of each row is the canonical place to read 30-day subscriber growth without leaving the list. <strong>+ New Blueprint</strong> in the strap opens the AI Coach scaffold — that flow lives in a separate canonical.
+        </p>
+      </div>
+    </div>
+
+    <!-- ============================================================== -->
+    <!-- ===========         FRAME 2 — EDITOR                   ======== -->
+    <!-- ============================================================== -->
+    <div class="frame-col" data-screen-label="02 Editor">
+      <div class="desktop">
+        <div class="chrome">
+          <div class="lights"><span class="r"></span><span class="y"></span><span class="g"></span></div>
+          <div class="url"><div class="url-inner">
+            <i class="ti ti-lock"></i>
+            <span><strong>betterat.app</strong>/creator/blueprints/dragon-worlds-prep/edit</span>
+          </div></div>
+        </div>
+
+        <div class="app">
+
+          <aside class="sidebar">
+            <div class="brand">
+              <div class="mark">B</div>
+              <div class="wordmark">BetterAt <span>· Creator</span></div>
+            </div>
+            <div class="nav">
+              <div class="group-label">Product</div>
+              <div class="item"><i class="ti ti-anchor"></i><span>Practice</span></div>
+              <div class="item"><i class="ti ti-book-2"></i><span>Playbook</span></div>
+              <div class="item"><i class="ti ti-compass"></i><span>Discover</span></div>
+              <div class="item"><i class="ti ti-school"></i><span>Learn</span></div>
+              <div class="item"><i class="ti ti-notebook"></i><span>Reflect</span></div>
+              <div class="group-label">Creator</div>
+              <div class="item on"><i class="ti ti-template"></i><span>Blueprints</span><span class="count">5</span></div>
+              <div class="item"><i class="ti ti-users"></i><span>Subscribers</span><span class="count">296</span></div>
+              <div class="item"><i class="ti ti-chart-line"></i><span>Insights</span></div>
+              <div class="item"><i class="ti ti-coin"></i><span>Earnings</span></div>
+              <div class="item"><i class="ti ti-settings"></i><span>Settings</span></div>
+            </div>
+            <div class="spacer"></div>
+            <div class="footer">
+              <div class="av">BvO</div>
+              <div class="meta">
+                <div class="name">Bram van Olphen</div>
+                <div class="role">Creator · Dragon class</div>
+              </div>
+            </div>
+          </aside>
+
+          <main class="content">
+            <!-- Editor toolbar replaces creator-strap + tab-strip -->
+            <div class="editor-toolbar">
+              <span class="back"><i class="ti ti-arrow-left"></i>Back to Blueprints</span>
+              <span class="divider"></span>
+              <span class="doc-title">Dragon Worlds Prep</span>
+              <span class="doc-sub"><i class="ti ti-circle-dot"></i>Unsaved changes &middot; auto-saved 11s ago</span>
+              <span class="spacer"></span>
+              <button class="btn"><i class="ti ti-eye"></i>Preview</button>
+              <button class="btn primary"><i class="ti ti-check"></i>Save</button>
+            </div>
+
+            <div class="canvas" style="padding:18px 22px; overflow:hidden;">
+              <div class="editor-grid">
+
+                <!-- Main column -->
+                <div class="editor-main">
+
+                  <!-- Metadata card -->
+                  <div>
+                    <div class="ed-section-label" style="margin-bottom:8px;">Blueprint metadata</div>
+                    <div class="ed-card">
+                      <div class="ed-meta">
+                        <div class="cover-up">
+                          <span class="tag">cover · current</span>
+                          <span class="topic">Dragon Worlds<br/>Prep</span>
+                          <span class="replace"><i class="ti ti-camera"></i>Replace</span>
+                        </div>
+                        <div class="ed-fields">
+                          <div class="ed-field">
+                            <span class="lbl">Title</span>
+                            <div class="ed-input focused">Dragon Worlds Prep</div>
+                          </div>
+                          <div class="ed-field">
+                            <span class="lbl">Description</span>
+                            <div class="ed-textarea">Twelve-week program for Dragon-class crews preparing for a regatta. Boat tune, starts in mixed air, mark-rounding under pressure, and a debrief framework.</div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div class="ed-chips-row" style="margin-top:14px;">
+                        <div class="ed-field">
+                          <span class="lbl">Interest</span>
+                          <div class="ed-chip-group">
+                            <span class="ed-chip"><i class="ti ti-sailboat"></i>Sail Racing<i class="ti ti-x"></i></span>
+                            <span class="ed-chip add"><i class="ti ti-plus"></i>Add</span>
+                          </div>
+                        </div>
+                        <div class="ed-field">
+                          <span class="lbl">Estimated duration</span>
+                          <div class="ed-input" style="max-width:160px;">12 weeks</div>
+                        </div>
+                        <div class="ed-field">
+                          <span class="lbl">Difficulty</span>
+                          <div class="ed-difficulty">
+                            <span class="opt">Beginner</span>
+                            <span class="opt on">Intermediate</span>
+                            <span class="opt">Advanced</span>
+                          </div>
+                        </div>
+                        <div class="ed-field">
+                          <span class="lbl">Capabilities developed</span>
+                          <div class="ed-chip-group">
+                            <span class="ed-chip cap">Starts</span>
+                            <span class="ed-chip cap">Upwind</span>
+                            <span class="ed-chip cap">Downwind</span>
+                            <span class="ed-chip cap">Tactics</span>
+                            <span class="ed-chip cap">Weather</span>
+                            <span class="ed-chip cap">Boat tune</span>
+                            <span class="ed-chip add"><i class="ti ti-plus"></i>Add</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Steps -->
+                  <div style="display:flex; flex-direction:column; gap:8px; min-height:0;">
+                    <div class="ed-section-label">
+                      Steps <span class="count">14</span>
+                      <span class="spacer"></span>
+                      <span style="font-size:11px;color:var(--label-3);text-transform:none;letter-spacing:0;font-weight:500;margin-right:8px;">drag to reorder</span>
+                      <button class="add-btn"><i class="ti ti-plus"></i>Add step</button>
+                    </div>
+                    <div class="steps-list">
+                      <div class="step-row">
+                        <span class="drag"><i class="ti ti-grip-vertical"></i></span>
+                        <span class="num">1</span>
+                        <div class="body">
+                          <div class="title">Boat preparation</div>
+                          <div class="desc">Pre-regatta checklist · rig setup · sail inventory · weight distribution baseline.</div>
+                        </div>
+                        <div class="actions">
+                          <button class="ic"><i class="ti ti-edit"></i></button>
+                          <button class="ic"><i class="ti ti-dots"></i></button>
+                        </div>
+                      </div>
+                      <div class="step-row">
+                        <span class="drag"><i class="ti ti-grip-vertical"></i></span>
+                        <span class="num">2</span>
+                        <div class="body">
+                          <div class="title">Light-air starts</div>
+                          <div class="desc">Timing in under 8 knots · creating space · holding lane off the line.</div>
+                        </div>
+                        <div class="actions">
+                          <button class="ic"><i class="ti ti-edit"></i></button>
+                          <button class="ic"><i class="ti ti-dots"></i></button>
+                        </div>
+                      </div>
+                      <div class="step-row">
+                        <span class="drag"><i class="ti ti-grip-vertical"></i></span>
+                        <span class="num">3</span>
+                        <div class="body">
+                          <div class="title">Heavy-air starts</div>
+                          <div class="desc">Bow-down acceleration · port-tack approaches · the back-out call.</div>
+                        </div>
+                        <div class="actions">
+                          <button class="ic"><i class="ti ti-edit"></i></button>
+                          <button class="ic"><i class="ti ti-dots"></i></button>
+                        </div>
+                      </div>
+                      <div class="step-row">
+                        <span class="drag"><i class="ti ti-grip-vertical"></i></span>
+                        <span class="num">4</span>
+                        <div class="body">
+                          <div class="title">Upwind speed in chop</div>
+                          <div class="desc">Foot vs. point · main-jib lead choreography · steering through waves.</div>
+                        </div>
+                        <div class="actions">
+                          <button class="ic"><i class="ti ti-edit"></i></button>
+                          <button class="ic"><i class="ti ti-dots"></i></button>
+                        </div>
+                      </div>
+                      <div class="step-row">
+                        <span class="drag"><i class="ti ti-grip-vertical"></i></span>
+                        <span class="num">5</span>
+                        <div class="body">
+                          <div class="title">Downwind acceleration</div>
+                          <div class="desc">Heel-to-windward technique · pumping rules · staying ahead of the wave.</div>
+                        </div>
+                        <div class="actions">
+                          <button class="ic"><i class="ti ti-edit"></i></button>
+                          <button class="ic"><i class="ti ti-dots"></i></button>
+                        </div>
+                      </div>
+                      <div class="step-row stuck">
+                        <span class="drag"><i class="ti ti-grip-vertical"></i></span>
+                        <span class="num">6</span>
+                        <div class="body">
+                          <div class="title">Mark roundings<span class="stuck-flag">stuck point</span></div>
+                          <div class="desc">Where 32% of subscribers stall — wide-tight, sail handling, layline judgment.</div>
+                        </div>
+                        <div class="actions">
+                          <button class="ic"><i class="ti ti-edit"></i></button>
+                          <button class="ic"><i class="ti ti-dots"></i></button>
+                        </div>
+                      </div>
+                      <div class="step-row">
+                        <span class="drag"><i class="ti ti-grip-vertical"></i></span>
+                        <span class="num">7</span>
+                        <div class="body">
+                          <div class="title">Tactical decisions in shifts</div>
+                          <div class="desc">Persistent vs. oscillating · cost of crossing · the &ldquo;next mark wins&rdquo; heuristic.</div>
+                        </div>
+                        <div class="actions">
+                          <button class="ic"><i class="ti ti-edit"></i></button>
+                          <button class="ic"><i class="ti ti-dots"></i></button>
+                        </div>
+                      </div>
+                      <div class="step-row">
+                        <span class="drag"><i class="ti ti-grip-vertical"></i></span>
+                        <span class="num">8</span>
+                        <div class="body">
+                          <div class="title">Rules in close-quarters</div>
+                          <div class="desc">Mark-room (18) · windward-leeward (11) · proper course · 360 turn flow.</div>
+                        </div>
+                        <div class="actions">
+                          <button class="ic"><i class="ti ti-edit"></i></button>
+                          <button class="ic"><i class="ti ti-dots"></i></button>
+                        </div>
+                      </div>
+                      <div class="step-row">
+                        <span class="drag"><i class="ti ti-grip-vertical"></i></span>
+                        <span class="num">9</span>
+                        <div class="body">
+                          <div class="title">Heavy-air upwind speed</div>
+                          <div class="desc">Depowering ladder · backstay-cunningham-vang sequence · helm balance.</div>
+                        </div>
+                        <div class="actions">
+                          <button class="ic"><i class="ti ti-edit"></i></button>
+                          <button class="ic"><i class="ti ti-dots"></i></button>
+                        </div>
+                      </div>
+                      <div class="step-row">
+                        <span class="drag"><i class="ti ti-grip-vertical"></i></span>
+                        <span class="num">10</span>
+                        <div class="body">
+                          <div class="title">Spinnaker handling</div>
+                          <div class="desc">Hoists and drops under pressure · gybing technique · recovery from a wrap.</div>
+                        </div>
+                        <div class="actions">
+                          <button class="ic"><i class="ti ti-edit"></i></button>
+                          <button class="ic"><i class="ti ti-dots"></i></button>
+                        </div>
+                      </div>
+                      <div class="step-row">
+                        <span class="drag"><i class="ti ti-grip-vertical"></i></span>
+                        <span class="num">11</span>
+                        <div class="body">
+                          <div class="title">Recovery from mistakes</div>
+                          <div class="desc">After a bad start, a foul, a slow rounding — the next ten minutes of decisions.</div>
+                        </div>
+                        <div class="actions">
+                          <button class="ic"><i class="ti ti-edit"></i></button>
+                          <button class="ic"><i class="ti ti-dots"></i></button>
+                        </div>
+                      </div>
+                      <div class="step-row">
+                        <span class="drag"><i class="ti ti-grip-vertical"></i></span>
+                        <span class="num">12</span>
+                        <div class="body">
+                          <div class="title">Race-day routine</div>
+                          <div class="desc">Breakfast, warm-up, hour-on-the-water, the last quiet 15 minutes.</div>
+                        </div>
+                        <div class="actions">
+                          <button class="ic"><i class="ti ti-edit"></i></button>
+                          <button class="ic"><i class="ti ti-dots"></i></button>
+                        </div>
+                      </div>
+                      <div class="step-row">
+                        <span class="drag"><i class="ti ti-grip-vertical"></i></span>
+                        <span class="num">13</span>
+                        <div class="body">
+                          <div class="title">Mental preparation</div>
+                          <div class="desc">Performance arousal · pre-race ritual · the one-sentence cue per crew member.</div>
+                        </div>
+                        <div class="actions">
+                          <button class="ic"><i class="ti ti-edit"></i></button>
+                          <button class="ic"><i class="ti ti-dots"></i></button>
+                        </div>
+                      </div>
+                      <div class="step-row">
+                        <span class="drag"><i class="ti ti-grip-vertical"></i></span>
+                        <span class="num">14</span>
+                        <div class="body">
+                          <div class="title">Debrief and integration</div>
+                          <div class="desc">The two-question debrief · journaling prompt · what to carry into next regatta.</div>
+                        </div>
+                        <div class="actions">
+                          <button class="ic"><i class="ti ti-edit"></i></button>
+                          <button class="ic"><i class="ti ti-dots"></i></button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                </div>
+
+                <!-- Rail -->
+                <div class="editor-rail">
+
+                  <div class="pub-card">
+                    <h5>Publishing</h5>
+                    <div class="radio-row on">
+                      <span class="dot"></span>
+                      <div>
+                        <div class="label">Published</div>
+                        <div class="help">Live in Discover and on your public profile. Current subscribers keep access.</div>
+                      </div>
+                    </div>
+                    <div class="radio-row">
+                      <span class="dot"></span>
+                      <div>
+                        <div class="label">Draft</div>
+                        <div class="help">Only visible to you. Existing subscribers keep their access.</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="pub-card">
+                    <h5>Pricing</h5>
+                    <div class="price-grid">
+                      <div class="price-opt">
+                        <div class="top">Free</div>
+                        <div class="bot">No paywall</div>
+                      </div>
+                      <div class="price-opt">
+                        <div class="top">$4.99</div>
+                        <div class="bot">/ month</div>
+                      </div>
+                      <div class="price-opt on">
+                        <div class="top">$9.99</div>
+                        <div class="bot">/ month</div>
+                      </div>
+                    </div>
+                    <div style="margin-top:10px;font-size:11.5px;color:var(--label-3);line-height:1.45;">
+                      Platform fee is 12% &middot; payouts via Stripe Connect &middot; see <span style="color:var(--ios-blue);font-weight:500;">Earnings</span> for next payout date.
+                    </div>
+                  </div>
+
+                  <div class="pub-card">
+                    <h5>Subscribers on this blueprint</h5>
+                    <div style="display:flex;align-items:baseline;gap:6px;">
+                      <span style="font-size:28px;font-weight:600;letter-spacing:-0.02em;color:var(--label);font-variant-numeric:tabular-nums;">28</span>
+                      <span style="font-size:12px;color:var(--ios-green);font-weight:600;">+6 last 30d</span>
+                    </div>
+                    <div style="font-size:11.5px;color:var(--label-3);margin-top:2px;">
+                      22 active · 4 stalled at Step 6 · 2 completed
+                    </div>
+                    <button style="margin-top:10px;background:transparent;border:none;color:var(--ios-blue);font-size:12px;font-weight:600;padding:0;cursor:default;display:inline-flex;align-items:center;gap:4px;">View subscribers <i class="ti ti-arrow-right" style="font-size:13px;"></i></button>
+                  </div>
+
+                </div>
+
+              </div>
+            </div>
+          </main>
+
+        </div>
+      </div>
+
+      <div class="frame-cap">
+        <p class="eyebrow">Frame 2 · Editor</p>
+        <h3>Editor &middot; <em>metadata above, fourteen drag-handled steps, publishing on the rail</em></h3>
+        <p>
+          The tab strip is replaced by a focused editor toolbar — <em>back</em>, <em>title</em>, autosave status, <em>Preview</em>, <em>Save</em>. Steps are a vertical list with explicit numbers and grip handles; the rounded indices stay visible so reorder doesn&rsquo;t feel destructive. <strong>Step 6 — Mark roundings</strong> carries a <em>stuck point</em> flag, the same signal that lights up on Insights; it&rsquo;s editorial guidance, not a system error, so the styling is amber, not coral. The right rail keeps the heavy decisions — publish, price, and a quick glance at who&rsquo;s on the blueprint right now.
+        </p>
+      </div>
+    </div>
+
+    <!-- ============================================================== -->
+    <!-- ===========         FRAME 3 — SUBSCRIBERS              ======== -->
+    <!-- ============================================================== -->
+    <div class="frame-col" data-screen-label="03 Subscribers">
+      <div class="desktop">
+        <div class="chrome">
+          <div class="lights"><span class="r"></span><span class="y"></span><span class="g"></span></div>
+          <div class="url"><div class="url-inner">
+            <i class="ti ti-lock"></i>
+            <span><strong>betterat.app</strong>/creator/subscribers?blueprint=dragon-worlds-prep</span>
+          </div></div>
+        </div>
+
+        <div class="app">
+
+          <aside class="sidebar">
+            <div class="brand">
+              <div class="mark">B</div>
+              <div class="wordmark">BetterAt <span>· Creator</span></div>
+            </div>
+            <div class="nav">
+              <div class="group-label">Product</div>
+              <div class="item"><i class="ti ti-anchor"></i><span>Practice</span></div>
+              <div class="item"><i class="ti ti-book-2"></i><span>Playbook</span></div>
+              <div class="item"><i class="ti ti-compass"></i><span>Discover</span></div>
+              <div class="item"><i class="ti ti-school"></i><span>Learn</span></div>
+              <div class="item"><i class="ti ti-notebook"></i><span>Reflect</span></div>
+              <div class="group-label">Creator</div>
+              <div class="item"><i class="ti ti-template"></i><span>Blueprints</span><span class="count">5</span></div>
+              <div class="item on"><i class="ti ti-users"></i><span>Subscribers</span><span class="count">296</span></div>
+              <div class="item"><i class="ti ti-chart-line"></i><span>Insights</span></div>
+              <div class="item"><i class="ti ti-coin"></i><span>Earnings</span></div>
+              <div class="item"><i class="ti ti-settings"></i><span>Settings</span></div>
+            </div>
+            <div class="spacer"></div>
+            <div class="footer">
+              <div class="av">BvO</div>
+              <div class="meta">
+                <div class="name">Bram van Olphen</div>
+                <div class="role">Creator · Dragon class</div>
+              </div>
+            </div>
+          </aside>
+
+          <main class="content">
+            <div class="creator-strap">
+              <div class="av-lg">BvO</div>
+              <div class="who">
+                <div class="title">Creator Dashboard</div>
+                <div class="sub">Bram van Olphen &middot; 5 blueprints &middot; 296 active subscribers</div>
+              </div>
+              <div class="spacer"></div>
+              <div class="strap-actions">
+                <button class="icon-btn"><i class="ti ti-search"></i></button>
+                <button class="icon-btn"><i class="ti ti-bell"></i><span class="badge"></span></button>
+                <button class="icon-btn"><i class="ti ti-help-circle"></i></button>
+                <button class="new-blueprint"><i class="ti ti-plus"></i>New Blueprint</button>
+              </div>
+            </div>
+
+            <div class="tab-strip">
+              <div class="tab">Blueprints <span class="n">5</span></div>
+              <div class="tab on">Subscribers <span class="n">296</span></div>
+              <div class="tab">Insights</div>
+              <div class="tab">Earnings</div>
+              <div class="tab">Settings</div>
+              <div class="spacer"></div>
+              <div class="right">
+                <span class="pill" style="color:var(--ios-coral);background:var(--ios-coral-tint);border-color:transparent;font-weight:600;">1 unread message</span>
+              </div>
+            </div>
+
+            <div class="canvas">
+
+              <!-- Filter bar -->
+              <div class="sub-filterbar">
+                <div class="blueprint-pick">
+                  <i class="ti ti-template"></i>
+                  <strong>Dragon Worlds Prep</strong>
+                  <i class="ti ti-chevron-down" style="margin-left:2px;"></i>
+                </div>
+                <div class="seg">
+                  <span class="opt on">All <span class="n">28</span></span>
+                  <span class="opt">Active <span class="n">22</span></span>
+                  <span class="opt">Stalled <span class="n">4</span></span>
+                  <span class="opt">Completed <span class="n">2</span></span>
+                </div>
+                <div class="spacer"></div>
+                <div class="search-wrap">
+                  <i class="ti ti-search"></i>
+                  <div class="search">Search subscribers</div>
+                </div>
+                <button class="bulk"><i class="ti ti-mail"></i>Message all</button>
+              </div>
+
+              <!-- Table -->
+              <div class="sub-table">
+                <div class="t-head">
+                  <span>Subscriber</span>
+                  <span>Progress</span>
+                  <span>Status</span>
+                  <span>Last activity</span>
+                  <span style="text-align:right;">Actions</span>
+                </div>
+
+                <!-- Tomás -->
+                <div class="sub-row">
+                  <div class="person">
+                    <div class="av a1">TR</div>
+                    <div>
+                      <div class="name">Tomás Renart</div>
+                      <div class="handle">@tomas.r · Buenos Aires</div>
+                    </div>
+                  </div>
+                  <div class="progress">
+                    <span class="num"><strong>Step 9</strong> of 14</span>
+                    <div class="bar"><span class="fill" style="width:64%;"></span></div>
+                  </div>
+                  <div><span class="status-chip active">Active</span></div>
+                  <div class="when">2h ago<span class="sub-sub">Step 9 · note added</span></div>
+                  <div class="actions" style="justify-self:end;">
+                    <button class="btn"><i class="ti ti-chart-line"></i>Progress</button>
+                    <button class="btn primary"><i class="ti ti-mail"></i>Message</button>
+                  </div>
+                </div>
+
+                <!-- Jamie -->
+                <div class="sub-row">
+                  <div class="person">
+                    <div class="av a3">JM</div>
+                    <div>
+                      <div class="name">Jamie McWilliam</div>
+                      <div class="handle">@jamie.mcw · Cowes</div>
+                    </div>
+                  </div>
+                  <div class="progress">
+                    <span class="num"><strong>Step 4</strong> of 14</span>
+                    <div class="bar"><span class="fill" style="width:28%;"></span></div>
+                  </div>
+                  <div><span class="status-chip active">Active</span></div>
+                  <div class="when">today<span class="sub-sub">Step 4 · video watched</span></div>
+                  <div class="actions" style="justify-self:end;">
+                    <button class="btn"><i class="ti ti-chart-line"></i>Progress</button>
+                    <button class="btn primary"><i class="ti ti-mail"></i>Message</button>
+                  </div>
+                </div>
+
+                <!-- Bence — AHEAD -->
+                <div class="sub-row">
+                  <div class="person">
+                    <div class="av a5">BT</div>
+                    <div>
+                      <div class="name">Bence Toronyi</div>
+                      <div class="handle">@bence.t · Budapest</div>
+                    </div>
+                  </div>
+                  <div class="progress">
+                    <span class="num"><strong>Step 11</strong> of 14 <span class="ahead">Ahead</span></span>
+                    <div class="bar"><span class="fill ahead" style="width:79%;"></span></div>
+                  </div>
+                  <div><span class="status-chip active">Active</span></div>
+                  <div class="when">yesterday<span class="sub-sub">Step 11 · journal entry</span></div>
+                  <div class="actions" style="justify-self:end;">
+                    <button class="btn"><i class="ti ti-chart-line"></i>Progress</button>
+                    <button class="btn primary"><i class="ti ti-mail"></i>Message</button>
+                  </div>
+                </div>
+
+                <!-- Sarah Chen — Stalled at 6 -->
+                <div class="sub-row">
+                  <div class="person">
+                    <div class="av a4">SC</div>
+                    <div>
+                      <div class="name">Sarah Chen</div>
+                      <div class="handle">@sarahchen · San Francisco</div>
+                    </div>
+                  </div>
+                  <div class="progress">
+                    <span class="num"><strong>Step 6</strong> of 14</span>
+                    <div class="bar"><span class="fill stalled" style="width:42%;"></span></div>
+                  </div>
+                  <div><span class="status-chip stalled">Stalled</span></div>
+                  <div class="when">8d ago<span class="sub-sub">Step 6 · mark roundings</span></div>
+                  <div class="actions" style="justify-self:end;">
+                    <button class="btn"><i class="ti ti-chart-line"></i>Progress</button>
+                    <button class="btn primary"><i class="ti ti-mail"></i>Message</button>
+                  </div>
+                </div>
+
+                <!-- Marcus Holloway — Completed -->
+                <div class="sub-row">
+                  <div class="person">
+                    <div class="av a7">MH</div>
+                    <div>
+                      <div class="name">Marcus Holloway</div>
+                      <div class="handle">@m.holloway · Newport, RI</div>
+                    </div>
+                  </div>
+                  <div class="progress">
+                    <span class="num"><strong>Step 14</strong> of 14</span>
+                    <div class="bar"><span class="fill done" style="width:100%;"></span></div>
+                  </div>
+                  <div><span class="status-chip completed">Completed</span></div>
+                  <div class="when">3d ago<span class="sub-sub">finished · debrief filed</span></div>
+                  <div class="actions" style="justify-self:end;">
+                    <button class="btn"><i class="ti ti-chart-line"></i>Progress</button>
+                    <button class="btn primary"><i class="ti ti-mail"></i>Message</button>
+                  </div>
+                </div>
+
+                <!-- Anya Voss — Stalled at 6 -->
+                <div class="sub-row">
+                  <div class="person">
+                    <div class="av a9">AV</div>
+                    <div>
+                      <div class="name">Anya Voss</div>
+                      <div class="handle">@anyavoss · Hamburg</div>
+                    </div>
+                  </div>
+                  <div class="progress">
+                    <span class="num"><strong>Step 6</strong> of 14</span>
+                    <div class="bar"><span class="fill stalled" style="width:42%;"></span></div>
+                  </div>
+                  <div><span class="status-chip stalled">Stalled</span></div>
+                  <div class="when">12d ago<span class="sub-sub">Step 6 · no activity</span></div>
+                  <div class="actions" style="justify-self:end;">
+                    <button class="btn"><i class="ti ti-chart-line"></i>Progress</button>
+                    <button class="btn primary"><i class="ti ti-mail"></i>Message</button>
+                  </div>
+                </div>
+
+                <!-- Diego Mendez — Unread message -->
+                <div class="sub-row">
+                  <div class="person">
+                    <div class="av a2">DM<span class="unread"></span></div>
+                    <div>
+                      <div class="name">Diego Mendez</div>
+                      <div class="handle">@diegomendez · Valencia</div>
+                    </div>
+                  </div>
+                  <div class="progress">
+                    <span class="num"><strong>Step 2</strong> of 14</span>
+                    <div class="bar"><span class="fill" style="width:14%;"></span></div>
+                  </div>
+                  <div><span class="status-chip active">Active</span></div>
+                  <div class="when">1h ago<span class="sub-sub">replied to your DM</span></div>
+                  <div class="actions" style="justify-self:end;">
+                    <button class="btn"><i class="ti ti-chart-line"></i>Progress</button>
+                    <button class="btn unread"><i class="ti ti-mail-opened"></i>Reply</button>
+                  </div>
+                </div>
+
+                <!-- Liam O'Connor -->
+                <div class="sub-row">
+                  <div class="person">
+                    <div class="av a8">LO</div>
+                    <div>
+                      <div class="name">Liam O&rsquo;Connor</div>
+                      <div class="handle">@liam.oc · Dún Laoghaire</div>
+                    </div>
+                  </div>
+                  <div class="progress">
+                    <span class="num"><strong>Step 7</strong> of 14</span>
+                    <div class="bar"><span class="fill" style="width:50%;"></span></div>
+                  </div>
+                  <div><span class="status-chip active">Active</span></div>
+                  <div class="when">today<span class="sub-sub">Step 7 · note added</span></div>
+                  <div class="actions" style="justify-self:end;">
+                    <button class="btn"><i class="ti ti-chart-line"></i>Progress</button>
+                    <button class="btn primary"><i class="ti ti-mail"></i>Message</button>
+                  </div>
+                </div>
+
+                <!-- Saskia Brouwer — Completed -->
+                <div class="sub-row">
+                  <div class="person">
+                    <div class="av a6">SB</div>
+                    <div>
+                      <div class="name">Saskia Brouwer</div>
+                      <div class="handle">@saskia.b · Medemblik</div>
+                    </div>
+                  </div>
+                  <div class="progress">
+                    <span class="num"><strong>Step 14</strong> of 14</span>
+                    <div class="bar"><span class="fill done" style="width:100%;"></span></div>
+                  </div>
+                  <div><span class="status-chip completed">Completed</span></div>
+                  <div class="when">6d ago<span class="sub-sub">finished · 5★ rating</span></div>
+                  <div class="actions" style="justify-self:end;">
+                    <button class="btn"><i class="ti ti-chart-line"></i>Progress</button>
+                    <button class="btn primary"><i class="ti ti-mail"></i>Message</button>
+                  </div>
+                </div>
+
+                <!-- Henrik Lindqvist -->
+                <div class="sub-row">
+                  <div class="person">
+                    <div class="av aB">HL</div>
+                    <div>
+                      <div class="name">Henrik Lindqvist</div>
+                      <div class="handle">@h.lindqvist · Stockholm</div>
+                    </div>
+                  </div>
+                  <div class="progress">
+                    <span class="num"><strong>Step 5</strong> of 14</span>
+                    <div class="bar"><span class="fill" style="width:35%;"></span></div>
+                  </div>
+                  <div><span class="status-chip active">Active</span></div>
+                  <div class="when">3d ago<span class="sub-sub">Step 5 · video watched</span></div>
+                  <div class="actions" style="justify-self:end;">
+                    <button class="btn"><i class="ti ti-chart-line"></i>Progress</button>
+                    <button class="btn primary"><i class="ti ti-mail"></i>Message</button>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+          </main>
+
+        </div>
+      </div>
+
+      <div class="frame-cap">
+        <p class="eyebrow">Frame 3 · Subscribers</p>
+        <h3>Subscribers &middot; <em>twenty-eight names, four states, one unread reply</em></h3>
+        <p>
+          A blueprint picker on the left of the filter bar — the default view is the most-recently-edited blueprint, here <em>Dragon Worlds Prep</em>. The four-state segment (<em>All / Active / Stalled / Completed</em>) doubles as a count overview. Each row carries a thin progress bar tinted by status, so two subscribers parked at Step 6 read as a pattern, not a coincidence. <strong>Bence</strong> is flagged <em>Ahead</em> at Step 11 — teal, not green, because it&rsquo;s a different kind of good. <strong>Diego</strong>&rsquo;s avatar carries the unread-message dot and the action button flips coral; everyone else gets the neutral <em>Message</em> button.
+        </p>
+      </div>
+    </div>
+
+    <!-- ============================================================== -->
+    <!-- ===========         FRAME 4 — INSIGHTS                 ======== -->
+    <!-- ============================================================== -->
+    <div class="frame-col" data-screen-label="04 Insights">
+      <div class="desktop">
+        <div class="chrome">
+          <div class="lights"><span class="r"></span><span class="y"></span><span class="g"></span></div>
+          <div class="url"><div class="url-inner">
+            <i class="ti ti-lock"></i>
+            <span><strong>betterat.app</strong>/creator/insights?blueprint=dragon-worlds-prep</span>
+          </div></div>
+        </div>
+
+        <div class="app">
+
+          <aside class="sidebar">
+            <div class="brand">
+              <div class="mark">B</div>
+              <div class="wordmark">BetterAt <span>· Creator</span></div>
+            </div>
+            <div class="nav">
+              <div class="group-label">Product</div>
+              <div class="item"><i class="ti ti-anchor"></i><span>Practice</span></div>
+              <div class="item"><i class="ti ti-book-2"></i><span>Playbook</span></div>
+              <div class="item"><i class="ti ti-compass"></i><span>Discover</span></div>
+              <div class="item"><i class="ti ti-school"></i><span>Learn</span></div>
+              <div class="item"><i class="ti ti-notebook"></i><span>Reflect</span></div>
+              <div class="group-label">Creator</div>
+              <div class="item"><i class="ti ti-template"></i><span>Blueprints</span><span class="count">5</span></div>
+              <div class="item"><i class="ti ti-users"></i><span>Subscribers</span><span class="count">296</span></div>
+              <div class="item on"><i class="ti ti-chart-line"></i><span>Insights</span></div>
+              <div class="item"><i class="ti ti-coin"></i><span>Earnings</span></div>
+              <div class="item"><i class="ti ti-settings"></i><span>Settings</span></div>
+            </div>
+            <div class="spacer"></div>
+            <div class="footer">
+              <div class="av">BvO</div>
+              <div class="meta">
+                <div class="name">Bram van Olphen</div>
+                <div class="role">Creator · Dragon class</div>
+              </div>
+            </div>
+          </aside>
+
+          <main class="content">
+            <div class="creator-strap">
+              <div class="av-lg">BvO</div>
+              <div class="who">
+                <div class="title">Creator Dashboard</div>
+                <div class="sub">Bram van Olphen &middot; 5 blueprints &middot; 296 active subscribers</div>
+              </div>
+              <div class="spacer"></div>
+              <div class="strap-actions">
+                <button class="icon-btn"><i class="ti ti-search"></i></button>
+                <button class="icon-btn"><i class="ti ti-bell"></i><span class="badge"></span></button>
+                <button class="icon-btn"><i class="ti ti-help-circle"></i></button>
+                <button class="new-blueprint"><i class="ti ti-plus"></i>New Blueprint</button>
+              </div>
+            </div>
+
+            <div class="tab-strip">
+              <div class="tab">Blueprints <span class="n">5</span></div>
+              <div class="tab">Subscribers <span class="n">296</span></div>
+              <div class="tab on">Insights</div>
+              <div class="tab">Earnings</div>
+              <div class="tab">Settings</div>
+              <div class="spacer"></div>
+              <div class="right">
+                <span class="pill">betterat.app/c/bram</span>
+              </div>
+            </div>
+
+            <div class="canvas">
+
+              <!-- Filter toolbar -->
+              <div class="ins-toolbar">
+                <div class="blueprint-pick" style="display:inline-flex;align-items:center;gap:8px;padding:5px 10px;border-radius:8px;background:var(--gray-6);border:0.5px solid var(--gray-4);font-size:12px;color:var(--label-2);letter-spacing:-0.1px;">
+                  <i class="ti ti-template" style="font-size:13px;color:var(--label-3);"></i>
+                  <strong style="color:var(--label);font-weight:600;">Dragon Worlds Prep</strong>
+                  <i class="ti ti-chevron-down" style="font-size:13px;color:var(--label-3);"></i>
+                </div>
+                <div class="left-meta" style="margin-left:8px;">
+                  <span class="top"><strong>28</strong> subscribers · <strong>22</strong> active · <strong>4</strong> stalled</span>
+                  <span class="sub">14 steps · published 11 weeks ago</span>
+                </div>
+                <span class="spacer"></span>
+                <div class="seg">
+                  <span class="opt">Last 30 days</span>
+                  <span class="opt on">Last 90 days</span>
+                  <span class="opt">All time</span>
+                </div>
+                <button class="export"><i class="ti ti-download"></i>Export CSV</button>
+              </div>
+
+              <div class="ins-grid">
+
+                <!-- Main column -->
+                <div class="ins-main">
+
+                  <!-- Heatmap -->
+                  <div class="widget" style="flex:1; display:flex; flex-direction:column;">
+                    <div class="w-head">
+                      <span class="label">Step Completion</span>
+                      <span class="sub">% of subscribers who finished each step</span>
+                      <span class="spacer"></span>
+                      <span class="delta down"><i class="ti ti-trending-down"></i>2 weak steps</span>
+                    </div>
+                    <div class="heatmap" style="flex:1;">
+                      <span class="num">1</span>
+                      <div class="step-name"><span class="nm">Boat preparation</span></div>
+                      <span class="val">96%</span>
+                      <span></span>
+                      <div class="bar"><span class="fill" style="width:96%;"></span></div>
+                      <span></span>
+
+                      <span class="num">2</span>
+                      <div class="step-name"><span class="nm">Light-air starts</span></div>
+                      <span class="val">93%</span>
+                      <span></span>
+                      <div class="bar"><span class="fill" style="width:93%;"></span></div>
+                      <span></span>
+
+                      <span class="num">3</span>
+                      <div class="step-name"><span class="nm">Heavy-air starts</span></div>
+                      <span class="val">88%</span>
+                      <span></span>
+                      <div class="bar"><span class="fill" style="width:88%;"></span></div>
+                      <span></span>
+
+                      <span class="num">4</span>
+                      <div class="step-name"><span class="nm">Upwind speed in chop</span></div>
+                      <span class="val">82%</span>
+                      <span></span>
+                      <div class="bar"><span class="fill" style="width:82%;"></span></div>
+                      <span></span>
+
+                      <span class="num">5</span>
+                      <div class="step-name"><span class="nm">Downwind acceleration</span></div>
+                      <span class="val">79%</span>
+                      <span></span>
+                      <div class="bar"><span class="fill" style="width:79%;"></span></div>
+                      <span></span>
+
+                      <span class="num" style="color:#A86200;">6</span>
+                      <div class="step-name"><span class="nm">Mark roundings</span><span class="flag low">stuck — 32%</span></div>
+                      <span class="val" style="color:#A86200;">47%</span>
+                      <span></span>
+                      <div class="bar"><span class="fill low" style="width:47%;"></span></div>
+                      <span></span>
+
+                      <span class="num">7</span>
+                      <div class="step-name"><span class="nm">Tactical decisions in shifts</span></div>
+                      <span class="val">71%</span>
+                      <span></span>
+                      <div class="bar"><span class="fill" style="width:71%;"></span></div>
+                      <span></span>
+
+                      <span class="num">8</span>
+                      <div class="step-name"><span class="nm">Rules in close-quarters</span></div>
+                      <span class="val">68%</span>
+                      <span></span>
+                      <div class="bar"><span class="fill" style="width:68%;"></span></div>
+                      <span></span>
+
+                      <span class="num">9</span>
+                      <div class="step-name"><span class="nm">Heavy-air upwind speed</span></div>
+                      <span class="val">64%</span>
+                      <span></span>
+                      <div class="bar"><span class="fill" style="width:64%;"></span></div>
+                      <span></span>
+
+                      <span class="num">10</span>
+                      <div class="step-name"><span class="nm">Spinnaker handling</span></div>
+                      <span class="val">61%</span>
+                      <span></span>
+                      <div class="bar"><span class="fill" style="width:61%;"></span></div>
+                      <span></span>
+
+                      <span class="num" style="color:#A86200;">11</span>
+                      <div class="step-name"><span class="nm">Recovery from mistakes</span><span class="flag warn">stuck — 18%</span></div>
+                      <span class="val" style="color:#A86200;">52%</span>
+                      <span></span>
+                      <div class="bar"><span class="fill warn" style="width:52%;"></span></div>
+                      <span></span>
+
+                      <span class="num">12</span>
+                      <div class="step-name"><span class="nm">Race-day routine</span></div>
+                      <span class="val">48%</span>
+                      <span></span>
+                      <div class="bar"><span class="fill" style="width:48%;"></span></div>
+                      <span></span>
+
+                      <span class="num">13</span>
+                      <div class="step-name"><span class="nm">Mental preparation</span></div>
+                      <span class="val">36%</span>
+                      <span></span>
+                      <div class="bar"><span class="fill" style="width:36%;"></span></div>
+                      <span></span>
+
+                      <span class="num">14</span>
+                      <div class="step-name"><span class="nm">Debrief and integration</span></div>
+                      <span class="val">25%</span>
+                      <span></span>
+                      <div class="bar"><span class="fill" style="width:25%;"></span></div>
+                      <span></span>
+                    </div>
+                  </div>
+
+                  <!-- Avg time per step -->
+                  <div class="widget">
+                    <div class="w-head">
+                      <span class="label">Average Time per Step</span>
+                      <span class="sub">days, from start of step to next-step click</span>
+                      <span class="spacer"></span>
+                      <span class="sub" style="color:var(--label-3);">avg 4.8 d</span>
+                    </div>
+                    <div class="avg-grid">
+                      <div class="avg-bar" style="height:24%;"><span class="ttip">2.1</span></div>
+                      <div class="avg-bar" style="height:38%;"><span class="ttip">3.4</span></div>
+                      <div class="avg-bar" style="height:46%;"><span class="ttip">4.1</span></div>
+                      <div class="avg-bar" style="height:52%;"><span class="ttip">4.6</span></div>
+                      <div class="avg-bar" style="height:48%;"><span class="ttip">4.3</span></div>
+                      <div class="avg-bar warn" style="height:92%;"><span class="ttip">8.2</span></div>
+                      <div class="avg-bar" style="height:54%;"><span class="ttip">4.8</span></div>
+                      <div class="avg-bar" style="height:58%;"><span class="ttip">5.1</span></div>
+                      <div class="avg-bar" style="height:54%;"><span class="ttip">4.8</span></div>
+                      <div class="avg-bar" style="height:50%;"><span class="ttip">4.4</span></div>
+                      <div class="avg-bar warn" style="height:74%;"><span class="ttip">6.6</span></div>
+                      <div class="avg-bar" style="height:46%;"><span class="ttip">4.1</span></div>
+                      <div class="avg-bar" style="height:42%;"><span class="ttip">3.7</span></div>
+                      <div class="avg-bar" style="height:36%;"><span class="ttip">3.2</span></div>
+                    </div>
+                    <div class="avg-labels">
+                      <span>1</span><span>2</span><span>3</span><span>4</span><span>5</span>
+                      <span style="color:#A86200;font-weight:600;">6</span>
+                      <span>7</span><span>8</span><span>9</span><span>10</span>
+                      <span style="color:#A86200;font-weight:600;">11</span>
+                      <span>12</span><span>13</span><span>14</span>
+                    </div>
+                  </div>
+
+                </div>
+
+                <!-- Rail -->
+                <div class="ins-rail">
+
+                  <!-- Stall callout -->
+                  <div class="stall-card">
+                    <h5><i class="ti ti-alert-triangle"></i>Steps where subscribers stall</h5>
+                    <div class="lede">Two steps are slowing the program down. Fix these and average completion climbs from 62%&nbsp;→&nbsp;~74%.</div>
+
+                    <div class="stall-row">
+                      <span class="num">6</span>
+                      <div class="body">
+                        <strong>Mark roundings</strong> &middot; 9 of 28 stuck<br/>
+                        <span style="color:var(--label-3);">avg 8.2 days on this step vs. 4.8 d baseline</span>
+                      </div>
+                      <span class="pct">32%</span>
+                    </div>
+                    <div class="stall-row">
+                      <span class="num">11</span>
+                      <div class="body">
+                        <strong>Recovery from mistakes</strong> &middot; 5 of 28 stuck<br/>
+                        <span style="color:var(--label-3);">2nd-largest drop in completion</span>
+                      </div>
+                      <span class="pct">18%</span>
+                    </div>
+
+                    <button class="cta">Open Step 6 in the editor <i class="ti ti-arrow-right"></i></button>
+                  </div>
+
+                  <!-- Capability dev by cohort -->
+                  <div class="widget">
+                    <div class="w-head">
+                      <span class="label">Capability Development</span>
+                      <span class="sub">by signup cohort</span>
+                    </div>
+                    <div class="cohort-multi">
+                      <div class="row">
+                        <div class="nm"><strong>Q1 2026</strong><span class="sub">12 subscribers</span></div>
+                        <div class="stacks">
+                          <div class="b"><span class="f" style="width:84%;"></span></div>
+                          <div class="b"><span class="f t" style="width:72%;"></span></div>
+                          <div class="b"><span class="f p" style="width:64%;"></span></div>
+                          <div class="b"><span class="f g" style="width:58%;"></span></div>
+                        </div>
+                      </div>
+                      <div class="row">
+                        <div class="nm"><strong>Q4 2025</strong><span class="sub">9 subscribers</span></div>
+                        <div class="stacks">
+                          <div class="b"><span class="f" style="width:91%;"></span></div>
+                          <div class="b"><span class="f t" style="width:80%;"></span></div>
+                          <div class="b"><span class="f p" style="width:54%;"></span></div>
+                          <div class="b"><span class="f g" style="width:72%;"></span></div>
+                        </div>
+                      </div>
+                      <div class="row">
+                        <div class="nm"><strong>Q3 2025</strong><span class="sub">7 subscribers</span></div>
+                        <div class="stacks">
+                          <div class="b"><span class="f" style="width:94%;"></span></div>
+                          <div class="b"><span class="f t" style="width:88%;"></span></div>
+                          <div class="b"><span class="f p" style="width:62%;"></span></div>
+                          <div class="b"><span class="f g" style="width:84%;"></span></div>
+                        </div>
+                      </div>
+                      <div class="legend">
+                        <span class="swatch"><span class="dot" style="background:var(--ios-blue);"></span>Starts</span>
+                        <span class="swatch"><span class="dot" style="background:var(--ios-teal);"></span>Upwind</span>
+                        <span class="swatch"><span class="dot" style="background:var(--ios-purple);"></span>Tactics</span>
+                        <span class="swatch"><span class="dot" style="background:var(--ios-green);"></span>Boat tune</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Net engagement -->
+                  <div class="widget">
+                    <div class="w-head">
+                      <span class="label">Net engagement</span>
+                      <span class="sub">last 90 days</span>
+                    </div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+                      <div>
+                        <div style="font-size:11px;letter-spacing:0.06em;text-transform:uppercase;color:var(--label-3);font-weight:600;">Avg session</div>
+                        <div style="font-size:24px;font-weight:600;letter-spacing:-0.02em;color:var(--label);font-variant-numeric:tabular-nums;margin-top:2px;">22<span style="font-size:13px;color:var(--label-3);font-weight:500;"> min</span></div>
+                        <div style="font-size:11px;color:var(--ios-green);font-weight:600;margin-top:1px;">+3 min vs. prior 90d</div>
+                      </div>
+                      <div>
+                        <div style="font-size:11px;letter-spacing:0.06em;text-transform:uppercase;color:var(--label-3);font-weight:600;">Re-watch rate</div>
+                        <div style="font-size:24px;font-weight:600;letter-spacing:-0.02em;color:var(--label);font-variant-numeric:tabular-nums;margin-top:2px;">38<span style="font-size:13px;color:var(--label-3);font-weight:500;">%</span></div>
+                        <div style="font-size:11px;color:var(--label-3);font-weight:500;margin-top:1px;">step 6 leads at 71%</div>
+                      </div>
+                    </div>
+                  </div>
+
+                </div>
+
+              </div>
+            </div>
+          </main>
+
+        </div>
+      </div>
+
+      <div class="frame-cap">
+        <p class="eyebrow">Frame 4 · Insights</p>
+        <h3>Insights &middot; <em>the dashboard that argues for a specific edit</em></h3>
+        <p>
+          The heatmap is the centerpiece — fourteen horizontal bars, one per step, with the two amber outliers calling out exactly which steps are weak. Step 6 (<em>Mark roundings</em>) is the stuck point the spec calls out: only 47% finish it and the average time on step is 8.2 days against a 4.8-day baseline, which is what the <em>Average Time per Step</em> chart underneath corroborates. The stall callout on the right rail reads like advice, not a report: the headline is the <em>fix</em>, not the problem; the button takes you straight back into the editor at Step 6.
+        </p>
+      </div>
+    </div>
+
+  </div>
+
+  <p class="resp-note">
+    Mobile-responsive degradation exists — the sidebar collapses into a sheet, the tab strip becomes a select, and the editor switches to a single-column scroll with the publishing rail pushed to the bottom — but the canonical view is desktop. The creator surface is where work gets done; the consumer-facing iOS app is where blueprints are read.
+  </p>
+
+  <!-- ============= Commentary ============= -->
+  <section class="commentary">
+    <div class="col">
+      <h4>What the creator surface inherits from Org Admin</h4>
+      <p>
+        Same product chrome: <strong>black BetterAt mark</strong>, sidebar product nav, white window on the warm review ground. SF Pro for UI; iOS blue is still the single owner of action color. The strap structure is identical — a 56px row above the tab strip — but instead of an institutional shield it carries the creator&rsquo;s own avatar disc and the words <em>Creator Dashboard</em>.
+      </p>
+      <p>
+        This is deliberate. A creator who also administers an organization should never feel like she switched products when she moves between the two surfaces. The grammar is shared; the verbs differ.
+      </p>
+    </div>
+    <div class="col">
+      <h4>Cover placeholders, not boats</h4>
+      <p>
+        Each blueprint card has a cover slot, but we draw a <strong>striped placeholder with a monospace tag</strong> rather than a fake illustration. A real creator uploads their own image; until then a card carries a flat color block in the program&rsquo;s key palette and a typeset title spine. The draft uses a dashed-grey placeholder — visually distinct, structurally identical to a published cover.
+      </p>
+      <p>
+        This is the default-aesthetic rule applied to the creator product: never hand-draw a sailboat in SVG when the real cover is one upload away.
+      </p>
+    </div>
+    <div class="col">
+      <h4>The stuck-point flag</h4>
+      <p>
+        Step 6 carries an amber <strong>stuck point</strong> badge in three places: in the editor steps list, in the heatmap on Insights, and inside the stall-card callout. Same shape, same color, same wording in all three. The flag is editorial, not an error — amber, not coral — and never appears for a step until at least <em>15% of subscribers</em> have stalled there.
+      </p>
+      <p>
+        The whole point of the metric is to argue for an edit. Hence the stall callout&rsquo;s button goes back into the editor at the exact step, not to a separate analytics page.
+      </p>
+    </div>
+    <div class="col">
+      <h4>What got skipped</h4>
+      <p>
+        <strong>Earnings</strong> is shown as a tab and a sidebar nav item but not drawn; the flow is standard Stripe Connect (creator-balance, next-payout, transactions list, tax-info) and the visual treatment is the same widget grammar used elsewhere. <strong>Settings</strong> is out of scope for this addendum.
+      </p>
+      <p>
+        The <strong>+ New Blueprint</strong> button opens the AI Coach scaffold — the empty-state flow lives in a separate canonical. From this screen it&rsquo;s just a button.
+      </p>
+    </div>
+  </section>
+
+</div>
+
+</body>
+</html>
