@@ -1,0 +1,1582 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=1480" />
+<title>BetterAt — Discover detail trio · iOS register</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css" />
+<style>
+  /* =========================================================================
+     Discover detail trio — iOS register.
+     Sibling pass to "Discover trio". Same hand. The list trio established
+     the chrome and the cell grammar; this pass extends those rules into the
+     detail level — Org, Person, Topic.
+
+     Tokens inherited from: Error canonical, Paths-for-you, Discover trio.
+     ========================================================================= */
+  :root {
+    --ios-sys-bg:        #F2F2F7;
+    --ios-sys-bg-grouped:#FFFFFF;
+    --ios-sys-fill-3:    #E5E5EA;
+    --ios-sys-fill-4:    #D1D1D6;
+    --ios-sys-fill-5:    #C7C7CC;
+    --ios-sys-fill-seg:  rgba(120, 120, 128, 0.12);
+    --ios-sys-fill-seg-active: #FFFFFF;
+
+    --ios-label:           #000000;
+    --ios-label-secondary: rgba(60, 60, 67, 0.62);
+    --ios-label-tertiary:  rgba(60, 60, 67, 0.32);
+    --ios-label-quaternary:rgba(60, 60, 67, 0.18);
+    --ios-separator:       rgba(60, 60, 67, 0.20);
+    --ios-separator-opaque:#C6C6C8;
+
+    --ios-blue:    #007AFF;
+    --ios-blue-tint:rgba(0, 122, 255, 0.12);
+
+    --accent-discover: #D97757;
+    --accent-tint:     rgba(217, 119, 87, 0.13);
+    --accent-strong-tint: rgba(217, 119, 87, 0.18);
+
+    /* Page stage — same warm review chrome as the Discover trio and Error canonical */
+    --stage:          #EFEAD8;
+    --stage-text:     #6B6558;
+    --stage-ink:      #2A2824;
+    --stage-line:     rgba(34, 30, 20, 0.12);
+    --stage-line-soft:rgba(34, 30, 20, 0.06);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display",
+                 "Helvetica Neue", Helvetica, Arial, sans-serif;
+    color: var(--ios-label);
+    background: var(--stage);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+  button, input { font-family: inherit; }
+
+  /* ============= Page chrome (inherited from Discover trio) ============= */
+  .page { min-width: 1480px; padding: 56px 48px 96px; }
+  .page-head { max-width: 1400px; margin: 0 auto 44px; }
+  .page-head .eyebrow {
+    font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--stage-text); margin: 0 0 12px;
+  }
+  .page-head h1 {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 32px; line-height: 1.15; font-weight: 500;
+    letter-spacing: -0.015em; margin: 0 0 14px; color: var(--stage-ink);
+  }
+  .page-head h1 em { font-style: italic; }
+  .page-head p {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 17px; line-height: 1.55;
+    color: var(--stage-text); margin: 0; max-width: 980px;
+  }
+  .page-head p em { font-style: italic; }
+  .page-head p strong { color: var(--stage-ink); font-weight: 500; }
+  .page-head .crumbs {
+    display: flex; gap: 10px; align-items: center; margin: 18px 0 0; flex-wrap: wrap;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+    font-size: 12px; color: var(--stage-text); letter-spacing: 0.02em;
+  }
+  .page-head .crumbs span.s {
+    padding: 4px 10px; border-radius: 999px;
+    background: rgba(255, 255, 255, 0.55);
+    border: 0.5px solid var(--stage-line);
+  }
+  .page-head .crumbs span.s.on {
+    background: var(--stage-ink); color: #F4EFDD; border-color: var(--stage-ink);
+  }
+  .page-head .crumbs i { font-size: 11px; color: var(--stage-text); opacity: 0.6; }
+
+  /* ============= Shared-chrome callout strip ============= */
+  .chrome-strip {
+    max-width: 1400px; margin: 0 auto 36px;
+    padding: 18px 22px;
+    background: rgba(255, 255, 255, 0.42);
+    border: 0.5px solid var(--stage-line);
+    border-radius: 14px;
+    display: grid; grid-template-columns: 220px repeat(5, 1fr);
+    gap: 24px; align-items: start;
+  }
+  .chrome-strip .head {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 14px; line-height: 1.4; color: var(--stage-ink); margin: 0;
+    text-wrap: pretty; font-weight: 500;
+  }
+  .chrome-strip .head em { font-style: italic; }
+  .chrome-strip .item {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+    font-size: 12px; line-height: 1.45; color: #4D4A43;
+  }
+  .chrome-strip .item .k {
+    display: block;
+    font-size: 10.5px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--stage-ink); margin: 0 0 6px;
+  }
+  .chrome-strip .item em { font-style: italic; color: var(--stage-ink); }
+
+  /* ============= Phone row ============= */
+  .row-phones {
+    max-width: 1400px;
+    margin: 0 auto 56px;
+    display: grid;
+    grid-template-columns: repeat(3, auto);
+    gap: 56px;
+    align-items: start;
+    justify-content: center;
+  }
+  .phone-col { display: flex; flex-direction: column; align-items: center; width: 393px; }
+
+  .phone {
+    width: 393px; height: 852px;
+    background: var(--ios-sys-bg);
+    border-radius: 56px;
+    border: 1px solid rgba(0, 0, 0, 0.12);
+    box-shadow:
+      0 30px 80px -40px rgba(34, 30, 20, 0.22),
+      0 2px 0 rgba(255,255,255,0.7) inset;
+    overflow: hidden;
+    position: relative;
+    isolation: isolate;
+  }
+  .phone .notch {
+    position: absolute; top: 11px; left: 50%; transform: translateX(-50%);
+    width: 116px; height: 34px; background: #0F0E0C; border-radius: 20px; z-index: 60;
+  }
+  .statusbar {
+    position: absolute; top: 0; left: 0; right: 0; height: 50px;
+    padding: 16px 32px 0; display: flex; align-items: center; justify-content: space-between;
+    font-weight: 600; font-size: 15px; color: var(--ios-label); z-index: 55; pointer-events: none;
+  }
+  .statusbar .right { display: flex; gap: 6px; align-items: center; }
+  .statusbar .right i { font-size: 15px; }
+  .home-indicator {
+    position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%);
+    width: 134px; height: 5px; border-radius: 3px;
+    background: rgba(0, 0, 0, 0.3); z-index: 65; pointer-events: none;
+  }
+
+  /* ============= Screen ============= */
+  .screen {
+    position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+    overflow-y: auto; overflow-x: hidden;
+    background: var(--ios-sys-bg);
+    padding-top: 50px;
+    scrollbar-width: none;
+  }
+  .screen::-webkit-scrollbar { display: none; }
+
+  /* ============= Nav bar (THE canonical detail chrome) =============
+     Standard iOS nav bar. 44pt tall. Three slots:
+       - leading: back chevron + the segment label of the surface we came
+         from. This is the bit the brief calls out — the list surface's
+         segment state must be preserved.
+       - centre: tiny context label ("Org", "Person", "Topic"). NOT the
+         unit name; the unit name is the hero's job.
+       - trailing: empty by default. On scroll, the primary relationship
+         action docks here. Demonstrated on the Topic surface (scrolled
+         state); see commentary.
+  */
+  .navbar {
+    height: 44px;
+    padding: 0 8px 0 4px;
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    background: rgba(242, 242, 247, 0.85);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    backdrop-filter: blur(20px) saturate(180%);
+    border-bottom: 0.5px solid transparent;
+    position: relative;
+    z-index: 10;
+  }
+  .navbar.docked {
+    border-bottom-color: var(--ios-separator);
+  }
+  .navbar .back {
+    display: inline-flex; align-items: center;
+    gap: 1px;
+    color: var(--ios-blue);
+    font-size: 17px; font-weight: 400;
+    letter-spacing: -0.3px;
+    background: none; border: none; padding: 6px 8px;
+    cursor: pointer;
+    justify-self: start;
+  }
+  .navbar .back i { font-size: 22px; margin-right: -2px; }
+  .navbar .title {
+    font-size: 12px; font-weight: 600;
+    letter-spacing: 0.06em; text-transform: uppercase;
+    color: var(--ios-label-secondary);
+    text-align: center;
+    line-height: 1.1;
+  }
+  .navbar .title .docked-name {
+    display: block;
+    font-size: 15px; font-weight: 600; letter-spacing: -0.25px;
+    color: var(--ios-label);
+    text-transform: none;
+    margin-top: 1px;
+  }
+  .navbar .nav-action {
+    justify-self: end;
+    display: inline-flex; align-items: center;
+    height: 30px; padding: 0 12px;
+    border-radius: 15px;
+    background: var(--ios-blue);
+    color: #fff; font-size: 13px; font-weight: 600;
+    letter-spacing: -0.1px;
+    border: none; cursor: pointer;
+  }
+  .navbar .nav-action.spacer {
+    background: transparent;
+    pointer-events: none;
+    visibility: hidden;
+  }
+
+  /* ============= Hero region =============
+     The hero is the shared anchor. Same scaffolding across all three
+     surfaces — visual mark + unit name + descriptor row + relationship
+     action — different content. The hero is what the user lands on; it
+     answers "what is this" and "what is my relationship" before anything
+     else loads.
+  */
+  .hero {
+    padding: 18px 22px 18px;
+    background: var(--ios-sys-bg);
+    position: relative;
+  }
+  .hero .hero-mark {
+    width: 64px; height: 64px;
+    flex-shrink: 0;
+    border-radius: 14px;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
+    font-weight: 600; letter-spacing: -0.3px;
+    overflow: hidden;
+  }
+  .hero .hero-mark.circle { border-radius: 50%; }
+  .hero .hero-mark.lm-deep  { background: #3F5B6F; color: #fff; font-size: 22px; }
+  .hero .hero-mark.av-rust  { background: #B5775A; color: #fff; font-size: 21px; }
+  .hero .hero-mark.topic    { background: var(--ios-sys-fill-3); color: var(--ios-label-secondary); }
+  .hero .hero-mark.topic i  { font-size: 32px; color: var(--ios-label); }
+
+  /* Hero name row — mark on the left, name + descriptors on the right.
+     The descriptors live in a column so they wrap predictably. */
+  .hero-row {
+    display: flex; align-items: flex-start; gap: 14px;
+  }
+  .hero-body { flex: 1 1 auto; min-width: 0; padding-top: 2px; }
+  .hero-name {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
+    font-size: 22px; font-weight: 600; letter-spacing: -0.45px;
+    line-height: 1.15;
+    color: var(--ios-label);
+    margin: 0;
+    text-wrap: pretty;
+  }
+  .hero-desc {
+    margin: 4px 0 0;
+    font-size: 13px; line-height: 1.35; letter-spacing: -0.08px;
+    color: var(--ios-label-secondary);
+    text-wrap: pretty;
+  }
+  .hero-desc .sep { margin: 0 5px; color: var(--ios-label-tertiary); }
+
+  /* Hero meta row — small inline metadata pellets (location, founded year,
+     member count). 12px label-secondary, single line, never wraps. */
+  .hero-meta {
+    margin: 8px 0 0;
+    display: flex; flex-wrap: wrap; gap: 4px 14px;
+    font-size: 12.5px; letter-spacing: -0.05px;
+    color: var(--ios-label-secondary);
+  }
+  .hero-meta span {
+    display: inline-flex; align-items: center; gap: 4px;
+    white-space: nowrap;
+  }
+  .hero-meta i { font-size: 13px; color: var(--ios-label-tertiary); }
+
+  /* ===== Relationship pattern =====
+     Two states, identical shape. The button is the canonical primary action
+     when the user has NOT yet got the relationship. The pill is the inverse:
+     user already has the relationship, the affordance is informational and
+     non-interactive. Same width, same vertical rhythm, same place in the
+     hero — only the chrome differs.
+  */
+  .hero-rel {
+    margin: 14px 0 0;
+    display: flex; gap: 10px; align-items: center;
+  }
+  .rel-btn {
+    flex: 1 1 0;
+    height: 38px;
+    background: var(--ios-blue); color: #fff;
+    font-size: 15px; font-weight: 600; letter-spacing: -0.2px;
+    border: none; border-radius: 10px;
+    display: inline-flex; align-items: center; justify-content: center;
+    gap: 6px;
+    cursor: pointer;
+  }
+  .rel-btn i { font-size: 16px; }
+  .rel-btn.secondary {
+    background: var(--ios-sys-fill-seg);
+    color: var(--ios-blue);
+  }
+  .rel-pill {
+    flex: 0 0 auto;
+    display: inline-flex; align-items: center; gap: 6px;
+    height: 28px; padding: 0 11px;
+    border-radius: 7px;
+    background: rgba(60, 60, 67, 0.08);
+    color: var(--ios-label-secondary);
+    font-size: 13px; font-weight: 600; letter-spacing: -0.08px;
+  }
+  .rel-pill i { font-size: 14px; }
+  .rel-pill.mine i { color: #3F8758; }
+  .rel-side-meta {
+    flex: 1 1 0;
+    font-size: 12.5px; line-height: 1.35;
+    color: var(--ios-label-secondary);
+    letter-spacing: -0.05px;
+  }
+  .rel-side-meta em { font-style: normal; color: var(--ios-label); font-weight: 500; }
+
+  /* ============= Section header pattern (THE canonical sibling marker) =====
+     Small caps eyebrow above each section body. Same dimensions, same
+     letter-spacing, same colour on all three surfaces. The optional
+     trailing "See all →" affordance lives in the same row when the
+     section has more rows than are shown. */
+  .section {
+    margin: 22px 0 0;
+  }
+  .section-head {
+    padding: 0 22px 8px;
+    display: flex; align-items: baseline; justify-content: space-between;
+    gap: 8px;
+  }
+  .section-head .k {
+    font-size: 11px; font-weight: 600;
+    letter-spacing: 0.10em; text-transform: uppercase;
+    color: var(--ios-label-secondary);
+  }
+  .section-head .see-all {
+    font-size: 13px; color: var(--ios-blue);
+    background: none; border: none; padding: 0; cursor: pointer;
+    letter-spacing: -0.08px;
+  }
+  .section-body {
+    margin: 0 16px;
+    background: var(--ios-sys-bg-grouped);
+    border-radius: 13px;
+    overflow: hidden;
+  }
+  .section.flush .section-body { margin: 0; border-radius: 0; }
+
+  /* ===== Plain text section (for hero-body descriptive paragraph) ===== */
+  .section-prose {
+    padding: 14px 16px 16px;
+    font-size: 15px; line-height: 1.4; letter-spacing: -0.2px;
+    color: var(--ios-label);
+  }
+  .section-prose em { font-style: normal; }
+
+  /* ===== Activity signal row (Org: institutional / Topic: conversation) =====
+     Same row component, three different jobs. Three colour-neutral signals
+     across the three surfaces — see commentary on activity rendering.
+  */
+  .signal-row {
+    display: flex; align-items: stretch; gap: 0;
+    border-top: 0.5px solid var(--ios-separator);
+  }
+  .signal-row:first-child { border-top: none; }
+  .signal {
+    flex: 1 1 0;
+    padding: 12px 14px;
+    border-right: 0.5px solid var(--ios-separator);
+  }
+  .signal:last-child { border-right: none; }
+  .signal .num {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
+    font-size: 20px; font-weight: 600; letter-spacing: -0.4px;
+    color: var(--ios-label);
+    line-height: 1.05;
+  }
+  .signal .num small {
+    font-size: 12px; font-weight: 500;
+    color: var(--ios-label-secondary);
+    margin-left: 3px;
+    letter-spacing: -0.05px;
+  }
+  .signal .lbl {
+    font-size: 11px; letter-spacing: 0.06em;
+    text-transform: uppercase; font-weight: 500;
+    color: var(--ios-label-secondary);
+    margin-top: 5px;
+  }
+
+  /* ===== Generic detail row (events, threads, mutuals) =====
+     Subordinate to the cells in the list trio. 12px inner padding, no
+     leading mark by default (only some variants carry one), single-line
+     title + small secondary line, optional trailing meta. Tap-disclosure
+     is the same chevron grammar. */
+  .drow {
+    display: flex; align-items: center;
+    padding: 11px 14px;
+    gap: 12px;
+    border-top: 0.5px solid var(--ios-separator);
+    background: var(--ios-sys-bg-grouped);
+    cursor: pointer;
+    position: relative;
+    min-height: 50px;
+  }
+  .drow:first-child { border-top: none; }
+  .drow .dlead {
+    width: 32px; flex-shrink: 0;
+    display: inline-flex; align-items: center; justify-content: center;
+    color: var(--ios-label-secondary);
+  }
+  .drow .dlead i { font-size: 18px; }
+  .drow .dlead.coral { color: var(--accent-discover); }
+  .drow .dbody { flex: 1 1 auto; min-width: 0; }
+  .drow .dtitle {
+    font-size: 15px; font-weight: 500; letter-spacing: -0.2px;
+    color: var(--ios-label);
+    line-height: 1.3;
+    margin: 0;
+    text-wrap: pretty;
+  }
+  .drow .dtitle em { font-style: normal; }
+  .drow .dsub {
+    margin: 2px 0 0;
+    font-size: 12.5px; letter-spacing: -0.05px;
+    color: var(--ios-label-secondary);
+    line-height: 1.3;
+  }
+  .drow .dsub .sep { color: var(--ios-label-tertiary); margin: 0 5px; }
+  .drow .dmeta {
+    flex-shrink: 0;
+    font-size: 12.5px; color: var(--ios-label-secondary);
+    letter-spacing: -0.05px;
+    text-align: right;
+  }
+  .drow .dmeta .when {
+    display: block;
+    color: var(--ios-label-tertiary);
+    font-size: 11.5px;
+    margin-top: 2px;
+  }
+  .drow .chev {
+    color: var(--ios-label-tertiary);
+    font-size: 14px; margin-left: 2px;
+  }
+  .drow.pinned .dlead { color: var(--accent-discover); }
+  .drow.pinned .dtitle::before {
+    content: "Pinned";
+    display: inline-block;
+    font-size: 10px; font-weight: 600;
+    letter-spacing: 0.06em; text-transform: uppercase;
+    color: var(--accent-discover);
+    margin-right: 8px;
+    vertical-align: 2px;
+  }
+
+  /* ===== Cross-reference row (THE canonical cross-ref marker) =====
+     People/orgs/topics referenced from another surface use this row. Same
+     visual treatment regardless of which kind it is — same height, same
+     leading-mark column, same one-line descriptor, same chevron.
+  */
+  .xrow {
+    display: flex; align-items: center;
+    padding: 10px 14px;
+    gap: 12px;
+    border-top: 0.5px solid var(--ios-separator);
+    background: var(--ios-sys-bg-grouped);
+    cursor: pointer;
+  }
+  .xrow:first-child { border-top: none; }
+  .xrow .xmark {
+    width: 36px; height: 36px;
+    flex-shrink: 0;
+    border-radius: 8px;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
+    font-size: 14px; font-weight: 600;
+    color: #fff;
+    overflow: hidden;
+  }
+  .xrow .xmark.circle { border-radius: 50%; }
+  .xrow .xmark.topic { background: var(--ios-sys-fill-3); color: var(--ios-label); }
+  .xrow .xmark.topic i { font-size: 18px; color: var(--ios-label-secondary); }
+  /* Palette for cross-ref marks — same set as the avatar palette on Discover */
+  .xmark.lm-slate { background: #4F6B7E; }
+  .xmark.lm-stone { background: #6B6558; }
+  .xmark.lm-sage  { background: #5E7363; }
+  .xmark.lm-sand  { background: #B8A984; }
+  .xmark.lm-ink   { background: #2A2824; }
+  .xmark.lm-deep  { background: #3F5B6F; }
+  .xmark.av-slate { background: #8B9DA8; }
+  .xmark.av-putty { background: #C2A285; }
+  .xmark.av-sage  { background: #98A38C; }
+  .xmark.av-deep  { background: #4F6B7E; }
+  .xmark.av-rose  { background: #C68B79; }
+  .xmark.av-stone { background: #8E847A; }
+  .xrow .xbody { flex: 1 1 auto; min-width: 0; }
+  .xrow .xname {
+    font-size: 15px; font-weight: 500; letter-spacing: -0.2px;
+    color: var(--ios-label);
+    margin: 0; line-height: 1.25;
+  }
+  .xrow .xsub {
+    margin: 2px 0 0;
+    font-size: 12.5px; letter-spacing: -0.05px;
+    color: var(--ios-label-secondary);
+    line-height: 1.25;
+  }
+  .xrow .xtail {
+    flex-shrink: 0;
+    font-size: 11.5px; color: var(--ios-label-tertiary);
+    letter-spacing: -0.05px;
+    max-width: 110px; text-align: right;
+  }
+  .xrow .chev { color: var(--ios-label-tertiary); font-size: 14px; margin-left: 2px; }
+
+  /* ===== Trajectory list (Person surface only) =====
+     Restrained. Two columns: trophy name (left), date (right). No medals,
+     no big artwork — Trophy's own no-medallion principle holds at preview
+     level too. */
+  .tro {
+    display: flex; align-items: center; gap: 12px;
+    padding: 11px 14px;
+    border-top: 0.5px solid var(--ios-separator);
+    background: var(--ios-sys-bg-grouped);
+    cursor: pointer;
+  }
+  .tro:first-child { border-top: none; }
+  .tro .trolead {
+    width: 28px; height: 28px;
+    border-radius: 7px;
+    background: rgba(60, 60, 67, 0.08);
+    display: inline-flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    color: var(--ios-label-secondary);
+  }
+  .tro .trolead i { font-size: 16px; }
+  .tro .trobody { flex: 1 1 auto; min-width: 0; }
+  .tro .trotitle {
+    font-size: 14.5px; font-weight: 500; letter-spacing: -0.15px;
+    color: var(--ios-label);
+    line-height: 1.25;
+    margin: 0;
+    text-wrap: pretty;
+  }
+  .tro .trosub {
+    margin: 2px 0 0;
+    font-size: 12px; letter-spacing: -0.05px;
+    color: var(--ios-label-secondary);
+  }
+  .tro .trowhen {
+    font-size: 12px; color: var(--ios-label-tertiary);
+    letter-spacing: -0.05px;
+    flex-shrink: 0;
+  }
+
+  /* ===== In-common signal row (Person surface only) =====
+     Plain text, italic-style emphasis on the concrete anchor. Mirrors the
+     evidence row on the Discover-People cell — same hand. */
+  .incommon {
+    padding: 13px 16px;
+    background: var(--ios-sys-bg-grouped);
+    font-size: 14.5px; line-height: 1.4; letter-spacing: -0.15px;
+    color: var(--ios-label);
+    display: flex; align-items: flex-start; gap: 10px;
+    border-top: 0.5px solid var(--ios-separator);
+  }
+  .incommon:first-child { border-top: none; }
+  .incommon .lead {
+    color: var(--ios-label-secondary);
+    flex-shrink: 0; margin-top: 1px;
+  }
+  .incommon .lead i { font-size: 16px; }
+  .incommon em { font-style: normal; font-weight: 500; }
+  .incommon .when {
+    display: block; margin-top: 3px;
+    font-size: 12px; color: var(--ios-label-secondary); letter-spacing: -0.05px;
+  }
+
+  /* ===== Concept callout (Person: "what they're working on") =====
+     A small, quiet card on coral-tinted ground. This is the ONE place coral
+     appears on a Person detail — the system is calling attention to the
+     practice signal that travels (per the Discover-People cell logic). */
+  .concept-card {
+    margin: 0 16px;
+    padding: 13px 14px 14px;
+    background: var(--accent-tint);
+    border-radius: 13px;
+    border: 0.5px solid rgba(217, 119, 87, 0.20);
+  }
+  .concept-card .clabel {
+    font-size: 11px; font-weight: 600;
+    letter-spacing: 0.10em; text-transform: uppercase;
+    color: var(--accent-discover);
+    margin: 0 0 6px;
+  }
+  .concept-card .ctext {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 17px; line-height: 1.3; letter-spacing: -0.1px;
+    font-style: italic; font-weight: 500;
+    color: var(--stage-ink);
+    margin: 0;
+    text-wrap: pretty;
+  }
+  .concept-card .clink {
+    margin: 10px 0 0;
+    font-size: 13px; color: var(--ios-blue);
+    letter-spacing: -0.08px;
+    display: inline-flex; align-items: center; gap: 4px;
+  }
+  .concept-card .clink i { font-size: 14px; }
+
+  /* ===== External link footer (Org surface only — the one place we offer external) =====
+     Demoted: smaller text, secondary colour, outbound arrow, tucked
+     beneath the visible content. Position taken in commentary. */
+  .external-link {
+    margin: 24px 16px 0;
+    padding: 12px 14px;
+    background: var(--ios-sys-bg-grouped);
+    border-radius: 10px;
+    display: flex; align-items: center; gap: 10px;
+    font-size: 13px; letter-spacing: -0.08px;
+    color: var(--ios-label-secondary);
+    cursor: pointer;
+  }
+  .external-link i { font-size: 15px; color: var(--ios-label-tertiary); }
+  .external-link .url {
+    flex: 1 1 auto;
+    color: var(--ios-blue);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .external-link .out { font-size: 13px; color: var(--ios-label-tertiary); }
+
+  /* ===== Loading skeleton (single section: Trajectory on Person) =====
+     Demonstrates the position taken: hero is solid, individual sections
+     fill in progressively. The skeleton is the same colour and rhythm as
+     the hairline-separated rows it will become.
+  */
+  .skel-row {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 14px;
+    border-top: 0.5px solid var(--ios-separator);
+  }
+  .skel-row:first-child { border-top: none; }
+  .skel-block {
+    background: rgba(60, 60, 67, 0.06);
+    border-radius: 4px;
+    height: 11px;
+  }
+  .skel-circle {
+    width: 28px; height: 28px;
+    border-radius: 7px;
+    background: rgba(60, 60, 67, 0.06);
+    flex-shrink: 0;
+  }
+  .skel-col { flex: 1 1 auto; display: flex; flex-direction: column; gap: 6px; }
+  .skel-col .skel-block.w70 { width: 70%; }
+  .skel-col .skel-block.w40 { width: 40%; }
+
+  /* Loading narration line at the top of the screen (sibling to the
+     loading register from Get Inspired running). Quiet, single line. */
+  .load-line {
+    padding: 8px 22px 4px;
+    font-size: 12px; letter-spacing: -0.05px;
+    color: var(--ios-label-tertiary);
+    display: flex; align-items: center; gap: 6px;
+  }
+  .load-line i { font-size: 13px; animation: spin 1.4s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ============= Tab bar — same as Discover trio ============= */
+  .float-nav {
+    position: absolute; bottom: 22px; left: 14px; right: 14px;
+    height: 64px; border-radius: 28px;
+    background: rgba(255, 255, 255, 0.72);
+    -webkit-backdrop-filter: blur(28px) saturate(180%);
+    backdrop-filter: blur(28px) saturate(180%);
+    border: 0.5px solid rgba(255,255,255,0.7);
+    box-shadow:
+      0 1px 0 rgba(255,255,255,0.55) inset,
+      0 -0.5px 0 rgba(0,0,0,0.04) inset,
+      0 12px 28px -16px rgba(0, 0, 0, 0.18),
+      0 2px 8px rgba(0, 0, 0, 0.05);
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    align-items: center; padding: 0 10px; z-index: 25;
+  }
+  .float-nav .tab {
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+    background: none; border: none; padding: 8px 0; cursor: pointer;
+    color: var(--ios-label-secondary); font-size: 10px; letter-spacing: 0.04em;
+  }
+  .float-nav .tab i { font-size: 22px; }
+  .float-nav .tab.on { color: var(--ios-blue); }
+
+  .bottom-pad { height: 130px; }
+
+  /* ============= Frame caption ============= */
+  .frame-cap { margin: 22px 0 0; text-align: center; }
+  .frame-cap .eyebrow {
+    font-size: 10px; font-weight: 600;
+    color: var(--stage-text); letter-spacing: 0.5px;
+    text-transform: uppercase;
+    margin: 0 0 6px;
+  }
+  .frame-cap h3 {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 18px; font-weight: 500; letter-spacing: -0.01em;
+    color: var(--stage-ink); margin: 0 0 6px;
+  }
+  .frame-cap h3 em { font-style: italic; }
+  .frame-cap p {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 14px; line-height: 1.5; color: var(--stage-text);
+    margin: 0 auto; max-width: 360px; text-wrap: pretty;
+  }
+  .frame-cap p em { font-style: italic; }
+
+  /* ============= Commentary (three columns) ============= */
+  .commentary {
+    max-width: 1400px;
+    margin: 0 auto 40px;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 56px;
+  }
+  .commentary .col {
+    padding-top: 8px;
+    border-top: 0.5px solid var(--stage-line);
+  }
+  .commentary .col h4 {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+    font-size: 11px; letter-spacing: 0.12em; font-weight: 600;
+    text-transform: uppercase;
+    color: var(--stage-text); margin: 0 0 12px;
+  }
+  .commentary .col h5 {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 19px; line-height: 1.35; font-weight: 500;
+    letter-spacing: -0.01em;
+    color: var(--stage-ink); margin: 0 0 14px;
+    text-wrap: balance;
+  }
+  .commentary .col h5 em { font-style: italic; }
+  .commentary .col p {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 14.5px; line-height: 1.6;
+    color: #4D4A43; margin: 0 0 12px;
+    text-wrap: pretty;
+  }
+  .commentary .col p:last-child { margin: 0; }
+  .commentary .col p em { font-style: italic; }
+  .commentary .col p strong { color: var(--stage-ink); font-weight: 500; }
+  .commentary .col p code {
+    font-family: "SF Mono", ui-monospace, Menlo, monospace;
+    font-size: 12.5px;
+    background: rgba(34, 30, 20, 0.06);
+    padding: 1px 6px; border-radius: 4px;
+  }
+
+  /* ============= Wider review (positions + absences) ============= */
+  .review {
+    max-width: 1400px;
+    margin: 56px auto 0;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 56px;
+  }
+  .review .block {
+    border-top: 0.5px solid var(--stage-line);
+    padding: 22px 0 0;
+  }
+  .review .block h4 {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+    font-size: 11px; letter-spacing: 0.12em; font-weight: 600;
+    text-transform: uppercase;
+    color: var(--stage-text); margin: 0 0 14px;
+  }
+  .review .block .lead {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 21px; line-height: 1.35; font-weight: 500;
+    letter-spacing: -0.01em;
+    color: var(--stage-ink); margin: 0 0 14px;
+    text-wrap: balance;
+  }
+  .review .block .lead em { font-style: italic; }
+  .review .block p {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 14.5px; line-height: 1.6;
+    color: #4D4A43; margin: 0 0 12px;
+  }
+  .review .block p:last-child { margin: 0; }
+  .review .block p em { font-style: italic; }
+  .review .block p strong { color: var(--stage-ink); font-weight: 500; }
+  .review .block ul { list-style: none; padding: 0; margin: 10px 0 0; }
+  .review .block ul li {
+    display: flex; gap: 14px;
+    padding: 10px 0;
+    border-top: 0.5px dashed rgba(34, 30, 20, 0.14);
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 14px; line-height: 1.5;
+    color: #4D4A43;
+  }
+  .review .block ul li:first-child { border-top: none; padding-top: 4px; }
+  .review .block ul li strong {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+    font-weight: 500; font-size: 12px;
+    color: var(--stage-ink); letter-spacing: 0.01em;
+    width: 160px; flex-shrink: 0;
+    margin-top: 1px;
+  }
+</style>
+</head>
+<body>
+
+<div class="page" data-screen-label="Discover detail trio · iOS register">
+
+  <header class="page-head">
+    <p class="eyebrow">BetterAt redesign · iOS register · Discover detail trio</p>
+    <h1>The three <em>detail</em> surfaces &mdash; <em>Org, Person, Topic</em></h1>
+    <p>The downstream of the Discover trio. The user has tapped a cell in <em>Orgs</em>, <em>People</em>, or <em>Forums</em>; this is what they land on. Three different jobs &mdash; <strong>institution, practitioner, topic</strong> &mdash; one shared chrome, one shared hero, one shared cross-reference grammar. The list trio established the rules at index level; this pass extends them into detail. <em>The detail surface is not a scaled-up cell.</em></p>
+    <div class="crumbs">
+      <span class="s">Loading narration</span>
+      <i class="ti ti-arrow-right"></i>
+      <span class="s">Error states</span>
+      <i class="ti ti-arrow-right"></i>
+      <span class="s">Discover trio</span>
+      <i class="ti ti-arrow-right"></i>
+      <span class="s on">Discover detail trio</span>
+    </div>
+  </header>
+
+  <!-- =================================================================== -->
+  <!-- ============= Shared chrome strip ============= -->
+  <!-- =================================================================== -->
+  <div class="chrome-strip">
+    <p class="head">The chrome &mdash; nav, hero, sections, cross-references &mdash; demonstrated <em>once</em>, applied <em>three times</em>.</p>
+    <div class="item">
+      <span class="k">Nav bar</span>
+      Back chevron carries the <em>segment context</em> the user came from (<em>&larr; Orgs / People / Forums</em>). Tiny centred context label.
+    </div>
+    <div class="item">
+      <span class="k">Hero</span>
+      64&times;64 mark + name + descriptor + meta + relationship action. Same scaffolding, content varies. <em>The hero is the answer to &ldquo;what is this and is it mine.&rdquo;</em>
+    </div>
+    <div class="item">
+      <span class="k">Relationship</span>
+      Filled iOS-blue button when <em>not yet mine</em>; quiet gray pill when <em>already mine</em>. Same width, same hero slot, two states.
+    </div>
+    <div class="item">
+      <span class="k">Section header</span>
+      11px small caps, label-secondary, 22px gutter. Optional <em>See all &rarr;</em> in iOS&nbsp;blue.
+    </div>
+    <div class="item">
+      <span class="k">Cross-references</span>
+      Same xrow on all three: 36px mark + name + one-line context + chevron. Triangle: <em>Org &rarr; People + Topics; Person &rarr; Orgs + Topics; Topic &rarr; People + Orgs.</em>
+    </div>
+  </div>
+
+
+  <!-- =================================================================== -->
+  <!-- ============= Phone row — Org · Person · Topic ============= -->
+  <!-- =================================================================== -->
+  <div class="row-phones">
+
+    <!-- ============================================================ -->
+    <!-- ==================  SURFACE 1 — ORG  ======================= -->
+    <!-- ============================================================ -->
+    <div class="phone-col">
+      <div class="phone" data-screen-label="01 Org detail · RHKYC">
+        <div class="notch"></div>
+        <div class="statusbar">
+          <span>9:41</span>
+          <span class="right">
+            <i class="ti ti-cell-signal-4"></i>
+            <i class="ti ti-wifi"></i>
+            <i class="ti ti-battery-3"></i>
+          </span>
+        </div>
+
+        <div class="screen">
+          <!-- Nav bar.
+               Back returns to Discover with the Orgs segment preserved.
+               The trailing nav-action slot is empty because Felix is
+               already a member; primary action lives in the hero as the
+               quiet "View calendar" affordance, and there is no Join
+               offer to dock. -->
+          <div class="navbar">
+            <button class="back"><i class="ti ti-chevron-left"></i>Orgs</button>
+            <div class="title">Org</div>
+            <button class="nav-action spacer">·</button>
+          </div>
+
+          <!-- Hero —
+               64px square letter-mark (institution = square shape).
+               Same 'lm-deep' palette used for RHKYC on the Discover-Orgs
+               cell; the visual identity travels list -> detail. -->
+          <div class="hero">
+            <div class="hero-row">
+              <div class="hero-mark lm-deep">RH</div>
+              <div class="hero-body">
+                <p class="hero-name">Royal Hong Kong<br>Yacht Club</p>
+                <p class="hero-desc">Member club &middot; Hong&nbsp;Kong</p>
+              </div>
+            </div>
+            <p class="hero-meta">
+              <span><i class="ti ti-map-pin"></i>Causeway Bay</span>
+              <span><i class="ti ti-flag"></i>Founded 1849</span>
+              <span><i class="ti ti-users"></i>2,840 sailors</span>
+            </p>
+            <!-- Relationship state — Felix is already a member.
+                 The pill shape on the left is the inverse of Person/Topic's
+                 filled button: gray, label-secondary, check glyph in soft
+                 green. To its right, a small contextual action ("View
+                 calendar") — quieter than the prominent Follow/Subscribe
+                 button used on the other two surfaces. Position defended
+                 in commentary: "already mine" gets a quieter affordance
+                 because the relationship decision has been made; the next
+                 useful action is to go *somewhere* in the org's context. -->
+            <div class="hero-rel">
+              <span class="rel-pill mine"><i class="ti ti-check"></i>Member since 2014</span>
+              <button class="rel-btn secondary">
+                <i class="ti ti-calendar-event"></i>
+                Calendar
+              </button>
+            </div>
+          </div>
+
+          <!-- ===== Activity signal (Org = institutional activity) =====
+               Position taken: the activity signal for an institution is
+               *what's happening at it*, not who's talking. Three pellets
+               in a row — same row component used on the Topic surface
+               with different labels. Up next is the most informationally
+               dense thing for a member glancing in. -->
+          <div class="section">
+            <div class="section-head">
+              <span class="k">Up next at the club</span>
+            </div>
+            <div class="section-body">
+              <div class="signal-row">
+                <div class="signal">
+                  <div class="num">6<small>races</small></div>
+                  <div class="lbl">This week</div>
+                </div>
+                <div class="signal">
+                  <div class="num">142</div>
+                  <div class="lbl">Entries · Spring 5</div>
+                </div>
+                <div class="signal">
+                  <div class="num">Wed</div>
+                  <div class="lbl">Next start &middot; 19:00</div>
+                </div>
+              </div>
+              <div class="drow">
+                <div class="dlead"><i class="ti ti-anchor"></i></div>
+                <div class="dbody">
+                  <p class="dtitle">Spring Series &middot; Race 5</p>
+                  <p class="dsub">Dragon class<span class="sep">&middot;</span>Sat 18 May, 11:00</p>
+                </div>
+                <div class="dmeta">
+                  <span>Entered</span>
+                  <span class="when">in 3 days</span>
+                </div>
+                <i class="ti ti-chevron-right chev"></i>
+              </div>
+              <div class="drow">
+                <div class="dlead"><i class="ti ti-anchor"></i></div>
+                <div class="dbody">
+                  <p class="dtitle">Wednesday-night racing</p>
+                  <p class="dsub">All classes<span class="sep">&middot;</span>Wed 22 May, 19:00</p>
+                </div>
+                <div class="dmeta">
+                  <span class="when">in 6 days</span>
+                </div>
+                <i class="ti ti-chevron-right chev"></i>
+              </div>
+            </div>
+          </div>
+
+          <!-- ===== Cross-ref → People (Org → People) =====
+               Three rows then "See all 24". The first two are mutual
+               (Markus Tham appears in Discover-People too); the third is
+               an undiscovered member surfaced because Felix and they
+               share a topic. -->
+          <div class="section">
+            <div class="section-head">
+              <span class="k">Members you may know</span>
+              <button class="see-all">See all 24 &rarr;</button>
+            </div>
+            <div class="section-body">
+              <div class="xrow">
+                <span class="xmark av-deep circle">MT</span>
+                <div class="xbody">
+                  <p class="xname">Markus Tham</p>
+                  <p class="xsub">Dragon helm &middot; 11 seasons</p>
+                </div>
+                <div class="xtail">You follow</div>
+                <i class="ti ti-chevron-right chev"></i>
+              </div>
+              <div class="xrow">
+                <span class="xmark av-putty circle">YL</span>
+                <div class="xbody">
+                  <p class="xname">Yvonne Leung</p>
+                  <p class="xsub">Dragon helm &middot; 17 seasons</p>
+                </div>
+                <div class="xtail">Mutual</div>
+                <i class="ti ti-chevron-right chev"></i>
+              </div>
+              <div class="xrow">
+                <span class="xmark av-slate circle">RC</span>
+                <div class="xbody">
+                  <p class="xname">Ricardo Costa</p>
+                  <p class="xsub">Dragon helm &middot; 6 seasons</p>
+                </div>
+                <div class="xtail">Shared topic</div>
+                <i class="ti ti-chevron-right chev"></i>
+              </div>
+            </div>
+          </div>
+
+          <!-- ===== Cross-ref → Topics (Org → Topics) ===== -->
+          <div class="section">
+            <div class="section-head">
+              <span class="k">Club forums</span>
+              <button class="see-all">All 7 &rarr;</button>
+            </div>
+            <div class="section-body">
+              <div class="xrow">
+                <span class="xmark topic"><i class="ti ti-compass"></i></span>
+                <div class="xbody">
+                  <p class="xname">Wednesday-night racing</p>
+                  <p class="xsub">312 threads &middot; Active yesterday</p>
+                </div>
+                <i class="ti ti-chevron-right chev"></i>
+              </div>
+              <div class="xrow">
+                <span class="xmark topic"><i class="ti ti-tools"></i></span>
+                <div class="xbody">
+                  <p class="xname">Dragon fleet &middot; rig setup</p>
+                  <p class="xsub">186 threads &middot; Active 4h ago</p>
+                </div>
+                <i class="ti ti-chevron-right chev"></i>
+              </div>
+            </div>
+          </div>
+
+          <!-- ===== External link — the one demoted exception ===== -->
+          <div class="external-link">
+            <i class="ti ti-link"></i>
+            <span class="url">rhkyc.org.hk</span>
+            <i class="ti ti-arrow-up-right out"></i>
+          </div>
+
+          <div class="bottom-pad"></div>
+        </div>
+
+        <div class="float-nav">
+          <div class="tab"><i class="ti ti-anchor"></i><span>Race</span></div>
+          <div class="tab"><i class="ti ti-book"></i><span>Playbook</span></div>
+          <div class="tab on"><i class="ti ti-compass"></i><span>Discover</span></div>
+          <div class="tab"><i class="ti ti-clock-back"></i><span>Reflect</span></div>
+        </div>
+        <div class="home-indicator"></div>
+      </div>
+
+      <div class="frame-cap">
+        <p class="eyebrow">Surface 1 &middot; Org detail</p>
+        <h3>The unit is the <em>institution</em></h3>
+        <p>RHKYC. Felix is already a member &mdash; the hero says so once, quietly. No <em>Join</em> offer to dock in the nav. The body answers <em>&ldquo;what&rsquo;s happening here this week?&rdquo;</em> first, <em>&ldquo;who else is here?&rdquo;</em> second. External link is offered, demoted.</p>
+      </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- ==================  SURFACE 2 — PERSON  ==================== -->
+    <!-- ============================================================ -->
+    <div class="phone-col">
+      <div class="phone" data-screen-label="02 Person detail · Tomás Renart">
+        <div class="notch"></div>
+        <div class="statusbar">
+          <span>9:41</span>
+          <span class="right">
+            <i class="ti ti-cell-signal-4"></i>
+            <i class="ti ti-wifi"></i>
+            <i class="ti ti-battery-3"></i>
+          </span>
+        </div>
+
+        <div class="screen">
+          <!-- Nav bar. Back returns to Discover with the People segment
+               preserved. Trailing slot empty at top-of-scroll — the Follow
+               action is in the hero where the user is reading. -->
+          <div class="navbar">
+            <button class="back"><i class="ti ti-chevron-left"></i>People</button>
+            <div class="title">Person</div>
+            <button class="nav-action spacer">·</button>
+          </div>
+
+          <!-- Hero —
+               64px round avatar with initials (person = circle shape).
+               Same 'av-rust' palette family from Discover-People; new
+               sailor, slightly warmer chroma than the strong-signal rows. -->
+          <div class="hero">
+            <div class="hero-row">
+              <div class="hero-mark av-rust circle">TR</div>
+              <div class="hero-body">
+                <p class="hero-name">Tomás Renart</p>
+                <p class="hero-desc">Dragon helm &middot; Buenos Aires</p>
+              </div>
+            </div>
+            <p class="hero-meta">
+              <span><i class="ti ti-map-pin"></i>YC Argentino</span>
+              <span><i class="ti ti-calendar"></i>12 seasons</span>
+            </p>
+            <!-- Relationship: Felix does NOT follow yet. Filled iOS-blue
+                 Follow button takes the full hero row. Position taken: the
+                 action lives in the hero, not the nav. The hero is where
+                 the user is reading. After scroll, the same action docks
+                 into the nav's trailing slot (shown on the Topic surface).
+            -->
+            <div class="hero-rel">
+              <button class="rel-btn">
+                <i class="ti ti-plus"></i>
+                Follow
+              </button>
+            </div>
+          </div>
+
+          <!-- ===== "Working on" — the current concept =====
+               Coral-tinted card. This is the practice signal that travels
+               (per the Discover-People cell decision). Italic serif body
+               carries the concept itself; sans label introduces it.
+               Optional link to that concept's public face. -->
+          <div class="section">
+            <div class="section-head">
+              <span class="k">Working on now</span>
+            </div>
+            <div class="concept-card">
+              <p class="clabel">Current concept</p>
+              <p class="ctext">&ldquo;Reading the starboard layline early &mdash; trusting the call before the boats around me make&nbsp;it.&rdquo;</p>
+              <p class="clink">View public face<i class="ti ti-chevron-right"></i></p>
+            </div>
+          </div>
+
+          <!-- ===== Trajectory =====
+               Restrained list of recent Trophies of Becoming. Same chrome
+               principle as Trophy: no medallions, no big artwork, just
+               name + date. Two entries is enough to signal seriousness
+               without becoming a feed. -->
+          <div class="section">
+            <div class="section-head">
+              <span class="k">Recent trajectory</span>
+            </div>
+            <div class="section-body">
+              <div class="tro">
+                <div class="trolead"><i class="ti ti-medal-2"></i></div>
+                <div class="trobody">
+                  <p class="trotitle">Heavy-air helm work &middot; <em>settled</em></p>
+                  <p class="trosub">Trophy of becoming</p>
+                </div>
+                <span class="trowhen">Mar 2026</span>
+              </div>
+              <div class="tro">
+                <div class="trolead"><i class="ti ti-medal-2"></i></div>
+                <div class="trobody">
+                  <p class="trotitle">Decision-making under start-line pressure</p>
+                  <p class="trosub">Trophy of becoming</p>
+                </div>
+                <span class="trowhen">Sep 2025</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- ===== In common =====
+               One strong signal demonstrated in prose, plus the absence
+               of weaker ones. Italic-style emphasis on the concrete
+               anchor; no fake variety — if there's only one mutual, only
+               one row appears. -->
+          <div class="section">
+            <div class="section-head">
+              <span class="k">In common</span>
+            </div>
+            <div class="section-body">
+              <div class="incommon">
+                <span class="lead"><i class="ti ti-anchor"></i></span>
+                <div>
+                  You both raced <em>Spring Series 2026</em> at RHKYC.
+                  <span class="when">14&ndash;17 Apr &middot; you finished 4th, Tomás 7th</span>
+                </div>
+              </div>
+              <div class="incommon">
+                <span class="lead"><i class="ti ti-hash"></i></span>
+                <div>
+                  You both follow <em>Heavy-air starts</em>.
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ===== Public work =====
+               One thread he started in a topic Felix follows. Same row
+               component as elsewhere; the leading mark is the topic glyph
+               so it reads as "from this topic" rather than as a profile
+               feed entry. If Tomás had no public work, this section would
+               be absent — not shown as empty. -->
+          <div class="section">
+            <div class="section-head">
+              <span class="k">Public threads</span>
+            </div>
+            <div class="section-body">
+              <div class="drow">
+                <div class="dlead"><i class="ti ti-message-circle"></i></div>
+                <div class="dbody">
+                  <p class="dtitle">&ldquo;Halyard tension downwind in&nbsp;chop&rdquo;</p>
+                  <p class="dsub">In <em>Dragon rigging &amp; tuning</em><span class="sep">&middot;</span>23 replies</p>
+                </div>
+                <i class="ti ti-chevron-right chev"></i>
+              </div>
+            </div>
+          </div>
+
+          <div class="bottom-pad"></div>
+        </div>
+
+        <div class="float-nav">
+          <div class="tab"><i class="ti ti-anchor"></i><span>Race</span></div>
+          <div class="tab"><i class="ti ti-book"></i><span>Playbook</span></div>
+          <div class="tab on"><i class="ti ti-compass"></i><span>Discover</span></div>
+          <div class="tab"><i class="ti ti-clock-back"></i><span>Reflect</span></div>
+        </div>
+        <div class="home-indicator"></div>
+      </div>
+
+      <div class="frame-cap">
+        <p class="eyebrow">Surface 2 &middot; Person detail</p>
+        <h3>The unit is the <em>practitioner</em></h3>
+        <p>A Dragon sailor Felix has raced against once but doesn&rsquo;t yet follow. Hero opens with <em>Follow</em> in iOS blue. The body leads with the practice signal &mdash; <em>what they&rsquo;re working on now</em> &mdash; trajectory next, in-common third. <em>Public threads</em> appears because Tomás publishes; if he didn&rsquo;t, the section would&nbsp;disappear.</p>
+      </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- ==================  SURFACE 3 — TOPIC  ===================== -->
+    <!-- ============================================================ -->
+    <div class="phone-col">
+      <div class="phone" data-screen-label="03 Topic detail · Downwind mark trim">
+        <div class="notch"></div>
+        <div class="statusbar">
+          <span>9:41</span>
+          <span class="right">
+            <i class="ti ti-cell-signal-4"></i>
+            <i class="ti ti-wifi"></i>
+            <i class="ti ti-battery-3"></i>
+          </span>
+        </div>
+
+        <div class="screen">
+          <!-- Nav bar in DOCKED state.
+               Position taken: when the user scrolls past the hero, the
+               Subscribe button slides into the trailing nav slot. We show
+               that state on the Topic surface so the docking behaviour
+               is visible. The centre label collapses to "Topic" — the
+               unit name is in the docked title underneath.
+
+               This is the answer to "Subscribe must coexist with back-to-
+               Discover" — they coexist by occupying the two ends of the
+               nav bar, never both at hero size at the same time.
+          -->
+          <div class="navbar docked">
+            <button class="back"><i class="ti ti-chevron-left"></i>Forums</button>
+            <div class="title">Topic
+              <span class="docked-name">Downwind mark trim</span>
+            </div>
+            <button class="nav-action"><i class="ti ti-plus" style="font-size:13px;margin-right:2px;"></i>Subscribe</button>
+          </div>
+
+          <!-- Loading narration — single section (Who's active) is still
+               resolving. The narration line lives above the not-yet-ready
+               section, not the whole surface. Hero is solid, everything
+               above the loading section is solid. -->
+
+          <!-- Hero — 64px topic glyph (topic = square-with-glyph). Same
+               'topic' mark grammar from the Discover-Forums cell, scaled
+               up. -->
+          <div class="hero">
+            <div class="hero-row">
+              <div class="hero-mark topic"><i class="ti ti-arrows-down-up"></i></div>
+              <div class="hero-body">
+                <p class="hero-name">Downwind mark trim</p>
+                <p class="hero-desc">Dragon class &middot; Boat handling</p>
+              </div>
+            </div>
+            <p class="hero-meta">
+              <span><i class="ti ti-messages"></i>247 threads</span>
+              <span><i class="ti ti-users"></i>184 sailors</span>
+              <span><i class="ti ti-clock"></i>Active 1h ago</span>
+            </p>
+            <!-- Relationship: Felix does NOT subscribe. Same filled
+                 iOS-blue button used on Person, just labelled Subscribe.
+                 The same affordance shape, the same hero slot — that's
+                 the canonical relationship-state pattern.
+
+                 Note: the action ALSO appears in the docked nav-bar above.
+                 The hero version is the one the user reads while deciding;
+                 the nav version is the one that stays accessible after
+                 scroll. -->
+            <div class="hero-rel">
+              <button class="rel-btn">
+                <i class="ti ti-plus"></i>
+                Subscribe
+              </button>
+            </div>
+          </div>
+
+          <!-- ===== Pinned post — first slot above recent threads =====
+               Position taken: yes, topics have a pinned slot. One slot,
+               topic-author or moderator-curated. Uses the same drow
+               component as the threads list, marked with a small "Pinned"
+               eyebrow on the title and a coral-tinted leading icon.
+               If a topic has no pinned post the slot is absent. -->
+          <div class="section">
+            <div class="section-head">
+              <span class="k">Pinned</span>
+            </div>
+            <div class="section-body">
+              <div class="drow pinned">
+                <div class="dlead"><i class="ti ti-pin"></i></div>
+                <div class="dbody">
+                  <p class="dtitle">Trim numbers for 8&ndash;14&nbsp;kt &mdash; first-time&nbsp;intro</p>
+                  <p class="dsub">By Yvonne Leung<span class="sep">&middot;</span>updated Apr 2026</p>
+                </div>
+                <i class="ti ti-chevron-right chev"></i>
+              </div>
+            </div>
+          </div>
+
+          <!-- ===== Recent threads =====
+               4 rows then "See all 247". Each row: title, replies + last
+               activity (right-aligned), chevron. The chevron is the
+               affordance that says "this opens a thread detail surface" —
+               and the brief explicitly says thread detail is not designed
+               in this pass. -->
+          <div class="section">
+            <div class="section-head">
+              <span class="k">Recent threads</span>
+              <button class="see-all">All 247 &rarr;</button>
+            </div>
+            <div class="section-body">
+              <div class="drow">
+                <div class="dlead"><i class="ti ti-message"></i></div>
+                <div class="dbody">
+                  <p class="dtitle">When does the boom come in for the bear-away?</p>
+                  <p class="dsub">14 replies</p>
+                </div>
+                <div class="dmeta"><span class="when">22m ago</span></div>
+                <i class="ti ti-chevron-right chev"></i>
+              </div>
+              <div class="drow">
+                <div class="dlead"><i class="ti ti-message"></i></div>
+                <div class="dbody">
+                  <p class="dtitle">Backstay on/off through the gate?</p>
+                  <p class="dsub">21 replies</p>
+                </div>
+                <div class="dmeta"><span class="when">4h ago</span></div>
+                <i class="ti ti-chevron-right chev"></i>
+              </div>
+              <div class="drow">
+                <div class="dlead"><i class="ti ti-message"></i></div>
+                <div class="dbody">
+                  <p class="dtitle">Felt slow last weekend &mdash; chute setup?</p>
+                  <p class="dsub">6 replies</p>
+                </div>
+                <div class="dmeta"><span class="when">yesterday</span></div>
+                <i class="ti ti-chevron-right chev"></i>
+              </div>
+              <div class="drow">
+                <div class="dlead"><i class="ti ti-message"></i></div>
+                <div class="dbody">
+                  <p class="dtitle">Light air dec &mdash; when to bear away early</p>
+                  <p class="dsub">33 replies</p>
+                </div>
+                <div class="dmeta"><span class="when">2d ago</span></div>
+                <i class="ti ti-chevron-right chev"></i>
+              </div>
+            </div>
+          </div>
+
+          <!-- ===== Who's active (loading state demonstrated) =====
+               This section is still resolving — recommendation compute on
+               who counts as "active". Skeleton in the section body while
+               the rest of the surface is already solid. The narration
+               line lives ABOVE the section, not on top of the surface. -->
+          <div class="section">
+            <div class="section-head">
+              <span class="k">Active this month</span>
+              <button class="see-all">See all 12 &rarr;</button>
+            </div>
+            <p class="load-line"><i class="ti ti-loader-2"></i>Finding who&rsquo;s been here lately.</p>
+            <div class="section-body">
+              <div class="skel-row">
+                <div class="skel-circle" style="border-radius:50%;"></div>
+                <div class="skel-col">
+                  <div class="skel-block w70"></div>
+                  <div class="skel-block w40"></div>
+                </div>
+              </div>
+              <div class="skel-row">
+                <div class="skel-circle" style="border-radius:50%;"></div>
+                <div class="skel-col">
+                  <div class="skel-block w70"></div>
+                  <div class="skel-block w40"></div>
+                </div>
+              </div>
+              <div class="skel-row">
+                <div class="skel-circle" style="border-radius:50%;"></div>
+                <div class="skel-col">
+                  <div class="skel-block w70"></div>
+                  <div class="skel-block w40"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ===== Related orgs — Hosted by =====
+               One row. The topic is hosted by RHKYC. If the topic spans
+               multiple orgs (e.g. a class topic), this becomes a small
+               list; if it's affiliated with none (a general topic), the
+               section is absent. -->
+          <div class="section">
+            <div class="section-head">
+              <span class="k">Hosted by</span>
+            </div>
+            <div class="section-body">
+              <div class="xrow">
+                <span class="xmark lm-deep">RH</span>
+                <div class="xbody">
+                  <p class="xname">Royal Hong Kong Yacht Club</p>
+                  <p class="xsub">Member club &middot; 2,840 sailors</p>
+                </div>
+                <div class="xtail">You&rsquo;re a member</div>
+                <i class="ti ti-chevron-right chev"></i>
+              </div>
+            </div>
+          </div>
+
+          <div class="bottom-pad"></div>
+        </div>
+
+        <div class="float-nav">
+          <div class="tab"><i class="ti ti-anchor"></i><span>Race</span></div>
+          <div class="tab"><i class="ti ti-book"></i><span>Playbook</span></div>
+          <div class="tab on"><i class="ti ti-compass"></i><span>Discover</span></div>
+          <div class="tab"><i class="ti ti-clock-back"></i><span>Reflect</span></div>
+        </div>
+        <div class="home-indicator"></div>
+      </div>
+
+      <div class="frame-cap">
+        <p class="eyebrow">Surface 3 &middot; Topic detail</p>
+        <h3>The unit is the <em>topic</em></h3>
+        <p><em>Downwind mark trim.</em> Felix doesn&rsquo;t subscribe yet, so <em>Subscribe</em> sits in the hero AND docks into the nav once he scrolls past the hero (shown). Body: pinned slot, recent threads, who&rsquo;s active (loading), related orgs. Demonstrates the per-section loading position.</p>
+      </div>
+    </div>
+
+  </div>
+
+
+  <!-- ============================================================ -->
+  <!-- ===========  Three-column commentary on the brief  ========= -->
+  <!-- ============================================================ -->
+  <div class="commentary">
+
+    <div class="col">
+      <h4>What makes these <em>siblings</em></h4>
+      <h5>Same chrome, same hero, same cross-reference grammar &mdash; three different&nbsp;bodies.</h5>
+      <p>Five structural rules hold across the three: <strong>(1)</strong> the nav bar is identical &mdash; back chevron carrying the originating segment, tiny centred context label, an action slot that&rsquo;s either empty or carries the docked relationship affordance; <strong>(2)</strong> the hero scaffolding is the same &mdash; 64&nbsp;px mark, name, descriptor row, meta pellets, relationship action &mdash; only the mark shape and the content varies; <strong>(3)</strong> section headers are the same 11&nbsp;px small caps with optional <em>See all &rarr;</em>; <strong>(4)</strong> the cross-reference row (xrow) is one component used on all three; <strong>(5)</strong> the per-section loading position is the same on all three &mdash; hero solid first, sections fill progressively.</p>
+      <p>What differs is the body&rsquo;s <em>content sections</em>: institutional activity on Org, current-concept + trajectory on Person, pinned + threads on Topic. The brief calls that out explicitly &mdash; the list trio differed in <em>the cell</em>, the detail trio differs in <em>the sections</em>. Same rule shape, one nest deeper.</p>
+    </div>
+
+    <div class="col">
+      <h4>Hero hierarchy</h4>
+      <h5>Heights <em>flex</em>; the scaffold is what reads as&nbsp;sibling.</h5>
+      <p>Position taken: the hero scaffolding is identical (mark + name + descriptor + meta + relationship slot) but the heights are not forced equal &mdash; the Org hero is taller because the meta row carries three pellets (location, founded, count); the Person hero is shortest (no founded year, no count). Same rule as the list trio: the column rhythm is what reads as repeating, not the literal pixel height.</p>
+      <p>The 64&nbsp;px mark is fixed across all three; that&rsquo;s the strongest visual hinge. The name is always 22&nbsp;px display semibold. The meta row, when present, always sits beneath the descriptor. The relationship action is always the last row of the hero. If we forced identical heights we&rsquo;d be adding fake content to the Person hero or cropping the Org meta &mdash; both dishonest, both rejected for the same reason the list trio rejected forced-equal cell heights.</p>
+    </div>
+
+    <div class="col">
+      <h4>The cross-reference triangle</h4>
+      <h5>Each surface points to the other two; <em>three is the minimum</em> to show the section.</h5>
+      <p>Org points to <em>members you may know</em> + <em>club forums</em>. Person points to <em>in common</em> (mutual orgs &amp; topics) + <em>public threads</em>. Topic points to <em>active sailors</em> + <em>hosted by</em>. The triangle is symmetric at the component level &mdash; same xrow, same chevron, same 36&nbsp;px mark.</p>
+      <p>Position taken on sparse data: <strong>three is the minimum to render the section</strong>. With one or two cross-refs, the row count looks accidental rather than curated &mdash; the user can&rsquo;t tell whether they&rsquo;re seeing &ldquo;the most relevant&rdquo; or &ldquo;everything we have.&rdquo; Below three, the section is <strong>absent</strong>, not shortened. (The Topic <em>Hosted by</em> section is the explicit exception: one host is the common case for a club topic, so the section renders with a single row and reads as definitional, not as a thinned-out list.)</p>
+    </div>
+
+  </div>
+
+
+  <!-- ============================================================ -->
+  <!-- ============= Wider review (positions + absences) ========== -->
+  <!-- ============================================================ -->
+  <div class="review">
+
+    <div class="block">
+      <h4>Activity signals across the three</h4>
+      <p class="lead">Same row component, three different jobs &mdash; the rendering is <em>identical</em>, the labels carry the&nbsp;difference.</p>
+      <p>Position taken: the activity signal is one component &mdash; the three-pellet <code>signal-row</code> &mdash; rendered the same way on Org and Topic. The labels carry the differentiation: <em>races this week / entries / next start</em> on Org; <em>threads / sailors / last active</em> in the Topic hero meta. Person&rsquo;s activity signal is <em>current concept</em>, which uses a different (italic-serif coral-tinted) component &mdash; defensible because the practice signal is editorial in a way race counts and thread counts are not.</p>
+      <p>The position rejected: rendering all three differently to dramatise that they are different kinds of activity. That would be performance of difference, not structural difference. The signals already <em>are</em> different (numbers, dates, names) &mdash; rendering them the same lets the user&rsquo;s eye focus on what the numbers say, not on visual variety.</p>
+
+      <h4 style="margin-top: 26px;">The &ldquo;already mine&rdquo; question, revisited</h4>
+      <p class="lead">The list trio answered with right-edge <em>tags</em>; the detail trio answers in the&nbsp;<em>hero</em>.</p>
+      <p>On the list, relationship is a property of a row &mdash; a small tag (<em>Joined / Following / Mutual</em>) at the right edge, no bolding, no tint. The user is scanning many units; the relationship is metadata.</p>
+      <p>On detail, the user has chosen this one unit. The relationship is now <em>the first thing they need to know</em> after the unit name: <em>am I in this org / do I follow this person / am I subscribed</em>. So it moves up into the hero, takes a full row, and uses different chrome for the two states &mdash; <strong>filled iOS-blue button</strong> when not-yet-mine (the next useful action is to decide), <strong>gray pill with green check</strong> when already-mine (the decision is made; the affordance is informational).</p>
+      <p>The two answers don&rsquo;t contradict &mdash; they extend each other. The right-edge tag and the hero pill describe the same state at different sizes for different jobs (<em>scan vs. decide</em>). The cross-reference rows on each detail surface still carry the small tag (<em>You follow</em>, <em>Mutual</em>, <em>You&rsquo;re a member</em>) because those rows are mini-lists, not heroes; the grammar holds across nesting levels.</p>
+
+      <h4 style="margin-top: 26px;">Where the relationship affordance lives, exactly</h4>
+      <p class="lead">In the hero on Person + Topic; <em>also</em> docks into the nav on scroll. On Org, it&rsquo;s absent because the user is already&nbsp;in.</p>
+      <p>Position taken: the primary relationship action lives in the <strong>hero</strong>, full-width, iOS-blue filled. The hero is where the user is reading and where the decision is happening. The nav bar at top-of-scroll is reserved for the back chevron and context label only.</p>
+      <p>On scroll past the hero, the action docks into the nav&rsquo;s trailing slot at smaller size (shown on the Topic surface). This solves the brief&rsquo;s constraint &mdash; <em>Subscribe must coexist with back-to-Discover</em> &mdash; by giving them different ends of the bar and different sizes. They never compete for the same slot.</p>
+      <p>On Org, Felix is already a member; there is nothing to dock, and the trailing slot stays empty. The secondary <em>Calendar</em> button in the hero is the next useful action for a member, not a relationship action.</p>
+    </div>
+
+    <div class="block">
+      <h4>Empty within a detail surface</h4>
+      <p class="lead">Section absent, not section&nbsp;empty.</p>
+      <p>Position taken: if a section has no content for this unit, the section <strong>does not render</strong>. Not <em>&ldquo;No topics yet.&rdquo;</em>, not <em>&ldquo;Nothing here.&rdquo;</em>, not a placeholder card.</p>
+      <p>Defence: <em>&ldquo;no topics yet&rdquo;</em> is a feed-grammar habit &mdash; the surface implies a stream, and an empty stream needs explanation. Detail isn&rsquo;t a stream; it&rsquo;s a structured view of <em>what is</em>. If an org has no associated topics, that&rsquo;s a fact about the org, not an absence in the user&rsquo;s feed. Showing the section empty would manufacture an absence.</p>
+      <p>Three instances on this pass: Tomás has public threads (section renders); if he didn&rsquo;t, the section would simply not appear. The Topic detail has one host (renders, single row, definitional); a topic with no host would have no <em>Hosted by</em> section at all. The Org detail&rsquo;s Up-next signal would shrink to two pellets, not three, if the club had no Wednesday-night race scheduled &mdash; same shape, different content density.</p>
+
+      <h4 style="margin-top: 26px;">Loading and error positions</h4>
+      <p class="lead">Hero solid first &mdash; sections fill <em>progressively</em>.</p>
+      <p>Position taken: the hero region is <strong>always</strong> rendered before any section. Hero data is small (name, descriptor, meta, relationship state) and travels with the tap from the list cell; the user lands on the hero immediately, with no narration line.</p>
+      <p>Sections fill in as their data resolves. Each section is independent &mdash; a slow recommendation compute on <em>Who&rsquo;s active</em> (shown) doesn&rsquo;t block the recent-threads list. The loading narration line lives at section scope, not surface scope; it sits between the section header and the skeleton body, in label-tertiary.</p>
+      <p>Error: if a section fails, the section becomes the canonical inline error using the same <code>&lt;IOSRegisterErrorState /&gt;</code> register at section size. The hero remains solid; the user can still subscribe / follow / open the calendar. Position rejected: full-surface skeleton until everything resolves &mdash; would hold the hero hostage to the slowest section, which is the opposite of what the user came to do.</p>
+
+      <h4 style="margin-top: 26px;">What this trio explicitly is <em>not</em></h4>
+      <ul>
+        <li><strong>Not scaled-up cells</strong>The list cell answers <em>what is this, at a scan</em>. The detail surface answers <em>what is this, why care, how do I relate, what&rsquo;s here</em>. Different jobs, different shapes &mdash; architecture decision&nbsp;#4.</li>
+        <li><strong>Not feed-style</strong>No reverse-chronological mix of threads, events, follows. The detail surface is a <em>structured view of a unit</em>. The list of recent threads on Topic is the closest to a feed, and even there the unit is the topic, not the chronology.</li>
+        <li><strong>Not thread detail</strong>Tapping a thread leaves the trio. Thread detail is its own design pass.</li>
+        <li><strong>Not editing</strong>Owned units (Felix&rsquo;s membership at RHKYC, his own subscriptions) don&rsquo;t expose edit affordances here. Editing is a separate surface that lives in Profile and in work-mode on the Concept detail register.</li>
+        <li><strong>Not moderation</strong>No pin / lock / hide / report affordances on threads. Forum moderation is its own design problem.</li>
+        <li><strong>Not paywall</strong>The Org detail doesn&rsquo;t carry a membership-purchase flow. If RHKYC&rsquo;s membership becomes purchasable in-app, that flow gets its own surface.</li>
+        <li><strong>No coral on already-mine state</strong>The green check on the Member pill is the one exception &mdash; coral is reserved for system-attention. <em>You&rsquo;re a member</em> is not attention; it&rsquo;s confirmation.</li>
+        <li><strong>No faculty surface</strong>Tomás is a practitioner discoverable by other practitioners. Faculty (Sam, Patricia) gets a different detail register that this pass doesn&rsquo;t design.</li>
+        <li><strong>No empty mascots, no apology copy, no &ldquo;coming soon&rdquo; placeholders</strong>If a section has no content, it isn&rsquo;t there. The absences are the design.</li>
+      </ul>
+    </div>
+
+  </div>
+
+</div>
+
+</body>
+</html>
