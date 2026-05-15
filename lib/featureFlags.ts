@@ -321,6 +321,17 @@ export const FEATURE_FLAGS = {
    * EXPO_PUBLIC_FF_PROFILE_IOS_REGISTER=false to revert.
    */
   PROFILE_IOS_REGISTER: readBooleanEnv('EXPO_PUBLIC_FF_PROFILE_IOS_REGISTER', true),
+
+  /**
+   * Stage the JHU-style Org Admin onboarding card at the top of the
+   * organization cohort dashboard. When true, the dashboard's canView
+   * branch renders a dismissible welcome card with a four-minute tour
+   * offer above the cohort selector. Dismissal is persisted per
+   * organization so the card does not reappear on reload for the same
+   * org. Defaults false — this is a new visual surface with persistence
+   * and does not qualify for the mechanical-only exception.
+   */
+  JHU_ADMIN_DASHBOARD_IOS: readBooleanEnv('EXPO_PUBLIC_FF_JHU_ADMIN_DASHBOARD_IOS', false),
 } as const;
 
 // =============================================================================

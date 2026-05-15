@@ -24,7 +24,20 @@ module.exports = {
   ],
   transform: {
     '^.+\\.tsx?$': ['ts-jest', {
-      tsconfig: 'tsconfig.json',
+      tsconfig: {
+        // Inherit project tsconfig but override jsx to "react" so JSX in .tsx
+        // sources is transformed to React.createElement under jest's node env.
+        // The app's "react-native" jsx mode preserves JSX for Metro; jest has
+        // no Metro pipeline, so it needs the classic transform here.
+        jsx: 'react',
+        esModuleInterop: true,
+        moduleResolution: 'node',
+        target: 'ES2019',
+        resolveJsonModule: true,
+        strict: true,
+        paths: { '@/*': ['./*'] },
+        baseUrl: '.',
+      },
       diagnostics: false,
     }],
   },
