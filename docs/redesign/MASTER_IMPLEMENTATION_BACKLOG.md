@@ -72,6 +72,7 @@ Decision: there are **12** valid HTML canonicals in the May 15 design set. `disc
 | B.9 | Share dialog / share sheet wrapper for steps and blueprints first; profiles/evidence later. | `FOUR_SURFACES_FAST_SPEC_ADDENDUM.md`, `specs/PHASE_B9_SHARE_DIALOG_SPEC.md` | `four-small-surfaces-canonical.html` | spec-written | 4 | visibility model decision for final behavior; v1 stubs unsupported BetterAt actions | `SHARE_DIALOG_IOS_REGISTER=false` |
 | C | Timeline-with-peek shell: centered current card, adjacent peeks, swipe paging, tap peek, sticky phase memory. | `PRACTICE_TIMELINE_CANONICAL.md`, `specs/PHASE_C_TIMELINE_WITH_PEEK.md` | `practice-timeline-canonical.html` | spec-written, execution queued: `c3dee8dd` | 5 | A.9; Phase B preferred; current data flow in `app/(tabs)/races.tsx` | `PRACTICE_TIMELINE_PEEK=false` |
 | C.5 | Zoomed-out vertical timeline view with sticky periods, phase indicators, reorder, long-press menu. | `PRACTICE_TIMELINE_ADD_STEP_ZOOMED_OUT_SOCIAL_ADDENDUM.md`, `specs/PHASE_C5_ZOOMED_OUT_VIEW_SPEC.md` | `zoomed-out-view-canonical.html` | spec-written | 5 | A.9; Phase C shell; reorder decision | `PRACTICE_ZOOMED_OUT_TIMELINE=false` |
+| H.0 | Series feature integration: canonical Series/Season strip, switch-Series sheet, step-card Series context, and `Jump to` picker redesign over the existing Season infrastructure. | `specs/PHASE_H_SERIES_FEATURE_INTEGRATION_SPEC.md`, Phase A.10 vocabulary model | `series-feature-canonical.html` | spec-written | 5-6 | Existing Season infrastructure; C.5 for zoomed-out strip placement; A.10 vocabulary convention | `PRACTICE_SERIES_IOS_REGISTER=false` |
 | D | Capability data model + Profile-as-credential surface. | `PRACTICE_TIMELINE_CANONICAL.md`, Plan addendum | no full Profile canonical yet; `practice-timeline-canonical.html` has sketch only | spec-pending; design incomplete | 8-12+ | capability taxonomy decisions; Plan/Reflect tagging model | `PROFILE_CAPABILITY_MAP=false` |
 | E | Social timeline layer: following people, blueprints, peers, read-only others' steps, copy-to-my-timeline. | `PRACTICE_TIMELINE_ADD_STEP_ZOOMED_OUT_SOCIAL_ADDENDUM.md` | `social-timeline-layer-canonical.html` | spec-pending | 6-10 | C.5, privacy/follow model, copy permissions | `PRACTICE_SOCIAL_TIMELINE=false` |
 | F.1 | JHU admin dashboard onboarding card on Dashboard tab. | `FIVE_SURFACES_CONSOLIDATED_ADDENDUM.md`, `specs/PHASE_F1_JHU_ADMIN_ONBOARDING_CARD_SPEC.md` | `jhu-admin-dashboard-canonical.html` | spec-written | 3 | tenant scoping | `JHU_ADMIN_DASHBOARD_IOS=false` |
@@ -103,19 +104,20 @@ Decision: there are **12** valid HTML canonicals in the May 15 design set. `disc
 5. **Phase C** — execute the written five-commit timeline-with-peek shell spec behind `PRACTICE_TIMELINE_PEEK=false`. This is the structural center of the redesign and unlocks C.5, E, and L.
 6. **Phase B.5** — complete. Use it as the verified Plan-tab baseline for Phase C/C.5 execution.
 7. **Phase C.5** — zoomed-out view after Phase C proves the shell. It introduces pinch/zoom mode and list-scale behaviors.
+8. **Phase H.0** — Series feature integration. The step-card and `Jump to` picker portions can execute once A.9 is clear; the zoomed-out Series strip should wait for C.5 placement unless the executor deliberately ships a temporary placement behind `PRACTICE_SERIES_IOS_REGISTER=false`.
 
 ### Second critical path
 
-8. **Phase L** — Suggest bar after C.5. The addendum says it lives below the zoomed-out timeline, so implementing it before C.5 would create temporary placement debt.
-9. **Phase E** — social timeline layer. This is large and privacy-heavy; start after C.5 establishes the mode structure.
-9. **Phase D** — capability data model and Profile-as-credential. This is foundational but multi-week. It can start in parallel as a data-model/design process, but the first executable specs should wait for taxonomy decisions.
+9. **Phase L** — Suggest bar after C.5. The addendum says it lives below the zoomed-out timeline, so implementing it before C.5 would create temporary placement debt.
+10. **Phase E** — social timeline layer. This is large and privacy-heavy; start after C.5 establishes the mode structure.
+11. **Phase D** — capability data model and Profile-as-credential. This is foundational but multi-week. It can start in parallel as a data-model/design process, but the first executable specs should wait for taxonomy decisions.
 
 ### Institutional / creator track
 
-10. **Phase F.1/F.2** — JHU admin quick wins can ship before full SSO if scoped as admin-visible prototypes with feature flags.
-11. **Phase G.1** — Blueprint Creator Dashboard main view. Useful for demoing creator workflow; does not require the full editor.
-12. **Phase H/I** — public org catalog and nursing catalog. These are important for acquisition but depend on URL/taxonomy/curation decisions.
-13. **Phase G.2/G.3/J/K** — full creator/admin/mentoring/SSO suite. Multi-day to multi-week; schedule after the May 20 critical path is chosen.
+12. **Phase F.1/F.2** — JHU admin quick wins can ship before full SSO if scoped as admin-visible prototypes with feature flags.
+13. **Phase G.1** — Blueprint Creator Dashboard main view. Useful for demoing creator workflow; does not require the full editor.
+14. **Phase H/I** — public org catalog and nursing catalog. These are important for acquisition but depend on URL/taxonomy/curation decisions. Note: Phase H is currently overloaded by the new Series spec filename; long-term backlog renumbering should resolve this collision.
+15. **Phase G.2/G.3/J/K** — full creator/admin/mentoring/SSO suite. Multi-day to multi-week; schedule after the May 20 critical path is chosen.
 
 ## Section 3: Specs To Write
 
@@ -139,6 +141,7 @@ Specs still needed:
 | `PHASE_B8_PROFILE_SETTINGS_DROPDOWN_SPEC.md` | Avatar menu, account/settings actions, Profile-tab distinction. | written |
 | `PHASE_B9_SHARE_DIALOG_SPEC.md` | iOS share sheet wrapper, BetterAt actions, visibility selector. | written with v1 stubs |
 | `PHASE_C5_ZOOMED_OUT_VIEW_SPEC.md` | Pinch transition, vertical timeline list, headers, reorder, long-press menu. | written; execute after Phase C |
+| `PHASE_H_SERIES_FEATURE_INTEGRATION_SPEC.md` | Series/Season strip, switch-Series sheet, step-card Series context, and canonical `Jump to` picker over existing Season infrastructure. | written; execute after A.9, with zoomed-out strip placement after C.5 |
 | `PHASE_D_CAPABILITY_DATA_MODEL_SPEC.md` | Capability tables, evidence tagging, verification authority, Profile capability map. | after taxonomy decisions |
 | `PHASE_E_SOCIAL_TIMELINE_SPEC.md` | Following layer, read-only external steps, copy-to-my-timeline. | after C.5 and privacy decisions |
 | `PHASE_F1_JHU_ADMIN_ONBOARDING_CARD_SPEC.md` | Admin dashboard onboarding card. | written |
