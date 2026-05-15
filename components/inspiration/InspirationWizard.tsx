@@ -8,7 +8,7 @@
  *   4. Success — confirmation with navigation to the new interest
  */
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import { Modal, View, StyleSheet, Pressable, Text } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -51,8 +51,22 @@ export function InspirationWizard({ visible, onClose }: InspirationWizardProps) 
     blueprintSlug: string;
   } | null>(null);
 
+  // Parent-child abort contract: when the capture step has an active
+  // extraction in flight, it registers an abort handler here. The wizard
+  // calls it before resetting state so a modal close / Cancel / Android
+  // back / swipe-down dismiss cancels the network request instead of
+  // letting it complete and silently advance to review-interest.
+  const captureAbortHandlerRef = useRef<(() => void) | null>(null);
+  const registerCaptureAbortHandler = useCallback(
+    (handler: (() => void) | null) => {
+      captureAbortHandlerRef.current = handler;
+    },
+    [],
+  );
+
   // Reset state when closing
   const handleClose = useCallback(() => {
+    captureAbortHandlerRef.current?.();
     setStep('capture');
     setExtraction(null);
     setInterestEdits({});
@@ -164,6 +178,7 @@ export function InspirationWizard({ visible, onClose }: InspirationWizardProps) 
           <InspirationCaptureStep
             userInterestSlugs={userInterestSlugs}
             onComplete={handleExtractionComplete}
+            registerAbortHandler={registerCaptureAbortHandler}
           />
         )}
         {step === 'review-interest' && extraction && (

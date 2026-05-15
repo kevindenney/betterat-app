@@ -26,14 +26,23 @@ const logger = createLogger('InspirationService');
 
 export async function extractInspiration(
   input: InspirationExtractInput,
+  options: { signal?: AbortSignal } = {},
 ): Promise<InspirationExtraction> {
+  // The configured Supabase client in services/supabase.ts forwards
+  // options.signal into the per-request fetch via its global fetch override
+  // (see services/supabase.ts:154-172). functions-js v2 destructures `signal`
+  // off the invoke options and passes it to fetch (see
+  // node_modules/@supabase/functions-js/dist/main/FunctionsClient.js:30). The
+  // `as any` cast covers the case where the SDK's published types do not
+  // expose `signal` on FunctionsInvokeOptions.
   const { data, error } = await supabase.functions.invoke('inspiration-extract', {
     body: {
       content_type: input.content_type,
       content: input.content,
       user_existing_interest_slugs: input.user_existing_interest_slugs,
     },
-  });
+    signal: options.signal,
+  } as any);
 
   if (error) {
     logger.error('Inspiration extraction failed', error);
