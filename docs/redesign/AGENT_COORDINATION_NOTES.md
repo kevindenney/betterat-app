@@ -62,6 +62,25 @@ Claude Code stopping on spec/repo contradictions is the safety net. Keep that be
 
 Codex audits are useful but not authoritative until checked against repo state. Their findings should guide investigation, not replace it.
 
+## Dev Environment Gotchas
+
+### Simulator may launch the wrong dev client
+
+The iOS simulator has two BetterAt-stack apps installed (`com.betterat.app`
+and `com.denneyke.dragonworldshk2027`). If the wrong one launches against
+the BetterAt Metro bundle, you'll see native-module errors that look
+like dependency problems but aren't:
+
+- `Worklets native part of Worklets doesn't seem to be initialized`
+- `Cannot find native module 'ExpoLocalization'`
+
+Before investigating native dependencies, verify the simulator is
+running `com.betterat.app`, not `com.denneyke.dragonworldshk2027`.
+
+Documented twice in this codebase before being banked: Codex hit it on
+2026-05-16 morning during B.5 verification, then again later the same
+morning. Banking it now so future agents don't waste 30 min on it.
+
 ## What This Is Not
 
 This is not a claim that Codex is unreliable or should be replaced. Codex and Claude Code have different strengths. Codex is strong at reasoning, architecture, and synthesis; Claude Code is strong at repo-grounded execution. The three errors above were all caught quickly with no production damage. The pattern works as long as repo-state claims are verified.
