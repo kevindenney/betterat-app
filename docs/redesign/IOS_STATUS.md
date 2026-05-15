@@ -6,7 +6,8 @@ Last updated: 2026-05-15, Get Inspired status-docs handoff.
 
 | Area | Status |
 |---|---|
-| Fully shipped cutovers | 5 surfaces: Playbook home, Race Prep cards, Race Log iOS, Profile iOS, Get Inspired running state |
+| Fully shipped cutovers | 4 active surfaces: Playbook home, Race Log iOS, Profile iOS, Get Inspired running state |
+| Shipped but flag-disabled | Race Prep cards iOS pending card detail-pattern rework |
 | Previously known limitation | Resolved: Reflect production no longer mounts preview fixtures |
 | Staged but not fully cut over | 2: Concept detail, Trophy |
 | Designed but not staged | 7 Discover entries: parent shell + 6 leaf surfaces |
@@ -15,7 +16,7 @@ Last updated: 2026-05-15, Get Inspired status-docs handoff.
 ## Shipped
 
 - Playbook home iOS — `ae0334fd`; banner follow-up `da8c4270`.
-- Race Prep cards iOS — prep `b0a6e23b`, flag `da9e92a9`, components `a84c8b50`, render switch `01c6af34`, docs `6a86f4e8`.
+- Race Prep cards iOS — prep `b0a6e23b`, flag `da9e92a9`, components `a84c8b50`, render switch `01c6af34`, docs `6a86f4e8`; flag-disabled after `9cdb9f34` because Kevin prefers the legacy inline-tabs-per-card pattern over tap-to-detail.
 - Canonical error state infrastructure — `5c3ab6a4`.
 - Reflect Race Log/Profile real-data wiring — log adapter `a6031f1e`, Profile adapter `fed19b1a`, production wiring `50b9e9fc`.
 - Get Inspired running state — staged `7c2dfeeb`, Playbook CTA `1e0c331b`, render switch `9580a317`, abort semantics `95c9a4aa`.
@@ -54,3 +55,4 @@ Execute `docs/redesign/specs/CONCEPT_DETAIL_COMMIT_2_READ_PATH.md`.
 - Race Log segment-key fix is shipped at `847e7855`.
 - `STAGING_AUDIT.md` is stale about Profile pending; rely on `SESSION_STATE.md` and `CONSISTENCY_AUDIT.md` for current status.
 - Do not mount `app/*-ios.tsx` preview wrappers in production tab screens.
+- Race Prep cards iOS is intentionally flag-disabled pending the card detail-pattern decision in `docs/redesign/RACE_CARD_LAYOUT_REGRESSION.md`.

@@ -227,10 +227,11 @@ export const FEATURE_FLAGS = {
    * four-state status grammar + earned-exception current card. When
    * false, the legacy <CardGrid /> renders. Other Race tab render paths
    * (TimelineGridView, USE_RACE_LIST_VIEW, IOSRacesScreen) are unaffected.
-   * Defaults true (cutover live 2026-05-15); flip to false via
-   * EXPO_PUBLIC_FF_RACE_PREP_IOS_REGISTER=false to revert.
+   * Defaults false after the 2026-05-15 layout-regression review; flip to
+   * true via EXPO_PUBLIC_FF_RACE_PREP_IOS_REGISTER=true while the card detail
+   * pattern is reworked.
    */
-  RACE_PREP_IOS_REGISTER: readBooleanEnv('EXPO_PUBLIC_FF_RACE_PREP_IOS_REGISTER', true),
+  RACE_PREP_IOS_REGISTER: readBooleanEnv('EXPO_PUBLIC_FF_RACE_PREP_IOS_REGISTER', false),
 
   /**
    * Stage the Race Log iOS register surface (chronological multi-season

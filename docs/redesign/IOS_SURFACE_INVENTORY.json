@@ -26,13 +26,19 @@
       "type": "summary",
       "wire_up": "real",
       "preview_status": "shipped",
-      "canonical_status": "shipped",
+      "canonical_status": "shipped-flag-disabled",
       "shipped_in_commit": "01c6af34",
       "shipped_on": "2026-05-15",
       "entry_points": [
-        "Race tab cards-grid render path (default ON)"
+        "Race tab cards-grid render path (flag default OFF; legacy inline-tabs-per-card path active)",
+        "Set EXPO_PUBLIC_FF_RACE_PREP_IOS_REGISTER=true to re-enable iOS-register RaceCardsScreen while rework is evaluated"
       ],
-      "design_handoff_html": "Race Prep cards - Felix sailing - iOS register.html"
+      "design_handoff_html": "Race Prep cards - Felix sailing - iOS register.html",
+      "flag_default": "false",
+      "disabled_on": "2026-05-15",
+      "disabled_reason": "Tap-to-detail pattern introduced in 01c6af34 conflicts with Kevin preference for legacy inline-tabs-per-card workspace.",
+      "regression_doc": "docs/redesign/RACE_CARD_LAYOUT_REGRESSION.md",
+      "regression_doc_commit": "9cdb9f34"
     },
     {
       "id": "on-the-water-ios",

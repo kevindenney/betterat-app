@@ -11,7 +11,7 @@ Count: 5 production cutover surfaces. Reflect's original preview-fixture limitat
 | Cutover | Status | Commit(s) | Note |
 |---|---|---|---|
 | Playbook home iOS | shipped | `ae0334fd`, follow-up `da8c4270` | First compressed single-surface cutover. |
-| Race Prep cards iOS | shipped | `b0a6e23b`, `da9e92a9`, `a84c8b50`, `01c6af34`, `6a86f4e8` | Expanded canonical five-commit cutover pattern. |
+| Race Prep cards iOS | shipped, flag-disabled | `b0a6e23b`, `da9e92a9`, `a84c8b50`, `01c6af34`, `6a86f4e8`; disabled after `9cdb9f34` | Code remains available, but `RACE_PREP_IOS_REGISTER` now defaults OFF pending design rework of the card detail pattern. |
 | Reflect Race Log iOS | shipped | staged `316c5486`, visual cutover `3d8b45dc`, log adapter `a6031f1e`, segment fix `847e7855`, wiring `50b9e9fc` | Production Reflect now uses real Race/Shift log data; preview route remains fixture-backed for design review. |
 | Reflect Profile iOS | shipped | staged `505de4e3`, visual cutover `3d8b45dc`, profile adapter `fed19b1a`, wiring `50b9e9fc` | Production Reflect now uses real profile/account data; preview route remains fixture-backed for design review. |
 | Get Inspired running state | shipped | staged `7c2dfeeb`, CTA `1e0c331b`, render switch `9580a317`, abort semantics `95c9a4aa` | Single Playbook-home CTA, running-state loading narration, cancel-on-abort semantics, and canonical error state for non-abort failures. |
@@ -478,7 +478,7 @@ Surface handoff status for cutovers not yet complete:
 | Discover Person detail iOS | Discover tab cutover — designed; build-only spec ready in `docs/redesign/specs/DISCOVER_PERSON_DETAIL_BUILD_SPEC.md` |
 | Discover Topic detail iOS | Discover tab cutover — designed; build-only spec ready in `docs/redesign/specs/DISCOVER_TOPIC_DETAIL_BUILD_SPEC.md` |
 | Discover home shell iOS | Discover tab cutover — architecture resolved in `docs/redesign/DISCOVER_CUTOVER_ARCHITECTURE.md` |
-| ~~Race Prep cards iOS / timeline-grid summary iOS~~ | ~~Race Prep cutover (StepDetailContent + RaceSummaryCard together)~~ ✅ **Shipped 2026-05-15** — Race Prep cards iOS handoff landed; cards-grid cutover live behind `RACE_PREP_IOS_REGISTER` |
+| ~~Race Prep cards iOS / timeline-grid summary iOS~~ | ~~Race Prep cutover (StepDetailContent + RaceSummaryCard together)~~ ⚠️ **Shipped 2026-05-15, flag-disabled pending rework** — Race Prep cards iOS handoff landed, but the cards-grid cutover introduced a tap-to-detail pattern Kevin does not want. `RACE_PREP_IOS_REGISTER` now defaults OFF; see `docs/redesign/RACE_CARD_LAYOUT_REGRESSION.md` (`9cdb9f34`). |
 | ~~Race Log iOS~~ | ~~Reflect home cutover (option 2 — full tab replacement without functionality regression)~~ ✅ **Shipped 2026-05-15** — staged as `RACE_LOG_IOS_REGISTER` in `316c5486`; visual cutover inside canonical Reflect tab in `3d8b45dc`; real-data wiring completed by `a6031f1e` and `50b9e9fc` |
 | ~~Profile iOS~~ | ~~Reflect home cutover~~ ✅ **Shipped 2026-05-15** — staged as `PROFILE_IOS_REGISTER` in `505de4e3`; visual cutover inside canonical Reflect tab in `3d8b45dc`; real-data wiring completed by `fed19b1a` and `50b9e9fc` |
 
@@ -636,7 +636,7 @@ All twelve Claude Design handoff surfaces have a preview route built and reachab
 | # | Surface | Route | Type | User | Wire-up |
 |---|---|---|---|---|---|
 | 1 | Race Prep — detail | `/race/ios/[stepId]` | re-skin existing | practitioner | step + plan_data + collaborators + competencies + prior debrief quotes |
-| 1b | Race Prep — cards (summary) | renders in `app/(tabs)/races.tsx` behind `RACE_PREP_IOS_REGISTER` | fresh-build summary surface | practitioner | **cutover shipped 2026-05-15** — `filteredCardGridRaces` adapted into `RaceCardItem[]`, tap-through to `/race/ios/[stepId]` |
+| 1b | Race Prep — cards (summary) | renders in `app/(tabs)/races.tsx` behind `RACE_PREP_IOS_REGISTER` | fresh-build summary surface | practitioner | **shipped but flag-disabled pending design rework** — `01c6af34` introduced tap-through to `/race/ios/[stepId]`; Kevin prefers the legacy inline-tabs-per-card workspace. See `docs/redesign/RACE_CARD_LAYOUT_REGRESSION.md` (`9cdb9f34`). |
 | 2 | On the Water | `/race/ios/water/[stepId]` | fresh-build | practitioner | observations + media_uploads (reverse chronological) |
 | 3 | Debrief | `/race/ios/debrief/[stepId]` | re-skin (architectural shift to chrono stack) | practitioner | observations + media_uploads (chronological) |
 | 4 | Playbook home | `/playbook-ios` | re-skin (simplified per decision) | practitioner | manifesto + concepts + recent reflections + inbox count badge |
