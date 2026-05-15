@@ -234,6 +234,14 @@ export const FEATURE_FLAGS = {
   RACE_PREP_IOS_REGISTER: readBooleanEnv('EXPO_PUBLIC_FF_RACE_PREP_IOS_REGISTER', false),
 
   /**
+   * Gate the canonical Practice Add Step floating action button. When true,
+   * the Practice implementation can show the bottom-right + affordance and
+   * canonical two-path creation sheet. Defaults false because this is a
+   * substantive visual and interaction change.
+   */
+  PRACTICE_ADD_STEP_FAB: readBooleanEnv('EXPO_PUBLIC_FF_PRACTICE_ADD_STEP_FAB', false),
+
+  /**
    * Stage the Race Log iOS register surface (chronological multi-season
    * archive). This flag exists for the Reflect-tab cutover, which ships
    * Race Log + Profile together; the render switch in the Reflect parent

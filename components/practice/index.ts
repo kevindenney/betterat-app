@@ -33,3 +33,6 @@ export { TuftePracticeLogForm } from './TuftePracticeLogForm';
 export type { LogPracticeData as TufteLogPracticeData } from './TuftePracticeLogForm';
 export { TuftePlanStep } from './TuftePlanStep';
 export { TufteReviewStep } from './TufteReviewStep';
+
+export { AddStepFab } from './AddStepFab';
+export type { AddStepFabProps } from './AddStepFab';
