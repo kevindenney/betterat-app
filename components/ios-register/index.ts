@@ -66,3 +66,8 @@ export {
   type ProfileReflectFields,
   type ProfilePlan,
 } from './ProfileScreen';
+export {
+  IOSRegisterErrorState,
+  type IOSRegisterErrorAction,
+  type IOSRegisterErrorDisclosure,
+} from './IOSRegisterErrorState';

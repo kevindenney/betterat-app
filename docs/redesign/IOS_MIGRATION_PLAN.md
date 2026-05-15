@@ -336,6 +336,13 @@ The next action is non-negotiable. "Try again" counts when it's actually likely 
 
 **Where this applies:** any failure path — auth, network, data validation, AI service errors, payment, share/invite flows, anywhere a request can fail or return empty. Audit existing error surfaces against this principle as a separate pass; new surfaces are designed to it from the start.
 
+**Status: canonical implementation shipped 2026-05-15.** Built as the kit component `IOSRegisterErrorState` in `components/ios-register/IOSRegisterErrorState.tsx`. The chrome (back-chevron + context title + 36×36 muted glyph + 26pt headline + supporting paragraph + actions stack pinned to bottom) is canonical across all three reference variants; what varies is headline / supportingText / glyph / primaryAction / secondaryAction / tertiaryAction / disclosure + optional children for surrounding context. Three reference variants from the design pass (network / input / system) are visible at `/error-state-ios?variant=…`. The component is cross-cutting infrastructure — **no feature flag**, no render-path fallback. Header rule: the nav-bar title shows the **context** (e.g. "Get Inspired"), not "Error". Source design: "Error state · canonical · iOS register" handoff. Reference uses going forward:
+- Get Inspired pipeline failures (matches the three reference variants directly)
+- Concept detail load failure (use the `system` variant with the back-chevron jumping to Playbook)
+- Race Prep weather-fetch failure (use the `network` variant scoped to the forecast tile group)
+- Save-reflection failure (use the `input` variant if it's a validation issue, the `system` variant if it's a save-pipeline issue)
+- Any future AI-work surface needing an error fallback — same component, different copy.
+
 ---
 
 ## Resolved architecture decision (2026-05-14) — Reflection vs Competency Assessment
@@ -404,13 +411,13 @@ These entries index staged build-only surfaces whose render switches are still p
 Related dependency audit:
 
 - `docs/redesign/DATA_LAYER_DEPENDENCIES.md` — render-blocking, variant-blocking, and follow-up data dependencies for Race Log, Profile, Get Inspired, Trophy, and Concept detail.
-- `docs/redesign/CONCEPT_DETAIL_DATA_LAYER_WORK.md` — resolved Concept detail state decisions, proposed data migration, derived reflection metrics, routing function, tests, and required pre-cutover commit sequence.
+- `docs/redesign/CONCEPT_DETAIL_DATA_LAYER_WORK.md` — resolved Concept detail state decisions and links to the three executable pre-cutover specs.
 
 ## Cutover readiness
 
 | Cutover | blocked-on-investigation | blocked-on-data | blocked-on-Profile-staging | ready-to-execute | Note |
 |---|---:|---:|---:|---:|---|
-| Concept detail iOS | no | yes | no | no | Decisions resolved in `CONCEPT_DETAIL_CUTOVER_PLAN.md`; render switch waits on `CONCEPT_DETAIL_DATA_LAYER_WORK.md`. |
+| Concept detail iOS | no | specs ready | no | no | 3 pre-cutover commits to execute, then 1 render-switch commit, then 1 migration-plan update commit. |
 | Get Inspired running state | no | no | no | partial | Pipeline hook resolved in `GET_INSPIRED_CUTOVER_PLAN.md`; default iOS Playbook entry point and Stop semantics need human decision. |
 | Reflect Race Log/Profile | no | no | pending commit | no | Profile is staged in the working tree, but the build-only Profile commit hash is still pending. |
 | Trophy of Becoming iOS | no | yes | no | no | Canonical mount resolved in `TROPHY_OF_BECOMING_CUTOVER_PLAN.md`: no production render path and no trophy data layer exist. |
@@ -419,13 +426,13 @@ Related dependency audit:
 |---|---:|---|---|
 | Get Inspired iOS running state | `7c2dfeeb` | `docs/redesign/GET_INSPIRED_CUTOVER_PLAN.md` | Wire `GET_INSPIRED_IOS_REGISTER` into the live Get Inspired modal's long-running analyze/build-plan state once the real pipeline stage is confirmed. |
 | Trophy of Becoming iOS | `496d2481` | `docs/redesign/TROPHY_OF_BECOMING_CUTOVER_PLAN.md` | Blocked until path-completion trophy data/service and first production entry point exist. |
-| Concept detail iOS | `a6c27c70` | `docs/redesign/CONCEPT_DETAIL_CUTOVER_PLAN.md` + `docs/redesign/CONCEPT_DETAIL_DATA_LAYER_WORK.md` | Land concept state migration, derived linked-reflection read path, and variant-routing helper; then wire `CONCEPT_IOS_REGISTER` into `app/concept-ios/[slug].tsx`. Legacy `app/(tabs)/playbook/concepts/[slug].tsx` stays unchanged. |
+| Concept detail iOS | `a6c27c70` | `docs/redesign/CONCEPT_DETAIL_CUTOVER_PLAN.md` + `docs/redesign/CONCEPT_DETAIL_DATA_LAYER_WORK.md` | Specs ready: execute Commit 1 migration, Commit 2 read path, Commit 3 variant routing, Commit 4 render switch, Commit 5 migration-plan update. |
 
 ## Cutover execution order (revised)
 
 1. Get Inspired running state — ship after the iOS Playbook entry-point and Stop semantics decisions; the pipeline hook exists and no render-blocking data is missing.
 2. Reflect Race Log/Profile — ship after the Profile build-only commit is finalized; Race Log and Profile have no render-blocking data dependencies.
-3. Concept detail iOS — ship after data-layer work for `playbook_concept_user_state`, derived linked-reflection metrics, and `resolveConceptDetailVariant`; the three state decisions are resolved.
+3. Concept detail iOS — execute the 3 pre-cutover specs, then ship the render switch; the state decisions are resolved and implementation specs are ready.
 4. Trophy of Becoming iOS — ship after data-layer work for path-completion trophy synthesis, trophy storage/API, and the first production entry point.
 
 ---

@@ -245,6 +245,30 @@
       "design_handoff_html": ""
     },
     {
+      "id": "error-state-ios",
+      "title": "Error state · canonical · iOS register",
+      "route": "/error-state-ios",
+      "user": "Felix/Emily",
+      "user_role": "practitioner",
+      "type": "kit-component",
+      "wire_up": "kit",
+      "preview_status": "shipped",
+      "canonical_status": "infrastructure",
+      "feature_flag": null,
+      "feature_flag_rationale": "Cross-cutting infrastructure per Principle #2 (error-state principle). Not a render-path replacement with a fallback — error states are imported directly by any iOS-register surface that needs one.",
+      "preview_route": "/error-state-ios",
+      "variants": [
+        "network",
+        "input",
+        "system"
+      ],
+      "entry_points": [
+        "/error-state-ios (preview, three reference variants)",
+        "Imported directly as <IOSRegisterErrorState /> from @/components/ios-register"
+      ],
+      "design_handoff_html": "Error state - canonical - iOS register.html"
+    },
+    {
       "id": "auth-welcome-ios",
       "title": "Auth Welcome iOS",
       "route": "/auth-welcome-ios",
