@@ -153,16 +153,25 @@
       "commit": "6d6389ef"
     },
     {
-      "surface": "Reflect home",
+      "surface": "Reflect sub-tab cutover (Race Log + Profile)",
       "preview_built": true,
-      "canonical_cutover_status": "blocked",
+      "canonical_cutover_status": "shipped",
+      "legacy_retirement_blockers": [],
+      "blocked_by": [],
+      "commit": "3d8b45dc",
+      "shipped_on": "2026-05-15",
+      "notes": "Race Log iOS + Profile iOS wired into app/(tabs)/reflect.tsx behind RACE_LOG_IOS_REGISTER and PROFILE_IOS_REGISTER. Progress segment unchanged. /reflect-ios preview route unchanged."
+    },
+    {
+      "surface": "Reflect home (root /reflect-ios)",
+      "preview_built": true,
+      "canonical_cutover_status": "parked",
       "legacy_retirement_blockers": [],
       "blocked_by": [
-        "Race Log iOS design handoff",
-        "Profile iOS design handoff",
         "Reflection-usage tracking"
       ],
-      "commit": "1b00b9b6"
+      "commit": "1b00b9b6",
+      "notes": "Distinct from the sub-tab cutover above. The contemplative /reflect-ios root surface itself stays parked; Race Log + Profile shipped inside the legacy Reflect tab structure first."
     },
     {
       "surface": "Discover tab",
@@ -203,16 +212,6 @@
     }
   ],
   "design_handoff_backlog": [
-    {
-      "surface": "Race Log iOS",
-      "unblocks": "Reflect home cutover without functionality regression",
-      "priority": "medium"
-    },
-    {
-      "surface": "Profile iOS",
-      "unblocks": "Reflect home cutover",
-      "priority": "medium"
-    },
     {
       "surface": "Discover-Orgs iOS",
       "unblocks": "Discover tab cutover",

@@ -132,12 +132,14 @@
       "type": "review",
       "wire_up": "placeholder",
       "preview_status": "shipped",
-      "canonical_status": "staged",
+      "canonical_status": "shipped",
       "build_only_commit": "316c5486",
+      "shipped_in_commit": "3d8b45dc",
+      "shipped_on": "2026-05-15",
       "feature_flag": "RACE_LOG_IOS_REGISTER",
       "entry_points": [
-        "/race-log-ios",
-        "Reflect tab segment via future FEATURE_FLAGS.RACE_LOG_IOS_REGISTER render switch"
+        "Reflect tab → Race Log segment (canonical, flag default ON)",
+        "/race-log-ios (preview route)"
       ],
       "design_handoff_html": ""
     },
@@ -150,12 +152,15 @@
       "type": "profile",
       "wire_up": "placeholder",
       "preview_status": "shipped",
-      "canonical_status": "staged",
+      "canonical_status": "shipped",
+      "build_only_commit": "505de4e3",
+      "shipped_in_commit": "3d8b45dc",
+      "shipped_on": "2026-05-15",
       "feature_flag": "PROFILE_IOS_REGISTER",
       "preview_route": "/profile-ios",
       "entry_points": [
-        "/profile-ios",
-        "Reflect tab segment via future FEATURE_FLAGS.PROFILE_IOS_REGISTER render switch (paired with RACE_LOG_IOS_REGISTER)"
+        "Reflect tab → Profile segment (canonical, flag default ON)",
+        "/profile-ios (preview route)"
       ],
       "design_handoff_html": "Profile - Felix sailing - iOS register.html"
     },

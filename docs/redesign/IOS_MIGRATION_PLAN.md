@@ -388,14 +388,14 @@ Surfaces blocked on these design handoffs before their cutover can resume:
 
 | Handoff needed | Blocks |
 |---|---|
-| Race Log iOS | Reflect home cutover (option 2 — full tab replacement without functionality regression) |
-| Profile iOS | Reflect home cutover |
 | Discover-Orgs iOS | Discover tab cutover |
 | Discover-People iOS | Discover tab cutover |
 | Discover-Forums iOS | Discover tab cutover |
 | ~~Race Prep cards iOS / timeline-grid summary iOS~~ | ~~Race Prep cutover (StepDetailContent + RaceSummaryCard together)~~ ✅ **Shipped 2026-05-15** — Race Prep cards iOS handoff landed; cards-grid cutover live behind `RACE_PREP_IOS_REGISTER` |
+| ~~Race Log iOS~~ | ~~Reflect home cutover (option 2 — full tab replacement without functionality regression)~~ ✅ **Shipped 2026-05-15** — staged as `RACE_LOG_IOS_REGISTER` in `316c5486`; cut over inside the canonical Reflect tab in `3d8b45dc` |
+| ~~Profile iOS~~ | ~~Reflect home cutover~~ ✅ **Shipped 2026-05-15** — staged as `PROFILE_IOS_REGISTER` in `505de4e3`; cut over inside the canonical Reflect tab in `3d8b45dc` (paired with Race Log) |
 
-Five design handoffs still outstanding. The Race Prep cards handoff arrived 2026-05-15 and the cards-grid cutover shipped that day (see follow-up #11 for the remaining `/step/[id]` vs `/race/ios/[stepId]` detail-surface question, and follow-up #12 for inline-action affordances on the new summary surface). All other blocked-cutover surfaces remain reachable via their preview routes (`/reflect-ios`, `/discover-ios`) for review and testing; cutover commits resume once their respective design handoffs arrive.
+Three design handoffs still outstanding. Reflect cutover shipped once Race Log iOS and Profile iOS were wired into the canonical Reflect tab; Discover sub-surfaces remain the only blocked-cutover handoffs. Note: the contemplative `/reflect-ios` root surface itself stays parked — that surface and the Reflect-home-level cutover live separately from the sub-tab cutover that just landed. All other blocked-cutover surfaces remain reachable via their preview routes (`/reflect-ios`, `/discover-ios`) for review and testing; cutover commits resume once their respective design handoffs arrive.
 
 ## Staged cutover plan index (2026-05-15)
 
@@ -404,12 +404,13 @@ These entries index staged build-only surfaces whose render switches are still p
 Related dependency audit:
 
 - `docs/redesign/DATA_LAYER_DEPENDENCIES.md` — render-blocking, variant-blocking, and follow-up data dependencies for Race Log, Profile, Get Inspired, Trophy, and Concept detail.
+- `docs/redesign/CONCEPT_DETAIL_DATA_LAYER_WORK.md` — resolved Concept detail state decisions, proposed data migration, derived reflection metrics, routing function, tests, and required pre-cutover commit sequence.
 
 ## Cutover readiness
 
 | Cutover | blocked-on-investigation | blocked-on-data | blocked-on-Profile-staging | ready-to-execute | Note |
 |---|---:|---:|---:|---:|---|
-| Concept detail iOS | no | no | no | partial | Mounting screens resolved in `CONCEPT_DETAIL_CUTOVER_PLAN.md`; variant routing still needs per-user concept state/dormancy decisions. |
+| Concept detail iOS | no | yes | no | no | Decisions resolved in `CONCEPT_DETAIL_CUTOVER_PLAN.md`; render switch waits on `CONCEPT_DETAIL_DATA_LAYER_WORK.md`. |
 | Get Inspired running state | no | no | no | partial | Pipeline hook resolved in `GET_INSPIRED_CUTOVER_PLAN.md`; default iOS Playbook entry point and Stop semantics need human decision. |
 | Reflect Race Log/Profile | no | no | pending commit | no | Profile is staged in the working tree, but the build-only Profile commit hash is still pending. |
 | Trophy of Becoming iOS | no | yes | no | no | Canonical mount resolved in `TROPHY_OF_BECOMING_CUTOVER_PLAN.md`: no production render path and no trophy data layer exist. |
@@ -418,13 +419,13 @@ Related dependency audit:
 |---|---:|---|---|
 | Get Inspired iOS running state | `7c2dfeeb` | `docs/redesign/GET_INSPIRED_CUTOVER_PLAN.md` | Wire `GET_INSPIRED_IOS_REGISTER` into the live Get Inspired modal's long-running analyze/build-plan state once the real pipeline stage is confirmed. |
 | Trophy of Becoming iOS | `496d2481` | `docs/redesign/TROPHY_OF_BECOMING_CUTOVER_PLAN.md` | Blocked until path-completion trophy data/service and first production entry point exist. |
-| Concept detail iOS | `a6c27c70` | `docs/redesign/CONCEPT_DETAIL_CUTOVER_PLAN.md` | Wire `CONCEPT_IOS_REGISTER` into `app/concept-ios/[slug].tsx`; legacy `app/(tabs)/playbook/concepts/[slug].tsx` stays unchanged. |
+| Concept detail iOS | `a6c27c70` | `docs/redesign/CONCEPT_DETAIL_CUTOVER_PLAN.md` + `docs/redesign/CONCEPT_DETAIL_DATA_LAYER_WORK.md` | Land concept state migration, derived linked-reflection read path, and variant-routing helper; then wire `CONCEPT_IOS_REGISTER` into `app/concept-ios/[slug].tsx`. Legacy `app/(tabs)/playbook/concepts/[slug].tsx` stays unchanged. |
 
 ## Cutover execution order (revised)
 
-1. Concept detail iOS — ship now after human confirms the mature non-dormant fallback; the render data exists and the route scope is resolved.
-2. Get Inspired running state — ship after the iOS Playbook entry-point and Stop semantics decisions; the pipeline hook exists and no render-blocking data is missing.
-3. Reflect Race Log/Profile — ship after the Profile build-only commit is finalized; Race Log and Profile have no render-blocking data dependencies.
+1. Get Inspired running state — ship after the iOS Playbook entry-point and Stop semantics decisions; the pipeline hook exists and no render-blocking data is missing.
+2. Reflect Race Log/Profile — ship after the Profile build-only commit is finalized; Race Log and Profile have no render-blocking data dependencies.
+3. Concept detail iOS — ship after data-layer work for `playbook_concept_user_state`, derived linked-reflection metrics, and `resolveConceptDetailVariant`; the three state decisions are resolved.
 4. Trophy of Becoming iOS — ship after data-layer work for path-completion trophy synthesis, trophy storage/API, and the first production entry point.
 
 ---
