@@ -4,13 +4,14 @@
  * These tests verify that the navigation helpers provide proper type safety
  * and work as expected at runtime.
  */
+/* eslint-disable no-restricted-properties -- This file asserts the router calls produced by navigateTo/buildHref. */
 
 import { navigateTo, buildHref, isDynamicRoute } from '../routes';
 import type { Router } from 'expo-router';
 
 // Mock router for testing
 const createMockRouter = () => {
-  const calls: Array<{ method: 'push' | 'replace'; href: string }> = [];
+  const calls: { method: 'push' | 'replace'; href: string }[] = [];
 
   const router = {
     push: jest.fn((href: string) => {
@@ -37,6 +38,9 @@ describe('navigateTo', () => {
 
     navigateTo(router, '/(tabs)/races');
     expect(router.push).toHaveBeenCalledWith('/(tabs)/races');
+
+    navigateTo(router, '/(tabs)/practice');
+    expect(router.push).toHaveBeenCalledWith('/(tabs)/practice');
   });
 
   it('navigates to dynamic routes with params', () => {
@@ -99,6 +103,7 @@ describe('isDynamicRoute', () => {
 
   it('identifies static routes', () => {
     expect(isDynamicRoute('/(auth)/login')).toBe(false);
+    expect(isDynamicRoute('/(tabs)/practice')).toBe(false);
     expect(isDynamicRoute('/(tabs)/races')).toBe(false);
     expect(isDynamicRoute('/settings')).toBe(false);
   });
@@ -123,6 +128,7 @@ describe('Type Safety Examples', () => {
     const router = createMockRouter();
 
     // ✅ This should compile
+    navigateTo(router, '/(tabs)/practice');
     navigateTo(router, '/(tabs)/races');
     navigateTo(router, '/(tabs)/races', { replace: true });
 

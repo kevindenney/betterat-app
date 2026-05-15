@@ -30,6 +30,7 @@ export type StaticRoute =
   | '/(auth)/coach-onboarding-profile-preview'
   | '/(auth)/sailor-onboarding-chat'
   | '/(tabs)/dashboard'
+  | '/(tabs)/practice'
   | '/(tabs)/races'
   | '/(tabs)/schedule'
   | '/(tabs)/connect'
@@ -102,7 +103,7 @@ export type AppRoute = StaticRoute | DynamicRoute;
  */
 type ExtractParams<T extends string> =
   T extends `${infer _Start}[${infer Param}]${infer Rest}`
-    ? { [K in Param | keyof ExtractParams<Rest>]: string }
+    ? Record<Param | keyof ExtractParams<Rest>, string>
     : Record<never, never>;
 
 /**
@@ -125,7 +126,8 @@ export type RouteParams<T extends AppRoute> = T extends DynamicRoute
  *
  * // Static routes
  * navigateTo(router, '/(auth)/login');
- * navigateTo(router, '/(tabs)/races');
+ * navigateTo(router, '/(tabs)/practice');
+ * navigateTo(router, '/(tabs)/races'); // legacy compatibility route
  *
  * // Dynamic routes
  * navigateTo(router, '/boat/[id]', { id: '123' });
@@ -166,8 +168,10 @@ export function navigateTo<T extends AppRoute>(
 
   // Navigate using push or replace
   if (options?.replace) {
+    // eslint-disable-next-line no-restricted-properties -- navigateTo is the wrapper enforcing typed route safety.
     router.replace(href);
   } else {
+    // eslint-disable-next-line no-restricted-properties -- navigateTo is the wrapper enforcing typed route safety.
     router.push(href);
   }
 }
