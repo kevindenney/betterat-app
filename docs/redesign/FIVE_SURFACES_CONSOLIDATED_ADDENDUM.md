@@ -506,7 +506,7 @@ Across all five surfaces, suggested phasing for time-crunch context:
 
 **Next sprint:**
 - Phase H: JHU.edu public org catalog (1 week)
-- Phase I: Nursing interest catalog (1 week)
+- Phase M: Nursing interest catalog (1 week)
 - Phase G.2: Full Blueprint Editor (1-2 weeks)
 
 **Following sprint:**

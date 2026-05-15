@@ -82,7 +82,7 @@ Decision: there are **12** valid HTML canonicals in the May 15 design set. `disc
 | G.2 | Full Blueprint Editor: step list, metadata, publish controls, template variables. | `FIVE_SURFACES_CONSOLIDATED_ADDENDUM.md` | `blueprint-creator-dashboard-canonical.html` | spec-pending | 5-8 | versioning and variable decisions | `BLUEPRINT_EDITOR_IOS=false` |
 | G.3 | Creator dashboard Subscribers / Insights / Earnings tabs. | `FIVE_SURFACES_CONSOLIDATED_ADDENDUM.md` | `blueprint-creator-dashboard-canonical.html` | spec-pending | 4-7 | monetization and insights data decisions | `BLUEPRINT_CREATOR_INSIGHTS_IOS=false` |
 | H | JHU.edu public organization catalog. | `FIVE_SURFACES_CONSOLIDATED_ADDENDUM.md` | `jhu-public-org-catalog-canonical.html` | spec-pending | 4-6 | URL, SEO, newsroom, tenant config | `PUBLIC_ORG_CATALOG_IOS=false` |
-| I | Nursing interest catalog. | `FIVE_SURFACES_CONSOLIDATED_ADDENDUM.md` | `nursing-interest-catalog-canonical.html` | spec-pending | 4-6 | specialty taxonomy, people ranking, blueprint curation | `NURSING_INTEREST_CATALOG_IOS=false` |
+| M | Nursing interest catalog. | `FIVE_SURFACES_CONSOLIDATED_ADDENDUM.md` | `nursing-interest-catalog-canonical.html` | spec-pending | 4-6 | specialty taxonomy, people ranking, blueprint curation | `NURSING_INTEREST_CATALOG_IOS=false` |
 | J | Blueprint Creator mentoring screens: subscriber detail, reflect feed, messages, notes, bulk mentoring. | `FIVE_SURFACES_CONSOLIDATED_ADDENDUM.md` | `mentoring-screens-canonical.html` | spec-pending | 6-10 | mentoring tier, comment threading, verification authority | `CREATOR_MENTORING_IOS=false` |
 | K | SAML/Shibboleth SSO for JHU. | `FIVE_SURFACES_CONSOLIDATED_ADDENDUM.md` | none | spec-pending; non-visual infrastructure | 4-8 | JHU adoption decision, auth provider setup | no UI flag; environment-gated |
 | L | Suggest bar below zoomed-out timeline. | `FOUR_SURFACES_FAST_SPEC_ADDENDUM.md` | `four-small-surfaces-canonical.html` | spec-pending | 4-6 | C.5, suggestion data model, privacy/source rules | `PRACTICE_SUGGEST_BAR=false` |
@@ -116,7 +116,7 @@ Decision: there are **12** valid HTML canonicals in the May 15 design set. `disc
 
 12. **Phase F.1/F.2** — JHU admin quick wins can ship before full SSO if scoped as admin-visible prototypes with feature flags.
 13. **Phase G.1** — Blueprint Creator Dashboard main view. Useful for demoing creator workflow; does not require the full editor.
-14. **Phase H/I** — public org catalog and nursing catalog. These are important for acquisition but depend on URL/taxonomy/curation decisions. Note: Phase H is currently overloaded by the new Series spec filename; long-term backlog renumbering should resolve this collision.
+14. **Phase H/M** — public org catalog and nursing catalog. These are important for acquisition but depend on URL/taxonomy/curation decisions. Phase H remains public org catalog; Phase M is nursing interest catalog after the Series feature integration moved to Phase I.
 15. **Phase G.2/G.3/J/K** — full creator/admin/mentoring/SSO suite. Multi-day to multi-week; schedule after the May 20 critical path is chosen.
 
 ## Section 3: Specs To Write
@@ -151,7 +151,7 @@ Specs still needed:
 | `PHASE_G2_BLUEPRINT_EDITOR_SPEC.md` | Full editor, variables, publish/update semantics. | after versioning/variables decisions |
 | `PHASE_G3_CREATOR_INSIGHTS_EARNINGS_SPEC.md` | Subscribers, insights, earnings tabs. | after monetization decision |
 | `PHASE_H_PUBLIC_ORG_CATALOG_SPEC.md` | Public JHU/org catalog, URL/SEO/newsroom. | after URL/content decisions |
-| `PHASE_I_NURSING_INTEREST_CATALOG_SPEC.md` | Nursing catalog, specialty taxonomy, featured people/blueprints. | after taxonomy/ranking decisions |
+| `PHASE_M_NURSING_INTEREST_CATALOG_SPEC.md` | Nursing catalog, specialty taxonomy, featured people/blueprints. | after taxonomy/ranking decisions |
 | `PHASE_J_CREATOR_MENTORING_SPEC.md` | Mentoring screens and subscriber detail. | after mentoring monetization/permissions decisions |
 | `PHASE_K_JHU_SSO_SPEC.md` | SAML/Shibboleth auth integration. | after JHU SSO requirement confirmed |
 | `PHASE_L_SUGGEST_BAR_SPEC.md` | Suggest bar below zoomed-out view, accept/dismiss/save. | after C.5 |
