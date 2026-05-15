@@ -1,5 +1,7 @@
 # iOS Register Migration Plan
 
+> **Canonical design landed 2026-05-15: see [`PRACTICE_TIMELINE_CANONICAL.md`](PRACTICE_TIMELINE_CANONICAL.md).** Supersedes prior Race Prep iOS register Pass A, On the Water iOS register Pass B, and the post-flag-flip inline-tabs pattern. The canonical defines the Practice tab as a horizontal timeline of steps (centered current step, peeks of adjacent), each step containing Plan / Do / Reflect phase tabs; renames the bottom Reflect tab to Profile (the capability-credential surface); and sketches a four-phase implementation rollout (A: rename Reflect→Profile, B: rename phase tabs, C: timeline-with-peek shell, D: capability model + Profile surface). Existing Race tab follow-ups in this plan ([Race Prep cards](#cutovers-shipped), the rolled-back register decision, and the timeline-with-peek + phase-naming findings) are resolved or superseded by the canonical.
+
 ## Current state (mid-session 2026-05-15)
 
 This section is the fast-read dashboard for the migration as of the Get Inspired status-docs handoff. Deeper detail lives in `docs/redesign/SESSION_STATE.md`; the immediate launch plan lives in `docs/redesign/NEXT_3_HOURS.md`.
@@ -11,7 +13,7 @@ Count: 5 production cutover surfaces. Reflect's original preview-fixture limitat
 | Cutover | Status | Commit(s) | Note |
 |---|---|---|---|
 | Playbook home iOS | shipped | `ae0334fd`, follow-up `da8c4270` | First compressed single-surface cutover. |
-| Race Prep cards iOS | shipped, flag-disabled | `b0a6e23b`, `da9e92a9`, `a84c8b50`, `01c6af34`, `6a86f4e8`; disabled after `9cdb9f34` | Code remains available, but `RACE_PREP_IOS_REGISTER` now defaults OFF pending design rework of the card detail pattern. |
+| Race Prep cards iOS | shipped, flag-disabled, superseded | `b0a6e23b`, `da9e92a9`, `a84c8b50`, `01c6af34`, `6a86f4e8`; disabled after `9cdb9f34` | Code remains available, but `RACE_PREP_IOS_REGISTER` now defaults OFF. Superseded by [`PRACTICE_TIMELINE_CANONICAL.md`](PRACTICE_TIMELINE_CANONICAL.md) — the Apple-Books-library-with-detail pattern is retired in favor of the timeline-with-peek shell + inline phase tabs. |
 | Reflect Race Log iOS | shipped | staged `316c5486`, visual cutover `3d8b45dc`, log adapter `a6031f1e`, segment fix `847e7855`, wiring `50b9e9fc` | Production Reflect now uses real Race/Shift log data; preview route remains fixture-backed for design review. |
 | Reflect Profile iOS | shipped | staged `505de4e3`, visual cutover `3d8b45dc`, profile adapter `fed19b1a`, wiring `50b9e9fc` | Production Reflect now uses real profile/account data; preview route remains fixture-backed for design review. |
 | Get Inspired running state | shipped | staged `7c2dfeeb`, CTA `1e0c331b`, render switch `9580a317`, abort semantics `95c9a4aa` | Single Playbook-home CTA, running-state loading narration, cancel-on-abort semantics, and canonical error state for non-abort failures. |
@@ -478,7 +480,7 @@ Surface handoff status for cutovers not yet complete:
 | Discover Person detail iOS | Discover tab cutover — designed; build-only spec ready in `docs/redesign/specs/DISCOVER_PERSON_DETAIL_BUILD_SPEC.md` |
 | Discover Topic detail iOS | Discover tab cutover — designed; build-only spec ready in `docs/redesign/specs/DISCOVER_TOPIC_DETAIL_BUILD_SPEC.md` |
 | Discover home shell iOS | Discover tab cutover — architecture resolved in `docs/redesign/DISCOVER_CUTOVER_ARCHITECTURE.md` |
-| ~~Race Prep cards iOS / timeline-grid summary iOS~~ | ~~Race Prep cutover (StepDetailContent + RaceSummaryCard together)~~ ⚠️ **Shipped 2026-05-15, flag-disabled pending rework** — Race Prep cards iOS handoff landed, but the cards-grid cutover introduced a tap-to-detail pattern Kevin does not want. `RACE_PREP_IOS_REGISTER` now defaults OFF; see `docs/redesign/RACE_CARD_LAYOUT_REGRESSION.md` (`9cdb9f34`). |
+| ~~Race Prep cards iOS / timeline-grid summary iOS~~ | ~~Race Prep cutover (StepDetailContent + RaceSummaryCard together)~~ ⚠️ **Shipped 2026-05-15, flag-disabled, superseded** — Race Prep cards iOS handoff landed, but the cards-grid cutover introduced a tap-to-detail pattern Kevin does not want. `RACE_PREP_IOS_REGISTER` defaults OFF; the Apple-Books-library pattern is now superseded by [`PRACTICE_TIMELINE_CANONICAL.md`](PRACTICE_TIMELINE_CANONICAL.md). See also `docs/redesign/RACE_CARD_LAYOUT_REGRESSION.md` (`9cdb9f34`), `docs/redesign/RACE_TIMELINE_WITH_PEEK_MISSING.md` (`a83eb98b`), and `docs/redesign/PHASE_NAMING_DOMAIN_BOUNDS.md` (`41e189e6`) — all three are resolved by the new canonical. |
 | ~~Race Log iOS~~ | ~~Reflect home cutover (option 2 — full tab replacement without functionality regression)~~ ✅ **Shipped 2026-05-15** — staged as `RACE_LOG_IOS_REGISTER` in `316c5486`; visual cutover inside canonical Reflect tab in `3d8b45dc`; real-data wiring completed by `a6031f1e` and `50b9e9fc` |
 | ~~Profile iOS~~ | ~~Reflect home cutover~~ ✅ **Shipped 2026-05-15** — staged as `PROFILE_IOS_REGISTER` in `505de4e3`; visual cutover inside canonical Reflect tab in `3d8b45dc`; real-data wiring completed by `fed19b1a` and `50b9e9fc` |
 
