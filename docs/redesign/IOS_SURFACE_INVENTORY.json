@@ -1,0 +1,197 @@
+{
+  "surfaces": [
+    {
+      "id": "race-prep-ios",
+      "title": "Race Prep iOS",
+      "route": "/race/ios/<stepId>",
+      "user": "Felix",
+      "user_role": "practitioner",
+      "type": "composition",
+      "wire_up": "real",
+      "preview_status": "shipped",
+      "canonical_status": "parked",
+      "entry_points": [
+        "Overflow menu on any timeline-step card (Preview iOS · Race Prep)",
+        "/dev/ios-previews"
+      ],
+      "design_handoff_html": ""
+    },
+    {
+      "id": "on-the-water-ios",
+      "title": "On the Water iOS",
+      "route": "/race/ios/water/<stepId>",
+      "user": "Felix",
+      "user_role": "practitioner",
+      "type": "capture",
+      "wire_up": "real",
+      "preview_status": "shipped",
+      "canonical_status": "pending",
+      "entry_points": [
+        "Overflow menu on any timeline-step card (Preview iOS · On the Water)",
+        "/dev/ios-previews"
+      ],
+      "design_handoff_html": ""
+    },
+    {
+      "id": "debrief-ios",
+      "title": "Debrief iOS",
+      "route": "/race/ios/debrief/<stepId>",
+      "user": "Felix/Emily",
+      "user_role": "practitioner",
+      "type": "review",
+      "wire_up": "real",
+      "preview_status": "shipped",
+      "canonical_status": "pending",
+      "entry_points": [
+        "Overflow menu on any timeline-step card (Preview iOS · Debrief)",
+        "/dev/ios-previews"
+      ],
+      "design_handoff_html": ""
+    },
+    {
+      "id": "playbook-home-ios",
+      "title": "Playbook home iOS",
+      "route": "/playbook-ios",
+      "user": "Felix/Emily",
+      "user_role": "practitioner",
+      "type": "library",
+      "wire_up": "real",
+      "preview_status": "shipped",
+      "canonical_status": "shipped",
+      "entry_points": [
+        "Toolbar capsule top-right on Playbook tab (wand-and-stars)",
+        "/dev/ios-previews"
+      ],
+      "design_handoff_html": ""
+    },
+    {
+      "id": "concept-detail-ios",
+      "title": "Concept detail iOS",
+      "route": "/concept-ios/<slug>",
+      "user": "Felix/Emily",
+      "user_role": "practitioner",
+      "type": "library",
+      "wire_up": "real",
+      "preview_status": "shipped",
+      "canonical_status": "pending",
+      "entry_points": [
+        "Tap any concept card on Playbook iOS shelf",
+        "/dev/ios-previews"
+      ],
+      "design_handoff_html": ""
+    },
+    {
+      "id": "reflect-home-ios",
+      "title": "Reflect home iOS",
+      "route": "/reflect-ios",
+      "user": "Felix/Emily",
+      "user_role": "practitioner",
+      "type": "review",
+      "wire_up": "partial",
+      "preview_status": "shipped",
+      "canonical_status": "parked",
+      "entry_points": [
+        "Toolbar capsule top-right on Reflect tab (wand-and-stars)",
+        "/dev/ios-previews"
+      ],
+      "design_handoff_html": ""
+    },
+    {
+      "id": "discover-paths-ios",
+      "title": "Discover Paths iOS",
+      "route": "/discover-ios",
+      "user": "Felix/Emily",
+      "user_role": "practitioner",
+      "type": "discovery",
+      "wire_up": "placeholder",
+      "preview_status": "shipped",
+      "canonical_status": "parked",
+      "entry_points": [
+        "Toolbar capsule top-right on Discover tab (wand-and-stars)",
+        "/dev/ios-previews"
+      ],
+      "design_handoff_html": ""
+    },
+    {
+      "id": "get-inspired-ios",
+      "title": "Get Inspired iOS",
+      "route": "/get-inspired-ios",
+      "user": "Felix/Emily",
+      "user_role": "practitioner",
+      "type": "composition",
+      "wire_up": "placeholder",
+      "preview_status": "shipped",
+      "canonical_status": "pending",
+      "entry_points": [
+        "/dev/ios-previews"
+      ],
+      "design_handoff_html": ""
+    },
+    {
+      "id": "trophy-of-becoming-ios",
+      "title": "Trophy of Becoming iOS",
+      "route": "/trophy-ios",
+      "user": "Felix/Emily",
+      "user_role": "practitioner",
+      "type": "review",
+      "wire_up": "placeholder",
+      "preview_status": "shipped",
+      "canonical_status": "pending",
+      "entry_points": [
+        "/dev/ios-previews"
+      ],
+      "design_handoff_html": ""
+    },
+    {
+      "id": "step-transition-hinge-ios",
+      "title": "Step transition hinge iOS",
+      "route": "/hinge-ios",
+      "user": "Felix/Emily",
+      "user_role": "practitioner",
+      "type": "navigation",
+      "wire_up": "placeholder",
+      "preview_status": "shipped",
+      "canonical_status": "pending",
+      "entry_points": [
+        "/dev/ios-previews"
+      ],
+      "design_handoff_html": ""
+    },
+    {
+      "id": "auth-welcome-ios",
+      "title": "Auth Welcome iOS",
+      "route": "/auth-welcome-ios",
+      "user": "Felix/Emily",
+      "user_role": "practitioner",
+      "type": "auth",
+      "wire_up": "placeholder",
+      "preview_status": "shipped",
+      "canonical_status": "pending",
+      "entry_points": [
+        "/dev/ios-previews"
+      ],
+      "design_handoff_html": ""
+    },
+    {
+      "id": "competency-assessment-ios",
+      "title": "Competency Assessment iOS",
+      "route": "/competency-assessment-ios/<stepId>",
+      "user": "Patricia",
+      "user_role": "faculty",
+      "type": "assessment",
+      "wire_up": "partial",
+      "preview_status": "shipped",
+      "canonical_status": "pending",
+      "entry_points": [
+        "/dev/ios-previews"
+      ],
+      "design_handoff_html": ""
+    }
+  ],
+  "meta": {
+    "generated_from": "docs/redesign/IOS_MIGRATION_PLAN.md",
+    "generated_at": "2026-05-15T03:16:50Z",
+    "scope_note": "Surface-level inventory of all iOS register surfaces. Markdown remains canonical for register/architecture decisions and migration phase narrative.",
+    "design_handoff_note": "No confirmed canonical iOS-register handoff HTML files were found in the repo. The repo contains older redesign mockups under docs/redesign/mockups/, but they do not map cleanly to the 12 canonical iOS-register surfaces in IOS_MIGRATION_PLAN.md. Canonical handoff designs appear to live in Claude Design and/or outside this repository."
+  }
+}

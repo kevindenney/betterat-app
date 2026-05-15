@@ -1,0 +1,340 @@
+{
+  "phases": [
+    {
+      "number": 0,
+      "title": "Register decision + token foundation",
+      "status": "complete",
+      "commit": "45625f38",
+      "summary": "Confirmed the iOS register pivot, established IOS_REGISTER tokens and text recipes, and rewrote the token foundation so later surface work could share a single visual base."
+    },
+    {
+      "number": 1,
+      "title": "Single-source-of-truth chrome flips",
+      "status": "complete",
+      "commit": "52da7d54",
+      "summary": "Flipped shared chrome primitives such as tab headers, segmented controls, pill tabs, and active-state accents to the iOS register so multiple tabs changed through central components."
+    },
+    {
+      "number": 2,
+      "title": "Build the new iOS-register components",
+      "status": "complete",
+      "commit": "074e7902",
+      "summary": "Built the reusable iOS-register component kit and sandbox route, including BeatCard, QuoteCard, ForecastTileGroup, PermissionRuleCallout, CoralAIPromptCard, WorkingOnPill, ToolbarComposer, and CrewList."
+    },
+    {
+      "number": 3,
+      "title": "Wire Race Prep surface",
+      "status": "complete",
+      "commit": "b4d477ad",
+      "summary": "Wired the first full iOS-register step surfaces and preview routes, including Race Prep, Debrief, and On the Water, while surfacing the data-model gaps captured later as follow-ups."
+    },
+    {
+      "number": 4,
+      "title": "Re-skin pass over the prior editorial surfaces",
+      "status": "complete",
+      "commit": "cac8889c",
+      "summary": "Shifted STEP_PALETTE values and related surface treatments from the editorial register to the iOS register across previously redesigned step surfaces."
+    },
+    {
+      "number": 5,
+      "title": "Surfaces 2–12 and preview inventory",
+      "status": "complete",
+      "commit": "c9e9bfef",
+      "summary": "Completed the preview build-out for all 12 iOS-register surfaces, including Playbook, Concept detail, Reflect, Discover, Get Inspired, Trophy, hinge, Auth Welcome, and Competency Assessment."
+    }
+  ],
+  "register_decisions": [
+    {
+      "number": 1,
+      "title": "Register pivot",
+      "decided": true,
+      "rationale": "The user confirmed that the iOS register is canonical on native surfaces, so editorial tokens are superseded rather than coexisting behind a switch."
+    },
+    {
+      "number": 2,
+      "title": "Permission rule schema deferred from the visual pass",
+      "decided": true,
+      "rationale": "The inline rule treatment is part of the visual register, but the underlying step_rules schema was explicitly deferred so UI work could ship with placeholder content first."
+    },
+    {
+      "number": 3,
+      "title": "Per-interest beat naming keeps the existing plan-question spine",
+      "decided": true,
+      "rationale": "The migration should not introduce a parallel beats abstraction; the new BeatCard shell reuses the existing plan-question contract and maps naming per interest."
+    },
+    {
+      "number": 4,
+      "title": "Lowercase eyebrow treatment reversed",
+      "decided": true,
+      "rationale": "The iOS register standardizes on ALL-CAPS 11px eyebrows, so the earlier lowercase eyebrow choice is explicitly reversed."
+    },
+    {
+      "number": 5,
+      "title": "Reflect upgrade banner removes lavender",
+      "decided": true,
+      "rationale": "Coral remains reserved for AI-prompt and marked-content semantics, so the Reflect upgrade banner becomes a neutral white-on-gray treatment instead of a lavender info card."
+    },
+    {
+      "number": 6,
+      "title": "Quote-card source provenance is limited to mic and bubble",
+      "decided": true,
+      "rationale": "Voice and written-note provenance can be represented with existing data, while AI-tagged lightbulb provenance remains deferred until the data layer supports it."
+    },
+    {
+      "number": 7,
+      "title": "Faculty surfaces use denser layout calibration",
+      "decided": true,
+      "rationale": "Faculty-facing grading flows share the same token system as practitioner surfaces but compress spacing and title treatment to favor throughput over contemplative composition."
+    },
+    {
+      "number": 8,
+      "title": "Competency rating segmented control gets an earned exception",
+      "decided": true,
+      "rationale": "The Competency Assessment segmented control is allowed to break the default 32px control rule because it carries the core grading decision and must read as a commitment."
+    }
+  ],
+  "architecture_decisions": [
+    {
+      "number": 1,
+      "title": "Reflection vs Competency Assessment split",
+      "decided": true,
+      "rationale": "The After-phase is split into two artifacts: a practitioner-facing chronological Debrief reflection surface for narrative replay, and a separate faculty-primary Competency Assessment surface for structured evidence and grading. The existing mixed After tab should not continue as a single artifact.",
+      "resolved_in_session": "2026-05-14"
+    },
+    {
+      "number": 2,
+      "title": "Playbook home scope simplification",
+      "decided": true,
+      "rationale": "Playbook home should match the simplified iOS-register design rather than preserve all legacy first-order sections. Vision, concept shelf, recent reflections, and title block stay on the home surface; the rest move deeper so the screen reads as a library rather than a control panel.",
+      "resolved_in_session": "2026-05-14"
+    },
+    {
+      "number": 3,
+      "title": "Level-of-detail surfaces require distinct designs",
+      "decided": true,
+      "rationale": "Summary surfaces and detail surfaces do different jobs, so cards, shelves, and list items should not be miniature versions of full-screen step views. A summary treatment must be designed intentionally rather than engineered by shrinking the detail surface.",
+      "facets": [
+        {
+          "title": "RaceSummaryCard duality resolution",
+          "rationale": "Race Prep detail and its timeline-grid summary card must cut over together once the cards-view iOS design exists. Leaving the summary card in the legacy register while the detail view moves to iOS would create a seam across the same step, so StepDetailContent and RaceSummaryCard are treated as a coupled cutover."
+        }
+      ],
+      "resolved_in_session": "2026-05-15"
+    }
+  ],
+  "cutovers": [
+    {
+      "surface": "Playbook home",
+      "preview_built": true,
+      "canonical_cutover_status": "shipped",
+      "legacy_retirement_blockers": [],
+      "blocked_by": [],
+      "commit": "ae0334fd"
+    },
+    {
+      "surface": "Race Prep",
+      "preview_built": true,
+      "canonical_cutover_status": "blocked",
+      "legacy_retirement_blockers": [],
+      "blocked_by": [
+        "Race Prep cards iOS / timeline-grid summary iOS design handoff",
+        "Per-interest beat name mapping",
+        "Authoring flow for prose beats"
+      ],
+      "commit": "6d6389ef"
+    },
+    {
+      "surface": "Reflect home",
+      "preview_built": true,
+      "canonical_cutover_status": "blocked",
+      "legacy_retirement_blockers": [],
+      "blocked_by": [
+        "Race Log iOS design handoff",
+        "Profile iOS design handoff",
+        "Reflection-usage tracking"
+      ],
+      "commit": "1b00b9b6"
+    },
+    {
+      "surface": "Discover tab",
+      "preview_built": true,
+      "canonical_cutover_status": "blocked",
+      "legacy_retirement_blockers": [],
+      "blocked_by": [
+        "Discover-Orgs iOS design handoff",
+        "Discover-People iOS design handoff",
+        "Discover-Forums iOS design handoff"
+      ],
+      "commit": "180b39ba"
+    },
+    {
+      "surface": "Debrief reflection surface",
+      "preview_built": true,
+      "canonical_cutover_status": "pending",
+      "legacy_retirement_blockers": [
+        "Competency Assessment surface must land before the existing form-shaped After tab can retire"
+      ],
+      "blocked_by": [
+        "Competency Assessment surface",
+        "Prior-debrief quote query"
+      ],
+      "commit": "c040643d"
+    },
+    {
+      "surface": "Competency Assessment",
+      "preview_built": true,
+      "canonical_cutover_status": "pending",
+      "legacy_retirement_blockers": [],
+      "blocked_by": [
+        "Submit flow implementation",
+        "AI capture surfacing",
+        "Faculty review data wiring"
+      ],
+      "commit": "c9e9bfef"
+    }
+  ],
+  "design_handoff_backlog": [
+    {
+      "surface": "Race Prep cards iOS / timeline-grid summary iOS",
+      "unblocks": "Race Prep cutover for StepDetailContent and RaceSummaryCard together",
+      "priority": "high"
+    },
+    {
+      "surface": "Race Log iOS",
+      "unblocks": "Reflect home cutover without functionality regression",
+      "priority": "medium"
+    },
+    {
+      "surface": "Profile iOS",
+      "unblocks": "Reflect home cutover",
+      "priority": "medium"
+    },
+    {
+      "surface": "Discover-Orgs iOS",
+      "unblocks": "Discover tab cutover",
+      "priority": "medium"
+    },
+    {
+      "surface": "Discover-People iOS",
+      "unblocks": "Discover tab cutover",
+      "priority": "medium"
+    },
+    {
+      "surface": "Discover-Forums iOS",
+      "unblocks": "Discover tab cutover",
+      "priority": "medium"
+    }
+  ],
+  "data_layer_followups": [
+    {
+      "item": "Competency Assessment surface implementation",
+      "unblocks": "Retiring the existing form-shaped After tab and completing the faculty-primary assessment flow",
+      "scope_hours": 24,
+      "external_dependencies": [
+        "Claude Design faculty-surface handoff",
+        "Assessment submit-flow design"
+      ],
+      "risk": "high"
+    },
+    {
+      "item": "Per-user concept state schema",
+      "unblocks": "ConceptCard state pills, Concept detail state pill, and Race Prep WorkingOnPill state",
+      "scope_hours": 12,
+      "external_dependencies": [
+        "Database migration",
+        "Backfill strategy for existing concepts"
+      ],
+      "risk": "medium"
+    },
+    {
+      "item": "Concept-to-step association",
+      "unblocks": "Live-dot concept state in a step and the per-concept reflection trail on Concept detail",
+      "scope_hours": 10,
+      "external_dependencies": [
+        "Database migration",
+        "Step-concept authoring source"
+      ],
+      "risk": "medium"
+    },
+    {
+      "item": "Weather service integration",
+      "unblocks": "Real ForecastTileGroup conditions on Race Prep and other weather-aware surfaces",
+      "scope_hours": 16,
+      "external_dependencies": [
+        "Weather API provider selection",
+        "OPENWEATHER_API_KEY or equivalent credentials",
+        "Per-interest label mapping"
+      ],
+      "risk": "high"
+    },
+    {
+      "item": "Prior-debrief quote query",
+      "unblocks": "Reliable 'From your last race' quote stacks without text-shortening heuristics",
+      "scope_hours": 8,
+      "external_dependencies": [
+        "review_data.standout_quotes field or equivalent data model"
+      ],
+      "risk": "medium"
+    },
+    {
+      "item": "Concept-suggestion service",
+      "unblocks": "The inline 'FROM YOUR PLAYBOOK' coral AI prompt on Race Prep",
+      "scope_hours": 20,
+      "external_dependencies": [
+        "AI/NLP service choice",
+        "Reflection corpus access",
+        "Prompting or clustering strategy"
+      ],
+      "risk": "high"
+    },
+    {
+      "item": "step_rules schema",
+      "unblocks": "Real Contingency rule rendering on Race Prep and On the Water",
+      "scope_hours": 8,
+      "external_dependencies": [
+        "Database migration",
+        "Authoring UI contract"
+      ],
+      "risk": "medium"
+    },
+    {
+      "item": "Per-interest beat name mapping",
+      "unblocks": "Clinical and future interest-specific naming on Race Prep and related step surfaces",
+      "scope_hours": 6,
+      "external_dependencies": [
+        "Product vocabulary decisions for non-sailing interests"
+      ],
+      "risk": "low"
+    },
+    {
+      "item": "Authoring flow for prose beats",
+      "unblocks": "A complete Race Prep composition flow in the new register",
+      "scope_hours": 18,
+      "external_dependencies": [
+        "Composer interaction design",
+        "Decision on whether plan_data stays structured or becomes free-form prose"
+      ],
+      "risk": "high"
+    },
+    {
+      "item": "Reflection-usage tracking",
+      "unblocks": "Real return-count badges on Reflect home",
+      "scope_hours": 8,
+      "external_dependencies": [
+        "Analytics event definition",
+        "Storage/query strategy for return counts"
+      ],
+      "risk": "medium"
+    }
+  ],
+  "cross_cutting_principles": [
+    {
+      "name": "Loading-state narration",
+      "description": "Long-running AI or multi-step processing should narrate progress in plain language with swapping status lines instead of generic spinners or percentage-free indeterminate loaders."
+    },
+    {
+      "name": "Error-state principle",
+      "description": "Every failure state should explain what happened in human terms and present a specific next action, using iOS-register attention chrome rather than technical dead-end errors."
+    }
+  ]
+}
