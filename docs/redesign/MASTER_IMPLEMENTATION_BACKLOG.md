@@ -4,6 +4,16 @@ Status: source-of-truth implementation queue for the May 15 redesign session.
 
 This document is the backlog index, not an executable spec. Claude Code should execute from the per-phase spec documents listed here. When a phase ships, update this file with status, commit references, and any flag/default changes.
 
+## Resolved Implementation Conventions
+
+### Practice Tab Route Convention
+
+Decision: the canonical **Practice** tab continues to be implemented at the stable legacy route `app/(tabs)/races.tsx` / `/(tabs)/races`.
+
+Reason: the repo has no `app/(tabs)/practice.tsx`, and `/(tabs)/races` is referenced across onboarding, auth redirects, Playbook concept links, Discover actions, notifications, account routing, tests, and Race Log empty actions. `lib/navigation-config.ts` already separates the file-route key from the display label, so the product can say “Practice” while the route remains `races`.
+
+Implication for future specs: write “Practice tab implemented at `app/(tabs)/races.tsx`” until a separate route-alias project is explicitly approved. Do not rename the route or introduce a `practice` alias as part of Phase B, B.5, B.6, C, or C.5.
+
 ## Inputs Verified
 
 Source design documents:
@@ -39,7 +49,7 @@ Visual canonicals verified in `docs/redesign/ios-register/`:
 | A.7 | Fix Apple sign-in branding from RegattaFlow to BetterAt for org adoption readiness. | `FIVE_SURFACES_CONSOLIDATED_ADDENDUM.md` | none | spec-pending | 1 | Apple Developer console access | no app flag; external config change |
 | B | Rename in-card phase tabs to Plan / Do / Reflect. | `PRACTICE_TIMELINE_CANONICAL.md`, `specs/PHASE_B_RENAME_PHASE_TABS.md` | `practice-timeline-canonical.html` | spec-written, execution queued: `4a394087` | 1 | Phase A verified | none in written spec; see contradiction #2 |
 | B.5 | Rebuild Plan tab interior: AI Coach primary, What/How/Why fields, optional context, three visual states. | `PRACTICE_TIMELINE_CANONICAL_PLAN_TAB_ADDENDUM.md` | `plan-tab-three-states-canonical.html` | spec-pending | 3-5 | Phase B preferred; Phase D not required for v1 | `PRACTICE_PLAN_TAB_IOS_REGISTER=false` |
-| B.6 | Add Step FAB and two-option create sheet: AI Coach or Blueprint picker; auto-scroll to new step. | `PRACTICE_TIMELINE_ADD_STEP_ZOOMED_OUT_SOCIAL_ADDENDUM.md` | `add-step-flow-canonical.html` | spec-pending | 2-3 | Phase A; can precede Phase C if mounted in current tab | `PRACTICE_ADD_STEP_FAB=false` |
+| B.6 | Add Step FAB and two-option create sheet: AI Coach or Blueprint picker; auto-scroll to new step. | `PRACTICE_TIMELINE_ADD_STEP_ZOOMED_OUT_SOCIAL_ADDENDUM.md` | `add-step-flow-canonical.html` | spec-pending | 2-3 | Phase A; can precede Phase C if mounted in `app/(tabs)/races.tsx` | `PRACTICE_ADD_STEP_FAB=false` |
 | B.7 | Interest switcher action sheet for multi-interest users. | `FOUR_SURFACES_FAST_SPEC_ADDENDUM.md` | `four-small-surfaces-canonical.html` | spec-pending | 1-2 | existing InterestProvider; before social/zoomed-out polish | `PRACTICE_INTEREST_SWITCHER_IOS=false` |
 | B.8 | Profile/settings dropdown from top-right avatar. | `FOUR_SURFACES_FAST_SPEC_ADDENDUM.md` | `four-small-surfaces-canonical.html` | spec-pending | 1-2 | Phase A naming distinction | `ACCOUNT_MENU_IOS_REGISTER=false` |
 | B.9 | Share dialog / share sheet wrapper for steps, blueprints, profiles, evidence. | `FOUR_SURFACES_FAST_SPEC_ADDENDUM.md` | `four-small-surfaces-canonical.html` | spec-pending | 2-3 | visibility model decision for final behavior; can stub UI first | `SHARE_DIALOG_IOS_REGISTER=false` |
@@ -69,7 +79,7 @@ Visual canonicals verified in `docs/redesign/ios-register/`:
 
 1. **Phase B** — execute the written label-only spec. This is the fastest remaining user-visible alignment after Phase A.
 2. **Phase B.7 / B.8** — write and execute small specs for Interest Switcher and Profile/settings dropdown. These are narrow, high-visibility, and do not depend on the timeline shell.
-3. **Phase B.6** — Add Step FAB. It is small but creates the entry point for the new Practice workflow; it can mount into the current `races.tsx` surface before Phase C.
+3. **Phase B.6** — Add Step FAB. It is small but creates the entry point for the new Practice workflow; it can mount into `app/(tabs)/races.tsx` before Phase C.
 
 ### First critical path
 
@@ -220,7 +230,6 @@ All production render switches must import kit components or domain components, 
 
 1. **HTML canonical count mismatch:** the prompt says 11 HTML canonicals, but repo has 12. Extra file: `discover-detail-trio-canonical.html`.
 2. **Flag policy tension:** the prompt says every phase ships behind a default-OFF flag, but Phase A shipped unflagged and Phase B’s written spec says no flag because it is mechanical copy. This backlog preserves that exception for mechanical phases and applies default-OFF to substantive UI/behavior phases.
-3. **Practice route naming mismatch:** canonicals say Practice tab, but repo implementation remains `app/(tabs)/races.tsx`; Phase C spec intentionally wires there and avoids route renames.
+3. **Practice route naming resolved:** canonical product language is Practice, but the implementation route remains `app/(tabs)/races.tsx` / `/(tabs)/races`. This is intentional route stability, not an inconsistency.
 4. **Discover source gap:** Discover visual canonical exists and older Discover architecture/spec docs exist, but the prompt’s “source spec documents” list does not include a new May 15 Discover addendum.
 5. **Profile content gap:** Phase A made the bottom tab and heading say Profile, but full Profile-as-credential content is Phase D and not yet fully designed.
-
