@@ -65,7 +65,7 @@ Decision: there are **12** valid HTML canonicals in the May 15 design set. `disc
 | A.9 | Clear `app/(tabs)/races.tsx` lint warnings so lint-staged no longer blocks Practice commits touching the file. | Phase B report `2e4f25a7`, `specs/PHASE_A9_RACES_TSX_WARNING_CLEANUP_SPEC.md` | none | shipped: `0c5676b9`, `513e1659`, `c634b7f7` | 3 | complete; unblocks B.5/B.6/C/C.5 execution | none; internal lint cleanup |
 | A.10 | Bottom tab bar label "Race" vs "Practice" alignment investigation. | Phase B report `2e4f25a7`, `PRACTICE_TIMELINE_CANONICAL.md` (updated) | none | closed-no-action (this commit) | 0 (docs only) | none | n/a; no code change |
 | B | Rename in-card phase tabs to Plan / Do / Reflect. | `PRACTICE_TIMELINE_CANONICAL.md`, `specs/PHASE_B_RENAME_PHASE_TABS.md` | `practice-timeline-canonical.html` | spec-written, execution queued: `4a394087` | 1 | Phase A verified | none; qualifies for mechanical-only exception |
-| B.5 | Rebuild Plan tab interior: AI Coach primary, What/How/Why fields, optional context, three visual states. | `PRACTICE_TIMELINE_CANONICAL_PLAN_TAB_ADDENDUM.md`, `specs/PHASE_B5_PLAN_TAB_INTERIOR_SPEC.md` | `plan-tab-three-states-canonical.html` | spec-written | 4 | A.9; Phase B preferred; Phase D not required for v1 | `PRACTICE_PLAN_TAB_IOS_REGISTER=false` |
+| B.5 | Rebuild Plan tab interior: AI Coach primary, What/How/Why fields, optional context, three visual states. | `PRACTICE_TIMELINE_CANONICAL_PLAN_TAB_ADDENDUM.md`, `specs/PHASE_B5_PLAN_TAB_INTERIOR_SPEC.md` | `plan-tab-three-states-canonical.html` | shipped-verified: `b8a9dc22`, `a0192d4f`, `72ffc4c3`, `1c382637`, fixes `5bf037d5`, `7b7b3df9`. Verified in simulator 2026-05-16 with flag on; Frame 4 screenshot at `docs/redesign/screenshots/phase-b5-frame-4-filled.png`. | 6 | complete; Phase D not required for v1 | `PRACTICE_PLAN_TAB_IOS_REGISTER=false` |
 | B.6 | Add Step FAB and two-option create sheet: AI Coach or Blueprint picker; auto-scroll to new step. | `PRACTICE_TIMELINE_ADD_STEP_ZOOMED_OUT_SOCIAL_ADDENDUM.md`, `specs/PHASE_B6_ADD_STEP_FAB_SPEC.md` | `add-step-flow-canonical.html` | shipped-verified: `76088743`, `454e9fb3`, `b55e1af4`. Verified in simulator 2026-05-16 with flag on. Flag remains default-OFF in production per Option A decision — ON in dev environment, OFF in production until B.5 lands and full Add Step flow is functional end-to-end. | 3 | complete; production flip waits for B.5 | `PRACTICE_ADD_STEP_FAB=false` (prod); `=true` (dev) |
 | B.7 | Interest switcher action sheet for multi-interest users. | `FOUR_SURFACES_FAST_SPEC_ADDENDUM.md`, `specs/PHASE_B7_INTEREST_SWITCHER_SPEC.md` | `four-small-surfaces-canonical.html` | spec-written | 3 | existing InterestProvider; before social/zoomed-out polish; A.10 label model | `PRACTICE_INTEREST_SWITCHER_IOS=false` |
 | B.8 | Profile/settings dropdown from top-right avatar. | `FOUR_SURFACES_FAST_SPEC_ADDENDUM.md`, `specs/PHASE_B8_PROFILE_SETTINGS_DROPDOWN_SPEC.md` | `four-small-surfaces-canonical.html` | spec-written | 3 | Phase A naming distinction; Profile tab remains separate | `ACCOUNT_MENU_IOS_REGISTER=false` |
@@ -95,13 +95,13 @@ Decision: there are **12** valid HTML canonicals in the May 15 design set. `disc
 ### Immediate same-day batch
 
 1. **Phase B.6 verification** — flip `EXPO_PUBLIC_FF_PRACTICE_ADD_STEP_FAB=true` locally, verify the FAB/sheet path, then decide whether to enable.
-2. **Phase B.5** — Plan tab interior rebuild. This is the next core workflow improvement after the route/lint prerequisites.
+2. **Phase B.5** — shipped and verified. Keep the flag default-OFF until production rollout timing is chosen.
 3. **Phase B.7 / B.8** — small specs for Interest Switcher and Profile/settings dropdown remain narrow, high-visibility, and do not depend on the timeline shell.
 
 ### First critical path
 
 5. **Phase C** — execute the written five-commit timeline-with-peek shell spec behind `PRACTICE_TIMELINE_PEEK=false`. This is the structural center of the redesign and unlocks C.5, E, and L.
-6. **Phase B.5** — Plan tab rebuild can run before or after C. If Claude Code bandwidth allows parallelization, spec it while Phase C implementation is underway. It is medium scope and improves the active card interior.
+6. **Phase B.5** — complete. Use it as the verified Plan-tab baseline for Phase C/C.5 execution.
 7. **Phase C.5** — zoomed-out view after Phase C proves the shell. It introduces pinch/zoom mode and list-scale behaviors.
 
 ### Second critical path
