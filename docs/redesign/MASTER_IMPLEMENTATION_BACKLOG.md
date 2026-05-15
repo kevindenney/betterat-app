@@ -69,7 +69,7 @@ Decision: there are **12** valid HTML canonicals in the May 15 design set. `disc
 | F.1 | JHU admin dashboard onboarding card on Dashboard tab. | `FIVE_SURFACES_CONSOLIDATED_ADDENDUM.md`, `specs/PHASE_F1_JHU_ADMIN_ONBOARDING_CARD_SPEC.md` | `jhu-admin-dashboard-canonical.html` | spec-written | 3 | tenant scoping | `JHU_ADMIN_DASHBOARD_IOS=false` |
 | F.2 | Member invitation modal redesign. | `FIVE_SURFACES_CONSOLIDATED_ADDENDUM.md` | `jhu-admin-dashboard-canonical.html` | spec-pending | 1-2 | invitation role decision | `JHU_INVITE_MODAL_IOS=false` |
 | F.3 | Full JHU admin dashboard tabs: dashboard, members, requests, cohorts, competencies, blueprints, billing, settings. | `FIVE_SURFACES_CONSOLIDATED_ADDENDUM.md` | `jhu-admin-dashboard-canonical.html` | spec-pending | 6-10 | F.1/F.2, tenant roles, SSO decision | `JHU_ADMIN_IOS_REGISTER=false` |
-| G.1 | Blueprint Creator Dashboard main view: Blueprints + Subscribers enough to demo creator workflow. | `FIVE_SURFACES_CONSOLIDATED_ADDENDUM.md` | `blueprint-creator-dashboard-canonical.html` | spec-pending | 3-5 | blueprint data exists; versioning can be deferred | `BLUEPRINT_CREATOR_DASHBOARD_IOS=false` |
+| G.1 | Blueprint Creator Dashboard main view: Blueprints + Subscribers enough to demo creator workflow. | `FIVE_SURFACES_CONSOLIDATED_ADDENDUM.md` | `blueprint-creator-dashboard-canonical.html` | spec-written | 3-5 | blueprint data exists; versioning can be deferred | `BLUEPRINT_CREATOR_DASHBOARD_IOS=false` |
 | G.2 | Full Blueprint Editor: step list, metadata, publish controls, template variables. | `FIVE_SURFACES_CONSOLIDATED_ADDENDUM.md` | `blueprint-creator-dashboard-canonical.html` | spec-pending | 5-8 | versioning and variable decisions | `BLUEPRINT_EDITOR_IOS=false` |
 | G.3 | Creator dashboard Subscribers / Insights / Earnings tabs. | `FIVE_SURFACES_CONSOLIDATED_ADDENDUM.md` | `blueprint-creator-dashboard-canonical.html` | spec-pending | 4-7 | monetization and insights data decisions | `BLUEPRINT_CREATOR_INSIGHTS_IOS=false` |
 | H | JHU.edu public organization catalog. | `FIVE_SURFACES_CONSOLIDATED_ADDENDUM.md` | `jhu-public-org-catalog-canonical.html` | spec-pending | 4-6 | URL, SEO, newsroom, tenant config | `PUBLIC_ORG_CATALOG_IOS=false` |
@@ -135,7 +135,7 @@ Specs still needed:
 | `PHASE_F1_JHU_ADMIN_ONBOARDING_CARD_SPEC.md` | Admin dashboard onboarding card. | written |
 | `PHASE_F2_JHU_INVITE_MODAL_SPEC.md` | Invitation modal redesign and role defaults. | after invitation role decision |
 | `PHASE_F3_JHU_ADMIN_DASHBOARD_SPEC.md` | Full admin dashboard tabs. | after F.1/F.2 |
-| `PHASE_G1_BLUEPRINT_CREATOR_DASHBOARD_SPEC.md` | Creator dashboard main view. | now if creator demo is prioritized |
+| `PHASE_G1_BLUEPRINT_CREATOR_DASHBOARD_MAIN_SPEC.md` | Creator dashboard main view. | written |
 | `PHASE_G2_BLUEPRINT_EDITOR_SPEC.md` | Full editor, variables, publish/update semantics. | after versioning/variables decisions |
 | `PHASE_G3_CREATOR_INSIGHTS_EARNINGS_SPEC.md` | Subscribers, insights, earnings tabs. | after monetization decision |
 | `PHASE_H_PUBLIC_ORG_CATALOG_SPEC.md` | Public JHU/org catalog, URL/SEO/newsroom. | after URL/content decisions |
