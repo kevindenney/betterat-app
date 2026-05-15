@@ -271,6 +271,24 @@ export const FEATURE_FLAGS = {
    * (a) nor primary-purpose-is-the-decision (b) condition is met.
    */
   TROPHY_IOS_REGISTER: readBooleanEnv('EXPO_PUBLIC_FF_TROPHY_IOS_REGISTER', true),
+
+  /**
+   * Stage the Concept detail iOS register surface with three state
+   * variants (new / dormant / breakthrough). Variant selection is driven
+   * by per-user concept state from the data layer (forming / practicing /
+   * learning / breakthrough) + a dormancy timestamp. Until the per-user
+   * concept state schema and dormancy heuristic land, the surface is
+   * reachable only via the preview route at /concept-variants-ios; the
+   * canonical /concept-ios/[slug] route stays on its current data path.
+   *
+   * This is a **detail** surface per architecture decision #4 — distinct
+   * from any summary-card representation of a concept. Summary and detail
+   * are different jobs, not scaled versions.
+   *
+   * Defaults true; flip to false via
+   * EXPO_PUBLIC_FF_CONCEPT_IOS_REGISTER=false to revert.
+   */
+  CONCEPT_IOS_REGISTER: readBooleanEnv('EXPO_PUBLIC_FF_CONCEPT_IOS_REGISTER', true),
 } as const;
 
 // =============================================================================

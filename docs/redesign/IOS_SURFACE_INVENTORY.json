@@ -99,6 +99,22 @@
       "design_handoff_html": ""
     },
     {
+      "id": "concept-variants-ios",
+      "title": "Concept detail iOS — state variants (new / dormant / breakthrough)",
+      "route": "/concept-variants-ios",
+      "user": "Felix/Emily",
+      "user_role": "practitioner",
+      "type": "library",
+      "wire_up": "placeholder",
+      "preview_status": "shipped",
+      "canonical_status": "pending",
+      "entry_points": [
+        "/concept-variants-ios",
+        "Future /concept-ios/<slug> render switch via FEATURE_FLAGS.CONCEPT_IOS_REGISTER"
+      ],
+      "design_handoff_html": "Concept - Variants - iOS register.html"
+    },
+    {
       "id": "reflect-home-ios",
       "title": "Reflect home iOS",
       "route": "/reflect-ios",
@@ -111,6 +127,38 @@
       "entry_points": [
         "Toolbar capsule top-right on Reflect tab (wand-and-stars)",
         "/dev/ios-previews"
+      ],
+      "design_handoff_html": ""
+    },
+    {
+      "id": "race-log-ios",
+      "title": "Race Log iOS",
+      "route": "/race-log-ios",
+      "user": "Felix/Emily",
+      "user_role": "practitioner",
+      "type": "review",
+      "wire_up": "placeholder",
+      "preview_status": "shipped",
+      "canonical_status": "pending",
+      "entry_points": [
+        "/race-log-ios",
+        "Reflect tab segment via future FEATURE_FLAGS.RACE_LOG_IOS_REGISTER render switch"
+      ],
+      "design_handoff_html": ""
+    },
+    {
+      "id": "profile-ios",
+      "title": "Profile iOS",
+      "route": "/profile-ios",
+      "user": "Felix/Emily",
+      "user_role": "practitioner",
+      "type": "profile",
+      "wire_up": "placeholder",
+      "preview_status": "pending",
+      "canonical_status": "pending",
+      "entry_points": [
+        "/profile-ios",
+        "Reflect tab segment via future FEATURE_FLAGS.PROFILE_IOS_REGISTER render switch"
       ],
       "design_handoff_html": ""
     },
@@ -209,7 +257,7 @@
   "meta": {
     "generated_from": "docs/redesign/IOS_MIGRATION_PLAN.md",
     "generated_at": "2026-05-15T03:16:50Z",
-    "scope_note": "Surface-level inventory of all iOS register surfaces. Markdown remains canonical for register/architecture decisions and migration phase narrative.",
+    "scope_note": "Surface-level inventory of all iOS register surfaces. Inventory tracks surfaces, not cutovers, so sub-surfaces with their own design/component/flag can appear as first-class entries even when they ship together.",
     "design_handoff_note": "No confirmed canonical iOS-register handoff HTML files were found in the repo. The repo contains older redesign mockups under docs/redesign/mockups/, but they do not map cleanly to the 12 canonical iOS-register surfaces in IOS_MIGRATION_PLAN.md. Canonical handoff designs appear to live in Claude Design and/or outside this repository."
   }
 }
