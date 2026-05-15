@@ -278,7 +278,7 @@ export const FEATURE_FLAGS = {
    * by per-user concept state from the data layer (forming / practicing /
    * learning / breakthrough) + a dormancy timestamp. Until the per-user
    * concept state schema and dormancy heuristic land, the surface is
-   * reachable only via the preview route at /concept-variants-ios; the
+   * reachable only via the preview route at /concept-detail-ios; the
    * canonical /concept-ios/[slug] route stays on its current data path.
    *
    * This is a **detail** surface per architecture decision #4 — distinct

@@ -99,9 +99,9 @@
       "design_handoff_html": ""
     },
     {
-      "id": "concept-variants-ios",
+      "id": "concept-detail-ios-variants",
       "title": "Concept detail iOS — state variants (new / dormant / breakthrough)",
-      "route": "/concept-variants-ios",
+      "route": "/concept-detail-ios",
       "user": "Felix/Emily",
       "user_role": "practitioner",
       "type": "library",
@@ -109,7 +109,7 @@
       "preview_status": "shipped",
       "canonical_status": "pending",
       "entry_points": [
-        "/concept-variants-ios",
+        "/concept-detail-ios",
         "Future /concept-ios/<slug> render switch via FEATURE_FLAGS.CONCEPT_IOS_REGISTER"
       ],
       "design_handoff_html": "Concept - Variants - iOS register.html"
