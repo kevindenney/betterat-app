@@ -14,6 +14,12 @@ Reason: the repo has no `app/(tabs)/practice.tsx`, and `/(tabs)/races` is refere
 
 Implication for future specs: write “Practice tab implemented by the existing `app/(tabs)/races.tsx` screen, exposed publicly as `/practice`.” Phase A.8 owns the URL alias/redirect work. Phase B, B.5, B.6, C, and C.5 should not do broad route churn themselves.
 
+### Feature Flag Convention
+
+Decision: default-OFF feature flags are required for behavioral, visual-layout, data-wiring, navigation-surface, route, or data-model changes. Pure mechanical copy/label changes may ship unflagged only when they are fully reversible by one commit and do not alter data, routes, control flow, persistence, or component mounting.
+
+Implication: Phase A and Phase B are valid unflagged exceptions. Every future spec must explicitly state whether it is using the mechanical-only exception or adding a default-OFF flag.
+
 ## Inputs Verified
 
 Source design documents:
@@ -48,7 +54,7 @@ Visual canonicals verified in `docs/redesign/ios-register/`:
 | A | Rename bottom Reflect tab to Profile and keep route stable. | `PRACTICE_TIMELINE_CANONICAL.md`, `specs/PHASE_A_RENAME_REFLECT_TO_PROFILE.md` | `practice-timeline-canonical.html` | shipped: `87b7c115`, heading extension `48fc9eb4`; canonical addendum `0c82b80b` | 2 | none | none; shipped as mechanical label change |
 | A.7 | Fix Apple sign-in branding from RegattaFlow to BetterAt for org adoption readiness. | `FIVE_SURFACES_CONSOLIDATED_ADDENDUM.md` | none | spec-pending | 1 | Apple Developer console access | no app flag; external config change |
 | A.8 | Add `/practice` as the canonical user-facing route while preserving `/races` as a backwards-compatible alias/redirect. | `PRACTICE_TIMELINE_CANONICAL.md`, this backlog decision | none | spec-pending | 2-3 | Phase A; before public sharing/onboarding links spread further | `PRACTICE_ROUTE_ALIAS=false` or unflagged redirect if implementation is mechanical |
-| B | Rename in-card phase tabs to Plan / Do / Reflect. | `PRACTICE_TIMELINE_CANONICAL.md`, `specs/PHASE_B_RENAME_PHASE_TABS.md` | `practice-timeline-canonical.html` | spec-written, execution queued: `4a394087` | 1 | Phase A verified | none in written spec; see contradiction #2 |
+| B | Rename in-card phase tabs to Plan / Do / Reflect. | `PRACTICE_TIMELINE_CANONICAL.md`, `specs/PHASE_B_RENAME_PHASE_TABS.md` | `practice-timeline-canonical.html` | spec-written, execution queued: `4a394087` | 1 | Phase A verified | none; qualifies for mechanical-only exception |
 | B.5 | Rebuild Plan tab interior: AI Coach primary, What/How/Why fields, optional context, three visual states. | `PRACTICE_TIMELINE_CANONICAL_PLAN_TAB_ADDENDUM.md` | `plan-tab-three-states-canonical.html` | spec-pending | 3-5 | Phase B preferred; Phase D not required for v1 | `PRACTICE_PLAN_TAB_IOS_REGISTER=false` |
 | B.6 | Add Step FAB and two-option create sheet: AI Coach or Blueprint picker; auto-scroll to new step. | `PRACTICE_TIMELINE_ADD_STEP_ZOOMED_OUT_SOCIAL_ADDENDUM.md` | `add-step-flow-canonical.html` | spec-pending | 2-3 | Phase A; can precede Phase C if mounted in `app/(tabs)/races.tsx` | `PRACTICE_ADD_STEP_FAB=false` |
 | B.7 | Interest switcher action sheet for multi-interest users. | `FOUR_SURFACES_FAST_SPEC_ADDENDUM.md` | `four-small-surfaces-canonical.html` | spec-pending | 1-2 | existing InterestProvider; before social/zoomed-out polish | `PRACTICE_INTEREST_SWITCHER_IOS=false` |
@@ -210,7 +216,7 @@ JHU surfaces imply tenant-scoped catalogs, admin dashboards, SSO, roles, cohorts
 
 ### Feature Flags
 
-The structural rule after the Race Prep regression is default OFF for substantive visual/interaction cutovers. Mechanical label changes have already shipped without flags, and Phase B’s written spec explicitly recommends no flag. Treat this as a documented exception, not precedent for large phases.
+The structural rule after the Race Prep regression is default OFF for substantive visual/interaction cutovers. Mechanical label changes may ship unflagged only when they are fully reversible by one commit and do not alter data, routes, control flow, persistence, or component mounting. Every future spec must explicitly state “default-OFF flag” or “mechanical-only exception.”
 
 ### Auth and Visibility
 
@@ -231,7 +237,7 @@ All production render switches must import kit components or domain components, 
 ## Contradictions and Inconsistencies
 
 1. **HTML canonical count mismatch:** the prompt says 11 HTML canonicals, but repo has 12. Extra file: `discover-detail-trio-canonical.html`.
-2. **Flag policy tension:** the prompt says every phase ships behind a default-OFF flag, but Phase A shipped unflagged and Phase B’s written spec says no flag because it is mechanical copy. This backlog preserves that exception for mechanical phases and applies default-OFF to substantive UI/behavior phases.
+2. **Flag policy resolved:** default-OFF flags are required for behavioral, layout, data, navigation, route, or data-model changes. Pure mechanical copy/label changes can ship unflagged only when reversible by one commit and no data/routes/control-flow/persistence/mounting changes are involved.
 3. **Practice route naming resolved:** canonical product language and user-facing URL should be `/practice`; the existing `app/(tabs)/races.tsx` implementation may remain short-term behind a `/practice` alias/redirect. `/races` stays as backwards-compatible legacy, not canonical product URL.
 4. **Discover source gap:** Discover visual canonical exists and older Discover architecture/spec docs exist, but the prompt’s “source spec documents” list does not include a new May 15 Discover addendum.
 5. **Profile content gap:** Phase A made the bottom tab and heading say Profile, but full Profile-as-credential content is Phase D and not yet fully designed.
