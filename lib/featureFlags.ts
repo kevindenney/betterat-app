@@ -219,6 +219,18 @@ export const FEATURE_FLAGS = {
    * toggle if anything breaks.
    */
   PLAYBOOK_IOS_REGISTER: readBooleanEnv('EXPO_PUBLIC_FF_PLAYBOOK_IOS_REGISTER', true),
+
+  /**
+   * Cut the Race tab's cards-grid render path over to the iOS register
+   * horizontal-scroller season view (Race Prep cards). When true, the
+   * cards mode of the Race tab renders the new <RaceCardsScreen /> with
+   * four-state status grammar + earned-exception current card. When
+   * false, the legacy <CardGrid /> renders. Other Race tab render paths
+   * (TimelineGridView, USE_RACE_LIST_VIEW, IOSRacesScreen) are unaffected.
+   * Defaults true (cutover live 2026-05-15); flip to false via
+   * EXPO_PUBLIC_FF_RACE_PREP_IOS_REGISTER=false to revert.
+   */
+  RACE_PREP_IOS_REGISTER: readBooleanEnv('EXPO_PUBLIC_FF_RACE_PREP_IOS_REGISTER', true),
 } as const;
 
 // =============================================================================
