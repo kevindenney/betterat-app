@@ -60,7 +60,7 @@ Decision: there are **12** valid HTML canonicals in the May 15 design set. `disc
 | Phase | Description | Source docs | Visual canonical | Status | Est. commits | Dependencies | Flag default |
 |---|---|---|---|---|---:|---|---|
 | A | Rename bottom Reflect tab to Profile and keep route stable. | `PRACTICE_TIMELINE_CANONICAL.md`, `specs/PHASE_A_RENAME_REFLECT_TO_PROFILE.md` | `practice-timeline-canonical.html` | shipped: `87b7c115`, heading extension `48fc9eb4`; canonical addendum `0c82b80b` | 2 | none | none; shipped as mechanical label change |
-| A.7 | Fix Apple sign-in branding from RegattaFlow to BetterAt for org adoption readiness. | `FIVE_SURFACES_CONSOLIDATED_ADDENDUM.md` | none | spec-pending | 1 | Apple Developer console access | no app flag; external config change |
+| A.7 | Fix Apple sign-in branding from RegattaFlow to BetterAt for org adoption readiness. | `FIVE_SURFACES_CONSOLIDATED_ADDENDUM.md`, `specs/PHASE_A7_APPLE_SIGNIN_BRANDING.md` | none | spec-written | 1-3 | Apple Developer console access | no app flag; external config change |
 | A.8 | Add `/practice` as the canonical user-facing route while preserving `/races` as a backwards-compatible alias/redirect. | `PRACTICE_TIMELINE_CANONICAL.md`, this backlog decision | none | spec-pending | 2-3 | Phase A; before public sharing/onboarding links spread further | `PRACTICE_ROUTE_ALIAS=false` or unflagged redirect if implementation is mechanical |
 | A.9 | Clear `app/(tabs)/races.tsx` lint warnings so lint-staged no longer blocks Practice commits touching the file. | Phase B report `2e4f25a7`, `specs/PHASE_A9_RACES_TSX_WARNING_CLEANUP_SPEC.md` | none | spec-written | 2-4 | before B.5/B.6/C/C.5 execution | none; internal lint cleanup |
 | A.10 | Bottom tab bar label "Race" vs "Practice" alignment investigation. | Phase B report `2e4f25a7`, `PRACTICE_TIMELINE_CANONICAL.md` (updated) | none | closed-no-action (this commit) | 0 (docs only) | none | n/a; no code change |
@@ -131,7 +131,7 @@ Specs still needed:
 
 | Spec doc | Covers | Write timing |
 |---|---|---|
-| `PHASE_A7_APPLE_SIGNIN_BRANDING.md` | Apple ID / auth provider branding fix from RegattaFlow to BetterAt. | now if JHU demo depends on sign-in |
+| `PHASE_A7_APPLE_SIGNIN_BRANDING.md` | Apple ID / auth provider branding fix from RegattaFlow to BetterAt. | written |
 | `PHASE_A8_PRACTICE_ROUTE_ALIAS_SPEC.md` | `/practice` canonical route, `/races` compatibility alias/redirect, route tests, link migration rules. | now, before public links and share surfaces |
 | `PHASE_A9_RACES_TSX_WARNING_CLEANUP_SPEC.md` | Clear `app/(tabs)/races.tsx` lint warnings that block downstream Practice commits. | written |
 | `PHASE_B5_PLAN_TAB_INTERIOR_SPEC.md` | Plan tab UI, AI Coach primary path, What/How/Why fields, locked state. | written |
