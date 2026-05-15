@@ -69,16 +69,8 @@ import type {
 } from '@/types/step-detail';
 import type { CompetencyStatus } from '@/types/competency';
 import type { SourceGlyphVariant } from '@/components/ios-register/SourceGlyph';
-
-// --- Sailing-only beat name fallback (per migration plan decision #3) ---
-// When plan_data.how_sub_steps doesn't supply enough entries, fill in with
-// the sailing register's beat names. Per-interest mapping defers to a
-// future commit (clinical: Briefing/Shift/Debrief; drawing: TBD).
-const SAILING_BEAT_FALLBACK = [
-  { title: 'Start', meta: '5-min sequence' },
-  { title: 'First beat', meta: 'to the windward mark' },
-  { title: 'Contingency', meta: 'your rule' },
-];
+import { useInterest } from '@/providers/InterestProvider';
+import { getBeatsForInterest } from '@/lib/per-interest-beats';
 
 // Avatar tints — deterministic by index so re-renders don't reshuffle.
 const AVATAR_COLORS = ['#7A92A8', '#9AA88F', '#B0967E', '#A87E8E', '#8E7EA8'];
@@ -146,6 +138,16 @@ function RaceIosPreviewBody({
   const { competencies: competencyProgress } = useCompetencyProgress();
   // Prior debriefs in the same interest, for the "From your last race" stack.
   const { data: timeline } = useMyTimeline(step.interest_id);
+  // Resolve the step's interest slug so beat names follow the step's domain
+  // (e.g. Patricia viewing Felix's sailing step sees Start/First beat/
+  // Contingency, not Briefing/Shift/Debrief). Falls to generic Beat 1-3
+  // when the slug can't be resolved (interest not yet loaded, deleted
+  // interest, or unmapped interest like drawing).
+  const { allInterests } = useInterest();
+  const stepInterestSlug = allInterests.find(
+    (i) => i.id === step.interest_id,
+  )?.slug;
+  const beatDefs = getBeatsForInterest(stepInterestSlug);
 
   const workingOnCapabilities = competencyIds
     .map((id) => {
@@ -165,12 +167,12 @@ function RaceIosPreviewBody({
   const priorDebriefQuotes = buildPriorDebriefQuotes(timeline ?? [], step.id);
 
   // Map plan_data.how_sub_steps to beats. Use the sub-step text as the body
-  // when present; fall back to the sailing-register name + placeholder body.
-  const beats = SAILING_BEAT_FALLBACK.map((fallback, idx) => {
+  // when present; fall back to the per-interest beat name + placeholder body.
+  const beats = beatDefs.map((def, idx) => {
     const sub = plan.how_sub_steps?.[idx];
     return {
-      title: fallback.title,
-      meta: fallback.meta,
+      title: def.title,
+      meta: def.meta,
       body: sub?.text ?? null,
     };
   });

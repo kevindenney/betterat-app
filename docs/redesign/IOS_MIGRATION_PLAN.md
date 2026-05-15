@@ -248,7 +248,7 @@ These are out of scope for the visual pass but should land before cutover. Captu
 
 6. **Permission-rule schema (`step_rules`).** A user-authored rule attached to the Contingency beat. Per-step text + label, surfaced inline in the new register. Visual pass uses placeholder text; data layer follows.
 
-7. **Per-interest beat name mapping.** Currently hardcoded sailing-only in `app/race/ios/[stepId].tsx`. Needs to live in a per-interest config (alongside the existing Race Prep / On the Water / Debrief vocabulary system). Clinical mapping (Briefing / Shift / Debrief) is known; drawing defers until the first drawing user.
+7. ~~**Per-interest beat name mapping.**~~ ✅ **Resolved 2026-05-15** in `lib/per-interest-beats.ts`. Sibling to `lib/vocabulary.ts`, follows the same per-interest-with-generic-fallback pattern. Sailing → `Start / First beat / Contingency`. Nursing → `Briefing / Shift / Debrief`. Unmapped interests → `Beat 1 / Beat 2 / Beat 3` generic fallback. Lookup follows the step's interest (not the viewer's active interest), same precedent as `useVocabulary(overrideInterestId)`.
 
 8. **Active-interest mismatch on competency progress.** `useCompetencyProgress` queries by the *active* interest, not the *step's* interest. When viewing a step from a different interest (sailing step while nursing is active), pill statuses come back empty. Either: (a) introduce a stepId-scoped progress hook, or (b) accept the limitation since cross-interest viewing is rare.
 
