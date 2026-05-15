@@ -242,6 +242,14 @@ export const FEATURE_FLAGS = {
   PRACTICE_ADD_STEP_FAB: readBooleanEnv('EXPO_PUBLIC_FF_PRACTICE_ADD_STEP_FAB', false),
 
   /**
+   * Gate the canonical Plan tab interior: AI Coach as the primary empty-state
+   * path, manual What/How/Why as secondary, and optional add-ons collapsed under
+   * More options. Defaults false because this is a substantive component and
+   * control-flow change.
+   */
+  PRACTICE_PLAN_TAB_IOS_REGISTER: readBooleanEnv('EXPO_PUBLIC_FF_PRACTICE_PLAN_TAB_IOS_REGISTER', false),
+
+  /**
    * Stage the Race Log iOS register surface (chronological multi-season
    * archive). This flag exists for the Reflect-tab cutover, which ships
    * Race Log + Profile together; the render switch in the Reflect parent
