@@ -14,6 +14,18 @@ Audit target:
 | `schema-gap` | 1 | 2 | 0 | 3 |
 | **Total** | **3** | **7** | **4** | **14** |
 
+## Update 2026-05-15 — Inventory schema widened for Reflect sub-surfaces
+
+- `docs/redesign/IOS_SURFACE_INVENTORY.json` now treats `race-log-ios` and `profile-ios` as first-class surface entries rather than implicit sub-surfaces of Reflect.
+- This is an intentional structural change: inventory tracks surfaces, not cutovers.
+- The migration-plan markdown and migration-plan JSON still describe Reflect primarily at the cutover level, so downstream consumers should expect temporary asymmetry until those artifacts are regenerated around the new surface-level rule.
+
+## Update 2026-05-15 — Concept variants consolidated under Concept detail
+
+- `docs/redesign/IOS_SURFACE_INVENTORY.json` no longer treats `concept-detail-ios-variants` as a separate surface-like entry.
+- This is an intentional structural cleanup: `new`, `dormant`, and `breakthrough` are state variants of `concept-detail-ios`, not independent surfaces.
+- The current working tree keeps the variant preview route at `/concept-detail-ios`; the canonical route remains `/concept-ios/<slug>` until the render switch lands.
+
 ## High
 
 ### 1. Surface inventory and preview-route coverage are not represented
