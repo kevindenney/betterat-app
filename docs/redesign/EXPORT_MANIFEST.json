@@ -1,0 +1,366 @@
+{
+  "manifest_version": "2026-05-15.v1",
+  "generated_from": [
+    "docs/redesign/IOS_MIGRATION_PLAN.md",
+    "docs/redesign/IOS_SURFACE_INVENTORY.json",
+    "docs/redesign/CROSS_CUTTING_COMPLIANCE_AUDIT.md"
+  ],
+  "scope": "Export-planning metadata only. No design files are created or moved by this manifest.",
+  "audit_findings": [
+    {
+      "severity": "warn",
+      "message": "Task context says `IOS_SURFACE_INVENTORY.json` contains 13 surfaces, but the file currently contains 12 entries.",
+      "sources": [
+        "docs/redesign/IOS_SURFACE_INVENTORY.json",
+        "docs/redesign/CROSS_CUTTING_COMPLIANCE_AUDIT.md"
+      ]
+    },
+    {
+      "severity": "warn",
+      "message": "The compliance audit adds `Profile iOS` as a 13th documented surface via repo brief, but that surface is still missing from `IOS_SURFACE_INVENTORY.json`.",
+      "sources": [
+        "docs/redesign/CROSS_CUTTING_COMPLIANCE_AUDIT.md",
+        "docs/redesign/IOS_SURFACE_INVENTORY.json"
+      ]
+    },
+    {
+      "severity": "warn",
+      "message": "The migration plan's current surface inventory now includes `Race Prep — cards (summary)` as item `1b`, but `IOS_SURFACE_INVENTORY.json` still omits that canonical summary surface.",
+      "sources": [
+        "docs/redesign/IOS_MIGRATION_PLAN.md",
+        "docs/redesign/IOS_SURFACE_INVENTORY.json"
+      ]
+    },
+    {
+      "severity": "warn",
+      "message": "The migration plan references five additional canonical handoff surfaces not present in the JSON inventory: `Race Log iOS`, `Profile iOS`, `Discover-Orgs iOS`, `Discover-People iOS`, and `Discover-Forums iOS`.",
+      "sources": [
+        "docs/redesign/IOS_MIGRATION_PLAN.md",
+        "docs/redesign/IOS_SURFACE_INVENTORY.json"
+      ]
+    },
+    {
+      "severity": "warn",
+      "message": "Cutover state is stale across sources: the JSON inventory still marks `race-prep-ios` as `parked`, while the migration plan says the paired `Race Prep cards iOS` handoff landed and shipped on 2026-05-15.",
+      "sources": [
+        "docs/redesign/IOS_SURFACE_INVENTORY.json",
+        "docs/redesign/IOS_MIGRATION_PLAN.md"
+      ]
+    },
+    {
+      "severity": "warn",
+      "message": "Task context says 16 canonical iOS register designs live only in Claude Design, but the cross-referenced docs imply 18 distinct surface-level export targets if every canonical surface and backlog handoff is treated separately. This manifest keeps all 18 visible rather than silently reconciling the count.",
+      "sources": [
+        "docs/redesign/IOS_MIGRATION_PLAN.md",
+        "docs/redesign/IOS_SURFACE_INVENTORY.json",
+        "docs/redesign/CROSS_CUTTING_COMPLIANCE_AUDIT.md"
+      ]
+    }
+  ],
+  "exports": [
+    {
+      "surface_id": "race-prep-ios",
+      "variants": [
+        "detail-default"
+      ],
+      "source": "Claude Design — Race Prep iOS detail surface (Pass A — iOS; `Race Prep - Race 4 - iOS register.html`)",
+      "target_path": "docs/redesign/ios-register/race-prep-ios/",
+      "consumed_by": [
+        "route:/race/ios/<stepId>",
+        "app/race/ios/[stepId].tsx",
+        "components/step/StepDetailContent.tsx",
+        "app/dev/ios-previews.tsx"
+      ],
+      "cutover_status": "staged",
+      "export_priority": "P0",
+      "notes": "Inventory marks canonical_status=`parked`, but the migration plan says cards now tap through to `/race/ios/[stepId]` after the 2026-05-15 summary-surface cutover. Export debt is high because the detail surface is now paired with a shipped summary surface."
+    },
+    {
+      "surface_id": "race-prep-cards-ios",
+      "variants": [
+        "planned",
+        "in-progress",
+        "debriefed",
+        "current"
+      ],
+      "source": "Claude Design — Race Prep cards iOS / timeline-grid summary iOS handoff",
+      "target_path": "docs/redesign/ios-register/race-prep-cards-ios/",
+      "consumed_by": [
+        "renders in app/(tabs)/races.tsx behind RACE_PREP_IOS_REGISTER",
+        "components/ios-register/RaceCardsScreen.tsx",
+        "components/cards/content/RaceSummaryCard.tsx"
+      ],
+      "cutover_status": "shipped",
+      "export_priority": "P0",
+      "notes": "Migration plan says this handoff landed and the cards-grid cutover shipped on 2026-05-15. The cutover checklist names the four-state card grammar explicitly. This is the clearest P0 documentation gap."
+    },
+    {
+      "surface_id": "on-the-water-ios",
+      "variants": [
+        "default"
+      ],
+      "source": "Claude Design — On the Water iOS atmospheric capture surface",
+      "target_path": "docs/redesign/ios-register/on-the-water-ios/",
+      "consumed_by": [
+        "route:/race/ios/water/<stepId>",
+        "app/race/ios/water/[stepId].tsx",
+        "app/dev/ios-previews.tsx"
+      ],
+      "cutover_status": "staged",
+      "export_priority": "P1",
+      "notes": "Fresh-build live-capture surface. Migration plan calls out atmospheric-ground treatment and hero-mic composer; compliance audit says canonical design remains in Claude Design."
+    },
+    {
+      "surface_id": "debrief-ios",
+      "variants": [
+        "default"
+      ],
+      "source": "Claude Design — Debrief iOS chronological reflection surface",
+      "target_path": "docs/redesign/ios-register/debrief-ios/",
+      "consumed_by": [
+        "route:/race/ios/debrief/<stepId>",
+        "app/race/ios/debrief/[stepId].tsx",
+        "app/dev/ios-previews.tsx"
+      ],
+      "cutover_status": "staged",
+      "export_priority": "P1",
+      "notes": "Migration plan distinguishes this student-facing reflection surface from the separate Competency Assessment artifact. Cross-cutting audit flags missing exported loading and error states for the AI clustering offer."
+    },
+    {
+      "surface_id": "playbook-home-ios",
+      "variants": [
+        "default"
+      ],
+      "source": "Claude Design — Playbook home iOS library surface",
+      "target_path": "docs/redesign/ios-register/playbook-home-ios/",
+      "consumed_by": [
+        "route:/playbook-ios",
+        "app/playbook-ios.tsx",
+        "components/playbook/PlaybookHome.tsx",
+        "app/dev/ios-previews.tsx"
+      ],
+      "cutover_status": "shipped",
+      "export_priority": "P0",
+      "notes": "This is the only surface marked `canonical_status=shipped` in the JSON inventory. Export debt is high because the canonical cutover already happened."
+    },
+    {
+      "surface_id": "concept-detail-ios",
+      "variants": [
+        "read-mode",
+        "work-mode",
+        "resynthesize-state"
+      ],
+      "source": "Claude Design — Concept detail iOS surface (`Read / Work on Concept` segmented-control family)",
+      "target_path": "docs/redesign/ios-register/concept-detail-ios/",
+      "consumed_by": [
+        "route:/concept-ios/<slug>",
+        "app/concept-ios/[slug].tsx",
+        "app/playbook-ios.tsx",
+        "app/dev/ios-previews.tsx"
+      ],
+      "cutover_status": "staged",
+      "export_priority": "P1",
+      "notes": "Migration plan inventory explicitly names `Read mode`; the segmented-control rule references `Read / Work on Concept iOS`, and the compliance audit flags a resynthesize loading/error path. Variant naming should be normalized against the Claude artifact at export time."
+    },
+    {
+      "surface_id": "reflect-home-ios",
+      "variants": [
+        "default"
+      ],
+      "source": "Claude Design — Reflect home iOS preview surface",
+      "target_path": "docs/redesign/ios-register/reflect-home-ios/",
+      "consumed_by": [
+        "route:/reflect-ios",
+        "app/reflect-ios.tsx",
+        "app/(tabs)/reflect.tsx",
+        "app/dev/ios-previews.tsx"
+      ],
+      "cutover_status": "staged",
+      "export_priority": "P1",
+      "notes": "Migration plan says Reflect cutover remains blocked on Race Log iOS and Profile iOS handoffs plus reflection-usage tracking. Export the parent surface and the two child handoffs as separate artifacts."
+    },
+    {
+      "surface_id": "race-log-ios",
+      "variants": [
+        "default"
+      ],
+      "source": "Claude Design — Race Log iOS handoff for Reflect sub-tab",
+      "target_path": "docs/redesign/ios-register/race-log-ios/",
+      "consumed_by": [
+        "parent-surface:/reflect-ios",
+        "app/(tabs)/reflect.tsx",
+        "docs/redesign/IOS_MIGRATION_PLAN.md handoff backlog"
+      ],
+      "cutover_status": "pending",
+      "export_priority": "P1",
+      "notes": "Missing from the JSON inventory but explicitly called out in the migration-plan handoff backlog as required for Reflect cutover."
+    },
+    {
+      "surface_id": "profile-ios",
+      "variants": [
+        "default"
+      ],
+      "source": "Claude Design — Profile iOS handoff for Reflect sub-tab",
+      "target_path": "docs/redesign/ios-register/profile-ios/",
+      "consumed_by": [
+        "parent-surface:/reflect-ios",
+        "app/(tabs)/reflect.tsx",
+        "docs/redesign/design-briefs/profile-ios.md"
+      ],
+      "cutover_status": "pending",
+      "export_priority": "P1",
+      "notes": "A repo brief exists, but the migration plan still counts the canonical handoff as outstanding for Reflect cutover. Cross-cutting audit marks loading not applicable and error states still undesigned."
+    },
+    {
+      "surface_id": "discover-paths-ios",
+      "variants": [
+        "default"
+      ],
+      "source": "Claude Design — Discover Paths iOS top-level Discover surface",
+      "target_path": "docs/redesign/ios-register/discover-paths-ios/",
+      "consumed_by": [
+        "route:/discover-ios",
+        "app/discover-ios.tsx",
+        "app/(tabs)/discover.tsx",
+        "app/dev/ios-previews.tsx"
+      ],
+      "cutover_status": "staged",
+      "export_priority": "P1",
+      "notes": "Inventory covers only the top-level Discover Paths surface, while the migration plan adds three deeper Discover handoffs still missing from inventory."
+    },
+    {
+      "surface_id": "discover-orgs-ios",
+      "variants": [
+        "default"
+      ],
+      "source": "Claude Design — Discover-Orgs iOS handoff",
+      "target_path": "docs/redesign/ios-register/discover-orgs-ios/",
+      "consumed_by": [
+        "parent-surface:/discover-ios",
+        "app/(tabs)/discover.tsx",
+        "docs/redesign/IOS_MIGRATION_PLAN.md handoff backlog"
+      ],
+      "cutover_status": "pending",
+      "export_priority": "P2",
+      "notes": "Explicitly listed in the migration-plan backlog as blocking Discover cutover. No dedicated route is documented in the JSON inventory yet."
+    },
+    {
+      "surface_id": "discover-people-ios",
+      "variants": [
+        "default"
+      ],
+      "source": "Claude Design — Discover-People iOS handoff",
+      "target_path": "docs/redesign/ios-register/discover-people-ios/",
+      "consumed_by": [
+        "parent-surface:/discover-ios",
+        "app/(tabs)/discover.tsx",
+        "docs/redesign/IOS_MIGRATION_PLAN.md handoff backlog"
+      ],
+      "cutover_status": "pending",
+      "export_priority": "P2",
+      "notes": "Explicitly listed in the migration-plan backlog as blocking Discover cutover. No dedicated route is documented in the JSON inventory yet."
+    },
+    {
+      "surface_id": "discover-forums-ios",
+      "variants": [
+        "default"
+      ],
+      "source": "Claude Design — Discover-Forums iOS handoff",
+      "target_path": "docs/redesign/ios-register/discover-forums-ios/",
+      "consumed_by": [
+        "parent-surface:/discover-ios",
+        "app/(tabs)/discover.tsx",
+        "docs/redesign/IOS_MIGRATION_PLAN.md handoff backlog"
+      ],
+      "cutover_status": "pending",
+      "export_priority": "P2",
+      "notes": "Explicitly listed in the migration-plan backlog as blocking Discover cutover. No dedicated route is documented in the JSON inventory yet."
+    },
+    {
+      "surface_id": "get-inspired-ios",
+      "variants": [
+        "empty",
+        "filled",
+        "running"
+      ],
+      "source": "Claude Design — Get Inspired iOS modal sheet plus running-state handoff",
+      "target_path": "docs/redesign/ios-register/get-inspired-ios/",
+      "consumed_by": [
+        "route:/get-inspired-ios",
+        "app/get-inspired-ios.tsx",
+        "app/dev/ios-previews.tsx",
+        "docs/redesign/design-briefs/get-inspired-ios-running-state.md"
+      ],
+      "cutover_status": "staged",
+      "export_priority": "P1",
+      "notes": "The repo brief covers only the running state explicitly. The migration plan says empty and filled already exist, so export should capture all three states as one canonical surface bundle."
+    },
+    {
+      "surface_id": "trophy-of-becoming-ios",
+      "variants": [
+        "variant-01",
+        "variant-02",
+        "variant-03",
+        "variant-04"
+      ],
+      "source": "Claude Design — Trophy of Becoming iOS synthesis artifact",
+      "target_path": "docs/redesign/ios-register/trophy-of-becoming-ios/",
+      "consumed_by": [
+        "route:/trophy-ios",
+        "app/trophy-ios.tsx",
+        "app/dev/ios-previews.tsx"
+      ],
+      "cutover_status": "staged",
+      "export_priority": "P2",
+      "notes": "Task context says this surface has four variants, but the cross-referenced repo docs do not name them. Preserve the four-export expectation and normalize variant labels when the Claude Design artifact is exported."
+    },
+    {
+      "surface_id": "step-transition-hinge-ios",
+      "variants": [
+        "default"
+      ],
+      "source": "Claude Design — Step transition hinge iOS surface",
+      "target_path": "docs/redesign/ios-register/step-transition-hinge-ios/",
+      "consumed_by": [
+        "route:/hinge-ios",
+        "app/hinge-ios.tsx",
+        "app/dev/ios-previews.tsx"
+      ],
+      "cutover_status": "staged",
+      "export_priority": "P2",
+      "notes": "Placeholder tiles are wired in preview, but the compliance audit still treats canonical design as Claude-only because no export exists in the repo."
+    },
+    {
+      "surface_id": "auth-welcome-ios",
+      "variants": [
+        "default"
+      ],
+      "source": "Claude Design — Auth Welcome iOS pre-auth surface",
+      "target_path": "docs/redesign/ios-register/auth-welcome-ios/",
+      "consumed_by": [
+        "route:/auth-welcome-ios",
+        "app/auth-welcome-ios.tsx",
+        "app/dev/ios-previews.tsx"
+      ],
+      "cutover_status": "staged",
+      "export_priority": "P2",
+      "notes": "Visual-only preview surface. Cross-cutting audit marks both loading narration and BetterAt-specific error treatment as not applicable, but the canonical design still lacks a repo export."
+    },
+    {
+      "surface_id": "competency-assessment-ios",
+      "variants": [
+        "populated"
+      ],
+      "source": "Claude Design — Competency Assessment iOS faculty surface",
+      "target_path": "docs/redesign/ios-register/competency-assessment-ios/",
+      "consumed_by": [
+        "route:/competency-assessment-ios/<stepId>",
+        "app/competency-assessment-ios/[stepId].tsx",
+        "app/dev/ios-previews.tsx"
+      ],
+      "cutover_status": "pending",
+      "export_priority": "P1",
+      "notes": "Migration plan says the designed surface only specified the populated state; `0 captures` empty-state copy remains unresolved, and submit flow plus AI capture surfacing are still deferred. Export the faculty handoff now, then add empty/error variants later if Claude Design produces them."
+    }
+  ]
+}
