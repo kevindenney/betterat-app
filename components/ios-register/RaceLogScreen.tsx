@@ -117,6 +117,15 @@ interface Props {
    * safe-area + 64pt tab + 22pt float offset. Defaults to 130.
    */
   bottomPad?: number;
+  /**
+   * Top inset for the inner ScrollView's contentContainerStyle. When
+   * embedded inside a tab that overlays a translucent toolbar, the caller
+   * passes the measured toolbar height so the feed scrolls beneath it
+   * rather than starting hidden under it. Defaults to 0.
+   */
+  topInset?: number;
+  /** Forwarded to the inner ScrollView (e.g. for scroll-driven toolbar hide). */
+  onScroll?: React.ComponentProps<typeof ScrollView>['onScroll'];
 }
 
 // ---------------------------------------------------------------------------
@@ -131,6 +140,8 @@ export function RaceLogScreen({
   onEntryPress,
   feedFootHint,
   bottomPad = 130,
+  topInset = 0,
+  onScroll,
 }: Props) {
   return (
     <View style={styles.screen}>
@@ -158,7 +169,9 @@ export function RaceLogScreen({
 
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: bottomPad }}
+        contentContainerStyle={{ paddingTop: topInset, paddingBottom: bottomPad }}
+        onScroll={onScroll}
+        scrollEventThrottle={onScroll ? 16 : undefined}
       >
         {filterChips && filterChips.length > 0 && (
           <FilterChipRow chips={filterChips} />

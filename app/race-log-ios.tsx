@@ -24,7 +24,7 @@
  */
 
 import React from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -39,9 +39,15 @@ import {
 interface Props {
   /**
    * When embedded inside the Reflect tab (after cutover), the preview
-   * banner and close-X hide and the parent screen owns the chrome.
+   * banner and close-X hide, the inner RaceLogScreen suppresses its own
+   * "Race Log" title + sub-tab segmented control (the Reflect parent owns
+   * both), and the parent screen owns the chrome.
    */
   embedded?: boolean;
+  /** Top inset forwarded to the inner ScrollView (e.g. toolbar height). */
+  topInset?: number;
+  /** Forwarded to the inner ScrollView (e.g. for scroll-driven toolbar hide). */
+  onScroll?: React.ComponentProps<typeof ScrollView>['onScroll'];
 }
 
 // Sample data drawn from the design handoff's Winter 2025–2026 + Spring 2025
@@ -120,9 +126,16 @@ const SAMPLE_FILTER_CHIPS: RaceLogFilterChip[] = [
   { id: 'season-picker', label: 'Season', picker: true, icon: 'calendar' },
 ];
 
-export function RaceLogIosPreview({ embedded = false }: Props = {}) {
+export function RaceLogIosPreview({
+  embedded = false,
+  topInset,
+  onScroll,
+}: Props = {}) {
   return (
-    <SafeAreaView style={styles.page} edges={['top', 'bottom']}>
+    <SafeAreaView
+      style={styles.page}
+      edges={embedded ? ['bottom'] : ['top', 'bottom']}
+    >
       {!embedded && <Stack.Screen options={{ headerShown: false }} />}
 
       {!embedded && (
@@ -146,11 +159,13 @@ export function RaceLogIosPreview({ embedded = false }: Props = {}) {
       {!embedded && <PreviewBanner />}
 
       <RaceLogScreen
-        showChrome
+        showChrome={!embedded}
         activeSubTab="race-log"
         filterChips={SAMPLE_FILTER_CHIPS}
         seasons={SAMPLE_SEASONS}
         feedFootHint="Autumn 2024, Summer 2024, Spring 2024 — continues below"
+        topInset={topInset}
+        onScroll={onScroll}
         onEntryPress={(entry) => {
           // Tap-through to the iOS-register Race Prep detail surface.
           // Sample ids don't resolve to real steps yet; safe-guard with

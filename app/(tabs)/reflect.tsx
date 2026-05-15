@@ -29,6 +29,9 @@ import { IOS_COLORS } from '@/lib/design-tokens-ios';
 import { STEP_PALETTE } from '@/lib/step-theme';
 import { TabScreenToolbar } from '@/components/ui/TabScreenToolbar';
 import { IOSSegmentedControl } from '@/components/ui/ios/IOSSegmentedControl';
+import { FEATURE_FLAGS } from '@/lib/featureFlags';
+import { RaceLogIosPreview } from '@/app/race-log-ios';
+import { ProfileIosPreview } from '@/app/profile-ios';
 import { useScrollToolbarHide } from '@/hooks/useScrollToolbarHide';
 import { useReflectData, type RaceLogEntry } from '@/hooks/useReflectData';
 import { useReflectProfile } from '@/hooks/useReflectProfile';
@@ -927,20 +930,34 @@ export default function ReflectScreen() {
           isDesktop={isDesktop}
         />
       )}
-      {activeSegment === 'racelog' && (
-        <RaceLogView
-          toolbarHeight={toolbarHeight}
-          onScroll={handleToolbarScroll}
-          isDesktop={isDesktop}
-        />
-      )}
-      {activeSegment === 'profile' && (
-        <ProfileView
-          toolbarHeight={toolbarHeight}
-          onScroll={handleToolbarScroll}
-          isDesktop={isDesktop}
-        />
-      )}
+      {activeSegment === 'racelog' &&
+        (FEATURE_FLAGS.RACE_LOG_IOS_REGISTER ? (
+          <RaceLogIosPreview
+            embedded
+            topInset={toolbarHeight}
+            onScroll={handleToolbarScroll}
+          />
+        ) : (
+          <RaceLogView
+            toolbarHeight={toolbarHeight}
+            onScroll={handleToolbarScroll}
+            isDesktop={isDesktop}
+          />
+        ))}
+      {activeSegment === 'profile' &&
+        (FEATURE_FLAGS.PROFILE_IOS_REGISTER ? (
+          <ProfileIosPreview
+            embedded
+            topInset={toolbarHeight}
+            onScroll={handleToolbarScroll}
+          />
+        ) : (
+          <ProfileView
+            toolbarHeight={toolbarHeight}
+            onScroll={handleToolbarScroll}
+            isDesktop={isDesktop}
+          />
+        ))}
 
       {/* Toolbar */}
       <TabScreenToolbar

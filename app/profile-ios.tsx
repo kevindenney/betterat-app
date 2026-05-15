@@ -15,7 +15,7 @@
  */
 
 import React, { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -37,6 +37,10 @@ interface Props {
    * banner and close-X hide and the parent screen owns the chrome.
    */
   embedded?: boolean;
+  /** Top inset forwarded to the inner ScrollView (e.g. toolbar height). */
+  topInset?: number;
+  /** Forwarded to the inner ScrollView (e.g. for scroll-driven toolbar hide). */
+  onScroll?: React.ComponentProps<typeof ScrollView>['onScroll'];
 }
 
 const SAMPLE_HERO: ProfileHero = {
@@ -66,7 +70,11 @@ const SAMPLE_PLAN: ProfilePlan = {
   badge: '+',
 };
 
-export function ProfileIosPreview({ embedded = false }: Props = {}) {
+export function ProfileIosPreview({
+  embedded = false,
+  topInset,
+  onScroll,
+}: Props = {}) {
   const [windUnit, setWindUnit] = useState<'knots' | 'm/s' | 'mph'>('knots');
   const [distanceUnit, setDistanceUnit] = useState<'nautical' | 'metric'>(
     'nautical',
@@ -91,7 +99,10 @@ export function ProfileIosPreview({ embedded = false }: Props = {}) {
   };
 
   return (
-    <SafeAreaView style={styles.page} edges={['top', 'bottom']}>
+    <SafeAreaView
+      style={styles.page}
+      edges={embedded ? ['bottom'] : ['top', 'bottom']}
+    >
       {!embedded && <Stack.Screen options={{ headerShown: false }} />}
 
       {!embedded && (
@@ -121,6 +132,8 @@ export function ProfileIosPreview({ embedded = false }: Props = {}) {
         preferences={preferences}
         reflect={reflect}
         plan={SAMPLE_PLAN}
+        topInset={topInset}
+        onScroll={onScroll}
         onWindUnitChange={setWindUnit}
         onDistanceUnitChange={setDistanceUnit}
         onWeeklyDigestChange={setWeeklyDigestOn}

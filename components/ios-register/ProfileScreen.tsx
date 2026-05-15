@@ -126,6 +126,15 @@ interface Props {
   onSignOutPress?: () => void;
   onDeleteAccountPress?: () => void;
   bottomPad?: number;
+  /**
+   * Top inset for the inner ScrollView's contentContainerStyle. When
+   * embedded inside a tab that overlays a translucent toolbar, the caller
+   * passes the measured toolbar height so the hero sits below the toolbar
+   * rather than starting hidden under it. Defaults to 0.
+   */
+  topInset?: number;
+  /** Forwarded to the inner ScrollView (e.g. for scroll-driven toolbar hide). */
+  onScroll?: React.ComponentProps<typeof ScrollView>['onScroll'];
 }
 
 // ---------------------------------------------------------------------------
@@ -157,12 +166,16 @@ export function ProfileScreen({
   onSignOutPress,
   onDeleteAccountPress,
   bottomPad = 130,
+  topInset = 0,
+  onScroll,
 }: Props) {
   return (
     <ScrollView
       style={styles.screen}
-      contentContainerStyle={{ paddingBottom: bottomPad }}
+      contentContainerStyle={{ paddingTop: topInset, paddingBottom: bottomPad }}
       showsVerticalScrollIndicator={false}
+      onScroll={onScroll}
+      scrollEventThrottle={onScroll ? 16 : undefined}
     >
       {/* Hero — centered avatar + name + handle + meta */}
       <View style={styles.hero}>
