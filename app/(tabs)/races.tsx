@@ -583,7 +583,7 @@ export default function RacesScreen() {
   useEffect(() => {
     resetRaceConditions();
     setTacticalZones([]);
-  }, [selectedRaceId]);
+  }, [selectedRaceId, resetRaceConditions, setTacticalZones]);
 
   // documentTypeResolverRef cleanup is now handled by useRaceDocuments hook
 
@@ -876,7 +876,7 @@ export default function RacesScreen() {
     };
 
     checkAuthAndOnboarding();
-  }, [ready, signedIn, isGuest, user?.id, isDemoSession, userType, enterGuestMode]);
+  }, [ready, signedIn, isGuest, user?.id, isDemoSession, userType, enterGuestMode, wasAuthenticated]);
 
   // Fetch data from API
   const {
@@ -1192,7 +1192,7 @@ export default function RacesScreen() {
     const nowMsMapped = Date.now();
     mapped.sort((a: any, b: any) => compareTimelineItems(a, b, nowMsMapped));
     return mapped;
-  }, [safeRecentRaces, sampleRaceDismissed, isViewingOtherTimeline, currentTimeline, timelineStatusOverrides, eventConfig.interestSlug, eventConfig.eventNoun, eventConfig.defaultSubtype, subscribedBlueprints]);
+  }, [safeRecentRaces, sampleRaceDismissed, isViewingOtherTimeline, currentTimeline, timelineStatusOverrides, eventConfig.interestSlug, eventConfig.eventNoun, eventConfig.defaultSubtype, subscribedBlueprints, vocab]);
 
   // Use the chronological order from baseCardGridRaces (which comes from
   // interestFilteredRaces sorted by: completed first, then date, then sort_order).
@@ -1523,7 +1523,7 @@ export default function RacesScreen() {
     if (raceBrief && selectedRaceData?.id) {
       updateRaceBrief(raceBrief);
     }
-  }, [raceBrief, selectedRaceData?.id]);
+  }, [raceBrief, selectedRaceData?.id, updateRaceBrief]);
 
   // Use race brief sync for AI chat integration
   const { getAIContext, isStale: isRaceBriefStale, refreshContext: _refreshContext } = useRaceBriefSync({
@@ -1579,7 +1579,7 @@ export default function RacesScreen() {
       signOn: metadata.sign_on_ack === true,
       safetyBriefing: metadata.safety_briefing_ack === true,
     });
-  }, [selectedRaceData]);
+  }, [selectedRaceData, setRegattaAcknowledgements, setRigNotes, setSelectedRigBand]);
 
   useEffect(() => {
     if (!rigPresets.length) {
@@ -1592,7 +1592,7 @@ export default function RacesScreen() {
 
     const fallback = rigPresets.find((preset) => preset.id === 'medium') || rigPresets[0];
     setSelectedRigBand(fallback.id);
-  }, [rigPresets, selectedRigBand]);
+  }, [rigPresets, selectedRigBand, setSelectedRigBand]);
 
   // Status flags (hasStrategyGenerated, hasPostAnalysis, hasCrewReady, hasRegulatoryAcknowledged)
   // are now provided by useRacePreparationData hook above
@@ -2509,7 +2509,7 @@ export default function RacesScreen() {
     } catch (error) {
       logger.error('Error saving racing area:', error);
     }
-  }, [selectedRaceId, drawingRacingArea]);
+  }, [selectedRaceId, drawingRacingArea, selectedRaceData?.metadata]);
 
   const ensureRaceEventId = useCallback(async (): Promise<string | null> => {
     logger.debug('[ensureRaceEventId] START', { selectedRaceId });
@@ -2639,14 +2639,13 @@ export default function RacesScreen() {
         logger.error('Failed to cache race:', err)
       );
     }
-  }, [nextRace, user]);
+  }, [nextRace, user, cacheNextRace]);
 
   // Auto-select first race when races load (only runs once when loading completes)
   // Using useRef to track if auto-selection has happened to prevent re-running
   const autoSelectDatasetKeyRef = useRef<string | null>(null);
   const autoSelectLastAppliedIdRef = useRef<string | null>(null);
   // Auto-select when data changes; omit selectedRaceId dependency to avoid loops when we set it here.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   React.useEffect(() => {
     if (loading || safeRecentRaces.length === 0) {
       return;
@@ -2699,7 +2698,7 @@ export default function RacesScreen() {
     // Only mark as auto if we truly changed the selection here
     setHasManuallySelected(false);
     setSelectedRaceId(targetId);
-  }, [loading, safeRecentRaces, nextRace]);
+  }, [loading, safeRecentRaces, nextRace]); // eslint-disable-line react-hooks/exhaustive-deps -- selectedRaceId is intentionally omitted because this effect writes it.
 
   useEffect(() => {
     if (selectedRaceId) {
@@ -3416,7 +3415,7 @@ export default function RacesScreen() {
     if (typeof boatDraftValue === 'number' && Math.abs(boatDraftValue - currentDraft) > 0.01) {
       setDraft(boatDraftValue);
     }
-  }, [boatDraftValue, currentDraft]);
+  }, [boatDraftValue, currentDraft, setDraft]);
 
   useEffect(() => {
     if (!hasActiveRace) {
@@ -3588,7 +3587,7 @@ export default function RacesScreen() {
       timestamp: new Date(),
     });
     fallbackPositionInitializedRef.current = true;
-  }, [hasActiveRace, fallbackPosition, gpsPosition]);
+  }, [hasActiveRace, fallbackPosition, gpsPosition, updateRacePosition]);
 
   const handleShareRaceAnalysis = useCallback(async () => {
     const raceName =
@@ -4027,7 +4026,7 @@ export default function RacesScreen() {
         }
       }, 150);
     }
-  }, [safeRecentRaces, SCREEN_WIDTH]);
+  }, [safeRecentRaces, SCREEN_WIDTH, RACE_CARD_TOTAL_WIDTH, RACE_CARD_WIDTH]);
 
   // Clear old details immediately on selection change to avoid showing stale details
   // Skip clearing when we just created a new step (pendingNewStepIdRef is set)
@@ -4071,7 +4070,7 @@ export default function RacesScreen() {
     }, 300);
 
     return () => clearTimeout(timer);
-  }, [nextRace, safeRecentRaces, loading, hasManuallySelected, SCREEN_WIDTH]);
+  }, [nextRace, safeRecentRaces, loading, hasManuallySelected, SCREEN_WIDTH, RACE_CARD_TOTAL_WIDTH, RACE_CARD_WIDTH, safeNextRace?.id]);
 
   // Keep the selected race visible by centering it when selection changes
   useEffect(() => {
@@ -4092,7 +4091,7 @@ export default function RacesScreen() {
       y: 0,
       animated: true,
     });
-  }, [selectedRaceId, safeRecentRaces, SCREEN_WIDTH]);
+  }, [selectedRaceId, safeRecentRaces, SCREEN_WIDTH, RACE_CARD_TOTAL_WIDTH, RACE_CARD_WIDTH]);
 
   // Auth loading state - show while auth is being initialized
   if (!ready) {
