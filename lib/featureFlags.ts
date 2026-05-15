@@ -208,6 +208,17 @@ export const FEATURE_FLAGS = {
    * Keep false until secondary pack validation is complete.
    */
   SECONDARY_PACKS_V1: readBooleanEnv('EXPO_PUBLIC_FF_SECONDARY_PACKS_V1', false),
+
+  /**
+   * Cut Playbook home over to the iOS register layout (Apple Books library
+   * treatment: Vision card + concept shelf + recent reflections + inbox
+   * count badge). When true, the Playbook tab renders the iOS register
+   * preview and the existing PlaybookHome eight-section layout is
+   * suppressed. Defaults true (cutover live 2026-05-15); flip to false
+   * via EXPO_PUBLIC_FF_PLAYBOOK_IOS_REGISTER=false to revert in one
+   * toggle if anything breaks.
+   */
+  PLAYBOOK_IOS_REGISTER: readBooleanEnv('EXPO_PUBLIC_FF_PLAYBOOK_IOS_REGISTER', true),
 } as const;
 
 // =============================================================================
@@ -239,6 +250,7 @@ export function getAllFeatureFlags(): Record<FeatureFlag, boolean> {
  */
 export function logFeatureFlags(): void {
   if (__DEV__) {
+    // eslint-disable-next-line no-console
     console.log('[FeatureFlags]', FEATURE_FLAGS);
   }
 }

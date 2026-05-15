@@ -81,7 +81,17 @@ interface ReflectionItem {
   provenance: string;
 }
 
-export default function PlaybookIosPreview() {
+interface Props {
+  /**
+   * When true, this component is mounted as the canonical Playbook tab
+   * (post-cutover, gated by FEATURE_FLAGS.PLAYBOOK_IOS_REGISTER). Hides
+   * the close-X chrome since there's no parent route to navigate back
+   * to. False when rendered as the standalone /playbook-ios preview.
+   */
+  embedded?: boolean;
+}
+
+export function PlaybookIosPreview({ embedded = false }: Props = {}) {
   const { currentInterest } = useInterest();
   const interestId = currentInterest?.id;
   const interestName = currentInterest?.name ?? 'your practice';
@@ -157,18 +167,20 @@ export default function PlaybookIosPreview() {
                 )}
               </View>
             </Pressable>
-            <Pressable
-              style={styles.glyphBtn}
-              hitSlop={8}
-              onPress={() => (router.canGoBack() ? router.back() : null)}
-              accessibilityLabel="Back to existing playbook"
-            >
-              <Ionicons
-                name="close"
-                size={22}
-                color={IOS_REGISTER.accentUserAction}
-              />
-            </Pressable>
+            {!embedded && (
+              <Pressable
+                style={styles.glyphBtn}
+                hitSlop={8}
+                onPress={() => (router.canGoBack() ? router.back() : null)}
+                accessibilityLabel="Back to existing playbook"
+              >
+                <Ionicons
+                  name="close"
+                  size={22}
+                  color={IOS_REGISTER.accentUserAction}
+                />
+              </Pressable>
+            )}
           </View>
         </View>
 
@@ -639,3 +651,7 @@ const styles = StyleSheet.create({
     gap: 10,
   },
 });
+
+// Default export for Expo Router (route file). Named export above is for
+// the embedded render path on the (tabs)/playbook tab route.
+export default PlaybookIosPreview;
