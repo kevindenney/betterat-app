@@ -1,0 +1,2094 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=1520" />
+<title>BetterAt — Four small surfaces · Canonical — 2026-05-15</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css" />
+<style>
+  :root {
+    /* iOS system palette — inherited from the canonical iOS register */
+    --ios-blue:        #007AFF;
+    --ios-blue-tint:   rgba(0, 122, 255, 0.10);
+    --ios-coral:       #FF6B6B;
+    --ios-coral-deep:  #E85A5A;
+    --ios-coral-tint:  rgba(255, 107, 107, 0.10);
+    --ios-green:       #34C759;
+    --ios-red:         #FF3B30;
+
+    --gray-6:      #F2F2F7;
+    --gray-5:      #E5E5EA;
+    --gray-4:      #D1D1D6;
+    --gray-3:      #C7C7CC;
+    --gray-2:      #AEAEB2;
+    --gray-1:      #8E8E93;
+    --label:       #1C1C1E;
+    --label-2:     #3C3C43;
+    --label-3:     rgba(60, 60, 67, 0.60);
+    --label-4:     rgba(60, 60, 67, 0.30);
+    --separator:   rgba(60, 60, 67, 0.20);
+
+    /* Page stage */
+    --stage:          #EFEAD8;
+    --stage-text:     #6B6558;
+    --stage-ink:      #2A2824;
+    --stage-line:     rgba(34, 30, 20, 0.12);
+
+    /* Suggest surface — slightly cool cream so it reads as peer-of-following, distinct from white timeline cards */
+    --suggest-tint:   #F4F1E8;
+    --suggest-edge:   rgba(34, 30, 20, 0.08);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display",
+                 "Helvetica Neue", Helvetica, Arial, sans-serif;
+    color: var(--label);
+    background: var(--stage);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+  button { font-family: inherit; }
+
+  /* ============= Page chrome ============= */
+  .page { min-width: 1520px; padding: 56px 48px 80px; }
+  .page-head { max-width: 1424px; margin: 0 auto 48px; }
+  .page-head .eyebrow {
+    font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--stage-text); margin: 0 0 12px;
+  }
+  .page-head h1 {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 32px; line-height: 1.15; font-weight: 500;
+    letter-spacing: -0.015em; margin: 0 0 14px; color: var(--stage-ink);
+  }
+  .page-head h1 em { font-style: italic; }
+  .page-head p {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 17px; line-height: 1.55;
+    color: var(--stage-text); margin: 0; max-width: 1020px;
+  }
+  .page-head p em { font-style: italic; }
+
+  .strip-head {
+    max-width: 1424px;
+    margin: 56px auto 22px;
+    padding-top: 28px;
+    border-top: 0.5px solid var(--stage-line);
+  }
+  .strip-head .eyebrow {
+    font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--stage-text); margin: 0 0 8px;
+  }
+  .strip-head h2 {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 22px; line-height: 1.25; font-weight: 500;
+    letter-spacing: -0.01em; margin: 0 0 8px; color: var(--stage-ink);
+  }
+  .strip-head h2 em { font-style: italic; }
+  .strip-head p {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 15px; line-height: 1.55;
+    color: var(--stage-text); margin: 0; max-width: 920px;
+  }
+
+  /* ============= Phone grid ============= */
+  .row {
+    max-width: 1424px;
+    margin: 0 auto;
+    display: flex;
+    gap: 36px;
+    align-items: flex-start;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+  .col { display: flex; flex-direction: column; align-items: flex-start; gap: 14px; }
+  .col.center-cap { align-items: center; }
+  .caption {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+    font-size: 11px; letter-spacing: 0.10em;
+    text-transform: uppercase; color: var(--stage-text);
+    max-width: 393px;
+  }
+  .caption strong { color: var(--stage-ink); font-weight: 600; }
+  .caption .note {
+    display: block;
+    margin-top: 4px;
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 13.5px; line-height: 1.5;
+    letter-spacing: 0;
+    text-transform: none;
+    color: var(--stage-text);
+  }
+
+  /* ============= Phone shell ============= */
+  .phone {
+    width: 393px;
+    height: 852px;
+    background: var(--gray-6);
+    border-radius: 56px;
+    border: 1px solid rgba(0, 0, 0, 0.18);
+    box-shadow:
+      0 30px 80px -40px rgba(34, 30, 20, 0.32),
+      0 2px 0 rgba(255,255,255,0.5) inset;
+    overflow: hidden;
+    position: relative;
+    isolation: isolate;
+  }
+  .phone .notch {
+    position: absolute; top: 11px; left: 50%; transform: translateX(-50%);
+    width: 116px; height: 34px; background: #0F0E0C; border-radius: 20px; z-index: 60;
+  }
+  .statusbar {
+    position: absolute; top: 0; left: 0; right: 0; height: 50px;
+    padding: 16px 32px 0; display: flex; align-items: center; justify-content: space-between;
+    font-weight: 600; font-size: 15px; color: #0A0A0A; z-index: 55; pointer-events: none;
+  }
+  .statusbar .right { display: flex; gap: 6px; align-items: center; }
+  .statusbar .right i { font-size: 15px; }
+  .home-indicator {
+    position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%);
+    width: 134px; height: 5px; border-radius: 3px;
+    background: rgba(0, 0, 0, 0.30); z-index: 56; pointer-events: none;
+  }
+  .statusbar.dark { color: #FFFFFF; }
+  .statusbar.dark .right i { color: #FFFFFF; }
+
+  .screen {
+    position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+    overflow: hidden;
+    padding-top: 50px;
+    background: var(--gray-6);
+  }
+
+  /* ============= Background (dimmed Practice tab) ============= */
+  .bg-practice {
+    position: absolute; inset: 0;
+    background: var(--gray-6);
+  }
+  .bg-practice .top-header {
+    padding: 58px 18px 10px;
+    display: flex; align-items: center; justify-content: space-between;
+    height: 60px;
+  }
+  .bg-practice .interest {
+    display: inline-flex; align-items: baseline; gap: 8px;
+  }
+  .bg-practice .interest .name {
+    font-size: 17px; font-weight: 600; letter-spacing: -0.25px; color: var(--label);
+  }
+  .bg-practice .interest .switcher {
+    font-size: 14px; color: var(--label-3);
+  }
+  .bg-practice .step-counter {
+    font-size: 13px; font-weight: 500; color: var(--label-3);
+    font-variant-numeric: tabular-nums;
+  }
+  .bg-practice .avatar {
+    width: 32px; height: 32px; border-radius: 50%;
+    background: linear-gradient(135deg, #4E6A85 0%, #7C7B6E 100%);
+    display: inline-flex; align-items: center; justify-content: center;
+    color: #fff; font-size: 13px; font-weight: 600;
+  }
+  .bg-practice .card-stub {
+    margin: 0 auto;
+    width: 318px;
+    height: 658px;
+    margin-top: 8px;
+    background: #FFFFFF;
+    border-radius: 22px;
+    border: 0.5px solid rgba(0, 0, 0, 0.04);
+    box-shadow:
+      0 1px 2px rgba(0, 0, 0, 0.06),
+      0 18px 38px -16px rgba(0, 0, 0, 0.20);
+    padding: 22px 22px 16px;
+    overflow: hidden;
+    position: relative;
+  }
+  .bg-practice .card-stub .step-label {
+    font-size: 11px; font-weight: 600; color: var(--ios-blue);
+    letter-spacing: 0.5px; text-transform: uppercase;
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .bg-practice .card-stub .step-label .dot {
+    width: 6px; height: 6px; border-radius: 50%; background: var(--ios-blue);
+  }
+  .bg-practice .card-stub h3 {
+    font-size: 22px; font-weight: 600; letter-spacing: -0.45px;
+    margin: 10px 0 8px; line-height: 1.18; color: var(--label);
+  }
+  .bg-practice .card-stub .meta {
+    font-size: 12px; color: var(--label-3); margin-bottom: 14px;
+  }
+  .bg-practice .card-stub .tabs {
+    display: flex; gap: 18px;
+    border-bottom: 0.5px solid var(--gray-5);
+    padding-bottom: 10px;
+    font-size: 13.5px; font-weight: 500; color: var(--label-3);
+  }
+  .bg-practice .card-stub .tabs .on {
+    color: var(--ios-blue); font-weight: 600;
+    border-bottom: 2px solid var(--ios-blue);
+    padding-bottom: 8px; margin-bottom: -10.5px;
+  }
+  .bg-practice .card-stub .lines { margin-top: 14px; }
+  .bg-practice .card-stub .lines .line {
+    height: 10px; background: var(--gray-5); border-radius: 4px; margin: 10px 0;
+  }
+  .bg-practice .card-stub .lines .line.short { width: 60%; }
+  .bg-practice .card-stub .lines .line.mid { width: 80%; }
+  .bg-practice .card-stub .lines .heading {
+    height: 12px; background: var(--gray-4); border-radius: 4px; width: 45%; margin: 18px 0 10px;
+  }
+  .bg-practice .peek {
+    position: absolute;
+    top: 70px;
+    width: 26px;
+    height: 658px;
+    border-radius: 22px;
+    background: #FFFFFF;
+    border: 0.5px solid rgba(0, 0, 0, 0.04);
+    box-shadow: 0 4px 10px -8px rgba(0,0,0,0.08);
+  }
+  .bg-practice .peek.l { left: 12px; }
+  .bg-practice .peek.r { right: 12px; }
+  .bg-practice .tabbar {
+    position: absolute;
+    left: 0; right: 0; bottom: 0;
+    height: 84px;
+    padding: 6px 0 24px;
+    background: rgba(255, 255, 255, 0.82);
+    -webkit-backdrop-filter: blur(28px) saturate(180%);
+    backdrop-filter: blur(28px) saturate(180%);
+    border-top: 0.5px solid rgba(0, 0, 0, 0.08);
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    align-items: center;
+  }
+  .bg-practice .tabbar .t {
+    display: flex; flex-direction: column; align-items: center; gap: 2px;
+    color: var(--gray-1);
+    font-size: 10px; font-weight: 500;
+  }
+  .bg-practice .tabbar .t i { font-size: 25px; line-height: 1; }
+  .bg-practice .tabbar .t.on { color: var(--ios-blue); }
+  .bg-practice .tabbar .t.on i { color: var(--ios-blue); }
+
+  /* ============= Step-detail background (for share sheet) ============= */
+  .bg-step-detail {
+    position: absolute; inset: 0;
+    background: var(--gray-6);
+    padding-top: 50px;
+  }
+  .bg-step-detail .nav {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 8px 18px 14px;
+    height: 44px;
+  }
+  .bg-step-detail .nav .back {
+    color: var(--ios-blue); font-size: 17px; font-weight: 400;
+    display: inline-flex; align-items: center; gap: 2px;
+  }
+  .bg-step-detail .nav .back i { font-size: 22px; margin-left: -6px; }
+  .bg-step-detail .nav .actions {
+    display: inline-flex; gap: 16px; color: var(--ios-blue); font-size: 19px;
+  }
+  .bg-step-detail .nav .actions i { color: var(--ios-blue); }
+  .bg-step-detail .hero {
+    margin: 0 16px;
+    padding: 16px 18px 18px;
+    background: #fff;
+    border-radius: 16px;
+    border: 0.5px solid rgba(0,0,0,0.04);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+  }
+  .bg-step-detail .hero .eyebrow {
+    font-size: 11px; font-weight: 600; letter-spacing: 0.5px;
+    text-transform: uppercase; color: var(--ios-blue);
+    display: inline-flex; align-items: center; gap: 6px; margin-bottom: 8px;
+  }
+  .bg-step-detail .hero .eyebrow .dot {
+    width: 6px; height: 6px; border-radius: 50%; background: var(--ios-blue);
+  }
+  .bg-step-detail .hero h2 {
+    font-size: 21px; font-weight: 600; letter-spacing: -0.4px;
+    margin: 0 0 6px; line-height: 1.2;
+  }
+  .bg-step-detail .hero .meta {
+    font-size: 12.5px; color: var(--label-3);
+  }
+  .bg-step-detail .block {
+    margin: 14px 16px 0;
+    padding: 14px 18px;
+    background: #fff;
+    border-radius: 16px;
+    border: 0.5px solid rgba(0,0,0,0.04);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+  }
+  .bg-step-detail .block .lbl {
+    font-size: 10px; font-weight: 600; letter-spacing: 0.7px;
+    color: var(--label-3); text-transform: uppercase; margin-bottom: 8px;
+  }
+  .bg-step-detail .block .body-line {
+    height: 9px; background: var(--gray-5); border-radius: 4px; margin: 6px 0;
+  }
+  .bg-step-detail .block .body-line.short { width: 70%; }
+
+  /* ============= Dim overlay ============= */
+  .dim {
+    position: absolute; inset: 0;
+    background: rgba(0, 0, 0, 0.38);
+    z-index: 10;
+  }
+
+  /* ============= iOS action sheet (Frame 1) ============= */
+  .sheet {
+    position: absolute;
+    left: 8px; right: 8px;
+    bottom: 8px;
+    z-index: 20;
+    display: flex; flex-direction: column;
+    gap: 8px;
+  }
+  .sheet-card {
+    background: rgba(252, 252, 252, 0.92);
+    -webkit-backdrop-filter: blur(40px) saturate(180%);
+    backdrop-filter: blur(40px) saturate(180%);
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+  }
+  .sheet-title {
+    text-align: center;
+    font-size: 13px; font-weight: 400;
+    color: var(--label-3);
+    padding: 14px 16px 10px;
+    border-bottom: 0.33px solid var(--separator);
+    letter-spacing: -0.05px;
+  }
+  .sheet-row {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 18px;
+    border-bottom: 0.33px solid var(--separator);
+    cursor: pointer;
+    min-height: 56px;
+  }
+  .sheet-row:last-child { border-bottom: none; }
+  .sheet-row .glyph {
+    width: 28px; height: 28px;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 22px;
+    flex-shrink: 0;
+  }
+  .sheet-row .meta { flex: 1; min-width: 0; }
+  .sheet-row .meta .name {
+    font-size: 17px; font-weight: 500; color: var(--label);
+    letter-spacing: -0.4px; line-height: 1.2;
+  }
+  .sheet-row .meta .sub {
+    font-size: 13px; color: var(--label-3);
+    margin-top: 2px; letter-spacing: -0.1px;
+  }
+  .sheet-row .check {
+    color: var(--ios-blue); font-size: 22px;
+  }
+  .sheet-row.action {
+    color: var(--ios-blue);
+    font-size: 17px; font-weight: 400;
+    letter-spacing: -0.4px;
+    min-height: 50px;
+  }
+  .sheet-row.action i {
+    color: var(--ios-blue); font-size: 22px;
+    width: 28px; text-align: center;
+  }
+  .sheet-row.destructive {
+    color: var(--ios-red);
+    font-size: 17px;
+  }
+  .sheet-divider {
+    height: 8px;
+  }
+  .sheet-cancel {
+    background: rgba(252, 252, 252, 0.96);
+    -webkit-backdrop-filter: blur(40px) saturate(180%);
+    backdrop-filter: blur(40px) saturate(180%);
+    border-radius: 14px;
+    padding: 17px 0 18px;
+    text-align: center;
+    font-size: 17px; font-weight: 600;
+    color: var(--ios-blue);
+    letter-spacing: -0.4px;
+    cursor: pointer;
+    margin-bottom: 22px;
+  }
+
+  /* ============= iOS popover (Frame 2) ============= */
+  .popover {
+    position: absolute;
+    top: 88px;
+    right: 14px;
+    width: 272px;
+    z-index: 20;
+    background: rgba(252, 252, 252, 0.96);
+    -webkit-backdrop-filter: blur(40px) saturate(180%);
+    backdrop-filter: blur(40px) saturate(180%);
+    border-radius: 14px;
+    box-shadow:
+      0 4px 12px rgba(0,0,0,0.06),
+      0 24px 60px -20px rgba(0,0,0,0.30);
+    overflow: visible;
+    border: 0.5px solid rgba(0,0,0,0.05);
+  }
+  /* arrow pointing to avatar */
+  .popover::before {
+    content: "";
+    position: absolute;
+    top: -7px; right: 22px;
+    width: 14px; height: 14px;
+    background: rgba(252, 252, 252, 0.96);
+    -webkit-backdrop-filter: blur(40px) saturate(180%);
+    backdrop-filter: blur(40px) saturate(180%);
+    transform: rotate(45deg);
+    border-top: 0.5px solid rgba(0,0,0,0.05);
+    border-left: 0.5px solid rgba(0,0,0,0.05);
+    border-top-left-radius: 3px;
+  }
+  .popover-inner {
+    border-radius: 14px;
+    overflow: hidden;
+    position: relative;
+  }
+  .pop-hero {
+    display: flex; align-items: center; gap: 12px;
+    padding: 14px 14px 14px;
+    border-bottom: 0.33px solid var(--separator);
+  }
+  .pop-hero .ava {
+    width: 44px; height: 44px; border-radius: 50%;
+    background: linear-gradient(135deg, #4E6A85 0%, #7C7B6E 100%);
+    color: #fff; display: inline-flex; align-items: center; justify-content: center;
+    font-size: 16px; font-weight: 600;
+    border: 0.5px solid rgba(0,0,0,0.05);
+  }
+  .pop-hero .who { min-width: 0; flex: 1; }
+  .pop-hero .who .name {
+    font-size: 15px; font-weight: 600; letter-spacing: -0.25px;
+    color: var(--label); line-height: 1.15;
+  }
+  .pop-hero .who .sub {
+    font-size: 11.5px; color: var(--label-3);
+    margin-top: 3px; letter-spacing: -0.05px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .pop-section {
+    border-bottom: 0.33px solid var(--separator);
+    padding: 4px 0;
+  }
+  .pop-section:last-child { border-bottom: none; }
+  .pop-row {
+    display: flex; align-items: center; gap: 12px;
+    padding: 9px 14px;
+    font-size: 14.5px; font-weight: 400;
+    color: var(--label); letter-spacing: -0.2px;
+    cursor: pointer;
+  }
+  .pop-row i {
+    font-size: 18px; color: var(--label-2);
+    width: 22px; text-align: center;
+  }
+  .pop-row.dest { color: var(--ios-red); }
+  .pop-row.dest i { color: var(--ios-red); }
+
+  /* ============= Share sheet (Frame 3) ============= */
+  .share-sheet {
+    position: absolute;
+    left: 0; right: 0; bottom: 0;
+    top: 78px;
+    z-index: 20;
+    border-top-left-radius: 14px;
+    border-top-right-radius: 14px;
+    background: rgba(248, 248, 250, 0.96);
+    -webkit-backdrop-filter: blur(40px) saturate(180%);
+    backdrop-filter: blur(40px) saturate(180%);
+    box-shadow: 0 -30px 60px -20px rgba(0,0,0,0.18);
+    overflow: hidden;
+    display: flex; flex-direction: column;
+  }
+  .share-sheet .grabber {
+    width: 36px; height: 5px; border-radius: 3px;
+    background: rgba(60, 60, 67, 0.25);
+    margin: 6px auto 0;
+  }
+  .share-sheet .head {
+    padding: 14px 18px 12px;
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 12px;
+  }
+  .share-sheet .head .preview {
+    display: flex; align-items: center; gap: 10px; min-width: 0;
+  }
+  .share-sheet .head .preview .icon {
+    width: 36px; height: 36px; border-radius: 8px;
+    background: var(--ios-blue-tint);
+    color: var(--ios-blue);
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 18px;
+    flex-shrink: 0;
+  }
+  .share-sheet .head .preview .ttl {
+    min-width: 0;
+  }
+  .share-sheet .head .preview .ttl .l {
+    font-size: 10px; font-weight: 600; color: var(--label-3);
+    letter-spacing: 0.6px; text-transform: uppercase;
+  }
+  .share-sheet .head .preview .ttl .t {
+    font-size: 14.5px; font-weight: 600; color: var(--label);
+    letter-spacing: -0.2px; line-height: 1.2;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    max-width: 222px;
+  }
+  .share-sheet .head .x {
+    width: 28px; height: 28px; border-radius: 50%;
+    background: var(--gray-5); color: var(--label-2);
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 14px;
+  }
+  .share-sheet .contacts {
+    padding: 4px 12px 14px;
+    display: flex; gap: 4px; overflow: hidden;
+    border-bottom: 0.33px solid var(--separator);
+  }
+  .share-sheet .contact {
+    flex: 1;
+    display: flex; flex-direction: column; align-items: center; gap: 6px;
+    padding: 4px;
+  }
+  .share-sheet .contact .ava {
+    width: 54px; height: 54px; border-radius: 50%;
+    display: inline-flex; align-items: center; justify-content: center;
+    color: #fff; font-size: 18px; font-weight: 600;
+    letter-spacing: -0.3px;
+    border: 0.5px solid rgba(0,0,0,0.05);
+  }
+  .share-sheet .contact.more .ava {
+    background: var(--gray-5); color: var(--label-2);
+    font-size: 22px; font-weight: 400;
+  }
+  .share-sheet .contact .lbl {
+    font-size: 11px; color: var(--label-2);
+    letter-spacing: -0.05px;
+    text-align: center;
+    line-height: 1.15;
+  }
+  .share-sheet .apps {
+    padding: 14px 12px 12px;
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    row-gap: 14px;
+    border-bottom: 0.33px solid var(--separator);
+  }
+  .share-app {
+    display: flex; flex-direction: column; align-items: center; gap: 6px;
+  }
+  .share-app .tile {
+    width: 56px; height: 56px; border-radius: 13px;
+    display: inline-flex; align-items: center; justify-content: center;
+    color: #fff; font-size: 26px;
+    border: 0.5px solid rgba(0,0,0,0.05);
+  }
+  .share-app .lbl {
+    font-size: 10.5px; color: var(--label-2);
+    line-height: 1.1; text-align: center;
+    max-width: 70px;
+  }
+  /* BetterAt-specific list */
+  .ba-section {
+    background: transparent;
+    border-bottom: 0.33px solid var(--separator);
+  }
+  .ba-section .hd {
+    padding: 12px 18px 4px;
+    font-size: 11px; font-weight: 600;
+    letter-spacing: 0.5px; text-transform: uppercase;
+    color: var(--label-3);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .ba-section .hd .pill {
+    padding: 2px 7px; border-radius: 999px;
+    background: var(--ios-coral-tint); color: var(--ios-coral);
+    font-size: 9.5px; font-weight: 700; letter-spacing: 0.4px;
+    text-transform: uppercase;
+  }
+  .ba-row {
+    display: flex; align-items: center; gap: 14px;
+    padding: 12px 18px;
+    border-top: 0.33px solid var(--separator);
+    cursor: pointer;
+  }
+  .ba-row:first-of-type { border-top: none; }
+  .ba-row .ic {
+    width: 32px; height: 32px; border-radius: 8px;
+    background: var(--ios-coral-tint);
+    color: var(--ios-coral);
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 18px;
+    flex-shrink: 0;
+  }
+  .ba-row .txt { flex: 1; min-width: 0; }
+  .ba-row .txt .t {
+    font-size: 15px; font-weight: 500;
+    color: var(--label); letter-spacing: -0.25px;
+  }
+  .ba-row .txt .s {
+    font-size: 12px; color: var(--label-3);
+    margin-top: 2px;
+  }
+  .ba-row .chev {
+    color: var(--label-3); font-size: 14px;
+  }
+  /* visibility radio */
+  .vis-group {
+    padding: 10px 14px 12px;
+    border-bottom: 0.33px solid var(--separator);
+  }
+  .vis-group .hd {
+    font-size: 11px; font-weight: 600;
+    letter-spacing: 0.5px; text-transform: uppercase;
+    color: var(--label-3);
+    margin: 4px 4px 8px;
+  }
+  .vis-group .group {
+    background: #FFFFFF;
+    border-radius: 12px;
+    overflow: hidden;
+    border: 0.5px solid rgba(0,0,0,0.04);
+  }
+  .vis-row {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 14px;
+    border-top: 0.33px solid var(--separator);
+    cursor: pointer;
+  }
+  .vis-row:first-child { border-top: none; }
+  .vis-row .ring {
+    width: 18px; height: 18px; border-radius: 50%;
+    border: 1.5px solid var(--gray-3);
+    flex-shrink: 0;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .vis-row.on .ring {
+    border-color: var(--ios-blue);
+  }
+  .vis-row.on .ring::after {
+    content: "";
+    width: 10px; height: 10px; border-radius: 50%;
+    background: var(--ios-blue);
+  }
+  .vis-row .body { flex: 1; min-width: 0; }
+  .vis-row .body .t {
+    font-size: 14.5px; font-weight: 500; color: var(--label);
+    letter-spacing: -0.2px;
+  }
+  .vis-row .body .s {
+    font-size: 12px; color: var(--label-3);
+    margin-top: 1px;
+  }
+  .vis-row .default-pill {
+    font-size: 9.5px; font-weight: 700;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    padding: 2px 7px;
+    border-radius: 999px;
+    background: var(--ios-blue-tint);
+    color: var(--ios-blue);
+  }
+  .share-sheet .cancel {
+    text-align: center;
+    padding: 14px 0 22px;
+    color: var(--ios-blue);
+    font-size: 17px; font-weight: 600;
+    letter-spacing: -0.4px;
+    cursor: pointer;
+  }
+
+  /* ============= Suggest bar mobile (Frame 4) ============= */
+  .frame-suggest .top-header {
+    padding: 8px 18px 6px;
+    display: flex; align-items: center; justify-content: space-between;
+    height: 52px;
+  }
+  .frame-suggest .top-header .ttl {
+    font-size: 22px; font-weight: 700; letter-spacing: -0.45px;
+    color: var(--label);
+  }
+  .frame-suggest .top-header .ttl .sub {
+    font-size: 13px; color: var(--label-3); font-weight: 500;
+    margin-left: 6px; letter-spacing: -0.1px;
+  }
+  .frame-suggest .top-header .ic {
+    width: 32px; height: 32px; border-radius: 50%;
+    background: rgba(0,0,0,0.04);
+    display: inline-flex; align-items: center; justify-content: center;
+    color: var(--label-2);
+  }
+  .frame-suggest .scroll {
+    padding: 4px 14px 100px;
+    height: calc(100% - 50px - 52px);
+    overflow: hidden;
+  }
+  .own-tail-card {
+    background: #fff;
+    border-radius: 16px;
+    border: 0.5px solid rgba(0,0,0,0.04);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+    padding: 14px 16px;
+    margin-top: 6px;
+  }
+  .own-tail-card .eyebrow {
+    font-size: 10px; font-weight: 600; letter-spacing: 0.6px;
+    text-transform: uppercase; color: var(--ios-blue);
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .own-tail-card .eyebrow .dot {
+    width: 5px; height: 5px; border-radius: 50%; background: var(--ios-blue);
+  }
+  .own-tail-card h4 {
+    font-size: 16px; font-weight: 600; letter-spacing: -0.3px;
+    margin: 6px 0 4px; line-height: 1.2;
+    color: var(--label);
+  }
+  .own-tail-card .meta { font-size: 12px; color: var(--label-3); }
+  .section-sep {
+    display: flex; align-items: center; gap: 10px;
+    margin: 18px 2px 8px;
+  }
+  .section-sep .l {
+    font-size: 10.5px; font-weight: 600; letter-spacing: 0.7px;
+    text-transform: uppercase; color: var(--label-3);
+  }
+  .section-sep .ct {
+    font-size: 10.5px; font-weight: 600; color: var(--label-3);
+  }
+  .section-sep .ln { flex: 1; height: 0.5px; background: var(--separator); }
+  .following-card {
+    background: #FBFBFD;
+    border-radius: 16px;
+    border: 0.5px solid rgba(0,0,0,0.04);
+    padding: 12px 14px;
+    display: flex; align-items: center; gap: 12px;
+    margin-bottom: 6px;
+  }
+  .following-card .ava {
+    width: 38px; height: 38px; border-radius: 50%;
+    display: inline-flex; align-items: center; justify-content: center;
+    color: #fff; font-size: 14px; font-weight: 600;
+  }
+  .following-card .body { flex: 1; min-width: 0; }
+  .following-card .body .name {
+    font-size: 14.5px; font-weight: 600; color: var(--label);
+    letter-spacing: -0.2px;
+  }
+  .following-card .body .sub {
+    font-size: 12px; color: var(--label-3); margin-top: 2px;
+  }
+
+  /* strong section break — suggest divider */
+  .suggest-break {
+    margin: 20px -14px 12px;
+    padding: 16px 16px 8px;
+    border-top: 0.5px solid var(--separator);
+    background:
+      linear-gradient(180deg, rgba(244, 241, 232, 0.0) 0%, rgba(244, 241, 232, 0.6) 100%);
+  }
+  .suggest-break .hd {
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .suggest-break .hd .l {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-size: 11px; font-weight: 700; letter-spacing: 0.7px;
+    text-transform: uppercase; color: var(--ios-coral);
+  }
+  .suggest-break .hd .l i { font-size: 14px; }
+  .suggest-break .hd .ct {
+    font-size: 11px; font-weight: 700;
+    letter-spacing: 0.6px;
+    color: var(--ios-coral);
+    background: var(--ios-coral-tint);
+    padding: 2px 8px;
+    border-radius: 999px;
+  }
+  .suggest-break .lede {
+    font-size: 12.5px; color: var(--label-3);
+    margin-top: 6px; letter-spacing: -0.05px;
+    line-height: 1.4;
+  }
+  .suggest-card {
+    background: var(--suggest-tint);
+    border: 0.5px solid var(--suggest-edge);
+    border-radius: 16px;
+    padding: 12px 14px 12px;
+    margin: 0 -14px 10px;
+    margin-left: 0;
+    margin-right: 0;
+  }
+  .suggest-card .top {
+    display: flex; align-items: flex-start; gap: 10px;
+  }
+  .suggest-card .glyph {
+    width: 30px; height: 30px; border-radius: 8px;
+    background: rgba(255, 255, 255, 0.7);
+    border: 0.5px solid var(--suggest-edge);
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 16px;
+    flex-shrink: 0;
+  }
+  .suggest-card .top .body { min-width: 0; flex: 1; }
+  .suggest-card .top .body .t {
+    font-size: 14.5px; font-weight: 600; color: var(--label);
+    letter-spacing: -0.2px; line-height: 1.2;
+  }
+  .suggest-card .top .body .src {
+    font-size: 11.5px; color: var(--label-3);
+    margin-top: 2px; letter-spacing: -0.05px;
+  }
+  .suggest-card .note {
+    margin: 8px 0 0;
+    padding: 7px 10px;
+    background: rgba(255,255,255,0.65);
+    border-radius: 8px;
+    border-left: 2px solid var(--ios-coral);
+    font-size: 12.5px; line-height: 1.36;
+    color: var(--label-2);
+    font-style: italic;
+    letter-spacing: -0.1px;
+  }
+  .suggest-card .actions {
+    display: flex; gap: 8px; margin-top: 10px;
+  }
+  .suggest-card .actions .add {
+    background: var(--ios-blue); color: #fff;
+    border: none; border-radius: 10px;
+    padding: 8px 14px;
+    font-size: 13px; font-weight: 600; letter-spacing: -0.1px;
+    cursor: pointer;
+    flex: 1;
+  }
+  .suggest-card .actions .dismiss {
+    background: transparent;
+    color: var(--label-3);
+    border: none;
+    padding: 8px 8px;
+    font-size: 13px; font-weight: 500; letter-spacing: -0.1px;
+    cursor: pointer;
+  }
+  .suggest-card.clipped {
+    max-height: 64px;
+    overflow: hidden;
+    position: relative;
+  }
+  .suggest-card.clipped::after {
+    content: "";
+    position: absolute; left: 0; right: 0; bottom: 0;
+    height: 36px;
+    background: linear-gradient(180deg, rgba(244,241,232,0) 0%, rgba(244,241,232,1) 100%);
+    pointer-events: none;
+  }
+  .see-all {
+    margin: 4px 0 0;
+    padding: 12px;
+    text-align: center;
+    color: var(--ios-blue);
+    font-size: 13.5px; font-weight: 500;
+    letter-spacing: -0.15px;
+    background: rgba(255,255,255,0.5);
+    border: 0.5px solid var(--separator);
+    border-radius: 12px;
+  }
+  .see-all i { font-size: 14px; vertical-align: -1px; }
+
+  /* ============= Desktop frame (Frame 5) ============= */
+  .desk-col { flex: 1; min-width: 0; max-width: 988px; display: flex; flex-direction: column; gap: 14px; }
+  .desktop {
+    width: 100%;
+    height: 660px;
+    background: #FFFFFF;
+    border-radius: 14px;
+    border: 1px solid rgba(0,0,0,0.10);
+    box-shadow:
+      0 30px 80px -40px rgba(34, 30, 20, 0.32),
+      0 2px 0 rgba(255,255,255,0.5) inset;
+    overflow: hidden;
+    position: relative;
+  }
+  .desk-chrome {
+    height: 36px;
+    background: #ECECEC;
+    border-bottom: 0.5px solid rgba(0,0,0,0.10);
+    display: flex; align-items: center;
+    padding: 0 12px;
+    gap: 8px;
+  }
+  .desk-chrome .dot { width: 12px; height: 12px; border-radius: 50%; }
+  .desk-chrome .r { background: #FF5F57; }
+  .desk-chrome .y { background: #FEBC2E; }
+  .desk-chrome .g { background: #28C840; }
+  .desk-chrome .addr {
+    flex: 1;
+    background: #FFFFFF;
+    border: 0.5px solid rgba(0,0,0,0.08);
+    border-radius: 6px;
+    padding: 5px 12px;
+    font-size: 11.5px;
+    color: var(--label-2);
+    max-width: 480px;
+    margin: 0 auto;
+    text-align: center;
+    letter-spacing: -0.05px;
+  }
+  .desk-body {
+    position: absolute; top: 36px; left: 0; right: 0; bottom: 0;
+    display: grid;
+    grid-template-columns: 220px 1fr 280px;
+    background: #FAFAFB;
+    overflow: hidden;
+  }
+  /* Left rail */
+  .desk-left {
+    border-right: 0.5px solid var(--gray-5);
+    padding: 18px 14px;
+    background: #FFFFFF;
+    display: flex; flex-direction: column; gap: 4px;
+  }
+  .desk-left .brand {
+    display: inline-flex; align-items: center; gap: 8px;
+    margin-bottom: 18px;
+    font-size: 14px; font-weight: 700; letter-spacing: -0.2px;
+    color: var(--label);
+  }
+  .desk-left .brand .b {
+    width: 22px; height: 22px; border-radius: 6px;
+    background: var(--ios-blue);
+    color: #fff; display: inline-flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 700;
+  }
+  .nav-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 10px;
+    border-radius: 8px;
+    font-size: 13px; color: var(--label-2);
+    letter-spacing: -0.1px;
+  }
+  .nav-item i { font-size: 16px; color: var(--label-3); }
+  .nav-item.on {
+    background: var(--ios-blue-tint);
+    color: var(--ios-blue); font-weight: 600;
+  }
+  .nav-item.on i { color: var(--ios-blue); }
+  .desk-left .interest-blk {
+    margin-top: 18px;
+    padding: 10px 10px;
+    background: var(--gray-6);
+    border-radius: 10px;
+  }
+  .desk-left .interest-blk .lbl {
+    font-size: 9.5px; font-weight: 700; letter-spacing: 0.6px;
+    text-transform: uppercase; color: var(--label-3); margin-bottom: 4px;
+  }
+  .desk-left .interest-blk .nm {
+    font-size: 13px; font-weight: 600; color: var(--label);
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .desk-left .interest-blk .nm i { font-size: 12px; color: var(--label-3); }
+  .desk-left .interest-blk .step {
+    font-size: 11px; color: var(--label-3); margin-top: 3px;
+  }
+
+  /* Main column */
+  .desk-main { overflow: hidden; }
+  .desk-main .head {
+    padding: 18px 24px 12px;
+    border-bottom: 0.5px solid var(--gray-5);
+    background: #FFFFFF;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .desk-main .head h2 {
+    font-size: 18px; font-weight: 700; letter-spacing: -0.3px;
+    margin: 0 0 2px;
+  }
+  .desk-main .head .sub {
+    font-size: 11px; color: var(--label-3);
+  }
+  .desk-main .head .seg {
+    display: inline-flex;
+    background: var(--gray-6);
+    border-radius: 8px;
+    padding: 2px;
+    font-size: 11px;
+    border: 0.5px solid var(--gray-5);
+  }
+  .desk-main .head .seg span {
+    padding: 4px 10px;
+    border-radius: 6px;
+    color: var(--label-2);
+  }
+  .desk-main .head .seg span.on {
+    background: #fff; color: var(--label);
+    box-shadow: 0 1px 1px rgba(0,0,0,0.06);
+    font-weight: 600;
+  }
+  .desk-main .body {
+    padding: 16px 24px 24px;
+    height: calc(100% - 70px);
+    overflow: hidden;
+    display: flex; flex-direction: column;
+    gap: 12px;
+  }
+
+  /* Section header rows */
+  .sec-head {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 4px 2px;
+  }
+  .sec-head .l {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-size: 10.5px; font-weight: 700;
+    letter-spacing: 0.7px; text-transform: uppercase;
+    color: var(--label-2);
+  }
+  .sec-head .l .n {
+    color: var(--label-3);
+    font-weight: 500;
+    margin-left: 4px;
+  }
+  .sec-head .r { font-size: 11px; color: var(--label-3); }
+  .sec-head.you .l { color: var(--ios-blue); }
+  .sec-head.you .l .swatch { width: 8px; height: 8px; border-radius: 50%; background: var(--ios-blue); }
+  .sec-head.follow .l .swatch { width: 8px; height: 8px; border-radius: 50%; background: var(--label-3); }
+  .sec-head.sug .l { color: var(--ios-coral); }
+  .sec-head.sug .l .swatch { width: 8px; height: 8px; border-radius: 50%; background: var(--ios-coral); }
+
+  /* Section blocks */
+  .block-you {
+    flex: 60 1 0;
+    min-height: 0;
+    overflow: hidden;
+    display: flex; flex-direction: column; gap: 8px;
+    padding-bottom: 4px;
+  }
+  .block-follow {
+    flex: 20 1 0;
+    min-height: 0;
+    overflow: hidden;
+    display: flex; flex-direction: column; gap: 6px;
+    border-top: 0.5px dashed var(--gray-4);
+    padding-top: 10px;
+  }
+  .block-sug {
+    flex: 20 1 0;
+    min-height: 0;
+    overflow: hidden;
+    display: flex; flex-direction: column; gap: 6px;
+    padding: 10px 12px 8px;
+    margin: 0 -12px -8px;
+    background: linear-gradient(180deg, rgba(244, 241, 232, 0.55) 0%, rgba(244, 241, 232, 0.95) 100%);
+    border-top: 0.5px solid var(--separator);
+    border-radius: 10px;
+  }
+
+  /* Timeline row of cards (horizontal scroll-row, here static) */
+  .strip-row {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 8px;
+    flex: 1;
+    min-height: 0;
+  }
+  .strip-row.you {
+    grid-template-columns: 28px repeat(3, 1fr) 28px 28px;
+  }
+  .strip-row.you .ghost {
+    background: #FFFFFF;
+    border-radius: 8px;
+    border: 0.5px solid var(--gray-5);
+  }
+  .tl-card {
+    background: #FFFFFF;
+    border-radius: 8px;
+    border: 0.5px solid var(--gray-5);
+    padding: 8px 9px;
+    display: flex; flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+    overflow: hidden;
+  }
+  .tl-card .eb {
+    font-size: 8.5px; font-weight: 700; letter-spacing: 0.6px;
+    text-transform: uppercase; color: var(--ios-blue);
+  }
+  .tl-card.cur { border: 0.5px solid var(--ios-blue); box-shadow: 0 0 0 2px rgba(0,122,255,0.10); }
+  .tl-card.done .eb { color: var(--ios-green); }
+  .tl-card.done .check { color: var(--ios-green); }
+  .tl-card .t {
+    font-size: 10.5px; font-weight: 600;
+    color: var(--label); letter-spacing: -0.1px;
+    line-height: 1.2;
+  }
+  .tl-card .m {
+    font-size: 9px; color: var(--label-3);
+  }
+  .tl-card .bar {
+    height: 3px; border-radius: 2px;
+    background: var(--gray-5);
+    overflow: hidden;
+    margin-top: auto;
+  }
+  .tl-card .bar i { display: block; height: 100%; background: var(--ios-blue); }
+  .tl-card.done .bar i { background: var(--ios-green); width: 100% !important; }
+
+  /* Following row of small cards */
+  .follow-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    flex: 1;
+    min-height: 0;
+  }
+  .follow-card {
+    background: #FFFFFF;
+    border-radius: 8px;
+    border: 0.5px solid var(--gray-5);
+    padding: 7px 9px;
+    display: flex; align-items: center; gap: 7px;
+    min-width: 0;
+    overflow: hidden;
+  }
+  .follow-card .ava {
+    width: 22px; height: 22px; border-radius: 50%;
+    display: inline-flex; align-items: center; justify-content: center;
+    color: #fff; font-size: 9px; font-weight: 700;
+    flex-shrink: 0;
+  }
+  .follow-card .b { min-width: 0; }
+  .follow-card .b .nm {
+    font-size: 10.5px; font-weight: 600; color: var(--label);
+    letter-spacing: -0.05px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .follow-card .b .s {
+    font-size: 8.5px; color: var(--label-3);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+
+  /* Suggest row of cards */
+  .sug-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    flex: 1;
+    min-height: 0;
+  }
+  .sug-card-d {
+    background: rgba(255,255,255,0.85);
+    border: 0.5px solid var(--suggest-edge);
+    border-radius: 8px;
+    padding: 7px 9px;
+    display: flex; flex-direction: column; gap: 4px;
+    min-width: 0;
+    overflow: hidden;
+  }
+  .sug-card-d .t {
+    font-size: 10.5px; font-weight: 600;
+    color: var(--label); letter-spacing: -0.1px;
+    line-height: 1.2;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .sug-card-d .src {
+    font-size: 8.5px; color: var(--label-3);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .sug-card-d .act {
+    display: flex; gap: 4px; margin-top: auto;
+  }
+  .sug-card-d .add {
+    background: var(--ios-blue); color: #fff;
+    border-radius: 5px; padding: 3px 7px;
+    font-size: 9px; font-weight: 600; letter-spacing: -0.05px;
+  }
+  .sug-card-d .dis {
+    background: transparent; color: var(--label-3);
+    padding: 3px 4px; font-size: 9px;
+  }
+
+  /* Right rail (context) */
+  .desk-right {
+    border-left: 0.5px solid var(--gray-5);
+    background: #FFFFFF;
+    padding: 18px 18px;
+    display: flex; flex-direction: column; gap: 14px;
+    overflow: hidden;
+  }
+  .desk-right h3 {
+    font-size: 12px; font-weight: 700; letter-spacing: 0.4px;
+    text-transform: uppercase; color: var(--label-3);
+    margin: 0 0 4px;
+  }
+  .desk-right .upcoming-card {
+    background: var(--gray-6);
+    border-radius: 10px;
+    padding: 10px 12px;
+  }
+  .desk-right .upcoming-card .e {
+    font-size: 9px; font-weight: 700; letter-spacing: 0.5px;
+    text-transform: uppercase; color: var(--ios-coral);
+  }
+  .desk-right .upcoming-card .t {
+    font-size: 13px; font-weight: 600; margin-top: 4px;
+    line-height: 1.2; letter-spacing: -0.15px;
+  }
+  .desk-right .upcoming-card .m { font-size: 11px; color: var(--label-3); margin-top: 4px; }
+
+  /* Annotations */
+  .annot {
+    display: flex; align-items: center; gap: 10px;
+    margin-top: 4px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    background: rgba(255,255,255,0.55);
+    border: 0.5px solid var(--stage-line);
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 13px; line-height: 1.5;
+    color: #4D4A43;
+    max-width: 988px;
+  }
+  .annot .num {
+    width: 22px; height: 22px; border-radius: 50%;
+    background: var(--stage-ink); color: #fff;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 11px; font-weight: 600;
+    flex-shrink: 0;
+  }
+  .annot em { font-style: italic; }
+  .annot strong { font-family: -apple-system, BlinkMacSystemFont, sans-serif; font-weight: 600; color: var(--stage-ink); }
+
+  /* ============= Side rail of notes ============= */
+  .rail-row {
+    max-width: 1424px;
+    margin: 56px auto 0;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 40px;
+    padding-top: 32px;
+    border-top: 0.5px solid var(--stage-line);
+  }
+  .rail-col h4 {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 14px; letter-spacing: 0.01em;
+    color: var(--stage-ink); margin: 0 0 8px; font-weight: 500;
+  }
+  .rail-col h4 em { font-style: italic; }
+  .rail-col p {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 13.5px; line-height: 1.55;
+    color: #4D4A43; margin: 0 0 8px;
+  }
+  .rail-col p em { font-style: italic; }
+  .rail-col p strong {
+    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+    color: var(--stage-ink); font-weight: 600;
+  }
+  .rail-col .out-of-scope {
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 0.5px dashed rgba(34, 30, 20, 0.14);
+    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 11px; color: var(--stage-text);
+    line-height: 1.45;
+    letter-spacing: 0.01em;
+  }
+  .rail-col .out-of-scope strong {
+    display: block; color: var(--stage-ink); font-weight: 600;
+    margin-bottom: 4px;
+    font-size: 10px; letter-spacing: 0.05em; text-transform: uppercase;
+  }
+</style>
+</head>
+<body>
+
+<div class="page">
+
+  <header class="page-head">
+    <p class="eyebrow">BetterAt redesign · Four small surfaces · Canonical — 2026-05-15</p>
+    <h1>Four small surfaces, <em>one reference</em></h1>
+    <p>Mechanical UI that doesn't justify its own canonical, gathered into one doc: the <strong>interest switcher</strong> from the top of Practice, the <strong>profile / settings dropdown</strong> from the avatar, the <strong>share dialog</strong> from any step, and the <strong>Suggest bar</strong> &mdash; the surface where steps from people you follow surface as candidates for your timeline. The first three are iOS-native action sheets and popovers; the Suggest bar gets two frames so its <em>spatial relationship</em> to Following and the user's own timeline is unambiguous.</p>
+  </header>
+
+  <!-- =================================================================== -->
+  <!-- ROW 1 — Three iOS-native surfaces                                    -->
+  <!-- =================================================================== -->
+
+  <section class="strip-head">
+    <p class="eyebrow">Frames 1 — 3</p>
+    <h2><em>iOS-native action sheets and popovers</em></h2>
+    <p>These three behave like standard iOS components &mdash; frosted-glass blur, system fonts, system button styling. The Practice tab sits behind them, dimmed; tapping outside dismisses. They are deliberately not styled as BetterAt surfaces &mdash; they should feel like the OS, not the app.</p>
+  </section>
+
+  <div class="row">
+
+    <!-- =============================================================== -->
+    <!-- FRAME 1 · Interest Switcher                                       -->
+    <!-- =============================================================== -->
+    <div class="col">
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="statusbar">
+          <span>9:41</span>
+          <span class="right">
+            <i class="ti ti-cell-signal-4"></i>
+            <i class="ti ti-wifi"></i>
+            <i class="ti ti-battery-3"></i>
+          </span>
+        </div>
+
+        <div class="screen" data-screen-label="01 Interest switcher">
+
+          <!-- Dimmed Practice background -->
+          <div class="bg-practice">
+            <div class="top-header">
+              <div class="interest">
+                <span class="name">Sail Racing</span>
+                <span class="switcher"><i class="ti ti-chevron-down"></i></span>
+              </div>
+              <span class="step-counter">Step 6 of 11</span>
+              <div class="avatar">KD</div>
+            </div>
+            <div style="position: relative; padding: 0 0 0;">
+              <div class="peek l"></div>
+              <div class="card-stub">
+                <p class="step-label"><span class="dot"></span>Current step</p>
+                <h3>Light-air starts in shifty breeze</h3>
+                <div class="meta">Saturday · RHKYC Spring Series · Race 4</div>
+                <div class="tabs"><span class="on">Plan</span><span>Do</span><span>Reflect</span></div>
+                <div class="lines">
+                  <div class="heading"></div>
+                  <div class="line"></div>
+                  <div class="line mid"></div>
+                  <div class="line short"></div>
+                  <div class="heading"></div>
+                  <div class="line"></div>
+                  <div class="line mid"></div>
+                </div>
+              </div>
+              <div class="peek r"></div>
+            </div>
+            <nav class="tabbar">
+              <button class="t on"><i class="ti ti-flag-3-filled"></i><span>Practice</span></button>
+              <button class="t"><i class="ti ti-book-2"></i><span>Playbook</span></button>
+              <button class="t"><i class="ti ti-compass"></i><span>Discover</span></button>
+              <button class="t"><i class="ti ti-user"></i><span>Profile</span></button>
+            </nav>
+          </div>
+
+          <div class="dim"></div>
+
+          <!-- Action sheet -->
+          <div class="sheet">
+            <div class="sheet-card">
+              <div class="sheet-title">Switch interest</div>
+
+              <div class="sheet-row">
+                <span class="glyph">⛵</span>
+                <div class="meta">
+                  <div class="name">Sail Racing</div>
+                  <div class="sub">Step 6 of 11 · Active</div>
+                </div>
+                <i class="ti ti-check check"></i>
+              </div>
+              <div class="sheet-row">
+                <span class="glyph">🩺</span>
+                <div class="meta">
+                  <div class="name">Nursing</div>
+                  <div class="sub">Step 12 of 14 · Active</div>
+                </div>
+              </div>
+              <div class="sheet-row">
+                <span class="glyph">📐</span>
+                <div class="meta">
+                  <div class="name">Design</div>
+                  <div class="sub">Idle 12 days</div>
+                </div>
+              </div>
+              <div class="sheet-row">
+                <span class="glyph">🎯</span>
+                <div class="meta">
+                  <div class="name">Self-Mastery</div>
+                  <div class="sub">3 steps this week</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="sheet-card">
+              <div class="sheet-row action">
+                <i class="ti ti-plus"></i>
+                <span>Add a new interest</span>
+              </div>
+              <div class="sheet-row action">
+                <i class="ti ti-settings"></i>
+                <span>Manage interests</span>
+              </div>
+            </div>
+
+            <div class="sheet-cancel">Cancel</div>
+          </div>
+
+        </div>
+
+        <div class="home-indicator"></div>
+      </div>
+      <div class="caption"><strong>Frame 1</strong> · Interest switcher (action sheet)
+        <span class="note">Anchored to the interest chip in the top-left header. Active interest gets a check; idle and new-this-week interests show their state in the subtitle, not as colored badges.</span>
+      </div>
+    </div>
+
+    <!-- =============================================================== -->
+    <!-- FRAME 2 · Profile / Settings Dropdown                             -->
+    <!-- =============================================================== -->
+    <div class="col">
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="statusbar">
+          <span>9:41</span>
+          <span class="right">
+            <i class="ti ti-cell-signal-4"></i>
+            <i class="ti ti-wifi"></i>
+            <i class="ti ti-battery-3"></i>
+          </span>
+        </div>
+
+        <div class="screen" data-screen-label="02 Profile dropdown">
+
+          <div class="bg-practice">
+            <div class="top-header">
+              <div class="interest">
+                <span class="name">Sail Racing</span>
+                <span class="switcher"><i class="ti ti-chevron-down"></i></span>
+              </div>
+              <span class="step-counter">Step 6 of 11</span>
+              <div class="avatar">KD</div>
+            </div>
+            <div style="position: relative;">
+              <div class="peek l"></div>
+              <div class="card-stub">
+                <p class="step-label"><span class="dot"></span>Current step</p>
+                <h3>Light-air starts in shifty breeze</h3>
+                <div class="meta">Saturday · RHKYC Spring Series · Race 4</div>
+                <div class="tabs"><span class="on">Plan</span><span>Do</span><span>Reflect</span></div>
+                <div class="lines">
+                  <div class="heading"></div>
+                  <div class="line"></div>
+                  <div class="line mid"></div>
+                  <div class="line short"></div>
+                  <div class="heading"></div>
+                  <div class="line"></div>
+                  <div class="line mid"></div>
+                </div>
+              </div>
+              <div class="peek r"></div>
+            </div>
+            <nav class="tabbar">
+              <button class="t on"><i class="ti ti-flag-3-filled"></i><span>Practice</span></button>
+              <button class="t"><i class="ti ti-book-2"></i><span>Playbook</span></button>
+              <button class="t"><i class="ti ti-compass"></i><span>Discover</span></button>
+              <button class="t"><i class="ti ti-user"></i><span>Profile</span></button>
+            </nav>
+          </div>
+
+          <div class="dim"></div>
+
+          <!-- Popover -->
+          <div class="popover">
+            <div class="popover-inner">
+              <div class="pop-hero">
+                <div class="ava">KD</div>
+                <div class="who">
+                  <div class="name">Kevin Denney</div>
+                  <div class="sub">@kdenney · kevin@example.com</div>
+                </div>
+              </div>
+
+              <div class="pop-section">
+                <div class="pop-row"><i class="ti ti-user-circle"></i><span>Account</span></div>
+                <div class="pop-row"><i class="ti ti-settings"></i><span>Settings</span></div>
+                <div class="pop-row"><i class="ti ti-sun"></i><span>Appearance</span></div>
+                <div class="pop-row"><i class="ti ti-bell"></i><span>Notifications</span></div>
+                <div class="pop-row"><i class="ti ti-shield-lock"></i><span>Privacy</span></div>
+                <div class="pop-row"><i class="ti ti-sparkles"></i><span>Subscription</span></div>
+              </div>
+
+              <div class="pop-section">
+                <div class="pop-row"><i class="ti ti-help-circle"></i><span>Help &amp; Support</span></div>
+                <div class="pop-row"><i class="ti ti-message-2"></i><span>Send feedback</span></div>
+                <div class="pop-row"><i class="ti ti-info-circle"></i><span>About BetterAt</span></div>
+              </div>
+
+              <div class="pop-section">
+                <div class="pop-row dest"><i class="ti ti-logout"></i><span>Sign out</span></div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="home-indicator"></div>
+      </div>
+      <div class="caption"><strong>Frame 2</strong> · Profile / settings popover
+        <span class="note">Tapping the avatar in any screen's top-right opens this. Settings sub-screens (Account, Notifications, etc.) are out of scope for this canonical &mdash; each becomes its own surface when needed.</span>
+      </div>
+    </div>
+
+    <!-- =============================================================== -->
+    <!-- FRAME 3 · Share Dialog                                            -->
+    <!-- =============================================================== -->
+    <div class="col">
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="statusbar">
+          <span>9:41</span>
+          <span class="right">
+            <i class="ti ti-cell-signal-4"></i>
+            <i class="ti ti-wifi"></i>
+            <i class="ti ti-battery-3"></i>
+          </span>
+        </div>
+
+        <div class="screen" data-screen-label="03 Share dialog">
+
+          <!-- Step-detail background -->
+          <div class="bg-step-detail">
+            <div class="nav">
+              <span class="back"><i class="ti ti-chevron-left"></i>Practice</span>
+              <span class="actions">
+                <i class="ti ti-bookmark"></i>
+                <i class="ti ti-share-3"></i>
+              </span>
+            </div>
+            <div class="hero">
+              <div class="eyebrow"><span class="dot"></span>Step 6 of 11</div>
+              <h2>Light-air starts in shifty breeze</h2>
+              <div class="meta">Saturday · RHKYC Spring Series · Race 4</div>
+            </div>
+            <div class="block">
+              <div class="lbl">What will you do?</div>
+              <div class="body-line"></div>
+              <div class="body-line short"></div>
+            </div>
+            <div class="block">
+              <div class="lbl">How will you do it?</div>
+              <div class="body-line"></div>
+              <div class="body-line"></div>
+              <div class="body-line short"></div>
+            </div>
+          </div>
+
+          <div class="dim"></div>
+
+          <!-- Share sheet -->
+          <div class="share-sheet">
+            <div class="grabber"></div>
+            <div class="head">
+              <div class="preview">
+                <div class="icon"><i class="ti ti-flag-3-filled"></i></div>
+                <div class="ttl">
+                  <div class="l">Share step</div>
+                  <div class="t">Light-air starts in shifty breeze</div>
+                </div>
+              </div>
+              <div class="x"><i class="ti ti-x"></i></div>
+            </div>
+
+            <!-- Recent contacts -->
+            <div class="contacts">
+              <div class="contact">
+                <div class="ava" style="background: linear-gradient(135deg, #B45B3E, #8C3E2A)">TR</div>
+                <div class="lbl">Tomás</div>
+              </div>
+              <div class="contact">
+                <div class="ava" style="background: linear-gradient(135deg, #2E7D6A, #1F5A4A)">JM</div>
+                <div class="lbl">Jamie</div>
+              </div>
+              <div class="contact">
+                <div class="ava" style="background: linear-gradient(135deg, #4E6A85, #2E4860)">BV</div>
+                <div class="lbl">Bram</div>
+              </div>
+              <div class="contact">
+                <div class="ava" style="background: linear-gradient(135deg, #8A4A8E, #5E2F62)">BS</div>
+                <div class="lbl">Bence</div>
+              </div>
+              <div class="contact more">
+                <div class="ava"><i class="ti ti-dots"></i></div>
+                <div class="lbl">More</div>
+              </div>
+            </div>
+
+            <!-- System apps -->
+            <div class="apps">
+              <div class="share-app">
+                <div class="tile" style="background: linear-gradient(180deg, #65D75D, #2EB430)"><i class="ti ti-message-circle-filled"></i></div>
+                <div class="lbl">Messages</div>
+              </div>
+              <div class="share-app">
+                <div class="tile" style="background: linear-gradient(180deg, #46C459, #1FAE3E)"><i class="ti ti-brand-whatsapp"></i></div>
+                <div class="lbl">WhatsApp</div>
+              </div>
+              <div class="share-app">
+                <div class="tile" style="background: linear-gradient(180deg, #4FA8FF, #0978E0)"><i class="ti ti-mail"></i></div>
+                <div class="lbl">Mail</div>
+              </div>
+              <div class="share-app">
+                <div class="tile" style="background: #0F0F10"><i class="ti ti-brand-x"></i></div>
+                <div class="lbl">X</div>
+              </div>
+              <div class="share-app">
+                <div class="tile" style="background: linear-gradient(180deg, #1474B3, #0A5A8C)"><i class="ti ti-brand-linkedin"></i></div>
+                <div class="lbl">LinkedIn</div>
+              </div>
+              <div class="share-app">
+                <div class="tile" style="background: linear-gradient(180deg, #8E8E93, #636366)"><i class="ti ti-link"></i></div>
+                <div class="lbl">Copy link</div>
+              </div>
+              <div class="share-app">
+                <div class="tile" style="background: linear-gradient(180deg, #5856D6, #3F3DAA)"><i class="ti ti-qrcode"></i></div>
+                <div class="lbl">Shareable link</div>
+              </div>
+              <div class="share-app">
+                <div class="tile" style="background: var(--gray-5); color: var(--label-2)"><i class="ti ti-dots"></i></div>
+                <div class="lbl">More</div>
+              </div>
+            </div>
+
+            <!-- BetterAt-specific section -->
+            <div class="ba-section">
+              <div class="hd"><span class="pill">BetterAt</span>Send within the app</div>
+              <div class="ba-row">
+                <div class="ic"><i class="ti ti-users"></i></div>
+                <div class="txt">
+                  <div class="t">Send to follower</div>
+                  <div class="s">Direct to one of your 12 followers</div>
+                </div>
+                <i class="ti ti-chevron-right chev"></i>
+              </div>
+              <div class="ba-row">
+                <div class="ic"><i class="ti ti-sparkles"></i></div>
+                <div class="txt">
+                  <div class="t">Suggest as step</div>
+                  <div class="s">Appears in their Suggest bar with your note</div>
+                </div>
+                <i class="ti ti-chevron-right chev"></i>
+              </div>
+              <div class="ba-row">
+                <div class="ic"><i class="ti ti-bookmark"></i></div>
+                <div class="txt">
+                  <div class="t">Save to my Playbook</div>
+                  <div class="s">In <em>Sail Racing</em> · adds to your library</div>
+                </div>
+                <i class="ti ti-chevron-right chev"></i>
+              </div>
+            </div>
+
+            <!-- Visibility -->
+            <div class="vis-group">
+              <div class="hd">Who can see this</div>
+              <div class="group">
+                <div class="vis-row">
+                  <span class="ring"></span>
+                  <div class="body">
+                    <div class="t">Public</div>
+                    <div class="s">Anyone with the link</div>
+                  </div>
+                </div>
+                <div class="vis-row on">
+                  <span class="ring"></span>
+                  <div class="body">
+                    <div class="t">Followers only</div>
+                    <div class="s">Your 12 followers</div>
+                  </div>
+                  <span class="default-pill">Default</span>
+                </div>
+                <div class="vis-row">
+                  <span class="ring"></span>
+                  <div class="body">
+                    <div class="t">Private</div>
+                    <div class="s">Just me &mdash; link won't open for anyone else</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="cancel">Cancel</div>
+          </div>
+
+        </div>
+
+        <div class="home-indicator"></div>
+      </div>
+      <div class="caption"><strong>Frame 3</strong> · Share dialog (step)
+        <span class="note">Three-layer share: system apps for outside-the-app, BetterAt section for inside-the-app, visibility for the link itself. <em>Followers only</em> is the default; user can flip per-share.</span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- =================================================================== -->
+  <!-- ROW 2 — Suggest bar in two scales                                    -->
+  <!-- =================================================================== -->
+
+  <section class="strip-head">
+    <p class="eyebrow">Frames 4 — 5</p>
+    <h2><em>Suggest bar &mdash; mobile detail, desktop context</em></h2>
+    <p>The Suggest bar is its own surface, peer to <strong>Following</strong>, sitting <em>below</em> the user's own timeline. The two frames here trade off detail and context: Frame 4 shows what a suggestion card actually looks like at full mobile scale; Frame 5 shows how the surface sits in the larger desktop page so the user can see, without reading any labels, the spatial sequence <em>you &rarr; following &rarr; suggested</em>.</p>
+  </section>
+
+  <div class="row">
+
+    <!-- =============================================================== -->
+    <!-- FRAME 4 · Suggest bar (mobile, zoomed-out timeline)               -->
+    <!-- =============================================================== -->
+    <div class="col">
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="statusbar">
+          <span>9:41</span>
+          <span class="right">
+            <i class="ti ti-cell-signal-4"></i>
+            <i class="ti ti-wifi"></i>
+            <i class="ti ti-battery-3"></i>
+          </span>
+        </div>
+
+        <div class="screen frame-suggest" data-screen-label="04 Suggest bar · mobile">
+          <div class="top-header">
+            <div class="ttl">Timeline<span class="sub">· zoomed out</span></div>
+            <div class="ic"><i class="ti ti-arrows-diagonal-minimize-2"></i></div>
+          </div>
+
+          <div class="scroll">
+
+            <!-- Tail of own timeline -->
+            <div class="own-tail-card">
+              <div class="eyebrow"><span class="dot"></span>Step 6 of 11 · Current</div>
+              <h4>Light-air starts in shifty breeze</h4>
+              <div class="meta">Saturday · RHKYC Spring Series · Race 4</div>
+            </div>
+            <div class="own-tail-card" style="opacity: 0.85;">
+              <div class="eyebrow" style="color: var(--label-3);"><span class="dot" style="background: var(--label-3);"></span>Step 7 · Upcoming</div>
+              <h4>Heavy-air spinnaker handling</h4>
+              <div class="meta">Tentative · waiting on rig setup</div>
+            </div>
+
+            <!-- Following section -->
+            <div class="section-sep">
+              <span class="l">Following</span>
+              <span class="ln"></span>
+              <span class="ct">8</span>
+            </div>
+            <div class="following-card">
+              <div class="ava" style="background: linear-gradient(135deg, #B45B3E, #8C3E2A)">TR</div>
+              <div class="body">
+                <div class="name">Tomás Reyes</div>
+                <div class="sub">Step 4 · Pre-race mental routine</div>
+              </div>
+            </div>
+
+            <!-- Strong section break — Suggest bar -->
+            <div class="suggest-break">
+              <div class="hd">
+                <span class="l"><i class="ti ti-sparkles"></i>Suggested for you</span>
+                <span class="ct">4</span>
+              </div>
+              <p class="lede">Steps your followers think you'd find useful &mdash; not on your timeline yet.</p>
+            </div>
+
+            <!-- Suggest cards -->
+            <div class="suggest-card">
+              <div class="top">
+                <div class="glyph">📘</div>
+                <div class="body">
+                  <div class="t">Rules drill: protests</div>
+                  <div class="src">From Bram · 2 hours ago</div>
+                </div>
+              </div>
+              <p class="note">"Saw your debrief on the Step 8 protest &mdash; try this drill before the next race."</p>
+              <div class="actions">
+                <button class="add">Add to my timeline</button>
+                <button class="dismiss">Dismiss</button>
+              </div>
+            </div>
+
+            <div class="suggest-card">
+              <div class="top">
+                <div class="glyph">📘</div>
+                <div class="body">
+                  <div class="t">Heavy-air spinnaker handling</div>
+                  <div class="src">From Tomás · peer on Dragon Worlds</div>
+                </div>
+              </div>
+              <p class="note">"Just did this one. Helped me a lot."</p>
+              <div class="actions">
+                <button class="add">Add to my timeline</button>
+                <button class="dismiss">Dismiss</button>
+              </div>
+            </div>
+
+            <div class="suggest-card clipped">
+              <div class="top">
+                <div class="glyph">📘</div>
+                <div class="body">
+                  <div class="t">Pre-race mental routine</div>
+                  <div class="src">From Bill Gladstone · following</div>
+                </div>
+              </div>
+              <p class="note">"From my latest North U session."</p>
+            </div>
+
+          </div>
+        </div>
+
+        <div class="home-indicator"></div>
+      </div>
+      <div class="caption"><strong>Frame 4</strong> · Suggest bar · mobile
+        <span class="note">Cards use a warm cream tint so they're <em>visually distinct</em> from the user's own white timeline cards. Same affordances on every card: <strong>Add to my timeline</strong> (iOS blue) and <strong>Dismiss</strong> (text only).</span>
+      </div>
+    </div>
+
+    <!-- =============================================================== -->
+    <!-- FRAME 5 · Desktop zoomed-out context                              -->
+    <!-- =============================================================== -->
+    <div class="desk-col">
+      <div class="desktop" data-screen-label="05 Suggest bar · desktop context">
+        <div class="desk-chrome">
+          <span class="dot r"></span>
+          <span class="dot y"></span>
+          <span class="dot g"></span>
+          <div class="addr">betterat.app/practice/timeline</div>
+          <span style="width: 36px;"></span>
+        </div>
+        <div class="desk-body">
+
+          <!-- Left rail -->
+          <aside class="desk-left">
+            <div class="brand"><span class="b">B</span>BetterAt</div>
+            <div class="nav-item on"><i class="ti ti-flag-3-filled"></i>Practice</div>
+            <div class="nav-item"><i class="ti ti-book-2"></i>Playbook</div>
+            <div class="nav-item"><i class="ti ti-compass"></i>Discover</div>
+            <div class="nav-item"><i class="ti ti-user"></i>Profile</div>
+
+            <div class="interest-blk">
+              <div class="lbl">Interest</div>
+              <div class="nm">⛵ Sail Racing <i class="ti ti-chevron-down"></i></div>
+              <div class="step">Step 6 of 11 · Active</div>
+            </div>
+          </aside>
+
+          <!-- Main column -->
+          <main class="desk-main">
+            <div class="head">
+              <div>
+                <h2>Timeline</h2>
+                <div class="sub">Zoomed-out view · 11 steps in this arc</div>
+              </div>
+              <div class="seg">
+                <span>Focus</span>
+                <span class="on">Zoomed out</span>
+              </div>
+            </div>
+
+            <div class="body">
+
+              <!-- YOU -->
+              <div class="block-you">
+                <div class="sec-head you">
+                  <div class="l"><span class="swatch"></span>Your timeline<span class="n">· 6 of 11 done · 1 current · 4 upcoming</span></div>
+                  <div class="r">RHKYC Spring Series</div>
+                </div>
+                <div class="strip-row you">
+                  <div class="ghost"></div>
+                  <div class="tl-card done">
+                    <div class="eb">Step 4 · Done</div>
+                    <div class="t">Crew assignment &amp; foredeck drills</div>
+                    <div class="m">2 weeks ago</div>
+                    <div class="bar"><i></i></div>
+                  </div>
+                  <div class="tl-card done">
+                    <div class="eb">Step 5 · Done</div>
+                    <div class="t">Mid-line starts</div>
+                    <div class="m">Last weekend</div>
+                    <div class="bar"><i></i></div>
+                  </div>
+                  <div class="tl-card cur">
+                    <div class="eb">Step 6 · Current</div>
+                    <div class="t">Light-air starts in shifty breeze</div>
+                    <div class="m">Saturday · Race 4</div>
+                    <div class="bar"><i style="width: 38%;"></i></div>
+                  </div>
+                  <div class="tl-card">
+                    <div class="eb" style="color: var(--label-3);">Step 7</div>
+                    <div class="t" style="color: var(--label-3);">Heavy-air spinnaker</div>
+                    <div class="m">Pending</div>
+                    <div class="bar"></div>
+                  </div>
+                  <div class="ghost"></div>
+                </div>
+              </div>
+
+              <!-- FOLLOWING -->
+              <div class="block-follow">
+                <div class="sec-head follow">
+                  <div class="l"><span class="swatch"></span>Following<span class="n">· 8 people</span></div>
+                  <div class="r">Filter</div>
+                </div>
+                <div class="follow-row">
+                  <div class="follow-card">
+                    <div class="ava" style="background: linear-gradient(135deg, #B45B3E, #8C3E2A)">TR</div>
+                    <div class="b"><div class="nm">Tomás Reyes</div><div class="s">Step 4 · pre-race</div></div>
+                  </div>
+                  <div class="follow-card">
+                    <div class="ava" style="background: linear-gradient(135deg, #2E7D6A, #1F5A4A)">JM</div>
+                    <div class="b"><div class="nm">Jamie Müller</div><div class="s">Step 9 · downwind</div></div>
+                  </div>
+                  <div class="follow-card">
+                    <div class="ava" style="background: linear-gradient(135deg, #4E6A85, #2E4860)">BV</div>
+                    <div class="b"><div class="nm">Bram Visser</div><div class="s">Step 2 · rules</div></div>
+                  </div>
+                  <div class="follow-card">
+                    <div class="ava" style="background: linear-gradient(135deg, #8A4A8E, #5E2F62)">BS</div>
+                    <div class="b"><div class="nm">Bence Sárosi</div><div class="s">Step 7 · spinnaker</div></div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- SUGGEST -->
+              <div class="block-sug">
+                <div class="sec-head sug">
+                  <div class="l"><span class="swatch"></span>Suggested for you<span class="n" style="color: var(--ios-coral); opacity: 0.7;">· 4 candidates &mdash; not on your timeline yet</span></div>
+                  <div class="r">See all</div>
+                </div>
+                <div class="sug-row">
+                  <div class="sug-card-d">
+                    <div class="t">📘 Rules drill: protests</div>
+                    <div class="src">From Bram · 2h ago</div>
+                    <div class="act"><span class="add">Add</span><span class="dis">Dismiss</span></div>
+                  </div>
+                  <div class="sug-card-d">
+                    <div class="t">📘 Heavy-air spinnaker handling</div>
+                    <div class="src">From Tomás · peer</div>
+                    <div class="act"><span class="add">Add</span><span class="dis">Dismiss</span></div>
+                  </div>
+                  <div class="sug-card-d">
+                    <div class="t">📘 Pre-race mental routine</div>
+                    <div class="src">From Bill Gladstone</div>
+                    <div class="act"><span class="add">Add</span><span class="dis">Dismiss</span></div>
+                  </div>
+                  <div class="sug-card-d">
+                    <div class="t">📘 Pediatric assessment basics</div>
+                    <div class="src">From Dr. P. Morrinson</div>
+                    <div class="act"><span class="add">Add</span><span class="dis">Dismiss</span></div>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </main>
+
+          <!-- Right rail -->
+          <aside class="desk-right">
+            <div>
+              <h3>Up next</h3>
+              <div class="upcoming-card">
+                <div class="e">Race · Saturday</div>
+                <div class="t">RHKYC Spring Series · Race 4</div>
+                <div class="m">8&ndash;12 kn · shifty · Step 6</div>
+              </div>
+            </div>
+            <div>
+              <h3>This arc</h3>
+              <div class="upcoming-card" style="background: var(--ios-coral-tint);">
+                <div class="e" style="color: var(--ios-coral);">Capability gap</div>
+                <div class="t">Starts in light, shifty air</div>
+                <div class="m" style="color: var(--ios-coral-deep);">Flagged 3× last 2 weeks</div>
+              </div>
+            </div>
+            <div>
+              <h3>Followers</h3>
+              <div class="upcoming-card">
+                <div class="e">12 watching</div>
+                <div class="t">2 new this week</div>
+                <div class="m">Last suggestion sent: yesterday</div>
+              </div>
+            </div>
+          </aside>
+
+        </div>
+      </div>
+
+      <!-- Annotations -->
+      <div class="annot">
+        <div class="num">1</div>
+        <div><strong>Your timeline</strong> dominates the top &mdash; the user's own steps, in order, with the current one outlined in iOS blue. This is the page's center of gravity.</div>
+      </div>
+      <div class="annot">
+        <div class="num">2</div>
+        <div><strong>Following</strong> is a thin peer band &mdash; small cards, dashed hairline above, gray accent. Tells the user what people they follow are working on right now, but at a glance &mdash; not a feed.</div>
+      </div>
+      <div class="annot">
+        <div class="num">3</div>
+        <div><strong>Suggest bar</strong> is the bottom band, set on a warm cream tint with a coral header to mark it as a different <em>kind</em> of content: <em>candidate</em> steps, not active ones. Each card has the same two affordances as on mobile.</div>
+      </div>
+      <div class="caption" style="margin-top: 6px;"><strong>Frame 5</strong> · Desktop zoomed-out context (1440px target, rendered at scale)
+        <span class="note">The spatial sequence is the design: <strong>you &rarr; following &rarr; suggested</strong> reads top-to-bottom without any labels. Per-source filtering and per-card author UI are deferred &mdash; this canonical only fixes the bar's place in the page.</span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- =================================================================== -->
+  <!-- Notes rail                                                            -->
+  <!-- =================================================================== -->
+
+  <section class="rail-row">
+    <div class="rail-col">
+      <h4><em>Why these four, together</em></h4>
+      <p>Each surface is too small to deserve its own canonical &mdash; but each is referenced by other canonicals. Bundling them here means one place to point to when the Practice or Step-detail canonicals say &ldquo;and then the share sheet.&rdquo;</p>
+      <p>The Suggest bar gets two frames because its meaning is <em>positional</em> &mdash; it's defined by what it sits next to.</p>
+    </div>
+
+    <div class="rail-col">
+      <h4><em>iOS-native vs. BetterAt-styled</em></h4>
+      <p>Frames 1&ndash;3 are deliberately styled as the OS. Frosted blur, system fonts, system buttons. They should disappear into the user's muscle memory.</p>
+      <p>The Suggest bar (Frames 4&ndash;5) is the opposite: it's a BetterAt-specific surface and gets its own tint (warm cream) and accent (coral header) so it's never confused with the user's own timeline.</p>
+    </div>
+
+    <div class="rail-col">
+      <h4><em>Suggest bar &mdash; surface rules</em></h4>
+      <p>One: every card has <strong>Add</strong> and <strong>Dismiss</strong>, never anything else at this level. Two: cards are <em>candidates</em>, not feed items &mdash; they don't accumulate, they get acted on. Three: a dismissed card never re-surfaces from the same source within a week.</p>
+      <p>Suggestion-author UI (who is allowed to suggest, what they see when they do) lives in the Mentoring canonical when that lands.</p>
+    </div>
+
+    <div class="rail-col">
+      <h4><em>Out of scope</em></h4>
+      <div class="out-of-scope">
+        <strong>Cited, not rendered</strong>
+        Interest switcher's <em>Manage interests</em> sub-screen<br/>
+        Each Settings sub-surface in the profile popover<br/>
+        Suggest bar per-source filter UI<br/>
+        Suggestion-author UI (Mentoring canonical)
+      </div>
+    </div>
+  </section>
+
+</div>
+
+</body>
+</html>
