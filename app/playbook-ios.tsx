@@ -184,7 +184,7 @@ export function PlaybookIosPreview({ embedded = false }: Props = {}) {
           </View>
         </View>
 
-        <PreviewBanner />
+        {!embedded && <PreviewBanner />}
 
         {/* Title block — Books "Library" treatment */}
         <View style={styles.titleBlock}>
