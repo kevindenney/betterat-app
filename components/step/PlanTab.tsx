@@ -31,6 +31,8 @@ import { LocationMapPicker as LocationMapPickerModal } from '@/components/races/
 import { Linking } from 'react-native';
 import { router } from 'expo-router';
 import { getStepCategoryLabels } from '@/lib/step-category-config';
+import { FEATURE_FLAGS } from '@/lib/featureFlags';
+import { PlanTabInterior } from './plan-tab';
 
 interface PlanTabProps {
   stepId?: string;
@@ -195,6 +197,286 @@ export function PlanTab({
   const q3Complete = Boolean(planData.why_reasoning?.trim());
   const q4Complete = Boolean(collaborators.length > 0 || (planData.who_collaborators?.length && planData.who_collaborators.some((c) => c.trim())));
   const q5Complete = Boolean(planData.where_location?.name?.trim());
+
+  if (FEATURE_FLAGS.PRACTICE_PLAN_TAB_IOS_REGISTER) {
+    const optionalAddOns = (
+      <>
+        {(linkedResources.length > 0 || linkedConcepts.length > 0 || !readOnly) && (
+          <PlanQuestionCard
+            icon="book-outline"
+            title="also relevant for"
+            isComplete={linkedResources.length > 0 || linkedConcepts.length > 0}
+          >
+            {linkedResources.length > 0 && (
+              <View style={styles.chipContainer}>
+                {linkedResources.map((resource) => (
+                  <Pressable
+                    key={resource.id}
+                    style={styles.resourceChip}
+                    onPress={() => {
+                      if (resource.url) Linking.openURL(resource.url);
+                    }}
+                  >
+                    <ResourceTypeIcon type={resource.resource_type} size={14} />
+                    <Text style={styles.chipText} numberOfLines={1}>{resource.title}</Text>
+                    {!readOnly && (
+                      <Pressable onPress={() => handleRemoveResource(resource.id)} hitSlop={6}>
+                        <Ionicons name="close-circle" size={16} color={IOS_COLORS.systemGray3} />
+                      </Pressable>
+                    )}
+                  </Pressable>
+                ))}
+              </View>
+            )}
+
+            {linkedConcepts.length > 0 && (
+              <View style={styles.conceptsSection}>
+                <Text style={styles.conceptsSectionLabel}>FOCUS CONCEPTS</Text>
+                {linkedConcepts.map((concept) => (
+                  <Pressable
+                    key={concept.id}
+                    style={styles.conceptCard}
+                    onPress={() => {
+                      if (concept.slug) {
+                        router.push(`/(tabs)/playbook/concept/${concept.slug}` as any);
+                      }
+                    }}
+                  >
+                    <Ionicons name="book-outline" size={16} color={STEP_COLORS.accent} />
+                    <Text style={styles.conceptCardTitle} numberOfLines={2}>{concept.title}</Text>
+                    {!readOnly && (
+                      <Pressable onPress={() => handleRemoveConcept(concept.id)} hitSlop={6}>
+                        <Ionicons name="close-circle" size={16} color={IOS_COLORS.systemGray3} />
+                      </Pressable>
+                    )}
+                    {concept.slug && <Ionicons name="chevron-forward" size={14} color={IOS_COLORS.systemGray3} />}
+                  </Pressable>
+                ))}
+              </View>
+            )}
+
+            {!readOnly && (
+              <Pressable style={styles.addLibraryButton} onPress={() => setShowPlaybookPicker(true)}>
+                <Ionicons name="book-outline" size={18} color={STEP_COLORS.accent} />
+                <Text style={styles.addLibraryText}>Add from Playbook</Text>
+              </Pressable>
+            )}
+          </PlanQuestionCard>
+        )}
+
+        <PlanQuestionCard icon="people-outline" title="WITH WHOM (optional)" isComplete={q4Complete}>
+          {collaborators.length > 0 && (
+            <View style={styles.chipContainer}>
+              {collaborators.map((collab) => (
+                <View
+                  key={collab.id}
+                  style={[
+                    styles.collaboratorChip,
+                    collab.type === 'platform' ? styles.collaboratorChipLinked : styles.collaboratorChipExternal,
+                  ]}
+                >
+                  {collab.type === 'platform' ? (
+                    <View style={[styles.collabAvatar, { backgroundColor: collab.avatar_color || IOS_COLORS.systemGray5 }]}>
+                      {collab.avatar_emoji ? (
+                        <Text style={styles.collabAvatarEmoji}>{collab.avatar_emoji}</Text>
+                      ) : (
+                        <Ionicons name="person" size={10} color="#FFFFFF" />
+                      )}
+                    </View>
+                  ) : (
+                    <Ionicons name="person-outline" size={12} color={STEP_COLORS.accent} />
+                  )}
+                  <Text style={styles.chipText} numberOfLines={1}>{collab.display_name}</Text>
+                  {collab.type === 'platform' && (
+                    <Ionicons name="checkmark-circle" size={12} color={STEP_COLORS.accent} />
+                  )}
+                  {!readOnly && (
+                    <Pressable onPress={() => handleRemoveCollaborator(collab.id)} hitSlop={6}>
+                      <Ionicons name="close-circle" size={16} color={IOS_COLORS.systemGray3} />
+                    </Pressable>
+                  )}
+                </View>
+              ))}
+            </View>
+          )}
+          {!readOnly && (
+            <Pressable style={styles.addPeopleButton} onPress={() => setShowCollaboratorPicker(true)}>
+              <Ionicons name="person-add-outline" size={18} color={STEP_COLORS.accent} />
+              <Text style={styles.addLibraryText}>Add people</Text>
+            </Pressable>
+          )}
+        </PlanQuestionCard>
+
+        <PlanQuestionCard icon="location-outline" title="WHERE (optional)" isComplete={q5Complete}>
+          <TextInput
+            style={[styles.textArea, { minHeight: 44 }, readOnly && styles.readOnlyInput]}
+            value={planData.where_location?.name ?? ''}
+            onChangeText={readOnly ? undefined : (text) => {
+              if (!text.trim()) {
+                handleLocationChange(undefined);
+              } else {
+                handleLocationChange({
+                  ...(planData.where_location ?? { name: '' }),
+                  name: text,
+                });
+              }
+            }}
+            placeholder={readOnly ? '' : 'Location, venue, or address...'}
+            placeholderTextColor={IOS_COLORS.tertiaryLabel}
+            editable={!readOnly}
+          />
+          {!readOnly && (
+            <Pressable style={styles.addPeopleButton} onPress={() => setShowLocationPicker(true)}>
+              <Ionicons name="map-outline" size={18} color={STEP_COLORS.accent} />
+              <Text style={styles.addLibraryText}>Pick on map</Text>
+            </Pressable>
+          )}
+        </PlanQuestionCard>
+
+        <PlanQuestionCard
+          icon="school-outline"
+          title="CAPABILITIES THIS DEVELOPS"
+          isComplete={Boolean(planData.competency_ids?.length)}
+        >
+          {(availableCompetencies ?? []).length > 0 && (planData.competency_ids ?? []).length > 0 ? (
+            <View style={styles.chipContainer}>
+              {(planData.competency_ids ?? []).map((compId) => {
+                const comp = (availableCompetencies ?? []).find((c: Competency) => c.id === compId);
+                if (!comp) return null;
+                return (
+                  <View key={compId} style={styles.resourceChip}>
+                    <Text style={styles.chipText} numberOfLines={1}>{comp.title}</Text>
+                    {!readOnly && (
+                      <Pressable
+                        onPress={() => {
+                          const updated = (planData.competency_ids ?? []).filter((id) => id !== compId);
+                          onUpdate({ competency_ids: updated });
+                        }}
+                        hitSlop={6}
+                      >
+                        <Ionicons name="close-circle" size={16} color={IOS_COLORS.systemGray3} />
+                      </Pressable>
+                    )}
+                  </View>
+                );
+              })}
+            </View>
+          ) : (
+            <Text style={styles.goalHint}>No capabilities inferred — tap + to tag</Text>
+          )}
+        </PlanQuestionCard>
+
+        {planData.date_enrichment && (
+          <View style={styles.conditionsContainer}>
+            <DateEnrichmentCard
+              dateLabel={planData.date_enrichment.wind || planData.date_enrichment.tide ? 'this session' : 'session'}
+              dateIso=""
+              enrichment={planData.date_enrichment}
+            />
+          </View>
+        )}
+
+        {stepId && !readOnly && <FromOtherPlaybooks stepId={stepId} />}
+
+        {stepId && !readOnly && (
+          <CrossInterestSuggestions
+            stepId={stepId}
+            interestId={interestId}
+            onApplyToStep={(text) => {
+              const existing = planData.how_sub_steps ?? [];
+              const newSubStep: SubStep = {
+                id: `cross_${Date.now()}`,
+                text,
+                sort_order: existing.length,
+                completed: false,
+              };
+              onUpdate({ how_sub_steps: [...existing, newSubStep] });
+            }}
+            onCreateStep={async (suggestion) => {
+              if (!user?.id) return undefined;
+              const targetInterest = userInterests.find((i) => i.slug === suggestion.sourceInterestSlug);
+              if (!targetInterest) return undefined;
+              try {
+                const created = await createStep({
+                  user_id: user.id,
+                  interest_id: targetInterest.id,
+                  title: suggestion.suggestion.slice(0, 80),
+                  status: 'pending',
+                  source_type: 'manual',
+                  category: suggestion.suggestedCategory || 'general',
+                  metadata: { plan: { what_will_you_do: suggestion.suggestion } },
+                });
+                return created.id;
+              } catch {
+                return undefined;
+              }
+            }}
+          />
+        )}
+
+        {onNextTab && !readOnly && (
+          <View style={styles.nextCtaContainer}>
+            <Pressable style={styles.nextCtaButton} onPress={onNextTab}>
+              <Text style={styles.nextCtaText}>Next: Start Doing</Text>
+              <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />
+            </Pressable>
+          </View>
+        )}
+
+        {!readOnly && (
+          <>
+            <PlaybookPicker
+              visible={showPlaybookPicker}
+              interestId={interestId}
+              onSelect={handleSelectPlaybookItems}
+              onClose={() => setShowPlaybookPicker(false)}
+              excludeKeys={linkedIds.map((id) => `resource:${id}`)}
+            />
+            <CollaboratorPicker
+              visible={showCollaboratorPicker}
+              onClose={() => setShowCollaboratorPicker(false)}
+              onAdd={(collab) => {
+                handleAddCollaborator(collab);
+              }}
+              existingIds={existingCollaboratorIds}
+            />
+          </>
+        )}
+
+        {!readOnly && showLocationPicker && (
+          <LocationMapPickerModal
+            visible={showLocationPicker}
+            onClose={() => setShowLocationPicker(false)}
+            onSelectLocation={(loc) => {
+              handleLocationChange({ name: loc.name, lat: loc.lat, lng: loc.lng });
+              setShowLocationPicker(false);
+            }}
+            initialLocation={
+              planData.where_location?.lat != null && planData.where_location?.lng != null
+                ? { lat: planData.where_location.lat, lng: planData.where_location.lng }
+                : null
+            }
+            initialName={planData.where_location?.name}
+          />
+        )}
+      </>
+    );
+
+    return (
+      <PlanTabInterior
+        planData={planData}
+        onUpdate={onUpdate}
+        readOnly={readOnly}
+        interestId={interestId}
+        interestName={interestName}
+        stepTitle={planData.what_will_you_do || 'New step'}
+        stepCategory={stepCategory}
+        onConversationalCreate={useConversationalCapture ? onConversationalCreate : undefined}
+        optionalAddOns={optionalAddOns}
+        footer={footer}
+      />
+    );
+  }
 
   return (
     <ScrollView
