@@ -1,18 +1,23 @@
 /**
- * Concept variants — iOS register preview
+ * Concept detail — iOS register preview (flat-under-app route)
  *
  * Variant-cycling preview surface for the three Concept detail iOS state
  * variants (new / dormant / breakthrough). Sample content drawn directly
  * from the Claude Design "Concept · Variants · iOS register" handoff so
  * the surface can be reviewed without data wiring.
  *
- * The canonical, data-wired Concept detail still lives at
- * `/concept-ios/[slug]` — that route reads real concept + reflection data
- * and renders the "practicing" mid-voice case. This route exists to
- * exercise the variant-specific structural branches that don't appear
- * yet in real data (forming / dormant / breakthrough).
+ * Two concept routes coexist on purpose:
+ *   /concept-ios/[slug]    — canonical, data-wired (usePlaybookConceptBySlug
+ *                            + reflection trail heuristic). Reads real data
+ *                            and renders the "practicing" mid-voice case.
+ *   /concept-detail-ios    — this file. Flat-under-app preview matching the
+ *                            naming convention used by /trophy-ios,
+ *                            /race-log-ios, /get-inspired-ios. Exercises the
+ *                            variant-specific structural branches that don't
+ *                            appear yet in real data (forming / dormant /
+ *                            breakthrough).
  *
- * Open at /concept-variants-ios. Variant selectable via
+ * Open at /concept-detail-ios. Variant selectable via
  * ?variant=new|dormant|breakthrough.
  *
  * Wire-up status: visual-only. Real variant selection lands when the
@@ -141,7 +146,7 @@ function resolveVariant(raw: unknown): ConceptDetailVariant {
   return 'new';
 }
 
-export default function ConceptVariantsIosPreview() {
+export default function ConceptDetailIosPreview() {
   const params = useLocalSearchParams<{ variant?: string }>();
   const variant = resolveVariant(params.variant);
   const content = SAMPLE_CONTENT[variant];
