@@ -258,6 +258,49 @@ These are out of scope for the visual pass but should land before cutover. Captu
 
 ---
 
+## Cross-cutting principles
+
+Surface-agnostic rules that apply across every iOS-register screen, not scoped to a single cutover.
+
+### Loading-state narration
+
+Anywhere the system does AI work or multi-step processing that takes more than ~2 seconds, the surface **narrates in plain language** with messages that scroll or replace as steps complete. No `"Loading..."` spinners. No indeterminate progress wheels with no context.
+
+**Reference pattern:** OpenAI ChatGPT's plan-ready flow — short status lines that swap as the pipeline advances:
+- "Getting your plan ready"
+- "Warming up the image generators"
+- "Stitching it together"
+
+**Voice:** present-continuous, system-as-narrator, no exclamation marks, no progress percentages. The user reads the line, knows what the system is doing, knows roughly how much further it has to go. The line tells them: *the system is alive, here, working on this specific thing.*
+
+**First surface to design against this principle:** the Get Inspired modal's running state — the third state alongside empty (CTA disabled) and filled (CTA enabled). Today the modal has no running state; tapping the CTA in production will go from filled → result with no narration. That gap needs a designed sequence (fetching the URL, identifying the skill, building the plan, surfacing the result) and the narration vocabulary to render it.
+
+**Where else this applies (non-exhaustive):** AI synthesis on Concept detail's resynthesize action, AI clustering on Debrief's "A pattern in your captures" offer, weather-fetch on Race Prep's forecast tiles, prior-debrief query on Race Prep's "From your last race" stack, concept-suggestion service on Race Prep's "From your playbook" coral card, Competency Assessment's AI capture surfacing.
+
+### Error-state principle
+
+Every error surfaces in **plain language with a next action**. No error codes. No `"Something went wrong"` dead-ends. No technical jargon (no `"Failed to fetch"`, no HTTP status numbers, no stack traces).
+
+**Pattern:** state what happened in human terms + offer the next thing the user can do.
+
+**Examples of the pattern (illustrative, not specified copy):**
+- ❌ "Error 503: Service Unavailable"
+- ✅ "The weather service isn't responding right now. Skip the forecast and come back later, or check in a few minutes."
+
+- ❌ "Failed to load concept"
+- ✅ "This concept isn't in your Sail Racing playbook. Switch to the playbook it belongs to, or open a different one."
+
+- ❌ "Something went wrong"
+- ✅ "Couldn't save your reflection just now — we kept what you wrote. Try saving again, or take a screenshot as backup."
+
+The next action is non-negotiable. "Try again" counts when it's actually likely to help; it doesn't count when the failure is structural (auth missing, wrong account, network down for hours). When "try again" wouldn't fix it, the next action has to be specific — switch interest, open a different step, contact support, restart the app.
+
+**Visual treatment:** errors use the iOS register's coral-tint marked-content card chrome by default (same component family as the AI prompt card, since errors are *system-surfaced content requiring attention*). Severity scaling can be a follow-up if/when an error needs blocking treatment.
+
+**Where this applies:** any failure path — auth, network, data validation, AI service errors, payment, share/invite flows, anywhere a request can fail or return empty. Audit existing error surfaces against this principle as a separate pass; new surfaces are designed to it from the start.
+
+---
+
 ## Resolved architecture decision (2026-05-14) — Reflection vs Competency Assessment
 
 **Question that surfaced during Phase 3:** does the iOS register's chronological-stack Debrief replace the existing form-based After tab entirely, or do form fields still survive somewhere? Confirmed by user.
