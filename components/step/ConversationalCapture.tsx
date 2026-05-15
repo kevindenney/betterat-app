@@ -249,9 +249,18 @@ Respond with ONLY valid JSON:
         if (jsonMatch) parsed = JSON.parse(jsonMatch[0]);
       }
 
+      const latestUserMessage = [...messages].reverse().find((m) => m.role === 'user')?.content?.trim();
+      const latestAssistantMessage = [...messages].reverse().find((m) => m.role === 'assistant')?.content?.trim();
+      const fallbackWhat = parsed.what_will_you_do?.trim()
+        || parsed.suggested_title?.trim()
+        || latestUserMessage
+        || latestAssistantMessage
+        || 'Plan created from conversation';
+      const howSubSteps = Array.isArray(parsed.how_sub_steps) ? parsed.how_sub_steps : [];
+
       const planData: Partial<StepPlanData> = {
-        what_will_you_do: parsed.what_will_you_do || '',
-        how_sub_steps: (parsed.how_sub_steps ?? []).map((text: string, i: number): SubStep => ({
+        what_will_you_do: fallbackWhat,
+        how_sub_steps: howSubSteps.map((text: string, i: number): SubStep => ({
           id: `conv_${Date.now()}_${i}`,
           text,
           sort_order: i,
@@ -267,7 +276,7 @@ Respond with ONLY valid JSON:
       }
 
       // Complete the conversation with a summary
-      await complete(parsed.what_will_you_do || 'Plan created from conversation');
+      await complete(fallbackWhat);
 
       onCreateStep(planData, parsed.suggested_title);
     } catch (err) {
