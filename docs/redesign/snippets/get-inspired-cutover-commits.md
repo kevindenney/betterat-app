@@ -18,16 +18,17 @@ This prepares the Get Inspired running-state cutover without changing the
 pipeline behavior.
 ```
 
-## Commit 2 — Running-state render switch
+## Commit 2 — Kit extraction + running-state render switch
 
 ```text
 feat(redesign): gate Get Inspired running state behind iOS register flag
 
-Gate the Get Inspired modal's long-running analyze/build-plan state behind
+Extract the Get Inspired running-state UI into an iOS-register kit component
+and gate the live modal's long-running analyze/build-plan state behind
 FEATURE_FLAGS.GET_INSPIRED_IOS_REGISTER.
 
 - flag ON: the running state renders the iOS-register LoadingNarration
-  treatment staged in 7c2dfeeb
+  treatment through the kit component extracted from the preview route
 - flag OFF: the existing Get Inspired modal behavior remains unchanged
 - scope is intentionally limited to the running state; empty, filled, result,
   review, and success states stay on their current paths
@@ -61,14 +62,13 @@ Revert is a single env flag flip if production regressions surface.
 ```text
 docs(redesign): mark Get Inspired running-state cutover shipped
 
-Update migration artifacts after the Get Inspired running-state render switch
-lands.
+Update migration artifacts after the Get Inspired running-state cutover.
 
 - mark get-inspired-ios staged visual work as shipped for the running-state
   scope in docs/redesign/IOS_SURFACE_INVENTORY.json
-- update docs/redesign/IOS_MIGRATION_PLAN.md with the render-switch commit
-  and planned follow-ups for real progress events / non-running Get Inspired
-  states
+- update docs/redesign/IOS_MIGRATION_PLAN.md with CTA 1e0c331b, render
+  switch 9580a317, abort semantics 95c9a4aa, and
+  planned follow-ups for real progress events / non-running Get Inspired states
 - update docs/redesign/CROSS_CUTTING_COMPLIANCE_AUDIT.md so Get Inspired is
   the canonical shipped reference for loading-state narration
 - record that Stop semantics cancel the extraction request and require no

@@ -336,9 +336,9 @@
       "user": "Felix/Emily",
       "user_role": "practitioner",
       "type": "composition",
-      "wire_up": "placeholder",
+      "wire_up": "production-running-state",
       "preview_status": "shipped",
-      "canonical_status": "staged",
+      "canonical_status": "shipped",
       "build_only_commit": "7c2dfeeb",
       "feature_flag": "GET_INSPIRED_IOS_REGISTER",
       "preview_route": "/get-inspired-ios-running",
@@ -351,7 +351,10 @@
         "/get-inspired-ios-running",
         "/dev/ios-previews"
       ],
-      "design_handoff_html": ""
+      "design_handoff_html": "",
+      "shipped_in_commit": "95c9a4aa",
+      "shipped_on": "2026-05-15",
+      "notes": "Running-state scope only. Empty, filled, result, review, and success states remain existing implementation or future iOS-register passes."
     },
     {
       "id": "trophy-of-becoming-ios",

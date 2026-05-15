@@ -2,11 +2,11 @@
 
 ## Current state (mid-session 2026-05-15)
 
-This section is the fast-read dashboard for the migration as of HEAD `50b9e9fc`. Deeper detail lives in `docs/redesign/SESSION_STATE.md`; the immediate launch plan lives in `docs/redesign/NEXT_3_HOURS.md`.
+This section is the fast-read dashboard for the migration as of the Get Inspired status-docs handoff. Deeper detail lives in `docs/redesign/SESSION_STATE.md`; the immediate launch plan lives in `docs/redesign/NEXT_3_HOURS.md`.
 
 ### Cutovers shipped
 
-Count: 4 production cutover surfaces. Reflect's original preview-fixture limitation is resolved by the data-wiring commits.
+Count: 5 production cutover surfaces. Reflect's original preview-fixture limitation is resolved by the data-wiring commits, and Get Inspired's running state is shipped behind `GET_INSPIRED_IOS_REGISTER`.
 
 | Cutover | Status | Commit(s) | Note |
 |---|---|---|---|
@@ -14,11 +14,15 @@ Count: 4 production cutover surfaces. Reflect's original preview-fixture limitat
 | Race Prep cards iOS | shipped | `b0a6e23b`, `da9e92a9`, `a84c8b50`, `01c6af34`, `6a86f4e8` | Expanded canonical five-commit cutover pattern. |
 | Reflect Race Log iOS | shipped | staged `316c5486`, visual cutover `3d8b45dc`, log adapter `a6031f1e`, segment fix `847e7855`, wiring `50b9e9fc` | Production Reflect now uses real Race/Shift log data; preview route remains fixture-backed for design review. |
 | Reflect Profile iOS | shipped | staged `505de4e3`, visual cutover `3d8b45dc`, profile adapter `fed19b1a`, wiring `50b9e9fc` | Production Reflect now uses real profile/account data; preview route remains fixture-backed for design review. |
+| Get Inspired running state | shipped | staged `7c2dfeeb`, CTA `1e0c331b`, render switch `9580a317`, abort semantics `95c9a4aa` | Single Playbook-home CTA, running-state loading narration, cancel-on-abort semantics, and canonical error state for non-abort failures. |
 
 Related shipped infrastructure:
 
 - `5c3ab6a4` — canonical `IOSRegisterErrorState`.
 - `7c2dfeeb` — canonical loading narration component staged through Get Inspired running-state preview.
+- `1e0c331b` — Get Inspired Playbook-home CTA entry point.
+- `9580a317` — Get Inspired running-state render switch through kit component extraction.
+- `95c9a4aa` — Get Inspired abort semantics and canonical extraction error handling.
 - `90a9ed97` — density/platform-fit architecture addendum.
 - `eb992cda` — per-interest beat name mapping follow-up.
 - `a6031f1e` — Reflect log real-data adapter.
@@ -27,13 +31,13 @@ Related shipped infrastructure:
 
 ### Surfaces staged
 
-Count: 3 staged surfaces whose full production readiness still depends on follow-up work, plus Reflect follow-ups that are no longer blockers.
+Count: 2 staged surfaces whose full production readiness still depends on follow-up work, plus shipped Get Inspired and Reflect follow-ups that are no longer blockers.
 
 | Surface | Current status | Build/data commit | Next action |
 |---|---|---|---|
 | Race Log / Shift Log iOS | shipped | `316c5486`; adapters/wiring `a6031f1e`, `50b9e9fc` | Follow-ups only: season picker interactivity, filter persistence, search/index refinements. |
 | Profile iOS | shipped | `505de4e3`; adapter/wiring `fed19b1a`, `50b9e9fc` | Follow-ups only: preference writeback, billing source, non-sailing stat labels. |
-| Get Inspired running state | staged | `7c2dfeeb` | Execute four Get Inspired specs. |
+| Get Inspired running state | shipped | `7c2dfeeb`; cutover `1e0c331b`, `9580a317`, `95c9a4aa` | Follow-ups only: real progress events and non-running Get Inspired states. |
 | Trophy of Becoming iOS | staged but blocked | `496d2481` | Wait for product/data first-ship work. |
 | Concept detail iOS | staged, data work in progress | `a6c27c70`, `06df3e87`, migration `f02b2e0e` | Execute Concept detail read-path and variant-routing specs. |
 
@@ -44,7 +48,7 @@ Count: 5 active spec families, 20 spec docs total if Discover build-only specs a
 | Spec family | Docs | Remaining commit count | Verdict |
 |---|---|---:|---|
 | Reflect data wiring | `docs/redesign/specs/REFLECT_DATA_WIRING_COMMIT_1_LOG_ADAPTER.md` through `_4_STATUS_DOCS.md` | 0 after this status commit | Complete in source: log adapter `a6031f1e`, Profile adapter `fed19b1a`, production wiring `50b9e9fc`. |
-| Get Inspired cutover | `docs/redesign/specs/GET_INSPIRED_COMMIT_1_PLAYBOOK_CTA.md` through `_4_MIGRATION_PLAN_UPDATE.md` | 4 | Ready after Reflect remediation. |
+| Get Inspired cutover | `docs/redesign/specs/GET_INSPIRED_COMMIT_1_PLAYBOOK_CTA.md` through `_4_MIGRATION_PLAN_UPDATE.md` | 0 after this status commit | Shipped: CTA `1e0c331b`, render switch `9580a317`, abort semantics `95c9a4aa`. |
 | Concept detail data work | `docs/redesign/specs/CONCEPT_DETAIL_COMMIT_1_MIGRATION.md` through `_3_VARIANT_ROUTING.md` | 2 pre-cutover specs remain | Commit 1 landed as `f02b2e0e`; read path next. |
 | Discover graph adapter | `docs/redesign/specs/DISCOVER_GRAPH_ADAPTER_COMMIT_1_TYPES_AND_MAPPERS.md` through `_3_HOOKS_AND_SELECTORS.md` | 3 | Ready as data prerequisite; Discover render switch remains later. |
 | Discover leaf build specs | six `docs/redesign/specs/DISCOVER_*_BUILD_SPEC.md` files | 6 build-only commits | Designed/spec-ready, not staged. |
@@ -61,9 +65,9 @@ Count: 3 material limitations. Reflect's preview-fixture production leak is reso
 
 ### Next action
 
-Execute Get Inspired Commit 1: `docs/redesign/specs/GET_INSPIRED_COMMIT_1_PLAYBOOK_CTA.md`.
+Execute Concept detail Commit 2: `docs/redesign/specs/CONCEPT_DETAIL_COMMIT_2_READ_PATH.md`.
 
-Reason: Reflect data wiring is complete in source after `a6031f1e`, `fed19b1a`, and `50b9e9fc`. Get Inspired is the next ready cutover path with no data-layer blocker.
+Reason: Reflect and Get Inspired running-state cutovers are complete. Concept detail is the next spec-backed cutover with data-layer work already decomposed.
 
 ## Context
 
@@ -380,9 +384,9 @@ Anywhere the system does AI work or multi-step processing that takes more than ~
 
 **Voice:** present-continuous, system-as-narrator, no exclamation marks, no progress percentages. The user reads the line, knows what the system is doing, knows roughly how much further it has to go. The line tells them: *the system is alive, here, working on this specific thing.*
 
-**First surface to design against this principle:** the Get Inspired modal's running state — the third state alongside empty (CTA disabled) and filled (CTA enabled). Today the modal has no running state; tapping the CTA in production will go from filled → result with no narration. That gap needs a designed sequence (fetching the URL, identifying the skill, building the plan, surfacing the result) and the narration vocabulary to render it.
+**First surface to design against this principle:** the Get Inspired modal's running state — the third state alongside empty (CTA disabled) and filled (CTA enabled). The shipped cutover closes the original gap where tapping the CTA could go from filled → result with no narration. The design sequence covers fetching the URL, identifying the skill, building the plan, and surfacing the result in plain language.
 
-**Status: canonical implementation shipped 2026-05-15.** Designed and built as the iOS-register reference for every future AI-work loading state. The reusable building block is `components/ios-register/LoadingNarration.tsx` (pulse-dot ALL-CAPS eyebrow + past/active/next line stack + step dots + Step-N-of-M meta); the Get Inspired-specific framing lives at `app/get-inspired-ios-running.tsx` (sparkle with coral halo, "Building your plan" title, submitted-link reference card, estimate + Stop footer). Five-line canonical sequence: *Reading the link · Finding the practice in it · Pulling out the useful details · Drafting your plan · Shaping the first step.* Motion is **replace, not scroll, not carousel**. Each line holds 1.5–2.5s; sub-600ms stages floor to 600ms or the user reads it as a flicker. Wire-up status: render-switch into the live modal still pending until the analyze/build-plan pipeline lands. Gated behind `FEATURE_FLAGS.GET_INSPIRED_IOS_REGISTER`.
+**Status: canonical implementation shipped 2026-05-15.** Designed and built as the iOS-register reference for every future AI-work loading state. The reusable building block is `components/ios-register/LoadingNarration.tsx` (pulse-dot ALL-CAPS eyebrow + past/active/next line stack + step dots + Step-N-of-M meta); the Get Inspired-specific framing lives in the extracted running-state kit component used by the live modal and the preview route. Five-line canonical sequence: *Reading the link · Finding the practice in it · Pulling out the useful details · Drafting your plan · Shaping the first step.* Motion is **replace, not scroll, not carousel**. Each line holds 1.5–2.5s; sub-600ms stages floor to 600ms or the user reads it as a flicker. Production wire-up shipped through CTA `1e0c331b`, render switch `9580a317`, and abort semantics `95c9a4aa`. Gated behind `FEATURE_FLAGS.GET_INSPIRED_IOS_REGISTER`.
 
 **Where else this applies (non-exhaustive):** AI synthesis on Concept detail's resynthesize action, AI clustering on Debrief's "A pattern in your captures" offer, weather-fetch on Race Prep's forecast tiles, prior-debrief query on Race Prep's "From your last race" stack, concept-suggestion service on Race Prep's "From your playbook" coral card, Competency Assessment's AI capture surfacing.
 
@@ -409,7 +413,7 @@ The next action is non-negotiable. "Try again" counts when it's actually likely 
 **Where this applies:** any failure path — auth, network, data validation, AI service errors, payment, share/invite flows, anywhere a request can fail or return empty. Audit existing error surfaces against this principle as a separate pass; new surfaces are designed to it from the start.
 
 **Status: canonical implementation shipped 2026-05-15.** Built as the kit component `IOSRegisterErrorState` in `components/ios-register/IOSRegisterErrorState.tsx`. The chrome (back-chevron + context title + 36×36 muted glyph + 26pt headline + supporting paragraph + actions stack pinned to bottom) is canonical across all three reference variants; what varies is headline / supportingText / glyph / primaryAction / secondaryAction / tertiaryAction / disclosure + optional children for surrounding context. Three reference variants from the design pass (network / input / system) are visible at `/error-state-ios?variant=…`. The component is cross-cutting infrastructure — **no feature flag**, no render-path fallback. Header rule: the nav-bar title shows the **context** (e.g. "Get Inspired"), not "Error". Source design: "Error state · canonical · iOS register" handoff. Reference uses going forward:
-- Get Inspired pipeline failures (matches the three reference variants directly)
+- Get Inspired pipeline failures (shipped for non-abort extraction failures; abort is cancellation, not an error)
 - Concept detail load failure (use the `system` variant with the back-chevron jumping to Playbook)
 - Race Prep weather-fetch failure (use the `network` variant scoped to the forecast tile group)
 - Save-reflection failure (use the `input` variant if it's a validation issue, the `system` variant if it's a save-pipeline issue)
@@ -495,14 +499,14 @@ Related dependency audit:
 | Cutover | blocked-on-investigation | blocked-on-data | blocked-on-Profile-staging | ready-to-execute | Note |
 |---|---:|---:|---:|---:|---|
 | Concept detail iOS | no | specs ready | no | no | 3 pre-cutover commits to execute, then 1 render-switch commit, then 1 migration-plan update commit. |
-| Get Inspired running state | no | no | no | specs ready | 4 executable specs ready: CTA, render switch, abort semantics, migration-plan update. |
+| Get Inspired running state | no | no | no | shipped | Shipped in `1e0c331b`, `9580a317`, and `95c9a4aa`; single Playbook-home CTA, cancel-on-abort semantics, canonical error state for non-abort failures. |
 | Reflect Race Log/Profile | no | no | no | shipped | Preview-wrapper production leak resolved by log adapter `a6031f1e`, Profile adapter `fed19b1a`, and Reflect wiring `50b9e9fc`. |
 | Trophy of Becoming iOS | no | yes | no | no | Canonical mount resolved in `TROPHY_OF_BECOMING_CUTOVER_PLAN.md`: no production render path and no trophy data layer exist. |
 | Discover tab iOS | no | adapter specs ready | no | no | Graph adapter work plan ready: 3 pre-cutover commits, then six build-only surfaces, shell composition, flag, atomic render switch, migration-plan update. |
 
 | Surface | Build-only commit | Plan | Planned next action |
 |---|---:|---|---|
-| Get Inspired iOS running state | `7c2dfeeb` | `docs/redesign/GET_INSPIRED_CUTOVER_PLAN.md` + `docs/redesign/specs/GET_INSPIRED_COMMIT_1_PLAYBOOK_CTA.md` through `GET_INSPIRED_COMMIT_4_MIGRATION_PLAN_UPDATE.md` | Specs ready: execute CTA, render switch, abort semantics, and migration-plan update. |
+| Get Inspired iOS running state | `7c2dfeeb` | `docs/redesign/GET_INSPIRED_CUTOVER_PLAN.md` + `docs/redesign/specs/GET_INSPIRED_COMMIT_1_PLAYBOOK_CTA.md` through `GET_INSPIRED_COMMIT_4_MIGRATION_PLAN_UPDATE.md` | Shipped in `1e0c331b`, `9580a317`, and `95c9a4aa`; follow-ups are real progress events and the non-running Get Inspired states. |
 | Reflect Race Log / Shift Log + Profile | `316c5486`, `505de4e3` + visual cutover `3d8b45dc` + data wiring `a6031f1e`, `fed19b1a`, `50b9e9fc` | `docs/redesign/REFLECT_DATA_WIRING_WORK.md` | Shipped with real-data adapters. Remaining work is follow-up scope: filters, preferences, billing, richer non-sailing stats. |
 | Trophy of Becoming iOS | `496d2481` | `docs/redesign/TROPHY_OF_BECOMING_CUTOVER_PLAN.md` | Blocked until path-completion trophy data/service and first production entry point exist. |
 | Concept detail iOS | `a6c27c70` | `docs/redesign/CONCEPT_DETAIL_CUTOVER_PLAN.md` + `docs/redesign/CONCEPT_DETAIL_DATA_LAYER_WORK.md` | Specs ready: execute Commit 1 migration, Commit 2 read path, Commit 3 variant routing, Commit 4 render switch, Commit 5 migration-plan update. |
@@ -510,10 +514,15 @@ Related dependency audit:
 
 ## Cutover execution order (revised)
 
-1. Get Inspired running state — ship next; specs are ready and no data-layer work is required.
-2. Concept detail iOS — execute the remaining read-path and variant-routing specs, then ship the render switch; the state decisions are resolved and implementation specs are ready.
-3. Discover tab iOS — ship after 3 graph-adapter commits, six build-only surfaces, and parent shell composition; tab-level atomic cutover avoids mixed IA states.
-4. Trophy of Becoming iOS — ship after data-layer work for path-completion trophy synthesis, trophy storage/API, and the first production entry point.
+1. Concept detail iOS — execute the remaining read-path and variant-routing specs, then ship the render switch; Get Inspired is no longer ahead of it because the running-state cutover has shipped.
+2. Discover tab iOS — ship after 3 graph-adapter commits, six build-only surfaces, and parent shell composition; tab-level atomic cutover avoids mixed IA states.
+3. Trophy of Becoming iOS — ship after data-layer work for path-completion trophy synthesis, trophy storage/API, and the first production entry point.
+
+## Get Inspired follow-ups
+
+- Real progress events from the extraction edge function so loading narration can become event-backed instead of timer-backed.
+- Remaining Get Inspired states: empty, filled, result/plan-ready, review, and success.
+- Error-state refinements beyond the extraction failure path if the full modal is redesigned later.
 
 ## Resolved limitation — Reflect visual cutover sample-data wiring
 
@@ -634,7 +643,7 @@ All twelve Claude Design handoff surfaces have a preview route built and reachab
 | 5 | Concept detail (Read mode) | `/concept-ios/[slug]` | re-skin existing | practitioner | concept body_md + reflection trail (oldest tagged as "first written") |
 | 6 | Reflect home | `/reflect-ios` | re-skin existing | practitioner | moments returned to wired; arc + thinking-shifted placeholder |
 | 7 | Discover Paths | `/discover-ios` | re-skin existing | practitioner | placeholder catalog content (real catalog API not wired) |
-| 8 | Get Inspired modal | `/get-inspired-ios` | fresh-build | practitioner | visual-only (analyze/build-plan pipeline deferred) |
+| 8 | Get Inspired modal | `/get-inspired-ios` | fresh-build | practitioner | running state shipped behind `GET_INSPIRED_IOS_REGISTER`; empty, filled, result, review, and success states remain future passes |
 | 9 | Trophy of Becoming | `/trophy-ios` | fresh-build | practitioner | placeholder (path-completion synthesis service deferred) |
 | 10 | Step transition hinge | `/hinge-ios` | fresh-build | practitioner | placeholder tiles (adjacent-step detection deferred) |
 | 11 | Auth Welcome | `/auth-welcome-ios` | fresh-build (pre-auth) | n/a | static (no auth wiring — visual only) |

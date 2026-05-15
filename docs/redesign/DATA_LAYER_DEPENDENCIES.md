@@ -13,7 +13,7 @@
 | Reflect production data wiring | 0 | 0 | 5: filter persistence, season picker, Profile preference writeback, billing source, richer non-sailing profile stat labels | ready |
 | Race Log iOS | 0 | 0 | 2: filter persistence, search/index refinements | ready |
 | Profile iOS | 0 | 0 | 5: preferences writeback, plan billing source, privacy/private-mode source, account action wiring, non-sailing stat labels | ready |
-| Get Inspired running state | 0 | 0 | 1: real progress events | ready |
+| Get Inspired running state | 0 | 0 | 1: real progress events | shipped; data follow-up only |
 | Discover tab iOS | 0 | 1: shared Discover graph adapter | 3: richer activity signals, direct org-topic model, editorial topics model | blocked-on-adapter-work |
 | Trophy of Becoming iOS | 3: trophy record, synthesis service/API, production entry point | 4: sequence index, named-absence classifier, series context, empty-state rule | 2: synthesis quality metrics, share/view instrumentation | blocked |
 | Concept detail iOS | 0 | 1: `playbook_concept_user_state` + derived linked-reflection metrics | 2: breakthrough detector, Work-mode state/actions | blocked-on-data-work |
@@ -148,7 +148,7 @@ Variant blocker: no. Decision resolved in `docs/redesign/GET_INSPIRED_CUTOVER_PL
 
 ### Blocking status
 
-No render-blocking or variant-blocking data dependency. The cutover is ready from a data-layer standpoint; remaining work is source-level routing, abort plumbing, and canonical error-state rendering.
+No render-blocking or variant-blocking data dependency. The running-state cutover ships without new data-layer work; remaining data scope is the real-progress-events follow-up.
 
 ## Trophy of Becoming iOS
 

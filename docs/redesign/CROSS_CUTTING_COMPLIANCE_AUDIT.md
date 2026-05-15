@@ -26,7 +26,7 @@ Source discrepancy:
 | Concept detail iOS | needs-design | needs-design | Migration plan explicitly says loading applies here; no exported surface brief in repo. |
 | Reflect home iOS | needs-design | needs-design | No exported surface brief in repo; design canonical in Claude Design. |
 | Discover Paths iOS | needs-design | needs-design | No exported surface brief in repo; design canonical in Claude Design. |
-| Get Inspired iOS | compliant | compliant | Running-state brief explicitly designs narration and error fallback. |
+| Get Inspired iOS | compliant | compliant | Running-state cutover shipped canonical narration and extraction-failure error fallback. |
 | Trophy of Becoming iOS | needs-design | needs-design | Fresh-build synthesis surface noted in migration plan; no exported surface brief in repo. |
 | Step transition hinge iOS | needs-design | needs-design | No exported surface brief in repo; design canonical in Claude Design. |
 | Auth Welcome iOS | not-applicable | not-applicable | No AI work is documented; sign-in failure is a system iOS pattern, not BetterAt-specific. |
@@ -37,7 +37,7 @@ Source discrepancy:
 
 ### Compliant
 
-- **Get Inspired iOS** — compliant. `docs/redesign/design-briefs/get-inspired-ios-running-state.md` explicitly designs the missing running state as narrated, stepwise progress: “Reading the link,” “Finding the practice in it,” “Pulling out the useful details,” “Drafting your plan,” and “Shaping the first step.” This closes the gap the migration plan called out.
+- **Get Inspired iOS** — compliant. The shipped running-state cutover is the canonical Principle #1 implementation: plain-language loading narration, no spinner-only wait, no error-code language, and Stop cancels the in-flight extraction.
 
 ### Needs-Design
 
@@ -61,7 +61,7 @@ Source discrepancy:
 
 ### Compliant
 
-- **Get Inspired iOS** — compliant. `docs/redesign/design-briefs/get-inspired-ios-running-state.md` explicitly designs the failure path out of the running state: plain-language explanation, visible submitted link, and a concrete next action (“Try again in a moment, or paste a different link.”).
+- **Get Inspired iOS** — compliant for running-state extraction failures. Non-abort failures render `IOSRegisterErrorState`; abort is cancellation, not an error. Non-running Get Inspired states remain out of scope for this cutover.
 
 ### Needs-Design
 
