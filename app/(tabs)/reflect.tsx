@@ -30,8 +30,13 @@ import { STEP_PALETTE } from '@/lib/step-theme';
 import { TabScreenToolbar } from '@/components/ui/TabScreenToolbar';
 import { IOSSegmentedControl } from '@/components/ui/ios/IOSSegmentedControl';
 import { FEATURE_FLAGS } from '@/lib/featureFlags';
-import { RaceLogIosPreview } from '@/app/race-log-ios';
-import { ProfileIosPreview } from '@/app/profile-ios';
+import {
+  RaceLogScreen,
+  ProfileScreen,
+  IOSRegisterErrorState,
+} from '@/components/ios-register';
+import { useReflectLog } from '@/hooks/useReflectLog';
+import { useReflectProfileScreenData } from '@/hooks/useReflectProfileScreenData';
 import { useScrollToolbarHide } from '@/hooks/useScrollToolbarHide';
 import { useReflectData, type RaceLogEntry } from '@/hooks/useReflectData';
 import { useReflectProfile } from '@/hooks/useReflectProfile';
@@ -920,6 +925,23 @@ export default function ReflectScreen() {
 
   const isDesktop = width > 768;
 
+  // Production-shaped iOS-register adapters. The legacy RaceLogView /
+  // ProfileView paths remain reachable via flag-off; flag-on now consumes
+  // real-data hooks instead of preview-fixture wrappers.
+  const reflectLog = useReflectLog();
+  const reflectProfile = useReflectProfileScreenData();
+
+  const handleReflectLogEntryPress = useCallback(
+    (entry: { id: string }) => {
+      if (reflectLog.sourceKind === 'sailing') {
+        router.push(`/(tabs)/race/${entry.id}` as never);
+        return;
+      }
+      router.push(`/(tabs)/race?selected=${entry.id}` as never);
+    },
+    [reflectLog.sourceKind],
+  );
+
   return (
     <View style={styles.container}>
       {/* Content */}
@@ -932,10 +954,20 @@ export default function ReflectScreen() {
       )}
       {activeSegment === 'racelog' &&
         (FEATURE_FLAGS.RACE_LOG_IOS_REGISTER ? (
-          <RaceLogIosPreview
-            embedded
+          <RaceLogScreen
+            showChrome={false}
+            activeSubTab="race-log"
+            filterChips={reflectLog.filterChips}
+            seasons={reflectLog.seasons}
+            feedFootHint={reflectLog.feedFootHint}
+            emptyState={{
+              ...reflectLog.emptyState,
+              onPrimaryActionPress: () =>
+                router.push('/(tabs)/races' as never),
+            }}
             topInset={toolbarHeight}
             onScroll={handleToolbarScroll}
+            onEntryPress={handleReflectLogEntryPress}
           />
         ) : (
           <RaceLogView
@@ -946,11 +978,40 @@ export default function ReflectScreen() {
         ))}
       {activeSegment === 'profile' &&
         (FEATURE_FLAGS.PROFILE_IOS_REGISTER ? (
-          <ProfileIosPreview
-            embedded
-            topInset={toolbarHeight}
-            onScroll={handleToolbarScroll}
-          />
+          reflectProfile.props ? (
+            <ProfileScreen
+              {...reflectProfile.props}
+              topInset={toolbarHeight}
+              onScroll={handleToolbarScroll}
+              onWindUnitChange={reflectProfile.handlers.setWindUnit}
+              onDistanceUnitChange={reflectProfile.handlers.setDistanceUnit}
+              onWeeklyDigestChange={reflectProfile.handlers.setWeeklyDigestOn}
+              onResurfaceOldCapturesChange={
+                reflectProfile.handlers.setResurfaceOldCapturesOn
+              }
+              onPrivateModeChange={reflectProfile.handlers.setPrivateModeOn}
+              onIdentityFieldPress={() => router.push('/account' as never)}
+              onManagePlanPress={() => router.push('/account' as never)}
+              onPrivacyPress={() => router.push('/settings/privacy' as never)}
+              onHelpPress={() => router.push('/support' as never)}
+            />
+          ) : (
+            <IOSRegisterErrorState
+              glyph="person-circle-outline"
+              headline={
+                reflectProfile.error ? 'Profile unavailable' : 'Loading profile'
+              }
+              supportingText={
+                reflectProfile.error
+                  ? 'We could not load your profile right now. Try again in a moment.'
+                  : 'Loading your account details.'
+              }
+              primaryAction={{
+                label: reflectProfile.error ? 'Try again' : 'Refresh',
+                onPress: reflectProfile.refresh,
+              }}
+            />
+          )
         ) : (
           <ProfileView
             toolbarHeight={toolbarHeight}

@@ -128,6 +128,27 @@ interface Props {
   topInset?: number;
   /** Forwarded to the inner ScrollView (e.g. for scroll-driven toolbar hide). */
   onScroll?: React.ComponentProps<typeof ScrollView>['onScroll'];
+  /**
+   * Optional override for the empty-state copy when `seasons.length === 0`.
+   * Defaults to a sailing-flavored "No races yet · Add a race" callout that
+   * routes to `/(tabs)/races`. Per-interest copy (e.g. nursing "No shifts
+   * yet") is passed in by the production adapter.
+   */
+  emptyState?: RaceLogEmptyState;
+}
+
+/**
+ * Empty-state copy contract consumed by RaceLogScreen when there are no
+ * seasons to render. Glyph and copy come from the production adapter
+ * (per-interest); `onPrimaryActionPress` is wired by the parent screen
+ * because the adapter is data-layer-only and can't call the router.
+ */
+export interface RaceLogEmptyState {
+  glyph: keyof typeof Ionicons.glyphMap;
+  headline: string;
+  supportingText: string;
+  primaryActionLabel: string;
+  onPrimaryActionPress?: () => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -144,7 +165,17 @@ export function RaceLogScreen({
   bottomPad = 130,
   topInset = 0,
   onScroll,
+  emptyState,
 }: Props) {
+  const emptyCopy: RaceLogEmptyState = emptyState ?? {
+    glyph: 'boat-outline',
+    headline: 'No races yet',
+    supportingText:
+      "Add a race to start your season arc. Logged races appear here once you've debriefed them.",
+    primaryActionLabel: 'Add a race',
+    onPrimaryActionPress: () => router.push('/(tabs)/races' as never),
+  };
+
   return (
     <View style={styles.screen}>
       {showChrome && (
@@ -191,14 +222,14 @@ export function RaceLogScreen({
           // so usage isn't mis-read as an error condition. Out of scope
           // here; flagged on this commit.
           <IOSRegisterErrorState
-            glyph="boat-outline"
-            headline="No races yet"
-            supportingText={
-              "Add a race to start your season arc. Logged races appear here once you've debriefed them."
-            }
+            glyph={emptyCopy.glyph}
+            headline={emptyCopy.headline}
+            supportingText={emptyCopy.supportingText}
             primaryAction={{
-              label: 'Add a race',
-              onPress: () => router.push('/(tabs)/races' as never),
+              label: emptyCopy.primaryActionLabel,
+              onPress:
+                emptyCopy.onPrimaryActionPress ??
+                (() => router.push('/(tabs)/races' as never)),
             }}
           />
         ) : (
