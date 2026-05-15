@@ -6,7 +6,6 @@ import {
   type CardRaceData,
   type CardType
 } from '@/components/cards';
-import { IOS_COLORS } from '@/components/cards/constants';
 import { TimelineGridView } from '@/components/cards/TimelineGridView';
 import { openInterestSwitcher } from '@/components/InterestSwitcher';
 import { BlueprintWelcomeCard } from '@/components/races/BlueprintWelcomeCard';
@@ -34,7 +33,6 @@ import {
   RacesFloatingHeader,
   RealRacesCarousel,
   RegulatoryDigestCard,
-  SocialTimelineView,
   TeamLogisticsSection,
 } from '@/components/races';
 import { RaceListSection } from '@/components/races/RaceListSection';
@@ -46,7 +44,6 @@ import { TourStep } from '@/components/onboarding/TourStep';
 import { OnWaterTrackingView } from '@/components/races/OnWaterTrackingView';
 import { calculatePerformanceMetrics } from '@/components/races/PerformanceMetrics';
 import { PlanModeContent } from '@/components/races/plan';
-import { TacticalCalculations } from '@/components/races/TacticalDataOverlay';
 import { SeasonPickerModal } from '@/components/seasons/SeasonPickerModal';
 import { SeasonSettingsModal } from '@/components/seasons/SeasonSettingsModal';
 import SignupPromptModal from '@/components/auth/SignupPromptModal';
@@ -99,8 +96,6 @@ import { timelineStepsToCardRaceData } from '@/lib/timeline/timelineStepAdapter'
 import { compareTimelineItems } from '@/lib/races/timelineCompare';
 import { StepFilterBar, type StepFilters } from '@/components/step/StepFilterBar';
 import { StepDetailContent } from '@/components/step/StepDetailContent';
-// PeerTimelinesFooter peer sections now integrated into BlueprintProgressStrip
-import { BlueprintProgressStrip } from '@/components/blueprint/BlueprintProgressStrip';
 import { BlueprintPanelsStack } from '@/components/cards/BlueprintPanelsStack';
 import { ForYouSection } from '@/components/blueprint/ForYouSection';
 import { PublishBlueprintSheet } from '@/components/blueprint/PublishBlueprintSheet';
@@ -137,8 +132,8 @@ import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActionSheetIOS, ActivityIndicator, Animated, Dimensions, LayoutRectangle, Modal, Platform, Pressable, RefreshControl, ScrollView, Share, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import Reanimated, { useAnimatedStyle, useSharedValue, withTiming, withSequence, withDelay, withRepeat, runOnJS, Easing } from 'react-native-reanimated';
+import { ActionSheetIOS, ActivityIndicator, Dimensions, LayoutRectangle, Modal, Platform, Pressable, RefreshControl, ScrollView, Share, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import Reanimated, { useAnimatedStyle, useSharedValue, withTiming, withRepeat, runOnJS, Easing } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const logger = createLogger('RacesScreen');
@@ -156,9 +151,6 @@ const GUEST_FIRST_SESSION_DONE_KEY = '@betterat/guest_first_session_done';
 const SIGNUP_MODAL_TAPS_KEY = '@betterat/signup_modal_taps_since_shown';
 const SIGNUP_MODAL_COOLDOWN_MS = 24 * 60 * 60 * 1000; // 24 hours
 const SIGNUP_MODAL_TAP_THRESHOLD = 5;
-
-// Destructure tactical calculations for easy access
-const { calculateDistance, calculateBearing } = TacticalCalculations;
 
 // Types, constants, and utilities imported from @/lib/races:
 // - ActiveRaceSummary, RaceBriefData, RigPreset, RegulatoryDigestData, RegulatoryAcknowledgements
@@ -190,8 +182,8 @@ const EMPTY_RACES: any[] = [];
 
 export default function RacesScreen() {
   const auth = useAuth();
-  const { user, userProfile, signedIn, ready, isDemoSession, userType, isGuest, enterGuestMode, wasAuthenticated } = auth;
-  const { isTourActive, currentStep, triggerPricingPrompt } = useFeatureTourContext();
+  const { user, userProfile: _userProfile, signedIn, ready, isDemoSession, userType, isGuest, enterGuestMode, wasAuthenticated } = auth;
+  const { isTourActive: _isTourActive, currentStep: _currentStep, triggerPricingPrompt } = useFeatureTourContext();
   const eventConfig = useInterestEventConfig();
   const { currentInterest, effectiveInterestIds, viewMode, toggleDomainView, domainInterestIds, getDomainForInterest } = useInterest();
   const currentDomain = currentInterest ? getDomainForInterest(currentInterest.id) : null;
@@ -207,7 +199,7 @@ export default function RacesScreen() {
   const existingBlueprintsForInterest = userBlueprints?.filter(
     (bp) => bp.interest_id === currentInterest?.id,
   ) ?? [];
-  const existingBlueprint = existingBlueprintsForInterest[0] ?? null;
+  const _existingBlueprint = existingBlueprintsForInterest[0] ?? null;
 
   // Subscribed blueprints (for per-card blueprint chip lookup)
   const { data: subscribedBlueprints } = useSubscribedBlueprints(viewMode === 'domain' ? null : currentInterest?.id);
@@ -419,7 +411,7 @@ export default function RacesScreen() {
   const [showCalendarImport, setShowCalendarImport] = useState(false);
   const mainScrollViewRef = useRef<ScrollView>(null); // Main vertical ScrollView
   const raceCardsScrollViewRef = useRef<ScrollView>(null); // Horizontal race cards ScrollView
-  const demoRaceCardsScrollViewRef = useRef<ScrollView>(null); // Horizontal demo race cards ScrollView
+  const _demoRaceCardsScrollViewRef = useRef<ScrollView>(null); // Horizontal demo race cards ScrollView
   const hasAutoCenteredNextRace = useRef(false);
   // hasTriedSampleCreation and creatingSampleData removed — no longer auto-seeding
   const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -429,31 +421,17 @@ export default function RacesScreen() {
 
   // Two-zone layout constants: 70% hero (race cards), 30% detail cards
   // Cards should dominate the screen for easy viewing and swiping
-  const HEADER_HEIGHT = Platform.OS === 'ios' ? 140 : 120; // Including safe area, nav header, and venue display
-  const TAB_BAR_HEIGHT = 80; // Bottom tab bar
-  const AVAILABLE_HEIGHT = SCREEN_HEIGHT - HEADER_HEIGHT - TAB_BAR_HEIGHT;
-  const HERO_ZONE_HEIGHT = Math.floor(AVAILABLE_HEIGHT * 0.72); // 72% for race card + timeline dots
-  const DETAIL_ZONE_HEIGHT = AVAILABLE_HEIGHT - HERO_ZONE_HEIGHT; // Remaining 28% for detail cards
-  const RACE_CARD_HEIGHT = HERO_ZONE_HEIGHT - 50; // Leave room for timeline dots only (header moved outside)
-
   // Full-screen card dimensions - cards take up most of the screen
   // Calculate centering padding so cards snap to center of screen
   const MOBILE_CARD_WIDTH = Math.min(SCREEN_WIDTH - 32, 375); // Card width
   const MOBILE_CARD_GAP = 16; // Gap between cards (Apple HIG: sufficient space for shadows to breathe)
-  const MOBILE_CENTERING_PADDING = (SCREEN_WIDTH - MOBILE_CARD_WIDTH) / 2; // Padding to center cards
   const MOBILE_SNAP_INTERVAL = MOBILE_CARD_WIDTH + MOBILE_CARD_GAP;
 
   // Web dimensions - also use full-screen cards
-  const DESKTOP_RACE_CARD_WIDTH = Math.min(SCREEN_WIDTH - 32, 375);
-  const DESKTOP_RACE_CARD_TOTAL_WIDTH = DESKTOP_RACE_CARD_WIDTH + MOBILE_CARD_GAP;
 
   // Dynamic values - same for all platforms now (full-screen cards)
   const RACE_CARD_WIDTH = MOBILE_CARD_WIDTH;
   const RACE_CARD_TOTAL_WIDTH = MOBILE_SNAP_INTERVAL;
-
-  // State for horizontal scroll arrows
-  const [scrollX, setScrollX] = useState(0);
-  const [scrollContentWidth, setScrollContentWidth] = useState(0);
 
   const [regulatorySectionY, setRegulatorySectionY] = useState(0);
   const [logisticsSectionY, setLogisticsSectionY] = useState(0);
@@ -523,14 +501,14 @@ export default function RacesScreen() {
 
   // Live race execution state
   const [gpsPosition, setGpsPosition] = useState<any>(null);
-  const [gpsTrail, setGpsTrail] = useState<any[]>([]);
-  const [drawerExpanded, setDrawerExpanded] = useState(false);
-  const [isGPSTracking, setIsGPSTracking] = useState(false);
-  const [gpsTrackSessionId, setGpsTrackSessionId] = useState<string | null>(null);
+  const [_gpsTrail, _setGpsTrail] = useState<any[]>([]);
+  const [_drawerExpanded, _setDrawerExpanded] = useState(false);
+  const [isGPSTracking, _setIsGPSTracking] = useState(false);
+  const [gpsTrackSessionId, _setGpsTrackSessionId] = useState<string | null>(null);
   // sailorId is now provided by useSailorProfile hook below
   // showCoachSelectionModal, sharingStrategy, sharingRaceEventId are now provided by useStrategySharing hook below
   const [showBoatClassSelector, setShowBoatClassSelector] = useState(false);
-  const [addRaceCardDismissed, setAddRaceCardDismissed] = useState(false);
+  const [_addRaceCardDismissed, setAddRaceCardDismissed] = useState(false);
   const [sampleRaceDismissed, setSampleRaceDismissed] = useState(false);
   const updateRacePosition = useRaceConditions(state => state.updatePosition);
   const updateEnvironment = useRaceConditions(state => state.updateEnvironment);
@@ -555,7 +533,7 @@ export default function RacesScreen() {
   }, []);
 
   // Handler to dismiss the AddRaceCard
-  const handleDismissAddRaceCard = useCallback(async () => {
+  const _handleDismissAddRaceCard = useCallback(async () => {
     setAddRaceCardDismissed(true);
     await AsyncStorage.setItem(ADD_RACE_CARD_DISMISSED_KEY, 'true');
   }, []);
@@ -619,8 +597,8 @@ export default function RacesScreen() {
     setAcknowledgements: setRegattaAcknowledgements,
     toggleAcknowledgement,
     updateRaceBrief,
-    isLoading: isLoadingPreparation,
-    isSaving: isSavingPreparation,
+    isLoading: _isLoadingPreparation,
+    isSaving: _isSavingPreparation,
   } = useRacePreparation({
     regattaId: selectedRaceData?.id || null,
     autoSave: true,
@@ -638,7 +616,7 @@ export default function RacesScreen() {
   const {
     liveRaces,
     loading: liveRacesLoading,
-    isRefreshing: liveRacesRefreshing,
+    isRefreshing: _liveRacesRefreshing,
     refresh: refetchRaces,
   } = isGuest
       ? {
@@ -759,18 +737,18 @@ export default function RacesScreen() {
     }
   }, []);
 
-  const handleShowRegulatoryDigest = useCallback(() => {
+  const _handleShowRegulatoryDigest = useCallback(() => {
     scrollToPosition(regulatorySectionY);
   }, [regulatorySectionY, scrollToPosition]);
 
-  const handleShowRigPlanner = useCallback(() => {
+  const _handleShowRigPlanner = useCallback(() => {
     scrollToPosition(logisticsSectionY);
   }, [logisticsSectionY, scrollToPosition]);
 
   // handleAddRaceNavigation, handleQuickAddRaceSubmit, handleAddRaceDialogSave
   // are now provided by useAddRace hook
 
-  const handleOpenCalendarImport = useCallback(() => {
+  const _handleOpenCalendarImport = useCallback(() => {
     setShowCalendarImport(true);
   }, []);
 
@@ -905,10 +883,10 @@ export default function RacesScreen() {
     profile,
     nextRace,
     recentRaces,
-    recentTimerSessions,
-    performanceHistory,
-    boats,
-    fleets,
+    recentTimerSessions: _recentTimerSessions,
+    performanceHistory: _performanceHistory,
+    boats: _boats,
+    fleets: _fleets,
     loading,
     error,
     refreshing,
@@ -949,7 +927,7 @@ export default function RacesScreen() {
   );
 
   // GPS Venue Detection
-  const { currentVenue, isDetecting, confidence, error: venueError } = useVenueDetection();
+  const { currentVenue, isDetecting: _isDetecting, confidence, error: _venueError } = useVenueDetection();
 
   // Venue AI Insights (extracted to useVenueInsights hook)
   const {
@@ -969,12 +947,12 @@ export default function RacesScreen() {
   // Enrich races with real weather data
   // Use stable empty array fallback to avoid creating a new reference each render
   const racesForEnrichment = interestFilteredRaces || EMPTY_RACES;
-  const { races: enrichedRaces, loading: weatherEnrichmentLoading } = useEnrichedRaces(racesForEnrichment);
+  const { races: enrichedRaces, loading: _weatherEnrichmentLoading } = useEnrichedRaces(racesForEnrichment);
 
   // Social timeline: get all timelines (current user + followed users)
-  const { allTimelines, isLoading: loadingFollowedTimelines } = useFollowedTimelines(enrichedRaces);
+  const { allTimelines, isLoading: _loadingFollowedTimelines } = useFollowedTimelines(enrichedRaces);
   // allTimelines[0] is always the current user - check if there are OTHER users to browse
-  const hasFollowedUsers = allTimelines.length > 1;
+  const _hasFollowedUsers = allTimelines.length > 1;
 
   // Timeline switching state - 0 is your timeline, 1+ are followed users
   const [currentTimelineIndex, setCurrentTimelineIndex] = useState(0);
@@ -984,13 +962,13 @@ export default function RacesScreen() {
   // Race list data (extracted to useRaceListData hook)
   const {
     pastRaceIds,
-    normalizedLiveRaces,
+    normalizedLiveRaces: _normalizedLiveRaces,
     safeRecentRaces,
     safeNextRace,
     nextActionItem,
-    nextRacePreview,
+    nextRacePreview: _nextRacePreview,
     hasRealRaces,
-    recentRace,
+    recentRace: _recentRace,
   } = useRaceListData({
     liveRaces: interestFilteredRaces,
     enrichedRaces,
@@ -1011,7 +989,7 @@ export default function RacesScreen() {
   const { upcomingSessions: practiceSessions } = usePracticeSessions();
 
   // Real-time weather for next race
-  const { weather: raceWeather, loading: weatherLoading, error: weatherError } = useRaceWeather(
+  const { weather: raceWeather, loading: weatherLoading, error: _weatherError } = useRaceWeather(
     currentVenue,
     nextRace?.date
   );
@@ -1019,10 +997,10 @@ export default function RacesScreen() {
   // AI Venue Analysis state/handlers now provided by useVenueInsights hook above
 
   // Total race count (real or demo) for header
-  const displayRaceCount = hasRealRaces ? safeRecentRaces.length : MOCK_RACES.length;
+  const _displayRaceCount = hasRealRaces ? safeRecentRaces.length : MOCK_RACES.length;
 
   // Count upcoming items (start date in the future) — includes both races and steps
-  const upcomingRacesCount = useMemo(() => {
+  const _upcomingRacesCount = useMemo(() => {
     const now = new Date();
     return safeRecentRaces.filter((race: any) => {
       const raceDate = new Date(race.start_date || race.date);
@@ -1067,7 +1045,7 @@ export default function RacesScreen() {
     });
   }, [safeRecentRaces, activeFilterSeasonId, seasonRegattaIds]);
 
-  const seasonFilteredRacesCount = seasonFilteredRaces.length;
+  const _seasonFilteredRacesCount = seasonFilteredRaces.length;
 
   const seasonUpcomingRacesCount = useMemo(() => {
     const now = new Date();
@@ -1548,7 +1526,7 @@ export default function RacesScreen() {
   }, [raceBrief, selectedRaceData?.id]);
 
   // Use race brief sync for AI chat integration
-  const { getAIContext, isStale: isRaceBriefStale, refreshContext } = useRaceBriefSync({
+  const { getAIContext, isStale: isRaceBriefStale, refreshContext: _refreshContext } = useRaceBriefSync({
     regattaId: selectedRaceData?.id || null,
     raceBrief,
     enabled: true,
@@ -1560,10 +1538,10 @@ export default function RacesScreen() {
     isGenericDefaults: isGenericDefaultsFromMetadata,
     regulatoryDigest,
     courseOutlineGroups,
-    hasStrategyGenerated,
-    hasPostAnalysis,
-    hasCrewReady,
-    hasRegulatoryAcknowledged,
+    hasStrategyGenerated: _hasStrategyGenerated,
+    hasPostAnalysis: _hasPostAnalysis,
+    hasCrewReady: _hasCrewReady,
+    hasRegulatoryAcknowledged: _hasRegulatoryAcknowledged,
   } = useRacePreparationData({
     selectedRaceData,
     selectedRaceMarks,
@@ -1685,7 +1663,7 @@ export default function RacesScreen() {
   }, [currentInterest?.slug]);
 
   // Navigate to the comprehensive edit flow for the selected race
-  const handleEditSelectedRace = useCallback(() => {
+  const _handleEditSelectedRace = useCallback(() => {
     if (!selectedRaceId) return;
     handleEditRace(selectedRaceId);
   }, [handleEditRace, selectedRaceId]);
@@ -1698,7 +1676,7 @@ export default function RacesScreen() {
     });
   }, []);
 
-  const handleAddPractice = useCallback(async () => {
+  const _handleAddPractice = useCallback(async () => {
     if (!user?.id || !currentInterest?.id) return;
 
     try {
@@ -1914,7 +1892,7 @@ export default function RacesScreen() {
   }, [user?.id, currentInterest?.id, queryClient]);
 
   // Quick-create a race day checklist step, auto-dated from the nearest upcoming race
-  const handleAddRaceDayChecklist = useCallback(async () => {
+  const _handleAddRaceDayChecklist = useCallback(async () => {
     if (!user?.id || !currentInterest?.id) return;
 
     try {
@@ -2007,7 +1985,7 @@ export default function RacesScreen() {
   }, [user?.id, currentInterest?.id, liveRaces, queryClient]);
 
   // Quick-create a step with a specific event subtype (e.g. Nutrition, Strength)
-  const handleAddStepWithSubtype = useCallback(async (subtypeId: string, subtypeLabel: string) => {
+  const _handleAddStepWithSubtype = useCallback(async (subtypeId: string, subtypeLabel: string) => {
     if (!user?.id || !currentInterest?.id) return;
 
     try {
@@ -2424,7 +2402,7 @@ export default function RacesScreen() {
   }, [orderedBaseCardGridRaces, deleteRaceById, queryClient, selectedRaceId, toast]);
 
   // Delete the currently selected race with confirmation
-  const handleDeleteSelectedRace = useCallback(() => {
+  const _handleDeleteSelectedRace = useCallback(() => {
     if (!selectedRaceId) {
       return;
     }
@@ -3033,14 +3011,14 @@ export default function RacesScreen() {
     completedRaceName,
     completedRaceId,
     completedSessionGpsPoints,
-    userPostRaceSession,
-    loadingUserPostRaceSession,
+    userPostRaceSession: _userPostRaceSession,
+    loadingUserPostRaceSession: _loadingUserPostRaceSession,
     handleOpenPostRaceInterviewManually,
     handleRaceComplete,
     handlePostRaceInterviewComplete,
     handleClosePostRaceInterview,
-    setShowPostRaceInterview,
-    setCompletedRaceName,
+    setShowPostRaceInterview: _setShowPostRaceInterview,
+    setCompletedRaceName: _setCompletedRaceName,
   } = usePostRaceInterview({
     selectedRaceId,
     selectedRaceData,
@@ -3074,16 +3052,16 @@ export default function RacesScreen() {
 
   // Add race (extracted to useAddRace hook)
   const {
-    showAddRaceSheet,
-    isAddingRace,
-    familyButtonExpanded,
+    showAddRaceSheet: _showAddRaceSheet,
+    isAddingRace: _isAddingRace,
+    familyButtonExpanded: _familyButtonExpanded,
     showSignupPrompt,
     handleShowAddRaceSheet,
-    handleCloseAddRaceSheet,
+    handleCloseAddRaceSheet: _handleCloseAddRaceSheet,
     handleAddRaceNavigation,
-    handleQuickAddRaceSubmit,
-    handleAddRaceDialogSave,
-    setFamilyButtonExpanded,
+    handleQuickAddRaceSubmit: _handleQuickAddRaceSubmit,
+    handleAddRaceDialogSave: _handleAddRaceDialogSave,
+    setFamilyButtonExpanded: _setFamilyButtonExpanded,
     setShowSignupPrompt,
   } = useAddRace({
     refetchRaces,
@@ -3216,11 +3194,11 @@ export default function RacesScreen() {
   // Race documents hook (handles fetching, uploading, and deleting)
   const {
     documents: raceDocuments,
-    loading: loadingRaceDocuments,
-    error: raceDocumentsError,
+    loading: _loadingRaceDocuments,
+    error: _raceDocumentsError,
     isUploading: isUploadingRaceDocument,
     typePickerVisible: documentTypePickerVisible,
-    refresh: handleRefreshRaceDocuments,
+    refresh: _handleRefreshRaceDocuments,
     upload: handleUploadRaceDocument,
     selectType: handleDocumentTypeOptionSelect,
     dismissTypePicker: handleDismissDocumentTypePicker,
@@ -3302,7 +3280,7 @@ export default function RacesScreen() {
     });
   }, [raceDocuments]);
 
-  const initialConditionsSnapshot = useMemo(() => {
+  const _initialConditionsSnapshot = useMemo(() => {
     if (!selectedRaceData && !matchedEnrichedRace) {
       return null;
     }
@@ -3352,10 +3330,10 @@ export default function RacesScreen() {
 
   // Layout data (extracted to useRaceLayoutData hook)
   const {
-    courseHeading,
-    layoutWindData,
-    layoutCurrentData,
-    vhfChannel,
+    courseHeading: _courseHeading,
+    layoutWindData: _layoutWindData,
+    layoutCurrentData: _layoutCurrentData,
+    vhfChannel: _vhfChannel,
   } = useRaceLayoutData({
     raceCourseForConsole,
     windSnapshot,
@@ -3365,9 +3343,9 @@ export default function RacesScreen() {
 
   // Next mark calculations (extracted to useNextMarkData hook)
   const {
-    nextMarkForCalculations,
-    overlayNextMark,
-    quickActionNextMark,
+    nextMarkForCalculations: _nextMarkForCalculations,
+    overlayNextMark: _overlayNextMark,
+    quickActionNextMark: _quickActionNextMark,
   } = useNextMarkData({
     raceMarks: selectedRaceMarks,
     gpsPosition,
@@ -3385,7 +3363,7 @@ export default function RacesScreen() {
   });
 
   // Coach context (extracted to useCoachContext hook)
-  const { coachContext } = useCoachContext({
+  const { coachContext: _coachContext } = useCoachContext({
     selectedRaceId,
     selectedRaceData,
     raceCourseForConsole,
@@ -3413,7 +3391,7 @@ export default function RacesScreen() {
   }, [fallbackPosition?.latitude, fallbackPosition?.longitude, hasActiveRace]);
 
   // Race phase input (extracted to useRacePhaseInput hook)
-  const { phaseDetectionMarks, racePhaseInput } = useRacePhaseInput({
+  const { phaseDetectionMarks: _phaseDetectionMarks, racePhaseInput } = useRacePhaseInput({
     raceCourseForConsole,
     selectedRaceData,
     gpsPosition,
@@ -3422,13 +3400,13 @@ export default function RacesScreen() {
     boatSpeedKnots,
   });
 
-  const racePhaseContext = useRacePhaseDetection(racePhaseInput);
+  const _racePhaseContext = useRacePhaseDetection(racePhaseInput);
 
   // Debrief data (extracted to useRaceDebriefData hook)
   const {
     currentGpsTrack,
     currentSplitTimes,
-    timeToStartSeconds,
+    timeToStartSeconds: _timeToStartSeconds,
   } = useRaceDebriefData({
     selectedRaceData,
     timeToStartMinutes,
@@ -3730,7 +3708,7 @@ export default function RacesScreen() {
     selectedRaceWeather,
   ]);
 
-  const handlePositionUpdate = useCallback((position: any) => {
+  const _handlePositionUpdate = useCallback((position: any) => {
     const speedKnots =
       typeof position.speed === 'number'
         ? position.speed * 1.94384
