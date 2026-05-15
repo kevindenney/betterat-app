@@ -131,7 +131,7 @@ interface Props {
   /**
    * Optional override for the empty-state copy when `seasons.length === 0`.
    * Defaults to a sailing-flavored "No races yet · Add a race" callout that
-   * routes to `/(tabs)/races`. Per-interest copy (e.g. nursing "No shifts
+   * routes to `/(tabs)/practice`. Per-interest copy (e.g. nursing "No shifts
    * yet") is passed in by the production adapter.
    */
   emptyState?: RaceLogEmptyState;
@@ -173,7 +173,7 @@ export function RaceLogScreen({
     supportingText:
       "Add a race to start your season arc. Logged races appear here once you've debriefed them.",
     primaryActionLabel: 'Add a race',
-    onPrimaryActionPress: () => router.push('/(tabs)/races' as never),
+    onPrimaryActionPress: () => router.push('/(tabs)/practice' as never),
   };
 
   return (
@@ -229,7 +229,7 @@ export function RaceLogScreen({
               label: emptyCopy.primaryActionLabel,
               onPress:
                 emptyCopy.onPrimaryActionPress ??
-                (() => router.push('/(tabs)/races' as never)),
+                (() => router.push('/(tabs)/practice' as never)),
             }}
           />
         ) : (

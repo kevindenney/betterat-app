@@ -171,7 +171,7 @@ export function CrossInterestSuggestions({
                   onPress={async () => {
                     const info = createdSteps.get(suggestion.id)!;
                     await switchInterest(info.interestSlug);
-                    router.push(`/(tabs)/races?selected=${info.stepId}` as any);
+                    router.push(`/(tabs)/practice?selected=${info.stepId}` as any);
                   }}
                   activeOpacity={0.6}
                 >

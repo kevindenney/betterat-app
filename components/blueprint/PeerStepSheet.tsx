@@ -122,7 +122,7 @@ export function PeerStepSheet({
       onOpenAdoptedStep(alreadyAdoptedStepId);
       return;
     }
-    router.push(`/(tabs)/races?selected=${alreadyAdoptedStepId}` as any);
+    router.push(`/(tabs)/practice?selected=${alreadyAdoptedStepId}` as any);
   };
 
   const handleViewProfile = () => {

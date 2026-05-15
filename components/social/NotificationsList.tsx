@@ -377,7 +377,7 @@ export function NotificationsList({
           }
           break;
         case 'step_suggested':
-          router.push('/(tabs)/races' as any);
+          router.push('/(tabs)/practice' as any);
           break;
       }
     },

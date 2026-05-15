@@ -193,7 +193,7 @@ export function ConceptDetail({ slug }: ConceptDetailProps) {
         },
       });
       showAlert('Step created', 'Added to your timeline.');
-      router.push(`/(tabs)/races?selected=${step.id}` as any);
+      router.push(`/(tabs)/practice?selected=${step.id}` as any);
     } catch (err) {
       showAlert('Step creation failed', (err as Error).message);
     } finally {
@@ -224,7 +224,7 @@ export function ConceptDetail({ slug }: ConceptDetailProps) {
         },
       });
       showAlert('Step created', 'Added to your timeline.');
-      router.push(`/(tabs)/races?selected=${step.id}` as any);
+      router.push(`/(tabs)/practice?selected=${step.id}` as any);
     } catch (err) {
       showAlert('Step creation failed', (err as Error).message);
     } finally {

@@ -19,7 +19,6 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { useAuth } from '@/providers/AuthProvider';
 import { useInterest, type Interest } from '@/providers/InterestProvider';
 import { discoverBlueprints, type DiscoveredBlueprint } from '@/services/BlueprintService';
 
@@ -39,7 +38,6 @@ const C = {
 export default function InterestLandingPage() {
   const { interest: slug } = useLocalSearchParams<{ interest: string }>();
   const router = useRouter();
-  const { user } = useAuth();
   const { allInterests, switchInterest, currentInterest, userInterests, addInterest } = useInterest();
 
   const [loading, setLoading] = useState(true);
@@ -71,7 +69,7 @@ export default function InterestLandingPage() {
     try {
       if (!hasInterest) await addInterest(slug);
       await switchInterest(slug);
-      router.replace('/(tabs)/races');
+      router.replace('/(tabs)/practice');
     } finally {
       setSwitching(false);
     }

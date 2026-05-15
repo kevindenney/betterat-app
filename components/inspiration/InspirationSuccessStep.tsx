@@ -46,7 +46,7 @@ export function InspirationSuccessStep({
       console.warn('[InspirationSuccessStep] switchInterest failed:', err);
     }
     onClose();
-    router.push('/(tabs)/races');
+    router.push('/(tabs)/practice');
   };
 
   const handleViewBlueprint = async () => {

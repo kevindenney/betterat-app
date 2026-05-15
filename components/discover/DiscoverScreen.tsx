@@ -91,7 +91,7 @@ export function DiscoverScreen() {
             if (buttonIndex === 1) {
               // Copy to new race
               router.push({
-                pathname: '/(tabs)/races',
+                pathname: '/(tabs)/practice',
                 params: {
                   templateSailorId: sailorId,
                   templateRaceId: raceId,
@@ -101,7 +101,7 @@ export function DiscoverScreen() {
             } else if (buttonIndex === 2) {
               // Copy to existing race
               router.push({
-                pathname: '/(tabs)/races',
+                pathname: '/(tabs)/practice',
                 params: {
                   templateSailorId: sailorId,
                   templateRaceId: raceId,
@@ -122,7 +122,7 @@ export function DiscoverScreen() {
               text: 'Copy to New Race',
               onPress: () => {
                 router.push({
-                  pathname: '/(tabs)/races',
+                  pathname: '/(tabs)/practice',
                   params: {
                     templateSailorId: sailorId,
                     templateRaceId: raceId,
@@ -135,7 +135,7 @@ export function DiscoverScreen() {
               text: 'Copy to Existing Race',
               onPress: () => {
                 router.push({
-                  pathname: '/(tabs)/races',
+                  pathname: '/(tabs)/practice',
                   params: {
                     templateSailorId: sailorId,
                     templateRaceId: raceId,

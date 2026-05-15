@@ -64,7 +64,7 @@ export function TemplateActionBar({
       'This will copy the strategy, rig settings, and sail selection to one of your races.\n\nWould you like to proceed?',
       () => {
         router.push({
-          pathname: '/(tabs)/races',
+          pathname: '/(tabs)/practice',
           params: { templateSourceRaceId: raceId },
         });
       }
@@ -101,7 +101,7 @@ export function TemplateActionBar({
 
         // Navigate to the races tab with the new race selected
         router.replace({
-          pathname: '/(tabs)/races',
+          pathname: '/(tabs)/practice',
           params: { selected: result.raceId },
         });
       } else {

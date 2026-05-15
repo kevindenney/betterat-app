@@ -51,9 +51,9 @@ const isProgramWorkspace = (
  * Get the route to the user's primary timeline / event tab.
  *
  * - Org admins in a program workspace land on `/(tabs)/events`.
- * - Learners (sailing, nursing, etc.) land on `/(tabs)/races` — the file-based
- *   route segment is sailing-era, but the tab *title* is vocabulary-resolved
- *   (e.g. "Race" / "Clinical" / "Practice") via `getEventTabTitle`.
+ * - Learners (sailing, nursing, etc.) land on `/(tabs)/practice`, the canonical
+ *   product route. `/(tabs)/races` remains the legacy implementation route and
+ *   compatibility alias while the route tree is migrated.
  *
  * This helper centralizes the route literal so the future rename tracked as
  * audit finding E5 only needs to touch one place.
@@ -65,7 +65,7 @@ export const getEventTabRoute = (workspaceContext?: WorkspaceNavContext): string
   ) {
     return '/(tabs)/events';
   }
-  return '/(tabs)/races';
+  return '/(tabs)/practice';
 };
 
 // =============================================================================
@@ -169,7 +169,7 @@ export const getTabsForUserType = (
 
 // Navigation items by persona (used by NavigationDrawer and WebSidebarNav)
 export const SAILOR_NAV_ITEMS: NavItem[] = [
-  { key: 'races', label: 'Race', route: '/(tabs)/races', icon: 'flag-outline' },
+  { key: 'races', label: 'Race', route: '/(tabs)/practice', icon: 'flag-outline' },
   { key: 'playbook', label: 'Playbook', route: '/(tabs)/playbook', icon: 'book-outline' },
   { key: 'discover', label: 'Discover', route: '/(tabs)/discover', icon: 'compass-outline' },
   { key: 'reflect', label: 'Profile', route: '/(tabs)/reflect', icon: 'person-circle-outline' },
