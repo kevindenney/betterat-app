@@ -42,6 +42,11 @@ export {
 } from './RaceLogScreen';
 export { LoadingNarration } from './LoadingNarration';
 export {
+  GetInspiredRunningScreen,
+  GET_INSPIRED_NARRATION_LINES,
+  GET_INSPIRED_STAGE_DURATIONS_MS,
+} from './GetInspiredRunningScreen';
+export {
   TrophyScreen,
   TROPHY_BG,
   type TrophyVariant,

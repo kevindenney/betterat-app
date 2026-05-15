@@ -19,6 +19,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
 import { extractInspiration } from '@/services/InspirationService';
 import { showAlert } from '@/lib/utils/crossPlatformAlert';
+import { FEATURE_FLAGS } from '@/lib/featureFlags';
+import { GetInspiredRunningScreen } from '@/components/ios-register';
 import type {
   InspirationExtraction,
   InspirationContentType,
@@ -106,6 +108,28 @@ export function InspirationCaptureStep({
       setLoadingMessage('');
     }
   }, [inputValue, mode, userInterestSlugs, onComplete]);
+
+  // Render switch: when GET_INSPIRED_IOS_REGISTER is on and the extraction
+  // pipeline is running, swap the entire capture form for the canonical
+  // iOS-register running-state surface. Flag-off keeps the original
+  // button-local spinner + timed text path unchanged (see the analyze
+  // button render below).
+  //
+  // Temporary onStop: this commit only clears local loading state to
+  // dismiss the surface visually. The actual in-flight network abort
+  // (AbortController + edge-function teardown) lands in Commit 3 per
+  // GET_INSPIRED_COMMIT_3_ABORT_SEMANTICS.md. Until then the extraction
+  // request continues in the background and its result is dropped when
+  // it returns.
+  if (loading && FEATURE_FLAGS.GET_INSPIRED_IOS_REGISTER) {
+    return (
+      <GetInspiredRunningScreen
+        embedded
+        submittedUrl={inputValue.trim()}
+        onStop={() => setLoading(false)}
+      />
+    );
+  }
 
   const hero = HERO[mode];
 
