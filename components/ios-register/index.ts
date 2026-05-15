@@ -56,3 +56,13 @@ export {
   type ConceptStatePillKind,
   type ConceptReflection,
 } from './ConceptDetailScreen';
+export {
+  ProfileScreen,
+  type ProfileHero,
+  type ProfileInterest,
+  type ProfileInterestKind,
+  type ProfileIdentityFields,
+  type ProfilePreferencesFields,
+  type ProfileReflectFields,
+  type ProfilePlan,
+} from './ProfileScreen';

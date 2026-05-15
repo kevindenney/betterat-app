@@ -91,24 +91,17 @@
       "type": "library",
       "wire_up": "real",
       "preview_status": "shipped",
-      "canonical_status": "pending",
+      "canonical_status": "staged",
+      "build_only_commit": "a6c27c70",
+      "feature_flag": "CONCEPT_IOS_REGISTER",
+      "preview_route": "/concept-detail-ios",
+      "variants": [
+        "new",
+        "dormant",
+        "breakthrough"
+      ],
       "entry_points": [
         "Tap any concept card on Playbook iOS shelf",
-        "/dev/ios-previews"
-      ],
-      "design_handoff_html": ""
-    },
-    {
-      "id": "concept-detail-ios-variants",
-      "title": "Concept detail iOS — state variants (new / dormant / breakthrough)",
-      "route": "/concept-detail-ios",
-      "user": "Felix/Emily",
-      "user_role": "practitioner",
-      "type": "library",
-      "wire_up": "placeholder",
-      "preview_status": "shipped",
-      "canonical_status": "pending",
-      "entry_points": [
         "/concept-detail-ios",
         "Future /concept-ios/<slug> render switch via FEATURE_FLAGS.CONCEPT_IOS_REGISTER"
       ],
@@ -139,7 +132,9 @@
       "type": "review",
       "wire_up": "placeholder",
       "preview_status": "shipped",
-      "canonical_status": "pending",
+      "canonical_status": "staged",
+      "build_only_commit": "316c5486",
+      "feature_flag": "RACE_LOG_IOS_REGISTER",
       "entry_points": [
         "/race-log-ios",
         "Reflect tab segment via future FEATURE_FLAGS.RACE_LOG_IOS_REGISTER render switch"
@@ -154,13 +149,15 @@
       "user_role": "practitioner",
       "type": "profile",
       "wire_up": "placeholder",
-      "preview_status": "pending",
-      "canonical_status": "pending",
+      "preview_status": "shipped",
+      "canonical_status": "staged",
+      "feature_flag": "PROFILE_IOS_REGISTER",
+      "preview_route": "/profile-ios",
       "entry_points": [
         "/profile-ios",
-        "Reflect tab segment via future FEATURE_FLAGS.PROFILE_IOS_REGISTER render switch"
+        "Reflect tab segment via future FEATURE_FLAGS.PROFILE_IOS_REGISTER render switch (paired with RACE_LOG_IOS_REGISTER)"
       ],
-      "design_handoff_html": ""
+      "design_handoff_html": "Profile - Felix sailing - iOS register.html"
     },
     {
       "id": "discover-paths-ios",
@@ -187,8 +184,17 @@
       "type": "composition",
       "wire_up": "placeholder",
       "preview_status": "shipped",
-      "canonical_status": "pending",
+      "canonical_status": "staged",
+      "build_only_commit": "7c2dfeeb",
+      "feature_flag": "GET_INSPIRED_IOS_REGISTER",
+      "preview_route": "/get-inspired-ios-running",
+      "variants": [
+        "empty",
+        "filled",
+        "running"
+      ],
       "entry_points": [
+        "/get-inspired-ios-running",
         "/dev/ios-previews"
       ],
       "design_handoff_html": ""
@@ -202,8 +208,18 @@
       "type": "review",
       "wire_up": "placeholder",
       "preview_status": "shipped",
-      "canonical_status": "pending",
+      "canonical_status": "staged",
+      "build_only_commit": "496d2481",
+      "feature_flag": "TROPHY_IOS_REGISTER",
+      "variants": [
+        "first",
+        "canonical",
+        "mid-career",
+        "named-absence",
+        "empty"
+      ],
       "entry_points": [
+        "/trophy-ios",
         "/dev/ios-previews"
       ],
       "design_handoff_html": ""

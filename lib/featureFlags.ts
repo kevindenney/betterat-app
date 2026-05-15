@@ -289,6 +289,21 @@ export const FEATURE_FLAGS = {
    * EXPO_PUBLIC_FF_CONCEPT_IOS_REGISTER=false to revert.
    */
   CONCEPT_IOS_REGISTER: readBooleanEnv('EXPO_PUBLIC_FF_CONCEPT_IOS_REGISTER', true),
+
+  /**
+   * Stage the Profile iOS register surface — third sub-tab under Reflect
+   * (Progress / Race Log / Profile). Felix's account surface: identity,
+   * interests, preferences, plan, account exits. Practitioner-side of
+   * architecture decision #2 — standard iOS settings density applies; not
+   * faculty-density. No earned-register exception (Profile is utility
+   * chrome, not poetry).
+   *
+   * The Reflect-tab cutover commit ships this together with Race Log
+   * (already staged). Until then the surface is reachable only via the
+   * preview route at /profile-ios. Defaults true; flip to false via
+   * EXPO_PUBLIC_FF_PROFILE_IOS_REGISTER=false to revert.
+   */
+  PROFILE_IOS_REGISTER: readBooleanEnv('EXPO_PUBLIC_FF_PROFILE_IOS_REGISTER', true),
 } as const;
 
 // =============================================================================
