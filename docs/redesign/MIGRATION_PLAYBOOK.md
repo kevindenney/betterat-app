@@ -141,6 +141,7 @@ The staging audit caught real queue/state problems: Profile was initially missed
 - Ban preview wrappers from production mounts. Reflect's first visual cutover proved that an embedded preview can look correct while leaking sample fixtures across interests.
 - Treat production imports from `app/` as a hard stop in specs, not an editorial choice. The Get Inspired Commit 2 spec exhibited the same structural defect as the original Reflect data-wiring specs; see `CUTOVER_PATTERN.md` for the rule.
 - Verify fix commits in git history, not just in the simulator. See `CUTOVER_PATTERN.md` for the git-log verification rule, banked after the Race Log segment-name fix shipped to the working tree but not to history.
+- Track files at task-completion, not just at session-end. Codex doc-creation tasks should include explicit `git add` and commit steps for the files they produce instead of assuming downstream commits will sweep them in.
 - Calibrate agent roles around repo-state verification. See `AGENT_COORDINATION_NOTES.md` for the finding that Codex specs and audits need explicit file/type/hash checks at write time, while Claude Code should keep stopping on spec/repo contradictions.
 
 ## Relationship To CUTOVER_PATTERN.md

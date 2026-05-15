@@ -203,6 +203,23 @@ Case study:
 - The edit was never committed, so it was not durable in git history.
 - `CONSISTENCY_AUDIT.md` caught the gap only by cross-referencing the claimed fix against `git log`.
 
+## File-tracking verification
+
+After every doc-creation or spec-creation task, verify the new files are tracked before moving on.
+
+Rule:
+
+- Run `git status --short | grep '^??'`
+- Confirm no newly created deliverable files are sitting untracked
+- If new files exist, make an explicit tracking commit before starting the next task
+- Do not assume later commits will sweep in docs, specs, snippets, or audit outputs
+
+Case study:
+
+- Recovery commit `c539c2ed` tracked 46 migration files that had accumulated locally during the 2026-05-15 session.
+- The files included `docs/redesign/specs/`, `docs/redesign/snippets/`, cutover plans, work plans, audits, `SESSION_STATE.md`, and `EXPORT_MANIFEST.json`.
+- Several commits on `origin/main` already referenced those spec paths, but the files did not exist in git history until the recovery commit.
+
 ## Lint-staged gotcha
 
 Repo behavior:

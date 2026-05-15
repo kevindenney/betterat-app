@@ -38,11 +38,21 @@ Reality: this repeated the same structural defect as the original Reflect data-w
 
 Resolution: Claude Code stopped before editing. The correct path is to extract `GetInspiredRunningScreen` into a kit module before the production render switch mounts it.
 
+### Untracked Migration Docs
+
+Claim: the migration docs and specs created during the 2026-05-15 session were available because they existed on disk and were referenced by later commits.
+
+Reality: 46 files, including `SESSION_STATE.md`, cutover plans, work plans, `EXPORT_MANIFEST.json`, all `docs/redesign/specs/`, and all `docs/redesign/snippets/`, were untracked. They were readable locally by agents and tools, but absent from git history. If the working tree had been lost, the session's documentation system and the specs referenced by multiple commits would have been lost too.
+
+Resolution: emergency commit `c539c2ed` tracked the accumulated files as-is. The gap surfaced only because `git status --short` after `775b5a9c` showed the long untracked list.
+
 ## Process Implication
 
 When Codex writes specs that reference specific files, types, fields, table names, or columns, the prompt should require explicit repo verification at spec-write time. The verification step is mandatory: read the file, check the exported type, confirm the table/column exists, and then write the spec. Inference from memory is not enough.
 
 When Codex writes cutover specs that introduce a production mount, the spec-writing process must verify that production code does not import from `app/`. If the preview-route component encapsulates the UI being mounted, the spec must either require extracting it into a kit component as part of the cutover, or confirm that the import is only from a kit module such as `components/ios-register/`.
+
+When any agent creates new files as part of a task, task-completion verification must include `git status --short | grep '^??'` to identify untracked files. Any new files must be explicitly tracked via `git add` and committed before the next task begins. This applies especially to doc-creation, spec-creation, and audit-output tasks where the deliverable is the new file itself. The `c539c2ed` recovery commit tracked 46 files that had accumulated over the session while commits on `origin/main` referenced spec paths that did not yet exist in git history.
 
 ## Execution Implication
 
