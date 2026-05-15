@@ -1,0 +1,1204 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=1520" />
+<title>BetterAt · Plan Tab · Three States — 2026-05-15</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css" />
+<style>
+  :root {
+    /* iOS system palette — matched to Practice Timeline canonical */
+    --ios-blue:        #007AFF;
+    --ios-blue-tint:   rgba(0, 122, 255, 0.10);
+    --ios-blue-strong: rgba(0, 122, 255, 0.18);
+    --ios-coral:       #FF6B6B;
+    --ios-coral-tint:  rgba(255, 107, 107, 0.10);
+    --ios-green:       #34C759;
+    --ios-green-tint:  rgba(52, 199, 89, 0.14);
+    --ios-purple:      #5856D6;
+
+    --gray-6:   #F2F2F7;
+    --gray-5:   #E5E5EA;
+    --gray-4:   #D1D1D6;
+    --gray-3:   #C7C7CC;
+    --gray-2:   #AEAEB2;
+    --gray-1:   #8E8E93;
+    --label:    #1C1C1E;
+    --label-2:  #3C3C43;
+    --label-3:  rgba(60, 60, 67, 0.60);
+    --label-4:  rgba(60, 60, 67, 0.30);
+
+    /* Warm review surface — carried from prior canonicals */
+    --stage:          #EFEAD8;
+    --stage-text:     #6B6558;
+    --stage-ink:      #2A2824;
+    --stage-line:     rgba(34, 30, 20, 0.12);
+    --stage-line-soft: rgba(34, 30, 20, 0.06);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display",
+                 "Helvetica Neue", Helvetica, Arial, sans-serif;
+    color: var(--label);
+    background: var(--stage);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+  button { font-family: inherit; }
+
+  /* ============= Page chrome ============= */
+  .page { min-width: 1520px; padding: 56px 48px 96px; }
+  .page-head { max-width: 1420px; margin: 0 auto 48px; }
+  .page-head .eyebrow {
+    font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--stage-text); margin: 0 0 12px;
+  }
+  .page-head h1 {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 32px; line-height: 1.15; font-weight: 500;
+    letter-spacing: -0.015em; margin: 0 0 14px; color: var(--stage-ink);
+  }
+  .page-head h1 em { font-style: italic; }
+  .page-head p {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 17px; line-height: 1.55;
+    color: var(--stage-text); margin: 0; max-width: 1100px;
+    text-wrap: pretty;
+  }
+  .page-head p em { font-style: italic; }
+  .page-head p + p { margin-top: 12px; }
+  .page-head .crumbs {
+    display: flex; gap: 10px; align-items: center; margin: 22px 0 0; flex-wrap: wrap;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+    font-size: 12px; color: var(--stage-text); letter-spacing: 0.02em;
+  }
+  .page-head .crumbs .pill {
+    padding: 3px 10px; border-radius: 999px;
+    border: 0.5px solid var(--stage-line);
+    background: rgba(255,255,255,0.4);
+  }
+  .page-head .crumbs .sep { color: var(--stage-line); }
+
+  .strip-head {
+    max-width: 1420px;
+    margin: 36px auto 22px;
+    padding-top: 24px;
+    border-top: 0.5px solid var(--stage-line);
+  }
+  .strip-head .eyebrow {
+    font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--stage-text); margin: 0 0 8px;
+  }
+  .strip-head h2 {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 22px; line-height: 1.25; font-weight: 500;
+    letter-spacing: -0.01em; margin: 0 0 8px; color: var(--stage-ink);
+  }
+  .strip-head h2 em { font-style: italic; }
+  .strip-head p {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 15px; line-height: 1.55;
+    color: var(--stage-text); margin: 0; max-width: 980px;
+    text-wrap: pretty;
+  }
+
+  .row {
+    max-width: 1420px;
+    margin: 0 auto;
+    display: flex;
+    gap: 48px;
+    align-items: flex-start;
+    justify-content: center;
+  }
+  .col { display: flex; flex-direction: column; align-items: center; gap: 16px; }
+  .col .caption-block { text-align: center; }
+  .col .caption {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+    font-size: 11px; letter-spacing: 0.10em;
+    text-transform: uppercase; color: var(--stage-text);
+  }
+  .col .caption strong { color: var(--stage-ink); font-weight: 600; }
+  .col .frame-label {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 18px; font-weight: 500; letter-spacing: -0.2px;
+    color: var(--stage-ink); margin: 0 0 4px;
+  }
+  .col .frame-label em { font-style: italic; }
+  .col .frame-sub {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 13px; font-style: italic;
+    color: var(--stage-text); margin: 0;
+    max-width: 360px; text-wrap: pretty; line-height: 1.4;
+  }
+
+  /* ============= Phone shell ============= */
+  .phone {
+    width: 393px;
+    height: 852px;
+    background: var(--gray-6);
+    border-radius: 56px;
+    border: 1px solid rgba(0, 0, 0, 0.18);
+    box-shadow:
+      0 30px 80px -40px rgba(34, 30, 20, 0.32),
+      0 2px 0 rgba(255,255,255,0.5) inset;
+    overflow: hidden;
+    position: relative;
+    isolation: isolate;
+  }
+  .phone .notch {
+    position: absolute; top: 11px; left: 50%; transform: translateX(-50%);
+    width: 116px; height: 34px; background: #0F0E0C; border-radius: 20px; z-index: 40;
+  }
+  .statusbar {
+    position: absolute; top: 0; left: 0; right: 0; height: 50px;
+    padding: 16px 32px 0; display: flex; align-items: center; justify-content: space-between;
+    font-weight: 600; font-size: 15px; color: #0A0A0A; z-index: 30; pointer-events: none;
+  }
+  .statusbar .right { display: flex; gap: 6px; align-items: center; }
+  .statusbar .right i { font-size: 15px; }
+  .home-indicator {
+    position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%);
+    width: 134px; height: 5px; border-radius: 3px;
+    background: rgba(0, 0, 0, 0.30); z-index: 45; pointer-events: none;
+  }
+
+  /* ============= Screen ground ============= */
+  .screen {
+    position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+    overflow: hidden;
+    padding-top: 50px;
+    background: var(--gray-6);
+  }
+
+  /* ============= Top header strip ============= */
+  .top-header {
+    padding: 8px 18px 10px;
+    display: flex; align-items: center; justify-content: space-between;
+    height: 52px;
+  }
+  .top-header .interest {
+    display: inline-flex; align-items: baseline; gap: 8px;
+  }
+  .top-header .interest .name {
+    font-size: 17px; font-weight: 600; letter-spacing: -0.25px;
+    color: var(--label);
+  }
+  .top-header .interest .switcher {
+    font-size: 13px; color: var(--label-3);
+    display: inline-flex; align-items: center; gap: 2px;
+  }
+  .top-header .interest .switcher i { font-size: 14px; margin-left: -2px; }
+  .top-header .step-counter {
+    font-size: 13px; font-weight: 500;
+    color: var(--label-3); letter-spacing: -0.05px;
+    font-variant-numeric: tabular-nums;
+  }
+  .top-header .avatar {
+    width: 32px; height: 32px; border-radius: 50%;
+    background: linear-gradient(135deg, #4E6A85 0%, #7C7B6E 100%);
+    display: inline-flex; align-items: center; justify-content: center;
+    color: #fff; font-size: 13px; font-weight: 600;
+    letter-spacing: -0.1px;
+    border: 0.5px solid rgba(0, 0, 0, 0.05);
+  }
+
+  /* ============= Timeline area (single card, no peeks here) ============= */
+  /* In these state variants we surface the card centered with thin peeks
+     so the reader stays focused on the body. */
+  .timeline-area {
+    position: relative;
+    height: 666px;
+    margin-top: 0;
+  }
+  .timeline-row {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 14px;
+    align-items: stretch;
+  }
+  .peek {
+    width: 268px;
+    height: 730px; margin-top: 6px;
+    border-radius: 22px;
+    background: #FBFBFD;
+    border: 0.5px solid rgba(0, 0, 0, 0.04);
+    box-shadow:
+      0 1px 2px rgba(0, 0, 0, 0.03),
+      0 4px 10px -8px rgba(0, 0, 0, 0.08);
+  }
+  .card {
+    width: 318px;
+    background: #FFFFFF;
+    border-radius: 22px;
+    border: 0.5px solid rgba(0, 0, 0, 0.04);
+    box-shadow:
+      0 1px 2px rgba(0, 0, 0, 0.06),
+      0 18px 38px -16px rgba(0, 0, 0, 0.20),
+      0 4px 10px -4px rgba(0, 0, 0, 0.08);
+    display: flex; flex-direction: column;
+    overflow: hidden;
+    height: 730px;
+    margin-top: 6px;
+  }
+
+  /* Card head */
+  .card-head { padding: 14px 22px 8px; }
+  .card-head .step-label {
+    font-size: 10.5px; font-weight: 600;
+    color: var(--ios-blue); letter-spacing: 0.5px;
+    text-transform: uppercase;
+    margin: 0 0 6px;
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .card-head .step-label .dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--ios-blue);
+  }
+  .card-head h3 {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
+    font-size: 19px; font-weight: 600; letter-spacing: -0.4px;
+    color: var(--label);
+    line-height: 1.15;
+    margin: 0; text-wrap: balance;
+  }
+  .card-head .step-meta {
+    margin-top: 6px;
+    font-size: 11.5px; color: var(--label-3);
+    letter-spacing: -0.05px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .card-head .step-meta .sep { color: var(--label-4); }
+
+  /* Phase tabs */
+  .phase-tabs {
+    display: flex;
+    padding: 0 22px;
+    border-bottom: 0.5px solid var(--gray-5);
+    gap: 4px;
+  }
+  .phase-tab {
+    background: none; border: none; cursor: pointer;
+    padding: 10px 14px 12px;
+    font-family: inherit;
+    font-size: 13.5px; font-weight: 500;
+    color: var(--label-3); letter-spacing: -0.1px;
+    position: relative;
+    display: inline-flex; align-items: center; gap: 5px;
+  }
+  .phase-tab.on { color: var(--ios-blue); font-weight: 600; }
+  .phase-tab.on::after {
+    content: "";
+    position: absolute; left: 12px; right: 12px; bottom: -0.5px;
+    height: 2px; background: var(--ios-blue);
+    border-radius: 2px;
+  }
+  /* Green check indicating Plan is ready (used in Frame 3) */
+  .phase-tab .ready {
+    width: 14px; height: 14px; border-radius: 50%;
+    background: var(--ios-green);
+    display: inline-flex; align-items: center; justify-content: center;
+    color: #fff;
+    flex-shrink: 0;
+  }
+  .phase-tab .ready::after {
+    content: "";
+    width: 6px; height: 3px;
+    border-left: 1.5px solid #fff;
+    border-bottom: 1.5px solid #fff;
+    transform: rotate(-45deg) translate(0.5px, -1px);
+  }
+
+  /* Card body */
+  .card-body {
+    padding: 10px 22px 10px;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+    position: relative;
+  }
+  .card-body.fade::after {
+    content: "";
+    position: absolute; left: 0; right: 0; bottom: 0;
+    height: 24px;
+    background: linear-gradient(180deg, rgba(255,255,255,0) 0%, #fff 100%);
+    pointer-events: none;
+  }
+
+  /* ============= AI Coach card (Frame 1 — full prominence) ============= */
+  .ai-coach {
+    margin: 2px 0 8px;
+    padding: 10px 12px;
+    border-radius: 14px;
+    background:
+      linear-gradient(135deg, rgba(0, 122, 255, 0.10) 0%, rgba(0, 122, 255, 0.04) 100%);
+    border: 0.5px solid rgba(0, 122, 255, 0.18);
+    display: grid;
+    grid-template-columns: 34px 1fr 14px;
+    gap: 10px;
+    align-items: center;
+    cursor: pointer;
+  }
+  .ai-coach .glyph {
+    width: 34px; height: 34px; border-radius: 50%;
+    background: var(--ios-blue);
+    display: inline-flex; align-items: center; justify-content: center;
+    color: #fff;
+    box-shadow:
+      0 1px 2px rgba(0, 0, 0, 0.08),
+      0 4px 10px -4px rgba(0, 122, 255, 0.45);
+  }
+  .ai-coach .glyph i { font-size: 17px; }
+  .ai-coach .label {
+    font-size: 14px; font-weight: 600;
+    color: var(--label); letter-spacing: -0.2px;
+    line-height: 1.2;
+  }
+  .ai-coach .sub {
+    font-size: 11.5px; color: var(--label-3);
+    letter-spacing: -0.05px; line-height: 1.3;
+    margin-top: 2px;
+  }
+  .ai-coach .chev {
+    color: var(--label-3); font-size: 14px;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+
+  /* AI Coach mini link (Frames 2 & 3 — recedes to a link at top of body) */
+  .ai-coach-mini {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 2px 0 6px;
+    margin: 0 0 2px;
+    border-bottom: 0.5px solid var(--gray-5);
+  }
+  .ai-coach-mini .link {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: 12.5px; font-weight: 500;
+    color: var(--ios-blue); letter-spacing: -0.1px;
+    cursor: pointer;
+  }
+  .ai-coach-mini .link i { font-size: 14px; }
+  .ai-coach-mini .saved {
+    font-size: 10.5px; color: var(--label-3);
+    letter-spacing: -0.02px;
+    display: inline-flex; align-items: center; gap: 4px;
+  }
+  .ai-coach-mini .saved i { font-size: 11px; color: var(--ios-green); }
+
+  /* Quiet divider */
+  .or-manual {
+    display: flex; align-items: center; gap: 10px;
+    margin: 6px 0 8px;
+    font-size: 10.5px; color: var(--label-3);
+    letter-spacing: -0.05px;
+  }
+  .or-manual::before,
+  .or-manual::after {
+    content: "";
+    flex: 1;
+    height: 0.5px;
+    background: var(--gray-5);
+  }
+  .or-manual span { white-space: nowrap; }
+
+  /* Manual field */
+  .field {
+    padding: 6px 0 6px;
+    border-top: 0.5px solid var(--gray-5);
+  }
+  .field:first-of-type { border-top: none; padding-top: 3px; }
+  .field .eyebrow {
+    font-size: 9.5px; font-weight: 600;
+    color: var(--label-3); letter-spacing: 0.7px;
+    text-transform: uppercase;
+    margin: 0 0 3px;
+  }
+  .field .body {
+    font-size: 12.5px; line-height: 1.34;
+    color: var(--label); letter-spacing: -0.15px;
+    margin: 0; text-wrap: pretty;
+  }
+  .field .body.placeholder {
+    color: var(--label-3);
+    font-style: italic;
+  }
+
+  /* Sub-step list */
+  .plan-list { list-style: none; padding: 0; margin: 3px 0 0; }
+  .plan-list li {
+    padding: 3px 0;
+    display: grid;
+    grid-template-columns: 16px 1fr;
+    gap: 9px;
+    align-items: start;
+  }
+  .plan-list li:first-child { padding-top: 1px; }
+  .plan-list li .check {
+    width: 16px; height: 16px;
+    border-radius: 50%;
+    border: 1.5px solid var(--gray-3);
+    margin-top: 1px;
+    flex-shrink: 0;
+    background: #fff;
+  }
+  .plan-list li .text {
+    font-size: 13px; line-height: 1.34;
+    color: var(--label); letter-spacing: -0.15px;
+    text-wrap: pretty;
+  }
+  .plan-list li .text .tag {
+    display: inline-block;
+    margin-left: 6px;
+    padding: 1px 7px 2px;
+    border-radius: 999px;
+    background: var(--ios-coral-tint);
+    color: var(--ios-coral);
+    font-size: 10.5px; font-weight: 600;
+    letter-spacing: 0.1px;
+    vertical-align: 1px;
+  }
+
+  /* Empty sub-step affordance row (no items yet) */
+  .how-empty {
+    margin-top: 3px;
+    padding: 7px 10px;
+    border-radius: 10px;
+    border: 0.5px dashed var(--gray-3);
+    background: rgba(0,0,0,0.015);
+    font-size: 11.5px; color: var(--label-3);
+    letter-spacing: -0.05px;
+    line-height: 1.3;
+    text-wrap: pretty;
+  }
+
+  /* Generate / add affordance row */
+  .how-actions {
+    margin-top: 4px;
+    padding-top: 5px;
+    border-top: 0.5px solid var(--gray-5);
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 10px;
+  }
+  .how-actions.no-border { border-top: none; padding-top: 2px; }
+  .how-actions .a {
+    background: none; border: none; padding: 3px 0;
+    font-family: inherit;
+    font-size: 12.5px; font-weight: 500;
+    color: var(--ios-blue);
+    letter-spacing: -0.1px;
+    display: inline-flex; align-items: center; gap: 5px;
+    cursor: pointer;
+  }
+  .how-actions .a i { font-size: 14px; }
+  .how-actions .a.gen { color: var(--ios-blue); }
+
+  /* Capability chips */
+  .cap-chips {
+    display: flex; flex-wrap: wrap; gap: 5px;
+    margin: 4px 0 4px;
+  }
+  .cap-chip {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 4px 10px 5px;
+    border-radius: 999px;
+    background: var(--ios-coral-tint);
+    color: var(--ios-coral);
+    font-size: 11.5px; font-weight: 600;
+    letter-spacing: -0.05px;
+    border: 0.5px solid transparent;
+  }
+  .cap-chip.outlined {
+    background: transparent;
+    color: var(--ios-coral);
+    border-color: rgba(255, 107, 107, 0.45);
+    font-weight: 500;
+  }
+  .cap-chip.empty {
+    background: transparent;
+    color: var(--label-3);
+    border: 0.5px dashed var(--gray-3);
+    padding: 4px 9px 5px;
+    white-space: nowrap;
+  }
+  .cap-chip i { font-size: 11px; }
+  .cap-caption {
+    font-size: 10.5px; color: var(--label-3);
+    letter-spacing: -0.05px;
+    margin: 4px 0 0;
+  }
+  .cap-caption.empty { font-style: italic; }
+
+  /* More options — collapsed expander */
+  .more-options {
+    margin-top: 8px;
+    padding: 8px 0 0;
+    border-top: 0.5px solid var(--gray-5);
+    display: flex; align-items: center; gap: 4px;
+    font-size: 12px; color: var(--label-3);
+    letter-spacing: -0.1px;
+    cursor: pointer;
+  }
+  .more-options i { font-size: 14px; color: var(--label-3); }
+
+  /* More options — expanded (Frame 3) */
+  .more-options.open {
+    border-top: 0.5px solid var(--gray-5);
+    padding: 6px 0 0;
+    margin-top: 6px;
+    display: flex; align-items: center; gap: 4px;
+    color: var(--label-2);
+    cursor: pointer;
+  }
+  .more-options.open i { color: var(--label-2); transform: rotate(90deg); transform-origin: center; }
+
+  .more-fields {
+    margin-top: 0;
+  }
+  .more-fields .field { padding: 5px 0 4px; }
+  .more-fields .field:first-of-type { border-top: none; padding-top: 4px; }
+  .more-fields .field .eyebrow { margin: 0 0 2px; }
+  /* Two-column row for With whom + Where to save vertical space */
+  .more-fields .two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    padding: 5px 0 4px;
+    border-top: 0.5px solid var(--gray-5);
+  }
+  .more-fields .two-col .col-field .eyebrow {
+    font-size: 9.5px; font-weight: 600;
+    color: var(--label-3); letter-spacing: 0.7px;
+    text-transform: uppercase;
+    margin: 0 0 3px;
+  }
+  .more-fields .two-col .col-field .cap-chips { margin: 0; }
+
+  /* Collaborator / location chip */
+  .person-chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 3px 9px 3px 3px;
+    border-radius: 999px;
+    background: var(--gray-6);
+    border: 0.5px solid var(--gray-4);
+    font-size: 12px; font-weight: 500;
+    color: var(--label-2);
+    letter-spacing: -0.1px;
+  }
+  .person-chip .av {
+    width: 18px; height: 18px; border-radius: 50%;
+    background: linear-gradient(135deg, #4E6A85 0%, #7C7B6E 100%);
+    color: #fff; font-size: 9px; font-weight: 600;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .place-chip {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 3px 10px 4px;
+    border-radius: 999px;
+    background: var(--gray-6);
+    border: 0.5px solid var(--gray-4);
+    font-size: 12px; font-weight: 500;
+    color: var(--label-2);
+    letter-spacing: -0.1px;
+  }
+  .place-chip i { font-size: 11px; color: var(--label-3); }
+
+  /* Cross-interest suggestion */
+  .cross-row {
+    margin-top: 3px;
+    padding: 6px 10px;
+    border-radius: 10px;
+    background: rgba(88, 86, 214, 0.07);
+    border: 0.5px solid rgba(88, 86, 214, 0.18);
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 8px;
+  }
+  .cross-row .lhs {
+    font-size: 11.5px; color: var(--label); letter-spacing: -0.1px;
+    line-height: 1.3; text-wrap: pretty;
+  }
+  .cross-row .lhs strong {
+    font-weight: 600; color: var(--ios-purple);
+  }
+  .cross-row .suggest {
+    background: none; border: none; padding: 0;
+    color: var(--ios-purple); font-size: 11.5px; font-weight: 600;
+    letter-spacing: -0.05px;
+    display: inline-flex; align-items: center; gap: 3px;
+    flex-shrink: 0; cursor: pointer;
+    font-family: inherit;
+  }
+  .cross-row .suggest i { font-size: 12px; }
+
+  /* ============= Floating four-tab nav ============= */
+  .tabbar {
+    position: absolute;
+    left: 0; right: 0; bottom: 0;
+    height: 84px;
+    padding: 6px 0 24px;
+    background: rgba(255, 255, 255, 0.82);
+    -webkit-backdrop-filter: blur(28px) saturate(180%);
+    backdrop-filter: blur(28px) saturate(180%);
+    border-top: 0.5px solid rgba(0, 0, 0, 0.08);
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    align-items: center;
+    z-index: 25;
+  }
+  .tabbar .t {
+    display: flex; flex-direction: column; align-items: center; gap: 2px;
+    background: none; border: none; padding: 6px 0; cursor: pointer;
+    color: var(--gray-1);
+    font-size: 10px; font-weight: 500;
+    letter-spacing: 0.02em;
+  }
+  .tabbar .t i { font-size: 25px; line-height: 1; }
+  .tabbar .t.on { color: var(--ios-blue); }
+  .tabbar .t.on i { color: var(--ios-blue); }
+
+  /* ============= Footer notes rail ============= */
+  .rail-row {
+    max-width: 1420px;
+    margin: 56px auto 0;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 48px;
+  }
+  .rail-col h4 {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 14px; letter-spacing: 0.01em;
+    color: var(--stage-ink); margin: 0 0 10px; font-weight: 500;
+  }
+  .rail-col h4 em { font-style: italic; }
+  .rail-col p {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 13.5px; line-height: 1.55;
+    color: #4D4A43; margin: 0 0 10px;
+    text-wrap: pretty;
+  }
+  .rail-col p strong { color: var(--stage-ink); font-weight: 500; }
+  .rail-col em { font-style: italic; }
+  .rail-col .sig {
+    display: inline-flex; align-items: center; gap: 6px;
+    margin-top: 4px;
+    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 11px; letter-spacing: 0.04em;
+    color: var(--stage-text);
+  }
+  .rail-col .sig .swatch {
+    display: inline-block;
+    width: 10px; height: 10px; border-radius: 3px;
+    border: 0.5px solid rgba(0,0,0,0.1);
+  }
+  .rail-col .sig .swatch.blue { background: var(--ios-blue); }
+  .rail-col .sig .swatch.green { background: var(--ios-green); }
+  .rail-col .sig .swatch.coral { background: var(--ios-coral); }
+  .rail-col .sig .swatch.purple { background: var(--ios-purple); }
+</style>
+</head>
+<body>
+
+<div class="page">
+
+  <header class="page-head">
+    <p class="eyebrow">BetterAt · Plan Tab · Three States — 2026-05-15</p>
+    <h1>The Plan tab across <em>empty, partial, and filled</em> — AI Coach starts prominent, recedes as the user takes over</h1>
+    <p>One step (<em>Light-air starts in shifty breeze</em>), one tab (<strong>Plan</strong>), three completion states. The progression isolates a single design question: <em>how does the AI Coach affordance behave as the plan fills in?</em> Answer — full card at the top while the body is empty, a small persistent link once the user has begun, never gone entirely. The phase tab itself earns a green check only when every required field is populated.</p>
+    <div class="crumbs">
+      <span class="pill">iPhone 16e · portrait · 393 × 852</span>
+      <span class="sep">·</span>
+      <span class="pill">Builds on <em>Practice Timeline · Canonical</em> Frame 1</span>
+      <span class="sep">·</span>
+      <span class="pill">Source spec · <em>PRACTICE_TIMELINE_CANONICAL_PLAN_TAB_ADDENDUM.md</em> — States section</span>
+    </div>
+  </header>
+
+  <section class="strip-head">
+    <p class="eyebrow">Frames 1 — 3 · State variants</p>
+    <h2><em>Empty · Partial · Filled</em></h2>
+    <p>Header strip, peeks, phase tabs, and bottom tab bar are constant across all three frames. Only the Plan body changes. The state is implied by the fields, not by chrome — no progress bar, no "draft" badge, no modal. The plan is finished when it looks finished.</p>
+  </section>
+
+  <div class="row">
+
+    <!-- =============================================================== -->
+    <!-- Frame 1 · Empty                                                   -->
+    <!-- =============================================================== -->
+    <div class="col">
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="statusbar">
+          <span>9:14</span>
+          <span class="right">
+            <i class="ti ti-cell-signal-4"></i>
+            <i class="ti ti-wifi"></i>
+            <i class="ti ti-battery-3"></i>
+          </span>
+        </div>
+
+        <div class="screen" data-screen-label="01 Plan · Empty">
+
+          <div class="top-header">
+            <div class="interest">
+              <span class="name">Sail Racing</span>
+              <span class="switcher"><i class="ti ti-chevron-down"></i></span>
+            </div>
+            <span class="step-counter">Step 6 of 11</span>
+            <div class="avatar">KD</div>
+          </div>
+
+          <div class="timeline-area">
+            <div class="timeline-row">
+
+              <div class="peek" aria-hidden="true"></div>
+
+              <article class="card">
+                <header class="card-head">
+                  <p class="step-label"><span class="dot"></span>Current step</p>
+                  <h3>Light-air starts in shifty breeze</h3>
+                  <div class="step-meta">
+                    <span>Saturday · RHKYC Spring Series</span>
+                    <span class="sep">·</span>
+                    <span>Race 4</span>
+                  </div>
+                </header>
+
+                <nav class="phase-tabs" role="tablist">
+                  <button class="phase-tab on" role="tab" aria-selected="true">Plan</button>
+                  <button class="phase-tab" role="tab">Do</button>
+                  <button class="phase-tab" role="tab">Reflect</button>
+                </nav>
+
+                <div class="card-body fade">
+
+                  <!-- AI Coach — prominent recommended path -->
+                  <div class="ai-coach" role="button">
+                    <span class="glyph"><i class="ti ti-sparkles"></i></span>
+                    <div>
+                      <div class="label">Build with AI Coach</div>
+                      <div class="sub">Describe your race plan; I'll structure it</div>
+                    </div>
+                    <span class="chev"><i class="ti ti-chevron-right"></i></span>
+                  </div>
+
+                  <div class="or-manual"><span>or fill in manually</span></div>
+
+                  <!-- What — empty -->
+                  <div class="field">
+                    <p class="eyebrow">What will you do?</p>
+                    <p class="body placeholder">What's your goal for this step?</p>
+                  </div>
+
+                  <!-- How — empty -->
+                  <div class="field">
+                    <p class="eyebrow">How will you do it?</p>
+                    <div class="how-empty">No sub-steps yet — add them by hand or generate from your "What" above.</div>
+                    <div class="how-actions">
+                      <button class="a"><i class="ti ti-plus"></i>Add sub-step</button>
+                      <button class="a gen"><i class="ti ti-sparkles"></i>Generate</button>
+                    </div>
+                  </div>
+
+                  <!-- Why — empty -->
+                  <div class="field">
+                    <p class="eyebrow">Why is this next?</p>
+                    <p class="body placeholder">What makes this the right next step?</p>
+                  </div>
+
+                  <!-- Capabilities — empty -->
+                  <div class="field">
+                    <p class="eyebrow">Capabilities this develops</p>
+                    <div class="cap-chips">
+                      <span class="cap-chip empty"><i class="ti ti-plus"></i>Tag a capability</span>
+                    </div>
+                    <p class="cap-caption empty">No capabilities inferred yet — they'll auto-tag from your sub-steps.</p>
+                  </div>
+
+                  <!-- More options collapsed -->
+                  <div class="more-options" role="button">
+                    <i class="ti ti-chevron-right"></i>
+                    <span>More options</span>
+                  </div>
+
+                </div>
+              </article>
+
+              <div class="peek" aria-hidden="true"></div>
+
+            </div>
+          </div>
+
+          <nav class="tabbar">
+            <button class="t on" aria-current="page">
+              <i class="ti ti-flag-3-filled"></i>
+              <span>Practice</span>
+            </button>
+            <button class="t">
+              <i class="ti ti-book-2"></i>
+              <span>Playbook</span>
+            </button>
+            <button class="t">
+              <i class="ti ti-compass"></i>
+              <span>Discover</span>
+            </button>
+            <button class="t">
+              <i class="ti ti-user"></i>
+              <span>Profile</span>
+            </button>
+          </nav>
+        </div>
+
+        <div class="home-indicator"></div>
+      </div>
+      <div class="caption-block">
+        <p class="frame-label"><em>Empty</em></p>
+        <p class="frame-sub">No plan yet. AI Coach card occupies the top of the body. Field labels are visible but their bodies are placeholder text.</p>
+      </div>
+    </div>
+
+    <!-- =============================================================== -->
+    <!-- Frame 2 · Partial                                                 -->
+    <!-- =============================================================== -->
+    <div class="col">
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="statusbar">
+          <span>9:18</span>
+          <span class="right">
+            <i class="ti ti-cell-signal-4"></i>
+            <i class="ti ti-wifi"></i>
+            <i class="ti ti-battery-3"></i>
+          </span>
+        </div>
+
+        <div class="screen" data-screen-label="02 Plan · Partial">
+
+          <div class="top-header">
+            <div class="interest">
+              <span class="name">Sail Racing</span>
+              <span class="switcher"><i class="ti ti-chevron-down"></i></span>
+            </div>
+            <span class="step-counter">Step 6 of 11</span>
+            <div class="avatar">KD</div>
+          </div>
+
+          <div class="timeline-area">
+            <div class="timeline-row">
+
+              <div class="peek" aria-hidden="true"></div>
+
+              <article class="card">
+                <header class="card-head">
+                  <p class="step-label"><span class="dot"></span>Current step</p>
+                  <h3>Light-air starts in shifty breeze</h3>
+                  <div class="step-meta">
+                    <span>Saturday · RHKYC Spring Series</span>
+                    <span class="sep">·</span>
+                    <span>Race 4</span>
+                  </div>
+                </header>
+
+                <nav class="phase-tabs" role="tablist">
+                  <button class="phase-tab on" role="tab" aria-selected="true">Plan</button>
+                  <button class="phase-tab" role="tab">Do</button>
+                  <button class="phase-tab" role="tab">Reflect</button>
+                </nav>
+
+                <div class="card-body fade">
+
+                  <!-- AI Coach — receded to a link -->
+                  <div class="ai-coach-mini">
+                    <span class="link"><i class="ti ti-sparkles"></i>Continue with AI Coach<i class="ti ti-chevron-right" style="font-size: 12px;"></i></span>
+                    <span class="saved"><i class="ti ti-check"></i>Saved</span>
+                  </div>
+
+                  <!-- What — filled -->
+                  <div class="field">
+                    <p class="eyebrow">What will you do?</p>
+                    <p class="body">Win the start in light-air shifty conditions.</p>
+                  </div>
+
+                  <!-- How — 2 of 3 -->
+                  <div class="field">
+                    <p class="eyebrow">How will you do it?</p>
+                    <ul class="plan-list">
+                      <li>
+                        <span class="check"></span>
+                        <div>
+                          <div class="text">Pin-end approach if line favors left more than 5°<span class="tag">Starts</span></div>
+                        </div>
+                      </li>
+                      <li>
+                        <span class="check"></span>
+                        <div>
+                          <div class="text">Hold a clear lane for the first 90 seconds<span class="tag">Starts</span></div>
+                        </div>
+                      </li>
+                    </ul>
+                    <div class="how-actions">
+                      <button class="a"><i class="ti ti-plus"></i>Add sub-step</button>
+                      <button class="a gen"><i class="ti ti-sparkles"></i>Generate</button>
+                    </div>
+                  </div>
+
+                  <!-- Why — still empty -->
+                  <div class="field">
+                    <p class="eyebrow">Why is this next?</p>
+                    <p class="body placeholder">What makes this the right next step?</p>
+                  </div>
+
+                  <!-- Capabilities — one auto-tagged -->
+                  <div class="field">
+                    <p class="eyebrow">Capabilities this develops</p>
+                    <div class="cap-chips">
+                      <span class="cap-chip">Starts</span>
+                      <span class="cap-chip empty"><i class="ti ti-plus"></i></span>
+                    </div>
+                    <p class="cap-caption">Auto-tagged from your sub-steps · tap to edit</p>
+                  </div>
+
+                  <div class="more-options" role="button">
+                    <i class="ti ti-chevron-right"></i>
+                    <span>More options</span>
+                  </div>
+
+                </div>
+              </article>
+
+              <div class="peek" aria-hidden="true"></div>
+
+            </div>
+          </div>
+
+          <nav class="tabbar">
+            <button class="t on" aria-current="page">
+              <i class="ti ti-flag-3-filled"></i>
+              <span>Practice</span>
+            </button>
+            <button class="t">
+              <i class="ti ti-book-2"></i>
+              <span>Playbook</span>
+            </button>
+            <button class="t">
+              <i class="ti ti-compass"></i>
+              <span>Discover</span>
+            </button>
+            <button class="t">
+              <i class="ti ti-user"></i>
+              <span>Profile</span>
+            </button>
+          </nav>
+        </div>
+
+        <div class="home-indicator"></div>
+      </div>
+      <div class="caption-block">
+        <p class="frame-label"><em>Partial</em></p>
+        <p class="frame-sub">AI Coach shrinks to a small "Continue" link at the top. <em>What</em> and the first two sub-steps are in; <em>Why</em> still placeholder. One chip auto-tagged.</p>
+      </div>
+    </div>
+
+    <!-- =============================================================== -->
+    <!-- Frame 3 · Filled                                                  -->
+    <!-- =============================================================== -->
+    <div class="col">
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="statusbar">
+          <span>9:23</span>
+          <span class="right">
+            <i class="ti ti-cell-signal-4"></i>
+            <i class="ti ti-wifi"></i>
+            <i class="ti ti-battery-3"></i>
+          </span>
+        </div>
+
+        <div class="screen" data-screen-label="03 Plan · Filled">
+
+          <div class="top-header">
+            <div class="interest">
+              <span class="name">Sail Racing</span>
+              <span class="switcher"><i class="ti ti-chevron-down"></i></span>
+            </div>
+            <span class="step-counter">Step 6 of 11</span>
+            <div class="avatar">KD</div>
+          </div>
+
+          <div class="timeline-area">
+            <div class="timeline-row">
+
+              <div class="peek" aria-hidden="true"></div>
+
+              <article class="card">
+                <header class="card-head">
+                  <p class="step-label"><span class="dot"></span>Current step</p>
+                  <h3>Light-air starts in shifty breeze</h3>
+                  <div class="step-meta">
+                    <span>Saturday · RHKYC Spring Series</span>
+                    <span class="sep">·</span>
+                    <span>Race 4</span>
+                  </div>
+                </header>
+
+                <nav class="phase-tabs" role="tablist">
+                  <button class="phase-tab on" role="tab" aria-selected="true">
+                    <span class="ready" aria-label="Plan ready"></span>
+                    Plan
+                  </button>
+                  <button class="phase-tab" role="tab">Do</button>
+                  <button class="phase-tab" role="tab">Reflect</button>
+                </nav>
+
+                <div class="card-body fade">
+
+                  <div class="ai-coach-mini">
+                    <span class="link"><i class="ti ti-sparkles"></i>Continue with AI Coach<i class="ti ti-chevron-right" style="font-size: 12px;"></i></span>
+                    <span class="saved"><i class="ti ti-check"></i>Saved</span>
+                  </div>
+
+                  <!-- What -->
+                  <div class="field">
+                    <p class="eyebrow">What will you do?</p>
+                    <p class="body">Read the favored end and commit early to the pin in light-air shifty conditions.</p>
+                  </div>
+
+                  <!-- How — 3 of 3 -->
+                  <div class="field">
+                    <p class="eyebrow">How will you do it?</p>
+                    <ul class="plan-list">
+                      <li>
+                        <span class="check"></span>
+                        <div>
+                          <div class="text">Pin-end approach if the line favors left more than 5°<span class="tag">Starts</span></div>
+                        </div>
+                      </li>
+                      <li>
+                        <span class="check"></span>
+                        <div>
+                          <div class="text">Hold a clear lane for the first 90 seconds, no early tack<span class="tag">Starts</span></div>
+                        </div>
+                      </li>
+                      <li>
+                        <span class="check"></span>
+                        <div>
+                          <div class="text">Re-check rig tune in harbor — 22 on V1 if it's over 14 kn<span class="tag">Boat&nbsp;tune</span></div>
+                        </div>
+                      </li>
+                    </ul>
+                  </div>
+
+                  <!-- Why -->
+                  <div class="field">
+                    <p class="eyebrow">Why is this next?</p>
+                    <p class="body">Last week's debrief flagged starts as weakest. Tomorrow forecasts 8–12 kn with shifts — exactly my weakness.</p>
+                  </div>
+
+                  <!-- Capabilities — full -->
+                  <div class="field">
+                    <p class="eyebrow">Capabilities this develops</p>
+                    <div class="cap-chips">
+                      <span class="cap-chip">Starts</span>
+                      <span class="cap-chip">Weather reading</span>
+                      <span class="cap-chip outlined">Boat tune</span>
+                      <span class="cap-chip empty"><i class="ti ti-plus"></i></span>
+                    </div>
+                    <p class="cap-caption">Auto-tagged from your plan · tap to edit</p>
+                  </div>
+
+                  <!-- More options EXPANDED -->
+                  <div class="more-options open" role="button">
+                    <i class="ti ti-chevron-right"></i>
+                    <span>More options</span>
+                  </div>
+
+                  <div class="more-fields">
+                    <div class="two-col">
+                      <div class="col-field">
+                        <p class="eyebrow">With whom</p>
+                        <div class="cap-chips">
+                          <span class="person-chip"><span class="av">TM</span>Tomás</span>
+                        </div>
+                      </div>
+                      <div class="col-field">
+                        <p class="eyebrow">Where</p>
+                        <div class="cap-chips">
+                          <span class="place-chip"><i class="ti ti-map-pin"></i>RHKYC</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="field">
+                      <p class="eyebrow">Also relevant for</p>
+                      <div class="cross-row">
+                        <div class="lhs"><strong>Nursing</strong> → "Communication under pressure"</div>
+                        <button class="suggest">Suggest<i class="ti ti-arrow-right"></i></button>
+                      </div>
+                    </div>
+                  </div>
+
+                </div>
+              </article>
+
+              <div class="peek" aria-hidden="true"></div>
+
+            </div>
+          </div>
+
+          <nav class="tabbar">
+            <button class="t on" aria-current="page">
+              <i class="ti ti-flag-3-filled"></i>
+              <span>Practice</span>
+            </button>
+            <button class="t">
+              <i class="ti ti-book-2"></i>
+              <span>Playbook</span>
+            </button>
+            <button class="t">
+              <i class="ti ti-compass"></i>
+              <span>Discover</span>
+            </button>
+            <button class="t">
+              <i class="ti ti-user"></i>
+              <span>Profile</span>
+            </button>
+          </nav>
+        </div>
+
+        <div class="home-indicator"></div>
+      </div>
+      <div class="caption-block">
+        <p class="frame-label"><em>Filled</em></p>
+        <p class="frame-sub">Every required field populated. Plan tab earns a green check. More options expanded, exposing collaborator, location, and a cross-interest suggestion to Nursing.</p>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- =================================================================== -->
+  <!-- Rail of notes                                                         -->
+  <!-- =================================================================== -->
+  <div class="rail-row">
+    <div class="rail-col">
+      <h4><em>AI Coach recedes, never leaves</em></h4>
+      <p>The AI Coach card carries <strong>maximum visual weight when the body is empty</strong> — it is the recommended first move. Once any field is non-empty, the card collapses to a <em>"Continue with AI Coach →"</em> link pinned at the top of the body. The user can always re-engage, but the affordance is no longer competing with their own writing.</p>
+      <span class="sig"><span class="swatch blue"></span>iOS blue · linear-gradient tinted card → small link · same icon throughout</span>
+    </div>
+    <div class="rail-col">
+      <h4><em>Plan ready</em> — earned, not declared</h4>
+      <p>The phase tab earns a small <strong>green check</strong> only when <em>What</em>, all sub-steps, <em>Why</em>, and at least one capability are present. No "Submit" button; no progress bar. The check is the smallest possible cue that the loop can advance into <strong>Do</strong>. Saving is continuous and ambient — a quiet <em>"Saved"</em> next to the AI Coach link.</p>
+      <span class="sig"><span class="swatch green"></span>system green · 14×14 · circular check · phase-tabs gutter only</span>
+    </div>
+    <div class="rail-col">
+      <h4>Capabilities <em>auto-tag from the plan</em></h4>
+      <p>Capability chips populate from the sub-step tags as the user writes — <strong>Starts</strong> and <strong>Weather reading</strong> filled (high confidence), <strong>Boat tune</strong> outlined (inferred but lower confidence, awaiting confirmation). Cross-interest relevance (<em>Nursing → "Communication under pressure"</em>) surfaces in More Options, never blocking the primary flow.</p>
+      <span class="sig"><span class="swatch coral"></span>system coral · filled / outlined / dashed-empty · <span class="swatch purple"></span>purple for cross-interest</span>
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>
