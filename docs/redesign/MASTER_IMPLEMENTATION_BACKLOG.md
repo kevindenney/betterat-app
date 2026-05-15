@@ -8,11 +8,11 @@ This document is the backlog index, not an executable spec. Claude Code should e
 
 ### Practice Tab Route Convention
 
-Decision: the canonical **Practice** tab continues to be implemented at the stable legacy route `app/(tabs)/races.tsx` / `/(tabs)/races`.
+Decision: the canonical **Practice** tab can continue to be implemented by the existing `app/(tabs)/races.tsx` screen short-term, but the canonical user-facing route should become `/practice`.
 
-Reason: the repo has no `app/(tabs)/practice.tsx`, and `/(tabs)/races` is referenced across onboarding, auth redirects, Playbook concept links, Discover actions, notifications, account routing, tests, and Race Log empty actions. `lib/navigation-config.ts` already separates the file-route key from the display label, so the product can say “Practice” while the route remains `races`.
+Reason: the repo has no `app/(tabs)/practice.tsx`, and `/(tabs)/races` is referenced across onboarding, auth redirects, Playbook concept links, Discover actions, notifications, account routing, tests, and Race Log empty actions. That blast radius argues against an immediate file-route rename. However, `/races` is product-visible on web/deep links and is wrong for Nursing, Design, and other non-sailing interests. Route stability is an implementation concern; URL semantics are a product concern.
 
-Implication for future specs: write “Practice tab implemented at `app/(tabs)/races.tsx`” until a separate route-alias project is explicitly approved. Do not rename the route or introduce a `practice` alias as part of Phase B, B.5, B.6, C, or C.5.
+Implication for future specs: write “Practice tab implemented by the existing `app/(tabs)/races.tsx` screen, exposed publicly as `/practice`.” Phase A.8 owns the URL alias/redirect work. Phase B, B.5, B.6, C, and C.5 should not do broad route churn themselves.
 
 ## Inputs Verified
 
@@ -47,6 +47,7 @@ Visual canonicals verified in `docs/redesign/ios-register/`:
 |---|---|---|---|---|---:|---|---|
 | A | Rename bottom Reflect tab to Profile and keep route stable. | `PRACTICE_TIMELINE_CANONICAL.md`, `specs/PHASE_A_RENAME_REFLECT_TO_PROFILE.md` | `practice-timeline-canonical.html` | shipped: `87b7c115`, heading extension `48fc9eb4`; canonical addendum `0c82b80b` | 2 | none | none; shipped as mechanical label change |
 | A.7 | Fix Apple sign-in branding from RegattaFlow to BetterAt for org adoption readiness. | `FIVE_SURFACES_CONSOLIDATED_ADDENDUM.md` | none | spec-pending | 1 | Apple Developer console access | no app flag; external config change |
+| A.8 | Add `/practice` as the canonical user-facing route while preserving `/races` as a backwards-compatible alias/redirect. | `PRACTICE_TIMELINE_CANONICAL.md`, this backlog decision | none | spec-pending | 2-3 | Phase A; before public sharing/onboarding links spread further | `PRACTICE_ROUTE_ALIAS=false` or unflagged redirect if implementation is mechanical |
 | B | Rename in-card phase tabs to Plan / Do / Reflect. | `PRACTICE_TIMELINE_CANONICAL.md`, `specs/PHASE_B_RENAME_PHASE_TABS.md` | `practice-timeline-canonical.html` | spec-written, execution queued: `4a394087` | 1 | Phase A verified | none in written spec; see contradiction #2 |
 | B.5 | Rebuild Plan tab interior: AI Coach primary, What/How/Why fields, optional context, three visual states. | `PRACTICE_TIMELINE_CANONICAL_PLAN_TAB_ADDENDUM.md` | `plan-tab-three-states-canonical.html` | spec-pending | 3-5 | Phase B preferred; Phase D not required for v1 | `PRACTICE_PLAN_TAB_IOS_REGISTER=false` |
 | B.6 | Add Step FAB and two-option create sheet: AI Coach or Blueprint picker; auto-scroll to new step. | `PRACTICE_TIMELINE_ADD_STEP_ZOOMED_OUT_SOCIAL_ADDENDUM.md` | `add-step-flow-canonical.html` | spec-pending | 2-3 | Phase A; can precede Phase C if mounted in `app/(tabs)/races.tsx` | `PRACTICE_ADD_STEP_FAB=false` |
@@ -114,6 +115,7 @@ Specs still needed:
 | Spec doc | Covers | Write timing |
 |---|---|---|
 | `PHASE_A7_APPLE_SIGNIN_BRANDING.md` | Apple ID / auth provider branding fix from RegattaFlow to BetterAt. | now if JHU demo depends on sign-in |
+| `PHASE_A8_PRACTICE_ROUTE_ALIAS_SPEC.md` | `/practice` canonical route, `/races` compatibility alias/redirect, route tests, link migration rules. | now, before public links and share surfaces |
 | `PHASE_B5_PLAN_TAB_REBUILD_SPEC.md` | Plan tab UI, AI Coach primary path, What/How/Why fields, locked state. | now |
 | `PHASE_B6_ADD_STEP_FAB_SPEC.md` | FAB, create sheet, AI Coach entry, Blueprint picker, auto-scroll. | now |
 | `PHASE_B7_INTEREST_SWITCHER_SPEC.md` | Interest action sheet, activity summaries, manage interests links. | now |
@@ -137,7 +139,7 @@ Specs still needed:
 | `PHASE_L6_SUGGESTION_NOTIFICATIONS_SPEC.md` | Notification trigger, routing, settings. | after L |
 | `PHASE_L7_ALGORITHMIC_SUGGESTIONS_SPEC.md` | AI/algorithmic suggestion source and labeling. | after AI-suggestion product decision |
 
-Total specs to write: 23.
+Total specs to write: 24.
 
 ## Section 4: Open Product Questions
 
@@ -230,6 +232,6 @@ All production render switches must import kit components or domain components, 
 
 1. **HTML canonical count mismatch:** the prompt says 11 HTML canonicals, but repo has 12. Extra file: `discover-detail-trio-canonical.html`.
 2. **Flag policy tension:** the prompt says every phase ships behind a default-OFF flag, but Phase A shipped unflagged and Phase B’s written spec says no flag because it is mechanical copy. This backlog preserves that exception for mechanical phases and applies default-OFF to substantive UI/behavior phases.
-3. **Practice route naming resolved:** canonical product language is Practice, but the implementation route remains `app/(tabs)/races.tsx` / `/(tabs)/races`. This is intentional route stability, not an inconsistency.
+3. **Practice route naming resolved:** canonical product language and user-facing URL should be `/practice`; the existing `app/(tabs)/races.tsx` implementation may remain short-term behind a `/practice` alias/redirect. `/races` stays as backwards-compatible legacy, not canonical product URL.
 4. **Discover source gap:** Discover visual canonical exists and older Discover architecture/spec docs exist, but the prompt’s “source spec documents” list does not include a new May 15 Discover addendum.
 5. **Profile content gap:** Phase A made the bottom tab and heading say Profile, but full Profile-as-credential content is Phase D and not yet fully designed.
