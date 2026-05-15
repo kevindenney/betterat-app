@@ -66,7 +66,7 @@ Decision: there are **12** valid HTML canonicals in the May 15 design set. `disc
 | C.5 | Zoomed-out vertical timeline view with sticky periods, phase indicators, reorder, long-press menu. | `PRACTICE_TIMELINE_ADD_STEP_ZOOMED_OUT_SOCIAL_ADDENDUM.md`, `specs/PHASE_C5_ZOOMED_OUT_VIEW_SPEC.md` | `zoomed-out-view-canonical.html` | spec-written | 5 | Phase C shell; reorder decision | `PRACTICE_ZOOMED_OUT_TIMELINE=false` |
 | D | Capability data model + Profile-as-credential surface. | `PRACTICE_TIMELINE_CANONICAL.md`, Plan addendum | no full Profile canonical yet; `practice-timeline-canonical.html` has sketch only | spec-pending; design incomplete | 8-12+ | capability taxonomy decisions; Plan/Reflect tagging model | `PROFILE_CAPABILITY_MAP=false` |
 | E | Social timeline layer: following people, blueprints, peers, read-only others' steps, copy-to-my-timeline. | `PRACTICE_TIMELINE_ADD_STEP_ZOOMED_OUT_SOCIAL_ADDENDUM.md` | `social-timeline-layer-canonical.html` | spec-pending | 6-10 | C.5, privacy/follow model, copy permissions | `PRACTICE_SOCIAL_TIMELINE=false` |
-| F.1 | JHU admin dashboard onboarding card on Dashboard tab. | `FIVE_SURFACES_CONSOLIDATED_ADDENDUM.md` | `jhu-admin-dashboard-canonical.html` | spec-pending | 1-2 | tenant scoping | `JHU_ADMIN_DASHBOARD_IOS=false` |
+| F.1 | JHU admin dashboard onboarding card on Dashboard tab. | `FIVE_SURFACES_CONSOLIDATED_ADDENDUM.md`, `specs/PHASE_F1_JHU_ADMIN_ONBOARDING_CARD_SPEC.md` | `jhu-admin-dashboard-canonical.html` | spec-written | 3 | tenant scoping | `JHU_ADMIN_DASHBOARD_IOS=false` |
 | F.2 | Member invitation modal redesign. | `FIVE_SURFACES_CONSOLIDATED_ADDENDUM.md` | `jhu-admin-dashboard-canonical.html` | spec-pending | 1-2 | invitation role decision | `JHU_INVITE_MODAL_IOS=false` |
 | F.3 | Full JHU admin dashboard tabs: dashboard, members, requests, cohorts, competencies, blueprints, billing, settings. | `FIVE_SURFACES_CONSOLIDATED_ADDENDUM.md` | `jhu-admin-dashboard-canonical.html` | spec-pending | 6-10 | F.1/F.2, tenant roles, SSO decision | `JHU_ADMIN_IOS_REGISTER=false` |
 | G.1 | Blueprint Creator Dashboard main view: Blueprints + Subscribers enough to demo creator workflow. | `FIVE_SURFACES_CONSOLIDATED_ADDENDUM.md` | `blueprint-creator-dashboard-canonical.html` | spec-pending | 3-5 | blueprint data exists; versioning can be deferred | `BLUEPRINT_CREATOR_DASHBOARD_IOS=false` |
@@ -132,7 +132,7 @@ Specs still needed:
 | `PHASE_C5_ZOOMED_OUT_VIEW_SPEC.md` | Pinch transition, vertical timeline list, headers, reorder, long-press menu. | written; execute after Phase C |
 | `PHASE_D_CAPABILITY_DATA_MODEL_SPEC.md` | Capability tables, evidence tagging, verification authority, Profile capability map. | after taxonomy decisions |
 | `PHASE_E_SOCIAL_TIMELINE_SPEC.md` | Following layer, read-only external steps, copy-to-my-timeline. | after C.5 and privacy decisions |
-| `PHASE_F1_JHU_ADMIN_ONBOARDING_CARD_SPEC.md` | Admin dashboard onboarding card. | now if JHU demo is prioritized |
+| `PHASE_F1_JHU_ADMIN_ONBOARDING_CARD_SPEC.md` | Admin dashboard onboarding card. | written |
 | `PHASE_F2_JHU_INVITE_MODAL_SPEC.md` | Invitation modal redesign and role defaults. | after invitation role decision |
 | `PHASE_F3_JHU_ADMIN_DASHBOARD_SPEC.md` | Full admin dashboard tabs. | after F.1/F.2 |
 | `PHASE_G1_BLUEPRINT_CREATOR_DASHBOARD_SPEC.md` | Creator dashboard main view. | now if creator demo is prioritized |
