@@ -1,5 +1,70 @@
 # iOS Register Migration Plan
 
+## Current state (mid-session 2026-05-15)
+
+This section is the fast-read dashboard for the migration as of HEAD `50b9e9fc`. Deeper detail lives in `docs/redesign/SESSION_STATE.md`; the immediate launch plan lives in `docs/redesign/NEXT_3_HOURS.md`.
+
+### Cutovers shipped
+
+Count: 4 production cutover surfaces. Reflect's original preview-fixture limitation is resolved by the data-wiring commits.
+
+| Cutover | Status | Commit(s) | Note |
+|---|---|---|---|
+| Playbook home iOS | shipped | `ae0334fd`, follow-up `da8c4270` | First compressed single-surface cutover. |
+| Race Prep cards iOS | shipped | `b0a6e23b`, `da9e92a9`, `a84c8b50`, `01c6af34`, `6a86f4e8` | Expanded canonical five-commit cutover pattern. |
+| Reflect Race Log iOS | shipped | staged `316c5486`, visual cutover `3d8b45dc`, log adapter `a6031f1e`, segment fix `847e7855`, wiring `50b9e9fc` | Production Reflect now uses real Race/Shift log data; preview route remains fixture-backed for design review. |
+| Reflect Profile iOS | shipped | staged `505de4e3`, visual cutover `3d8b45dc`, profile adapter `fed19b1a`, wiring `50b9e9fc` | Production Reflect now uses real profile/account data; preview route remains fixture-backed for design review. |
+
+Related shipped infrastructure:
+
+- `5c3ab6a4` — canonical `IOSRegisterErrorState`.
+- `7c2dfeeb` — canonical loading narration component staged through Get Inspired running-state preview.
+- `90a9ed97` — density/platform-fit architecture addendum.
+- `eb992cda` — per-interest beat name mapping follow-up.
+- `a6031f1e` — Reflect log real-data adapter.
+- `fed19b1a` — Reflect Profile real-data adapter.
+- `50b9e9fc` — Reflect production wiring to real-data adapters.
+
+### Surfaces staged
+
+Count: 3 staged surfaces whose full production readiness still depends on follow-up work, plus Reflect follow-ups that are no longer blockers.
+
+| Surface | Current status | Build/data commit | Next action |
+|---|---|---|---|
+| Race Log / Shift Log iOS | shipped | `316c5486`; adapters/wiring `a6031f1e`, `50b9e9fc` | Follow-ups only: season picker interactivity, filter persistence, search/index refinements. |
+| Profile iOS | shipped | `505de4e3`; adapter/wiring `fed19b1a`, `50b9e9fc` | Follow-ups only: preference writeback, billing source, non-sailing stat labels. |
+| Get Inspired running state | staged | `7c2dfeeb` | Execute four Get Inspired specs. |
+| Trophy of Becoming iOS | staged but blocked | `496d2481` | Wait for product/data first-ship work. |
+| Concept detail iOS | staged, data work in progress | `a6c27c70`, `06df3e87`, migration `f02b2e0e` | Execute Concept detail read-path and variant-routing specs. |
+
+### Specs ready to execute
+
+Count: 5 active spec families, 20 spec docs total if Discover build-only specs are included. Estimated execution time for the remaining spec-backed commits is roughly 2-3 hours of focused Claude Code time, assuming the Concept detail migration precedent of about 7 minutes per clean spec and allowing extra time for render-switch simulator verification.
+
+| Spec family | Docs | Remaining commit count | Verdict |
+|---|---|---:|---|
+| Reflect data wiring | `docs/redesign/specs/REFLECT_DATA_WIRING_COMMIT_1_LOG_ADAPTER.md` through `_4_STATUS_DOCS.md` | 0 after this status commit | Complete in source: log adapter `a6031f1e`, Profile adapter `fed19b1a`, production wiring `50b9e9fc`. |
+| Get Inspired cutover | `docs/redesign/specs/GET_INSPIRED_COMMIT_1_PLAYBOOK_CTA.md` through `_4_MIGRATION_PLAN_UPDATE.md` | 4 | Ready after Reflect remediation. |
+| Concept detail data work | `docs/redesign/specs/CONCEPT_DETAIL_COMMIT_1_MIGRATION.md` through `_3_VARIANT_ROUTING.md` | 2 pre-cutover specs remain | Commit 1 landed as `f02b2e0e`; read path next. |
+| Discover graph adapter | `docs/redesign/specs/DISCOVER_GRAPH_ADAPTER_COMMIT_1_TYPES_AND_MAPPERS.md` through `_3_HOOKS_AND_SELECTORS.md` | 3 | Ready as data prerequisite; Discover render switch remains later. |
+| Discover leaf build specs | six `docs/redesign/specs/DISCOVER_*_BUILD_SPEC.md` files | 6 build-only commits | Designed/spec-ready, not staged. |
+
+### Open limitations tracked
+
+Count: 3 material limitations. Reflect's preview-fixture production leak is resolved in source; remaining Reflect items are follow-ups, not blockers.
+
+| Limitation | Severity | Tracking doc |
+|---|---|---|
+| Concept detail variant routing depends on read-path + routing specs after migration | P1 | `docs/redesign/CONCEPT_DETAIL_DATA_LAYER_WORK.md` |
+| Discover tab is blocked on shared graph adapter and six unstaged surfaces | P1/P2 | `docs/redesign/DISCOVER_GRAPH_ADAPTER_WORK.md` |
+| Trophy has no production mount or data model | P2/product-blocked | `docs/redesign/TROPHY_OF_BECOMING_CUTOVER_PLAN.md` |
+
+### Next action
+
+Execute Get Inspired Commit 1: `docs/redesign/specs/GET_INSPIRED_COMMIT_1_PLAYBOOK_CTA.md`.
+
+Reason: Reflect data wiring is complete in source after `a6031f1e`, `fed19b1a`, and `50b9e9fc`. Get Inspired is the next ready cutover path with no data-layer blocker.
+
 ## Context
 
 Kevin handed off the first of 12 iOS register surfaces from Claude Design: `Race Prep - Race 4 - iOS register.html`. The design file declares itself "Pass A — iOS" — an iOS-native register that explicitly *substitutes* away from the editorial register that's been shipped over the last ~14 redesign commits.
@@ -9,6 +74,13 @@ Kevin handed off the first of 12 iOS register surfaces from Claude Design: `Race
 This document is the plan the user asked me to write to `docs/redesign/IOS_MIGRATION_PLAN.md`. The migration content lives in this plan file because plan mode requires it; on approval, the same content lands at the final path.
 
 ---
+
+## Migration references
+
+- `docs/redesign/CUTOVER_PATTERN.md` — mechanical reference: commit shapes, flags, component conventions, preview routes, render switches, lint gotchas, and documentation-update commits.
+- `docs/redesign/MIGRATION_PLAYBOOK.md` — strategic reference: readiness judgment, data blockers, first-ship vs migration classification, escalation rules, audit template, and agent-coordination pattern.
+- `docs/redesign/DATA_LAYER_DEPENDENCIES.md` — current render-blocking, variant-blocking, and follow-up data dependencies for staged surfaces.
+- `docs/redesign/REFLECT_DATA_WIRING_WORK.md` — Reflect Race Log/Shift Log + Profile real-data wiring plan. Source work is complete in `a6031f1e`, `fed19b1a`, and `50b9e9fc`; follow-ups remain for filters, preferences, billing, and richer non-sailing stats.
 
 ## Source design — what the iOS register commits to
 
@@ -391,18 +463,22 @@ The next action is non-negotiable. "Try again" counts when it's actually likely 
 
 ## Claude Design handoff backlog (2026-05-15)
 
-Surfaces blocked on these design handoffs before their cutover can resume:
+Surface handoff status for cutovers not yet complete:
 
 | Handoff needed | Blocks |
 |---|---|
-| Discover-Orgs iOS | Discover tab cutover |
-| Discover-People iOS | Discover tab cutover |
-| Discover-Forums iOS | Discover tab cutover |
+| ~~Discover-Orgs iOS~~ | ~~Discover tab cutover~~ ✅ **Designed 2026-05-15** — build-only spec ready in `docs/redesign/specs/DISCOVER_ORGS_LIST_BUILD_SPEC.md` |
+| ~~Discover-People iOS~~ | ~~Discover tab cutover~~ ✅ **Designed 2026-05-15** — build-only spec ready in `docs/redesign/specs/DISCOVER_PEOPLE_LIST_BUILD_SPEC.md` |
+| ~~Discover-Forums iOS~~ | ~~Discover tab cutover~~ ✅ **Designed 2026-05-15** — build-only spec ready in `docs/redesign/specs/DISCOVER_FORUMS_LIST_BUILD_SPEC.md` |
+| Discover Org detail iOS | Discover tab cutover — designed; build-only spec ready in `docs/redesign/specs/DISCOVER_ORG_DETAIL_BUILD_SPEC.md` |
+| Discover Person detail iOS | Discover tab cutover — designed; build-only spec ready in `docs/redesign/specs/DISCOVER_PERSON_DETAIL_BUILD_SPEC.md` |
+| Discover Topic detail iOS | Discover tab cutover — designed; build-only spec ready in `docs/redesign/specs/DISCOVER_TOPIC_DETAIL_BUILD_SPEC.md` |
+| Discover home shell iOS | Discover tab cutover — architecture resolved in `docs/redesign/DISCOVER_CUTOVER_ARCHITECTURE.md` |
 | ~~Race Prep cards iOS / timeline-grid summary iOS~~ | ~~Race Prep cutover (StepDetailContent + RaceSummaryCard together)~~ ✅ **Shipped 2026-05-15** — Race Prep cards iOS handoff landed; cards-grid cutover live behind `RACE_PREP_IOS_REGISTER` |
-| ~~Race Log iOS~~ | ~~Reflect home cutover (option 2 — full tab replacement without functionality regression)~~ ✅ **Shipped 2026-05-15** — staged as `RACE_LOG_IOS_REGISTER` in `316c5486`; cut over inside the canonical Reflect tab in `3d8b45dc` |
-| ~~Profile iOS~~ | ~~Reflect home cutover~~ ✅ **Shipped 2026-05-15** — staged as `PROFILE_IOS_REGISTER` in `505de4e3`; cut over inside the canonical Reflect tab in `3d8b45dc` (paired with Race Log) |
+| ~~Race Log iOS~~ | ~~Reflect home cutover (option 2 — full tab replacement without functionality regression)~~ ✅ **Shipped 2026-05-15** — staged as `RACE_LOG_IOS_REGISTER` in `316c5486`; visual cutover inside canonical Reflect tab in `3d8b45dc`; real-data wiring completed by `a6031f1e` and `50b9e9fc` |
+| ~~Profile iOS~~ | ~~Reflect home cutover~~ ✅ **Shipped 2026-05-15** — staged as `PROFILE_IOS_REGISTER` in `505de4e3`; visual cutover inside canonical Reflect tab in `3d8b45dc`; real-data wiring completed by `fed19b1a` and `50b9e9fc` |
 
-Three design handoffs still outstanding. Reflect cutover shipped once Race Log iOS and Profile iOS were wired into the canonical Reflect tab; Discover sub-surfaces remain the only blocked-cutover handoffs. Note: the contemplative `/reflect-ios` root surface itself stays parked — that surface and the Reflect-home-level cutover live separately from the sub-tab cutover that just landed. All other blocked-cutover surfaces remain reachable via their preview routes (`/reflect-ios`, `/discover-ios`) for review and testing; cutover commits resume once their respective design handoffs arrive.
+No Discover design handoff is treated as outstanding after this update. Discover is now blocked on build-only staging plus a shared Discover graph/data-adapter decision, not missing visual canon. Note: the parked `/discover-ios` Paths preview remains a predecessor surface and should not be conflated with the six new Discover iOS register surfaces.
 
 ## Staged cutover plan index (2026-05-15)
 
@@ -411,6 +487,7 @@ These entries index staged build-only surfaces whose render switches are still p
 Related dependency audit:
 
 - `docs/redesign/DATA_LAYER_DEPENDENCIES.md` — render-blocking, variant-blocking, and follow-up data dependencies for Race Log, Profile, Get Inspired, Trophy, and Concept detail.
+- `docs/redesign/REFLECT_DATA_WIRING_WORK.md` — Reflect Race Log/Shift Log + Profile real-data wiring plan and links to the four executable specs.
 - `docs/redesign/CONCEPT_DETAIL_DATA_LAYER_WORK.md` — resolved Concept detail state decisions and links to the three executable pre-cutover specs.
 
 ## Cutover readiness
@@ -418,22 +495,37 @@ Related dependency audit:
 | Cutover | blocked-on-investigation | blocked-on-data | blocked-on-Profile-staging | ready-to-execute | Note |
 |---|---:|---:|---:|---:|---|
 | Concept detail iOS | no | specs ready | no | no | 3 pre-cutover commits to execute, then 1 render-switch commit, then 1 migration-plan update commit. |
-| Get Inspired running state | no | no | no | partial | Pipeline hook resolved in `GET_INSPIRED_CUTOVER_PLAN.md`; default iOS Playbook entry point and Stop semantics need human decision. |
-| Reflect Race Log/Profile | no | no | pending commit | no | Profile is staged in the working tree, but the build-only Profile commit hash is still pending. |
+| Get Inspired running state | no | no | no | specs ready | 4 executable specs ready: CTA, render switch, abort semantics, migration-plan update. |
+| Reflect Race Log/Profile | no | no | no | shipped | Preview-wrapper production leak resolved by log adapter `a6031f1e`, Profile adapter `fed19b1a`, and Reflect wiring `50b9e9fc`. |
 | Trophy of Becoming iOS | no | yes | no | no | Canonical mount resolved in `TROPHY_OF_BECOMING_CUTOVER_PLAN.md`: no production render path and no trophy data layer exist. |
+| Discover tab iOS | no | adapter specs ready | no | no | Graph adapter work plan ready: 3 pre-cutover commits, then six build-only surfaces, shell composition, flag, atomic render switch, migration-plan update. |
 
 | Surface | Build-only commit | Plan | Planned next action |
 |---|---:|---|---|
-| Get Inspired iOS running state | `7c2dfeeb` | `docs/redesign/GET_INSPIRED_CUTOVER_PLAN.md` | Wire `GET_INSPIRED_IOS_REGISTER` into the live Get Inspired modal's long-running analyze/build-plan state once the real pipeline stage is confirmed. |
+| Get Inspired iOS running state | `7c2dfeeb` | `docs/redesign/GET_INSPIRED_CUTOVER_PLAN.md` + `docs/redesign/specs/GET_INSPIRED_COMMIT_1_PLAYBOOK_CTA.md` through `GET_INSPIRED_COMMIT_4_MIGRATION_PLAN_UPDATE.md` | Specs ready: execute CTA, render switch, abort semantics, and migration-plan update. |
+| Reflect Race Log / Shift Log + Profile | `316c5486`, `505de4e3` + visual cutover `3d8b45dc` + data wiring `a6031f1e`, `fed19b1a`, `50b9e9fc` | `docs/redesign/REFLECT_DATA_WIRING_WORK.md` | Shipped with real-data adapters. Remaining work is follow-up scope: filters, preferences, billing, richer non-sailing stats. |
 | Trophy of Becoming iOS | `496d2481` | `docs/redesign/TROPHY_OF_BECOMING_CUTOVER_PLAN.md` | Blocked until path-completion trophy data/service and first production entry point exist. |
 | Concept detail iOS | `a6c27c70` | `docs/redesign/CONCEPT_DETAIL_CUTOVER_PLAN.md` + `docs/redesign/CONCEPT_DETAIL_DATA_LAYER_WORK.md` | Specs ready: execute Commit 1 migration, Commit 2 read path, Commit 3 variant routing, Commit 4 render switch, Commit 5 migration-plan update. |
+| Discover tab iOS | n/a | `docs/redesign/DISCOVER_CUTOVER_ARCHITECTURE.md` + `docs/redesign/DISCOVER_GRAPH_ADAPTER_WORK.md` + six `docs/redesign/specs/DISCOVER_*_BUILD_SPEC.md` files | Execute 3 graph-adapter commits, stage six leaf surfaces, compose shell, then ship one atomic tab-level render switch behind `DISCOVER_IOS_REGISTER`. |
 
 ## Cutover execution order (revised)
 
-1. Get Inspired running state — ship after the iOS Playbook entry-point and Stop semantics decisions; the pipeline hook exists and no render-blocking data is missing.
-2. Reflect Race Log/Profile — ship after the Profile build-only commit is finalized; Race Log and Profile have no render-blocking data dependencies.
-3. Concept detail iOS — execute the 3 pre-cutover specs, then ship the render switch; the state decisions are resolved and implementation specs are ready.
+1. Get Inspired running state — ship next; specs are ready and no data-layer work is required.
+2. Concept detail iOS — execute the remaining read-path and variant-routing specs, then ship the render switch; the state decisions are resolved and implementation specs are ready.
+3. Discover tab iOS — ship after 3 graph-adapter commits, six build-only surfaces, and parent shell composition; tab-level atomic cutover avoids mixed IA states.
 4. Trophy of Becoming iOS — ship after data-layer work for path-completion trophy synthesis, trophy storage/API, and the first production entry point.
+
+## Resolved limitation — Reflect visual cutover sample-data wiring
+
+Reflect cutover `3d8b45dc` originally shipped the iOS-register visual switch for Race Log and Profile while the flag-on branches still mounted `RaceLogIosPreview` and `ProfileIosPreview`. Those wrappers were correct for build-only review routes, but they were not production adapters.
+
+This limitation is resolved in source:
+
+- `a6031f1e` — adds `useReflectLog`, `ReflectLogService`, and Race/Shift log mappers.
+- `fed19b1a` — adds `useReflectProfileScreenData` and Profile mappers.
+- `50b9e9fc` — replaces the production Reflect preview-wrapper mounts with `RaceLogScreen` and `ProfileScreen` consuming real-data adapters.
+
+Preview routes remain fixture-backed for design review. Production Reflect now consumes real account and interest-aware data. Follow-ups remain: season picker interactivity, filter persistence, Profile preference writeback, billing source, and richer non-sailing profile stat labels.
 
 ---
 

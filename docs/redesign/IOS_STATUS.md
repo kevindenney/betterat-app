@@ -1,54 +1,56 @@
 # iOS Register Migration — Status
 
-## Shipping
-- 15/15 surfaces designed (12 original previews + Race Prep cards canonical summary + Race Log iOS + Profile iOS)
-- 4/15 surfaces cut over:
-  - Playbook home (`ae0334fd`, 2026-05-15)
-  - Race Prep cards iOS (`01c6af34`, 2026-05-15)
-  - Race Log iOS (staged `316c5486`; cut over inside the Reflect tab `3d8b45dc`, 2026-05-15)
-  - Profile iOS (staged `505de4e3`; cut over inside the Reflect tab `3d8b45dc`, 2026-05-15)
-- The contemplative `/reflect-ios` root surface (Reflect home) stays parked. The sub-tab cutover above is distinct from the Reflect-home-level cutover.
-- 8 register decisions resolved
-- 4 architecture decisions resolved
-  - #3 summary vs detail is now substantiated by two shipped cutovers: Playbook home and Race Prep cards iOS
-  - Decision A density refinement (commit `90a9ed97`): density is the surface, not the principle — register defers to platform on what platform does well, asserts itself only where it adds something
+Last updated: 2026-05-15 mid-session, HEAD `50b9e9fc`.
 
-## Staged but not cut over
-- Get Inspired iOS running state (`7c2dfeeb`, flag `GET_INSPIRED_IOS_REGISTER`) — render switch into the live modal still pending until the analyze/build-plan pipeline lands
-- Trophy of Becoming variants (`496d2481`, flag `TROPHY_IOS_REGISTER`) — render switch pending until path-completion synthesis service ships
-- Concept detail variants (`a6c27c70`, flag `CONCEPT_IOS_REGISTER`) — render switch pending until per-user concept state schema + dormancy heuristic land
+## Dashboard
 
-## Blocked
-- Reflect home (root `/reflect-ios`) — blocked on reflection-usage tracking
-- Discover tab — blocked on Discover-Orgs iOS, Discover-People iOS, Discover-Forums iOS
+| Area | Status |
+|---|---|
+| Fully shipped cutovers | 4 surfaces: Playbook home, Race Prep cards, Race Log iOS, Profile iOS |
+| Previously known limitation | Resolved: Reflect production no longer mounts preview fixtures |
+| Staged but not fully cut over | 3: Get Inspired running state, Concept detail, Trophy |
+| Designed but not staged | 7 Discover entries: parent shell + 6 leaf surfaces |
+| Active top priority | Get Inspired Commit 1 |
 
-## Queued
-### Design handoffs (Claude Design)
-- 3 remaining:
-  - Discover-Orgs iOS
-  - Discover-People iOS
-  - Discover-Forums iOS
+## Shipped
 
-### Data-layer follow-ups (Claude Code)
-- 1. Competency Assessment surface implementation
-- 2. Per-user concept state schema
-- 3. Concept-to-step association
-- 4. Weather service integration
-- 5. Prior-debrief quote query
-- 6. Concept-suggestion service
-- 7. step_rules schema
-- 8. Authoring flow for prose beats
-- 9. Reflection-usage tracking
-- 10. Analyze/build-plan pipeline (unblocks Get Inspired running-state render switch)
-- 11. Path-completion synthesis service (unblocks Trophy of Becoming render switch)
+- Playbook home iOS — `ae0334fd`; banner follow-up `da8c4270`.
+- Race Prep cards iOS — prep `b0a6e23b`, flag `da9e92a9`, components `a84c8b50`, render switch `01c6af34`, docs `6a86f4e8`.
+- Canonical error state infrastructure — `5c3ab6a4`.
+- Reflect Race Log/Profile real-data wiring — log adapter `a6031f1e`, Profile adapter `fed19b1a`, production wiring `50b9e9fc`.
 
-## Principles
-- Loading-state narration (canonical implementation shipped 2026-05-15 in `7c2dfeeb`)
-- Error-state principle
+## Resolved Limitation
 
-## Open architecture follow-ups
-- #11 `/step/[id]` vs `/race/ios/[stepId]` detail-surface split
-- #12 inline-action affordances on iOS-register summary cards (Edit / Delete / MarkDone re-surface question after the tap-only cutover)
+- Race Log iOS — staged `316c5486`, visual Reflect cutover `3d8b45dc`, layout fix `6b3fe596`.
+- Profile iOS — staged `505de4e3`, visual Reflect cutover `3d8b45dc`.
+- Original limitation: production Reflect mounted `RaceLogIosPreview` and `ProfileIosPreview`, so flag-on branches could show sample fixtures instead of real account/interest data.
+- Resolution: production Reflect now mounts `RaceLogScreen` and `ProfileScreen` with real-data adapters. Preview routes remain fixture-backed for design review only.
+- Follow-ups: filter persistence, season picker interactivity, Profile preference writeback, billing source, and richer non-sailing profile stat labels.
 
-## Last updated
-- 2026-05-15T05:30:00Z
+## Staged / Pending Cutover
+
+- Get Inspired running state — `7c2dfeeb`; specs ready in `docs/redesign/specs/GET_INSPIRED_COMMIT_*.md`.
+- Concept detail — visual staging `a6c27c70`, route rename `06df3e87`, data migration `f02b2e0e`; read-path and variant-routing specs remain.
+- Trophy of Becoming — `496d2481`; blocked as first-ship product/data work, not a render-switch migration.
+
+## Designed / Not Staged
+
+- Discover home shell.
+- Discover Orgs list.
+- Discover People list.
+- Discover Forums list.
+- Discover Org detail.
+- Discover Person detail.
+- Discover Topic detail.
+
+Discover is blocked on the shared graph adapter before production cutover. Specs exist in `docs/redesign/specs/DISCOVER_GRAPH_ADAPTER_COMMIT_*.md` and six `DISCOVER_*_BUILD_SPEC.md` files.
+
+## Next Action
+
+Execute `docs/redesign/specs/GET_INSPIRED_COMMIT_1_PLAYBOOK_CTA.md`.
+
+## Watch Items
+
+- Race Log segment-key fix is shipped at `847e7855`.
+- `STAGING_AUDIT.md` is stale about Profile pending; rely on `SESSION_STATE.md` and `CONSISTENCY_AUDIT.md` for current status.
+- Do not mount `app/*-ios.tsx` preview wrappers in production tab screens.

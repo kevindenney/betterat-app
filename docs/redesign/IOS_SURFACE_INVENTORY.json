@@ -130,17 +130,22 @@
       "user": "Felix/Emily",
       "user_role": "practitioner",
       "type": "review",
-      "wire_up": "placeholder",
+      "wire_up": "real-data",
       "preview_status": "shipped",
       "canonical_status": "shipped",
       "build_only_commit": "316c5486",
       "shipped_in_commit": "3d8b45dc",
       "shipped_on": "2026-05-15",
       "feature_flag": "RACE_LOG_IOS_REGISTER",
+      "data_wiring_commits": [
+        "a6031f1e",
+        "50b9e9fc"
+      ],
       "entry_points": [
         "Reflect tab → Race Log segment (canonical, flag default ON)",
         "/race-log-ios (preview route)"
       ],
+      "notes": "Production Reflect uses RaceLogScreen with real-data adapters. The /race-log-ios preview route remains fixture-backed for design review only.",
       "design_handoff_html": ""
     },
     {
@@ -150,7 +155,7 @@
       "user": "Felix/Emily",
       "user_role": "practitioner",
       "type": "profile",
-      "wire_up": "placeholder",
+      "wire_up": "real-data",
       "preview_status": "shipped",
       "canonical_status": "shipped",
       "build_only_commit": "505de4e3",
@@ -158,10 +163,15 @@
       "shipped_on": "2026-05-15",
       "feature_flag": "PROFILE_IOS_REGISTER",
       "preview_route": "/profile-ios",
+      "data_wiring_commits": [
+        "fed19b1a",
+        "50b9e9fc"
+      ],
       "entry_points": [
         "Reflect tab → Profile segment (canonical, flag default ON)",
         "/profile-ios (preview route)"
       ],
+      "notes": "Production Reflect uses ProfileScreen with real profile/account data. The /profile-ios preview route remains fixture-backed for design review only.",
       "design_handoff_html": "Profile - Felix sailing - iOS register.html"
     },
     {
@@ -179,6 +189,145 @@
         "/dev/ios-previews"
       ],
       "design_handoff_html": ""
+    },
+    {
+      "id": "discover-home-ios",
+      "title": "Discover home shell iOS",
+      "route": "rendered in app/(tabs)/discover.tsx behind FEATURE_FLAGS.DISCOVER_IOS_REGISTER",
+      "user": "Felix/Emily",
+      "user_role": "practitioner",
+      "type": "discovery-shell",
+      "wire_up": "placeholder",
+      "preview_status": "pending",
+      "canonical_status": "designed",
+      "feature_flag": "DISCOVER_IOS_REGISTER",
+      "architecture_doc": "docs/redesign/DISCOVER_CUTOVER_ARCHITECTURE.md",
+      "graph_adapter_dependency": "docs/redesign/DISCOVER_GRAPH_ADAPTER_WORK.md",
+      "entry_points": [
+        "Discover tab root shell",
+        "Future atomic Discover tab render switch via FEATURE_FLAGS.DISCOVER_IOS_REGISTER"
+      ],
+      "design_handoff_html": "Claude Design — Discover home shell iOS register"
+    },
+    {
+      "id": "discover-orgs-ios",
+      "title": "Discover Orgs list iOS",
+      "route": "/discover-orgs-ios",
+      "user": "Felix/Emily",
+      "user_role": "practitioner",
+      "type": "discovery-list",
+      "wire_up": "placeholder",
+      "preview_status": "pending",
+      "canonical_status": "designed",
+      "feature_flag": "DISCOVER_IOS_REGISTER",
+      "build_spec": "docs/redesign/specs/DISCOVER_ORGS_LIST_BUILD_SPEC.md",
+      "architecture_doc": "docs/redesign/DISCOVER_CUTOVER_ARCHITECTURE.md",
+      "graph_adapter_dependency": "docs/redesign/DISCOVER_GRAPH_ADAPTER_WORK.md",
+      "entry_points": [
+        "Future Discover tab Orgs segment",
+        "/discover-orgs-ios (planned preview route)"
+      ],
+      "design_handoff_html": "Claude Design — Discover Orgs list iOS register"
+    },
+    {
+      "id": "discover-people-ios",
+      "title": "Discover People list iOS",
+      "route": "/discover-people-ios",
+      "user": "Felix/Emily",
+      "user_role": "practitioner",
+      "type": "discovery-list",
+      "wire_up": "placeholder",
+      "preview_status": "pending",
+      "canonical_status": "designed",
+      "feature_flag": "DISCOVER_IOS_REGISTER",
+      "build_spec": "docs/redesign/specs/DISCOVER_PEOPLE_LIST_BUILD_SPEC.md",
+      "architecture_doc": "docs/redesign/DISCOVER_CUTOVER_ARCHITECTURE.md",
+      "graph_adapter_dependency": "docs/redesign/DISCOVER_GRAPH_ADAPTER_WORK.md",
+      "entry_points": [
+        "Future Discover tab People segment",
+        "/discover-people-ios (planned preview route)"
+      ],
+      "design_handoff_html": "Claude Design — Discover People list iOS register"
+    },
+    {
+      "id": "discover-forums-ios",
+      "title": "Discover Forums list iOS",
+      "route": "/discover-forums-ios",
+      "user": "Felix/Emily",
+      "user_role": "practitioner",
+      "type": "discovery-list",
+      "wire_up": "placeholder",
+      "preview_status": "pending",
+      "canonical_status": "designed",
+      "feature_flag": "DISCOVER_IOS_REGISTER",
+      "build_spec": "docs/redesign/specs/DISCOVER_FORUMS_LIST_BUILD_SPEC.md",
+      "architecture_doc": "docs/redesign/DISCOVER_CUTOVER_ARCHITECTURE.md",
+      "graph_adapter_dependency": "docs/redesign/DISCOVER_GRAPH_ADAPTER_WORK.md",
+      "entry_points": [
+        "Future Discover tab Forums segment",
+        "/discover-forums-ios (planned preview route)"
+      ],
+      "design_handoff_html": "Claude Design — Discover Forums list iOS register"
+    },
+    {
+      "id": "discover-org-detail-ios",
+      "title": "Discover Org detail iOS",
+      "route": "/discover/org/<id>",
+      "user": "Felix/Emily",
+      "user_role": "practitioner",
+      "type": "discovery-detail",
+      "wire_up": "placeholder",
+      "preview_status": "pending",
+      "canonical_status": "designed",
+      "feature_flag": "DISCOVER_IOS_REGISTER",
+      "build_spec": "docs/redesign/specs/DISCOVER_ORG_DETAIL_BUILD_SPEC.md",
+      "architecture_doc": "docs/redesign/DISCOVER_CUTOVER_ARCHITECTURE.md",
+      "graph_adapter_dependency": "docs/redesign/DISCOVER_GRAPH_ADAPTER_WORK.md",
+      "entry_points": [
+        "Future tap from Discover Orgs list",
+        "/discover-org-detail-ios (planned preview route)"
+      ],
+      "design_handoff_html": "Claude Design — Discover Org detail iOS register"
+    },
+    {
+      "id": "discover-person-detail-ios",
+      "title": "Discover Person detail iOS",
+      "route": "/discover/person/<id>",
+      "user": "Felix/Emily",
+      "user_role": "practitioner",
+      "type": "discovery-detail",
+      "wire_up": "placeholder",
+      "preview_status": "pending",
+      "canonical_status": "designed",
+      "feature_flag": "DISCOVER_IOS_REGISTER",
+      "build_spec": "docs/redesign/specs/DISCOVER_PERSON_DETAIL_BUILD_SPEC.md",
+      "architecture_doc": "docs/redesign/DISCOVER_CUTOVER_ARCHITECTURE.md",
+      "graph_adapter_dependency": "docs/redesign/DISCOVER_GRAPH_ADAPTER_WORK.md",
+      "entry_points": [
+        "Future tap from Discover People list or cross-reference chip",
+        "/discover-person-detail-ios (planned preview route)"
+      ],
+      "design_handoff_html": "Claude Design — Discover Person detail iOS register"
+    },
+    {
+      "id": "discover-topic-detail-ios",
+      "title": "Discover Topic detail iOS",
+      "route": "/discover/topic/<id>",
+      "user": "Felix/Emily",
+      "user_role": "practitioner",
+      "type": "discovery-detail",
+      "wire_up": "placeholder",
+      "preview_status": "pending",
+      "canonical_status": "designed",
+      "feature_flag": "DISCOVER_IOS_REGISTER",
+      "build_spec": "docs/redesign/specs/DISCOVER_TOPIC_DETAIL_BUILD_SPEC.md",
+      "architecture_doc": "docs/redesign/DISCOVER_CUTOVER_ARCHITECTURE.md",
+      "graph_adapter_dependency": "docs/redesign/DISCOVER_GRAPH_ADAPTER_WORK.md",
+      "entry_points": [
+        "Future tap from Discover Forums list or cross-reference chip",
+        "/discover-topic-detail-ios (planned preview route)"
+      ],
+      "design_handoff_html": "Claude Design — Discover Topic detail iOS register"
     },
     {
       "id": "get-inspired-ios",
