@@ -57,7 +57,7 @@ Decision: there are **12** valid HTML canonicals in the May 15 design set. `disc
 | A.7 | Fix Apple sign-in branding from RegattaFlow to BetterAt for org adoption readiness. | `FIVE_SURFACES_CONSOLIDATED_ADDENDUM.md` | none | spec-pending | 1 | Apple Developer console access | no app flag; external config change |
 | A.8 | Add `/practice` as the canonical user-facing route while preserving `/races` as a backwards-compatible alias/redirect. | `PRACTICE_TIMELINE_CANONICAL.md`, this backlog decision | none | spec-pending | 2-3 | Phase A; before public sharing/onboarding links spread further | `PRACTICE_ROUTE_ALIAS=false` or unflagged redirect if implementation is mechanical |
 | B | Rename in-card phase tabs to Plan / Do / Reflect. | `PRACTICE_TIMELINE_CANONICAL.md`, `specs/PHASE_B_RENAME_PHASE_TABS.md` | `practice-timeline-canonical.html` | spec-written, execution queued: `4a394087` | 1 | Phase A verified | none; qualifies for mechanical-only exception |
-| B.5 | Rebuild Plan tab interior: AI Coach primary, What/How/Why fields, optional context, three visual states. | `PRACTICE_TIMELINE_CANONICAL_PLAN_TAB_ADDENDUM.md` | `plan-tab-three-states-canonical.html` | spec-pending | 3-5 | Phase B preferred; Phase D not required for v1 | `PRACTICE_PLAN_TAB_IOS_REGISTER=false` |
+| B.5 | Rebuild Plan tab interior: AI Coach primary, What/How/Why fields, optional context, three visual states. | `PRACTICE_TIMELINE_CANONICAL_PLAN_TAB_ADDENDUM.md`, `specs/PHASE_B5_PLAN_TAB_INTERIOR_SPEC.md` | `plan-tab-three-states-canonical.html` | spec-written | 4 | Phase B preferred; Phase D not required for v1 | `PRACTICE_PLAN_TAB_IOS_REGISTER=false` |
 | B.6 | Add Step FAB and two-option create sheet: AI Coach or Blueprint picker; auto-scroll to new step. | `PRACTICE_TIMELINE_ADD_STEP_ZOOMED_OUT_SOCIAL_ADDENDUM.md`, `specs/PHASE_B6_ADD_STEP_FAB_SPEC.md` | `add-step-flow-canonical.html` | spec-written | 3 | Phase A; can precede Phase C if mounted in `app/(tabs)/races.tsx` | `PRACTICE_ADD_STEP_FAB=false` |
 | B.7 | Interest switcher action sheet for multi-interest users. | `FOUR_SURFACES_FAST_SPEC_ADDENDUM.md` | `four-small-surfaces-canonical.html` | spec-pending | 1-2 | existing InterestProvider; before social/zoomed-out polish | `PRACTICE_INTEREST_SWITCHER_IOS=false` |
 | B.8 | Profile/settings dropdown from top-right avatar. | `FOUR_SURFACES_FAST_SPEC_ADDENDUM.md` | `four-small-surfaces-canonical.html` | spec-pending | 1-2 | Phase A naming distinction | `ACCOUNT_MENU_IOS_REGISTER=false` |
@@ -124,7 +124,7 @@ Specs still needed:
 |---|---|---|
 | `PHASE_A7_APPLE_SIGNIN_BRANDING.md` | Apple ID / auth provider branding fix from RegattaFlow to BetterAt. | now if JHU demo depends on sign-in |
 | `PHASE_A8_PRACTICE_ROUTE_ALIAS_SPEC.md` | `/practice` canonical route, `/races` compatibility alias/redirect, route tests, link migration rules. | now, before public links and share surfaces |
-| `PHASE_B5_PLAN_TAB_REBUILD_SPEC.md` | Plan tab UI, AI Coach primary path, What/How/Why fields, locked state. | now |
+| `PHASE_B5_PLAN_TAB_INTERIOR_SPEC.md` | Plan tab UI, AI Coach primary path, What/How/Why fields, locked state. | written |
 | `PHASE_B6_ADD_STEP_FAB_SPEC.md` | FAB, create sheet, AI Coach entry, Blueprint picker, auto-scroll. | written |
 | `PHASE_B7_INTEREST_SWITCHER_SPEC.md` | Interest action sheet, activity summaries, manage interests links. | now |
 | `PHASE_B8_PROFILE_SETTINGS_DROPDOWN_SPEC.md` | Avatar menu, account/settings actions, Profile-tab distinction. | now |
