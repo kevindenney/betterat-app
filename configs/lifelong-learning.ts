@@ -19,9 +19,9 @@ export const LIFELONG_LEARNING_EVENT_CONFIG: InterestEventConfig = {
   // Phase labels
   // ---------------------------------------------------------------------------
   phaseLabels: {
-    days_before: { full: 'Preparation', short: 'Prep' },
-    on_water: { full: 'In Session', short: 'Session' },
-    after_race: { full: 'Integration', short: 'Integrate' },
+    days_before: { full: 'Plan', short: 'Plan' },
+    on_water: { full: 'Do', short: 'Do' },
+    after_race: { full: 'Reflect', short: 'Reflect' },
   },
 
   // ---------------------------------------------------------------------------

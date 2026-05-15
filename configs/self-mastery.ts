@@ -25,9 +25,9 @@ export const SELF_MASTERY_EVENT_CONFIG: InterestEventConfig = {
   // Phase labels
   // ---------------------------------------------------------------------------
   phaseLabels: {
-    days_before: { full: 'Intention', short: 'Intent' },
-    on_water: { full: 'Practice', short: 'Practice' },
-    after_race: { full: 'Reflection', short: 'Reflect' },
+    days_before: { full: 'Plan', short: 'Plan' },
+    on_water: { full: 'Do', short: 'Do' },
+    after_race: { full: 'Reflect', short: 'Reflect' },
   },
 
   // ---------------------------------------------------------------------------

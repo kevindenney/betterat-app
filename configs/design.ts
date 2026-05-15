@@ -17,9 +17,9 @@ export const DESIGN_EVENT_CONFIG: InterestEventConfig = {
   // Phase labels
   // ---------------------------------------------------------------------------
   phaseLabels: {
-    days_before: { full: 'Research', short: 'Research' },
-    on_water: { full: 'Creating', short: 'Create' },
-    after_race: { full: 'Critique', short: 'Critique' },
+    days_before: { full: 'Plan', short: 'Plan' },
+    on_water: { full: 'Do', short: 'Do' },
+    after_race: { full: 'Reflect', short: 'Reflect' },
   },
 
   // ---------------------------------------------------------------------------

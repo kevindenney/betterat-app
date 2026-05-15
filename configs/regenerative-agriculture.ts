@@ -20,9 +20,9 @@ export const REGENERATIVE_AGRICULTURE_EVENT_CONFIG: InterestEventConfig = {
   // Phase labels
   // ---------------------------------------------------------------------------
   phaseLabels: {
-    days_before: { full: 'Planning', short: 'Plan' },
-    on_water: { full: 'In Field', short: 'Field' },
-    after_race: { full: 'Harvest Review', short: 'Review' },
+    days_before: { full: 'Plan', short: 'Plan' },
+    on_water: { full: 'Do', short: 'Do' },
+    after_race: { full: 'Reflect', short: 'Reflect' },
   },
 
   // ---------------------------------------------------------------------------

@@ -18,9 +18,9 @@ export const SAILING_EVENT_CONFIG: InterestEventConfig = {
   // Phase labels
   // ---------------------------------------------------------------------------
   phaseLabels: {
-    days_before: { full: 'Days Before', short: 'Before' },
-    on_water: { full: 'On Water', short: 'Racing' },
-    after_race: { full: 'After Race', short: 'Review' },
+    days_before: { full: 'Plan', short: 'Plan' },
+    on_water: { full: 'Do', short: 'Do' },
+    after_race: { full: 'Reflect', short: 'Reflect' },
   },
 
   // ---------------------------------------------------------------------------

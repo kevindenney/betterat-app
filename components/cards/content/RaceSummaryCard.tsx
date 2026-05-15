@@ -1601,16 +1601,16 @@ function RaceSummaryCardImpl({
   const _RaceTypeBadgeIcon = raceTypeBadge.icon;
 
   // Phase tabs data for IOSSegmentedControl — labels are universal across
-  // interests per mockup 11 + visual-redesign-gap-step-detail audit §5 #2.
+  // interests per docs/redesign/PRACTICE_TIMELINE_CANONICAL.md.
   // The per-interest vocabulary ("Race Prep / On the Water / Debrief" etc.)
-  // is intentionally not applied here — the mockup uses Before/During/After
+  // is intentionally not applied here — canonical labels are Plan / Do / Reflect
   // universally so the tab control reads the same regardless of practice domain.
   // Tufte: completion counts inline for information density.
   // Falls back to eventConfig for non-timeline sailing races (legacy path).
   const TIMELINE_STEP_PHASE_LABELS: Record<RacePhase, string> = {
-    days_before: 'Before',
-    on_water: 'During',
-    after_race: 'After',
+    days_before: 'Plan',
+    on_water: 'Do',
+    after_race: 'Reflect',
   };
 
   const phaseTabs = useMemo(() => {
@@ -1677,9 +1677,9 @@ function RaceSummaryCardImpl({
       after_race: 'Log results, debrief, and capture learnings',
     };
     const timelineStepDescriptions: Record<RacePhase, string> = {
-      days_before: 'Write down what, how, why, and where before you start',
-      on_water: 'Focus on what matters while you work',
-      after_race: 'Critique what happened and define next focus',
+      days_before: "What's the plan for this step?",
+      on_water: 'Ready to start? Capture what you do or observe.',
+      after_race: 'How did it go? Notes appear here after you have done some of the work.',
     };
     const label = isTimelineStep
       ? TIMELINE_STEP_PHASE_LABELS[selectedPhase]

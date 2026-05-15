@@ -19,9 +19,9 @@ export const GLOBAL_HEALTH_EVENT_CONFIG: InterestEventConfig = {
   // Phase labels
   // ---------------------------------------------------------------------------
   phaseLabels: {
-    days_before: { full: 'Planning', short: 'Plan' },
-    on_water: { full: 'On Mission', short: 'Mission' },
-    after_race: { full: 'Post-Mission', short: 'Debrief' },
+    days_before: { full: 'Plan', short: 'Plan' },
+    on_water: { full: 'Do', short: 'Do' },
+    after_race: { full: 'Reflect', short: 'Reflect' },
   },
 
   // ---------------------------------------------------------------------------
