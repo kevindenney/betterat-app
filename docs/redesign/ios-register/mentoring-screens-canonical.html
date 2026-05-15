@@ -1,0 +1,2462 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=5400" />
+<title>BetterAt — Creator Mentoring Screens · Canonical · 2026-05-15</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css" />
+<style>
+  :root {
+    --ios-blue:        #007AFF;
+    --ios-blue-tint:   rgba(0, 122, 255, 0.10);
+    --ios-blue-strong: rgba(0, 122, 255, 0.18);
+    --ios-blue-deep:   #0060D4;
+    --ios-green:       #34C759;
+    --ios-green-tint:  rgba(52, 199, 89, 0.12);
+    --ios-amber:       #FF9500;
+    --ios-amber-tint:  rgba(255, 149, 0, 0.14);
+    --ios-coral:       #FF3B30;
+    --ios-coral-tint:  rgba(255, 59, 48, 0.10);
+    --ios-purple:      #5856D6;
+    --ios-purple-tint: rgba(88, 86, 214, 0.12);
+    --ios-teal:        #30B0C7;
+    --ios-pink:        #FF2D55;
+
+    --gray-6:   #F5F5F7;
+    --gray-5:   #ECECEE;
+    --gray-4:   #E0E0E4;
+    --gray-3:   #D1D1D6;
+    --gray-2:   #AEAEB2;
+    --gray-1:   #8E8E93;
+    --label:    #1C1C1E;
+    --label-2:  #3C3C43;
+    --label-3:  rgba(60, 60, 67, 0.62);
+    --label-4:  rgba(60, 60, 67, 0.32);
+    --label-5:  rgba(60, 60, 67, 0.18);
+
+    --creator-ink:   #1E3A4C;
+    --creator-ink-2: #2F5E78;
+    --creator-soft:  #E8EEF2;
+
+    --stage:        #EFEAD8;
+    --stage-text:   #6B6558;
+    --stage-ink:    #2A2824;
+    --stage-line:   rgba(34, 30, 20, 0.12);
+    --stage-line-soft: rgba(34, 30, 20, 0.06);
+
+    /* Subscriber's identity ink — used very sparingly on this surface
+       so Bram's eye lands on Tomás. Driven by avatar gradient (a1). */
+    --sub-ink:   #3E5A85;
+    --sub-ink-2: #7E96B9;
+    --sub-soft:  #ECF1F8;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display",
+                 "Helvetica Neue", Helvetica, Arial, sans-serif;
+    color: var(--label);
+    background: var(--stage);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+  button, input, textarea { font-family: inherit; }
+
+  /* ============= Page chrome ============= */
+  .page { min-width: 5400px; padding: 56px 48px 96px; }
+  .page-head { max-width: 1240px; margin: 0 0 56px 32px; }
+  .page-head .eyebrow {
+    font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--stage-text); margin: 0 0 12px;
+  }
+  .page-head h1 {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 32px; line-height: 1.15; font-weight: 500;
+    letter-spacing: -0.015em; margin: 0 0 14px; color: var(--stage-ink);
+  }
+  .page-head h1 em { font-style: italic; }
+  .page-head p {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 17px; line-height: 1.55;
+    color: var(--stage-text); margin: 0; max-width: 1100px;
+    text-wrap: pretty;
+  }
+  .page-head p em { font-style: italic; }
+  .page-head p + p { margin-top: 12px; }
+  .page-head .crumbs {
+    display: flex; gap: 10px; align-items: center; margin: 22px 0 0; flex-wrap: wrap;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+    font-size: 12px; color: var(--stage-text); letter-spacing: 0.02em;
+  }
+  .page-head .crumbs .pill {
+    padding: 3px 10px; border-radius: 999px;
+    border: 0.5px solid var(--stage-line);
+    background: rgba(255,255,255,0.4);
+  }
+  .page-head .crumbs .sep { color: var(--stage-line); }
+
+  .frame-row { display: flex; gap: 36px; align-items: flex-start; padding: 0 8px; }
+  .frame-col {
+    display: flex; flex-direction: column; gap: 22px;
+    width: 1280px; flex: 0 0 1280px;
+  }
+
+  /* ============= Desktop window shell ============= */
+  .desktop {
+    width: 1280px; height: 880px;
+    background: #FFFFFF;
+    border-radius: 14px;
+    border: 0.5px solid rgba(0,0,0,0.12);
+    box-shadow:
+      0 30px 80px -40px rgba(34, 30, 20, 0.34),
+      0 6px 18px -10px rgba(34, 30, 20, 0.16),
+      0 1px 0 rgba(255,255,255,0.6) inset;
+    overflow: hidden;
+    position: relative;
+    isolation: isolate;
+  }
+  .desktop .chrome {
+    height: 36px;
+    background: #F1F1F3;
+    border-bottom: 0.5px solid var(--gray-4);
+    display: flex; align-items: center; gap: 12px;
+    padding: 0 14px;
+  }
+  .desktop .chrome .lights { display: inline-flex; gap: 8px; }
+  .desktop .chrome .lights span {
+    width: 12px; height: 12px; border-radius: 50%;
+  }
+  .desktop .chrome .lights .r { background: #FF5F57; }
+  .desktop .chrome .lights .y { background: #FEBC2E; }
+  .desktop .chrome .lights .g { background: #28C840; }
+  .desktop .chrome .url { flex: 1; display: flex; justify-content: center; }
+  .desktop .chrome .url-inner {
+    height: 22px; padding: 0 14px; min-width: 360px; max-width: 540px;
+    border-radius: 6px; background: #FFFFFF;
+    border: 0.5px solid var(--gray-4);
+    display: inline-flex; align-items: center; gap: 8px;
+    font-size: 11px; color: var(--label-3);
+  }
+  .desktop .chrome .url-inner i { font-size: 12px; color: var(--gray-1); }
+  .desktop .chrome .url-inner strong { color: var(--label-2); font-weight: 500; }
+
+  .app {
+    position: absolute; top: 36px; left: 0; right: 0; bottom: 0;
+    display: flex;
+    background: var(--gray-6);
+  }
+
+  /* ============= Sidebar (same as creator dashboard) ============= */
+  .sidebar {
+    width: 220px; flex: 0 0 220px;
+    background: #FFFFFF;
+    border-right: 0.5px solid var(--gray-4);
+    display: flex; flex-direction: column;
+    padding: 14px 0 16px;
+  }
+  .sidebar .brand {
+    padding: 6px 18px 16px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .sidebar .brand .mark {
+    width: 26px; height: 26px; border-radius: 8px;
+    background: linear-gradient(135deg, #1C1C1E 0%, #3A3A3C 100%);
+    color: #fff;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 13px; letter-spacing: -0.5px;
+  }
+  .sidebar .brand .wordmark {
+    font-size: 14px; font-weight: 600; letter-spacing: -0.2px;
+    color: var(--label);
+  }
+  .sidebar .brand .wordmark span { color: var(--label-3); font-weight: 500; }
+  .sidebar .nav { display: flex; flex-direction: column; gap: 1px; padding: 6px 10px; }
+  .sidebar .nav .item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 9px 12px; border-radius: 8px;
+    font-size: 13.5px; color: var(--label-2);
+    cursor: default; letter-spacing: -0.1px;
+  }
+  .sidebar .nav .item i { font-size: 17px; color: var(--label-3); }
+  .sidebar .nav .item:hover { background: var(--gray-6); }
+  .sidebar .nav .item.on {
+    background: var(--ios-blue-tint);
+    color: var(--ios-blue);
+    font-weight: 600;
+  }
+  .sidebar .nav .item.on i { color: var(--ios-blue); }
+  .sidebar .nav .item .count {
+    margin-left: auto; font-size: 11px; color: var(--label-3);
+    font-variant-numeric: tabular-nums; font-weight: 500;
+  }
+  .sidebar .nav .item.on .count { color: var(--ios-blue); }
+  .sidebar .nav .group-label {
+    font-size: 10px; font-weight: 600; letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--label-4);
+    padding: 18px 14px 6px;
+  }
+  .sidebar .spacer { flex: 1; }
+  .sidebar .footer {
+    padding: 10px 16px 0; border-top: 0.5px solid var(--gray-5);
+    margin: 8px 14px 0;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .sidebar .footer .av {
+    width: 28px; height: 28px; border-radius: 50%;
+    background: linear-gradient(135deg, #4F7E96 0%, #1E3A4C 100%);
+    color: #fff; font-size: 11px; font-weight: 600;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .sidebar .footer .meta { font-size: 12px; line-height: 1.2; }
+  .sidebar .footer .meta .name { font-weight: 600; color: var(--label); }
+  .sidebar .footer .meta .role { color: var(--label-3); font-size: 11px; }
+
+  /* ============= Content column ============= */
+  .content { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+
+  /* Creator strap — same as dashboard, but with a breadcrumb-style back affordance. */
+  .creator-strap {
+    height: 56px;
+    background: #FFFFFF;
+    border-bottom: 0.5px solid var(--gray-5);
+    display: flex; align-items: center;
+    padding: 0 24px;
+    gap: 14px;
+  }
+  .creator-strap .back-link {
+    display: inline-flex; align-items: center; gap: 6px;
+    color: var(--ios-blue); font-size: 13.5px; font-weight: 500;
+    letter-spacing: -0.1px;
+    padding-right: 14px;
+    border-right: 0.5px solid var(--gray-4);
+    height: 22px;
+  }
+  .creator-strap .back-link i { font-size: 17px; }
+  .creator-strap .crumb-title {
+    display: flex; flex-direction: column; line-height: 1.1; gap: 2px;
+  }
+  .creator-strap .crumb-title .where {
+    font-size: 11px; color: var(--label-3); letter-spacing: -0.05px;
+  }
+  .creator-strap .crumb-title .who {
+    font-size: 14.5px; font-weight: 600; color: var(--label);
+    letter-spacing: -0.2px;
+  }
+  .creator-strap .crumb-title .who em {
+    font-style: normal;
+    color: var(--label-3); font-weight: 500;
+  }
+  .creator-strap .spacer { flex: 1; }
+  .creator-strap .me {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-size: 12px; color: var(--label-3);
+  }
+  .creator-strap .me .av-me {
+    width: 24px; height: 24px; border-radius: 50%;
+    background: linear-gradient(135deg, #4F7E96 0%, #1E3A4C 100%);
+    color: #fff; font-size: 9.5px; font-weight: 600;
+    display: inline-flex; align-items: center; justify-content: center;
+    letter-spacing: -0.2px;
+  }
+  .creator-strap .icon-btn {
+    width: 30px; height: 30px; border-radius: 8px;
+    background: none; border: none; cursor: default;
+    display: inline-flex; align-items: center; justify-content: center;
+    color: var(--label-2);
+    position: relative;
+  }
+  .creator-strap .icon-btn i { font-size: 17px; }
+  .creator-strap .icon-btn:hover { background: var(--gray-6); }
+  .creator-strap .icon-btn .badge {
+    position: absolute; top: 4px; right: 4px;
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--ios-coral);
+    border: 1.5px solid #fff;
+  }
+
+  /* ============= Subscriber summary card (lives inside canvas, top of every frame) ============= */
+  .canvas {
+    flex: 1;
+    overflow: hidden;
+    padding: 22px 24px;
+    background: var(--gray-6);
+    position: relative;
+    display: flex; flex-direction: column;
+    min-height: 0;
+  }
+
+  .sub-summary {
+    background: #FFFFFF;
+    border: 0.5px solid var(--gray-4);
+    border-radius: 14px;
+    padding: 16px 18px;
+    display: flex; align-items: center; gap: 16px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+    flex-shrink: 0;
+  }
+  .sub-summary .av-xl {
+    width: 64px; height: 64px; border-radius: 50%;
+    background: linear-gradient(135deg, #7E96B9 0%, #3E5A85 100%);
+    color: #FFFFFF; font-weight: 600; font-size: 22px;
+    display: inline-flex; align-items: center; justify-content: center;
+    border: 0.5px solid rgba(0,0,0,0.06);
+    letter-spacing: -0.4px;
+    flex: 0 0 64px;
+    position: relative;
+  }
+  .sub-summary .av-xl .online {
+    position: absolute; right: -1px; bottom: 1px;
+    width: 14px; height: 14px; border-radius: 50%;
+    background: var(--ios-green);
+    border: 2px solid #fff;
+  }
+  .sub-summary .who { min-width: 0; flex: 1; }
+  .sub-summary .who .name {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 22px; font-weight: 500; color: var(--label);
+    letter-spacing: -0.012em; line-height: 1.1;
+    margin-bottom: 4px;
+  }
+  .sub-summary .who .row {
+    display: flex; align-items: center; gap: 0;
+    font-size: 12.5px; color: var(--label-2);
+  }
+  .sub-summary .who .row .item {
+    padding: 0 10px;
+    border-right: 0.5px solid var(--gray-4);
+    display: inline-flex; align-items: center; gap: 5px;
+  }
+  .sub-summary .who .row .item:first-child { padding-left: 0; }
+  .sub-summary .who .row .item:last-child { border-right: none; }
+  .sub-summary .who .row .item i { font-size: 13px; color: var(--label-3); }
+  .sub-summary .who .row .item strong { color: var(--label); font-weight: 600; }
+  .sub-summary .who .row2 {
+    display: flex; align-items: center; gap: 10px;
+    font-size: 11.5px; color: var(--label-3);
+    margin-top: 6px;
+  }
+  .sub-summary .who .row2 .status-chip {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 2px 8px; border-radius: 999px;
+    font-size: 11px; font-weight: 500;
+    background: var(--ios-green-tint); color: #1E7A39;
+  }
+  .sub-summary .who .row2 .status-chip::before {
+    content: ""; display: inline-block;
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--ios-green);
+  }
+  .sub-summary .who .row2 .since { letter-spacing: -0.05px; }
+  .sub-summary .actions { display: inline-flex; gap: 8px; align-items: center; }
+  .sub-summary .actions .btn {
+    height: 32px; padding: 0 12px; border-radius: 8px;
+    border: 0.5px solid var(--gray-4); background: #FFFFFF;
+    color: var(--label-2); font-size: 13px; font-weight: 500;
+    letter-spacing: -0.1px; cursor: default;
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .sub-summary .actions .btn i { font-size: 14px; color: var(--label-3); }
+  .sub-summary .actions .btn.primary {
+    background: var(--ios-blue); color: #fff;
+    border-color: transparent; font-weight: 600;
+    box-shadow: 0 1px 2px rgba(0,122,255,0.28);
+  }
+  .sub-summary .actions .btn.primary i { color: #fff; }
+  .sub-summary .actions .ico {
+    width: 32px; height: 32px; padding: 0;
+    justify-content: center;
+  }
+
+  /* ============= Inner tab strip (Progress / Reflect Feed / Messages / Notes) ============= */
+  .inner-tabs {
+    display: flex; align-items: stretch;
+    margin: 14px 0 16px;
+    padding: 0 2px;
+    border-bottom: 0.5px solid var(--gray-4);
+    gap: 4px;
+    flex-shrink: 0;
+  }
+  .inner-tabs .tab {
+    padding: 0 14px;
+    height: 36px;
+    display: inline-flex; align-items: center; gap: 7px;
+    font-size: 13.5px; color: var(--label-3);
+    letter-spacing: -0.1px;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -0.5px;
+    cursor: default;
+  }
+  .inner-tabs .tab i { font-size: 15px; }
+  .inner-tabs .tab.on {
+    color: var(--label);
+    font-weight: 600;
+    border-bottom-color: var(--label);
+  }
+  .inner-tabs .tab .n {
+    background: var(--gray-5); color: var(--label-3);
+    padding: 1px 7px; border-radius: 999px;
+    font-size: 10.5px; font-weight: 600;
+    font-variant-numeric: tabular-nums; letter-spacing: 0;
+  }
+  .inner-tabs .tab.on .n { background: var(--label); color: #fff; }
+  .inner-tabs .tab .dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--ios-coral);
+  }
+  .inner-tabs .spacer { flex: 1; }
+  .inner-tabs .priv {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: 11.5px; color: var(--label-3);
+    padding: 0 6px;
+  }
+  .inner-tabs .priv i { font-size: 13px; }
+
+  .tab-body {
+    flex: 1; min-height: 0;
+    overflow: hidden;
+    display: flex; flex-direction: column;
+    gap: 14px;
+  }
+
+  /* ============= Frame caption (below each desktop) ============= */
+  .frame-cap { margin: 0; padding: 6px 4px 0; max-width: 1240px; }
+  .frame-cap .eyebrow {
+    font-size: 10.5px; font-weight: 600;
+    color: var(--stage-text); letter-spacing: 0.10em;
+    text-transform: uppercase; margin: 0 0 6px;
+  }
+  .frame-cap h3 {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 20px; font-weight: 500; letter-spacing: -0.012em;
+    color: var(--stage-ink); margin: 0 0 8px;
+    line-height: 1.2;
+  }
+  .frame-cap h3 em { font-style: italic; }
+  .frame-cap p {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 14.5px; line-height: 1.55;
+    color: var(--stage-text); margin: 0;
+    max-width: 1180px; text-wrap: pretty;
+  }
+  .frame-cap p em { font-style: italic; }
+
+  /* ===================================================================
+     FRAME 1 — PROGRESS TAB
+     =================================================================== */
+
+  .pos-banner {
+    background: #FFFFFF;
+    border: 0.5px solid var(--gray-4);
+    border-radius: 12px;
+    padding: 14px 16px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+    display: flex; flex-direction: column; gap: 10px;
+    flex-shrink: 0;
+  }
+  .pos-banner .pos-head {
+    display: flex; align-items: baseline; gap: 12px;
+  }
+  .pos-banner .pos-head .label {
+    font-size: 10.5px; font-weight: 600; letter-spacing: 0.10em;
+    text-transform: uppercase; color: var(--label-3);
+  }
+  .pos-banner .pos-head .step {
+    font-size: 15.5px; font-weight: 600; color: var(--label);
+    letter-spacing: -0.15px;
+  }
+  .pos-banner .pos-head .step em {
+    font-style: normal;
+    color: var(--label-3); font-weight: 500;
+  }
+  .pos-banner .pos-head .spacer { flex: 1; }
+  .pos-banner .pos-head .pct {
+    font-size: 13px; font-weight: 600; color: var(--ios-blue);
+    font-variant-numeric: tabular-nums; letter-spacing: -0.1px;
+  }
+  .pos-banner .pos-head .pct .of { color: var(--label-3); font-weight: 500; margin-left: 3px; }
+
+  .pos-banner .pos-bar {
+    height: 6px; border-radius: 3px;
+    background: var(--gray-5); position: relative; overflow: hidden;
+  }
+  .pos-banner .pos-bar .fill {
+    position: absolute; left: 0; top: 0; bottom: 0;
+    background: var(--ios-blue); border-radius: 3px;
+  }
+  .pos-banner .pos-bar .fill::after {
+    content: ""; position: absolute; right: 0; top: -3px; bottom: -3px;
+    width: 4px; background: var(--ios-blue);
+    box-shadow: 0 0 0 2px rgba(0,122,255,0.18);
+    border-radius: 2px;
+  }
+
+  /* Mini-timeline */
+  .timeline {
+    background: #FFFFFF;
+    border: 0.5px solid var(--gray-4);
+    border-radius: 12px;
+    padding: 16px 16px 12px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+    flex-shrink: 0;
+  }
+  .timeline .tl-head {
+    display: flex; align-items: center; margin-bottom: 14px;
+  }
+  .timeline .tl-head .label {
+    font-size: 10.5px; font-weight: 600; letter-spacing: 0.10em;
+    text-transform: uppercase; color: var(--label-3);
+  }
+  .timeline .tl-head .legend {
+    margin-left: auto; display: inline-flex; gap: 12px;
+    font-size: 11px; color: var(--label-3);
+  }
+  .timeline .tl-head .legend .li {
+    display: inline-flex; align-items: center; gap: 5px;
+  }
+  .timeline .tl-head .legend .sw {
+    width: 8px; height: 8px; border-radius: 50%;
+  }
+  .timeline .tl-head .legend .sw.done { background: var(--ios-green); }
+  .timeline .tl-head .legend .sw.now  { background: var(--ios-blue); }
+  .timeline .tl-head .legend .sw.next { background: var(--gray-3); }
+  .timeline .tl-head .legend .sw.stuck { background: var(--ios-amber); }
+
+  .tl-track {
+    display: flex; align-items: stretch;
+    position: relative;
+    padding: 0 4px 22px;
+  }
+  .tl-track::before {
+    content: ""; position: absolute;
+    left: 12px; right: 12px;
+    top: 13px; height: 1px;
+    background: var(--gray-4);
+  }
+  .tl-track .node {
+    flex: 1;
+    display: flex; flex-direction: column; align-items: center;
+    position: relative;
+    gap: 4px;
+    z-index: 1;
+  }
+  .tl-track .node .pip {
+    width: 18px; height: 18px; border-radius: 50%;
+    background: #FFFFFF;
+    border: 1.5px solid var(--gray-3);
+    display: inline-flex; align-items: center; justify-content: center;
+    box-shadow: 0 0 0 4px #fff;
+  }
+  .tl-track .node .pip i { font-size: 11px; color: transparent; }
+  .tl-track .node.done .pip {
+    background: var(--ios-green);
+    border-color: var(--ios-green);
+  }
+  .tl-track .node.done .pip i { color: #fff; }
+  .tl-track .node.now .pip {
+    background: var(--ios-blue);
+    border-color: var(--ios-blue);
+    box-shadow: 0 0 0 4px #fff, 0 0 0 7px rgba(0,122,255,0.18);
+  }
+  .tl-track .node.stuck .pip {
+    background: var(--ios-amber-tint);
+    border-color: var(--ios-amber);
+  }
+  .tl-track .node.stuck .pip::after {
+    content: ""; width: 6px; height: 6px; border-radius: 50%;
+    background: var(--ios-amber);
+  }
+  .tl-track .node .num {
+    font-size: 10px; color: var(--label-3);
+    font-variant-numeric: tabular-nums;
+  }
+  .tl-track .node.now .num { color: var(--ios-blue); font-weight: 600; }
+  .tl-track .node.stuck .num { color: #A86200; font-weight: 600; }
+
+  .tl-now-label {
+    position: absolute; top: -10px; left: 50%;
+    transform: translateX(-50%);
+    background: var(--ios-blue);
+    color: #fff; font-size: 10px; font-weight: 600;
+    padding: 3px 8px; border-radius: 4px;
+    letter-spacing: 0.02em; white-space: nowrap;
+  }
+  .tl-now-label::after {
+    content: ""; position: absolute;
+    bottom: -3px; left: 50%; transform: translateX(-50%) rotate(45deg);
+    width: 6px; height: 6px; background: var(--ios-blue);
+  }
+
+  .tl-axis {
+    display: flex; justify-content: space-between;
+    margin-top: 2px;
+    font-size: 10px; color: var(--label-4);
+    font-variant-numeric: tabular-nums;
+    padding: 0 4px;
+  }
+
+  /* Stall callout */
+  .stall {
+    background: linear-gradient(180deg, #FFFAF1, #FFFFFF 80%);
+    border: 0.5px solid rgba(255,149,0,0.32);
+    border-radius: 12px;
+    padding: 12px 14px 12px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+    flex-shrink: 0;
+  }
+  .stall h5 {
+    margin: 0 0 8px;
+    font-size: 11px; font-weight: 700; letter-spacing: 0.04em;
+    text-transform: uppercase; color: #A86200;
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .stall h5 i { font-size: 13px; }
+  .stall .items {
+    display: flex; flex-direction: column; gap: 7px;
+  }
+  .stall .item {
+    display: flex; align-items: flex-start; gap: 10px;
+    font-size: 13px; color: var(--label-2);
+    line-height: 1.4;
+  }
+  .stall .item .ix {
+    flex: 0 0 28px; height: 22px;
+    border-radius: 6px;
+    background: var(--ios-amber-tint); color: #A86200;
+    font-size: 11px; font-weight: 600;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-variant-numeric: tabular-nums;
+    margin-top: 1px;
+  }
+  .stall .item .body { min-width: 0; flex: 1; }
+  .stall .item .body strong { color: var(--label); font-weight: 600; }
+  .stall .item .body .obs {
+    color: var(--label-3); font-size: 12px;
+    margin-top: 1px;
+  }
+
+  /* Capability bar chart */
+  .caps {
+    background: #FFFFFF;
+    border: 0.5px solid var(--gray-4);
+    border-radius: 12px;
+    padding: 14px 16px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+    flex-shrink: 0;
+  }
+  .caps h5 {
+    margin: 0 0 11px;
+    font-size: 10.5px; font-weight: 600; letter-spacing: 0.10em;
+    text-transform: uppercase; color: var(--label-3);
+    display: flex; align-items: center;
+  }
+  .caps h5 .sub {
+    margin-left: 10px;
+    font-size: 11px; color: var(--label-3);
+    text-transform: none; letter-spacing: 0;
+    font-weight: 500;
+  }
+  .caps h5 .spacer { flex: 1; }
+  .caps h5 .delta {
+    font-size: 11px; color: var(--ios-green);
+    font-weight: 600;
+    text-transform: none; letter-spacing: -0.05px;
+    display: inline-flex; align-items: center; gap: 3px;
+  }
+  .caps h5 .delta i { font-size: 12px; }
+
+  .caps .cap-row {
+    display: grid;
+    grid-template-columns: 130px 1fr 56px;
+    align-items: center;
+    gap: 12px;
+    padding: 5px 0;
+    font-size: 12.5px;
+  }
+  .caps .cap-row .nm { color: var(--label); font-weight: 500; letter-spacing: -0.05px; }
+  .caps .cap-row .dots {
+    display: inline-flex; gap: 3px;
+  }
+  .caps .cap-row .dots .d {
+    width: 14px; height: 14px; border-radius: 50%;
+    background: var(--gray-4);
+  }
+  .caps .cap-row .dots .d.f { background: var(--sub-ink); }
+  .caps .cap-row .dots .d.f.up { background: var(--ios-green); }
+  .caps .cap-row .val {
+    font-size: 11.5px; color: var(--label-3);
+    font-variant-numeric: tabular-nums; text-align: right;
+    letter-spacing: -0.05px;
+  }
+  .caps .cap-row .val strong { color: var(--label); font-weight: 600; }
+  .caps .cap-row .val .arrow { color: var(--ios-green); }
+
+  /* Recent activity */
+  .activity {
+    background: #FFFFFF;
+    border: 0.5px solid var(--gray-4);
+    border-radius: 12px;
+    padding: 14px 16px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+    flex: 1 1 auto; min-height: 0;
+    overflow: hidden;
+    display: flex; flex-direction: column;
+  }
+  .activity h5 {
+    margin: 0 0 8px;
+    font-size: 10.5px; font-weight: 600; letter-spacing: 0.10em;
+    text-transform: uppercase; color: var(--label-3);
+    display: flex; align-items: center;
+  }
+  .activity h5 .more {
+    margin-left: auto;
+    font-size: 11.5px; color: var(--ios-blue);
+    font-weight: 600;
+    text-transform: none; letter-spacing: -0.1px;
+  }
+  .activity .ev {
+    display: grid;
+    grid-template-columns: 24px 1fr auto;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 7px 0;
+    border-top: 0.5px solid var(--gray-5);
+    font-size: 12.5px;
+  }
+  .activity .ev:first-of-type { border-top: none; }
+  .activity .ev .ic {
+    width: 22px; height: 22px; border-radius: 50%;
+    background: var(--gray-6); border: 0.5px solid var(--gray-5);
+    color: var(--label-3);
+    display: inline-flex; align-items: center; justify-content: center;
+    margin-top: 1px;
+  }
+  .activity .ev .ic i { font-size: 12px; }
+  .activity .ev.note .ic { background: var(--ios-blue-tint); border-color: transparent; color: var(--ios-blue); }
+  .activity .ev.done .ic { background: var(--ios-green-tint); border-color: transparent; color: #1E7A39; }
+  .activity .ev.reply .ic { background: var(--creator-soft); border-color: transparent; color: var(--creator-ink-2); }
+  .activity .ev .body { min-width: 0; line-height: 1.35; }
+  .activity .ev .body .ti {
+    color: var(--label); font-weight: 500; letter-spacing: -0.05px;
+  }
+  .activity .ev .body .ti strong { font-weight: 600; }
+  .activity .ev .body .meta {
+    font-size: 11px; color: var(--label-3); margin-top: 1px;
+  }
+  .activity .ev .ago {
+    font-size: 11px; color: var(--label-3);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+
+  /* ===================================================================
+     FRAME 2 — REFLECT FEED
+     =================================================================== */
+  .feed-header {
+    display: flex; align-items: center; gap: 10px;
+    flex-shrink: 0;
+    padding: 0 2px;
+  }
+  .feed-header .lbl {
+    font-size: 11px; font-weight: 600; letter-spacing: 0.10em;
+    text-transform: uppercase; color: var(--label-3);
+  }
+  .feed-header .count {
+    font-size: 11px; color: var(--label-3);
+  }
+  .feed-header .count strong { color: var(--label-2); font-weight: 600; }
+  .feed-header .spacer { flex: 1; }
+  .feed-header .pill {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: 11.5px; color: var(--label-2);
+    padding: 4px 9px; border-radius: 999px;
+    border: 0.5px solid var(--gray-4); background: #fff;
+    cursor: default; letter-spacing: -0.1px;
+  }
+  .feed-header .pill i { font-size: 12px; color: var(--label-3); }
+  .feed-header .pill.on {
+    background: var(--ios-blue-tint);
+    color: var(--ios-blue);
+    border-color: transparent;
+    font-weight: 600;
+  }
+  .feed-header .pill.on i { color: var(--ios-blue); }
+
+  .feed {
+    flex: 1; min-height: 0; overflow: hidden;
+    display: flex; flex-direction: column;
+    gap: 14px;
+    padding-right: 4px;
+  }
+
+  .reflect {
+    background: #FFFFFF;
+    border: 0.5px solid var(--gray-4);
+    border-radius: 14px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+  .reflect.needs {
+    border-color: rgba(0, 122, 255, 0.35);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.03), 0 0 0 2px rgba(0,122,255,0.06);
+  }
+  .reflect-head {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 16px 10px;
+    border-bottom: 0.5px solid var(--gray-5);
+  }
+  .reflect-head .stepix {
+    width: 36px; height: 36px; border-radius: 9px;
+    background: var(--gray-6);
+    border: 0.5px solid var(--gray-4);
+    color: var(--label);
+    display: inline-flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+    flex: 0 0 36px;
+  }
+  .reflect-head .stepix .n {
+    font-size: 15px; font-weight: 700;
+    letter-spacing: -0.4px;
+  }
+  .reflect-head .stepix .t {
+    font-size: 8px; font-weight: 600;
+    color: var(--label-3); letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin-top: 1px;
+  }
+  .reflect-head .stepix.stuck {
+    background: var(--ios-amber-tint);
+    border-color: transparent;
+    color: #A86200;
+  }
+  .reflect-head .stepix.stuck .t { color: #A86200; }
+  .reflect-head .title-col { min-width: 0; flex: 1; }
+  .reflect-head .title-col .title {
+    font-size: 14.5px; font-weight: 600; color: var(--label);
+    letter-spacing: -0.15px;
+  }
+  .reflect-head .title-col .meta {
+    font-size: 11.5px; color: var(--label-3); margin-top: 2px;
+    display: inline-flex; align-items: center; gap: 8px;
+  }
+  .reflect-head .title-col .meta .dot {
+    width: 3px; height: 3px; border-radius: 50%;
+    background: var(--label-4); display: inline-block;
+  }
+  .reflect-head .rating {
+    display: inline-flex; gap: 2px; align-items: center;
+  }
+  .reflect-head .rating i { font-size: 14px; color: var(--gray-3); }
+  .reflect-head .rating i.on { color: #E8A93B; }
+  .reflect-head .rating .val {
+    font-size: 11.5px; color: var(--label-3);
+    margin-left: 6px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .reflect-body {
+    padding: 12px 16px 6px;
+    display: flex; flex-direction: column; gap: 10px;
+  }
+  .reflect-q {
+    display: grid;
+    grid-template-columns: 92px 1fr;
+    gap: 12px;
+    align-items: flex-start;
+  }
+  .reflect-q .ql {
+    font-size: 10.5px; font-weight: 600; letter-spacing: 0.06em;
+    text-transform: uppercase; color: var(--label-3);
+    padding-top: 3px;
+    line-height: 1.25;
+  }
+  .reflect-q .qa {
+    font-size: 13.5px; color: var(--label);
+    line-height: 1.5;
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    letter-spacing: 0.0px;
+    text-wrap: pretty;
+  }
+  .reflect-q .qa em { font-style: italic; }
+  .reflect-q .qa.brief { color: var(--label-2); }
+
+  .reflect-actions {
+    display: flex; align-items: center; gap: 6px;
+    padding: 10px 16px;
+    border-top: 0.5px solid var(--gray-5);
+    background: #FCFCFD;
+  }
+  .reflect-actions .btn {
+    height: 28px; padding: 0 11px; border-radius: 7px;
+    border: 0.5px solid var(--gray-4); background: #FFFFFF;
+    color: var(--label-2); font-size: 12.5px; font-weight: 500;
+    letter-spacing: -0.1px; cursor: default;
+    display: inline-flex; align-items: center; gap: 5px;
+  }
+  .reflect-actions .btn i { font-size: 13px; color: var(--label-3); }
+  .reflect-actions .btn.evidence {
+    background: var(--ios-green-tint); border-color: transparent;
+    color: #1E7A39; font-weight: 600;
+  }
+  .reflect-actions .btn.evidence i { color: #1E7A39; }
+  .reflect-actions .btn.evidence i.check { color: var(--ios-green); }
+  .reflect-actions .spacer { flex: 1; }
+  .reflect-actions .seen {
+    font-size: 11px; color: var(--label-3);
+    display: inline-flex; align-items: center; gap: 4px;
+  }
+  .reflect-actions .seen i { font-size: 12px; }
+
+  /* Thread (Bram's comments) */
+  .thread {
+    padding: 10px 16px 14px;
+    background: linear-gradient(180deg, #FAFBFC, #FFFFFF);
+    border-top: 0.5px solid var(--gray-5);
+    display: flex; flex-direction: column; gap: 10px;
+  }
+  .thread .msg {
+    display: grid;
+    grid-template-columns: 28px 1fr;
+    gap: 10px;
+    align-items: flex-start;
+  }
+  .thread .msg .av {
+    width: 28px; height: 28px; border-radius: 50%;
+    background: linear-gradient(135deg, #4F7E96 0%, #1E3A4C 100%);
+    color: #fff; font-size: 10.5px; font-weight: 600;
+    display: inline-flex; align-items: center; justify-content: center;
+    letter-spacing: -0.2px;
+    margin-top: 1px;
+  }
+  .thread .msg.them .av {
+    background: linear-gradient(135deg,#7E96B9,#3E5A85);
+  }
+  .thread .msg .bubble {
+    border-radius: 10px;
+    padding: 8px 12px 9px;
+    background: #FFFFFF;
+    border: 0.5px solid var(--gray-4);
+    font-size: 13px; color: var(--label);
+    line-height: 1.45;
+    letter-spacing: -0.05px;
+    text-wrap: pretty;
+  }
+  .thread .msg.mine .bubble {
+    background: var(--creator-soft);
+    border-color: transparent;
+  }
+  .thread .msg .who-row {
+    display: flex; align-items: baseline; gap: 6px;
+    margin-bottom: 2px;
+  }
+  .thread .msg .who-row .nm {
+    font-size: 11.5px; font-weight: 600; color: var(--label-2);
+    letter-spacing: -0.05px;
+  }
+  .thread .msg .who-row .ago {
+    font-size: 10.5px; color: var(--label-3);
+    font-variant-numeric: tabular-nums;
+  }
+  .thread .reply-stub {
+    display: grid;
+    grid-template-columns: 28px 1fr;
+    gap: 10px;
+  }
+  .thread .reply-stub .av {
+    width: 28px; height: 28px; border-radius: 50%;
+    background: linear-gradient(135deg, #4F7E96 0%, #1E3A4C 100%);
+    color: #fff; font-size: 10.5px; font-weight: 600;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .thread .reply-stub .field {
+    height: 32px;
+    border-radius: 9px;
+    border: 0.5px dashed var(--gray-3);
+    padding: 0 12px;
+    display: flex; align-items: center;
+    font-size: 12.5px; color: var(--label-3);
+    letter-spacing: -0.1px;
+  }
+  .thread .reply-stub .field i {
+    margin-left: auto; font-size: 16px; color: var(--ios-blue);
+  }
+
+  /* "Add your feedback" highlight for un-responded reflections */
+  .needs-callout {
+    display: flex; align-items: center; gap: 10px;
+    background: var(--ios-blue-tint);
+    border-top: 0.5px solid rgba(0,122,255,0.18);
+    padding: 11px 16px;
+  }
+  .needs-callout .ic {
+    width: 24px; height: 24px; border-radius: 50%;
+    background: var(--ios-blue); color: #fff;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .needs-callout .ic i { font-size: 14px; }
+  .needs-callout .text {
+    font-size: 12.5px; color: var(--ios-blue-deep);
+    font-weight: 500;
+  }
+  .needs-callout .text strong { font-weight: 700; }
+  .needs-callout .spacer { flex: 1; }
+  .needs-callout .add {
+    height: 28px; padding: 0 12px; border-radius: 7px;
+    background: var(--ios-blue); color: #fff;
+    border: none; font-size: 12px; font-weight: 600;
+    letter-spacing: -0.1px;
+    display: inline-flex; align-items: center; gap: 5px;
+  }
+  .needs-callout .add i { font-size: 13px; }
+
+  /* ===================================================================
+     FRAME 3 — MESSAGES
+     =================================================================== */
+  .messages-pane {
+    background: #FFFFFF;
+    border: 0.5px solid var(--gray-4);
+    border-radius: 14px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+    flex: 1 1 auto; min-height: 0;
+    display: flex; flex-direction: column;
+    overflow: hidden;
+  }
+  .messages-pane .day-sep {
+    text-align: center;
+    font-size: 10.5px; color: var(--label-3);
+    letter-spacing: 0.04em;
+    padding: 14px 0 6px;
+    font-variant-numeric: tabular-nums;
+  }
+  .messages-pane .day-sep strong { color: var(--label-2); font-weight: 600; }
+
+  .msg-scroll {
+    flex: 1; min-height: 0;
+    overflow: hidden;
+    padding: 6px 18px 12px;
+    display: flex; flex-direction: column;
+    gap: 12px;
+  }
+
+  /* Message bubble row — spec: Bram (creator) on the LEFT, Tomás on the RIGHT.
+     That's reversed from the iOS-Messages "me-on-right" convention because
+     this is the creator's mentoring console — we're reading the subscriber
+     replies prominently as the right-aligned thread. */
+  .bubble-row {
+    display: flex; align-items: flex-end; gap: 8px;
+    max-width: 78%;
+  }
+  .bubble-row.bram {
+    align-self: flex-start;
+  }
+  .bubble-row.tomas {
+    align-self: flex-end;
+    flex-direction: row-reverse;
+  }
+  .bubble-row .av-sm {
+    width: 26px; height: 26px; border-radius: 50%;
+    color: #fff; font-size: 10px; font-weight: 600;
+    display: inline-flex; align-items: center; justify-content: center;
+    flex: 0 0 26px;
+    letter-spacing: -0.2px;
+    margin-bottom: 2px;
+  }
+  .bubble-row.bram .av-sm {
+    background: linear-gradient(135deg, #4F7E96 0%, #1E3A4C 100%);
+  }
+  .bubble-row.tomas .av-sm {
+    background: linear-gradient(135deg,#7E96B9,#3E5A85);
+  }
+  .bubble-row .bubble-col {
+    display: flex; flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+  }
+  .bubble-row.tomas .bubble-col { align-items: flex-end; }
+
+  .ctx-chip {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: 10.5px; color: var(--label-3);
+    background: var(--gray-6);
+    border: 0.5px solid var(--gray-5);
+    padding: 2px 8px 2px 6px;
+    border-radius: 999px;
+    letter-spacing: -0.05px;
+    max-width: 100%;
+  }
+  .ctx-chip i { font-size: 11px; color: var(--label-3); }
+  .ctx-chip strong { color: var(--label-2); font-weight: 600; }
+
+  .bubble {
+    border-radius: 18px;
+    padding: 8px 13px 9px;
+    font-size: 13.5px; line-height: 1.42;
+    letter-spacing: -0.1px;
+    max-width: 100%;
+    text-wrap: pretty;
+  }
+  .bubble-row.bram .bubble {
+    background: var(--gray-5);
+    color: var(--label);
+    border-bottom-left-radius: 5px;
+  }
+  .bubble-row.tomas .bubble {
+    background: var(--ios-blue);
+    color: #fff;
+    border-bottom-right-radius: 5px;
+  }
+  .bubble.with-quote {
+    padding-top: 7px;
+  }
+  .bubble .quote {
+    display: block;
+    margin: 0 -3px 7px;
+    padding: 6px 9px;
+    border-left: 2px solid currentColor;
+    opacity: 0.78;
+    font-size: 12px; line-height: 1.4;
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-style: italic;
+    background: rgba(255,255,255,0.18);
+    border-radius: 3px;
+  }
+  .bubble-row.bram .bubble .quote {
+    background: rgba(0,0,0,0.04);
+  }
+  .bubble .timestamp {
+    display: block;
+    font-size: 10px; opacity: 0.72;
+    margin-top: 3px;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0;
+  }
+
+  .typing {
+    display: inline-flex; align-items: center; gap: 4px;
+    background: var(--gray-5);
+    padding: 8px 14px;
+    border-radius: 18px;
+    border-bottom-left-radius: 5px;
+  }
+  .typing span {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--label-3);
+  }
+  .typing span:nth-child(2) { opacity: 0.7; }
+  .typing span:nth-child(3) { opacity: 0.4; }
+
+  .composer {
+    border-top: 0.5px solid var(--gray-5);
+    padding: 12px 16px;
+    background: #FFFFFF;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .composer .attach {
+    width: 32px; height: 32px; border-radius: 50%;
+    background: var(--gray-6); border: 0.5px solid var(--gray-4);
+    color: var(--label-2);
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .composer .attach i { font-size: 17px; }
+  .composer .input {
+    flex: 1; min-height: 38px;
+    border-radius: 19px;
+    padding: 10px 14px;
+    border: 0.5px solid var(--gray-4);
+    background: var(--gray-6);
+    font-size: 13.5px; color: var(--label);
+    letter-spacing: -0.1px;
+    line-height: 1.35;
+    display: flex; align-items: center;
+    text-wrap: pretty;
+  }
+  .composer .input .placeholder { color: var(--label-3); }
+  .composer .input .draft { color: var(--label); }
+  .composer .input .caret {
+    display: inline-block;
+    width: 1.5px; height: 16px;
+    background: var(--ios-blue);
+    vertical-align: -3px;
+    animation: caret 1.1s steps(2) infinite;
+  }
+  @keyframes caret { 50% { opacity: 0; } }
+  .composer .send {
+    height: 36px; padding: 0 18px; border-radius: 18px;
+    background: var(--ios-blue); color: #fff;
+    border: none; font-size: 13.5px; font-weight: 600;
+    letter-spacing: -0.1px;
+    display: inline-flex; align-items: center; gap: 5px;
+    box-shadow: 0 1px 2px rgba(0,122,255,0.28);
+  }
+  .composer .send i { font-size: 15px; }
+
+  /* Above-composer chip showing draft context */
+  .draft-ctx {
+    padding: 8px 16px 6px;
+    background: #FCFCFD;
+    border-top: 0.5px dashed var(--gray-4);
+    display: flex; align-items: center; gap: 8px;
+    font-size: 11.5px; color: var(--label-3);
+  }
+  .draft-ctx i { font-size: 13px; color: var(--label-3); }
+  .draft-ctx .lbl { color: var(--label-3); }
+  .draft-ctx .ref {
+    color: var(--label-2); font-weight: 500;
+    background: var(--gray-6);
+    border: 0.5px solid var(--gray-5);
+    padding: 1px 7px; border-radius: 5px;
+  }
+  .draft-ctx .spacer { flex: 1; }
+  .draft-ctx .change {
+    color: var(--ios-blue); font-weight: 600;
+    letter-spacing: -0.1px;
+  }
+
+  /* ===================================================================
+     FRAME 4 — NOTES (private)
+     =================================================================== */
+  .privacy-strip {
+    display: flex; align-items: center; gap: 12px;
+    padding: 11px 14px;
+    background: #FAF6E8;
+    border: 0.5px solid rgba(168, 98, 0, 0.22);
+    border-radius: 12px;
+    flex-shrink: 0;
+  }
+  .privacy-strip .icon {
+    width: 30px; height: 30px; border-radius: 50%;
+    background: var(--ios-amber); color: #fff;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .privacy-strip .icon i { font-size: 16px; }
+  .privacy-strip .text { min-width: 0; flex: 1; line-height: 1.4; }
+  .privacy-strip .text .ti {
+    font-size: 12.5px; font-weight: 600; color: #6E440A;
+    letter-spacing: -0.1px;
+  }
+  .privacy-strip .text .sub {
+    font-size: 11.5px; color: #8A6320;
+    margin-top: 1px;
+  }
+  .privacy-strip .pill {
+    display: inline-flex; align-items: center; gap: 5px;
+    background: rgba(168,98,0,0.10);
+    color: #6E440A;
+    font-size: 11px; font-weight: 600;
+    padding: 4px 9px; border-radius: 999px;
+    letter-spacing: 0.02em;
+  }
+  .privacy-strip .pill i { font-size: 12px; }
+
+  .notes-list {
+    flex: 1 1 auto; min-height: 0;
+    overflow: hidden;
+    display: flex; flex-direction: column;
+    gap: 12px;
+  }
+
+  .note-card {
+    background: #FFFCF1;
+    border: 0.5px solid #EDE3C7;
+    border-radius: 12px;
+    padding: 14px 16px 12px;
+    box-shadow:
+      0 1px 0 #F2EAD4 inset,
+      0 1px 2px rgba(0,0,0,0.03);
+    position: relative;
+  }
+  .note-card::before {
+    content: "";
+    position: absolute; left: 16px; top: 0;
+    width: 28px; height: 4px;
+    background: rgba(168, 98, 0, 0.18);
+    border-radius: 0 0 3px 3px;
+  }
+  .note-card .nh {
+    display: flex; align-items: baseline; gap: 10px;
+    margin-bottom: 8px;
+  }
+  .note-card .nh .date {
+    font-size: 11px; font-weight: 700; letter-spacing: 0.06em;
+    text-transform: uppercase; color: #8A6320;
+  }
+  .note-card .nh .ago {
+    font-size: 11px; color: var(--label-3);
+  }
+  .note-card .nh .spacer { flex: 1; }
+  .note-card .nh .tag {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 10.5px; font-weight: 600;
+    padding: 2px 7px; border-radius: 4px;
+    background: rgba(168,98,0,0.12);
+    color: #6E440A;
+    letter-spacing: 0.04em; text-transform: uppercase;
+  }
+  .note-card .nh .tag i { font-size: 11px; }
+  .note-card .nh .tag.first {
+    background: var(--ios-blue-tint);
+    color: var(--ios-blue-deep);
+  }
+  .note-card .body {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 14px; line-height: 1.5;
+    color: var(--label);
+    text-wrap: pretty;
+  }
+  .note-card .body em { font-style: italic; }
+  .note-card .body .ref {
+    background: rgba(168,98,0,0.12);
+    color: #6E440A;
+    padding: 1px 6px; border-radius: 4px;
+    font-size: 12px; font-family: inherit;
+    font-style: normal;
+  }
+  .note-card .nf {
+    display: flex; align-items: center; gap: 6px;
+    margin-top: 9px;
+    padding-top: 9px;
+    border-top: 0.5px dashed rgba(168,98,0,0.22);
+    font-size: 11px; color: #8A6320;
+  }
+  .note-card .nf .chip {
+    display: inline-flex; align-items: center; gap: 4px;
+    background: rgba(255,255,255,0.6);
+    padding: 2px 8px; border-radius: 999px;
+    border: 0.5px solid rgba(168,98,0,0.18);
+    color: #6E440A;
+    font-weight: 500;
+  }
+  .note-card .nf .chip i { font-size: 12px; }
+  .note-card .nf .spacer { flex: 1; }
+  .note-card .nf .ic {
+    width: 22px; height: 22px; border-radius: 6px;
+    color: #8A6320; display: inline-flex;
+    align-items: center; justify-content: center;
+  }
+  .note-card .nf .ic i { font-size: 13px; }
+
+  .new-note {
+    margin-top: auto;
+    background: #FFFFFF;
+    border: 0.5px dashed var(--gray-3);
+    border-radius: 12px;
+    padding: 14px;
+    display: flex; align-items: center; gap: 12px;
+    flex-shrink: 0;
+  }
+  .new-note .plus {
+    width: 32px; height: 32px; border-radius: 50%;
+    background: var(--ios-blue-tint); color: var(--ios-blue);
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .new-note .plus i { font-size: 17px; }
+  .new-note .field {
+    flex: 1;
+    font-size: 13px; color: var(--label-3);
+    letter-spacing: -0.1px;
+  }
+  .new-note .field .hint {
+    font-size: 11px; color: var(--label-4);
+    margin-top: 2px;
+  }
+  .new-note .kbd {
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 10.5px; color: var(--label-3);
+    padding: 3px 7px; border-radius: 5px;
+    border: 0.5px solid var(--gray-4); background: var(--gray-6);
+  }
+
+  /* ============= Bottom commentary block ============= */
+  .resp-note {
+    margin: 56px 32px 0;
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 13px; font-style: italic; line-height: 1.55;
+    color: var(--stage-text);
+    max-width: 1100px;
+    text-wrap: pretty;
+  }
+  .commentary {
+    margin: 32px 32px 0;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 36px;
+    max-width: 1640px;
+  }
+  .commentary .col h4 {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 17px; font-weight: 500; letter-spacing: -0.01em;
+    color: var(--stage-ink);
+    margin: 0 0 10px;
+  }
+  .commentary .col h4 em { font-style: italic; }
+  .commentary .col p {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 14px; line-height: 1.55; color: var(--stage-text);
+    margin: 0 0 10px;
+    text-wrap: pretty;
+  }
+  .commentary .col p em { font-style: italic; }
+  .commentary .col p strong { color: var(--stage-ink); font-weight: 600; }
+
+  /* Avatar gradients reused */
+  .av.a1 { background: linear-gradient(135deg,#7E96B9,#3E5A85); }
+  .av.a3 { background: linear-gradient(135deg,#85A693,#4B7060); }
+
+</style>
+</head>
+<body>
+
+<div class="page">
+
+  <!-- ============= Page head ============= -->
+  <header class="page-head">
+    <p class="eyebrow">BetterAt · Creator Mentoring Screens · Canonical &nbsp;·&nbsp; 2026-05-15</p>
+    <h1>The subscriber detail surface — <em>where a creator actually mentors</em></h1>
+    <p>
+      A continuation of the Blueprint Creator Dashboard canonical: the screens a creator sees after tapping <em>View progress</em> on a single subscriber. The creator on screen is <em>Bram van Olphen</em>; the subscriber is <em>Tomás Renart</em> — a Dragon-class racer in Hong Kong, nine steps into Bram&rsquo;s 14-step <em>Dragon Worlds Prep</em> blueprint. This is the surface where mentoring at scale stops being analytics and becomes a relationship.
+    </p>
+    <p>
+      Four frames, ordered by gravity: <em>Progress</em> is the landing surface — the at-a-glance — but the work happens on <em>Reflect Feed</em>. Messages and Notes flank it. Privacy is structural: Notes are private to Bram and the chrome says so; Messages are a two-way thread; Reflect comments are visible to Tomás by default and labelled as such on the affordance.
+    </p>
+    <div class="crumbs">
+      <span class="pill">Companion to Blueprint Creator Dashboard</span>
+      <span class="sep">/</span>
+      <span>Surface 5 of 5 — Five Surfaces addendum</span>
+      <span class="sep">/</span>
+      <span>Desktop primary · mobile-responsive cited, not rendered</span>
+      <span class="sep">/</span>
+      <span>Bulk affordances live on parent Subscribers tab</span>
+    </div>
+  </header>
+
+  <!-- ============= Frame row ============= -->
+  <div class="frame-row">
+
+    <!-- =========================================================== -->
+    <!-- ==========          FRAME 1 — PROGRESS              ======== -->
+    <!-- =========================================================== -->
+    <div class="frame-col" data-screen-label="01 Subscriber · Progress">
+      <div class="desktop">
+        <div class="chrome">
+          <div class="lights"><span class="r"></span><span class="y"></span><span class="g"></span></div>
+          <div class="url"><div class="url-inner">
+            <i class="ti ti-lock"></i>
+            <span><strong>betterat.app</strong>/creator/subscribers/tomas-renart/progress</span>
+          </div></div>
+        </div>
+
+        <div class="app">
+
+          <aside class="sidebar">
+            <div class="brand">
+              <div class="mark">B</div>
+              <div class="wordmark">BetterAt <span>· Creator</span></div>
+            </div>
+            <div class="nav">
+              <div class="group-label">Product</div>
+              <div class="item"><i class="ti ti-anchor"></i><span>Practice</span></div>
+              <div class="item"><i class="ti ti-book-2"></i><span>Playbook</span></div>
+              <div class="item"><i class="ti ti-compass"></i><span>Discover</span></div>
+              <div class="item"><i class="ti ti-school"></i><span>Learn</span></div>
+              <div class="item"><i class="ti ti-notebook"></i><span>Reflect</span></div>
+              <div class="group-label">Creator</div>
+              <div class="item"><i class="ti ti-template"></i><span>Blueprints</span><span class="count">5</span></div>
+              <div class="item on"><i class="ti ti-users"></i><span>Subscribers</span><span class="count">296</span></div>
+              <div class="item"><i class="ti ti-chart-line"></i><span>Insights</span></div>
+              <div class="item"><i class="ti ti-coin"></i><span>Earnings</span></div>
+              <div class="item"><i class="ti ti-settings"></i><span>Settings</span></div>
+            </div>
+            <div class="spacer"></div>
+            <div class="footer">
+              <div class="av">BvO</div>
+              <div class="meta">
+                <div class="name">Bram van Olphen</div>
+                <div class="role">Creator · Dragon class</div>
+              </div>
+            </div>
+          </aside>
+
+          <main class="content">
+            <div class="creator-strap">
+              <span class="back-link"><i class="ti ti-chevron-left"></i>Subscribers</span>
+              <div class="crumb-title">
+                <span class="where">Dragon Worlds Prep · 28 subscribers</span>
+                <span class="who">Tomás Renart <em>· @tomas</em></span>
+              </div>
+              <div class="spacer"></div>
+              <button class="icon-btn"><i class="ti ti-search"></i></button>
+              <button class="icon-btn"><i class="ti ti-bell"></i><span class="badge"></span></button>
+              <div class="me">
+                <div class="av-me">BvO</div>
+                <span>Bram</span>
+              </div>
+            </div>
+
+            <div class="canvas">
+
+              <!-- Subscriber summary -->
+              <div class="sub-summary">
+                <div class="av-xl">TR<span class="online"></span></div>
+                <div class="who">
+                  <div class="name">Tomás Renart</div>
+                  <div class="row">
+                    <span class="item"><i class="ti ti-at"></i>tomas</span>
+                    <span class="item"><i class="ti ti-map-pin"></i>Hong Kong</span>
+                    <span class="item"><i class="ti ti-sailboat"></i>Sail racing · Dragon class</span>
+                  </div>
+                  <div class="row2">
+                    <span class="status-chip">Active · 3 hours ago</span>
+                    <span class="since">Subscribed Mar 14, 2026 · 9 weeks in</span>
+                  </div>
+                </div>
+                <div class="actions">
+                  <button class="btn ico" title="More"><i class="ti ti-dots"></i></button>
+                  <button class="btn"><i class="ti ti-note"></i>Add note</button>
+                  <button class="btn primary"><i class="ti ti-message-circle"></i>Message Tomás</button>
+                </div>
+              </div>
+
+              <!-- Inner tabs -->
+              <div class="inner-tabs">
+                <span class="tab on"><i class="ti ti-chart-arcs"></i>Progress</span>
+                <span class="tab"><i class="ti ti-notebook"></i>Reflect Feed <span class="n">12</span><span class="dot" title="1 needs response"></span></span>
+                <span class="tab"><i class="ti ti-message"></i>Messages</span>
+                <span class="tab"><i class="ti ti-lock"></i>Notes <span class="n">3</span></span>
+                <span class="spacer"></span>
+                <span class="priv"><i class="ti ti-eye"></i>What Tomás sees</span>
+              </div>
+
+              <!-- Tab body -->
+              <div class="tab-body">
+
+                <!-- Current position banner -->
+                <div class="pos-banner">
+                  <div class="pos-head">
+                    <span class="label">Current position</span>
+                    <span class="step">Step 9 of 14 <em>— Heavy-air upwind speed</em></span>
+                    <span class="spacer"></span>
+                    <span class="pct">64%<span class="of">complete</span></span>
+                  </div>
+                  <div class="pos-bar"><span class="fill" style="width:64%;"></span></div>
+                </div>
+
+                <!-- Mini-timeline -->
+                <div class="timeline">
+                  <div class="tl-head">
+                    <span class="label">Step-by-step progress</span>
+                    <div class="legend">
+                      <span class="li"><span class="sw done"></span>Completed</span>
+                      <span class="li"><span class="sw now"></span>Current</span>
+                      <span class="li"><span class="sw stuck"></span>Stalled</span>
+                      <span class="li"><span class="sw next"></span>Upcoming</span>
+                    </div>
+                  </div>
+                  <div class="tl-track">
+                    <div class="node done"><span class="pip"><i class="ti ti-check"></i></span><span class="num">1</span></div>
+                    <div class="node done"><span class="pip"><i class="ti ti-check"></i></span><span class="num">2</span></div>
+                    <div class="node done"><span class="pip"><i class="ti ti-check"></i></span><span class="num">3</span></div>
+                    <div class="node done"><span class="pip"><i class="ti ti-check"></i></span><span class="num">4</span></div>
+                    <div class="node done"><span class="pip"><i class="ti ti-check"></i></span><span class="num">5</span></div>
+                    <div class="node stuck"><span class="pip"></span><span class="num">6</span></div>
+                    <div class="node done"><span class="pip"><i class="ti ti-check"></i></span><span class="num">7</span></div>
+                    <div class="node done"><span class="pip"><i class="ti ti-check"></i></span><span class="num">8</span></div>
+                    <div class="node now">
+                      <span class="tl-now-label">In progress</span>
+                      <span class="pip"></span>
+                      <span class="num">9</span>
+                    </div>
+                    <div class="node"><span class="pip"></span><span class="num">10</span></div>
+                    <div class="node"><span class="pip"></span><span class="num">11</span></div>
+                    <div class="node"><span class="pip"></span><span class="num">12</span></div>
+                    <div class="node"><span class="pip"></span><span class="num">13</span></div>
+                    <div class="node"><span class="pip"></span><span class="num">14</span></div>
+                  </div>
+                  <div class="tl-axis">
+                    <span>Mar 14 · started</span>
+                    <span>~Jun 28 · projected finish</span>
+                  </div>
+                </div>
+
+                <!-- Stall callout -->
+                <div class="stall">
+                  <h5><i class="ti ti-flag"></i>Where Tomás stalled</h5>
+                  <div class="items">
+                    <div class="item">
+                      <span class="ix">06</span>
+                      <div class="body">
+                        <strong>Mark roundings</strong> took 12 days
+                        <span style="color:var(--label-3); font-size:11.5px; margin-left:6px;">· average for this blueprint is 3 days</span>
+                        <div class="obs">This is the blueprint&rsquo;s flagged stuck point — 32% of subscribers stall here. Worth a check-in.</div>
+                      </div>
+                    </div>
+                    <div class="item">
+                      <span class="ix">08</span>
+                      <div class="body">
+                        <strong>Tactical decisions in shifts</strong> — replanned twice
+                        <div class="obs">Tomás rewrote his step plan on May&nbsp;6 and again May&nbsp;9 before submitting his reflection.</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Capability bar chart -->
+                <div class="caps">
+                  <h5>
+                    Capabilities <span class="sub">progress on what this blueprint develops</span>
+                    <span class="spacer"></span>
+                    <span class="delta"><i class="ti ti-trending-up"></i>+0.4 this month</span>
+                  </h5>
+                  <div class="cap-row">
+                    <span class="nm">Starts</span>
+                    <span class="dots">
+                      <span class="d f"></span><span class="d f"></span><span class="d f"></span><span class="d f up"></span><span class="d"></span>
+                    </span>
+                    <span class="val"><strong>4.0</strong><span class="arrow"> ▲ 0.5</span></span>
+                  </div>
+                  <div class="cap-row">
+                    <span class="nm">Upwind speed</span>
+                    <span class="dots">
+                      <span class="d f"></span><span class="d f"></span><span class="d f"></span><span class="d"></span><span class="d"></span>
+                    </span>
+                    <span class="val"><strong>3.0</strong></span>
+                  </div>
+                  <div class="cap-row">
+                    <span class="nm">Mark roundings</span>
+                    <span class="dots">
+                      <span class="d f"></span><span class="d f"></span><span class="d"></span><span class="d"></span><span class="d"></span>
+                    </span>
+                    <span class="val"><strong>2.0</strong></span>
+                  </div>
+                  <div class="cap-row">
+                    <span class="nm">Tactical reads</span>
+                    <span class="dots">
+                      <span class="d f"></span><span class="d f"></span><span class="d f"></span><span class="d"></span><span class="d"></span>
+                    </span>
+                    <span class="val"><strong>3.0</strong><span class="arrow"> ▲ 0.4</span></span>
+                  </div>
+                  <div class="cap-row">
+                    <span class="nm">Downwind handling</span>
+                    <span class="dots">
+                      <span class="d f"></span><span class="d f"></span><span class="d"></span><span class="d"></span><span class="d"></span>
+                    </span>
+                    <span class="val"><strong>2.0</strong></span>
+                  </div>
+                  <div class="cap-row">
+                    <span class="nm">Racing rules</span>
+                    <span class="dots">
+                      <span class="d f"></span><span class="d f"></span><span class="d"></span><span class="d"></span><span class="d"></span>
+                    </span>
+                    <span class="val"><strong>2.0</strong></span>
+                  </div>
+                </div>
+
+                <!-- Recent activity -->
+                <div class="activity">
+                  <h5>Recent activity<span class="more">View all (47)</span></h5>
+                  <div class="ev note">
+                    <span class="ic"><i class="ti ti-notebook"></i></span>
+                    <div class="body">
+                      <span class="ti"><strong>Reflection submitted</strong> on Step 8 — Tactical decisions in shifts</span>
+                      <div class="meta">4 of 5 stars · 142 words · awaiting your comment</div>
+                    </div>
+                    <span class="ago">3d ago</span>
+                  </div>
+                  <div class="ev reply">
+                    <span class="ic"><i class="ti ti-message-2"></i></span>
+                    <div class="body">
+                      <span class="ti">Replied to your comment on Step 6 — <em>“Yes please. Tuesday?”</em></span>
+                      <div class="meta">Thread: Mark roundings · 2 turns</div>
+                    </div>
+                    <span class="ago">3d ago</span>
+                  </div>
+                  <div class="ev done">
+                    <span class="ic"><i class="ti ti-circle-check"></i></span>
+                    <div class="body">
+                      <span class="ti"><strong>Step 8 completed</strong> — Tactical decisions in shifts</span>
+                      <div class="meta">After 6 days · two plan revisions</div>
+                    </div>
+                    <span class="ago">4d ago</span>
+                  </div>
+                  <div class="ev note">
+                    <span class="ic"><i class="ti ti-pencil"></i></span>
+                    <div class="body">
+                      <span class="ti">Added a private session log — <em>“Mistral training, Cheung Chau”</em></span>
+                      <div class="meta">Race Log entry · linked to Step 9</div>
+                    </div>
+                    <span class="ago">5d ago</span>
+                  </div>
+                  <div class="ev done">
+                    <span class="ic"><i class="ti ti-circle-check"></i></span>
+                    <div class="body">
+                      <span class="ti"><strong>Step 7 completed</strong> — Pre-start risk</span>
+                      <div class="meta">Reflection submitted, 3 of 5 stars · no comment yet</div>
+                    </div>
+                    <span class="ago">5d ago</span>
+                  </div>
+                </div>
+
+              </div><!-- /tab-body -->
+
+            </div><!-- /canvas -->
+          </main>
+        </div>
+      </div>
+
+      <div class="frame-cap">
+        <p class="eyebrow">Frame 1 · Progress tab — the landing surface</p>
+        <h3>Progress &middot; <em>at-a-glance, but enough to plan a conversation</em></h3>
+        <p>
+          The landing tab after Bram taps <em>View progress</em> on Tomás. The breadcrumb in the strap (<em>← Subscribers</em>) makes the return path explicit; the page title moves down to the summary card so the subscriber&rsquo;s name reads at the typographic weight of a person, not a row. Current position is the headline; the mini-timeline carries the <em>shape</em> of the journey — completed in green, current in blue, the one amber stall — and the stall callout below tells Bram what to ask about before he opens the Reflect Feed.
+        </p>
+      </div>
+    </div>
+
+    <!-- =========================================================== -->
+    <!-- ==========         FRAME 2 — REFLECT FEED           ======== -->
+    <!-- =========================================================== -->
+    <div class="frame-col" data-screen-label="02 Subscriber · Reflect Feed">
+      <div class="desktop">
+        <div class="chrome">
+          <div class="lights"><span class="r"></span><span class="y"></span><span class="g"></span></div>
+          <div class="url"><div class="url-inner">
+            <i class="ti ti-lock"></i>
+            <span><strong>betterat.app</strong>/creator/subscribers/tomas-renart/reflect</span>
+          </div></div>
+        </div>
+
+        <div class="app">
+          <aside class="sidebar">
+            <div class="brand">
+              <div class="mark">B</div>
+              <div class="wordmark">BetterAt <span>· Creator</span></div>
+            </div>
+            <div class="nav">
+              <div class="group-label">Product</div>
+              <div class="item"><i class="ti ti-anchor"></i><span>Practice</span></div>
+              <div class="item"><i class="ti ti-book-2"></i><span>Playbook</span></div>
+              <div class="item"><i class="ti ti-compass"></i><span>Discover</span></div>
+              <div class="item"><i class="ti ti-school"></i><span>Learn</span></div>
+              <div class="item"><i class="ti ti-notebook"></i><span>Reflect</span></div>
+              <div class="group-label">Creator</div>
+              <div class="item"><i class="ti ti-template"></i><span>Blueprints</span><span class="count">5</span></div>
+              <div class="item on"><i class="ti ti-users"></i><span>Subscribers</span><span class="count">296</span></div>
+              <div class="item"><i class="ti ti-chart-line"></i><span>Insights</span></div>
+              <div class="item"><i class="ti ti-coin"></i><span>Earnings</span></div>
+              <div class="item"><i class="ti ti-settings"></i><span>Settings</span></div>
+            </div>
+            <div class="spacer"></div>
+            <div class="footer">
+              <div class="av">BvO</div>
+              <div class="meta">
+                <div class="name">Bram van Olphen</div>
+                <div class="role">Creator · Dragon class</div>
+              </div>
+            </div>
+          </aside>
+
+          <main class="content">
+            <div class="creator-strap">
+              <span class="back-link"><i class="ti ti-chevron-left"></i>Subscribers</span>
+              <div class="crumb-title">
+                <span class="where">Dragon Worlds Prep · 28 subscribers</span>
+                <span class="who">Tomás Renart <em>· @tomas</em></span>
+              </div>
+              <div class="spacer"></div>
+              <button class="icon-btn"><i class="ti ti-search"></i></button>
+              <button class="icon-btn"><i class="ti ti-bell"></i><span class="badge"></span></button>
+              <div class="me">
+                <div class="av-me">BvO</div>
+                <span>Bram</span>
+              </div>
+            </div>
+
+            <div class="canvas">
+
+              <!-- Summary card -->
+              <div class="sub-summary">
+                <div class="av-xl">TR<span class="online"></span></div>
+                <div class="who">
+                  <div class="name">Tomás Renart</div>
+                  <div class="row">
+                    <span class="item"><i class="ti ti-at"></i>tomas</span>
+                    <span class="item"><i class="ti ti-map-pin"></i>Hong Kong</span>
+                    <span class="item"><i class="ti ti-sailboat"></i>Sail racing · Dragon class</span>
+                  </div>
+                  <div class="row2">
+                    <span class="status-chip">Active · 3 hours ago</span>
+                    <span class="since">Subscribed Mar 14, 2026 · 9 weeks in</span>
+                  </div>
+                </div>
+                <div class="actions">
+                  <button class="btn ico" title="More"><i class="ti ti-dots"></i></button>
+                  <button class="btn"><i class="ti ti-note"></i>Add note</button>
+                  <button class="btn primary"><i class="ti ti-message-circle"></i>Message Tomás</button>
+                </div>
+              </div>
+
+              <!-- Inner tabs -->
+              <div class="inner-tabs">
+                <span class="tab"><i class="ti ti-chart-arcs"></i>Progress</span>
+                <span class="tab on"><i class="ti ti-notebook"></i>Reflect Feed <span class="n">12</span><span class="dot" title="1 needs response"></span></span>
+                <span class="tab"><i class="ti ti-message"></i>Messages</span>
+                <span class="tab"><i class="ti ti-lock"></i>Notes <span class="n">3</span></span>
+                <span class="spacer"></span>
+                <span class="priv"><i class="ti ti-eye"></i>What Tomás sees</span>
+              </div>
+
+              <!-- Filter bar -->
+              <div class="feed-header">
+                <span class="lbl">Reflections</span>
+                <span class="count"><strong>12</strong> total · 1 needs response · 4 marked as evidence</span>
+                <span class="spacer"></span>
+                <span class="pill on"><i class="ti ti-list"></i>Most recent</span>
+                <span class="pill"><i class="ti ti-star"></i>Lowest-rated</span>
+                <span class="pill"><i class="ti ti-message-circle-off"></i>No reply</span>
+              </div>
+
+              <!-- Feed -->
+              <div class="feed">
+
+                <!-- Step 8 reflect -->
+                <div class="reflect">
+                  <div class="reflect-head">
+                    <div class="stepix"><span class="n">08</span><span class="t">Step</span></div>
+                    <div class="title-col">
+                      <div class="title">Tactical decisions in shifts</div>
+                      <div class="meta">
+                        <span>Submitted 3 days ago</span>
+                        <span class="dot"></span>
+                        <span>142 words</span>
+                        <span class="dot"></span>
+                        <span>Wind 14&ndash;18kt · Mid Island, HK</span>
+                      </div>
+                    </div>
+                    <div class="rating">
+                      <i class="ti ti-star-filled on"></i>
+                      <i class="ti ti-star-filled on"></i>
+                      <i class="ti ti-star-filled on"></i>
+                      <i class="ti ti-star-filled on"></i>
+                      <i class="ti ti-star"></i>
+                      <span class="val">4 / 5</span>
+                    </div>
+                  </div>
+
+                  <div class="reflect-body">
+                    <div class="reflect-q">
+                      <span class="ql">What worked</span>
+                      <p class="qa">I committed to the pin end early after seeing the line favored <em>7° left</em>. Got a clean start and held height for the first three minutes — Felix and Bence were both pinned below me by the time we tacked.</p>
+                    </div>
+                    <div class="reflect-q">
+                      <span class="ql">What to improve</span>
+                      <p class="qa">I should have tacked sooner on the first beat. Lost time to Tomás&nbsp;W. — I saw the shift but I sat on starboard for another minute waiting to confirm. The confirmation cost me two boatlengths.</p>
+                    </div>
+                    <div class="reflect-q">
+                      <span class="ql">Next session</span>
+                      <p class="qa brief">Practice quick tacks under pressure. Maybe drill 5-tack ladders with the timing watch.</p>
+                    </div>
+                  </div>
+
+                  <div class="reflect-actions">
+                    <button class="btn"><i class="ti ti-message-circle"></i>Comment</button>
+                    <button class="btn evidence"><i class="ti ti-check check"></i>Evidence · Starts</button>
+                    <button class="btn"><i class="ti ti-plus"></i>Mark capability</button>
+                    <button class="btn"><i class="ti ti-info-circle"></i>Request more detail</button>
+                    <span class="spacer"></span>
+                    <span class="seen"><i class="ti ti-eye"></i>Visible to Tomás</span>
+                  </div>
+
+                  <!-- Thread -->
+                  <div class="thread">
+                    <div class="msg mine">
+                      <div class="av">BvO</div>
+                      <div>
+                        <div class="who-row">
+                          <span class="nm">Bram (you)</span>
+                          <span class="ago">2 days ago</span>
+                        </div>
+                        <div class="bubble">
+                          Great observation on the pin end — that&rsquo;s exactly the read I wanted to see you make without my voice in your ear. The tack-timing question is exactly the kind of thing that shows up in puff-and-shift conditions; the cost of confirming a shift is usually less than the cost of missing it. Want to look at the wind trace from that race together? I can pull it up Tuesday.
+                        </div>
+                      </div>
+                    </div>
+                    <div class="msg them">
+                      <div class="av">TR</div>
+                      <div>
+                        <div class="who-row">
+                          <span class="nm">Tomás</span>
+                          <span class="ago">2 days ago</span>
+                        </div>
+                        <div class="bubble">Yes please. Tuesday?</div>
+                      </div>
+                    </div>
+                    <div class="reply-stub">
+                      <div class="av">BvO</div>
+                      <div class="field">Reply to Tomás<i class="ti ti-send"></i></div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Step 7 — needs response -->
+                <div class="reflect needs">
+                  <div class="reflect-head">
+                    <div class="stepix"><span class="n">07</span><span class="t">Step</span></div>
+                    <div class="title-col">
+                      <div class="title">Pre-start risk &amp; line position</div>
+                      <div class="meta">
+                        <span>Submitted 5 days ago</span>
+                        <span class="dot"></span>
+                        <span>78 words</span>
+                        <span class="dot"></span>
+                        <span>Wind 10&ndash;12kt · Middle Island race</span>
+                      </div>
+                    </div>
+                    <div class="rating">
+                      <i class="ti ti-star-filled on"></i>
+                      <i class="ti ti-star-filled on"></i>
+                      <i class="ti ti-star-filled on"></i>
+                      <i class="ti ti-star"></i>
+                      <i class="ti ti-star"></i>
+                      <span class="val">3 / 5</span>
+                    </div>
+                  </div>
+
+                  <div class="reflect-body">
+                    <div class="reflect-q">
+                      <span class="ql">What worked</span>
+                      <p class="qa brief">Better awareness of the pack&rsquo;s shape in the last 90 seconds. I held my hole this time instead of bailing into traffic.</p>
+                    </div>
+                    <div class="reflect-q">
+                      <span class="ql">What to improve</span>
+                      <p class="qa brief">Still hesitating on the trigger pull. Twice I had a clear lane and didn&rsquo;t accelerate hard enough.</p>
+                    </div>
+                  </div>
+
+                  <div class="needs-callout">
+                    <span class="ic"><i class="ti ti-message-circle-2"></i></span>
+                    <div class="text"><strong>No comment yet</strong> &middot; Tomás is waiting on your read of this one before Step 9.</div>
+                    <span class="spacer"></span>
+                    <button class="add"><i class="ti ti-plus"></i>Add feedback</button>
+                  </div>
+                </div>
+
+                <!-- Step 6 — stall point -->
+                <div class="reflect">
+                  <div class="reflect-head">
+                    <div class="stepix stuck"><span class="n">06</span><span class="t">Stuck</span></div>
+                    <div class="title-col">
+                      <div class="title">Mark roundings — windward gate</div>
+                      <div class="meta">
+                        <span>Submitted 12 days ago</span>
+                        <span class="dot"></span>
+                        <span>Stalled 9 days before submitting</span>
+                      </div>
+                    </div>
+                    <div class="rating">
+                      <i class="ti ti-star-filled on"></i>
+                      <i class="ti ti-star-filled on"></i>
+                      <i class="ti ti-star"></i>
+                      <i class="ti ti-star"></i>
+                      <i class="ti ti-star"></i>
+                      <span class="val">2 / 5</span>
+                    </div>
+                  </div>
+
+                  <div class="reflect-body">
+                    <div class="reflect-q">
+                      <span class="ql">What to improve</span>
+                      <p class="qa">Struggled with mark roundings. Lost positions at every windward mark — the inside boat ate me at the zone, twice, and I exited the rounding three lengths low both times. I don&rsquo;t think I&rsquo;m setting up wide-enough.</p>
+                    </div>
+                  </div>
+
+                  <div class="reflect-actions">
+                    <button class="btn"><i class="ti ti-message-circle"></i>Comment</button>
+                    <button class="btn"><i class="ti ti-plus"></i>Mark capability</button>
+                    <button class="btn"><i class="ti ti-info-circle"></i>Request more detail</button>
+                    <span class="spacer"></span>
+                    <span class="seen"><i class="ti ti-eye"></i>Visible to Tomás</span>
+                  </div>
+
+                  <div class="thread">
+                    <div class="msg mine">
+                      <div class="av">BvO</div>
+                      <div>
+                        <div class="who-row">
+                          <span class="nm">Bram (you)</span>
+                          <span class="ago">11 days ago</span>
+                        </div>
+                        <div class="bubble">
+                          This is the step where most subscribers stall — you&rsquo;re not alone. The fix is geometric, not athletic: try the <em>inside-out</em> approach we talked about. Wide entry, tight exit, drop your traveler one inch <em>before</em> you bear away, not after. Re-watch the Felix clip from week 2 — second mark rounding, watch his hands.
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+              </div><!-- /feed -->
+
+            </div><!-- /canvas -->
+          </main>
+        </div>
+      </div>
+
+      <div class="frame-cap">
+        <p class="eyebrow">Frame 2 · Reflect Feed — the mentoring core</p>
+        <h3>Reflect Feed &middot; <em>where teaching at scale stops being analytics</em></h3>
+        <p>
+          The dominant frame. Each reflection is its own card: step badge on the left, rating on the right, the subscriber&rsquo;s answers in <em>serif</em> body type so they read as someone speaking — not as form data. Bram&rsquo;s comments live in a thread inside the card, on a soft creator-tinted bubble; Tomás&rsquo;s replies use the neutral subscriber-tint. Step 7 is the only un-replied reflection; the entire card is outlined in iOS blue and carries an <em>Add feedback</em> call-out so it can&rsquo;t be missed. Step 6 carries the same amber <em>stuck</em> badge the editor and Insights frames use — the signal is shared across surfaces.
+        </p>
+      </div>
+    </div>
+
+    <!-- =========================================================== -->
+    <!-- ==========         FRAME 3 — MESSAGES               ======== -->
+    <!-- =========================================================== -->
+    <div class="frame-col" data-screen-label="03 Subscriber · Messages">
+      <div class="desktop">
+        <div class="chrome">
+          <div class="lights"><span class="r"></span><span class="y"></span><span class="g"></span></div>
+          <div class="url"><div class="url-inner">
+            <i class="ti ti-lock"></i>
+            <span><strong>betterat.app</strong>/creator/subscribers/tomas-renart/messages</span>
+          </div></div>
+        </div>
+
+        <div class="app">
+          <aside class="sidebar">
+            <div class="brand">
+              <div class="mark">B</div>
+              <div class="wordmark">BetterAt <span>· Creator</span></div>
+            </div>
+            <div class="nav">
+              <div class="group-label">Product</div>
+              <div class="item"><i class="ti ti-anchor"></i><span>Practice</span></div>
+              <div class="item"><i class="ti ti-book-2"></i><span>Playbook</span></div>
+              <div class="item"><i class="ti ti-compass"></i><span>Discover</span></div>
+              <div class="item"><i class="ti ti-school"></i><span>Learn</span></div>
+              <div class="item"><i class="ti ti-notebook"></i><span>Reflect</span></div>
+              <div class="group-label">Creator</div>
+              <div class="item"><i class="ti ti-template"></i><span>Blueprints</span><span class="count">5</span></div>
+              <div class="item on"><i class="ti ti-users"></i><span>Subscribers</span><span class="count">296</span></div>
+              <div class="item"><i class="ti ti-chart-line"></i><span>Insights</span></div>
+              <div class="item"><i class="ti ti-coin"></i><span>Earnings</span></div>
+              <div class="item"><i class="ti ti-settings"></i><span>Settings</span></div>
+            </div>
+            <div class="spacer"></div>
+            <div class="footer">
+              <div class="av">BvO</div>
+              <div class="meta">
+                <div class="name">Bram van Olphen</div>
+                <div class="role">Creator · Dragon class</div>
+              </div>
+            </div>
+          </aside>
+
+          <main class="content">
+            <div class="creator-strap">
+              <span class="back-link"><i class="ti ti-chevron-left"></i>Subscribers</span>
+              <div class="crumb-title">
+                <span class="where">Dragon Worlds Prep · 28 subscribers</span>
+                <span class="who">Tomás Renart <em>· @tomas</em></span>
+              </div>
+              <div class="spacer"></div>
+              <button class="icon-btn"><i class="ti ti-search"></i></button>
+              <button class="icon-btn"><i class="ti ti-bell"></i><span class="badge"></span></button>
+              <div class="me">
+                <div class="av-me">BvO</div>
+                <span>Bram</span>
+              </div>
+            </div>
+
+            <div class="canvas">
+
+              <!-- Summary -->
+              <div class="sub-summary">
+                <div class="av-xl">TR<span class="online"></span></div>
+                <div class="who">
+                  <div class="name">Tomás Renart</div>
+                  <div class="row">
+                    <span class="item"><i class="ti ti-at"></i>tomas</span>
+                    <span class="item"><i class="ti ti-map-pin"></i>Hong Kong</span>
+                    <span class="item"><i class="ti ti-sailboat"></i>Sail racing · Dragon class</span>
+                  </div>
+                  <div class="row2">
+                    <span class="status-chip">Active · 3 hours ago</span>
+                    <span class="since">Subscribed Mar 14, 2026 · 9 weeks in</span>
+                  </div>
+                </div>
+                <div class="actions">
+                  <button class="btn ico" title="More"><i class="ti ti-dots"></i></button>
+                  <button class="btn"><i class="ti ti-note"></i>Add note</button>
+                  <button class="btn primary"><i class="ti ti-message-circle"></i>Message Tomás</button>
+                </div>
+              </div>
+
+              <!-- Inner tabs -->
+              <div class="inner-tabs">
+                <span class="tab"><i class="ti ti-chart-arcs"></i>Progress</span>
+                <span class="tab"><i class="ti ti-notebook"></i>Reflect Feed <span class="n">12</span><span class="dot" title="1 needs response"></span></span>
+                <span class="tab on"><i class="ti ti-message"></i>Messages</span>
+                <span class="tab"><i class="ti ti-lock"></i>Notes <span class="n">3</span></span>
+                <span class="spacer"></span>
+                <span class="priv"><i class="ti ti-eye"></i>What Tomás sees</span>
+              </div>
+
+              <!-- Conversation -->
+              <div class="messages-pane">
+                <div class="msg-scroll">
+
+                  <div class="day-sep"><strong>Last week</strong> · May 7</div>
+
+                  <div class="bubble-row bram">
+                    <div class="av-sm">BvO</div>
+                    <div class="bubble-col">
+                      <span class="ctx-chip"><i class="ti ti-template"></i>about <strong>Step 5 · Heavy-air starts</strong></span>
+                      <div class="bubble">
+                        Nice work on the last race. The traveler call at the third start was textbook — first time I&rsquo;ve seen you lead with the trim hand instead of the tiller.
+                        <span class="timestamp">May 7 · 9:14</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="bubble-row tomas">
+                    <div class="av-sm">TR</div>
+                    <div class="bubble-col">
+                      <div class="bubble">
+                        Thanks. Took me three weeks of dry drills to stop reaching for the tiller first. Felt slow at first.
+                        <span class="timestamp">May 7 · 9:32</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="day-sep"><strong>Monday</strong> · May 11</div>
+
+                  <div class="bubble-row bram">
+                    <div class="av-sm">BvO</div>
+                    <div class="bubble-col">
+                      <span class="ctx-chip"><i class="ti ti-template"></i>about <strong>Step 7 · Pre-start risk</strong></span>
+                      <div class="bubble with-quote">
+                        <span class="quote">“Still hesitating on the trigger pull. Twice I had a clear lane and didn&rsquo;t accelerate hard enough.”</span>
+                        I&rsquo;ll write up something longer on your reflection — but the short version is: your read is right, your timing is good, you&rsquo;re just one beat slow on the sheet. Wednesday call?
+                        <span class="timestamp">May 11 · 7:48</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="bubble-row tomas">
+                    <div class="av-sm">TR</div>
+                    <div class="bubble-col">
+                      <div class="bubble">
+                        Wednesday works. 8am HK = midnight your side?
+                        <span class="timestamp">May 11 · 8:02</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="bubble-row bram">
+                    <div class="av-sm">BvO</div>
+                    <div class="bubble-col">
+                      <div class="bubble">
+                        I&rsquo;ll be up. Bring the wind trace.
+                        <span class="timestamp">May 11 · 8:03</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="day-sep"><strong>Today</strong> · May 15</div>
+
+                  <div class="bubble-row tomas">
+                    <div class="av-sm">TR</div>
+                    <div class="bubble-col">
+                      <span class="ctx-chip"><i class="ti ti-template"></i>about <strong>Step 10 · Spinnaker handling</strong></span>
+                      <div class="bubble">
+                        Quick Q before Step 10 — do you want me to drill jibes with the symmetric or do the gennaker swaps you described? I&rsquo;ve got Sunday on the water and I want to plan it tonight.
+                        <span class="timestamp">3 hours ago</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="bubble-row bram">
+                    <div class="av-sm">BvO</div>
+                    <div class="bubble-col">
+                      <div class="typing"><span></span><span></span><span></span></div>
+                    </div>
+                  </div>
+
+                </div>
+
+                <!-- Draft context strip -->
+                <div class="draft-ctx">
+                  <i class="ti ti-link"></i>
+                  <span class="lbl">Replying with context:</span>
+                  <span class="ref">Step 10 · Spinnaker handling</span>
+                  <span class="spacer"></span>
+                  <span class="change">Change &rsaquo;</span>
+                </div>
+
+                <div class="composer">
+                  <button class="attach"><i class="ti ti-paperclip"></i></button>
+                  <div class="input">
+                    <span class="draft">Symmetric first — three sets, three drops, no spinning yet. Then we</span><span class="caret"></span>
+                  </div>
+                  <button class="send"><i class="ti ti-send"></i>Send</button>
+                </div>
+              </div>
+
+            </div><!-- /canvas -->
+          </main>
+        </div>
+      </div>
+
+      <div class="frame-cap">
+        <p class="eyebrow">Frame 3 · Messages — the open back-channel</p>
+        <h3>Messages &middot; <em>iOS bubble grammar, with a context chip that earns its keep</em></h3>
+        <p>
+          A direct two-way thread. Each message can carry a <em>context chip</em> linking it to a specific step of a specific blueprint — Bram&rsquo;s reply about pre-starts cites <em>Step 7 of Dragon Worlds Prep</em>, and quotes the line from the reflection it&rsquo;s answering. The chip is the thing that keeps mentoring conversations from drifting into pure chat: every message is anchored. Bram&rsquo;s draft below carries a <em>Replying with context</em> strip that pre-attaches Step 10, the step Tomás&rsquo;s last message asked about. Voice and video are deferred — the composer affordance is text and attach only.
+        </p>
+      </div>
+    </div>
+
+    <!-- =========================================================== -->
+    <!-- ==========         FRAME 4 — NOTES (private)        ======== -->
+    <!-- =========================================================== -->
+    <div class="frame-col" data-screen-label="04 Subscriber · Notes (private)">
+      <div class="desktop">
+        <div class="chrome">
+          <div class="lights"><span class="r"></span><span class="y"></span><span class="g"></span></div>
+          <div class="url"><div class="url-inner">
+            <i class="ti ti-lock"></i>
+            <span><strong>betterat.app</strong>/creator/subscribers/tomas-renart/notes</span>
+          </div></div>
+        </div>
+
+        <div class="app">
+          <aside class="sidebar">
+            <div class="brand">
+              <div class="mark">B</div>
+              <div class="wordmark">BetterAt <span>· Creator</span></div>
+            </div>
+            <div class="nav">
+              <div class="group-label">Product</div>
+              <div class="item"><i class="ti ti-anchor"></i><span>Practice</span></div>
+              <div class="item"><i class="ti ti-book-2"></i><span>Playbook</span></div>
+              <div class="item"><i class="ti ti-compass"></i><span>Discover</span></div>
+              <div class="item"><i class="ti ti-school"></i><span>Learn</span></div>
+              <div class="item"><i class="ti ti-notebook"></i><span>Reflect</span></div>
+              <div class="group-label">Creator</div>
+              <div class="item"><i class="ti ti-template"></i><span>Blueprints</span><span class="count">5</span></div>
+              <div class="item on"><i class="ti ti-users"></i><span>Subscribers</span><span class="count">296</span></div>
+              <div class="item"><i class="ti ti-chart-line"></i><span>Insights</span></div>
+              <div class="item"><i class="ti ti-coin"></i><span>Earnings</span></div>
+              <div class="item"><i class="ti ti-settings"></i><span>Settings</span></div>
+            </div>
+            <div class="spacer"></div>
+            <div class="footer">
+              <div class="av">BvO</div>
+              <div class="meta">
+                <div class="name">Bram van Olphen</div>
+                <div class="role">Creator · Dragon class</div>
+              </div>
+            </div>
+          </aside>
+
+          <main class="content">
+            <div class="creator-strap">
+              <span class="back-link"><i class="ti ti-chevron-left"></i>Subscribers</span>
+              <div class="crumb-title">
+                <span class="where">Dragon Worlds Prep · 28 subscribers</span>
+                <span class="who">Tomás Renart <em>· @tomas</em></span>
+              </div>
+              <div class="spacer"></div>
+              <button class="icon-btn"><i class="ti ti-search"></i></button>
+              <button class="icon-btn"><i class="ti ti-bell"></i><span class="badge"></span></button>
+              <div class="me">
+                <div class="av-me">BvO</div>
+                <span>Bram</span>
+              </div>
+            </div>
+
+            <div class="canvas">
+
+              <!-- Summary -->
+              <div class="sub-summary">
+                <div class="av-xl">TR<span class="online"></span></div>
+                <div class="who">
+                  <div class="name">Tomás Renart</div>
+                  <div class="row">
+                    <span class="item"><i class="ti ti-at"></i>tomas</span>
+                    <span class="item"><i class="ti ti-map-pin"></i>Hong Kong</span>
+                    <span class="item"><i class="ti ti-sailboat"></i>Sail racing · Dragon class</span>
+                  </div>
+                  <div class="row2">
+                    <span class="status-chip">Active · 3 hours ago</span>
+                    <span class="since">Subscribed Mar 14, 2026 · 9 weeks in</span>
+                  </div>
+                </div>
+                <div class="actions">
+                  <button class="btn ico" title="More"><i class="ti ti-dots"></i></button>
+                  <button class="btn"><i class="ti ti-note"></i>Add note</button>
+                  <button class="btn primary"><i class="ti ti-message-circle"></i>Message Tomás</button>
+                </div>
+              </div>
+
+              <!-- Inner tabs -->
+              <div class="inner-tabs">
+                <span class="tab"><i class="ti ti-chart-arcs"></i>Progress</span>
+                <span class="tab"><i class="ti ti-notebook"></i>Reflect Feed <span class="n">12</span><span class="dot" title="1 needs response"></span></span>
+                <span class="tab"><i class="ti ti-message"></i>Messages</span>
+                <span class="tab on"><i class="ti ti-lock"></i>Notes <span class="n">3</span></span>
+                <span class="spacer"></span>
+                <span class="priv"><i class="ti ti-lock"></i>Only you can see this tab</span>
+              </div>
+
+              <!-- Privacy strip -->
+              <div class="privacy-strip">
+                <span class="icon"><i class="ti ti-lock"></i></span>
+                <div class="text">
+                  <div class="ti">Private notes about Tomás</div>
+                  <div class="sub">These are your own observations. Tomás cannot see this tab and never gets notified.</div>
+                </div>
+                <span class="pill"><i class="ti ti-eye-off"></i>Private to Bram</span>
+              </div>
+
+              <!-- Notes -->
+              <div class="notes-list">
+
+                <div class="note-card">
+                  <div class="nh">
+                    <span class="date">May 12</span>
+                    <span class="ago">3 days ago</span>
+                    <span class="spacer"></span>
+                    <span class="tag"><i class="ti ti-target"></i>Follow-up</span>
+                  </div>
+                  <div class="body">
+                    Strong tactically but rules-light — when we talked about the windward-mark incident he didn&rsquo;t know room-at-the-mark applies <em>at</em> the zone, not before. Send him my <span class="ref">Rules Quiz</span> blueprint after Step 12. Don&rsquo;t front-load it; he&rsquo;ll resent the homework if it lands during a stuck stretch.
+                  </div>
+                  <div class="nf">
+                    <span class="chip"><i class="ti ti-link"></i>Step 12 · Rules &amp; calls</span>
+                    <span class="chip"><i class="ti ti-template"></i>Rules Quiz blueprint</span>
+                    <span class="spacer"></span>
+                    <span class="ic"><i class="ti ti-pencil"></i></span>
+                    <span class="ic"><i class="ti ti-dots"></i></span>
+                  </div>
+                </div>
+
+                <div class="note-card">
+                  <div class="nh">
+                    <span class="date">May 5</span>
+                    <span class="ago">10 days ago</span>
+                    <span class="spacer"></span>
+                    <span class="tag"><i class="ti ti-trending-up"></i>Trajectory</span>
+                  </div>
+                  <div class="body">
+                    Improved heavy-air starts noticeably between Step 3 and Step 7. Confidence trending up — he&rsquo;s started naming the wind range himself in reflections instead of just &ldquo;windy.&rsquo;&rdquo; That&rsquo;s the leading indicator I usually see four to six weeks before someone breaks into the top third of their fleet.
+                  </div>
+                  <div class="nf">
+                    <span class="chip"><i class="ti ti-link"></i>Steps 3 → 7</span>
+                    <span class="spacer"></span>
+                    <span class="ic"><i class="ti ti-pencil"></i></span>
+                    <span class="ic"><i class="ti ti-dots"></i></span>
+                  </div>
+                </div>
+
+                <div class="note-card">
+                  <div class="nh">
+                    <span class="date">Apr 22</span>
+                    <span class="ago">23 days ago</span>
+                    <span class="spacer"></span>
+                    <span class="tag first"><i class="ti ti-flag"></i>First contact</span>
+                  </div>
+                  <div class="body">
+                    First conversation — Dragon class, RHKYC, sailing solo since 2022. Wants to qualify for <em>Dragon Worlds 2027</em>. No fixed coach, has been self-coaching from books and video. Mid-30s, software engineer, very analytical — will respond to data more than vibes. Mother in Buenos Aires; family pressure to compete is real. Treat him as <em>peer learning</em>, not student-and-teacher.
+                  </div>
+                  <div class="nf">
+                    <span class="chip"><i class="ti ti-message"></i>Source: kickoff call</span>
+                    <span class="spacer"></span>
+                    <span class="ic"><i class="ti ti-pencil"></i></span>
+                    <span class="ic"><i class="ti ti-dots"></i></span>
+                  </div>
+                </div>
+
+              </div>
+
+              <!-- New note affordance -->
+              <div class="new-note">
+                <span class="plus"><i class="ti ti-plus"></i></span>
+                <div class="field">
+                  New private note about Tomás…
+                  <div class="hint">Notes are tied to this subscriber and never visible to them.</div>
+                </div>
+                <span class="kbd">N</span>
+              </div>
+
+            </div><!-- /canvas -->
+          </main>
+        </div>
+      </div>
+
+      <div class="frame-cap">
+        <p class="eyebrow">Frame 4 · Notes — the private layer</p>
+        <h3>Notes &middot; <em>the page in the back of the binder</em></h3>
+        <p>
+          A creator&rsquo;s working memory: candid observations, follow-ups, the things you&rsquo;d write in a coaching binder. The privacy strip across the top is amber rather than blue — it&rsquo;s a <em>signal</em>, not an action — and the tab label itself shows a padlock instead of an eye icon. Each note carries a date, a chip or two linking it to specific steps or blueprints, and a soft cream card that visually distances Notes from the white feed cards that Tomás can see. The keyboard shortcut hint (<em>N</em>) is the only desktop affordance that won&rsquo;t survive the mobile-responsive collapse.
+        </p>
+      </div>
+    </div>
+
+  </div>
+
+  <p class="resp-note">
+    Mobile-responsive degradation exists — the four inner tabs become a horizontal scroller, the summary card stacks vertically, the Reflect-feed thread bubbles widen to fill the width, and the message composer pins to the bottom of the viewport — but the canonical view is desktop. A creator mentoring twenty-eight subscribers does this work at a desk, not on a phone.
+  </p>
+
+  <!-- ============= Commentary ============= -->
+  <section class="commentary">
+    <div class="col">
+      <h4>Why Reflect Feed gets the most ink</h4>
+      <p>
+        Three of the four frames are chrome with content; <em>this</em> is the one where the work happens. The card is bigger, the type is softer (Iowan serif on the answers — same family the consumer-facing reflection screens use), and Bram&rsquo;s comment lives <em>inside</em> the card rather than below it, threaded with Tomás&rsquo;s replies. The card containing the un-replied reflection picks up a 2px iOS-blue outline and a coloured call-out strip; we want it to be the thing your eye lands on first.
+      </p>
+      <p>
+        The affordances row deliberately mixes verbs: <em>Comment</em> (open), <em>Evidence · Starts</em> (already marked, a small win), <em>Mark capability</em>, <em>Request more detail</em>. Marking a reflection as capability evidence is the only place in the product where the creator directly drives the subscriber&rsquo;s capability bars upward — and the green pill is the receipt.
+      </p>
+    </div>
+    <div class="col">
+      <h4>Privacy is structural, not chromatic</h4>
+      <p>
+        Three different privacy postures live on this surface and the chrome makes each one explicit. <em>Reflect comments</em> are public-to-Tomás — every affordance row carries an <em>eye · Visible to Tomás</em> line on the right. <em>Messages</em> are two-way private — the iOS-blue bubbles are unmistakable. <em>Notes</em> are creator-only — amber privacy strip, padlock icon on the tab, an <em>Only you can see this tab</em> hint where the &ldquo;What Tomás sees&rdquo; affordance would normally sit.
+      </p>
+      <p>
+        The amber on the Notes strip is the same amber used for stall flags and stuck points. We treat it as the &ldquo;handle with care&rdquo; color: something you should read before you act.
+      </p>
+    </div>
+    <div class="col">
+      <h4>The breadcrumb is the back button</h4>
+      <p>
+        The strap row that used to say <em>Creator Dashboard / Bram van Olphen · 5 blueprints…</em> on the dashboard canonical now reads <em>← Subscribers</em> on the left and the subscriber&rsquo;s identity on the right. The shape is preserved — 56px, same icon-button cluster on the right — but the gravity moves to a person. The bulk-mentoring affordance (<em>Message all</em>) is cited only; it lives one level up in the Subscribers list. From a subscriber detail you are talking to <em>one</em> person.
+      </p>
+      <p>
+        The desktop URL — <em>betterat.app/creator/subscribers/tomas-renart/&hellip;</em> — encodes the subscriber slug at the path level and the tab at the leaf. Deep-link from a notification (<em>Step 7 reflection · awaiting your comment</em>) lands directly on the Reflect Feed tab with Step 7 expanded.
+      </p>
+    </div>
+    <div class="col">
+      <h4>What got skipped</h4>
+      <p>
+        <strong>Bulk mentoring</strong> — cohort-wide messaging, multi-select on the Subscribers list — is cited in the parent canonical and not rendered here. From inside one person&rsquo;s detail it would only confuse the gravity.
+      </p>
+      <p>
+        <strong>Mentoring monetization tiers</strong> (paid mentor minutes, &ldquo;office hours,&rdquo; one-on-one upsell) are a deferred product decision and don&rsquo;t appear on this surface. <strong>Voice and video</strong> messaging are out of scope; the composer is text-and-attach only.
+      </p>
+      <p>
+        <strong>Subscriber-side equivalents</strong> — what Tomás sees when Bram comments on his reflection, when Bram sends him a message — are part of the iOS Register canonicals and stay there.
+      </p>
+    </div>
+  </section>
+
+</div>
+
+</body>
+</html>
