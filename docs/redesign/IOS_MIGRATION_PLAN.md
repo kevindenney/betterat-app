@@ -397,6 +397,36 @@ Surfaces blocked on these design handoffs before their cutover can resume:
 
 Five design handoffs still outstanding. The Race Prep cards handoff arrived 2026-05-15 and the cards-grid cutover shipped that day (see follow-up #11 for the remaining `/step/[id]` vs `/race/ios/[stepId]` detail-surface question, and follow-up #12 for inline-action affordances on the new summary surface). All other blocked-cutover surfaces remain reachable via their preview routes (`/reflect-ios`, `/discover-ios`) for review and testing; cutover commits resume once their respective design handoffs arrive.
 
+## Staged cutover plan index (2026-05-15)
+
+These entries index staged build-only surfaces whose render switches are still pending. The plan documents hold the detailed execution checklists.
+
+Related dependency audit:
+
+- `docs/redesign/DATA_LAYER_DEPENDENCIES.md` — render-blocking, variant-blocking, and follow-up data dependencies for Race Log, Profile, Get Inspired, Trophy, and Concept detail.
+
+## Cutover readiness
+
+| Cutover | blocked-on-investigation | blocked-on-data | blocked-on-Profile-staging | ready-to-execute | Note |
+|---|---:|---:|---:|---:|---|
+| Concept detail iOS | no | no | no | partial | Mounting screens resolved in `CONCEPT_DETAIL_CUTOVER_PLAN.md`; variant routing still needs per-user concept state/dormancy decisions. |
+| Get Inspired running state | no | no | no | partial | Pipeline hook resolved in `GET_INSPIRED_CUTOVER_PLAN.md`; default iOS Playbook entry point and Stop semantics need human decision. |
+| Reflect Race Log/Profile | no | no | pending commit | no | Profile is staged in the working tree, but the build-only Profile commit hash is still pending. |
+| Trophy of Becoming iOS | no | yes | no | no | Canonical mount resolved in `TROPHY_OF_BECOMING_CUTOVER_PLAN.md`: no production render path and no trophy data layer exist. |
+
+| Surface | Build-only commit | Plan | Planned next action |
+|---|---:|---|---|
+| Get Inspired iOS running state | `7c2dfeeb` | `docs/redesign/GET_INSPIRED_CUTOVER_PLAN.md` | Wire `GET_INSPIRED_IOS_REGISTER` into the live Get Inspired modal's long-running analyze/build-plan state once the real pipeline stage is confirmed. |
+| Trophy of Becoming iOS | `496d2481` | `docs/redesign/TROPHY_OF_BECOMING_CUTOVER_PLAN.md` | Blocked until path-completion trophy data/service and first production entry point exist. |
+| Concept detail iOS | `a6c27c70` | `docs/redesign/CONCEPT_DETAIL_CUTOVER_PLAN.md` | Wire `CONCEPT_IOS_REGISTER` into `app/concept-ios/[slug].tsx`; legacy `app/(tabs)/playbook/concepts/[slug].tsx` stays unchanged. |
+
+## Cutover execution order (revised)
+
+1. Concept detail iOS — ship now after human confirms the mature non-dormant fallback; the render data exists and the route scope is resolved.
+2. Get Inspired running state — ship after the iOS Playbook entry-point and Stop semantics decisions; the pipeline hook exists and no render-blocking data is missing.
+3. Reflect Race Log/Profile — ship after the Profile build-only commit is finalized; Race Log and Profile have no render-blocking data dependencies.
+4. Trophy of Becoming iOS — ship after data-layer work for path-completion trophy synthesis, trophy storage/API, and the first production entry point.
+
 ---
 
 ## Resolved register decisions (2026-05-15) — Faculty surfaces
@@ -418,6 +448,24 @@ Faculty surfaces and practitioner surfaces share the iOS register (same gray 6 g
 **Why:** practitioners are *composing* (Race Prep, Debrief, Concept detail, Playbook) — breathing room serves the act. Faculty are *grading* — working through a rubric, completing one step's review in one sitting, then moving to the next student's step. They need throughput. The calibration is the surface designer's call, not a token-level switch — same `IOS_REGISTER` tokens, different layout choices.
 
 **When to apply:** any surface whose primary user is a path author, preceptor, coach, or institutional reviewer rather than the practitioner whose step it is. Competency Assessment is the first; future faculty surfaces (cohort overview, author dashboard, preceptor sign-off, rotation summary) inherit the same density rule.
+
+#### Addendum (2026-05-15, Profile iOS · commit `505de4e3`) — density is the surface, not the principle
+
+Profile iOS shipping surfaced a sharper articulation of Decision A that **supersedes the original "faculty surfaces are denser" framing without contradicting it**. The original wording is preserved above for lineage; this addendum is the rule going forward.
+
+> The register **defers to platform on the things the platform already does well**, and **asserts itself only where it adds something**.
+
+What this means in practice:
+
+- **Practitioner-side utility chrome** (Profile's settings, preferences, account exits — and any future surface in the same category): standard iOS settings density. The register asserts itself *only* on the elements that add something the platform doesn't — Profile's centered slate-gradient hero (not a cell), Interests as chips (not list rows), inline iOS segmented controls for the two units a sailor actually has opinions about. Everything else is straight iOS Settings vocabulary.
+- **Practitioner-side composition chrome** (Race Prep, Debrief, Concept detail, Playbook): 24px card-stack gaps, breathing room, composition register intact.
+- **Faculty-side surfaces** (Patricia grading Emily, future cohort/preceptor/author work): the register asserts itself *more broadly* because the platform doesn't already do faculty review well. 12px gaps, 28pt titles, inline meta — the density-up the original Decision A specified.
+
+**Density is the surface, not the principle.** A practitioner-facing surface can be platform-density (Profile), composition-density (Race Prep), or anywhere in between — what determines it is whether the platform already has the right grammar for the job. Faculty surfaces are dense because faculty review *needs* the register to assert itself; practitioner utility is platform-density because settings *don't*.
+
+**How to decide** for a new surface: ask not "is the user faculty or practitioner?" but "**does the platform already do this job well?**" If yes (iOS Settings, iOS Mail thread list, iOS Photos): defer, assert only on the elements that add something. If no (Race Prep beats, Debrief chrono stack, Competency Assessment rubric): the register asserts itself broadly, and density follows from the user's mode (composing vs grading).
+
+Lineage: Decision A's original framing was right for Competency Assessment (the surface that surfaced the decision) — faculty needed density-up because the platform didn't already grade. Profile iOS surfaced the limit of the original framing: Felix is a practitioner, but the surface he opens is utility chrome the platform already handles. The original "user role drives density" mapping doesn't cover that case; the refined "platform fit drives density" mapping does. Source commit: `505de4e3`.
 
 ### Decision B — Earned register exception: the rating segmented control
 
