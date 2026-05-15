@@ -56,14 +56,15 @@ Decision: there are **12** valid HTML canonicals in the May 15 design set. `disc
 | A | Rename bottom Reflect tab to Profile and keep route stable. | `PRACTICE_TIMELINE_CANONICAL.md`, `specs/PHASE_A_RENAME_REFLECT_TO_PROFILE.md` | `practice-timeline-canonical.html` | shipped: `87b7c115`, heading extension `48fc9eb4`; canonical addendum `0c82b80b` | 2 | none | none; shipped as mechanical label change |
 | A.7 | Fix Apple sign-in branding from RegattaFlow to BetterAt for org adoption readiness. | `FIVE_SURFACES_CONSOLIDATED_ADDENDUM.md` | none | spec-pending | 1 | Apple Developer console access | no app flag; external config change |
 | A.8 | Add `/practice` as the canonical user-facing route while preserving `/races` as a backwards-compatible alias/redirect. | `PRACTICE_TIMELINE_CANONICAL.md`, this backlog decision | none | spec-pending | 2-3 | Phase A; before public sharing/onboarding links spread further | `PRACTICE_ROUTE_ALIAS=false` or unflagged redirect if implementation is mechanical |
+| A.9 | Clear `app/(tabs)/races.tsx` lint warnings so lint-staged no longer blocks Practice commits touching the file. | Phase B report `2e4f25a7`, `specs/PHASE_A9_RACES_TSX_WARNING_CLEANUP_SPEC.md` | none | spec-written | 2-4 | before B.5/B.6/C/C.5 execution | none; internal lint cleanup |
 | B | Rename in-card phase tabs to Plan / Do / Reflect. | `PRACTICE_TIMELINE_CANONICAL.md`, `specs/PHASE_B_RENAME_PHASE_TABS.md` | `practice-timeline-canonical.html` | spec-written, execution queued: `4a394087` | 1 | Phase A verified | none; qualifies for mechanical-only exception |
-| B.5 | Rebuild Plan tab interior: AI Coach primary, What/How/Why fields, optional context, three visual states. | `PRACTICE_TIMELINE_CANONICAL_PLAN_TAB_ADDENDUM.md`, `specs/PHASE_B5_PLAN_TAB_INTERIOR_SPEC.md` | `plan-tab-three-states-canonical.html` | spec-written | 4 | Phase B preferred; Phase D not required for v1 | `PRACTICE_PLAN_TAB_IOS_REGISTER=false` |
-| B.6 | Add Step FAB and two-option create sheet: AI Coach or Blueprint picker; auto-scroll to new step. | `PRACTICE_TIMELINE_ADD_STEP_ZOOMED_OUT_SOCIAL_ADDENDUM.md`, `specs/PHASE_B6_ADD_STEP_FAB_SPEC.md` | `add-step-flow-canonical.html` | spec-written | 3 | Phase A; can precede Phase C if mounted in `app/(tabs)/races.tsx` | `PRACTICE_ADD_STEP_FAB=false` |
+| B.5 | Rebuild Plan tab interior: AI Coach primary, What/How/Why fields, optional context, three visual states. | `PRACTICE_TIMELINE_CANONICAL_PLAN_TAB_ADDENDUM.md`, `specs/PHASE_B5_PLAN_TAB_INTERIOR_SPEC.md` | `plan-tab-three-states-canonical.html` | spec-written | 4 | A.9; Phase B preferred; Phase D not required for v1 | `PRACTICE_PLAN_TAB_IOS_REGISTER=false` |
+| B.6 | Add Step FAB and two-option create sheet: AI Coach or Blueprint picker; auto-scroll to new step. | `PRACTICE_TIMELINE_ADD_STEP_ZOOMED_OUT_SOCIAL_ADDENDUM.md`, `specs/PHASE_B6_ADD_STEP_FAB_SPEC.md` | `add-step-flow-canonical.html` | spec-written | 3 | A.9; Phase A; can precede Phase C if mounted in `app/(tabs)/races.tsx` | `PRACTICE_ADD_STEP_FAB=false` |
 | B.7 | Interest switcher action sheet for multi-interest users. | `FOUR_SURFACES_FAST_SPEC_ADDENDUM.md` | `four-small-surfaces-canonical.html` | spec-pending | 1-2 | existing InterestProvider; before social/zoomed-out polish | `PRACTICE_INTEREST_SWITCHER_IOS=false` |
 | B.8 | Profile/settings dropdown from top-right avatar. | `FOUR_SURFACES_FAST_SPEC_ADDENDUM.md` | `four-small-surfaces-canonical.html` | spec-pending | 1-2 | Phase A naming distinction | `ACCOUNT_MENU_IOS_REGISTER=false` |
 | B.9 | Share dialog / share sheet wrapper for steps, blueprints, profiles, evidence. | `FOUR_SURFACES_FAST_SPEC_ADDENDUM.md` | `four-small-surfaces-canonical.html` | spec-pending | 2-3 | visibility model decision for final behavior; can stub UI first | `SHARE_DIALOG_IOS_REGISTER=false` |
-| C | Timeline-with-peek shell: centered current card, adjacent peeks, swipe paging, tap peek, sticky phase memory. | `PRACTICE_TIMELINE_CANONICAL.md`, `specs/PHASE_C_TIMELINE_WITH_PEEK.md` | `practice-timeline-canonical.html` | spec-written, execution queued: `c3dee8dd` | 5 | Phase B preferred; current data flow in `app/(tabs)/races.tsx` | `PRACTICE_TIMELINE_PEEK=false` |
-| C.5 | Zoomed-out vertical timeline view with sticky periods, phase indicators, reorder, long-press menu. | `PRACTICE_TIMELINE_ADD_STEP_ZOOMED_OUT_SOCIAL_ADDENDUM.md`, `specs/PHASE_C5_ZOOMED_OUT_VIEW_SPEC.md` | `zoomed-out-view-canonical.html` | spec-written | 5 | Phase C shell; reorder decision | `PRACTICE_ZOOMED_OUT_TIMELINE=false` |
+| C | Timeline-with-peek shell: centered current card, adjacent peeks, swipe paging, tap peek, sticky phase memory. | `PRACTICE_TIMELINE_CANONICAL.md`, `specs/PHASE_C_TIMELINE_WITH_PEEK.md` | `practice-timeline-canonical.html` | spec-written, execution queued: `c3dee8dd` | 5 | A.9; Phase B preferred; current data flow in `app/(tabs)/races.tsx` | `PRACTICE_TIMELINE_PEEK=false` |
+| C.5 | Zoomed-out vertical timeline view with sticky periods, phase indicators, reorder, long-press menu. | `PRACTICE_TIMELINE_ADD_STEP_ZOOMED_OUT_SOCIAL_ADDENDUM.md`, `specs/PHASE_C5_ZOOMED_OUT_VIEW_SPEC.md` | `zoomed-out-view-canonical.html` | spec-written | 5 | A.9; Phase C shell; reorder decision | `PRACTICE_ZOOMED_OUT_TIMELINE=false` |
 | D | Capability data model + Profile-as-credential surface. | `PRACTICE_TIMELINE_CANONICAL.md`, Plan addendum | no full Profile canonical yet; `practice-timeline-canonical.html` has sketch only | spec-pending; design incomplete | 8-12+ | capability taxonomy decisions; Plan/Reflect tagging model | `PROFILE_CAPABILITY_MAP=false` |
 | E | Social timeline layer: following people, blueprints, peers, read-only others' steps, copy-to-my-timeline. | `PRACTICE_TIMELINE_ADD_STEP_ZOOMED_OUT_SOCIAL_ADDENDUM.md` | `social-timeline-layer-canonical.html` | spec-pending | 6-10 | C.5, privacy/follow model, copy permissions | `PRACTICE_SOCIAL_TIMELINE=false` |
 | F.1 | JHU admin dashboard onboarding card on Dashboard tab. | `FIVE_SURFACES_CONSOLIDATED_ADDENDUM.md`, `specs/PHASE_F1_JHU_ADMIN_ONBOARDING_CARD_SPEC.md` | `jhu-admin-dashboard-canonical.html` | spec-written | 3 | tenant scoping | `JHU_ADMIN_DASHBOARD_IOS=false` |
@@ -86,20 +87,21 @@ Decision: there are **12** valid HTML canonicals in the May 15 design set. `disc
 
 ### Immediate same-day batch
 
-1. **Phase B** — execute the written label-only spec. This is the fastest remaining user-visible alignment after Phase A.
-2. **Phase B.7 / B.8** — write and execute small specs for Interest Switcher and Profile/settings dropdown. These are narrow, high-visibility, and do not depend on the timeline shell.
-3. **Phase B.6** — Add Step FAB. It is small but creates the entry point for the new Practice workflow; it can mount into `app/(tabs)/races.tsx` before Phase C.
+1. **Phase A.9** — clear `app/(tabs)/races.tsx` lint warnings. This is the pre-commit blocker for any downstream Practice work touching the file.
+2. **Phase B** — execute the written label-only spec. This is the fastest remaining user-visible alignment after Phase A.
+3. **Phase B.7 / B.8** — write and execute small specs for Interest Switcher and Profile/settings dropdown. These are narrow, high-visibility, and do not depend on the timeline shell.
+4. **Phase B.6** — Add Step FAB. It is small but creates the entry point for the new Practice workflow; it can mount into `app/(tabs)/races.tsx` before Phase C.
 
 ### First critical path
 
-4. **Phase C** — execute the written five-commit timeline-with-peek shell spec behind `PRACTICE_TIMELINE_PEEK=false`. This is the structural center of the redesign and unlocks C.5, E, and L.
-5. **Phase B.5** — Plan tab rebuild can run before or after C. If Claude Code bandwidth allows parallelization, spec it while Phase C implementation is underway. It is medium scope and improves the active card interior.
-6. **Phase C.5** — zoomed-out view after Phase C proves the shell. It introduces pinch/zoom mode and list-scale behaviors.
+5. **Phase C** — execute the written five-commit timeline-with-peek shell spec behind `PRACTICE_TIMELINE_PEEK=false`. This is the structural center of the redesign and unlocks C.5, E, and L.
+6. **Phase B.5** — Plan tab rebuild can run before or after C. If Claude Code bandwidth allows parallelization, spec it while Phase C implementation is underway. It is medium scope and improves the active card interior.
+7. **Phase C.5** — zoomed-out view after Phase C proves the shell. It introduces pinch/zoom mode and list-scale behaviors.
 
 ### Second critical path
 
-7. **Phase L** — Suggest bar after C.5. The addendum says it lives below the zoomed-out timeline, so implementing it before C.5 would create temporary placement debt.
-8. **Phase E** — social timeline layer. This is large and privacy-heavy; start after C.5 establishes the mode structure.
+8. **Phase L** — Suggest bar after C.5. The addendum says it lives below the zoomed-out timeline, so implementing it before C.5 would create temporary placement debt.
+9. **Phase E** — social timeline layer. This is large and privacy-heavy; start after C.5 establishes the mode structure.
 9. **Phase D** — capability data model and Profile-as-credential. This is foundational but multi-week. It can start in parallel as a data-model/design process, but the first executable specs should wait for taxonomy decisions.
 
 ### Institutional / creator track
@@ -124,6 +126,7 @@ Specs still needed:
 |---|---|---|
 | `PHASE_A7_APPLE_SIGNIN_BRANDING.md` | Apple ID / auth provider branding fix from RegattaFlow to BetterAt. | now if JHU demo depends on sign-in |
 | `PHASE_A8_PRACTICE_ROUTE_ALIAS_SPEC.md` | `/practice` canonical route, `/races` compatibility alias/redirect, route tests, link migration rules. | now, before public links and share surfaces |
+| `PHASE_A9_RACES_TSX_WARNING_CLEANUP_SPEC.md` | Clear `app/(tabs)/races.tsx` lint warnings that block downstream Practice commits. | written |
 | `PHASE_B5_PLAN_TAB_INTERIOR_SPEC.md` | Plan tab UI, AI Coach primary path, What/How/Why fields, locked state. | written |
 | `PHASE_B6_ADD_STEP_FAB_SPEC.md` | FAB, create sheet, AI Coach entry, Blueprint picker, auto-scroll. | written |
 | `PHASE_B7_INTEREST_SWITCHER_SPEC.md` | Interest action sheet, activity summaries, manage interests links. | now |
