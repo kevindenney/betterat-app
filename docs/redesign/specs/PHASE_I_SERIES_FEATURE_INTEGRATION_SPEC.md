@@ -1,8 +1,8 @@
-# Phase H Spec: Series Feature Integration
+# Phase I Spec: Series Feature Integration
 
 ## Goal
 
-Redesign the existing Series/Season surface around the iOS register canonical without rebuilding the underlying data model. The production app already has Season infrastructure: `seasons`, `season_regattas`, `race_events.season_id`, `SeasonService`, `useCurrentSeason`, `useUserSeasons`, `useSeasonRegattas`, a Season picker modal, and a `Jump to` picker inside `app/(tabs)/races.tsx`. Phase H turns that working infrastructure into the canonical surface: a Series strip in zoomed-out view, an iOS action sheet for switching Series, Series context on step-card headers, and a canonical `Jump to` sheet opened from the `6 of 14` counter.
+Redesign the existing Series/Season surface around the iOS register canonical without rebuilding the underlying data model. The production app already has Season infrastructure: `seasons`, `season_regattas`, `race_events.season_id`, `SeasonService`, `useCurrentSeason`, `useUserSeasons`, `useSeasonRegattas`, a Season picker modal, and a `Jump to` picker inside `app/(tabs)/races.tsx`. Phase I turns that working infrastructure into the canonical surface: a Series strip in zoomed-out view, an iOS action sheet for switching Series, Series context on step-card headers, and a canonical `Jump to` sheet opened from the `6 of 14` counter.
 
 This phase uses "Series" as the universal product concept, but the visible label is vocabulary-aware per the Phase A.10 model: sailing sees `Season`, nursing sees `Term`/`Rotation` depending on vocabulary, drawing sees `Workshop`/`Series`, fitness sees `Block`/`Training Block`, and interests without overrides fall back to `Series`.
 
@@ -43,9 +43,9 @@ If the step picker has moved out of `app/(tabs)/races.tsx`, or if `SeasonPickerM
 
 ## Reality-Check Findings From Spec Write
 
-- The existing "step picker" is already titled `Jump to` in `app/(tabs)/races.tsx`; Phase H is not a string-only rename. It must extract/restyle the current inline modal into the canonical near-full-height `Jump to` sheet and keep the title.
+- The existing "step picker" is already titled `Jump to` in `app/(tabs)/races.tsx`; Phase I is not a string-only rename. It must extract/restyle the current inline modal into the canonical near-full-height `Jump to` sheet and keep the title.
 - The current Season feature is sailing-shaped at the data layer. Generic vocabulary is already present through `vocab('Period')`, but the persisted model is still named `seasons`. This phase should not rename tables or create a new generalized Series schema.
-- `MASTER_IMPLEMENTATION_BACKLOG.md` already uses Phase H for the public org catalog. Until the human renumbers backlog phases, this spec keeps the requested filename and title but indexes the backlog entry as `H.0` to avoid overwriting the existing public-org Phase H.
+- `MASTER_IMPLEMENTATION_BACKLOG.md` keeps Phase H for the public org catalog. This spec is Phase I per Kevin's phase-ID decision.
 
 ## Commit Boundaries
 
@@ -254,7 +254,7 @@ Polish:
 Commit message:
 
 ```text
-docs(redesign): mark Phase H Series integration verified
+docs(redesign): mark Phase I Series integration verified
 ```
 
 ## Files to Change
@@ -277,7 +277,7 @@ docs(redesign): mark Phase H Series integration verified
 - Do not touch Phase B.5 Plan tab internals, B.6 Add Step flow, Do tab, Reflect tab, or Profile tab.
 - Do not change route structure (`/practice` vs `/races`); Phase A.8 owns route semantics.
 - Do not import preview-route components from `app/`.
-- Do not alter the old public-org Phase H backlog entry except through a separate renumbering decision.
+- Do not alter the public-org Phase H backlog entry.
 
 ## Cutover Flag
 
@@ -331,11 +331,11 @@ Flag-off regression:
 
 ## Rollback Path
 
-Immediate rollback is one environment edit: `EXPO_PUBLIC_FF_PRACTICE_SERIES_IOS_REGISTER=false`. Because Phase H does not change schema or stored data, no migration rollback is required. If code removal is needed, revert implementation commits in reverse order, starting with the polish/status commit and ending with the flag/helper commit.
+Immediate rollback is one environment edit: `EXPO_PUBLIC_FF_PRACTICE_SERIES_IOS_REGISTER=false`. Because Phase I does not change schema or stored data, no migration rollback is required. If code removal is needed, revert implementation commits in reverse order, starting with the polish/status commit and ending with the flag/helper commit.
 
 ## Risks and Open Questions
 
-- **Phase ID collision:** `MASTER_IMPLEMENTATION_BACKLOG.md` currently uses Phase H for the public org catalog. This spec is named per the user request but should be indexed as `H.0` or renumbered by the human before long-term backlog cleanup.
+- **Adjacent phase-ID cleanup:** `MASTER_IMPLEMENTATION_BACKLOG.md` keeps Phase H for the public org catalog. Series is Phase I. If another backlog item still uses Phase I, renumber that item in a separate backlog-cleanup commit rather than changing this spec.
 - **Series is still a Season-shaped data model:** `seasons` and `season_regattas` are sailing-origin names. UI vocabulary can say `Rotation` or `Series`, but non-sailing semantics may eventually require a generalized period/series table. That is out of scope for this UI integration.
 - **All-history mode vs canonical Series frame:** current code supports `All Races` via `filterSeasonId=null`; the canonical says Series is the frame, not a filter. V1 should preserve all-history behavior but visually subordinate it unless product explicitly removes it.
 - **Card-level tap scope:** the canonical puts the `6 of 14` pill on the card. If threading `onJumpToPress` into card content is broad, keep the header counter as the v1 tap target rather than destabilizing card types.
@@ -347,6 +347,6 @@ This phase implements per-interest vocabulary (`Season` for sailing, `Term` for 
 
 Under the hood, every interest's `Series` is stored as a `season` row. The `getSeriesVocabulary()` / `getSeriesLabel()` helper maps interest to user-facing vocabulary at render time.
 
-For v1, this is sufficient: sailing users see `Season`, nursing users see `Term` or the configured `Period` vocabulary, and the underlying storage is identical. If future requirements demand interest-specific Series semantics, for example academic terms with different start/end semantics than a sailing season or workshops with iteration counts instead of date ranges, a Phase H.0 data-model successor should generalize `seasons` to a `series` table with per-interest configuration.
+For v1, this is sufficient: sailing users see `Season`, nursing users see `Term` or the configured `Period` vocabulary, and the underlying storage is identical. If future requirements demand interest-specific Series semantics, for example academic terms with different start/end semantics than a sailing season or workshops with iteration counts instead of date ranges, a Phase I data-model successor should generalize `seasons` to a `series` table with per-interest configuration.
 
-This is not a blocker for May 20. The v1/v2 boundary is explicit: Phase H.0 makes Series feel native to every interest at the UI layer; data-model generalization is a separate future phase.
+This is not a blocker for May 20. The v1/v2 boundary is explicit: Phase I makes Series feel native to every interest at the UI layer; data-model generalization is a separate future phase.
