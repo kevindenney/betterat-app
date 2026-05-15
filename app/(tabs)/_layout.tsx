@@ -52,6 +52,7 @@ const ROUTES_WITH_CUSTOM_TOOLBAR = [
   '/discover',
   '/learn',
   '/playbook',
+  '/practice',
   '/race-browser',
   '/races',
   '/reflect',
@@ -190,22 +191,24 @@ function TabLayoutInner() {
     }
   }, [pathname]);
 
-  // Auto-open tabs for the tab tour steps and keep race steps on /races.
+  // Auto-open tabs for the tab tour steps and keep practice steps on /practice.
   useEffect(() => {
     if (!isTourActive || !currentStep) {
       return;
     }
 
     const stepRouteMap: Record<string, string> = {
-      welcome: '/races',
-      race_timeline: '/races',
-      prep_overview: '/races',
-      add_your_race: '/races',
-      pricing_trial: '/races',
+      welcome: '/practice',
+      race_timeline: '/practice',
+      prep_overview: '/practice',
+      add_your_race: '/practice',
+      pricing_trial: '/practice',
     };
 
     const targetRoute = stepRouteMap[currentStep];
-    if (!targetRoute || pathnameRef.current === targetRoute) {
+    const isPracticePath =
+      pathnameRef.current === '/practice' || pathnameRef.current === '/races';
+    if (!targetRoute || (targetRoute === '/practice' && isPracticePath) || pathnameRef.current === targetRoute) {
       return;
     }
 
@@ -220,7 +223,7 @@ function TabLayoutInner() {
     setTabSweepVisitedTabs(new Set());
   }, [isTourActive, currentStep]);
 
-  // When tour ends, return to /races so demo context + add-race CTA is the final destination.
+  // When tour ends, return to /practice so demo context + add-race CTA is the final destination.
   useEffect(() => {
     if (isTourActive) {
       wasTourActiveRef.current = true;
@@ -231,8 +234,10 @@ function TabLayoutInner() {
       return;
     }
 
-    if (isTourComplete && pathnameRef.current !== '/races') {
-      routerRef.current.replace('/races' as Parameters<typeof router.replace>[0]);
+    const isPracticePath =
+      pathnameRef.current === '/practice' || pathnameRef.current === '/races';
+    if (isTourComplete && !isPracticePath) {
+      routerRef.current.replace('/practice' as Parameters<typeof router.replace>[0]);
     }
 
     wasTourActiveRef.current = false;
@@ -468,6 +473,15 @@ function TabLayoutInner() {
               : isSailorUser
                 ? renderSailorTabButton('races', racesTab?.title ?? 'Race', racesTab)
                 : undefined,
+          }}
+        />
+        {/* Hidden: Practice route alias. The implementation still lives in
+            `races`; keep this hidden so Expo Router does not render a duplicate
+            bottom-tab item while `/practice` is the canonical user-facing URL. */}
+        <Tabs.Screen
+          name="practice"
+          options={{
+            href: null,
           }}
         />
         {/* Tab 2: Playbook */}
