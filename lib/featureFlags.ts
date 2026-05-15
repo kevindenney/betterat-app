@@ -231,6 +231,17 @@ export const FEATURE_FLAGS = {
    * EXPO_PUBLIC_FF_RACE_PREP_IOS_REGISTER=false to revert.
    */
   RACE_PREP_IOS_REGISTER: readBooleanEnv('EXPO_PUBLIC_FF_RACE_PREP_IOS_REGISTER', true),
+
+  /**
+   * Stage the Race Log iOS register surface (chronological multi-season
+   * archive). This flag exists for the Reflect-tab cutover, which ships
+   * Race Log + Profile together; the render switch in the Reflect parent
+   * is wired in a follow-up commit once Profile iOS is also staged. Until
+   * then, the flag is reachable only via the preview route at
+   * /race-log-ios. Defaults true; flip to false via
+   * EXPO_PUBLIC_FF_RACE_LOG_IOS_REGISTER=false to revert in one toggle.
+   */
+  RACE_LOG_IOS_REGISTER: readBooleanEnv('EXPO_PUBLIC_FF_RACE_LOG_IOS_REGISTER', true),
 } as const;
 
 // =============================================================================

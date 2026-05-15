@@ -32,3 +32,11 @@ export {
   type RaceCardItem,
   type ArcSummaryRow,
 } from './RaceCardsScreen';
+export {
+  RaceLogScreen,
+  type RaceLogEntryItem,
+  type RaceLogSeason,
+  type RaceLogFilterChip,
+  type RaceLogConceptDot,
+  type ReflectSubTab,
+} from './RaceLogScreen';
