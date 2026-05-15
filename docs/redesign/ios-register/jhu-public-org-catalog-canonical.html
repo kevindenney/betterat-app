@@ -1,0 +1,1918 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=4180" />
+<title>BetterAt — Public Org Catalog · Canonical · 2026-05-15</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css" />
+<style>
+  :root {
+    /* iOS system palette — inherited from prior canonicals */
+    --ios-blue:        #007AFF;
+    --ios-blue-tint:   rgba(0, 122, 255, 0.10);
+    --ios-blue-strong: rgba(0, 122, 255, 0.18);
+    --ios-blue-deep:   #0060D4;
+    --ios-green:       #34C759;
+    --ios-green-tint:  rgba(52, 199, 89, 0.12);
+    --ios-amber:       #FF9500;
+    --ios-amber-tint:  rgba(255, 149, 0, 0.14);
+    --ios-coral:       #FF3B30;
+    --ios-coral-tint:  rgba(255, 59, 48, 0.10);
+    --ios-purple:      #5856D6;
+    --ios-purple-tint: rgba(88, 86, 214, 0.12);
+    --ios-teal:        #30B0C7;
+
+    /* iOS neutrals — light mode */
+    --gray-6:   #F5F5F7;
+    --gray-5:   #ECECEE;
+    --gray-4:   #E0E0E4;
+    --gray-3:   #D1D1D6;
+    --gray-2:   #AEAEB2;
+    --gray-1:   #8E8E93;
+    --label:    #1C1C1E;
+    --label-2:  #3C3C43;
+    --label-3:  rgba(60, 60, 67, 0.62);
+    --label-4:  rgba(60, 60, 67, 0.32);
+    --label-5:  rgba(60, 60, 67, 0.18);
+
+    /* Tenant-placeholder institutional ink — same as Org Admin
+       canonical. Clearly not any real school. Reserved for the org
+       shield, footer wordmark, and one accent line on the hero —
+       iOS blue still owns ACTIONS. */
+    --tenant-ink:   #1F2D52;
+    --tenant-ink-2: #364775;
+    --tenant-ink-3: #5A6B95;
+    --tenant-soft:  #EAEDF5;
+    --tenant-cream: #F6F4EE;   /* the warm institutional ground */
+
+    /* Page stage — warm review chrome, matches every prior canonical */
+    --stage:        #EFEAD8;
+    --stage-text:   #6B6558;
+    --stage-ink:    #2A2824;
+    --stage-line:   rgba(34, 30, 20, 0.12);
+    --stage-line-soft: rgba(34, 30, 20, 0.06);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display",
+                 "Helvetica Neue", Helvetica, Arial, sans-serif;
+    color: var(--label);
+    background: var(--stage);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+  button, input, textarea { font-family: inherit; }
+
+  /* ============= Page chrome ============= */
+  .page { min-width: 4180px; padding: 56px 48px 96px; }
+  .page-head { max-width: 1240px; margin: 0 0 56px 32px; }
+  .page-head .eyebrow {
+    font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--stage-text); margin: 0 0 12px;
+  }
+  .page-head h1 {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 32px; line-height: 1.15; font-weight: 500;
+    letter-spacing: -0.015em; margin: 0 0 14px; color: var(--stage-ink);
+  }
+  .page-head h1 em { font-style: italic; }
+  .page-head p {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 17px; line-height: 1.55;
+    color: var(--stage-text); margin: 0; max-width: 1100px;
+    text-wrap: pretty;
+  }
+  .page-head p em { font-style: italic; }
+  .page-head p + p { margin-top: 12px; }
+  .page-head .crumbs {
+    display: flex; gap: 10px; align-items: center; margin: 22px 0 0; flex-wrap: wrap;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+    font-size: 12px; color: var(--stage-text); letter-spacing: 0.02em;
+  }
+  .page-head .crumbs .pill {
+    padding: 3px 10px; border-radius: 999px;
+    border: 0.5px solid var(--stage-line);
+    background: rgba(255,255,255,0.4);
+  }
+  .page-head .crumbs .sep { color: var(--stage-line); }
+
+  /* ============= Frame row ============= */
+  .frame-row {
+    display: flex; gap: 36px;
+    align-items: flex-start;
+    padding: 0 8px;
+  }
+  .frame-col {
+    display: flex; flex-direction: column; gap: 22px;
+    width: 1280px; flex: 0 0 1280px;
+  }
+
+  /* ============= Desktop window shell ============= */
+  .desktop {
+    width: 1280px; height: 820px;
+    background: #FFFFFF;
+    border-radius: 14px;
+    border: 0.5px solid rgba(0,0,0,0.12);
+    box-shadow:
+      0 30px 80px -40px rgba(34, 30, 20, 0.34),
+      0 6px 18px -10px rgba(34, 30, 20, 0.16),
+      0 1px 0 rgba(255,255,255,0.6) inset;
+    overflow: hidden;
+    position: relative;
+    isolation: isolate;
+  }
+  .desktop .chrome {
+    height: 36px;
+    background: #F1F1F3;
+    border-bottom: 0.5px solid var(--gray-4);
+    display: flex; align-items: center; gap: 12px;
+    padding: 0 14px;
+  }
+  .desktop .chrome .lights { display: inline-flex; gap: 8px; }
+  .desktop .chrome .lights span {
+    width: 12px; height: 12px; border-radius: 50%;
+    display: inline-block;
+  }
+  .desktop .chrome .lights .r { background: #FF5F57; }
+  .desktop .chrome .lights .y { background: #FEBC2E; }
+  .desktop .chrome .lights .g { background: #28C840; }
+  .desktop .chrome .url { flex: 1; display: flex; justify-content: center; }
+  .desktop .chrome .url-inner {
+    height: 22px; padding: 0 14px; min-width: 360px; max-width: 540px;
+    border-radius: 6px; background: #FFFFFF;
+    border: 0.5px solid var(--gray-4);
+    display: inline-flex; align-items: center; gap: 8px;
+    font-size: 11px; color: var(--label-3);
+  }
+  .desktop .chrome .url-inner i { font-size: 12px; color: var(--gray-1); }
+  .desktop .chrome .url-inner strong { color: var(--label-2); font-weight: 500; }
+
+  /* Page body inside the desktop window */
+  .pub-page {
+    position: absolute; top: 36px; left: 0; right: 0; bottom: 0;
+    background: #FFFFFF;
+    display: flex; flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* ============= Public site nav (sticky top) ============= */
+  .pub-nav {
+    height: 60px;
+    background: rgba(255,255,255,0.92);
+    backdrop-filter: blur(14px) saturate(140%);
+    border-bottom: 0.5px solid var(--gray-5);
+    display: flex; align-items: center;
+    padding: 0 32px;
+    gap: 28px;
+    flex: 0 0 60px;
+  }
+  .pub-nav .brand { display: inline-flex; align-items: center; gap: 10px; }
+  .pub-nav .brand .mark {
+    width: 26px; height: 26px; border-radius: 8px;
+    background: linear-gradient(135deg, #1C1C1E 0%, #3A3A3C 100%);
+    color: #fff;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 13px; letter-spacing: -0.5px;
+  }
+  .pub-nav .brand .wordmark {
+    font-size: 14px; font-weight: 600; letter-spacing: -0.2px;
+    color: var(--label);
+  }
+  .pub-nav .nav-links {
+    display: inline-flex; align-items: center; gap: 22px;
+    margin-left: 8px;
+  }
+  .pub-nav .nav-links a {
+    font-size: 13px; color: var(--label-2); letter-spacing: -0.1px;
+    text-decoration: none; cursor: default;
+  }
+  .pub-nav .nav-links a:hover { color: var(--label); }
+  .pub-nav .nav-links a.on { color: var(--label); font-weight: 600; }
+  .pub-nav .spacer { flex: 1; }
+  .pub-nav .nav-actions { display: inline-flex; align-items: center; gap: 10px; }
+  .pub-nav .icon-btn {
+    width: 32px; height: 32px; border-radius: 8px;
+    color: var(--label-2); border: none; background: transparent;
+    display: inline-flex; align-items: center; justify-content: center;
+    cursor: default;
+  }
+  .pub-nav .icon-btn i { font-size: 16px; }
+  .pub-nav .icon-btn:hover { background: var(--gray-6); }
+  .pub-nav .login {
+    height: 32px; padding: 0 14px; border-radius: 8px;
+    border: 0.5px solid var(--gray-3); background: #FFFFFF;
+    font-size: 13px; font-weight: 500; color: var(--label-2);
+    letter-spacing: -0.1px; cursor: default;
+  }
+  .pub-nav .signup {
+    height: 32px; padding: 0 14px; border-radius: 8px;
+    background: var(--ios-blue); color: #fff; border: none;
+    font-size: 13px; font-weight: 600; letter-spacing: -0.1px;
+    box-shadow: 0 1px 2px rgba(0,122,255,0.28);
+    cursor: default;
+  }
+
+  /* Scrollable page body */
+  .pub-scroll {
+    flex: 1; min-height: 0;
+    overflow: hidden;
+    position: relative;
+  }
+  /* simulated browser scroll-track */
+  .pub-scroll::after {
+    content: "";
+    position: absolute; right: 3px; top: 6px; bottom: 6px;
+    width: 6px; border-radius: 999px;
+    background: linear-gradient(180deg,
+      rgba(0,0,0,0.10) var(--track-from, 6%),
+      rgba(0,0,0,0.32) var(--track-from, 6%) var(--track-to, 36%),
+      rgba(0,0,0,0.10) var(--track-to, 36%));
+    pointer-events: none;
+    opacity: 0.6;
+  }
+
+  /* ============= Hero block (Frame 1) ============= */
+  .hero {
+    padding: 56px 64px 36px;
+    background:
+      radial-gradient(1200px 600px at 10% -10%, rgba(31,45,82,0.045), transparent 60%),
+      linear-gradient(180deg, var(--tenant-cream) 0%, #FFFFFF 92%);
+    border-bottom: 0.5px solid var(--gray-5);
+  }
+  .hero .crumbs-row {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 11px; color: var(--label-3); letter-spacing: 0.02em;
+    margin-bottom: 30px;
+  }
+  .hero .crumbs-row i { font-size: 11px; color: var(--label-4); }
+  .hero .crumbs-row a { color: var(--label-3); text-decoration: none; cursor: default; }
+  .hero .crumbs-row a:hover { color: var(--label-2); }
+  .hero .crumbs-row .cur { color: var(--label); font-weight: 500; }
+
+  .hero-head {
+    display: flex; align-items: flex-start; gap: 28px;
+  }
+  .shield {
+    width: 96px; height: 96px;
+    border-radius: 18px;
+    background: var(--tenant-ink);
+    color: #FFFFFF;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-weight: 600; font-size: 42px; letter-spacing: -0.02em;
+    border: 0.5px solid rgba(0,0,0,0.08);
+    flex: 0 0 96px;
+    box-shadow:
+      0 1px 0 rgba(255,255,255,0.12) inset,
+      0 6px 18px -8px rgba(31,45,82,0.40);
+    position: relative;
+  }
+  .shield::after {
+    content: "";
+    position: absolute; left: 14px; right: 14px;
+    bottom: 12px;
+    height: 1px; background: rgba(255,255,255,0.22);
+  }
+  .hero-titles { flex: 1; padding-top: 6px; min-width: 0; }
+  .hero-titles .super {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 17px; line-height: 1; color: var(--tenant-ink);
+    letter-spacing: 0.02em; font-weight: 500;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+  .hero-titles .super em { font-style: italic; text-transform: none; letter-spacing: 0; }
+  .hero-titles h1 {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 56px; line-height: 1.04; font-weight: 500;
+    letter-spacing: -0.022em; color: var(--label);
+    margin: 0 0 6px;
+  }
+  .hero-titles h2 {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 28px; line-height: 1.1; font-weight: 400;
+    letter-spacing: -0.012em; color: var(--label-2);
+    margin: 0;
+    font-style: italic;
+  }
+  .verified-chip {
+    display: inline-flex; align-items: center; gap: 7px;
+    margin-top: 20px;
+    padding: 5px 11px 5px 8px;
+    border-radius: 999px;
+    background: var(--tenant-soft);
+    border: 0.5px solid rgba(31,45,82,0.16);
+    font-size: 12px; color: var(--tenant-ink);
+    letter-spacing: -0.05px; font-weight: 500;
+  }
+  .verified-chip i {
+    width: 16px; height: 16px; border-radius: 50%;
+    background: var(--tenant-ink); color: #fff;
+    font-size: 10px;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .verified-chip .sep { color: var(--tenant-ink-3); }
+
+  .hero-actions {
+    margin-top: 24px;
+    display: inline-flex; gap: 10px; align-items: center;
+  }
+  .hero-actions .btn {
+    height: 36px; padding: 0 16px; border-radius: 9px;
+    background: var(--ios-blue); color: #fff; border: none;
+    font-size: 13.5px; font-weight: 600; letter-spacing: -0.1px;
+    box-shadow: 0 1px 2px rgba(0,122,255,0.28);
+    cursor: default;
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .hero-actions .btn.secondary {
+    background: #FFFFFF; color: var(--label);
+    border: 0.5px solid var(--gray-3);
+    box-shadow: none;
+    font-weight: 500;
+  }
+  .hero-actions .btn i { font-size: 15px; }
+  .hero-actions .pill {
+    margin-left: 4px;
+    font-size: 11.5px; color: var(--label-3);
+    display: inline-flex; align-items: center; gap: 5px;
+    letter-spacing: -0.05px;
+  }
+  .hero-actions .pill i { font-size: 13px; color: var(--label-4); }
+
+  .hero-stack {
+    margin-left: 124px;
+    margin-top: 26px;
+    max-width: 900px;
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 19px; line-height: 1.5;
+    color: var(--label-2);
+    text-wrap: pretty;
+  }
+  .hero-stack em { font-style: italic; }
+
+  /* ============= Program in Practice (Frame 1) ============= */
+  .prog {
+    padding: 32px 64px 48px;
+    background: #FFFFFF;
+  }
+  .prog .sec-eyebrow {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 13px; font-weight: 500; letter-spacing: 0.10em;
+    text-transform: uppercase; color: var(--tenant-ink);
+    margin: 0 0 10px;
+  }
+  .prog .sec-title {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 32px; line-height: 1.12; font-weight: 500;
+    letter-spacing: -0.015em; color: var(--label);
+    margin: 0 0 4px;
+  }
+  .prog .sec-title em { font-style: italic; }
+  .prog .sec-sub {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 15px; color: var(--label-3);
+    margin: 0 0 22px;
+    font-style: italic;
+  }
+
+  /* Striped photo placeholder — default-aesthetic rule for missing assets */
+  .photo-slot {
+    width: 100%;
+    border-radius: 12px;
+    overflow: hidden;
+    border: 0.5px solid var(--gray-4);
+    position: relative;
+    background:
+      repeating-linear-gradient(135deg,
+        rgba(31,45,82,0.06) 0 14px,
+        rgba(31,45,82,0.10) 14px 28px);
+  }
+  .photo-slot.hero-photo {
+    height: 280px;
+  }
+  .photo-slot .tag {
+    position: absolute; left: 14px; top: 12px;
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 10px; letter-spacing: 0.02em;
+    color: var(--tenant-ink);
+    background: rgba(255,255,255,0.85);
+    padding: 3px 8px; border-radius: 5px;
+    border: 0.5px solid rgba(31,45,82,0.12);
+  }
+  .photo-slot .label {
+    position: absolute; left: 50%; top: 50%;
+    transform: translate(-50%, -50%);
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 11px; letter-spacing: 0.02em;
+    color: var(--label-2);
+    background: rgba(255,255,255,0.92);
+    padding: 6px 12px; border-radius: 6px;
+    border: 0.5px solid var(--gray-4);
+    text-align: center;
+  }
+  .photo-slot .credit {
+    position: absolute; right: 14px; bottom: 12px;
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 9.5px; letter-spacing: 0.04em;
+    color: var(--label-3);
+  }
+
+  .stat-row {
+    display: grid; grid-template-columns: 1fr 1fr 1fr;
+    gap: 0;
+    margin-top: 30px;
+    border-top: 0.5px solid var(--gray-4);
+    border-bottom: 0.5px solid var(--gray-4);
+  }
+  .stat-row .stat {
+    padding: 22px 28px 18px;
+    border-right: 0.5px solid var(--gray-5);
+  }
+  .stat-row .stat:last-child { border-right: none; }
+  .stat-row .stat .num {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 64px; line-height: 1; font-weight: 500;
+    letter-spacing: -0.025em; color: var(--label);
+    font-variant-numeric: tabular-nums lining-nums;
+  }
+  .stat-row .stat .num .plus { color: var(--tenant-ink-3); }
+  .stat-row .stat .num .pct {
+    font-size: 36px; color: var(--label-2); margin-left: 1px;
+  }
+  .stat-row .stat .nm {
+    margin-top: 8px;
+    font-size: 13px; color: var(--label-2);
+    letter-spacing: -0.05px; line-height: 1.35;
+    max-width: 280px;
+  }
+  .stat-row .stat .nm strong { color: var(--label); font-weight: 600; }
+  .stat-foot {
+    margin-top: 12px;
+    font-size: 12px; color: var(--label-3);
+    display: inline-flex; align-items: center; gap: 6px;
+    letter-spacing: -0.05px;
+  }
+  .stat-foot i { font-size: 13px; color: var(--ios-green); }
+  .stat-foot strong { color: var(--label-2); font-weight: 500; }
+
+  /* ============= AACN map (Frame 2) ============= */
+  .aacn {
+    padding: 30px 64px 30px;
+    background: var(--tenant-cream);
+    border-top: 0.5px solid var(--gray-5);
+    border-bottom: 0.5px solid var(--gray-5);
+  }
+  .aacn .sec-head {
+    display: flex; align-items: flex-end; gap: 24px;
+    margin-bottom: 22px;
+  }
+  .aacn .sec-head .left { flex: 1; max-width: 720px; }
+  .aacn .sec-head .right {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-size: 12px; color: var(--label-3);
+    margin-bottom: 4px;
+  }
+  .aacn .sec-eyebrow {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 13px; font-weight: 500; letter-spacing: 0.10em;
+    text-transform: uppercase; color: var(--tenant-ink);
+    margin: 0 0 8px;
+  }
+  .aacn h3 {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 28px; line-height: 1.15; font-weight: 500;
+    letter-spacing: -0.015em; color: var(--label);
+    margin: 0 0 6px;
+  }
+  .aacn h3 em { font-style: italic; }
+  .aacn .lede {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 15px; line-height: 1.55; color: var(--label-2);
+    margin: 0; text-wrap: pretty;
+  }
+
+  .aacn .source-pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 10px; border-radius: 999px;
+    background: #FFFFFF; border: 0.5px solid rgba(31,45,82,0.18);
+    color: var(--tenant-ink); font-size: 11.5px; font-weight: 500;
+    letter-spacing: -0.05px;
+  }
+  .aacn .source-pill i { font-size: 13px; }
+
+  /* 10-domain grid: 5 cols × 2 rows */
+  .aacn-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 12px;
+  }
+  .dom {
+    background: #FFFFFF;
+    border: 0.5px solid var(--gray-4);
+    border-radius: 12px;
+    padding: 14px 14px 12px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+    display: flex; flex-direction: column;
+    gap: 8px;
+    min-height: 168px;
+    position: relative;
+  }
+  .dom .num-row {
+    display: flex; align-items: center; gap: 8px;
+  }
+  .dom .num {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 22px; font-weight: 500; letter-spacing: -0.02em;
+    color: var(--tenant-ink); line-height: 1;
+    font-variant-numeric: tabular-nums lining-nums;
+  }
+  .dom .ring {
+    margin-left: auto;
+    width: 22px; height: 22px;
+  }
+  .dom .nm {
+    font-size: 13px; line-height: 1.25;
+    color: var(--label); font-weight: 600;
+    letter-spacing: -0.1px;
+  }
+  .dom .desc {
+    font-size: 11.5px; line-height: 1.4;
+    color: var(--label-3);
+    flex: 1;
+  }
+  .dom .foot {
+    margin-top: 2px;
+    display: flex; align-items: center; gap: 6px;
+    font-size: 11px; color: var(--label-3);
+    letter-spacing: -0.05px;
+  }
+  .dom .foot strong { color: var(--label-2); font-weight: 600; font-variant-numeric: tabular-nums; }
+  .dom.featured {
+    background: var(--tenant-ink);
+    border-color: transparent;
+    color: #FFFFFF;
+  }
+  .dom.featured .num { color: rgba(255,255,255,0.9); }
+  .dom.featured .nm { color: #FFFFFF; }
+  .dom.featured .desc { color: rgba(255,255,255,0.72); }
+  .dom.featured .foot { color: rgba(255,255,255,0.68); }
+  .dom.featured .foot strong { color: rgba(255,255,255,0.95); }
+
+  .explore-row {
+    margin-top: 14px;
+    display: flex; align-items: center; gap: 12px;
+    font-size: 12.5px; color: var(--label-2);
+  }
+  .explore-row .arrow {
+    color: var(--ios-blue); font-weight: 600;
+    display: inline-flex; align-items: center; gap: 5px;
+    letter-spacing: -0.05px;
+  }
+  .explore-row .arrow i { font-size: 14px; }
+  .explore-row .sep { color: var(--label-4); }
+  .explore-row .right { margin-left: auto; color: var(--label-3); font-size: 11.5px; }
+
+  /* ============= Blueprints by Faculty (Frame 2) ============= */
+  .bp-section {
+    padding: 30px 64px 36px;
+    background: #FFFFFF;
+  }
+  .bp-section .sec-head {
+    display: flex; align-items: flex-end; gap: 24px;
+    margin-bottom: 18px;
+  }
+  .bp-section .sec-head .left { flex: 1; max-width: 720px; }
+  .bp-section .sec-eyebrow {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 13px; font-weight: 500; letter-spacing: 0.10em;
+    text-transform: uppercase; color: var(--tenant-ink);
+    margin: 0 0 8px;
+  }
+  .bp-section h3 {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 28px; line-height: 1.15; font-weight: 500;
+    letter-spacing: -0.015em; color: var(--label);
+    margin: 0 0 4px;
+  }
+  .bp-section h3 em { font-style: italic; }
+  .bp-section .lede {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 15px; line-height: 1.55; color: var(--label-3);
+    margin: 0; font-style: italic;
+  }
+  .bp-section .see-all {
+    color: var(--ios-blue); font-size: 13px; font-weight: 600;
+    display: inline-flex; align-items: center; gap: 4px;
+    margin-bottom: 4px; letter-spacing: -0.1px;
+  }
+  .bp-section .see-all i { font-size: 14px; }
+
+  .bp-strip {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+  }
+  .bp-pcard {
+    background: #FFFFFF;
+    border: 0.5px solid var(--gray-4);
+    border-radius: 12px;
+    overflow: hidden;
+    display: flex; flex-direction: column;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+  }
+  .bp-pcover {
+    height: 132px;
+    position: relative;
+    background:
+      repeating-linear-gradient(135deg,
+        rgba(255,255,255,0.18) 0 8px,
+        rgba(255,255,255,0) 8px 16px),
+      linear-gradient(160deg, var(--c1, var(--tenant-ink-2)), var(--c2, var(--tenant-ink)));
+    color: rgba(255,255,255,0.92);
+    padding: 14px;
+    display: flex; flex-direction: column; justify-content: space-between;
+    border-bottom: 0.5px solid rgba(0,0,0,0.10);
+  }
+  .bp-pcover.msn   { --c1: #364775; --c2: #1F2D52; }
+  .bp-pcover.dnp   { --c1: #5B7195; --c2: #324769; }
+  .bp-pcover.acute { --c1: #8A6B4A; --c2: #5C4427; }
+  .bp-pcover.peds  { --c1: #6B8A7C; --c2: #3F5C4E; }
+  .bp-pcover .topic {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 17px; line-height: 1.1; font-weight: 500;
+    letter-spacing: -0.012em;
+    text-shadow: 0 1px 0 rgba(0,0,0,0.18);
+  }
+  .bp-pcover .tag {
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 9px; letter-spacing: 0.02em;
+    align-self: flex-start;
+    opacity: 0.75;
+  }
+  .bp-pcover .badge {
+    position: absolute; right: 12px; top: 12px;
+    background: rgba(0,0,0,0.32);
+    color: #fff; font-size: 9.5px; font-weight: 600;
+    padding: 2px 7px; border-radius: 4px;
+    letter-spacing: 0.04em; text-transform: uppercase;
+    backdrop-filter: blur(8px);
+  }
+  .bp-pbody {
+    padding: 14px;
+    display: flex; flex-direction: column; gap: 8px;
+    flex: 1;
+  }
+  .bp-pbody .nm {
+    font-size: 14px; font-weight: 600; color: var(--label);
+    letter-spacing: -0.1px; line-height: 1.25;
+  }
+  .bp-pbody .by {
+    font-size: 12px; color: var(--label-3);
+    display: inline-flex; align-items: center; gap: 6px;
+    letter-spacing: -0.05px;
+  }
+  .bp-pbody .by .av {
+    width: 18px; height: 18px; border-radius: 50%;
+    font-size: 9px; font-weight: 600; color: #fff;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .bp-pbody .by strong { color: var(--label-2); font-weight: 500; }
+  .bp-pmeta {
+    display: flex; align-items: center; gap: 0;
+    font-size: 11.5px; color: var(--label-3);
+    margin-top: 2px;
+  }
+  .bp-pmeta .it {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding-right: 10px; margin-right: 10px;
+    border-right: 0.5px solid var(--gray-4);
+  }
+  .bp-pmeta .it:last-child { border-right: none; }
+  .bp-pmeta .it i { font-size: 12px; color: var(--label-4); }
+  .bp-pmeta .it strong { color: var(--label-2); font-weight: 600; font-variant-numeric: tabular-nums; }
+
+  .bp-pcta {
+    margin-top: auto;
+    padding-top: 6px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .bp-pcta .btn {
+    flex: 1; height: 30px;
+    border-radius: 8px;
+    border: 0.5px solid var(--gray-3); background: #FFFFFF;
+    color: var(--label); font-size: 12.5px; font-weight: 600;
+    letter-spacing: -0.1px; cursor: default;
+    display: inline-flex; align-items: center; justify-content: center; gap: 5px;
+  }
+  .bp-pcta .btn i { font-size: 13px; color: var(--label-3); }
+  .bp-pcta .save {
+    width: 30px; height: 30px; border-radius: 8px;
+    border: 0.5px solid var(--gray-3); background: #FFFFFF;
+    color: var(--label-3);
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .bp-pcta .save i { font-size: 14px; }
+
+  /* Faculty avatar gradients */
+  .fav.f1 { background: linear-gradient(135deg,#7E96B9,#3E5A85); }
+  .fav.f2 { background: linear-gradient(135deg,#C19BC5,#7F5A85); }
+  .fav.f3 { background: linear-gradient(135deg,#85A693,#4B7060); }
+  .fav.f4 { background: linear-gradient(135deg,#C28969,#7C5236); }
+
+  /* ============= Public Profiles (Frame 3) ============= */
+  .pp-section {
+    padding: 30px 64px 30px;
+    background: #FFFFFF;
+  }
+  .pp-section .sec-head {
+    display: flex; align-items: flex-end; gap: 24px;
+    margin-bottom: 18px;
+  }
+  .pp-section .sec-head .left { flex: 1; max-width: 720px; }
+  .pp-section .sec-eyebrow {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 13px; font-weight: 500; letter-spacing: 0.10em;
+    text-transform: uppercase; color: var(--tenant-ink);
+    margin: 0 0 8px;
+  }
+  .pp-section h3 {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 28px; line-height: 1.15; font-weight: 500;
+    letter-spacing: -0.015em; color: var(--label);
+    margin: 0 0 4px;
+  }
+  .pp-section h3 em { font-style: italic; }
+  .pp-section .lede {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 15px; line-height: 1.55; color: var(--label-3);
+    margin: 0; font-style: italic;
+  }
+  .pp-section .pp-toggle {
+    display: inline-flex; gap: 2px;
+    background: var(--gray-5);
+    padding: 2px; border-radius: 8px;
+    align-self: flex-end;
+    margin-bottom: 2px;
+  }
+  .pp-section .pp-toggle .opt {
+    padding: 5px 11px; border-radius: 6px;
+    font-size: 12px; color: var(--label-2); font-weight: 500;
+    letter-spacing: -0.1px; cursor: default;
+  }
+  .pp-section .pp-toggle .opt.on {
+    background: #FFFFFF; color: var(--label);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+    font-weight: 600;
+  }
+
+  .pp-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+  }
+  .pp-card {
+    background: #FFFFFF;
+    border: 0.5px solid var(--gray-4);
+    border-radius: 12px;
+    padding: 16px;
+    display: flex; flex-direction: column;
+    gap: 12px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+  }
+  .pp-card.anon {
+    background: var(--gray-6);
+    border-style: dashed;
+    border-color: var(--gray-3);
+  }
+  .pp-card .head {
+    display: flex; align-items: center; gap: 10px;
+  }
+  .pp-card .av-big {
+    width: 44px; height: 44px; border-radius: 50%;
+    color: #fff; font-size: 14px; font-weight: 600;
+    display: inline-flex; align-items: center; justify-content: center;
+    border: 0.5px solid rgba(0,0,0,0.06);
+    letter-spacing: -0.2px;
+    flex: 0 0 44px;
+  }
+  .pp-card.anon .av-big {
+    background: var(--gray-4);
+    color: var(--label-3);
+    border-style: dashed;
+    border-color: var(--gray-3);
+    font-size: 18px;
+  }
+  .pp-card .who { min-width: 0; flex: 1; }
+  .pp-card .who .nm {
+    font-size: 14px; font-weight: 600; color: var(--label);
+    letter-spacing: -0.1px;
+  }
+  .pp-card.anon .who .nm { color: var(--label-2); font-style: italic; }
+  .pp-card .who .meta {
+    margin-top: 2px;
+    font-size: 11.5px; color: var(--label-3);
+    display: flex; align-items: center; gap: 6px;
+  }
+  .pp-card .who .meta .dot { color: var(--label-4); }
+  .pp-card .who .meta .deg {
+    font-weight: 600; color: var(--label-2);
+  }
+  .pp-card .vbadge {
+    display: inline-flex; align-items: center; gap: 4px;
+    margin-left: auto;
+    padding: 2px 7px 2px 5px;
+    border-radius: 5px;
+    background: var(--tenant-soft);
+    color: var(--tenant-ink);
+    font-size: 10px; font-weight: 600;
+    letter-spacing: 0.02em;
+  }
+  .pp-card .vbadge i {
+    width: 12px; height: 12px; border-radius: 50%;
+    background: var(--tenant-ink); color: #fff; font-size: 8px;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .pp-card.anon .vbadge {
+    background: var(--gray-5);
+    color: var(--label-3);
+  }
+  .pp-card.anon .vbadge i {
+    background: var(--label-3); color: var(--gray-5);
+  }
+
+  .pp-strong-label {
+    font-size: 10.5px; font-weight: 600; letter-spacing: 0.06em;
+    text-transform: uppercase; color: var(--label-3);
+    margin-bottom: -2px;
+  }
+  .pp-caps { display: flex; flex-direction: column; gap: 5px; }
+  .pp-cap {
+    display: flex; align-items: center; gap: 10px;
+    font-size: 12.5px; color: var(--label-2);
+    letter-spacing: -0.05px;
+  }
+  .pp-cap .nm { flex: 1; min-width: 0;
+    overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
+  }
+  .pp-cap .dots {
+    display: inline-flex; gap: 3px;
+    font-variant-numeric: tabular-nums;
+  }
+  .pp-cap .dots .d {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--tenant-ink);
+  }
+  .pp-cap .dots .d.off {
+    background: var(--gray-4);
+  }
+  .pp-cap .dots .d.partial {
+    background: var(--tenant-ink-3);
+  }
+  .pp-card.anon .pp-cap .dots .d { background: var(--label-2); }
+  .pp-card.anon .pp-cap .dots .d.off { background: var(--gray-4); }
+
+  .pp-foot {
+    display: flex; align-items: center; gap: 0;
+    margin-top: 2px;
+    padding-top: 10px;
+    border-top: 0.5px solid var(--gray-5);
+    font-size: 11.5px; color: var(--label-3);
+    letter-spacing: -0.05px;
+  }
+  .pp-foot .it {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding-right: 10px; margin-right: 10px;
+    border-right: 0.5px solid var(--gray-4);
+  }
+  .pp-foot .it:last-of-type { border-right: none; }
+  .pp-foot .it i { font-size: 12px; color: var(--label-4); }
+  .pp-foot .it strong { color: var(--label-2); font-weight: 500; }
+  .pp-foot .view {
+    margin-left: auto;
+    color: var(--ios-blue); font-weight: 600;
+    display: inline-flex; align-items: center; gap: 3px;
+  }
+  .pp-foot .view i { font-size: 13px; }
+
+  /* Graduate avatar gradients */
+  .gav.g1 { background: linear-gradient(135deg,#7E96B9,#3E5A85); }
+  .gav.g2 { background: linear-gradient(135deg,#85A693,#4B7060); }
+  .gav.g3 { background: linear-gradient(135deg,#C28969,#7C5236); }
+  .gav.g4 { background: linear-gradient(135deg,#C19BC5,#7F5A85); }
+
+  /* ============= Footer CTAs (Frame 3) ============= */
+  .ctas {
+    padding: 30px 64px 30px;
+    background: var(--tenant-cream);
+    border-top: 0.5px solid var(--gray-5);
+  }
+  .ctas-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+  }
+  .cta-block {
+    background: #FFFFFF;
+    border: 0.5px solid var(--gray-4);
+    border-radius: 14px;
+    padding: 22px;
+    display: flex; flex-direction: column;
+    gap: 12px;
+    min-height: 184px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+    position: relative;
+    overflow: hidden;
+  }
+  .cta-block.primary {
+    background: var(--tenant-ink);
+    color: #fff;
+    border-color: transparent;
+  }
+  .cta-block .num {
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 10.5px; letter-spacing: 0.10em;
+    color: var(--label-3);
+    text-transform: uppercase;
+  }
+  .cta-block.primary .num { color: rgba(255,255,255,0.55); }
+  .cta-block h4 {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 26px; line-height: 1.1; font-weight: 500;
+    letter-spacing: -0.015em; color: var(--label);
+    margin: 0;
+  }
+  .cta-block.primary h4 { color: #fff; }
+  .cta-block h4 em { font-style: italic; }
+  .cta-block .desc {
+    font-size: 13.5px; line-height: 1.45; color: var(--label-2);
+    letter-spacing: -0.05px;
+  }
+  .cta-block.primary .desc { color: rgba(255,255,255,0.78); }
+  .cta-block .spacer { flex: 1; }
+  .cta-block .act {
+    display: inline-flex; align-items: center; gap: 10px;
+  }
+  .cta-block .btn {
+    height: 36px; padding: 0 16px; border-radius: 9px;
+    background: var(--ios-blue); color: #fff;
+    border: none; font-size: 13.5px; font-weight: 600;
+    letter-spacing: -0.1px;
+    box-shadow: 0 1px 2px rgba(0,122,255,0.28);
+    display: inline-flex; align-items: center; gap: 6px;
+    cursor: default;
+  }
+  .cta-block.primary .btn {
+    background: #FFFFFF; color: var(--tenant-ink);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.16);
+  }
+  .cta-block .btn i { font-size: 14px; }
+  .cta-block .secondary-link {
+    font-size: 12px; color: var(--label-3); letter-spacing: -0.05px;
+    display: inline-flex; align-items: center; gap: 4px;
+  }
+  .cta-block.primary .secondary-link { color: rgba(255,255,255,0.6); }
+  .cta-block .deadline {
+    margin-left: auto;
+    font-size: 11px; color: var(--label-3);
+    font-variant-numeric: tabular-nums;
+  }
+  .cta-block.primary .deadline { color: rgba(255,255,255,0.6); }
+
+  /* ============= Site footer (Frame 3) ============= */
+  .site-foot {
+    background: #FFFFFF;
+    border-top: 0.5px solid var(--gray-5);
+    padding: 18px 64px 14px;
+  }
+  .site-foot-row {
+    display: flex; align-items: center; gap: 18px;
+    font-size: 12px; color: var(--label-3);
+    letter-spacing: -0.05px;
+  }
+  .site-foot-row .brand {
+    display: inline-flex; align-items: center; gap: 8px;
+    color: var(--label-2);
+  }
+  .site-foot-row .brand .mark {
+    width: 20px; height: 20px; border-radius: 6px;
+    background: linear-gradient(135deg, #1C1C1E 0%, #3A3A3C 100%);
+    color: #fff; font-weight: 700; font-size: 11px;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .site-foot-row .brand strong { color: var(--label); font-weight: 600; }
+  .site-foot-row .links {
+    display: inline-flex; gap: 18px;
+  }
+  .site-foot-row .links span { cursor: default; }
+  .site-foot-row .spacer { flex: 1; }
+  .site-foot-row .verified {
+    color: var(--tenant-ink); font-weight: 500;
+    display: inline-flex; align-items: center; gap: 5px;
+  }
+  .site-foot-row .verified i {
+    width: 12px; height: 12px; border-radius: 50%;
+    background: var(--tenant-ink); color: #fff; font-size: 8px;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+
+  /* ============= Frame caption ============= */
+  .frame-cap { margin: 0; padding: 6px 4px 0; max-width: 1240px; }
+  .frame-cap .eyebrow {
+    font-size: 10.5px; font-weight: 600;
+    color: var(--stage-text); letter-spacing: 0.10em;
+    text-transform: uppercase; margin: 0 0 6px;
+  }
+  .frame-cap h3 {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 20px; font-weight: 500; letter-spacing: -0.012em;
+    color: var(--stage-ink); margin: 0 0 8px;
+    line-height: 1.2;
+  }
+  .frame-cap h3 em { font-style: italic; }
+  .frame-cap p {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 14.5px; line-height: 1.55;
+    color: var(--stage-text); margin: 0;
+    max-width: 1180px; text-wrap: pretty;
+  }
+  .frame-cap p em { font-style: italic; }
+  .frame-cap p strong { color: var(--stage-ink); font-weight: 600; }
+
+  /* ============= Responsive note & commentary ============= */
+  .resp-note {
+    margin: 28px 32px 0;
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 14px; color: var(--stage-text);
+    max-width: 1180px; line-height: 1.55;
+    font-style: italic;
+  }
+  .commentary {
+    max-width: 4080px;
+    margin: 80px auto 0;
+    padding: 0 40px;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 40px;
+  }
+  .commentary .col h4 {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 17px; font-weight: 500; letter-spacing: -0.01em;
+    color: var(--stage-ink);
+    margin: 0 0 10px;
+  }
+  .commentary .col h4 em { font-style: italic; }
+  .commentary .col p {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 14px; line-height: 1.55; color: var(--stage-text);
+    margin: 0 0 10px;
+    text-wrap: pretty;
+  }
+  .commentary .col p em { font-style: italic; }
+  .commentary .col p strong { color: var(--stage-ink); font-weight: 600; }
+</style>
+</head>
+<body>
+
+<div class="page">
+
+  <!-- ============= Page head ============= -->
+  <header class="page-head">
+    <p class="eyebrow">BetterAt · JHU School of Nursing · Public Org Catalog · Canonical &nbsp;·&nbsp; 2026-05-15</p>
+    <h1>The public org surface — <em>where an institution lands on BetterAt</em></h1>
+    <p>
+      This is Surface 1 of the Five Surfaces addendum: the public page a prospective student, faculty visitor, or accreditation reviewer arrives at when they follow a link to <em>betterat.app/&lt;org&gt;</em>. No login. The institution&rsquo;s digital viewbook, rendered in BetterAt&rsquo;s chrome.
+    </p>
+    <p>
+      The tenant on screen is <em>Westbrook University School of Nursing</em>, the placeholder we use across product canonicals (the same one the <em>Org Admin Dashboard</em> uses). Real institutions theme at the shield-and-name level only; product chrome, accent color, and typography stay constant across every tenant on the platform.
+    </p>
+    <div class="crumbs">
+      <span class="pill">Surface 1 of 5</span>
+      <span class="sep">/</span>
+      <span>Public · no auth</span>
+      <span class="sep">/</span>
+      <span>Companion to <em>Org Admin</em> &amp; <em>Creator Dashboard</em></span>
+      <span class="sep">/</span>
+      <span>Apply flow &amp; Newsroom out of scope · linked only</span>
+    </div>
+  </header>
+
+  <!-- ============= Frame row ============= -->
+  <div class="frame-row">
+
+    <!-- ================================================== -->
+    <!-- ====   FRAME 1 — Hero + Program in Practice    ===  -->
+    <!-- ================================================== -->
+    <div class="frame-col" data-screen-label="01 Hero · Program in Practice">
+      <div class="desktop">
+        <div class="chrome">
+          <div class="lights"><span class="r"></span><span class="y"></span><span class="g"></span></div>
+          <div class="url"><div class="url-inner">
+            <i class="ti ti-lock"></i>
+            <span><strong>betterat.app</strong>/jhu</span>
+          </div></div>
+        </div>
+
+        <div class="pub-page">
+
+          <!-- Public site nav -->
+          <nav class="pub-nav">
+            <div class="brand">
+              <div class="mark">B</div>
+              <div class="wordmark">BetterAt</div>
+            </div>
+            <div class="nav-links">
+              <a>Discover</a>
+              <a>Schools &amp; Clubs</a>
+              <a>Blueprints</a>
+              <a>For institutions</a>
+            </div>
+            <div class="spacer"></div>
+            <div class="nav-actions">
+              <button class="icon-btn"><i class="ti ti-search"></i></button>
+              <button class="login">Log in</button>
+              <button class="signup">Sign up</button>
+            </div>
+          </nav>
+
+          <div class="pub-scroll" style="--track-from: 0%; --track-to: 22%;">
+
+            <!-- Hero -->
+            <section class="hero">
+              <div class="crumbs-row">
+                <a>BetterAt</a><i class="ti ti-chevron-right"></i>
+                <a>Schools &amp; Clubs</a><i class="ti ti-chevron-right"></i>
+                <a>United States</a><i class="ti ti-chevron-right"></i>
+                <span class="cur">School of Nursing</span>
+              </div>
+
+              <div class="hero-head">
+                <div class="shield">W</div>
+                <div class="hero-titles">
+                  <div class="super">Westbrook University</div>
+                  <h1>School of Nursing</h1>
+                  <h2>baccalaureate &middot; master&rsquo;s &middot; doctoral</h2>
+                  <div class="verified-chip">
+                    <i class="ti ti-check"></i>
+                    Verified institution
+                    <span class="sep">·</span>
+                    est.&nbsp;1894
+                    <span class="sep">·</span>
+                    AACN-aligned
+                  </div>
+                  <div class="hero-actions">
+                    <button class="btn"><i class="ti ti-school"></i>Explore the program</button>
+                    <button class="btn secondary"><i class="ti ti-bookmark"></i>Save</button>
+                    <span class="pill"><i class="ti ti-eye"></i>1.4k views this term</span>
+                  </div>
+                </div>
+              </div>
+
+              <p class="hero-stack">
+                A research-led school of nursing on BetterAt — coursework, clinical capability records, and faculty-authored programs <em>in the same place students actually practice</em>. What follows is the program as it currently runs: live cohort metrics, the AACN framework as configured, blueprints by faculty, and opt-in graduate records.
+              </p>
+            </section>
+
+            <!-- Program in Practice -->
+            <section class="prog">
+              <p class="sec-eyebrow">The Program in Practice</p>
+              <h2 class="sec-title">Real metrics from the current cohort, <em>updated live</em></h2>
+              <p class="sec-sub">Spring 2026 term · Week 11 of 16 · refreshed 14 min ago</p>
+
+              <div class="photo-slot hero-photo" role="img" aria-label="clinical scene placeholder">
+                <span class="tag">image · photographic placeholder</span>
+                <span class="label">students in clinical setting &nbsp;·&nbsp; 1640&nbsp;×&nbsp;820 &nbsp;·&nbsp; drop image to replace</span>
+                <span class="credit">/img/jhu/hero-1.jpg</span>
+              </div>
+
+              <div class="stat-row">
+                <div class="stat">
+                  <div class="num">427</div>
+                  <div class="nm"><strong>students currently practicing</strong> across BSN, MSN, DNP programs</div>
+                  <div class="stat-foot"><i class="ti ti-arrow-up-right"></i>+18 active vs. Fall&nbsp;&rsquo;25</div>
+                </div>
+                <div class="stat">
+                  <div class="num">85,000<span class="plus">+</span></div>
+                  <div class="nm"><strong>capability evidences logged</strong> — reflections, sign-offs, sim debriefs</div>
+                  <div class="stat-foot"><i class="ti ti-clock"></i><strong>2,140</strong> in the last 7&nbsp;days</div>
+                </div>
+                <div class="stat">
+                  <div class="num">94<span class="pct">%</span></div>
+                  <div class="nm"><strong>NCLEX first-attempt pass rate</strong> · 2024–25 graduating class</div>
+                  <div class="stat-foot"><i class="ti ti-shield-check" style="color:var(--tenant-ink-3);"></i>National avg.&nbsp;82.5%</div>
+                </div>
+              </div>
+            </section>
+
+          </div>
+        </div>
+      </div>
+
+      <div class="frame-cap">
+        <p class="eyebrow">Frame 1 · Hero &amp; Program in Practice</p>
+        <h3>Top of scroll &middot; <em>institutional gravity, then live numbers</em></h3>
+        <p>
+          The public BetterAt nav stays thin: <em>Discover</em>, <em>Schools&nbsp;&amp; Clubs</em>, <em>Blueprints</em>, <em>For institutions</em>, then <em>Log in</em> / <em>Sign up</em>. Inside it, the school owns the page. A monogram shield disc in tenant ink, the words <em>Westbrook University</em> as a small caps superscript, <strong>School of Nursing</strong> in serif at 56&nbsp;px, and a verified-institution chip with the founding year. The hero ground is the warm institutional cream the same canonicals reach for. Below the fold, three big numbers — pulled from the live cohort, not a marketing deck — sit between hairlines without ornament. <strong>iOS blue still owns the action</strong>: <em>Explore the program</em>.
+        </p>
+      </div>
+    </div>
+
+    <!-- ================================================== -->
+    <!-- ====   FRAME 2 — AACN map + Blueprints         ===  -->
+    <!-- ================================================== -->
+    <div class="frame-col" data-screen-label="02 AACN map · Blueprints by faculty">
+      <div class="desktop">
+        <div class="chrome">
+          <div class="lights"><span class="r"></span><span class="y"></span><span class="g"></span></div>
+          <div class="url"><div class="url-inner">
+            <i class="ti ti-lock"></i>
+            <span><strong>betterat.app</strong>/jhu&nbsp;<span style="color:var(--label-4);">— scroll&nbsp;1/2</span></span>
+          </div></div>
+        </div>
+
+        <div class="pub-page">
+
+          <nav class="pub-nav">
+            <div class="brand">
+              <div class="mark">B</div>
+              <div class="wordmark">BetterAt</div>
+            </div>
+            <div class="nav-links">
+              <a>Discover</a>
+              <a>Schools &amp; Clubs</a>
+              <a>Blueprints</a>
+              <a>For institutions</a>
+            </div>
+            <div class="spacer"></div>
+            <div class="nav-actions">
+              <button class="icon-btn"><i class="ti ti-search"></i></button>
+              <button class="login">Log in</button>
+              <button class="signup">Sign up</button>
+            </div>
+          </nav>
+
+          <div class="pub-scroll" style="--track-from: 28%; --track-to: 58%;">
+
+            <!-- AACN Map -->
+            <section class="aacn">
+              <div class="sec-head">
+                <div class="left">
+                  <p class="sec-eyebrow">What Westbrook nurses learn</p>
+                  <h3>Built on the <em>AACN Essentials</em> — the U.S. standard for nursing education</h3>
+                  <p class="lede">Ten domains form the spine of the program. Each domain expands into sub-competencies; each sub-competency is satisfied by evidence — reflective notes, preceptor sign-offs, simulation debriefs, blueprint completions — logged on BetterAt.</p>
+                </div>
+                <div class="right">
+                  <span class="source-pill"><i class="ti ti-external-link"></i>aacnnursing.org · Essentials (2021)</span>
+                </div>
+              </div>
+
+              <div class="aacn-grid">
+                <!-- Domain 1 — featured / expanded as teaser -->
+                <div class="dom featured">
+                  <div class="num-row">
+                    <span class="num">01</span>
+                    <svg class="ring" viewBox="0 0 22 22" aria-hidden="true">
+                      <circle cx="11" cy="11" r="9" fill="none" stroke="rgba(255,255,255,0.22)" stroke-width="2.5"/>
+                      <circle cx="11" cy="11" r="9" fill="none" stroke="#FFFFFF" stroke-width="2.5"
+                              stroke-dasharray="56.5" stroke-dashoffset="4.5" transform="rotate(-90 11 11)" stroke-linecap="round"/>
+                    </svg>
+                  </div>
+                  <div class="nm">Knowledge for Nursing Practice</div>
+                  <div class="desc">Integration, translation, and application of established and evolving disciplinary knowledge.</div>
+                  <div class="foot"><strong>14</strong>&nbsp;capabilities · 92%</div>
+                </div>
+
+                <div class="dom">
+                  <div class="num-row">
+                    <span class="num">02</span>
+                    <svg class="ring" viewBox="0 0 22 22">
+                      <circle cx="11" cy="11" r="9" fill="none" stroke="var(--gray-5)" stroke-width="2.5"/>
+                      <circle cx="11" cy="11" r="9" fill="none" stroke="var(--tenant-ink)" stroke-width="2.5"
+                              stroke-dasharray="56.5" stroke-dashoffset="8" transform="rotate(-90 11 11)" stroke-linecap="round"/>
+                    </svg>
+                  </div>
+                  <div class="nm">Person-Centered Care</div>
+                  <div class="desc">Holistic, individualized, and respectful nursing care across the lifespan.</div>
+                  <div class="foot"><strong>18</strong>&nbsp;capabilities · 86%</div>
+                </div>
+
+                <div class="dom">
+                  <div class="num-row">
+                    <span class="num">03</span>
+                    <svg class="ring" viewBox="0 0 22 22">
+                      <circle cx="11" cy="11" r="9" fill="none" stroke="var(--gray-5)" stroke-width="2.5"/>
+                      <circle cx="11" cy="11" r="9" fill="none" stroke="var(--tenant-ink)" stroke-width="2.5"
+                              stroke-dasharray="56.5" stroke-dashoffset="16.4" transform="rotate(-90 11 11)" stroke-linecap="round"/>
+                    </svg>
+                  </div>
+                  <div class="nm">Population Health</div>
+                  <div class="desc">Cross-sectoral collaboration to optimize equitable outcomes.</div>
+                  <div class="foot"><strong>11</strong>&nbsp;capabilities · 71%</div>
+                </div>
+
+                <div class="dom">
+                  <div class="num-row">
+                    <span class="num">04</span>
+                    <svg class="ring" viewBox="0 0 22 22">
+                      <circle cx="11" cy="11" r="9" fill="none" stroke="var(--gray-5)" stroke-width="2.5"/>
+                      <circle cx="11" cy="11" r="9" fill="none" stroke="var(--ios-amber)" stroke-width="2.5"
+                              stroke-dasharray="56.5" stroke-dashoffset="26" transform="rotate(-90 11 11)" stroke-linecap="round"/>
+                    </svg>
+                  </div>
+                  <div class="nm">Scholarship for the Discipline</div>
+                  <div class="desc">Generation, synthesis, and translation of nursing knowledge.</div>
+                  <div class="foot"><strong>9</strong>&nbsp;capabilities · 54%</div>
+                </div>
+
+                <div class="dom">
+                  <div class="num-row">
+                    <span class="num">05</span>
+                    <svg class="ring" viewBox="0 0 22 22">
+                      <circle cx="11" cy="11" r="9" fill="none" stroke="var(--gray-5)" stroke-width="2.5"/>
+                      <circle cx="11" cy="11" r="9" fill="none" stroke="var(--tenant-ink)" stroke-width="2.5"
+                              stroke-dasharray="56.5" stroke-dashoffset="6.8" transform="rotate(-90 11 11)" stroke-linecap="round"/>
+                    </svg>
+                  </div>
+                  <div class="nm">Quality &amp; Safety</div>
+                  <div class="desc">Systems-based culture of safety and continuous improvement.</div>
+                  <div class="foot"><strong>13</strong>&nbsp;capabilities · 88%</div>
+                </div>
+
+                <div class="dom">
+                  <div class="num-row">
+                    <span class="num">06</span>
+                    <svg class="ring" viewBox="0 0 22 22">
+                      <circle cx="11" cy="11" r="9" fill="none" stroke="var(--gray-5)" stroke-width="2.5"/>
+                      <circle cx="11" cy="11" r="9" fill="none" stroke="var(--tenant-ink)" stroke-width="2.5"
+                              stroke-dasharray="56.5" stroke-dashoffset="12.4" transform="rotate(-90 11 11)" stroke-linecap="round"/>
+                    </svg>
+                  </div>
+                  <div class="nm">Interprofessional Partnerships</div>
+                  <div class="desc">Intentional collaboration across professions and people.</div>
+                  <div class="foot"><strong>10</strong>&nbsp;capabilities · 78%</div>
+                </div>
+
+                <div class="dom">
+                  <div class="num-row">
+                    <span class="num">07</span>
+                    <svg class="ring" viewBox="0 0 22 22">
+                      <circle cx="11" cy="11" r="9" fill="none" stroke="var(--gray-5)" stroke-width="2.5"/>
+                      <circle cx="11" cy="11" r="9" fill="none" stroke="var(--ios-amber)" stroke-width="2.5"
+                              stroke-dasharray="56.5" stroke-dashoffset="32.8" transform="rotate(-90 11 11)" stroke-linecap="round"/>
+                    </svg>
+                  </div>
+                  <div class="nm">Systems-Based Practice</div>
+                  <div class="desc">Responding to and leading within complex healthcare systems.</div>
+                  <div class="foot"><strong>12</strong>&nbsp;capabilities · 42%</div>
+                </div>
+
+                <div class="dom">
+                  <div class="num-row">
+                    <span class="num">08</span>
+                    <svg class="ring" viewBox="0 0 22 22">
+                      <circle cx="11" cy="11" r="9" fill="none" stroke="var(--gray-5)" stroke-width="2.5"/>
+                      <circle cx="11" cy="11" r="9" fill="none" stroke="var(--gray-2)" stroke-width="2.5"
+                              stroke-dasharray="56.5" stroke-dashoffset="39" transform="rotate(-90 11 11)" stroke-linecap="round"/>
+                    </svg>
+                  </div>
+                  <div class="nm">Informatics &amp; Technologies</div>
+                  <div class="desc">Informatics processes and technologies to safely deliver care.</div>
+                  <div class="foot"><strong>10</strong>&nbsp;capabilities · 31%</div>
+                </div>
+
+                <div class="dom">
+                  <div class="num-row">
+                    <span class="num">09</span>
+                    <svg class="ring" viewBox="0 0 22 22">
+                      <circle cx="11" cy="11" r="9" fill="none" stroke="var(--gray-5)" stroke-width="2.5"/>
+                      <circle cx="11" cy="11" r="9" fill="none" stroke="var(--tenant-ink)" stroke-width="2.5"
+                              stroke-dasharray="56.5" stroke-dashoffset="10.7" transform="rotate(-90 11 11)" stroke-linecap="round"/>
+                    </svg>
+                  </div>
+                  <div class="nm">Professionalism</div>
+                  <div class="desc">Identity, integrity, and accountability in nursing practice.</div>
+                  <div class="foot"><strong>9</strong>&nbsp;capabilities · 81%</div>
+                </div>
+
+                <div class="dom">
+                  <div class="num-row">
+                    <span class="num">10</span>
+                    <svg class="ring" viewBox="0 0 22 22">
+                      <circle cx="11" cy="11" r="9" fill="none" stroke="var(--gray-5)" stroke-width="2.5"/>
+                      <circle cx="11" cy="11" r="9" fill="none" stroke="var(--tenant-ink)" stroke-width="2.5"
+                              stroke-dasharray="56.5" stroke-dashoffset="14.7" transform="rotate(-90 11 11)" stroke-linecap="round"/>
+                    </svg>
+                  </div>
+                  <div class="nm">Personal, Professional &amp; Leadership Development</div>
+                  <div class="desc">Continuous growth as a nurse, colleague, and leader.</div>
+                  <div class="foot"><strong>8</strong>&nbsp;capabilities · 74%</div>
+                </div>
+              </div>
+
+              <div class="explore-row">
+                <span class="arrow">Tap any domain to explore the full framework <i class="ti ti-arrow-right"></i></span>
+                <span class="sep">·</span>
+                <span>Domain&nbsp;1 expanded above is the most recently revised</span>
+                <span class="right">114 capabilities mapped &middot; 12 Westbrook-customized</span>
+              </div>
+            </section>
+
+            <!-- Blueprints by Faculty -->
+            <section class="bp-section">
+              <div class="sec-head">
+                <div class="left">
+                  <p class="sec-eyebrow">Blueprints by Westbrook faculty</p>
+                  <h3>Built by faculty. <em>Followed by students across the country.</em></h3>
+                  <p class="lede">Each blueprint is a step-by-step program with reflections, evidence prompts, and a community of subscribers. Public; some are paid.</p>
+                </div>
+                <span class="see-all">View all 14 blueprints <i class="ti ti-arrow-right"></i></span>
+              </div>
+
+              <div class="bp-strip">
+
+                <!-- MSN Core Curriculum -->
+                <div class="bp-pcard">
+                  <div class="bp-pcover msn">
+                    <span class="tag">cover · 132&nbsp;×&nbsp;240 placeholder</span>
+                    <span class="badge">Most followed</span>
+                    <span class="topic">MSN<br/>Core Curriculum</span>
+                  </div>
+                  <div class="bp-pbody">
+                    <div class="nm">MSN Core Curriculum</div>
+                    <div class="by">
+                      <span class="av fav f1">PM</span>
+                      <span>by <strong>Dr. Patricia Morrinson</strong></span>
+                    </div>
+                    <div class="bp-pmeta">
+                      <span class="it"><i class="ti ti-users"></i><strong>47</strong>&nbsp;subscribers</span>
+                      <span class="it"><i class="ti ti-list-numbers"></i>22 steps</span>
+                    </div>
+                    <div class="bp-pcta">
+                      <button class="btn">View blueprint <i class="ti ti-arrow-right"></i></button>
+                      <button class="save"><i class="ti ti-bookmark"></i></button>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- DNP Preparation -->
+                <div class="bp-pcard">
+                  <div class="bp-pcover dnp">
+                    <span class="tag">cover · 132&nbsp;×&nbsp;240 placeholder</span>
+                    <span class="topic">DNP<br/>Preparation</span>
+                  </div>
+                  <div class="bp-pbody">
+                    <div class="nm">DNP Preparation</div>
+                    <div class="by">
+                      <span class="av fav f2">SC</span>
+                      <span>by <strong>Dr. Sarah Chen</strong></span>
+                    </div>
+                    <div class="bp-pmeta">
+                      <span class="it"><i class="ti ti-users"></i><strong>23</strong>&nbsp;subscribers</span>
+                      <span class="it"><i class="ti ti-list-numbers"></i>16 steps</span>
+                    </div>
+                    <div class="bp-pcta">
+                      <button class="btn">View blueprint <i class="ti ti-arrow-right"></i></button>
+                      <button class="save"><i class="ti ti-bookmark"></i></button>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Acute Care Fundamentals -->
+                <div class="bp-pcard">
+                  <div class="bp-pcover acute">
+                    <span class="tag">cover · 132&nbsp;×&nbsp;240 placeholder</span>
+                    <span class="badge">+12 this term</span>
+                    <span class="topic">Acute Care<br/>Fundamentals</span>
+                  </div>
+                  <div class="bp-pbody">
+                    <div class="nm">Acute Care Fundamentals</div>
+                    <div class="by">
+                      <span class="av fav f4">MR</span>
+                      <span>by <strong>Prof. Michael Reyes</strong></span>
+                    </div>
+                    <div class="bp-pmeta">
+                      <span class="it"><i class="ti ti-users"></i><strong>89</strong>&nbsp;subscribers</span>
+                      <span class="it"><i class="ti ti-list-numbers"></i>18 steps</span>
+                    </div>
+                    <div class="bp-pcta">
+                      <button class="btn">View blueprint <i class="ti ti-arrow-right"></i></button>
+                      <button class="save"><i class="ti ti-bookmark"></i></button>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Pediatric Nursing Pathway -->
+                <div class="bp-pcard">
+                  <div class="bp-pcover peds">
+                    <span class="tag">cover · 132&nbsp;×&nbsp;240 placeholder</span>
+                    <span class="topic">Pediatric<br/>Nursing Pathway</span>
+                  </div>
+                  <div class="bp-pbody">
+                    <div class="nm">Pediatric Nursing Pathway</div>
+                    <div class="by">
+                      <span class="av fav f3">AF</span>
+                      <span>by <strong>Dr. Amelia Foster</strong></span>
+                    </div>
+                    <div class="bp-pmeta">
+                      <span class="it"><i class="ti ti-users"></i><strong>31</strong>&nbsp;subscribers</span>
+                      <span class="it"><i class="ti ti-list-numbers"></i>14 steps</span>
+                    </div>
+                    <div class="bp-pcta">
+                      <button class="btn">View blueprint <i class="ti ti-arrow-right"></i></button>
+                      <button class="save"><i class="ti ti-bookmark"></i></button>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+            </section>
+
+          </div>
+        </div>
+      </div>
+
+      <div class="frame-cap">
+        <p class="eyebrow">Frame 2 · AACN map &amp; faculty blueprints</p>
+        <h3>Middle of scroll &middot; <em>the framework, then the people teaching it</em></h3>
+        <p>
+          Ten domains as a 5&times;2 grid, each tile carrying a small completion ring rendered in tenant ink (or amber where the cohort is behind). <strong>Domain&nbsp;1</strong> is rendered as the inverted &ldquo;featured&rdquo; tile — same grammar, same composition, dark ground — to signal it&rsquo;s the most recently revised and the natural place to open the framework. <em>Blueprints by faculty</em> follows the same cover-as-striped-placeholder treatment used everywhere else in the system; the cover gets its color from the program family (MSN&nbsp;navy, DNP&nbsp;steel, Acute&nbsp;Care&nbsp;clay, Pediatrics&nbsp;sage). One <em>Most followed</em> badge and one <em>+12 this term</em> badge — earned signals, not invented ones.
+        </p>
+      </div>
+    </div>
+
+    <!-- ================================================== -->
+    <!-- ====   FRAME 3 — Profiles + Footer CTAs        ===  -->
+    <!-- ================================================== -->
+    <div class="frame-col" data-screen-label="03 Public profiles · Footer CTAs">
+      <div class="desktop">
+        <div class="chrome">
+          <div class="lights"><span class="r"></span><span class="y"></span><span class="g"></span></div>
+          <div class="url"><div class="url-inner">
+            <i class="ti ti-lock"></i>
+            <span><strong>betterat.app</strong>/jhu&nbsp;<span style="color:var(--label-4);">— scroll&nbsp;2/2</span></span>
+          </div></div>
+        </div>
+
+        <div class="pub-page">
+
+          <nav class="pub-nav">
+            <div class="brand">
+              <div class="mark">B</div>
+              <div class="wordmark">BetterAt</div>
+            </div>
+            <div class="nav-links">
+              <a>Discover</a>
+              <a>Schools &amp; Clubs</a>
+              <a>Blueprints</a>
+              <a>For institutions</a>
+            </div>
+            <div class="spacer"></div>
+            <div class="nav-actions">
+              <button class="icon-btn"><i class="ti ti-search"></i></button>
+              <button class="login">Log in</button>
+              <button class="signup">Sign up</button>
+            </div>
+          </nav>
+
+          <div class="pub-scroll" style="--track-from: 64%; --track-to: 96%;">
+
+            <!-- Public Profiles -->
+            <section class="pp-section">
+              <div class="sec-head">
+                <div class="left">
+                  <p class="sec-eyebrow">Recent graduates</p>
+                  <h3>Public capability records. <em>Opt-in, evidence-backed.</em></h3>
+                  <p class="lede">Graduates choose whether to surface their record under their name, anonymously, or not at all. Every capability dot is backed by logged evidence — verifiable to a recruiter, not a marketing claim.</p>
+                </div>
+                <div class="pp-toggle">
+                  <span class="opt on">All</span>
+                  <span class="opt">MSN</span>
+                  <span class="opt">DNP</span>
+                  <span class="opt">BSN</span>
+                </div>
+              </div>
+
+              <div class="pp-grid">
+
+                <!-- Sarah J. — Named -->
+                <div class="pp-card">
+                  <div class="head">
+                    <div class="av-big gav g1">SJ</div>
+                    <div class="who">
+                      <div class="nm">Sarah Johansson</div>
+                      <div class="meta">
+                        <span class="deg">MSN&nbsp;2024</span>
+                        <span class="dot">·</span>
+                        <span>now at Boston Children&rsquo;s</span>
+                      </div>
+                    </div>
+                    <div class="vbadge"><i class="ti ti-check"></i>Verified</div>
+                  </div>
+                  <div class="pp-strong-label">Strong in</div>
+                  <div class="pp-caps">
+                    <div class="pp-cap"><span class="nm">IV Insertion &amp; Cannulation</span>
+                      <span class="dots"><span class="d"></span><span class="d"></span><span class="d"></span><span class="d"></span><span class="d"></span></span>
+                    </div>
+                    <div class="pp-cap"><span class="nm">Pediatric Assessment</span>
+                      <span class="dots"><span class="d"></span><span class="d"></span><span class="d"></span><span class="d"></span><span class="d"></span></span>
+                    </div>
+                    <div class="pp-cap"><span class="nm">Code Response</span>
+                      <span class="dots"><span class="d"></span><span class="d"></span><span class="d"></span><span class="d"></span><span class="d off"></span></span>
+                    </div>
+                  </div>
+                  <div class="pp-foot">
+                    <span class="it"><i class="ti ti-clipboard-list"></i><strong>142</strong>&nbsp;evidences</span>
+                    <span class="it"><i class="ti ti-stethoscope"></i>3 clinical sites</span>
+                    <span class="view">View profile <i class="ti ti-arrow-right"></i></span>
+                  </div>
+                </div>
+
+                <!-- Marcus W. — Named -->
+                <div class="pp-card">
+                  <div class="head">
+                    <div class="av-big gav g2">MW</div>
+                    <div class="who">
+                      <div class="nm">Marcus Winters</div>
+                      <div class="meta">
+                        <span class="deg">DNP&nbsp;2024</span>
+                        <span class="dot">·</span>
+                        <span>nurse practitioner, Seattle</span>
+                      </div>
+                    </div>
+                    <div class="vbadge"><i class="ti ti-check"></i>Verified</div>
+                  </div>
+                  <div class="pp-strong-label">Strong in</div>
+                  <div class="pp-caps">
+                    <div class="pp-cap"><span class="nm">Diagnostic Reasoning</span>
+                      <span class="dots"><span class="d"></span><span class="d"></span><span class="d"></span><span class="d"></span><span class="d"></span></span>
+                    </div>
+                    <div class="pp-cap"><span class="nm">Pharmacology &amp; Prescribing</span>
+                      <span class="dots"><span class="d"></span><span class="d"></span><span class="d"></span><span class="d"></span><span class="d partial"></span></span>
+                    </div>
+                    <div class="pp-cap"><span class="nm">Health Systems Leadership</span>
+                      <span class="dots"><span class="d"></span><span class="d"></span><span class="d"></span><span class="d"></span><span class="d off"></span></span>
+                    </div>
+                  </div>
+                  <div class="pp-foot">
+                    <span class="it"><i class="ti ti-clipboard-list"></i><strong>218</strong>&nbsp;evidences</span>
+                    <span class="it"><i class="ti ti-stethoscope"></i>4 clinical sites</span>
+                    <span class="view">View profile <i class="ti ti-arrow-right"></i></span>
+                  </div>
+                </div>
+
+                <!-- Anonymous DNP -->
+                <div class="pp-card anon">
+                  <div class="head">
+                    <div class="av-big">?</div>
+                    <div class="who">
+                      <div class="nm">Anonymous graduate</div>
+                      <div class="meta">
+                        <span class="deg">DNP&nbsp;2024</span>
+                        <span class="dot">·</span>
+                        <span>name withheld by graduate</span>
+                      </div>
+                    </div>
+                    <div class="vbadge"><i class="ti ti-check"></i>Verified</div>
+                  </div>
+                  <div class="pp-strong-label">Strong in</div>
+                  <div class="pp-caps">
+                    <div class="pp-cap"><span class="nm">Acute Care Management</span>
+                      <span class="dots"><span class="d"></span><span class="d"></span><span class="d"></span><span class="d"></span><span class="d"></span></span>
+                    </div>
+                    <div class="pp-cap"><span class="nm">Critical Care</span>
+                      <span class="dots"><span class="d"></span><span class="d"></span><span class="d"></span><span class="d"></span><span class="d"></span></span>
+                    </div>
+                    <div class="pp-cap"><span class="nm">Trauma Assessment</span>
+                      <span class="dots"><span class="d"></span><span class="d"></span><span class="d"></span><span class="d"></span><span class="d off"></span></span>
+                    </div>
+                  </div>
+                  <div class="pp-foot">
+                    <span class="it"><i class="ti ti-clipboard-list"></i><strong>196</strong>&nbsp;evidences</span>
+                    <span class="it"><i class="ti ti-eye-off"></i>private contact</span>
+                    <span class="view">View profile <i class="ti ti-arrow-right"></i></span>
+                  </div>
+                </div>
+
+                <!-- Priya R. — Named -->
+                <div class="pp-card">
+                  <div class="head">
+                    <div class="av-big gav g4">PR</div>
+                    <div class="who">
+                      <div class="nm">Priya Ramaswamy</div>
+                      <div class="meta">
+                        <span class="deg">MSN&nbsp;2024</span>
+                        <span class="dot">·</span>
+                        <span>ED nurse, Chicago</span>
+                      </div>
+                    </div>
+                    <div class="vbadge"><i class="ti ti-check"></i>Verified</div>
+                  </div>
+                  <div class="pp-strong-label">Strong in</div>
+                  <div class="pp-caps">
+                    <div class="pp-cap"><span class="nm">Triage &amp; Acuity</span>
+                      <span class="dots"><span class="d"></span><span class="d"></span><span class="d"></span><span class="d"></span><span class="d"></span></span>
+                    </div>
+                    <div class="pp-cap"><span class="nm">Trauma Stabilization</span>
+                      <span class="dots"><span class="d"></span><span class="d"></span><span class="d"></span><span class="d"></span><span class="d off"></span></span>
+                    </div>
+                    <div class="pp-cap"><span class="nm">Crisis Communication</span>
+                      <span class="dots"><span class="d"></span><span class="d"></span><span class="d"></span><span class="d"></span><span class="d off"></span></span>
+                    </div>
+                  </div>
+                  <div class="pp-foot">
+                    <span class="it"><i class="ti ti-clipboard-list"></i><strong>165</strong>&nbsp;evidences</span>
+                    <span class="it"><i class="ti ti-stethoscope"></i>2 clinical sites</span>
+                    <span class="view">View profile <i class="ti ti-arrow-right"></i></span>
+                  </div>
+                </div>
+
+                <!-- Anonymous BSN -->
+                <div class="pp-card anon">
+                  <div class="head">
+                    <div class="av-big">?</div>
+                    <div class="who">
+                      <div class="nm">Anonymous graduate</div>
+                      <div class="meta">
+                        <span class="deg">BSN&nbsp;2024</span>
+                        <span class="dot">·</span>
+                        <span>name withheld by graduate</span>
+                      </div>
+                    </div>
+                    <div class="vbadge"><i class="ti ti-check"></i>Verified</div>
+                  </div>
+                  <div class="pp-strong-label">Strong in</div>
+                  <div class="pp-caps">
+                    <div class="pp-cap"><span class="nm">Medication Administration</span>
+                      <span class="dots"><span class="d"></span><span class="d"></span><span class="d"></span><span class="d"></span><span class="d"></span></span>
+                    </div>
+                    <div class="pp-cap"><span class="nm">Wound Care</span>
+                      <span class="dots"><span class="d"></span><span class="d"></span><span class="d"></span><span class="d"></span><span class="d off"></span></span>
+                    </div>
+                    <div class="pp-cap"><span class="nm">Patient Education</span>
+                      <span class="dots"><span class="d"></span><span class="d"></span><span class="d"></span><span class="d"></span><span class="d off"></span></span>
+                    </div>
+                  </div>
+                  <div class="pp-foot">
+                    <span class="it"><i class="ti ti-clipboard-list"></i><strong>87</strong>&nbsp;evidences</span>
+                    <span class="it"><i class="ti ti-eye-off"></i>private contact</span>
+                    <span class="view">View profile <i class="ti ti-arrow-right"></i></span>
+                  </div>
+                </div>
+
+                <!-- David K. — Named -->
+                <div class="pp-card">
+                  <div class="head">
+                    <div class="av-big gav g3">DK</div>
+                    <div class="who">
+                      <div class="nm">David Kowalski</div>
+                      <div class="meta">
+                        <span class="deg">MSN&nbsp;2024</span>
+                        <span class="dot">·</span>
+                        <span>oncology nurse, Houston</span>
+                      </div>
+                    </div>
+                    <div class="vbadge"><i class="ti ti-check"></i>Verified</div>
+                  </div>
+                  <div class="pp-strong-label">Strong in</div>
+                  <div class="pp-caps">
+                    <div class="pp-cap"><span class="nm">Chemotherapy Administration</span>
+                      <span class="dots"><span class="d"></span><span class="d"></span><span class="d"></span><span class="d"></span><span class="d"></span></span>
+                    </div>
+                    <div class="pp-cap"><span class="nm">Symptom Management</span>
+                      <span class="dots"><span class="d"></span><span class="d"></span><span class="d"></span><span class="d"></span><span class="d off"></span></span>
+                    </div>
+                    <div class="pp-cap"><span class="nm">End-of-Life Care</span>
+                      <span class="dots"><span class="d"></span><span class="d"></span><span class="d"></span><span class="d"></span><span class="d partial"></span></span>
+                    </div>
+                  </div>
+                  <div class="pp-foot">
+                    <span class="it"><i class="ti ti-clipboard-list"></i><strong>173</strong>&nbsp;evidences</span>
+                    <span class="it"><i class="ti ti-stethoscope"></i>3 clinical sites</span>
+                    <span class="view">View profile <i class="ti ti-arrow-right"></i></span>
+                  </div>
+                </div>
+
+              </div>
+            </section>
+
+            <!-- Footer CTAs -->
+            <section class="ctas">
+              <div class="ctas-grid">
+
+                <div class="cta-block primary">
+                  <span class="num">01 / Apply</span>
+                  <h4>Start your application</h4>
+                  <div class="desc">Westbrook accepts BSN, MSN, and DNP applications on a rolling basis. The application opens in a new tab.</div>
+                  <span class="spacer"></span>
+                  <div class="act">
+                    <button class="btn">Apply <i class="ti ti-external-link"></i></button>
+                    <span class="deadline">Next deadline · Aug&nbsp;1, 2026</span>
+                  </div>
+                </div>
+
+                <div class="cta-block">
+                  <span class="num">02 / Learn more</span>
+                  <h4>About the School of Nursing</h4>
+                  <div class="desc">Programs, faculty, financial aid, clinical partners, and accreditation.</div>
+                  <span class="spacer"></span>
+                  <div class="act">
+                    <button class="btn">Programs <i class="ti ti-arrow-right"></i></button>
+                    <span class="secondary-link">westbrook.edu/nursing&nbsp;<i class="ti ti-external-link"></i></span>
+                  </div>
+                </div>
+
+                <div class="cta-block">
+                  <span class="num">03 / Newsroom</span>
+                  <h4>News, research &amp; student stories</h4>
+                  <div class="desc">Latest from the school — peer-reviewed publications, clinical research, student profiles.</div>
+                  <span class="spacer"></span>
+                  <div class="act">
+                    <button class="btn">Newsroom <i class="ti ti-arrow-right"></i></button>
+                    <span class="secondary-link">14 new&nbsp;·&nbsp;this term</span>
+                  </div>
+                </div>
+
+              </div>
+            </section>
+
+            <!-- Site footer -->
+            <footer class="site-foot">
+              <div class="site-foot-row">
+                <span class="brand"><span class="mark">B</span><strong>BetterAt</strong>&nbsp;· 2026</span>
+                <span class="links">
+                  <span>About</span>
+                  <span>For institutions</span>
+                  <span>Privacy</span>
+                  <span>Terms</span>
+                  <span>Help</span>
+                </span>
+                <span class="spacer"></span>
+                <span class="verified"><i class="ti ti-check"></i>Verified institution · betterat.app/jhu</span>
+              </div>
+            </footer>
+
+          </div>
+        </div>
+      </div>
+
+      <div class="frame-cap">
+        <p class="eyebrow">Frame 3 · Public profiles &amp; footer</p>
+        <h3>Bottom of scroll &middot; <em>graduate records, then three doors out</em></h3>
+        <p>
+          The graduate grid is the page&rsquo;s most opinionated section. Each card carries a verified chip — the same dark-ink chip as the hero — and three top capabilities rendered as 5-dot progress rows in tenant ink, so &ldquo;strong&nbsp;in&rdquo; reads as evidence-backed and not a self-claim. <strong>Anonymous</strong> graduates get the same card shape with a dashed border and a question-mark disc; the grammar is identical, the data is the same, only attribution is withheld. The footer puts three CTAs side-by-side — <em>Apply</em> takes the primary block (dark tenant ink, white button), <em>Learn&nbsp;more</em> and <em>Newsroom</em> are equal-weight neighbors.
+        </p>
+      </div>
+    </div>
+
+  </div>
+
+  <p class="resp-note">
+    Mobile-responsive degradation exists — the AACN grid stacks to 2&nbsp;cols then 1, the blueprint strip becomes a horizontal swipe, the graduate grid stacks to a single column, and the footer CTAs become a stack — but the canonical view is desktop. The public org page is the one BetterAt surface that needs to look right when shared as a link, embedded in an email signature, or projected in a conference room.
+  </p>
+
+  <!-- ============= Commentary ============= -->
+  <section class="commentary">
+    <div class="col">
+      <h4>Why the public page inherits BetterAt&rsquo;s chrome, not the school&rsquo;s</h4>
+      <p>
+        BetterAt is the medium, the institution is the content. Same <strong>black BetterAt mark</strong>, same minimal public-nav, same warm institutional cream as the org-admin hero. The tenant gets the <em>shield</em>, the <em>name</em>, and the <em>color of one accent line</em>; everything else is platform.
+      </p>
+      <p>
+        This is what keeps the product feeling like one product across <em>betterat.app/jhu</em>, <em>betterat.app/rhkyc</em>, and <em>betterat.app/pradan</em>. A visitor browsing two institutions in two tabs should never feel like they switched products.
+      </p>
+    </div>
+    <div class="col">
+      <h4>The verified chip, used three times</h4>
+      <p>
+        Identical mark in three places: in the hero next to the school name, on every graduate card, and in the site footer. The signal is the same — <strong>this profile is platform-verified</strong> — so the visual treatment doesn&rsquo;t modulate.
+      </p>
+      <p>
+        Anonymous graduates keep their verified chip even though their name is withheld. The verification is of the <em>evidence</em>, not the identity. That distinction matters more on this page than anywhere else in the product.
+      </p>
+    </div>
+    <div class="col">
+      <h4>What the live numbers are doing</h4>
+      <p>
+        The three big stats under <em>The Program in Practice</em> are <em>not</em> marketing claims. They&rsquo;re cohort metrics drawn from the same source the Org Admin Dashboard reads from — <strong>refreshed in the last quarter hour</strong>, same as the admin&rsquo;s &ldquo;Term in session, Wk&nbsp;11 of 16&rdquo; pill.
+      </p>
+      <p>
+        Numbers earn the visual weight. We render them in 64-px serif lining figures and let them sit between hairlines — the same proportion the iOS register uses for the trophy stat on Race Log.
+      </p>
+    </div>
+    <div class="col">
+      <h4>What got skipped</h4>
+      <p>
+        The <strong>Apply</strong> flow itself lives off-platform; the CTA opens <em>westbrook.edu</em> in a new tab. The <strong>Newsroom</strong> is one click out of this page — its content lives at a separate URL not covered here.
+      </p>
+      <p>
+        The <strong>mobile</strong> view exists in the responsive companion canonical. The desktop view is the canonical because this is the page most likely to be shared as a link, included in a press kit, or projected in an admissions session.
+      </p>
+    </div>
+  </section>
+
+</div>
+
+</body>
+</html>
