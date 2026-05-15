@@ -39,6 +39,7 @@ import { RaceListSection } from '@/components/races/RaceListSection';
 import { SeasonArchive } from '@/components/seasons/SeasonArchive';
 import { IOSRacesScreen } from '@/components/races/ios';
 import { RaceCardsScreen, type RaceCardItem } from '@/components/ios-register';
+import { AddStepActionSheet, AddStepFab } from '@/components/practice';
 import { AIPatternDetection } from '@/components/races/debrief/AIPatternDetection';
 import { TourStep } from '@/components/onboarding/TourStep';
 import { OnWaterTrackingView } from '@/components/races/OnWaterTrackingView';
@@ -206,6 +207,7 @@ export default function RacesScreen() {
 
   // Smart Add Step Sheet: suggested next steps from subscribed blueprints
   const [showAddStepSheet, setShowAddStepSheet] = useState(false);
+  const [showCanonicalAddStepSheet, setShowCanonicalAddStepSheet] = useState(false);
   const { data: suggestedNextSteps } = useSuggestedNextSteps(viewMode === 'domain' ? null : currentInterest?.id);
   const adoptBlueprintStep = useAdoptBlueprintStep();
   const dismissBlueprintStep = useDismissBlueprintStep();
@@ -5100,6 +5102,18 @@ export default function RacesScreen() {
         )}
       </View>
 
+      {FEATURE_FLAGS.PRACTICE_ADD_STEP_FAB && (
+        <AddStepFab
+          onPress={() => setShowCanonicalAddStepSheet(true)}
+          style={{
+            position: 'absolute',
+            right: 20,
+            bottom: insets.bottom + 96,
+            zIndex: 120,
+          }}
+        />
+      )}
+
       <RaceModalsSection
         // Document Type Picker
         documentTypePickerVisible={documentTypePickerVisible}
@@ -5157,6 +5171,19 @@ export default function RacesScreen() {
         onAddRace={isSailingInterest ? handleShowAddRaceSheet : undefined}
         onPublishBlueprint={currentInterest?.id ? () => setShowBlueprintSheet(true) : undefined}
         blueprintLabel={existingBlueprintsForInterest && existingBlueprintsForInterest.length > 0 ? 'Manage Blueprint' : 'Publish as Blueprint'}
+      />
+
+      <AddStepActionSheet
+        visible={showCanonicalAddStepSheet}
+        onClose={() => setShowCanonicalAddStepSheet(false)}
+        onBuildWithCoach={() => {
+          setShowCanonicalAddStepSheet(false);
+          handleAddStep();
+        }}
+        onChooseBlueprint={() => {
+          setShowCanonicalAddStepSheet(false);
+          setShowAddStepSheet(true);
+        }}
       />
 
       {/* Season Picker Modal - Select which season to filter by */}
