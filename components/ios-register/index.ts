@@ -41,3 +41,10 @@ export {
   type ReflectSubTab,
 } from './RaceLogScreen';
 export { LoadingNarration } from './LoadingNarration';
+export {
+  TrophyScreen,
+  TROPHY_BG,
+  type TrophyVariant,
+  type TrophyContent,
+  type TrophySeriesContext,
+} from './TrophyScreen';

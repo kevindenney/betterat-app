@@ -15,33 +15,101 @@
  *   - The coral rule is the entire ornamental vocabulary. 60px wide,
  *     1px tall. Not a divider; a margin pencil mark.
  *
- * Wire-up status:
- *   - Title text + attribution + capability label + context line are
- *     placeholder. Real Trophy data depends on a completed-path
- *     synthesis service that doesn't exist yet — it would extract one
- *     standout sentence from path-completion reflections + map to the
- *     completed capability + the path metadata.
+ * Four state variants ship behind FEATURE_FLAGS.TROPHY_IOS_REGISTER:
+ *   first         — Felix's very first trophy ever (above-title eyebrow)
+ *   canonical     — earned trophy with capability + context
+ *   mid-career    — canonical + carousel dots + Previous affordance
+ *   named-absence — italic quote names a stop; "What you stopped doing" eyebrow
+ *   empty         — no trophy yet; system speaks once in upright voice
  *
- * Open at /trophy-ios.
+ * Open at /trophy-ios. Variant selectable via ?variant=first|canonical|mid-career|named-absence|empty.
+ *
+ * Wire-up status:
+ *   - Variant + content + series come from the data layer via the
+ *     TrophyScreen props in a follow-up wiring commit. Real Trophy data
+ *     depends on a completed-path synthesis service that doesn't exist
+ *     yet — it would extract one standout sentence from path-completion
+ *     reflections + map to the completed capability + path metadata.
  */
 
 import React from 'react';
-import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { View, Pressable, StyleSheet, ScrollView, Text } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Stack, router } from 'expo-router';
+import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
 import { IOS_REGISTER } from '@/lib/design-tokens-ios';
+import {
+  TrophyScreen,
+  TROPHY_BG,
+  type TrophyVariant,
+  type TrophyContent,
+  type TrophySeriesContext,
+} from '@/components/ios-register';
 
-const TROPHY_BG = '#FAFAFA';
+const VALID_VARIANTS: TrophyVariant[] = [
+  'first',
+  'canonical',
+  'mid-career',
+  'named-absence',
+  'empty',
+];
+
+// Sample fixtures drawn straight from the design HTML; real Trophy data
+// comes from the path-completion synthesis service when it lands.
+const SAMPLE_CONTENT: Record<TrophyVariant, TrophyContent> = {
+  first: {
+    quote: 'I’m not pinching anymore when the gust hits.',
+    attribution: 'From your Race 1 Debrief · Sunday, January 19',
+    capabilityLabel: 'Upwind trim under pressure',
+    contextSpans: ['Week 1 of 12', 'Spring Series', 'RHKYC'],
+  },
+  canonical: {
+    quote: 'I can read the shift now before I have to commit.',
+    attribution: 'From your Race 4 Debrief · Sunday, March 23',
+    capabilityLabel: 'Heavy-air helm work',
+    contextSpans: ['Week 7 of 12', 'Spring Series', 'RHKYC'],
+  },
+  'mid-career': {
+    quote: 'I can read the shift now before I have to commit.',
+    attribution: 'From your Race 4 Debrief · Sunday, March 23',
+    capabilityLabel: 'Heavy-air helm work',
+    contextSpans: ['Week 7 of 12', 'Spring Series', 'RHKYC'],
+  },
+  'named-absence': {
+    quote: 'I stopped trying to muscle through and just trusted the boat.',
+    attribution: 'From your Race 6 Debrief · Sunday, April 6',
+    capabilityLabel: 'What you stopped doing',
+    contextSpans: ['Week 9 of 12', 'Spring Series', 'RHKYC'],
+  },
+  empty: {},
+};
+
+const SAMPLE_MID_CAREER_SERIES: TrophySeriesContext = {
+  total: 5,
+  currentIndex: 5,
+  hasPrevious: true,
+};
+
+function resolveVariant(raw: unknown): TrophyVariant {
+  if (typeof raw === 'string' && (VALID_VARIANTS as string[]).includes(raw)) {
+    return raw as TrophyVariant;
+  }
+  return 'canonical';
+}
 
 export default function TrophyIosPreview() {
+  const params = useLocalSearchParams<{ variant?: string }>();
+  const variant = resolveVariant(params.variant);
+  const content = SAMPLE_CONTENT[variant];
+  const series = variant === 'mid-career' ? SAMPLE_MID_CAREER_SERIES : undefined;
+
   return (
     <View style={[styles.page, { backgroundColor: TROPHY_BG }]}>
       <Stack.Screen options={{ headerShown: false }} />
       <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
         <View style={styles.topChrome}>
-          <View style={styles.leftPad} />
+          <VariantSelector activeVariant={variant} />
           <Pressable
             style={styles.glyphBtn}
             hitSlop={8}
@@ -56,27 +124,59 @@ export default function TrophyIosPreview() {
           </Pressable>
         </View>
 
-        {/* Composition — vertically centered with slight upward bias */}
-        <View style={styles.composition}>
-          <Text style={styles.title}>
-            “I can read the shift now before I have to commit.”
-          </Text>
-          <Text style={styles.attribution}>
-            From your Race 4 Debrief · Sunday, March 23
-          </Text>
-          <View style={styles.coralRule} />
-          <Text style={styles.capability}>Heavy-air helm work</Text>
-          <View style={styles.contextRow}>
-            <Text style={styles.context}>Week 7 of 12</Text>
-            <View style={styles.contextSep} />
-            <Text style={styles.context}>Spring Series</Text>
-            <View style={styles.contextSep} />
-            <Text style={styles.context}>RHKYC</Text>
-          </View>
-        </View>
+        <TrophyScreen
+          variant={variant}
+          content={content}
+          series={series}
+        />
       </SafeAreaView>
     </View>
   );
+}
+
+/**
+ * Tiny preview-mode picker so reviewers can cycle the four variants without
+ * editing the URL. Hidden in any data-driven wiring path; the cutover-time
+ * Trophy entry point passes the variant directly to TrophyScreen.
+ */
+function VariantSelector({ activeVariant }: { activeVariant: TrophyVariant }) {
+  return (
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      contentContainerStyle={styles.variantsRow}
+    >
+      {VALID_VARIANTS.map((v) => {
+        const on = v === activeVariant;
+        return (
+          <Pressable
+            key={v}
+            onPress={() => router.setParams({ variant: v })}
+            style={[styles.variantChip, on && styles.variantChipOn]}
+          >
+            <Text style={[styles.variantChipText, on && styles.variantChipTextOn]}>
+              {variantLabel(v)}
+            </Text>
+          </Pressable>
+        );
+      })}
+    </ScrollView>
+  );
+}
+
+function variantLabel(v: TrophyVariant): string {
+  switch (v) {
+    case 'first':
+      return 'First';
+    case 'canonical':
+      return 'Canonical';
+    case 'mid-career':
+      return 'Mid-career';
+    case 'named-absence':
+      return 'Absence';
+    case 'empty':
+      return 'Empty';
+  }
 }
 
 const styles = StyleSheet.create({
@@ -94,62 +194,31 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     minHeight: 36,
-  },
-  leftPad: { width: 1 },
-  glyphBtn: { padding: 6 },
-  composition: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 36,
-    transform: [{ translateY: -22 }],
-  },
-  title: {
-    fontSize: 32,
-    fontStyle: 'italic',
-    fontWeight: '400',
-    lineHeight: 40,
-    letterSpacing: -0.5,
-    color: IOS_REGISTER.label,
-    textAlign: 'center',
-    marginBottom: 24,
-  },
-  attribution: {
-    fontSize: 13,
-    color: IOS_REGISTER.labelSecondary,
-    textAlign: 'center',
-    letterSpacing: -0.1,
-    marginBottom: 36,
-  },
-  coralRule: {
-    width: 60,
-    height: 1,
-    backgroundColor: IOS_REGISTER.accentMarkedContent,
-    marginBottom: 36,
-  },
-  capability: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: IOS_REGISTER.label,
-    letterSpacing: 0.5,
-    textTransform: 'uppercase',
-    textAlign: 'center',
-    marginBottom: 12,
-  },
-  contextRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
     gap: 8,
   },
-  context: {
-    fontSize: 13,
-    color: IOS_REGISTER.labelSecondary,
-    letterSpacing: -0.1,
+  glyphBtn: { padding: 6 },
+  variantsRow: {
+    gap: 6,
+    paddingRight: 4,
+    alignItems: 'center',
   },
-  contextSep: {
-    width: 3,
-    height: 3,
-    borderRadius: 1.5,
-    backgroundColor: IOS_REGISTER.labelTertiary,
+  variantChip: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 999,
+    backgroundColor: 'rgba(60, 60, 67, 0.06)',
+  },
+  variantChipOn: {
+    backgroundColor: 'rgba(60, 60, 67, 0.18)',
+  },
+  variantChipText: {
+    fontSize: 11,
+    fontWeight: '600',
+    letterSpacing: 0.4,
+    textTransform: 'uppercase',
+    color: IOS_REGISTER.labelSecondary,
+  },
+  variantChipTextOn: {
+    color: IOS_REGISTER.label,
   },
 });

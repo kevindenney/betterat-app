@@ -254,6 +254,23 @@ export const FEATURE_FLAGS = {
    * EXPO_PUBLIC_FF_GET_INSPIRED_IOS_REGISTER=false to revert.
    */
   GET_INSPIRED_IOS_REGISTER: readBooleanEnv('EXPO_PUBLIC_FF_GET_INSPIRED_IOS_REGISTER', true),
+
+  /**
+   * Stage the Trophy of Becoming iOS register surface with all four state
+   * variants (first / canonical / mid-career / named-absence / empty).
+   * Variant selection is driven by trophy state from the data layer; the
+   * preview route exposes a chip selector so reviewers can cycle the
+   * variants. Until the path-completion synthesis service lands, the
+   * surface is reachable only via /trophy-ios. Defaults true; flip to
+   * false via EXPO_PUBLIC_FF_TROPHY_IOS_REGISTER=false to revert.
+   *
+   * Earned-register exception: the italic title from user voice is the
+   * canonical Trophy register's already-baked exception (predates the
+   * variants pass). No additional weight-up per architecture decision
+   * #3 — the surface carries zero actions, so neither irreversibility
+   * (a) nor primary-purpose-is-the-decision (b) condition is met.
+   */
+  TROPHY_IOS_REGISTER: readBooleanEnv('EXPO_PUBLIC_FF_TROPHY_IOS_REGISTER', true),
 } as const;
 
 // =============================================================================
