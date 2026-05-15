@@ -66,7 +66,7 @@ Decision: there are **12** valid HTML canonicals in the May 15 design set. `disc
 | A.10 | Bottom tab bar label "Race" vs "Practice" alignment investigation. | Phase B report `2e4f25a7`, `PRACTICE_TIMELINE_CANONICAL.md` (updated) | none | closed-no-action (this commit) | 0 (docs only) | none | n/a; no code change |
 | B | Rename in-card phase tabs to Plan / Do / Reflect. | `PRACTICE_TIMELINE_CANONICAL.md`, `specs/PHASE_B_RENAME_PHASE_TABS.md` | `practice-timeline-canonical.html` | spec-written, execution queued: `4a394087` | 1 | Phase A verified | none; qualifies for mechanical-only exception |
 | B.5 | Rebuild Plan tab interior: AI Coach primary, What/How/Why fields, optional context, three visual states. | `PRACTICE_TIMELINE_CANONICAL_PLAN_TAB_ADDENDUM.md`, `specs/PHASE_B5_PLAN_TAB_INTERIOR_SPEC.md` | `plan-tab-three-states-canonical.html` | spec-written | 4 | A.9; Phase B preferred; Phase D not required for v1 | `PRACTICE_PLAN_TAB_IOS_REGISTER=false` |
-| B.6 | Add Step FAB and two-option create sheet: AI Coach or Blueprint picker; auto-scroll to new step. | `PRACTICE_TIMELINE_ADD_STEP_ZOOMED_OUT_SOCIAL_ADDENDUM.md`, `specs/PHASE_B6_ADD_STEP_FAB_SPEC.md` | `add-step-flow-canonical.html` | spec-written | 3 | A.9; Phase A; can precede Phase C if mounted in `app/(tabs)/races.tsx` | `PRACTICE_ADD_STEP_FAB=false` |
+| B.6 | Add Step FAB and two-option create sheet: AI Coach or Blueprint picker; auto-scroll to new step. | `PRACTICE_TIMELINE_ADD_STEP_ZOOMED_OUT_SOCIAL_ADDENDUM.md`, `specs/PHASE_B6_ADD_STEP_FAB_SPEC.md` | `add-step-flow-canonical.html` | implemented flag-off: `76088743`, `454e9fb3`, `b55e1af4`; needs simulator flag-on verification before enablement | 3 | complete behind flag; visual verification before flag ON | `PRACTICE_ADD_STEP_FAB=false` |
 | B.7 | Interest switcher action sheet for multi-interest users. | `FOUR_SURFACES_FAST_SPEC_ADDENDUM.md`, `specs/PHASE_B7_INTEREST_SWITCHER_SPEC.md` | `four-small-surfaces-canonical.html` | spec-written | 3 | existing InterestProvider; before social/zoomed-out polish; A.10 label model | `PRACTICE_INTEREST_SWITCHER_IOS=false` |
 | B.8 | Profile/settings dropdown from top-right avatar. | `FOUR_SURFACES_FAST_SPEC_ADDENDUM.md`, `specs/PHASE_B8_PROFILE_SETTINGS_DROPDOWN_SPEC.md` | `four-small-surfaces-canonical.html` | spec-written | 3 | Phase A naming distinction; Profile tab remains separate | `ACCOUNT_MENU_IOS_REGISTER=false` |
 | B.9 | Share dialog / share sheet wrapper for steps and blueprints first; profiles/evidence later. | `FOUR_SURFACES_FAST_SPEC_ADDENDUM.md`, `specs/PHASE_B9_SHARE_DIALOG_SPEC.md` | `four-small-surfaces-canonical.html` | spec-written | 4 | visibility model decision for final behavior; v1 stubs unsupported BetterAt actions | `SHARE_DIALOG_IOS_REGISTER=false` |
@@ -94,7 +94,7 @@ Decision: there are **12** valid HTML canonicals in the May 15 design set. `disc
 
 ### Immediate same-day batch
 
-1. **Phase B.6** — Add Step FAB. It is small but creates the entry point for the new Practice workflow; it can mount into `app/(tabs)/races.tsx` before Phase C.
+1. **Phase B.6 verification** — flip `EXPO_PUBLIC_FF_PRACTICE_ADD_STEP_FAB=true` locally, verify the FAB/sheet path, then decide whether to enable.
 2. **Phase B.5** — Plan tab interior rebuild. This is the next core workflow improvement after the route/lint prerequisites.
 3. **Phase B.7 / B.8** — small specs for Interest Switcher and Profile/settings dropdown remain narrow, high-visibility, and do not depend on the timeline shell.
 
