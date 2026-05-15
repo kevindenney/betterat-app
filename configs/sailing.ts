@@ -496,7 +496,7 @@ export const SAILING_EVENT_CONFIG: InterestEventConfig = {
   reflectConfig: {
     segments: [
       { value: 'progress', label: 'Progress' },
-      { value: 'race_log', label: 'Race Log' },
+      { value: 'racelog', label: 'Race Log' },
       { value: 'profile', label: 'Profile' },
     ],
     progressStats: {
