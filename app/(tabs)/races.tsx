@@ -822,7 +822,7 @@ export default function RacesScreen() {
   // are now provided by usePostRaceInterview and useSailorProfile hooks
 
   // Racing area drawing state
-  const [drawingRacingArea, setDrawingRacingArea] = useState<Array<{ lat: number, lng: number }>>([]);
+  const [drawingRacingArea, setDrawingRacingArea] = useState<{ lat: number, lng: number }[]>([]);
 
   // Combined auth and onboarding check - prevents multiple re-renders
   React.useEffect(() => {
@@ -2433,12 +2433,12 @@ export default function RacesScreen() {
   }, [handleDeleteRace, selectedRaceData?.name, selectedRaceId]);
 
   // Handle racing area drawing
-  const handleRacingAreaChange = useCallback((polygon: Array<{ lat: number, lng: number }>) => {
+  const handleRacingAreaChange = useCallback((polygon: { lat: number, lng: number }[]) => {
     setDrawingRacingArea(polygon);
   }, []);
 
   // Handle saving racing area to database
-  const handleSaveRacingArea = useCallback(async (polygonPoints?: Array<{ lat: number, lng: number }>) => {
+  const handleSaveRacingArea = useCallback(async (polygonPoints?: { lat: number, lng: number }[]) => {
     // Use passed points or fall back to state
     const pointsToSave = polygonPoints || drawingRacingArea;
 
