@@ -416,6 +416,7 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp }: StepDetail
 
   // Handle conversational capture creating a plan
   const handleConversationalCreate = useCallback((conversationalPlan: Partial<StepPlanData>, suggestedTitle?: string) => {
+    setLocalPlanOverrides((prev) => ({ ...prev, ...conversationalPlan }));
     updateMetadata.mutate({ plan: { ...serverPlanData, ...conversationalPlan } });
     if (suggestedTitle) {
       saveTitle(suggestedTitle);

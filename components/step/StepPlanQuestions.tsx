@@ -807,6 +807,43 @@ RULES:
       }
     };
 
+    const handleCanonicalConversationalCreate = (conversationalPlan: Partial<StepPlanData>, suggestedTitle?: string) => {
+      if (conversationalPlan.what_will_you_do !== undefined) {
+        setLocalWhat(conversationalPlan.what_will_you_do);
+      }
+      if (conversationalPlan.how_sub_steps !== undefined) {
+        setLocalSubSteps(conversationalPlan.how_sub_steps);
+      }
+      if (conversationalPlan.why_reasoning !== undefined) {
+        setLocalWhy(conversationalPlan.why_reasoning);
+      }
+      if (conversationalPlan.collaborators !== undefined) {
+        setLocalCollaborators(conversationalPlan.collaborators);
+      } else if (conversationalPlan.who_collaborators !== undefined) {
+        setLocalCollaborators(
+          conversationalPlan.who_collaborators
+            .filter((name) => name.trim())
+            .map((name, i) => ({
+              id: `conv_${i}_${Date.now()}`,
+              type: 'external' as const,
+              display_name: name.trim(),
+            })),
+        );
+      }
+      if (conversationalPlan.capability_goals !== undefined) {
+        setLocalGoals(conversationalPlan.capability_goals);
+      }
+      if (conversationalPlan.where_location !== undefined) {
+        setLocalWhereLocation(conversationalPlan.where_location);
+      }
+      if (conversationalPlan.connection_space !== undefined) {
+        setLocalConnectionSpace(conversationalPlan.connection_space);
+      }
+
+      debouncedSave(conversationalPlan);
+      onConversationalCreate?.(conversationalPlan, suggestedTitle);
+    };
+
     const optionalAddOns = (
       <>
         {courseCtx && courseCtx.course_title && (
@@ -1189,7 +1226,7 @@ RULES:
         interestName={currentInterest?.name}
         stepTitle={step.title}
         stepCategory={step.category}
-        onConversationalCreate={useConversationalCapture ? onConversationalCreate : undefined}
+        onConversationalCreate={useConversationalCapture ? handleCanonicalConversationalCreate : undefined}
         optionalAddOns={optionalAddOns}
       />
     );
