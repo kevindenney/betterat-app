@@ -40,6 +40,7 @@ import {
 import { RaceListSection } from '@/components/races/RaceListSection';
 import { SeasonArchive } from '@/components/seasons/SeasonArchive';
 import { IOSRacesScreen } from '@/components/races/ios';
+import { RaceCardsScreen, type RaceCardItem } from '@/components/ios-register';
 import { AIPatternDetection } from '@/components/races/debrief/AIPatternDetection';
 import { TourStep } from '@/components/onboarding/TourStep';
 import { OnWaterTrackingView } from '@/components/races/OnWaterTrackingView';
@@ -3904,6 +3905,71 @@ export default function RacesScreen() {
     return idx >= 0 ? idx + 1 : undefined;
   }, [selectedRaceId, headerTotalRaces, filteredCardGridRaces]);
 
+  // iOS-register summary-surface adapter — shapes filteredCardGridRaces into the
+  // RaceCardItem grammar consumed by <RaceCardsScreen />. Status maps from the
+  // step's canonical fields; selectedRaceId promotes one card to "current"
+  // (the earned-exception treatment) so the user's focus card is always
+  // visually distinguished even when no step is in_progress. Tap-through is
+  // wired in the render-switch block to /race/ios/[stepId].
+  const raceCardsScreenItems: RaceCardItem[] = useMemo(() => {
+    const total = filteredCardGridRaces.length;
+    return filteredCardGridRaces.map((race: any, idx: number): RaceCardItem => {
+      const ordinal = idx + 1;
+      const stepStatus = race.stepStatus ?? race.status;
+      const isCurrent = race.id === selectedRaceId;
+      let status: RaceCardItem['status'];
+      if (isCurrent) {
+        status = 'current';
+      } else if (stepStatus === 'completed') {
+        status = 'debriefed';
+      } else if (stepStatus === 'in_progress') {
+        status = 'in_progress';
+      } else {
+        status = 'planned';
+      }
+
+      const dateSource = race.date || race.start_date || race.due_at;
+      const dateLabel = dateSource
+        ? new Date(dateSource).toLocaleDateString(undefined, {
+            month: 'short',
+            day: 'numeric',
+          })
+        : undefined;
+
+      const windDir = race.wind?.direction;
+      const windMin = race.wind?.speedMin;
+      const windMax = race.wind?.speedMax;
+      const windLabel =
+        windMin && windMax
+          ? `${windMin}-${windMax} kn${windDir ? ` ${windDir}` : ''}`
+          : undefined;
+
+      const captureCount: number | undefined = race.metadata?.captures_count;
+      const planDraft: string | undefined = race.metadata?.plan?.draft_summary;
+
+      const concepts: { name: string; muted?: boolean }[] = (
+        race.metadata?.plan?.capability_goals ?? []
+      )
+        .slice(0, 2)
+        .map((name: string) => ({ name, muted: status === 'planned' }));
+
+      return {
+        id: race.id,
+        status,
+        raceOf: `RACE ${ordinal} OF ${total}`,
+        raceNum: String(ordinal).padStart(2, '0'),
+        raceName: race.name ?? 'Untitled',
+        dateLabel,
+        windLabel,
+        captures: {
+          count: captureCount,
+          plan: status === 'current' ? planDraft : undefined,
+        },
+        concepts,
+      };
+    });
+  }, [filteredCardGridRaces, selectedRaceId]);
+
   // Stable initial card index — only changes when the target race actually moves
   // in the array, NOT on every data refetch that produces a new array reference.
   const initialCardIndex = useMemo(() => {
@@ -4522,6 +4588,28 @@ export default function RacesScreen() {
                 ) : undefined}
               />
             </View>
+          ) : FEATURE_FLAGS.RACE_PREP_IOS_REGISTER ? (
+            <RaceCardsScreen
+              title={currentInterest?.label ?? 'Your races'}
+              eyebrow={
+                activeOrganization?.name
+                  ? activeOrganization.name.toUpperCase()
+                  : undefined
+              }
+              metaPrimary={
+                raceCardsScreenItems.length > 0
+                  ? `${raceCardsScreenItems.length} ${
+                      raceCardsScreenItems.length === 1 ? 'step' : 'steps'
+                    }`
+                  : undefined
+              }
+              cards={raceCardsScreenItems}
+              onCardPress={(item) => {
+                setSelectedRaceId(item.id);
+                setHasManuallySelected(true);
+                router.push(`/race/ios/${item.id}`);
+              }}
+            />
           ) : (
             <CardGrid
               races={filteredCardGridRaces}
