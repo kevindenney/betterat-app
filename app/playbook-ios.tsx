@@ -89,9 +89,13 @@ interface Props {
    * to. False when rendered as the standalone /playbook-ios preview.
    */
   embedded?: boolean;
+  onOpenInspiration?: () => void;
 }
 
-export function PlaybookIosPreview({ embedded = false }: Props = {}) {
+export function PlaybookIosPreview({
+  embedded = false,
+  onOpenInspiration,
+}: Props = {}) {
   const { currentInterest } = useInterest();
   const interestId = currentInterest?.id;
   const interestName = currentInterest?.name ?? 'your practice';
@@ -231,6 +235,8 @@ export function PlaybookIosPreview({ embedded = false }: Props = {}) {
             </Pressable>
           </View>
         </View>
+
+        <GetInspiredHeroCTA onPress={onOpenInspiration} />
 
         {/* Working on this season — concept shelf */}
         <View style={styles.shelfHead}>
@@ -398,6 +404,51 @@ function sourceVariantFor(
 // ---------------------------------------------------------------------------
 // Subcomponents
 // ---------------------------------------------------------------------------
+
+function GetInspiredHeroCTA({
+  onPress,
+}: {
+  onPress?: () => void;
+}) {
+  return (
+    <Pressable
+      style={({ pressed }) => [
+        styles.inspirationCard,
+        pressed && styles.inspirationCardPressed,
+      ]}
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel="Get Inspired"
+      accessibilityHint="Opens a flow to turn a link, pasted text, or idea into a first plan."
+    >
+      <View style={styles.inspirationGlyph}>
+        <Ionicons
+          name="sparkles-outline"
+          size={20}
+          color={IOS_REGISTER.accentMarkedContent}
+        />
+      </View>
+      <View style={styles.inspirationText}>
+        <Text style={styles.inspirationEyebrow}>GET INSPIRED</Text>
+        <Text style={styles.inspirationTitle}>
+          Start from something inspiring
+        </Text>
+        <Text style={styles.inspirationBody}>
+          Drop a link, paste text, or describe what you want to learn.
+          BetterAt will turn it into a first plan.
+        </Text>
+      </View>
+      <View style={styles.inspirationAction}>
+        <Text style={styles.inspirationActionText}>Start</Text>
+        <Ionicons
+          name="chevron-forward"
+          size={16}
+          color={IOS_REGISTER.accentUserAction}
+        />
+      </View>
+    </Pressable>
+  );
+}
 
 function PreviewBanner() {
   return (
@@ -605,6 +656,54 @@ const styles = StyleSheet.create({
     color: IOS_REGISTER.accentUserAction,
     fontSize: 14,
     letterSpacing: -0.1,
+  },
+  inspirationCard: {
+    marginHorizontal: 20,
+    marginTop: 18,
+    marginBottom: 10,
+    padding: 16,
+    borderRadius: 18,
+    backgroundColor: IOS_COLORS.secondarySystemGroupedBackground,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  inspirationCardPressed: {
+    opacity: 0.82,
+  },
+  inspirationGlyph: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: IOS_REGISTER.accentMarkedContentTint,
+  },
+  inspirationText: {
+    flex: 1,
+    gap: 3,
+  },
+  inspirationEyebrow: {
+    ...IOS_REGISTER_TEXT.eyebrow,
+    color: IOS_REGISTER.accentMarkedContent,
+  },
+  inspirationTitle: {
+    ...IOS_REGISTER_TEXT.cardTitle,
+    color: IOS_COLORS.label,
+  },
+  inspirationBody: {
+    ...IOS_REGISTER_TEXT.body,
+    color: IOS_COLORS.secondaryLabel,
+  },
+  inspirationAction: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+  },
+  inspirationActionText: {
+    ...IOS_REGISTER_TEXT.callout,
+    color: IOS_REGISTER.accentUserAction,
+    fontWeight: '600',
   },
   // Shelf header — Books-style 22pt bold
   shelfHead: {

@@ -18,11 +18,26 @@
 import React from 'react';
 import { PlaybookHome } from '@/components/playbook/PlaybookHome';
 import { PlaybookIosPreview } from '@/app/playbook-ios';
+import { InspirationWizard } from '@/components/inspiration/InspirationWizard';
 import { FEATURE_FLAGS } from '@/lib/featureFlags';
 
 export default function PlaybookIndexScreen() {
+  const [inspirationWizardOpen, setInspirationWizardOpen] =
+    React.useState(false);
+
   if (FEATURE_FLAGS.PLAYBOOK_IOS_REGISTER) {
-    return <PlaybookIosPreview embedded />;
+    return (
+      <>
+        <PlaybookIosPreview
+          embedded
+          onOpenInspiration={() => setInspirationWizardOpen(true)}
+        />
+        <InspirationWizard
+          visible={inspirationWizardOpen}
+          onClose={() => setInspirationWizardOpen(false)}
+        />
+      </>
+    );
   }
   return <PlaybookHome />;
 }
