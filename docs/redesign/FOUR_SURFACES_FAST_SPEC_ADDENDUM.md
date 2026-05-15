@@ -54,7 +54,7 @@ A "Sail Racing ▼" chip in the top header of the Practice tab. Tap opens the sw
 - Practice tab content transitions to the new interest (subtle cross-fade or slide)
 - Interest chip in the header updates
 - All timeline content scopes to the new interest (steps, blueprints, peers, Suggest bar)
-- Bottom tab bar stays the same
+- Bottom tab destinations stay the same; the first tab's visible label re-resolves through the active interest vocabulary (for example, `Race` for Sail Racing, `Practice`/`Shift` for Nursing depending on config).
 
 **"Manage interests":** opens a settings surface where the user can reorder interests (drag), hide an interest from the switcher, or archive an interest.
 
