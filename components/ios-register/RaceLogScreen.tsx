@@ -28,7 +28,9 @@ import {
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
 import { IOS_REGISTER } from '@/lib/design-tokens-ios';
+import { IOSRegisterErrorState } from './IOSRegisterErrorState';
 import type { StepCardStatus } from './StepCard';
 
 // ---------------------------------------------------------------------------
@@ -168,26 +170,56 @@ export function RaceLogScreen({
       )}
 
       <ScrollView
+        // flex:1 is required here. Without it the ScrollView's outer view
+        // collapses to 0 height inside a flex column parent when it's the
+        // only child (embedded mode), and the entire feed disappears.
+        // ProfileScreen avoids this by putting flex:1 on its root ScrollView
+        // directly; RaceLogScreen needs the outer View for the showChrome
+        // chrome rows, so flex:1 lives here instead.
+        style={styles.scrollViewFlex}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingTop: topInset, paddingBottom: bottomPad }}
         onScroll={onScroll}
         scrollEventThrottle={onScroll ? 16 : undefined}
       >
-        {filterChips && filterChips.length > 0 && (
-          <FilterChipRow chips={filterChips} />
-        )}
-
-        {seasons.map((season) => (
-          <SeasonGroup
-            key={season.id}
-            season={season}
-            onEntryPress={(entry) => onEntryPress?.(entry, season)}
+        {seasons.length === 0 ? (
+          // EMPTY STATE — re-uses IOSRegisterErrorState because the chrome
+          // (calm pause, glyph, headline, supporting, primary action) is
+          // identical for errors and empty states. The semantic distinction
+          // lives in the content, not the structure. Follow-up: rename the
+          // component to a broader name (IOSRegisterCalmPause or similar)
+          // so usage isn't mis-read as an error condition. Out of scope
+          // here; flagged on this commit.
+          <IOSRegisterErrorState
+            glyph="boat-outline"
+            headline="No races yet"
+            supportingText={
+              "Add a race to start your season arc. Logged races appear here once you've debriefed them."
+            }
+            primaryAction={{
+              label: 'Add a race',
+              onPress: () => router.push('/(tabs)/races' as never),
+            }}
           />
-        ))}
+        ) : (
+          <>
+            {filterChips && filterChips.length > 0 && (
+              <FilterChipRow chips={filterChips} />
+            )}
 
-        {feedFootHint ? (
-          <Text style={styles.feedFoot}>{feedFootHint}</Text>
-        ) : null}
+            {seasons.map((season) => (
+              <SeasonGroup
+                key={season.id}
+                season={season}
+                onEntryPress={(entry) => onEntryPress?.(entry, season)}
+              />
+            ))}
+
+            {feedFootHint ? (
+              <Text style={styles.feedFoot}>{feedFootHint}</Text>
+            ) : null}
+          </>
+        )}
       </ScrollView>
     </View>
   );
@@ -539,6 +571,9 @@ const styles = StyleSheet.create({
   screen: {
     flex: 1,
     backgroundColor: IOS_REGISTER.groundBg,
+  },
+  scrollViewFlex: {
+    flex: 1,
   },
   // ----- top chrome -----
   topChrome: {
