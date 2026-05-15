@@ -28,6 +28,8 @@ Expected current state before Phase C.5 starts: Phase C files exist and are wire
 
 Cross-check the HTML canonical for: `Upcoming`, `NOW`, `This week`, row phase dots, highlighted current row, search icon, pinch cues, and long-press menu.
 
+A.10 label guard: the first bottom tab's identity is the Practice engine, but its visible label is interest-specific through `lib/navigation-config.ts` / `getEventTabTitle`. Do not hardcode `Practice` from the HTML chrome. For Sail Racing simulator checks, the first tab must render `Race`; for Nursing, use the vocabulary-resolved Nursing label.
+
 ## Commit Boundaries
 
 ### Commit 1: Flag, Types, and Section Adapter
