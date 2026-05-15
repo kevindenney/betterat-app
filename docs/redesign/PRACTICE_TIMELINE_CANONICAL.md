@@ -27,10 +27,12 @@ Four tabs, persistent across the app:
 
 | Tab | Role | What it shows |
 |---|---|---|
-| **Practice** | The engine | Timeline of steps; current step centered; horizontal swipe through past, present, and upcoming |
+| **Practice** (label varies by interest) | The engine | Timeline of steps; current step centered; horizontal swipe through past, present, and upcoming |
 | **Playbook** | The library | Plans/blueprints the user has saved, can follow, or can publish |
 | **Discover** | The intake | Find new content, generate plans from inspiration, explore others' blueprints |
 | **Profile** | The credential | Capability map per interest; evidence-backed; shareable |
+
+The first tab — the Practice engine — renders a label appropriate to each interest's community vocabulary: "Race" for sailing, "Practice" for nursing and most other interests, with per-interest vocabulary overrides supported via `lib/navigation-config.ts` (`getEventTabTitle`). Sailors see "Race" because that's the term sailors use; nurses see "Practice" or "Shift" depending on their interest's vocabulary configuration. The tab's identity is constant — it is the Practice engine — but its visible label adapts to the user's community language. The other three tabs (Playbook, Discover, Profile) are universal labels and do not vary by interest.
 
 The avatar in the top-right corner of relevant screens opens **account**, **settings**, **theme**, **sign out**, **help**. It does *not* contain Profile. Profile is its own destination.
 
@@ -61,8 +63,8 @@ The avatar in the top-right corner of relevant screens opens **account**, **sett
 │  ╲│                              │╱  │
 │                                      │
 ├─────────────────────────────────────┤
-│   ⚐         📖         🧭      👤    │  ← Practice / Playbook / Discover / Profile
-│ Practice  Playbook  Discover  Profile│
+│   ⚐         📖         🧭      👤    │  ← Practice engine / Playbook / Discover / Profile
+│   Race    Playbook  Discover  Profile│  ← sailor sees "Race"; nursing sees "Practice"
 └─────────────────────────────────────┘
 ```
 
@@ -152,10 +154,11 @@ Empty states never block tab switching. The user can always see all three tabs.
 - **Profile** signals "outward-facing artifact," consistent with how shared identity surfaces work in iOS and on the web.
 - "Profile" reads naturally as a destination ("tap Profile to see my record") and as a shareable artifact ("here's my profile").
 
-### Bottom tab: Practice (kept)
+### Bottom tab: Practice engine (label varies by interest)
 
-- The bottom Practice tab is the *engine* — where the user actually does the work. "Practice" is accurate.
+- The bottom first tab is the *engine* — where the user actually does the work. Its identity is "the Practice engine", but its visible label adapts to each interest's community vocabulary: sailors see "Race", nurses see "Practice" or "Shift", etc. See `lib/navigation-config.ts` (`getEventTabTitle`) for the resolution logic.
 - The collision with the phase tab name was solved by renaming the phase ("Do" instead of "Practice"). Phase verbs, tab nouns.
+- Interest-specific labels are deliberate, not legacy drift. Each community's verb (race, practice, shift, session) is what its members already use; the tab reads in their language.
 
 ---
 

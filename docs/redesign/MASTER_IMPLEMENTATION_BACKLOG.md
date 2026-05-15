@@ -20,6 +20,12 @@ Decision: default-OFF feature flags are required for behavioral, visual-layout, 
 
 Implication: Phase A and Phase B are valid unflagged exceptions. Every future spec must explicitly state whether it is using the mechanical-only exception or adding a default-OFF flag.
 
+### Tab Bar Label Convention (Phase A.10 outcome)
+
+Phase A.10 — Practice tab bar label. Closed without code change. Investigation revealed `lib/navigation-config.ts` already implements per-interest tab labels (sailing: Race, nursing: Practice, with vocabulary overrides via `getEventTabTitle`). This is correct community-language design, not legacy drift. The Practice Timeline Canonical was updated in this commit to reflect that the first tab's label is interest-specific, defaulting to the verb each community uses. The tab's identity remains "the Practice engine" — only the surface label adapts.
+
+Implication for future specs: do not assert a universal "Practice" label for the bottom-bar first tab. Refer to it as "the Practice engine" when discussing identity, and as the interest-resolved label (Race/Practice/Shift/etc.) when describing the visible UI.
+
 ## Inputs Verified
 
 Source design documents:
@@ -57,6 +63,7 @@ Decision: there are **12** valid HTML canonicals in the May 15 design set. `disc
 | A.7 | Fix Apple sign-in branding from RegattaFlow to BetterAt for org adoption readiness. | `FIVE_SURFACES_CONSOLIDATED_ADDENDUM.md` | none | spec-pending | 1 | Apple Developer console access | no app flag; external config change |
 | A.8 | Add `/practice` as the canonical user-facing route while preserving `/races` as a backwards-compatible alias/redirect. | `PRACTICE_TIMELINE_CANONICAL.md`, this backlog decision | none | spec-pending | 2-3 | Phase A; before public sharing/onboarding links spread further | `PRACTICE_ROUTE_ALIAS=false` or unflagged redirect if implementation is mechanical |
 | A.9 | Clear `app/(tabs)/races.tsx` lint warnings so lint-staged no longer blocks Practice commits touching the file. | Phase B report `2e4f25a7`, `specs/PHASE_A9_RACES_TSX_WARNING_CLEANUP_SPEC.md` | none | spec-written | 2-4 | before B.5/B.6/C/C.5 execution | none; internal lint cleanup |
+| A.10 | Bottom tab bar label "Race" vs "Practice" alignment investigation. | Phase B report `2e4f25a7`, `PRACTICE_TIMELINE_CANONICAL.md` (updated) | none | closed-no-action (this commit) | 0 (docs only) | none | n/a; no code change |
 | B | Rename in-card phase tabs to Plan / Do / Reflect. | `PRACTICE_TIMELINE_CANONICAL.md`, `specs/PHASE_B_RENAME_PHASE_TABS.md` | `practice-timeline-canonical.html` | spec-written, execution queued: `4a394087` | 1 | Phase A verified | none; qualifies for mechanical-only exception |
 | B.5 | Rebuild Plan tab interior: AI Coach primary, What/How/Why fields, optional context, three visual states. | `PRACTICE_TIMELINE_CANONICAL_PLAN_TAB_ADDENDUM.md`, `specs/PHASE_B5_PLAN_TAB_INTERIOR_SPEC.md` | `plan-tab-three-states-canonical.html` | spec-written | 4 | A.9; Phase B preferred; Phase D not required for v1 | `PRACTICE_PLAN_TAB_IOS_REGISTER=false` |
 | B.6 | Add Step FAB and two-option create sheet: AI Coach or Blueprint picker; auto-scroll to new step. | `PRACTICE_TIMELINE_ADD_STEP_ZOOMED_OUT_SOCIAL_ADDENDUM.md`, `specs/PHASE_B6_ADD_STEP_FAB_SPEC.md` | `add-step-flow-canonical.html` | spec-written | 3 | A.9; Phase A; can precede Phase C if mounted in `app/(tabs)/races.tsx` | `PRACTICE_ADD_STEP_FAB=false` |
