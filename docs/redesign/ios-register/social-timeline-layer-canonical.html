@@ -1,0 +1,1304 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=1520" />
+<title>BetterAt · Social Timeline Layer · Canonical — 2026-05-15</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css" />
+<style>
+  :root {
+    --ios-blue:        #007AFF;
+    --ios-blue-tint:   rgba(0, 122, 255, 0.10);
+    --ios-blue-strong: rgba(0, 122, 255, 0.18);
+    --ios-coral:       #FF6B6B;
+    --ios-coral-tint:  rgba(255, 107, 107, 0.10);
+    --ios-green:       #34C759;
+    --ios-green-tint:  rgba(52, 199, 89, 0.14);
+    --ios-purple:      #5856D6;
+    --ios-orange:      #FF9500;
+    --ios-red:         #FF3B30;
+
+    --gray-6:   #F2F2F7;
+    --gray-5:   #E5E5EA;
+    --gray-4:   #D1D1D6;
+    --gray-3:   #C7C7CC;
+    --gray-2:   #AEAEB2;
+    --gray-1:   #8E8E93;
+    --label:    #1C1C1E;
+    --label-2:  #3C3C43;
+    --label-3:  rgba(60, 60, 67, 0.60);
+    --label-4:  rgba(60, 60, 67, 0.30);
+
+    /* Social-section "muted other-people" tint */
+    --social-bg:       #ECEAE3;
+    --social-card:     #FBF9F3;
+    --social-line:     rgba(34, 30, 20, 0.10);
+
+    /* Read-only "someone else's content" tint */
+    --readonly-bg:     #F5F2EA;
+    --readonly-card:   #FFFFFF;
+    --readonly-ink:    #2A2824;
+    --readonly-ink-2: rgba(42, 40, 36, 0.66);
+    --readonly-ink-3: rgba(42, 40, 36, 0.42);
+
+    --stage:          #EFEAD8;
+    --stage-text:     #6B6558;
+    --stage-ink:      #2A2824;
+    --stage-line:     rgba(34, 30, 20, 0.12);
+    --stage-line-soft: rgba(34, 30, 20, 0.06);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display",
+                 "Helvetica Neue", Helvetica, Arial, sans-serif;
+    color: var(--label);
+    background: var(--stage);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+  button { font-family: inherit; }
+
+  /* ============= Page chrome ============= */
+  .page { min-width: 1520px; padding: 56px 48px 96px; }
+  .page-head { max-width: 1420px; margin: 0 auto 48px; }
+  .page-head .eyebrow {
+    font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--stage-text); margin: 0 0 12px;
+  }
+  .page-head h1 {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 32px; line-height: 1.15; font-weight: 500;
+    letter-spacing: -0.015em; margin: 0 0 14px; color: var(--stage-ink);
+  }
+  .page-head h1 em { font-style: italic; }
+  .page-head p {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 17px; line-height: 1.55;
+    color: var(--stage-text); margin: 0; max-width: 1100px;
+    text-wrap: pretty;
+  }
+  .page-head p em { font-style: italic; }
+  .page-head .crumbs {
+    display: flex; gap: 10px; align-items: center; margin: 22px 0 0; flex-wrap: wrap;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+    font-size: 12px; color: var(--stage-text); letter-spacing: 0.02em;
+  }
+  .page-head .crumbs .pill {
+    padding: 3px 10px; border-radius: 999px;
+    border: 0.5px solid var(--stage-line);
+    background: rgba(255,255,255,0.4);
+  }
+  .page-head .crumbs .sep { color: var(--stage-line); }
+
+  .strip-head {
+    max-width: 1420px;
+    margin: 36px auto 22px;
+    padding-top: 24px;
+    border-top: 0.5px solid var(--stage-line);
+  }
+  .strip-head .eyebrow {
+    font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--stage-text); margin: 0 0 8px;
+  }
+  .strip-head h2 {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 22px; line-height: 1.25; font-weight: 500;
+    letter-spacing: -0.01em; margin: 0 0 8px; color: var(--stage-ink);
+  }
+  .strip-head h2 em { font-style: italic; }
+  .strip-head p {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 15px; line-height: 1.55;
+    color: var(--stage-text); margin: 0; max-width: 980px;
+    text-wrap: pretty;
+  }
+
+  .row {
+    max-width: 1420px;
+    margin: 0 auto;
+    display: flex;
+    gap: 48px;
+    align-items: flex-start;
+    justify-content: center;
+  }
+  .col { display: flex; flex-direction: column; align-items: center; gap: 16px; }
+  .col .caption-block { text-align: center; }
+  .col .frame-label {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 18px; font-weight: 500; letter-spacing: -0.2px;
+    color: var(--stage-ink); margin: 0 0 4px;
+  }
+  .col .frame-label em { font-style: italic; }
+  .col .frame-sub {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 13px; font-style: italic;
+    color: var(--stage-text); margin: 0;
+    max-width: 360px; text-wrap: pretty; line-height: 1.4;
+  }
+  .col.hero .frame-label { font-size: 19px; }
+
+  /* ============= Phone shell ============= */
+  .phone {
+    width: 393px;
+    height: 852px;
+    background: var(--gray-6);
+    border-radius: 56px;
+    border: 1px solid rgba(0, 0, 0, 0.18);
+    box-shadow:
+      0 30px 80px -40px rgba(34, 30, 20, 0.32),
+      0 2px 0 rgba(255,255,255,0.5) inset;
+    overflow: hidden;
+    position: relative;
+    isolation: isolate;
+  }
+  .col.hero .phone {
+    box-shadow:
+      0 42px 100px -42px rgba(34, 30, 20, 0.42),
+      0 2px 0 rgba(255,255,255,0.5) inset;
+  }
+  .phone .notch {
+    position: absolute; top: 11px; left: 50%; transform: translateX(-50%);
+    width: 116px; height: 34px; background: #0F0E0C; border-radius: 20px; z-index: 40;
+  }
+  .statusbar {
+    position: absolute; top: 0; left: 0; right: 0; height: 50px;
+    padding: 16px 32px 0; display: flex; align-items: center; justify-content: space-between;
+    font-weight: 600; font-size: 15px; color: #0A0A0A; z-index: 30; pointer-events: none;
+  }
+  .statusbar .right { display: flex; gap: 6px; align-items: center; }
+  .statusbar .right i { font-size: 15px; }
+  .home-indicator {
+    position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%);
+    width: 134px; height: 5px; border-radius: 3px;
+    background: rgba(0, 0, 0, 0.30); z-index: 45; pointer-events: none;
+  }
+
+  /* ============= Screen ground ============= */
+  .screen {
+    position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+    overflow: hidden;
+    padding-top: 50px;
+    background: var(--gray-6);
+  }
+
+  /* ============= Top header strip ============= */
+  .top-header {
+    padding: 8px 18px 10px;
+    display: grid;
+    grid-template-columns: 1fr auto auto auto;
+    column-gap: 12px;
+    align-items: center;
+    height: 52px;
+  }
+  .top-header .interest { display: inline-flex; align-items: baseline; gap: 6px; min-width: 0; }
+  .top-header .interest .name {
+    font-size: 17px; font-weight: 600; letter-spacing: -0.25px; color: var(--label);
+    white-space: nowrap;
+  }
+  .top-header .interest .switcher {
+    font-size: 13px; color: var(--label-3);
+    display: inline-flex; align-items: center;
+  }
+  .top-header .interest .switcher i { font-size: 14px; }
+  .top-header .count-meta {
+    font-size: 12px; font-weight: 500;
+    color: var(--label-3); letter-spacing: -0.05px;
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+    line-height: 1.15;
+    white-space: nowrap;
+  }
+  .top-header .count-meta .range { display: block; font-size: 10.5px; color: var(--label-3); font-weight: 400; }
+  .top-header .search-btn {
+    width: 30px; height: 30px; border-radius: 50%;
+    background: transparent; color: var(--label-2);
+    display: inline-flex; align-items: center; justify-content: center;
+    border: none; cursor: pointer;
+  }
+  .top-header .search-btn i { font-size: 18px; }
+  .top-header .avatar {
+    width: 30px; height: 30px; border-radius: 50%;
+    background: linear-gradient(135deg, #4E6A85 0%, #7C7B6E 100%);
+    display: inline-flex; align-items: center; justify-content: center;
+    color: #fff; font-size: 12px; font-weight: 600; letter-spacing: -0.1px;
+    border: 0.5px solid rgba(0, 0, 0, 0.05);
+  }
+
+  /* ============= Vertical timeline list ============= */
+  .list-scroll {
+    position: absolute;
+    top: 102px;
+    left: 0; right: 0; bottom: 84px;
+    overflow: hidden;
+    background: var(--gray-6);
+  }
+
+  /* Section header (sticky-styled) */
+  .section-head {
+    position: relative;
+    padding: 14px 22px 6px;
+    font-size: 11px; font-weight: 600;
+    letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--label-3);
+    background: linear-gradient(180deg, var(--gray-6) 78%, rgba(242,242,247,0));
+    display: flex; align-items: baseline; justify-content: space-between;
+  }
+  .section-head .count {
+    font-weight: 500; color: var(--label-4);
+    letter-spacing: 0.02em; text-transform: none;
+    font-size: 10.5px;
+  }
+
+  /* Step row */
+  .step-row {
+    display: grid;
+    grid-template-columns: 36px 1fr auto;
+    column-gap: 10px;
+    padding: 11px 22px 11px 14px;
+    position: relative;
+    background: transparent;
+    border-top: 0.5px solid rgba(60,60,67,0.10);
+    align-items: center;
+  }
+  .step-row:first-child { border-top: none; }
+
+  .row-glyph {
+    width: 36px; height: 36px;
+    display: inline-flex; align-items: center; justify-content: center;
+    background: #fff;
+    border-radius: 10px;
+    border: 0.5px solid var(--gray-5);
+    font-size: 17px;
+    flex-shrink: 0;
+    position: relative;
+    z-index: 2;
+  }
+  .row-glyph.muted { background: var(--gray-6); border-color: transparent; opacity: 0.7; }
+
+  .step-row::before {
+    content: "";
+    position: absolute;
+    left: 31px;
+    top: -2px; bottom: -2px;
+    width: 1px;
+    background: var(--gray-4);
+    z-index: 1;
+  }
+  .step-row.first-of-section::before { top: 50%; }
+  .step-row.last-of-section::before { bottom: 50%; }
+  .step-row.alone::before { display: none; }
+
+  .row-body { min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+  .row-body .title {
+    font-size: 15px; font-weight: 600; letter-spacing: -0.25px;
+    color: var(--label);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    line-height: 1.2;
+  }
+  .row-body .meta {
+    font-size: 11.5px; color: var(--label-3); letter-spacing: -0.05px;
+    line-height: 1.3;
+    margin-top: 1px;
+  }
+  .row-body .meta .sep { color: var(--label-4); margin: 0 4px; }
+
+  /* Phase status dots */
+  .phase-dots { display: inline-flex; gap: 5px; align-items: center; }
+  .pd { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+  .pd.empty { background: #fff; border: 1.25px solid var(--gray-3); }
+  .pd.half { background: linear-gradient(90deg, var(--ios-blue) 50%, #fff 50%); border: 1.25px solid var(--ios-blue); }
+  .pd.full { background: var(--label); border: 1.25px solid var(--label); }
+  .pd.full.done { background: var(--ios-green); border-color: var(--ios-green); }
+
+  .step-row.dim .row-body .title { color: var(--label-2); }
+  .step-row.dim .row-glyph { opacity: 0.78; }
+
+  /* ============= SOCIAL LAYER · NEW STYLES ============= */
+
+  /* A thicker tinted band introducing the social layer */
+  .social-zone {
+    background: var(--social-bg);
+    padding-bottom: 2px;
+  }
+  .social-divider {
+    height: 10px;
+    background:
+      linear-gradient(180deg, var(--gray-6) 0%, var(--social-bg) 100%);
+  }
+  .social-head {
+    padding: 16px 22px 8px;
+    display: flex; align-items: baseline; justify-content: space-between;
+    font-size: 11px; font-weight: 700;
+    letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--stage-ink);
+  }
+  .social-head .hide-toggle {
+    font-size: 11px; font-weight: 500;
+    color: var(--label-3); letter-spacing: 0.02em;
+    text-transform: none;
+    display: inline-flex; align-items: center; gap: 4px;
+  }
+  .social-head .hide-toggle i { font-size: 12px; }
+
+  /* Sub-section labels inside the social zone */
+  .sub-head {
+    padding: 10px 22px 6px;
+    font-size: 10px; font-weight: 600;
+    letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--stage-text);
+  }
+
+  /* Social card — visibly smaller than user's own rows */
+  .social-card {
+    margin: 0 14px 8px;
+    background: var(--social-card);
+    border: 0.5px solid var(--social-line);
+    border-radius: 14px;
+    padding: 10px 12px 11px;
+    display: flex; flex-direction: column;
+    gap: 7px;
+  }
+  .sc-head {
+    display: grid;
+    grid-template-columns: 26px 1fr auto;
+    column-gap: 9px;
+    align-items: center;
+  }
+  .sc-avatar {
+    width: 26px; height: 26px; border-radius: 50%;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 13px;
+    flex-shrink: 0;
+    background: linear-gradient(135deg, #B89E7C 0%, #856B4E 100%);
+    color: #fff; font-weight: 600;
+    border: 0.5px solid rgba(0,0,0,0.05);
+  }
+  .sc-avatar.bp {
+    background: linear-gradient(135deg, #5A8FB8 0%, #2F5F87 100%);
+  }
+  .sc-avatar.group {
+    background: linear-gradient(135deg, #8E8B9F 0%, #5C5970 100%);
+    font-size: 12px;
+  }
+  .sc-body { min-width: 0; }
+  .sc-title {
+    font-size: 13.5px; font-weight: 600; letter-spacing: -0.18px;
+    color: var(--readonly-ink);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    line-height: 1.2;
+  }
+  .sc-title .tag {
+    font-weight: 500;
+    color: var(--label-3);
+  }
+  .sc-sub {
+    margin-top: 1px;
+    font-size: 11px; color: var(--stage-text); letter-spacing: -0.04px;
+    line-height: 1.25;
+  }
+  .sc-sub .sep { color: var(--label-4); margin: 0 4px; }
+  .sc-sub .ahead {
+    color: var(--ios-orange); font-weight: 500;
+  }
+  .sc-trail-link {
+    font-size: 11px; font-weight: 500;
+    color: var(--ios-blue);
+    letter-spacing: -0.05px;
+    white-space: nowrap;
+    align-self: center;
+  }
+
+  /* Mini horizontal step-thumbnail rail */
+  .mini-rail {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    align-items: stretch;
+    gap: 0;
+    position: relative;
+    padding: 2px 2px;
+  }
+  .mini-rail::before {
+    content: "";
+    position: absolute;
+    left: 18px; right: 18px;
+    top: 50%;
+    height: 1px;
+    background: var(--social-line);
+    z-index: 0;
+  }
+  .mini-step {
+    position: relative; z-index: 1;
+    display: flex; flex-direction: column; align-items: center; gap: 3px;
+  }
+  .mini-thumb {
+    width: 30px; height: 30px;
+    background: #fff;
+    border: 0.5px solid var(--gray-5);
+    border-radius: 8px;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 14px;
+    box-shadow: 0 0.5px 1px rgba(34,30,20,0.04);
+  }
+  .mini-thumb.done {
+    background: var(--ios-green-tint);
+    border-color: rgba(52,199,89,0.40);
+  }
+  .mini-thumb.current {
+    background: var(--ios-blue);
+    color: #fff;
+    border-color: var(--ios-blue);
+    box-shadow: 0 1px 3px rgba(0,122,255,0.30);
+  }
+  .mini-thumb.future {
+    background: transparent;
+    border: 1px dashed var(--gray-3);
+    color: var(--label-4);
+  }
+  .mini-thumb.peer {
+    border-color: rgba(255,149,0,0.45);
+  }
+  .mini-date {
+    font-size: 8.5px; color: var(--label-3);
+    letter-spacing: 0.02em;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+  }
+  .mini-step.user-here .mini-date {
+    color: var(--ios-blue); font-weight: 600;
+  }
+
+  /* Peer progress lines (3c) */
+  .peer-lines {
+    display: flex; flex-direction: column; gap: 4px;
+    padding-top: 2px;
+  }
+  .peer-line {
+    display: grid;
+    grid-template-columns: 14px 1fr auto;
+    column-gap: 8px;
+    align-items: center;
+    font-size: 11.5px;
+    color: var(--readonly-ink-2);
+    letter-spacing: -0.05px;
+  }
+  .peer-line .who {
+    color: var(--readonly-ink); font-weight: 500;
+  }
+  .peer-line .ahead-pill {
+    font-size: 9.5px; font-weight: 600;
+    color: var(--ios-orange);
+    text-transform: uppercase; letter-spacing: 0.06em;
+  }
+  .peer-line .pavatar {
+    width: 14px; height: 14px; border-radius: 50%;
+    background: linear-gradient(135deg, #B89E7C 0%, #856B4E 100%);
+    color: #fff; font-size: 7.5px; font-weight: 600;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .peer-line.b .pavatar { background: linear-gradient(135deg, #76A57A 0%, #4A7B4F 100%); }
+  .peer-line.c .pavatar { background: linear-gradient(135deg, #B57A8E 0%, #84526A 100%); }
+
+  /* Mini bar for peer step position */
+  .peer-bar {
+    flex: 1;
+    height: 4px; border-radius: 2px;
+    background: rgba(34,30,20,0.08);
+    position: relative;
+    overflow: hidden;
+  }
+  .peer-bar .fill {
+    position: absolute; left: 0; top: 0; bottom: 0;
+    background: var(--label-2);
+    border-radius: 2px;
+  }
+  .peer-bar .you-marker {
+    position: absolute; top: -2px; bottom: -2px;
+    width: 1.5px;
+    background: var(--ios-blue);
+  }
+
+  /* Empty state card (frame 2) */
+  .empty-card {
+    margin: 10px 14px 0;
+    background: var(--social-card);
+    border: 0.5px dashed var(--social-line);
+    border-radius: 18px;
+    padding: 22px 22px 20px;
+    display: flex; flex-direction: column;
+    align-items: flex-start; gap: 6px;
+  }
+  .empty-glyph-row {
+    display: inline-flex; align-items: center; gap: 8px;
+    margin-bottom: 8px;
+  }
+  .empty-glyph-row .e-avatar {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    background: rgba(34,30,20,0.04);
+    border: 0.5px dashed var(--social-line);
+    display: inline-flex; align-items: center; justify-content: center;
+    color: var(--label-3);
+    font-size: 16px;
+  }
+  .empty-glyph-row .e-avatar.bp { border-radius: 10px; }
+  .empty-glyph-row .e-avatar.group { background: transparent; }
+  .empty-card .e-title {
+    font-size: 16px; font-weight: 600; letter-spacing: -0.3px;
+    color: var(--readonly-ink); margin: 0;
+    line-height: 1.2;
+  }
+  .empty-card .e-sub {
+    font-size: 13px; color: var(--stage-text); letter-spacing: -0.05px;
+    line-height: 1.4; margin: 0;
+    text-wrap: pretty;
+  }
+  .empty-cta {
+    margin-top: 14px;
+    background: var(--ios-blue);
+    color: #fff;
+    padding: 10px 16px;
+    border-radius: 12px;
+    border: none;
+    font-size: 14px; font-weight: 600; letter-spacing: -0.1px;
+    display: inline-flex; align-items: center; gap: 6px;
+    cursor: pointer;
+  }
+  .empty-cta i { font-size: 14px; }
+
+  .empty-secondary {
+    margin: 14px 22px 0;
+    font-size: 12px; color: var(--label-3);
+    letter-spacing: -0.05px; line-height: 1.45;
+    text-wrap: pretty;
+  }
+  .empty-secondary a { color: var(--ios-blue); text-decoration: none; font-weight: 500; }
+
+  /* ============= FRAME 3 · READ-ONLY DETAIL VIEW ============= */
+  .ro-screen {
+    position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+    overflow: hidden;
+    padding-top: 50px;
+    background: var(--readonly-bg);
+  }
+  .ro-nav {
+    height: 44px;
+    padding: 0 14px;
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    column-gap: 8px;
+    background: rgba(245, 242, 234, 0.82);
+    -webkit-backdrop-filter: blur(28px) saturate(180%);
+    backdrop-filter: blur(28px) saturate(180%);
+    border-bottom: 0.5px solid var(--social-line);
+    position: relative;
+    z-index: 5;
+  }
+  .ro-nav .back {
+    background: none; border: none; padding: 0;
+    color: var(--ios-blue); font-size: 15px; font-weight: 500;
+    display: inline-flex; align-items: center; gap: 1px;
+    letter-spacing: -0.2px;
+    cursor: pointer;
+  }
+  .ro-nav .back i { font-size: 22px; line-height: 1; }
+  .ro-nav .nav-title {
+    font-size: 14px; font-weight: 600; letter-spacing: -0.25px;
+    text-align: center; color: var(--readonly-ink);
+    line-height: 1.2;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .ro-nav .share {
+    background: none; border: none; padding: 6px;
+    color: var(--ios-blue); cursor: pointer;
+  }
+  .ro-nav .share i { font-size: 19px; line-height: 1; }
+
+  .ro-body {
+    position: absolute;
+    top: 94px; left: 0; right: 0; bottom: 0;
+    overflow: hidden;
+    padding-bottom: 0;
+  }
+
+  .ro-attrib {
+    padding: 12px 18px 6px;
+    display: flex; align-items: center; gap: 9px;
+  }
+  .ro-attrib .av {
+    width: 26px; height: 26px; border-radius: 50%;
+    background: linear-gradient(135deg, #B89E7C 0%, #856B4E 100%);
+    color: #fff; font-size: 11px; font-weight: 600;
+    display: inline-flex; align-items: center; justify-content: center;
+    border: 0.5px solid rgba(0,0,0,0.05);
+  }
+  .ro-attrib .meta {
+    font-size: 12px; color: var(--readonly-ink-2); letter-spacing: -0.05px;
+  }
+  .ro-attrib .meta .name { color: var(--readonly-ink); font-weight: 500; }
+  .ro-attrib .meta .sep { color: var(--readonly-ink-3); margin: 0 5px; }
+
+  .ro-context {
+    padding: 0 18px 10px;
+    font-size: 12px; color: var(--readonly-ink-2);
+    letter-spacing: -0.05px;
+  }
+  .ro-context .sep { color: var(--readonly-ink-3); margin: 0 5px; }
+
+  /* Phase tabs (read-only) */
+  .ro-tabs {
+    margin: 0 14px;
+    background: rgba(34,30,20,0.05);
+    padding: 3px;
+    border-radius: 10px;
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    gap: 2px;
+  }
+  .ro-tabs .tab {
+    text-align: center;
+    font-size: 13px; font-weight: 500; letter-spacing: -0.15px;
+    color: var(--readonly-ink-2);
+    padding: 6px 0;
+    border-radius: 8px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+  }
+  .ro-tabs .tab.on {
+    background: #fff;
+    color: var(--readonly-ink);
+    font-weight: 600;
+    box-shadow: 0 0.5px 2px rgba(34,30,20,0.08), 0 1px 3px rgba(34,30,20,0.04);
+  }
+
+  /* Read-only privacy strip */
+  .ro-privacy {
+    margin: 12px 18px 0;
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 10px;
+    background: rgba(34,30,20,0.05);
+    border-radius: 999px;
+    font-size: 11px; color: var(--readonly-ink-2);
+    letter-spacing: -0.05px;
+  }
+  .ro-privacy i { font-size: 12px; }
+
+  /* Plan content (read-only) */
+  .ro-plan {
+    margin: 12px 14px 0;
+    background: var(--readonly-card);
+    border: 0.5px solid var(--social-line);
+    border-radius: 16px;
+    padding: 6px 16px 12px;
+  }
+  .ro-field {
+    padding: 10px 0;
+    border-top: 0.5px solid rgba(34,30,20,0.07);
+  }
+  .ro-field:first-child { border-top: none; }
+  .ro-field .key {
+    font-size: 10px; font-weight: 600;
+    color: var(--readonly-ink-3); letter-spacing: 0.08em;
+    text-transform: uppercase; margin: 0 0 4px;
+  }
+  .ro-field .val {
+    font-size: 13.5px; line-height: 1.4;
+    color: var(--readonly-ink-2);
+    letter-spacing: -0.1px;
+    margin: 0; text-wrap: pretty;
+  }
+  .ro-field .val strong {
+    color: var(--readonly-ink); font-weight: 600;
+  }
+  .ro-substeps {
+    list-style: none; margin: 0; padding: 0;
+    display: flex; flex-direction: column; gap: 5px;
+  }
+  .ro-substeps li {
+    display: grid; grid-template-columns: 16px 1fr; column-gap: 8px;
+    font-size: 13px; line-height: 1.38;
+    color: var(--readonly-ink-2);
+    letter-spacing: -0.08px;
+  }
+  .ro-substeps li::before {
+    content: counter(roli);
+    counter-increment: roli;
+    font-size: 10px; font-weight: 600;
+    color: var(--readonly-ink-3);
+    width: 16px; height: 16px;
+    border-radius: 50%;
+    background: rgba(34,30,20,0.06);
+    display: inline-flex; align-items: center; justify-content: center;
+    margin-top: 1px;
+  }
+  .ro-substeps { counter-reset: roli; }
+
+  .ro-chips {
+    margin: 10px 0 0;
+    display: flex; flex-wrap: wrap; gap: 6px;
+  }
+  .ro-chip {
+    font-size: 11px; font-weight: 500;
+    color: var(--readonly-ink-2);
+    background: rgba(34,30,20,0.05);
+    padding: 4px 9px;
+    border-radius: 999px;
+    letter-spacing: -0.05px;
+  }
+  .ro-chip i {
+    font-size: 11px; margin-right: 3px;
+    position: relative; top: 1px;
+  }
+
+  /* CTA */
+  .ro-cta-zone {
+    position: absolute;
+    left: 0; right: 0; bottom: 0;
+    padding: 12px 14px 22px;
+    background:
+      linear-gradient(180deg, rgba(245,242,234,0) 0%, var(--readonly-bg) 28%);
+  }
+  .ro-cta-primary {
+    width: 100%;
+    background: var(--ios-blue);
+    color: #fff;
+    border: none;
+    border-radius: 14px;
+    padding: 14px 16px;
+    font-size: 15px; font-weight: 600; letter-spacing: -0.2px;
+    display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+    cursor: pointer;
+    box-shadow:
+      0 1px 2px rgba(0,0,0,0.10),
+      0 8px 18px -8px rgba(0, 122, 255, 0.45);
+  }
+  .ro-cta-primary i { font-size: 17px; }
+  .ro-cta-secondary {
+    margin-top: 10px;
+    display: flex; align-items: center; justify-content: center; gap: 22px;
+  }
+  .ro-cta-secondary button {
+    background: none; border: none; cursor: pointer;
+    font-size: 13px; font-weight: 500;
+    color: var(--ios-blue); letter-spacing: -0.1px;
+    display: inline-flex; align-items: center; gap: 5px;
+  }
+  .ro-cta-secondary button i { font-size: 14px; }
+  .ro-cta-secondary .dot { color: var(--readonly-ink-3); }
+
+  /* ============= Bottom tab bar ============= */
+  .tabbar {
+    position: absolute; left: 0; right: 0; bottom: 0;
+    height: 84px;
+    padding: 6px 0 24px;
+    background: rgba(255, 255, 255, 0.82);
+    -webkit-backdrop-filter: blur(28px) saturate(180%);
+    backdrop-filter: blur(28px) saturate(180%);
+    border-top: 0.5px solid rgba(0, 0, 0, 0.08);
+    display: grid; grid-template-columns: repeat(4, 1fr); align-items: center;
+    z-index: 25;
+  }
+  .tabbar .t {
+    display: flex; flex-direction: column; align-items: center; gap: 2px;
+    background: none; border: none; padding: 6px 0; cursor: pointer;
+    color: var(--gray-1);
+    font-size: 10px; font-weight: 500; letter-spacing: 0.02em;
+  }
+  .tabbar .t i { font-size: 25px; line-height: 1; }
+  .tabbar .t.on { color: var(--ios-blue); }
+  .tabbar .t.on i { color: var(--ios-blue); }
+
+  /* FAB */
+  .fab {
+    position: absolute;
+    right: 16px;
+    bottom: 100px;
+    width: 56px; height: 56px;
+    border-radius: 50%;
+    background: var(--ios-blue);
+    display: inline-flex; align-items: center; justify-content: center;
+    color: #fff;
+    box-shadow:
+      0 1px 2px rgba(0,0,0,0.10),
+      0 6px 14px -2px rgba(0, 122, 255, 0.45),
+      0 14px 30px -10px rgba(0, 122, 255, 0.45);
+    z-index: 28;
+    border: 0.5px solid rgba(255,255,255,0.18);
+  }
+  .fab .plus { width: 22px; height: 22px; position: relative; }
+  .fab .plus::before, .fab .plus::after {
+    content: ""; position: absolute; background: #fff; border-radius: 1.5px;
+  }
+  .fab .plus::before { left: 50%; top: 2px; bottom: 2px; width: 2.5px; transform: translateX(-50%); }
+  .fab .plus::after { top: 50%; left: 2px; right: 2px; height: 2.5px; transform: translateY(-50%); }
+
+  /* ============= Footer rail ============= */
+  .rail-row {
+    max-width: 1420px;
+    margin: 56px auto 0;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 48px;
+  }
+  .rail-col h4 {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 14px; letter-spacing: 0.01em;
+    color: var(--stage-ink); margin: 0 0 10px; font-weight: 500;
+  }
+  .rail-col h4 em { font-style: italic; }
+  .rail-col p {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 13.5px; line-height: 1.55;
+    color: #4D4A43; margin: 0 0 10px;
+    text-wrap: pretty;
+  }
+  .rail-col p strong { color: var(--stage-ink); font-weight: 500; }
+  .rail-col em { font-style: italic; }
+  .rail-col .sig {
+    display: inline-flex; align-items: center; gap: 6px;
+    margin-top: 4px;
+    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 11px; letter-spacing: 0.04em;
+    color: var(--stage-text);
+  }
+  .rail-col .sig .swatch {
+    display: inline-block;
+    width: 10px; height: 10px; border-radius: 3px;
+    border: 0.5px solid rgba(0,0,0,0.1);
+  }
+  .rail-col .sig .swatch.blue { background: var(--ios-blue); }
+  .rail-col .sig .swatch.social { background: var(--social-bg); }
+  .rail-col .sig .swatch.readonly { background: var(--readonly-bg); }
+  .rail-col .sig .swatch.orange { background: var(--ios-orange); }
+</style>
+</head>
+<body>
+
+<div class="page">
+
+  <header class="page-head">
+    <p class="eyebrow">BetterAt · Social Timeline Layer · Canonical — 2026-05-15</p>
+    <h1>Below the user's own timeline, a quieter band: <em>what the people and plans they follow have been doing</em></h1>
+    <p>The Social Timeline Layer is the third zone of the zoomed-out view, after <em>Upcoming</em> and the personal history. It is visually subordinated — smaller cards, warmer muted ground, no phase-status dots — so it never competes with the user's own practice. Three sub-sections: <em>People you follow</em>, <em>Blueprints you follow</em>, <em>Peers on the same blueprint</em>. Tapping any step in a mini-timeline opens that step in a read-only detail view with a single, prominent <em>Add this to my timeline</em> action.</p>
+    <div class="crumbs">
+      <span class="pill">iPhone 16e · portrait · 393 × 852</span>
+      <span class="sep">·</span>
+      <span class="pill">Extends <em>Zoomed-Out Timeline · Canonical</em></span>
+      <span class="sep">·</span>
+      <span class="pill">Source spec · <em>PRACTICE_TIMELINE_ADD_STEP_ZOOMED_OUT_SOCIAL_ADDENDUM.md</em> — Surface 3</span>
+    </div>
+  </header>
+
+  <section class="strip-head">
+    <p class="eyebrow">Frames 1 — 3 · Social Timeline Layer</p>
+    <h2><em>Following populated · Empty state · Other person's step</em></h2>
+    <p>Frame 1 is the canonical surface — three Following sub-sections sitting under the tail of the user's own timeline. Frame 2 is the inviting zero-state. Frame 3 is the destination when the user taps into someone else's step.</p>
+  </section>
+
+  <div class="row">
+
+    <!-- =============================================================== -->
+    <!-- Frame 1 · Following sections populated  (canonical surface)        -->
+    <!-- =============================================================== -->
+    <div class="col hero">
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="statusbar">
+          <span>9:14</span>
+          <span class="right">
+            <i class="ti ti-cell-signal-4"></i>
+            <i class="ti ti-wifi"></i>
+            <i class="ti ti-battery-3"></i>
+          </span>
+        </div>
+
+        <div class="screen" data-screen-label="01 Following populated">
+
+          <div class="top-header">
+            <div class="interest">
+              <span class="name">Sail Racing</span>
+              <span class="switcher"><i class="ti ti-chevron-down"></i></span>
+            </div>
+            <div class="count-meta">147 steps<span class="range">Sep 2024 – present</span></div>
+            <button class="search-btn" aria-label="Search"><i class="ti ti-search"></i></button>
+            <div class="avatar">KD</div>
+          </div>
+
+          <div class="list-scroll">
+
+            <!-- Tail of user's own timeline: Earlier in May -->
+            <div class="section-head" style="padding-top: 6px;">Earlier in May<span class="count">6</span></div>
+
+            <div class="step-row dim first-of-section">
+              <span class="row-glyph">🎯</span>
+              <div class="row-body">
+                <div class="title">Layline judgment in lulls</div>
+                <div class="meta">Sun May 4<span class="sep">·</span>RHKYC</div>
+              </div>
+              <span class="phase-dots">
+                <span class="pd full done"></span><span class="pd full done"></span><span class="pd full done"></span>
+              </span>
+            </div>
+
+            <div class="step-row dim last-of-section">
+              <span class="row-glyph">📋</span>
+              <div class="row-body">
+                <div class="title">Pre-race checklist v3</div>
+                <div class="meta">Fri May 2<span class="sep">·</span>Boat tune</div>
+              </div>
+              <span class="phase-dots">
+                <span class="pd full done"></span><span class="pd full done"></span><span class="pd half"></span>
+              </span>
+            </div>
+
+            <!-- Social zone -->
+            <div class="social-divider"></div>
+            <div class="social-zone">
+
+              <div class="social-head">
+                <span>Following</span>
+                <span class="hide-toggle">Hide<i class="ti ti-chevron-down"></i></span>
+              </div>
+
+              <!-- 3a · People you follow -->
+              <div class="sub-head">People you follow</div>
+
+              <div class="social-card">
+                <div class="sc-head">
+                  <span class="sc-avatar">BG</span>
+                  <div class="sc-body">
+                    <div class="sc-title">Bill Gladstone <span class="tag">· Sail Racing</span></div>
+                    <div class="sc-sub">Last active 2 days ago<span class="sep">·</span>34 steps</div>
+                  </div>
+                  <a class="sc-trail-link" href="#">view all →</a>
+                </div>
+                <div class="mini-rail" aria-label="Recent steps from Bill Gladstone">
+                  <div class="mini-step"><div class="mini-thumb done">⚓</div><span class="mini-date">Apr 19</span></div>
+                  <div class="mini-step"><div class="mini-thumb done">🌬</div><span class="mini-date">Apr 22</span></div>
+                  <div class="mini-step"><div class="mini-thumb done">🧠</div><span class="mini-date">Apr 26</span></div>
+                  <div class="mini-step"><div class="mini-thumb done">🏆</div><span class="mini-date">May 3</span></div>
+                  <div class="mini-step"><div class="mini-thumb done">📐</div><span class="mini-date">May 10</span></div>
+                </div>
+              </div>
+
+              <!-- 3b · Blueprints you follow -->
+              <div class="sub-head">Blueprints you follow</div>
+
+              <div class="social-card">
+                <div class="sc-head">
+                  <span class="sc-avatar bp">📘</span>
+                  <div class="sc-body">
+                    <div class="sc-title">Bram's Dragon Worlds Prep</div>
+                    <div class="sc-sub">28 subscribers<span class="sep">·</span>You're on <strong style="color:var(--ios-blue);font-weight:600;">Step 6 / 14</strong></div>
+                  </div>
+                  <a class="sc-trail-link" href="#">view all →</a>
+                </div>
+                <div class="mini-rail" aria-label="Blueprint steps, your progress overlaid">
+                  <div class="mini-step"><div class="mini-thumb done">①</div><span class="mini-date">done</span></div>
+                  <div class="mini-step"><div class="mini-thumb done">②</div><span class="mini-date">done</span></div>
+                  <div class="mini-step"><div class="mini-thumb done">③</div><span class="mini-date">done</span></div>
+                  <div class="mini-step user-here"><div class="mini-thumb current">⑥</div><span class="mini-date">you</span></div>
+                  <div class="mini-step"><div class="mini-thumb future">⑦</div><span class="mini-date">next</span></div>
+                </div>
+              </div>
+
+              <!-- 3c · Peers on same blueprint -->
+              <div class="sub-head">Peers on Bram's Blueprint</div>
+
+              <div class="social-card">
+                <div class="sc-head">
+                  <span class="sc-avatar group">👥</span>
+                  <div class="sc-body">
+                    <div class="sc-title">Others on this blueprint <span class="tag">· 12</span></div>
+                    <div class="sc-sub">Tomás · Jamie · Bence · +9 more</div>
+                  </div>
+                  <a class="sc-trail-link" href="#">view all 12 →</a>
+                </div>
+                <div class="peer-lines">
+                  <div class="peer-line">
+                    <span class="pavatar">T</span>
+                    <span><span class="who">Tomás</span> is on Step 9</span>
+                    <div class="peer-bar" style="width:96px;"><div class="fill" style="width:64%;"></div><div class="you-marker" style="left:43%;"></div></div>
+                  </div>
+                  <div class="peer-line b">
+                    <span class="pavatar">J</span>
+                    <span><span class="who">Jamie</span> is on Step 5</span>
+                    <div class="peer-bar" style="width:96px;"><div class="fill" style="width:36%;"></div><div class="you-marker" style="left:43%;"></div></div>
+                  </div>
+                  <div class="peer-line c">
+                    <span class="pavatar">B</span>
+                    <span><span class="who">Bence</span> is on Step 11 <span class="ahead-pill">ahead</span></span>
+                    <div class="peer-bar" style="width:96px;"><div class="fill" style="width:79%;background:var(--ios-orange);"></div><div class="you-marker" style="left:43%;"></div></div>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          <button class="fab" aria-label="Add a step">
+            <span class="plus" aria-hidden="true"></span>
+          </button>
+
+          <nav class="tabbar">
+            <button class="t on" aria-current="page"><i class="ti ti-flag-3-filled"></i><span>Practice</span></button>
+            <button class="t"><i class="ti ti-book-2"></i><span>Playbook</span></button>
+            <button class="t"><i class="ti ti-compass"></i><span>Discover</span></button>
+            <button class="t"><i class="ti ti-user"></i><span>Profile</span></button>
+          </nav>
+        </div>
+
+        <div class="home-indicator"></div>
+      </div>
+      <div class="caption-block">
+        <p class="frame-label"><em>Following — populated</em></p>
+        <p class="frame-sub">Below the tail of the user's own timeline, a warm-muted band carries three sub-sections: people, blueprints, and peers. Cards are smaller, lack phase dots, and use a lighter type weight — clear hierarchy beneath the user's own practice.</p>
+      </div>
+    </div>
+
+    <!-- =============================================================== -->
+    <!-- Frame 2 · Empty state                                              -->
+    <!-- =============================================================== -->
+    <div class="col">
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="statusbar">
+          <span>9:14</span>
+          <span class="right">
+            <i class="ti ti-cell-signal-4"></i>
+            <i class="ti ti-wifi"></i>
+            <i class="ti ti-battery-3"></i>
+          </span>
+        </div>
+
+        <div class="screen" data-screen-label="02 Following empty">
+
+          <div class="top-header">
+            <div class="interest">
+              <span class="name">Sail Racing</span>
+              <span class="switcher"><i class="ti ti-chevron-down"></i></span>
+            </div>
+            <div class="count-meta">147 steps<span class="range">Sep 2024 – present</span></div>
+            <button class="search-btn"><i class="ti ti-search"></i></button>
+            <div class="avatar">KD</div>
+          </div>
+
+          <div class="list-scroll">
+
+            <div class="section-head" style="padding-top: 6px;">Earlier in May<span class="count">6</span></div>
+
+            <div class="step-row dim first-of-section">
+              <span class="row-glyph">🎯</span>
+              <div class="row-body">
+                <div class="title">Layline judgment in lulls</div>
+                <div class="meta">Sun May 4<span class="sep">·</span>RHKYC</div>
+              </div>
+              <span class="phase-dots">
+                <span class="pd full done"></span><span class="pd full done"></span><span class="pd full done"></span>
+              </span>
+            </div>
+
+            <div class="step-row dim last-of-section">
+              <span class="row-glyph">📋</span>
+              <div class="row-body">
+                <div class="title">Pre-race checklist v3</div>
+                <div class="meta">Fri May 2<span class="sep">·</span>Boat tune</div>
+              </div>
+              <span class="phase-dots">
+                <span class="pd full done"></span><span class="pd full done"></span><span class="pd half"></span>
+              </span>
+            </div>
+
+            <!-- Social zone — empty state -->
+            <div class="social-divider"></div>
+            <div class="social-zone" style="padding-bottom: 28px;">
+
+              <div class="social-head">
+                <span>Following</span>
+                <span class="hide-toggle">Hide<i class="ti ti-chevron-down"></i></span>
+              </div>
+
+              <div class="empty-card">
+                <div class="empty-glyph-row">
+                  <span class="e-avatar">👤</span>
+                  <span class="e-avatar bp">📘</span>
+                  <span class="e-avatar group">👥</span>
+                </div>
+                <p class="e-title">Find people and plans to follow</p>
+                <p class="e-sub">Discover sailors and nurses practicing what you practice. Their steps appear here, quietly, so you can learn from their pace without losing your own.</p>
+                <button class="empty-cta">
+                  <i class="ti ti-compass"></i>
+                  Open Discover
+                </button>
+              </div>
+
+              <p class="empty-secondary">
+                Already know someone using BetterAt? <a href="#">Invite them →</a>
+              </p>
+
+            </div>
+          </div>
+
+          <button class="fab" aria-label="Add a step">
+            <span class="plus" aria-hidden="true"></span>
+          </button>
+
+          <nav class="tabbar">
+            <button class="t on" aria-current="page"><i class="ti ti-flag-3-filled"></i><span>Practice</span></button>
+            <button class="t"><i class="ti ti-book-2"></i><span>Playbook</span></button>
+            <button class="t"><i class="ti ti-compass"></i><span>Discover</span></button>
+            <button class="t"><i class="ti ti-user"></i><span>Profile</span></button>
+          </nav>
+        </div>
+
+        <div class="home-indicator"></div>
+      </div>
+      <div class="caption-block">
+        <p class="frame-label"><em>Following — empty</em></p>
+        <p class="frame-sub">Zero follows. A single inviting card — three placeholder glyphs hinting at the three sub-section types — and a clear iOS-blue route into Discover. The tone is reassuring, not awkward.</p>
+      </div>
+    </div>
+
+    <!-- =============================================================== -->
+    <!-- Frame 3 · Read-only detail view                                    -->
+    <!-- =============================================================== -->
+    <div class="col">
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="statusbar">
+          <span>9:14</span>
+          <span class="right">
+            <i class="ti ti-cell-signal-4"></i>
+            <i class="ti ti-wifi"></i>
+            <i class="ti ti-battery-3"></i>
+          </span>
+        </div>
+
+        <div class="ro-screen" data-screen-label="03 Other person's step">
+
+          <!-- iOS-style nav bar -->
+          <div class="ro-nav">
+            <button class="back" aria-label="Back">
+              <i class="ti ti-chevron-left"></i>
+              <span>Back</span>
+            </button>
+            <div class="nav-title">Pre-race mental routine</div>
+            <button class="share" aria-label="Share">
+              <i class="ti ti-share-2"></i>
+            </button>
+          </div>
+
+          <div class="ro-body">
+
+            <!-- Subscriber attribution -->
+            <div class="ro-attrib">
+              <span class="av">BG</span>
+              <div class="meta">
+                By <span class="name">Bill Gladstone</span><span class="sep">·</span>Sail Racing
+              </div>
+            </div>
+
+            <div class="ro-context">
+              Saturday · Apr 26<span class="sep">·</span>Race day prep
+            </div>
+
+            <!-- Phase tabs -->
+            <div class="ro-tabs" role="tablist">
+              <button class="tab on" role="tab" aria-selected="true">Plan</button>
+              <button class="tab" role="tab">Do</button>
+              <button class="tab" role="tab">Reflect</button>
+            </div>
+
+            <!-- Privacy indicator -->
+            <div class="ro-privacy">
+              <i class="ti ti-lock"></i>
+              <span>Visible to followers</span>
+            </div>
+
+            <!-- Plan content (read-only) -->
+            <div class="ro-plan">
+
+              <div class="ro-field">
+                <p class="key">What</p>
+                <p class="val"><strong>Mental routine before each start.</strong></p>
+              </div>
+
+              <div class="ro-field">
+                <p class="key">How</p>
+                <ol class="ro-substeps">
+                  <li>Six slow breaths on the rail at the 4-minute gun, eyes closed.</li>
+                  <li>Name the day's wind: shifty / steady / dying — out loud, to the crew.</li>
+                  <li>Pick one cue word for the first beat (e.g. <em>"patient"</em>). Repeat it on the line.</li>
+                </ol>
+              </div>
+
+              <div class="ro-field">
+                <p class="key">Why</p>
+                <p class="val">Helps me settle into a calm, decisive headspace when the start gets noisy.</p>
+              </div>
+
+              <div class="ro-field">
+                <p class="key">Capabilities</p>
+                <div class="ro-chips">
+                  <span class="ro-chip">Mental routine</span>
+                  <span class="ro-chip">Starts</span>
+                </div>
+              </div>
+
+            </div>
+
+          </div>
+
+          <!-- Bottom CTA zone -->
+          <div class="ro-cta-zone">
+            <button class="ro-cta-primary">
+              <i class="ti ti-plus"></i>
+              Add this to my timeline
+            </button>
+            <div class="ro-cta-secondary">
+              <button><i class="ti ti-bookmark"></i>Save for later</button>
+              <span class="dot">·</span>
+              <button><i class="ti ti-share-2"></i>Share</button>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="home-indicator"></div>
+      </div>
+      <div class="caption-block">
+        <p class="frame-label"><em>Other person's step</em></p>
+        <p class="frame-sub">A familiar Plan layout — but on warm cream stock, with a small attribution strip and a lock pill marking it as someone else's. The whole screen funnels to one button: <em>Add this to my timeline</em>.</p>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- =================================================================== -->
+  <!-- Rail of notes                                                         -->
+  <!-- =================================================================== -->
+  <div class="rail-row">
+    <div class="rail-col">
+      <h4><em>The social layer is subordinated, by design</em></h4>
+      <p>The user's own practice is the foreground. The social layer is a quieter ground beneath it: warmer tone, smaller type (13.5pt vs 15pt), no phase-status dots, no NOW divider, no FAB interaction. Cards have rounded edges and breathing room rather than the flush, dense row-rhythm of the user's timeline. Scrolling past the user's own history is the only way to find it — and one tap on <em>Hide</em> collapses the whole zone if it ever starts to feel noisy.</p>
+      <span class="sig"><span class="swatch social"></span>Following band — muted warm ground</span>
+    </div>
+    <div class="rail-col">
+      <h4>Three <em>sub-sections</em> answer three different social questions</h4>
+      <p><strong>People you follow</strong> shows individual recent activity — five most-recent step thumbnails per person on a horizontal rail. <strong>Blueprints you follow</strong> shows the structure of a plan with your own progress pinned onto it as a blue chip. <strong>Peers on the same blueprint</strong> compresses many followed practitioners' positions into three lines, with a small bar showing where each is relative to where you are. One blue tick-mark in every bar always means "you."</p>
+      <span class="sig"><span class="swatch blue"></span>your position · <span class="swatch orange"></span>peer ahead</span>
+    </div>
+    <div class="rail-col">
+      <h4>Tap a step → familiar shape, foreign content, <em>one obvious next move</em></h4>
+      <p>Frame 3 reuses the Plan-tab structure of the user's own steps so it reads instantly. But it's on a different stock — warm cream, not iOS cool gray — and gains an attribution strip and a small lock pill marking the privacy boundary. Body text loses one shade of weight. Everything funnels toward the one full-width blue button: <strong>Add this to my timeline</strong>. Save and Share are quiet text actions below; there is no edit, because this isn't yours yet.</p>
+      <span class="sig"><span class="swatch readonly"></span>read-only stock · <span class="swatch blue"></span>add to timeline</span>
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>
