@@ -1,10 +1,14 @@
 import { getActiveMembership, isActiveMembership, isOrgAdminRole, resolveActiveOrgId } from '@/lib/organizations/adminGate';
 import { fetchOrganizationInterestSlug } from '@/components/organizations/OrgContextPill';
 import { OrgAdminHeader } from '@/components/organizations/OrgAdminHeader';
+import { OrgAdminOnboardingCard } from '@/components/organizations/OrgAdminOnboardingCard';
 import { useOrganization } from '@/providers/OrganizationProvider';
+import { useAuth } from '@/providers/AuthProvider';
 import { FacultyCohortDashboard } from '@/components/organization/FacultyCohortDashboard';
 import { supabase } from '@/services/supabase';
 import { isUuid } from '@/utils/uuid';
+import { FEATURE_FLAGS } from '@/lib/featureFlags';
+import { useOrgAdminOnboardingCard } from '@/hooks/useOrgAdminOnboardingCard';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -20,6 +24,7 @@ export default function CohortDashboardScreen() {
     loading: orgLoading,
     ready: orgReady,
   } = useOrganization();
+  const { userProfile } = useAuth();
 
   const [cohorts, setCohorts] = useState<CohortOption[]>([]);
   const [selectedCohortId, setSelectedCohortId] = useState<string | null>(null);
@@ -99,6 +104,19 @@ export default function CohortDashboardScreen() {
     void loadCohorts();
   }, [canView, orgLoading, orgReady, loadCohorts]);
 
+  const onboarding = useOrgAdminOnboardingCard(resolvedActiveOrgId);
+  const adminFirstName = useMemo(() => {
+    const fullName: string | null | undefined = userProfile?.full_name;
+    if (!fullName || typeof fullName !== 'string') return null;
+    const first = fullName.trim().split(/\s+/)[0];
+    return first || null;
+  }, [userProfile?.full_name]);
+  const showOnboardingCard =
+    FEATURE_FLAGS.JHU_ADMIN_DASHBOARD_IOS &&
+    onboarding.shouldShow &&
+    !loading &&
+    cohorts.length > 0;
+
   return (
     <View style={styles.container}>
       <OrgAdminHeader
@@ -137,6 +155,14 @@ export default function CohortDashboardScreen() {
         </View>
       ) : (
         <>
+          {showOnboardingCard && (
+            <OrgAdminOnboardingCard
+              adminName={adminFirstName}
+              organizationName={activeOrganization?.name ?? null}
+              onTakeTour={() => router.push('/organization/members')}
+              onDismiss={() => { void onboarding.dismiss(); }}
+            />
+          )}
           {/* Cohort selector */}
           {cohorts.length > 1 && (
             <View style={styles.selectorRow}>
