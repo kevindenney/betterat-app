@@ -18,6 +18,7 @@ export { DoAutoSummaryCard, type DoAutoSummaryCardProps } from './DoAutoSummaryC
 export { DoMoveToReflectCTA, type DoMoveToReflectCTAProps } from './DoMoveToReflectCTA';
 export { DoSecondaryActions, type DoSecondaryActionsProps } from './DoSecondaryActions';
 export { DoPostActivityCard, type DoPostActivityCardProps } from './DoPostActivityCard';
+export { DoQuickNoteModal, type DoQuickNoteModalProps } from './DoQuickNoteModal';
 export {
   MarkAsEvidenceSheet,
   type MarkAsEvidenceSheetProps,
