@@ -1,0 +1,1601 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=1520" />
+<title>BetterAt · B.7 Frame 4 · Mark as evidence — Canonical · 2026-05-16</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css" />
+<style>
+  :root {
+    --ios-blue:        #007AFF;
+    --ios-blue-tint:   rgba(0, 122, 255, 0.10);
+    --ios-blue-strong: rgba(0, 122, 255, 0.18);
+    --ios-blue-deep:   #0062CC;
+    --ios-coral:       #FF6B6B;
+    --ios-coral-tint:  rgba(255, 107, 107, 0.10);
+    --ios-coral-soft:  rgba(255, 107, 107, 0.18);
+    --ios-coral-deep:  #E54848;
+    --ios-green:       #34C759;
+    --ios-green-tint:  rgba(52, 199, 89, 0.14);
+    --ios-green-soft:  rgba(52, 199, 89, 0.22);
+    --ios-green-wash:  rgba(52, 199, 89, 0.06);
+    --ios-green-deep:  #248A3D;
+    --ios-purple:      #5856D6;
+    --ios-amber:       #C28A2A;
+
+    --gray-6:   #F2F2F7;
+    --gray-5:   #E5E5EA;
+    --gray-4:   #D1D1D6;
+    --gray-3:   #C7C7CC;
+    --gray-2:   #AEAEB2;
+    --gray-1:   #8E8E93;
+    --label:    #1C1C1E;
+    --label-2:  #3C3C43;
+    --label-3:  rgba(60, 60, 67, 0.60);
+    --label-4:  rgba(60, 60, 67, 0.30);
+
+    --stage:           #EFEAD8;
+    --stage-text:      #6B6558;
+    --stage-ink:       #2A2824;
+    --stage-line:      rgba(34, 30, 20, 0.12);
+    --stage-line-soft: rgba(34, 30, 20, 0.06);
+    --measure:         #C28A2A;
+    --measure-soft:    rgba(194, 138, 42, 0.22);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display",
+                 "Helvetica Neue", Helvetica, Arial, sans-serif;
+    color: var(--label);
+    background: var(--stage);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+  button { font-family: inherit; }
+
+  /* ============= Page chrome ============= */
+  .page { min-width: 1520px; padding: 56px 48px 96px; }
+  .page-head { max-width: 1420px; margin: 0 auto 44px; }
+  .page-head .eyebrow {
+    font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--stage-text); margin: 0 0 12px;
+  }
+  .page-head h1 {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 32px; line-height: 1.15; font-weight: 500;
+    letter-spacing: -0.015em; margin: 0 0 14px; color: var(--stage-ink);
+  }
+  .page-head h1 em { font-style: italic; }
+  .page-head p {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 17px; line-height: 1.55;
+    color: var(--stage-text); margin: 0; max-width: 1100px;
+    text-wrap: pretty;
+  }
+  .page-head p em { font-style: italic; }
+  .page-head p + p { margin-top: 12px; }
+  .page-head .crumbs {
+    display: flex; gap: 10px; align-items: center; margin: 22px 0 0; flex-wrap: wrap;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+    font-size: 12px; color: var(--stage-text); letter-spacing: 0.02em;
+  }
+  .page-head .crumbs .pill {
+    padding: 3px 10px; border-radius: 999px;
+    border: 0.5px solid var(--stage-line);
+    background: rgba(255,255,255,0.4);
+  }
+  .page-head .crumbs .sep { color: var(--stage-line); }
+
+  .strip-head {
+    max-width: 1420px;
+    margin: 36px auto 22px;
+    padding-top: 24px;
+    border-top: 0.5px solid var(--stage-line);
+  }
+  .strip-head .eyebrow {
+    font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--stage-text); margin: 0 0 8px;
+  }
+  .strip-head h2 {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 22px; line-height: 1.25; font-weight: 500;
+    letter-spacing: -0.01em; margin: 0 0 8px; color: var(--stage-ink);
+  }
+  .strip-head h2 em { font-style: italic; }
+  .strip-head p {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 15px; line-height: 1.55;
+    color: var(--stage-text); margin: 0; max-width: 1080px;
+    text-wrap: pretty;
+  }
+
+  .row {
+    max-width: 1420px;
+    margin: 0 auto;
+    display: flex;
+    gap: 64px;
+    align-items: flex-start;
+    justify-content: center;
+  }
+  .col { display: flex; flex-direction: column; align-items: center; gap: 16px; }
+  .col .frame-label {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 18px; font-weight: 500; letter-spacing: -0.2px;
+    color: var(--stage-ink); margin: 0 0 4px;
+  }
+  .col .frame-label em { font-style: italic; }
+  .col .frame-sub {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 13px; font-style: italic;
+    color: var(--stage-text); margin: 0;
+    max-width: 380px; text-wrap: pretty; line-height: 1.45;
+    text-align: center;
+  }
+
+  /* ============= Phone shell ============= */
+  .phone {
+    width: 393px;
+    height: 852px;
+    background: var(--gray-6);
+    border-radius: 56px;
+    border: 1px solid rgba(0, 0, 0, 0.18);
+    box-shadow:
+      0 30px 80px -40px rgba(34, 30, 20, 0.32),
+      0 2px 0 rgba(255,255,255,0.5) inset;
+    overflow: hidden;
+    position: relative;
+    isolation: isolate;
+  }
+  .phone.bare { background: #FFFFFF; }
+  .phone .notch {
+    position: absolute; top: 11px; left: 50%; transform: translateX(-50%);
+    width: 116px; height: 34px; background: #0F0E0C; border-radius: 20px; z-index: 60;
+  }
+  .statusbar {
+    position: absolute; top: 0; left: 0; right: 0; height: 50px;
+    padding: 16px 32px 0; display: flex; align-items: center; justify-content: space-between;
+    font-weight: 600; font-size: 15px; color: #0A0A0A; z-index: 55; pointer-events: none;
+  }
+  .statusbar .right { display: flex; gap: 6px; align-items: center; }
+  .statusbar .right i { font-size: 15px; }
+  .home-indicator {
+    position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%);
+    width: 134px; height: 5px; border-radius: 3px;
+    background: rgba(0, 0, 0, 0.30); z-index: 60; pointer-events: none;
+  }
+
+  /* ============= Screen ground ============= */
+  .screen {
+    position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+    overflow: hidden;
+    background: var(--gray-6);
+  }
+
+  /* ===========================================================
+     Backdrop · post-activity state, dimmed
+     =========================================================== */
+  .backdrop {
+    position: absolute; inset: 0;
+    overflow: hidden;
+    z-index: 1;
+    /* Subtly desaturated and darkened. The scrim overlay handles the dimming. */
+    filter: saturate(0.85);
+  }
+  .backdrop-content {
+    position: absolute; inset: 0;
+    padding-top: 50px;
+    /* Slight upward push so the sheet covers most of it */
+  }
+  .scrim {
+    position: absolute; inset: 0;
+    background: rgba(15, 14, 12, 0.42);
+    -webkit-backdrop-filter: blur(2px);
+    backdrop-filter: blur(2px);
+    z-index: 20;
+  }
+
+  /* The mini post-activity reproduced verbatim, slightly muted */
+  .top-header {
+    padding: 8px 18px 10px;
+    display: flex; align-items: center; justify-content: space-between;
+    height: 52px;
+  }
+  .top-header .interest { display: inline-flex; align-items: baseline; gap: 8px; }
+  .top-header .interest .name {
+    font-size: 17px; font-weight: 600; letter-spacing: -0.25px;
+    color: var(--label);
+  }
+  .top-header .interest .switcher {
+    font-size: 13px; color: var(--label-3);
+    display: inline-flex; align-items: center; gap: 2px;
+  }
+  .top-header .interest .switcher i { font-size: 14px; margin-left: -2px; }
+  .top-header .step-counter {
+    font-size: 13px; font-weight: 500;
+    color: var(--label-3); letter-spacing: -0.05px;
+    font-variant-numeric: tabular-nums;
+  }
+  .top-header .avatar {
+    width: 32px; height: 32px; border-radius: 50%;
+    background: linear-gradient(135deg, #4E6A85 0%, #7C7B6E 100%);
+    display: inline-flex; align-items: center; justify-content: center;
+    color: #fff; font-size: 13px; font-weight: 600;
+    letter-spacing: -0.1px;
+    border: 0.5px solid rgba(0, 0, 0, 0.05);
+  }
+
+  .bg-card {
+    position: absolute;
+    left: 14px; right: 14px;
+    top: 64px;
+    bottom: 192px;
+    background: #FFFFFF;
+    border-radius: 22px;
+    border: 0.5px solid rgba(0, 0, 0, 0.04);
+    box-shadow:
+      0 1px 2px rgba(0, 0, 0, 0.06),
+      0 18px 38px -16px rgba(0, 0, 0, 0.20);
+    overflow: hidden;
+  }
+  .bg-done-head {
+    padding: 13px 18px 12px;
+    border-bottom: 0.5px solid var(--gray-5);
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 12px;
+  }
+  .bg-done-pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 5px 11px 5px 8px;
+    border-radius: 999px;
+    background: var(--ios-green-tint);
+    border: 0.5px solid var(--ios-green-soft);
+  }
+  .bg-done-pill .tick {
+    width: 14px; height: 14px; border-radius: 50%;
+    background: var(--ios-green); color: #fff;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .bg-done-pill .tick i { font-size: 9px; font-weight: 700; }
+  .bg-done-pill .label {
+    font-size: 11px; font-weight: 700; letter-spacing: 0.6px;
+    color: var(--ios-green-deep); text-transform: uppercase;
+  }
+
+  /* Tab bar (shows through underneath the sheet visually) */
+  .bg-tabbar {
+    position: absolute; left: 0; right: 0; bottom: 0;
+    height: 84px;
+    padding: 6px 0 24px;
+    background: rgba(255, 255, 255, 0.82);
+    border-top: 0.5px solid rgba(0, 0, 0, 0.08);
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    align-items: center;
+  }
+  .bg-tabbar .t {
+    display: flex; flex-direction: column; align-items: center; gap: 2px;
+    background: none; border: none; padding: 6px 0;
+    color: var(--gray-1);
+    font-size: 10px; font-weight: 500;
+  }
+  .bg-tabbar .t i { font-size: 25px; line-height: 1; }
+  .bg-tabbar .t.on { color: var(--ios-blue); }
+
+  /* ===========================================================
+     Bottom-sheet shell
+     =========================================================== */
+  .sheet {
+    position: absolute;
+    left: 0; right: 0;
+    bottom: 0;
+    height: 720px;
+    background: #FFFFFF;
+    border-radius: 22px 22px 0 0;
+    box-shadow:
+      0 -1px 2px rgba(0, 0, 0, 0.04),
+      0 -22px 50px -16px rgba(0, 0, 0, 0.28);
+    z-index: 30;
+    display: flex; flex-direction: column;
+    overflow: hidden;
+  }
+
+  .sheet .grabber-wrap {
+    height: 22px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .sheet .grabber {
+    width: 36px; height: 5px; border-radius: 3px;
+    background: var(--gray-4);
+    opacity: 0.55;
+  }
+
+  /* Sheet header */
+  .sheet-head {
+    padding: 4px 16px 12px;
+    display: flex; align-items: center; justify-content: space-between;
+    border-bottom: 0.5px solid var(--gray-5);
+    flex-shrink: 0;
+  }
+  .sheet-head .title-wrap { display: flex; flex-direction: column; gap: 2px; }
+  .sheet-head .title {
+    font-size: 18px; font-weight: 600; letter-spacing: -0.32px;
+    color: var(--label); line-height: 1.2;
+  }
+  .sheet-head .sub {
+    font-size: 12px; letter-spacing: -0.05px;
+    color: var(--label-3); line-height: 1.3;
+  }
+  .sheet-head .dismiss {
+    width: 30px; height: 30px; border-radius: 50%;
+    background: var(--gray-6);
+    border: 0; padding: 0; cursor: pointer;
+    color: var(--label-2);
+    display: inline-flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .sheet-head .dismiss i { font-size: 15px; }
+
+  .sheet-body {
+    flex: 1;
+    overflow: hidden;
+    display: flex; flex-direction: column;
+    position: relative;
+  }
+  .sheet-body::after {
+    content: "";
+    position: absolute; left: 0; right: 0; bottom: 0;
+    height: 24px;
+    background: linear-gradient(180deg, rgba(255,255,255,0) 0%, #fff 100%);
+    pointer-events: none;
+    z-index: 4;
+  }
+
+  /* ============= Captured moment preview ============= */
+  .moment-section {
+    padding: 14px 16px 14px;
+    background:
+      linear-gradient(180deg,
+        var(--ios-green-wash) 0%,
+        rgba(52, 199, 89, 0.02) 100%);
+    border-bottom: 0.5px solid var(--gray-5);
+    position: relative;
+    flex-shrink: 0;
+  }
+  .moment-section .eye {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 9.5px; font-weight: 700;
+    color: var(--ios-green-deep); letter-spacing: 0.7px;
+    text-transform: uppercase;
+    margin: 0 0 9px;
+  }
+  .moment-section .eye i { font-size: 11px; }
+  .moment-section .eye .dot {
+    width: 5px; height: 5px; border-radius: 50%;
+    background: var(--ios-green); margin: 0 2px;
+  }
+  .moment-section .meta-right {
+    margin-left: auto;
+    font-size: 10px; font-weight: 600;
+    color: var(--label-3); letter-spacing: 0.2px;
+    text-transform: none;
+  }
+
+  /* The capture row itself — mirrors stream vocab from Frame 2/3 */
+  .moment-cap {
+    background: #FFFFFF;
+    border: 0.5px solid var(--gray-5);
+    border-left: 2.5px solid var(--ios-blue);
+    border-radius: 12px;
+    padding: 10px 12px 11px;
+    display: grid;
+    grid-template-columns: 40px 1fr auto;
+    column-gap: 10px;
+    row-gap: 6px;
+    align-items: start;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+  }
+  .moment-cap .ts {
+    font-size: 10.5px; font-weight: 600;
+    color: var(--label-3); letter-spacing: -0.05px;
+    font-variant-numeric: tabular-nums;
+    padding-top: 1px;
+  }
+  .moment-cap .ts .ago {
+    display: block;
+    font-size: 9px; font-weight: 500;
+    color: var(--label-4); letter-spacing: 0.1px;
+    text-transform: uppercase;
+    margin-top: 2px;
+  }
+  .moment-cap .body {
+    font-size: 13px; line-height: 1.4;
+    color: var(--label); letter-spacing: -0.1px;
+    text-wrap: pretty;
+    font-style: italic;
+  }
+  .moment-cap .chip {
+    grid-column: 3; grid-row: 1;
+    align-self: start;
+    display: inline-flex; align-items: center;
+    padding: 2px 8px 3px;
+    border-radius: 999px;
+    background: var(--gray-6);
+    color: var(--label-2);
+    font-size: 9.5px; font-weight: 700;
+    letter-spacing: 0.2px;
+    white-space: nowrap;
+    border: 0.5px solid var(--gray-5);
+  }
+  .moment-cap .wave {
+    grid-column: 2 / 3;
+    display: flex; align-items: center; gap: 9px;
+    margin-top: 2px;
+  }
+  .moment-cap .wave .play {
+    width: 26px; height: 26px; border-radius: 50%;
+    background: var(--ios-blue); color: #fff;
+    border: 0;
+    display: inline-flex; align-items: center; justify-content: center;
+    box-shadow: 0 2px 5px -2px rgba(0, 122, 255, 0.45);
+  }
+  .moment-cap .wave .play i { font-size: 12px; margin-left: 1.5px; }
+  .moment-cap .wave .bars {
+    flex: 1;
+    display: flex; align-items: center; gap: 2px;
+    height: 22px;
+  }
+  .moment-cap .wave .bars .bar {
+    flex: 1;
+    background: var(--ios-blue);
+    border-radius: 1px;
+    opacity: 0.85;
+  }
+  .moment-cap .wave .bars .bar.q { opacity: 0.32; }
+  .moment-cap .wave .dur {
+    font-size: 10.5px; font-weight: 600;
+    color: var(--label-3); letter-spacing: -0.05px;
+    font-variant-numeric: tabular-nums;
+  }
+  .moment-cap .meta {
+    grid-column: 2 / 4;
+    font-size: 10px; color: var(--label-3);
+    display: flex; align-items: center; gap: 6px;
+    flex-wrap: wrap;
+    margin-top: 2px;
+  }
+  .moment-cap .meta .type {
+    display: inline-flex; align-items: center; gap: 3px;
+  }
+  .moment-cap .meta .type i { font-size: 11px; }
+  .moment-cap .meta .sep { color: var(--label-4); }
+  .moment-cap .meta .beat { font-weight: 500; }
+
+  /* ============= Capabilities section ============= */
+  .caps-scroller {
+    flex: 1;
+    overflow: hidden;
+    padding: 14px 16px 16px;
+    display: flex; flex-direction: column; gap: 10px;
+  }
+  .caps-eyebrow {
+    display: flex; align-items: baseline; justify-content: space-between;
+    margin: 0 2px;
+  }
+  .caps-eyebrow .lbl {
+    font-size: 11px; font-weight: 700;
+    color: var(--label-2); letter-spacing: 0.4px;
+    text-transform: uppercase;
+  }
+  .caps-eyebrow .selected-count {
+    font-size: 11px; font-weight: 600;
+    color: var(--ios-green-deep); letter-spacing: -0.05px;
+    font-variant-numeric: tabular-nums;
+    display: inline-flex; align-items: center; gap: 4px;
+  }
+  .caps-eyebrow .selected-count i { font-size: 12px; }
+  .caps-eyebrow .blueprint {
+    font-size: 11px; color: var(--label-3); letter-spacing: -0.05px;
+  }
+  .caps-eyebrow .blueprint .em {
+    font-weight: 600; color: var(--label-2);
+  }
+  .blueprint {
+    font-size: 11px; color: var(--label-3); letter-spacing: -0.05px;
+    line-height: 1.4;
+  }
+  .blueprint .em {
+    font-weight: 600; color: var(--label-2);
+  }
+
+  .cap-list {
+    display: flex; flex-direction: column;
+    gap: 8px;
+  }
+
+  .cap-row {
+    display: grid;
+    grid-template-columns: 26px 1fr;
+    column-gap: 12px;
+    align-items: start;
+    padding: 11px 13px 12px;
+    border: 0.5px solid var(--gray-5);
+    border-radius: 12px;
+    background: #FFFFFF;
+    cursor: pointer;
+    position: relative;
+    transition: background 0.15s, border-color 0.15s;
+  }
+  .cap-row.on {
+    background: var(--ios-green-wash);
+    border-color: var(--ios-green-soft);
+    box-shadow: inset 0 0 0 0.5px var(--ios-green-soft);
+  }
+
+  .cap-row .check {
+    width: 22px; height: 22px;
+    border-radius: 7px;
+    border: 1.5px solid var(--gray-3);
+    background: #fff;
+    display: inline-flex; align-items: center; justify-content: center;
+    color: transparent;
+    margin-top: 1px;
+    flex-shrink: 0;
+  }
+  .cap-row.on .check {
+    background: var(--ios-green);
+    border-color: var(--ios-green);
+    color: #fff;
+  }
+  .cap-row .check i { font-size: 13px; font-weight: 800; }
+
+  .cap-row .info { min-width: 0; }
+  .cap-row .name-row {
+    display: flex; align-items: baseline; gap: 6px;
+    flex-wrap: wrap;
+  }
+  .cap-row .name {
+    font-size: 14px; font-weight: 600;
+    color: var(--label); letter-spacing: -0.2px;
+    line-height: 1.25;
+  }
+  .cap-row .progress-meta {
+    font-size: 10.5px; font-weight: 500;
+    color: var(--label-3); letter-spacing: -0.05px;
+    font-variant-numeric: tabular-nums;
+    display: inline-flex; align-items: center; gap: 4px;
+    white-space: nowrap;
+  }
+  .cap-row .progress-meta .pip {
+    display: inline-flex; gap: 2px;
+  }
+  .cap-row .progress-meta .pip span {
+    width: 5px; height: 5px; border-radius: 50%;
+    background: var(--gray-4);
+  }
+  .cap-row .progress-meta .pip span.on {
+    background: var(--ios-green);
+  }
+  .cap-row .desc {
+    font-size: 12px; line-height: 1.4;
+    color: var(--label-3); letter-spacing: -0.05px;
+    margin-top: 3px;
+    text-wrap: pretty;
+  }
+  .cap-row .stage {
+    display: inline-flex; align-items: center; gap: 4px;
+    margin-top: 7px;
+    font-size: 10px; font-weight: 600;
+    color: var(--label-3); letter-spacing: 0.3px;
+    text-transform: uppercase;
+  }
+  .cap-row .stage .bar {
+    width: 56px; height: 3px; border-radius: 2px;
+    background: var(--gray-5); position: relative; overflow: hidden;
+  }
+  .cap-row .stage .bar i {
+    position: absolute; left: 0; top: 0; bottom: 0;
+    background: var(--gray-2);
+  }
+  .cap-row.on .stage .bar i { background: var(--ios-green); }
+
+  /* ============= Strength rating ============= */
+  .strength-section {
+    flex-shrink: 0;
+    padding: 12px 16px 14px;
+    border-top: 0.5px solid var(--gray-5);
+    background: #FAFAFC;
+  }
+  .strength-section .row1 {
+    display: flex; align-items: baseline; justify-content: space-between;
+    margin-bottom: 8px;
+  }
+  .strength-section .lbl {
+    font-size: 11px; font-weight: 700;
+    color: var(--label-2); letter-spacing: 0.4px;
+    text-transform: uppercase;
+  }
+  .strength-section .opt {
+    font-size: 11px; color: var(--label-3); letter-spacing: -0.05px;
+    font-style: italic;
+  }
+  .strength-seg {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0;
+    background: var(--gray-6);
+    border-radius: 9px;
+    padding: 2px;
+    position: relative;
+  }
+  .strength-seg .s {
+    border: 0; background: transparent;
+    padding: 8px 6px 9px;
+    border-radius: 7px;
+    font-size: 12.5px; font-weight: 500;
+    color: var(--label-2); letter-spacing: -0.1px;
+    text-align: center;
+    line-height: 1.1;
+    cursor: pointer;
+    display: flex; flex-direction: column; align-items: center; gap: 3px;
+  }
+  .strength-seg .s .ico {
+    width: 10px; height: 10px; border-radius: 50%;
+    background: var(--gray-4);
+  }
+  .strength-seg .s.on {
+    background: #FFFFFF;
+    box-shadow:
+      0 1px 2px rgba(0, 0, 0, 0.06),
+      0 0 0 0.5px rgba(0, 0, 0, 0.04);
+    color: var(--label);
+    font-weight: 600;
+  }
+  .strength-seg .s.on .ico {
+    background: var(--ios-green);
+  }
+
+  /* ============= Footer CTAs ============= */
+  .sheet-foot {
+    flex-shrink: 0;
+    padding: 12px 16px 22px;
+    background: rgba(255, 255, 255, 0.96);
+    border-top: 0.5px solid var(--gray-5);
+    display: flex; flex-direction: column; gap: 8px;
+    z-index: 5;
+  }
+  .save-cta {
+    height: 50px;
+    background: var(--ios-blue);
+    color: #FFFFFF;
+    border: 0; border-radius: 14px;
+    font-size: 16px; font-weight: 600;
+    letter-spacing: -0.2px;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    cursor: pointer;
+    box-shadow:
+      0 4px 12px -2px rgba(0, 122, 255, 0.38),
+      0 1px 2px rgba(0, 0, 0, 0.08);
+  }
+  .save-cta i { font-size: 17px; }
+  .save-cta .pill-count {
+    margin-left: 4px;
+    display: inline-flex; align-items: center;
+    padding: 2px 8px 3px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.22);
+    font-size: 11px; font-weight: 700;
+    letter-spacing: 0.2px;
+  }
+  .cancel-btn {
+    background: none; border: 0; padding: 8px 0 4px;
+    color: var(--label-2);
+    font-size: 14px; font-weight: 500;
+    letter-spacing: -0.1px;
+    cursor: pointer;
+  }
+
+  /* Anatomy frame elements */
+  .anatomy {
+    width: 393px;
+    height: 852px;
+    position: relative;
+  }
+  .anatomy-wrap {
+    position: relative;
+    display: flex; gap: 36px;
+    align-items: flex-start;
+  }
+  .anatomy-callouts {
+    width: 360px;
+    padding-top: 56px;
+    display: flex; flex-direction: column; gap: 22px;
+  }
+  .callout {
+    border-left: 1px solid var(--measure-soft);
+    padding: 2px 0 4px 14px;
+    position: relative;
+  }
+  .callout::before {
+    content: "";
+    position: absolute; left: -3px; top: 6px;
+    width: 5px; height: 5px; border-radius: 50%;
+    background: var(--measure);
+  }
+  .callout .ctitle {
+    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 10.5px; font-weight: 700;
+    color: var(--measure); letter-spacing: 0.5px;
+    text-transform: uppercase;
+    margin: 0 0 6px;
+  }
+  .callout .cname {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 15px; font-style: italic; font-weight: 500;
+    color: var(--stage-ink); margin: 0 0 4px;
+    letter-spacing: -0.15px;
+  }
+  .callout .cspec {
+    font-family: "SF Mono", ui-monospace, Menlo, monospace;
+    font-size: 11px; color: var(--label-2);
+    letter-spacing: 0.02em; line-height: 1.55;
+    margin: 0;
+  }
+  .callout .cspec .k { color: var(--label-3); }
+  .callout .cspec .v { color: var(--stage-ink); }
+  .callout .cnote {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 12.5px; line-height: 1.5;
+    color: var(--stage-text); margin: 6px 0 0;
+    text-wrap: pretty;
+  }
+
+  .anatomy .phone { box-shadow: 0 20px 50px -32px rgba(34, 30, 20, 0.30); }
+
+  .m-tag {
+    position: absolute;
+    font-family: "SF Mono", ui-monospace, Menlo, monospace;
+    font-size: 9.5px; font-weight: 600;
+    background: #FFF;
+    color: var(--measure);
+    border: 0.5px solid var(--measure-soft);
+    padding: 2px 6px 2.5px;
+    border-radius: 4px;
+    white-space: nowrap;
+    z-index: 70;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+  }
+  .m-line {
+    position: absolute;
+    background: var(--measure);
+    opacity: 0.7;
+    z-index: 65;
+  }
+  .m-line.h { height: 1px; }
+  .m-line.v { width: 1px; }
+  .m-line.h::before { content: ""; position: absolute; left: 0; top: -3px; width: 1px; height: 7px; background: var(--measure); }
+  .m-line.h::after  { content: ""; position: absolute; right: 0; top: -3px; width: 1px; height: 7px; background: var(--measure); }
+  .m-line.v::before { content: ""; position: absolute; top: 0; left: -3px; height: 1px; width: 7px; background: var(--measure); }
+  .m-line.v::after  { content: ""; position: absolute; bottom: 0; left: -3px; height: 1px; width: 7px; background: var(--measure); }
+
+  .m-box {
+    position: absolute;
+    border: 1px dashed var(--measure);
+    border-radius: 4px;
+    background: rgba(194, 138, 42, 0.05);
+    z-index: 64;
+    pointer-events: none;
+  }
+
+  .legend {
+    margin-top: 6px;
+    padding: 16px 16px 14px;
+    background: rgba(255,255,255,0.55);
+    border: 0.5px solid var(--stage-line);
+    border-radius: 14px;
+  }
+  .legend h5 {
+    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 10.5px; font-weight: 700;
+    color: var(--stage-ink); letter-spacing: 0.5px;
+    text-transform: uppercase;
+    margin: 0 0 12px;
+  }
+  .legend .row-l {
+    display: grid;
+    grid-template-columns: 14px 1fr auto;
+    gap: 9px; align-items: center;
+    padding: 5px 0;
+    border-bottom: 0.5px dashed var(--stage-line-soft);
+  }
+  .legend .row-l:last-child { border-bottom: 0; }
+  .legend .sw {
+    width: 14px; height: 14px; border-radius: 4px;
+    border: 0.5px solid rgba(0,0,0,0.08);
+  }
+  .legend .nm {
+    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 12px; color: var(--stage-ink);
+  }
+  .legend .nm em { font-style: italic; color: var(--stage-text); }
+  .legend .hex {
+    font-family: "SF Mono", ui-monospace, Menlo, monospace;
+    font-size: 10.5px; color: var(--stage-text);
+  }
+
+  .type-scale {
+    margin-top: 10px;
+    padding: 16px 16px 14px;
+    background: rgba(255,255,255,0.55);
+    border: 0.5px solid var(--stage-line);
+    border-radius: 14px;
+  }
+  .type-scale h5 {
+    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 10.5px; font-weight: 700;
+    color: var(--stage-ink); letter-spacing: 0.5px;
+    text-transform: uppercase;
+    margin: 0 0 12px;
+  }
+  .type-row {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 10px; align-items: baseline;
+    padding: 6px 0;
+    border-bottom: 0.5px dashed var(--stage-line-soft);
+  }
+  .type-row:last-child { border-bottom: 0; }
+  .type-row .sample {
+    color: var(--label); letter-spacing: -0.2px;
+  }
+  .type-row .sample.title { font-size: 18px; font-weight: 600; letter-spacing: -0.32px; }
+  .type-row .sample.eye { font-size: 9.5px; font-weight: 700; color: var(--ios-green-deep); letter-spacing: 0.7px; text-transform: uppercase; }
+  .type-row .sample.aux { font-size: 11px; font-weight: 700; color: var(--label-2); letter-spacing: 0.4px; text-transform: uppercase; }
+  .type-row .sample.cap { font-size: 14px; font-weight: 600; letter-spacing: -0.2px; }
+  .type-row .sample.desc { font-size: 12px; line-height: 1.4; color: var(--label-3); }
+  .type-row .sample.body { font-size: 13px; font-style: italic; }
+  .type-row .sample.cta { font-size: 16px; font-weight: 600; }
+  .type-row .sample.seg { font-size: 12.5px; font-weight: 500; }
+  .type-row .sample.ts { font-size: 10.5px; font-weight: 600; color: var(--label-3); font-variant-numeric: tabular-nums; }
+  .type-row .sample.cancel { font-size: 14px; font-weight: 500; color: var(--label-2); }
+  .type-row .spec {
+    font-family: "SF Mono", ui-monospace, Menlo, monospace;
+    font-size: 10px; color: var(--stage-text); letter-spacing: 0.02em;
+  }
+
+  /* Rail */
+  .rail-row {
+    max-width: 1420px;
+    margin: 56px auto 0;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 40px;
+  }
+  .rail-col h4 {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 14px; letter-spacing: 0.01em;
+    color: var(--stage-ink); margin: 0 0 10px; font-weight: 500;
+  }
+  .rail-col h4 em { font-style: italic; }
+  .rail-col p {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 13.5px; line-height: 1.55;
+    color: #4D4A43; margin: 0 0 10px; text-wrap: pretty;
+  }
+  .rail-col p strong { color: var(--stage-ink); font-weight: 500; }
+  .rail-col em { font-style: italic; }
+  .rail-col .sig {
+    display: inline-flex; align-items: center; gap: 6px; margin-top: 4px;
+    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 11px; letter-spacing: 0.04em;
+    color: var(--stage-text);
+  }
+  .rail-col .sig .swatch {
+    display: inline-block; width: 10px; height: 10px;
+    border-radius: 3px; border: 0.5px solid rgba(0,0,0,0.1);
+  }
+  .rail-col .sig .swatch.blue { background: var(--ios-blue); }
+  .rail-col .sig .swatch.green { background: var(--ios-green); }
+  .rail-col .sig .swatch.gray { background: var(--gray-3); }
+  .rail-col .sig .swatch.ink { background: var(--label-2); }
+
+</style>
+</head>
+<body>
+
+<div class="page">
+
+  <header class="page-head">
+    <p class="eyebrow">BetterAt · Phase B.7 · Frame 4 — Mark as evidence · Canonical · 2026-05-16</p>
+    <h1>The quiet moment of <em>"I notice I did the thing"</em> — a capture promotes itself into evidence of capability</h1>
+    <p>From the post-activity stream the user has tapped a capture (the 14:23 voice clip about the eight-degree shift) and chosen <em>Mark as evidence</em>. A bottom sheet slides up over a dimmed Frame 3, blurred just enough to keep context legible. The capture rides at the top — same row vocabulary as the stream, but framed in a soft <strong>green wash</strong> that says "this one is being promoted." Below it: a multi-select list of capabilities from the active blueprint, each row a tappable name + brief description + tiny progress pip. A three-step strength selector gives the user a way to say "this was a real one" without forcing the choice. The Save CTA stays iOS-blue — saving evidence is still a forward action, not a decoration.</p>
+    <p>Tone: <em>slightly celebratory but not loud</em>. The green is restrained, the language is plain ("Evidence for which capabilities"), the affordances feel like a checklist rather than a trophy.</p>
+    <div class="crumbs">
+      <span class="pill">iPhone 16e · portrait · 393 × 852</span>
+      <span class="sep">·</span>
+      <span class="pill">Source · <em>do-tab-interior-canonical.html</em> Frame 4</span>
+      <span class="sep">·</span>
+      <span class="pill">Companion · <em>b7-frame-3-post-activity-canonical.html</em></span>
+      <span class="sep">·</span>
+      <span class="pill">Phase B.7 · Frame 4 of 4</span>
+    </div>
+  </header>
+
+  <section class="strip-head">
+    <p class="eyebrow">Evidence-marking sheet · Webview + Anatomy</p>
+    <h2><em>Bottom sheet over dimmed Frame 3</em> on the left · <em>spec column with callouts A–G</em> on the right</h2>
+    <p>The webview frame is the canonical render at full 393 × 852. The anatomy frame strips the sheet to its measurement bones — callouts A–G follow the same letter convention as Frames 2 &amp; 3 (A is always the state marker, F/G are always the primary CTAs and dismiss). What's new on this surface: the bottom-sheet shell itself, the multi-select capability row, and the three-step strength segmented control. Everything else — the capture row, the type scale, the hairlines — is inherited unchanged from the live and post-activity states so the user reads continuity, not "a different screen."</p>
+  </section>
+
+  <div class="row">
+
+    <!-- =============================================================== -->
+    <!-- Webview frame · Mark as evidence                                  -->
+    <!-- =============================================================== -->
+    <div class="col">
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="statusbar">
+          <span>14:38</span>
+          <span class="right">
+            <i class="ti ti-cell-signal-4"></i>
+            <i class="ti ti-wifi"></i>
+            <i class="ti ti-battery-3"></i>
+          </span>
+        </div>
+
+        <div class="screen" data-screen-label="B.7 · Frame 4 · Do · Mark as evidence">
+
+          <!-- Backdrop · post-activity Frame 3, dimmed and blurred -->
+          <div class="backdrop" aria-hidden="true">
+            <div class="backdrop-content">
+              <div class="top-header">
+                <div class="interest">
+                  <span class="name">Sail Racing</span>
+                  <span class="switcher"><i class="ti ti-chevron-down"></i></span>
+                </div>
+                <span class="step-counter">Step 6 of 11</span>
+                <div class="avatar">KD</div>
+              </div>
+
+              <div class="bg-card">
+                <header class="bg-done-head">
+                  <div class="bg-done-pill">
+                    <span class="tick"><i class="ti ti-check"></i></span>
+                    <span class="label">Activity complete</span>
+                  </div>
+                  <div style="display:flex;align-items:baseline;gap:12px;font-variant-numeric:tabular-nums;">
+                    <div style="display:flex;flex-direction:column;align-items:flex-end;line-height:1;">
+                      <span style="font-size:17px;font-weight:600;color:var(--label);letter-spacing:-0.4px;">9</span>
+                      <span style="font-size:9.5px;font-weight:600;color:var(--label-3);letter-spacing:0.5px;text-transform:uppercase;margin-top:3px;">Captures</span>
+                    </div>
+                    <span style="width:0.5px;align-self:stretch;background:var(--gray-5);margin:2px 0;"></span>
+                    <div style="display:flex;flex-direction:column;align-items:flex-end;line-height:1;">
+                      <span style="font-size:17px;font-weight:600;color:var(--label);letter-spacing:-0.4px;">18:24</span>
+                      <span style="font-size:9.5px;font-weight:600;color:var(--label-3);letter-spacing:0.5px;text-transform:uppercase;margin-top:3px;">Elapsed</span>
+                    </div>
+                  </div>
+                </header>
+              </div>
+
+              <nav class="bg-tabbar">
+                <button class="t on"><i class="ti ti-flag-3-filled"></i><span>Practice</span></button>
+                <button class="t"><i class="ti ti-book-2"></i><span>Playbook</span></button>
+                <button class="t"><i class="ti ti-compass"></i><span>Discover</span></button>
+                <button class="t"><i class="ti ti-user"></i><span>Profile</span></button>
+              </nav>
+            </div>
+            <div class="scrim"></div>
+          </div>
+
+          <!-- Bottom sheet -->
+          <div class="sheet" role="dialog" aria-label="Mark as evidence">
+
+            <div class="grabber-wrap"><span class="grabber"></span></div>
+
+            <header class="sheet-head">
+              <div class="title-wrap">
+                <span class="title">Mark as evidence</span>
+                <span class="sub">Tag this capture as proof you're getting better.</span>
+              </div>
+              <button class="dismiss" aria-label="Close"><i class="ti ti-x"></i></button>
+            </header>
+
+            <div class="sheet-body">
+
+              <!-- The capture being promoted -->
+              <section class="moment-section">
+                <p class="eye">
+                  <i class="ti ti-bookmark-filled"></i>
+                  <span>Promoting this capture</span>
+                  <span class="dot" aria-hidden="true"></span>
+                  <span class="meta-right">14:23 · beat 2</span>
+                </p>
+                <article class="moment-cap">
+                  <div class="ts">14:23<span class="ago">15m</span></div>
+                  <div class="body">"Left filled in at eight degrees. Not committing yet — rule said ten."</div>
+                  <span class="chip">Weather</span>
+                  <div class="wave" aria-label="Voice clip · 7 seconds">
+                    <button class="play" aria-label="Play voice"><i class="ti ti-player-play-filled"></i></button>
+                    <div class="bars" aria-hidden="true">
+                      <div class="bar" style="height: 8px;"></div>
+                      <div class="bar" style="height: 14px;"></div>
+                      <div class="bar" style="height: 10px;"></div>
+                      <div class="bar" style="height: 18px;"></div>
+                      <div class="bar" style="height: 22px;"></div>
+                      <div class="bar" style="height: 16px;"></div>
+                      <div class="bar" style="height: 11px;"></div>
+                      <div class="bar" style="height: 19px;"></div>
+                      <div class="bar" style="height: 14px;"></div>
+                      <div class="bar" style="height: 9px;"></div>
+                      <div class="bar" style="height: 16px;"></div>
+                      <div class="bar" style="height: 21px;"></div>
+                      <div class="bar" style="height: 13px;"></div>
+                      <div class="bar" style="height: 8px;"></div>
+                      <div class="bar" style="height: 11px;"></div>
+                      <div class="bar" style="height: 6px;"></div>
+                      <div class="bar" style="height: 14px;"></div>
+                      <div class="bar" style="height: 8px;"></div>
+                    </div>
+                    <span class="dur">0:07</span>
+                  </div>
+                  <div class="meta">
+                    <span class="type"><i class="ti ti-microphone"></i>Voice</span>
+                    <span class="sep">·</span>
+                    <span class="beat">beat 2</span>
+                    <span class="sep">·</span>
+                    <span>Auto-transcribed</span>
+                  </div>
+                </article>
+              </section>
+
+              <!-- Capabilities -->
+              <div class="caps-scroller">
+                <div class="caps-eyebrow">
+                  <span class="lbl">Evidence for which capabilities</span>
+                  <span class="selected-count">
+                    <i class="ti ti-circle-check-filled"></i>
+                    <span>2 selected</span>
+                  </span>
+                </div>
+                <p class="blueprint" style="margin: -2px 2px 4px;">
+                  <span>From your active blueprint · </span>
+                  <span class="em">Light-air starts in shifty breeze</span>
+                </p>
+
+                <div class="cap-list">
+
+                  <!-- Selected · Read wind shifts -->
+                  <article class="cap-row on" tabindex="0">
+                    <span class="check"><i class="ti ti-check"></i></span>
+                    <div class="info">
+                      <div class="name-row">
+                        <span class="name">Read wind shifts on the water</span>
+                        <span class="progress-meta">
+                          <span class="pip"><span class="on"></span><span class="on"></span><span class="on"></span><span></span><span></span></span>
+                          <span>3 of 5</span>
+                        </span>
+                      </div>
+                      <p class="desc">Catch a building shift before the puff arrives — call it for the crew within five seconds.</p>
+                      <span class="stage">
+                        Building
+                        <span class="bar"><i style="width: 60%;"></i></span>
+                      </span>
+                    </div>
+                  </article>
+
+                  <!-- Selected · Pre-start positioning -->
+                  <article class="cap-row on" tabindex="0">
+                    <span class="check"><i class="ti ti-check"></i></span>
+                    <div class="info">
+                      <div class="name-row">
+                        <span class="name">Pre-start positioning &amp; lane choice</span>
+                        <span class="progress-meta">
+                          <span class="pip"><span class="on"></span><span class="on"></span><span></span><span></span><span></span></span>
+                          <span>2 of 5</span>
+                        </span>
+                      </div>
+                      <p class="desc">Pick the favored end, hold a clear lane, and bail out without losing a length.</p>
+                      <span class="stage">
+                        Early
+                        <span class="bar"><i style="width: 40%;"></i></span>
+                      </span>
+                    </div>
+                  </article>
+
+                  <!-- Unselected · Crew comms -->
+                  <article class="cap-row" tabindex="0">
+                    <span class="check"><i class="ti ti-check"></i></span>
+                    <div class="info">
+                      <div class="name-row">
+                        <span class="name">Crew communication under pressure</span>
+                        <span class="progress-meta">
+                          <span class="pip"><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span></span></span>
+                          <span>4 of 5</span>
+                        </span>
+                      </div>
+                      <p class="desc">Short, calm, named calls when the boat is loaded — and listening back.</p>
+                      <span class="stage">
+                        Strong
+                        <span class="bar"><i style="width: 80%;"></i></span>
+                      </span>
+                    </div>
+                  </article>
+
+                  <!-- Unselected · Tactical patience -->
+                  <article class="cap-row" tabindex="0">
+                    <span class="check"><i class="ti ti-check"></i></span>
+                    <div class="info">
+                      <div class="name-row">
+                        <span class="name">Tactical patience in light air</span>
+                        <span class="progress-meta">
+                          <span class="pip"><span class="on"></span><span></span><span></span><span></span><span></span></span>
+                          <span>1 of 5</span>
+                        </span>
+                      </div>
+                      <p class="desc">Wait for the puff to land before committing the boat — resist the early tack.</p>
+                      <span class="stage">
+                        Just started
+                        <span class="bar"><i style="width: 20%;"></i></span>
+                      </span>
+                    </div>
+                  </article>
+
+                </div>
+              </div>
+
+              <!-- Strength rating -->
+              <section class="strength-section" aria-label="Evidence strength">
+                <div class="row1">
+                  <span class="lbl">How strong is this evidence?</span>
+                  <span class="opt">Optional</span>
+                </div>
+                <div class="strength-seg">
+                  <button class="s">
+                    <span class="ico"></span>
+                    Worth noting
+                  </button>
+                  <button class="s on">
+                    <span class="ico"></span>
+                    Solid
+                  </button>
+                  <button class="s">
+                    <span class="ico"></span>
+                    Breakthrough
+                  </button>
+                </div>
+              </section>
+
+              <!-- Footer CTAs -->
+              <footer class="sheet-foot">
+                <button class="save-cta">
+                  <i class="ti ti-bookmark-filled"></i>
+                  Save evidence
+                  <span class="pill-count">2</span>
+                </button>
+                <button class="cancel-btn">Cancel</button>
+              </footer>
+
+            </div>
+          </div>
+
+        </div>
+
+        <div class="home-indicator"></div>
+      </div>
+
+      <div class="caption-block">
+        <p class="frame-label"><em>Mark as evidence</em> · 393 × 852</p>
+        <p class="frame-sub">The sheet lifts to ~85% of the screen — enough headroom that the user still senses the post-activity context beneath. The promoted capture sits in a green wash up top; selected capability rows fill with the same restrained green and a check. The Save CTA stays solid iOS-blue with a count pill — same shape as Frame 3's <em>Move to Reflect</em>.</p>
+      </div>
+    </div>
+
+    <!-- =============================================================== -->
+    <!-- Anatomy frame                                                     -->
+    <!-- =============================================================== -->
+    <div class="col">
+      <div class="anatomy-wrap">
+        <div class="anatomy">
+          <div class="phone bare">
+            <div class="notch"></div>
+            <div class="statusbar">
+              <span>14:38</span>
+              <span class="right">
+                <i class="ti ti-cell-signal-4"></i>
+                <i class="ti ti-wifi"></i>
+                <i class="ti ti-battery-3"></i>
+              </span>
+            </div>
+
+            <div class="screen" style="background: #FFFFFF;" data-screen-label="B.7 · Frame 4 · Anatomy">
+
+              <!-- A faint version of the backdrop to give the sheet a base -->
+              <div class="backdrop" style="filter: saturate(0.7) opacity(0.5);" aria-hidden="true">
+                <div class="backdrop-content">
+                  <div class="top-header">
+                    <div class="interest">
+                      <span class="name">Sail Racing</span>
+                      <span class="switcher"><i class="ti ti-chevron-down"></i></span>
+                    </div>
+                    <span class="step-counter">Step 6 of 11</span>
+                    <div class="avatar">KD</div>
+                  </div>
+                </div>
+                <div class="scrim" style="background: rgba(15, 14, 12, 0.18);"></div>
+              </div>
+
+              <div class="sheet" style="box-shadow: 0 -1px 2px rgba(0,0,0,0.03), 0 -10px 20px -10px rgba(0,0,0,0.18);">
+                <div class="grabber-wrap"><span class="grabber"></span></div>
+
+                <header class="sheet-head">
+                  <div class="title-wrap">
+                    <span class="title">Mark as evidence</span>
+                    <span class="sub">Tag this capture as proof.</span>
+                  </div>
+                  <button class="dismiss"><i class="ti ti-x"></i></button>
+                </header>
+
+                <div class="sheet-body">
+                  <section class="moment-section">
+                    <p class="eye">
+                      <i class="ti ti-bookmark-filled"></i>
+                      <span>Promoting this capture</span>
+                    </p>
+                    <article class="moment-cap">
+                      <div class="ts">14:23<span class="ago">15m</span></div>
+                      <div class="body">"Left filled in at eight degrees…"</div>
+                      <span class="chip">Weather</span>
+                    </article>
+                  </section>
+
+                  <div class="caps-scroller">
+                    <div class="caps-eyebrow">
+                      <span class="lbl">Evidence for capabilities</span>
+                    </div>
+                    <div class="cap-list">
+                      <article class="cap-row on">
+                        <span class="check"><i class="ti ti-check"></i></span>
+                        <div class="info">
+                          <span class="name">Read wind shifts on the water</span>
+                          <p class="desc">Catch a building shift before the puff.</p>
+                        </div>
+                      </article>
+                      <article class="cap-row">
+                        <span class="check"><i class="ti ti-check"></i></span>
+                        <div class="info">
+                          <span class="name">Crew communication</span>
+                          <p class="desc">Short, calm, named calls.</p>
+                        </div>
+                      </article>
+                    </div>
+                  </div>
+
+                  <section class="strength-section">
+                    <div class="row1">
+                      <span class="lbl">Strength</span>
+                      <span class="opt">Optional</span>
+                    </div>
+                    <div class="strength-seg">
+                      <button class="s">Worth noting</button>
+                      <button class="s on">Solid</button>
+                      <button class="s">Breakthrough</button>
+                    </div>
+                  </section>
+
+                  <footer class="sheet-foot">
+                    <button class="save-cta">
+                      <i class="ti ti-bookmark-filled"></i>
+                      Save evidence
+                    </button>
+                    <button class="cancel-btn">Cancel</button>
+                  </footer>
+                </div>
+              </div>
+
+            </div>
+
+            <div class="home-indicator"></div>
+          </div>
+
+          <!-- Measurement overlay -->
+
+          <!-- Sheet top -->
+          <div class="m-line h" style="left: 0; right: 0; top: 132px;"></div>
+          <div class="m-tag" style="left: 50%; top: 118px; transform: translateX(-50%);">sheet · 393 × 720 · r 22 22 0 0</div>
+
+          <!-- Grabber -->
+          <div class="m-tag" style="left: 50%; top: 142px; transform: translateX(-50%);">grabber · 36 × 5 · gray-4 · 22 row</div>
+
+          <!-- Header height -->
+          <div class="m-line v" style="left: 6px; top: 154px; height: 56px;"></div>
+          <div class="m-tag" style="left: -42px; top: 174px;">head · 56</div>
+
+          <!-- Dismiss -->
+          <div class="m-tag" style="right: 52px; top: 164px;">dismiss · 30 · gray-6</div>
+
+          <!-- Moment block -->
+          <div class="m-box" style="left: 0; right: 0; top: 211px; height: 122px;"></div>
+          <div class="m-tag" style="left: 12px; top: 218px;">moment · pad 14/16 · green-wash 6%</div>
+
+          <!-- Moment capture row -->
+          <div class="m-tag" style="left: 50%; top: 304px; transform: translateX(-50%);">cap row · L-accent 2.5 · ios-blue</div>
+
+          <!-- Caps section -->
+          <div class="m-line v" style="left: 6px; top: 333px; height: 156px;"></div>
+          <div class="m-tag" style="left: -42px; top: 400px;">caps · 156+</div>
+
+          <!-- Cap row -->
+          <div class="m-box" style="left: 16px; right: 16px; top: 380px; height: 56px;"></div>
+          <div class="m-tag" style="left: 22px; top: 372px;">cap-row · r 12 · pad 11/13 · gap 8</div>
+
+          <!-- Selected fill -->
+          <div class="m-tag" style="right: 22px; top: 388px;">on · green-wash · 0.5 green-soft</div>
+
+          <!-- Strength -->
+          <div class="m-box" style="left: 0; right: 0; top: 495px; height: 78px;"></div>
+          <div class="m-tag" style="left: 14px; top: 484px;">strength · 78 h · pad 12/16 · seg r 9</div>
+
+          <!-- Save CTA -->
+          <div class="m-box" style="left: 16px; right: 16px; top: 583px; height: 50px;"></div>
+          <div class="m-tag" style="left: 50%; top: 575px; transform: translateX(-50%);">save · 50 h · r 14 · ios-blue</div>
+
+          <!-- Cancel -->
+          <div class="m-tag" style="left: 50%; top: 645px; transform: translateX(-50%);">cancel · 14/500 · label-2 · no chrome</div>
+
+          <!-- Sheet bottom safe area -->
+          <div class="m-line v" style="right: 6px; bottom: 0; height: 32px;"></div>
+          <div class="m-tag" style="right: -42px; bottom: 12px;">safe · 22</div>
+
+        </div>
+
+        <!-- ============ Right column: callouts, legend, type ============ -->
+        <div class="anatomy-callouts">
+
+          <div class="callout">
+            <p class="ctitle">A · Bottom-sheet shell</p>
+            <p class="cname"><em>iOS-native sheet · grabber, rounded top, scrim beneath.</em></p>
+            <p class="cspec">
+              <span class="k">height</span> · <span class="v">720 · ~85% screen</span><br>
+              <span class="k">offset</span> · <span class="v">bottom 0 · full bleed</span><br>
+              <span class="k">radius</span> · <span class="v">22 / 22 / 0 / 0</span><br>
+              <span class="k">fill</span> · <span class="v">#FFFFFF</span><br>
+              <span class="k">shadow</span> · <span class="v">0 −22 50 −16 · 28%</span><br>
+              <span class="k">grabber</span> · <span class="v">36 × 5 · gray-4 · 55% opa</span><br>
+              <span class="k">scrim</span> · <span class="v">rgba(15,14,12,0.42) · blur 2</span>
+            </p>
+            <p class="cnote">Single detent — there's no half-sheet stop. Drag-down or tap-outside closes. The scrim is just dark enough to mute the post-activity card without erasing it; the user can still read "Activity complete" through it.</p>
+          </div>
+
+          <div class="callout">
+            <p class="ctitle">B · Sheet header &amp; dismiss</p>
+            <p class="cname"><em>Title + supportive sub-line + soft circular X.</em></p>
+            <p class="cspec">
+              <span class="k">height</span> · <span class="v">56 incl. 4 top pad</span><br>
+              <span class="k">title</span> · <span class="v">18 / 600 · −0.32 ls</span><br>
+              <span class="k">sub</span> · <span class="v">12 · label-3 · −0.05 ls</span><br>
+              <span class="k">dismiss</span> · <span class="v">30 dot · gray-6 · X 15</span><br>
+              <span class="k">divider</span> · <span class="v">0.5 px · gray-5 · full-bleed</span>
+            </p>
+            <p class="cnote">Plain "Mark as evidence." No emoji, no exclamation. The sub-line teaches the action without being precious — "proof you're getting better" frames the next list correctly.</p>
+          </div>
+
+          <div class="callout">
+            <p class="ctitle">C · Promoted capture preview</p>
+            <p class="cname"><em>The stream row, lifted out and bathed in a soft green wash.</em></p>
+            <p class="cspec">
+              <span class="k">section pad</span> · <span class="v">14 / 16</span><br>
+              <span class="k">section fill</span> · <span class="v">green-wash 6 → 2% gradient</span><br>
+              <span class="k">eyebrow</span> · <span class="v">9.5 / 700 · 0.7 ls · green-deep</span><br>
+              <span class="k">row</span> · <span class="v">identical to stream cap (r 12 · L 2.5)</span><br>
+              <span class="k">L accent</span> · <span class="v">ios-blue (voice type)</span><br>
+              <span class="k">chip</span> · <span class="v">gray-6 neutral · topic carries over</span>
+            </p>
+            <p class="cnote">Reusing the exact capture vocabulary from Frame 2/3 is the point — the user has to recognize this as the <em>same thing</em> they just made, not a new artifact. The wash is the only signal that the row is being promoted.</p>
+          </div>
+
+          <div class="callout">
+            <p class="ctitle">D · Capability row · default</p>
+            <p class="cname"><em>Multi-select line item · name, description, progress pip.</em></p>
+            <p class="cspec">
+              <span class="k">layout</span> · <span class="v">grid 26 / 1fr · gap 12</span><br>
+              <span class="k">padding</span> · <span class="v">11 / 13 / 12 / 13</span><br>
+              <span class="k">radius</span> · <span class="v">12</span><br>
+              <span class="k">border</span> · <span class="v">0.5 gray-5</span><br>
+              <span class="k">check</span> · <span class="v">22 sq · r 7 · 1.5 gray-3</span><br>
+              <span class="k">name</span> · <span class="v">14 / 600 · −0.2 ls</span><br>
+              <span class="k">desc</span> · <span class="v">12 / 400 · 1.4 lh · label-3</span><br>
+              <span class="k">pip</span> · <span class="v">5 px dots · n of 5 · ts-style label</span>
+            </p>
+            <p class="cnote">Each row exposes <em>current progress</em> — three filled pips of five, plus a stage word ("Building", "Strong") with a tiny bar. This is what lets the moment feel meaningful: the user sees this capture pushing a named line up the wall.</p>
+          </div>
+
+          <div class="callout">
+            <p class="ctitle">E · Capability row · selected</p>
+            <p class="cname"><em>Green wash + green-fill check · the only "yes" sound.</em></p>
+            <p class="cspec">
+              <span class="k">fill</span> · <span class="v">green-wash 6%</span><br>
+              <span class="k">border</span> · <span class="v">green-soft 22%</span><br>
+              <span class="k">inner ring</span> · <span class="v">inset 0.5 green-soft</span><br>
+              <span class="k">check</span> · <span class="v">22 sq · r 7 · ios-green fill · 13 tick</span><br>
+              <span class="k">stage bar</span> · <span class="v">ios-green fill (was gray-2)</span><br>
+              <span class="k">count</span> · <span class="v">"2 selected" · 11 / 600 · green-deep</span>
+            </p>
+            <p class="cnote">Selection is the celebration. No haptic pop in the static frame but in motion the check fills and the row tints green with a 120 ms ease — slightly bouncier than other tap states, but only slightly.</p>
+          </div>
+
+          <div class="callout">
+            <p class="ctitle">F · Strength · 3-step segmented</p>
+            <p class="cname"><em>Three plain words, never stars.</em></p>
+            <p class="cspec">
+              <span class="k">height</span> · <span class="v">78 incl. 12 top pad</span><br>
+              <span class="k">track</span> · <span class="v">gray-6 · r 9 · pad 2</span><br>
+              <span class="k">option</span> · <span class="v">12.5 / 500 · −0.1 ls · 8/6 pad</span><br>
+              <span class="k">on</span> · <span class="v">#FFF lift · shadow 0 1 2 6% · 14/600</span><br>
+              <span class="k">ico</span> · <span class="v">10 dot · gray-4 → ios-green on select</span><br>
+              <span class="k">eyebrow</span> · <span class="v">11 / 700 · "Optional" italic right</span>
+            </p>
+            <p class="cnote">Worth noting · Solid · Breakthrough — calibrated language, not a 1–5 scale. The "Optional" tag is doing real work: saving with no strength selected is fine; the back-end just stores it as <em>unrated</em>.</p>
+          </div>
+
+          <div class="callout">
+            <p class="ctitle">G · Save evidence · Cancel</p>
+            <p class="cname"><em>Solid ios-blue save with count pill · text Cancel below.</em></p>
+            <p class="cspec">
+              <span class="k">footer pad</span> · <span class="v">12 / 16 / 22 (safe)</span><br>
+              <span class="k">save h</span> · <span class="v">50 · r 14 · ios-blue solid</span><br>
+              <span class="k">save label</span> · <span class="v">16 / 600 · −0.2 ls · white</span><br>
+              <span class="k">glyph</span> · <span class="v">bookmark-filled · 17 · leading</span><br>
+              <span class="k">pill</span> · <span class="v">white 22% · 11 / 700 · n selected</span><br>
+              <span class="k">cancel</span> · <span class="v">14 / 500 · label-2 · text-only</span><br>
+              <span class="k">shadow</span> · <span class="v">0 4 12 −2 · blue 38%</span>
+            </p>
+            <p class="cnote">Save CTA is the same shape and weight as Frame 3's <em>Move to Reflect</em> — same iOS-blue, same height, same trailing-glyph rhythm. The count pill is a quiet receipt: 0 selected → CTA stays enabled (allows future re-tagging) but loses the count.</p>
+          </div>
+
+          <!-- ============= Color tokens ============ -->
+          <div class="legend">
+            <h5>Color tokens · in use on this surface</h5>
+            <div class="row-l">
+              <span class="sw" style="background: #007AFF;"></span>
+              <span class="nm"><em>ios-blue</em> · Save CTA · voice accent · play</span>
+              <span class="hex">#007AFF</span>
+            </div>
+            <div class="row-l">
+              <span class="sw" style="background: #34C759;"></span>
+              <span class="nm"><em>ios-green</em> · selected check · "yes" signal</span>
+              <span class="hex">#34C759</span>
+            </div>
+            <div class="row-l">
+              <span class="sw" style="background: rgba(52,199,89,0.06); border-color: rgba(52,199,89,0.22);"></span>
+              <span class="nm"><em>green-wash</em> · selected row fill · moment section</span>
+              <span class="hex">6 %</span>
+            </div>
+            <div class="row-l">
+              <span class="sw" style="background: #248A3D;"></span>
+              <span class="nm"><em>green-deep</em> · "2 selected" · eyebrow text</span>
+              <span class="hex">#248A3D</span>
+            </div>
+            <div class="row-l">
+              <span class="sw" style="background: #1C1C1E;"></span>
+              <span class="nm"><em>label</em> · title · capability names</span>
+              <span class="hex">#1C1C1E</span>
+            </div>
+            <div class="row-l">
+              <span class="sw" style="background: #3C3C43;"></span>
+              <span class="nm"><em>label-2</em> · Cancel · section labels</span>
+              <span class="hex">#3C3C43</span>
+            </div>
+            <div class="row-l">
+              <span class="sw" style="background: #8E8E93;"></span>
+              <span class="nm"><em>gray-1</em> · scrim-state grays</span>
+              <span class="hex">#8E8E93</span>
+            </div>
+            <div class="row-l">
+              <span class="sw" style="background: #C7C7CC;"></span>
+              <span class="nm"><em>gray-3</em> · empty check border · pip dots</span>
+              <span class="hex">#C7C7CC</span>
+            </div>
+            <div class="row-l">
+              <span class="sw" style="background: #E5E5EA;"></span>
+              <span class="nm"><em>gray-5</em> · hairlines · row borders</span>
+              <span class="hex">#E5E5EA</span>
+            </div>
+            <div class="row-l">
+              <span class="sw" style="background: #F2F2F7;"></span>
+              <span class="nm"><em>gray-6</em> · seg track · dismiss · neutral chip</span>
+              <span class="hex">#F2F2F7</span>
+            </div>
+            <div class="row-l" style="opacity: 0.55;">
+              <span class="sw" style="background: #FF6B6B;"></span>
+              <span class="nm"><em>ios-coral</em> · not used on this surface</span>
+              <span class="hex">#FF6B6B</span>
+            </div>
+          </div>
+
+          <!-- ============= Type scale ============ -->
+          <div class="type-scale">
+            <h5>Type scale · this surface</h5>
+            <div class="type-row">
+              <span class="sample title">Mark as evidence</span>
+              <span class="spec">18 / 600 · −0.32 ls · sheet title</span>
+            </div>
+            <div class="type-row">
+              <span class="sample" style="font-size:12px;color:var(--label-3);">Tag this capture as proof you're getting better.</span>
+              <span class="spec">12 / 400 · label-3 · sub</span>
+            </div>
+            <div class="type-row">
+              <span class="sample eye">Promoting this capture</span>
+              <span class="spec">9.5 / 700 · 0.7 ls · upper · green-deep</span>
+            </div>
+            <div class="type-row">
+              <span class="sample body">"Left filled in at eight degrees…"</span>
+              <span class="spec">13 / 400 · italic · cap body</span>
+            </div>
+            <div class="type-row">
+              <span class="sample aux">Evidence for which capabilities</span>
+              <span class="spec">11 / 700 · 0.4 ls · upper · label-2</span>
+            </div>
+            <div class="type-row">
+              <span class="sample cap">Read wind shifts on the water</span>
+              <span class="spec">14 / 600 · −0.2 ls · capability name</span>
+            </div>
+            <div class="type-row">
+              <span class="sample desc">Catch a building shift before the puff arrives.</span>
+              <span class="spec">12 / 400 · 1.4 lh · label-3 · desc</span>
+            </div>
+            <div class="type-row">
+              <span class="sample ts">3 of 5</span>
+              <span class="spec">10.5 / 500 · tnum · progress meta</span>
+            </div>
+            <div class="type-row">
+              <span class="sample seg">Solid</span>
+              <span class="spec">12.5 / 500 → 600 on · seg option</span>
+            </div>
+            <div class="type-row">
+              <span class="sample cta" style="color: var(--ios-blue);">Save evidence</span>
+              <span class="spec">16 / 600 · −0.2 ls · CTA label</span>
+            </div>
+            <div class="type-row">
+              <span class="sample cancel">Cancel</span>
+              <span class="spec">14 / 500 · label-2 · text only</span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <div class="caption-block" style="margin-top: 12px;">
+        <p class="frame-label"><em>Anatomy</em> · 393 × 852 + spec column</p>
+        <p class="frame-sub">Measurement chips in <span style="color: var(--measure); font-style: normal; font-weight: 600;">amber</span> over the bottom-sheet shell, the multi-select row, the segmented control, and the CTA stack. Callouts A–G align with Frames 2 &amp; 3 — A is the sheet shell (frame's "state container"), G is the primary CTA + dismiss pair.</p>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- =================================================================== -->
+  <!-- Rail of notes                                                         -->
+  <!-- =================================================================== -->
+  <div class="rail-row">
+    <div class="rail-col">
+      <h4>Green is the <em>only</em> reward</h4>
+      <p>The emotional payload of this frame is a single color shift — gray-bordered checkbox to green-filled checkbox, white row to green-wash row. No confetti, no spring physics on the count, no copy that congratulates. The user is doing a piece of light bookkeeping that happens to also be meaningful; the design respects that by not over-dressing it. The same restrained green carries over from Frame 3's <strong>Activity complete</strong> pill — it's the same vocabulary saying the same thing: "noticed."</p>
+      <span class="sig"><span class="swatch green"></span>selection · check · stage bar · count</span>
+    </div>
+    <div class="rail-col">
+      <h4>The capture stays <em>the capture</em></h4>
+      <p>The row at the top of the sheet is the same row the user just tapped on in the stream — same radius, same left-accent, same waveform, same chip, same italic body for voice. Reusing it verbatim signals <em>this is the moment we're talking about</em> with zero new vocabulary to learn. The green wash and the "Promoting this capture" eyebrow are the only signals it's been lifted out of context.</p>
+      <span class="sig"><span class="swatch blue"></span>row contract preserved · <span class="swatch green"></span>section frame</span>
+    </div>
+    <div class="rail-col">
+      <h4>Multi-select is the <em>truth</em> of the model</h4>
+      <p>A single observation usually evidences more than one capability — the eight-degree shift call is both <em>reading wind shifts</em> and <em>pre-start positioning</em>. Forcing a single choice would compress the signal. The pip + stage on each row makes the consequence visible: tapping a capability isn't just a tag, it's pushing a named line one notch up its progression bar. The strength selector is optional on purpose — the model can survive ungraded evidence, and asking too much is what kills the habit.</p>
+      <span class="sig"><span class="swatch green"></span>multi-select · <span class="swatch gray"></span>strength optional</span>
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>
