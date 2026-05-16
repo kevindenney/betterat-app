@@ -171,12 +171,6 @@ export default function DiscoverTab() {
             label: 'Preview Paths-for-you iOS register',
             onPress: () => router.push('/discover-ios' as any),
           },
-          {
-            icon: 'compass-outline',
-            sfSymbol: 'safari',
-            label: 'Preview Discover trio canonical',
-            onPress: () => router.push('/discover-trio-ios' as any),
-          },
         ]}
         onMeasuredHeight={setToolbarHeight}
         hidden={toolbarHidden}
