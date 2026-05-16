@@ -339,6 +339,35 @@
     font-weight: 600;
     text-decoration: none;
   }
+  .secondary-cta {
+    margin-top: 18px;
+    padding-top: 15px;
+    border-top: 0.5px solid rgba(20, 34, 61, 0.12);
+    max-width: 330px;
+  }
+  .secondary-cta .ttl {
+    margin: 0 0 6px;
+    color: var(--navy);
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: -0.08px;
+  }
+  .secondary-cta p {
+    margin: 0 0 9px;
+    color: var(--navy-3);
+    font-size: 13px;
+    line-height: 1.45;
+    letter-spacing: -0.04px;
+  }
+  .secondary-cta a {
+    color: var(--navy-2);
+    font-size: 13.5px;
+    font-weight: 700;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+  }
 
   /* Author strip — "by Kevin Denney" attribution beneath the hero */
   .author-strip {
@@ -652,6 +681,11 @@
     font-weight: 600;
     text-decoration: none;
   }
+  .d-hero .secondary-cta {
+    margin-top: 4px;
+    margin-bottom: 18px;
+    max-width: 560px;
+  }
   .d-hero .by-kevin {
     margin-top: 22px;
     display: inline-flex; align-items: center; gap: 12px;
@@ -857,9 +891,14 @@
               <p class="sub">Follow Kevin Denney's preparation blueprint. <em>Plan, do, reflect</em> — together with the fleet.</p>
 
               <div class="cta-stack">
-                <button class="btn-primary">Get started <i class="ti ti-arrow-right"></i></button>
+                <button class="btn-primary">Follow Kevin's blueprint <i class="ti ti-arrow-right"></i></button>
               </div>
               <p class="signin-row">Already have an account? <a>Sign in</a></p>
+              <div class="secondary-cta">
+                <p class="ttl">Not racing in Dragon Worlds 2027?</p>
+                <p>BetterAt works for any hard thing you're getting better at — drawing, nursing, fitness, whatever. Same Plan/Do/Reflect loop.</p>
+                <a>I'm here for something else — explore BetterAt <i class="ti ti-arrow-right"></i></a>
+              </div>
             </section>
 
             <div class="author-strip">
@@ -885,7 +924,8 @@
 
             <div class="url-trace">
               <span class="em">URL</span>  https://better.at/redeem<br/>
-              <span class="em">CTA →</span> /signup?redeem=dragon-worlds-2027 ··· <span class="em">Sign in →</span> /signin?redeem=dragon-worlds-2027
+              <span class="em">Primary CTA →</span> /signup?returnTo=/redeem&interest=sail-racing&persona=sailor<br/>
+              <span class="em">Secondary CTA →</span> /signup ··· <span class="em">Sign in →</span> /signin?returnTo=/redeem
             </div>
 
           </div>
@@ -1064,8 +1104,13 @@
             <h1>Prepare for <em>Dragon Worlds</em> 2027.</h1>
             <p class="sub">Follow Kevin Denney's preparation blueprint. <em>Plan, do, reflect</em> — fourteen steps from boat tuning through race-week routines, written from his own campaign and shared with the fleet.</p>
             <div class="cta-row">
-              <button class="btn-primary">Get started <i class="ti ti-arrow-right"></i></button>
+              <button class="btn-primary">Follow Kevin's blueprint <i class="ti ti-arrow-right"></i></button>
               <span class="signin">Already have an account? <a>Sign in</a></span>
+            </div>
+            <div class="secondary-cta">
+              <p class="ttl">Not racing in Dragon Worlds 2027?</p>
+              <p>BetterAt works for any hard thing you're getting better at — drawing, nursing, fitness, whatever. Same Plan/Do/Reflect loop.</p>
+              <a>I'm here for something else — explore BetterAt <i class="ti ti-arrow-right"></i></a>
             </div>
             <div class="by-kevin">
               <span class="av">KD</span>
