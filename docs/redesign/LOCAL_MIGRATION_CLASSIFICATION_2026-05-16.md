@@ -9,17 +9,17 @@ Classification source of truth:
 - Local migration SQL files under `supabase/migrations/`.
 - Remote schema dump committed at `docs/redesign/REMOTE_SCHEMA_DUMP_2026-05-16.sql` (`8251c220`).
 
-No migration repair, database pull, database push, or SQL execution was run for this classification.
+No migration repair, database pull, or database push was run for this classification. The original classification used only local SQL files and the remote schema dump; the two formerly ambiguous data-effect migrations were later resolved with read-only remote data probes.
 
 ## Summary Table
 
 | Timestamp | Filename | Verdict | One-line Description |
 |---|---|---:|---|
-| `20260410120000` | `20260410120000_seed_jhu_degree_programs_and_templates.sql` | `AMBIGUOUS` | Data seed for JHU nursing programs, sessions, templates, and baseline concepts; schema-only dump cannot prove row presence. |
+| `20260410120000` | `20260410120000_seed_jhu_degree_programs_and_templates.sql` | `APPLIED-EQUIVALENT` | Read-only data probe found all 4 JHU nursing programs, 28 sessions, 28 templates, and 10 baseline concepts present remotely. |
 | `20260511110000` | `20260511110000_fix_club_events_rls_recursion.sql` | `APPLIED-EQUIVALENT` | RLS recursion helper functions and replacement policies are present remotely. |
 | `20260512120000` | `20260512120000_create_step_recent_activity.sql` | `APPLIED-EQUIVALENT` | `step_recent_activity` table, index, RLS, policy, and evolved `mark_step_active` path are present remotely. |
 | `20260512130000` | `20260512130000_mark_step_active_service_role.sql` | `APPLIED-EQUIVALENT` | Final 3-argument `mark_step_active` service-role-compatible function is present remotely. |
-| `20260512140000` | `20260512140000_step_arch_e_backfill_review_sections.sql` | `AMBIGUOUS` | Schema artifacts are present, but the migration also performs a data backfill that cannot be verified from a schema-only dump. |
+| `20260512140000` | `20260512140000_step_arch_e_backfill_review_sections.sql` | `APPLIED-EQUIVALENT` | Read-only data probe found 0 remaining eligible flat review rows, 14 legacy-section rows, and 14 audit rows. |
 | `20260513090000` | `20260513090000_document_service_role_only_tables.sql` | `APPLIED-EQUIVALENT` | `platform_transfers` service-role-only table comment is present remotely. |
 | `20260513120000` | `20260513120000_share_tokens.sql` | `APPLIED-EQUIVALENT` | `share_tokens` table, indexes, RLS policies, and resolver functions are present remotely. |
 | `20260514110000` | `20260514110000_enable_rls_step_review_backfill_audit.sql` | `APPLIED-EQUIVALENT` | `step_review_backfill_audit` RLS and service-role-only comment are present remotely. |
@@ -29,13 +29,13 @@ No migration repair, database pull, database push, or SQL execution was run for 
 
 Bucket counts:
 
-- `APPLIED-EQUIVALENT`: 9
+- `APPLIED-EQUIVALENT`: 11
 - `NOT-APPLIED`: 0
-- `AMBIGUOUS`: 2
+- `AMBIGUOUS`: 0
 
 ## `20260410120000` - `seed_jhu_degree_programs_and_templates.sql`
 
-Verdict: `AMBIGUOUS`
+Verdict: `APPLIED-EQUIVALENT`
 
 Intended effect: idempotently seed JHU School of Nursing degree programs, program sessions, timeline step templates, and baseline nursing `playbook_concepts` rows for demo/program content.
 
@@ -48,7 +48,126 @@ Evidence checked:
   - `timeline_step_templates` at remote dump line 19735.
 - The committed remote dump is schema-only. It does not contain row data, so it cannot prove whether rows like `MSN Entry into Nursing`, `DNP — Family NP`, `Healthcare Organizational Leadership MSN`, or `management-of-care` were inserted.
 
-Recommendation: human review. Do not mark this as applied-equivalent from the schema dump alone. If Kevin wants to avoid applying it, verify the seed rows via read-only SQL first. If those rows are absent, keep the migration pending.
+Resolution - read-only data probe:
+
+The schema-only dump could not prove row presence, so the seed effect was checked against remote data using the service-role read path. The CLI DB login role was not allowed to read the relevant tables directly, so this was executed as read-only PostgREST `select` requests, equivalent to the following SQL predicates:
+
+```sql
+-- JHU nursing seed presence probe
+SELECT count(*) FROM programs
+WHERE organization_id = '678e149e-2abb-422c-ac61-b76756a2150e'
+  AND domain = 'nursing'
+  AND title IN (
+    'MSN Entry into Nursing',
+    'DNP — Family NP',
+    'DNP — Psych Mental Health NP',
+    'Healthcare Organizational Leadership MSN'
+  );
+
+SELECT count(*) FROM program_sessions
+WHERE program_id IN (
+  SELECT id FROM programs
+  WHERE organization_id = '678e149e-2abb-422c-ac61-b76756a2150e'
+    AND domain = 'nursing'
+    AND title IN (
+      'MSN Entry into Nursing',
+      'DNP — Family NP',
+      'DNP — Psych Mental Health NP',
+      'Healthcare Organizational Leadership MSN'
+    )
+);
+
+SELECT count(*) FROM timeline_step_templates
+WHERE organization_id = '678e149e-2abb-422c-ac61-b76756a2150e'
+  AND interest_id = 'bec249c5-6412-4d16-bb84-bfcfb887ff67'
+  AND path_name IN (
+    'msn-entry-into-nursing',
+    'dnp-family-np',
+    'dnp-psych-mental-health-np',
+    'hol-msn'
+  );
+
+SELECT count(*) FROM playbook_concepts
+WHERE interest_id = 'bec249c5-6412-4d16-bb84-bfcfb887ff67'
+  AND origin = 'platform_baseline'
+  AND slug IN (
+    'management-of-care',
+    'safety-and-infection-control',
+    'pharmacological-therapies',
+    'physiological-adaptation',
+    'psychosocial-integrity',
+    'health-promotion-maintenance',
+    'basic-care-and-comfort',
+    'reduction-of-risk-potential',
+    'delegation-and-prioritization',
+    'clinical-judgment-model'
+  );
+```
+
+Raw result:
+
+```json
+{
+  "program_count": 4,
+  "session_count": 28,
+  "template_count": 28,
+  "concept_count": 10,
+  "programs_present": [
+    "DNP — Family NP",
+    "DNP — Psych Mental Health NP",
+    "Healthcare Organizational Leadership MSN",
+    "MSN Entry into Nursing"
+  ],
+  "templates_present": [
+    "dnp-family-np:1",
+    "dnp-family-np:2",
+    "dnp-family-np:3",
+    "dnp-family-np:4",
+    "dnp-family-np:5",
+    "dnp-family-np:6",
+    "dnp-family-np:7",
+    "dnp-psych-mental-health-np:1",
+    "dnp-psych-mental-health-np:2",
+    "dnp-psych-mental-health-np:3",
+    "dnp-psych-mental-health-np:4",
+    "dnp-psych-mental-health-np:5",
+    "dnp-psych-mental-health-np:6",
+    "dnp-psych-mental-health-np:7",
+    "hol-msn:1",
+    "hol-msn:2",
+    "hol-msn:3",
+    "hol-msn:4",
+    "hol-msn:5",
+    "hol-msn:6",
+    "hol-msn:7",
+    "msn-entry-into-nursing:1",
+    "msn-entry-into-nursing:2",
+    "msn-entry-into-nursing:3",
+    "msn-entry-into-nursing:4",
+    "msn-entry-into-nursing:5",
+    "msn-entry-into-nursing:6",
+    "msn-entry-into-nursing:7"
+  ],
+  "concepts_present": [
+    "basic-care-and-comfort",
+    "clinical-judgment-model",
+    "delegation-and-prioritization",
+    "health-promotion-maintenance",
+    "management-of-care",
+    "pharmacological-therapies",
+    "physiological-adaptation",
+    "psychosocial-integrity",
+    "reduction-of-risk-potential",
+    "safety-and-infection-control"
+  ]
+}
+```
+
+Verdict: `APPLIED-EQUIVALENT`. All intended seed row groups are present at the expected cardinalities. This is eligible for bookkeeping repair:
+
+```bash
+supabase migration repair --status reverted 20260410120000
+```
 
 ## `20260511110000` - `fix_club_events_rls_recursion.sql`
 
@@ -115,7 +234,7 @@ supabase migration repair --status reverted 20260512130000
 
 ## `20260512140000` - `step_arch_e_backfill_review_sections.sql`
 
-Verdict: `AMBIGUOUS`
+Verdict: `APPLIED-EQUIVALENT`
 
 Intended effect: create `step_review_backfill_audit`, add `step_review_parse_telegram_stamp`, add `step_arch_e_backfill_batch`, and execute a data backfill converting legacy `metadata.review` flat fields into `metadata.review.sections[]`.
 
@@ -129,7 +248,80 @@ Evidence checked:
   - Function comment exists at line 7073.
 - The migration also executes a `DO` loop that mutates `timeline_steps.metadata` data. The schema dump cannot prove whether that backfill ran or whether all intended rows were transformed.
 
-Recommendation: human review. Do not classify as fully applied-equivalent from schema alone. If Kevin wants to mark it as already handled, first verify via read-only SQL that legacy flat review rows either no longer exist or were intentionally left for a later backfill.
+Resolution - read-only data probe:
+
+The schema artifacts were already confirmed present. The remaining question was whether the data backfill ran. The remote data was checked with read-only `select` access equivalent to this SQL:
+
+```sql
+-- Step Arch E backfill completion probe
+WITH eligible AS (
+  SELECT id
+  FROM timeline_steps
+  WHERE metadata ? 'review'
+    AND jsonb_typeof(metadata->'review') = 'object'
+    AND (
+      NOT (metadata->'review' ? 'sections')
+      OR jsonb_typeof(metadata->'review'->'sections') <> 'array'
+      OR jsonb_array_length(metadata->'review'->'sections') = 0
+    )
+    AND (
+      (metadata->'review'->>'what_learned') IS NOT NULL
+      OR (metadata->'review'->>'deviation_reason') IS NOT NULL
+      OR (metadata->'review'->>'next_step_notes') IS NOT NULL
+    )
+),
+backfilled AS (
+  SELECT id
+  FROM timeline_steps
+  WHERE metadata ? 'review'
+    AND jsonb_typeof(metadata->'review') = 'object'
+    AND jsonb_typeof(metadata->'review'->'sections') = 'array'
+    AND jsonb_array_length(metadata->'review'->'sections') > 0
+    AND (metadata->'review'->>'composed_via') = 'legacy'
+),
+audit AS (
+  SELECT count(*) AS audit_count FROM step_review_backfill_audit
+)
+SELECT
+  (SELECT count(*) FROM eligible) AS remaining_eligible_flat_rows,
+  (SELECT count(*) FROM backfilled) AS legacy_sections_rows,
+  (SELECT audit_count FROM audit) AS audit_rows;
+```
+
+Raw result:
+
+```json
+{
+  "total_timeline_steps_checked": 283,
+  "remaining_eligible_flat_rows": 0,
+  "legacy_sections_rows": 14,
+  "audit_rows_content_range": "0-13/14",
+  "audit_rows": 14,
+  "remaining_eligible_ids": [],
+  "legacy_sections_ids": [
+    "39fe4757-56e4-475a-9923-92ad4d4914b8",
+    "c971abbd-56fc-4058-8beb-0aa6266ba190",
+    "de914768-dfc2-4c34-8def-962427579633",
+    "68c448cd-4d03-4cd5-8e4d-9d1b8144afb0",
+    "92b510b7-4875-42ed-b101-4b0513ec9957",
+    "bb4c3b33-3bdd-4091-b6b1-76369f3ce682",
+    "862dc0bd-e234-4d9f-9afd-c8883b2f40b9",
+    "461646ee-48da-4333-920f-16540b5c806e",
+    "fc951452-452c-48fb-ac07-ce9bbfe3f9cd",
+    "f8917dd3-f3d2-44c4-80f0-3a340a86e4f2",
+    "32702144-be73-499a-9e20-927083952bd0",
+    "d897117b-1014-4d0b-9803-1a40c6d9bb3d",
+    "774f46d4-2f9c-4ccb-9056-24eaddb206a7",
+    "0bea0a57-1ec8-4248-b22e-2d00d81f3548"
+  ]
+}
+```
+
+Verdict: `APPLIED-EQUIVALENT`. There are no remaining eligible legacy-flat review rows, and the 14 legacy-composed review rows match the 14 audit rows. This is eligible for bookkeeping repair:
+
+```bash
+supabase migration repair --status reverted 20260512140000
+```
 
 ## `20260513090000` - `document_service_role_only_tables.sql`
 
@@ -282,9 +474,11 @@ Do not execute these from this document. This is the precomputed command list fo
 Per Kevin's requested classification vocabulary, the following `APPLIED-EQUIVALENT` local-only migrations are candidates for bookkeeping repair as `reverted`, because their effects are already present in the remote schema dump:
 
 ```bash
+supabase migration repair --status reverted 20260410120000
 supabase migration repair --status reverted 20260511110000
 supabase migration repair --status reverted 20260512120000
 supabase migration repair --status reverted 20260512130000
+supabase migration repair --status reverted 20260512140000
 supabase migration repair --status reverted 20260513090000
 supabase migration repair --status reverted 20260513120000
 supabase migration repair --status reverted 20260514110000
@@ -293,12 +487,4 @@ supabase migration repair --status reverted 20260514130000
 supabase migration repair --status reverted 20260515120000
 ```
 
-Hold for human review:
-
-```text
-20260410120000_seed_jhu_degree_programs_and_templates.sql
-20260512140000_step_arch_e_backfill_review_sections.sql
-```
-
-Reason: both include data effects that cannot be proven from the schema-only dump. The first is primarily seed data. The second includes schema objects that are present, but also executes a `timeline_steps.metadata` backfill.
-
+No local-only migrations remain in the ambiguous bucket after the read-only data probes.
