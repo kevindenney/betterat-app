@@ -251,7 +251,7 @@ Guidelines:
   // Auto-scroll on new messages
   useEffect(() => {
     setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 100);
-  }, [messages.length, isLoading]);
+  }, [messages.length, isLoading, isStructuring, draft, draftError]);
 
   const handleSend = useCallback(() => {
     const trimmed = input.trim();
@@ -274,6 +274,29 @@ Guidelines:
     if (isStructuring) return;
     setIsStructuring(true);
     setDraftError(null);
+
+    const latestUserMessage = [...messages].reverse().find((m) => m.role === 'user' && m.content?.trim())?.content?.trim();
+    const latestAssistantMessage = [...messages].reverse().find((m) => m.role === 'assistant' && m.content?.trim())?.content?.trim();
+    const firstUserMessage = messages.find((m) => m.role === 'user' && m.content?.trim())?.content?.trim();
+    const localFallbackWhat = latestUserMessage || latestAssistantMessage || firstUserMessage;
+
+    if (localFallbackWhat) {
+      setDraft({
+        suggestedTitle: localFallbackWhat.split(/[.\n]/).filter(Boolean)[0]?.trim().slice(0, 64),
+        planData: {
+          what_will_you_do: localFallbackWhat,
+          how_sub_steps: [
+            {
+              id: `local_${Date.now()}_0`,
+              text: `Practice ${localFallbackWhat.toLowerCase()}`,
+              sort_order: 0,
+              completed: false,
+            },
+          ],
+          why_reasoning: 'Drafted from the conversation so you can accept and edit immediately.',
+        },
+      });
+    }
 
     const conversationText = messages
       .map((m) => `${m.role}: ${m.content}`)
@@ -316,9 +339,6 @@ Respond with ONLY valid JSON:
         }
       }
 
-      const latestUserMessage = [...messages].reverse().find((m) => m.role === 'user' && m.content?.trim())?.content?.trim();
-      const latestAssistantMessage = [...messages].reverse().find((m) => m.role === 'assistant' && m.content?.trim())?.content?.trim();
-      const firstUserMessage = messages.find((m) => m.role === 'user' && m.content?.trim())?.content?.trim();
       const fallbackWhat = parsed.what_will_you_do?.trim()
         || parsed.suggested_title?.trim()
         || latestUserMessage
@@ -330,7 +350,9 @@ Respond with ONLY valid JSON:
         : [];
 
       if (!fallbackWhat?.trim() && howSubSteps.length === 0 && !parsed.why_reasoning?.trim()) {
-        setDraftError("I couldn't find enough plan detail yet. Add one sentence, then tap Draft my plan again.");
+        if (!localFallbackWhat) {
+          setDraftError("I couldn't find enough plan detail yet. Add one sentence, then tap Draft my plan again.");
+        }
         return;
       }
 
