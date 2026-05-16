@@ -64,6 +64,12 @@ Codex audits are useful but not authoritative until checked against repo state. 
 
 ## Dev Environment Gotchas
 
+### Expo web does not inline dynamic `EXPO_PUBLIC_*` flag lookups
+
+Expo's web bundle does not reliably inline feature flags read through a dynamic helper such as `readBooleanEnv(name, fallback)` when the helper indexes `process.env[name]`. The CLI can show the variable in `env: export ...`, but the browser bundle may still evaluate the flag as absent.
+
+For web-facing cutover flags, use a static reference such as `process.env.EXPO_PUBLIC_FF_REDEEM` so Expo can inline it. Phase P's `FEATURE_FLAGS.REDEEM` is the working reference pattern for future web flags.
+
 ### Simulator may launch the wrong dev client
 
 The iOS simulator has two BetterAt-stack apps installed (`com.betterat.app`
