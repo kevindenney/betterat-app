@@ -18,8 +18,8 @@ import {
   Modal,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
-import { STEP_COLORS } from '@/lib/step-theme';
 import { useAIConversation } from '@/hooks/useAIConversation';
 import { getManifesto } from '@/services/ManifestoService';
 import { getActiveInsights, formatInsightsForPrompt } from '@/services/AIMemoryService';
@@ -29,6 +29,10 @@ import { supabase } from '@/services/supabase';
 import { getStepCategoryLabels } from '@/lib/step-category-config';
 import { getUserLibrary, getResources } from '@/services/LibraryService';
 import type { StepPlanData, SubStep } from '@/types/step-detail';
+import {
+  PlanDraftPreviewCard,
+  type PlanDraftPreview,
+} from './plan-tab/PlanDraftPreviewCard';
 
 interface ConversationalCaptureProps {
   interestId: string;
@@ -43,22 +47,31 @@ interface ConversationalCaptureProps {
    *  already expressed intent ("+ → Add Step"), so the next gesture is to
    *  describe what they're working on. */
   autoFocus?: boolean;
+  /**
+   * AI Coach · Frame 2 — render the "Refining the plan for X" context
+   * strip above the conversation. Defaults to true; set false for
+   * surfaces that should not announce a refinement target (e.g. the
+   * paste overlay quick capture).
+   */
+  showContextStrip?: boolean;
 }
 
 export function ConversationalCapture({
   interestId,
   interestName,
-  stepTitle: _stepTitle,
+  stepTitle,
   onCreateStep,
   embedded,
   stepCategory,
   autoFocus,
+  showContextStrip = true,
 }: ConversationalCaptureProps) {
   const { user } = useAuth();
   const [input, setInput] = useState('');
   const [showPasteOverlay, setShowPasteOverlay] = useState(false);
   const [pasteText, setPasteText] = useState('');
   const [isStructuring, setIsStructuring] = useState(false);
+  const [draft, setDraft] = useState<PlanDraftPreview | null>(null);
   const scrollRef = useRef<ScrollView>(null);
   const inputRef = useRef<TextInput>(null);
 
@@ -216,8 +229,9 @@ Guidelines:
     sendMessage(trimmed);
   }, [pasteText, sendMessage]);
 
-  // Structure conversation into StepPlanData
-  const handleCreateStep = useCallback(async () => {
+  // Structure the conversation into a draft preview, surfaced inline
+  // for the user to accept or keep refining (AI Coach · Frame 3).
+  const handleDraftPlan = useCallback(async () => {
     setIsStructuring(true);
 
     const conversationText = messages
@@ -231,6 +245,7 @@ Respond with ONLY valid JSON:
   "suggested_title": "Short title (3-8 words)",
   "what_will_you_do": "1-3 sentence objective",
   "how_sub_steps": ["Step 1", "Step 2", "Step 3"],
+  "how_sub_step_tags": ["Optional capability tag per sub-step, or null"],
   "why_reasoning": "1-2 sentence rationale",
   "who_collaborators": ["Name"],
   "capability_goals": ["Skill 1", "Skill 2"],
@@ -257,6 +272,9 @@ Respond with ONLY valid JSON:
         || latestAssistantMessage
         || 'Plan created from conversation';
       const howSubSteps = Array.isArray(parsed.how_sub_steps) ? parsed.how_sub_steps : [];
+      const howSubStepTags = Array.isArray(parsed.how_sub_step_tags)
+        ? parsed.how_sub_step_tags
+        : [];
 
       const planData: Partial<StepPlanData> = {
         what_will_you_do: fallbackWhat,
@@ -275,23 +293,48 @@ Respond with ONLY valid JSON:
         planData.where_location = { name: parsed.where_location_name };
       }
 
-      // Complete the conversation with a summary
-      await complete(fallbackWhat);
-
-      onCreateStep(planData, parsed.suggested_title);
+      setDraft({
+        suggestedTitle: parsed.suggested_title?.trim() || undefined,
+        planData,
+        subStepTags: howSubStepTags.map((t: unknown) =>
+          typeof t === 'string' && t.trim() ? t.trim() : null,
+        ),
+      });
     } catch (err) {
-      console.error('Structure conversation failed:', err);
-      // Fallback: use last assistant message as what
+      console.error('Draft plan failed:', err);
+      // Fallback: surface a minimal draft from the last assistant turn so
+      // the user can still accept-and-edit rather than losing their work.
       const lastAssistant = [...messages].reverse().find((m) => m.role === 'assistant');
-      onCreateStep({
-        what_will_you_do: lastAssistant?.content || '',
+      setDraft({
+        planData: {
+          what_will_you_do: lastAssistant?.content || '',
+        },
       });
     } finally {
       setIsStructuring(false);
     }
-  }, [messages, interestName, complete, onCreateStep]);
+  }, [messages, interestName]);
+
+  const handleAcceptDraft = useCallback(async () => {
+    if (!draft) return;
+    const summary = draft.planData.what_will_you_do || draft.suggestedTitle || '';
+    try {
+      await complete(summary);
+    } catch {
+      // complete() is best-effort; commit the draft regardless.
+    }
+    onCreateStep(draft.planData, draft.suggestedTitle);
+    setDraft(null);
+  }, [draft, complete, onCreateStep]);
+
+  const handleKeepRefining = useCallback(() => {
+    setDraft(null);
+    // Refocus the composer so the user can immediately respond.
+    setTimeout(() => inputRef.current?.focus(), 60);
+  }, []);
 
   const hasConversation = messages.length > 1; // More than just opening message
+  const showDraftCta = hasConversation && !draft && !isStructuring && !isLoading;
 
   return (
     <View style={[styles.container, embedded && styles.containerEmbedded]}>
@@ -310,53 +353,104 @@ Respond with ONLY valid JSON:
         contentContainerStyle={styles.messagesContent}
         showsVerticalScrollIndicator={false}
       >
-        {messages.map((msg, i) => (
-          <View
-            key={`${msg.role}_${i}`}
-            style={[
-              styles.bubble,
-              msg.role === 'user' ? styles.bubbleUser : styles.bubbleAssistant,
-            ]}
-          >
-            {msg.role === 'assistant' && (
-              <View style={styles.bubbleIcon}>
-                <Ionicons name="sparkles" size={12} color={IOS_COLORS.systemPurple} />
-              </View>
-            )}
-            <Text
-              style={[
-                styles.bubbleText,
-                msg.role === 'user' ? styles.bubbleTextUser : styles.bubbleTextAssistant,
-              ]}
-            >
-              {msg.content}
+        {showContextStrip && stepTitle ? (
+          <View style={styles.contextStrip} accessibilityLabel="Refinement target">
+            <Ionicons name="flag-outline" size={12} color={IOS_COLORS.systemBlue} />
+            <Text style={styles.contextText} numberOfLines={2}>
+              {'Refining the plan for '}
+              <Text style={styles.contextStrong}>{stepTitle}</Text>
             </Text>
           </View>
-        ))}
+        ) : null}
+
+        {messages.map((msg, i) => {
+          if (msg.role === 'assistant') {
+            return (
+              <View key={`assistant_${i}`} style={styles.aiRow}>
+                <LinearGradient
+                  colors={['#007AFF', '#5856D6']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.aiAvatar}
+                >
+                  <Ionicons name="sparkles" size={12} color="#FFFFFF" />
+                </LinearGradient>
+                <View style={[styles.bubble, styles.bubbleAssistant]}>
+                  <Text style={[styles.bubbleText, styles.bubbleTextAssistant]}>
+                    {msg.content}
+                  </Text>
+                </View>
+              </View>
+            );
+          }
+          return (
+            <View key={`user_${i}`} style={[styles.bubble, styles.bubbleUser]}>
+              <Text style={[styles.bubbleText, styles.bubbleTextUser]}>
+                {msg.content}
+              </Text>
+            </View>
+          );
+        })}
 
         {isLoading && (
-          <View style={[styles.bubble, styles.bubbleAssistant]}>
-            <ActivityIndicator size="small" color={IOS_COLORS.systemPurple} />
-            <Text style={styles.typingText}>Thinking...</Text>
+          <View style={styles.aiRow}>
+            <LinearGradient
+              colors={['#007AFF', '#5856D6']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.aiAvatar}
+            >
+              <Ionicons name="sparkles" size={12} color="#FFFFFF" />
+            </LinearGradient>
+            <View style={styles.typing}>
+              <View style={styles.typingDots}>
+                <View style={styles.typingDot} />
+                <View style={[styles.typingDot, styles.typingDotMid]} />
+                <View style={[styles.typingDot, styles.typingDotLow]} />
+              </View>
+              <Text style={styles.typingText}>Thinking…</Text>
+            </View>
           </View>
+        )}
+
+        {isStructuring && (
+          <View style={styles.aiRow}>
+            <LinearGradient
+              colors={['#007AFF', '#5856D6']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.aiAvatar}
+            >
+              <Ionicons name="sparkles" size={12} color="#FFFFFF" />
+            </LinearGradient>
+            <View style={styles.typing}>
+              <ActivityIndicator size="small" color={IOS_COLORS.secondaryLabel} />
+              <Text style={styles.typingText}>Drafting your plan now…</Text>
+            </View>
+          </View>
+        )}
+
+        {draft && (
+          <PlanDraftPreviewCard
+            draft={draft}
+            onAccept={handleAcceptDraft}
+            onKeepRefining={handleKeepRefining}
+          />
         )}
       </ScrollView>
 
-      {/* Create Step button */}
-      {hasConversation && !isLoading && (
+      {/* Draft my plan CTA — surfaces a draft preview inline once the
+          conversation has enough material. Hidden while a draft is
+          already showing so the user focuses on Accept / Keep refining. */}
+      {showDraftCta && (
         <Pressable
-          style={styles.createStepButton}
-          onPress={handleCreateStep}
-          disabled={isStructuring}
+          style={styles.draftCtaButton}
+          onPress={handleDraftPlan}
+          accessibilityRole="button"
+          accessibilityLabel="Draft my plan"
         >
-          {isStructuring ? (
-            <ActivityIndicator size="small" color="#FFFFFF" />
-          ) : (
-            <>
-              <Ionicons name="checkmark-circle" size={18} color="#FFFFFF" />
-              <Text style={styles.createStepText}>Create Step from Conversation</Text>
-            </>
-          )}
+          <Ionicons name="sparkles" size={16} color="#FFFFFF" />
+          <Text style={styles.draftCtaText}>Draft my plan</Text>
         </Pressable>
       )}
 
@@ -479,28 +573,68 @@ const styles = StyleSheet.create({
     padding: IOS_SPACING.sm,
     gap: IOS_SPACING.sm,
   },
-  bubble: {
+  contextStrip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
     borderRadius: 10,
-    padding: IOS_SPACING.sm,
-    maxWidth: '88%',
+    backgroundColor: 'rgba(0, 122, 255, 0.06)',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(0, 122, 255, 0.15)',
+    marginBottom: 2,
+  },
+  contextText: {
+    flex: 1,
+    fontSize: 11,
+    color: IOS_COLORS.label,
+    letterSpacing: -0.05,
+    lineHeight: 15,
+  },
+  contextStrong: {
+    fontWeight: '600',
+    color: IOS_COLORS.label,
+  },
+  aiRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    alignSelf: 'flex-start',
+    gap: 8,
+    maxWidth: '86%',
+  },
+  aiAvatar: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
+    shadowRadius: 2,
+    shadowOffset: { width: 0, height: 1 },
+  },
+  bubble: {
+    borderRadius: 18,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    maxWidth: '78%',
   },
   bubbleUser: {
     alignSelf: 'flex-end',
-    backgroundColor: STEP_COLORS.accent,
+    backgroundColor: IOS_COLORS.systemBlue,
+    borderBottomRightRadius: 5,
   },
   bubbleAssistant: {
     alignSelf: 'flex-start',
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: 'rgba(175,82,222,0.12)',
-    gap: IOS_SPACING.xs,
-  },
-  bubbleIcon: {
-    alignSelf: 'flex-start',
+    backgroundColor: IOS_COLORS.systemGray6,
+    borderBottomLeftRadius: 5,
+    flexShrink: 1,
   },
   bubbleText: {
-    fontSize: 14,
-    lineHeight: 20,
+    fontSize: 13.5,
+    lineHeight: 18,
+    letterSpacing: -0.15,
   },
   bubbleTextUser: {
     color: '#FFFFFF',
@@ -508,26 +642,59 @@ const styles = StyleSheet.create({
   bubbleTextAssistant: {
     color: IOS_COLORS.label,
   },
-  typingText: {
-    fontSize: 13,
-    color: IOS_COLORS.systemPurple,
-    fontStyle: 'italic',
+  typing: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 9,
+    paddingHorizontal: 12,
+    borderRadius: 18,
+    borderBottomLeftRadius: 5,
+    backgroundColor: IOS_COLORS.systemGray6,
   },
-  createStepButton: {
+  typingDots: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+  },
+  typingDot: {
+    width: 5,
+    height: 5,
+    borderRadius: 2.5,
+    backgroundColor: IOS_COLORS.secondaryLabel,
+  },
+  typingDotMid: {
+    opacity: 0.7,
+  },
+  typingDotLow: {
+    opacity: 0.5,
+  },
+  typingText: {
+    fontSize: 12.5,
+    color: IOS_COLORS.secondaryLabel,
+    letterSpacing: -0.1,
+  },
+  draftCtaButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
-    backgroundColor: STEP_COLORS.accent,
+    gap: 6,
+    backgroundColor: IOS_COLORS.systemBlue,
     marginHorizontal: IOS_SPACING.sm,
     marginVertical: IOS_SPACING.xs,
-    paddingVertical: 10,
-    borderRadius: 10,
+    paddingVertical: 11,
+    borderRadius: 12,
+    shadowColor: IOS_COLORS.systemBlue,
+    shadowOpacity: 0.35,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 3,
   },
-  createStepText: {
+  draftCtaText: {
     fontSize: 14,
     fontWeight: '600',
     color: '#FFFFFF',
+    letterSpacing: -0.2,
   },
   inputRow: {
     flexDirection: 'row',
