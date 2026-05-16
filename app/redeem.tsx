@@ -192,7 +192,7 @@ export default function RedeemScreen() {
                 <Text style={styles.secondaryCtaTitle}>Not racing in Dragon Worlds 2027?</Text>
                 <Text style={styles.secondaryCtaBody}>
                   BetterAt works for any hard thing you're getting better at - drawing, nursing,
-                  fitness, whatever. Same Plan/Do/Reflect loop.
+                  fitness, anything. Same Plan/Do/Reflect loop, just pick your own interest in setup.
                 </Text>
                 <Pressable
                   onPress={goExploreSignup}
@@ -200,7 +200,7 @@ export default function RedeemScreen() {
                   style={({ pressed }) => [styles.exploreLink, pressed && styles.pressed]}
                 >
                   <Text style={styles.exploreLinkText}>
-                    I'm here for something else - explore BetterAt
+                    Explore BetterAt instead
                   </Text>
                   <Ionicons name="arrow-forward" size={14} color={C.navy2} />
                 </Pressable>
