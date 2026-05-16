@@ -19,6 +19,12 @@ export { DoMoveToReflectCTA, type DoMoveToReflectCTAProps } from './DoMoveToRefl
 export { DoSecondaryActions, type DoSecondaryActionsProps } from './DoSecondaryActions';
 export { DoPostActivityCard, type DoPostActivityCardProps } from './DoPostActivityCard';
 export {
+  MarkAsEvidenceSheet,
+  type MarkAsEvidenceSheetProps,
+  type EvidenceCapabilityOption,
+  type EvidenceStrength,
+} from './MarkAsEvidenceSheet';
+export {
   PhotoCapturePreview,
   QuickNoteCapturePreview,
   TimeMarkerCapturePreview,
