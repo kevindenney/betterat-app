@@ -184,7 +184,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   card: {
-    flex: 1,
+    // No `flex: 1` — the card sizes to its intrinsic content so the
+    // Move-to-Reflect CTA and secondary actions below render at their
+    // natural heights in any parent (ScrollView, tab container, etc.).
+    // Frame 2's DoLiveCard can use flex: 1 because composer + Stop CTA
+    // live inside its card; Frame 3 places the CTA outside per the
+    // canonical, which exposed the flex collapse inside RaceSummaryCard's
+    // ScrollView phase content.
     backgroundColor: '#FFFFFF',
     borderRadius: 22,
     borderWidth: StyleSheet.hairlineWidth,
@@ -239,7 +245,8 @@ const styles = StyleSheet.create({
     marginVertical: 2,
   },
   streamWrap: {
-    flex: 1,
+    // Intrinsic height — paired with `card` not using flex: 1 so the
+    // CTA + secondary actions below the card always render fully.
     paddingTop: 8,
     paddingHorizontal: 14,
     paddingBottom: 8,
@@ -272,17 +279,17 @@ const styles = StyleSheet.create({
     color: LABEL,
   },
   stream: {
-    flex: 1,
+    // No `flex: 1` — pairs with the card's intrinsic sizing so the
+    // CTA + secondary actions below the card always render.
   },
   streamContent: {
     gap: 10,
     paddingBottom: 8,
   },
   emptyStream: {
-    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 24,
+    paddingVertical: 32,
   },
   emptyStreamText: {
     fontSize: 12,
