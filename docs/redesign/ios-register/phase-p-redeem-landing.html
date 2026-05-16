@@ -1,0 +1,1147 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=1800" />
+<title>BetterAt · Phase P · /redeem landing · Canonical — 2026-05-16</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css" />
+<style>
+  :root {
+    --ios-blue:        #007AFF;
+    --ios-blue-deep:   #0060D4;
+    --ios-blue-tint:   rgba(0, 122, 255, 0.10);
+    --ios-green:       #34C759;
+    --ios-green-tint:  rgba(52, 199, 89, 0.12);
+
+    --gray-6:  #F5F5F7;
+    --gray-5:  #ECECEE;
+    --gray-4:  #E0E0E4;
+    --gray-3:  #D1D1D6;
+    --gray-2:  #AEAEB2;
+    --gray-1:  #8E8E93;
+    --label:   #1C1C1E;
+    --label-2: #3C3C43;
+    --label-3: rgba(60, 60, 67, 0.62);
+    --label-4: rgba(60, 60, 67, 0.32);
+
+    /* better.at public web — warm institutional cream + deep navy
+       (matches the cream used elsewhere in the canonical set; navy
+       is for masthead ink only, blue still owns actions). */
+    --cream:    #F6F4EE;
+    --cream-2:  #EFECE2;
+    --navy:     #14223D;
+    --navy-2:   #2F3D5C;
+    --navy-3:   #5A6685;
+
+    /* Page stage */
+    --stage:        #EFEAD8;
+    --stage-text:   #6B6558;
+    --stage-ink:    #2A2824;
+    --stage-line:   rgba(34, 30, 20, 0.12);
+    --stage-line-soft: rgba(34, 30, 20, 0.06);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display",
+                 "Helvetica Neue", Helvetica, Arial, sans-serif;
+    color: var(--label);
+    background: var(--stage);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+  button, input { font-family: inherit; }
+
+  /* ============= Page chrome ============= */
+  .page { min-width: 1800px; padding: 56px 48px 96px; }
+  .page-head { max-width: 1240px; margin: 0 0 36px 32px; }
+  .page-head .eyebrow {
+    font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--stage-text); margin: 0 0 12px;
+  }
+  .page-head h1 {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 32px; line-height: 1.15; font-weight: 500;
+    letter-spacing: -0.015em; margin: 0 0 14px; color: var(--stage-ink);
+  }
+  .page-head h1 em { font-style: italic; }
+  .page-head p {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 17px; line-height: 1.55;
+    color: var(--stage-text); margin: 0; max-width: 1100px;
+    text-wrap: pretty;
+  }
+  .page-head p em { font-style: italic; }
+  .page-head p + p { margin-top: 12px; }
+  .page-head .crumbs {
+    display: flex; gap: 10px; align-items: center; margin: 22px 0 0; flex-wrap: wrap;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+    font-size: 12px; color: var(--stage-text); letter-spacing: 0.02em;
+  }
+  .page-head .crumbs .pill {
+    padding: 3px 10px; border-radius: 999px;
+    border: 0.5px solid var(--stage-line);
+    background: rgba(255,255,255,0.4);
+  }
+  .page-head .crumbs .pill em { font-style: italic; }
+  .page-head .crumbs .sep { color: var(--stage-line); }
+
+  .strip-head {
+    max-width: 1704px;
+    margin: 36px auto 22px;
+    padding-top: 24px;
+    border-top: 0.5px solid var(--stage-line);
+  }
+  .strip-head .eyebrow {
+    font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--stage-text); margin: 0 0 8px;
+  }
+  .strip-head h2 {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 22px; line-height: 1.25; font-weight: 500;
+    letter-spacing: -0.01em; margin: 0 0 8px; color: var(--stage-ink);
+  }
+  .strip-head h2 em { font-style: italic; }
+  .strip-head p {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 15px; line-height: 1.55;
+    color: var(--stage-text); margin: 0; max-width: 1180px;
+    text-wrap: pretty;
+  }
+  .strip-head p em { font-style: italic; }
+
+  .row {
+    max-width: 1704px;
+    margin: 0 auto;
+    display: flex;
+    gap: 36px;
+    align-items: flex-start;
+    justify-content: center;
+  }
+  .col { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+  .col .caption-block { text-align: center; max-width: 360px; }
+  .col .frame-label {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 18px; font-weight: 500; letter-spacing: -0.2px;
+    color: var(--stage-ink); margin: 0 0 4px;
+  }
+  .col .frame-label em { font-style: italic; }
+  .col .frame-sub {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 13px; font-style: italic;
+    color: var(--stage-text); margin: 0;
+    max-width: 360px; text-wrap: pretty; line-height: 1.45;
+  }
+
+  /* ============= Phone shell ============= */
+  /* iPhone 14, 390 logical CSS px wide; but the brief asks for 375
+     (which is the legacy iPhone width — and the realistic HKDW
+     in-app webview width). I'm using 390 for visual fidelity to the
+     rest of the canonical set, with the webview content laid out
+     at the 375 the brief specifies. */
+  .phone {
+    width: 393px;
+    height: 852px;
+    background: #000;
+    border-radius: 56px;
+    border: 1px solid rgba(0, 0, 0, 0.18);
+    box-shadow:
+      0 30px 80px -40px rgba(34, 30, 20, 0.32),
+      0 2px 0 rgba(255,255,255,0.5) inset;
+    overflow: hidden;
+    position: relative;
+    isolation: isolate;
+  }
+  .phone .notch {
+    position: absolute; top: 11px; left: 50%; transform: translateX(-50%);
+    width: 116px; height: 34px; background: #0F0E0C; border-radius: 20px; z-index: 40;
+  }
+  .statusbar {
+    position: absolute; top: 0; left: 0; right: 0; height: 50px;
+    padding: 16px 32px 0; display: flex; align-items: center; justify-content: space-between;
+    font-weight: 600; font-size: 15px; color: #0A0A0A; z-index: 30; pointer-events: none;
+  }
+  .statusbar .right { display: flex; gap: 6px; align-items: center; }
+  .statusbar .right i { font-size: 15px; }
+  .home-indicator {
+    position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%);
+    width: 134px; height: 5px; border-radius: 3px;
+    background: rgba(0, 0, 0, 0.30); z-index: 45; pointer-events: none;
+  }
+  .screen {
+    position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+    overflow: hidden;
+    padding-top: 50px;
+    background: var(--cream);
+  }
+
+  /* ============= HKDW in-app webview chrome ============= */
+  /* Thin top bar that shows the HKDW app's chrome wrapping the
+     web page. The bar is HKDW's, not ours — but rendering it makes
+     it explicit that sailors are reading the page from inside the
+     HKDW app, not in mobile Safari. */
+  .webview-chrome {
+    height: 44px;
+    background: #0E2B4A;
+    color: #FFFFFF;
+    display: grid;
+    grid-template-columns: 64px 1fr 32px;
+    align-items: center;
+    padding: 0 12px;
+    border-bottom: 0.5px solid rgba(0,0,0,0.2);
+  }
+  .webview-chrome .back {
+    display: inline-flex; align-items: center; gap: 2px;
+    color: #FFFFFF;
+    font-size: 13px; font-weight: 500;
+    letter-spacing: -0.1px;
+    opacity: 0.92;
+  }
+  .webview-chrome .back i { font-size: 16px; }
+  .webview-chrome .title {
+    text-align: center;
+    font-size: 14px; font-weight: 600;
+    letter-spacing: -0.1px;
+  }
+  .webview-chrome .title .tag {
+    display: block;
+    font-size: 9px; font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: rgba(255,255,255,0.58);
+    margin-bottom: 1px;
+  }
+  .webview-chrome .close {
+    width: 26px; height: 26px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.16);
+    color: #FFFFFF;
+    display: inline-flex; align-items: center; justify-content: center;
+    justify-self: end;
+  }
+  .webview-chrome .close i { font-size: 14px; }
+
+  /* ============= Webview content (the better.at page) ============= */
+  .webview-body {
+    position: absolute;
+    top: 94px;
+    left: 0; right: 0; bottom: 0;
+    overflow: hidden;
+    background: var(--cream);
+  }
+  .webview-body::after {
+    content: "";
+    position: absolute; left: 0; right: 0; bottom: 0;
+    height: 22px;
+    background: linear-gradient(180deg, rgba(246,244,238,0), var(--cream));
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  /* Brand row */
+  .brand-row {
+    padding: 14px 18px 0;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .brand-row .mark {
+    width: 26px; height: 26px; border-radius: 8px;
+    background: var(--navy);
+    color: #fff;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 13px; letter-spacing: -0.5px;
+  }
+  .brand-row .wordmark {
+    font-size: 14px; font-weight: 600; letter-spacing: -0.2px;
+    color: var(--navy);
+  }
+  .brand-row .wordmark .dot { color: var(--ios-blue); font-weight: 700; }
+  .brand-row .spacer { flex: 1; }
+  .brand-row .signin-link {
+    font-size: 13px; color: var(--ios-blue); font-weight: 500;
+    letter-spacing: -0.1px;
+  }
+
+  /* Hero */
+  .hero {
+    padding: 22px 22px 24px;
+    position: relative;
+  }
+  .hero .eyebrow {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 10.5px; font-weight: 700;
+    letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--navy-3);
+    margin: 0 0 14px;
+  }
+  .hero .eyebrow .swatch {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--ios-blue);
+  }
+  .hero h1 {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 32px; font-weight: 500;
+    line-height: 1.08;
+    letter-spacing: -0.025em;
+    color: var(--navy);
+    margin: 0 0 14px;
+    text-wrap: balance;
+  }
+  .hero h1 em { font-style: italic; }
+  .hero .sub {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 16px; line-height: 1.45;
+    color: var(--navy-2);
+    margin: 0 0 22px;
+    max-width: 320px;
+    text-wrap: pretty;
+  }
+  .hero .sub em { font-style: italic; }
+
+  /* Hero CTA group */
+  .cta-stack { display: flex; flex-direction: column; gap: 10px; }
+  .btn-primary {
+    background: var(--ios-blue);
+    color: #FFFFFF;
+    border: 0;
+    border-radius: 14px;
+    padding: 14px 18px;
+    font-family: inherit;
+    font-size: 16px; font-weight: 600;
+    letter-spacing: -0.1px;
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    box-shadow: 0 8px 20px -6px rgba(0, 122, 255, 0.42);
+    cursor: pointer;
+  }
+  .btn-primary i { font-size: 17px; }
+  .btn-secondary {
+    background: transparent;
+    color: var(--navy);
+    border: 0.5px solid var(--navy-3);
+    border-radius: 14px;
+    padding: 13px 18px;
+    font-family: inherit;
+    font-size: 15px; font-weight: 500;
+    letter-spacing: -0.1px;
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    cursor: pointer;
+  }
+  .signin-row {
+    margin-top: 4px;
+    text-align: center;
+    font-size: 13.5px;
+    color: var(--navy-3);
+    letter-spacing: -0.05px;
+  }
+  .signin-row a {
+    color: var(--ios-blue);
+    font-weight: 600;
+    text-decoration: none;
+  }
+
+  /* Author strip — "by Kevin Denney" attribution beneath the hero */
+  .author-strip {
+    margin: 22px 22px 0;
+    padding: 12px 14px;
+    background: rgba(255,255,255,0.74);
+    border: 0.5px solid rgba(20, 34, 61, 0.10);
+    border-radius: 14px;
+    display: flex; align-items: center; gap: 12px;
+  }
+  .author-strip .avatar {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #2A4866 0%, #4F6A85 100%);
+    display: inline-flex; align-items: center; justify-content: center;
+    color: #FFF; font-size: 13px; font-weight: 600;
+    letter-spacing: -0.3px;
+    flex-shrink: 0;
+  }
+  .author-strip .who {
+    font-size: 12px; line-height: 1.35;
+    color: var(--navy-2);
+    letter-spacing: -0.05px;
+  }
+  .author-strip .who .em {
+    color: var(--navy);
+    font-weight: 600;
+  }
+  .author-strip .who .meta {
+    color: var(--navy-3);
+    font-weight: 400;
+    display: block;
+    margin-top: 1px;
+  }
+
+  /* What is BetterAt — footer explanation */
+  .what-is {
+    margin: 22px 22px 24px;
+    padding: 18px 18px 18px;
+    background: var(--cream-2);
+    border-radius: 16px;
+    border: 0.5px solid rgba(20, 34, 61, 0.08);
+  }
+  .what-is .ttl {
+    font-size: 10.5px; font-weight: 700;
+    letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--navy-3);
+    margin: 0 0 10px;
+  }
+  .what-is p {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 14.5px; line-height: 1.5;
+    color: var(--navy-2);
+    margin: 0 0 10px;
+    text-wrap: pretty;
+  }
+  .what-is p:last-child { margin-bottom: 0; }
+  .what-is p .em {
+    color: var(--navy);
+    font-weight: 600;
+  }
+  .what-is .loop {
+    display: inline-flex; gap: 4px; align-items: center;
+    margin: 6px 0 0;
+    font-size: 11.5px;
+    color: var(--navy-2);
+    letter-spacing: -0.02px;
+  }
+  .what-is .loop .step {
+    padding: 3px 8px 4px;
+    border-radius: 999px;
+    background: #FFFFFF;
+    border: 0.5px solid rgba(20, 34, 61, 0.12);
+    font-weight: 600;
+    color: var(--navy);
+    letter-spacing: 0.02em;
+  }
+  .what-is .loop .arrow {
+    color: var(--navy-3);
+    font-size: 13px;
+  }
+
+  /* Decorative sail watermark — only triangles, no SVG complexity */
+  .sail-watermark {
+    position: absolute;
+    right: -28px; top: 0;
+    width: 180px; height: 240px;
+    pointer-events: none;
+    opacity: 0.08;
+  }
+
+  /* Tiny annotation row at the bottom of the webview */
+  .url-trace {
+    margin: 0 22px 32px;
+    padding: 10px 12px;
+    background: rgba(255,255,255,0.6);
+    border: 0.5px dashed rgba(20, 34, 61, 0.18);
+    border-radius: 10px;
+    font-family: "SF Mono", ui-monospace, monospace;
+    font-size: 10.5px;
+    color: var(--navy-3);
+    line-height: 1.4;
+    letter-spacing: -0.02px;
+  }
+  .url-trace .em { color: var(--navy); font-weight: 600; }
+
+  /* ============= State C (redirect) — almost blank ============= */
+  .redirect-screen {
+    position: absolute; top: 94px; left: 0; right: 0; bottom: 0;
+    background: var(--cream);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 0 32px;
+    text-align: center;
+  }
+  .redirect-screen .spinner {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    border: 2px solid rgba(20, 34, 61, 0.16);
+    border-top-color: var(--ios-blue);
+    margin-bottom: 18px;
+  }
+  .redirect-screen .ttl {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 17px; font-weight: 500;
+    color: var(--navy);
+    margin: 0 0 6px;
+    letter-spacing: -0.01em;
+  }
+  .redirect-screen .ttl em { font-style: italic; }
+  .redirect-screen .sub {
+    font-size: 13px;
+    color: var(--navy-3);
+    margin: 0 0 32px;
+    line-height: 1.45;
+    text-wrap: pretty;
+  }
+  .redirect-screen .annot {
+    margin-top: 16px;
+    padding: 12px 14px;
+    background: #FFFFFF;
+    border: 0.5px dashed rgba(20, 34, 61, 0.28);
+    border-radius: 12px;
+    font-family: "SF Mono", ui-monospace, monospace;
+    font-size: 10.5px;
+    color: var(--navy-2);
+    line-height: 1.4;
+    letter-spacing: -0.02px;
+    text-align: left;
+    max-width: 280px;
+  }
+  .redirect-screen .annot .em { color: var(--ios-blue); font-weight: 600; }
+
+  /* ============= Desktop frame ============= */
+  .desktop-row {
+    max-width: 1704px;
+    margin: 56px auto 0;
+    display: flex; flex-direction: column; align-items: center; gap: 14px;
+  }
+  .desktop {
+    width: 1280px; height: 760px;
+    background: #FFFFFF;
+    border-radius: 14px;
+    border: 0.5px solid rgba(0, 0, 0, 0.12);
+    box-shadow:
+      0 30px 80px -40px rgba(34, 30, 20, 0.34),
+      0 6px 18px -10px rgba(34, 30, 20, 0.16),
+      0 1px 0 rgba(255,255,255,0.6) inset;
+    overflow: hidden;
+    position: relative;
+    isolation: isolate;
+  }
+  .desktop .chrome {
+    height: 36px;
+    background: #F1F1F3;
+    border-bottom: 0.5px solid var(--gray-4);
+    display: flex; align-items: center; gap: 12px;
+    padding: 0 14px;
+  }
+  .desktop .chrome .lights { display: inline-flex; gap: 8px; }
+  .desktop .chrome .lights span {
+    width: 12px; height: 12px; border-radius: 50%;
+    display: inline-block;
+  }
+  .desktop .chrome .lights .r { background: #FF5F57; }
+  .desktop .chrome .lights .y { background: #FEBC2E; }
+  .desktop .chrome .lights .g { background: #28C840; }
+  .desktop .chrome .url { flex: 1; display: flex; justify-content: center; }
+  .desktop .chrome .url-inner {
+    height: 22px; padding: 0 14px; min-width: 360px;
+    border-radius: 6px; background: #FFFFFF;
+    border: 0.5px solid var(--gray-4);
+    display: inline-flex; align-items: center; gap: 8px;
+    font-size: 11px; color: var(--label-3);
+  }
+  .desktop .chrome .url-inner i { font-size: 12px; color: var(--gray-1); }
+  .desktop .chrome .url-inner strong { color: var(--label-2); font-weight: 500; }
+
+  .d-page {
+    position: absolute; top: 36px; left: 0; right: 0; bottom: 0;
+    overflow: hidden;
+    background: var(--cream);
+  }
+  .d-nav {
+    height: 64px;
+    padding: 0 36px;
+    display: flex; align-items: center; gap: 22px;
+    border-bottom: 0.5px solid rgba(20, 34, 61, 0.08);
+    background: rgba(246, 244, 238, 0.92);
+  }
+  .d-nav .brand { display: inline-flex; align-items: center; gap: 10px; }
+  .d-nav .brand .mark {
+    width: 28px; height: 28px; border-radius: 8px;
+    background: var(--navy);
+    color: #fff;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 13px; letter-spacing: -0.5px;
+  }
+  .d-nav .brand .wordmark {
+    font-size: 15px; font-weight: 600; letter-spacing: -0.2px;
+    color: var(--navy);
+  }
+  .d-nav .links { display: inline-flex; gap: 22px; margin-left: 14px; }
+  .d-nav .links a {
+    font-size: 13.5px; color: var(--navy-2); letter-spacing: -0.1px;
+    text-decoration: none;
+  }
+  .d-nav .links a.on { color: var(--navy); font-weight: 600; }
+  .d-nav .spacer { flex: 1; }
+  .d-nav .actions { display: inline-flex; gap: 10px; align-items: center; }
+  .d-nav .actions .ghost {
+    font-size: 13.5px; color: var(--navy-2);
+    padding: 8px 14px;
+    border-radius: 10px;
+    letter-spacing: -0.1px;
+  }
+  .d-nav .actions .filled {
+    background: var(--ios-blue);
+    color: #FFFFFF;
+    border: 0;
+    border-radius: 10px;
+    padding: 9px 18px;
+    font-size: 13.5px; font-weight: 600;
+    letter-spacing: -0.1px;
+    cursor: pointer;
+  }
+
+  .d-hero {
+    position: relative;
+    padding: 64px 96px 56px;
+    display: grid;
+    grid-template-columns: 1fr 460px;
+    gap: 80px;
+    align-items: center;
+  }
+  .d-hero::after {
+    content: "";
+    position: absolute;
+    right: 0; top: 0; bottom: 0;
+    width: 460px;
+    background: var(--cream-2);
+    z-index: 0;
+  }
+  .d-hero .left { position: relative; z-index: 2; }
+  .d-hero .eyebrow {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 11px; font-weight: 700;
+    letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--navy-3);
+    margin: 0 0 18px;
+  }
+  .d-hero .eyebrow .swatch {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--ios-blue);
+  }
+  .d-hero h1 {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 56px; font-weight: 500;
+    line-height: 1.04;
+    letter-spacing: -0.028em;
+    color: var(--navy);
+    margin: 0 0 22px;
+    max-width: 560px;
+    text-wrap: balance;
+  }
+  .d-hero h1 em { font-style: italic; }
+  .d-hero .sub {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 19px; line-height: 1.45;
+    color: var(--navy-2);
+    margin: 0 0 32px;
+    max-width: 520px;
+    text-wrap: pretty;
+  }
+  .d-hero .sub em { font-style: italic; }
+  .d-hero .cta-row {
+    display: inline-flex; gap: 14px; align-items: center;
+    margin-bottom: 18px;
+  }
+  .d-hero .btn-primary {
+    padding: 15px 22px;
+    font-size: 16px;
+    border-radius: 12px;
+    box-shadow: 0 10px 26px -8px rgba(0, 122, 255, 0.45);
+  }
+  .d-hero .signin {
+    font-size: 14px; color: var(--navy-3);
+    letter-spacing: -0.05px;
+  }
+  .d-hero .signin a {
+    color: var(--ios-blue);
+    font-weight: 600;
+    text-decoration: none;
+  }
+  .d-hero .by-kevin {
+    margin-top: 22px;
+    display: inline-flex; align-items: center; gap: 12px;
+  }
+  .d-hero .by-kevin .av {
+    width: 40px; height: 40px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #2A4866 0%, #4F6A85 100%);
+    display: inline-flex; align-items: center; justify-content: center;
+    color: #FFF; font-size: 14px; font-weight: 600;
+    letter-spacing: -0.3px;
+  }
+  .d-hero .by-kevin .meta {
+    font-size: 13px; line-height: 1.35;
+    color: var(--navy-2);
+    letter-spacing: -0.05px;
+  }
+  .d-hero .by-kevin .meta .em {
+    color: var(--navy);
+    font-weight: 600;
+  }
+  .d-hero .right {
+    position: relative;
+    z-index: 2;
+    height: 320px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .d-hero .right .sail-card {
+    width: 100%; height: 100%;
+    background: var(--navy);
+    border-radius: 16px;
+    position: relative;
+    overflow: hidden;
+    box-shadow:
+      0 24px 60px -20px rgba(20, 34, 61, 0.35),
+      0 8px 22px -8px rgba(20, 34, 61, 0.22);
+  }
+  .d-hero .right .sail-card .stripes {
+    position: absolute; inset: 0;
+    background-image: repeating-linear-gradient(
+      135deg,
+      rgba(255,255,255,0.04) 0 14px,
+      rgba(255,255,255,0) 14px 32px
+    );
+  }
+  .d-hero .right .sail-card .placeholder {
+    position: absolute;
+    left: 18px; bottom: 18px; right: 18px;
+    color: rgba(255,255,255,0.55);
+    font-family: "SF Mono", ui-monospace, monospace;
+    font-size: 11px;
+    letter-spacing: 0.02em;
+    line-height: 1.4;
+  }
+  .d-hero .right .sail-card .placeholder .em {
+    color: rgba(255,255,255,0.86);
+  }
+  .d-hero .right .sail-svg {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.82;
+  }
+
+  .d-loop {
+    padding: 36px 96px 0;
+    border-top: 0.5px solid rgba(20, 34, 61, 0.08);
+    display: grid;
+    grid-template-columns: 360px 1fr;
+    gap: 64px;
+    align-items: flex-start;
+  }
+  .d-loop .heading {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 22px; font-weight: 500;
+    letter-spacing: -0.01em;
+    color: var(--navy);
+    margin: 0;
+    line-height: 1.25;
+    text-wrap: pretty;
+  }
+  .d-loop .heading em { font-style: italic; }
+  .d-loop .three { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+  .d-loop .three .item {
+    padding: 16px 16px 16px;
+    background: rgba(255,255,255,0.7);
+    border: 0.5px solid rgba(20, 34, 61, 0.10);
+    border-radius: 14px;
+  }
+  .d-loop .three .item .lbl {
+    font-size: 10.5px; font-weight: 700;
+    letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--navy-3);
+    margin: 0 0 8px;
+  }
+  .d-loop .three .item .lbl .dot {
+    display: inline-block;
+    width: 6px; height: 6px; border-radius: 50%;
+    margin-right: 5px; vertical-align: 1px;
+  }
+  .d-loop .three .item.plan .dot    { background: #007AFF; }
+  .d-loop .three .item.do .dot      { background: #FF6B6B; }
+  .d-loop .three .item.reflect .dot { background: #34C759; }
+  .d-loop .three .item p {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 13.5px; line-height: 1.5;
+    color: var(--navy-2);
+    margin: 0;
+    text-wrap: pretty;
+  }
+  .d-loop .three .item p em { font-style: italic; }
+
+  /* ============= Rail ============= */
+  .rail-row {
+    max-width: 1704px;
+    margin: 56px auto 0;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 36px;
+  }
+  .rail-col h4 {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 14px; letter-spacing: 0.01em;
+    color: var(--stage-ink); margin: 0 0 10px; font-weight: 500;
+  }
+  .rail-col h4 em { font-style: italic; }
+  .rail-col p {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 13.5px; line-height: 1.55;
+    color: #4D4A43; margin: 0 0 10px;
+    text-wrap: pretty;
+  }
+  .rail-col p strong { color: var(--stage-ink); font-weight: 500; }
+  .rail-col p em { font-style: italic; }
+</style>
+</head>
+<body>
+
+<div class="page" data-screen-label="Phase P · /redeem landing">
+
+  <header class="page-head">
+    <p class="eyebrow">BetterAt · Phase P · HKDW deep-link · Canonical — 2026-05-16</p>
+    <h1>The <em>/redeem</em> landing — three auth states for the May 20 HKDW deep-link, where ~700 Dragon sailors land in BetterAt for the first time</h1>
+    <p>On May 20, 2026, a tab inside the HKDW Dragon Worlds 2027 app opens <em>https://better.at/redeem</em> in an in-app webview. Sailors arrive in one of three auth states: <em>unauthenticated</em> (the new-to-BetterAt case — the great majority), <em>authenticated but not yet subscribed to Kevin's blueprint</em> (the existing-user opt-in moment), or <em>authenticated and already subscribed</em> (a silent server-side bounce to <em>/practice</em>, no page rendered). The three states share the same hero structure and the same authorial through-line — <em>Kevin Denney's</em> Dragon Worlds 2027 prep blueprint — so the page reads as one URL with different content, not three different pages.</p>
+    <div class="crumbs">
+      <span class="pill">Webview · 393 × 852 · HKDW host chrome shown</span>
+      <span class="sep">·</span>
+      <span class="pill">Desktop · 1280 × 760 · for shared / pasted links</span>
+      <span class="sep">·</span>
+      <span class="pill">Brand: <em>better.at</em> public web — cream + navy, iOS blue for actions</span>
+      <span class="sep">·</span>
+      <span class="pill">Reference for Phase P · <em>/redeem</em> implementation</span>
+    </div>
+  </header>
+
+  <section class="strip-head">
+    <p class="eyebrow">Frames 1 — 3 · Mobile webview (HKDW in-app)</p>
+    <h2><em>State A · State B · State C</em></h2>
+    <p>The three frames below are rendered as the sailor will see them: inside the HKDW app's in-app webview, with the host app's <em>← About BetterAt</em> chrome on top. Same hero structure across A and B — eyebrow, headline, sub, primary CTA, signed-by-Kevin attribution. State C is documentation-only: a server-side 302 to <em>/practice</em> means the user never sees this URL render.</p>
+  </section>
+
+  <div class="row">
+
+    <!-- ================= STATE A · Unauthenticated ================= -->
+    <div class="col">
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="statusbar">
+          <span>09:42</span>
+          <span class="right">
+            <i class="ti ti-cell-signal-4"></i>
+            <i class="ti ti-wifi"></i>
+            <i class="ti ti-battery-3"></i>
+          </span>
+        </div>
+
+        <div class="screen" data-screen-label="01 State A · Unauthenticated">
+          <div class="webview-chrome">
+            <span class="back"><i class="ti ti-chevron-left"></i>Back</span>
+            <span class="title">
+              <span class="tag">HKDW · About</span>
+              BetterAt
+            </span>
+            <span class="close"><i class="ti ti-x"></i></span>
+          </div>
+
+          <div class="webview-body">
+
+            <div class="brand-row">
+              <span class="mark">b</span>
+              <span class="wordmark">better<span class="dot">.</span>at</span>
+              <span class="spacer"></span>
+              <a class="signin-link">Sign in</a>
+            </div>
+
+            <section class="hero">
+              <svg class="sail-watermark" viewBox="0 0 180 240" xmlns="http://www.w3.org/2000/svg">
+                <polygon points="40,230 40,30 130,220" fill="#14223D" />
+                <polygon points="130,220 130,60 175,210" fill="#14223D" />
+              </svg>
+              <p class="eyebrow"><span class="swatch"></span>Dragon Worlds 2027 · Hong Kong</p>
+              <h1>Prepare for <em>Dragon Worlds</em> 2027</h1>
+              <p class="sub">Follow Kevin Denney's preparation blueprint. <em>Plan, do, reflect</em> — together with the fleet.</p>
+
+              <div class="cta-stack">
+                <button class="btn-primary">Get started <i class="ti ti-arrow-right"></i></button>
+              </div>
+              <p class="signin-row">Already have an account? <a>Sign in</a></p>
+            </section>
+
+            <div class="author-strip">
+              <span class="avatar">KD</span>
+              <div class="who">
+                Blueprint authored by <span class="em">Kevin Denney</span>
+                <span class="meta">Dragon class · RHKYC · 12 weeks · 14 steps</span>
+              </div>
+            </div>
+
+            <section class="what-is">
+              <p class="ttl">What is BetterAt</p>
+              <p>BetterAt is a practice loop for people getting better at hard things. You <span class="em">plan</span> what you'll work on, <span class="em">do</span> the practice, and <span class="em">reflect</span> on what you learned — and the loop turns each session into the next one's question.</p>
+              <p>For Dragon Worlds 2027, that loop is shaped by <span class="em">Kevin's prep blueprint</span> — fourteen steps from boat tuning through race-week routines, written from his own campaign.</p>
+              <div class="loop">
+                <span class="step">Plan</span>
+                <span class="arrow">→</span>
+                <span class="step">Do</span>
+                <span class="arrow">→</span>
+                <span class="step">Reflect</span>
+              </div>
+            </section>
+
+            <div class="url-trace">
+              <span class="em">URL</span>  https://better.at/redeem<br/>
+              <span class="em">CTA →</span> /signup?redeem=dragon-worlds-2027 ··· <span class="em">Sign in →</span> /signin?redeem=dragon-worlds-2027
+            </div>
+
+          </div>
+        </div>
+        <span class="home-indicator"></span>
+      </div>
+      <div class="caption-block">
+        <p class="frame-label">State A · <em>Unauthenticated</em></p>
+        <p class="frame-sub">The new-sailor case. First impression: confident headline, a single primary action, and a quiet author attribution so they know whose blueprint they're being invited into.</p>
+      </div>
+    </div>
+
+    <!-- ================= STATE B · Auth, opt-in ================= -->
+    <div class="col">
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="statusbar">
+          <span>09:42</span>
+          <span class="right">
+            <i class="ti ti-cell-signal-4"></i>
+            <i class="ti ti-wifi"></i>
+            <i class="ti ti-battery-3"></i>
+          </span>
+        </div>
+
+        <div class="screen" data-screen-label="02 State B · Auth opt-in">
+          <div class="webview-chrome">
+            <span class="back"><i class="ti ti-chevron-left"></i>Back</span>
+            <span class="title">
+              <span class="tag">HKDW · About</span>
+              BetterAt
+            </span>
+            <span class="close"><i class="ti ti-x"></i></span>
+          </div>
+
+          <div class="webview-body">
+
+            <div class="brand-row">
+              <span class="mark">b</span>
+              <span class="wordmark">better<span class="dot">.</span>at</span>
+              <span class="spacer"></span>
+              <a class="signin-link" style="color:var(--navy-3);">@andreas</a>
+            </div>
+
+            <section class="hero">
+              <svg class="sail-watermark" viewBox="0 0 180 240" xmlns="http://www.w3.org/2000/svg">
+                <polygon points="40,230 40,30 130,220" fill="#14223D" />
+                <polygon points="130,220 130,60 175,210" fill="#14223D" />
+              </svg>
+              <p class="eyebrow"><span class="swatch" style="background:var(--ios-green);"></span>Signed in · Dragon Worlds 2027</p>
+              <h1>Welcome back, <em>Andreas</em></h1>
+              <p class="sub">Follow Kevin's <em>Dragon Worlds 2027</em> prep blueprint? You'll get all fourteen steps on your Plan tab, and Kevin will see your reflections.</p>
+
+              <div class="cta-stack">
+                <button class="btn-primary">Follow the blueprint <i class="ti ti-check"></i></button>
+                <button class="btn-secondary">Not now, take me to BetterAt</button>
+              </div>
+            </section>
+
+            <div class="author-strip">
+              <span class="avatar">KD</span>
+              <div class="who">
+                Blueprint by <span class="em">Kevin Denney</span> · <span style="color:var(--ios-blue); font-weight: 600;">28 sailors following</span>
+                <span class="meta">12 weeks · 14 steps · last updated 3 days ago</span>
+              </div>
+            </div>
+
+            <section class="what-is" style="background: rgba(0,122,255,0.06); border-color: rgba(0,122,255,0.18);">
+              <p class="ttl" style="color: var(--ios-blue);">What happens when you tap follow</p>
+              <p>Kevin's 14 steps land on your <span class="em">Plan</span> tab in order — the first one becomes your next session. Each step you complete shows up in Kevin's mentoring view; he can leave notes on your reflections if he sees something worth pointing out.</p>
+              <p style="color: var(--navy-3); font-size: 13.5px;">You can unfollow at any time from the blueprint page. <em>Your existing practice is unaffected.</em></p>
+            </section>
+
+            <div class="url-trace">
+              <span class="em">URL</span>  https://better.at/redeem  <em>(session cookie: andreas)</em><br/>
+              <span class="em">CTA →</span> POST /api/blueprints/dragon-worlds-2027-peak-performance/subscribe → /practice ··· <span class="em">Not now →</span> /practice
+            </div>
+
+          </div>
+        </div>
+        <span class="home-indicator"></span>
+      </div>
+      <div class="caption-block">
+        <p class="frame-label">State B · <em>Auth, not yet following</em></p>
+        <p class="frame-sub">The opt-in moment. Same hero shape; the headline becomes personal and the primary action is verb-explicit so the consequence is unambiguous.</p>
+      </div>
+    </div>
+
+    <!-- ================= STATE C · Auth, already following ================= -->
+    <div class="col">
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="statusbar">
+          <span>09:42</span>
+          <span class="right">
+            <i class="ti ti-cell-signal-4"></i>
+            <i class="ti ti-wifi"></i>
+            <i class="ti ti-battery-3"></i>
+          </span>
+        </div>
+
+        <div class="screen" data-screen-label="03 State C · Server-side redirect">
+          <div class="webview-chrome">
+            <span class="back"><i class="ti ti-chevron-left"></i>Back</span>
+            <span class="title">
+              <span class="tag">HKDW · About</span>
+              BetterAt
+            </span>
+            <span class="close"><i class="ti ti-x"></i></span>
+          </div>
+
+          <div class="redirect-screen">
+            <div class="spinner"></div>
+            <p class="ttl">Taking you to <em>BetterAt</em>…</p>
+            <p class="sub">You're already following Kevin's blueprint.</p>
+
+            <div class="annot">
+              <span class="em">// canonical state C — no page rendered</span><br/>
+              <br/>
+              GET /redeem<br/>
+              &nbsp;&nbsp;Cookie: sess=andreas-d12<br/>
+              &nbsp;&nbsp;already_subscribed=true<br/>
+              <span class="em">→ 302 /practice</span><br/>
+              <br/>
+              The user is bounced server-side before any HTML reaches the webview. The <em>spinner state shown above</em> is what would render on a misconfigured client and exists as a fallback only — production should never paint it.
+            </div>
+          </div>
+        </div>
+        <span class="home-indicator"></span>
+      </div>
+      <div class="caption-block">
+        <p class="frame-label">State C · <em>Auth, already following</em></p>
+        <p class="frame-sub">Documentation-only — a server-side 302 to <em>/practice</em>. The frame shows the fallback client state in case the redirect ever paints, plus an annotation describing the intended server behaviour.</p>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ================ DESKTOP FRAME ================ -->
+  <section class="strip-head">
+    <p class="eyebrow">Frame 4 · Desktop browser — for shared and pasted links</p>
+    <h2>The same page at <em>1280px wide</em></h2>
+    <p>Sailors who paste the URL into a laptop browser, or who see it shared in the fleet's email chain, get the same hero — a wider stage, a sail-card on the right where the watermark sits on mobile. The desktop version is shown in <em>State A</em> only; B and C inherit the layout but swap copy and never render respectively.</p>
+  </section>
+
+  <div class="desktop-row">
+    <div class="desktop" data-screen-label="04 Desktop · State A">
+      <div class="chrome">
+        <span class="lights"><span class="r"></span><span class="y"></span><span class="g"></span></span>
+        <span class="url">
+          <span class="url-inner"><i class="ti ti-lock"></i><strong>better.at</strong>/redeem</span>
+        </span>
+        <span style="width: 64px;"></span>
+      </div>
+      <div class="d-page">
+        <div class="d-nav">
+          <div class="brand">
+            <span class="mark">b</span>
+            <span class="wordmark">better<span style="color:var(--ios-blue);">.</span>at</span>
+          </div>
+          <div class="links">
+            <a class="on">Dragon Worlds</a>
+            <a>How it works</a>
+            <a>Creators</a>
+          </div>
+          <span class="spacer"></span>
+          <div class="actions">
+            <a class="ghost">Sign in</a>
+            <button class="filled">Get started</button>
+          </div>
+        </div>
+
+        <section class="d-hero">
+          <div class="left">
+            <p class="eyebrow"><span class="swatch"></span>Dragon Worlds 2027 · Hong Kong · 19 — 26 Oct</p>
+            <h1>Prepare for <em>Dragon Worlds</em> 2027.</h1>
+            <p class="sub">Follow Kevin Denney's preparation blueprint. <em>Plan, do, reflect</em> — fourteen steps from boat tuning through race-week routines, written from his own campaign and shared with the fleet.</p>
+            <div class="cta-row">
+              <button class="btn-primary">Get started <i class="ti ti-arrow-right"></i></button>
+              <span class="signin">Already have an account? <a>Sign in</a></span>
+            </div>
+            <div class="by-kevin">
+              <span class="av">KD</span>
+              <div class="meta">
+                Blueprint by <span class="em">Kevin Denney</span>
+                <div style="color: var(--navy-3); margin-top: 2px;">Dragon class · RHKYC · 12 weeks · 14 steps</div>
+              </div>
+            </div>
+          </div>
+          <div class="right">
+            <div class="sail-card">
+              <div class="stripes"></div>
+              <svg class="sail-svg" viewBox="0 0 460 320" preserveAspectRatio="xMaxYMid slice" xmlns="http://www.w3.org/2000/svg">
+                <polygon points="120,310 120,30 290,300" fill="rgba(255,255,255,0.10)" stroke="rgba(255,255,255,0.30)" stroke-width="1" />
+                <polygon points="290,300 290,90 380,290" fill="rgba(255,255,255,0.06)" stroke="rgba(255,255,255,0.24)" stroke-width="1" />
+                <line x1="120" y1="310" x2="120" y2="30" stroke="rgba(255,255,255,0.45)" stroke-width="1.5" />
+              </svg>
+              <div class="placeholder">
+                <span class="em">[ image placeholder ]</span><br/>
+                Dragon-class abstraction — main + jib silhouette, no stock photography. Replace with commissioned line illustration or restrained on-water photo from RHKYC archives.
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="d-loop">
+          <h3 class="heading">What you're opting into is a <em>practice loop</em>, not a course.</h3>
+          <div class="three">
+            <div class="item plan">
+              <p class="lbl"><span class="dot"></span>Plan</p>
+              <p>The next step from Kevin's blueprint becomes your next session. <em>What will you work on, and how will you know it worked?</em></p>
+            </div>
+            <div class="item do">
+              <p class="lbl"><span class="dot"></span>Do</p>
+              <p>On the water or on land. Log what happened — conditions, drills, a single observation. <em>The session is the artefact.</em></p>
+            </div>
+            <div class="item reflect">
+              <p class="lbl"><span class="dot"></span>Reflect</p>
+              <p>What you learned becomes the question for next time. Kevin sees the reflections that get shared back to him.</p>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+    <p style="font-family: 'Iowan Old Style', serif; font-size: 13px; font-style: italic; color: var(--stage-text); margin: 0; max-width: 720px; text-align: center; text-wrap: pretty;">
+      The desktop hero promotes the sail-card from background watermark to a stage element — necessary at wider widths so the right column doesn't read empty. Same copy, same author attribution, same Plan/Do/Reflect coda.
+    </p>
+  </div>
+
+  <!-- ================ RAIL ================ -->
+  <section class="strip-head">
+    <p class="eyebrow">Design notes</p>
+    <h2>Why these choices</h2>
+    <p>Four moves the canonical commits to. Each one is small enough that <em>Claude Code</em> can implement it without further design back-and-forth — but each is load-bearing for the May 20 launch.</p>
+  </section>
+
+  <div class="rail-row">
+    <div class="rail-col">
+      <h4>One URL, three states</h4>
+      <p>The page is <em>not</em> three different pages. Same hero structure, same author attribution, same Plan/Do/Reflect coda. State B is State A with a personal headline and a verb-explicit primary action. State C is invisible — a server-side 302 — so most existing-followers never see the page at all.</p>
+    </div>
+    <div class="rail-col">
+      <h4>The HKDW host chrome <em>shown explicitly</em></h4>
+      <p>The dark navy bar at the top of the mobile frames is the <em>HKDW app's</em> webview chrome, not ours. Rendering it in the canonical makes it explicit that sailors arrive from inside HKDW — which constrains our hero (no top-of-page logo to compete, no &ldquo;jump to homepage&rdquo; affordance, the close X is HKDW's not BetterAt's).</p>
+    </div>
+    <div class="rail-col">
+      <h4>No stock-imagery</h4>
+      <p>The brief asked specifically: no <em>generic team-of-professionals</em> photography. The hero uses a single Dragon-class sail abstraction — two triangles, navy mast — as watermark on mobile and a stage element on desktop. A real line illustration or RHKYC archive photo can drop in later without restructuring the hero.</p>
+    </div>
+    <div class="rail-col">
+      <h4>Kevin's authorship is the <em>second</em> thing you read</h4>
+      <p>The eyebrow names the event. The headline names the goal. The author strip — <em>blueprint by Kevin Denney</em> — is the third beat. Sailors who don't know BetterAt should know whose practice they're opting into <em>before</em> they tap the primary CTA.</p>
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>

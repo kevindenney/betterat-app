@@ -1,0 +1,1294 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=1800" />
+<title>BetterAt · Phase P · Welcome banner on /practice · Canonical — 2026-05-16</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css" />
+<style>
+  :root {
+    --ios-blue:        #007AFF;
+    --ios-blue-deep:   #0060D4;
+    --ios-blue-tint:   rgba(0, 122, 255, 0.10);
+    --ios-blue-strong: rgba(0, 122, 255, 0.18);
+    --ios-coral:       #FF6B6B;
+    --ios-green:       #34C759;
+    --ios-green-tint:  rgba(52, 199, 89, 0.14);
+
+    --gray-6:  #F2F2F7;
+    --gray-5:  #E5E5EA;
+    --gray-4:  #D1D1D6;
+    --gray-3:  #C7C7CC;
+    --gray-2:  #AEAEB2;
+    --gray-1:  #8E8E93;
+    --label:   #1C1C1E;
+    --label-2: #3C3C43;
+    --label-3: rgba(60, 60, 67, 0.60);
+    --label-4: rgba(60, 60, 67, 0.30);
+
+    --cream:    #F6F4EE;
+    --navy:     #14223D;
+    --navy-2:   #2F3D5C;
+    --navy-3:   #5A6685;
+
+    --stage:        #EFEAD8;
+    --stage-text:   #6B6558;
+    --stage-ink:    #2A2824;
+    --stage-line:   rgba(34, 30, 20, 0.12);
+    --stage-line-soft: rgba(34, 30, 20, 0.06);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display",
+                 "Helvetica Neue", Helvetica, Arial, sans-serif;
+    color: var(--label);
+    background: var(--stage);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+  button { font-family: inherit; }
+
+  /* ============= Page chrome ============= */
+  .page { min-width: 1800px; padding: 56px 48px 96px; }
+  .page-head { max-width: 1240px; margin: 0 0 36px 32px; }
+  .page-head .eyebrow {
+    font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--stage-text); margin: 0 0 12px;
+  }
+  .page-head h1 {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 32px; line-height: 1.15; font-weight: 500;
+    letter-spacing: -0.015em; margin: 0 0 14px; color: var(--stage-ink);
+  }
+  .page-head h1 em { font-style: italic; }
+  .page-head p {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 17px; line-height: 1.55;
+    color: var(--stage-text); margin: 0; max-width: 1100px;
+    text-wrap: pretty;
+  }
+  .page-head p em { font-style: italic; }
+  .page-head .crumbs {
+    display: flex; gap: 10px; align-items: center; margin: 22px 0 0; flex-wrap: wrap;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+    font-size: 12px; color: var(--stage-text); letter-spacing: 0.02em;
+  }
+  .page-head .crumbs .pill {
+    padding: 3px 10px; border-radius: 999px;
+    border: 0.5px solid var(--stage-line);
+    background: rgba(255,255,255,0.4);
+  }
+  .page-head .crumbs .pill em { font-style: italic; }
+  .page-head .crumbs .sep { color: var(--stage-line); }
+
+  .strip-head {
+    max-width: 1704px;
+    margin: 36px auto 22px;
+    padding-top: 24px;
+    border-top: 0.5px solid var(--stage-line);
+  }
+  .strip-head .eyebrow {
+    font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--stage-text); margin: 0 0 8px;
+  }
+  .strip-head h2 {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 22px; line-height: 1.25; font-weight: 500;
+    letter-spacing: -0.01em; margin: 0 0 8px; color: var(--stage-ink);
+  }
+  .strip-head h2 em { font-style: italic; }
+  .strip-head p {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 15px; line-height: 1.55;
+    color: var(--stage-text); margin: 0; max-width: 1180px;
+    text-wrap: pretty;
+  }
+  .strip-head p em { font-style: italic; }
+
+  .row {
+    max-width: 1704px;
+    margin: 0 auto;
+    display: flex;
+    gap: 36px;
+    align-items: flex-start;
+    justify-content: center;
+  }
+  .col { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+  .col .caption-block { text-align: center; max-width: 360px; }
+  .col .frame-label {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 18px; font-weight: 500; letter-spacing: -0.2px;
+    color: var(--stage-ink); margin: 0 0 4px;
+  }
+  .col .frame-label em { font-style: italic; }
+  .col .frame-sub {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 13px; font-style: italic;
+    color: var(--stage-text); margin: 0;
+    max-width: 360px; text-wrap: pretty; line-height: 1.45;
+  }
+
+  /* ============= Phone shell ============= */
+  .phone {
+    width: 393px;
+    height: 852px;
+    background: var(--gray-6);
+    border-radius: 56px;
+    border: 1px solid rgba(0, 0, 0, 0.18);
+    box-shadow:
+      0 30px 80px -40px rgba(34, 30, 20, 0.32),
+      0 2px 0 rgba(255,255,255,0.5) inset;
+    overflow: hidden;
+    position: relative;
+    isolation: isolate;
+  }
+  .phone .notch {
+    position: absolute; top: 11px; left: 50%; transform: translateX(-50%);
+    width: 116px; height: 34px; background: #0F0E0C; border-radius: 20px; z-index: 40;
+  }
+  .statusbar {
+    position: absolute; top: 0; left: 0; right: 0; height: 50px;
+    padding: 16px 32px 0; display: flex; align-items: center; justify-content: space-between;
+    font-weight: 600; font-size: 15px; color: #0A0A0A; z-index: 30; pointer-events: none;
+  }
+  .statusbar .right { display: flex; gap: 6px; align-items: center; }
+  .statusbar .right i { font-size: 15px; }
+  .home-indicator {
+    position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%);
+    width: 134px; height: 5px; border-radius: 3px;
+    background: rgba(0, 0, 0, 0.30); z-index: 45; pointer-events: none;
+  }
+  .screen {
+    position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+    overflow: hidden;
+    padding-top: 50px;
+    background: var(--gray-6);
+  }
+
+  /* ============= Practice screen mock ============= */
+  /* Simplified practice surface — recognizable as the Plan tab from
+     prior canonicals (header with interest, step counter, KD avatar,
+     a stacked deck of step cards), but only as much detail as is
+     needed to give the banner real context. */
+  .practice-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 8px 18px 10px;
+    height: 52px;
+    background: var(--gray-6);
+  }
+  .practice-header .interest {
+    display: inline-flex; align-items: baseline; gap: 6px;
+  }
+  .practice-header .interest .n {
+    font-size: 17px; font-weight: 600; letter-spacing: -0.25px;
+    color: var(--label);
+  }
+  .practice-header .interest .sw {
+    font-size: 13px; color: var(--label-3);
+    display: inline-flex; align-items: center;
+  }
+  .practice-header .interest .sw i { font-size: 14px; }
+  .practice-header .step-counter {
+    font-size: 12px; font-weight: 500;
+    color: var(--label-3);
+    letter-spacing: -0.05px;
+    font-variant-numeric: tabular-nums;
+  }
+  .practice-header .avatar {
+    width: 30px; height: 30px; border-radius: 50%;
+    background: linear-gradient(135deg, #4E6A85 0%, #7C7B6E 100%);
+    display: inline-flex; align-items: center; justify-content: center;
+    color: #fff; font-size: 12px; font-weight: 600;
+    letter-spacing: -0.1px;
+  }
+
+  .practice-body {
+    position: absolute;
+    top: 102px; left: 0; right: 0; bottom: 84px;
+    overflow: hidden;
+    padding: 6px 18px 0;
+  }
+
+  .step-stack {
+    position: relative;
+    margin-top: 12px;
+  }
+  .step-stack .peek {
+    position: absolute; left: 14px; right: 14px;
+    height: 14px;
+    border-radius: 14px;
+    background: #FFFFFF;
+    border: 0.5px solid var(--gray-5);
+  }
+  .step-stack .peek.p2 { top: -10px; }
+  .step-stack .peek.p3 { top: -20px; left: 24px; right: 24px; opacity: 0.7; }
+
+  .step-card {
+    position: relative;
+    background: #FFFFFF;
+    border-radius: 18px;
+    border: 0.5px solid var(--gray-5);
+    padding: 16px 16px 18px;
+    box-shadow:
+      0 1px 2px rgba(0,0,0,0.04),
+      0 14px 30px -14px rgba(0,0,0,0.12);
+  }
+  .step-card .step-label {
+    font-size: 10.5px; font-weight: 700;
+    letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--ios-blue);
+    margin: 0 0 8px;
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .step-card .step-label .dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--ios-blue);
+  }
+  .step-card h3 {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 22px; font-weight: 500;
+    letter-spacing: -0.01em; line-height: 1.15;
+    color: var(--label);
+    margin: 0 0 8px;
+    text-wrap: pretty;
+  }
+  .step-card .step-meta {
+    font-size: 11.5px; color: var(--label-3);
+    margin: 0 0 14px;
+    letter-spacing: -0.05px;
+    line-height: 1.4;
+  }
+  .step-card .step-meta .sep { color: var(--label-4); margin: 0 4px; }
+
+  .step-card .ai-coach {
+    background: linear-gradient(135deg, rgba(0,122,255,0.05) 0%, rgba(88,86,214,0.05) 100%);
+    border: 0.5px solid rgba(0,122,255,0.18);
+    border-radius: 14px;
+    padding: 12px 12px 12px;
+    margin: 0 0 12px;
+  }
+  .step-card .ai-coach .head {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 11px; font-weight: 700;
+    letter-spacing: 0.10em; text-transform: uppercase;
+    color: #0561C2;
+    margin: 0 0 6px;
+  }
+  .step-card .ai-coach .head i { font-size: 13px; }
+  .step-card .ai-coach .q {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 14px; line-height: 1.45;
+    color: var(--label);
+    margin: 0;
+    text-wrap: pretty;
+  }
+  .step-card .ai-coach .q em { font-style: italic; }
+
+  .step-card .draft-row {
+    display: flex; gap: 8px; align-items: center;
+    padding-top: 8px;
+    border-top: 0.5px solid var(--gray-5);
+  }
+  .step-card .draft-row .plan-btn {
+    flex: 1;
+    background: var(--ios-blue);
+    color: #FFFFFF;
+    border: 0;
+    border-radius: 12px;
+    padding: 11px 14px;
+    font-size: 14px; font-weight: 600;
+    letter-spacing: -0.1px;
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    cursor: pointer;
+  }
+  .step-card .draft-row .plan-btn i { font-size: 14px; }
+  .step-card .draft-row .skip {
+    background: transparent;
+    border: 0.5px solid var(--gray-4);
+    color: var(--label-2);
+    border-radius: 12px;
+    padding: 11px 14px;
+    font-size: 14px; font-weight: 500;
+    letter-spacing: -0.05px;
+    cursor: pointer;
+  }
+
+  /* Up-next strip */
+  .up-next {
+    margin-top: 16px;
+    padding: 0 4px;
+  }
+  .up-next .ttl {
+    font-size: 10.5px; font-weight: 700;
+    letter-spacing: 0.10em; text-transform: uppercase;
+    color: var(--label-3);
+    margin: 0 0 8px;
+  }
+  .up-next .un-row {
+    display: flex; gap: 10px; align-items: center;
+    padding: 10px 12px;
+    background: #FFFFFF;
+    border: 0.5px solid var(--gray-5);
+    border-radius: 12px;
+    margin-bottom: 6px;
+  }
+  .up-next .un-row .num {
+    width: 22px; height: 22px;
+    border-radius: 6px;
+    background: var(--gray-6);
+    color: var(--label-3);
+    font-size: 11px; font-weight: 700;
+    display: inline-flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .up-next .un-row .body {
+    flex: 1; min-width: 0;
+  }
+  .up-next .un-row .body .t {
+    font-size: 13px; font-weight: 500;
+    color: var(--label);
+    letter-spacing: -0.1px;
+    line-height: 1.3;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .up-next .un-row .body .m {
+    font-size: 10.5px; color: var(--label-3);
+    letter-spacing: -0.02px;
+    margin-top: 1px;
+  }
+  .up-next .un-row .chev {
+    color: var(--label-4); font-size: 14px;
+  }
+
+  /* Tab bar */
+  .tabbar {
+    position: absolute;
+    left: 0; right: 0; bottom: 0;
+    height: 84px;
+    padding: 6px 0 24px;
+    background: rgba(255, 255, 255, 0.92);
+    -webkit-backdrop-filter: blur(28px) saturate(180%);
+    backdrop-filter: blur(28px) saturate(180%);
+    border-top: 0.5px solid rgba(0, 0, 0, 0.08);
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    align-items: center;
+    z-index: 25;
+  }
+  .tabbar .t {
+    display: flex; flex-direction: column; align-items: center; gap: 2px;
+    background: none; border: none; padding: 6px 0; cursor: pointer;
+    color: var(--gray-1);
+    font-size: 10px; font-weight: 500;
+    letter-spacing: 0.02em;
+  }
+  .tabbar .t i { font-size: 25px; line-height: 1; }
+  .tabbar .t.on { color: var(--ios-blue); }
+
+  /* ============= The banner ============= */
+  /* Sits between the top header and the step stack. Dismissible,
+     non-modal — the user can scroll past it and the step card
+     beneath remains fully interactive. Visually distinct from
+     a transient toast (it has Kevin's avatar, lives at the top
+     of the content scroll, and has the blueprint name) but
+     restrained enough to not feel like an interruption.
+
+     The accent strip on the left in iOS blue ties it back to
+     the auto-follow moment they just came from. */
+  .welcome-banner {
+    background: #FFFFFF;
+    margin: 8px 12px 0;
+    border-radius: 16px;
+    border: 0.5px solid rgba(0,122,255,0.22);
+    overflow: hidden;
+    position: relative;
+    box-shadow:
+      0 1px 2px rgba(0,0,0,0.03),
+      0 18px 32px -18px rgba(0, 122, 255, 0.18);
+  }
+  .welcome-banner .accent {
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 4px;
+    background: linear-gradient(180deg, var(--ios-blue) 0%, var(--ios-blue-deep) 100%);
+  }
+  .welcome-banner .b-body {
+    padding: 14px 14px 12px 18px;
+    display: grid;
+    grid-template-columns: 36px 1fr 18px;
+    column-gap: 12px;
+    align-items: flex-start;
+  }
+  .welcome-banner .b-avatar {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #2A4866 0%, #4F6A85 100%);
+    display: inline-flex; align-items: center; justify-content: center;
+    color: #FFF; font-size: 13px; font-weight: 600;
+    letter-spacing: -0.3px;
+    flex-shrink: 0;
+    position: relative;
+    margin-top: 2px;
+  }
+  .welcome-banner .b-avatar .check {
+    position: absolute;
+    bottom: -2px; right: -2px;
+    width: 16px; height: 16px;
+    border-radius: 50%;
+    background: var(--ios-green);
+    color: #FFF;
+    border: 2px solid #FFFFFF;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .welcome-banner .b-avatar .check i { font-size: 9px; }
+
+  .welcome-banner .b-eyebrow {
+    font-size: 10px; font-weight: 700;
+    letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--ios-blue);
+    margin: 0 0 4px;
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .welcome-banner .b-eyebrow .sparkle i { font-size: 11px; }
+  .welcome-banner .b-title {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 17px; font-weight: 500;
+    letter-spacing: -0.01em;
+    line-height: 1.25;
+    color: var(--label);
+    margin: 0 0 4px;
+    text-wrap: pretty;
+  }
+  .welcome-banner .b-title em { font-style: italic; }
+  .welcome-banner .b-title .kev {
+    font-weight: 600; color: var(--label);
+  }
+  .welcome-banner .b-body-text {
+    font-size: 12.5px;
+    color: var(--label-2);
+    line-height: 1.45;
+    letter-spacing: -0.05px;
+    margin: 0;
+    text-wrap: pretty;
+  }
+  .welcome-banner .b-close {
+    background: none; border: 0; padding: 0;
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    color: var(--label-3);
+    display: inline-flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    margin-top: 2px;
+  }
+  .welcome-banner .b-close i { font-size: 14px; }
+  .welcome-banner .b-actions {
+    padding: 0 14px 14px 56px;
+    display: flex; gap: 8px; align-items: center;
+  }
+  .welcome-banner .b-actions .got-it {
+    background: var(--ios-blue);
+    color: #FFFFFF;
+    border: 0;
+    border-radius: 10px;
+    padding: 8px 16px;
+    font-size: 13px; font-weight: 600;
+    letter-spacing: -0.05px;
+    display: inline-flex; align-items: center; gap: 5px;
+    cursor: pointer;
+    box-shadow: 0 6px 14px -6px rgba(0,122,255,0.40);
+  }
+  .welcome-banner .b-actions .got-it i { font-size: 13px; }
+  .welcome-banner .b-actions .view-bp {
+    background: transparent;
+    color: var(--ios-blue);
+    border: 0;
+    padding: 8px 4px;
+    font-size: 13px; font-weight: 500;
+    letter-spacing: -0.05px;
+    cursor: pointer;
+  }
+
+  /* ============= Detail blow-up (right column) ============= */
+  .blowup-shell {
+    background: #FFFFFF;
+    border-radius: 22px;
+    border: 0.5px solid var(--stage-line-soft);
+    padding: 32px 32px 28px;
+    width: 540px;
+    box-shadow:
+      0 1px 2px rgba(0,0,0,0.04),
+      0 24px 48px -22px rgba(0,0,0,0.18);
+  }
+  .blowup-shell .b-eyebrow-strip {
+    font-size: 10px; font-weight: 700;
+    letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--stage-text);
+    margin: 0 0 18px;
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .blowup-shell .b-eyebrow-strip .swatch {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--ios-blue);
+  }
+
+  /* The detail card itself — same banner, rendered at 1.4x and
+     with anatomy callouts. */
+  .banner-detail {
+    transform: scale(1.4);
+    transform-origin: top left;
+    width: calc(369px);
+    margin-bottom: 0;
+  }
+
+  .callout-list {
+    margin-top: 220px;
+    padding-left: 0;
+    list-style: none;
+    display: flex; flex-direction: column;
+    gap: 14px;
+  }
+  .callout-list li {
+    display: grid;
+    grid-template-columns: 32px 1fr;
+    gap: 12px;
+    align-items: flex-start;
+  }
+  .callout-list .n {
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    background: var(--stage);
+    color: var(--stage-ink);
+    font-size: 10px; font-weight: 700;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-variant-numeric: tabular-nums;
+    margin-top: 1px;
+  }
+  .callout-list .ct {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 13.5px; line-height: 1.5;
+    color: #4D4A43;
+    margin: 0;
+    text-wrap: pretty;
+  }
+  .callout-list .ct em { font-style: italic; }
+  .callout-list .ct .em { color: var(--stage-ink); font-weight: 600; }
+
+  /* ============= Desktop frame ============= */
+  .desktop-row {
+    max-width: 1704px;
+    margin: 56px auto 0;
+    display: flex; flex-direction: column; align-items: center; gap: 14px;
+  }
+  .desktop {
+    width: 1280px; height: 760px;
+    background: #FFFFFF;
+    border-radius: 14px;
+    border: 0.5px solid rgba(0, 0, 0, 0.12);
+    box-shadow:
+      0 30px 80px -40px rgba(34, 30, 20, 0.34),
+      0 6px 18px -10px rgba(34, 30, 20, 0.16),
+      0 1px 0 rgba(255,255,255,0.6) inset;
+    overflow: hidden;
+    position: relative;
+    isolation: isolate;
+  }
+  .desktop .chrome {
+    height: 36px;
+    background: #F1F1F3;
+    border-bottom: 0.5px solid var(--gray-4);
+    display: flex; align-items: center; gap: 12px;
+    padding: 0 14px;
+  }
+  .desktop .chrome .lights { display: inline-flex; gap: 8px; }
+  .desktop .chrome .lights span {
+    width: 12px; height: 12px; border-radius: 50%;
+    display: inline-block;
+  }
+  .desktop .chrome .lights .r { background: #FF5F57; }
+  .desktop .chrome .lights .y { background: #FEBC2E; }
+  .desktop .chrome .lights .g { background: #28C840; }
+  .desktop .chrome .url { flex: 1; display: flex; justify-content: center; }
+  .desktop .chrome .url-inner {
+    height: 22px; padding: 0 14px; min-width: 360px;
+    border-radius: 6px; background: #FFFFFF;
+    border: 0.5px solid var(--gray-4);
+    display: inline-flex; align-items: center; gap: 8px;
+    font-size: 11px; color: var(--label-3);
+  }
+  .desktop .chrome .url-inner i { font-size: 12px; color: var(--gray-1); }
+  .desktop .chrome .url-inner strong { color: var(--label-2); font-weight: 500; }
+
+  .d-app {
+    position: absolute; top: 36px; left: 0; right: 0; bottom: 0;
+    background: var(--gray-6);
+    display: grid;
+    grid-template-columns: 260px 1fr;
+  }
+  .d-side {
+    background: #FFFFFF;
+    border-right: 0.5px solid var(--gray-5);
+    padding: 28px 22px;
+  }
+  .d-side .brand { display: inline-flex; align-items: center; gap: 10px; margin-bottom: 30px; }
+  .d-side .brand .mark {
+    width: 28px; height: 28px; border-radius: 8px;
+    background: var(--navy); color: #fff;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 13px;
+  }
+  .d-side .brand .wordmark { font-size: 14.5px; font-weight: 600; letter-spacing: -0.2px; color: var(--navy); }
+  .d-side .nav { display: flex; flex-direction: column; gap: 2px; }
+  .d-side .nav .item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 12px;
+    border-radius: 10px;
+    font-size: 13.5px;
+    color: var(--label-2);
+    letter-spacing: -0.05px;
+  }
+  .d-side .nav .item i { font-size: 17px; color: var(--label-3); }
+  .d-side .nav .item.on {
+    background: var(--ios-blue-tint);
+    color: #0561C2;
+    font-weight: 600;
+  }
+  .d-side .nav .item.on i { color: var(--ios-blue); }
+  .d-side .interest-card {
+    margin-top: 22px;
+    padding: 12px;
+    border: 0.5px solid var(--gray-5);
+    border-radius: 12px;
+  }
+  .d-side .interest-card .lbl {
+    font-size: 10px; font-weight: 700;
+    letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--label-3);
+    margin: 0 0 6px;
+  }
+  .d-side .interest-card .nm {
+    font-size: 13px; font-weight: 600;
+    color: var(--label);
+    letter-spacing: -0.05px;
+  }
+  .d-side .interest-card .sub {
+    font-size: 11px; color: var(--label-3); margin-top: 2px;
+  }
+
+  .d-main {
+    overflow: hidden;
+    padding: 24px 40px 24px;
+    position: relative;
+  }
+  .d-main .top {
+    display: flex; align-items: baseline; gap: 12px; margin-bottom: 18px;
+  }
+  .d-main .top h2 {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 24px; font-weight: 500;
+    letter-spacing: -0.015em;
+    color: var(--label);
+    margin: 0;
+  }
+  .d-main .top .step-counter {
+    font-size: 12px;
+    color: var(--label-3);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .d-banner {
+    background: #FFFFFF;
+    border-radius: 16px;
+    border: 0.5px solid rgba(0,122,255,0.22);
+    overflow: hidden;
+    position: relative;
+    box-shadow:
+      0 1px 2px rgba(0,0,0,0.03),
+      0 16px 28px -18px rgba(0,122,255,0.18);
+    margin-bottom: 22px;
+  }
+  .d-banner .accent {
+    position: absolute; left: 0; top: 0; bottom: 0;
+    width: 4px;
+    background: linear-gradient(180deg, var(--ios-blue) 0%, var(--ios-blue-deep) 100%);
+  }
+  .d-banner .grid {
+    display: grid;
+    grid-template-columns: 56px 1fr auto auto;
+    column-gap: 16px;
+    align-items: center;
+    padding: 18px 22px 18px 26px;
+  }
+  .d-banner .av {
+    width: 44px; height: 44px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #2A4866 0%, #4F6A85 100%);
+    display: inline-flex; align-items: center; justify-content: center;
+    color: #FFF; font-size: 15px; font-weight: 600;
+    letter-spacing: -0.3px;
+    position: relative;
+  }
+  .d-banner .av .check {
+    position: absolute;
+    bottom: -2px; right: -2px;
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    background: var(--ios-green);
+    color: #FFF;
+    border: 2px solid #FFFFFF;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .d-banner .av .check i { font-size: 10px; }
+  .d-banner .text .eb {
+    font-size: 10.5px; font-weight: 700;
+    letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--ios-blue);
+    margin: 0 0 4px;
+  }
+  .d-banner .text .ti {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 17px; font-weight: 500;
+    letter-spacing: -0.01em;
+    line-height: 1.3;
+    color: var(--label);
+    margin: 0;
+    text-wrap: pretty;
+  }
+  .d-banner .text .ti em { font-style: italic; }
+  .d-banner .text .ti .kev { font-weight: 600; }
+  .d-banner .got-it {
+    background: var(--ios-blue);
+    color: #FFFFFF;
+    border: 0;
+    border-radius: 10px;
+    padding: 9px 16px;
+    font-size: 13px; font-weight: 600;
+    letter-spacing: -0.05px;
+    cursor: pointer;
+    display: inline-flex; align-items: center; gap: 5px;
+    box-shadow: 0 6px 14px -6px rgba(0,122,255,0.40);
+  }
+  .d-banner .got-it i { font-size: 13px; }
+  .d-banner .close {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    background: var(--gray-6);
+    color: var(--label-3);
+    border: 0;
+    display: inline-flex; align-items: center; justify-content: center;
+    cursor: pointer;
+  }
+  .d-banner .close i { font-size: 14px; }
+
+  .d-step-card {
+    background: #FFFFFF;
+    border-radius: 18px;
+    border: 0.5px solid var(--gray-5);
+    padding: 22px 24px 22px;
+    box-shadow:
+      0 1px 2px rgba(0,0,0,0.04),
+      0 16px 30px -16px rgba(0,0,0,0.12);
+  }
+  .d-step-card .step-label {
+    font-size: 10.5px; font-weight: 700;
+    letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--ios-blue);
+    margin: 0 0 8px;
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .d-step-card .step-label .dot {
+    width: 7px; height: 7px; border-radius: 50%; background: var(--ios-blue);
+  }
+  .d-step-card h3 {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 28px; font-weight: 500;
+    letter-spacing: -0.015em; line-height: 1.15;
+    color: var(--label);
+    margin: 0 0 10px;
+  }
+  .d-step-card .meta {
+    font-size: 12.5px; color: var(--label-3);
+    margin: 0 0 16px;
+    letter-spacing: -0.05px;
+  }
+  .d-step-card .ai {
+    background: linear-gradient(135deg, rgba(0,122,255,0.05) 0%, rgba(88,86,214,0.05) 100%);
+    border: 0.5px solid rgba(0,122,255,0.18);
+    border-radius: 14px;
+    padding: 14px 16px;
+    margin-bottom: 14px;
+  }
+  .d-step-card .ai .h {
+    font-size: 10.5px; font-weight: 700;
+    letter-spacing: 0.12em; text-transform: uppercase;
+    color: #0561C2;
+    margin: 0 0 4px;
+  }
+  .d-step-card .ai .q {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 15px; line-height: 1.45;
+    color: var(--label);
+    margin: 0;
+    text-wrap: pretty;
+  }
+  .d-step-card .ai .q em { font-style: italic; }
+  .d-step-card .actions {
+    display: flex; gap: 8px; align-items: center;
+    padding-top: 14px;
+    border-top: 0.5px solid var(--gray-5);
+  }
+  .d-step-card .actions .plan {
+    background: var(--ios-blue);
+    color: #FFFFFF;
+    border: 0;
+    border-radius: 12px;
+    padding: 12px 20px;
+    font-size: 14px; font-weight: 600;
+    letter-spacing: -0.05px;
+    cursor: pointer;
+  }
+  .d-step-card .actions .skip {
+    background: transparent;
+    border: 0.5px solid var(--gray-4);
+    color: var(--label-2);
+    border-radius: 12px;
+    padding: 12px 16px;
+    font-size: 14px;
+    cursor: pointer;
+  }
+
+  /* ============= Rail ============= */
+  .rail-row {
+    max-width: 1704px;
+    margin: 56px auto 0;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 36px;
+  }
+  .rail-col h4 {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 14px; letter-spacing: 0.01em;
+    color: var(--stage-ink); margin: 0 0 10px; font-weight: 500;
+  }
+  .rail-col h4 em { font-style: italic; }
+  .rail-col p {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 13.5px; line-height: 1.55;
+    color: #4D4A43; margin: 0 0 10px;
+    text-wrap: pretty;
+  }
+  .rail-col p strong { color: var(--stage-ink); font-weight: 500; }
+  .rail-col p em { font-style: italic; }
+
+</style>
+</head>
+<body>
+
+<div class="page" data-screen-label="Phase P · Welcome banner on /practice">
+
+  <header class="page-head">
+    <p class="eyebrow">BetterAt · Phase P · Welcome banner · Canonical — 2026-05-16</p>
+    <h1>The <em>welcome banner</em> that greets a sailor on <em>/practice</em> the first time they arrive following Kevin's blueprint</h1>
+    <p>Auto-follow is a meaningful relationship — the sailor's Plan tab will now be shaped by Kevin's fourteen steps, and Kevin will see their reflections. The banner is the only chance to <em>name</em> that relationship at the moment it forms. It's dismissible, non-modal — the practice surface beneath remains fully usable — but visually distinct from generic toast / snackbar patterns because this is not a transient notification, it's a moment.</p>
+    <p style="margin-top: 12px; font-size: 14.5px; color: var(--stage-text);"><em>Coexistence note.</em> Per the corrected Phase P spec this banner is <strong style="color: var(--stage-ink); font-weight:600;">additive on /practice</strong> — it does <em>not</em> replace the existing <em>HKDWWelcomeCard</em> on <em>/community/2027-hk-dragon-worlds</em> or the <em>BlueprintWelcomeCard</em> on <em>/(tabs)/races</em>. Three welcome cards on three surfaces is acceptable for the May 20 launch; consolidation is post-demo work and out of scope here.</p>
+    <div class="crumbs">
+      <span class="pill">Phone · 393 × 852 · /practice</span>
+      <span class="sep">·</span>
+      <span class="pill">Frame 1 = first paint after auto-follow</span>
+      <span class="sep">·</span>
+      <span class="pill">Frame 2 = post-dismiss state (banner gone, persistence flag set)</span>
+      <span class="sep">·</span>
+      <span class="pill">Frame 3 = banner anatomy at 1.4× with callouts</span>
+    </div>
+  </header>
+
+  <section class="strip-head">
+    <p class="eyebrow">Frames 1 — 3 · Mobile</p>
+    <h2><em>Banner present · Banner dismissed · Anatomy</em></h2>
+    <p>The banner is anchored to the top of the practice scroll — not floating, not modal. The sailor can scroll past it, tap the step card beneath, or dismiss it explicitly via <em>Got it</em>. Dismissal writes a server-side timestamp (<em>profiles.dragon_worlds_welcomed_at = now()</em>) so the banner never returns — not on cold start, not on a different device. The X in the top-right is a second dismiss path with the same persistence behaviour.</p>
+  </section>
+
+  <div class="row">
+
+    <!-- ============= Frame 1 · Banner present ============= -->
+    <div class="col">
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="statusbar">
+          <span>09:43</span>
+          <span class="right">
+            <i class="ti ti-cell-signal-4"></i>
+            <i class="ti ti-wifi"></i>
+            <i class="ti ti-battery-3"></i>
+          </span>
+        </div>
+
+        <div class="screen" data-screen-label="01 /practice · banner present">
+
+          <div class="practice-header">
+            <span class="interest">
+              <span class="n">Sail Racing</span>
+              <span class="sw"><i class="ti ti-chevron-down"></i></span>
+            </span>
+            <span class="step-counter">Step 1 of 14</span>
+            <span class="avatar">AS</span>
+          </div>
+
+          <div class="practice-body">
+
+            <!-- Welcome banner -->
+            <section class="welcome-banner" role="status" aria-live="polite">
+              <div class="accent" aria-hidden="true"></div>
+              <div class="b-body">
+                <div class="b-avatar">
+                  KD
+                  <span class="check"><i class="ti ti-check"></i></span>
+                </div>
+                <div>
+                  <p class="b-eyebrow">
+                    <span class="sparkle"><i class="ti ti-sparkles"></i></span>
+                    Welcome to BetterAt
+                  </p>
+                  <p class="b-title">You're now following <span class="kev">Kevin's</span> <em>Dragon Worlds 2027</em> blueprint.</p>
+                  <p class="b-body-text">Tap any step below to start planning. Your reflections will be shared with Kevin.</p>
+                </div>
+                <button class="b-close" aria-label="Dismiss"><i class="ti ti-x"></i></button>
+              </div>
+              <div class="b-actions">
+                <button class="got-it">Got it <i class="ti ti-check"></i></button>
+                <button class="view-bp">View blueprint</button>
+              </div>
+            </section>
+
+            <!-- Step card stack -->
+            <div class="step-stack">
+              <div class="peek p3" aria-hidden="true"></div>
+              <div class="peek p2" aria-hidden="true"></div>
+              <article class="step-card">
+                <p class="step-label"><span class="dot"></span>Current step · 1 of 14</p>
+                <h3>Boat tuning baseline — measure where you are</h3>
+                <p class="step-meta">
+                  Saturday · solo session at the dock
+                  <span class="sep">·</span>
+                  before Spring Series race 5
+                </p>
+                <div class="ai-coach">
+                  <p class="head"><i class="ti ti-sparkles"></i>AI Coach · question to plan with</p>
+                  <p class="q">If you measure rake, shroud tension and mast pre-bend now, <em>what's the one number you'll be most surprised by</em>?</p>
+                </div>
+                <div class="draft-row">
+                  <button class="plan-btn"><i class="ti ti-edit"></i>Plan this step</button>
+                  <button class="skip">Skip</button>
+                </div>
+              </article>
+
+              <div class="up-next">
+                <p class="ttl">Up next · from Kevin's blueprint</p>
+                <div class="un-row">
+                  <span class="num">2</span>
+                  <div class="body">
+                    <div class="t">Sail-trim windows in light air</div>
+                    <div class="m">drill · ~45 min</div>
+                  </div>
+                  <span class="chev"><i class="ti ti-chevron-right"></i></span>
+                </div>
+                <div class="un-row">
+                  <span class="num">3</span>
+                  <div class="body">
+                    <div class="t">Pre-start sequence at RHKYC line</div>
+                    <div class="m">on-water · race 5 warm-up</div>
+                  </div>
+                  <span class="chev"><i class="ti ti-chevron-right"></i></span>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          <nav class="tabbar">
+            <button class="t on"><i class="ti ti-flag-3-filled"></i><span>Practice</span></button>
+            <button class="t"><i class="ti ti-compass"></i><span>Discover</span></button>
+            <button class="t"><i class="ti ti-trophy"></i><span>Trophies</span></button>
+            <button class="t"><i class="ti ti-user"></i><span>Profile</span></button>
+          </nav>
+        </div>
+        <span class="home-indicator"></span>
+      </div>
+      <div class="caption-block">
+        <p class="frame-label">Frame 1 · <em>First paint after auto-follow</em></p>
+        <p class="frame-sub">The banner sits between the header and the step stack. Practice surface beneath is fully interactive — sailors can tap the step card, scroll the up-next list, switch tabs.</p>
+      </div>
+    </div>
+
+    <!-- ============= Frame 2 · Banner dismissed ============= -->
+    <div class="col">
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="statusbar">
+          <span>09:43</span>
+          <span class="right">
+            <i class="ti ti-cell-signal-4"></i>
+            <i class="ti ti-wifi"></i>
+            <i class="ti ti-battery-3"></i>
+          </span>
+        </div>
+
+        <div class="screen" data-screen-label="02 /practice · banner dismissed">
+
+          <div class="practice-header">
+            <span class="interest">
+              <span class="n">Sail Racing</span>
+              <span class="sw"><i class="ti ti-chevron-down"></i></span>
+            </span>
+            <span class="step-counter">Step 1 of 14</span>
+            <span class="avatar">AS</span>
+          </div>
+
+          <div class="practice-body" style="padding-top: 12px;">
+
+            <!-- Just the step stack — banner is gone -->
+            <div class="step-stack" style="margin-top: 16px;">
+              <div class="peek p3" aria-hidden="true"></div>
+              <div class="peek p2" aria-hidden="true"></div>
+              <article class="step-card">
+                <p class="step-label"><span class="dot"></span>Current step · 1 of 14</p>
+                <h3>Boat tuning baseline — measure where you are</h3>
+                <p class="step-meta">
+                  Saturday · solo session at the dock
+                  <span class="sep">·</span>
+                  before Spring Series race 5
+                </p>
+                <div class="ai-coach">
+                  <p class="head"><i class="ti ti-sparkles"></i>AI Coach · question to plan with</p>
+                  <p class="q">If you measure rake, shroud tension and mast pre-bend now, <em>what's the one number you'll be most surprised by</em>?</p>
+                </div>
+                <div class="draft-row">
+                  <button class="plan-btn"><i class="ti ti-edit"></i>Plan this step</button>
+                  <button class="skip">Skip</button>
+                </div>
+              </article>
+
+              <div class="up-next">
+                <p class="ttl">Up next · from Kevin's blueprint</p>
+                <div class="un-row">
+                  <span class="num">2</span>
+                  <div class="body">
+                    <div class="t">Sail-trim windows in light air</div>
+                    <div class="m">drill · ~45 min</div>
+                  </div>
+                  <span class="chev"><i class="ti ti-chevron-right"></i></span>
+                </div>
+                <div class="un-row">
+                  <span class="num">3</span>
+                  <div class="body">
+                    <div class="t">Pre-start sequence at RHKYC line</div>
+                    <div class="m">on-water · race 5 warm-up</div>
+                  </div>
+                  <span class="chev"><i class="ti ti-chevron-right"></i></span>
+                </div>
+                <div class="un-row">
+                  <span class="num">4</span>
+                  <div class="body">
+                    <div class="t">Heavy-air helm work — sustained pressure</div>
+                    <div class="m">on-water · ~2 hr</div>
+                  </div>
+                  <span class="chev"><i class="ti ti-chevron-right"></i></span>
+                </div>
+                <div class="un-row">
+                  <span class="num">5</span>
+                  <div class="body">
+                    <div class="t">Mark roundings: leeward gate gybe-set</div>
+                    <div class="m">drill · ~1 hr</div>
+                  </div>
+                  <span class="chev"><i class="ti ti-chevron-right"></i></span>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          <nav class="tabbar">
+            <button class="t on"><i class="ti ti-flag-3-filled"></i><span>Practice</span></button>
+            <button class="t"><i class="ti ti-compass"></i><span>Discover</span></button>
+            <button class="t"><i class="ti ti-trophy"></i><span>Trophies</span></button>
+            <button class="t"><i class="ti ti-user"></i><span>Profile</span></button>
+          </nav>
+        </div>
+        <span class="home-indicator"></span>
+      </div>
+      <div class="caption-block">
+        <p class="frame-label">Frame 2 · <em>After dismiss</em></p>
+        <p class="frame-sub">Same surface, no banner. The server-side timestamp <em>profiles.dragon_worlds_welcomed_at</em> is set; the banner never returns — not on cold start, not on a different device. <em>Up next</em> expands to fill the space the banner vacated.</p>
+      </div>
+    </div>
+
+    <!-- ============= Frame 3 · Anatomy ============= -->
+    <div class="col">
+      <div class="blowup-shell">
+        <p class="b-eyebrow-strip">
+          <span class="swatch"></span>
+          Banner anatomy · 1.4×
+        </p>
+
+        <div class="banner-detail">
+          <section class="welcome-banner" role="status" aria-live="polite" style="margin: 0;">
+            <div class="accent" aria-hidden="true"></div>
+            <div class="b-body">
+              <div class="b-avatar">
+                KD
+                <span class="check"><i class="ti ti-check"></i></span>
+              </div>
+              <div>
+                <p class="b-eyebrow">
+                  <span class="sparkle"><i class="ti ti-sparkles"></i></span>
+                  Welcome to BetterAt
+                </p>
+                <p class="b-title">You're now following <span class="kev">Kevin's</span> <em>Dragon Worlds 2027</em> blueprint.</p>
+                <p class="b-body-text">Tap any step below to start planning. Your reflections will be shared with Kevin.</p>
+              </div>
+              <button class="b-close" aria-label="Dismiss"><i class="ti ti-x"></i></button>
+            </div>
+            <div class="b-actions">
+              <button class="got-it">Got it <i class="ti ti-check"></i></button>
+              <button class="view-bp">View blueprint</button>
+            </div>
+          </section>
+        </div>
+
+        <ol class="callout-list">
+          <li>
+            <span class="n">1</span>
+            <p class="ct"><span class="em">Kevin's avatar with a green check.</span> The check is the visual cue that the auto-follow succeeded — and ties the banner back to the <em>Follow the blueprint</em> button on the landing page. Kevin's identity is rendered as a name + avatar, never as a logo or blueprint glyph.</p>
+          </li>
+          <li>
+            <span class="n">2</span>
+            <p class="ct"><span class="em">Eyebrow + title + body, not toast copy.</span> The title is set in serif at <em>17px</em>, three lines max — it reads as editorial, not as a system notification. The blueprint name is italicised; <em>Kevin's</em> is bold-weight to anchor the relationship.</p>
+          </li>
+          <li>
+            <span class="n">3</span>
+            <p class="ct"><span class="em">Two dismiss paths.</span> The primary <em>Got it</em> button is the explicit acknowledgement — it's iOS-blue because it ties to the same affordance the user just tapped on the landing page. The X in the top-right is the implicit dismiss for sailors who skim and move on.</p>
+          </li>
+          <li>
+            <span class="n">4</span>
+            <p class="ct"><span class="em">A blue accent strip at the left edge</span> ties the banner visually to the <em>/redeem</em> hero they came from, without using a saturated background that would compete with the step card beneath. The banner reads as inert-but-distinct.</p>
+          </li>
+          <li>
+            <span class="n">5</span>
+            <p class="ct"><span class="em">A second action: <em>View blueprint</em></span>. The brief didn't ask for it, but the moment is right — many sailors will want to see what they just opted into before they tap a step. Routes to <em>/blueprint/dragon-worlds-2027-peak-performance</em>. Tappable but visually quiet so it doesn't compete with <em>Got it</em>.</p>
+          </li>
+        </ol>
+      </div>
+      <div class="caption-block">
+        <p class="frame-label">Frame 3 · <em>Anatomy</em></p>
+        <p class="frame-sub">Five things to get right. The banner does five jobs at once and each one earns its place — nothing is decorative.</p>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ============= Desktop ============= -->
+  <section class="strip-head">
+    <p class="eyebrow">Frame 4 · Desktop /practice</p>
+    <h2>The banner at <em>desktop width</em></h2>
+    <p>Sailors who follow the blueprint on a laptop see the same banner in the practice surface — laid out horizontally because the wider stage allows the avatar, copy, and actions to share a single row instead of stacking. Same relationship, same dismiss flag, same routes.</p>
+  </section>
+
+  <div class="desktop-row">
+    <div class="desktop" data-screen-label="04 Desktop /practice · banner present">
+      <div class="chrome">
+        <span class="lights"><span class="r"></span><span class="y"></span><span class="g"></span></span>
+        <span class="url">
+          <span class="url-inner"><i class="ti ti-lock"></i><strong>better.at</strong>/practice</span>
+        </span>
+        <span style="width: 64px;"></span>
+      </div>
+      <div class="d-app">
+        <aside class="d-side">
+          <div class="brand">
+            <span class="mark">b</span>
+            <span class="wordmark">better<span style="color:var(--ios-blue);">.</span>at</span>
+          </div>
+          <div class="nav">
+            <div class="item on"><i class="ti ti-flag-3-filled"></i>Practice</div>
+            <div class="item"><i class="ti ti-compass"></i>Discover</div>
+            <div class="item"><i class="ti ti-trophy"></i>Trophies</div>
+            <div class="item"><i class="ti ti-user"></i>Profile</div>
+          </div>
+          <div class="interest-card">
+            <p class="lbl">Active interest</p>
+            <p class="nm">Sail Racing</p>
+            <p class="sub">Following · Kevin's Dragon Worlds 2027 prep</p>
+          </div>
+        </aside>
+
+        <main class="d-main">
+          <div class="top">
+            <h2>Practice</h2>
+            <span class="step-counter">Step 1 of 14 · from Kevin's blueprint</span>
+          </div>
+
+          <div class="d-banner">
+            <div class="accent"></div>
+            <div class="grid">
+              <span class="av">KD<span class="check"><i class="ti ti-check"></i></span></span>
+              <div class="text">
+                <p class="eb"><i class="ti ti-sparkles" style="vertical-align:-1px;"></i> Welcome to BetterAt</p>
+                <p class="ti">You're now following <span class="kev">Kevin's</span> <em>Dragon Worlds 2027</em> blueprint. Tap any step below to start planning.</p>
+              </div>
+              <button class="got-it">Got it <i class="ti ti-check"></i></button>
+              <button class="close" aria-label="Dismiss"><i class="ti ti-x"></i></button>
+            </div>
+          </div>
+
+          <div class="d-step-card">
+            <p class="step-label"><span class="dot"></span>Current step · 1 of 14</p>
+            <h3>Boat tuning baseline — measure where you are</h3>
+            <p class="meta">Saturday · solo session at the dock · before Spring Series race 5</p>
+            <div class="ai">
+              <p class="h"><i class="ti ti-sparkles" style="vertical-align:-1px;"></i> AI Coach · question to plan with</p>
+              <p class="q">If you measure rake, shroud tension and mast pre-bend now, <em>what's the one number you'll be most surprised by</em>?</p>
+            </div>
+            <div class="actions">
+              <button class="plan">Plan this step</button>
+              <button class="skip">Skip</button>
+            </div>
+          </div>
+        </main>
+      </div>
+    </div>
+    <p style="font-family: 'Iowan Old Style', serif; font-size: 13px; font-style: italic; color: var(--stage-text); margin: 0; max-width: 720px; text-align: center; text-wrap: pretty;">
+      Same anatomy as the mobile banner — avatar with check, eyebrow/title pair, primary <em>Got it</em>, secondary X — laid out on a single row because there's room.
+    </p>
+  </div>
+
+  <!-- ============= Rail ============= -->
+  <section class="strip-head">
+    <p class="eyebrow">Design notes</p>
+    <h2>The five jobs the banner does at once</h2>
+    <p>This banner is not <em>just</em> a welcome — it's the moment a sailor first realises they're in a relationship with Kevin's authoring. Five things have to be true at the same time, or it falls flat.</p>
+  </section>
+
+  <div class="rail-row">
+    <div class="rail-col">
+      <h4><em>1.</em> Names the relationship</h4>
+      <p>&ldquo;You're now following <em>Kevin's</em> Dragon Worlds 2027 blueprint&rdquo; — explicit subject (you), explicit author (Kevin), explicit artefact (the blueprint). Not &ldquo;welcome to BetterAt&rdquo; in isolation; not &ldquo;blueprint added&rdquo; in isolation.</p>
+    </div>
+    <div class="rail-col">
+      <h4><em>2.</em> Renders Kevin as a person</h4>
+      <p>Kevin's avatar with a green check, not a blueprint cover or a generic <em>following</em> icon. The first time a sailor reads the banner they should think <em>I'm following a human</em>, not <em>I'm following a course</em>.</p>
+    </div>
+    <div class="rail-col">
+      <h4><em>3.</em> Stays out of the way</h4>
+      <p>Non-modal, scroll-along, dismissible. The step card beneath is fully tappable from the first frame. Sailors who want to dive into the first step can — they don't have to dismiss anything first.</p>
+    </div>
+    <div class="rail-col">
+      <h4><em>4.</em> Sets expectation about visibility</h4>
+      <p>&ldquo;Your reflections will be shared with Kevin&rdquo; — the one sentence in the banner most likely to be re-read. The mentoring relationship goes both ways and the banner is the only surface that says so before a sailor types a word.</p>
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>
