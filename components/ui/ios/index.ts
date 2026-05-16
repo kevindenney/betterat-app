@@ -21,6 +21,8 @@ export { IOSProgressRing, IOSProgressRingCompact, IOSActivityRing } from './IOSP
 // Tabs
 export { IOSUnderlineTabs, useUnderlineTabs } from './IOSUnderlineTabs';
 export { IOSPillTabs, usePillTabs } from './IOSPillTabs';
+export { PhaseTabsCanonical } from './PhaseTabsCanonical';
+export type { PhaseTabItem, PhaseTabState } from './PhaseTabsCanonical';
 
 // Cards
 export { IOSWidgetCard, IOSWidgetGrid, IOSStatWidget } from './IOSWidgetCard';

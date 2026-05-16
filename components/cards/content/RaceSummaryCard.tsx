@@ -23,7 +23,7 @@ import React, { useCallback, useMemo, useState, useRef, Component, ErrorInfo, us
 import { ActionSheetIOS, LayoutAnimation, NativeScrollEvent, NativeSyntheticEvent, Platform, Pressable, Share, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ScrollView } from 'react-native-gesture-handler';
-import { IOSSegmentedControl } from '@/components/ui/ios';
+import { IOSSegmentedControl, PhaseTabsCanonical, type PhaseTabItem } from '@/components/ui/ios';
 import { text } from '@/lib/design-tokens';
 import { STEP_PALETTE } from '@/lib/step-theme';
 import { showAlertWithButtons } from '@/lib/utils/crossPlatformAlert';
@@ -1629,6 +1629,24 @@ function RaceSummaryCardImpl({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phaseCounts, eventConfig.phaseLabels, isTimelineStep]);
 
+  // Canonical Practice Timeline phase tabs: underline pattern with green-dot
+  // "done" state. Done = phase has user-produced content (total > 0). Strips
+  // the inline completion counts shown on the segmented-control variant — the
+  // canonical lets the green dot do all the "phase has content" signaling.
+  const canonicalPhaseTabs = useMemo<PhaseTabItem<RacePhase>[]>(() => {
+    return RACE_PHASES.map((phase) => {
+      const count = phaseCounts[phase];
+      const isSelected = phase === selectedPhase;
+      const hasContent = count.total > 0 || count.completed > 0;
+      return {
+        value: phase,
+        label: TIMELINE_STEP_PHASE_LABELS[phase],
+        state: isSelected ? 'active' : hasContent ? 'done' : 'empty',
+      };
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phaseCounts, selectedPhase]);
+
   // Handle phase tab change with haptic feedback
   const handlePhaseChange = useCallback((phase: RacePhase) => {
     // DEBUG: Log phase tab selection
@@ -1640,16 +1658,63 @@ function RaceSummaryCardImpl({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [race.id]);
 
-  // Helper to render phase tabs with iOS segmented control style (Prep/Launch/Race/Review)
-  // Max width = 2 tiles (155px each) + 1 gap (12px) = 322px
-  const renderPhaseTabs = () => (
-    <IOSSegmentedControl
-      segments={phaseTabs}
-      selectedValue={selectedPhase}
-      onValueChange={handlePhaseChange}
-      style={{ marginTop: 12, marginBottom: 12, maxWidth: 322 }}
-    />
-  );
+  // Helper to render phase tabs.
+  // Timeline steps render the canonical underline pattern (Plan / Do / Reflect,
+  // green-dot done state) per Practice Timeline canonical 2026-05-15.
+  // Legacy non-timeline races keep the iOS segmented control with inline
+  // completion counts.
+  const renderPhaseTabs = () => {
+    if (isTimelineStep) {
+      return (
+        <PhaseTabsCanonical
+          tabs={canonicalPhaseTabs}
+          onSelect={handlePhaseChange}
+          style={{ marginTop: 4, marginBottom: 8 }}
+        />
+      );
+    }
+    return (
+      <IOSSegmentedControl
+        segments={phaseTabs}
+        selectedValue={selectedPhase}
+        onValueChange={handlePhaseChange}
+        style={{ marginTop: 12, marginBottom: 12, maxWidth: 322 }}
+      />
+    );
+  };
+
+  // Canonical card-head state-label row — dot + uppercase text above the
+  // title, communicating the temporal state of this step's practice cycle.
+  // Three weights, same grammar: planned (blue) / in-progress (coral with
+  // halo) / completed (gray). Per Practice Timeline canonical 2026-05-15:
+  // "state in the head, not the chrome".
+  const renderStateLabel = () => {
+    if (!isTimelineStep) return null;
+    let label: string;
+    let color: string;
+    let dotColor: string;
+    let halo = false;
+    if (stepStatus === 'in_progress') {
+      label = 'Live · in progress';
+      color = '#FF6B6B';
+      dotColor = '#FF6B6B';
+      halo = true;
+    } else if (stepStatus === 'completed' || stepStatus === 'done') {
+      label = 'Step complete · debrief open';
+      color = IOS_COLORS.tertiaryLabel;
+      dotColor = IOS_COLORS.gray2;
+    } else {
+      label = 'Current step';
+      color = IOS_COLORS.blue;
+      dotColor = IOS_COLORS.blue;
+    }
+    return (
+      <View style={styles.stateLabelRow}>
+        <View style={[styles.stateLabelDot, { backgroundColor: dotColor }, halo && styles.stateLabelDotHalo]} />
+        <Text style={[styles.stateLabelText, { color }]}>{label}</Text>
+      </View>
+    );
+  };
 
   // Phase intro banner — shared "you are here" strip rendered above the phase
   // content for every tab. Without it, past-race cards and future-race cards
@@ -2354,6 +2419,10 @@ function RaceSummaryCardImpl({
             <Text style={styles.sampleBadgeText}>SAMPLE DATA</Text>
           </View>
         ) : null}
+
+        {/* Canonical state-label — dot + uppercase text above the title.
+            Surface decides weight; chrome stays still. */}
+        {renderStateLabel()}
 
         {/* Full race/step name — always editable TextInput for timeline steps */}
         {isTimelineStep ? (
@@ -4483,6 +4552,36 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#B45309',
     letterSpacing: 0.2,
+  },
+  stateLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 8,
+  },
+  stateLabelDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  stateLabelDotHalo: {
+    // 3px coral ring around the live dot — pulse-of-life signal
+    shadowColor: '#FF6B6B',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.22,
+    shadowRadius: 3,
+    ...Platform.select({
+      web: {
+        boxShadow: '0 0 0 3px rgba(255, 107, 107, 0.22)',
+      } as any,
+      default: {},
+    }),
+  },
+  stateLabelText: {
+    fontSize: 11,
+    fontWeight: '600',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
   },
   raceNameLarge: {
     // Serif title treatment per redesign commit 3 + mockup 01/06 — scaled to
