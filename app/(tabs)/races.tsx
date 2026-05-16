@@ -105,6 +105,7 @@ import { useScrollToolbarHide } from '@/hooks/useScrollToolbarHide';
 import { FEATURE_FLAGS } from '@/lib/featureFlags';
 import { getSeriesLabel } from '@/lib/navigation-config';
 import { SeriesStrip } from '@/components/series/SeriesStrip';
+import { JumpToPickerSheet, type JumpToPickerItem } from '@/components/series/JumpToPickerSheet';
 import {
   ADD_RACE_CARD_DISMISSED_KEY,
   SAMPLE_RACE_DISMISSED_KEY,
@@ -5236,9 +5237,50 @@ export default function RacesScreen() {
         useCanonicalLayout={FEATURE_FLAGS.PRACTICE_SERIES_IOS_REGISTER}
       />
 
-      {/* Step Picker Modal — jump to any step in the timeline */}
+      {/* Step Picker Modal — jump to any step in the timeline.
+          When PRACTICE_SERIES_IOS_REGISTER is on, the canonical
+          Phase I Frame 4 JumpToPickerSheet renders instead. */}
+      {FEATURE_FLAGS.PRACTICE_SERIES_IOS_REGISTER && (
+        <JumpToPickerSheet
+          visible={showStepPicker}
+          seriesLabel={getSeriesLabel(currentInterest)}
+          seriesName={seriesStripName || (vocab('Period') || 'Season')}
+          currentIndex={headerCurrentRaceIndex ?? 0}
+          totalSteps={headerTotalRaces}
+          progress={seriesStripProgress}
+          items={orderedBaseCardGridRaces.map((item: any, i: number): JumpToPickerItem => {
+            const isSelected = item.id === selectedRaceId;
+            const isCompleted = item.stepStatus === 'completed' || item.status === 'completed';
+            const isStep = item.isTimelineStep === true;
+            const titleSource = item.name && item.name !== String(i + 1)
+              ? item.name
+              : (isStep ? `Step ${i + 1}` : `Race ${i + 1}`);
+            const itemDate = item.date || item.start_date;
+            const dateLabel = itemDate
+              ? new Date(itemDate).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })
+              : undefined;
+            const kind: JumpToPickerItem['kind'] = isCompleted
+              ? 'completed'
+              : isSelected
+                ? 'current'
+                : 'upcoming';
+            return {
+              id: String(item.id),
+              index: i + 1,
+              title: String(titleSource),
+              kind,
+              dateLabel,
+            };
+          })}
+          onSelect={(id) => {
+            handleGoToStep(id);
+            if (isGridView) setIsGridView(false);
+          }}
+          onClose={() => setShowStepPicker(false)}
+        />
+      )}
       <Modal
-        visible={showStepPicker}
+        visible={showStepPicker && !FEATURE_FLAGS.PRACTICE_SERIES_IOS_REGISTER}
         transparent
         animationType="fade"
         onRequestClose={() => setShowStepPicker(false)}
