@@ -342,6 +342,15 @@ export const FEATURE_FLAGS = {
    * visual and control-flow change.
    */
   PRACTICE_SERIES_IOS_REGISTER: readBooleanEnv('EXPO_PUBLIC_FF_PRACTICE_SERIES_IOS_REGISTER', false),
+
+  /**
+   * Phase P HKDW /redeem flow. When true, /redeem renders the Dragon Worlds
+   * sailor landing and /practice can show the server-persisted welcome banner.
+   * Defaults false so the May 20 cutover can be controlled by build env.
+   */
+  REDEEM: ['1', 'true', 'yes', 'on'].includes(
+    String(process.env.EXPO_PUBLIC_FF_REDEEM ?? '').trim().toLowerCase()
+  ),
 } as const;
 
 // =============================================================================

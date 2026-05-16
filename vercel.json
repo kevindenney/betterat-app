@@ -44,13 +44,7 @@
       ]
     }
   ],
-  "redirects": [
-    {
-      "source": "/redeem",
-      "destination": "/blueprint/dragon-worlds-2027-peak-performance?auto_subscribe=1&from=hkdw",
-      "permanent": false
-    }
-  ],
+  "redirects": [],
   "crons": [
     { "path": "/api/cron/telegram-digest?type=morning", "schedule": "0 8 * * *" },
     { "path": "/api/cron/telegram-digest?type=evening", "schedule": "0 20 * * *" }
