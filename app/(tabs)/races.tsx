@@ -5142,8 +5142,11 @@ export default function RacesScreen() {
           onPress={() => setShowCanonicalAddStepSheet(true)}
           style={{
             position: 'absolute',
-            right: 20,
-            bottom: insets.bottom + 96,
+            // Canonical Add Step Flow 2026-05-15: 16pt from right edge and
+            // 16pt above the 84pt tab bar (insets.bottom covers the safe
+            // area overlap with the home indicator).
+            right: 16,
+            bottom: insets.bottom + 84 + 16,
             zIndex: 120,
           }}
         />

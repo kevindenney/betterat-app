@@ -236,18 +236,21 @@ export const FEATURE_FLAGS = {
   /**
    * Gate the canonical Practice Add Step floating action button. When true,
    * the Practice implementation can show the bottom-right + affordance and
-   * canonical two-path creation sheet. Defaults false because this is a
-   * substantive visual and interaction change.
+   * canonical two-path creation sheet. Default flipped to true 2026-05-16
+   * once the Add Step Flow canonical (FAB + action sheet + AI Coach
+   * conversation) was ready to be the default Add Step path.
    */
-  PRACTICE_ADD_STEP_FAB: readBooleanEnv('EXPO_PUBLIC_FF_PRACTICE_ADD_STEP_FAB', false),
+  PRACTICE_ADD_STEP_FAB: readBooleanEnv('EXPO_PUBLIC_FF_PRACTICE_ADD_STEP_FAB', true),
 
   /**
    * Gate the canonical Plan tab interior: AI Coach as the primary empty-state
    * path, manual What/How/Why as secondary, and optional add-ons collapsed under
-   * More options. Defaults false because this is a substantive component and
-   * control-flow change.
+   * More options. Default flipped to true 2026-05-16 — required for the Add
+   * Step Flow canonical to function end-to-end (the "Build with AI Coach" path
+   * lands users on this Plan tab and expects ConversationalCapture as the
+   * empty state).
    */
-  PRACTICE_PLAN_TAB_IOS_REGISTER: readBooleanEnv('EXPO_PUBLIC_FF_PRACTICE_PLAN_TAB_IOS_REGISTER', false),
+  PRACTICE_PLAN_TAB_IOS_REGISTER: readBooleanEnv('EXPO_PUBLIC_FF_PRACTICE_PLAN_TAB_IOS_REGISTER', true),
 
   /**
    * Gate the canonical Do tab interior: pre-activity capture affordances, a
