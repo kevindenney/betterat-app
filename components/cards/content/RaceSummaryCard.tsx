@@ -78,6 +78,7 @@ import { StepPlanQuestions } from '@/components/step/StepPlanQuestions';
 import { PlanQuestionCard } from '@/components/step/PlanQuestionCard';
 import { StepDrawContent } from '@/components/step/StepDrawContent';
 import { DateEnrichmentCard } from '@/components/step/DateEnrichmentCard';
+import { DoTabIOSRegisterShell } from '@/components/step/do-tab';
 import { StepCritiqueContent } from '@/components/step/StepCritiqueContent';
 import { StepFocusConcepts } from '@/components/step/StepFocusConcepts';
 import { StepProvenanceBanner } from '@/components/step/StepProvenanceBanner';
@@ -1913,6 +1914,14 @@ function RaceSummaryCardImpl({
         );
       }
       if (selectedPhase === 'on_water') {
+        // Behind PRACTICE_DO_TAB_IOS_REGISTER the inline race-card Do
+        // surface swaps to the same DoTabInterior + sheet + modal shell
+        // ActTab mounts (see components/step/do-tab/DoTabIOSRegisterShell).
+        // Flag off keeps the existing nudge + conditions + focus concepts
+        // + StepDrawContent stack byte-identical.
+        if (FEATURE_FLAGS.PRACTICE_DO_TAB_IOS_REGISTER) {
+          return <DoTabIOSRegisterShell stepId={race.id} />;
+        }
         const activeEnrichment = dateEnrichment ?? metadata?.plan?.date_enrichment;
         return (
           <>

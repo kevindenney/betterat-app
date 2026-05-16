@@ -20,6 +20,10 @@ export { DoSecondaryActions, type DoSecondaryActionsProps } from './DoSecondaryA
 export { DoPostActivityCard, type DoPostActivityCardProps } from './DoPostActivityCard';
 export { DoQuickNoteModal, type DoQuickNoteModalProps } from './DoQuickNoteModal';
 export {
+  DoTabIOSRegisterShell,
+  type DoTabIOSRegisterShellProps,
+} from './DoTabIOSRegisterShell';
+export {
   MarkAsEvidenceSheet,
   type MarkAsEvidenceSheetProps,
   type EvidenceCapabilityOption,

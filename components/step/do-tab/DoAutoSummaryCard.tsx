@@ -39,12 +39,20 @@ export function DoAutoSummaryCard({
   onRefineSummary,
 }: DoAutoSummaryCardProps) {
   const breakdown = summarizeCaptureBreakdown(captures);
-  const items: { kind: 'voice' | 'note' | 'photo' | 'marker'; n: number; label: string; icon: keyof typeof Ionicons.glyphMap; color: string }[] = [
+  type BreakdownItem = {
+    kind: 'voice' | 'note' | 'photo' | 'marker';
+    n: number;
+    label: string;
+    icon: keyof typeof Ionicons.glyphMap;
+    color: string;
+  };
+  const allItems: BreakdownItem[] = [
     { kind: 'voice', n: breakdown.voice, label: breakdown.voice === 1 ? 'voice' : 'voice', icon: 'mic', color: IOS_BLUE },
     { kind: 'note', n: breakdown.note, label: breakdown.note === 1 ? 'note' : 'notes', icon: 'create-outline', color: GRAY_1 },
     { kind: 'photo', n: breakdown.photo, label: breakdown.photo === 1 ? 'photo' : 'photos', icon: 'camera-outline', color: LABEL_2 },
     { kind: 'marker', n: breakdown.marker, label: breakdown.marker === 1 ? 'marker' : 'markers', icon: 'flag-outline', color: LABEL_3 },
-  ].filter((i) => i.n > 0);
+  ];
+  const items = allItems.filter((i) => i.n > 0);
 
   return (
     <View style={styles.card} accessibilityLabel="Auto-summary of this activity">

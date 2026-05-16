@@ -15,8 +15,7 @@ import { FEATURE_FLAGS } from '@/lib/featureFlags';
 import { StepDrawContent } from './StepDrawContent';
 import { StepFocusConcepts } from './StepFocusConcepts';
 import { DateEnrichmentCard } from './DateEnrichmentCard';
-import { DoTabInterior, DoQuickNoteModal, MarkAsEvidenceSheet } from './do-tab';
-import { useStepActCaptureController } from '@/hooks/useStepActCaptureController';
+import { DoTabIOSRegisterShell } from './do-tab';
 import type { DateEnrichment } from '@/types/step-detail';
 
 interface ActTabProps {
@@ -33,10 +32,10 @@ interface ActTabProps {
 export function ActTab({ stepId, dateEnrichment, onNextTab, readOnly, footer, interestId, interestName, interestSlug }: ActTabProps) {
   if (FEATURE_FLAGS.PRACTICE_DO_TAB_IOS_REGISTER) {
     return (
-      <ActTabIOSRegister
+      <DoTabIOSRegisterShell
         stepId={stepId}
-        onNextTab={onNextTab}
         readOnly={readOnly}
+        onMoveToReflect={onNextTab}
         footer={footer}
       />
     );
@@ -82,59 +81,6 @@ export function ActTab({ stepId, dateEnrichment, onNextTab, readOnly, footer, in
       )}
       {footer}
     </ScrollView>
-  );
-}
-
-/**
- * Flag-on iOS-register render. Mounts DoTabInterior driven by the
- * capture controller hook, plus the Mark-as-evidence sheet (opened by
- * tapping a frozen capture row in Frame 3) and the quick-note modal
- * (opened by the Frame 2 composer's quick-note + voice affordances).
- *
- * In v1 the evidence capabilities list is empty until the capability
- * model lands — the sheet renders its graceful "No capabilities to mark
- * yet" empty state so the trigger still produces a self-explanatory
- * outcome.
- */
-function ActTabIOSRegister({
-  stepId,
-  onNextTab,
-  readOnly,
-  footer,
-}: {
-  stepId: string;
-  onNextTab?: () => void;
-  readOnly?: boolean;
-  footer?: React.ReactNode;
-}) {
-  const controller = useStepActCaptureController({
-    stepId,
-    readOnly,
-    onMoveToReflect: onNextTab,
-  });
-
-  return (
-    <View style={styles.container}>
-      <DoTabInterior {...controller.doTabInteriorProps} footer={footer} />
-
-      <MarkAsEvidenceSheet
-        visible={controller.markingCaptureId != null}
-        onClose={controller.closeMarkAsEvidence}
-        capture={controller.markingCapture}
-        capabilities={[]}
-        selectedCapabilityIds={[]}
-        onToggleCapability={() => {}}
-        strength={null}
-        onChangeStrength={() => {}}
-        onSave={controller.closeMarkAsEvidence}
-      />
-
-      <DoQuickNoteModal
-        visible={controller.quickNoteVisible}
-        onClose={controller.closeQuickNoteModal}
-        onSubmit={controller.submitQuickNote}
-      />
-    </View>
   );
 }
 

@@ -21,41 +21,12 @@ jest.mock('@/lib/featureFlags', () => ({
   },
 }));
 
-const controllerStub = {
-  state: 'pre_activity' as const,
-  activityEndedAt: null as string | null,
-  markingCaptureId: null as string | null,
-  quickNoteVisible: false,
-  captures: [],
-  planData: {},
-  stepTitle: 'Stub step',
-  doTabInteriorProps: {
-    state: 'pre_activity' as const,
-    planData: {},
-    captures: [],
-    elapsedMs: 0,
-    nowMs: 0,
-  },
-  markingCapture: null,
-  closeMarkAsEvidence: jest.fn(),
-  closeQuickNoteModal: jest.fn(),
-  submitQuickNote: jest.fn(),
-};
-const useStepActCaptureControllerMock = jest.fn(() => controllerStub);
-jest.mock('@/hooks/useStepActCaptureController', () => ({
-  useStepActCaptureController: (...args: unknown[]) =>
-    useStepActCaptureControllerMock(...args),
-}));
-
-jest.mock('./StepDrawContent' as never, () => ({ StepDrawContent: 'StepDrawContent' }), {
-  virtual: true,
-});
-
-// Stub out the do-tab barrel so we don't pull in @expo/vector-icons.
+// Stub out the do-tab barrel so we don't pull in @expo/vector-icons or
+// instantiate the controller hook inside DoTabIOSRegisterShell. ActTab's
+// branching is the only thing under test here; the shell's wiring lives
+// in its own suite.
 jest.mock('../do-tab', () => ({
-  DoTabInterior: 'DoTabInterior',
-  DoQuickNoteModal: 'DoQuickNoteModal',
-  MarkAsEvidenceSheet: 'MarkAsEvidenceSheet',
+  DoTabIOSRegisterShell: 'DoTabIOSRegisterShell',
 }));
 
 jest.mock('../StepDrawContent', () => ({ StepDrawContent: 'StepDrawContent' }));
@@ -98,7 +69,6 @@ const componentNames = (root: ReactTestInstance): string[] =>
 
 beforeEach(() => {
   mockFlag = false;
-  useStepActCaptureControllerMock.mockClear();
 });
 
 describe('ActTab — flag branching', () => {
@@ -108,74 +78,37 @@ describe('ActTab — flag branching', () => {
     const names = componentNames(tree.root);
     expect(names).toContain('StepDrawContent');
     expect(names).toContain('StepFocusConcepts');
-    expect(names).not.toContain('DoTabInterior');
-    expect(useStepActCaptureControllerMock).not.toHaveBeenCalled();
+    expect(names).not.toContain('DoTabIOSRegisterShell');
   });
 
-  it('does NOT mount any do-tab/* component when the flag is OFF', () => {
+  it('does NOT mount the shell when the flag is OFF', () => {
     mockFlag = false;
     const tree = render();
     const names = componentNames(tree.root);
-    expect(names).not.toContain('DoTabInterior');
-    expect(names).not.toContain('MarkAsEvidenceSheet');
-    expect(names).not.toContain('DoQuickNoteModal');
+    expect(names).not.toContain('DoTabIOSRegisterShell');
   });
 
-  it('mounts DoTabInterior + MarkAsEvidenceSheet + DoQuickNoteModal when the flag is ON', () => {
+  it('mounts DoTabIOSRegisterShell when the flag is ON and hides the legacy stack', () => {
     mockFlag = true;
     const tree = render();
     const names = componentNames(tree.root);
-    expect(names).toContain('DoTabInterior');
-    expect(names).toContain('MarkAsEvidenceSheet');
-    expect(names).toContain('DoQuickNoteModal');
+    expect(names).toContain('DoTabIOSRegisterShell');
     expect(names).not.toContain('StepDrawContent');
+    expect(names).not.toContain('StepFocusConcepts');
   });
 
-  it('passes onNextTab through to the controller as onMoveToReflect when the flag is ON', () => {
+  it('passes stepId, readOnly, onNextTab, and footer through to the shell when the flag is ON', () => {
     mockFlag = true;
     const onNextTab = jest.fn();
-    render({ onNextTab, readOnly: true });
-    expect(useStepActCaptureControllerMock).toHaveBeenCalledWith({
-      stepId: 'step-1',
-      readOnly: true,
-      onMoveToReflect: onNextTab,
-    });
-  });
-
-  it('mounts MarkAsEvidenceSheet hidden by default (visible derived from controller.markingCaptureId)', () => {
-    mockFlag = true;
-    const tree = render();
-    const sheet = tree.root.find(
+    const footer = 'footer-token';
+    const tree = render({ onNextTab, readOnly: true, footer });
+    const shell = tree.root.find(
       (n: ReactTestInstance) =>
-        typeof n.type === 'string' && n.type === 'MarkAsEvidenceSheet',
+        typeof n.type === 'string' && n.type === 'DoTabIOSRegisterShell',
     );
-    expect(sheet.props.visible).toBe(false);
-    expect(sheet.props.capabilities).toEqual([]);
-  });
-
-  it('mounts MarkAsEvidenceSheet visible when controller.markingCaptureId is set', () => {
-    mockFlag = true;
-    const fakeCapture = {
-      id: 'obs:obs-1',
-      kind: 'note',
-      capturedAt: '2026-05-16T14:00:00Z',
-      body: 'x',
-      capabilityIds: [],
-      capabilityLabels: [],
-      flaggedForDebrief: false,
-      source: 'act_observation',
-    };
-    useStepActCaptureControllerMock.mockReturnValueOnce({
-      ...controllerStub,
-      markingCaptureId: 'obs:obs-1',
-      markingCapture: fakeCapture as never,
-    });
-    const tree = render();
-    const sheet = tree.root.find(
-      (n: ReactTestInstance) =>
-        typeof n.type === 'string' && n.type === 'MarkAsEvidenceSheet',
-    );
-    expect(sheet.props.visible).toBe(true);
-    expect(sheet.props.capture).toEqual(fakeCapture);
+    expect(shell.props.stepId).toBe('step-1');
+    expect(shell.props.readOnly).toBe(true);
+    expect(shell.props.onMoveToReflect).toBe(onNextTab);
+    expect(shell.props.footer).toBe(footer);
   });
 });
