@@ -29,7 +29,8 @@ export interface PrivacySettings extends ProfilePrivacySettings {
 }
 
 const DEFAULT_SETTINGS: PrivacySettings = {
-  profile_public: true,
+  // Public profile visibility is explicit opt-in; missing settings default private.
+  profile_public: false,
   default_step_visibility: 'followers',
   allow_peer_visibility: true,
   allow_follower_sharing: true,
