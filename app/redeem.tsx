@@ -76,6 +76,10 @@ export default function RedeemScreen() {
     } as any);
   }, []);
 
+  const goExploreSignup = useCallback(() => {
+    router.push('/(auth)/signup' as any);
+  }, []);
+
   const goSignin = useCallback(() => {
     router.push({ pathname: '/(auth)/login', params: { returnTo: '/redeem' } } as any);
   }, []);
@@ -164,7 +168,7 @@ export default function RedeemScreen() {
               >
                 <Text style={styles.primaryText}>
                   {signedOut
-                    ? 'Get started'
+                    ? "Follow Kevin's blueprint"
                     : subscribeMutation.isPending
                       ? 'Following...'
                       : 'Follow the blueprint'}
@@ -182,6 +186,26 @@ export default function RedeemScreen() {
                 </Pressable>
               )}
             </View>
+
+            {signedOut && (
+              <View style={styles.secondaryCtaCard}>
+                <Text style={styles.secondaryCtaTitle}>Not racing in Dragon Worlds 2027?</Text>
+                <Text style={styles.secondaryCtaBody}>
+                  BetterAt works for any hard thing you're getting better at - drawing, nursing,
+                  fitness, whatever. Same Plan/Do/Reflect loop.
+                </Text>
+                <Pressable
+                  onPress={goExploreSignup}
+                  accessibilityRole="button"
+                  style={({ pressed }) => [styles.exploreLink, pressed && styles.pressed]}
+                >
+                  <Text style={styles.exploreLinkText}>
+                    I'm here for something else - explore BetterAt
+                  </Text>
+                  <Ionicons name="arrow-forward" size={14} color={C.navy2} />
+                </Pressable>
+              </View>
+            )}
 
             <View style={styles.authorStrip}>
               <View style={styles.avatar}>
@@ -413,6 +437,37 @@ const styles = StyleSheet.create({
   },
   inlineLink: {
     color: C.blue,
+    fontWeight: '700',
+  },
+  secondaryCtaCard: {
+    marginTop: 18,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(20,34,61,0.10)',
+    maxWidth: 520,
+    gap: 8,
+  },
+  secondaryCtaTitle: {
+    color: C.navy,
+    fontSize: 15,
+    fontWeight: '800',
+  },
+  secondaryCtaBody: {
+    color: C.navy3,
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  exploreLink: {
+    alignSelf: 'flex-start',
+    minHeight: 32,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 4,
+  },
+  exploreLinkText: {
+    color: C.navy2,
+    fontSize: 14,
     fontWeight: '700',
   },
   authorStrip: {
