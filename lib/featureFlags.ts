@@ -250,6 +250,15 @@ export const FEATURE_FLAGS = {
   PRACTICE_PLAN_TAB_IOS_REGISTER: readBooleanEnv('EXPO_PUBLIC_FF_PRACTICE_PLAN_TAB_IOS_REGISTER', false),
 
   /**
+   * Gate the canonical Do tab interior: pre-activity capture affordances, a
+   * live reverse-chronological capture stream, post-activity auto-summary,
+   * and capability evidence marking. Defaults false because this changes the
+   * main capture workflow, live-state signaling, capture ordering, and the
+   * Do-to-Reflect handoff. See docs/redesign/specs/PHASE_B7_DO_TAB_INTERIOR_SPEC.md.
+   */
+  PRACTICE_DO_TAB_IOS_REGISTER: readBooleanEnv('EXPO_PUBLIC_FF_PRACTICE_DO_TAB_IOS_REGISTER', false),
+
+  /**
    * Stage the Race Log iOS register surface (chronological multi-season
    * archive). This flag exists for the Reflect-tab cutover, which ships
    * Race Log + Profile together; the render switch in the Reflect parent
