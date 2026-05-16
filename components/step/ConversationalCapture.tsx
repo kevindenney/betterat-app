@@ -306,23 +306,35 @@ Respond with ONLY valid JSON:
       if (!error && data?.text) {
         const cleaned = data.text.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
         const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
-        if (jsonMatch) parsed = JSON.parse(jsonMatch[0]);
+        if (jsonMatch) {
+          try {
+            parsed = JSON.parse(jsonMatch[0]);
+          } catch {
+            parsed = {};
+          }
+        }
       }
 
-      const latestUserMessage = [...messages].reverse().find((m) => m.role === 'user')?.content?.trim();
-      const latestAssistantMessage = [...messages].reverse().find((m) => m.role === 'assistant')?.content?.trim();
+      const latestUserMessage = [...messages].reverse().find((m) => m.role === 'user' && m.content?.trim())?.content?.trim();
+      const latestAssistantMessage = [...messages].reverse().find((m) => m.role === 'assistant' && m.content?.trim())?.content?.trim();
+      const firstUserMessage = messages.find((m) => m.role === 'user' && m.content?.trim())?.content?.trim();
       const fallbackWhat = parsed.what_will_you_do?.trim()
         || parsed.suggested_title?.trim()
         || latestUserMessage
         || latestAssistantMessage
-        || 'Plan created from conversation';
+        || firstUserMessage;
       const howSubSteps = Array.isArray(parsed.how_sub_steps) ? parsed.how_sub_steps : [];
       const howSubStepTags = Array.isArray(parsed.how_sub_step_tags)
         ? parsed.how_sub_step_tags
         : [];
 
+      if (!fallbackWhat?.trim() && howSubSteps.length === 0 && !parsed.why_reasoning?.trim()) {
+        setDraftError("I couldn't find enough plan detail yet. Add one sentence, then tap Draft my plan again.");
+        return;
+      }
+
       const planData: Partial<StepPlanData> = {
-        what_will_you_do: fallbackWhat,
+        what_will_you_do: fallbackWhat || 'Plan created from conversation',
         how_sub_steps: howSubSteps.map((text: string, i: number): SubStep => ({
           id: `conv_${Date.now()}_${i}`,
           text,

@@ -41,7 +41,15 @@ export function PlanTabInterior({
   const state = getPlanInteriorState({ planData, readOnly, doStarted });
   const [manualExpanded, setManualExpanded] = useState(state !== 'empty');
   const [coachOpen, setCoachOpen] = useState(false);
-  const canUseCoach = Boolean(interestId && interestName && onConversationalCreate && !readOnly);
+  const effectiveInterestName = interestName?.trim() || 'this interest';
+  const canUseCoach = Boolean(interestId && onConversationalCreate && !readOnly);
+  const coachDisabledReason = !interestId
+    ? 'AI Coach needs a step interest before it can draft a plan.'
+    : !onConversationalCreate
+      ? 'AI Coach is unavailable for this step.'
+      : readOnly
+        ? 'AI Coach is unavailable in read-only mode.'
+        : undefined;
 
   const hasWhat = Boolean(planData.what_will_you_do?.trim());
   const hasHow = Boolean(planData.how_sub_steps?.some((step) => step.text.trim()));
@@ -72,7 +80,11 @@ export function PlanTabInterior({
         )}
       </View>
 
-      <PlanCoachCard state={state} onPress={canUseCoach ? () => setCoachOpen(true) : undefined} />
+      <PlanCoachCard
+        state={state}
+        onPress={canUseCoach ? () => setCoachOpen(true) : undefined}
+        disabledReason={coachDisabledReason}
+      />
 
       {state === 'empty' && !manualExpanded && (
         <Pressable style={styles.manualToggle} onPress={() => setManualExpanded(true)}>
@@ -140,7 +152,7 @@ export function PlanTabInterior({
             {coachOpen && (
               <ConversationalCapture
                 interestId={interestId!}
-                interestName={interestName!}
+                interestName={effectiveInterestName}
                 stepTitle={stepTitle || planData.what_will_you_do || 'New step'}
                 onCreateStep={(data, suggestedTitle) => {
                   onConversationalCreate!(data, suggestedTitle);

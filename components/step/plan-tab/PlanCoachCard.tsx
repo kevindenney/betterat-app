@@ -8,9 +8,12 @@ import type { PlanInteriorState } from './planState';
 interface PlanCoachCardProps {
   state: PlanInteriorState;
   onPress?: () => void;
+  disabledReason?: string;
 }
 
-export function PlanCoachCard({ state, onPress }: PlanCoachCardProps) {
+export function PlanCoachCard({ state, onPress, disabledReason }: PlanCoachCardProps) {
+  const disabled = !onPress;
+
   if (state === 'locked') {
     return (
       <View style={styles.lockedSummary}>
@@ -22,24 +25,44 @@ export function PlanCoachCard({ state, onPress }: PlanCoachCardProps) {
 
   if (state === 'empty') {
     return (
-      <Pressable style={styles.heroCard} onPress={onPress}>
+      <Pressable
+        style={[styles.heroCard, disabled && styles.heroCardDisabled]}
+        onPress={onPress}
+        disabled={disabled}
+        accessibilityRole="button"
+        accessibilityState={{ disabled }}
+      >
         <View style={styles.heroIcon}>
           <Ionicons name="sparkles" size={22} color="#FFFFFF" />
         </View>
         <View style={styles.heroCopy}>
           <Text style={styles.heroEyebrow}>Recommended first move</Text>
           <Text style={styles.heroTitle}>Build with AI Coach</Text>
-          <Text style={styles.heroBody}>Talk through what, how, and why. BetterAt will turn it into a usable plan.</Text>
+          <Text style={styles.heroBody}>
+            {disabledReason || 'Talk through what, how, and why. BetterAt will turn it into a usable plan.'}
+          </Text>
         </View>
-        <Ionicons name="chevron-forward" size={18} color={IOS_COLORS.systemPurple} />
+        <Ionicons
+          name={disabled ? 'alert-circle-outline' : 'chevron-forward'}
+          size={18}
+          color={disabled ? IOS_COLORS.systemGray2 : IOS_COLORS.systemPurple}
+        />
       </Pressable>
     );
   }
 
   return (
-    <Pressable style={styles.inlineLink} onPress={onPress}>
+    <Pressable
+      style={[styles.inlineLink, disabled && styles.inlineLinkDisabled]}
+      onPress={onPress}
+      disabled={disabled}
+      accessibilityRole="button"
+      accessibilityState={{ disabled }}
+    >
       <Ionicons name="sparkles" size={14} color={IOS_COLORS.systemPurple} />
-      <Text style={styles.inlineLinkText}>Continue with AI Coach</Text>
+      <Text style={[styles.inlineLinkText, disabled && styles.inlineLinkTextDisabled]}>
+        {disabledReason || 'Continue with AI Coach'}
+      </Text>
       <Ionicons name="chevron-forward" size={12} color={IOS_COLORS.systemPurple} />
     </Pressable>
   );
@@ -56,6 +79,9 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     padding: IOS_SPACING.md,
     marginBottom: IOS_SPACING.sm,
+  },
+  heroCardDisabled: {
+    opacity: 0.62,
   },
   heroIcon: {
     width: 46,
@@ -95,10 +121,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 2,
     marginBottom: IOS_SPACING.xs,
   },
+  inlineLinkDisabled: {
+    opacity: 0.6,
+  },
   inlineLinkText: {
     fontSize: 13,
     fontWeight: '700',
     color: IOS_COLORS.systemPurple,
+  },
+  inlineLinkTextDisabled: {
+    color: IOS_COLORS.secondaryLabel,
   },
   lockedSummary: {
     flexDirection: 'row',
