@@ -5232,6 +5232,7 @@ export default function RacesScreen() {
         onManageSeasons={() => setShowSeasonSettings(true)}
         eventNounPlural={pluralize(eventConfig.eventNoun)}
         periodTerm={vocab('Period')}
+        useCanonicalLayout={FEATURE_FLAGS.PRACTICE_SERIES_IOS_REGISTER}
       />
 
       {/* Step Picker Modal — jump to any step in the timeline */}
