@@ -10,7 +10,7 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
+import { router, useRootNavigationState } from 'expo-router';
 import { useAuth } from '@/providers/AuthProvider';
 import { FEATURE_FLAGS } from '@/lib/featureFlags';
 import { HKDW_BLUEPRINT_SLUG } from '@/lib/hkdwPhaseP';
@@ -45,6 +45,7 @@ export default function RedeemScreen() {
   const { width } = useWindowDimensions();
   const isDesktop = Platform.OS === 'web' && width >= 820;
   const { user, userProfile, ready, loading } = useAuth();
+  const rootNavState = useRootNavigationState();
   const { data: blueprint, isLoading: blueprintLoading } = useBlueprint(HKDW_BLUEPRINT_SLUG);
   const { data: subscription, isLoading: subscriptionLoading } = useBlueprintSubscription(blueprint?.id);
   const subscribeMutation = useSubscribe();
@@ -53,18 +54,20 @@ export default function RedeemScreen() {
   const firstName = useMemo(() => firstNameFromProfile(userProfile, user), [userProfile, user]);
 
   useEffect(() => {
+    if (!rootNavState?.key) return;
     if (!FEATURE_FLAGS.REDEEM) {
       router.replace('/' as any);
     }
-  }, []);
+  }, [rootNavState?.key]);
 
   useEffect(() => {
+    if (!rootNavState?.key) return;
     if (!FEATURE_FLAGS.REDEEM) return;
     if (!ready || loading || !signedIn || !blueprint?.id || subscriptionLoading) return;
     if (subscription) {
       router.replace(getEventTabRoute() as any);
     }
-  }, [ready, loading, signedIn, blueprint?.id, subscription, subscriptionLoading]);
+  }, [rootNavState?.key, ready, loading, signedIn, blueprint?.id, subscription, subscriptionLoading]);
 
   const goSignup = useCallback(() => {
     router.push({
