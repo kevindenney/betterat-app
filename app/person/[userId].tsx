@@ -95,7 +95,7 @@ function DbUserProfile({ userId }: { userId: string }) {
   const [email, setEmail] = useState<string | null>(null);
   const [memberships, setMemberships] = useState<MembershipRow[]>([]);
   const [organizations, setOrganizations] = useState<Map<string, OrganizationRow>>(new Map());
-  const [activities, setActivities] = useState<Array<{ id: string; name: string; date: string | null; venue: string | null }>>([]);
+  const [activities, setActivities] = useState<{ id: string; name: string; date: string | null; venue: string | null }[]>([]);
   const [blueprints, setBlueprints] = useState<BlueprintRecord[]>([]);
   const [activeTab, setActiveTab] = useState<ProfileTab>('timelines');
   const timelineQuery = useUserTimeline(userId);
@@ -165,19 +165,25 @@ function DbUserProfile({ userId }: { userId: string }) {
       setLoading(true);
       setErrorText(null);
       try {
-        // Try profiles table first for proper display name
+        // Try profiles table first. For non-owners, do not fall back to
+        // `users` if RLS hides a private profile; that would leak name/email.
         const profileResult = await supabase
           .from('profiles')
-          .select('id,full_name,avatar_url')
+          .select('id,full_name,avatar_url,profile_public')
           .eq('id', userId)
           .maybeSingle();
 
-        // Fall back to users table for email
-        const userResult = await supabase
-          .from('users')
-          .select('id,full_name,email')
-          .eq('id', userId)
-          .maybeSingle();
+        if (!profileResult.data && !isOwner) {
+          throw new Error('This profile is private');
+        }
+
+        const userResult = isOwner
+          ? await supabase
+              .from('users')
+              .select('id,full_name,email')
+              .eq('id', userId)
+              .maybeSingle()
+          : { data: null };
 
         if (!profileResult.data && !userResult.data) throw new Error('User not found');
         if (!cancelled) {
@@ -187,7 +193,7 @@ function DbUserProfile({ userId }: { userId: string }) {
             (userResult.data as any)?.email ||
             userId
           ));
-          setEmail((userResult.data as any)?.email ? String((userResult.data as any).email) : null);
+          setEmail(isOwner && (userResult.data as any)?.email ? String((userResult.data as any).email) : null);
         }
 
         let membershipResult = await supabase
@@ -277,7 +283,7 @@ function DbUserProfile({ userId }: { userId: string }) {
     return () => {
       cancelled = true;
     };
-  }, [userId, refreshKey]);
+  }, [userId, isOwner, refreshKey]);
 
   const orgRows = useMemo(
     () =>
@@ -666,7 +672,7 @@ function DbUserProfile({ userId }: { userId: string }) {
                     <Text style={dbStyles.emptyText}>Activities will appear here once created.</Text>
                   </View>
                 )}
-                {activities.map((activity, idx) => (
+                {activities.map((activity) => (
                   <View key={activity.id} style={dbStyles.activityCard}>
                     <View style={dbStyles.activityIconWrap}>
                       <Ionicons name="flag-outline" size={16} color="#2563EB" />
