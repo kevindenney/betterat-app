@@ -1,0 +1,1355 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=1480" />
+<title>BetterAt — Discover trio · iOS register</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css" />
+<style>
+  :root {
+    /* ============ iOS system palette (inherited from Error canonical + Paths-for-you) ============ */
+    --ios-sys-bg:        #F2F2F7;
+    --ios-sys-bg-grouped:#FFFFFF;
+    --ios-sys-fill-3:    #E5E5EA;
+    --ios-sys-fill-4:    #D1D1D6;
+    --ios-sys-fill-5:    #C7C7CC;
+    --ios-sys-fill-seg:  rgba(120, 120, 128, 0.12);
+    --ios-sys-fill-seg-active: #FFFFFF;
+
+    --ios-label:           #000000;
+    --ios-label-secondary: rgba(60, 60, 67, 0.62);
+    --ios-label-tertiary:  rgba(60, 60, 67, 0.32);
+    --ios-label-quaternary: rgba(60, 60, 67, 0.18);
+    --ios-separator:       rgba(60, 60, 67, 0.20);
+    --ios-separator-opaque:#C6C6C8;
+
+    --ios-blue:    #007AFF;
+
+    /* Discovery accent — same coral the editorial Discover and the iOS Paths-for-you
+       surface use. Reserved for system-attention marks on Discover only. Carries the
+       unread dot on Forums, the relevance tag on People, the new-activity ring on
+       suggested orgs. Never on user content. */
+    --accent-discover: #D97757;
+    --accent-tint:     rgba(217, 119, 87, 0.13);
+    --accent-strong-tint: rgba(217, 119, 87, 0.18);
+
+    /* Page stage — same warm review chrome as the Error canonical */
+    --stage:          #EFEAD8;
+    --stage-text:     #6B6558;
+    --stage-ink:      #2A2824;
+    --stage-line:     rgba(34, 30, 20, 0.12);
+    --stage-line-soft:rgba(34, 30, 20, 0.06);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display",
+                 "Helvetica Neue", Helvetica, Arial, sans-serif;
+    color: var(--ios-label);
+    background: var(--stage);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+  button, input { font-family: inherit; }
+
+  /* ============= Page chrome ============= */
+  .page { min-width: 1480px; padding: 56px 48px 96px; }
+  .page-head { max-width: 1400px; margin: 0 auto 44px; }
+  .page-head .eyebrow {
+    font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--stage-text); margin: 0 0 12px;
+  }
+  .page-head h1 {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 32px; line-height: 1.15; font-weight: 500;
+    letter-spacing: -0.015em; margin: 0 0 14px; color: var(--stage-ink);
+  }
+  .page-head h1 em { font-style: italic; }
+  .page-head p {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 17px; line-height: 1.55;
+    color: var(--stage-text); margin: 0; max-width: 960px;
+  }
+  .page-head p em { font-style: italic; }
+  .page-head p strong { color: var(--stage-ink); font-weight: 500; }
+  .page-head .crumbs {
+    display: flex; gap: 10px; align-items: center; margin: 18px 0 0; flex-wrap: wrap;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+    font-size: 12px; color: var(--stage-text); letter-spacing: 0.02em;
+  }
+  .page-head .crumbs span.s {
+    padding: 4px 10px; border-radius: 999px;
+    background: rgba(255, 255, 255, 0.55);
+    border: 0.5px solid var(--stage-line);
+  }
+  .page-head .crumbs span.s.on {
+    background: var(--stage-ink); color: #F4EFDD; border-color: var(--stage-ink);
+  }
+  .page-head .crumbs i { font-size: 11px; color: var(--stage-text); opacity: 0.6; }
+
+  /* ============= Shared-chrome callout (one strip above the three phones) ============= */
+  .chrome-strip {
+    max-width: 1400px; margin: 0 auto 36px;
+    padding: 18px 22px 18px 22px;
+    background: rgba(255, 255, 255, 0.42);
+    border: 0.5px solid var(--stage-line);
+    border-radius: 14px;
+    display: grid; grid-template-columns: 200px 1fr 1fr 1fr 1fr;
+    gap: 28px; align-items: start;
+  }
+  .chrome-strip .head {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 14px; line-height: 1.4; color: var(--stage-ink); margin: 0;
+    text-wrap: pretty;
+    font-weight: 500;
+  }
+  .chrome-strip .head em { font-style: italic; }
+  .chrome-strip .item {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+    font-size: 12px; line-height: 1.45; color: #4D4A43;
+  }
+  .chrome-strip .item .k {
+    display: block;
+    font-size: 10.5px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--stage-ink); margin: 0 0 6px;
+  }
+  .chrome-strip .item em { font-style: italic; color: var(--stage-ink); }
+
+  /* ============= Phone row ============= */
+  .row-phones {
+    max-width: 1400px;
+    margin: 0 auto 56px;
+    display: grid;
+    grid-template-columns: repeat(3, auto);
+    gap: 56px;
+    align-items: start;
+    justify-content: center;
+  }
+  .phone-col { display: flex; flex-direction: column; align-items: center; width: 393px; }
+
+  /* ============= Phone shell ============= */
+  .phone {
+    width: 393px;
+    height: 852px;
+    background: var(--ios-sys-bg);
+    border-radius: 56px;
+    border: 1px solid rgba(0, 0, 0, 0.12);
+    box-shadow:
+      0 30px 80px -40px rgba(34, 30, 20, 0.22),
+      0 2px 0 rgba(255,255,255,0.7) inset;
+    overflow: hidden;
+    position: relative;
+    isolation: isolate;
+  }
+  .phone .notch {
+    position: absolute; top: 11px; left: 50%; transform: translateX(-50%);
+    width: 116px; height: 34px; background: #0F0E0C; border-radius: 20px; z-index: 60;
+  }
+  .statusbar {
+    position: absolute; top: 0; left: 0; right: 0; height: 50px;
+    padding: 16px 32px 0; display: flex; align-items: center; justify-content: space-between;
+    font-weight: 600; font-size: 15px; color: var(--ios-label); z-index: 55; pointer-events: none;
+  }
+  .statusbar .right { display: flex; gap: 6px; align-items: center; }
+  .statusbar .right i { font-size: 15px; }
+  .home-indicator {
+    position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%);
+    width: 134px; height: 5px; border-radius: 3px;
+    background: rgba(0, 0, 0, 0.3); z-index: 65; pointer-events: none;
+  }
+
+  /* ============= Screen scroll region ============= */
+  .screen {
+    position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+    overflow-y: auto; overflow-x: hidden;
+    background: var(--ios-sys-bg);
+    padding-top: 50px;
+    scrollbar-width: none;
+  }
+  .screen::-webkit-scrollbar { display: none; }
+
+  /* ============= Pull-to-refresh affordance (visible on the first phone) ============= */
+  /* Sibling to the loading-narration register: the same hand. The pull state
+     reveals a small, calm spinner glyph plus a single line — never a chunky
+     "Refreshing..." block. Coral isn't used here because pull-to-refresh is
+     ambient, not system-attention. */
+  .ptr {
+    position: relative;
+    height: 38px;
+    display: flex; align-items: center; justify-content: center;
+    gap: 8px;
+    color: var(--ios-label-tertiary);
+    font-size: 12px; letter-spacing: -0.05px;
+  }
+  .ptr i { font-size: 14px; }
+  .ptr.idle { height: 0; }
+
+  /* ============= Large-title header — "Discover" ============= */
+  .header {
+    padding: 12px 22px 6px;
+  }
+  .header h1 {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", sans-serif;
+    font-size: 34px; font-weight: 700;
+    line-height: 1.1; letter-spacing: -0.6px;
+    color: var(--ios-label);
+    margin: 0;
+  }
+
+  /* ============= Segmented control — the switcher between Orgs / People / Forums =============
+     Standard iOS segmented control. Three segments. Active segment carries a white
+     pill on the segment-fill ground. This is *the* defining chrome element of the
+     trio — same component, same dimensions, same animation, three times. */
+  .seg-wrap { padding: 8px 22px 10px; }
+  .segmented {
+    height: 32px;
+    background: var(--ios-sys-fill-seg);
+    border-radius: 9px;
+    padding: 2px;
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    gap: 0;
+    position: relative;
+  }
+  .segmented .seg {
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 500; letter-spacing: -0.08px;
+    color: var(--ios-label);
+    border: none; background: none; cursor: pointer;
+    border-radius: 7px;
+    position: relative;
+  }
+  .segmented .seg.on {
+    background: var(--ios-sys-fill-seg-active);
+    box-shadow:
+      0 3px 8px rgba(0, 0, 0, 0.12),
+      0 0.5px 0 rgba(0, 0, 0, 0.04);
+    font-weight: 600;
+  }
+  .segmented .seg + .seg::before {
+    content: "";
+    position: absolute; left: 0; top: 6px; bottom: 6px;
+    width: 0.5px; background: rgba(60, 60, 67, 0.18);
+  }
+  .segmented .seg.on::before,
+  .segmented .seg.on + .seg::before { display: none; }
+
+  /* ============= Search field — same component, three placeholders ============= */
+  .search {
+    margin: 6px 16px 8px;
+    height: 36px;
+    background: var(--ios-sys-fill-seg);
+    border-radius: 10px;
+    display: flex; align-items: center; gap: 6px;
+    padding: 0 10px;
+    color: var(--ios-label-secondary);
+  }
+  .search i.lead { font-size: 16px; color: var(--ios-label-secondary); }
+  .search .ph {
+    flex: 1; font-size: 15px; letter-spacing: -0.2px;
+    color: var(--ios-label-secondary);
+    overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
+  }
+  .search .mic { color: var(--ios-label-secondary); font-size: 16px; }
+
+  /* ============= List container — grouped inset, standard iOS ============= */
+  .list {
+    margin: 8px 16px 0;
+    background: var(--ios-sys-bg-grouped);
+    border-radius: 13px;
+    overflow: hidden;
+  }
+  .list + .list { margin-top: 22px; }
+
+  /* Section eyebrow that sits above a list block — iOS section header.
+     Used sparingly. Only when an inline list-internal separator isn't enough. */
+  .list-eyebrow {
+    padding: 22px 22px 6px;
+    font-size: 13px; letter-spacing: -0.08px;
+    color: var(--ios-label-secondary);
+    text-transform: none;
+  }
+  .list-eyebrow em { font-style: normal; color: var(--ios-label); font-weight: 600; }
+
+  /* ============= Cell — base ============= */
+  /* The cells are sized to content, not to a fixed height. Shared grammar:
+     - 14px padding on the inside row
+     - leading mark column (logo / avatar / topic glyph) — 44px square
+     - title row, 17px, semibold
+     - 13px secondary descriptor
+     - small relationship/activity tag at the right (when applicable)
+     The vertical rhythm holds because the leading-mark column is fixed and the
+     padding is fixed; what flexes is the descriptor text. */
+  .cell {
+    display: flex; align-items: stretch;
+    padding: 12px 16px 12px 16px;
+    gap: 12px;
+    background: var(--ios-sys-bg-grouped);
+    cursor: pointer;
+    position: relative;
+    border-top: 0.5px solid var(--ios-separator);
+  }
+  .cell:first-child { border-top: none; }
+  .cell:active { background: #FAFAFA; }
+
+  /* Leading mark — logo letter / avatar / topic glyph. 44px round-square. */
+  .mark {
+    width: 44px; height: 44px;
+    border-radius: 10px;
+    flex-shrink: 0;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
+    font-weight: 600; letter-spacing: -0.2px;
+    overflow: hidden;
+  }
+  .mark.circle { border-radius: 50%; }
+
+  /* Letter marks — quiet, branded-looking, not playful. Inherits the Paths-for-you
+     avatar palette (slate, putty, sage) so the surfaces look like family. */
+  .mark.lm-slate { background: #4F6B7E; color: #fff; font-size: 16px; }
+  .mark.lm-stone { background: #6B6558; color: #fff; font-size: 16px; }
+  .mark.lm-sage  { background: #5E7363; color: #fff; font-size: 16px; }
+  .mark.lm-sand  { background: #B8A984; color: #fff; font-size: 16px; }
+  .mark.lm-ink   { background: #2A2824; color: #fff; font-size: 16px; }
+  .mark.lm-deep  { background: #3F5B6F; color: #fff; font-size: 16px; }
+  .mark.lm-coral { background: var(--accent-discover); color: #fff; font-size: 16px; }
+
+  /* Avatar marks (People) — same palette, full-round, slightly softer. */
+  .mark.av-slate { background: #8B9DA8; color: #fff; }
+  .mark.av-putty { background: #C2A285; color: #fff; }
+  .mark.av-sage  { background: #98A38C; color: #fff; }
+  .mark.av-deep  { background: #4F6B7E; color: #fff; }
+  .mark.av-rose  { background: #C68B79; color: #fff; }
+  .mark.av-stone { background: #8E847A; color: #fff; }
+  .mark.av i.avi { font-size: 18px; }
+  .mark.av .ini  { font-size: 15px; font-weight: 600; }
+
+  /* Forum topic glyph — single Tabler icon on tinted ground, no letter. The unit
+     is a topic, not a person or an institution; the visual mark reads as a
+     subject, not a name. */
+  .mark.topic {
+    background: var(--ios-sys-fill-3);
+    color: var(--ios-label);
+  }
+  .mark.topic i { font-size: 22px; color: var(--ios-label-secondary); }
+
+  /* ============= Cell body ============= */
+  .cbody { flex: 1 1 auto; min-width: 0; }
+  .crow1 {
+    display: flex; align-items: baseline; justify-content: space-between; gap: 10px;
+  }
+  .cname {
+    font-size: 16px; font-weight: 600; letter-spacing: -0.32px;
+    color: var(--ios-label);
+    margin: 0; line-height: 1.25;
+    text-wrap: pretty;
+  }
+  .cdesc {
+    font-size: 13px; line-height: 1.35; letter-spacing: -0.08px;
+    color: var(--ios-label-secondary);
+    margin: 2px 0 0;
+    text-wrap: pretty;
+  }
+  .cdesc .sep { margin: 0 5px; color: var(--ios-label-tertiary); }
+
+  /* ----- Evidence row (People) — second line of cell, below descriptor =====
+     The "current concept" line. Italic-style label, then the concept itself.
+     Quietly weighted; readable at a glance. */
+  .cevidence {
+    margin: 6px 0 0;
+    font-size: 13px; line-height: 1.35; letter-spacing: -0.08px;
+    color: var(--ios-label);
+    display: flex; align-items: flex-start; gap: 6px;
+    text-wrap: pretty;
+  }
+  .cevidence i {
+    font-size: 13px; color: var(--ios-label-tertiary);
+    margin-top: 2px; flex-shrink: 0;
+  }
+  .cevidence .label {
+    color: var(--ios-label-secondary);
+    margin-right: 4px;
+  }
+  .cevidence em { font-style: normal; color: var(--ios-label); }
+
+  /* ----- Activity row (Forums) — replies + last activity =====
+     13px secondary, hairline-separated only when needed. Inline icons subtle. */
+  .cactivity {
+    margin: 6px 0 0;
+    display: flex; align-items: center; gap: 12px;
+    font-size: 12.5px; letter-spacing: -0.05px;
+    color: var(--ios-label-secondary);
+  }
+  .cactivity i { font-size: 13px; color: var(--ios-label-tertiary); margin-right: 4px; }
+  .cactivity span { display: inline-flex; align-items: center; }
+
+  /* ----- Trailing column — right-side meta ----- */
+  .ctail {
+    flex-shrink: 0;
+    display: flex; flex-direction: column; align-items: flex-end; justify-content: space-between;
+    gap: 6px;
+    padding-top: 1px;
+  }
+
+  /* Disclosure chevron — standard iOS detail-disclosure */
+  .chev {
+    color: var(--ios-label-tertiary);
+    font-size: 14px;
+    align-self: center;
+    margin-left: 4px;
+  }
+
+  /* ============= Tags — relationship and reason markers =============
+     The right-side small tags. Three kinds — kept visually distinct so the
+     three semantics never overlap:
+     - "mine" (joined / following / mutual)     → gray label, no fill
+     - "weak signal" (suggested, met-at-event)  → quiet outlined pill
+     - "interest fit" (matches a concept)       → coral tint, only on Forums + People
+     Coral does its one job: system attention. It's never on "Joined". */
+  .tag {
+    display: inline-flex; align-items: center; gap: 4px;
+    height: 20px;
+    padding: 0 7px;
+    border-radius: 5px;
+    font-size: 11px; font-weight: 600;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .tag i { font-size: 12px; margin-left: -1px; }
+  .tag.mine {
+    background: rgba(60, 60, 67, 0.08);
+    color: var(--ios-label-secondary);
+  }
+  .tag.weak {
+    background: transparent;
+    color: var(--ios-label-tertiary);
+    border: 0.5px solid var(--ios-separator);
+  }
+  .tag.fit {
+    background: var(--accent-tint);
+    color: var(--accent-discover);
+  }
+
+  /* Activity-count badge on Forums when joined: tiny circular unread marker.
+     Coral, with a halo, sized down from the live-dot grammar. */
+  .unread {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--accent-discover);
+    box-shadow: 0 0 0 4px rgba(217, 119, 87, 0.13);
+    flex-shrink: 0;
+  }
+
+  /* ============= Empty-state inset (Forums) ============= */
+  /* A small floating callout pinned over the Forums phone showing what the
+     no-results state looks like — same shared chrome, with the list body
+     replaced by a calm centered glyph + line. The same hand drew this as
+     drew the error canonical: small muted glyph, plain-language sentence,
+     no apology, no exclamation, the action below as a quiet secondary. */
+  .inset {
+    position: absolute;
+    top: 220px; left: -84px;
+    width: 320px;
+    background: #fff;
+    border-radius: 18px;
+    border: 0.5px solid var(--stage-line);
+    box-shadow:
+      0 20px 50px -24px rgba(34, 30, 20, 0.30),
+      0 1px 0 rgba(255,255,255,0.7) inset;
+    padding: 0;
+    z-index: 80;
+    overflow: hidden;
+  }
+  .inset .tag-strip {
+    background: var(--stage-ink); color: #F4EFDD;
+    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 10px; font-weight: 600;
+    letter-spacing: 0.12em; text-transform: uppercase;
+    padding: 8px 14px;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .inset .tag-strip em { font-style: italic; opacity: 0.65; font-weight: 400; }
+  .inset .inset-body { padding: 18px 18px 16px; }
+  .inset .seg-mini {
+    height: 28px;
+    background: var(--ios-sys-fill-seg);
+    border-radius: 7px; padding: 2px;
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    margin-bottom: 10px;
+  }
+  .inset .seg-mini .s {
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 11px; color: var(--ios-label); font-weight: 500;
+    border-radius: 5px;
+  }
+  .inset .seg-mini .s.on {
+    background: #fff;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.10);
+    font-weight: 600;
+  }
+  .inset .search-mini {
+    height: 28px;
+    background: var(--ios-sys-fill-seg);
+    border-radius: 8px;
+    display: flex; align-items: center; gap: 6px;
+    padding: 0 9px;
+    color: var(--ios-label-secondary);
+    font-size: 12px;
+    margin-bottom: 18px;
+  }
+  .inset .search-mini i { font-size: 13px; }
+  .inset .search-mini .typed { color: var(--ios-label); }
+  .inset .empty-glyph {
+    width: 36px; height: 36px;
+    border-radius: 10px;
+    background: rgba(60, 60, 67, 0.08);
+    color: var(--ios-label-secondary);
+    display: inline-flex; align-items: center; justify-content: center;
+    margin: 6px auto 12px;
+  }
+  .inset .empty-glyph i { font-size: 20px; }
+  .inset .empty-body {
+    text-align: left;
+    padding: 4px 4px 4px;
+  }
+  .inset .empty-body h4 {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
+    font-size: 17px; font-weight: 500; line-height: 1.25;
+    letter-spacing: -0.30px;
+    color: var(--ios-label); margin: 0 0 6px;
+    text-wrap: balance;
+  }
+  .inset .empty-body p {
+    font-size: 13px; line-height: 1.4; letter-spacing: -0.08px;
+    color: var(--ios-label-secondary); margin: 0 0 10px;
+  }
+  .inset .empty-body em { font-style: normal; color: var(--ios-label); }
+  .inset .empty-action {
+    color: var(--ios-blue); font-size: 13px; font-weight: 500;
+    letter-spacing: -0.08px;
+    background: none; border: none; padding: 0; cursor: pointer;
+  }
+  .inset .inset-foot {
+    border-top: 0.5px solid var(--stage-line);
+    background: rgba(239, 234, 216, 0.5);
+    padding: 10px 14px;
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 12.5px; line-height: 1.4; color: #4D4A43;
+    text-wrap: pretty;
+  }
+  .inset .inset-foot em { font-style: italic; }
+  .inset .inset-foot strong { color: var(--stage-ink); font-weight: 500; }
+
+  /* ============= Floating four-tab nav ============= */
+  .float-nav {
+    position: absolute; bottom: 22px; left: 14px; right: 14px;
+    height: 64px; border-radius: 28px;
+    background: rgba(255, 255, 255, 0.72);
+    -webkit-backdrop-filter: blur(28px) saturate(180%);
+    backdrop-filter: blur(28px) saturate(180%);
+    border: 0.5px solid rgba(255,255,255,0.7);
+    box-shadow:
+      0 1px 0 rgba(255,255,255,0.55) inset,
+      0 -0.5px 0 rgba(0,0,0,0.04) inset,
+      0 12px 28px -16px rgba(0, 0, 0, 0.18),
+      0 2px 8px rgba(0, 0, 0, 0.05);
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    align-items: center; padding: 0 10px; z-index: 25;
+  }
+  .float-nav .tab {
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+    background: none; border: none; padding: 8px 0; cursor: pointer;
+    color: var(--ios-label-secondary); font-size: 10px; letter-spacing: 0.04em;
+  }
+  .float-nav .tab i { font-size: 22px; }
+  .float-nav .tab.on { color: var(--ios-blue); }
+
+  /* Bottom pad so the last card clears the floating nav */
+  .bottom-pad { height: 130px; }
+
+  /* ============= Frame caption (below each phone) ============= */
+  .frame-cap {
+    margin: 22px 0 0;
+    text-align: center;
+  }
+  .frame-cap .eyebrow {
+    font-size: 10px; font-weight: 600;
+    color: var(--stage-text); letter-spacing: 0.5px;
+    text-transform: uppercase;
+    margin: 0 0 6px;
+  }
+  .frame-cap h3 {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 18px; font-weight: 500; letter-spacing: -0.01em;
+    color: var(--stage-ink); margin: 0 0 6px;
+  }
+  .frame-cap h3 em { font-style: italic; }
+  .frame-cap p {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 14px; line-height: 1.5; color: var(--stage-text);
+    margin: 0 auto; max-width: 360px; text-wrap: pretty;
+  }
+  .frame-cap p em { font-style: italic; }
+
+  /* ============= Commentary (three columns) ============= */
+  .commentary {
+    max-width: 1400px;
+    margin: 0 auto 40px;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 56px;
+  }
+  .commentary .col {
+    padding-top: 8px;
+    border-top: 0.5px solid var(--stage-line);
+  }
+  .commentary .col h4 {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+    font-size: 11px; letter-spacing: 0.12em; font-weight: 600;
+    text-transform: uppercase;
+    color: var(--stage-text); margin: 0 0 12px;
+  }
+  .commentary .col h5 {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 19px; line-height: 1.35; font-weight: 500;
+    letter-spacing: -0.01em;
+    color: var(--stage-ink); margin: 0 0 14px;
+    text-wrap: balance;
+  }
+  .commentary .col h5 em { font-style: italic; }
+  .commentary .col p {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 14.5px; line-height: 1.6;
+    color: #4D4A43; margin: 0 0 12px;
+    text-wrap: pretty;
+  }
+  .commentary .col p:last-child { margin: 0; }
+  .commentary .col p em { font-style: italic; }
+  .commentary .col p strong { color: var(--stage-ink); font-weight: 500; }
+  .commentary .col p code {
+    font-family: "SF Mono", ui-monospace, Menlo, monospace;
+    font-size: 12.5px;
+    background: rgba(34, 30, 20, 0.06);
+    padding: 1px 6px; border-radius: 4px;
+  }
+
+  /* ============= Wider review (positions taken + absences) ============= */
+  .review {
+    max-width: 1400px;
+    margin: 56px auto 0;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 56px;
+  }
+  .review .block {
+    border-top: 0.5px solid var(--stage-line);
+    padding: 22px 0 0;
+  }
+  .review .block h4 {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+    font-size: 11px; letter-spacing: 0.12em; font-weight: 600;
+    text-transform: uppercase;
+    color: var(--stage-text); margin: 0 0 14px;
+  }
+  .review .block .lead {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 21px; line-height: 1.35; font-weight: 500;
+    letter-spacing: -0.01em;
+    color: var(--stage-ink); margin: 0 0 14px;
+    text-wrap: balance;
+  }
+  .review .block .lead em { font-style: italic; }
+  .review .block p {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 14.5px; line-height: 1.6;
+    color: #4D4A43; margin: 0 0 12px;
+  }
+  .review .block p:last-child { margin: 0; }
+  .review .block p em { font-style: italic; }
+  .review .block p strong { color: var(--stage-ink); font-weight: 500; }
+  .review .block ul { list-style: none; padding: 0; margin: 10px 0 0; }
+  .review .block ul li {
+    display: flex; gap: 14px;
+    padding: 10px 0;
+    border-top: 0.5px dashed rgba(34, 30, 20, 0.14);
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 14px; line-height: 1.5;
+    color: #4D4A43;
+  }
+  .review .block ul li:first-child { border-top: none; padding-top: 4px; }
+  .review .block ul li strong {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+    font-weight: 500; font-size: 12px;
+    color: var(--stage-ink); letter-spacing: 0.01em;
+    width: 150px; flex-shrink: 0;
+    margin-top: 1px;
+  }
+</style>
+</head>
+<body>
+
+<div class="page" data-screen-label="Discover trio · iOS register">
+
+  <header class="page-head">
+    <p class="eyebrow">BetterAt redesign · iOS register · Discover trio</p>
+    <h1>Discover &mdash; <em>Orgs, People, Forums</em></h1>
+    <p>The canonical <strong>Discover trio</strong>. Three sibling surfaces, one shared chrome &mdash; Felix&rsquo;s sailing register throughout. The segmented control switches the <em>unit of discovery</em>: an institution, a practitioner, a topic. The chrome, the search affordance, the scroll pattern, the loading and error registers are <strong>identical</strong>. What changes is the cell. Sibling to the loading narration and the error canonical; the same hand drew all three.</p>
+    <div class="crumbs">
+      <span class="s">Loading narration</span>
+      <i class="ti ti-arrow-right"></i>
+      <span class="s">Error states</span>
+      <i class="ti ti-arrow-right"></i>
+      <span class="s on">Discover trio</span>
+      <i class="ti ti-arrow-right"></i>
+      <span class="s">Detail surfaces (next pass: Org, Person, Topic)</span>
+    </div>
+  </header>
+
+  <!-- =================================================================== -->
+  <!-- ============= Shared chrome strip ============= -->
+  <!-- =================================================================== -->
+  <div class="chrome-strip">
+    <p class="head">The chrome demonstrated <em>once</em>, applied <em>three&nbsp;times</em>. What follows differs only in the cell.</p>
+    <div class="item">
+      <span class="k">Header</span>
+      Large-title <em>Discover</em>, 34px bold SF Pro Display. The title is the tab context; the segmented control names the view.
+    </div>
+    <div class="item">
+      <span class="k">Segmented control</span>
+      Three segments, iOS native. Same dimensions, same order, same animation. <em>Scroll position preserved per segment.</em>
+    </div>
+    <div class="item">
+      <span class="k">Search field</span>
+      Same affordance, three placeholders &mdash; <em>Find an org · Find people · Find a topic.</em> Structurally identical, lexically tuned.
+    </div>
+    <div class="item">
+      <span class="k">Pull-to-refresh &middot; tab&nbsp;bar</span>
+      Yes to pull. Tab bar inherits the floating four-tab from Paths-for-you; <em>Discover</em> active in iOS blue.
+    </div>
+  </div>
+
+
+  <!-- =================================================================== -->
+  <!-- ============= Phone row — Orgs · People · Forums ============= -->
+  <!-- =================================================================== -->
+  <div class="row-phones">
+
+    <!-- ============================================================ -->
+    <!-- ==================  SURFACE 1 — ORGS  ====================== -->
+    <!-- ============================================================ -->
+    <div class="phone-col">
+      <div class="phone" data-screen-label="01 Discover Orgs">
+        <div class="notch"></div>
+        <div class="statusbar">
+          <span>9:41</span>
+          <span class="right">
+            <i class="ti ti-cell-signal-4"></i>
+            <i class="ti ti-wifi"></i>
+            <i class="ti ti-battery-3"></i>
+          </span>
+        </div>
+
+        <div class="screen">
+          <!-- Pull-to-refresh shown in idle (recently completed) state.
+               Felix just refreshed; the line confirms when, then collapses. -->
+          <div class="ptr"><i class="ti ti-check"></i><span>Updated just now</span></div>
+
+          <div class="header">
+            <h1>Discover</h1>
+          </div>
+
+          <!-- Segmented control — Orgs active -->
+          <div class="seg-wrap">
+            <div class="segmented">
+              <button class="seg on">Orgs</button>
+              <button class="seg">People</button>
+              <button class="seg">Forums</button>
+            </div>
+          </div>
+
+          <!-- Search — placeholder tuned to the unit -->
+          <div class="search">
+            <i class="ti ti-search lead"></i>
+            <span class="ph">Find an org</span>
+            <i class="ti ti-microphone-filled mic"></i>
+          </div>
+
+          <!-- ====== Single mixed list — Felix's joined orgs sit alongside undiscovered ones,
+                    marked by a small "Joined" tag on the right. The position taken on
+                    "already mine" is: mixed, not sectioned. Reasoning in commentary. ====== -->
+
+          <p class="list-eyebrow">Around <em>Dragon class racing in Hong Kong</em></p>
+
+          <div class="list">
+            <!-- Felix's home club — already-mine, marked "Joined". The visual treatment
+                 is the same as the others: no chunk-up, no color change. Just the tag. -->
+            <div class="cell">
+              <span class="mark lm-deep">RH</span>
+              <div class="cbody">
+                <div class="crow1">
+                  <p class="cname">Royal Hong Kong Yacht Club</p>
+                </div>
+                <p class="cdesc">Causeway Bay<span class="sep">&middot;</span>Member club<span class="sep">&middot;</span>2,840 sailors</p>
+              </div>
+              <div class="ctail">
+                <span class="tag mine"><i class="ti ti-check"></i>Joined</span>
+              </div>
+              <i class="ti ti-chevron-right chev"></i>
+            </div>
+
+            <!-- Mid-size, geographically adjacent. No tag. -->
+            <div class="cell">
+              <span class="mark lm-slate">AB</span>
+              <div class="cbody">
+                <div class="crow1">
+                  <p class="cname">Aberdeen Boat Club</p>
+                </div>
+                <p class="cdesc">Aberdeen Harbour<span class="sep">&middot;</span>Member club<span class="sep">&middot;</span>910 sailors</p>
+              </div>
+              <i class="ti ti-chevron-right chev"></i>
+            </div>
+
+            <!-- The Dragon-class federation — high institutional weight. The activity
+                 signal is the number of registered fleets, not member count. -->
+            <div class="cell">
+              <span class="mark lm-ink">ID</span>
+              <div class="cbody">
+                <div class="crow1">
+                  <p class="cname">International Dragon Association</p>
+                </div>
+                <p class="cdesc">Class association<span class="sep">&middot;</span>27 national fleets</p>
+              </div>
+              <i class="ti ti-chevron-right chev"></i>
+            </div>
+
+            <!-- Small, recent — a junior squad based at the same club. Same RH letter
+                 mark intentional: institutional adjacency reads visually. -->
+            <div class="cell">
+              <span class="mark lm-coral">JD</span>
+              <div class="cbody">
+                <div class="crow1">
+                  <p class="cname">Junior Dragon Squad &middot; Hong&nbsp;Kong</p>
+                </div>
+                <p class="cdesc">Youth program<span class="sep">&middot;</span>Founded 2024<span class="sep">&middot;</span>38 sailors</p>
+              </div>
+              <i class="ti ti-chevron-right chev"></i>
+            </div>
+
+            <!-- Far-away, large, the historical centre of the class. -->
+            <div class="cell">
+              <span class="mark lm-stone">RT</span>
+              <div class="cbody">
+                <div class="crow1">
+                  <p class="cname">Royal Thames Yacht Club</p>
+                </div>
+                <p class="cdesc">London<span class="sep">&middot;</span>Member club<span class="sep">&middot;</span>1,650 sailors</p>
+              </div>
+              <i class="ti ti-chevron-right chev"></i>
+            </div>
+
+            <!-- Adjacent national federation — Felix doesn't race here but discovery
+                 surfaces it because his class is active in this country. -->
+            <div class="cell">
+              <span class="mark lm-sage">HK</span>
+              <div class="cbody">
+                <div class="crow1">
+                  <p class="cname">Hong Kong Sailing Federation</p>
+                </div>
+                <p class="cdesc">National federation<span class="sep">&middot;</span>6 affiliated clubs</p>
+              </div>
+              <i class="ti ti-chevron-right chev"></i>
+            </div>
+          </div>
+
+          <div class="bottom-pad"></div>
+        </div>
+
+        <!-- Tab bar — Discover active -->
+        <div class="float-nav">
+          <div class="tab"><i class="ti ti-anchor"></i><span>Race</span></div>
+          <div class="tab"><i class="ti ti-book"></i><span>Playbook</span></div>
+          <div class="tab on"><i class="ti ti-compass"></i><span>Discover</span></div>
+          <div class="tab"><i class="ti ti-clock-back"></i><span>Reflect</span></div>
+        </div>
+        <div class="home-indicator"></div>
+      </div>
+
+      <div class="frame-cap">
+        <p class="eyebrow">Surface 1 &middot; Orgs</p>
+        <h3>The unit is the <em>institution</em></h3>
+        <p>Letter-mark logo, name, single-line descriptor, scale signal &mdash; member count, fleet count, founding year as appropriate. RHKYC sits in the list with a <em>Joined</em> tag; same chrome, no special weight. Tap into an in-app Org page, not an external link.</p>
+      </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- ==================  SURFACE 2 — PEOPLE  ==================== -->
+    <!-- ============================================================ -->
+    <div class="phone-col">
+      <div class="phone" data-screen-label="02 Discover People">
+        <div class="notch"></div>
+        <div class="statusbar">
+          <span>9:41</span>
+          <span class="right">
+            <i class="ti ti-cell-signal-4"></i>
+            <i class="ti ti-wifi"></i>
+            <i class="ti ti-battery-3"></i>
+          </span>
+        </div>
+
+        <div class="screen">
+          <!-- No PTR strip — the user has scrolled down a few pixels and the
+               idle line has retracted. The ground reads more like a "normal" view. -->
+          <div class="ptr idle"></div>
+
+          <div class="header">
+            <h1>Discover</h1>
+          </div>
+
+          <div class="seg-wrap">
+            <div class="segmented">
+              <button class="seg">Orgs</button>
+              <button class="seg on">People</button>
+              <button class="seg">Forums</button>
+            </div>
+          </div>
+
+          <div class="search">
+            <i class="ti ti-search lead"></i>
+            <span class="ph">Find people</span>
+            <i class="ti ti-microphone-filled mic"></i>
+          </div>
+
+          <p class="list-eyebrow">Other <em>Dragon class</em> practitioners</p>
+
+          <div class="list">
+
+            <!-- Strong signal: raced against. The relationship tag is the differentiator
+                 between strong/weak signals — strong signals get a concrete-anchor tag
+                 ("Raced 4x", "Mutual", "Met"); weak signals get a quiet "Suggested". -->
+            <div class="cell">
+              <span class="mark av av-deep circle"><span class="ini">MT</span></span>
+              <div class="cbody">
+                <div class="crow1">
+                  <p class="cname">Markus Tham</p>
+                </div>
+                <p class="cdesc">Dragon helm, RHKYC<span class="sep">&middot;</span>11 seasons</p>
+                <!-- Current concept — the chosen primary signal. Position defended in
+                     commentary: of (reflection / concept / trophy), concept is the only
+                     one that says what they're trying to get good at right now. -->
+                <p class="cevidence">
+                  <i class="ti ti-bulb"></i>
+                  <span><span class="label">Working on</span><em>Reading the starboard layline early</em></span>
+                </p>
+              </div>
+              <div class="ctail">
+                <span class="tag mine">Raced 4&times;</span>
+              </div>
+              <i class="ti ti-chevron-right chev"></i>
+            </div>
+
+            <!-- Strong: mutual follow. -->
+            <div class="cell">
+              <span class="mark av av-putty circle"><span class="ini">YL</span></span>
+              <div class="cbody">
+                <div class="crow1">
+                  <p class="cname">Yvonne Leung</p>
+                </div>
+                <p class="cdesc">Dragon helm, Aberdeen BC<span class="sep">&middot;</span>17 seasons</p>
+                <p class="cevidence">
+                  <i class="ti ti-bulb"></i>
+                  <span><span class="label">Working on</span><em>Trust the shift, not just the side</em></span>
+                </p>
+              </div>
+              <div class="ctail">
+                <span class="tag mine"><i class="ti ti-arrows-left-right"></i>Mutual</span>
+              </div>
+              <i class="ti ti-chevron-right chev"></i>
+            </div>
+
+            <!-- Strong: shared event. -->
+            <div class="cell">
+              <span class="mark av av-sage circle"><span class="ini">JC</span></span>
+              <div class="cbody">
+                <div class="crow1">
+                  <p class="cname">Jamie Carstairs</p>
+                </div>
+                <p class="cdesc">Dragon helm, Royal Thames YC<span class="sep">&middot;</span>22 seasons</p>
+                <p class="cevidence">
+                  <i class="ti ti-bulb"></i>
+                  <span><span class="label">Working on</span><em>Crew comms in heavy weather</em></span>
+                </p>
+              </div>
+              <div class="ctail">
+                <span class="tag weak">Met at Spring Series</span>
+              </div>
+              <i class="ti ti-chevron-right chev"></i>
+            </div>
+
+            <!-- Weak: suggested via shared org. The tag is the quiet outlined kind. -->
+            <div class="cell">
+              <span class="mark av av-slate circle"><span class="ini">RC</span></span>
+              <div class="cbody">
+                <div class="crow1">
+                  <p class="cname">Ricardo Costa</p>
+                </div>
+                <p class="cdesc">Dragon helm, RHKYC<span class="sep">&middot;</span>6 seasons</p>
+                <p class="cevidence">
+                  <i class="ti ti-bulb"></i>
+                  <span><span class="label">Working on</span><em>Heavy-air starts in current</em></span>
+                </p>
+              </div>
+              <div class="ctail">
+                <span class="tag weak">Shared club</span>
+              </div>
+              <i class="ti ti-chevron-right chev"></i>
+            </div>
+
+            <!-- Weak: algorithmic, no concrete tie. -->
+            <div class="cell">
+              <span class="mark av av-stone circle"><span class="ini">SK</span></span>
+              <div class="cbody">
+                <div class="crow1">
+                  <p class="cname">Sophie Kjelsby</p>
+                </div>
+                <p class="cdesc">Dragon helm, KNS Oslo<span class="sep">&middot;</span>9 seasons</p>
+                <p class="cevidence">
+                  <i class="ti ti-bulb"></i>
+                  <span><span class="label">Working on</span><em>Mark roundings under pressure</em></span>
+                </p>
+              </div>
+              <div class="ctail">
+                <span class="tag weak">Suggested</span>
+              </div>
+              <i class="ti ti-chevron-right chev"></i>
+            </div>
+
+            <!-- Weak: algorithmic. -->
+            <div class="cell">
+              <span class="mark av av-rose circle"><span class="ini">PD</span></span>
+              <div class="cbody">
+                <div class="crow1">
+                  <p class="cname">Peter Daubeny</p>
+                </div>
+                <p class="cdesc">Dragon helm, Cowes<span class="sep">&middot;</span>14 seasons</p>
+                <p class="cevidence">
+                  <i class="ti ti-bulb"></i>
+                  <span><span class="label">Working on</span><em>Reading the breeze on the&nbsp;water</em></span>
+                </p>
+              </div>
+              <div class="ctail">
+                <span class="tag weak">Suggested</span>
+              </div>
+              <i class="ti ti-chevron-right chev"></i>
+            </div>
+
+          </div>
+
+          <div class="bottom-pad"></div>
+        </div>
+
+        <div class="float-nav">
+          <div class="tab"><i class="ti ti-anchor"></i><span>Race</span></div>
+          <div class="tab"><i class="ti ti-book"></i><span>Playbook</span></div>
+          <div class="tab on"><i class="ti ti-compass"></i><span>Discover</span></div>
+          <div class="tab"><i class="ti ti-clock-back"></i><span>Reflect</span></div>
+        </div>
+        <div class="home-indicator"></div>
+      </div>
+
+      <div class="frame-cap">
+        <p class="eyebrow">Surface 2 &middot; People</p>
+        <h3>The unit is the <em>practitioner</em></h3>
+        <p>Avatar, name, interest + seriousness, and the <em>current concept</em> they&rsquo;re working on &mdash; the practice signal that travels most. Strong signals carry a concrete tag (<em>Raced 4&times;, Mutual, Met</em>); weak signals carry a quiet <em>Suggested</em>. Felix himself is absent from this list by design.</p>
+      </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- ==================  SURFACE 3 — FORUMS  ==================== -->
+    <!-- ============================================================ -->
+    <div class="phone-col" style="position: relative;">
+      <div class="phone" data-screen-label="03 Discover Forums">
+        <div class="notch"></div>
+        <div class="statusbar">
+          <span>9:41</span>
+          <span class="right">
+            <i class="ti ti-cell-signal-4"></i>
+            <i class="ti ti-wifi"></i>
+            <i class="ti ti-battery-3"></i>
+          </span>
+        </div>
+
+        <div class="screen">
+          <div class="ptr idle"></div>
+
+          <div class="header">
+            <h1>Discover</h1>
+          </div>
+
+          <div class="seg-wrap">
+            <div class="segmented">
+              <button class="seg">Orgs</button>
+              <button class="seg">People</button>
+              <button class="seg on">Forums</button>
+            </div>
+          </div>
+
+          <div class="search">
+            <i class="ti ti-search lead"></i>
+            <span class="ph">Find a topic</span>
+            <i class="ti ti-microphone-filled mic"></i>
+          </div>
+
+          <p class="list-eyebrow">Topics around <em>Dragon class racing</em></p>
+
+          <div class="list">
+
+            <!-- Joined topic, unread. Unread coral dot sits in the trailing column. -->
+            <div class="cell">
+              <span class="mark topic"><i class="ti ti-tools"></i></span>
+              <div class="cbody">
+                <div class="crow1">
+                  <p class="cname">Dragon rigging &amp; tuning</p>
+                </div>
+                <p class="cdesc">Boat setup<span class="sep">&middot;</span>342 sailors</p>
+                <p class="cactivity">
+                  <span><i class="ti ti-messages"></i>1,184 threads</span>
+                  <span><i class="ti ti-clock"></i>17 new today</span>
+                </p>
+              </div>
+              <div class="ctail">
+                <span class="tag mine"><i class="ti ti-check"></i>Following</span>
+                <span class="unread" title="New activity"></span>
+              </div>
+              <i class="ti ti-chevron-right chev"></i>
+            </div>
+
+            <!-- Joined topic, no unread. -->
+            <div class="cell">
+              <span class="mark topic"><i class="ti ti-wind"></i></span>
+              <div class="cbody">
+                <div class="crow1">
+                  <p class="cname">Heavy-air starts</p>
+                </div>
+                <p class="cdesc">Tactics<span class="sep">&middot;</span>517 sailors</p>
+                <p class="cactivity">
+                  <span><i class="ti ti-messages"></i>2,041 threads</span>
+                  <span><i class="ti ti-clock"></i>Active 2h ago</span>
+                </p>
+              </div>
+              <div class="ctail">
+                <span class="tag mine"><i class="ti ti-check"></i>Following</span>
+              </div>
+              <i class="ti ti-chevron-right chev"></i>
+            </div>
+
+            <!-- Recommended for an active concept — coral "fit" tag is the one place
+                 coral appears on People/Forums cell metadata. The unit is suggested
+                 *because* it matches the user's current concept. -->
+            <div class="cell">
+              <span class="mark topic"><i class="ti ti-rotate-clockwise-2"></i></span>
+              <div class="cbody">
+                <div class="crow1">
+                  <p class="cname">Mark roundings &amp; tactical compression</p>
+                </div>
+                <p class="cdesc">Tactics<span class="sep">&middot;</span>289 sailors</p>
+                <p class="cactivity">
+                  <span><i class="ti ti-messages"></i>608 threads</span>
+                  <span><i class="ti ti-clock"></i>Active today</span>
+                </p>
+              </div>
+              <div class="ctail">
+                <span class="tag fit">Matches your concept</span>
+              </div>
+              <i class="ti ti-chevron-right chev"></i>
+            </div>
+
+            <!-- Unjoined, recommended-by-org. Coral fit tag again, but the body text
+                 names the org (RHKYC). The "recommended" reasoning is encoded in
+                 the tag's text, not in chrome surrounding the cell. -->
+            <div class="cell">
+              <span class="mark topic"><i class="ti ti-compass"></i></span>
+              <div class="cbody">
+                <div class="crow1">
+                  <p class="cname">RHKYC: Wednesday-night racing</p>
+                </div>
+                <p class="cdesc">Club forum<span class="sep">&middot;</span>164 sailors</p>
+                <p class="cactivity">
+                  <span><i class="ti ti-messages"></i>312 threads</span>
+                  <span><i class="ti ti-clock"></i>Active yesterday</span>
+                </p>
+              </div>
+              <div class="ctail">
+                <span class="tag fit">From your club</span>
+              </div>
+              <i class="ti ti-chevron-right chev"></i>
+            </div>
+
+            <!-- Plain undiscovered, no signal. -->
+            <div class="cell">
+              <span class="mark topic"><i class="ti ti-cloud-storm"></i></span>
+              <div class="cbody">
+                <div class="crow1">
+                  <p class="cname">Squall handling on small keelboats</p>
+                </div>
+                <p class="cdesc">Safety<span class="sep">&middot;</span>1,180 sailors</p>
+                <p class="cactivity">
+                  <span><i class="ti ti-messages"></i>934 threads</span>
+                  <span><i class="ti ti-clock"></i>Active 4h ago</span>
+                </p>
+              </div>
+              <i class="ti ti-chevron-right chev"></i>
+            </div>
+
+            <!-- Adjacent topic — included to demonstrate breadth, not relevance. No tag. -->
+            <div class="cell">
+              <span class="mark topic"><i class="ti ti-book-2"></i></span>
+              <div class="cbody">
+                <div class="crow1">
+                  <p class="cname">Reading the racing rules</p>
+                </div>
+                <p class="cdesc">Rules &amp; protests<span class="sep">&middot;</span>3,420 sailors</p>
+                <p class="cactivity">
+                  <span><i class="ti ti-messages"></i>5,712 threads</span>
+                  <span><i class="ti ti-clock"></i>Active 1h ago</span>
+                </p>
+              </div>
+              <i class="ti ti-chevron-right chev"></i>
+            </div>
+
+          </div>
+
+          <div class="bottom-pad"></div>
+        </div>
+
+        <div class="float-nav">
+          <div class="tab"><i class="ti ti-anchor"></i><span>Race</span></div>
+          <div class="tab"><i class="ti ti-book"></i><span>Playbook</span></div>
+          <div class="tab on"><i class="ti ti-compass"></i><span>Discover</span></div>
+          <div class="tab"><i class="ti ti-clock-back"></i><span>Reflect</span></div>
+        </div>
+        <div class="home-indicator"></div>
+      </div>
+
+      <!-- ============= Empty-state inset =============
+           Hangs off the left side of the third phone (the Forums one). Shows
+           the canonical empty state: the user has searched a string that
+           returns nothing. The chrome (segmented control + search field) is
+           preserved at miniature scale so the empty state is recognisable
+           as *the same surface, no results* — not a different screen. -->
+      <div class="inset" aria-hidden="true">
+        <div class="tag-strip">
+          <span>Canonical empty state</span>
+          <em>shown on Forums</em>
+        </div>
+        <div class="inset-body">
+          <div class="seg-mini">
+            <span class="s">Orgs</span>
+            <span class="s">People</span>
+            <span class="s on">Forums</span>
+          </div>
+          <div class="search-mini">
+            <i class="ti ti-search"></i>
+            <span class="typed">downwind mark trim</span>
+          </div>
+          <div class="empty-glyph"><i class="ti ti-search-off"></i></div>
+          <div class="empty-body">
+            <h4>No topics match <em>&ldquo;downwind mark trim&rdquo;</em>&nbsp;yet.</h4>
+            <p>You can <em>start one</em> &mdash; other Dragon sailors will see it inside the topic tag.</p>
+            <button class="empty-action">Start a topic &rarr;</button>
+          </div>
+        </div>
+        <div class="inset-foot">
+          Same grammar as the <em>error canonical</em>: plain glyph, plain sentence, next action. No <em>oops</em>. No big illustration. <strong>The empty state is one of three states of the same surface</strong> &mdash; loading, empty, error &mdash; and they were drawn by the same hand.
+        </div>
+      </div>
+
+      <div class="frame-cap">
+        <p class="eyebrow">Surface 3 &middot; Forums</p>
+        <h3>The unit is the <em>topic</em></h3>
+        <p>Topic name, broader interest, thread count, last activity. Topics are <em>ongoing spaces</em>, not single threads; the count is what travels at-a-glance. Joined topics carry a <em>Following</em> tag; the small coral dot is the unread mark. Coral never escalates to a row tint.</p>
+      </div>
+    </div>
+
+  </div>
+
+
+  <!-- ============================================================ -->
+  <!-- ===========  Three-column commentary on the brief  ========= -->
+  <!-- ============================================================ -->
+  <div class="commentary">
+
+    <div class="col">
+      <h4>What makes these <em>siblings</em></h4>
+      <h5>Three views into one shelf, not three different&nbsp;shelves.</h5>
+      <p>The chrome is identical at the structural level &mdash; large-title <em>Discover</em>, three-segment switcher, single search field, system-gray-6 ground, grouped white inset list at 16px margins, the floating tab bar. The cell&rsquo;s <em>scaffolding</em> is identical too: 44px leading mark, 16px name, 13px descriptor, optional secondary line, right-edge tag, disclosure chevron. What changes is the <em>unit</em>: institution, person, topic.</p>
+      <p>The shared rules: <strong>one search field</strong> with three placeholders, never three different fields; <strong>one tag grammar</strong> with three roles (mine / weak / fit) used identically across all three surfaces; <strong>one coral semantic</strong>, reserved across the trio for system attention only. The list of differences is the cell&rsquo;s third row &mdash; concept on People, activity on Forums, omitted on Orgs &mdash; and the leading mark&rsquo;s shape: square for institution, round for person, square-with-glyph for topic.</p>
+    </div>
+
+    <div class="col">
+      <h4>Cell density tradeoff</h4>
+      <h5>Heights size to content; <em>rhythm</em> comes from the&nbsp;scaffold.</h5>
+      <p>Position taken: the Orgs cell has two lines (name, descriptor); the People cell has three (name, context, current concept); the Forums cell has three (name, interest, activity). Heights are not forced equal. Forcing them would add fake padding to the Orgs cell or crush the Forums cell&rsquo;s activity line &mdash; both dishonest.</p>
+      <p>Visual rhythm is preserved by what <strong>is</strong> constant: the 12&nbsp;px inner padding, the 44&nbsp;px leading mark column, the 16&nbsp;px name size, the 0.5&nbsp;px hairline between cells, the right-edge tag column. The eye reads the column structure as repeating even when the row heights differ &mdash; the same way iOS Settings reads as a single list even though some rows have subtitles and others don&rsquo;t.</p>
+    </div>
+
+    <div class="col">
+      <h4>Signal hierarchy on People</h4>
+      <h5>Current <em>concept</em> is what travels at a&nbsp;glance.</h5>
+      <p>Choice: of the three available evidence signals (latest reflection title, current concept, recent trophy of becoming), the cell shows the <strong>current concept</strong>. Defence:</p>
+      <p><em>Latest reflection</em> is the most recent atom &mdash; useful in a profile, noisy in a list. The reflection title might be anything from <em>&ldquo;Tuesday night was windy&rdquo;</em> to a deep technical note; the reader of a Discover list can&rsquo;t tell which without tapping in.</p>
+      <p><em>Trophy of becoming</em> is past tense &mdash; what they were good at last season. It reads as a credential, which sits poorly with a deliberate-practice frame where the point is what you&rsquo;re trying to get good at <em>now</em>.</p>
+      <p><em>Current concept</em> answers the only question a practitioner asks at the moment of discovery: <em>&ldquo;is this person working on something I care about?&rdquo;</em> A shared concept is the highest-information predictor that a follow will be worth it.</p>
+    </div>
+
+  </div>
+
+
+  <!-- ============================================================ -->
+  <!-- ============= Wider review (positions + absences) ========== -->
+  <!-- ============================================================ -->
+  <div class="review">
+
+    <div class="block">
+      <h4>Forums &mdash; thread or topic?</h4>
+      <p class="lead">Topic. Ongoing spaces, <em>not</em> single Q&amp;A&nbsp;threads.</p>
+      <p>The position is encoded in the cell. The cell shows <strong>thread count</strong> (<em>1,184 threads</em>) and <strong>last activity</strong> (<em>17 new today</em>) &mdash; the activity meaningful for a topic, not a thread. A thread cell would show the original post, the author, and the reply count to <em>that thread</em>. We don&rsquo;t do that here.</p>
+      <p>Why: a discover-of-threads frame turns the trio into a feed. The brief explicitly rejects feed grammar (<em>&ldquo;not feed-style&rdquo;</em>). Single-question Q&amp;A is one shape conversation takes <em>inside</em> a topic; sometimes a topic is mostly Q&amp;A (rules &amp; protests), sometimes it&rsquo;s mostly storytelling (heavy-weather race reports). The unit Discover names is the <em>space</em>, not the conversation.</p>
+      <p>The downstream <em>Topic detail</em> surface is where threads live as a list, and that surface inherits its grammar from this one.</p>
+
+      <h4 style="margin-top: 26px;">Where the unread / new-activity indicator lives</h4>
+      <p class="lead">A small coral dot in the trailing column, only on joined&nbsp;topics.</p>
+      <p>Position taken: <strong>unread is a state that applies only to joined topics</strong>. A discoverable topic isn&rsquo;t &ldquo;unread&rdquo; in any meaningful sense &mdash; the user has no relationship to it yet. The coral dot appears in the <em>ctail</em> column, below the <em>Following</em> tag, sized to match the live-dot grammar in the running state and the accent-dot grammar on Paths-for-you. Same component, same halo, three different jobs the user reads as <em>&ldquo;the system wants to point at this&rdquo;</em>.</p>
+      <p>Numbers (<em>17 new today</em>) live inside the cell&rsquo;s activity row in label-secondary &mdash; informational, not attention-grabbing. The coral dot is the only thing that says <em>&ldquo;something here moved since you last looked.&rdquo;</em></p>
+    </div>
+
+    <div class="block">
+      <h4>Already mine vs. undiscovered</h4>
+      <p class="lead">Mixed in one list, marked with a small relationship&nbsp;tag.</p>
+      <p>Position taken: <strong>one list, not two sections</strong>. The user&rsquo;s own org sits in the same scroll position as the federation it belongs to; the people they follow sit in the same scroll as the people they&rsquo;ve been suggested. The differentiator is the small right-edge tag (<em>Joined, Following, Mutual</em>) and the absence of any other visual escalation &mdash; no bolding, no background tint, no extra padding.</p>
+      <p>Defence: separating mine-from-new produces two surfaces glued together with a section header, which then competes with the segmented control for the role of <em>&ldquo;the thing that changes the view&rdquo;</em>. Mixing keeps the segmented control as the only switcher; relationship is a property of a cell, not the framing of a region. The user who only wants their own can tap into Profile.</p>
+
+      <h4 style="margin-top: 26px;">Sibling to the loading and error registers</h4>
+      <p class="lead">Three states of one surface &mdash; <em>loading, empty,&nbsp;error</em> &mdash; same hand.</p>
+      <p>Discover surfaces will be sometimes slow (recommendation compute on People) and sometimes failed (network on any of them). The loading register plugs in as the existing <em>Get Inspired running</em> sheet pattern, adapted: a small narration line above the list while results compute (<em>&ldquo;Finding sailors who share your concepts.&rdquo;</em>). The error register is the canonical full-screen surface, with the back chevron returning to the segmented control intact.</p>
+      <p>The empty state inset shown on the Forums phone is the third corner of the same triangle &mdash; same muted glyph, same plain sentence, same single quiet action. <strong>Loading narrates, empty offers, error names what failed</strong>; the grammar is identical across all three.</p>
+
+      <h4 style="margin-top: 26px;">What this trio explicitly is <em>not</em></h4>
+      <ul>
+        <li><strong>Not detail surfaces</strong>Org page, Person page, Topic page are downstream. This brief is the index level. Tap targets are designed; what&rsquo;s on the other side of the tap isn&rsquo;t.</li>
+        <li><strong>Not feed-style</strong>No timestamps as the leading signal. No chronological mixing of orgs / people / threads. Discover is a shelf of <em>units</em>, not a stream of activity.</li>
+        <li><strong>Not algorithmically opinionated</strong>The unit is the hero. Recommendation is one signal on the unit (the coral <em>fit</em> tag); it never frames the surface. No <em>Recommended for you</em> chrome.</li>
+        <li><strong>Not faculty density</strong>Patricia doesn&rsquo;t browse Discover. This is practitioner-side; standard iOS density.</li>
+        <li><strong>Not the follow / join modal</strong>The tap target leads to a detail surface; the actual subscription interaction is one tap deeper. Affordance shown, modal not designed.</li>
+        <li><strong>No coral on relationship tags</strong>Coral is for system attention (matches your concept, unread). <em>Joined / Following / Mutual</em> are gray. Coral never gets the &ldquo;I belong here&rdquo; job, which would burn its single semantic.</li>
+        <li><strong>No counts in red</strong>Unread counts are gray-secondary text; the coral dot is the only thing that escalates. Numbers don&rsquo;t pretend to be alarms.</li>
+        <li><strong>No empty illustration</strong>The empty-state inset uses the same 36px muted glyph the error register uses. No mascot. No cartoon. The sentence carries the surface.</li>
+      </ul>
+    </div>
+
+  </div>
+
+</div>
+
+</body>
+</html>

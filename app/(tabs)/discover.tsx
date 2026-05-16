@@ -1,14 +1,16 @@
 /**
- * Discover Tab — Browse interests, organizations, people, and forums
+ * Discover Tab — the canonical Discover trio
  *
- * Four top-level segments:
- * - Interests (default): Browse and add interests
- * - Organizations: Search and join organizations for current interest
- * - People: Discover peers, manage follows, view activity posts
- * - Forums: Community feed, browse and join communities
+ * Three sibling surfaces, one shared chrome — per
+ * `docs/redesign/ios-register/discover-trio-canonical.html`:
  *
- * Follow/join/added state is lifted here so it survives segment switches.
- * Works for both authenticated and unauthenticated users (auth gate on actions).
+ *   - Orgs    — institution as the unit
+ *   - People  — practitioner as the unit; current concept travels at a glance
+ *   - Forums  — topic as the unit; ongoing spaces, not single threads
+ *
+ * The segmented control is the only switcher. Scroll position is preserved
+ * per segment. Follow / join state is lifted here so it survives switches.
+ * Works for authenticated and unauthenticated users (auth gate on actions).
  */
 
 import React, { useCallback, useEffect, useState } from 'react';
@@ -17,7 +19,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router, useLocalSearchParams } from 'expo-router';
 
-import { DiscoverInterestsContent } from '@/components/discover/DiscoverInterestsContent';
 import { DiscoverOrgsContent } from '@/components/discover/DiscoverOrgsContent';
 import { DiscoverPeopleContent } from '@/components/discover/DiscoverPeopleContent';
 import { DiscussContent } from '@/components/connect/DiscussContent';
@@ -30,21 +31,32 @@ import { IOS_COLORS } from '@/lib/design-tokens-ios';
 // TYPES & CONSTANTS
 // =============================================================================
 
-type DiscoverSegment = 'interests' | 'organizations' | 'people' | 'forums';
+type DiscoverSegment = 'organizations' | 'people' | 'forums';
 
 const DISCOVER_SEGMENTS = [
-  { value: 'interests' as const, label: 'Interests' },
   { value: 'organizations' as const, label: 'Orgs' },
   { value: 'people' as const, label: 'People' },
   { value: 'forums' as const, label: 'Forums' },
 ];
 
-const VALID_SEGMENTS: DiscoverSegment[] = ['interests', 'organizations', 'people', 'forums'];
+const VALID_SEGMENTS: DiscoverSegment[] = ['organizations', 'people', 'forums'];
+
+// Legacy alias from the four-segment shape — deep links with ?segment=interests
+// fall through to the canonical default rather than 404.
+const LEGACY_SEGMENT_ALIASES: Record<string, DiscoverSegment> = {
+  orgs: 'organizations',
+  interests: 'organizations',
+};
 
 const STORAGE_KEY = 'regattaflow_discover_segment';
 const FOLLOWED_IDS_KEY = 'regattaflow_connect_followed_ids';
 const JOINED_IDS_KEY = 'regattaflow_connect_joined_ids';
-const ADDED_INTEREST_SLUGS_KEY = 'regattaflow_discover_added_interests';
+
+function resolveSegmentParam(raw: string | string[] | undefined): DiscoverSegment | null {
+  if (typeof raw !== 'string') return null;
+  if (VALID_SEGMENTS.includes(raw as DiscoverSegment)) return raw as DiscoverSegment;
+  return LEGACY_SEGMENT_ALIASES[raw] ?? null;
+}
 
 // =============================================================================
 // MAIN COMPONENT
@@ -55,12 +67,11 @@ export default function DiscoverTab() {
   const insets = useSafeAreaInsets();
   const [toolbarHeight, setToolbarHeight] = useState(0);
   const { toolbarHidden, handleScroll } = useScrollToolbarHide();
-  const [activeSegment, setActiveSegment] = useState<DiscoverSegment>('interests');
+  const [activeSegment, setActiveSegment] = useState<DiscoverSegment>('organizations');
 
   // Shared follow/join state (lifted so it survives segment switches)
   const [followedIds, setFollowedIds] = useState<Set<string>>(new Set());
   const [joinedIds, setJoinedIds] = useState<Set<string>>(new Set());
-  const [addedInterestSlugs, setAddedInterestSlugs] = useState<Set<string>>(new Set());
 
   const toggleFollow = useCallback((id: string) => {
     setFollowedIds((prev) => {
@@ -82,26 +93,13 @@ export default function DiscoverTab() {
     });
   }, []);
 
-  const addInterestSlug = useCallback((slug: string) => {
-    setAddedInterestSlugs((prev) => {
-      const next = new Set(prev);
-      next.add(slug);
-      AsyncStorage.setItem(ADDED_INTEREST_SLUGS_KEY, JSON.stringify([...next])).catch(() => {});
-      return next;
-    });
-  }, []);
-
-  // Parse route segment param
-  const routeSegment = VALID_SEGMENTS.includes(params.segment as DiscoverSegment)
-    ? (params.segment as DiscoverSegment)
-    : null;
+  const routeSegment = resolveSegmentParam(params.segment);
 
   // Load persisted state on mount
   useEffect(() => {
     AsyncStorage.getItem(STORAGE_KEY).then((stored) => {
-      if (stored && VALID_SEGMENTS.includes(stored as DiscoverSegment)) {
-        setActiveSegment(stored as DiscoverSegment);
-      }
+      const resolved = resolveSegmentParam(stored ?? undefined);
+      if (resolved) setActiveSegment(resolved);
     }).catch(() => {});
 
     AsyncStorage.getItem(FOLLOWED_IDS_KEY).then((stored) => {
@@ -115,12 +113,6 @@ export default function DiscoverTab() {
         try { setJoinedIds(new Set(JSON.parse(stored))); } catch {}
       }
     }).catch(() => {});
-
-    AsyncStorage.getItem(ADDED_INTEREST_SLUGS_KEY).then((stored) => {
-      if (stored) {
-        try { setAddedInterestSlugs(new Set(JSON.parse(stored))); } catch {}
-      }
-    }).catch(() => {});
   }, []);
 
   // Allow deep links to force a starting segment
@@ -131,7 +123,6 @@ export default function DiscoverTab() {
     }
   }, [routeSegment]);
 
-  // Save segment on change
   const handleSegmentChange = (segment: DiscoverSegment) => {
     setActiveSegment(segment);
     AsyncStorage.setItem(STORAGE_KEY, segment).catch(() => {});
@@ -139,18 +130,8 @@ export default function DiscoverTab() {
 
   return (
     <View style={styles.container}>
-      {/* Fixed status bar background */}
       <View style={[styles.statusBarBackground, { height: insets.top }]} />
 
-      {/* Content */}
-      {activeSegment === 'interests' && (
-        <DiscoverInterestsContent
-          toolbarOffset={toolbarHeight}
-          onScroll={handleScroll}
-          addedInterestSlugs={addedInterestSlugs}
-          onAddInterest={addInterestSlug}
-        />
-      )}
       {activeSegment === 'organizations' && (
         <DiscoverOrgsContent
           toolbarOffset={toolbarHeight}
@@ -174,7 +155,6 @@ export default function DiscoverTab() {
         />
       )}
 
-      {/* Toolbar */}
       <TabScreenToolbar
         title="Discover"
         topInset={insets.top}
@@ -188,8 +168,14 @@ export default function DiscoverTab() {
           {
             icon: 'sparkles-outline',
             sfSymbol: 'wand.and.stars',
-            label: 'Preview iOS register',
+            label: 'Preview Paths-for-you iOS register',
             onPress: () => router.push('/discover-ios' as any),
+          },
+          {
+            icon: 'compass-outline',
+            sfSymbol: 'safari',
+            label: 'Preview Discover trio canonical',
+            onPress: () => router.push('/discover-trio-ios' as any),
           },
         ]}
         onMeasuredHeight={setToolbarHeight}
@@ -207,10 +193,6 @@ export default function DiscoverTab() {
     </View>
   );
 }
-
-// =============================================================================
-// STYLES
-// =============================================================================
 
 const styles = StyleSheet.create({
   container: {
