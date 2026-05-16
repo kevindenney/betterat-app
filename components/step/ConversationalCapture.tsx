@@ -271,6 +271,7 @@ Guidelines:
   // Structure the conversation into a draft preview, surfaced inline
   // for the user to accept or keep refining (AI Coach · Frame 3).
   const handleDraftPlan = useCallback(async () => {
+    if (isStructuring) return;
     setIsStructuring(true);
     setDraftError(null);
 
@@ -379,7 +380,7 @@ Respond with ONLY valid JSON:
         setIsStructuring(false);
       }
     }
-  }, [messages, interestName]);
+  }, [isStructuring, messages, interestName]);
 
   const handleAcceptDraft = useCallback(() => {
     if (!draft) return;
@@ -400,8 +401,8 @@ Respond with ONLY valid JSON:
     setTimeout(() => inputRef.current?.focus(), 60);
   }, []);
 
-  const hasConversation = messages.length > 1; // More than just opening message
-  const showDraftCta = hasConversation && !draft && !isStructuring && !isLoading;
+  const hasUserMessage = messages.some((message) => message.role === 'user' && message.content?.trim());
+  const showDraftCta = hasUserMessage && !draft;
 
   return (
     <View style={[styles.container, embedded && styles.containerEmbedded]}>
@@ -411,6 +412,23 @@ Respond with ONLY valid JSON:
           <Ionicons name="chatbubbles" size={14} color={IOS_COLORS.systemPurple} />
           <Text style={styles.headerTitle}>Talk it through</Text>
         </View>
+        {showDraftCta && (
+          <Pressable
+            style={[styles.headerDraftButton, isStructuring && styles.headerDraftButtonDisabled]}
+            onPress={handleDraftPlan}
+            disabled={isStructuring}
+            accessibilityRole="button"
+            accessibilityLabel="Draft my plan"
+            accessibilityState={{ disabled: isStructuring }}
+          >
+            {isStructuring ? (
+              <ActivityIndicator size="small" color={IOS_COLORS.systemPurple} />
+            ) : (
+              <Ionicons name="sparkles" size={12} color={IOS_COLORS.systemPurple} />
+            )}
+            <Text style={styles.headerDraftText}>{isStructuring ? 'Drafting' : 'Draft'}</Text>
+          </Pressable>
+        )}
       </View>
 
       {/* Messages */}
@@ -523,13 +541,19 @@ Respond with ONLY valid JSON:
           already showing so the user focuses on Accept / Keep refining. */}
       {showDraftCta && (
         <Pressable
-          style={styles.draftCtaButton}
+          style={[styles.draftCtaButton, isStructuring && styles.draftCtaButtonDisabled]}
           onPress={handleDraftPlan}
+          disabled={isStructuring}
           accessibilityRole="button"
           accessibilityLabel="Draft my plan"
+          accessibilityState={{ disabled: isStructuring }}
         >
-          <Ionicons name="sparkles" size={16} color="#FFFFFF" />
-          <Text style={styles.draftCtaText}>Draft my plan</Text>
+          {isStructuring ? (
+            <ActivityIndicator size="small" color="#FFFFFF" />
+          ) : (
+            <Ionicons name="sparkles" size={16} color="#FFFFFF" />
+          )}
+          <Text style={styles.draftCtaText}>{isStructuring ? 'Drafting your plan…' : 'Draft my plan'}</Text>
         </Pressable>
       )}
 
@@ -644,6 +668,25 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: IOS_COLORS.systemPurple,
     letterSpacing: 0.3,
+  },
+  headerDraftButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    borderRadius: 999,
+    backgroundColor: 'rgba(175,82,222,0.10)',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(175,82,222,0.26)',
+    paddingHorizontal: 9,
+    paddingVertical: 5,
+  },
+  headerDraftButtonDisabled: {
+    opacity: 0.7,
+  },
+  headerDraftText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: IOS_COLORS.systemPurple,
   },
   messages: {
     maxHeight: 350,
@@ -787,6 +830,9 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 4 },
     elevation: 3,
+  },
+  draftCtaButtonDisabled: {
+    opacity: 0.78,
   },
   draftCtaText: {
     fontSize: 14,
