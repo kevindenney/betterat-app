@@ -7,6 +7,7 @@ import type { DoInteriorState } from './doState';
 import { DoStartCard } from './DoStartCard';
 import { PlanStartingFrameRow } from './PlanStartingFrameRow';
 import { DoLiveCard } from './DoLiveCard';
+import { DoPostActivityCard } from './DoPostActivityCard';
 
 export interface DoTabInteriorProps {
   state: DoInteriorState;
@@ -19,8 +20,12 @@ export interface DoTabInteriorProps {
   stepTitle?: string;
   /** Trailing context segments rendered after the step title in Frame 2. */
   contextSegments?: string[];
-  /** Activity-elapsed ms; drives the Frame 2 live header stat. Defaults to 0. */
+  /** Activity-elapsed ms; drives the Frame 2 live header / Frame 3 final stat. Defaults to 0. */
   elapsedMs?: number;
+  /** Final stat override for Frame 3's capture count (defaults to non-marker count). */
+  postActivityCaptureCount?: number;
+  /** Frame 3 auto-summary step-chip label (e.g. "Light-air starts"). */
+  summaryStepChipLabel?: string;
   /** Optional now-anchor for relative-ago labels; pass for deterministic tests. */
   nowMs?: number;
   onVoiceNote?: () => void;
@@ -32,12 +37,16 @@ export interface DoTabInteriorProps {
   onRefineSummary?: () => void;
   /** Stop-capturing CTA callback for Frame 2's reverse-polarity button. */
   onStopCapturing?: () => void;
-  /** Voice-play callback forwarded to Frame 2 capture rows. */
+  /** Voice-play callback forwarded to Frame 2/3 capture rows. */
   onPressPlayVoice?: (captureId: string) => void;
   /** Edit callback forwarded to Frame 2 capture rows (wired in Commit 6). */
   onEditCapture?: (captureId: string) => void;
   /** Delete callback forwarded to Frame 2 capture rows (wired in Commit 6). */
   onDeleteCapture?: (captureId: string) => void;
+  /** Frame 3 secondary additive action — re-opens capture stream. */
+  onAddAnotherCapture?: () => void;
+  /** Frame 3 secondary destructive action — drops the activity (long-press confirm upstream). */
+  onDiscardActivity?: () => void;
   footer?: React.ReactNode;
 }
 
@@ -49,6 +58,9 @@ export function DoTabInterior({
   stepTitle,
   contextSegments,
   elapsedMs = 0,
+  postActivityCaptureCount,
+  summaryText,
+  summaryStepChipLabel,
   nowMs,
   onVoiceNote,
   onPhotoOrVideo,
@@ -58,6 +70,10 @@ export function DoTabInterior({
   onPressPlayVoice,
   onEditCapture,
   onDeleteCapture,
+  onMoveToReflect,
+  onRefineSummary,
+  onAddAnotherCapture,
+  onDiscardActivity,
   footer,
 }: DoTabInteriorProps) {
   if (state === 'live') {
@@ -77,6 +93,30 @@ export function DoTabInterior({
           onPressPlayVoice={onPressPlayVoice}
           onEditCapture={onEditCapture}
           onDeleteCapture={onDeleteCapture}
+        />
+        {footer}
+      </View>
+    );
+  }
+
+  if (state === 'post_activity') {
+    return (
+      <View style={styles.container}>
+        <DoPostActivityCard
+          captures={captures}
+          stepTitle={stepTitle ?? ''}
+          contextSegments={contextSegments}
+          elapsedMs={elapsedMs}
+          captureCount={postActivityCaptureCount}
+          summaryText={summaryText}
+          summaryStepChipLabel={summaryStepChipLabel}
+          readOnly={readOnly}
+          nowMs={nowMs}
+          onPressPlayVoice={onPressPlayVoice}
+          onMoveToReflect={onMoveToReflect}
+          onRefineSummary={onRefineSummary}
+          onAddAnotherCapture={onAddAnotherCapture}
+          onDiscardActivity={onDiscardActivity}
         />
         {footer}
       </View>
@@ -105,8 +145,6 @@ export function DoTabInterior({
           />
         </>
       )}
-
-      {state === 'post_activity' && <View />}
 
       {footer}
     </ScrollView>

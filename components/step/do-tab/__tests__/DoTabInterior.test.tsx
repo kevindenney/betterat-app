@@ -83,9 +83,10 @@ describe('DoTabInterior — state gating', () => {
     expect(names).not.toContain('PlanStartingFrameRow');
   });
 
-  it('does NOT mount Frame 1 or Frame 2 components when state is post_activity (Frame 3 deferred)', () => {
+  it('mounts DoPostActivityCard (Frame 3) when state is post_activity and hides Frame 1/2 components', () => {
     const tree = renderInterior({ state: 'post_activity' });
     const names = componentNames(tree.root);
+    expect(names).toContain('DoPostActivityCard');
     expect(names).not.toContain('DoStartCard');
     expect(names).not.toContain('PlanStartingFrameRow');
     expect(names).not.toContain('DoLiveCard');

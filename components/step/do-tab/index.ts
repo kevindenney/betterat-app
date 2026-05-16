@@ -11,6 +11,14 @@ export {
   type DoStopCapturingButtonProps,
 } from './DoStopCapturingButton';
 export {
+  DoActivityCompletePill,
+  type DoActivityCompletePillProps,
+} from './DoActivityCompletePill';
+export { DoAutoSummaryCard, type DoAutoSummaryCardProps } from './DoAutoSummaryCard';
+export { DoMoveToReflectCTA, type DoMoveToReflectCTAProps } from './DoMoveToReflectCTA';
+export { DoSecondaryActions, type DoSecondaryActionsProps } from './DoSecondaryActions';
+export { DoPostActivityCard, type DoPostActivityCardProps } from './DoPostActivityCard';
+export {
   PhotoCapturePreview,
   QuickNoteCapturePreview,
   TimeMarkerCapturePreview,
@@ -37,6 +45,8 @@ export {
   formatVoiceDuration,
   normalizeDoCaptures,
   sortCapturesNewestFirst,
+  summarizeCaptureBreakdown,
+  type DoCaptureBreakdown,
   type DoCaptureItem,
   type DoCaptureKind,
   type DoCaptureSource,

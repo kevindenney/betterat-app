@@ -9,8 +9,22 @@ import {
   formatVoiceDuration,
   normalizeDoCaptures,
   sortCapturesNewestFirst,
+  summarizeCaptureBreakdown,
+  type DoCaptureItem,
 } from '../doCaptureModel';
 import type { StepActData } from '@/types/step-detail';
+
+const cap = (over: Partial<DoCaptureItem>): DoCaptureItem => ({
+  id: over.id ?? 'cap',
+  kind: over.kind ?? 'note',
+  capturedAt: over.capturedAt ?? null,
+  body: over.body ?? '',
+  capabilityIds: [],
+  capabilityLabels: [],
+  flaggedForDebrief: false,
+  source: 'act_observation',
+  ...over,
+});
 
 describe('doCaptureModel', () => {
   describe('normalizeDoCaptures', () => {
@@ -226,6 +240,55 @@ describe('doCaptureModel', () => {
       for (let i = 1; i < WAVEFORM_BAR_COUNT; i += 1) {
         expect(out[i]).toBe(WAVEFORM_MIN_HEIGHT);
       }
+    });
+  });
+
+  describe('summarizeCaptureBreakdown', () => {
+    it('returns all zeros for an empty input', () => {
+      expect(summarizeCaptureBreakdown([])).toEqual({ voice: 0, note: 0, photo: 0, marker: 0 });
+    });
+
+    it('counts each canonical display kind separately', () => {
+      const items: DoCaptureItem[] = [
+        cap({ id: 'v1', kind: 'voice' }),
+        cap({ id: 'v2', kind: 'voice' }),
+        cap({ id: 'n1', kind: 'note' }),
+        cap({ id: 'p1', kind: 'photo', source: 'media_upload' }),
+        cap({
+          id: 'm1',
+          kind: 'time_marker',
+          body: 'a',
+          markerLabel: 'a',
+          source: 'time_marker',
+        }),
+        cap({
+          id: 'm2',
+          kind: 'time_marker',
+          body: 'b',
+          markerLabel: 'b',
+          source: 'time_marker',
+        }),
+      ];
+      expect(summarizeCaptureBreakdown(items)).toEqual({
+        voice: 2,
+        note: 1,
+        photo: 1,
+        marker: 2,
+      });
+    });
+
+    it('folds video into photo and folds media_link / flag into note', () => {
+      const items: DoCaptureItem[] = [
+        cap({ id: 'vid', kind: 'video', source: 'media_upload' }),
+        cap({ id: 'link', kind: 'media_link', source: 'media_link' }),
+        cap({ id: 'flag', kind: 'flag' }),
+      ];
+      expect(summarizeCaptureBreakdown(items)).toEqual({
+        voice: 0,
+        note: 2,
+        photo: 1,
+        marker: 0,
+      });
     });
   });
 });

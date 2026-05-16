@@ -58,8 +58,9 @@ describe('Phase B.7 Frame 1 contract', () => {
       expect(interiorSource).toContain('DoLiveCard');
     });
 
-    it('renders nothing substantive when state is post_activity (Frames 3-4 deferred)', () => {
+    it('dispatches to DoPostActivityCard when state is post_activity (Frame 3)', () => {
       expect(interiorSource).toMatch(/state === 'post_activity'/);
+      expect(interiorSource).toContain('DoPostActivityCard');
     });
   });
 });

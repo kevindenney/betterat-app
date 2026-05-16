@@ -157,4 +157,28 @@ describe('DoCaptureRow — Frame 2 dispatch', () => {
     });
     expect(allText(tree.root)).toContain('3m');
   });
+
+  it('suppresses the fresh wash when frozen is true even if fresh is requested (Frame 3)', () => {
+    const tree = renderRow({
+      capture: cap({ kind: 'note', body: 'frozen row' }),
+      fresh: true,
+      frozen: true,
+    });
+    // No Animated.View should render for a typed frozen row with no chip.
+    expect(
+      tree.root.findAllByType('AnimatedView' as unknown as ComponentType),
+    ).toHaveLength(0);
+  });
+
+  it('renders a neutral chip (no Animated.View pulse) when frozen, even if chipLive is true', () => {
+    const tree = renderRow({
+      capture: cap({ kind: 'voice', chipLabel: 'Weather', chipLive: true }),
+      frozen: true,
+    });
+    // chipLive's pulsing ring is an Animated.View; frozen suppresses it.
+    expect(
+      tree.root.findAllByType('AnimatedView' as unknown as ComponentType),
+    ).toHaveLength(0);
+    expect(allText(tree.root)).toContain('Weather');
+  });
 });

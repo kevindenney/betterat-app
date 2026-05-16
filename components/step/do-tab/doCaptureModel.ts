@@ -183,6 +183,44 @@ export function formatVoiceDuration(seconds: number | undefined): string {
   return `${m}:${String(s).padStart(2, '0')}`;
 }
 
+export interface DoCaptureBreakdown {
+  voice: number;
+  note: number;
+  photo: number;
+  marker: number;
+}
+
+/**
+ * Counts captures by display kind for the Frame 3 auto-summary breakdown row.
+ * voice = voice; note = note + media_link + flag (typed-ish content);
+ * photo = photo + video (visual capture); marker = time_marker.
+ */
+export function summarizeCaptureBreakdown(items: DoCaptureItem[]): DoCaptureBreakdown {
+  const out: DoCaptureBreakdown = { voice: 0, note: 0, photo: 0, marker: 0 };
+  for (const c of items) {
+    switch (c.kind) {
+      case 'voice':
+        out.voice += 1;
+        break;
+      case 'note':
+      case 'media_link':
+      case 'flag':
+        out.note += 1;
+        break;
+      case 'photo':
+      case 'video':
+        out.photo += 1;
+        break;
+      case 'time_marker':
+        out.marker += 1;
+        break;
+      default:
+        break;
+    }
+  }
+  return out;
+}
+
 /**
  * Normalises a peaks array to exactly {@link WAVEFORM_BAR_COUNT} entries in pixel heights.
  * Inputs may be 0..1 normalised or already-pixel; values clamp into the bar height range.

@@ -47,6 +47,13 @@ export interface DoCaptureRowProps {
   capture: DoCaptureItem;
   /** When true the topmost capture renders the warm wash + 14% coral ring. */
   fresh?: boolean;
+  /**
+   * Frame 3 post-activity render. When true the row suppresses the
+   * fresh wash regardless of {@link fresh} and renders chips with the
+   * neutral gray-6 variant (per anatomy callout E) instead of the
+   * live coral-tint variant Frame 2 uses.
+   */
+  frozen?: boolean;
   /** Optional now-anchor for the "ago" label so test snapshots stay deterministic. */
   nowMs?: number;
   /** Voice play callback forwarded to {@link VoiceCapturePreview}. */
@@ -73,6 +80,7 @@ export interface DoCaptureRowProps {
 export function DoCaptureRow({
   capture,
   fresh,
+  frozen,
   nowMs,
   onPressPlayVoice,
   onEdit,
@@ -81,6 +89,8 @@ export function DoCaptureRow({
   if (capture.kind === 'time_marker') {
     return <TimeMarkerCapturePreview capture={capture} />;
   }
+
+  const showFresh = fresh && !frozen;
 
   const accent = ACCENT_BY_KIND[capture.kind] ?? GRAY_3;
   const meta = TYPE_META[capture.kind] ?? TYPE_META.note;
@@ -91,7 +101,7 @@ export function DoCaptureRow({
 
   return (
     <View
-      style={[styles.row, { borderLeftColor: accent }, fresh && styles.rowFresh]}
+      style={[styles.row, { borderLeftColor: accent }, showFresh && styles.rowFresh]}
       accessibilityRole="text"
     >
       <View style={styles.tsCol}>
@@ -159,12 +169,18 @@ export function DoCaptureRow({
         </View>
       </View>
 
-      {capture.chipLabel ? <CaptureChip label={capture.chipLabel} live={capture.chipLive} /> : null}
+      {capture.chipLabel ? (
+        <CaptureChip
+          label={capture.chipLabel}
+          live={!frozen && capture.chipLive}
+          neutral={frozen}
+        />
+      ) : null}
     </View>
   );
 }
 
-function CaptureChip({ label, live }: { label: string; live?: boolean }) {
+function CaptureChip({ label, live, neutral }: { label: string; live?: boolean; neutral?: boolean }) {
   const pulse = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -184,7 +200,10 @@ function CaptureChip({ label, live }: { label: string; live?: boolean }) {
   const ringOpacity = pulse.interpolate({ inputRange: [0, 0.7, 1], outputRange: [0.65, 0, 0] });
 
   return (
-    <View style={[styles.chip, live && styles.chipLive]} accessibilityLabel={label}>
+    <View
+      style={[styles.chip, live && styles.chipLive, neutral && styles.chipNeutral]}
+      accessibilityLabel={label}
+    >
       {live ? (
         <View style={styles.chipDotWrap}>
           <Animated.View
@@ -197,7 +216,15 @@ function CaptureChip({ label, live }: { label: string; live?: boolean }) {
           <View style={styles.chipDot} />
         </View>
       ) : null}
-      <Text style={[styles.chipLbl, live && styles.chipLblLive]}>{label}</Text>
+      <Text
+        style={[
+          styles.chipLbl,
+          live && styles.chipLblLive,
+          neutral && styles.chipLblNeutral,
+        ]}
+      >
+        {label}
+      </Text>
     </View>
   );
 }
@@ -304,6 +331,11 @@ const styles = StyleSheet.create({
     backgroundColor: CORAL,
     paddingLeft: 6,
   },
+  chipNeutral: {
+    backgroundColor: '#F2F2F7',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: GRAY_5,
+  },
   chipDotWrap: {
     width: 5,
     height: 5,
@@ -331,5 +363,8 @@ const styles = StyleSheet.create({
   },
   chipLblLive: {
     color: '#FFFFFF',
+  },
+  chipLblNeutral: {
+    color: LABEL_2,
   },
 });
