@@ -9,6 +9,7 @@ import {
 import { TimelineGridView } from '@/components/cards/TimelineGridView';
 import { openInterestSwitcher } from '@/components/InterestSwitcher';
 import { BlueprintWelcomeCard } from '@/components/races/BlueprintWelcomeCard';
+import { DragonWorldsPracticeWelcomeBanner } from '@/components/races/DragonWorldsPracticeWelcomeBanner';
 
 import {
   PreRaceStrategySection,
@@ -5095,9 +5096,9 @@ export default function RacesScreen() {
           useCanonicalSeasonChip={FEATURE_FLAGS.PRACTICE_SERIES_IOS_REGISTER}
         />
 
-        {/* One-shot welcome card shown after a sailor lands via the HKDW
-            auto-subscribe flow. Floats below the toolbar so it doesn't shift
-            the timeline; dismissible. */}
+        {/* HKDW welcome cards float below the toolbar so they don't shift the
+            timeline. The Phase P banner is additive and does not replace the
+            existing AsyncStorage-backed card. */}
         {isSailingInterest && (
           <View
             style={{
@@ -5108,6 +5109,7 @@ export default function RacesScreen() {
               zIndex: 90,
             }}
           >
+            {FEATURE_FLAGS.REDEEM && <DragonWorldsPracticeWelcomeBanner />}
             <BlueprintWelcomeCard enabled={isSailingInterest} />
           </View>
         )}
