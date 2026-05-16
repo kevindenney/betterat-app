@@ -103,6 +103,8 @@ import { PublishBlueprintSheet } from '@/components/blueprint/PublishBlueprintSh
 import { useUserBlueprints, useSubscribedBlueprints, useSuggestedNextSteps, useAdoptBlueprintStep, useDismissBlueprintStep, useAutoAdoptSubscribedSteps } from '@/hooks/useBlueprint';
 import { useScrollToolbarHide } from '@/hooks/useScrollToolbarHide';
 import { FEATURE_FLAGS } from '@/lib/featureFlags';
+import { getSeriesLabel } from '@/lib/navigation-config';
+import { SeriesStrip } from '@/components/series/SeriesStrip';
 import {
   ADD_RACE_CARD_DISMISSED_KEY,
   SAMPLE_RACE_DISMISSED_KEY,
@@ -3884,6 +3886,22 @@ export default function RacesScreen() {
     return idx >= 0 ? idx + 1 : undefined;
   }, [selectedRaceId, headerTotalRaces, filteredCardGridRaces]);
 
+  // Phase I Frame 1 — Series strip in the zoomed-out timeline.
+  // Renders behind PRACTICE_SERIES_IOS_REGISTER only when there is an active
+  // display season and the timeline has at least one card. Spec says: do not
+  // invent a "No Series" strip in v1 (the existing settings flow handles it).
+  const showSeriesStrip =
+    FEATURE_FLAGS.PRACTICE_SERIES_IOS_REGISTER &&
+    isGridView &&
+    !isShowingOnlyDemos &&
+    Boolean(displaySeason) &&
+    headerTotalRaces > 0;
+  const seriesStripProgress = headerTotalRaces > 0
+    ? (headerCurrentRaceIndex ?? 0) / headerTotalRaces
+    : 0;
+  const seriesStripName =
+    (displaySeason as any)?.short_name || displaySeason?.name || '';
+
   // iOS-register summary-surface adapter — shapes filteredCardGridRaces into the
   // RaceCardItem grammar consumed by <RaceCardsScreen />. Status maps from the
   // step's canonical fields; selectedRaceId promotes one card to "current"
@@ -4320,6 +4338,19 @@ export default function RacesScreen() {
           {isGridView ? (
             <View style={{ flex: 1 }}>
 
+              {showSeriesStrip && (
+                <View style={{ paddingTop: totalHeaderHeight + 8 }}>
+                  <SeriesStrip
+                    label={getSeriesLabel(currentInterest)}
+                    name={seriesStripName}
+                    currentIndex={headerCurrentRaceIndex ?? 0}
+                    totalSteps={headerTotalRaces}
+                    progress={seriesStripProgress}
+                    onPress={() => setShowSeasonPicker(true)}
+                  />
+                </View>
+              )}
+
               {!isSailingInterest && hasTimelineSteps && (
                 <Reanimated.View
                   onLayout={(e) => {
@@ -4328,7 +4359,7 @@ export default function RacesScreen() {
                   }}
                   style={animatedFilterBarStyle}
                 >
-                <View style={{ paddingTop: totalHeaderHeight + 8 }}>
+                <View style={{ paddingTop: showSeriesStrip ? 0 : totalHeaderHeight + 8 }}>
                   {/* Faculty banner: nudge to publish blueprint */}
                   {showFacultyBanner && (
                     <View style={{
@@ -4532,7 +4563,7 @@ export default function RacesScreen() {
                 onBulkUpdateStatus={isViewingOtherTimeline || isShowingOnlyDemos ? undefined : handleTimelineGridBulkStatusUpdate}
                 onBulkDeleteRaces={isViewingOtherTimeline || isShowingOnlyDemos ? undefined : handleTimelineGridBulkDelete}
                 onReorderRaces={isViewingOtherTimeline || isShowingOnlyDemos ? undefined : handleTimelineGridReorder}
-                topInset={!isSailingInterest && hasTimelineSteps ? 0 : totalHeaderHeight}
+                topInset={showSeriesStrip ? 0 : (!isSailingInterest && hasTimelineSteps ? 0 : totalHeaderHeight)}
                 onContentScroll={handleToolbarScroll}
                 // Auto-scroll the grid to a freshly-created step so the user
                 // never has to hunt for it — mirrors the carousel's existing
