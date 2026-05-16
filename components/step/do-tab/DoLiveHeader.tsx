@@ -3,9 +3,6 @@ import { Animated, StyleSheet, Text, View } from 'react-native';
 import { formatElapsedMmSs } from './doCaptureModel';
 
 const CORAL = '#FF6B6B';
-const CORAL_DEEP = '#E54848';
-const CORAL_TINT = 'rgba(255, 107, 107, 0.10)';
-const CORAL_SOFT = 'rgba(255, 107, 107, 0.18)';
 const GRAY_5 = '#E5E5EA';
 const LABEL = '#1C1C1E';
 const LABEL_3 = 'rgba(60, 60, 67, 0.60)';
@@ -17,18 +14,18 @@ export interface DoLiveHeaderProps {
   captureCount: number;
   /** Elapsed time since the activity started, in milliseconds — drives the right stat. */
   elapsedMs: number;
-  /** Label rendered to the right of the pulsing dot. Defaults to canonical "Live · capturing". */
+  /** Label rendered to the right of the pulsing dot. Defaults to "Capturing"; the parent card already shows LIVE · IN PROGRESS above. */
   liveLabel?: string;
 }
 
 /**
- * Frame 2 · A — Live pill + B — Stats.
+ * Frame 2 · A — Live indicator + B — Stats.
  * Coral pulse is the only foreground coral on the surface; everything else is neutral.
  */
 export function DoLiveHeader({
   captureCount,
   elapsedMs,
-  liveLabel = 'Live · capturing',
+  liveLabel = 'Capturing',
 }: DoLiveHeaderProps) {
   const pulse = useRef(new Animated.Value(0)).current;
 
@@ -50,8 +47,8 @@ export function DoLiveHeader({
   return (
     <View style={styles.row} accessibilityRole="header">
       <View
-        style={styles.pill}
-        accessibilityLabel={`Live · capturing — ${captureCount} captures, ${formatElapsedMmSs(elapsedMs)} elapsed`}
+        style={styles.indicator}
+        accessibilityLabel={`Capturing — ${captureCount} captures, ${formatElapsedMmSs(elapsedMs)} elapsed`}
       >
         <View style={styles.dotWrap} accessibilityElementsHidden importantForAccessibility="no">
           <Animated.View
@@ -63,7 +60,9 @@ export function DoLiveHeader({
           />
           <View style={styles.dot} />
         </View>
-        <Text style={styles.pillLabel}>{liveLabel}</Text>
+        <Text style={styles.indicatorLabel} numberOfLines={1}>
+          {liveLabel}
+        </Text>
       </View>
 
       <View style={styles.stats} accessibilityLabel="Capture stats">
@@ -97,18 +96,12 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: 12,
   },
-  pill: {
+  indicator: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 7,
-    paddingTop: 5,
-    paddingRight: 11,
-    paddingBottom: 5,
-    paddingLeft: 9,
-    borderRadius: 999,
-    backgroundColor: CORAL_TINT,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: CORAL_SOFT,
+    gap: 8,
+    flexShrink: 1,
+    minWidth: 0,
   },
   dotWrap: {
     width: 8,
@@ -129,17 +122,18 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     backgroundColor: CORAL,
   },
-  pillLabel: {
-    fontSize: 11,
-    fontWeight: '700',
-    letterSpacing: 0.6,
-    color: CORAL_DEEP,
-    textTransform: 'uppercase',
+  indicatorLabel: {
+    fontSize: 13,
+    fontWeight: '500',
+    letterSpacing: -0.1,
+    color: LABEL_3,
+    flexShrink: 1,
   },
   stats: {
     flexDirection: 'row',
     alignItems: 'stretch',
     gap: 12,
+    flexShrink: 0,
   },
   stat: {
     alignItems: 'flex-end',
