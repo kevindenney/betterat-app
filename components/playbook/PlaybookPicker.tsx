@@ -56,6 +56,44 @@ const TABS: { key: Tab; label: string; icon: keyof typeof Ionicons.glyphMap }[] 
   { key: 'past_learning', label: 'Debriefs', icon: 'time-outline' },
 ];
 
+const EMPTY_COPY: Record<Tab, { title: string; body: string }> = {
+  resource: {
+    title: 'No resources in your Playbook yet',
+    body: 'Add links, articles, or notes from the Playbook tab and they will show up here for any step.',
+  },
+  concept: {
+    title: 'No concepts in your Playbook yet',
+    body: 'Concepts you save while learning will appear here. Baselines for this interest will show up automatically when they are published.',
+  },
+  qa: {
+    title: 'No saved Q&A yet',
+    body: 'Pin answers from coaching sessions or your own notes to add them to your Playbook.',
+  },
+  past_learning: {
+    title: 'No debriefed steps yet',
+    body: 'Steps you reflect on will appear here so you can pull past learnings into a new plan.',
+  },
+};
+
+const ALL_EXCLUDED_COPY: Record<Tab, { title: string; body: string }> = {
+  resource: {
+    title: 'All resources are already linked',
+    body: 'Every resource in your Playbook is already attached to this step.',
+  },
+  concept: {
+    title: 'All concepts are already linked',
+    body: 'Every concept in your Playbook is already attached to this step.',
+  },
+  qa: {
+    title: 'All Q&A are already linked',
+    body: 'Every saved answer in your Playbook is already attached to this step.',
+  },
+  past_learning: {
+    title: 'All debriefs are already linked',
+    body: 'Every debriefed step is already attached.',
+  },
+};
+
 function keyFor(type: StepPlaybookLinkType, id: string): string {
   return `${type}:${id}`;
 }
@@ -122,6 +160,24 @@ export function PlaybookPicker({
     (tab === 'qa' && qaLoading) ||
     (tab === 'past_learning' && debriefsLoading);
 
+  const totalForTab = counts[tab];
+  const visibleForTab = useMemo(() => {
+    const idsOf = (type: StepPlaybookLinkType, items: { id: string }[]) =>
+      items.filter((it) => !excludeSet.has(keyFor(type, it.id))).length;
+    if (tab === 'resource') return idsOf('resource', resources);
+    if (tab === 'concept') return idsOf('concept', concepts);
+    if (tab === 'qa') return idsOf('qa', qa);
+    return idsOf('past_learning', debriefs);
+  }, [tab, resources, concepts, qa, debriefs, excludeSet]);
+
+  const emptyKind: 'none' | 'all_excluded' | null = isLoading
+    ? null
+    : totalForTab === 0
+      ? 'none'
+      : visibleForTab === 0
+        ? 'all_excluded'
+        : null;
+
   return (
     <Modal
       visible={visible}
@@ -175,6 +231,22 @@ export function PlaybookPicker({
         {isLoading ? (
           <View style={styles.centered}>
             <ActivityIndicator color={IOS_COLORS.systemBlue} />
+          </View>
+        ) : emptyKind !== null ? (
+          <View style={styles.emptyWrap}>
+            <View style={styles.emptyCard}>
+              <Ionicons
+                name={TABS.find((t) => t.key === tab)!.icon}
+                size={28}
+                color={IOS_COLORS.systemGray2}
+              />
+              <Text style={styles.emptyTitle}>
+                {(emptyKind === 'all_excluded' ? ALL_EXCLUDED_COPY : EMPTY_COPY)[tab].title}
+              </Text>
+              <Text style={styles.emptyBody}>
+                {(emptyKind === 'all_excluded' ? ALL_EXCLUDED_COPY : EMPTY_COPY)[tab].body}
+              </Text>
+            </View>
           </View>
         ) : (
           <ScrollView style={styles.list} contentContainerStyle={styles.listContent}>
@@ -364,6 +436,30 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  emptyWrap: {
+    flex: 1,
+    padding: IOS_SPACING.md,
+  },
+  emptyCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    paddingVertical: IOS_SPACING.lg,
+    paddingHorizontal: IOS_SPACING.md,
+    alignItems: 'center',
+    gap: 8,
+  },
+  emptyTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: IOS_COLORS.label,
+    textAlign: 'center',
+  },
+  emptyBody: {
+    fontSize: 13,
+    color: IOS_COLORS.secondaryLabel,
+    textAlign: 'center',
+    lineHeight: 18,
   },
   row: {
     flexDirection: 'row',
