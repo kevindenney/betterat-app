@@ -332,6 +332,16 @@ export const FEATURE_FLAGS = {
    * and does not qualify for the mechanical-only exception.
    */
   JHU_ADMIN_DASHBOARD_IOS: readBooleanEnv('EXPO_PUBLIC_FF_JHU_ADMIN_DASHBOARD_IOS', false),
+
+  /**
+   * Stage the canonical Series feature treatment over the existing Season
+   * infrastructure: white Series strip in the zoomed-out timeline (Frame 1),
+   * iOS-native switch-Series action sheet (Frame 2), Series context on step
+   * cards (Frame 3), and the canonical `Jump to` picker (Frame 4). Per
+   * `series-feature-canonical.html`. Defaults false — this is a substantive
+   * visual and control-flow change.
+   */
+  PRACTICE_SERIES_IOS_REGISTER: readBooleanEnv('EXPO_PUBLIC_FF_PRACTICE_SERIES_IOS_REGISTER', false),
 } as const;
 
 // =============================================================================

@@ -268,3 +268,42 @@ export function isRouteActive(route: string, pathname: string): boolean {
   const normalizedRoute = route.replace('/(tabs)/', '/').replace('/index', '');
   return pathname === normalizedRoute || pathname.startsWith(normalizedRoute + '/');
 }
+
+// =============================================================================
+// SERIES VOCABULARY (Phase I — per-interest label for the canonical Series strip)
+// =============================================================================
+
+/**
+ * Per-interest Series vocabulary input.
+ *
+ * The canonical Series strip says "Season" for sailing, "Term" for nursing,
+ * "Workshop" for drawing, "Block" for fitness, and falls back to the generic
+ * "Series" for anything else. We accept a minimal input so the helper can be
+ * called from any surface that has either a full Interest record or just a
+ * slug string.
+ *
+ * v1 keeps this as a static lookup. A richer signature that consults
+ * `vocab('Period')` (so a nursing tenant can override Term → Rotation) is
+ * planned for a later commit per PHASE_I_SERIES_FEATURE_INTEGRATION_SPEC.md.
+ */
+export type SeriesLabelInput = { slug?: string | null } | string | null | undefined;
+
+function resolveSeriesSlug(input: SeriesLabelInput): string {
+  if (!input) return '';
+  if (typeof input === 'string') return input.toLowerCase().trim();
+  return String(input.slug || '').toLowerCase().trim();
+}
+
+export function getSeriesLabel(input: SeriesLabelInput): string {
+  const slug = resolveSeriesSlug(input);
+  if (slug === 'sailing' || slug === 'sail-racing') return 'Season';
+  if (slug === 'nursing') return 'Term';
+  if (slug === 'drawing') return 'Workshop';
+  if (slug === 'fitness' || slug === 'health-and-fitness') return 'Block';
+  return 'Series';
+}
+
+export function getSeriesLabelPlural(input: SeriesLabelInput): string {
+  const singular = getSeriesLabel(input);
+  return singular.endsWith('s') ? singular : `${singular}s`;
+}
