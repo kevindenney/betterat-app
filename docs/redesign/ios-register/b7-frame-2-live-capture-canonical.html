@@ -1,0 +1,1488 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=1520" />
+<title>BetterAt · B.7 Frame 2 · Live capturing — Canonical · 2026-05-16</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css" />
+<style>
+  :root {
+    --ios-blue:        #007AFF;
+    --ios-blue-tint:   rgba(0, 122, 255, 0.10);
+    --ios-blue-strong: rgba(0, 122, 255, 0.18);
+    --ios-coral:       #FF6B6B;
+    --ios-coral-tint:  rgba(255, 107, 107, 0.10);
+    --ios-coral-soft:  rgba(255, 107, 107, 0.18);
+    --ios-coral-deep:  #E54848;
+    --ios-green:       #34C759;
+    --ios-green-tint:  rgba(52, 199, 89, 0.14);
+    --ios-purple:      #5856D6;
+    --ios-amber:       #C28A2A;
+
+    --gray-6:   #F2F2F7;
+    --gray-5:   #E5E5EA;
+    --gray-4:   #D1D1D6;
+    --gray-3:   #C7C7CC;
+    --gray-2:   #AEAEB2;
+    --gray-1:   #8E8E93;
+    --label:    #1C1C1E;
+    --label-2:  #3C3C43;
+    --label-3:  rgba(60, 60, 67, 0.60);
+    --label-4:  rgba(60, 60, 67, 0.30);
+
+    --stage:          #EFEAD8;
+    --stage-text:     #6B6558;
+    --stage-ink:      #2A2824;
+    --stage-line:     rgba(34, 30, 20, 0.12);
+    --stage-line-soft: rgba(34, 30, 20, 0.06);
+    --measure:        #C28A2A;
+    --measure-soft:   rgba(194, 138, 42, 0.22);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display",
+                 "Helvetica Neue", Helvetica, Arial, sans-serif;
+    color: var(--label);
+    background: var(--stage);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+  button { font-family: inherit; }
+
+  /* ============= Page chrome ============= */
+  .page { min-width: 1520px; padding: 56px 48px 96px; }
+  .page-head { max-width: 1420px; margin: 0 auto 44px; }
+  .page-head .eyebrow {
+    font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--stage-text); margin: 0 0 12px;
+  }
+  .page-head h1 {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 32px; line-height: 1.15; font-weight: 500;
+    letter-spacing: -0.015em; margin: 0 0 14px; color: var(--stage-ink);
+  }
+  .page-head h1 em { font-style: italic; }
+  .page-head p {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 17px; line-height: 1.55;
+    color: var(--stage-text); margin: 0; max-width: 1100px;
+    text-wrap: pretty;
+  }
+  .page-head p em { font-style: italic; }
+  .page-head p + p { margin-top: 12px; }
+  .page-head .crumbs {
+    display: flex; gap: 10px; align-items: center; margin: 22px 0 0; flex-wrap: wrap;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+    font-size: 12px; color: var(--stage-text); letter-spacing: 0.02em;
+  }
+  .page-head .crumbs .pill {
+    padding: 3px 10px; border-radius: 999px;
+    border: 0.5px solid var(--stage-line);
+    background: rgba(255,255,255,0.4);
+  }
+  .page-head .crumbs .sep { color: var(--stage-line); }
+
+  .strip-head {
+    max-width: 1420px;
+    margin: 36px auto 22px;
+    padding-top: 24px;
+    border-top: 0.5px solid var(--stage-line);
+  }
+  .strip-head .eyebrow {
+    font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--stage-text); margin: 0 0 8px;
+  }
+  .strip-head h2 {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 22px; line-height: 1.25; font-weight: 500;
+    letter-spacing: -0.01em; margin: 0 0 8px; color: var(--stage-ink);
+  }
+  .strip-head h2 em { font-style: italic; }
+  .strip-head p {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 15px; line-height: 1.55;
+    color: var(--stage-text); margin: 0; max-width: 1080px;
+    text-wrap: pretty;
+  }
+
+  .row {
+    max-width: 1420px;
+    margin: 0 auto;
+    display: flex;
+    gap: 64px;
+    align-items: flex-start;
+    justify-content: center;
+  }
+  .col { display: flex; flex-direction: column; align-items: center; gap: 16px; }
+  .col .frame-label {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 18px; font-weight: 500; letter-spacing: -0.2px;
+    color: var(--stage-ink); margin: 0 0 4px;
+  }
+  .col .frame-label em { font-style: italic; }
+  .col .frame-sub {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 13px; font-style: italic;
+    color: var(--stage-text); margin: 0;
+    max-width: 380px; text-wrap: pretty; line-height: 1.45;
+    text-align: center;
+  }
+
+  /* ============= Phone shell ============= */
+  .phone {
+    width: 393px;
+    height: 852px;
+    background: var(--gray-6);
+    border-radius: 56px;
+    border: 1px solid rgba(0, 0, 0, 0.18);
+    box-shadow:
+      0 30px 80px -40px rgba(34, 30, 20, 0.32),
+      0 2px 0 rgba(255,255,255,0.5) inset;
+    overflow: hidden;
+    position: relative;
+    isolation: isolate;
+  }
+  .phone.bare {
+    background: #FFFFFF;
+  }
+  .phone .notch {
+    position: absolute; top: 11px; left: 50%; transform: translateX(-50%);
+    width: 116px; height: 34px; background: #0F0E0C; border-radius: 20px; z-index: 40;
+  }
+  .statusbar {
+    position: absolute; top: 0; left: 0; right: 0; height: 50px;
+    padding: 16px 32px 0; display: flex; align-items: center; justify-content: space-between;
+    font-weight: 600; font-size: 15px; color: #0A0A0A; z-index: 30; pointer-events: none;
+  }
+  .statusbar .right { display: flex; gap: 6px; align-items: center; }
+  .statusbar .right i { font-size: 15px; }
+  .home-indicator {
+    position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%);
+    width: 134px; height: 5px; border-radius: 3px;
+    background: rgba(0, 0, 0, 0.30); z-index: 45; pointer-events: none;
+  }
+
+  /* ============= Screen ground ============= */
+  .screen {
+    position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+    overflow: hidden;
+    padding-top: 50px;
+    background: var(--gray-6);
+  }
+
+  /* ============= Top header strip (step context) ============= */
+  .top-header {
+    padding: 8px 18px 10px;
+    display: flex; align-items: center; justify-content: space-between;
+    height: 52px;
+  }
+  .top-header .interest { display: inline-flex; align-items: baseline; gap: 8px; }
+  .top-header .interest .name {
+    font-size: 17px; font-weight: 600; letter-spacing: -0.25px;
+    color: var(--label);
+  }
+  .top-header .interest .switcher {
+    font-size: 13px; color: var(--label-3);
+    display: inline-flex; align-items: center; gap: 2px;
+  }
+  .top-header .interest .switcher i { font-size: 14px; margin-left: -2px; }
+  .top-header .step-counter {
+    font-size: 13px; font-weight: 500;
+    color: var(--label-3); letter-spacing: -0.05px;
+    font-variant-numeric: tabular-nums;
+  }
+  .top-header .avatar {
+    width: 32px; height: 32px; border-radius: 50%;
+    background: linear-gradient(135deg, #4E6A85 0%, #7C7B6E 100%);
+    display: inline-flex; align-items: center; justify-content: center;
+    color: #fff; font-size: 13px; font-weight: 600;
+    letter-spacing: -0.1px;
+    border: 0.5px solid rgba(0, 0, 0, 0.05);
+  }
+
+  /* ============= Card frame ============= */
+  .card {
+    position: absolute;
+    left: 14px; right: 14px;
+    top: 64px;
+    bottom: 84px;
+    background: #FFFFFF;
+    border-radius: 22px;
+    border: 0.5px solid rgba(0, 0, 0, 0.04);
+    box-shadow:
+      0 1px 2px rgba(0, 0, 0, 0.06),
+      0 18px 38px -16px rgba(0, 0, 0, 0.20),
+      0 4px 10px -4px rgba(0, 0, 0, 0.08);
+    display: flex; flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* ===== Live state header inside the card ===== */
+  .live-head {
+    padding: 13px 18px 12px;
+    border-bottom: 0.5px solid var(--gray-5);
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 12px;
+  }
+  .live-head .live-pill {
+    display: inline-flex; align-items: center; gap: 7px;
+    padding: 5px 11px 5px 9px;
+    border-radius: 999px;
+    background: var(--ios-coral-tint);
+    border: 0.5px solid var(--ios-coral-soft);
+  }
+  .live-head .live-pill .pulse {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--ios-coral);
+    box-shadow: 0 0 0 0 rgba(255, 107, 107, 0.55);
+    animation: pulse-coral 1.4s ease-out infinite;
+  }
+  .live-head .live-pill .label {
+    font-size: 11px; font-weight: 700; letter-spacing: 0.6px;
+    color: var(--ios-coral-deep);
+    text-transform: uppercase;
+  }
+  @keyframes pulse-coral {
+    0%   { box-shadow: 0 0 0 0 rgba(255, 107, 107, 0.55); }
+    70%  { box-shadow: 0 0 0 6px rgba(255, 107, 107, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(255, 107, 107, 0); }
+  }
+  .live-head .stats {
+    display: flex; align-items: baseline; gap: 12px;
+    font-variant-numeric: tabular-nums;
+  }
+  .live-head .stats .stat {
+    display: flex; flex-direction: column; align-items: flex-end;
+    line-height: 1;
+  }
+  .live-head .stats .stat .num {
+    font-size: 17px; font-weight: 600;
+    color: var(--label); letter-spacing: -0.4px;
+    font-variant-numeric: tabular-nums;
+  }
+  .live-head .stats .stat .lbl {
+    font-size: 9.5px; font-weight: 600;
+    color: var(--label-3); letter-spacing: 0.5px;
+    text-transform: uppercase;
+    margin-top: 3px;
+  }
+  .live-head .stats .sep {
+    width: 0.5px; align-self: stretch;
+    background: var(--gray-5);
+    margin: 2px 0;
+  }
+
+  /* ===== Step strip — quiet context ===== */
+  .step-strip {
+    padding: 8px 18px 9px;
+    border-bottom: 0.5px solid var(--gray-5);
+    display: flex; align-items: center; gap: 6px;
+    background: #FAFAFC;
+  }
+  .step-strip .ico {
+    width: 18px; height: 18px; border-radius: 50%;
+    background: var(--ios-blue-tint);
+    color: var(--ios-blue);
+    display: inline-flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .step-strip .ico i { font-size: 11px; }
+  .step-strip .text {
+    font-size: 11.5px; color: var(--label-2);
+    letter-spacing: -0.05px;
+    line-height: 1.2;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .step-strip .text .em {
+    font-weight: 600; color: var(--label);
+  }
+  .step-strip .text .sep { color: var(--label-4); margin: 0 5px; }
+
+  /* ===== Capture stream ===== */
+  .stream {
+    flex: 1;
+    overflow: hidden;
+    padding: 12px 14px 8px;
+    position: relative;
+    display: flex; flex-direction: column; gap: 10px;
+  }
+  .stream::after {
+    content: "";
+    position: absolute; left: 0; right: 0; bottom: 0;
+    height: 24px;
+    background: linear-gradient(180deg, rgba(255,255,255,0) 0%, #fff 100%);
+    pointer-events: none;
+  }
+
+  .stream-eyebrow {
+    display: flex; align-items: center; justify-content: space-between;
+    margin: -2px 4px 0;
+  }
+  .stream-eyebrow .lbl {
+    font-size: 9.5px; font-weight: 600;
+    color: var(--label-3); letter-spacing: 0.7px;
+    text-transform: uppercase;
+  }
+  .stream-eyebrow .lbl .arrow { color: var(--label-4); margin-right: 4px; }
+  .stream-eyebrow .freshest {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 10px; font-weight: 600;
+    color: var(--ios-coral-deep); letter-spacing: 0.2px;
+  }
+  .stream-eyebrow .freshest .dot {
+    width: 5px; height: 5px; border-radius: 50%;
+    background: var(--ios-coral);
+  }
+
+  .cap {
+    background: #FFFFFF;
+    border: 0.5px solid var(--gray-5);
+    border-left: 2.5px solid var(--gray-3);
+    border-radius: 12px;
+    padding: 10px 12px 11px;
+    display: grid;
+    grid-template-columns: 40px 1fr auto;
+    column-gap: 10px;
+    row-gap: 6px;
+    align-items: start;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.025);
+  }
+  .cap.voice  { border-left-color: var(--ios-blue); }
+  .cap.typed  { border-left-color: var(--gray-3); }
+  .cap.photo  { border-left-color: var(--label-2); }
+
+  .cap.fresh {
+    background: linear-gradient(180deg, #FFFBF9 0%, #FFFFFF 70%);
+    box-shadow:
+      0 1px 2px rgba(0, 0, 0, 0.04),
+      0 0 0 1px rgba(255, 107, 107, 0.14);
+  }
+
+  .cap .ts {
+    font-size: 10.5px; font-weight: 600;
+    color: var(--label-3); letter-spacing: -0.05px;
+    font-variant-numeric: tabular-nums;
+    padding-top: 1px;
+  }
+  .cap .ts .ago {
+    display: block;
+    font-size: 9px; font-weight: 500;
+    color: var(--label-4); letter-spacing: 0.1px;
+    text-transform: uppercase;
+    margin-top: 2px;
+  }
+  .cap .body {
+    font-size: 13px; line-height: 1.4;
+    color: var(--label); letter-spacing: -0.1px;
+    text-wrap: pretty;
+  }
+  .cap.voice .body { font-style: italic; }
+
+  /* Waveform inside a voice capture */
+  .wave {
+    grid-column: 2 / 3;
+    display: flex; align-items: center; gap: 9px;
+    margin-top: 2px;
+  }
+  .wave .play {
+    width: 26px; height: 26px; border-radius: 50%;
+    background: var(--ios-blue);
+    color: #fff;
+    border: 0;
+    display: inline-flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    box-shadow: 0 2px 5px -2px rgba(0, 122, 255, 0.45);
+    cursor: pointer;
+  }
+  .wave .play i { font-size: 12px; margin-left: 1.5px; }
+  .wave .bars {
+    flex: 1;
+    display: flex; align-items: center; gap: 2px;
+    height: 22px;
+  }
+  .wave .bars .bar {
+    flex: 1;
+    background: var(--ios-blue);
+    border-radius: 1px;
+    opacity: 0.85;
+  }
+  .wave .bars .bar.q { opacity: 0.32; }
+  .wave .dur {
+    font-size: 10.5px; font-weight: 600;
+    color: var(--label-3); letter-spacing: -0.05px;
+    font-variant-numeric: tabular-nums;
+    flex-shrink: 0;
+  }
+
+  .cap .meta {
+    grid-column: 2 / 4;
+    font-size: 10px; color: var(--label-3);
+    letter-spacing: -0.02px;
+    display: flex; align-items: center; gap: 6px;
+    flex-wrap: wrap;
+    margin-top: 2px;
+  }
+  .cap .meta .type {
+    display: inline-flex; align-items: center; gap: 3px;
+  }
+  .cap .meta .type i { font-size: 11px; }
+  .cap .meta .sep { color: var(--label-4); }
+  .cap .meta .beat { font-weight: 500; }
+
+  .cap .chip {
+    grid-column: 3;
+    grid-row: 1;
+    align-self: start;
+    display: inline-flex; align-items: center;
+    padding: 2px 8px 3px;
+    border-radius: 999px;
+    background: var(--ios-coral-tint);
+    color: var(--ios-coral-deep);
+    font-size: 9.5px; font-weight: 700;
+    letter-spacing: 0.2px;
+    white-space: nowrap;
+  }
+  .cap .chip.live {
+    background: var(--ios-coral);
+    color: #fff;
+  }
+  .cap .chip.live .dot {
+    width: 5px; height: 5px; border-radius: 50%;
+    background: #fff;
+    margin-right: 4px;
+    box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.65);
+    animation: pulse-coral 1.4s ease-out infinite;
+  }
+
+  /* Photo capture body */
+  .cap.photo .photo-frame {
+    grid-column: 2 / 4;
+    margin-top: 2px;
+    border-radius: 8px;
+    overflow: hidden;
+    height: 92px;
+    background:
+      linear-gradient(135deg, #B8C5D1 0%, #8FA3B5 50%, #6B7E8E 100%);
+    position: relative;
+    border: 0.5px solid rgba(0, 0, 0, 0.06);
+  }
+  .cap.photo .photo-frame::before {
+    content: "";
+    position: absolute; inset: 0;
+    background:
+      repeating-linear-gradient(135deg,
+        rgba(255,255,255,0.07) 0 8px,
+        rgba(255,255,255,0) 8px 18px);
+  }
+  .cap.photo .photo-frame .ph-label {
+    position: absolute; left: 10px; bottom: 8px;
+    font-family: "SF Mono", ui-monospace, Menlo, monospace;
+    font-size: 9.5px; font-weight: 500;
+    color: rgba(255,255,255,0.92);
+    letter-spacing: 0.4px;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.25);
+  }
+  .cap.photo .photo-frame .corner {
+    position: absolute; top: 8px; right: 8px;
+    width: 18px; height: 18px; border-radius: 50%;
+    background: rgba(0,0,0,0.32);
+    color: #fff;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .cap.photo .photo-frame .corner i { font-size: 11px; }
+
+  /* Time marker — full-width divider */
+  .marker {
+    display: flex; align-items: center; gap: 10px;
+    padding: 2px 6px;
+    margin: 2px 0;
+  }
+  .marker .line {
+    flex: 1;
+    height: 0.5px;
+    background: var(--gray-4);
+  }
+  .marker .pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 3px 10px 4px;
+    border-radius: 999px;
+    background: var(--gray-6);
+    border: 0.5px solid var(--gray-5);
+    font-size: 10px; font-weight: 600;
+    color: var(--label-2); letter-spacing: 0.3px;
+    text-transform: uppercase;
+    font-variant-numeric: tabular-nums;
+  }
+  .marker .pill i { font-size: 11px; color: var(--label-3); }
+  .marker .pill .em { color: var(--label); }
+
+  /* ===== Composer / tap-to-add affordance ===== */
+  .composer {
+    position: absolute;
+    left: 14px; right: 14px;
+    bottom: 152px;
+    background: #FFFFFF;
+    border-radius: 18px;
+    border: 0.5px solid var(--gray-4);
+    box-shadow:
+      0 1px 2px rgba(0, 0, 0, 0.04),
+      0 14px 32px -16px rgba(0, 0, 0, 0.22),
+      0 4px 10px -6px rgba(0, 0, 0, 0.10);
+    padding: 10px 12px 10px 14px;
+    display: flex; align-items: center; gap: 10px;
+    z-index: 18;
+  }
+  .composer .field {
+    flex: 1;
+    display: flex; align-items: center; gap: 7px;
+    min-width: 0;
+    font-size: 13px;
+    color: var(--label-3);
+    letter-spacing: -0.1px;
+  }
+  .composer .field .ico-add {
+    width: 20px; height: 20px; border-radius: 50%;
+    background: var(--ios-blue-tint);
+    color: var(--ios-blue);
+    display: inline-flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .composer .field .ico-add i { font-size: 13px; }
+  .composer .actions { display: flex; align-items: center; gap: 4px; }
+  .composer .actions .a-btn {
+    width: 34px; height: 34px; border-radius: 50%;
+    background: var(--gray-6);
+    border: 0;
+    color: var(--label-2);
+    display: inline-flex; align-items: center; justify-content: center;
+    cursor: pointer;
+  }
+  .composer .actions .a-btn i { font-size: 16px; }
+  .composer .actions .a-btn.cam { color: var(--label); }
+  .composer .actions .a-btn.note { color: var(--label); }
+  .composer .actions .mic-big {
+    width: 44px; height: 44px; border-radius: 50%;
+    background: var(--ios-coral);
+    border: 0;
+    color: #fff;
+    display: inline-flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    box-shadow:
+      0 4px 12px -2px rgba(255, 107, 107, 0.45),
+      0 1px 2px rgba(0,0,0,0.1),
+      0 0 0 0 rgba(255, 107, 107, 0.5);
+    animation: pulse-coral-big 1.8s ease-out infinite;
+    margin-left: 2px;
+  }
+  .composer .actions .mic-big i { font-size: 19px; }
+  @keyframes pulse-coral-big {
+    0%   { box-shadow: 0 4px 12px -2px rgba(255, 107, 107, 0.45), 0 1px 2px rgba(0,0,0,0.1), 0 0 0 0 rgba(255, 107, 107, 0.45); }
+    70%  { box-shadow: 0 4px 12px -2px rgba(255, 107, 107, 0.45), 0 1px 2px rgba(0,0,0,0.1), 0 0 0 10px rgba(255, 107, 107, 0); }
+    100% { box-shadow: 0 4px 12px -2px rgba(255, 107, 107, 0.45), 0 1px 2px rgba(0,0,0,0.1), 0 0 0 0 rgba(255, 107, 107, 0); }
+  }
+
+  /* ===== Stop capturing CTA ===== */
+  .stop-cta {
+    position: absolute;
+    left: 14px; right: 14px;
+    bottom: 96px;
+    background: #FFFFFF;
+    border: 1px solid var(--ios-coral);
+    color: var(--ios-coral-deep);
+    border-radius: 14px;
+    padding: 13px 16px;
+    font-size: 15px; font-weight: 600;
+    letter-spacing: -0.2px;
+    display: flex; align-items: center; justify-content: center; gap: 7px;
+    cursor: pointer;
+    box-shadow:
+      0 4px 12px -4px rgba(255, 107, 107, 0.18),
+      0 1px 2px rgba(0,0,0,0.05);
+    z-index: 18;
+  }
+  .stop-cta i { font-size: 17px; }
+  .stop-cta .sq {
+    width: 11px; height: 11px;
+    background: var(--ios-coral);
+    border-radius: 2px;
+    display: inline-block;
+  }
+
+  /* ============= Tab bar ============= */
+  .tabbar {
+    position: absolute;
+    left: 0; right: 0; bottom: 0;
+    height: 84px;
+    padding: 6px 0 24px;
+    background: rgba(255, 255, 255, 0.82);
+    -webkit-backdrop-filter: blur(28px) saturate(180%);
+    backdrop-filter: blur(28px) saturate(180%);
+    border-top: 0.5px solid rgba(0, 0, 0, 0.08);
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    align-items: center;
+    z-index: 25;
+  }
+  .tabbar .t {
+    display: flex; flex-direction: column; align-items: center; gap: 2px;
+    background: none; border: none; padding: 6px 0; cursor: pointer;
+    color: var(--gray-1);
+    font-size: 10px; font-weight: 500;
+    letter-spacing: 0.02em;
+  }
+  .tabbar .t i { font-size: 25px; line-height: 1; }
+  .tabbar .t.on { color: var(--ios-blue); }
+  .tabbar .t.on i { color: var(--ios-blue); }
+
+  /* ===================================================== */
+  /* ============= Anatomy frame ========================== */
+  /* ===================================================== */
+  .anatomy {
+    width: 393px;
+    height: 852px;
+    position: relative;
+  }
+  .anatomy .pad {
+    position: absolute; inset: 0;
+    pointer-events: none;
+  }
+
+  /* Measure annotations on the right side of anatomy */
+  .anatomy-wrap {
+    position: relative;
+    display: flex; gap: 36px;
+    align-items: flex-start;
+  }
+  .anatomy-callouts {
+    width: 360px;
+    padding-top: 56px;
+    display: flex; flex-direction: column; gap: 22px;
+  }
+  .callout {
+    border-left: 1px solid var(--measure-soft);
+    padding: 2px 0 4px 14px;
+    position: relative;
+  }
+  .callout::before {
+    content: "";
+    position: absolute; left: -3px; top: 6px;
+    width: 5px; height: 5px; border-radius: 50%;
+    background: var(--measure);
+  }
+  .callout .ctitle {
+    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 10.5px; font-weight: 700;
+    color: var(--measure); letter-spacing: 0.5px;
+    text-transform: uppercase;
+    margin: 0 0 6px;
+  }
+  .callout .cname {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 15px; font-style: italic; font-weight: 500;
+    color: var(--stage-ink); margin: 0 0 4px;
+    letter-spacing: -0.15px;
+  }
+  .callout .cspec {
+    font-family: "SF Mono", ui-monospace, Menlo, monospace;
+    font-size: 11px; color: var(--label-2);
+    letter-spacing: 0.02em; line-height: 1.55;
+    margin: 0;
+  }
+  .callout .cspec .k { color: var(--label-3); }
+  .callout .cspec .v { color: var(--stage-ink); }
+  .callout .cnote {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 12.5px; line-height: 1.5;
+    color: var(--stage-text); margin: 6px 0 0;
+    text-wrap: pretty;
+  }
+
+  /* Measurement chips overlaid on the bare phone */
+  .anatomy .phone { box-shadow: 0 20px 50px -32px rgba(34, 30, 20, 0.30); }
+
+  .m-tag {
+    position: absolute;
+    font-family: "SF Mono", ui-monospace, Menlo, monospace;
+    font-size: 9.5px; font-weight: 600;
+    background: #FFF;
+    color: var(--measure);
+    border: 0.5px solid var(--measure-soft);
+    padding: 2px 6px 2.5px;
+    border-radius: 4px;
+    white-space: nowrap;
+    z-index: 6;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+  }
+  .m-line {
+    position: absolute;
+    background: var(--measure);
+    opacity: 0.7;
+    z-index: 4;
+  }
+  .m-line.h { height: 1px; }
+  .m-line.v { width: 1px; }
+  .m-line::before, .m-line::after {
+    content: "";
+    position: absolute;
+    background: var(--measure);
+  }
+  .m-line.h::before { left: 0; top: -3px; width: 1px; height: 7px; }
+  .m-line.h::after  { right: 0; top: -3px; width: 1px; height: 7px; }
+  .m-line.v::before { top: 0; left: -3px; height: 1px; width: 7px; }
+  .m-line.v::after  { bottom: 0; left: -3px; height: 1px; width: 7px; }
+
+  .m-box {
+    position: absolute;
+    border: 1px dashed var(--measure);
+    border-radius: 4px;
+    background: rgba(194, 138, 42, 0.05);
+    z-index: 3;
+    pointer-events: none;
+  }
+
+  /* Right-side legend for color tokens */
+  .legend {
+    margin-top: 6px;
+    padding: 16px 16px 14px;
+    background: rgba(255,255,255,0.55);
+    border: 0.5px solid var(--stage-line);
+    border-radius: 14px;
+  }
+  .legend h5 {
+    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 10.5px; font-weight: 700;
+    color: var(--stage-ink); letter-spacing: 0.5px;
+    text-transform: uppercase;
+    margin: 0 0 12px;
+  }
+  .legend .row-l {
+    display: grid;
+    grid-template-columns: 14px 1fr auto;
+    gap: 9px;
+    align-items: center;
+    padding: 5px 0;
+    border-bottom: 0.5px dashed var(--stage-line-soft);
+  }
+  .legend .row-l:last-child { border-bottom: 0; }
+  .legend .sw {
+    width: 14px; height: 14px; border-radius: 4px;
+    border: 0.5px solid rgba(0,0,0,0.08);
+  }
+  .legend .nm {
+    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 12px; color: var(--stage-ink);
+  }
+  .legend .nm em { font-style: italic; color: var(--stage-text); }
+  .legend .hex {
+    font-family: "SF Mono", ui-monospace, Menlo, monospace;
+    font-size: 10.5px;
+    color: var(--stage-text);
+  }
+
+  /* Type scale block */
+  .type-scale {
+    margin-top: 10px;
+    padding: 16px 16px 14px;
+    background: rgba(255,255,255,0.55);
+    border: 0.5px solid var(--stage-line);
+    border-radius: 14px;
+  }
+  .type-scale h5 {
+    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 10.5px; font-weight: 700;
+    color: var(--stage-ink); letter-spacing: 0.5px;
+    text-transform: uppercase;
+    margin: 0 0 12px;
+  }
+  .type-row {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 10px;
+    align-items: baseline;
+    padding: 6px 0;
+    border-bottom: 0.5px dashed var(--stage-line-soft);
+  }
+  .type-row:last-child { border-bottom: 0; }
+  .type-row .sample {
+    color: var(--label);
+    letter-spacing: -0.2px;
+  }
+  .type-row .sample.head { font-size: 17px; font-weight: 600; }
+  .type-row .sample.stat { font-size: 17px; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .type-row .sample.body { font-size: 13px; }
+  .type-row .sample.body.voice { font-style: italic; }
+  .type-row .sample.ts { font-size: 10.5px; font-weight: 600; color: var(--label-3); font-variant-numeric: tabular-nums; }
+  .type-row .sample.eye { font-size: 9.5px; font-weight: 700; color: var(--ios-coral-deep); letter-spacing: 0.6px; text-transform: uppercase; }
+  .type-row .sample.lbl { font-size: 11px; color: var(--stage-text); }
+  .type-row .spec {
+    font-family: "SF Mono", ui-monospace, Menlo, monospace;
+    font-size: 10px; color: var(--stage-text); letter-spacing: 0.02em;
+  }
+
+  /* ============= Rail ============= */
+  .rail-row {
+    max-width: 1420px;
+    margin: 56px auto 0;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 40px;
+  }
+  .rail-col h4 {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 14px; letter-spacing: 0.01em;
+    color: var(--stage-ink); margin: 0 0 10px; font-weight: 500;
+  }
+  .rail-col h4 em { font-style: italic; }
+  .rail-col p {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 13.5px; line-height: 1.55;
+    color: #4D4A43; margin: 0 0 10px;
+    text-wrap: pretty;
+  }
+  .rail-col p strong { color: var(--stage-ink); font-weight: 500; }
+  .rail-col em { font-style: italic; }
+  .rail-col .sig {
+    display: inline-flex; align-items: center; gap: 6px;
+    margin-top: 4px;
+    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 11px; letter-spacing: 0.04em;
+    color: var(--stage-text);
+  }
+  .rail-col .sig .swatch {
+    display: inline-block;
+    width: 10px; height: 10px; border-radius: 3px;
+    border: 0.5px solid rgba(0,0,0,0.1);
+  }
+  .rail-col .sig .swatch.blue { background: var(--ios-blue); }
+  .rail-col .sig .swatch.coral { background: var(--ios-coral); }
+  .rail-col .sig .swatch.gray { background: var(--gray-3); }
+  .rail-col .sig .swatch.ink { background: var(--label-2); }
+
+</style>
+</head>
+<body>
+
+<div class="page">
+
+  <header class="page-head">
+    <p class="eyebrow">BetterAt · Phase B.7 · Frame 2 — Live capturing · Canonical · 2026-05-16</p>
+    <h1>Do tab, mid-activity: a <em>reverse-chronological capture stream</em> that gets out of the way while the user is in the moment</h1>
+    <p>This is the single frame the user spends the most <em>time</em> inside the Do tab. The phone is held in one hand, screen glanced at between actions. The interface must be calm enough to ignore and loud enough — via the coral <strong>LIVE</strong> pulse — to confirm "yes, I'm capturing" in a quarter-second glance. Composer is anchored above the tab bar, never blocking the freshest capture.</p>
+    <div class="crumbs">
+      <span class="pill">iPhone 16e · portrait · 393 × 852</span>
+      <span class="sep">·</span>
+      <span class="pill">Source · <em>do-tab-interior-canonical.html</em> Frame 2</span>
+      <span class="sep">·</span>
+      <span class="pill">Style match · <em>plan-tab-three-states-canonical.html</em></span>
+      <span class="sep">·</span>
+      <span class="pill">Phase B.7 · Frame 2 of 4</span>
+    </div>
+  </header>
+
+  <section class="strip-head">
+    <p class="eyebrow">Live state · Webview + Anatomy</p>
+    <h2><em>Capture stream</em> on the left · <em>spacing &amp; type spec</em> on the right</h2>
+    <p>The webview frame is the canonical render at full 393 × 852. The anatomy frame strips the same surface to its measurement bones — margins, paddings, type sizes, color tokens — so it can be implemented exactly. Both frames are sourced from the same component tree; nothing in the anatomy is invented for the diagram.</p>
+  </section>
+
+  <div class="row">
+
+    <!-- =============================================================== -->
+    <!-- Webview frame · Live capturing                                    -->
+    <!-- =============================================================== -->
+    <div class="col">
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="statusbar">
+          <span>14:23</span>
+          <span class="right">
+            <i class="ti ti-cell-signal-4"></i>
+            <i class="ti ti-wifi"></i>
+            <i class="ti ti-battery-3"></i>
+          </span>
+        </div>
+
+        <div class="screen" data-screen-label="B.7 · Frame 2 · Do · Live capturing">
+
+          <div class="top-header">
+            <div class="interest">
+              <span class="name">Sail Racing</span>
+              <span class="switcher"><i class="ti ti-chevron-down"></i></span>
+            </div>
+            <span class="step-counter">Step 6 of 11</span>
+            <div class="avatar">KD</div>
+          </div>
+
+          <article class="card">
+
+            <!-- Live header — coral pulse + count + elapsed -->
+            <header class="live-head">
+              <div class="live-pill">
+                <span class="pulse" aria-hidden="true"></span>
+                <span class="label">Live · capturing</span>
+              </div>
+              <div class="stats" aria-label="Capture stats">
+                <div class="stat">
+                  <span class="num">6</span>
+                  <span class="lbl">Captures</span>
+                </div>
+                <span class="sep" aria-hidden="true"></span>
+                <div class="stat">
+                  <span class="num">14:52</span>
+                  <span class="lbl">Elapsed</span>
+                </div>
+              </div>
+            </header>
+
+            <!-- Quiet step context -->
+            <div class="step-strip">
+              <span class="ico"><i class="ti ti-flag-3"></i></span>
+              <span class="text">
+                <span class="em">Light-air starts in shifty breeze</span>
+                <span class="sep">·</span>
+                Race 4 · beat 2
+              </span>
+            </div>
+
+            <!-- Reverse-chronological capture stream -->
+            <div class="stream">
+              <div class="stream-eyebrow">
+                <span class="lbl"><span class="arrow">↓</span>Newest first</span>
+                <span class="freshest"><span class="dot"></span>Just now</span>
+              </div>
+
+              <!-- 1 · Most recent — voice with waveform, "live"-styled chip -->
+              <article class="cap voice fresh">
+                <div class="ts">14:23<span class="ago">12 s ago</span></div>
+                <div class="body">"Left filled in at eight degrees. Not committing yet — rule said ten."</div>
+                <span class="chip live"><span class="dot" aria-hidden="true"></span>Weather</span>
+                <div class="wave" aria-label="Voice clip · 7 seconds">
+                  <button class="play" aria-label="Play voice"><i class="ti ti-player-play-filled"></i></button>
+                  <div class="bars" aria-hidden="true">
+                    <div class="bar" style="height: 8px;"></div>
+                    <div class="bar" style="height: 14px;"></div>
+                    <div class="bar" style="height: 10px;"></div>
+                    <div class="bar" style="height: 18px;"></div>
+                    <div class="bar" style="height: 22px;"></div>
+                    <div class="bar" style="height: 16px;"></div>
+                    <div class="bar" style="height: 11px;"></div>
+                    <div class="bar" style="height: 19px;"></div>
+                    <div class="bar" style="height: 14px;"></div>
+                    <div class="bar" style="height: 9px;"></div>
+                    <div class="bar" style="height: 16px;"></div>
+                    <div class="bar" style="height: 21px;"></div>
+                    <div class="bar" style="height: 13px;"></div>
+                    <div class="bar" style="height: 8px;"></div>
+                    <div class="bar q" style="height: 11px;"></div>
+                    <div class="bar q" style="height: 6px;"></div>
+                    <div class="bar q" style="height: 14px;"></div>
+                    <div class="bar q" style="height: 8px;"></div>
+                  </div>
+                  <span class="dur">0:07</span>
+                </div>
+                <div class="meta">
+                  <span class="type"><i class="ti ti-microphone"></i>Voice</span>
+                  <span class="sep">·</span>
+                  <span class="beat">beat 2</span>
+                  <span class="sep">·</span>
+                  <span>Auto-transcribed</span>
+                </div>
+              </article>
+
+              <!-- 2 · Typed quick note -->
+              <article class="cap typed">
+                <div class="ts">14:20<span class="ago">3m</span></div>
+                <div class="body">Sam said hold our lane. Trust him.</div>
+                <div class="meta">
+                  <span class="type"><i class="ti ti-pencil"></i>Quick note</span>
+                  <span class="sep">·</span>
+                  <span class="beat">beat 2</span>
+                </div>
+              </article>
+
+              <!-- 3 · Photo capture -->
+              <article class="cap photo">
+                <div class="ts">14:15<span class="ago">8m</span></div>
+                <div class="body">Jib telltale streaming · upper twist looking right.</div>
+                <span class="chip">Boat tune</span>
+                <div class="photo-frame" aria-label="Photo placeholder">
+                  <span class="corner"><i class="ti ti-camera-filled"></i></span>
+                  <span class="ph-label">photo · sail trim, beat 2</span>
+                </div>
+                <div class="meta">
+                  <span class="type"><i class="ti ti-camera"></i>Photo</span>
+                  <span class="sep">·</span>
+                  <span class="beat">beat 2</span>
+                </div>
+              </article>
+
+              <!-- 4 · Time marker (phase boundary) -->
+              <div class="marker" role="separator" aria-label="Beat 2 begins at 14:08">
+                <span class="line" aria-hidden="true"></span>
+                <span class="pill"><i class="ti ti-flag"></i>Beat 2 begins <span class="em">·&nbsp;14:08</span></span>
+                <span class="line" aria-hidden="true"></span>
+              </div>
+
+              <!-- 5 · Earlier voice (waveform, no fresh styling) -->
+              <article class="cap voice">
+                <div class="ts">13:54<span class="ago">29m</span></div>
+                <div class="body">"Two minutes. Clean lane off the pin. Holding speed."</div>
+                <span class="chip">Starts</span>
+                <div class="wave" aria-label="Voice clip · 5 seconds">
+                  <button class="play" aria-label="Play voice"><i class="ti ti-player-play-filled"></i></button>
+                  <div class="bars" aria-hidden="true">
+                    <div class="bar" style="height: 7px;"></div>
+                    <div class="bar" style="height: 12px;"></div>
+                    <div class="bar" style="height: 18px;"></div>
+                    <div class="bar" style="height: 14px;"></div>
+                    <div class="bar" style="height: 9px;"></div>
+                    <div class="bar" style="height: 15px;"></div>
+                    <div class="bar" style="height: 20px;"></div>
+                    <div class="bar" style="height: 11px;"></div>
+                    <div class="bar" style="height: 17px;"></div>
+                    <div class="bar" style="height: 13px;"></div>
+                    <div class="bar" style="height: 8px;"></div>
+                    <div class="bar" style="height: 14px;"></div>
+                    <div class="bar" style="height: 19px;"></div>
+                    <div class="bar" style="height: 10px;"></div>
+                    <div class="bar" style="height: 16px;"></div>
+                    <div class="bar" style="height: 6px;"></div>
+                    <div class="bar" style="height: 11px;"></div>
+                    <div class="bar" style="height: 8px;"></div>
+                  </div>
+                  <span class="dur">0:05</span>
+                </div>
+                <div class="meta">
+                  <span class="type"><i class="ti ti-microphone"></i>Voice</span>
+                  <span class="sep">·</span>
+                  <span class="beat">pre-start</span>
+                </div>
+              </article>
+
+            </div>
+
+          </article>
+
+          <!-- Composer · tap-to-add affordance, anchored above CTA -->
+          <div class="composer">
+            <div class="field">
+              <span class="ico-add"><i class="ti ti-plus"></i></span>
+              <span>Add a capture…</span>
+            </div>
+            <div class="actions">
+              <button class="a-btn note" aria-label="Type a note"><i class="ti ti-pencil"></i></button>
+              <button class="a-btn cam" aria-label="Take a photo"><i class="ti ti-camera"></i></button>
+              <button class="mic-big" aria-label="Hold to record voice"><i class="ti ti-microphone"></i></button>
+            </div>
+          </div>
+
+          <!-- Stop capturing CTA -->
+          <button class="stop-cta">
+            <span class="sq" aria-hidden="true"></span>
+            Stop capturing
+          </button>
+
+          <nav class="tabbar">
+            <button class="t on" aria-current="page">
+              <i class="ti ti-flag-3-filled"></i><span>Practice</span>
+            </button>
+            <button class="t"><i class="ti ti-book-2"></i><span>Playbook</span></button>
+            <button class="t"><i class="ti ti-compass"></i><span>Discover</span></button>
+            <button class="t"><i class="ti ti-user"></i><span>Profile</span></button>
+          </nav>
+        </div>
+
+        <div class="home-indicator"></div>
+      </div>
+
+      <div class="caption-block">
+        <p class="frame-label"><em>Live capturing</em> · 393 × 852</p>
+        <p class="frame-sub">Coral <strong>LIVE</strong> pill in the card header is the only foreground coral on screen. Composer hovers above the stop-CTA so the freshest capture is always one tap away — voice biased (large mic, primary coral) but photo and quick note are equal first-class.</p>
+      </div>
+    </div>
+
+    <!-- =============================================================== -->
+    <!-- Anatomy frame                                                     -->
+    <!-- =============================================================== -->
+    <div class="col">
+      <div class="anatomy-wrap">
+        <div class="anatomy">
+          <div class="phone bare">
+            <div class="notch"></div>
+            <div class="statusbar">
+              <span>14:23</span>
+              <span class="right">
+                <i class="ti ti-cell-signal-4"></i>
+                <i class="ti ti-wifi"></i>
+                <i class="ti ti-battery-3"></i>
+              </span>
+            </div>
+
+            <div class="screen" style="background: #FFFFFF;" data-screen-label="B.7 · Frame 2 · Anatomy">
+
+              <div class="top-header">
+                <div class="interest">
+                  <span class="name">Sail Racing</span>
+                  <span class="switcher"><i class="ti ti-chevron-down"></i></span>
+                </div>
+                <span class="step-counter">Step 6 of 11</span>
+                <div class="avatar">KD</div>
+              </div>
+
+              <article class="card" style="box-shadow: 0 1px 2px rgba(0,0,0,0.06), 0 10px 22px -14px rgba(0,0,0,0.12);">
+                <header class="live-head">
+                  <div class="live-pill">
+                    <span class="pulse" aria-hidden="true"></span>
+                    <span class="label">Live · capturing</span>
+                  </div>
+                  <div class="stats">
+                    <div class="stat">
+                      <span class="num">6</span>
+                      <span class="lbl">Captures</span>
+                    </div>
+                    <span class="sep" aria-hidden="true"></span>
+                    <div class="stat">
+                      <span class="num">14:52</span>
+                      <span class="lbl">Elapsed</span>
+                    </div>
+                  </div>
+                </header>
+
+                <div class="step-strip">
+                  <span class="ico"><i class="ti ti-flag-3"></i></span>
+                  <span class="text">
+                    <span class="em">Light-air starts in shifty breeze</span>
+                    <span class="sep">·</span>
+                    Race 4 · beat 2
+                  </span>
+                </div>
+
+                <div class="stream">
+                  <div class="stream-eyebrow">
+                    <span class="lbl"><span class="arrow">↓</span>Newest first</span>
+                  </div>
+
+                  <article class="cap voice fresh">
+                    <div class="ts">14:23<span class="ago">12 s ago</span></div>
+                    <div class="body">"Left filled in at eight degrees…"</div>
+                    <span class="chip live"><span class="dot" aria-hidden="true"></span>Weather</span>
+                    <div class="wave">
+                      <button class="play"><i class="ti ti-player-play-filled"></i></button>
+                      <div class="bars">
+                        <div class="bar" style="height: 8px;"></div>
+                        <div class="bar" style="height: 14px;"></div>
+                        <div class="bar" style="height: 18px;"></div>
+                        <div class="bar" style="height: 22px;"></div>
+                        <div class="bar" style="height: 14px;"></div>
+                        <div class="bar" style="height: 11px;"></div>
+                        <div class="bar" style="height: 19px;"></div>
+                        <div class="bar" style="height: 14px;"></div>
+                        <div class="bar" style="height: 9px;"></div>
+                        <div class="bar" style="height: 16px;"></div>
+                        <div class="bar" style="height: 21px;"></div>
+                        <div class="bar q" style="height: 11px;"></div>
+                        <div class="bar q" style="height: 14px;"></div>
+                        <div class="bar q" style="height: 8px;"></div>
+                      </div>
+                      <span class="dur">0:07</span>
+                    </div>
+                  </article>
+
+                  <article class="cap typed">
+                    <div class="ts">14:20<span class="ago">3m</span></div>
+                    <div class="body">Sam said hold our lane. Trust him.</div>
+                  </article>
+
+                  <article class="cap photo">
+                    <div class="ts">14:15<span class="ago">8m</span></div>
+                    <div class="body">Jib telltale · upper twist.</div>
+                    <span class="chip">Boat tune</span>
+                  </article>
+
+                  <div class="marker">
+                    <span class="line"></span>
+                    <span class="pill"><i class="ti ti-flag"></i>Beat 2 begins <span class="em">·&nbsp;14:08</span></span>
+                    <span class="line"></span>
+                  </div>
+                </div>
+
+              </article>
+
+              <div class="composer">
+                <div class="field">
+                  <span class="ico-add"><i class="ti ti-plus"></i></span>
+                  <span>Add a capture…</span>
+                </div>
+                <div class="actions">
+                  <button class="a-btn note"><i class="ti ti-pencil"></i></button>
+                  <button class="a-btn cam"><i class="ti ti-camera"></i></button>
+                  <button class="mic-big"><i class="ti ti-microphone"></i></button>
+                </div>
+              </div>
+
+              <button class="stop-cta">
+                <span class="sq" aria-hidden="true"></span>
+                Stop capturing
+              </button>
+
+              <nav class="tabbar">
+                <button class="t on"><i class="ti ti-flag-3-filled"></i><span>Practice</span></button>
+                <button class="t"><i class="ti ti-book-2"></i><span>Playbook</span></button>
+                <button class="t"><i class="ti ti-compass"></i><span>Discover</span></button>
+                <button class="t"><i class="ti ti-user"></i><span>Profile</span></button>
+              </nav>
+            </div>
+
+            <div class="home-indicator"></div>
+          </div>
+
+          <!-- Measurement overlay -->
+          <!-- Horizontal width tag for the card (left:14, right:14 → 365px wide) -->
+          <div class="m-line h" style="left: 14px; right: 14px; top: 56px;"></div>
+          <div class="m-tag" style="left: 50%; top: 44px; transform: translateX(-50%);">card · 365 × 612 · r 22</div>
+
+          <!-- Live header height callout -->
+          <div class="m-line v" style="left: 6px; top: 64px; height: 50px;"></div>
+          <div class="m-tag" style="left: -34px; top: 84px;">52</div>
+
+          <!-- Step strip height -->
+          <div class="m-line v" style="left: 6px; top: 116px; height: 33px;"></div>
+          <div class="m-tag" style="left: -34px; top: 126px;">33</div>
+
+          <!-- Capture card spacing -->
+          <div class="m-box" style="left: 28px; right: 28px; top: 168px; height: 102px;"></div>
+          <div class="m-tag" style="left: 30px; top: 160px;">capture · pad 10/12 · gap 10 between</div>
+
+          <!-- Composer bottom offset -->
+          <div class="m-line v" style="right: 6px; bottom: 96px; height: 56px;"></div>
+          <div class="m-tag" style="right: -38px; bottom: 116px;">56</div>
+
+          <!-- Stop CTA height -->
+          <div class="m-line v" style="right: 6px; bottom: 84px; height: 12px;"></div>
+          <div class="m-tag" style="right: -42px; bottom: 84px;">12 gap</div>
+
+          <!-- Tab bar height -->
+          <div class="m-line v" style="right: 6px; bottom: 0; height: 84px;"></div>
+          <div class="m-tag" style="right: -42px; bottom: 36px;">tabbar · 84</div>
+
+          <!-- LIVE pill -->
+          <div class="m-tag" style="left: 50px; top: 70px;">live pill · r 999 · 5/9 pad</div>
+
+          <!-- Mic dimension -->
+          <div class="m-tag" style="right: 24px; bottom: 158px;">mic · 44 · coral pulse</div>
+
+          <!-- Stop CTA -->
+          <div class="m-tag" style="left: 50%; bottom: 80px; transform: translateX(-50%);">stop · 1px coral border · r 14</div>
+
+          <!-- Tap target band -->
+          <div class="m-box" style="left: 14px; right: 14px; bottom: 96px; height: 56px;"></div>
+        </div>
+
+        <!-- ============ Right column: callouts, legend, type ============ -->
+        <div class="anatomy-callouts">
+
+          <div class="callout">
+            <p class="ctitle">A · Live pill</p>
+            <p class="cname"><em>The only foreground coral.</em></p>
+            <p class="cspec">
+              <span class="k">size</span> · <span class="v">26 h · auto w</span><br>
+              <span class="k">radius</span> · <span class="v">999 (pill)</span><br>
+              <span class="k">padding</span> · <span class="v">5 / 11 / 5 / 9</span><br>
+              <span class="k">fill</span> · <span class="v">coral-tint · 10%</span><br>
+              <span class="k">border</span> · <span class="v">0.5 coral-soft · 18%</span><br>
+              <span class="k">pulse</span> · <span class="v">8px dot · 1.4 s ease-out</span>
+            </p>
+            <p class="cnote">If anything else on screen draws coral, this dies. Keep it ring-fenced.</p>
+          </div>
+
+          <div class="callout">
+            <p class="ctitle">B · Stats — captures / elapsed</p>
+            <p class="cname"><em>Two numbers, hairline between them.</em></p>
+            <p class="cspec">
+              <span class="k">num</span> · <span class="v">17/600 · −0.4 ls · tnum</span><br>
+              <span class="k">lbl</span> · <span class="v">9.5/700 · 0.5 ls · upper</span><br>
+              <span class="k">divider</span> · <span class="v">0.5 px · gray-5 · inset 2</span><br>
+              <span class="k">gap</span> · <span class="v">12 between stats</span>
+            </p>
+            <p class="cnote">Elapsed time uses mm:ss only — never hh:mm:ss on the surface, even past an hour. Detail lives in the post-activity summary.</p>
+          </div>
+
+          <div class="callout">
+            <p class="ctitle">C · Capture row</p>
+            <p class="cname"><em>40 / 1fr / auto grid · 2.5 px left accent.</em></p>
+            <p class="cspec">
+              <span class="k">radius</span> · <span class="v">12</span><br>
+              <span class="k">padding</span> · <span class="v">10 / 12 / 11 / 12</span><br>
+              <span class="k">gap</span> · <span class="v">10 between rows</span><br>
+              <span class="k">border</span> · <span class="v">0.5 gray-5 · L 2.5 type-accent</span><br>
+              <span class="k">ts</span> · <span class="v">10.5/600 · ago 9/500 upper</span><br>
+              <span class="k">body</span> · <span class="v">13/400 · 1.4 lh · pretty</span>
+            </p>
+            <p class="cnote">Left-border accent encodes type — blue voice, gray typed, ink photo. Voice transcripts render italic.</p>
+          </div>
+
+          <div class="callout">
+            <p class="ctitle">D · Waveform</p>
+            <p class="cname"><em>18-bar inline player.</em></p>
+            <p class="cspec">
+              <span class="k">play</span> · <span class="v">26 · blue · plays inline</span><br>
+              <span class="k">bars</span> · <span class="v">2 px wide · 1 gap · 22 max</span><br>
+              <span class="k">tail</span> · <span class="v">final 4 bars · opacity 0.32</span><br>
+              <span class="k">duration</span> · <span class="v">10.5/600 · tnum</span>
+            </p>
+            <p class="cnote">Bars sample peaks of the real clip, not noise — never decorative. Tail at 32% opacity shows un-played remainder.</p>
+          </div>
+
+          <div class="callout">
+            <p class="ctitle">E · Time marker</p>
+            <p class="cname"><em>Inline phase boundary.</em></p>
+            <p class="cspec">
+              <span class="k">pill</span> · <span class="v">r 999 · gray-6 fill · 0.5 gray-5</span><br>
+              <span class="k">label</span> · <span class="v">10/600 · 0.3 ls · upper</span><br>
+              <span class="k">flanks</span> · <span class="v">0.5 hairlines · gray-4</span>
+            </p>
+            <p class="cnote">Inserted automatically when phase metadata changes (e.g. "beat 1 → beat 2"). User cannot place by hand mid-activity.</p>
+          </div>
+
+          <div class="callout">
+            <p class="ctitle">F · Composer</p>
+            <p class="cname"><em>Tap-to-add affordance · hovers above the stop-CTA.</em></p>
+            <p class="cspec">
+              <span class="k">height</span> · <span class="v">56</span><br>
+              <span class="k">radius</span> · <span class="v">18</span><br>
+              <span class="k">offset</span> · <span class="v">left 14 · right 14 · bottom 152</span><br>
+              <span class="k">mic</span> · <span class="v">44 · coral · pulse-big</span><br>
+              <span class="k">note/cam</span> · <span class="v">34 · gray-6 · ink glyph</span><br>
+              <span class="k">field</span> · <span class="v">13/400 · "Add a capture…"</span>
+            </p>
+            <p class="cnote">Mic is the largest target (44 — Apple's min hit) and the only animated control. Note and camera are equal first-class but visually quieter.</p>
+          </div>
+
+          <div class="callout">
+            <p class="ctitle">G · Stop capturing</p>
+            <p class="cname"><em>Reverse polarity · white-fill, coral-border.</em></p>
+            <p class="cspec">
+              <span class="k">height</span> · <span class="v">46</span><br>
+              <span class="k">radius</span> · <span class="v">14</span><br>
+              <span class="k">offset</span> · <span class="v">14/14, bottom 96</span><br>
+              <span class="k">label</span> · <span class="v">15/600 · −0.2 ls · coral-deep</span><br>
+              <span class="k">glyph</span> · <span class="v">11 px coral square · "stop"</span>
+            </p>
+            <p class="cnote">Intentionally not a coral-filled button — would compete with the LIVE pill and feel like an alarm. Reverse-polarity makes the action serious without being aggressive.</p>
+          </div>
+
+          <!-- ============= Color tokens ============ -->
+          <div class="legend">
+            <h5>Color tokens · in use on this surface</h5>
+            <div class="row-l">
+              <span class="sw" style="background: #007AFF;"></span>
+              <span class="nm"><em>ios-blue</em> · voice accent · play button</span>
+              <span class="hex">#007AFF</span>
+            </div>
+            <div class="row-l">
+              <span class="sw" style="background: #FF6B6B;"></span>
+              <span class="nm"><em>ios-coral</em> · LIVE only</span>
+              <span class="hex">#FF6B6B</span>
+            </div>
+            <div class="row-l">
+              <span class="sw" style="background: #E54848;"></span>
+              <span class="nm"><em>coral-deep</em> · coral text on light</span>
+              <span class="hex">#E54848</span>
+            </div>
+            <div class="row-l">
+              <span class="sw" style="background: #1C1C1E;"></span>
+              <span class="nm"><em>label</em> · body copy</span>
+              <span class="hex">#1C1C1E</span>
+            </div>
+            <div class="row-l">
+              <span class="sw" style="background: #C7C7CC;"></span>
+              <span class="nm"><em>gray-3</em> · typed-row accent</span>
+              <span class="hex">#C7C7CC</span>
+            </div>
+            <div class="row-l">
+              <span class="sw" style="background: #E5E5EA;"></span>
+              <span class="nm"><em>gray-5</em> · hairlines &amp; row border</span>
+              <span class="hex">#E5E5EA</span>
+            </div>
+            <div class="row-l">
+              <span class="sw" style="background: #F2F2F7;"></span>
+              <span class="nm"><em>gray-6</em> · screen ground · note btn</span>
+              <span class="hex">#F2F2F7</span>
+            </div>
+          </div>
+
+          <!-- ============= Type scale ============ -->
+          <div class="type-scale">
+            <h5>Type scale · this surface</h5>
+            <div class="type-row">
+              <span class="sample eye">Live · capturing</span>
+              <span class="spec">11 / 700 · 0.6 ls · upper</span>
+            </div>
+            <div class="type-row">
+              <span class="sample stat">14:52</span>
+              <span class="spec">17 / 600 · −0.4 ls · tnum</span>
+            </div>
+            <div class="type-row">
+              <span class="sample lbl">Captures · Elapsed</span>
+              <span class="spec">9.5 / 700 · 0.5 ls · upper</span>
+            </div>
+            <div class="type-row">
+              <span class="sample head">Light-air starts in shifty breeze</span>
+              <span class="spec">11.5 / 500 · step-strip</span>
+            </div>
+            <div class="type-row">
+              <span class="sample ts">14:23</span>
+              <span class="spec">10.5 / 600 · tnum</span>
+            </div>
+            <div class="type-row">
+              <span class="sample body voice">"Left filled in at eight degrees…"</span>
+              <span class="spec">13 / 400 · italic · 1.4 lh</span>
+            </div>
+            <div class="type-row">
+              <span class="sample body">Sam said hold our lane. Trust him.</span>
+              <span class="spec">13 / 400 · roman · 1.4 lh</span>
+            </div>
+            <div class="type-row">
+              <span class="sample lbl">Beat 2 begins · 14:08</span>
+              <span class="spec">10 / 600 · 0.3 ls · upper</span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <div class="caption-block" style="margin-top: 12px;">
+        <p class="frame-label"><em>Anatomy</em> · 393 × 852 + spec column</p>
+        <p class="frame-sub">Measurement chips in <span style="color: var(--measure); font-style: normal; font-weight: 600;">amber</span> overlay live components. Each callout is grouped by the same letter (A–G) used in the design-review doc. No spec on this page is invented; every value is in the canonical CSS.</p>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- =================================================================== -->
+  <!-- Rail of notes                                                         -->
+  <!-- =================================================================== -->
+  <div class="rail-row">
+    <div class="rail-col">
+      <h4><em>Reverse-chronological</em> is non-negotiable</h4>
+      <p>Mid-activity, the newest capture is at the top — like iMessage, Twitter, or a flight-deck running log. Sailors glance at the most recent thing they said, then keep sailing. A small <em>↓&nbsp;Newest first</em> eyebrow makes the orientation explicit. The freshest capture also carries a subtle warm-white wash and a 14% coral ring — confirmation that the last tap landed.</p>
+      <span class="sig"><span class="swatch coral"></span>fresh ring · 14% coral · only on the topmost capture</span>
+    </div>
+    <div class="rail-col">
+      <h4>One coral cue, four mixed types</h4>
+      <p>The capture stream mixes <strong>voice</strong> (italic transcript + 18-bar waveform), <strong>typed</strong> (roman, 1-line bodies), <strong>photo</strong> (placeholder with diagonal stripe and monospace label), and <strong>time markers</strong> (auto-inserted at phase boundaries). Each type is encoded by a 2.5 px left accent — blue, gray, ink — leaving coral free for the <em>state</em> of the surface, not the content of any one capture.</p>
+      <span class="sig"><span class="swatch blue"></span>voice · <span class="swatch gray"></span>typed · <span class="swatch ink"></span>photo</span>
+    </div>
+    <div class="rail-col">
+      <h4>Two bottom anchors, not one</h4>
+      <p>The composer (tap-to-add) and the stop-CTA are <em>separate</em> rows. The composer is the continuous action — <em>"add another"</em> — and stays one tap away at all times. The stop-CTA is the terminal action — <em>"this activity is done"</em> — and uses reverse polarity (white fill, coral border) so the user reads it as serious but not alarming. Stacking the two protects against accidental commits while keeping voice capture truly one-handed.</p>
+      <span class="sig"><span class="swatch coral"></span>mic (continue) · <span class="swatch coral"></span>stop (terminal · reverse polarity)</span>
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>
