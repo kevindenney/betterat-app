@@ -1,6 +1,7 @@
 import React from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
 import type { ReflectCompletionState, ReflectPromptAnswer } from './reflectState';
 
@@ -21,6 +22,7 @@ export interface ReflectTabInteriorProps {
   readOnly?: boolean;
   completedAtLabel?: string;
   captureCount?: number;
+  voiceCount?: number;
   promptsAnsweredCount?: number;
   capabilitiesAdvancedCount?: number;
   patternCallout?: ReflectPatternCallout | null;
@@ -40,6 +42,7 @@ export function ReflectTabInterior({
   readOnly,
   completedAtLabel,
   captureCount = 0,
+  voiceCount = 0,
   promptsAnsweredCount,
   capabilitiesAdvancedCount = 0,
   patternCallout,
@@ -57,27 +60,76 @@ export function ReflectTabInterior({
 
   if (state === 'empty') {
     return (
-      <ScrollView style={styles.container} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={styles.emptyHero}>
-          <View style={styles.emptyGlyph}>
-            <Ionicons name="sparkles-outline" size={26} color={REFLECT_GREEN} />
-          </View>
-          <Text style={styles.emptyTitle}>Reflect fills in after Do.</Text>
-          <Text style={styles.emptyBody}>
-            Capture a voice note, photo, or quick note first. The prompts here will stay quiet until
-            there is something real to reflect on.
+      <ScrollView style={styles.container} contentContainerStyle={styles.emptyContent} showsVerticalScrollIndicator={false}>
+        <View style={styles.fromDoRow}>
+          <Text style={styles.fromDoLabel}>
+            From Do · <Text style={styles.fromDoNum}>{captureCount} captures</Text> ·{' '}
+            <Text style={styles.fromDoNum}>{voiceCount} voice</Text>
           </Text>
-          <Pressable style={styles.secondaryButton} onPress={onAddFreeformNote} disabled={readOnly || !onAddFreeformNote}>
-            <Text style={styles.secondaryButtonText}>Jot a freeform note instead</Text>
-          </Pressable>
+          <Text style={styles.fromDoStatus}>Not started</Text>
         </View>
 
-        <GhostPrompt label="What worked" tone="green" />
-        <GhostPrompt label="What to improve" tone="purple" />
+        <View style={styles.emptyHero}>
+          <LinearGradient
+            colors={['rgba(52,199,89,0.06)', 'rgba(255,255,255,0)']}
+            style={StyleSheet.absoluteFill}
+            pointerEvents="none"
+          />
+          <View style={styles.emptyGlyphWrap}>
+            <View style={styles.emptyGlyphOrbit} pointerEvents="none" />
+            <View style={styles.emptyGlyph}>
+              <Ionicons name="book-outline" size={26} color={EMPTY_GLYPH_ICON} />
+            </View>
+          </View>
+          <Text style={styles.emptyTitle}>Nothing to reflect on yet</Text>
+          <Text style={styles.emptyBody}>
+            Reflect fills in once you've captured moments in <Text style={styles.emptyBodyEm}>Do</Text>
+            {' — '}prompts will surface here automatically.
+          </Text>
+        </View>
 
-        <Pressable style={styles.primaryGhostButton} onPress={onGoToDo} disabled={readOnly || !onGoToDo}>
-          <Text style={styles.primaryGhostButtonText}>Go capture in Do</Text>
+        <View style={styles.previewLabelRow}>
+          <Text style={styles.previewLabel}>What this will look like</Text>
+          <Text style={styles.previewSub}>After captures</Text>
+        </View>
+
+        <View style={styles.ghostList}>
+          <GhostRow tone="green" icon="arrow-up" barWidths={['100%', '64%']} />
+          <GhostRow tone="purple" icon="construct-outline" barWidths={['84%', '64%']} />
+        </View>
+
+        <Pressable
+          style={styles.freeformPrompt}
+          onPress={onAddFreeformNote}
+          disabled={readOnly || !onAddFreeformNote}
+          accessibilityRole="button"
+          accessibilityLabel="Jot a freeform note"
+        >
+          <View style={styles.freeformGlyph}>
+            <Ionicons name="pencil" size={14} color="#FFFFFF" />
+          </View>
+          <View style={styles.freeformCopy}>
+            <Text style={styles.freeformTitle}>Jot a freeform note instead</Text>
+            <View style={styles.freeformSubRow}>
+              <Text style={styles.freeformSub}>For when the activity happened off-app</Text>
+              <Ionicons name="arrow-forward" size={11} color={EMPTY_FREEFORM_SUB} />
+            </View>
+          </View>
         </Pressable>
+
+        <Pressable
+          style={styles.openDoButton}
+          onPress={onGoToDo}
+          disabled={readOnly || !onGoToDo}
+          accessibilityRole="button"
+        >
+          <Ionicons name="play" size={16} color="#FFFFFF" />
+          <Text style={styles.openDoButtonText}>Open Do tab</Text>
+        </Pressable>
+        <Text style={styles.openDoHint}>
+          Or <Text style={styles.openDoHintEm}>reflect later</Text>
+          {' — '}this tab will fill itself in once captures arrive.
+        </Text>
         {footer}
       </ScrollView>
     );
@@ -209,12 +261,25 @@ function PromptGroup({
   );
 }
 
-function GhostPrompt({ label, tone }: { label: string; tone: 'green' | 'purple' }) {
+function GhostRow({
+  tone,
+  icon,
+  barWidths,
+}: {
+  tone: 'green' | 'purple';
+  icon: React.ComponentProps<typeof Ionicons>['name'];
+  barWidths: [string, string];
+}) {
   return (
-    <View style={[styles.ghostPrompt, tone === 'purple' && styles.ghostPromptPurple]}>
-      <Text style={styles.ghostLabel}>{label}</Text>
-      <View style={styles.ghostLine} />
-      <View style={[styles.ghostLine, styles.ghostLineShort]} />
+    <View style={[styles.ghostRow, tone === 'green' ? styles.ghostRowGreen : styles.ghostRowPurple]}>
+      <View style={styles.ghostGlyph}>
+        <Ionicons name={icon} size={10} color={IOS_COLORS.tertiaryLabel} />
+      </View>
+      <View style={styles.ghostBarStack}>
+        <View style={[styles.ghostBar, { width: barWidths[0] as any }]} />
+        <View style={[styles.ghostBar, { width: barWidths[1] as any }]} />
+      </View>
+      <Ionicons name="chevron-down" size={12} color={IOS_COLORS.systemGray3} />
     </View>
   );
 }
@@ -237,6 +302,11 @@ function getCompletionHint(state: ReflectCompletionState): string {
 const REFLECT_GREEN = '#248A3D';
 const REFLECT_GREEN_SOFT = 'rgba(52,199,89,0.13)';
 const REFLECT_PURPLE_SOFT = 'rgba(120,91,169,0.12)';
+const EMPTY_GLYPH_ICON = 'rgba(60,60,67,0.3)';
+const EMPTY_FREEFORM_SUB = 'rgba(0,86,179,0.85)';
+const EMPTY_GHOST_BAR = '#F2F2F7';
+const EMPTY_GHOST_STRIPE_GREEN = 'rgba(52,199,89,0.55)';
+const EMPTY_GHOST_STRIPE_PURPLE = 'rgba(88,86,214,0.55)';
 
 const styles = StyleSheet.create({
   container: {
@@ -247,88 +317,226 @@ const styles = StyleSheet.create({
     paddingBottom: 96,
     gap: IOS_SPACING.sm,
   },
+  emptyContent: {
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 96,
+    gap: 8,
+  },
+  fromDoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 2,
+    paddingBottom: 2,
+  },
+  fromDoLabel: {
+    fontSize: 11,
+    color: IOS_COLORS.secondaryLabel,
+    letterSpacing: -0.02,
+  },
+  fromDoNum: {
+    color: IOS_COLORS.label,
+    fontWeight: '600',
+  },
+  fromDoStatus: {
+    fontSize: 11,
+    color: IOS_COLORS.secondaryLabel,
+    letterSpacing: -0.02,
+  },
   emptyHero: {
     alignItems: 'center',
-    borderRadius: 28,
+    borderRadius: 16,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(52,199,89,0.2)',
-    backgroundColor: '#F8FBF7',
-    padding: 22,
-    gap: 10,
+    borderColor: IOS_COLORS.systemGray5,
+    backgroundColor: '#FFFFFF',
+    paddingTop: 18,
+    paddingHorizontal: 18,
+    paddingBottom: 16,
+    marginTop: 4,
+    marginBottom: 4,
+    overflow: 'hidden',
   },
-  emptyGlyph: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+  emptyGlyphWrap: {
+    width: 66,
+    height: 66,
     alignItems: 'center',
     justifyContent: 'center',
+    marginBottom: 12,
+  },
+  emptyGlyphOrbit: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderRadius: 33,
     borderWidth: 1,
     borderStyle: 'dashed',
-    borderColor: 'rgba(52,199,89,0.45)',
-    backgroundColor: '#FFFFFF',
+    borderColor: IOS_COLORS.systemGray4,
+  },
+  emptyGlyph: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: IOS_COLORS.systemGray6,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: IOS_COLORS.systemGray5,
   },
   emptyTitle: {
-    fontSize: 20,
-    fontWeight: '800',
+    fontSize: 16,
+    fontWeight: '600',
     color: IOS_COLORS.label,
     letterSpacing: -0.3,
     textAlign: 'center',
+    marginBottom: 6,
   },
   emptyBody: {
-    fontSize: 14,
-    lineHeight: 20,
+    fontSize: 12.5,
+    lineHeight: 18.75,
+    color: IOS_COLORS.secondaryLabel,
+    letterSpacing: -0.05,
+    textAlign: 'center',
+    maxWidth: 240,
+  },
+  emptyBodyEm: {
+    fontStyle: 'italic',
+    color: IOS_COLORS.label,
+    fontWeight: '500',
+  },
+  previewLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 6,
+    marginBottom: 2,
+    paddingHorizontal: 2,
+  },
+  previewLabel: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: IOS_COLORS.secondaryLabel,
+    letterSpacing: 0.9,
+    textTransform: 'uppercase',
+  },
+  previewSub: {
+    fontSize: 10,
+    color: IOS_COLORS.tertiaryLabel,
+    fontStyle: 'italic',
+  },
+  ghostList: {
+    gap: 6,
+  },
+  ghostRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.65)',
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    borderColor: IOS_COLORS.systemGray4,
+    borderRadius: 12,
+    paddingVertical: 10,
+    paddingRight: 11,
+    paddingLeft: 9.5,
+    gap: 8,
+    borderLeftWidth: 2,
+  },
+  ghostRowGreen: {
+    borderLeftColor: EMPTY_GHOST_STRIPE_GREEN,
+  },
+  ghostRowPurple: {
+    borderLeftColor: EMPTY_GHOST_STRIPE_PURPLE,
+  },
+  ghostGlyph: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: IOS_COLORS.systemGray6,
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    borderColor: IOS_COLORS.systemGray3,
+  },
+  ghostBarStack: {
+    flex: 1,
+    gap: 5,
+  },
+  ghostBar: {
+    height: 7,
+    borderRadius: 4,
+    backgroundColor: EMPTY_GHOST_BAR,
+  },
+  freeformPrompt: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginTop: 14,
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    backgroundColor: 'rgba(0,122,255,0.10)',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(0,122,255,0.18)',
+  },
+  freeformGlyph: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: IOS_COLORS.systemBlue,
+  },
+  freeformCopy: {
+    flex: 1,
+  },
+  freeformTitle: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: IOS_COLORS.label,
+    letterSpacing: -0.15,
+    lineHeight: 14.4,
+  },
+  freeformSubRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    marginTop: 1,
+  },
+  freeformSub: {
+    fontSize: 10.5,
+    color: EMPTY_FREEFORM_SUB,
+    letterSpacing: -0.02,
+  },
+  openDoButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    height: 50,
+    borderRadius: 14,
+    backgroundColor: IOS_COLORS.systemBlue,
+    marginTop: 12,
+  },
+  openDoButtonText: {
+    fontSize: 14.5,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    letterSpacing: -0.2,
+  },
+  openDoHint: {
+    marginTop: 8,
+    fontSize: 10.5,
+    lineHeight: 14.7,
     color: IOS_COLORS.secondaryLabel,
     textAlign: 'center',
   },
-  secondaryButton: {
-    paddingVertical: 8,
-    paddingHorizontal: 10,
-  },
-  secondaryButtonText: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: IOS_COLORS.systemBlue,
-  },
-  ghostPrompt: {
-    borderRadius: 20,
-    borderWidth: 1,
-    borderStyle: 'dashed',
-    borderColor: 'rgba(52,199,89,0.34)',
-    backgroundColor: 'rgba(52,199,89,0.04)',
-    padding: 16,
-    gap: 9,
-  },
-  ghostPromptPurple: {
-    borderColor: 'rgba(120,91,169,0.34)',
-    backgroundColor: 'rgba(120,91,169,0.04)',
-  },
-  ghostLabel: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: IOS_COLORS.secondaryLabel,
-    textTransform: 'uppercase',
-    letterSpacing: 0.8,
-  },
-  ghostLine: {
-    height: 9,
-    borderRadius: 999,
-    backgroundColor: 'rgba(60,60,67,0.12)',
-  },
-  ghostLineShort: {
-    width: '68%',
-  },
-  primaryGhostButton: {
-    alignItems: 'center',
-    borderRadius: 18,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(0,122,255,0.35)',
-    paddingVertical: 13,
-    backgroundColor: '#FFFFFF',
-  },
-  primaryGhostButtonText: {
-    fontSize: 15,
-    fontWeight: '800',
-    color: IOS_COLORS.systemBlue,
+  openDoHintEm: {
+    fontStyle: 'italic',
+    color: IOS_COLORS.label,
+    fontWeight: '500',
   },
   statusPill: {
     alignSelf: 'flex-start',
