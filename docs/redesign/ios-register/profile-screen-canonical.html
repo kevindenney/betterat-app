@@ -1,0 +1,2179 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=1800" />
+<title>BetterAt · Profile Screen · Canonical — 2026-05-16</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css" />
+<style>
+  :root {
+    --ios-blue:        #007AFF;
+    --ios-blue-tint:   rgba(0, 122, 255, 0.10);
+    --ios-blue-strong: rgba(0, 122, 255, 0.18);
+    --ios-coral:       #FF6B6B;
+    --ios-coral-tint:  rgba(255, 107, 107, 0.10);
+    --ios-green:       #34C759;
+    --ios-green-tint:  rgba(52, 199, 89, 0.14);
+    --ios-purple:      #5856D6;
+    --ios-purple-tint: rgba(88, 86, 214, 0.10);
+
+    --gray-6:   #F2F2F7;
+    --gray-5:   #E5E5EA;
+    --gray-4:   #D1D1D6;
+    --gray-3:   #C7C7CC;
+    --gray-2:   #AEAEB2;
+    --gray-1:   #8E8E93;
+    --label:    #1C1C1E;
+    --label-2:  #3C3C43;
+    --label-3:  rgba(60, 60, 67, 0.60);
+    --label-4:  rgba(60, 60, 67, 0.30);
+
+    --stage:          #EFEAD8;
+    --stage-text:     #6B6558;
+    --stage-ink:      #2A2824;
+    --stage-line:     rgba(34, 30, 20, 0.12);
+    --stage-line-soft: rgba(34, 30, 20, 0.06);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display",
+                 "Helvetica Neue", Helvetica, Arial, sans-serif;
+    color: var(--label);
+    background: var(--stage);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+  button { font-family: inherit; }
+
+  /* ============= Page chrome ============= */
+  .page { min-width: 1800px; padding: 56px 48px 96px; }
+  .page-head { max-width: 1704px; margin: 0 auto 44px; }
+  .page-head .eyebrow {
+    font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--stage-text); margin: 0 0 12px;
+  }
+  .page-head h1 {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 32px; line-height: 1.15; font-weight: 500;
+    letter-spacing: -0.015em; margin: 0 0 14px; color: var(--stage-ink);
+  }
+  .page-head h1 em { font-style: italic; }
+  .page-head p {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 17px; line-height: 1.55;
+    color: var(--stage-text); margin: 0; max-width: 1180px;
+    text-wrap: pretty;
+  }
+  .page-head p em { font-style: italic; }
+  .page-head .crumbs {
+    display: flex; gap: 10px; align-items: center; margin: 22px 0 0; flex-wrap: wrap;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+    font-size: 12px; color: var(--stage-text); letter-spacing: 0.02em;
+  }
+  .page-head .crumbs .pill {
+    padding: 3px 10px; border-radius: 999px;
+    border: 0.5px solid var(--stage-line);
+    background: rgba(255,255,255,0.4);
+  }
+  .page-head .crumbs .sep { color: var(--stage-line); }
+
+  .strip-head {
+    max-width: 1704px;
+    margin: 36px auto 22px;
+    padding-top: 24px;
+    border-top: 0.5px solid var(--stage-line);
+  }
+  .strip-head .eyebrow {
+    font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--stage-text); margin: 0 0 8px;
+  }
+  .strip-head h2 {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 22px; line-height: 1.25; font-weight: 500;
+    letter-spacing: -0.01em; margin: 0 0 8px; color: var(--stage-ink);
+  }
+  .strip-head h2 em { font-style: italic; }
+  .strip-head p {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 15px; line-height: 1.55;
+    color: var(--stage-text); margin: 0; max-width: 1180px;
+    text-wrap: pretty;
+  }
+
+  .row {
+    max-width: 1704px;
+    margin: 0 auto;
+    display: flex;
+    gap: 32px;
+    align-items: flex-start;
+    justify-content: center;
+  }
+  .col { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+  .col .caption-block { text-align: center; }
+  .col .frame-label {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 18px; font-weight: 500; letter-spacing: -0.2px;
+    color: var(--stage-ink); margin: 0 0 4px;
+  }
+  .col .frame-label em { font-style: italic; }
+  .col .frame-sub {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 13px; font-style: italic;
+    color: var(--stage-text); margin: 0;
+    max-width: 360px; text-wrap: pretty; line-height: 1.4;
+  }
+
+  /* ============= Phone shell ============= */
+  .phone {
+    width: 393px;
+    height: 852px;
+    background: var(--gray-6);
+    border-radius: 56px;
+    border: 1px solid rgba(0, 0, 0, 0.18);
+    box-shadow:
+      0 30px 80px -40px rgba(34, 30, 20, 0.32),
+      0 2px 0 rgba(255,255,255,0.5) inset;
+    overflow: hidden;
+    position: relative;
+    isolation: isolate;
+  }
+  .phone .notch {
+    position: absolute; top: 11px; left: 50%; transform: translateX(-50%);
+    width: 116px; height: 34px; background: #0F0E0C; border-radius: 20px; z-index: 40;
+  }
+  .statusbar {
+    position: absolute; top: 0; left: 0; right: 0; height: 50px;
+    padding: 16px 32px 0; display: flex; align-items: center; justify-content: space-between;
+    font-weight: 600; font-size: 15px; color: #0A0A0A; z-index: 30; pointer-events: none;
+  }
+  .statusbar.light { color: #FFFFFF; }
+  .statusbar .right { display: flex; gap: 6px; align-items: center; }
+  .statusbar .right i { font-size: 15px; }
+  .home-indicator {
+    position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%);
+    width: 134px; height: 5px; border-radius: 3px;
+    background: rgba(0, 0, 0, 0.30); z-index: 45; pointer-events: none;
+  }
+
+  /* ============= Screen ground ============= */
+  .screen {
+    position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+    overflow: hidden;
+    padding-top: 50px;
+    background: var(--gray-6);
+  }
+  .screen.scrollable .scroll-area {
+    position: absolute; top: 50px; left: 0; right: 0; bottom: 84px;
+    overflow: hidden;
+  }
+
+  /* ============= Top header strip ============= */
+  .top-header {
+    padding: 8px 18px 10px;
+    display: flex; align-items: center; justify-content: space-between;
+    height: 52px;
+  }
+  .top-header .interest { display: inline-flex; align-items: baseline; gap: 6px; }
+  .top-header .interest .name {
+    font-size: 17px; font-weight: 600; letter-spacing: -0.25px;
+    color: var(--label);
+  }
+  .top-header .interest .switcher {
+    font-size: 13px; color: var(--label-3);
+    display: inline-flex; align-items: center;
+  }
+  .top-header .interest .switcher i { font-size: 14px; }
+  .top-header .avatar {
+    width: 32px; height: 32px; border-radius: 50%;
+    background: linear-gradient(135deg, #4E6A85 0%, #7C7B6E 100%);
+    display: inline-flex; align-items: center; justify-content: center;
+    color: #fff; font-size: 13px; font-weight: 600;
+    letter-spacing: -0.1px;
+    border: 0.5px solid rgba(0, 0, 0, 0.05);
+  }
+  .top-header .edit-link {
+    background: none; border: 0; padding: 4px 0;
+    font-size: 14px; font-weight: 500;
+    color: var(--ios-blue); letter-spacing: -0.1px;
+    cursor: pointer;
+  }
+
+  /* ============= Profile body ============= */
+  .profile-body {
+    position: absolute;
+    top: 50px;
+    left: 0; right: 0; bottom: 84px;
+    overflow: hidden;
+    padding: 0 0 14px;
+  }
+  .profile-body::after {
+    content: "";
+    position: absolute; left: 0; right: 0; bottom: 0;
+    height: 24px;
+    background: linear-gradient(180deg, rgba(242,242,247,0) 0%, var(--gray-6) 100%);
+    pointer-events: none;
+  }
+
+  /* Hero */
+  .hero {
+    padding: 4px 22px 16px;
+    background: #FFFFFF;
+    border-bottom: 0.5px solid var(--gray-5);
+    position: relative;
+  }
+  .hero .hero-top-row {
+    display: flex; align-items: center; justify-content: space-between;
+    height: 52px;
+    padding: 0 0 4px;
+  }
+  .hero .hero-top-row .interest {
+    display: inline-flex; align-items: center; gap: 4px;
+    background: var(--gray-6);
+    border: 0.5px solid var(--gray-5);
+    border-radius: 999px;
+    padding: 4px 10px 5px 10px;
+  }
+  .hero .hero-top-row .interest .label {
+    font-size: 12px; font-weight: 600;
+    color: var(--label); letter-spacing: -0.1px;
+  }
+  .hero .hero-top-row .interest i { font-size: 12px; color: var(--label-3); }
+  .hero .hero-top-row .edit {
+    background: none; border: 0; padding: 0;
+    font-size: 14px; color: var(--ios-blue);
+    font-weight: 500; letter-spacing: -0.1px;
+    cursor: pointer;
+  }
+  .hero .big-avatar {
+    width: 72px; height: 72px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #4E6A85 0%, #7C7B6E 100%);
+    display: inline-flex; align-items: center; justify-content: center;
+    color: #FFF;
+    font-size: 26px; font-weight: 600; letter-spacing: -0.5px;
+    border: 0.5px solid rgba(0,0,0,0.06);
+    box-shadow: 0 2px 6px -2px rgba(0,0,0,0.15);
+    margin-bottom: 10px;
+  }
+  .hero h1.name {
+    margin: 0 0 4px;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
+    font-size: 22px; font-weight: 700;
+    letter-spacing: -0.5px;
+    color: var(--label);
+    line-height: 1.1;
+  }
+  .hero .bio {
+    margin: 0 0 10px;
+    font-size: 13px; line-height: 1.4;
+    color: var(--label-2); letter-spacing: -0.05px;
+  }
+  .hero .url-row {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 5px 9px 5px 11px;
+    background: var(--gray-6);
+    border: 0.5px solid var(--gray-5);
+    border-radius: 999px;
+    cursor: pointer;
+  }
+  .hero .url-row .url {
+    font-family: "SF Mono", "JetBrains Mono", ui-monospace, monospace;
+    font-size: 11.5px; color: var(--label-2);
+    letter-spacing: -0.1px;
+  }
+  .hero .url-row .url .em { color: var(--label); font-weight: 600; }
+  .hero .url-row i { font-size: 13px; color: var(--label-3); }
+  .hero .private-flag {
+    display: inline-flex; align-items: center; gap: 4px;
+    margin-left: 8px;
+    font-size: 10.5px; font-weight: 600;
+    color: var(--label-3); letter-spacing: -0.02px;
+  }
+  .hero .private-flag i { font-size: 11px; }
+
+  /* Interest switcher */
+  .interest-switcher {
+    padding: 12px 16px 12px;
+    background: #FFF;
+    border-bottom: 0.5px solid var(--gray-5);
+    display: flex; gap: 6px;
+    overflow: hidden;
+  }
+  .interest-switcher .iswitch {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 6px 10px 7px;
+    border-radius: 999px;
+    border: 0.5px solid var(--gray-5);
+    background: #FFFFFF;
+    font-size: 12.5px; font-weight: 500;
+    color: var(--label-2); letter-spacing: -0.05px;
+    cursor: pointer;
+  }
+  .interest-switcher .iswitch.on {
+    background: var(--label);
+    color: #FFF;
+    border-color: var(--label);
+    font-weight: 600;
+  }
+  .interest-switcher .iswitch.on .ct,
+  .interest-switcher .iswitch .ct {
+    font-variant-numeric: tabular-nums;
+    color: var(--label-3);
+    font-weight: 500;
+    margin-left: 1px;
+  }
+  .interest-switcher .iswitch.on .ct {
+    color: rgba(255,255,255,0.6);
+  }
+
+  /* Capability map */
+  .cap-map {
+    padding: 14px 16px 8px;
+  }
+  .sec-eyebrow {
+    display: flex; align-items: baseline; justify-content: space-between;
+    margin: 0 0 10px;
+    padding: 0 2px;
+  }
+  .sec-eyebrow .ttl {
+    font-size: 10px; font-weight: 700;
+    color: var(--label-2); letter-spacing: 0.9px;
+    text-transform: uppercase;
+  }
+  .sec-eyebrow .meta {
+    font-size: 10px; color: var(--label-3);
+    letter-spacing: -0.02px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .cap-list {
+    list-style: none; margin: 0; padding: 0;
+    display: flex; flex-direction: column;
+    gap: 6px;
+  }
+  .cap-row {
+    background: #FFFFFF;
+    border: 0.5px solid var(--gray-5);
+    border-radius: 12px;
+    padding: 10px 12px 10px;
+    display: grid;
+    grid-template-columns: 1fr auto 14px;
+    column-gap: 10px;
+    align-items: center;
+    cursor: pointer;
+  }
+  .cap-row .name-line {
+    display: flex; align-items: baseline; gap: 8px;
+  }
+  .cap-row .cap-name {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
+    font-size: 14px; font-weight: 600;
+    color: var(--label); letter-spacing: -0.2px;
+  }
+  .cap-row .level-chip {
+    font-size: 10px; font-weight: 600;
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
+    padding: 2px 7px 3px;
+    border-radius: 999px;
+    background: var(--gray-6);
+    color: var(--label-2);
+  }
+  .cap-row .level-chip.emerging  { background: var(--gray-6); color: var(--label-3); }
+  .cap-row .level-chip.developing{ background: var(--ios-blue-tint); color: #0561C2; }
+  .cap-row .level-chip.competent { background: var(--ios-green-tint); color: #1F7A3A; }
+  .cap-row .level-chip.fluent    { background: var(--ios-purple-tint); color: #3F3E9A; }
+  .cap-row .cap-meta {
+    grid-column: 1;
+    margin-top: 3px;
+    font-size: 11px; line-height: 1.3;
+    color: var(--label-3); letter-spacing: -0.02px;
+  }
+  .cap-row .cap-meta .em { color: var(--label-2); font-weight: 600; }
+  .cap-row .level-dots {
+    display: inline-flex; gap: 3px; align-items: center;
+    grid-row: 1 / span 2;
+    grid-column: 2;
+  }
+  .cap-row .level-dots .d {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--gray-4);
+  }
+  .cap-row .level-dots .d.on { background: var(--label-2); }
+  .cap-row .level-dots .d.new {
+    background: var(--ios-green);
+    box-shadow: 0 0 0 2px var(--ios-green-tint);
+  }
+  .cap-row .chev {
+    color: var(--label-4); font-size: 14px;
+    grid-row: 1 / span 2;
+    grid-column: 3;
+    justify-self: end;
+  }
+
+  /* Activity strip */
+  .activity-strip {
+    margin: 14px 16px 0;
+    padding: 12px 14px 12px;
+    background: #FFF;
+    border: 0.5px solid var(--gray-5);
+    border-radius: 14px;
+  }
+  .activity-strip .a-head {
+    display: flex; justify-content: space-between; align-items: baseline;
+    margin: 0 0 8px;
+  }
+  .activity-strip .a-head .ttl {
+    font-size: 10px; font-weight: 700;
+    color: var(--label-2); letter-spacing: 0.7px;
+    text-transform: uppercase;
+  }
+  .activity-strip .a-head .sub {
+    font-size: 10.5px; color: var(--label-3);
+    letter-spacing: -0.02px;
+  }
+  .activity-strip .stat-line {
+    display: flex; gap: 4px;
+    align-items: baseline;
+    margin: 0 0 8px;
+  }
+  .activity-strip .stat-line .n {
+    font-size: 16px; font-weight: 600;
+    color: var(--label); letter-spacing: -0.4px;
+    font-variant-numeric: tabular-nums;
+  }
+  .activity-strip .stat-line .l {
+    font-size: 11.5px; color: var(--label-3);
+    letter-spacing: -0.05px;
+  }
+  .activity-strip .stat-line .sep { color: var(--label-4); margin: 0 6px; font-size: 11.5px; }
+  .activity-strip .spark {
+    display: grid;
+    grid-template-columns: repeat(13, 1fr);
+    gap: 3px;
+    align-items: end;
+    height: 32px;
+  }
+  .activity-strip .spark .col {
+    background: var(--gray-5);
+    border-radius: 2px;
+    width: 100%;
+  }
+  .activity-strip .spark .col.on  { background: var(--label-2); }
+  .activity-strip .spark .col.fresh { background: var(--ios-blue); }
+  .activity-strip .scale {
+    display: flex; justify-content: space-between;
+    font-size: 9.5px; color: var(--label-3);
+    letter-spacing: 0.02em;
+    margin-top: 6px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ============= Floating four-tab nav ============= */
+  .tabbar {
+    position: absolute;
+    left: 0; right: 0; bottom: 0;
+    height: 84px;
+    padding: 6px 0 24px;
+    background: rgba(255, 255, 255, 0.92);
+    -webkit-backdrop-filter: blur(28px) saturate(180%);
+    backdrop-filter: blur(28px) saturate(180%);
+    border-top: 0.5px solid rgba(0, 0, 0, 0.08);
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    align-items: center;
+    z-index: 25;
+  }
+  .tabbar .t {
+    display: flex; flex-direction: column; align-items: center; gap: 2px;
+    background: none; border: none; padding: 6px 0; cursor: pointer;
+    color: var(--gray-1);
+    font-size: 10px; font-weight: 500;
+    letter-spacing: 0.02em;
+  }
+  .tabbar .t i { font-size: 25px; line-height: 1; }
+  .tabbar .t.on { color: var(--ios-blue); }
+  .tabbar .t.on i { color: var(--ios-blue); }
+
+  /* ============= Frame 2 — drilldown full screen ============= */
+  .drill-header {
+    background: #FFFFFF;
+    padding: 10px 18px 12px;
+    border-bottom: 0.5px solid var(--gray-5);
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 8px;
+    align-items: center;
+  }
+  .drill-header .back {
+    background: none; border: 0; padding: 4px 0;
+    color: var(--ios-blue); font-size: 14px; font-weight: 500;
+    display: inline-flex; align-items: center; gap: 2px;
+    letter-spacing: -0.1px;
+    cursor: pointer;
+  }
+  .drill-header .back i { font-size: 18px; }
+  .drill-header .center {
+    text-align: center;
+  }
+  .drill-header .center .ttl {
+    font-size: 14px; font-weight: 600;
+    color: var(--label); letter-spacing: -0.2px;
+    line-height: 1.1;
+  }
+  .drill-header .center .ttl .lvl {
+    color: #0561C2; font-weight: 600;
+  }
+  .drill-header .center .sub {
+    margin-top: 2px;
+    font-size: 10.5px; color: var(--label-3);
+    letter-spacing: -0.02px;
+  }
+  .drill-header .share {
+    background: none; border: 0; padding: 0;
+    width: 30px; height: 30px;
+    color: var(--ios-blue);
+    display: inline-flex; align-items: center; justify-content: center;
+    cursor: pointer;
+  }
+  .drill-header .share i { font-size: 20px; }
+
+  .ladder-strip {
+    background: #FFF;
+    padding: 8px 18px 12px;
+    border-bottom: 0.5px solid var(--gray-5);
+  }
+  .ladder {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 4px;
+  }
+  .ladder .step {
+    flex: 1;
+    text-align: center;
+    font-size: 9.5px; font-weight: 600;
+    color: var(--label-3); letter-spacing: 0.4px;
+    text-transform: uppercase;
+    padding: 5px 4px;
+    border-radius: 999px;
+    background: var(--gray-6);
+    border: 0.5px solid var(--gray-5);
+  }
+  .ladder .step.passed {
+    color: var(--label-2);
+    background: var(--gray-6);
+  }
+  .ladder .step.now {
+    color: #0561C2;
+    background: var(--ios-blue-tint);
+    border-color: rgba(0,122,255,0.25);
+    font-weight: 700;
+  }
+  .ladder .arrow {
+    color: var(--label-4); font-size: 11px;
+    padding-bottom: 1px;
+  }
+
+  .drill-body {
+    position: absolute;
+    top: auto;
+    left: 0; right: 0;
+    bottom: 84px;
+    overflow: hidden;
+    padding: 12px 16px 0;
+  }
+  .drill-body::after {
+    content: "";
+    position: absolute; left: 0; right: 0; bottom: 0;
+    height: 18px;
+    background: linear-gradient(180deg, rgba(242,242,247,0), var(--gray-6));
+    pointer-events: none;
+  }
+  .evi-list {
+    display: flex; flex-direction: column; gap: 8px;
+    margin: 0; padding: 0; list-style: none;
+  }
+  .evi {
+    background: #FFF;
+    border: 0.5px solid var(--gray-5);
+    border-radius: 14px;
+    padding: 11px 12px 12px;
+  }
+  .evi .evi-top {
+    display: flex; justify-content: space-between; align-items: center;
+    margin: 0 0 6px;
+  }
+  .evi .source {
+    font-size: 11px; color: var(--label-2);
+    letter-spacing: -0.05px;
+    line-height: 1.25;
+    font-weight: 500;
+  }
+  .evi .source .date {
+    color: var(--label-3); font-weight: 400;
+  }
+  .evi .phase-chip {
+    font-size: 9px; font-weight: 700;
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+    padding: 2px 7px 3px;
+    border-radius: 999px;
+    background: var(--gray-6);
+    color: var(--label-3);
+    display: inline-flex; align-items: center; gap: 3px;
+    flex-shrink: 0;
+  }
+  .evi .phase-chip i { font-size: 9px; }
+  .evi .phase-chip.plan    { background: var(--ios-blue-tint);   color: #0561C2; }
+  .evi .phase-chip.do      { background: var(--ios-coral-tint);  color: #C24545; }
+  .evi .phase-chip.reflect { background: var(--ios-green-tint);  color: #1F7A3A; }
+  .evi .quote {
+    font-size: 12px; line-height: 1.45;
+    color: var(--label); letter-spacing: -0.05px;
+    margin: 0 0 6px;
+    padding-left: 8px;
+    border-left: 1.5px solid var(--gray-4);
+    text-wrap: pretty;
+  }
+  .evi.fresh {
+    border: 0.5px solid rgba(52,199,89,0.32);
+    background: linear-gradient(180deg, rgba(52,199,89,0.04), #FFF 60%);
+  }
+  .evi.fresh .quote { border-left-color: var(--ios-green); }
+  .evi .new-badge {
+    display: inline-flex; align-items: center; gap: 3px;
+    font-size: 9px; font-weight: 700;
+    color: var(--ios-green);
+    letter-spacing: 0.6px; text-transform: uppercase;
+    margin-left: 6px;
+  }
+  .evi .new-badge i { font-size: 9px; }
+
+  .drill-footer {
+    position: absolute;
+    left: 16px; right: 16px;
+    bottom: 96px;
+    z-index: 4;
+    display: flex; gap: 8px;
+  }
+  .drill-footer .btn {
+    flex: 1;
+    border-radius: 12px;
+    padding: 10px 12px;
+    font-family: inherit;
+    font-size: 12.5px; font-weight: 600;
+    letter-spacing: -0.1px;
+    border: 0.5px solid var(--gray-5);
+    background: #FFF;
+    color: var(--label-2);
+    display: inline-flex; align-items: center; justify-content: center; gap: 5px;
+    cursor: pointer;
+    box-shadow:
+      0 1px 2px rgba(0,0,0,0.04),
+      0 6px 16px -8px rgba(0,0,0,0.10);
+  }
+  .drill-footer .btn.add {
+    background: var(--ios-blue);
+    color: #FFF;
+    border-color: var(--ios-blue);
+    box-shadow: 0 6px 16px -4px rgba(0,122,255,0.4);
+  }
+  .drill-footer .btn i { font-size: 14px; }
+
+  /* ============= Frame 3 — public profile (mobile web) ============= */
+  .safari-bar {
+    background: #F6F4ED;
+    border-bottom: 0.5px solid rgba(0,0,0,0.08);
+    padding: 4px 12px 6px;
+    display: flex; align-items: center; gap: 6px;
+    height: 38px;
+  }
+  .safari-bar .aA {
+    width: 28px; height: 28px;
+    border-radius: 6px;
+    display: inline-flex; align-items: center; justify-content: center;
+    color: var(--label-2);
+    font-size: 14px; font-weight: 500;
+    letter-spacing: -0.5px;
+  }
+  .safari-bar .aA .a { font-size: 11px; }
+  .safari-bar .aA .A { font-size: 16px; }
+  .safari-bar .url-pill {
+    flex: 1;
+    height: 28px;
+    background: rgba(118,118,128,0.12);
+    border-radius: 8px;
+    display: inline-flex; align-items: center; justify-content: center; gap: 4px;
+    padding: 0 8px;
+    font-size: 11.5px;
+    color: var(--label);
+    font-family: "SF Mono", ui-monospace, monospace;
+    letter-spacing: -0.1px;
+  }
+  .safari-bar .url-pill i { font-size: 11px; color: var(--label-3); }
+  .safari-bar .url-pill .em { font-weight: 600; }
+  .safari-bar .refresh, .safari-bar .more {
+    width: 28px; height: 28px;
+    display: inline-flex; align-items: center; justify-content: center;
+    color: var(--ios-blue);
+    font-size: 16px;
+  }
+
+  .web-screen {
+    position: absolute;
+    top: 50px;
+    left: 0; right: 0; bottom: 0;
+    background: #FFFFFF;
+    overflow: hidden;
+  }
+  .web-screen.scroll-host {
+    overflow: hidden;
+  }
+  .web-body {
+    position: absolute;
+    top: 38px;
+    left: 0; right: 0; bottom: 64px;
+    overflow: hidden;
+    background: var(--gray-6);
+  }
+  .web-body::after {
+    content: "";
+    position: absolute; left: 0; right: 0; bottom: 0;
+    height: 22px;
+    background: linear-gradient(180deg, rgba(242,242,247,0), var(--gray-6));
+    pointer-events: none;
+  }
+
+  .web-hero {
+    background: #FFF;
+    padding: 16px 22px 16px;
+    border-bottom: 0.5px solid var(--gray-5);
+    position: relative;
+  }
+  .web-hero .badge-strip {
+    display: inline-flex; align-items: center; gap: 5px;
+    margin-bottom: 12px;
+    padding: 3px 9px 4px;
+    border-radius: 999px;
+    background: var(--ios-green-tint);
+    color: #1F7A3A;
+    font-size: 10px; font-weight: 700;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+  }
+  .web-hero .badge-strip i { font-size: 11px; }
+  .web-hero .big-avatar {
+    width: 78px; height: 78px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #4E6A85 0%, #7C7B6E 100%);
+    display: inline-flex; align-items: center; justify-content: center;
+    color: #FFF; font-size: 28px; font-weight: 600;
+    border: 0.5px solid rgba(0,0,0,0.06);
+    box-shadow: 0 2px 6px -2px rgba(0,0,0,0.15);
+    margin-bottom: 10px;
+  }
+  .web-hero h1 {
+    margin: 0 0 4px;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
+    font-size: 22px; font-weight: 700;
+    letter-spacing: -0.5px;
+    color: var(--label);
+  }
+  .web-hero .bio {
+    margin: 0 0 10px;
+    font-size: 13px; line-height: 1.4;
+    color: var(--label-2); letter-spacing: -0.05px;
+  }
+  .web-hero .verified-row {
+    display: flex; gap: 6px; flex-wrap: wrap;
+    margin: 0 0 4px;
+  }
+  .web-hero .verified-row .vchip {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 4px 9px 4px 8px;
+    border-radius: 999px;
+    background: var(--gray-6);
+    border: 0.5px solid var(--gray-5);
+    font-size: 11px; color: var(--label-2);
+    letter-spacing: -0.05px;
+  }
+  .web-hero .verified-row .vchip .verified-dot {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 12px; height: 12px; border-radius: 50%;
+    background: var(--ios-blue);
+    color: #FFF;
+  }
+  .web-hero .verified-row .vchip .verified-dot i { font-size: 9px; }
+  .web-hero .verified-row .vchip i { font-size: 11px; color: var(--label-3); }
+  .web-hero .verified-row .vchip .em { font-weight: 600; color: var(--label); }
+
+  .open-to {
+    background: #FFF;
+    margin-top: 8px;
+    padding: 12px 18px 12px;
+    border-bottom: 0.5px solid var(--gray-5);
+    border-top: 0.5px solid var(--gray-5);
+  }
+  .open-to .ttl {
+    font-size: 10px; font-weight: 700;
+    color: var(--label-2); letter-spacing: 0.7px;
+    text-transform: uppercase;
+    margin: 0 0 8px;
+  }
+  .open-to .chips {
+    display: flex; flex-wrap: wrap; gap: 5px;
+  }
+  .open-to .chips .c {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 4px 9px 5px;
+    background: var(--gray-6);
+    border-radius: 999px;
+    font-size: 11.5px; color: var(--label);
+    letter-spacing: -0.05px;
+  }
+  .open-to .chips .c i { font-size: 11px; color: var(--label-3); }
+
+  .web-section {
+    background: #FFF;
+    margin-top: 8px;
+    padding: 14px 18px 12px;
+    border-top: 0.5px solid var(--gray-5);
+    border-bottom: 0.5px solid var(--gray-5);
+  }
+  .web-section .web-sec-head {
+    display: flex; justify-content: space-between; align-items: baseline;
+    margin: 0 0 10px;
+  }
+  .web-section .web-sec-head .ttl {
+    font-size: 10px; font-weight: 700;
+    color: var(--label-2); letter-spacing: 0.9px;
+    text-transform: uppercase;
+  }
+  .web-section .web-sec-head .meta {
+    font-size: 10px; color: var(--label-3);
+    letter-spacing: -0.02px;
+  }
+
+  .pub-cap-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 7px; }
+  .pub-cap-row {
+    background: #FFFFFF;
+    border: 0.5px solid var(--gray-5);
+    border-radius: 12px;
+    padding: 10px 12px 11px;
+  }
+  .pub-cap-row .top {
+    display: flex; align-items: center; justify-content: space-between;
+    margin: 0 0 4px;
+  }
+  .pub-cap-row .left {
+    display: flex; align-items: baseline; gap: 8px;
+  }
+  .pub-cap-row .cap-name {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
+    font-size: 14px; font-weight: 600;
+    color: var(--label); letter-spacing: -0.2px;
+  }
+  .pub-cap-row .level-chip {
+    font-size: 10px; font-weight: 600;
+    letter-spacing: 0.3px; text-transform: uppercase;
+    padding: 2px 7px 3px;
+    border-radius: 999px;
+    background: var(--ios-blue-tint); color: #0561C2;
+  }
+  .pub-cap-row .level-chip.competent { background: var(--ios-green-tint); color: #1F7A3A; }
+  .pub-cap-row .level-chip.emerging  { background: var(--gray-6); color: var(--label-3); }
+  .pub-cap-row .level-dots {
+    display: inline-flex; gap: 3px;
+  }
+  .pub-cap-row .level-dots .d {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--gray-4);
+  }
+  .pub-cap-row .level-dots .d.on { background: var(--label-2); }
+  .pub-cap-row .endorsed {
+    margin: 4px 0 0;
+    font-size: 11px; color: var(--label-3);
+    letter-spacing: -0.05px; line-height: 1.35;
+  }
+  .pub-cap-row .endorsed .em { color: var(--label-2); font-weight: 500; }
+  .pub-cap-row .endorsed .dot {
+    color: var(--ios-blue);
+    font-weight: 700;
+    margin-right: 4px;
+  }
+  .pub-cap-row .evi-count {
+    font-size: 11px; color: var(--label-3);
+    letter-spacing: -0.05px;
+  }
+  .pub-cap-row .evi-count .tap {
+    color: var(--ios-blue); font-weight: 500;
+    margin-left: 6px;
+  }
+
+  .activity-pub {
+    background: #FFF;
+    padding: 14px 18px 14px;
+    margin-top: 8px;
+    border-top: 0.5px solid var(--gray-5);
+    border-bottom: 0.5px solid var(--gray-5);
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 6px;
+  }
+  .activity-pub .tile {
+    border-right: 0.5px solid var(--gray-5);
+    padding-right: 6px;
+  }
+  .activity-pub .tile:last-child { border-right: 0; }
+  .activity-pub .tile .n {
+    font-size: 18px; font-weight: 600;
+    color: var(--label); letter-spacing: -0.4px;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+  }
+  .activity-pub .tile .l {
+    margin-top: 4px;
+    font-size: 10px; font-weight: 600;
+    color: var(--label-3); letter-spacing: 0.4px;
+    text-transform: uppercase;
+    line-height: 1.2;
+  }
+
+  .endorse-cta {
+    position: absolute;
+    left: 0; right: 0; bottom: 0;
+    height: 64px;
+    padding: 8px 16px 12px;
+    background: rgba(255,255,255,0.96);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    border-top: 0.5px solid var(--gray-5);
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 10px;
+    z-index: 5;
+  }
+  .endorse-cta .note {
+    font-size: 11px; color: var(--label-3);
+    letter-spacing: -0.05px;
+    line-height: 1.25;
+  }
+  .endorse-cta .note .em { color: var(--label); font-weight: 600; }
+  .endorse-cta .endorse-btn {
+    background: var(--ios-blue);
+    color: #FFF;
+    border: 0;
+    border-radius: 12px;
+    padding: 9px 16px;
+    font-family: inherit;
+    font-size: 13px; font-weight: 600;
+    letter-spacing: -0.1px;
+    display: inline-flex; align-items: center; gap: 4px;
+    cursor: pointer;
+    box-shadow: 0 6px 16px -4px rgba(0,122,255,0.40);
+    flex-shrink: 0;
+  }
+  .endorse-cta .endorse-btn i { font-size: 14px; }
+
+  .web-foot-mark {
+    font-size: 9.5px;
+    color: var(--label-3);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    text-align: center;
+    padding: 14px 0 6px;
+    background: var(--gray-6);
+  }
+  .web-foot-mark .em { color: var(--label-2); font-weight: 600; }
+
+  /* ============= Frame 4 — Settings sheet ============= */
+  .scrim {
+    position: absolute; inset: 0;
+    background: rgba(0,0,0,0.32);
+    z-index: 50;
+    backdrop-filter: blur(1px);
+  }
+  .sheet {
+    position: absolute;
+    left: 0; right: 0; bottom: 0;
+    background: var(--gray-6);
+    border-radius: 22px 22px 0 0;
+    z-index: 60;
+    box-shadow:
+      0 -8px 30px -6px rgba(0,0,0,0.18),
+      0 -1px 0 rgba(255,255,255,0.6) inset;
+    height: 700px;
+    display: flex; flex-direction: column;
+    overflow: hidden;
+  }
+  .sheet .handle {
+    width: 36px; height: 5px; border-radius: 3px;
+    background: var(--gray-3);
+    margin: 6px auto 0;
+  }
+  .sheet .sheet-head {
+    padding: 10px 18px 12px;
+    background: var(--gray-6);
+    border-bottom: 0.5px solid var(--gray-5);
+    display: grid;
+    grid-template-columns: 40px 1fr 28px;
+    align-items: center;
+  }
+  .sheet .sheet-head .back {
+    background: none; border: 0;
+    color: var(--ios-blue); font-size: 14px; font-weight: 500;
+    display: inline-flex; align-items: center; gap: 2px;
+    cursor: pointer;
+    padding: 0;
+  }
+  .sheet .sheet-head .back i { font-size: 18px; }
+  .sheet .sheet-head .title {
+    text-align: center;
+    font-size: 14px; font-weight: 600;
+    color: var(--label); letter-spacing: -0.2px;
+  }
+  .sheet .sheet-head .dismiss {
+    background: var(--gray-5); border: 0;
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    color: var(--label-3);
+    display: inline-flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    justify-self: end;
+  }
+  .sheet .sheet-head .dismiss i { font-size: 14px; }
+
+  .sheet-body {
+    flex: 1;
+    overflow: hidden;
+    padding: 14px 16px 6px;
+    position: relative;
+  }
+  .sheet-body::after {
+    content: "";
+    position: absolute; left: 0; right: 0; bottom: 86px;
+    height: 18px;
+    background: linear-gradient(180deg, rgba(242,242,247,0), var(--gray-6));
+    pointer-events: none;
+  }
+
+  .settings-sec {
+    margin: 0 0 14px;
+  }
+  .settings-sec .sec-label {
+    font-size: 10.5px; font-weight: 700;
+    color: var(--label-3); letter-spacing: 0.6px;
+    text-transform: uppercase;
+    margin: 0 4px 6px;
+    display: flex; justify-content: space-between;
+    align-items: baseline;
+  }
+  .settings-sec .sec-label .desc {
+    font-size: 10.5px; font-weight: 500;
+    color: var(--label-3); text-transform: none;
+    letter-spacing: -0.02px;
+  }
+  .settings-card {
+    background: #FFF;
+    border-radius: 12px;
+    border: 0.5px solid var(--gray-5);
+    overflow: hidden;
+  }
+  .settings-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 14px;
+    gap: 12px;
+    border-bottom: 0.5px solid var(--gray-5);
+  }
+  .settings-row:last-child { border-bottom: 0; }
+  .settings-row.sub {
+    background: var(--gray-6);
+    padding-left: 24px;
+  }
+  .settings-row.sub:first-child {
+    background: #FFF;
+    padding-left: 14px;
+  }
+  .settings-row .row-left {
+    flex: 1;
+    min-width: 0;
+  }
+  .settings-row .row-label {
+    font-size: 13.5px; font-weight: 500;
+    color: var(--label); letter-spacing: -0.1px;
+    line-height: 1.25;
+  }
+  .settings-row .row-sub {
+    margin-top: 2px;
+    font-size: 11.5px;
+    color: var(--label-3); letter-spacing: -0.05px;
+    line-height: 1.3;
+  }
+  .settings-row .row-value {
+    font-size: 13px; color: var(--label-3);
+    letter-spacing: -0.1px;
+    display: inline-flex; align-items: center; gap: 3px;
+  }
+  .settings-row .row-value i { font-size: 14px; color: var(--label-4); }
+  .settings-row .row-value.editable { color: var(--ios-blue); }
+  .settings-row .row-value.editable i { color: var(--ios-blue); }
+
+  /* iOS toggle */
+  .switch {
+    position: relative;
+    width: 50px; height: 30px;
+    border-radius: 999px;
+    background: var(--gray-4);
+    flex-shrink: 0;
+    transition: background 0.18s;
+  }
+  .switch.on { background: var(--ios-green); }
+  .switch::after {
+    content: "";
+    position: absolute;
+    top: 2px; left: 2px;
+    width: 26px; height: 26px;
+    border-radius: 50%;
+    background: #FFF;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+    transition: transform 0.18s;
+  }
+  .switch.on::after { transform: translateX(20px); }
+
+  .verified-list {
+    display: flex; flex-direction: column;
+    padding: 0;
+  }
+  .verified-item {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 9px 14px;
+    border-bottom: 0.5px solid var(--gray-5);
+  }
+  .verified-item:last-child { border-bottom: 0; }
+  .verified-item .vleft {
+    display: flex; align-items: center; gap: 10px;
+  }
+  .verified-item .vlogo {
+    width: 28px; height: 28px;
+    border-radius: 6px;
+    background: var(--ios-blue);
+    color: #FFF;
+    font-weight: 700; font-size: 11px;
+    letter-spacing: -0.2px;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .verified-item .vlogo.jhu { background: #002D72; }
+  .verified-item .vname {
+    font-size: 13px; font-weight: 500;
+    color: var(--label); letter-spacing: -0.05px;
+  }
+  .verified-item .vmeta {
+    font-size: 10.5px; color: var(--label-3);
+    letter-spacing: -0.02px;
+    margin-top: 1px;
+  }
+  .verified-item .vstatus {
+    font-size: 10.5px; font-weight: 700;
+    letter-spacing: 0.5px; text-transform: uppercase;
+    color: #1F7A3A;
+    display: inline-flex; align-items: center; gap: 3px;
+  }
+  .verified-item .vstatus i { font-size: 11px; }
+  .verified-add {
+    padding: 10px 14px;
+    color: var(--ios-blue);
+    font-size: 13px; font-weight: 500;
+    letter-spacing: -0.1px;
+    display: flex; align-items: center; gap: 8px;
+    cursor: pointer;
+    background: #FFF;
+    border-top: 0.5px solid var(--gray-5);
+  }
+  .verified-add i { font-size: 16px; }
+
+  .openfor-input {
+    padding: 12px 14px;
+    background: #FFF;
+  }
+  .openfor-input .chips {
+    display: flex; flex-wrap: wrap; gap: 5px;
+    margin-bottom: 8px;
+  }
+  .openfor-input .chips .c {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 4px 6px 4px 9px;
+    background: var(--ios-blue-tint);
+    color: #0561C2;
+    border-radius: 999px;
+    font-size: 11.5px; font-weight: 500;
+    letter-spacing: -0.05px;
+  }
+  .openfor-input .chips .c i {
+    font-size: 10px;
+    color: rgba(5, 97, 194, 0.6);
+    cursor: pointer;
+  }
+  .openfor-input .input-stub {
+    border: 0.5px dashed var(--gray-3);
+    border-radius: 8px;
+    padding: 7px 10px;
+    font-size: 12px; color: var(--label-3);
+    letter-spacing: -0.05px;
+    font-style: italic;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .openfor-input .input-stub i { font-size: 13px; }
+
+  /* save button row */
+  .sheet-footer {
+    background: var(--gray-6);
+    padding: 8px 16px 14px;
+    border-top: 0.5px solid var(--gray-5);
+  }
+  .sheet-footer .save-btn {
+    width: 100%;
+    background: var(--ios-blue);
+    color: #FFF;
+    border: 0;
+    border-radius: 14px;
+    padding: 13px 16px;
+    font-family: inherit;
+    font-size: 14.5px; font-weight: 600;
+    letter-spacing: -0.1px;
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    cursor: pointer;
+    box-shadow: 0 6px 16px -4px rgba(0,122,255,0.40);
+  }
+
+  /* ============= Nursing inset ============= */
+  .inset-row {
+    max-width: 1704px;
+    margin: 40px auto 0;
+    padding-top: 30px;
+    border-top: 0.5px solid var(--stage-line);
+    display: grid;
+    grid-template-columns: 380px 1fr;
+    gap: 48px;
+    align-items: start;
+  }
+  .inset-row .copy h3 {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 20px; font-weight: 500; letter-spacing: -0.01em;
+    color: var(--stage-ink); margin: 0 0 10px;
+  }
+  .inset-row .copy h3 em { font-style: italic; }
+  .inset-row .copy p {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 14px; line-height: 1.6;
+    color: var(--stage-text); margin: 0 0 10px;
+    text-wrap: pretty;
+  }
+  .inset-row .copy p em { font-style: italic; }
+  .inset-row .copy p strong { color: var(--stage-ink); font-weight: 500; }
+  .inset-row .copy .vocab-grid {
+    display: grid;
+    grid-template-columns: 110px 1fr;
+    gap: 8px 14px;
+    margin-top: 14px;
+    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 12px; color: var(--stage-text);
+  }
+  .inset-row .copy .vocab-grid .k {
+    font-weight: 600; color: var(--stage-ink);
+  }
+  .inset-card {
+    width: 540px;
+    background: #FFF;
+    border-radius: 22px;
+    border: 0.5px solid rgba(0, 0, 0, 0.04);
+    box-shadow:
+      0 1px 2px rgba(0, 0, 0, 0.05),
+      0 18px 38px -16px rgba(0, 0, 0, 0.18);
+    padding: 16px 18px 18px;
+  }
+  .inset-card .label {
+    font-size: 9.5px; font-weight: 700;
+    color: var(--label-3); letter-spacing: 0.9px;
+    text-transform: uppercase;
+    margin: 0 0 12px;
+    display: inline-flex; align-items: center; gap: 5px;
+  }
+  .inset-card .label .dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--ios-blue);
+  }
+  .inset-card .inset-hero {
+    display: flex; align-items: center; gap: 12px;
+    padding: 4px 4px 14px;
+    border-bottom: 0.5px solid var(--gray-5);
+    margin-bottom: 12px;
+  }
+  .inset-card .inset-hero .av {
+    width: 44px; height: 44px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #6E5A87 0%, #9D8DB3 100%);
+    display: inline-flex; align-items: center; justify-content: center;
+    color: #FFF; font-size: 16px; font-weight: 600;
+    flex-shrink: 0;
+  }
+  .inset-card .inset-hero .n {
+    font-size: 15px; font-weight: 700;
+    color: var(--label); letter-spacing: -0.2px;
+    line-height: 1.1;
+  }
+  .inset-card .inset-hero .b {
+    margin-top: 2px;
+    font-size: 12px;
+    color: var(--label-2); letter-spacing: -0.05px;
+  }
+
+  /* ============= Rail ============= */
+  .rail-row {
+    max-width: 1704px;
+    margin: 56px auto 0;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 36px;
+  }
+  .rail-col h4 {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 14px; letter-spacing: 0.01em;
+    color: var(--stage-ink); margin: 0 0 10px; font-weight: 500;
+  }
+  .rail-col h4 em { font-style: italic; }
+  .rail-col p {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 13.5px; line-height: 1.55;
+    color: #4D4A43; margin: 0 0 10px;
+    text-wrap: pretty;
+  }
+  .rail-col p strong { color: var(--stage-ink); font-weight: 500; }
+  .rail-col em { font-style: italic; }
+  .rail-col .sig {
+    display: inline-flex; align-items: center; gap: 6px;
+    margin-top: 4px;
+    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 11px; letter-spacing: 0.04em;
+    color: var(--stage-text);
+  }
+  .rail-col .sig .swatch {
+    display: inline-block;
+    width: 10px; height: 10px; border-radius: 3px;
+    border: 0.5px solid rgba(0,0,0,0.1);
+  }
+  .rail-col .sig .swatch.blue { background: var(--ios-blue); }
+  .rail-col .sig .swatch.green { background: var(--ios-green); }
+  .rail-col .sig .swatch.coral { background: var(--ios-coral); }
+  .rail-col .sig .swatch.purple { background: var(--ios-purple); }
+  .rail-col .sig .swatch.gray { background: var(--gray-3); }
+</style>
+</head>
+<body>
+
+<div class="page" data-screen-label="Profile Screen · Canonical">
+
+  <header class="page-head">
+    <p class="eyebrow">BetterAt · Profile Screen · Canonical — 2026-05-16</p>
+    <h1>The Profile tab as <em>capability map → evidence drilldown → public credential → privacy settings</em> — the surface where practice becomes shareable</h1>
+    <p>Capability map · Evidence drilldown · Public credential · Privacy settings. Profile is the fourth tab in the bottom bar — renamed from <em>Reflect</em> in Phase A.7. It's where the practice loop becomes <em>visible</em>: the user's accumulated capability map, the evidence trail beneath each capability, a restrained public URL that strangers can land on, and the settings that decide who sees what. The credential is the <strong>evidence</strong> — quoted from the user's own Plan, Do, and Reflect moments — never a score.</p>
+    <div class="crumbs">
+      <span class="pill">iPhone 16e · portrait · 393 × 852</span>
+      <span class="sep">·</span>
+      <span class="pill">Bonded with <em>Plan · Do · Reflect</em></span>
+      <span class="sep">·</span>
+      <span class="pill">Frame 3 = <em>better.at/u/kdenney</em> on mobile web</span>
+      <span class="sep">·</span>
+      <span class="pill">Reference for Phase B.12 · Profile Screen implementation</span>
+    </div>
+  </header>
+
+  <section class="strip-head">
+    <p class="eyebrow">Frames 1 — 4 · State variants</p>
+    <h2><em>Profile landing · Capability drilldown · Public profile preview · Profile settings sheet</em></h2>
+    <p>The fourth tab swaps the step-bound Plan/Do/Reflect chrome for a <em>person-bound</em> surface — hero, interest switcher, capability map, activity strip. Tapping a capability pushes a full-screen drilldown that quotes the user's own words back across Plan, Do, Reflect. The public preview (Safari, no tabbar) is what a hiring captain or fellow practitioner sees at <em>better.at/u/kdenney</em>. The settings sheet rises from <em>Edit profile</em> and is where the user controls who sees what — privacy defaults are <strong>safe</strong>: profile is opt-in, evidence detail is hidden from the public by default.</p>
+  </section>
+
+  <div class="row">
+
+    <!-- =============================================================== -->
+    <!-- Frame 1 · Profile landing                                         -->
+    <!-- =============================================================== -->
+    <div class="col">
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="statusbar">
+          <span>09:42</span>
+          <span class="right">
+            <i class="ti ti-cell-signal-4"></i>
+            <i class="ti ti-wifi"></i>
+            <i class="ti ti-battery-3"></i>
+          </span>
+        </div>
+
+        <div class="screen" data-screen-label="01 Profile · Landing">
+
+          <div class="profile-body">
+
+            <!-- Hero zone -->
+            <section class="hero">
+              <div class="hero-top-row">
+                <span class="interest">
+                  <span class="label">Sail Racing</span>
+                  <i class="ti ti-chevron-down"></i>
+                </span>
+                <button class="edit">Edit profile</button>
+              </div>
+
+              <div class="big-avatar">KD</div>
+
+              <h1 class="name">Kevin Denney</h1>
+              <p class="bio">Dragon class sailor at RHKYC · Building BetterAt</p>
+
+              <div class="url-row">
+                <span class="url">better.at/u/<span class="em">kdenney</span></span>
+                <i class="ti ti-copy"></i>
+              </div>
+              <span class="private-flag">
+                <i class="ti ti-lock"></i>Private · only you
+              </span>
+            </section>
+
+            <!-- Interest switcher -->
+            <div class="interest-switcher">
+              <button class="iswitch on">Sail Racing <span class="ct">· 5</span></button>
+              <button class="iswitch">Drawing <span class="ct">· 3</span></button>
+              <button class="iswitch">Reading <span class="ct">· 2</span></button>
+            </div>
+
+            <!-- Capability map -->
+            <section class="cap-map">
+              <div class="sec-eyebrow">
+                <span class="ttl">Sail Racing · Capability Map</span>
+                <span class="meta">5 capabilities · 22 pieces of evidence</span>
+              </div>
+
+              <ul class="cap-list">
+
+                <li class="cap-row">
+                  <div class="name-line">
+                    <span class="cap-name">tactical-decisions</span>
+                    <span class="level-chip competent">Competent</span>
+                  </div>
+                  <div class="cap-meta"><span class="em">9 pieces</span> of evidence across 6 steps</div>
+                  <span class="level-dots">
+                    <span class="d on"></span><span class="d on"></span><span class="d on"></span><span class="d on"></span><span class="d"></span>
+                  </span>
+                  <span class="chev"><i class="ti ti-chevron-right"></i></span>
+                </li>
+
+                <li class="cap-row">
+                  <div class="name-line">
+                    <span class="cap-name">wind-reading</span>
+                    <span class="level-chip developing">Developing</span>
+                  </div>
+                  <div class="cap-meta"><span class="em">7 pieces</span> across 5 steps · just earned</div>
+                  <span class="level-dots">
+                    <span class="d on"></span><span class="d on"></span><span class="d on"></span><span class="d new"></span><span class="d"></span>
+                  </span>
+                  <span class="chev"><i class="ti ti-chevron-right"></i></span>
+                </li>
+
+                <li class="cap-row">
+                  <div class="name-line">
+                    <span class="cap-name">mark-roundings</span>
+                    <span class="level-chip developing">Developing</span>
+                  </div>
+                  <div class="cap-meta"><span class="em">5 pieces</span> across 4 steps</div>
+                  <span class="level-dots">
+                    <span class="d on"></span><span class="d on"></span><span class="d on"></span><span class="d"></span><span class="d"></span>
+                  </span>
+                  <span class="chev"><i class="ti ti-chevron-right"></i></span>
+                </li>
+
+                <li class="cap-row">
+                  <div class="name-line">
+                    <span class="cap-name">starts</span>
+                    <span class="level-chip developing">Developing</span>
+                  </div>
+                  <div class="cap-meta"><span class="em">4 pieces</span> across 3 steps</div>
+                  <span class="level-dots">
+                    <span class="d on"></span><span class="d on"></span><span class="d"></span><span class="d"></span><span class="d"></span>
+                  </span>
+                  <span class="chev"><i class="ti ti-chevron-right"></i></span>
+                </li>
+
+                <li class="cap-row">
+                  <div class="name-line">
+                    <span class="cap-name">rules</span>
+                    <span class="level-chip emerging">Emerging</span>
+                  </div>
+                  <div class="cap-meta"><span class="em">1 piece</span> · 1 flagged gap to debrief</div>
+                  <span class="level-dots">
+                    <span class="d on"></span><span class="d"></span><span class="d"></span><span class="d"></span><span class="d"></span>
+                  </span>
+                  <span class="chev"><i class="ti ti-chevron-right"></i></span>
+                </li>
+
+              </ul>
+            </section>
+
+            <!-- Activity strip -->
+            <section class="activity-strip">
+              <div class="a-head">
+                <span class="ttl">Practice activity</span>
+                <span class="sub">Winter 2025 — 2026</span>
+              </div>
+              <div class="stat-line">
+                <span class="n">14</span><span class="l">steps</span>
+                <span class="sep">·</span>
+                <span class="n">3</span><span class="l">months active</span>
+                <span class="sep">·</span>
+                <span class="n">90%</span><span class="l">complete</span>
+              </div>
+              <div class="spark" aria-label="Step completion over 13 weeks">
+                <div class="col" style="height:8px"></div>
+                <div class="col on" style="height:14px"></div>
+                <div class="col on" style="height:22px"></div>
+                <div class="col" style="height:10px"></div>
+                <div class="col on" style="height:18px"></div>
+                <div class="col on" style="height:24px"></div>
+                <div class="col on" style="height:16px"></div>
+                <div class="col on" style="height:28px"></div>
+                <div class="col" style="height:10px"></div>
+                <div class="col on" style="height:20px"></div>
+                <div class="col on" style="height:24px"></div>
+                <div class="col on" style="height:30px"></div>
+                <div class="col fresh" style="height:26px"></div>
+              </div>
+              <div class="scale"><span>Feb</span><span>Mar</span><span>Apr</span><span>This week</span></div>
+            </section>
+
+          </div>
+
+          <nav class="tabbar">
+            <button class="t"><i class="ti ti-flag-3"></i><span>Practice</span></button>
+            <button class="t"><i class="ti ti-book-2"></i><span>Playbook</span></button>
+            <button class="t"><i class="ti ti-compass"></i><span>Discover</span></button>
+            <button class="t on" aria-current="page"><i class="ti ti-user-filled"></i><span>Profile</span></button>
+          </nav>
+        </div>
+
+        <div class="home-indicator"></div>
+      </div>
+      <div class="caption-block">
+        <p class="frame-label"><em>Profile landing</em></p>
+        <p class="frame-sub">Hero plus a five-capability map for the active interest. Levels read as <em>chips</em> and as <em>dots</em>; the green-haloed dot marks evidence earned in the most recent Reflect. Profile is <strong>private by default</strong> — the lock badge sits next to the public URL.</p>
+      </div>
+    </div>
+
+    <!-- =============================================================== -->
+    <!-- Frame 2 · Capability drilldown (full screen)                      -->
+    <!-- =============================================================== -->
+    <div class="col">
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="statusbar">
+          <span>09:43</span>
+          <span class="right">
+            <i class="ti ti-cell-signal-4"></i>
+            <i class="ti ti-wifi"></i>
+            <i class="ti ti-battery-3"></i>
+          </span>
+        </div>
+
+        <div class="screen" data-screen-label="02 Profile · Capability evidence drilldown">
+
+          <div class="drill-header">
+            <button class="back"><i class="ti ti-chevron-left"></i>Profile</button>
+            <div class="center">
+              <div class="ttl">wind-reading · <span class="lvl">developing</span></div>
+              <div class="sub">7 pieces of evidence across 5 steps · 3 more reach competent</div>
+            </div>
+            <button class="share" aria-label="Share capability"><i class="ti ti-share-3"></i></button>
+          </div>
+
+          <div class="ladder-strip">
+            <div class="ladder">
+              <span class="step passed">emerging</span>
+              <span class="arrow">›</span>
+              <span class="step now">developing</span>
+              <span class="arrow">›</span>
+              <span class="step">competent</span>
+              <span class="arrow">›</span>
+              <span class="step">fluent</span>
+              <span class="arrow">›</span>
+              <span class="step">expert</span>
+            </div>
+          </div>
+
+          <div class="drill-body" style="top: 50px; margin-top: 124px;">
+            <ul class="evi-list">
+
+              <li class="evi fresh">
+                <div class="evi-top">
+                  <div class="source">
+                    Light-air starts in shifty breeze · Race 4<br />
+                    <span class="date">RHKYC Spring Series · Apr 12</span>
+                  </div>
+                  <span class="phase-chip reflect"><i class="ti ti-check"></i>Reflect <span class="new-badge"><i class="ti ti-sparkles"></i>New</span></span>
+                </div>
+                <p class="quote">Strategy. Pre-race wind reading said the shift was coming and I called it. The pin end start gave me clean air to extend.</p>
+              </li>
+
+              <li class="evi">
+                <div class="evi-top">
+                  <div class="source">
+                    Light-air starts in shifty breeze · Race 4<br />
+                    <span class="date">RHKYC · Apr 12 · 14:23</span>
+                  </div>
+                  <span class="phase-chip do"><i class="ti ti-microphone"></i>Do</span>
+                </div>
+                <p class="quote">"Left side. Shift's coming — I can see the line on the water." — voice capture between starts 3 and 4.</p>
+              </li>
+
+              <li class="evi">
+                <div class="evi-top">
+                  <div class="source">
+                    Light-air starts in shifty breeze · Race 4<br />
+                    <span class="date">RHKYC · Apr 12</span>
+                  </div>
+                  <span class="phase-chip plan"><i class="ti ti-circle-dot"></i>Plan</span>
+                </div>
+                <p class="quote">Pre-race forecast called 10–14kn; light cloud on the ridge means the gradient drops first on the right side. Favor pin end.</p>
+              </li>
+
+              <li class="evi">
+                <div class="evi-top">
+                  <div class="source">
+                    Cold-front passage debrief<br />
+                    <span class="date">Mar 28</span>
+                  </div>
+                  <span class="phase-chip reflect"><i class="ti ti-check"></i>Reflect</span>
+                </div>
+                <p class="quote">Reading the puff line before it hit the fleet gave me 4 seconds to bear away. Bram pointed it out — but I also saw it.</p>
+              </li>
+
+              <li class="evi">
+                <div class="evi-top">
+                  <div class="source">
+                    Tuesday twilight series · Race 2<br />
+                    <span class="date">Mar 18</span>
+                  </div>
+                  <span class="phase-chip do"><i class="ti ti-pencil"></i>Do</span>
+                </div>
+                <p class="quote">Saw the right pay early but couldn't get clear lane. Noted the trade-off between read and traffic.</p>
+              </li>
+
+            </ul>
+          </div>
+
+          <div class="drill-footer">
+            <button class="btn">See all 7<i class="ti ti-chevron-right"></i></button>
+            <button class="btn add"><i class="ti ti-plus"></i>Add evidence</button>
+          </div>
+
+          <nav class="tabbar">
+            <button class="t"><i class="ti ti-flag-3"></i><span>Practice</span></button>
+            <button class="t"><i class="ti ti-book-2"></i><span>Playbook</span></button>
+            <button class="t"><i class="ti ti-compass"></i><span>Discover</span></button>
+            <button class="t on" aria-current="page"><i class="ti ti-user-filled"></i><span>Profile</span></button>
+          </nav>
+        </div>
+
+        <div class="home-indicator"></div>
+      </div>
+      <div class="caption-block">
+        <p class="frame-label"><em>Capability drilldown</em></p>
+        <p class="frame-sub">Full-screen push from a capability card. The level ladder reads <em>emerging → developing → competent → fluent → expert</em>; the current step is the only highlighted pill. Evidence is the user's own words, sourced from Plan, Do, or Reflect. The freshest entry sits at the top with a quiet green seam.</p>
+      </div>
+    </div>
+
+    <!-- =============================================================== -->
+    <!-- Frame 3 · Public profile preview                                  -->
+    <!-- =============================================================== -->
+    <div class="col">
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="statusbar">
+          <span>09:44</span>
+          <span class="right">
+            <i class="ti ti-cell-signal-4"></i>
+            <i class="ti ti-wifi"></i>
+            <i class="ti ti-battery-3"></i>
+          </span>
+        </div>
+
+        <div class="screen" data-screen-label="03 Profile · Public preview (mobile web)">
+
+          <!-- Mobile Safari URL bar -->
+          <div class="web-screen">
+            <div class="safari-bar">
+              <span class="aA"><span class="a">a</span><span class="A">A</span></span>
+              <span class="url-pill">
+                <i class="ti ti-lock"></i>
+                <span><span class="em">better.at</span>/u/kdenney</span>
+              </span>
+              <span class="refresh"><i class="ti ti-refresh"></i></span>
+            </div>
+
+            <div class="web-body">
+
+              <!-- Hero -->
+              <section class="web-hero">
+                <div class="badge-strip"><i class="ti ti-circle-check-filled"></i>Verified practitioner</div>
+                <div class="big-avatar">KD</div>
+                <h1>Kevin Denney</h1>
+                <p class="bio">Dragon class sailor at RHKYC · Building BetterAt</p>
+                <div class="verified-row">
+                  <span class="vchip">
+                    <span class="verified-dot"><i class="ti ti-check"></i></span>
+                    <span class="em">RHKYC</span>
+                    <span style="color:var(--label-3)">· Member since 2024</span>
+                  </span>
+                  <span class="vchip"><i class="ti ti-calendar"></i>Active in Winter 2025–2026</span>
+                </div>
+              </section>
+
+              <!-- Open to -->
+              <section class="open-to">
+                <p class="ttl">Open to</p>
+                <div class="chips">
+                  <span class="c"><i class="ti ti-sailboat"></i>Crew opportunities</span>
+                  <span class="c"><i class="ti ti-school"></i>Coaching newer sailors</span>
+                  <span class="c"><i class="ti ti-users-group"></i>Race team additions</span>
+                </div>
+              </section>
+
+              <!-- Public capability map -->
+              <section class="web-section">
+                <div class="web-sec-head">
+                  <span class="ttl">Sail Racing · Capabilities</span>
+                  <span class="meta">5 capabilities · 22 evidence</span>
+                </div>
+
+                <ul class="pub-cap-list">
+
+                  <li class="pub-cap-row">
+                    <div class="top">
+                      <div class="left">
+                        <span class="cap-name">tactical-decisions</span>
+                        <span class="level-chip competent">Competent</span>
+                      </div>
+                      <span class="level-dots">
+                        <span class="d on"></span><span class="d on"></span><span class="d on"></span><span class="d on"></span><span class="d"></span>
+                      </span>
+                    </div>
+                    <p class="evi-count">9 pieces of evidence · <span class="tap">Tap to view →</span></p>
+                    <p class="endorsed"><span class="dot">•</span>Endorsed by <span class="em">Bram van Olphen</span>, <span class="em">Bill Gladstone</span></p>
+                  </li>
+
+                  <li class="pub-cap-row">
+                    <div class="top">
+                      <div class="left">
+                        <span class="cap-name">wind-reading</span>
+                        <span class="level-chip">Developing</span>
+                      </div>
+                      <span class="level-dots">
+                        <span class="d on"></span><span class="d on"></span><span class="d on"></span><span class="d"></span><span class="d"></span>
+                      </span>
+                    </div>
+                    <p class="evi-count">7 pieces of evidence · <span class="tap">Tap to view →</span></p>
+                    <p class="endorsed"><span class="dot">•</span>Endorsed by <span class="em">Bram van Olphen</span></p>
+                  </li>
+
+                  <li class="pub-cap-row">
+                    <div class="top">
+                      <div class="left">
+                        <span class="cap-name">mark-roundings</span>
+                        <span class="level-chip">Developing</span>
+                      </div>
+                      <span class="level-dots">
+                        <span class="d on"></span><span class="d on"></span><span class="d on"></span><span class="d"></span><span class="d"></span>
+                      </span>
+                    </div>
+                    <p class="evi-count">5 pieces of evidence · <span class="tap">Tap to view →</span></p>
+                  </li>
+
+                  <li class="pub-cap-row">
+                    <div class="top">
+                      <div class="left">
+                        <span class="cap-name">starts</span>
+                        <span class="level-chip">Developing</span>
+                      </div>
+                      <span class="level-dots">
+                        <span class="d on"></span><span class="d on"></span><span class="d"></span><span class="d"></span><span class="d"></span>
+                      </span>
+                    </div>
+                    <p class="evi-count">4 pieces of evidence · <span class="tap">Tap to view →</span></p>
+                  </li>
+
+                </ul>
+              </section>
+
+              <!-- Activity tiles -->
+              <section class="activity-pub">
+                <div class="tile">
+                  <div class="n">14</div>
+                  <div class="l">Active steps</div>
+                </div>
+                <div class="tile">
+                  <div class="n">90%</div>
+                  <div class="l">Completion rate</div>
+                </div>
+                <div class="tile">
+                  <div class="n">5</div>
+                  <div class="l">Capabilities developing</div>
+                </div>
+              </section>
+
+              <div class="web-foot-mark">
+                <span class="em">better.at</span> · The credential is the evidence
+              </div>
+            </div>
+
+            <!-- Endorse CTA fixed at bottom of web view -->
+            <div class="endorse-cta">
+              <div class="note">
+                <div><span class="em">Bram van Olphen</span>, you're signed in.</div>
+                <div>Endorse a capability you've seen Kevin practice.</div>
+              </div>
+              <button class="endorse-btn"><i class="ti ti-thumb-up"></i>Endorse</button>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="home-indicator"></div>
+      </div>
+      <div class="caption-block">
+        <p class="frame-label"><em>Public profile preview</em></p>
+        <p class="frame-sub">What a hiring captain sees at <em>better.at/u/kdenney</em>. No app chrome — mobile Safari, web body. Capability evidence stays <strong>collapsed by default</strong>; viewers see level, count, and endorsements. Reads LinkedIn-meets-Wikipedia, not Strava. The bottom strip prompts a signed-in viewer to endorse.</p>
+      </div>
+    </div>
+
+    <!-- =============================================================== -->
+    <!-- Frame 4 · Profile settings sheet                                  -->
+    <!-- =============================================================== -->
+    <div class="col">
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="statusbar">
+          <span>09:46</span>
+          <span class="right">
+            <i class="ti ti-cell-signal-4"></i>
+            <i class="ti ti-wifi"></i>
+            <i class="ti ti-battery-3"></i>
+          </span>
+        </div>
+
+        <div class="screen" data-screen-label="04 Profile · Settings sheet">
+
+          <!-- Behind: dimmed Frame 1 chrome -->
+          <div class="profile-body" style="opacity: 0.55;">
+            <section class="hero">
+              <div class="hero-top-row">
+                <span class="interest">
+                  <span class="label">Sail Racing</span>
+                  <i class="ti ti-chevron-down"></i>
+                </span>
+                <button class="edit">Edit profile</button>
+              </div>
+              <div class="big-avatar">KD</div>
+              <h1 class="name">Kevin Denney</h1>
+              <p class="bio">Dragon class sailor at RHKYC · Building BetterAt</p>
+              <div class="url-row">
+                <span class="url">better.at/u/<span class="em">kdenney</span></span>
+                <i class="ti ti-copy"></i>
+              </div>
+            </section>
+          </div>
+
+          <nav class="tabbar" style="opacity: 0.4;">
+            <button class="t"><i class="ti ti-flag-3"></i><span>Practice</span></button>
+            <button class="t"><i class="ti ti-book-2"></i><span>Playbook</span></button>
+            <button class="t"><i class="ti ti-compass"></i><span>Discover</span></button>
+            <button class="t on" aria-current="page"><i class="ti ti-user-filled"></i><span>Profile</span></button>
+          </nav>
+
+          <!-- Sheet -->
+          <div class="scrim" aria-hidden="true"></div>
+          <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+            <div class="handle"></div>
+            <div class="sheet-head">
+              <button class="back"><i class="ti ti-chevron-left"></i>Back</button>
+              <div class="title" id="settings-title">Profile settings</div>
+              <button class="dismiss"><i class="ti ti-x"></i></button>
+            </div>
+
+            <div class="sheet-body">
+
+              <!-- Public profile -->
+              <div class="settings-sec">
+                <div class="sec-label">
+                  <span>Public profile</span>
+                  <span class="desc">Off by default</span>
+                </div>
+                <div class="settings-card">
+                  <div class="settings-row">
+                    <div class="row-left">
+                      <div class="row-label">Make profile public</div>
+                      <div class="row-sub">Anyone with the URL can view your capability map.</div>
+                    </div>
+                    <div class="switch on" role="switch" aria-checked="true"></div>
+                  </div>
+                  <div class="settings-row sub">
+                    <div class="row-left">
+                      <div class="row-label">Show evidence to public viewers</div>
+                      <div class="row-sub">Quoted Plan/Do/Reflect moments stay private unless this is on.</div>
+                    </div>
+                    <div class="switch" role="switch" aria-checked="false"></div>
+                  </div>
+                  <div class="settings-row">
+                    <div class="row-left">
+                      <div class="row-label">Profile URL</div>
+                      <div class="row-sub" style="font-family:'SF Mono',ui-monospace,monospace; color:var(--label);">better.at/u/kdenney</div>
+                    </div>
+                    <span class="row-value editable">Edit<i class="ti ti-chevron-right"></i></span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Endorsements -->
+              <div class="settings-sec">
+                <div class="sec-label">
+                  <span>Endorsements</span>
+                </div>
+                <div class="settings-card">
+                  <div class="settings-row">
+                    <div class="row-left">
+                      <div class="row-label">Accept endorsements</div>
+                      <div class="row-sub">Other practitioners can endorse capabilities you've practiced.</div>
+                    </div>
+                    <div class="switch on" role="switch" aria-checked="true"></div>
+                  </div>
+                  <div class="settings-row sub">
+                    <div class="row-left">
+                      <div class="row-label">Show endorsements on public profile</div>
+                    </div>
+                    <div class="switch on" role="switch" aria-checked="true"></div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Verified context -->
+              <div class="settings-sec">
+                <div class="sec-label">
+                  <span>Verified context</span>
+                </div>
+                <div class="settings-card">
+                  <div class="verified-list">
+                    <div class="verified-item">
+                      <div class="vleft">
+                        <div class="vlogo">RH</div>
+                        <div>
+                          <div class="vname">RHKYC</div>
+                          <div class="vmeta">Member since 2024</div>
+                        </div>
+                      </div>
+                      <span class="vstatus"><i class="ti ti-circle-check-filled"></i>Verified</span>
+                    </div>
+                  </div>
+                  <button class="verified-add"><i class="ti ti-plus"></i>Add verified organization</button>
+                </div>
+              </div>
+
+              <!-- Capability visibility -->
+              <div class="settings-sec">
+                <div class="sec-label">
+                  <span>Capability visibility</span>
+                  <span class="desc">Per interest</span>
+                </div>
+                <div class="settings-card">
+                  <div class="settings-row">
+                    <div class="row-left">
+                      <div class="row-label">Sail Racing</div>
+                      <div class="row-sub">5 capabilities · 22 evidence pieces</div>
+                    </div>
+                    <div class="switch on" role="switch" aria-checked="true"></div>
+                  </div>
+                  <div class="settings-row">
+                    <div class="row-left">
+                      <div class="row-label">Drawing</div>
+                      <div class="row-sub">3 capabilities · 8 evidence pieces</div>
+                    </div>
+                    <div class="switch" role="switch" aria-checked="false"></div>
+                  </div>
+                  <div class="settings-row">
+                    <div class="row-left">
+                      <div class="row-label">Reading</div>
+                      <div class="row-sub">2 capabilities · 4 evidence pieces</div>
+                    </div>
+                    <div class="switch" role="switch" aria-checked="false"></div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Open to -->
+              <div class="settings-sec">
+                <div class="sec-label">
+                  <span>Open to</span>
+                  <span class="desc">Shown publicly</span>
+                </div>
+                <div class="settings-card">
+                  <div class="openfor-input">
+                    <div class="chips">
+                      <span class="c">Crew opportunities <i class="ti ti-x"></i></span>
+                      <span class="c">Coaching newer sailors <i class="ti ti-x"></i></span>
+                      <span class="c">Race team additions <i class="ti ti-x"></i></span>
+                    </div>
+                    <div class="input-stub"><i class="ti ti-plus"></i>Add another…</div>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+
+            <div class="sheet-footer">
+              <button class="save-btn">Save changes</button>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="home-indicator"></div>
+      </div>
+      <div class="caption-block">
+        <p class="frame-label"><em>Profile settings sheet</em></p>
+        <p class="frame-sub">Rises from <em>Edit profile</em>. Privacy defaults favor restraint — even with the profile public, evidence detail stays hidden until the user opts in. Per-interest visibility lets the user share their sailing map without exposing the reading log.</p>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- =================================================================== -->
+  <!-- Nursing inset — per-interest vocabulary                              -->
+  <!-- =================================================================== -->
+  <div class="inset-row">
+    <div class="copy">
+      <h3>Same surface, <em>different vocabulary</em></h3>
+      <p>Profile is universal — <strong>hero, interest switcher, capability map, evidence drilldown, public credential, settings</strong>. What adapts per interest is the capability names. Sailing speaks <em>wind-reading, starts, rules, tactical-decisions, mark-roundings</em>; a nursing learner sees <em>patient-assessment, documentation, clinical-reasoning, communication, handoffs</em>. The dot ladder, the chips, the spacing — all bonded.</p>
+      <p>The inset on the right is Frame 1's capability map rendered in the nursing register, for a med-surg learner. <em>Same component, same hue, same restraint.</em></p>
+
+      <div class="vocab-grid">
+        <div class="k">Sailing</div>
+        <div>wind-reading · starts · rules · tactical-decisions · mark-roundings</div>
+        <div class="k">Nursing</div>
+        <div>patient-assessment · documentation · clinical-reasoning · communication · handoffs</div>
+        <div class="k">Drawing</div>
+        <div>composition · line-quality · perspective · observation · color-theory</div>
+        <div class="k">Fitness</div>
+        <div>form · intensity · recovery · programming · mobility</div>
+      </div>
+    </div>
+
+    <div class="inset-card">
+      <p class="label"><span class="dot"></span>Nursing register · Profile landing · Frame 1 equivalent</p>
+
+      <div class="inset-hero">
+        <div class="av">AM</div>
+        <div>
+          <div class="n">Ana Mendez, RN</div>
+          <div class="b">Med-surg · Johns Hopkins Hospital · Bayview</div>
+        </div>
+      </div>
+
+      <div class="sec-eyebrow" style="margin-bottom: 10px;">
+        <span class="ttl" style="color: var(--label-2);">Nursing · Capability Map</span>
+        <span class="meta">5 capabilities · 31 evidence</span>
+      </div>
+
+      <ul class="cap-list">
+        <li class="cap-row">
+          <div class="name-line">
+            <span class="cap-name">patient-assessment</span>
+            <span class="level-chip competent">Competent</span>
+          </div>
+          <div class="cap-meta"><span class="em">11 pieces</span> across 9 shifts</div>
+          <span class="level-dots">
+            <span class="d on"></span><span class="d on"></span><span class="d on"></span><span class="d on"></span><span class="d"></span>
+          </span>
+          <span class="chev"><i class="ti ti-chevron-right"></i></span>
+        </li>
+        <li class="cap-row">
+          <div class="name-line">
+            <span class="cap-name">clinical-reasoning</span>
+            <span class="level-chip developing">Developing</span>
+          </div>
+          <div class="cap-meta"><span class="em">8 pieces</span> across 6 shifts · just earned</div>
+          <span class="level-dots">
+            <span class="d on"></span><span class="d on"></span><span class="d on"></span><span class="d new"></span><span class="d"></span>
+          </span>
+          <span class="chev"><i class="ti ti-chevron-right"></i></span>
+        </li>
+        <li class="cap-row">
+          <div class="name-line">
+            <span class="cap-name">communication</span>
+            <span class="level-chip developing">Developing</span>
+          </div>
+          <div class="cap-meta"><span class="em">6 pieces</span> across 5 shifts</div>
+          <span class="level-dots">
+            <span class="d on"></span><span class="d on"></span><span class="d on"></span><span class="d"></span><span class="d"></span>
+          </span>
+          <span class="chev"><i class="ti ti-chevron-right"></i></span>
+        </li>
+        <li class="cap-row">
+          <div class="name-line">
+            <span class="cap-name">handoffs</span>
+            <span class="level-chip developing">Developing</span>
+          </div>
+          <div class="cap-meta"><span class="em">4 pieces</span> across 4 shifts</div>
+          <span class="level-dots">
+            <span class="d on"></span><span class="d on"></span><span class="d"></span><span class="d"></span><span class="d"></span>
+          </span>
+          <span class="chev"><i class="ti ti-chevron-right"></i></span>
+        </li>
+        <li class="cap-row">
+          <div class="name-line">
+            <span class="cap-name">documentation</span>
+            <span class="level-chip emerging">Emerging</span>
+          </div>
+          <div class="cap-meta"><span class="em">2 pieces</span> · 1 flagged gap to debrief</div>
+          <span class="level-dots">
+            <span class="d on"></span><span class="d"></span><span class="d"></span><span class="d"></span><span class="d"></span>
+          </span>
+          <span class="chev"><i class="ti ti-chevron-right"></i></span>
+        </li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- =================================================================== -->
+  <!-- Rail of notes                                                         -->
+  <!-- =================================================================== -->
+  <div class="rail-row">
+    <div class="rail-col">
+      <h4>The credential is the <em>evidence</em></h4>
+      <p>No badges, no XP, no streaks. The capability rows are <strong>chips + dots + count</strong> and nothing else; tapping drills into the user's own quoted words from Plan, Do, and Reflect. The most a "level" earns is a small chip color shift and one more filled dot. The model is <strong>LinkedIn endorsements through deliberate practice</strong>, not gamified progression.</p>
+      <span class="sig"><span class="swatch gray"></span>•••·· · <span class="swatch green"></span>fresh-dot</span>
+    </div>
+    <div class="rail-col">
+      <h4>Privacy is <em>opt-in, not opt-out</em></h4>
+      <p>Profile is private by default. Even after the user flips it public, <strong>evidence quotes stay collapsed</strong> until they explicitly choose to show them. Per-interest visibility lets a sailor share their racing map without exposing their reading log. The settings sheet always lands with the safer state.</p>
+      <span class="sig"><span class="swatch gray"></span>lock badge on private · <span class="swatch green"></span>switch on</span>
+    </div>
+    <div class="rail-col">
+      <h4>Public preview is a <em>web page</em>, not the app</h4>
+      <p>Frame 3 swaps the bottom tab bar for a mobile Safari address bar. No app chrome, no Practice/Playbook/Discover tabs — a stranger landing on <em>better.at/u/kdenney</em> sees a clean credential. Restrained type, <em>verified at</em> chip, <em>open to</em> strip. <strong>Reads LinkedIn meets Wikipedia</strong>, not Strava.</p>
+      <span class="sig"><span class="swatch blue"></span>iOS blue · verified glyph + endorse CTA</span>
+    </div>
+    <div class="rail-col">
+      <h4>Bonded with the <em>practice loop</em></h4>
+      <p>Frame 2's evidence cards quote the same words the user typed into Reflect. Plan, Do, and Reflect each carry their <strong>blue · coral · green</strong> phase chip wherever they appear — including here. The Profile screen is the <em>credential surface</em>, but the building blocks are the same atoms that make up Plan/Do/Reflect.</p>
+      <span class="sig"><span class="swatch blue"></span>Plan · <span class="swatch coral"></span>Do · <span class="swatch green"></span>Reflect</span>
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>
