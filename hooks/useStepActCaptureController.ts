@@ -169,8 +169,9 @@ export function useStepActCaptureController({
         status: step?.status,
         act: actData,
         activityEndedAt,
+        isTimed,
       }),
-    [step?.status, actData, activityEndedAt],
+    [step?.status, actData, activityEndedAt, isTimed],
   );
 
   const startedAtMs = actData.started_at ? Date.parse(actData.started_at) : NaN;

@@ -268,11 +268,13 @@ export const FEATURE_FLAGS = {
    * default for new steps post-migration 20260517110000) render the capture
    * affordances without a running timer, no implicit "activity started" state,
    * and no Stop button. Designed for the reality that only ~15-20% of steps
-   * even in sail racing are stopwatch activities. Default false so the May 20
-   * TestFlight build keeps current behaviour; flip on after launch via
-   * EXPO_PUBLIC_FF_PRACTICE_DO_TAB_PER_STEP_TIMING=true.
+   * even in sail racing are stopwatch activities. Default true: the auto-start
+   * + always-running-timer model was wrong for the majority of steps and was
+   * stamping started_at on drawing/reading/reflection steps the moment Do was
+   * opened. deriveDoInteriorState additionally ignores stale started_at on
+   * untimed steps so already-affected rows un-stick on next render.
    */
-  PRACTICE_DO_TAB_PER_STEP_TIMING: readBooleanEnv('EXPO_PUBLIC_FF_PRACTICE_DO_TAB_PER_STEP_TIMING', false),
+  PRACTICE_DO_TAB_PER_STEP_TIMING: readBooleanEnv('EXPO_PUBLIC_FF_PRACTICE_DO_TAB_PER_STEP_TIMING', true),
 
   /**
    * Stage the Race Log iOS register surface (chronological multi-season

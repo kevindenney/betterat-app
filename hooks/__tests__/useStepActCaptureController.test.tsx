@@ -78,6 +78,7 @@ function makeStep(overrides: Partial<TimelineStepRecord> = {}): TimelineStepReco
     completed_at: null,
     target_date: null,
     interest_id: 'sail-racing',
+    is_timed: true,
     created_at: '2026-05-01T00:00:00Z',
     updated_at: '2026-05-16T14:00:00Z',
     ...overrides,

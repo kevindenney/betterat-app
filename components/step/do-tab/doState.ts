@@ -15,14 +15,22 @@ export function deriveDoInteriorState(input: {
   status?: string;
   act: StepActData | undefined | null;
   activityEndedAt?: string | null;
+  /**
+   * Whether the step opted into the timed (stopwatch) model. Defaults true for
+   * backwards compatibility. When false, status === 'in_progress' and a stamped
+   * started_at are ignored as live signals — they may be stale from the
+   * pre-timing auto-start bug, and an untimed step has no meaningful "running"
+   * state. Captures still drive the live (capture-stream) view.
+   */
+  isTimed?: boolean;
 }): DoInteriorState {
-  const { status, act, activityEndedAt } = input;
+  const { status, act, activityEndedAt, isTimed = true } = input;
 
   if (activityEndedAt) {
     return 'post_activity';
   }
 
-  if (status === 'in_progress' || act?.started_at) {
+  if (isTimed && (status === 'in_progress' || act?.started_at)) {
     return 'live';
   }
 

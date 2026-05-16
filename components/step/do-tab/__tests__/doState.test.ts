@@ -37,6 +37,29 @@ describe('doState', () => {
         }),
       ).toBe('post_activity');
     });
+
+    describe('when isTimed === false (untimed steps)', () => {
+      it('ignores in_progress status and returns pre_activity when no captures', () => {
+        expect(
+          deriveDoInteriorState({ status: 'in_progress', act: {}, isTimed: false }),
+        ).toBe('pre_activity');
+      });
+
+      it('ignores a stale started_at and returns pre_activity when no captures', () => {
+        const act: StepActData = { started_at: '2026-05-16T10:00:00Z' };
+        expect(deriveDoInteriorState({ act, isTimed: false })).toBe('pre_activity');
+      });
+
+      it('still returns live when captures exist (the stream view, no timer)', () => {
+        const act: StepActData = {
+          started_at: '2026-05-16T10:00:00Z',
+          observations: [{ id: 'a', text: 'sketch', timestamp: '2026-05-16T10:05:00Z' }],
+        };
+        expect(
+          deriveDoInteriorState({ status: 'in_progress', act, isTimed: false }),
+        ).toBe('live');
+      });
+    });
   });
 
   describe('hasAnyDoCapture', () => {
