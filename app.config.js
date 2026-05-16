@@ -22,7 +22,7 @@ module.exports = {
     ios: {
       supportsTablet: true,
       bundleIdentifier: 'com.betterat.app',
-      buildNumber: '2',
+      buildNumber: '3',
       usesAppleSignIn: true,
       // googleMapsApiKey removed from config — handled by withGoogleMaps plugin
       // to avoid Expo's built-in autolinking which generates a broken podspec reference
@@ -44,7 +44,7 @@ module.exports = {
     },
     android: {
       package: 'com.betterat.app',
-      versionCode: 5,
+      versionCode: 6,
       adaptiveIcon: {
         backgroundColor: '#0a1832',
         foregroundImage: './assets/images/android-icon-foreground.png',
