@@ -41,7 +41,7 @@ export default function PrivacyQuickSetScreen() {
   const { user } = useAuth();
 
   const [interestSlug, setInterestSlug] = useState<string | null>(null);
-  const [profilePublic, setProfilePublic] = useState(true);
+  const [profilePublic, setProfilePublic] = useState(false);
   const [peerVisibility, setPeerVisibility] = useState(true);
   const [stepVisibility, setStepVisibility] = useState<TimelineStepVisibility>('followers');
   const [isSaving, setIsSaving] = useState(false);
