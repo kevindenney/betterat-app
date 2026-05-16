@@ -1,0 +1,160 @@
+import React from 'react';
+import TestRenderer, {
+  type ReactTestInstance,
+  type ReactTestRenderer,
+  act,
+} from 'react-test-renderer';
+import { DoCaptureRow, type DoCaptureRowProps } from '../DoCaptureRow';
+import type { DoCaptureItem } from '../doCaptureModel';
+
+// React 19's act() requires this flag; without it TestRenderer prints a noisy
+// warning even though every render is wrapped.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+(globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
+
+jest.mock('@expo/vector-icons', () => ({
+  Ionicons: 'Ionicons',
+}));
+
+jest.mock('react-native', () => {
+  const StyleSheet = {
+    create: (styles: unknown) => styles,
+    hairlineWidth: 1,
+    absoluteFillObject: {},
+  };
+  return {
+    Animated: {
+      Value: class {
+        constructor(public v: number) {}
+        interpolate() {
+          return this;
+        }
+      },
+      View: 'AnimatedView',
+      timing: () => ({ start: jest.fn(), stop: jest.fn() }),
+      loop: () => ({ start: jest.fn(), stop: jest.fn() }),
+    },
+    Image: 'Image',
+    Pressable: 'Pressable',
+    ScrollView: 'ScrollView',
+    StyleSheet,
+    Text: 'Text',
+    View: 'View',
+  };
+});
+
+const cap = (over: Partial<DoCaptureItem>): DoCaptureItem => ({
+  id: over.id ?? 'cap',
+  kind: over.kind ?? 'note',
+  capturedAt: over.capturedAt ?? '2026-05-16T14:20:00Z',
+  body: over.body ?? '',
+  capabilityIds: [],
+  capabilityLabels: [],
+  flaggedForDebrief: false,
+  source: 'act_observation',
+  ...over,
+});
+
+const renderRow = (props: DoCaptureRowProps) => {
+  let tree!: ReactTestRenderer;
+  act(() => {
+    tree = TestRenderer.create(<DoCaptureRow {...props} />);
+  });
+  return tree;
+};
+
+const componentNames = (root: ReactTestInstance): string[] =>
+  root.findAll(() => true).map((n: ReactTestInstance) => {
+    const t = n.type as { name?: string; displayName?: string } | string;
+    if (typeof t === 'string') return t;
+    return t.displayName ?? t.name ?? '';
+  });
+
+const allText = (root: ReactTestInstance): string =>
+  root
+    .findAll((n: ReactTestInstance) => n.type === 'Text')
+    .map((n: ReactTestInstance) => {
+      const children = React.Children.toArray(n.props.children as React.ReactNode);
+      return children
+        .map((c: React.ReactNode) =>
+          typeof c === 'string' || typeof c === 'number' ? String(c) : '',
+        )
+        .join('');
+    })
+    .join(' | ');
+
+describe('DoCaptureRow — Frame 2 dispatch', () => {
+  it('mounts VoiceCapturePreview for voice kind', () => {
+    const tree = renderRow({
+      capture: cap({ kind: 'voice', body: '"Test"', voicePeaks: [0.5, 0.5], voiceDurationSec: 7 }),
+    });
+    expect(componentNames(tree.root)).toContain('VoiceCapturePreview');
+  });
+
+  it('mounts PhotoCapturePreview for photo kind', () => {
+    const tree = renderRow({
+      capture: cap({
+        kind: 'photo',
+        body: 'caption',
+        mediaUri: 'https://example.com/p.jpg',
+        source: 'media_upload',
+      }),
+    });
+    expect(componentNames(tree.root)).toContain('PhotoCapturePreview');
+  });
+
+  it('mounts QuickNoteCapturePreview for note kind', () => {
+    const tree = renderRow({ capture: cap({ kind: 'note', body: 'typed' }) });
+    expect(componentNames(tree.root)).toContain('QuickNoteCapturePreview');
+  });
+
+  it('short-circuits to TimeMarkerCapturePreview for time_marker kind', () => {
+    const tree = renderRow({
+      capture: cap({
+        kind: 'time_marker',
+        body: 'Beat 2 begins',
+        markerLabel: 'Beat 2 begins',
+        source: 'time_marker',
+      }),
+    });
+    const names = componentNames(tree.root);
+    expect(names).toContain('TimeMarkerCapturePreview');
+    expect(names).not.toContain('QuickNoteCapturePreview');
+  });
+
+  it('renders the live coral chip with a pulsing ring when chipLive is true', () => {
+    const tree = renderRow({
+      capture: cap({ kind: 'voice', chipLabel: 'Weather', chipLive: true }),
+    });
+    expect(
+      tree.root.findAllByType('AnimatedView' as unknown as React.ComponentType).length,
+    ).toBeGreaterThan(0);
+  });
+
+  it('omits edit/delete pressables for a typed note when no callbacks provided', () => {
+    const tree = renderRow({ capture: cap({ kind: 'note', body: 'no actions' }) });
+    expect(
+      tree.root.findAllByType('Pressable' as unknown as React.ComponentType),
+    ).toHaveLength(0);
+  });
+
+  it('renders both edit and delete pressables when callbacks are provided', () => {
+    const tree = renderRow({
+      capture: cap({ kind: 'note', body: 'has actions' }),
+      onEdit: jest.fn(),
+      onDelete: jest.fn(),
+    });
+    expect(
+      tree.root.findAllByType('Pressable' as unknown as React.ComponentType).length,
+    ).toBeGreaterThanOrEqual(2);
+  });
+
+  it('renders the clock time and the relative-ago label', () => {
+    const now = Date.parse('2026-05-16T14:30:00Z');
+    const tree = renderRow({
+      capture: cap({ kind: 'note', body: 'x', capturedAt: '2026-05-16T14:27:00Z' }),
+      nowMs: now,
+    });
+    expect(allText(tree.root)).toContain('3m');
+  });
+});

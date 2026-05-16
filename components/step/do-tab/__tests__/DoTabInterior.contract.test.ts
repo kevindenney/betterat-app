@@ -53,8 +53,13 @@ describe('Phase B.7 Frame 1 contract', () => {
       expect(combined).toContain('PlanStartingFrameRow');
     });
 
-    it('renders nothing substantive in non-pre_activity states (Frames 2-4 deferred)', () => {
-      expect(interiorSource).toMatch(/state !== 'pre_activity'/);
+    it('dispatches to DoLiveCard when state is live (Frame 2)', () => {
+      expect(interiorSource).toMatch(/state === 'live'/);
+      expect(interiorSource).toContain('DoLiveCard');
+    });
+
+    it('renders nothing substantive when state is post_activity (Frames 3-4 deferred)', () => {
+      expect(interiorSource).toMatch(/state === 'post_activity'/);
     });
   });
 });

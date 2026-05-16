@@ -1,41 +1,49 @@
 import React from 'react';
+import TestRenderer, {
+  type ReactTestInstance,
+  type ReactTestRenderer,
+  act,
+} from 'react-test-renderer';
 import { DoTabInterior, type DoTabInteriorProps } from '../DoTabInterior';
 import { hasPlanStartingFrameContent } from '../PlanStartingFrameRow';
 import type { StepPlanData } from '@/types/step-detail';
+
+// React 19's act() requires this flag; without it TestRenderer prints a noisy
+// warning even though every render is wrapped. Set after imports so eslint
+// import/first stays happy.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+(globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
 
 jest.mock('@expo/vector-icons', () => ({
   Ionicons: 'Ionicons',
 }));
 
-jest.mock('react-native', () => ({
-  Pressable: 'Pressable',
-  ScrollView: 'ScrollView',
-  StyleSheet: {
+jest.mock('react-native', () => {
+  const StyleSheet = {
     create: (styles: unknown) => styles,
     hairlineWidth: 1,
-  },
-  Text: 'Text',
-  View: 'View',
-}));
-
-type RNNode = { type: unknown; props?: Record<string, unknown> };
-
-const flatten = (node: unknown): RNNode[] => {
-  if (!node || typeof node !== 'object') return [];
-  const entry = node as { type?: unknown; props?: { children?: unknown } };
-  if (!entry.type) return [];
-  const children = React.Children.toArray(entry.props?.children);
-  return [entry as RNNode, ...children.flatMap(flatten)];
-};
-
-const typeNames = (nodes: ReturnType<typeof flatten>): string[] =>
-  nodes
-    .map((n) => {
-      const t = n.type as { name?: string; displayName?: string } | string;
-      if (typeof t === 'string') return t;
-      return t.displayName ?? t.name ?? '';
-    })
-    .filter(Boolean);
+    absoluteFillObject: {},
+  };
+  return {
+    Animated: {
+      Value: class {
+        constructor(public v: number) {}
+        interpolate() {
+          return this;
+        }
+      },
+      View: 'AnimatedView',
+      timing: () => ({ start: jest.fn(), stop: jest.fn() }),
+      loop: () => ({ start: jest.fn(), stop: jest.fn() }),
+    },
+    Image: 'Image',
+    Pressable: 'Pressable',
+    ScrollView: 'ScrollView',
+    StyleSheet,
+    Text: 'Text',
+    View: 'View',
+  };
+});
 
 const renderInterior = (overrides: Partial<DoTabInteriorProps> = {}) => {
   const props: DoTabInteriorProps = {
@@ -44,30 +52,43 @@ const renderInterior = (overrides: Partial<DoTabInteriorProps> = {}) => {
     captures: [],
     ...overrides,
   };
-  const element = DoTabInterior(props) as React.ReactElement<unknown>;
-  return { element, nodes: flatten(element) };
+  let tree!: ReactTestRenderer;
+  act(() => {
+    tree = TestRenderer.create(<DoTabInterior {...props} />);
+  });
+  return tree;
 };
 
-describe('DoTabInterior — Frame 1 state gating', () => {
+const componentNames = (root: ReactTestInstance): string[] =>
+  root.findAll(() => true).map((n: ReactTestInstance) => {
+    const t = n.type as { name?: string; displayName?: string } | string;
+    if (typeof t === 'string') return t;
+    return t.displayName ?? t.name ?? '';
+  });
+
+describe('DoTabInterior — state gating', () => {
   it('mounts DoStartCard and PlanStartingFrameRow when state is pre_activity', () => {
-    const { nodes } = renderInterior({ state: 'pre_activity' });
-    const names = typeNames(nodes);
+    const tree = renderInterior({ state: 'pre_activity' });
+    const names = componentNames(tree.root);
     expect(names).toContain('DoStartCard');
     expect(names).toContain('PlanStartingFrameRow');
+    expect(names).not.toContain('DoLiveCard');
   });
 
-  it('does NOT mount Frame 1 components when state is live (Frame 2 deferred)', () => {
-    const { nodes } = renderInterior({ state: 'live' });
-    const names = typeNames(nodes);
+  it('mounts DoLiveCard (Frame 2) when state is live and hides Frame 1 components', () => {
+    const tree = renderInterior({ state: 'live' });
+    const names = componentNames(tree.root);
+    expect(names).toContain('DoLiveCard');
     expect(names).not.toContain('DoStartCard');
     expect(names).not.toContain('PlanStartingFrameRow');
   });
 
-  it('does NOT mount Frame 1 components when state is post_activity (Frame 3 deferred)', () => {
-    const { nodes } = renderInterior({ state: 'post_activity' });
-    const names = typeNames(nodes);
+  it('does NOT mount Frame 1 or Frame 2 components when state is post_activity (Frame 3 deferred)', () => {
+    const tree = renderInterior({ state: 'post_activity' });
+    const names = componentNames(tree.root);
     expect(names).not.toContain('DoStartCard');
     expect(names).not.toContain('PlanStartingFrameRow');
+    expect(names).not.toContain('DoLiveCard');
   });
 });
 
