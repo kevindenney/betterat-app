@@ -5091,6 +5091,7 @@ export default function RacesScreen() {
           onPublishBlueprint={currentInterest?.id ? () => setShowBlueprintSheet(true) : undefined}
           blueprintLabel={existingBlueprintsForInterest && existingBlueprintsForInterest.length > 0 ? 'Manage Blueprint' : 'Publish as Blueprint'}
           isBlueprintPublished={existingBlueprintsForInterest?.some(bp => bp.is_published)}
+          useCanonicalSeasonChip={FEATURE_FLAGS.PRACTICE_SERIES_IOS_REGISTER}
         />
 
         {/* One-shot welcome card shown after a sailor lands via the HKDW

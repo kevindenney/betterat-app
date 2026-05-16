@@ -113,6 +113,13 @@ export interface RacesFloatingHeaderProps {
   onCoachingItemLayout?: (layout: LayoutRectangle) => void;
   onPricingItemLayout?: (layout: LayoutRectangle) => void;
   skipDrawer?: boolean;
+  /**
+   * When true, render the canonical Phase I "series-chip" + "jump-pill"
+   * treatment in the subtitle slot per
+   * docs/redesign/ios-register/series-feature-canonical.html Frame 3.
+   * When false (default), keep the existing single-line subtitle layout.
+   */
+  useCanonicalSeasonChip?: boolean;
 }
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
@@ -133,7 +140,7 @@ export function RacesFloatingHeader({
   onNewSeason,
   onPublishBlueprint,
   blueprintLabel,
-  isBlueprintPublished,
+  isBlueprintPublished: _isBlueprintPublished,
   scrollOffset: _scrollOffset = 0,
   onAddButtonLayout,
   measureTrigger,
@@ -147,9 +154,10 @@ export function RacesFloatingHeader({
   onMeasuredHeight,
   hidden,
   onAddPress,
-  isDomainView,
-  onToggleDomainView,
-  domainLabel,
+  isDomainView: _isDomainView,
+  onToggleDomainView: _onToggleDomainView,
+  domainLabel: _domainLabel,
+  useCanonicalSeasonChip,
 }: RacesFloatingHeaderProps) {
   const collapsableProp = Platform.OS === 'web' ? undefined : false;
   const [menuVisible, setMenuVisible] = useState(false);
@@ -278,7 +286,7 @@ export function RacesFloatingHeader({
   // pill in the header already identifies the domain, and blueprint-published
   // state belongs near the blueprint actions rather than in the subtitle.
   const hasMultipleActions = Boolean(onSeasonPress && (hasIndexCounter || hasUpcoming));
-  const subtitleContent = hasMultipleActions ? (
+  const legacySubtitleContent = hasMultipleActions ? (
     <View style={{ flexDirection: 'row', alignItems: 'center' }}>
       {seasonLabel && (
         <Pressable onPress={onSeasonPress} hitSlop={{ top: 8, bottom: 8, right: 4 }} style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
@@ -312,6 +320,63 @@ export function RacesFloatingHeader({
       )}
     </View>
   ) : undefined;
+
+  // Phase I Frame 3 — canonical series-chip + jump-pill treatment.
+  // The series chip carries the active series name with a gold trophy mini icon
+  // and opens the switcher sheet on tap; the jump pill is an iOS-blue tinted
+  // counter (N of M) with a chevron-down that opens the Jump-to picker.
+  const canonicalSubtitleContent = useCanonicalSeasonChip
+    ? (
+      <View style={canonicalChipStyles.row} testID="series-canonical-subtitle">
+        {seasonLabel && (
+          <Pressable
+            onPress={onSeasonPress}
+            hitSlop={{ top: 8, bottom: 8, right: 4 }}
+            style={canonicalChipStyles.seriesChip}
+            accessibilityRole="button"
+            accessibilityLabel={`Switch active series`}
+            testID="series-chip"
+          >
+            <View style={canonicalChipStyles.trophyMini}>
+              <Ionicons name="trophy" size={9} color="#8A5A00" />
+            </View>
+            <Text style={canonicalChipStyles.seriesChipText} numberOfLines={1}>
+              {seasonLabel}
+            </Text>
+          </Pressable>
+        )}
+        {hasIndexCounter && (
+          <Pressable
+            onPress={onStepPickerPress}
+            hitSlop={{ top: 8, bottom: 8, left: 4 }}
+            style={[canonicalChipStyles.jumpPill, !onStepPickerPress && canonicalChipStyles.jumpPillDisabled]}
+            disabled={!onStepPickerPress}
+            accessibilityRole="button"
+            accessibilityLabel={`Jump to another step. Currently viewing step ${currentRaceIndex} of ${totalRaces}.`}
+            testID="series-jump-pill"
+          >
+            <Text style={canonicalChipStyles.jumpPillText}>
+              {currentRaceIndex} of {totalRaces}
+            </Text>
+            <Ionicons name="chevron-down" size={12} color={IOS_COLORS.blue} />
+          </Pressable>
+        )}
+        {hasUpcoming && (
+          <Pressable
+            onPress={onUpcomingPress}
+            hitSlop={{ top: 8, bottom: 8, left: 4 }}
+            style={canonicalChipStyles.upcomingPress}
+          >
+            <Text style={canonicalChipStyles.upcomingText}>
+              {upcomingRaces} upcoming
+            </Text>
+          </Pressable>
+        )}
+      </View>
+    )
+    : undefined;
+
+  const subtitleContent = useCanonicalSeasonChip ? canonicalSubtitleContent : legacySubtitleContent;
 
   // Custom right capsule with notification bell, grid toggle, and add button
   const rightCapsule = (
@@ -778,6 +843,74 @@ const styles = StyleSheet.create({
     backgroundColor: IOS_COLORS.separator,
     marginHorizontal: IOS_SPACING.lg,
     marginLeft: 76, // Align with text after icon
+  },
+});
+
+// =============================================================================
+// PHASE I — canonical series-chip + jump-pill styles
+// =============================================================================
+
+const canonicalChipStyles = StyleSheet.create({
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    flexWrap: 'wrap',
+  },
+  seriesChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    height: 24,
+    paddingLeft: 7,
+    paddingRight: 9,
+    borderRadius: 999,
+    backgroundColor: '#FFFFFF',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: '#E5E5EA',
+  },
+  trophyMini: {
+    width: 14,
+    height: 14,
+    borderRadius: 4,
+    backgroundColor: '#FFD789',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  seriesChipText: {
+    fontSize: 11.5,
+    fontWeight: '500',
+    color: IOS_COLORS.secondaryLabel,
+    maxWidth: 180,
+  },
+  jumpPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    height: 26,
+    paddingLeft: 11,
+    paddingRight: 10,
+    borderRadius: 999,
+    backgroundColor: `${IOS_COLORS.blue}1F`,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: `${IOS_COLORS.blue}30`,
+  },
+  jumpPillDisabled: {
+    opacity: 0.5,
+  },
+  jumpPillText: {
+    fontSize: 12.5,
+    fontWeight: '600',
+    color: IOS_COLORS.blue,
+    fontVariant: ['tabular-nums'],
+  },
+  upcomingPress: {
+    paddingHorizontal: 4,
+  },
+  upcomingText: {
+    fontSize: 13,
+    color: IOS_COLORS.systemBlue,
+    fontWeight: '500',
   },
 });
 
