@@ -23,6 +23,7 @@ import { router } from 'expo-router';
 import { FromOtherPlaybooks } from './FromOtherPlaybooks';
 import { useStepDetail, useUpdateStepMetadata } from '@/hooks/useStepDetail';
 import { useUpdateStep } from '@/hooks/useTimelineSteps';
+import type { TimelineStepRecord } from '@/types/timeline-steps';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/providers/AuthProvider';
 import { useInterest } from '@/providers/InterestProvider';
@@ -1228,6 +1229,16 @@ RULES:
         stepCategory={step.category}
         onConversationalCreate={useConversationalCapture ? handleCanonicalConversationalCreate : undefined}
         optionalAddOns={optionalAddOns}
+        isTimed={Boolean(step.is_timed)}
+        onToggleTimed={(next) => {
+          // Optimistic cache write so the Switch flips immediately;
+          // useUpdateStep invalidates on success and the refetch confirms.
+          queryClient.setQueryData<TimelineStepRecord | undefined>(
+            ['timeline-steps', 'detail', step.id],
+            (prev) => (prev ? { ...prev, is_timed: next } : prev),
+          );
+          updateStep.mutate({ stepId: step.id, input: { is_timed: next } });
+        }}
       />
     );
   }

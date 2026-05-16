@@ -10,6 +10,8 @@ import { getPlanInteriorState, isPlanReady } from './planState';
 import { PlanCoachCard } from './PlanCoachCard';
 import { PlanFieldCard } from './PlanFieldCard';
 import { PlanOptionalAddOns } from './PlanOptionalAddOns';
+import { PlanTimedToggleRow } from './PlanTimedToggleRow';
+import { FEATURE_FLAGS } from '@/lib/featureFlags';
 
 interface PlanTabInteriorProps {
   planData: StepPlanData;
@@ -23,6 +25,13 @@ interface PlanTabInteriorProps {
   onConversationalCreate?: (planData: Partial<StepPlanData>, suggestedTitle?: string) => void;
   optionalAddOns?: React.ReactNode;
   footer?: React.ReactNode;
+  /**
+   * Per-step timing toggle wiring. Both must be provided for the toggle row
+   * to render. Visibility is also gated on FEATURE_FLAGS.PRACTICE_DO_TAB_PER_STEP_TIMING
+   * so flag-off builds never show the toggle.
+   */
+  isTimed?: boolean;
+  onToggleTimed?: (next: boolean) => void;
 }
 
 export function PlanTabInterior({
@@ -37,7 +46,13 @@ export function PlanTabInterior({
   onConversationalCreate,
   optionalAddOns,
   footer,
+  isTimed,
+  onToggleTimed,
 }: PlanTabInteriorProps) {
+  const showTimedToggle =
+    FEATURE_FLAGS.PRACTICE_DO_TAB_PER_STEP_TIMING &&
+    typeof isTimed === 'boolean' &&
+    Boolean(onToggleTimed);
   const state = getPlanInteriorState({ planData, readOnly, doStarted });
   const [manualExpanded, setManualExpanded] = useState(state !== 'empty');
   const [coachOpen, setCoachOpen] = useState(false);
@@ -130,6 +145,14 @@ export function PlanTabInterior({
             />
           </PlanFieldCard>
         </View>
+      )}
+
+      {showTimedToggle && (
+        <PlanTimedToggleRow
+          isTimed={isTimed!}
+          onToggle={onToggleTimed!}
+          disabled={readOnly}
+        />
       )}
 
       <PlanOptionalAddOns>{optionalAddOns}</PlanOptionalAddOns>
