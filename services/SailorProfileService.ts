@@ -298,7 +298,7 @@ class SailorProfileServiceClass {
       homeClubName,
       websiteUrl: sailorProfile?.website_url,
       instagramHandle: sailorProfile?.instagram_handle,
-      isProfilePublic: sailorProfile?.is_profile_public ?? true,
+      isProfilePublic: sailorProfile?.is_profile_public ?? false,
     };
   }
 
