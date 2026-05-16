@@ -206,14 +206,27 @@ export function MarkAsEvidenceSheet({
               ) : null}
 
               <View style={styles.capList}>
-                {capabilities.map((cap) => (
-                  <CapabilityRow
-                    key={cap.id}
-                    capability={cap}
-                    selected={selectedCapabilityIds.includes(cap.id)}
-                    onToggle={onToggleCapability}
-                  />
-                ))}
+                {capabilities.length === 0 ? (
+                  <View style={styles.capEmpty} accessibilityLabel="No capabilities available">
+                    <Ionicons name="ribbon-outline" size={20} color={LABEL_3} />
+                    <Text style={styles.capEmptyTitle}>
+                      No capabilities to mark yet
+                    </Text>
+                    <Text style={styles.capEmptyBody}>
+                      Add capabilities to your active blueprint to start marking
+                      captures as evidence of progress.
+                    </Text>
+                  </View>
+                ) : (
+                  capabilities.map((cap) => (
+                    <CapabilityRow
+                      key={cap.id}
+                      capability={cap}
+                      selected={selectedCapabilityIds.includes(cap.id)}
+                      onToggle={onToggleCapability}
+                    />
+                  ))
+                )}
               </View>
             </ScrollView>
 
@@ -695,6 +708,32 @@ const styles = StyleSheet.create({
   },
   capList: {
     gap: 8,
+  },
+  capEmpty: {
+    paddingTop: 22,
+    paddingBottom: 26,
+    paddingHorizontal: 18,
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: GRAY_6,
+    borderRadius: 12,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: GRAY_5,
+  },
+  capEmptyTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: LABEL,
+    letterSpacing: -0.15,
+    textAlign: 'center',
+  },
+  capEmptyBody: {
+    fontSize: 12.5,
+    lineHeight: 17,
+    color: LABEL_3,
+    letterSpacing: -0.05,
+    textAlign: 'center',
+    maxWidth: 280,
   },
   capRow: {
     flexDirection: 'row',

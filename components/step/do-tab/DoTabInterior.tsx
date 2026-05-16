@@ -47,6 +47,12 @@ export interface DoTabInteriorProps {
   onAddAnotherCapture?: () => void;
   /** Frame 3 secondary destructive action — drops the activity (long-press confirm upstream). */
   onDiscardActivity?: () => void;
+  /**
+   * Frame 3 mark-as-evidence trigger. When provided, each frozen capture
+   * row becomes a Pressable that fires this callback with the row's id.
+   * Hidden when omitted.
+   */
+  onMarkAsEvidence?: (captureId: string) => void;
   footer?: React.ReactNode;
 }
 
@@ -74,6 +80,7 @@ export function DoTabInterior({
   onRefineSummary,
   onAddAnotherCapture,
   onDiscardActivity,
+  onMarkAsEvidence,
   footer,
 }: DoTabInteriorProps) {
   if (state === 'live') {
@@ -117,6 +124,7 @@ export function DoTabInterior({
           onRefineSummary={onRefineSummary}
           onAddAnotherCapture={onAddAnotherCapture}
           onDiscardActivity={onDiscardActivity}
+          onMarkAsEvidence={onMarkAsEvidence}
         />
         {footer}
       </View>

@@ -43,6 +43,8 @@ export interface DoPostActivityCardProps {
   onAddAnotherCapture?: () => void;
   /** Secondary destructive action — drops the activity (long-press confirmation lives upstream). */
   onDiscardActivity?: () => void;
+  /** Open the Mark-as-evidence sheet for the tapped capture. Hidden when omitted. */
+  onMarkAsEvidence?: (captureId: string) => void;
 }
 
 /**
@@ -70,6 +72,7 @@ export function DoPostActivityCard({
   onRefineSummary,
   onAddAnotherCapture,
   onDiscardActivity,
+  onMarkAsEvidence,
 }: DoPostActivityCardProps) {
   const ordered = sortCapturesNewestFirst(captures);
   const breakdown = summarizeCaptureBreakdown(ordered);
@@ -137,6 +140,7 @@ export function DoPostActivityCard({
                   frozen
                   nowMs={nowMs}
                   onPressPlayVoice={onPressPlayVoice}
+                  onMarkAsEvidence={readOnly ? undefined : onMarkAsEvidence}
                 />
               ))}
             </ScrollView>

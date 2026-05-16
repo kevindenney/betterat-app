@@ -69,6 +69,14 @@ export interface DoCaptureRowProps {
    * existing observation/media remove paths. Hidden when omitted.
    */
   onDelete?: (captureId: string) => void;
+  /**
+   * Mark-as-evidence handler — only honoured in {@link frozen} (Frame 3)
+   * mode for non-time_marker rows. When provided the entire row becomes
+   * a Pressable that fires the callback. The canonical's "tap a capture
+   * to mark evidence" interaction; live (Frame 2) rows ignore this prop
+   * so mid-activity capture flow is undisturbed.
+   */
+  onMarkAsEvidence?: (captureId: string) => void;
 }
 
 /**
@@ -85,12 +93,14 @@ export function DoCaptureRow({
   onPressPlayVoice,
   onEdit,
   onDelete,
+  onMarkAsEvidence,
 }: DoCaptureRowProps) {
   if (capture.kind === 'time_marker') {
     return <TimeMarkerCapturePreview capture={capture} />;
   }
 
   const showFresh = fresh && !frozen;
+  const markEvidenceEnabled = Boolean(frozen && onMarkAsEvidence);
 
   const accent = ACCENT_BY_KIND[capture.kind] ?? GRAY_3;
   const meta = TYPE_META[capture.kind] ?? TYPE_META.note;
@@ -99,11 +109,8 @@ export function DoCaptureRow({
   const isVoice = capture.kind === 'voice';
   const isPhoto = capture.kind === 'photo' || capture.kind === 'video';
 
-  return (
-    <View
-      style={[styles.row, { borderLeftColor: accent }, showFresh && styles.rowFresh]}
-      accessibilityRole="text"
-    >
+  const innerContent = (
+    <>
       <View style={styles.tsCol}>
         {clock ? <Text style={styles.ts}>{clock}</Text> : null}
         {ago ? <Text style={styles.ago}>{ago}</Text> : null}
@@ -176,6 +183,32 @@ export function DoCaptureRow({
           neutral={frozen}
         />
       ) : null}
+    </>
+  );
+
+  if (markEvidenceEnabled) {
+    return (
+      <Pressable
+        onPress={() => onMarkAsEvidence?.(capture.id)}
+        accessibilityRole="button"
+        accessibilityLabel="Mark capture as evidence"
+        style={({ pressed }) => [
+          styles.row,
+          { borderLeftColor: accent },
+          pressed && styles.rowPressed,
+        ]}
+      >
+        {innerContent}
+      </Pressable>
+    );
+  }
+
+  return (
+    <View
+      style={[styles.row, { borderLeftColor: accent }, showFresh && styles.rowFresh]}
+      accessibilityRole="text"
+    >
+      {innerContent}
     </View>
   );
 }
@@ -253,6 +286,9 @@ const styles = StyleSheet.create({
     backgroundColor: FRESH_BG,
     borderColor: FRESH_GLOW,
     shadowOpacity: 0.04,
+  },
+  rowPressed: {
+    opacity: 0.7,
   },
   tsCol: {
     width: 40,

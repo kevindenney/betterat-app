@@ -181,4 +181,30 @@ describe('DoCaptureRow — Frame 2 dispatch', () => {
     ).toHaveLength(0);
     expect(allText(tree.root)).toContain('Weather');
   });
+
+  it('wraps the row in a Pressable that fires onMarkAsEvidence when frozen + callback provided', () => {
+    const onMarkAsEvidence = jest.fn();
+    const tree = renderRow({
+      capture: cap({ kind: 'note', body: 'tap me', id: 'obs:obs-1' }),
+      frozen: true,
+      onMarkAsEvidence,
+    });
+    const pressables = tree.root.findAllByType('Pressable' as unknown as ComponentType);
+    expect(pressables.length).toBeGreaterThan(0);
+    const outer = pressables[0];
+    outer.props.onPress?.();
+    expect(onMarkAsEvidence).toHaveBeenCalledWith('obs:obs-1');
+  });
+
+  it('does NOT wrap the row in a Pressable when not frozen even if onMarkAsEvidence is provided (Frame 2 stays non-interactive)', () => {
+    const onMarkAsEvidence = jest.fn();
+    const tree = renderRow({
+      capture: cap({ kind: 'note', body: 'live row' }),
+      frozen: false,
+      onMarkAsEvidence,
+    });
+    expect(
+      tree.root.findAllByType('Pressable' as unknown as ComponentType),
+    ).toHaveLength(0);
+  });
 });
