@@ -1,0 +1,669 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=1520" />
+<title>BetterAt · B.10 Frame 3 · Post-reflection — Canonical · 2026-05-16</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css" />
+<link rel="stylesheet" href="b10-frames-common.css?v=3" />
+<style>
+  /* ============= Frame 3 — Post-reflection ============= */
+
+  /* Complete banner — green */
+  .complete-banner {
+    margin: 0 0 10px;
+    padding: 11px 13px;
+    border-radius: 12px;
+    background: var(--ios-green-tint);
+    border: 0.5px solid var(--ios-green-soft);
+    display: grid;
+    grid-template-columns: 28px 1fr auto;
+    column-gap: 10px;
+    align-items: center;
+  }
+  .complete-banner .glyph {
+    width: 28px; height: 28px; border-radius: 50%;
+    background: var(--ios-green);
+    color: #fff;
+    display: inline-flex; align-items: center; justify-content: center;
+    box-shadow: 0 1px 2px rgba(31, 122, 58, 0.30);
+  }
+  .complete-banner .glyph i { font-size: 14px; }
+  .complete-banner .copy { display: flex; flex-direction: column; gap: 1px; }
+  .complete-banner .copy .ttl {
+    font-size: 10.5px; font-weight: 700;
+    color: var(--ios-green-deep); letter-spacing: 0.7px;
+    text-transform: uppercase;
+    line-height: 1.1;
+  }
+  .complete-banner .copy .sub {
+    font-size: 12px; color: var(--label);
+    letter-spacing: -0.1px; line-height: 1.3;
+  }
+  .complete-banner .ts {
+    font-size: 10px; font-weight: 600;
+    color: var(--label-3); letter-spacing: 0.3px;
+    text-transform: uppercase;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Stat grid */
+  .stat-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 6px;
+    margin: 0 0 12px;
+  }
+  .stat-tile {
+    background: #FFFFFF;
+    border: 0.5px solid var(--gray-5);
+    border-radius: 10px;
+    padding: 11px 8px 10px;
+    text-align: center;
+    position: relative;
+  }
+  .stat-tile .n {
+    font-size: 20px; font-weight: 600;
+    color: var(--label); letter-spacing: -0.5px;
+    line-height: 1; font-variant-numeric: tabular-nums;
+  }
+  .stat-tile .n .o { color: var(--label-3); font-weight: 500; }
+  .stat-tile .lbl {
+    margin-top: 6px;
+    font-size: 9px; font-weight: 700;
+    color: var(--label-3); letter-spacing: 0.7px;
+    text-transform: uppercase;
+    line-height: 1.2;
+  }
+  .stat-tile.advanced { border-color: var(--ios-green-soft); background: var(--ios-green-wash); }
+  .stat-tile.advanced .n { color: var(--ios-green-deep); }
+  .stat-tile.advanced .lbl { color: var(--ios-green-deep); }
+
+  /* Reflection digest — what was learned, condensed */
+  .digest-card {
+    margin: 0 0 12px;
+    padding: 11px 13px 12px;
+    border-radius: 14px;
+    background: #FFFFFF;
+    border: 0.5px solid var(--gray-5);
+  }
+  .digest-card .head {
+    display: flex; align-items: center; gap: 6px;
+    margin: 0 0 7px;
+  }
+  .digest-card .head .glyph {
+    width: 20px; height: 20px; border-radius: 50%;
+    background: var(--ios-green-tint);
+    color: var(--ios-green-deep);
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .digest-card .head .glyph i { font-size: 11px; }
+  .digest-card .head .lbl {
+    font-size: 9.5px; font-weight: 700;
+    color: var(--label-2); letter-spacing: 0.7px;
+    text-transform: uppercase;
+  }
+  .digest-card ul {
+    list-style: none; margin: 0; padding: 0;
+    display: flex; flex-direction: column;
+    gap: 0;
+  }
+  .digest-card li {
+    display: grid;
+    grid-template-columns: 14px 1fr;
+    column-gap: 9px;
+    align-items: start;
+    padding: 6px 0;
+    border-top: 0.5px dashed var(--stage-line-soft);
+  }
+  .digest-card li:first-child { border-top: 0; padding-top: 2px; }
+  .digest-card li .mark {
+    width: 10px; height: 10px;
+    margin-top: 4px;
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+  .digest-card li.up .mark { background: var(--ios-green); }
+  .digest-card li.imp .mark { background: var(--ios-purple); }
+  .digest-card li .body {
+    font-size: 12px; line-height: 1.4;
+    color: var(--label); letter-spacing: -0.05px;
+    text-wrap: pretty;
+  }
+  .digest-card li .body .em { font-weight: 600; }
+
+  /* Carry-forward card — the centerpiece */
+  .carry-card {
+    margin: 4px 0 0;
+    padding: 12px 14px 12px;
+    border-radius: 16px;
+    background:
+      linear-gradient(160deg, #FFFFFF 0%, #FBF7EE 60%, rgba(0, 122, 255, 0.06) 100%);
+    border: 0.5px solid rgba(0, 122, 255, 0.22);
+    box-shadow:
+      0 1px 2px rgba(0,0,0,0.04),
+      0 12px 28px -16px rgba(0, 122, 255, 0.30);
+    position: relative;
+    overflow: hidden;
+  }
+  .carry-card::before {
+    content: "";
+    position: absolute;
+    top: -1px; left: 18px;
+    width: 36px; height: 3px;
+    background: var(--ios-blue);
+    border-radius: 0 0 4px 4px;
+  }
+  .carry-card .eyebrow {
+    font-size: 9.5px; font-weight: 700;
+    color: var(--ios-blue); letter-spacing: 0.9px;
+    text-transform: uppercase;
+    margin: 0 0 4px;
+    display: inline-flex; align-items: center; gap: 5px;
+  }
+  .carry-card .eyebrow i { font-size: 11px; }
+  .carry-card .next-title {
+    font-size: 14.5px; font-weight: 600;
+    color: var(--label); letter-spacing: -0.25px;
+    line-height: 1.25;
+    margin: 0 0 2px;
+    text-wrap: balance;
+  }
+  .carry-card .next-meta {
+    font-size: 11px; color: var(--label-3);
+    letter-spacing: -0.02px;
+    margin: 0 0 8px;
+  }
+  .carry-card .bullet {
+    display: grid;
+    grid-template-columns: 56px 1fr;
+    column-gap: 10px;
+    align-items: start;
+    padding: 7px 0;
+    border-top: 0.5px solid rgba(0, 122, 255, 0.14);
+  }
+  .carry-card .bullet:first-of-type { border-top: 0.5px solid rgba(0, 122, 255, 0.14); }
+  .carry-card .bullet .tag {
+    font-size: 9px; font-weight: 700;
+    letter-spacing: 0.5px; text-transform: uppercase;
+    padding-top: 3px;
+  }
+  .carry-card .bullet.watch .tag { color: var(--ios-coral); }
+  .carry-card .bullet.build .tag { color: var(--ios-green-deep); }
+  .carry-card .bullet .body {
+    font-size: 12px; line-height: 1.4;
+    color: var(--label); letter-spacing: -0.05px;
+    text-wrap: pretty;
+  }
+  .carry-card .bullet .body .em { font-weight: 600; }
+  .carry-card .next-cta {
+    margin-top: 10px;
+    width: 100%;
+    background: var(--ios-blue);
+    color: #fff; border: 0;
+    border-radius: 12px;
+    padding: 11px 14px;
+    font-family: inherit;
+    font-size: 14px; font-weight: 600;
+    letter-spacing: -0.2px;
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    cursor: pointer;
+    box-shadow:
+      0 6px 16px -4px rgba(0, 122, 255, 0.40),
+      0 1px 2px rgba(0,0,0,0.10);
+  }
+  .carry-card .next-cta i { font-size: 15px; }
+  .carry-card .footnote {
+    text-align: center;
+    margin-top: 7px;
+    font-size: 10.5px; color: var(--label-3);
+    letter-spacing: -0.02px;
+  }
+  .carry-card .footnote a {
+    color: var(--ios-blue); text-decoration: none; font-weight: 500;
+  }
+
+  /* Override card-body padding to avoid scrim — content fits */
+  .post .card-body { padding: 10px 16px 12px; }
+
+</style>
+</head>
+<body>
+
+<div class="page">
+
+  <header class="page-head">
+    <p class="eyebrow">BetterAt · Phase B.10 · Frame 3 — Post-reflection · Canonical · 2026-05-16</p>
+    <h1>Reflect is shipped — the loop <em>closes forward</em> with a carry-forward card pointing into the next step</h1>
+    <p>The user has answered enough prompts to mark Reflect complete. The step card has shifted modes: the <strong>top step-label is green</strong> ("Reflect shipped · 17:34"), all three phase pills are checked, and the body's centerpiece is no longer prompts — it's a <strong>carry-forward card</strong> that names the next step (<em>Tactical patience in light air</em>) and bullets exactly what to watch and what to build. A compact <strong>digest</strong> sits above it summarizing the two key learnings from this Reflect; a three-tile <strong>stat row</strong> reads "5 of 6 prompts · 3 captures cited · 2 capabilities advanced" (the third tile is green-washed to celebrate the advance, the only louder element on the page).</p>
+    <p>Tone: <em>quietly satisfied</em>. The loop is done and the system is already pointing at the next thing — but it does it as a <em>handoff</em>, not a victory lap. The big iOS-blue button at the bottom of the carry-forward card says <strong>"Plan next step"</strong>, not "You did it!" The footnote underneath gives the user a soft out: <em>"Or come back later — your reflection is saved."</em></p>
+    <div class="crumbs">
+      <span class="pill">iPhone 16e · portrait · 393 × 852</span>
+      <span class="sep">·</span>
+      <span class="pill">Source · <em>reflect-tab-interior-canonical.html</em> Frame 4</span>
+      <span class="sep">·</span>
+      <span class="pill">Companion · <em>b10-frame-1</em> · <em>b10-frame-2</em></span>
+      <span class="sep">·</span>
+      <span class="pill">Phase B.10 · Frame 3 of 3</span>
+    </div>
+  </header>
+
+  <section class="strip-head">
+    <p class="eyebrow">Post-reflection · Webview + Anatomy</p>
+    <h2><em>Reflect shipped · carry-forward in focus</em> on the left · <em>spec column with callouts A–G</em> on the right</h2>
+    <p>The webview frame is the canonical render at full 393 × 852. Callouts A–G map the post-reflection anatomy: A is the shipped-state marker (green dot, "shipped" label), G is the primary forward action ("Plan next step"). The carry-forward card is the heaviest object on the surface — it earns its weight because it's the single bridge between this step and the next.</p>
+  </section>
+
+  <div class="row">
+
+    <!-- =============================================================== -->
+    <!-- Webview frame · Post-reflection                                   -->
+    <!-- =============================================================== -->
+    <div class="col">
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="statusbar">
+          <span>17:34</span>
+          <span class="right">
+            <i class="ti ti-cell-signal-4"></i>
+            <i class="ti ti-wifi"></i>
+            <i class="ti ti-battery-3"></i>
+          </span>
+        </div>
+
+        <div class="screen post" data-screen-label="B.10 · Frame 3 · Reflect · Shipped">
+
+          <div class="top-header">
+            <div class="interest">
+              <span class="name">Sail Racing</span>
+              <span class="switcher"><i class="ti ti-chevron-down"></i></span>
+            </div>
+            <span class="step-counter">Step 6 of 14</span>
+            <div class="avatar">KD</div>
+          </div>
+
+          <div class="timeline-area">
+            <div class="timeline-row">
+              <div class="peek" aria-hidden="true"></div>
+
+              <article class="card">
+                <header class="card-head">
+                  <p class="step-label shipped"><span class="dot"></span>Reflect shipped · 17:34</p>
+                  <h3>Light-air starts in shifty breeze</h3>
+                  <div class="step-meta">
+                    <span>RHKYC Spring Series</span>
+                    <span class="sep">·</span>
+                    <span>Race 4</span>
+                    <span class="sep">·</span>
+                    <span class="result">3rd of 14</span>
+                  </div>
+                </header>
+
+                <nav class="phase-tabs" role="tablist">
+                  <button class="phase-tab" role="tab">
+                    <span class="ready"></span>Plan
+                  </button>
+                  <button class="phase-tab" role="tab">
+                    <span class="ready"></span>Do
+                  </button>
+                  <button class="phase-tab on" role="tab" aria-selected="true">
+                    <span class="ready"></span>Reflect
+                  </button>
+                </nav>
+
+                <div class="card-body">
+
+                  <section class="complete-banner" aria-label="Reflect complete">
+                    <span class="glyph"><i class="ti ti-check"></i></span>
+                    <div class="copy">
+                      <span class="ttl">Reflection saved</span>
+                      <span class="sub">5 prompts answered · evidence tagged</span>
+                    </div>
+                    <span class="ts">17:34</span>
+                  </section>
+
+                  <div class="stat-grid">
+                    <div class="stat-tile">
+                      <div class="n">5<span class="o">/6</span></div>
+                      <div class="lbl">Prompts<br/>answered</div>
+                    </div>
+                    <div class="stat-tile">
+                      <div class="n">3</div>
+                      <div class="lbl">Captures<br/>cited</div>
+                    </div>
+                    <div class="stat-tile advanced">
+                      <div class="n">2</div>
+                      <div class="lbl">Capabilities<br/>advanced</div>
+                    </div>
+                  </div>
+
+                  <section class="digest-card" aria-label="Reflection digest">
+                    <div class="head">
+                      <span class="glyph"><i class="ti ti-bookmark-filled"></i></span>
+                      <span class="lbl">What you learned</span>
+                    </div>
+                    <ul>
+                      <li class="up">
+                        <span class="mark"></span>
+                        <span class="body">You read the <span class="em">8° left shift</span> before the puff landed — strategy, not luck.</span>
+                      </li>
+                    </ul>
+                  </section>
+
+                  <section class="carry-card" aria-label="Carry-forward to next step">
+                    <p class="eyebrow"><i class="ti ti-arrow-up-right"></i>Pull forward into next step</p>
+                    <h4 class="next-title">Tactical patience in light air</h4>
+                    <p class="next-meta">Step 7 of 14 · Saturday next week</p>
+
+                    <div class="bullet build">
+                      <span class="tag">Build on</span>
+                      <span class="body">Your <span class="em">pre-puff reads</span> on the left side — repeat the call-out cadence with the bow.</span>
+                    </div>
+                    <div class="bullet watch">
+                      <span class="tag">Watch for</span>
+                      <span class="body">The early-tack instinct. When the puff is still 30s out, <span class="em">wait</span>.</span>
+                    </div>
+
+                    <button class="next-cta">
+                      Plan next step
+                      <i class="ti ti-arrow-right"></i>
+                    </button>
+                    <p class="footnote">Or <a href="#">come back later</a> — your reflection is saved.</p>
+                  </section>
+
+                </div>
+              </article>
+
+              <div class="peek" aria-hidden="true"></div>
+            </div>
+          </div>
+
+          <nav class="tabbar">
+            <button class="t on" aria-current="page">
+              <i class="ti ti-flag-3-filled"></i><span>Practice</span>
+            </button>
+            <button class="t"><i class="ti ti-book-2"></i><span>Playbook</span></button>
+            <button class="t"><i class="ti ti-compass"></i><span>Discover</span></button>
+            <button class="t"><i class="ti ti-user"></i><span>Profile</span></button>
+          </nav>
+        </div>
+
+        <div class="home-indicator"></div>
+      </div>
+
+      <div class="caption-block">
+        <p class="frame-label"><em>Post-reflection</em> · 393 × 852</p>
+        <p class="frame-sub">All three phase pills checked. A green complete-banner, a three-tile stat row, a two-bullet digest of what was learned, and a <strong>carry-forward card</strong> in iOS-blue tint that names the next step and what to <em>build on</em> / <em>watch for</em>.</p>
+      </div>
+    </div>
+
+    <!-- =============================================================== -->
+    <!-- Anatomy frame                                                     -->
+    <!-- =============================================================== -->
+    <div class="col">
+      <div class="anatomy-wrap">
+        <div class="anatomy">
+          <div class="phone bare">
+            <div class="notch"></div>
+            <div class="statusbar">
+              <span>17:34</span>
+              <span class="right">
+                <i class="ti ti-cell-signal-4"></i>
+                <i class="ti ti-wifi"></i>
+                <i class="ti ti-battery-3"></i>
+              </span>
+            </div>
+
+            <div class="screen post" style="background: #FFFFFF;" data-screen-label="B.10 · Frame 3 · Anatomy">
+
+              <div class="top-header">
+                <div class="interest">
+                  <span class="name">Sail Racing</span>
+                  <span class="switcher"><i class="ti ti-chevron-down"></i></span>
+                </div>
+                <span class="step-counter">Step 6 of 14</span>
+                <div class="avatar">KD</div>
+              </div>
+
+              <div class="timeline-area">
+                <div class="timeline-row">
+                  <article class="card" style="box-shadow: 0 1px 2px rgba(0,0,0,0.04), 0 6px 14px -10px rgba(0,0,0,0.10);">
+                    <header class="card-head">
+                      <p class="step-label shipped"><span class="dot"></span>Shipped</p>
+                      <h3>Light-air starts</h3>
+                    </header>
+                    <nav class="phase-tabs">
+                      <button class="phase-tab"><span class="ready"></span>Plan</button>
+                      <button class="phase-tab"><span class="ready"></span>Do</button>
+                      <button class="phase-tab on"><span class="ready"></span>Reflect</button>
+                    </nav>
+                    <div class="card-body">
+                      <section class="complete-banner">
+                        <span class="glyph"><i class="ti ti-check"></i></span>
+                        <div class="copy">
+                          <span class="ttl">Saved</span>
+                          <span class="sub">5 prompts · evidence</span>
+                        </div>
+                      </section>
+                      <div class="stat-grid">
+                        <div class="stat-tile"><div class="n">5<span class="o">/6</span></div><div class="lbl">Prompts</div></div>
+                        <div class="stat-tile"><div class="n">3</div><div class="lbl">Cited</div></div>
+                        <div class="stat-tile advanced"><div class="n">2</div><div class="lbl">Advanced</div></div>
+                      </div>
+                      <section class="digest-card">
+                        <div class="head">
+                          <span class="glyph"><i class="ti ti-bookmark-filled"></i></span>
+                          <span class="lbl">Learned</span>
+                        </div>
+                        <ul>
+                          <li class="up"><span class="mark"></span><span class="body">Pre-puff read.</span></li>
+                          <li class="imp"><span class="mark"></span><span class="body">Rule 18.2(b).</span></li>
+                        </ul>
+                      </section>
+                      <section class="carry-card">
+                        <p class="eyebrow"><i class="ti ti-arrow-up-right"></i>Pull forward</p>
+                        <h4 class="next-title">Tactical patience</h4>
+                        <div class="bullet build">
+                          <span class="tag">Build on</span>
+                          <span class="body">Pre-puff reads.</span>
+                        </div>
+                        <div class="bullet watch">
+                          <span class="tag">Watch for</span>
+                          <span class="body">Early tack.</span>
+                        </div>
+                        <button class="next-cta">Plan next step</button>
+                      </section>
+                    </div>
+                  </article>
+                </div>
+              </div>
+
+              <nav class="tabbar">
+                <button class="t on"><i class="ti ti-flag-3-filled"></i><span>Practice</span></button>
+                <button class="t"><i class="ti ti-book-2"></i><span>Playbook</span></button>
+                <button class="t"><i class="ti ti-compass"></i><span>Discover</span></button>
+                <button class="t"><i class="ti ti-user"></i><span>Profile</span></button>
+              </nav>
+            </div>
+
+            <div class="home-indicator"></div>
+          </div>
+
+          <!-- Measurement overlay -->
+
+          <!-- A · Shipped state marker (green dot label) -->
+          <div class="m-letter" style="left: 26px; top: 134px;">A</div>
+          <div class="m-line h" style="left: 132px; right: 152px; top: 140px;"></div>
+          <div class="m-tag" style="left: 132px; top: 146px;">shipped · ios-green-deep · 17:34</div>
+
+          <!-- B · Three phase pills all green -->
+          <div class="m-line v" style="left: 6px; top: 188px; height: 32px;"></div>
+          <div class="m-tag" style="left: -50px; top: 196px;">all on · 32</div>
+          <div class="m-letter" style="left: 6px; top: 200px;">B</div>
+
+          <!-- C · Complete banner -->
+          <div class="m-box" style="left: 51px; top: 226px; width: 290px; height: 50px;"></div>
+          <div class="m-tag" style="right: -160px; top: 232px;">banner · 50 · green-tint</div>
+          <div class="m-tag" style="left: 364px; top: 254px;">— 28 glyph · green</div>
+          <div class="m-letter" style="left: 26px; top: 244px;">C</div>
+
+          <!-- D · Stat grid -->
+          <div class="m-box" style="left: 51px; top: 286px; width: 290px; height: 60px;"></div>
+          <div class="m-tag" style="left: 51px; top: 350px;">3 stat tiles · 1fr 1fr 1fr · gap 6</div>
+          <div class="m-tag" style="left: 290px; top: 290px;">advanced · green wash</div>
+          <div class="m-letter" style="left: 26px; top: 308px;">D</div>
+
+          <!-- E · Digest card -->
+          <div class="m-box" style="left: 51px; top: 358px; width: 290px; height: 96px;"></div>
+          <div class="m-tag" style="right: -160px; top: 366px;">digest · 96 · #FFF</div>
+          <div class="m-tag" style="left: 364px; top: 388px;">— 10 sq mark · green/purple</div>
+          <div class="m-tag" style="left: 364px; top: 410px;">— dashed item rules</div>
+          <div class="m-letter" style="left: 26px; top: 400px;">E</div>
+
+          <!-- F · Carry-forward card -->
+          <div class="m-box" style="left: 51px; top: 466px; width: 290px; height: 268px;"></div>
+          <div class="m-tag" style="right: -160px; top: 472px;">carry-fwd · ios-blue tint</div>
+          <div class="m-tag" style="left: 364px; top: 494px;">— 36 × 3 ios-blue flag</div>
+          <div class="m-tag" style="left: 364px; top: 516px;">— 56 tag · build/watch</div>
+          <div class="m-tag" style="left: 364px; top: 538px;">— 14 rules · 14% ios-blue</div>
+          <div class="m-tag" style="left: 51px; top: 666px;">build · green-deep · 9 / 700</div>
+          <div class="m-tag" style="left: 51px; top: 686px;">watch · ios-coral · 9 / 700</div>
+          <div class="m-letter" style="left: 26px; top: 540px;">F</div>
+
+          <!-- G · Plan next step CTA -->
+          <div class="m-box" style="left: 65px; top: 707px; width: 262px; height: 44px;"></div>
+          <div class="m-tag" style="left: 65px; top: 754px;">CTA · 44 · ios-blue · r 12</div>
+          <div class="m-letter" style="left: 26px; top: 716px;">G</div>
+
+          <!-- Phone size ref -->
+          <div class="m-tag" style="left: 50%; top: -22px; transform: translateX(-50%);">393 × 852</div>
+
+        </div>
+
+        <aside class="anatomy-callouts">
+          <div class="callout">
+            <p class="ctitle">A · Shipped state marker</p>
+            <p class="cname"><em>Reflect shipped · 17:34</em></p>
+            <p class="cspec"><span class="k">label:</span> <span class="v">10.5 / 600 / 0.5 · ios-green-deep</span><br/>
+            <span class="k">dot:</span> <span class="v">6 round · ios-green fill</span><br/>
+            <span class="k">ts:</span> <span class="v">tabular-nums · activity-end time</span></p>
+            <p class="cnote">Mirrors Frame 2's "Activity complete · 17:12" exactly in shape, swaps color for green and verb for "shipped." Reading the step label tells the user the loop is closed.</p>
+          </div>
+
+          <div class="callout">
+            <p class="ctitle">B · Phase tabs · all green</p>
+            <p class="cname"><em>Plan ✓ · Do ✓ · Reflect ✓</em></p>
+            <p class="cspec"><span class="k">checks:</span> <span class="v">14 round · ios-green · white tick</span><br/>
+            <span class="k">underline:</span> <span class="v">2 · ios-blue · stays on Reflect</span></p>
+            <p class="cnote">The Reflect pill keeps the underline because it's still the current tab — the user is <em>looking</em> at Reflect, even though all three are checked. The underline says where you are; the checks say what's done.</p>
+          </div>
+
+          <div class="callout">
+            <p class="ctitle">C · Complete banner</p>
+            <p class="cname"><em>"Reflection saved" · timestamp</em></p>
+            <p class="cspec"><span class="k">box:</span> <span class="v">290 × 50 · r 12</span><br/>
+            <span class="k">bg:</span> <span class="v">ios-green-tint 14%</span><br/>
+            <span class="k">stroke:</span> <span class="v">0.5 · ios-green-soft 22%</span><br/>
+            <span class="k">glyph:</span> <span class="v">28 round · ios-green · ti-check 14</span><br/>
+            <span class="k">ttl:</span> <span class="v">10.5 / 700 / 0.7 · uppercase · green-deep</span><br/>
+            <span class="k">sub:</span> <span class="v">12 / 1.3 · label · "5 prompts · evidence tagged"</span></p>
+            <p class="cnote">The only persistently green object on the page. Restrained — one fill, one tick, three lines of copy. It announces the close, then steps out of the way.</p>
+          </div>
+
+          <div class="callout">
+            <p class="ctitle">D · Stat row · 3 tiles</p>
+            <p class="cname"><em>Prompts · Captures · Capabilities</em></p>
+            <p class="cspec"><span class="k">grid:</span> <span class="v">1fr 1fr 1fr · gap 6</span><br/>
+            <span class="k">tile:</span> <span class="v">~92 × 60 · r 10 · #FFF</span><br/>
+            <span class="k">advanced:</span> <span class="v">green-wash 6% · green border</span><br/>
+            <span class="k">n:</span> <span class="v">20 / 600 / −0.5 · tabular-nums</span><br/>
+            <span class="k">lbl:</span> <span class="v">9 / 700 / 0.7 · uppercase</span></p>
+            <p class="cnote">The third tile gets the green wash because <em>capability advancement</em> is the most valuable metric — it's what the loop is trying to produce. The first two are context.</p>
+          </div>
+
+          <div class="callout">
+            <p class="ctitle">E · Reflection digest</p>
+            <p class="cname"><em>Two bullets · what was learned</em></p>
+            <p class="cspec"><span class="k">box:</span> <span class="v">290 × ~96 · r 14 · #FFF</span><br/>
+            <span class="k">mark:</span> <span class="v">10 sq · green (up) / purple (imp)</span><br/>
+            <span class="k">item:</span> <span class="v">12 / 1.4 · label · dashed rule between</span></p>
+            <p class="cnote">Different shape from the prompt rows (squares, not stripes) so the user reads "this is a summary, not more input." Two items only — the digest is for <em>headlines</em>, not transcripts.</p>
+          </div>
+
+          <div class="callout">
+            <p class="ctitle">F · Carry-forward card</p>
+            <p class="cname"><em>The bridge to the next step</em></p>
+            <p class="cspec"><span class="k">box:</span> <span class="v">290 × 268 · r 16</span><br/>
+            <span class="k">bg:</span> <span class="v">linear · #FFF → cream → ios-blue 6%</span><br/>
+            <span class="k">flag:</span> <span class="v">36 × 3 · ios-blue tab at top</span><br/>
+            <span class="k">title:</span> <span class="v">14.5 / 600 / −0.25 · next step name</span><br/>
+            <span class="k">build tag:</span> <span class="v">9 / 700 · green-deep</span><br/>
+            <span class="k">watch tag:</span> <span class="v">9 / 700 · ios-coral</span><br/>
+            <span class="k">cta:</span> <span class="v">44 · ios-blue · r 12 · weight 600</span></p>
+            <p class="cnote">The heaviest object on the page — and it should be. It's the single piece of the screen that decides whether the user enters the next step on the foot the system thinks they should be on. Build/Watch bullets read like a coaching brief.</p>
+          </div>
+
+          <div class="callout">
+            <p class="ctitle">G · "Plan next step" CTA</p>
+            <p class="cname"><em>Forward action · iOS-blue</em></p>
+            <p class="cspec"><span class="k">btn:</span> <span class="v">~262 × 44 · ios-blue · r 12 · arrow-right</span><br/>
+            <span class="k">footnote:</span> <span class="v">10.5 · "come back later — saved"</span></p>
+            <p class="cnote">Crucially this CTA points <em>into</em> the next step, not back to the timeline. The footnote gives the user a soft exit without ever making it the loudest choice — the system's bias is forward.</p>
+          </div>
+        </aside>
+      </div>
+
+      <div style="width: 100%; max-width: 760px; display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 14px;">
+        <div class="legend">
+          <h5>Color tokens · this frame</h5>
+          <div class="row-l"><span class="sw" style="background: var(--ios-blue);"></span><span class="nm">iOS blue · <em>carry-forward CTA · flag · ink</em></span><span class="hex">#007AFF</span></div>
+          <div class="row-l"><span class="sw" style="background: var(--ios-green);"></span><span class="nm">iOS green · <em>complete banner · ✓ phase pills</em></span><span class="hex">#34C759</span></div>
+          <div class="row-l"><span class="sw" style="background: var(--ios-green-deep);"></span><span class="nm">green-deep · <em>"shipped" · banner ttl · build tag</em></span><span class="hex">#1F7A3A</span></div>
+          <div class="row-l"><span class="sw" style="background: var(--ios-coral);"></span><span class="nm">iOS coral · <em>"Watch for" tag — only loud-warning use</em></span><span class="hex">#FF6B6B</span></div>
+          <div class="row-l"><span class="sw" style="background: var(--ios-purple);"></span><span class="nm">iOS purple · <em>digest imp mark</em></span><span class="hex">#5856D6</span></div>
+          <div class="row-l"><span class="sw" style="background: var(--ios-green-wash);"></span><span class="nm">green wash 6% · <em>advanced stat tile</em></span><span class="hex">rgba</span></div>
+        </div>
+
+        <div class="type-scale">
+          <h5>Type scale · this frame</h5>
+          <div class="type-row"><span class="sample title">Light-air starts</span><span class="spec">19 / 600 / −0.4</span></div>
+          <div class="type-row"><span class="sample" style="font-size: 10.5px; font-weight: 700; color: var(--ios-green-deep); letter-spacing: 0.7px; text-transform: uppercase;">Reflection saved</span><span class="spec">10.5 / 700 / 0.7 · green-deep</span></div>
+          <div class="type-row"><span class="sample" style="font-size: 20px; font-weight: 600; letter-spacing: -0.5px; font-variant-numeric: tabular-nums;">5<span style="color: var(--label-3); font-weight: 500;">/6</span></span><span class="spec">20 / 600 / −0.5 · stat-n</span></div>
+          <div class="type-row"><span class="sample aux">Prompts answered</span><span class="spec">9 / 700 / 0.7 · uppercase · stat-lbl</span></div>
+          <div class="type-row"><span class="sample body">You read the 8° left shift before…</span><span class="spec">12 / 1.4 · digest item</span></div>
+          <div class="type-row"><span class="sample eye">Pull forward into next step</span><span class="spec">9.5 / 700 / 0.9 · ios-blue · eyebrow</span></div>
+          <div class="type-row"><span class="sample" style="font-size: 14.5px; font-weight: 600; letter-spacing: -0.25px;">Tactical patience in light air</span><span class="spec">14.5 / 600 / −0.25 · next-title</span></div>
+          <div class="type-row"><span class="sample cta">Plan next step</span><span class="spec">14 / 600 / −0.2 · #FFF on ios-blue</span></div>
+          <div class="type-row"><span class="sample hint">come back later — saved</span><span class="spec">10.5 / 1.4 · label-3 · footnote</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- =============================================================== -->
+  <!-- Rail · design rationale                                            -->
+  <!-- =============================================================== -->
+  <section class="rail-row">
+    <div class="rail-col">
+      <h4><em>Close, then hand off</em></h4>
+      <p>The temptation in a post-reflection screen is to dwell — confetti, celebration cards, "Great job!" The whole loop suffers from that. If Reflect's reward state lingers, the next Plan never starts.</p>
+      <p>So we close <strong>in three lines</strong> (banner, stats, digest) and immediately give the biggest visual weight to <strong>carrying forward</strong>. The user's eye lands on the green banner, slides through the stats, reads the two-line digest, and ends on the carry-forward card. That's the gradient: <em>done → done → done → next</em>.</p>
+      <span class="sig"><span class="swatch green"></span>green · close &nbsp; <span class="swatch blue" style="margin-left: 8px;"></span>blue · forward</span>
+    </div>
+    <div class="rail-col">
+      <h4><em>Build on / Watch for</em></h4>
+      <p>The two bullets inside the carry-forward card are deliberately asymmetric in color: <strong>Build on</strong> is green-deep (extend what's working); <strong>Watch for</strong> is iOS-coral (the only loud-warning use of coral on this surface). Coral signals "this is the thing that bit you last time" without screaming.</p>
+      <p>The 56px tag gutter on the left makes the two bullets read as a coaching brief — name the thing, then the instruction. Same shape as a sailing race-debrief whiteboard.</p>
+      <span class="sig"><span class="swatch coral"></span>coral · watch &nbsp; <span class="swatch green" style="margin-left: 8px;"></span>green · build</span>
+    </div>
+    <div class="rail-col">
+      <h4><em>One celebrated metric</em></h4>
+      <p>Three stat tiles, only one is washed green — the <strong>Capabilities advanced</strong> tile. That's not arbitrary. The whole point of the BetterAt loop is to grow capability over time; "5 of 6 prompts answered" is process, "3 captures cited" is hygiene, but "2 capabilities advanced" is the <em>signal</em>.</p>
+      <p>Celebrating only the signal teaches the user, screen by screen, which number to care about — without ever printing the word "matters."</p>
+      <span class="sig"><span class="swatch green"></span>green wash · only on the metric that matters</span>
+    </div>
+  </section>
+
+</div>
+</body>
+</html>

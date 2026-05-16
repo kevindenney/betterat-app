@@ -1,0 +1,776 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=1520" />
+<title>BetterAt · B.10 Frame 2 · Active reflection — Canonical · 2026-05-16</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css" />
+<link rel="stylesheet" href="b10-frames-common.css?v=3" />
+<style>
+  /* ============= Frame 2 — Active reflection ============= */
+
+  /* Pin footer CTA below body instead of floating it (so the active
+     typing row never sits underneath it) */
+  .card-footer-cta {
+    position: static;
+    left: auto; right: auto; bottom: auto;
+    padding: 10px 14px 14px;
+    background: #FFFFFF;
+    border-top: 0.5px solid var(--gray-5);
+    flex-shrink: 0;
+  }
+  .card-body.fade::after { display: none; }
+
+  /* AI-drafted summary card */
+  .draft-card {
+    margin: 0 0 10px;
+    padding: 10px 12px 11px;
+    border-radius: 14px;
+    background:
+      linear-gradient(135deg, rgba(0, 122, 255, 0.07) 0%, rgba(0, 122, 255, 0.02) 60%, #FBF7EE 100%);
+    border: 0.5px solid rgba(0, 122, 255, 0.18);
+  }
+  .draft-card .head {
+    display: flex; align-items: center; gap: 6px;
+    margin: 0 0 5px;
+  }
+  .draft-card .head .glyph {
+    width: 20px; height: 20px; border-radius: 50%;
+    background: var(--ios-blue);
+    display: inline-flex; align-items: center; justify-content: center;
+    color: #fff;
+  }
+  .draft-card .head .glyph i { font-size: 11px; }
+  .draft-card .head .lbl {
+    font-size: 9.5px; font-weight: 700;
+    color: var(--ios-blue); letter-spacing: 0.6px;
+    text-transform: uppercase;
+  }
+  .draft-card .head .lbl .sep { opacity: 0.5; margin: 0 5px; }
+  .draft-card .head .lbl .secondary {
+    color: var(--label-3); font-weight: 600;
+    text-transform: none; letter-spacing: -0.02px;
+  }
+  .draft-card .narrative {
+    font-size: 12px; line-height: 1.45;
+    color: var(--label); letter-spacing: -0.1px;
+    margin: 0; text-wrap: pretty;
+  }
+  .draft-card .narrative .em { font-weight: 600; }
+
+  /* Pattern surfacing callout — compact one-row strip */
+  .pattern-card {
+    margin: 8px 0 10px;
+    padding: 7px 11px 7px;
+    border-radius: 10px;
+    background:
+      linear-gradient(90deg, rgba(52, 199, 89, 0.10) 0%, rgba(52, 199, 89, 0.04) 100%);
+    border: 0.5px solid rgba(52, 199, 89, 0.30);
+    border-left: 2px solid var(--ios-green);
+    position: relative;
+  }
+  .pattern-card .head {
+    display: flex; align-items: center; gap: 6px;
+    margin: 0 0 3px;
+  }
+  .pattern-card .head .glyph {
+    width: 18px; height: 18px; border-radius: 50%;
+    background: var(--ios-green);
+    color: #fff;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .pattern-card .head .glyph i { font-size: 10px; }
+  .pattern-card .head .lbl {
+    font-size: 9.5px; font-weight: 700;
+    color: var(--ios-green-deep); letter-spacing: 0.7px;
+    text-transform: uppercase;
+  }
+  .pattern-card .head .meta {
+    margin-left: auto;
+    font-size: 9.5px; font-weight: 600;
+    color: var(--label-3); letter-spacing: 0.2px;
+    font-variant-numeric: tabular-nums;
+  }
+  .pattern-card .text {
+    font-size: 11.5px; line-height: 1.4;
+    color: var(--label); letter-spacing: -0.05px;
+    margin: 0; text-wrap: pretty;
+  }
+  .pattern-card .text .em { font-weight: 600; }
+  .pattern-card .refs {
+    display: flex; gap: 6px; flex-wrap: wrap;
+    margin-top: 6px;
+  }
+  .pattern-card .refs .ref {
+    display: inline-flex; align-items: center; gap: 3px;
+    padding: 2px 7px 2.5px;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.7);
+    border: 0.5px solid rgba(52, 199, 89, 0.30);
+    font-size: 10px; font-weight: 600;
+    color: var(--ios-green-deep);
+    letter-spacing: -0.02px;
+    font-variant-numeric: tabular-nums;
+  }
+  .pattern-card .refs .ref i { font-size: 10px; }
+
+  /* Prompt rows */
+  .prompt-list {
+    list-style: none; margin: 0; padding: 0;
+    display: flex; flex-direction: column; gap: 6px;
+  }
+  .prompt-row {
+    background: #FFF;
+    border: 0.5px solid var(--gray-5);
+    border-radius: 12px;
+    padding: 10px 11px 10px;
+    display: grid;
+    grid-template-columns: 1fr 14px;
+    column-gap: 8px;
+    align-items: start;
+    cursor: pointer;
+  }
+  .prompt-row.up { border-left: 2.5px solid var(--ios-green); padding-left: 9px; }
+  .prompt-row.imp { border-left: 2.5px solid var(--ios-purple); padding-left: 9px; }
+  .prompt-row .ptext {
+    font-size: 12px; line-height: 1.35;
+    color: var(--label); letter-spacing: -0.05px;
+    text-wrap: pretty;
+  }
+  .prompt-row .ptext .src {
+    display: block;
+    margin-top: 4px;
+    font-size: 10px; color: var(--label-3);
+    font-weight: 500; letter-spacing: -0.02px;
+  }
+  .prompt-row .ptext .src i { font-size: 10px; vertical-align: -1px; margin-right: 2px; }
+  .prompt-row .chev {
+    color: var(--label-4); font-size: 13px;
+    padding-top: 1px;
+  }
+
+  /* Answered (expanded) prompt */
+  .prompt-row.open {
+    background: #FFFFFF;
+    border: 0.5px solid var(--ios-green);
+    border-left: 2.5px solid var(--ios-green);
+    box-shadow:
+      0 1px 2px rgba(52, 199, 89, 0.08),
+      0 6px 18px -10px rgba(0,0,0,0.08);
+    grid-template-columns: 1fr;
+    cursor: default;
+    padding: 11px 12px 11px;
+  }
+  .prompt-row.open .ptext {
+    font-size: 12px; font-weight: 600;
+    margin-bottom: 6px;
+  }
+  .prompt-row.open .answer {
+    font-size: 12.5px; line-height: 1.45;
+    color: var(--label); letter-spacing: -0.1px;
+    margin: 0 0 8px;
+    text-wrap: pretty;
+  }
+  .prompt-row.open .answer .em { font-weight: 600; }
+  .prompt-row.open .cap-add {
+    display: flex; align-items: center; gap: 5px;
+    flex-wrap: wrap;
+    margin-top: 6px;
+    padding-top: 8px;
+    border-top: 0.5px dashed var(--gray-4);
+  }
+  .prompt-row.open .cap-add .lbl {
+    font-size: 9.5px; font-weight: 700;
+    color: var(--label-3); letter-spacing: 0.5px;
+    text-transform: uppercase;
+    margin-right: 2px;
+  }
+  .prompt-row.open .cap-add .chip {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 3px 8px 4px;
+    border-radius: 999px;
+    background: var(--ios-green-tint);
+    color: var(--ios-green-deep);
+    font-size: 11px; font-weight: 600;
+    letter-spacing: -0.05px;
+    cursor: pointer;
+    border: 0.5px solid transparent;
+  }
+  .prompt-row.open .cap-add .chip i { font-size: 10px; }
+  .prompt-row.open .cap-add .chip.outline {
+    background: transparent;
+    color: var(--label-3);
+    border: 0.5px dashed var(--gray-3);
+    font-weight: 500;
+  }
+  .prompt-row.open.imp { border: 0.5px solid var(--ios-purple); border-left: 2.5px solid var(--ios-purple); }
+  .prompt-row.open.imp .cap-add .chip {
+    background: var(--ios-purple-tint);
+    color: var(--ios-purple-deep);
+  }
+
+  /* Stub field — user mid-answer */
+  .prompt-row.active {
+    background: #FFFFFF;
+    border: 0.5px solid var(--ios-blue);
+    border-left: 2.5px solid var(--ios-blue);
+    box-shadow:
+      0 0 0 3px rgba(0, 122, 255, 0.08),
+      0 6px 18px -10px rgba(0,0,0,0.10);
+    grid-template-columns: 1fr;
+    cursor: text;
+    padding: 10px 12px 10px;
+  }
+  .prompt-row.active.imp { border: 0.5px solid var(--ios-purple); border-left: 2.5px solid var(--ios-purple); box-shadow: 0 0 0 3px rgba(88, 86, 214, 0.10), 0 6px 18px -10px rgba(0,0,0,0.10); }
+  .prompt-row.active .ptext {
+    font-size: 12px; font-weight: 600;
+    margin-bottom: 6px;
+  }
+  .prompt-row.active .field {
+    position: relative;
+    border: 0.5px solid var(--gray-4);
+    border-radius: 8px;
+    background: var(--gray-6);
+    padding: 7px 10px;
+    min-height: 44px;
+    font-size: 12px; line-height: 1.4;
+    color: var(--label); letter-spacing: -0.05px;
+  }
+  .prompt-row.active .field .typed {
+    color: var(--label); letter-spacing: -0.05px;
+  }
+  .prompt-row.active .field .caret {
+    display: inline-block;
+    width: 1.5px; height: 14px;
+    background: var(--ios-blue);
+    vertical-align: -2px;
+    margin-left: 1px;
+    animation: blink 1s steps(2) infinite;
+  }
+  @keyframes blink { 50% { opacity: 0; } }
+  .prompt-row.active .field-meta {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-top: 5px;
+  }
+  .prompt-row.active .field-meta .voicebtn {
+    background: none; border: 0; padding: 0;
+    font-size: 11px; color: var(--ios-blue);
+    font-weight: 500;
+    display: inline-flex; align-items: center; gap: 3px;
+    cursor: pointer;
+  }
+  .prompt-row.active .field-meta .voicebtn i { font-size: 12px; }
+  .prompt-row.active .field-meta .charcount {
+    font-size: 10px; color: var(--label-4);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Evidence bar */
+  .evi-bar {
+    margin: 12px 0 4px;
+    padding: 10px 12px 10px;
+    border-radius: 12px;
+    background: #FBFBFD;
+    border: 0.5px solid var(--gray-5);
+    display: flex; flex-direction: column; gap: 6px;
+  }
+  .evi-bar .head {
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .evi-bar .head .lbl {
+    font-size: 9.5px; font-weight: 700;
+    color: var(--label-2); letter-spacing: 0.7px;
+    text-transform: uppercase;
+  }
+  .evi-bar .head .link {
+    background: none; border: none; padding: 0;
+    font-size: 11px; font-weight: 500;
+    color: var(--ios-blue); letter-spacing: -0.05px;
+    display: inline-flex; align-items: center; gap: 2px;
+    cursor: pointer;
+  }
+  .evi-bar .head .link i { font-size: 12px; }
+  .evi-bar .meters {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-top: 2px;
+  }
+  .evi-bar .meter .name {
+    font-size: 11px; font-weight: 600;
+    color: var(--label); letter-spacing: -0.05px;
+    margin-bottom: 4px;
+    line-height: 1.2;
+  }
+  .evi-bar .meter .dots {
+    display: flex; gap: 3px;
+    align-items: center;
+  }
+  .evi-bar .meter .dots .d {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--gray-4);
+  }
+  .evi-bar .meter .dots .d.on { background: var(--label-2); }
+  .evi-bar .meter .dots .d.new {
+    background: var(--ios-green);
+    box-shadow: 0 0 0 2px var(--ios-green-tint);
+  }
+  .evi-bar .meter .label {
+    font-size: 9px; font-weight: 600;
+    color: var(--ios-green-deep);
+    letter-spacing: 0.3px;
+    margin-left: 4px;
+    text-transform: uppercase;
+  }
+
+</style>
+</head>
+<body>
+
+<div class="page">
+
+  <header class="page-head">
+    <p class="eyebrow">BetterAt · Phase B.10 · Frame 2 — Active reflection · Canonical · 2026-05-16</p>
+    <h1>The user is <em>mid-reflection</em> — one prompt answered, a pattern just surfaced, another prompt mid-typing</h1>
+    <p>Three minutes into the Reflect surface. The AI-drafted summary still sits at the top in <strong>condensed</strong> form (the user has read it). Below it, a <em>What worked</em> prompt is fully expanded — answered, capability-tagged, and shadowed soft-green. Then a new element appears between sections: a <strong>pattern-surfacing callout</strong> in green that announces a connection the AI just spotted across two captures. Beneath it the user is mid-typing into a <em>What to improve</em> prompt — visible caret, the iOS-blue focus halo around the row, the soft-keyboard implicit.</p>
+    <p>Tone: <em>actively warm</em>. The screen is alive — there's typing, there's discovery, there's a forward gradient — but nothing shouts. The Reflect-complete CTA at the bottom is still <strong>disabled</strong> because the user hasn't yet answered one of each group; the hint underneath tells them exactly what's missing.</p>
+    <div class="crumbs">
+      <span class="pill">iPhone 16e · portrait · 393 × 852</span>
+      <span class="sep">·</span>
+      <span class="pill">Source · <em>reflect-tab-interior-canonical.html</em> Frame 2</span>
+      <span class="sep">·</span>
+      <span class="pill">Companion · <em>b10-frame-1</em> · <em>b10-frame-3</em></span>
+      <span class="sep">·</span>
+      <span class="pill">Phase B.10 · Frame 2 of 3</span>
+    </div>
+  </header>
+
+  <section class="strip-head">
+    <p class="eyebrow">Active reflection · Webview + Anatomy</p>
+    <h2><em>Mid-typing, pattern surfacing</em> on the left · <em>spec column with callouts A–G</em> on the right</h2>
+    <p>The webview frame is the canonical render at full 393 × 852. Three states live on the same surface at once — <strong>answered</strong>, <strong>active</strong>, <strong>collapsed</strong> — and a fourth element appears only at this phase: the <em>pattern surfacing</em> callout, which the AI emits when two or more captures hang together. Callouts A–G follow the convention: A is the AI draft (condensed), G is the disabled CTA + hint that tells the user what's missing.</p>
+  </section>
+
+  <div class="row">
+
+    <!-- =============================================================== -->
+    <!-- Webview frame · Active reflection                                 -->
+    <!-- =============================================================== -->
+    <div class="col">
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="statusbar">
+          <span>17:21</span>
+          <span class="right">
+            <i class="ti ti-cell-signal-4"></i>
+            <i class="ti ti-wifi"></i>
+            <i class="ti ti-battery-3"></i>
+          </span>
+        </div>
+
+        <div class="screen" data-screen-label="B.10 · Frame 2 · Reflect · Active">
+
+          <div class="top-header">
+            <div class="interest">
+              <span class="name">Sail Racing</span>
+              <span class="switcher"><i class="ti ti-chevron-down"></i></span>
+            </div>
+            <span class="step-counter">Step 6 of 14</span>
+            <div class="avatar">KD</div>
+          </div>
+
+          <div class="timeline-area">
+            <div class="timeline-row">
+              <div class="peek" aria-hidden="true"></div>
+
+              <article class="card">
+                <header class="card-head">
+                  <p class="step-label done"><span class="dot"></span>Activity complete · 17:12</p>
+                  <h3>Light-air starts in shifty breeze</h3>
+                  <div class="step-meta">
+                    <span>RHKYC Spring Series</span>
+                    <span class="sep">·</span>
+                    <span>Race 4</span>
+                  </div>
+                </header>
+
+                <nav class="phase-tabs" role="tablist">
+                  <button class="phase-tab" role="tab">
+                    <span class="ready" aria-label="Plan complete"></span>
+                    Plan
+                  </button>
+                  <button class="phase-tab" role="tab">
+                    <span class="ready" aria-label="Do complete"></span>
+                    Do
+                  </button>
+                  <button class="phase-tab on" role="tab" aria-selected="true">Reflect</button>
+                </nav>
+
+                <div class="card-body fade">
+
+                  <div class="from-do-row">
+                    <span class="label">From Do · <span class="num">8 captures</span> · <span class="num">24 min</span></span>
+                    <button class="coach-link">AI Coach<i class="ti ti-arrow-right"></i></button>
+                  </div>
+
+                  <div class="draft-card">
+                    <div class="head">
+                      <span class="glyph"><i class="ti ti-sparkles"></i></span>
+                      <span class="lbl">Auto-drafted summary<span class="sep">·</span><span class="secondary">read</span></span>
+                    </div>
+                    <p class="narrative">3 tactical reads, 2 rule moments — <span class="em">14:14 protest</span> is your stickiest capture.</p>
+                  </div>
+
+                  <div class="sec-label">
+                    <span class="ttl"><i class="ti ti-arrow-up-right ico up"></i>What worked</span>
+                    <span class="count">1 of 3 answered</span>
+                  </div>
+
+                  <ul class="prompt-list">
+                    <li class="prompt-row open up">
+                      <div class="ptext">
+                        Left side paid off in beat 1 — strategy or luck?
+                      </div>
+                      <p class="answer">
+                        Strategy. Called the <span class="em">8° left shift</span> early.
+                      </p>
+                      <div class="cap-add">
+                        <span class="lbl">Tagged</span>
+                        <span class="chip"><i class="ti ti-circle-check-filled"></i>Read wind shifts</span>
+                      </div>
+                    </li>
+                  </ul>
+
+                  <section class="pattern-card" aria-label="Pattern surfacing">
+                    <div class="head">
+                      <span class="glyph"><i class="ti ti-bulb"></i></span>
+                      <span class="lbl">Pattern surfacing</span>
+                      <span class="meta">14:23 → 14:31</span>
+                    </div>
+                    <p class="text">
+                      Both <span class="em">left-side reads</span> landed before the puff.
+                    </p>
+                  </section>
+
+                  <div class="sec-label">
+                    <span class="ttl"><i class="ti ti-tool ico imp"></i>What to improve</span>
+                    <span class="count">0 of 3 answered</span>
+                  </div>
+
+                  <ul class="prompt-list">
+                    <li class="prompt-row active imp">
+                      <div class="ptext">
+                        Rule confusion at 14:14 — what was the actual rule?
+                      </div>
+                      <div class="field">
+                        <span class="typed">I thought I had room at the mark, but inside boat had overlap before the zone. Rule 18.2(b) —</span><span class="caret"></span>
+                      </div>
+                      <div class="field-meta">
+                        <button class="voicebtn"><i class="ti ti-microphone"></i>Speak instead</button>
+                        <span class="charcount">132 / 600</span>
+                      </div>
+                    </li>
+                  </ul>
+
+                </div>
+
+                <div class="card-footer-cta">
+                  <button class="btn disabled" disabled>
+                    <i class="ti ti-check"></i>
+                    Mark Reflect complete
+                  </button>
+                  <p class="hint">Need <span class="em">one What to improve</span> answered to activate.</p>
+                </div>
+              </article>
+
+              <div class="peek" aria-hidden="true"></div>
+            </div>
+          </div>
+
+          <nav class="tabbar">
+            <button class="t on" aria-current="page">
+              <i class="ti ti-flag-3-filled"></i><span>Practice</span>
+            </button>
+            <button class="t"><i class="ti ti-book-2"></i><span>Playbook</span></button>
+            <button class="t"><i class="ti ti-compass"></i><span>Discover</span></button>
+            <button class="t"><i class="ti ti-user"></i><span>Profile</span></button>
+          </nav>
+        </div>
+
+        <div class="home-indicator"></div>
+      </div>
+
+      <div class="caption-block">
+        <p class="frame-label"><em>Active reflection</em> · 393 × 852</p>
+        <p class="frame-sub">Plan ✓, Do ✓, Reflect selected. One <em>What worked</em> prompt is answered with a <strong>green-tagged capability</strong>; a pattern callout connects two captures; the user is mid-typing a <em>What to improve</em> answer with the blue focus halo around the row.</p>
+      </div>
+    </div>
+
+    <!-- =============================================================== -->
+    <!-- Anatomy frame                                                     -->
+    <!-- =============================================================== -->
+    <div class="col">
+      <div class="anatomy-wrap">
+        <div class="anatomy">
+          <div class="phone bare">
+            <div class="notch"></div>
+            <div class="statusbar">
+              <span>17:21</span>
+              <span class="right">
+                <i class="ti ti-cell-signal-4"></i>
+                <i class="ti ti-wifi"></i>
+                <i class="ti ti-battery-3"></i>
+              </span>
+            </div>
+
+            <div class="screen" style="background: #FFFFFF;" data-screen-label="B.10 · Frame 2 · Anatomy">
+
+              <div class="top-header">
+                <div class="interest">
+                  <span class="name">Sail Racing</span>
+                  <span class="switcher"><i class="ti ti-chevron-down"></i></span>
+                </div>
+                <span class="step-counter">Step 6 of 14</span>
+                <div class="avatar">KD</div>
+              </div>
+
+              <div class="timeline-area">
+                <div class="timeline-row">
+                  <article class="card" style="box-shadow: 0 1px 2px rgba(0,0,0,0.04), 0 6px 14px -10px rgba(0,0,0,0.10);">
+                    <header class="card-head">
+                      <p class="step-label done"><span class="dot"></span>Complete</p>
+                      <h3>Light-air starts</h3>
+                    </header>
+                    <nav class="phase-tabs">
+                      <button class="phase-tab"><span class="ready"></span>Plan</button>
+                      <button class="phase-tab"><span class="ready"></span>Do</button>
+                      <button class="phase-tab on">Reflect</button>
+                    </nav>
+                    <div class="card-body">
+                      <div class="from-do-row">
+                        <span class="label">From Do · <span class="num">8</span></span>
+                      </div>
+                      <div class="draft-card">
+                        <div class="head">
+                          <span class="glyph"><i class="ti ti-sparkles"></i></span>
+                          <span class="lbl">Summary</span>
+                        </div>
+                        <p class="narrative">3 tactical · 2 rule · cadence.</p>
+                      </div>
+                      <div class="sec-label">
+                        <span class="ttl"><i class="ti ti-arrow-up-right ico up"></i>Worked</span>
+                      </div>
+                      <ul class="prompt-list">
+                        <li class="prompt-row open up">
+                          <div class="ptext">Left paid off</div>
+                          <p class="answer">Strategy. Called the shift.</p>
+                          <div class="cap-add">
+                            <span class="chip"><i class="ti ti-circle-check-filled"></i>Wind shifts</span>
+                          </div>
+                        </li>
+                      </ul>
+                      <section class="pattern-card">
+                        <div class="head">
+                          <span class="glyph"><i class="ti ti-bulb"></i></span>
+                          <span class="lbl">Pattern</span>
+                        </div>
+                        <p class="text">Two left-side reads.</p>
+                      </section>
+                      <ul class="prompt-list">
+                        <li class="prompt-row active imp">
+                          <div class="ptext">Rule confusion</div>
+                          <div class="field">
+                            <span class="typed">Inside boat —</span><span class="caret"></span>
+                          </div>
+                        </li>
+                      </ul>
+                    </div>
+                    <div class="card-footer-cta">
+                      <button class="btn disabled" disabled>Mark complete</button>
+                    </div>
+                  </article>
+                </div>
+              </div>
+
+              <nav class="tabbar">
+                <button class="t on"><i class="ti ti-flag-3-filled"></i><span>Practice</span></button>
+                <button class="t"><i class="ti ti-book-2"></i><span>Playbook</span></button>
+                <button class="t"><i class="ti ti-compass"></i><span>Discover</span></button>
+                <button class="t"><i class="ti ti-user"></i><span>Profile</span></button>
+              </nav>
+            </div>
+
+            <div class="home-indicator"></div>
+          </div>
+
+          <!-- Measurement overlay -->
+
+          <!-- A · Draft card condensed -->
+          <div class="m-box" style="left: 51px; top: 250px; width: 290px; height: 50px;"></div>
+          <div class="m-tag" style="right: -158px; top: 256px;">draft · 50 · ios-blue 7%</div>
+          <div class="m-tag" style="left: 364px; top: 280px;">— condensed when read</div>
+          <div class="m-letter" style="left: 26px; top: 265px;">A</div>
+
+          <!-- B · Section label up -->
+          <div class="m-line h" style="left: 51px; right: 52px; top: 322px;"></div>
+          <div class="m-tag" style="left: 51px; top: 304px;">sec-label · 10 / 700 / 0.9</div>
+          <div class="m-letter" style="left: 26px; top: 304px;">B</div>
+
+          <!-- C · Open answered row -->
+          <div class="m-box" style="left: 51px; top: 332px; width: 290px; height: 96px;"></div>
+          <div class="m-tag" style="right: -160px; top: 340px;">answered · ios-green border</div>
+          <div class="m-tag" style="left: 364px; top: 362px;">— 2.5 stripe + 0.5 frame</div>
+          <div class="m-tag" style="left: 364px; top: 384px;">— green chip = capability</div>
+          <div class="m-letter" style="left: 26px; top: 372px;">C</div>
+
+          <!-- D · Pattern surfacing card -->
+          <div class="m-box" style="left: 51px; top: 438px; width: 290px; height: 70px;"></div>
+          <div class="m-tag" style="left: 51px; top: 512px;">pattern · 70 · green 10% wash</div>
+          <div class="m-tag" style="left: 191px; top: 444px; transform: translateX(-50%);">26 × 2 tab</div>
+          <div class="m-letter" style="left: 26px; top: 460px;">D</div>
+
+          <!-- E · Section label imp -->
+          <div class="m-line h" style="left: 51px; right: 52px; top: 532px;"></div>
+          <div class="m-tag" style="left: 51px; top: 514px;">imp · ti-tool · ios-purple</div>
+          <div class="m-letter" style="left: 26px; top: 514px;">E</div>
+
+          <!-- F · Active typing row -->
+          <div class="m-box" style="left: 51px; top: 540px; width: 290px; height: 116px;"></div>
+          <div class="m-tag" style="right: -160px; top: 548px;">active · ios-blue halo 3</div>
+          <div class="m-tag" style="left: 364px; top: 570px;">— field · gray-6 · r 8</div>
+          <div class="m-tag" style="left: 364px; top: 592px;">— caret · ios-blue · blink</div>
+          <div class="m-tag" style="left: 364px; top: 614px;">— voice fallback inline</div>
+          <div class="m-letter" style="left: 26px; top: 580px;">F</div>
+
+          <!-- G · Disabled CTA + hint -->
+          <div class="m-box" style="left: 51px; top: 750px; width: 290px; height: 50px;"></div>
+          <div class="m-tag" style="left: 51px; top: 804px;">CTA disabled · gray-5</div>
+          <div class="m-tag" style="left: 200px; top: 804px;">hint names what's missing</div>
+          <div class="m-letter" style="left: 26px; top: 762px;">G</div>
+
+          <!-- Phone width and height refs -->
+          <div class="m-tag" style="left: 50%; top: -22px; transform: translateX(-50%);">393 × 852</div>
+
+        </div>
+
+        <aside class="anatomy-callouts">
+          <div class="callout">
+            <p class="ctitle">A · AI draft, condensed</p>
+            <p class="cname"><em>Read · collapsed to one sentence</em></p>
+            <p class="cspec"><span class="k">box:</span> <span class="v">290 × 50 · r 14</span><br/>
+            <span class="k">bg:</span> <span class="v">ios-blue 7% diagonal → cream</span><br/>
+            <span class="k">stroke:</span> <span class="v">0.5 · ios-blue 18%</span><br/>
+            <span class="k">label:</span> <span class="v">"Auto-drafted summary · read"</span></p>
+            <p class="cnote">In Frame 1 (just-opened) the draft is full-height with a "Refine" CTA. Here, after the user has read it, the card collapses — the same surface, less ink. The "read" tag is the signal.</p>
+          </div>
+
+          <div class="callout">
+            <p class="ctitle">B · Section label · What worked</p>
+            <p class="cname"><em>Group divider with count</em></p>
+            <p class="cspec"><span class="k">title:</span> <span class="v">10 / 700 / 0.9 · label-2</span><br/>
+            <span class="k">icon:</span> <span class="v">ti-arrow-up-right · ios-green</span><br/>
+            <span class="k">count:</span> <span class="v">"1 of 3 answered"</span></p>
+            <p class="cnote">The icon-color carries the group identity: green for <em>What worked</em>, purple for <em>What to improve</em>. Same shape, same scale — only the hue varies.</p>
+          </div>
+
+          <div class="callout">
+            <p class="ctitle">C · Answered prompt row</p>
+            <p class="cname"><em>Open + tagged</em></p>
+            <p class="cspec"><span class="k">stripe:</span> <span class="v">2.5 · ios-green</span><br/>
+            <span class="k">frame:</span> <span class="v">0.5 · ios-green · r 12</span><br/>
+            <span class="k">shadow:</span> <span class="v">soft green · 0 1 2 + 0 6 18 −10</span><br/>
+            <span class="k">chip:</span> <span class="v">green-tint · check icon · capability name</span></p>
+            <p class="cnote">Answering a prompt is the moment of <em>commitment</em>. The row's color hardens (full border, soft shadow), and a capability chip appears below — proof that this answer points to a real skill.</p>
+          </div>
+
+          <div class="callout">
+            <p class="ctitle">D · Pattern surfacing</p>
+            <p class="cname"><em>Two captures hang together</em></p>
+            <p class="cspec"><span class="k">box:</span> <span class="v">290 × 70 · r 12</span><br/>
+            <span class="k">bg:</span> <span class="v">green 10% diagonal wash</span><br/>
+            <span class="k">tab:</span> <span class="v">26 × 2 · ios-green flag at top</span><br/>
+            <span class="k">refs:</span> <span class="v">timestamp pills · 10 / 600</span></p>
+            <p class="cnote">A pattern card appears <em>between</em> sections only when the AI has spotted a connection across two or more captures. The flag-tab on top is the visual hook — same shape as the carry-forward card in Frame 3, smaller scale.</p>
+          </div>
+
+          <div class="callout">
+            <p class="ctitle">E · Section label · What to improve</p>
+            <p class="cname"><em>Group divider · purple</em></p>
+            <p class="cspec"><span class="k">icon:</span> <span class="v">ti-tool · ios-purple</span><br/>
+            <span class="k">count:</span> <span class="v">"0 of 3 answered"</span></p>
+            <p class="cnote">Mirrors B exactly. Same metrics, same kerning. Just a different hue and a different icon.</p>
+          </div>
+
+          <div class="callout">
+            <p class="ctitle">F · Active typing row</p>
+            <p class="cname"><em>Focus halo · caret · voice fallback</em></p>
+            <p class="cspec"><span class="k">halo:</span> <span class="v">0 0 0 3 · ios-blue 8%</span><br/>
+            <span class="k">field:</span> <span class="v">gray-6 · r 8 · min-h 64</span><br/>
+            <span class="k">caret:</span> <span class="v">1.5 × 14 · ios-blue · blink 1s</span><br/>
+            <span class="k">voice:</span> <span class="v">"Speak instead" link · 11 / 500</span><br/>
+            <span class="k">count:</span> <span class="v">"142 / 600" · tabular-nums · label-4</span></p>
+            <p class="cnote">Even though the typing row is in the <em>imp</em> (purple) group, the focus halo is iOS-blue — the system's universal "I am focused" color. The keyboard is implied (would push the card up in flight).</p>
+          </div>
+
+          <div class="callout">
+            <p class="ctitle">G · Disabled CTA + what's missing hint</p>
+            <p class="cname"><em>"Mark Reflect complete" (off)</em></p>
+            <p class="cspec"><span class="k">btn:</span> <span class="v">50 · gray-5 fill · label-3 ink</span><br/>
+            <span class="k">hint:</span> <span class="v">10.5 / 1.4 · "Need one What to improve answered"</span></p>
+            <p class="cnote">The hint specifies <em>exactly</em> what is required to activate. Never just "answer more prompts" — always a concrete count and group name. The user is never guessing.</p>
+          </div>
+        </aside>
+      </div>
+
+      <div style="width: 100%; max-width: 760px; display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 14px;">
+        <div class="legend">
+          <h5>Color tokens · this frame</h5>
+          <div class="row-l"><span class="sw" style="background: var(--ios-blue);"></span><span class="nm">iOS blue · <em>focus halo · caret · CTA when active</em></span><span class="hex">#007AFF</span></div>
+          <div class="row-l"><span class="sw" style="background: var(--ios-green);"></span><span class="nm">iOS green · <em>What worked · pattern · capability chip</em></span><span class="hex">#34C759</span></div>
+          <div class="row-l"><span class="sw" style="background: var(--ios-purple);"></span><span class="nm">iOS purple · <em>What to improve · 2.5 stripe</em></span><span class="hex">#5856D6</span></div>
+          <div class="row-l"><span class="sw" style="background: var(--ios-green-tint);"></span><span class="nm">green tint 14% · <em>capability chip fill</em></span><span class="hex">rgba</span></div>
+          <div class="row-l"><span class="sw" style="background: var(--gray-5);"></span><span class="nm">gray-5 · <em>disabled CTA · hairlines</em></span><span class="hex">#E5E5EA</span></div>
+          <div class="row-l"><span class="sw" style="background: var(--gray-6);"></span><span class="nm">gray-6 · <em>typing field bg</em></span><span class="hex">#F2F2F7</span></div>
+        </div>
+
+        <div class="type-scale">
+          <h5>Type scale · this frame</h5>
+          <div class="type-row"><span class="sample title">Light-air starts</span><span class="spec">19 / 600 / −0.4</span></div>
+          <div class="type-row"><span class="sample eye">Pattern surfacing</span><span class="spec">9.5 / 700 / 0.7 · green-deep</span></div>
+          <div class="type-row"><span class="sample prompt">Left side paid off in the first beat — strategy or luck?</span><span class="spec">12 / 1.35 · prompt</span></div>
+          <div class="type-row"><span class="sample body">Strategy. I called the 8° left shift…</span><span class="spec">12.5 / 1.45 · answer</span></div>
+          <div class="type-row"><span class="sample body" style="font-style: italic; color: var(--label-2);">Inside boat had overlap…<span style="display:inline-block;width:1.5px;height:12px;background:var(--ios-blue);vertical-align:-1px;margin-left:1px;"></span></span><span class="spec">12 / 1.4 · typed + caret</span></div>
+          <div class="type-row"><span class="sample meta">142 / 600</span><span class="spec">10 · tabular-nums · label-4</span></div>
+          <div class="type-row"><span class="sample aux">What worked</span><span class="spec">10 / 700 / 0.9</span></div>
+          <div class="type-row"><span class="sample cta" style="color: var(--label-3);">Mark Reflect complete</span><span class="spec">14.5 / 600 · disabled</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- =============================================================== -->
+  <!-- Rail · design rationale                                            -->
+  <!-- =============================================================== -->
+  <section class="rail-row">
+    <div class="rail-col">
+      <h4><em>Three row states on one surface</em></h4>
+      <p>This frame is the only place in the app where the user sees <strong>three distinct prompt-row states at once</strong>: collapsed, answered, and active. They share the same anatomy (left stripe, prompt text, optional chev/field/answer/chip stack) and differ only in chrome — stripe weight, border presence, shadow softness, focus halo. The user learns the whole row vocabulary by scanning a single screen.</p>
+      <span class="sig"><span class="swatch green"></span>green · answered &nbsp; <span class="swatch blue" style="margin-left: 8px;"></span>blue · active &nbsp; <span class="swatch gray" style="margin-left: 8px;"></span>gray · collapsed</span>
+    </div>
+    <div class="rail-col">
+      <h4><em>Pattern surfacing lives between sections</em></h4>
+      <p>The pattern card is <strong>not</strong> a prompt — it's an AI observation. Placing it between <em>What worked</em> and <em>What to improve</em> keeps it from competing with the user's own answers, and the small tab-flag at the top reads as a different object class. It only appears when the AI has at least two captures that hang together; one capture, no pattern.</p>
+      <p>It's also <em>dismissible by ignoring</em> — there's no Accept/Reject CTA. Patterns are observations, not decisions.</p>
+      <span class="sig"><span class="swatch green"></span>green · pattern card flag</span>
+    </div>
+    <div class="rail-col">
+      <h4><em>The hint as a contract</em></h4>
+      <p>The disabled CTA at the bottom never simply greys out — it always pairs with a hint that names <strong>exactly</strong> what's still required. "Need <em>one What to improve</em> answered to activate." That's a contract: do this one thing, and the CTA lights up.</p>
+      <p>This pattern keeps Reflect from feeling like a quiz with a hidden rubric. The user always knows the next move.</p>
+      <span class="sig"><span class="swatch ink"></span>label-2 · hint emphasis</span>
+    </div>
+  </section>
+
+</div>
+</body>
+</html>

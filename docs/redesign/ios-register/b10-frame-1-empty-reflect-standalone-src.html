@@ -1,0 +1,602 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=1520" />
+<title>BetterAt · B.10 Frame 1 · Empty Reflect — Canonical · 2026-05-16</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.24.0/dist/tabler-icons.min.css" />
+<link rel="stylesheet" href="b10-frames-common.css?v=3" />
+<style>
+  /* ============= Frame 1 — Empty Reflect ============= */
+
+  .empty-hero {
+    margin: 4px 0 12px;
+    padding: 18px 18px 16px;
+    border-radius: 16px;
+    background:
+      radial-gradient(120% 80% at 50% 0%, rgba(52, 199, 89, 0.06) 0%, rgba(255,255,255,0) 70%),
+      linear-gradient(180deg, #FFFFFF 0%, #FBFBFD 100%);
+    border: 0.5px solid var(--gray-5);
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .empty-hero .icon-wrap {
+    width: 56px; height: 56px;
+    border-radius: 50%;
+    background: var(--gray-6);
+    border: 0.5px solid var(--gray-5);
+    display: inline-flex; align-items: center; justify-content: center;
+    margin: 0 0 12px;
+    position: relative;
+  }
+  .empty-hero .icon-wrap i {
+    font-size: 26px;
+    color: var(--label-3);
+  }
+  .empty-hero .icon-wrap::after {
+    content: "";
+    position: absolute;
+    inset: -5px;
+    border-radius: 50%;
+    border: 0.5px dashed var(--gray-4);
+  }
+  .empty-hero .title {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
+    font-size: 16px; font-weight: 600;
+    color: var(--label); letter-spacing: -0.3px;
+    margin: 0 0 6px;
+    text-wrap: balance;
+  }
+  .empty-hero .body {
+    font-size: 12.5px; line-height: 1.5;
+    color: var(--label-3); letter-spacing: -0.05px;
+    margin: 0 auto;
+    max-width: 240px;
+    text-wrap: pretty;
+  }
+  .empty-hero .body em {
+    font-style: italic;
+    color: var(--label-2);
+    font-weight: 500;
+  }
+
+  .preview-block {
+    margin: 2px 0 0;
+    padding: 0;
+  }
+  .preview-label {
+    display: flex; align-items: center; justify-content: space-between;
+    margin: 6px 2px 8px;
+  }
+  .preview-label .ttl {
+    font-size: 10px; font-weight: 700;
+    color: var(--label-2); letter-spacing: 0.9px;
+    text-transform: uppercase;
+  }
+  .preview-label .sub {
+    font-size: 10px; color: var(--label-3);
+    font-style: italic;
+    letter-spacing: -0.02px;
+  }
+
+  .ghost-list {
+    list-style: none; margin: 0; padding: 0;
+    display: flex; flex-direction: column; gap: 6px;
+  }
+  .ghost-row {
+    background: rgba(255, 255, 255, 0.65);
+    border: 0.5px dashed var(--gray-4);
+    border-radius: 12px;
+    padding: 10px 11px 10px;
+    display: grid;
+    grid-template-columns: 16px 1fr 12px;
+    column-gap: 8px;
+    align-items: center;
+    position: relative;
+  }
+  .ghost-row.up    { border-left: 2px dashed rgba(52, 199, 89, 0.55); padding-left: 9.5px; }
+  .ghost-row.imp   { border-left: 2px dashed rgba(88, 86, 214, 0.55); padding-left: 9.5px; }
+  .ghost-row .glyph {
+    width: 16px; height: 16px;
+    border-radius: 50%;
+    background: var(--gray-6);
+    border: 0.5px dashed var(--gray-3);
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .ghost-row .glyph i { font-size: 10px; color: var(--label-4); }
+  .ghost-row .bar-stack {
+    display: flex; flex-direction: column; gap: 5px;
+  }
+  .ghost-row .bar {
+    height: 7px;
+    border-radius: 4px;
+    background: linear-gradient(90deg, var(--gray-6) 0%, rgba(229, 229, 234, 0.4) 100%);
+  }
+  .ghost-row .bar.short { width: 64%; }
+  .ghost-row .bar.medium { width: 84%; }
+  .ghost-row .bar.long { width: 100%; }
+  .ghost-row .chev {
+    color: var(--gray-3); font-size: 12px;
+  }
+
+  .freeform-prompt {
+    margin: 14px 0 0;
+    padding: 12px 12px 12px;
+    border-radius: 12px;
+    background: var(--ios-blue-tint);
+    border: 0.5px solid var(--ios-blue-strong);
+    display: grid;
+    grid-template-columns: 28px 1fr;
+    column-gap: 10px;
+    align-items: center;
+  }
+  .freeform-prompt .glyph {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    background: var(--ios-blue);
+    color: #fff;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .freeform-prompt .glyph i { font-size: 14px; }
+  .freeform-prompt .copy .ttl {
+    font-size: 12px; font-weight: 600;
+    color: var(--label); letter-spacing: -0.15px;
+    line-height: 1.2;
+    display: block;
+  }
+  .freeform-prompt .copy .sub {
+    font-size: 10.5px; color: var(--ios-blue-deep);
+    letter-spacing: -0.02px;
+    margin-top: 1px;
+    display: inline-flex; align-items: center; gap: 3px;
+  }
+  .freeform-prompt .copy .sub i { font-size: 11px; }
+
+</style>
+<template id="__bundler_thumbnail" data-bg-color="#EFEAD8">
+  <svg viewBox="0 0 1200 800" xmlns="http://www.w3.org/2000/svg">
+    <rect width="1200" height="800" fill="#EFEAD8"/>
+    <!-- Phone silhouette -->
+    <rect x="450" y="120" width="300" height="560" rx="44" fill="#FBFBFD" stroke="#2A2824" stroke-width="3" stroke-opacity="0.18"/>
+    <!-- Notch -->
+    <rect x="540" y="138" width="120" height="22" rx="11" fill="#0F0E0C"/>
+    <!-- Card outline -->
+    <rect x="478" y="220" width="244" height="380" rx="16" fill="#FFFFFF" stroke="#1C1C1E" stroke-width="1" stroke-opacity="0.06"/>
+    <!-- Empty hero glyph (notebook icon — circle with dashed orbit) -->
+    <circle cx="600" cy="370" r="34" fill="#F2F2F7" stroke="#1C1C1E" stroke-opacity="0.08" stroke-width="1"/>
+    <circle cx="600" cy="370" r="40" fill="none" stroke="#D1D1D6" stroke-width="1" stroke-dasharray="3 3"/>
+    <!-- Ghost rows -->
+    <rect x="498" y="450" width="204" height="36" rx="8" fill="none" stroke="#D1D1D6" stroke-width="1" stroke-dasharray="3 3"/>
+    <rect x="498" y="494" width="204" height="36" rx="8" fill="none" stroke="#D1D1D6" stroke-width="1" stroke-dasharray="3 3"/>
+    <!-- iOS-blue CTA -->
+    <rect x="498" y="552" width="204" height="38" rx="9" fill="#007AFF"/>
+  </svg>
+</template>
+</head>
+<body>
+
+<div class="page">
+
+  <header class="page-head">
+    <p class="eyebrow">BetterAt · Phase B.10 · Frame 1 — Empty Reflect · Canonical · 2026-05-16</p>
+    <h1>Reflect <em>before there's anything to reflect on</em> — a calm, honest empty state that points the user back to Do</h1>
+    <p>The user has tapped <em>Reflect</em> early — Plan is set, but Do hasn't started yet (zero captures, zero voice). The Reflect tab refuses to pretend. There's no AI-drafted summary, no fake prompts, no hollow celebration. Instead the surface admits its state: a single restrained empty card explains <em>why</em> the tab is quiet, and two <strong>ghost rows</strong> below sketch the future shape of the screen — dashed-outline placeholders where real prompts will land once captures exist. A single secondary affordance ("<em>Jot a freeform note instead</em>") preserves the user's option to reflect anyway, in case the activity happened off-app.</p>
+    <p>Tone: <em>quiet and procedural</em>. The primary CTA is iOS-blue and points back to <strong>Do</strong> — the system's honest opinion about what comes next. The footer hint names what's missing in plain numbers ("<em>0 captures · 0 voice</em>") so the empty state feels measured, not vague.</p>
+    <div class="crumbs">
+      <span class="pill">iPhone 16e · portrait · 393 × 852</span>
+      <span class="sep">·</span>
+      <span class="pill">Companion · <em>reflect-tab-interior-canonical.html</em></span>
+      <span class="sep">·</span>
+      <span class="pill">Bonded with · <em>plan-tab-three-states</em> &amp; <em>do-tab-interior</em></span>
+      <span class="sep">·</span>
+      <span class="pill">Phase B.10 · Frame 1 of 3</span>
+    </div>
+  </header>
+
+  <section class="strip-head">
+    <p class="eyebrow">Empty Reflect · Webview + Anatomy</p>
+    <h2><em>The honest empty state</em> on the left · <em>spec column with callouts A–G</em> on the right</h2>
+    <p>The webview frame is the canonical render at full 393 × 852. The anatomy frame strips the surface to its measurement bones — callouts A–G follow the same letter convention as the B.7 frame canonicals (A is always the state marker, F/G are always the primary CTA + the hint copy underneath). What's new on this surface: the round empty-state glyph with its dashed orbit, the dashed ghost rows that sketch where future prompts will appear, and the freeform-note affordance. Everything else — the step card chrome, the phase tabs, the bottom tabbar — is inherited unchanged from Reflect's populated states so the user reads continuity.</p>
+  </section>
+
+  <div class="row">
+
+    <!-- =============================================================== -->
+    <!-- Webview frame · Empty Reflect                                     -->
+    <!-- =============================================================== -->
+    <div class="col">
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="statusbar">
+          <span>09:42</span>
+          <span class="right">
+            <i class="ti ti-cell-signal-4"></i>
+            <i class="ti ti-wifi"></i>
+            <i class="ti ti-battery-3"></i>
+          </span>
+        </div>
+
+        <div class="screen" data-screen-label="B.10 · Frame 1 · Reflect · Empty">
+
+          <div class="top-header">
+            <div class="interest">
+              <span class="name">Sail Racing</span>
+              <span class="switcher"><i class="ti ti-chevron-down"></i></span>
+            </div>
+            <span class="step-counter">Step 6 of 14</span>
+            <div class="avatar">KD</div>
+          </div>
+
+          <div class="timeline-area">
+            <div class="timeline-row">
+              <div class="peek" aria-hidden="true"></div>
+
+              <article class="card">
+                <header class="card-head">
+                  <p class="step-label"><span class="dot"></span>Saturday · Race day</p>
+                  <h3>Light-air starts in shifty breeze</h3>
+                  <div class="step-meta">
+                    <span>RHKYC Spring Series</span>
+                    <span class="sep">·</span>
+                    <span>Race 4</span>
+                  </div>
+                </header>
+
+                <nav class="phase-tabs" role="tablist">
+                  <button class="phase-tab" role="tab">
+                    <span class="ready" aria-label="Plan complete"></span>
+                    Plan
+                  </button>
+                  <button class="phase-tab" role="tab">
+                    <span class="pending" aria-label="Do not started"></span>
+                    Do
+                  </button>
+                  <button class="phase-tab on" role="tab" aria-selected="true">Reflect</button>
+                </nav>
+
+                <div class="card-body">
+
+                  <div class="from-do-row">
+                    <span class="label">
+                      From Do · <span class="num">0 captures</span> · <span class="num">0 voice</span>
+                    </span>
+                    <span style="font-size: 11px; color: var(--label-3); letter-spacing: -0.02px;">
+                      Not started
+                    </span>
+                  </div>
+
+                  <section class="empty-hero" aria-label="Empty Reflect">
+                    <div class="icon-wrap" aria-hidden="true">
+                      <i class="ti ti-notebook"></i>
+                    </div>
+                    <p class="title">Nothing to reflect on yet</p>
+                    <p class="body">
+                      Reflect fills in once you've captured moments in <em>Do</em> — prompts will surface here automatically.
+                    </p>
+                  </section>
+
+                  <div class="preview-block">
+                    <div class="preview-label">
+                      <span class="ttl">What this will look like</span>
+                      <span class="sub">After captures</span>
+                    </div>
+                    <ul class="ghost-list" aria-label="Preview of Reflect rows once captures exist">
+                      <li class="ghost-row up">
+                        <span class="glyph"><i class="ti ti-arrow-up-right"></i></span>
+                        <div class="bar-stack">
+                          <span class="bar long"></span>
+                          <span class="bar short"></span>
+                        </div>
+                        <span class="chev"><i class="ti ti-chevron-down"></i></span>
+                      </li>
+                      <li class="ghost-row imp">
+                        <span class="glyph"><i class="ti ti-tool"></i></span>
+                        <div class="bar-stack">
+                          <span class="bar medium"></span>
+                          <span class="bar short"></span>
+                        </div>
+                        <span class="chev"><i class="ti ti-chevron-down"></i></span>
+                      </li>
+                    </ul>
+                  </div>
+
+                  <button class="freeform-prompt" type="button" aria-label="Jot a freeform note">
+                    <span class="glyph"><i class="ti ti-pencil"></i></span>
+                    <span class="copy">
+                      <span class="ttl">Jot a freeform note instead</span>
+                      <span class="sub">For when the activity happened off-app<i class="ti ti-arrow-right"></i></span>
+                    </span>
+                  </button>
+
+                </div>
+
+                <div class="card-footer-cta">
+                  <button class="btn">
+                    <i class="ti ti-play"></i>
+                    Open Do tab
+                  </button>
+                  <p class="hint">Or <span class="em">reflect later</span> — this tab will fill itself in once captures arrive.</p>
+                </div>
+              </article>
+
+              <div class="peek" aria-hidden="true"></div>
+            </div>
+          </div>
+
+          <nav class="tabbar">
+            <button class="t on" aria-current="page">
+              <i class="ti ti-flag-3-filled"></i><span>Practice</span>
+            </button>
+            <button class="t"><i class="ti ti-book-2"></i><span>Playbook</span></button>
+            <button class="t"><i class="ti ti-compass"></i><span>Discover</span></button>
+            <button class="t"><i class="ti ti-user"></i><span>Profile</span></button>
+          </nav>
+        </div>
+
+        <div class="home-indicator"></div>
+      </div>
+
+      <div class="caption-block">
+        <p class="frame-label"><em>Empty Reflect</em> · 393 × 852</p>
+        <p class="frame-sub">Plan checked, Do <em>pending</em> (dashed ring), Reflect selected. The body owns up to its emptiness: a calm round-glyph card, two dashed ghost rows that preview the future shape, and a single iOS-blue CTA that points back to <em>Do</em>.</p>
+      </div>
+    </div>
+
+    <!-- =============================================================== -->
+    <!-- Anatomy frame                                                     -->
+    <!-- =============================================================== -->
+    <div class="col">
+      <div class="anatomy-wrap">
+        <div class="anatomy">
+          <div class="phone bare">
+            <div class="notch"></div>
+            <div class="statusbar">
+              <span>09:42</span>
+              <span class="right">
+                <i class="ti ti-cell-signal-4"></i>
+                <i class="ti ti-wifi"></i>
+                <i class="ti ti-battery-3"></i>
+              </span>
+            </div>
+
+            <div class="screen" style="background: #FFFFFF;" data-screen-label="B.10 · Frame 1 · Anatomy">
+
+              <div class="top-header">
+                <div class="interest">
+                  <span class="name">Sail Racing</span>
+                  <span class="switcher"><i class="ti ti-chevron-down"></i></span>
+                </div>
+                <span class="step-counter">Step 6 of 14</span>
+                <div class="avatar">KD</div>
+              </div>
+
+              <div class="timeline-area">
+                <div class="timeline-row">
+                  <article class="card" style="box-shadow: 0 1px 2px rgba(0,0,0,0.04), 0 6px 14px -10px rgba(0,0,0,0.10);">
+                    <header class="card-head">
+                      <p class="step-label"><span class="dot"></span>Saturday</p>
+                      <h3>Light-air starts</h3>
+                    </header>
+                    <nav class="phase-tabs">
+                      <button class="phase-tab"><span class="ready"></span>Plan</button>
+                      <button class="phase-tab"><span class="pending"></span>Do</button>
+                      <button class="phase-tab on">Reflect</button>
+                    </nav>
+                    <div class="card-body">
+                      <div class="from-do-row">
+                        <span class="label">From Do · <span class="num">0</span></span>
+                        <span style="font-size: 11px; color: var(--label-3);">Not started</span>
+                      </div>
+                      <section class="empty-hero">
+                        <div class="icon-wrap"><i class="ti ti-notebook"></i></div>
+                        <p class="title">Nothing yet</p>
+                        <p class="body">Capture in <em>Do</em> first.</p>
+                      </section>
+                      <div class="preview-block">
+                        <div class="preview-label">
+                          <span class="ttl">Future shape</span>
+                        </div>
+                        <ul class="ghost-list">
+                          <li class="ghost-row up">
+                            <span class="glyph"><i class="ti ti-arrow-up-right"></i></span>
+                            <div class="bar-stack"><span class="bar long"></span><span class="bar short"></span></div>
+                            <span class="chev"><i class="ti ti-chevron-down"></i></span>
+                          </li>
+                          <li class="ghost-row imp">
+                            <span class="glyph"><i class="ti ti-tool"></i></span>
+                            <div class="bar-stack"><span class="bar medium"></span></div>
+                            <span class="chev"><i class="ti ti-chevron-down"></i></span>
+                          </li>
+                        </ul>
+                      </div>
+                    </div>
+                    <div class="card-footer-cta">
+                      <button class="btn"><i class="ti ti-play"></i>Open Do</button>
+                    </div>
+                  </article>
+                </div>
+              </div>
+
+              <nav class="tabbar">
+                <button class="t on"><i class="ti ti-flag-3-filled"></i><span>Practice</span></button>
+                <button class="t"><i class="ti ti-book-2"></i><span>Playbook</span></button>
+                <button class="t"><i class="ti ti-compass"></i><span>Discover</span></button>
+                <button class="t"><i class="ti ti-user"></i><span>Profile</span></button>
+              </nav>
+            </div>
+
+            <div class="home-indicator"></div>
+          </div>
+
+          <!-- Measurement overlay -->
+
+          <!-- A · State marker — pending Do ring -->
+          <div class="m-letter" style="left: 99px; top: 178px;">A</div>
+          <div class="m-line h" style="left: 132px; right: 152px; top: 188px;"></div>
+          <div class="m-tag" style="left: 132px; top: 196px;">pending · 14 · dashed gray-3</div>
+
+          <!-- B · Phase tabs row -->
+          <div class="m-line v" style="left: 6px; top: 174px; height: 32px;"></div>
+          <div class="m-tag" style="left: -34px; top: 180px;">tabs · 32</div>
+          <div class="m-letter" style="left: 6px; top: 196px;">B</div>
+
+          <!-- C · From-Do row -->
+          <div class="m-box" style="left: 51px; top: 218px; width: 290px; height: 28px;"></div>
+          <div class="m-tag" style="left: 51px; top: 220px;">from-do · 0 captures · 0 voice</div>
+          <div class="m-letter" style="left: 26px; top: 222px;">C</div>
+
+          <!-- D · Empty hero card -->
+          <div class="m-box" style="left: 51px; top: 254px; width: 290px; height: 148px;"></div>
+          <div class="m-tag" style="left: 51px; top: 405px;">empty hero · 290 × 148 · r 16</div>
+          <div class="m-tag" style="left: 191px; top: 270px; transform: translateX(-50%);">glyph · 56 · gray-6 · dashed orbit −5</div>
+          <div class="m-letter" style="left: 26px; top: 320px;">D</div>
+
+          <!-- E · Ghost preview rows -->
+          <div class="m-box" style="left: 51px; top: 432px; width: 290px; height: 132px;"></div>
+          <div class="m-tag" style="right: -160px; top: 432px;">ghost rows · 290 × 132</div>
+          <div class="m-tag" style="left: 364px; top: 472px; width: 220px;">— dashed 0.5 gray-4</div>
+          <div class="m-tag" style="left: 364px; top: 494px;">— 2px tinted left border</div>
+          <div class="m-tag" style="left: 364px; top: 516px;">— bar placeholder 7px</div>
+          <div class="m-letter" style="left: 26px; top: 488px;">E</div>
+
+          <!-- F · Freeform prompt secondary -->
+          <div class="m-box" style="left: 51px; top: 588px; width: 290px; height: 56px;"></div>
+          <div class="m-tag" style="left: 51px; top: 648px;">freeform note · ios-blue-tint</div>
+          <div class="m-letter" style="left: 26px; top: 608px;">F</div>
+
+          <!-- G · Primary CTA + hint -->
+          <div class="m-box" style="left: 51px; top: 686px; width: 290px; height: 50px;"></div>
+          <div class="m-tag" style="left: 51px; top: 740px;">CTA · 50 · ios-blue · r 14</div>
+          <div class="m-line h" style="left: 51px; right: 52px; top: 754px;"></div>
+          <div class="m-tag" style="left: 51px; top: 760px;">hint · 10.5 · label-3</div>
+          <div class="m-letter" style="left: 26px; top: 700px;">G</div>
+
+          <!-- Phone width and height refs -->
+          <div class="m-tag" style="left: 50%; top: -22px; transform: translateX(-50%);">393 × 852</div>
+
+        </div>
+
+        <aside class="anatomy-callouts">
+          <div class="callout">
+            <p class="ctitle">A · Phase status — Do pending</p>
+            <p class="cname"><em>The dashed ring</em></p>
+            <p class="cspec"><span class="k">dot:</span> <span class="v">14 × 14 · dashed 1.5 gray-3</span><br/>
+            <span class="k">fill:</span> <span class="v">transparent</span><br/>
+            <span class="k">role:</span> <span class="v">"not started" — contrast with Plan's solid green check</span></p>
+            <p class="cnote">The dashed ring is the visual key to this whole frame — it tells the user, before they read a word, that the prerequisite step hasn't happened yet.</p>
+          </div>
+
+          <div class="callout">
+            <p class="ctitle">B · Phase tabs row</p>
+            <p class="cname"><em>Plan ✓ · Do ◌ · Reflect</em> (selected)</p>
+            <p class="cspec"><span class="k">height:</span> <span class="v">32</span> · <span class="k">pad:</span> <span class="v">0 22</span><br/>
+            <span class="k">underline:</span> <span class="v">2 · ios-blue · r 2</span></p>
+            <p class="cnote">Reflect is still tappable and selectable even when Do hasn't run — the system trusts the user to navigate freely.</p>
+          </div>
+
+          <div class="callout">
+            <p class="ctitle">C · From-Do row</p>
+            <p class="cname"><em>Counts in plain numbers</em></p>
+            <p class="cspec"><span class="k">label:</span> <span class="v">11 · label-3</span><br/>
+            <span class="k">num:</span> <span class="v">label-2 · weight 600</span><br/>
+            <span class="k">copy:</span> <span class="v">"0 captures · 0 voice"</span></p>
+            <p class="cnote">Same row shape as the populated frames. The numbers are zeros — that's the only difference. No special "empty" treatment.</p>
+          </div>
+
+          <div class="callout">
+            <p class="ctitle">D · Empty hero card</p>
+            <p class="cname"><em>Calm, single-glyph admission</em></p>
+            <p class="cspec"><span class="k">box:</span> <span class="v">290 × 148 · r 16</span><br/>
+            <span class="k">bg:</span> <span class="v">radial green-wash 6% + #FFF</span><br/>
+            <span class="k">glyph:</span> <span class="v">56 round · gray-6 · ti-notebook 26</span><br/>
+            <span class="k">orbit:</span> <span class="v">dashed 0.5 gray-4 · inset −5</span><br/>
+            <span class="k">title:</span> <span class="v">16 / 600 / −0.3</span><br/>
+            <span class="k">body:</span> <span class="v">12.5 / 1.5 · max 240</span></p>
+            <p class="cnote">The faint green wash in the radial gradient hints that <em>this is the Reflect surface</em> — green is the phase's signature — without leaning celebratory.</p>
+          </div>
+
+          <div class="callout">
+            <p class="ctitle">E · Ghost preview rows</p>
+            <p class="cname"><em>"Here's what this will look like"</em></p>
+            <p class="cspec"><span class="k">stripe:</span> <span class="v">2 · dashed · green (up) / purple (imp)</span><br/>
+            <span class="k">border:</span> <span class="v">0.5 · dashed · gray-4</span><br/>
+            <span class="k">bars:</span> <span class="v">7 · r 4 · gray-6 → fade</span><br/>
+            <span class="k">glyph:</span> <span class="v">16 round · dashed gray-3</span></p>
+            <p class="cnote">Two rows is enough to teach the future shape — they match Reflect's real groups (<em>What worked</em> = green, <em>What to improve</em> = purple). Once captures exist, more rows fill in.</p>
+          </div>
+
+          <div class="callout">
+            <p class="ctitle">F · Freeform-note affordance</p>
+            <p class="cname"><em>"Reflect anyway"</em></p>
+            <p class="cspec"><span class="k">box:</span> <span class="v">290 × 56 · r 12</span><br/>
+            <span class="k">bg:</span> <span class="v">ios-blue-tint 10%</span><br/>
+            <span class="k">stroke:</span> <span class="v">0.5 · ios-blue-strong 18%</span><br/>
+            <span class="k">glyph:</span> <span class="v">28 round · ios-blue · ti-pencil 14</span></p>
+            <p class="cnote">Preserves user agency. If the activity happened off-app (or the user wants to journal without ever entering Do), they can still write — but the affordance is <em>secondary</em>, deliberately less prominent than "Open Do".</p>
+          </div>
+
+          <div class="callout">
+            <p class="ctitle">G · Primary CTA + hint</p>
+            <p class="cname"><em>"Open Do tab"</em></p>
+            <p class="cspec"><span class="k">cta:</span> <span class="v">50 · ios-blue · r 14 · weight 600</span><br/>
+            <span class="k">icon:</span> <span class="v">ti-play · 16</span><br/>
+            <span class="k">hint:</span> <span class="v">10.5 / label-3 · "reflect later" emphasis</span></p>
+            <p class="cnote">Crucially the CTA <em>does not</em> say "Mark Reflect complete" or "Skip Reflect" — both would be dishonest. It points to the next true action: go capture, then come back.</p>
+          </div>
+        </aside>
+      </div>
+
+      <div style="width: 100%; max-width: 760px; display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 14px;">
+        <div class="legend">
+          <h5>Color tokens · this frame</h5>
+          <div class="row-l"><span class="sw" style="background: var(--ios-blue);"></span><span class="nm">iOS blue · <em>primary CTA · freeform</em></span><span class="hex">#007AFF</span></div>
+          <div class="row-l"><span class="sw" style="background: var(--ios-green);"></span><span class="nm">iOS green · <em>Plan check · ghost stripe up</em></span><span class="hex">#34C759</span></div>
+          <div class="row-l"><span class="sw" style="background: var(--ios-purple);"></span><span class="nm">iOS purple · <em>ghost stripe imp</em></span><span class="hex">#5856D6</span></div>
+          <div class="row-l"><span class="sw" style="background: var(--gray-3);"></span><span class="nm">gray-3 · <em>pending ring · ghost dash</em></span><span class="hex">#C7C7CC</span></div>
+          <div class="row-l"><span class="sw" style="background: var(--gray-6);"></span><span class="nm">gray-6 · <em>glyph bg · bar placeholder</em></span><span class="hex">#F2F2F7</span></div>
+          <div class="row-l"><span class="sw" style="background: var(--label);"></span><span class="nm">label · <em>title · num emphasis</em></span><span class="hex">#1C1C1E</span></div>
+        </div>
+
+        <div class="type-scale">
+          <h5>Type scale · this frame</h5>
+          <div class="type-row"><span class="sample title">Light-air starts</span><span class="spec">19 / 600 / −0.4 · SF Pro Display</span></div>
+          <div class="type-row"><span class="sample tab">Reflect</span><span class="spec">13.5 / 600 / −0.1 · ios-blue</span></div>
+          <div class="type-row"><span class="sample body" style="font-weight: 600;">Nothing to reflect on yet</span><span class="spec">16 / 600 / −0.3 · label</span></div>
+          <div class="type-row"><span class="sample body">Reflect fills in once captures exist.</span><span class="spec">12.5 / 1.5 · label-3</span></div>
+          <div class="type-row"><span class="sample aux">What this will look like</span><span class="spec">10 / 700 / 0.9 · label-2</span></div>
+          <div class="type-row"><span class="sample meta">From Do · <strong style="color: var(--label-2);">0 captures</strong></span><span class="spec">11 / 500 / −0.02 · label-3</span></div>
+          <div class="type-row"><span class="sample cta">Open Do tab</span><span class="spec">14.5 / 600 / −0.2 · #FFF on ios-blue</span></div>
+          <div class="type-row"><span class="sample hint">reflect later — fills in once captures arrive</span><span class="spec">10.5 / 1.4 · label-3</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- =============================================================== -->
+  <!-- Rail · design rationale                                            -->
+  <!-- =============================================================== -->
+  <section class="rail-row">
+    <div class="rail-col">
+      <h4><em>Why empty needs its own frame</em></h4>
+      <p>Most reflective tools quietly hide their UI when there's no data, or worse, fake one with mock prompts. Both are wrong here. The Reflect tab is a <strong>phase</strong> of a practice loop — if it's empty, that's information. Showing the surface as-shaped-but-empty teaches the user the loop's grammar before they ever populate it.</p>
+      <p>Hence the two ghost rows: not decoration, <em>previews</em>. They name what the future will hold (a <em>What worked</em> row and a <em>What to improve</em> row) without putting words in the user's mouth.</p>
+      <span class="sig"><span class="swatch gray"></span>gray-3 dashed · ghost rows</span>
+    </div>
+    <div class="rail-col">
+      <h4><em>The honest CTA</em></h4>
+      <p>The biggest temptation in an empty state is to invent something for the user to <strong>do</strong> right here: "Add your first reflection," "Start journaling," etc. We resist. The whole point of Reflect is that it follows Do — pretending the user can reflect without captures dilutes the loop.</p>
+      <p>So the CTA points <em>back</em>: <strong>Open Do tab</strong>. The freeform-note option exists as a secondary affordance for the rare case (activity happened off-app, user wants a journal entry anyway), but it's not the headline.</p>
+      <span class="sig"><span class="swatch blue"></span>ios-blue · primary CTA points to Do</span>
+    </div>
+    <div class="rail-col">
+      <h4><em>Quiet, not sad</em></h4>
+      <p>An empty state can read as failure ("you haven't done it!") or as opportunity ("you're about to start"). The framing is in the <em>tone</em>: the title is descriptive, not pleading ("<em>Nothing to reflect on yet</em>" vs. "You haven't reflected!"). The body uses warm second-person verbs. The footer hint trusts the user — <em>"this tab will fill itself in once captures arrive"</em> — rather than scolding them.</p>
+      <p>The radial green-wash in the empty hero card is the smallest tell that this is still the <strong>Reflect surface</strong>. Brand signature preserved; mood kept neutral.</p>
+      <span class="sig"><span class="swatch green"></span>green wash · 6% radial · phase signature</span>
+    </div>
+  </section>
+
+</div>
+</body>
+</html>
