@@ -1,4 +1,6 @@
 export { DoTabInterior, type DoTabInteriorProps } from './DoTabInterior';
+export { DoStartCard } from './DoStartCard';
+export { PlanStartingFrameRow, hasPlanStartingFrameContent } from './PlanStartingFrameRow';
 export {
   deriveDoInteriorState,
   hasAnyDoCapture,

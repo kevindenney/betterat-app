@@ -4,6 +4,8 @@ import { IOS_SPACING } from '@/lib/design-tokens-ios';
 import type { StepPlanData } from '@/types/step-detail';
 import type { DoCaptureItem } from './doCaptureModel';
 import type { DoInteriorState } from './doState';
+import { DoStartCard } from './DoStartCard';
+import { PlanStartingFrameRow } from './PlanStartingFrameRow';
 
 export interface DoTabInteriorProps {
   state: DoInteriorState;
@@ -22,7 +24,16 @@ export interface DoTabInteriorProps {
   footer?: React.ReactNode;
 }
 
-export function DoTabInterior(_props: DoTabInteriorProps) {
+export function DoTabInterior({
+  state,
+  planData,
+  readOnly,
+  onVoiceNote,
+  onPhotoOrVideo,
+  onQuickNote,
+  onAutoSummarizePlan,
+  footer,
+}: DoTabInteriorProps) {
   return (
     <ScrollView
       style={styles.container}
@@ -30,7 +41,25 @@ export function DoTabInterior(_props: DoTabInteriorProps) {
       showsVerticalScrollIndicator={false}
       keyboardShouldPersistTaps="handled"
     >
-      <View />
+      {state === 'pre_activity' && (
+        <>
+          <DoStartCard
+            readOnly={readOnly}
+            onVoiceNote={onVoiceNote}
+            onPhotoOrVideo={onPhotoOrVideo}
+            onQuickNote={onQuickNote}
+          />
+          <PlanStartingFrameRow
+            planData={planData}
+            onPress={readOnly ? undefined : onAutoSummarizePlan}
+            disabled={readOnly}
+          />
+        </>
+      )}
+
+      {state !== 'pre_activity' && <View />}
+
+      {footer}
     </ScrollView>
   );
 }
