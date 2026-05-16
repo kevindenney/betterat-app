@@ -298,10 +298,19 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   ctaWrap: {
+    // Canonical insets the CTA at left/right 14 (anatomy callout F).
     paddingTop: 12,
+    paddingHorizontal: 14,
+    alignSelf: 'stretch',
+    // DEBUG: temporary magenta background to confirm the wrap is
+    // rendering at non-zero height. Remove once Move-to-Reflect renders.
+    backgroundColor: 'magenta',
+    minHeight: 80,
   },
   secondaryWrap: {
     paddingTop: 8,
     paddingBottom: 4,
+    paddingHorizontal: 14,
+    alignSelf: 'stretch',
   },
 });

@@ -53,6 +53,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 7,
+    // Explicit stretch so the Pressable fills its flex-column parent
+    // width even when the parent doesn't propagate alignment.
+    alignSelf: 'stretch',
     shadowColor: IOS_BLUE,
     shadowOpacity: 0.38,
     shadowRadius: 12,
