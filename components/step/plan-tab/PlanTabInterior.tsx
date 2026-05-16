@@ -133,19 +133,25 @@ export function PlanTabInterior({
               <Text style={styles.coachTitle}>AI Coach</Text>
               <View style={styles.headerSpacer} />
             </View>
-            <ConversationalCapture
-              interestId={interestId!}
-              interestName={interestName!}
-              stepTitle={stepTitle || planData.what_will_you_do || 'New step'}
-              onCreateStep={(data, suggestedTitle) => {
-                onConversationalCreate!(data, suggestedTitle);
-                setManualExpanded(true);
-                setCoachOpen(false);
-              }}
-              embedded
-              stepCategory={stepCategory}
-              autoFocus
-            />
+            {/* Gate-render the child so closing the modal unmounts the
+                conversation — its useEffect cleanup flips a cancelled ref
+                that prevents in-flight edge responses from writing to a
+                closed surface. */}
+            {coachOpen && (
+              <ConversationalCapture
+                interestId={interestId!}
+                interestName={interestName!}
+                stepTitle={stepTitle || planData.what_will_you_do || 'New step'}
+                onCreateStep={(data, suggestedTitle) => {
+                  onConversationalCreate!(data, suggestedTitle);
+                  setManualExpanded(true);
+                  setCoachOpen(false);
+                }}
+                embedded
+                stepCategory={stepCategory}
+                autoFocus
+              />
+            )}
           </View>
         </Modal>
       )}

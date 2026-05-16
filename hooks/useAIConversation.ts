@@ -32,6 +32,29 @@ interface UseAIConversationOptions {
   openingMessage?: string;
 }
 
+// Per-turn ceiling for the edge function. Long enough for Gemini Flash on a
+// slow connection, short enough that "Thinking…" never becomes permanent.
+const SEND_TIMEOUT_MS = 25_000;
+
+function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(
+      () => reject(new Error(`${label} timed out after ${ms}ms`)),
+      ms,
+    );
+    promise.then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      (err) => {
+        clearTimeout(timer);
+        reject(err);
+      },
+    );
+  });
+}
+
 export function useAIConversation(options: UseAIConversationOptions) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -122,14 +145,19 @@ export function useAIConversation(options: UseAIConversationOptions) {
           content: m.content,
         }));
 
-        // Call edge function
-        const { data, error } = await supabase.functions.invoke('step-plan-suggest', {
-          body: {
-            system: options.systemPrompt,
-            messages: allMessages,
-            max_tokens: 768,
-          },
-        });
+        // Call edge function with a hard timeout so a stalled Gemini/gateway
+        // can't strand the user on a permanent "Thinking…" indicator.
+        const { data, error } = await withTimeout(
+          supabase.functions.invoke('step-plan-suggest', {
+            body: {
+              system: options.systemPrompt,
+              messages: allMessages,
+              max_tokens: 768,
+            },
+          }),
+          SEND_TIMEOUT_MS,
+          'step-plan-suggest',
+        );
 
         let responseText = '';
         if (!error && data?.text) {
@@ -137,9 +165,13 @@ export function useAIConversation(options: UseAIConversationOptions) {
         } else {
           // Fallback
           const fallbackPrompt = `${options.systemPrompt}\n\n${allMessages.map((m) => `${m.role}: ${m.content}`).join('\n\n')}`;
-          const fallback = await supabase.functions.invoke('race-coaching-chat', {
-            body: { prompt: fallbackPrompt, max_tokens: 768 },
-          });
+          const fallback = await withTimeout(
+            supabase.functions.invoke('race-coaching-chat', {
+              body: { prompt: fallbackPrompt, max_tokens: 768 },
+            }),
+            SEND_TIMEOUT_MS,
+            'race-coaching-chat',
+          );
           responseText = fallback.data?.text || 'I couldn\'t generate a response. Please try again.';
         }
 
@@ -155,8 +187,18 @@ export function useAIConversation(options: UseAIConversationOptions) {
         return responseText;
       } catch (err) {
         console.error('sendMessage failed:', err);
-        // Remove optimistic user message on failure
-        setMessages((prev) => prev.slice(0, -1));
+        // Keep the user's message in place — silently dropping it is worse
+        // than acknowledging the failure. Surface an assistant turn so the
+        // user knows to retry rather than wondering why nothing happened.
+        const isTimeout = err instanceof Error && err.message.includes('timed out');
+        const errorMsg: ConversationMessage = {
+          role: 'assistant',
+          content: isTimeout
+            ? "I'm not hearing back from the coach right now. Mind sending that again?"
+            : "Something went wrong on my end. Try sending that again?",
+          timestamp: new Date().toISOString(),
+        };
+        setMessages((prev) => [...prev, errorMsg]);
         return null;
       } finally {
         setIsLoading(false);
@@ -218,7 +260,16 @@ export function useAIConversation(options: UseAIConversationOptions) {
         console.error('completeConversation failed:', err);
       }
     },
-    [conversation, messages, user?.id, options.interestId],
+    [
+      conversation,
+      messages,
+      user?.id,
+      options.interestId,
+      options.contextId,
+      options.contextType,
+      options.interestSlug,
+      queryClient,
+    ],
   );
 
   return {

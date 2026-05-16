@@ -56,6 +56,34 @@ interface ConversationalCaptureProps {
   showContextStrip?: boolean;
 }
 
+// 25s ceiling for the structuring call — long enough for Gemini Flash on a
+// slow connection, short enough that "Drafting your plan…" doesn't become a
+// permanent state when the function or gateway stalls.
+const DRAFT_TIMEOUT_MS = 25_000;
+
+class DraftTimeoutError extends Error {
+  constructor() {
+    super('Draft request timed out');
+    this.name = 'DraftTimeoutError';
+  }
+}
+
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new DraftTimeoutError()), ms);
+    promise.then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      (err) => {
+        clearTimeout(timer);
+        reject(err);
+      },
+    );
+  });
+}
+
 export function ConversationalCapture({
   interestId,
   interestName,
@@ -72,8 +100,19 @@ export function ConversationalCapture({
   const [pasteText, setPasteText] = useState('');
   const [isStructuring, setIsStructuring] = useState(false);
   const [draft, setDraft] = useState<PlanDraftPreview | null>(null);
+  const [draftError, setDraftError] = useState<string | null>(null);
   const scrollRef = useRef<ScrollView>(null);
   const inputRef = useRef<TextInput>(null);
+
+  // Flipped on unmount so async resolutions don't write to state on a closed
+  // modal. Modal close in PlanTabInterior is gate-rendered, so unmount fires.
+  const cancelledRef = useRef(false);
+  useEffect(() => {
+    cancelledRef.current = false;
+    return () => {
+      cancelledRef.current = true;
+    };
+  }, []);
 
   // Honor autoFocus once the input has mounted. We don't pass `autoFocus`
   // directly to TextInput because Android occasionally drops it when the
@@ -233,6 +272,7 @@ Guidelines:
   // for the user to accept or keep refining (AI Coach · Frame 3).
   const handleDraftPlan = useCallback(async () => {
     setIsStructuring(true);
+    setDraftError(null);
 
     const conversationText = messages
       .map((m) => `${m.role}: ${m.content}`)
@@ -253,9 +293,14 @@ Respond with ONLY valid JSON:
 }`;
 
     try {
-      const { data, error } = await supabase.functions.invoke('step-plan-suggest', {
-        body: { system: structurePrompt, prompt: conversationText, max_tokens: 768 },
-      });
+      const { data, error } = await withTimeout(
+        supabase.functions.invoke('step-plan-suggest', {
+          body: { system: structurePrompt, prompt: conversationText, max_tokens: 768 },
+        }),
+        DRAFT_TIMEOUT_MS,
+      );
+
+      if (cancelledRef.current) return;
 
       let parsed: any = {};
       if (!error && data?.text) {
@@ -301,28 +346,38 @@ Respond with ONLY valid JSON:
         ),
       });
     } catch (err) {
+      if (cancelledRef.current) return;
       console.error('Draft plan failed:', err);
+      const timedOut = err instanceof DraftTimeoutError;
+      setDraftError(
+        timedOut
+          ? "The coach didn't respond in time. Tap to retry."
+          : "Couldn't draft the plan. Tap to retry.",
+      );
       // Fallback: surface a minimal draft from the last assistant turn so
       // the user can still accept-and-edit rather than losing their work.
       const lastAssistant = [...messages].reverse().find((m) => m.role === 'assistant');
-      setDraft({
-        planData: {
-          what_will_you_do: lastAssistant?.content || '',
-        },
-      });
+      if (lastAssistant?.content) {
+        setDraft({
+          planData: { what_will_you_do: lastAssistant.content },
+        });
+      }
     } finally {
-      setIsStructuring(false);
+      if (!cancelledRef.current) {
+        setIsStructuring(false);
+      }
     }
   }, [messages, interestName]);
 
-  const handleAcceptDraft = useCallback(async () => {
+  const handleAcceptDraft = useCallback(() => {
     if (!draft) return;
     const summary = draft.planData.what_will_you_do || draft.suggestedTitle || '';
-    try {
-      await complete(summary);
-    } catch {
-      // complete() is best-effort; commit the draft regardless.
-    }
+    // complete() runs insight extraction in the background and writes to
+    // remote tables — slow or flaky, and unrelated to step creation. Fire it
+    // and move on so Accept never blocks on a remote round-trip.
+    complete(summary).catch((err) => {
+      console.error('complete() failed (non-blocking):', err);
+    });
     onCreateStep(draft.planData, draft.suggestedTitle);
     setDraft(null);
   }, [draft, complete, onCreateStep]);
@@ -438,6 +493,18 @@ Respond with ONLY valid JSON:
           />
         )}
       </ScrollView>
+
+      {draftError && !isStructuring && (
+        <Pressable
+          style={styles.draftErrorBanner}
+          onPress={handleDraftPlan}
+          accessibilityRole="button"
+          accessibilityLabel={draftError}
+        >
+          <Ionicons name="warning-outline" size={14} color={IOS_COLORS.systemOrange} />
+          <Text style={styles.draftErrorText}>{draftError}</Text>
+        </Pressable>
+      )}
 
       {/* Draft my plan CTA — surfaces a draft preview inline once the
           conversation has enough material. Hidden while a draft is
@@ -673,6 +740,25 @@ const styles = StyleSheet.create({
     fontSize: 12.5,
     color: IOS_COLORS.secondaryLabel,
     letterSpacing: -0.1,
+  },
+  draftErrorBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginHorizontal: IOS_SPACING.sm,
+    marginTop: IOS_SPACING.xs,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderRadius: 10,
+    backgroundColor: 'rgba(255,149,0,0.10)',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(255,149,0,0.30)',
+  },
+  draftErrorText: {
+    flex: 1,
+    fontSize: 12,
+    color: IOS_COLORS.label,
+    letterSpacing: -0.05,
   },
   draftCtaButton: {
     flexDirection: 'row',

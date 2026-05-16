@@ -417,7 +417,22 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp }: StepDetail
   // Handle conversational capture creating a plan
   const handleConversationalCreate = useCallback((conversationalPlan: Partial<StepPlanData>, suggestedTitle?: string) => {
     setLocalPlanOverrides((prev) => ({ ...prev, ...conversationalPlan }));
-    updateMetadata.mutate({ plan: { ...serverPlanData, ...conversationalPlan } });
+    updateMetadata.mutate(
+      { plan: { ...serverPlanData, ...conversationalPlan } },
+      {
+        onError: (err) => {
+          // Without this, the AI Coach modal closes silently and the plan
+          // looks empty after Accept — the optimistic overrides above hide
+          // the failure until the next server fetch lands.
+          console.error('Plan save failed:', err);
+          setLocalPlanOverrides({});
+          showAlert(
+            "Couldn't save plan",
+            "Your draft didn't reach the server. Open AI Coach again and tap Accept to retry.",
+          );
+        },
+      },
+    );
     if (suggestedTitle) {
       saveTitle(suggestedTitle);
     }
