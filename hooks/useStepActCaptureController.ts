@@ -30,6 +30,7 @@ import { useUpdateStep } from '@/hooks/useTimelineSteps';
 import { useAuth } from '@/providers/AuthProvider';
 import { supabase } from '@/services/supabase';
 import { showAlert, showConfirm } from '@/lib/utils/crossPlatformAlert';
+import { FEATURE_FLAGS } from '@/lib/featureFlags';
 // Import runtime helpers from their own files (not the do-tab barrel) so
 // jest doesn't pull every component-level `@expo/vector-icons` import into
 // the controller hook's transitive graph.
@@ -128,12 +129,21 @@ export function useStepActCaptureController({
   const [markingCaptureId, setMarkingCaptureId] = useState<string | null>(null);
   const [quickNoteVisible, setQuickNoteVisible] = useState(false);
 
+  // Per-step timing gate: when the flag is on AND this step is not flagged
+  // is_timed, the Do tab is a passive capture surface — no auto-stamp, no
+  // implicit pending→in_progress transition, no live timer. Only stopwatch
+  // steps (race-day, starting drills, interval workouts) opt in.
+  const isTimed = FEATURE_FLAGS.PRACTICE_DO_TAB_PER_STEP_TIMING
+    ? Boolean(step?.is_timed)
+    : true;
+
   // Auto-stamp started_at + transition pending → in_progress when the
   // owner first opens Do. Mirrors StepDrawContent's auto-start behaviour
   // so the flag-on path doesn't silently regress activity initialization.
+  // Skipped entirely for untimed steps when per-step timing is enabled.
   const autoStartedRef = useRef(false);
   useEffect(() => {
-    if (!step || autoStartedRef.current || readOnly) return;
+    if (!step || autoStartedRef.current || readOnly || !isTimed) return;
     const status = step.status;
     const startedAt = actData.started_at;
     if (status === 'pending' || (!startedAt && status !== 'completed')) {
@@ -146,7 +156,7 @@ export function useStepActCaptureController({
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [step]);
+  }, [step, isTimed]);
 
   const captures = useMemo(
     () => sortCapturesNewestFirst(normalizeDoCaptures(actData)),
@@ -392,6 +402,7 @@ export function useStepActCaptureController({
     stepTitle,
     elapsedMs,
     nowMs: now(),
+    isTimed,
     onVoiceNote: handleVoiceNote,
     onPhotoOrVideo: handlePhotoOrVideo,
     onQuickNote: handleQuickNote,

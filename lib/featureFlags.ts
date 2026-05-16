@@ -262,6 +262,19 @@ export const FEATURE_FLAGS = {
   PRACTICE_DO_TAB_IOS_REGISTER: readBooleanEnv('EXPO_PUBLIC_FF_PRACTICE_DO_TAB_IOS_REGISTER', false),
 
   /**
+   * Gate the per-step timing model for the Do tab. When ON: the auto-stamp of
+   * metadata.act.started_at and the live header / stop-capturing UI only run
+   * for steps where `timeline_steps.is_timed === true`. Untimed steps (the
+   * default for new steps post-migration 20260517110000) render the capture
+   * affordances without a running timer, no implicit "activity started" state,
+   * and no Stop button. Designed for the reality that only ~15-20% of steps
+   * even in sail racing are stopwatch activities. Default false so the May 20
+   * TestFlight build keeps current behaviour; flip on after launch via
+   * EXPO_PUBLIC_FF_PRACTICE_DO_TAB_PER_STEP_TIMING=true.
+   */
+  PRACTICE_DO_TAB_PER_STEP_TIMING: readBooleanEnv('EXPO_PUBLIC_FF_PRACTICE_DO_TAB_PER_STEP_TIMING', false),
+
+  /**
    * Stage the Race Log iOS register surface (chronological multi-season
    * archive). This flag exists for the Reflect-tab cutover, which ships
    * Race Log + Profile together; the render switch in the Reflect parent

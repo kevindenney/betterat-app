@@ -28,6 +28,12 @@ export interface DoLiveCardProps {
   readOnly?: boolean;
   /** Now-anchor for "ago" labels; pass through for test determinism. */
   nowMs?: number;
+  /**
+   * Hide the live header timer + the bottom Stop-capturing CTA. Used by the
+   * untimed-step path (per-step timing flag) where the Do tab is just a
+   * passive capture surface — no elapsed-time data, no explicit stop event.
+   */
+  hideTimer?: boolean;
   /** Composer add-quick-note button callback. */
   onAddQuickNote?: () => void;
   /** Composer add-photo button callback. */
@@ -60,6 +66,7 @@ export function DoLiveCard({
   elapsedMs,
   readOnly,
   nowMs,
+  hideTimer,
   onAddQuickNote,
   onAddPhoto,
   onAddVoiceNote,
@@ -76,7 +83,9 @@ export function DoLiveCard({
 
   return (
     <View style={styles.card} accessibilityLabel="Do — live capturing">
-      <DoLiveHeader captureCount={nonMarkerCount} elapsedMs={elapsedMs} />
+      {hideTimer ? null : (
+        <DoLiveHeader captureCount={nonMarkerCount} elapsedMs={elapsedMs} />
+      )}
 
       <DoStepContextStrip stepTitle={stepTitle} contextSegments={contextSegments} />
 
@@ -130,9 +139,11 @@ export function DoLiveCard({
         />
       </View>
 
-      <View style={styles.stopWrap}>
-        <DoStopCapturingButton onPress={onStopCapturing} disabled={readOnly} />
-      </View>
+      {hideTimer ? null : (
+        <View style={styles.stopWrap}>
+          <DoStopCapturingButton onPress={onStopCapturing} disabled={readOnly} />
+        </View>
+      )}
     </View>
   );
 }

@@ -61,6 +61,7 @@ it('maps nursing timeline steps to Shift Log rows', () => {
     collaborator_user_ids: [],
     completed_at: '2026-03-03T16:00:00Z',
     due_at: null,
+    is_timed: false,
     created_at: '2026-03-01T00:00:00Z',
     updated_at: '2026-03-03T16:00:00Z',
   }] satisfies TimelineStepRecord[];

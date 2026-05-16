@@ -28,6 +28,13 @@ export interface DoTabInteriorProps {
   summaryStepChipLabel?: string;
   /** Optional now-anchor for relative-ago labels; pass for deterministic tests. */
   nowMs?: number;
+  /**
+   * When false the live header timer and Stop-capturing CTA are hidden — the
+   * step is a passive capture surface, not a stopwatch activity. Defaults true
+   * for backwards compatibility with the existing timed flow. Per-step timing
+   * is gated by FEATURE_FLAGS.PRACTICE_DO_TAB_PER_STEP_TIMING upstream.
+   */
+  isTimed?: boolean;
   onVoiceNote?: () => void;
   onPhotoOrVideo?: () => void;
   onQuickNote?: () => void;
@@ -68,6 +75,7 @@ export function DoTabInterior({
   summaryText,
   summaryStepChipLabel,
   nowMs,
+  isTimed = true,
   onVoiceNote,
   onPhotoOrVideo,
   onQuickNote,
@@ -93,6 +101,7 @@ export function DoTabInterior({
           elapsedMs={elapsedMs}
           readOnly={readOnly}
           nowMs={nowMs}
+          hideTimer={!isTimed}
           onAddQuickNote={onQuickNote}
           onAddPhoto={onPhotoOrVideo}
           onAddVoiceNote={onVoiceNote}

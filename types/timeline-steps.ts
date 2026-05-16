@@ -35,6 +35,7 @@ export type TimelineStepRecord = {
   collaborator_user_ids: string[];
   completed_at: string | null;
   due_at: string | null;
+  is_timed: boolean;
   share_token?: string | null;
   share_enabled?: boolean;
   public_shared_at?: string | null;
@@ -63,6 +64,7 @@ export type CreateTimelineStepInput = {
   share_approximate_location?: boolean;
   due_at?: string | null;
   metadata?: Record<string, unknown>;
+  is_timed?: boolean;
 };
 
 export type UpdateTimelineStepInput = Partial<
