@@ -2,7 +2,7 @@
 
 ## Goal
 
-Replace the existing Practice step `Do` tab interior with the iOS-register canonical: pre-activity capture affordances, live reverse-chronological capture stream with coral `LIVE · IN PROGRESS` signal, post-activity auto-summary, `Move to Reflect` handoff, and optional evidence marking. This is a refactor of the current `ActTab` / `StepDrawContent` implementation, not a new activity feature. The flag-off path must preserve current production Do behavior.
+Replace the existing Practice step `Do` tab interior with the iOS-register canonical: pre-activity capture affordances, live reverse-chronological capture stream with coral `LIVE · IN PROGRESS` signal, explicit End activity transition, post-activity auto-summary, and `Move to Reflect` handoff. This is a refactor of the current `ActTab` / `StepDrawContent` implementation, not a new activity feature. The flag-off path must preserve current production Do behavior.
 
 Phase B.11 closes the Plan / Do / Reflect interior trilogy: B.5 Plan is shipped-verified, B.10 Reflect is specced, and Reflect’s AI-drafted summary depends on the Do capture stream this phase formalizes.
 
@@ -57,10 +57,15 @@ export interface Observation {
   text: string;
   timestamp: string;
   source?: 'voice' | 'note';
+  flagged?: boolean;
+  capability_label?: string;
+  audio_uri?: string;
+  audio_duration_seconds?: number;
 }
 
 export interface StepActData {
   started_at?: string;
+  activity_ended_at?: string;
   notes?: string;
   observations?: Observation[];
   media_uploads?: MediaUpload[];
@@ -74,7 +79,9 @@ export interface StepActData {
 }
 ```
 
-This is sufficient for v1. The canonical capture stream can be derived from `observations`, `media_uploads`, and `media_links`. Capability evidence marking can be represented in v1 as presentation-layer selection and future handoff into Reflect’s `competency_assessment` path; do not add a new capture table in Phase B.11.
+This is sufficient for v1 with additive optional fields. The canonical capture stream can be derived from `observations`, `media_uploads`, and `media_links`. Phase B.11 adds `activity_ended_at`, `flagged`, `capability_label`, and voice-audio metadata as optional fields inside existing `metadata.act`; it does not add a new capture table or Supabase migration.
+
+If media uploads or media links are treated as first-class capture entries in the implementation, add the same optional `flagged?: boolean` and `capability_label?: string` fields to `MediaUpload` and `MediaLink`. The user-facing rule is simple: every capture row can be flagged, and every flagged capture can optionally carry one capability label.
 
 ## Commit Boundaries
 
@@ -113,8 +120,10 @@ export type DoCaptureEntry =
       timestamp: string;
       text: string;
       source: 'voice' | 'note';
-      flagged?: boolean;
-      capabilityTags: string[];
+      flagged: boolean;
+      capabilityLabel?: string;
+      audioUri?: string;
+      audioDurationSeconds?: number;
     }
   | {
       kind: 'media';
@@ -123,7 +132,8 @@ export type DoCaptureEntry =
       uri: string;
       mediaType: 'photo' | 'video';
       caption?: string;
-      capabilityTags: string[];
+      flagged: boolean;
+      capabilityLabel?: string;
     }
   | {
       kind: 'link';
@@ -132,12 +142,14 @@ export type DoCaptureEntry =
       url: string;
       platform: MediaLinkPlatform;
       caption?: string;
-      capabilityTags: string[];
+      flagged: boolean;
+      capabilityLabel?: string;
     };
 
 export function deriveDoActivityState(input: {
   status?: string;
   startedAt?: string;
+  activityEndedAt?: string;
   captureCount: number;
   readOnly?: boolean;
 }): DoActivityState;
@@ -153,7 +165,7 @@ Rules:
 
 - `pre_activity` when no `started_at`, no captures, and status is `pending`.
 - `live` when `started_at` exists or status is `in_progress`.
-- `post_activity` when status is `completed` or when the user explicitly ends the activity in the new UI.
+- `post_activity` when `activity_ended_at` is present or status is `completed`.
 - Capture entries sort reverse-chronological for the live state.
 
 `DoTabInterior` is presentational; it receives capture entries, plan context, callbacks, and state. It must not call Supabase directly.
@@ -184,12 +196,20 @@ Render Frame 1:
 
 Callback wiring:
 
-- `Voice note` calls `onStartVoiceCapture`.
+- `Voice note` calls `onStartVoiceCapture`, records audio via the existing voice service, then prompts the user for a short manual title.
 - `Photo or video` calls `onPickMedia`.
 - `Quick note` focuses/opens a note composer.
 - `Start Do` / first capture should preserve current behavior: write `metadata.act.started_at` and move pending step to `status: 'in_progress'`.
 
 Do not invent new AI summary storage for the starting frame. It can be derived from Plan fields in v1.
+
+Voice v1 decision:
+
+- No live transcription and no generated transcript in v1.
+- The user-typed title is the capture text.
+- Audio is stored in Supabase Storage `step-media`, using the same storage boundary as photo/video.
+- The resulting live-stream row reads `Voice — [title]` and can play the attached audio.
+- Real transcription via Whisper or similar is deferred to a post-May-20 phase.
 
 ### Commit 3: Live Capture Stream and Coral LIVE State
 
@@ -217,12 +237,15 @@ Render Frame 2:
   - Coral accent for flagged moments.
   - Photo/video thumbnail rows for media.
 - Floating mic affordance for quick voice capture.
-- Bottom `Finish activity` / `Review captures` action that transitions to `post_activity`.
+- Persistent `End activity` or `I'm done capturing` button near the coral live header. This is the only transition from Frame 2 live capture into Frame 3 post-activity.
+- Small flag toggle on each capture entry.
+- Capability label chip on each capture entry. This is a simple label in v1, not a structured evidence-level workflow.
 
 Current repo gap:
 
 - `CaptureTimeline` sorts chronological today. The new model must reverse-sort for live mode while preserving legacy flag-off behavior.
-- Current observations support `source: 'voice' | 'note'`, but no `flagged` or `capabilityTags` fields exist on the type. For v1, derive flagged state from text conventions only if already present, or expose a local UI flag without persisting it. Do not change `Observation` shape in this phase unless execution explicitly scopes a compatible optional field.
+- Current observations support `source: 'voice' | 'note'`, but no `flagged` or `capability_label` fields exist on the type. Phase B.11 adds those optional fields and persists them under `metadata.act.observations[]`.
+- Flagged captures feed both downstream surfaces: B.10 Reflect uses them as suggested prompt inputs, and Profile capability evidence can count flagged captures once a capability label is present.
 
 ### Commit 4: Voice and Photo Capture Adapter
 
@@ -251,21 +274,26 @@ Quick note:
 Voice:
 
 - Reuse `VoiceNoteService` only as the recording primitive if it can be adapted without pulling in race-specific tactical UI.
-- When a voice note completes, append an `Observation`:
+- When a voice note completes, prompt the user for a short title, upload/store the audio under `step-media`, then append an `Observation`:
 
 ```ts
 {
   id: voiceNote.id,
-  text: voiceNote.transcription ?? 'Voice note recorded',
+  text: manualTitle,
   timestamp: voiceNote.timestamp.toISOString(),
   source: 'voice',
+  audio_uri: publicAudioUrl,
+  audio_duration_seconds: voiceNote.duration,
+  flagged: false,
 }
 ```
 
-- If transcription remains simulated or unavailable, the UI must label it as raw voice capture and allow manual edit of the text. Do not promise real transcription until a verified transcription service is wired.
+- The `text` field is the manual title, not a transcript.
+- Do not call or display simulated transcription from `VoiceNoteService` in the Do v1 flow.
+- When real transcription ships later, it must be additive: existing audio captures can be retroactively transcribed because audio URI and manual title are stored separately.
 - Do not reuse `VoiceNoteRecorder` wholesale if its race-day tactical insight UI conflicts with the canonical Do surface; wrap the service behind a small Do-specific button.
 
-### Commit 5: Post-Activity Summary and Move to Reflect Handoff
+### Commit 5: End Activity, Post-Activity Summary, Move to Reflect, and Wiring
 
 Message:
 
@@ -278,24 +306,33 @@ Files:
 - `components/step/do-tab/DoPostActivitySummary.tsx`
 - `components/step/do-tab/doSummaryModel.ts`
 - `components/step/ActTab.tsx`
+- `components/step/StepDrawContent.tsx`
+- `components/step/do-tab/*`
 - Optional tests for `doSummaryModel.ts`.
 
 Render Frame 3:
 
 - Auto-summary card derived from captures.
 - Compressed capture list.
-- Evidence affordance visible on captures.
 - Full-width `Move to Reflect` CTA.
+
+End activity:
+
+- Frame 2 transitions to Frame 3 only when the user taps `End activity` / `I'm done capturing`.
+- Persist `metadata.act.activity_ended_at = new Date().toISOString()`.
+- The existing `Save & Reflect` CTA maps to Frame 3's `Move to Reflect`, not to End activity.
+- Flow: live capture -> End activity -> post-activity summary -> Move to Reflect -> Reflect tab.
 
 V1 summary source:
 
 - Use a deterministic local summary first: capture count, voice count, note count, media count, flagged count, and stickiest/latest capture.
+- Without transcription, voice-only sessions depend on manual titles, capability labels, and flags. If the user records vague voice titles, the summary should be intentionally modest instead of inventing detail.
 - If an existing AI summarization function is verified during execution, it can enrich the summary, but this phase must not block on new AI infrastructure.
 
 Handoff:
 
 - Keep current `ActTab` `onNextTab` transition. `Move to Reflect` calls the same callback currently powering `Save & Reflect`.
-- Before calling `onNextTab`, persist any pending act captures and, if summary text exists, write it into an agreed metadata location for B.10 to consume.
+- Before calling `onNextTab`, persist any pending act captures and the deterministic summary if the execution chooses to store it.
 - Recommended v1 location:
 
 ```ts
@@ -313,48 +350,6 @@ Because `StepActData` currently has no `summary` field, execution must either:
 
 Recommendation: use derived summary only for v1 unless B.10 execution proves a persisted handoff is necessary.
 
-### Commit 6: Evidence Marking Modal
-
-Message:
-
-```text
-feat(practice): add Do evidence marking sheet
-```
-
-Files:
-
-- `components/step/do-tab/EvidenceMarkingSheet.tsx`
-- `components/step/do-tab/evidenceMarkingModel.ts`
-- Tests for suggested capability mapping.
-
-Render Frame 4:
-
-- Modal sheet listing captures with checkboxes.
-- Auto-suggested capability chip per capture.
-- User can select/deselect captures for evidence.
-
-V1 scope:
-
-- This is presentation-layer evidence marking. It should not create durable capability evidence records unless an existing API is verified.
-- Selected evidence can be held in component state and optionally written into `metadata.act.evidence_marks` only if execution adds a type-compatible optional field and no schema migration is required.
-- B.10 Reflect and Phase D own long-term capability evidence persistence.
-
-If capability tagging proves too large, keep the modal as a flagged presentational stub and ship Frames 1-3 first. The spec prefers implementing Frame 4 in this phase, but it is the first scope cut if execution overruns.
-
-### Commit 7: Wire into ActTab Behind Flag
-
-Message:
-
-```text
-feat(practice): wire canonical Do tab behind flag
-```
-
-Files:
-
-- `components/step/ActTab.tsx`
-- `components/step/StepDrawContent.tsx`
-- `components/step/do-tab/*`
-
 Implementation approach:
 
 - Keep `ActTab` as the parent component mounted by `StepDetailContent`.
@@ -371,13 +366,14 @@ If extracting existing capture handlers from `StepDrawContent` is invasive, crea
 - `components/step/StepDrawContent.tsx`
 - New files under `components/step/do-tab/`
 - Tests under `components/step/do-tab/__tests__/`
-- `types/step-detail.ts` only if execution adds optional type-only fields such as `summary` or `evidence_marks`.
+- `types/step-detail.ts` for additive optional metadata fields: `activity_ended_at`, `flagged`, `capability_label`, `audio_uri`, `audio_duration_seconds`, and optionally `summary`.
 
 ## Files to NOT Change
 
 - Do not add Supabase migrations.
 - Do not replace voice/photo storage backends.
 - Do not modify `components/ai/VoiceNoteRecorder.tsx` unless execution chooses to extract a reusable primitive; prefer wrapping `VoiceNoteService`.
+- Do not implement the Frame 4 evidence-marking modal in v1; it is explicitly deferred to v2.
 - Do not change B.5 Plan or B.10 Reflect specs.
 - Do not touch `app/(tabs)/races.tsx` unless execution discovers an unavoidable parent integration issue; if so, stop and rescope.
 - Do not hardcode bottom-tab label text. A.10 remains in force.
@@ -401,7 +397,8 @@ Unit tests:
 - `buildDoCaptureEntries` merges observations, media uploads, and media links.
 - Live entries sort reverse-chronologically.
 - Post-activity summary counts voice, typed, media, and flagged captures correctly.
-- Evidence marking model selects and deselects capture IDs without mutating capture data.
+- Flag and capability-label toggles persist on capture entries.
+- Voice rows use manual titles and retain audio URI separately.
 
 Run:
 
@@ -418,10 +415,11 @@ Simulator checks with flag ON:
 2. Verify Frame 1: Plan starting frame and Voice / Photo / Quick note affordances.
 3. Add a quick note; verify Frame 2: coral `LIVE · IN PROGRESS`, newest capture at top.
 4. Add photo/video; verify it uploads and appears in the stream.
-5. Record a voice note if native module is available; verify a voice row appears. If transcription is simulated/unavailable, verify manual edit path exists.
-6. Finish activity; verify Frame 3 post-activity summary and `Move to Reflect`.
-7. Tap `Move to Reflect`; verify it uses the existing transition into Reflect.
-8. Open evidence marking; verify Frame 4 sheet behavior if implemented.
+5. Record a voice note if native module is available; verify the manual-title prompt appears, the audio stores, and a `Voice — [title]` row appears without transcript copy.
+6. Toggle a capture flag and add a capability label; verify both persist on the capture entry.
+7. Tap `End activity`; verify `activity_ended_at` is set and Frame 3 post-activity summary appears.
+8. Verify `Move to Reflect` is visible only after End activity.
+9. Tap `Move to Reflect`; verify it uses the existing transition into Reflect.
 
 Flag-off regression:
 
@@ -435,33 +433,36 @@ Set `EXPO_PUBLIC_FF_PRACTICE_DO_TAB_IOS_REGISTER=false`. No schema changes are r
 
 Phase B.11 refactors existing Act/Do metadata into the iOS register. It does not introduce a generalized capture table, evidence table, or voice-transcription pipeline.
 
-V1 presentation layer:
+V1 data contract:
 
 - Capture stream from `metadata.act.observations`, `media_uploads`, and `media_links`.
 - Live state from `metadata.act.started_at` and step `status`.
+- Post-activity state from persisted `metadata.act.activity_ended_at`.
+- Voice captures store audio plus manual title: `audio_uri`, `audio_duration_seconds`, and `text` as the user-entered title.
+- Capture flags persist as `flagged: boolean`.
+- Capability label chips persist as a simple `capability_label?: string` on the capture entry.
 - Post-activity summary derived locally from capture data.
-- Evidence marking as local/presentation state unless a compatible optional metadata field is added.
 
 Deferred v2 data-model work:
 
 - Durable per-capture IDs with evidence tags and capability links.
-- Real transcription status and transcript provenance.
+- Real transcription via Whisper or similar, including transcript status and provenance.
 - AI-generated summary history.
-- Persistent flagged-capture semantics.
+- Heuristic activity-end detection.
+- Structured capability-evidence-with-level workflow, including the canonical Frame 4 modal.
 - Capability evidence records consumed directly by Profile.
+
+When voice transcription ships, existing audio captures can be retroactively transcribed because the v1 data model stores audio file and manual title separately. The future transcript field should be additive, not a replacement for the manual title.
 
 ## Dependencies
 
 B.11 is a blocker, not blocked. B.10 Reflect depends on B.11 for full end-to-end testing of the AI-drafted summary from Do captures. B.11 can execute against the existing `ActTab` / `StepDrawContent` without waiting for B.10 or Phase D.
 
-If B.11 ships only Frames 1-3 and defers evidence marking, B.10 can still execute because Reflect’s required capture stream and Move-to-Reflect handoff are present.
+Cross-phase data contract: B.11 must add `flagged: boolean` on capture entries before B.10 executes. B.10 should read flagged captures as suggested prompt inputs for What worked / What to improve. The same flagged capture plus `capability_label` combination is the v1 handoff toward Profile capability evidence.
 
 ## Risks and Open Questions
 
-- Voice transcription: `VoiceNoteService` records audio but currently simulates transcription. Product must decide whether v1 accepts raw voice/manual transcript rows or requires real transcription before May 20.
-- Activity-end detection: recommended v1 is explicit user action (`Finish activity` / `Move to Reflect`), not time-based heuristics.
-- Capture flag semantics: canonical flagged captures likely mean “important for Reflect / carry forward.” V1 should not persist flags until product confirms whether flags feed Reflect, Profile evidence, or both.
-- Evidence marking: Frame 4 depends on partial capability infrastructure. Recommended v1 is presentational selection with clear TODO, unless execution verifies a safe existing write path.
 - Photo/video volume: current Supabase Storage upload path is per-step and public URL based. Large mobile capture sessions may create storage/cost pressure; do not increase video duration limits in this phase.
+- Without transcription, Reflect tab's AI-drafted summary depends on capture titles, capability labels, flagged state, and typed captures. If a user records only voice notes with vague manual titles, Reflect's summary will be thin.
 - Summary handoff: B.10 can derive from `actData`, but if product wants an explicit frozen auto-summary, a small optional metadata field should be added in a later commit.
-
+- Open question for post-May-20: when real voice transcription is wired, should existing audio captures be retroactively transcribed in a batch job, or should transcription apply only to captures created after the feature ships? This is a cost/value decision.
