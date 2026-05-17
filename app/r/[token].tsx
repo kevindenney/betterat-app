@@ -14,10 +14,21 @@ import { FEATURE_FLAGS } from '@/lib/featureFlags';
 import { supabase } from '@/services/supabase';
 
 const FLEET_SAMPLE = [
-  { initials: 'HE', color: '#9333EA' },
-  { initials: 'PL', color: '#16A34A' },
-  { initials: 'BV', color: '#0EA5E9' },
+  { initials: 'PL', color: '#4E6A85' },
+  { initials: 'BV', color: '#3E6C4E' },
+  { initials: 'SN', color: '#5C3F7A' },
+  { initials: 'KH', color: '#4A3F2E' },
 ];
+
+const HKDW_COPY = {
+  authorRole: 'your Worlds coach',
+  blueprintSubtitle:
+    "A path through the conditions you'll race in November — boat speed, heavy-air helm work, starts, fleet tactics.",
+  blueprintVersionLine: 'Updated April · v3.2',
+  welcomePillText: 'Welcoming you · 90 days free',
+  fleetTagline: 'Worlds sailors already started',
+  fleetSubline: 'Same race · same conditions · same fleet',
+};
 
 export default function RedeemRoute() {
   const { token } = useLocalSearchParams<{ token: string }>();
@@ -130,6 +141,11 @@ export default function RedeemRoute() {
     );
   }
 
+  const isHkdwSource = tokenInfo.source === 'hkdw-2026';
+  const fleetCountLabel = isHkdwSource
+    ? `${preview.subscriberCount} ${HKDW_COPY.fleetTagline}`
+    : `${preview.subscriberCount} sailors already started`;
+
   return (
     <View style={styles.screen}>
       <Stack.Screen options={{ headerShown: false }} />
@@ -139,6 +155,7 @@ export default function RedeemRoute() {
           name: preview.authorName,
           affiliation: preview.authorAffiliation,
           avatarInitials: preview.authorInitials,
+          role: isHkdwSource ? HKDW_COPY.authorRole : undefined,
         }}
         blueprint={{
           id: preview.id,
@@ -151,6 +168,11 @@ export default function RedeemRoute() {
         fleetSampleAvatars={FLEET_SAMPLE}
         freeMonths={3}
         postFreePrice="$9/mo"
+        welcomePillText={isHkdwSource ? HKDW_COPY.welcomePillText : undefined}
+        fleetTagline={fleetCountLabel}
+        fleetSubline={isHkdwSource ? HKDW_COPY.fleetSubline : undefined}
+        blueprintSubtitle={isHkdwSource ? HKDW_COPY.blueprintSubtitle : undefined}
+        blueprintVersionLine={isHkdwSource ? HKDW_COPY.blueprintVersionLine : undefined}
         onAccept={handleAccept}
         onSkip={() => router.replace('/' as any)}
       />

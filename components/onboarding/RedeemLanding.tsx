@@ -1,6 +1,14 @@
 import React, { useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { Sparkles } from 'lucide-react-native';
+import {
+  ActivityIndicator,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
+import { ArrowRight, Sparkles } from 'lucide-react-native';
 
 export interface RedeemLandingBlueprint {
   id: string;
@@ -14,6 +22,8 @@ export interface RedeemLandingAuthor {
   name: string;
   affiliation: string | null;
   avatarInitials: string;
+  /** "your Worlds coach" — eyebrow line above the quoted blueprint title. */
+  role?: string;
 }
 
 export interface RedeemLandingProps {
@@ -24,9 +34,41 @@ export interface RedeemLandingProps {
   fleetSampleAvatars: { initials: string; color: string }[];
   freeMonths: number;
   postFreePrice: string;
+  /** Optional subtitle line below the quoted title. */
+  blueprintSubtitle?: string;
+  /** Optional updated-at meta shown in the blueprint preview head ("Updated April · v3.2"). */
+  blueprintVersionLine?: string;
+  /** Welcome-pill copy ("Welcoming you · 90 days free"). */
+  welcomePillText?: string;
+  /** Fleet badge primary line ("63 Worlds sailors already started"). */
+  fleetTagline?: string;
+  /** Fleet badge sub line ("Same race · same conditions · same fleet"). */
+  fleetSubline?: string;
   onAccept: () => Promise<void> | void;
   onSkip: () => void;
 }
+
+const COLORS = {
+  bg: '#F2F2F7',
+  card: '#FFFFFF',
+  ink: '#1C1C1E',
+  label: '#1C1C1E',
+  label2: '#3C3C43',
+  label3: '#7C7C82',
+  line: '#E5E5EA',
+  purple: '#5856D6',
+  purpleDeep: '#3F3DAB',
+  purpleSoft: '#D7D6F4',
+  purpleTint: '#EFEFFB',
+  blue: '#007AFF',
+  blueDeep: '#0040DD',
+  green: '#34C759',
+  greenDeep: '#0A6B2A',
+  greenSoft: '#B7E8C2',
+  greenTint: '#E8F8EC',
+  gray6: '#F2F2F7',
+  serif: Platform.select({ ios: 'Iowan Old Style', default: 'Georgia' }) as string,
+};
 
 export function RedeemLanding({
   blueprintAuthor,
@@ -35,6 +77,11 @@ export function RedeemLanding({
   fleetSampleAvatars,
   freeMonths,
   postFreePrice,
+  blueprintSubtitle,
+  blueprintVersionLine,
+  welcomePillText,
+  fleetTagline,
+  fleetSubline,
   onAccept,
   onSkip,
 }: RedeemLandingProps) {
@@ -56,73 +103,100 @@ export function RedeemLanding({
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.scroll}>
-      <View style={styles.welcomePill}>
-        <Sparkles size={14} color="#6D28D9" />
-        <Text style={styles.welcomePillText}>Welcome to BetterAt</Text>
+      {/* Pill row: welcome pill + Not now */}
+      <View style={styles.pillRow}>
+        <View style={styles.welcomePill}>
+          <Sparkles size={11} color={COLORS.purpleDeep} />
+          <Text style={styles.welcomePillText}>
+            {welcomePillText ?? `Welcoming you · ${freeMonths * 30} days free`}
+          </Text>
+        </View>
+        <Pressable onPress={onSkip} hitSlop={8}>
+          <Text style={styles.notNow}>Not now</Text>
+        </Pressable>
       </View>
 
-      <View style={styles.authorBlock}>
-        <View style={styles.avatar}>
-          <Text style={styles.avatarText}>{blueprintAuthor.avatarInitials}</Text>
+      {/* Hero: glyph, coach byline, italic quoted title, sub */}
+      <View style={styles.hero}>
+        <View style={styles.glyph}>
+          <Text style={styles.glyphB}>b</Text>
+          <View style={styles.glyphUnderline} />
         </View>
-        <View style={styles.authorCopy}>
-          <Text style={styles.authorName}>{blueprintAuthor.name}</Text>
-          {blueprintAuthor.affiliation ? (
-            <Text style={styles.authorAffiliation}>{blueprintAuthor.affiliation}</Text>
+        <Text style={styles.byName}>
+          <Text style={styles.byNameStrong}>{blueprintAuthor.name}</Text>
+          {blueprintAuthor.role ? `, ${blueprintAuthor.role}, ` : ', '}
+          is welcoming you to
+        </Text>
+        <Text style={styles.title}>“{blueprint.title}”</Text>
+        {blueprintSubtitle ? <Text style={styles.subHead}>{blueprintSubtitle}</Text> : null}
+      </View>
+
+      {/* Blueprint preview card */}
+      <View style={styles.preview}>
+        <View style={styles.previewHead}>
+          <Text style={styles.previewLbl}>Your blueprint</Text>
+          {blueprintVersionLine ? (
+            <Text style={styles.previewMeta}>{blueprintVersionLine}</Text>
           ) : null}
-          <Text style={styles.authorSubtitle}>shared a blueprint with you</Text>
         </View>
-      </View>
-
-      <Text style={styles.title}>{blueprint.title}</Text>
-
-      <View style={styles.statsCard}>
-        <Stat label="steps" value={String(blueprint.stepCount)} />
-        <View style={styles.statDivider} />
-        <Stat label="months" value={String(blueprint.durationMonths)} />
-        <View style={styles.statDivider} />
-        <Stat label="capabilities" value={String(blueprint.capabilities.length)} />
-      </View>
-
-      <View style={styles.capabilityBlock}>
-        <Text style={styles.sectionEyebrow}>You'll work on</Text>
-        <View style={styles.chipRow}>
+        <View style={styles.stats}>
+          <Stat label="Steps" value={String(blueprint.stepCount)} />
+          <Stat label="Months" value={String(blueprint.durationMonths)} />
+          <Stat label="Capabilities" value={String(blueprint.capabilities.length)} />
+        </View>
+        <View style={styles.caps}>
           {blueprint.capabilities.slice(0, 6).map((cap) => (
-            <View key={cap} style={styles.chip}>
-              <Text style={styles.chipText}>{cap}</Text>
+            <View key={cap} style={styles.capChip}>
+              <Text style={styles.capChipText}>{cap}</Text>
             </View>
           ))}
         </View>
       </View>
 
-      <View style={styles.fleetBadge}>
+      {/* Fleet badge */}
+      <View style={styles.fleet}>
         <View style={styles.fleetAvatars}>
-          {fleetSampleAvatars.slice(0, 3).map((p, idx) => (
+          {fleetSampleAvatars.slice(0, 4).map((p, idx) => (
             <View
               key={p.initials + idx}
-              style={[styles.fleetAvatar, { backgroundColor: p.color, marginLeft: idx === 0 ? 0 : -8 }]}
+              style={[
+                styles.fleetAvatar,
+                { backgroundColor: p.color, marginLeft: idx === 0 ? 0 : -8 },
+              ]}
             >
               <Text style={styles.fleetAvatarText}>{p.initials}</Text>
             </View>
           ))}
         </View>
         <View style={styles.fleetCopy}>
-          <Text style={styles.fleetEyebrow}>Fleet of practitioners</Text>
-          <Text style={styles.fleetLine}>{fleetCount} sailors using this blueprint</Text>
+          <Text style={styles.fleetName}>
+            {fleetTagline ?? `${fleetCount} sailors already started`}
+          </Text>
+          <Text style={styles.fleetDesc}>{fleetSubline ?? 'Same race · same conditions · same fleet'}</Text>
         </View>
       </View>
 
+      {/* Primary CTA */}
       <Pressable
-        style={[styles.acceptCta, busy && styles.acceptCtaBusy]}
+        style={[styles.cta, busy && styles.ctaBusy]}
         onPress={handleAccept}
         disabled={busy}
+        accessibilityRole="button"
       >
-        {busy ? <ActivityIndicator color="#FFFFFF" /> : null}
-        <Text style={styles.acceptCtaText}>{busy ? 'Setting up' : 'Accept & start preparing'}</Text>
+        {busy ? (
+          <ActivityIndicator color="#FFFFFF" />
+        ) : (
+          <>
+            <Text style={styles.ctaText}>Accept &amp; start preparing</Text>
+            <ArrowRight size={16} color="#FFFFFF" />
+          </>
+        )}
       </Pressable>
-
-      <Text style={styles.privacyHint}>
-        First {freeMonths} months free, then {postFreePrice}. We won't email you until you ask us to.
+      <Text style={styles.priv}>
+        <Text style={styles.privStrong}>
+          Free for {freeMonths * 30} days · then {postFreePrice}
+        </Text>
+        {' · cancel anytime · no card now'}
       </Text>
 
       {errorMessage ? (
@@ -130,10 +204,6 @@ export function RedeemLanding({
           <Text style={styles.errorText}>{errorMessage}</Text>
         </View>
       ) : null}
-
-      <Pressable onPress={onSkip} style={styles.skip}>
-        <Text style={styles.skipText}>Not now</Text>
-      </Pressable>
     </ScrollView>
   );
 }
@@ -150,195 +220,257 @@ function Stat({ label, value }: { label: string; value: string }) {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: '#F2F2F7',
+    backgroundColor: COLORS.bg,
   },
   scroll: {
-    paddingHorizontal: 20,
-    paddingTop: 36,
-    paddingBottom: 48,
-    gap: 18,
-    maxWidth: 480,
+    paddingHorizontal: 18,
+    paddingTop: 22,
+    paddingBottom: 32,
+    gap: 12,
+    maxWidth: 460,
     alignSelf: 'center',
     width: '100%',
   },
+  pillRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 4,
+  },
   welcomePill: {
-    alignSelf: 'flex-start',
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: '#F5F3FF',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingLeft: 9,
+    paddingRight: 11,
+    paddingVertical: 5,
     borderRadius: 999,
+    backgroundColor: COLORS.purpleTint,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: COLORS.purpleSoft,
   },
   welcomePillText: {
-    fontSize: 12,
+    fontSize: 10.5,
     fontWeight: '700',
-    color: '#6D28D9',
-    letterSpacing: 0.4,
+    color: COLORS.purpleDeep,
+    letterSpacing: 0.6,
     textTransform: 'uppercase',
   },
-  authorBlock: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  avatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: '#1F2937',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  avatarText: {
-    color: '#FFFFFF',
-    fontWeight: '700',
-    fontSize: 15,
-  },
-  authorCopy: {
-    gap: 1,
-  },
-  authorName: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#111827',
-  },
-  authorAffiliation: {
+  notNow: {
+    color: COLORS.label3,
     fontSize: 12,
-    color: '#6B7280',
+    letterSpacing: -0.05,
   },
-  authorSubtitle: {
-    fontSize: 12,
-    color: '#6B7280',
-  },
-  title: {
-    fontSize: 30,
-    lineHeight: 36,
-    color: '#111827',
-    fontFamily: 'Georgia',
-    fontStyle: 'italic',
-  },
-  statsCard: {
-    flexDirection: 'row',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 14,
-    padding: 14,
-    gap: 12,
-    justifyContent: 'space-around',
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: '#E5E7EB',
-  },
-  stat: {
+  hero: {
     alignItems: 'center',
-  },
-  statValue: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: '#111827',
-  },
-  statLabel: {
-    fontSize: 11,
-    color: '#6B7280',
-    textTransform: 'uppercase',
-    letterSpacing: 0.4,
-    fontWeight: '600',
-  },
-  statDivider: {
-    width: StyleSheet.hairlineWidth,
-    backgroundColor: '#E5E7EB',
-  },
-  capabilityBlock: {
-    gap: 8,
-  },
-  sectionEyebrow: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#6B7280',
-    textTransform: 'uppercase',
-    letterSpacing: 0.4,
-  },
-  chipRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    paddingTop: 4,
+    paddingBottom: 12,
     gap: 6,
   },
-  chip: {
-    borderRadius: 999,
-    backgroundColor: '#FFFFFF',
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: '#E5E7EB',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-  },
-  chipText: {
-    fontSize: 12,
-    color: '#374151',
-    fontWeight: '500',
-  },
-  fleetBadge: {
-    flexDirection: 'row',
+  glyph: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: '#1F2D44',
     alignItems: 'center',
-    gap: 12,
-    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    borderWidth: 1.5,
+    borderColor: '#0B1525',
+    shadowColor: '#000',
+    shadowOpacity: 0.18,
+    shadowOffset: { width: 0, height: 6 },
+    shadowRadius: 14,
+  },
+  glyphB: {
+    color: '#FFFFFF',
+    fontSize: 32,
+    fontWeight: '700',
+    lineHeight: 32,
+    letterSpacing: -2,
+    marginBottom: -2,
+  },
+  glyphUnderline: {
+    width: 18,
+    height: 1.5,
+    backgroundColor: 'rgba(255,255,255,0.95)',
+    marginTop: 3,
+    borderRadius: 1,
+  },
+  byName: {
+    fontSize: 11.5,
+    color: COLORS.label3,
+    marginTop: 10,
+    textAlign: 'center',
+  },
+  byNameStrong: {
+    color: COLORS.label,
+    fontWeight: '600',
+  },
+  title: {
+    fontFamily: COLORS.serif,
+    fontStyle: 'italic',
+    fontSize: 23,
+    fontWeight: '500',
+    color: COLORS.label,
+    textAlign: 'center',
+    lineHeight: 27,
+    letterSpacing: -0.4,
+    marginTop: 0,
+  },
+  subHead: {
+    fontSize: 12.5,
+    color: COLORS.label2,
+    lineHeight: 19,
+    textAlign: 'center',
+    marginTop: 6,
+    letterSpacing: -0.05,
+  },
+  preview: {
+    backgroundColor: COLORS.card,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: COLORS.line,
     borderRadius: 14,
     padding: 14,
+  },
+  previewHead: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'baseline',
+    marginBottom: 10,
+  },
+  previewLbl: {
+    fontSize: 9.5,
+    fontWeight: '700',
+    color: COLORS.label2,
+    letterSpacing: 0.9,
+    textTransform: 'uppercase',
+  },
+  previewMeta: {
+    fontSize: 10,
+    color: COLORS.label3,
+  },
+  stats: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 8,
+  },
+  stat: {
+    flex: 1,
+    backgroundColor: COLORS.gray6,
+    borderRadius: 9,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+  },
+  statValue: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: COLORS.label,
+    letterSpacing: -0.3,
+  },
+  statLabel: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: COLORS.label3,
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+    marginTop: 2,
+  },
+  caps: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 4,
+    marginTop: 4,
+  },
+  capChip: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 999,
+    backgroundColor: COLORS.purpleTint,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: '#E5E7EB',
+    borderColor: COLORS.purpleSoft,
+  },
+  capChipText: {
+    fontSize: 10,
+    fontWeight: '500',
+    color: COLORS.purpleDeep,
+  },
+  fleet: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: COLORS.greenTint,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: COLORS.greenSoft,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 11,
+    marginBottom: 4,
   },
   fleetAvatars: {
     flexDirection: 'row',
   },
   fleetAvatar: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 2,
+    borderWidth: 1.5,
     borderColor: '#FFFFFF',
   },
   fleetAvatarText: {
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: '700',
     color: '#FFFFFF',
   },
   fleetCopy: {
     flex: 1,
   },
-  fleetEyebrow: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#6B7280',
-    textTransform: 'uppercase',
-    letterSpacing: 0.4,
-  },
-  fleetLine: {
-    fontSize: 14,
-    color: '#111827',
+  fleetName: {
+    fontSize: 12.5,
     fontWeight: '600',
+    color: COLORS.greenDeep,
+    letterSpacing: -0.1,
   },
-  acceptCta: {
-    backgroundColor: '#6D28D9',
-    borderRadius: 16,
-    paddingVertical: 16,
-    alignItems: 'center',
+  fleetDesc: {
+    fontSize: 10.5,
+    color: COLORS.greenDeep,
+    opacity: 0.85,
+    marginTop: 1,
+  },
+  cta: {
+    backgroundColor: COLORS.blue,
+    borderRadius: 14,
+    paddingVertical: 13,
+    paddingHorizontal: 16,
     flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
+    gap: 6,
+    shadowColor: COLORS.blue,
+    shadowOpacity: 0.36,
+    shadowOffset: { width: 0, height: 6 },
+    shadowRadius: 16,
   },
-  acceptCtaBusy: {
-    opacity: 0.7,
+  ctaBusy: {
+    opacity: 0.74,
   },
-  acceptCtaText: {
-    fontSize: 16,
-    fontWeight: '700',
+  ctaText: {
     color: '#FFFFFF',
+    fontSize: 14.5,
+    fontWeight: '600',
+    letterSpacing: -0.2,
   },
-  privacyHint: {
-    fontSize: 12,
-    color: '#6B7280',
+  priv: {
     textAlign: 'center',
+    fontSize: 10.5,
+    color: COLORS.label3,
+    marginTop: 6,
+    lineHeight: 14,
+  },
+  privStrong: {
+    color: COLORS.label2,
+    fontWeight: '500',
   },
   errorBlock: {
     backgroundColor: '#FEF2F2',
@@ -346,18 +478,10 @@ const styles = StyleSheet.create({
     padding: 12,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: '#FECACA',
+    marginTop: 8,
   },
   errorText: {
     fontSize: 13,
     color: '#B91C1C',
-  },
-  skip: {
-    alignSelf: 'center',
-    paddingVertical: 10,
-  },
-  skipText: {
-    fontSize: 14,
-    color: '#2563EB',
-    fontWeight: '600',
   },
 });

@@ -59,10 +59,11 @@ export function SmartAppBanner({ appName, description, installUrl, page }: Smart
         accessibilityLabel="Dismiss install banner"
         style={styles.close}
       >
-        <X size={14} color="#6B7280" />
+        <X size={16} color="#7C7C82" />
       </Pressable>
-      <View style={styles.icon}>
-        <Text style={styles.iconText}>BA</Text>
+      <View style={styles.glyph}>
+        <Text style={styles.glyphB}>b</Text>
+        <View style={styles.glyphUnderline} />
       </View>
       <View style={styles.copy}>
         <Text style={styles.appName}>{appName}</Text>
@@ -87,50 +88,68 @@ const styles = StyleSheet.create({
   bar: {
     height: 56,
     paddingHorizontal: 12,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: 'rgba(247,247,250,0.98)',
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#E5E7EB',
+    borderBottomColor: 'rgba(0,0,0,0.10)',
   },
   close: {
-    padding: 4,
-  },
-  icon: {
-    width: 36,
-    height: 36,
-    borderRadius: 8,
-    backgroundColor: '#111827',
+    width: 16,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  iconText: {
+  glyph: {
+    width: 44,
+    height: 44,
+    borderRadius: 10,
+    backgroundColor: '#1F2D44',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#0B1525',
+  },
+  glyphB: {
     color: '#FFFFFF',
+    fontSize: 22,
     fontWeight: '700',
-    fontSize: 12,
+    lineHeight: 22,
+    letterSpacing: -1.2,
+    marginBottom: -2,
+  },
+  glyphUnderline: {
+    width: 13,
+    height: 1.2,
+    backgroundColor: 'rgba(255,255,255,0.95)',
+    marginTop: 2,
+    borderRadius: 1,
   },
   copy: {
     flex: 1,
   },
   appName: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#111827',
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#1C1C1E',
+    letterSpacing: -0.1,
   },
   desc: {
-    fontSize: 11,
-    color: '#6B7280',
+    fontSize: 10.5,
+    color: '#7C7C82',
+    marginTop: 1,
+    letterSpacing: -0.05,
   },
   cta: {
-    backgroundColor: '#2563EB',
-    paddingHorizontal: 14,
-    paddingVertical: 7,
+    backgroundColor: '#007AFF',
+    paddingHorizontal: 16,
+    paddingVertical: 6,
     borderRadius: 999,
   },
   ctaText: {
     color: '#FFFFFF',
-    fontWeight: '700',
-    fontSize: 13,
+    fontWeight: '600',
+    fontSize: 12,
+    letterSpacing: -0.05,
   },
 });

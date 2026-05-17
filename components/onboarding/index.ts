@@ -39,3 +39,23 @@ export { InstallSheet } from './InstallSheet';
 export type { InstallSheetProps } from './InstallSheet';
 export { WelcomeToast } from './WelcomeToast';
 export type { WelcomeToastProps } from './WelcomeToast';
+export { HkdwStepCard } from './HkdwStepCard';
+export type { HkdwStepCardProps } from './HkdwStepCard';
+export { BlueprintIndex } from './BlueprintIndex';
+export type {
+  BlueprintIndexProps,
+  BlueprintIndexAuthor,
+  BlueprintIndexStep,
+} from './BlueprintIndex';
+export { FleetPlansView } from './FleetPlansView';
+export type {
+  FleetPlansViewProps,
+  FleetPeer,
+  FleetPeerStatus,
+} from './FleetPlansView';
+export { StepDiscussionView } from './StepDiscussionView';
+export type {
+  StepDiscussionViewProps,
+  StepDiscussionNote,
+  StepDiscussionReaction,
+} from './StepDiscussionView';

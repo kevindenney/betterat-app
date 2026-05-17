@@ -1,0 +1,2303 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=2360" />
+<title>BetterAt · Dragon Worlds About → Free Blueprint → App Install — Canonical · 2026-05-18</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css" />
+<link rel="stylesheet" href="legacy-reskin-common.css?v=1" />
+<style>
+  .page { min-width: 2360px; padding: 56px 40px 96px; }
+  .page-head { max-width: 2280px; }
+
+  .section-band { max-width: 2280px; margin: 68px auto 0; padding-top: 36px; border-top: 0.5px solid var(--stage-line); }
+  .section-band:first-of-type { margin-top: 24px; border-top: 0; padding-top: 0; }
+  .section-band h2 {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 24px; font-weight: 500; letter-spacing: -0.3px;
+    color: var(--stage-ink); margin: 0 0 8px;
+  }
+  .section-band h2 em { font-style: italic; }
+  .section-band .lede {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 15px; line-height: 1.55;
+    color: var(--stage-text); margin: 0 0 28px;
+    max-width: 1180px; text-wrap: pretty;
+  }
+  .section-band .lede em { font-style: italic; }
+  .section-band .lede strong { color: var(--stage-ink); font-weight: 500; }
+
+  .decisions-bar {
+    max-width: 2280px; margin: 28px auto 0;
+    padding: 22px 24px;
+    background: rgba(255,255,255,0.55);
+    border: 0.5px solid var(--stage-line);
+    border-radius: 14px;
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 22px;
+  }
+  .decisions-bar .dec h5 {
+    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 10.5px; font-weight: 700;
+    color: var(--ios-purple-deep); letter-spacing: 0.7px;
+    text-transform: uppercase; margin: 0 0 6px;
+  }
+  .decisions-bar .dec p {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 12.5px; line-height: 1.5;
+    color: var(--stage-text); margin: 0; text-wrap: pretty;
+  }
+  .decisions-bar .dec p strong { color: var(--stage-ink); font-weight: 500; }
+  .decisions-bar .dec p em { font-style: italic; }
+
+  .flow-row {
+    max-width: 2280px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: 1fr 44px 1fr 44px 1fr 44px 1fr 44px 1fr;
+    gap: 14px;
+    align-items: flex-start;
+  }
+  .pane { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+  .pane .phase-eye {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-size: 10.5px; font-weight: 700;
+    letter-spacing: 0.9px; text-transform: uppercase;
+    color: var(--stage-text);
+  }
+  .pane .phase-eye .pip {
+    width: 18px; height: 18px; border-radius: 50%;
+    background: var(--gray-3); color: #fff;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 10px; font-weight: 700;
+  }
+  .pane.about       .phase-eye .pip { background: #1A2C3F; }
+  .pane.redeem      .phase-eye .pip { background: var(--ios-purple); }
+  .pane.web-plan    .phase-eye .pip { background: var(--ios-blue); }
+  .pane.appstore    .phase-eye .pip { background: #111827; }
+  .pane.native-app  .phase-eye .pip { background: var(--ios-green); }
+  .pane .phase-title {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 16.5px; font-weight: 500; letter-spacing: -0.25px;
+    color: var(--stage-ink); margin: 0;
+    text-wrap: balance; text-align: center;
+  }
+  .pane .phase-title em { font-style: italic; }
+  .pane .phase-sub {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 12px; font-style: italic;
+    color: var(--stage-text); margin: 0; line-height: 1.45;
+    max-width: 360px; text-wrap: pretty; text-align: center;
+  }
+
+  .flow-arrow {
+    display: flex; flex-direction: column; align-items: center; gap: 6px;
+    padding-top: 248px;
+  }
+  .flow-arrow svg { display: block; }
+  .flow-arrow .label {
+    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 9.5px; font-weight: 700;
+    color: var(--stage-ink); letter-spacing: 0.7px;
+    text-transform: uppercase;
+    text-align: center;
+    line-height: 1.45;
+  }
+
+  /* BetterAt round glyph */
+  .ba-glyph {
+    width: 64px; height: 64px; border-radius: 50%;
+    background: radial-gradient(circle at 30% 28%, #1F2D44 0%, #0F1B2E 80%);
+    border: 1.5px solid #0B1525;
+    color: #fff;
+    display: inline-flex; flex-direction: column; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    box-shadow: 0 8px 22px -10px rgba(0,0,0,0.35), 0 1px 0 rgba(255,255,255,0.06) inset;
+  }
+  .ba-glyph .b {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
+    font-size: 32px; font-weight: 700; line-height: 1; letter-spacing: -0.06em;
+    margin-bottom: -2px;
+  }
+  .ba-glyph .ul {
+    width: 18px; height: 1.5px; background: rgba(255,255,255,0.95);
+    border-radius: 1px; margin-top: 3px;
+  }
+  .ba-glyph.sm { width: 44px; height: 44px; border-width: 1px; box-shadow: 0 4px 10px -4px rgba(0,0,0,0.25); border-radius: 10px; }
+  .ba-glyph.sm .b { font-size: 22px; }
+  .ba-glyph.sm .ul { width: 13px; height: 1.2px; margin-top: 2px; }
+  .ba-glyph.lg-rect { width: 60px; height: 60px; border-radius: 13px; }
+
+  /* PHASE 1 · Dragon Worlds event-app About page */
+  .phone.dw-phone { background: #fff; }
+  .phone.dw-phone .screen {
+    background: #F5F6F8; padding-top: 50px;
+    display: flex; flex-direction: column;
+  }
+  .dw-phone .statusbar { color: #0A0A0A; }
+
+  .dw-topbar { padding: 6px 16px 14px; background: #F5F6F8; display: flex; align-items: center; }
+  .dw-topbar .back {
+    width: 36px; height: 36px; border-radius: 50%;
+    background: #FFFFFF; box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+    display: inline-flex; align-items: center; justify-content: center;
+    color: #007AFF;
+  }
+  .dw-topbar .back i { font-size: 19px; margin-right: 1px; }
+
+  .dw-scroll { flex: 1; overflow: hidden; padding: 14px 18px 100px; background: #F5F6F8; }
+
+  .dw-brand-block { text-align: center; padding: 18px 0 18px; }
+  .dw-brand-block .ba-glyph { margin: 0 auto; }
+  .dw-brand-block h1 {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
+    font-size: 30px; font-weight: 800; letter-spacing: -0.7px;
+    color: #0F172A; margin: 16px 0 6px; line-height: 1;
+  }
+  .dw-brand-block .tag { font-size: 14px; color: #475569; letter-spacing: -0.1px; margin: 0; }
+
+  .dw-offer-card {
+    background: #FFFFFF; border-radius: 18px;
+    border: 0.5px solid rgba(0,0,0,0.05);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.04), 0 14px 38px -16px rgba(0,0,0,0.18);
+    padding: 18px; margin-top: 6px;
+  }
+  .dw-offer-card .edition-eye {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 11px; font-weight: 700;
+    color: var(--ios-purple); letter-spacing: 0.9px; text-transform: uppercase;
+    margin: 0 0 14px;
+  }
+  .dw-offer-card .edition-eye i { font-size: 14px; }
+  .dw-offer-card h2 {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
+    font-size: 22px; font-weight: 800; letter-spacing: -0.5px;
+    color: #0F172A; margin: 0 0 10px; line-height: 1.18; text-wrap: balance;
+  }
+  .dw-offer-card .lede {
+    font-size: 13.5px; line-height: 1.5; color: #475569;
+    letter-spacing: -0.05px; margin: 0 0 14px; text-wrap: pretty;
+  }
+  .dw-offer-card .check-list {
+    list-style: none; padding: 0; margin: 0 0 18px;
+    display: flex; flex-direction: column; gap: 11px;
+  }
+  .dw-offer-card .check-list li {
+    display: grid; grid-template-columns: 18px 1fr;
+    column-gap: 10px; align-items: flex-start;
+  }
+  .dw-offer-card .check-list .seal {
+    color: var(--ios-green);
+    display: inline-flex; align-items: center; justify-content: center;
+    margin-top: 1px;
+  }
+  .dw-offer-card .check-list .seal i { font-size: 17px; }
+  .dw-offer-card .check-list .text {
+    font-size: 13px; line-height: 1.45; color: #1E293B; letter-spacing: -0.05px;
+  }
+  .dw-offer-card .check-list .text .bold { font-weight: 600; }
+  .dw-offer-card .cta-purple {
+    width: 100%;
+    background: linear-gradient(180deg, #5856D6 0%, #4F4DC8 100%);
+    color: #fff; border: 0; border-radius: 14px;
+    padding: 14px 16px;
+    font-family: inherit; font-size: 14.5px; font-weight: 600;
+    letter-spacing: -0.15px;
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    box-shadow: 0 6px 16px -4px rgba(88, 86, 214, 0.40), 0 1px 2px rgba(0,0,0,0.08);
+  }
+  .dw-offer-card .cta-purple i { font-size: 14px; }
+
+  .dw-fineprint {
+    text-align: center; margin: 12px 0 18px;
+    font-size: 11px; color: #64748B; letter-spacing: -0.02px; line-height: 1.45;
+  }
+  .dw-body-copy { font-size: 13.5px; line-height: 1.55; color: #0F172A; letter-spacing: -0.05px; margin: 0; }
+
+  .dw-tabbar {
+    position: absolute; left: 12px; right: 12px; bottom: 12px;
+    height: 64px; padding: 8px 0 12px;
+    background: rgba(255, 255, 255, 0.96); border-radius: 22px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05), 0 16px 32px -10px rgba(0,0,0,0.18);
+    backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+    display: grid; grid-template-columns: repeat(6, 1fr);
+    align-items: center; z-index: 25;
+  }
+  .dw-tabbar .t {
+    display: flex; flex-direction: column; align-items: center; gap: 3px;
+    color: #1E293B; font-size: 10px; letter-spacing: -0.02px;
+  }
+  .dw-tabbar .t i { font-size: 19px; color: #1E293B; }
+  .dw-tabbar .t.more, .dw-tabbar .t.more i, .dw-tabbar .t.more .dots { color: #007AFF; font-weight: 500; }
+  .dw-tabbar .dots { font-size: 18px; letter-spacing: 0.06em; font-weight: 700; line-height: 0.6; padding: 0 0 4px; }
+
+  /* PHASE 2 · Safari */
+  .phone.safari-phone { background: #fff; }
+  .phone.safari-phone .screen {
+    background: var(--gray-6); padding-top: 50px;
+    display: flex; flex-direction: column;
+  }
+  .safari-url-bar {
+    height: 50px;
+    background: rgba(247, 247, 250, 0.94);
+    -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px);
+    border-bottom: 0.5px solid rgba(0,0,0,0.08);
+    display: grid; grid-template-columns: 36px 1fr 36px;
+    align-items: center; gap: 8px;
+    padding: 0 12px; flex-shrink: 0;
+  }
+  .safari-url-bar .ic-l, .safari-url-bar .ic-r {
+    color: var(--ios-blue);
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .safari-url-bar .ic-l i, .safari-url-bar .ic-r i { font-size: 17px; }
+  .safari-url-bar .url {
+    background: rgba(0, 0, 0, 0.06); border-radius: 9px;
+    padding: 6px 12px;
+    font-size: 12.5px; color: var(--label);
+    letter-spacing: -0.1px;
+    display: inline-flex; align-items: center; gap: 6px;
+    justify-content: center; overflow: hidden;
+  }
+  .safari-url-bar .url i { font-size: 12px; color: var(--label-3); }
+  .safari-url-bar .url .host { font-weight: 600; }
+  .safari-url-bar .url .path { color: var(--label-3); margin-left: 1px; }
+
+  .safari-content { flex: 1; overflow: hidden; background: var(--gray-6); position: relative; }
+  .safari-toolbar {
+    position: absolute; left: 0; right: 0; bottom: 0;
+    height: 56px;
+    background: rgba(247, 247, 250, 0.94);
+    -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px);
+    border-top: 0.5px solid rgba(0,0,0,0.08);
+    display: grid; grid-template-columns: repeat(5, 1fr);
+    align-items: center; padding-bottom: 14px; z-index: 18;
+  }
+  .safari-toolbar .ic { color: var(--ios-blue); display: inline-flex; align-items: center; justify-content: center; }
+  .safari-toolbar .ic.dim { color: rgba(0, 122, 255, 0.30); }
+  .safari-toolbar .ic i { font-size: 19px; }
+
+  .redeem-page {
+    position: absolute; top: 0; left: 0; right: 0; bottom: 56px;
+    overflow: hidden; padding: 22px 18px 18px;
+    background:
+      radial-gradient(circle at 50% 0%, rgba(88, 86, 214, 0.08) 0%, rgba(88, 86, 214, 0) 60%),
+      var(--gray-6);
+  }
+  .redeem-page .pill-row { display: flex; align-items: center; justify-content: space-between; margin: 0 0 16px; }
+  .redeem-page .welcome-pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 5px 11px 5px 9px; border-radius: 999px;
+    background: var(--ios-purple-tint); border: 0.5px solid var(--ios-purple-soft);
+    color: var(--ios-purple-deep);
+    font-size: 10.5px; font-weight: 700; letter-spacing: 0.6px; text-transform: uppercase;
+  }
+  .redeem-page .welcome-pill i { font-size: 11px; }
+  .redeem-page .not-now { background: none; border: 0; padding: 0; color: var(--label-3); font-size: 12px; letter-spacing: -0.05px; }
+
+  .redeem-page .hero { text-align: center; padding: 4px 6px 16px; }
+  .redeem-page .by-name { font-size: 11.5px; color: var(--label-3); letter-spacing: -0.02px; margin: 10px 0 6px; }
+  .redeem-page .by-name .em { color: var(--label); font-weight: 600; }
+  .redeem-page h1 {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-style: italic; font-size: 23px; font-weight: 500; letter-spacing: -0.4px;
+    color: var(--label); margin: 0; line-height: 1.18; text-wrap: balance;
+  }
+  .redeem-page .sub-h { font-size: 12.5px; color: var(--label-2); line-height: 1.5; margin: 8px 0 0; letter-spacing: -0.05px; text-wrap: pretty; }
+
+  .blueprint-preview-w {
+    background: #FFFFFF; border: 0.5px solid var(--gray-5); border-radius: 14px;
+    padding: 14px; margin: 4px 0 10px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+  }
+  .blueprint-preview-w .pre-head { display: flex; align-items: baseline; justify-content: space-between; margin: 0 0 10px; }
+  .blueprint-preview-w .lbl { font-size: 9.5px; font-weight: 700; color: var(--label-2); letter-spacing: 0.9px; text-transform: uppercase; }
+  .blueprint-preview-w .meta-pre { font-size: 10px; color: var(--label-3); letter-spacing: -0.05px; }
+  .blueprint-preview-w .stats { display: flex; gap: 8px; margin: 0 0 12px; }
+  .blueprint-preview-w .stat { flex: 1; background: var(--gray-6); border-radius: 9px; padding: 8px 10px; }
+  .blueprint-preview-w .stat .n { font-size: 16px; font-weight: 700; color: var(--label); letter-spacing: -0.3px; font-variant-numeric: tabular-nums; }
+  .blueprint-preview-w .stat .l { font-size: 9px; font-weight: 700; color: var(--label-3); letter-spacing: 0.5px; text-transform: uppercase; margin-top: 2px; }
+  .blueprint-preview-w .caps { display: flex; flex-wrap: wrap; gap: 4px; margin: 8px 0 0; }
+  .blueprint-preview-w .cc {
+    display: inline-flex; align-items: center;
+    padding: 3px 8px; border-radius: 999px;
+    background: var(--ios-purple-tint); color: var(--ios-purple-deep);
+    border: 0.5px solid var(--ios-purple-soft);
+    font-size: 10px; font-weight: 500; letter-spacing: -0.05px;
+  }
+
+  .fleet-badge-w {
+    background: var(--ios-green-tint); border: 0.5px solid var(--ios-green-soft);
+    border-radius: 12px; padding: 11px 14px;
+    display: flex; align-items: center; gap: 10px;
+    margin-bottom: 14px;
+  }
+  .fleet-badge-w .av-stack { display: inline-flex; }
+  .fleet-badge-w .av-stack .a {
+    width: 22px; height: 22px; border-radius: 50%;
+    background: linear-gradient(135deg, #4E6A85 0%, #7C7B6E 100%);
+    color: #fff; display: inline-flex; align-items: center; justify-content: center;
+    font-size: 9px; font-weight: 700; border: 1.5px solid #fff;
+  }
+  .fleet-badge-w .av-stack .a + .a { margin-left: -8px; }
+  .fleet-badge-w .av-stack .a.g  { background: linear-gradient(135deg, #5A8C6A 0%, #3E6C4E 100%); }
+  .fleet-badge-w .av-stack .a.p  { background: linear-gradient(135deg, #7C5E9A 0%, #5C3F7A 100%); }
+  .fleet-badge-w .av-stack .a.h  { background: linear-gradient(135deg, #6B5E48 0%, #4A3F2E 100%); }
+  .fleet-badge-w .nm { font-size: 12.5px; font-weight: 600; color: var(--ios-green-deep); letter-spacing: -0.1px; margin: 0; }
+  .fleet-badge-w .desc { font-size: 10.5px; color: var(--ios-green-deep); margin: 1px 0 0; letter-spacing: -0.05px; opacity: 0.85; }
+
+  .redeem-page .cta-primary {
+    width: 100%;
+    background: var(--ios-blue); color: #fff;
+    border: 0; border-radius: 14px;
+    padding: 13px 16px;
+    font-family: inherit; font-size: 14.5px; font-weight: 600; letter-spacing: -0.2px;
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    box-shadow: 0 6px 16px -4px rgba(0, 122, 255, 0.36), 0 1px 2px rgba(0,0,0,0.08);
+  }
+  .redeem-page .cta-primary i { font-size: 14px; }
+  .redeem-page .priv { text-align: center; margin-top: 8px; font-size: 10.5px; color: var(--label-3); letter-spacing: -0.05px; line-height: 1.4; }
+  .redeem-page .priv .em { color: var(--label-2); font-weight: 500; }
+
+  /* PHASE 3 · web plan */
+  .smart-banner {
+    background: rgba(247, 247, 250, 0.98);
+    border-bottom: 0.5px solid rgba(0,0,0,0.10);
+    padding: 8px 12px;
+    display: grid; grid-template-columns: 16px 44px 1fr auto;
+    column-gap: 10px; align-items: center; flex-shrink: 0;
+  }
+  .smart-banner .close-x { color: var(--label-3); display: inline-flex; align-items: center; justify-content: center; }
+  .smart-banner .close-x i { font-size: 16px; }
+  .smart-banner .copy .nm { font-size: 13px; font-weight: 600; color: var(--label); letter-spacing: -0.1px; margin: 0; line-height: 1.15; }
+  .smart-banner .copy .sub { font-size: 10.5px; color: var(--label-3); letter-spacing: -0.05px; margin: 1px 0 0; }
+  .smart-banner .open-btn {
+    background: var(--ios-blue); color: #fff; border: 0; border-radius: 999px;
+    padding: 6px 16px; font-size: 12px; font-weight: 600; letter-spacing: -0.05px;
+  }
+
+  .web-tabs {
+    background: #FFFFFF; border-bottom: 0.5px solid var(--gray-5);
+    padding: 0 14px; display: flex; gap: 6px; flex-shrink: 0;
+  }
+  .web-tabs .t {
+    padding: 11px 10px 12px;
+    font-size: 13px; font-weight: 500;
+    color: var(--label-3); letter-spacing: -0.1px;
+    position: relative; display: inline-flex; align-items: center; gap: 5px;
+  }
+  .web-tabs .t.on { color: var(--ios-blue); font-weight: 600; }
+  .web-tabs .t.on::after {
+    content: ""; position: absolute; left: 10px; right: 10px; bottom: -0.5px;
+    height: 2px; background: var(--ios-blue); border-radius: 2px;
+  }
+
+  .web-page-body { flex: 1; overflow: hidden; padding: 14px 14px 70px; position: relative; background: var(--gray-6); }
+
+  .welcome-toast-w {
+    background: linear-gradient(180deg, rgba(88, 86, 214, 0.10) 0%, rgba(88, 86, 214, 0.03) 100%);
+    border: 0.5px solid var(--ios-purple-soft); border-radius: 14px;
+    padding: 11px 13px;
+    display: grid; grid-template-columns: 28px 1fr 14px;
+    column-gap: 11px; align-items: center;
+    margin-bottom: 12px;
+  }
+  .welcome-toast-w .glyph {
+    width: 28px; height: 28px; border-radius: 50%;
+    background: var(--ios-purple); color: #fff;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .welcome-toast-w .glyph i { font-size: 14px; }
+  .welcome-toast-w .ttl { font-size: 11.5px; font-weight: 600; color: var(--label); letter-spacing: -0.1px; margin: 0; line-height: 1.2; }
+  .welcome-toast-w .sub { font-size: 10px; color: var(--ios-purple-deep); letter-spacing: -0.02px; margin: 1px 0 0; }
+  .welcome-toast-w .x i { font-size: 14px; color: var(--label-3); }
+
+  .web-step-card {
+    background: #FFFFFF; border-radius: 16px;
+    border: 0.5px solid var(--gray-5);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.03); overflow: hidden;
+  }
+  .web-step-card .step-head { padding: 11px 14px 10px; display: flex; align-items: center; justify-content: space-between; border-bottom: 0.5px solid var(--gray-5); }
+  .web-step-card .step-head .pill-blue {
+    display: inline-flex; align-items: center; gap: 7px;
+    padding: 4px 10px 4px 8px; border-radius: 999px;
+    background: var(--ios-blue-tint); border: 0.5px solid var(--ios-blue-strong);
+  }
+  .web-step-card .step-head .pill-blue .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--ios-blue); }
+  .web-step-card .step-head .pill-blue .label { font-size: 10px; font-weight: 700; color: var(--ios-blue-deep); letter-spacing: 0.5px; text-transform: uppercase; }
+  .web-step-card .step-head .counter { font-size: 11px; color: var(--label-3); font-variant-numeric: tabular-nums; }
+
+  .web-step-card .step-strip-w {
+    padding: 7px 14px 8px;
+    border-bottom: 0.5px solid var(--gray-5);
+    display: flex; align-items: center; gap: 6px;
+    background: #FAFAFC;
+  }
+  .web-step-card .step-strip-w .ico {
+    width: 18px; height: 18px; border-radius: 50%;
+    background: var(--ios-blue-tint); color: var(--ios-blue);
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .web-step-card .step-strip-w .ico i { font-size: 11px; }
+  .web-step-card .step-strip-w .text { font-size: 11px; color: var(--label-2); letter-spacing: -0.05px; }
+  .web-step-card .step-strip-w .text .em { font-weight: 600; color: var(--label); }
+  .web-step-card .step-strip-w .text .sep { color: var(--label-4); margin: 0 5px; }
+
+  .web-step-card .title-block { padding: 11px 14px 12px; border-bottom: 0.5px solid var(--gray-5); }
+  .web-step-card .title-block .pre { font-size: 9.5px; font-weight: 700; color: var(--ios-blue); letter-spacing: 0.7px; text-transform: uppercase; margin: 0 0 4px; }
+  .web-step-card .title-block h2 { font-size: 17px; font-weight: 600; color: var(--label); letter-spacing: -0.35px; margin: 0; line-height: 1.18; text-wrap: balance; }
+  .web-step-card .title-block .from { font-size: 11px; color: var(--label-3); margin: 5px 0 0; letter-spacing: -0.05px; }
+  .web-step-card .title-block .from .em { color: var(--label-2); font-weight: 500; }
+
+  .web-step-card .phase-row {
+    display: flex; gap: 6px;
+    padding: 8px 12px 9px;
+    border-bottom: 0.5px solid var(--gray-5);
+    background: #FAFAFC;
+  }
+  .web-step-card .phase-row .ptab {
+    padding: 4px 11px;
+    font-size: 11.5px; font-weight: 500; color: var(--label-3);
+    border-radius: 999px; border: 0.5px solid var(--gray-5); background: #fff;
+  }
+  .web-step-card .phase-row .ptab.on { color: var(--ios-blue); background: var(--ios-blue-tint); border-color: var(--ios-blue-strong); font-weight: 600; }
+
+  .web-step-card .field { padding: 12px 14px; border-bottom: 0.5px solid var(--gray-5); }
+  .web-step-card .field .field-eye {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 10px; font-weight: 700;
+    color: var(--label-2); letter-spacing: 0.6px; text-transform: uppercase;
+    margin: 0 0 6px;
+  }
+  .web-step-card .field .field-eye i { font-size: 12px; color: var(--label-3); }
+  .web-step-card .field .placeholder { font-size: 12px; color: var(--label-3); font-style: italic; line-height: 1.5; margin: 0; letter-spacing: -0.05px; }
+  .web-step-card .install-hint {
+    padding: 11px 14px;
+    background: linear-gradient(180deg, rgba(88, 86, 214, 0.06), rgba(88, 86, 214, 0.02));
+    display: flex; align-items: center; gap: 8px;
+  }
+  .web-step-card .install-hint i { font-size: 14px; color: var(--ios-purple); }
+  .web-step-card .install-hint .text { font-size: 11px; color: var(--label-2); letter-spacing: -0.05px; }
+  .web-step-card .install-hint .text .em { font-weight: 600; color: var(--ios-purple-deep); }
+
+  /* PHASE 4 · App Store */
+  .phone.appstore-phone .screen { background: var(--gray-6); padding-top: 50px; display: flex; flex-direction: column; }
+  .appstore-back {
+    flex: 1;
+    background:
+      linear-gradient(180deg, rgba(0,0,0,0.18) 0%, rgba(0,0,0,0.32) 100%),
+      var(--gray-6);
+    position: relative;
+  }
+  .appstore-back .blur-glimpse {
+    position: absolute; inset: 0;
+    background:
+      radial-gradient(circle at 50% 18%, rgba(88,86,214,0.06), transparent 60%),
+      repeating-linear-gradient(0deg, rgba(255,255,255,0.6) 0 1px, transparent 1px 36px);
+    filter: blur(1px); opacity: 0.5;
+  }
+
+  .appstore-sheet {
+    position: absolute;
+    left: 0; right: 0; bottom: 0;
+    background: #FFFFFF;
+    border-top-left-radius: 18px; border-top-right-radius: 18px;
+    padding: 8px 18px 32px;
+    box-shadow: 0 -16px 40px -8px rgba(0,0,0,0.25);
+    z-index: 20;
+  }
+  .appstore-sheet .grabber { width: 36px; height: 4px; background: rgba(60,60,67,0.30); border-radius: 2px; margin: 4px auto 14px; }
+  .appstore-sheet .top-row {
+    display: grid; grid-template-columns: 60px 1fr;
+    column-gap: 14px; align-items: center;
+  }
+  .appstore-sheet .meta .nm { font-size: 16px; font-weight: 700; color: var(--label); letter-spacing: -0.3px; margin: 0; line-height: 1.1; }
+  .appstore-sheet .meta .desc { font-size: 11.5px; color: var(--label-3); letter-spacing: -0.05px; margin: 3px 0 0; }
+  .appstore-sheet .stars { display: flex; align-items: center; gap: 3px; margin: 5px 0 0; font-size: 10px; color: var(--label-3); }
+  .appstore-sheet .stars i { font-size: 10.5px; color: #F5A524; }
+  .appstore-sheet .stars i.dim { color: rgba(245, 165, 36, 0.3); }
+  .appstore-sheet .stars .count { color: var(--label-3); letter-spacing: -0.05px; margin-left: 4px; }
+
+  .appstore-sheet .get-btn {
+    margin: 16px 0 0;
+    width: 100%;
+    background: var(--ios-blue); color: #fff;
+    border: 0; border-radius: 14px;
+    padding: 13px 16px;
+    font-family: inherit; font-size: 14.5px; font-weight: 700; letter-spacing: -0.05px;
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    box-shadow: 0 6px 16px -4px rgba(0, 122, 255, 0.36);
+  }
+  .appstore-sheet .get-btn i { font-size: 15px; }
+  .appstore-sheet .install-line { text-align: center; font-size: 10.5px; color: var(--label-3); margin: 8px 0 0; letter-spacing: -0.05px; }
+  .appstore-sheet .install-line .em { color: var(--label-2); font-weight: 500; }
+
+  .appstore-sheet .why-list {
+    list-style: none; padding: 14px 0 0; margin: 14px 0 0;
+    border-top: 0.5px solid var(--gray-5);
+    display: flex; flex-direction: column; gap: 9px;
+  }
+  .appstore-sheet .why-list li {
+    display: grid; grid-template-columns: 22px 1fr;
+    column-gap: 10px; align-items: flex-start;
+  }
+  .appstore-sheet .why-list i { font-size: 16px; color: var(--ios-purple); margin-top: 1px; }
+  .appstore-sheet .why-list .text { font-size: 12px; line-height: 1.45; color: var(--label-2); letter-spacing: -0.05px; }
+  .appstore-sheet .why-list .text .em { color: var(--label); font-weight: 600; }
+
+  .appstore-sheet .resume-line {
+    margin: 14px 0 0; padding: 10px 12px;
+    background: var(--ios-green-tint); border: 0.5px solid var(--ios-green-soft);
+    border-radius: 11px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .appstore-sheet .resume-line i { font-size: 13px; color: var(--ios-green-deep); }
+  .appstore-sheet .resume-line .text { font-size: 11px; color: var(--ios-green-deep); letter-spacing: -0.05px; line-height: 1.4; }
+  .appstore-sheet .resume-line .text .em { font-weight: 700; }
+
+  /* PHASE 5 · native first launch */
+  .phone.native-phone .screen { background: var(--gray-6); padding-top: 50px; }
+  .native-toast {
+    position: absolute;
+    top: 60px; left: 14px; right: 14px;
+    background: #FFFFFF; border: 0.5px solid var(--gray-5); border-radius: 14px;
+    padding: 11px 13px;
+    display: grid; grid-template-columns: 30px 1fr 14px;
+    column-gap: 11px; align-items: center;
+    z-index: 22;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.06), 0 14px 28px -10px rgba(0,0,0,0.16);
+  }
+  .native-toast .glyph {
+    width: 30px; height: 30px; border-radius: 50%;
+    background: var(--ios-green); color: #fff;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .native-toast .glyph i { font-size: 15px; }
+  .native-toast .ttl { font-size: 12px; font-weight: 600; color: var(--label); letter-spacing: -0.1px; margin: 0; line-height: 1.2; }
+  .native-toast .sub { font-size: 10px; color: var(--ios-green-deep); letter-spacing: -0.02px; margin: 1px 0 0; }
+  .native-toast .x i { font-size: 14px; color: var(--label-3); }
+
+  .native-top-header { padding: 6px 16px 8px; display: flex; align-items: center; justify-content: space-between; }
+  .native-top-header .interest { display: inline-flex; align-items: baseline; gap: 6px; }
+  .native-top-header .name { font-size: 17px; font-weight: 600; letter-spacing: -0.25px; color: var(--label); }
+  .native-top-header .switcher { font-size: 13px; color: var(--label-3); display: inline-flex; align-items: center; }
+  .native-top-header .switcher i { font-size: 14px; }
+  .native-top-header .step-counter { font-size: 12px; font-weight: 500; color: var(--label-3); font-variant-numeric: tabular-nums; }
+  .native-top-header .ico { color: var(--label-2); }
+  .native-top-header .ico i { font-size: 19px; }
+  .native-top-header .avatar {
+    width: 30px; height: 30px; border-radius: 50%;
+    background: linear-gradient(135deg, #4E6A85 0%, #7C7B6E 100%);
+    color: #fff; display: inline-flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 700;
+  }
+  .native-top-header .right-cluster { display: inline-flex; align-items: center; gap: 12px; }
+
+  .native-card {
+    position: absolute;
+    left: 14px; right: 14px;
+    top: 152px; bottom: 92px;
+    background: #FFFFFF; border-radius: 20px;
+    border: 0.5px solid rgba(0,0,0,0.04);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.06), 0 18px 38px -16px rgba(0,0,0,0.20);
+    display: flex; flex-direction: column; overflow: hidden;
+  }
+  .native-card .head { padding: 12px 14px 10px; display: flex; align-items: center; justify-content: space-between; border-bottom: 0.5px solid var(--gray-5); }
+  .native-card .pill-blue {
+    display: inline-flex; align-items: center; gap: 7px;
+    padding: 4px 11px 4px 9px; border-radius: 999px;
+    background: var(--ios-blue-tint); border: 0.5px solid var(--ios-blue-strong);
+  }
+  .native-card .pill-blue .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--ios-blue); }
+  .native-card .pill-blue .label { font-size: 10.5px; font-weight: 700; color: var(--ios-blue-deep); letter-spacing: 0.5px; text-transform: uppercase; }
+  .native-card .menu i { font-size: 16px; color: var(--label-3); }
+
+  .native-card .strip { padding: 8px 14px 9px; border-bottom: 0.5px solid var(--gray-5); display: flex; align-items: center; gap: 6px; background: #FAFAFC; }
+  .native-card .strip .ico {
+    width: 18px; height: 18px; border-radius: 50%;
+    background: var(--ios-blue-tint); color: var(--ios-blue);
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .native-card .strip .ico i { font-size: 11px; }
+  .native-card .strip .text { font-size: 11.5px; color: var(--label-2); letter-spacing: -0.05px; }
+  .native-card .strip .text .em { font-weight: 600; color: var(--label); }
+  .native-card .strip .text .sep { color: var(--label-4); margin: 0 5px; }
+
+  .native-card .title-block { padding: 12px 14px 11px; border-bottom: 0.5px solid var(--gray-5); }
+  .native-card .title-block .pre { font-size: 9.5px; font-weight: 700; color: var(--ios-blue); letter-spacing: 0.7px; text-transform: uppercase; margin: 0 0 4px; }
+  .native-card .title-block h2 { font-size: 17px; font-weight: 600; color: var(--label); letter-spacing: -0.35px; margin: 0; line-height: 1.18; text-wrap: balance; }
+  .native-card .title-block .from { font-size: 11px; color: var(--label-3); margin: 5px 0 0; letter-spacing: -0.05px; }
+  .native-card .title-block .from .em { color: var(--label-2); font-weight: 500; }
+
+  .native-card .with-row { padding: 8px 14px 9px; display: flex; align-items: center; gap: 8px; border-bottom: 0.5px solid var(--gray-5); background: #FAFAFC; }
+  .native-card .with-row .eye { font-size: 9.5px; font-weight: 700; color: var(--label-2); letter-spacing: 0.9px; text-transform: uppercase; }
+  .native-card .fleet-chip {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 3px 9px 3px 8px; border-radius: 999px;
+    background: var(--ios-green-tint); border: 0.5px solid var(--ios-green-soft);
+    color: var(--ios-green-deep); font-size: 11px; font-weight: 500; letter-spacing: -0.05px;
+  }
+  .native-card .fleet-chip i { font-size: 11px; }
+
+  .native-card .phase-tabs { display: flex; gap: 4px; padding: 0 14px; border-bottom: 0.5px solid var(--gray-5); }
+  .native-card .phase-tabs .ptab {
+    padding: 9px 9px 11px;
+    font-size: 12.5px; font-weight: 500;
+    color: var(--label-3); letter-spacing: -0.05px;
+    position: relative;
+  }
+  .native-card .phase-tabs .ptab.on { color: var(--ios-blue); font-weight: 600; }
+  .native-card .phase-tabs .ptab.on::after {
+    content: ""; position: absolute; left: 9px; right: 9px; bottom: -0.5px;
+    height: 2px; background: var(--ios-blue); border-radius: 2px;
+  }
+
+  .native-card .body { flex: 1; overflow: hidden; padding: 12px 14px; display: flex; flex-direction: column; gap: 9px; }
+  .native-card .ai-helper {
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 11px;
+    background: var(--ios-purple-tint); border: 0.5px solid var(--ios-purple-soft);
+    border-radius: 11px;
+    color: var(--ios-purple-deep);
+    font-size: 11px; letter-spacing: -0.05px;
+  }
+  .native-card .ai-helper i { font-size: 13px; }
+  .native-card .ai-helper .em { font-weight: 600; }
+  .native-card .field-card { background: var(--gray-6); border-radius: 11px; padding: 10px 12px; }
+  .native-card .field-card .field-eye {
+    display: flex; align-items: center; justify-content: space-between;
+    font-size: 10px; font-weight: 700;
+    color: var(--label-2); letter-spacing: 0.6px; text-transform: uppercase;
+    margin: 0 0 5px;
+  }
+  .native-card .field-card .field-eye .left { display: inline-flex; align-items: center; gap: 5px; }
+  .native-card .field-card .field-eye .left i { font-size: 11px; color: var(--label-3); }
+  .native-card .field-card .field-eye .spark { color: var(--ios-purple); }
+  .native-card .field-card .field-eye .spark i { font-size: 12px; }
+  .native-card .field-card .placeholder { font-size: 12px; color: var(--label-3); font-style: italic; line-height: 1.45; margin: 0; }
+
+  .native-tabbar {
+    position: absolute; left: 0; right: 0; bottom: 0;
+    height: 84px; padding: 6px 0 24px;
+    background: rgba(255, 255, 255, 0.92);
+    border-top: 0.5px solid rgba(0, 0, 0, 0.08);
+    backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    align-items: center; z-index: 25;
+  }
+  .native-tabbar .t {
+    display: flex; flex-direction: column; align-items: center; gap: 2px;
+    color: var(--gray-1); font-size: 10px; font-weight: 500;
+  }
+  .native-tabbar .t i { font-size: 23px; line-height: 1; }
+  .native-tabbar .t.on { color: var(--ios-blue); }
+
+  /* Detail strip */
+  .detail-grid {
+    max-width: 2280px;
+    margin: 18px auto 0;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 22px;
+  }
+  .detail-card {
+    background: rgba(255,255,255,0.55);
+    border: 0.5px solid var(--stage-line);
+    border-radius: 14px;
+    padding: 18px;
+  }
+  .detail-card .step-no {
+    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 10.5px; font-weight: 700;
+    letter-spacing: 0.7px; text-transform: uppercase;
+    color: var(--stage-text); margin: 0 0 6px;
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .detail-card .step-no .pip {
+    width: 16px; height: 16px; border-radius: 50%;
+    background: var(--ios-purple); color: #fff;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 9.5px; font-weight: 700;
+  }
+  .detail-card h4 {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 15px; font-weight: 500; letter-spacing: -0.2px;
+    color: var(--stage-ink); margin: 0 0 8px;
+  }
+  .detail-card h4 em { font-style: italic; }
+  .detail-card p {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 13px; line-height: 1.55;
+    color: var(--stage-text); margin: 0 0 8px;
+    text-wrap: pretty;
+  }
+  .detail-card p:last-child { margin-bottom: 0; }
+  .detail-card p strong { color: var(--stage-ink); font-weight: 500; }
+  .detail-card p em { font-style: italic; }
+  .detail-card .mono {
+    display: block;
+    font-family: "SF Mono", ui-monospace, Menlo, monospace;
+    font-size: 11px; color: var(--label-2);
+    background: rgba(34, 30, 20, 0.04);
+    border: 0.5px solid var(--stage-line);
+    border-radius: 6px; padding: 6px 8px;
+    margin: 8px 0 0; letter-spacing: -0.02em;
+    text-wrap: balance;
+  }
+
+  .inline-code {
+    font-family: "SF Mono", ui-monospace, Menlo, monospace;
+    font-size: 12px;
+    background: rgba(34,30,20,0.05);
+    padding: 1px 5px;
+    border-radius: 3px;
+  }
+
+  /* ============================================================
+     §B · Three-pane follow-up: blueprint index · fleet plans · step discussion
+     ============================================================ */
+  .triple-row {
+    max-width: 2280px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 56px;
+    align-items: flex-start;
+    justify-items: center;
+  }
+  .pane.bp-index   .phase-eye .pip { background: var(--ios-blue); }
+  .pane.fleet-plan .phase-eye .pip { background: var(--ios-green); }
+  .pane.step-talk  .phase-eye .pip { background: var(--ios-coral); }
+
+  /* Shared screen scaffolding — match the native chrome already in this file */
+  .followup-screen {
+    padding-top: 50px; padding-bottom: 84px;
+    background: var(--gray-6);
+    display: flex; flex-direction: column;
+  }
+  .followup-screen .top-bar {
+    padding: 8px 16px 10px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .followup-screen .top-bar .back {
+    background: none; border: 0; padding: 0;
+    display: inline-flex; align-items: center; gap: 2px;
+    color: var(--ios-blue); font-size: 15px; letter-spacing: -0.1px;
+  }
+  .followup-screen .top-bar .back i { font-size: 18px; margin-left: -4px; }
+  .followup-screen .top-bar .right {
+    display: inline-flex; align-items: center; gap: 12px;
+    color: var(--label-2);
+  }
+  .followup-screen .top-bar .right i { font-size: 18px; }
+  .followup-screen .top-bar .ttl {
+    font-size: 16px; font-weight: 600;
+    color: var(--label); letter-spacing: -0.25px;
+  }
+
+  /* === BLUEPRINT-INDEX-SPECIFIC === */
+  .bpx-hero {
+    background: #FFFFFF;
+    border-bottom: 0.5px solid var(--gray-5);
+    padding: 12px 16px 14px;
+  }
+  .bpx-hero .by-row {
+    display: flex; align-items: center; gap: 9px;
+    margin: 0 0 10px;
+  }
+  .bpx-hero .by-av {
+    width: 30px; height: 30px; border-radius: 50%;
+    background: linear-gradient(135deg, #4E6A85 0%, #7C7B6E 100%);
+    color: #fff;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 700;
+  }
+  .bpx-hero .by-line .who { font-size: 12px; font-weight: 600; color: var(--label); letter-spacing: -0.1px; line-height: 1.15; }
+  .bpx-hero .by-line .sub { font-size: 10.5px; color: var(--label-3); letter-spacing: -0.05px; margin: 1px 0 0; }
+  .bpx-hero .by-line .sub .em { color: var(--label-2); font-weight: 500; }
+  .bpx-hero h1 {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-style: italic;
+    font-size: 18px; font-weight: 500; letter-spacing: -0.3px;
+    color: var(--label); margin: 0 0 6px; line-height: 1.2;
+    text-wrap: balance;
+  }
+  .bpx-hero .meta-line { font-size: 11px; color: var(--label-3); letter-spacing: -0.05px; margin: 0; }
+  .bpx-hero .meta-line .em { color: var(--label-2); font-weight: 500; }
+  .bpx-hero .progress {
+    margin-top: 10px;
+    height: 6px; background: var(--gray-5); border-radius: 3px;
+    overflow: hidden;
+  }
+  .bpx-hero .progress .bar {
+    height: 100%;
+    background: linear-gradient(90deg, var(--ios-green) 0%, var(--ios-blue) 100%);
+    border-radius: 3px;
+  }
+  .bpx-hero .progress-meta {
+    display: flex; justify-content: space-between; align-items: baseline;
+    margin-top: 6px;
+    font-size: 10px; color: var(--label-3);
+    letter-spacing: -0.05px;
+  }
+  .bpx-hero .progress-meta .em { color: var(--label-2); font-weight: 600; font-variant-numeric: tabular-nums; }
+
+  .bpx-filter {
+    display: flex; gap: 6px;
+    padding: 10px 16px 11px;
+    background: #FFFFFF;
+    border-bottom: 0.5px solid var(--gray-5);
+    overflow-x: hidden;
+  }
+  .bpx-filter .chip {
+    flex-shrink: 0;
+    padding: 4px 11px;
+    border-radius: 999px;
+    background: var(--gray-6);
+    border: 0.5px solid var(--gray-5);
+    font-size: 11px; font-weight: 500;
+    color: var(--label-2); letter-spacing: -0.05px;
+  }
+  .bpx-filter .chip.on {
+    background: var(--ios-blue); color: #fff; border-color: var(--ios-blue);
+  }
+  .bpx-filter .chip .n { color: var(--label-3); margin-left: 4px; font-variant-numeric: tabular-nums; }
+  .bpx-filter .chip.on .n { color: rgba(255,255,255,0.78); }
+
+  .bpx-list {
+    flex: 1; min-height: 0;
+    overflow: hidden;
+    padding: 10px 12px 14px;
+    display: flex; flex-direction: column; gap: 8px;
+    background: var(--gray-6);
+  }
+
+  .step-row {
+    background: #FFFFFF;
+    border: 0.5px solid var(--gray-5);
+    border-radius: 12px;
+    padding: 10px 12px;
+    display: grid;
+    grid-template-columns: 28px 1fr auto;
+    column-gap: 10px;
+    align-items: center;
+  }
+  .step-row .num {
+    width: 28px; height: 28px; border-radius: 50%;
+    background: var(--gray-6);
+    color: var(--label-2);
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums;
+    border: 0.5px solid var(--gray-5);
+  }
+  .step-row.done .num {
+    background: var(--ios-green); color: #fff; border-color: var(--ios-green);
+  }
+  .step-row.current .num {
+    background: var(--ios-blue); color: #fff; border-color: var(--ios-blue);
+    box-shadow: 0 0 0 3px var(--ios-blue-tint);
+  }
+  .step-row.added .num {
+    background: var(--ios-blue-tint); color: var(--ios-blue-deep); border-color: var(--ios-blue-strong);
+  }
+  .step-row .ttl {
+    font-size: 13px; font-weight: 600;
+    color: var(--label); letter-spacing: -0.1px;
+    margin: 0; line-height: 1.2;
+  }
+  .step-row .meta {
+    font-size: 10.5px; color: var(--label-3);
+    letter-spacing: -0.05px;
+    margin: 2px 0 0;
+  }
+  .step-row .meta .em { color: var(--label-2); font-weight: 500; }
+  .step-row .add {
+    background: var(--ios-blue); color: #fff;
+    border: 0; border-radius: 999px;
+    padding: 5px 11px 5px 9px;
+    font-size: 11px; font-weight: 600;
+    display: inline-flex; align-items: center; gap: 3px;
+    letter-spacing: -0.05px;
+  }
+  .step-row .add i { font-size: 12px; }
+  .step-row .pill-st {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 3px 9px 3px 7px;
+    border-radius: 999px;
+    font-size: 10px; font-weight: 700;
+    letter-spacing: 0.4px; text-transform: uppercase;
+  }
+  .step-row .pill-st.done { background: var(--ios-green-tint); color: var(--ios-green-deep); border: 0.5px solid var(--ios-green-soft); }
+  .step-row .pill-st.now  { background: var(--ios-blue-tint);  color: var(--ios-blue-deep);  border: 0.5px solid var(--ios-blue-strong); }
+  .step-row .pill-st.next { background: var(--gray-6); color: var(--label-2); border: 0.5px solid var(--gray-5); }
+  .step-row .pill-st i { font-size: 9px; }
+
+  .step-row.divider {
+    background: transparent;
+    border: 0;
+    padding: 8px 4px 4px;
+    display: block;
+    font-size: 9.5px; font-weight: 700;
+    color: var(--label-3); letter-spacing: 0.7px; text-transform: uppercase;
+  }
+
+  /* === FLEET-PLANS-SPECIFIC === */
+  .fleet-screen .fleet-hero {
+    background: #FFFFFF;
+    border-bottom: 0.5px solid var(--gray-5);
+    padding: 12px 16px 14px;
+  }
+  .fleet-screen .fleet-hero .eye {
+    font-size: 10px; font-weight: 700;
+    color: var(--ios-green-deep); letter-spacing: 0.8px;
+    text-transform: uppercase;
+    margin: 0 0 6px;
+    display: inline-flex; align-items: center; gap: 5px;
+  }
+  .fleet-screen .fleet-hero .eye i { font-size: 12px; }
+  .fleet-screen .fleet-hero h1 {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-style: italic;
+    font-size: 18px; font-weight: 500; letter-spacing: -0.3px;
+    color: var(--label); margin: 0 0 6px; line-height: 1.2;
+  }
+  .fleet-screen .fleet-hero .meta { font-size: 11px; color: var(--label-3); margin: 0; letter-spacing: -0.05px; }
+  .fleet-screen .fleet-hero .meta .em { color: var(--label-2); font-weight: 500; }
+  .fleet-screen .fleet-hero .summary {
+    display: flex; gap: 8px;
+    margin: 11px 0 0;
+  }
+  .fleet-screen .fleet-hero .stat {
+    flex: 1;
+    background: var(--gray-6);
+    border-radius: 9px;
+    padding: 7px 10px;
+    border: 0.5px solid var(--gray-5);
+  }
+  .fleet-screen .fleet-hero .stat .n {
+    font-size: 15px; font-weight: 700;
+    color: var(--label); letter-spacing: -0.3px;
+    font-variant-numeric: tabular-nums;
+  }
+  .fleet-screen .fleet-hero .stat .l {
+    font-size: 8.5px; font-weight: 700;
+    color: var(--label-3); letter-spacing: 0.5px;
+    text-transform: uppercase; margin-top: 2px;
+  }
+
+  .fleet-list {
+    flex: 1; min-height: 0;
+    overflow: hidden;
+    padding: 10px 12px 14px;
+    display: flex; flex-direction: column; gap: 8px;
+    background: var(--gray-6);
+  }
+
+  .peer-card {
+    background: #FFFFFF;
+    border: 0.5px solid var(--gray-5);
+    border-radius: 12px;
+    padding: 10px 12px;
+    display: grid;
+    grid-template-columns: 36px 1fr auto;
+    column-gap: 10px;
+    row-gap: 6px;
+    align-items: center;
+  }
+  .peer-card .av {
+    width: 36px; height: 36px; border-radius: 50%;
+    background: linear-gradient(135deg, #4E6A85 0%, #7C7B6E 100%);
+    color: #fff;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 700;
+    grid-row: 1 / span 2;
+  }
+  .peer-card .av.g  { background: linear-gradient(135deg, #5A8C6A 0%, #3E6C4E 100%); }
+  .peer-card .av.p  { background: linear-gradient(135deg, #7C5E9A 0%, #5C3F7A 100%); }
+  .peer-card .av.h  { background: linear-gradient(135deg, #6B5E48 0%, #4A3F2E 100%); }
+  .peer-card .av.c  { background: linear-gradient(135deg, #C28A2A 0%, #8E6320 100%); }
+  .peer-card .who-line {
+    display: flex; align-items: baseline; gap: 6px;
+  }
+  .peer-card .who-line .who { font-size: 13px; font-weight: 600; color: var(--label); letter-spacing: -0.1px; }
+  .peer-card .who-line .where { font-size: 10.5px; color: var(--label-3); letter-spacing: -0.05px; }
+  .peer-card .what { font-size: 11.5px; color: var(--label-2); letter-spacing: -0.05px; margin: 0; line-height: 1.35; }
+  .peer-card .what .em { color: var(--label); font-weight: 500; }
+  .peer-card .right-side {
+    grid-row: 1 / span 2;
+    align-self: center;
+    display: flex; flex-direction: column; align-items: flex-end; gap: 4px;
+  }
+  .peer-card .progress-mini {
+    width: 62px; height: 5px;
+    background: var(--gray-5);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .peer-card .progress-mini .b {
+    height: 100%;
+    background: linear-gradient(90deg, var(--ios-green), var(--ios-blue));
+    border-radius: 3px;
+  }
+  .peer-card .step-tag {
+    font-size: 9.5px; font-weight: 700;
+    color: var(--label-3); letter-spacing: 0.3px;
+    font-variant-numeric: tabular-nums;
+    text-transform: uppercase;
+  }
+  .peer-card .step-tag .em { color: var(--label-2); }
+  .peer-card .status-chip {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 2px 8px 2px 6px;
+    border-radius: 999px;
+    font-size: 9.5px; font-weight: 700;
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
+  }
+  .peer-card .status-chip i { font-size: 9px; }
+  .peer-card .status-chip.active { background: var(--ios-blue-tint); color: var(--ios-blue-deep); border: 0.5px solid var(--ios-blue-strong); }
+  .peer-card .status-chip.ahead  { background: var(--ios-green-tint); color: var(--ios-green-deep); border: 0.5px solid var(--ios-green-soft); }
+  .peer-card .status-chip.done   { background: var(--gray-6); color: var(--label-2); border: 0.5px solid var(--gray-5); }
+
+  /* === STEP-TALK-SPECIFIC === */
+  .talk-screen .talk-hero {
+    background: #FFFFFF;
+    border-bottom: 0.5px solid var(--gray-5);
+    padding: 12px 16px 12px;
+  }
+  .talk-screen .talk-hero .pre {
+    font-size: 9.5px; font-weight: 700;
+    color: var(--ios-blue); letter-spacing: 0.7px;
+    text-transform: uppercase;
+    margin: 0 0 4px;
+  }
+  .talk-screen .talk-hero h1 {
+    font-size: 17px; font-weight: 600;
+    color: var(--label); letter-spacing: -0.3px;
+    margin: 0 0 6px; line-height: 1.18;
+    text-wrap: balance;
+  }
+  .talk-screen .talk-hero .meta { font-size: 11px; color: var(--label-3); margin: 0; letter-spacing: -0.05px; }
+  .talk-screen .talk-hero .meta .em { color: var(--label-2); font-weight: 500; }
+  .talk-screen .talk-hero .here-now {
+    display: flex; align-items: center; gap: 8px;
+    margin: 10px 0 0;
+    padding: 9px 11px;
+    background: var(--ios-coral-tint);
+    border: 0.5px solid var(--ios-coral-soft);
+    border-radius: 11px;
+  }
+  .talk-screen .talk-hero .here-now .av-stack { display: inline-flex; }
+  .talk-screen .talk-hero .here-now .av-stack .a {
+    width: 20px; height: 20px; border-radius: 50%;
+    background: linear-gradient(135deg, #4E6A85 0%, #7C7B6E 100%);
+    color: #fff;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 8.5px; font-weight: 700; border: 1.5px solid #fff;
+  }
+  .talk-screen .talk-hero .here-now .av-stack .a + .a { margin-left: -7px; }
+  .talk-screen .talk-hero .here-now .av-stack .a.g  { background: linear-gradient(135deg, #5A8C6A 0%, #3E6C4E 100%); }
+  .talk-screen .talk-hero .here-now .av-stack .a.p  { background: linear-gradient(135deg, #7C5E9A 0%, #5C3F7A 100%); }
+  .talk-screen .talk-hero .here-now .av-stack .a.h  { background: linear-gradient(135deg, #6B5E48 0%, #4A3F2E 100%); }
+  .talk-screen .talk-hero .here-now .text {
+    font-size: 11px; color: var(--ios-coral-deep);
+    letter-spacing: -0.05px;
+    line-height: 1.35;
+  }
+  .talk-screen .talk-hero .here-now .text .em { font-weight: 700; }
+
+  .talk-tabs {
+    display: flex; gap: 4px;
+    padding: 0 14px;
+    background: #FFFFFF;
+    border-bottom: 0.5px solid var(--gray-5);
+  }
+  .talk-tabs .ptab {
+    padding: 9px 9px 11px;
+    font-size: 12.5px; font-weight: 500;
+    color: var(--label-3); letter-spacing: -0.05px;
+    position: relative;
+  }
+  .talk-tabs .ptab.on { color: var(--ios-coral-deep); font-weight: 600; }
+  .talk-tabs .ptab.on::after {
+    content: ""; position: absolute; left: 9px; right: 9px; bottom: -0.5px;
+    height: 2px; background: var(--ios-coral); border-radius: 2px;
+  }
+  .talk-tabs .ptab .count {
+    margin-left: 4px;
+    font-size: 10.5px; color: var(--label-3);
+    font-variant-numeric: tabular-nums;
+  }
+  .talk-tabs .ptab.on .count { color: var(--ios-coral); }
+
+  .talk-feed {
+    flex: 1; min-height: 0;
+    overflow: hidden;
+    padding: 10px 12px 60px;
+    display: flex; flex-direction: column; gap: 8px;
+    background: var(--gray-6);
+  }
+
+  .note-card {
+    background: #FFFFFF;
+    border: 0.5px solid var(--gray-5);
+    border-radius: 12px;
+    padding: 10px 12px 11px;
+  }
+  .note-card .head-row {
+    display: flex; align-items: center; gap: 8px;
+    margin: 0 0 6px;
+  }
+  .note-card .av-sm {
+    width: 26px; height: 26px; border-radius: 50%;
+    background: linear-gradient(135deg, #4E6A85 0%, #7C7B6E 100%);
+    color: #fff;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 10px; font-weight: 700;
+  }
+  .note-card .av-sm.g  { background: linear-gradient(135deg, #5A8C6A 0%, #3E6C4E 100%); }
+  .note-card .av-sm.p  { background: linear-gradient(135deg, #7C5E9A 0%, #5C3F7A 100%); }
+  .note-card .av-sm.h  { background: linear-gradient(135deg, #6B5E48 0%, #4A3F2E 100%); }
+  .note-card .who { font-size: 12px; font-weight: 600; color: var(--label); letter-spacing: -0.1px; }
+  .note-card .when { font-size: 10px; color: var(--label-3); letter-spacing: -0.05px; margin-left: auto; }
+  .note-card .sub-who { font-size: 10px; color: var(--label-3); letter-spacing: -0.05px; }
+  .note-card .body {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 12.5px; line-height: 1.45;
+    color: var(--label-2); letter-spacing: -0.02px;
+    margin: 0 0 8px; font-style: italic;
+    text-wrap: pretty;
+  }
+  .note-card .body .em { color: var(--label); font-weight: 600; font-style: normal; }
+  .note-card .evidence-row {
+    display: flex; gap: 6px; margin: 0 0 8px;
+  }
+  .note-card .ev-chip {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 3px 8px 3px 6px;
+    border-radius: 999px;
+    background: var(--gray-6);
+    border: 0.5px solid var(--gray-5);
+    font-size: 10px; color: var(--label-2);
+    letter-spacing: -0.05px;
+  }
+  .note-card .ev-chip i { font-size: 11px; color: var(--label-3); }
+  .note-card .reaction-row {
+    display: flex; align-items: center; gap: 8px;
+    padding: 7px 0 0;
+    border-top: 0.5px solid var(--gray-5);
+  }
+  .note-card .react {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 3px 8px 3px 6px;
+    border-radius: 999px;
+    background: var(--gray-6); border: 0.5px solid var(--gray-5);
+    font-size: 10.5px; color: var(--label-2);
+    letter-spacing: -0.05px;
+  }
+  .note-card .react i { font-size: 11px; }
+  .note-card .react.on  { background: var(--ios-coral-tint); color: var(--ios-coral-deep); border-color: var(--ios-coral-soft); }
+  .note-card .react.on i { color: var(--ios-coral); }
+  .note-card .react-spacer { flex: 1; }
+  .note-card .reply {
+    background: none; border: 0; padding: 3px 6px;
+    color: var(--ios-blue); font-size: 11px; font-weight: 500;
+    letter-spacing: -0.05px;
+  }
+  .note-card .reply i { font-size: 12px; vertical-align: -2px; }
+
+  .note-card .threaded-reply {
+    margin-top: 8px;
+    padding: 8px 10px;
+    background: var(--gray-6);
+    border-radius: 9px;
+    display: grid;
+    grid-template-columns: 22px 1fr;
+    column-gap: 8px;
+    align-items: flex-start;
+  }
+  .note-card .threaded-reply .av-xs {
+    width: 22px; height: 22px; border-radius: 50%;
+    background: linear-gradient(135deg, #4E6A85 0%, #7C7B6E 100%);
+    color: #fff;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 9px; font-weight: 700;
+  }
+  .note-card .threaded-reply .av-xs.coach { background: linear-gradient(135deg, #C28A2A 0%, #8E6320 100%); }
+  .note-card .threaded-reply .who-r {
+    font-size: 11px; font-weight: 600; color: var(--label); letter-spacing: -0.1px;
+  }
+  .note-card .threaded-reply .who-r .coach-pip {
+    display: inline-flex; align-items: center;
+    background: #C28A2A; color: #fff;
+    font-size: 7.5px; font-weight: 700; letter-spacing: 0.4px;
+    padding: 1px 5px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    margin-left: 5px;
+    vertical-align: 1px;
+  }
+  .note-card .threaded-reply .body-r {
+    font-size: 11px; color: var(--label-2);
+    letter-spacing: -0.05px;
+    line-height: 1.4;
+    margin: 2px 0 0;
+  }
+  .note-card .threaded-reply .body-r .em { color: var(--label); font-weight: 600; }
+
+  /* composer at the bottom */
+  .composer-bar {
+    position: absolute;
+    left: 0; right: 0; bottom: 84px;
+    background: rgba(255,255,255,0.96);
+    border-top: 0.5px solid var(--gray-5);
+    padding: 9px 12px;
+    display: grid;
+    grid-template-columns: 26px 1fr 28px 28px;
+    column-gap: 8px;
+    align-items: center;
+    z-index: 20;
+    backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+  }
+  .composer-bar .av-me {
+    width: 26px; height: 26px; border-radius: 50%;
+    background: linear-gradient(135deg, #4E6A85 0%, #7C7B6E 100%);
+    color: #fff;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 10px; font-weight: 700;
+  }
+  .composer-bar .input {
+    background: var(--gray-6);
+    border: 0.5px solid var(--gray-5);
+    border-radius: 999px;
+    padding: 7px 12px;
+    font-size: 12.5px; color: var(--label-3);
+    letter-spacing: -0.05px;
+  }
+  .composer-bar .ic {
+    width: 28px; height: 28px;
+    display: inline-flex; align-items: center; justify-content: center;
+    color: var(--ios-blue);
+  }
+  .composer-bar .ic i { font-size: 18px; }
+</style>
+</head>
+<body>
+
+<div class="page">
+
+  <header class="page-head">
+    <p class="eyebrow">BetterAt · Dragon Worlds About → Free Blueprint → App Install · Canonical · 2026-05-18</p>
+    <h1>From the <em>Dragon Worlds event app</em> About page to <em>BetterAt installed on your phone</em> — a five-phase journey</h1>
+    <p>The screenshot the team is iterating on is the BetterAt-authored <em>About</em> surface that lives inside the host event app for the Hong Kong Dragon Worlds 2027. From here, a verified competitor needs to (1) tap into the redeem, (2) accept the offer on web, (3) land on their first Practice step in mobile Safari, (4) install the native BetterAt app, and (5) re-open in native with the blueprint already subscribed. We treat the journey as <strong>web-first</strong>: the user never has to install before getting value, and the install happens only after they've felt the win. <em>The whole flow can complete in under two minutes; the first three phases work without any download at all.</em></p>
+    <div class="crumbs">
+      <span class="pill">iPhone · 393 × 852</span>
+      <span class="sep">·</span>
+      <span class="pill">Entry · <em>host event app · About tab · BetterAt section</em></span>
+      <span class="sep">·</span>
+      <span class="pill">Exit · <em>native BetterAt · Practice tab · Step 1 of 12</em></span>
+      <span class="sep">·</span>
+      <span class="pill">Extends · <em>phase-10-hkdw-onboarding</em></span>
+    </div>
+  </header>
+
+  <section class="decisions-bar">
+    <div class="dec">
+      <h5>D-DW1 · Verification is implicit</h5>
+      <p>The user reached this About surface from <strong>inside</strong> the regatta app — they're already authenticated as a competitor. No re-verification, no card, no form. The token is bound to the event-app user id on the way out.</p>
+    </div>
+    <div class="dec">
+      <h5>D-DW2 · CTA wording is one promise</h5>
+      <p><em>"Open my Worlds 2027 prep plan"</em> · not "Sign up" or "Try BetterAt". The word <strong>my</strong> says the plan already exists for them; <em>prep plan</em> names the shape.</p>
+    </div>
+    <div class="dec">
+      <h5>D-DW3 · Web does the welcome, not the app</h5>
+      <p>The accept happens on <span class="inline-code">better.at/r/[token]</span> — no app required. The very first action (Step 1 Plan view) renders in mobile Safari with the same components as native.</p>
+    </div>
+    <div class="dec">
+      <h5>D-DW4 · Install asks only once</h5>
+      <p>A pinned smart-app banner sits at the top of every web page after redeem. <strong>One tap</strong> drops the App Store sheet over the surface; if dismissed, the banner stays put for 7 days, never escalates.</p>
+    </div>
+    <div class="dec">
+      <h5>D-DW5 · Universal Link resumes mid-context</h5>
+      <p>After install, opening BetterAt the first time resolves the same redeem URL via iOS Universal Links — same blueprint, same first step, with a quiet green <em>"You're back"</em> toast. <strong>Nothing is re-asked.</strong></p>
+    </div>
+  </section>
+
+  <section class="section-band">
+    <h2><em>Five phases</em> · About page → web redeem → first action → install → native resume</h2>
+    <p class="lede">Read left to right. The first phone is the host event app: BetterAt has authored an About surface that lives inside it. The CTA on that surface is the only doorway out. From there everything is on <strong>better.at</strong> until the user chooses to install — the install moment lives at the right hand side, after value has already been delivered.</p>
+
+    <div class="flow-row">
+
+      <!-- PHASE 1 · Dragon Worlds event app · About BetterAt -->
+      <div class="pane about">
+        <div class="phase-eye"><span class="pip">1</span>Inside the event app</div>
+        <p class="phase-title">Host app · <em>About BetterAt</em></p>
+        <p class="phase-sub">The About surface BetterAt authors inside the event app. One purple eyebrow, one bold promise, three honest checks, one purple CTA. <em>Verified Dragon Worlds 2027 competitors only.</em></p>
+
+        <div class="phone-wrap">
+          <div class="phone dw-phone">
+            <div class="notch"></div>
+            <div class="statusbar"><span>6:27</span><span class="right"><i class="ti ti-cell-signal-4"></i><i class="ti ti-wifi"></i><i class="ti ti-battery-3"></i></span></div>
+
+            <div class="screen" data-screen-label="01 Event app · About BetterAt">
+
+              <div class="dw-topbar">
+                <span class="back"><i class="ti ti-chevron-left"></i></span>
+              </div>
+
+              <div class="dw-scroll">
+
+                <div class="dw-brand-block">
+                  <span class="ba-glyph">
+                    <span class="b">b</span>
+                    <span class="ul"></span>
+                  </span>
+                  <h1>BetterAt</h1>
+                  <p class="tag">Get better at what matters.</p>
+                </div>
+
+                <article class="dw-offer-card">
+                  <p class="edition-eye">
+                    <i class="ti ti-sparkles"></i>
+                    The Dragon Worlds Edition
+                  </p>
+                  <h2>Your Worlds 2027 prep plan, on us.</h2>
+                  <p class="lede">Built for Dragon sailors heading to Hong Kong 2027 — free for verified competitors.</p>
+
+                  <ul class="check-list">
+                    <li>
+                      <span class="seal"><i class="ti ti-rosette-discount-check-filled"></i></span>
+                      <span class="text">A coach-built <span class="bold">Worlds 2027 prep-plan Blueprint</span>, tailored to your boat and crew</span>
+                    </li>
+                    <li>
+                      <span class="seal"><i class="ti ti-rosette-discount-check-filled"></i></span>
+                      <span class="text"><span class="bold">90 days of BetterAt Pro</span> — race tracking, debriefs, and crew tools</span>
+                    </li>
+                    <li>
+                      <span class="seal"><i class="ti ti-rosette-discount-check-filled"></i></span>
+                      <span class="text">Free for verified Dragon Worlds 2027 competitors. <span class="bold">No card required.</span></span>
+                    </li>
+                  </ul>
+
+                  <button class="cta-purple">
+                    Open my Worlds 2027 prep plan
+                    <i class="ti ti-arrow-up-right"></i>
+                  </button>
+                </article>
+
+                <p class="dw-fineprint">Verified Dragon Worlds 2027 competitors get 90 days of BetterAt Pro free.</p>
+
+                <p class="dw-body-copy">BetterAt is a deliberate-practice platform — track what you're working to get better at, in one place. Sailing, school, career, hobbies: same structure, your progress.</p>
+              </div>
+
+              <nav class="dw-tabbar">
+                <span class="t"><i class="ti ti-calendar"></i>Schedule</span>
+                <span class="t"><i class="ti ti-file-text"></i>Notices</span>
+                <span class="t"><i class="ti ti-ship"></i>Boat</span>
+                <span class="t"><i class="ti ti-message-2"></i>Discuss</span>
+                <span class="t"><i class="ti ti-clipboard"></i>Forms</span>
+                <span class="t more"><span class="dots">⋯</span>More</span>
+              </nav>
+            </div>
+            <div class="home-indicator"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="flow-arrow">
+        <svg viewBox="0 0 40 40" width="32" height="32" fill="none">
+          <path d="M 4 20 L 32 20 M 26 14 L 32 20 L 26 26" stroke="#5856D6" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"></path>
+        </svg>
+        <p class="label">tap CTA<br/>opens better.at/r/<br/>HKDW-WLDS-2027</p>
+      </div>
+
+      <!-- PHASE 2 · Web redeem -->
+      <div class="pane redeem">
+        <div class="phase-eye"><span class="pip">2</span>Web redeem</div>
+        <p class="phase-title">Safari · <em>better.at/r/[token]</em></p>
+        <p class="phase-sub">No app needed. Italic-serif welcome, BetterAt mark, coach byline, blueprint preview, fleet badge. One primary CTA. No tabbar — the user hasn't entered BetterAt yet.</p>
+
+        <div class="phone-wrap">
+          <div class="phone safari-phone">
+            <div class="notch"></div>
+            <div class="statusbar"><span>6:27</span><span class="right"><i class="ti ti-cell-signal-4"></i><i class="ti ti-wifi"></i><i class="ti ti-battery-3"></i></span></div>
+
+            <div class="screen" data-screen-label="02 Safari · Redeem landing">
+
+              <div class="safari-url-bar">
+                <span class="ic-l"><i class="ti ti-typography"></i></span>
+                <span class="url">
+                  <i class="ti ti-lock"></i>
+                  <span class="host">better.at</span><span class="path">/r/HKDW-WLDS-2027-7T3</span>
+                </span>
+                <span class="ic-r"><i class="ti ti-refresh"></i></span>
+              </div>
+
+              <div class="safari-content">
+                <article class="redeem-page">
+
+                  <div class="pill-row">
+                    <span class="welcome-pill">
+                      <i class="ti ti-sparkles"></i>
+                      Welcoming you · 90 days free
+                    </span>
+                    <button class="not-now">Not now</button>
+                  </div>
+
+                  <section class="hero">
+                    <div style="display:flex; justify-content:center;">
+                      <span class="ba-glyph">
+                        <span class="b">b</span>
+                        <span class="ul"></span>
+                      </span>
+                    </div>
+                    <p class="by-name"><span class="em">Kevin Denney</span>, your Worlds coach, is welcoming you to</p>
+                    <h1>"Prepare for the Dragon Worlds 2027."</h1>
+                    <p class="sub-h">A path through the conditions you'll race in November — boat speed, heavy-air helm work, starts, fleet tactics.</p>
+                  </section>
+
+                  <section class="blueprint-preview-w">
+                    <div class="pre-head">
+                      <span class="lbl">Your blueprint</span>
+                      <span class="meta-pre">Updated April · v3.2</span>
+                    </div>
+                    <div class="stats">
+                      <div class="stat"><div class="n">12</div><div class="l">Steps</div></div>
+                      <div class="stat"><div class="n">6</div><div class="l">Months</div></div>
+                      <div class="stat"><div class="n">5</div><div class="l">Capabilities</div></div>
+                    </div>
+                    <div class="caps">
+                      <span class="cc">heavy-air helm</span>
+                      <span class="cc">starts</span>
+                      <span class="cc">wind reading</span>
+                      <span class="cc">tactical</span>
+                      <span class="cc">crew comms</span>
+                    </div>
+                  </section>
+
+                  <section class="fleet-badge-w">
+                    <span class="av-stack">
+                      <span class="a">PL</span>
+                      <span class="a g">BV</span>
+                      <span class="a p">SN</span>
+                      <span class="a h">KH</span>
+                    </span>
+                    <div>
+                      <p class="nm">63 Worlds sailors already started</p>
+                      <p class="desc">Same race · same conditions · same fleet</p>
+                    </div>
+                  </section>
+
+                  <button class="cta-primary">
+                    Accept &amp; start preparing
+                    <i class="ti ti-arrow-right"></i>
+                  </button>
+                  <p class="priv"><span class="em">Free for 90 days · then $9/mo</span> · cancel anytime · no card now</p>
+
+                </article>
+
+                <div class="safari-toolbar">
+                  <span class="ic dim"><i class="ti ti-chevron-left"></i></span>
+                  <span class="ic dim"><i class="ti ti-chevron-right"></i></span>
+                  <span class="ic"><i class="ti ti-upload"></i></span>
+                  <span class="ic"><i class="ti ti-book"></i></span>
+                  <span class="ic"><i class="ti ti-stack-2"></i></span>
+                </div>
+              </div>
+
+            </div>
+            <div class="home-indicator"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="flow-arrow">
+        <svg viewBox="0 0 40 40" width="32" height="32" fill="none">
+          <path d="M 4 20 L 32 20 M 26 14 L 32 20 L 26 26" stroke="#007AFF" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"></path>
+        </svg>
+        <p class="label">Accept<br/>blueprint<br/>subscribed</p>
+      </div>
+
+      <!-- PHASE 3 · Web Plan view -->
+      <div class="pane web-plan">
+        <div class="phase-eye"><span class="pip">3</span>First action · web</div>
+        <p class="phase-title">Safari · <em>Practice · Step 1 loaded</em></p>
+        <p class="phase-sub">Smart-app banner pinned at top. Purple welcome toast names the source. Step 1 is pre-loaded in Plan view. <em>The user is already in.</em></p>
+
+        <div class="phone-wrap">
+          <div class="phone safari-phone">
+            <div class="notch"></div>
+            <div class="statusbar"><span>6:28</span><span class="right"><i class="ti ti-cell-signal-4"></i><i class="ti ti-wifi"></i><i class="ti ti-battery-3"></i></span></div>
+
+            <div class="screen" data-screen-label="03 Safari · First action with smart-banner">
+
+              <div class="safari-url-bar">
+                <span class="ic-l"><i class="ti ti-typography"></i></span>
+                <span class="url">
+                  <i class="ti ti-lock"></i>
+                  <span class="host">better.at</span><span class="path">/practice/step/boat-speed</span>
+                </span>
+                <span class="ic-r"><i class="ti ti-refresh"></i></span>
+              </div>
+
+              <div class="smart-banner">
+                <span class="close-x"><i class="ti ti-x"></i></span>
+                <span class="ba-glyph sm">
+                  <span class="b">b</span>
+                  <span class="ul"></span>
+                </span>
+                <div class="copy">
+                  <p class="nm">BetterAt</p>
+                  <p class="sub">Open in app for voice capture &amp; offline</p>
+                </div>
+                <button class="open-btn">Install</button>
+              </div>
+
+              <div class="web-tabs">
+                <span class="t on"><i class="ti ti-flag-3-filled" style="font-size: 14px;"></i>Practice</span>
+                <span class="t">Playbook</span>
+                <span class="t">Discover</span>
+                <span class="t">Profile</span>
+              </div>
+
+              <div class="web-page-body">
+
+                <div class="welcome-toast-w">
+                  <span class="glyph"><i class="ti ti-sparkles"></i></span>
+                  <div>
+                    <p class="ttl">You're subscribed to Kevin's HKDW blueprint</p>
+                    <p class="sub">12 steps · 90 days free · 63 sailors with you</p>
+                  </div>
+                  <span class="x"><i class="ti ti-x"></i></span>
+                </div>
+
+                <article class="web-step-card">
+
+                  <header class="step-head">
+                    <div class="pill-blue">
+                      <span class="dot"></span>
+                      <span class="label">Your first step</span>
+                    </div>
+                    <span class="counter">Step 1 of 12</span>
+                  </header>
+
+                  <div class="step-strip-w">
+                    <span class="ico"><i class="ti ti-trophy"></i></span>
+                    <span class="text"><span class="em">HKDW Prep</span><span class="sep">·</span>Week 1 of 24</span>
+                  </div>
+
+                  <section class="title-block">
+                    <p class="pre">Current step</p>
+                    <h2>Boat-speed baseline · all points of sail</h2>
+                    <p class="from">From <span class="em">Kevin's Prepare for the Worlds</span></p>
+                  </section>
+
+                  <div class="phase-row">
+                    <span class="ptab on">Plan</span>
+                    <span class="ptab">Do</span>
+                    <span class="ptab">Reflect</span>
+                  </div>
+
+                  <div class="field">
+                    <p class="field-eye"><i class="ti ti-bulb"></i>What will you do?</p>
+                    <p class="placeholder">Sail your boat for one hour, recording target speeds on each point of sail in 8–12 kt of breeze…</p>
+                  </div>
+
+                  <div class="field">
+                    <p class="field-eye"><i class="ti ti-list"></i>How will you do it?</p>
+                    <p class="placeholder">Sub-steps from Kevin's blueprint will appear here…</p>
+                  </div>
+
+                  <div class="install-hint">
+                    <i class="ti ti-microphone"></i>
+                    <span class="text"><span class="em">Voice capture</span> works in the BetterAt app — install when you're heading out on the water.</span>
+                  </div>
+
+                </article>
+              </div>
+
+              <div class="safari-toolbar">
+                <span class="ic"><i class="ti ti-chevron-left"></i></span>
+                <span class="ic dim"><i class="ti ti-chevron-right"></i></span>
+                <span class="ic"><i class="ti ti-upload"></i></span>
+                <span class="ic"><i class="ti ti-book"></i></span>
+                <span class="ic"><i class="ti ti-stack-2"></i></span>
+              </div>
+
+            </div>
+            <div class="home-indicator"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="flow-arrow">
+        <svg viewBox="0 0 40 40" width="32" height="32" fill="none">
+          <path d="M 4 20 L 32 20 M 26 14 L 32 20 L 26 26" stroke="#0F172A" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"></path>
+        </svg>
+        <p class="label">tap Install<br/>App Store sheet<br/>rises</p>
+      </div>
+
+      <!-- PHASE 4 · App Store -->
+      <div class="pane appstore">
+        <div class="phase-eye"><span class="pip">4</span>App Store sheet</div>
+        <p class="phase-title">Native iOS · <em>App Store sheet over Safari</em></p>
+        <p class="phase-sub">iOS rises the standard App Store overlay. We author the App-Store listing copy and the green <em>"Your blueprint will follow you"</em> resume promise at the bottom.</p>
+
+        <div class="phone-wrap">
+          <div class="phone appstore-phone">
+            <div class="notch"></div>
+            <div class="statusbar"><span>6:28</span><span class="right"><i class="ti ti-cell-signal-4"></i><i class="ti ti-wifi"></i><i class="ti ti-battery-3"></i></span></div>
+
+            <div class="screen" data-screen-label="04 App Store · install sheet">
+
+              <div class="appstore-back">
+                <div class="blur-glimpse"></div>
+              </div>
+
+              <div class="appstore-sheet">
+                <div class="grabber"></div>
+
+                <div class="top-row">
+                  <span class="ba-glyph lg-rect">
+                    <span class="b">b</span>
+                    <span class="ul"></span>
+                  </span>
+                  <div class="meta">
+                    <p class="nm">BetterAt</p>
+                    <p class="desc">Get better at what matters.</p>
+                    <div class="stars">
+                      <i class="ti ti-star-filled"></i>
+                      <i class="ti ti-star-filled"></i>
+                      <i class="ti ti-star-filled"></i>
+                      <i class="ti ti-star-filled"></i>
+                      <i class="ti ti-star-half-filled"></i>
+                      <span class="count">1.2k ratings</span>
+                    </div>
+                  </div>
+                </div>
+
+                <button class="get-btn">
+                  <i class="ti ti-download"></i>
+                  Get
+                </button>
+                <p class="install-line"><span class="em">Free</span> · In-app purchases · 48 MB</p>
+
+                <ul class="why-list">
+                  <li>
+                    <i class="ti ti-microphone"></i>
+                    <span class="text"><span class="em">Voice capture on the water</span> — hands-free reflections, even offline</span>
+                  </li>
+                  <li>
+                    <i class="ti ti-camera"></i>
+                    <span class="text"><span class="em">Photo &amp; video evidence</span> tagged to the step you're on</span>
+                  </li>
+                  <li>
+                    <i class="ti ti-cloud-off"></i>
+                    <span class="text"><span class="em">Works offline</span> — syncs when you're back in range</span>
+                  </li>
+                </ul>
+
+                <div class="resume-line">
+                  <i class="ti ti-circle-check-filled"></i>
+                  <span class="text"><span class="em">Your blueprint will follow you.</span> Open the app once installed — same Kevin, same step, no re-sign-in.</span>
+                </div>
+              </div>
+
+            </div>
+            <div class="home-indicator"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="flow-arrow">
+        <svg viewBox="0 0 40 40" width="32" height="32" fill="none">
+          <path d="M 4 20 L 32 20 M 26 14 L 32 20 L 26 26" stroke="#34C759" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"></path>
+        </svg>
+        <p class="label">install · open<br/>universal link<br/>resumes context</p>
+      </div>
+
+      <!-- PHASE 5 · Native first launch -->
+      <div class="pane native-app">
+        <div class="phase-eye"><span class="pip">5</span>Native · first launch</div>
+        <p class="phase-title">BetterAt · <em>Practice · Step 1 (native)</em></p>
+        <p class="phase-sub">Universal Link resolves the same redeem URL — same blueprint, same first step. A quiet green <em>"You're back"</em> toast confirms the resume. Nothing is re-asked.</p>
+
+        <div class="phone-wrap">
+          <div class="phone native-phone">
+            <div class="notch"></div>
+            <div class="statusbar"><span>6:29</span><span class="right"><i class="ti ti-cell-signal-4"></i><i class="ti ti-wifi"></i><i class="ti ti-battery-3"></i></span></div>
+
+            <div class="screen" data-screen-label="05 Native BetterAt · resumed">
+
+              <div class="native-top-header">
+                <div class="interest">
+                  <span class="name">Sail Racing</span>
+                  <span class="switcher"><i class="ti ti-chevron-down"></i></span>
+                </div>
+                <span class="step-counter">Step 1 of 12</span>
+                <div class="right-cluster">
+                  <span class="ico"><i class="ti ti-bell"></i></span>
+                  <span class="avatar">KD</span>
+                </div>
+              </div>
+
+              <div class="native-toast">
+                <span class="glyph"><i class="ti ti-circle-check-filled"></i></span>
+                <div>
+                  <p class="ttl">You're back · Kevin's HKDW blueprint loaded</p>
+                  <p class="sub">12 steps · 90 days free · synced from web</p>
+                </div>
+                <span class="x"><i class="ti ti-x"></i></span>
+              </div>
+
+              <article class="native-card">
+
+                <header class="head">
+                  <div class="pill-blue">
+                    <span class="dot"></span>
+                    <span class="label">Your first step</span>
+                  </div>
+                  <span class="menu"><i class="ti ti-dots-vertical"></i></span>
+                </header>
+
+                <div class="strip">
+                  <span class="ico"><i class="ti ti-trophy"></i></span>
+                  <span class="text"><span class="em">HKDW Prep</span><span class="sep">·</span>Week 1 of 24</span>
+                </div>
+
+                <section class="title-block">
+                  <p class="pre">Current step</p>
+                  <h2>Boat-speed baseline · all points of sail</h2>
+                  <p class="from">From <span class="em">Kevin's Prepare for the Worlds</span></p>
+                </section>
+
+                <div class="with-row">
+                  <span class="eye">With</span>
+                  <span class="fleet-chip"><i class="ti ti-anchor"></i>Worlds Fleet · 63 sailors</span>
+                </div>
+
+                <div class="phase-tabs">
+                  <span class="ptab on">Plan</span>
+                  <span class="ptab">Do</span>
+                  <span class="ptab">Reflect</span>
+                </div>
+
+                <div class="body">
+
+                  <div class="ai-helper">
+                    <i class="ti ti-sparkles"></i>
+                    <span>New to BetterAt? <span class="em">Let AI Coach walk you through Step 1</span> →</span>
+                  </div>
+
+                  <div class="field-card">
+                    <div class="field-eye">
+                      <span class="left"><i class="ti ti-bulb"></i>What will you do?</span>
+                      <span class="spark"><i class="ti ti-sparkles"></i></span>
+                    </div>
+                    <p class="placeholder">Sail your boat for one hour, recording target speeds on each point of sail in 8–12 kt of breeze…</p>
+                  </div>
+
+                  <div class="field-card">
+                    <div class="field-eye">
+                      <span class="left"><i class="ti ti-microphone"></i>Capture · voice</span>
+                      <span class="spark"><i class="ti ti-sparkles"></i></span>
+                    </div>
+                    <p class="placeholder">Tap the mic on the water — works offline, syncs back when you have signal.</p>
+                  </div>
+
+                </div>
+              </article>
+
+              <nav class="native-tabbar">
+                <span class="t on"><i class="ti ti-flag-3-filled"></i>Practice</span>
+                <span class="t"><i class="ti ti-book-2"></i>Playbook</span>
+                <span class="t"><i class="ti ti-compass"></i>Discover</span>
+                <span class="t"><i class="ti ti-user-circle"></i>Profile</span>
+              </nav>
+            </div>
+            <div class="home-indicator"></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <section class="section-band">
+    <h2><em>After the join</em> · seeing the full blueprint, peers' plans, and discussion on the step you're on</h2>
+    <p class="lede">Once Step 1 is in their hand, the user wants three things almost immediately: <strong>(A)</strong> a sense of <em>what's coming</em> — the rest of Kevin's blueprint, and the ability to queue more steps; <strong>(B)</strong> a window into <em>what other Worlds sailors are working on right now</em>; and <strong>(C)</strong> a place to <em>compare notes on the step they're on</em>. These three surfaces sit one tap from the step card and from each other.</p>
+
+    <div class="triple-row">
+
+      <!-- ============================================================
+           A · Full blueprint index — all 12 steps, add to my plan
+           ============================================================ -->
+      <div class="pane bp-index">
+        <div class="phase-eye"><span class="pip">A</span>Full blueprint</div>
+        <p class="phase-title">Blueprint index · <em>all 12 steps</em></p>
+        <p class="phase-sub">From the step card top-strip ("HKDW Prep · Week 1 of 24"), tap to expand. Three completed, one current, eight upcoming. Tap <em>Add</em> to queue a future step into your plan now.</p>
+
+        <div class="phone-wrap">
+          <div class="phone native-phone">
+            <div class="notch"></div>
+            <div class="statusbar"><span>9:14</span><span class="right"><i class="ti ti-cell-signal-4"></i><i class="ti ti-wifi"></i><i class="ti ti-battery-3"></i></span></div>
+
+            <div class="screen followup-screen" data-screen-label="A Blueprint index">
+
+              <div class="top-bar">
+                <button class="back"><i class="ti ti-chevron-left"></i>Practice</button>
+                <span class="ttl">Blueprint</span>
+                <span class="right"><i class="ti ti-share-2"></i></span>
+              </div>
+
+              <div class="bpx-hero">
+                <div class="by-row">
+                  <span class="by-av">KD</span>
+                  <div class="by-line">
+                    <p class="who">Kevin Denney</p>
+                    <p class="sub"><span class="em">Worlds-qualified Dragon helm</span> · v3.2</p>
+                  </div>
+                </div>
+                <h1>"Prepare for the Dragon Worlds 2027."</h1>
+                <p class="meta-line">12 steps · 6 months · <span class="em">5 capabilities developed</span></p>
+                <div class="progress"><div class="bar" style="width: 28%;"></div></div>
+                <div class="progress-meta">
+                  <span><span class="em">3</span> completed · <span class="em">1</span> current · <span class="em">8</span> upcoming</span>
+                  <span class="em">Week 7 of 24</span>
+                </div>
+              </div>
+
+              <div class="bpx-filter">
+                <span class="chip on">All<span class="n">12</span></span>
+                <span class="chip">In my plan<span class="n">4</span></span>
+                <span class="chip">Upcoming<span class="n">8</span></span>
+                <span class="chip">Done<span class="n">3</span></span>
+              </div>
+
+              <div class="bpx-list">
+
+                <div class="step-row done">
+                  <span class="num"><i class="ti ti-check" style="font-size: 13px;"></i></span>
+                  <div>
+                    <p class="ttl">Goal-setting · your Worlds outcome</p>
+                    <p class="meta">Week 1 · <span class="em">Done Apr 14</span></p>
+                  </div>
+                  <span class="pill-st done"><i class="ti ti-check"></i>Done</span>
+                </div>
+
+                <div class="step-row done">
+                  <span class="num"><i class="ti ti-check" style="font-size: 13px;"></i></span>
+                  <div>
+                    <p class="ttl">Crew roster &amp; comms baseline</p>
+                    <p class="meta">Week 2 · <span class="em">Done Apr 22</span></p>
+                  </div>
+                  <span class="pill-st done"><i class="ti ti-check"></i>Done</span>
+                </div>
+
+                <div class="step-row done">
+                  <span class="num"><i class="ti ti-check" style="font-size: 13px;"></i></span>
+                  <div>
+                    <p class="ttl">Rig tune · light-air settings</p>
+                    <p class="meta">Week 3 · <span class="em">Done May 03</span></p>
+                  </div>
+                  <span class="pill-st done"><i class="ti ti-check"></i>Done</span>
+                </div>
+
+                <div class="step-row current">
+                  <span class="num">4</span>
+                  <div>
+                    <p class="ttl">Boat-speed baseline · all points of sail</p>
+                    <p class="meta"><span class="em">Current step</span> · Week 7 · due May 22</p>
+                  </div>
+                  <span class="pill-st now"><i class="ti ti-flag-3-filled"></i>Now</span>
+                </div>
+
+                <div class="step-row">
+                  <span class="num">5</span>
+                  <div>
+                    <p class="ttl">Starts · light-air, shifty breeze</p>
+                    <p class="meta">Week 9 · <span class="em">Phyl &amp; Bram are on this</span></p>
+                  </div>
+                  <button class="add"><i class="ti ti-plus"></i>Add</button>
+                </div>
+
+                <div class="step-row">
+                  <span class="num">6</span>
+                  <div>
+                    <p class="ttl">Heavy-air helm work · 25–30 kt</p>
+                    <p class="meta">Week 11 · capability: heavy-air helm</p>
+                  </div>
+                  <button class="add"><i class="ti ti-plus"></i>Add</button>
+                </div>
+
+                <div class="step-row">
+                  <span class="num">7</span>
+                  <div>
+                    <p class="ttl">Local conditions · Victoria Harbour</p>
+                    <p class="meta">Week 13 · <span class="em">on-site practice</span></p>
+                  </div>
+                  <button class="add"><i class="ti ti-plus"></i>Add</button>
+                </div>
+
+                <div class="step-row">
+                  <span class="num">8</span>
+                  <div>
+                    <p class="ttl">Tactical · mark roundings under pressure</p>
+                    <p class="meta">Week 15 · fleet-tactics capability</p>
+                  </div>
+                  <button class="add"><i class="ti ti-plus"></i>Add</button>
+                </div>
+
+              </div>
+
+              <nav class="native-tabbar">
+                <span class="t on"><i class="ti ti-flag-3-filled"></i>Practice</span>
+                <span class="t"><i class="ti ti-book-2"></i>Playbook</span>
+                <span class="t"><i class="ti ti-compass"></i>Discover</span>
+                <span class="t"><i class="ti ti-user-circle"></i>Profile</span>
+              </nav>
+            </div>
+            <div class="home-indicator"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============================================================
+           B · Fleet plans — what other subscribers are doing
+           ============================================================ -->
+      <div class="pane fleet-plan">
+        <div class="phase-eye"><span class="pip">B</span>Fleet plans</div>
+        <p class="phase-title">Worlds Fleet · <em>who's where in the blueprint</em></p>
+        <p class="phase-sub">From the WITH-row chip ("Worlds Fleet · 63 sailors"), tap to see all subscribers' current steps, recent finishes, and progress bars. Filter chips on top, peer cards below.</p>
+
+        <div class="phone-wrap">
+          <div class="phone native-phone">
+            <div class="notch"></div>
+            <div class="statusbar"><span>9:14</span><span class="right"><i class="ti ti-cell-signal-4"></i><i class="ti ti-wifi"></i><i class="ti ti-battery-3"></i></span></div>
+
+            <div class="screen followup-screen fleet-screen" data-screen-label="B Fleet plans">
+
+              <div class="top-bar">
+                <button class="back"><i class="ti ti-chevron-left"></i>Practice</button>
+                <span class="ttl">Worlds Fleet</span>
+                <span class="right"><i class="ti ti-filter"></i></span>
+              </div>
+
+              <div class="fleet-hero">
+                <p class="eye"><i class="ti ti-anchor"></i>Same race · same blueprint</p>
+                <h1>Worlds Fleet · "Prepare for the Worlds"</h1>
+                <p class="meta">63 sailors subscribed · <span class="em">8 in your week</span></p>
+                <div class="summary">
+                  <div class="stat"><div class="n">63</div><div class="l">Subscribed</div></div>
+                  <div class="stat"><div class="n">47</div><div class="l">Active 7d</div></div>
+                  <div class="stat"><div class="n">8</div><div class="l">On Step 4</div></div>
+                </div>
+              </div>
+
+              <div class="bpx-filter" style="border-top: 0;">
+                <span class="chip on">All<span class="n">63</span></span>
+                <span class="chip">On Step 4<span class="n">8</span></span>
+                <span class="chip">Ahead<span class="n">11</span></span>
+                <span class="chip">Behind<span class="n">19</span></span>
+              </div>
+
+              <div class="fleet-list">
+
+                <div class="peer-card">
+                  <span class="av g">PL</span>
+                  <div class="who-line">
+                    <span class="who">Phyl Loong</span>
+                    <span class="where">RHKYC · HKG-12</span>
+                  </div>
+                  <p class="what">On <span class="em">Step 4 · Boat-speed baseline</span> · captured 2 sessions</p>
+                  <div class="right-side">
+                    <span class="status-chip active"><i class="ti ti-flag-3-filled"></i>Same step</span>
+                    <div class="progress-mini"><div class="b" style="width: 33%;"></div></div>
+                    <span class="step-tag"><span class="em">4</span>/12</span>
+                  </div>
+                </div>
+
+                <div class="peer-card">
+                  <span class="av p">BV</span>
+                  <div class="who-line">
+                    <span class="who">Bram van der Veer</span>
+                    <span class="where">KNZRV · NED-7</span>
+                  </div>
+                  <p class="what">Finished <span class="em">Step 5 · Light-air starts</span> · 2 days ago</p>
+                  <div class="right-side">
+                    <span class="status-chip ahead"><i class="ti ti-arrow-up"></i>Ahead</span>
+                    <div class="progress-mini"><div class="b" style="width: 42%;"></div></div>
+                    <span class="step-tag"><span class="em">5</span>/12</span>
+                  </div>
+                </div>
+
+                <div class="peer-card">
+                  <span class="av h">SN</span>
+                  <div class="who-line">
+                    <span class="who">Sara Nilsson</span>
+                    <span class="where">KSSS · SWE-3</span>
+                  </div>
+                  <p class="what">On <span class="em">Step 4 · Boat-speed baseline</span> · reflecting now</p>
+                  <div class="right-side">
+                    <span class="status-chip active"><i class="ti ti-flag-3-filled"></i>Same step</span>
+                    <div class="progress-mini"><div class="b" style="width: 33%;"></div></div>
+                    <span class="step-tag"><span class="em">4</span>/12</span>
+                  </div>
+                </div>
+
+                <div class="peer-card">
+                  <span class="av c">KH</span>
+                  <div class="who-line">
+                    <span class="who">Karin Høeg</span>
+                    <span class="where">KDY · DEN-21</span>
+                  </div>
+                  <p class="what">On <span class="em">Step 6 · Heavy-air helm</span> · reviewed this week</p>
+                  <div class="right-side">
+                    <span class="status-chip ahead"><i class="ti ti-arrow-up"></i>Ahead</span>
+                    <div class="progress-mini"><div class="b" style="width: 50%;"></div></div>
+                    <span class="step-tag"><span class="em">6</span>/12</span>
+                  </div>
+                </div>
+
+                <div class="peer-card">
+                  <span class="av">MO</span>
+                  <div class="who-line">
+                    <span class="who">Marco Orsetti</span>
+                    <span class="where">YCCS · ITA-4</span>
+                  </div>
+                  <p class="what">On <span class="em">Step 4 · Boat-speed baseline</span> · last active 4d</p>
+                  <div class="right-side">
+                    <span class="status-chip active"><i class="ti ti-flag-3-filled"></i>Same step</span>
+                    <div class="progress-mini"><div class="b" style="width: 33%;"></div></div>
+                    <span class="step-tag"><span class="em">4</span>/12</span>
+                  </div>
+                </div>
+
+                <div class="peer-card">
+                  <span class="av g">TS</span>
+                  <div class="who-line">
+                    <span class="who">Tomi Sato</span>
+                    <span class="where">NYC · JPN-9</span>
+                  </div>
+                  <p class="what">Finished <span class="em">Step 3 · Rig tune</span> · yesterday</p>
+                  <div class="right-side">
+                    <span class="status-chip done"><i class="ti ti-check"></i>Behind you</span>
+                    <div class="progress-mini"><div class="b" style="width: 25%;"></div></div>
+                    <span class="step-tag"><span class="em">3</span>/12</span>
+                  </div>
+                </div>
+
+              </div>
+
+              <nav class="native-tabbar">
+                <span class="t on"><i class="ti ti-flag-3-filled"></i>Practice</span>
+                <span class="t"><i class="ti ti-book-2"></i>Playbook</span>
+                <span class="t"><i class="ti ti-compass"></i>Discover</span>
+                <span class="t"><i class="ti ti-user-circle"></i>Profile</span>
+              </nav>
+            </div>
+            <div class="home-indicator"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============================================================
+           C · Step discussion — same step, others' notes &amp; comments
+           ============================================================ -->
+      <div class="pane step-talk">
+        <div class="phase-eye"><span class="pip">C</span>Step discussion</div>
+        <p class="phase-title">Step 4 · <em>same-step community</em></p>
+        <p class="phase-sub">From any step, the Discussion tab gathers notes, evidence, and reactions from everyone on the same step. Kevin's coach replies are pinned with a coach pip. Composer at the bottom is one tap.</p>
+
+        <div class="phone-wrap">
+          <div class="phone native-phone">
+            <div class="notch"></div>
+            <div class="statusbar"><span>9:14</span><span class="right"><i class="ti ti-cell-signal-4"></i><i class="ti ti-wifi"></i><i class="ti ti-battery-3"></i></span></div>
+
+            <div class="screen followup-screen talk-screen" data-screen-label="C Step discussion">
+
+              <div class="top-bar">
+                <button class="back"><i class="ti ti-chevron-left"></i>Plan</button>
+                <span class="ttl">Step 4</span>
+                <span class="right"><i class="ti ti-bell"></i><i class="ti ti-dots-vertical"></i></span>
+              </div>
+
+              <div class="talk-hero">
+                <p class="pre">Step 4 · Discussion</p>
+                <h1>Boat-speed baseline · all points of sail</h1>
+                <p class="meta">From <span class="em">Kevin's Prepare for the Worlds</span> · 8 sailors on this step</p>
+
+                <div class="here-now">
+                  <span class="av-stack">
+                    <span class="a">PL</span>
+                    <span class="a g">SN</span>
+                    <span class="a p">MO</span>
+                    <span class="a h">+5</span>
+                  </span>
+                  <span class="text"><span class="em">8 sailors</span> are working through Step 4 right now · 4 captured sessions this week</span>
+                </div>
+              </div>
+
+              <div class="talk-tabs">
+                <span class="ptab">Plan</span>
+                <span class="ptab">Do</span>
+                <span class="ptab">Reflect</span>
+                <span class="ptab on">Discussion<span class="count">14</span></span>
+              </div>
+
+              <div class="talk-feed">
+
+                <article class="note-card">
+                  <div class="head-row">
+                    <span class="av-sm g">PL</span>
+                    <span class="who">Phyl Loong</span>
+                    <span class="when">2h</span>
+                  </div>
+                  <p class="sub-who" style="margin: -4px 0 6px 34px;">Captured Saturday · 12–16 kt</p>
+                  <p class="body">"Hit target on close reach (5.8 kt) but lost 0.3 kt on the broad reach — traveller was probably too high. Trying again Wednesday with the kicker on harder."</p>
+                  <div class="evidence-row">
+                    <span class="ev-chip"><i class="ti ti-microphone"></i>2:14 voice</span>
+                    <span class="ev-chip"><i class="ti ti-photo"></i>3 photos</span>
+                    <span class="ev-chip"><i class="ti ti-gauge"></i>polar data</span>
+                  </div>
+                  <div class="threaded-reply">
+                    <span class="av-xs coach">KD</span>
+                    <div>
+                      <p class="who-r">Kevin Denney<span class="coach-pip">Coach</span></p>
+                      <p class="body-r">Good catch on the traveller. Try <span class="em">3–40 mm down from the kingpost</span> on the broad reach with the kicker pulled on. Should pull the leech tight without stalling the top batten.</p>
+                    </div>
+                  </div>
+                  <div class="reaction-row">
+                    <span class="react on"><i class="ti ti-flame-filled"></i>12</span>
+                    <span class="react"><i class="ti ti-bulb"></i>4</span>
+                    <span class="react"><i class="ti ti-message-circle"></i>3</span>
+                    <span class="react-spacer"></span>
+                    <button class="reply"><i class="ti ti-corner-up-left"></i>Reply</button>
+                  </div>
+                </article>
+
+                <article class="note-card">
+                  <div class="head-row">
+                    <span class="av-sm h">SN</span>
+                    <span class="who">Sara Nilsson</span>
+                    <span class="when">5h</span>
+                  </div>
+                  <p class="sub-who" style="margin: -4px 0 6px 34px;">Reflecting · first attempt</p>
+                  <p class="body">"Anyone else finding the upwind numbers feel <span class="em">faster than the polar predicts</span> when we're flat? Trying to figure out if it's the boat or the breeze reading."</p>
+                  <div class="reaction-row">
+                    <span class="react"><i class="ti ti-flame"></i>5</span>
+                    <span class="react on"><i class="ti ti-bulb-filled"></i>9</span>
+                    <span class="react"><i class="ti ti-message-circle"></i>7</span>
+                    <span class="react-spacer"></span>
+                    <button class="reply"><i class="ti ti-corner-up-left"></i>Reply</button>
+                  </div>
+                </article>
+
+              </div>
+
+              <div class="composer-bar">
+                <span class="av-me">KD</span>
+                <div class="input">Share your boat-speed reflection…</div>
+                <span class="ic"><i class="ti ti-microphone"></i></span>
+                <span class="ic"><i class="ti ti-photo-plus"></i></span>
+              </div>
+
+              <nav class="native-tabbar">
+                <span class="t on"><i class="ti ti-flag-3-filled"></i>Practice</span>
+                <span class="t"><i class="ti ti-book-2"></i>Playbook</span>
+                <span class="t"><i class="ti ti-compass"></i>Discover</span>
+                <span class="t"><i class="ti ti-user-circle"></i>Profile</span>
+              </nav>
+            </div>
+            <div class="home-indicator"></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="detail-grid" style="margin-top: 56px; grid-template-columns: repeat(3, 1fr);">
+      <div class="detail-card">
+        <p class="step-no"><span class="pip">A</span>Blueprint index</p>
+        <h4><em>How they see and add the rest of the blueprint</em></h4>
+        <p>From the step strip at the top of Plan view, tap the blueprint title to expand. The full 12-step list appears, grouped by status: <strong>done</strong> (green checks, locked), <strong>current</strong> (blue ring, no Add button), <strong>upcoming</strong> (gray, each with its own <em>+ Add</em> button).</p>
+        <p>Adding an upcoming step queues it into the user's Plan timeline at its native blueprint position; it doesn't jump the current step. <em>The list is a menu of the future, not a checklist to grind.</em></p>
+        <span class="mono">step.add({ blueprintStepId, position: native })</span>
+      </div>
+      <div class="detail-card">
+        <p class="step-no"><span class="pip">B</span>Fleet plans</p>
+        <h4><em>How they see what other subscribers are doing</em></h4>
+        <p>From the WITH-row chip ("Worlds Fleet · 63 sailors"), tap to enter the fleet view. Each peer card surfaces their <strong>current step</strong>, their <strong>last activity</strong>, and a progress mini-bar. Status chips name the relationship: <em>Same step</em> (blue), <em>Ahead</em> (green), <em>Behind</em> (gray).</p>
+        <p>Tapping a peer opens their <strong>public timeline</strong> for this blueprint — their notes, evidence, and reflections, scoped to the same blueprint. Private notes stay private; published reflections are shared.</p>
+        <span class="mono">fleet.peers({ blueprintId, sort: 'currentStep desc' })</span>
+      </div>
+      <div class="detail-card">
+        <p class="step-no"><span class="pip">C</span>Step discussion</p>
+        <h4><em>How they see &amp; comment on the same step</em></h4>
+        <p>Every step gets a <strong>Discussion</strong> tab alongside Plan / Do / Reflect. The feed gathers notes from all sailors on this step in the same blueprint, with evidence chips (voice clips, photos, polar data) inline. Reactions are three named verbs — <em>fire</em>, <em>insight</em>, <em>question</em> — not generic likes.</p>
+        <p>The blueprint creator (Kevin) gets a <strong>coach pip</strong> and his replies are visually pinned beneath the note he replied to. <em>The discussion is scoped to the step — you don't have to wade through the whole blueprint feed to find help on what you're working on right now.</em></p>
+        <span class="mono">step.discussion({ stepId, includeCoachReplies: true })</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="section-band">
+    <h2><em>What happens between phases</em> · technical &amp; UX notes</h2>
+    <p class="lede">The system carries one durable thing across all five phases: a <strong>single-use redeem token</strong>, scoped to the event-app user id, valid until November 22, 2027. Everything else — the welcome copy, the smart-app banner, the universal link — hangs off that one identifier.</p>
+
+    <div class="detail-grid">
+      <div class="detail-card">
+        <p class="step-no"><span class="pip">1</span>About → tap</p>
+        <h4><em>Mint a token, open the URL</em></h4>
+        <p>The event-app deep-link handler mints a single-use token tied to the verified competitor's id and event registration. The CTA opens <em>https://better.at/r/[token]</em> in the system browser. <strong>If BetterAt is already installed</strong>, iOS Universal Links intercept and jump straight to phase 5 — phases 2–4 are skipped silently.</p>
+        <span class="mono">betterat://r/[token] · UL · fallback Safari</span>
+      </div>
+      <div class="detail-card">
+        <p class="step-no"><span class="pip">2</span>Safari · redeem</p>
+        <h4><em>One CTA, no form</em></h4>
+        <p>The redeem URL renders the welcome surface. <strong>Accept &amp; start preparing</strong> creates a session-level account (no email, no password) tied to the token, subscribes the user to the blueprint, and 302s to the first-action URL. <em>The token is burned on success.</em></p>
+        <span class="mono">POST /api/redeem · session 90d · email-claim optional</span>
+      </div>
+      <div class="detail-card">
+        <p class="step-no"><span class="pip">3</span>Plan view · web</p>
+        <h4><em>Step 1 pre-populated</em></h4>
+        <p>The same Plan-tab component the native app ships renders here as web. Welcome toast names Kevin and the fleet. The smart-app banner is pinned at the very top of the viewport on <strong>every</strong> better.at page the user visits, dismissible × persists for 7 days. <em>The user can complete the whole journey here without ever installing.</em></p>
+        <span class="mono">SmartAppBanner · localStorage · 7-day re-show</span>
+      </div>
+      <div class="detail-card">
+        <p class="step-no"><span class="pip">4</span>App Store</p>
+        <h4><em>iOS owns the chrome</em></h4>
+        <p>Tapping Install on the smart-app banner (or tapping Do tab in web) raises the standard iOS App Store sheet. Our copy lives in the App Store listing — the three "why" lines name the native-only capabilities (mic · camera · offline). After install, the standard iOS resume flow opens the app at the same Universal Link.</p>
+        <span class="mono">apps.apple.com/app/betterat · UL · /practice/step/[id]</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="section-band">
+    <h2><em>Three principles</em> · why this flow stays short</h2>
+    <div class="rail-row" style="margin-top: 18px;">
+      <div class="rail-col">
+        <h4><em>1 · Value before account</em></h4>
+        <p>The user reaches their first useful action — Step 1 of Kevin's blueprint, pre-loaded in Plan view — <strong>without ever filling a form</strong>. No email, no password, no card. The session-level account is created silently on Accept; email-claim is offered later, only if and when the user wants to log in from another device.</p>
+        <span class="sig"><span class="swatch blue"></span>session-level account</span>
+      </div>
+      <div class="rail-col">
+        <h4><em>2 · Install is opt-in, not the gate</em></h4>
+        <p>Phases 2 and 3 are entirely web. The smart-app banner is the only install ask, and it surfaces only after Step 1 is already loaded. The user installs because they want voice capture on the water, not because we forced them to before they understood what BetterAt was. <em>Friction is paid at the right moment.</em></p>
+        <span class="sig"><span class="swatch purple"></span>smart-banner · Do-tab sheet</span>
+      </div>
+      <div class="rail-col">
+        <h4><em>3 · State follows the user</em></h4>
+        <p>The redeem token is the durable handle. Whichever device the user lands on next — same phone after install, a laptop at home, a new phone next month — opening better.at/r/[token] (or its Universal Link) resolves to the same session, same blueprint, same step. <strong>Re-onboarding never happens.</strong></p>
+        <span class="sig"><span class="swatch green"></span>universal link · session sync</span>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+</body>
+</html>
