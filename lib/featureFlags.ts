@@ -403,6 +403,21 @@ export const FEATURE_FLAGS = {
    * docs/redesign/ios-register/phase-0-shared-chrome.md.
    */
   PRACTICE_STEP_LOOP_IOS_REGISTER: readBooleanEnv('EXPO_PUBLIC_FF_PRACTICE_STEP_LOOP_IOS_REGISTER', false),
+
+  /**
+   * Phase 10 — HKDW (Hong Kong Dragon Worlds) → BetterAt onboarding flow.
+   *
+   * When on:
+   *   - /r/[token] redeem route resolves valid tokens to a session-level
+   *     account + blueprint subscription + first-step landing.
+   *   - Smart App Banner renders on web pages.
+   *   - InstallSheet rises on the Do tab in web.
+   *   - betterat://r/[token] deep link is wired.
+   *
+   * Off by default in production until the partnership ships. Per
+   * docs/redesign/ios-register/phase-10-hkdw-onboarding.md.
+   */
+  HKDW_REDEEM_FLOW: readBooleanEnv('EXPO_PUBLIC_FF_HKDW_REDEEM_FLOW', false),
 } as const;
 
 // =============================================================================
