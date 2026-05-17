@@ -62,9 +62,13 @@ export function UniversalPlusProvider({ children }: { children: React.ReactNode 
 
   const handleQuickCapture = useCallback(
     async (payload: QuickCapturePayload) => {
-      if (!user?.id || !currentInterest?.id) {
-        toast.show('Pick an interest before adding a step.', 'info');
+      if (!user?.id) {
+        toast.show('Sign in before adding a step.', 'info');
         close();
+        return;
+      }
+      if (!currentInterest?.id) {
+        toast.show('Choose a specific interest before adding a step.', 'info');
         return;
       }
       try {
