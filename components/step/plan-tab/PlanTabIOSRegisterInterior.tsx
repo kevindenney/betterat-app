@@ -70,6 +70,8 @@ export interface PlanTabIOSRegisterInteriorProps {
   onPressWorkingConcept?: (conceptId: string) => void;
   /** Optional extra plan-context rows (e.g. with whom / where) rendered in-body. */
   contextRows?: React.ReactNode;
+  /** Card rendered right after the WHAT FieldCard — e.g. resources/concepts for this step. */
+  belowWhatCard?: React.ReactNode;
   /** Per-step timing. Both must be set for the quiet toggle to render in More Options. */
   isTimed?: boolean;
   onToggleTimed?: (next: boolean) => void;
@@ -104,6 +106,7 @@ export function PlanTabIOSRegisterInterior({
   workingWithConcepts = [],
   onPressWorkingConcept,
   contextRows,
+  belowWhatCard,
   isTimed,
   onToggleTimed,
   optionalAddOns,
@@ -182,6 +185,8 @@ export function PlanTabIOSRegisterInterior({
         onChangeText={(v) => onUpdate({ what_will_you_do: v })}
         readOnly={readOnly}
       />
+
+      {belowWhatCard}
 
       <FieldCard
         eyebrow="How will you do it?"

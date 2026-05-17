@@ -1107,11 +1107,11 @@ RULES:
             );
             updateStep.mutate({ stepId: step.id, input: { is_timed: next } });
           }}
-          optionalAddOns={
+          belowWhatCard={
             <View style={styles.phase1ContextCard}>
               <View style={styles.phase1ContextHead}>
                 <Ionicons name="library-outline" size={12} color={STEP_COLORS.secondaryLabel} />
-                <Text style={styles.phase1ContextEye}>Also relevant for</Text>
+                <Text style={styles.phase1ContextEye}>Resources for this step</Text>
               </View>
 
               {linkedResources.length > 0 && (
@@ -1160,7 +1160,10 @@ RULES:
               )}
 
               {!readOnly && (
-                <Pressable style={styles.addLibraryButton} onPress={() => openAddPicker('Also relevant for')}>
+                <Pressable
+                  style={styles.addLibraryButton}
+                  onPress={() => openAddPicker('Resources for this step')}
+                >
                   <Ionicons name="bookmarks-outline" size={18} color={STEP_COLORS.accent} />
                   <Text style={styles.addLibraryText}>Add from library</Text>
                 </Pressable>
