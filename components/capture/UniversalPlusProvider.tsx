@@ -131,11 +131,20 @@ export function UniversalPlusProvider({ children }: { children: React.ReactNode 
         }
         return false;
       };
+      const currentTimelineKey = ['timeline-steps', 'mine', interestId] as const;
 
       queryClient.setQueriesData<TimelineStepRecord[]>(
         { predicate: matchesMineQuery },
         (old) => {
           if (!old) return old;
+          if (old.some((step) => step.id === tempId)) return old;
+          return [...old, optimisticStep];
+        },
+      );
+      queryClient.setQueryData<TimelineStepRecord[]>(
+        currentTimelineKey,
+        (old) => {
+          if (!old) return [optimisticStep];
           if (old.some((step) => step.id === tempId)) return old;
           return [...old, optimisticStep];
         },
@@ -160,12 +169,27 @@ export function UniversalPlusProvider({ children }: { children: React.ReactNode 
             return old.map((step) => (step.id === tempId ? savedStep : step));
           },
         );
+        queryClient.setQueryData<TimelineStepRecord[]>(
+          currentTimelineKey,
+          (old) => {
+            if (!old) return [savedStep];
+            const hasTemp = old.some((step) => step.id === tempId);
+            const hasSaved = old.some((step) => step.id === savedStep.id);
+            if (!hasTemp) return hasSaved ? old : [...old, savedStep];
+            return old.map((step) => (step.id === tempId ? savedStep : step));
+          },
+        );
         queryClient.removeQueries({ queryKey: ['timeline-steps', 'detail', tempId] });
         queryClient.setQueryData(['timeline-steps', 'detail', savedStep.id], savedStep);
+        void queryClient.invalidateQueries({ queryKey: ['timeline-steps', 'mine'] });
         toast.show('Draft saved', 'success');
       } catch (err) {
         queryClient.setQueriesData<TimelineStepRecord[]>(
           { predicate: matchesMineQuery },
+          (old) => (old ? old.filter((step) => step.id !== tempId) : old),
+        );
+        queryClient.setQueryData<TimelineStepRecord[]>(
+          currentTimelineKey,
           (old) => (old ? old.filter((step) => step.id !== tempId) : old),
         );
         queryClient.removeQueries({ queryKey: ['timeline-steps', 'detail', tempId] });
