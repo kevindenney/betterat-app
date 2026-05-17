@@ -11,7 +11,8 @@ import { PlanQuestionCard } from './PlanQuestionCard';
 import { SubStepEditor } from './SubStepEditor';
 import { BrainDumpEntry } from './BrainDumpEntry';
 import { ConversationalCapture } from './ConversationalCapture';
-import { PlaybookPicker, type PlaybookPickerSelection } from '@/components/playbook/PlaybookPicker';
+import type { PlaybookPickerSelection } from '@/components/playbook/PlaybookPicker';
+import { AddToStepPlanSheet, type AddToStepPlanSelection } from './AddToStepPlanSheet';
 import { ResourceTypeIcon } from '@/components/library/ResourceTypeIcon';
 import { getResourcesByIds } from '@/services/LibraryService';
 import { addStepLink, removeStepLink, getStepConceptLinks, getStepLinks, linkConceptToStep, unlinkConceptFromStep } from '@/services/PlaybookService';
@@ -68,7 +69,9 @@ export function PlanTab({
   const { user } = useAuth();
   const catLabels = getStepCategoryLabels(stepCategory);
   const { userInterests } = useInterest();
-  const [showPlaybookPicker, setShowPlaybookPicker] = useState(false);
+  const [addPickerDestination, setAddPickerDestination] = useState<string | null>(null);
+  const openAddPicker = useCallback((destination: string) => setAddPickerDestination(destination), []);
+  const closeAddPicker = useCallback(() => setAddPickerDestination(null), []);
   const [showCollaboratorPicker, setShowCollaboratorPicker] = useState(false);
   const [showLocationPicker, setShowLocationPicker] = useState(false);
   const [linkedResources, setLinkedResources] = useState<LibraryResourceRecord[]>([]);
@@ -159,7 +162,6 @@ export function PlanTab({
         return [...prev, ...newConcepts];
       });
     }
-    setShowPlaybookPicker(false);
   }, [planData.linked_resource_ids, onUpdate, stepId]);
 
   const handleRemoveResource = useCallback((resourceId: string) => {
@@ -338,9 +340,9 @@ export function PlanTab({
             )}
 
             {!readOnly && (
-              <Pressable style={styles.addLibraryButton} onPress={() => setShowPlaybookPicker(true)}>
-                <Ionicons name="book-outline" size={18} color={STEP_COLORS.accent} />
-                <Text style={styles.addLibraryText}>Add from Playbook</Text>
+              <Pressable style={styles.addLibraryButton} onPress={() => openAddPicker('Also relevant for')}>
+                <Ionicons name="bookmarks-outline" size={18} color={STEP_COLORS.accent} />
+                <Text style={styles.addLibraryText}>Add from library</Text>
               </Pressable>
             )}
           </PlanQuestionCard>
@@ -507,12 +509,20 @@ export function PlanTab({
 
         {!readOnly && (
           <>
-            <PlaybookPicker
-              visible={showPlaybookPicker}
+            <AddToStepPlanSheet
+              visible={addPickerDestination !== null}
+              destinationLabel={addPickerDestination ?? ''}
+              destinationContext={planData.what_doing || undefined}
               interestId={interestId}
-              onSelect={handleSelectPlaybookItems}
-              onClose={() => setShowPlaybookPicker(false)}
-              excludeKeys={linkedIds.map((id) => `resource:${id}`)}
+              excludeKeys={[
+                ...linkedIds.map((id) => `resource:${id}`),
+                ...linkedConcepts.map((c) => `concept:${c.id}`),
+              ]}
+              onSelect={(selections: AddToStepPlanSelection[]) => {
+                handleSelectPlaybookItems(selections as PlaybookPickerSelection[]);
+                closeAddPicker();
+              }}
+              onClose={closeAddPicker}
             />
             <CollaboratorPicker
               visible={showCollaboratorPicker}
@@ -693,10 +703,10 @@ export function PlanTab({
         {!readOnly && (
           <Pressable
             style={styles.addLibraryButton}
-            onPress={() => setShowPlaybookPicker(true)}
+            onPress={() => openAddPicker('What')}
           >
-            <Ionicons name="book-outline" size={18} color={STEP_COLORS.accent} />
-            <Text style={styles.addLibraryText}>Add from Playbook</Text>
+            <Ionicons name="bookmarks-outline" size={18} color={STEP_COLORS.accent} />
+            <Text style={styles.addLibraryText}>Add from library</Text>
           </Pressable>
         )}
       </PlanQuestionCard>
@@ -996,14 +1006,22 @@ export function PlanTab({
 
       {footer}
 
-      {/* Playbook picker modal */}
+      {/* iOS-register Add-to-step-plan sheet (library + capture-new) */}
       {!readOnly && (
-        <PlaybookPicker
-          visible={showPlaybookPicker}
+        <AddToStepPlanSheet
+          visible={addPickerDestination !== null}
+          destinationLabel={addPickerDestination ?? ''}
+          destinationContext={planData.what_doing || undefined}
           interestId={interestId}
-          onSelect={handleSelectPlaybookItems}
-          onClose={() => setShowPlaybookPicker(false)}
-          excludeKeys={linkedIds.map((id) => `resource:${id}`)}
+          excludeKeys={[
+            ...linkedIds.map((id) => `resource:${id}`),
+            ...linkedConcepts.map((c) => `concept:${c.id}`),
+          ]}
+          onSelect={(selections: AddToStepPlanSelection[]) => {
+            handleSelectPlaybookItems(selections as PlaybookPickerSelection[]);
+            closeAddPicker();
+          }}
+          onClose={closeAddPicker}
         />
       )}
 

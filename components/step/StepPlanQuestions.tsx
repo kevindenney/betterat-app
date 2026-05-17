@@ -16,7 +16,8 @@ import { PlanQuestionCard } from './PlanQuestionCard';
 import { SubStepEditor } from './SubStepEditor';
 import { CollaboratorPicker } from './CollaboratorPicker';
 import { CourseContextSheet } from './CourseContextSheet';
-import { PlaybookPicker, type PlaybookPickerSelection } from '@/components/playbook/PlaybookPicker';
+import type { PlaybookPickerSelection } from '@/components/playbook/PlaybookPicker';
+import { AddToStepPlanSheet, type AddToStepPlanSelection } from './AddToStepPlanSheet';
 import { ResourceTypeIcon } from '@/components/library/ResourceTypeIcon';
 import { addStepLink, removeStepLink, getStepLinks } from '@/services/PlaybookService';
 import { router } from 'expo-router';
@@ -86,7 +87,9 @@ export function StepPlanQuestions({
   const { currentInterest, userInterests } = useInterest();
   const catLabels = getStepCategoryLabels(step?.category);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [showPlaybookPicker, setShowPlaybookPicker] = useState(false);
+  const [addPickerDestination, setAddPickerDestination] = useState<string | null>(null);
+  const openAddPicker = useCallback((destination: string) => setAddPickerDestination(destination), []);
+  const closeAddPicker = useCallback(() => setAddPickerDestination(null), []);
   const [showCompetencyPicker, setShowCompetencyPicker] = useState(false);
   const [linkedResources, setLinkedResources] = useState<LibraryResourceRecord[]>([]);
   const [linkedConcepts, setLinkedConcepts] = useState<{ id: string; title: string; slug?: string }[]>([]);
@@ -453,7 +456,6 @@ export function StepPlanQuestions({
     const existingIds = planDataRef.current.linked_resource_ids ?? [];
     const mergedIds = [...new Set([...existingIds, ...newResourceIds])];
     debouncedSave({ linked_resource_ids: mergedIds });
-    setShowPlaybookPicker(false);
 
     // If plan fields are mostly empty, auto-generate from the first new resource
     const currentPlan = planDataRef.current;
@@ -1297,9 +1299,9 @@ RULES:
             )}
 
             {!readOnly && (
-              <Pressable style={styles.addLibraryButton} onPress={() => setShowPlaybookPicker(true)}>
-                <Ionicons name="library-outline" size={18} color={STEP_COLORS.accent} />
-                <Text style={styles.addLibraryText}>Add from Playbook</Text>
+              <Pressable style={styles.addLibraryButton} onPress={() => openAddPicker('Also relevant for')}>
+                <Ionicons name="bookmarks-outline" size={18} color={STEP_COLORS.accent} />
+                <Text style={styles.addLibraryText}>Add from library</Text>
               </Pressable>
             )}
           </PlanQuestionCard>
@@ -1581,12 +1583,20 @@ RULES:
         )}
 
         {!readOnly && (
-          <PlaybookPicker
-            visible={showPlaybookPicker}
+          <AddToStepPlanSheet
+            visible={addPickerDestination !== null}
+            destinationLabel={addPickerDestination ?? ''}
+            destinationContext={localWhat.trim() || step?.title || undefined}
             interestId={interestId}
-            onSelect={handleSelectPlaybookItems}
-            onClose={() => setShowPlaybookPicker(false)}
-            excludeKeys={linkedIds.map((id) => `resource:${id}`)}
+            excludeKeys={[
+              ...linkedIds.map((id) => `resource:${id}`),
+              ...linkedConcepts.map((c) => `concept:${c.id}`),
+            ]}
+            onSelect={(selections: AddToStepPlanSelection[]) => {
+              handleSelectPlaybookItems(selections as PlaybookPickerSelection[]);
+              closeAddPicker();
+            }}
+            onClose={closeAddPicker}
           />
         )}
       </>
@@ -1866,10 +1876,10 @@ RULES:
         {!readOnly && (
           <Pressable
             style={styles.addLibraryButton}
-            onPress={() => setShowPlaybookPicker(true)}
+            onPress={() => openAddPicker('What')}
           >
-            <Ionicons name="library-outline" size={18} color={STEP_COLORS.accent} />
-            <Text style={styles.addLibraryText}>Add from Playbook</Text>
+            <Ionicons name="bookmarks-outline" size={18} color={STEP_COLORS.accent} />
+            <Text style={styles.addLibraryText}>Add from library</Text>
           </Pressable>
         )}
       </PlanQuestionCard>
@@ -2318,14 +2328,22 @@ RULES:
 
       </>)}
 
-      {/* Playbook picker modal */}
+      {/* iOS-register Add-to-step-plan sheet */}
       {!readOnly && (
-        <PlaybookPicker
-          visible={showPlaybookPicker}
+        <AddToStepPlanSheet
+          visible={addPickerDestination !== null}
+          destinationLabel={addPickerDestination ?? ''}
+          destinationContext={localWhat.trim() || step?.title || undefined}
           interestId={interestId}
-          onSelect={handleSelectPlaybookItems}
-          onClose={() => setShowPlaybookPicker(false)}
-          excludeKeys={linkedIds.map((id) => `resource:${id}`)}
+          excludeKeys={[
+            ...linkedIds.map((id) => `resource:${id}`),
+            ...linkedConcepts.map((c) => `concept:${c.id}`),
+          ]}
+          onSelect={(selections: AddToStepPlanSelection[]) => {
+            handleSelectPlaybookItems(selections as PlaybookPickerSelection[]);
+            closeAddPicker();
+          }}
+          onClose={closeAddPicker}
         />
       )}
     </View>
