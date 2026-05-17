@@ -29,3 +29,13 @@ export { WelcomeCard } from './WelcomeCard';
 export { TourBackdrop } from './TourBackdrop';
 export { TabSweepCard } from './TabSweepCard';
 export { TourPricingCard } from './TourPricingCard';
+
+// Phase 10 — HKDW redeem flow
+export { RedeemLanding } from './RedeemLanding';
+export type { RedeemLandingProps, RedeemLandingAuthor, RedeemLandingBlueprint } from './RedeemLanding';
+export { SmartAppBanner } from './SmartAppBanner';
+export type { SmartAppBannerProps } from './SmartAppBanner';
+export { InstallSheet } from './InstallSheet';
+export type { InstallSheetProps } from './InstallSheet';
+export { WelcomeToast } from './WelcomeToast';
+export type { WelcomeToastProps } from './WelcomeToast';
