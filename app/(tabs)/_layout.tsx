@@ -136,11 +136,23 @@ function TabLayoutInner() {
   // Get tabs based on user type and capabilities
   // Sailors with coaching capability will see both sailor and coach tabs
   const tabs = useMemo(
-    () => getTabsForUserType(userType ?? null, isGuest, capabilities, vocabulary, {
-      organizationType: activeOrganization?.organization_type ?? null,
-      activeDomain: activeDomain ?? null,
-      isOrgAdmin,
-    }),
+    () => {
+      const baseTabs = getTabsForUserType(userType ?? null, isGuest, capabilities, vocabulary, {
+        organizationType: activeOrganization?.organization_type ?? null,
+        activeDomain: activeDomain ?? null,
+        isOrgAdmin,
+      });
+      // Phase 0 of the iOS register migration renames the first tab to
+      // "Practice" universally — overriding the sailing "Race" default
+      // and any vocabulary-derived event term. See
+      // docs/redesign/ios-register/phase-0-shared-chrome.md.
+      if (FEATURE_FLAGS.PRACTICE_STEP_LOOP_IOS_REGISTER) {
+        return baseTabs.map((tab) =>
+          tab.name === 'races' ? { ...tab, title: 'Practice' } : tab,
+        );
+      }
+      return baseTabs;
+    },
     [userType, isGuest, capabilities, vocabulary, activeOrganization?.organization_type, activeDomain, isOrgAdmin],
   );
   const [hasRedirected, setHasRedirected] = useState(false);

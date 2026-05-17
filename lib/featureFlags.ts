@@ -277,6 +277,18 @@ export const FEATURE_FLAGS = {
   PRACTICE_DO_TAB_PER_STEP_TIMING: readBooleanEnv('EXPO_PUBLIC_FF_PRACTICE_DO_TAB_PER_STEP_TIMING', true),
 
   /**
+   * Gate the canonical Reflect tab interior: AI-drafted summary, What worked
+   * / What to improve prompt groups, Mark Reflect complete CTA, and the
+   * post-completion digest + Carry forward card. Defaults false because this
+   * replaces the OVERALL-RATING-stars review surface, swaps prompt-answer
+   * persistence onto the v2 sections[] upsert path, and re-routes the
+   * completion side effects (Playbook ingest, lesson completion, capability
+   * ratings sync, competency-attempt logging) through a fresh controller.
+   * See docs/redesign/specs/PHASE_B10_REFLECT_TAB_INTERIOR_SPEC.md.
+   */
+  PRACTICE_REFLECT_TAB_IOS_REGISTER: readBooleanEnv('EXPO_PUBLIC_FF_PRACTICE_REFLECT_TAB_IOS_REGISTER', false),
+
+  /**
    * Stage the Race Log iOS register surface (chronological multi-season
    * archive). This flag exists for the Reflect-tab cutover, which ships
    * Race Log + Profile together; the render switch in the Reflect parent
@@ -378,6 +390,19 @@ export const FEATURE_FLAGS = {
   REDEEM: ['1', 'true', 'yes', 'on'].includes(
     String(process.env.EXPO_PUBLIC_FF_REDEEM ?? '').trim().toLowerCase()
   ),
+
+  /**
+   * Phase 0 of the iOS register migration — shared chrome primitives
+   * (StatePill / StepStrip / TopHeader / PhaseTabs / StepCard). When true:
+   *   • The first tab label reads "Practice" universally, regardless of
+   *     domain (overrides the sailing "Race" default).
+   *   • Step detail (StepDetailContent) wraps its existing PlanTab/ActTab/
+   *     ReviewTab interior in the new <StepCard> shell with <TopHeader>
+   *     above. Internal tab body contents are unchanged.
+   * Off by default — when off, zero visual change anywhere. Per
+   * docs/redesign/ios-register/phase-0-shared-chrome.md.
+   */
+  PRACTICE_STEP_LOOP_IOS_REGISTER: readBooleanEnv('EXPO_PUBLIC_FF_PRACTICE_STEP_LOOP_IOS_REGISTER', false),
 } as const;
 
 // =============================================================================
