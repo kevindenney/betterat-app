@@ -74,9 +74,9 @@ export function registerStepManagementTools(
           .optional()
           .describe('Initial status (defaults to "pending")'),
         visibility: z
-          .enum(['private', 'followers', 'coaches', 'organization'])
+          .enum(['private', 'crew', 'fleet', 'public'])
           .optional()
-          .describe('Who can see this step (defaults to "followers")'),
+          .describe('Who can see this step (defaults to "private")'),
         starts_at: z.string().optional().describe('Start date/time in ISO 8601 format'),
         ends_at: z.string().optional().describe('End date/time in ISO 8601 format'),
         plan_notes: z
@@ -129,7 +129,7 @@ export function registerStepManagementTools(
           description: args.description ?? null,
           category: args.category ?? 'general',
           status: args.status ?? 'pending',
-          visibility: args.visibility ?? 'followers',
+          visibility: args.visibility ?? 'private',
           starts_at: args.starts_at ?? new Date().toISOString(),
           ends_at: args.ends_at ?? null,
           source_type: 'manual',
@@ -169,7 +169,7 @@ export function registerStepManagementTools(
           .optional()
           .describe('New status'),
         visibility: z
-          .enum(['private', 'followers', 'coaches', 'organization'])
+          .enum(['private', 'crew', 'fleet', 'public'])
           .optional()
           .describe('New visibility'),
         starts_at: z.string().optional().describe('New start date/time (ISO 8601)'),

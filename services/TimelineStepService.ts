@@ -245,7 +245,7 @@ export async function getFollowedUsersTimelines(
       .from('timeline_steps')
       .select('*')
       .in('user_id', followingIds)
-      .neq('visibility', 'private')
+      .in('visibility', ['crew', 'fleet', 'public'])
       .order('updated_at', { ascending: false })
       .limit(200);
 
@@ -282,7 +282,7 @@ export async function createStep(
     logger.debug('Creating timeline step', { title: trimmedTitle, userId: input.user_id });
 
     // Single round-trip: the create_timeline_step RPC runs the visibility
-    // cascade (interest default → profile default → 'followers'), assigns a
+    // cascade (interest default → profile default → 'private'), assigns a
     // monotonically-increasing sort_order, defaults starts_at to NOW() when
     // the caller omits it, and performs the insert — all server-side.
     const { data, error } = await supabase
@@ -457,7 +457,7 @@ export async function adoptStep(
         location_lat: (source as any).location_lat,
         location_lng: (source as any).location_lng,
         location_place_id: (source as any).location_place_id,
-        visibility: 'followers',
+        visibility: 'private',
         share_approximate_location: false,
         sort_order: nextSort,
         metadata: sourceMetadata,
@@ -605,7 +605,7 @@ export async function createStepsFromCourse(
         description: lesson.description ?? null,
         category: 'lesson',
         status: 'pending' as const,
-        visibility: 'followers' as const,
+        visibility: 'private' as const,
         sort_order: nextSort++,
         starts_at: startsAt,
         metadata,
@@ -726,7 +726,7 @@ export async function adoptOrgCourse(
       description: t.description,
       category: t.category ?? 'lesson',
       status: 'pending' as const,
-      visibility: 'followers' as const,
+      visibility: 'private' as const,
       sort_order: nextSort++,
       metadata: {
         ...((t.metadata as Record<string, unknown>) ?? {}),
@@ -913,7 +913,7 @@ export async function adoptTemplate(
       description: t.description,
       category: t.category ?? 'general',
       status: 'pending' as const,
-      visibility: 'followers' as const,
+      visibility: 'private' as const,
       sort_order: nextSort++,
       metadata: t.metadata ?? {},
     }));

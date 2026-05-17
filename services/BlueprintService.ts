@@ -1382,7 +1382,7 @@ export async function createBlueprintFromCurriculum(
   // Derive defaults based on whether this is an org or personal blueprint
   const isPersonal = !organizationId;
   const effectiveAccessLevel = accessLevel ?? (isPersonal ? 'public' : 'org_members');
-  const stepVisibility = isPersonal ? 'followers' : 'organization';
+  const stepVisibility = isPersonal ? 'crew' : 'fleet';
 
   // 1. Resolve interest ID — use direct ID if provided, otherwise look up by slug
   const interestId = directInterestId ?? await resolveInterestId(interestSlug);

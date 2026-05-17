@@ -52,7 +52,7 @@ it('maps nursing timeline steps to Shift Log rows', () => {
     location_lat: null,
     location_lng: null,
     location_place_id: null,
-    visibility: 'followers',
+    visibility: 'crew',
     share_approximate_location: false,
     copied_from_user_id: null,
     source_blueprint_id: null,
