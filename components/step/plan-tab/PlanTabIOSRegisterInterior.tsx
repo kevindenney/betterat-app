@@ -43,6 +43,7 @@ import { SuggestionsRow, type SuggestionRowItem } from './SuggestionsRow';
 import { BottomCTA } from './BottomCTA';
 import { deriveAIHelperState } from './aiHelperState';
 import { FEATURE_FLAGS } from '@/lib/featureFlags';
+import { WorkingWithConcepts } from './WorkingWithConcepts';
 
 export interface PlanTabIOSRegisterInteriorProps {
   planData: StepPlanData;
@@ -65,6 +66,8 @@ export interface PlanTabIOSRegisterInteriorProps {
   /** Suggestion rows. Empty → SuggestionsRow hides. */
   suggestions?: SuggestionRowItem[];
   onSeeAllSuggestions?: () => void;
+  workingWithConcepts?: { id: string; title: string }[];
+  onPressWorkingConcept?: (conceptId: string) => void;
   /** Per-step timing. Both must be set for the quiet toggle to render in More Options. */
   isTimed?: boolean;
   onToggleTimed?: (next: boolean) => void;
@@ -96,6 +99,8 @@ export function PlanTabIOSRegisterInterior({
   capabilityAutoTagSource,
   suggestions = [],
   onSeeAllSuggestions,
+  workingWithConcepts = [],
+  onPressWorkingConcept,
   isTimed,
   onToggleTimed,
   optionalAddOns,
@@ -208,6 +213,11 @@ export function PlanTabIOSRegisterInterior({
           readOnly={readOnly}
         />
       ) : null}
+
+      <WorkingWithConcepts
+        concepts={workingWithConcepts}
+        onPressConcept={onPressWorkingConcept}
+      />
 
       <SuggestionsRow items={suggestions} onSeeAll={onSeeAllSuggestions} />
 

@@ -27,6 +27,8 @@ export { WithRow } from './WithRow';
 export type { WithRowCrew, WithRowProps } from './WithRow';
 export { BottomCTA } from './BottomCTA';
 export type { BottomCTAProps } from './BottomCTA';
+export { WorkingWithConcepts } from './WorkingWithConcepts';
+export type { WorkingWithConceptsProps } from './WorkingWithConcepts';
 export { PlanTabIOSRegisterInterior } from './PlanTabIOSRegisterInterior';
 export type { PlanTabIOSRegisterInteriorProps } from './PlanTabIOSRegisterInterior';
 export { deriveAIHelperState } from './aiHelperState';

@@ -921,15 +921,16 @@ export function useReflectProfile() {
       const followerIds = (recentFollows || []).map((f: any) => f.follower_id).filter(Boolean);
       let followerProfiles: Record<string, { full_name?: string; avatar_url?: string }> = {};
       if (followerIds.length > 0) {
-        const [{ data: profilesData }, { data: sailorData }] = await Promise.all([
-          supabase.from('profiles').select('id, full_name').in('id', followerIds),
-          supabase.from('sailor_profiles').select('user_id, avatar_url').in('user_id', followerIds),
-        ]);
+        const { data: profilesData } = await supabase
+          .from('users')
+          .select('id, full_name, avatar_url')
+          .in('id', followerIds);
         (profilesData || []).forEach((p: any) => {
-          followerProfiles[p.id] = { ...followerProfiles[p.id], full_name: p.full_name };
-        });
-        (sailorData || []).forEach((s: any) => {
-          followerProfiles[s.user_id] = { ...followerProfiles[s.user_id], avatar_url: s.avatar_url };
+          followerProfiles[p.id] = {
+            ...followerProfiles[p.id],
+            full_name: p.full_name,
+            avatar_url: p.avatar_url,
+          };
         });
       }
 

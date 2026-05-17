@@ -212,7 +212,7 @@ class SailorProfileServiceClass {
     // Fetch from users table (OAuth users only exist in 'users', not 'profiles')
     const { data: profile, error: profileError } = await supabase
       .from('users')
-      .select('id, full_name, email')
+      .select('id, full_name, email, avatar_url')
       .eq('id', userId)
       .single();
 
@@ -230,7 +230,6 @@ class SailorProfileServiceClass {
           `
           user_id,
           display_name,
-          avatar_url,
           avatar_emoji,
           avatar_color,
           bio,
@@ -288,7 +287,7 @@ class SailorProfileServiceClass {
     return {
       userId: profile.id,
       displayName: sailorProfile?.display_name || profile.full_name || 'Sailor',
-      avatarUrl: sailorProfile?.avatar_url,
+      avatarUrl: profile.avatar_url,
       avatarEmoji: sailorProfile?.avatar_emoji,
       avatarColor: sailorProfile?.avatar_color,
       bio: sailorProfile?.bio,
@@ -690,12 +689,12 @@ class SailorProfileServiceClass {
     // Fetch profiles
     const { data: profiles } = await supabase
       .from('users')
-      .select('id, full_name')
+      .select('id, full_name, avatar_url')
       .in('id', followerIds);
 
     const { data: sailorProfiles } = await supabase
       .from('sailor_profiles')
-      .select('user_id, display_name, avatar_url, avatar_emoji, avatar_color')
+      .select('user_id, display_name, avatar_emoji, avatar_color')
       .in('user_id', followerIds);
 
     const profilesMap = new Map((profiles || []).map((p: any) => [p.id, p]));
@@ -711,7 +710,7 @@ class SailorProfileServiceClass {
         userId: id,
         displayName:
           sailorProfile?.display_name || profile?.full_name || 'Sailor',
-        avatarUrl: sailorProfile?.avatar_url,
+        avatarUrl: profile?.avatar_url,
         avatarEmoji: sailorProfile?.avatar_emoji,
         avatarColor: sailorProfile?.avatar_color,
         isFollowing: currentUserFollowing.has(id),
@@ -777,12 +776,12 @@ class SailorProfileServiceClass {
     // Fetch profiles
     const { data: profiles } = await supabase
       .from('users')
-      .select('id, full_name')
+      .select('id, full_name, avatar_url')
       .in('id', followingIds);
 
     const { data: sailorProfiles } = await supabase
       .from('sailor_profiles')
-      .select('user_id, display_name, avatar_url, avatar_emoji, avatar_color')
+      .select('user_id, display_name, avatar_emoji, avatar_color')
       .in('user_id', followingIds);
 
     const profilesMap = new Map((profiles || []).map((p: any) => [p.id, p]));
@@ -798,7 +797,7 @@ class SailorProfileServiceClass {
         userId: id,
         displayName:
           sailorProfile?.display_name || profile?.full_name || 'Sailor',
-        avatarUrl: sailorProfile?.avatar_url,
+        avatarUrl: profile?.avatar_url,
         avatarEmoji: sailorProfile?.avatar_emoji,
         avatarColor: sailorProfile?.avatar_color,
         isFollowing: currentUserFollowing.has(id),

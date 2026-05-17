@@ -1,4 +1,5 @@
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { router } from 'expo-router';
 import { useQueryClient } from '@tanstack/react-query';
 import { useStepDetail, useUpdateStepMetadata } from '@/hooks/useStepDetail';
 import { useUpdateStep } from '@/hooks/useTimelineSteps';
@@ -18,6 +19,9 @@ import {
   buildCapabilityEvidenceRows,
   writeStepCapabilityEvidence,
 } from '@/services/CapabilityEvidenceService';
+import { dropInsight } from '@/services/QuickCaptureService';
+import { addConceptTrailQuote, getStepConceptLinks } from '@/services/PlaybookService';
+import { supabase } from '@/services/supabase';
 import type {
   CapabilityEvidenceRow,
   EvidenceStrength,
@@ -51,6 +55,11 @@ export interface Phase4ReflectViewProps {
   activeFieldId?: ReflectFieldId;
   synthesisState: ReflectSynthesisState;
   capabilities: CapabilityEvidenceRow[];
+  conceptPrompts: {
+    conceptId: string;
+    title: string;
+    answer: boolean | null;
+  }[];
   saveEnabled: boolean;
   disabledHint: string;
   readOnly?: boolean;
@@ -63,6 +72,8 @@ export interface Phase4ReflectViewProps {
   onToggleCapability: (id: string) => void;
   onChangeCapabilityStrength: (id: string, strength: EvidenceStrength) => void;
   onAddCapability: () => void;
+  onMarkFieldAsConceptSeed: (id: ReflectFieldId) => Promise<void>;
+  onAnswerConceptPrompt: (conceptId: string, answer: boolean) => void;
   onSettle: () => Promise<void>;
 }
 
@@ -158,6 +169,7 @@ export function useStepReflectController({
   const [localFields, setLocalFields] = useState<Partial<Record<ReflectFieldId, string>>>({});
   const [localCapabilities, setLocalCapabilities] = useState<CapabilityEvidenceRow[] | null>(null);
   const [settling, setSettling] = useState(false);
+  const [conceptPrompts, setConceptPrompts] = useState<{ conceptId: string; title: string; answer: boolean | null }[]>([]);
   const timersRef = useRef<Partial<Record<ReflectFieldId, ReturnType<typeof setTimeout>>>>({});
 
   const metadata = useMemo(() => (step?.metadata ?? {}) as StepMetadata, [step?.metadata]);
@@ -272,16 +284,24 @@ export function useStepReflectController({
   const onDraftSynthesis = useCallback(async () => {
     if (!step || readOnly) return '';
     setSynthesisState('drafting');
+    setActiveFieldId('what_worked');
     const draft = await draftReflectSynthesis({
       stepTitle: step.title,
       interestName: currentInterest?.name,
       plan: planData,
       act: actData,
     });
-    onChangeField('what_worked', draft, { drafted: true });
+    setLocalFields((current) => ({ ...current, what_worked: draft }));
+    setDraftedFieldIds((current) => new Set(current).add('what_worked'));
+    const existing = timersRef.current.what_worked;
+    if (existing) {
+      clearTimeout(existing);
+      delete timersRef.current.what_worked;
+    }
+    flushField('what_worked', draft);
     setSynthesisState('drafted');
     return draft;
-  }, [step, readOnly, currentInterest?.name, planData, actData, onChangeField]);
+  }, [step, readOnly, currentInterest?.name, planData, actData, flushField]);
 
   const onSpawnAnythingElseField = useCallback((): ReflectFieldId => {
     setShowAnythingElse(true);
@@ -339,6 +359,58 @@ export function useStepReflectController({
     });
   }, [capturesCount, seededCapabilities]);
 
+  const onMarkFieldAsConceptSeed = useCallback(async (id: ReflectFieldId) => {
+    if (!step || readOnly) return;
+    const field = fields.find((item) => item.id === id);
+    const content = field?.value.trim();
+    if (!content) return;
+    await dropInsight({
+      userId: step.user_id,
+      interestId: step.interest_id,
+      payload: { kind: 'text', content },
+    });
+    router.push('/(tabs)/playbook' as any);
+  }, [fields, readOnly, step]);
+
+  const onAnswerConceptPrompt = useCallback((conceptId: string, answer: boolean) => {
+    setConceptPrompts((current) =>
+      current.map((prompt) => prompt.conceptId === conceptId ? { ...prompt, answer } : prompt),
+    );
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!stepId) return undefined;
+    (async () => {
+      try {
+        const links = await getStepConceptLinks(stepId);
+        const conceptIds = links.map((link) => link.concept_id);
+        if (conceptIds.length === 0) {
+          if (!cancelled) setConceptPrompts([]);
+          return;
+        }
+        const { data } = await supabase
+          .from('playbook_concepts')
+          .select('id,title')
+          .in('id', conceptIds);
+        if (!cancelled) {
+          setConceptPrompts(
+            (data ?? []).map((concept: any) => ({
+              conceptId: concept.id,
+              title: concept.title,
+              answer: null,
+            })),
+          );
+        }
+      } catch {
+        if (!cancelled) setConceptPrompts([]);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [stepId]);
+
   const onSettle = useCallback(async () => {
     if (!step || readOnly || !hasText) return;
     setSettling(true);
@@ -352,12 +424,29 @@ export function useStepReflectController({
         flushField(field.id, field.value);
       }
       await writeStepCapabilityEvidence({ stepId, rows: capabilities });
+      const observations = actData.observations ?? [];
+      const uploads = actData.media_uploads ?? [];
+      const firstObservation = observations[0]?.text?.trim();
+      const firstUploadCaption = uploads[0]?.caption?.trim();
+      const fallbackQuote = firstObservation || firstUploadCaption || step.title;
+      await Promise.all(
+        conceptPrompts
+          .filter((prompt) => prompt.answer)
+          .map((prompt) =>
+            addConceptTrailQuote({
+              conceptId: prompt.conceptId,
+              captureId: observations[0]?.id ?? uploads[0]?.id ?? stepId,
+              quoteText: fallbackQuote,
+              sourceLabel: `${step.title} · Reflect`,
+            }).catch(() => undefined),
+          ),
+      );
       await updateStep.mutateAsync({ stepId, input: { status: 'settled' } });
       queryClient.invalidateQueries({ queryKey: ['timeline-steps'] });
     } finally {
       setSettling(false);
     }
-  }, [step, readOnly, hasText, fields, flushField, stepId, capabilities, updateStep, queryClient]);
+  }, [step, readOnly, hasText, fields, flushField, stepId, capabilities, updateStep, queryClient, actData.observations, actData.media_uploads, conceptPrompts]);
 
   return {
     loading: isLoading,
@@ -370,6 +459,7 @@ export function useStepReflectController({
       activeFieldId,
       synthesisState,
       capabilities,
+      conceptPrompts,
       saveEnabled: hasText && !readOnly && state !== 'settled',
       disabledHint: 'Write a line or hold to speak',
       readOnly,
@@ -382,6 +472,8 @@ export function useStepReflectController({
       onToggleCapability,
       onChangeCapabilityStrength,
       onAddCapability,
+      onMarkFieldAsConceptSeed,
+      onAnswerConceptPrompt,
       onSettle,
     },
     isSettling: settling || updateStep.isPending,

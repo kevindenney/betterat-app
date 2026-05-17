@@ -14,7 +14,7 @@ import { ConversationalCapture } from './ConversationalCapture';
 import { PlaybookPicker, type PlaybookPickerSelection } from '@/components/playbook/PlaybookPicker';
 import { ResourceTypeIcon } from '@/components/library/ResourceTypeIcon';
 import { getResourcesByIds } from '@/services/LibraryService';
-import { addStepLink, removeStepLink, getStepLinks } from '@/services/PlaybookService';
+import { addStepLink, removeStepLink, getStepConceptLinks, getStepLinks, linkConceptToStep, unlinkConceptFromStep } from '@/services/PlaybookService';
 import { supabase } from '@/services/supabase';
 import { CrossInterestSuggestions } from './CrossInterestSuggestions';
 import { FromOtherPlaybooks } from './FromOtherPlaybooks';
@@ -87,19 +87,25 @@ export function PlanTab({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [linkedIds.join(',')]);
 
-  // Load linked concepts from step_playbook_links
+  // Load linked concepts from step_concept_links (Phase 6), falling back to the
+  // older generic typed links when the dedicated table is not available yet.
   useEffect(() => {
     if (!stepId) return;
     let cancelled = false;
     async function loadConcepts() {
       try {
-        const links = await getStepLinks(stepId!);
-        const conceptLinks = links.filter((l) => l.item_type === 'concept');
-        if (conceptLinks.length === 0) {
+        let conceptIds: string[] = [];
+        try {
+          const links = await getStepConceptLinks(stepId!);
+          conceptIds = links.map((l) => l.concept_id);
+        } catch {
+          const links = await getStepLinks(stepId!);
+          conceptIds = links.filter((l) => l.item_type === 'concept').map((l) => l.item_id);
+        }
+        if (conceptIds.length === 0) {
           if (!cancelled) setLinkedConcepts([]);
           return;
         }
-        const conceptIds = conceptLinks.map((l) => l.item_id);
         const { data } = await supabase
           .from('playbook_concepts')
           .select('id, title, slug')
@@ -127,13 +133,18 @@ export function PlanTab({
       const mergedIds = [...new Set([...existingIds, ...newResourceIds])];
       onUpdate({ linked_resource_ids: mergedIds });
     }
-    // Write step_playbook_links for every selection (await so other tabs see them)
+    // Write concept links through the Phase 6 dedicated table (which also
+    // dual-writes the older generic step_playbook_links table internally).
     if (stepId) {
       await Promise.all(
         selections.map((s) =>
-          addStepLink(stepId!, s.item_type, s.item_id).catch((err) => {
-            console.error('[PlanTab] addStepLink failed:', s.item_type, s.item_id, err);
-          })
+          s.item_type === 'concept'
+            ? linkConceptToStep(stepId!, s.item_id).catch((err) => {
+                console.error('[PlanTab] linkConceptToStep failed:', s.item_id, err);
+              })
+            : addStepLink(stepId!, s.item_type, s.item_id).catch((err) => {
+                console.error('[PlanTab] addStepLink failed:', s.item_type, s.item_id, err);
+              })
         )
       );
     }
@@ -159,7 +170,7 @@ export function PlanTab({
   const handleRemoveConcept = useCallback(async (conceptId: string) => {
     setLinkedConcepts((prev) => prev.filter((c) => c.id !== conceptId));
     if (stepId) {
-      await removeStepLink(stepId, 'concept', conceptId).catch(() => {});
+      await unlinkConceptFromStep(stepId, conceptId).catch(() => removeStepLink(stepId, 'concept', conceptId).catch(() => {}));
     }
   }, [stepId]);
 
@@ -256,6 +267,13 @@ export function PlanTab({
           // chip set hint surfaces a no-op-friendly affordance.
         }}
         suggestions={suggestions}
+        workingWithConcepts={linkedConcepts.map((concept) => ({
+          id: concept.id,
+          title: concept.title,
+        }))}
+        onPressWorkingConcept={(conceptId) => {
+          router.push(`/(tabs)/playbook/concept/${conceptId}` as any);
+        }}
         onNextPhase={onNextTab}
         footer={footer}
       />

@@ -43,6 +43,7 @@ import {
   QuickCaptureComposer,
   UniversalPlusSheet,
 } from '@/components/capture';
+import { BecomingHero } from '@/components/profile';
 import {
   GRAY_5,
   GRAY_6,
@@ -103,6 +104,44 @@ const DEBUG_DO_CAPTURES: DoCaptureItem[] = [
     source: 'media_upload',
     chipLabel: 'Boat tune',
     beatLabel: 'beat 2',
+  },
+];
+
+const DEBUG_BECOMING_POINTS = [
+  {
+    capturedAt: '2024-03-10T00:00:00Z',
+    capabilityId: 'starts',
+    capabilityName: 'Starts',
+    strength: 'material' as const,
+    levelAtTime: 1 as const,
+  },
+  {
+    capturedAt: '2024-09-02T00:00:00Z',
+    capabilityId: 'wind-reading',
+    capabilityName: 'Wind reading',
+    strength: 'strong' as const,
+    levelAtTime: 2 as const,
+  },
+  {
+    capturedAt: '2025-04-11T00:00:00Z',
+    capabilityId: 'mark-roundings',
+    capabilityName: 'Mark roundings',
+    strength: 'material' as const,
+    levelAtTime: 2 as const,
+  },
+  {
+    capturedAt: '2025-11-06T00:00:00Z',
+    capabilityId: 'rules',
+    capabilityName: 'Rules',
+    strength: 'strong' as const,
+    levelAtTime: 3 as const,
+  },
+  {
+    capturedAt: '2026-05-15T00:00:00Z',
+    capabilityId: 'tactical-decisions',
+    capabilityName: 'Tactical decisions',
+    strength: 'strong' as const,
+    levelAtTime: 4 as const,
   },
 ];
 
@@ -675,6 +714,47 @@ export default function StepLoopPrimitivesDebug() {
               onPress={() => undefined}
             />
           </View>
+        </Section>
+
+        <Section title="Becoming hero (Phase 5)">
+          <Caption>
+            Debug demo state: Becoming hero · 47 evidence · 1 settled.
+          </Caption>
+          <BecomingHero
+            interestName="Sail Racing"
+            startedAt="2023-05-01T00:00:00Z"
+            evidencePoints={DEBUG_BECOMING_POINTS}
+            settledRanges={[
+              {
+                startAt: '2025-09-01T00:00:00Z',
+                endAt: '2025-11-20T00:00:00Z',
+                pathName: 'autumn-series',
+              },
+            ]}
+            nowAt="2026-05-17T00:00:00Z"
+            bezierPath="M 4 100 Q 44 82 82 71 T 160 62 T 238 46 T 316 28"
+            settledWashPath="M 4 100 Q 44 82 82 71 T 160 62 T 238 46 T 316 28 L 316 100 L 4 100 Z"
+            plotPoints={[
+              { x: 40, y: 82, strength: 'material', capturedAt: '2024-03-10T00:00:00Z', capabilityId: 'starts', capabilityName: 'Starts' },
+              { x: 96, y: 68, strength: 'strong', capturedAt: '2024-09-02T00:00:00Z', capabilityId: 'wind-reading', capabilityName: 'Wind reading' },
+              { x: 156, y: 62, strength: 'material', capturedAt: '2025-04-11T00:00:00Z', capabilityId: 'mark-roundings', capabilityName: 'Mark roundings' },
+              { x: 232, y: 46, strength: 'strong', capturedAt: '2025-11-06T00:00:00Z', capabilityId: 'rules', capabilityName: 'Rules' },
+              { x: 292, y: 28, strength: 'strong', capturedAt: '2026-05-15T00:00:00Z', capabilityId: 'tactical-decisions', capabilityName: 'Tactical decisions' },
+            ]}
+            settledMarkers={[
+              { x: 220, y: 48, pathName: 'autumn-series', capturedAt: '2025-11-20T00:00:00Z' },
+            ]}
+            nowPoint={{ x: 306, y: 28 }}
+            yearTicks={[
+              { x: 24, label: '2023' },
+              { x: 118, label: '2024' },
+              { x: 212, label: '2025' },
+              { x: 306, label: '2026' },
+            ]}
+            capabilityCount={5}
+            evidenceCount={47}
+            pathsSettledCount={1}
+          />
         </Section>
 
         <View style={{ height: 64 }} />

@@ -25,12 +25,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Platform } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
+import { router } from 'expo-router';
 import { useStepDetail, useUpdateStepMetadata } from '@/hooks/useStepDetail';
 import { useUpdateStep } from '@/hooks/useTimelineSteps';
 import { useAuth } from '@/providers/AuthProvider';
 import { supabase } from '@/services/supabase';
 import { showAlert, showConfirm } from '@/lib/utils/crossPlatformAlert';
 import { FEATURE_FLAGS } from '@/lib/featureFlags';
+import { dropInsight } from '@/services/QuickCaptureService';
 // Import runtime helpers from their own files (not the do-tab barrel) so
 // jest doesn't pull every component-level `@expo/vector-icons` import into
 // the controller hook's transitive graph.
@@ -365,6 +367,35 @@ export function useStepActCaptureController({
     [readOnly],
   );
 
+  const handleMarkAsConceptSeed = useCallback(
+    async (captureId: string) => {
+      if (readOnly || !user?.id) return;
+      const capture = captures.find((row) => row.id === captureId);
+      const content = capture?.body?.trim();
+      if (!content) {
+        showAlert('No text to save', 'This capture does not have concept-seed text yet.');
+        return;
+      }
+      const kind = capture?.kind === 'voice' ? 'voice' : 'text';
+      try {
+        await dropInsight({
+          userId: user.id,
+          interestId: interestId ?? step?.interest_id ?? null,
+          payload: {
+            kind,
+            content,
+          },
+        });
+        showAlert('Saved to Playbook', 'Concept seed added to Recent insights.');
+        router.push('/(tabs)/playbook' as any);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Could not save concept seed.';
+        showAlert('Save failed', message);
+      }
+    },
+    [captures, interestId, readOnly, step?.interest_id, user?.id],
+  );
+
   const handleDeleteCapture = useCallback(
     (captureId: string) => {
       if (readOnly) return;
@@ -422,7 +453,7 @@ export function useStepActCaptureController({
     onAddAnotherCapture: handleAddAnotherCapture,
     onDiscardActivity: handleDiscardActivity,
     onDeleteCapture: handleDeleteCapture,
-    onTagCapture: handleMarkAsEvidence,
+    onTagCapture: handleMarkAsConceptSeed,
     onMarkAsEvidence: handleMarkAsEvidence,
   };
 

@@ -220,6 +220,12 @@ export function UniversalPlusProvider({ children }: { children: React.ReactNode 
           interestId: currentInterest?.id ?? null,
           payload,
         });
+        if (currentInterest?.id) {
+          void queryClient.invalidateQueries({
+            queryKey: ['playbook-insights', user.id, currentInterest.id],
+          });
+        }
+        router.push('/(tabs)/playbook' as any);
         toast.show('Concept saved to Playbook', 'success');
       } catch (err) {
         logger.error('Concept drop failed', err);
@@ -228,7 +234,7 @@ export function UniversalPlusProvider({ children }: { children: React.ReactNode 
         close();
       }
     },
-    [user?.id, currentInterest?.id, toast, close],
+    [user?.id, currentInterest?.id, toast, close, queryClient],
   );
 
   const handleNavigate = useCallback(

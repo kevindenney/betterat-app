@@ -1,5 +1,5 @@
 import React from 'react';
-import { Platform, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import {
   GRAY_5,
   LABEL,
@@ -16,6 +16,7 @@ export interface ReflectFieldProps {
   placeholder?: string;
   isDrafted?: boolean;
   readOnly?: boolean;
+  onMarkAsConceptSeed?: () => void;
 }
 
 export function ReflectField({
@@ -27,6 +28,7 @@ export function ReflectField({
   placeholder = 'Tap to write',
   isDrafted,
   readOnly,
+  onMarkAsConceptSeed,
 }: ReflectFieldProps) {
   return (
     <View style={styles.card}>
@@ -44,6 +46,11 @@ export function ReflectField({
         style={[styles.input, isDrafted && styles.drafted]}
       />
       {isDrafted ? <Text style={styles.draftLabel}>AI draft · edit freely</Text> : null}
+      {value.trim().length > 0 && onMarkAsConceptSeed ? (
+        <Pressable onPress={onMarkAsConceptSeed} accessibilityRole="button">
+          <Text style={styles.seedAction}>Mark as concept seed</Text>
+        </Pressable>
+      ) : null}
     </View>
   );
 }
@@ -85,5 +92,10 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: LABEL_3,
     fontStyle: 'italic',
+  },
+  seedAction: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#007AFF',
   },
 });

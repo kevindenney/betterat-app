@@ -9,7 +9,7 @@
  * Design follows Apple Human Interface Guidelines.
  */
 
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import {
   ScrollView,
   StyleSheet,
@@ -930,6 +930,13 @@ export default function ReflectScreen() {
   // real-data hooks instead of preview-fixture wrappers.
   const reflectLog = useReflectLog();
   const reflectProfile = useReflectProfileScreenData();
+  const refreshProfileRegister = reflectProfile.refresh;
+
+  useEffect(() => {
+    if (activeSegment === 'profile' && FEATURE_FLAGS.PROFILE_IOS_REGISTER) {
+      refreshProfileRegister().catch(() => {});
+    }
+  }, [activeSegment, refreshProfileRegister]);
 
   const handleReflectLogEntryPress = useCallback(
     (entry: { id: string }) => {

@@ -58,12 +58,13 @@ export function UniversalPlusSheet({
   onShareIdea,
   testID,
 }: UniversalPlusSheetProps) {
-  // Concept-drop reuses the composer text once when the row is tapped. To
-  // keep the flow simple in this PR we route the row through `onDropConcept`
-  // and expect the host to surface a follow-up nudge if no text is captured.
-  // For now, the secondary "concept" row creates an empty insight that the
-  // user fills via Playbook (Phase 6); the row only requires a tap.
-  // The brief allows this.
+  const [draftText, setDraftText] = React.useState('');
+
+  React.useEffect(() => {
+    if (!visible) {
+      setDraftText('');
+    }
+  }, [visible]);
 
   return (
     <Modal
@@ -95,12 +96,27 @@ export function UniversalPlusSheet({
               keyboardShouldPersistTaps="handled"
               showsVerticalScrollIndicator={false}
             >
-              <QuickCaptureComposer autoFocus onSubmit={onQuickCapture} />
+              <QuickCaptureComposer
+                autoFocus
+                onSubmit={onQuickCapture}
+                onDraftChange={setDraftText}
+              />
               <Text style={styles.hint}>
                 {VOICE_SUPPORTED
                   ? "Hold to speak · or tap to type. We'll name it for you."
                   : "Tap to type. We'll name it for you."}
               </Text>
+
+              <Text style={styles.eyebrow}>Share</Text>
+              <View style={styles.group}>
+                <MenuRow
+                  icon="share-3"
+                  tint="green"
+                  title="An idea, publicly or with crew"
+                  subtitle="Opens the share composer"
+                  onPress={onShareIdea}
+                />
+              </View>
 
               <Text style={styles.eyebrow}>Add a step from…</Text>
               <View style={styles.group}>
@@ -127,22 +143,7 @@ export function UniversalPlusSheet({
                   tint="purple"
                   title="A concept to come back to"
                   subtitle="Saved to your Playbook · Recent Insights"
-                  onPress={() =>
-                    // For the empty-tap variant, send an empty text payload —
-                    // the host can choose to show a "what concept?" follow-up.
-                    onDropConcept({ kind: 'text', content: '' })
-                  }
-                />
-              </View>
-
-              <Text style={styles.eyebrow}>Share</Text>
-              <View style={styles.group}>
-                <MenuRow
-                  icon="share-3"
-                  tint="green"
-                  title="An idea, publicly or with crew"
-                  subtitle="Opens the share composer"
-                  onPress={onShareIdea}
+                  onPress={() => onDropConcept({ kind: 'text', content: draftText })}
                 />
               </View>
             </ScrollView>

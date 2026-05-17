@@ -3908,21 +3908,22 @@ export default function RacesScreen() {
 
   // iOS-register summary-surface adapter — shapes filteredCardGridRaces into the
   // RaceCardItem grammar consumed by <RaceCardsScreen />. Status maps from the
-  // step's canonical fields; selectedRaceId promotes one card to "current"
-  // (the earned-exception treatment) so the user's focus card is always
-  // visually distinguished even when no step is in_progress. Tap-through is
-  // wired in the render-switch block to /race/ios/[stepId].
+  // step's canonical fields; "current" follows the next actionable race
+  // rather than whichever card happens to be selected in the detail pane.
+  // That keeps completed cards on the completed side of the now bar as soon as
+  // they are marked done.
   const raceCardsScreenItems: RaceCardItem[] = useMemo(() => {
     const total = filteredCardGridRaces.length;
+    const currentRaceId = safeNextRace?.id ?? nextActionItem?.id ?? selectedRaceId;
     return filteredCardGridRaces.map((race: any, idx: number): RaceCardItem => {
       const ordinal = idx + 1;
       const stepStatus = race.stepStatus ?? race.status;
-      const isCurrent = race.id === selectedRaceId;
+      const isCurrent = race.id === currentRaceId;
       let status: RaceCardItem['status'];
-      if (isCurrent) {
-        status = 'current';
-      } else if (stepStatus === 'completed') {
+      if (stepStatus === 'completed') {
         status = 'debriefed';
+      } else if (isCurrent) {
+        status = 'current';
       } else if (stepStatus === 'in_progress') {
         status = 'in_progress';
       } else {
@@ -3969,7 +3970,7 @@ export default function RacesScreen() {
         concepts,
       };
     });
-  }, [filteredCardGridRaces, selectedRaceId]);
+  }, [filteredCardGridRaces, safeNextRace?.id, nextActionItem?.id, selectedRaceId]);
 
   // Stable initial card index — only changes when the target race actually moves
   // in the array, NOT on every data refetch that produces a new array reference.

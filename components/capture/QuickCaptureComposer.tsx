@@ -54,6 +54,7 @@ export interface QuickCaptureSubmitPayload {
 export interface QuickCaptureComposerProps {
   placeholder?: string;
   onSubmit: (payload: QuickCaptureSubmitPayload) => void;
+  onDraftChange?: (draft: string) => void;
   /** Optional autoFocus hint. Sheets typically don't autofocus on open. */
   autoFocus?: boolean;
   testID?: string;
@@ -71,6 +72,7 @@ function formatElapsed(ms: number): string {
 export function QuickCaptureComposer({
   placeholder = DEFAULT_PLACEHOLDER,
   onSubmit,
+  onDraftChange,
   autoFocus,
   testID,
 }: QuickCaptureComposerProps) {
@@ -128,6 +130,10 @@ export function QuickCaptureComposer({
       voiceNoteService.cancelRecording().catch(() => undefined);
     };
   }, [stopTicker]);
+
+  useEffect(() => {
+    onDraftChange?.(text);
+  }, [onDraftChange, text]);
 
   const handleSendText = () => {
     const trimmed = text.trim();
