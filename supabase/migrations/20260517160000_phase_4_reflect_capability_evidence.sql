@@ -35,7 +35,7 @@ create policy "step_capability_evidence_select_own_or_collab"
       where ts.id = step_capability_evidence.step_id
         and (
           ts.user_id = auth.uid()
-          or ts.collaborator_user_ids @> array[auth.uid()]
+          or ts.collaborator_user_ids @> array[auth.uid()::text]
         )
     )
   );
