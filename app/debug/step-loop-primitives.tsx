@@ -57,7 +57,8 @@ const STATE_PILL_VARIANTS: { variant: StatePillVariant; label: string }[] = [
   { variant: 'current', label: 'Current' },
   { variant: 'live', label: 'Live · capturing' },
   { variant: 'complete', label: 'Complete' },
-  { variant: 'reflect', label: 'Reflect · Season in view' },
+  { variant: 'reflect', label: 'Reflect · ready' },
+  { variant: 'reflect', label: 'Reflect · settling' },
   { variant: 'settled', label: 'Settled' },
   { variant: 'between', label: 'Between · hinge' },
 ];

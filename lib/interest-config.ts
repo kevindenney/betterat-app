@@ -7,6 +7,14 @@ export interface InterestDoTabConfig {
   captureEmptyMessage: string;
 }
 
+export interface InterestReflectTabConfig {
+  statePillLabel: string;
+  settledPillLabel: string;
+  saveCtaLabel: string;
+  questionPair: [string, string];
+  synthesisDraftCopy: (count: number) => string;
+}
+
 export const INTEREST_DO_TAB_CONFIG: Record<DoTabInterestKind, InterestDoTabConfig> = {
   sailing: {
     statePillLabel: 'Live · capturing',
@@ -31,6 +39,41 @@ export const INTEREST_DO_TAB_CONFIG: Record<DoTabInterestKind, InterestDoTabConf
     stopCtaLabel: 'Done capturing',
     showElapsedByDefault: false,
     captureEmptyMessage: 'Your captures appear here as you record them.',
+  },
+};
+
+export const INTEREST_REFLECT_TAB_CONFIG: Record<DoTabInterestKind, InterestReflectTabConfig> = {
+  sailing: {
+    statePillLabel: 'Reflect · ready',
+    settledPillLabel: 'Settled',
+    saveCtaLabel: 'Save & settle',
+    questionPair: ['What worked?', 'What would you do differently?'],
+    synthesisDraftCopy: (count) =>
+      `Want a first draft from your ${count} captures? Tap to draft, or write the first line yourself.`,
+  },
+  nursing: {
+    statePillLabel: 'Reflect · ready',
+    settledPillLabel: 'Settled',
+    saveCtaLabel: 'Save & settle',
+    questionPair: ['What worked well today?', 'Where do you need more practice?'],
+    synthesisDraftCopy: (count) =>
+      `Want a first draft from your ${count} observations? Tap to draft, or write the first line yourself.`,
+  },
+  drawing: {
+    statePillLabel: 'Reflect · ready',
+    settledPillLabel: 'Settled',
+    saveCtaLabel: 'Save & settle',
+    questionPair: ['What clicked?', "What's still rough?"],
+    synthesisDraftCopy: (count) =>
+      `Want a first draft from your ${count} notes? Tap to draft, or write the first line yourself.`,
+  },
+  generic: {
+    statePillLabel: 'Reflect · ready',
+    settledPillLabel: 'Settled',
+    saveCtaLabel: 'Save & settle',
+    questionPair: ['What stuck?', "What's still unclear?"],
+    synthesisDraftCopy: (count) =>
+      `Want a first draft from your ${count} captures? Tap to draft, or write the first line yourself.`,
   },
 };
 
@@ -60,4 +103,12 @@ export function getInterestDoTabConfig(input?: {
   interestId?: string | null;
 }): InterestDoTabConfig {
   return INTEREST_DO_TAB_CONFIG[resolveDoTabInterestKind(input)];
+}
+
+export function getInterestReflectTabConfig(input?: {
+  interestSlug?: string | null;
+  interestName?: string | null;
+  interestId?: string | null;
+}): InterestReflectTabConfig {
+  return INTEREST_REFLECT_TAB_CONFIG[resolveDoTabInterestKind(input)];
 }

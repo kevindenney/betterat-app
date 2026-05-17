@@ -2018,12 +2018,12 @@ function RaceSummaryCardImpl({
         );
       }
       if (selectedPhase === 'after_race') {
-        // Behind PRACTICE_REFLECT_TAB_IOS_REGISTER the inline race-card
-        // Reflect surface swaps to the same ReflectTabInterior shell ReviewTab
+        // Behind PRACTICE_STEP_LOOP_IOS_REGISTER the inline race-card
+        // Reflect surface swaps to the same Phase 4 shell ReviewTab
         // mounts (see components/step/reflect-tab/ReflectTabIOSRegisterShell).
         // Flag off keeps the existing nudge + focus + StepCritiqueContent
         // stack byte-identical.
-        if (FEATURE_FLAGS.PRACTICE_REFLECT_TAB_IOS_REGISTER) {
+        if (FEATURE_FLAGS.PRACTICE_STEP_LOOP_IOS_REGISTER) {
           return (
             <ReflectTabIOSRegisterShell
               stepId={race.id}
