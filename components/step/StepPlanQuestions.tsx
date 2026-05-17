@@ -1107,7 +1107,85 @@ RULES:
             );
             updateStep.mutate({ stepId: step.id, input: { is_timed: next } });
           }}
+          optionalAddOns={
+            <View style={styles.phase1ContextCard}>
+              <View style={styles.phase1ContextHead}>
+                <Ionicons name="library-outline" size={12} color={STEP_COLORS.secondaryLabel} />
+                <Text style={styles.phase1ContextEye}>Also relevant for</Text>
+              </View>
+
+              {linkedResources.length > 0 && (
+                <View style={styles.chipContainer}>
+                  {linkedResources.map((resource) => (
+                    <Pressable
+                      key={resource.id}
+                      style={styles.resourceChip}
+                      onPress={() => { if (resource.url) Linking.openURL(resource.url); }}
+                    >
+                      <ResourceTypeIcon type={resource.resource_type} size={14} />
+                      <Text style={styles.chipText} numberOfLines={1}>{resource.title}</Text>
+                      {!readOnly && (
+                        <Pressable onPress={() => handleRemoveResource(resource.id)} hitSlop={6}>
+                          <Ionicons name="close-circle" size={16} color={IOS_COLORS.systemGray3} />
+                        </Pressable>
+                      )}
+                    </Pressable>
+                  ))}
+                </View>
+              )}
+
+              {linkedConcepts.length > 0 && (
+                <View style={styles.conceptsSection}>
+                  <Text style={styles.conceptsSectionLabel}>FOCUS CONCEPTS</Text>
+                  {linkedConcepts.map((concept) => (
+                    <Pressable
+                      key={concept.id}
+                      style={styles.conceptCard}
+                      onPress={() => {
+                        if (concept.slug) {
+                          router.push(`/(tabs)/playbook/concept/${concept.slug}` as any);
+                        }
+                      }}
+                    >
+                      <Ionicons name="book-outline" size={16} color={STEP_COLORS.accent} />
+                      <Text style={styles.conceptCardTitle} numberOfLines={2}>{concept.title}</Text>
+                      {!readOnly && (
+                        <Pressable onPress={() => handleRemoveConcept(concept.id)} hitSlop={6}>
+                          <Ionicons name="close-circle" size={16} color={IOS_COLORS.systemGray3} />
+                        </Pressable>
+                      )}
+                    </Pressable>
+                  ))}
+                </View>
+              )}
+
+              {!readOnly && (
+                <Pressable style={styles.addLibraryButton} onPress={() => openAddPicker('Also relevant for')}>
+                  <Ionicons name="bookmarks-outline" size={18} color={STEP_COLORS.accent} />
+                  <Text style={styles.addLibraryText}>Add from library</Text>
+                </Pressable>
+              )}
+            </View>
+          }
         />
+
+        {!readOnly && (
+          <AddToStepPlanSheet
+            visible={addPickerDestination !== null}
+            destinationLabel={addPickerDestination ?? ''}
+            destinationContext={localWhat.trim() || step.title || undefined}
+            interestId={interestId}
+            excludeKeys={[
+              ...linkedIds.map((id) => `resource:${id}`),
+              ...linkedConcepts.map((c) => `concept:${c.id}`),
+            ]}
+            onSelect={(selections: AddToStepPlanSelection[]) => {
+              handleSelectPlaybookItems(selections as PlaybookPickerSelection[]);
+              closeAddPicker();
+            }}
+            onClose={closeAddPicker}
+          />
+        )}
 
         {!readOnly && (
           <>
