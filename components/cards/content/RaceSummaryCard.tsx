@@ -1078,7 +1078,7 @@ function RaceSummaryCardImpl({
   }, [eventConfig.eventNoun, isSailing, isTimelineStep, race.id, race.name, race.date, race.venue, metadata?.plan?.what_will_you_do]);
 
   // Extract collaboration flags from race
-  const isOwner = race.isOwner ?? true; // Default true for backward compatibility
+  const isOwner = race.isOwner ?? (isTimelineStep ? (race as any).user_id === user?.id : true);
   const isCollaborator = race.isCollaborator ?? false;
   const isPendingInvite = race.isPendingInvite ?? false;
   const collaboratorId = race.collaboratorId;
@@ -1968,6 +1968,7 @@ function RaceSummaryCardImpl({
             <StepPlanQuestions
               stepId={race.id}
               interestId={race.interest_id ?? currentInterest?.id}
+              readOnly={!isOwner}
               brainDumpData={brainDumpData}
               onBrainDumpChange={handleDraftChange}
               onStructureWithAI={handleStructureWithAI}
@@ -1990,6 +1991,7 @@ function RaceSummaryCardImpl({
           return (
             <DoTabIOSRegisterShell
               stepId={race.id}
+              readOnly={!isOwner}
               interestId={race.interest_id ?? currentInterest?.id}
               interestName={currentInterest?.name}
               interestSlug={currentInterest?.slug}
@@ -2011,7 +2013,7 @@ function RaceSummaryCardImpl({
               </View>
             )}
             <StepFocusConcepts stepId={race.id} />
-            <StepDrawContent stepId={race.id} interestId={race.interest_id ?? currentInterest?.id} interestName={currentInterest?.name} interestSlug={currentInterest?.slug} />
+            <StepDrawContent stepId={race.id} readOnly={!isOwner} interestId={race.interest_id ?? currentInterest?.id} interestName={currentInterest?.name} interestSlug={currentInterest?.slug} />
           </>
         );
       }
@@ -2025,6 +2027,7 @@ function RaceSummaryCardImpl({
           return (
             <ReflectTabIOSRegisterShell
               stepId={race.id}
+              readOnly={!isOwner}
               onNextStepCreated={onNextStepCreated}
             />
           );
@@ -2033,7 +2036,7 @@ function RaceSummaryCardImpl({
           <>
             {nudgeBanner}
             <StepFocusConcepts stepId={race.id} variant="review" />
-            <StepCritiqueContent stepId={race.id} onNextStepCreated={onNextStepCreated} />
+            <StepCritiqueContent stepId={race.id} onNextStepCreated={onNextStepCreated} readOnly={!isOwner} />
           </>
         );
       }
