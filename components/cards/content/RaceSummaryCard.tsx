@@ -79,6 +79,7 @@ import { PlanQuestionCard } from '@/components/step/PlanQuestionCard';
 import { StepDrawContent } from '@/components/step/StepDrawContent';
 import { DateEnrichmentCard } from '@/components/step/DateEnrichmentCard';
 import { DoTabIOSRegisterShell } from '@/components/step/do-tab';
+import { ReflectTabIOSRegisterShell } from '@/components/step/reflect-tab';
 import { StepCritiqueContent } from '@/components/step/StepCritiqueContent';
 import { StepFocusConcepts } from '@/components/step/StepFocusConcepts';
 import { StepProvenanceBanner } from '@/components/step/StepProvenanceBanner';
@@ -1974,6 +1975,7 @@ function RaceSummaryCardImpl({
               interestSlug={currentInterest?.slug}
               useConversationalCapture={isOwner}
               onConversationalCreate={isOwner ? handleConversationalCreate : undefined}
+              onNextTab={isOwner ? () => setSelectedPhase('on_water') : undefined}
             />
           </>
         );
@@ -1985,7 +1987,12 @@ function RaceSummaryCardImpl({
         // Flag off keeps the existing nudge + conditions + focus concepts
         // + StepDrawContent stack byte-identical.
         if (FEATURE_FLAGS.PRACTICE_DO_TAB_IOS_REGISTER) {
-          return <DoTabIOSRegisterShell stepId={race.id} />;
+          return (
+            <DoTabIOSRegisterShell
+              stepId={race.id}
+              onMoveToReflect={() => setSelectedPhase('after_race')}
+            />
+          );
         }
         const activeEnrichment = dateEnrichment ?? metadata?.plan?.date_enrichment;
         return (
@@ -2006,6 +2013,19 @@ function RaceSummaryCardImpl({
         );
       }
       if (selectedPhase === 'after_race') {
+        // Behind PRACTICE_REFLECT_TAB_IOS_REGISTER the inline race-card
+        // Reflect surface swaps to the same ReflectTabInterior shell ReviewTab
+        // mounts (see components/step/reflect-tab/ReflectTabIOSRegisterShell).
+        // Flag off keeps the existing nudge + focus + StepCritiqueContent
+        // stack byte-identical.
+        if (FEATURE_FLAGS.PRACTICE_REFLECT_TAB_IOS_REGISTER) {
+          return (
+            <ReflectTabIOSRegisterShell
+              stepId={race.id}
+              onNextStepCreated={onNextStepCreated}
+            />
+          );
+        }
         return (
           <>
             {nudgeBanner}

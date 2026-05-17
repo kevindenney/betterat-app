@@ -32,7 +32,9 @@ import { Linking } from 'react-native';
 import { router } from 'expo-router';
 import { getStepCategoryLabels } from '@/lib/step-category-config';
 import { FEATURE_FLAGS } from '@/lib/featureFlags';
-import { PlanTabInterior } from './plan-tab';
+import { PlanTabInterior, PlanTabIOSRegisterInterior } from './plan-tab';
+import { buildSuggestions, crossInterestToMentorInput } from '@/services/SuggestionsService';
+import { useCrossInterestSuggestions } from '@/hooks/useCrossInterestSuggestions';
 
 interface PlanTabProps {
   stepId?: string;
@@ -197,6 +199,68 @@ export function PlanTab({
   const q3Complete = Boolean(planData.why_reasoning?.trim());
   const q4Complete = Boolean(collaborators.length > 0 || (planData.who_collaborators?.length && planData.who_collaborators.some((c) => c.trim())));
   const q5Complete = Boolean(planData.where_location?.name?.trim());
+
+  // Mentor-channel suggestions for the Phase 1 SuggestionsRow.
+  const { suggestions: crossInterestSuggestions } = useCrossInterestSuggestions(
+    stepId,
+    interestId,
+    planData.what_will_you_do,
+  );
+
+  // Phase 1 · iOS register — Plan tab body rebuild. When the step-loop flag
+  // is on this branch takes precedence over the older PRACTICE_PLAN_TAB
+  // path; off-flag, both this and the PRACTICE_PLAN_TAB branch below are
+  // skipped and the legacy question-card render at the bottom of this file
+  // runs unchanged.
+  if (FEATURE_FLAGS.PRACTICE_STEP_LOOP_IOS_REGISTER) {
+    const capabilityChips = (planData.competency_ids ?? [])
+      .map((id) => {
+        const comp = (availableCompetencies ?? []).find((c: Competency) => c.id === id);
+        return comp ? { id: comp.id, label: comp.title } : null;
+      })
+      .filter((x): x is { id: string; label: string } => x !== null);
+
+    const mentorInput = crossInterestToMentorInput(
+      crossInterestSuggestions ?? [],
+      (s) => {
+        const existing = planData.how_sub_steps ?? [];
+        const newSubStep: SubStep = {
+          id: `cross_${Date.now()}`,
+          text: s.suggestion,
+          sort_order: existing.length,
+          completed: false,
+        };
+        onUpdate({ how_sub_steps: [...existing, newSubStep] });
+      },
+    );
+    const suggestions = buildSuggestions({ mentor: mentorInput });
+
+    return (
+      <PlanTabIOSRegisterInterior
+        planData={planData}
+        onUpdate={onUpdate}
+        readOnly={readOnly}
+        interestId={interestId}
+        interestName={interestName}
+        stepTitle={planData.what_will_you_do || 'New step'}
+        stepCategory={stepCategory}
+        onConversationalCreate={useConversationalCapture ? onConversationalCreate : undefined}
+        capabilities={capabilityChips}
+        onRemoveCapability={(id) => {
+          const updated = (planData.competency_ids ?? []).filter((c) => c !== id);
+          onUpdate({ competency_ids: updated });
+        }}
+        onAddCapabilityPress={() => {
+          // Lifted to consumer in a follow-up; for now we focus the search field
+          // by leaving the existing CompetencyPicker integration untouched. The
+          // chip set hint surfaces a no-op-friendly affordance.
+        }}
+        suggestions={suggestions}
+        onNextPhase={onNextTab}
+        footer={footer}
+      />
+    );
+  }
 
   if (FEATURE_FLAGS.PRACTICE_PLAN_TAB_IOS_REGISTER) {
     const optionalAddOns = (

@@ -8,11 +8,24 @@
  */
 
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { View, Text, TextInput, Pressable, StyleSheet, Platform } from 'react-native';
+import {
+  type NativeSyntheticEvent,
+  Platform,
+  Pressable,
+  StyleSheet,
+  Text,
+  TextInput,
+  type TextInputContentSizeChangeEventData,
+  View,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
 import { STEP_COLORS } from '@/lib/step-theme';
 import type { SubStep } from '@/types/step-detail';
+
+const SUBSTEP_LINE_HEIGHT = 18;
+const SUBSTEP_MIN_HEIGHT = 36;
+const SUBSTEP_MAX_HEIGHT = SUBSTEP_LINE_HEIGHT * 8;
 
 // ---------------------------------------------------------------------------
 // Individual sub-step row with local text state
@@ -36,6 +49,7 @@ function SubStepRow({
   onMoveDown: (id: string) => void;
 }) {
   const [localText, setLocalText] = useState(step.text);
+  const [inputHeight, setInputHeight] = useState<number>(SUBSTEP_MIN_HEIGHT);
   const initializedRef = useRef(false);
 
   // Seed from prop on mount only
@@ -50,6 +64,15 @@ function SubStepRow({
     setLocalText(text);
     onTextChange(step.id, text);
   }, [step.id, onTextChange]);
+
+  const handleContentSizeChange = useCallback(
+    (e: NativeSyntheticEvent<TextInputContentSizeChangeEventData>) => {
+      const next = e.nativeEvent.contentSize.height;
+      const clamped = Math.min(SUBSTEP_MAX_HEIGHT, Math.max(SUBSTEP_MIN_HEIGHT, next));
+      setInputHeight((prev) => (prev === clamped ? prev : clamped));
+    },
+    [],
+  );
 
   const isFirst = index === 0;
   const isLast = index === total - 1;
@@ -89,12 +112,15 @@ function SubStepRow({
 
       <Text style={styles.stepNumber}>{index + 1}.</Text>
       <TextInput
-        style={styles.input}
+        style={[styles.input, { height: inputHeight }]}
         value={localText}
         onChangeText={handleChange}
         placeholder="Describe this sub-step..."
         placeholderTextColor={IOS_COLORS.tertiaryLabel}
         multiline
+        onContentSizeChange={handleContentSizeChange}
+        scrollEnabled={false}
+        textAlignVertical="top"
       />
       <Pressable
         onPress={() => onRemove(step.id)}
@@ -266,15 +292,15 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     fontSize: 14,
+    lineHeight: SUBSTEP_LINE_HEIGHT,
     color: IOS_COLORS.label,
     backgroundColor: IOS_COLORS.systemGray6,
     borderRadius: 8,
     borderWidth: 1,
     borderColor: IOS_COLORS.systemGray4,
     padding: IOS_SPACING.sm,
-    minHeight: 36,
     ...Platform.select({
-      web: { outlineStyle: 'none' } as any,
+      web: { outlineStyle: 'none', resize: 'none', overflow: 'hidden' } as any,
     }),
   },
   removeButton: {

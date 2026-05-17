@@ -1,16 +1,18 @@
 /**
- * <PhaseTabs> — Plan / Do / Reflect tabs with ready / pending / live rings.
+ * <PhaseTabs> — Plan / Do / Reflect tabs with ready / pending / live pips.
  *
  * Anatomy: `.phase-tabs` in docs/redesign/ios-register/legacy-reskin-common.css
  *          (target variant in step-loop-integration-canonical.html).
  * Spec:    docs/redesign/ios-register/phase-0-shared-chrome.md (§ <PhaseTabs>)
+ * Refinements: docs/redesign/ios-register/phase-1-refinements.md (§ D27)
  *
- * Each tab carries a left-aligned 14×14 ring conveying phase state:
- *   pending → dashed gray-3 border (hollow)
- *   ready   → filled iOS-green disc + white check rotated -45°
- *   live    → filled iOS-coral disc + white center dot
+ * Each tab carries a left-aligned 14×14 hit area with a 6px pip conveying
+ * phase state:
+ *   pending → gray-3 outline pip (hollow)
+ *   ready   → iOS-green filled pip
+ *   live    → iOS-coral filled pip
  *
- * The active tab gets a 2px underline coloured by its phase:
+ * The active tab gets a 1.5px underline coloured by its phase:
  *   plan/do (default) → ios-blue
  *   active+live       → ios-coral
  *   active+ready+done → ios-green
@@ -21,7 +23,6 @@
 
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { Check } from 'lucide-react-native';
 import {
   GRAY_3,
   GRAY_5,
@@ -53,22 +54,14 @@ interface TabSpec {
   state: PhaseState;
 }
 
-function Ring({ state }: { state: PhaseState }) {
+function Pip({ state }: { state: PhaseState }) {
   if (state === 'ready') {
-    return (
-      <View style={[styles.ring, styles.ringFilled, { backgroundColor: IOS_GREEN }]}>
-        <Check size={9} color="#FFFFFF" strokeWidth={3} />
-      </View>
-    );
+    return <View style={[styles.pip, styles.pipFilled, { backgroundColor: IOS_GREEN }]} />;
   }
   if (state === 'live') {
-    return (
-      <View style={[styles.ring, styles.ringFilled, { backgroundColor: IOS_CORAL }]}>
-        <View style={styles.liveDot} />
-      </View>
-    );
+    return <View style={[styles.pip, styles.pipFilled, { backgroundColor: IOS_CORAL }]} />;
   }
-  return <View style={[styles.ring, styles.ringPending]} />;
+  return <View style={[styles.pip, styles.pipPending]} />;
 }
 
 function getUnderlineColor(state: PhaseState): string {
@@ -111,14 +104,13 @@ export function PhaseTabs({
             style={styles.tab}
             hitSlop={4}
           >
-            <Ring state={tab.state} />
+            <View style={styles.pipHost}>
+              <Pip state={tab.state} />
+            </View>
             <Text
               style={[
                 styles.label,
-                isActive && {
-                  color: getActiveTextColor(tab.state),
-                  fontWeight: '600',
-                },
+                isActive && { color: getActiveTextColor(tab.state) },
               ]}
             >
               {tab.defaultLabel}
@@ -150,35 +142,32 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    paddingTop: 10,
-    paddingBottom: 12,
+    paddingTop: 8,
+    paddingBottom: 10,
     paddingHorizontal: 10,
     position: 'relative',
   },
-  ring: {
+  pipHost: {
     width: 14,
     height: 14,
-    borderRadius: 7,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  ringPending: {
-    borderWidth: 1.5,
+  pip: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  pipPending: {
+    borderWidth: 1,
     borderColor: GRAY_3,
-    borderStyle: 'dashed',
     backgroundColor: 'transparent',
   },
-  ringFilled: {
-    // filled disc — children render the glyph/dot
-  },
-  liveDot: {
-    width: 4,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: '#FFFFFF',
+  pipFilled: {
+    // filled disc — color set inline
   },
   label: {
-    fontSize: 13.5,
+    fontSize: 13,
     fontWeight: '500',
     color: LABEL_3,
     letterSpacing: -0.1,
@@ -188,7 +177,7 @@ const styles = StyleSheet.create({
     left: 10,
     right: 10,
     bottom: 0,
-    height: 2,
-    borderRadius: 2,
+    height: 1.5,
+    borderRadius: 1.5,
   },
 });

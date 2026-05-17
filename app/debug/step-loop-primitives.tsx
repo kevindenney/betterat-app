@@ -25,6 +25,15 @@ import {
   type StatePillVariant,
 } from '@/components/step-loop';
 import {
+  AIHelperLine,
+  BottomCTA,
+  CapabilityChipSet,
+  FieldCard,
+  SuggestionsRow,
+  WithRow,
+  type SuggestionRowItem,
+} from '@/components/step/plan-tab';
+import {
   GRAY_5,
   GRAY_6,
   IOS_BLUE,
@@ -197,6 +206,10 @@ export default function StepLoopPrimitivesDebug() {
 
         {/* PhaseTabs */}
         <Section title="<PhaseTabs>">
+          <Caption>
+            Phase-1 refinements (D27): 13/500 labels · 1.5px underline · 6px filled-dot pips
+            (no check-circle ring on ready)
+          </Caption>
           <Caption>plan=ready · do=pending · reflect=pending · active=plan</Caption>
           <View style={styles.tabsHost}>
             <PhaseTabsRow plan="ready" do="pending" reflect="pending" active="plan" />
@@ -331,6 +344,177 @@ export default function StepLoopPrimitivesDebug() {
           </View>
         </Section>
 
+        {/* Phase 1 · Plan tab — empty state */}
+        <Section title="Plan tab · empty · AI Coach quiet">
+          <Caption>
+            Three field-cards as primary content · italic helper line at top · disabled CTA ·
+            D25 retires per-field ✦ buttons (AI lives in the helper line only)
+          </Caption>
+          <View style={styles.cardHost}>
+            <StepCard
+              pill={<StatePill variant="planned" label="Planned" />}
+              onMenuPress={() => undefined}
+              stepStrip={
+                <StepStrip
+                  icon="flag-3"
+                  primary="Winter 2025-2026"
+                  secondary="Spring Series · Race 4 in two days"
+                />
+              }
+              titleBlock={
+                <View>
+                  <Text style={styles.titleBlockHeadline}>Untitled</Text>
+                  <Text style={styles.titleBlockMeta}>Tap to name this step</Text>
+                </View>
+              }
+              phaseTabs={
+                <PhaseTabsRow plan="pending" do="pending" reflect="pending" active="plan" />
+              }
+              footer={
+                <BottomCTA
+                  label="Next: Start Doing"
+                  hint="Add a what to enable"
+                  disabled
+                  onPress={() => undefined}
+                />
+              }
+            >
+              <View style={styles.planBodyPad}>
+                <AIHelperLine state="empty" onOpenCoach={() => undefined} />
+                <FieldCard
+                  eyebrow="What will you do?"
+                  icon="bulb"
+                  placeholder="Race 4, holding right-side discipline in shifty light air…"
+                  value=""
+                  onChangeText={() => undefined}
+                />
+                <FieldCard
+                  eyebrow="How will you do it?"
+                  icon="list"
+                  placeholder="List 2–4 sub-steps…"
+                  value=""
+                  onChangeText={() => undefined}
+                />
+                <FieldCard
+                  eyebrow="Why is this next?"
+                  icon="help"
+                  placeholder="What makes this the right next step?"
+                  value=""
+                  onChangeText={() => undefined}
+                />
+              </View>
+            </StepCard>
+          </View>
+        </Section>
+
+        {/* Phase 1 · Plan tab — partial state */}
+        <Section title="Plan tab · partial · WHAT filled, HOW/WHY empty">
+          <Caption>
+            WITH row populated · capability chips · suggestions row · CTA enabled
+          </Caption>
+          <View style={styles.cardHost}>
+            <StepCard
+              pill={<StatePill variant="current" label="Current step" />}
+              onMenuPress={() => undefined}
+              stepStrip={
+                <StepStrip
+                  icon="trophy"
+                  primary="Winter 2025-2026"
+                  secondary="Race 4 · in two days"
+                />
+              }
+              titleBlock={
+                <View>
+                  <Text style={styles.titleBlockHeadline}>Light-air starts in shifty breeze</Text>
+                  <Text style={styles.titleBlockMeta}>Saturday · RHKYC · light-air rule-watching</Text>
+                </View>
+              }
+              belowTitle={
+                <WithRow
+                  crew={[
+                    { id: 'he', initials: 'HE' },
+                    { id: 'el', initials: 'EL' },
+                  ]}
+                  fleetLabel="Fleet · 14 boats"
+                />
+              }
+              phaseTabs={
+                <PhaseTabsRow plan="pending" do="pending" reflect="pending" active="plan" />
+              }
+              footer={
+                <BottomCTA
+                  label="Next: Start Doing"
+                  hint="Plan looks ready"
+                  onPress={() => undefined}
+                />
+              }
+            >
+              <View style={styles.planBodyPad}>
+                <AIHelperLine state="partial" onOpenCoach={() => undefined} />
+                <FieldCard
+                  eyebrow="What will you do?"
+                  icon="bulb"
+                  placeholder=""
+                  value="Hold a clean lane off the favored end. Re-check rig if puffs over 14 kn."
+                  onChangeText={() => undefined}
+                />
+                <FieldCard
+                  eyebrow="How will you do it?"
+                  icon="list"
+                  placeholder="List 2–4 sub-steps…"
+                  value=""
+                  onChangeText={() => undefined}
+                />
+                <FieldCard
+                  eyebrow="Why is this next?"
+                  icon="help"
+                  placeholder="What makes this the right next step?"
+                  value=""
+                  onChangeText={() => undefined}
+                />
+                <CapabilityChipSet
+                  selected={[
+                    { id: 'tactical-decisions', label: 'tactical-decisions' },
+                    { id: 'wind-reading', label: 'wind-reading' },
+                    { id: 'crew-comms', label: 'crew-comms' },
+                  ]}
+                  onRemove={() => undefined}
+                  onAddPress={() => undefined}
+                  autoTagSource="Sam Cooke's heavy-air blueprint"
+                />
+                <SuggestionsRow
+                  items={
+                    [
+                      {
+                        id: 's-bp',
+                        kind: 'blueprint',
+                        title: 'Heavy-air step 4 · Pre-start rules',
+                        subtitle: 'Sam Cooke · blueprint you follow',
+                        onPress: () => undefined,
+                      },
+                      {
+                        id: 's-fol',
+                        kind: 'follow',
+                        title: '"Reading the second-beat shift"',
+                        subtitle: 'Phyl Loong · raced last weekend · you follow',
+                        onPress: () => undefined,
+                      },
+                      {
+                        id: 's-men',
+                        kind: 'mentor',
+                        title: 'Based on Race 3, you might revisit…',
+                        subtitle: 'AI Coach · mentor',
+                        onPress: () => undefined,
+                      },
+                    ] as SuggestionRowItem[]
+                  }
+                  onSeeAll={() => undefined}
+                />
+              </View>
+            </StepCard>
+          </View>
+        </Section>
+
         <View style={{ height: 64 }} />
       </ScrollView>
     </>
@@ -438,12 +622,18 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   cardHost: {
-    height: 480,
+    height: 620,
   },
   cardBodyPad: {
     flex: 1,
     paddingHorizontal: 18,
     paddingTop: 16,
+  },
+  planBodyPad: {
+    flex: 1,
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    gap: 10,
   },
   bodyText: {
     fontSize: 14,

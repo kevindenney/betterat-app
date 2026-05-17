@@ -44,7 +44,9 @@ import { supabase } from '@/services/supabase';
 import { getStepCategoryLabels } from '@/lib/step-category-config';
 import type { LibraryResourceRecord } from '@/types/library';
 import { FEATURE_FLAGS } from '@/lib/featureFlags';
-import { PlanTabInterior } from './plan-tab';
+import { PlanTabInterior, PlanTabIOSRegisterInterior } from './plan-tab';
+import { buildSuggestions, crossInterestToMentorInput } from '@/services/SuggestionsService';
+import { useCrossInterestSuggestions } from '@/hooks/useCrossInterestSuggestions';
 
 interface StepPlanQuestionsProps {
   stepId: string;
@@ -59,6 +61,13 @@ interface StepPlanQuestionsProps {
   /** When true, show conversational capture instead of brain dump */
   useConversationalCapture?: boolean;
   onConversationalCreate?: (planData: Partial<StepPlanData>, suggestedTitle?: string) => void;
+  /**
+   * Switch the parent carousel from Plan → Do. When provided, the Phase 1
+   * BottomCTA at the foot of the Plan body renders enabled (once a WHAT is
+   * filled). Consumers in race-card carousels typically pass
+   * `() => setSelectedPhase('on_water')`.
+   */
+  onNextTab?: () => void;
 }
 
 export function StepPlanQuestions({
@@ -66,6 +75,7 @@ export function StepPlanQuestions({
   brainDumpData: brainDumpProp, onBrainDumpChange, onStructureWithAI,
   isStructuring, interestSlug,
   useConversationalCapture, onConversationalCreate,
+  onNextTab,
 }: StepPlanQuestionsProps) {
   const { data: step } = useStepDetail(stepId);
   const updateMetadata = useUpdateStepMetadata(stepId);
@@ -208,6 +218,12 @@ export function StepPlanQuestions({
 
   // Accumulate pending changes so rapid saves for different fields don't cancel each other
   const pendingChangesRef = useRef<Partial<StepPlanData>>({});
+
+  // Phase 1 · iOS register — mentor-channel suggestions for <SuggestionsRow>.
+  const { suggestions: crossInterestSuggestions } = useCrossInterestSuggestions(
+    stepId,
+    interestId,
+  );
 
   // Debounced save — accumulates partial updates, then flushes everything at once
   const debouncedSave = useCallback((partial: Partial<StepPlanData>) => {
@@ -775,6 +791,102 @@ RULES:
   const courseCtx = (metadata as any)?.course_context as
     | { resource_id: string; course_title?: string; author_or_creator?: string; lesson_id?: string; lesson_index?: number; total_lessons?: number }
     | undefined;
+
+  // Phase 1 · iOS register — when the step-loop flag is on, route through
+  // PlanTabIOSRegisterInterior. Same canonicalPlanData/handlers as the
+  // PRACTICE_PLAN_TAB branch below so persistence is unchanged.
+  if (FEATURE_FLAGS.PRACTICE_STEP_LOOP_IOS_REGISTER) {
+    const canonicalPlanData: StepPlanData = {
+      ...planData,
+      what_will_you_do: localWhat,
+      how_sub_steps: localSubSteps,
+      why_reasoning: localWhy,
+      collaborators: localCollaborators,
+      capability_goals: localGoals,
+      where_location: localWhereLocation,
+      connection_space: localConnectionSpace,
+    };
+
+    const capabilityChips = (planData.competency_ids ?? [])
+      .map((id) => {
+        const title = Array.from(competencyMapRef.current.entries())
+          .find(([, mappedId]) => mappedId === id)?.[0];
+        return title ? { id, label: title } : null;
+      })
+      .filter((x): x is { id: string; label: string } => x !== null);
+
+    const handleStepLoopUpdate = (partial: Partial<StepPlanData>) => {
+      if (partial.what_will_you_do !== undefined) handleWhatChange(partial.what_will_you_do);
+      if (partial.how_sub_steps !== undefined) handleSubStepsChange(partial.how_sub_steps);
+      if (partial.why_reasoning !== undefined) handleWhyChange(partial.why_reasoning);
+      const remaining = { ...partial };
+      delete remaining.what_will_you_do;
+      delete remaining.how_sub_steps;
+      delete remaining.why_reasoning;
+      if (Object.keys(remaining).length > 0) {
+        debouncedSave(remaining);
+      }
+    };
+
+    const handleStepLoopConversationalCreate = (
+      conversationalPlan: Partial<StepPlanData>,
+      suggestedTitle?: string,
+    ) => {
+      if (conversationalPlan.what_will_you_do !== undefined) setLocalWhat(conversationalPlan.what_will_you_do);
+      if (conversationalPlan.how_sub_steps !== undefined) setLocalSubSteps(conversationalPlan.how_sub_steps);
+      if (conversationalPlan.why_reasoning !== undefined) setLocalWhy(conversationalPlan.why_reasoning);
+      if (conversationalPlan.collaborators !== undefined) setLocalCollaborators(conversationalPlan.collaborators);
+      if (conversationalPlan.capability_goals !== undefined) setLocalGoals(conversationalPlan.capability_goals);
+      if (conversationalPlan.where_location !== undefined) setLocalWhereLocation(conversationalPlan.where_location);
+      if (conversationalPlan.connection_space !== undefined) setLocalConnectionSpace(conversationalPlan.connection_space);
+      debouncedSave(conversationalPlan);
+      onConversationalCreate?.(conversationalPlan, suggestedTitle);
+    };
+
+    const mentorInput = crossInterestToMentorInput(
+      crossInterestSuggestions ?? [],
+      (s) => {
+        const existing = localSubSteps;
+        const newSubStep: SubStep = {
+          id: `cross_${Date.now()}`,
+          text: s.suggestion,
+          sort_order: existing.length,
+          completed: false,
+        };
+        handleSubStepsChange([...existing, newSubStep]);
+      },
+    );
+    const suggestions = buildSuggestions({ mentor: mentorInput });
+
+    return (
+      <PlanTabIOSRegisterInterior
+        planData={canonicalPlanData}
+        onUpdate={handleStepLoopUpdate}
+        readOnly={readOnly}
+        interestId={interestId}
+        interestName={currentInterest?.name}
+        stepTitle={step.title}
+        stepCategory={step.category}
+        onConversationalCreate={useConversationalCapture ? handleStepLoopConversationalCreate : undefined}
+        capabilities={capabilityChips}
+        onRemoveCapability={(id) => {
+          const updated = (planData.competency_ids ?? []).filter((c) => c !== id);
+          debouncedSave({ competency_ids: updated });
+        }}
+        onAddCapabilityPress={() => setShowCompetencyPicker(true)}
+        suggestions={suggestions}
+        onNextPhase={onNextTab}
+        isTimed={Boolean(step.is_timed)}
+        onToggleTimed={(next) => {
+          queryClient.setQueryData<TimelineStepRecord | undefined>(
+            ['timeline-steps', 'detail', step.id],
+            (prev) => (prev ? { ...prev, is_timed: next } : prev),
+          );
+          updateStep.mutate({ stepId: step.id, input: { is_timed: next } });
+        }}
+      />
+    );
+  }
 
   if (FEATURE_FLAGS.PRACTICE_PLAN_TAB_IOS_REGISTER) {
     const canonicalPlanData: StepPlanData = {
