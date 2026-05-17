@@ -38,3 +38,9 @@ export { AddStepFab } from './AddStepFab';
 export type { AddStepFabProps } from './AddStepFab';
 export { AddStepActionSheet } from './AddStepActionSheet';
 export type { AddStepActionSheetProps } from './AddStepActionSheet';
+
+// Phase 8 — Fleet view
+export { FleetView } from './FleetView';
+export type { FleetViewProps, FleetViewTimeMarker } from './FleetView';
+export { FleetCaptureCard } from './FleetCaptureCard';
+export type { FleetCaptureCardProps } from './FleetCaptureCard';
