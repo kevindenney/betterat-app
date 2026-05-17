@@ -37,8 +37,53 @@ import { sailorBoatService } from '@/services/SailorBoatService';
 import { equipmentService } from '@/services/EquipmentService';
 import { StepPinInterests } from './StepPinInterests';
 import { StepProvenanceBanner } from './StepProvenanceBanner';
+import { FEATURE_FLAGS } from '@/lib/featureFlags';
+import {
+  PhaseTabs,
+  StatePill,
+  StepCard,
+  StepStrip,
+  TopHeader,
+  type PhaseId,
+  type PhaseState,
+  type StatePillVariant,
+} from '@/components/step-loop';
+import { GRAY_6 } from '@/lib/design-tokens-step-loop-ios';
 
 type TabValue = 'plan' | 'act' | 'review';
+
+const PHASE_TO_TAB: Record<PhaseId, TabValue> = {
+  plan: 'plan',
+  do: 'act',
+  reflect: 'review',
+};
+const TAB_TO_PHASE: Record<TabValue, PhaseId> = {
+  plan: 'plan',
+  act: 'do',
+  review: 'reflect',
+};
+
+function deriveStatePill(
+  status: TimelineStepStatus | undefined,
+  activeTab: TabValue,
+): { variant: StatePillVariant; label: string } {
+  if (status === 'completed') return { variant: 'complete', label: 'Complete' };
+  if (status === 'in_progress') {
+    return activeTab === 'act'
+      ? { variant: 'live', label: 'Live · capturing' }
+      : { variant: 'current', label: 'Current' };
+  }
+  return { variant: 'planned', label: 'Planned' };
+}
+
+function derivePhaseState(
+  isComplete: boolean,
+  isLive: boolean,
+): PhaseState {
+  if (isLive) return 'live';
+  if (isComplete) return 'ready';
+  return 'pending';
+}
 
 function getDefaultTab(status?: TimelineStepStatus): TabValue {
   switch (status) {
@@ -705,145 +750,253 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp }: StepDetail
     );
   }
 
+  // Shared header chrome (title input + done toggle + chips + banners). Used
+  // by both the legacy render and the iOS-register shell.
+  const headerInner = (
+    <>
+      <View style={styles.sessionRow}>
+        <View style={styles.sessionBadge}>
+          <Text style={styles.sessionBadgeText}>STEP</Text>
+        </View>
+        {isOwner && lastSaved && (
+          <View style={styles.autoSaveIndicator}>
+            <Ionicons name="cloud-done-outline" size={12} color={STEP_COLORS.tertiaryLabel} />
+            <Text style={styles.autoSaveText}>Saved</Text>
+          </View>
+        )}
+        {isOwner && (
+          <Pressable
+            style={[
+              styles.doneToggle,
+              step.status === 'completed' && styles.doneToggleActive,
+            ]}
+            onPress={handleToggleDone}
+          >
+            <Ionicons
+              name={step.status === 'completed' ? 'checkmark-circle' : 'checkmark-circle-outline'}
+              size={16}
+              color={step.status === 'completed' ? '#34C759' : STEP_COLORS.tertiaryLabel}
+            />
+            <Text style={[
+              styles.doneToggleText,
+              step.status === 'completed' && styles.doneToggleTextActive,
+            ]}>
+              {step.status === 'completed' ? 'Done' : 'Mark Done'}
+            </Text>
+          </Pressable>
+        )}
+        <Pressable
+          style={styles.menuButton}
+          onPress={() => router.push('/library')}
+        >
+          <Ionicons name="ellipsis-vertical" size={18} color={STEP_COLORS.secondaryLabel} />
+        </Pressable>
+      </View>
+      {isOwner ? (
+        <TextInput
+          style={styles.titleInput}
+          value={editingTitle ?? step.title}
+          onChangeText={handleTitleChange}
+          onBlur={handleTitleBlur}
+          onSubmitEditing={handleTitleBlur}
+          placeholder={`${vocab('Learning Event')} title...`}
+          placeholderTextColor={STEP_COLORS.tertiaryLabel}
+          selectTextOnFocus
+        />
+      ) : (
+        <Text style={styles.titleInput}>{step.title || `${vocab('Learning Event')}`}</Text>
+      )}
+      {step.description && (
+        <Text style={styles.description} numberOfLines={2}>{step.description}</Text>
+      )}
+      {/* Date chips row */}
+      {(step.starts_at || step.due_at || isOwner) && (
+        <View style={styles.dueDateRow}>
+          {/* Step date (starts_at) */}
+          {step.starts_at ? (
+            <Pressable
+              style={styles.dueDateChip}
+              onPress={isOwner ? handlePromptStepDate : undefined}
+            >
+              <Ionicons name="calendar" size={13} color={STEP_COLORS.accent} />
+              <Text style={[styles.dueDateText, { color: STEP_COLORS.accent }]}>
+                {new Date(step.starts_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+              </Text>
+              {isOwner && (
+                <Pressable onPress={handleClearStepDate} hitSlop={8}>
+                  <Ionicons name="close-circle" size={14} color={STEP_COLORS.tertiaryLabel} />
+                </Pressable>
+              )}
+            </Pressable>
+          ) : isOwner ? (
+            <Pressable
+              style={styles.addDueDateButton}
+              onPress={handlePromptStepDate}
+            >
+              <Ionicons name="calendar-outline" size={13} color={STEP_COLORS.tertiaryLabel} />
+              <Text style={styles.addDueDateText}>Add date</Text>
+            </Pressable>
+          ) : null}
+          {/* Due date */}
+          {step.due_at ? (
+            <Pressable
+              style={[styles.dueDateChip, isOverdue && styles.dueDateChipOverdue]}
+              onPress={isOwner ? handlePromptDueDate : undefined}
+            >
+              <Ionicons
+                name={isOverdue ? 'alert-circle' : 'time-outline'}
+                size={13}
+                color={isOverdue ? '#FF3B30' : STEP_COLORS.secondaryLabel}
+              />
+              <Text style={[styles.dueDateText, isOverdue && styles.dueDateTextOverdue]}>
+                {isOverdue ? 'Overdue · ' : 'Due '}
+                {new Date(step.due_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+              </Text>
+              {isOwner && (
+                <Pressable onPress={handleClearDueDate} hitSlop={8}>
+                  <Ionicons name="close-circle" size={14} color={STEP_COLORS.tertiaryLabel} />
+                </Pressable>
+              )}
+            </Pressable>
+          ) : null}
+        </View>
+      )}
+      {isOwner && <StepPinInterests stepId={stepId} stepInterestId={step.interest_id} />}
+      {isCollaborator && (() => {
+        const planCollabs = serverPlanData.collaborators ?? [];
+        const ownerCollab = planCollabs.find(
+          (c) => c.type === 'platform' && c.user_id === step.user_id,
+        );
+        const ownerName = ownerCollab?.display_name;
+        return (
+          <View style={styles.collaboratorBanner}>
+            <Ionicons name="people-outline" size={16} color={STEP_COLORS.accent} />
+            <Text style={styles.collaboratorBannerText}>
+              {ownerName ? `Shared by ${ownerName}` : 'Shared with you'}
+            </Text>
+          </View>
+        );
+      })()}
+
+      {/* Step provenance — source blueprint OR follow-up chain */}
+      {(step.source_type !== 'manual' || brainDumpData?.source_step_id) && (
+        <StepProvenanceBanner
+          sourceBlueprintId={step.source_blueprint_id}
+          sourceType={step.source_type}
+          copiedFromUserId={step.copied_from_user_id}
+          followUpToStepId={brainDumpData?.source_step_id ?? null}
+          variant="full"
+        />
+      )}
+    </>
+  );
+
+  // Shared tab body — the actual PlanTab / ActTab / ReviewTab interior. The
+  // brief is explicit that this content is unchanged across flag states.
+  const tabBodyJsx = (
+    <>
+      {/* AI review overlay — shown when AI structures brain dump */}
+      {activeTab === 'plan' && isOwner && showAiReview && aiReviewPlan && (
+        <AIStructureReview
+          planData={aiReviewPlan}
+          suggestedTitle={aiSuggestedTitle}
+          resolvedEntities={resolvedEntities}
+          dateEnrichment={dateEnrichment}
+          isEnrichingDate={isEnrichingDate}
+          isResolvingEntities={isResolvingEntities}
+          entityResolutionError={entityResolutionError}
+          onResolveAmbiguousPerson={handleResolveAmbiguousPerson}
+          onConfirm={handleConfirmAIPlan}
+          onBack={handleBackToDump}
+        />
+      )}
+      {/* Unified plan view — brain dump at top + plan fields below */}
+      {activeTab === 'plan' && !(isOwner && showAiReview && aiReviewPlan) && (
+        <PlanTab
+          stepId={stepId}
+          planData={planData}
+          interestId={step.interest_id}
+          onUpdate={handlePlanUpdate}
+          onNextTab={() => handleNextTab('act')}
+          readOnly={!isOwner}
+          footer={commentsFooter}
+          brainDumpData={isOwner ? brainDumpData : undefined}
+          onBrainDumpChange={isOwner ? handleDraftChange : undefined}
+          onStructureWithAI={isOwner ? handleStructureWithAI : undefined}
+          isStructuring={aiStructuring}
+          hasPlanContent={hasPlanContent}
+          interestSlug={currentInterest?.slug}
+          interestName={currentInterest?.name}
+          useConversationalCapture={isOwner}
+          onConversationalCreate={isOwner ? handleConversationalCreate : undefined}
+          stepCategory={step.category}
+        />
+      )}
+      {activeTab === 'act' && (
+        <ActTab stepId={stepId} dateEnrichment={planData.date_enrichment} onNextTab={() => handleNextTab('review')} readOnly={!isOwner} footer={commentsFooter} interestId={step.interest_id} interestName={currentInterest?.name} interestSlug={currentInterest?.slug} />
+      )}
+      {activeTab === 'review' && <ReviewTab stepId={stepId} readOnly={!isOwner} footer={commentsFooter} />}
+    </>
+  );
+
+  // Phase 0 of the iOS register migration — when the flag is on, wrap the
+  // existing tab interior in the new <StepCard> shell with <TopHeader>
+  // above. Internal tab body contents are unchanged. Per
+  // docs/redesign/ios-register/phase-0-shared-chrome.md.
+  if (FEATURE_FLAGS.PRACTICE_STEP_LOOP_IOS_REGISTER) {
+    const pillSpec = deriveStatePill(step.status, activeTab);
+    const planPhase = derivePhaseState(isPlanComplete, false);
+    const doPhase = derivePhaseState(
+      isActComplete,
+      step.status === 'in_progress' && activeTab === 'act',
+    );
+    const reflectPhase = derivePhaseState(isReviewComplete, false);
+    const activePhase: PhaseId = TAB_TO_PHASE[activeTab];
+    const stepStripPrimary = vocab('Learning Event');
+    const stepStripSecondary = step.category ? String(step.category).replace(/_/g, ' ') : undefined;
+
+    return (
+      <View style={[styles.container, stepLoopShellStyles.screen]}>
+        <TopHeader
+          interestName={currentInterest?.name ?? undefined}
+          stepCounter={step.title ? undefined : 'Step'}
+        />
+        <StepCard
+          pill={<StatePill variant={pillSpec.variant} label={pillSpec.label} />}
+          onMenuPress={() => router.push('/library')}
+          stepStrip={
+            <StepStrip
+              icon="flag-3"
+              primary={stepStripPrimary}
+              secondary={stepStripSecondary}
+            />
+          }
+          titleBlock={headerInner}
+          phaseTabs={
+            <PhaseTabs
+              plan={planPhase}
+              do={doPhase}
+              reflect={reflectPhase}
+              active={activePhase}
+              onTabPress={(tab) => setActiveTab(PHASE_TO_TAB[tab])}
+              labels={{
+                plan: categoryLabels.tabs.plan,
+                do: categoryLabels.tabs.act,
+                reflect: categoryLabels.tabs.review,
+              }}
+            />
+          }
+        >
+          <View style={styles.tabContent}>{tabBodyJsx}</View>
+        </StepCard>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       {/* Header */}
-      <View style={styles.header}>
-        <View style={styles.sessionRow}>
-          <View style={styles.sessionBadge}>
-            <Text style={styles.sessionBadgeText}>STEP</Text>
-          </View>
-          {isOwner && lastSaved && (
-            <View style={styles.autoSaveIndicator}>
-              <Ionicons name="cloud-done-outline" size={12} color={STEP_COLORS.tertiaryLabel} />
-              <Text style={styles.autoSaveText}>Saved</Text>
-            </View>
-          )}
-          {isOwner && (
-            <Pressable
-              style={[
-                styles.doneToggle,
-                step.status === 'completed' && styles.doneToggleActive,
-              ]}
-              onPress={handleToggleDone}
-            >
-              <Ionicons
-                name={step.status === 'completed' ? 'checkmark-circle' : 'checkmark-circle-outline'}
-                size={16}
-                color={step.status === 'completed' ? '#34C759' : STEP_COLORS.tertiaryLabel}
-              />
-              <Text style={[
-                styles.doneToggleText,
-                step.status === 'completed' && styles.doneToggleTextActive,
-              ]}>
-                {step.status === 'completed' ? 'Done' : 'Mark Done'}
-              </Text>
-            </Pressable>
-          )}
-          <Pressable
-            style={styles.menuButton}
-            onPress={() => router.push('/library')}
-          >
-            <Ionicons name="ellipsis-vertical" size={18} color={STEP_COLORS.secondaryLabel} />
-          </Pressable>
-        </View>
-        {isOwner ? (
-          <TextInput
-            style={styles.titleInput}
-            value={editingTitle ?? step.title}
-            onChangeText={handleTitleChange}
-            onBlur={handleTitleBlur}
-            onSubmitEditing={handleTitleBlur}
-            placeholder={`${vocab('Learning Event')} title...`}
-            placeholderTextColor={STEP_COLORS.tertiaryLabel}
-            selectTextOnFocus
-          />
-        ) : (
-          <Text style={styles.titleInput}>{step.title || `${vocab('Learning Event')}`}</Text>
-        )}
-        {step.description && (
-          <Text style={styles.description} numberOfLines={2}>{step.description}</Text>
-        )}
-        {/* Date chips row */}
-        {(step.starts_at || step.due_at || isOwner) && (
-          <View style={styles.dueDateRow}>
-            {/* Step date (starts_at) */}
-            {step.starts_at ? (
-              <Pressable
-                style={styles.dueDateChip}
-                onPress={isOwner ? handlePromptStepDate : undefined}
-              >
-                <Ionicons name="calendar" size={13} color={STEP_COLORS.accent} />
-                <Text style={[styles.dueDateText, { color: STEP_COLORS.accent }]}>
-                  {new Date(step.starts_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
-                </Text>
-                {isOwner && (
-                  <Pressable onPress={handleClearStepDate} hitSlop={8}>
-                    <Ionicons name="close-circle" size={14} color={STEP_COLORS.tertiaryLabel} />
-                  </Pressable>
-                )}
-              </Pressable>
-            ) : isOwner ? (
-              <Pressable
-                style={styles.addDueDateButton}
-                onPress={handlePromptStepDate}
-              >
-                <Ionicons name="calendar-outline" size={13} color={STEP_COLORS.tertiaryLabel} />
-                <Text style={styles.addDueDateText}>Add date</Text>
-              </Pressable>
-            ) : null}
-            {/* Due date */}
-            {step.due_at ? (
-              <Pressable
-                style={[styles.dueDateChip, isOverdue && styles.dueDateChipOverdue]}
-                onPress={isOwner ? handlePromptDueDate : undefined}
-              >
-                <Ionicons
-                  name={isOverdue ? 'alert-circle' : 'time-outline'}
-                  size={13}
-                  color={isOverdue ? '#FF3B30' : STEP_COLORS.secondaryLabel}
-                />
-                <Text style={[styles.dueDateText, isOverdue && styles.dueDateTextOverdue]}>
-                  {isOverdue ? 'Overdue · ' : 'Due '}
-                  {new Date(step.due_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
-                </Text>
-                {isOwner && (
-                  <Pressable onPress={handleClearDueDate} hitSlop={8}>
-                    <Ionicons name="close-circle" size={14} color={STEP_COLORS.tertiaryLabel} />
-                  </Pressable>
-                )}
-              </Pressable>
-            ) : null}
-          </View>
-        )}
-        {isOwner && <StepPinInterests stepId={stepId} stepInterestId={step.interest_id} />}
-        {isCollaborator && (() => {
-          const planCollabs = serverPlanData.collaborators ?? [];
-          const ownerCollab = planCollabs.find(
-            (c) => c.type === 'platform' && c.user_id === step.user_id,
-          );
-          const ownerName = ownerCollab?.display_name;
-          return (
-            <View style={styles.collaboratorBanner}>
-              <Ionicons name="people-outline" size={16} color={STEP_COLORS.accent} />
-              <Text style={styles.collaboratorBannerText}>
-                {ownerName ? `Shared by ${ownerName}` : 'Shared with you'}
-              </Text>
-            </View>
-          );
-        })()}
-
-        {/* Step provenance — source blueprint OR follow-up chain */}
-        {(step.source_type !== 'manual' || brainDumpData?.source_step_id) && (
-          <StepProvenanceBanner
-            sourceBlueprintId={step.source_blueprint_id}
-            sourceType={step.source_type}
-            copiedFromUserId={step.copied_from_user_id}
-            followUpToStepId={brainDumpData?.source_step_id ?? null}
-            variant="full"
-          />
-        )}
-      </View>
+      <View style={styles.header}>{headerInner}</View>
 
       {/* Tabs */}
       <View style={styles.tabsWrapper}>
@@ -858,52 +1011,16 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp }: StepDetail
       </View>
 
       {/* Tab content */}
-      <View style={styles.tabContent}>
-        {/* AI review overlay — shown when AI structures brain dump */}
-        {activeTab === 'plan' && isOwner && showAiReview && aiReviewPlan && (
-          <AIStructureReview
-            planData={aiReviewPlan}
-            suggestedTitle={aiSuggestedTitle}
-            resolvedEntities={resolvedEntities}
-            dateEnrichment={dateEnrichment}
-            isEnrichingDate={isEnrichingDate}
-            isResolvingEntities={isResolvingEntities}
-            entityResolutionError={entityResolutionError}
-            onResolveAmbiguousPerson={handleResolveAmbiguousPerson}
-            onConfirm={handleConfirmAIPlan}
-            onBack={handleBackToDump}
-          />
-        )}
-        {/* Unified plan view — brain dump at top + plan fields below */}
-        {activeTab === 'plan' && !(isOwner && showAiReview && aiReviewPlan) && (
-          <PlanTab
-            stepId={stepId}
-            planData={planData}
-            interestId={step.interest_id}
-            onUpdate={handlePlanUpdate}
-            onNextTab={() => handleNextTab('act')}
-            readOnly={!isOwner}
-            footer={commentsFooter}
-            brainDumpData={isOwner ? brainDumpData : undefined}
-            onBrainDumpChange={isOwner ? handleDraftChange : undefined}
-            onStructureWithAI={isOwner ? handleStructureWithAI : undefined}
-            isStructuring={aiStructuring}
-            hasPlanContent={hasPlanContent}
-            interestSlug={currentInterest?.slug}
-            interestName={currentInterest?.name}
-            useConversationalCapture={isOwner}
-            onConversationalCreate={isOwner ? handleConversationalCreate : undefined}
-            stepCategory={step.category}
-          />
-        )}
-        {activeTab === 'act' && (
-          <ActTab stepId={stepId} dateEnrichment={planData.date_enrichment} onNextTab={() => handleNextTab('review')} readOnly={!isOwner} footer={commentsFooter} interestId={step.interest_id} interestName={currentInterest?.name} interestSlug={currentInterest?.slug} />
-        )}
-        {activeTab === 'review' && <ReviewTab stepId={stepId} readOnly={!isOwner} footer={commentsFooter} />}
-      </View>
+      <View style={styles.tabContent}>{tabBodyJsx}</View>
     </View>
   );
 }
+
+const stepLoopShellStyles = StyleSheet.create({
+  screen: {
+    backgroundColor: GRAY_6,
+  },
+});
 
 const styles = StyleSheet.create({
   container: {
