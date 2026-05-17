@@ -11,9 +11,13 @@ import { DoPostActivityCard } from './DoPostActivityCard';
 
 export interface DoTabInteriorProps {
   state: DoInteriorState;
+  stepId?: string;
   planData: StepPlanData;
   captures: DoCaptureItem[];
   readOnly?: boolean;
+  interestId?: string;
+  interestName?: string;
+  interestSlug?: string;
   summaryText?: string;
   evidenceSelections?: string[];
   /** Step title rendered in Frame 2's quiet context strip. */
@@ -65,9 +69,13 @@ export interface DoTabInteriorProps {
 
 export function DoTabInterior({
   state,
+  stepId,
   planData,
   captures,
   readOnly,
+  interestId,
+  interestName,
+  interestSlug,
   stepTitle,
   contextSegments,
   elapsedMs = 0,
@@ -84,6 +92,7 @@ export function DoTabInterior({
   onPressPlayVoice,
   onEditCapture,
   onDeleteCapture,
+  onTagCapture,
   onMoveToReflect,
   onRefineSummary,
   onAddAnotherCapture,
@@ -95,11 +104,15 @@ export function DoTabInterior({
     return (
       <View style={styles.container}>
         <DoLiveCard
+          stepId={stepId}
           captures={captures}
           stepTitle={stepTitle ?? ''}
           contextSegments={contextSegments}
           elapsedMs={elapsedMs}
           readOnly={readOnly}
+          interestId={interestId}
+          interestName={interestName}
+          interestSlug={interestSlug}
           nowMs={nowMs}
           hideTimer={!isTimed}
           onAddQuickNote={onQuickNote}
@@ -109,6 +122,7 @@ export function DoTabInterior({
           onPressPlayVoice={onPressPlayVoice}
           onEditCapture={onEditCapture}
           onDeleteCapture={onDeleteCapture}
+          onTagCapture={onTagCapture}
         />
         {footer}
       </View>

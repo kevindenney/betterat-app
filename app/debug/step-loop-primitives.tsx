@@ -34,6 +34,11 @@ import {
   type SuggestionRowItem,
 } from '@/components/step/plan-tab';
 import {
+  DoLiveCard,
+  DoPostActivityCard,
+  type DoCaptureItem,
+} from '@/components/step/do-tab';
+import {
   MenuRow,
   QuickCaptureComposer,
   UniversalPlusSheet,
@@ -58,6 +63,47 @@ const STATE_PILL_VARIANTS: { variant: StatePillVariant; label: string }[] = [
 ];
 
 const PHASE_STATES: PhaseState[] = ['pending', 'ready', 'live'];
+
+const DEBUG_DO_CAPTURES: DoCaptureItem[] = [
+  {
+    id: 'debug-voice',
+    kind: 'voice',
+    capturedAt: '2026-05-16T14:23:00Z',
+    body: '"Left filled in at eight degrees. Not committing yet."',
+    capabilityIds: [],
+    capabilityLabels: [],
+    flaggedForDebrief: false,
+    source: 'act_observation',
+    chipLabel: 'Weather',
+    chipLive: true,
+    beatLabel: 'beat 2',
+    metaSubtitle: 'Auto-transcribed',
+    voiceDurationSec: 7,
+  },
+  {
+    id: 'debug-note',
+    kind: 'note',
+    capturedAt: '2026-05-16T14:20:00Z',
+    body: 'Sam said hold our lane. Trust him.',
+    capabilityIds: [],
+    capabilityLabels: [],
+    flaggedForDebrief: false,
+    source: 'act_observation',
+    beatLabel: 'beat 2',
+  },
+  {
+    id: 'debug-photo',
+    kind: 'photo',
+    capturedAt: '2026-05-16T14:15:00Z',
+    body: 'Jib telltale streaming.',
+    capabilityIds: [],
+    capabilityLabels: [],
+    flaggedForDebrief: false,
+    source: 'media_upload',
+    chipLabel: 'Boat tune',
+    beatLabel: 'beat 2',
+  },
+];
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -295,6 +341,60 @@ export default function StepLoopPrimitivesDebug() {
                 <Text style={styles.bodyText}>Do stream goes here — capture cards.</Text>
               </View>
             </StepCard>
+          </View>
+        </Section>
+
+        <Section title="Do · live capturing">
+          <Caption>
+            Phase 3 target: sailing shows elapsed by default; nursing starts count-only.
+          </Caption>
+          <View style={styles.doDebugHost}>
+            <DoLiveCard
+              stepId="debug-do-live-sailing"
+              captures={DEBUG_DO_CAPTURES}
+              stepTitle="Light-air starts in shifty breeze"
+              contextSegments={['Race 4', 'beat 2']}
+              elapsedMs={14 * 60 * 1000 + 52 * 1000}
+              nowMs={Date.parse('2026-05-16T14:23:12Z')}
+              interestSlug="sail-racing"
+              onAddQuickNote={() => undefined}
+              onAddPhoto={() => undefined}
+              onAddVoiceNote={() => undefined}
+              onStopCapturing={() => undefined}
+              onTagCapture={() => undefined}
+            />
+          </View>
+          <View style={styles.doDebugHost}>
+            <DoLiveCard
+              stepId="debug-do-live-nursing"
+              captures={DEBUG_DO_CAPTURES.slice(0, 2)}
+              stepTitle="Neuro check handoff"
+              contextSegments={['Ward B', 'shift note']}
+              elapsedMs={9 * 60 * 1000 + 12 * 1000}
+              nowMs={Date.parse('2026-05-16T14:23:12Z')}
+              interestSlug="nursing"
+              onAddQuickNote={() => undefined}
+              onAddPhoto={() => undefined}
+              onAddVoiceNote={() => undefined}
+              onStopCapturing={() => undefined}
+              onTagCapture={() => undefined}
+            />
+          </View>
+        </Section>
+
+        <Section title="Do · activity complete">
+          <View style={styles.doDebugHost}>
+            <DoPostActivityCard
+              captures={DEBUG_DO_CAPTURES}
+              stepTitle="Light-air starts in shifty breeze"
+              contextSegments={['Race 4', 'finished']}
+              elapsedMs={17 * 60 * 1000 + 2 * 1000}
+              nowMs={Date.parse('2026-05-16T14:26:00Z')}
+              summaryText="3 captures logged. Review them below or refine before moving to Reflect."
+              summaryStepChipLabel="Light-air starts"
+              onMoveToReflect={() => undefined}
+              onMarkAsEvidence={() => undefined}
+            />
           </View>
         </Section>
 
@@ -713,6 +813,10 @@ const styles = StyleSheet.create({
   },
   cardHost: {
     height: 620,
+  },
+  doDebugHost: {
+    height: 640,
+    marginBottom: 12,
   },
   cardBodyPad: {
     flex: 1,

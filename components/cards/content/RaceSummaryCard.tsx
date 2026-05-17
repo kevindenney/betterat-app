@@ -1990,6 +1990,9 @@ function RaceSummaryCardImpl({
           return (
             <DoTabIOSRegisterShell
               stepId={race.id}
+              interestId={race.interest_id ?? currentInterest?.id}
+              interestName={currentInterest?.name}
+              interestSlug={currentInterest?.slug}
               onMoveToReflect={() => setSelectedPhase('after_race')}
             />
           );

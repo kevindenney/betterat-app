@@ -1,21 +1,17 @@
-import React from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { StyleSheet, View } from 'react-native';
+import { getInterestDoTabConfig } from '@/lib/interest-config';
 import type { DoCaptureItem } from './doCaptureModel';
 import { sortCapturesNewestFirst } from './doCaptureModel';
 import { DoLiveHeader } from './DoLiveHeader';
 import { DoStepContextStrip } from './DoStepContextStrip';
-import { DoCaptureRow } from './DoCaptureRow';
-import { DoComposer } from './DoComposer';
-import { DoStopCapturingButton } from './DoStopCapturingButton';
-
-const CORAL = '#FF6B6B';
-const CORAL_DEEP = '#E54848';
-const GRAY_5 = '#E5E5EA';
-const GRAY_6 = '#F2F2F7';
-const LABEL_3 = 'rgba(60, 60, 67, 0.60)';
-const LABEL_4 = 'rgba(60, 60, 67, 0.30)';
+import { DoStream } from './DoStream';
+import { StreamComposer } from './StreamComposer';
+import { StopCapturingCTA } from './StopCapturingCTA';
+import { CaptureTypesSheet } from './CaptureTypesSheet';
 
 export interface DoLiveCardProps {
+  stepId?: string;
   /** Captures shown in the stream — pre-sorted or unsorted; newest is rendered at top. */
   captures: DoCaptureItem[];
   /** Step title rendered in the quiet context strip. */
@@ -26,6 +22,9 @@ export interface DoLiveCardProps {
   elapsedMs: number;
   /** When true the composer + stop CTA + edit/delete affordances are hidden/disabled. */
   readOnly?: boolean;
+  interestId?: string;
+  interestName?: string;
+  interestSlug?: string;
   /** Now-anchor for "ago" labels; pass through for test determinism. */
   nowMs?: number;
   /**
@@ -48,6 +47,7 @@ export interface DoLiveCardProps {
   onEditCapture?: (captureId: string) => void;
   /** Delete callback forwarded to each capture row (hidden when omitted). */
   onDeleteCapture?: (captureId: string) => void;
+  onTagCapture?: (captureId: string) => void;
 }
 
 /**
@@ -60,11 +60,15 @@ export interface DoLiveCardProps {
  * callbacks through to existing handlers via a thin capture controller.
  */
 export function DoLiveCard({
+  stepId,
   captures,
   stepTitle,
   contextSegments,
   elapsedMs,
   readOnly,
+  interestId,
+  interestName,
+  interestSlug,
   nowMs,
   hideTimer,
   onAddQuickNote,
@@ -74,65 +78,67 @@ export function DoLiveCard({
   onPressPlayVoice,
   onEditCapture,
   onDeleteCapture,
+  onTagCapture,
 }: DoLiveCardProps) {
   const ordered = sortCapturesNewestFirst(captures);
   const nonMarkerCount = ordered.reduce(
     (acc, c) => acc + (c.kind === 'time_marker' ? 0 : 1),
     0,
   );
+  const config = getInterestDoTabConfig({ interestId, interestName, interestSlug });
+  const timerStorageKey = stepId ? `do_tab_timer_visible:${stepId}` : null;
+  const [timerVisible, setTimerVisible] = useState(config.showElapsedByDefault);
+  const [captureTypesVisible, setCaptureTypesVisible] = useState(false);
+
+  useEffect(() => {
+    if (!timerStorageKey || typeof globalThis.localStorage === 'undefined') {
+      setTimerVisible(config.showElapsedByDefault);
+      return;
+    }
+    const saved = globalThis.localStorage.getItem(timerStorageKey);
+    setTimerVisible(saved == null ? config.showElapsedByDefault : saved === 'true');
+  }, [config.showElapsedByDefault, timerStorageKey]);
+
+  const handleToggleTimer = () => {
+    setTimerVisible((current) => {
+      const next = !current;
+      if (timerStorageKey && typeof globalThis.localStorage !== 'undefined') {
+        globalThis.localStorage.setItem(timerStorageKey, String(next));
+      }
+      return next;
+    });
+  };
 
   return (
     <View style={styles.card} accessibilityLabel="Do — live capturing">
       {hideTimer ? null : (
-        <DoLiveHeader captureCount={nonMarkerCount} elapsedMs={elapsedMs} />
+        <DoLiveHeader
+          captureCount={nonMarkerCount}
+          elapsedMs={elapsedMs}
+          liveLabel={config.statePillLabel}
+          timerVisible={timerVisible}
+          onToggleTimer={handleToggleTimer}
+        />
       )}
 
       <DoStepContextStrip stepTitle={stepTitle} contextSegments={contextSegments} />
 
-      <View style={styles.streamWrap}>
-        <View style={styles.streamEyebrow}>
-          <Text style={styles.streamEyebrowLbl}>
-            <Text style={styles.streamEyebrowArrow}>↓ </Text>
-            NEWEST FIRST
-          </Text>
-          {ordered.length > 0 ? (
-            <View style={styles.freshest} accessibilityElementsHidden importantForAccessibility="no">
-              <View style={styles.freshestDot} />
-              <Text style={styles.freshestText}>Just now</Text>
-            </View>
-          ) : null}
-        </View>
-
-        {ordered.length === 0 ? (
-          <View style={styles.emptyStream}>
-            <Text style={styles.emptyStreamText}>
-              Captures will appear here as you record them.
-            </Text>
-          </View>
-        ) : (
-          <ScrollView
-            style={styles.stream}
-            contentContainerStyle={styles.streamContent}
-            showsVerticalScrollIndicator={false}
-          >
-            {ordered.map((c, i) => (
-              <DoCaptureRow
-                key={c.id}
-                capture={c}
-                fresh={i === 0 && c.kind !== 'time_marker'}
-                nowMs={nowMs}
-                onPressPlayVoice={onPressPlayVoice}
-                onEdit={readOnly ? undefined : onEditCapture}
-                onDelete={readOnly ? undefined : onDeleteCapture}
-              />
-            ))}
-          </ScrollView>
-        )}
-      </View>
+      <DoStream
+        captures={ordered}
+        stepId={stepId}
+        nowMs={nowMs}
+        readOnly={readOnly}
+        emptyMessage={config.captureEmptyMessage}
+        onCaptureLongPress={onTagCapture}
+        onPressPlayVoice={onPressPlayVoice}
+        onEditCapture={onEditCapture}
+        onDeleteCapture={onDeleteCapture}
+      />
 
       <View style={styles.composerWrap}>
-        <DoComposer
+        <StreamComposer
           readOnly={readOnly}
+          onAddPress={() => setCaptureTypesVisible(true)}
           onAddQuickNote={onAddQuickNote}
           onAddPhoto={onAddPhoto}
           onAddVoiceNote={onAddVoiceNote}
@@ -141,9 +147,19 @@ export function DoLiveCard({
 
       {hideTimer ? null : (
         <View style={styles.stopWrap}>
-          <DoStopCapturingButton onPress={onStopCapturing} disabled={readOnly} />
+          <StopCapturingCTA
+            state="capturing"
+            label={config.stopCtaLabel}
+            onStop={onStopCapturing}
+            readOnly={readOnly}
+          />
         </View>
       )}
+
+      <CaptureTypesSheet
+        visible={captureTypesVisible}
+        onDismiss={() => setCaptureTypesVisible(false)}
+      />
     </View>
   );
 }
@@ -161,70 +177,6 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 14 },
     elevation: 6,
     flex: 1,
-  },
-  streamWrap: {
-    flex: 1,
-    paddingTop: 12,
-    paddingHorizontal: 14,
-    paddingBottom: 8,
-  },
-  streamEyebrow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginTop: -2,
-    marginHorizontal: 4,
-    marginBottom: 6,
-  },
-  streamEyebrowLbl: {
-    fontSize: 9.5,
-    fontWeight: '600',
-    letterSpacing: 0.7,
-    color: LABEL_3,
-  },
-  streamEyebrowArrow: {
-    color: LABEL_4,
-  },
-  freshest: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  freshestDot: {
-    width: 5,
-    height: 5,
-    borderRadius: 2.5,
-    backgroundColor: CORAL,
-  },
-  freshestText: {
-    fontSize: 10,
-    fontWeight: '600',
-    letterSpacing: 0.2,
-    color: CORAL_DEEP,
-  },
-  stream: {
-    flex: 1,
-  },
-  streamContent: {
-    gap: 10,
-    paddingBottom: 8,
-  },
-  emptyStream: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 32,
-    backgroundColor: GRAY_6,
-    borderRadius: 12,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: GRAY_5,
-  },
-  emptyStreamText: {
-    fontSize: 12,
-    fontStyle: 'italic',
-    color: LABEL_3,
-    textAlign: 'center',
-    paddingHorizontal: 24,
   },
   composerWrap: {
     paddingHorizontal: 14,

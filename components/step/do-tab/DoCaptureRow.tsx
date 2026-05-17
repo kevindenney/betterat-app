@@ -69,6 +69,8 @@ export interface DoCaptureRowProps {
    * existing observation/media remove paths. Hidden when omitted.
    */
   onDelete?: (captureId: string) => void;
+  /** Long-press action for live captures. Phase 3 opens "Tag this capture". */
+  onLongPress?: (captureId: string) => void;
   /**
    * Mark-as-evidence handler — only honoured in {@link frozen} (Frame 3)
    * mode for non-time_marker rows. When provided the entire row becomes
@@ -93,6 +95,7 @@ export function DoCaptureRow({
   onPressPlayVoice,
   onEdit,
   onDelete,
+  onLongPress,
   onMarkAsEvidence,
 }: DoCaptureRowProps) {
   if (capture.kind === 'time_marker') {
@@ -101,6 +104,7 @@ export function DoCaptureRow({
 
   const showFresh = fresh && !frozen;
   const markEvidenceEnabled = Boolean(frozen && onMarkAsEvidence);
+  const liveLongPressEnabled = Boolean(!frozen && onLongPress);
 
   const accent = ACCENT_BY_KIND[capture.kind] ?? GRAY_3;
   const meta = TYPE_META[capture.kind] ?? TYPE_META.note;
@@ -195,6 +199,24 @@ export function DoCaptureRow({
         style={({ pressed }) => [
           styles.row,
           { borderLeftColor: accent },
+          pressed && styles.rowPressed,
+        ]}
+      >
+        {innerContent}
+      </Pressable>
+    );
+  }
+
+  if (liveLongPressEnabled) {
+    return (
+      <Pressable
+        onLongPress={() => onLongPress?.(capture.id)}
+        accessibilityRole="button"
+        accessibilityLabel="Tag this capture"
+        style={({ pressed }) => [
+          styles.row,
+          { borderLeftColor: accent },
+          showFresh && styles.rowFresh,
           pressed && styles.rowPressed,
         ]}
       >

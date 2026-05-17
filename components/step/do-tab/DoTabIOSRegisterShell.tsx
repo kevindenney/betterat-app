@@ -32,6 +32,9 @@ export interface DoTabIOSRegisterShellProps {
   stepId: string;
   /** Suppress every mutating callback. */
   readOnly?: boolean;
+  interestId?: string;
+  interestName?: string;
+  interestSlug?: string;
   /** Move-to-Reflect CTA callback. Forwarded as the controller's onMoveToReflect. */
   onMoveToReflect?: () => void;
   /** Optional footer rendered beneath DoTabInterior (matches ActTab's contract). */
@@ -41,12 +44,18 @@ export interface DoTabIOSRegisterShellProps {
 export function DoTabIOSRegisterShell({
   stepId,
   readOnly,
+  interestId,
+  interestName,
+  interestSlug,
   onMoveToReflect,
   footer,
 }: DoTabIOSRegisterShellProps) {
   const controller = useStepActCaptureController({
     stepId,
     readOnly,
+    interestId,
+    interestName,
+    interestSlug,
     onMoveToReflect,
   });
 

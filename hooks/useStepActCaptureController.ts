@@ -57,6 +57,9 @@ export interface UseStepActCaptureControllerInput {
   stepId: string;
   /** Suppress all mutating callbacks. */
   readOnly?: boolean;
+  interestId?: string;
+  interestName?: string;
+  interestSlug?: string;
   /** Called when the user taps Move to Reflect (Frame 3). */
   onMoveToReflect?: () => void;
   /**
@@ -108,6 +111,9 @@ export interface StepActCaptureControllerView {
 export function useStepActCaptureController({
   stepId,
   readOnly,
+  interestId,
+  interestName,
+  interestSlug,
   onMoveToReflect,
   now = Date.now,
 }: UseStepActCaptureControllerInput): StepActCaptureControllerView {
@@ -395,9 +401,13 @@ export function useStepActCaptureController({
 
   const doTabInteriorProps: Omit<DoTabInteriorProps, 'footer'> = {
     state,
+    stepId,
     planData,
     captures,
     readOnly,
+    interestId: interestId ?? step?.interest_id,
+    interestName,
+    interestSlug,
     summaryText,
     summaryStepChipLabel,
     stepTitle,
@@ -412,6 +422,7 @@ export function useStepActCaptureController({
     onAddAnotherCapture: handleAddAnotherCapture,
     onDiscardActivity: handleDiscardActivity,
     onDeleteCapture: handleDeleteCapture,
+    onTagCapture: handleMarkAsEvidence,
     onMarkAsEvidence: handleMarkAsEvidence,
   };
 

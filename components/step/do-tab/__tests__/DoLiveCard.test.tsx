@@ -16,6 +16,21 @@ jest.mock('@expo/vector-icons', () => ({
   Ionicons: 'Ionicons',
 }));
 
+jest.mock('react-native-reanimated', () => ({
+  __esModule: true,
+  default: { View: 'Animated.View' },
+  useSharedValue: (initial: number) => ({ value: initial }),
+  useAnimatedStyle: () => ({}),
+  withTiming: (toValue: number) => toValue,
+  withRepeat: (anim: unknown) => anim,
+  cancelAnimation: () => undefined,
+  Easing: { out: () => (v: number) => v, ease: (v: number) => v },
+}));
+
+jest.mock('lucide-react-native', () =>
+  new Proxy({}, { get: (_, key) => String(key) }),
+);
+
 jest.mock('react-native', () => {
   const StyleSheet = {
     create: (styles: unknown) => styles,
@@ -35,11 +50,16 @@ jest.mock('react-native', () => {
       loop: () => ({ start: jest.fn(), stop: jest.fn() }),
     },
     Image: 'Image',
+    Modal: 'Modal',
     Pressable: 'Pressable',
     ScrollView: 'ScrollView',
     StyleSheet,
     Text: 'Text',
     View: 'View',
+    Platform: {
+      OS: 'ios',
+      select: (obj: Record<string, unknown>) => obj.ios ?? obj.default,
+    },
   };
 });
 
@@ -62,6 +82,7 @@ const renderCard = (overrides: Partial<DoLiveCardProps> = {}) => {
     contextSegments: ['Race 4', 'beat 2'],
     elapsedMs: 14 * 60 * 1000 + 52 * 1000,
     nowMs: Date.parse('2026-05-16T14:30:00Z'),
+    interestSlug: 'sail-racing',
     ...overrides,
   };
   let tree!: ReactTestRenderer;
@@ -103,6 +124,7 @@ describe('DoLiveCard — Frame 2 surface', () => {
     expect(names).toContain('DoLiveHeader');
     expect(names).toContain('DoStepContextStrip');
     const text = allText(tree.root);
+    expect(text).toContain('Live · capturing');
     expect(text).toContain('14:52');
     expect(text).toContain('Light-air starts in shifty breeze');
   });
@@ -145,8 +167,8 @@ describe('DoLiveCard — Frame 2 surface', () => {
   it('renders the composer and stop-capturing button', () => {
     const tree = renderCard();
     const names = componentNames(tree.root);
-    expect(names).toContain('DoComposer');
-    expect(names).toContain('DoStopCapturingButton');
+    expect(names).toContain('StreamComposer');
+    expect(names).toContain('StopCapturingCTA');
   });
 
   it('forwards composer callbacks for all three first-class affordances', () => {
@@ -157,8 +179,8 @@ describe('DoLiveCard — Frame 2 surface', () => {
     const composer = tree.root.find(
       (n: ReactTestInstance) =>
         typeof n.type !== 'string' &&
-        ((n.type as { name?: string }).name === 'DoComposer' ||
-          (n.type as { displayName?: string }).displayName === 'DoComposer'),
+        ((n.type as { name?: string }).name === 'StreamComposer' ||
+          (n.type as { displayName?: string }).displayName === 'StreamComposer'),
     );
     expect(composer.props.onAddQuickNote).toBe(onAddQuickNote);
     expect(composer.props.onAddPhoto).toBe(onAddPhoto);
@@ -171,10 +193,10 @@ describe('DoLiveCard — Frame 2 surface', () => {
     const btn = tree.root.find(
       (n: ReactTestInstance) =>
         typeof n.type !== 'string' &&
-        ((n.type as { name?: string }).name === 'DoStopCapturingButton' ||
-          (n.type as { displayName?: string }).displayName === 'DoStopCapturingButton'),
+        ((n.type as { name?: string }).name === 'StopCapturingCTA' ||
+          (n.type as { displayName?: string }).displayName === 'StopCapturingCTA'),
     );
-    expect(btn.props.onPress).toBe(onStopCapturing);
+    expect(btn.props.onStop).toBe(onStopCapturing);
   });
 
   it('shows the empty-stream message when there are no captures and hides the freshest indicator', () => {
@@ -240,5 +262,18 @@ describe('DoLiveCard — Frame 2 surface', () => {
           (n.type as { displayName?: string }).displayName === 'DoLiveHeader'),
     );
     expect(header.props.captureCount).toBe(2);
+  });
+
+  it('uses nursing-specific state, stop copy, and count-only timer default', () => {
+    const tree = renderCard({
+      interestSlug: 'nursing',
+      captures: [],
+      elapsedMs: 90_000,
+    });
+    const text = allText(tree.root);
+    expect(text).toContain('On shift · capturing');
+    expect(text).toContain('End shift');
+    expect(text).toContain('Observations will appear here as you capture them.');
+    expect(text).not.toContain('1:30');
   });
 });
