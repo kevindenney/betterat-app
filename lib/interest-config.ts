@@ -46,7 +46,7 @@ export const INTEREST_REFLECT_TAB_CONFIG: Record<DoTabInterestKind, InterestRefl
   sailing: {
     statePillLabel: 'Reflect · ready',
     settledPillLabel: 'Settled',
-    saveCtaLabel: 'Save & settle',
+    saveCtaLabel: 'Mark done',
     questionPair: ['What worked?', 'What would you do differently?'],
     synthesisDraftCopy: (count) =>
       `Want a first draft from your ${count} captures? Tap to draft, or write the first line yourself.`,
@@ -54,7 +54,7 @@ export const INTEREST_REFLECT_TAB_CONFIG: Record<DoTabInterestKind, InterestRefl
   nursing: {
     statePillLabel: 'Reflect · ready',
     settledPillLabel: 'Settled',
-    saveCtaLabel: 'Save & settle',
+    saveCtaLabel: 'Mark done',
     questionPair: ['What worked well today?', 'Where do you need more practice?'],
     synthesisDraftCopy: (count) =>
       `Want a first draft from your ${count} observations? Tap to draft, or write the first line yourself.`,
@@ -62,7 +62,7 @@ export const INTEREST_REFLECT_TAB_CONFIG: Record<DoTabInterestKind, InterestRefl
   drawing: {
     statePillLabel: 'Reflect · ready',
     settledPillLabel: 'Settled',
-    saveCtaLabel: 'Save & settle',
+    saveCtaLabel: 'Mark done',
     questionPair: ['What clicked?', "What's still rough?"],
     synthesisDraftCopy: (count) =>
       `Want a first draft from your ${count} notes? Tap to draft, or write the first line yourself.`,
@@ -70,7 +70,7 @@ export const INTEREST_REFLECT_TAB_CONFIG: Record<DoTabInterestKind, InterestRefl
   generic: {
     statePillLabel: 'Reflect · ready',
     settledPillLabel: 'Settled',
-    saveCtaLabel: 'Save & settle',
+    saveCtaLabel: 'Mark done',
     questionPair: ['What stuck?', "What's still unclear?"],
     synthesisDraftCopy: (count) =>
       `Want a first draft from your ${count} captures? Tap to draft, or write the first line yourself.`,

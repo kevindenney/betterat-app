@@ -12,7 +12,7 @@ export interface SaveAndSettleCTAProps {
 
 export function SaveAndSettleCTA({
   enabled,
-  label = 'Save & settle',
+  label = 'Mark done',
   disabledHint,
   onSettle,
 }: SaveAndSettleCTAProps) {

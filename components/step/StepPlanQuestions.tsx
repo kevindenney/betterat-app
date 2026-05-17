@@ -47,6 +47,7 @@ import { FEATURE_FLAGS } from '@/lib/featureFlags';
 import { PlanTabInterior, PlanTabIOSRegisterInterior } from './plan-tab';
 import { buildSuggestions, crossInterestToMentorInput } from '@/services/SuggestionsService';
 import { useCrossInterestSuggestions } from '@/hooks/useCrossInterestSuggestions';
+import { showAlert, showAlertWithButtons } from '@/lib/utils/crossPlatformAlert';
 
 interface StepPlanQuestionsProps {
   stepId: string;
@@ -807,13 +808,18 @@ RULES:
       connection_space: localConnectionSpace,
     };
 
-    const capabilityChips = (planData.competency_ids ?? [])
+    const competencyChips = (planData.competency_ids ?? [])
       .map((id) => {
         const title = Array.from(competencyMapRef.current.entries())
           .find(([, mappedId]) => mappedId === id)?.[0];
-        return title ? { id, label: title } : null;
+        return title ? { id: `comp:${id}`, label: title } : null;
       })
       .filter((x): x is { id: string; label: string } => x !== null);
+    const goalChips = (localGoals ?? []).map((goal) => ({
+      id: `goal:${goal}`,
+      label: goal,
+    }));
+    const capabilityChips = [...goalChips, ...competencyChips];
 
     const handleStepLoopUpdate = (partial: Partial<StepPlanData>) => {
       if (partial.what_will_you_do !== undefined) handleWhatChange(partial.what_will_you_do);
@@ -828,7 +834,7 @@ RULES:
       }
     };
 
-    const handleStepLoopConversationalCreate = (
+  const handleStepLoopConversationalCreate = (
       conversationalPlan: Partial<StepPlanData>,
       suggestedTitle?: string,
     ) => {
@@ -843,48 +849,304 @@ RULES:
       onConversationalCreate?.(conversationalPlan, suggestedTitle);
     };
 
+    const createSuggestionStepInInterest = async (
+      suggestion: { suggestion: string; suggestedCategory?: string },
+      targetInterestId: string,
+    ) => {
+      if (!user?.id) return undefined;
+      try {
+        const created = await createStep({
+          user_id: user.id,
+          interest_id: targetInterestId,
+          title: suggestion.suggestion.slice(0, 80),
+          status: 'pending',
+          source_type: 'manual',
+          category: suggestion.suggestedCategory || 'general',
+          metadata: { plan: { what_will_you_do: suggestion.suggestion } },
+        });
+        queryClient.invalidateQueries({ queryKey: ['timeline-steps'] });
+        return created.id;
+      } catch {
+        showAlert('Could not create step', 'Please try again.');
+        return undefined;
+      }
+    };
+
+    const handleCreateSuggestionFromRow = (suggestion: {
+      sourceInterestSlug: string;
+      sourceInterestName: string;
+      suggestion: string;
+      suggestedCategory?: string;
+    }) => {
+      const sourceInterest = userInterests.find((i) => i.slug === suggestion.sourceInterestSlug);
+      const currentInterestId = interestId;
+      const buttons = [];
+
+      if (currentInterestId) {
+        buttons.push({
+          text: `Create in ${currentInterest?.name || 'this interest'}`,
+          onPress: () => {
+            void createSuggestionStepInInterest(suggestion, currentInterestId);
+          },
+        });
+      }
+
+      if (sourceInterest?.id && sourceInterest.id !== currentInterestId) {
+        buttons.push({
+          text: `Create in ${suggestion.sourceInterestName}`,
+          onPress: () => {
+            void createSuggestionStepInInterest(suggestion, sourceInterest.id);
+          },
+        });
+      }
+
+      buttons.push({ text: 'Cancel', style: 'cancel' as const });
+
+      showAlertWithButtons(
+        'Create step from suggestion',
+        suggestion.suggestion,
+        buttons,
+      );
+    };
+
     const mentorInput = crossInterestToMentorInput(
       crossInterestSuggestions ?? [],
-      (s) => {
-        const existing = localSubSteps;
-        const newSubStep: SubStep = {
-          id: `cross_${Date.now()}`,
-          text: s.suggestion,
-          sort_order: existing.length,
-          completed: false,
-        };
-        handleSubStepsChange([...existing, newSubStep]);
-      },
+      handleCreateSuggestionFromRow,
     );
     const suggestions = buildSuggestions({ mentor: mentorInput });
 
     return (
-      <PlanTabIOSRegisterInterior
-        planData={canonicalPlanData}
-        onUpdate={handleStepLoopUpdate}
-        readOnly={readOnly}
-        interestId={interestId}
-        interestName={currentInterest?.name}
-        stepTitle={step.title}
-        stepCategory={step.category}
-        onConversationalCreate={useConversationalCapture ? handleStepLoopConversationalCreate : undefined}
-        capabilities={capabilityChips}
-        onRemoveCapability={(id) => {
-          const updated = (planData.competency_ids ?? []).filter((c) => c !== id);
-          debouncedSave({ competency_ids: updated });
-        }}
-        onAddCapabilityPress={() => setShowCompetencyPicker(true)}
-        suggestions={suggestions}
-        onNextPhase={onNextTab}
-        isTimed={Boolean(step.is_timed)}
-        onToggleTimed={(next) => {
-          queryClient.setQueryData<TimelineStepRecord | undefined>(
-            ['timeline-steps', 'detail', step.id],
-            (prev) => (prev ? { ...prev, is_timed: next } : prev),
-          );
-          updateStep.mutate({ stepId: step.id, input: { is_timed: next } });
-        }}
-      />
+      <>
+        <PlanTabIOSRegisterInterior
+          planData={canonicalPlanData}
+          onUpdate={handleStepLoopUpdate}
+          readOnly={readOnly}
+          interestId={interestId}
+          interestName={currentInterest?.name}
+          stepTitle={step.title}
+          stepCategory={step.category}
+          onConversationalCreate={useConversationalCapture ? handleStepLoopConversationalCreate : undefined}
+          capabilities={capabilityChips}
+          onRemoveCapability={(id) => {
+            if (id.startsWith('goal:')) {
+              handleRemoveGoal(id.slice(5));
+              return;
+            }
+            const rawId = id.startsWith('comp:') ? id.slice(5) : id;
+            const updated = (planData.competency_ids ?? []).filter((c) => c !== rawId);
+            debouncedSave({ competency_ids: updated });
+          }}
+          onAddCapabilityPress={() => setShowCompetencyPicker(true)}
+          suggestions={suggestions}
+          contextRows={
+            <>
+              <View style={styles.phase1ContextCard}>
+                <View style={styles.phase1ContextHead}>
+                  <Ionicons name="people-outline" size={12} color={STEP_COLORS.secondaryLabel} />
+                  <Text style={styles.phase1ContextEye}>With whom will you do this?</Text>
+                </View>
+
+                {localCollaborators.length > 0 ? (
+                  <View style={styles.collaboratorChipContainer}>
+                    {localCollaborators.map((collab) => (
+                      <View
+                        key={collab.id}
+                        style={[
+                          styles.collaboratorChip,
+                          collab.type === 'platform' ? styles.collaboratorChipPlatform : styles.collaboratorChipExternal,
+                        ]}
+                      >
+                        {collab.type === 'platform' ? (
+                          collab.avatar_emoji ? (
+                            <Text style={styles.collaboratorChipEmoji}>{collab.avatar_emoji}</Text>
+                          ) : (
+                            <Ionicons name="person" size={14} color={STEP_COLORS.accent} />
+                          )
+                        ) : (
+                          <Ionicons name="person-outline" size={14} color={IOS_COLORS.secondaryLabel} />
+                        )}
+                        <Text
+                          style={[
+                            styles.collaboratorChipText,
+                            collab.type === 'platform' ? styles.collaboratorChipTextPlatform : styles.collaboratorChipTextExternal,
+                          ]}
+                          numberOfLines={1}
+                        >
+                          {collab.display_name}
+                        </Text>
+                        {collab.type === 'external' && !readOnly && (
+                          <Pressable
+                            onPress={() => handleShareWithCollaborator(collab.display_name)}
+                            hitSlop={6}
+                            style={styles.sendLinkButton}
+                          >
+                            <Ionicons name="send-outline" size={13} color={STEP_COLORS.accent} />
+                          </Pressable>
+                        )}
+                        {!readOnly && (
+                          <Pressable onPress={() => handleRemoveCollaborator(collab.id)} hitSlop={6}>
+                            <Ionicons name="close-circle" size={16} color={IOS_COLORS.systemGray3} />
+                          </Pressable>
+                        )}
+                      </View>
+                    ))}
+                  </View>
+                ) : (
+                  <Text style={styles.phase1ContextHint}>No collaborators yet.</Text>
+                )}
+
+                {!readOnly && (
+                  <Pressable
+                    style={styles.addPeopleButton}
+                    onPress={() => setShowCollaboratorPicker(true)}
+                  >
+                    <Ionicons name="person-add-outline" size={18} color={STEP_COLORS.accent} />
+                    <Text style={styles.addPeopleText}>Add people</Text>
+                  </Pressable>
+                )}
+              </View>
+
+              <View style={styles.phase1ContextCard}>
+                <View style={styles.phase1ContextHead}>
+                  <Ionicons name="location-outline" size={12} color={STEP_COLORS.secondaryLabel} />
+                  <Text style={styles.phase1ContextEye}>Where will you do this?</Text>
+                </View>
+
+                <TextInput
+                  style={[styles.phase1ContextInput, readOnly && styles.readOnlyInput]}
+                  value={localWhereLocation?.name ?? ''}
+                  onChangeText={readOnly ? undefined : (text) => {
+                    if (!text.trim()) {
+                      handleLocationChange(undefined);
+                    } else {
+                      handleLocationChange({
+                        ...(localWhereLocation ?? { name: '' }),
+                        name: text,
+                      });
+                    }
+                  }}
+                  placeholder={readOnly ? '' : 'Location, venue, or address...'}
+                  placeholderTextColor={IOS_COLORS.tertiaryLabel}
+                  editable={!readOnly}
+                />
+
+                {!readOnly && orgLocations.length > 0 && (
+                  <View style={styles.orgLocationChips}>
+                    {orgLocations.map((loc) => {
+                      const isSelected = localWhereLocation?.name === loc.name;
+                      return (
+                        <Pressable
+                          key={loc.id}
+                          style={[styles.orgLocationChip, isSelected && styles.orgLocationChipSelected]}
+                          onPress={() => handleLocationChange({
+                            name: loc.name,
+                            lat: loc.lat ?? undefined,
+                            lng: loc.lng ?? undefined,
+                          })}
+                        >
+                          <Ionicons
+                            name="location"
+                            size={13}
+                            color={isSelected ? STEP_COLORS.accent : IOS_COLORS.secondaryLabel}
+                          />
+                          <Text
+                            style={[styles.orgLocationChipText, isSelected && styles.orgLocationChipTextSelected]}
+                            numberOfLines={1}
+                          >
+                            {loc.name}
+                          </Text>
+                        </Pressable>
+                      );
+                    })}
+                  </View>
+                )}
+
+                {localWhereLocation?.lat != null && localWhereLocation?.lng != null && (
+                  <View style={styles.mapPreview}>
+                    <View style={styles.mapPreviewPin}>
+                      <Ionicons name="location" size={20} color={STEP_COLORS.accent} />
+                      <Text style={styles.mapPreviewCoords}>
+                        {localWhereLocation.lat.toFixed(4)}, {localWhereLocation.lng.toFixed(4)}
+                      </Text>
+                    </View>
+                    {!readOnly && (
+                      <Pressable
+                        onPress={() => handleLocationChange({
+                          ...localWhereLocation!,
+                          lat: undefined,
+                          lng: undefined,
+                        })}
+                        hitSlop={6}
+                      >
+                        <Ionicons name="close-circle" size={18} color={IOS_COLORS.systemGray3} />
+                      </Pressable>
+                    )}
+                  </View>
+                )}
+
+                {!readOnly && (
+                  <Pressable
+                    style={styles.addPeopleButton}
+                    onPress={() => setShowLocationPicker(true)}
+                  >
+                    <Ionicons name="map-outline" size={18} color={STEP_COLORS.accent} />
+                    <Text style={styles.addPeopleText}>Pick on map</Text>
+                  </Pressable>
+                )}
+              </View>
+            </>
+          }
+          onNextPhase={onNextTab}
+          isTimed={Boolean(step.is_timed)}
+          onToggleTimed={(next) => {
+            queryClient.setQueryData<TimelineStepRecord | undefined>(
+              ['timeline-steps', 'detail', step.id],
+              (prev) => (prev ? { ...prev, is_timed: next } : prev),
+            );
+            updateStep.mutate({ stepId: step.id, input: { is_timed: next } });
+          }}
+        />
+
+        {!readOnly && (
+          <>
+            <CollaboratorPicker
+              visible={showCollaboratorPicker}
+              onClose={() => setShowCollaboratorPicker(false)}
+              onAdd={handleAddCollaborator}
+              existingIds={collaboratorExistingIds}
+            />
+            <CompetencyPickerModal
+              visible={showCompetencyPicker}
+              onClose={() => setShowCompetencyPicker(false)}
+              selectedIds={planData.competency_ids ?? []}
+              onToggle={(compId, compTitle) => {
+                const existingIds = planDataRef.current.competency_ids ?? [];
+                if (existingIds.includes(compId)) {
+                  handleRemoveGoal(compTitle);
+                } else {
+                  handleAddGoal(compTitle);
+                  competencyMapRef.current.set(compTitle, compId);
+                }
+              }}
+              interestId={interestId ?? ''}
+            />
+            <LocationMapPickerModal
+              visible={showLocationPicker}
+              onClose={() => setShowLocationPicker(false)}
+              onSelectLocation={(loc: { name: string; lat: number; lng: number }) => {
+                handleLocationChange({ name: loc.name, lat: loc.lat, lng: loc.lng });
+                setShowLocationPicker(false);
+              }}
+              initialLocation={
+                localWhereLocation?.lat != null && localWhereLocation?.lng != null
+                  ? { lat: localWhereLocation.lat, lng: localWhereLocation.lng }
+                  : null
+              }
+              initialName={localWhereLocation?.name}
+            />
+          </>
+        )}
+      </>
     );
   }
 
@@ -2552,6 +2814,42 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: IOS_COLORS.secondaryLabel,
     fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+  },
+  phase1ContextCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: IOS_COLORS.systemGray5,
+    paddingVertical: 11,
+    paddingHorizontal: 14,
+    gap: 10,
+  },
+  phase1ContextHead: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  phase1ContextEye: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: STEP_COLORS.secondaryLabel,
+    letterSpacing: 0.9,
+    textTransform: 'uppercase',
+  },
+  phase1ContextHint: {
+    fontSize: 13,
+    color: IOS_COLORS.secondaryLabel,
+  },
+  phase1ContextInput: {
+    fontSize: 13.5,
+    color: STEP_COLORS.label,
+    letterSpacing: -0.05,
+    lineHeight: 19,
+    padding: 0,
+    minHeight: 22,
+    ...Platform.select({
+      web: { outlineStyle: 'none', resize: 'none', overflow: 'hidden' } as any,
+    }),
   },
   conditionsContainer: {
     marginTop: IOS_SPACING.sm,

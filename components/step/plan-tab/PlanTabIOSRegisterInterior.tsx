@@ -68,6 +68,8 @@ export interface PlanTabIOSRegisterInteriorProps {
   onSeeAllSuggestions?: () => void;
   workingWithConcepts?: { id: string; title: string }[];
   onPressWorkingConcept?: (conceptId: string) => void;
+  /** Optional extra plan-context rows (e.g. with whom / where) rendered in-body. */
+  contextRows?: React.ReactNode;
   /** Per-step timing. Both must be set for the quiet toggle to render in More Options. */
   isTimed?: boolean;
   onToggleTimed?: (next: boolean) => void;
@@ -101,6 +103,7 @@ export function PlanTabIOSRegisterInterior({
   onSeeAllSuggestions,
   workingWithConcepts = [],
   onPressWorkingConcept,
+  contextRows,
   isTimed,
   onToggleTimed,
   optionalAddOns,
@@ -203,6 +206,8 @@ export function PlanTabIOSRegisterInterior({
         onChangeText={(v) => onUpdate({ why_reasoning: v })}
         readOnly={readOnly}
       />
+
+      {contextRows}
 
       {(capabilities.length > 0 || onAddCapabilityPress) ? (
         <CapabilityChipSet

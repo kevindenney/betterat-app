@@ -1184,6 +1184,11 @@ export default function RacesScreen() {
       // Timeline step fields — pass through so detail view can distinguish steps from regattas
       ...(race.isTimelineStep ? {
         isTimelineStep: true,
+        interest_id: race.interest_id,
+        user_id: race.user_id,
+        collaborator_user_ids: race.collaborator_user_ids ?? [],
+        isOwner: race.user_id === user?.id,
+        created_by: race.created_by ?? race.user_id,
         stepStatus: timelineStatusOverrides[race.id]?.status || race.stepStatus,
         sort_order: race.sort_order,
         description: race.description,
@@ -1200,7 +1205,7 @@ export default function RacesScreen() {
     const nowMsMapped = Date.now();
     mapped.sort((a: any, b: any) => compareTimelineItems(a, b, nowMsMapped));
     return mapped;
-  }, [safeRecentRaces, sampleRaceDismissed, isViewingOtherTimeline, currentTimeline, timelineStatusOverrides, eventConfig.interestSlug, eventConfig.eventNoun, eventConfig.defaultSubtype, subscribedBlueprints, vocab]);
+  }, [safeRecentRaces, sampleRaceDismissed, isViewingOtherTimeline, currentTimeline, timelineStatusOverrides, eventConfig.interestSlug, eventConfig.eventNoun, eventConfig.defaultSubtype, subscribedBlueprints, vocab, user?.id]);
 
   // Use the chronological order from baseCardGridRaces (which comes from
   // interestFilteredRaces sorted by: completed first, then date, then sort_order).
@@ -1706,7 +1711,11 @@ export default function RacesScreen() {
         id: newStep.id,
         name: newStep.title,
         date: newStep.due_at || undefined,
+        interest_id: newStep.interest_id,
+        user_id: newStep.user_id,
+        collaborator_user_ids: newStep.collaborator_user_ids ?? [],
         isTimelineStep: true,
+        isOwner: true,
         stepStatus: 'pending',
         status: 'pending',
         metadata: newStep.metadata,
@@ -1824,7 +1833,11 @@ export default function RacesScreen() {
       id: tempId,
       name: optimisticStep.title,
       date: undefined,
+      interest_id: optimisticStep.interest_id,
+      user_id: optimisticStep.user_id,
+      collaborator_user_ids: optimisticStep.collaborator_user_ids ?? [],
       isTimelineStep: true,
+      isOwner: true,
       stepStatus: 'pending',
       status: 'pending',
       metadata: optimisticMetadata,
@@ -1939,7 +1952,11 @@ export default function RacesScreen() {
         id: newStep.id,
         name: newStep.title,
         date: newStep.due_at || undefined,
+        interest_id: newStep.interest_id,
+        user_id: newStep.user_id,
+        collaborator_user_ids: newStep.collaborator_user_ids ?? [],
         isTimelineStep: true,
+        isOwner: true,
         stepStatus: 'pending',
         status: 'pending',
         metadata: newStep.metadata,
