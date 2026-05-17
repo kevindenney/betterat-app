@@ -1,0 +1,1977 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=1720" />
+<title>BetterAt · The Becoming Loop — Canonical · 2026-05-17</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css" />
+<link rel="stylesheet" href="legacy-reskin-common.css?v=1" />
+<style>
+  .page { min-width: 1720px; }
+
+  /* ============= Section framing ============= */
+  .section-band {
+    max-width: 1660px;
+    margin: 80px auto 0;
+    padding-top: 36px;
+    border-top: 0.5px solid var(--stage-line);
+  }
+  .section-band:first-of-type { margin-top: 24px; border-top: 0; padding-top: 0; }
+  .section-band h2 {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 24px; font-weight: 500; letter-spacing: -0.3px;
+    color: var(--stage-ink); margin: 0 0 8px;
+  }
+  .section-band h2 em { font-style: italic; }
+  .section-band h2 .badge {
+    display: inline-block;
+    background: var(--ios-blue-tint); color: var(--ios-blue-deep);
+    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 10.5px; font-weight: 700; letter-spacing: 0.7px;
+    text-transform: uppercase;
+    padding: 3px 8px; border-radius: 999px;
+    vertical-align: 4px; margin-right: 10px;
+  }
+  .section-band .lede {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 15px; line-height: 1.55;
+    color: var(--stage-text); margin: 0 0 28px;
+    max-width: 1080px; text-wrap: pretty;
+  }
+  .section-band .lede em { font-style: italic; }
+  .section-band .lede strong { color: var(--stage-ink); font-weight: 500; }
+
+  /* ============= Spine flow ============= */
+  .spine-row {
+    max-width: 1660px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: repeat(9, 1fr);
+    gap: 6px;
+    align-items: stretch;
+  }
+  .spine-node {
+    background: rgba(255,255,255,0.6);
+    border: 0.5px solid var(--stage-line);
+    border-radius: 14px;
+    padding: 14px 14px 16px;
+    display: flex; flex-direction: column; gap: 7px;
+    position: relative;
+    min-height: 200px;
+  }
+  .spine-node.hinge {
+    background: rgba(255,255,255,0.35);
+    border: 0.5px dashed var(--stage-line);
+  }
+  .spine-node .pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 3px 9px 3px 7px;
+    border-radius: 999px;
+    align-self: flex-start;
+    font-size: 9px; font-weight: 700; letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+  .spine-node .pill .dot { width: 6px; height: 6px; border-radius: 50%; }
+  .spine-node .pill.blue   { background: var(--ios-blue-tint);   border: 0.5px solid var(--ios-blue-strong); color: var(--ios-blue-deep); }
+  .spine-node .pill.coral  { background: var(--ios-coral-tint);  border: 0.5px solid var(--ios-coral-soft);  color: var(--ios-coral-deep); }
+  .spine-node .pill.purple { background: var(--ios-purple-tint); border: 0.5px solid var(--ios-purple-soft); color: var(--ios-purple-deep); }
+  .spine-node .pill.green  { background: var(--ios-green-tint);  border: 0.5px solid var(--ios-green-soft);  color: var(--ios-green-deep); }
+  .spine-node .pill.amber  { background: rgba(194, 138, 42, 0.10); border: 0.5px solid rgba(194, 138, 42, 0.22); color: var(--ios-amber); }
+  .spine-node .pill.gray   { background: var(--gray-6); border: 0.5px solid var(--gray-5); color: var(--label-2); }
+  .spine-node .pill .dot.blue   { background: var(--ios-blue); }
+  .spine-node .pill .dot.coral  { background: var(--ios-coral); }
+  .spine-node .pill .dot.purple { background: var(--ios-purple); }
+  .spine-node .pill .dot.green  { background: var(--ios-green); }
+  .spine-node .pill .dot.amber  { background: var(--ios-amber); }
+  .spine-node .pill .dot.gray   { background: var(--gray-2); }
+  .spine-node .title {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 16px; font-weight: 500; letter-spacing: -0.25px;
+    color: var(--stage-ink); margin: 0;
+    text-wrap: balance;
+  }
+  .spine-node .title em { font-style: italic; }
+  .spine-node .body {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 12.5px; line-height: 1.5;
+    color: #4D4A43; margin: 0;
+    text-wrap: pretty;
+  }
+  .spine-node .body em { font-style: italic; }
+  .spine-node .cap-line {
+    margin-top: auto;
+    padding-top: 8px;
+    border-top: 0.5px dashed var(--stage-line-soft);
+    display: flex; flex-direction: column; gap: 4px;
+  }
+  .spine-node .cap-line .lbl {
+    font-size: 9px; font-weight: 700;
+    color: var(--ios-purple-deep); letter-spacing: 0.7px;
+    text-transform: uppercase;
+  }
+  .spine-node .cap-line .chips {
+    display: flex; gap: 4px; flex-wrap: wrap;
+  }
+  .spine-node .cap-line .chip {
+    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 10px; font-weight: 500;
+    background: var(--ios-purple-tint); color: var(--ios-purple-deep);
+    border: 0.5px solid var(--ios-purple-soft);
+    border-radius: 999px;
+    padding: 2px 8px;
+  }
+  .spine-node .cap-line .chip.confirmed {
+    background: var(--ios-green-tint); color: var(--ios-green-deep);
+    border-color: var(--ios-green-soft);
+  }
+  .spine-arrow {
+    display: flex; align-items: center; justify-content: center;
+  }
+  .spine-arrow svg { display: block; }
+
+  .spine-caption {
+    text-align: center;
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-style: italic;
+    font-size: 13.5px;
+    color: var(--stage-text);
+    margin: 28px auto 0;
+    max-width: 920px; line-height: 1.55;
+    text-wrap: pretty;
+  }
+  .spine-caption strong { color: var(--stage-ink); font-weight: 500; font-style: normal; }
+
+  /* ============= Pair row (current vs target) ============= */
+  .pair-row {
+    display: grid;
+    grid-template-columns: 1fr 60px 1fr;
+    gap: 24px;
+    align-items: flex-start; justify-content: center;
+    max-width: 1660px; margin: 0 auto;
+  }
+  .pane {
+    display: flex; flex-direction: column; align-items: center; gap: 14px;
+  }
+  .pane .pane-eye {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-size: 10.5px; font-weight: 700;
+    letter-spacing: 0.9px; text-transform: uppercase;
+    color: var(--stage-text);
+  }
+  .pane .pane-eye .pip {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--ios-blue);
+  }
+  .pane.hinge-pane .pane-eye .pip { background: var(--ios-amber); }
+  .pane.becoming .pane-eye .pip { background: var(--ios-purple); }
+  .pane .pane-title {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 18px; font-weight: 500; letter-spacing: -0.25px;
+    color: var(--stage-ink); margin: 0;
+    text-wrap: balance; text-align: center;
+  }
+  .pane .pane-title em { font-style: italic; }
+  .pane .pane-sub {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 13px; font-style: italic;
+    color: var(--stage-text); margin: 0; line-height: 1.45;
+    max-width: 380px; text-wrap: pretty; text-align: center;
+  }
+
+  /* ============= Shared target step pieces (re-used across panes) ============= */
+  .target-step .top-header .right-cluster {
+    display: inline-flex; align-items: center; gap: 12px;
+  }
+  .target-step .top-header .right-cluster .ic {
+    background: none; border: 0; padding: 0;
+    color: var(--label-2);
+    position: relative;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .target-step .top-header .right-cluster .ic i { font-size: 19px; }
+  .target-step .top-header .right-cluster .ic.timeline-ico i { color: var(--ios-blue); }
+  .target-step .top-header .right-cluster .ic .badge {
+    position: absolute; top: -4px; right: -6px;
+    min-width: 14px; height: 14px; border-radius: 999px;
+    background: #FF3B30; color: #fff;
+    font-size: 9px; font-weight: 700;
+    display: inline-flex; align-items: center; justify-content: center;
+    padding: 0 3px;
+  }
+  .target-step .card.step {
+    display: flex; flex-direction: column;
+  }
+  .target-step .step-state-head {
+    padding: 13px 16px 10px;
+    display: flex; align-items: center; justify-content: space-between;
+    border-bottom: 0.5px solid var(--gray-5);
+  }
+  .target-step .step-state-head .menu {
+    background: none; border: 0; padding: 0;
+    color: var(--label-3);
+  }
+  .target-step .step-state-head .menu i { font-size: 17px; }
+  .target-step .step-state-head .stats {
+    display: flex; align-items: baseline; gap: 12px;
+    font-variant-numeric: tabular-nums;
+  }
+  .target-step .step-state-head .stats .stat {
+    display: flex; flex-direction: column; align-items: flex-end;
+    line-height: 1;
+  }
+  .target-step .step-state-head .stats .stat .num {
+    font-size: 17px; font-weight: 600;
+    color: var(--label); letter-spacing: -0.4px;
+  }
+  .target-step .step-state-head .stats .stat .lbl {
+    font-size: 9.5px; font-weight: 700;
+    color: var(--label-3); letter-spacing: 0.5px;
+    text-transform: uppercase; margin-top: 3px;
+  }
+  .target-step .step-strip .text .em { color: var(--label); font-weight: 600; }
+
+  .target-step .step-title-block {
+    padding: 14px 18px 12px;
+    border-bottom: 0.5px solid var(--gray-5);
+  }
+  .target-step .step-title-block .crumb-eye {
+    font-size: 10.5px; font-weight: 700;
+    color: var(--ios-blue); letter-spacing: 0.7px;
+    text-transform: uppercase;
+    display: inline-flex; align-items: center; gap: 6px;
+    margin: 0 0 6px;
+  }
+  .target-step .step-title-block .crumb-eye .dot {
+    width: 6px; height: 6px; border-radius: 50%; background: var(--ios-blue);
+  }
+  .target-step .step-title-block .crumb-eye.done { color: var(--ios-green-deep); }
+  .target-step .step-title-block .crumb-eye.done .dot { background: var(--ios-green); }
+  .target-step .step-title-block .untitled {
+    font-size: 21px; font-weight: 600; letter-spacing: -0.45px;
+    color: var(--label); margin: 0; line-height: 1.12;
+  }
+  .target-step .step-title-block .step-meta {
+    font-size: 11.5px; color: var(--label-3);
+    letter-spacing: -0.05px;
+    margin: 5px 0 0;
+  }
+  .target-step .step-title-block .step-meta .em { color: var(--label-2); font-weight: 500; }
+
+  /* WITH row */
+  .with-row {
+    padding: 8px 18px 10px;
+    display: flex; align-items: center; gap: 10px;
+    border-bottom: 0.5px solid var(--gray-5);
+    background: #FAFAFC;
+  }
+  .with-row .eye {
+    font-size: 9.5px; font-weight: 700;
+    color: var(--label-2); letter-spacing: 0.9px;
+    text-transform: uppercase;
+  }
+  .with-row .avatars {
+    display: inline-flex;
+  }
+  .with-row .avatars .av {
+    width: 22px; height: 22px; border-radius: 50%;
+    background: linear-gradient(135deg, #4E6A85 0%, #7C7B6E 100%);
+    display: inline-flex; align-items: center; justify-content: center;
+    color: #fff; font-size: 9px; font-weight: 700;
+    border: 1.5px solid #fff;
+    letter-spacing: 0.02em;
+  }
+  .with-row .avatars .av + .av { margin-left: -8px; }
+  .with-row .avatars .av.h { background: linear-gradient(135deg, #6B5E48 0%, #4A3F2E 100%); }
+  .with-row .avatars .av.e { background: linear-gradient(135deg, #8A5C7A 0%, #5C3F52 100%); }
+  .with-row .fleet-chip {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 3px 9px 3px 8px;
+    border-radius: 999px;
+    background: var(--gray-6);
+    border: 0.5px solid var(--gray-5);
+    font-size: 11.5px; font-weight: 500;
+    color: var(--label-2); letter-spacing: -0.05px;
+  }
+  .with-row .fleet-chip i { font-size: 12px; color: var(--label-3); }
+
+  .target-step .phase-tabs {
+    display: flex; gap: 4px;
+    padding: 0 16px;
+    border-bottom: 0.5px solid var(--gray-5);
+  }
+  .target-step .phase-tabs .ptab {
+    background: none; border: 0; padding: 10px 10px 12px;
+    font-family: inherit;
+    font-size: 13.5px; font-weight: 500;
+    color: var(--label-3); letter-spacing: -0.1px;
+    position: relative;
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .target-step .phase-tabs .ptab.on { color: var(--ios-blue); font-weight: 600; }
+  .target-step .phase-tabs .ptab.on::after {
+    content: ""; position: absolute; left: 10px; right: 10px; bottom: -0.5px;
+    height: 2px; background: var(--ios-blue); border-radius: 2px;
+  }
+  .target-step .phase-tabs .ptab .ring {
+    width: 14px; height: 14px; border-radius: 50%;
+    flex-shrink: 0;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .target-step .phase-tabs .ptab .ring.pending {
+    background: transparent;
+    border: 1.5px dashed var(--gray-3);
+  }
+  .target-step .phase-tabs .ptab .ring.ready { background: var(--ios-green); }
+  .target-step .phase-tabs .ptab .ring.ready::after {
+    content: "";
+    width: 6px; height: 3px;
+    border-left: 1.5px solid #fff;
+    border-bottom: 1.5px solid #fff;
+    transform: rotate(-45deg) translate(0.5px, -1px);
+  }
+  .target-step .plan-body-scroll {
+    flex: 1; overflow: hidden;
+    padding: 12px 16px 8px;
+    display: flex; flex-direction: column; gap: 10px;
+    min-height: 0;
+  }
+
+  /* Quiet helper line */
+  .ai-helper {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 11.5px; font-style: italic; font-weight: 400;
+    color: var(--label-3); letter-spacing: -0.05px;
+    margin: 0 2px 4px;
+    background: none; border: 0; padding: 0;
+  }
+  .ai-helper i.spark { font-size: 12px; color: var(--ios-purple); }
+  .ai-helper i.arrow { font-size: 12px; color: var(--label-3); }
+  .ai-helper .em { color: var(--label-2); font-style: normal; font-weight: 500; }
+
+  /* Field cards */
+  .field-card {
+    background: #FFFFFF;
+    border: 0.5px solid var(--gray-5);
+    border-radius: 12px;
+    padding: 11px 14px;
+  }
+  .field-card .field-head {
+    display: flex; align-items: center; justify-content: space-between;
+    margin: 0 0 5px;
+  }
+  .field-card .field-head .eye {
+    font-size: 10px; font-weight: 700;
+    color: var(--label-2); letter-spacing: 0.9px;
+    text-transform: uppercase;
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .field-card .field-head .eye i { font-size: 12px; color: var(--label-3); }
+  .field-card .help-spark {
+    width: 22px; height: 22px; border-radius: 50%;
+    background: var(--ios-purple-tint); color: var(--ios-purple);
+    border: 0;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .field-card .help-spark i { font-size: 12px; }
+  .field-card .placeholder {
+    font-size: 13.5px; color: var(--label-3);
+    letter-spacing: -0.05px;
+    line-height: 1.35;
+    font-style: italic; margin: 0;
+  }
+  .field-card .filled-line {
+    font-size: 13.5px; color: var(--label);
+    letter-spacing: -0.05px;
+    line-height: 1.4;
+    margin: 0;
+  }
+
+  /* Capabilities section on Plan */
+  .caps-section {
+    border-top: 0.5px solid var(--gray-5);
+    margin-top: 6px;
+    padding-top: 10px;
+  }
+  .caps-section .sec-head {
+    display: flex; align-items: baseline; justify-content: space-between;
+    margin: 0 0 7px;
+  }
+  .caps-section .sec-head .eye {
+    font-size: 9.5px; font-weight: 700;
+    color: var(--label-2); letter-spacing: 0.9px;
+    text-transform: uppercase;
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .caps-section .sec-head .eye i.spark { font-size: 11px; color: var(--ios-purple); }
+  .caps-section .sec-head .add {
+    background: none; border: 0; padding: 0;
+    font-size: 11.5px; font-weight: 500;
+    color: var(--ios-blue); letter-spacing: -0.05px;
+  }
+  .caps-section .chips {
+    display: flex; gap: 6px; flex-wrap: wrap;
+  }
+  .caps-section .cap-chip {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 4px 8px 4px 10px;
+    border-radius: 999px;
+    background: var(--ios-purple-tint);
+    border: 0.5px solid var(--ios-purple-soft);
+    color: var(--ios-purple-deep);
+    font-size: 11.5px; font-weight: 500; letter-spacing: -0.05px;
+  }
+  .caps-section .cap-chip .x { color: var(--ios-purple-deep); opacity: 0.55; }
+  .caps-section .cap-chip .x i { font-size: 12px; }
+  .caps-section .hint {
+    font-size: 10.5px; color: var(--label-3);
+    font-style: italic;
+    margin: 7px 0 0;
+  }
+
+  /* Suggestions row on Plan */
+  .suggestions-section {
+    border-top: 0.5px solid var(--gray-5);
+    margin-top: 4px;
+    padding-top: 10px;
+  }
+  .suggestions-section .sec-head {
+    display: flex; align-items: baseline; justify-content: space-between;
+    margin: 0 0 7px;
+  }
+  .suggestions-section .sec-head .eye {
+    font-size: 9.5px; font-weight: 700;
+    color: var(--label-2); letter-spacing: 0.9px;
+    text-transform: uppercase;
+  }
+  .suggestions-section .sec-head .see-all {
+    background: none; border: 0; padding: 0;
+    font-size: 11.5px; font-weight: 500;
+    color: var(--ios-blue); letter-spacing: -0.05px;
+    display: inline-flex; align-items: center; gap: 2px;
+  }
+  .suggestions-section .see-all i { font-size: 12px; }
+  .suggestion-row {
+    display: grid;
+    grid-template-columns: 22px 1fr 14px;
+    column-gap: 9px;
+    align-items: center;
+    padding: 7px 4px;
+    border-bottom: 0.5px solid var(--gray-5);
+  }
+  .suggestion-row:last-child { border-bottom: 0; }
+  .suggestion-row .ic {
+    width: 22px; height: 22px; border-radius: 6px;
+    display: inline-flex; align-items: center; justify-content: center;
+    background: var(--gray-6); color: var(--label-2);
+  }
+  .suggestion-row .ic i { font-size: 12px; }
+  .suggestion-row .ic.blueprint { background: var(--ios-blue-tint); color: var(--ios-blue-deep); }
+  .suggestion-row .ic.follow    { background: var(--gray-5); color: var(--label-2); }
+  .suggestion-row .ic.mentor    { background: var(--ios-purple-tint); color: var(--ios-purple-deep); }
+  .suggestion-row .copy .ttl {
+    font-size: 12.5px; font-weight: 600;
+    color: var(--label); letter-spacing: -0.1px;
+    margin: 0; line-height: 1.2;
+  }
+  .suggestion-row .copy .sub {
+    font-size: 10.5px; color: var(--label-3);
+    letter-spacing: -0.02px;
+    margin: 1px 0 0;
+  }
+  .suggestion-row .copy .sub .em { color: var(--label-2); font-weight: 600; }
+  .suggestion-row .chev { color: var(--gray-3); }
+  .suggestion-row .chev i { font-size: 13px; }
+
+  .more-row {
+    margin-top: 4px;
+    padding: 10px 0 2px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .more-row .ttl {
+    font-size: 13.5px; font-weight: 600;
+    color: var(--label-2); letter-spacing: -0.1px;
+  }
+  .more-row .ttl .count {
+    font-size: 10px; font-weight: 500;
+    color: var(--label-3);
+  }
+  .more-row .chev { font-size: 14px; color: var(--label-3); }
+
+  /* Footer CTA */
+  .target-step .step-card-footer {
+    flex-shrink: 0;
+    padding: 10px 14px 14px;
+    background: #FFFFFF;
+    border-top: 0.5px solid var(--gray-5);
+  }
+  .target-step .step-card-footer .btn {
+    width: 100%;
+    border: 0;
+    border-radius: 14px;
+    padding: 12px 16px;
+    font-family: inherit;
+    font-size: 14.5px; font-weight: 600;
+    letter-spacing: -0.2px;
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  }
+  .target-step .step-card-footer .btn.disabled {
+    background: var(--gray-5); color: var(--label-3); cursor: not-allowed;
+  }
+  .target-step .step-card-footer .btn.disabled i { color: var(--label-4); }
+  .target-step .step-card-footer .btn.primary {
+    background: var(--ios-blue); color: #fff;
+    box-shadow: 0 6px 16px -4px rgba(0, 122, 255, 0.36), 0 1px 2px rgba(0,0,0,0.08);
+  }
+  .target-step .step-card-footer .hint {
+    text-align: center;
+    margin-top: 6px;
+    font-size: 10.5px; color: var(--label-3);
+  }
+  .target-step .step-card-footer .hint .em { color: var(--label-2); font-weight: 600; }
+
+  /* ============= Reflect body — capabilities-you-practiced ============= */
+  .target-step .reflect-body {
+    flex: 1; overflow: hidden;
+    padding: 14px 16px 10px;
+    display: flex; flex-direction: column; gap: 12px;
+    min-height: 0;
+  }
+  .target-step .synth-helper {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 10px; font-weight: 700;
+    color: var(--ios-purple-deep); letter-spacing: 0.8px;
+    text-transform: uppercase; margin: 0;
+  }
+  .target-step .synth-helper .glyph {
+    width: 14px; height: 14px; border-radius: 50%;
+    background: var(--ios-purple); color: #fff;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .target-step .synth-helper .glyph i { font-size: 8.5px; }
+  .target-step .synth-prompt {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 14.5px; line-height: 1.45; font-style: italic;
+    color: var(--label); letter-spacing: -0.05px;
+    margin: 4px 0 0; text-wrap: pretty;
+  }
+  .reflect-field {
+    background: #FAFAFC;
+    border: 0.5px solid var(--gray-5);
+    border-radius: 12px;
+    padding: 10px 12px;
+  }
+  .reflect-field .q-eye {
+    font-size: 9.5px; font-weight: 700;
+    color: var(--label-2); letter-spacing: 0.9px;
+    text-transform: uppercase;
+    margin: 0 0 3px;
+  }
+  .reflect-field .q-body {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 13.5px; font-style: italic; line-height: 1.4;
+    color: var(--label-3); letter-spacing: -0.05px;
+    margin: 0;
+  }
+  .reflect-field .q-body.filled {
+    color: var(--label); font-style: normal;
+  }
+
+  /* Capabilities-you-practiced list */
+  .caps-practiced {
+    border-top: 0.5px solid var(--gray-5);
+    padding-top: 12px;
+  }
+  .caps-practiced .sec-head {
+    display: flex; align-items: baseline; justify-content: space-between;
+    margin: 0 0 8px;
+  }
+  .caps-practiced .sec-head .eye {
+    font-size: 9.5px; font-weight: 700;
+    color: var(--label-2); letter-spacing: 0.9px;
+    text-transform: uppercase;
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .caps-practiced .sec-head .eye i.spark { font-size: 11px; color: var(--ios-purple); }
+  .caps-practiced .sec-head .add {
+    background: none; border: 0; padding: 0;
+    font-size: 11.5px; font-weight: 500;
+    color: var(--ios-blue); letter-spacing: -0.05px;
+  }
+  .cap-evidence-row {
+    display: grid;
+    grid-template-columns: 18px 1fr;
+    column-gap: 10px;
+    padding: 8px 4px;
+    border-bottom: 0.5px dashed var(--gray-5);
+  }
+  .cap-evidence-row:last-child { border-bottom: 0; }
+  .cap-evidence-row .check {
+    width: 18px; height: 18px; border-radius: 50%;
+    display: inline-flex; align-items: center; justify-content: center;
+    margin-top: 1px;
+  }
+  .cap-evidence-row .check.on {
+    background: var(--ios-green); color: #fff;
+  }
+  .cap-evidence-row .check.on::after {
+    content: "";
+    width: 6px; height: 3px;
+    border-left: 1.5px solid #fff;
+    border-bottom: 1.5px solid #fff;
+    transform: rotate(-45deg) translate(0.5px, -1px);
+  }
+  .cap-evidence-row .check.off {
+    border: 1.5px solid var(--gray-3);
+    background: transparent;
+  }
+  .cap-evidence-row .copy .name {
+    font-size: 12.5px; font-weight: 600;
+    color: var(--label); letter-spacing: -0.1px;
+    margin: 0; display: inline-flex; align-items: center; gap: 7px;
+  }
+  .cap-evidence-row .copy .name .pip {
+    display: inline-flex; gap: 1.5px;
+  }
+  .cap-evidence-row .copy .name .pip span {
+    width: 5px; height: 5px; border-radius: 50%;
+    background: var(--gray-4);
+  }
+  .cap-evidence-row .copy .name .pip span.on { background: var(--ios-purple); }
+  .cap-evidence-row .copy .meta {
+    font-size: 10.5px; color: var(--label-3);
+    letter-spacing: -0.02px;
+    margin: 2px 0 0;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .cap-evidence-row .copy .meta .strength {
+    font-size: 9.5px; font-weight: 700;
+    letter-spacing: 0.5px; text-transform: uppercase;
+    padding: 1px 6px;
+    border-radius: 999px;
+  }
+  .cap-evidence-row .copy .meta .strength.strong {
+    background: var(--ios-green-tint); color: var(--ios-green-deep);
+  }
+  .cap-evidence-row .copy .meta .strength.material {
+    background: rgba(0, 122, 255, 0.10); color: var(--ios-blue-deep);
+  }
+  .cap-evidence-row .copy .meta .strength.worth-noting {
+    background: var(--gray-6); color: var(--label-2);
+  }
+  .cap-evidence-row .copy .meta .sep { color: var(--label-4); }
+
+  .caps-hint {
+    font-size: 10.5px; color: var(--label-3);
+    font-style: italic;
+    margin: 8px 0 0;
+  }
+
+  /* ============================================================
+     HINGE surface — filmstrip of day tiles in new register
+     ============================================================ */
+  .hinge-surface .top-header {
+    /* same as target-step */
+  }
+  .hinge-surface .card.hinge-card {
+    display: flex; flex-direction: column;
+  }
+  .hinge-state-head {
+    padding: 13px 16px 10px;
+    border-bottom: 0.5px solid var(--gray-5);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .hinge-state-head .state-pill.amber {
+    background: rgba(194, 138, 42, 0.10);
+    border: 0.5px solid rgba(194, 138, 42, 0.22);
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 5px 11px 5px 8px;
+    border-radius: 999px;
+  }
+  .hinge-state-head .state-pill.amber .dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--ios-amber);
+  }
+  .hinge-state-head .state-pill.amber .label {
+    font-size: 11px; font-weight: 700; letter-spacing: 0.6px;
+    text-transform: uppercase;
+    color: var(--ios-amber);
+  }
+  .hinge-state-head .gap-meta {
+    font-size: 11.5px; color: var(--label-3);
+    font-variant-numeric: tabular-nums;
+    font-style: italic;
+  }
+  .hinge-title-block {
+    padding: 18px 18px 14px;
+    border-bottom: 0.5px solid var(--gray-5);
+  }
+  .hinge-title-block .eyebrow {
+    font-size: 11px; color: var(--label-3); font-weight: 400;
+    letter-spacing: -0.05px;
+    margin: 0 0 6px;
+  }
+  .hinge-title-block h2 {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
+    font-size: 26px; font-weight: 400; letter-spacing: -0.5px;
+    color: var(--label); margin: 0; line-height: 1.1;
+  }
+  .hinge-title-block .dates {
+    font-size: 13px; color: var(--label-3);
+    letter-spacing: -0.05px;
+    margin: 6px 0 0;
+  }
+
+  .filmstrip {
+    flex: 1; overflow: hidden;
+    padding: 14px 0 6px;
+    position: relative;
+  }
+  .filmstrip-scroll {
+    display: flex; gap: 10px;
+    overflow-x: auto;
+    padding: 0 16px 4px;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+    -webkit-mask-image: linear-gradient(to right, black 0, black calc(100% - 28px), transparent 100%);
+            mask-image: linear-gradient(to right, black 0, black calc(100% - 28px), transparent 100%);
+  }
+  .filmstrip-scroll::-webkit-scrollbar { display: none; }
+  .day-tile {
+    flex: 0 0 168px;
+    background: #FFFFFF;
+    border: 0.5px solid var(--gray-5);
+    border-radius: 12px;
+    padding: 12px 12px;
+    display: flex; flex-direction: column;
+    scroll-snap-align: start;
+    min-height: 200px;
+  }
+  .day-tile .day {
+    font-size: 10px; font-weight: 700;
+    letter-spacing: 0.9px; text-transform: uppercase;
+    color: var(--label-2); margin: 0 0 2px;
+  }
+  .day-tile .date {
+    font-size: 10px; font-weight: 400;
+    letter-spacing: 0.04em;
+    color: var(--label-3); margin: 0 0 8px;
+  }
+  .day-tile .kind {
+    font-size: 10px; font-weight: 600;
+    color: var(--ios-blue); letter-spacing: 0.4px;
+    text-transform: uppercase;
+    margin: 0 0 6px;
+    display: inline-flex; align-items: center; gap: 4px;
+  }
+  .day-tile .kind i { font-size: 11px; }
+  .day-tile .kind.reflection { color: var(--ios-purple-deep); }
+  .day-tile .kind.note { color: var(--ios-green-deep); }
+  .day-tile .body {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 13.5px; line-height: 1.4;
+    color: var(--label); letter-spacing: -0.05px;
+    font-style: italic;
+    margin: 0; text-wrap: pretty;
+  }
+  .day-tile .prov {
+    margin-top: auto;
+    padding-top: 8px;
+    border-top: 0.5px dashed var(--gray-5);
+    font-size: 10px; color: var(--label-3);
+    letter-spacing: -0.02px;
+  }
+  .day-tile.empty {
+    background: rgba(255,255,255,0.4);
+    border: 0.5px dashed var(--gray-4);
+  }
+  .day-tile.empty .body {
+    font-style: italic;
+    color: var(--label-3);
+    font-size: 12px;
+  }
+  .bookends {
+    margin: 8px 16px 0;
+    background: #FFFFFF;
+    border: 0.5px solid var(--gray-5);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .bookend {
+    display: grid;
+    grid-template-columns: 22px 1fr 14px;
+    column-gap: 10px;
+    align-items: center;
+    padding: 10px 12px;
+    border-bottom: 0.5px solid var(--gray-5);
+  }
+  .bookend:last-child { border-bottom: 0; }
+  .bookend .ic {
+    width: 22px; height: 22px; border-radius: 50%;
+    background: var(--ios-green-tint); color: var(--ios-green-deep);
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .bookend .ic i { font-size: 12px; }
+  .bookend .ic.next { background: var(--ios-blue-tint); color: var(--ios-blue-deep); }
+  .bookend .copy .lbl {
+    font-size: 9.5px; font-weight: 700;
+    color: var(--label-3); letter-spacing: 0.7px;
+    text-transform: uppercase;
+    margin: 0 0 1px;
+  }
+  .bookend .copy .ttl {
+    font-size: 13px; font-weight: 600;
+    color: var(--label); letter-spacing: -0.1px;
+    margin: 0;
+  }
+  .bookend .chev { color: var(--gray-3); }
+  .bookend .chev i { font-size: 14px; }
+
+  .hinge-foot {
+    padding: 10px 18px 10px;
+    text-align: center;
+    font-size: 11px; color: var(--label-3); font-style: italic;
+    margin-top: 8px;
+  }
+
+  /* ============================================================
+     Share sheet — capture-level visibility rings
+     ============================================================ */
+  .share-pane .phone .screen {
+    background: rgba(0, 0, 0, 0.40);
+    padding-top: 50px;
+  }
+  .share-pane .scrim-card {
+    position: absolute;
+    top: 64px; left: 14px; right: 14px; bottom: 380px;
+    background: #FFFFFF;
+    border-radius: 22px;
+    border: 0.5px solid rgba(0, 0, 0, 0.04);
+    opacity: 0.35;
+    overflow: hidden;
+    padding: 16px;
+  }
+  .share-pane .scrim-card .ghost-cap {
+    margin-top: 24px;
+    background: #FFFFFF;
+    border: 0.5px solid var(--gray-5);
+    border-left: 2.5px solid var(--ios-blue);
+    border-radius: 12px;
+    padding: 10px 12px;
+    height: 56px;
+  }
+  .share-pane .sheet {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    background: #FFFFFF;
+    border-top-left-radius: 18px;
+    border-top-right-radius: 18px;
+    box-shadow: 0 -20px 60px -20px rgba(0,0,0,0.28);
+    padding: 6px 18px 36px;
+    z-index: 30;
+  }
+  .share-pane .sheet .handle {
+    width: 36px; height: 5px; border-radius: 3px;
+    background: var(--gray-4);
+    margin: 4px auto 14px;
+  }
+  .share-pane .sheet .ttl {
+    font-size: 15px; font-weight: 600;
+    color: var(--label); letter-spacing: -0.2px;
+    text-align: center; margin: 0 0 4px;
+  }
+  .share-pane .sheet .sub {
+    font-size: 12px; color: var(--label-3);
+    text-align: center; font-style: italic;
+    margin: 0 0 16px;
+  }
+  .share-pane .capture-preview {
+    background: #FAFAFC;
+    border: 0.5px solid var(--gray-5);
+    border-left: 2.5px solid var(--ios-blue);
+    border-radius: 12px;
+    padding: 10px 12px;
+    margin: 0 0 14px;
+  }
+  .share-pane .capture-preview .ts {
+    font-size: 10px; font-weight: 600;
+    color: var(--label-3); letter-spacing: 0.3px;
+    text-transform: uppercase;
+    margin: 0 0 3px;
+  }
+  .share-pane .capture-preview .body {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 13px; font-style: italic; line-height: 1.4;
+    color: var(--label); letter-spacing: -0.05px;
+    margin: 0;
+  }
+  .share-pane .ring-row {
+    display: grid;
+    grid-template-columns: 38px 1fr 18px;
+    column-gap: 12px;
+    align-items: center;
+    padding: 12px 4px;
+    border-bottom: 0.5px solid var(--gray-5);
+  }
+  .share-pane .ring-row:last-of-type { border-bottom: 0; }
+  .share-pane .ring-row.on {
+    background: var(--ios-blue-tint);
+    border-radius: 10px;
+    border-bottom: 0;
+    padding: 12px 12px;
+    margin: 0 -8px;
+  }
+  .share-pane .ring-row .ic {
+    width: 38px; height: 38px; border-radius: 10px;
+    display: inline-flex; align-items: center; justify-content: center;
+    background: var(--gray-6);
+    color: var(--label-2);
+  }
+  .share-pane .ring-row .ic i { font-size: 18px; }
+  .share-pane .ring-row.r-private .ic { background: var(--gray-6); color: var(--label-2); }
+  .share-pane .ring-row.r-crew    .ic { background: var(--ios-blue-tint); color: var(--ios-blue-deep); }
+  .share-pane .ring-row.r-fleet   .ic { background: var(--ios-green-tint); color: var(--ios-green-deep); }
+  .share-pane .ring-row .copy .name {
+    font-size: 14px; font-weight: 600;
+    color: var(--label); letter-spacing: -0.1px;
+    margin: 0;
+  }
+  .share-pane .ring-row .copy .desc {
+    font-size: 11.5px; color: var(--label-3);
+    letter-spacing: -0.05px;
+    margin: 1px 0 0;
+  }
+  .share-pane .ring-row .check {
+    width: 18px; height: 18px; border-radius: 50%;
+    border: 1.5px solid var(--gray-3);
+  }
+  .share-pane .ring-row.on .check {
+    background: var(--ios-blue);
+    border-color: var(--ios-blue);
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .share-pane .ring-row.on .check::after {
+    content: "";
+    width: 6px; height: 3px;
+    border-left: 1.5px solid #fff;
+    border-bottom: 1.5px solid #fff;
+    transform: rotate(-45deg) translate(0.5px, -1px);
+  }
+  .share-pane .nursing-note {
+    background: var(--ios-purple-tint);
+    border: 0.5px solid var(--ios-purple-soft);
+    border-radius: 10px;
+    padding: 9px 12px;
+    margin: 12px 0 4px;
+    font-size: 11px; line-height: 1.4;
+    color: var(--ios-purple-deep);
+  }
+  .share-pane .nursing-note .em { font-weight: 600; }
+  .share-pane .cancel-row {
+    margin: 14px 0 0;
+    border-top: 0.5px solid var(--gray-5);
+    padding-top: 14px;
+    text-align: center;
+    font-size: 14.5px; font-weight: 500;
+    color: var(--ios-blue);
+  }
+
+  /* ============================================================
+     Profile of Becoming hero (long arc)
+     ============================================================ */
+  .becoming-hero {
+    background: #FFFFFF;
+    padding: 16px 16px;
+  }
+  .becoming-hero .hero-eye {
+    font-size: 9.5px; font-weight: 700;
+    color: var(--ios-purple-deep); letter-spacing: 0.9px;
+    text-transform: uppercase;
+    margin: 0 0 8px;
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .becoming-hero .hero-eye .glyph {
+    width: 14px; height: 14px; border-radius: 50%;
+    background: var(--ios-purple); color: #fff;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .becoming-hero .hero-eye .glyph i { font-size: 8.5px; }
+  .becoming-hero h2 {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 22px; font-weight: 500; letter-spacing: -0.35px;
+    color: var(--label); margin: 0 0 12px; line-height: 1.18;
+    text-wrap: balance;
+  }
+  .becoming-hero h2 em { font-style: italic; }
+  .becoming-hero .lede {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 14px; line-height: 1.5;
+    color: var(--label-2); margin: 0 0 14px;
+    text-wrap: pretty;
+  }
+  .becoming-hero .lede em { font-style: italic; }
+  .becoming-hero .lifelong-arc {
+    margin: 0 -2px 12px;
+    padding: 14px 14px 10px;
+    background: #FBFBFD;
+    border: 0.5px solid var(--gray-5);
+    border-radius: 14px;
+  }
+  .becoming-hero .lifelong-arc svg {
+    width: 100%; height: 120px; display: block;
+  }
+  .becoming-hero .lifelong-arc .axis-row {
+    display: flex; justify-content: space-between;
+    font-size: 9.5px; font-weight: 600;
+    color: var(--label-3); letter-spacing: 0.5px;
+    text-transform: uppercase;
+    margin: 6px 4px 0;
+  }
+  .becoming-hero .arc-legend {
+    display: flex; gap: 12px;
+    margin: 8px 4px 0;
+    font-size: 10.5px; color: var(--label-3);
+    letter-spacing: -0.02px;
+  }
+  .becoming-hero .arc-legend .it {
+    display: inline-flex; align-items: center; gap: 5px;
+  }
+  .becoming-hero .arc-legend .it .sw {
+    width: 8px; height: 8px; border-radius: 50%;
+  }
+  .becoming-hero .arc-legend .it .sw.evidence { background: var(--ios-purple); }
+  .becoming-hero .arc-legend .it .sw.settled  { background: var(--ios-green); }
+  .becoming-hero .arc-legend .it .sw.now      { background: var(--ios-blue); }
+
+  /* Migration table */
+  .migration-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: rgba(255,255,255,0.55);
+    border: 0.5px solid var(--stage-line);
+    border-radius: 14px;
+    overflow: hidden;
+    max-width: 1660px;
+    margin: 0 auto;
+  }
+  .migration-table thead th {
+    text-align: left;
+    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 10.5px; font-weight: 700;
+    color: var(--stage-ink); letter-spacing: 0.6px;
+    text-transform: uppercase;
+    padding: 14px 18px;
+    background: rgba(255,255,255,0.5);
+    border-bottom: 0.5px solid var(--stage-line);
+  }
+  .migration-table tbody td {
+    vertical-align: top;
+    padding: 14px 18px;
+    border-bottom: 0.5px dashed var(--stage-line-soft);
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 13.5px; line-height: 1.5;
+    color: #3C3A35;
+    text-wrap: pretty;
+  }
+  .migration-table tbody tr:last-child td { border-bottom: 0; }
+  .migration-table tbody td .em { font-weight: 500; color: var(--stage-ink); }
+  .migration-table tbody td em { font-style: italic; color: #4D4A43; }
+  .migration-table tbody td code {
+    font-family: "SF Mono", ui-monospace, Menlo, monospace;
+    font-size: 11.5px;
+    background: rgba(34, 30, 20, 0.06);
+    padding: 1px 5px; border-radius: 4px;
+    color: var(--stage-ink);
+  }
+  .col-letter  { width: 56px; text-align: center; font-family: -apple-system, BlinkMacSystemFont, sans-serif !important; font-weight: 700 !important; color: var(--measure) !important; }
+  .col-where   { width: 18%; color: #6E6A60; }
+  .col-what    { width: 30%; color: #1F1D1A; }
+  .col-notes   { width: 38%; color: #6B6558; }
+</style>
+</head>
+<body>
+
+<div class="page">
+
+  <header class="page-head">
+    <p class="eyebrow">BetterAt · The Becoming Loop — Canonical · 2026-05-17</p>
+    <h1>The <em>Becoming Loop</em>: how Plan, Do, Reflect, the <em>hinges between them</em>, and the people you practice with feed your <em>Profile of Becoming</em></h1>
+    <p>This canonical names what was implicit across the prior twelve passes: <strong>capabilities are the spine of the product, not a feature on one tab</strong>. Plan tags what a step is working toward; Do captures the evidence; Reflect confirms it with a strength rating; Profile aggregates it into a capability map; and the long-arc surface called <em>Profile of Becoming</em> renders it as a single sketchbook arc across the user's entire practice life. Between every two steps a <em>hinge</em> names the time that filled the gap — the design for which already exists. Around every step sit the people you practice with — your crew, your fleet, your cohort — with whom you can share single observations one capture at a time.</p>
+    <p>Three new decisions land here. <strong>D10</strong> makes the capability spine visible end-to-end. <strong>D11</strong> brings the existing hinge design into the new register and wires it to the loop's transitions. <strong>D12</strong> adds suggestion rows from your network on Plan, a co-practice <em>WITH</em> row on every step, and a per-capture share sheet with three rings of visibility.</p>
+    <div class="crumbs">
+      <span class="pill">iPhone 16e · portrait · 393 × 852</span>
+      <span class="sep">·</span>
+      <span class="pill">Builds on · <em>step-loop-integration · D1–D9</em></span>
+      <span class="sep">·</span>
+      <span class="pill">Honors · <em>Step transition hinge iOS · Profile screen · B.7 Frame 4</em></span>
+      <span class="sep">·</span>
+      <span class="pill">Adds · <em>D10 spine · D11 hinge · D12 suggestions &amp; sharing</em></span>
+    </div>
+  </header>
+
+  <!-- =============================================================== -->
+  <!-- §1 · The spine                                                   -->
+  <!-- =============================================================== -->
+  <section class="section-band">
+    <h2><span class="badge" style="background: var(--ios-purple-tint); color: var(--ios-purple-deep);">Spine</span><em>The capability spine</em> — Plan tags → Do evidences → Reflect confirms → Profile maps → Becoming arcs</h2>
+    <p class="lede">One step's worth of capability evidence threads through five nodes. Between each named step, a <strong>hinge</strong> names the time that filled the gap. Read left to right. Each node shows the same step ID — <em>Race 4 · light-air starts</em> — and how its capability artifacts move from anticipation to settled evidence.</p>
+
+    <div class="spine-row">
+
+      <!-- Plan -->
+      <div class="spine-node">
+        <span class="pill blue"><span class="dot blue"></span>Plan · current</span>
+        <p class="title"><em>Tag</em> what this will develop</p>
+        <p class="body">User declares 0–3 capabilities the step is moving toward. Auto-suggested from blueprint or AI; user adjusts.</p>
+        <div class="cap-line">
+          <span class="lbl">Tagged</span>
+          <span class="chips">
+            <span class="chip">tactical-decisions</span>
+            <span class="chip">wind-reading</span>
+            <span class="chip">crew-comms</span>
+          </span>
+        </div>
+      </div>
+
+      <!-- Arrow -->
+      <div class="spine-arrow">
+        <svg viewBox="0 0 30 80" width="22" height="60" fill="none">
+          <path d="M 6 40 L 24 40 M 18 32 L 24 40 L 18 48" stroke="#5856D6" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+
+      <!-- Do -->
+      <div class="spine-node">
+        <span class="pill coral"><span class="dot coral"></span>Do · live</span>
+        <p class="title"><em>Capture</em> evidence candidates</p>
+        <p class="body">Voice, text, photo, video, scan, measurement, tool used. Each capture wall-clock timestamped. Tagging happens at <em>Stop</em>.</p>
+        <div class="cap-line">
+          <span class="lbl">9 captures</span>
+          <span class="chips">
+            <span class="chip">tactical-decisions</span>
+            <span class="chip">wind-reading</span>
+          </span>
+        </div>
+      </div>
+
+      <div class="spine-arrow">
+        <svg viewBox="0 0 30 80" width="22" height="60" fill="none">
+          <path d="M 6 40 L 24 40 M 18 32 L 24 40 L 18 48" stroke="#5856D6" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+
+      <!-- Reflect -->
+      <div class="spine-node">
+        <span class="pill purple"><span class="dot purple"></span>Reflect · ready</span>
+        <p class="title"><em>Confirm</em> with strength rated</p>
+        <p class="body">AI proposes which captures evidence which capabilities. User confirms, removes, or adds. Strength: <em>Worth noting / Material / Strong.</em></p>
+        <div class="cap-line">
+          <span class="lbl">Confirmed · strength</span>
+          <span class="chips">
+            <span class="chip confirmed">wind-reading · Strong</span>
+            <span class="chip confirmed">tactical · Light</span>
+          </span>
+        </div>
+      </div>
+
+      <div class="spine-arrow">
+        <svg viewBox="0 0 30 80" width="22" height="60" fill="none">
+          <path d="M 6 40 L 24 40 M 18 32 L 24 40 L 18 48" stroke="#5856D6" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+
+      <!-- Profile (map) -->
+      <div class="spine-node">
+        <span class="pill green"><span class="dot green"></span>Profile · map</span>
+        <p class="title"><em>Map</em> updates with new evidence</p>
+        <p class="body">Wind-reading dot fills from 3-of-5 to 4-of-5; tactical decisions stays at competent but the evidence count climbs.</p>
+        <div class="cap-line">
+          <span class="lbl">Map · fresh</span>
+          <span class="chips">
+            <span class="chip confirmed">wind-reading ●●●●·</span>
+            <span class="chip confirmed">tactical ●●●●·</span>
+          </span>
+        </div>
+      </div>
+
+      <div class="spine-arrow">
+        <svg viewBox="0 0 30 80" width="22" height="60" fill="none">
+          <path d="M 6 40 L 24 40 M 18 32 L 24 40 L 18 48" stroke="#5856D6" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+
+      <!-- Profile of Becoming -->
+      <div class="spine-node">
+        <span class="pill amber"><span class="dot amber"></span>Of Becoming</span>
+        <p class="title"><em>Arc</em> across the practice life</p>
+        <p class="body">Each capability is a multi-year sketchbook arc, drawn from every confirmed evidence point on every step.</p>
+        <div class="cap-line">
+          <span class="lbl">Lifetime view</span>
+          <span class="chips">
+            <span class="chip" style="font-style: italic;">wind-reading · 47 mo</span>
+          </span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Hinge under the spine -->
+    <div style="margin-top: 24px; max-width: 1660px; margin-left: auto; margin-right: auto;">
+      <div class="spine-row" style="grid-template-columns: 1fr;">
+        <div class="spine-node hinge">
+          <span class="pill amber" style="align-self: center;"><span class="dot amber"></span>Between · the hinge</span>
+          <p class="title" style="text-align: center;"><em>"The night between Race 4 and Race 5."</em></p>
+          <p class="body" style="text-align: center; max-width: 760px; margin: 0 auto;">
+            Each transition between a step's close and the next step's open is a <strong>hinge</strong> — a low-weight filmstrip surface that names what filled the interval. Reached in Phase 1 by tapping the timeline icon; in Phase 2 by swiping between adjacent steps. <em>The time between named moments is itself named.</em>
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <p class="spine-caption">
+      The same <strong>capability ID</strong> persists through all five nodes. The user reads color: <strong style="color: var(--ios-blue-deep);">blue</strong> when the step is current, <strong style="color: var(--ios-coral-deep);">coral</strong> when capturing, <strong style="color: var(--ios-purple-deep);">purple</strong> when reflecting/AI-confirming, <strong style="color: var(--ios-green-deep);">green</strong> when the evidence has landed on the Profile map. The amber/cream of Becoming is its own register — older, slower, longer than any one step.
+    </p>
+  </section>
+
+  <!-- =============================================================== -->
+  <!-- §2 · Plan with capability + suggestions + WITH                   -->
+  <!-- =============================================================== -->
+  <section class="section-band">
+    <h2><span class="badge">Plan</span><em>Plan with capabilities, suggestions, and crew</em> · the social context shows up on the step</h2>
+    <p class="lede">The empty Plan state from <em>step-loop-integration · D5</em> evolves: a small <strong>WITH</strong> row appears under the title naming who's practicing with you, the three field-cards stay primary, and below them sit two new sections — <em>Capabilities this will develop</em> (purple chips, auto-tagged from blueprint or AI, multi-select) and <em>Suggestions from your network</em> (blueprint, follow, mentor — three rows of "you might add this next"). The bottom CTA <code>Next: Start Doing</code> is unchanged.</p>
+
+    <div class="pair-row" style="grid-template-columns: 1fr;">
+      <div class="pane">
+        <div class="pane-eye"><span class="pip"></span>Plan · target with capabilities &amp; network</div>
+        <p class="pane-title">Plan tab · <em>fully wired to the spine</em></p>
+        <p class="pane-sub">Crew avatars in WITH row · purple capability chips · three suggestions from blueprints / follows / mentor · field-cards remain the primary work surface.</p>
+
+        <div class="phone-wrap target-step">
+          <div class="phone">
+            <div class="notch"></div>
+            <div class="statusbar">
+              <span>7:37</span>
+              <span class="right"><i class="ti ti-cell-signal-4"></i><i class="ti ti-wifi"></i><i class="ti ti-battery-3"></i></span>
+            </div>
+
+            <div class="screen" data-screen-label="Plan · fully wired">
+
+              <div class="top-header">
+                <div class="interest"><span class="name">Sail Racing</span><span class="switcher"><i class="ti ti-chevron-down"></i></span></div>
+                <span class="step-counter">Step 4 of 10</span>
+                <div class="right-cluster">
+                  <button class="ic timeline-ico"><i class="ti ti-layout-grid"></i></button>
+                  <button class="ic"><i class="ti ti-bell"></i><span class="badge">12</span></button>
+                  <div class="avatar">KD</div>
+                </div>
+              </div>
+
+              <article class="card step">
+
+                <header class="step-state-head">
+                  <div class="state-pill blue">
+                    <span class="dot-blue"></span>
+                    <span class="label">Current step</span>
+                  </div>
+                  <button class="menu"><i class="ti ti-dots-vertical"></i></button>
+                </header>
+
+                <div class="step-strip">
+                  <span class="ico"><i class="ti ti-trophy"></i></span>
+                  <span class="text"><span class="em">Winter 2025-2026</span><span class="sep">·</span>Race 4 · in two days</span>
+                </div>
+
+                <section class="step-title-block">
+                  <p class="crumb-eye"><span class="dot"></span>Current step</p>
+                  <h2 class="untitled">Light-air starts in shifty breeze</h2>
+                  <p class="step-meta"><span class="em">Saturday</span> · RHKYC · light-air rule-watching</p>
+                </section>
+
+                <!-- WITH row · co-practice -->
+                <div class="with-row">
+                  <span class="eye">With</span>
+                  <span class="avatars">
+                    <span class="av h">HE</span>
+                    <span class="av e">EL</span>
+                  </span>
+                  <span class="fleet-chip"><i class="ti ti-anchor"></i>Fleet · 14 boats</span>
+                </div>
+
+                <div class="phase-tabs">
+                  <button class="ptab on">Plan</button>
+                  <button class="ptab"><span class="ring pending"></span>Do</button>
+                  <button class="ptab"><span class="ring pending"></span>Reflect</button>
+                </div>
+
+                <div class="plan-body-scroll">
+
+                  <button class="ai-helper">
+                    <i class="ti ti-sparkles spark"></i>
+                    <span>Need help structuring this? <span class="em">Talk to AI Coach</span></span>
+                    <i class="ti ti-arrow-right arrow"></i>
+                  </button>
+
+                  <div class="field-card">
+                    <div class="field-head">
+                      <span class="eye"><i class="ti ti-bulb"></i>What will you do?</span>
+                      <button class="help-spark"><i class="ti ti-sparkles"></i></button>
+                    </div>
+                    <p class="filled-line">Hold a clean lane off the favored end. Re-check rig if puffs over 14 kn.</p>
+                  </div>
+
+                  <div class="field-card">
+                    <div class="field-head">
+                      <span class="eye"><i class="ti ti-list"></i>How will you do it?</span>
+                      <button class="help-spark"><i class="ti ti-sparkles"></i></button>
+                    </div>
+                    <p class="placeholder">List 2–4 sub-steps…</p>
+                  </div>
+
+                  <div class="field-card">
+                    <div class="field-head">
+                      <span class="eye"><i class="ti ti-help"></i>Why is this next?</span>
+                      <button class="help-spark"><i class="ti ti-sparkles"></i></button>
+                    </div>
+                    <p class="placeholder">What makes this the right next step?</p>
+                  </div>
+
+                  <!-- D10 · Capabilities chips -->
+                  <div class="caps-section">
+                    <div class="sec-head">
+                      <span class="eye"><i class="ti ti-sparkles spark"></i>Capabilities this will develop</span>
+                      <button class="add">+ tag</button>
+                    </div>
+                    <div class="chips">
+                      <span class="cap-chip">tactical-decisions <span class="x"><i class="ti ti-x"></i></span></span>
+                      <span class="cap-chip">wind-reading <span class="x"><i class="ti ti-x"></i></span></span>
+                      <span class="cap-chip">crew-comms <span class="x"><i class="ti ti-x"></i></span></span>
+                    </div>
+                    <p class="hint">Auto-tagged from Sam Cooke's heavy-air blueprint · tap chip to edit</p>
+                  </div>
+
+                  <!-- D12 · Suggestions row -->
+                  <div class="suggestions-section">
+                    <div class="sec-head">
+                      <span class="eye">Suggestions from your network</span>
+                      <button class="see-all">See all<i class="ti ti-chevron-right"></i></button>
+                    </div>
+                    <div class="suggestion-row">
+                      <span class="ic blueprint"><i class="ti ti-template"></i></span>
+                      <div class="copy">
+                        <p class="ttl">Heavy-air step 4 · Pre-start rules</p>
+                        <p class="sub"><span class="em">Sam Cooke</span> · blueprint you follow</p>
+                      </div>
+                      <span class="chev"><i class="ti ti-chevron-right"></i></span>
+                    </div>
+                    <div class="suggestion-row">
+                      <span class="ic follow"><i class="ti ti-user"></i></span>
+                      <div class="copy">
+                        <p class="ttl">"Reading the second-beat shift"</p>
+                        <p class="sub"><span class="em">Phyl Loong</span> · raced last weekend · you follow</p>
+                      </div>
+                      <span class="chev"><i class="ti ti-chevron-right"></i></span>
+                    </div>
+                    <div class="suggestion-row">
+                      <span class="ic mentor"><i class="ti ti-sparkles"></i></span>
+                      <div class="copy">
+                        <p class="ttl">Based on Race 3, you might revisit…</p>
+                        <p class="sub"><span class="em">AI Coach</span> · mentor</p>
+                      </div>
+                      <span class="chev"><i class="ti ti-chevron-right"></i></span>
+                    </div>
+                  </div>
+
+                  <div class="more-row">
+                    <span class="ttl">More options <span class="count">· 0 added</span></span>
+                    <i class="ti ti-chevron-down chev"></i>
+                  </div>
+
+                </div>
+
+                <div class="step-card-footer">
+                  <button class="btn primary">Next: Start Doing<i class="ti ti-arrow-right"></i></button>
+                  <p class="hint">Plan looks ready</p>
+                </div>
+              </article>
+
+              <nav class="tabbar">
+                <button class="t on"><i class="ti ti-flag-3-filled"></i><span>Practice</span></button>
+                <button class="t"><i class="ti ti-book-2"></i><span>Playbook</span></button>
+                <button class="t"><i class="ti ti-compass"></i><span>Discover</span></button>
+                <button class="t"><i class="ti ti-user-circle"></i><span>Profile</span></button>
+              </nav>
+            </div>
+            <div class="home-indicator"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- =============================================================== -->
+  <!-- §3 · Reflect with capabilities-you-practiced                     -->
+  <!-- =============================================================== -->
+  <section class="section-band">
+    <h2><span class="badge" style="background: var(--ios-purple-tint); color: var(--ios-purple-deep);">Reflect</span><em>Reflect with the capability confirmation step</em> · evidence settles</h2>
+    <p class="lede">The Reflect tab body picks up where <em>step-loop · D9</em> left it — synthesis prompt at top, two question cards — and adds a <strong>CAPABILITIES YOU PRACTICED</strong> section below the question cards. The AI pre-fills the list from this step's confirmed captures, each row pairing the capability name with a strength rating (<em>Worth noting / Material / Strong</em>). The user confirms ✓, removes, or adds more. Tapping <code>Save &amp; settle</code> ships these confirmations into the Profile capability map.</p>
+
+    <div class="pair-row" style="grid-template-columns: 1fr;">
+      <div class="pane">
+        <div class="pane-eye"><span class="pip"></span>Reflect · target with capabilities-practiced</div>
+        <p class="pane-title">Reflect tab · <em>capability confirmation</em></p>
+        <p class="pane-sub">Synthesis prompt + 2 question cards + capabilities-you-practiced list with strength badges. <code>Save &amp; settle</code> at the foot writes the evidence onto Profile.</p>
+
+        <div class="phone-wrap target-step">
+          <div class="phone">
+            <div class="notch"></div>
+            <div class="statusbar">
+              <span>7:41</span>
+              <span class="right"><i class="ti ti-cell-signal-4"></i><i class="ti ti-wifi"></i><i class="ti ti-battery-3"></i></span>
+            </div>
+
+            <div class="screen" data-screen-label="Reflect · capability confirmation">
+
+              <div class="top-header">
+                <div class="interest"><span class="name">Sail Racing</span><span class="switcher"><i class="ti ti-chevron-down"></i></span></div>
+                <span class="step-counter">Step 4 of 10</span>
+                <div class="right-cluster">
+                  <button class="ic timeline-ico"><i class="ti ti-layout-grid"></i></button>
+                  <button class="ic"><i class="ti ti-bell"></i><span class="badge">12</span></button>
+                  <div class="avatar">KD</div>
+                </div>
+              </div>
+
+              <article class="card step">
+
+                <header class="step-state-head">
+                  <div class="state-pill purple">
+                    <span class="spark"><i class="ti ti-sparkles"></i></span>
+                    <span class="label">Reflect · ready</span>
+                  </div>
+                  <button class="menu"><i class="ti ti-dots-vertical"></i></button>
+                </header>
+
+                <div class="step-strip">
+                  <span class="ico"><i class="ti ti-flag-3"></i></span>
+                  <span class="text"><span class="em">Race 4 · 18–22 kn NE</span><span class="sep">·</span>9 captures · 18 min</span>
+                </div>
+
+                <section class="step-title-block">
+                  <p class="crumb-eye done"><span class="dot"></span>Activity closed</p>
+                  <h2 class="untitled">Light-air starts in shifty breeze</h2>
+                  <p class="step-meta"><span class="em">Saturday · just now</span> · finished 7th of 14</p>
+                </section>
+
+                <div class="with-row">
+                  <span class="eye">With</span>
+                  <span class="avatars">
+                    <span class="av h">HE</span>
+                    <span class="av e">EL</span>
+                  </span>
+                  <span class="fleet-chip"><i class="ti ti-anchor"></i>Fleet · 14 boats</span>
+                </div>
+
+                <div class="phase-tabs">
+                  <button class="ptab"><span class="ring ready"></span>Plan</button>
+                  <button class="ptab"><span class="ring ready"></span>Do</button>
+                  <button class="ptab on">Reflect</button>
+                </div>
+
+                <div class="reflect-body">
+
+                  <div>
+                    <p class="synth-helper"><span class="glyph"><i class="ti ti-sparkles"></i></span>Draft from your captures</p>
+                    <p class="synth-prompt">"Want a first draft from your 9 captures? <span style="color: var(--ios-purple-deep); font-weight: 500;">Tap to draft</span>, or write the first line yourself."</p>
+                  </div>
+
+                  <div class="reflect-field">
+                    <p class="q-eye">What worked?</p>
+                    <p class="q-body filled">Right-side starts gave us a clean lane in three of four — Eleanor's trim let me sail the boat.</p>
+                  </div>
+
+                  <div class="reflect-field">
+                    <p class="q-eye">What would you do differently?</p>
+                    <p class="q-body">Tap to write</p>
+                  </div>
+
+                  <!-- D10 · Capabilities you practiced -->
+                  <div class="caps-practiced">
+                    <div class="sec-head">
+                      <span class="eye"><i class="ti ti-sparkles spark"></i>Capabilities you practiced</span>
+                      <button class="add">+ add</button>
+                    </div>
+
+                    <div class="cap-evidence-row">
+                      <span class="check on"></span>
+                      <div class="copy">
+                        <p class="name">wind-reading <span class="pip"><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span></span></span></p>
+                        <p class="meta">
+                          <span class="strength strong">Strong</span>
+                          <span class="sep">·</span>
+                          <span>3 captures evidence this</span>
+                        </p>
+                      </div>
+                    </div>
+
+                    <div class="cap-evidence-row">
+                      <span class="check on"></span>
+                      <div class="copy">
+                        <p class="name">tactical-decisions <span class="pip"><span class="on"></span><span class="on"></span><span class="on"></span><span></span><span></span></span></p>
+                        <p class="meta">
+                          <span class="strength material">Material</span>
+                          <span class="sep">·</span>
+                          <span>2 captures</span>
+                        </p>
+                      </div>
+                    </div>
+
+                    <div class="cap-evidence-row">
+                      <span class="check off"></span>
+                      <div class="copy">
+                        <p class="name">crew-comms <span class="pip"><span class="on"></span><span class="on"></span><span></span><span></span><span></span></span></p>
+                        <p class="meta">
+                          <span class="strength worth-noting">Worth noting</span>
+                          <span class="sep">·</span>
+                          <span>1 capture · tap to confirm</span>
+                        </p>
+                      </div>
+                    </div>
+
+                    <p class="caps-hint">AI tagged these from your 9 captures · tap to confirm or remove</p>
+                  </div>
+
+                </div>
+
+                <div class="step-card-footer">
+                  <button class="btn primary">Save &amp; settle<i class="ti ti-arrow-right"></i></button>
+                  <p class="hint">2 confirmed capabilities · evidence flows to your Profile</p>
+                </div>
+
+              </article>
+
+              <nav class="tabbar">
+                <button class="t on"><i class="ti ti-flag-3-filled"></i><span>Practice</span></button>
+                <button class="t"><i class="ti ti-book-2"></i><span>Playbook</span></button>
+                <button class="t"><i class="ti ti-compass"></i><span>Discover</span></button>
+                <button class="t"><i class="ti ti-user-circle"></i><span>Profile</span></button>
+              </nav>
+            </div>
+            <div class="home-indicator"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- =============================================================== -->
+  <!-- §4 · The hinge surface in new register                           -->
+  <!-- =============================================================== -->
+  <section class="section-band">
+    <h2><span class="badge" style="background: rgba(194, 138, 42, 0.10); color: var(--ios-amber);">Hinge</span><em>The hinge surface</em> · the time between named moments is itself named</h2>
+    <p class="lede">The existing <em>Step transition hinge</em> design lands inside the new register. Same locked principles: <strong>lower weight than a step card</strong>, eyebrow names the interval, filmstrip of day-tiles in horizontal scroll, three named kinds (<em>flagged moment / reflection / captured note</em>), bookends below the strip showing what this hinge sits between. New: <strong>state pill <em>Between · settling</em></strong> in amber — distinct from the five step states so the user reads the hinge as a different kind of place. Reached in Phase 1 by tapping the timeline icon in the top-header, after Reflect's <em>Save &amp; settle</em>; in Phase 2 by swiping between adjacent steps.</p>
+
+    <div class="pair-row" style="grid-template-columns: 1fr;">
+      <div class="pane hinge-pane">
+        <div class="pane-eye"><span class="pip"></span>Hinge · target</div>
+        <p class="pane-title">Hinge · <em>"Three days at the edge"</em></p>
+        <p class="pane-sub">Filmstrip of three day-tiles. Bookends below show the step on either side. Lower visual weight than the step card — no shadow on tiles, body in italic serif. The phrasing varies with the gap.</p>
+
+        <div class="phone-wrap target-step hinge-surface">
+          <div class="phone">
+            <div class="notch"></div>
+            <div class="statusbar">
+              <span>9:14</span>
+              <span class="right"><i class="ti ti-cell-signal-4"></i><i class="ti ti-wifi"></i><i class="ti ti-battery-3"></i></span>
+            </div>
+
+            <div class="screen" data-screen-label="Hinge · between Race 3 and Race 4">
+
+              <div class="top-header">
+                <div class="interest"><span class="name">Sail Racing</span><span class="switcher"><i class="ti ti-chevron-down"></i></span></div>
+                <span class="step-counter">Between · 3→4</span>
+                <div class="right-cluster">
+                  <button class="ic timeline-ico"><i class="ti ti-layout-grid"></i></button>
+                  <button class="ic"><i class="ti ti-bell"></i><span class="badge">12</span></button>
+                  <div class="avatar">KD</div>
+                </div>
+              </div>
+
+              <article class="card hinge-card">
+
+                <header class="hinge-state-head">
+                  <div class="state-pill amber">
+                    <span class="dot"></span>
+                    <span class="label">Between · settling</span>
+                  </div>
+                  <span class="gap-meta">3 days · Mar 18–20</span>
+                </header>
+
+                <section class="hinge-title-block">
+                  <p class="eyebrow">Between Race 3 and Race 4</p>
+                  <h2>Three days at the edge</h2>
+                  <p class="dates">March 18–20 · between Heavy-air step 8 &amp; step 9</p>
+                </section>
+
+                <div class="filmstrip">
+                  <div class="filmstrip-scroll">
+
+                    <button class="day-tile">
+                      <p class="day">Wednesday</p>
+                      <p class="date">March 18</p>
+                      <p class="kind"><i class="ti ti-flag-3"></i>A flagged moment</p>
+                      <p class="body">Re-watched Sam's coaching note on the pre-start sequence. The bit about lane choice still hits.</p>
+                      <p class="prov">From Playbook · Sam Cooke</p>
+                    </button>
+
+                    <button class="day-tile">
+                      <p class="day">Thursday</p>
+                      <p class="date">March 19</p>
+                      <p class="kind reflection"><i class="ti ti-pencil"></i>A reflection</p>
+                      <p class="body">Wrote about the right side winning for the wrong reason. The shift came back twice on the second beat.</p>
+                      <p class="prov">In Concept · Trust the shift</p>
+                    </button>
+
+                    <button class="day-tile">
+                      <p class="day">Friday</p>
+                      <p class="date">March 20</p>
+                      <p class="kind note"><i class="ti ti-note"></i>A captured note</p>
+                      <p class="body">"If the left fills in past ten degrees on starboard, commit." Write the rule before the start.</p>
+                      <p class="prov">Captured · 11:42 PM</p>
+                    </button>
+
+                    <button class="day-tile empty">
+                      <p class="day">Saturday</p>
+                      <p class="date">March 21</p>
+                      <p class="body">Race 4 begins.</p>
+                      <p class="prov">Next step opens</p>
+                    </button>
+
+                  </div>
+                </div>
+
+                <div class="bookends">
+                  <div class="bookend">
+                    <span class="ic"><i class="ti ti-check"></i></span>
+                    <div class="copy">
+                      <p class="lbl">Settled · before this hinge</p>
+                      <p class="ttl">Race 3 · Debrief · heavy-air decisions</p>
+                    </div>
+                    <span class="chev"><i class="ti ti-chevron-right"></i></span>
+                  </div>
+                  <div class="bookend">
+                    <span class="ic next"><i class="ti ti-arrow-right"></i></span>
+                    <div class="copy">
+                      <p class="lbl">Opens · after this hinge</p>
+                      <p class="ttl">Race 4 · Light-air starts in shifty breeze</p>
+                    </div>
+                    <span class="chev"><i class="ti ti-chevron-right"></i></span>
+                  </div>
+                </div>
+
+                <p class="hinge-foot">The time between named moments is itself named.</p>
+
+              </article>
+
+              <nav class="tabbar">
+                <button class="t on"><i class="ti ti-flag-3-filled"></i><span>Practice</span></button>
+                <button class="t"><i class="ti ti-book-2"></i><span>Playbook</span></button>
+                <button class="t"><i class="ti ti-compass"></i><span>Discover</span></button>
+                <button class="t"><i class="ti ti-user-circle"></i><span>Profile</span></button>
+              </nav>
+            </div>
+            <div class="home-indicator"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- =============================================================== -->
+  <!-- §5 · Share sheet — three rings of visibility                     -->
+  <!-- =============================================================== -->
+  <section class="section-band">
+    <h2><span class="badge" style="background: var(--ios-green-tint); color: var(--ios-green-deep);">Share</span><em>Capture-level share sheet</em> · three rings of visibility, per capture, never per step</h2>
+    <p class="lede">Long-press any capture in the Do stream — or tap its share affordance — and a sheet rises with three rings of visibility. <strong>Private</strong> stays the default; <strong>Crew</strong> opens to the people on your boat or your nursing study-group; <strong>Fleet / Cohort</strong> opens to everyone who raced this race or did this rotation. Sharing is per-capture, not per-step — a sailor can post a single observation to the fleet without making the whole reflection public. Nursing inherits a redaction note when patient identifiers are detected.</p>
+
+    <div class="pair-row" style="grid-template-columns: 1fr;">
+      <div class="pane share-pane">
+        <div class="pane-eye"><span class="pip" style="background: var(--ios-green);"></span>Share sheet · 3 rings</div>
+        <p class="pane-title">Share sheet · <em>this capture only</em></p>
+        <p class="pane-sub">Three rings. One default (Private). Crew is selected. Sheet rises over the dimmed Do stream; the capture being shared appears in the sheet preview.</p>
+
+        <div class="phone-wrap">
+          <div class="phone">
+            <div class="notch"></div>
+            <div class="statusbar">
+              <span>7:39</span>
+              <span class="right"><i class="ti ti-cell-signal-4"></i><i class="ti ti-wifi"></i><i class="ti ti-battery-3"></i></span>
+            </div>
+
+            <div class="screen" data-screen-label="Share sheet · three rings">
+              <div class="scrim-card" aria-hidden="true">
+                <div class="ghost-cap"></div>
+              </div>
+
+              <div class="sheet">
+                <div class="handle"></div>
+                <p class="ttl">Share this capture</p>
+                <p class="sub">Only this single observation — not the whole step.</p>
+
+                <div class="capture-preview">
+                  <p class="ts">7:38 · voice · 12 s</p>
+                  <p class="body">"Left filled at eight. Not committing yet — rule said ten."</p>
+                </div>
+
+                <div class="ring-row r-private">
+                  <span class="ic"><i class="ti ti-lock"></i></span>
+                  <div class="copy">
+                    <p class="name">Private</p>
+                    <p class="desc">Only you and Sam (your coach)</p>
+                  </div>
+                  <span class="check"></span>
+                </div>
+
+                <div class="ring-row r-crew on">
+                  <span class="ic"><i class="ti ti-users"></i></span>
+                  <div class="copy">
+                    <p class="name">Crew · Moonraker</p>
+                    <p class="desc">Henrik · Eleanor</p>
+                  </div>
+                  <span class="check"></span>
+                </div>
+
+                <div class="ring-row r-fleet">
+                  <span class="ic"><i class="ti ti-anchor"></i></span>
+                  <div class="copy">
+                    <p class="name">Fleet · RHKYC Spring</p>
+                    <p class="desc">14 boats · everyone in Race 4</p>
+                  </div>
+                  <span class="check"></span>
+                </div>
+
+                <div class="nursing-note">
+                  <span class="em">Nursing interest:</span> sharing to Cohort hides patient identifiers by default. Capture is scanned before posting.
+                </div>
+
+                <p class="cancel-row">Done</p>
+              </div>
+            </div>
+            <div class="home-indicator"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- =============================================================== -->
+  <!-- §6 · Profile of Becoming hero                                    -->
+  <!-- =============================================================== -->
+  <section class="section-band">
+    <h2><span class="badge" style="background: rgba(194, 138, 42, 0.10); color: var(--ios-amber);">Of Becoming</span><em>Profile of Becoming</em> · the long arc rendered at lifetime scale</h2>
+    <p class="lede">A new section that lives at the top of Profile Frame 1 — above the existing capability map. The single sketchbook arc here is the user's entire practice life for the active interest, drawn from every confirmed evidence point on every step. Same line-drawing grammar as the capability arc strip on Reflect home, scaled to a multi-year canvas with a faint amber wash. The cream is taken from the cover/credential vocabulary; this is the surface where practice becomes biography. Tapping the arc pushes to a deeper drilldown with months on the x-axis and evidence dots threaded along the line.</p>
+
+    <div class="pair-row" style="grid-template-columns: 1fr;">
+      <div class="pane becoming">
+        <div class="pane-eye"><span class="pip"></span>Profile of Becoming · hero</div>
+        <p class="pane-title">Profile · Frame 1 · <em>Becoming hero on top of the capability map</em></p>
+        <p class="pane-sub">Three-year sketchbook arc with evidence dots and one settled-state marker. Sits above the existing capability map; same grammar as the arc strip on Reflect home, scaled to lifetime canvas.</p>
+
+        <div class="phone-wrap target-step">
+          <div class="phone">
+            <div class="notch"></div>
+            <div class="statusbar">
+              <span>9:42</span>
+              <span class="right"><i class="ti ti-cell-signal-4"></i><i class="ti ti-wifi"></i><i class="ti ti-battery-3"></i></span>
+            </div>
+
+            <div class="screen" data-screen-label="Profile · Becoming hero">
+
+              <div class="top-header">
+                <div class="interest"><span class="name">Sail Racing</span><span class="switcher"><i class="ti ti-chevron-down"></i></span></div>
+                <span class="step-counter">Profile</span>
+                <div class="right-cluster">
+                  <button class="ic"><i class="ti ti-settings"></i></button>
+                  <div class="avatar">KD</div>
+                </div>
+              </div>
+
+              <article class="card step" style="overflow-y: auto;">
+
+                <section class="becoming-hero">
+                  <p class="hero-eye"><span class="glyph"><i class="ti ti-sparkles"></i></span>Profile of Becoming</p>
+                  <h2>Three years in <em>Sail Racing</em></h2>
+                  <p class="lede">A line you've been drawing since November 2023. Each dot is a piece of evidence you confirmed in Reflect. The green wash marks the path that closed in March — <em>heavy-air helm work, settled.</em></p>
+
+                  <div class="lifelong-arc">
+                    <svg viewBox="0 0 320 120" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                      <!-- baseline -->
+                      <line x1="0" y1="100" x2="320" y2="100" stroke="#E5E5EA" stroke-width="0.6"/>
+                      <!-- subtle ticks at year markers -->
+                      <line x1="0"   y1="100" x2="0"   y2="106" stroke="#D1D1D6" stroke-width="0.5"/>
+                      <line x1="107" y1="100" x2="107" y2="106" stroke="#D1D1D6" stroke-width="0.5"/>
+                      <line x1="214" y1="100" x2="214" y2="106" stroke="#D1D1D6" stroke-width="0.5"/>
+                      <line x1="320" y1="100" x2="320" y2="106" stroke="#D1D1D6" stroke-width="0.5"/>
+                      <!-- the arc — hand-drawn-ish, learning to practicing to a settled plateau -->
+                      <path d="M 4 96 C 30 92, 56 88, 80 82 S 130 70, 160 62 S 210 48, 240 38 S 290 30, 316 26"
+                            stroke="#1C1C1E" stroke-width="1.2" fill="none"/>
+                      <!-- green wash band where heavy-air-helm-work settled -->
+                      <path d="M 220 100 L 260 100 L 260 36 L 220 50 Z" fill="rgba(52, 199, 89, 0.10)" stroke="none"/>
+                      <!-- evidence dots — purple along the arc -->
+                      <circle cx="40"  cy="92" r="2.4" fill="#5856D6"/>
+                      <circle cx="78"  cy="83" r="2.4" fill="#5856D6"/>
+                      <circle cx="118" cy="71" r="2.4" fill="#5856D6"/>
+                      <circle cx="148" cy="64" r="2.4" fill="#5856D6"/>
+                      <circle cx="186" cy="54" r="2.4" fill="#5856D6"/>
+                      <circle cx="220" cy="46" r="2.6" fill="#5856D6"/>
+                      <circle cx="254" cy="38" r="2.8" fill="#34C759"/>
+                      <!-- now marker — blue -->
+                      <circle cx="290" cy="30" r="3.2" fill="#007AFF"/>
+                      <circle cx="290" cy="30" r="6"   fill="rgba(0, 122, 255, 0.18)"/>
+                      <!-- "settled" label -->
+                      <text x="240" y="62" fill="#1F7A3A" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="8" font-weight="700" letter-spacing="0.5">SETTLED</text>
+                      <!-- year labels -->
+                      <text x="4"   y="115" fill="#8B8578" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="8" font-weight="500">2023</text>
+                      <text x="107" y="115" fill="#8B8578" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="8" font-weight="500">2024</text>
+                      <text x="214" y="115" fill="#8B8578" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="8" font-weight="500">2025</text>
+                      <text x="288" y="115" fill="#007AFF" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="8" font-weight="700">NOW</text>
+                    </svg>
+                    <div class="arc-legend">
+                      <span class="it"><span class="sw evidence"></span>evidence · 47</span>
+                      <span class="it"><span class="sw settled"></span>paths settled · 1</span>
+                      <span class="it"><span class="sw now"></span>active</span>
+                    </div>
+                  </div>
+
+                </section>
+
+                <!-- below: the existing capability map would render -->
+                <section style="padding: 14px 16px 16px; border-top: 0.5px solid var(--gray-5);">
+                  <p style="font-size: 9.5px; font-weight: 700; color: var(--label-2); letter-spacing: 0.9px; text-transform: uppercase; margin: 0 0 8px;">Capability map · current</p>
+                  <p style="font-size: 12px; line-height: 1.5; color: var(--label-2); margin: 0; font-style: italic;">5 capabilities · 47 pieces of evidence — see <em>profile-screen-canonical · Frame 1</em> for the existing map render. This Becoming hero sits above it as the long-arc anchor.</p>
+                </section>
+
+              </article>
+
+              <nav class="tabbar">
+                <button class="t"><i class="ti ti-flag-3"></i><span>Practice</span></button>
+                <button class="t"><i class="ti ti-book-2"></i><span>Playbook</span></button>
+                <button class="t"><i class="ti ti-compass"></i><span>Discover</span></button>
+                <button class="t on"><i class="ti ti-user-circle"></i><span>Profile</span></button>
+              </nav>
+            </div>
+            <div class="home-indicator"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- =============================================================== -->
+  <!-- §7 · Migration table for D10/D11/D12                             -->
+  <!-- =============================================================== -->
+  <section class="section-band">
+    <h2><span class="badge">Map</span><em>Migration map · D10 · D11 · D12</em></h2>
+    <p class="lede">Engineering reference. Where each new affordance lives, what it shows, and what plumbing it touches.</p>
+
+    <table class="migration-table">
+      <thead>
+        <tr>
+          <th class="col-letter">·</th>
+          <th class="col-where">Surface</th>
+          <th class="col-what">What lands</th>
+          <th class="col-notes">Engineering note</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="col-letter">D10a</td>
+          <td class="col-where">Plan body · <span class="em">Capabilities chips</span></td>
+          <td class="col-what">Purple chip set above More Options. 0–3 chips. Multi-select. Auto-tagged from blueprint, suggested by AI, editable.</td>
+          <td class="col-notes">Reads from existing <code>planData.competency_ids</code>. Auto-tag pulls from the active blueprint's <code>competency_map</code> when the step is created via "Add from blueprint". AI suggestion fires on <code>what_will_you_do</code> blur.</td>
+        </tr>
+        <tr>
+          <td class="col-letter">D10b</td>
+          <td class="col-where">Reflect body · <span class="em">Capabilities you practiced</span></td>
+          <td class="col-what">List of AI-pre-filled capability rows. Each row: name · pip · strength badge (Worth noting / Material / Strong). User confirms ✓ or removes.</td>
+          <td class="col-notes">New endpoint: <code>POST /step/:id/reflect/propose-capabilities</code>. Inputs: the step's captures (with current marks). Output: ranked capability list with proposed strength. On <code>Save &amp; settle</code>: write to <code>step_capability_evidence</code> with status <code>confirmed</code> + <code>strength</code>.</td>
+        </tr>
+        <tr>
+          <td class="col-letter">D10c</td>
+          <td class="col-where">Profile · <span class="em">Profile of Becoming hero</span></td>
+          <td class="col-what">Sketchbook lifetime arc at top of Frame 1, above capability map. Evidence dots + settled markers + now marker.</td>
+          <td class="col-notes">Aggregates <code>step_capability_evidence</code> for the active interest, time-ordered. Bin by capability for multi-arc view (drilldown). Hero is single-interest aggregate.</td>
+        </tr>
+        <tr>
+          <td class="col-letter">D11</td>
+          <td class="col-where">Practice tab · <span class="em">between steps</span></td>
+          <td class="col-what">Hinge surface. State pill <code>Between · settling</code> (amber). Filmstrip of day tiles per day in the gap. Three kinds: flagged moment, reflection, captured note. Bookends below.</td>
+          <td class="col-notes">Entry Phase 1: timeline icon in top-header surfaces a list of hinges; tap → hinge view. Phase 2: swipe between adjacent steps. Tile content sourced from: <code>step_flag_events</code> (flagged), <code>reflection_entries</code> in interval (reflections), <code>capture_notes</code> with <code>step_id IS NULL</code> in interval (captured notes).</td>
+        </tr>
+        <tr>
+          <td class="col-letter">D12a</td>
+          <td class="col-where">Plan body · <span class="em">Suggestions from network</span></td>
+          <td class="col-what">Three rows below capabilities chip set: blueprint suggestion, follow suggestion, mentor (AI) suggestion. Tap → preview sheet → add to timeline.</td>
+          <td class="col-notes">Sources: subscribed blueprints' next-recommended-step, followed users' recent visible steps (filtered by privacy), AI's based-on-recent-pattern recommendation. Rank by recency+relevance. Cap at 3.</td>
+        </tr>
+        <tr>
+          <td class="col-letter">D12b</td>
+          <td class="col-where">Step card · <span class="em">WITH row</span></td>
+          <td class="col-what">Quiet row beneath title block on every step. Crew avatars (1–3 then "+N"), fleet/cohort chip. Tap chip → roster + peer captures.</td>
+          <td class="col-notes">Sails: pulls <code>step.crew_user_ids</code> + <code>step.fleet_id</code>. Nursing: pulls <code>step.cohort_id</code>. Always visible when set; <em>add crew</em> affordance in More options when empty.</td>
+        </tr>
+        <tr>
+          <td class="col-letter">D12c</td>
+          <td class="col-where">Do stream · <span class="em">capture share sheet</span></td>
+          <td class="col-what">Long-press a capture → sheet rises with three rings: Private (default) · Crew · Fleet/Cohort. Sheet shows the capture preview + ring rows + (nursing) redaction note.</td>
+          <td class="col-notes">New: <code>capture.visibility</code> column with values <code>private | crew | fleet</code>. On share to fleet/cohort: post to <code>fleet_capture_feed</code> for the matching <code>fleet_id</code>/<code>cohort_id</code>. Nursing: pass through PII scrubber before write.</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- =============================================================== -->
+  <!-- §8 · Rail                                                        -->
+  <!-- =============================================================== -->
+  <section class="rail-row">
+
+    <div class="rail-col">
+      <h4>1 · <em>Capabilities are the spine.</em></h4>
+      <p>Every surface in the product is in service of capability evidence accumulating. Plan tags (intent). Do captures (raw material). Reflect confirms with strength (judgment). Profile maps (current state). <strong>Of Becoming</strong> arcs (biography). Same <code>capability_id</code> threads all five — the user reads color to know which node they're standing in.</p>
+      <p class="sig"><span class="swatch blue"></span><span class="swatch coral"></span><span class="swatch purple"></span><span class="swatch green"></span><span class="swatch amber"></span></p>
+    </div>
+
+    <div class="rail-col">
+      <h4>2 · <em>The hinge is the system's most honest surface.</em></h4>
+      <p>Existing locked design: lower weight than a step card (no shadow, regular 400 title), filmstrip of named days, three named kinds, bookends below, phrasing varies with gap length. New here: amber state pill <code>Between · settling</code> distinguishes it from the five step states. The hinge is a state, not a destination — the user arrives by swipe in Phase 2; in Phase 1 by tapping the timeline icon.</p>
+      <p class="sig"><span class="swatch amber"></span>filmstrip · 3 kinds · bookends</p>
+    </div>
+
+    <div class="rail-col">
+      <h4>3 · <em>Suggestions from the network sit on the work, not beside it.</em></h4>
+      <p>Three quiet rows on Plan — blueprint, follow, mentor. Each one a "you might add this next" affordance with provenance. Tap → preview the source step → optionally add to your timeline. The universal <code>+</code> sheet (D6) is for the ad-hoc add; this is the in-context add. Both surfaces feed the same capture-step mechanism, ranked by user attention rather than rank by completeness.</p>
+      <p class="sig"><span class="swatch blue"></span>blueprint <span class="swatch gray"></span>follow <span class="swatch purple"></span>mentor</p>
+    </div>
+
+    <div class="rail-col">
+      <h4>4 · <em>Practice is with people, not in isolation.</em></h4>
+      <p>The <code>WITH</code> row makes the social dimension of the step visible from the moment the user opens it. Sailing: crew avatars + fleet chip. Nursing: cohort chip. Drawing: skip the row entirely if no one's with you. The row is <strong>quiet</strong> — it sits under the title and doesn't compete with the field-cards or the phase tabs. Its job is to remind you that what you're about to do is shareable, and with whom.</p>
+      <p class="sig"><span class="swatch gray"></span>crew avatars · fleet chip · cohort chip</p>
+    </div>
+
+    <div class="rail-col">
+      <h4>5 · <em>Sharing is per capture, never per step.</em></h4>
+      <p>A reflection is private by default. A single observation can post to the fleet without changing the reflection's visibility. <strong>Three rings:</strong> Private (you + coach), Crew (your boat / study-group), Fleet / Cohort (everyone who raced this race / did this rotation). Nursing gets a PII scrubber before any cohort post. The user never has to choose <em>share all</em> or <em>share nothing</em>; the unit of decision is the capture.</p>
+      <p class="sig"><span class="swatch gray"></span>private <span class="swatch blue"></span>crew <span class="swatch green"></span>fleet/cohort</p>
+    </div>
+
+    <div class="rail-col">
+      <h4>6 · <em>"Of Becoming" is the long-arc name.</em></h4>
+      <p>One unifying phrase across two scales. <strong>Trophy of Becoming</strong> at path-scale, already canonical. <strong>Profile of Becoming</strong> at lifetime-scale, new. Same sketchbook arc grammar, same amber wash, same restraint. When the user sees either, they read the same idea: <em>this is what you've become, in your own evidence, in your own line.</em></p>
+      <p class="sig"><span class="swatch amber"></span>Trophy · path · Profile · lifetime</p>
+    </div>
+
+  </section>
+
+</div>
+
+</body>
+</html>
