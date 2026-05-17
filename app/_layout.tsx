@@ -29,6 +29,7 @@ import { initializeMutationQueueHandlers } from '@/services/userManualClubsServi
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ToastProvider } from '@/components/ui/AppToast';
 import { WebAlertProvider } from '@/components/ui/WebAlertDialog';
+import { UniversalPlusProvider } from '@/components/capture';
 import { Stack, router, useSegments } from 'expo-router';
 import {
   useFonts,
@@ -680,7 +681,9 @@ export default function RootLayout() {
                   <ToastProvider>
                     <WebAlertProvider>
                     <PushNotificationHandler>
-                      <StackWithSplash />
+                      <UniversalPlusProvider>
+                        <StackWithSplash />
+                      </UniversalPlusProvider>
                     </PushNotificationHandler>
                     </WebAlertProvider>
                   </ToastProvider>

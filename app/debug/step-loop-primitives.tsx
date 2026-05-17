@@ -34,6 +34,11 @@ import {
   type SuggestionRowItem,
 } from '@/components/step/plan-tab';
 import {
+  MenuRow,
+  QuickCaptureComposer,
+  UniversalPlusSheet,
+} from '@/components/capture';
+import {
   GRAY_5,
   GRAY_6,
   IOS_BLUE,
@@ -91,6 +96,7 @@ function PhaseTabsRow({
 }
 
 export default function StepLoopPrimitivesDebug() {
+  const [plusSheetVisible, setPlusSheetVisible] = useState(false);
   return (
     <>
       <Stack.Screen
@@ -515,8 +521,72 @@ export default function StepLoopPrimitivesDebug() {
           </View>
         </Section>
 
+        {/* Phase 2 · Universal + sheet */}
+        <Section title="Universal + sheet (Phase 2)">
+          <Caption>
+            Tap to open the full sheet. Composer at top · 4 secondary rows ·
+            press-and-hold the coral mic to record (audio captured locally; no
+            transcription wired yet).
+          </Caption>
+          <View style={styles.tabsHost}>
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => setPlusSheetVisible(true)}
+              style={styles.openSheetButton}
+            >
+              <Text style={styles.openSheetText}>Open universal + sheet</Text>
+            </Pressable>
+          </View>
+
+          <Caption>Composer in isolation (no sheet chrome)</Caption>
+          <View style={styles.composerHost}>
+            <QuickCaptureComposer onSubmit={() => undefined} />
+          </View>
+
+          <Caption>MenuRow · four tint variants</Caption>
+          <View style={styles.menuRowHost}>
+            <MenuRow
+              icon="template"
+              tint="blue"
+              title="Blueprint you follow"
+              subtitle="Adopt a step from a coach or program"
+              onPress={() => undefined}
+            />
+            <MenuRow
+              icon="users"
+              tint="gray"
+              title="Someone you follow"
+              subtitle="Borrow a recent step from a peer"
+              onPress={() => undefined}
+            />
+            <MenuRow
+              icon="bulb"
+              tint="purple"
+              title="A concept to come back to"
+              subtitle="Saved to your Playbook"
+              onPress={() => undefined}
+            />
+            <MenuRow
+              icon="share-3"
+              tint="green"
+              title="An idea, publicly or with crew"
+              subtitle="Opens the share composer"
+              onPress={() => undefined}
+            />
+          </View>
+        </Section>
+
         <View style={{ height: 64 }} />
       </ScrollView>
+      <UniversalPlusSheet
+        visible={plusSheetVisible}
+        onDismiss={() => setPlusSheetVisible(false)}
+        onQuickCapture={() => setPlusSheetVisible(false)}
+        onAddFromBlueprint={() => setPlusSheetVisible(false)}
+        onAddFromFollow={() => setPlusSheetVisible(false)}
+        onDropConcept={() => setPlusSheetVisible(false)}
+        onShareIdea={() => setPlusSheetVisible(false)}
+      />
     </>
   );
 }
@@ -620,6 +690,26 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: GRAY_5,
     overflow: 'hidden',
+  },
+  composerHost: {
+    paddingVertical: 8,
+  },
+  menuRowHost: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: GRAY_5,
+    paddingHorizontal: 14,
+  },
+  openSheetButton: {
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+  },
+  openSheetText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: IOS_BLUE,
   },
   cardHost: {
     height: 620,

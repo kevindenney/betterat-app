@@ -48,7 +48,10 @@ import {
   type PhaseState,
   type StatePillVariant,
 } from '@/components/step-loop';
-import { GRAY_6 } from '@/lib/design-tokens-step-loop-ios';
+import { WithRow } from './plan-tab';
+import { GRAY_6, LABEL_2 } from '@/lib/design-tokens-step-loop-ios';
+import { useUniversalPlus } from '@/components/capture';
+import { Plus as PlusIcon } from 'lucide-react-native';
 
 type TabValue = 'plan' | 'act' | 'review';
 
@@ -99,6 +102,7 @@ interface StepDetailContentProps {
 }
 
 export function StepDetailContent({ stepId, readOnly: readOnlyProp }: StepDetailContentProps) {
+  const universalPlus = useUniversalPlus();
   const { user } = useAuth();
   const { currentInterest } = useInterest();
 
@@ -955,11 +959,43 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp }: StepDetail
     const stepStripPrimary = vocab('Learning Event');
     const stepStripSecondary = step.category ? String(step.category).replace(/_/g, ' ') : undefined;
 
+    // Phase 1 · D12b — quiet WITH row beneath the title block. Sails: pulls
+    // from existing collaborators[]. Fleet/cohort plumbing is out of scope
+    // for Phase 1 (no schema changes), so the row renders only when there
+    // are collaborators to show.
+    const withRowCrew = (serverPlanData.collaborators ?? [])
+      .filter((c) => c.display_name?.trim())
+      .map((c) => {
+        const initials = c.display_name
+          .split(/\s+/)
+          .map((part) => part[0] ?? '')
+          .join('')
+          .slice(0, 2) || c.display_name.slice(0, 2);
+        return {
+          id: c.user_id || c.id,
+          initials,
+          avatarColor: c.avatar_color,
+        };
+      });
+
     return (
       <View style={[styles.container, stepLoopShellStyles.screen]}>
         <TopHeader
           interestName={currentInterest?.name ?? undefined}
           stepCounter={step.title ? undefined : 'Step'}
+          rightCluster={
+            universalPlus.isAvailable ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Add"
+                onPress={universalPlus.open}
+                hitSlop={8}
+                style={styles.topPlusButton}
+              >
+                <PlusIcon size={20} color={LABEL_2} strokeWidth={2} />
+              </Pressable>
+            ) : null
+          }
         />
         <StepCard
           pill={<StatePill variant={pillSpec.variant} label={pillSpec.label} />}
@@ -972,6 +1008,9 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp }: StepDetail
             />
           }
           titleBlock={headerInner}
+          belowTitle={
+            withRowCrew.length > 0 ? <WithRow crew={withRowCrew} /> : null
+          }
           phaseTabs={
             <PhaseTabs
               plan={planPhase}
@@ -1158,6 +1197,12 @@ const styles = StyleSheet.create({
   },
   tabContent: {
     flex: 1,
+  },
+  topPlusButton: {
+    width: 32,
+    height: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   autoSaveIndicator: {
     flexDirection: 'row',
