@@ -105,6 +105,7 @@ export function DoCaptureRow({
   const showFresh = fresh && !frozen;
   const markEvidenceEnabled = Boolean(frozen && onMarkAsEvidence);
   const liveLongPressEnabled = Boolean(!frozen && onLongPress);
+  const showInlineActions = !markEvidenceEnabled && !liveLongPressEnabled;
 
   const accent = ACCENT_BY_KIND[capture.kind] ?? GRAY_3;
   const meta = TYPE_META[capture.kind] ?? TYPE_META.note;
@@ -151,7 +152,7 @@ export function DoCaptureRow({
               <Text style={styles.metaText}>{capture.metaSubtitle}</Text>
             </>
           ) : null}
-          {onEdit ? (
+          {showInlineActions && onEdit ? (
             <>
               <Text style={styles.sep}>·</Text>
               <Pressable
@@ -164,7 +165,7 @@ export function DoCaptureRow({
               </Pressable>
             </>
           ) : null}
-          {onDelete ? (
+          {showInlineActions && onDelete ? (
             <>
               <Text style={styles.sep}>·</Text>
               <Pressable

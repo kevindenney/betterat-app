@@ -95,7 +95,7 @@ export function UniversalPlusSheet({
               keyboardShouldPersistTaps="handled"
               showsVerticalScrollIndicator={false}
             >
-              <QuickCaptureComposer onSubmit={onQuickCapture} />
+              <QuickCaptureComposer autoFocus onSubmit={onQuickCapture} />
               <Text style={styles.hint}>
                 {VOICE_SUPPORTED
                   ? "Hold to speak · or tap to type. We'll name it for you."

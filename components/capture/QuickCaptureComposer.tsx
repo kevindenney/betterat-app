@@ -80,6 +80,7 @@ export function QuickCaptureComposer({
 
   const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const startedAtRef = useRef<number>(0);
+  const inputRef = useRef<TextInput>(null);
   const pulse = useRef(new Animated.Value(0)).current;
 
   const stopTicker = useCallback(() => {
@@ -88,6 +89,12 @@ export function QuickCaptureComposer({
       tickRef.current = null;
     }
   }, []);
+
+  useEffect(() => {
+    if (!autoFocus) return undefined;
+    const id = setTimeout(() => inputRef.current?.focus(), 80);
+    return () => clearTimeout(id);
+  }, [autoFocus]);
 
   useEffect(() => {
     if (!isRecording) {
@@ -195,6 +202,7 @@ export function QuickCaptureComposer({
           </View>
         ) : (
           <TextInput
+            ref={inputRef}
             style={styles.input}
             value={text}
             onChangeText={setText}
