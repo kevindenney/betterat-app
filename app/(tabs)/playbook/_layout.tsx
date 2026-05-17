@@ -11,6 +11,12 @@ export default function PlaybookLayout() {
   return (
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="index" options={{ title: 'Playbook' }} />
+      <Stack.Screen name="blueprints/index" options={{ title: 'Blueprints' }} />
+      <Stack.Screen name="blueprints/[id]/index" options={{ title: 'Blueprint timeline' }} />
+      <Stack.Screen
+        name="blueprints/[id]/co-practitioners"
+        options={{ title: 'Co-practitioners' }}
+      />
       <Stack.Screen name="concepts/index" options={{ title: 'Concepts' }} />
       <Stack.Screen name="concepts/[slug]" options={{ title: 'Concept' }} />
       <Stack.Screen name="resources/index" options={{ title: 'Resources' }} />

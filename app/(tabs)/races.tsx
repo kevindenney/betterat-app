@@ -1787,7 +1787,7 @@ export default function RacesScreen() {
       location_lat: null,
       location_lng: null,
       location_place_id: null,
-      visibility: 'followers',
+      visibility: 'private',
       share_approximate_location: false,
       copied_from_user_id: null,
       source_blueprint_id: null,

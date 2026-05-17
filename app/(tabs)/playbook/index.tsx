@@ -9,6 +9,7 @@ import { InspirationWizard } from '@/components/inspiration/InspirationWizard';
 import { FEATURE_FLAGS } from '@/lib/featureFlags';
 import { useInterest } from '@/providers/InterestProvider';
 import { usePlaybook, usePlaybookInsights, useLifecycleConcepts, useDiscardPlaybookInsight, useRefinePlaybookInsight } from '@/hooks/usePlaybook';
+import { useSubscribedBlueprints } from '@/hooks/useBlueprint';
 
 export default function PlaybookIndexScreen() {
   const [inspirationWizardOpen, setInspirationWizardOpen] = React.useState(false);
@@ -46,6 +47,7 @@ function Phase6PlaybookLanding() {
   const toast = useToast();
   const { currentInterest } = useInterest();
   const { data: playbook } = usePlaybook(currentInterest?.id);
+  const { data: subscribedBlueprints = [] } = useSubscribedBlueprints(currentInterest?.id);
   const {
     data: insights = [],
     error: insightsError,
@@ -87,6 +89,8 @@ function Phase6PlaybookLanding() {
         }}
         insights={insights}
         concepts={concepts}
+        subscribedBlueprintCount={subscribedBlueprints.length}
+        onOpenBlueprints={() => router.push('/(tabs)/playbook/blueprints' as any)}
         onRefineInsight={async (insightId) => {
           const concept = await refineInsight.mutateAsync({ insightId });
           toast.show('Concept refined', 'success');

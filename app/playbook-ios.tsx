@@ -65,6 +65,7 @@ import {
   usePlaybookConcepts,
   usePlaybookInbox,
 } from '@/hooks/usePlaybook';
+import { useSubscribedBlueprints } from '@/hooks/useBlueprint';
 import { useMyTimeline } from '@/hooks/useTimelineSteps';
 import type { PlaybookConceptRecord } from '@/types/playbook';
 import type {
@@ -105,6 +106,8 @@ export function PlaybookIosPreview({
   const { data: concepts } = usePlaybookConcepts(playbook?.id, interestId);
   const { data: timeline } = useMyTimeline(interestId);
   const { data: inboxItems } = usePlaybookInbox(playbook?.id);
+  const { data: subscribedBlueprints = [] } = useSubscribedBlueprints(interestId);
+  const subscribedBlueprintCount = subscribedBlueprints.length;
 
   // Count of unprocessed inbox items — surfaces as a chrome badge top-right
   // so the user notices items waiting to be ingested without the full inbox
@@ -235,6 +238,27 @@ export function PlaybookIosPreview({
             </Pressable>
           </View>
         </View>
+
+        <Pressable
+          style={({ pressed }) => [
+            styles.browseCard,
+            pressed && styles.browseCardPressed,
+          ]}
+          onPress={() => router.push('/(tabs)/playbook/blueprints' as any)}
+          accessibilityRole="button"
+          accessibilityLabel="Blueprints you follow"
+        >
+          <View style={styles.browseCopy}>
+            <Text style={styles.browseEyebrow}>NETWORK BROWSING</Text>
+            <Text style={styles.browseTitle}>Blueprints you follow</Text>
+            <Text style={styles.browseBody}>
+              {subscribedBlueprintCount > 0
+                ? `${subscribedBlueprintCount} subscribed blueprint${subscribedBlueprintCount === 1 ? '' : 's'} ready to browse and add into your timeline.`
+                : 'Browse subscribed blueprints and pull their steps into your timeline.'}
+            </Text>
+          </View>
+          <Text style={styles.browseCta}>Open</Text>
+        </Pressable>
 
         <GetInspiredHeroCTA onPress={onOpenInspiration} />
 
@@ -656,6 +680,47 @@ const styles = StyleSheet.create({
     color: IOS_REGISTER.accentUserAction,
     fontSize: 14,
     letterSpacing: -0.1,
+  },
+  browseCard: {
+    marginHorizontal: 16,
+    marginBottom: 12,
+    padding: 14,
+    borderRadius: 16,
+    backgroundColor: IOS_REGISTER.cardBg,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: '#E5E5EA',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+  },
+  browseCardPressed: {
+    opacity: 0.82,
+  },
+  browseCopy: {
+    flex: 1,
+    gap: 4,
+  },
+  browseEyebrow: {
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+    color: IOS_REGISTER.labelSecondary,
+  },
+  browseTitle: {
+    fontSize: 17,
+    fontWeight: '600',
+    color: IOS_REGISTER.label,
+    letterSpacing: -0.2,
+  },
+  browseBody: {
+    fontSize: 13,
+    lineHeight: 18,
+    color: IOS_REGISTER.labelSecondary,
+  },
+  browseCta: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: IOS_REGISTER.accentUserAction,
   },
   inspirationCard: {
     marginHorizontal: 20,

@@ -33,18 +33,18 @@ import type { BlueprintRecord } from '@/types/blueprint';
 // UUID v4 pattern check
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-const VISIBILITY_CYCLE: TimelineStepVisibility[] = ['followers', 'organization', 'private'];
+const VISIBILITY_CYCLE: TimelineStepVisibility[] = ['private', 'crew', 'fleet', 'public'];
 const VISIBILITY_LABELS: Record<TimelineStepVisibility, string> = {
-  followers: 'Followers',
-  organization: 'Organization',
   private: 'Private',
-  coaches: 'Coaches',
+  crew: 'Crew',
+  fleet: 'Fleet',
+  public: 'Public',
 };
 const VISIBILITY_ICONS: Record<TimelineStepVisibility, string> = {
-  followers: 'people-outline',
-  organization: 'business-outline',
   private: 'lock-closed-outline',
-  coaches: 'school-outline',
+  crew: 'people-outline',
+  fleet: 'business-outline',
+  public: 'globe-outline',
 };
 
 // ── DB user profile (existing behavior) ─────────────────────────────
@@ -546,7 +546,7 @@ function DbUserProfile({ userId }: { userId: string }) {
                     const hasOrg = steps.some((s) => s.organization_id);
                     const orgRow = hasOrg ? orgRows.find((r) => r.org?.interest_slug === interest?.slug) : null;
                     const sectionName = orgRow?.org?.name || interest?.name || 'Personal';
-                    const currentVisibility = (steps[0]?.visibility as TimelineStepVisibility) || 'followers';
+                    const currentVisibility = (steps[0]?.visibility as TimelineStepVisibility) || 'private';
                     const completedCount = steps.filter((s) => s.status === 'completed').length;
                     const progressPct = steps.length > 0 ? Math.round((completedCount / steps.length) * 100) : 0;
                     return (

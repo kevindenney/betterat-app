@@ -40,9 +40,9 @@ const ICON_BACKGROUNDS = {
 
 const VISIBILITY_OPTIONS: { value: TimelineStepVisibility; label: string }[] = [
   { value: 'private', label: 'Private' },
-  { value: 'followers', label: 'Followers' },
-  { value: 'coaches', label: 'Coaches' },
-  { value: 'organization', label: 'Organization' },
+  { value: 'crew', label: 'Crew' },
+  { value: 'fleet', label: 'Fleet' },
+  { value: 'public', label: 'Public' },
 ];
 
 const INTEREST_VISIBILITY_OPTIONS: { value: TimelineStepVisibility | 'default'; label: string }[] = [
@@ -51,7 +51,7 @@ const INTEREST_VISIBILITY_OPTIONS: { value: TimelineStepVisibility | 'default'; 
 ];
 
 function visibilityLabel(value: TimelineStepVisibility): string {
-  return VISIBILITY_OPTIONS.find((o) => o.value === value)?.label ?? 'Followers';
+  return VISIBILITY_OPTIONS.find((o) => o.value === value)?.label ?? 'Private';
 }
 
 // =============================================================================
