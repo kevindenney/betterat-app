@@ -52,6 +52,8 @@ import { WithRow } from './plan-tab';
 import { GRAY_6, LABEL_2 } from '@/lib/design-tokens-step-loop-ios';
 import { useUniversalPlus } from '@/components/capture';
 import { Plus as PlusIcon } from 'lucide-react-native';
+import { useShareStep } from '@/hooks/useShareStep';
+import { ShareStepSheet } from '@/components/share';
 
 type TabValue = 'plan' | 'act' | 'review';
 
@@ -103,6 +105,7 @@ interface StepDetailContentProps {
 
 export function StepDetailContent({ stepId, readOnly: readOnlyProp }: StepDetailContentProps) {
   const universalPlus = useUniversalPlus();
+  const shareStep = useShareStep();
   const { user } = useAuth();
   const { currentInterest } = useInterest();
 
@@ -999,7 +1002,13 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp }: StepDetail
         />
         <StepCard
           pill={<StatePill variant={pillSpec.variant} label={pillSpec.label} />}
-          onMenuPress={() => router.push('/library')}
+          onMenuPress={() =>
+            shareStep.open({
+              id: step.id,
+              title: step.title ?? `${vocab('Learning Event')}`,
+              body: step.description ?? '',
+            })
+          }
           stepStrip={
             <StepStrip
               icon="flag-3"
@@ -1009,7 +1018,12 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp }: StepDetail
           }
           titleBlock={headerInner}
           belowTitle={
-            withRowCrew.length > 0 ? <WithRow crew={withRowCrew} /> : null
+            withRowCrew.length > 0 ? (
+              <WithRow
+                crew={withRowCrew}
+                onFleetPress={() => router.push(`/practice/step/${step.id}/fleet` as any)}
+              />
+            ) : null
           }
           phaseTabs={
             <PhaseTabs
@@ -1028,6 +1042,16 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp }: StepDetail
         >
           <View style={styles.tabContent}>{tabBodyJsx}</View>
         </StepCard>
+        <ShareStepSheet
+          visible={shareStep.visible}
+          step={shareStep.step ?? { id: '', title: '', body: '' }}
+          recentRecipients={shareStep.recentRecipients}
+          defaultGroup={shareStep.defaultGroup}
+          onShareDirect={shareStep.shareDirect}
+          onShareToGroup={shareStep.shareToGroup}
+          onCopyLink={shareStep.copyLink}
+          onDismiss={shareStep.close}
+        />
       </View>
     );
   }
