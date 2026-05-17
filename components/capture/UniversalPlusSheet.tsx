@@ -35,6 +35,8 @@ import {
   type QuickCaptureSubmitPayload,
 } from './QuickCaptureComposer';
 
+const VOICE_SUPPORTED = Platform.OS !== 'web';
+
 export interface UniversalPlusSheetProps {
   visible: boolean;
   onDismiss: () => void;
@@ -95,7 +97,9 @@ export function UniversalPlusSheet({
             >
               <QuickCaptureComposer onSubmit={onQuickCapture} />
               <Text style={styles.hint}>
-                Hold to speak · or tap to type. We&apos;ll name it for you.
+                {VOICE_SUPPORTED
+                  ? "Hold to speak · or tap to type. We'll name it for you."
+                  : "Tap to type. We'll name it for you."}
               </Text>
 
               <Text style={styles.eyebrow}>Add a step from…</Text>

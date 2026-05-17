@@ -38,6 +38,11 @@ import {
   LABEL_3,
 } from '@/lib/design-tokens-step-loop-ios';
 
+// expo-av's native Audio recording constants are undefined on web, so the
+// press-and-hold mic flow only renders on native platforms. Web users get
+// the text composer; voice capture lives on iOS/Android.
+const VOICE_SUPPORTED = Platform.OS !== 'web';
+
 export type QuickCaptureKind = 'text' | 'voice';
 
 export interface QuickCaptureSubmitPayload {
@@ -125,6 +130,7 @@ export function QuickCaptureComposer({
   };
 
   const handleRecordStart = async () => {
+    if (!VOICE_SUPPORTED) return;
     if (isRecording) return;
     try {
       await voiceNoteService.startRecording({ maxDuration: 60 });
@@ -214,7 +220,7 @@ export function QuickCaptureComposer({
         >
           <ArrowUp size={20} color="#FFFFFF" strokeWidth={2.75} />
         </Pressable>
-      ) : (
+      ) : VOICE_SUPPORTED ? (
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={isRecording ? 'Stop recording' : 'Hold to record voice'}
@@ -225,7 +231,7 @@ export function QuickCaptureComposer({
         >
           <Mic size={18} color="#FFFFFF" strokeWidth={2.5} />
         </Pressable>
-      )}
+      ) : null}
     </View>
   );
 }
