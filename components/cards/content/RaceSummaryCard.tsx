@@ -457,9 +457,9 @@ function calculateArrivalTime(raceDate: string, startTime: string | undefined, m
 
 const VISIBILITY_OPTIONS: { value: TimelineStepVisibility; label: string; icon: string }[] = [
   { value: 'private', label: 'Private (only you)', icon: 'lock-closed-outline' },
-  { value: 'followers', label: 'Followers', icon: 'people-outline' },
-  { value: 'coaches', label: 'Coaches', icon: 'school-outline' },
-  { value: 'organization', label: 'Organization', icon: 'business-outline' },
+  { value: 'crew', label: 'Crew', icon: 'people-outline' },
+  { value: 'fleet', label: 'Fleet', icon: 'business-outline' },
+  { value: 'public', label: 'Public', icon: 'globe-outline' },
 ];
 
 // =============================================================================
@@ -611,7 +611,7 @@ function RaceSummaryCardImpl({
   }, [editTitle, race.name, race.id, updateStepMutation, queryClient]);
 
   // Visibility change handler for timeline steps
-  const currentVisibility = (race?.visibility as TimelineStepVisibility) ?? 'followers';
+  const currentVisibility = (race?.visibility as TimelineStepVisibility) ?? 'private';
   const [showVisibilityPicker, setShowVisibilityPicker] = useState(false);
 
   const handleChangeVisibility = useCallback(() => {
