@@ -1,0 +1,1343 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=1620" />
+<title>BetterAt · Playbook Tab — Canonical · 2026-05-17</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css" />
+<link rel="stylesheet" href="legacy-reskin-common.css?v=1" />
+<style>
+  .page { min-width: 1620px; }
+
+  /* Section framing */
+  .section-band { max-width: 1560px; margin: 80px auto 0; padding-top: 36px; border-top: 0.5px solid var(--stage-line); }
+  .section-band:first-of-type { margin-top: 24px; border-top: 0; padding-top: 0; }
+  .section-band h2 {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 24px; font-weight: 500; letter-spacing: -0.3px;
+    color: var(--stage-ink); margin: 0 0 8px;
+  }
+  .section-band h2 em { font-style: italic; }
+  .section-band h2 .badge {
+    display: inline-block;
+    background: var(--ios-blue-tint); color: var(--ios-blue-deep);
+    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 10.5px; font-weight: 700; letter-spacing: 0.7px;
+    text-transform: uppercase;
+    padding: 3px 8px; border-radius: 999px;
+    vertical-align: 4px; margin-right: 10px;
+  }
+  .section-band .lede {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 15px; line-height: 1.55;
+    color: var(--stage-text); margin: 0 0 28px;
+    max-width: 1080px; text-wrap: pretty;
+  }
+  .section-band .lede em { font-style: italic; }
+  .section-band .lede strong { color: var(--stage-ink); font-weight: 500; }
+
+  /* ============================================================
+     Four-tab spine diagram
+     ============================================================ */
+  .spine-row {
+    max-width: 1560px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+  }
+  .spine-tab {
+    background: rgba(255,255,255,0.6);
+    border: 0.5px solid var(--stage-line);
+    border-radius: 14px;
+    padding: 16px 16px 14px;
+    display: flex; flex-direction: column; gap: 8px;
+    min-height: 220px;
+  }
+  .spine-tab.on {
+    background: rgba(255,255,255,0.92);
+    border: 0.5px solid var(--ios-blue-strong);
+    box-shadow: 0 12px 32px -22px rgba(0, 122, 255, 0.30);
+  }
+  .spine-tab .tab-eye {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 10.5px; font-weight: 700;
+    color: var(--label-2); letter-spacing: 0.7px;
+    text-transform: uppercase;
+  }
+  .spine-tab.on .tab-eye { color: var(--ios-blue-deep); }
+  .spine-tab .tab-eye .ic {
+    width: 18px; height: 18px; border-radius: 50%;
+    background: var(--gray-6); color: var(--label-2);
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .spine-tab .tab-eye .ic i { font-size: 11px; }
+  .spine-tab.on .tab-eye .ic { background: var(--ios-blue); color: #fff; }
+  .spine-tab h3 {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-style: italic;
+    font-size: 22px; font-weight: 500; letter-spacing: -0.3px;
+    color: var(--stage-ink); margin: 0; line-height: 1.15;
+  }
+  .spine-tab .verb {
+    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 11px; font-weight: 700;
+    color: var(--stage-ink); letter-spacing: 0.6px;
+    text-transform: uppercase;
+  }
+  .spine-tab .verb .em {
+    color: var(--label-3); font-weight: 500;
+    margin-left: 6px; letter-spacing: 0.02em;
+    text-transform: lowercase;
+  }
+  .spine-tab .body {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 13px; line-height: 1.5;
+    color: #4D4A43; margin: 0;
+    text-wrap: pretty;
+  }
+  .spine-tab .body em { font-style: italic; }
+  .spine-tab .unit-line {
+    margin-top: auto;
+    padding-top: 8px;
+    border-top: 0.5px dashed var(--stage-line-soft);
+    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 10.5px; color: var(--stage-text);
+    letter-spacing: 0.02em;
+  }
+  .spine-tab .unit-line .em {
+    color: var(--stage-ink); font-weight: 600;
+  }
+  .spine-tab .unit-line .em.purple   { color: var(--ios-purple-deep); }
+  .spine-tab .unit-line .em.green    { color: var(--ios-green-deep); }
+  .spine-tab .unit-line .em.coral    { color: var(--ios-coral-deep); }
+  .spine-tab .unit-line .em.amber    { color: var(--ios-amber); }
+
+  /* ============================================================
+     Decisions bar
+     ============================================================ */
+  .decisions-bar {
+    max-width: 1560px;
+    margin: 32px auto 0;
+    padding: 22px 24px;
+    background: rgba(255,255,255,0.55);
+    border: 0.5px solid var(--stage-line);
+    border-radius: 14px;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+  }
+  .decisions-bar .dec h5 {
+    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 10.5px; font-weight: 700;
+    color: var(--ios-purple-deep); letter-spacing: 0.7px;
+    text-transform: uppercase; margin: 0 0 6px;
+  }
+  .decisions-bar .dec p {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 12.5px; line-height: 1.5;
+    color: var(--stage-text); margin: 0;
+    text-wrap: pretty;
+  }
+  .decisions-bar .dec p strong { color: var(--stage-ink); font-weight: 500; }
+  .decisions-bar .dec p em { font-style: italic; }
+  .decisions-bar .dec p code {
+    font-family: "SF Mono", ui-monospace, Menlo, monospace;
+    font-size: 11px;
+    background: rgba(34, 30, 20, 0.06);
+    padding: 1px 4px; border-radius: 3px;
+  }
+
+  /* ============================================================
+     Concept lifecycle micro-diagram
+     ============================================================ */
+  .lifecycle-row {
+    max-width: 1100px;
+    margin: 22px auto 0;
+    display: grid;
+    grid-template-columns: 1fr 30px 1fr 30px 1fr 30px 1fr;
+    gap: 14px;
+    align-items: center;
+  }
+  .lc-stage {
+    text-align: center;
+    padding: 16px 12px;
+    background: rgba(255,255,255,0.55);
+    border: 0.5px solid var(--stage-line);
+    border-radius: 14px;
+  }
+  .lc-stage .pill {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 3px 9px 3px 7px;
+    border-radius: 999px;
+    margin: 0 auto 10px;
+    font-size: 10px; font-weight: 700;
+    letter-spacing: 0.5px; text-transform: uppercase;
+  }
+  .lc-stage .pill .dot { width: 6px; height: 6px; border-radius: 50%; }
+  .lc-stage.seed .pill    { background: var(--gray-6); color: var(--label-2); border: 0.5px solid var(--gray-5); }
+  .lc-stage.seed .pill .dot    { background: var(--gray-2); }
+  .lc-stage.forming .pill { background: rgba(194, 138, 42, 0.10); color: var(--ios-amber); border: 0.5px solid rgba(194, 138, 42, 0.22); }
+  .lc-stage.forming .pill .dot { background: var(--ios-amber); }
+  .lc-stage.testing .pill { background: var(--ios-purple-tint); color: var(--ios-purple-deep); border: 0.5px solid var(--ios-purple-soft); }
+  .lc-stage.testing .pill .dot { background: var(--ios-purple); }
+  .lc-stage.settled .pill { background: var(--ios-green-tint); color: var(--ios-green-deep); border: 0.5px solid var(--ios-green-soft); }
+  .lc-stage.settled .pill .dot { background: var(--ios-green); }
+  .lc-stage h4 {
+    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 13px; font-weight: 600;
+    color: var(--stage-ink); letter-spacing: -0.1px;
+    margin: 0 0 6px;
+  }
+  .lc-stage p {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 12px; line-height: 1.45;
+    color: var(--stage-text); margin: 0;
+    font-style: italic;
+    text-wrap: pretty;
+  }
+  .lc-arrow { display: flex; justify-content: center; }
+  .lc-arrow svg { display: block; }
+
+  /* ============================================================
+     Pane primitives
+     ============================================================ */
+  .pair-row, .single-row {
+    display: grid; gap: 24px;
+    align-items: flex-start; justify-content: center;
+    max-width: 1560px; margin: 0 auto;
+  }
+  .pair-row { grid-template-columns: 1fr 1fr; }
+  .single-row { grid-template-columns: 1fr; }
+  .pane { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+  .pane .pane-eye {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-size: 10.5px; font-weight: 700;
+    letter-spacing: 0.9px; text-transform: uppercase;
+    color: var(--stage-text);
+  }
+  .pane .pane-eye .pip {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--ios-purple);
+  }
+  .pane.concept .pane-eye .pip { background: var(--ios-green); }
+  .pane .pane-title {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 18px; font-weight: 500; letter-spacing: -0.25px;
+    color: var(--stage-ink); margin: 0;
+    text-wrap: balance; text-align: center;
+  }
+  .pane .pane-title em { font-style: italic; }
+  .pane .pane-sub {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 12.5px; font-style: italic;
+    color: var(--stage-text); margin: 0; line-height: 1.45;
+    max-width: 360px; text-wrap: pretty; text-align: center;
+  }
+
+  /* ============================================================
+     Playbook landing — phone-specific
+     ============================================================ */
+  .playbook-screen .top-header .right-cluster {
+    display: inline-flex; align-items: center; gap: 12px;
+  }
+  .playbook-screen .top-header .right-cluster .ic {
+    background: none; border: 0; padding: 0;
+    color: var(--label-2);
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .playbook-screen .top-header .right-cluster .ic i { font-size: 19px; }
+
+  .playbook-hero {
+    background: #FFFFFF;
+    padding: 14px 18px 16px;
+    border-bottom: 0.5px solid var(--gray-5);
+  }
+  .playbook-hero h1 {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
+    font-size: 28px; font-weight: 700; letter-spacing: -0.6px;
+    color: var(--label); margin: 0; line-height: 1;
+  }
+  .playbook-hero .lede-line {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 13.5px; font-style: italic; line-height: 1.45;
+    color: var(--label-3); letter-spacing: -0.05px;
+    margin: 8px 0 14px;
+    text-wrap: pretty;
+  }
+  .playbook-hero .stats-strip {
+    display: flex; gap: 14px;
+    font-variant-numeric: tabular-nums;
+  }
+  .playbook-hero .stat {
+    display: flex; flex-direction: column; align-items: flex-start;
+    flex: 1;
+    padding: 8px 10px;
+    background: var(--gray-6);
+    border-radius: 10px;
+  }
+  .playbook-hero .stat .n {
+    font-size: 17px; font-weight: 600;
+    color: var(--label); letter-spacing: -0.4px;
+  }
+  .playbook-hero .stat .l {
+    font-size: 9.5px; font-weight: 700;
+    color: var(--label-3); letter-spacing: 0.5px;
+    text-transform: uppercase; margin-top: 2px;
+  }
+  .playbook-hero .stat.testing { background: var(--ios-purple-tint); border: 0.5px solid var(--ios-purple-soft); }
+  .playbook-hero .stat.testing .l { color: var(--ios-purple-deep); }
+  .playbook-hero .stat.settled { background: var(--ios-green-tint); border: 0.5px solid var(--ios-green-soft); }
+  .playbook-hero .stat.settled .l { color: var(--ios-green-deep); }
+
+  .pb-body {
+    flex: 1; overflow: hidden;
+    background: var(--gray-6);
+    padding: 10px 14px 14px;
+    display: flex; flex-direction: column; gap: 18px;
+    min-height: 0;
+  }
+
+  /* Zone heading */
+  .zone-head {
+    display: flex; align-items: baseline; justify-content: space-between;
+    margin: 4px 4px 4px;
+  }
+  .zone-head .ttl {
+    font-size: 11px; font-weight: 700;
+    color: var(--label-2); letter-spacing: 0.9px;
+    text-transform: uppercase;
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .zone-head .ttl .dot { width: 7px; height: 7px; border-radius: 50%; }
+  .zone-head .ttl .dot.gray { background: var(--gray-2); }
+  .zone-head .ttl .dot.amber { background: var(--ios-amber); }
+  .zone-head .ttl .dot.purple { background: var(--ios-purple); }
+  .zone-head .ttl .dot.green { background: var(--ios-green); }
+  .zone-head .count {
+    font-size: 10px; font-weight: 500;
+    color: var(--label-3); letter-spacing: -0.05px;
+  }
+
+  /* Zone 1 · Recent insights (dashed-border raw captures) */
+  .insight-card {
+    background: rgba(255, 255, 255, 0.7);
+    border: 0.5px dashed var(--gray-4);
+    border-radius: 12px;
+    padding: 11px 12px;
+    display: flex; flex-direction: column; gap: 6px;
+  }
+  .insight-card .src-line {
+    display: flex; align-items: center; gap: 5px;
+    font-size: 9.5px; font-weight: 700;
+    color: var(--label-3); letter-spacing: 0.7px;
+    text-transform: uppercase;
+  }
+  .insight-card .src-line i { font-size: 11px; }
+  .insight-card .body-i {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 13.5px; font-style: italic; line-height: 1.4;
+    color: var(--label); letter-spacing: -0.05px;
+    margin: 0;
+  }
+  .insight-card .actions {
+    display: flex; gap: 12px;
+    margin-top: 4px;
+  }
+  .insight-card .actions .refine {
+    background: none; border: 0; padding: 0;
+    font-size: 11.5px; font-weight: 600;
+    color: var(--ios-blue); letter-spacing: -0.05px;
+    display: inline-flex; align-items: center; gap: 3px;
+  }
+  .insight-card .actions .refine i { font-size: 12px; }
+  .insight-card .actions .discard {
+    background: none; border: 0; padding: 0;
+    font-size: 11.5px; color: var(--label-3); letter-spacing: -0.05px;
+  }
+  .insight-stack {
+    display: flex; flex-direction: column; gap: 6px;
+  }
+
+  /* Zone 2 · Concepts in development */
+  .concept-card {
+    background: #FFFFFF;
+    border: 0.5px solid var(--gray-5);
+    border-radius: 12px;
+    padding: 11px 12px;
+    display: flex; flex-direction: column; gap: 6px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+  }
+  .concept-card.testing { border-left: 2.5px solid var(--ios-purple); }
+  .concept-card.forming { border-left: 2.5px solid var(--ios-amber); }
+  .concept-card .head-row {
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .concept-card .state-pill-mini {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 2px 7px 2px 6px;
+    border-radius: 999px;
+    font-size: 9px; font-weight: 700;
+    letter-spacing: 0.5px; text-transform: uppercase;
+  }
+  .concept-card.testing .state-pill-mini {
+    background: var(--ios-purple-tint);
+    border: 0.5px solid var(--ios-purple-soft);
+    color: var(--ios-purple-deep);
+  }
+  .concept-card.forming .state-pill-mini {
+    background: rgba(194, 138, 42, 0.10);
+    border: 0.5px solid rgba(194, 138, 42, 0.22);
+    color: var(--ios-amber);
+  }
+  .concept-card .state-pill-mini .dot {
+    width: 5px; height: 5px; border-radius: 50%;
+  }
+  .concept-card.testing .state-pill-mini .dot { background: var(--ios-purple); }
+  .concept-card.forming .state-pill-mini .dot { background: var(--ios-amber); }
+  .concept-card .when {
+    font-size: 10px; color: var(--label-3);
+    letter-spacing: -0.05px;
+  }
+  .concept-card .title-c {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-style: italic;
+    font-size: 16px; font-weight: 500; letter-spacing: -0.2px;
+    color: var(--label); margin: 0;
+    line-height: 1.2;
+    text-wrap: balance;
+  }
+  .concept-card .meta-row {
+    display: flex; gap: 10px; flex-wrap: wrap;
+    font-size: 10.5px; color: var(--label-3);
+    letter-spacing: -0.05px;
+  }
+  .concept-card .meta-row .meta-it {
+    display: inline-flex; align-items: center; gap: 3px;
+  }
+  .concept-card .meta-row .meta-it i { font-size: 11px; }
+  .concept-card .meta-row .em { color: var(--label-2); font-weight: 600; }
+
+  /* Zone 3 · Settled foundations */
+  .settled-list {
+    background: #FFFFFF;
+    border: 0.5px solid var(--gray-5);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .settled-row {
+    display: grid;
+    grid-template-columns: 1fr auto 14px;
+    column-gap: 10px;
+    align-items: center;
+    padding: 11px 12px;
+    border-bottom: 0.5px solid var(--gray-5);
+  }
+  .settled-row:last-child { border-bottom: 0; }
+  .settled-row .name {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-style: italic;
+    font-size: 14.5px; font-weight: 500; letter-spacing: -0.15px;
+    color: var(--label); margin: 0; line-height: 1.2;
+  }
+  .settled-row .sub {
+    font-size: 10px; color: var(--label-3);
+    letter-spacing: -0.05px;
+    margin-top: 1px;
+  }
+  .settled-row .sub .em { color: var(--label-2); font-weight: 600; }
+  .settled-row .ev-pip {
+    font-size: 9.5px; font-weight: 600;
+    color: var(--ios-green-deep);
+    background: var(--ios-green-tint);
+    border-radius: 999px;
+    padding: 2px 8px;
+    border: 0.5px solid var(--ios-green-soft);
+    letter-spacing: 0.3px;
+  }
+  .settled-row .chev { color: var(--gray-3); }
+  .settled-row .chev i { font-size: 13px; }
+
+  /* ============================================================
+     Concept detail surface
+     ============================================================ */
+  .concept-screen .top-header .right-cluster {
+    display: inline-flex; align-items: center; gap: 12px;
+  }
+  .concept-screen .top-header .right-cluster .ic {
+    background: none; border: 0; padding: 0;
+    color: var(--label-2);
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .concept-screen .top-header .right-cluster .ic i { font-size: 19px; }
+  .concept-screen .top-header .back-btn {
+    background: none; border: 0; padding: 0;
+    display: inline-flex; align-items: center; gap: 2px;
+    font-size: 15px; color: var(--ios-blue);
+    letter-spacing: -0.2px;
+  }
+  .concept-screen .top-header .back-btn i { font-size: 18px; margin-left: -4px; }
+
+  .concept-state-head {
+    padding: 13px 16px 10px;
+    display: flex; align-items: center; justify-content: space-between;
+    border-bottom: 0.5px solid var(--gray-5);
+  }
+  .concept-state-head .menu {
+    background: none; border: 0; padding: 0; color: var(--label-3);
+  }
+  .concept-state-head .menu i { font-size: 17px; }
+
+  .concept-title-block {
+    padding: 18px 18px 12px;
+    border-bottom: 0.5px solid var(--gray-5);
+  }
+  .concept-title-block .surface-eye {
+    font-size: 9.5px; font-weight: 700;
+    color: var(--label-2); letter-spacing: 0.9px;
+    text-transform: uppercase;
+    margin: 0 0 12px;
+  }
+  .concept-title-block h1 {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-style: italic;
+    font-size: 24px; font-weight: 500; letter-spacing: -0.4px;
+    color: var(--label); margin: 0; line-height: 1.16;
+    text-wrap: balance;
+  }
+  .concept-title-block .prov {
+    font-size: 10.5px; font-weight: 600;
+    color: var(--label-3); letter-spacing: 0.4px;
+    text-transform: uppercase;
+    margin: 14px 0 0; line-height: 1.5;
+  }
+  .concept-title-block .prov .em { color: var(--label-2); }
+  .concept-title-block .prov .why {
+    display: block;
+    margin-top: 3px;
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-style: italic; font-weight: 400;
+    font-size: 11.5px; color: var(--label-3);
+    letter-spacing: -0.02px; text-transform: none;
+  }
+
+  .concept-body {
+    flex: 1; overflow-y: auto;
+    padding: 14px 18px 10px;
+    display: flex; flex-direction: column; gap: 20px;
+    scrollbar-width: none;
+  }
+  .concept-body::-webkit-scrollbar { display: none; }
+
+  .synth-block .synth-eye {
+    font-size: 9.5px; font-weight: 700;
+    color: var(--label-2); letter-spacing: 0.9px;
+    text-transform: uppercase;
+    margin: 0 0 8px;
+  }
+  .synth-block .body {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 15.5px; line-height: 1.5;
+    color: var(--label); letter-spacing: -0.1px;
+    margin: 0;
+    text-wrap: pretty;
+  }
+  .synth-block .body em { font-style: italic; }
+  .synth-block .synth-prov {
+    font-size: 10.5px; font-weight: 600;
+    color: var(--label-3); letter-spacing: 0.4px;
+    text-transform: uppercase;
+    margin: 12px 0 0;
+  }
+
+  /* Trail (moments) */
+  .trail-block .sec-eye {
+    font-size: 9.5px; font-weight: 700;
+    color: var(--label-2); letter-spacing: 0.9px;
+    text-transform: uppercase;
+    margin: 0 0 12px;
+    display: flex; align-items: baseline; justify-content: space-between;
+  }
+  .trail-block .sec-eye .count {
+    font-size: 10px; color: var(--label-3);
+    text-transform: none; font-weight: 500;
+  }
+  .trail-row {
+    padding: 14px 0;
+    border-top: 0.5px solid var(--gray-5);
+  }
+  .trail-row:first-of-type { border-top: 0; padding-top: 0; }
+  .trail-row .quote {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-style: italic;
+    font-size: 14px; line-height: 1.5;
+    color: var(--label); letter-spacing: -0.05px;
+    margin: 0;
+    text-wrap: pretty;
+  }
+  .trail-row .from {
+    font-size: 10.5px; font-weight: 600;
+    color: var(--label-3); letter-spacing: 0.4px;
+    text-transform: uppercase;
+    margin: 8px 0 0;
+  }
+  .trail-row .from .em { color: var(--label-2); }
+
+  /* Tested in steps */
+  .tested-block .sec-eye {
+    font-size: 9.5px; font-weight: 700;
+    color: var(--label-2); letter-spacing: 0.9px;
+    text-transform: uppercase;
+    margin: 0 0 10px;
+  }
+  .tested-strip {
+    display: flex; gap: 8px; overflow-x: auto;
+    padding-bottom: 4px;
+    margin: 0 -18px;
+    padding-left: 18px; padding-right: 18px;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+    -webkit-mask-image: linear-gradient(to right, black 0, black calc(100% - 24px), transparent 100%);
+            mask-image: linear-gradient(to right, black 0, black calc(100% - 24px), transparent 100%);
+  }
+  .tested-strip::-webkit-scrollbar { display: none; }
+  .step-mini-card {
+    flex: 0 0 168px;
+    background: #FFFFFF;
+    border: 0.5px solid var(--gray-5);
+    border-radius: 10px;
+    padding: 10px 11px;
+    display: flex; flex-direction: column; gap: 5px;
+    scroll-snap-align: start;
+  }
+  .step-mini-card .pill-mini {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 2px 7px 2px 6px;
+    border-radius: 999px;
+    font-size: 8.5px; font-weight: 700;
+    letter-spacing: 0.5px; text-transform: uppercase;
+    align-self: flex-start;
+  }
+  .step-mini-card .pill-mini .dot { width: 5px; height: 5px; border-radius: 50%; }
+  .step-mini-card .pill-mini.green { background: var(--ios-green-tint); color: var(--ios-green-deep); border: 0.5px solid var(--ios-green-soft); }
+  .step-mini-card .pill-mini.green .dot { background: var(--ios-green); }
+  .step-mini-card .pill-mini.blue  { background: var(--ios-blue-tint); color: var(--ios-blue-deep); border: 0.5px solid var(--ios-blue-strong); }
+  .step-mini-card .pill-mini.blue .dot { background: var(--ios-blue); }
+  .step-mini-card .nm {
+    font-size: 12px; font-weight: 600;
+    color: var(--label); letter-spacing: -0.1px;
+    margin: 0;
+    line-height: 1.2;
+  }
+  .step-mini-card .meta-m {
+    font-size: 9.5px; color: var(--label-3);
+    letter-spacing: -0.02px;
+    margin: auto 0 0;
+  }
+  .step-mini-card .meta-m .em { color: var(--label-2); font-weight: 600; }
+
+  /* Capability feeds */
+  .caps-feeds-block .sec-eye {
+    font-size: 9.5px; font-weight: 700;
+    color: var(--label-2); letter-spacing: 0.9px;
+    text-transform: uppercase;
+    margin: 0 0 10px;
+  }
+  .caps-feeds-block .caps-chips {
+    display: flex; gap: 6px; flex-wrap: wrap;
+  }
+  .caps-feeds-block .cap-chip {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 4px 9px 4px 8px;
+    border-radius: 999px;
+    background: var(--ios-purple-tint);
+    border: 0.5px solid var(--ios-purple-soft);
+    color: var(--ios-purple-deep);
+    font-size: 11px; font-weight: 500;
+    letter-spacing: -0.05px;
+  }
+
+  /* Footer CTA */
+  .concept-footer {
+    flex-shrink: 0;
+    padding: 10px 14px 14px;
+    background: #FFFFFF;
+    border-top: 0.5px solid var(--gray-5);
+  }
+  .concept-footer .btn {
+    width: 100%;
+    background: var(--ios-blue); color: #fff;
+    border: 0; border-radius: 14px;
+    padding: 12px 16px;
+    font-family: inherit;
+    font-size: 14.5px; font-weight: 600;
+    letter-spacing: -0.2px;
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  }
+  .concept-footer .btn i { font-size: 16px; }
+  .concept-footer .hint {
+    text-align: center;
+    margin-top: 6px;
+    font-size: 10.5px; color: var(--label-3);
+  }
+  .concept-footer .hint .em { color: var(--label-2); font-weight: 600; }
+
+  /* ============================================================
+     How a concept connects to steps — diagram block
+     ============================================================ */
+  .threading-diagram {
+    max-width: 1200px;
+    margin: 22px auto 0;
+    background: rgba(255,255,255,0.55);
+    border: 0.5px solid var(--stage-line);
+    border-radius: 14px;
+    padding: 24px 28px;
+  }
+  .threading-diagram .row {
+    display: grid;
+    grid-template-columns: 200px 1fr 200px 1fr 200px;
+    gap: 14px;
+    align-items: center;
+  }
+  .threading-diagram .node {
+    background: #FFFFFF;
+    border: 0.5px solid var(--gray-5);
+    border-radius: 12px;
+    padding: 14px;
+  }
+  .threading-diagram .node .pill-mini {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 3px 8px 3px 7px;
+    border-radius: 999px;
+    font-size: 9.5px; font-weight: 700;
+    letter-spacing: 0.5px; text-transform: uppercase;
+  }
+  .threading-diagram .node .pill-mini .dot { width: 6px; height: 6px; border-radius: 50%; }
+  .threading-diagram .node .pill-mini.purple { background: var(--ios-purple-tint); color: var(--ios-purple-deep); border: 0.5px solid var(--ios-purple-soft); }
+  .threading-diagram .node .pill-mini.purple .dot { background: var(--ios-purple); }
+  .threading-diagram .node .pill-mini.coral  { background: var(--ios-coral-tint); color: var(--ios-coral-deep); border: 0.5px solid var(--ios-coral-soft); }
+  .threading-diagram .node .pill-mini.coral .dot  { background: var(--ios-coral); }
+  .threading-diagram .node .pill-mini.green  { background: var(--ios-green-tint); color: var(--ios-green-deep); border: 0.5px solid var(--ios-green-soft); }
+  .threading-diagram .node .pill-mini.green .dot  { background: var(--ios-green); }
+  .threading-diagram .node h5 {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-style: italic;
+    font-size: 14px; font-weight: 500;
+    color: var(--label); letter-spacing: -0.15px;
+    margin: 8px 0 4px;
+    line-height: 1.2;
+  }
+  .threading-diagram .node p {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 11.5px; line-height: 1.45;
+    color: #4D4A43; margin: 0;
+  }
+  .threading-diagram .node p em { font-style: italic; }
+  .threading-diagram .arrow svg { display: block; margin: 0 auto; }
+  .threading-diagram .arrow-label {
+    text-align: center; margin-top: 6px;
+    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 9.5px; font-weight: 700;
+    color: var(--ios-purple-deep); letter-spacing: 0.7px;
+    text-transform: uppercase;
+  }
+  .threading-diagram .top-row {
+    text-align: center;
+    margin-bottom: 18px;
+  }
+  .threading-diagram .top-row h4 {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-style: italic;
+    font-size: 17px; font-weight: 500;
+    color: var(--stage-ink); letter-spacing: -0.2px;
+    margin: 0 0 4px;
+  }
+  .threading-diagram .top-row p {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 13px; line-height: 1.5;
+    color: var(--stage-text); margin: 0; font-style: italic;
+  }
+
+</style>
+</head>
+<body>
+
+<div class="page">
+
+  <header class="page-head">
+    <p class="eyebrow">BetterAt · Playbook Tab — Canonical · 2026-05-17</p>
+    <h1>The <em>Playbook tab</em>: where you develop your understanding of the field — concepts as the unit, not steps</h1>
+    <p>Playbook is one of two long-arc surfaces in the product. <strong>Practice</strong> is where you take action; <strong>Playbook</strong> is where you develop your understanding. The unit is the <em>concept</em>. You come across a half-thought reading an article, hear someone say something on a late-night nursing shift, write a line in Reflect that feels bigger than the step — and you drop it into Playbook. Over time, that raw insight gets refined: it acquires a name, gets linked to active steps for testing, and eventually <em>settles</em> as part of your foundations. Three decisions land here (D18–D20), plus the four-tab spine made explicit and the Concept detail surface rendered in the same iOS register the rest of the product uses.</p>
+    <div class="crumbs">
+      <span class="pill">iPhone 16e · portrait · 393 × 852</span>
+      <span class="sep">·</span>
+      <span class="pill">Builds on · <em>becoming-loop-canonical · D10</em></span>
+      <span class="sep">·</span>
+      <span class="pill">Reskins · <em>Concept · Trust the shift</em></span>
+      <span class="sep">·</span>
+      <span class="pill">Adds · <em>D18 zones · D19 lifecycle · D20 entry points</em></span>
+    </div>
+  </header>
+
+  <!-- =============================================================== -->
+  <!-- §1 · Four-tab spine                                              -->
+  <!-- =============================================================== -->
+  <section class="section-band">
+    <h2><span class="badge" style="background: rgba(194, 138, 42, 0.10); color: var(--ios-amber);">Spine</span><em>The four-tab spine</em>, made explicit</h2>
+    <p class="lede">One verb per tab. One unit per tab. One thing that accumulates. Read left to right — these aren't a navigation; they're the four layers of becoming. <strong>Practice</strong> is the action layer, <strong>Playbook</strong> the understanding layer, <strong>Discover</strong> the social-input layer, <strong>Profile</strong> the public layer where the loop becomes shareable. Two long-arc threads run beneath: <em>capability evidence</em> (Practice → Profile) and <em>concept refinement</em> (Playbook → Profile).</p>
+
+    <div class="spine-row">
+      <div class="spine-tab">
+        <span class="tab-eye"><span class="ic"><i class="ti ti-flag-3"></i></span>Practice</span>
+        <h3>Take action.</h3>
+        <p class="verb">Do<span class="em">verb</span></p>
+        <p class="body">The doing layer. Plan a step · execute it (capture during) · reflect on it. The horizontal timeline of steps. Hinges between adjacent steps name the time that filled them.</p>
+        <p class="unit-line">unit · <span class="em coral">step</span> · accumulates · <span class="em">capability evidence</span></p>
+      </div>
+      <div class="spine-tab on">
+        <span class="tab-eye"><span class="ic"><i class="ti ti-book-2"></i></span>Playbook</span>
+        <h3>Refine your understanding.</h3>
+        <p class="verb">Think<span class="em">verb</span></p>
+        <p class="body">The understanding layer. Raw insights captured anywhere → refined into concepts → tested in steps → settled into your foundations. Concepts have their own lifecycle, separate from steps.</p>
+        <p class="unit-line">unit · <span class="em purple">concept</span> · accumulates · <span class="em">foundations of the field</span></p>
+      </div>
+      <div class="spine-tab">
+        <span class="tab-eye"><span class="ic"><i class="ti ti-compass"></i></span>Discover</span>
+        <h3>Find your network.</h3>
+        <p class="verb">Find<span class="em">verb</span></p>
+        <p class="body">The social-input layer. Organizations (RHKYC, JHU School of Nursing). People (mentors, peers). Blueprints (paths to subscribe to). Suggestions to feed Plan and Playbook.</p>
+        <p class="unit-line">unit · <span class="em">blueprint / person / org</span> · accumulates · <span class="em">subscriptions &amp; follows</span></p>
+      </div>
+      <div class="spine-tab">
+        <span class="tab-eye"><span class="ic"><i class="ti ti-user-circle"></i></span>Profile</span>
+        <h3>Show what you've become.</h3>
+        <p class="verb">Show<span class="em">verb</span></p>
+        <p class="body">The credential layer. Capability map · Profile of Becoming · public URL. Where the practice loop becomes shareable — to a hiring captain, to a cohort, to yourself.</p>
+        <p class="unit-line">unit · <span class="em green">evidence + concept</span> · accumulates · <span class="em amber">becoming</span></p>
+      </div>
+    </div>
+  </section>
+
+  <!-- =============================================================== -->
+  <!-- Decisions bar                                                    -->
+  <!-- =============================================================== -->
+  <section class="decisions-bar">
+    <div class="dec">
+      <h5>D18 · Three zones on landing</h5>
+      <p><strong>Recent insights</strong> (raw, dashed) · <strong>Concepts in development</strong> (Forming / Testing) · <strong>Settled foundations</strong> (italic-serif library). Top-to-bottom by lifecycle stage.</p>
+    </div>
+    <div class="dec">
+      <h5>D19 · Concept lifecycle</h5>
+      <p>Four stages: <strong>Seed → Forming → Testing → Settled</strong>. Colors: gray · amber · purple · green. Parallel to capability levels but its own grammar — concepts are about <em>understanding</em>, not skill.</p>
+    </div>
+    <div class="dec">
+      <h5>D20 · Four entry points</h5>
+      <p>Universal <code>+ Drop a concept</code> · long-press a capture → <em>Mark as concept seed</em> · long-press a reflection paragraph → same · long-press someone else's step → <em>Save the idea behind this</em>.</p>
+    </div>
+  </section>
+
+  <!-- =============================================================== -->
+  <!-- §2 · Concept lifecycle micro-diagram                             -->
+  <!-- =============================================================== -->
+  <section class="section-band">
+    <h2><span class="badge" style="background: var(--ios-purple-tint); color: var(--ios-purple-deep);">Lifecycle</span><em>Concept lifecycle</em> · four stages, four colors, one trajectory</h2>
+    <p class="lede">A concept enters as a <strong>seed</strong> — half-thought, no name yet. It moves to <strong>forming</strong> when the user returns to it (revisits, refines the language, adds a related quote). It graduates to <strong>testing</strong> the moment it's linked to an active step in Practice — that's the empirical moment, where understanding gets tried against doing. It <strong>settles</strong> when the user explicitly promotes it (or when the system detects it's been stably referenced across multiple settled steps). The state pill color tracks the stage.</p>
+
+    <div class="lifecycle-row">
+      <div class="lc-stage seed">
+        <span class="pill"><span class="dot"></span>Seed</span>
+        <h4>Seed</h4>
+        <p>Just captured. No name yet. One quote, one line, no shape.</p>
+      </div>
+      <div class="lc-arrow">
+        <svg viewBox="0 0 30 60" width="22" height="44" fill="none"><path d="M 4 30 L 24 30 M 18 24 L 24 30 L 18 36" stroke="#5856D6" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="lc-stage forming">
+        <span class="pill"><span class="dot"></span>Forming</span>
+        <h4>Forming</h4>
+        <p>Returned to 2+ times. Has a working title. Related quotes attached.</p>
+      </div>
+      <div class="lc-arrow">
+        <svg viewBox="0 0 30 60" width="22" height="44" fill="none"><path d="M 4 30 L 24 30 M 18 24 L 24 30 L 18 36" stroke="#5856D6" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="lc-stage testing">
+        <span class="pill"><span class="dot"></span>Testing</span>
+        <h4>Testing</h4>
+        <p>Linked to 1+ active step. Being tried against practice. The empirical moment.</p>
+      </div>
+      <div class="lc-arrow">
+        <svg viewBox="0 0 30 60" width="22" height="44" fill="none"><path d="M 4 30 L 24 30 M 18 24 L 24 30 L 18 36" stroke="#5856D6" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="lc-stage settled">
+        <span class="pill"><span class="dot"></span>Settled</span>
+        <h4>Settled</h4>
+        <p>Promoted. Part of your foundations. The phrase you'll hear back from yourself for years.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- =============================================================== -->
+  <!-- §3 · Playbook tab landing                                        -->
+  <!-- =============================================================== -->
+  <section class="section-band">
+    <h2><span class="badge">Landing</span><em>Playbook landing</em> · three zones by lifecycle stage</h2>
+    <p class="lede">The tab opens to a single scrollable surface organized top-down by concept maturity. Hero strip at the top names the playbook's totals. Zone 1 (<em>Recent insights</em>) shows raw captures awaiting refinement — dashed borders signal "not yet a concept." Zone 2 (<em>Concepts in development</em>) shows what you're actively working on — purple-or-amber state pills, italic-serif title in your own voice. Zone 3 (<em>Settled foundations</em>) is the closed library — your accumulated understanding, alphabetical or chronological. Tap any row in any zone to push into that concept's detail surface.</p>
+
+    <div class="single-row">
+      <div class="pane">
+        <div class="pane-eye"><span class="pip"></span>Playbook landing</div>
+        <p class="pane-title">Playbook · <em>three zones, one scroll</em></p>
+        <p class="pane-sub">Hero with stats · raw insights at top · concepts in development in the middle · settled foundations as the library at the bottom.</p>
+
+        <div class="phone-wrap">
+          <div class="phone">
+            <div class="notch"></div>
+            <div class="statusbar"><span>9:42</span><span class="right"><i class="ti ti-cell-signal-4"></i><i class="ti ti-wifi"></i><i class="ti ti-battery-3"></i></span></div>
+
+            <div class="screen playbook-screen" data-screen-label="Playbook landing">
+
+              <div class="top-header">
+                <div class="interest"><span class="name">Sail Racing</span><span class="switcher"><i class="ti ti-chevron-down"></i></span></div>
+                <span class="step-counter">Playbook</span>
+                <div class="right-cluster">
+                  <button class="ic"><i class="ti ti-search"></i></button>
+                  <button class="ic"><i class="ti ti-plus"></i></button>
+                  <div class="avatar">KD</div>
+                </div>
+              </div>
+
+              <article class="card" style="overflow: hidden;">
+
+                <div class="playbook-hero">
+                  <h1>Playbook</h1>
+                  <p class="lede-line">Your understanding of <em>sail racing</em> — refined.</p>
+                  <div class="stats-strip">
+                    <div class="stat">
+                      <span class="n">47</span>
+                      <span class="l">Insights</span>
+                    </div>
+                    <div class="stat testing">
+                      <span class="n">8</span>
+                      <span class="l">Testing</span>
+                    </div>
+                    <div class="stat settled">
+                      <span class="n">12</span>
+                      <span class="l">Settled</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="pb-body" style="overflow-y: auto;">
+
+                  <!-- Zone 1 · Recent insights -->
+                  <div>
+                    <div class="zone-head">
+                      <span class="ttl"><span class="dot gray"></span>Recent insights</span>
+                      <span class="count">3 of 7 · this week</span>
+                    </div>
+                    <div class="insight-stack">
+
+                      <div class="insight-card">
+                        <p class="src-line"><i class="ti ti-microphone"></i>From Race 3 Debrief · 2 days ago</p>
+                        <p class="body-i">"The right side won — but I was on the right side for the wrong reason. I want the discipline to know the difference."</p>
+                        <div class="actions">
+                          <button class="refine"><i class="ti ti-sparkles"></i>Refine into concept</button>
+                          <button class="discard">Discard</button>
+                        </div>
+                      </div>
+
+                      <div class="insight-card">
+                        <p class="src-line"><i class="ti ti-bulb"></i>From + Drop a concept · 4 days ago</p>
+                        <p class="body-i">Heard Sam say: "Boat speed is permission to think." Want to think about what that means.</p>
+                        <div class="actions">
+                          <button class="refine"><i class="ti ti-sparkles"></i>Refine into concept</button>
+                          <button class="discard">Discard</button>
+                        </div>
+                      </div>
+
+                      <div class="insight-card">
+                        <p class="src-line"><i class="ti ti-bookmark"></i>From Phyl's timeline · 6 days ago</p>
+                        <p class="body-i">Idea behind her pre-start drill: <em>"Pick the favored end, then bail without losing a length."</em></p>
+                        <div class="actions">
+                          <button class="refine"><i class="ti ti-sparkles"></i>Refine into concept</button>
+                          <button class="discard">Discard</button>
+                        </div>
+                      </div>
+
+                    </div>
+                  </div>
+
+                  <!-- Zone 2 · Concepts in development -->
+                  <div>
+                    <div class="zone-head">
+                      <span class="ttl"><span class="dot purple"></span>Concepts in development</span>
+                      <span class="count">4 of 8 · 3 testing · 5 forming</span>
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 8px;">
+
+                      <div class="concept-card testing">
+                        <div class="head-row">
+                          <span class="state-pill-mini"><span class="dot"></span>Testing</span>
+                          <span class="when">5 days · linked to 3 steps</span>
+                        </div>
+                        <p class="title-c">"Trust the shift, not just the side."</p>
+                        <p class="meta-row">
+                          <span class="meta-it"><i class="ti ti-flag-3"></i><span class="em">Race 4</span></span>
+                          <span class="meta-it"><i class="ti ti-quote"></i>5 quotes</span>
+                          <span class="meta-it"><i class="ti ti-sparkles"></i>tactical-decisions</span>
+                        </p>
+                      </div>
+
+                      <div class="concept-card testing">
+                        <div class="head-row">
+                          <span class="state-pill-mini"><span class="dot"></span>Testing</span>
+                          <span class="when">2 weeks · linked to 2 steps</span>
+                        </div>
+                        <p class="title-c">"The conditions where my technique lives."</p>
+                        <p class="meta-row">
+                          <span class="meta-it"><i class="ti ti-flag-3"></i><span class="em">Heavy-air path</span></span>
+                          <span class="meta-it"><i class="ti ti-quote"></i>6 quotes</span>
+                        </p>
+                      </div>
+
+                      <div class="concept-card forming">
+                        <div class="head-row">
+                          <span class="state-pill-mini"><span class="dot"></span>Forming</span>
+                          <span class="when">1 week · 3 returns</span>
+                        </div>
+                        <p class="title-c">"Boat speed is permission to think."</p>
+                        <p class="meta-row">
+                          <span class="meta-it"><i class="ti ti-quote"></i>3 quotes</span>
+                          <span class="meta-it"><i class="ti ti-user"></i>Sam Cooke</span>
+                        </p>
+                      </div>
+
+                      <div class="concept-card forming">
+                        <div class="head-row">
+                          <span class="state-pill-mini"><span class="dot"></span>Forming</span>
+                          <span class="when">3 weeks · 4 returns</span>
+                        </div>
+                        <p class="title-c">"Permission rules before the start."</p>
+                        <p class="meta-row">
+                          <span class="meta-it"><i class="ti ti-quote"></i>4 quotes</span>
+                          <span class="meta-it"><i class="ti ti-sparkles"></i>discipline</span>
+                        </p>
+                      </div>
+
+                    </div>
+                  </div>
+
+                  <!-- Zone 3 · Settled foundations -->
+                  <div>
+                    <div class="zone-head">
+                      <span class="ttl"><span class="dot green"></span>Settled foundations</span>
+                      <span class="count">12 · accumulated</span>
+                    </div>
+                    <div class="settled-list">
+
+                      <div class="settled-row">
+                        <div>
+                          <p class="name">"Heavy-air is the conditions where your technique lives."</p>
+                          <p class="sub"><span class="em">Settled March 14</span> · 6 evidence steps</p>
+                        </div>
+                        <span class="ev-pip">FOUNDATIONS</span>
+                        <span class="chev"><i class="ti ti-chevron-right"></i></span>
+                      </div>
+
+                      <div class="settled-row">
+                        <div>
+                          <p class="name">"Write the rule before the start."</p>
+                          <p class="sub"><span class="em">Settled February 24</span> · 4 evidence steps</p>
+                        </div>
+                        <span class="ev-pip">FOUNDATIONS</span>
+                        <span class="chev"><i class="ti ti-chevron-right"></i></span>
+                      </div>
+
+                      <div class="settled-row">
+                        <div>
+                          <p class="name">"Hold the boat — don't pinch."</p>
+                          <p class="sub"><span class="em">Settled January 8</span> · 3 evidence steps</p>
+                        </div>
+                        <span class="ev-pip">FOUNDATIONS</span>
+                        <span class="chev"><i class="ti ti-chevron-right"></i></span>
+                      </div>
+
+                      <div class="settled-row">
+                        <div>
+                          <p class="name">"Lane choice matters more than line choice."</p>
+                          <p class="sub"><span class="em">Settled December 14</span> · 5 evidence steps</p>
+                        </div>
+                        <span class="ev-pip">FOUNDATIONS</span>
+                        <span class="chev"><i class="ti ti-chevron-right"></i></span>
+                      </div>
+
+                      <div class="settled-row">
+                        <div>
+                          <p class="name">"Stay in the breeze, not on the layline."</p>
+                          <p class="sub"><span class="em">Settled October 22</span> · 7 evidence steps</p>
+                        </div>
+                        <span class="ev-pip">FOUNDATIONS</span>
+                        <span class="chev"><i class="ti ti-chevron-right"></i></span>
+                      </div>
+
+                    </div>
+                  </div>
+
+                </div>
+
+              </article>
+
+              <nav class="tabbar">
+                <button class="t"><i class="ti ti-flag-3"></i><span>Practice</span></button>
+                <button class="t on"><i class="ti ti-book-2"></i><span>Playbook</span></button>
+                <button class="t"><i class="ti ti-compass"></i><span>Discover</span></button>
+                <button class="t"><i class="ti ti-user-circle"></i><span>Profile</span></button>
+              </nav>
+            </div>
+            <div class="home-indicator"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- =============================================================== -->
+  <!-- §4 · Concept detail in new register                              -->
+  <!-- =============================================================== -->
+  <section class="section-band">
+    <h2><span class="badge" style="background: var(--ios-green-tint); color: var(--ios-green-deep);">Concept</span><em>Concept detail</em> · the legacy concept reskinned to the iOS register</h2>
+    <p class="lede">The "Trust the shift, not just the side" concept rendered in the new card-on-gray chrome. State pill in the header names the lifecycle stage (Testing, here). Title block holds the concept's <strong>name in italic serif</strong> with selection provenance beneath. Body sections: <em>What you've come to understand</em> (synthesis), <em>The trail of moments</em> (quoted captures across steps that evidence this concept), <em>Tested in</em> (linked step mini-cards), <em>Capabilities it develops</em> (purple chips). Footer CTA is contextual to lifecycle — Forming concepts get <code>Link to a step</code>; Testing get <code>Promote to settled</code>; Settled get no CTA, just the trail.</p>
+
+    <div class="single-row">
+      <div class="pane concept">
+        <div class="pane-eye"><span class="pip"></span>Concept detail · Testing</div>
+        <p class="pane-title">Concept · <em>"Trust the shift, not just the side."</em></p>
+        <p class="pane-sub">Testing state. Five quotes accumulated. Three linked steps. CTA: <em>Promote to settled</em> appears once 4+ evidence steps reference it.</p>
+
+        <div class="phone-wrap">
+          <div class="phone">
+            <div class="notch"></div>
+            <div class="statusbar"><span>9:48</span><span class="right"><i class="ti ti-cell-signal-4"></i><i class="ti ti-wifi"></i><i class="ti ti-battery-3"></i></span></div>
+
+            <div class="screen concept-screen" data-screen-label="Concept · Trust the shift">
+
+              <div class="top-header">
+                <button class="back-btn"><i class="ti ti-chevron-left"></i><span>Playbook</span></button>
+                <span class="step-counter">Concept</span>
+                <div class="right-cluster">
+                  <button class="ic"><i class="ti ti-share-3"></i></button>
+                  <div class="avatar">KD</div>
+                </div>
+              </div>
+
+              <article class="card" style="display: flex; flex-direction: column;">
+
+                <header class="concept-state-head">
+                  <div class="state-pill purple">
+                    <span class="dot-blue" style="background: var(--ios-purple);"></span>
+                    <span class="label">Testing · linked to 3 steps</span>
+                  </div>
+                  <button class="menu"><i class="ti ti-dots-vertical"></i></button>
+                </header>
+
+                <section class="concept-title-block">
+                  <p class="surface-eye">Concept · Sail Racing playbook</p>
+                  <h1>"Trust the shift, not just the side."</h1>
+                  <p class="prov">
+                    <span class="em">First written · Race 3 Debrief · February</span>
+                    <span class="why">Surfaced because you returned to this phrase five times across three steps.</span>
+                  </p>
+                </section>
+
+                <div class="concept-body">
+
+                  <div class="synth-block">
+                    <p class="synth-eye">What you've come to understand</p>
+                    <p class="body">When you started writing about <em>"the right side"</em> in Race 3, the side was the unit of decision — pick the right side, win the side. But across the four races since, what you've actually been writing about is the <em>shift</em>. The side isn't a thing that wins or loses; it's the place where the breeze happens to land. <em>Trust the shift</em> means: the rule you wrote down before the race is more reliable than the side argument made in the moment. The phrase is becoming the rule you write before every start.</p>
+                    <p class="synth-prov">Synthesized from your quotes · drafted this morning</p>
+                  </div>
+
+                  <div class="trail-block">
+                    <p class="sec-eye">
+                      <span>The trail of moments</span>
+                      <span class="count">5 quotes · 3 steps</span>
+                    </p>
+
+                    <div class="trail-row">
+                      <p class="quote">"I held the right too long again — that was the second beat in three weeks I've written that sentence."</p>
+                      <p class="from"><span class="em">Race 3 Debrief</span> · February</p>
+                    </div>
+
+                    <div class="trail-row">
+                      <p class="quote">"The left was filling in. I had a rule. I didn't trust it."</p>
+                      <p class="from"><span class="em">A reflection between races</span> · March</p>
+                    </div>
+
+                    <div class="trail-row">
+                      <p class="quote">"If the left fills in past ten degrees on starboard, I will commit. Write it down."</p>
+                      <p class="from"><span class="em">Sam's note · Race 4 Prep</span> · March</p>
+                    </div>
+
+                    <div class="trail-row">
+                      <p class="quote">"The right side won — but I was on the right side for the wrong reason. I want the discipline to know the difference."</p>
+                      <p class="from"><span class="em">Race 4 Debrief</span> · 2 days ago</p>
+                    </div>
+
+                  </div>
+
+                  <div class="tested-block">
+                    <p class="sec-eye">Tested in</p>
+                    <div class="tested-strip">
+
+                      <div class="step-mini-card">
+                        <span class="pill-mini green"><span class="dot"></span>Settled</span>
+                        <p class="nm">Race 3 · 12 kn NE</p>
+                        <p class="meta-m"><span class="em">Feb 24</span> · 4th of 14</p>
+                      </div>
+
+                      <div class="step-mini-card">
+                        <span class="pill-mini green"><span class="dot"></span>Settled</span>
+                        <p class="nm">Race 4 · 18–22 kn NE</p>
+                        <p class="meta-m"><span class="em">2 days ago</span> · 7th of 14</p>
+                      </div>
+
+                      <div class="step-mini-card">
+                        <span class="pill-mini blue"><span class="dot"></span>Current</span>
+                        <p class="nm">Race 5 · Light-air starts</p>
+                        <p class="meta-m"><span class="em">In 2 days</span> · planning</p>
+                      </div>
+
+                    </div>
+                  </div>
+
+                  <div class="caps-feeds-block">
+                    <p class="sec-eye">Capabilities it develops</p>
+                    <div class="caps-chips">
+                      <span class="cap-chip">tactical-decisions</span>
+                      <span class="cap-chip">wind-reading</span>
+                      <span class="cap-chip">pre-start-discipline</span>
+                    </div>
+                  </div>
+
+                </div>
+
+                <div class="concept-footer">
+                  <button class="btn"><i class="ti ti-check"></i>Promote to settled</button>
+                  <p class="hint">5 quotes · 3 evidence steps · <span class="em">ready to close</span></p>
+                </div>
+
+              </article>
+
+              <nav class="tabbar">
+                <button class="t"><i class="ti ti-flag-3"></i><span>Practice</span></button>
+                <button class="t on"><i class="ti ti-book-2"></i><span>Playbook</span></button>
+                <button class="t"><i class="ti ti-compass"></i><span>Discover</span></button>
+                <button class="t"><i class="ti ti-user-circle"></i><span>Profile</span></button>
+              </nav>
+            </div>
+            <div class="home-indicator"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- =============================================================== -->
+  <!-- §5 · How a concept connects to steps                             -->
+  <!-- =============================================================== -->
+  <section class="section-band">
+    <h2><span class="badge" style="background: var(--ios-purple-tint); color: var(--ios-purple-deep);">Thread</span><em>How a concept connects to a step</em> · the empirical loop</h2>
+    <p class="lede">Concepts don't live in isolation in Playbook — they get <strong>tested</strong> in Practice. The threading runs in both directions: a concept proposes itself onto the Plan tab (as a "what you're working with" chip), gets exercised in Do (captures may evidence the concept), and confirms in Reflect (user marks "this step deepened my understanding of X"). Reflect's confirmation flows back to Playbook as a new trail quote on the concept.</p>
+
+    <div class="threading-diagram">
+      <div class="top-row">
+        <h4>"Trust the shift, not just the side."</h4>
+        <p>One concept · three appearances across one step</p>
+      </div>
+      <div class="row">
+        <div class="node">
+          <span class="pill-mini purple"><span class="dot"></span>On Plan</span>
+          <h5>Working with this concept</h5>
+          <p>Concept chip appears in the <em>WORKING WITH</em> row above the field-cards. Tapping the chip pushes to the concept's detail.</p>
+        </div>
+
+        <div class="arrow">
+          <svg viewBox="0 0 40 40" width="32" height="32" fill="none">
+            <path d="M 4 20 L 32 20 M 26 14 L 32 20 L 26 26" stroke="#5856D6" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <p class="arrow-label">Plan ➝ Do</p>
+        </div>
+
+        <div class="node">
+          <span class="pill-mini coral"><span class="dot"></span>On Do</span>
+          <h5>Evidence in the wild</h5>
+          <p>Any capture can <em>mark as evidence of concept</em> from its long-press menu. Tags the capture with this concept's id.</p>
+        </div>
+
+        <div class="arrow">
+          <svg viewBox="0 0 40 40" width="32" height="32" fill="none">
+            <path d="M 4 20 L 32 20 M 26 14 L 32 20 L 26 26" stroke="#5856D6" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <p class="arrow-label">Do ➝ Reflect</p>
+        </div>
+
+        <div class="node">
+          <span class="pill-mini green"><span class="dot"></span>On Reflect</span>
+          <h5>Confirmed, fed back</h5>
+          <p>"Did this step deepen your understanding of <em>'Trust the shift'</em>?" If yes, a new trail quote lands on the concept in Playbook.</p>
+        </div>
+      </div>
+    </div>
+
+    <p style="text-align: center; font-family: 'Iowan Old Style', 'Source Serif 4', Georgia, serif; font-style: italic; font-size: 13.5px; color: var(--stage-text); margin: 24px auto 0; max-width: 760px; line-height: 1.55;">
+      <strong style="color: var(--stage-ink); font-weight: 500; font-style: normal;">The empirical loop:</strong> a concept that survives this round-trip three or four times graduates to <em>Settled</em>. A concept that doesn't keep showing up in captures stays in <em>Forming</em> — the system's polite way of saying <em>"this might not be a real concept yet."</em>
+    </p>
+  </section>
+
+  <!-- =============================================================== -->
+  <!-- §6 · Rail                                                        -->
+  <!-- =============================================================== -->
+  <section class="rail-row">
+
+    <div class="rail-col">
+      <h4>1 · <em>Concepts are foundations, not notes.</em></h4>
+      <p>A note is something you write down so you don't forget. A concept is something you've come to understand. The Playbook tab is for the second kind. The dashed-border <em>insight</em> cards on Zone 1 are the holding pen for raw material; refinement (a name, a synthesis, a link to a step) is what promotes them. <em>"Note" is not a status in this system. "Concept" is.</em></p>
+      <p class="sig"><span class="swatch gray"></span>seed <span class="swatch amber"></span>forming <span class="swatch purple"></span>testing <span class="swatch green"></span>settled</p>
+    </div>
+
+    <div class="rail-col">
+      <h4>2 · <em>Italic serif is concept voice.</em></h4>
+      <p>Every concept title across the product is italic serif in the user's own quoted phrase. Same component as Trophy's titles, Reflect's moments-returned-to, and the synthesis blocks. The italic-serif-with-provenance grammar is the visual signal that <em>this is a phrase you wrote, not a system label</em>. Sans titles ("Race 4 in 18–22 knots") describe events; italic-serif titles ("Trust the shift, not just the side") describe understanding.</p>
+      <p class="sig"><span class="swatch ink"></span>events sans · concepts italic serif</p>
+    </div>
+
+    <div class="rail-col">
+      <h4>3 · <em>The empirical loop is the heart of the product.</em></h4>
+      <p>Concepts that don't survive contact with practice stay in <em>Forming</em>. Concepts that do — that keep showing up in captures and getting confirmed in reflections — graduate. This is the product's distinctive claim: <strong>understanding is earned by testing, not by writing</strong>. The lifecycle states aren't decorative; they enforce the discipline.</p>
+      <p class="sig"><span class="swatch purple"></span>tested in 3+ steps to graduate</p>
+    </div>
+
+    <div class="rail-col">
+      <h4>4 · <em>Knowledge enters from many places.</em></h4>
+      <p>The universal <code>+</code> sheet (D6) has a <em>Drop a concept</em> entry-point. Long-press a capture in Do tab to mark-as-concept-seed. Long-press a paragraph in Reflect for the same. Long-press someone else's step on their timeline to save the idea behind it. Four entry points, one inbox — Zone 1 on the Playbook landing. The user never has to think "where does this thought go?" — it goes to Playbook, and they refine it later.</p>
+      <p class="sig"><span class="swatch blue"></span>+ <span class="swatch coral"></span>capture <span class="swatch purple"></span>reflection <span class="swatch green"></span>others' steps</p>
+    </div>
+
+    <div class="rail-col">
+      <h4>5 · <em>The footer CTA tracks lifecycle.</em></h4>
+      <p>A <em>Forming</em> concept's CTA is <code>Link to a step</code> — pushing the user to test it. A <em>Testing</em> concept's CTA is <code>Promote to settled</code> — but only when it has 3+ evidence steps; otherwise the button is disabled with hint copy. A <em>Settled</em> concept has no footer CTA — it's a destination, not a doorway. <em>Same pattern as Trophy: when the artifact is complete, the chrome quiets.</em></p>
+      <p class="sig"><span class="swatch amber"></span>link to a step <span class="swatch purple"></span>promote <span class="swatch green"></span>no CTA</p>
+    </div>
+
+    <div class="rail-col">
+      <h4>6 · <em>Playbook + Practice = two parallel arcs feeding Profile.</em></h4>
+      <p>Capabilities accumulate from Practice (Plan tag → Do evidence → Reflect confirm). Concepts accumulate from Playbook (Insight → Forming → Testing → Settled). Both feed Profile — capabilities populate the capability map, concepts populate the foundations list. Both feed <em>Profile of Becoming</em> as long-arc evidence. <strong>Two arcs, one becoming.</strong></p>
+      <p class="sig"><span class="swatch coral"></span>capabilities <span class="swatch purple"></span>concepts → <span class="swatch amber"></span>becoming</p>
+    </div>
+
+  </section>
+
+</div>
+
+</body>
+</html>
