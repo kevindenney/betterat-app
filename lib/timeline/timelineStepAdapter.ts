@@ -5,6 +5,7 @@ const STATUS_MAP: Record<TimelineStepStatus, string> = {
   pending: 'scheduled',
   in_progress: 'in_progress',
   completed: 'completed',
+  settled: 'completed',
   skipped: 'abandoned',
 };
 

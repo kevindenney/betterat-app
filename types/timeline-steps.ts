@@ -2,7 +2,7 @@
 export type { StepMetadata, StepPlanData, StepActData, StepReviewData } from './step-detail';
 
 export type TimelineStepSourceType = 'manual' | 'template' | 'copied' | 'program_session' | 'blueprint';
-export type TimelineStepStatus = 'pending' | 'in_progress' | 'completed' | 'skipped';
+export type TimelineStepStatus = 'pending' | 'in_progress' | 'completed' | 'settled' | 'skipped';
 export type TimelineStepVisibility = 'private' | 'followers' | 'coaches' | 'organization';
 
 export type MapFeedScope = 'mine' | 'following' | 'coaches' | 'organization' | 'all';

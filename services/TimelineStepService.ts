@@ -16,15 +16,12 @@ import type {
   TimelineStepRecord,
   CreateTimelineStepInput,
   UpdateTimelineStepInput,
-  TimelineStepListFilters,
 } from '@/types/timeline-steps';
 import type { StepMetadata } from '@/types/step-detail';
 import type {
   CourseLesson,
   CourseStructure,
-  LibraryResourceRecord,
 } from '@/types/library';
-import { getAllLessons } from '@/types/library';
 
 const logger = createLogger('TimelineStepService');
 
@@ -176,7 +173,7 @@ export async function updateStepMetadata(
 
     // Deep merge: for each top-level key (plan, act, review), merge objects
     const merged: StepMetadata = { ...existingMetadata };
-    for (const key of Object.keys(partialMetadata) as Array<keyof StepMetadata>) {
+    for (const key of Object.keys(partialMetadata) as (keyof StepMetadata)[]) {
       const existing = merged[key];
       const incoming = partialMetadata[key];
       if (
@@ -195,7 +192,7 @@ export async function updateStepMetadata(
 
     // Extract platform collaborator user_ids for the denormalized RLS column
     const collaborators = (merged.plan as any)?.collaborators as
-      | Array<{ type: string; user_id?: string }>
+      | { type: string; user_id?: string }[]
       | undefined;
     const collaboratorUserIds = (collaborators ?? [])
       .filter((c) => c.type === 'platform' && c.user_id)
@@ -322,7 +319,7 @@ export async function updateStep(
 
     // Auto-set completed_at when status changes
     const payload: Record<string, unknown> = { ...input };
-    if (input.status === 'completed') {
+    if (input.status === 'completed' || input.status === 'settled') {
       payload.completed_at = new Date().toISOString();
     } else if (input.status) {
       payload.completed_at = null;
