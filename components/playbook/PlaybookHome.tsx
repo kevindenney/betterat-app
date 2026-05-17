@@ -30,6 +30,7 @@ import {
   usePlaybookSuggestions,
 } from '@/hooks/usePlaybook';
 import { PlaybookAIService } from '@/services/ai/PlaybookAIService';
+import { useUniversalPlus } from '@/components/capture';
 import { VisionCard } from './VisionCard';
 import { AskYourPlaybook } from './AskYourPlaybook';
 import { SuggestionsBar } from './SuggestionsBar';
@@ -51,6 +52,7 @@ import { FeatureErrorBoundary } from '@/components/ui/FeatureErrorBoundary';
 const SIDEBAR_BREAKPOINT = 1000;
 
 export function PlaybookHome() {
+  const universalPlus = useUniversalPlus();
   const { currentInterest, loading: interestLoading } = useInterest();
   const { width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
@@ -241,7 +243,10 @@ export function PlaybookHome() {
             icon: 'add',
             sfSymbol: 'plus',
             label: 'Quick capture',
-            onPress: () => setQuickCaptureOpen(true),
+            onPress: () =>
+              universalPlus.isAvailable
+                ? universalPlus.open()
+                : setQuickCaptureOpen(true),
           },
           {
             icon: 'sparkles',

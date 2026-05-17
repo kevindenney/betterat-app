@@ -8,6 +8,7 @@ import {
 } from '@/components/cards';
 import { TimelineGridView } from '@/components/cards/TimelineGridView';
 import { openInterestSwitcher } from '@/components/InterestSwitcher';
+import { useUniversalPlus } from '@/components/capture';
 import { BlueprintWelcomeCard } from '@/components/races/BlueprintWelcomeCard';
 import { DragonWorldsPracticeWelcomeBanner } from '@/components/races/DragonWorldsPracticeWelcomeBanner';
 
@@ -186,6 +187,7 @@ const normalizeDocumentType = (
 const EMPTY_RACES: any[] = [];
 
 export default function RacesScreen() {
+  const universalPlus = useUniversalPlus();
   const auth = useAuth();
   const { user, userProfile: _userProfile, signedIn, ready, isDemoSession, userType, isGuest, enterGuestMode, wasAuthenticated } = auth;
   const { isTourActive: _isTourActive, currentStep: _currentStep, triggerPricingPrompt } = useFeatureTourContext();
@@ -5074,7 +5076,13 @@ export default function RacesScreen() {
           isOnline={isOnline}
           isGridView={isGridView}
           onToggleGridView={handleToggleGridView}
-          onAddPress={() => setShowAddStepSheet(true)}
+          onAddPress={() => {
+            if (universalPlus.isAvailable) {
+              universalPlus.open();
+            } else {
+              setShowAddStepSheet(true);
+            }
+          }}
           onAddRace={isSailingInterest ? handleShowAddRaceSheet : handleAddStep}
           onAddStep={isSailingInterest ? handleAddStep : undefined}
           onAddButtonLayout={setAddButtonLayout}
@@ -5137,7 +5145,7 @@ export default function RacesScreen() {
         )}
       </View>
 
-      {FEATURE_FLAGS.PRACTICE_ADD_STEP_FAB && (
+      {FEATURE_FLAGS.PRACTICE_ADD_STEP_FAB && !FEATURE_FLAGS.PRACTICE_STEP_LOOP_IOS_REGISTER && (
         <AddStepFab
           onPress={() => setShowCanonicalAddStepSheet(true)}
           style={{
@@ -5145,6 +5153,9 @@ export default function RacesScreen() {
             // Canonical Add Step Flow 2026-05-15: 16pt from right edge and
             // 16pt above the 84pt tab bar (insets.bottom covers the safe
             // area overlap with the home indicator).
+            // Phase 1 · iOS register: the FAB retires when the step-loop
+            // register is on — its job moves to the universal `+` sheet
+            // shipping in Phase 2.
             right: 16,
             bottom: insets.bottom + 84 + 16,
             zIndex: 120,

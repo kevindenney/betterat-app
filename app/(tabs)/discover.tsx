@@ -26,6 +26,7 @@ import { IOSSegmentedControl } from '@/components/ui/ios/IOSSegmentedControl';
 import { TabScreenToolbar } from '@/components/ui/TabScreenToolbar';
 import { useScrollToolbarHide } from '@/hooks/useScrollToolbarHide';
 import { IOS_COLORS } from '@/lib/design-tokens-ios';
+import { useUniversalPlus } from '@/components/capture';
 
 // =============================================================================
 // TYPES & CONSTANTS
@@ -63,6 +64,7 @@ function resolveSegmentParam(raw: string | string[] | undefined): DiscoverSegmen
 // =============================================================================
 
 export default function DiscoverTab() {
+  const universalPlus = useUniversalPlus();
   const params = useLocalSearchParams<{ segment?: string }>();
   const insets = useSafeAreaInsets();
   const [toolbarHeight, setToolbarHeight] = useState(0);
@@ -165,6 +167,16 @@ export default function DiscoverTab() {
             label: 'Notifications',
             onPress: () => router.push('/social-notifications'),
           },
+          ...(universalPlus.isAvailable
+            ? [
+                {
+                  icon: 'add-outline',
+                  sfSymbol: 'plus',
+                  label: 'Add',
+                  onPress: () => universalPlus.open(),
+                },
+              ]
+            : []),
           {
             icon: 'sparkles-outline',
             sfSymbol: 'wand.and.stars',
