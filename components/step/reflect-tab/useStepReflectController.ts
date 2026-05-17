@@ -22,6 +22,8 @@ import {
 import { dropInsight } from '@/services/QuickCaptureService';
 import { addConceptTrailQuote, getStepConceptLinks } from '@/services/PlaybookService';
 import { supabase } from '@/services/supabase';
+import { encodeHingeId } from '@/services/HingeBuildService';
+import { FEATURE_FLAGS } from '@/lib/featureFlags';
 import type {
   CapabilityEvidenceRow,
   EvidenceStrength,
@@ -443,6 +445,27 @@ export function useStepReflectController({
       );
       await updateStep.mutateAsync({ stepId, input: { status: 'settled' } });
       queryClient.invalidateQueries({ queryKey: ['timeline-steps'] });
+
+      if (FEATURE_FLAGS.PRACTICE_STEP_LOOP_IOS_REGISTER && step.user_id && step.interest_id) {
+        try {
+          const { data: nextRow } = await supabase
+            .from('timeline_steps')
+            .select('id')
+            .eq('user_id', step.user_id)
+            .eq('interest_id', step.interest_id)
+            .in('status', ['pending', 'in_progress'])
+            .order('sort_order', { ascending: true })
+            .order('created_at', { ascending: true })
+            .limit(1)
+            .maybeSingle();
+          const nextStepId = (nextRow as { id?: string } | null)?.id;
+          if (nextStepId) {
+            router.push(`/practice/hinges/${encodeHingeId(stepId, nextStepId)}` as any);
+          }
+        } catch {
+          // Best-effort: if the next-step lookup fails, leave the user on Reflect.
+        }
+      }
     } finally {
       setSettling(false);
     }
