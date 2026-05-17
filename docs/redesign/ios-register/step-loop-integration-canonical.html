@@ -1,0 +1,2256 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=1720" />
+<title>BetterAt · Step Loop · Plan · Do · Reflect — Canonical · 2026-05-17</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css" />
+<link rel="stylesheet" href="legacy-reskin-common.css?v=1" />
+<style>
+  .page { min-width: 1720px; }
+
+  /* ============= Section frame ============= */
+  .section-band {
+    max-width: 1660px;
+    margin: 80px auto 0;
+    padding-top: 36px;
+    border-top: 0.5px solid var(--stage-line);
+  }
+  .section-band:first-of-type { margin-top: 24px; border-top: 0; padding-top: 0; }
+  .section-band h2 {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 24px; font-weight: 500; letter-spacing: -0.3px;
+    color: var(--stage-ink);
+    margin: 0 0 8px;
+  }
+  .section-band h2 em { font-style: italic; }
+  .section-band h2 .badge {
+    display: inline-block;
+    background: var(--ios-blue-tint);
+    color: var(--ios-blue-deep);
+    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 10.5px; font-weight: 700;
+    letter-spacing: 0.7px;
+    text-transform: uppercase;
+    padding: 3px 8px;
+    border-radius: 999px;
+    vertical-align: 4px;
+    margin-right: 10px;
+  }
+  .section-band .lede {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 15px; line-height: 1.55;
+    color: var(--stage-text); margin: 0 0 28px;
+    max-width: 1080px;
+    text-wrap: pretty;
+  }
+  .section-band .lede em { font-style: italic; }
+  .section-band .lede strong { color: var(--stage-ink); font-weight: 500; }
+
+  /* ============= Pair / triple row ============= */
+  .pair-row, .triple-row {
+    display: grid;
+    gap: 28px;
+    align-items: flex-start;
+    justify-content: center;
+    max-width: 1660px;
+    margin: 0 auto;
+  }
+  .pair-row   { grid-template-columns: 1fr 64px 1fr; }
+  .triple-row { grid-template-columns: repeat(3, 1fr); }
+
+  .pane {
+    display: flex; flex-direction: column; align-items: center; gap: 14px;
+  }
+  .pane .pane-eye {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-size: 10.5px; font-weight: 700;
+    letter-spacing: 0.9px; text-transform: uppercase;
+    color: var(--stage-text);
+  }
+  .pane .pane-eye .pip {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--gray-3);
+  }
+  .pane.current .pane-eye .pip { background: var(--gray-2); }
+  .pane.target  .pane-eye .pip { background: var(--ios-blue); }
+  .pane.sheet   .pane-eye .pip { background: var(--ios-purple); }
+
+  .pane .pane-title {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 18px; font-weight: 500; letter-spacing: -0.25px;
+    color: var(--stage-ink); margin: 0;
+    text-wrap: balance; text-align: center;
+  }
+  .pane .pane-title em { font-style: italic; }
+  .pane .pane-sub {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 13px; font-style: italic;
+    color: var(--stage-text); margin: 0; line-height: 1.45;
+    max-width: 360px; text-wrap: pretty; text-align: center;
+  }
+
+  .migrate-arrow {
+    padding-top: 220px;
+    display: flex; flex-direction: column; align-items: center; gap: 10px;
+  }
+  .migrate-arrow svg { display: block; }
+  .migrate-arrow .label {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 12px; font-style: italic;
+    color: var(--stage-text); letter-spacing: -0.05px;
+    text-align: center; line-height: 1.4;
+  }
+
+  /* ============= Decisions bar ============= */
+  .decisions-bar {
+    max-width: 1660px;
+    margin: 32px auto 0;
+    padding: 22px 24px;
+    background: rgba(255,255,255,0.55);
+    border: 0.5px solid var(--stage-line);
+    border-radius: 14px;
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 24px;
+  }
+  .decisions-bar .dec h5 {
+    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 10.5px; font-weight: 700;
+    color: var(--ios-blue); letter-spacing: 0.7px;
+    text-transform: uppercase;
+    margin: 0 0 6px;
+  }
+  .decisions-bar .dec.new h5 { color: var(--ios-purple-deep); }
+  .decisions-bar .dec p {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 12.5px; line-height: 1.5;
+    color: var(--stage-text); margin: 0;
+    text-wrap: pretty;
+  }
+  .decisions-bar .dec p strong { color: var(--stage-ink); font-weight: 500; }
+  .decisions-bar .dec p em { font-style: italic; }
+
+  /* ============= Current-app phone (Plan/Do/Reflect today) ============= */
+  /* These styles target only .phone.current-app — recreating the live UI. */
+  .phone.current-app .screen {
+    background: #FFFFFF;
+    padding-top: 50px;
+    overflow: hidden;
+  }
+  .phone.current-app .app-head {
+    padding: 8px 16px 8px;
+    display: flex; align-items: flex-start; justify-content: space-between;
+    gap: 6px;
+  }
+  .phone.current-app .race-title {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
+    font-size: 28px; font-weight: 700; letter-spacing: -0.7px;
+    color: #000000;
+    line-height: 1;
+    display: inline-flex; align-items: center; gap: 8px;
+  }
+  .phone.current-app .race-title .sail-chip {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: 13px; font-weight: 500;
+    color: #1C1C1E;
+    background: #F2F2F7;
+    padding: 4px 8px;
+    border-radius: 999px;
+  }
+  .phone.current-app .race-title .sail-chip .dot {
+    width: 6px; height: 6px; border-radius: 50%; background: #007AFF;
+  }
+  .phone.current-app .race-title .sail-chip i { font-size: 11px; color: var(--label-3); }
+
+  .phone.current-app .right-cluster {
+    display: flex; align-items: center; gap: 6px;
+    background: #FFFFFF;
+    border: 0.5px solid var(--gray-5);
+    border-radius: 999px;
+    padding: 5px 9px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+  }
+  .phone.current-app .right-cluster .icon-btn {
+    position: relative;
+    background: none; border: 0; padding: 0;
+    color: var(--label);
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .phone.current-app .right-cluster .icon-btn i { font-size: 17px; }
+  .phone.current-app .right-cluster .badge {
+    position: absolute; top: -4px; right: -6px;
+    min-width: 15px; height: 15px; border-radius: 999px;
+    background: #FF3B30; color: #fff;
+    font-size: 9px; font-weight: 700;
+    display: inline-flex; align-items: center; justify-content: center;
+    padding: 0 3px;
+  }
+  .phone.current-app .right-cluster .weather-pill {
+    width: 20px; height: 20px; border-radius: 50%;
+    background: linear-gradient(135deg, #A8C5DC 0%, #6E8AAA 100%);
+    margin-left: 2px;
+    border: 0.5px solid rgba(0,0,0,0.05);
+  }
+
+  .phone.current-app .meta-row {
+    padding: 4px 16px 12px;
+    display: flex; gap: 8px; align-items: center;
+  }
+  .phone.current-app .meta-row .trophy-pill {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 5px 11px 5px 9px;
+    border-radius: 999px;
+    background: #F8F4E8;
+    border: 0.5px solid #EAE0C3;
+    font-size: 11.5px; font-weight: 500; color: var(--label-2);
+  }
+  .phone.current-app .meta-row .trophy-pill i { font-size: 12px; color: #C28A2A; }
+  .phone.current-app .meta-row .step-picker {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 5px 10px 5px 11px;
+    border-radius: 999px;
+    background: #FFFFFF;
+    border: 0.5px solid var(--gray-4);
+    font-size: 11.5px; font-weight: 500; color: var(--label);
+  }
+  .phone.current-app .meta-row .step-picker i { font-size: 12px; color: var(--label-3); }
+
+  .phone.current-app .step-card {
+    margin: 0 14px;
+    background: #FFFFFF;
+    border-radius: 18px;
+    border: 0.5px solid var(--gray-5);
+    box-shadow:
+      0 1px 2px rgba(0,0,0,0.04),
+      0 14px 32px -20px rgba(0,0,0,0.10);
+    padding: 16px 16px 6px;
+    overflow: hidden;
+  }
+  .phone.current-app .step-card .status-row {
+    display: flex; align-items: center; justify-content: space-between;
+    margin: 0 0 14px;
+  }
+  .phone.current-app .step-card .planned-pill {
+    display: inline-flex; align-items: center; gap: 7px;
+    font-size: 12.5px; font-weight: 500; color: var(--label-2);
+  }
+  .phone.current-app .step-card .planned-pill .ring {
+    width: 14px; height: 14px; border-radius: 50%;
+    border: 1.5px solid var(--gray-3);
+  }
+  .phone.current-app .step-card .menu { font-size: 17px; color: var(--label-3); }
+  .phone.current-app .step-card .live-eye {
+    font-size: 11px; font-weight: 700;
+    color: #FF3B30; letter-spacing: 0.6px;
+    text-transform: uppercase;
+    display: inline-flex; align-items: center; gap: 5px;
+    margin: 0 0 6px;
+  }
+  .phone.current-app .step-card .live-eye .dot {
+    width: 6px; height: 6px; border-radius: 50%; background: #FF3B30;
+  }
+  .phone.current-app .step-card .untitled {
+    font-size: 22px; font-weight: 700; letter-spacing: -0.5px;
+    color: var(--label);
+    margin: 0;
+    line-height: 1.05;
+  }
+  .phone.current-app .step-card .untitled-hint {
+    font-size: 12.5px; font-style: italic;
+    color: var(--label-3); letter-spacing: -0.05px;
+    margin: 6px 0 12px;
+    display: inline-flex; align-items: center; gap: 5px;
+  }
+  .phone.current-app .step-card .untitled-hint i { font-size: 11px; }
+
+  .phone.current-app .step-card .phase-tabs {
+    display: flex; gap: 16px;
+    border-bottom: 0.5px solid var(--gray-5);
+    margin: 0 -16px;
+    padding: 0 16px;
+  }
+  .phone.current-app .step-card .phase-tab {
+    background: none; border: 0; padding: 4px 0 8px;
+    font-family: inherit;
+    font-size: 13px; font-weight: 500;
+    color: var(--label-3);
+    position: relative;
+    display: inline-flex; align-items: center; gap: 4px;
+  }
+  .phone.current-app .step-card .phase-tab .pip {
+    width: 5px; height: 5px; border-radius: 50%; background: #34C759;
+  }
+  .phone.current-app .step-card .phase-tab.on { color: #007AFF; font-weight: 600; }
+  .phone.current-app .step-card .phase-tab.on::after {
+    content: ""; position: absolute; left: 0; right: 0; bottom: -0.5px;
+    height: 2px; background: #007AFF; border-radius: 2px;
+  }
+
+  /* Do tab specifics (current) */
+  .phone.current-app .capturing-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 0 8px;
+    border-bottom: 0.5px solid var(--gray-5);
+  }
+  .phone.current-app .capturing-row .left {
+    display: inline-flex; align-items: center; gap: 7px;
+  }
+  .phone.current-app .capturing-row .left .pulse {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: #FF3B30;
+  }
+  .phone.current-app .capturing-row .left .lbl {
+    font-size: 13px; font-weight: 500; color: var(--label);
+  }
+  .phone.current-app .capturing-row .right {
+    display: flex; align-items: baseline; gap: 14px;
+    font-variant-numeric: tabular-nums;
+    color: var(--label-3);
+    font-size: 11px; letter-spacing: 0.4px;
+    text-transform: uppercase; font-weight: 600;
+  }
+  .phone.current-app .capturing-row .right .v {
+    font-size: 17px; font-weight: 600;
+    color: var(--label); letter-spacing: -0.4px;
+    text-transform: none;
+    margin-right: 4px;
+  }
+  .phone.current-app .step-marker {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 8px 4px;
+    font-size: 12.5px; color: var(--label);
+  }
+  .phone.current-app .step-marker i { font-size: 14px; color: #007AFF; }
+  .phone.current-app .step-marker .sep { color: var(--label-3); }
+
+  .phone.current-app .empty-stream {
+    border-top: 0.5px solid var(--gray-5);
+    padding: 12px 0 0;
+  }
+  .phone.current-app .empty-stream .small-eye {
+    font-size: 10px; font-weight: 700;
+    color: var(--label-3); letter-spacing: 0.7px;
+    text-transform: uppercase;
+    margin: 0 0 10px;
+    display: inline-flex; align-items: center; gap: 4px;
+  }
+  .phone.current-app .empty-stream .empty-slot {
+    border: 0.5px dashed var(--gray-4);
+    border-radius: 12px;
+    padding: 22px 16px;
+    text-align: center;
+    font-size: 12px; font-style: italic;
+    color: var(--label-3);
+    line-height: 1.4;
+  }
+  .phone.current-app .composer {
+    margin-top: 10px;
+    padding: 10px 12px;
+    border: 0.5px solid var(--gray-4);
+    border-radius: 18px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .phone.current-app .composer .add-ico {
+    width: 22px; height: 22px; border-radius: 50%;
+    background: var(--ios-blue-tint); color: var(--ios-blue);
+    display: inline-flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .phone.current-app .composer .add-ico i { font-size: 13px; }
+  .phone.current-app .composer .placeholder {
+    flex: 1;
+    font-size: 13px; color: var(--label-3);
+    letter-spacing: -0.05px;
+  }
+  .phone.current-app .composer .ic-pencil,
+  .phone.current-app .composer .ic-cam {
+    color: var(--label-2);
+    font-size: 17px;
+  }
+  .phone.current-app .composer .mic-red {
+    width: 30px; height: 30px; border-radius: 50%;
+    background: #FF6B6B; color: #fff;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .phone.current-app .composer .mic-red i { font-size: 14px; }
+
+  .phone.current-app .stop-cta {
+    margin-top: 14px;
+    text-align: center;
+    font-size: 15px; font-weight: 600;
+    color: #FF3B30;
+    padding: 8px 0;
+    display: inline-block;
+    width: 100%;
+  }
+
+  /* Activity Complete state (Do post-stop) */
+  .phone.current-app .complete-pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 10px 4px 9px;
+    border-radius: 999px;
+    background: #E8F8EC;
+    border: 0.5px solid #B6E3C2;
+  }
+  .phone.current-app .complete-pill i {
+    font-size: 12px; color: #248A3D;
+  }
+  .phone.current-app .complete-pill .lbl {
+    font-size: 10.5px; font-weight: 700;
+    color: #248A3D; letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+  .phone.current-app .auto-sum-card {
+    margin: 12px 0;
+    background: #F1F3F8;
+    border: 0.5px solid #D8DCE5;
+    border-radius: 14px;
+    padding: 11px 12px;
+  }
+  .phone.current-app .auto-sum-card .head {
+    display: flex; align-items: center; justify-content: space-between;
+    margin: 0 0 5px;
+  }
+  .phone.current-app .auto-sum-card .head .l {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: 9.5px; font-weight: 700;
+    color: #007AFF; letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+  .phone.current-app .auto-sum-card .head .l .ic {
+    width: 14px; height: 14px; border-radius: 50%;
+    background: #007AFF; color: #fff;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .phone.current-app .auto-sum-card .head .l .ic i { font-size: 8px; }
+  .phone.current-app .auto-sum-card .head .r {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 10px; color: var(--label-3);
+  }
+  .phone.current-app .auto-sum-card .body {
+    font-size: 12px; color: var(--label-2);
+    line-height: 1.4;
+    margin: 0;
+  }
+  .phone.current-app .move-to-reflect {
+    margin-top: 10px;
+    background: #007AFF;
+    color: #fff;
+    border: 0;
+    width: 100%;
+    border-radius: 14px;
+    padding: 13px 16px;
+    font-family: inherit;
+    font-size: 14.5px; font-weight: 600;
+    letter-spacing: -0.2px;
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  }
+
+  /* Reflect tab (current) */
+  .phone.current-app .reflect-section { padding: 12px 0; }
+  .phone.current-app .reflect-section .sec-eye {
+    font-size: 10px; font-weight: 700;
+    color: var(--label-3); letter-spacing: 0.9px;
+    text-transform: uppercase;
+    margin: 0 0 10px;
+  }
+  .phone.current-app .stars-row {
+    display: flex; gap: 14px;
+    margin: 0 0 8px;
+  }
+  .phone.current-app .stars-row .star {
+    color: var(--gray-3);
+    font-size: 28px;
+  }
+  .phone.current-app .stars-row .star i { font-size: 28px; }
+  .phone.current-app .stars-hint {
+    font-size: 12px; color: var(--label-3);
+    font-style: italic;
+  }
+  .phone.current-app .reflect-field {
+    margin-top: 14px;
+    padding: 12px;
+    border: 0.5px solid var(--gray-4);
+    border-radius: 12px;
+    font-size: 14px;
+    color: var(--label-3);
+    font-style: italic;
+    line-height: 1.4;
+    min-height: 62px;
+  }
+
+  .phone.current-app .fab {
+    position: absolute;
+    right: 18px; bottom: 100px;
+    width: 52px; height: 52px;
+    border-radius: 50%;
+    background: #007AFF;
+    color: #fff;
+    display: inline-flex; align-items: center; justify-content: center;
+    box-shadow:
+      0 8px 22px -4px rgba(0, 122, 255, 0.40),
+      0 1px 2px rgba(0,0,0,0.1);
+    z-index: 18;
+  }
+  .phone.current-app .fab i { font-size: 24px; }
+
+  .phone.current-app .tabbar-floating {
+    position: absolute;
+    bottom: 22px; left: 14px; right: 14px;
+    height: 62px; border-radius: 28px;
+    background: rgba(255, 255, 255, 0.72);
+    -webkit-backdrop-filter: blur(28px) saturate(180%);
+    backdrop-filter: blur(28px) saturate(180%);
+    border: 0.5px solid rgba(255,255,255,0.7);
+    box-shadow: 0 12px 28px -16px rgba(31, 29, 26, 0.20);
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    align-items: center; padding: 0 8px;
+    z-index: 20;
+  }
+  .phone.current-app .tabbar-floating .t {
+    display: flex; flex-direction: column; align-items: center; gap: 2px;
+    background: none; border: 0; padding: 6px 0;
+    color: var(--gray-1);
+    font-size: 10px;
+  }
+  .phone.current-app .tabbar-floating .t i { font-size: 21px; }
+  .phone.current-app .tabbar-floating .t.on { color: #007AFF; }
+
+  /* ==========================================================
+     TARGET — common surface inside .target wrap
+     ========================================================== */
+  .pane.target .top-header .right-cluster {
+    display: inline-flex; align-items: center; gap: 12px;
+  }
+  .pane.target .top-header .right-cluster .ic {
+    background: none; border: 0; padding: 0;
+    color: var(--label-2);
+    position: relative;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .pane.target .top-header .right-cluster .ic i { font-size: 19px; }
+  .pane.target .top-header .right-cluster .ic.timeline-ico i { color: var(--ios-blue); }
+  .pane.target .top-header .right-cluster .ic .badge {
+    position: absolute; top: -4px; right: -6px;
+    min-width: 14px; height: 14px; border-radius: 999px;
+    background: #FF3B30; color: #fff;
+    font-size: 9px; font-weight: 700;
+    display: inline-flex; align-items: center; justify-content: center;
+    padding: 0 3px;
+  }
+
+  .pane.target .card.step {
+    display: flex; flex-direction: column;
+  }
+  .pane.target .step-state-head {
+    padding: 13px 16px 10px;
+    display: flex; align-items: center; justify-content: space-between;
+    border-bottom: 0.5px solid var(--gray-5);
+  }
+  .pane.target .step-state-head .menu {
+    background: none; border: 0; padding: 0;
+    color: var(--label-3);
+  }
+  .pane.target .step-state-head .menu i { font-size: 17px; }
+
+  /* Re-anchor stats stacking — legacy-reskin-common scopes to .state-head, not .step-state-head */
+  .pane.target .step-state-head .stats {
+    display: flex; align-items: baseline; gap: 12px;
+    font-variant-numeric: tabular-nums;
+  }
+  .pane.target .step-state-head .stats .stat {
+    display: flex; flex-direction: column; align-items: flex-end;
+    line-height: 1;
+  }
+  .pane.target .step-state-head .stats .stat .num {
+    font-size: 17px; font-weight: 600;
+    color: var(--label); letter-spacing: -0.4px;
+    font-variant-numeric: tabular-nums;
+  }
+  .pane.target .step-state-head .stats .stat .lbl {
+    font-size: 9.5px; font-weight: 700;
+    color: var(--label-3); letter-spacing: 0.5px;
+    text-transform: uppercase;
+    margin-top: 3px;
+  }
+  .pane.target .step-state-head .stats .sep {
+    width: 0.5px; align-self: stretch;
+    background: var(--gray-5); margin: 2px 0;
+  }
+
+  .pane.target .step-strip .text .em { color: var(--label); font-weight: 600; }
+
+  .pane.target .step-title-block {
+    padding: 14px 18px 12px;
+    border-bottom: 0.5px solid var(--gray-5);
+  }
+  .pane.target .step-title-block .crumb-eye {
+    font-size: 10.5px; font-weight: 700;
+    color: var(--ios-blue); letter-spacing: 0.7px;
+    text-transform: uppercase;
+    display: inline-flex; align-items: center; gap: 6px;
+    margin: 0 0 6px;
+  }
+  .pane.target .step-title-block .crumb-eye .dot {
+    width: 6px; height: 6px; border-radius: 50%; background: var(--ios-blue);
+  }
+  .pane.target .step-title-block .crumb-eye.live { color: var(--ios-coral-deep); }
+  .pane.target .step-title-block .crumb-eye.live .dot { background: var(--ios-coral); }
+  .pane.target .step-title-block .crumb-eye.done { color: var(--ios-green-deep); }
+  .pane.target .step-title-block .crumb-eye.done .dot { background: var(--ios-green); }
+  .pane.target .step-title-block .untitled {
+    font-size: 21px; font-weight: 600; letter-spacing: -0.45px;
+    color: var(--label);
+    margin: 0; line-height: 1.12;
+  }
+  .pane.target .step-title-block .step-meta {
+    font-size: 11.5px; color: var(--label-3);
+    letter-spacing: -0.05px;
+    margin: 5px 0 0;
+    line-height: 1.4;
+  }
+  .pane.target .step-title-block .step-meta .em { color: var(--label-2); font-weight: 500; }
+  .pane.target .step-title-block .untitled-hint {
+    font-size: 12.5px; font-style: italic; font-weight: 400;
+    color: var(--label-3); letter-spacing: -0.05px;
+    margin: 5px 0 0;
+    display: inline-flex; align-items: center; gap: 5px;
+  }
+  .pane.target .step-title-block .untitled-hint i { font-size: 12px; }
+
+  .pane.target .phase-tabs {
+    display: flex; gap: 4px;
+    padding: 0 16px;
+    border-bottom: 0.5px solid var(--gray-5);
+  }
+  .pane.target .phase-tabs .ptab {
+    background: none; border: 0; padding: 10px 10px 12px;
+    font-family: inherit;
+    font-size: 13.5px; font-weight: 500;
+    color: var(--label-3); letter-spacing: -0.1px;
+    position: relative;
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .pane.target .phase-tabs .ptab.on { color: var(--ios-blue); font-weight: 600; }
+  .pane.target .phase-tabs .ptab.on::after {
+    content: ""; position: absolute; left: 10px; right: 10px; bottom: -0.5px;
+    height: 2px; background: var(--ios-blue); border-radius: 2px;
+  }
+  .pane.target .phase-tabs .ptab.on.live { color: var(--ios-coral-deep); }
+  .pane.target .phase-tabs .ptab.on.live::after { background: var(--ios-coral); }
+  .pane.target .phase-tabs .ptab.on.done { color: var(--ios-green-deep); }
+  .pane.target .phase-tabs .ptab.on.done::after { background: var(--ios-green); }
+  .pane.target .phase-tabs .ptab .ring {
+    width: 14px; height: 14px; border-radius: 50%;
+    flex-shrink: 0;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .pane.target .phase-tabs .ptab .ring.pending {
+    background: transparent;
+    border: 1.5px dashed var(--gray-3);
+  }
+  .pane.target .phase-tabs .ptab .ring.ready {
+    background: var(--ios-green);
+  }
+  .pane.target .phase-tabs .ptab .ring.ready::after {
+    content: "";
+    width: 6px; height: 3px;
+    border-left: 1.5px solid #fff;
+    border-bottom: 1.5px solid #fff;
+    transform: rotate(-45deg) translate(0.5px, -1px);
+  }
+  .pane.target .phase-tabs .ptab .ring.live {
+    background: var(--ios-coral);
+  }
+  .pane.target .phase-tabs .ptab .ring.live::after {
+    content: "";
+    width: 4px; height: 4px; border-radius: 50%;
+    background: #fff;
+  }
+
+  .pane.target .plan-body-scroll {
+    flex: 1; overflow: hidden;
+    padding: 12px 16px 8px;
+    display: flex; flex-direction: column; gap: 10px;
+    min-height: 0;
+  }
+
+  /* AI helper — quiet line (D5) */
+  .pane.target .ai-helper {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 11.5px; font-style: italic; font-weight: 400;
+    color: var(--label-3); letter-spacing: -0.05px;
+    margin: 0 2px 4px;
+    text-decoration: none;
+    background: none; border: 0; padding: 0;
+    cursor: pointer;
+  }
+  .pane.target .ai-helper i.spark { font-size: 12px; color: var(--ios-purple); }
+  .pane.target .ai-helper i.arrow { font-size: 12px; color: var(--label-3); }
+  .pane.target .ai-helper .em { color: var(--label-2); font-style: normal; font-weight: 500; }
+
+  /* Empty field cards (writable) */
+  .field-card {
+    background: #FFFFFF;
+    border: 0.5px solid var(--gray-5);
+    border-radius: 12px;
+    padding: 12px 14px;
+    position: relative;
+  }
+  .field-card .field-head {
+    display: flex; align-items: center; justify-content: space-between;
+    margin: 0 0 6px;
+  }
+  .field-card .field-head .eye {
+    font-size: 10px; font-weight: 700;
+    color: var(--label-2); letter-spacing: 0.9px;
+    text-transform: uppercase;
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .field-card .field-head .eye i { font-size: 12px; color: var(--label-3); }
+  .field-card .help-spark {
+    width: 22px; height: 22px; border-radius: 50%;
+    background: var(--ios-purple-tint);
+    color: var(--ios-purple);
+    border: 0;
+    display: inline-flex; align-items: center; justify-content: center;
+    cursor: pointer;
+  }
+  .field-card .help-spark i { font-size: 12px; }
+  .field-card .placeholder {
+    font-size: 13.5px; color: var(--label-3);
+    letter-spacing: -0.05px;
+    line-height: 1.4;
+    font-style: italic;
+  }
+  .field-card .filled-text {
+    font-size: 14px; color: var(--label);
+    letter-spacing: -0.05px;
+    line-height: 1.45;
+    font-style: normal;
+  }
+
+  /* Timed-or-not quiet row */
+  .timed-row {
+    border-top: 0.5px solid var(--gray-5);
+    margin-top: 6px;
+    padding-top: 12px;
+    display: grid;
+    grid-template-columns: 1fr 42px;
+    column-gap: 12px;
+    align-items: center;
+  }
+  .timed-row .eye {
+    font-size: 9.5px; font-weight: 700;
+    color: var(--label-2); letter-spacing: 0.9px;
+    text-transform: uppercase;
+    margin: 0 0 2px;
+  }
+  .timed-row .body {
+    font-size: 11.5px; color: var(--label-3);
+    letter-spacing: -0.05px;
+    line-height: 1.35;
+    margin: 0;
+  }
+  .ios-switch {
+    width: 42px; height: 26px; border-radius: 999px;
+    background: var(--gray-4);
+    position: relative;
+    flex-shrink: 0;
+    box-shadow: inset 0 0.5px 1px rgba(0,0,0,0.08);
+  }
+  .ios-switch::after {
+    content: ""; position: absolute; top: 2px; left: 2px;
+    width: 22px; height: 22px; border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.18);
+  }
+  .ios-switch.on { background: var(--ios-green); }
+  .ios-switch.on::after { transform: translateX(16px); }
+
+  .more-row {
+    margin-top: 2px;
+    padding: 10px 0 2px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .more-row .ttl {
+    font-size: 13.5px; font-weight: 600;
+    color: var(--label-2); letter-spacing: -0.1px;
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .more-row .ttl .count {
+    font-size: 10px; font-weight: 500;
+    color: var(--label-3); letter-spacing: 0.02em;
+  }
+  .more-row .chev { font-size: 14px; color: var(--label-3); }
+
+  /* ==========================================================
+     TARGET · Do tab body
+     ========================================================== */
+  .pane.target .do-stream {
+    flex: 1; overflow: hidden;
+    padding: 12px 14px 8px;
+    display: flex; flex-direction: column; gap: 8px;
+    min-height: 0;
+    position: relative;
+  }
+  .pane.target .do-stream::after {
+    content: "";
+    position: absolute; left: 0; right: 0; bottom: 0;
+    height: 24px;
+    background: linear-gradient(180deg, rgba(255,255,255,0) 0%, #fff 100%);
+    pointer-events: none;
+  }
+  .stream-eye {
+    display: flex; align-items: center; justify-content: space-between;
+    margin: 0 4px 2px;
+  }
+  .stream-eye .lbl {
+    font-size: 9.5px; font-weight: 700;
+    color: var(--label-3); letter-spacing: 0.7px;
+    text-transform: uppercase;
+  }
+  .stream-eye .lbl .arrow { color: var(--label-4); margin-right: 4px; }
+  .stream-eye .fresh {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 10px; font-weight: 600;
+    color: var(--ios-coral-deep); letter-spacing: 0.2px;
+  }
+  .stream-eye .fresh .dot {
+    width: 5px; height: 5px; border-radius: 50%;
+    background: var(--ios-coral);
+  }
+
+  .cap {
+    background: #FFFFFF;
+    border: 0.5px solid var(--gray-5);
+    border-left: 2.5px solid var(--gray-3);
+    border-radius: 12px;
+    padding: 10px 12px 11px;
+    display: grid;
+    grid-template-columns: 38px 1fr auto;
+    column-gap: 9px;
+    row-gap: 6px;
+    align-items: start;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.025);
+  }
+  .cap.voice  { border-left-color: var(--ios-blue); }
+  .cap.typed  { border-left-color: var(--gray-3); }
+  .cap.fresh {
+    background: linear-gradient(180deg, #FFFBF9 0%, #FFFFFF 70%);
+    box-shadow:
+      0 1px 2px rgba(0, 0, 0, 0.04),
+      0 0 0 1px rgba(255, 107, 107, 0.14);
+  }
+  .cap .ts {
+    font-size: 10.5px; font-weight: 600;
+    color: var(--label-3); letter-spacing: -0.05px;
+    font-variant-numeric: tabular-nums;
+    padding-top: 1px;
+  }
+  .cap .ts .ago {
+    display: block;
+    font-size: 9px; font-weight: 500;
+    color: var(--label-4); letter-spacing: 0.1px;
+    text-transform: uppercase;
+    margin-top: 2px;
+  }
+  .cap .body {
+    font-size: 12.5px; line-height: 1.4;
+    color: var(--label); letter-spacing: -0.1px;
+    text-wrap: pretty;
+  }
+  .cap.voice .body { font-style: italic; }
+  .cap .chip {
+    grid-column: 3; grid-row: 1;
+    align-self: start;
+    display: inline-flex; align-items: center;
+    padding: 2px 8px 3px;
+    border-radius: 999px;
+    background: var(--ios-coral-tint);
+    color: var(--ios-coral-deep);
+    font-size: 9.5px; font-weight: 700;
+    letter-spacing: 0.2px;
+    white-space: nowrap;
+  }
+
+  .composer-tgt {
+    position: absolute;
+    left: 14px; right: 14px;
+    bottom: 152px;
+    background: #FFFFFF;
+    border-radius: 18px;
+    border: 0.5px solid var(--gray-4);
+    box-shadow:
+      0 1px 2px rgba(0, 0, 0, 0.04),
+      0 14px 32px -16px rgba(0, 0, 0, 0.22),
+      0 4px 10px -6px rgba(0, 0, 0, 0.10);
+    padding: 10px 12px 10px 14px;
+    display: flex; align-items: center; gap: 10px;
+    z-index: 18;
+  }
+  .composer-tgt .field {
+    flex: 1;
+    display: flex; align-items: center; gap: 7px;
+    font-size: 13px;
+    color: var(--label-3);
+    letter-spacing: -0.1px;
+  }
+  .composer-tgt .field .ico-add {
+    width: 20px; height: 20px; border-radius: 50%;
+    background: var(--ios-blue-tint);
+    color: var(--ios-blue);
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .composer-tgt .field .ico-add i { font-size: 13px; }
+  .composer-tgt .actions {
+    display: flex; align-items: center; gap: 4px;
+  }
+  .composer-tgt .a-btn {
+    width: 32px; height: 32px; border-radius: 50%;
+    background: var(--gray-6); border: 0;
+    color: var(--label-2);
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .composer-tgt .a-btn i { font-size: 15px; }
+  .composer-tgt .mic-big {
+    width: 40px; height: 40px; border-radius: 50%;
+    background: var(--ios-coral); border: 0;
+    color: #fff;
+    display: inline-flex; align-items: center; justify-content: center;
+    margin-left: 2px;
+  }
+  .composer-tgt .mic-big i { font-size: 18px; }
+
+  .stop-cta-tgt {
+    position: absolute;
+    left: 14px; right: 14px;
+    bottom: 96px;
+    background: #FFFFFF;
+    border: 1px solid var(--ios-coral);
+    color: var(--ios-coral-deep);
+    border-radius: 14px;
+    padding: 12px 16px;
+    font-size: 14.5px; font-weight: 600;
+    letter-spacing: -0.2px;
+    display: flex; align-items: center; justify-content: center; gap: 7px;
+    z-index: 18;
+  }
+  .stop-cta-tgt .sq {
+    width: 10px; height: 10px;
+    background: var(--ios-coral);
+    border-radius: 2px;
+  }
+
+  /* ==========================================================
+     TARGET · Reflect tab body
+     ========================================================== */
+  .pane.target .reflect-body {
+    flex: 1; overflow: hidden;
+    padding: 14px 18px 10px;
+    display: flex; flex-direction: column; gap: 14px;
+    min-height: 0;
+  }
+  .pane.target .synth-helper {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 10px; font-weight: 700;
+    color: var(--ios-purple-deep); letter-spacing: 0.8px;
+    text-transform: uppercase;
+    margin: 0;
+  }
+  .pane.target .synth-helper .glyph {
+    width: 14px; height: 14px; border-radius: 50%;
+    background: var(--ios-purple); color: #fff;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .pane.target .synth-helper .glyph i { font-size: 8.5px; }
+  .pane.target .synth-prompt {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 16.5px; line-height: 1.45; font-style: italic;
+    color: var(--label); letter-spacing: -0.1px;
+    margin: 4px 0 0; text-wrap: pretty;
+  }
+  .pane.target .reflect-field {
+    background: #FAFAFC;
+    border: 0.5px solid var(--gray-5);
+    border-radius: 12px;
+    padding: 11px 12px;
+  }
+  .pane.target .reflect-field .q-eye {
+    font-size: 9.5px; font-weight: 700;
+    color: var(--label-2); letter-spacing: 0.9px;
+    text-transform: uppercase;
+    margin: 0 0 4px;
+  }
+  .pane.target .reflect-field .q-body {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 14px; font-style: italic; line-height: 1.45;
+    color: var(--label-3); letter-spacing: -0.05px;
+    margin: 0; min-height: 24px;
+    text-wrap: pretty;
+  }
+  .pane.target .reflect-field .q-body.filled {
+    color: var(--label); font-style: normal;
+  }
+
+  .pane.target .mic-prompt {
+    display: flex; flex-direction: column; align-items: center; gap: 8px;
+    padding: 4px 0 0;
+  }
+  .pane.target .mic-prompt .mic-coral {
+    width: 56px; height: 56px; border-radius: 50%;
+    background: var(--ios-coral); color: #fff; border: 0;
+    display: inline-flex; align-items: center; justify-content: center;
+    box-shadow:
+      0 4px 12px -2px rgba(255, 107, 107, 0.45),
+      0 1px 2px rgba(0,0,0,0.1);
+  }
+  .pane.target .mic-prompt .mic-coral i { font-size: 24px; }
+  .pane.target .mic-prompt .hint {
+    font-size: 11px; color: var(--label-3);
+    letter-spacing: -0.05px;
+    text-align: center;
+  }
+  .pane.target .mic-prompt .hint .em { color: var(--label-2); font-weight: 600; }
+
+  /* Footer CTA inside target card */
+  .pane.target .step-card-footer {
+    flex-shrink: 0;
+    padding: 10px 14px 14px;
+    background: #FFFFFF;
+    border-top: 0.5px solid var(--gray-5);
+  }
+  .pane.target .step-card-footer .btn {
+    width: 100%;
+    border: 0;
+    border-radius: 14px;
+    padding: 12px 16px;
+    font-family: inherit;
+    font-size: 14.5px; font-weight: 600;
+    letter-spacing: -0.2px;
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  }
+  .pane.target .step-card-footer .btn.disabled {
+    background: var(--gray-5); color: var(--label-3); cursor: not-allowed;
+  }
+  .pane.target .step-card-footer .btn.disabled i { color: var(--label-4); }
+  .pane.target .step-card-footer .btn.primary {
+    background: var(--ios-blue); color: #fff;
+    box-shadow: 0 6px 16px -4px rgba(0, 122, 255, 0.36), 0 1px 2px rgba(0,0,0,0.08);
+  }
+  .pane.target .step-card-footer .btn.coral {
+    background: #fff; color: var(--ios-coral-deep);
+    border: 1px solid var(--ios-coral);
+  }
+  .pane.target .step-card-footer .btn i { font-size: 16px; }
+  .pane.target .step-card-footer .hint {
+    text-align: center;
+    margin-top: 6px;
+    font-size: 10.5px; color: var(--label-3);
+  }
+  .pane.target .step-card-footer .hint .em { color: var(--label-2); font-weight: 600; }
+
+  /* ==========================================================
+     Universal + Sheet (D6)
+     ========================================================== */
+  .pane.sheet .phone .screen {
+    background: rgba(0, 0, 0, 0.40);
+    padding-top: 50px;
+  }
+  .pane.sheet .scrim-card {
+    position: absolute;
+    top: 64px; left: 14px; right: 14px; bottom: 360px;
+    background: #FFFFFF;
+    border-radius: 22px;
+    border: 0.5px solid rgba(0, 0, 0, 0.04);
+    opacity: 0.35;
+    overflow: hidden;
+  }
+  .pane.sheet .sheet {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    background: #FFFFFF;
+    border-top-left-radius: 18px;
+    border-top-right-radius: 18px;
+    box-shadow: 0 -20px 60px -20px rgba(0,0,0,0.28);
+    padding: 6px 18px 36px;
+    z-index: 30;
+  }
+  .pane.sheet .sheet .handle {
+    width: 36px; height: 5px; border-radius: 3px;
+    background: var(--gray-4);
+    margin: 4px auto 14px;
+  }
+  .pane.sheet .sheet .ttl {
+    font-size: 15px; font-weight: 600;
+    color: var(--label); letter-spacing: -0.2px;
+    text-align: center;
+    margin: 0 0 16px;
+  }
+  .pane.sheet .qc-composer {
+    background: #FAFAFC;
+    border: 0.5px solid var(--gray-5);
+    border-radius: 14px;
+    padding: 14px 14px 13px;
+    display: grid;
+    grid-template-columns: 28px 1fr 40px;
+    column-gap: 11px;
+    align-items: center;
+  }
+  .pane.sheet .qc-composer .pen {
+    width: 28px; height: 28px; border-radius: 50%;
+    background: var(--ios-blue-tint); color: var(--ios-blue);
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .pane.sheet .qc-composer .pen i { font-size: 14px; }
+  .pane.sheet .qc-composer .placeholder {
+    font-size: 14.5px; color: var(--label-3);
+    letter-spacing: -0.1px; font-style: italic;
+  }
+  .pane.sheet .qc-composer .mic {
+    width: 40px; height: 40px; border-radius: 50%;
+    background: var(--ios-coral); color: #fff; border: 0;
+    display: inline-flex; align-items: center; justify-content: center;
+    box-shadow: 0 4px 12px -2px rgba(255, 107, 107, 0.45);
+  }
+  .pane.sheet .qc-composer .mic i { font-size: 18px; }
+  .pane.sheet .qc-hint {
+    font-size: 10.5px; color: var(--label-3);
+    letter-spacing: -0.05px;
+    margin: 7px 0 16px;
+    text-align: center;
+    font-style: italic;
+  }
+  .pane.sheet .group-eye {
+    font-size: 9.5px; font-weight: 700;
+    color: var(--label-3); letter-spacing: 0.9px;
+    text-transform: uppercase;
+    margin: 0 0 6px;
+  }
+  .pane.sheet .menu-row {
+    display: grid;
+    grid-template-columns: 32px 1fr 12px;
+    column-gap: 12px;
+    align-items: center;
+    padding: 12px 4px;
+    border-bottom: 0.5px solid var(--gray-5);
+  }
+  .pane.sheet .menu-row:last-of-type { border-bottom: 0; }
+  .pane.sheet .menu-row .ic {
+    width: 32px; height: 32px; border-radius: 9px;
+    display: inline-flex; align-items: center; justify-content: center;
+    background: var(--gray-6);
+    color: var(--label-2);
+  }
+  .pane.sheet .menu-row .ic i { font-size: 17px; }
+  .pane.sheet .menu-row.coral .ic    { background: var(--ios-coral-tint);  color: var(--ios-coral-deep); }
+  .pane.sheet .menu-row.purple .ic   { background: var(--ios-purple-tint); color: var(--ios-purple-deep); }
+  .pane.sheet .menu-row.blue .ic     { background: var(--ios-blue-tint);   color: var(--ios-blue-deep); }
+  .pane.sheet .menu-row.green .ic    { background: var(--ios-green-tint);  color: var(--ios-green-deep); }
+  .pane.sheet .menu-row .copy .ttl2 {
+    font-size: 14px; font-weight: 600;
+    color: var(--label); letter-spacing: -0.15px;
+    margin: 0;
+    text-transform: none;
+    text-align: left;
+  }
+  .pane.sheet .menu-row .copy .sub {
+    font-size: 11.5px; color: var(--label-3);
+    letter-spacing: -0.05px;
+    margin: 1px 0 0;
+  }
+  .pane.sheet .menu-row .chev { color: var(--gray-3); font-size: 13px; }
+  .pane.sheet .group + .group { margin-top: 14px; }
+  .pane.sheet .cancel-row {
+    margin: 16px 0 0;
+    border-top: 0.5px solid var(--gray-5);
+    padding-top: 14px;
+    text-align: center;
+    font-size: 14.5px; font-weight: 500;
+    color: var(--ios-blue);
+  }
+
+  /* ==========================================================
+     Flow diagram — three mini-phones connected
+     ========================================================== */
+  .flow-row {
+    max-width: 1660px;
+    margin: 12px auto 0;
+    display: grid;
+    grid-template-columns: 1fr 70px 1fr 70px 1fr;
+    gap: 20px;
+    align-items: center;
+  }
+  .mini-phone {
+    width: 100%;
+    aspect-ratio: 393 / 540;
+    background: #FFFFFF;
+    border-radius: 28px;
+    border: 0.5px solid var(--gray-4);
+    box-shadow:
+      0 18px 44px -28px rgba(34, 30, 20, 0.30),
+      0 2px 0 rgba(255,255,255,0.5) inset;
+    overflow: hidden;
+    position: relative;
+    padding: 18px 16px;
+    display: flex; flex-direction: column;
+  }
+  .mini-phone .mp-status {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 12px;
+  }
+  .mini-phone .mp-status .mp-tabs {
+    display: inline-flex; gap: 8px;
+    font-size: 11px; font-weight: 500;
+    color: var(--label-3); letter-spacing: -0.05px;
+  }
+  .mini-phone .mp-status .mp-tabs .on { color: var(--ios-blue); font-weight: 700; }
+  .mini-phone .mp-status .mp-tabs .on.live { color: var(--ios-coral-deep); }
+  .mini-phone .mp-status .mp-tabs .on.done { color: var(--ios-green-deep); }
+  .mini-phone .mp-status .mp-counter {
+    font-size: 10px; color: var(--label-3);
+    font-variant-numeric: tabular-nums;
+  }
+  .mini-phone .mp-pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 9px 4px 7px;
+    border-radius: 999px;
+    align-self: flex-start;
+    margin-bottom: 8px;
+  }
+  .mini-phone .mp-pill .label {
+    font-size: 9px; font-weight: 700;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+  .mini-phone .mp-pill.gray   { background: var(--gray-6); border: 0.5px solid var(--gray-5); }
+  .mini-phone .mp-pill.gray .label   { color: var(--label-2); }
+  .mini-phone .mp-pill.blue   { background: var(--ios-blue-tint); border: 0.5px solid var(--ios-blue-strong); }
+  .mini-phone .mp-pill.blue .label   { color: var(--ios-blue-deep); }
+  .mini-phone .mp-pill.coral  { background: var(--ios-coral-tint); border: 0.5px solid var(--ios-coral-soft); }
+  .mini-phone .mp-pill.coral .label  { color: var(--ios-coral-deep); }
+  .mini-phone .mp-pill.green  { background: var(--ios-green-tint); border: 0.5px solid var(--ios-green-soft); }
+  .mini-phone .mp-pill.green .label  { color: var(--ios-green-deep); }
+  .mini-phone .mp-pill.purple { background: var(--ios-purple-tint); border: 0.5px solid var(--ios-purple-soft); }
+  .mini-phone .mp-pill.purple .label { color: var(--ios-purple-deep); }
+  .mini-phone .mp-pill .dot {
+    width: 6px; height: 6px; border-radius: 50%;
+  }
+  .mini-phone .mp-pill .dot.gray  { background: var(--gray-2); }
+  .mini-phone .mp-pill .dot.blue  { background: var(--ios-blue); }
+  .mini-phone .mp-pill .dot.coral { background: var(--ios-coral); }
+  .mini-phone .mp-pill .dot.green { background: var(--ios-green); }
+  .mini-phone .mp-pill .dot.purple{ background: var(--ios-purple); }
+  .mini-phone .mp-title {
+    font-size: 14px; font-weight: 600;
+    color: var(--label); letter-spacing: -0.2px;
+    margin: 0 0 8px;
+    line-height: 1.15;
+    text-wrap: balance;
+  }
+  .mini-phone .mp-body {
+    flex: 1;
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  .mini-phone .mp-ln {
+    height: 10px; border-radius: 4px;
+    background: var(--gray-6);
+  }
+  .mini-phone .mp-ln.short { width: 60%; }
+  .mini-phone .mp-ln.medium { width: 88%; }
+  .mini-phone .mp-cap {
+    display: grid; grid-template-columns: 18px 1fr; column-gap: 7px;
+    padding: 6px 8px;
+    border: 0.5px solid var(--gray-5);
+    border-left: 2px solid var(--ios-blue);
+    border-radius: 7px;
+    align-items: center;
+  }
+  .mini-phone .mp-cap.coral { border-left-color: var(--ios-coral); }
+  .mini-phone .mp-cap .ts {
+    font-size: 8.5px; font-weight: 600; color: var(--label-3);
+    font-variant-numeric: tabular-nums;
+  }
+  .mini-phone .mp-cap .line {
+    height: 6px; border-radius: 3px; background: var(--gray-6);
+    width: 100%;
+  }
+  .mini-phone .mp-cta {
+    margin-top: 10px;
+    padding: 7px 8px;
+    border-radius: 8px;
+    background: var(--ios-blue); color: #fff;
+    font-size: 11px; font-weight: 600;
+    text-align: center;
+    letter-spacing: -0.2px;
+  }
+  .mini-phone .mp-cta.coral {
+    background: #fff; color: var(--ios-coral-deep);
+    border: 0.5px solid var(--ios-coral);
+  }
+  .mini-phone .mp-cta.green {
+    background: var(--ios-green-tint); color: var(--ios-green-deep);
+    border: 0.5px solid var(--ios-green-soft);
+  }
+  .mini-phone .mp-quiet-row {
+    margin-top: 6px;
+    padding-top: 6px;
+    border-top: 0.5px solid var(--gray-5);
+    font-size: 9px; color: var(--label-3); letter-spacing: 0.4px;
+    text-transform: uppercase; font-weight: 700;
+  }
+
+  .flow-arrow {
+    display: flex; flex-direction: column; align-items: center; gap: 6px;
+  }
+  .flow-arrow svg { display: block; }
+  .flow-arrow .label {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-style: italic;
+    font-size: 11.5px; color: var(--stage-text);
+    text-align: center; line-height: 1.4;
+    letter-spacing: -0.05px;
+  }
+  .flow-arrow .label .em {
+    display: block;
+    font-style: normal; font-weight: 700;
+    font-size: 9.5px; color: var(--stage-ink);
+    letter-spacing: 0.7px;
+    text-transform: uppercase;
+    margin-bottom: 2px;
+  }
+
+  .flow-caption {
+    text-align: center;
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 12.5px; font-style: italic;
+    color: var(--stage-text);
+    margin: 24px auto 0;
+    max-width: 720px;
+    line-height: 1.5;
+  }
+
+  /* Migration tables — Do + Reflect */
+  .migration-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: rgba(255,255,255,0.55);
+    border: 0.5px solid var(--stage-line);
+    border-radius: 14px;
+    overflow: hidden;
+    max-width: 1660px;
+    margin: 0 auto;
+  }
+  .migration-table thead th {
+    text-align: left;
+    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 10.5px; font-weight: 700;
+    color: var(--stage-ink); letter-spacing: 0.6px;
+    text-transform: uppercase;
+    padding: 14px 18px;
+    background: rgba(255,255,255,0.5);
+    border-bottom: 0.5px solid var(--stage-line);
+  }
+  .migration-table tbody td {
+    vertical-align: top;
+    padding: 14px 18px;
+    border-bottom: 0.5px dashed var(--stage-line-soft);
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 13.5px; line-height: 1.5;
+    color: #3C3A35;
+    text-wrap: pretty;
+  }
+  .migration-table tbody tr:last-child td { border-bottom: 0; }
+  .migration-table tbody td .em { font-weight: 500; color: var(--stage-ink); }
+  .migration-table tbody td em { font-style: italic; color: #4D4A43; }
+  .migration-table tbody td code {
+    font-family: "SF Mono", ui-monospace, Menlo, monospace;
+    font-size: 11.5px;
+    background: rgba(34, 30, 20, 0.06);
+    padding: 1px 5px; border-radius: 4px;
+    color: var(--stage-ink);
+  }
+  .col-current { width: 28%; color: #6E6A60; }
+  .col-target  { width: 32%; color: #1F1D1A; }
+  .col-notes   { width: 40%; color: #6B6558; }
+</style>
+</head>
+<body>
+
+<div class="page">
+
+  <header class="page-head">
+    <p class="eyebrow">BetterAt · Step Loop · Plan · Do · Reflect — Canonical · 2026-05-17</p>
+    <h1>The full step loop in one register: <em>Plan</em>, <em>Do</em>, <em>Reflect</em>, and the universal <em>+</em> that feeds them</h1>
+    <p>This canonical picks up where <em>plan-tab-step-integration-canonical.html</em> ended (decisions D1–D4) and adds two new decisions plus the missing two thirds of the step loop. <strong>D5</strong> demotes AI Coach from a full purple card to a quiet one-line helper — most users will fill the plan manually, and the empty state should feel <em>writable</em>, not <em>guided</em>. <strong>D6</strong> turns the top-header <em>+</em> button into a universal capture sheet that handles quick-capture, blueprint-import, social-import, concept-drop, and share — five entries to one surface. Below: Plan revised in the empty &amp; partial state, Do current vs target, Reflect current vs target, the <em>+</em> sheet rendered as a state, and a three-phase flow diagram tracing how the state pill carries the user through Planned → Live · capturing → Activity complete → Reflect · open → Settled.</p>
+    <div class="crumbs">
+      <span class="pill">iPhone 16e · portrait · 393 × 852</span>
+      <span class="sep">·</span>
+      <span class="pill">Builds on · <em>plan-tab-step-integration · D1–D4</em></span>
+      <span class="sep">·</span>
+      <span class="pill">Adds · <em>D5 · AI Coach demotion</em> &amp; <em>D6 · Universal + sheet</em></span>
+      <span class="sep">·</span>
+      <span class="pill">Source surfaces · <em>On the Water · Debrief · b10 Reflect frames</em></span>
+    </div>
+  </header>
+
+  <!-- Decisions bar D1..D6 -->
+  <section class="decisions-bar">
+    <div class="dec">
+      <h5>D1 · Architecture</h5>
+      <p>Ship <strong>full-bleed</strong> in the new register first. Card-with-peeks ships Phase 2 with the horizontal-timeline data layer.</p>
+    </div>
+    <div class="dec">
+      <h5>D2 · Timed switch</h5>
+      <p><strong>Quiet row in Plan body</strong>, above More options. Caps eyebrow, 42 × 26 Switch. <em>Off by default.</em></p>
+    </div>
+    <div class="dec">
+      <h5>D3 · Bottom CTA</h5>
+      <p>Add <strong><code>Next: Start Doing →</code></strong> at the card foot — disabled until <em>what</em> is filled. Mirrors Debrief's <em>Hand off to Reflect</em>.</p>
+    </div>
+    <div class="dec">
+      <h5>D4 · Step picker</h5>
+      <p>Retire the <strong>"1 of 10" picker button</strong> and FAB. Top-header carries a read-only counter; navigation moves to the timeline icon.</p>
+    </div>
+    <div class="dec new">
+      <h5>D5 · AI Coach</h5>
+      <p>From a full purple card to a <strong>quiet italic helper line</strong> + per-field <code>✦</code> spark. Empty plan body shows <em>writable field-cards</em>, not a recommendation.</p>
+    </div>
+    <div class="dec new">
+      <h5>D6 · Universal +</h5>
+      <p>Top-header <code>+</code> opens a <strong>universal capture sheet</strong>: quick-capture composer at top, then blueprint-import, social-import, concept-drop, share.</p>
+    </div>
+  </section>
+
+  <!-- =============================================================== -->
+  <!-- SECTION 1 · Plan tab — revised empty state + + sheet              -->
+  <!-- =============================================================== -->
+  <section class="section-band">
+    <h2><span class="badge">Plan</span><em>Empty Plan state, revised</em> — AI Coach demoted, field-cards become primary</h2>
+    <p class="lede">Left frame: the same empty Plan state from <em>plan-tab-step-integration</em>, but with the AI Coach demoted per <strong>D5</strong>. The purple card retires. Three white field-cards (WHAT / HOW / WHY) become the dominant content — each with a small <code>✦</code> spark in its top-right corner that opens AI Coach scoped to that one field. Above the field-cards: one quiet italic line for the user who wants to talk through the whole thing. Right frame: same screen, with the top-header <code>+</code> tapped, the universal capture sheet rising over a dimmed background.</p>
+
+    <div class="pair-row">
+
+      <!-- LEFT · Plan with AI Coach demoted -->
+      <div class="pane target">
+        <div class="pane-eye"><span class="pip"></span>Plan · empty · AI Coach quiet</div>
+        <p class="pane-title">Plan tab · <em>writable, not guided</em></p>
+        <p class="pane-sub">Three field-cards inviting the user to start typing. AI Coach is one italic line above them and a per-field <code>✦</code> spark for scoped help.</p>
+
+        <div class="phone-wrap">
+          <div class="phone">
+            <div class="notch"></div>
+            <div class="statusbar">
+              <span>7:37</span>
+              <span class="right"><i class="ti ti-cell-signal-4"></i><i class="ti ti-wifi"></i><i class="ti ti-battery-3"></i></span>
+            </div>
+
+            <div class="screen" data-screen-label="Plan · empty · AI Coach demoted">
+
+              <div class="top-header">
+                <div class="interest">
+                  <span class="name">Sail Racing</span>
+                  <span class="switcher"><i class="ti ti-chevron-down"></i></span>
+                </div>
+                <span class="step-counter">Step 1 of 10</span>
+                <div class="right-cluster">
+                  <button class="ic timeline-ico"><i class="ti ti-layout-grid"></i></button>
+                  <button class="ic"><i class="ti ti-bell"></i><span class="badge">12</span></button>
+                  <div class="avatar">KD</div>
+                </div>
+              </div>
+
+              <article class="card step">
+                <header class="step-state-head">
+                  <div class="state-pill gray">
+                    <span class="dot-blue" style="background: var(--gray-2);"></span>
+                    <span class="label">Planned</span>
+                  </div>
+                  <button class="menu"><i class="ti ti-dots-vertical"></i></button>
+                </header>
+
+                <div class="step-strip">
+                  <span class="ico"><i class="ti ti-trophy"></i></span>
+                  <span class="text"><span class="em">Winter 2025-2026</span><span class="sep">·</span>Spring Series · Race 4 in two days</span>
+                </div>
+
+                <section class="step-title-block">
+                  <p class="crumb-eye"><span class="dot"></span>Current step</p>
+                  <h2 class="untitled">Untitled</h2>
+                  <p class="untitled-hint"><i class="ti ti-pencil"></i>Tap to name this step</p>
+                </section>
+
+                <div class="phase-tabs">
+                  <button class="ptab on">Plan</button>
+                  <button class="ptab"><span class="ring pending"></span>Do</button>
+                  <button class="ptab"><span class="ring pending"></span>Reflect</button>
+                </div>
+
+                <div class="plan-body-scroll">
+                  <!-- D5 helper line — quiet -->
+                  <button class="ai-helper">
+                    <i class="ti ti-sparkles spark"></i>
+                    <span>Need help structuring this? <span class="em">Talk to AI Coach</span></span>
+                    <i class="ti ti-arrow-right arrow"></i>
+                  </button>
+
+                  <!-- field cards as the primary content -->
+                  <div class="field-card">
+                    <div class="field-head">
+                      <span class="eye"><i class="ti ti-bulb"></i>What will you do?</span>
+                      <button class="help-spark" aria-label="AI Coach for this field"><i class="ti ti-sparkles"></i></button>
+                    </div>
+                    <p class="placeholder">Race 4, holding right-side discipline in shifty light air…</p>
+                  </div>
+
+                  <div class="field-card">
+                    <div class="field-head">
+                      <span class="eye"><i class="ti ti-list"></i>How will you do it?</span>
+                      <button class="help-spark"><i class="ti ti-sparkles"></i></button>
+                    </div>
+                    <p class="placeholder">List 2–4 sub-steps…</p>
+                  </div>
+
+                  <div class="field-card">
+                    <div class="field-head">
+                      <span class="eye"><i class="ti ti-help"></i>Why is this next?</span>
+                      <button class="help-spark"><i class="ti ti-sparkles"></i></button>
+                    </div>
+                    <p class="placeholder">What makes this the right next step?</p>
+                  </div>
+
+                  <!-- timed quiet row -->
+                  <div class="timed-row">
+                    <div>
+                      <p class="eye">Will this be timed?</p>
+                      <p class="body">Do tab will show a running timer and Stop. Default off.</p>
+                    </div>
+                    <span class="ios-switch on"></span>
+                  </div>
+
+                  <div class="more-row">
+                    <span class="ttl">More options <span class="count">· 0 added</span></span>
+                    <i class="ti ti-chevron-down chev"></i>
+                  </div>
+                </div>
+
+                <div class="step-card-footer">
+                  <button class="btn disabled" disabled>Next: Start Doing<i class="ti ti-arrow-right"></i></button>
+                  <p class="hint">Add a <span class="em">what</span> to enable</p>
+                </div>
+              </article>
+
+              <nav class="tabbar">
+                <button class="t on"><i class="ti ti-flag-3-filled"></i><span>Practice</span></button>
+                <button class="t"><i class="ti ti-book-2"></i><span>Playbook</span></button>
+                <button class="t"><i class="ti ti-compass"></i><span>Discover</span></button>
+                <button class="t"><i class="ti ti-user-circle"></i><span>Profile</span></button>
+              </nav>
+            </div>
+            <div class="home-indicator"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="migrate-arrow">
+        <svg viewBox="0 0 60 60" width="40" height="40" fill="none">
+          <circle cx="30" cy="30" r="26" stroke="#5856D6" stroke-width="0.7" stroke-dasharray="2 3" opacity="0.7"/>
+          <path d="M 18 30 L 42 30 M 36 24 L 42 30 L 36 36" stroke="#5856D6" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <p class="label">tap <span style="font-weight:700">+</span><br/>in top-header</p>
+      </div>
+
+      <!-- RIGHT · + Sheet opened -->
+      <div class="pane sheet">
+        <div class="pane-eye"><span class="pip"></span>Universal + · sheet open</div>
+        <p class="pane-title">The <em>+</em> sheet · <em>five entry-points to one surface</em></p>
+        <p class="pane-sub">Quick-capture composer at the top (voice-led, the 90% case). Below it: add-from-blueprint, add-from-followed, drop-a-concept, share publicly. One surface, ranked by frequency.</p>
+
+        <div class="phone-wrap">
+          <div class="phone">
+            <div class="notch"></div>
+            <div class="statusbar">
+              <span>7:37</span>
+              <span class="right"><i class="ti ti-cell-signal-4"></i><i class="ti ti-wifi"></i><i class="ti ti-battery-3"></i></span>
+            </div>
+
+            <div class="screen" data-screen-label="Universal + sheet">
+              <!-- background card (dimmed) -->
+              <div class="scrim-card" aria-hidden="true"></div>
+
+              <!-- sheet content -->
+              <div class="sheet">
+                <div class="handle"></div>
+                <p class="ttl">What would you like to add?</p>
+
+                <div class="qc-composer">
+                  <span class="pen"><i class="ti ti-pencil"></i></span>
+                  <span class="placeholder">Capture a step idea…</span>
+                  <button class="mic"><i class="ti ti-microphone"></i></button>
+                </div>
+                <p class="qc-hint">Hold to speak · or tap to type. We'll name it for you.</p>
+
+                <div class="group">
+                  <p class="group-eye">Add a step from…</p>
+                  <div class="menu-row blue">
+                    <span class="ic"><i class="ti ti-template"></i></span>
+                    <div class="copy">
+                      <p class="ttl2">A blueprint you follow</p>
+                      <p class="sub">3 subscriptions · Sam Cooke's heavy-air, 2 more</p>
+                    </div>
+                    <i class="ti ti-chevron-right chev"></i>
+                  </div>
+                  <div class="menu-row">
+                    <span class="ic"><i class="ti ti-users"></i></span>
+                    <div class="copy">
+                      <p class="ttl2">Someone you follow</p>
+                      <p class="sub">Pull a step from another sailor's recent practice</p>
+                    </div>
+                    <i class="ti ti-chevron-right chev"></i>
+                  </div>
+                </div>
+
+                <div class="group">
+                  <p class="group-eye">Drop to Playbook</p>
+                  <div class="menu-row purple">
+                    <span class="ic"><i class="ti ti-bulb"></i></span>
+                    <div class="copy">
+                      <p class="ttl2">A concept to come back to</p>
+                      <p class="sub">Park a half-thought as a concept seed</p>
+                    </div>
+                    <i class="ti ti-chevron-right chev"></i>
+                  </div>
+                </div>
+
+                <div class="group">
+                  <p class="group-eye">Share</p>
+                  <div class="menu-row green">
+                    <span class="ic"><i class="ti ti-share-3"></i></span>
+                    <div class="copy">
+                      <p class="ttl2">An idea, publicly or with crew</p>
+                      <p class="sub">Post to your fleet, or DM a sailor</p>
+                    </div>
+                    <i class="ti ti-chevron-right chev"></i>
+                  </div>
+                </div>
+
+                <p class="cancel-row">Cancel</p>
+              </div>
+            </div>
+            <div class="home-indicator"></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- =============================================================== -->
+  <!-- SECTION 2 · Do tab — current vs target                            -->
+  <!-- =============================================================== -->
+  <section class="section-band">
+    <h2><span class="badge" style="background: var(--ios-coral-tint); color: var(--ios-coral-deep);">Do</span><em>Do tab — current vs target</em> · live-capture, less busy</h2>
+    <p class="lede">Today's Do tab carries every chrome element the Plan tab does (race title, meta row, planned pill, status row, phase tabs, "Untitled" + tap-to-name <em>inside</em> the step card) <strong>plus</strong> the live-state strip, capture-row, empty stream message, composer, stop CTA, and FAB. Result: a glance gives you four headings and three states to read before you find the active control. The target retires the duplicate chrome — interest chip and step counter live once, in the top-header — and lets the <strong>coral LIVE · capturing pill</strong> in the card header be the only signal of state. The capture stream takes back its rightful space.</p>
+
+    <div class="pair-row">
+
+      <!-- LEFT · Do current (busy) -->
+      <div class="pane current">
+        <div class="pane-eye"><span class="pip"></span>Do · today</div>
+        <p class="pane-title">Do tab · <em>live · in progress</em> · current</p>
+        <p class="pane-sub">Race title repeats the Plan tab. Step card carries "Untitled" + Plan/Do/Reflect tabs <em>and</em> the live state. Composer + Stop button + FAB compete near the foot.</p>
+
+        <div class="phone-wrap">
+          <div class="phone current-app">
+            <div class="notch"></div>
+            <div class="statusbar"><span>7:38</span><span class="right"><i class="ti ti-cell-signal-4"></i><i class="ti ti-wifi"></i><i class="ti ti-battery-3"></i></span></div>
+
+            <div class="screen" data-screen-label="Do · current">
+              <div class="app-head">
+                <div class="race-title">
+                  Race
+                  <span class="sail-chip"><span class="dot"></span>Sail Racing<i class="ti ti-chevron-down"></i></span>
+                </div>
+                <div class="right-cluster">
+                  <button class="icon-btn"><i class="ti ti-bell"></i><span class="badge">12</span></button>
+                  <button class="icon-btn"><i class="ti ti-layout-grid"></i></button>
+                  <button class="icon-btn"><i class="ti ti-plus"></i></button>
+                  <span class="weather-pill"></span>
+                </div>
+              </div>
+              <div class="meta-row">
+                <span class="trophy-pill"><i class="ti ti-trophy"></i>Winter 2025-2026</span>
+                <span class="step-picker">1 of 10<i class="ti ti-chevron-down"></i></span>
+              </div>
+
+              <div class="step-card">
+                <div class="status-row">
+                  <span class="planned-pill"><span class="ring"></span>Planned</span>
+                  <i class="ti ti-dots-vertical menu"></i>
+                </div>
+
+                <p class="live-eye"><span class="dot"></span>Live · in progress</p>
+                <h2 class="untitled">Untitled</h2>
+                <p class="untitled-hint"><i class="ti ti-pencil"></i>Tap to name this step</p>
+
+                <div class="phase-tabs">
+                  <button class="phase-tab"><span class="pip"></span>Plan</button>
+                  <button class="phase-tab on">Do</button>
+                  <button class="phase-tab"><span class="pip"></span>Reflect</button>
+                </div>
+
+                <div class="capturing-row">
+                  <span class="left"><span class="pulse"></span><span class="lbl">Capturing</span></span>
+                  <span class="right"><span><span class="v">0</span>Captures</span><span><span class="v">0:01</span>Elapsed</span></span>
+                </div>
+
+                <div class="step-marker"><i class="ti ti-flag"></i>Untitled</div>
+
+                <div class="empty-stream">
+                  <p class="small-eye">↓ Newest first</p>
+                  <div class="empty-slot">Captures will appear here<br/>as you record them.</div>
+                </div>
+
+                <div class="composer">
+                  <span class="add-ico"><i class="ti ti-plus"></i></span>
+                  <span class="placeholder">Add a capture…</span>
+                  <i class="ti ti-pencil ic-pencil"></i>
+                  <i class="ti ti-camera ic-cam"></i>
+                  <button class="mic-red"><i class="ti ti-microphone"></i></button>
+                </div>
+
+                <div class="stop-cta">Stop capturing</div>
+              </div>
+
+              <button class="fab"><i class="ti ti-plus"></i></button>
+
+              <nav class="tabbar-floating">
+                <button class="t on"><i class="ti ti-flag-3-filled"></i><span>Race</span></button>
+                <button class="t"><i class="ti ti-book"></i><span>Playbook</span></button>
+                <button class="t"><i class="ti ti-compass"></i><span>Discover</span></button>
+                <button class="t"><i class="ti ti-user-circle"></i><span>Profile</span></button>
+              </nav>
+            </div>
+            <div class="home-indicator"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="migrate-arrow">
+        <svg viewBox="0 0 60 60" width="40" height="40" fill="none">
+          <circle cx="30" cy="30" r="26" stroke="#C28A2A" stroke-width="0.7" stroke-dasharray="2 3" opacity="0.7"/>
+          <path d="M 18 30 L 42 30 M 36 24 L 42 30 L 36 36" stroke="#C28A2A" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <p class="label">retire duplicate chrome<br/>let the coral pill carry state</p>
+      </div>
+
+      <!-- RIGHT · Do target (clean, coral state, composer hovers) -->
+      <div class="pane target">
+        <div class="pane-eye"><span class="pip"></span>Do · target</div>
+        <p class="pane-title">Do tab · <em>live · capturing</em> · integrated</p>
+        <p class="pane-sub">Coral state pill in the card header is the only loud thing. Stream takes the body. Composer hovers above the Stop CTA — exactly as on B.7 Frame 2.</p>
+
+        <div class="phone-wrap">
+          <div class="phone">
+            <div class="notch"></div>
+            <div class="statusbar"><span>7:38</span><span class="right"><i class="ti ti-cell-signal-4"></i><i class="ti ti-wifi"></i><i class="ti ti-battery-3"></i></span></div>
+
+            <div class="screen" data-screen-label="Do · target">
+              <div class="top-header">
+                <div class="interest">
+                  <span class="name">Sail Racing</span>
+                  <span class="switcher"><i class="ti ti-chevron-down"></i></span>
+                </div>
+                <span class="step-counter">Step 1 of 10</span>
+                <div class="right-cluster">
+                  <button class="ic timeline-ico"><i class="ti ti-layout-grid"></i></button>
+                  <button class="ic"><i class="ti ti-bell"></i><span class="badge">12</span></button>
+                  <div class="avatar">KD</div>
+                </div>
+              </div>
+
+              <article class="card step">
+                <header class="step-state-head" style="justify-content: space-between;">
+                  <div class="state-pill coral">
+                    <span class="pulse"></span>
+                    <span class="label">Live · capturing</span>
+                  </div>
+                  <div class="stats">
+                    <div class="stat"><span class="num">0</span><span class="lbl">Captures</span></div>
+                    <span class="sep"></span>
+                    <div class="stat"><span class="num">0:01</span><span class="lbl">Elapsed</span></div>
+                  </div>
+                </header>
+
+                <div class="step-strip">
+                  <span class="ico"><i class="ti ti-flag-3"></i></span>
+                  <span class="text"><span class="em">Untitled</span><span class="sep">·</span>Race 4 · ready to start</span>
+                </div>
+
+                <section class="step-title-block">
+                  <p class="crumb-eye live"><span class="dot"></span>Live step</p>
+                  <h2 class="untitled">Untitled</h2>
+                  <p class="untitled-hint"><i class="ti ti-pencil"></i>Tap to name this step</p>
+                </section>
+
+                <div class="phase-tabs">
+                  <button class="ptab"><span class="ring ready"></span>Plan</button>
+                  <button class="ptab on live"><span class="ring live"></span>Do</button>
+                  <button class="ptab"><span class="ring pending"></span>Reflect</button>
+                </div>
+
+                <div class="do-stream">
+                  <div class="stream-eye">
+                    <span class="lbl"><span class="arrow">↓</span>Newest first</span>
+                    <span class="fresh"><span class="dot"></span>Just now</span>
+                  </div>
+
+                  <article class="cap voice fresh">
+                    <div class="ts">7:38<span class="ago">12s</span></div>
+                    <div class="body">"Left filled at eight. Not committing yet — rule said ten."</div>
+                  </article>
+
+                  <article class="cap typed">
+                    <div class="ts">7:35<span class="ago">3m</span></div>
+                    <div class="body">Sam said hold our lane. Trust him.</div>
+                  </article>
+                </div>
+              </article>
+
+              <!-- composer hovers above stop CTA -->
+              <div class="composer-tgt">
+                <div class="field">
+                  <span class="ico-add"><i class="ti ti-plus"></i></span>
+                  <span>Add a capture…</span>
+                </div>
+                <div class="actions">
+                  <button class="a-btn"><i class="ti ti-pencil"></i></button>
+                  <button class="a-btn"><i class="ti ti-camera"></i></button>
+                  <button class="mic-big"><i class="ti ti-microphone"></i></button>
+                </div>
+              </div>
+
+              <button class="stop-cta-tgt">
+                <span class="sq"></span>
+                Stop capturing
+              </button>
+
+              <nav class="tabbar">
+                <button class="t on"><i class="ti ti-flag-3-filled"></i><span>Practice</span></button>
+                <button class="t"><i class="ti ti-book-2"></i><span>Playbook</span></button>
+                <button class="t"><i class="ti ti-compass"></i><span>Discover</span></button>
+                <button class="t"><i class="ti ti-user-circle"></i><span>Profile</span></button>
+              </nav>
+            </div>
+            <div class="home-indicator"></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- =============================================================== -->
+  <!-- SECTION 3 · Reflect tab — current vs target                       -->
+  <!-- =============================================================== -->
+  <section class="section-band">
+    <h2><span class="badge" style="background: var(--ios-purple-tint); color: var(--ios-purple-deep);">Reflect</span><em>Reflect tab — current vs target</em> · star rating retires, synthesis voice leads</h2>
+    <p class="lede">Today's Reflect is a form: a 5-star rating row at the top, two text fields below (<em>What didn't?</em>, <em>What did you learn?</em>), an empty mic FAB, the same race-title chrome. The form treats reflection as a survey. The target replaces it with the b10 Reflect grammar: a <strong>purple AI synthesis prompt</strong> at the top of the card body offering to draft the reflection from the captures, followed by two italic-serif question cards the user fills in voice or type, and a <strong>coral mic</strong> as the primary composition affordance. Star rating retires entirely — reflection lives in prose, not in a 1–5 score the system can't act on.</p>
+
+    <div class="pair-row">
+
+      <!-- LEFT · Reflect current (star ratings + form) -->
+      <div class="pane current">
+        <div class="pane-eye"><span class="pip"></span>Reflect · today</div>
+        <p class="pane-title">Reflect tab · <em>star rating &amp; form fields</em></p>
+        <p class="pane-sub">Reflection as survey. Five stars + two text fields. The mic FAB is the only affordance that asks for prose, but it sits outside the form.</p>
+
+        <div class="phone-wrap">
+          <div class="phone current-app">
+            <div class="notch"></div>
+            <div class="statusbar"><span>7:41</span><span class="right"><i class="ti ti-cell-signal-4"></i><i class="ti ti-wifi"></i><i class="ti ti-battery-3"></i></span></div>
+
+            <div class="screen" data-screen-label="Reflect · current">
+              <div class="app-head">
+                <div class="race-title">Race<span class="sail-chip"><span class="dot"></span>Sail Racing<i class="ti ti-chevron-down"></i></span></div>
+                <div class="right-cluster">
+                  <button class="icon-btn"><i class="ti ti-bell"></i><span class="badge">12</span></button>
+                  <button class="icon-btn"><i class="ti ti-layout-grid"></i></button>
+                  <button class="icon-btn"><i class="ti ti-plus"></i></button>
+                  <span class="weather-pill"></span>
+                </div>
+              </div>
+              <div class="meta-row">
+                <span class="trophy-pill"><i class="ti ti-trophy"></i>Winter 2025-2026</span>
+                <span class="step-picker">1 of 10<i class="ti ti-chevron-down"></i></span>
+              </div>
+
+              <div class="step-card">
+                <div class="status-row">
+                  <span class="planned-pill"><span class="ring"></span>Planned</span>
+                  <i class="ti ti-dots-vertical menu"></i>
+                </div>
+                <h2 class="untitled" style="margin-bottom: 10px;">Untitled</h2>
+                <p class="untitled-hint"><i class="ti ti-pencil"></i>Tap to name this step</p>
+
+                <div class="phase-tabs">
+                  <button class="phase-tab"><span class="pip"></span>Plan</button>
+                  <button class="phase-tab"><span class="pip"></span>Do</button>
+                  <button class="phase-tab on">Reflect</button>
+                </div>
+
+                <div class="reflect-section">
+                  <p class="sec-eye">Overall rating</p>
+                  <div class="stars-row">
+                    <span class="star"><i class="ti ti-star"></i></span>
+                    <span class="star"><i class="ti ti-star"></i></span>
+                    <span class="star"><i class="ti ti-star"></i></span>
+                    <span class="star"><i class="ti ti-star"></i></span>
+                    <span class="star"><i class="ti ti-star"></i></span>
+                  </div>
+                  <p class="stars-hint">Tap a star to rate</p>
+                </div>
+
+                <div class="reflect-section">
+                  <p class="sec-eye">What didn't?</p>
+                  <div class="reflect-field">Need to slow down on contour edges…</div>
+                </div>
+
+                <div class="reflect-section">
+                  <p class="sec-eye">What did you learn?</p>
+                  <div class="reflect-field">My line weight was much…</div>
+                </div>
+              </div>
+
+              <button class="fab"><i class="ti ti-plus"></i></button>
+
+              <nav class="tabbar-floating">
+                <button class="t on"><i class="ti ti-flag-3-filled"></i><span>Race</span></button>
+                <button class="t"><i class="ti ti-book"></i><span>Playbook</span></button>
+                <button class="t"><i class="ti ti-compass"></i><span>Discover</span></button>
+                <button class="t"><i class="ti ti-user-circle"></i><span>Profile</span></button>
+              </nav>
+            </div>
+            <div class="home-indicator"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="migrate-arrow">
+        <svg viewBox="0 0 60 60" width="40" height="40" fill="none">
+          <circle cx="30" cy="30" r="26" stroke="#5856D6" stroke-width="0.7" stroke-dasharray="2 3" opacity="0.7"/>
+          <path d="M 18 30 L 42 30 M 36 24 L 42 30 L 36 36" stroke="#5856D6" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <p class="label">stars retire · synthesis leads<br/>mic becomes primary</p>
+      </div>
+
+      <!-- RIGHT · Reflect target -->
+      <div class="pane target">
+        <div class="pane-eye"><span class="pip"></span>Reflect · target</div>
+        <p class="pane-title">Reflect tab · <em>synthesis-led, prose-first</em></p>
+        <p class="pane-sub">Purple synthesis prompt at top — <em>"Draft a reflection from what you captured?"</em> Two italic-serif questions below. Coral mic is the primary compose affordance.</p>
+
+        <div class="phone-wrap">
+          <div class="phone">
+            <div class="notch"></div>
+            <div class="statusbar"><span>7:41</span><span class="right"><i class="ti ti-cell-signal-4"></i><i class="ti ti-wifi"></i><i class="ti ti-battery-3"></i></span></div>
+
+            <div class="screen" data-screen-label="Reflect · target">
+              <div class="top-header">
+                <div class="interest"><span class="name">Sail Racing</span><span class="switcher"><i class="ti ti-chevron-down"></i></span></div>
+                <span class="step-counter">Step 1 of 10</span>
+                <div class="right-cluster">
+                  <button class="ic timeline-ico"><i class="ti ti-layout-grid"></i></button>
+                  <button class="ic"><i class="ti ti-bell"></i><span class="badge">12</span></button>
+                  <div class="avatar">KD</div>
+                </div>
+              </div>
+
+              <article class="card step">
+                <header class="step-state-head">
+                  <div class="state-pill purple">
+                    <span class="spark"><i class="ti ti-sparkles"></i></span>
+                    <span class="label">Reflect · ready</span>
+                  </div>
+                  <button class="menu"><i class="ti ti-dots-vertical"></i></button>
+                </header>
+
+                <div class="step-strip">
+                  <span class="ico"><i class="ti ti-flag-3"></i></span>
+                  <span class="text"><span class="em">Race 4 · 18–22 kn NE</span><span class="sep">·</span>9 captures · 18 min</span>
+                </div>
+
+                <section class="step-title-block">
+                  <p class="crumb-eye done"><span class="dot"></span>Activity closed</p>
+                  <h2 class="untitled">Race 4 in 18–22 knots</h2>
+                  <p class="step-meta"><span class="em">Saturday · just now</span> · finished 7th of 14</p>
+                </section>
+
+                <div class="phase-tabs">
+                  <button class="ptab"><span class="ring ready"></span>Plan</button>
+                  <button class="ptab"><span class="ring ready"></span>Do</button>
+                  <button class="ptab on">Reflect</button>
+                </div>
+
+                <div class="reflect-body">
+                  <div>
+                    <p class="synth-helper"><span class="glyph"><i class="ti ti-sparkles"></i></span>Draft from your captures</p>
+                    <p class="synth-prompt">"Want a first draft from your 9 captures? <span style="color: var(--ios-purple-deep); font-weight: 500;">Tap to draft</span>, or write the first line yourself."</p>
+                  </div>
+
+                  <div class="reflect-field">
+                    <p class="q-eye">What worked?</p>
+                    <p class="q-body">Tap to write — the right-side starts gave us…</p>
+                  </div>
+
+                  <div class="reflect-field">
+                    <p class="q-eye">What would you do differently?</p>
+                    <p class="q-body">Tap to write</p>
+                  </div>
+
+                  <div class="mic-prompt">
+                    <button class="mic-coral"><i class="ti ti-microphone"></i></button>
+                    <p class="hint">Hold to speak · or <span class="em">type</span></p>
+                  </div>
+                </div>
+
+                <div class="step-card-footer">
+                  <button class="btn primary">Save &amp; settle<i class="ti ti-arrow-right"></i></button>
+                  <p class="hint">Closes the step · returns to Practice</p>
+                </div>
+              </article>
+
+              <nav class="tabbar">
+                <button class="t on"><i class="ti ti-flag-3-filled"></i><span>Practice</span></button>
+                <button class="t"><i class="ti ti-book-2"></i><span>Playbook</span></button>
+                <button class="t"><i class="ti ti-compass"></i><span>Discover</span></button>
+                <button class="t"><i class="ti ti-user-circle"></i><span>Profile</span></button>
+              </nav>
+            </div>
+            <div class="home-indicator"></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- =============================================================== -->
+  <!-- SECTION 4 · Three-phase flow                                     -->
+  <!-- =============================================================== -->
+  <section class="section-band">
+    <h2><span class="badge" style="background: var(--ios-green-tint); color: var(--ios-green-deep);">Flow</span><em>How the three link</em> · the state pill is the user's compass</h2>
+    <p class="lede">The same step card persists across Plan, Do, and Reflect. What changes is the <strong>state pill</strong> in the card header — its color is the user's primary signal of "where in the loop am I?". The bottom CTA on each tab points at the next phase, so the loop can be walked entirely from the card foot: <em>Next: Start Doing</em> on Plan, <em>Stop capturing</em> on Do, <em>Save &amp; settle</em> on Reflect. The phase tabs remain tappable as a free-jump escape hatch.</p>
+
+    <div class="flow-row">
+
+      <!-- Plan mini -->
+      <div class="mini-phone">
+        <div class="mp-status">
+          <span class="mp-tabs"><span class="on">Plan</span><span>Do</span><span>Reflect</span></span>
+          <span class="mp-counter">1/10</span>
+        </div>
+        <span class="mp-pill blue"><span class="dot blue"></span><span class="label">Current step</span></span>
+        <p class="mp-title">"Right-side discipline in shifty light air"</p>
+        <div class="mp-body">
+          <div class="mp-ln medium"></div>
+          <div class="mp-ln short"></div>
+          <div class="mp-ln medium"></div>
+          <div class="mp-quiet-row">Will be timed · on</div>
+        </div>
+        <div class="mp-cta">Next: Start Doing →</div>
+      </div>
+
+      <div class="flow-arrow">
+        <svg viewBox="0 0 80 30" width="64" height="24" fill="none">
+          <path d="M 4 15 L 70 15 M 62 8 L 70 15 L 62 22" stroke="#1F7A3A" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <p class="label"><span class="em">CTA tapped</span>state shifts<br/>blue → coral</p>
+      </div>
+
+      <!-- Do mini -->
+      <div class="mini-phone">
+        <div class="mp-status">
+          <span class="mp-tabs"><span>✓ Plan</span><span class="on live">Do</span><span>Reflect</span></span>
+          <span class="mp-counter">1/10</span>
+        </div>
+        <span class="mp-pill coral"><span class="dot coral"></span><span class="label">Live · capturing</span></span>
+        <p class="mp-title">Right-side discipline in shifty light air</p>
+        <div class="mp-body">
+          <div class="mp-cap coral"><span class="ts">7:38</span><span class="line"></span></div>
+          <div class="mp-cap"><span class="ts">7:35</span><span class="line"></span></div>
+          <div class="mp-cap"><span class="ts">7:32</span><span class="line"></span></div>
+        </div>
+        <div class="mp-cta coral">■ Stop capturing</div>
+      </div>
+
+      <div class="flow-arrow">
+        <svg viewBox="0 0 80 30" width="64" height="24" fill="none">
+          <path d="M 4 15 L 70 15 M 62 8 L 70 15 L 62 22" stroke="#1F7A3A" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <p class="label"><span class="em">Stop pressed</span>coral → green<br/>then green → purple</p>
+      </div>
+
+      <!-- Reflect mini -->
+      <div class="mini-phone">
+        <div class="mp-status">
+          <span class="mp-tabs"><span>✓ Plan</span><span>✓ Do</span><span class="on">Reflect</span></span>
+          <span class="mp-counter">1/10</span>
+        </div>
+        <span class="mp-pill purple"><span class="dot purple"></span><span class="label">Reflect · ready</span></span>
+        <p class="mp-title">Race 4 in 18–22 knots NE</p>
+        <div class="mp-body">
+          <div class="mp-ln medium" style="background: rgba(88,86,214,0.10);"></div>
+          <div class="mp-ln short"></div>
+          <div class="mp-ln medium"></div>
+        </div>
+        <div class="mp-cta">Save &amp; settle →</div>
+      </div>
+
+    </div>
+
+    <p class="flow-caption">After <em>Save &amp; settle</em>, the state pill turns <strong style="color: var(--ios-green-deep);">green · Settled</strong> and the step closes. The top-header step-counter advances to <em>2 of 10</em>; the next Plan-state step is brought into focus. The loop is one continuous arc, broken into three named phases the user can re-enter at any time — but never <em>has to</em>.</p>
+  </section>
+
+  <!-- =============================================================== -->
+  <!-- SECTION 5 · Migration tables · Do + Reflect                       -->
+  <!-- =============================================================== -->
+  <section class="section-band">
+    <h2><span class="badge">Do</span><em>Migration map · Do tab</em></h2>
+    <p class="lede">Every Do-tab element on the current screen has a home in the target. Cuts: the redundant "Untitled" title-block (already named in the state-pill + step-strip), the empty-state slot (the stream renders the empty state implicitly), the FAB. Adds: the coral state pill with stats, the hovering composer.</p>
+
+    <table class="migration-table">
+      <thead>
+        <tr>
+          <th class="col-current">Today (Do)</th>
+          <th class="col-target">Target (Do)</th>
+          <th class="col-notes">Engineering note</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="col-current"><span class="em">"Live · in progress" red eyebrow</span> + <em>Capturing</em> row with a small red dot + 0 captures + 0:01 elapsed.</td>
+          <td class="col-target"><span class="em">Coral state pill</span> <code>Live · capturing</code> in the card header. Stats (<code>Captures</code>, <code>Elapsed</code>) move to the right of the pill, same 17/600 tnum pattern as Debrief's <em>Fleet finish</em>.</td>
+          <td class="col-notes">Pulls from <em>b7-frame-2-live-capture-canonical</em>. Pulse animation: 8 px coral dot inside the pill, 1.4 s ease-out shadow ring. One coral surface on screen.</td>
+        </tr>
+        <tr>
+          <td class="col-current"><span class="em">"Untitled" + tap-to-name</span> in the step card body, repeated from Plan tab.</td>
+          <td class="col-target">Moves into the <span class="em">step-title-block</span> beneath the state pill. Once captures exist, an AI-suggested title appears as italic placeholder text: <em>"Race 4 in 18–22 kt NE — tap to keep or rename."</em></td>
+          <td class="col-notes">Implementation: read the first 3 captures' transcripts on first paint after stop, propose a 6–8 word title via Haiku, render as placeholder. User tap → editable.</td>
+        </tr>
+        <tr>
+          <td class="col-current"><span class="em">"Untitled" step marker + Newest first eyebrow + empty slot</span> with placeholder copy.</td>
+          <td class="col-target">Empty state of the stream is the stream itself — when there are zero captures, render the eyebrow (<code>↓ Newest first</code>) and one <em>ghost capture row</em> with dashed border and italic placeholder.</td>
+          <td class="col-notes">Reuses the <code>.cap</code> component with <code>.cap.ghost</code> modifier. No separate empty-state surface to maintain.</td>
+        </tr>
+        <tr>
+          <td class="col-current"><span class="em">Composer inline below the empty slot</span>: a 38 h pill with placeholder, pencil/camera icons, red mic.</td>
+          <td class="col-target"><span class="em">Composer floats above the Stop CTA</span> — anchored to the bottom of the screen, white card with shadow. Mic is 40 × 40 coral with subtle pulse animation. Identical to <em>b7-frame-2</em>.</td>
+          <td class="col-notes">Position: <code>bottom: 152px</code>. The Stop CTA sits at <code>bottom: 96px</code>. Tabbar at <code>bottom: 0</code> · 84 h. Gap between composer and CTA: 8 px. Pinned via <code>position: absolute</code>, never inside the scroll container.</td>
+        </tr>
+        <tr>
+          <td class="col-current"><span class="em">"Stop capturing" red text-only</span> at the foot of the step card.</td>
+          <td class="col-target"><span class="em">Stop CTA</span>: 1 px coral border, white fill, coral text, ti-square glyph. r 14, 44 h. Stronger affordance than a bare red link, calmer than a filled red button.</td>
+          <td class="col-notes">Tap → state pill flips <code>coral → green</code> in place (300 ms transition), title-block proposes the AI-suggested name, capture stream stays as-is, footer CTA replaces Stop with <code>Move to Reflect →</code> (blue primary).</td>
+        </tr>
+        <tr>
+          <td class="col-current"><span class="em">Blue + FAB</span> at bottom-right.</td>
+          <td class="col-target"><span class="em">Retired.</span> The top-header <code>+</code> opens the universal capture sheet (D6). Adding a capture during a live activity is the <em>composer</em>, not the FAB; adding a future step is the top-header <code>+</code>.</td>
+          <td class="col-notes">Same retirement as Plan tab. Two distinct verbs (<em>capture during this activity</em> vs <em>start a new step</em>) shouldn't share one button.</td>
+        </tr>
+      </tbody>
+    </table>
+
+  </section>
+
+  <section class="section-band">
+    <h2><span class="badge" style="background: var(--ios-purple-tint); color: var(--ios-purple-deep);">Reflect</span><em>Migration map · Reflect tab</em></h2>
+    <p class="lede">The largest content overhaul of the three. Star rating retires. Form fields become two italic-serif question cards plus a synthesis affordance. The mic becomes primary, not an afterthought FAB.</p>
+
+    <table class="migration-table">
+      <thead>
+        <tr>
+          <th class="col-current">Today (Reflect)</th>
+          <th class="col-target">Target (Reflect)</th>
+          <th class="col-notes">Engineering note</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="col-current"><span class="em">OVERALL RATING · 5 stars</span> · <em>"Tap a star to rate"</em></td>
+          <td class="col-target"><span class="em">Retired.</span> A 1–5 score isn't actionable by the AI synthesis layer and doesn't survive into the capability arc. Reflection lives in prose.</td>
+          <td class="col-notes">Migration: backfill <code>step.reflect.overall_rating</code> to NULL on schema migration; no UI control to set it going forward. If product wants a private "save this step as a moment" flag, that's a single ★ toggle in More options — but never as the primary Reflect surface.</td>
+        </tr>
+        <tr>
+          <td class="col-current"><span class="em">WHAT DIDN'T? / WHAT DID YOU LEARN?</span> — two text fields with placeholder text inside bordered rectangles.</td>
+          <td class="col-target"><span class="em">Two italic-serif question cards</span> — <em>What worked?</em> and <em>What would you do differently?</em> — same anatomy as Debrief's reflection block but at smaller scale (14 / 1.45 italic serif).</td>
+          <td class="col-notes">Tap → field expands into in-line voice/text composer. Save on blur. The question copy itself is a tweak (default for <em>practice</em> category; nursing / running / etc carry their own pair).</td>
+        </tr>
+        <tr>
+          <td class="col-current"><span class="em">No synthesis affordance.</span> User has to write reflections from scratch every time.</td>
+          <td class="col-target"><span class="em">Purple synthesis prompt at top.</span> <em>"Want a first draft from your 9 captures? Tap to draft."</em> One affordance, one tap, scoped to this step's captures. User can take the draft, edit it, or ignore it.</td>
+          <td class="col-notes">Pulls from B.7 Frame 3 <em>Auto-summary</em> pattern. Endpoint: <code>POST /step/:id/reflect/draft</code>. Render the draft as serif italic body text the user can tap-to-keep or swipe-to-redraft.</td>
+        </tr>
+        <tr>
+          <td class="col-current"><span class="em">FAB at bottom-right</span> · presumably the way to add voice (current implementation unclear).</td>
+          <td class="col-target"><span class="em">Coral mic at the foot of the reflect body</span> — 56 dot, inside the card, positioned as the primary compose affordance. Hint copy: <em>"Hold to speak · or type"</em>.</td>
+          <td class="col-notes">Voice transcription writes to whichever question card the user has currently expanded; if none is expanded, writes to a third <em>"Anything else?"</em> capture row that appears on first dictation.</td>
+        </tr>
+        <tr>
+          <td class="col-current"><span class="em">No bottom CTA.</span> Implicit close: user navigates away.</td>
+          <td class="col-target"><span class="em">Save &amp; settle →</span> primary iOS-blue button at the card foot. Tap → state pill flips <code>purple → green · Settled</code>, step closes, focus advances to next Plan-state step.</td>
+          <td class="col-notes">Disabled when both question cards are empty AND no voice has been captured. Hint copy when disabled: <em>"Write a line or hold to speak"</em>.</td>
+        </tr>
+      </tbody>
+    </table>
+
+  </section>
+
+  <!-- =============================================================== -->
+  <!-- Rail                                                              -->
+  <!-- =============================================================== -->
+  <section class="rail-row">
+
+    <div class="rail-col">
+      <h4>1 · <em>The state pill is the user's compass.</em></h4>
+      <p>Across the three tabs the same step card carries five state-pill colors: <strong>gray Planned</strong>, <strong>blue Current step</strong>, <strong>coral Live · capturing</strong>, <strong>green Activity complete</strong>, <strong>purple Reflect · ready</strong>, <strong>green Settled</strong>. The user reads color first, label second. If they remember nothing else about the product, they remember <em>"the colored thing in the corner tells me where I am."</em></p>
+      <p class="sig"><span class="swatch gray"></span><span class="swatch blue"></span><span class="swatch coral"></span><span class="swatch green"></span><span class="swatch purple"></span></p>
+    </div>
+
+    <div class="rail-col">
+      <h4>2 · <em>AI Coach is help, not direction.</em></h4>
+      <p>The empty plan today says <em>"Let AI structure your thoughts."</em> The new register says <em>"Here are three questions. Start writing. AI is around if you get stuck."</em> The shift is from <strong>recommendation-first</strong> to <strong>writing-first, helper-on-demand</strong>. Materially this is one quiet line at the top of Plan body plus a per-field <code>✦</code> spark — both retire to More options once the plan has content.</p>
+      <p class="sig"><span class="swatch purple"></span>quiet helper · per-field spark · self-retiring</p>
+    </div>
+
+    <div class="rail-col">
+      <h4>3 · <em>The <code>+</code> is universal, not single-purpose.</em></h4>
+      <p>One button, five entry-points, one ranked surface. The quick-capture composer at the top of the sheet handles the 90% case (idea-out-fast); four secondary rows handle blueprint-import, social-import, concept-drop, share. The sheet itself is the same iOS sheet pattern Notes and Messages use — familiar physics, custom content.</p>
+      <p class="sig"><span class="swatch blue"></span>quick capture · blueprint · follow · concept · share</p>
+    </div>
+
+    <div class="rail-col">
+      <h4>4 · <em>Reflect is prose, not score.</em></h4>
+      <p>The star rating retires. The two text fields stay but in italic serif at 14/1.45 — the same vocabulary as Debrief's reflection body, just at smaller scale. The synthesis affordance at the top is the AI's polite offer: <em>"want me to draft this from what you said out loud?"</em> The user keeps full control of what's written.</p>
+      <p class="sig"><span class="swatch purple"></span>serif italic · synthesis prompt · coral mic · save & settle</p>
+    </div>
+
+    <div class="rail-col">
+      <h4>5 · <em>The bottom CTA carries the loop.</em></h4>
+      <p>Plan ends with <code>Next: Start Doing →</code> (blue, disabled until <em>what</em>). Do ends with <code>Stop capturing</code> (coral border, ghost). Reflect ends with <code>Save &amp; settle</code> (blue, primary). Three CTAs, one per phase, each one carrying the user to the next state. The phase tabs at top remain free-jump tappable for the user who wants to go backward — but forward is always the bottom CTA.</p>
+      <p class="sig"><span class="swatch blue"></span><span class="swatch coral"></span><span class="swatch green"></span>blue → coral → blue</p>
+    </div>
+
+    <div class="rail-col">
+      <h4>6 · <em>Ship order, refined.</em></h4>
+      <p><strong>Week 1:</strong> top-header consolidation, state-pill, step-strip, phase-tab refresh, tab rename. <strong>Week 2:</strong> AI Coach demotion (D5), <em>Will this be timed?</em> row (D2), bottom CTA on Plan (D3). <strong>Week 3:</strong> retire FAB + step-picker (D4), universal <code>+</code> sheet (D6, quick-capture only first). <strong>Week 4:</strong> Do tab integration — coral state pill, hovering composer, Stop CTA. <strong>Week 5:</strong> Reflect tab integration — retire stars, add synthesis prompt, coral mic. <strong>Week 6:</strong> <code>+</code> sheet secondary entries (blueprint / follow / concept / share). <strong>Phase 2 later:</strong> peeks + horizontal-swipe between steps.</p>
+      <p class="sig"><span class="swatch ink"></span>six landable weeks behind <code>PRACTICE_STEP_LOOP_IOS_REGISTER</code></p>
+    </div>
+
+  </section>
+
+</div>
+
+</body>
+</html>

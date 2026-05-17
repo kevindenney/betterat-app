@@ -1,0 +1,803 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=1520" />
+<title>BetterAt · B.10 · Reflect home — Canonical · 2026-05-16</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css" />
+<link rel="stylesheet" href="legacy-reskin-common.css?v=1" />
+<style>
+  /* ============= Reflect home — surface-specific styles ============= */
+
+  /* Card occupies bottom-edge space; internal scroll + footer CTA */
+  .card.reflect { display: flex; flex-direction: column; }
+  .card-scroll-pad { padding: 0 18px 14px; }
+
+  /* ===== Year-so-far block ===== */
+  .year-so-far { padding: 18px 4px 6px; }
+  .year-so-far .eyebrow {
+    font-size: 10px; font-weight: 700;
+    color: var(--ios-purple-deep); letter-spacing: 0.9px;
+    text-transform: uppercase;
+    margin: 0 0 12px;
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .year-so-far .eyebrow .glyph {
+    width: 14px; height: 14px; border-radius: 50%;
+    background: var(--ios-purple); color: #fff;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .year-so-far .eyebrow .glyph i { font-size: 8.5px; }
+  .year-so-far .body {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 16.5px; line-height: 1.5;
+    color: var(--label); letter-spacing: -0.1px;
+    margin: 0; text-wrap: pretty;
+  }
+  .year-so-far .body em { font-style: italic; }
+  .year-so-far .prov {
+    font-size: 10.5px; font-weight: 600;
+    color: var(--label-3); letter-spacing: 0.4px;
+    text-transform: uppercase;
+    margin: 14px 0 0;
+  }
+
+  /* ===== Section eyebrow used across blocks ===== */
+  .sec-eye {
+    font-size: 9.5px; font-weight: 700;
+    color: var(--label-2); letter-spacing: 0.8px;
+    text-transform: uppercase;
+    margin: 0 0 10px;
+    display: flex; align-items: baseline; justify-content: space-between;
+  }
+  .sec-eye .count {
+    font-size: 10px; font-weight: 500;
+    color: var(--label-3); letter-spacing: -0.02px;
+    text-transform: none;
+  }
+
+  /* ===== Quiet section divider ===== */
+  .quiet-section {
+    padding: 18px 4px 6px;
+    margin-top: 4px;
+    border-top: 0.5px solid var(--gray-5);
+  }
+  .quiet-section.no-rule { border-top: 0; }
+
+  /* ===== Vision evolution card — purple AI/info tint ===== */
+  .vision-card {
+    background:
+      linear-gradient(180deg, rgba(88, 86, 214, 0.07) 0%, rgba(88, 86, 214, 0.025) 100%);
+    border: 0.5px solid var(--ios-purple-soft);
+    border-radius: 14px;
+    padding: 13px 14px 12px;
+  }
+  .vision-card .sec-eye {
+    color: var(--ios-purple-deep);
+    margin-bottom: 8px;
+  }
+  .vision-card .vision-text {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 15px; font-style: italic; line-height: 1.45;
+    color: var(--label); letter-spacing: -0.05px;
+    margin: 0; text-wrap: pretty;
+  }
+  .vision-card .vision-text em { font-style: normal; font-weight: 500; }
+  .vision-card .enter {
+    display: inline-flex; align-items: center; gap: 4px;
+    margin-top: 12px;
+    background: none; border: 0; padding: 0; cursor: pointer;
+    font-size: 12.5px; font-weight: 500;
+    color: var(--ios-purple-deep); letter-spacing: -0.05px;
+  }
+  .vision-card .enter i { font-size: 13px; }
+
+  /* ===== Shifted block (italic serif excerpt) ===== */
+  .shifted .body {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 15px; font-style: italic; line-height: 1.5;
+    color: var(--label); letter-spacing: -0.05px;
+    margin: 0 0 10px; text-wrap: pretty;
+  }
+  .shifted .body em { font-style: normal; font-weight: 500; }
+  .shifted .enter {
+    display: inline-flex; align-items: center; gap: 4px;
+    background: none; border: 0; padding: 0; cursor: pointer;
+    font-size: 12.5px; font-weight: 500;
+    color: var(--ios-blue); letter-spacing: -0.05px;
+  }
+  .shifted .enter i { font-size: 13px; }
+
+  /* ===== Capability arcs strip ===== */
+  .arcs-strip { padding: 18px 0 8px; margin-top: 4px; border-top: 0.5px solid var(--gray-5); }
+  .arcs-strip .sec-eye { padding: 0 4px; }
+  .arcs-scroll {
+    margin: 0 -18px;
+    padding: 4px 18px 6px;
+    display: flex; gap: 14px;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+    -webkit-mask-image: linear-gradient(to right, black 0, black calc(100% - 24px), transparent 100%);
+            mask-image: linear-gradient(to right, black 0, black calc(100% - 24px), transparent 100%);
+  }
+  .arcs-scroll::-webkit-scrollbar { display: none; }
+  .arc {
+    flex: 0 0 auto;
+    width: 112px;
+    background: #FFFFFF;
+    border: 0.5px solid var(--gray-5);
+    border-radius: 12px;
+    padding: 8px 10px 10px;
+    text-align: left;
+    cursor: pointer;
+    scroll-snap-align: start;
+  }
+  .arc svg { display: block; width: 100%; height: 50px; overflow: visible; }
+  .arc .name {
+    font-size: 11.5px; font-weight: 600;
+    color: var(--label); letter-spacing: -0.1px;
+    margin: 8px 0 2px;
+    line-height: 1.25;
+  }
+  .arc .state {
+    font-size: 9.5px; font-weight: 600;
+    color: var(--label-3); letter-spacing: 0.3px;
+    text-transform: uppercase;
+    margin: 0;
+  }
+  .arc .state.up { color: var(--ios-green-deep); }
+
+  /* ===== Moments returned-to list ===== */
+  .moments { display: flex; flex-direction: column; }
+  .moments .item {
+    padding: 12px 0;
+    border-top: 0.5px solid var(--gray-5);
+    background: none; border-left: 0; border-right: 0; border-bottom: 0;
+    width: 100%; text-align: left;
+    cursor: pointer;
+    display: block;
+  }
+  .moments .item:first-of-type { border-top: 0; padding-top: 4px; }
+  .moments .item .quote {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 14px; font-style: italic; line-height: 1.45;
+    color: var(--label); letter-spacing: -0.05px;
+    margin: 0; text-wrap: pretty;
+  }
+  .moments .item .prov {
+    font-size: 10.5px; font-weight: 600;
+    color: var(--label-3); letter-spacing: 0.4px;
+    text-transform: uppercase;
+    margin: 8px 0 0;
+  }
+
+  /* ===== Coming up footer ===== */
+  .coming-up {
+    padding: 18px 4px 4px;
+    margin-top: 4px;
+    border-top: 0.5px solid var(--gray-5);
+  }
+  .coming-up .sec-eye { margin-bottom: 8px; }
+  .coming-up p {
+    font-size: 12.5px; line-height: 1.5;
+    color: var(--label-2); letter-spacing: -0.05px;
+    margin: 0; text-wrap: pretty;
+  }
+  .coming-up p .em { color: var(--label); font-weight: 600; }
+
+  /* ===== Footer CTA strip inside card ===== */
+  .card-footer {
+    flex-shrink: 0;
+    padding: 10px 14px 14px;
+    background: #FFFFFF;
+    border-top: 0.5px solid var(--gray-5);
+  }
+  .card-footer .cta-row { display: flex; gap: 8px; }
+  .card-footer .cta-secondary {
+    text-align: center;
+    margin-top: 6px;
+    font-size: 11px; color: var(--label-3);
+    letter-spacing: -0.02px;
+  }
+  .card-footer .cta-secondary .em { color: var(--ios-blue); font-weight: 600; cursor: pointer; }
+</style>
+</head>
+<body>
+
+<div class="page">
+
+  <header class="page-head">
+    <p class="eyebrow">BetterAt · Phase B.10 · Reflect home — Canonical · 2026-05-16</p>
+    <h1>Reflect home: a <em>season-in-view</em> surface that rests in white-card iOS chrome while keeping its contemplative voice</h1>
+    <p>Felix opens Reflect on a Sunday morning. This is the long-arc surface — where the timeline runs backward and the user reads what the season has become. The aesthetic register from the legacy pass (serif body, sketchbook arcs, italic-with-provenance moments) is <em>preserved on the inside of the card</em>. What changes: the chrome around it now matches the B.7 register — light-gray ground, white card with iOS-native shadow, state pill in the card header, step-strip naming the season context, and a single iOS-blue CTA inviting a reflection. The contemplative voice survives the chrome shift because it lives in the typography of the content, not the page background.</p>
+    <div class="crumbs">
+      <span class="pill">iPhone 16e · portrait · 393 × 852</span>
+      <span class="sep">·</span>
+      <span class="pill">Source · <em>Reflect home — Felix sailing.html</em></span>
+      <span class="sep">·</span>
+      <span class="pill">Style match · <em>b7-frame-2/3/4-canonical.html</em>, <em>b10-frame-1-empty-reflect-canonical.html</em></span>
+      <span class="sep">·</span>
+      <span class="pill">B.10 · populated Reflect home</span>
+    </div>
+  </header>
+
+  <section class="strip-head">
+    <p class="eyebrow">Reflect home · Webview + Anatomy</p>
+    <h2><em>Season-in-view</em> on the left · <em>spacing &amp; type spec</em> on the right</h2>
+    <p>The webview frame is the canonical render at full 393 × 852. The anatomy frame strips the same surface to its measurement bones — callouts A–G follow the B.7 convention (A is always the state-pill, F/G are the primary CTA and the hint copy underneath). What survives the re-skin: the italic serif year-so-far paragraph, the purple-tinted Vision-evolution card as the only background-shifted element, the sketchbook arc strip, and the italic-serif-with-provenance moments list. What's new: the <strong>Reflect · Season in view</strong> state pill, the step-strip naming Spring Series, and the iOS-blue <em>Capture a reflection</em> CTA at the foot of the card.</p>
+  </section>
+
+  <div class="row">
+
+    <!-- =============================================================== -->
+    <!-- Webview frame                                                    -->
+    <!-- =============================================================== -->
+    <div class="col">
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="statusbar">
+          <span>9:42</span>
+          <span class="right">
+            <i class="ti ti-cell-signal-4"></i>
+            <i class="ti ti-wifi"></i>
+            <i class="ti ti-battery-3"></i>
+          </span>
+        </div>
+
+        <div class="screen" data-screen-label="B.10 · Reflect home · populated">
+
+          <div class="top-header">
+            <div class="interest">
+              <span class="name">Sail Racing</span>
+              <span class="switcher"><i class="ti ti-chevron-down"></i></span>
+            </div>
+            <span class="step-counter">Season · spring</span>
+            <div class="avatar">KD</div>
+          </div>
+
+          <article class="card reflect">
+
+            <header class="state-head">
+              <div class="state-pill purple">
+                <span class="spark" aria-hidden="true"><i class="ti ti-sparkles"></i></span>
+                <span class="label">Reflect · Season in view</span>
+              </div>
+              <div class="stats" aria-label="Season stats">
+                <div class="stat">
+                  <span class="num">24</span>
+                  <span class="lbl">Wks to Worlds</span>
+                </div>
+                <span class="sep" aria-hidden="true"></span>
+                <div class="stat">
+                  <span class="num">3</span>
+                  <span class="lbl">Races in</span>
+                </div>
+              </div>
+            </header>
+
+            <div class="step-strip">
+              <span class="ico"><i class="ti ti-flag-3"></i></span>
+              <span class="text">
+                <span class="em">Spring Series</span>
+                <span class="sep">·</span>
+                week 7 of 12 · Race 4 in two days
+              </span>
+            </div>
+
+            <div class="card-scroll">
+              <div class="card-scroll-pad">
+
+                <!-- Year-so-far synthesis -->
+                <section class="year-so-far">
+                  <p class="eyebrow">
+                    <span class="glyph"><i class="ti ti-sparkles"></i></span>
+                    Your year, so far
+                  </p>
+                  <p class="body">In Race 3 you wrote about <em>the side</em> and <em>the shift</em>; by Race 4 the rule was on the deck. The Spring Series is half over and you've moved from learning heavy-air to practicing it — three races, two breakthroughs, one concept still open. The Worlds are twenty-four weeks out, and the question you started the season with — whether you'd trust the shift over the side — has stopped being a question and started being how you sail.</p>
+                  <p class="prov">Drafted from your reflections · synthesized this morning</p>
+                </section>
+
+                <!-- Vision evolution — purple tint -->
+                <section class="quiet-section">
+                  <div class="vision-card">
+                    <p class="sec-eye">
+                      <span>Your Vision · revised in March</span>
+                    </p>
+                    <p class="vision-text">To sail a Worlds-qualifying season by trusting what the breeze is doing more than what the chart says it should.</p>
+                    <button class="enter">
+                      <span>See how it's changed</span>
+                      <i class="ti ti-arrow-right"></i>
+                    </button>
+                  </div>
+                </section>
+
+                <!-- Where your thinking has shifted -->
+                <section class="quiet-section shifted">
+                  <p class="sec-eye">Where your thinking has shifted</p>
+                  <p class="body">In March you wrote about heavy air as a thing to survive. By August, as a thing to use. Now you write about it as <em>the conditions where your particular technique lives</em>.</p>
+                  <button class="enter">
+                    <span>See the trail</span>
+                    <i class="ti ti-arrow-right"></i>
+                  </button>
+                </section>
+
+                <!-- Capability arcs strip -->
+                <section class="arcs-strip">
+                  <p class="sec-eye">
+                    <span>Capabilities, over the season</span>
+                    <span class="count">3 tracked</span>
+                  </p>
+                  <div class="arcs-scroll">
+
+                    <button class="arc">
+                      <svg viewBox="0 0 110 50" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="2" y1="10" x2="108" y2="10" stroke="#E5E5EA" stroke-width="0.6" stroke-dasharray="1.5 3" />
+                        <line x1="2" y1="26" x2="108" y2="26" stroke="#E5E5EA" stroke-width="0.6" stroke-dasharray="1.5 3" />
+                        <line x1="2" y1="42" x2="108" y2="42" stroke="#E5E5EA" stroke-width="0.6" stroke-dasharray="1.5 3" />
+                        <path d="M 6 42 C 20 41, 32 39, 44 35 S 70 28, 84 24 S 100 22, 104 22"
+                              stroke="#1C1C1E" stroke-width="1.1" fill="none" />
+                        <circle cx="6"   cy="42" r="2" fill="#1C1C1E" />
+                        <circle cx="104" cy="22" r="2.4" fill="#34C759" />
+                      </svg>
+                      <p class="name">Heavy-air helm work</p>
+                      <p class="state up">Practicing · since March</p>
+                    </button>
+
+                    <button class="arc">
+                      <svg viewBox="0 0 110 50" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="2" y1="10" x2="108" y2="10" stroke="#E5E5EA" stroke-width="0.6" stroke-dasharray="1.5 3" />
+                        <line x1="2" y1="26" x2="108" y2="26" stroke="#E5E5EA" stroke-width="0.6" stroke-dasharray="1.5 3" />
+                        <line x1="2" y1="42" x2="108" y2="42" stroke="#E5E5EA" stroke-width="0.6" stroke-dasharray="1.5 3" />
+                        <path d="M 6 25 C 22 24, 38 27, 56 26 S 84 25, 100 26 S 102 26, 104 26"
+                              stroke="#1C1C1E" stroke-width="1.1" fill="none" />
+                        <circle cx="6"   cy="25" r="2" fill="#1C1C1E" />
+                        <circle cx="104" cy="26" r="2" fill="#1C1C1E" />
+                      </svg>
+                      <p class="name">Light-air starts</p>
+                      <p class="state">Practicing · steady</p>
+                    </button>
+
+                    <button class="arc">
+                      <svg viewBox="0 0 110 50" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="2" y1="10" x2="108" y2="10" stroke="#E5E5EA" stroke-width="0.6" stroke-dasharray="1.5 3" />
+                        <line x1="2" y1="26" x2="108" y2="26" stroke="#E5E5EA" stroke-width="0.6" stroke-dasharray="1.5 3" />
+                        <line x1="2" y1="42" x2="108" y2="42" stroke="#E5E5EA" stroke-width="0.6" stroke-dasharray="1.5 3" />
+                        <line x1="2" y1="42" x2="58" y2="42" stroke="#C7C7CC" stroke-width="0.7" stroke-dasharray="2 3" />
+                        <path d="M 62 42 C 72 41, 84 40, 94 40 S 102 41, 104 40"
+                              stroke="#1C1C1E" stroke-width="1.1" fill="none" />
+                        <circle cx="62"  cy="42" r="2" fill="#1C1C1E" />
+                        <circle cx="104" cy="40" r="2" fill="#1C1C1E" />
+                      </svg>
+                      <p class="name">Mark roundings in traffic</p>
+                      <p class="state">Learning · a few sessions</p>
+                    </button>
+
+                  </div>
+                </section>
+
+                <!-- Moments returned-to -->
+                <section class="quiet-section">
+                  <p class="sec-eye">
+                    <span>Moments worth returning to</span>
+                    <span class="count">3 of 11</span>
+                  </p>
+                  <div class="moments">
+
+                    <button class="item">
+                      <p class="quote">"The first time I held the boat through a real puff and didn't pinch — that was the moment heavy air stopped being something happening to me and started being something I was doing."</p>
+                      <p class="prov">Race 2 Debrief · February</p>
+                    </button>
+
+                    <button class="item">
+                      <p class="quote">"I'm starting to recognize the difference between conditions that test my technique and conditions that exceed it. The line moves every season."</p>
+                      <p class="prov">A reflection between races · April</p>
+                    </button>
+
+                    <button class="item">
+                      <p class="quote">"Sam said something today that I'll keep: write the rule before the start. The rule is the only thing you can trust when the moment gets loud."</p>
+                      <p class="prov">Race 3 Debrief · ten days ago</p>
+                    </button>
+
+                  </div>
+                </section>
+
+                <!-- Coming up -->
+                <section class="coming-up">
+                  <p class="sec-eye">Coming up</p>
+                  <p><span class="em">Race 4 in two days.</span> The Spring Series closes in five weeks. The Worlds are twenty-four weeks out.</p>
+                </section>
+
+              </div>
+            </div>
+
+            <!-- Footer CTA -->
+            <div class="card-footer">
+              <button class="cta-primary">
+                <i class="ti ti-microphone"></i>
+                Capture a reflection
+              </button>
+              <p class="cta-secondary">Or <span class="em">re-synthesize the year</span></p>
+            </div>
+
+          </article>
+
+          <nav class="tabbar">
+            <button class="t"><i class="ti ti-flag-3"></i><span>Practice</span></button>
+            <button class="t"><i class="ti ti-book-2"></i><span>Playbook</span></button>
+            <button class="t"><i class="ti ti-compass"></i><span>Discover</span></button>
+            <button class="t on" aria-current="page"><i class="ti ti-rewind-backward-10"></i><span>Reflect</span></button>
+          </nav>
+        </div>
+
+        <div class="home-indicator"></div>
+      </div>
+
+      <div class="caption-block">
+        <p class="frame-label"><em>Reflect home · populated</em> · 393 × 852</p>
+        <p class="frame-sub">Same iOS chrome as Do tab — white card on light gray, state pill in the header. The contemplative voice lives in the typography <em>inside</em> the card: serif body, italic prose, sketchbook arcs.</p>
+      </div>
+    </div>
+
+    <!-- =============================================================== -->
+    <!-- Anatomy frame                                                    -->
+    <!-- =============================================================== -->
+    <div class="col">
+      <div class="anatomy-wrap">
+        <div class="anatomy">
+          <div class="phone bare">
+            <div class="notch"></div>
+            <div class="statusbar">
+              <span>9:42</span>
+              <span class="right">
+                <i class="ti ti-cell-signal-4"></i>
+                <i class="ti ti-wifi"></i>
+                <i class="ti ti-battery-3"></i>
+              </span>
+            </div>
+
+            <div class="screen" style="background: #FFFFFF;" data-screen-label="B.10 · Reflect home · anatomy">
+
+              <div class="top-header">
+                <div class="interest">
+                  <span class="name">Sail Racing</span>
+                  <span class="switcher"><i class="ti ti-chevron-down"></i></span>
+                </div>
+                <span class="step-counter">Season · spring</span>
+                <div class="avatar">KD</div>
+              </div>
+
+              <article class="card reflect" style="box-shadow: 0 1px 2px rgba(0,0,0,0.06), 0 10px 22px -14px rgba(0,0,0,0.12);">
+
+                <header class="state-head">
+                  <div class="state-pill purple">
+                    <span class="spark"><i class="ti ti-sparkles"></i></span>
+                    <span class="label">Reflect · Season in view</span>
+                  </div>
+                  <div class="stats">
+                    <div class="stat"><span class="num">24</span><span class="lbl">Wks to Worlds</span></div>
+                    <span class="sep"></span>
+                    <div class="stat"><span class="num">3</span><span class="lbl">Races in</span></div>
+                  </div>
+                </header>
+
+                <div class="step-strip">
+                  <span class="ico"><i class="ti ti-flag-3"></i></span>
+                  <span class="text"><span class="em">Spring Series</span><span class="sep">·</span>week 7 of 12 · Race 4 in two days</span>
+                </div>
+
+                <div class="card-scroll">
+                  <div class="card-scroll-pad">
+                    <section class="year-so-far">
+                      <p class="eyebrow"><span class="glyph"><i class="ti ti-sparkles"></i></span>Your year, so far</p>
+                      <p class="body">In Race 3 you wrote about <em>the side</em> and <em>the shift</em>; by Race 4 the rule was on the deck…</p>
+                      <p class="prov">Drafted from your reflections · synthesized this morning</p>
+                    </section>
+
+                    <section class="quiet-section">
+                      <div class="vision-card">
+                        <p class="sec-eye"><span>Your Vision · revised in March</span></p>
+                        <p class="vision-text">To sail a Worlds-qualifying season by trusting what the breeze is doing…</p>
+                        <button class="enter"><span>See how it's changed</span><i class="ti ti-arrow-right"></i></button>
+                      </div>
+                    </section>
+
+                    <section class="quiet-section shifted">
+                      <p class="sec-eye">Where your thinking has shifted</p>
+                      <p class="body">In March you wrote about heavy air as a thing to survive…</p>
+                    </section>
+                  </div>
+                </div>
+
+                <div class="card-footer">
+                  <button class="cta-primary"><i class="ti ti-microphone"></i>Capture a reflection</button>
+                </div>
+              </article>
+
+              <nav class="tabbar">
+                <button class="t"><i class="ti ti-flag-3"></i><span>Practice</span></button>
+                <button class="t"><i class="ti ti-book-2"></i><span>Playbook</span></button>
+                <button class="t"><i class="ti ti-compass"></i><span>Discover</span></button>
+                <button class="t on"><i class="ti ti-rewind-backward-10"></i><span>Reflect</span></button>
+              </nav>
+            </div>
+
+            <div class="home-indicator"></div>
+          </div>
+
+          <!-- Measurement overlay -->
+          <div class="m-line h" style="left: 14px; right: 14px; top: 56px;"></div>
+          <div class="m-tag"  style="left: 50%; top: 44px; transform: translateX(-50%);">card · 365 × 704 · r 22</div>
+
+          <div class="m-line v" style="left: 6px; top: 64px; height: 50px;"></div>
+          <div class="m-tag"  style="left: -38px; top: 84px;">50</div>
+
+          <div class="m-line v" style="left: 6px; top: 116px; height: 33px;"></div>
+          <div class="m-tag"  style="left: -38px; top: 126px;">33</div>
+
+          <!-- A · state pill -->
+          <div class="m-letter" style="left: 36px; top: 76px;">A</div>
+          <div class="m-tag"   style="left: 64px; top: 72px;">state pill · r 999 · purple · 5/9 pad</div>
+
+          <!-- B · stats -->
+          <div class="m-letter" style="right: 130px; top: 76px;">B</div>
+          <div class="m-tag"   style="right: 22px; top: 76px;">stats · 17/600 · tnum</div>
+
+          <!-- C · step strip -->
+          <div class="m-letter" style="left: 22px; top: 125px;">C</div>
+
+          <!-- D · year-so-far body -->
+          <div class="m-letter" style="left: 22px; top: 200px;">D</div>
+          <div class="m-tag"   style="right: 22px; top: 200px;">serif · 16.5 / 1.5</div>
+
+          <!-- E · vision card (purple) -->
+          <div class="m-box"   style="left: 30px; right: 30px; top: 360px; height: 92px;"></div>
+          <div class="m-letter" style="left: 36px; top: 372px;">E</div>
+          <div class="m-tag"   style="right: 32px; top: 372px;">vision · purple-tint 7% · r 14</div>
+
+          <!-- F · CTA -->
+          <div class="m-letter" style="left: 30px; bottom: 134px;">F</div>
+          <div class="m-tag"   style="right: 22px; bottom: 134px;">primary · ios-blue · r 14 · 44 h</div>
+
+          <!-- G · hint -->
+          <div class="m-letter" style="left: 30px; bottom: 100px;">G</div>
+          <div class="m-tag"   style="right: 22px; bottom: 100px;">hint · 11 / 60% · text-only sec.</div>
+
+          <!-- tabbar -->
+          <div class="m-line v" style="right: 6px; bottom: 0; height: 84px;"></div>
+          <div class="m-tag"   style="right: -42px; bottom: 36px;">tabbar · 84</div>
+
+        </div>
+
+        <!-- ============ Right column: callouts, legend, type ============ -->
+        <div class="anatomy-callouts">
+
+          <div class="callout">
+            <p class="ctitle">A · Reflect state pill</p>
+            <p class="cname"><em>Purple is the long-arc accent.</em></p>
+            <p class="cspec">
+              <span class="k">size</span> · <span class="v">26 h · auto w</span><br>
+              <span class="k">radius</span> · <span class="v">999 (pill)</span><br>
+              <span class="k">padding</span> · <span class="v">5 / 11 / 5 / 9</span><br>
+              <span class="k">fill</span> · <span class="v">purple-tint · 10%</span><br>
+              <span class="k">border</span> · <span class="v">0.5 purple-soft · 18%</span><br>
+              <span class="k">glyph</span> · <span class="v">14 dot · sparkles 8.5px</span>
+            </p>
+            <p class="cnote">Reflect's signature accent. The only purple on the screen — same ring-fencing rule as the coral LIVE pulse on Do.</p>
+          </div>
+
+          <div class="callout">
+            <p class="ctitle">B · Season stats</p>
+            <p class="cname"><em>Two numbers, hairline between.</em></p>
+            <p class="cspec">
+              <span class="k">num</span> · <span class="v">17/600 · −0.4 ls · tnum</span><br>
+              <span class="k">lbl</span> · <span class="v">9.5/700 · 0.5 ls · upper</span><br>
+              <span class="k">divider</span> · <span class="v">0.5 px · gray-5 · inset 2</span>
+            </p>
+            <p class="cnote">Wks-to-Worlds and Races-in are the two arcs the season is measured against. No streak counts, no progress bars — the user's prose carries the rest.</p>
+          </div>
+
+          <div class="callout">
+            <p class="ctitle">C · Step strip</p>
+            <p class="cname"><em>Flag-3 icon · series · sub-context.</em></p>
+            <p class="cspec">
+              <span class="k">height</span> · <span class="v">33</span><br>
+              <span class="k">fill</span> · <span class="v">#FAFAFC</span><br>
+              <span class="k">ico</span> · <span class="v">18 · blue-tint · ti-flag-3</span><br>
+              <span class="k">text</span> · <span class="v">11.5 / -0.05 · label-2</span>
+            </p>
+            <p class="cnote">Names the season-shaped container the surface lives inside. <em>Spring Series</em> is the em-weighted anchor; the rest is sub-step context.</p>
+          </div>
+
+          <div class="callout">
+            <p class="ctitle">D · Year-so-far synthesis</p>
+            <p class="cname"><em>Serif body — the load-bearing prose.</em></p>
+            <p class="cspec">
+              <span class="k">body</span> · <span class="v">serif 16.5 / 1.5 · −0.1 ls</span><br>
+              <span class="k">eyebrow</span> · <span class="v">10/700 · 0.9 ls · purple-deep</span><br>
+              <span class="k">glyph</span> · <span class="v">14 dot · purple · sparkles</span><br>
+              <span class="k">prov</span> · <span class="v">10.5/700 · 0.4 ls · upper · 60%</span>
+            </p>
+            <p class="cnote">Synthesis-in-user's-voice scaled to the season. Same provenance grammar as Concept detail: <em>drafted from your reflections · synthesized [when]</em>.</p>
+          </div>
+
+          <div class="callout">
+            <p class="ctitle">E · Vision evolution</p>
+            <p class="cname"><em>The only ground-shifted element on the page.</em></p>
+            <p class="cspec">
+              <span class="k">fill</span> · <span class="v">purple-tint 7→2.5%</span><br>
+              <span class="k">border</span> · <span class="v">0.5 purple-soft</span><br>
+              <span class="k">radius</span> · <span class="v">14</span><br>
+              <span class="k">pad</span> · <span class="v">13 / 14</span><br>
+              <span class="k">body</span> · <span class="v">serif italic 15 / 1.45</span>
+            </p>
+            <p class="cnote">Soft purple wash echoes the Reflect accent — never coral, never blue. The deeper Vision evolution surface is the doorway; this card is a pointer.</p>
+          </div>
+
+          <div class="callout">
+            <p class="ctitle">F · Primary CTA — Capture a reflection</p>
+            <p class="cname"><em>iOS-blue, mic-led, full-width.</em></p>
+            <p class="cspec">
+              <span class="k">size</span> · <span class="v">100% · 44 h</span><br>
+              <span class="k">radius</span> · <span class="v">14</span><br>
+              <span class="k">fill</span> · <span class="v">ios-blue</span><br>
+              <span class="k">label</span> · <span class="v">15 / 600 · −0.2 ls</span><br>
+              <span class="k">icon</span> · <span class="v">ti-microphone · 16</span>
+            </p>
+            <p class="cnote">Reflect is a reading surface, but capture is always one tap away. Mic-led because reflection lands well as voice.</p>
+          </div>
+
+          <div class="callout">
+            <p class="ctitle">G · Secondary — re-synthesize the year</p>
+            <p class="cname"><em>Text-only · 11/label-3 · the work mode.</em></p>
+            <p class="cspec">
+              <span class="k">style</span> · <span class="v">11 / 60% · text-only</span><br>
+              <span class="k">link</span> · <span class="v">ios-blue · 600</span>
+            </p>
+            <p class="cnote">Re-synthesis lives in work-mode beneath the surface. Surfacing the affordance here keeps it cheap to find but cheap to ignore.</p>
+          </div>
+
+          <!-- Color legend -->
+          <div class="legend">
+            <h5>Color tokens · this surface</h5>
+            <div class="row-l">
+              <span class="sw" style="background: #F2F2F7;"></span>
+              <span class="nm"><em>gray-6</em> · screen ground</span>
+              <span class="hex">#F2F2F7</span>
+            </div>
+            <div class="row-l">
+              <span class="sw" style="background: #FFFFFF;"></span>
+              <span class="nm"><em>white</em> · card fill</span>
+              <span class="hex">#FFFFFF</span>
+            </div>
+            <div class="row-l">
+              <span class="sw" style="background: #5856D6;"></span>
+              <span class="nm"><em>ios-purple</em> · Reflect accent</span>
+              <span class="hex">#5856D6</span>
+            </div>
+            <div class="row-l">
+              <span class="sw" style="background: rgba(88, 86, 214, 0.10); border-color: rgba(88, 86, 214, 0.18);"></span>
+              <span class="nm"><em>purple-tint</em> · vision / state pill</span>
+              <span class="hex">rgba 10%</span>
+            </div>
+            <div class="row-l">
+              <span class="sw" style="background: #007AFF;"></span>
+              <span class="nm"><em>ios-blue</em> · primary CTA, links</span>
+              <span class="hex">#007AFF</span>
+            </div>
+            <div class="row-l">
+              <span class="sw" style="background: #34C759;"></span>
+              <span class="nm"><em>ios-green</em> · arc up-state dot</span>
+              <span class="hex">#34C759</span>
+            </div>
+            <div class="row-l">
+              <span class="sw" style="background: #1C1C1E;"></span>
+              <span class="nm"><em>label</em> · serif body ink</span>
+              <span class="hex">#1C1C1E</span>
+            </div>
+            <div class="row-l">
+              <span class="sw" style="background: #E5E5EA;"></span>
+              <span class="nm"><em>gray-5</em> · hairline rules</span>
+              <span class="hex">#E5E5EA</span>
+            </div>
+          </div>
+
+          <!-- Type scale -->
+          <div class="type-scale">
+            <h5>Type scale · this surface</h5>
+            <div class="type-row">
+              <span class="sample eye-purp">Reflect · Season in view</span>
+              <span class="spec">11 / 700 · 0.6 ls · upper · purple-deep</span>
+            </div>
+            <div class="type-row">
+              <span class="sample num">24</span>
+              <span class="spec">17 / 600 · −0.4 ls · tnum</span>
+            </div>
+            <div class="type-row">
+              <span class="sample aux">Wks to Worlds</span>
+              <span class="spec">9.5 / 700 · 0.5 ls · upper</span>
+            </div>
+            <div class="type-row">
+              <span class="sample" style="font-size:11.5px;font-weight:600;color:#1C1C1E;">Spring Series · week 7 of 12</span>
+              <span class="spec">11.5 / 600 · -0.05 · label</span>
+            </div>
+            <div class="type-row">
+              <span class="sample serif">In Race 3 you wrote about <em>the side</em>…</span>
+              <span class="spec">serif 16.5 / 1.5 · -0.1 ls</span>
+            </div>
+            <div class="type-row">
+              <span class="sample aux" style="color:rgba(60,60,67,0.6);">Drafted · synthesized this morning</span>
+              <span class="spec">10.5 / 700 · 0.4 · upper · 60%</span>
+            </div>
+            <div class="type-row">
+              <span class="sample serif" style="font-size:15px;">conditions where my technique lives</span>
+              <span class="spec">serif italic 15 / 1.5</span>
+            </div>
+            <div class="type-row">
+              <span class="sample cta" style="color:#fff; background:#007AFF; padding:4px 10px; border-radius:6px;">Capture a reflection</span>
+              <span class="spec">15 / 600 · −0.2 ls</span>
+            </div>
+            <div class="type-row">
+              <span class="sample meta">Or re-synthesize the year</span>
+              <span class="spec">11 / 60% · text-only</span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <div class="caption-block" style="margin-top: 32px;">
+        <p class="frame-label"><em>Anatomy</em> · 393 × 852 · callouts A–G</p>
+        <p class="frame-sub">Same letter convention as B.7: A is the state pill, F/G are the primary CTA and its hint. Purple is Reflect's exclusive accent — never coral, never green.</p>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- =============================================================== -->
+  <!-- Rail — what this surface commits to                              -->
+  <!-- =============================================================== -->
+  <section class="rail-row">
+
+    <div class="rail-col">
+      <h4>1 · <em>The contemplative voice lives in the type, not the page.</em></h4>
+      <p>Legacy Reflect leaned on a warm stage-color background and a borderless wash to feel quiet. The re-skin moves to white-card-on-gray iOS chrome — the same chrome the rest of the product uses — and trusts the <strong>serif body, italic vision excerpt, and italic-with-provenance moments list</strong> to do the contemplative work. The test holds: read the surface and ask whether it feels calm. If yes, the chrome shift cost nothing.</p>
+      <p class="sig"><span class="swatch ink"></span>serif body · italic vision · italic moments</p>
+    </div>
+
+    <div class="rail-col">
+      <h4>2 · <em>Purple is Reflect's ring-fenced accent.</em></h4>
+      <p>Do has coral. Plan has blue. Trophy has green. Reflect gets purple — the long-arc, AI-handoff accent. It appears on the state pill, the Vision-evolution card's wash, and the synthesis eyebrow. Nowhere else on the screen. If anything new tries to claim purple — feature highlight, badge, AI hint — it goes through review the same way coral does on Do.</p>
+      <p class="sig"><span class="swatch purple"></span>state pill · vision card · synthesis eyebrow</p>
+    </div>
+
+    <div class="rail-col">
+      <h4>3 · <em>Capture a reflection is one tap away, always.</em></h4>
+      <p>Reflect is a reading surface, but reading frequently prompts writing. The single iOS-blue mic-led CTA at the foot of the card makes that latency near-zero, without claiming visual real estate inside the contemplative read. The text-only <em>re-synthesize the year</em> link sits underneath as the work-mode escape hatch — present, but quiet.</p>
+      <p class="sig"><span class="swatch blue"></span>primary CTA · ti-microphone · ios-blue</p>
+    </div>
+
+    <div class="rail-col">
+      <h4>4 · <em>Sketchbook arcs survive the re-skin.</em></h4>
+      <p>The line-drawing capability arcs are <strong>load-bearing</strong> for the surface's character — if they read as sparkline tiles, the chrome has won. The re-skin keeps them as hand-drawn 1.1-px Béziers with three dashed state guides and two endpoint dots. They're now housed inside small white tiles (radius 12, 0.5 px gray-5 border) so they sit comfortably on the card; the drawing itself is unchanged.</p>
+      <p class="sig"><span class="swatch ink"></span>1.1 px arc · 0.6 px dashed guides · 2 endpoint dots</p>
+    </div>
+
+    <div class="rail-col">
+      <h4>5 · <em>What survived from legacy.</em></h4>
+      <p>Year-so-far paragraph (serif body, sentence-case eyebrow, sans provenance). Vision evolution with quiet enter affordance. Where-your-thinking-has-shifted excerpt. Capability arcs strip. Moments-returned-to as italic-serif-with-provenance. Coming-up footer as sans prose. All of it &mdash; structure, copy, hierarchy &mdash; preserved. The only content change is voice on the new chrome elements (state pill, step strip, CTA copy).</p>
+      <p class="sig"><span class="swatch gray"></span>structure · copy · hierarchy &mdash; preserved</p>
+    </div>
+
+    <div class="rail-col">
+      <h4>6 · <em>What's new from the B.7 register.</em></h4>
+      <p>White card with iOS-native shadow on a light-gray ground. State pill in the card header pairing a glyph + caps eyebrow. Two-stat block (Wks to Worlds, Races in) on the right of the header — the same 17/600 tnum pattern used for Captures / Elapsed on Do. Step strip naming Spring Series. Footer CTA strip pinned at card bottom with primary + text hint. Same letter convention (A–G) on the anatomy frame.</p>
+      <p class="sig"><span class="swatch amber"></span>state pill · stats · step strip · footer CTA</p>
+    </div>
+
+  </section>
+
+</div>
+
+</body>
+</html>
