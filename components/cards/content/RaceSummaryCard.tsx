@@ -85,6 +85,7 @@ import { StepFocusConcepts } from '@/components/step/StepFocusConcepts';
 import { StepProvenanceBanner } from '@/components/step/StepProvenanceBanner';
 import { StepBlueprintChrome } from '@/components/step/StepBlueprintChrome';
 import { StepDiscussionPeek } from '@/components/step/StepDiscussionPeek';
+import { StepDiscussionInline } from '@/components/step/StepDiscussionInline';
 import { useStepBlueprintChrome } from '@/hooks/useStepBlueprintChrome';
 import { useStepDiscussionPeek } from '@/hooks/useStepDiscussionPeek';
 import { AIStructureReview } from '@/components/step/AIStructureReview';
@@ -536,10 +537,23 @@ function RaceSummaryCardImpl({
     if (!blueprintChrome) return;
     router.push(`/practice/blueprint/${blueprintChrome.blueprintId}/fleet` as any);
   }, [blueprintChrome, router]);
+
+  // Discussion-tab state declared early so the peek's tap handler can
+  // reference setDiscussionTabActive. Showability is gated by feature flag
+  // + presence of blueprint chrome (subscribed-blueprint step only).
+  const [discussionTabActive, setDiscussionTabActive] = useState(false);
+  const showDiscussionTab =
+    FEATURE_FLAGS.STEP_DISCUSSION_V1 && Boolean(blueprintChrome);
+
   const goDiscussion = useCallback(() => {
     if (!isTimelineStep) return;
-    router.push(`/practice/step/${race.id}/discussion` as any);
-  }, [isTimelineStep, race.id, router]);
+    // Switch the active phase tab to Discussion instead of pushing the
+    // fullscreen route. The 4th-tab inline view is the canonical surface
+    // for blueprint-subscribed step discussion; the fullscreen route is
+    // kept for non-step entry points only.
+    triggerHaptic('selection');
+    setDiscussionTabActive(true);
+  }, [isTimelineStep]);
   const stepStatus = race.stepStatus ?? race.status;
   const currentPhase = useMemo(() => {
     if (isTimelineStep) {
@@ -1659,14 +1673,19 @@ function RaceSummaryCardImpl({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phaseCounts, eventConfig.phaseLabels, isTimelineStep]);
 
+  // Phase 10 PR-2b — Discussion is a 4th tab on subscribed-blueprint steps.
+  // State + show-gate are declared near the top of the component so the
+  // peek's tap handler can reference setDiscussionTabActive.
+
   // Canonical Practice Timeline phase tabs: underline pattern with green-dot
   // "done" state. Done = phase has user-produced content (total > 0). Strips
   // the inline completion counts shown on the segmented-control variant — the
   // canonical lets the green dot do all the "phase has content" signaling.
-  const canonicalPhaseTabs = useMemo<PhaseTabItem<RacePhase>[]>(() => {
-    return RACE_PHASES.map((phase) => {
+  type LocalTabValue = RacePhase | 'discussion';
+  const canonicalPhaseTabs = useMemo<PhaseTabItem<LocalTabValue>[]>(() => {
+    const phaseItems: PhaseTabItem<LocalTabValue>[] = RACE_PHASES.map((phase) => {
       const count = phaseCounts[phase];
-      const isSelected = phase === selectedPhase;
+      const isSelected = !discussionTabActive && phase === selectedPhase;
       const hasContent = count.total > 0 || count.completed > 0;
       return {
         value: phase,
@@ -1674,11 +1693,37 @@ function RaceSummaryCardImpl({
         state: isSelected ? 'active' : hasContent ? 'done' : 'empty',
       };
     });
+    if (showDiscussionTab) {
+      const hasNotes =
+        discussionPeek != null && discussionPeek.noteCount > 0;
+      phaseItems.push({
+        value: 'discussion',
+        label: 'Discussion',
+        state: discussionTabActive ? 'active' : hasNotes ? 'done' : 'empty',
+      });
+    }
+    return phaseItems;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [phaseCounts, selectedPhase]);
+  }, [phaseCounts, selectedPhase, discussionTabActive, showDiscussionTab, discussionPeek]);
 
   // Handle phase tab change with haptic feedback
-  const handlePhaseChange = useCallback((phase: RacePhase) => {
+  const handlePhaseChange = useCallback(
+    (phase: LocalTabValue) => {
+      if (phase === 'discussion') {
+        triggerHaptic('selection');
+        setDiscussionTabActive(true);
+        return;
+      }
+      setDiscussionTabActive(false);
+      return handlePhaseChangeLegacy(phase);
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [],
+  );
+
+  // Original handler renamed so the new wrapper can keep the existing signature
+  // for non-discussion phases.
+  const handlePhaseChangeLegacy = useCallback((phase: RacePhase) => {
     // DEBUG: Log phase tab selection
     if (typeof window !== 'undefined' && (window as any).__PERIOD_DEBUG__?.enabled) {
       (window as any).__PERIOD_DEBUG__.log('RaceSummaryCard.phaseTab', eventConfig.phaseLabels[phase]?.short ?? phase, { phase, raceId: race.id });
@@ -1707,7 +1752,7 @@ function RaceSummaryCardImpl({
       <IOSSegmentedControl
         segments={phaseTabs}
         selectedValue={selectedPhase}
-        onValueChange={handlePhaseChange}
+        onValueChange={handlePhaseChangeLegacy}
         style={{ marginTop: 12, marginBottom: 12, maxWidth: 322 }}
       />
     );
@@ -1845,6 +1890,13 @@ function RaceSummaryCardImpl({
   const renderPhaseContent = () => {
     // Coach nudge banner — shown across all step types
     const nudgeBanner = coachNudge ? <CoachNudgeBanner insight={coachNudge} onDismiss={dismissNudge} /> : null;
+
+    // Phase 10 PR-2b — Discussion tab takes precedence over the temporal
+    // Plan/Do/Reflect phases when active. Renders the focused inline thread
+    // view inside the same outer ScrollView.
+    if (discussionTabActive && isTimelineStep && showDiscussionTab) {
+      return <StepDiscussionInline stepId={race.id} />;
+    }
 
     // Demo timeline steps: show phase-specific read-only content
     if (race.isDemo && isTimelineStep) {

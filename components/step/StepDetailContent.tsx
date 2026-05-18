@@ -58,18 +58,21 @@ import { StepBlueprintChrome } from './StepBlueprintChrome';
 import { StepDiscussionPeek } from './StepDiscussionPeek';
 import { useStepBlueprintChrome } from '@/hooks/useStepBlueprintChrome';
 import { useStepDiscussionPeek } from '@/hooks/useStepDiscussionPeek';
+import { StepDiscussionInline } from './StepDiscussionInline';
 
-type TabValue = 'plan' | 'act' | 'review';
+type TabValue = 'plan' | 'act' | 'review' | 'discussion';
 
 const PHASE_TO_TAB: Record<PhaseId, TabValue> = {
   plan: 'plan',
   do: 'act',
   reflect: 'review',
+  discussion: 'discussion',
 };
 const TAB_TO_PHASE: Record<TabValue, PhaseId> = {
   plan: 'plan',
   act: 'do',
   review: 'reflect',
+  discussion: 'discussion',
 };
 
 function deriveStatePill(
@@ -137,8 +140,11 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp }: StepDetail
   const showDiscussionPeek =
     FEATURE_FLAGS.STEP_DISCUSSION_V1 && Boolean(discussionPeek);
   const goDiscussion = useCallback(() => {
-    router.push(`/practice/step/${stepId}/discussion` as any);
-  }, [stepId]);
+    // Switch the active tab to Discussion (4th tab). The fullscreen
+    // /practice/step/[id]/discussion route stays available but the peek now
+    // surfaces the discussion inline next to Plan/Do/Reflect.
+    setActiveTab('discussion');
+  }, [setActiveTab]);
 
   // Use the step's own interest for vocabulary so labels match the step's
   // domain (e.g. sail-racing labels for a sailing step, even when the viewer's
@@ -972,6 +978,7 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp }: StepDetail
         <ActTab stepId={stepId} dateEnrichment={planData.date_enrichment} onNextTab={() => handleNextTab('review')} readOnly={!isOwner} footer={commentsFooter} interestId={step.interest_id} interestName={currentInterest?.name} interestSlug={currentInterest?.slug} />
       )}
       {activeTab === 'review' && <ReviewTab stepId={stepId} readOnly={!isOwner} footer={commentsFooter} />}
+      {activeTab === 'discussion' && <StepDiscussionInline stepId={stepId} />}
     </>
   );
 
@@ -1082,6 +1089,15 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp }: StepDetail
               plan={planPhase}
               do={doPhase}
               reflect={reflectPhase}
+              discussion={
+                showBlueprintChrome
+                  ? activePhase === 'discussion'
+                    ? 'live'
+                    : (discussionPeek?.noteCount ?? 0) > 0
+                      ? 'ready'
+                      : 'pending'
+                  : undefined
+              }
               active={activePhase}
               onTabPress={(tab) => setActiveTab(PHASE_TO_TAB[tab])}
               labels={{

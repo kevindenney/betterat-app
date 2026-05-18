@@ -35,15 +35,21 @@ import {
 } from '@/lib/design-tokens-step-loop-ios';
 
 export type PhaseState = 'pending' | 'ready' | 'live';
-export type PhaseId = 'plan' | 'do' | 'reflect';
+export type PhaseId = 'plan' | 'do' | 'reflect' | 'discussion';
 
 export interface PhaseTabsProps {
   plan: PhaseState;
   do: PhaseState;
   reflect: PhaseState;
+  /**
+   * Optional 4th Discussion tab. When omitted, only Plan / Do / Reflect
+   * render — preserves backwards compatibility for surfaces that don't have
+   * a subscribed-blueprint discussion thread.
+   */
+  discussion?: PhaseState;
   active: PhaseId;
   onTabPress: (tab: PhaseId) => void;
-  /** Optional override labels (defaults to "Plan" / "Do" / "Reflect"). */
+  /** Optional override labels (defaults to "Plan" / "Do" / "Reflect" / "Discussion"). */
   labels?: Partial<Record<PhaseId, string>>;
   testID?: string;
 }
@@ -80,6 +86,7 @@ export function PhaseTabs({
   plan,
   do: doState,
   reflect,
+  discussion,
   active,
   onTabPress,
   labels,
@@ -90,6 +97,13 @@ export function PhaseTabs({
     { id: 'do', defaultLabel: labels?.do ?? 'Do', state: doState },
     { id: 'reflect', defaultLabel: labels?.reflect ?? 'Reflect', state: reflect },
   ];
+  if (discussion !== undefined) {
+    specs.push({
+      id: 'discussion',
+      defaultLabel: labels?.discussion ?? 'Discussion',
+      state: discussion,
+    });
+  }
 
   return (
     <View style={styles.row} testID={testID}>
