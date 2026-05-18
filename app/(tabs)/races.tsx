@@ -4368,18 +4368,10 @@ export default function RacesScreen() {
           {isGridView ? (
             <View style={{ flex: 1 }}>
 
-              {showSeriesStrip && (
-                <View style={{ paddingTop: totalHeaderHeight + 8 }}>
-                  <SeriesStrip
-                    label={getSeriesLabel(currentInterest)}
-                    name={seriesStripName}
-                    currentIndex={headerCurrentRaceIndex ?? 0}
-                    totalSteps={headerTotalRaces}
-                    progress={seriesStripProgress}
-                    onPress={() => setShowSeasonPicker(true)}
-                  />
-                </View>
-              )}
+              {/* SeriesStrip is now passed to TimelineGridView via
+                  renderAboveGrid so it scrolls inside the same ScrollView
+                  as the cards (was previously a sibling above the list,
+                  which made it stay pinned when the user scrolled down). */}
 
               {!isSailingInterest && hasTimelineSteps && (
                 <Reanimated.View
@@ -4529,6 +4521,22 @@ export default function RacesScreen() {
               <TimelineGridView
                 races={filteredCardGridRaces}
                 selectedRaceId={selectedRaceId || undefined}
+                renderAboveGrid={
+                  showSeriesStrip
+                    ? () => (
+                        <View style={{ paddingTop: totalHeaderHeight + 8 }}>
+                          <SeriesStrip
+                            label={getSeriesLabel(currentInterest)}
+                            name={seriesStripName}
+                            currentIndex={headerCurrentRaceIndex ?? 0}
+                            totalSteps={headerTotalRaces}
+                            progress={seriesStripProgress}
+                            onPress={() => setShowSeasonPicker(true)}
+                          />
+                        </View>
+                      )
+                    : undefined
+                }
                 nextRaceIndex={effectiveNextRaceIndex != null ? filteredCardGridRaces.findIndex(r => r.id === cardGridRaces[effectiveNextRaceIndex]?.id) : null}
                 onSelectRace={(index, race) => {
                   setSelectedRaceId(race.id);
