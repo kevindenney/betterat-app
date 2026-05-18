@@ -42,6 +42,8 @@ export interface DoTabInteriorProps {
   onVoiceNote?: () => void;
   onPhotoOrVideo?: () => void;
   onQuickNote?: () => void;
+  /** Direct text-submit for the inline quick-note composer. */
+  onQuickNoteSubmit?: (text: string) => void;
   onAutoSummarizePlan?: () => void;
   onTagCapture?: (captureId: string) => void;
   onMoveToReflect?: () => void;
@@ -87,6 +89,7 @@ export function DoTabInterior({
   onVoiceNote,
   onPhotoOrVideo,
   onQuickNote,
+  onQuickNoteSubmit,
   onAutoSummarizePlan,
   onStopCapturing,
   onPressPlayVoice,
@@ -167,7 +170,7 @@ export function DoTabInterior({
             readOnly={readOnly}
             onVoiceNote={onVoiceNote}
             onPhotoOrVideo={onPhotoOrVideo}
-            onQuickNote={onQuickNote}
+            onQuickNoteSubmit={onQuickNoteSubmit}
           />
           <PlanStartingFrameRow
             planData={planData}

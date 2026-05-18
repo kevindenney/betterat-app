@@ -448,6 +448,7 @@ export function useStepActCaptureController({
     onVoiceNote: handleVoiceNote,
     onPhotoOrVideo: handlePhotoOrVideo,
     onQuickNote: handleQuickNote,
+    onQuickNoteSubmit: submitQuickNote,
     onStopCapturing: handleStopCapturing,
     onMoveToReflect: handleMoveToReflect,
     onAddAnotherCapture: handleAddAnotherCapture,
