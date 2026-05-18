@@ -17,7 +17,7 @@ import {
 import { useAuth } from '@/providers/AuthProvider';
 import { FEATURE_FLAGS } from '@/lib/featureFlags';
 import { getBlueprintWithAuthorById } from '@/services/BlueprintService';
-import { getBlueprintFleetPeers } from '@/services/HkdwFleetService';
+import { getBlueprintPeers } from '@/services/BlueprintFleetService';
 
 const HKDW_SAMPLE_IDS = new Set([
   'hkdw-prepare-for-the-worlds',
@@ -125,7 +125,7 @@ export default function BlueprintFleetRoute() {
 
   const { data: peers, isLoading: peersLoading } = useQuery({
     queryKey: ['phase10-fleet-peers', id, user?.id],
-    queryFn: () => getBlueprintFleetPeers(id!, user!.id),
+    queryFn: () => getBlueprintPeers({ blueprintId: id!, viewerUserId: user!.id }),
     enabled: realEnabled,
   });
 

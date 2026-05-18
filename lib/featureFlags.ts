@@ -418,6 +418,25 @@ export const FEATURE_FLAGS = {
    * docs/redesign/ios-register/phase-10-hkdw-onboarding.md.
    */
   HKDW_REDEEM_FLOW: readBooleanEnv('EXPO_PUBLIC_FF_HKDW_REDEEM_FLOW', false),
+
+  /**
+   * Phase 10 PR-1 — Blueprint Index & Worlds Fleet on real data.
+   *
+   * When on:
+   *   - Playbook tab's blueprint detail screen gains a "View all 12 steps"
+   *     button that pushes the canonical BlueprintIndexScreen.
+   *   - The WITH-row "Worlds Fleet · N sailors" chip on a step card pushes
+   *     the canonical FleetPlansScreen (live peer data, not mock).
+   *   - BlueprintFleetService.getBlueprintPeers backs both screens for any
+   *     blueprint, not just the HKDW sample.
+   *
+   * Off by default in production until QA signs off. Per the dragon-worlds
+   * canonical §B-A (Blueprint Index) and §B-B (Fleet Plans).
+   */
+  BLUEPRINT_INDEX_FLEET_V2: readBooleanEnv(
+    'EXPO_PUBLIC_FF_BLUEPRINT_INDEX_FLEET_V2',
+    false,
+  ),
 } as const;
 
 // =============================================================================
