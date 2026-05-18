@@ -108,9 +108,11 @@ function getDefaultTab(status?: TimelineStepStatus): TabValue {
 interface StepDetailContentProps {
   stepId: string;
   readOnly?: boolean;
+  /** Optional initial active tab override (e.g. from ?tab=discussion query). */
+  initialTab?: TabValue;
 }
 
-export function StepDetailContent({ stepId, readOnly: readOnlyProp }: StepDetailContentProps) {
+export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab }: StepDetailContentProps) {
   const universalPlus = useUniversalPlus();
   const shareStep = useShareStep();
   const { user } = useAuth();
@@ -239,7 +241,10 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp }: StepDetail
   }, [stepId]);
 
   // Default tab based on step status
-  const defaultTab = useMemo(() => getDefaultTab(step?.status), [step?.status]);
+  const defaultTab = useMemo(
+    () => initialTab ?? getDefaultTab(step?.status),
+    [initialTab, step?.status],
+  );
   const [activeTab, setActiveTab] = usePillTabs<TabValue>(defaultTab);
 
   const metadata = (step?.metadata ?? {}) as StepMetadata;

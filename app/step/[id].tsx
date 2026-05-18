@@ -16,9 +16,15 @@ import { useVocabulary } from '@/hooks/useVocabulary';
 import { getEventTabRoute } from '@/lib/navigation-config';
 
 export default function StepDetailScreen() {
-  const { id, readOnly } = useLocalSearchParams<{ id: string; readOnly?: string }>();
+  const { id, readOnly, tab } = useLocalSearchParams<{ id: string; readOnly?: string; tab?: string }>();
   const actualId = Array.isArray(id) ? id[0] : id;
   const isReadOnly = readOnly === 'true';
+  const initialTab = (Array.isArray(tab) ? tab[0] : tab) as
+    | 'plan'
+    | 'act'
+    | 'review'
+    | 'discussion'
+    | undefined;
   const { vocab } = useVocabulary();
 
   if (!actualId) {
@@ -71,7 +77,7 @@ export default function StepDetailScreen() {
           }),
         }}
       />
-      <StepDetailContent stepId={actualId} readOnly={isReadOnly} />
+      <StepDetailContent stepId={actualId} readOnly={isReadOnly} initialTab={initialTab} />
     </SafeAreaView>
   );
 }

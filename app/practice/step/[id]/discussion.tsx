@@ -9,7 +9,7 @@
  * canonical is reviewable without round-tripping the database.
  */
 
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -75,6 +75,17 @@ export default function StepDiscussionRoute() {
     FEATURE_FLAGS.HKDW_REDEEM_FLOW || FEATURE_FLAGS.STEP_DISCUSSION_V1;
   const isSample = Boolean(id && HKDW_SAMPLE_STEP_IDS.has(id));
   const realEnabled = Boolean(id && flagOn && !isSample);
+
+  // Phase 10 PR-2b — the canonical Discussion surface is now the 4th tab
+  // on the main step card (StepDiscussionInline). For real (non-sample)
+  // step IDs, redirect here straight into the step's tab view rather than
+  // duplicating the discussion experience. The HKDW sample step still
+  // renders the rich fullscreen view as a design preview.
+  useEffect(() => {
+    if (!id || isSample) return;
+    if (!flagOn) return;
+    router.replace(`/step/${id}?tab=discussion` as any);
+  }, [id, isSample, flagOn]);
 
   const { data: feedRows, isLoading } = useQuery({
     queryKey: ['phase10-step-discussion', id, user?.id],
