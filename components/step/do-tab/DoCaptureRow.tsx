@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { formatClockTime, formatRelativeAgo } from './doCaptureModel';
+import { formatClockTime } from './doCaptureModel';
 import type { DoCaptureItem } from './doCaptureModel';
 import {
   PhotoCapturePreview,
@@ -91,7 +91,9 @@ export function DoCaptureRow({
   capture,
   fresh,
   frozen,
-  nowMs,
+  // nowMs kept on the prop type (callers pass it for legacy relative-ago)
+  // but no longer used after the relative-ago label removal.
+  nowMs: _nowMs,
   onPressPlayVoice,
   onEdit,
   onDelete,
@@ -110,7 +112,9 @@ export function DoCaptureRow({
   const accent = ACCENT_BY_KIND[capture.kind] ?? GRAY_3;
   const meta = TYPE_META[capture.kind] ?? TYPE_META.note;
   const clock = formatClockTime(capture.capturedAt);
-  const ago = formatRelativeAgo(capture.capturedAt, nowMs);
+  // Relative "X ago" label removed — it re-renders every second so it reads
+  // like a running timer with no stop button. Absolute clock time is enough
+  // context; users can do the math from the wall clock if they care.
   const isVoice = capture.kind === 'voice';
   const isPhoto = capture.kind === 'photo' || capture.kind === 'video';
 
@@ -118,7 +122,6 @@ export function DoCaptureRow({
     <>
       <View style={styles.tsCol}>
         {clock ? <Text style={styles.ts}>{clock}</Text> : null}
-        {ago ? <Text style={styles.ago}>{ago}</Text> : null}
       </View>
 
       <View style={styles.bodyCol}>
