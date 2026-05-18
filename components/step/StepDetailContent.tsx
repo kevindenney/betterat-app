@@ -140,6 +140,15 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp }: StepDetail
     router.push(`/practice/step/${stepId}/discussion` as any);
   }, [stepId]);
 
+  useEffect(() => {
+    if (!__DEV__ || !stepId) return;
+    if (blueprintChrome === undefined) return;
+    // eslint-disable-next-line no-console
+    console.warn(
+      `[chrome-diag] StepDetailContent mount stepId=${stepId} flagIos=${FEATURE_FLAGS.PRACTICE_STEP_LOOP_IOS_REGISTER} flagChrome=${FEATURE_FLAGS.SUBSCRIBED_STEP_CHROME_V1} blueprintChrome=${blueprintChrome ? 'data' : 'null'} discussionPeek=${discussionPeek ? 'data' : 'null'}`,
+    );
+  }, [stepId, blueprintChrome, discussionPeek]);
+
   // Use the step's own interest for vocabulary so labels match the step's
   // domain (e.g. sail-racing labels for a sailing step, even when the viewer's
   // active interest is nursing).
