@@ -42,12 +42,9 @@ export function DoStream({
           <Text style={styles.streamEyebrowArrow}>↓ </Text>
           NEWEST FIRST
         </Text>
-        {ordered.length > 0 ? (
-          <View style={styles.freshest} accessibilityElementsHidden importantForAccessibility="no">
-            <View style={styles.freshestDot} />
-            <Text style={styles.freshestText}>Just now</Text>
-          </View>
-        ) : null}
+        {/* "Just now ●" indicator removed — it always showed regardless of
+            how old the latest capture was, and the coral dot read as a
+            running-timer / recording indicator on non-timed steps. */}
       </View>
 
       {ordered.length === 0 ? (
