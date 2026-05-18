@@ -481,12 +481,23 @@ function AuthGate() {
     // also need to round-trip through login so the post detail opens after
     // sign-in. The community screen redirects signed-out visitors to
     // `/(auth)/login?returnTo=...` itself.
-    const publicSegments = ['index', '(auth)', 'privacy', 'welcome', 'callback', 'blueprint', 'community', 'pricing', 'institutions', 'how-it-works', 'share', 'dev', 'auth-welcome-ios', 'redeem', 'officiating', 'sports-photography', 'org'];
+    const publicSegments = ['index', '(auth)', 'privacy', 'welcome', 'callback', 'blueprint', 'community', 'pricing', 'institutions', 'how-it-works', 'share', 'dev', 'debug', 'auth-welcome-ios', 'redeem', 'r', 'officiating', 'sports-photography', 'org'];
     // /venue/post/<id> is a publicly shareable permalink — sailors arriving
     // from HKDW Discuss "Open in browser" (Android) or iOS in-app linking
     // both land here without auth. Other /venue/* routes stay protected.
     const isPublicVenuePost = firstSegment === 'venue' && segments[1] === 'post';
-    const isPublicRoute = !firstSegment || publicSegments.includes(firstSegment) || isPublicVenuePost;
+    // Phase 10 HKDW canonical routes — /practice/step/<id> and
+    // /practice/blueprint/<id> render the dragon-worlds surfaces to
+    // signed-out visitors arriving from the redeem link before they've
+    // accepted the invite. Other /practice/* routes stay protected.
+    const isPublicHkdwSurface =
+      firstSegment === 'practice' &&
+      (segments[1] === 'step' || segments[1] === 'blueprint');
+    const isPublicRoute =
+      !firstSegment ||
+      publicSegments.includes(firstSegment) ||
+      isPublicVenuePost ||
+      isPublicHkdwSurface;
 
     if (isPublicRoute) return;
 
