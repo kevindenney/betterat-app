@@ -44,6 +44,12 @@ export interface StepCompleteCelebrationProps {
     stepNumber: number;
     title: string;
   } | null;
+  /**
+   * True while celebration data is still loading. When true we render the
+   * trophy hero + stats but suppress the "BLUEPRINT COMPLETE" message so
+   * users on mid-blueprint steps don't see a wrong "you finished it all".
+   */
+  isLoadingNext?: boolean;
   onContinue?: () => void;
   isContinuing?: boolean;
 }
@@ -55,6 +61,7 @@ export function StepCompleteCelebration({
   sessionCount,
   fleet,
   next,
+  isLoadingNext,
   onContinue,
   isContinuing,
 }: StepCompleteCelebrationProps) {
@@ -128,6 +135,11 @@ export function StepCompleteCelebration({
               </>
             )}
           </Pressable>
+        </View>
+      ) : isLoadingNext ? (
+        <View style={styles.upNextCard}>
+          <Text style={styles.upNextEyebrow}>UP NEXT</Text>
+          <ActivityIndicator size="small" color={C.label3} />
         </View>
       ) : (
         <View style={styles.upNextCard}>

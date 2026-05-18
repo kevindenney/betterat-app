@@ -154,11 +154,14 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab }
   // Phase 10 PR-4 — step-complete celebration data. Resolves whenever this
   // is a subscribed-blueprint step; we gate rendering at the tab body on
   // step.status === 'completed'.
-  const { data: celebrationData } = useStepCompleteCelebration({
-    stepId,
-    blueprintId: blueprintChrome?.blueprintId ?? null,
-    sourceStepId: (step as { source_id?: string | null } | null)?.source_id ?? null,
-  });
+  const stepSourceId =
+    (step as { source_id?: string | null } | null)?.source_id ?? null;
+  const { data: celebrationData, isLoading: celebrationLoading } =
+    useStepCompleteCelebration({
+      stepId,
+      blueprintId: blueprintChrome?.blueprintId ?? null,
+      sourceStepId: stepSourceId,
+    });
   const continueNext = useContinueToNextBlueprintStep({
     blueprintId: blueprintChrome?.blueprintId ?? null,
     interestId: step?.interest_id ?? null,
@@ -977,6 +980,7 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab }
             }
           : null
       }
+      isLoadingNext={celebrationLoading || !stepSourceId}
       onContinue={continueNext.handleContinue}
       isContinuing={continueNext.isContinuing}
     />

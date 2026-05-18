@@ -556,11 +556,12 @@ function RaceSummaryCardImpl({
   // source_id column (set by adoptStep).
   const celebrationSourceStepId =
     (race as { source_id?: string | null } | null)?.source_id ?? null;
-  const { data: celebrationData } = useStepCompleteCelebration({
-    stepId: isTimelineStep ? race.id : null,
-    blueprintId: blueprintChrome?.blueprintId ?? null,
-    sourceStepId: celebrationSourceStepId,
-  });
+  const { data: celebrationData, isLoading: celebrationLoading } =
+    useStepCompleteCelebration({
+      stepId: isTimelineStep ? race.id : null,
+      blueprintId: blueprintChrome?.blueprintId ?? null,
+      sourceStepId: celebrationSourceStepId,
+    });
   const stepIsCompleted =
     (race.stepStatus ?? race.status) === 'completed' ||
     (race.stepStatus ?? race.status) === 'done';
@@ -1960,6 +1961,7 @@ function RaceSummaryCardImpl({
                 }
               : null
           }
+          isLoadingNext={celebrationLoading || !celebrationSourceStepId}
           onContinue={continueNext.handleContinue}
           isContinuing={continueNext.isContinuing}
         />

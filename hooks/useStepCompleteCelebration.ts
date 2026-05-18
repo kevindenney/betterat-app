@@ -45,7 +45,16 @@ export function useStepCompleteCelebration({
   const { user } = useAuth();
   const viewerId = user?.id ?? null;
   return useQuery<StepCompleteCelebrationData | null>({
-    queryKey: ['step-complete-celebration', stepId, blueprintId, viewerId],
+    // sourceStepId MUST be in the key — without it, an initial render where
+    // the step hasn't loaded (sourceStepId=null) caches a "no next step"
+    // result that never refetches when the source id arrives.
+    queryKey: [
+      'step-complete-celebration',
+      stepId,
+      blueprintId,
+      sourceStepId,
+      viewerId,
+    ],
     queryFn: async () => {
       try {
         if (!stepId || !blueprintId || !viewerId) return null;
@@ -122,7 +131,10 @@ export function useStepCompleteCelebration({
         return null;
       }
     },
-    enabled: Boolean(stepId && blueprintId && viewerId),
+    // Require sourceStepId so we don't fire with currentIdx=-1 → next=null
+    // before the step loads, which renders the "blueprint complete" branch
+    // even on a mid-blueprint step.
+    enabled: Boolean(stepId && blueprintId && viewerId && sourceStepId),
     staleTime: 60 * 1000,
   });
 }
