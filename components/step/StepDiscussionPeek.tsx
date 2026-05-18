@@ -31,36 +31,38 @@ export function StepDiscussionPeek({
     .trim()
     .replace(/^["“”]+|["“”]+$/g, '')
     .slice(0, 140);
-
+  // Wrap renders as a plain row View with a Pressable absoluteFill overlay,
+  // because a top-level Pressable with flexDirection:'row' + margin styles
+  // silently strips the row layout (see feedback memory on Pressable margin
+  // stripping). Outer View carries margins; wrap carries the row.
   return (
-    <Pressable
-      style={({ pressed }) => [styles.wrap, pressed && styles.wrapPressed]}
-      onPress={onPress}
-      accessibilityRole="button"
-      accessibilityLabel={`Open Discussion · ${noteCount} ${noteCount === 1 ? 'note' : 'notes'}`}
-    >
-      <View style={styles.ico}>
-        <MessageCircle size={13} color={C.purple} strokeWidth={2.2} />
-      </View>
-      <View style={styles.body}>
-        <Text style={styles.header} numberOfLines={1}>
-          <Text style={styles.headerStrong}>Discussion</Text>
-          <Text style={styles.headerSep}> · </Text>
-          {noteCount} {noteCount === 1 ? 'note' : 'notes'}
-        </Text>
-        <Text style={styles.snippet} numberOfLines={2}>
-          {latestAuthorName ? (
-            <>
+    <View style={styles.outer}>
+      <View style={styles.wrap}>
+        <View style={styles.ico}>
+          <MessageCircle size={13} color={C.purple} strokeWidth={2.2} />
+        </View>
+        <View style={styles.body}>
+          <Text style={styles.header} numberOfLines={1}>
+            <Text style={styles.headerStrong}>Discussion</Text>
+            {' · '}
+            {noteCount} {noteCount === 1 ? 'note' : 'notes'}
+          </Text>
+          <Text style={styles.snippet} numberOfLines={2}>
+            {latestAuthorName ? (
               <Text style={styles.snippetAuthor}>{latestAuthorName}: </Text>
-              {cleanedSnippet}
-            </>
-          ) : (
-            cleanedSnippet
-          )}
-        </Text>
+            ) : null}
+            {cleanedSnippet}
+          </Text>
+        </View>
+        <ChevronRight size={14} color={C.purpleDeep} />
+        <Pressable
+          style={StyleSheet.absoluteFill}
+          onPress={onPress}
+          accessibilityRole="button"
+          accessibilityLabel={`Open Discussion · ${noteCount} ${noteCount === 1 ? 'note' : 'notes'}`}
+        />
       </View>
-      <ChevronRight size={14} color={C.purpleDeep} />
-    </Pressable>
+    </View>
   );
 }
 
@@ -75,6 +77,11 @@ const C = {
 };
 
 const styles = StyleSheet.create({
+  outer: {
+    marginHorizontal: 14,
+    marginTop: 10,
+    marginBottom: 2,
+  },
   wrap: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -85,9 +92,6 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: C.purpleSoft,
     borderRadius: 12,
-    marginHorizontal: 14,
-    marginTop: 10,
-    marginBottom: 2,
   },
   wrapPressed: {
     opacity: 0.7,

@@ -83,6 +83,10 @@ import { ReflectTabIOSRegisterShell } from '@/components/step/reflect-tab';
 import { StepCritiqueContent } from '@/components/step/StepCritiqueContent';
 import { StepFocusConcepts } from '@/components/step/StepFocusConcepts';
 import { StepProvenanceBanner } from '@/components/step/StepProvenanceBanner';
+import { StepBlueprintChrome } from '@/components/step/StepBlueprintChrome';
+import { StepDiscussionPeek } from '@/components/step/StepDiscussionPeek';
+import { useStepBlueprintChrome } from '@/hooks/useStepBlueprintChrome';
+import { useStepDiscussionPeek } from '@/hooks/useStepDiscussionPeek';
 import { AIStructureReview } from '@/components/step/AIStructureReview';
 import { CollaboratorPicker } from '@/components/step/CollaboratorPicker';
 import { DueDatePickerModal } from '@/components/step/DueDatePickerModal';
@@ -511,6 +515,31 @@ function RaceSummaryCardImpl({
 
   // Temporal phase state — for timeline steps, map status to the right tab
   const isTimelineStep = Boolean(race.isTimelineStep);
+
+  // Phase 10 PR-2/3 — Blueprint chrome + Discussion peek for subscribed-blueprint
+  // steps. Both hooks return null when there's nothing to show, so the surfaces
+  // are purely additive. Stored at module scope of the component so they fire
+  // whether the step renders via RaceSummaryCard (carousel) or StepDetailContent
+  // (direct route).
+  const chromeStepId = isTimelineStep ? race.id : null;
+  const { data: blueprintChrome } = useStepBlueprintChrome(chromeStepId);
+  const { data: discussionPeek } = useStepDiscussionPeek(chromeStepId);
+  const showBlueprintChrome =
+    FEATURE_FLAGS.SUBSCRIBED_STEP_CHROME_V1 && Boolean(blueprintChrome);
+  const showDiscussionPeek =
+    FEATURE_FLAGS.STEP_DISCUSSION_V1 && Boolean(discussionPeek);
+  const goBlueprintIndex = useCallback(() => {
+    if (!blueprintChrome) return;
+    router.push(`/(tabs)/playbook/blueprints/${blueprintChrome.blueprintId}/all-steps` as any);
+  }, [blueprintChrome, router]);
+  const goFleetView = useCallback(() => {
+    if (!blueprintChrome) return;
+    router.push(`/practice/blueprint/${blueprintChrome.blueprintId}/fleet` as any);
+  }, [blueprintChrome, router]);
+  const goDiscussion = useCallback(() => {
+    if (!isTimelineStep) return;
+    router.push(`/practice/step/${race.id}/discussion` as any);
+  }, [isTimelineStep, race.id, router]);
   const stepStatus = race.stepStatus ?? race.status;
   const currentPhase = useMemo(() => {
     if (isTimelineStep) {
@@ -2239,6 +2268,31 @@ function RaceSummaryCardImpl({
             onScroll={handleContentScroll}
             scrollEventThrottle={16}
           >
+            {/* Phase 10 PR-3 — Blueprint chrome (trophy / From / WITH-row).
+                Renders only for steps adopted from a subscribed blueprint. */}
+            {showBlueprintChrome && blueprintChrome ? (
+              <StepBlueprintChrome
+                blueprintShortName={blueprintChrome.blueprintShortName}
+                positionLine={
+                  blueprintChrome.stepNumber != null
+                    ? `Step ${blueprintChrome.stepNumber} of ${blueprintChrome.totalSteps}`
+                    : `${blueprintChrome.totalSteps} steps`
+                }
+                blueprintTitle={blueprintChrome.blueprintTitle}
+                authorName={blueprintChrome.authorName}
+                fleetCount={blueprintChrome.subscriberCount}
+                onTapBlueprintStrip={goBlueprintIndex}
+                onTapFleetChip={goFleetView}
+              />
+            ) : null}
+            {showDiscussionPeek && discussionPeek ? (
+              <StepDiscussionPeek
+                noteCount={discussionPeek.noteCount}
+                latestSnippet={discussionPeek.latest.body}
+                latestAuthorName={discussionPeek.latest.authorName}
+                onPress={goDiscussion}
+              />
+            ) : null}
             {/* Simplified Header: Race type badge + Countdown */}
             <View style={styles.simpleHeaderWrapper}>
             {/* NOW bookmark is now rendered by CardGrid on the card edge */}
