@@ -86,8 +86,13 @@ import { StepProvenanceBanner } from '@/components/step/StepProvenanceBanner';
 import { StepBlueprintChrome } from '@/components/step/StepBlueprintChrome';
 import { StepDiscussionPeek } from '@/components/step/StepDiscussionPeek';
 import { StepDiscussionInline } from '@/components/step/StepDiscussionInline';
+import { StepCompleteCelebration } from '@/components/step/StepCompleteCelebration';
+import { SinceLastVisitStrip } from '@/components/step/SinceLastVisitStrip';
 import { useStepBlueprintChrome } from '@/hooks/useStepBlueprintChrome';
 import { useStepDiscussionPeek } from '@/hooks/useStepDiscussionPeek';
+import { useStepCompleteCelebration } from '@/hooks/useStepCompleteCelebration';
+import { useContinueToNextBlueprintStep } from '@/hooks/useContinueToNextBlueprintStep';
+import { useStepSinceVisitEvents } from '@/hooks/useStepSinceVisitEvents';
 import { AIStructureReview } from '@/components/step/AIStructureReview';
 import { CollaboratorPicker } from '@/components/step/CollaboratorPicker';
 import { DueDatePickerModal } from '@/components/step/DueDatePickerModal';
@@ -544,6 +549,43 @@ function RaceSummaryCardImpl({
   const [discussionTabActive, setDiscussionTabActive] = useState(false);
   const showDiscussionTab =
     FEATURE_FLAGS.STEP_DISCUSSION_V1 && Boolean(blueprintChrome);
+
+  // Phase 10 PR-4 — step-complete celebration data. Resolved whenever this
+  // step is part of a subscribed blueprint; gated at render time by
+  // status==='completed'. Source step id lives on the adopted copy's
+  // source_id column (set by adoptStep).
+  const celebrationSourceStepId =
+    (race as { source_id?: string | null } | null)?.source_id ?? null;
+  const { data: celebrationData } = useStepCompleteCelebration({
+    stepId: isTimelineStep ? race.id : null,
+    blueprintId: blueprintChrome?.blueprintId ?? null,
+    sourceStepId: celebrationSourceStepId,
+  });
+  const stepIsCompleted =
+    (race.stepStatus ?? race.status) === 'completed' ||
+    (race.stepStatus ?? race.status) === 'done';
+  const showCelebration =
+    isTimelineStep && Boolean(blueprintChrome) && stepIsCompleted;
+  const continueNext = useContinueToNextBlueprintStep({
+    blueprintId: blueprintChrome?.blueprintId ?? null,
+    interestId: (race as { interest_id?: string | null } | null)?.interest_id ?? null,
+    nextSourceStepId: celebrationData?.next?.sourceStepId ?? null,
+    alreadyAdoptedStepId: celebrationData?.next?.alreadyAdoptedStepId ?? null,
+  });
+
+  // Phase 10 PR-4 — "since your last visit" strip on the Plan tab. Surfaces
+  // peer notes + coach replies recent enough to be interesting. Hidden when
+  // empty or on non-subscribed steps.
+  const { data: sinceVisitEvents } = useStepSinceVisitEvents(
+    isTimelineStep ? race.id : null,
+  );
+  // Phase check happens inside the Plan branch of renderPhaseContent, so we
+  // don't gate on selectedPhase here (it's declared further down anyway).
+  const showSinceLastVisit =
+    Boolean(blueprintChrome) &&
+    !discussionTabActive &&
+    Array.isArray(sinceVisitEvents) &&
+    sinceVisitEvents.length > 0;
 
   const goDiscussion = useCallback(() => {
     if (!isTimelineStep) return;
@@ -1891,6 +1933,39 @@ function RaceSummaryCardImpl({
     // Coach nudge banner — shown across all step types
     const nudgeBanner = coachNudge ? <CoachNudgeBanner insight={coachNudge} onDismiss={dismissNudge} /> : null;
 
+    // Phase 10 PR-4 — step-complete celebration. Highest priority: when a
+    // subscribed-blueprint step is closed, replace the regular phase
+    // content with the celebration moment. Tabs remain available for
+    // review; the user can still navigate to Plan/Do/Reflect to see what
+    // was captured.
+    if (showCelebration && !discussionTabActive && blueprintChrome) {
+      return (
+        <StepCompleteCelebration
+          stepNumber={blueprintChrome.stepNumber}
+          totalSteps={blueprintChrome.totalSteps}
+          stepTitle={race.name ?? 'This step'}
+          sessionCount={celebrationData?.sessionCount ?? 0}
+          fleet={
+            celebrationData?.fleet ?? {
+              ahead: 0,
+              sameStep: 0,
+              behind: 0,
+            }
+          }
+          next={
+            celebrationData?.next
+              ? {
+                  stepNumber: celebrationData.next.stepNumber,
+                  title: celebrationData.next.title,
+                }
+              : null
+          }
+          onContinue={continueNext.handleContinue}
+          isContinuing={continueNext.isContinuing}
+        />
+      );
+    }
+
     // Phase 10 PR-2b — Discussion tab takes precedence over the temporal
     // Plan/Do/Reflect phases when active. Renders the focused inline thread
     // view inside the same outer ScrollView.
@@ -2046,6 +2121,14 @@ function RaceSummaryCardImpl({
         return (
           <>
             {nudgeBanner}
+            {showSinceLastVisit && sinceVisitEvents ? (
+              <View style={{ paddingHorizontal: 14, paddingTop: 8 }}>
+                <SinceLastVisitStrip
+                  events={sinceVisitEvents}
+                  onTapEvent={() => setDiscussionTabActive(true)}
+                />
+              </View>
+            ) : null}
             <StepPlanQuestions
               stepId={race.id}
               interestId={race.interest_id ?? currentInterest?.id}

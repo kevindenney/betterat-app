@@ -58,7 +58,10 @@ import { StepBlueprintChrome } from './StepBlueprintChrome';
 import { StepDiscussionPeek } from './StepDiscussionPeek';
 import { useStepBlueprintChrome } from '@/hooks/useStepBlueprintChrome';
 import { useStepDiscussionPeek } from '@/hooks/useStepDiscussionPeek';
+import { useStepCompleteCelebration } from '@/hooks/useStepCompleteCelebration';
+import { useContinueToNextBlueprintStep } from '@/hooks/useContinueToNextBlueprintStep';
 import { StepDiscussionInline } from './StepDiscussionInline';
+import { StepCompleteCelebration } from './StepCompleteCelebration';
 
 type TabValue = 'plan' | 'act' | 'review' | 'discussion';
 
@@ -147,6 +150,23 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab }
     // surfaces the discussion inline next to Plan/Do/Reflect.
     setActiveTab('discussion');
   }, [setActiveTab]);
+
+  // Phase 10 PR-4 — step-complete celebration data. Resolves whenever this
+  // is a subscribed-blueprint step; we gate rendering at the tab body on
+  // step.status === 'completed'.
+  const { data: celebrationData } = useStepCompleteCelebration({
+    stepId,
+    blueprintId: blueprintChrome?.blueprintId ?? null,
+    sourceStepId: (step as { source_id?: string | null } | null)?.source_id ?? null,
+  });
+  const continueNext = useContinueToNextBlueprintStep({
+    blueprintId: blueprintChrome?.blueprintId ?? null,
+    interestId: step?.interest_id ?? null,
+    nextSourceStepId: celebrationData?.next?.sourceStepId ?? null,
+    alreadyAdoptedStepId: celebrationData?.next?.alreadyAdoptedStepId ?? null,
+  });
+  const showCelebration =
+    Boolean(blueprintChrome) && (step?.status === 'completed');
 
   // Use the step's own interest for vocabulary so labels match the step's
   // domain (e.g. sail-racing labels for a sailing step, even when the viewer's
@@ -940,7 +960,27 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab }
 
   // Shared tab body — the actual PlanTab / ActTab / ReviewTab interior. The
   // brief is explicit that this content is unchanged across flag states.
-  const tabBodyJsx = (
+  const tabBodyJsx = showCelebration && activeTab !== 'discussion' ? (
+    <StepCompleteCelebration
+      stepNumber={blueprintChrome?.stepNumber ?? null}
+      totalSteps={blueprintChrome?.totalSteps ?? null}
+      stepTitle={step?.title ?? 'This step'}
+      sessionCount={celebrationData?.sessionCount ?? 0}
+      fleet={
+        celebrationData?.fleet ?? { ahead: 0, sameStep: 0, behind: 0 }
+      }
+      next={
+        celebrationData?.next
+          ? {
+              stepNumber: celebrationData.next.stepNumber,
+              title: celebrationData.next.title,
+            }
+          : null
+      }
+      onContinue={continueNext.handleContinue}
+      isContinuing={continueNext.isContinuing}
+    />
+  ) : (
     <>
       {/* AI review overlay — shown when AI structures brain dump */}
       {activeTab === 'plan' && isOwner && showAiReview && aiReviewPlan && (
