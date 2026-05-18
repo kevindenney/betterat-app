@@ -437,6 +437,23 @@ export const FEATURE_FLAGS = {
     'EXPO_PUBLIC_FF_BLUEPRINT_INDEX_FLEET_V2',
     false,
   ),
+
+  /**
+   * Phase 10 PR-3 — Step chrome for subscribed-blueprint steps.
+   *
+   * When on, steps with source_blueprint_id render canonical chrome
+   * above the Plan/Do/Reflect tabs:
+   *   - Trophy strip ("HKDW Prep · Step N of M") → Blueprint Index
+   *   - Title block ("From <Author's Blueprint Title>")
+   *   - WITH-row chip ("Fleet · N sailors") → Worlds Fleet view
+   *   - SinceLastVisitStrip on the Plan tab (when there's news)
+   *
+   * Off by default in production. Per dragon-worlds canonical §A-phase-5.
+   */
+  SUBSCRIBED_STEP_CHROME_V1: readBooleanEnv(
+    'EXPO_PUBLIC_FF_SUBSCRIBED_STEP_CHROME_V1',
+    false,
+  ),
 } as const;
 
 // =============================================================================

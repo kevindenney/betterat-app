@@ -54,6 +54,8 @@ import { useUniversalPlus } from '@/components/capture';
 import { Plus as PlusIcon } from 'lucide-react-native';
 import { useShareStep } from '@/hooks/useShareStep';
 import { ShareStepSheet } from '@/components/share';
+import { StepBlueprintChrome } from './StepBlueprintChrome';
+import { useStepBlueprintChrome } from '@/hooks/useStepBlueprintChrome';
 
 type TabValue = 'plan' | 'act' | 'review';
 
@@ -110,6 +112,22 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp }: StepDetail
   const { currentInterest } = useInterest();
 
   const { data: step, isLoading, error } = useStepDetail(stepId);
+
+  // Phase 10 PR-3 — chrome rendered above Plan/Do/Reflect for steps that
+  // came from a subscribed blueprint. Hook returns null when the step has
+  // no source_blueprint_id, so the chrome simply doesn't render for
+  // non-subscribed steps.
+  const { data: blueprintChrome } = useStepBlueprintChrome(stepId);
+  const subscribedStepChromeFlagOn = FEATURE_FLAGS.SUBSCRIBED_STEP_CHROME_V1;
+  const showBlueprintChrome = subscribedStepChromeFlagOn && Boolean(blueprintChrome);
+  const goBlueprintIndex = useCallback(() => {
+    if (!blueprintChrome) return;
+    router.push(`/(tabs)/playbook/blueprints/${blueprintChrome.blueprintId}/all-steps` as any);
+  }, [blueprintChrome]);
+  const goFleetView = useCallback(() => {
+    if (!blueprintChrome) return;
+    router.push(`/practice/blueprint/${blueprintChrome.blueprintId}/fleet` as any);
+  }, [blueprintChrome]);
 
   // Use the step's own interest for vocabulary so labels match the step's
   // domain (e.g. sail-racing labels for a sailing step, even when the viewer's
@@ -1000,6 +1018,21 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp }: StepDetail
             ) : null
           }
         />
+        {showBlueprintChrome && blueprintChrome ? (
+          <StepBlueprintChrome
+            blueprintShortName={blueprintChrome.blueprintShortName}
+            positionLine={
+              blueprintChrome.stepNumber != null
+                ? `Step ${blueprintChrome.stepNumber} of ${blueprintChrome.totalSteps}`
+                : `${blueprintChrome.totalSteps} steps`
+            }
+            blueprintTitle={blueprintChrome.blueprintTitle}
+            authorName={blueprintChrome.authorName}
+            fleetCount={blueprintChrome.subscriberCount}
+            onTapBlueprintStrip={goBlueprintIndex}
+            onTapFleetChip={goFleetView}
+          />
+        ) : null}
         <StepCard
           pill={<StatePill variant={pillSpec.variant} label={pillSpec.label} />}
           onMenuPress={() =>
