@@ -31,13 +31,20 @@ export function StepDiscussionPeek({
     .trim()
     .replace(/^["“”]+|["“”]+$/g, '')
     .slice(0, 140);
-  // Wrap renders as a plain row View with a Pressable absoluteFill overlay,
-  // because a top-level Pressable with flexDirection:'row' + margin styles
-  // silently strips the row layout (see feedback memory on Pressable margin
-  // stripping). Outer View carries margins; wrap carries the row.
+  // Outer View carries margins. Inner Pressable uses a STATIC style object
+  // (not the {pressed} function form), because the function-returning style
+  // form with flexDirection:'row' silently strips the row layout in RN
+  // 0.81 / Pressable. With a static style, the row lays out correctly AND
+  // scroll gestures propagate to the parent ScrollView (an absoluteFill
+  // Pressable overlay does work for layout but swallows scroll touches).
   return (
     <View style={styles.outer}>
-      <View style={styles.wrap}>
+      <Pressable
+        style={styles.wrap}
+        onPress={onPress}
+        accessibilityRole="button"
+        accessibilityLabel={`Open Discussion · ${noteCount} ${noteCount === 1 ? 'note' : 'notes'}`}
+      >
         <View style={styles.ico}>
           <MessageCircle size={13} color={C.purple} strokeWidth={2.2} />
         </View>
@@ -55,13 +62,7 @@ export function StepDiscussionPeek({
           </Text>
         </View>
         <ChevronRight size={14} color={C.purpleDeep} />
-        <Pressable
-          style={StyleSheet.absoluteFill}
-          onPress={onPress}
-          accessibilityRole="button"
-          accessibilityLabel={`Open Discussion · ${noteCount} ${noteCount === 1 ? 'note' : 'notes'}`}
-        />
-      </View>
+      </Pressable>
     </View>
   );
 }
