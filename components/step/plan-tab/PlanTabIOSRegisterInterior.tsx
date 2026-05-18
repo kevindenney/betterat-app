@@ -81,6 +81,14 @@ export interface PlanTabIOSRegisterInteriorProps {
   onNextPhase?: () => void;
   /** Inert footer slot rendered below the CTA (e.g. comments). */
   footer?: React.ReactNode;
+  /**
+   * When true, the interior renders inside a plain `<View>` instead of its
+   * own `<ScrollView>`. Set this when the caller already provides a parent
+   * ScrollView (e.g. RaceSummaryCard's carousel card). Without this, the
+   * inner ScrollView swallows scroll gestures and the parent's chrome /
+   * title / tabs can never scroll off-screen.
+   */
+  embedded?: boolean;
   testID?: string;
 }
 
@@ -112,6 +120,7 @@ export function PlanTabIOSRegisterInterior({
   optionalAddOns,
   onNextPhase,
   footer,
+  embedded,
   testID,
 }: PlanTabIOSRegisterInteriorProps) {
   const [coachOpen, setCoachOpen] = useState(false);
@@ -164,14 +173,8 @@ export function PlanTabIOSRegisterInterior({
     ? 'Add a what to enable'
     : 'Plan looks ready';
 
-  return (
-    <ScrollView
-      style={styles.scroll}
-      contentContainerStyle={styles.scrollContent}
-      showsVerticalScrollIndicator={false}
-      keyboardShouldPersistTaps="handled"
-      testID={testID}
-    >
+  const body = (
+    <>
       <AIHelperLine
         state={helperState}
         onOpenCoach={canUseCoach ? () => setCoachOpen(true) : () => {}}
@@ -296,6 +299,29 @@ export function PlanTabIOSRegisterInterior({
           </View>
         </Modal>
       ) : null}
+    </>
+  );
+
+  if (embedded) {
+    // Caller provides the scroll container — render as a plain View so the
+    // parent's ScrollView owns vertical scroll (chrome + tabs scroll with
+    // the body instead of staying pinned).
+    return (
+      <View style={styles.embeddedBody} testID={testID}>
+        {body}
+      </View>
+    );
+  }
+
+  return (
+    <ScrollView
+      style={styles.scroll}
+      contentContainerStyle={styles.scrollContent}
+      showsVerticalScrollIndicator={false}
+      keyboardShouldPersistTaps="handled"
+      testID={testID}
+    >
+      {body}
     </ScrollView>
   );
 }
@@ -307,6 +333,11 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: 16,
     paddingBottom: 96,
+    gap: 10,
+  },
+  embeddedBody: {
+    padding: 16,
+    paddingBottom: 24,
     gap: 10,
   },
   timedRow: {

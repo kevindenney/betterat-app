@@ -920,6 +920,7 @@ RULES:
     return (
       <>
         <PlanTabIOSRegisterInterior
+          embedded
           planData={canonicalPlanData}
           onUpdate={handleStepLoopUpdate}
           readOnly={readOnly}
