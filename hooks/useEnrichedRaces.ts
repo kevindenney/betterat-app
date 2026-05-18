@@ -697,6 +697,16 @@ export function useEnrichedRaces(races: RegattaRaw[]) {
     // Only enrich if races actually changed
     if (racesKey !== previousRacesRef.current) {
       previousRacesRef.current = racesKey;
+      // Optimistic paint: synchronously seed enrichedRaces with the base
+      // rows so newly-added items (e.g. optimistic Universal Plus inserts)
+      // appear in the carousel immediately, without waiting for the async
+      // venue-coordinate lookup inside enrichRaces(). Weather patches
+      // stream in afterwards via setEnrichedRaces(prev => prev.map(...)).
+      // Timeline steps go through buildBaseRace's pass-through branch so
+      // no DB lookup is needed — this is essentially a free render.
+      const emptyVenueMap = new Map<string, { lat: number; lng: number }>();
+      const baseRacesSync = races.map(r => buildBaseRace(r, emptyVenueMap));
+      setEnrichedRaces(baseRacesSync);
       enrichRaces();
     } else if (races.length > 0 && enrichedRaces.length > 0) {
       // Same IDs/dates — pass through field changes (title, status, etc.)
