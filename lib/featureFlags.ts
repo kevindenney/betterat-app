@@ -454,6 +454,20 @@ export const FEATURE_FLAGS = {
     'EXPO_PUBLIC_FF_SUBSCRIBED_STEP_CHROME_V1',
     false,
   ),
+
+  /**
+   * Phase 10 PR-2 — Step Discussion peek + entry.
+   *
+   * When on, steps with new discussion activity render a "💬 Discussion · N
+   * notes" peek strip beneath the step chrome on Plan/Do/Reflect. Tap opens
+   * the existing fullscreen Discussion at /practice/step/[id]/discussion.
+   *
+   * Off by default in production. Per dragon-worlds canonical Surface C.
+   */
+  STEP_DISCUSSION_V1: readBooleanEnv(
+    'EXPO_PUBLIC_FF_STEP_DISCUSSION_V1',
+    false,
+  ),
 } as const;
 
 // =============================================================================

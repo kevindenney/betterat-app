@@ -71,7 +71,8 @@ export default function StepDiscussionRoute() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
-  const flagOn = FEATURE_FLAGS.HKDW_REDEEM_FLOW;
+  const flagOn =
+    FEATURE_FLAGS.HKDW_REDEEM_FLOW || FEATURE_FLAGS.STEP_DISCUSSION_V1;
   const isSample = Boolean(id && HKDW_SAMPLE_STEP_IDS.has(id));
   const realEnabled = Boolean(id && flagOn && !isSample);
 
@@ -191,7 +192,7 @@ export default function StepDiscussionRoute() {
         <Stack.Screen options={{ title: 'Discussion' }} />
         <Text style={styles.disabledTitle}>This discussion view isn't live yet.</Text>
         <Text style={styles.disabledBody}>
-          Enable EXPO_PUBLIC_FF_HKDW_REDEEM_FLOW in this environment to preview.
+          Enable EXPO_PUBLIC_FF_STEP_DISCUSSION_V1 in this environment to preview.
         </Text>
       </View>
     );

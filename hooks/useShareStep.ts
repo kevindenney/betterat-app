@@ -57,21 +57,21 @@ async function loadRecentRecipients(userId: string): Promise<ShareStepSheetRecip
     .filter(Boolean) as ShareStepSheetRecipient[];
 }
 
-async function loadDefaultGroup(userId: string): Promise<ShareStepSheetGroup | undefined> {
+async function loadDefaultGroup(userId: string): Promise<ShareStepSheetGroup | null> {
   const { data, error } = await supabase
     .from('fleet_followers')
     .select('fleet_id')
     .eq('user_id', userId)
     .limit(1)
     .maybeSingle();
-  if (error || !data) return undefined;
+  if (error || !data) return null;
 
   const { data: fleet } = await supabase
     .from('fleets')
     .select('id, name')
     .eq('id', (data as { fleet_id: string }).fleet_id)
     .single();
-  if (!fleet) return undefined;
+  if (!fleet) return null;
 
   const { count: memberCount } = await supabase
     .from('fleet_followers')
@@ -167,7 +167,7 @@ export function useShareStep(): UseShareStepResult {
     visible,
     step,
     recentRecipients,
-    defaultGroup,
+    defaultGroup: defaultGroup ?? undefined,
     shareDirect,
     shareToGroup,
     copyLink,

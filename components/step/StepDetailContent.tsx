@@ -55,7 +55,9 @@ import { Plus as PlusIcon } from 'lucide-react-native';
 import { useShareStep } from '@/hooks/useShareStep';
 import { ShareStepSheet } from '@/components/share';
 import { StepBlueprintChrome } from './StepBlueprintChrome';
+import { StepDiscussionPeek } from './StepDiscussionPeek';
 import { useStepBlueprintChrome } from '@/hooks/useStepBlueprintChrome';
+import { useStepDiscussionPeek } from '@/hooks/useStepDiscussionPeek';
 
 type TabValue = 'plan' | 'act' | 'review';
 
@@ -128,6 +130,15 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp }: StepDetail
     if (!blueprintChrome) return;
     router.push(`/practice/blueprint/${blueprintChrome.blueprintId}/fleet` as any);
   }, [blueprintChrome]);
+
+  // Phase 10 PR-2 — Discussion peek on the step screen. Hook returns null
+  // when the step has no notes, so the strip is purely additive.
+  const { data: discussionPeek } = useStepDiscussionPeek(stepId);
+  const showDiscussionPeek =
+    FEATURE_FLAGS.STEP_DISCUSSION_V1 && Boolean(discussionPeek);
+  const goDiscussion = useCallback(() => {
+    router.push(`/practice/step/${stepId}/discussion` as any);
+  }, [stepId]);
 
   // Use the step's own interest for vocabulary so labels match the step's
   // domain (e.g. sail-racing labels for a sailing step, even when the viewer's
@@ -1031,6 +1042,14 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp }: StepDetail
             fleetCount={blueprintChrome.subscriberCount}
             onTapBlueprintStrip={goBlueprintIndex}
             onTapFleetChip={goFleetView}
+          />
+        ) : null}
+        {showDiscussionPeek && discussionPeek ? (
+          <StepDiscussionPeek
+            noteCount={discussionPeek.noteCount}
+            latestSnippet={discussionPeek.latest.body}
+            latestAuthorName={discussionPeek.latest.authorName}
+            onPress={goDiscussion}
           />
         ) : null}
         <StepCard

@@ -44,14 +44,17 @@ export function useStepBlueprintChrome(stepId: string | null | undefined) {
       try {
       if (!stepId) return null;
 
-      // 1. Look up the step's source_blueprint_id
+      // 1. Look up the step's source_blueprint_id + source_id (source step id
+      //    on the blueprint, set by adoptStep — used for position resolution).
       const { data: stepRow } = await supabase
         .from('timeline_steps')
-        .select('id, source_blueprint_id')
+        .select('id, source_blueprint_id, source_id, metadata')
         .eq('id', stepId)
         .maybeSingle();
       const blueprintId = (stepRow as { source_blueprint_id?: string | null } | null)
         ?.source_blueprint_id;
+      const sourceStepIdFromColumn = (stepRow as { source_id?: string | null } | null)
+        ?.source_id;
       if (!blueprintId) return null;
 
       // 2. Blueprint metadata
@@ -86,26 +89,22 @@ export function useStepBlueprintChrome(stepId: string | null | undefined) {
       const bpSteps =
         (bpStepsRows as { step_id: string; sort_order: number }[] | null) ?? [];
       const totalSteps = bpSteps.length;
-      const idx = bpSteps.findIndex((r) => r.step_id === stepId);
-      // We adopted a COPY of the step, so the adopted step's id won't be in
-      // blueprint_steps. Fall back to matching by the source step id stored
-      // in metadata if the direct match misses.
-      let stepNumber: number | null = idx >= 0 ? idx + 1 : null;
-      if (stepNumber == null) {
-        const { data: adoptedRow } = await supabase
-          .from('timeline_steps')
-          .select('metadata')
-          .eq('id', stepId)
-          .maybeSingle();
-        const meta = (adoptedRow as { metadata?: Record<string, unknown> } | null)
-          ?.metadata as Record<string, unknown> | undefined;
-        const sourceStepId =
-          (meta?.source_step_id as string | undefined) ??
-          (meta?.copied_from_step_id as string | undefined);
-        if (sourceStepId) {
-          const sourceIdx = bpSteps.findIndex((r) => r.step_id === sourceStepId);
-          if (sourceIdx >= 0) stepNumber = sourceIdx + 1;
-        }
+      // Adopted steps are COPIES; their id won't appear in blueprint_steps.
+      // Resolve position by the source step id, which adoptStep writes to
+      // timeline_steps.source_id (preferred) and older paths may put in
+      // metadata.{source_step_id, copied_from_step_id}.
+      const meta = (stepRow as { metadata?: Record<string, unknown> } | null)
+        ?.metadata as Record<string, unknown> | undefined;
+      const sourceStepId =
+        sourceStepIdFromColumn ??
+        (meta?.source_step_id as string | undefined) ??
+        (meta?.copied_from_step_id as string | undefined) ??
+        null;
+      const directIdx = bpSteps.findIndex((r) => r.step_id === stepId);
+      let stepNumber: number | null = directIdx >= 0 ? directIdx + 1 : null;
+      if (stepNumber == null && sourceStepId) {
+        const sourceIdx = bpSteps.findIndex((r) => r.step_id === sourceStepId);
+        if (sourceIdx >= 0) stepNumber = sourceIdx + 1;
       }
 
       // 5. Subscriber count
