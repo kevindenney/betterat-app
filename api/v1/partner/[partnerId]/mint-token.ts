@@ -113,12 +113,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const token = deterministicToken(config.tokenPrefix, userId);
   const validTo = new Date(Date.now() + TOKEN_TTL_DAYS * 24 * 60 * 60 * 1000).toISOString();
 
+  // source='hkdw-2026' (not 'partner') so the /r/[token] route's HKDW
+  // welcome chrome — coach byline, italic-serif title, fleet subline,
+  // capability tags — renders for these mint-minted tokens. The CHECK
+  // constraint permits both values; this just keys the existing UI copy.
   const { error: insertErr } = await supabase
     .from('redeem_tokens')
     .insert({
       token,
       blueprint_id: blueprint.id,
-      source: 'partner',
+      source: 'hkdw-2026',
       valid_to: validTo,
     });
 
