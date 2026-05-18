@@ -2735,6 +2735,10 @@ export default function RacesScreen() {
   // Also handles subsequent navigations with ?selected= while tab is already mounted
   useEffect(() => {
     const targetId = initialSelectedRaceParam.current || (typeof searchParams?.selected === 'string' ? searchParams.selected : null);
+    // eslint-disable-next-line no-console
+    console.warn(
+      `[races-select-effect] targetId=${targetId} loading=${loading} safeRecent=${safeRecentRaces.length} myTL=${myTimelineSteps?.length ?? 'n'} searchParam=${typeof searchParams?.selected === 'string' ? searchParams.selected : 'n'} ref=${initialSelectedRaceParam.current ?? 'n'}`,
+    );
     if (!targetId || loading) {
       return;
     }
@@ -2747,10 +2751,14 @@ export default function RacesScreen() {
       safeRecentRaces.find((race: any) => race.id === targetId) ??
       myTimelineSteps?.find((s) => s.id === targetId);
     if (!matchingRace) {
+      // eslint-disable-next-line no-console
+      console.warn(`[races-select-effect] NO MATCH for ${targetId} — bailing`);
       return;
     }
 
     logger.debug('[races.tsx] Selecting race from route params:', targetId);
+    // eslint-disable-next-line no-console
+    console.warn(`[races-select-effect] setting selectedRaceId=${targetId}`);
     setSelectedRaceId(targetId);
     setHasManuallySelected(true);
     initialSelectedRaceParam.current = null;
