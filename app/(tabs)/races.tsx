@@ -2762,6 +2762,11 @@ export default function RacesScreen() {
     setSelectedRaceId(targetId);
     setHasManuallySelected(true);
     initialSelectedRaceParam.current = null;
+    // Zoom from the grid view into the carousel detail so the user lands
+    // on the step they just selected/created. Other entry points to ?selected=
+    // (notifications, peer-sheet deep links, Universal Plus post-create
+    // navigation) all want this same behavior — show the actual card.
+    setIsGridView(false);
 
     // Clear the ?selected= param via the router so expo-router's internal
     // searchParams state stays in sync. Using window.history.replaceState
