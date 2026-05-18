@@ -15,7 +15,7 @@
  */
 
 import React, { useCallback, useMemo, useState } from 'react';
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Share, StyleSheet, Text, View } from 'react-native';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
@@ -179,6 +179,28 @@ export default function BlueprintAllStepsRoute() {
 
   const onBack = useCallback(() => router.back(), []);
 
+  const onShare = useCallback(async () => {
+    if (!blueprint) return;
+    const baseUrl = process.env.EXPO_PUBLIC_APP_URL || 'https://better.at';
+    const slug = (blueprint as { slug?: string | null }).slug;
+    const url = slug ? `${baseUrl}/blueprint/${slug}` : `${baseUrl}/blueprint/${id}`;
+    const author = blueprint.author_name ?? 'A coach';
+    const title = blueprint.title;
+    try {
+      await Share.share(
+        {
+          // iOS uses message + url. Android uses message only — fold URL into message there.
+          message: `${author} shared a blueprint with you: "${title}"\n${url}`,
+          url,
+          title,
+        },
+        { subject: `${author}'s blueprint: ${title}` },
+      );
+    } catch {
+      // User cancelled or share unavailable — nothing to do.
+    }
+  }, [blueprint, id]);
+
   if (!flagOn) {
     return (
       <View style={styles.disabled}>
@@ -230,6 +252,7 @@ export default function BlueprintAllStepsRoute() {
         steps={viewSteps}
         backLabel="Playbook"
         onBack={onBack}
+        onShare={onShare}
         onAddStep={handleAdd}
         pendingIds={pendingIds}
       />
