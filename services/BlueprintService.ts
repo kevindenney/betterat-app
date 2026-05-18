@@ -1058,6 +1058,75 @@ export async function getBlueprintSubscriberProgress(
 }
 
 // ---------------------------------------------------------------------------
+// 9a. Co-subscriber progress (peer-visible, for Co-practitioners surface)
+// ---------------------------------------------------------------------------
+
+/**
+ * Returns peer step_user_progress rows readable under the Phase 7
+ * `step_user_progress_co_subscriber_read` RLS policy. Unlike the author-only
+ * RPC `get_blueprint_subscriber_progress`, this works for any subscriber.
+ * Each peer row carries their current/planned/settled step plus the
+ * capability tags pulled from the linked timeline_step.
+ */
+export async function getCoSubscriberProgressForBlueprint(
+  blueprintId: string,
+): Promise<SubscriberProgress[]> {
+  const { data, error } = await supabase
+    .from('step_user_progress')
+    .select(
+      `
+      blueprint_step_id,
+      status,
+      user_id,
+      updated_at,
+      blueprint_step:blueprint_steps!inner(
+        blueprint_id,
+        step:timeline_steps!inner(id, title, metadata)
+      )
+      `,
+    )
+    .eq('blueprint_step.blueprint_id', blueprintId);
+
+  if (error) throw error;
+
+  const byUser = new Map<string, SubscriberProgress>();
+  for (const row of (data as any[]) ?? []) {
+    const userId = row.user_id as string;
+    if (!byUser.has(userId)) {
+      byUser.set(userId, {
+        subscriber_id: userId,
+        name: '',
+        avatar_url: null,
+        subscribed_at: row.updated_at,
+        steps: [],
+        adopted_count: 0,
+        completed_count: 0,
+        dismissed_count: 0,
+      });
+    }
+    const peer = byUser.get(userId)!;
+    const plan = (row.blueprint_step?.step?.metadata?.plan ?? {}) as Record<string, unknown>;
+    const capabilities = [
+      ...(((plan.capability_goals as string[] | undefined) ?? []).filter(Boolean)),
+      ...(((plan.competency_labels as string[] | undefined) ?? []).filter(Boolean)),
+    ];
+    peer.steps.push({
+      source_step_id: row.blueprint_step?.step?.id ?? '',
+      adopted_step_id: null,
+      action: 'adopted',
+      status: row.status,
+      overall_rating: null,
+      has_evidence: false,
+      step_title: row.blueprint_step?.step?.title ?? 'Step',
+      capabilities,
+    } as any);
+    if (row.status === 'settled') peer.completed_count += 1;
+  }
+
+  return Array.from(byUser.values());
+}
+
+// ---------------------------------------------------------------------------
 // 9b. Subscriber adopted step details (for creator mentoring dashboard)
 // ---------------------------------------------------------------------------
 

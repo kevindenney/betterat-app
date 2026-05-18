@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { InsightCard } from './InsightCard';
 import { ConceptCard } from './ConceptCard';
 import { SettledFoundationRow } from './SettledFoundationRow';
+import { OnDeckBanner } from '@/components/timelines';
 import type { Phase6ConceptRecord } from '@/services/PlaybookService';
 import type { PlaybookInsightRecord } from '@/types/playbook';
 
@@ -42,6 +43,8 @@ export function PlaybookLanding({
           {stats.insights} insights · {stats.testing} testing · {stats.settled} settled
         </Text>
       </View>
+
+      <OnDeckBanner />
 
       <Pressable
         style={[styles.entryCard, !onOpenBlueprints && styles.entryCardDisabled]}

@@ -53,6 +53,7 @@ import {
   ReflectionCard,
   type ConceptState,
 } from '@/components/ios-register';
+import { OnDeckBanner } from '@/components/timelines';
 import {
   IOS_COLORS,
   IOS_REGISTER,
@@ -238,6 +239,8 @@ export function PlaybookIosPreview({
             </Pressable>
           </View>
         </View>
+
+        <OnDeckBanner />
 
         <Pressable
           style={({ pressed }) => [

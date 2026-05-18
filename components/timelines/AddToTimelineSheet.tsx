@@ -16,10 +16,10 @@ interface AddToTimelineSheetProps {
   onDismiss: () => void;
 }
 
-const OPTIONS: { key: TimelinePlacement; label: string }[] = [
-  { key: 'next-up', label: 'Next up' },
-  { key: 'end', label: 'End of timeline' },
-  { key: 'specific-date', label: 'Specific date' },
+const OPTIONS: { key: TimelinePlacement; label: string; hint: string }[] = [
+  { key: 'next-up', label: 'Next up', hint: 'Right after your current step · default' },
+  { key: 'end', label: 'End of timeline', hint: 'After your last planned step' },
+  { key: 'specific-date', label: 'Specific date', hint: 'Pin to a calendar date' },
 ];
 
 export function AddToTimelineSheet({
@@ -62,6 +62,7 @@ export function AddToTimelineSheet({
             </View>
           )}
 
+          <Text style={styles.groupLabel}>Where should it land?</Text>
           <View style={styles.optionGroup}>
             {OPTIONS.map((option) => {
               const selected = option.key === placement;
@@ -71,9 +72,15 @@ export function AddToTimelineSheet({
                   style={[styles.option, selected && styles.optionSelected]}
                   onPress={() => setPlacement(option.key)}
                 >
-                  <Text style={[styles.optionText, selected && styles.optionTextSelected]}>
-                    {option.label}
-                  </Text>
+                  <View style={styles.optionCopy}>
+                    <Text style={[styles.optionText, selected && styles.optionTextSelected]}>
+                      {option.label}
+                    </Text>
+                    <Text style={styles.optionHint}>{option.hint}</Text>
+                  </View>
+                  <View style={[styles.radio, selected && styles.radioSelected]}>
+                    {selected && <View style={styles.radioDot} />}
+                  </View>
                 </Pressable>
               );
             })}
@@ -153,6 +160,14 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: '#6B7280',
   },
+  groupLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+    color: '#6B7280',
+    marginTop: 4,
+  },
   optionGroup: {
     gap: 8,
   },
@@ -160,20 +175,49 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: '#D1D5DB',
     borderRadius: 14,
-    paddingHorizontal: 12,
+    paddingHorizontal: 14,
     paddingVertical: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
   },
   optionSelected: {
     borderColor: '#2563EB',
     backgroundColor: '#EFF6FF',
   },
+  optionCopy: {
+    flex: 1,
+    gap: 2,
+  },
   optionText: {
-    fontSize: 14,
+    fontSize: 15,
     color: '#111827',
+    fontWeight: '600',
   },
   optionTextSelected: {
     color: '#2563EB',
-    fontWeight: '600',
+  },
+  optionHint: {
+    fontSize: 12,
+    color: '#6B7280',
+  },
+  radio: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 1.5,
+    borderColor: '#D1D5DB',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  radioSelected: {
+    borderColor: '#2563EB',
+  },
+  radioDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: '#2563EB',
   },
   input: {
     borderWidth: StyleSheet.hairlineWidth,
