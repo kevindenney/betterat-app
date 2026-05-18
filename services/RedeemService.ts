@@ -35,13 +35,13 @@ const SAMPLE_INFO: RedeemTokenInfo = {
 
 const SAMPLE_PREVIEW: RedeemBlueprintPreview = {
   id: 'sample-blueprint',
-  title: 'Worlds prep — six months on a single line',
+  title: 'Prepare for the Dragon Worlds 2027.',
   authorName: 'Kevin Denney',
   authorAffiliation: 'RHKYC',
   authorInitials: 'KD',
   stepCount: 12,
   durationMonths: 6,
-  capabilities: ['Heavy-air helm', 'Light-air starts', 'Lane defense', 'Crew calls', 'Mark roundings'],
+  capabilities: ['heavy-air helm', 'starts', 'wind reading', 'tactical', 'crew comms'],
   subscriberCount: 63,
 };
 
