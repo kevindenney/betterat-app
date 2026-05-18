@@ -183,6 +183,12 @@ export function UniversalPlusProvider({ children }: { children: React.ReactNode 
         queryClient.setQueryData(['timeline-steps', 'detail', savedStep.id], savedStep);
         void queryClient.invalidateQueries({ queryKey: ['timeline-steps', 'mine'] });
         toast.show('Draft saved', 'success');
+        // Route to the Practice tab's carousel centered on the new step so
+        // the user lands on what they just created instead of staying parked
+        // on whatever was visible. The tab reads `?selected=` and sets
+        // selectedRaceId on mount, so this works whether or not the user
+        // was already on Practice.
+        router.push(`/(tabs)/races?selected=${savedStep.id}` as any);
       } catch (err) {
         queryClient.setQueriesData<TimelineStepRecord[]>(
           { predicate: matchesMineQuery },
