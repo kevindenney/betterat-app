@@ -22,7 +22,6 @@ import React from 'react';
 import {
   ActivityIndicator,
   Linking,
-  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -33,8 +32,21 @@ import { Stack, useLocalSearchParams } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/services/supabase';
 
-const APP_STORE_URL = 'https://apps.apple.com/app/betterat/id6448077833';
+const APP_STORE_URL = 'https://apps.apple.com/app/betterat/id6757738277';
 const PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=com.betterat.app';
+
+// User-agent sniff for picking the right store URL. Platform.OS resolves to
+// 'web' inside the browser bundle, so we can't use it to detect the underlying
+// device. window.navigator.userAgent is the canonical signal in a browser.
+function pickStoreUrl(): string {
+  if (typeof window === 'undefined' || !window.navigator?.userAgent) {
+    return APP_STORE_URL;
+  }
+  const ua = window.navigator.userAgent;
+  if (/android/i.test(ua)) return PLAY_STORE_URL;
+  if (/iphone|ipad|ipod/i.test(ua)) return APP_STORE_URL;
+  return APP_STORE_URL;
+}
 
 const CAPABILITY_CHIPS = [
   'heavy-air helm',
@@ -73,8 +85,7 @@ async function loadBlueprintTitle(blueprintId: string): Promise<string | null> {
 }
 
 function openAppStore() {
-  const url = Platform.OS === 'android' ? PLAY_STORE_URL : APP_STORE_URL;
-  Linking.openURL(url).catch(() => {});
+  Linking.openURL(pickStoreUrl()).catch(() => {});
 }
 
 export default function RedeemStubRoute() {
