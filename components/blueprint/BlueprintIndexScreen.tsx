@@ -10,6 +10,7 @@
 
 import React, { useMemo, useState } from 'react';
 import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ChevronLeft, Share2 } from 'lucide-react-native';
 import {
   BlueprintStepRow,
@@ -100,9 +101,11 @@ export function BlueprintIndexScreen({
     return steps;
   }, [steps, filter]);
 
+  const insets = useSafeAreaInsets();
+
   return (
     <View style={styles.screen}>
-      <View style={styles.topBar}>
+      <View style={[styles.topBar, { paddingTop: insets.top + 10 }]}>
         <Pressable style={styles.back} onPress={onBack} hitSlop={8} disabled={!onBack}>
           <ChevronLeft size={18} color={C.blue} />
           <Text style={styles.backText}>{backLabel}</Text>

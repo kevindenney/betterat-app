@@ -9,6 +9,7 @@
 
 import React, { useMemo, useState } from 'react';
 import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Anchor, ChevronLeft, Filter as FilterIcon } from 'lucide-react-native';
 import { PeerCard, type FleetPeer, type FleetPeerStatus } from '@/components/fleets/PeerCard';
 
@@ -71,9 +72,11 @@ export function FleetPlansScreen({
     return peers.filter((p) => p.status === filter);
   }, [peers, filter]);
 
+  const insets = useSafeAreaInsets();
+
   return (
     <View style={styles.screen}>
-      <View style={styles.topBar}>
+      <View style={[styles.topBar, { paddingTop: insets.top + 10 }]}>
         <Pressable style={styles.back} onPress={onBack} hitSlop={8} disabled={!onBack}>
           <ChevronLeft size={18} color={C.blue} />
           <Text style={styles.backText}>{backLabel}</Text>

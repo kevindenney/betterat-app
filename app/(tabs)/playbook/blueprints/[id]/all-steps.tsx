@@ -60,24 +60,39 @@ export default function BlueprintAllStepsRoute() {
   });
 
   const { data: progressRows } = useQuery({
-    queryKey: ['blueprint-index-progress', id, user?.id],
+    queryKey: ['blueprint-index-progress', id, user?.id, 'v2'],
     queryFn: async () => {
-      const { data } = await supabase
+      // 1. Get this blueprint's curated steps (id = blueprint_steps.id, step_id = timeline_steps.id)
+      const { data: bpStepsRows } = await supabase
+        .from('blueprint_steps')
+        .select('id, step_id')
+        .eq('blueprint_id', id!);
+      const bpStepList =
+        (bpStepsRows as { id: string; step_id: string }[] | null) ?? [];
+      if (bpStepList.length === 0) return new Map<string, ViewerProgressRow>();
+      const bpStepIds = bpStepList.map((r) => r.id);
+      const bpStepIdToTimelineStepId = new Map<string, string>(
+        bpStepList.map((r) => [r.id, r.step_id]),
+      );
+
+      // 2. Look up this user's progress on any of those bp_steps
+      const { data: progress } = await supabase
         .from('step_user_progress')
-        .select('blueprint_step_id, status, blueprint_step:blueprint_steps!inner(blueprint_id, step_id)')
-        .eq('blueprint_step.blueprint_id', id!)
-        .eq('user_id', user!.id);
-      const rows = (data as {
-        blueprint_step_id: string;
-        status: string;
-        blueprint_step: { blueprint_id: string; step_id: string };
-      }[] | null) ?? [];
-      // Index by underlying timeline_step id so we can match it to bpSteps.
+        .select('blueprint_step_id, status')
+        .eq('user_id', user!.id)
+        .in('blueprint_step_id', bpStepIds);
+      const progressList =
+        (progress as { blueprint_step_id: string; status: string }[] | null) ?? [];
+
+      // 3. Index by underlying timeline_step.id so the UI can look up by bpSteps[i].id
       const byStepId = new Map<string, ViewerProgressRow>();
-      for (const r of rows) {
-        const stepId = r.blueprint_step?.step_id;
-        if (!stepId) continue;
-        byStepId.set(stepId, { blueprint_step_id: r.blueprint_step_id, status: r.status });
+      for (const r of progressList) {
+        const timelineStepId = bpStepIdToTimelineStepId.get(r.blueprint_step_id);
+        if (!timelineStepId) continue;
+        byStepId.set(timelineStepId, {
+          blueprint_step_id: r.blueprint_step_id,
+          status: r.status,
+        });
       }
       return byStepId;
     },
@@ -109,6 +124,31 @@ export default function BlueprintAllStepsRoute() {
       if (!user?.id) throw new Error('Sign in to add this step to your plan.');
       if (!blueprint?.interest_id) throw new Error('Missing interest on blueprint.');
       await adoptStep(user.id, step.blueprintStepId, blueprint.interest_id, id);
+
+      // Mark the user's progress on this blueprint step as "planned" so the
+      // BlueprintIndex row flips to "In plan" instead of falling back to
+      // "+ Add". adoptStep alone copies the step into timeline_steps but
+      // doesn't record subscription progress.
+      const { data: bpStepRow } = await supabase
+        .from('blueprint_steps')
+        .select('id')
+        .eq('blueprint_id', id!)
+        .eq('step_id', step.blueprintStepId)
+        .maybeSingle();
+      const blueprintStepRowId = (bpStepRow as { id: string } | null)?.id;
+      if (blueprintStepRowId) {
+        await supabase
+          .from('step_user_progress')
+          .upsert(
+            {
+              user_id: user.id,
+              blueprint_step_id: blueprintStepRowId,
+              status: 'planned',
+              updated_at: new Date().toISOString(),
+            },
+            { onConflict: 'user_id,blueprint_step_id' },
+          );
+      }
     },
     onMutate: (step) => {
       setPendingIds((prev) => new Set(prev).add(step.blueprintStepId));
