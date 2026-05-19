@@ -6,7 +6,7 @@
  * - "Collections" horizontal shelf of named bundles
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import {
   ScrollView,
   StyleSheet,
@@ -20,6 +20,7 @@ import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
 import { LibraryItemCard } from './LibraryItemCard';
 import { RecentItemRow } from './RecentItemRow';
 import { CollectionsRow } from './CollectionsRow';
+import { CaptureSheet } from './CaptureSheet';
 import type { CollectionCard, LibraryItemRow } from './types';
 
 // Wave 2e demo data — Emily's MSN Capstone library.
@@ -120,11 +121,17 @@ const COLLECTIONS: CollectionCard[] = [
 ];
 
 interface Props {
+  /** Optional external open trigger; if not provided the zone opens its own sheet. */
   onOpenCapture?: () => void;
 }
 
 export function ResourcesZone({ onOpenCapture }: Props) {
+  const [captureOpen, setCaptureOpen] = useState(false);
   const openItem = (id: string) => router.push(`/library/items/${id}` as any);
+  const handleOpenCapture = () => {
+    if (onOpenCapture) onOpenCapture();
+    else setCaptureOpen(true);
+  };
 
   return (
     <ScrollView style={styles.container}>
@@ -141,7 +148,7 @@ export function ResourcesZone({ onOpenCapture }: Props) {
       </View>
 
       <TouchableOpacity
-        onPress={onOpenCapture}
+        onPress={handleOpenCapture}
         activeOpacity={0.6}
         style={styles.dropin}
       >
@@ -187,6 +194,10 @@ export function ResourcesZone({ onOpenCapture }: Props) {
       <CollectionsRow collections={COLLECTIONS} />
 
       <View style={styles.bottomPad} />
+      <CaptureSheet
+        visible={captureOpen}
+        onClose={() => setCaptureOpen(false)}
+      />
     </ScrollView>
   );
 }
