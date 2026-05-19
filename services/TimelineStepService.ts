@@ -12,6 +12,7 @@
 import { supabase } from '@/services/supabase';
 import { createLogger } from '@/lib/utils/logger';
 import { isAbortError } from '@/lib/utils/fetchWithTimeout';
+import { PlaybookAIService } from '@/services/ai/PlaybookAIService';
 import type {
   TimelineStepRecord,
   CreateTimelineStepInput,
@@ -294,9 +295,14 @@ export async function createStep(
 
     const created = data as unknown as TimelineStepRecord;
 
-    // Fire-and-forget: trigger cross-interest suggestions from other Playbooks
-    import('@/services/ai/PlaybookAIService')
-      .then(({ PlaybookAIService }) => PlaybookAIService.crossInterest(created.id))
+    // Fire-and-forget: trigger cross-interest suggestions from other Playbooks.
+    // Statically imported above (was previously dynamic-imported here) because
+    // the dynamic import caused Metro to bundle ~1k modules mid-action on
+    // first use, which forced a hot-reload of the whole app and wiped the
+    // post-create navigation + optimistic cache. Static import preloads the
+    // bundle so the trigger runs without a reload cycle.
+    Promise.resolve()
+      .then(() => PlaybookAIService.crossInterest(created.id))
       .catch((e) => logger.debug('Cross-interest trigger skipped', e));
 
     return created;
