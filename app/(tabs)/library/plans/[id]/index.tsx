@@ -6,7 +6,7 @@
  * Subscribers + Resources read mock data for now; DB wiring follows.
  */
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Pressable,
   ScrollView,
@@ -248,11 +248,17 @@ const VALID_TABS: PlanTabKey[] = ['steps', 'subscribers', 'resources'];
 export default function PlanDetailScreen() {
   const insets = useSafeAreaInsets();
   const params = useLocalSearchParams<{ id?: string; tab?: string }>();
-  const initialTab: PlanTabKey =
+  const paramTab: PlanTabKey =
     params.tab && (VALID_TABS as string[]).includes(params.tab)
       ? (params.tab as PlanTabKey)
       : 'steps';
-  const [activeTab, setActiveTab] = useState<PlanTabKey>(initialTab);
+  const [activeTab, setActiveTab] = useState<PlanTabKey>(paramTab);
+
+  // React to deep-link ?tab= changes when already mounted.
+  useEffect(() => {
+    if (paramTab !== activeTab) setActiveTab(paramTab);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [paramTab]);
 
   // Wave 2b: for any id, render the HKDW demo. Real DB read lands later.
   const plan = HKDW_PLAN;
