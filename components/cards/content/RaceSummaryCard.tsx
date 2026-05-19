@@ -482,7 +482,9 @@ function RaceSummaryCardImpl({
   isActive,
   dimensions: _dimensions,
   canManage,
-  onEdit,
+  // onEdit removed from menu — every field is now inline-editable on the cover.
+  // Prop kept on the type for now; parent call sites can drop it in a follow-up.
+  onEdit: _onEdit,
   onDelete,
   onRaceComplete: _onRaceComplete,
   onOpenPostRaceInterview,
@@ -502,8 +504,10 @@ function RaceSummaryCardImpl({
   onCardPress,
   // Refetch trigger for AfterRaceContent
   refetchTrigger,
-  onMoveStepEarlier,
-  onMoveStepLater,
+  // Move Earlier / Move Later removed from menu — reordering happens via drag in
+  // grid view. Props kept on the type for now; drop in a follow-up.
+  onMoveStepEarlier: _onMoveStepEarlier,
+  onMoveStepLater: _onMoveStepLater,
   onMoveStepToPlannedNext,
   onMoveStepToCompletedMostRecent,
   onSetDueDate,
@@ -1525,29 +1529,6 @@ function RaceSummaryCardImpl({
     if (isTimelineStep) {
       items.push({ label: 'Suggest to...', icon: 'paper-plane-outline', onPress: () => setShowSuggestSheet(true) });
     }
-    // iOS register preview — temporary review affordances (Phase 3 of the
-    // iOS register migration). Two surfaces: Race Prep (the Before-phase
-    // composed plan) and Debrief (the After-phase chronological capture
-    // stack). Both render the same step in the new iOS-native register kit
-    // alongside the existing layout. Remove when register cuts over or an
-    // in-product register switcher lands.
-    if (isTimelineStep) {
-      items.push({
-        label: 'Preview iOS · Race Prep',
-        icon: 'sparkles-outline',
-        onPress: () => router.push(`/race/ios/${race.id}` as any),
-      });
-      items.push({
-        label: 'Preview iOS · On the Water',
-        icon: 'sparkles-outline',
-        onPress: () => router.push(`/race/ios/water/${race.id}` as any),
-      });
-      items.push({
-        label: 'Preview iOS · Debrief',
-        icon: 'sparkles-outline',
-        onPress: () => router.push(`/race/ios/debrief/${race.id}` as any),
-      });
-    }
     // Add to Blueprint — only for owners with published blueprints
     if (isOwner && isTimelineStep && (userBlueprints ?? []).some((b) => b.is_published)) {
       items.push({ label: 'Add to Blueprint', icon: 'book-outline', onPress: handleAddToBlueprint });
@@ -1558,12 +1539,6 @@ function RaceSummaryCardImpl({
     }
     // Only show edit/delete for owners
     if (isOwner) {
-      if (onMoveStepEarlier) {
-        items.push({ label: 'Move Earlier', icon: 'arrow-back-outline', onPress: () => onMoveStepEarlier(race.id) });
-      }
-      if (onMoveStepLater) {
-        items.push({ label: 'Move Later', icon: 'arrow-forward-outline', onPress: () => onMoveStepLater(race.id) });
-      }
       // Mark Done / Mark Not Done handled by the status toggle in the header
       // Due date
       if (onSetDueDate && isTimelineStep) {
@@ -1592,9 +1567,7 @@ function RaceSummaryCardImpl({
           onPress: handleChangeVisibility,
         });
       }
-      if (onEdit) {
-        items.push({ label: `Edit ${noun}`, icon: 'create-outline', onPress: onEdit });
-      }
+      // Edit removed — every field is now inline-editable on the step cover.
       if (onDelete) {
         items.push({ label: `Delete ${noun}`, icon: 'trash-outline', onPress: onDelete, variant: 'destructive' });
       }
@@ -1605,7 +1578,6 @@ function RaceSummaryCardImpl({
     }
     return items;
   }, [
-    onEdit,
     onDelete,
     race,
     onDismiss,
@@ -1616,8 +1588,6 @@ function RaceSummaryCardImpl({
     teamNoun,
     openCrewHub,
     isNursingInterest,
-    onMoveStepEarlier,
-    onMoveStepLater,
     onSetDueDate,
     isTimelineStep,
     currentVisibility,
