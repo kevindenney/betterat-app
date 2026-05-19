@@ -131,15 +131,45 @@ const STEP: StepV2 = {
   hasSharedAccess: true,
 };
 
+const INITIAL_BEFORE_SHIFT = [
+  {
+    id: 'bs1',
+    format: 'pdf' as const,
+    title: 'AACN Practice Alert · severe sepsis',
+    meta: 'PDF · 8 pages · read Mon',
+    read: true,
+  },
+  {
+    id: 'bs2',
+    format: 'video' as const,
+    title: "Bates' cardiovascular exam, bedside",
+    meta: 'Video · 12 min · focus · auscultation order',
+    read: false,
+  },
+  {
+    id: 'bs3',
+    format: 'link' as const,
+    title: 'Early goal-directed therapy · NEJM excerpt',
+    meta: 'Link · 5 min · Patricia recommended',
+    read: false,
+  },
+];
+
 export default function StepV2DebugScreen() {
-  const params = useLocalSearchParams<{ tab?: string; adopt?: string }>();
+  const params = useLocalSearchParams<{
+    tab?: string;
+    adopt?: string;
+    beforeShift?: string;
+  }>();
   const paramTab: StepPhaseTab =
     params.tab && (VALID_TABS as string[]).includes(params.tab)
       ? (params.tab as StepPhaseTab)
       : 'plan';
   const showAdoptFooter = params.adopt === '1';
+  const showBeforeShift = params.beforeShift === '1';
   const [tab, setTab] = useState<StepPhaseTab>(paramTab);
   const [subSteps, setSubSteps] = useState(INITIAL_SUB_STEPS);
+  const [beforeShiftItems, setBeforeShiftItems] = useState(INITIAL_BEFORE_SHIFT);
 
   // Sync from deep-link
   React.useEffect(() => {
@@ -169,6 +199,20 @@ export default function StepV2DebugScreen() {
                   "Forked from Phyl Loong's Step 4 in Kevin's Worlds 2027 plan",
                 onAddToTimeline: () => {},
                 onSaveAsConceptSeed: () => {},
+              }
+            : undefined
+        }
+        beforeShift={
+          showBeforeShift
+            ? {
+                items: beforeShiftItems,
+                totalEstimate: '~25 min total',
+                onToggle: (id) =>
+                  setBeforeShiftItems((prev) =>
+                    prev.map((b) =>
+                      b.id === id ? { ...b, read: !b.read } : b
+                    )
+                  ),
               }
             : undefined
         }

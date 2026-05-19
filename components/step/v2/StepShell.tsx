@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
 import { AdoptStepFooter } from '@/components/step/AdoptStepFooter';
 import { PlanTabBody } from './PlanTabBody';
+import type { BeforeShiftItem } from './plan/BeforeTheShiftCard';
 import type { StepPhaseTab, StepV2 } from './types';
 
 interface Props {
@@ -19,6 +20,12 @@ interface Props {
     provenance?: string;
     onAddToTimeline: () => void;
     onSaveAsConceptSeed: () => void;
+  };
+  beforeShift?: {
+    items: BeforeShiftItem[];
+    totalEstimate?: string;
+    onToggle?: (id: string) => void;
+    onAddFromLibrary?: () => void;
   };
 }
 
@@ -44,6 +51,7 @@ export function StepShell({
   onToggleSubStep,
   backLabel = 'Practice',
   adopt,
+  beforeShift,
 }: Props) {
   const insets = useSafeAreaInsets();
   const showDiscuss = step.hasSharedAccess !== false; // default true if undefined
@@ -126,7 +134,11 @@ export function StepShell({
 
       <ScrollView style={styles.body} contentContainerStyle={styles.bodyContent}>
         {tab === 'plan' ? (
-          <PlanTabBody step={step} onToggleSubStep={onToggleSubStep} />
+          <PlanTabBody
+            step={step}
+            onToggleSubStep={onToggleSubStep}
+            beforeShift={beforeShift}
+          />
         ) : tab === 'do' ? (
           <PlaceholderTab
             title="Do"

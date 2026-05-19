@@ -3,6 +3,10 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
 import { SubStepRow } from './SubStepRow';
+import {
+  BeforeTheShiftCard,
+  type BeforeShiftItem,
+} from './plan/BeforeTheShiftCard';
 import type {
   CapabilityChip,
   NetworkSuggestion,
@@ -18,6 +22,13 @@ interface Props {
   onPickWhere?: () => void;
   onAddCapability?: () => void;
   onNext?: () => void;
+  /** D37: "Before the shift" checklist of library items (Plan tab). */
+  beforeShift?: {
+    items: BeforeShiftItem[];
+    totalEstimate?: string;
+    onToggle?: (id: string) => void;
+    onAddFromLibrary?: () => void;
+  };
 }
 
 export function PlanTabBody({
@@ -28,6 +39,7 @@ export function PlanTabBody({
   onPickWhere,
   onAddCapability,
   onNext,
+  beforeShift,
 }: Props) {
   const filled = [
     step.what,
@@ -39,6 +51,14 @@ export function PlanTabBody({
 
   return (
     <View style={styles.body}>
+      {beforeShift && beforeShift.items.length > 0 ? (
+        <BeforeTheShiftCard
+          items={beforeShift.items}
+          totalEstimate={beforeShift.totalEstimate}
+          onToggle={beforeShift.onToggle}
+          onAddFromLibrary={beforeShift.onAddFromLibrary}
+        />
+      ) : null}
       {step.what ? (
         <Section icon="bulb-outline" label="What you'll do">
           <Text style={styles.val}>{step.what}</Text>
