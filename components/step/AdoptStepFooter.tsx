@@ -12,7 +12,7 @@
  */
 
 import React from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { IOS_COLORS } from '@/lib/design-tokens-ios';
@@ -46,36 +46,30 @@ export function AdoptStepFooter({
         </Text>
       ) : null}
       <View style={styles.btnRow}>
-        <Pressable
+        <TouchableOpacity
           onPress={onSaveAsConceptSeed}
           disabled={disabled}
-          style={({ pressed }) => [
-            styles.btn,
-            styles.btnSecondary,
-            pressed ? styles.btnPressed : null,
-          ]}
+          activeOpacity={0.7}
           accessibilityLabel={secondaryLabel}
+          style={[styles.btn, styles.btnSecondary]}
         >
           <Ionicons name="sparkles-outline" size={14} color="#5C2DAA" />
           <Text style={[styles.btnText, styles.btnTextSecondary]} numberOfLines={1}>
             {secondaryLabel}
           </Text>
-        </Pressable>
-        <Pressable
+        </TouchableOpacity>
+        <TouchableOpacity
           onPress={onAddToTimeline}
           disabled={disabled}
-          style={({ pressed }) => [
-            styles.btn,
-            styles.btnPrimary,
-            pressed ? styles.btnPressed : null,
-          ]}
+          activeOpacity={0.7}
           accessibilityLabel={primaryLabel}
+          style={[styles.btn, styles.btnPrimary]}
         >
           <Ionicons name="add" size={16} color="#FFFFFF" />
           <Text style={[styles.btnText, styles.btnTextPrimary]} numberOfLines={1}>
             {primaryLabel}
           </Text>
-        </Pressable>
+        </TouchableOpacity>
       </View>
     </View>
   );
@@ -110,9 +104,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     borderRadius: 12,
     flex: 1,
-  },
-  btnPressed: {
-    opacity: 0.7,
   },
   btnSecondary: {
     backgroundColor: 'rgba(175,82,222,0.10)',
