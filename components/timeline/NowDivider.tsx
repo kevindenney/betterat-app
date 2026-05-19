@@ -15,37 +15,38 @@ export function NowDivider() {
           NOW
         </Text>
       </View>
+      <View style={styles.line} />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    width: 24,
+    width: 48,
     alignItems: 'center',
     justifyContent: 'center',
-    position: 'relative',
   },
   line: {
     flex: 1,
-    width: 0,
-    borderLeftWidth: 1,
-    borderLeftColor: '#FF3B30',
-    borderStyle: 'dashed',
+    width: 1,
+    backgroundColor: '#FF3B30',
+    opacity: 0.6,
   },
   pill: {
-    position: 'absolute',
-    top: '50%',
+    minWidth: 38,
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 999,
     backgroundColor: '#FF3B30',
-    transform: [{ translateY: -10 }],
+    marginVertical: 6,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   pillText: {
     fontSize: 9,
     fontWeight: '800',
     letterSpacing: 0.6,
     color: '#FFFFFF',
+    textAlign: 'center',
   },
 });
