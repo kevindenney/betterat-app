@@ -1396,7 +1396,7 @@ class ProgramService {
         description: t.description,
         category: t.category ?? 'general',
         status: 'pending',
-        visibility: 'organization',
+        visibility: 'fleet',
         sort_order: nextSort++,
         metadata: {
           ...t.metadata,

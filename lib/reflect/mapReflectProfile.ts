@@ -7,11 +7,15 @@ import type {
   ProfilePreferencesFields,
   ProfileReflectFields,
 } from '@/components/ios-register/ProfileScreen';
+import type { BecomingHeroProps } from '@/components/profile';
+import type { CapabilityMapEntry } from '@/services/CapabilityAggregationService';
 import type { ReflectProfileData } from '@/hooks/useReflectProfile';
 import type { Interest } from '@/providers/InterestProvider';
 
 export interface ProfileScreenData {
   hero: ProfileHero;
+  becoming?: BecomingHeroProps;
+  capabilityMap?: CapabilityMapEntry[];
   interests: ProfileInterest[];
   identity: ProfileIdentityFields;
   preferences: ProfilePreferencesFields;

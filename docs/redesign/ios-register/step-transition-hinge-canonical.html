@@ -1,0 +1,602 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=1320" />
+<title>BetterAt — Step transition hinge · iOS register · Felix</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css" />
+<style>
+  :root {
+    /* ============ iOS system palette (inherited from Paths-for-you / Get-Inspired iOS) ============ */
+    --ios-sys-bg:        #F2F2F7;  /* system gray 6 — the ground */
+    --ios-sys-bg-grouped:#FFFFFF;  /* white cards float on the ground */
+    --ios-sys-fill-3:    #E5E5EA;  /* system gray 5 */
+    --ios-sys-fill-4:    #D1D1D6;  /* system gray 4 */
+
+    --ios-label:           #000000;
+    --ios-label-secondary: rgba(60, 60, 67, 0.62);
+    --ios-label-tertiary:  rgba(60, 60, 67, 0.32);
+    --ios-separator:       rgba(60, 60, 67, 0.20);
+
+    --ios-blue:    #007AFF;
+
+    /* Discovery accent is reserved for Discover surfaces only — not used here. */
+
+    /* Page stage — warm review chrome, same as other iOS register passes */
+    --stage:          #EFEAD8;
+    --stage-text:     #6B6558;
+    --stage-ink:      #2A2824;
+    --stage-line:     rgba(34, 30, 20, 0.12);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display",
+                 "Helvetica Neue", Helvetica, Arial, sans-serif;
+    color: var(--ios-label);
+    background: var(--stage);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+  button { font-family: inherit; }
+
+  /* ============= Page chrome (review surface) ============= */
+  .page { min-width: 1320px; padding: 56px 48px 96px; }
+  .page-head { max-width: 1240px; margin: 0 auto 40px; }
+  .page-head .eyebrow {
+    font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--stage-text); margin: 0 0 12px;
+  }
+  .page-head h1 {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 32px; line-height: 1.15; font-weight: 500;
+    letter-spacing: -0.015em; margin: 0 0 14px; color: var(--stage-ink);
+  }
+  .page-head h1 em { font-style: italic; }
+  .page-head p {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 17px; line-height: 1.55;
+    color: var(--stage-text); margin: 0; max-width: 820px;
+  }
+  .page-head p em { font-style: italic; }
+
+  .row {
+    max-width: 1240px;
+    margin: 0 auto 40px;
+    display: flex; gap: 56px;
+    align-items: flex-start; justify-content: center;
+  }
+
+  /* ============= Phone shell ============= */
+  .phone {
+    width: 393px; height: 852px;
+    background: var(--ios-sys-bg);
+    border-radius: 56px;
+    border: 1px solid rgba(0, 0, 0, 0.12);
+    box-shadow:
+      0 30px 80px -40px rgba(34, 30, 20, 0.22),
+      0 2px 0 rgba(255,255,255,0.7) inset;
+    overflow: hidden; position: relative; isolation: isolate;
+  }
+  .phone .notch {
+    position: absolute; top: 11px; left: 50%; transform: translateX(-50%);
+    width: 116px; height: 34px; background: #0F0E0C; border-radius: 20px; z-index: 60;
+  }
+  .statusbar {
+    position: absolute; top: 0; left: 0; right: 0; height: 50px;
+    padding: 16px 32px 0; display: flex; align-items: center; justify-content: space-between;
+    font-weight: 600; font-size: 15px; color: var(--ios-label); z-index: 30; pointer-events: none;
+  }
+  .statusbar .right { display: flex; gap: 6px; align-items: center; }
+  .statusbar .right i { font-size: 15px; }
+  .home-indicator {
+    position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%);
+    width: 134px; height: 5px; border-radius: 3px;
+    background: rgba(0, 0, 0, 0.32); z-index: 45; pointer-events: none;
+  }
+
+  /* ============= Screen ============= */
+  .screen {
+    position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+    overflow-y: auto; overflow-x: hidden;
+    background: var(--ios-sys-bg);
+    padding-top: 50px;
+    scrollbar-width: none;
+    scroll-behavior: smooth;
+  }
+  .screen::-webkit-scrollbar { display: none; }
+
+  /* ============= Header — iOS large-title pattern, with eyebrow ============= */
+  /* The eyebrow "Between Race 3 and Race 4" names the interval. The title sits
+     at SF Pro Display 34px regular — same lighter-than-declarative weight used
+     on Paths-for-you. The hinge isn't shouting. Below, March 18–20 in 15px
+     secondary acts as the date stamp. */
+  .header {
+    padding: 14px 22px 18px;
+  }
+  .header .eyebrow {
+    font-size: 13px;
+    color: var(--ios-label-secondary);
+    letter-spacing: -0.08px;
+    margin: 0 0 6px;
+    font-weight: 400;
+  }
+  .header h1 {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text",
+                 "Helvetica Neue", Helvetica, Arial, sans-serif;
+    font-size: 34px;
+    font-weight: 400;
+    line-height: 1.1;
+    letter-spacing: -0.6px;
+    color: var(--ios-label);
+    margin: 0 0 8px;
+  }
+  .header .dates {
+    font-size: 15px;
+    line-height: 1.3;
+    letter-spacing: -0.24px;
+    color: var(--ios-label-secondary);
+    margin: 0;
+  }
+
+  /* ============= Filmstrip ============= */
+  /* Horizontal scroll of three day-tiles. Snap to each card. Padding-inline so
+     the first card has a left gutter and the last has a right gutter. */
+  .filmstrip-wrap {
+    position: relative;
+    padding: 10px 0 4px;
+  }
+  .filmstrip {
+    display: flex;
+    gap: 12px;
+    padding: 6px 22px 14px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .filmstrip::-webkit-scrollbar { display: none; }
+
+  /* ============= Day tile — 280×400, 16px radius, white ============= */
+  /* Cards intentionally lower visual weight than step surfaces:
+     - no shadow (step cards have a 1px stroke shadow)
+     - hairline separator instead of system gray 5 background on the eyebrow
+     - smaller eyebrow tracking, lighter weight body
+     The white-on-gray-6 ground is preserved so we don't drop out of iOS grammar. */
+  .tile {
+    flex: 0 0 280px;
+    height: 400px;
+    background: var(--ios-sys-bg-grouped);
+    border-radius: 16px;
+    padding: 18px 18px 16px;
+    scroll-snap-align: start;
+    display: flex; flex-direction: column;
+    text-align: left;
+    border: none;
+    cursor: pointer;
+    /* No box-shadow — step cards in other iOS registers have one. Absence is
+       the hinge's visual register. */
+    position: relative;
+  }
+  .tile:active { background: #FAFAFA; }
+
+  /* Day eyebrow — small, 11px semibold caps, generous tracking.
+     Matches the section eyebrow grammar on Paths-for-you. */
+  .tile .day {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ios-label-secondary);
+    margin: 0 0 4px;
+  }
+  .tile .date {
+    font-size: 11px;
+    font-weight: 400;
+    letter-spacing: 0.04em;
+    color: var(--ios-label-tertiary);
+    margin: 0 0 14px;
+  }
+
+  /* Kind label — what this day's moment is. 13px secondary, on its own line. */
+  .tile .kind {
+    font-size: 13px;
+    line-height: 1.3;
+    letter-spacing: -0.08px;
+    color: var(--ios-label-secondary);
+    margin: 0 0 8px;
+    display: flex; align-items: center; gap: 7px;
+  }
+  .tile .kind i { font-size: 14px; color: var(--ios-label-tertiary); }
+
+  /* Body — the moment itself. 17px regular (one weight down from the step
+     surfaces' semibold titles). Lighter weight is deliberate — these are
+     contemplative fragments, not titles. */
+  .tile .body {
+    font-size: 17px;
+    line-height: 1.32;
+    letter-spacing: -0.32px;
+    font-weight: 400;
+    color: var(--ios-label);
+    margin: 0;
+    text-wrap: pretty;
+  }
+  .tile .body em { font-style: italic; }
+
+  /* The moment is allowed to grow; the provenance sits at the bottom. */
+  .tile .spacer { flex: 1; }
+
+  /* Provenance — 12px tertiary, hairline above. Same component grammar as
+     the source attribution on Paths-for-you, scaled down a step. */
+  .tile .prov {
+    padding-top: 11px;
+    border-top: 0.5px solid var(--ios-separator);
+    font-size: 12px;
+    line-height: 1.35;
+    letter-spacing: -0.05px;
+    color: var(--ios-label-tertiary);
+    margin: 0;
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 8px;
+  }
+  .tile .prov .src { color: var(--ios-label-secondary); }
+  .tile .prov .when { color: var(--ios-label-tertiary); white-space: nowrap; }
+
+  /* ============= Adjacent-step previews ============= */
+  /* Below the filmstrip: a hairline section showing the two named moments
+     this hinge sits between. The hinge is a connective tissue surface —
+     showing what it connects is part of its job. */
+  .bookends {
+    margin: 22px 16px 0;
+    background: var(--ios-sys-bg-grouped);
+    border-radius: 16px;
+    padding: 4px 16px;
+  }
+  .bookend {
+    display: flex; align-items: center; gap: 14px;
+    padding: 14px 0;
+    text-align: left;
+    background: none; border: none; width: 100%;
+    cursor: pointer;
+  }
+  .bookend + .bookend { border-top: 0.5px solid var(--ios-separator); }
+  .bookend .glyph {
+    flex-shrink: 0;
+    width: 30px; height: 30px; border-radius: 8px;
+    background: var(--ios-sys-fill-3);
+    display: flex; align-items: center; justify-content: center;
+    color: var(--ios-label-secondary);
+  }
+  .bookend .glyph i { font-size: 16px; }
+  .bookend .lbl { flex: 1; min-width: 0; }
+  .bookend .lbl .step {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ios-label-secondary);
+    margin: 0 0 2px;
+  }
+  .bookend .lbl .name {
+    font-size: 15px;
+    line-height: 1.3;
+    letter-spacing: -0.24px;
+    color: var(--ios-label);
+    margin: 0;
+    font-weight: 500;
+  }
+  .bookend .chev {
+    color: var(--ios-label-tertiary);
+    font-size: 18px;
+    flex-shrink: 0;
+  }
+
+  /* Note beneath the bookends, in 13px secondary footnote grammar. */
+  .footnote {
+    margin: 12px 22px 0;
+    font-size: 13px;
+    line-height: 1.4;
+    letter-spacing: -0.08px;
+    color: var(--ios-label-secondary);
+    text-wrap: pretty;
+  }
+  .footnote em { font-style: italic; }
+
+  /* ============= Floating four-tab nav — Race active ============= */
+  .float-nav {
+    position: absolute; bottom: 22px; left: 14px; right: 14px;
+    height: 64px; border-radius: 28px;
+    background: rgba(255, 255, 255, 0.72);
+    -webkit-backdrop-filter: blur(28px) saturate(180%);
+    backdrop-filter: blur(28px) saturate(180%);
+    border: 0.5px solid rgba(255,255,255,0.7);
+    box-shadow:
+      0 1px 0 rgba(255,255,255,0.55) inset,
+      0 -0.5px 0 rgba(0,0,0,0.04) inset,
+      0 12px 28px -16px rgba(0, 0, 0, 0.18),
+      0 2px 8px rgba(0, 0, 0, 0.05);
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    align-items: center; padding: 0 10px; z-index: 25;
+  }
+  .float-nav .tab {
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+    background: none; border: none; padding: 8px 0; cursor: pointer;
+    color: var(--ios-label-secondary); font-size: 10px; letter-spacing: 0.04em;
+  }
+  .float-nav .tab i { font-size: 22px; }
+  .float-nav .tab.on { color: var(--ios-blue); }
+
+  /* Bottom pad so content clears the floating nav */
+  .bottom-pad { height: 130px; }
+
+  /* ============= Side rail ============= */
+  .rail { width: 380px; padding: 8px 0 0; }
+  .rail h3 {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 11px; letter-spacing: 0.12em;
+    text-transform: uppercase; color: var(--stage-text);
+    margin: 0 0 18px; font-weight: 500;
+  }
+  .rail h4 {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 13px; letter-spacing: 0.01em;
+    color: var(--stage-ink); margin: 0 0 8px; font-weight: 500;
+  }
+  .rail .block {
+    padding: 22px 0;
+    border-top: 0.5px solid var(--stage-line);
+  }
+  .rail .block:first-of-type { border-top: none; padding-top: 4px; }
+  .rail .block .lead {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 19px; line-height: 1.4;
+    letter-spacing: -0.01em; color: var(--stage-ink);
+    margin: 0 0 12px; text-wrap: balance; font-weight: 500;
+  }
+  .rail .block p {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 14.5px; line-height: 1.6;
+    color: #4D4A43; margin: 0 0 10px;
+  }
+  .rail .block p:last-child { margin: 0; }
+  .rail .block p strong { color: var(--stage-ink); font-weight: 500; }
+  .rail .block em { font-style: italic; }
+  .rail .block ul {
+    list-style: none; padding: 0; margin: 8px 0 0;
+  }
+  .rail .block ul li {
+    display: flex; gap: 14px;
+    padding: 10px 0;
+    border-top: 0.5px dashed rgba(34, 30, 20, 0.14);
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 14px; line-height: 1.5;
+    color: #4D4A43;
+  }
+  .rail .block ul li:first-of-type { border-top: none; padding-top: 4px; }
+  .rail .block ul li strong {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+    font-weight: 500; font-size: 12px;
+    color: var(--stage-ink); letter-spacing: 0.01em;
+    width: 150px; flex-shrink: 0;
+    margin-top: 1px;
+  }
+  .swatch {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 6px 10px; border-radius: 999px;
+    background: #fff;
+    border: 0.5px solid var(--stage-line);
+    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 12px; color: #4D4A43; letter-spacing: 0.01em;
+    margin: 4px 6px 0 0;
+  }
+  .swatch .chip { width: 12px; height: 12px; border-radius: 50%; }
+  .swatch.gray .chip { background: var(--ios-sys-bg); border: 0.5px solid var(--stage-line); }
+  .swatch.white .chip { background: #FFFFFF; border: 0.5px solid var(--stage-line); }
+</style>
+</head>
+<body>
+
+<div class="page">
+
+  <header class="page-head">
+    <p class="eyebrow">BetterAt redesign · Step transition hinge · iOS register</p>
+    <h1>Step transition hinge · <em>three days at the edge, Race&nbsp;3&nbsp;→&nbsp;Race&nbsp;4</em></h1>
+    <p>The hinge translated into iOS grammar. The desktop register expressed the hinge as a swipe-only intermediate state &mdash; one centered editorial column you encounter in motion. The iOS register expresses it as a <em>filmstrip</em>: each named day in the interval is its own small tile, scrollable horizontally, with deliberately lower visual weight than the step surfaces it sits between. The principle holds: <em>the time between named moments is itself named</em>. The chrome adapts: white cards on system gray 6, SF Pro throughout, the day eyebrow doing the work the italic-serif anchor did on desktop.</p>
+  </header>
+
+  <div class="row">
+
+    <!-- ============= Phone ============= -->
+    <div>
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="statusbar">
+          <span>8:24</span>
+          <span class="right">
+            <i class="ti ti-cell-signal-4"></i>
+            <i class="ti ti-wifi"></i>
+            <i class="ti ti-battery-3"></i>
+          </span>
+        </div>
+
+        <div class="screen">
+
+          <!-- iOS large-title header — eyebrow names the interval, title is the
+               sentence, dates sit beneath in secondary. -->
+          <div class="header">
+            <p class="eyebrow">Between Race 3 and Race 4</p>
+            <h1>Three days at the edge</h1>
+            <p class="dates">March 18–20</p>
+          </div>
+
+          <!-- ============= Filmstrip — three day-tiles ============= -->
+          <div class="filmstrip-wrap">
+            <div class="filmstrip">
+
+              <!-- ===== Wednesday — flagged moment ===== -->
+              <button class="tile">
+                <p class="day">Wednesday</p>
+                <p class="date">March 18</p>
+                <p class="kind"><i class="ti ti-flag-3"></i>A flagged moment</p>
+                <p class="body">Re-watched Sam's coaching note from Race&nbsp;3 three times in the morning. Flagged the seven seconds where he says <em>"trust the shift."</em></p>
+                <div class="spacer"></div>
+                <p class="prov">
+                  <span class="src">Race 3 debrief</span>
+                  <span class="when">8:14&nbsp;am</span>
+                </p>
+              </button>
+
+              <!-- ===== Thursday — reflection ===== -->
+              <button class="tile">
+                <p class="day">Thursday</p>
+                <p class="date">March 19</p>
+                <p class="kind"><i class="ti ti-pencil"></i>A reflection</p>
+                <p class="body">Wrote about the right side winning for the wrong reason. The shift came back twice on the second beat &mdash; the side just happened to be where the breeze landed.</p>
+                <div class="spacer"></div>
+                <p class="prov">
+                  <span class="src">Concept · Trust the shift</span>
+                  <span class="when">9:42&nbsp;pm</span>
+                </p>
+              </button>
+
+              <!-- ===== Friday — captured note (becomes the rule) ===== -->
+              <button class="tile">
+                <p class="day">Friday</p>
+                <p class="date">March 20</p>
+                <p class="kind"><i class="ti ti-bookmark"></i>A captured note</p>
+                <p class="body"><em>"If the left fills past ten degrees on starboard, I commit."</em> Wrote it the night before Race&nbsp;4. Brought it into Prep as the rule.</p>
+                <div class="spacer"></div>
+                <p class="prov">
+                  <span class="src">Race 4 prep · the rule</span>
+                  <span class="when">10:18&nbsp;pm</span>
+                </p>
+              </button>
+
+            </div>
+          </div>
+
+          <!-- ============= Bookends — what this hinge sits between ============= -->
+          <div class="bookends">
+            <button class="bookend">
+              <span class="glyph"><i class="ti ti-arrow-left"></i></span>
+              <span class="lbl">
+                <p class="step">Before</p>
+                <p class="name">Race 3 · Debrief</p>
+              </span>
+              <i class="ti ti-chevron-right chev"></i>
+            </button>
+            <button class="bookend">
+              <span class="glyph"><i class="ti ti-arrow-right"></i></span>
+              <span class="lbl">
+                <p class="step">After</p>
+                <p class="name">Race 4 · Prep</p>
+              </span>
+              <i class="ti ti-chevron-right chev"></i>
+            </button>
+          </div>
+
+          <p class="footnote">The hinge is a state, not a destination &mdash; you arrive here by swiping between adjacent races on the Race timeline. <em>The time between named moments is itself named.</em></p>
+
+          <div class="bottom-pad"></div>
+        </div>
+
+        <!-- Floating four-tab nav — Race active (the hinge lives inside the Race timeline) -->
+        <div class="float-nav">
+          <div class="tab on"><i class="ti ti-anchor"></i><span>Race</span></div>
+          <div class="tab"><i class="ti ti-book"></i><span>Playbook</span></div>
+          <div class="tab"><i class="ti ti-compass"></i><span>Discover</span></div>
+          <div class="tab"><i class="ti ti-clock-back"></i><span>Reflect</span></div>
+        </div>
+        <div class="home-indicator"></div>
+      </div>
+    </div>
+
+    <!-- ============= Side rail ============= -->
+    <aside class="rail">
+
+      <h3>What this iOS register commits to</h3>
+
+      <div class="block">
+        <p class="lead">The hinge becomes a filmstrip on iOS.</p>
+        <p>On desktop, the hinge is one centered editorial column you encounter mid-swipe between Race 3 Debrief and Race 4 Prep &mdash; the italic-serif anchor <em>"Three days between"</em> over a single synthesis paragraph.</p>
+        <p>On iOS that single column would feel too quiet on a phone screen: the swipe gesture already lives in horizontal motion, so the hinge here borrows that grammar. Each day in the interval is its own tile, horizontally scrollable. The header carries the synthesis; the tiles carry the days.</p>
+        <p><strong>The principle preserved across the register shift:</strong> the time between named moments is named, and what filled it is shown. <em>The form rotates, the principle holds.</em></p>
+      </div>
+
+      <div class="block">
+        <p class="lead">Day-tiles are deliberately lower visual weight than step cards.</p>
+        <p>
+          <span class="swatch white"><span class="chip"></span>tile · #FFFFFF</span>
+          <span class="swatch gray"><span class="chip"></span>ground · #F2F2F7</span>
+        </p>
+        <p>The hinge is a connective surface, not a destination, and the tiles say so visually:</p>
+        <ul>
+          <li><strong>No card shadow</strong>step-card components elsewhere in the iOS register carry a 1px stroke-shadow. Day tiles do not. Their weight is the white-on-gray-6 contrast alone.</li>
+          <li><strong>Title weight 400</strong>step-card titles are 17px semibold (600). Day-tile bodies are 17px regular. One weight down.</li>
+          <li><strong>Eyebrow does the title&rsquo;s work</strong>WEDNESDAY · MARCH 18 carries the identity of the tile. The body is the moment, not a heading.</li>
+          <li><strong>Hairline provenance, not a signal row</strong>the provenance sits in 12px tertiary, the smallest type on the surface. It tells you where the moment came from and when, and it does not compete.</li>
+        </ul>
+        <p>If the hinge ever felt as substantial as a step, the system would be telling Felix this is somewhere he should arrive. It isn't. <em>Lower weight is the truth-telling.</em></p>
+      </div>
+
+      <div class="block">
+        <p class="lead">Three kinds of day, named at the top of each tile.</p>
+        <p>Across the three-day interval, Felix's activity falls into a small grammar &mdash; each tile labels itself with what kind of day it was:</p>
+        <ul>
+          <li><strong>A flagged moment</strong>something Felix returned to, marked, replayed. <em>Wednesday: re-watching Sam&rsquo;s coaching note.</em></li>
+          <li><strong>A reflection</strong>something he wrote about, in his own voice, after the fact. <em>Thursday: the right side winning for the wrong reason.</em></li>
+          <li><strong>A captured note</strong>something short he wrote down for next time, often becoming a rule. <em>Friday: the rule for Race&nbsp;4.</em></li>
+        </ul>
+        <p>The kind label is provenance you can scan &mdash; you know what kind of moment a tile is before you read it. <strong>The same three kinds appear on other hinges</strong> with different content; an empty day is allowed to read as <em>"no entry"</em> rather than be padded into a fake moment.</p>
+      </div>
+
+      <div class="block">
+        <p class="lead">Bookends sit beneath the filmstrip.</p>
+        <p>The two named moments this hinge connects &mdash; Race&nbsp;3 Debrief and Race&nbsp;4 Prep &mdash; appear as a small grouped list under the filmstrip. Same component grammar as iOS settings rows.</p>
+        <p>These are not the primary affordance. They&rsquo;re here because the hinge&rsquo;s job is to make the connection visible; <em>showing what it connects is part of that job.</em> Tap-targets, not visual emphasis. The filmstrip above does the editorial work.</p>
+      </div>
+
+      <div class="block">
+        <h4>What this surface deliberately doesn&rsquo;t do</h4>
+        <ul>
+          <li><strong>No standalone synthesis paragraph</strong>the desktop hinge has one editorial paragraph. On iOS, the title <em>&ldquo;Three days at the edge&rdquo;</em> and the three named days are the synthesis. Adding a paragraph would push toward the desktop component instead of adapting.</li>
+          <li><strong>No coral dot, anywhere</strong>the Discovery accent is reserved for Discover surfaces only. The hinge sits on the Race tab.</li>
+          <li><strong>No reaction or comment chrome on tiles</strong>moments are not posts. Tiles tap through to their source surface and nothing else.</li>
+          <li><strong>No timeline scrubber</strong>the desktop scrub control is review-pane scaffolding for the reviewer. The iOS register doesn&rsquo;t need it &mdash; the user&rsquo;s swipe through the Race timeline is the scrubber.</li>
+          <li><strong>No segmented control</strong>no &ldquo;All / Flagged / Reflections / Notes&rdquo;. The interval is three days; filtering it is overbuilt. If the interval ever grew past a week, the question reopens.</li>
+        </ul>
+      </div>
+
+      <div class="block">
+        <h4>iOS register grammar preserved</h4>
+        <ul>
+          <li><strong>System gray 6 ground</strong>identical to Paths-for-you, Race Prep, Get Inspired, On the Water iOS.</li>
+          <li><strong>SF Pro Text / SF Pro Display</strong>system fonts only on the device surface.</li>
+          <li><strong>34px regular large title</strong>same lighter-than-declarative weight used on Paths-for-you. The hinge isn&rsquo;t shouting.</li>
+          <li><strong>11px semibold caps eyebrow</strong>same component used to label sections across iOS, redeployed here once per tile as the day name.</li>
+          <li><strong>Floating four-tab nav</strong>same component, Race tab active in iOS blue.</li>
+          <li><strong>Grouped-list bookends</strong>standard iOS settings-row grammar, 16px radius white container, 0.5px separators.</li>
+        </ul>
+      </div>
+
+      <div class="block">
+        <h4>Behaviour spec for engineering</h4>
+        <ul>
+          <li><strong>Entry</strong>swipe between adjacent races in the Race timeline. Not invokable from anywhere else &mdash; no tab, no URL, no entry affordance from the timeline overview.</li>
+          <li><strong>Tile count</strong>one per day in the interval. Empty days are allowed (eyebrow + <em>&ldquo;no entry&rdquo;</em>). Caps at ~7 visible tiles; longer intervals show a head and tail with a count in the middle.</li>
+          <li><strong>Tile tap</strong>opens the source surface for that moment (reflection in Concept · Trust the shift, or the captured note in Race&nbsp;4 Prep). The hinge is not where the moment lives, just where it&rsquo;s indexed.</li>
+          <li><strong>Phrasing</strong>varies with the gap. <em>The night between · The morning between · Three days at the edge · A week between · Two months between.</em> The eyebrow names the interval in sailor&rsquo;s language, not a metric.</li>
+        </ul>
+      </div>
+
+    </aside>
+
+  </div>
+
+</div>
+
+</body>
+</html>

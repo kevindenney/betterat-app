@@ -4,6 +4,7 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getStepById, updateStepMetadata } from '@/services/TimelineStepService';
+import { logger } from '@/lib/logger';
 import type { TimelineStepRecord } from '@/types/timeline-steps';
 import type { StepMetadata } from '@/types/step-detail';
 
@@ -72,8 +73,31 @@ export function useUpdateStepMetadata(stepId: string | undefined) {
     Error,
     Partial<StepMetadata>
   >({
-    mutationFn: (partialMetadata) => {
+    mutationFn: async (partialMetadata) => {
       if (!stepId?.trim()) throw new Error('No step ID');
+      // `temp-` ids belong to optimistic rows from Universal Plus quick-capture.
+      // Patches fired during that ~500ms window (e.g. StepPlanQuestions'
+      // auto-attach-skills effect) would otherwise hit Postgres with a non-UUID
+      // and 22P02. Merge into the cached temp record so the UI stays consistent,
+      // then let the saved row swap in via setQueriesData — the next state-driven
+      // re-fire of the mutation will be bound to the real id.
+      if (stepId.startsWith('temp-')) {
+        const cached = queryClient.getQueryData<TimelineStepRecord>(
+          KEYS.stepDetail(stepId),
+        );
+        if (!cached) {
+          logger.warn('[useUpdateStepMetadata] temp-id patch with no cached row', stepId);
+          throw new Error('Skipped metadata patch against temp step id');
+        }
+        const merged: TimelineStepRecord = {
+          ...cached,
+          metadata: {
+            ...((cached.metadata ?? {}) as Record<string, unknown>),
+            ...(partialMetadata as Record<string, unknown>),
+          } as TimelineStepRecord['metadata'],
+        };
+        return merged;
+      }
       return updateStepMetadata(stepId, partialMetadata);
     },
     retry: false,

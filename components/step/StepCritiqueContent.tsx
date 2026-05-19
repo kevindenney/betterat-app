@@ -289,7 +289,7 @@ export function StepCritiqueContent({ stepId, onNextStepCreated, readOnly }: Ste
   // Auto-complete any active train conversation and trigger extraction when Review tab mounts
   const extractionTriggeredRef = useRef(false);
   useEffect(() => {
-    if (extractionTriggeredRef.current || !user?.id || !step?.interest_id || !stepId) return;
+    if (readOnly || extractionTriggeredRef.current || !user?.id || !step?.interest_id || !stepId) return;
     // Skip if we already have extracted data
     if (actData.measurements?.extracted?.length || actData.nutrition?.entries?.length) return;
     extractionTriggeredRef.current = true;
@@ -317,12 +317,12 @@ export function StepCritiqueContent({ stepId, onNextStepCreated, readOnly }: Ste
     })();
     // queryClient is a stable singleton; intentionally omitted from deps.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.id, step?.interest_id, stepId, actData.measurements, actData.nutrition, currentInterest?.slug]);
+  }, [readOnly, user?.id, step?.interest_id, stepId, actData.measurements, actData.nutrition, currentInterest?.slug]);
 
   // Competency assessment extraction — runs independently of conversation extraction
   const competencyExtractionRef = useRef(false);
   useEffect(() => {
-    if (competencyExtractionRef.current || !user?.id || !step?.interest_id || !stepId) return;
+    if (readOnly || competencyExtractionRef.current || !user?.id || !step?.interest_id || !stepId) return;
     if (!planData.competency_ids?.length && !planData.capability_goals?.length) return;
     // Skip if already assessed
     if (reviewData.competency_assessment?.assessed_at) {
@@ -343,7 +343,7 @@ export function StepCritiqueContent({ stepId, onNextStepCreated, readOnly }: Ste
     // One-shot extraction gated by competencyExtractionRef; intentionally
     // reads stable-at-mount snapshots of planData/actData/reviewData.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.id, step?.interest_id, stepId, planData.competency_ids, planData.capability_goals]);
+  }, [readOnly, user?.id, step?.interest_id, stepId, planData.competency_ids, planData.capability_goals]);
 
   // Seed from server. Read prompt-keyed content through the selector so that
   // v2 sections[] take precedence when present (Step B+). For current v1 rows
@@ -814,6 +814,7 @@ export function StepCritiqueContent({ stepId, onNextStepCreated, readOnly }: Ste
             history={measurementHistory}
             readOnly={readOnly}
             onUpdate={(updated) => {
+              if (readOnly) return;
               updateMetadata.mutate({
                 act: {
                   measurements: {
@@ -835,6 +836,7 @@ export function StepCritiqueContent({ stepId, onNextStepCreated, readOnly }: Ste
             targets={nutritionTargets}
             readOnly={readOnly}
             onUpdate={(updated) => {
+              if (readOnly) return;
               updateMetadata.mutate({
                 act: {
                   nutrition: {

@@ -28,6 +28,7 @@ import {
 } from '@/lib/navigation-config';
 import { useVocabulary } from '@/hooks/useVocabulary';
 import { useOrganization } from '@/providers/OrganizationProvider';
+import { FEATURE_FLAGS } from '@/lib/featureFlags';
 
 export const WEB_SIDEBAR_WIDTH = 280;
 
@@ -51,10 +52,21 @@ function WebSidebarNav({ onClose }: WebSidebarNavProps) {
     );
   }, [memberships]);
 
-  const { primary, secondary } = getNavItemsForUserType(userType ?? null, vocabulary, {
+  const navItems = getNavItemsForUserType(userType ?? null, vocabulary, {
     activeDomain: activeDomain ?? undefined,
     isOrgAdmin,
   });
+  // Phase 0 of the iOS register migration renames tab 1 to "Practice"
+  // universally — overriding the sailing "Race" default and any
+  // vocabulary-derived event term ("Clinical", "Shift", "Session"). Same
+  // override as app/(tabs)/_layout.tsx; keeps the sidebar in sync with the
+  // bottom tab bar. See docs/redesign/ios-register/phase-0-shared-chrome.md.
+  const primary = FEATURE_FLAGS.PRACTICE_STEP_LOOP_IOS_REGISTER
+    ? navItems.primary.map((item) =>
+        item.key === 'races' ? { ...item, label: 'Practice' } : item,
+      )
+    : navItems.primary;
+  const { secondary } = navItems;
 
   const handleNavigation = (route: string) => {
     router.push(route as Parameters<typeof router.push>[0]);

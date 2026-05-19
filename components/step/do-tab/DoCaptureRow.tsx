@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { formatClockTime, formatRelativeAgo } from './doCaptureModel';
+import { formatClockTime } from './doCaptureModel';
 import type { DoCaptureItem } from './doCaptureModel';
 import {
   PhotoCapturePreview,
@@ -69,6 +69,8 @@ export interface DoCaptureRowProps {
    * existing observation/media remove paths. Hidden when omitted.
    */
   onDelete?: (captureId: string) => void;
+  /** Long-press action for live captures. Phase 3 opens "Tag this capture". */
+  onLongPress?: (captureId: string) => void;
   /**
    * Mark-as-evidence handler — only honoured in {@link frozen} (Frame 3)
    * mode for non-time_marker rows. When provided the entire row becomes
@@ -89,10 +91,13 @@ export function DoCaptureRow({
   capture,
   fresh,
   frozen,
-  nowMs,
+  // nowMs kept on the prop type (callers pass it for legacy relative-ago)
+  // but no longer used after the relative-ago label removal.
+  nowMs: _nowMs,
   onPressPlayVoice,
   onEdit,
   onDelete,
+  onLongPress,
   onMarkAsEvidence,
 }: DoCaptureRowProps) {
   if (capture.kind === 'time_marker') {
@@ -101,11 +106,15 @@ export function DoCaptureRow({
 
   const showFresh = fresh && !frozen;
   const markEvidenceEnabled = Boolean(frozen && onMarkAsEvidence);
+  const liveLongPressEnabled = Boolean(!frozen && onLongPress);
+  const showInlineActions = !markEvidenceEnabled && !liveLongPressEnabled;
 
   const accent = ACCENT_BY_KIND[capture.kind] ?? GRAY_3;
   const meta = TYPE_META[capture.kind] ?? TYPE_META.note;
   const clock = formatClockTime(capture.capturedAt);
-  const ago = formatRelativeAgo(capture.capturedAt, nowMs);
+  // Relative "X ago" label removed — it re-renders every second so it reads
+  // like a running timer with no stop button. Absolute clock time is enough
+  // context; users can do the math from the wall clock if they care.
   const isVoice = capture.kind === 'voice';
   const isPhoto = capture.kind === 'photo' || capture.kind === 'video';
 
@@ -113,7 +122,6 @@ export function DoCaptureRow({
     <>
       <View style={styles.tsCol}>
         {clock ? <Text style={styles.ts}>{clock}</Text> : null}
-        {ago ? <Text style={styles.ago}>{ago}</Text> : null}
       </View>
 
       <View style={styles.bodyCol}>
@@ -147,7 +155,7 @@ export function DoCaptureRow({
               <Text style={styles.metaText}>{capture.metaSubtitle}</Text>
             </>
           ) : null}
-          {onEdit ? (
+          {showInlineActions && onEdit ? (
             <>
               <Text style={styles.sep}>·</Text>
               <Pressable
@@ -160,7 +168,7 @@ export function DoCaptureRow({
               </Pressable>
             </>
           ) : null}
-          {onDelete ? (
+          {showInlineActions && onDelete ? (
             <>
               <Text style={styles.sep}>·</Text>
               <Pressable
@@ -195,6 +203,24 @@ export function DoCaptureRow({
         style={({ pressed }) => [
           styles.row,
           { borderLeftColor: accent },
+          pressed && styles.rowPressed,
+        ]}
+      >
+        {innerContent}
+      </Pressable>
+    );
+  }
+
+  if (liveLongPressEnabled) {
+    return (
+      <Pressable
+        onLongPress={() => onLongPress?.(capture.id)}
+        accessibilityRole="button"
+        accessibilityLabel="Tag this capture"
+        style={({ pressed }) => [
+          styles.row,
+          { borderLeftColor: accent },
+          showFresh && styles.rowFresh,
           pressed && styles.rowPressed,
         ]}
       >

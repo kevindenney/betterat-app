@@ -1,404 +1,298 @@
-/**
- * /r/[token] · Partner redeem landing (stub)
- *
- * Minimal welcome page rendered when a sailor opens a partner-minted
- * redeem URL (e.g. from the DragonWorlds HK 2027 app). The full Phase 10
- * RedeemLanding lives on the `feat/phase-10-hkdw-onboarding` branch and
- * pulls in component/service/hook/auth machinery that isn't on main yet.
- *
- * Until that branch merges, this stub gives partner-minted tokens a
- * landing page instead of the 404 Expo Router used to serve. Three
- * states:
- *
- *   - loading       — looking up the token
- *   - valid         — Dragon Worlds welcome card + "Continue in app" CTA
- *   - invalid/used  — graceful fallback that points to BetterAt home
- *
- * No auth, no consume, no telemetry. Sailors land here, see the offer,
- * and tap through to the App Store / Play Store. Full Phase 10 flow
- * replaces this file on merge.
- */
-import React from 'react';
-import {
-  ActivityIndicator,
-  Linking,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
-import { Stack, useLocalSearchParams } from 'expo-router';
+import React, { useCallback, useEffect, useState } from 'react';
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
+import { RedeemLanding } from '@/components/onboarding';
+import {
+  consumeTokenForUser,
+  loadBlueprintPreview,
+  resolveToken,
+} from '@/services/RedeemService';
+import { trackRedeemEvent } from '@/services/RedeemTelemetry';
+import { useAuth } from '@/providers/AuthProvider';
+import { FEATURE_FLAGS } from '@/lib/featureFlags';
 import { supabase } from '@/services/supabase';
 
-const APP_STORE_URL = 'https://apps.apple.com/app/betterat/id6757738277';
-const PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=com.betterat.app';
-
-// User-agent sniff for picking the right store URL. Platform.OS resolves to
-// 'web' inside the browser bundle, so we can't use it to detect the underlying
-// device. window.navigator.userAgent is the canonical signal in a browser.
-function pickStoreUrl(): string {
-  if (typeof window === 'undefined' || !window.navigator?.userAgent) {
-    return APP_STORE_URL;
-  }
-  const ua = window.navigator.userAgent;
-  if (/android/i.test(ua)) return PLAY_STORE_URL;
-  if (/iphone|ipad|ipod/i.test(ua)) return APP_STORE_URL;
-  return APP_STORE_URL;
-}
-
-const CAPABILITY_CHIPS = [
-  'heavy-air helm',
-  'starts',
-  'wind reading',
-  'tactical',
-  'crew comms',
+const FLEET_SAMPLE = [
+  { initials: 'PL', color: '#4E6A85' },
+  { initials: 'BV', color: '#3E6C4E' },
+  { initials: 'SN', color: '#5C3F7A' },
+  { initials: 'KH', color: '#4A3F2E' },
 ];
 
-interface ResolvedToken {
-  token: string;
-  blueprint_id: string;
-  valid_to: string;
-  source: string;
-  already_used: boolean;
-}
+const HKDW_COPY = {
+  authorRole: 'your Worlds coach',
+  blueprintSubtitle:
+    "A path through the conditions you'll race in November — boat speed, heavy-air helm work, starts, fleet tactics.",
+  blueprintVersionLine: 'Updated April · v3.2',
+  welcomePillText: 'Welcoming you · 90 days free',
+  fleetTagline: 'Worlds sailors already started',
+  fleetSubline: 'Same race · same conditions · same fleet',
+};
 
-async function resolveRedeemToken(token: string): Promise<ResolvedToken | null> {
-  const { data, error } = await supabase.rpc('resolve_redeem_token', { p_token: token });
-  if (error) {
-    console.warn('[redeem/stub] resolve failed:', error.message);
-    return null;
-  }
-  const row = Array.isArray(data) ? data[0] : data;
-  return row ?? null;
-}
-
-async function loadBlueprintTitle(blueprintId: string): Promise<string | null> {
-  const { data, error } = await supabase
-    .from('timeline_blueprints')
-    .select('title')
-    .eq('id', blueprintId)
-    .maybeSingle();
-  if (error) return null;
-  return (data as { title: string } | null)?.title ?? null;
-}
-
-function openAppStore() {
-  Linking.openURL(pickStoreUrl()).catch(() => {});
-}
-
-export default function RedeemStubRoute() {
+export default function RedeemRoute() {
   const { token } = useLocalSearchParams<{ token: string }>();
+  const { user } = useAuth();
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const { data: resolved, isLoading } = useQuery({
-    queryKey: ['stub-redeem-token', token],
-    queryFn: () => resolveRedeemToken(token!),
-    enabled: !!token,
+  const flagOn = FEATURE_FLAGS.HKDW_REDEEM_FLOW;
+  const enabled = Boolean(token && flagOn);
+
+  const { data: tokenInfo, isLoading: loadingToken } = useQuery({
+    queryKey: ['phase10-redeem-token', token],
+    queryFn: () => resolveToken(token!),
+    enabled,
     retry: false,
-    staleTime: 60_000,
   });
 
-  const { data: blueprintTitle } = useQuery({
-    queryKey: ['stub-redeem-blueprint', resolved?.blueprint_id],
-    queryFn: () => loadBlueprintTitle(resolved!.blueprint_id),
-    enabled: !!resolved?.blueprint_id,
-    staleTime: 5 * 60_000,
+  const { data: preview, isLoading: loadingPreview } = useQuery({
+    queryKey: ['phase10-redeem-preview', tokenInfo?.blueprintId],
+    queryFn: () => loadBlueprintPreview(tokenInfo!.blueprintId),
+    enabled: Boolean(tokenInfo?.blueprintId),
   });
 
-  if (isLoading) {
+  useEffect(() => {
+    if (!token || !flagOn) return;
+    trackRedeemEvent({ name: 'redeem_attempted', token, success: Boolean(tokenInfo) });
+  }, [token, tokenInfo, flagOn]);
+
+  const handleAccept = useCallback(async () => {
+    if (!token || !tokenInfo || !preview) return;
+    if (!user?.id) {
+      setError('Sign in to accept this invitation.');
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    try {
+      const result = await consumeTokenForUser({ token, userId: user.id });
+      if (result.alreadyUsed) {
+        setError('This invitation has already been used.');
+        return;
+      }
+      trackRedeemEvent({
+        name: 'redeem_completed',
+        token,
+        userId: user.id,
+        blueprintId: result.blueprintId,
+      });
+      // Sample fast-path: `sample-blueprint` is the dev mock id (not a real
+      // UUID), so the subscribe / firstStepIdFor / blueprint detail paths
+      // all fail. Skip them and route straight to the canonical first-step
+      // preview at /practice/step/boat-speed.
+      if (result.blueprintId === 'sample-blueprint') {
+        trackRedeemEvent({ name: 'first_step_written', userId: user.id, stepId: 'boat-speed' });
+        router.replace('/practice/step/boat-speed' as any);
+        return;
+      }
+      const subscriptionId = await subscribeUserToBlueprint(user.id, result.blueprintId);
+      const stepId = result.firstStepId ?? (await firstStepIdFor(result.blueprintId));
+      if (stepId) {
+        trackRedeemEvent({ name: 'first_step_written', userId: user.id, stepId });
+        router.replace(`/practice/step/${stepId}` as any);
+      } else {
+        router.replace(`/playbook/blueprints/${result.blueprintId}` as any);
+      }
+      // Touch subscriptionId so the linter sees it; future telemetry payloads
+      // can route off it.
+      void subscriptionId;
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Could not accept invitation.';
+      setError(message);
+    } finally {
+      setBusy(false);
+    }
+  }, [token, tokenInfo, preview, user?.id]);
+
+  if (!flagOn) {
     return (
-      <View style={styles.center}>
-        <Stack.Screen options={{ headerShown: false }} />
-        <ActivityIndicator color="#4630EB" />
+      <View style={styles.disabled}>
+        <Stack.Screen options={{ title: 'Invitation' }} />
+        <Text style={styles.disabledTitle}>This invitation type isn't live yet.</Text>
+        <Text style={styles.disabledBody}>
+          Enable EXPO_PUBLIC_FF_HKDW_REDEEM_FLOW in this environment to preview.
+        </Text>
       </View>
     );
   }
 
-  if (!resolved) {
+  if (loadingToken || loadingPreview) {
     return (
-      <View style={styles.center}>
-        <Stack.Screen options={{ headerShown: false }} />
-        <Text style={styles.invalidTitle}>This invitation has expired</Text>
+      <View style={styles.loading}>
+        <Stack.Screen options={{ title: 'Invitation' }} />
+        <ActivityIndicator />
+      </View>
+    );
+  }
+
+  if (!tokenInfo) {
+    return (
+      <View style={styles.invalid}>
+        <Stack.Screen options={{ title: 'Invitation' }} />
+        <Text style={styles.invalidTitle}>This invitation has expired or already been used</Text>
         <Text style={styles.invalidBody}>
-          Reach out to whoever shared it for a fresh link, or explore BetterAt directly.
+          Reach out to whoever shared it for a fresh link, or learn more about BetterAt.
         </Text>
-        <Pressable
-          style={styles.secondaryCta}
-          onPress={() => Linking.openURL('https://www.better.at').catch(() => {})}
-        >
-          <Text style={styles.secondaryCtaText}>Explore BetterAt</Text>
+        <Pressable style={styles.invalidCta} onPress={() => router.replace('/' as any)}>
+          <Text style={styles.invalidCtaText}>Explore BetterAt</Text>
         </Pressable>
       </View>
     );
   }
 
-  const isAlreadyUsed = resolved.already_used;
-  // Surface the live blueprint title when known; otherwise fall back to the
-  // canonical Worlds copy. Read-only — UI hardcodes the "Prepare for the
-  // Dragon Worlds 2027" italic-serif title since that's the welcome moment.
-  void blueprintTitle;
+  if (!preview) {
+    return (
+      <View style={styles.loading}>
+        <Stack.Screen options={{ title: 'Invitation' }} />
+        <ActivityIndicator />
+      </View>
+    );
+  }
+
+  const isHkdwSource = tokenInfo.source === 'hkdw-2026';
+  const fleetCountLabel = isHkdwSource
+    ? `${preview.subscriberCount} ${HKDW_COPY.fleetTagline}`
+    : `${preview.subscriberCount} sailors already started`;
 
   return (
-    <ScrollView contentContainerStyle={styles.scroll}>
+    <SafeAreaView style={styles.screen} edges={['top']}>
       <Stack.Screen options={{ headerShown: false }} />
-
-      <View style={styles.brandRow}>
-        <View style={styles.logoDot} />
-        <Text style={styles.brandName}>BetterAt</Text>
-      </View>
-
-      <View style={styles.welcomePill}>
-        <Text style={styles.welcomePillText}>WELCOMING YOU · 90 DAYS FREE</Text>
-      </View>
-
-      <Text style={styles.coachByline}>
-        Kevin Denney, your Worlds coach, is welcoming you to
-      </Text>
-      <Text style={styles.headline}>"Prepare for the Dragon Worlds 2027."</Text>
-      <Text style={styles.subhead}>
-        A path through the conditions you'll race in November — boat speed, heavy-air
-        helm work, starts, fleet tactics.
-      </Text>
-
-      <View style={styles.statsCard}>
-        <View style={styles.statCol}>
-          <Text style={styles.statValue}>12</Text>
-          <Text style={styles.statLabel}>STEPS</Text>
-        </View>
-        <View style={styles.statDivider} />
-        <View style={styles.statCol}>
-          <Text style={styles.statValue}>6</Text>
-          <Text style={styles.statLabel}>MONTHS</Text>
-        </View>
-        <View style={styles.statDivider} />
-        <View style={styles.statCol}>
-          <Text style={styles.statValue}>5</Text>
-          <Text style={styles.statLabel}>CAPABILITIES</Text>
-        </View>
-      </View>
-
-      <View style={styles.chipRow}>
-        {CAPABILITY_CHIPS.map((label) => (
-          <View key={label} style={styles.chip}>
-            <Text style={styles.chipText}>{label}</Text>
-          </View>
-        ))}
-      </View>
-
-      {isAlreadyUsed ? (
-        <View style={styles.alreadyUsedNote}>
-          <Text style={styles.alreadyUsedTitle}>You've already claimed this</Text>
-          <Text style={styles.alreadyUsedBody}>
-            Open BetterAt to pick up where you left off.
-          </Text>
+      <RedeemLanding
+        token={token!}
+        blueprintAuthor={{
+          name: preview.authorName,
+          affiliation: preview.authorAffiliation,
+          avatarInitials: preview.authorInitials,
+          role: isHkdwSource ? HKDW_COPY.authorRole : undefined,
+        }}
+        blueprint={{
+          id: preview.id,
+          title: preview.title,
+          stepCount: preview.stepCount,
+          durationMonths: preview.durationMonths,
+          capabilities: preview.capabilities,
+        }}
+        fleetCount={preview.subscriberCount}
+        fleetSampleAvatars={FLEET_SAMPLE}
+        freeMonths={3}
+        postFreePrice="$9/mo"
+        welcomePillText={isHkdwSource ? HKDW_COPY.welcomePillText : undefined}
+        fleetTagline={fleetCountLabel}
+        fleetSubline={isHkdwSource ? HKDW_COPY.fleetSubline : undefined}
+        blueprintSubtitle={isHkdwSource ? HKDW_COPY.blueprintSubtitle : undefined}
+        blueprintVersionLine={isHkdwSource ? HKDW_COPY.blueprintVersionLine : undefined}
+        onAccept={handleAccept}
+        onSkip={() => router.replace('/' as any)}
+      />
+      {error ? (
+        <View style={styles.errorBlock}>
+          <Text style={styles.errorText}>{error}</Text>
         </View>
       ) : null}
-
-      <Pressable style={styles.primaryCta} onPress={openAppStore}>
-        <Text style={styles.primaryCtaText}>
-          {isAlreadyUsed ? 'Open BetterAt' : 'Accept & start preparing'}
-        </Text>
-      </Pressable>
-
-      <Text style={styles.fineprint}>
-        Free for 90 days · then $9/mo · cancel anytime · no card now
-      </Text>
-
-      <Text style={styles.tokenLabel}>
-        Invitation: {resolved.token}
-      </Text>
-    </ScrollView>
+      {busy ? (
+        <View style={styles.busyOverlay}>
+          <ActivityIndicator color="#FFFFFF" />
+        </View>
+      ) : null}
+    </SafeAreaView>
   );
 }
 
-const BRAND_PRIMARY = '#4630EB';
-const BG = '#FAFAF7';
-const TEXT_PRIMARY = '#1A1A1A';
-const TEXT_SECONDARY = '#5C5C5C';
-const CARD_BG = '#FFFFFF';
-const BORDER = '#E5E5E0';
+async function subscribeUserToBlueprint(userId: string, blueprintId: string): Promise<string | null> {
+  const { data, error } = await supabase
+    .from('blueprint_subscriptions')
+    .insert({ subscriber_id: userId, blueprint_id: blueprintId })
+    .select('id')
+    .maybeSingle();
+  if (error) return null;
+  return (data as { id: string } | null)?.id ?? null;
+}
+
+async function firstStepIdFor(blueprintId: string): Promise<string | null> {
+  const { data } = await supabase
+    .from('blueprint_steps')
+    .select('step_id, sort_order')
+    .eq('blueprint_id', blueprintId)
+    .order('sort_order', { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  return (data as { step_id: string } | null)?.step_id ?? null;
+}
 
 const styles = StyleSheet.create({
-  scroll: {
-    flexGrow: 1,
-    backgroundColor: BG,
-    paddingHorizontal: 24,
-    paddingTop: 56,
-    paddingBottom: 48,
-  },
-  center: {
+  screen: {
     flex: 1,
-    backgroundColor: BG,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 24,
-    gap: 12,
+    backgroundColor: '#F2F2F7',
   },
-  brandRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    marginBottom: 24,
-  },
-  logoDot: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: TEXT_PRIMARY,
-  },
-  brandName: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: TEXT_PRIMARY,
-  },
-  welcomePill: {
-    alignSelf: 'center',
-    backgroundColor: BRAND_PRIMARY + '15',
-    borderRadius: 999,
-    paddingVertical: 6,
-    paddingHorizontal: 14,
-    marginBottom: 18,
-  },
-  welcomePillText: {
-    fontSize: 11,
-    fontWeight: '700',
-    letterSpacing: 1,
-    color: BRAND_PRIMARY,
-  },
-  coachByline: {
-    fontSize: 15,
-    color: TEXT_SECONDARY,
-    textAlign: 'center',
-    marginBottom: 8,
-  },
-  headline: {
-    fontSize: 26,
-    fontWeight: '700',
-    fontStyle: 'italic',
-    color: TEXT_PRIMARY,
-    textAlign: 'center',
-    marginBottom: 12,
-    lineHeight: 32,
-  },
-  subhead: {
-    fontSize: 15,
-    color: TEXT_SECONDARY,
-    textAlign: 'center',
-    lineHeight: 22,
-    marginBottom: 24,
-  },
-  statsCard: {
-    flexDirection: 'row',
-    backgroundColor: CARD_BG,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: BORDER,
-    paddingVertical: 16,
-    marginBottom: 16,
-  },
-  statCol: {
+  loading: {
     flex: 1,
     alignItems: 'center',
-  },
-  statDivider: {
-    width: 1,
-    backgroundColor: BORDER,
-  },
-  statValue: {
-    fontSize: 26,
-    fontWeight: '700',
-    color: TEXT_PRIMARY,
-  },
-  statLabel: {
-    fontSize: 11,
-    fontWeight: '600',
-    letterSpacing: 1,
-    color: TEXT_SECONDARY,
-    marginTop: 2,
-  },
-  chipRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
     justifyContent: 'center',
-    marginBottom: 28,
   },
-  chip: {
-    backgroundColor: CARD_BG,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: BORDER,
-    paddingVertical: 6,
-    paddingHorizontal: 12,
+  disabled: {
+    flex: 1,
+    padding: 24,
+    gap: 8,
   },
-  chipText: {
-    fontSize: 13,
-    color: TEXT_PRIMARY,
+  disabledTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#111827',
   },
-  alreadyUsedNote: {
-    backgroundColor: '#FFF7E5',
-    borderRadius: 12,
-    padding: 14,
-    marginBottom: 16,
-  },
-  alreadyUsedTitle: {
+  disabledBody: {
     fontSize: 14,
-    fontWeight: '600',
-    color: TEXT_PRIMARY,
-    marginBottom: 4,
+    color: '#6B7280',
   },
-  alreadyUsedBody: {
-    fontSize: 13,
-    color: TEXT_SECONDARY,
-  },
-  primaryCta: {
-    backgroundColor: BRAND_PRIMARY,
-    borderRadius: 14,
-    paddingVertical: 16,
+  invalid: {
+    flex: 1,
+    padding: 24,
     alignItems: 'center',
-    marginBottom: 10,
-  },
-  primaryCtaText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-  fineprint: {
-    fontSize: 12,
-    color: TEXT_SECONDARY,
-    textAlign: 'center',
-    marginBottom: 24,
-  },
-  tokenLabel: {
-    fontSize: 11,
-    color: TEXT_SECONDARY,
-    opacity: 0.5,
-    textAlign: 'center',
+    justifyContent: 'center',
+    gap: 10,
   },
   invalidTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: TEXT_PRIMARY,
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#111827',
     textAlign: 'center',
   },
   invalidBody: {
     fontSize: 14,
-    color: TEXT_SECONDARY,
+    color: '#6B7280',
     textAlign: 'center',
-    marginBottom: 8,
   },
-  secondaryCta: {
-    borderWidth: 1,
-    borderColor: BRAND_PRIMARY,
-    borderRadius: 14,
+  invalidCta: {
+    marginTop: 12,
+    backgroundColor: '#2563EB',
+    paddingHorizontal: 16,
     paddingVertical: 12,
-    paddingHorizontal: 20,
+    borderRadius: 12,
   },
-  secondaryCtaText: {
-    color: BRAND_PRIMARY,
-    fontSize: 15,
-    fontWeight: '600',
+  invalidCtaText: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+  },
+  errorBlock: {
+    position: 'absolute',
+    bottom: 16,
+    left: 16,
+    right: 16,
+    backgroundColor: '#FEF2F2',
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: '#FECACA',
+  },
+  errorText: {
+    fontSize: 13,
+    color: '#B91C1C',
+  },
+  busyOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(17,24,39,0.35)',
   },
 });

@@ -1,14 +1,21 @@
 /**
  * ReviewTab — Reflection phase wrapping StepCritiqueContent.
+ *
+ * Behind the PRACTICE_STEP_LOOP_IOS_REGISTER flag the body swaps to the
+ * canonical ReflectTabIOSRegisterShell. Flag-off rendering is preserved
+ * byte-identical (InstructorFeedbackCard + StepFocusConcepts +
+ * StepCritiqueContent + footer).
  */
 
 import React from 'react';
 import { ScrollView, StyleSheet, View, Text } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
+import { IOS_SPACING } from '@/lib/design-tokens-ios';
 import { useStepDetail } from '@/hooks/useTimelineSteps';
+import { FEATURE_FLAGS } from '@/lib/featureFlags';
 import { StepCritiqueContent } from './StepCritiqueContent';
 import { StepFocusConcepts } from './StepFocusConcepts';
+import { ReflectTabIOSRegisterShell } from './reflect-tab';
 
 interface ReviewTabProps {
   stepId: string;
@@ -17,6 +24,16 @@ interface ReviewTabProps {
 }
 
 export function ReviewTab({ stepId, readOnly, footer }: ReviewTabProps) {
+  if (FEATURE_FLAGS.PRACTICE_STEP_LOOP_IOS_REGISTER) {
+    return (
+      <ReflectTabIOSRegisterShell
+        stepId={stepId}
+        readOnly={readOnly}
+        footer={footer}
+      />
+    );
+  }
+
   return (
     <ScrollView
       style={styles.container}

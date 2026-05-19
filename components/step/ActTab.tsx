@@ -35,6 +35,9 @@ export function ActTab({ stepId, dateEnrichment, onNextTab, readOnly, footer, in
       <DoTabIOSRegisterShell
         stepId={stepId}
         readOnly={readOnly}
+        interestId={interestId}
+        interestName={interestName}
+        interestSlug={interestSlug}
         onMoveToReflect={onNextTab}
         footer={footer}
       />

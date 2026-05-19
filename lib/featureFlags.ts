@@ -403,6 +403,76 @@ export const FEATURE_FLAGS = {
    * docs/redesign/ios-register/phase-0-shared-chrome.md.
    */
   PRACTICE_STEP_LOOP_IOS_REGISTER: readBooleanEnv('EXPO_PUBLIC_FF_PRACTICE_STEP_LOOP_IOS_REGISTER', false),
+
+  /**
+   * Phase 10 — HKDW (Hong Kong Dragon Worlds) → BetterAt onboarding flow.
+   *
+   * When on:
+   *   - /r/[token] redeem route resolves valid tokens to a session-level
+   *     account + blueprint subscription + first-step landing.
+   *   - Smart App Banner renders on web pages.
+   *   - InstallSheet rises on the Do tab in web.
+   *   - betterat://r/[token] deep link is wired.
+   *
+   * Off by default in production until the partnership ships. Per
+   * docs/redesign/ios-register/phase-10-hkdw-onboarding.md.
+   */
+  // Default ON in dev (__DEV__ === true) so the canonical /r/[token] flow,
+  // SmartAppBanner, InstallSheet, WelcomeToast, and the /practice/step sample
+  // mock-fast-path light up without anyone setting an env var. Production
+  // builds (__DEV__ === false) keep it gated behind the env var until the
+  // partnership ships.
+  HKDW_REDEEM_FLOW: readBooleanEnv('EXPO_PUBLIC_FF_HKDW_REDEEM_FLOW', __DEV__),
+
+  /**
+   * Phase 10 PR-1 — Blueprint Index & Worlds Fleet on real data.
+   *
+   * When on:
+   *   - Playbook tab's blueprint detail screen gains a "View all 12 steps"
+   *     button that pushes the canonical BlueprintIndexScreen.
+   *   - The WITH-row "Worlds Fleet · N sailors" chip on a step card pushes
+   *     the canonical FleetPlansScreen (live peer data, not mock).
+   *   - BlueprintFleetService.getBlueprintPeers backs both screens for any
+   *     blueprint, not just the HKDW sample.
+   *
+   * Off by default in production until QA signs off. Per the dragon-worlds
+   * canonical §B-A (Blueprint Index) and §B-B (Fleet Plans).
+   */
+  BLUEPRINT_INDEX_FLEET_V2: readBooleanEnv(
+    'EXPO_PUBLIC_FF_BLUEPRINT_INDEX_FLEET_V2',
+    false,
+  ),
+
+  /**
+   * Phase 10 PR-3 — Step chrome for subscribed-blueprint steps.
+   *
+   * When on, steps with source_blueprint_id render canonical chrome
+   * above the Plan/Do/Reflect tabs:
+   *   - Trophy strip ("HKDW Prep · Step N of M") → Blueprint Index
+   *   - Title block ("From <Author's Blueprint Title>")
+   *   - WITH-row chip ("Fleet · N sailors") → Worlds Fleet view
+   *   - SinceLastVisitStrip on the Plan tab (when there's news)
+   *
+   * Off by default in production. Per dragon-worlds canonical §A-phase-5.
+   */
+  SUBSCRIBED_STEP_CHROME_V1: readBooleanEnv(
+    'EXPO_PUBLIC_FF_SUBSCRIBED_STEP_CHROME_V1',
+    false,
+  ),
+
+  /**
+   * Phase 10 PR-2 — Step Discussion peek + entry.
+   *
+   * When on, steps with new discussion activity render a "💬 Discussion · N
+   * notes" peek strip beneath the step chrome on Plan/Do/Reflect. Tap opens
+   * the existing fullscreen Discussion at /practice/step/[id]/discussion.
+   *
+   * Off by default in production. Per dragon-worlds canonical Surface C.
+   */
+  STEP_DISCUSSION_V1: readBooleanEnv(
+    'EXPO_PUBLIC_FF_STEP_DISCUSSION_V1',
+    false,
+  ),
 } as const;
 
 // =============================================================================

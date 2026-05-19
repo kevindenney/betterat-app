@@ -16,7 +16,7 @@
  */
 
 import React, { useEffect } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, {
   Easing,
   useAnimatedStyle,
@@ -25,7 +25,7 @@ import Animated, {
   withTiming,
   cancelAnimation,
 } from 'react-native-reanimated';
-import { Check, Sparkles } from 'lucide-react-native';
+import { Check, Clock3, Sparkles } from 'lucide-react-native';
 import {
   GRAY_5,
   GRAY_6,
@@ -61,8 +61,12 @@ export type StatePillVariant =
   | 'between';
 
 export interface StatePillStat {
-  num: string;
-  label: string;
+  num?: string;
+  label?: string;
+  icon?: 'clock';
+  onPress?: () => void;
+  accessibilityLabel?: string;
+  active?: boolean;
 }
 
 export interface StatePillProps {
@@ -164,13 +168,46 @@ export function StatePill({ variant, label, stats, testID }: StatePillProps) {
         {stats.map((stat, index) => (
           <React.Fragment key={`${stat.label}-${index}`}>
             {index > 0 && <View style={styles.statsSeparator} />}
-            <View style={styles.stat}>
-              <Text style={styles.statNum}>{stat.num}</Text>
-              <Text style={styles.statLabel}>{stat.label}</Text>
-            </View>
+            <StatePillStatView stat={stat} />
           </React.Fragment>
         ))}
       </View>
+    </View>
+  );
+}
+
+function StatePillStatView({ stat }: { stat: StatePillStat }) {
+  const content = stat.icon === 'clock' ? (
+    <Clock3 size={16} color={stat.active ? LABEL : LABEL_3} strokeWidth={2.1} />
+  ) : (
+    <>
+      <Text style={styles.statNum}>{stat.num}</Text>
+      {stat.label ? <Text style={styles.statLabel}>{stat.label}</Text> : null}
+    </>
+  );
+
+  if (stat.onPress) {
+    return (
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={stat.accessibilityLabel ?? stat.label}
+        onPress={stat.onPress}
+        hitSlop={8}
+        style={({ pressed }) => [
+          styles.stat,
+          stat.icon && styles.iconStat,
+          stat.active && styles.iconStatActive,
+          pressed && styles.statPressed,
+        ]}
+      >
+        {content}
+      </Pressable>
+    );
+  }
+
+  return (
+    <View style={[styles.stat, stat.icon && styles.iconStat]}>
+      {content}
     </View>
   );
 }
@@ -226,6 +263,19 @@ const styles = StyleSheet.create({
   stat: {
     alignItems: 'flex-end',
     justifyContent: 'center',
+  },
+  iconStat: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  iconStatActive: {
+    backgroundColor: GRAY_6,
+  },
+  statPressed: {
+    opacity: 0.65,
   },
   statNum: {
     fontSize: 17,

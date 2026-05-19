@@ -63,8 +63,8 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   tab: {
-    paddingTop: 10,
-    paddingBottom: 12,
+    paddingTop: 8,
+    paddingBottom: 10,
     paddingHorizontal: 14,
     position: 'relative',
     ...Platform.select({
@@ -84,14 +84,13 @@ const styles = StyleSheet.create({
     backgroundColor: IOS_COLORS.systemGreen,
   },
   label: {
-    fontSize: 13.5,
+    fontSize: 13,
     fontWeight: '500',
     letterSpacing: -0.1,
     color: IOS_REGISTER.labelTertiary,
   },
   labelActive: {
     color: IOS_REGISTER.accentUserAction,
-    fontWeight: '600',
   },
   labelDone: {
     color: IOS_REGISTER.labelSecondary,
@@ -101,8 +100,8 @@ const styles = StyleSheet.create({
     left: 12,
     right: 12,
     bottom: -HAIRLINE,
-    height: 2,
-    borderRadius: 2,
+    height: 1.5,
+    borderRadius: 1.5,
     backgroundColor: IOS_REGISTER.accentUserAction,
   },
 });

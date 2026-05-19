@@ -9,9 +9,10 @@
  *   1. State header band   — `pill` (StatePill) + optional ⋮ menu
  *   2. Step strip          — optional, sub-context band
  *   3. Title block         — optional, surface-specific content
- *   4. Phase tabs          — optional, PhaseTabs row
- *   5. Body                — `children`, scrollable inside the card
- *   6. Footer              — optional, anchored to bottom of card
+ *   4. Below-title band    — optional, quiet sub-band beneath title (e.g. WITH row)
+ *   5. Phase tabs          — optional, PhaseTabs row
+ *   6. Body                — `children`, scrollable inside the card
+ *   7. Footer              — optional, anchored to bottom of card
  *
  * Sizing is a relative flex layout (flex: 1) rather than absolute
  * positioning so the card adapts to whatever container hosts it (screen
@@ -37,6 +38,11 @@ export interface StepCardProps {
   stepStrip?: React.ReactElement<StepStripProps>;
   /** Optional surface-specific title content (read-only or editable). */
   titleBlock?: React.ReactNode;
+  /**
+   * Optional band between the title block and the phase tabs. Phase 1 uses
+   * this to host <WithRow> (D12b). The slot renders nothing when omitted.
+   */
+  belowTitle?: React.ReactNode;
   /** Optional phase tab row sitting above the body. */
   phaseTabs?: React.ReactElement<PhaseTabsProps>;
   /** Body content. Caller decides whether to wrap in a ScrollView. */
@@ -53,6 +59,7 @@ export function StepCard({
   onMenuPress,
   stepStrip,
   titleBlock,
+  belowTitle,
   phaseTabs,
   children,
   footer,
@@ -78,6 +85,7 @@ export function StepCard({
 
       {stepStrip}
       {titleBlock ? <View style={styles.titleBlock}>{titleBlock}</View> : null}
+      {belowTitle}
       {phaseTabs}
 
       <View style={styles.body}>{children}</View>

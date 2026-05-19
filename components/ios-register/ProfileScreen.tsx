@@ -43,6 +43,8 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { IOS_REGISTER } from '@/lib/design-tokens-ios';
+import { BecomingHero, type BecomingHeroProps, CapabilityRow } from '@/components/profile';
+import type { CapabilityMapEntry } from '@/services/CapabilityAggregationService';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -100,6 +102,12 @@ export interface ProfileHero {
 
 interface Props {
   hero: ProfileHero;
+  becoming?: BecomingHeroProps;
+  capabilityMap?: CapabilityMapEntry[];
+  capabilityEmptyState?: {
+    title: string;
+    body: string;
+  };
   interests: ProfileInterest[];
   identity: ProfileIdentityFields;
   preferences: ProfilePreferencesFields;
@@ -141,6 +149,9 @@ interface Props {
 
 export function ProfileScreen({
   hero,
+  becoming,
+  capabilityMap = [],
+  capabilityEmptyState,
   interests,
   identity,
   preferences,
@@ -169,6 +180,8 @@ export function ProfileScreen({
   topInset = 0,
   onScroll,
 }: Props) {
+  const [expandedCapabilityId, setExpandedCapabilityId] = React.useState<string | null>(null);
+
   return (
     <ScrollView
       style={styles.screen}
@@ -208,6 +221,16 @@ export function ProfileScreen({
           </View>
         )}
       </View>
+
+      <CapabilitySection
+        becoming={becoming}
+        capabilityMap={capabilityMap}
+        capabilityEmptyState={capabilityEmptyState}
+        expandedCapabilityId={expandedCapabilityId}
+        onToggleCapability={(id) =>
+          setExpandedCapabilityId((current) => (current === id ? null : id))
+        }
+      />
 
       {/* Interests — chips, single white card */}
       <SectionHead label="Interests" />
@@ -446,6 +469,58 @@ export function ProfileScreen({
         This cannot be undone.
       </SectionFoot>
     </ScrollView>
+  );
+}
+
+function CapabilitySection({
+  becoming,
+  capabilityMap,
+  capabilityEmptyState,
+  expandedCapabilityId,
+  onToggleCapability,
+}: {
+  becoming?: BecomingHeroProps;
+  capabilityMap: CapabilityMapEntry[];
+  capabilityEmptyState?: {
+    title: string;
+    body: string;
+  };
+  expandedCapabilityId: string | null;
+  onToggleCapability: (id: string) => void;
+}) {
+  return (
+    <>
+      {becoming ? <BecomingHero {...becoming} /> : null}
+
+      <SectionHead label="Capability map" />
+      <View style={styles.group}>
+        {capabilityMap.length > 0 ? (
+          capabilityMap.map((entry, index) => (
+            <React.Fragment key={entry.id}>
+              <CapabilityRow
+                entry={entry}
+                expanded={expandedCapabilityId === entry.id}
+                onPress={() => onToggleCapability(entry.id)}
+              />
+              {index < capabilityMap.length - 1 ? <Hairline /> : null}
+            </React.Fragment>
+          ))
+        ) : (
+          <View style={styles.emptyCapabilityState}>
+            <Text style={styles.emptyCapabilityTitle}>
+              {capabilityEmptyState?.title ?? 'No confirmed capability evidence yet'}
+            </Text>
+            <Text style={styles.emptyCapabilityBody}>
+              {capabilityEmptyState?.body ??
+                'Settle a Reflect step and the capability spine will start surfacing here.'}
+            </Text>
+          </View>
+        )}
+      </View>
+      <SectionFoot>
+        Tap a capability to open its latest evidence trail. Fresh evidence earns a green chip for 24 hours.
+      </SectionFoot>
+    </>
   );
 }
 
@@ -793,6 +868,22 @@ const styles = StyleSheet.create({
     color: IOS_REGISTER.labelSecondary,
     lineHeight: 16,
     letterSpacing: -0.05,
+  },
+  emptyCapabilityState: {
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    gap: 6,
+  },
+  emptyCapabilityTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: IOS_REGISTER.label,
+    letterSpacing: -0.2,
+  },
+  emptyCapabilityBody: {
+    fontSize: 13,
+    lineHeight: 19,
+    color: IOS_REGISTER.labelSecondary,
   },
   // ----- grouped list -----
   group: {

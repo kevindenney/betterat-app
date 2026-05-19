@@ -21,6 +21,7 @@ import type { CompetencyWithProgress } from '@/types/competency';
 
 const STALE_DAYS = 14;
 const RECENT_STEP_DAYS = 30;
+const EMPTY_COMPETENCY_ID_SET = new Set<string>();
 
 export type CompetencyReflectView = 'working_on' | 'all' | 'needs_attention';
 
@@ -55,12 +56,11 @@ function useRecentStepCompetencyIds() {
       cutoff.setDate(cutoff.getDate() - RECENT_STEP_DAYS);
 
       const { data, error } = await supabase
-        .from('betterat_timeline_steps')
-        .select('plan')
+        .from('timeline_steps')
+        .select('metadata')
         .eq('user_id', userId!)
         .eq('interest_id', interestId!)
-        .gte('created_at', cutoff.toISOString())
-        .not('plan', 'is', null);
+        .gte('created_at', cutoff.toISOString());
 
       if (error) {
         console.warn('[useCompetencyReflectData] Failed to fetch recent steps:', error.message);
@@ -69,7 +69,14 @@ function useRecentStepCompetencyIds() {
 
       const ids = new Set<string>();
       for (const row of data ?? []) {
-        const plan = row.plan as Record<string, unknown> | null;
+        const metadata =
+          row && typeof row === 'object' && 'metadata' in row
+            ? (row.metadata as Record<string, unknown> | null)
+            : null;
+        const plan =
+          metadata && typeof metadata.plan === 'object'
+            ? (metadata.plan as Record<string, unknown>)
+            : null;
         const compIds = plan?.competency_ids;
         if (Array.isArray(compIds)) {
           for (const id of compIds) {
@@ -95,7 +102,10 @@ const ACTIVE_STATUSES = new Set(['learning', 'practicing', 'checkoff_ready']);
 export function useCompetencyReflectData(): UseCompetencyReflectDataResult {
   const base = useAllInterestCompetencies();
   const { data: recentIds, isLoading: stepsLoading } = useRecentStepCompetencyIds();
-  const recentStepCompetencyIds = recentIds ?? new Set<string>();
+  const recentStepCompetencyIds = useMemo(
+    () => recentIds ?? EMPTY_COMPETENCY_ID_SET,
+    [recentIds],
+  );
 
   // Flatten all competencies from all interests
   const allCompetencies = useMemo(() => {

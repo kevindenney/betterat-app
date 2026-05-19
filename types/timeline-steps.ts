@@ -1,11 +1,18 @@
 // Re-export step metadata types for convenience
 export type { StepMetadata, StepPlanData, StepActData, StepReviewData } from './step-detail';
 
-export type TimelineStepSourceType = 'manual' | 'template' | 'copied' | 'program_session' | 'blueprint';
-export type TimelineStepStatus = 'pending' | 'in_progress' | 'completed' | 'skipped';
-export type TimelineStepVisibility = 'private' | 'followers' | 'coaches' | 'organization';
+export type TimelineStepSourceType =
+  | 'manual'
+  | 'template'
+  | 'copied'
+  | 'program_session'
+  | 'blueprint'
+  | 'user_fork'
+  | 'suggestion';
+export type TimelineStepStatus = 'pending' | 'in_progress' | 'completed' | 'settled' | 'skipped';
+export type TimelineStepVisibility = 'private' | 'crew' | 'fleet' | 'public';
 
-export type MapFeedScope = 'mine' | 'following' | 'coaches' | 'organization' | 'all';
+export type MapFeedScope = 'mine' | 'following' | 'crew' | 'fleet' | 'all';
 export type MapFeedTimeWindow = 'now' | 'today' | 'week' | 'upcoming';
 
 export type TimelineStepRecord = {

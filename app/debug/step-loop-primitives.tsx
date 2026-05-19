@@ -25,6 +25,26 @@ import {
   type StatePillVariant,
 } from '@/components/step-loop';
 import {
+  AIHelperLine,
+  BottomCTA,
+  CapabilityChipSet,
+  FieldCard,
+  SuggestionsRow,
+  WithRow,
+  type SuggestionRowItem,
+} from '@/components/step/plan-tab';
+import {
+  DoLiveCard,
+  DoPostActivityCard,
+  type DoCaptureItem,
+} from '@/components/step/do-tab';
+import {
+  MenuRow,
+  QuickCaptureComposer,
+  UniversalPlusSheet,
+} from '@/components/capture';
+import { BecomingHero } from '@/components/profile';
+import {
   GRAY_5,
   GRAY_6,
   IOS_BLUE,
@@ -38,12 +58,92 @@ const STATE_PILL_VARIANTS: { variant: StatePillVariant; label: string }[] = [
   { variant: 'current', label: 'Current' },
   { variant: 'live', label: 'Live · capturing' },
   { variant: 'complete', label: 'Complete' },
-  { variant: 'reflect', label: 'Reflect · Season in view' },
+  { variant: 'reflect', label: 'Reflect · ready' },
+  { variant: 'reflect', label: 'Reflect · settling' },
   { variant: 'settled', label: 'Settled' },
   { variant: 'between', label: 'Between · hinge' },
 ];
 
 const PHASE_STATES: PhaseState[] = ['pending', 'ready', 'live'];
+
+const DEBUG_DO_CAPTURES: DoCaptureItem[] = [
+  {
+    id: 'debug-voice',
+    kind: 'voice',
+    capturedAt: '2026-05-16T14:23:00Z',
+    body: '"Left filled in at eight degrees. Not committing yet."',
+    capabilityIds: [],
+    capabilityLabels: [],
+    flaggedForDebrief: false,
+    source: 'act_observation',
+    chipLabel: 'Weather',
+    chipLive: true,
+    beatLabel: 'beat 2',
+    metaSubtitle: 'Auto-transcribed',
+    voiceDurationSec: 7,
+  },
+  {
+    id: 'debug-note',
+    kind: 'note',
+    capturedAt: '2026-05-16T14:20:00Z',
+    body: 'Sam said hold our lane. Trust him.',
+    capabilityIds: [],
+    capabilityLabels: [],
+    flaggedForDebrief: false,
+    source: 'act_observation',
+    beatLabel: 'beat 2',
+  },
+  {
+    id: 'debug-photo',
+    kind: 'photo',
+    capturedAt: '2026-05-16T14:15:00Z',
+    body: 'Jib telltale streaming.',
+    capabilityIds: [],
+    capabilityLabels: [],
+    flaggedForDebrief: false,
+    source: 'media_upload',
+    chipLabel: 'Boat tune',
+    beatLabel: 'beat 2',
+  },
+];
+
+const DEBUG_BECOMING_POINTS = [
+  {
+    capturedAt: '2024-03-10T00:00:00Z',
+    capabilityId: 'starts',
+    capabilityName: 'Starts',
+    strength: 'material' as const,
+    levelAtTime: 1 as const,
+  },
+  {
+    capturedAt: '2024-09-02T00:00:00Z',
+    capabilityId: 'wind-reading',
+    capabilityName: 'Wind reading',
+    strength: 'strong' as const,
+    levelAtTime: 2 as const,
+  },
+  {
+    capturedAt: '2025-04-11T00:00:00Z',
+    capabilityId: 'mark-roundings',
+    capabilityName: 'Mark roundings',
+    strength: 'material' as const,
+    levelAtTime: 2 as const,
+  },
+  {
+    capturedAt: '2025-11-06T00:00:00Z',
+    capabilityId: 'rules',
+    capabilityName: 'Rules',
+    strength: 'strong' as const,
+    levelAtTime: 3 as const,
+  },
+  {
+    capturedAt: '2026-05-15T00:00:00Z',
+    capabilityId: 'tactical-decisions',
+    capabilityName: 'Tactical decisions',
+    strength: 'strong' as const,
+    levelAtTime: 4 as const,
+  },
+];
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -82,6 +182,7 @@ function PhaseTabsRow({
 }
 
 export default function StepLoopPrimitivesDebug() {
+  const [plusSheetVisible, setPlusSheetVisible] = useState(false);
   return (
     <>
       <Stack.Screen
@@ -197,6 +298,10 @@ export default function StepLoopPrimitivesDebug() {
 
         {/* PhaseTabs */}
         <Section title="<PhaseTabs>">
+          <Caption>
+            Phase-1 refinements (D27): 13/500 labels · 1.5px underline · 6px filled-dot pips
+            (no check-circle ring on ready)
+          </Caption>
           <Caption>plan=ready · do=pending · reflect=pending · active=plan</Caption>
           <View style={styles.tabsHost}>
             <PhaseTabsRow plan="ready" do="pending" reflect="pending" active="plan" />
@@ -279,6 +384,60 @@ export default function StepLoopPrimitivesDebug() {
           </View>
         </Section>
 
+        <Section title="Do · live capturing">
+          <Caption>
+            Phase 3 target: sailing shows elapsed by default; nursing starts count-only.
+          </Caption>
+          <View style={styles.doDebugHost}>
+            <DoLiveCard
+              stepId="debug-do-live-sailing"
+              captures={DEBUG_DO_CAPTURES}
+              stepTitle="Light-air starts in shifty breeze"
+              contextSegments={['Race 4', 'beat 2']}
+              elapsedMs={14 * 60 * 1000 + 52 * 1000}
+              nowMs={Date.parse('2026-05-16T14:23:12Z')}
+              interestSlug="sail-racing"
+              onAddQuickNote={() => undefined}
+              onAddPhoto={() => undefined}
+              onAddVoiceNote={() => undefined}
+              onStopCapturing={() => undefined}
+              onTagCapture={() => undefined}
+            />
+          </View>
+          <View style={styles.doDebugHost}>
+            <DoLiveCard
+              stepId="debug-do-live-nursing"
+              captures={DEBUG_DO_CAPTURES.slice(0, 2)}
+              stepTitle="Neuro check handoff"
+              contextSegments={['Ward B', 'shift note']}
+              elapsedMs={9 * 60 * 1000 + 12 * 1000}
+              nowMs={Date.parse('2026-05-16T14:23:12Z')}
+              interestSlug="nursing"
+              onAddQuickNote={() => undefined}
+              onAddPhoto={() => undefined}
+              onAddVoiceNote={() => undefined}
+              onStopCapturing={() => undefined}
+              onTagCapture={() => undefined}
+            />
+          </View>
+        </Section>
+
+        <Section title="Do · activity complete">
+          <View style={styles.doDebugHost}>
+            <DoPostActivityCard
+              captures={DEBUG_DO_CAPTURES}
+              stepTitle="Light-air starts in shifty breeze"
+              contextSegments={['Race 4', 'finished']}
+              elapsedMs={17 * 60 * 1000 + 2 * 1000}
+              nowMs={Date.parse('2026-05-16T14:26:00Z')}
+              summaryText="3 captures logged. Review them below or refine before moving to Reflect."
+              summaryStepChipLabel="Light-air starts"
+              onMoveToReflect={() => undefined}
+              onMarkAsEvidence={() => undefined}
+            />
+          </View>
+        </Section>
+
         <Section title="<StepCard> · reflect · season in view">
           <View style={styles.cardHost}>
             <StepCard
@@ -331,8 +490,284 @@ export default function StepLoopPrimitivesDebug() {
           </View>
         </Section>
 
+        {/* Phase 1 · Plan tab — empty state */}
+        <Section title="Plan tab · empty · AI Coach quiet">
+          <Caption>
+            Three field-cards as primary content · italic helper line at top · disabled CTA ·
+            D25 retires per-field ✦ buttons (AI lives in the helper line only)
+          </Caption>
+          <View style={styles.cardHost}>
+            <StepCard
+              pill={<StatePill variant="planned" label="Planned" />}
+              onMenuPress={() => undefined}
+              stepStrip={
+                <StepStrip
+                  icon="flag-3"
+                  primary="Winter 2025-2026"
+                  secondary="Spring Series · Race 4 in two days"
+                />
+              }
+              titleBlock={
+                <View>
+                  <Text style={styles.titleBlockHeadline}>Untitled</Text>
+                  <Text style={styles.titleBlockMeta}>Tap to name this step</Text>
+                </View>
+              }
+              phaseTabs={
+                <PhaseTabsRow plan="pending" do="pending" reflect="pending" active="plan" />
+              }
+              footer={
+                <BottomCTA
+                  label="Next: Start Doing"
+                  hint="Add a what to enable"
+                  disabled
+                  onPress={() => undefined}
+                />
+              }
+            >
+              <View style={styles.planBodyPad}>
+                <AIHelperLine state="empty" onOpenCoach={() => undefined} />
+                <FieldCard
+                  eyebrow="What will you do?"
+                  icon="bulb"
+                  placeholder="Race 4, holding right-side discipline in shifty light air…"
+                  value=""
+                  onChangeText={() => undefined}
+                />
+                <FieldCard
+                  eyebrow="How will you do it?"
+                  icon="list"
+                  placeholder="List 2–4 sub-steps…"
+                  value=""
+                  onChangeText={() => undefined}
+                />
+                <FieldCard
+                  eyebrow="Why is this next?"
+                  icon="help"
+                  placeholder="What makes this the right next step?"
+                  value=""
+                  onChangeText={() => undefined}
+                />
+              </View>
+            </StepCard>
+          </View>
+        </Section>
+
+        {/* Phase 1 · Plan tab — partial state */}
+        <Section title="Plan tab · partial · WHAT filled, HOW/WHY empty">
+          <Caption>
+            WITH row populated · capability chips · suggestions row · CTA enabled
+          </Caption>
+          <View style={styles.cardHost}>
+            <StepCard
+              pill={<StatePill variant="current" label="Current step" />}
+              onMenuPress={() => undefined}
+              stepStrip={
+                <StepStrip
+                  icon="trophy"
+                  primary="Winter 2025-2026"
+                  secondary="Race 4 · in two days"
+                />
+              }
+              titleBlock={
+                <View>
+                  <Text style={styles.titleBlockHeadline}>Light-air starts in shifty breeze</Text>
+                  <Text style={styles.titleBlockMeta}>Saturday · RHKYC · light-air rule-watching</Text>
+                </View>
+              }
+              belowTitle={
+                <WithRow
+                  crew={[
+                    { id: 'he', initials: 'HE' },
+                    { id: 'el', initials: 'EL' },
+                  ]}
+                  fleetLabel="Fleet · 14 boats"
+                />
+              }
+              phaseTabs={
+                <PhaseTabsRow plan="pending" do="pending" reflect="pending" active="plan" />
+              }
+              footer={
+                <BottomCTA
+                  label="Next: Start Doing"
+                  hint="Plan looks ready"
+                  onPress={() => undefined}
+                />
+              }
+            >
+              <View style={styles.planBodyPad}>
+                <AIHelperLine state="partial" onOpenCoach={() => undefined} />
+                <FieldCard
+                  eyebrow="What will you do?"
+                  icon="bulb"
+                  placeholder=""
+                  value="Hold a clean lane off the favored end. Re-check rig if puffs over 14 kn."
+                  onChangeText={() => undefined}
+                />
+                <FieldCard
+                  eyebrow="How will you do it?"
+                  icon="list"
+                  placeholder="List 2–4 sub-steps…"
+                  value=""
+                  onChangeText={() => undefined}
+                />
+                <FieldCard
+                  eyebrow="Why is this next?"
+                  icon="help"
+                  placeholder="What makes this the right next step?"
+                  value=""
+                  onChangeText={() => undefined}
+                />
+                <CapabilityChipSet
+                  selected={[
+                    { id: 'tactical-decisions', label: 'tactical-decisions' },
+                    { id: 'wind-reading', label: 'wind-reading' },
+                    { id: 'crew-comms', label: 'crew-comms' },
+                  ]}
+                  onRemove={() => undefined}
+                  onAddPress={() => undefined}
+                  autoTagSource="Sam Cooke's heavy-air blueprint"
+                />
+                <SuggestionsRow
+                  items={
+                    [
+                      {
+                        id: 's-bp',
+                        kind: 'blueprint',
+                        title: 'Heavy-air step 4 · Pre-start rules',
+                        subtitle: 'Sam Cooke · blueprint you follow',
+                        onPress: () => undefined,
+                      },
+                      {
+                        id: 's-fol',
+                        kind: 'follow',
+                        title: '"Reading the second-beat shift"',
+                        subtitle: 'Phyl Loong · raced last weekend · you follow',
+                        onPress: () => undefined,
+                      },
+                      {
+                        id: 's-men',
+                        kind: 'mentor',
+                        title: 'Based on Race 3, you might revisit…',
+                        subtitle: 'AI Coach · mentor',
+                        onPress: () => undefined,
+                      },
+                    ] as SuggestionRowItem[]
+                  }
+                  onSeeAll={() => undefined}
+                />
+              </View>
+            </StepCard>
+          </View>
+        </Section>
+
+        {/* Phase 2 · Universal + sheet */}
+        <Section title="Universal + sheet (Phase 2)">
+          <Caption>
+            Tap to open the full sheet. Composer at top · 4 secondary rows ·
+            press-and-hold the coral mic to record (audio captured locally; no
+            transcription wired yet).
+          </Caption>
+          <View style={styles.tabsHost}>
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => setPlusSheetVisible(true)}
+              style={styles.openSheetButton}
+            >
+              <Text style={styles.openSheetText}>Open universal + sheet</Text>
+            </Pressable>
+          </View>
+
+          <Caption>Composer in isolation (no sheet chrome)</Caption>
+          <View style={styles.composerHost}>
+            <QuickCaptureComposer onSubmit={() => undefined} />
+          </View>
+
+          <Caption>MenuRow · four tint variants</Caption>
+          <View style={styles.menuRowHost}>
+            <MenuRow
+              icon="template"
+              tint="blue"
+              title="Blueprint you follow"
+              subtitle="Adopt a step from a coach or program"
+              onPress={() => undefined}
+            />
+            <MenuRow
+              icon="users"
+              tint="gray"
+              title="Someone you follow"
+              subtitle="Borrow a recent step from a peer"
+              onPress={() => undefined}
+            />
+            <MenuRow
+              icon="bulb"
+              tint="purple"
+              title="A concept to come back to"
+              subtitle="Saved to your Playbook"
+              onPress={() => undefined}
+            />
+            <MenuRow
+              icon="share-3"
+              tint="green"
+              title="An idea, publicly or with crew"
+              subtitle="Opens the share composer"
+              onPress={() => undefined}
+            />
+          </View>
+        </Section>
+
+        <Section title="Becoming hero (Phase 5)">
+          <Caption>
+            Debug demo state: Becoming hero · 47 evidence · 1 settled.
+          </Caption>
+          <BecomingHero
+            interestName="Sail Racing"
+            startedAt="2023-05-01T00:00:00Z"
+            evidencePoints={DEBUG_BECOMING_POINTS}
+            settledRanges={[
+              {
+                startAt: '2025-09-01T00:00:00Z',
+                endAt: '2025-11-20T00:00:00Z',
+                pathName: 'autumn-series',
+              },
+            ]}
+            nowAt="2026-05-17T00:00:00Z"
+            bezierPath="M 4 100 Q 44 82 82 71 T 160 62 T 238 46 T 316 28"
+            settledWashPath="M 4 100 Q 44 82 82 71 T 160 62 T 238 46 T 316 28 L 316 100 L 4 100 Z"
+            plotPoints={[
+              { x: 40, y: 82, strength: 'material', capturedAt: '2024-03-10T00:00:00Z', capabilityId: 'starts', capabilityName: 'Starts' },
+              { x: 96, y: 68, strength: 'strong', capturedAt: '2024-09-02T00:00:00Z', capabilityId: 'wind-reading', capabilityName: 'Wind reading' },
+              { x: 156, y: 62, strength: 'material', capturedAt: '2025-04-11T00:00:00Z', capabilityId: 'mark-roundings', capabilityName: 'Mark roundings' },
+              { x: 232, y: 46, strength: 'strong', capturedAt: '2025-11-06T00:00:00Z', capabilityId: 'rules', capabilityName: 'Rules' },
+              { x: 292, y: 28, strength: 'strong', capturedAt: '2026-05-15T00:00:00Z', capabilityId: 'tactical-decisions', capabilityName: 'Tactical decisions' },
+            ]}
+            settledMarkers={[
+              { x: 220, y: 48, pathName: 'autumn-series', capturedAt: '2025-11-20T00:00:00Z' },
+            ]}
+            nowPoint={{ x: 306, y: 28 }}
+            yearTicks={[
+              { x: 24, label: '2023' },
+              { x: 118, label: '2024' },
+              { x: 212, label: '2025' },
+              { x: 306, label: '2026' },
+            ]}
+            capabilityCount={5}
+            evidenceCount={47}
+            pathsSettledCount={1}
+          />
+        </Section>
+
         <View style={{ height: 64 }} />
       </ScrollView>
+      <UniversalPlusSheet
+        visible={plusSheetVisible}
+        onDismiss={() => setPlusSheetVisible(false)}
+        onQuickCapture={() => setPlusSheetVisible(false)}
+        onAddFromBlueprint={() => setPlusSheetVisible(false)}
+        onAddFromFollow={() => setPlusSheetVisible(false)}
+        onDropConcept={() => setPlusSheetVisible(false)}
+        onShareIdea={() => setPlusSheetVisible(false)}
+      />
     </>
   );
 }
@@ -437,13 +872,43 @@ const styles = StyleSheet.create({
     borderColor: GRAY_5,
     overflow: 'hidden',
   },
+  composerHost: {
+    paddingVertical: 8,
+  },
+  menuRowHost: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: GRAY_5,
+    paddingHorizontal: 14,
+  },
+  openSheetButton: {
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+  },
+  openSheetText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: IOS_BLUE,
+  },
   cardHost: {
-    height: 480,
+    height: 620,
+  },
+  doDebugHost: {
+    height: 640,
+    marginBottom: 12,
   },
   cardBodyPad: {
     flex: 1,
     paddingHorizontal: 18,
     paddingTop: 16,
+  },
+  planBodyPad: {
+    flex: 1,
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    gap: 10,
   },
   bodyText: {
     fontSize: 14,

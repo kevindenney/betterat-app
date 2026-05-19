@@ -27,6 +27,7 @@ import {
   markStepAction,
   getBlueprintSubscribers,
   getBlueprintSubscriberProgress,
+  getCoSubscriberProgressForBlueprint,
   addStepToBlueprint,
   removeStepFromBlueprint,
   reorderBlueprintSteps,
@@ -48,7 +49,6 @@ import type {
   BlueprintSuggestedNextStep,
   SubscribedBlueprintInfo,
   SubscriberProgress,
-  BlueprintStepRecord,
 } from '@/types/blueprint';
 import type { TimelineStepRecord } from '@/types/timeline-steps';
 
@@ -74,6 +74,8 @@ const keys = {
   subscribers: (blueprintId: string) => ['blueprint-subscribers', blueprintId] as const,
   subscriberProgress: (blueprintId: string) =>
     ['blueprint-subscriber-progress', blueprintId] as const,
+  coSubscriberProgress: (blueprintId: string) =>
+    ['blueprint-co-subscriber-progress', blueprintId] as const,
   subscriberAdoptedSteps: (blueprintId: string, subscriberId: string) =>
     ['blueprint-subscriber-adopted', blueprintId, subscriberId] as const,
   suggestedNextSteps: (userId: string, interestId?: string | null) =>
@@ -277,6 +279,19 @@ export function useBlueprintSubscriberProgress(blueprintId?: string | null) {
   return useQuery<SubscriberProgress[]>({
     queryKey: keys.subscriberProgress(blueprintId ?? ''),
     queryFn: () => getBlueprintSubscriberProgress(blueprintId!),
+    enabled: !!blueprintId,
+  });
+}
+
+/**
+ * Peer-readable progress for the Co-practitioners surface. Returns only the
+ * rows the current user is allowed to see under the Phase 7
+ * `step_user_progress_co_subscriber_read` RLS policy.
+ */
+export function useBlueprintCoSubscriberProgress(blueprintId?: string | null) {
+  return useQuery<SubscriberProgress[]>({
+    queryKey: keys.coSubscriberProgress(blueprintId ?? ''),
+    queryFn: () => getCoSubscriberProgressForBlueprint(blueprintId!),
     enabled: !!blueprintId,
   });
 }

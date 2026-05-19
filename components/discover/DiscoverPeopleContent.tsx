@@ -22,6 +22,7 @@ import React, { useCallback, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Platform,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -136,6 +137,7 @@ function DemoPath({
   followedIds,
   onToggleFollow,
 }: DemoPathProps) {
+  const router = useRouter();
   const filtered = useMemo(() => {
     if (!searchQuery.trim()) return peers;
     const needle = searchQuery.toLowerCase();
@@ -162,6 +164,12 @@ function DemoPath({
         scrollEventThrottle={16}
         keyboardShouldPersistTaps="handled"
       >
+        <EntryCard
+          title="People you follow"
+          body="Open the list of people you already follow, then view their public settled steps."
+          onPress={() => router.push('/discover/following' as any)}
+        />
+
         <SearchField
           ref={searchInputRef}
           value={searchQuery}
@@ -290,6 +298,12 @@ function LivePath({
         scrollEventThrottle={16}
         keyboardShouldPersistTaps="handled"
       >
+        <EntryCard
+          title="People you follow"
+          body="Open the list of people you already follow, then browse their public settled steps."
+          onPress={() => router.push('/discover/following' as any)}
+        />
+
         <SearchField
           ref={searchInputRef}
           value={searchQuery}
@@ -413,6 +427,29 @@ function EmptyState({ label }: { label: string }) {
   );
 }
 
+function EntryCard({
+  title,
+  body,
+  onPress,
+}: {
+  title: string;
+  body: string;
+  onPress: () => void;
+}) {
+  return (
+    <View style={styles.entryOuter}>
+      <Pressable style={styles.entryCard} onPress={onPress}>
+        <View style={styles.entryCopy}>
+          <Text style={styles.entryEyebrow}>Network browsing</Text>
+          <Text style={styles.entryTitle}>{title}</Text>
+          <Text style={styles.entryBody}>{body}</Text>
+        </View>
+        <Text style={styles.entryCta}>Open</Text>
+      </Pressable>
+    </View>
+  );
+}
+
 // =============================================================================
 // STYLES
 // =============================================================================
@@ -421,6 +458,50 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   scrollView: { flex: 1 },
   scrollContent: { paddingBottom: 120 },
+
+  entryOuter: {
+    paddingTop: 8,
+    paddingBottom: 6,
+    paddingHorizontal: 16,
+  },
+  entryCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: '#E5E7EB',
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 16,
+  },
+  entryCopy: {
+    flex: 1,
+    gap: 4,
+  },
+  entryEyebrow: {
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+    color: IOS_REGISTER.labelSecondary,
+  },
+  entryTitle: {
+    fontSize: 17,
+    fontWeight: '600',
+    color: IOS_REGISTER.label,
+  },
+  entryBody: {
+    fontSize: 13,
+    lineHeight: 18,
+    color: IOS_REGISTER.labelSecondary,
+  },
+  entryCta: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: IOS_COLORS.systemBlue,
+  },
 
   searchOuter: { paddingTop: 6, paddingBottom: 4 },
   searchBar: {

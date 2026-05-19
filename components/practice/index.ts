@@ -38,3 +38,17 @@ export { AddStepFab } from './AddStepFab';
 export type { AddStepFabProps } from './AddStepFab';
 export { AddStepActionSheet } from './AddStepActionSheet';
 export type { AddStepActionSheetProps } from './AddStepActionSheet';
+
+// Phase 8 — Fleet view
+export { FleetView } from './FleetView';
+export type { FleetViewProps, FleetViewTimeMarker } from './FleetView';
+export { FleetCaptureCard } from './FleetCaptureCard';
+export type { FleetCaptureCardProps } from './FleetCaptureCard';
+
+// Phase 9 — Hinges
+export { HingeSurface } from './HingeSurface';
+export type { HingeSurfaceProps } from './HingeSurface';
+export { DayTile } from './DayTile';
+export type { DayTileProps } from './DayTile';
+export { HingeBookend } from './HingeBookend';
+export type { HingeBookendProps } from './HingeBookend';

@@ -11,10 +11,11 @@ import { PlanQuestionCard } from './PlanQuestionCard';
 import { SubStepEditor } from './SubStepEditor';
 import { BrainDumpEntry } from './BrainDumpEntry';
 import { ConversationalCapture } from './ConversationalCapture';
-import { PlaybookPicker, type PlaybookPickerSelection } from '@/components/playbook/PlaybookPicker';
+import type { PlaybookPickerSelection } from '@/components/playbook/PlaybookPicker';
+import { AddToStepPlanSheet, type AddToStepPlanSelection } from './AddToStepPlanSheet';
 import { ResourceTypeIcon } from '@/components/library/ResourceTypeIcon';
 import { getResourcesByIds } from '@/services/LibraryService';
-import { addStepLink, removeStepLink, getStepLinks } from '@/services/PlaybookService';
+import { addStepLink, removeStepLink, getStepConceptLinks, getStepLinks, linkConceptToStep, unlinkConceptFromStep } from '@/services/PlaybookService';
 import { supabase } from '@/services/supabase';
 import { CrossInterestSuggestions } from './CrossInterestSuggestions';
 import { FromOtherPlaybooks } from './FromOtherPlaybooks';
@@ -32,7 +33,9 @@ import { Linking } from 'react-native';
 import { router } from 'expo-router';
 import { getStepCategoryLabels } from '@/lib/step-category-config';
 import { FEATURE_FLAGS } from '@/lib/featureFlags';
-import { PlanTabInterior } from './plan-tab';
+import { PlanTabInterior, PlanTabIOSRegisterInterior } from './plan-tab';
+import { buildSuggestions, crossInterestToMentorInput } from '@/services/SuggestionsService';
+import { useCrossInterestSuggestions } from '@/hooks/useCrossInterestSuggestions';
 
 interface PlanTabProps {
   stepId?: string;
@@ -66,7 +69,9 @@ export function PlanTab({
   const { user } = useAuth();
   const catLabels = getStepCategoryLabels(stepCategory);
   const { userInterests } = useInterest();
-  const [showPlaybookPicker, setShowPlaybookPicker] = useState(false);
+  const [addPickerDestination, setAddPickerDestination] = useState<string | null>(null);
+  const openAddPicker = useCallback((destination: string) => setAddPickerDestination(destination), []);
+  const closeAddPicker = useCallback(() => setAddPickerDestination(null), []);
   const [showCollaboratorPicker, setShowCollaboratorPicker] = useState(false);
   const [showLocationPicker, setShowLocationPicker] = useState(false);
   const [linkedResources, setLinkedResources] = useState<LibraryResourceRecord[]>([]);
@@ -85,19 +90,25 @@ export function PlanTab({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [linkedIds.join(',')]);
 
-  // Load linked concepts from step_playbook_links
+  // Load linked concepts from step_concept_links (Phase 6), falling back to the
+  // older generic typed links when the dedicated table is not available yet.
   useEffect(() => {
     if (!stepId) return;
     let cancelled = false;
     async function loadConcepts() {
       try {
-        const links = await getStepLinks(stepId!);
-        const conceptLinks = links.filter((l) => l.item_type === 'concept');
-        if (conceptLinks.length === 0) {
+        let conceptIds: string[] = [];
+        try {
+          const links = await getStepConceptLinks(stepId!);
+          conceptIds = links.map((l) => l.concept_id);
+        } catch {
+          const links = await getStepLinks(stepId!);
+          conceptIds = links.filter((l) => l.item_type === 'concept').map((l) => l.item_id);
+        }
+        if (conceptIds.length === 0) {
           if (!cancelled) setLinkedConcepts([]);
           return;
         }
-        const conceptIds = conceptLinks.map((l) => l.item_id);
         const { data } = await supabase
           .from('playbook_concepts')
           .select('id, title, slug')
@@ -125,13 +136,18 @@ export function PlanTab({
       const mergedIds = [...new Set([...existingIds, ...newResourceIds])];
       onUpdate({ linked_resource_ids: mergedIds });
     }
-    // Write step_playbook_links for every selection (await so other tabs see them)
+    // Write concept links through the Phase 6 dedicated table (which also
+    // dual-writes the older generic step_playbook_links table internally).
     if (stepId) {
       await Promise.all(
         selections.map((s) =>
-          addStepLink(stepId!, s.item_type, s.item_id).catch((err) => {
-            console.error('[PlanTab] addStepLink failed:', s.item_type, s.item_id, err);
-          })
+          s.item_type === 'concept'
+            ? linkConceptToStep(stepId!, s.item_id).catch((err) => {
+                console.error('[PlanTab] linkConceptToStep failed:', s.item_id, err);
+              })
+            : addStepLink(stepId!, s.item_type, s.item_id).catch((err) => {
+                console.error('[PlanTab] addStepLink failed:', s.item_type, s.item_id, err);
+              })
         )
       );
     }
@@ -146,7 +162,6 @@ export function PlanTab({
         return [...prev, ...newConcepts];
       });
     }
-    setShowPlaybookPicker(false);
   }, [planData.linked_resource_ids, onUpdate, stepId]);
 
   const handleRemoveResource = useCallback((resourceId: string) => {
@@ -157,7 +172,7 @@ export function PlanTab({
   const handleRemoveConcept = useCallback(async (conceptId: string) => {
     setLinkedConcepts((prev) => prev.filter((c) => c.id !== conceptId));
     if (stepId) {
-      await removeStepLink(stepId, 'concept', conceptId).catch(() => {});
+      await unlinkConceptFromStep(stepId, conceptId).catch(() => removeStepLink(stepId, 'concept', conceptId).catch(() => {}));
     }
   }, [stepId]);
 
@@ -197,6 +212,75 @@ export function PlanTab({
   const q3Complete = Boolean(planData.why_reasoning?.trim());
   const q4Complete = Boolean(collaborators.length > 0 || (planData.who_collaborators?.length && planData.who_collaborators.some((c) => c.trim())));
   const q5Complete = Boolean(planData.where_location?.name?.trim());
+
+  // Mentor-channel suggestions for the Phase 1 SuggestionsRow.
+  const { suggestions: crossInterestSuggestions } = useCrossInterestSuggestions(
+    stepId,
+    interestId,
+    planData.what_will_you_do,
+  );
+
+  // Phase 1 · iOS register — Plan tab body rebuild. When the step-loop flag
+  // is on this branch takes precedence over the older PRACTICE_PLAN_TAB
+  // path; off-flag, both this and the PRACTICE_PLAN_TAB branch below are
+  // skipped and the legacy question-card render at the bottom of this file
+  // runs unchanged.
+  if (FEATURE_FLAGS.PRACTICE_STEP_LOOP_IOS_REGISTER) {
+    const capabilityChips = (planData.competency_ids ?? [])
+      .map((id) => {
+        const comp = (availableCompetencies ?? []).find((c: Competency) => c.id === id);
+        return comp ? { id: comp.id, label: comp.title } : null;
+      })
+      .filter((x): x is { id: string; label: string } => x !== null);
+
+    const mentorInput = crossInterestToMentorInput(
+      crossInterestSuggestions ?? [],
+      (s) => {
+        const existing = planData.how_sub_steps ?? [];
+        const newSubStep: SubStep = {
+          id: `cross_${Date.now()}`,
+          text: s.suggestion,
+          sort_order: existing.length,
+          completed: false,
+        };
+        onUpdate({ how_sub_steps: [...existing, newSubStep] });
+      },
+    );
+    const suggestions = buildSuggestions({ mentor: mentorInput });
+
+    return (
+      <PlanTabIOSRegisterInterior
+        planData={planData}
+        onUpdate={onUpdate}
+        readOnly={readOnly}
+        interestId={interestId}
+        interestName={interestName}
+        stepTitle={planData.what_will_you_do || 'New step'}
+        stepCategory={stepCategory}
+        onConversationalCreate={useConversationalCapture ? onConversationalCreate : undefined}
+        capabilities={capabilityChips}
+        onRemoveCapability={(id) => {
+          const updated = (planData.competency_ids ?? []).filter((c) => c !== id);
+          onUpdate({ competency_ids: updated });
+        }}
+        onAddCapabilityPress={() => {
+          // Lifted to consumer in a follow-up; for now we focus the search field
+          // by leaving the existing CompetencyPicker integration untouched. The
+          // chip set hint surfaces a no-op-friendly affordance.
+        }}
+        suggestions={suggestions}
+        workingWithConcepts={linkedConcepts.map((concept) => ({
+          id: concept.id,
+          title: concept.title,
+        }))}
+        onPressWorkingConcept={(conceptId) => {
+          router.push(`/(tabs)/playbook/concept/${conceptId}` as any);
+        }}
+        onNextPhase={onNextTab}
+        footer={footer}
+      />
+    );
+  }
 
   if (FEATURE_FLAGS.PRACTICE_PLAN_TAB_IOS_REGISTER) {
     const optionalAddOns = (
@@ -256,9 +340,9 @@ export function PlanTab({
             )}
 
             {!readOnly && (
-              <Pressable style={styles.addLibraryButton} onPress={() => setShowPlaybookPicker(true)}>
-                <Ionicons name="book-outline" size={18} color={STEP_COLORS.accent} />
-                <Text style={styles.addLibraryText}>Add from Playbook</Text>
+              <Pressable style={styles.addLibraryButton} onPress={() => openAddPicker('Also relevant for')}>
+                <Ionicons name="bookmarks-outline" size={18} color={STEP_COLORS.accent} />
+                <Text style={styles.addLibraryText}>Add from library</Text>
               </Pressable>
             )}
           </PlanQuestionCard>
@@ -425,12 +509,20 @@ export function PlanTab({
 
         {!readOnly && (
           <>
-            <PlaybookPicker
-              visible={showPlaybookPicker}
+            <AddToStepPlanSheet
+              visible={addPickerDestination !== null}
+              destinationLabel={addPickerDestination ?? ''}
+              destinationContext={planData.what_doing || undefined}
               interestId={interestId}
-              onSelect={handleSelectPlaybookItems}
-              onClose={() => setShowPlaybookPicker(false)}
-              excludeKeys={linkedIds.map((id) => `resource:${id}`)}
+              excludeKeys={[
+                ...linkedIds.map((id) => `resource:${id}`),
+                ...linkedConcepts.map((c) => `concept:${c.id}`),
+              ]}
+              onSelect={(selections: AddToStepPlanSelection[]) => {
+                handleSelectPlaybookItems(selections as PlaybookPickerSelection[]);
+                closeAddPicker();
+              }}
+              onClose={closeAddPicker}
             />
             <CollaboratorPicker
               visible={showCollaboratorPicker}
@@ -611,10 +703,10 @@ export function PlanTab({
         {!readOnly && (
           <Pressable
             style={styles.addLibraryButton}
-            onPress={() => setShowPlaybookPicker(true)}
+            onPress={() => openAddPicker('What')}
           >
-            <Ionicons name="book-outline" size={18} color={STEP_COLORS.accent} />
-            <Text style={styles.addLibraryText}>Add from Playbook</Text>
+            <Ionicons name="bookmarks-outline" size={18} color={STEP_COLORS.accent} />
+            <Text style={styles.addLibraryText}>Add from library</Text>
           </Pressable>
         )}
       </PlanQuestionCard>
@@ -914,14 +1006,22 @@ export function PlanTab({
 
       {footer}
 
-      {/* Playbook picker modal */}
+      {/* iOS-register Add-to-step-plan sheet (library + capture-new) */}
       {!readOnly && (
-        <PlaybookPicker
-          visible={showPlaybookPicker}
+        <AddToStepPlanSheet
+          visible={addPickerDestination !== null}
+          destinationLabel={addPickerDestination ?? ''}
+          destinationContext={planData.what_doing || undefined}
           interestId={interestId}
-          onSelect={handleSelectPlaybookItems}
-          onClose={() => setShowPlaybookPicker(false)}
-          excludeKeys={linkedIds.map((id) => `resource:${id}`)}
+          excludeKeys={[
+            ...linkedIds.map((id) => `resource:${id}`),
+            ...linkedConcepts.map((c) => `concept:${c.id}`),
+          ]}
+          onSelect={(selections: AddToStepPlanSelection[]) => {
+            handleSelectPlaybookItems(selections as PlaybookPickerSelection[]);
+            closeAddPicker();
+          }}
+          onClose={closeAddPicker}
         />
       )}
 

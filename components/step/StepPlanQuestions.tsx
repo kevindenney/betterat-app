@@ -16,7 +16,8 @@ import { PlanQuestionCard } from './PlanQuestionCard';
 import { SubStepEditor } from './SubStepEditor';
 import { CollaboratorPicker } from './CollaboratorPicker';
 import { CourseContextSheet } from './CourseContextSheet';
-import { PlaybookPicker, type PlaybookPickerSelection } from '@/components/playbook/PlaybookPicker';
+import type { PlaybookPickerSelection } from '@/components/playbook/PlaybookPicker';
+import { AddToStepPlanSheet, type AddToStepPlanSelection } from './AddToStepPlanSheet';
 import { ResourceTypeIcon } from '@/components/library/ResourceTypeIcon';
 import { addStepLink, removeStepLink, getStepLinks } from '@/services/PlaybookService';
 import { router } from 'expo-router';
@@ -44,7 +45,10 @@ import { supabase } from '@/services/supabase';
 import { getStepCategoryLabels } from '@/lib/step-category-config';
 import type { LibraryResourceRecord } from '@/types/library';
 import { FEATURE_FLAGS } from '@/lib/featureFlags';
-import { PlanTabInterior } from './plan-tab';
+import { PlanTabInterior, PlanTabIOSRegisterInterior } from './plan-tab';
+import { buildSuggestions, crossInterestToMentorInput } from '@/services/SuggestionsService';
+import { useCrossInterestSuggestions } from '@/hooks/useCrossInterestSuggestions';
+import { showAlert, showAlertWithButtons } from '@/lib/utils/crossPlatformAlert';
 
 interface StepPlanQuestionsProps {
   stepId: string;
@@ -59,6 +63,13 @@ interface StepPlanQuestionsProps {
   /** When true, show conversational capture instead of brain dump */
   useConversationalCapture?: boolean;
   onConversationalCreate?: (planData: Partial<StepPlanData>, suggestedTitle?: string) => void;
+  /**
+   * Switch the parent carousel from Plan → Do. When provided, the Phase 1
+   * BottomCTA at the foot of the Plan body renders enabled (once a WHAT is
+   * filled). Consumers in race-card carousels typically pass
+   * `() => setSelectedPhase('on_water')`.
+   */
+  onNextTab?: () => void;
 }
 
 export function StepPlanQuestions({
@@ -66,6 +77,7 @@ export function StepPlanQuestions({
   brainDumpData: brainDumpProp, onBrainDumpChange, onStructureWithAI,
   isStructuring, interestSlug,
   useConversationalCapture, onConversationalCreate,
+  onNextTab,
 }: StepPlanQuestionsProps) {
   const { data: step } = useStepDetail(stepId);
   const updateMetadata = useUpdateStepMetadata(stepId);
@@ -75,7 +87,9 @@ export function StepPlanQuestions({
   const { currentInterest, userInterests } = useInterest();
   const catLabels = getStepCategoryLabels(step?.category);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [showPlaybookPicker, setShowPlaybookPicker] = useState(false);
+  const [addPickerDestination, setAddPickerDestination] = useState<string | null>(null);
+  const openAddPicker = useCallback((destination: string) => setAddPickerDestination(destination), []);
+  const closeAddPicker = useCallback(() => setAddPickerDestination(null), []);
   const [showCompetencyPicker, setShowCompetencyPicker] = useState(false);
   const [linkedResources, setLinkedResources] = useState<LibraryResourceRecord[]>([]);
   const [linkedConcepts, setLinkedConcepts] = useState<{ id: string; title: string; slug?: string }[]>([]);
@@ -208,6 +222,12 @@ export function StepPlanQuestions({
 
   // Accumulate pending changes so rapid saves for different fields don't cancel each other
   const pendingChangesRef = useRef<Partial<StepPlanData>>({});
+
+  // Phase 1 · iOS register — mentor-channel suggestions for <SuggestionsRow>.
+  const { suggestions: crossInterestSuggestions } = useCrossInterestSuggestions(
+    stepId,
+    interestId,
+  );
 
   // Debounced save — accumulates partial updates, then flushes everything at once
   const debouncedSave = useCallback((partial: Partial<StepPlanData>) => {
@@ -436,7 +456,6 @@ export function StepPlanQuestions({
     const existingIds = planDataRef.current.linked_resource_ids ?? [];
     const mergedIds = [...new Set([...existingIds, ...newResourceIds])];
     debouncedSave({ linked_resource_ids: mergedIds });
-    setShowPlaybookPicker(false);
 
     // If plan fields are mostly empty, auto-generate from the first new resource
     const currentPlan = planDataRef.current;
@@ -776,6 +795,457 @@ RULES:
     | { resource_id: string; course_title?: string; author_or_creator?: string; lesson_id?: string; lesson_index?: number; total_lessons?: number }
     | undefined;
 
+  // Phase 1 · iOS register — when the step-loop flag is on, route through
+  // PlanTabIOSRegisterInterior. Same canonicalPlanData/handlers as the
+  // PRACTICE_PLAN_TAB branch below so persistence is unchanged.
+  if (FEATURE_FLAGS.PRACTICE_STEP_LOOP_IOS_REGISTER) {
+    const canonicalPlanData: StepPlanData = {
+      ...planData,
+      what_will_you_do: localWhat,
+      how_sub_steps: localSubSteps,
+      why_reasoning: localWhy,
+      collaborators: localCollaborators,
+      capability_goals: localGoals,
+      where_location: localWhereLocation,
+      connection_space: localConnectionSpace,
+    };
+
+    const competencyChips = (planData.competency_ids ?? [])
+      .map((id) => {
+        const title = Array.from(competencyMapRef.current.entries())
+          .find(([, mappedId]) => mappedId === id)?.[0];
+        return title ? { id: `comp:${id}`, label: title } : null;
+      })
+      .filter((x): x is { id: string; label: string } => x !== null);
+    const goalChips = (localGoals ?? []).map((goal) => ({
+      id: `goal:${goal}`,
+      label: goal,
+    }));
+    const capabilityChips = [...goalChips, ...competencyChips];
+
+    const handleStepLoopUpdate = (partial: Partial<StepPlanData>) => {
+      if (partial.what_will_you_do !== undefined) handleWhatChange(partial.what_will_you_do);
+      if (partial.how_sub_steps !== undefined) handleSubStepsChange(partial.how_sub_steps);
+      if (partial.why_reasoning !== undefined) handleWhyChange(partial.why_reasoning);
+      const remaining = { ...partial };
+      delete remaining.what_will_you_do;
+      delete remaining.how_sub_steps;
+      delete remaining.why_reasoning;
+      if (Object.keys(remaining).length > 0) {
+        debouncedSave(remaining);
+      }
+    };
+
+  const handleStepLoopConversationalCreate = (
+      conversationalPlan: Partial<StepPlanData>,
+      suggestedTitle?: string,
+    ) => {
+      if (conversationalPlan.what_will_you_do !== undefined) setLocalWhat(conversationalPlan.what_will_you_do);
+      if (conversationalPlan.how_sub_steps !== undefined) setLocalSubSteps(conversationalPlan.how_sub_steps);
+      if (conversationalPlan.why_reasoning !== undefined) setLocalWhy(conversationalPlan.why_reasoning);
+      if (conversationalPlan.collaborators !== undefined) setLocalCollaborators(conversationalPlan.collaborators);
+      if (conversationalPlan.capability_goals !== undefined) setLocalGoals(conversationalPlan.capability_goals);
+      if (conversationalPlan.where_location !== undefined) setLocalWhereLocation(conversationalPlan.where_location);
+      if (conversationalPlan.connection_space !== undefined) setLocalConnectionSpace(conversationalPlan.connection_space);
+      debouncedSave(conversationalPlan);
+      onConversationalCreate?.(conversationalPlan, suggestedTitle);
+    };
+
+    const createSuggestionStepInInterest = async (
+      suggestion: { suggestion: string; suggestedCategory?: string },
+      targetInterestId: string,
+    ) => {
+      if (!user?.id) return undefined;
+      try {
+        const created = await createStep({
+          user_id: user.id,
+          interest_id: targetInterestId,
+          title: suggestion.suggestion.slice(0, 80),
+          status: 'pending',
+          source_type: 'manual',
+          category: suggestion.suggestedCategory || 'general',
+          metadata: { plan: { what_will_you_do: suggestion.suggestion } },
+        });
+        queryClient.invalidateQueries({ queryKey: ['timeline-steps'] });
+        return created.id;
+      } catch {
+        showAlert('Could not create step', 'Please try again.');
+        return undefined;
+      }
+    };
+
+    const handleCreateSuggestionFromRow = (suggestion: {
+      sourceInterestSlug: string;
+      sourceInterestName: string;
+      suggestion: string;
+      suggestedCategory?: string;
+    }) => {
+      const sourceInterest = userInterests.find((i) => i.slug === suggestion.sourceInterestSlug);
+      const currentInterestId = interestId;
+      const buttons = [];
+
+      if (currentInterestId) {
+        buttons.push({
+          text: `Create in ${currentInterest?.name || 'this interest'}`,
+          onPress: () => {
+            void createSuggestionStepInInterest(suggestion, currentInterestId);
+          },
+        });
+      }
+
+      if (sourceInterest?.id && sourceInterest.id !== currentInterestId) {
+        buttons.push({
+          text: `Create in ${suggestion.sourceInterestName}`,
+          onPress: () => {
+            void createSuggestionStepInInterest(suggestion, sourceInterest.id);
+          },
+        });
+      }
+
+      buttons.push({ text: 'Cancel', style: 'cancel' as const });
+
+      showAlertWithButtons(
+        'Create step from suggestion',
+        suggestion.suggestion,
+        buttons,
+      );
+    };
+
+    const mentorInput = crossInterestToMentorInput(
+      crossInterestSuggestions ?? [],
+      handleCreateSuggestionFromRow,
+    );
+    const suggestions = buildSuggestions({ mentor: mentorInput });
+
+    // Auto-focus the WHAT field when the step is a freshly-created draft
+    // with no plan content yet. The draft flag is set by Universal Plus
+    // quick capture; once the user types anything, canonicalPlanData
+    // .what_will_you_do flips truthy and subsequent mounts won't refocus
+    // (RN's TextInput autoFocus only fires on mount anyway, but gating
+    // on emptiness prevents revisits from yanking the keyboard up).
+    const stepMetadata = (step.metadata as { draft?: boolean } | null) ?? null;
+    const isFreshDraft = Boolean(stepMetadata?.draft);
+    const autoFocusWhat =
+      isFreshDraft && !canonicalPlanData.what_will_you_do?.trim();
+
+    return (
+      <>
+        <PlanTabIOSRegisterInterior
+          embedded
+          autoFocusWhat={autoFocusWhat}
+          planData={canonicalPlanData}
+          onUpdate={handleStepLoopUpdate}
+          readOnly={readOnly}
+          interestId={interestId}
+          interestName={currentInterest?.name}
+          stepTitle={step.title}
+          stepCategory={step.category}
+          onConversationalCreate={useConversationalCapture ? handleStepLoopConversationalCreate : undefined}
+          capabilities={capabilityChips}
+          onRemoveCapability={(id) => {
+            if (id.startsWith('goal:')) {
+              handleRemoveGoal(id.slice(5));
+              return;
+            }
+            const rawId = id.startsWith('comp:') ? id.slice(5) : id;
+            const updated = (planData.competency_ids ?? []).filter((c) => c !== rawId);
+            debouncedSave({ competency_ids: updated });
+          }}
+          onAddCapabilityPress={() => setShowCompetencyPicker(true)}
+          suggestions={suggestions}
+          contextRows={
+            <>
+              <View style={styles.phase1ContextCard}>
+                <View style={styles.phase1ContextHead}>
+                  <Ionicons name="people-outline" size={12} color={STEP_COLORS.secondaryLabel} />
+                  <Text style={styles.phase1ContextEye}>With whom will you do this?</Text>
+                </View>
+
+                {localCollaborators.length > 0 ? (
+                  <View style={styles.collaboratorChipContainer}>
+                    {localCollaborators.map((collab) => (
+                      <View
+                        key={collab.id}
+                        style={[
+                          styles.collaboratorChip,
+                          collab.type === 'platform' ? styles.collaboratorChipPlatform : styles.collaboratorChipExternal,
+                        ]}
+                      >
+                        {collab.type === 'platform' ? (
+                          collab.avatar_emoji ? (
+                            <Text style={styles.collaboratorChipEmoji}>{collab.avatar_emoji}</Text>
+                          ) : (
+                            <Ionicons name="person" size={14} color={STEP_COLORS.accent} />
+                          )
+                        ) : (
+                          <Ionicons name="person-outline" size={14} color={IOS_COLORS.secondaryLabel} />
+                        )}
+                        <Text
+                          style={[
+                            styles.collaboratorChipText,
+                            collab.type === 'platform' ? styles.collaboratorChipTextPlatform : styles.collaboratorChipTextExternal,
+                          ]}
+                          numberOfLines={1}
+                        >
+                          {collab.display_name}
+                        </Text>
+                        {collab.type === 'external' && !readOnly && (
+                          <Pressable
+                            onPress={() => handleShareWithCollaborator(collab.display_name)}
+                            hitSlop={6}
+                            style={styles.sendLinkButton}
+                          >
+                            <Ionicons name="send-outline" size={13} color={STEP_COLORS.accent} />
+                          </Pressable>
+                        )}
+                        {!readOnly && (
+                          <Pressable onPress={() => handleRemoveCollaborator(collab.id)} hitSlop={6}>
+                            <Ionicons name="close-circle" size={16} color={IOS_COLORS.systemGray3} />
+                          </Pressable>
+                        )}
+                      </View>
+                    ))}
+                  </View>
+                ) : (
+                  <Text style={styles.phase1ContextHint}>No collaborators yet.</Text>
+                )}
+
+                {!readOnly && (
+                  <Pressable
+                    style={styles.addPeopleButton}
+                    onPress={() => setShowCollaboratorPicker(true)}
+                  >
+                    <Ionicons name="person-add-outline" size={18} color={STEP_COLORS.accent} />
+                    <Text style={styles.addPeopleText}>Add people</Text>
+                  </Pressable>
+                )}
+              </View>
+
+              <View style={styles.phase1ContextCard}>
+                <View style={styles.phase1ContextHead}>
+                  <Ionicons name="location-outline" size={12} color={STEP_COLORS.secondaryLabel} />
+                  <Text style={styles.phase1ContextEye}>Where will you do this?</Text>
+                </View>
+
+                <TextInput
+                  style={[styles.phase1ContextInput, readOnly && styles.readOnlyInput]}
+                  value={localWhereLocation?.name ?? ''}
+                  onChangeText={readOnly ? undefined : (text) => {
+                    if (!text.trim()) {
+                      handleLocationChange(undefined);
+                    } else {
+                      handleLocationChange({
+                        ...(localWhereLocation ?? { name: '' }),
+                        name: text,
+                      });
+                    }
+                  }}
+                  placeholder={readOnly ? '' : 'Location, venue, or address...'}
+                  placeholderTextColor={IOS_COLORS.tertiaryLabel}
+                  editable={!readOnly}
+                />
+
+                {!readOnly && orgLocations.length > 0 && (
+                  <View style={styles.orgLocationChips}>
+                    {orgLocations.map((loc) => {
+                      const isSelected = localWhereLocation?.name === loc.name;
+                      return (
+                        <Pressable
+                          key={loc.id}
+                          style={[styles.orgLocationChip, isSelected && styles.orgLocationChipSelected]}
+                          onPress={() => handleLocationChange({
+                            name: loc.name,
+                            lat: loc.lat ?? undefined,
+                            lng: loc.lng ?? undefined,
+                          })}
+                        >
+                          <Ionicons
+                            name="location"
+                            size={13}
+                            color={isSelected ? STEP_COLORS.accent : IOS_COLORS.secondaryLabel}
+                          />
+                          <Text
+                            style={[styles.orgLocationChipText, isSelected && styles.orgLocationChipTextSelected]}
+                            numberOfLines={1}
+                          >
+                            {loc.name}
+                          </Text>
+                        </Pressable>
+                      );
+                    })}
+                  </View>
+                )}
+
+                {localWhereLocation?.lat != null && localWhereLocation?.lng != null && (
+                  <View style={styles.mapPreview}>
+                    <View style={styles.mapPreviewPin}>
+                      <Ionicons name="location" size={20} color={STEP_COLORS.accent} />
+                      <Text style={styles.mapPreviewCoords}>
+                        {localWhereLocation.lat.toFixed(4)}, {localWhereLocation.lng.toFixed(4)}
+                      </Text>
+                    </View>
+                    {!readOnly && (
+                      <Pressable
+                        onPress={() => handleLocationChange({
+                          ...localWhereLocation!,
+                          lat: undefined,
+                          lng: undefined,
+                        })}
+                        hitSlop={6}
+                      >
+                        <Ionicons name="close-circle" size={18} color={IOS_COLORS.systemGray3} />
+                      </Pressable>
+                    )}
+                  </View>
+                )}
+
+                {!readOnly && (
+                  <Pressable
+                    style={styles.addPeopleButton}
+                    onPress={() => setShowLocationPicker(true)}
+                  >
+                    <Ionicons name="map-outline" size={18} color={STEP_COLORS.accent} />
+                    <Text style={styles.addPeopleText}>Pick on map</Text>
+                  </Pressable>
+                )}
+              </View>
+            </>
+          }
+          onNextPhase={onNextTab}
+          isTimed={Boolean(step.is_timed)}
+          onToggleTimed={(next) => {
+            queryClient.setQueryData<TimelineStepRecord | undefined>(
+              ['timeline-steps', 'detail', step.id],
+              (prev) => (prev ? { ...prev, is_timed: next } : prev),
+            );
+            updateStep.mutate({ stepId: step.id, input: { is_timed: next } });
+          }}
+          belowWhatCard={
+            <View style={styles.phase1ContextCard}>
+              <View style={styles.phase1ContextHead}>
+                <Ionicons name="library-outline" size={12} color={STEP_COLORS.secondaryLabel} />
+                <Text style={styles.phase1ContextEye}>Resources for this step</Text>
+              </View>
+
+              {linkedResources.length > 0 && (
+                <View style={styles.chipContainer}>
+                  {linkedResources.map((resource) => (
+                    <Pressable
+                      key={resource.id}
+                      style={styles.resourceChip}
+                      onPress={() => { if (resource.url) Linking.openURL(resource.url); }}
+                    >
+                      <ResourceTypeIcon type={resource.resource_type} size={14} />
+                      <Text style={styles.chipText} numberOfLines={1}>{resource.title}</Text>
+                      {!readOnly && (
+                        <Pressable onPress={() => handleRemoveResource(resource.id)} hitSlop={6}>
+                          <Ionicons name="close-circle" size={16} color={IOS_COLORS.systemGray3} />
+                        </Pressable>
+                      )}
+                    </Pressable>
+                  ))}
+                </View>
+              )}
+
+              {linkedConcepts.length > 0 && (
+                <View style={styles.conceptsSection}>
+                  <Text style={styles.conceptsSectionLabel}>FOCUS CONCEPTS</Text>
+                  {linkedConcepts.map((concept) => (
+                    <Pressable
+                      key={concept.id}
+                      style={styles.conceptCard}
+                      onPress={() => {
+                        if (concept.slug) {
+                          router.push(`/(tabs)/playbook/concept/${concept.slug}` as any);
+                        }
+                      }}
+                    >
+                      <Ionicons name="book-outline" size={16} color={STEP_COLORS.accent} />
+                      <Text style={styles.conceptCardTitle} numberOfLines={2}>{concept.title}</Text>
+                      {!readOnly && (
+                        <Pressable onPress={() => handleRemoveConcept(concept.id)} hitSlop={6}>
+                          <Ionicons name="close-circle" size={16} color={IOS_COLORS.systemGray3} />
+                        </Pressable>
+                      )}
+                    </Pressable>
+                  ))}
+                </View>
+              )}
+
+              {!readOnly && (
+                <Pressable
+                  style={styles.addLibraryButton}
+                  onPress={() => openAddPicker('Resources for this step')}
+                >
+                  <Ionicons name="bookmarks-outline" size={18} color={STEP_COLORS.accent} />
+                  <Text style={styles.addLibraryText}>Add from library</Text>
+                </Pressable>
+              )}
+            </View>
+          }
+        />
+
+        {!readOnly && (
+          <AddToStepPlanSheet
+            visible={addPickerDestination !== null}
+            destinationLabel={addPickerDestination ?? ''}
+            destinationContext={localWhat.trim() || step.title || undefined}
+            interestId={interestId}
+            excludeKeys={[
+              ...linkedIds.map((id) => `resource:${id}`),
+              ...linkedConcepts.map((c) => `concept:${c.id}`),
+            ]}
+            onSelect={(selections: AddToStepPlanSelection[]) => {
+              handleSelectPlaybookItems(selections as PlaybookPickerSelection[]);
+              closeAddPicker();
+            }}
+            onClose={closeAddPicker}
+          />
+        )}
+
+        {!readOnly && (
+          <>
+            <CollaboratorPicker
+              visible={showCollaboratorPicker}
+              onClose={() => setShowCollaboratorPicker(false)}
+              onAdd={handleAddCollaborator}
+              existingIds={collaboratorExistingIds}
+            />
+            <CompetencyPickerModal
+              visible={showCompetencyPicker}
+              onClose={() => setShowCompetencyPicker(false)}
+              selectedIds={planData.competency_ids ?? []}
+              onToggle={(compId, compTitle) => {
+                const existingIds = planDataRef.current.competency_ids ?? [];
+                if (existingIds.includes(compId)) {
+                  handleRemoveGoal(compTitle);
+                } else {
+                  handleAddGoal(compTitle);
+                  competencyMapRef.current.set(compTitle, compId);
+                }
+              }}
+              interestId={interestId ?? ''}
+            />
+            <LocationMapPickerModal
+              visible={showLocationPicker}
+              onClose={() => setShowLocationPicker(false)}
+              onSelectLocation={(loc: { name: string; lat: number; lng: number }) => {
+                handleLocationChange({ name: loc.name, lat: loc.lat, lng: loc.lng });
+                setShowLocationPicker(false);
+              }}
+              initialLocation={
+                localWhereLocation?.lat != null && localWhereLocation?.lng != null
+                  ? { lat: localWhereLocation.lat, lng: localWhereLocation.lng }
+                  : null
+              }
+              initialName={localWhereLocation?.name}
+            />
+          </>
+        )}
+      </>
+    );
+  }
+
   if (FEATURE_FLAGS.PRACTICE_PLAN_TAB_IOS_REGISTER) {
     const canonicalPlanData: StepPlanData = {
       ...planData,
@@ -923,9 +1393,9 @@ RULES:
             )}
 
             {!readOnly && (
-              <Pressable style={styles.addLibraryButton} onPress={() => setShowPlaybookPicker(true)}>
-                <Ionicons name="library-outline" size={18} color={STEP_COLORS.accent} />
-                <Text style={styles.addLibraryText}>Add from Playbook</Text>
+              <Pressable style={styles.addLibraryButton} onPress={() => openAddPicker('Also relevant for')}>
+                <Ionicons name="bookmarks-outline" size={18} color={STEP_COLORS.accent} />
+                <Text style={styles.addLibraryText}>Add from library</Text>
               </Pressable>
             )}
           </PlanQuestionCard>
@@ -1207,12 +1677,20 @@ RULES:
         )}
 
         {!readOnly && (
-          <PlaybookPicker
-            visible={showPlaybookPicker}
+          <AddToStepPlanSheet
+            visible={addPickerDestination !== null}
+            destinationLabel={addPickerDestination ?? ''}
+            destinationContext={localWhat.trim() || step?.title || undefined}
             interestId={interestId}
-            onSelect={handleSelectPlaybookItems}
-            onClose={() => setShowPlaybookPicker(false)}
-            excludeKeys={linkedIds.map((id) => `resource:${id}`)}
+            excludeKeys={[
+              ...linkedIds.map((id) => `resource:${id}`),
+              ...linkedConcepts.map((c) => `concept:${c.id}`),
+            ]}
+            onSelect={(selections: AddToStepPlanSelection[]) => {
+              handleSelectPlaybookItems(selections as PlaybookPickerSelection[]);
+              closeAddPicker();
+            }}
+            onClose={closeAddPicker}
           />
         )}
       </>
@@ -1492,10 +1970,10 @@ RULES:
         {!readOnly && (
           <Pressable
             style={styles.addLibraryButton}
-            onPress={() => setShowPlaybookPicker(true)}
+            onPress={() => openAddPicker('What')}
           >
-            <Ionicons name="library-outline" size={18} color={STEP_COLORS.accent} />
-            <Text style={styles.addLibraryText}>Add from Playbook</Text>
+            <Ionicons name="bookmarks-outline" size={18} color={STEP_COLORS.accent} />
+            <Text style={styles.addLibraryText}>Add from library</Text>
           </Pressable>
         )}
       </PlanQuestionCard>
@@ -1944,14 +2422,22 @@ RULES:
 
       </>)}
 
-      {/* Playbook picker modal */}
+      {/* iOS-register Add-to-step-plan sheet */}
       {!readOnly && (
-        <PlaybookPicker
-          visible={showPlaybookPicker}
+        <AddToStepPlanSheet
+          visible={addPickerDestination !== null}
+          destinationLabel={addPickerDestination ?? ''}
+          destinationContext={localWhat.trim() || step?.title || undefined}
           interestId={interestId}
-          onSelect={handleSelectPlaybookItems}
-          onClose={() => setShowPlaybookPicker(false)}
-          excludeKeys={linkedIds.map((id) => `resource:${id}`)}
+          excludeKeys={[
+            ...linkedIds.map((id) => `resource:${id}`),
+            ...linkedConcepts.map((c) => `concept:${c.id}`),
+          ]}
+          onSelect={(selections: AddToStepPlanSelection[]) => {
+            handleSelectPlaybookItems(selections as PlaybookPickerSelection[]);
+            closeAddPicker();
+          }}
+          onClose={closeAddPicker}
         />
       )}
     </View>
@@ -2440,6 +2926,42 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: IOS_COLORS.secondaryLabel,
     fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+  },
+  phase1ContextCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: IOS_COLORS.systemGray5,
+    paddingVertical: 11,
+    paddingHorizontal: 14,
+    gap: 10,
+  },
+  phase1ContextHead: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  phase1ContextEye: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: STEP_COLORS.secondaryLabel,
+    letterSpacing: 0.9,
+    textTransform: 'uppercase',
+  },
+  phase1ContextHint: {
+    fontSize: 13,
+    color: IOS_COLORS.secondaryLabel,
+  },
+  phase1ContextInput: {
+    fontSize: 13.5,
+    color: STEP_COLORS.label,
+    letterSpacing: -0.05,
+    lineHeight: 19,
+    padding: 0,
+    minHeight: 22,
+    ...Platform.select({
+      web: { outlineStyle: 'none', resize: 'none', overflow: 'hidden' } as any,
+    }),
   },
   conditionsContainer: {
     marginTop: IOS_SPACING.sm,

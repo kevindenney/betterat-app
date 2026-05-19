@@ -234,7 +234,8 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   safeArea: {
-    flex: 0,
+    flex: 1,
+    justifyContent: 'flex-end',
   },
   sheet: {
     backgroundColor: '#F2F2F7',
@@ -243,6 +244,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     maxHeight: '88%',
     minHeight: '50%',
+    width: '100%',
   },
   grabber: {
     width: 36,

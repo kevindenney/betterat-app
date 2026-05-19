@@ -29,6 +29,7 @@ import {
   getSectionCounts,
   getConcepts,
   getConceptBySlug,
+  getConceptById,
   createConcept,
   updateConcept,
   deleteConcept,
@@ -45,9 +46,20 @@ import {
   getBatchSectionCounts,
   getBatchLatestReviews,
   getBatchCompetencySummaries,
+  getRecentInsights,
+  discardInsight,
+  refineInsightToConcept,
+  getLifecycleConcepts,
+  getConceptTrailQuotes,
+  getConceptTestedSteps,
+  getConceptCapabilityChips,
+  linkConceptToStep,
+  getStepConceptLinks,
+  addConceptTrailQuote,
+  promoteConceptToSettled,
   type RecentDebriefStep,
   type PlaybookSectionCounts,
-  type CompetencyProgressSummary,
+  type Phase6ConceptRecord,
 } from '@/services/PlaybookService';
 import {
   acceptSuggestion,
@@ -64,6 +76,9 @@ import type {
   PlaybookSuggestionRecord,
   PlaybookInboxItemRecord,
   PlaybookShareRecord,
+  PlaybookInsightRecord,
+  ConceptTrailQuoteRecord,
+  StepConceptLinkRecord,
   CreatePlaybookResourceInput,
   UpdatePlaybookResourceInput,
   CreatePlaybookConceptInput,
@@ -88,12 +103,27 @@ const KEYS = {
     ['playbook-suggestions', playbookId] as const,
   suggestionsPendingCount: (playbookId: string) =>
     ['playbook-suggestions-pending-count', playbookId] as const,
+  insights: (userId: string, interestId: string) =>
+    ['playbook-insights', userId, interestId] as const,
+  lifecycleConcepts: (userId: string, interestId: string) =>
+    ['playbook-lifecycle-concepts', userId, interestId] as const,
+  conceptById: (conceptId: string) => ['playbook-concept-by-id', conceptId] as const,
+  conceptQuotes: (conceptId: string) => ['playbook-concept-quotes', conceptId] as const,
+  conceptSteps: (conceptId: string) => ['playbook-concept-steps', conceptId] as const,
+  conceptCapabilities: (conceptId: string) => ['playbook-concept-capabilities', conceptId] as const,
+  stepConceptLinks: (stepId: string) => ['step-concept-links', stepId] as const,
   inbox: (playbookId: string) => ['playbook-inbox', playbookId] as const,
   shares: (playbookId: string) => ['playbook-shares', playbookId] as const,
   recentDebriefs: (userId: string, interestId: string) =>
     ['playbook-recent-debriefs', userId, interestId] as const,
   sectionCounts: (playbookId: string) =>
     ['playbook-section-counts', playbookId] as const,
+};
+
+const PHASE6_REMOTE_QUERY_OPTIONS = {
+  retry: false as const,
+  refetchOnWindowFocus: false as const,
+  refetchOnReconnect: false as const,
 };
 
 // ---------------------------------------------------------------------------
@@ -227,6 +257,70 @@ export function usePlaybookConceptBySlug(
   });
 }
 
+export function usePlaybookConceptById(conceptId: string | undefined) {
+  return useQuery<PlaybookConceptRecord | null, Error>({
+    queryKey: KEYS.conceptById(conceptId ?? ''),
+    queryFn: () => getConceptById(conceptId!),
+    enabled: Boolean(conceptId),
+  });
+}
+
+export function usePlaybookInsights(interestId: string | undefined) {
+  const { user } = useAuth();
+  return useQuery<PlaybookInsightRecord[], Error>({
+    queryKey: KEYS.insights(user?.id ?? '', interestId ?? ''),
+    queryFn: () => getRecentInsights(user!.id, interestId ?? null),
+    enabled: Boolean(user?.id) && Boolean(interestId),
+    ...PHASE6_REMOTE_QUERY_OPTIONS,
+  });
+}
+
+export function useLifecycleConcepts(interestId: string | undefined) {
+  const { user } = useAuth();
+  return useQuery<Phase6ConceptRecord[], Error>({
+    queryKey: KEYS.lifecycleConcepts(user?.id ?? '', interestId ?? ''),
+    queryFn: () => getLifecycleConcepts(user!.id, interestId!),
+    enabled: Boolean(user?.id) && Boolean(interestId),
+    ...PHASE6_REMOTE_QUERY_OPTIONS,
+  });
+}
+
+export function useConceptTrailQuotes(conceptId: string | undefined) {
+  return useQuery<ConceptTrailQuoteRecord[], Error>({
+    queryKey: KEYS.conceptQuotes(conceptId ?? ''),
+    queryFn: () => getConceptTrailQuotes(conceptId!),
+    enabled: Boolean(conceptId),
+    ...PHASE6_REMOTE_QUERY_OPTIONS,
+  });
+}
+
+export function useConceptTestedSteps(conceptId: string | undefined) {
+  return useQuery<any[], Error>({
+    queryKey: KEYS.conceptSteps(conceptId ?? ''),
+    queryFn: () => getConceptTestedSteps(conceptId!),
+    enabled: Boolean(conceptId),
+    ...PHASE6_REMOTE_QUERY_OPTIONS,
+  });
+}
+
+export function useConceptCapabilityChips(conceptId: string | undefined) {
+  return useQuery<string[], Error>({
+    queryKey: KEYS.conceptCapabilities(conceptId ?? ''),
+    queryFn: () => getConceptCapabilityChips(conceptId!),
+    enabled: Boolean(conceptId),
+    ...PHASE6_REMOTE_QUERY_OPTIONS,
+  });
+}
+
+export function useStepConceptLinks(stepId: string | undefined) {
+  return useQuery<StepConceptLinkRecord[], Error>({
+    queryKey: KEYS.stepConceptLinks(stepId ?? ''),
+    queryFn: () => getStepConceptLinks(stepId!),
+    enabled: Boolean(stepId),
+    ...PHASE6_REMOTE_QUERY_OPTIONS,
+  });
+}
+
 export function useCreatePlaybookConcept() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -270,6 +364,97 @@ export function useDeletePlaybookConcept() {
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: KEYS.concepts(variables.playbookId) });
       queryClient.invalidateQueries({ queryKey: KEYS.sectionCounts(variables.playbookId) });
+    },
+  });
+}
+
+export function useDiscardPlaybookInsight(interestId: string | undefined) {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+  return useMutation<void, Error, { insightId: string }>({
+    mutationFn: ({ insightId }) => discardInsight(insightId),
+    onSuccess: () => {
+      if (user?.id && interestId) {
+        queryClient.invalidateQueries({ queryKey: KEYS.insights(user.id, interestId) });
+      }
+    },
+  });
+}
+
+export function useRefinePlaybookInsight(interestId: string | undefined, playbookId: string | undefined) {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+  return useMutation<PlaybookConceptRecord, Error, { insightId: string }>({
+    mutationFn: ({ insightId }) => {
+      if (!user?.id || !interestId || !playbookId) {
+        throw new Error('Missing user, interest, or playbook');
+      }
+      return refineInsightToConcept({
+        userId: user.id,
+        playbookId,
+        insightId,
+        interestId,
+      });
+    },
+    onSuccess: () => {
+      if (user?.id && interestId) {
+        queryClient.invalidateQueries({ queryKey: KEYS.insights(user.id, interestId) });
+        queryClient.invalidateQueries({ queryKey: KEYS.lifecycleConcepts(user.id, interestId) });
+      }
+      if (playbookId) {
+        queryClient.invalidateQueries({ queryKey: KEYS.concepts(playbookId) });
+      }
+    },
+  });
+}
+
+export function useLinkConceptToStep() {
+  const queryClient = useQueryClient();
+  return useMutation<void, Error, { stepId: string; conceptId: string; interestId?: string; userId?: string }>({
+    mutationFn: ({ stepId, conceptId }) => linkConceptToStep(stepId, conceptId),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: KEYS.stepConceptLinks(variables.stepId) });
+      if (variables.userId && variables.interestId) {
+        queryClient.invalidateQueries({
+          queryKey: KEYS.lifecycleConcepts(variables.userId, variables.interestId),
+        });
+      }
+    },
+  });
+}
+
+export function useAddConceptTrailQuote(conceptId: string | undefined) {
+  const queryClient = useQueryClient();
+  return useMutation<
+    ConceptTrailQuoteRecord,
+    Error,
+    { captureId: string; quoteText: string; sourceLabel: string }
+  >({
+    mutationFn: ({ captureId, quoteText, sourceLabel }) =>
+      addConceptTrailQuote({
+        conceptId: conceptId!,
+        captureId,
+        quoteText,
+        sourceLabel,
+      }),
+    onSuccess: () => {
+      if (conceptId) {
+        queryClient.invalidateQueries({ queryKey: KEYS.conceptQuotes(conceptId) });
+        queryClient.invalidateQueries({ queryKey: KEYS.conceptById(conceptId) });
+      }
+    },
+  });
+}
+
+export function usePromoteConceptToSettled(conceptId: string | undefined) {
+  const queryClient = useQueryClient();
+  return useMutation<void, Error, void>({
+    mutationFn: () => promoteConceptToSettled(conceptId!),
+    onSuccess: () => {
+      if (conceptId) {
+        queryClient.invalidateQueries({ queryKey: KEYS.conceptById(conceptId) });
+        queryClient.invalidateQueries({ queryKey: KEYS.conceptSteps(conceptId) });
+      }
     },
   });
 }

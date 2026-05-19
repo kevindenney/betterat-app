@@ -48,19 +48,34 @@ import {
   type PhaseState,
   type StatePillVariant,
 } from '@/components/step-loop';
-import { GRAY_6 } from '@/lib/design-tokens-step-loop-ios';
+import { WithRow } from './plan-tab';
+import { GRAY_6, LABEL_2 } from '@/lib/design-tokens-step-loop-ios';
+import { useUniversalPlus } from '@/components/capture';
+import { Plus as PlusIcon } from 'lucide-react-native';
+import { useShareStep } from '@/hooks/useShareStep';
+import { ShareStepSheet } from '@/components/share';
+import { StepBlueprintChrome } from './StepBlueprintChrome';
+import { StepDiscussionPeek } from './StepDiscussionPeek';
+import { useStepBlueprintChrome } from '@/hooks/useStepBlueprintChrome';
+import { useStepDiscussionPeek } from '@/hooks/useStepDiscussionPeek';
+import { useStepCompleteCelebration } from '@/hooks/useStepCompleteCelebration';
+import { useContinueToNextBlueprintStep } from '@/hooks/useContinueToNextBlueprintStep';
+import { StepDiscussionInline } from './StepDiscussionInline';
+import { StepCompleteCelebration } from './StepCompleteCelebration';
 
-type TabValue = 'plan' | 'act' | 'review';
+type TabValue = 'plan' | 'act' | 'review' | 'discussion';
 
 const PHASE_TO_TAB: Record<PhaseId, TabValue> = {
   plan: 'plan',
   do: 'act',
   reflect: 'review',
+  discussion: 'discussion',
 };
 const TAB_TO_PHASE: Record<TabValue, PhaseId> = {
   plan: 'plan',
   act: 'do',
   review: 'reflect',
+  discussion: 'discussion',
 };
 
 function deriveStatePill(
@@ -96,13 +111,65 @@ function getDefaultTab(status?: TimelineStepStatus): TabValue {
 interface StepDetailContentProps {
   stepId: string;
   readOnly?: boolean;
+  /** Optional initial active tab override (e.g. from ?tab=discussion query). */
+  initialTab?: TabValue;
 }
 
-export function StepDetailContent({ stepId, readOnly: readOnlyProp }: StepDetailContentProps) {
+export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab }: StepDetailContentProps) {
+  const universalPlus = useUniversalPlus();
+  const shareStep = useShareStep();
   const { user } = useAuth();
   const { currentInterest } = useInterest();
 
   const { data: step, isLoading, error } = useStepDetail(stepId);
+
+  // Phase 10 PR-3 — chrome rendered above Plan/Do/Reflect for steps that
+  // came from a subscribed blueprint. Hook returns null when the step has
+  // no source_blueprint_id, so the chrome simply doesn't render for
+  // non-subscribed steps.
+  const { data: blueprintChrome } = useStepBlueprintChrome(stepId);
+  const subscribedStepChromeFlagOn = FEATURE_FLAGS.SUBSCRIBED_STEP_CHROME_V1;
+  const showBlueprintChrome = subscribedStepChromeFlagOn && Boolean(blueprintChrome);
+  const goBlueprintIndex = useCallback(() => {
+    if (!blueprintChrome) return;
+    router.push(`/(tabs)/playbook/blueprints/${blueprintChrome.blueprintId}/all-steps` as any);
+  }, [blueprintChrome]);
+  const goFleetView = useCallback(() => {
+    if (!blueprintChrome) return;
+    router.push(`/practice/blueprint/${blueprintChrome.blueprintId}/fleet` as any);
+  }, [blueprintChrome]);
+
+  // Phase 10 PR-2 — Discussion peek on the step screen. Hook returns null
+  // when the step has no notes, so the strip is purely additive.
+  const { data: discussionPeek } = useStepDiscussionPeek(stepId);
+  const showDiscussionPeek =
+    FEATURE_FLAGS.STEP_DISCUSSION_V1 && Boolean(discussionPeek);
+  const goDiscussion = useCallback(() => {
+    // Switch the active tab to Discussion (4th tab). The fullscreen
+    // /practice/step/[id]/discussion route stays available but the peek now
+    // surfaces the discussion inline next to Plan/Do/Reflect.
+    setActiveTab('discussion');
+  }, [setActiveTab]);
+
+  // Phase 10 PR-4 — step-complete celebration data. Resolves whenever this
+  // is a subscribed-blueprint step; we gate rendering at the tab body on
+  // step.status === 'completed'.
+  const stepSourceId =
+    (step as { source_id?: string | null } | null)?.source_id ?? null;
+  const { data: celebrationData, isLoading: celebrationLoading } =
+    useStepCompleteCelebration({
+      stepId,
+      blueprintId: blueprintChrome?.blueprintId ?? null,
+      sourceStepId: stepSourceId,
+    });
+  const continueNext = useContinueToNextBlueprintStep({
+    blueprintId: blueprintChrome?.blueprintId ?? null,
+    interestId: step?.interest_id ?? null,
+    nextSourceStepId: celebrationData?.next?.sourceStepId ?? null,
+    alreadyAdoptedStepId: celebrationData?.next?.alreadyAdoptedStepId ?? null,
+  });
+  const showCelebration =
+    Boolean(blueprintChrome) && (step?.status === 'completed');
 
   // Use the step's own interest for vocabulary so labels match the step's
   // domain (e.g. sail-racing labels for a sailing step, even when the viewer's
@@ -197,7 +264,10 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp }: StepDetail
   }, [stepId]);
 
   // Default tab based on step status
-  const defaultTab = useMemo(() => getDefaultTab(step?.status), [step?.status]);
+  const defaultTab = useMemo(
+    () => initialTab ?? getDefaultTab(step?.status),
+    [initialTab, step?.status],
+  );
   const [activeTab, setActiveTab] = usePillTabs<TabValue>(defaultTab);
 
   const metadata = (step?.metadata ?? {}) as StepMetadata;
@@ -893,7 +963,28 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp }: StepDetail
 
   // Shared tab body — the actual PlanTab / ActTab / ReviewTab interior. The
   // brief is explicit that this content is unchanged across flag states.
-  const tabBodyJsx = (
+  const tabBodyJsx = showCelebration && activeTab !== 'discussion' ? (
+    <StepCompleteCelebration
+      stepNumber={blueprintChrome?.stepNumber ?? null}
+      totalSteps={blueprintChrome?.totalSteps ?? null}
+      stepTitle={step?.title ?? 'This step'}
+      sessionCount={celebrationData?.sessionCount ?? 0}
+      fleet={
+        celebrationData?.fleet ?? { ahead: 0, sameStep: 0, behind: 0 }
+      }
+      next={
+        celebrationData?.next
+          ? {
+              stepNumber: celebrationData.next.stepNumber,
+              title: celebrationData.next.title,
+            }
+          : null
+      }
+      isLoadingNext={celebrationLoading || !stepSourceId}
+      onContinue={continueNext.handleContinue}
+      isContinuing={continueNext.isContinuing}
+    />
+  ) : (
     <>
       {/* AI review overlay — shown when AI structures brain dump */}
       {activeTab === 'plan' && isOwner && showAiReview && aiReviewPlan && (
@@ -936,6 +1027,7 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp }: StepDetail
         <ActTab stepId={stepId} dateEnrichment={planData.date_enrichment} onNextTab={() => handleNextTab('review')} readOnly={!isOwner} footer={commentsFooter} interestId={step.interest_id} interestName={currentInterest?.name} interestSlug={currentInterest?.slug} />
       )}
       {activeTab === 'review' && <ReviewTab stepId={stepId} readOnly={!isOwner} footer={commentsFooter} />}
+      {activeTab === 'discussion' && <StepDiscussionInline stepId={stepId} />}
     </>
   );
 
@@ -955,15 +1047,76 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp }: StepDetail
     const stepStripPrimary = vocab('Learning Event');
     const stepStripSecondary = step.category ? String(step.category).replace(/_/g, ' ') : undefined;
 
+    // Phase 1 · D12b — quiet WITH row beneath the title block. Sails: pulls
+    // from existing collaborators[]. Fleet/cohort plumbing is out of scope
+    // for Phase 1 (no schema changes), so the row renders only when there
+    // are collaborators to show.
+    const withRowCrew = (serverPlanData.collaborators ?? [])
+      .filter((c) => c.display_name?.trim())
+      .map((c) => {
+        const initials = c.display_name
+          .split(/\s+/)
+          .map((part) => part[0] ?? '')
+          .join('')
+          .slice(0, 2) || c.display_name.slice(0, 2);
+        return {
+          id: c.user_id || c.id,
+          initials,
+          avatarColor: c.avatar_color,
+        };
+      });
+
     return (
       <View style={[styles.container, stepLoopShellStyles.screen]}>
         <TopHeader
           interestName={currentInterest?.name ?? undefined}
           stepCounter={step.title ? undefined : 'Step'}
+          rightCluster={
+            universalPlus.isAvailable ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Add"
+                onPress={universalPlus.open}
+                hitSlop={8}
+                style={styles.topPlusButton}
+              >
+                <PlusIcon size={20} color={LABEL_2} strokeWidth={2} />
+              </Pressable>
+            ) : null
+          }
         />
+        {showBlueprintChrome && blueprintChrome ? (
+          <StepBlueprintChrome
+            blueprintShortName={blueprintChrome.blueprintShortName}
+            positionLine={
+              blueprintChrome.stepNumber != null
+                ? `Step ${blueprintChrome.stepNumber} of ${blueprintChrome.totalSteps}`
+                : `${blueprintChrome.totalSteps} steps`
+            }
+            blueprintTitle={blueprintChrome.blueprintTitle}
+            authorName={blueprintChrome.authorName}
+            fleetCount={blueprintChrome.subscriberCount}
+            onTapBlueprintStrip={goBlueprintIndex}
+            onTapFleetChip={goFleetView}
+          />
+        ) : null}
+        {showDiscussionPeek && discussionPeek ? (
+          <StepDiscussionPeek
+            noteCount={discussionPeek.noteCount}
+            latestSnippet={discussionPeek.latest.body}
+            latestAuthorName={discussionPeek.latest.authorName}
+            onPress={goDiscussion}
+          />
+        ) : null}
         <StepCard
           pill={<StatePill variant={pillSpec.variant} label={pillSpec.label} />}
-          onMenuPress={() => router.push('/library')}
+          onMenuPress={() =>
+            shareStep.open({
+              id: step.id,
+              title: step.title ?? `${vocab('Learning Event')}`,
+              body: step.description ?? '',
+            })
+          }
           stepStrip={
             <StepStrip
               icon="flag-3"
@@ -972,11 +1125,28 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp }: StepDetail
             />
           }
           titleBlock={headerInner}
+          belowTitle={
+            withRowCrew.length > 0 ? (
+              <WithRow
+                crew={withRowCrew}
+                onFleetPress={() => router.push(`/practice/step/${step.id}/fleet` as any)}
+              />
+            ) : null
+          }
           phaseTabs={
             <PhaseTabs
               plan={planPhase}
               do={doPhase}
               reflect={reflectPhase}
+              discussion={
+                showBlueprintChrome
+                  ? activePhase === 'discussion'
+                    ? 'live'
+                    : (discussionPeek?.noteCount ?? 0) > 0
+                      ? 'ready'
+                      : 'pending'
+                  : undefined
+              }
               active={activePhase}
               onTabPress={(tab) => setActiveTab(PHASE_TO_TAB[tab])}
               labels={{
@@ -989,6 +1159,16 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp }: StepDetail
         >
           <View style={styles.tabContent}>{tabBodyJsx}</View>
         </StepCard>
+        <ShareStepSheet
+          visible={shareStep.visible}
+          step={shareStep.step ?? { id: '', title: '', body: '' }}
+          recentRecipients={shareStep.recentRecipients}
+          defaultGroup={shareStep.defaultGroup}
+          onShareDirect={shareStep.shareDirect}
+          onShareToGroup={shareStep.shareToGroup}
+          onCopyLink={shareStep.copyLink}
+          onDismiss={shareStep.close}
+        />
       </View>
     );
   }
@@ -1158,6 +1338,12 @@ const styles = StyleSheet.create({
   },
   tabContent: {
     flex: 1,
+  },
+  topPlusButton: {
+    width: 32,
+    height: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   autoSaveIndicator: {
     flexDirection: 'row',

@@ -1,0 +1,2056 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=1720" />
+<title>BetterAt · Network Timelines · Add · Share · Fleet view · Do revised — Canonical · 2026-05-17</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css" />
+<link rel="stylesheet" href="legacy-reskin-common.css?v=1" />
+<style>
+  .page { min-width: 1720px; }
+
+  /* ============= Section framing ============= */
+  .section-band { max-width: 1660px; margin: 80px auto 0; padding-top: 36px; border-top: 0.5px solid var(--stage-line); }
+  .section-band:first-of-type { margin-top: 24px; border-top: 0; padding-top: 0; }
+  .section-band h2 {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 24px; font-weight: 500; letter-spacing: -0.3px;
+    color: var(--stage-ink); margin: 0 0 8px;
+  }
+  .section-band h2 em { font-style: italic; }
+  .section-band h2 .badge {
+    display: inline-block;
+    background: var(--ios-blue-tint); color: var(--ios-blue-deep);
+    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 10.5px; font-weight: 700; letter-spacing: 0.7px;
+    text-transform: uppercase;
+    padding: 3px 8px; border-radius: 999px;
+    vertical-align: 4px; margin-right: 10px;
+  }
+  .section-band .lede {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 15px; line-height: 1.55;
+    color: var(--stage-text); margin: 0 0 28px;
+    max-width: 1080px; text-wrap: pretty;
+  }
+  .section-band .lede em { font-style: italic; }
+  .section-band .lede strong { color: var(--stage-ink); font-weight: 500; }
+
+  /* ============= Decisions bar ============= */
+  .decisions-bar {
+    max-width: 1660px;
+    margin: 32px auto 0;
+    padding: 22px 24px;
+    background: rgba(255,255,255,0.55);
+    border: 0.5px solid var(--stage-line);
+    border-radius: 14px;
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 24px;
+  }
+  .decisions-bar .dec h5 {
+    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 10.5px; font-weight: 700;
+    color: var(--ios-purple-deep); letter-spacing: 0.7px;
+    text-transform: uppercase; margin: 0 0 6px;
+  }
+  .decisions-bar .dec p {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 12.5px; line-height: 1.5;
+    color: var(--stage-text); margin: 0;
+    text-wrap: pretty;
+  }
+  .decisions-bar .dec p strong { color: var(--stage-ink); font-weight: 500; }
+  .decisions-bar .dec p em { font-style: italic; }
+
+  /* Pane primitives — reused */
+  .triple-row, .pair-row, .single-row {
+    display: grid; gap: 24px;
+    align-items: flex-start; justify-content: center;
+    max-width: 1660px; margin: 0 auto;
+  }
+  .triple-row  { grid-template-columns: repeat(3, 1fr); }
+  .pair-row    { grid-template-columns: 1fr 1fr; }
+  .single-row  { grid-template-columns: 1fr; }
+  .pane { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+  .pane .pane-eye {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-size: 10.5px; font-weight: 700;
+    letter-spacing: 0.9px; text-transform: uppercase;
+    color: var(--stage-text);
+  }
+  .pane .pane-eye .pip {
+    width: 8px; height: 8px; border-radius: 50%; background: var(--ios-blue);
+  }
+  .pane.blueprint .pane-eye .pip { background: var(--ios-blue); }
+  .pane.peers     .pane-eye .pip { background: var(--ios-green); }
+  .pane.follow    .pane-eye .pip { background: var(--ios-purple); }
+  .pane.sheet     .pane-eye .pip { background: var(--ios-amber); }
+  .pane.fleet     .pane-eye .pip { background: var(--ios-coral); }
+  .pane.do-rev    .pane-eye .pip { background: var(--ios-coral); }
+
+  .pane .pane-title {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 17px; font-weight: 500; letter-spacing: -0.25px;
+    color: var(--stage-ink); margin: 0;
+    text-wrap: balance; text-align: center;
+  }
+  .pane .pane-title em { font-style: italic; }
+  .pane .pane-sub {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 12.5px; font-style: italic;
+    color: var(--stage-text); margin: 0; line-height: 1.45;
+    max-width: 360px; text-wrap: pretty; text-align: center;
+  }
+
+  /* ==========================================================
+     Network timeline browsing — three variants share grammar
+     ========================================================== */
+  .net-screen .top-header .right-cluster {
+    display: inline-flex; align-items: center; gap: 12px;
+  }
+  .net-screen .top-header .right-cluster .ic {
+    background: none; border: 0; padding: 0;
+    color: var(--label-2);
+    position: relative;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .net-screen .top-header .right-cluster .ic i { font-size: 19px; }
+
+  /* Net hero (the page intro per variant) */
+  .net-hero {
+    padding: 12px 18px 14px;
+    border-bottom: 0.5px solid var(--gray-5);
+    background: #FFFFFF;
+  }
+  .net-hero .source-row {
+    display: flex; align-items: center; gap: 10px;
+    margin: 0 0 10px;
+  }
+  .net-hero .source-row .author-av {
+    width: 32px; height: 32px; border-radius: 50%;
+    background: linear-gradient(135deg, #4E6A85 0%, #7C7B6E 100%);
+    color: #fff;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 700;
+    flex-shrink: 0;
+  }
+  .net-hero .source-row .author-av.green { background: linear-gradient(135deg, #5A8C6A 0%, #3E6C4E 100%); }
+  .net-hero .source-row .author-av.purple { background: linear-gradient(135deg, #7C5E9A 0%, #5C3F7A 100%); }
+  .net-hero .source-row .by-line .who {
+    font-size: 13.5px; font-weight: 600;
+    color: var(--label); letter-spacing: -0.15px;
+    line-height: 1.1;
+  }
+  .net-hero .source-row .by-line .sub {
+    font-size: 11px; color: var(--label-3);
+    letter-spacing: -0.05px;
+    margin-top: 2px;
+  }
+  .net-hero .source-row .by-line .sub .em { color: var(--label-2); font-weight: 500; }
+  .net-hero .source-row .follow-btn {
+    margin-left: auto;
+    background: var(--ios-blue); color: #fff;
+    border: 0; border-radius: 999px;
+    padding: 6px 12px;
+    font-size: 12px; font-weight: 600;
+    letter-spacing: -0.05px;
+    display: inline-flex; align-items: center; gap: 4px;
+  }
+  .net-hero .source-row .follow-btn i { font-size: 12px; }
+  .net-hero .source-row .follow-btn.following {
+    background: var(--gray-6); color: var(--label-2);
+    border: 0.5px solid var(--gray-4);
+  }
+  .net-hero h1 {
+    font-size: 19px; font-weight: 600;
+    color: var(--label); letter-spacing: -0.35px;
+    margin: 0 0 4px; line-height: 1.18;
+    text-wrap: balance;
+  }
+  .net-hero .meta {
+    font-size: 11.5px; color: var(--label-3);
+    letter-spacing: -0.05px;
+    margin: 0;
+  }
+  .net-hero .meta .em { color: var(--label-2); font-weight: 500; }
+
+  /* Filter chips strip */
+  .filter-strip {
+    display: flex; gap: 6px;
+    padding: 10px 18px 12px;
+    background: #FFFFFF;
+    border-bottom: 0.5px solid var(--gray-5);
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .filter-strip::-webkit-scrollbar { display: none; }
+  .filter-strip .chip {
+    flex-shrink: 0;
+    padding: 5px 11px;
+    border-radius: 999px;
+    background: var(--gray-6);
+    border: 0.5px solid var(--gray-5);
+    font-size: 11.5px; font-weight: 500;
+    color: var(--label-2); letter-spacing: -0.05px;
+  }
+  .filter-strip .chip.on {
+    background: var(--ios-blue);
+    color: #fff;
+    border-color: var(--ios-blue);
+  }
+
+  /* Step-card mini list (the timeline view inside the card) */
+  .timeline-list {
+    flex: 1;
+    overflow-y: auto;
+    background: var(--gray-6);
+    padding: 10px 12px 14px;
+    display: flex; flex-direction: column; gap: 8px;
+    scrollbar-width: none;
+  }
+  .timeline-list::-webkit-scrollbar { display: none; }
+  .ts-card {
+    background: #FFFFFF;
+    border: 0.5px solid var(--gray-5);
+    border-radius: 12px;
+    padding: 10px 12px;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    column-gap: 8px;
+    row-gap: 4px;
+  }
+  .ts-card .ts-pill {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 2px 8px 2px 6px;
+    border-radius: 999px;
+    font-size: 9px; font-weight: 700;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    align-self: flex-start;
+  }
+  .ts-card .ts-pill .dot {
+    width: 5px; height: 5px; border-radius: 50%;
+  }
+  .ts-card .ts-pill.blue   { background: var(--ios-blue-tint);   color: var(--ios-blue-deep); border: 0.5px solid var(--ios-blue-strong); }
+  .ts-card .ts-pill.blue .dot { background: var(--ios-blue); }
+  .ts-card .ts-pill.green  { background: var(--ios-green-tint);  color: var(--ios-green-deep); border: 0.5px solid var(--ios-green-soft); }
+  .ts-card .ts-pill.green .dot { background: var(--ios-green); }
+  .ts-card .ts-pill.coral  { background: var(--ios-coral-tint);  color: var(--ios-coral-deep); border: 0.5px solid var(--ios-coral-soft); }
+  .ts-card .ts-pill.coral .dot { background: var(--ios-coral); }
+  .ts-card .ts-pill.gray   { background: var(--gray-6);          color: var(--label-2);      border: 0.5px solid var(--gray-5); }
+  .ts-card .ts-pill.gray .dot { background: var(--gray-2); }
+  .ts-card .ts-pill.purple { background: var(--ios-purple-tint); color: var(--ios-purple-deep); border: 0.5px solid var(--ios-purple-soft); }
+  .ts-card .ts-pill.purple .dot { background: var(--ios-purple); }
+  .ts-card .add-btn {
+    grid-column: 2; grid-row: 1 / span 3;
+    align-self: center;
+    background: var(--ios-blue);
+    color: #fff;
+    border: 0; border-radius: 999px;
+    padding: 5px 10px 5px 8px;
+    font-size: 11px; font-weight: 600;
+    display: inline-flex; align-items: center; gap: 3px;
+    letter-spacing: -0.05px;
+  }
+  .ts-card .add-btn i { font-size: 12px; }
+  .ts-card .add-btn.added {
+    background: var(--ios-green-tint);
+    color: var(--ios-green-deep);
+    border: 0.5px solid var(--ios-green-soft);
+  }
+  .ts-card .ttl {
+    font-size: 13.5px; font-weight: 600;
+    color: var(--label); letter-spacing: -0.15px;
+    margin: 0; line-height: 1.2;
+  }
+  .ts-card .ttl-meta {
+    font-size: 10.5px; color: var(--label-3);
+    letter-spacing: -0.05px;
+  }
+  .ts-card .ttl-meta .em { color: var(--label-2); font-weight: 500; }
+  .ts-card .caps {
+    display: flex; gap: 4px; flex-wrap: wrap;
+    margin-top: 2px;
+  }
+  .ts-card .caps .cap-chip {
+    font-size: 9.5px; font-weight: 500;
+    background: var(--ios-purple-tint);
+    color: var(--ios-purple-deep);
+    border-radius: 999px;
+    padding: 1px 7px;
+    border: 0.5px solid var(--ios-purple-soft);
+  }
+
+  /* Co-practitioner row variant */
+  .co-row {
+    background: #FFFFFF;
+    border: 0.5px solid var(--gray-5);
+    border-radius: 12px;
+    padding: 10px 12px;
+    display: grid;
+    grid-template-columns: 32px 1fr auto;
+    column-gap: 10px;
+    align-items: center;
+  }
+  .co-row .av {
+    width: 32px; height: 32px; border-radius: 50%;
+    background: linear-gradient(135deg, #4E6A85 0%, #7C7B6E 100%);
+    color: #fff;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 700;
+  }
+  .co-row .av.g  { background: linear-gradient(135deg, #5A8C6A 0%, #3E6C4E 100%); }
+  .co-row .av.p  { background: linear-gradient(135deg, #7C5E9A 0%, #5C3F7A 100%); }
+  .co-row .av.h  { background: linear-gradient(135deg, #6B5E48 0%, #4A3F2E 100%); }
+  .co-row .who {
+    font-size: 13px; font-weight: 600;
+    color: var(--label); letter-spacing: -0.1px;
+    margin: 0;
+  }
+  .co-row .status {
+    font-size: 11px; color: var(--label-3);
+    letter-spacing: -0.05px;
+    margin: 2px 0 0;
+  }
+  .co-row .status .em { color: var(--label-2); font-weight: 500; }
+  .co-row .view-btn {
+    background: none; border: 0; padding: 4px 8px;
+    color: var(--ios-blue);
+    font-size: 12px; font-weight: 500;
+  }
+
+  /* ============ Add to timeline sheet ============ */
+  .sheet-screen .scrim-card {
+    position: absolute;
+    top: 64px; left: 14px; right: 14px; bottom: 420px;
+    background: rgba(255, 255, 255, 0.40);
+    border-radius: 22px;
+    overflow: hidden;
+  }
+  .add-sheet {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    background: #FFFFFF;
+    border-top-left-radius: 18px;
+    border-top-right-radius: 18px;
+    box-shadow: 0 -20px 60px -20px rgba(0,0,0,0.28);
+    padding: 6px 18px 28px;
+    z-index: 30;
+  }
+  .add-sheet .handle {
+    width: 36px; height: 5px; border-radius: 3px;
+    background: var(--gray-4);
+    margin: 4px auto 14px;
+  }
+  .add-sheet .ttl {
+    font-size: 15px; font-weight: 600;
+    color: var(--label); letter-spacing: -0.2px;
+    text-align: center; margin: 0 0 4px;
+  }
+  .add-sheet .sub {
+    font-size: 12px; color: var(--label-3);
+    text-align: center; font-style: italic;
+    margin: 0 0 14px;
+  }
+  .preview-card {
+    background: var(--gray-6);
+    border: 0.5px solid var(--gray-5);
+    border-radius: 12px;
+    padding: 11px 12px;
+    margin: 0 0 14px;
+  }
+  .preview-card .src {
+    font-size: 9.5px; font-weight: 700;
+    color: var(--label-3); letter-spacing: 0.6px;
+    text-transform: uppercase;
+    margin: 0 0 6px;
+    display: inline-flex; align-items: center; gap: 5px;
+  }
+  .preview-card .src i { font-size: 11px; }
+  .preview-card .ttl-p {
+    font-size: 14px; font-weight: 600;
+    color: var(--label); letter-spacing: -0.15px;
+    margin: 0 0 4px; line-height: 1.2;
+  }
+  .preview-card .body-p {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 12.5px; line-height: 1.4;
+    color: var(--label-2); letter-spacing: -0.05px;
+    margin: 0 0 8px; font-style: italic;
+  }
+  .preview-card .caps {
+    display: flex; gap: 4px; flex-wrap: wrap;
+  }
+  .preview-card .caps .c {
+    font-size: 9.5px; font-weight: 500;
+    background: var(--ios-purple-tint);
+    color: var(--ios-purple-deep);
+    border-radius: 999px;
+    padding: 1px 7px;
+    border: 0.5px solid var(--ios-purple-soft);
+  }
+
+  .placement-eye {
+    font-size: 9.5px; font-weight: 700;
+    color: var(--label-2); letter-spacing: 0.9px;
+    text-transform: uppercase;
+    margin: 8px 0 8px;
+  }
+  .placement-list {
+    display: flex; flex-direction: column; gap: 0;
+  }
+  .placement-row {
+    display: grid;
+    grid-template-columns: 24px 1fr 18px;
+    column-gap: 11px;
+    align-items: center;
+    padding: 10px 4px;
+    border-bottom: 0.5px solid var(--gray-5);
+  }
+  .placement-row:last-of-type { border-bottom: 0; }
+  .placement-row.on {
+    background: var(--ios-blue-tint);
+    margin: 0 -8px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    border-bottom: 0;
+  }
+  .placement-row .ic {
+    width: 24px; height: 24px; border-radius: 6px;
+    background: var(--gray-6);
+    color: var(--label-2);
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .placement-row .ic i { font-size: 13px; }
+  .placement-row.on .ic { background: var(--ios-blue); color: #fff; }
+  .placement-row .nm {
+    font-size: 13.5px; font-weight: 600;
+    color: var(--label); letter-spacing: -0.1px;
+    margin: 0; line-height: 1.15;
+  }
+  .placement-row .sub-l {
+    font-size: 10.5px; color: var(--label-3);
+    letter-spacing: -0.05px;
+    margin: 1px 0 0;
+  }
+  .placement-row .radio {
+    width: 18px; height: 18px; border-radius: 50%;
+    border: 1.5px solid var(--gray-3);
+  }
+  .placement-row.on .radio {
+    background: var(--ios-blue); border-color: var(--ios-blue);
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .placement-row.on .radio::after {
+    content: ""; width: 6px; height: 6px; border-radius: 50%; background: #fff;
+  }
+  .add-cta {
+    width: 100%;
+    background: var(--ios-blue);
+    color: #fff;
+    border: 0; border-radius: 14px;
+    padding: 13px 16px;
+    font-size: 14.5px; font-weight: 600;
+    letter-spacing: -0.2px;
+    margin: 14px 0 0;
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  }
+  .save-deck {
+    text-align: center;
+    margin-top: 10px;
+    font-size: 12.5px; color: var(--ios-blue);
+    font-weight: 500;
+  }
+  .save-deck i { font-size: 13px; vertical-align: -1px; margin-right: 3px; }
+
+  /* On-deck strip — small zone showing held items */
+  .deck-bar {
+    position: absolute;
+    top: 64px;
+    left: 14px; right: 14px;
+    background: #FFFBF0;
+    border: 0.5px solid #EAE0C3;
+    border-radius: 14px;
+    padding: 10px 12px;
+    z-index: 25;
+  }
+  .deck-bar .eye {
+    font-size: 9.5px; font-weight: 700;
+    color: var(--ios-amber); letter-spacing: 0.9px;
+    text-transform: uppercase;
+    margin: 0 0 6px;
+    display: inline-flex; align-items: center; gap: 5px;
+  }
+  .deck-bar .eye i { font-size: 11px; }
+  .deck-row {
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    column-gap: 8px;
+    align-items: center;
+    padding: 6px 0;
+    border-bottom: 0.5px dashed rgba(194, 138, 42, 0.18);
+  }
+  .deck-row:last-child { border-bottom: 0; }
+  .deck-row .nm {
+    font-size: 12px; font-weight: 600;
+    color: var(--label); letter-spacing: -0.1px;
+  }
+  .deck-row .from {
+    font-size: 10px; color: var(--label-3);
+    letter-spacing: -0.05px;
+    margin-top: 1px;
+  }
+  .deck-row .from .em { color: var(--label-2); font-weight: 500; }
+  .deck-row .place-btn {
+    font-size: 11px; font-weight: 600;
+    color: var(--ios-blue); background: none; border: 0; padding: 4px 8px;
+  }
+  .deck-row .discard-btn {
+    font-size: 11px; color: var(--label-3); background: none; border: 0; padding: 4px 6px;
+  }
+
+  /* ============ Share-a-step sheet ============ */
+  .share-step-sheet {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    background: #FFFFFF;
+    border-top-left-radius: 18px; border-top-right-radius: 18px;
+    box-shadow: 0 -20px 60px -20px rgba(0,0,0,0.28);
+    padding: 6px 18px 28px;
+    z-index: 30;
+  }
+  .share-step-sheet .handle {
+    width: 36px; height: 5px; border-radius: 3px;
+    background: var(--gray-4);
+    margin: 4px auto 14px;
+  }
+  .share-step-sheet .ttl {
+    font-size: 15px; font-weight: 600;
+    color: var(--label); letter-spacing: -0.2px;
+    text-align: center; margin: 0 0 4px;
+  }
+  .share-step-sheet .sub {
+    font-size: 12px; color: var(--label-3);
+    text-align: center; font-style: italic;
+    margin: 0 0 14px;
+  }
+  .share-mode-row {
+    display: grid;
+    grid-template-columns: 38px 1fr 14px;
+    column-gap: 12px;
+    align-items: center;
+    padding: 12px 4px;
+    border-bottom: 0.5px solid var(--gray-5);
+  }
+  .share-mode-row:last-of-type { border-bottom: 0; }
+  .share-mode-row .ic {
+    width: 38px; height: 38px; border-radius: 10px;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .share-mode-row .ic i { font-size: 18px; }
+  .share-mode-row.r-direct .ic { background: var(--ios-blue-tint); color: var(--ios-blue-deep); }
+  .share-mode-row.r-group .ic { background: var(--ios-green-tint); color: var(--ios-green-deep); }
+  .share-mode-row.r-link .ic { background: var(--gray-6); color: var(--label-2); }
+  .share-mode-row .nm {
+    font-size: 14px; font-weight: 600;
+    color: var(--label); letter-spacing: -0.1px;
+    margin: 0;
+  }
+  .share-mode-row .desc {
+    font-size: 11.5px; color: var(--label-3);
+    letter-spacing: -0.05px;
+    margin: 1px 0 0;
+  }
+  .share-mode-row .chev { color: var(--gray-3); font-size: 13px; }
+
+  .recent-list {
+    margin: 16px 0 6px;
+    background: var(--gray-6);
+    border-radius: 12px;
+    padding: 10px 12px;
+  }
+  .recent-list .eye {
+    font-size: 9.5px; font-weight: 700;
+    color: var(--label-3); letter-spacing: 0.9px;
+    text-transform: uppercase;
+    margin: 0 0 8px;
+  }
+  .recent-list .ppl {
+    display: flex; gap: 12px;
+  }
+  .recent-list .p {
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+  }
+  .recent-list .p .av-r {
+    width: 38px; height: 38px; border-radius: 50%;
+    background: linear-gradient(135deg, #4E6A85 0%, #7C7B6E 100%);
+    color: #fff;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 700;
+  }
+  .recent-list .p .av-r.g { background: linear-gradient(135deg, #5A8C6A 0%, #3E6C4E 100%); }
+  .recent-list .p .av-r.p { background: linear-gradient(135deg, #7C5E9A 0%, #5C3F7A 100%); }
+  .recent-list .p .av-r.h { background: linear-gradient(135deg, #6B5E48 0%, #4A3F2E 100%); }
+  .recent-list .p .nm-r {
+    font-size: 10px; color: var(--label-2);
+    letter-spacing: -0.05px;
+  }
+  .cancel-row {
+    margin: 14px 0 0;
+    border-top: 0.5px solid var(--gray-5);
+    padding-top: 14px;
+    text-align: center;
+    font-size: 14.5px; font-weight: 500;
+    color: var(--ios-blue);
+  }
+
+  /* ============ Fleet view ============ */
+  .fleet-screen .top-header { background: #FFFFFF; }
+  .fleet-hero {
+    padding: 12px 18px 14px;
+    background: #FFFFFF;
+    border-bottom: 0.5px solid var(--gray-5);
+  }
+  .fleet-hero .state-pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 10px 4px 8px;
+    border-radius: 999px;
+    background: var(--ios-coral-tint);
+    border: 0.5px solid var(--ios-coral-soft);
+    margin-bottom: 8px;
+  }
+  .fleet-hero .state-pill .dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--ios-coral);
+  }
+  .fleet-hero .state-pill .label {
+    font-size: 10.5px; font-weight: 700;
+    color: var(--ios-coral-deep); letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+  .fleet-hero h1 {
+    font-size: 19px; font-weight: 600;
+    color: var(--label); letter-spacing: -0.35px;
+    margin: 0 0 4px; line-height: 1.15;
+  }
+  .fleet-hero .meta {
+    font-size: 11.5px; color: var(--label-3);
+    letter-spacing: -0.05px;
+    margin: 0;
+  }
+  .fleet-hero .meta .em { color: var(--label-2); font-weight: 500; }
+  .fleet-hero .stats-strip {
+    display: flex; gap: 18px;
+    margin: 10px 0 0;
+    font-variant-numeric: tabular-nums;
+  }
+  .fleet-hero .stat {
+    display: flex; flex-direction: column; align-items: flex-start;
+  }
+  .fleet-hero .stat .n {
+    font-size: 17px; font-weight: 600;
+    color: var(--label); letter-spacing: -0.4px;
+  }
+  .fleet-hero .stat .l {
+    font-size: 9.5px; font-weight: 700;
+    color: var(--label-3); letter-spacing: 0.5px;
+    text-transform: uppercase; margin-top: 2px;
+  }
+
+  .fleet-stream {
+    flex: 1; overflow-y: auto;
+    background: var(--gray-6);
+    padding: 10px 12px 14px;
+    display: flex; flex-direction: column; gap: 8px;
+    scrollbar-width: none;
+  }
+  .fleet-stream::-webkit-scrollbar { display: none; }
+  .fl-cap {
+    background: #FFFFFF;
+    border: 0.5px solid var(--gray-5);
+    border-left: 2.5px solid var(--ios-blue);
+    border-radius: 12px;
+    padding: 9px 11px;
+    display: grid;
+    grid-template-columns: 28px 1fr auto;
+    column-gap: 9px;
+    row-gap: 4px;
+  }
+  .fl-cap.mine {
+    border-left-color: var(--ios-coral);
+    background: linear-gradient(180deg, rgba(255, 107, 107, 0.04) 0%, #FFFFFF 70%);
+  }
+  .fl-cap .av {
+    width: 28px; height: 28px; border-radius: 50%;
+    color: #fff;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 10px; font-weight: 700;
+  }
+  .fl-cap .av.kd { background: linear-gradient(135deg, #4E6A85 0%, #7C7B6E 100%); }
+  .fl-cap .av.pl { background: linear-gradient(135deg, #7C5E9A 0%, #5C3F7A 100%); }
+  .fl-cap .av.bv { background: linear-gradient(135deg, #5A8C6A 0%, #3E6C4E 100%); }
+  .fl-cap .av.kh { background: linear-gradient(135deg, #8A5C7A 0%, #5C3F52 100%); }
+  .fl-cap .who-line {
+    font-size: 10.5px; font-weight: 600;
+    color: var(--label-2); letter-spacing: -0.05px;
+    line-height: 1.2;
+  }
+  .fl-cap .who-line .boat { color: var(--label-3); font-weight: 400; }
+  .fl-cap .ts {
+    grid-column: 3; grid-row: 1;
+    font-size: 10px; font-weight: 600;
+    color: var(--label-3); letter-spacing: -0.02px;
+    font-variant-numeric: tabular-nums;
+    align-self: flex-start;
+  }
+  .fl-cap .body-c {
+    grid-column: 2 / 4;
+    font-size: 12.5px; line-height: 1.4;
+    color: var(--label); letter-spacing: -0.05px;
+    font-style: italic;
+    margin: 0;
+  }
+  .fl-cap .body-c.text { font-style: normal; }
+  .fl-cap .meta-c {
+    grid-column: 2 / 4;
+    font-size: 9.5px; color: var(--label-3);
+    letter-spacing: -0.02px;
+    display: flex; align-items: center; gap: 5px;
+    margin-top: 2px;
+  }
+  .fl-cap .meta-c i { font-size: 10px; }
+  .fl-cap .meta-c .sep { color: var(--label-4); }
+
+  .fl-time-marker {
+    display: flex; align-items: center; gap: 8px;
+    padding: 4px 0;
+  }
+  .fl-time-marker .line { flex: 1; height: 0.5px; background: var(--gray-4); }
+  .fl-time-marker .pill {
+    background: var(--gray-6);
+    border: 0.5px solid var(--gray-5);
+    border-radius: 999px;
+    padding: 2px 9px;
+    font-size: 9px; font-weight: 700;
+    color: var(--label-2); letter-spacing: 0.4px;
+    text-transform: uppercase;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .fleet-filter-strip {
+    display: flex; gap: 6px;
+    padding: 8px 18px;
+    background: #FFFFFF;
+    border-bottom: 0.5px solid var(--gray-5);
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .fleet-filter-strip::-webkit-scrollbar { display: none; }
+  .fleet-filter-strip .chip {
+    flex-shrink: 0;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: var(--gray-6);
+    border: 0.5px solid var(--gray-5);
+    font-size: 11px; font-weight: 500;
+    color: var(--label-2); letter-spacing: -0.05px;
+  }
+  .fleet-filter-strip .chip.on {
+    background: var(--ios-blue);
+    color: #fff;
+    border-color: var(--ios-blue);
+  }
+
+  /* ============ Do tab revised — timing demoted ============ */
+  .do-revised .top-header .right-cluster {
+    display: inline-flex; align-items: center; gap: 12px;
+  }
+  .do-revised .top-header .right-cluster .ic {
+    background: none; border: 0; padding: 0;
+    color: var(--label-2);
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .do-revised .top-header .right-cluster .ic i { font-size: 19px; }
+
+  .do-revised .card.step {
+    display: flex; flex-direction: column;
+  }
+  .do-revised .step-state-head {
+    padding: 13px 16px 10px;
+    display: flex; align-items: center; justify-content: space-between;
+    border-bottom: 0.5px solid var(--gray-5);
+  }
+  .do-revised .step-state-head .menu {
+    background: none; border: 0; padding: 0;
+    color: var(--label-3);
+  }
+  .do-revised .step-state-head .menu i { font-size: 17px; }
+
+  /* New: simplified stats — captures only, with optional timer toggle */
+  .do-revised .step-state-head .stats-simple {
+    display: flex; align-items: center; gap: 12px;
+  }
+  .do-revised .step-state-head .stats-simple .stat {
+    display: flex; flex-direction: column; align-items: flex-end;
+    line-height: 1;
+  }
+  .do-revised .step-state-head .stats-simple .stat .n {
+    font-size: 17px; font-weight: 600;
+    color: var(--label); letter-spacing: -0.4px;
+    font-variant-numeric: tabular-nums;
+  }
+  .do-revised .step-state-head .stats-simple .stat .l {
+    font-size: 9.5px; font-weight: 700;
+    color: var(--label-3); letter-spacing: 0.5px;
+    text-transform: uppercase; margin-top: 3px;
+  }
+  .do-revised .step-state-head .stats-simple .timer-toggle {
+    width: 28px; height: 28px; border-radius: 50%;
+    background: var(--gray-6);
+    border: 0.5px solid var(--gray-5);
+    color: var(--label-3);
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .do-revised .step-state-head .stats-simple .timer-toggle.on {
+    background: var(--ios-coral-tint);
+    border-color: var(--ios-coral-soft);
+    color: var(--ios-coral-deep);
+  }
+  .do-revised .step-state-head .stats-simple .timer-toggle i { font-size: 13px; }
+  .do-revised .step-state-head .stats-simple .timer-toggle .em {
+    font-size: 11.5px; font-weight: 600;
+    color: var(--ios-coral-deep);
+    font-variant-numeric: tabular-nums;
+    margin-left: 4px;
+  }
+
+  .do-revised .step-strip {
+    padding: 8px 18px 9px;
+    border-bottom: 0.5px solid var(--gray-5);
+    display: flex; align-items: center; gap: 6px;
+    background: #FAFAFC;
+  }
+  .do-revised .step-strip .ico {
+    width: 18px; height: 18px; border-radius: 50%;
+    background: var(--ios-coral-tint); color: var(--ios-coral);
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .do-revised .step-strip .ico i { font-size: 11px; }
+  .do-revised .step-strip .text {
+    font-size: 11.5px; color: var(--label-2);
+    letter-spacing: -0.05px;
+  }
+  .do-revised .step-strip .text .em { font-weight: 600; color: var(--label); }
+  .do-revised .step-strip .text .sep { color: var(--label-4); margin: 0 5px; }
+
+  .do-revised .do-stream {
+    flex: 1; overflow: hidden;
+    padding: 12px 14px 8px;
+    display: flex; flex-direction: column; gap: 8px;
+    position: relative;
+  }
+  .do-revised .do-stream::after {
+    content: "";
+    position: absolute; left: 0; right: 0; bottom: 0;
+    height: 24px;
+    background: linear-gradient(180deg, rgba(255,255,255,0) 0%, #fff 100%);
+    pointer-events: none;
+  }
+  .do-revised .stream-eye {
+    display: flex; align-items: center; justify-content: space-between;
+    margin: 0 4px 2px;
+  }
+  .do-revised .stream-eye .lbl {
+    font-size: 9.5px; font-weight: 700;
+    color: var(--label-3); letter-spacing: 0.7px;
+    text-transform: uppercase;
+  }
+  .do-revised .cap {
+    background: #FFFFFF;
+    border: 0.5px solid var(--gray-5);
+    border-left: 2.5px solid var(--gray-3);
+    border-radius: 12px;
+    padding: 9px 12px;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    column-gap: 9px;
+    row-gap: 4px;
+  }
+  .do-revised .cap.voice  { border-left-color: var(--ios-blue); }
+  .do-revised .cap.measurement { border-left-color: var(--ios-green); }
+  .do-revised .cap.text   { border-left-color: var(--gray-3); }
+  .do-revised .cap .body {
+    font-size: 12.5px; line-height: 1.4;
+    color: var(--label); letter-spacing: -0.05px;
+  }
+  .do-revised .cap.voice .body { font-style: italic; }
+  .do-revised .cap .ts {
+    grid-column: 2; grid-row: 1;
+    font-size: 10px; font-weight: 600;
+    color: var(--label-3); letter-spacing: -0.02px;
+    font-variant-numeric: tabular-nums;
+  }
+  .do-revised .cap .meta-x {
+    grid-column: 1 / 3;
+    font-size: 9.5px; color: var(--label-3);
+    letter-spacing: -0.02px;
+    display: flex; align-items: center; gap: 5px;
+  }
+  .do-revised .cap .meta-x i { font-size: 11px; }
+  .do-revised .cap .meta-x .sep { color: var(--label-4); }
+  .do-revised .cap .meta-x .kind-tag { font-weight: 500; color: var(--label-2); }
+
+  .do-revised .composer-tgt {
+    position: absolute;
+    left: 14px; right: 14px;
+    bottom: 152px;
+    background: #FFFFFF;
+    border-radius: 18px;
+    border: 0.5px solid var(--gray-4);
+    box-shadow:
+      0 1px 2px rgba(0, 0, 0, 0.04),
+      0 14px 32px -16px rgba(0, 0, 0, 0.22);
+    padding: 10px 12px 10px 14px;
+    display: flex; align-items: center; gap: 10px;
+    z-index: 18;
+  }
+  .do-revised .composer-tgt .field {
+    flex: 1;
+    display: flex; align-items: center; gap: 7px;
+    font-size: 13px;
+    color: var(--label-3);
+    letter-spacing: -0.1px;
+  }
+  .do-revised .composer-tgt .field .ico-add {
+    width: 20px; height: 20px; border-radius: 50%;
+    background: var(--ios-blue-tint);
+    color: var(--ios-blue);
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .do-revised .composer-tgt .field .ico-add i { font-size: 13px; }
+  .do-revised .composer-tgt .actions {
+    display: flex; align-items: center; gap: 4px;
+  }
+  .do-revised .composer-tgt .a-btn {
+    width: 32px; height: 32px; border-radius: 50%;
+    background: var(--gray-6); border: 0;
+    color: var(--label-2);
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .do-revised .composer-tgt .a-btn i { font-size: 15px; }
+  .do-revised .composer-tgt .mic-big {
+    width: 40px; height: 40px; border-radius: 50%;
+    background: var(--ios-coral); border: 0;
+    color: #fff;
+    display: inline-flex; align-items: center; justify-content: center;
+    margin-left: 2px;
+  }
+  .do-revised .composer-tgt .mic-big i { font-size: 18px; }
+
+  .do-revised .stop-cta-tgt {
+    position: absolute;
+    left: 14px; right: 14px;
+    bottom: 96px;
+    background: #FFFFFF;
+    border: 1px solid var(--ios-coral);
+    color: var(--ios-coral-deep);
+    border-radius: 14px;
+    padding: 12px 16px;
+    font-size: 14.5px; font-weight: 600;
+    display: flex; align-items: center; justify-content: center; gap: 7px;
+    z-index: 18;
+  }
+  .do-revised .stop-cta-tgt .sq {
+    width: 10px; height: 10px;
+    background: var(--ios-coral);
+    border-radius: 2px;
+  }
+
+  /* Interest variant chip — small caption inside the do frame */
+  .interest-variants {
+    display: flex; gap: 10px; flex-wrap: wrap;
+    margin-top: 14px; padding: 12px 14px;
+    background: rgba(255,255,255,0.6);
+    border: 0.5px solid var(--stage-line);
+    border-radius: 12px;
+  }
+  .interest-variants .v {
+    display: flex; flex-direction: column; gap: 3px;
+    flex: 1; min-width: 140px;
+  }
+  .interest-variants .v .eye {
+    font-size: 9.5px; font-weight: 700;
+    color: var(--stage-ink); letter-spacing: 0.6px;
+    text-transform: uppercase;
+  }
+  .interest-variants .v .pill-sample {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 3px 8px 3px 6px;
+    border-radius: 999px;
+    font-size: 10px; font-weight: 700;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    align-self: flex-start;
+  }
+  .interest-variants .v.sailing .pill-sample {
+    background: var(--ios-coral-tint); color: var(--ios-coral-deep);
+    border: 0.5px solid var(--ios-coral-soft);
+  }
+  .interest-variants .v.nursing .pill-sample {
+    background: var(--ios-coral-tint); color: var(--ios-coral-deep);
+    border: 0.5px solid var(--ios-coral-soft);
+  }
+  .interest-variants .v.drawing .pill-sample {
+    background: var(--ios-coral-tint); color: var(--ios-coral-deep);
+    border: 0.5px solid var(--ios-coral-soft);
+  }
+  .interest-variants .v .pill-sample .dot {
+    width: 5px; height: 5px; border-radius: 50%; background: var(--ios-coral);
+  }
+  .interest-variants .v .stop-sample {
+    font-size: 11px; font-weight: 500;
+    color: var(--stage-text);
+    font-style: italic;
+  }
+  .interest-variants .v .stop-sample .em {
+    color: var(--stage-ink); font-weight: 600; font-style: normal;
+  }
+
+  /* Migration table */
+  .migration-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: rgba(255,255,255,0.55);
+    border: 0.5px solid var(--stage-line);
+    border-radius: 14px;
+    overflow: hidden;
+    max-width: 1660px;
+    margin: 0 auto;
+  }
+  .migration-table thead th {
+    text-align: left;
+    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 10.5px; font-weight: 700;
+    color: var(--stage-ink); letter-spacing: 0.6px;
+    text-transform: uppercase;
+    padding: 14px 18px;
+    background: rgba(255,255,255,0.5);
+    border-bottom: 0.5px solid var(--stage-line);
+  }
+  .migration-table tbody td {
+    vertical-align: top;
+    padding: 14px 18px;
+    border-bottom: 0.5px dashed var(--stage-line-soft);
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 13.5px; line-height: 1.5;
+    color: #3C3A35;
+    text-wrap: pretty;
+  }
+  .migration-table tbody tr:last-child td { border-bottom: 0; }
+  .migration-table tbody td .em { font-weight: 500; color: var(--stage-ink); }
+  .migration-table tbody td em { font-style: italic; color: #4D4A43; }
+  .migration-table tbody td code {
+    font-family: "SF Mono", ui-monospace, Menlo, monospace;
+    font-size: 11.5px;
+    background: rgba(34, 30, 20, 0.06);
+    padding: 1px 5px; border-radius: 4px;
+    color: var(--stage-ink);
+  }
+  .col-letter { width: 56px; text-align: center; font-family: -apple-system, BlinkMacSystemFont, sans-serif !important; font-weight: 700 !important; color: var(--measure) !important; }
+  .col-where  { width: 22%; color: #6E6A60; }
+  .col-what   { width: 32%; color: #1F1D1A; }
+  .col-notes  { width: 36%; color: #6B6558; }
+
+</style>
+</head>
+<body>
+
+<div class="page">
+
+  <header class="page-head">
+    <p class="eyebrow">BetterAt · Network Timelines · Add · Share · Fleet · Do revised — Canonical · 2026-05-17</p>
+    <h1>How a user <em>sees</em>, <em>adds</em>, <em>shares</em>, and <em>practices alongside</em> their network — plus a Do tab where <em>timing is no longer the chrome</em></h1>
+    <p>Five threads in one canonical, sharing the iOS register from the prior twelve canonicals. <strong>D13</strong> shows three browsing views (subscribed blueprint timeline · co-practitioners on the same blueprint · followed-person timeline) on shared grammar. <strong>D14</strong> adds a step from any of those views into your own timeline via a preview sheet with placement choice or an <em>On deck</em> holding zone. <strong>D15</strong> ships a step to another person in three modes (direct / group / link). <strong>D16</strong> opens the fleet-view layer where a race's threaded captures from all 14 boats become readable as a single shared stream. <strong>D17</strong> revises the Do tab so timing retires from the chrome — captures count is the only default stat, elapsed time is one toggle away, and the state-pill text is interest-flavored.</p>
+    <div class="crumbs">
+      <span class="pill">iPhone 16e · portrait · 393 × 852</span>
+      <span class="sep">·</span>
+      <span class="pill">Builds on · <em>step-loop-integration</em> &amp; <em>becoming-loop-canonical</em></span>
+      <span class="sep">·</span>
+      <span class="pill">Cousin · <em>social-timeline-layer-canonical</em></span>
+    </div>
+  </header>
+
+  <section class="decisions-bar">
+    <div class="dec">
+      <h5>D13 · Three views</h5>
+      <p><strong>Subscribed blueprint</strong> · <strong>co-practitioners</strong> · <strong>followed person</strong>. Same step-card grammar; what changes is the <em>by-line</em> at the top.</p>
+    </div>
+    <div class="dec">
+      <h5>D14 · Add &amp; placement</h5>
+      <p>Preview sheet → <em>Add to my timeline</em> (with placement chooser) or <em>Save to deck for later</em>. Default placement <strong>Next up</strong>.</p>
+    </div>
+    <div class="dec">
+      <h5>D15 · Share a step</h5>
+      <p>Three modes: <strong>Direct to person</strong> · <strong>To fleet / cohort</strong> · <strong>Copy link</strong>. Receiver can view, fork, or comment.</p>
+    </div>
+    <div class="dec">
+      <h5>D16 · Fleet view</h5>
+      <p>One race, all participants' shared captures threaded by timestamp. Filter by boat / time. Cohort variant for nursing.</p>
+    </div>
+    <div class="dec">
+      <h5>D17 · Do tab</h5>
+      <p>Timing retires from chrome. Stats default to <strong>captures count only</strong>; elapsed time is a toggle. State pill text is interest-flavored.</p>
+    </div>
+  </section>
+
+  <!-- =============================================================== -->
+  <!-- §1 · Three network views                                         -->
+  <!-- =============================================================== -->
+  <section class="section-band">
+    <h2><span class="badge">Browse</span><em>Three views of someone else's timeline</em> · same grammar, different by-line</h2>
+    <p class="lede">A blueprint, a peer, a person you follow — all three render the same step-card list in a Playbook (blueprint) or Discover/Profile (person) surface. The by-line at the top of each card and the hero set the context; the <em>+ Add</em> button on every step is what makes browsing actionable. Filter chips at the top filter by step state (<em>All · In progress · Settled · Drafts</em>) and by capability.</p>
+
+    <div class="triple-row">
+
+      <!-- Pane 1 · Subscribed blueprint timeline -->
+      <div class="pane blueprint">
+        <div class="pane-eye"><span class="pip"></span>Subscribed blueprint</div>
+        <p class="pane-title">Blueprint timeline · <em>Sam Cooke's heavy-air</em></p>
+        <p class="pane-sub">From Playbook. 12 ordered steps, each one's state pill colored by whether <em>you've</em> completed it. <strong>+ Add</strong> on every step pulls it into your own timeline.</p>
+
+        <div class="phone-wrap">
+          <div class="phone">
+            <div class="notch"></div>
+            <div class="statusbar"><span>9:14</span><span class="right"><i class="ti ti-cell-signal-4"></i><i class="ti ti-wifi"></i><i class="ti ti-battery-3"></i></span></div>
+
+            <div class="screen net-screen" data-screen-label="Blueprint timeline">
+
+              <div class="top-header">
+                <div class="interest"><span class="name">Playbook</span><span class="switcher"><i class="ti ti-chevron-down"></i></span></div>
+                <span class="step-counter">Blueprint</span>
+                <div class="right-cluster">
+                  <button class="ic"><i class="ti ti-bookmark"></i></button>
+                  <button class="ic"><i class="ti ti-share-3"></i></button>
+                  <div class="avatar">KD</div>
+                </div>
+              </div>
+
+              <article class="card" style="overflow: hidden;">
+
+                <div class="net-hero">
+                  <div class="source-row">
+                    <div class="author-av">SC</div>
+                    <div class="by-line">
+                      <p class="who">Sam Cooke</p>
+                      <p class="sub"><span class="em">RHKYC head coach</span> · 11 subscribers settled</p>
+                    </div>
+                    <button class="follow-btn following"><i class="ti ti-check"></i>Subscribed</button>
+                  </div>
+                  <h1>Heavy-air helm work · 12 weeks</h1>
+                  <p class="meta">Ages 14+ · <span class="em">Sail Racing</span> · 47 subscribers active</p>
+                </div>
+
+                <div class="filter-strip">
+                  <span class="chip on">All steps</span>
+                  <span class="chip">In progress</span>
+                  <span class="chip">Settled</span>
+                  <span class="chip">Wind-reading</span>
+                  <span class="chip">Tactical</span>
+                </div>
+
+                <div class="timeline-list">
+                  <div class="ts-card">
+                    <span class="ts-pill green"><span class="dot"></span>Settled</span>
+                    <p class="ttl">Step 1 · Boat-handling baseline</p>
+                    <p class="ttl-meta"><span class="em">Week 1</span> · December</p>
+                    <button class="add-btn added"><i class="ti ti-check"></i>Added</button>
+                    <span class="caps"><span class="cap-chip">boat-handling</span></span>
+                  </div>
+                  <div class="ts-card">
+                    <span class="ts-pill green"><span class="dot"></span>Settled</span>
+                    <p class="ttl">Step 2 · Wind-shift recognition</p>
+                    <p class="ttl-meta"><span class="em">Week 3</span></p>
+                    <button class="add-btn added"><i class="ti ti-check"></i>Added</button>
+                    <span class="caps"><span class="cap-chip">wind-reading</span></span>
+                  </div>
+                  <div class="ts-card">
+                    <span class="ts-pill blue"><span class="dot"></span>Current</span>
+                    <p class="ttl">Step 3 · Holding the lane in puffs</p>
+                    <p class="ttl-meta"><span class="em">Week 5</span> · in progress</p>
+                    <button class="add-btn added"><i class="ti ti-check"></i>Added</button>
+                    <span class="caps"><span class="cap-chip">tactical</span><span class="cap-chip">helm</span></span>
+                  </div>
+                  <div class="ts-card">
+                    <span class="ts-pill gray"><span class="dot"></span>Planned</span>
+                    <p class="ttl">Step 4 · Pre-start lane choice</p>
+                    <p class="ttl-meta"><span class="em">Week 7</span></p>
+                    <button class="add-btn"><i class="ti ti-plus"></i>Add</button>
+                    <span class="caps"><span class="cap-chip">starts</span></span>
+                  </div>
+                  <div class="ts-card">
+                    <span class="ts-pill gray"><span class="dot"></span>Planned</span>
+                    <p class="ttl">Step 5 · Permission rules</p>
+                    <p class="ttl-meta"><span class="em">Week 9</span></p>
+                    <button class="add-btn"><i class="ti ti-plus"></i>Add</button>
+                    <span class="caps"><span class="cap-chip">tactical</span></span>
+                  </div>
+                </div>
+
+              </article>
+
+              <nav class="tabbar">
+                <button class="t"><i class="ti ti-flag-3"></i><span>Practice</span></button>
+                <button class="t on"><i class="ti ti-book-2"></i><span>Playbook</span></button>
+                <button class="t"><i class="ti ti-compass"></i><span>Discover</span></button>
+                <button class="t"><i class="ti ti-user-circle"></i><span>Profile</span></button>
+              </nav>
+            </div>
+            <div class="home-indicator"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Pane 2 · Co-practitioners -->
+      <div class="pane peers">
+        <div class="pane-eye"><span class="pip"></span>Co-practitioners</div>
+        <p class="pane-title">Co-practitioners · <em>47 on this blueprint</em></p>
+        <p class="pane-sub">From inside the blueprint detail — "Who else is on this path?" Shows where each sailor currently is. Tap a row → their public timeline (privacy permitting).</p>
+
+        <div class="phone-wrap">
+          <div class="phone">
+            <div class="notch"></div>
+            <div class="statusbar"><span>9:14</span><span class="right"><i class="ti ti-cell-signal-4"></i><i class="ti ti-wifi"></i><i class="ti ti-battery-3"></i></span></div>
+
+            <div class="screen net-screen" data-screen-label="Co-practitioners">
+
+              <div class="top-header">
+                <div class="interest"><span class="name">Playbook</span><span class="switcher"><i class="ti ti-chevron-down"></i></span></div>
+                <span class="step-counter">47 others</span>
+                <div class="right-cluster">
+                  <button class="ic"><i class="ti ti-search"></i></button>
+                  <div class="avatar">KD</div>
+                </div>
+              </div>
+
+              <article class="card" style="overflow: hidden;">
+
+                <div class="net-hero">
+                  <h1>Co-practitioners</h1>
+                  <p class="meta">On <span class="em">Sam Cooke's Heavy-air helm</span> · 47 active · 11 settled</p>
+                </div>
+
+                <div class="filter-strip">
+                  <span class="chip on">All · 47</span>
+                  <span class="chip">In your fleet · 6</span>
+                  <span class="chip">In progress · 12</span>
+                  <span class="chip">Settled · 11</span>
+                </div>
+
+                <div class="timeline-list">
+
+                  <div class="co-row">
+                    <span class="av h">PL</span>
+                    <div>
+                      <p class="who">Phyl Loong <span style="font-size: 10px; color: var(--label-3); font-weight: 400;">· RHKYC</span></p>
+                      <p class="status"><span class="em">Step 4 · Pre-start lane choice</span> · this week</p>
+                    </div>
+                    <button class="view-btn">View<i class="ti ti-chevron-right" style="font-size: 11px; vertical-align: -1px;"></i></button>
+                  </div>
+
+                  <div class="co-row">
+                    <span class="av g">BV</span>
+                    <div>
+                      <p class="who">Bram van Olphen <span style="font-size: 10px; color: var(--label-3); font-weight: 400;">· Royal Maas</span></p>
+                      <p class="status"><span class="em">Step 6 · Heavy-air bear-aways</span> · 3 days ago</p>
+                    </div>
+                    <button class="view-btn">View</button>
+                  </div>
+
+                  <div class="co-row">
+                    <span class="av">KH</span>
+                    <div>
+                      <p class="who">Karin Hartmann <span style="font-size: 10px; color: var(--label-3); font-weight: 400;">· Hamburg</span></p>
+                      <p class="status">Settled <span class="em">all 12 steps</span> · February</p>
+                    </div>
+                    <button class="view-btn">View</button>
+                  </div>
+
+                  <div class="co-row">
+                    <span class="av p">MO</span>
+                    <div>
+                      <p class="who">Marco Orsi <span style="font-size: 10px; color: var(--label-3); font-weight: 400;">· Yacht Club Italiano</span></p>
+                      <p class="status"><span class="em">Step 2 · Wind-shift recognition</span> · today</p>
+                    </div>
+                    <button class="view-btn">View</button>
+                  </div>
+
+                  <div class="co-row">
+                    <span class="av h">SN</span>
+                    <div>
+                      <p class="who">Sara Nyberg <span style="font-size: 10px; color: var(--label-3); font-weight: 400;">· KSSS</span></p>
+                      <p class="status"><span class="em">Step 5 · Permission rules</span> · yesterday</p>
+                    </div>
+                    <button class="view-btn">View</button>
+                  </div>
+
+                </div>
+
+              </article>
+
+              <nav class="tabbar">
+                <button class="t"><i class="ti ti-flag-3"></i><span>Practice</span></button>
+                <button class="t on"><i class="ti ti-book-2"></i><span>Playbook</span></button>
+                <button class="t"><i class="ti ti-compass"></i><span>Discover</span></button>
+                <button class="t"><i class="ti ti-user-circle"></i><span>Profile</span></button>
+              </nav>
+            </div>
+            <div class="home-indicator"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Pane 3 · Followed-person timeline -->
+      <div class="pane follow">
+        <div class="pane-eye"><span class="pip"></span>Followed person</div>
+        <p class="pane-title">Followed person · <em>Phyl Loong's timeline</em></p>
+        <p class="pane-sub">From Discover or Profile. Their last 5 steps, with their state and tagged capabilities. <em>+ Add</em> here means "this looks useful — pull a copy into my timeline" (forks with provenance).</p>
+
+        <div class="phone-wrap">
+          <div class="phone">
+            <div class="notch"></div>
+            <div class="statusbar"><span>9:15</span><span class="right"><i class="ti ti-cell-signal-4"></i><i class="ti ti-wifi"></i><i class="ti ti-battery-3"></i></span></div>
+
+            <div class="screen net-screen" data-screen-label="Followed person timeline">
+
+              <div class="top-header">
+                <div class="interest"><span class="name">Discover</span><span class="switcher"><i class="ti ti-chevron-down"></i></span></div>
+                <span class="step-counter">Profile</span>
+                <div class="right-cluster">
+                  <button class="ic"><i class="ti ti-share-3"></i></button>
+                  <button class="ic"><i class="ti ti-dots"></i></button>
+                  <div class="avatar">KD</div>
+                </div>
+              </div>
+
+              <article class="card" style="overflow: hidden;">
+
+                <div class="net-hero">
+                  <div class="source-row">
+                    <div class="author-av purple">PL</div>
+                    <div class="by-line">
+                      <p class="who">Phyl Loong</p>
+                      <p class="sub"><span class="em">RHKYC · same fleet</span> · 23 settled steps · 47 evidence</p>
+                    </div>
+                    <button class="follow-btn following"><i class="ti ti-check"></i>Following</button>
+                  </div>
+                  <h1>Recent practice</h1>
+                  <p class="meta"><span class="em">Sail Racing</span> · last 30 days · public</p>
+                </div>
+
+                <div class="filter-strip">
+                  <span class="chip on">All · 5</span>
+                  <span class="chip">Races · 3</span>
+                  <span class="chip">Training · 2</span>
+                  <span class="chip">In fleet · 3</span>
+                </div>
+
+                <div class="timeline-list">
+
+                  <div class="ts-card">
+                    <span class="ts-pill green"><span class="dot"></span>Settled · 2 d</span>
+                    <p class="ttl">"Reading the second-beat shift"</p>
+                    <p class="ttl-meta"><span class="em">Last race</span> · same race as yours</p>
+                    <button class="add-btn"><i class="ti ti-plus"></i>Fork</button>
+                    <span class="caps"><span class="cap-chip">wind-reading</span><span class="cap-chip">tactical</span></span>
+                  </div>
+
+                  <div class="ts-card">
+                    <span class="ts-pill green"><span class="dot"></span>Settled · 5 d</span>
+                    <p class="ttl">Pre-start training · 90-sec drill</p>
+                    <p class="ttl-meta"><span class="em">Training</span> · solo</p>
+                    <button class="add-btn"><i class="ti ti-plus"></i>Fork</button>
+                    <span class="caps"><span class="cap-chip">starts</span></span>
+                  </div>
+
+                  <div class="ts-card">
+                    <span class="ts-pill green"><span class="dot"></span>Settled · 1 w</span>
+                    <p class="ttl">Race 3 · 12–15 kn NE</p>
+                    <p class="ttl-meta"><span class="em">Race</span> · finished 4th of 14</p>
+                    <button class="add-btn added"><i class="ti ti-check"></i>Saw it</button>
+                    <span class="caps"><span class="cap-chip">tactical</span></span>
+                  </div>
+
+                  <div class="ts-card">
+                    <span class="ts-pill green"><span class="dot"></span>Settled · 2 w</span>
+                    <p class="ttl">Light-air starting drill</p>
+                    <p class="ttl-meta"><span class="em">Training</span> · with Bram</p>
+                    <button class="add-btn"><i class="ti ti-plus"></i>Fork</button>
+                    <span class="caps"><span class="cap-chip">starts</span><span class="cap-chip">light-air</span></span>
+                  </div>
+
+                </div>
+
+              </article>
+
+              <nav class="tabbar">
+                <button class="t"><i class="ti ti-flag-3"></i><span>Practice</span></button>
+                <button class="t"><i class="ti ti-book-2"></i><span>Playbook</span></button>
+                <button class="t on"><i class="ti ti-compass"></i><span>Discover</span></button>
+                <button class="t"><i class="ti ti-user-circle"></i><span>Profile</span></button>
+              </nav>
+            </div>
+            <div class="home-indicator"></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- =============================================================== -->
+  <!-- §2 · Add to timeline · sheet + on-deck                           -->
+  <!-- =============================================================== -->
+  <section class="section-band">
+    <h2><span class="badge" style="background: rgba(194, 138, 42, 0.10); color: var(--ios-amber);">Add</span><em>Add a step</em> · preview sheet with placement chooser · or hold it on the deck</h2>
+    <p class="lede">Tap <em>+ Add</em> on any step from §1's three views and a preview sheet rises. The sheet shows what you'd be adding (provenance line, title, body, capability chips) so the user reads the step before committing. Two paths: <strong>Add to my timeline</strong> with placement choice (Next up · End of timeline · Specific date), or <strong>Save to deck for later</strong> — a holding zone for ideas that haven't found their place yet. Right pane: the deck zone rendered above the Practice tab content, accessible by tapping the timeline icon.</p>
+
+    <div class="pair-row">
+
+      <!-- Add sheet -->
+      <div class="pane sheet">
+        <div class="pane-eye"><span class="pip"></span>Add sheet</div>
+        <p class="pane-title">Preview &amp; place · <em>Next up</em> selected</p>
+        <p class="pane-sub">Provenance up top names the source. Placement is a single-choice list with three options; default <em>Next up</em>. Saving to deck instead is the secondary action below.</p>
+
+        <div class="phone-wrap">
+          <div class="phone">
+            <div class="notch"></div>
+            <div class="statusbar"><span>9:18</span><span class="right"><i class="ti ti-cell-signal-4"></i><i class="ti ti-wifi"></i><i class="ti ti-battery-3"></i></span></div>
+
+            <div class="screen sheet-screen" data-screen-label="Add to timeline sheet">
+
+              <div class="scrim-card" aria-hidden="true"></div>
+
+              <div class="add-sheet">
+                <div class="handle"></div>
+                <p class="ttl">Add this step?</p>
+                <p class="sub">Preview before it lands on your timeline.</p>
+
+                <div class="preview-card">
+                  <p class="src"><i class="ti ti-template"></i>From Sam Cooke's Heavy-air · Step 4</p>
+                  <p class="ttl-p">Pre-start lane choice</p>
+                  <p class="body-p">"Pick the favored end, hold a clear lane, and bail out without losing a length."</p>
+                  <span class="caps">
+                    <span class="c">starts</span>
+                    <span class="c">tactical</span>
+                  </span>
+                </div>
+
+                <p class="placement-eye">Where should it land?</p>
+
+                <div class="placement-list">
+                  <div class="placement-row on">
+                    <span class="ic"><i class="ti ti-arrow-up"></i></span>
+                    <div>
+                      <p class="nm">Next up</p>
+                      <p class="sub-l">Right after your current step · default</p>
+                    </div>
+                    <span class="radio"></span>
+                  </div>
+                  <div class="placement-row">
+                    <span class="ic"><i class="ti ti-arrow-down"></i></span>
+                    <div>
+                      <p class="nm">End of timeline</p>
+                      <p class="sub-l">After your last planned step</p>
+                    </div>
+                    <span class="radio"></span>
+                  </div>
+                  <div class="placement-row">
+                    <span class="ic"><i class="ti ti-calendar"></i></span>
+                    <div>
+                      <p class="nm">Specific date</p>
+                      <p class="sub-l">Pin to a calendar date</p>
+                    </div>
+                    <span class="radio"></span>
+                  </div>
+                </div>
+
+                <button class="add-cta">
+                  Add to my timeline
+                  <i class="ti ti-arrow-right"></i>
+                </button>
+                <p class="save-deck"><i class="ti ti-bookmark"></i>Save to deck for later</p>
+
+                <p class="cancel-row">Cancel</p>
+              </div>
+            </div>
+            <div class="home-indicator"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- On-deck zone -->
+      <div class="pane">
+        <div class="pane-eye"><span class="pip" style="background: var(--ios-amber);"></span>On deck zone</div>
+        <p class="pane-title">Practice tab · <em>On deck zone</em> above the timeline</p>
+        <p class="pane-sub">Steps saved-for-later sit in the amber On deck strip at the top, reached by tapping the timeline icon. Each row carries provenance. <em>Place</em> moves it into the timeline; <em>×</em> discards.</p>
+
+        <div class="phone-wrap">
+          <div class="phone">
+            <div class="notch"></div>
+            <div class="statusbar"><span>9:20</span><span class="right"><i class="ti ti-cell-signal-4"></i><i class="ti ti-wifi"></i><i class="ti ti-battery-3"></i></span></div>
+
+            <div class="screen" data-screen-label="On deck zone">
+
+              <div class="top-header">
+                <div class="interest"><span class="name">Sail Racing</span><span class="switcher"><i class="ti ti-chevron-down"></i></span></div>
+                <span class="step-counter">On deck · 3</span>
+                <div class="right-cluster">
+                  <button class="ic" style="color: var(--ios-amber);"><i class="ti ti-layout-grid"></i></button>
+                  <button class="ic"><i class="ti ti-bell"></i></button>
+                  <div class="avatar">KD</div>
+                </div>
+              </div>
+
+              <div class="deck-bar">
+                <p class="eye"><i class="ti ti-bookmark"></i>On deck · 3 ideas</p>
+                <div class="deck-row">
+                  <div>
+                    <p class="nm">Pre-start lane choice</p>
+                    <p class="from">From <span class="em">Sam Cooke's Heavy-air</span> · 2 min ago</p>
+                  </div>
+                  <button class="place-btn">Place →</button>
+                  <button class="discard-btn"><i class="ti ti-x" style="font-size: 12px; vertical-align: -1px;"></i></button>
+                </div>
+                <div class="deck-row">
+                  <div>
+                    <p class="nm">"Reading the second-beat shift"</p>
+                    <p class="from">From <span class="em">Phyl Loong</span> · yesterday</p>
+                  </div>
+                  <button class="place-btn">Place →</button>
+                  <button class="discard-btn"><i class="ti ti-x" style="font-size: 12px; vertical-align: -1px;"></i></button>
+                </div>
+                <div class="deck-row">
+                  <div>
+                    <p class="nm">Light-air starting drill</p>
+                    <p class="from">From <span class="em">Phyl Loong</span> · 3 days ago</p>
+                  </div>
+                  <button class="place-btn">Place →</button>
+                  <button class="discard-btn"><i class="ti ti-x" style="font-size: 12px; vertical-align: -1px;"></i></button>
+                </div>
+              </div>
+
+              <article class="card" style="margin-top: 218px; height: calc(852px - 50px - 218px - 84px - 14px); display: flex; flex-direction: column;">
+
+                <div class="step-state-head" style="padding: 13px 16px 10px; display: flex; align-items: center; justify-content: space-between; border-bottom: 0.5px solid var(--gray-5);">
+                  <div class="state-pill blue">
+                    <span class="dot-blue"></span>
+                    <span class="label">Current step</span>
+                  </div>
+                </div>
+
+                <div class="step-strip">
+                  <span class="ico"><i class="ti ti-trophy"></i></span>
+                  <span class="text"><span class="em">Winter 2025-2026</span> · Race 4 in 2 days</span>
+                </div>
+
+                <div style="padding: 14px 18px; flex: 1;">
+                  <p style="font-size: 10.5px; font-weight: 700; color: var(--ios-blue); letter-spacing: 0.7px; text-transform: uppercase; margin: 0 0 6px;">Current step</p>
+                  <h2 style="font-size: 20px; font-weight: 600; letter-spacing: -0.4px; color: var(--label); margin: 0; line-height: 1.15;">Light-air starts in shifty breeze</h2>
+                  <p style="font-size: 11.5px; color: var(--label-3); margin: 5px 0 0;">Saturday · RHKYC Spring Series</p>
+                </div>
+
+              </article>
+
+              <nav class="tabbar">
+                <button class="t on"><i class="ti ti-flag-3-filled"></i><span>Practice</span></button>
+                <button class="t"><i class="ti ti-book-2"></i><span>Playbook</span></button>
+                <button class="t"><i class="ti ti-compass"></i><span>Discover</span></button>
+                <button class="t"><i class="ti ti-user-circle"></i><span>Profile</span></button>
+              </nav>
+            </div>
+            <div class="home-indicator"></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- =============================================================== -->
+  <!-- §3 · Share a step                                                -->
+  <!-- =============================================================== -->
+  <section class="section-band">
+    <h2><span class="badge" style="background: var(--ios-green-tint); color: var(--ios-green-deep);">Share</span><em>Share a step with someone</em> · three modes</h2>
+    <p class="lede">From any step card menu (⋮) → <em>Share this step</em>. Sheet rises with three modes. <strong>Direct to a person</strong> shows your recent crew and follows as avatar tiles; tapping one fires off a DM-style share. <strong>To a fleet / cohort</strong> broadcasts to the active group. <strong>Copy link</strong> generates a share URL. Receiver's experience: the shared step lands in their <em>Shared with you</em> inbox; they can view, fork into their timeline (with provenance), or comment.</p>
+
+    <div class="single-row">
+      <div class="pane sheet">
+        <div class="pane-eye"><span class="pip" style="background: var(--ios-green);"></span>Share-a-step sheet</div>
+        <p class="pane-title">Share <em>"Light-air starts in shifty breeze"</em></p>
+        <p class="pane-sub">Step preview at top, three mode rows, recent recipients as avatar tiles. Receiver can view, fork, or comment — never edit your copy.</p>
+
+        <div class="phone-wrap">
+          <div class="phone">
+            <div class="notch"></div>
+            <div class="statusbar"><span>9:22</span><span class="right"><i class="ti ti-cell-signal-4"></i><i class="ti ti-wifi"></i><i class="ti ti-battery-3"></i></span></div>
+
+            <div class="screen sheet-screen" data-screen-label="Share-a-step sheet">
+
+              <div class="scrim-card" aria-hidden="true"></div>
+
+              <div class="share-step-sheet">
+                <div class="handle"></div>
+                <p class="ttl">Share this step</p>
+                <p class="sub">They'll see your plan · they can fork their own copy.</p>
+
+                <div class="preview-card">
+                  <p class="src"><i class="ti ti-flag-3"></i>Your step · Race 4</p>
+                  <p class="ttl-p">Light-air starts in shifty breeze</p>
+                  <p class="body-p">"Hold a clean lane off the favored end. Re-check rig if puffs over 14 kn."</p>
+                </div>
+
+                <div class="share-mode-row r-direct">
+                  <span class="ic"><i class="ti ti-send"></i></span>
+                  <div>
+                    <p class="nm">Direct to a person</p>
+                    <p class="desc">Send to a follow or crew member · they get a notification</p>
+                  </div>
+                  <i class="ti ti-chevron-right chev"></i>
+                </div>
+
+                <div class="share-mode-row r-group">
+                  <span class="ic"><i class="ti ti-anchor"></i></span>
+                  <div>
+                    <p class="nm">To fleet · RHKYC Spring</p>
+                    <p class="desc">14 boats · everyone in your fleet sees it</p>
+                  </div>
+                  <i class="ti ti-chevron-right chev"></i>
+                </div>
+
+                <div class="share-mode-row r-link">
+                  <span class="ic"><i class="ti ti-link"></i></span>
+                  <div>
+                    <p class="nm">Copy link</p>
+                    <p class="desc">Anyone with the link can view · expires in 30 d</p>
+                  </div>
+                  <i class="ti ti-chevron-right chev"></i>
+                </div>
+
+                <div class="recent-list">
+                  <p class="eye">Recent</p>
+                  <div class="ppl">
+                    <div class="p"><span class="av-r h">HE</span><span class="nm-r">Henrik</span></div>
+                    <div class="p"><span class="av-r p">PL</span><span class="nm-r">Phyl</span></div>
+                    <div class="p"><span class="av-r g">BV</span><span class="nm-r">Bram</span></div>
+                    <div class="p"><span class="av-r">SC</span><span class="nm-r">Sam</span></div>
+                  </div>
+                </div>
+
+                <p class="cancel-row">Cancel</p>
+              </div>
+            </div>
+            <div class="home-indicator"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- =============================================================== -->
+  <!-- §4 · Fleet view of a single race                                 -->
+  <!-- =============================================================== -->
+  <section class="section-band">
+    <h2><span class="badge" style="background: var(--ios-coral-tint); color: var(--ios-coral-deep);">Fleet</span><em>Fleet view of a single race</em> · 14 boats, one threaded stream</h2>
+    <p class="lede">From any step's WITH row, tap the fleet/cohort chip → opens this surface. The state pill names the race; the stats strip shows boats / captures / your finish. Below: a threaded stream of every shared capture from every participating boat, in wall-clock order. Your own captures highlighted in coral; others' in blue. Filter by boat (your fleet's six, or all fourteen) or by time range (start sequence · beat 1 · beat 2 · finish). For nursing this same surface renders the cohort's shared captures from a clinical day — same shape, different vocabulary.</p>
+
+    <div class="single-row">
+      <div class="pane fleet">
+        <div class="pane-eye"><span class="pip"></span>Fleet view · Race 4</div>
+        <p class="pane-title">Fleet view · <em>Race 4 · 18–22 kn NE</em></p>
+        <p class="pane-sub">14 boats, 47 shared captures threaded by timestamp. Your captures coral, others blue. Filter by boat / time range. Tap any capture to see who and from where on the course.</p>
+
+        <div class="phone-wrap">
+          <div class="phone">
+            <div class="notch"></div>
+            <div class="statusbar"><span>15:42</span><span class="right"><i class="ti ti-cell-signal-4"></i><i class="ti ti-wifi"></i><i class="ti ti-battery-3"></i></span></div>
+
+            <div class="screen fleet-screen" data-screen-label="Fleet view of Race 4">
+
+              <div class="top-header">
+                <div class="interest"><span class="name">Sail Racing</span><span class="switcher"><i class="ti ti-chevron-down"></i></span></div>
+                <span class="step-counter">Fleet view</span>
+                <div class="right-cluster">
+                  <button class="ic"><i class="ti ti-share-3"></i></button>
+                  <button class="ic"><i class="ti ti-dots"></i></button>
+                  <div class="avatar">KD</div>
+                </div>
+              </div>
+
+              <article class="card" style="overflow: hidden;">
+
+                <div class="fleet-hero">
+                  <span class="state-pill">
+                    <span class="dot"></span>
+                    <span class="label">Fleet · settled</span>
+                  </span>
+                  <h1>Race 4 · 18–22 kn NE</h1>
+                  <p class="meta"><span class="em">Saturday · just settled</span> · RHKYC Spring Series</p>
+                  <div class="stats-strip">
+                    <div class="stat"><span class="n">14</span><span class="l">Boats</span></div>
+                    <div class="stat"><span class="n">47</span><span class="l">Shared captures</span></div>
+                    <div class="stat"><span class="n">9</span><span class="l">Yours</span></div>
+                    <div class="stat"><span class="n">7th</span><span class="l">Finish</span></div>
+                  </div>
+                </div>
+
+                <div class="fleet-filter-strip">
+                  <span class="chip on">All boats · 14</span>
+                  <span class="chip">My fleet · 6</span>
+                  <span class="chip">Beat 1</span>
+                  <span class="chip on">Beat 2</span>
+                  <span class="chip">Finish</span>
+                </div>
+
+                <div class="fleet-stream">
+
+                  <div class="fl-time-marker">
+                    <span class="line"></span>
+                    <span class="pill">Beat 2 begins · 14:08</span>
+                    <span class="line"></span>
+                  </div>
+
+                  <article class="fl-cap mine">
+                    <span class="av kd">KD</span>
+                    <span class="who-line">You<br/><span class="boat">Moonraker</span></span>
+                    <span class="ts">14:23</span>
+                    <p class="body-c">"Left filled at eight. Not committing yet — rule said ten."</p>
+                    <p class="meta-x"><i class="ti ti-microphone"></i>Voice · 12 s<span class="sep">·</span><span class="kind-tag">weather-call</span></p>
+                  </article>
+
+                  <article class="fl-cap">
+                    <span class="av pl">PL</span>
+                    <span class="who-line">Phyl Loong<br/><span class="boat">Snowflake</span></span>
+                    <span class="ts">14:22</span>
+                    <p class="body-c">"Same left building. I'm committing on the next puff — second-beat plan."</p>
+                    <p class="meta-x"><i class="ti ti-microphone"></i>Voice · 8 s<span class="sep">·</span><span class="kind-tag">tactical</span></p>
+                  </article>
+
+                  <article class="fl-cap">
+                    <span class="av bv">BV</span>
+                    <span class="who-line">Bram van Olphen<br/><span class="boat">Vanguard</span></span>
+                    <span class="ts">14:20</span>
+                    <p class="body-c text">Wind at 9° P from rhumb — confirms shift coming.</p>
+                    <p class="meta-x"><i class="ti ti-ruler-measure"></i>Measurement<span class="sep">·</span><span class="kind-tag">wind-shift</span></p>
+                  </article>
+
+                  <article class="fl-cap mine">
+                    <span class="av kd">KD</span>
+                    <span class="who-line">You<br/><span class="boat">Moonraker</span></span>
+                    <span class="ts">14:20</span>
+                    <p class="body-c text">Sam said hold our lane. Trust him.</p>
+                    <p class="meta-x"><i class="ti ti-pencil"></i>Note<span class="sep">·</span><span class="kind-tag">coach-call</span></p>
+                  </article>
+
+                  <article class="fl-cap">
+                    <span class="av kh">KH</span>
+                    <span class="who-line">Karin Hartmann<br/><span class="boat">Eclipse</span></span>
+                    <span class="ts">14:18</span>
+                    <p class="body-c">"Three boats just banged left. Could be the shift. Could be tactical. Holding."</p>
+                    <p class="meta-x"><i class="ti ti-microphone"></i>Voice · 14 s<span class="sep">·</span><span class="kind-tag">tactical</span></p>
+                  </article>
+
+                  <article class="fl-cap">
+                    <span class="av pl">PL</span>
+                    <span class="who-line">Phyl Loong<br/><span class="boat">Snowflake</span></span>
+                    <span class="ts">14:15</span>
+                    <p class="body-c">"Jib telltale upper streaming — flat lift coming."</p>
+                    <p class="meta-x"><i class="ti ti-camera"></i>Photo + note<span class="sep">·</span><span class="kind-tag">trim</span></p>
+                  </article>
+
+                </div>
+
+              </article>
+
+              <nav class="tabbar">
+                <button class="t on"><i class="ti ti-flag-3-filled"></i><span>Practice</span></button>
+                <button class="t"><i class="ti ti-book-2"></i><span>Playbook</span></button>
+                <button class="t"><i class="ti ti-compass"></i><span>Discover</span></button>
+                <button class="t"><i class="ti ti-user-circle"></i><span>Profile</span></button>
+              </nav>
+            </div>
+            <div class="home-indicator"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- =============================================================== -->
+  <!-- §5 · Do tab revised — timing demoted                             -->
+  <!-- =============================================================== -->
+  <section class="section-band">
+    <h2><span class="badge" style="background: var(--ios-coral-tint); color: var(--ios-coral-deep);">Do</span><em>Do tab revised</em> · timing retires from the chrome</h2>
+    <p class="lede">The Do tab from <em>step-loop-integration · D7</em> further refined. Stats area now shows <strong>only captures count by default</strong> — the elapsed timer is one tap away via a small <code>⏱</code> button beside it, off by default in non-sailing interests. State pill text varies by interest: <em>Live · capturing</em> (sailing) · <em>On shift · capturing</em> (nursing) · <em>Session · capturing</em> (drawing) · <em>Practicing</em> (generic). Captures themselves carry rich type tags — weather-call, measurement, tactical, trim — so the user reads "what kind of moment" without surfacing a timer for everyone.</p>
+
+    <div class="single-row">
+      <div class="pane do-rev">
+        <div class="pane-eye"><span class="pip"></span>Do · timing demoted</div>
+        <p class="pane-title">Do tab · <em>captures count only</em>, timer optional</p>
+        <p class="pane-sub">Coral state pill, captures count, single <code>⏱</code> toggle (off here). Capture rows show kind-tag in meta. Interest variants below show how state-pill text shifts.</p>
+
+        <div class="phone-wrap">
+          <div class="phone">
+            <div class="notch"></div>
+            <div class="statusbar"><span>7:38</span><span class="right"><i class="ti ti-cell-signal-4"></i><i class="ti ti-wifi"></i><i class="ti ti-battery-3"></i></span></div>
+
+            <div class="screen do-revised" data-screen-label="Do · timing demoted">
+
+              <div class="top-header">
+                <div class="interest"><span class="name">Sail Racing</span><span class="switcher"><i class="ti ti-chevron-down"></i></span></div>
+                <span class="step-counter">Step 4 of 10</span>
+                <div class="right-cluster">
+                  <button class="ic"><i class="ti ti-layout-grid"></i></button>
+                  <button class="ic"><i class="ti ti-bell"></i></button>
+                  <div class="avatar">KD</div>
+                </div>
+              </div>
+
+              <article class="card step">
+
+                <header class="step-state-head">
+                  <div class="state-pill coral">
+                    <span class="pulse"></span>
+                    <span class="label">Live · capturing</span>
+                  </div>
+                  <div class="stats-simple">
+                    <div class="stat">
+                      <span class="n">3</span>
+                      <span class="l">Captures</span>
+                    </div>
+                    <button class="timer-toggle" aria-label="Show timer">
+                      <i class="ti ti-clock"></i>
+                    </button>
+                  </div>
+                </header>
+
+                <div class="step-strip">
+                  <span class="ico"><i class="ti ti-flag-3"></i></span>
+                  <span class="text"><span class="em">Light-air starts</span><span class="sep">·</span>Race 4 · beat 2</span>
+                </div>
+
+                <div class="do-stream">
+                  <div class="stream-eye">
+                    <span class="lbl">↓ Newest first</span>
+                  </div>
+
+                  <article class="cap voice">
+                    <p class="body">"Left filled at eight. Not committing yet — rule said ten."</p>
+                    <span class="ts">14:23</span>
+                    <p class="meta-x">
+                      <i class="ti ti-microphone"></i><span class="kind-tag">weather-call</span>
+                      <span class="sep">·</span>beat 2
+                    </p>
+                  </article>
+
+                  <article class="cap measurement">
+                    <p class="body">Wind 9° P from rhumb · 14 kn gust</p>
+                    <span class="ts">14:20</span>
+                    <p class="meta-x">
+                      <i class="ti ti-ruler-measure"></i><span class="kind-tag">measurement · wind</span>
+                      <span class="sep">·</span>beat 2
+                    </p>
+                  </article>
+
+                  <article class="cap text">
+                    <p class="body">Sam said hold our lane. Trust him.</p>
+                    <span class="ts">14:20</span>
+                    <p class="meta-x">
+                      <i class="ti ti-pencil"></i><span class="kind-tag">note · coach-call</span>
+                    </p>
+                  </article>
+                </div>
+
+                <div class="composer-tgt">
+                  <div class="field">
+                    <span class="ico-add"><i class="ti ti-plus"></i></span>
+                    <span>Capture…</span>
+                  </div>
+                  <div class="actions">
+                    <button class="a-btn"><i class="ti ti-pencil"></i></button>
+                    <button class="a-btn"><i class="ti ti-camera"></i></button>
+                    <button class="mic-big"><i class="ti ti-microphone"></i></button>
+                  </div>
+                </div>
+
+                <button class="stop-cta-tgt">
+                  <span class="sq"></span>
+                  Stop capturing
+                </button>
+
+              </article>
+
+              <nav class="tabbar">
+                <button class="t on"><i class="ti ti-flag-3-filled"></i><span>Practice</span></button>
+                <button class="t"><i class="ti ti-book-2"></i><span>Playbook</span></button>
+                <button class="t"><i class="ti ti-compass"></i><span>Discover</span></button>
+                <button class="t"><i class="ti ti-user-circle"></i><span>Profile</span></button>
+              </nav>
+            </div>
+            <div class="home-indicator"></div>
+          </div>
+        </div>
+
+        <div class="interest-variants">
+          <div class="v sailing">
+            <span class="eye">Sailing</span>
+            <span class="pill-sample"><span class="dot"></span>Live · capturing</span>
+            <span class="stop-sample">CTA: <span class="em">Stop capturing</span> · timer ON by default</span>
+          </div>
+          <div class="v nursing">
+            <span class="eye">Nursing</span>
+            <span class="pill-sample"><span class="dot"></span>On shift · capturing</span>
+            <span class="stop-sample">CTA: <span class="em">End shift</span> · no timer, no countdown</span>
+          </div>
+          <div class="v drawing">
+            <span class="eye">Drawing</span>
+            <span class="pill-sample"><span class="dot"></span>Session · capturing</span>
+            <span class="stop-sample">CTA: <span class="em">End session</span> · no timer</span>
+          </div>
+          <div class="v" style="flex: 1; min-width: 140px;">
+            <span class="eye" style="font-size: 9.5px; font-weight: 700; color: var(--stage-ink); letter-spacing: 0.6px; text-transform: uppercase;">Generic / new interests</span>
+            <span class="pill-sample" style="background: var(--ios-coral-tint); color: var(--ios-coral-deep); border: 0.5px solid var(--ios-coral-soft); padding: 3px 8px 3px 6px; border-radius: 999px; display: inline-flex; align-items: center; gap: 5px; font-size: 10px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; align-self: flex-start;"><span style="width: 5px; height: 5px; border-radius: 50%; background: var(--ios-coral);"></span>Practicing</span>
+            <span class="stop-sample" style="font-size: 11px; color: var(--stage-text); font-style: italic;">CTA: <span class="em" style="color: var(--stage-ink); font-weight: 600; font-style: normal;">Done capturing</span></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- =============================================================== -->
+  <!-- §6 · Migration table                                             -->
+  <!-- =============================================================== -->
+  <section class="section-band">
+    <h2><span class="badge">Map</span><em>Migration map · D13 · D14 · D15 · D16 · D17</em></h2>
+    <table class="migration-table">
+      <thead>
+        <tr>
+          <th class="col-letter">·</th>
+          <th class="col-where">Surface</th>
+          <th class="col-what">What it does</th>
+          <th class="col-notes">Engineering note</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="col-letter">D13a</td>
+          <td class="col-where">Playbook · blueprint detail</td>
+          <td class="col-what">Blueprint timeline view — all ordered steps, each with state pill colored by <em>your</em> progress on it.</td>
+          <td class="col-notes">Join <code>blueprint_steps</code> with <code>step_user_progress</code> on <code>user_id = me</code>. Pill state derives from progress row's <code>status</code>. <code>+ Add</code> on any row opens the §2 sheet.</td>
+        </tr>
+        <tr>
+          <td class="col-letter">D13b</td>
+          <td class="col-where">Playbook · co-practitioners</td>
+          <td class="col-what">Roster of others on the same blueprint, with their current-step position. Tap → their public timeline.</td>
+          <td class="col-notes">Query: <code>blueprint_subscriptions WHERE blueprint_id = X AND user_id != me AND profile_visibility = 'public'</code>. Filter by fleet via join on <code>fleet_memberships</code>.</td>
+        </tr>
+        <tr>
+          <td class="col-letter">D13c</td>
+          <td class="col-where">Discover / Profile · followed person</td>
+          <td class="col-what">Recent steps a user you follow has settled or is in progress on. Filterable by interest, race vs training, fleet membership.</td>
+          <td class="col-notes">Existing <code>follows</code> table + step <code>visibility = 'public'</code>. <code>+ Fork</code> on any step opens §2 sheet with <code>source_user_id</code> populated for provenance.</td>
+        </tr>
+        <tr>
+          <td class="col-letter">D14a</td>
+          <td class="col-where">Add sheet — placement</td>
+          <td class="col-what">Preview card + placement radio (Next up / End of timeline / Specific date) + primary CTA + Save-to-deck secondary.</td>
+          <td class="col-notes">On <code>Add to my timeline</code>: insert <code>steps</code> row with <code>source_type</code> (blueprint / user_fork / suggestion) and <code>source_id</code>; <code>order_index</code> set per placement choice.</td>
+        </tr>
+        <tr>
+          <td class="col-letter">D14b</td>
+          <td class="col-where">Practice tab · On deck zone</td>
+          <td class="col-what">Amber strip at top of timeline showing held items with provenance. <em>Place →</em> moves into timeline; <em>×</em> discards.</td>
+          <td class="col-notes">New <code>step_deck</code> table; rows have <code>status = 'on_deck'</code> and don't appear in the main timeline list. Reached via the top-header grid icon (badge shows count).</td>
+        </tr>
+        <tr>
+          <td class="col-letter">D15</td>
+          <td class="col-where">Step menu → Share this step</td>
+          <td class="col-what">Three modes: Direct (DM) · To fleet/cohort (broadcast) · Copy link (URL with 30 d expiry). Recent recipients shown as avatar tiles.</td>
+          <td class="col-notes">DM: insert <code>shared_steps</code> row with <code>recipient_user_id</code>, triggers notification. Group: insert with <code>group_id</code>. Link: generate <code>share_tokens</code> row with TTL. Receiver fork: copy with <code>source_type = 'shared'</code>.</td>
+        </tr>
+        <tr>
+          <td class="col-letter">D16</td>
+          <td class="col-where">Step WITH-row chip → Fleet view</td>
+          <td class="col-what">Threaded capture stream from all fleet members who shared captures during this race. Filter by boat / time range. Cohort variant for nursing.</td>
+          <td class="col-notes">Query: <code>captures WHERE step.event_id = E AND visibility IN ('fleet','crew')</code>, ordered by <code>captured_at</code>. Render: own captures coral; others blue. <em>This is a read-only surface</em> — captures still belong to their authors.</td>
+        </tr>
+        <tr>
+          <td class="col-letter">D17a</td>
+          <td class="col-where">Do tab state pill</td>
+          <td class="col-what">Interest-flavored label: <em>Live · capturing</em> / <em>On shift · capturing</em> / <em>Session · capturing</em> / <em>Practicing</em>.</td>
+          <td class="col-notes">Label string per interest's <code>state_pill_labels</code> config. Color (<code>coral</code>) stays universal for the live-capturing state.</td>
+        </tr>
+        <tr>
+          <td class="col-letter">D17b</td>
+          <td class="col-where">Do tab stats area</td>
+          <td class="col-what">Captures count is the only default stat. <code>⏱</code> toggle beside it surfaces elapsed time when on. Tap toggles per session.</td>
+          <td class="col-notes">Toggle defaults on for interests with <code>show_elapsed_by_default = true</code> (sailing). Off elsewhere. State persisted per-step in local storage so user choice survives reload.</td>
+        </tr>
+        <tr>
+          <td class="col-letter">D17c</td>
+          <td class="col-where">Do tab Stop-CTA copy</td>
+          <td class="col-what">Per-interest CTA text: <em>Stop capturing</em> / <em>End shift</em> / <em>End session</em> / <em>Done capturing</em>.</td>
+          <td class="col-notes">Reads from interest's <code>stop_cta_label</code> config alongside the state pill label. Same component, different string.</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- =============================================================== -->
+  <!-- §7 · Rail                                                        -->
+  <!-- =============================================================== -->
+  <section class="rail-row">
+
+    <div class="rail-col">
+      <h4>1 · <em>One step-card grammar, three by-lines.</em></h4>
+      <p>Subscribed blueprint, co-practitioners, followed person — all three render the same ts-card pattern (state pill · title · meta · capability chips · add button). What varies is the <em>by-line</em> at the top (author avatar + name + role + follow state). This is how a user reads <em>whose timeline am I looking at</em> without needing chrome to tell them.</p>
+      <p class="sig"><span class="swatch blue"></span>blueprint <span class="swatch green"></span>peers <span class="swatch purple"></span>follow</p>
+    </div>
+
+    <div class="rail-col">
+      <h4>2 · <em>On deck buys the user permission to capture without committing.</em></h4>
+      <p>The biggest psychological cost of adding from someone else's timeline is <em>"where does it fit?"</em> — and that question stops capture. The deck zone removes the question: <em>"I'll figure out where it fits later, just hold it."</em> The amber strip lives above the timeline so the user can see what they've collected without it cluttering their committed plan.</p>
+      <p class="sig"><span class="swatch amber"></span>amber strip · provenance per row · Place → / ×</p>
+    </div>
+
+    <div class="rail-col">
+      <h4>3 · <em>Sharing a step is forking, not editing.</em></h4>
+      <p>When someone shares a step with you, they're saying <em>"look at what I'm doing — copy it if it's useful."</em> Receivers can <strong>view</strong>, <strong>fork into their own timeline</strong> (with provenance pointing back), or <strong>comment</strong>. They cannot edit the original. This keeps authorship clean and means receivers experience shared steps the same way they experience blueprint steps — as a source to fork from.</p>
+      <p class="sig"><span class="swatch green"></span>view · fork · comment — never edit</p>
+    </div>
+
+    <div class="rail-col">
+      <h4>4 · <em>Fleet view is read-only by design.</em></h4>
+      <p>14 sailors raced; 14 sailors wrote what they saw. The fleet view <strong>threads them together by timestamp</strong> so you can read what happened from multiple angles, but you can't edit anyone else's words or capabilities. Every capture still belongs to its author. The value is in the parallel testimony, not in collaborative editing.</p>
+      <p class="sig"><span class="swatch coral"></span>your captures <span class="swatch blue"></span>others' · timestamp-threaded · read-only</p>
+    </div>
+
+    <div class="rail-col">
+      <h4>5 · <em>Timing was never the model — only the chrome.</em></h4>
+      <p>Captures have always been wall-clock timestamped; that doesn't change. What retires from the surface is the <strong>elapsed counter</strong> as a default chrome element. Sailing keeps it on (races are inherently timed). Nursing, drawing, reading — none of them benefit from a timer ticking up while the user is trying to capture an observation. The toggle stays one tap away for the user who wants it, but it doesn't take screen real estate from people who don't.</p>
+      <p class="sig"><span class="swatch coral"></span>state pill stays · timer becomes optional</p>
+    </div>
+
+    <div class="rail-col">
+      <h4>6 · <em>Interest-flavored language without per-interest components.</em></h4>
+      <p>Sailing's <em>Live · capturing</em> · Nursing's <em>On shift · capturing</em> · Drawing's <em>Session · capturing</em> · Generic <em>Practicing</em> — same coral pill, same anatomy, different string. Same for the Stop CTA: <em>Stop capturing</em> / <em>End shift</em> / <em>End session</em> / <em>Done capturing</em>. Configuring this per-interest is two strings in a JSON file — and it makes BetterAt feel native to whatever practice a user shows up to. Nursing users don't read "Live · capturing" and think the system is built for sailors; they read "On shift" and feel known.</p>
+      <p class="sig"><span class="swatch coral"></span>one component · interest-flavored labels</p>
+    </div>
+
+  </section>
+
+</div>
+
+</body>
+</html>

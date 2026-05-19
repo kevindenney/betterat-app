@@ -12,19 +12,17 @@
 import { supabase } from '@/services/supabase';
 import { createLogger } from '@/lib/utils/logger';
 import { isAbortError } from '@/lib/utils/fetchWithTimeout';
+import { PlaybookAIService } from '@/services/ai/PlaybookAIService';
 import type {
   TimelineStepRecord,
   CreateTimelineStepInput,
   UpdateTimelineStepInput,
-  TimelineStepListFilters,
 } from '@/types/timeline-steps';
 import type { StepMetadata } from '@/types/step-detail';
 import type {
   CourseLesson,
   CourseStructure,
-  LibraryResourceRecord,
 } from '@/types/library';
-import { getAllLessons } from '@/types/library';
 
 const logger = createLogger('TimelineStepService');
 
@@ -176,7 +174,7 @@ export async function updateStepMetadata(
 
     // Deep merge: for each top-level key (plan, act, review), merge objects
     const merged: StepMetadata = { ...existingMetadata };
-    for (const key of Object.keys(partialMetadata) as Array<keyof StepMetadata>) {
+    for (const key of Object.keys(partialMetadata) as (keyof StepMetadata)[]) {
       const existing = merged[key];
       const incoming = partialMetadata[key];
       if (
@@ -195,7 +193,7 @@ export async function updateStepMetadata(
 
     // Extract platform collaborator user_ids for the denormalized RLS column
     const collaborators = (merged.plan as any)?.collaborators as
-      | Array<{ type: string; user_id?: string }>
+      | { type: string; user_id?: string }[]
       | undefined;
     const collaboratorUserIds = (collaborators ?? [])
       .filter((c) => c.type === 'platform' && c.user_id)
@@ -248,7 +246,7 @@ export async function getFollowedUsersTimelines(
       .from('timeline_steps')
       .select('*')
       .in('user_id', followingIds)
-      .neq('visibility', 'private')
+      .in('visibility', ['crew', 'fleet', 'public'])
       .order('updated_at', { ascending: false })
       .limit(200);
 
@@ -285,7 +283,7 @@ export async function createStep(
     logger.debug('Creating timeline step', { title: trimmedTitle, userId: input.user_id });
 
     // Single round-trip: the create_timeline_step RPC runs the visibility
-    // cascade (interest default → profile default → 'followers'), assigns a
+    // cascade (interest default → profile default → 'private'), assigns a
     // monotonically-increasing sort_order, defaults starts_at to NOW() when
     // the caller omits it, and performs the insert — all server-side.
     const { data, error } = await supabase
@@ -297,9 +295,14 @@ export async function createStep(
 
     const created = data as unknown as TimelineStepRecord;
 
-    // Fire-and-forget: trigger cross-interest suggestions from other Playbooks
-    import('@/services/ai/PlaybookAIService')
-      .then(({ PlaybookAIService }) => PlaybookAIService.crossInterest(created.id))
+    // Fire-and-forget: trigger cross-interest suggestions from other Playbooks.
+    // Statically imported above (was previously dynamic-imported here) because
+    // the dynamic import caused Metro to bundle ~1k modules mid-action on
+    // first use, which forced a hot-reload of the whole app and wiped the
+    // post-create navigation + optimistic cache. Static import preloads the
+    // bundle so the trigger runs without a reload cycle.
+    Promise.resolve()
+      .then(() => PlaybookAIService.crossInterest(created.id))
       .catch((e) => logger.debug('Cross-interest trigger skipped', e));
 
     return created;
@@ -322,7 +325,7 @@ export async function updateStep(
 
     // Auto-set completed_at when status changes
     const payload: Record<string, unknown> = { ...input };
-    if (input.status === 'completed') {
+    if (input.status === 'completed' || input.status === 'settled') {
       payload.completed_at = new Date().toISOString();
     } else if (input.status) {
       payload.completed_at = null;
@@ -460,7 +463,7 @@ export async function adoptStep(
         location_lat: (source as any).location_lat,
         location_lng: (source as any).location_lng,
         location_place_id: (source as any).location_place_id,
-        visibility: 'followers',
+        visibility: 'private',
         share_approximate_location: false,
         sort_order: nextSort,
         metadata: sourceMetadata,
@@ -608,7 +611,7 @@ export async function createStepsFromCourse(
         description: lesson.description ?? null,
         category: 'lesson',
         status: 'pending' as const,
-        visibility: 'followers' as const,
+        visibility: 'private' as const,
         sort_order: nextSort++,
         starts_at: startsAt,
         metadata,
@@ -729,7 +732,7 @@ export async function adoptOrgCourse(
       description: t.description,
       category: t.category ?? 'lesson',
       status: 'pending' as const,
-      visibility: 'followers' as const,
+      visibility: 'private' as const,
       sort_order: nextSort++,
       metadata: {
         ...((t.metadata as Record<string, unknown>) ?? {}),
@@ -916,7 +919,7 @@ export async function adoptTemplate(
       description: t.description,
       category: t.category ?? 'general',
       status: 'pending' as const,
-      visibility: 'followers' as const,
+      visibility: 'private' as const,
       sort_order: nextSort++,
       metadata: t.metadata ?? {},
     }));

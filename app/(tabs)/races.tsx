@@ -8,6 +8,7 @@ import {
 } from '@/components/cards';
 import { TimelineGridView } from '@/components/cards/TimelineGridView';
 import { openInterestSwitcher } from '@/components/InterestSwitcher';
+import { useUniversalPlus } from '@/components/capture';
 import { BlueprintWelcomeCard } from '@/components/races/BlueprintWelcomeCard';
 import { DragonWorldsPracticeWelcomeBanner } from '@/components/races/DragonWorldsPracticeWelcomeBanner';
 
@@ -186,6 +187,7 @@ const normalizeDocumentType = (
 const EMPTY_RACES: any[] = [];
 
 export default function RacesScreen() {
+  const universalPlus = useUniversalPlus();
   const auth = useAuth();
   const { user, userProfile: _userProfile, signedIn, ready, isDemoSession, userType, isGuest, enterGuestMode, wasAuthenticated } = auth;
   const { isTourActive: _isTourActive, currentStep: _currentStep, triggerPricingPrompt } = useFeatureTourContext();
@@ -1182,6 +1184,11 @@ export default function RacesScreen() {
       // Timeline step fields — pass through so detail view can distinguish steps from regattas
       ...(race.isTimelineStep ? {
         isTimelineStep: true,
+        interest_id: race.interest_id,
+        user_id: race.user_id,
+        collaborator_user_ids: race.collaborator_user_ids ?? [],
+        isOwner: race.user_id === user?.id,
+        created_by: race.created_by ?? race.user_id,
         stepStatus: timelineStatusOverrides[race.id]?.status || race.stepStatus,
         sort_order: race.sort_order,
         description: race.description,
@@ -1198,7 +1205,7 @@ export default function RacesScreen() {
     const nowMsMapped = Date.now();
     mapped.sort((a: any, b: any) => compareTimelineItems(a, b, nowMsMapped));
     return mapped;
-  }, [safeRecentRaces, sampleRaceDismissed, isViewingOtherTimeline, currentTimeline, timelineStatusOverrides, eventConfig.interestSlug, eventConfig.eventNoun, eventConfig.defaultSubtype, subscribedBlueprints, vocab]);
+  }, [safeRecentRaces, sampleRaceDismissed, isViewingOtherTimeline, currentTimeline, timelineStatusOverrides, eventConfig.interestSlug, eventConfig.eventNoun, eventConfig.defaultSubtype, subscribedBlueprints, vocab, user?.id]);
 
   // Use the chronological order from baseCardGridRaces (which comes from
   // interestFilteredRaces sorted by: completed first, then date, then sort_order).
@@ -1704,7 +1711,11 @@ export default function RacesScreen() {
         id: newStep.id,
         name: newStep.title,
         date: newStep.due_at || undefined,
+        interest_id: newStep.interest_id,
+        user_id: newStep.user_id,
+        collaborator_user_ids: newStep.collaborator_user_ids ?? [],
         isTimelineStep: true,
+        isOwner: true,
         stepStatus: 'pending',
         status: 'pending',
         metadata: newStep.metadata,
@@ -1776,7 +1787,7 @@ export default function RacesScreen() {
       location_lat: null,
       location_lng: null,
       location_place_id: null,
-      visibility: 'followers',
+      visibility: 'private',
       share_approximate_location: false,
       copied_from_user_id: null,
       source_blueprint_id: null,
@@ -1822,7 +1833,11 @@ export default function RacesScreen() {
       id: tempId,
       name: optimisticStep.title,
       date: undefined,
+      interest_id: optimisticStep.interest_id,
+      user_id: optimisticStep.user_id,
+      collaborator_user_ids: optimisticStep.collaborator_user_ids ?? [],
       isTimelineStep: true,
+      isOwner: true,
       stepStatus: 'pending',
       status: 'pending',
       metadata: optimisticMetadata,
@@ -1937,7 +1952,11 @@ export default function RacesScreen() {
         id: newStep.id,
         name: newStep.title,
         date: newStep.due_at || undefined,
+        interest_id: newStep.interest_id,
+        user_id: newStep.user_id,
+        collaborator_user_ids: newStep.collaborator_user_ids ?? [],
         isTimelineStep: true,
+        isOwner: true,
         stepStatus: 'pending',
         status: 'pending',
         metadata: newStep.metadata,
@@ -2735,6 +2754,11 @@ export default function RacesScreen() {
     setSelectedRaceId(targetId);
     setHasManuallySelected(true);
     initialSelectedRaceParam.current = null;
+    // Zoom from the grid view into the carousel detail so the user lands
+    // on the step they just selected/created. Other entry points to ?selected=
+    // (notifications, peer-sheet deep links, Universal Plus post-create
+    // navigation) all want this same behavior — show the actual card.
+    setIsGridView(false);
 
     // Clear the ?selected= param via the router so expo-router's internal
     // searchParams state stays in sync. Using window.history.replaceState
@@ -3906,21 +3930,22 @@ export default function RacesScreen() {
 
   // iOS-register summary-surface adapter — shapes filteredCardGridRaces into the
   // RaceCardItem grammar consumed by <RaceCardsScreen />. Status maps from the
-  // step's canonical fields; selectedRaceId promotes one card to "current"
-  // (the earned-exception treatment) so the user's focus card is always
-  // visually distinguished even when no step is in_progress. Tap-through is
-  // wired in the render-switch block to /race/ios/[stepId].
+  // step's canonical fields; "current" follows the next actionable race
+  // rather than whichever card happens to be selected in the detail pane.
+  // That keeps completed cards on the completed side of the now bar as soon as
+  // they are marked done.
   const raceCardsScreenItems: RaceCardItem[] = useMemo(() => {
     const total = filteredCardGridRaces.length;
+    const currentRaceId = safeNextRace?.id ?? nextActionItem?.id ?? selectedRaceId;
     return filteredCardGridRaces.map((race: any, idx: number): RaceCardItem => {
       const ordinal = idx + 1;
       const stepStatus = race.stepStatus ?? race.status;
-      const isCurrent = race.id === selectedRaceId;
+      const isCurrent = race.id === currentRaceId;
       let status: RaceCardItem['status'];
-      if (isCurrent) {
-        status = 'current';
-      } else if (stepStatus === 'completed') {
+      if (stepStatus === 'completed') {
         status = 'debriefed';
+      } else if (isCurrent) {
+        status = 'current';
       } else if (stepStatus === 'in_progress') {
         status = 'in_progress';
       } else {
@@ -3967,7 +3992,7 @@ export default function RacesScreen() {
         concepts,
       };
     });
-  }, [filteredCardGridRaces, selectedRaceId]);
+  }, [filteredCardGridRaces, safeNextRace?.id, nextActionItem?.id, selectedRaceId]);
 
   // Stable initial card index — only changes when the target race actually moves
   // in the array, NOT on every data refetch that produces a new array reference.
@@ -4340,18 +4365,10 @@ export default function RacesScreen() {
           {isGridView ? (
             <View style={{ flex: 1 }}>
 
-              {showSeriesStrip && (
-                <View style={{ paddingTop: totalHeaderHeight + 8 }}>
-                  <SeriesStrip
-                    label={getSeriesLabel(currentInterest)}
-                    name={seriesStripName}
-                    currentIndex={headerCurrentRaceIndex ?? 0}
-                    totalSteps={headerTotalRaces}
-                    progress={seriesStripProgress}
-                    onPress={() => setShowSeasonPicker(true)}
-                  />
-                </View>
-              )}
+              {/* SeriesStrip is now passed to TimelineGridView via
+                  renderAboveGrid so it scrolls inside the same ScrollView
+                  as the cards (was previously a sibling above the list,
+                  which made it stay pinned when the user scrolled down). */}
 
               {!isSailingInterest && hasTimelineSteps && (
                 <Reanimated.View
@@ -4501,6 +4518,22 @@ export default function RacesScreen() {
               <TimelineGridView
                 races={filteredCardGridRaces}
                 selectedRaceId={selectedRaceId || undefined}
+                renderAboveGrid={
+                  showSeriesStrip
+                    ? () => (
+                        <View style={{ paddingTop: totalHeaderHeight + 8 }}>
+                          <SeriesStrip
+                            label={getSeriesLabel(currentInterest)}
+                            name={seriesStripName}
+                            currentIndex={headerCurrentRaceIndex ?? 0}
+                            totalSteps={headerTotalRaces}
+                            progress={seriesStripProgress}
+                            onPress={() => setShowSeasonPicker(true)}
+                          />
+                        </View>
+                      )
+                    : undefined
+                }
                 nextRaceIndex={effectiveNextRaceIndex != null ? filteredCardGridRaces.findIndex(r => r.id === cardGridRaces[effectiveNextRaceIndex]?.id) : null}
                 onSelectRace={(index, race) => {
                   setSelectedRaceId(race.id);
@@ -5074,7 +5107,13 @@ export default function RacesScreen() {
           isOnline={isOnline}
           isGridView={isGridView}
           onToggleGridView={handleToggleGridView}
-          onAddPress={() => setShowAddStepSheet(true)}
+          onAddPress={() => {
+            if (universalPlus.isAvailable) {
+              universalPlus.open();
+            } else {
+              setShowAddStepSheet(true);
+            }
+          }}
           onAddRace={isSailingInterest ? handleShowAddRaceSheet : handleAddStep}
           onAddStep={isSailingInterest ? handleAddStep : undefined}
           onAddButtonLayout={setAddButtonLayout}
@@ -5137,7 +5176,7 @@ export default function RacesScreen() {
         )}
       </View>
 
-      {FEATURE_FLAGS.PRACTICE_ADD_STEP_FAB && (
+      {FEATURE_FLAGS.PRACTICE_ADD_STEP_FAB && !FEATURE_FLAGS.PRACTICE_STEP_LOOP_IOS_REGISTER && (
         <AddStepFab
           onPress={() => setShowCanonicalAddStepSheet(true)}
           style={{
@@ -5145,6 +5184,9 @@ export default function RacesScreen() {
             // Canonical Add Step Flow 2026-05-15: 16pt from right edge and
             // 16pt above the 84pt tab bar (insets.bottom covers the safe
             // area overlap with the home indicator).
+            // Phase 1 · iOS register: the FAB retires when the step-loop
+            // register is on — its job moves to the universal `+` sheet
+            // shipping in Phase 2.
             right: 16,
             bottom: insets.bottom + 84 + 16,
             zIndex: 120,

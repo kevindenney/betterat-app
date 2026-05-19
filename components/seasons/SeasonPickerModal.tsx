@@ -17,6 +17,7 @@ import {
   TouchableOpacity,
   ScrollView,
   Pressable,
+  Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
@@ -318,6 +319,11 @@ type GroupedSeasons = {
   upcoming: SeasonListItem[];
 };
 
+function pluralizePeriod(label: string): string {
+  // "Series" is its own plural; everything else just adds an 's'.
+  return /series$/i.test(label) ? label : `${label}s`;
+}
+
 function partitionSeasons(
   currentSeason: SeasonWithSummary | null,
   allSeasons: SeasonListItem[],
@@ -401,6 +407,12 @@ function CanonicalSheet({
 }: CanonicalSheetProps) {
   const groups = partitionSeasons(currentSeason, allSeasons);
   const title = `Switch ${periodLabel.toLowerCase()}`;
+  const periodLabelLower = periodLabel.toLowerCase();
+  const periodLabelLowerPlural = pluralizePeriod(periodLabelLower);
+  // Keep the rows card from pushing the action card + Cancel off-screen
+  // when the user has many seasons. The action card + cancel reserve
+  // ~220pt; leave another ~120pt for status bar + scrim spacing.
+  const rowsMaxHeight = Math.max(180, Dimensions.get('window').height - 340);
 
   return (
     <Modal
@@ -418,68 +430,75 @@ function CanonicalSheet({
             <View style={canonicalStyles.card}>
               <Text style={canonicalStyles.title}>{title}</Text>
 
-              {groups.active && (
-                <CanonicalRow
-                  kind="active"
-                  name={groups.active.name}
-                  subline={formatDateRange(groups.active.start_date, groups.active.end_date)}
-                  progressText={`${groups.active.summary.completed_races} of ${groups.active.summary.total_races}`}
-                  isFirstInSection
-                  showCheck
-                  onPress={() => onSelectSeason(groups.active!.id)}
-                />
-              )}
+              <ScrollView
+                style={{ maxHeight: rowsMaxHeight }}
+                contentContainerStyle={canonicalStyles.rowsScrollContent}
+                showsVerticalScrollIndicator
+                bounces
+              >
+                {groups.active && (
+                  <CanonicalRow
+                    kind="active"
+                    name={groups.active.name}
+                    subline={formatDateRange(groups.active.start_date, groups.active.end_date)}
+                    progressText={`${groups.active.summary.completed_races} of ${groups.active.summary.total_races}`}
+                    isFirstInSection
+                    showCheck
+                    onPress={() => onSelectSeason(groups.active!.id)}
+                  />
+                )}
 
-              {groups.past.length > 0 && (
-                <View style={canonicalStyles.sectionHead}>
-                  <Text style={canonicalStyles.sectionHeadText}>
-                    Past {periodLabel.toLowerCase()}s
-                  </Text>
-                </View>
-              )}
-              {groups.past.map((season, idx) => (
-                <CanonicalRow
-                  key={season.id}
-                  kind="past"
-                  status={season.status}
-                  name={season.name}
-                  subline={formatDateRange(season.start_date, season.end_date)}
-                  progressText={`${season.completed_count} of ${season.race_count}`}
-                  isFirstInSection={idx === 0}
-                  onPress={() => onSelectSeason(season.id)}
-                />
-              ))}
+                {groups.past.length > 0 && (
+                  <View style={canonicalStyles.sectionHead}>
+                    <Text style={canonicalStyles.sectionHeadText}>
+                      Past {periodLabelLowerPlural}
+                    </Text>
+                  </View>
+                )}
+                {groups.past.map((season, idx) => (
+                  <CanonicalRow
+                    key={season.id}
+                    kind="past"
+                    status={season.status}
+                    name={season.name}
+                    subline={formatDateRange(season.start_date, season.end_date)}
+                    progressText={`${season.completed_count} of ${season.race_count}`}
+                    isFirstInSection={idx === 0}
+                    onPress={() => onSelectSeason(season.id)}
+                  />
+                ))}
 
-              {groups.upcoming.length > 0 && (
-                <View style={canonicalStyles.sectionHead}>
-                  <Text style={canonicalStyles.sectionHeadText}>
-                    Upcoming {periodLabel.toLowerCase()}s
-                  </Text>
-                </View>
-              )}
-              {groups.upcoming.map((season, idx) => (
-                <CanonicalRow
-                  key={season.id}
-                  kind="upcoming"
-                  name={season.name}
-                  subline={formatDateRange(season.start_date, season.end_date)}
-                  progressText={`${season.completed_count} of ${season.race_count}`}
-                  isFirstInSection={idx === 0}
-                  onPress={() => onSelectSeason(season.id)}
-                />
-              ))}
+                {groups.upcoming.length > 0 && (
+                  <View style={canonicalStyles.sectionHead}>
+                    <Text style={canonicalStyles.sectionHeadText}>
+                      Upcoming {periodLabelLowerPlural}
+                    </Text>
+                  </View>
+                )}
+                {groups.upcoming.map((season, idx) => (
+                  <CanonicalRow
+                    key={season.id}
+                    kind="upcoming"
+                    name={season.name}
+                    subline={formatDateRange(season.start_date, season.end_date)}
+                    progressText={`${season.completed_count} of ${season.race_count}`}
+                    isFirstInSection={idx === 0}
+                    onPress={() => onSelectSeason(season.id)}
+                  />
+                ))}
+              </ScrollView>
             </View>
 
             <View style={canonicalStyles.card}>
               <CanonicalActionRow
                 icon="sparkles"
-                label={`Create new ${periodLabel.toLowerCase()}`}
+                label={`Create new ${periodLabelLower}`}
                 onPress={onManageSeasons}
                 isFirstInSection
               />
               <CanonicalActionRow
                 icon="settings-sharp"
-                label={`Manage ${periodLabel.toLowerCase()}s`}
+                label={`Manage ${periodLabelLowerPlural}`}
                 onPress={onManageSeasons}
               />
             </View>
@@ -621,6 +640,9 @@ const canonicalStyles = StyleSheet.create({
     letterSpacing: -0.05,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: 'rgba(60,60,67,0.18)',
+  },
+  rowsScrollContent: {
+    paddingBottom: 0,
   },
   sectionHead: {
     paddingTop: 12,

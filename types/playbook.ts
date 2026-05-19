@@ -89,6 +89,7 @@ export interface UpdatePlaybookResourceInput {
 // ---------------------------------------------------------------------------
 
 export type ConceptOrigin = 'platform_baseline' | 'pathway_baseline' | 'personal' | 'forked';
+export type PlaybookConceptLifecycleState = 'seed' | 'forming' | 'testing' | 'settled';
 
 export interface PlaybookConceptRecord {
   id: string;
@@ -102,6 +103,12 @@ export interface PlaybookConceptRecord {
   slug: string;
   title: string;
   body_md: string;
+  body?: string | null;
+  state?: PlaybookConceptLifecycleState;
+  settled_at?: string | null;
+  settled_by_promotion_at?: string | null;
+  ai_synthesis_text?: string | null;
+  ai_synthesis_drafted_at?: string | null;
   updated_by: string | null;
   /** UUIDs of related concepts — bidirectional backlinks */
   related_concept_ids: string[];
@@ -118,11 +125,19 @@ export interface CreatePlaybookConceptInput {
   slug: string;
   title: string;
   body_md?: string;
+  body?: string;
+  state?: PlaybookConceptLifecycleState;
 }
 
 export interface UpdatePlaybookConceptInput {
   title?: string;
   body_md?: string;
+  body?: string | null;
+  state?: PlaybookConceptLifecycleState;
+  settled_at?: string | null;
+  settled_by_promotion_at?: string | null;
+  ai_synthesis_text?: string | null;
+  ai_synthesis_drafted_at?: string | null;
   slug?: string;
   related_concept_ids?: string[];
 }
@@ -279,6 +294,33 @@ export interface StepPlaybookLinkRecord {
   step_id: string;
   item_type: StepPlaybookLinkType;
   item_id: string;
+  created_at: string;
+}
+
+export interface StepConceptLinkRecord {
+  id: string;
+  step_id: string;
+  concept_id: string;
+  linked_at: string;
+}
+
+export interface PlaybookInsightRecord {
+  id: string;
+  user_id: string;
+  interest_id: string | null;
+  kind: 'text' | 'voice';
+  content: string;
+  audio_uri: string | null;
+  refined_to_concept_id: string | null;
+  created_at: string;
+}
+
+export interface ConceptTrailQuoteRecord {
+  id: string;
+  concept_id: string;
+  capture_id: string;
+  quote_text: string;
+  source_label: string;
   created_at: string;
 }
 

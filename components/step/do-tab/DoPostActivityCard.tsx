@@ -93,6 +93,13 @@ export function DoPostActivityCard({
 
         <DoStepContextStrip stepTitle={stepTitle} contextSegments={contextSegments} />
 
+        <View style={styles.titleSuggestion}>
+          <Text style={styles.titleSuggestionEyebrow}>Suggested title</Text>
+          <Text style={styles.titleSuggestionText}>
+            {stepTitle ? `"${stepTitle}"` : 'AI will suggest a title from your captures.'}
+          </Text>
+        </View>
+
         <DoAutoSummaryCard
           captures={ordered}
           narrative={summaryText}
@@ -213,6 +220,30 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: 12,
+  },
+  titleSuggestion: {
+    marginTop: 10,
+    marginHorizontal: 14,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    backgroundColor: '#FAFAFC',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: GRAY_5,
+  },
+  titleSuggestionEyebrow: {
+    fontSize: 9.5,
+    fontWeight: '700',
+    letterSpacing: 0.6,
+    textTransform: 'uppercase',
+    color: LABEL_3,
+    marginBottom: 3,
+  },
+  titleSuggestionText: {
+    fontSize: 15,
+    fontStyle: 'italic',
+    letterSpacing: -0.2,
+    color: LABEL,
   },
   stats: {
     flexDirection: 'row',

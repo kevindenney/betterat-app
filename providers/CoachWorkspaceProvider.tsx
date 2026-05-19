@@ -12,8 +12,8 @@
  */
 
 import React, { createContext, useContext, useMemo } from 'react';
-import { QueryClient, QueryClientProvider, useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { coachingService, CoachProfile, CoachingSession, CoachingClient, ClientStats } from '@/services/CoachingService';
+import { useQuery } from '@tanstack/react-query';
+import { coachingService, CoachProfile, ClientStats } from '@/services/CoachingService';
 import { useAuth } from './AuthProvider';
 
 // Query keys for React Query cache management
@@ -52,18 +52,15 @@ const CoachWorkspaceContext = createContext<CoachWorkspaceContextType>({
   refetchAll: async () => {},
 });
 
-// Create a query client for the coach workspace
-const coachQueryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 5 * 60 * 1000, // 5 minutes
-      gcTime: 10 * 60 * 1000, // 10 minutes (formerly cacheTime)
-      retry: 2,
-      refetchOnWindowFocus: true,
-      refetchOnReconnect: true,
-    },
-  },
-});
+// Note: this provider used to create its OWN QueryClient via
+// `new QueryClient(...)` and wrap children in a nested QueryClientProvider.
+// That caused every screen inside the (tabs) group to read/write a
+// DIFFERENT React Query cache than code mounted at the app root (e.g.
+// UniversalPlusProvider). Optimistic inserts written by app-root code
+// landed in the app-root cache but were never visible to in-tab hooks
+// like useMyTimeline — they were reading the coach cache and never saw
+// the new step. Removed the wrapper; coach-specific queries use the
+// app-root client like every other query in the app.
 
 interface CoachWorkspaceProviderProps {
   children: React.ReactNode;
@@ -123,6 +120,9 @@ function CoachWorkspaceProviderInner({ children }: CoachWorkspaceProviderProps) 
       isLoadingStats,
       refetchAll,
     }),
+    // refetchAll is a stable closure over refetchProfile + refetchStats refs;
+    // re-creating it on every render would only add churn.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [coachId, coachProfile, authCoachProfile, isLoadingProfile, stats, isLoadingStats]
   );
 
@@ -133,14 +133,14 @@ function CoachWorkspaceProviderInner({ children }: CoachWorkspaceProviderProps) 
   );
 }
 
-// Wrap with QueryClientProvider
+// Uses the app-root React Query client (no wrapper) so the timeline
+// cache is shared with code mounted above this provider (notably the
+// app-root UniversalPlusProvider that does optimistic inserts).
 export function CoachWorkspaceProvider({ children }: CoachWorkspaceProviderProps) {
   return (
-    <QueryClientProvider client={coachQueryClient}>
-      <CoachWorkspaceProviderInner>
-        {children}
-      </CoachWorkspaceProviderInner>
-    </QueryClientProvider>
+    <CoachWorkspaceProviderInner>
+      {children}
+    </CoachWorkspaceProviderInner>
   );
 }
 

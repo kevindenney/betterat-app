@@ -16,6 +16,7 @@ export interface DoComposerProps {
   /** Placeholder text inside the composer field. */
   placeholder?: string;
   readOnly?: boolean;
+  onAddMore?: () => void;
   onAddQuickNote?: () => void;
   onAddPhoto?: () => void;
   onAddVoiceNote?: () => void;
@@ -29,6 +30,7 @@ export interface DoComposerProps {
 export function DoComposer({
   placeholder = 'Add a capture…',
   readOnly,
+  onAddMore,
   onAddQuickNote,
   onAddPhoto,
   onAddVoiceNote,
@@ -57,9 +59,17 @@ export function DoComposer({
       accessibilityLabel="Capture composer"
     >
       <View style={styles.field}>
-        <View style={styles.icoAdd}>
+        <Pressable
+          onPress={readOnly ? undefined : onAddMore}
+          disabled={readOnly}
+          accessibilityRole="button"
+          accessibilityLabel="More capture types"
+          accessibilityState={{ disabled: Boolean(readOnly) }}
+          style={styles.icoAdd}
+          hitSlop={8}
+        >
           <Ionicons name="add" size={13} color={IOS_BLUE} />
-        </View>
+        </Pressable>
         <Text style={styles.fieldText} numberOfLines={1}>
           {placeholder}
         </Text>

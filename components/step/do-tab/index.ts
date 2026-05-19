@@ -6,6 +6,11 @@ export { DoLiveHeader, type DoLiveHeaderProps } from './DoLiveHeader';
 export { DoStepContextStrip, type DoStepContextStripProps } from './DoStepContextStrip';
 export { DoCaptureRow, type DoCaptureRowProps } from './DoCaptureRow';
 export { DoComposer, type DoComposerProps } from './DoComposer';
+export { CaptureRow, type CaptureRowProps } from './CaptureRow';
+export { DoStream, type DoStreamProps } from './DoStream';
+export { StreamComposer, type StreamComposerProps } from './StreamComposer';
+export { CaptureTypesSheet, type CaptureTypesSheetProps } from './CaptureTypesSheet';
+export { StopCapturingCTA, type StopCapturingCTAProps } from './StopCapturingCTA';
 export {
   DoStopCapturingButton,
   type DoStopCapturingButtonProps,

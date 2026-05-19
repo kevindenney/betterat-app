@@ -1,0 +1,1800 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=1820" />
+<title>BetterAt · HKDW → BetterAt Onboarding — Canonical · 2026-05-17</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css" />
+<link rel="stylesheet" href="legacy-reskin-common.css?v=1" />
+<style>
+  .page { min-width: 1820px; }
+
+  /* ============= Section framing ============= */
+  .section-band { max-width: 1760px; margin: 60px auto 0; padding-top: 36px; border-top: 0.5px solid var(--stage-line); }
+  .section-band:first-of-type { margin-top: 24px; border-top: 0; padding-top: 0; }
+  .section-band h2 {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 24px; font-weight: 500; letter-spacing: -0.3px;
+    color: var(--stage-ink); margin: 0 0 8px;
+  }
+  .section-band h2 em { font-style: italic; }
+  .section-band .lede {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 15px; line-height: 1.55;
+    color: var(--stage-text); margin: 0 0 24px;
+    max-width: 1080px; text-wrap: pretty;
+  }
+  .section-band .lede em { font-style: italic; }
+  .section-band .lede strong { color: var(--stage-ink); font-weight: 500; }
+
+  /* Decisions */
+  .decisions-bar {
+    max-width: 1760px; margin: 28px auto 0;
+    padding: 22px 24px;
+    background: rgba(255,255,255,0.55);
+    border: 0.5px solid var(--stage-line);
+    border-radius: 14px;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 24px;
+  }
+
+  /* ============================================================
+     Web-variant chrome — mobile Safari
+     ============================================================ */
+  .phone.safari-phone .screen {
+    background: var(--gray-6);
+    padding-top: 50px;
+    display: flex; flex-direction: column;
+  }
+  .safari-url-bar {
+    height: 50px;
+    background: rgba(247, 247, 250, 0.94);
+    -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px);
+    border-bottom: 0.5px solid rgba(0,0,0,0.08);
+    display: grid;
+    grid-template-columns: 36px 1fr 36px;
+    align-items: center; gap: 8px;
+    padding: 0 12px;
+    flex-shrink: 0;
+  }
+  .safari-url-bar .ic-l, .safari-url-bar .ic-r {
+    color: var(--ios-blue);
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .safari-url-bar .ic-l i, .safari-url-bar .ic-r i { font-size: 17px; }
+  .safari-url-bar .url {
+    background: rgba(0, 0, 0, 0.06);
+    border-radius: 9px;
+    padding: 6px 12px;
+    font-size: 13px; color: var(--label);
+    letter-spacing: -0.1px;
+    display: inline-flex; align-items: center; gap: 6px;
+    justify-content: center;
+    overflow: hidden;
+  }
+  .safari-url-bar .url i { font-size: 13px; color: var(--label-3); }
+  .safari-url-bar .url .host { font-weight: 600; }
+  .safari-url-bar .url .path { color: var(--label-3); margin-left: 1px; }
+
+  .safari-content {
+    flex: 1;
+    overflow-y: auto;
+    background: var(--gray-6);
+    position: relative;
+    scrollbar-width: none;
+  }
+  .safari-content::-webkit-scrollbar { display: none; }
+
+  .safari-toolbar {
+    height: 48px;
+    background: rgba(247, 247, 250, 0.94);
+    -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px);
+    border-top: 0.5px solid rgba(0,0,0,0.08);
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    align-items: center;
+    flex-shrink: 0;
+  }
+  .safari-toolbar .ic {
+    color: var(--ios-blue);
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .safari-toolbar .ic.dim { color: rgba(0, 122, 255, 0.30); }
+  .safari-toolbar .ic i { font-size: 19px; }
+
+  /* Smart-app banner — Safari/HTML5 Apple convention */
+  .smart-banner {
+    background: rgba(247, 247, 250, 0.98);
+    border-bottom: 0.5px solid rgba(0,0,0,0.10);
+    padding: 8px 12px;
+    display: grid;
+    grid-template-columns: 44px 1fr auto auto;
+    column-gap: 10px;
+    align-items: center;
+    flex-shrink: 0;
+  }
+  .smart-banner .icon-mark {
+    width: 44px; height: 44px; border-radius: 10px;
+    background: linear-gradient(135deg, #5856D6 0%, #3F3DA8 100%);
+    color: #fff;
+    display: inline-flex; align-items: center; justify-content: center;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.10);
+  }
+  .smart-banner .icon-mark i { font-size: 22px; }
+  .smart-banner .copy .nm {
+    font-size: 13px; font-weight: 600;
+    color: var(--label); letter-spacing: -0.1px;
+    margin: 0; line-height: 1.15;
+  }
+  .smart-banner .copy .sub {
+    font-size: 10.5px; color: var(--label-3);
+    letter-spacing: -0.05px;
+    margin: 1px 0 0;
+  }
+  .smart-banner .open-btn {
+    background: var(--ios-blue); color: #fff;
+    border: 0; border-radius: 999px;
+    padding: 5px 14px;
+    font-size: 12px; font-weight: 600;
+    letter-spacing: -0.05px;
+  }
+  .smart-banner .close {
+    background: none; border: 0; color: var(--label-3);
+  }
+  .smart-banner .close i { font-size: 16px; }
+
+  /* Install-to-capture sheet (Do tab) */
+  .install-sheet {
+    position: absolute;
+    left: 14px; right: 14px;
+    bottom: 60px;
+    background: #FFFFFF;
+    border: 0.5px solid var(--gray-5);
+    border-radius: 16px;
+    padding: 16px 16px 14px;
+    box-shadow:
+      0 1px 2px rgba(0, 0, 0, 0.06),
+      0 18px 48px -16px rgba(0, 0, 0, 0.22);
+    z-index: 18;
+  }
+  .install-sheet .row1 {
+    display: flex; align-items: center; gap: 10px;
+    margin: 0 0 10px;
+  }
+  .install-sheet .icon-mark {
+    width: 40px; height: 40px; border-radius: 9px;
+    background: linear-gradient(135deg, #5856D6 0%, #3F3DA8 100%);
+    color: #fff;
+    display: inline-flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .install-sheet .icon-mark i { font-size: 19px; }
+  .install-sheet .ttl {
+    font-size: 14px; font-weight: 600;
+    color: var(--label); letter-spacing: -0.15px;
+    margin: 0; line-height: 1.2;
+  }
+  .install-sheet .sub {
+    font-size: 11px; color: var(--label-3);
+    letter-spacing: -0.05px;
+    margin: 2px 0 0;
+  }
+  .install-sheet .body-i {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 13px; line-height: 1.5;
+    color: var(--label-2); font-style: italic;
+    margin: 0 0 12px;
+    text-wrap: pretty;
+  }
+  .install-sheet .feature-list {
+    list-style: none; padding: 0; margin: 0 0 14px;
+    display: flex; flex-direction: column; gap: 5px;
+  }
+  .install-sheet .feature-list li {
+    display: flex; align-items: center; gap: 7px;
+    font-size: 11.5px; color: var(--label-2);
+    letter-spacing: -0.05px;
+  }
+  .install-sheet .feature-list li i {
+    font-size: 13px; color: var(--ios-purple);
+  }
+  .install-sheet .ctas { display: flex; gap: 8px; }
+  .install-sheet .ctas .primary {
+    flex: 1;
+    background: var(--ios-blue); color: #fff;
+    border: 0; border-radius: 12px;
+    padding: 11px 14px;
+    font-size: 13.5px; font-weight: 600;
+    letter-spacing: -0.15px;
+    display: inline-flex; align-items: center; justify-content: center; gap: 5px;
+  }
+  .install-sheet .ctas .primary i { font-size: 14px; }
+  .install-sheet .ctas .ghost {
+    flex: 1;
+    background: var(--gray-6); color: var(--label-2);
+    border: 0.5px solid var(--gray-4);
+    border-radius: 12px;
+    padding: 11px 14px;
+    font-size: 13.5px; font-weight: 500;
+    letter-spacing: -0.05px;
+  }
+
+  /* Web tab strip — substitute for iOS native tabbar */
+  .web-tabs {
+    background: #FFFFFF;
+    border-bottom: 0.5px solid var(--gray-5);
+    padding: 0 16px;
+    display: flex; gap: 4px;
+  }
+  .web-tabs .t {
+    padding: 11px 12px 12px;
+    font-size: 13px; font-weight: 500;
+    color: var(--label-3); letter-spacing: -0.1px;
+    position: relative;
+    display: inline-flex; align-items: center; gap: 5px;
+  }
+  .web-tabs .t.on { color: var(--ios-blue); font-weight: 600; }
+  .web-tabs .t.on::after {
+    content: ""; position: absolute; left: 12px; right: 12px; bottom: -0.5px;
+    height: 2px; background: var(--ios-blue); border-radius: 2px;
+  }
+  .decisions-bar .dec h5 {
+    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 10.5px; font-weight: 700;
+    color: var(--ios-purple-deep); letter-spacing: 0.7px;
+    text-transform: uppercase; margin: 0 0 6px;
+  }
+  .decisions-bar .dec p {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 12.5px; line-height: 1.5;
+    color: var(--stage-text); margin: 0; text-wrap: pretty;
+  }
+  .decisions-bar .dec p strong { color: var(--stage-ink); font-weight: 500; }
+  .decisions-bar .dec p em { font-style: italic; }
+
+  /* Four-phone flow row */
+  .flow-row {
+    max-width: 1760px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: 1fr 40px 1fr 40px 1fr 40px 1fr;
+    gap: 14px;
+    align-items: flex-start;
+  }
+  .pane { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+  .pane .phase-eye {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-size: 10.5px; font-weight: 700;
+    letter-spacing: 0.9px; text-transform: uppercase;
+    color: var(--stage-text);
+  }
+  .pane .phase-eye .pip {
+    width: 18px; height: 18px; border-radius: 50%;
+    background: var(--gray-3); color: #fff;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 10px; font-weight: 700;
+  }
+  .pane.hkdw .phase-eye .pip { background: #0E2A4A; }
+  .pane.handoff .phase-eye .pip { background: var(--ios-amber); }
+  .pane.redeem .phase-eye .pip { background: var(--ios-purple); }
+  .pane.first-actions .phase-eye .pip { background: var(--ios-blue); }
+  .pane .phase-title {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 16.5px; font-weight: 500; letter-spacing: -0.25px;
+    color: var(--stage-ink); margin: 0;
+    text-wrap: balance; text-align: center;
+  }
+  .pane .phase-title em { font-style: italic; }
+  .pane .phase-sub {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 12px; font-style: italic;
+    color: var(--stage-text); margin: 0; line-height: 1.45;
+    max-width: 340px; text-wrap: pretty; text-align: center;
+  }
+
+  .flow-arrow {
+    display: flex; flex-direction: column; align-items: center; gap: 6px;
+    padding-top: 240px;
+  }
+  .flow-arrow svg { display: block; }
+  .flow-arrow .label {
+    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 9.5px; font-weight: 700;
+    color: var(--stage-ink); letter-spacing: 0.7px;
+    text-transform: uppercase;
+    text-align: center;
+  }
+
+  /* ============================================================
+     Phase 1 · HKDW app — generic sailing-event chrome
+     ============================================================ */
+  .phone.hkdw-phone {
+    background: #0E2A4A;
+    border-radius: 56px;
+    border: 1px solid rgba(0, 0, 0, 0.30);
+  }
+  .phone.hkdw-phone .screen {
+    background: #0E2A4A;
+    color: #fff;
+    padding-top: 50px;
+  }
+  .phone.hkdw-phone .statusbar { color: #fff; }
+  .phone.hkdw-phone .notch { background: #050D1B; }
+  .phone.hkdw-phone .home-indicator { background: rgba(255,255,255,0.32); }
+
+  .hkdw-head {
+    padding: 14px 18px 12px;
+    display: flex; align-items: center; justify-content: space-between;
+    border-bottom: 0.5px solid rgba(255,255,255,0.10);
+    background: linear-gradient(180deg, #0E2A4A 0%, #133657 100%);
+  }
+  .hkdw-head .brand {
+    display: flex; align-items: center; gap: 8px;
+  }
+  .hkdw-head .brand .ico {
+    width: 28px; height: 28px; border-radius: 7px;
+    background: linear-gradient(135deg, #4A8FCD 0%, #2D5F8E 100%);
+    display: inline-flex; align-items: center; justify-content: center;
+    color: #fff;
+  }
+  .hkdw-head .brand .ico i { font-size: 14px; }
+  .hkdw-head .brand .nm {
+    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 13.5px; font-weight: 700;
+    color: #fff; letter-spacing: -0.05px; line-height: 1.1;
+  }
+  .hkdw-head .brand .sub {
+    font-size: 10px; color: rgba(255,255,255,0.62);
+    margin-top: 1px;
+  }
+  .hkdw-head .menu {
+    color: rgba(255,255,255,0.7); font-size: 18px;
+  }
+
+  .hkdw-event-banner {
+    padding: 16px 18px 14px;
+    background:
+      linear-gradient(180deg, rgba(74, 143, 205, 0.18) 0%, rgba(14, 42, 74, 0) 100%),
+      #0E2A4A;
+    border-bottom: 0.5px solid rgba(255,255,255,0.06);
+  }
+  .hkdw-event-banner .ev-name {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
+    font-size: 22px; font-weight: 800; letter-spacing: -0.5px;
+    color: #fff; margin: 0;
+    line-height: 1.1;
+  }
+  .hkdw-event-banner .ev-meta {
+    font-size: 11px; font-weight: 500;
+    color: rgba(255,255,255,0.62); letter-spacing: 0.4px;
+    text-transform: uppercase;
+    margin: 6px 0 0;
+  }
+
+  .hkdw-tabs {
+    display: flex; gap: 0;
+    padding: 0 4px;
+    border-bottom: 0.5px solid rgba(255,255,255,0.10);
+    background: rgba(14, 42, 74, 0.96);
+  }
+  .hkdw-tabs .t {
+    flex: 1;
+    text-align: center;
+    padding: 11px 0;
+    font-size: 11.5px; font-weight: 500;
+    color: rgba(255,255,255,0.50);
+    letter-spacing: -0.05px;
+    position: relative;
+  }
+  .hkdw-tabs .t.on {
+    color: #fff; font-weight: 600;
+  }
+  .hkdw-tabs .t.on::after {
+    content: "";
+    position: absolute; left: 14px; right: 14px; bottom: -0.5px;
+    height: 2px; background: #4A8FCD; border-radius: 2px;
+  }
+
+  .hkdw-body {
+    padding: 14px 16px 24px;
+    flex: 1;
+  }
+  .hkdw-body .section-eye {
+    font-size: 10px; font-weight: 700;
+    color: rgba(255,255,255,0.45); letter-spacing: 0.9px;
+    text-transform: uppercase;
+    margin: 8px 0 10px;
+  }
+
+  /* The BetterAt offer card — bridging visual */
+  .betterat-offer {
+    background: #FFFFFF;
+    color: var(--label);
+    border-radius: 18px;
+    padding: 18px 18px 16px;
+    box-shadow:
+      0 14px 38px -10px rgba(0, 0, 0, 0.32),
+      0 2px 0 rgba(255,255,255,0.5) inset;
+    margin: 4px 0 14px;
+  }
+  .betterat-offer .by-row {
+    display: flex; align-items: center; gap: 9px;
+    margin: 0 0 12px;
+  }
+  .betterat-offer .by-av {
+    width: 34px; height: 34px; border-radius: 50%;
+    background: linear-gradient(135deg, #4E6A85 0%, #7C7B6E 100%);
+    color: #fff;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 11.5px; font-weight: 700;
+    flex-shrink: 0;
+  }
+  .betterat-offer .by-line .who {
+    font-size: 12.5px; font-weight: 600;
+    color: var(--label); letter-spacing: -0.1px;
+    line-height: 1.15;
+  }
+  .betterat-offer .by-line .sub {
+    font-size: 10.5px; color: var(--label-3);
+    letter-spacing: -0.05px;
+    margin-top: 1px;
+  }
+  .betterat-offer .by-line .sub .em { color: var(--label-2); font-weight: 500; }
+  .betterat-offer .ba-eye {
+    font-size: 9.5px; font-weight: 700;
+    color: var(--ios-purple-deep); letter-spacing: 0.9px;
+    text-transform: uppercase;
+    margin: 0 0 8px;
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .betterat-offer .ba-eye .glyph {
+    width: 14px; height: 14px; border-radius: 50%;
+    background: var(--ios-purple); color: #fff;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .betterat-offer .ba-eye .glyph i { font-size: 8.5px; }
+  .betterat-offer h2 {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-style: italic;
+    font-size: 22px; font-weight: 500; letter-spacing: -0.4px;
+    color: var(--label); margin: 0 0 6px; line-height: 1.16;
+    text-wrap: balance;
+  }
+  .betterat-offer .lede-ba {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 13.5px; line-height: 1.5;
+    color: var(--label-2); letter-spacing: -0.05px;
+    margin: 0 0 14px;
+    text-wrap: pretty;
+  }
+  .betterat-offer .ba-stats {
+    display: flex; gap: 10px;
+    margin: 0 0 14px;
+  }
+  .betterat-offer .ba-stat {
+    flex: 1;
+    background: var(--gray-6);
+    border-radius: 9px;
+    padding: 8px 10px;
+  }
+  .betterat-offer .ba-stat .n {
+    font-size: 16px; font-weight: 700;
+    color: var(--label); letter-spacing: -0.3px;
+    font-variant-numeric: tabular-nums;
+  }
+  .betterat-offer .ba-stat .l {
+    font-size: 9px; font-weight: 700;
+    color: var(--label-3); letter-spacing: 0.5px;
+    text-transform: uppercase; margin-top: 2px;
+  }
+  .betterat-offer .ba-stat.free {
+    background: var(--ios-green-tint);
+    border: 0.5px solid var(--ios-green-soft);
+  }
+  .betterat-offer .ba-stat.free .n { color: var(--ios-green-deep); }
+  .betterat-offer .ba-stat.free .l { color: var(--ios-green-deep); }
+
+  .betterat-offer .cta-ba {
+    width: 100%;
+    background: var(--ios-blue);
+    color: #fff;
+    border: 0; border-radius: 12px;
+    padding: 13px 16px;
+    font-family: inherit;
+    font-size: 14.5px; font-weight: 600;
+    letter-spacing: -0.2px;
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  }
+  .betterat-offer .cta-ba i { font-size: 15px; }
+  .betterat-offer .ba-hint {
+    text-align: center;
+    margin-top: 7px;
+    font-size: 10.5px; color: var(--label-3);
+    letter-spacing: -0.05px;
+  }
+  .betterat-offer .ba-hint .em { color: var(--label-2); font-weight: 600; }
+
+  /* HKDW bottom tab bar */
+  .hkdw-tabbar {
+    position: absolute; left: 0; right: 0; bottom: 0;
+    height: 82px;
+    padding: 8px 0 24px;
+    background: rgba(5, 13, 27, 0.92);
+    border-top: 0.5px solid rgba(255,255,255,0.08);
+    -webkit-backdrop-filter: blur(20px);
+    backdrop-filter: blur(20px);
+    display: grid; grid-template-columns: repeat(5, 1fr);
+    align-items: center;
+    z-index: 25;
+  }
+  .hkdw-tabbar .t {
+    display: flex; flex-direction: column; align-items: center; gap: 2px;
+    color: rgba(255,255,255,0.55);
+    font-size: 9.5px;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+  }
+  .hkdw-tabbar .t i { font-size: 21px; }
+  .hkdw-tabbar .t.on { color: #4A8FCD; }
+
+  /* ============================================================
+     Phase 2 · Handoff
+     ============================================================ */
+  .phone.handoff-phone .screen {
+    background: linear-gradient(180deg, #0E2A4A 0%, rgba(14, 42, 74, 0.55) 50%, rgba(242, 242, 247, 0.97) 100%);
+    padding-top: 50px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+  }
+  .handoff-stage {
+    display: flex; flex-direction: column; align-items: center; gap: 20px;
+    padding: 24px;
+  }
+  .handoff-stage .icons-row {
+    display: flex; align-items: center; gap: 18px;
+  }
+  .handoff-stage .icon-mark {
+    width: 64px; height: 64px; border-radius: 16px;
+    display: inline-flex; align-items: center; justify-content: center;
+    color: #fff;
+    box-shadow:
+      0 14px 30px -10px rgba(0,0,0,0.30),
+      0 2px 0 rgba(255,255,255,0.5) inset;
+  }
+  .handoff-stage .icon-mark.hkdw {
+    background: linear-gradient(135deg, #4A8FCD 0%, #1B3D5F 100%);
+  }
+  .handoff-stage .icon-mark.hkdw i { font-size: 30px; }
+  .handoff-stage .icon-mark.betterat {
+    background: linear-gradient(135deg, #5856D6 0%, #3F3DA8 100%);
+  }
+  .handoff-stage .icon-mark.betterat i { font-size: 30px; }
+  .handoff-stage .arrow-anim {
+    width: 32px; height: 32px;
+    color: rgba(255,255,255,0.85);
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .handoff-stage .arrow-anim i { font-size: 26px; }
+
+  .handoff-stage .title-h {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
+    font-size: 19px; font-weight: 600; letter-spacing: -0.35px;
+    color: #1C1C1E;
+    margin: 0;
+    text-align: center;
+  }
+  .handoff-stage .sub-h {
+    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 13px; color: var(--label-3);
+    letter-spacing: -0.05px;
+    text-align: center;
+    line-height: 1.45;
+    max-width: 280px;
+    margin: 0;
+  }
+  .handoff-stage .sub-h .em { color: var(--label-2); font-weight: 500; }
+
+  .handoff-stage .progress {
+    width: 220px; height: 4px;
+    background: rgba(0,0,0,0.10);
+    border-radius: 999px;
+    overflow: hidden;
+    margin-top: 6px;
+  }
+  .handoff-stage .progress .bar {
+    width: 64%; height: 100%;
+    background: linear-gradient(90deg, var(--ios-purple) 0%, var(--ios-blue) 100%);
+    border-radius: 999px;
+  }
+
+  .handoff-stage .redeem-line {
+    margin-top: 16px;
+    padding: 9px 14px;
+    background: rgba(255,255,255,0.7);
+    border: 0.5px solid rgba(0,0,0,0.06);
+    border-radius: 999px;
+    font-family: "SF Mono", ui-monospace, Menlo, monospace;
+    font-size: 10.5px; color: var(--label-2);
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .handoff-stage .redeem-line i { font-size: 12px; color: var(--ios-green); }
+
+  /* ============================================================
+     Phase 3 · BetterAt redeem landing
+     ============================================================ */
+  .redeem-screen {
+    padding-top: 50px;
+    background: var(--gray-6);
+  }
+  .redeem-landing-card {
+    position: absolute;
+    left: 14px; right: 14px;
+    top: 64px;
+    bottom: 14px;
+    background: #FFFFFF;
+    border-radius: 22px;
+    border: 0.5px solid rgba(0, 0, 0, 0.04);
+    box-shadow:
+      0 1px 2px rgba(0, 0, 0, 0.06),
+      0 18px 38px -16px rgba(0, 0, 0, 0.20);
+    display: flex; flex-direction: column;
+    overflow: hidden;
+  }
+  .redeem-state-head {
+    padding: 14px 18px 12px;
+    display: flex; align-items: center; justify-content: space-between;
+    border-bottom: 0.5px solid var(--gray-5);
+  }
+  .redeem-state-head .pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 10px 4px 8px;
+    border-radius: 999px;
+    background: var(--ios-purple-tint);
+    border: 0.5px solid var(--ios-purple-soft);
+  }
+  .redeem-state-head .pill .glyph {
+    width: 14px; height: 14px; border-radius: 50%;
+    background: var(--ios-purple); color: #fff;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .redeem-state-head .pill .glyph i { font-size: 8.5px; }
+  .redeem-state-head .pill .label {
+    font-size: 11px; font-weight: 700;
+    color: var(--ios-purple-deep); letter-spacing: 0.6px;
+    text-transform: uppercase;
+  }
+  .redeem-state-head .skip {
+    background: none; border: 0; padding: 0;
+    font-size: 12.5px; color: var(--label-3);
+    letter-spacing: -0.05px;
+  }
+
+  .redeem-body {
+    flex: 1; overflow: hidden;
+    padding: 18px 20px 14px;
+    display: flex; flex-direction: column; gap: 18px;
+  }
+
+  .redeem-welcome {
+    display: flex; flex-direction: column; align-items: center; gap: 14px;
+    text-align: center;
+  }
+  .redeem-welcome .by-av-lg {
+    width: 60px; height: 60px; border-radius: 50%;
+    background: linear-gradient(135deg, #4E6A85 0%, #7C7B6E 100%);
+    color: #fff;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 18px; font-weight: 700;
+    box-shadow: 0 6px 18px -8px rgba(0,0,0,0.20);
+  }
+  .redeem-welcome .by-name {
+    font-size: 12px; color: var(--label-3);
+    letter-spacing: -0.05px;
+  }
+  .redeem-welcome .by-name .em {
+    color: var(--label); font-weight: 600;
+  }
+  .redeem-welcome h1 {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-style: italic;
+    font-size: 24px; font-weight: 500; letter-spacing: -0.4px;
+    color: var(--label); margin: 0;
+    line-height: 1.15;
+    text-wrap: balance;
+  }
+  .redeem-welcome .ledep {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 13.5px; line-height: 1.5;
+    color: var(--label-2); letter-spacing: -0.05px;
+    margin: 0;
+    max-width: 280px;
+    text-wrap: pretty;
+  }
+  .redeem-welcome .ledep em { font-style: italic; }
+
+  .blueprint-preview {
+    background: var(--gray-6);
+    border: 0.5px solid var(--gray-5);
+    border-radius: 14px;
+    padding: 14px 14px;
+  }
+  .blueprint-preview .pre-head {
+    display: flex; align-items: baseline; justify-content: space-between;
+    margin: 0 0 10px;
+  }
+  .blueprint-preview .pre-head .lbl {
+    font-size: 9.5px; font-weight: 700;
+    color: var(--label-2); letter-spacing: 0.9px;
+    text-transform: uppercase;
+  }
+  .blueprint-preview .pre-head .meta-pre {
+    font-size: 10.5px; color: var(--label-3);
+    letter-spacing: -0.05px;
+  }
+  .blueprint-preview .pre-stat-row {
+    display: flex; gap: 8px;
+    margin: 0 0 12px;
+  }
+  .blueprint-preview .pre-stat {
+    flex: 1;
+    background: #FFFFFF;
+    border-radius: 9px;
+    padding: 8px 10px;
+    border: 0.5px solid var(--gray-5);
+  }
+  .blueprint-preview .pre-stat .n {
+    font-size: 16px; font-weight: 700;
+    color: var(--label); letter-spacing: -0.3px;
+    font-variant-numeric: tabular-nums;
+  }
+  .blueprint-preview .pre-stat .l {
+    font-size: 9px; font-weight: 700;
+    color: var(--label-3); letter-spacing: 0.5px;
+    text-transform: uppercase; margin-top: 2px;
+  }
+  .blueprint-preview .caps-row {
+    display: flex; flex-wrap: wrap; gap: 4px;
+    margin: 8px 0 0;
+  }
+  .blueprint-preview .cc {
+    display: inline-flex; align-items: center;
+    padding: 3px 8px;
+    border-radius: 999px;
+    background: var(--ios-purple-tint);
+    color: var(--ios-purple-deep);
+    border: 0.5px solid var(--ios-purple-soft);
+    font-size: 10px; font-weight: 500;
+    letter-spacing: -0.05px;
+  }
+
+  .fleet-badge {
+    background: var(--ios-green-tint);
+    border: 0.5px solid var(--ios-green-soft);
+    border-radius: 12px;
+    padding: 11px 14px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .fleet-badge .av-stack {
+    display: inline-flex;
+  }
+  .fleet-badge .av-stack .a {
+    width: 22px; height: 22px; border-radius: 50%;
+    background: linear-gradient(135deg, #4E6A85 0%, #7C7B6E 100%);
+    color: #fff;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 9px; font-weight: 700;
+    border: 1.5px solid #fff;
+  }
+  .fleet-badge .av-stack .a + .a { margin-left: -8px; }
+  .fleet-badge .av-stack .a.g  { background: linear-gradient(135deg, #5A8C6A 0%, #3E6C4E 100%); }
+  .fleet-badge .av-stack .a.p  { background: linear-gradient(135deg, #7C5E9A 0%, #5C3F7A 100%); }
+  .fleet-badge .av-stack .a.h  { background: linear-gradient(135deg, #6B5E48 0%, #4A3F2E 100%); }
+  .fleet-badge .copy-f .nm {
+    font-size: 13px; font-weight: 600;
+    color: var(--ios-green-deep); letter-spacing: -0.1px;
+    margin: 0;
+  }
+  .fleet-badge .copy-f .desc {
+    font-size: 11px; color: var(--ios-green-deep);
+    margin: 1px 0 0;
+    letter-spacing: -0.05px;
+    opacity: 0.85;
+  }
+
+  .redeem-footer {
+    flex-shrink: 0;
+    padding: 12px 18px 14px;
+    background: #FFFFFF;
+    border-top: 0.5px solid var(--gray-5);
+  }
+  .redeem-footer .cta-primary {
+    width: 100%;
+    background: var(--ios-blue);
+    color: #fff;
+    border: 0; border-radius: 14px;
+    padding: 14px 16px;
+    font-family: inherit;
+    font-size: 15px; font-weight: 600;
+    letter-spacing: -0.2px;
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    box-shadow: 0 6px 16px -4px rgba(0, 122, 255, 0.36), 0 1px 2px rgba(0,0,0,0.08);
+  }
+  .redeem-footer .cta-primary i { font-size: 16px; }
+  .redeem-footer .priv {
+    text-align: center;
+    margin-top: 8px;
+    font-size: 10.5px; color: var(--label-3);
+    letter-spacing: -0.05px;
+    line-height: 1.4;
+  }
+  .redeem-footer .priv .em { color: var(--label-2); font-weight: 500; }
+
+  /* ============================================================
+     Phase 4 · First actions in BetterAt — Plan view
+     ============================================================ */
+  .first-screen { padding-top: 50px; background: var(--gray-6); }
+
+  .first-screen .top-header .right-cluster {
+    display: inline-flex; align-items: center; gap: 12px;
+  }
+  .first-screen .top-header .right-cluster .ic {
+    background: none; border: 0; padding: 0;
+    color: var(--label-2); position: relative;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .first-screen .top-header .right-cluster .ic i { font-size: 19px; }
+
+  /* Welcome toast banner top of Practice tab */
+  .welcome-toast {
+    position: absolute;
+    top: 64px; left: 14px; right: 14px;
+    background:
+      linear-gradient(180deg, rgba(88, 86, 214, 0.10) 0%, rgba(88, 86, 214, 0.03) 100%);
+    border: 0.5px solid var(--ios-purple-soft);
+    border-radius: 14px;
+    padding: 11px 13px;
+    display: grid;
+    grid-template-columns: 28px 1fr 14px;
+    column-gap: 11px;
+    align-items: center;
+    z-index: 18;
+  }
+  .welcome-toast .glyph {
+    width: 28px; height: 28px; border-radius: 50%;
+    background: var(--ios-purple); color: #fff;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .welcome-toast .glyph i { font-size: 14px; }
+  .welcome-toast .copy .ttl {
+    font-size: 11.5px; font-weight: 600;
+    color: var(--label); letter-spacing: -0.1px;
+    margin: 0; line-height: 1.2;
+  }
+  .welcome-toast .copy .sub {
+    font-size: 10px; color: var(--ios-purple-deep);
+    letter-spacing: -0.02px;
+    margin: 1px 0 0;
+  }
+  .welcome-toast .x { color: var(--label-3); }
+  .welcome-toast .x i { font-size: 14px; }
+
+  /* the step card starts below the toast */
+  .first-screen .card.first-step {
+    position: absolute;
+    left: 14px; right: 14px;
+    top: 130px;
+    bottom: 84px;
+    background: #FFFFFF;
+    border-radius: 22px;
+    border: 0.5px solid rgba(0, 0, 0, 0.04);
+    box-shadow:
+      0 1px 2px rgba(0, 0, 0, 0.06),
+      0 18px 38px -16px rgba(0, 0, 0, 0.20);
+    display: flex; flex-direction: column;
+    overflow: hidden;
+  }
+
+  .first-screen .step-state-head {
+    padding: 12px 16px 9px;
+    display: flex; align-items: center; justify-content: space-between;
+    border-bottom: 0.5px solid var(--gray-5);
+  }
+  .first-screen .step-state-head .pill-blue {
+    display: inline-flex; align-items: center; gap: 7px;
+    padding: 4px 11px 4px 9px;
+    border-radius: 999px;
+    background: var(--ios-blue-tint);
+    border: 0.5px solid var(--ios-blue-strong);
+  }
+  .first-screen .step-state-head .pill-blue .dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--ios-blue);
+  }
+  .first-screen .step-state-head .pill-blue .label {
+    font-size: 10.5px; font-weight: 700;
+    color: var(--ios-blue-deep); letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+  .first-screen .step-state-head .menu i {
+    font-size: 16px; color: var(--label-3);
+  }
+
+  .first-screen .step-strip {
+    padding: 8px 16px 9px;
+    border-bottom: 0.5px solid var(--gray-5);
+    display: flex; align-items: center; gap: 6px;
+    background: #FAFAFC;
+  }
+  .first-screen .step-strip .ico {
+    width: 18px; height: 18px; border-radius: 50%;
+    background: var(--ios-blue-tint); color: var(--ios-blue);
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .first-screen .step-strip .ico i { font-size: 11px; }
+  .first-screen .step-strip .text {
+    font-size: 11.5px; color: var(--label-2);
+    letter-spacing: -0.05px;
+  }
+  .first-screen .step-strip .text .em { font-weight: 600; color: var(--label); }
+  .first-screen .step-strip .text .sep { color: var(--label-4); margin: 0 5px; }
+
+  .first-screen .title-block {
+    padding: 12px 18px 10px;
+    border-bottom: 0.5px solid var(--gray-5);
+  }
+  .first-screen .title-block .pre {
+    font-size: 9.5px; font-weight: 700;
+    color: var(--ios-blue); letter-spacing: 0.7px;
+    text-transform: uppercase;
+    margin: 0 0 4px;
+  }
+  .first-screen .title-block h2 {
+    font-size: 18px; font-weight: 600;
+    color: var(--label); letter-spacing: -0.35px;
+    margin: 0; line-height: 1.16;
+    text-wrap: balance;
+  }
+  .first-screen .title-block .meta-st {
+    font-size: 11px; color: var(--label-3);
+    margin: 5px 0 0;
+    letter-spacing: -0.05px;
+  }
+
+  .first-screen .with-row {
+    padding: 8px 16px 9px;
+    display: flex; align-items: center; gap: 9px;
+    border-bottom: 0.5px solid var(--gray-5);
+    background: #FAFAFC;
+  }
+  .first-screen .with-row .eye {
+    font-size: 9.5px; font-weight: 700;
+    color: var(--label-2); letter-spacing: 0.9px;
+    text-transform: uppercase;
+  }
+  .first-screen .fleet-chip {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 3px 9px 3px 8px;
+    border-radius: 999px;
+    background: var(--ios-green-tint);
+    border: 0.5px solid var(--ios-green-soft);
+    color: var(--ios-green-deep);
+    font-size: 11px; font-weight: 500; letter-spacing: -0.05px;
+  }
+  .first-screen .fleet-chip i { font-size: 11px; }
+  .first-screen .with-row .empty-crew {
+    font-size: 10.5px; color: var(--label-3);
+    font-style: italic;
+  }
+
+  .first-screen .phase-tabs {
+    display: flex; gap: 4px;
+    padding: 0 16px;
+    border-bottom: 0.5px solid var(--gray-5);
+  }
+  .first-screen .phase-tabs .ptab {
+    padding: 9px 10px 11px;
+    font-size: 13px; font-weight: 500;
+    color: var(--label-3); letter-spacing: -0.1px;
+    position: relative;
+    display: inline-flex; align-items: center; gap: 5px;
+    background: none; border: 0;
+  }
+  .first-screen .phase-tabs .ptab.on { color: var(--ios-blue); font-weight: 600; }
+  .first-screen .phase-tabs .ptab.on::after {
+    content: ""; position: absolute; left: 10px; right: 10px; bottom: -0.5px;
+    height: 2px; background: var(--ios-blue); border-radius: 2px;
+  }
+  .first-screen .phase-tabs .ptab .ring {
+    width: 13px; height: 13px; border-radius: 50%;
+    border: 1.5px dashed var(--gray-3);
+  }
+
+  .first-screen .body-scroll {
+    flex: 1; overflow: hidden;
+    padding: 11px 16px 8px;
+    display: flex; flex-direction: column; gap: 8px;
+  }
+
+  .first-screen .ai-helper-line {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 11px; font-style: italic;
+    color: var(--label-3); letter-spacing: -0.05px;
+    margin: 0 2px 4px;
+  }
+  .first-screen .ai-helper-line i.spark { color: var(--ios-purple); font-size: 12px; }
+  .first-screen .ai-helper-line .em { color: var(--label-2); font-weight: 500; font-style: normal; }
+
+  .first-screen .field-card {
+    background: #FFFFFF;
+    border: 0.5px solid var(--gray-5);
+    border-radius: 11px;
+    padding: 10px 12px;
+  }
+  .first-screen .field-card .field-head {
+    display: flex; align-items: center; justify-content: space-between;
+    margin: 0 0 4px;
+  }
+  .first-screen .field-card .eye {
+    font-size: 9.5px; font-weight: 700;
+    color: var(--label-2); letter-spacing: 0.9px;
+    text-transform: uppercase;
+    display: inline-flex; align-items: center; gap: 5px;
+  }
+  .first-screen .field-card .eye i { font-size: 11px; color: var(--label-3); }
+  .first-screen .field-card .help-spark {
+    width: 20px; height: 20px; border-radius: 50%;
+    background: var(--ios-purple-tint); color: var(--ios-purple);
+    display: inline-flex; align-items: center; justify-content: center;
+    border: 0;
+  }
+  .first-screen .field-card .help-spark i { font-size: 11px; }
+  .first-screen .field-card .placeholder {
+    font-size: 12.5px; color: var(--label-3);
+    letter-spacing: -0.05px;
+    line-height: 1.35;
+    font-style: italic; margin: 0;
+  }
+
+  /* Suggestions from fleet peers (D12) */
+  .first-screen .suggest-row {
+    background: rgba(52, 199, 89, 0.04);
+    border: 0.5px solid var(--ios-green-soft);
+    border-radius: 11px;
+    padding: 9px 11px;
+    display: grid;
+    grid-template-columns: 22px 1fr 12px;
+    column-gap: 9px;
+    align-items: center;
+  }
+  .first-screen .suggest-row .ic {
+    width: 22px; height: 22px; border-radius: 6px;
+    background: var(--ios-green-tint);
+    color: var(--ios-green-deep);
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .first-screen .suggest-row .ic i { font-size: 11px; }
+  .first-screen .suggest-row .copy-s .ttl {
+    font-size: 11.5px; font-weight: 600;
+    color: var(--label); letter-spacing: -0.05px;
+    margin: 0;
+  }
+  .first-screen .suggest-row .copy-s .sub {
+    font-size: 10px; color: var(--label-3);
+    letter-spacing: -0.02px;
+    margin: 1px 0 0;
+  }
+  .first-screen .suggest-row .copy-s .sub .em { color: var(--ios-green-deep); font-weight: 500; }
+  .first-screen .suggest-row .chev i { font-size: 11px; color: var(--gray-3); }
+
+  /* footer cta */
+  .first-screen .step-footer {
+    flex-shrink: 0;
+    padding: 9px 14px 12px;
+    background: #FFFFFF;
+    border-top: 0.5px solid var(--gray-5);
+  }
+  .first-screen .step-footer .btn {
+    width: 100%;
+    background: var(--gray-5); color: var(--label-3);
+    border: 0; border-radius: 13px;
+    padding: 11px 16px;
+    font-family: inherit;
+    font-size: 13.5px; font-weight: 600;
+    letter-spacing: -0.2px;
+    display: inline-flex; align-items: center; justify-content: center; gap: 5px;
+  }
+  .first-screen .step-footer .btn i { font-size: 14px; color: var(--label-4); }
+  .first-screen .step-footer .hint {
+    text-align: center;
+    margin-top: 5px;
+    font-size: 10px; color: var(--label-3);
+  }
+  .first-screen .step-footer .hint .em { color: var(--label-2); font-weight: 600; }
+
+  /* ============================================================
+     Rail / migration table (compact)
+     ============================================================ */
+  .rail-row { max-width: 1760px; }
+
+</style>
+</head>
+<body>
+
+<div class="page">
+
+  <header class="page-head">
+    <p class="eyebrow">BetterAt · HKDW → BetterAt Onboarding · Canonical · 2026-05-17</p>
+    <h1>From the <em>Hong Kong Dragon Worlds</em> app to the first action inside <em>BetterAt</em> — a four-phase journey</h1>
+    <p>A racing sailor preparing for the Worlds in November 2026 lands on BetterAt through their event app. Phase 1: inside HKDW, they see an offer for a complementary 3-month subscription to Kevin Denney's <em>Prepare for the Hong Kong Dragon Worlds</em> blueprint. Phase 2: a thin handoff moment as the deep link opens BetterAt with a redeem token in tow. Phase 3: a welcoming surface in BetterAt — the byline is Kevin's, the blueprint preview is honest about what 12 weeks looks like, the fleet count tells them they're joining a group. Phase 4: their first action — Practice tab pre-populated with Step 1, AI Coach quiet at the top, suggestions row showing fleet peers who already started, WITH-row naming the 63-sailor Worlds Fleet they just joined. <strong>The whole journey takes under a minute and the user never has to make an account decision they didn't sign up for.</strong></p>
+    <div class="crumbs">
+      <span class="pill">iPhone 16e · portrait · 393 × 852</span>
+      <span class="sep">·</span>
+      <span class="pill">Builds on · <em>network-timelines-and-sharing · D12</em></span>
+      <span class="sep">·</span>
+      <span class="pill">Author byline · <em>Kevin Denney</em></span>
+      <span class="sep">·</span>
+      <span class="pill">Adds · <em>D21 handoff · D22 redeem · D23 first actions</em></span>
+    </div>
+  </header>
+
+  <section class="decisions-bar">
+    <div class="dec">
+      <h5>D21 · Handoff stays cheap</h5>
+      <p>HKDW renders its own chrome (it's <em>their</em> app). One bridging card carries BetterAt's visual hint (purple sparkle · italic-serif title). Deep link carries a <strong>single-use redeem token</strong>; no account form before redeem.</p>
+    </div>
+    <div class="dec">
+      <h5>D22 · Redeem is a welcome</h5>
+      <p>Kevin's name is the byline, not BetterAt's brand. Blueprint preview is honest (12 steps · capabilities developed · 3-month duration). Fleet count is social proof. One primary CTA, one privacy hint, no enrollment form.</p>
+    </div>
+    <div class="dec">
+      <h5>D23 · First action is one tap from Step 1</h5>
+      <p>Accept → land on <strong>Practice tab</strong> with Step 1 pre-populated. AI Coach quiet helper line. Suggestions row shows 3 fleet peers' recent starts. WITH-row populated with the Worlds Fleet (63 sailors).</p>
+    </div>
+    <div class="dec">
+      <h5>D24 · Web-first, native-deepens</h5>
+      <p>Redeem · Plan · Playbook · Discover · Profile all work in mobile web. <strong>The app invitation surfaces at the Do tab</strong> when native APIs (mic, camera, background) become load-bearing. Public profile is web-native; the app is a deepening, not a prerequisite.</p>
+    </div>
+  </section>
+
+  <!-- =============================================================== -->
+  <!-- The four-phone journey                                            -->
+  <!-- =============================================================== -->
+  <section class="section-band">
+    <h2><em>Four phases</em> · HKDW app → handoff → BetterAt redeem → first action</h2>
+    <p class="lede">Read left to right. Phase 1's BetterAt offer card is the only visual bridge between the two apps' chrome. The handoff (phase 2) is a thin moment — both icon marks, a one-line caption, a progress bar — that the user reads as <em>"yes, this is real."</em> Phase 3 is the only BetterAt surface that breaks the four-tab model: it has no tabbar because the user hasn't joined yet. Phase 4 restores the full chrome, with Practice tab active and the blueprint's first step ready.</p>
+
+    <div class="flow-row">
+
+      <!-- Phase 1 · HKDW app -->
+      <div class="pane hkdw">
+        <div class="phase-eye"><span class="pip">1</span>Inside HKDW app</div>
+        <p class="phase-title">HKDW · <em>About BetterAt tab</em></p>
+        <p class="phase-sub">Event-app chrome. The BetterAt offer is a single white card with one CTA. Kevin's byline is up top; the green pill names the 3-month free term.</p>
+
+        <div class="phone-wrap">
+          <div class="phone hkdw-phone">
+            <div class="notch"></div>
+            <div class="statusbar"><span>9:14</span><span class="right"><i class="ti ti-cell-signal-4"></i><i class="ti ti-wifi"></i><i class="ti ti-battery-3"></i></span></div>
+
+            <div class="screen" data-screen-label="HKDW · About BetterAt tab">
+
+              <div class="hkdw-head">
+                <div class="brand">
+                  <span class="ico"><i class="ti ti-anchor"></i></span>
+                  <div>
+                    <div class="nm">HK Dragon Worlds</div>
+                    <div class="sub">November 2026 · RHKYC</div>
+                  </div>
+                </div>
+                <i class="ti ti-dots menu"></i>
+              </div>
+
+              <div class="hkdw-event-banner">
+                <h2 class="ev-name">Hong Kong<br/>Dragon Worlds</h2>
+                <p class="ev-meta">14 — 22 November 2026 · 87 boats</p>
+              </div>
+
+              <div class="hkdw-tabs">
+                <span class="t">Schedule</span>
+                <span class="t">Results</span>
+                <span class="t">Sailors</span>
+                <span class="t">News</span>
+                <span class="t on">BetterAt</span>
+              </div>
+
+              <div class="hkdw-body">
+                <p class="section-eye">Prepare for the Worlds</p>
+
+                <div class="betterat-offer">
+                  <div class="by-row">
+                    <span class="by-av">KD</span>
+                    <div class="by-line">
+                      <p class="who">Kevin Denney</p>
+                      <p class="sub"><span class="em">Worlds-qualified Dragon helm</span> · RHKYC</p>
+                    </div>
+                  </div>
+
+                  <p class="ba-eye">
+                    <span class="glyph"><i class="ti ti-sparkles"></i></span>
+                    A complementary BetterAt subscription
+                  </p>
+                  <h2>"Prepare for the Hong Kong Dragon Worlds."</h2>
+                  <p class="lede-ba">Twelve steps across six months. Boat speed baselines, heavy-air helm work, the local conditions you'll race in. Your captures, your reflections, your Worlds fleet.</p>
+
+                  <div class="ba-stats">
+                    <div class="ba-stat free">
+                      <div class="n">3 mo</div>
+                      <div class="l">Free for HKDW sailors</div>
+                    </div>
+                    <div class="ba-stat">
+                      <div class="n">63</div>
+                      <div class="l">Worlds sailors started</div>
+                    </div>
+                  </div>
+
+                  <button class="cta-ba">
+                    Get started in BetterAt
+                    <i class="ti ti-arrow-right"></i>
+                  </button>
+                  <p class="ba-hint"><span class="em">No commitment</span> · 3 months · no card required</p>
+                </div>
+
+              </div>
+
+              <nav class="hkdw-tabbar">
+                <span class="t"><i class="ti ti-calendar"></i>Schedule</span>
+                <span class="t"><i class="ti ti-trophy"></i>Results</span>
+                <span class="t"><i class="ti ti-map"></i>Course</span>
+                <span class="t"><i class="ti ti-news"></i>News</span>
+                <span class="t on"><i class="ti ti-sparkles"></i>BetterAt</span>
+              </nav>
+            </div>
+            <div class="home-indicator"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Arrow -->
+      <div class="flow-arrow">
+        <svg viewBox="0 0 40 40" width="32" height="32" fill="none">
+          <path d="M 4 20 L 32 20 M 26 14 L 32 20 L 26 26" stroke="#C28A2A" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <p class="label">tap CTA<br/>deep link</p>
+      </div>
+
+      <!-- Phase 2 · Handoff -->
+      <div class="pane handoff">
+        <div class="phase-eye"><span class="pip">2</span>App handoff</div>
+        <p class="phase-title">Handoff · <em>~1.5 seconds</em></p>
+        <p class="phase-sub">Both icons visible · progress bar · redeem-token line. The transition is honest about what's happening; nothing is hidden, but nothing is in the way.</p>
+
+        <div class="phone-wrap">
+          <div class="phone handoff-phone">
+            <div class="notch"></div>
+            <div class="statusbar" style="color: #fff;"><span>9:14</span><span class="right"><i class="ti ti-cell-signal-4"></i><i class="ti ti-wifi"></i><i class="ti ti-battery-3"></i></span></div>
+
+            <div class="screen" data-screen-label="Handoff">
+
+              <div class="handoff-stage">
+                <div class="icons-row">
+                  <span class="icon-mark hkdw"><i class="ti ti-anchor"></i></span>
+                  <span class="arrow-anim"><i class="ti ti-chevron-right"></i></span>
+                  <span class="icon-mark betterat"><i class="ti ti-sparkles"></i></span>
+                </div>
+                <p class="title-h">Opening BetterAt with your offer</p>
+                <p class="sub-h">Kevin Denney is welcoming you to <span class="em">Prepare for the Hong Kong Dragon Worlds</span> — 3 months free.</p>
+
+                <div class="progress"><div class="bar"></div></div>
+
+                <span class="redeem-line">
+                  <i class="ti ti-circle-check-filled"></i>
+                  redeem · HKDW–WLDS–2026–63
+                </span>
+              </div>
+
+            </div>
+            <div class="home-indicator"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Arrow -->
+      <div class="flow-arrow">
+        <svg viewBox="0 0 40 40" width="32" height="32" fill="none">
+          <path d="M 4 20 L 32 20 M 26 14 L 32 20 L 26 26" stroke="#5856D6" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <p class="label">app opens<br/>token redeemed</p>
+      </div>
+
+      <!-- Phase 3 · Redeem landing -->
+      <div class="pane redeem">
+        <div class="phase-eye"><span class="pip">3</span>Redeem landing</div>
+        <p class="phase-title">BetterAt · <em>welcoming surface</em></p>
+        <p class="phase-sub">Single purple pill names the offer state. Kevin's name in italic. Blueprint preview is honest. Fleet badge shows social proof. One primary CTA. No tabbar — user hasn't joined yet.</p>
+
+        <div class="phone-wrap">
+          <div class="phone">
+            <div class="notch"></div>
+            <div class="statusbar"><span>9:14</span><span class="right"><i class="ti ti-cell-signal-4"></i><i class="ti ti-wifi"></i><i class="ti ti-battery-3"></i></span></div>
+
+            <div class="screen redeem-screen" data-screen-label="Redeem landing">
+
+              <article class="redeem-landing-card">
+
+                <header class="redeem-state-head">
+                  <div class="pill">
+                    <span class="glyph"><i class="ti ti-sparkles"></i></span>
+                    <span class="label">Welcoming you · 3 months free</span>
+                  </div>
+                  <button class="skip">Not now</button>
+                </header>
+
+                <div class="redeem-body">
+
+                  <section class="redeem-welcome">
+                    <span class="by-av-lg">KD</span>
+                    <p class="by-name"><span class="em">Kevin Denney</span> is welcoming you to</p>
+                    <h1>"Prepare for the Hong Kong Dragon Worlds."</h1>
+                    <p class="ledep">12 steps · 6 months · a path through the conditions you'll race in November. Your captures, your reflections, your Worlds fleet.</p>
+                  </section>
+
+                  <section class="blueprint-preview">
+                    <div class="pre-head">
+                      <span class="lbl">What you'd subscribe to</span>
+                      <span class="meta-pre">Updated April · v3.2</span>
+                    </div>
+                    <div class="pre-stat-row">
+                      <div class="pre-stat"><div class="n">12</div><div class="l">Steps</div></div>
+                      <div class="pre-stat"><div class="n">6</div><div class="l">Months</div></div>
+                      <div class="pre-stat"><div class="n">5</div><div class="l">Capabilities</div></div>
+                    </div>
+                    <div class="caps-row">
+                      <span class="cc">heavy-air-helm</span>
+                      <span class="cc">starts</span>
+                      <span class="cc">wind-reading</span>
+                      <span class="cc">tactical</span>
+                      <span class="cc">crew-comms</span>
+                    </div>
+                  </section>
+
+                  <section class="fleet-badge">
+                    <span class="av-stack">
+                      <span class="a">PL</span>
+                      <span class="a g">BV</span>
+                      <span class="a p">SN</span>
+                      <span class="a h">KH</span>
+                    </span>
+                    <div class="copy-f">
+                      <p class="nm">63 Worlds sailors already started</p>
+                      <p class="desc">Same Race · same conditions · same fleet</p>
+                    </div>
+                  </section>
+
+                </div>
+
+                <div class="redeem-footer">
+                  <button class="cta-primary">
+                    Accept &amp; start preparing
+                    <i class="ti ti-arrow-right"></i>
+                  </button>
+                  <p class="priv"><span class="em">Free for 3 months · then $9/mo</span> · cancel anytime · no card now</p>
+                </div>
+
+              </article>
+            </div>
+            <div class="home-indicator"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Arrow -->
+      <div class="flow-arrow">
+        <svg viewBox="0 0 40 40" width="32" height="32" fill="none">
+          <path d="M 4 20 L 32 20 M 26 14 L 32 20 L 26 26" stroke="#007AFF" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <p class="label">Accept<br/>land in app</p>
+      </div>
+
+      <!-- Phase 4 · First actions -->
+      <div class="pane first-actions">
+        <div class="phase-eye"><span class="pip">4</span>First actions in BetterAt</div>
+        <p class="phase-title">Practice tab · <em>Step 1 pre-loaded</em></p>
+        <p class="phase-sub">Welcome toast at top names the source. Step 1 of the blueprint is already in Plan view. AI Coach quiet helper. Fleet WITH-row. Suggestion shows what other Worlds sailors did first.</p>
+
+        <div class="phone-wrap">
+          <div class="phone">
+            <div class="notch"></div>
+            <div class="statusbar"><span>9:15</span><span class="right"><i class="ti ti-cell-signal-4"></i><i class="ti ti-wifi"></i><i class="ti ti-battery-3"></i></span></div>
+
+            <div class="screen first-screen" data-screen-label="First action — Step 1">
+
+              <div class="top-header">
+                <div class="interest"><span class="name">Sail Racing</span><span class="switcher"><i class="ti ti-chevron-down"></i></span></div>
+                <span class="step-counter">Step 1 of 12</span>
+                <div class="right-cluster">
+                  <button class="ic"><i class="ti ti-layout-grid"></i></button>
+                  <button class="ic"><i class="ti ti-bell"></i></button>
+                  <div class="avatar">KD</div>
+                </div>
+              </div>
+
+              <div class="welcome-toast">
+                <span class="glyph"><i class="ti ti-sparkles"></i></span>
+                <div class="copy">
+                  <p class="ttl">You're subscribed to Kevin's HKDW blueprint</p>
+                  <p class="sub">12 steps · 3 months free · 63 sailors with you</p>
+                </div>
+                <span class="x"><i class="ti ti-x"></i></span>
+              </div>
+
+              <article class="card first-step">
+
+                <header class="step-state-head">
+                  <div class="pill-blue">
+                    <span class="dot"></span>
+                    <span class="label">Your first step</span>
+                  </div>
+                  <i class="ti ti-dots-vertical menu"></i>
+                </header>
+
+                <div class="step-strip">
+                  <span class="ico"><i class="ti ti-trophy"></i></span>
+                  <span class="text">
+                    <span class="em">HKDW Prep</span>
+                    <span class="sep">·</span>
+                    Week 1 of 24
+                  </span>
+                </div>
+
+                <section class="title-block">
+                  <p class="pre">Current step</p>
+                  <h2>Boat-speed baseline · all points of sail</h2>
+                  <p class="meta-st">From <span style="color: var(--label-2); font-weight: 500;">Kevin's Prepare for the Worlds</span></p>
+                </section>
+
+                <div class="with-row">
+                  <span class="eye">With</span>
+                  <span class="fleet-chip"><i class="ti ti-anchor"></i>Worlds Fleet · 63 sailors</span>
+                  <span class="empty-crew">add crew →</span>
+                </div>
+
+                <div class="phase-tabs">
+                  <button class="ptab on">Plan</button>
+                  <button class="ptab"><span class="ring"></span>Do</button>
+                  <button class="ptab"><span class="ring"></span>Reflect</button>
+                </div>
+
+                <div class="body-scroll">
+
+                  <span class="ai-helper-line">
+                    <i class="ti ti-sparkles spark"></i>
+                    <span>New to BetterAt? <span class="em">Let AI Coach walk you through this step</span> →</span>
+                  </span>
+
+                  <div class="field-card">
+                    <div class="field-head">
+                      <span class="eye"><i class="ti ti-bulb"></i>What will you do?</span>
+                      <button class="help-spark"><i class="ti ti-sparkles"></i></button>
+                    </div>
+                    <p class="placeholder">Sail your boat for one hour, recording target speeds on each point of sail in 8–12 kt…</p>
+                  </div>
+
+                  <div class="field-card">
+                    <div class="field-head">
+                      <span class="eye"><i class="ti ti-list"></i>How will you do it?</span>
+                      <button class="help-spark"><i class="ti ti-sparkles"></i></button>
+                    </div>
+                    <p class="placeholder">Sub-steps from Kevin's blueprint will appear here…</p>
+                  </div>
+
+                  <div class="suggest-row">
+                    <span class="ic"><i class="ti ti-users"></i></span>
+                    <div class="copy-s">
+                      <p class="ttl">3 Worlds sailors started this step</p>
+                      <p class="sub"><span class="em">Phyl Loong</span> · <span class="em">Bram</span> · <span class="em">Karin</span> · see how they tackled it</p>
+                    </div>
+                    <span class="chev"><i class="ti ti-chevron-right"></i></span>
+                  </div>
+
+                </div>
+
+                <div class="step-footer">
+                  <button class="btn">Next: Start Doing<i class="ti ti-arrow-right"></i></button>
+                  <p class="hint">Tap <span class="em">What will you do?</span> to begin</p>
+                </div>
+
+              </article>
+
+              <nav class="tabbar">
+                <button class="t on"><i class="ti ti-flag-3-filled"></i><span>Practice</span></button>
+                <button class="t"><i class="ti ti-book-2"></i><span>Playbook</span></button>
+                <button class="t"><i class="ti ti-compass"></i><span>Discover</span></button>
+                <button class="t"><i class="ti ti-user-circle"></i><span>Profile</span></button>
+              </nav>
+            </div>
+            <div class="home-indicator"></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- =============================================================== -->
+  <!-- §3 · Web-first variant                                            -->
+  <!-- =============================================================== -->
+  <section class="section-band">
+    <h2><em>Web-first variant</em> · same surfaces, no app download required</h2>
+    <p class="lede">Both phase-3 redeem and phase-4 first-action render perfectly in mobile Safari at <code style="font-family: 'SF Mono', ui-monospace, monospace; font-size: 13px; background: rgba(34,30,20,0.06); padding: 1px 5px; border-radius: 3px;">better.at</code>. <strong>The user reaches the Plan view without ever entering the App Store.</strong> The native app invitation appears at the Do tab — the first moment in the loop where mic, camera, and background recording are load-bearing. Until then, the web does the job. Two phones below: web redeem on the left, web Practice with a smart-app banner above and the install-sheet floating over the Do empty state on the right.</p>
+
+    <div class="flow-row" style="grid-template-columns: 1fr 60px 1fr; max-width: 1100px;">
+
+      <!-- Web · Phase 3 redeem -->
+      <div class="pane redeem">
+        <div class="phase-eye"><span class="pip">3w</span>Mobile Safari · redeem</div>
+        <p class="phase-title">Web redeem · <em>better.at/r/HKDW-WLDS-2026-63</em></p>
+        <p class="phase-sub">Same surface as phase 3, no iPhone bezel. Safari URL bar at top, toolbar at bottom. Token in the URL drives the welcome state.</p>
+
+        <div class="phone-wrap">
+          <div class="phone safari-phone">
+            <div class="notch"></div>
+            <div class="statusbar"><span>9:14</span><span class="right"><i class="ti ti-cell-signal-4"></i><i class="ti ti-wifi"></i><i class="ti ti-battery-3"></i></span></div>
+
+            <div class="screen" data-screen-label="Web · redeem landing">
+
+              <div class="safari-url-bar">
+                <span class="ic-l"><i class="ti ti-text-size"></i></span>
+                <span class="url">
+                  <i class="ti ti-lock"></i>
+                  <span class="host">better.at</span><span class="path">/r/HKDW-WLDS-2026-63</span>
+                </span>
+                <span class="ic-r"><i class="ti ti-refresh"></i></span>
+              </div>
+
+              <div class="safari-content" style="padding: 14px 14px 14px;">
+
+                <div class="redeem-state-head" style="background: #FFFFFF; border-radius: 14px 14px 0 0; padding: 13px 16px 11px;">
+                  <div class="pill">
+                    <span class="glyph"><i class="ti ti-sparkles"></i></span>
+                    <span class="label">Welcoming you · 3 months free</span>
+                  </div>
+                </div>
+
+                <div style="background: #FFFFFF; border-radius: 0 0 14px 14px; padding: 16px 18px 14px; box-shadow: 0 1px 2px rgba(0,0,0,0.04);">
+
+                  <section class="redeem-welcome">
+                    <span class="by-av-lg">KD</span>
+                    <p class="by-name"><span class="em">Kevin Denney</span> is welcoming you to</p>
+                    <h1>"Prepare for the Hong Kong Dragon Worlds."</h1>
+                    <p class="ledep">12 steps · 6 months · a path through the conditions you'll race in November.</p>
+                  </section>
+
+                  <section class="blueprint-preview" style="margin-top: 14px;">
+                    <div class="pre-head">
+                      <span class="lbl">What you'd subscribe to</span>
+                      <span class="meta-pre">v3.2</span>
+                    </div>
+                    <div class="pre-stat-row">
+                      <div class="pre-stat"><div class="n">12</div><div class="l">Steps</div></div>
+                      <div class="pre-stat"><div class="n">6</div><div class="l">Months</div></div>
+                      <div class="pre-stat"><div class="n">5</div><div class="l">Capabilities</div></div>
+                    </div>
+                    <div class="caps-row">
+                      <span class="cc">heavy-air-helm</span>
+                      <span class="cc">starts</span>
+                      <span class="cc">wind-reading</span>
+                      <span class="cc">tactical</span>
+                    </div>
+                  </section>
+
+                  <section class="fleet-badge" style="margin-top: 12px;">
+                    <span class="av-stack">
+                      <span class="a">PL</span>
+                      <span class="a g">BV</span>
+                      <span class="a p">SN</span>
+                      <span class="a h">KH</span>
+                    </span>
+                    <div class="copy-f">
+                      <p class="nm">63 Worlds sailors already started</p>
+                      <p class="desc">Same Race · same fleet</p>
+                    </div>
+                  </section>
+
+                  <button class="cta-primary" style="margin-top: 14px; width: 100%; background: var(--ios-blue); color: #fff; border: 0; border-radius: 14px; padding: 13px 16px; font-size: 14.5px; font-weight: 600; letter-spacing: -0.2px; display: inline-flex; align-items: center; justify-content: center; gap: 6px;">
+                    Accept &amp; start preparing
+                    <i class="ti ti-arrow-right" style="font-size: 16px;"></i>
+                  </button>
+                  <p style="text-align: center; margin-top: 8px; font-size: 10.5px; color: var(--label-3); letter-spacing: -0.05px;">
+                    <span style="color: var(--label-2); font-weight: 500;">Free for 3 months</span> · works in any browser · no app required
+                  </p>
+
+                </div>
+
+              </div>
+
+              <nav class="safari-toolbar">
+                <span class="ic"><i class="ti ti-chevron-left"></i></span>
+                <span class="ic dim"><i class="ti ti-chevron-right"></i></span>
+                <span class="ic"><i class="ti ti-share-3"></i></span>
+                <span class="ic"><i class="ti ti-book"></i></span>
+                <span class="ic"><i class="ti ti-copy"></i></span>
+              </nav>
+            </div>
+            <div class="home-indicator"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Arrow -->
+      <div class="flow-arrow" style="padding-top: 220px;">
+        <svg viewBox="0 0 40 40" width="32" height="32" fill="none">
+          <path d="M 4 20 L 32 20 M 26 14 L 32 20 L 26 26" stroke="#5856D6" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <p class="label">accept<br/>land in Practice</p>
+      </div>
+
+      <!-- Web · Phase 4 with install prompt at Do tab -->
+      <div class="pane first-actions">
+        <div class="phase-eye"><span class="pip">4w</span>Mobile Safari · Practice + Do attempt</div>
+        <p class="phase-title">Web Practice · <em>install prompt at Do</em></p>
+        <p class="phase-sub">Smart-app banner at the top of every BetterAt web page. When the user taps the Do phase tab, the install-sheet rises — native is the right medium for live capture.</p>
+
+        <div class="phone-wrap">
+          <div class="phone safari-phone">
+            <div class="notch"></div>
+            <div class="statusbar"><span>9:15</span><span class="right"><i class="ti ti-cell-signal-4"></i><i class="ti ti-wifi"></i><i class="ti ti-battery-3"></i></span></div>
+
+            <div class="screen" data-screen-label="Web · Practice + Do install prompt">
+
+              <div class="safari-url-bar">
+                <span class="ic-l"><i class="ti ti-text-size"></i></span>
+                <span class="url">
+                  <i class="ti ti-lock"></i>
+                  <span class="host">better.at</span><span class="path">/practice/step/1</span>
+                </span>
+                <span class="ic-r"><i class="ti ti-refresh"></i></span>
+              </div>
+
+              <!-- Smart App Banner -->
+              <div class="smart-banner">
+                <span class="icon-mark"><i class="ti ti-sparkles"></i></span>
+                <div class="copy">
+                  <p class="nm">BetterAt</p>
+                  <p class="sub">Open in app for voice capture &amp; offline</p>
+                </div>
+                <button class="open-btn">Install</button>
+                <button class="close"><i class="ti ti-x"></i></button>
+              </div>
+
+              <!-- Web tab strip -->
+              <div class="web-tabs">
+                <span class="t on">Practice</span>
+                <span class="t">Playbook</span>
+                <span class="t">Discover</span>
+                <span class="t">Profile</span>
+              </div>
+
+              <div class="safari-content" style="padding: 12px 14px 14px; position: relative;">
+
+                <!-- Compact step card -->
+                <article style="background: #FFFFFF; border-radius: 14px; border: 0.5px solid var(--gray-5); box-shadow: 0 1px 2px rgba(0,0,0,0.04); padding: 12px 14px; margin: 0 0 10px;">
+                  <div style="display: flex; align-items: center; justify-content: space-between; margin: 0 0 8px;">
+                    <span style="display: inline-flex; align-items: center; gap: 6px; padding: 3px 9px 3px 7px; border-radius: 999px; background: var(--ios-blue-tint); border: 0.5px solid var(--ios-blue-strong);">
+                      <span style="width: 6px; height: 6px; border-radius: 50%; background: var(--ios-blue);"></span>
+                      <span style="font-size: 10px; font-weight: 700; color: var(--ios-blue-deep); letter-spacing: 0.5px; text-transform: uppercase;">Your first step</span>
+                    </span>
+                  </div>
+                  <p style="font-size: 9.5px; font-weight: 700; color: var(--ios-blue); letter-spacing: 0.7px; text-transform: uppercase; margin: 0 0 4px;">Current step</p>
+                  <h2 style="font-size: 17px; font-weight: 600; color: var(--label); letter-spacing: -0.3px; margin: 0; line-height: 1.18;">Boat-speed baseline · all points of sail</h2>
+                  <p style="font-size: 10.5px; color: var(--label-3); margin: 4px 0 0;">From <span style="color: var(--label-2); font-weight: 500;">Kevin's HKDW Prep</span></p>
+                </article>
+
+                <!-- Phase tab strip — Do is active, install prompt is showing -->
+                <div style="background: #FFFFFF; border-radius: 14px; border: 0.5px solid var(--gray-5); overflow: hidden; opacity: 0.55;">
+                  <div style="display: flex; gap: 4px; padding: 0 16px; border-bottom: 0.5px solid var(--gray-5);">
+                    <span style="padding: 9px 10px 11px; font-size: 13px; font-weight: 500; color: var(--label-3);">Plan</span>
+                    <span style="padding: 9px 10px 11px; font-size: 13px; font-weight: 600; color: var(--ios-coral-deep); position: relative;">
+                      Do
+                      <span style="position: absolute; left: 10px; right: 10px; bottom: -0.5px; height: 2px; background: var(--ios-coral); border-radius: 2px;"></span>
+                    </span>
+                    <span style="padding: 9px 10px 11px; font-size: 13px; font-weight: 500; color: var(--label-3);">Reflect</span>
+                  </div>
+                  <div style="padding: 30px 16px; text-align: center;">
+                    <span style="display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px 4px 8px; border-radius: 999px; background: var(--ios-coral-tint); border: 0.5px solid var(--ios-coral-soft); margin-bottom: 8px;">
+                      <span style="width: 8px; height: 8px; border-radius: 50%; background: var(--ios-coral);"></span>
+                      <span style="font-size: 10px; font-weight: 700; color: var(--ios-coral-deep); letter-spacing: 0.5px; text-transform: uppercase;">Ready to capture</span>
+                    </span>
+                    <p style="font-size: 11.5px; color: var(--label-3); font-style: italic; margin: 8px 0 0;">Captures appear here as you record them</p>
+                  </div>
+                </div>
+
+                <!-- Install sheet floats over Do empty state -->
+                <div class="install-sheet">
+                  <div class="row1">
+                    <span class="icon-mark"><i class="ti ti-sparkles"></i></span>
+                    <div>
+                      <p class="ttl">Install BetterAt to capture on the water</p>
+                      <p class="sub">Plan &amp; Reflect work in web · capture needs native</p>
+                    </div>
+                  </div>
+                  <p class="body-i">Voice notes during a race, photos of your sail trim, hands-free dictation — these need the iOS app's microphone and camera permissions.</p>
+                  <ul class="feature-list">
+                    <li><i class="ti ti-microphone"></i>One-tap voice capture</li>
+                    <li><i class="ti ti-camera"></i>Quick photo &amp; video</li>
+                    <li><i class="ti ti-wifi-off"></i>Works offline at the dock</li>
+                  </ul>
+                  <div class="ctas">
+                    <button class="primary"><i class="ti ti-download"></i>Install free</button>
+                    <button class="ghost">Not now</button>
+                  </div>
+                </div>
+
+              </div>
+
+              <nav class="safari-toolbar">
+                <span class="ic"><i class="ti ti-chevron-left"></i></span>
+                <span class="ic"><i class="ti ti-chevron-right"></i></span>
+                <span class="ic"><i class="ti ti-share-3"></i></span>
+                <span class="ic"><i class="ti ti-book"></i></span>
+                <span class="ic"><i class="ti ti-copy"></i></span>
+              </nav>
+            </div>
+            <div class="home-indicator"></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <p style="text-align: center; font-family: 'Iowan Old Style', 'Source Serif 4', Georgia, serif; font-style: italic; font-size: 13.5px; color: var(--stage-text); margin: 28px auto 0; max-width: 760px; line-height: 1.55;">
+      <strong style="color: var(--stage-ink); font-weight: 500; font-style: normal;">The architectural rule:</strong> any surface that <em>reads</em> works in web — Plan, Reflect, Playbook, Discover, Profile, hinges, fleet view. Any surface that <em>captures</em> in real time is where the native app earns its install. The install never gates an offer; it deepens an experience already in motion.
+    </p>
+  </section>
+
+  <!-- =============================================================== -->
+  <!-- Rail                                                              -->
+  <!-- =============================================================== -->
+  <section class="rail-row">
+
+    <div class="rail-col">
+      <h4>1 · <em>The bridge respects both apps.</em></h4>
+      <p>HKDW's "About BetterAt" tab renders in HKDW's chrome (navy event-app palette, their tab vocabulary, their banner). The BetterAt offer is one white card with a single bridging visual hint — the purple sparkle eyebrow and italic-serif title — that gives the user a preview of where they're going without colonizing the host app's design. <em>Two apps, one handoff, neither pretending to be the other.</em></p>
+      <p class="sig"><span class="swatch" style="background: #0E2A4A;"></span>HKDW chrome <span class="swatch purple"></span>BetterAt offer card</p>
+    </div>
+
+    <div class="rail-col">
+      <h4>2 · <em>Kevin is the byline, not BetterAt.</em></h4>
+      <p>The user is being welcomed by <strong>a person they trust</strong> — Kevin Denney, the Worlds-qualified Dragon helm whose blueprint they're being offered. The platform comes second. This is true on the offer card in HKDW (Kevin's avatar is the first thing), in the handoff caption ("Kevin Denney is welcoming you"), and in the redeem landing (his avatar at 60 px, his name in italic). The brand transfer happens through the author, not the product.</p>
+      <p class="sig"><span class="swatch gray"></span>author byline · 4 places · same name</p>
+    </div>
+
+    <div class="rail-col">
+      <h4>3 · <em>No account form before redeem.</em></h4>
+      <p>The deep link carries a single-use redeem token. The user accepts the offer first, lands in a working app with their blueprint subscribed, and only sees an account-creation prompt later if they want to keep their data after the 3-month free window. <em>The cost of trying is zero clicks of forms.</em> Account capture happens after the user has experienced the product, not as the gate to experiencing it.</p>
+      <p class="sig"><span class="swatch green"></span>token-based · 3-month grace period</p>
+    </div>
+
+    <div class="rail-col">
+      <h4>4 · <em>The fleet badge is social proof, not pressure.</em></h4>
+      <p>"63 Worlds sailors already started" is honest — the count matches the actual number of HKDW sailors who redeemed. The avatar stack on the redeem landing shows real people the user could click through to see (privacy permitting). On the first-action surface, the WITH-row chip carries forward the same 63: <em>"Worlds Fleet · 63 sailors."</em> Same number, same fleet, the user reads continuity.</p>
+      <p class="sig"><span class="swatch green"></span>fleet count · 4 surfaces · same number</p>
+    </div>
+
+    <div class="rail-col">
+      <h4>5 · <em>The first action is small.</em></h4>
+      <p>Step 1 is not the hardest step in the blueprint. It's a baseline-measurement step — <em>sail for an hour, record target speeds on each point of sail.</em> Concrete. Reachable in the next afternoon's practice. The user reads the title and knows what to do. The AI Coach helper is there if they want it, the suggestion row is there if they want to copy a peer, but the path is clear without either: tap WHAT, write a sentence, the CTA enables.</p>
+      <p class="sig"><span class="swatch blue"></span>one tap · one sentence · CTA enables</p>
+    </div>
+
+    <div class="rail-col">
+      <h4>6 · <em>The journey is reversible.</em></h4>
+      <p>Every step from the offer onward has a <em>Not now</em>. The HKDW tab has no auto-redeem. The redeem landing has a top-right <em>Not now</em>. The first-action toast can be dismissed. If the user accepts and then never returns, their blueprint subscription quietly expires after 3 months — no nags, no emails, no debt. <em>The product has to earn the user's return, not capture them.</em></p>
+      <p class="sig"><span class="swatch gray"></span>Not now × 3 places · expires silently</p>
+    </div>
+
+  </section>
+
+</div>
+
+</body>
+</html>

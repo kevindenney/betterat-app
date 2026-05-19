@@ -79,9 +79,20 @@ import { PlanQuestionCard } from '@/components/step/PlanQuestionCard';
 import { StepDrawContent } from '@/components/step/StepDrawContent';
 import { DateEnrichmentCard } from '@/components/step/DateEnrichmentCard';
 import { DoTabIOSRegisterShell } from '@/components/step/do-tab';
+import { ReflectTabIOSRegisterShell } from '@/components/step/reflect-tab';
 import { StepCritiqueContent } from '@/components/step/StepCritiqueContent';
 import { StepFocusConcepts } from '@/components/step/StepFocusConcepts';
 import { StepProvenanceBanner } from '@/components/step/StepProvenanceBanner';
+import { StepBlueprintChrome } from '@/components/step/StepBlueprintChrome';
+import { StepDiscussionPeek } from '@/components/step/StepDiscussionPeek';
+import { StepDiscussionInline } from '@/components/step/StepDiscussionInline';
+import { StepCompleteCelebration } from '@/components/step/StepCompleteCelebration';
+import { SinceLastVisitStrip } from '@/components/step/SinceLastVisitStrip';
+import { useStepBlueprintChrome } from '@/hooks/useStepBlueprintChrome';
+import { useStepDiscussionPeek } from '@/hooks/useStepDiscussionPeek';
+import { useStepCompleteCelebration } from '@/hooks/useStepCompleteCelebration';
+import { useContinueToNextBlueprintStep } from '@/hooks/useContinueToNextBlueprintStep';
+import { useStepSinceVisitEvents } from '@/hooks/useStepSinceVisitEvents';
 import { AIStructureReview } from '@/components/step/AIStructureReview';
 import { CollaboratorPicker } from '@/components/step/CollaboratorPicker';
 import { DueDatePickerModal } from '@/components/step/DueDatePickerModal';
@@ -456,9 +467,9 @@ function calculateArrivalTime(raceDate: string, startTime: string | undefined, m
 
 const VISIBILITY_OPTIONS: { value: TimelineStepVisibility; label: string; icon: string }[] = [
   { value: 'private', label: 'Private (only you)', icon: 'lock-closed-outline' },
-  { value: 'followers', label: 'Followers', icon: 'people-outline' },
-  { value: 'coaches', label: 'Coaches', icon: 'school-outline' },
-  { value: 'organization', label: 'Organization', icon: 'business-outline' },
+  { value: 'crew', label: 'Crew', icon: 'people-outline' },
+  { value: 'fleet', label: 'Fleet', icon: 'business-outline' },
+  { value: 'public', label: 'Public', icon: 'globe-outline' },
 ];
 
 // =============================================================================
@@ -471,7 +482,9 @@ function RaceSummaryCardImpl({
   isActive,
   dimensions: _dimensions,
   canManage,
-  onEdit,
+  // onEdit removed from menu — every field is now inline-editable on the cover.
+  // Prop kept on the type for now; parent call sites can drop it in a follow-up.
+  onEdit: _onEdit,
   onDelete,
   onRaceComplete: _onRaceComplete,
   onOpenPostRaceInterview,
@@ -491,8 +504,10 @@ function RaceSummaryCardImpl({
   onCardPress,
   // Refetch trigger for AfterRaceContent
   refetchTrigger,
-  onMoveStepEarlier,
-  onMoveStepLater,
+  // Move Earlier / Move Later removed from menu — reordering happens via drag in
+  // grid view. Props kept on the type for now; drop in a follow-up.
+  onMoveStepEarlier: _onMoveStepEarlier,
+  onMoveStepLater: _onMoveStepLater,
   onMoveStepToPlannedNext,
   onMoveStepToCompletedMostRecent,
   onSetDueDate,
@@ -510,6 +525,82 @@ function RaceSummaryCardImpl({
 
   // Temporal phase state — for timeline steps, map status to the right tab
   const isTimelineStep = Boolean(race.isTimelineStep);
+
+  // Phase 10 PR-2/3 — Blueprint chrome + Discussion peek for subscribed-blueprint
+  // steps. Both hooks return null when there's nothing to show, so the surfaces
+  // are purely additive. Stored at module scope of the component so they fire
+  // whether the step renders via RaceSummaryCard (carousel) or StepDetailContent
+  // (direct route).
+  const chromeStepId = isTimelineStep ? race.id : null;
+  const { data: blueprintChrome } = useStepBlueprintChrome(chromeStepId);
+  const { data: discussionPeek } = useStepDiscussionPeek(chromeStepId);
+  const showBlueprintChrome =
+    FEATURE_FLAGS.SUBSCRIBED_STEP_CHROME_V1 && Boolean(blueprintChrome);
+  const showDiscussionPeek =
+    FEATURE_FLAGS.STEP_DISCUSSION_V1 && Boolean(discussionPeek);
+  const goBlueprintIndex = useCallback(() => {
+    if (!blueprintChrome) return;
+    router.push(`/(tabs)/playbook/blueprints/${blueprintChrome.blueprintId}/all-steps` as any);
+  }, [blueprintChrome, router]);
+  const goFleetView = useCallback(() => {
+    if (!blueprintChrome) return;
+    router.push(`/practice/blueprint/${blueprintChrome.blueprintId}/fleet` as any);
+  }, [blueprintChrome, router]);
+
+  // Discussion-tab state declared early so the peek's tap handler can
+  // reference setDiscussionTabActive. Showability is gated by feature flag
+  // + presence of blueprint chrome (subscribed-blueprint step only).
+  const [discussionTabActive, setDiscussionTabActive] = useState(false);
+  const showDiscussionTab =
+    FEATURE_FLAGS.STEP_DISCUSSION_V1 && Boolean(blueprintChrome);
+
+  // Phase 10 PR-4 — step-complete celebration data. Resolved whenever this
+  // step is part of a subscribed blueprint; gated at render time by
+  // status==='completed'. Source step id lives on the adopted copy's
+  // source_id column (set by adoptStep).
+  const celebrationSourceStepId =
+    (race as { source_id?: string | null } | null)?.source_id ?? null;
+  const { data: celebrationData, isLoading: celebrationLoading } =
+    useStepCompleteCelebration({
+      stepId: isTimelineStep ? race.id : null,
+      blueprintId: blueprintChrome?.blueprintId ?? null,
+      sourceStepId: celebrationSourceStepId,
+    });
+  const stepIsCompleted =
+    (race.stepStatus ?? race.status) === 'completed' ||
+    (race.stepStatus ?? race.status) === 'done';
+  const showCelebration =
+    isTimelineStep && Boolean(blueprintChrome) && stepIsCompleted;
+  const continueNext = useContinueToNextBlueprintStep({
+    blueprintId: blueprintChrome?.blueprintId ?? null,
+    interestId: (race as { interest_id?: string | null } | null)?.interest_id ?? null,
+    nextSourceStepId: celebrationData?.next?.sourceStepId ?? null,
+    alreadyAdoptedStepId: celebrationData?.next?.alreadyAdoptedStepId ?? null,
+  });
+
+  // Phase 10 PR-4 — "since your last visit" strip on the Plan tab. Surfaces
+  // peer notes + coach replies recent enough to be interesting. Hidden when
+  // empty or on non-subscribed steps.
+  const { data: sinceVisitEvents } = useStepSinceVisitEvents(
+    isTimelineStep ? race.id : null,
+  );
+  // Phase check happens inside the Plan branch of renderPhaseContent, so we
+  // don't gate on selectedPhase here (it's declared further down anyway).
+  const showSinceLastVisit =
+    Boolean(blueprintChrome) &&
+    !discussionTabActive &&
+    Array.isArray(sinceVisitEvents) &&
+    sinceVisitEvents.length > 0;
+
+  const goDiscussion = useCallback(() => {
+    if (!isTimelineStep) return;
+    // Switch the active phase tab to Discussion instead of pushing the
+    // fullscreen route. The 4th-tab inline view is the canonical surface
+    // for blueprint-subscribed step discussion; the fullscreen route is
+    // kept for non-step entry points only.
+    triggerHaptic('selection');
+    setDiscussionTabActive(true);
+  }, [isTimelineStep]);
   const stepStatus = race.stepStatus ?? race.status;
   const currentPhase = useMemo(() => {
     if (isTimelineStep) {
@@ -610,7 +701,7 @@ function RaceSummaryCardImpl({
   }, [editTitle, race.name, race.id, updateStepMutation, queryClient]);
 
   // Visibility change handler for timeline steps
-  const currentVisibility = (race?.visibility as TimelineStepVisibility) ?? 'followers';
+  const currentVisibility = (race?.visibility as TimelineStepVisibility) ?? 'private';
   const [showVisibilityPicker, setShowVisibilityPicker] = useState(false);
 
   const handleChangeVisibility = useCallback(() => {
@@ -1077,7 +1168,7 @@ function RaceSummaryCardImpl({
   }, [eventConfig.eventNoun, isSailing, isTimelineStep, race.id, race.name, race.date, race.venue, metadata?.plan?.what_will_you_do]);
 
   // Extract collaboration flags from race
-  const isOwner = race.isOwner ?? true; // Default true for backward compatibility
+  const isOwner = race.isOwner ?? (isTimelineStep ? (race as any).user_id === user?.id : true);
   const isCollaborator = race.isCollaborator ?? false;
   const isPendingInvite = race.isPendingInvite ?? false;
   const collaboratorId = race.collaboratorId;
@@ -1426,40 +1517,20 @@ function RaceSummaryCardImpl({
     if (!isTimelineStep && FEATURE_FLAGS.ENABLE_RACE_CREW_CHAT) {
       items.push({ label: `${teamNoun} Chat`, icon: 'chatbubbles-outline', onPress: () => setShowChat(true) });
     }
-    // Explicit collaborator entry point — step collaborator picker for timeline steps, crew hub for races
-    items.push({
-      label: 'Add Collaborators',
-      icon: 'people-outline',
-      onPress: isTimelineStep ? () => setShowStepCollabPicker(true) : () => openCrewHub('roster'),
-    });
+    // Collaborator picker for races — timeline steps use the inline WHO section
+    // on the Plan tab (same picker, same notification flow).
+    if (!isTimelineStep) {
+      items.push({
+        label: 'Add Collaborators',
+        icon: 'people-outline',
+        onPress: () => openCrewHub('roster'),
+      });
+    }
     // Share is always available
     items.push({ label: `Share ${noun}`, icon: 'share-outline', onPress: handleShare });
     // Suggest to another user — available for all timeline steps
     if (isTimelineStep) {
       items.push({ label: 'Suggest to...', icon: 'paper-plane-outline', onPress: () => setShowSuggestSheet(true) });
-    }
-    // iOS register preview — temporary review affordances (Phase 3 of the
-    // iOS register migration). Two surfaces: Race Prep (the Before-phase
-    // composed plan) and Debrief (the After-phase chronological capture
-    // stack). Both render the same step in the new iOS-native register kit
-    // alongside the existing layout. Remove when register cuts over or an
-    // in-product register switcher lands.
-    if (isTimelineStep) {
-      items.push({
-        label: 'Preview iOS · Race Prep',
-        icon: 'sparkles-outline',
-        onPress: () => router.push(`/race/ios/${race.id}` as any),
-      });
-      items.push({
-        label: 'Preview iOS · On the Water',
-        icon: 'sparkles-outline',
-        onPress: () => router.push(`/race/ios/water/${race.id}` as any),
-      });
-      items.push({
-        label: 'Preview iOS · Debrief',
-        icon: 'sparkles-outline',
-        onPress: () => router.push(`/race/ios/debrief/${race.id}` as any),
-      });
     }
     // Add to Blueprint — only for owners with published blueprints
     if (isOwner && isTimelineStep && (userBlueprints ?? []).some((b) => b.is_published)) {
@@ -1471,31 +1542,9 @@ function RaceSummaryCardImpl({
     }
     // Only show edit/delete for owners
     if (isOwner) {
-      if (onMoveStepEarlier) {
-        items.push({ label: 'Move Earlier', icon: 'arrow-back-outline', onPress: () => onMoveStepEarlier(race.id) });
-      }
-      if (onMoveStepLater) {
-        items.push({ label: 'Move Later', icon: 'arrow-forward-outline', onPress: () => onMoveStepLater(race.id) });
-      }
-      // Mark Done / Mark Not Done handled by the status toggle in the header
-      // Due date
-      if (onSetDueDate && isTimelineStep) {
-        const currentDueAt = race.due_at;
-        if (currentDueAt) {
-          const dueLabel = new Date(currentDueAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-          items.push({
-            label: `Due: ${dueLabel}`,
-            icon: 'calendar-outline',
-            onPress: () => setShowDueDatePicker(true),
-          });
-        } else {
-          items.push({
-            label: 'Set Due Date',
-            icon: 'calendar-outline',
-            onPress: () => setShowDueDatePicker(true),
-          });
-        }
-      }
+      // Mark Done / Mark Not Done handled by the status toggle in the header.
+      // Set Due Date removed from menu — only settable on /step/:id detail page
+      // until an inline date chip lands on the cover.
       // Visibility picker
       if (isTimelineStep) {
         const visLabel = currentVisibility === 'private' ? 'Private' : currentVisibility.charAt(0).toUpperCase() + currentVisibility.slice(1);
@@ -1505,9 +1554,7 @@ function RaceSummaryCardImpl({
           onPress: handleChangeVisibility,
         });
       }
-      if (onEdit) {
-        items.push({ label: `Edit ${noun}`, icon: 'create-outline', onPress: onEdit });
-      }
+      // Edit removed — every field is now inline-editable on the step cover.
       if (onDelete) {
         items.push({ label: `Delete ${noun}`, icon: 'trash-outline', onPress: onDelete, variant: 'destructive' });
       }
@@ -1518,7 +1565,6 @@ function RaceSummaryCardImpl({
     }
     return items;
   }, [
-    onEdit,
     onDelete,
     race,
     onDismiss,
@@ -1529,9 +1575,6 @@ function RaceSummaryCardImpl({
     teamNoun,
     openCrewHub,
     isNursingInterest,
-    onMoveStepEarlier,
-    onMoveStepLater,
-    onSetDueDate,
     isTimelineStep,
     currentVisibility,
     handleChangeVisibility,
@@ -1629,14 +1672,19 @@ function RaceSummaryCardImpl({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phaseCounts, eventConfig.phaseLabels, isTimelineStep]);
 
+  // Phase 10 PR-2b — Discussion is a 4th tab on subscribed-blueprint steps.
+  // State + show-gate are declared near the top of the component so the
+  // peek's tap handler can reference setDiscussionTabActive.
+
   // Canonical Practice Timeline phase tabs: underline pattern with green-dot
   // "done" state. Done = phase has user-produced content (total > 0). Strips
   // the inline completion counts shown on the segmented-control variant — the
   // canonical lets the green dot do all the "phase has content" signaling.
-  const canonicalPhaseTabs = useMemo<PhaseTabItem<RacePhase>[]>(() => {
-    return RACE_PHASES.map((phase) => {
+  type LocalTabValue = RacePhase | 'discussion';
+  const canonicalPhaseTabs = useMemo<PhaseTabItem<LocalTabValue>[]>(() => {
+    const phaseItems: PhaseTabItem<LocalTabValue>[] = RACE_PHASES.map((phase) => {
       const count = phaseCounts[phase];
-      const isSelected = phase === selectedPhase;
+      const isSelected = !discussionTabActive && phase === selectedPhase;
       const hasContent = count.total > 0 || count.completed > 0;
       return {
         value: phase,
@@ -1644,11 +1692,37 @@ function RaceSummaryCardImpl({
         state: isSelected ? 'active' : hasContent ? 'done' : 'empty',
       };
     });
+    if (showDiscussionTab) {
+      const hasNotes =
+        discussionPeek != null && discussionPeek.noteCount > 0;
+      phaseItems.push({
+        value: 'discussion',
+        label: 'Discussion',
+        state: discussionTabActive ? 'active' : hasNotes ? 'done' : 'empty',
+      });
+    }
+    return phaseItems;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [phaseCounts, selectedPhase]);
+  }, [phaseCounts, selectedPhase, discussionTabActive, showDiscussionTab, discussionPeek]);
 
   // Handle phase tab change with haptic feedback
-  const handlePhaseChange = useCallback((phase: RacePhase) => {
+  const handlePhaseChange = useCallback(
+    (phase: LocalTabValue) => {
+      if (phase === 'discussion') {
+        triggerHaptic('selection');
+        setDiscussionTabActive(true);
+        return;
+      }
+      setDiscussionTabActive(false);
+      return handlePhaseChangeLegacy(phase);
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [],
+  );
+
+  // Original handler renamed so the new wrapper can keep the existing signature
+  // for non-discussion phases.
+  const handlePhaseChangeLegacy = useCallback((phase: RacePhase) => {
     // DEBUG: Log phase tab selection
     if (typeof window !== 'undefined' && (window as any).__PERIOD_DEBUG__?.enabled) {
       (window as any).__PERIOD_DEBUG__.log('RaceSummaryCard.phaseTab', eventConfig.phaseLabels[phase]?.short ?? phase, { phase, raceId: race.id });
@@ -1677,7 +1751,7 @@ function RaceSummaryCardImpl({
       <IOSSegmentedControl
         segments={phaseTabs}
         selectedValue={selectedPhase}
-        onValueChange={handlePhaseChange}
+        onValueChange={handlePhaseChangeLegacy}
         style={{ marginTop: 12, marginBottom: 12, maxWidth: 322 }}
       />
     );
@@ -1815,6 +1889,47 @@ function RaceSummaryCardImpl({
   const renderPhaseContent = () => {
     // Coach nudge banner — shown across all step types
     const nudgeBanner = coachNudge ? <CoachNudgeBanner insight={coachNudge} onDismiss={dismissNudge} /> : null;
+
+    // Phase 10 PR-4 — step-complete celebration. Highest priority: when a
+    // subscribed-blueprint step is closed, replace the regular phase
+    // content with the celebration moment. Tabs remain available for
+    // review; the user can still navigate to Plan/Do/Reflect to see what
+    // was captured.
+    if (showCelebration && !discussionTabActive && blueprintChrome) {
+      return (
+        <StepCompleteCelebration
+          stepNumber={blueprintChrome.stepNumber}
+          totalSteps={blueprintChrome.totalSteps}
+          stepTitle={race.name ?? 'This step'}
+          sessionCount={celebrationData?.sessionCount ?? 0}
+          fleet={
+            celebrationData?.fleet ?? {
+              ahead: 0,
+              sameStep: 0,
+              behind: 0,
+            }
+          }
+          next={
+            celebrationData?.next
+              ? {
+                  stepNumber: celebrationData.next.stepNumber,
+                  title: celebrationData.next.title,
+                }
+              : null
+          }
+          isLoadingNext={celebrationLoading || !celebrationSourceStepId}
+          onContinue={continueNext.handleContinue}
+          isContinuing={continueNext.isContinuing}
+        />
+      );
+    }
+
+    // Phase 10 PR-2b — Discussion tab takes precedence over the temporal
+    // Plan/Do/Reflect phases when active. Renders the focused inline thread
+    // view inside the same outer ScrollView.
+    if (discussionTabActive && isTimelineStep && showDiscussionTab) {
+      return <StepDiscussionInline stepId={race.id} />;
+    }
 
     // Demo timeline steps: show phase-specific read-only content
     if (race.isDemo && isTimelineStep) {
@@ -1964,9 +2079,18 @@ function RaceSummaryCardImpl({
         return (
           <>
             {nudgeBanner}
+            {showSinceLastVisit && sinceVisitEvents ? (
+              <View style={{ paddingHorizontal: 14, paddingTop: 8 }}>
+                <SinceLastVisitStrip
+                  events={sinceVisitEvents}
+                  onTapEvent={() => setDiscussionTabActive(true)}
+                />
+              </View>
+            ) : null}
             <StepPlanQuestions
               stepId={race.id}
               interestId={race.interest_id ?? currentInterest?.id}
+              readOnly={!isOwner}
               brainDumpData={brainDumpData}
               onBrainDumpChange={handleDraftChange}
               onStructureWithAI={handleStructureWithAI}
@@ -1974,6 +2098,7 @@ function RaceSummaryCardImpl({
               interestSlug={currentInterest?.slug}
               useConversationalCapture={isOwner}
               onConversationalCreate={isOwner ? handleConversationalCreate : undefined}
+              onNextTab={isOwner ? () => setSelectedPhase('on_water') : undefined}
             />
           </>
         );
@@ -1985,7 +2110,16 @@ function RaceSummaryCardImpl({
         // Flag off keeps the existing nudge + conditions + focus concepts
         // + StepDrawContent stack byte-identical.
         if (FEATURE_FLAGS.PRACTICE_DO_TAB_IOS_REGISTER) {
-          return <DoTabIOSRegisterShell stepId={race.id} />;
+          return (
+            <DoTabIOSRegisterShell
+              stepId={race.id}
+              readOnly={!isOwner}
+              interestId={race.interest_id ?? currentInterest?.id}
+              interestName={currentInterest?.name}
+              interestSlug={currentInterest?.slug}
+              onMoveToReflect={() => setSelectedPhase('after_race')}
+            />
+          );
         }
         const activeEnrichment = dateEnrichment ?? metadata?.plan?.date_enrichment;
         return (
@@ -2001,16 +2135,30 @@ function RaceSummaryCardImpl({
               </View>
             )}
             <StepFocusConcepts stepId={race.id} />
-            <StepDrawContent stepId={race.id} interestId={race.interest_id ?? currentInterest?.id} interestName={currentInterest?.name} interestSlug={currentInterest?.slug} />
+            <StepDrawContent stepId={race.id} readOnly={!isOwner} interestId={race.interest_id ?? currentInterest?.id} interestName={currentInterest?.name} interestSlug={currentInterest?.slug} />
           </>
         );
       }
       if (selectedPhase === 'after_race') {
+        // Behind PRACTICE_STEP_LOOP_IOS_REGISTER the inline race-card
+        // Reflect surface swaps to the same Phase 4 shell ReviewTab
+        // mounts (see components/step/reflect-tab/ReflectTabIOSRegisterShell).
+        // Flag off keeps the existing nudge + focus + StepCritiqueContent
+        // stack byte-identical.
+        if (FEATURE_FLAGS.PRACTICE_STEP_LOOP_IOS_REGISTER) {
+          return (
+            <ReflectTabIOSRegisterShell
+              stepId={race.id}
+              readOnly={!isOwner}
+              onNextStepCreated={onNextStepCreated}
+            />
+          );
+        }
         return (
           <>
             {nudgeBanner}
             <StepFocusConcepts stepId={race.id} variant="review" />
-            <StepCritiqueContent stepId={race.id} onNextStepCreated={onNextStepCreated} />
+            <StepCritiqueContent stepId={race.id} onNextStepCreated={onNextStepCreated} readOnly={!isOwner} />
           </>
         );
       }
@@ -2213,6 +2361,31 @@ function RaceSummaryCardImpl({
             onScroll={handleContentScroll}
             scrollEventThrottle={16}
           >
+            {/* Phase 10 PR-3 — Blueprint chrome (trophy / From / WITH-row).
+                Renders only for steps adopted from a subscribed blueprint. */}
+            {showBlueprintChrome && blueprintChrome ? (
+              <StepBlueprintChrome
+                blueprintShortName={blueprintChrome.blueprintShortName}
+                positionLine={
+                  blueprintChrome.stepNumber != null
+                    ? `Step ${blueprintChrome.stepNumber} of ${blueprintChrome.totalSteps}`
+                    : `${blueprintChrome.totalSteps} steps`
+                }
+                blueprintTitle={blueprintChrome.blueprintTitle}
+                authorName={blueprintChrome.authorName}
+                fleetCount={blueprintChrome.subscriberCount}
+                onTapBlueprintStrip={goBlueprintIndex}
+                onTapFleetChip={goFleetView}
+              />
+            ) : null}
+            {showDiscussionPeek && discussionPeek ? (
+              <StepDiscussionPeek
+                noteCount={discussionPeek.noteCount}
+                latestSnippet={discussionPeek.latest.body}
+                latestAuthorName={discussionPeek.latest.authorName}
+                onPress={goDiscussion}
+              />
+            ) : null}
             {/* Simplified Header: Race type badge + Countdown */}
             <View style={styles.simpleHeaderWrapper}>
             {/* NOW bookmark is now rendered by CardGrid on the card edge */}
@@ -2507,6 +2680,28 @@ function RaceSummaryCardImpl({
                     <Ionicons name="close-circle" size={14} color="#C7C7CC" />
                   </Pressable>
                 )}
+              </View>
+            );
+          }
+          if (onSetDueDate) {
+            return (
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
+                <Pressable
+                  onPress={() => setShowDueDatePicker(true)}
+                  style={{
+                    flexDirection: 'row', alignItems: 'center', gap: 4,
+                    paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10,
+                    backgroundColor: 'transparent',
+                    borderWidth: StyleSheet.hairlineWidth,
+                    borderColor: '#e0e0e0',
+                    borderStyle: 'dashed',
+                  }}
+                >
+                  <Ionicons name="calendar-outline" size={13} color="#8E8E93" />
+                  <Text style={{ fontSize: 12, fontWeight: '500', color: '#8E8E93' }}>
+                    Add date
+                  </Text>
+                </Pressable>
               </View>
             );
           }

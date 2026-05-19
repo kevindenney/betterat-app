@@ -31,7 +31,7 @@ export interface PrivacySettings extends ProfilePrivacySettings {
 const DEFAULT_SETTINGS: PrivacySettings = {
   // Public profile visibility is explicit opt-in; missing settings default private.
   profile_public: false,
-  default_step_visibility: 'followers',
+  default_step_visibility: 'private',
   allow_peer_visibility: true,
   allow_follower_sharing: true,
   interest_visibility_defaults: {},
@@ -167,7 +167,7 @@ export async function setInterestDefault(
  * Resolves the default visibility for a new timeline step:
  *   1. Per-interest override (user_preferences.interest_visibility_defaults)
  *   2. Profile-level default (profiles.default_step_visibility)
- *   3. Hardcoded fallback ('followers')
+ *   3. Hardcoded fallback ('private')
  */
 export async function resolveDefaultVisibility(
   userId: string,
@@ -202,8 +202,8 @@ export async function resolveDefaultVisibility(
     }
 
     // 3. Fallback
-    return 'followers';
+    return 'private';
   } catch {
-    return 'followers';
+    return 'private';
   }
 }

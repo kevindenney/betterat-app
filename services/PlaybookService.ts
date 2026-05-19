@@ -16,6 +16,7 @@ import type {
   PlaybookRecord,
   PlaybookResourceRecord,
   PlaybookConceptRecord,
+  PlaybookConceptLifecycleState,
   PlaybookPatternRecord,
   PlaybookReviewRecord,
   PlaybookQARecord,
@@ -23,6 +24,9 @@ import type {
   PlaybookInboxItemRecord,
   PlaybookShareRecord,
   StepPlaybookLinkRecord,
+  StepConceptLinkRecord,
+  PlaybookInsightRecord,
+  ConceptTrailQuoteRecord,
   CreatePlaybookResourceInput,
   UpdatePlaybookResourceInput,
   CreatePlaybookConceptInput,
@@ -311,6 +315,8 @@ export async function createConcept(
       slug,
       title: input.title,
       body_md: input.body_md ?? '',
+      body: input.body ?? input.body_md ?? '',
+      state: input.state ?? 'forming',
       updated_by: userId,
     };
     const { data, error } = await supabase
@@ -1130,7 +1136,362 @@ export async function getSectionCounts(
 }
 
 // ---------------------------------------------------------------------------
-// 10. Step ↔ Playbook typed links
+// 10. Phase 6 — insights + lifecycle concepts
+// ---------------------------------------------------------------------------
+
+export interface Phase6ConceptRecord extends PlaybookConceptRecord {
+  state: PlaybookConceptLifecycleState;
+  linked_step_count: number;
+  quote_count: number;
+  evidence_step_count: number;
+  capability_count: number;
+}
+
+function isMissingPhase6Table(err: unknown) {
+  if (!err || typeof err !== 'object') return false;
+  const code = String((err as { code?: string }).code ?? '');
+  const message = String((err as { message?: string }).message ?? '');
+  return (
+    code === 'PGRST205' ||
+    code === '42P01' ||
+    message.includes('Could not find the table') ||
+    message.includes('relation') ||
+    message.includes('schema cache')
+  );
+}
+
+function normalizeLifecycleState(
+  concept: Partial<PlaybookConceptRecord>,
+  linkedStepCount: number,
+): PlaybookConceptLifecycleState {
+  if (concept.state === 'settled' || concept.settled_at) return 'settled';
+  if (linkedStepCount > 0) return 'testing';
+  return concept.state === 'seed' ? 'seed' : 'forming';
+}
+
+function buildConceptSlug(title: string) {
+  const base = title
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 48);
+  return base || `concept-${Date.now().toString(36)}`;
+}
+
+export async function getRecentInsights(
+  userId: string,
+  interestId: string | null,
+): Promise<PlaybookInsightRecord[]> {
+  try {
+    let query = supabase
+      .from('playbook_insights')
+      .select('*')
+      .eq('user_id', userId)
+      .is('refined_to_concept_id', null)
+      .order('created_at', { ascending: false })
+      .limit(24);
+
+    if (interestId) {
+      query = query.eq('interest_id', interestId);
+    }
+
+    const { data, error } = await query;
+    if (error) throw error;
+    return (data ?? []) as PlaybookInsightRecord[];
+  } catch (err) {
+    if (isMissingPhase6Table(err)) {
+      logger.warn('playbook_insights unavailable in this environment');
+      throw new Error('Playbook insights unavailable in this environment');
+    }
+    logger.error('Failed to fetch recent insights', err);
+    throw err;
+  }
+}
+
+export async function discardInsight(insightId: string): Promise<void> {
+  const { error } = await supabase
+    .from('playbook_insights')
+    .delete()
+    .eq('id', insightId);
+  if (error) throw error;
+}
+
+export async function refineInsightToConcept(args: {
+  userId: string;
+  playbookId: string;
+  insightId: string;
+  interestId: string;
+}): Promise<PlaybookConceptRecord> {
+  const { userId, playbookId, insightId, interestId } = args;
+
+  const { data: insight, error: insightError } = await supabase
+    .from('playbook_insights')
+    .select('*')
+    .eq('id', insightId)
+    .single();
+  if (insightError) throw insightError;
+
+  const content = String(insight.content ?? '').trim();
+  const title = content.split(/[.!?\n]/)[0]?.trim().slice(0, 80) || 'Untitled concept';
+
+  const concept = await createConcept(userId, {
+    playbook_id: playbookId,
+    origin: 'personal',
+    interest_id: interestId,
+    slug: buildConceptSlug(title),
+    title,
+    body_md: content,
+    body: content,
+    state: 'forming',
+  });
+
+  const { error: updateError } = await supabase
+    .from('playbook_insights')
+    .update({ refined_to_concept_id: concept.id })
+    .eq('id', insightId);
+  if (updateError) throw updateError;
+
+  return concept;
+}
+
+export async function getLifecycleConcepts(
+  userId: string,
+  interestId: string,
+): Promise<Phase6ConceptRecord[]> {
+  try {
+    const { data: concepts, error } = await supabase
+      .from('playbook_concepts')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('interest_id', interestId)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    const conceptRows = (concepts ?? []) as PlaybookConceptRecord[];
+    if (conceptRows.length === 0) return [];
+
+    const conceptIds = conceptRows.map((c) => c.id);
+    const [stepLinksResult, quotesResult, capabilityCounts] = await Promise.all([
+      supabase
+        .from('step_concept_links')
+        .select('concept_id,step_id')
+        .in('concept_id', conceptIds),
+      supabase
+        .from('concept_trail_quotes')
+        .select('concept_id,id')
+        .in('concept_id', conceptIds),
+      getCapabilityCountsForConcepts(conceptIds),
+    ]);
+
+    if (stepLinksResult.error) throw stepLinksResult.error;
+    if (quotesResult.error) throw quotesResult.error;
+
+    const linksByConcept = new Map<string, Set<string>>();
+    (stepLinksResult.data ?? []).forEach((row: any) => {
+      const set = linksByConcept.get(row.concept_id) ?? new Set<string>();
+      set.add(row.step_id);
+      linksByConcept.set(row.concept_id, set);
+    });
+
+    const quoteCountByConcept = new Map<string, number>();
+    (quotesResult.data ?? []).forEach((row: any) => {
+      quoteCountByConcept.set(row.concept_id, (quoteCountByConcept.get(row.concept_id) ?? 0) + 1);
+    });
+
+    return conceptRows.map((concept) => {
+      const linkedSteps = linksByConcept.get(concept.id) ?? new Set<string>();
+      const linkedStepCount = linkedSteps.size;
+      const quoteCount = quoteCountByConcept.get(concept.id) ?? 0;
+      const capabilityCount = capabilityCounts.get(concept.id) ?? 0;
+      const state = normalizeLifecycleState(concept, linkedStepCount);
+
+      return {
+        ...concept,
+        state,
+        linked_step_count: linkedStepCount,
+        quote_count: quoteCount,
+        evidence_step_count: quoteCount > 0 ? linkedStepCount : 0,
+        capability_count: capabilityCount,
+      };
+    });
+  } catch (err) {
+    if (isMissingPhase6Table(err)) {
+      logger.warn('Phase 6 concept lifecycle tables unavailable in this environment');
+      throw new Error('Playbook concept lifecycle unavailable in this environment');
+    }
+    throw err;
+  }
+}
+
+async function getCapabilityCountsForConcepts(conceptIds: string[]) {
+  const counts = new Map<string, number>();
+  if (conceptIds.length === 0) return counts;
+
+  const { data: links, error: linkError } = await supabase
+    .from('step_concept_links')
+    .select('concept_id,step_id')
+    .in('concept_id', conceptIds);
+  if (linkError || !links?.length) return counts;
+
+  const stepIds = [...new Set(links.map((row: any) => row.step_id))];
+  const { data: evidence, error: evidenceError } = await supabase
+    .from('step_capability_evidence')
+    .select('step_id,capability_id')
+    .eq('confirmed', true)
+    .in('step_id', stepIds);
+  if (evidenceError || !evidence?.length) return counts;
+
+  const capabilitiesByStep = new Map<string, Set<string>>();
+  evidence.forEach((row: any) => {
+    const set = capabilitiesByStep.get(row.step_id) ?? new Set<string>();
+    set.add(row.capability_id);
+    capabilitiesByStep.set(row.step_id, set);
+  });
+
+  conceptIds.forEach((conceptId) => {
+    const linked = links.filter((row: any) => row.concept_id === conceptId);
+    const ids = new Set<string>();
+    linked.forEach((row: any) => {
+      (capabilitiesByStep.get(row.step_id) ?? new Set()).forEach((id) => ids.add(id));
+    });
+    counts.set(conceptId, ids.size);
+  });
+
+  return counts;
+}
+
+export async function getConceptTrailQuotes(
+  conceptId: string,
+): Promise<ConceptTrailQuoteRecord[]> {
+  const { data, error } = await supabase
+    .from('concept_trail_quotes')
+    .select('*')
+    .eq('concept_id', conceptId)
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+  return (data ?? []) as ConceptTrailQuoteRecord[];
+}
+
+export async function addConceptTrailQuote(input: {
+  conceptId: string;
+  captureId: string;
+  quoteText: string;
+  sourceLabel: string;
+}): Promise<ConceptTrailQuoteRecord> {
+  const { data, error } = await supabase
+    .from('concept_trail_quotes')
+    .insert({
+      concept_id: input.conceptId,
+      capture_id: input.captureId,
+      quote_text: input.quoteText,
+      source_label: input.sourceLabel,
+    })
+    .select('*')
+    .single();
+  if (error) throw error;
+  return data as ConceptTrailQuoteRecord;
+}
+
+export async function getStepConceptLinks(
+  stepId: string,
+): Promise<StepConceptLinkRecord[]> {
+  const { data, error } = await supabase
+    .from('step_concept_links')
+    .select('*')
+    .eq('step_id', stepId)
+    .order('linked_at', { ascending: true });
+  if (error) throw error;
+  return (data ?? []) as StepConceptLinkRecord[];
+}
+
+export async function linkConceptToStep(
+  stepId: string,
+  conceptId: string,
+): Promise<void> {
+  const { error } = await supabase
+    .from('step_concept_links')
+    .insert({ step_id: stepId, concept_id: conceptId });
+  if (error && error.code !== '23505') throw error;
+
+  await addStepLink(stepId, 'concept', conceptId).catch(() => undefined);
+
+  const { data: concept } = await supabase
+    .from('playbook_concepts')
+    .select('state')
+    .eq('id', conceptId)
+    .maybeSingle();
+  if (concept && concept.state !== 'settled') {
+    await supabase
+      .from('playbook_concepts')
+      .update({ state: 'testing' })
+      .eq('id', conceptId)
+      .neq('state', 'settled');
+  }
+}
+
+export async function unlinkConceptFromStep(
+  stepId: string,
+  conceptId: string,
+): Promise<void> {
+  const { error } = await supabase
+    .from('step_concept_links')
+    .delete()
+    .eq('step_id', stepId)
+    .eq('concept_id', conceptId);
+  if (error) throw error;
+
+  await removeStepLink(stepId, 'concept', conceptId).catch(() => undefined);
+}
+
+export async function getConceptTestedSteps(conceptId: string): Promise<any[]> {
+  const { data: links, error: linkError } = await supabase
+    .from('step_concept_links')
+    .select('step_id, linked_at')
+    .eq('concept_id', conceptId)
+    .order('linked_at', { ascending: false });
+  if (linkError || !links?.length) return [];
+
+  const stepIds = links.map((row: any) => row.step_id);
+  const { data: steps, error } = await supabase
+    .from('timeline_steps')
+    .select('id,title,status,created_at,completed_at,interest_id')
+    .in('id', stepIds);
+  if (error) throw error;
+  return steps ?? [];
+}
+
+export async function getConceptCapabilityChips(conceptId: string): Promise<string[]> {
+  const { data: links, error: linkError } = await supabase
+    .from('step_concept_links')
+    .select('step_id')
+    .eq('concept_id', conceptId);
+  if (linkError || !links?.length) return [];
+
+  const stepIds = links.map((row: any) => row.step_id);
+  const { data: evidence, error } = await supabase
+    .from('step_capability_evidence')
+    .select('capability_name')
+    .eq('confirmed', true)
+    .in('step_id', stepIds);
+  if (error || !evidence) return [];
+  return [...new Set(evidence.map((row: any) => row.capability_name).filter(Boolean))];
+}
+
+export async function promoteConceptToSettled(conceptId: string): Promise<void> {
+  const { error } = await supabase
+    .from('playbook_concepts')
+    .update({
+      state: 'settled',
+      settled_at: new Date().toISOString(),
+      settled_by_promotion_at: new Date().toISOString(),
+    })
+    .eq('id', conceptId);
+  if (error) throw error;
+}
+
+// ---------------------------------------------------------------------------
+// 11. Step ↔ Playbook typed links
 // ---------------------------------------------------------------------------
 
 export async function getStepLinks(

@@ -32,8 +32,9 @@ const logger = createLogger('PrivacyQuickSet');
 
 const VISIBILITY_OPTIONS: { value: TimelineStepVisibility; label: string; description: string }[] = [
   { value: 'private', label: 'Private', description: 'Only you' },
-  { value: 'followers', label: 'Followers', description: 'People who follow you' },
-  { value: 'organization', label: 'Organization', description: 'Your org members' },
+  { value: 'crew', label: 'Crew', description: 'People you practice with' },
+  { value: 'fleet', label: 'Fleet', description: 'Your active group or cohort' },
+  { value: 'public', label: 'Public', description: 'Anyone who can view your public steps' },
 ];
 
 export default function PrivacyQuickSetScreen() {
@@ -43,7 +44,7 @@ export default function PrivacyQuickSetScreen() {
   const [interestSlug, setInterestSlug] = useState<string | null>(null);
   const [profilePublic, setProfilePublic] = useState(false);
   const [peerVisibility, setPeerVisibility] = useState(true);
-  const [stepVisibility, setStepVisibility] = useState<TimelineStepVisibility>('followers');
+  const [stepVisibility, setStepVisibility] = useState<TimelineStepVisibility>('private');
   const [isSaving, setIsSaving] = useState(false);
   // Prevent click-through from previous screen on web (events bleed through during transitions)
   const [interactable, setInteractable] = useState(Platform.OS !== 'web');

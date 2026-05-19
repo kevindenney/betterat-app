@@ -16,9 +16,15 @@ import { useVocabulary } from '@/hooks/useVocabulary';
 import { getEventTabRoute } from '@/lib/navigation-config';
 
 export default function StepDetailScreen() {
-  const { id, readOnly } = useLocalSearchParams<{ id: string; readOnly?: string }>();
+  const { id, readOnly, tab } = useLocalSearchParams<{ id: string; readOnly?: string; tab?: string }>();
   const actualId = Array.isArray(id) ? id[0] : id;
   const isReadOnly = readOnly === 'true';
+  const initialTab = (Array.isArray(tab) ? tab[0] : tab) as
+    | 'plan'
+    | 'act'
+    | 'review'
+    | 'discussion'
+    | undefined;
   const { vocab } = useVocabulary();
 
   if (!actualId) {
@@ -39,6 +45,16 @@ export default function StepDetailScreen() {
     );
   }
 
+  // Always render an explicit headerLeft so the user has a way out of the
+  // standalone step screen — when nav history is empty (cold-load via deep
+  // link or restored last-route), the default iOS back button doesn't show
+  // and the user gets trapped with no escape. We fall back to the main
+  // Practice tab in that case.
+  const handleBack = () =>
+    router.canGoBack()
+      ? router.back()
+      : router.replace(getEventTabRoute() as any);
+
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
       <Stack.Screen
@@ -46,6 +62,23 @@ export default function StepDetailScreen() {
           title: vocab('Learning Event'),
           headerShown: true,
           headerBackTitle: 'Back',
+          headerLeft: () =>
+            Platform.OS === 'web' ? (
+              <Text style={styles.webBackButton} onPress={handleBack}>
+                ← Back
+              </Text>
+            ) : (
+              <Pressable
+                onPress={handleBack}
+                style={styles.nativeBackBtn}
+                accessibilityRole="button"
+                accessibilityLabel="Back to Practice"
+                hitSlop={8}
+              >
+                <Ionicons name="chevron-back" size={22} color="#007AFF" />
+                <Text style={styles.nativeBackLabel}>Practice</Text>
+              </Pressable>
+            ),
           headerRight: () => (
             <Pressable
               onPress={() => router.push(`/race/ios/${actualId}` as any)}
@@ -57,21 +90,9 @@ export default function StepDetailScreen() {
               <Text style={styles.iosPreviewLabel}>iOS</Text>
             </Pressable>
           ),
-          ...Platform.select({
-            web: {
-              headerLeft: () => (
-                <Text
-                  style={styles.webBackButton}
-                  onPress={() => router.canGoBack() ? router.back() : router.replace(getEventTabRoute() as any)}
-                >
-                  ← Back
-                </Text>
-              ),
-            },
-          }),
         }}
       />
-      <StepDetailContent stepId={actualId} readOnly={isReadOnly} />
+      <StepDetailContent stepId={actualId} readOnly={isReadOnly} initialTab={initialTab} />
     </SafeAreaView>
   );
 }
@@ -107,6 +128,17 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#007AFF',
     paddingHorizontal: 8,
+  },
+  nativeBackBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 6,
+    paddingVertical: 4,
+  },
+  nativeBackLabel: {
+    fontSize: 16,
+    color: '#007AFF',
+    letterSpacing: -0.2,
   },
   iosPreviewBtn: {
     flexDirection: 'row',

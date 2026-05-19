@@ -7,6 +7,9 @@ jest.mock('@expo/vector-icons', () => ({
 }));
 
 jest.mock('react-native', () => ({
+  Dimensions: {
+    get: () => ({ width: 390, height: 844, scale: 2, fontScale: 1 }),
+  },
   Modal: 'Modal',
   Pressable: 'Pressable',
   ScrollView: 'ScrollView',
