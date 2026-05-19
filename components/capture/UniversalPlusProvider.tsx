@@ -159,6 +159,10 @@ export function UniversalPlusProvider({ children }: { children: React.ReactNode 
           interestId,
           payload,
         });
+        // eslint-disable-next-line no-console
+        console.warn(
+          `[universal-plus] RPC returned id=${savedStep.id} interest_id=${savedStep.interest_id} status=${savedStep.status} title="${savedStep.title}"`,
+        );
         queryClient.setQueriesData<TimelineStepRecord[]>(
           { predicate: matchesMineQuery },
           (old) => {
@@ -181,6 +185,17 @@ export function UniversalPlusProvider({ children }: { children: React.ReactNode 
         );
         queryClient.removeQueries({ queryKey: ['timeline-steps', 'detail', tempId] });
         queryClient.setQueryData(['timeline-steps', 'detail', savedStep.id], savedStep);
+        // Log the post-write cache state so we can see whether the saved row
+        // is actually present in the queries useMyTimeline subscribes to.
+        const allQueries = queryClient
+          .getQueryCache()
+          .findAll({ queryKey: ['timeline-steps', 'mine'] });
+        const cacheReport = allQueries.map((q) => {
+          const data = q.state.data as TimelineStepRecord[] | undefined;
+          return `${JSON.stringify(q.queryKey)}:${data?.length ?? 'n'}${data?.some((s) => s.id === savedStep.id) ? '✓' : '✗'}`;
+        }).join(' | ');
+        // eslint-disable-next-line no-console
+        console.warn(`[universal-plus] post-write cache state — ${cacheReport}`);
         void queryClient.invalidateQueries({ queryKey: ['timeline-steps', 'mine'] });
         toast.show('Draft saved', 'success');
         // Route to the Practice tab's carousel centered on the new step.

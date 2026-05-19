@@ -55,7 +55,14 @@ export function useMyTimeline(interestId?: string | string[] | null) {
 
   const result = useQuery<TimelineStepRecord[], Error>({
     queryKey: KEYS.myTimeline(interestId),
-    queryFn: () => getUserTimeline(userId!, interestId),
+    queryFn: async () => {
+      const rows = await getUserTimeline(userId!, interestId);
+      // eslint-disable-next-line no-console
+      console.warn(
+        `[useMyTimeline] fetch returned ${rows.length} rows for interestId=${JSON.stringify(interestId)}; ids=[${rows.map((r) => r.id).join(',')}]`,
+      );
+      return rows;
+    },
     enabled: Boolean(userId),
     // Prevent refetch when window regains focus (e.g. returning from share dialog / mail app).
     // Without this, the refetch creates new array references that cascade through
