@@ -1,0 +1,2028 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=1760" />
+<title>BetterAt — Library · iOS register · Emily nursing</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css" />
+<style>
+  :root {
+    /* ============ iOS system palette — inherited from prior iOS passes ============ */
+    --ios-sys-bg:        #F2F2F7;
+    --ios-sys-bg-grouped:#FFFFFF;
+    --ios-sys-fill-3:    #E5E5EA;
+    --ios-sys-fill-4:    #D1D1D6;
+
+    --ios-label:           #000000;
+    --ios-label-secondary: rgba(60, 60, 67, 0.62);
+    --ios-label-tertiary:  rgba(60, 60, 67, 0.32);
+    --ios-separator:       rgba(60, 60, 67, 0.20);
+
+    --ios-blue:    #007AFF;
+    --ios-blue-tint: rgba(0, 122, 255, 0.10);
+    --ios-blue-tint-strong: rgba(0, 122, 255, 0.16);
+
+    --ios-coral:   #FF6B6B;
+    --ios-coral-deep: #E85A5A;
+    --ios-coral-tint:        rgba(255, 107, 107, 0.10);
+    --ios-coral-tint-strong: rgba(255, 107, 107, 0.18);
+
+    /* Format-typed accents — used only on library item chrome.
+       Hue per format, never as system signal. */
+    --fmt-pdf:        #C24A4A;   --fmt-pdf-tint:   rgba(194, 74, 74, 0.10);
+    --fmt-video:      #7A4FB5;   --fmt-video-tint: rgba(122, 79, 181, 0.10);
+    --fmt-book:       #3A6FA1;   --fmt-book-tint:  rgba(58, 111, 161, 0.10);
+    --fmt-link:       #5B6470;   --fmt-link-tint:  rgba(91, 100, 112, 0.10);
+    --fmt-audio:      #2E7D6B;   --fmt-audio-tint: rgba(46, 125, 107, 0.10);
+    --fmt-note:       #8A6F39;   --fmt-note-tint:  rgba(138, 111, 57, 0.10);
+
+    /* Interest dot — nursing slate */
+    --interest-dot:  #7A6A8E;
+
+    /* Page stage — warm review chrome, locked across passes */
+    --stage:          #EFEAD8;
+    --stage-text:     #6B6558;
+    --stage-ink:      #2A2824;
+    --stage-line:     rgba(34, 30, 20, 0.12);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display",
+                 "Helvetica Neue", Helvetica, Arial, sans-serif;
+    color: var(--ios-label);
+    background: var(--stage);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+  button { font-family: inherit; }
+
+  /* ============= Review chrome ============= */
+  .page { min-width: 1680px; padding: 56px 48px 96px; }
+  .page-head { max-width: 1620px; margin: 0 auto 40px; }
+  .page-head .eyebrow {
+    font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--stage-text); margin: 0 0 12px;
+  }
+  .page-head h1 {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 32px; line-height: 1.15; font-weight: 500;
+    letter-spacing: -0.015em; margin: 0 0 14px; color: var(--stage-ink);
+  }
+  .page-head h1 em { font-style: italic; }
+  .page-head p {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 17px; line-height: 1.55;
+    color: var(--stage-text); margin: 0 0 12px; max-width: 880px;
+  }
+  .page-head p em { font-style: italic; }
+
+  .four-row {
+    max-width: 1620px;
+    margin: 0 auto 64px;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 28px;
+    align-items: start;
+    justify-items: center;
+  }
+
+  .phone-col { display: flex; flex-direction: column; align-items: center; }
+
+  /* ============= Phone shell — locked from prior passes ============= */
+  .phone {
+    width: 393px;
+    height: 852px;
+    background: var(--ios-sys-bg);
+    border-radius: 56px;
+    border: 1px solid rgba(0, 0, 0, 0.12);
+    box-shadow:
+      0 30px 80px -40px rgba(34, 30, 20, 0.22),
+      0 2px 0 rgba(255,255,255,0.7) inset;
+    overflow: hidden;
+    position: relative;
+    isolation: isolate;
+  }
+  .phone .notch {
+    position: absolute; top: 11px; left: 50%; transform: translateX(-50%);
+    width: 116px; height: 34px; background: #0F0E0C; border-radius: 20px; z-index: 40;
+  }
+  .statusbar {
+    position: absolute; top: 0; left: 0; right: 0; height: 50px;
+    padding: 16px 32px 0; display: flex; align-items: center; justify-content: space-between;
+    font-weight: 600; font-size: 15px; color: var(--ios-label); z-index: 30; pointer-events: none;
+  }
+  .statusbar .right { display: flex; gap: 6px; align-items: center; }
+  .statusbar .right i { font-size: 15px; }
+  .home-indicator {
+    position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%);
+    width: 134px; height: 5px; border-radius: 3px;
+    background: rgba(0, 0, 0, 0.32); z-index: 45; pointer-events: none;
+  }
+  .screen {
+    position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+    overflow: hidden;
+    background: var(--ios-sys-bg);
+    padding-top: 50px;
+  }
+
+  /* ============= Top chrome row ============= */
+  .top-chrome {
+    padding: 12px 14px 4px;
+    display: flex; align-items: center; justify-content: space-between;
+    min-height: 36px;
+  }
+  .top-chrome .back {
+    display: inline-flex; align-items: center; gap: 2px;
+    background: none; border: none; padding: 4px 6px 4px 0;
+    color: var(--ios-blue);
+    font-size: 17px; letter-spacing: -0.2px;
+    cursor: pointer;
+  }
+  .top-chrome .back i { font-size: 22px; margin-right: -2px; }
+  .top-chrome .right-glyphs { display: flex; align-items: center; gap: 6px; }
+  .top-chrome .right-glyphs button {
+    background: none; border: none; padding: 6px; cursor: pointer;
+    color: var(--ios-blue);
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .top-chrome .right-glyphs button i { font-size: 20px; }
+  .top-chrome .left-pad { width: 1px; }
+
+  /* ============= Library scope segmented control (was Discover sub-tab) ============= */
+  .root-seg {
+    margin: 4px 16px 14px;
+    display: flex;
+    border-bottom: 0.5px solid var(--ios-separator);
+    gap: 18px;
+    padding: 0 4px;
+  }
+  .root-seg span {
+    font-size: 15px; padding: 8px 2px 12px;
+    color: var(--ios-label-secondary);
+    letter-spacing: -0.2px;
+    position: relative;
+    cursor: pointer;
+  }
+  .root-seg span.on {
+    color: var(--ios-label);
+    font-weight: 600;
+  }
+  .root-seg span.on::after {
+    content: "";
+    position: absolute; left: 0; right: 0; bottom: -0.5px;
+    height: 2px; border-radius: 2px;
+    background: var(--ios-blue);
+  }
+
+  /* ============= Title block — Books "Library" treatment ============= */
+  .title-block {
+    padding: 2px 20px 18px;
+  }
+  .title-block h1 {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
+    font-size: 32px; font-weight: 400; line-height: 1.08;
+    letter-spacing: -0.026em;
+    color: var(--ios-label);
+    margin: 0 0 8px;
+  }
+  .title-block .meta {
+    font-size: 14px; color: var(--ios-label-secondary);
+    line-height: 1.4; letter-spacing: -0.2px;
+    margin: 0;
+    display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+  }
+  .title-block .meta .sep {
+    width: 3px; height: 3px; border-radius: 50%;
+    background: var(--ios-label-tertiary);
+    display: inline-block;
+  }
+  .title-block .meta .dot-interest {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--interest-dot);
+    margin-right: 2px;
+    display: inline-block;
+  }
+
+  /* ============= Drop-in capture card (Add to library) ============= */
+  .dropin {
+    margin: 0 16px 22px;
+    padding: 14px 16px 14px;
+    border-radius: 16px;
+    background: linear-gradient(180deg, rgba(255, 107, 107, 0.08) 0%, rgba(255, 107, 107, 0.04) 100%);
+    border: 0.5px solid var(--ios-coral-tint-strong);
+    display: flex; align-items: center; gap: 12px;
+    cursor: pointer;
+  }
+  .dropin .icon-circle {
+    width: 40px; height: 40px; border-radius: 50%;
+    background: var(--ios-coral-tint-strong);
+    color: var(--ios-coral-deep);
+    display: inline-flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .dropin .icon-circle i { font-size: 20px; }
+  .dropin .copy { flex: 1; min-width: 0; }
+  .dropin .copy .head {
+    font-size: 16px; font-weight: 600; color: var(--ios-label);
+    margin: 0 0 2px; letter-spacing: -0.3px;
+  }
+  .dropin .copy .sub {
+    font-size: 13px; color: var(--ios-label-secondary);
+    margin: 0; letter-spacing: -0.1px;
+  }
+  .dropin .chev { color: var(--ios-label-tertiary); font-size: 16px; }
+
+  /* ============= Shelf head — Books "shelf title" ============= */
+  .shelf-head {
+    padding: 6px 20px 12px;
+    display: flex; align-items: baseline; justify-content: space-between;
+  }
+  .shelf-head h2 {
+    font-size: 20px; font-weight: 700;
+    color: var(--ios-label); letter-spacing: -0.4px;
+    margin: 0;
+  }
+  .shelf-head h2 .ct {
+    font-size: 13px; font-weight: 500;
+    color: var(--ios-label-tertiary);
+    margin-left: 6px;
+    letter-spacing: -0.1px;
+  }
+  .shelf-head .see-all {
+    font-size: 14px; color: var(--ios-blue);
+    letter-spacing: -0.2px;
+    background: none; border: none; padding: 0;
+    cursor: pointer;
+  }
+
+  /* ============= Format chip — per-format tint ============= */
+  .fmt-chip {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 2px 7px 2px 5px;
+    border-radius: 999px;
+    font-size: 10px; font-weight: 600;
+    letter-spacing: 0.05em; text-transform: uppercase;
+  }
+  .fmt-chip i { font-size: 12px; }
+  .fmt-chip.pdf   { background: var(--fmt-pdf-tint);   color: var(--fmt-pdf); }
+  .fmt-chip.video { background: var(--fmt-video-tint); color: var(--fmt-video); }
+  .fmt-chip.book  { background: var(--fmt-book-tint);  color: var(--fmt-book); }
+  .fmt-chip.link  { background: var(--fmt-link-tint);  color: var(--fmt-link); }
+  .fmt-chip.audio { background: var(--fmt-audio-tint); color: var(--fmt-audio); }
+  .fmt-chip.note  { background: var(--fmt-note-tint);  color: var(--fmt-note); }
+
+  /* ============= Library item shelf — horizontal scroll ============= */
+  .item-shelf {
+    overflow: hidden;
+    padding: 0 0 18px;
+  }
+  .item-shelf .track {
+    display: inline-flex;
+    gap: 12px;
+    padding: 2px 20px 0;
+  }
+  .lib-card {
+    width: 144px; min-height: 192px;
+    flex-shrink: 0;
+    background: var(--ios-sys-bg-grouped);
+    border-radius: 14px;
+    padding: 12px 12px 12px;
+    box-shadow:
+      0 1px 2px rgba(0,0,0,0.04),
+      0 4px 12px rgba(0,0,0,0.05);
+    position: relative;
+    display: flex; flex-direction: column;
+    cursor: pointer;
+    overflow: hidden;
+  }
+  .lib-card::before {
+    content: ""; position: absolute; inset: 0;
+    border-radius: 14px;
+    box-shadow: inset 0 0 0 0.5px rgba(0, 0, 0, 0.04);
+    pointer-events: none;
+  }
+  .lib-card .top-bar {
+    display: flex; align-items: center; justify-content: space-between;
+    margin: 0 0 10px;
+  }
+  .lib-card .live-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--ios-coral);
+    flex-shrink: 0;
+  }
+  /* Format-tinted spine — left edge color block, like a book spine */
+  .lib-card .spine {
+    position: absolute; left: 0; top: 12px; bottom: 12px;
+    width: 3px; border-radius: 0 2px 2px 0;
+  }
+  .lib-card.pdf   .spine { background: var(--fmt-pdf); }
+  .lib-card.video .spine { background: var(--fmt-video); }
+  .lib-card.book  .spine { background: var(--fmt-book); }
+  .lib-card.link  .spine { background: var(--fmt-link); }
+  .lib-card.audio .spine { background: var(--fmt-audio); }
+
+  .lib-card .source {
+    font-size: 10.5px; color: var(--ios-label-tertiary);
+    text-transform: uppercase; letter-spacing: 0.04em;
+    margin: 6px 0 4px;
+    line-height: 1.2;
+  }
+  .lib-card .title {
+    font-size: 14px; font-weight: 600;
+    color: var(--ios-label); letter-spacing: -0.2px;
+    line-height: 1.25;
+    margin: 0;
+    text-wrap: balance;
+    display: -webkit-box;
+    -webkit-line-clamp: 4;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    flex: 1;
+  }
+  .lib-card .foot {
+    margin-top: 8px;
+    font-size: 11px; color: var(--ios-label-tertiary);
+    letter-spacing: -0.05px;
+    display: flex; align-items: center; gap: 4px;
+  }
+  .lib-card .foot i { font-size: 11px; }
+
+  /* ============= Recently added — vertical list ============= */
+  .recent {
+    padding: 0 16px 6px;
+    display: flex; flex-direction: column; gap: 10px;
+  }
+  .recent-item {
+    background: var(--ios-sys-bg-grouped);
+    border-radius: 14px;
+    padding: 12px 14px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.04), 0 2px 6px rgba(0,0,0,0.04);
+    display: flex; gap: 12px; align-items: flex-start;
+  }
+  .recent-item .src-glyph {
+    width: 32px; height: 32px;
+    border-radius: 8px;
+    flex-shrink: 0;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 16px;
+  }
+  .recent-item.pdf   .src-glyph { background: var(--fmt-pdf-tint);   color: var(--fmt-pdf); }
+  .recent-item.video .src-glyph { background: var(--fmt-video-tint); color: var(--fmt-video); }
+  .recent-item.link  .src-glyph { background: var(--fmt-link-tint);  color: var(--fmt-link); }
+  .recent-item.book  .src-glyph { background: var(--fmt-book-tint);  color: var(--fmt-book); }
+  .recent-item.audio .src-glyph { background: var(--fmt-audio-tint); color: var(--fmt-audio); }
+  .recent-item .body { flex: 1; min-width: 0; }
+  .recent-item .ttl {
+    font-size: 14.5px; font-weight: 600; line-height: 1.25;
+    color: var(--ios-label); letter-spacing: -0.2px;
+    margin: 0 0 4px;
+    text-wrap: balance;
+  }
+  .recent-item .prov {
+    font-size: 11.5px; color: var(--ios-label-secondary);
+    letter-spacing: -0.05px;
+    margin: 0;
+    display: flex; gap: 5px; align-items: center; flex-wrap: wrap;
+  }
+  .recent-item .prov .sep {
+    width: 3px; height: 3px; border-radius: 50%;
+    background: var(--ios-label-tertiary);
+  }
+
+  /* ============= Collections grid ============= */
+  .collections {
+    padding: 0 16px 0;
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .coll-card {
+    background: var(--ios-sys-bg-grouped);
+    border-radius: 14px;
+    padding: 12px 14px 14px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.04), 0 2px 6px rgba(0,0,0,0.04);
+    display: flex; flex-direction: column; justify-content: space-between;
+    min-height: 86px;
+    position: relative;
+    overflow: hidden;
+  }
+  .coll-card .ct {
+    position: absolute; top: 10px; right: 12px;
+    font-size: 11px; color: var(--ios-label-tertiary);
+    font-variant-numeric: tabular-nums;
+  }
+  .coll-card .name {
+    font-size: 14.5px; font-weight: 600;
+    color: var(--ios-label); letter-spacing: -0.2px;
+    line-height: 1.2;
+    margin: 0; text-wrap: balance;
+    padding-right: 22px;
+  }
+  .coll-card .strip {
+    display: flex; gap: 3px; margin-top: 10px;
+  }
+  .coll-card .strip span {
+    height: 4px; border-radius: 2px; flex: 1;
+  }
+
+  /* ============= Bottom pad + nav ============= */
+  .bottom-pad { height: 140px; }
+  .float-nav {
+    position: absolute; bottom: 22px; left: 14px; right: 14px;
+    height: 60px; border-radius: 26px;
+    background: rgba(255, 255, 255, 0.72);
+    -webkit-backdrop-filter: blur(28px) saturate(180%);
+    backdrop-filter: blur(28px) saturate(180%);
+    border: 0.5px solid rgba(255,255,255,0.7);
+    box-shadow:
+      0 1px 0 rgba(255,255,255,0.55) inset,
+      0 -0.5px 0 rgba(0,0,0,0.04) inset,
+      0 12px 28px -16px rgba(0, 0, 0, 0.18),
+      0 2px 8px rgba(0, 0, 0, 0.05);
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    align-items: center; padding: 0 10px; z-index: 25;
+  }
+  .float-nav .tab {
+    display: flex; flex-direction: column; align-items: center; gap: 3px;
+    background: none; border: none; padding: 6px 0; cursor: pointer;
+    color: var(--ios-label-secondary); font-size: 10px; letter-spacing: 0.04em;
+  }
+  .float-nav .tab i { font-size: 20px; }
+  .float-nav .tab.on { color: var(--ios-blue); }
+
+  /* ============= Caption beneath phone ============= */
+  .frame-cap {
+    margin-top: 22px;
+    width: 393px;
+    text-align: left;
+  }
+  .frame-cap .eyebrow {
+    font-size: 10.5px; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--stage-text); margin: 0 0 4px;
+  }
+  .frame-cap h3 {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 19px; font-weight: 500; line-height: 1.22;
+    color: var(--stage-ink); margin: 0 0 8px;
+    letter-spacing: -0.005em;
+  }
+  .frame-cap h3 em { font-style: italic; }
+  .frame-cap p {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 14px; line-height: 1.55;
+    color: #4D4A43;
+    margin: 0;
+  }
+  .frame-cap p em { font-style: italic; }
+
+  /* ============= ============ ============= */
+  /* ============= Phone 2 — Library item detail ============= */
+  /* ============= ============ ============= */
+  .res-head {
+    padding: 0 20px 14px;
+  }
+  .res-head .fmt-row {
+    display: flex; align-items: center; gap: 8px; margin: 0 0 10px;
+  }
+  .res-head .ttl {
+    font-size: 22px; font-weight: 600; line-height: 1.18;
+    color: var(--ios-label); letter-spacing: -0.4px;
+    margin: 0 0 6px; text-wrap: balance;
+  }
+  .res-head .src-line {
+    font-size: 13px; color: var(--ios-label-secondary);
+    letter-spacing: -0.1px;
+    margin: 0;
+  }
+  /* Paper preview placeholder, faintly textured */
+  .res-preview {
+    margin: 0 16px 16px;
+    height: 132px;
+    border-radius: 12px;
+    background:
+      repeating-linear-gradient(180deg,
+        rgba(0,0,0,0) 0,
+        rgba(0,0,0,0) 14px,
+        rgba(0,0,0,0.04) 14px,
+        rgba(0,0,0,0.04) 15px),
+      linear-gradient(180deg, #FBFAF7 0%, #F5F2EB 100%);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.06), 0 6px 18px rgba(0,0,0,0.08);
+    position: relative;
+    overflow: hidden;
+  }
+  .res-preview .spine-strip {
+    position: absolute; left: 0; top: 0; bottom: 0; width: 5px;
+    background: var(--fmt-pdf);
+  }
+  .res-preview .page-meta {
+    position: absolute; bottom: 8px; right: 12px;
+    font-size: 10.5px; color: var(--ios-label-tertiary);
+    letter-spacing: 0.04em; text-transform: uppercase;
+    font-variant-numeric: tabular-nums;
+    background: rgba(255,255,255,0.7);
+    padding: 2px 8px; border-radius: 6px;
+  }
+  .res-preview .stamp {
+    position: absolute; top: 10px; left: 12px;
+    font-size: 10.5px; color: var(--fmt-pdf);
+    letter-spacing: 0.06em; text-transform: uppercase;
+    background: var(--fmt-pdf-tint);
+    padding: 3px 8px; border-radius: 5px;
+    font-weight: 600;
+  }
+  .res-actions {
+    display: flex; gap: 8px;
+    padding: 0 16px 18px;
+  }
+  .res-actions button {
+    flex: 1;
+    background: var(--ios-sys-fill-3);
+    border: none;
+    border-radius: 10px;
+    padding: 10px 8px;
+    font-size: 14px; font-weight: 500;
+    color: var(--ios-blue);
+    letter-spacing: -0.2px;
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    cursor: pointer;
+  }
+  .res-actions button i { font-size: 16px; }
+
+  .section-eyebrow {
+    padding: 4px 20px 10px;
+    font-size: 11px; font-weight: 600;
+    color: var(--ios-label-secondary); letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+  .uses-list {
+    padding: 0 16px 18px;
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  .uses-row {
+    background: var(--ios-sys-bg-grouped);
+    border-radius: 12px;
+    padding: 11px 14px 11px 12px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.04), 0 2px 6px rgba(0,0,0,0.04);
+    display: flex; align-items: flex-start; gap: 10px;
+  }
+  .uses-row .role {
+    width: 70px; flex-shrink: 0;
+    font-size: 10.5px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.04em;
+    padding-top: 2px;
+  }
+  .uses-row.origin .role { color: var(--ios-coral-deep); }
+  .uses-row.ref    .role { color: var(--ios-blue); }
+  .uses-row.step   .role { color: var(--ios-label-secondary); }
+  .uses-row .ref-body { flex: 1; min-width: 0; }
+  .uses-row .ref-body .it-title {
+    font-size: 14.5px; font-weight: 600;
+    color: var(--ios-label); letter-spacing: -0.2px;
+    line-height: 1.25;
+    margin: 0 0 3px;
+  }
+  .uses-row .ref-body .it-sub {
+    font-size: 12px; color: var(--ios-label-secondary);
+    letter-spacing: -0.05px;
+    margin: 0;
+    line-height: 1.35;
+  }
+  .uses-row .ref-body .it-sub em {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-style: italic;
+    color: var(--ios-label);
+  }
+  .uses-row .chev { color: var(--ios-label-tertiary); font-size: 14px; padding-top: 4px; }
+
+  .marks {
+    padding: 0 16px 18px;
+    display: flex; flex-direction: column; gap: 10px;
+  }
+  .mark {
+    background: var(--ios-sys-bg-grouped);
+    border-radius: 12px;
+    padding: 14px 16px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.04), 0 2px 6px rgba(0,0,0,0.04);
+    border-left: 2.5px solid var(--fmt-pdf);
+  }
+  .mark .quote {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-style: italic;
+    font-size: 16px; line-height: 1.4;
+    color: var(--ios-label);
+    margin: 0 0 6px;
+  }
+  .mark .prov {
+    font-size: 11.5px; color: var(--ios-label-secondary);
+    letter-spacing: -0.05px;
+    margin: 0;
+  }
+
+  .cite-row {
+    margin: 0 16px 0;
+    background: var(--ios-coral-tint);
+    border-radius: 14px;
+    padding: 14px 16px;
+    display: flex; align-items: center; gap: 12px;
+    cursor: pointer;
+  }
+  .cite-row .ic {
+    width: 32px; height: 32px; border-radius: 50%;
+    background: var(--ios-coral-tint-strong);
+    color: var(--ios-coral-deep);
+    display: inline-flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .cite-row .ic i { font-size: 16px; }
+  .cite-row .copy { flex: 1; min-width: 0; }
+  .cite-row .copy .ttl {
+    font-size: 14.5px; font-weight: 600; color: var(--ios-label);
+    letter-spacing: -0.2px; margin: 0 0 2px;
+  }
+  .cite-row .copy .sub {
+    font-size: 12px; color: var(--ios-label-secondary);
+    margin: 0; letter-spacing: -0.05px;
+  }
+  .cite-row .chev { color: var(--ios-coral-deep); font-size: 16px; }
+
+  /* ============= ============ ============= */
+  /* ============= Phone 3 — Step with library integration ============= */
+  /* ============= ============ ============= */
+  .step-title {
+    padding: 6px 20px 18px;
+  }
+  .step-title .eyebrow {
+    font-size: 11px; font-weight: 600;
+    color: var(--ios-label-secondary); letter-spacing: 0.5px;
+    text-transform: uppercase;
+    margin: 0 0 8px;
+  }
+  .step-title h1 {
+    font-size: 28px; font-weight: 400; line-height: 1.12;
+    letter-spacing: -0.022em;
+    color: var(--ios-label);
+    margin: 0 0 8px; text-wrap: balance;
+  }
+  .step-title .meta {
+    font-size: 13px; color: var(--ios-label-secondary);
+    line-height: 1.4; letter-spacing: -0.1px;
+    margin: 0;
+  }
+
+  /* ============= Library "Before the shift" stack ============= */
+  .prep-card {
+    margin: 0 16px 18px;
+    background: var(--ios-sys-bg-grouped);
+    border-radius: 16px;
+    padding: 4px 0 4px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.04), 0 2px 8px rgba(0,0,0,0.04);
+  }
+  .prep-head {
+    padding: 14px 16px 8px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .prep-head .lhs {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 11px; font-weight: 600;
+    color: var(--ios-label-secondary); letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+  .prep-head .lhs i { font-size: 13px; color: var(--ios-coral-deep); }
+  .prep-head .est {
+    font-size: 11.5px; color: var(--ios-label-tertiary);
+    letter-spacing: -0.05px;
+    font-variant-numeric: tabular-nums;
+  }
+  .prep-row {
+    padding: 10px 16px;
+    display: flex; align-items: flex-start; gap: 12px;
+    border-top: 0.5px solid var(--ios-separator);
+    cursor: pointer;
+  }
+  .prep-row:first-of-type { border-top: 0.5px solid var(--ios-separator); }
+  .prep-row .check {
+    width: 22px; height: 22px; border-radius: 50%;
+    border: 1.5px solid var(--ios-label-tertiary);
+    flex-shrink: 0; margin-top: 2px;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .prep-row.done .check {
+    border-color: var(--ios-blue);
+    background: var(--ios-blue);
+    color: #fff;
+  }
+  .prep-row.done .check i { font-size: 12px; }
+  .prep-row .src-glyph {
+    width: 30px; height: 30px;
+    border-radius: 7px;
+    flex-shrink: 0;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 14px;
+    margin-top: 0;
+  }
+  .prep-row.pdf   .src-glyph { background: var(--fmt-pdf-tint);   color: var(--fmt-pdf); }
+  .prep-row.video .src-glyph { background: var(--fmt-video-tint); color: var(--fmt-video); }
+  .prep-row.link  .src-glyph { background: var(--fmt-link-tint);  color: var(--fmt-link); }
+  .prep-row.book  .src-glyph { background: var(--fmt-book-tint);  color: var(--fmt-book); }
+  .prep-row .body { flex: 1; min-width: 0; }
+  .prep-row .ttl {
+    font-size: 14.5px; font-weight: 600; line-height: 1.22;
+    color: var(--ios-label); letter-spacing: -0.2px;
+    margin: 0 0 3px; text-wrap: pretty;
+  }
+  .prep-row.done .ttl { color: var(--ios-label-secondary); }
+  .prep-row .meta {
+    font-size: 11.5px; color: var(--ios-label-secondary);
+    letter-spacing: -0.05px;
+    margin: 0;
+    display: flex; gap: 5px; align-items: center; flex-wrap: wrap;
+  }
+  .prep-row .meta .sep {
+    width: 3px; height: 3px; border-radius: 50%;
+    background: var(--ios-label-tertiary);
+  }
+  .prep-add {
+    padding: 10px 16px 14px;
+    border-top: 0.5px solid var(--ios-separator);
+    display: flex; align-items: center; gap: 8px;
+    color: var(--ios-blue);
+    font-size: 14px; font-weight: 500;
+    cursor: pointer;
+  }
+  .prep-add i { font-size: 18px; }
+
+  /* ============= Beats — match Race Prep grammar ============= */
+  .sect-head {
+    padding: 6px 20px 10px;
+    font-size: 11px; font-weight: 600;
+    color: var(--ios-label-secondary); letter-spacing: 0.5px;
+    text-transform: uppercase;
+    margin: 0;
+  }
+  .beats {
+    padding: 0 16px;
+    display: flex; flex-direction: column; gap: 12px;
+  }
+  .beat-card {
+    background: var(--ios-sys-bg-grouped);
+    border-radius: 16px;
+    padding: 14px 16px 14px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.04), 0 2px 8px rgba(0,0,0,0.04);
+  }
+  .beat-card .head {
+    display: flex; align-items: center; justify-content: space-between;
+    margin: 0 0 8px;
+  }
+  .beat-card .head h2 {
+    font-size: 17px; font-weight: 600;
+    color: var(--ios-label); letter-spacing: -0.3px;
+    margin: 0;
+  }
+  .beat-card .head .time {
+    font-size: 12px; color: var(--ios-label-tertiary);
+    font-variant-numeric: tabular-nums;
+  }
+  .beat-card .body p {
+    font-size: 14.5px; line-height: 1.4;
+    color: var(--ios-label); letter-spacing: -0.2px;
+    margin: 0;
+  }
+  /* Pinned library reference inside a beat */
+  .ref-pin {
+    margin-top: 10px;
+    padding: 10px 12px;
+    background: var(--fmt-book-tint);
+    border-radius: 10px;
+    display: flex; align-items: center; gap: 10px;
+    cursor: pointer;
+  }
+  .ref-pin .ic {
+    width: 24px; height: 24px; border-radius: 6px;
+    background: rgba(255,255,255,0.6);
+    color: var(--fmt-book);
+    display: inline-flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .ref-pin .ic i { font-size: 13px; }
+  .ref-pin .copy { flex: 1; min-width: 0; }
+  .ref-pin .copy .pre {
+    font-size: 10.5px; font-weight: 600;
+    color: var(--fmt-book); letter-spacing: 0.04em;
+    text-transform: uppercase;
+    margin: 0 0 1px;
+  }
+  .ref-pin .copy .ttl {
+    font-size: 13px; color: var(--ios-label);
+    letter-spacing: -0.15px;
+    margin: 0;
+    font-weight: 500;
+  }
+
+  /* AI offer card — coral, locked grammar */
+  .ai-offer {
+    margin: 14px 16px 0;
+    background: var(--ios-coral-tint);
+    border-radius: 16px;
+    padding: 14px 16px;
+  }
+  .ai-offer .ah {
+    display: flex; align-items: center; gap: 6px;
+    margin: 0 0 8px;
+  }
+  .ai-offer .ah i { color: var(--ios-coral-deep); font-size: 14px; }
+  .ai-offer .ah span {
+    font-size: 10.5px; font-weight: 700; letter-spacing: 0.06em;
+    text-transform: uppercase; color: var(--ios-coral-deep);
+  }
+  .ai-offer .body {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 15.5px; line-height: 1.4;
+    color: var(--ios-label);
+    margin: 0 0 12px;
+  }
+  .ai-offer .body em { font-style: italic; }
+  .ai-offer .actions { display: flex; gap: 8px; }
+  .ai-offer button {
+    flex: 1;
+    background: var(--ios-sys-bg-grouped);
+    border: 0.5px solid var(--ios-coral-tint-strong);
+    border-radius: 10px;
+    padding: 9px 8px;
+    font-size: 13.5px; font-weight: 500;
+    color: var(--ios-coral-deep);
+    cursor: pointer;
+  }
+  .ai-offer button.secondary {
+    color: var(--ios-label-secondary);
+    border-color: var(--ios-separator);
+  }
+
+  /* ============= ============ ============= */
+  /* ============= Phone 4 — Modal capture sheet ============= */
+  /* ============= ============ ============= */
+  .underscreen {
+    position: absolute; inset: 0;
+    background: var(--ios-sys-bg);
+    z-index: 1;
+    overflow: hidden;
+  }
+  .underscreen .under-top-chrome {
+    padding: 60px 20px 0;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .underscreen .under-top-chrome .title {
+    font-size: 32px; font-weight: 400; letter-spacing: -0.026em;
+  }
+  .underscreen .under-top-chrome .glyphs { display: flex; gap: 10px; color: var(--ios-blue); font-size: 18px; }
+  .underscreen .under-seg {
+    margin: 16px 20px 12px;
+    display: flex; gap: 18px;
+    border-bottom: 0.5px solid var(--ios-separator);
+    font-size: 14px;
+  }
+  .underscreen .under-seg span { padding: 6px 0 10px; color: var(--ios-label-secondary); }
+  .underscreen .under-seg span.on {
+    color: var(--ios-label); font-weight: 600;
+    position: relative;
+  }
+  .underscreen .under-seg span.on::after {
+    content: ""; position: absolute; left: 0; right: 0; bottom: -0.5px;
+    height: 2px; border-radius: 2px; background: var(--ios-blue);
+  }
+  .underscreen .under-card {
+    margin: 6px 16px 0;
+    background: rgba(255,255,255,0.7);
+    border-radius: 12px;
+    padding: 14px 16px;
+  }
+  .scrim {
+    position: absolute; inset: 0;
+    background: rgba(0,0,0,0.32);
+    z-index: 10;
+  }
+  .sheet {
+    position: absolute; left: 0; right: 0; bottom: 0;
+    background: var(--ios-sys-bg);
+    border-radius: 14px 14px 0 0;
+    box-shadow: 0 -8px 32px -8px rgba(0,0,0,0.16);
+    height: 660px;
+    z-index: 20;
+    display: flex; flex-direction: column;
+  }
+  .grabber-row {
+    height: 22px; display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .grabber {
+    width: 36px; height: 5px; border-radius: 3px;
+    background: var(--ios-label-tertiary);
+  }
+  .sheet-chrome {
+    padding: 0 16px 4px;
+    display: flex; align-items: center; justify-content: space-between;
+    flex-shrink: 0;
+  }
+  .sheet-chrome .cancel {
+    background: none; border: none; color: var(--ios-blue);
+    font-size: 16px; padding: 4px 0;
+    cursor: pointer;
+  }
+  .sheet-body {
+    flex: 1; padding: 8px 0 0;
+    overflow: hidden;
+    display: flex; flex-direction: column;
+  }
+  .sheet-header {
+    padding: 14px 20px 16px;
+    text-align: center;
+  }
+  .sheet-header .sparkle {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 52px; height: 52px;
+    border-radius: 14px;
+    background: var(--ios-coral-tint-strong);
+    color: var(--ios-coral-deep);
+    margin: 0 auto 10px;
+  }
+  .sheet-header .sparkle i { font-size: 24px; }
+  .sheet-header h2 {
+    font-size: 22px; font-weight: 600; line-height: 1.18;
+    color: var(--ios-label); letter-spacing: -0.4px;
+    margin: 0 0 6px; text-wrap: balance;
+  }
+  .sheet-header p {
+    font-size: 13.5px; color: var(--ios-label-secondary);
+    letter-spacing: -0.1px;
+    margin: 0;
+  }
+  /* Segmented control — capture mode */
+  .cap-seg {
+    margin: 0 16px 14px;
+    background: var(--ios-sys-fill-3);
+    border-radius: 9px;
+    padding: 2px;
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    height: 34px;
+  }
+  .cap-seg button {
+    background: transparent;
+    border: none;
+    border-radius: 7px;
+    font-size: 12.5px; font-weight: 400;
+    color: var(--ios-label);
+    cursor: pointer;
+    letter-spacing: -0.1px;
+  }
+  .cap-seg button.on {
+    background: #fff;
+    font-weight: 600;
+    color: var(--ios-label);
+    box-shadow: 0 2px 5px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06);
+  }
+
+  /* Upload drop zone */
+  .drop-zone {
+    margin: 0 16px 12px;
+    height: 88px;
+    border: 1.5px dashed var(--ios-label-tertiary);
+    border-radius: 12px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    color: var(--ios-label-secondary);
+    background: rgba(255,255,255,0.4);
+  }
+  .drop-zone i { font-size: 22px; color: var(--ios-blue); margin-bottom: 4px; }
+  .drop-zone .t { font-size: 13px; }
+
+  /* Uploaded item card */
+  .uploaded {
+    margin: 0 16px 14px;
+    background: var(--ios-sys-bg-grouped);
+    border-radius: 12px;
+    padding: 10px 12px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.04), 0 2px 6px rgba(0,0,0,0.04);
+    display: flex; align-items: center; gap: 10px;
+  }
+  .uploaded .src-glyph {
+    width: 36px; height: 44px; border-radius: 5px;
+    background: var(--fmt-pdf-tint);
+    color: var(--fmt-pdf);
+    display: inline-flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    font-size: 10px; font-weight: 700;
+    letter-spacing: 0.04em;
+    border-left: 2px solid var(--fmt-pdf);
+  }
+  .uploaded .body { flex: 1; min-width: 0; }
+  .uploaded .ttl {
+    font-size: 13.5px; font-weight: 600;
+    color: var(--ios-label); letter-spacing: -0.15px;
+    margin: 0 0 2px;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .uploaded .meta {
+    font-size: 11.5px; color: var(--ios-label-secondary);
+    margin: 0; letter-spacing: -0.05px;
+  }
+  .uploaded .x { color: var(--ios-label-tertiary); font-size: 18px; }
+
+  /* Detected metadata */
+  .auto-meta {
+    margin: 6px 16px 14px;
+    background: rgba(255,255,255,0.55);
+    border-radius: 12px;
+    padding: 12px 14px;
+    border: 0.5px solid var(--ios-coral-tint-strong);
+  }
+  .auto-meta .eb {
+    display: flex; align-items: center; gap: 6px;
+    margin: 0 0 8px;
+  }
+  .auto-meta .eb i { font-size: 12px; color: var(--ios-coral-deep); }
+  .auto-meta .eb span {
+    font-size: 10.5px; font-weight: 700;
+    color: var(--ios-coral-deep);
+    letter-spacing: 0.06em; text-transform: uppercase;
+  }
+  .auto-meta .chips {
+    display: flex; flex-wrap: wrap; gap: 6px;
+    margin-bottom: 8px;
+  }
+  .auto-meta .chip {
+    background: #fff;
+    border-radius: 999px;
+    padding: 4px 10px 4px 8px;
+    font-size: 12px;
+    color: var(--ios-label);
+    border: 0.5px solid var(--ios-separator);
+    display: inline-flex; align-items: center; gap: 4px;
+  }
+  .auto-meta .chip i { font-size: 10px; color: var(--ios-label-tertiary); }
+  .auto-meta .row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 6px 0 0;
+    border-top: 0.5px dashed var(--ios-separator);
+    font-size: 12.5px;
+  }
+  .auto-meta .row .lbl { color: var(--ios-label-secondary); letter-spacing: -0.05px; }
+  .auto-meta .row .val { color: var(--ios-label); font-weight: 500; }
+  .auto-meta .row .val .pencil { color: var(--ios-blue); margin-left: 6px; font-size: 12px; }
+
+  /* Attach to */
+  .attach {
+    margin: 0 16px 12px;
+  }
+  .attach .lbl {
+    font-size: 11px; font-weight: 600;
+    color: var(--ios-label-secondary); letter-spacing: 0.5px;
+    text-transform: uppercase;
+    margin: 0 4px 6px;
+  }
+  .attach .opts {
+    display: flex; gap: 6px;
+  }
+  .attach .opt {
+    flex: 1;
+    background: var(--ios-sys-bg-grouped);
+    border: 0.5px solid var(--ios-separator);
+    border-radius: 9px;
+    padding: 8px 4px;
+    font-size: 12px; color: var(--ios-label);
+    text-align: center;
+    cursor: pointer;
+  }
+  .attach .opt.on {
+    background: var(--ios-blue-tint);
+    color: var(--ios-blue);
+    border-color: var(--ios-blue);
+    font-weight: 600;
+  }
+  .attach .hint {
+    font-size: 11.5px; color: var(--ios-label-secondary);
+    margin: 6px 4px 0; letter-spacing: -0.05px;
+  }
+
+  /* Collection picker line */
+  .coll-pick {
+    margin: 0 16px 14px;
+    background: var(--ios-sys-bg-grouped);
+    border-radius: 10px;
+    padding: 10px 12px;
+    display: flex; align-items: center; gap: 10px;
+    border: 0.5px solid var(--ios-separator);
+    font-size: 13px;
+  }
+  .coll-pick .lbl {
+    color: var(--ios-label-secondary);
+    flex-shrink: 0;
+  }
+  .coll-pick .pick {
+    flex: 1;
+    color: var(--ios-label); font-weight: 500;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .coll-pick .pick .ch { color: var(--ios-label-tertiary); font-size: 14px; }
+
+  /* CTA */
+  .sheet-footer {
+    padding: 8px 16px 28px;
+    border-top: 0.5px solid var(--ios-separator);
+    background: var(--ios-sys-bg);
+  }
+  .cta {
+    width: 100%;
+    background: var(--ios-blue);
+    color: #fff;
+    border: none;
+    border-radius: 14px;
+    padding: 14px 0;
+    font-size: 16px; font-weight: 600;
+    letter-spacing: -0.2px;
+    box-shadow: 0 6px 16px -8px rgba(0,122,255,0.5);
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    cursor: pointer;
+  }
+  .cta .spark { color: var(--ios-coral); font-size: 18px; }
+  .cta-foot {
+    margin: 8px 0 0;
+    text-align: center;
+    font-size: 11.5px;
+    color: var(--ios-label-secondary);
+    letter-spacing: -0.05px;
+  }
+
+  /* ============= Side rail (review notes) ============= */
+  .rail-wrap { max-width: 1100px; margin: 12px auto 0; }
+  .rail h3 {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 11px; letter-spacing: 0.12em;
+    text-transform: uppercase; color: var(--stage-text);
+    margin: 0 0 22px; font-weight: 500;
+  }
+  .rail .block {
+    padding: 26px 0;
+    border-top: 0.5px solid var(--stage-line);
+  }
+  .rail .block:first-of-type { border-top: none; padding-top: 4px; }
+  .rail .block .lead {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 20px; line-height: 1.4;
+    letter-spacing: -0.01em; color: var(--stage-ink);
+    margin: 0 0 14px; text-wrap: balance; font-weight: 500;
+  }
+  .rail .block .lead em { font-style: italic; }
+  .rail .block p {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 15px; line-height: 1.6;
+    color: #4D4A43; margin: 0 0 12px; max-width: 880px;
+  }
+  .rail .block p:last-child { margin-bottom: 0; }
+  .rail .block p strong { color: var(--stage-ink); font-weight: 500; }
+  .rail .block em { font-style: italic; }
+  .rail .block ul {
+    list-style: none; padding: 0; margin: 8px 0 0;
+    max-width: 920px;
+  }
+  .rail .block ul li {
+    display: flex; gap: 18px;
+    padding: 12px 0;
+    border-top: 0.5px dashed rgba(34, 30, 20, 0.14);
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 14.5px; line-height: 1.55;
+    color: #4D4A43;
+  }
+  .rail .block ul li:first-of-type { border-top: none; padding-top: 4px; }
+  .rail .block ul li strong {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+    font-weight: 500; font-size: 12px;
+    color: var(--stage-ink); letter-spacing: 0.01em;
+    width: 180px; flex-shrink: 0;
+    margin-top: 1px;
+  }
+  .swatch {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 6px 10px; border-radius: 999px;
+    background: #fff;
+    border: 0.5px solid var(--stage-line);
+    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 12px; color: #4D4A43; letter-spacing: 0.01em;
+    margin: 4px 6px 0 0;
+  }
+  .swatch .chip {
+    width: 12px; height: 12px; border-radius: 50%;
+  }
+  .swatch.pdf   .chip { background: var(--fmt-pdf); }
+  .swatch.video .chip { background: var(--fmt-video); }
+  .swatch.book  .chip { background: var(--fmt-book); }
+  .swatch.link  .chip { background: var(--fmt-link); }
+  .swatch.audio .chip { background: var(--fmt-audio); }
+  .swatch.note  .chip { background: var(--fmt-note); }
+  .swatch.coral .chip { background: var(--ios-coral); }
+  .swatch.blue  .chip { background: var(--ios-blue); }
+</style>
+</head>
+<body>
+
+<div class="page">
+
+  <header class="page-head">
+    <p class="eyebrow">BetterAt redesign · Register exploration · Pass M — iOS · Library returns &nbsp;&middot;&nbsp; updated for Pass N rename</p>
+    <h1>Library · <em>Emily's resources, woven back into Steps and Concepts</em></h1>
+    <p><strong>Updated for the Pass N rename.</strong> The Library tab replaces the Playbook tab; the term <em>concepts</em> replaces <em>playbook entries</em>. These four phones now live <em>inside</em> the Library tab rather than under Discover. Phone&nbsp;1 is now reached via <em>Library &rarr; Sources scope</em>, not <em>Discover &rarr; Library</em>. The content survives; the destination clarifies.</p>
+    <p>The Library was lost somewhere between passes. It comes back here as a first-class surface, not a sub-tab afterthought. <strong>Four phones, one architecture.</strong> A nursing student in the MSN program at Johns Hopkins carries a vast working library &mdash; protocols, practice alerts, textbook chapters, journal articles, bedside videos, recorded lectures, podcast episodes, her own scanned notes &mdash; and every step she runs draws from it. The Library is the catalog. Steps and concepts cite it. Concepts are <em>born</em> from it &mdash; the resource is the prime source of the playbook idea. Capture is one tap from anywhere.</p>
+    <p>Phone 1 is the catalog home (Library tab &middot; <em>Sources</em> scope). Phone 2 is a single library item showing the back-references &mdash; concepts that cite it, steps that include it, what Emily marked. Phone 3 is a Pre-Clinical step with a <em>Before the shift, from your library</em> stack at the top and a pinned reference inside a beat. Phone 4 is the quick-capture sheet &mdash; drop a link, upload a PDF, snap a textbook page &mdash; with auto-detected topic tags and an optional attachment to a concept or step.</p>
+  </header>
+
+  <!-- ============= Four phones ============= -->
+  <div class="four-row">
+
+    <!-- =================================== -->
+    <!-- PHONE 1 — Library home (catalog)    -->
+    <!-- =================================== -->
+    <div class="phone-col">
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="statusbar">
+          <span>10:08</span>
+          <span class="right">
+            <i class="ti ti-cell-signal-4"></i>
+            <i class="ti ti-wifi"></i>
+            <i class="ti ti-battery-3"></i>
+          </span>
+        </div>
+
+        <div class="screen">
+
+          <div class="top-chrome">
+            <span class="left-pad"></span>
+            <div class="right-glyphs">
+              <button aria-label="Search"><i class="ti ti-search"></i></button>
+              <button aria-label="More"><i class="ti ti-dots"></i></button>
+            </div>
+          </div>
+
+          <!-- Library scope segmented control — Concepts / Sources / All -->
+          <div class="root-seg">
+            <span>All</span>
+            <span>Concepts</span>
+            <span class="on">Sources</span>
+          </div>
+
+          <!-- Title block -->
+          <section class="title-block">
+            <h1>Library</h1>
+            <p class="meta">
+              <span class="dot-interest"></span>
+              <span>MSN Capstone</span>
+              <span class="sep"></span>
+              <span>84 items</span>
+              <span class="sep"></span>
+              <span>12 in active steps</span>
+            </p>
+          </section>
+
+          <!-- Drop-in capture card — entry to Phone 4 sheet -->
+          <div class="dropin">
+            <span class="icon-circle"><i class="ti ti-sparkles"></i></span>
+            <div class="copy">
+              <p class="head">Drop something in</p>
+              <p class="sub">Link, PDF, photo of a page, audio &middot; or paste text</p>
+            </div>
+            <i class="ti ti-chevron-right chev"></i>
+          </div>
+
+          <!-- Shelf: In play this week -->
+          <div class="shelf-head">
+            <h2>In play this week <span class="ct">5</span></h2>
+            <button class="see-all">All</button>
+          </div>
+
+          <div class="item-shelf">
+            <div class="track">
+
+              <!-- 1: PDF — AACN Sepsis -->
+              <article class="lib-card pdf">
+                <span class="spine"></span>
+                <div class="top-bar">
+                  <span class="fmt-chip pdf"><i class="ti ti-file-text"></i>PDF</span>
+                  <span class="live-dot" title="Active in this week's step"></span>
+                </div>
+                <p class="source">AACN Practice Alert</p>
+                <p class="title">Severe sepsis &amp; septic shock</p>
+                <p class="foot"><i class="ti ti-book-2"></i>8 pages</p>
+              </article>
+
+              <!-- 2: Video — Bates Cardio -->
+              <article class="lib-card video">
+                <span class="spine"></span>
+                <div class="top-bar">
+                  <span class="fmt-chip video"><i class="ti ti-player-play"></i>VIDEO</span>
+                  <span class="live-dot"></span>
+                </div>
+                <p class="source">Bates' video series</p>
+                <p class="title">Cardiovascular exam, bedside</p>
+                <p class="foot"><i class="ti ti-clock"></i>12 min</p>
+              </article>
+
+              <!-- 3: Book chapter — Bates Ch 8 -->
+              <article class="lib-card book">
+                <span class="spine"></span>
+                <div class="top-bar">
+                  <span class="fmt-chip book"><i class="ti ti-book"></i>BOOK</span>
+                </div>
+                <p class="source">Bates' Guide &middot; 13e</p>
+                <p class="title">Ch&nbsp;8 &middot; Cardiovascular system</p>
+                <p class="foot"><i class="ti ti-bookmark"></i>3 marks</p>
+              </article>
+
+              <!-- 4: Link — NEJM article -->
+              <article class="lib-card link">
+                <span class="spine"></span>
+                <div class="top-bar">
+                  <span class="fmt-chip link"><i class="ti ti-link"></i>LINK</span>
+                </div>
+                <p class="source">NEJM &middot; 2001</p>
+                <p class="title">Early goal-directed therapy in sepsis</p>
+                <p class="foot"><i class="ti ti-clock"></i>5 min read</p>
+              </article>
+
+              <!-- 5: Audio — Curbsiders podcast -->
+              <article class="lib-card audio">
+                <span class="spine"></span>
+                <div class="top-bar">
+                  <span class="fmt-chip audio"><i class="ti ti-headphones"></i>AUDIO</span>
+                </div>
+                <p class="source">Curbsiders #441</p>
+                <p class="title">Lactate, demystified</p>
+                <p class="foot"><i class="ti ti-clock"></i>54 min</p>
+              </article>
+
+            </div>
+          </div>
+
+          <!-- Recently added — list of 3 -->
+          <div class="shelf-head" style="padding-top: 6px;">
+            <h2>Recently added</h2>
+            <button class="see-all">All</button>
+          </div>
+
+          <div class="recent">
+
+            <article class="recent-item pdf">
+              <span class="src-glyph"><i class="ti ti-file-text"></i></span>
+              <div class="body">
+                <p class="ttl">JHH Code Blue 2025 &middot; pocket card</p>
+                <p class="prov">
+                  <span>Uploaded</span>
+                  <span class="sep"></span>
+                  <span>2 hr ago</span>
+                  <span class="sep"></span>
+                  <span>Sepsis &amp; rapid response</span>
+                </p>
+              </div>
+            </article>
+
+            <article class="recent-item video">
+              <span class="src-glyph"><i class="ti ti-player-play"></i></span>
+              <div class="body">
+                <p class="ttl">Bedside ultrasound for PIV access</p>
+                <p class="prov">
+                  <span>From YouTube</span>
+                  <span class="sep"></span>
+                  <span>Yesterday</span>
+                  <span class="sep"></span>
+                  <span>Krista Murphy DNP</span>
+                </p>
+              </div>
+            </article>
+
+            <article class="recent-item link">
+              <span class="src-glyph"><i class="ti ti-link"></i></span>
+              <div class="body">
+                <p class="ttl">When lactate doesn't fall: re-examining clearance</p>
+                <p class="prov">
+                  <span>From Annals of EM</span>
+                  <span class="sep"></span>
+                  <span>Sunday</span>
+                </p>
+              </div>
+            </article>
+
+          </div>
+
+          <!-- Collections -->
+          <div class="shelf-head" style="padding-top: 18px;">
+            <h2>Collections</h2>
+            <button class="see-all">All</button>
+          </div>
+
+          <div class="collections">
+            <article class="coll-card">
+              <span class="ct">12</span>
+              <p class="name">Sepsis &amp; rapid response</p>
+              <div class="strip">
+                <span style="background: var(--fmt-pdf);"></span>
+                <span style="background: var(--fmt-link);"></span>
+                <span style="background: var(--fmt-video);"></span>
+                <span style="background: var(--fmt-audio);"></span>
+              </div>
+            </article>
+            <article class="coll-card">
+              <span class="ct">18</span>
+              <p class="name">Cardiac &amp; telemetry</p>
+              <div class="strip">
+                <span style="background: var(--fmt-book);"></span>
+                <span style="background: var(--fmt-video);"></span>
+                <span style="background: var(--fmt-pdf);"></span>
+              </div>
+            </article>
+            <article class="coll-card">
+              <span class="ct">9</span>
+              <p class="name">Pediatric vitals &amp; meds</p>
+              <div class="strip">
+                <span style="background: var(--fmt-pdf);"></span>
+                <span style="background: var(--fmt-link);"></span>
+              </div>
+            </article>
+            <article class="coll-card">
+              <span class="ct">14</span>
+              <p class="name">High-alert pharmacology</p>
+              <div class="strip">
+                <span style="background: var(--fmt-book);"></span>
+                <span style="background: var(--fmt-pdf);"></span>
+                <span style="background: var(--fmt-note);"></span>
+              </div>
+            </article>
+          </div>
+
+          <div class="bottom-pad"></div>
+        </div>
+
+        <div class="float-nav">
+          <div class="tab"><i class="ti ti-stethoscope"></i><span>Pre-Clin</span></div>
+          <div class="tab on"><i class="ti ti-books"></i><span>Library</span></div>
+          <div class="tab"><i class="ti ti-world"></i><span>Discover</span></div>
+          <div class="tab"><i class="ti ti-clock-back"></i><span>Reflect</span></div>
+        </div>
+        <div class="home-indicator"></div>
+      </div>
+
+      <div class="frame-cap">
+        <p class="eyebrow">Phone 1</p>
+        <h3>Library &middot; <em>Sources scope</em></h3>
+        <p>The full sources catalog Emily returns to &mdash; reached from the Library home via <em>Sources in play &rarr; See All</em>, or by selecting the <em>Sources</em> scope at the top.</p>
+        <p>The catalog itself. Five formats, one shelf grammar &mdash; format-typed spine and chip do the disambiguation, the rest of the chrome is continuous with Playbook's Books-library shelf. Drop-in card up top makes capture the first thing the surface offers. Live-dots mark items active in a current step.</p>
+      </div>
+    </div>
+
+    <!-- =================================== -->
+    <!-- PHONE 2 — Library item detail        -->
+    <!-- =================================== -->
+    <div class="phone-col">
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="statusbar">
+          <span>10:08</span>
+          <span class="right">
+            <i class="ti ti-cell-signal-4"></i>
+            <i class="ti ti-wifi"></i>
+            <i class="ti ti-battery-3"></i>
+          </span>
+        </div>
+
+        <div class="screen">
+
+          <div class="top-chrome">
+            <button class="back"><i class="ti ti-chevron-left"></i>Library</button>
+            <div class="right-glyphs">
+              <button aria-label="Share"><i class="ti ti-share-3"></i></button>
+              <button aria-label="More"><i class="ti ti-dots"></i></button>
+            </div>
+          </div>
+
+          <!-- Resource header -->
+          <div class="res-head">
+            <div class="fmt-row">
+              <span class="fmt-chip pdf"><i class="ti ti-file-text"></i>PDF</span>
+              <span style="font-size:11px;color:var(--ios-label-tertiary);letter-spacing:0.04em;text-transform:uppercase;">8 pages &middot; 2025</span>
+            </div>
+            <h2 class="ttl">AACN Practice Alert &middot; Severe Sepsis and Septic Shock</h2>
+            <p class="src-line">American Association of Critical-Care Nurses &middot; Added Sep 4, 2026</p>
+          </div>
+
+          <!-- Paper preview -->
+          <div class="res-preview">
+            <span class="spine-strip"></span>
+            <span class="stamp">PRACTICE ALERT</span>
+            <span class="page-meta">P 1 / 8</span>
+          </div>
+
+          <!-- Open actions -->
+          <div class="res-actions">
+            <button><i class="ti ti-book-2"></i>Read</button>
+            <button><i class="ti ti-headphones"></i>Listen</button>
+            <button><i class="ti ti-highlight"></i>Annotate</button>
+          </div>
+
+          <!-- Where this appears -->
+          <p class="section-eyebrow">Where this appears in your practice</p>
+          <div class="uses-list">
+
+            <div class="uses-row origin">
+              <span class="role">Origin</span>
+              <div class="ref-body">
+                <p class="it-title">Catch perfusion change before it becomes a code.</p>
+                <p class="it-sub">Concept &middot; <em>"Identification of sepsis within one hour"</em> seeded this</p>
+              </div>
+              <i class="ti ti-chevron-right chev"></i>
+            </div>
+
+            <div class="uses-row ref">
+              <span class="role">Cited</span>
+              <div class="ref-body">
+                <p class="it-title">Lactate window &mdash; when to push, when to wait.</p>
+                <p class="it-sub">Concept &middot; referenced in 2 reflections</p>
+              </div>
+              <i class="ti ti-chevron-right chev"></i>
+            </div>
+
+            <div class="uses-row step">
+              <span class="role">In step</span>
+              <div class="ref-body">
+                <p class="it-title">Shift&nbsp;5 &middot; Med-Surg, Oct&nbsp;15</p>
+                <p class="it-sub">Pre-Clinical &middot; included as <em>read before shift</em></p>
+              </div>
+              <i class="ti ti-chevron-right chev"></i>
+            </div>
+
+          </div>
+
+          <!-- What Emily marked -->
+          <p class="section-eyebrow">What you marked &middot; <span style="color:var(--ios-label-tertiary);font-weight:500;text-transform:none;letter-spacing:-0.05px;">3 excerpts</span></p>
+          <div class="marks">
+            <div class="mark">
+              <p class="quote">&ldquo;Identification of sepsis within one hour of presentation reduces mortality by an estimated 7.6% per hour delay.&rdquo;</p>
+              <p class="prov">Page 2 &middot; marked Sep 14</p>
+            </div>
+            <div class="mark">
+              <p class="quote">&ldquo;Lactate clearance of more than 10% within 2&ndash;4 hours is associated with improved outcomes.&rdquo;</p>
+              <p class="prov">Page 4 &middot; marked Sep 22</p>
+            </div>
+          </div>
+
+          <!-- Cite as origin -->
+          <div class="cite-row">
+            <span class="ic"><i class="ti ti-sparkles"></i></span>
+            <div class="copy">
+              <p class="ttl">Cite as origin of a new concept</p>
+              <p class="sub">Open the marked phrase as a working concept in your playbook</p>
+            </div>
+            <i class="ti ti-chevron-right chev"></i>
+          </div>
+
+          <div class="bottom-pad"></div>
+        </div>
+
+        <div class="float-nav">
+          <div class="tab"><i class="ti ti-stethoscope"></i><span>Pre-Clin</span></div>
+          <div class="tab on"><i class="ti ti-books"></i><span>Library</span></div>
+          <div class="tab"><i class="ti ti-world"></i><span>Discover</span></div>
+          <div class="tab"><i class="ti ti-clock-back"></i><span>Reflect</span></div>
+        </div>
+        <div class="home-indicator"></div>
+      </div>
+
+      <div class="frame-cap">
+        <p class="eyebrow">Phone 2</p>
+        <h3>Library item &middot; <em>resource as prime source</em></h3>
+        <p>One PDF, three roles. <strong>Origin</strong> of one concept (italic-serif quote: the phrase that seeded it). <strong>Cited</strong> by another. <strong>Included</strong> in a step. The back-references are what make the library load-bearing &mdash; it isn't a side closet of references, it's the soil concepts grow out of. <em>"Cite as origin"</em> closes the loop.</p>
+      </div>
+    </div>
+
+    <!-- =================================== -->
+    <!-- PHONE 3 — Step with library         -->
+    <!-- =================================== -->
+    <div class="phone-col">
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="statusbar">
+          <span>10:08</span>
+          <span class="right">
+            <i class="ti ti-cell-signal-4"></i>
+            <i class="ti ti-wifi"></i>
+            <i class="ti ti-battery-3"></i>
+          </span>
+        </div>
+
+        <div class="screen">
+
+          <div class="top-chrome">
+            <button class="back"><i class="ti ti-chevron-left"></i>Pre-Clinical</button>
+            <div class="right-glyphs">
+              <button aria-label="Search"><i class="ti ti-search"></i></button>
+              <button aria-label="More"><i class="ti ti-dots"></i></button>
+            </div>
+          </div>
+
+          <!-- Title block -->
+          <section class="step-title">
+            <p class="eyebrow">PRE-CLINICAL &middot; SHIFT&nbsp;5</p>
+            <h1>Med-Surg &middot; 12-hour day shift</h1>
+            <p class="meta">Tuesday Oct 15 &middot; 7a&ndash;7p &middot; Patricia preceptor</p>
+          </section>
+
+          <!-- Library: before the shift -->
+          <div class="prep-card">
+            <div class="prep-head">
+              <span class="lhs"><i class="ti ti-bookmark-filled"></i>From your library, before shift</span>
+              <span class="est">~25 min total</span>
+            </div>
+
+            <div class="prep-row pdf done">
+              <span class="check"><i class="ti ti-check"></i></span>
+              <span class="src-glyph"><i class="ti ti-file-text"></i></span>
+              <div class="body">
+                <p class="ttl">AACN Practice Alert &middot; severe sepsis</p>
+                <p class="meta">
+                  <span>PDF</span><span class="sep"></span>
+                  <span>8 pages</span><span class="sep"></span>
+                  <span>read Mon</span>
+                </p>
+              </div>
+            </div>
+
+            <div class="prep-row video">
+              <span class="check"></span>
+              <span class="src-glyph"><i class="ti ti-player-play"></i></span>
+              <div class="body">
+                <p class="ttl">Bates' cardiovascular exam, bedside</p>
+                <p class="meta">
+                  <span>Video</span><span class="sep"></span>
+                  <span>12 min</span><span class="sep"></span>
+                  <span>focus &middot; auscultation order</span>
+                </p>
+              </div>
+            </div>
+
+            <div class="prep-row link">
+              <span class="check"></span>
+              <span class="src-glyph"><i class="ti ti-link"></i></span>
+              <div class="body">
+                <p class="ttl">Early goal-directed therapy &middot; NEJM excerpt</p>
+                <p class="meta">
+                  <span>Link</span><span class="sep"></span>
+                  <span>5 min</span><span class="sep"></span>
+                  <span>Patricia recommended</span>
+                </p>
+              </div>
+            </div>
+
+            <div class="prep-add">
+              <i class="ti ti-plus"></i><span>Add from library</span>
+            </div>
+          </div>
+
+          <!-- Beats -->
+          <p class="sect-head">SHIFT BEATS</p>
+          <div class="beats">
+
+            <article class="beat-card">
+              <div class="head">
+                <h2>Handoff</h2>
+                <span class="time">7:00a</span>
+              </div>
+              <div class="body">
+                <p>Five-patient assignment. SBAR from night shift; flag the rule-out sepsis in 412.</p>
+              </div>
+            </article>
+
+            <article class="beat-card">
+              <div class="head">
+                <h2>Assessment round</h2>
+                <span class="time">7:30a</span>
+              </div>
+              <div class="body">
+                <p>Vitals, focused cardio &amp; pulm. Watch 412 perfusion &amp; cap refill before chart.</p>
+                <!-- Pinned library reference inside a beat -->
+                <div class="ref-pin">
+                  <span class="ic"><i class="ti ti-book"></i></span>
+                  <div class="copy">
+                    <p class="pre">REFERENCE &middot; bates' ch 8 &sect; 3</p>
+                    <p class="ttl">Auscultation order: aortic, pulmonic, Erb's, tricuspid, mitral.</p>
+                  </div>
+                </div>
+              </div>
+            </article>
+
+            <article class="beat-card">
+              <div class="head">
+                <h2>Charting &amp; flags</h2>
+                <span class="time">11:00a</span>
+              </div>
+              <div class="body">
+                <p>Note the perfusion change in 412 if seen. Trigger criteria are in the pocket card.</p>
+                <div class="ref-pin" style="background: var(--fmt-pdf-tint);">
+                  <span class="ic" style="color: var(--fmt-pdf);"><i class="ti ti-file-text"></i></span>
+                  <div class="copy">
+                    <p class="pre" style="color: var(--fmt-pdf);">REFERENCE &middot; jhh code blue pocket card</p>
+                    <p class="ttl">Trigger criteria: RR &gt;28, SBP &lt;90, MAP &lt;65, lactate &ge;4.</p>
+                  </div>
+                </div>
+              </div>
+            </article>
+
+          </div>
+
+          <!-- AI offer drawing from library -->
+          <section class="ai-offer">
+            <div class="ah">
+              <i class="ti ti-sparkles"></i>
+              <span>FROM YOUR LIBRARY</span>
+            </div>
+            <p class="body">You marked <em>"identification within one hour"</em> in the AACN alert two weeks ago. Want to open it as a working concept for this shift?</p>
+            <div class="actions">
+              <button>Open as concept</button>
+              <button class="secondary">Not now</button>
+            </div>
+          </section>
+
+          <div class="bottom-pad"></div>
+        </div>
+
+        <div class="float-nav">
+          <div class="tab on"><i class="ti ti-stethoscope"></i><span>Pre-Clin</span></div>
+          <div class="tab"><i class="ti ti-books"></i><span>Library</span></div>
+          <div class="tab"><i class="ti ti-world"></i><span>Discover</span></div>
+          <div class="tab"><i class="ti ti-clock-back"></i><span>Reflect</span></div>
+        </div>
+        <div class="home-indicator"></div>
+      </div>
+
+      <div class="frame-cap">
+        <p class="eyebrow">Phone 3</p>
+        <h3>Step &middot; <em>library woven into the work</em></h3>
+        <p>Two integration points. <strong>"Before the shift"</strong> at the top &mdash; a checklist of library items the step expects Emily to bring with her. <strong>Pinned reference</strong> inside a beat &mdash; a textbook page or protocol pulled into the moment it's needed. The AI offer at the foot now reads from her library marks, not just her reflections.</p>
+      </div>
+    </div>
+
+    <!-- =================================== -->
+    <!-- PHONE 4 — Quick-capture sheet       -->
+    <!-- =================================== -->
+    <div class="phone-col">
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="statusbar">
+          <span>10:08</span>
+          <span class="right">
+            <i class="ti ti-cell-signal-4"></i>
+            <i class="ti ti-wifi"></i>
+            <i class="ti ti-battery-3"></i>
+          </span>
+        </div>
+
+        <!-- Underscreen: dimmed Library home -->
+        <div class="underscreen">
+          <div class="under-top-chrome">
+            <span class="title">Library</span>
+            <span class="glyphs">
+              <i class="ti ti-search"></i>
+              <i class="ti ti-dots"></i>
+            </span>
+          </div>
+          <div class="under-seg">
+            <span>All</span>
+            <span>Concepts</span>
+            <span class="on">Sources</span>
+          </div>
+          <div class="under-card">
+            <p style="font-size:13px;color:var(--ios-label-secondary);margin:0 0 2px;letter-spacing:-0.05px;">In play this week</p>
+            <p style="font-size:15px;font-weight:600;color:var(--ios-label);margin:0;letter-spacing:-0.2px;">Severe sepsis &amp; septic shock</p>
+          </div>
+        </div>
+
+        <div class="scrim"></div>
+
+        <!-- Modal sheet -->
+        <div class="sheet">
+          <div class="grabber-row"><span class="grabber"></span></div>
+
+          <div class="sheet-chrome">
+            <button class="cancel">Cancel</button>
+            <button class="cancel" style="opacity:0;">.</button>
+          </div>
+
+          <div class="sheet-body">
+            <div class="sheet-header">
+              <span class="sparkle"><i class="ti ti-sparkles"></i></span>
+              <h2>Add to your Library</h2>
+              <p>Link, file, photo of a page, or paste text.</p>
+            </div>
+
+            <!-- Capture mode -->
+            <div class="cap-seg" role="tablist">
+              <button>Link</button>
+              <button class="on">Upload</button>
+              <button>Photo</button>
+              <button>Paste</button>
+            </div>
+
+            <!-- Drop zone -->
+            <div class="drop-zone">
+              <i class="ti ti-cloud-upload"></i>
+              <p class="t" style="margin:0;">Drop PDF, EPUB, audio &middot; or tap</p>
+            </div>
+
+            <!-- Uploaded preview -->
+            <div class="uploaded">
+              <span class="src-glyph">PDF</span>
+              <div class="body">
+                <p class="ttl">AACN-PracticeAlert-SevereSepsis.pdf</p>
+                <p class="meta">8 pages &middot; 1.2 MB &middot; just now</p>
+              </div>
+              <i class="ti ti-x x"></i>
+            </div>
+
+            <!-- Auto-detected metadata -->
+            <div class="auto-meta">
+              <div class="eb">
+                <i class="ti ti-sparkles"></i>
+                <span>Detected &middot; from the PDF</span>
+              </div>
+              <div class="chips">
+                <span class="chip"><i class="ti ti-tag"></i>Sepsis</span>
+                <span class="chip"><i class="ti ti-tag"></i>Septic shock</span>
+                <span class="chip"><i class="ti ti-tag"></i>Lactate</span>
+                <span class="chip"><i class="ti ti-tag"></i>Critical care</span>
+              </div>
+              <div class="row">
+                <span class="lbl">Source</span>
+                <span class="val">AACN <i class="ti ti-pencil pencil"></i></span>
+              </div>
+              <div class="row">
+                <span class="lbl">Year</span>
+                <span class="val">2025 <i class="ti ti-pencil pencil"></i></span>
+              </div>
+            </div>
+
+            <!-- Attach to -->
+            <div class="attach">
+              <p class="lbl">Attach to</p>
+              <div class="opts">
+                <button class="opt on">Standalone</button>
+                <button class="opt">Concept</button>
+                <button class="opt">Step</button>
+              </div>
+              <p class="hint">It'll be added to your library either way &mdash; attaching links it as a starting source.</p>
+            </div>
+
+            <!-- Collection picker -->
+            <div class="coll-pick">
+              <span class="lbl">Collection</span>
+              <div class="pick">
+                <span>Sepsis &amp; rapid response &middot; 12</span>
+                <i class="ti ti-chevron-down ch"></i>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- CTA -->
+          <div class="sheet-footer">
+            <button class="cta">
+              <i class="ti ti-sparkles spark"></i>
+              <span>Add to Library</span>
+            </button>
+            <p class="cta-foot">We'll extract excerpts and tag this against your playbook.</p>
+          </div>
+        </div>
+
+        <div class="home-indicator"></div>
+      </div>
+
+      <div class="frame-cap">
+        <p class="eyebrow">Phone 4</p>
+        <h3>Quick capture &middot; <em>one tap from anywhere</em></h3>
+        <p>Four modes (link / upload / photo / paste) under a coral-sparkle sheet. After capture, the system detects format and topic, suggests a collection, and offers an optional attachment to a concept or step. The same sheet is reachable from the Library home <em>"Drop something in"</em> card and from any step's <em>"Add from library"</em> row &mdash; the destination is the difference, the sheet is the same.</p>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ============= Side rail — design rationale ============= -->
+  <div class="rail-wrap">
+    <aside class="rail">
+
+      <h3>What this pass commits to</h3>
+
+      <div class="block">
+        <p class="lead">The Library is a first-class surface, lives as its own tab, and is the prime source of playbook concepts. <em>(Updated for the Pass N rename &mdash; this pass originally proposed Library as a sub-tab of Discover; the rename promoted it to a peer of Discover instead.)</em></p>
+        <p>The architectural mistake earlier was treating the playbook <em>as if it were</em> the library. D28 was right &mdash; <em>the playbook is the user's conceptual home, not a resource library</em> &mdash; but the necessary other half got dropped: <strong>there has to be an actual library.</strong> A nursing student at Johns Hopkins isn't carrying around a small handful of concepts; she's carrying a working library of protocols, alerts, chapters, articles, videos, recorded lectures, scanned notes, and podcast episodes, and her concepts are the synthesis layer on top of that catalog.</p>
+        <p>The Pass N rename made this clean: <strong>Library</strong> replaces <strong>Playbook</strong> as the tab name; <em>concepts</em> replaces <em>playbook entries</em> as the term for the synthesis layer; Sources and Concepts live as siblings under Library. The four-tab root nav becomes <em>Race&nbsp;/&nbsp;Library&nbsp;/&nbsp;Discover&nbsp;/&nbsp;Reflect</em> &mdash; <em>your stuff</em> sits in Library, <em>other people's stuff</em> sits in Discover.</p>
+      </div>
+
+      <div class="block">
+        <p class="lead">Resources are prime sources of concepts. The back-reference is the proof.</p>
+        <p>Phone 2's <em>Where this appears in your practice</em> block is the load-bearing surface for the whole architecture. A single PDF shows:</p>
+        <ul>
+          <li><strong>Origin</strong>concept that was <em>seeded</em> by a marked phrase in this resource. The italic-serif quote on the row is the phrase itself &mdash; the same italic-serif-with-provenance grammar locked on Race Prep, scaled down here to a list-row label.</li>
+          <li><strong>Cited</strong>concept that references this resource in its trail but didn't originate from it.</li>
+          <li><strong>In step</strong>step that included this resource as <em>read before shift</em> or pinned inside a beat.</li>
+        </ul>
+        <p>This three-row taxonomy is the whole vocabulary of how a library item connects to the playbook system. Origin is the strongest tie, cited is the secondary tie, in-step is the operational tie. Future surfaces (a concept detail showing all its origin and cited resources, a step archive showing every resource pulled in) just invert this same relation.</p>
+      </div>
+
+      <div class="block">
+        <p class="lead">A step has two library hooks: <em>before</em> and <em>during</em>.</p>
+        <p><strong>Before the shift</strong> &mdash; a checklist of resources Emily commits to bring with her into the shift. Read, watch, or skim, with circle-checks she ticks off; the system can suggest items based on the shift's clinical context, Patricia's recommendations, and Emily's open concepts. Same component grammar as a Race Prep beat list, with library-format glyphs replacing the toolbar icons.</p>
+        <p><strong>During the shift</strong> &mdash; pinned references inside individual beats. A Bates' chapter callout sits inside <em>Assessment round</em>, a JHH Code Blue pocket card sits inside <em>Charting &amp; flags</em>. The reference is the exact passage Emily anticipates needing at that moment &mdash; not "go look this up," but "this is the answer, already brought to where you'll need it."</p>
+        <p>Both hooks are <strong>composed during step authoring</strong>: when Patricia (path author) builds the step, she pulls from her own library to scaffold what students should bring. When Emily runs the step, she can add her own. The same grammar works in both directions.</p>
+      </div>
+
+      <div class="block">
+        <p class="lead">Capture is one tap, four modes, three destinations.</p>
+        <p>The capture sheet is the gesture that makes the library compound &mdash; if adding takes effort, the library starves. Four input modes cover the realistic surfaces a nursing student encounters:</p>
+        <ul>
+          <li><strong>Link</strong>article, video, podcast episode, web protocol. URL field, fetcher does the rest.</li>
+          <li><strong>Upload</strong>PDF (the dominant case in clinical), EPUB, audio file, video file. Drop-zone with format auto-detection.</li>
+          <li><strong>Photo</strong>scan a textbook page, a printed protocol, a whiteboard from a lecture. OCR runs server-side; image becomes a searchable note with the photo embedded.</li>
+          <li><strong>Paste</strong>for paywalled articles she's already pulled, lecture transcripts, copied passages from a closed book.</li>
+        </ul>
+        <p>After capture, the system <em>detects</em> &mdash; format, topic tags, source, year &mdash; using the existing coral-sparkle <em>"something's about to be made"</em> mark. The auto-meta block is editable; nothing is fixed without confirmation. Then the three destinations: <strong>Standalone</strong> (default &mdash; goes to library), <strong>Concept</strong> (also attaches as a starting source for an existing or new concept), <strong>Step</strong> (also adds to the current step's <em>before the shift</em> list or a beat reference).</p>
+        <p>The sheet is the same in all three call sites &mdash; Library home's <em>Drop something in</em>, a step's <em>Add from library</em> row, a concept's <em>Add a source</em> affordance. The destination is the difference. The capture is the constant.</p>
+      </div>
+
+      <div class="block">
+        <p class="lead">Format-typed accents disambiguate without becoming signal colors.</p>
+        <p>Six format hues. Each used only on library-item chrome &mdash; the spine on a shelf card, the source-glyph background on a recent-row, the chip in a step's prep list, the strip on a collection card. None of them carries iOS-blue's <em>action</em> meaning or coral's <em>system-attention</em> meaning. They are <em>identity</em>, not signal.</p>
+        <p>
+          <span class="swatch pdf"><span class="chip"></span>PDF &middot; brick</span>
+          <span class="swatch video"><span class="chip"></span>Video &middot; aubergine</span>
+          <span class="swatch book"><span class="chip"></span>Book &middot; ink blue</span>
+          <span class="swatch link"><span class="chip"></span>Link &middot; slate</span>
+          <span class="swatch audio"><span class="chip"></span>Audio &middot; teal</span>
+          <span class="swatch note"><span class="chip"></span>Note &middot; ochre</span>
+        </p>
+        <p>The two locked signal colors stay in their lanes:
+          <span class="swatch coral"><span class="chip"></span>coral &middot; system-attention</span>
+          <span class="swatch blue"><span class="chip"></span>iOS blue &middot; action</span>
+        </p>
+        <p>If a format card needs to indicate "active in a step right now," it gets the coral live-dot &mdash; same component, same grammar as Playbook's concept cards. Format hue and signal color coexist on the card without conflict because they describe different axes: <em>what kind of thing this is</em> versus <em>what the system is paying attention to</em>.</p>
+      </div>
+
+      <div class="block">
+        <p class="lead">Collections, not folders.</p>
+        <p>The bottom of the Library home offers <em>Collections</em> &mdash; named topical bundles (<em>Sepsis &amp; rapid response</em>, <em>Cardiac &amp; telemetry</em>, <em>Pediatric vitals &amp; meds</em>, <em>High-alert pharmacology</em>). Distinguished from folders: an item lives in the catalog regardless; collections are <em>tags surfaced as cards</em>. An item can belong to multiple collections. The little color strip on each collection card previews the format mix inside &mdash; quick read of <em>"this collection is mostly PDFs and one video"</em> versus <em>"mostly book chapters and notes."</em></p>
+        <p>Collections are AI-suggested on capture (the sheet's <em>Collection</em> row) and user-editable. Patricia's authored paths can ship with a recommended collection of starting resources &mdash; <em>"Subscribe to this path; this collection joins your library."</em></p>
+      </div>
+
+      <div class="block">
+        <p class="lead">Architectural commitments preserved.</p>
+        <ul>
+          <li><strong>Four-tab nav</strong>Pre-Clin &middot; <strong>Library</strong> (active on Phones 1, 2, 4) &middot; Discover &middot; Reflect. Library is now its own tab &mdash; promoted from sub-tab to peer in Pass N. The root nav is otherwise unchanged.</li>
+          <li><strong>Per-interest vocabulary</strong>Pre-Clinical / On Shift / Debrief for nursing; the four-tab analogues swap as before.</li>
+          <li><strong>AI never speaks as itself</strong>the <em>From your library</em> coral eyebrow on Phone 3 is the same component as <em>From your playbook</em> on Race Prep iOS &mdash; system surfacing user's own material.</li>
+          <li><strong>Raw / synthesized layer separation</strong>the resource is raw, what Emily marked in it is raw, the concept that grew from a marked phrase is synthesized. Resynthesize from any source is preserved.</li>
+          <li><strong>Italic serif for considered prose with attribution</strong>the marked excerpts on Phone 2, the seeded phrase on Phone 2's origin row, the AI offer body on Phone 3 &mdash; all in italic serif because they are <em>user-marked prose with attribution</em>. The locked grammar holds.</li>
+          <li><strong>No fifth tab, no &ldquo;Learn&rdquo; tab</strong>Library is now a peer of Discover, not a sub-tab. The root nav remains four-up.</li>
+          <li><strong>No gamification, no streaks, no progress meters</strong>the prep-list circle-checks are not progress, they are <em>commitment-and-confirmation</em>: Emily ticks an item after she has actually read it.</li>
+        </ul>
+      </div>
+
+      <div class="block">
+        <p class="lead">Named absences.</p>
+        <ul>
+          <li><strong>No global search-first home</strong>the Library home opens to the catalog, not a search bar. Search lives in the top-right glyph. Curation by what's <em>in play this week</em> and <em>recently added</em> is what most users return for; full-text search is the secondary action.</li>
+          <li><strong>No folder tree</strong>collections are tags surfaced as cards, not a hierarchy. An item is one place: in the catalog. It surfaces in multiple collections.</li>
+          <li><strong>No standalone "Read it later" inbox</strong>captures land directly in the catalog, optionally attached. An unread item is just an item whose read-checkmark hasn't been ticked &mdash; not a separate queue.</li>
+          <li><strong>No social signal on Library items</strong>peer activity is a Discover&nbsp;&rarr;&nbsp;Paths signal, not a Library signal. The library is Emily's catalog, not a feed of what her cohort is reading.</li>
+          <li><strong>No publishing affordance on Phone 2</strong>resources Emily has authored herself (her own typed notes, photo-captured scans) can be shared, but the act of preparing-to-share is a separate composition surface, in keeping with the same discipline as Trophy v2.</li>
+        </ul>
+      </div>
+
+      <div class="block">
+        <p class="lead">The test for this pass.</p>
+        <p>Two questions. <strong>First:</strong> does the library feel necessary, not just nice? The bet is that the Phone-2 back-reference block earns the surface &mdash; if a resource showing its three roles in Emily's practice reads as <em>"of course this is here,"</em> the architectural argument is sound. If it reads as <em>"useful but optional,"</em> the integration into Steps and Concepts isn't deep enough yet.</p>
+        <p><strong>Second:</strong> does it hold the locked register? The chrome is the same as the prior twelve iOS surfaces &mdash; gray&nbsp;6 ground, 16px-radius white cards, SF Pro throughout, iOS blue for action, iOS coral for system-attention, italic-serif for considered prose with attribution. The only new vocabulary is the six format-typed hues, scoped strictly to library-item chrome. If it reads as continuous with Playbook, Race Prep, and Competency Assessment, the register holds.</p>
+      </div>
+
+      <div class="block">
+        <p class="lead">What follows from this pass.</p>
+        <ul>
+          <li><strong>Concept detail back-reference block</strong>the inverse of Phone 2's <em>Where this appears</em> &mdash; a concept showing <em>its</em> origin resource(s), cited resources, and step appearances. Reuses the same three-row taxonomy, inverted.</li>
+          <li><strong>Authoring a step with library scaffolding</strong>Patricia's faculty surface for building a step now has a <em>Pull from library</em> picker for the before-shift list and the inline beat references. Reuses Phone 4's sheet grammar with a multi-select variant.</li>
+          <li><strong>Path subscription &middot; library bundle</strong>subscribing to a Patricia-authored path can optionally pull in her recommended starting collection &mdash; named, scoped, removable.</li>
+          <li><strong>Felix variant</strong>the same Library surface for a sailor: tactics videos (North Sails reels), books (Adler, Walker), articles (Sailing World, Scuttlebutt), podcasts (Shirley Robertson). Format-typed hues hold; vocabulary swaps. Confirms the chrome doesn't know what domain it's in.</li>
+          <li><strong>Empty Library &middot; first-run</strong>the surface a brand-new user lands on. Three default starting collections by interest, a prominent <em>Drop something in</em> card sized larger, a <em>"What's in your library?"</em> prompt.</li>
+          <li><strong>Library search results &amp; filters</strong>the secondary surface behind the top-right glyph &mdash; format filters, collection filters, date-range, full-text excerpts.</li>
+          <li><strong>Photo-capture flow &middot; OCR confirmation</strong>the Phone 4 sheet has Photo mode; the post-capture confirmation surface (where Emily reviews the OCR'd text and edits the auto-detected title) is its own small surface, not yet drawn.</li>
+        </ul>
+      </div>
+
+    </aside>
+  </div>
+
+</div>
+
+</body>
+</html>
