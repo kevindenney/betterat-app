@@ -44,6 +44,10 @@ import { BottomCTA } from './BottomCTA';
 import { deriveAIHelperState } from './aiHelperState';
 import { FEATURE_FLAGS } from '@/lib/featureFlags';
 import { WorkingWithConcepts } from './WorkingWithConcepts';
+import {
+  BeforeTheShiftCard,
+  type BeforeShiftItem,
+} from '@/components/step/v2/plan/BeforeTheShiftCard';
 
 export interface PlanTabIOSRegisterInteriorProps {
   planData: StepPlanData;
@@ -95,6 +99,17 @@ export interface PlanTabIOSRegisterInteriorProps {
    * "What will you do?" field, ready to elaborate.
    */
   autoFocusWhat?: boolean;
+  /**
+   * D37 "Before the shift" library checklist. When items exist, renders
+   * above the WHAT FieldCard. Pass items + onToggle from the
+   * useLibraryBeforeBinding(stepId) hook.
+   */
+  libraryBefore?: {
+    items: BeforeShiftItem[];
+    totalEstimate?: string;
+    onToggle?: (rowId: string) => void;
+    onAddFromLibrary?: () => void;
+  };
   testID?: string;
 }
 
@@ -128,6 +143,7 @@ export function PlanTabIOSRegisterInterior({
   footer,
   embedded,
   autoFocusWhat,
+  libraryBefore,
   testID,
 }: PlanTabIOSRegisterInteriorProps) {
   const [coachOpen, setCoachOpen] = useState(false);
@@ -186,6 +202,15 @@ export function PlanTabIOSRegisterInterior({
         state={helperState}
         onOpenCoach={canUseCoach ? () => setCoachOpen(true) : () => {}}
       />
+
+      {libraryBefore && libraryBefore.items.length > 0 ? (
+        <BeforeTheShiftCard
+          items={libraryBefore.items}
+          totalEstimate={libraryBefore.totalEstimate}
+          onToggle={libraryBefore.onToggle}
+          onAddFromLibrary={libraryBefore.onAddFromLibrary}
+        />
+      ) : null}
 
       <FieldCard
         eyebrow="What will you do?"

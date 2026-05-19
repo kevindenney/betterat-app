@@ -61,21 +61,6 @@ interface PlanTabProps {
   stepCategory?: string;
 }
 
-/**
- * Internal wrapper that resolves the D37 "Before the shift" library
- * checklist via useLibraryBeforeBinding(stepId) and threads it into
- * PlanTabInterior. Lives here (vs. inline in PlanTab) so the hook
- * runs at the same lifecycle level as the rest of the Plan body
- * data and we don't conditionally hook below.
- */
-function PlanTabInteriorWithLibraryBefore({
-  stepId,
-  ...rest
-}: React.ComponentProps<typeof PlanTabInterior> & { stepId?: string }) {
-  const libraryBefore = useLibraryBeforeBinding(stepId);
-  return <PlanTabInterior {...rest} libraryBefore={libraryBefore} />;
-}
-
 export function PlanTab({
   stepId, planData, interestId, onUpdate, onNextTab, readOnly, footer,
   brainDumpData, onBrainDumpChange, onStructureWithAI,
@@ -236,6 +221,11 @@ export function PlanTab({
     planData.what_will_you_do,
   );
 
+  // D37 "Before the shift" library checklist binding. Resolved once at this
+  // level so both the step-loop and PRACTICE_PLAN_TAB branches can pass it
+  // down — hook always runs, the body just reads `items.length > 0`.
+  const libraryBefore = useLibraryBeforeBinding(stepId);
+
   // Phase 1 · iOS register — Plan tab body rebuild. When the step-loop flag
   // is on this branch takes precedence over the older PRACTICE_PLAN_TAB
   // path; off-flag, both this and the PRACTICE_PLAN_TAB branch below are
@@ -294,6 +284,7 @@ export function PlanTab({
         }}
         onNextPhase={onNextTab}
         footer={footer}
+        libraryBefore={libraryBefore}
       />
     );
   }
@@ -571,8 +562,7 @@ export function PlanTab({
     );
 
     return (
-      <PlanTabInteriorWithLibraryBefore
-        stepId={stepId}
+      <PlanTabInterior
         planData={planData}
         onUpdate={onUpdate}
         readOnly={readOnly}
@@ -583,6 +573,7 @@ export function PlanTab({
         onConversationalCreate={useConversationalCapture ? onConversationalCreate : undefined}
         optionalAddOns={optionalAddOns}
         footer={footer}
+        libraryBefore={libraryBefore}
       />
     );
   }

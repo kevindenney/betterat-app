@@ -48,6 +48,7 @@ import { FEATURE_FLAGS } from '@/lib/featureFlags';
 import { PlanTabInterior, PlanTabIOSRegisterInterior } from './plan-tab';
 import { buildSuggestions, crossInterestToMentorInput } from '@/services/SuggestionsService';
 import { useCrossInterestSuggestions } from '@/hooks/useCrossInterestSuggestions';
+import { useLibraryBeforeBinding } from '@/hooks/useStepLibraryBefore';
 import { showAlert, showAlertWithButtons } from '@/lib/utils/crossPlatformAlert';
 
 interface StepPlanQuestionsProps {
@@ -86,6 +87,7 @@ export function StepPlanQuestions({
   const { user } = useAuth();
   const { currentInterest, userInterests } = useInterest();
   const catLabels = getStepCategoryLabels(step?.category);
+  const libraryBefore = useLibraryBeforeBinding(stepId);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [addPickerDestination, setAddPickerDestination] = useState<string | null>(null);
   const openAddPicker = useCallback((destination: string) => setAddPickerDestination(destination), []);
@@ -933,6 +935,7 @@ RULES:
         <PlanTabIOSRegisterInterior
           embedded
           autoFocusWhat={autoFocusWhat}
+          libraryBefore={libraryBefore}
           planData={canonicalPlanData}
           onUpdate={handleStepLoopUpdate}
           readOnly={readOnly}
