@@ -39,7 +39,7 @@ function snippet(body: string): string {
 export function ConceptCard({ concept, hasUpdate }: ConceptCardProps) {
   return (
     <Pressable
-      onPress={() => router.push(`/playbook/concepts/${concept.slug}` as any)}
+      onPress={() => router.push(`/library/concepts/${concept.slug}` as any)}
       style={({ pressed }) => [styles.card, pressed && styles.pressed]}
     >
       <View style={styles.header}>

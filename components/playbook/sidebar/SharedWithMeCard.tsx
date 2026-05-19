@@ -30,7 +30,7 @@ export function SharedWithMeCard() {
             key={share.id}
             style={({ pressed }) => [styles.item, pressed && styles.itemPressed]}
             onPress={() =>
-              router.push(`/playbook/shared/${share.playbook_id}` as any)
+              router.push(`/library/shared/${share.playbook_id}` as any)
             }
           >
             <View style={styles.itemBody}>
@@ -52,7 +52,7 @@ export function SharedWithMeCard() {
       {shares.length >= 2 && (
         <Pressable
           style={({ pressed }) => [styles.dashboardLink, pressed && { opacity: 0.6 }]}
-          onPress={() => router.push('/playbook/instructor' as any)}
+          onPress={() => router.push('/library/instructor' as any)}
         >
           <Ionicons name="grid-outline" size={14} color={IOS_COLORS.systemBlue} />
           <Text style={styles.dashboardLinkText}>Student dashboard</Text>

@@ -24,7 +24,7 @@ export default function BlueprintTimelineRoute() {
 
   const goAllSteps = useCallback(() => {
     if (!id) return;
-    router.push(`/(tabs)/playbook/blueprints/${id}/all-steps` as any);
+    router.push(`/(tabs)/library/blueprints/${id}/all-steps` as any);
   }, [id]);
 
   if (!id) return null;

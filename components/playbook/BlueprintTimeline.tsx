@@ -146,7 +146,7 @@ export function BlueprintTimeline({ blueprintId }: { blueprintId: string }) {
         <View style={styles.heroTopRow}>
           <Text style={styles.eyebrow}>Blueprint timeline</Text>
           <Pressable
-            onPress={() => router.push(`/(tabs)/playbook/blueprints/${blueprintId}/co-practitioners` as any)}
+            onPress={() => router.push(`/(tabs)/library/blueprints/${blueprintId}/co-practitioners` as any)}
             hitSlop={8}
           >
             <Text style={styles.coPractitionersLink}>Co-practitioners ›</Text>

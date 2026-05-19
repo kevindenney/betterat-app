@@ -43,7 +43,7 @@ export function QAList() {
   };
 
   const handleAsk = () => {
-    router.push('/playbook' as any);
+    router.push('/library' as any);
   };
 
   // Sort: pinned first, newest first within each group.

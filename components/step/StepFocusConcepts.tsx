@@ -6,7 +6,7 @@
  * cards on the Act and Review tabs.
  */
 
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { BookOpen, ChevronRight } from 'lucide-react-native';
 import { router } from 'expo-router';
@@ -90,7 +90,7 @@ export function StepFocusConcepts({ stepId, variant = 'compact' }: StepFocusConc
           style={styles.conceptCard}
           onPress={() => {
             if (concept.slug) {
-              router.push(`/(tabs)/playbook/concept/${concept.slug}` as any);
+              router.push(`/(tabs)/library/concept/${concept.slug}` as any);
             }
           }}
         >

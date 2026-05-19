@@ -108,7 +108,7 @@ export const getTabsForUserType = (
   if (isGuest) {
     return [
       { name: 'races', title: eventTitle, icon: 'flag-outline', iconFocused: 'flag' },
-      { name: 'playbook', title: 'Playbook', icon: 'book-outline', iconFocused: 'book' },
+      { name: 'library', title: 'Library', icon: 'library-outline', iconFocused: 'library' },
       { name: 'discover', title: 'Discover', icon: 'compass-outline', iconFocused: 'compass' },
       { name: 'reflect', title: 'Profile', icon: 'person-circle-outline', iconFocused: 'person-circle' },
     ];
@@ -142,7 +142,7 @@ export const getTabsForUserType = (
   if (userType === 'sailor' || userType === 'coach') {
     const tabs: TabConfig[] = [
       { name: 'races', title: eventTitle, icon: 'flag-outline', iconFocused: 'flag' },
-      { name: 'playbook', title: 'Playbook', icon: 'book-outline', iconFocused: 'book' },
+      { name: 'library', title: 'Library', icon: 'library-outline', iconFocused: 'library' },
       { name: 'discover', title: 'Discover', icon: 'compass-outline', iconFocused: 'compass' },
       { name: 'reflect', title: 'Profile', icon: 'person-circle-outline', iconFocused: 'person-circle' },
     ];
@@ -170,7 +170,7 @@ export const getTabsForUserType = (
 // Navigation items by persona (used by NavigationDrawer and WebSidebarNav)
 export const SAILOR_NAV_ITEMS: NavItem[] = [
   { key: 'races', label: 'Race', route: '/(tabs)/practice', icon: 'flag-outline' },
-  { key: 'playbook', label: 'Playbook', route: '/(tabs)/playbook', icon: 'book-outline' },
+  { key: 'library', label: 'Library', route: '/(tabs)/library', icon: 'library-outline' },
   { key: 'discover', label: 'Discover', route: '/(tabs)/discover', icon: 'compass-outline' },
   { key: 'reflect', label: 'Profile', route: '/(tabs)/reflect', icon: 'person-circle-outline' },
 ];

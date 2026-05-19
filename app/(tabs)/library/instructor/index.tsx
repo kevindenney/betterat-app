@@ -42,7 +42,7 @@ export default function InstructorDashboardScreen() {
         </Text>
         <Pressable
           style={({ pressed }) => [styles.backLink, pressed && { opacity: 0.6 }]}
-          onPress={() => router.canGoBack() ? router.back() : router.replace('/playbook')}
+          onPress={() => router.canGoBack() ? router.back() : router.replace('/library')}
         >
           <Ionicons name="chevron-back" size={16} color={IOS_COLORS.systemBlue} />
           <Text style={styles.backLinkText}>Back to Playbook</Text>
@@ -56,7 +56,7 @@ export default function InstructorDashboardScreen() {
       <View style={styles.header}>
         <Pressable
           style={({ pressed }) => [styles.backLink, pressed && { opacity: 0.6 }]}
-          onPress={() => router.canGoBack() ? router.back() : router.replace('/playbook')}
+          onPress={() => router.canGoBack() ? router.back() : router.replace('/library')}
         >
           <Ionicons name="chevron-back" size={16} color={IOS_COLORS.systemBlue} />
           <Text style={styles.backLinkText}>Playbook</Text>
@@ -73,7 +73,7 @@ export default function InstructorDashboardScreen() {
             key={student.id}
             style={({ pressed }) => [styles.card, pressed && { opacity: 0.7 }]}
             onPress={() =>
-              router.push(`/playbook/shared/${student.playbook_id}` as any)
+              router.push(`/library/shared/${student.playbook_id}` as any)
             }
           >
             <View style={styles.cardHeader}>

@@ -51,7 +51,7 @@ const TAB_SWEEP_META: Record<(typeof TAB_SWEEP_REQUIRED_TABS)[number], { label: 
 const ROUTES_WITH_CUSTOM_TOOLBAR = [
   '/discover',
   '/learn',
-  '/playbook',
+  '/library',
   '/practice',
   '/race-browser',
   '/races',
@@ -374,7 +374,7 @@ function TabLayoutInner() {
   const _connectTab = findTab('connect');
   const discoverTab = findTab('discover');
   const searchTab = findTab('search');
-  const playbookTab = findTab('playbook');
+  const libraryTab = findTab('library');
   const _followTab = findTab('follow');
   const _communityTab = findTab('community');
   const strategyTab = findTab('strategy');
@@ -496,22 +496,22 @@ function TabLayoutInner() {
             href: null,
           }}
         />
-        {/* Tab 2: Playbook */}
+        {/* Tab 2: Library */}
         <Tabs.Screen
-          name="playbook"
+          name="library"
           options={{
-            title: playbookTab?.title ?? 'Playbook',
+            title: libraryTab?.title ?? 'Library',
             tabBarIcon: isSailorUser ? () => null : ({ color, size, focused }) => (
               <Ionicons
-                name={getIconName(playbookTab, focused, playbookTab?.iconFocused ?? 'book', playbookTab?.icon ?? 'book-outline') as any}
+                name={getIconName(libraryTab, focused, libraryTab?.iconFocused ?? 'library', libraryTab?.icon ?? 'library-outline') as any}
                 size={size}
                 color={color}
               />
             ),
-            tabBarButton: !isTabVisible('playbook')
+            tabBarButton: !isTabVisible('library')
               ? () => null
               : isSailorUser
-                ? renderSailorTabButton('playbook', playbookTab?.title ?? 'Playbook', playbookTab)
+                ? renderSailorTabButton('library', libraryTab?.title ?? 'Library', libraryTab)
                 : undefined,
           }}
         />

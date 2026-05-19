@@ -4,7 +4,7 @@
  * Creates a pending `playbook_shares` row via `useCreatePlaybookShare`. v1 is
  * `role='view'` only. A follow-up can add user search against profiles + an
  * email notification via the existing `send-email` edge function; for now the
- * invitee accepts by navigating to `/playbook/shared/:playbookId` while
+ * invitee accepts by navigating to `/library/shared/:playbookId` while
  * authenticated as the invited email.
  */
 

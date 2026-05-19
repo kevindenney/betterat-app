@@ -94,7 +94,7 @@ export function RawInboxCard({ playbookId, onOpenSuggestions }: RawInboxCardProp
         showConfirm(
           'Ingest complete',
           `${res.ingested} resource${res.ingested !== 1 ? 's' : ''} added to your Playbook.`,
-          () => router.push('/playbook/resources'),
+          () => router.push('/library/resources'),
           { confirmText: 'View resources' },
         );
       } else {

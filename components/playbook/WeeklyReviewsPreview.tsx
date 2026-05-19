@@ -7,7 +7,6 @@
 import React from 'react';
 import { ActivityIndicator, View, Text, Pressable, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
 import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
 import { usePlaybookReviews } from '@/hooks/usePlaybook';
 
@@ -57,7 +56,7 @@ export function WeeklyReviewsPreview({ playbookId }: WeeklyReviewsPreviewProps) 
           <Text style={styles.subheading}>Every week, your Playbook compiles what you learned.</Text>
         </View>
         {reviews.length > 2 ? (
-          <Pressable onPress={() => router.push('/playbook/reviews' as any)}>
+          <Pressable onPress={() => router.push('/library/reviews' as any)}>
             <Text style={styles.viewAll}>View all</Text>
           </Pressable>
         ) : null}
@@ -71,7 +70,7 @@ export function WeeklyReviewsPreview({ playbookId }: WeeklyReviewsPreviewProps) 
             <Pressable
               key={review.id}
               style={({ pressed }) => [styles.card, pressed && styles.pressed]}
-              onPress={() => router.push('/playbook/reviews' as any)}
+              onPress={() => router.push('/library/reviews' as any)}
             >
               <View style={styles.cardHeader}>
                 <Text style={styles.weekLabel}>

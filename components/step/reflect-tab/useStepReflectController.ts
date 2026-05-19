@@ -371,7 +371,7 @@ export function useStepReflectController({
       interestId: step.interest_id,
       payload: { kind: 'text', content },
     });
-    router.push('/(tabs)/playbook' as any);
+    router.push('/(tabs)/library' as any);
   }, [fields, readOnly, step]);
 
   const onAnswerConceptPrompt = useCallback((conceptId: string, answer: boolean) => {

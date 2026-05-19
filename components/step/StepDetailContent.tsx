@@ -132,7 +132,7 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab }
   const showBlueprintChrome = subscribedStepChromeFlagOn && Boolean(blueprintChrome);
   const goBlueprintIndex = useCallback(() => {
     if (!blueprintChrome) return;
-    router.push(`/(tabs)/playbook/blueprints/${blueprintChrome.blueprintId}/all-steps` as any);
+    router.push(`/(tabs)/library/blueprints/${blueprintChrome.blueprintId}/all-steps` as any);
   }, [blueprintChrome]);
   const goFleetView = useCallback(() => {
     if (!blueprintChrome) return;

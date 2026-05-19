@@ -28,9 +28,9 @@ import {
 import { ConceptCard } from './ConceptCard';
 import { ConceptEditor } from './ConceptEditor';
 import { getConceptById } from '@/services/PlaybookService';
-import type { PlaybookConceptRecord, ConceptOrigin } from '@/types/playbook';
+import type { ConceptOrigin } from '@/types/playbook';
 
-const FILTERS: Array<{ key: 'all' | ConceptOrigin; label: string }> = [
+const FILTERS: { key: 'all' | ConceptOrigin; label: string }[] = [
   { key: 'all', label: 'All' },
   { key: 'personal', label: 'Personal' },
   { key: 'forked', label: 'Forked' },
@@ -108,7 +108,7 @@ export function ConceptList() {
       >
       <View style={styles.header}>
         <Pressable
-          onPress={() => router.push('/(tabs)/playbook' as any)}
+          onPress={() => router.push('/(tabs)/library' as any)}
           hitSlop={8}
           style={styles.backLink}
         >

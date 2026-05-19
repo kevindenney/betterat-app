@@ -387,7 +387,7 @@ export function useStepActCaptureController({
           },
         });
         showAlert('Saved to Playbook', 'Concept seed added to Recent insights.');
-        router.push('/(tabs)/playbook' as any);
+        router.push('/(tabs)/library' as any);
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Could not save concept seed.';
         showAlert('Save failed', message);

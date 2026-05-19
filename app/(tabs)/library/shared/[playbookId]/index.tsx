@@ -176,7 +176,7 @@ export default function SharedPlaybookScreen() {
       <View style={styles.header}>
         <Pressable
           style={({ pressed }) => [styles.backBtn, pressed && { opacity: 0.6 }]}
-          onPress={() => router.canGoBack() ? router.back() : router.replace('/playbook')}
+          onPress={() => router.canGoBack() ? router.back() : router.replace('/library')}
         >
           <Ionicons name="chevron-back" size={20} color={IOS_COLORS.systemBlue} />
           <Text style={styles.backText}>Playbook</Text>

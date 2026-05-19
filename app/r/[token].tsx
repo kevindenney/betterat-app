@@ -93,7 +93,7 @@ export default function RedeemRoute() {
         trackRedeemEvent({ name: 'first_step_written', userId: user.id, stepId });
         router.replace(`/practice/step/${stepId}` as any);
       } else {
-        router.replace(`/playbook/blueprints/${result.blueprintId}` as any);
+        router.replace(`/library/blueprints/${result.blueprintId}` as any);
       }
       // Touch subscriptionId so the linter sees it; future telemetry payloads
       // can route off it.

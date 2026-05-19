@@ -308,7 +308,7 @@ export function ConceptDetail({ slug }: ConceptDetailProps) {
         sourceConceptId: concept.id,
       });
       showAlert('Forked', 'You can now edit your personal copy.');
-      router.replace(`/playbook/concepts/${forked.slug}` as any);
+      router.replace(`/library/concepts/${forked.slug}` as any);
     } catch (err) {
       showAlert('Fork failed', (err as Error).message);
     }
@@ -454,7 +454,7 @@ export function ConceptDetail({ slug }: ConceptDetailProps) {
             {relatedConcepts.map((rc) => (
               <Pressable
                 key={rc.id}
-                onPress={() => router.push(`/playbook/concepts/${rc.slug}` as any)}
+                onPress={() => router.push(`/library/concepts/${rc.slug}` as any)}
                 style={({ pressed }) => [styles.relatedChip, pressed && styles.pressed]}
               >
                 <Ionicons name="bulb-outline" size={12} color={IOS_COLORS.systemTeal} />

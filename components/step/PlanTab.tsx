@@ -274,7 +274,7 @@ export function PlanTab({
           title: concept.title,
         }))}
         onPressWorkingConcept={(conceptId) => {
-          router.push(`/(tabs)/playbook/concept/${conceptId}` as any);
+          router.push(`/(tabs)/library/concept/${conceptId}` as any);
         }}
         onNextPhase={onNextTab}
         footer={footer}
@@ -322,7 +322,7 @@ export function PlanTab({
                     style={styles.conceptCard}
                     onPress={() => {
                       if (concept.slug) {
-                        router.push(`/(tabs)/playbook/concept/${concept.slug}` as any);
+                        router.push(`/(tabs)/library/concept/${concept.slug}` as any);
                       }
                     }}
                   >
@@ -683,7 +683,7 @@ export function PlanTab({
                 style={styles.conceptCard}
                 onPress={() => {
                   if (concept.slug) {
-                    router.push(`/(tabs)/playbook/concept/${concept.slug}` as any);
+                    router.push(`/(tabs)/library/concept/${concept.slug}` as any);
                   }
                 }}
               >

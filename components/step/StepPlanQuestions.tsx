@@ -1156,7 +1156,7 @@ RULES:
                       style={styles.conceptCard}
                       onPress={() => {
                         if (concept.slug) {
-                          router.push(`/(tabs)/playbook/concept/${concept.slug}` as any);
+                          router.push(`/(tabs)/library/concept/${concept.slug}` as any);
                         }
                       }}
                     >
@@ -1375,7 +1375,7 @@ RULES:
                     style={styles.conceptCard}
                     onPress={() => {
                       if (concept.slug) {
-                        router.push(`/(tabs)/playbook/concept/${concept.slug}` as any);
+                        router.push(`/(tabs)/library/concept/${concept.slug}` as any);
                       }
                     }}
                   >
@@ -1950,7 +1950,7 @@ RULES:
                 style={styles.conceptCard}
                 onPress={() => {
                   if (concept.slug) {
-                    router.push(`/(tabs)/playbook/concept/${concept.slug}` as any);
+                    router.push(`/(tabs)/library/concept/${concept.slug}` as any);
                   }
                 }}
               >

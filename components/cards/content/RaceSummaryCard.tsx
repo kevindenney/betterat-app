@@ -540,7 +540,7 @@ function RaceSummaryCardImpl({
     FEATURE_FLAGS.STEP_DISCUSSION_V1 && Boolean(discussionPeek);
   const goBlueprintIndex = useCallback(() => {
     if (!blueprintChrome) return;
-    router.push(`/(tabs)/playbook/blueprints/${blueprintChrome.blueprintId}/all-steps` as any);
+    router.push(`/(tabs)/library/blueprints/${blueprintChrome.blueprintId}/all-steps` as any);
   }, [blueprintChrome, router]);
   const goFleetView = useCallback(() => {
     if (!blueprintChrome) return;

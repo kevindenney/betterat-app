@@ -15,7 +15,7 @@ export function PlaybookBackLink() {
       <Pressable
         style={({ pressed }) => [styles.link, pressed && { opacity: 0.6 }]}
         onPress={() =>
-          router.canGoBack() ? router.back() : router.replace('/playbook')
+          router.canGoBack() ? router.back() : router.replace('/library')
         }
       >
         <Ionicons name="chevron-back" size={16} color={IOS_COLORS.systemBlue} />

@@ -90,17 +90,17 @@ function Phase6PlaybookLanding() {
         insights={insights}
         concepts={concepts}
         subscribedBlueprintCount={subscribedBlueprints.length}
-        onOpenBlueprints={() => router.push('/(tabs)/playbook/blueprints' as any)}
+        onOpenBlueprints={() => router.push('/(tabs)/library/blueprints' as any)}
         onRefineInsight={async (insightId) => {
           const concept = await refineInsight.mutateAsync({ insightId });
           toast.show('Concept refined', 'success');
-          router.push(`/(tabs)/playbook/concept/${concept.id}` as any);
+          router.push(`/(tabs)/library/concept/${concept.id}` as any);
         }}
         onDiscardInsight={async (insightId) => {
           await discardInsight.mutateAsync({ insightId });
           toast.show('Insight discarded', 'info');
         }}
-        onOpenConcept={(conceptId) => router.push(`/(tabs)/playbook/concept/${conceptId}` as any)}
+        onOpenConcept={(conceptId) => router.push(`/(tabs)/library/concept/${conceptId}` as any)}
       />
     </ScrollView>
   );

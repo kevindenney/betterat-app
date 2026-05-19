@@ -22,7 +22,7 @@ export default function PlaybookBlueprintsListRoute() {
         <Pressable
           key={blueprint.blueprint_id}
           style={styles.card}
-          onPress={() => router.push(`/(tabs)/playbook/blueprints/${blueprint.blueprint_id}` as any)}
+          onPress={() => router.push(`/(tabs)/library/blueprints/${blueprint.blueprint_id}` as any)}
         >
           <Text style={styles.cardTitle}>{blueprint.blueprint_title}</Text>
           <Text style={styles.cardMeta}>

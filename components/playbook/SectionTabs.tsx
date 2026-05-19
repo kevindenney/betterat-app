@@ -23,11 +23,11 @@ type Tab = {
 };
 
 const TABS: Tab[] = [
-  { key: 'concepts', label: 'Concepts', route: '/playbook/concepts', icon: 'bulb-outline' },
-  { key: 'resources', label: 'Resources', route: '/playbook/resources', icon: 'library-outline' },
-  { key: 'patterns', label: 'Patterns', route: '/playbook/patterns', icon: 'analytics-outline' },
-  { key: 'reviews', label: 'Reviews', route: '/playbook/reviews', icon: 'calendar-outline' },
-  { key: 'qa', label: 'Q&A', route: '/playbook/qa', icon: 'help-circle-outline' },
+  { key: 'concepts', label: 'Concepts', route: '/library/concepts', icon: 'bulb-outline' },
+  { key: 'resources', label: 'Resources', route: '/library/resources', icon: 'library-outline' },
+  { key: 'patterns', label: 'Patterns', route: '/library/patterns', icon: 'analytics-outline' },
+  { key: 'reviews', label: 'Reviews', route: '/library/reviews', icon: 'calendar-outline' },
+  { key: 'qa', label: 'Q&A', route: '/library/qa', icon: 'help-circle-outline' },
 ];
 
 export function SectionTabs({ counts }: SectionTabsProps) {

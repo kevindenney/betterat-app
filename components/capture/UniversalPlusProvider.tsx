@@ -231,7 +231,7 @@ export function UniversalPlusProvider({ children }: { children: React.ReactNode 
             queryKey: ['playbook-insights', user.id, currentInterest.id],
           });
         }
-        router.push('/(tabs)/playbook' as any);
+        router.push('/(tabs)/library' as any);
         toast.show('Concept saved to Playbook', 'success');
       } catch (err) {
         logger.error('Concept drop failed', err);
@@ -264,7 +264,7 @@ export function UniversalPlusProvider({ children }: { children: React.ReactNode 
           visible={visible}
           onDismiss={close}
           onQuickCapture={handleQuickCapture}
-          onAddFromBlueprint={() => handleNavigate('/playbook/blueprints')}
+          onAddFromBlueprint={() => handleNavigate('/library/blueprints')}
           onAddFromFollow={() => handleNavigate('/discover/following')}
           onDropConcept={handleDropConcept}
           onShareIdea={() => handleNavigate('/share/idea')}
