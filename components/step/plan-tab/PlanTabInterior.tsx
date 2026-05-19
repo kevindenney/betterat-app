@@ -12,6 +12,10 @@ import { PlanFieldCard } from './PlanFieldCard';
 import { PlanOptionalAddOns } from './PlanOptionalAddOns';
 import { PlanTimedToggleRow } from './PlanTimedToggleRow';
 import { FEATURE_FLAGS } from '@/lib/featureFlags';
+import {
+  BeforeTheShiftCard,
+  type BeforeShiftItem,
+} from '@/components/step/v2/plan/BeforeTheShiftCard';
 
 interface PlanTabInteriorProps {
   planData: StepPlanData;
@@ -32,6 +36,17 @@ interface PlanTabInteriorProps {
    */
   isTimed?: boolean;
   onToggleTimed?: (next: boolean) => void;
+  /**
+   * D37 "Before the shift" library checklist. When items exist, renders
+   * a card above the manual fields. Pass items + onToggle from the
+   * useLibraryBeforeBinding(stepId) hook.
+   */
+  libraryBefore?: {
+    items: BeforeShiftItem[];
+    totalEstimate?: string;
+    onToggle?: (rowId: string) => void;
+    onAddFromLibrary?: () => void;
+  };
 }
 
 export function PlanTabInterior({
@@ -48,6 +63,7 @@ export function PlanTabInterior({
   footer,
   isTimed,
   onToggleTimed,
+  libraryBefore,
 }: PlanTabInteriorProps) {
   const showTimedToggle =
     FEATURE_FLAGS.PRACTICE_DO_TAB_PER_STEP_TIMING &&
@@ -108,6 +124,17 @@ export function PlanTabInterior({
           <View style={styles.manualLine} />
         </Pressable>
       )}
+
+      {libraryBefore && libraryBefore.items.length > 0 ? (
+        <View style={styles.libraryBeforeSlot}>
+          <BeforeTheShiftCard
+            items={libraryBefore.items}
+            totalEstimate={libraryBefore.totalEstimate}
+            onToggle={libraryBefore.onToggle}
+            onAddFromLibrary={libraryBefore.onAddFromLibrary}
+          />
+        </View>
+      ) : null}
 
       {(manualExpanded || state !== 'empty') && (
         <View style={styles.fields}>
@@ -255,6 +282,9 @@ const styles = StyleSheet.create({
   },
   fields: {
     gap: IOS_SPACING.sm,
+  },
+  libraryBeforeSlot: {
+    marginBottom: IOS_SPACING.sm,
   },
   textArea: {
     fontSize: 14,

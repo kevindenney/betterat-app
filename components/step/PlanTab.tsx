@@ -34,6 +34,7 @@ import { router } from 'expo-router';
 import { getStepCategoryLabels } from '@/lib/step-category-config';
 import { FEATURE_FLAGS } from '@/lib/featureFlags';
 import { PlanTabInterior, PlanTabIOSRegisterInterior } from './plan-tab';
+import { useLibraryBeforeBinding } from '@/hooks/useStepLibraryBefore';
 import { buildSuggestions, crossInterestToMentorInput } from '@/services/SuggestionsService';
 import { useCrossInterestSuggestions } from '@/hooks/useCrossInterestSuggestions';
 
@@ -58,6 +59,21 @@ interface PlanTabProps {
   onConversationalCreate?: (planData: Partial<StepPlanData>, suggestedTitle?: string) => void;
   /** Step category for subtype-aware labels (e.g. 'nutrition', 'strength') */
   stepCategory?: string;
+}
+
+/**
+ * Internal wrapper that resolves the D37 "Before the shift" library
+ * checklist via useLibraryBeforeBinding(stepId) and threads it into
+ * PlanTabInterior. Lives here (vs. inline in PlanTab) so the hook
+ * runs at the same lifecycle level as the rest of the Plan body
+ * data and we don't conditionally hook below.
+ */
+function PlanTabInteriorWithLibraryBefore({
+  stepId,
+  ...rest
+}: React.ComponentProps<typeof PlanTabInterior> & { stepId?: string }) {
+  const libraryBefore = useLibraryBeforeBinding(stepId);
+  return <PlanTabInterior {...rest} libraryBefore={libraryBefore} />;
 }
 
 export function PlanTab({
@@ -555,7 +571,8 @@ export function PlanTab({
     );
 
     return (
-      <PlanTabInterior
+      <PlanTabInteriorWithLibraryBefore
+        stepId={stepId}
         planData={planData}
         onUpdate={onUpdate}
         readOnly={readOnly}
