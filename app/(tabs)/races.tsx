@@ -2736,8 +2736,6 @@ export default function RacesScreen() {
   useEffect(() => {
     const targetId = initialSelectedRaceParam.current || (typeof searchParams?.selected === 'string' ? searchParams.selected : null);
     if (!targetId || loading) {
-      // eslint-disable-next-line no-console
-      console.log('[NEWSTEP-DIAG] selection-effect bail:noTargetOrLoading', { targetId, loading });
       return;
     }
 
@@ -2749,18 +2747,9 @@ export default function RacesScreen() {
       safeRecentRaces.find((race: any) => race.id === targetId) ??
       myTimelineSteps?.find((s) => s.id === targetId);
     if (!matchingRace) {
-      // eslint-disable-next-line no-console
-      console.log('[NEWSTEP-DIAG] selection-effect bail:noMatch', {
-        targetId,
-        safeRecentRacesCount: safeRecentRaces.length,
-        myTimelineCount: myTimelineSteps?.length ?? 0,
-        myTimelineFirstFiveIds: (myTimelineSteps ?? []).slice(0, 5).map((s) => s.id),
-      });
       return;
     }
 
-    // eslint-disable-next-line no-console
-    console.log('[NEWSTEP-DIAG] selection-effect applied', { targetId, isGridViewBefore: 'unknown-until-next-render' });
     logger.debug('[races.tsx] Selecting race from route params:', targetId);
     setSelectedRaceId(targetId);
     setHasManuallySelected(true);

@@ -927,14 +927,6 @@ RULES:
     const isFreshDraft = Boolean(stepMetadata?.draft);
     const autoFocusWhat =
       isFreshDraft && !canonicalPlanData.what_will_you_do?.trim();
-    // eslint-disable-next-line no-console
-    console.log('[NEWSTEP-DIAG] autoFocusWhat compute', {
-      stepId: step.id,
-      stepTitle: step.title,
-      isFreshDraft,
-      whatLen: (canonicalPlanData.what_will_you_do ?? '').trim().length,
-      autoFocusWhat,
-    });
 
     return (
       <>
