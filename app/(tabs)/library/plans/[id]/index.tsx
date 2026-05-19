@@ -243,10 +243,16 @@ const HKDW_RESOURCES: PlanResourceRow[] = [
   },
 ];
 
+const VALID_TABS: PlanTabKey[] = ['steps', 'subscribers', 'resources'];
+
 export default function PlanDetailScreen() {
   const insets = useSafeAreaInsets();
-  const params = useLocalSearchParams<{ id?: string }>();
-  const [activeTab, setActiveTab] = useState<PlanTabKey>('steps');
+  const params = useLocalSearchParams<{ id?: string; tab?: string }>();
+  const initialTab: PlanTabKey =
+    params.tab && (VALID_TABS as string[]).includes(params.tab)
+      ? (params.tab as PlanTabKey)
+      : 'steps';
+  const [activeTab, setActiveTab] = useState<PlanTabKey>(initialTab);
 
   // Wave 2b: for any id, render the HKDW demo. Real DB read lands later.
   const plan = HKDW_PLAN;
