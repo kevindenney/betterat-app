@@ -183,12 +183,25 @@ export function UniversalPlusProvider({ children }: { children: React.ReactNode 
         queryClient.setQueryData(['timeline-steps', 'detail', savedStep.id], savedStep);
         void queryClient.invalidateQueries({ queryKey: ['timeline-steps', 'mine'] });
         toast.show('Draft saved', 'success');
+        // [NEWSTEP-DIAG] Confirm cache state + saved id BEFORE navigation
+        // eslint-disable-next-line no-console
+        console.log('[NEWSTEP-DIAG] pre-navigate', {
+          tempId,
+          savedId: savedStep.id,
+          interestId,
+          cacheCount: (queryClient.getQueryData<TimelineStepRecord[]>(currentTimelineKey) ?? []).length,
+          cacheHasSavedRow: (queryClient.getQueryData<TimelineStepRecord[]>(currentTimelineKey) ?? []).some(
+            (s) => s.id === savedStep.id,
+          ),
+        });
         // Route to the Practice tab's carousel centered on the new step.
         router.setParams({ selected: savedStep.id });
         router.navigate({
           pathname: '/(tabs)/races',
           params: { selected: savedStep.id },
         } as any);
+        // eslint-disable-next-line no-console
+        console.log('[NEWSTEP-DIAG] router.navigate called', { savedId: savedStep.id });
       } catch (err) {
         queryClient.setQueriesData<TimelineStepRecord[]>(
           { predicate: matchesMineQuery },
