@@ -21,6 +21,7 @@ export default function LibraryLayout() {
       />
       <Stack.Screen name="concepts/index" options={{ title: 'Concepts' }} />
       <Stack.Screen name="concepts/[slug]" options={{ title: 'Concept' }} />
+      <Stack.Screen name="plans/[id]/index" options={{ title: 'Plan' }} />
       <Stack.Screen name="resources/index" options={{ title: 'Resources' }} />
       <Stack.Screen name="patterns/index" options={{ title: 'Patterns' }} />
       <Stack.Screen name="reviews/index" options={{ title: 'Reviews' }} />
