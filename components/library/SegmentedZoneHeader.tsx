@@ -1,5 +1,5 @@
 import React from 'react';
-import { Pressable, ScrollView, StyleSheet, Text } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
 
 export type LibraryZone = 'all' | 'plans' | 'people' | 'concepts' | 'resources';
@@ -19,11 +19,7 @@ interface Props {
 
 export function SegmentedZoneHeader({ zone, onChange }: Props) {
   return (
-    <ScrollView
-      horizontal
-      showsHorizontalScrollIndicator={false}
-      contentContainerStyle={styles.row}
-    >
+    <View style={styles.row}>
       {ZONES.map((z) => {
         const active = z.key === zone;
         return (
@@ -32,49 +28,65 @@ export function SegmentedZoneHeader({ zone, onChange }: Props) {
             onPress={() => onChange(z.key)}
             style={({ pressed }) => [
               styles.chip,
-              active && styles.chipActive,
-              pressed && !active && styles.chipPressed,
+              active ? styles.chipActive : styles.chipIdle,
+              pressed && !active ? styles.chipPressed : null,
             ]}
             accessibilityRole="tab"
             accessibilityState={{ selected: active }}
           >
-            <Text style={[styles.label, active && styles.labelActive]}>{z.label}</Text>
+            <Text
+              style={[
+                styles.label,
+                active ? styles.labelActive : styles.labelIdle,
+              ]}
+              numberOfLines={1}
+            >
+              {z.label}
+            </Text>
           </Pressable>
         );
       })}
-    </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   row: {
-    paddingHorizontal: IOS_SPACING.md,
-    paddingVertical: IOS_SPACING.sm,
-    gap: IOS_SPACING.xs,
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: IOS_SPACING.md,
+    paddingVertical: IOS_SPACING.sm,
   },
   chip: {
-    paddingHorizontal: IOS_SPACING.md,
+    flexShrink: 1,
+    minHeight: 32,
+    paddingHorizontal: IOS_SPACING.sm + 2,
     paddingVertical: 6,
-    borderRadius: 999,
-    backgroundColor: IOS_COLORS.tertiarySystemGroupedBackground,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  chipIdle: {
+    backgroundColor: IOS_COLORS.secondarySystemBackground,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(60,60,67,0.12)',
+    borderColor: 'rgba(60,60,67,0.15)',
   },
   chipActive: {
     backgroundColor: IOS_COLORS.systemBlue,
-    borderColor: IOS_COLORS.systemBlue,
   },
   chipPressed: {
     opacity: 0.7,
   },
   label: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
+    letterSpacing: -0.1,
+  },
+  labelIdle: {
     color: IOS_COLORS.label,
   },
   labelActive: {
-    color: '#fff',
+    color: '#FFFFFF',
   },
 });
