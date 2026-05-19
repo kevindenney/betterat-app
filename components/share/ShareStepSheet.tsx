@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { Anchor, ChevronRight, Link as LinkIcon, Send } from 'lucide-react-native';
+import { Anchor, ChevronRight, Link as LinkIcon, Send, Sparkles } from 'lucide-react-native';
 
-export type ShareMode = 'direct' | 'group' | 'link';
+export type ShareMode = 'direct' | 'group' | 'link' | 'suggest';
 
 export interface ShareStepSheetRecipient {
   id: string;
@@ -25,6 +25,13 @@ export interface ShareStepSheetProps {
   onShareDirect: (recipientId: string) => Promise<void> | void;
   onShareToGroup: (groupId: string) => Promise<void> | void;
   onCopyLink: () => Promise<string> | string;
+  /**
+   * Optional "Suggest as a next step" path. When provided, a new mode
+   * row appears that opens a recipient picker; on selection this is
+   * called with the chosen user_id and an optional message. The
+   * recipient sees the suggestion in their Practice Inbox.
+   */
+  onSuggestDirect?: (recipientId: string, message?: string) => Promise<void> | void;
   onDismiss: () => void;
 }
 
@@ -45,10 +52,13 @@ export function ShareStepSheet({
   onShareDirect,
   onShareToGroup,
   onCopyLink,
+  onSuggestDirect,
   onDismiss,
 }: ShareStepSheetProps) {
   const [busyKind, setBusyKind] = useState<ShareMode | null>(null);
   const [copiedUrl, setCopiedUrl] = useState<string | null>(null);
+  const [suggestPickerOpen, setSuggestPickerOpen] = useState(false);
+  const canSuggest = Boolean(onSuggestDirect);
 
   const wrap =
     <T,>(kind: ShareMode, fn: () => Promise<T> | T) =>
@@ -94,6 +104,25 @@ export function ShareStepSheet({
             </View>
             <ChevronRight size={18} color="#9CA3AF" />
           </Pressable>
+
+          {canSuggest ? (
+            <Pressable
+              style={[styles.modeRow, busyKind === 'suggest' && styles.modeRowBusy]}
+              disabled={busyKind !== null}
+              onPress={() => setSuggestPickerOpen(true)}
+            >
+              <View style={[styles.modeIcon, styles.modeIconSuggest]}>
+                <Sparkles size={18} color="#7C3AED" />
+              </View>
+              <View style={styles.modeCopy}>
+                <Text style={styles.modeName}>Suggest as a next step</Text>
+                <Text style={styles.modeDesc}>
+                  Lands in their Practice Inbox · they can add it to their timeline
+                </Text>
+              </View>
+              <ChevronRight size={18} color="#9CA3AF" />
+            </Pressable>
+          ) : null}
 
           {defaultGroup ? (
             <Pressable
@@ -162,6 +191,59 @@ export function ShareStepSheet({
           </Pressable>
         </Pressable>
       </Pressable>
+
+      <Modal
+        visible={suggestPickerOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setSuggestPickerOpen(false)}
+      >
+        <Pressable style={styles.scrim} onPress={() => setSuggestPickerOpen(false)}>
+          <Pressable style={styles.sheet} onPress={(e) => e.stopPropagation()}>
+            <View style={styles.handle} />
+            <Text style={styles.title}>Suggest to…</Text>
+            <Text style={styles.sub}>Pick a person — the step lands in their Inbox as a suggestion.</Text>
+            {recentRecipients.length === 0 ? (
+              <Text style={styles.suggestEmpty}>
+                No one to suggest to yet. Follow a mentor or crew member first.
+              </Text>
+            ) : (
+              <ScrollView style={styles.suggestList}>
+                {recentRecipients.map((person) => (
+                  <Pressable
+                    key={person.id}
+                    style={[styles.suggestRow, busyKind === 'suggest' && styles.modeRowBusy]}
+                    disabled={busyKind !== null || !onSuggestDirect}
+                    onPress={async () => {
+                      if (!onSuggestDirect) return;
+                      await wrap('suggest', () => onSuggestDirect(person.id))();
+                      setSuggestPickerOpen(false);
+                    }}
+                  >
+                    <View
+                      style={[
+                        styles.personAvatar,
+                        { backgroundColor: avatarColor(person.id, person.avatarColor) },
+                      ]}
+                    >
+                      <Text style={styles.personInitials}>
+                        {person.initials.slice(0, 2).toUpperCase()}
+                      </Text>
+                    </View>
+                    <Text style={styles.suggestName} numberOfLines={1}>
+                      {person.name}
+                    </Text>
+                    <ChevronRight size={18} color="#9CA3AF" />
+                  </Pressable>
+                ))}
+              </ScrollView>
+            )}
+            <Pressable style={styles.cancel} onPress={() => setSuggestPickerOpen(false)}>
+              <Text style={styles.cancelText}>Cancel</Text>
+            </Pressable>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </Modal>
   );
 }
@@ -244,6 +326,36 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: '#E5E7EB',
+  },
+  modeIconSuggest: {
+    backgroundColor: 'rgba(124,58,237,0.10)',
+    borderColor: 'rgba(124,58,237,0.30)',
+  },
+  suggestList: {
+    maxHeight: 320,
+    marginVertical: 4,
+  },
+  suggestRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 4,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#F3F4F6',
+  },
+  suggestName: {
+    flex: 1,
+    fontSize: 15,
+    fontWeight: '500',
+    color: '#111827',
+  },
+  suggestEmpty: {
+    paddingVertical: 18,
+    paddingHorizontal: 4,
+    fontSize: 13,
+    color: '#6B7280',
+    textAlign: 'center',
   },
   modeCopy: {
     flex: 1,

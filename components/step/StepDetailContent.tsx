@@ -1169,6 +1169,7 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab }
           onShareDirect={shareStep.shareDirect}
           onShareToGroup={shareStep.shareToGroup}
           onCopyLink={shareStep.copyLink}
+          onSuggestDirect={shareStep.suggestDirect}
           onDismiss={shareStep.close}
         />
       </View>

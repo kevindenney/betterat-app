@@ -24,6 +24,12 @@ interface UseShareStepResult {
   shareDirect: (recipientId: string) => Promise<void>;
   shareToGroup: (groupId: string) => Promise<void>;
   copyLink: () => Promise<string>;
+  /**
+   * Suggest the step to another user — writes a row to step_suggestions
+   * so it lands in their Practice Inbox. Different semantics from
+   * shareDirect (which writes a follower post the recipient can view).
+   */
+  suggestDirect: (recipientId: string, message?: string) => Promise<void>;
 }
 
 async function loadRecentRecipients(userId: string): Promise<ShareStepSheetRecipient[]> {
@@ -141,6 +147,27 @@ export function useShareStep(): UseShareStepResult {
     [user?.id, step, toast, close],
   );
 
+  const suggestDirect = useCallback(
+    async (recipientId: string, message?: string) => {
+      if (!user?.id || !step) return;
+      const body = message?.trim() || step.body?.trim() || step.title;
+      const { error } = await supabase.from('step_suggestions').insert({
+        source_user_id: user.id,
+        target_user_id: recipientId,
+        source_step_id: step.id,
+        message: body,
+        status: 'pending',
+      });
+      if (error) {
+        toast.show('Could not send suggestion', 'error');
+        return;
+      }
+      toast.show('Suggestion sent', 'success');
+      close();
+    },
+    [user?.id, step, toast, close],
+  );
+
   const copyLink = useCallback(async () => {
     if (!user?.id || !step) return '';
     const { url } = await createShareLink({ senderUserId: user.id, stepId: step.id });
@@ -171,5 +198,6 @@ export function useShareStep(): UseShareStepResult {
     shareDirect,
     shareToGroup,
     copyLink,
+    suggestDirect,
   };
 }
