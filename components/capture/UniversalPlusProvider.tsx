@@ -176,6 +176,10 @@ export function UniversalPlusProvider({ children }: { children: React.ReactNode 
         queryClient.setQueryData<TimelineStepRecord[]>(
           currentTimelineKey,
           (old) => {
+            // eslint-disable-next-line no-console
+            console.warn(
+              `[universal-plus] setQueryData for ${JSON.stringify(currentTimelineKey)} — old=${old === undefined ? 'undefined' : Array.isArray(old) ? `array(len=${old.length})` : typeof old}`,
+            );
             if (!old) return [savedStep];
             const hasTemp = old.some((step) => step.id === tempId);
             const hasSaved = old.some((step) => step.id === savedStep.id);
@@ -185,17 +189,27 @@ export function UniversalPlusProvider({ children }: { children: React.ReactNode 
         );
         queryClient.removeQueries({ queryKey: ['timeline-steps', 'detail', tempId] });
         queryClient.setQueryData(['timeline-steps', 'detail', savedStep.id], savedStep);
-        // Log the post-write cache state so we can see whether the saved row
-        // is actually present in the queries useMyTimeline subscribes to.
-        const allQueries = queryClient
-          .getQueryCache()
-          .findAll({ queryKey: ['timeline-steps', 'mine'] });
-        const cacheReport = allQueries.map((q) => {
-          const data = q.state.data as TimelineStepRecord[] | undefined;
-          return `${JSON.stringify(q.queryKey)}:${data?.length ?? 'n'}${data?.some((s) => s.id === savedStep.id) ? '✓' : '✗'}`;
-        }).join(' | ');
+        // Dump ALL timeline-steps queries (not just 'mine') and their
+        // status, so we can see whether the cache entry we expect exists
+        // and what state it's in.
+        const allQueries = queryClient.getQueryCache().findAll({
+          queryKey: ['timeline-steps'],
+        });
+        const cacheReport = allQueries
+          .filter((q) => {
+            const k = q.queryKey;
+            return Array.isArray(k) && k[1] === 'mine';
+          })
+          .map((q) => {
+            const data = q.state.data as TimelineStepRecord[] | undefined;
+            const fetchStatus = q.state.fetchStatus;
+            const dataLen = Array.isArray(data) ? data.length : 'n';
+            const has = Array.isArray(data) && data.some((s) => s.id === savedStep.id);
+            return `${JSON.stringify(q.queryKey)} len=${dataLen} fetch=${fetchStatus} has=${has ? '✓' : '✗'} subs=${q.getObserversCount()}`;
+          })
+          .join(' || ');
         // eslint-disable-next-line no-console
-        console.warn(`[universal-plus] post-write cache state — ${cacheReport}`);
+        console.warn(`[universal-plus] post-write — interestId=${interestId} key=${JSON.stringify(currentTimelineKey)} || ${cacheReport}`);
         void queryClient.invalidateQueries({ queryKey: ['timeline-steps', 'mine'] });
         toast.show('Draft saved', 'success');
         // Route to the Practice tab's carousel centered on the new step.
