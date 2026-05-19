@@ -55,6 +55,8 @@ export interface FieldCardProps {
    * text field (e.g. SubStepEditor for the HOW field).
    */
   renderBody?: () => React.ReactNode;
+  /** When true, the TextInput focuses on mount. Has no effect when readOnly. */
+  autoFocus?: boolean;
   testID?: string;
 }
 
@@ -74,6 +76,7 @@ export function FieldCard({
   readOnly,
   style,
   renderBody,
+  autoFocus,
   testID,
 }: FieldCardProps) {
   const [contentHeight, setContentHeight] = useState<number>(MIN_HEIGHT);
@@ -112,6 +115,7 @@ export function FieldCard({
           scrollEnabled={false}
           textAlignVertical="top"
           editable={!readOnly}
+          autoFocus={!readOnly && autoFocus}
         />
       )}
     </View>

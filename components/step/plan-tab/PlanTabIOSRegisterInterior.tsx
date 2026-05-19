@@ -89,6 +89,12 @@ export interface PlanTabIOSRegisterInteriorProps {
    * title / tabs can never scroll off-screen.
    */
   embedded?: boolean;
+  /**
+   * When true, the What FieldCard focuses on mount — used by the post-create
+   * landing flow so a freshly added step opens with the cursor in the
+   * "What will you do?" field, ready to elaborate.
+   */
+  autoFocusWhat?: boolean;
   testID?: string;
 }
 
@@ -121,6 +127,7 @@ export function PlanTabIOSRegisterInterior({
   onNextPhase,
   footer,
   embedded,
+  autoFocusWhat,
   testID,
 }: PlanTabIOSRegisterInteriorProps) {
   const [coachOpen, setCoachOpen] = useState(false);
@@ -187,6 +194,7 @@ export function PlanTabIOSRegisterInterior({
         value={what}
         onChangeText={(v) => onUpdate({ what_will_you_do: v })}
         readOnly={readOnly}
+        autoFocus={autoFocusWhat}
       />
 
       {belowWhatCard}

@@ -917,10 +917,22 @@ RULES:
     );
     const suggestions = buildSuggestions({ mentor: mentorInput });
 
+    // Auto-focus the WHAT field when the step is a freshly-created draft
+    // with no plan content yet. The draft flag is set by Universal Plus
+    // quick capture; once the user types anything, canonicalPlanData
+    // .what_will_you_do flips truthy and subsequent mounts won't refocus
+    // (RN's TextInput autoFocus only fires on mount anyway, but gating
+    // on emptiness prevents revisits from yanking the keyboard up).
+    const stepMetadata = (step.metadata as { draft?: boolean } | null) ?? null;
+    const isFreshDraft = Boolean(stepMetadata?.draft);
+    const autoFocusWhat =
+      isFreshDraft && !canonicalPlanData.what_will_you_do?.trim();
+
     return (
       <>
         <PlanTabIOSRegisterInterior
           embedded
+          autoFocusWhat={autoFocusWhat}
           planData={canonicalPlanData}
           onUpdate={handleStepLoopUpdate}
           readOnly={readOnly}
