@@ -9,11 +9,12 @@
  */
 
 import React, { useCallback } from 'react';
-import { Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { HkdwStepCard, SmartAppBanner, WelcomeToast } from '@/components/onboarding';
 import { FEATURE_FLAGS } from '@/lib/featureFlags';
+import { useHkdwStepData } from '@/hooks/useHkdwStepData';
 
 const HKDW_SAMPLE_STEP_ID = 'boat-speed';
 
@@ -39,6 +40,13 @@ export default function HkdwStepRoute() {
 
   const isWeb = Platform.OS === 'web';
   const isSample = id === HKDW_SAMPLE_STEP_ID;
+
+  // Real-data fetch — skipped for the sample fast-path so the demo route
+  // never hits the network. `useHkdwStepData` joins timeline_steps →
+  // blueprint_steps → timeline_blueprints + counts subscribers.
+  const { data: liveStep, isLoading: liveLoading } = useHkdwStepData(
+    isSample ? undefined : id,
+  );
 
   const goBlueprintIndex = useCallback(() => {
     router.push('/practice/blueprint/hkdw-prepare-for-the-worlds' as any);
@@ -66,19 +74,51 @@ export default function HkdwStepRoute() {
 
   if (!id) return null;
 
-  // Phase 10 mock fast-path. Real data wiring lands when blueprint
-  // subscription joins are wired into the practice route.
-  if (!isSample) {
+  if (!isSample && liveLoading) {
+    return (
+      <View style={styles.loading}>
+        <Stack.Screen options={{ title: 'Step' }} />
+        <ActivityIndicator />
+      </View>
+    );
+  }
+
+  if (!isSample && !liveStep) {
     return (
       <View style={styles.disabled}>
         <Stack.Screen options={{ title: 'Step' }} />
         <Text style={styles.disabledTitle}>Step not found.</Text>
         <Text style={styles.disabledBody}>
-          Open the sample at /practice/step/{HKDW_SAMPLE_STEP_ID} to preview the HKDW first-action card.
+          This step isn't in a blueprint you have access to. Open the sample at
+          /practice/step/{HKDW_SAMPLE_STEP_ID} to preview the HKDW first-action card.
         </Text>
       </View>
     );
   }
+
+  const cardProps = isSample
+    ? {
+        blueprintShortName: MOCK_STEP.blueprintShortName,
+        blueprintWeekLine: MOCK_STEP.blueprintWeekLine,
+        stepCounter: MOCK_STEP.stepCounter,
+        stepTitle: MOCK_STEP.stepTitle,
+        fromLine: MOCK_STEP.fromLine,
+        fleetChipLabel: MOCK_STEP.fleetChipLabel,
+        planWhatText: MOCK_STEP.planWhatText,
+        planHowText: isWeb ? MOCK_STEP.planHowText : MOCK_STEP.planHowTextNative,
+        totalSailors: 63,
+      }
+    : {
+        blueprintShortName: liveStep!.blueprintShortName,
+        blueprintWeekLine: liveStep!.blueprintWeekLine,
+        stepCounter: liveStep!.stepCounter,
+        stepTitle: liveStep!.stepTitle,
+        fromLine: liveStep!.fromLine,
+        fleetChipLabel: liveStep!.fleetChipLabel,
+        planWhatText: liveStep!.stepWhat ?? undefined,
+        planHowText: liveStep!.stepHowText ?? undefined,
+        totalSailors: liveStep!.subscriberCount,
+      };
 
   return (
     <SafeAreaView style={styles.screen} edges={['top']}>
@@ -96,24 +136,32 @@ export default function HkdwStepRoute() {
       <ScrollView contentContainerStyle={styles.scroll}>
         <WelcomeToast
           variant={isWeb ? 'subscription' : 'native-resume'}
-          subscriptionSource={isWeb ? "Kevin's HKDW blueprint" : "Kevin's HKDW blueprint"}
-          count={{ steps: 12, freeMonths: 3, fleetSize: 63 }}
+          subscriptionSource={
+            isSample
+              ? "Kevin's HKDW blueprint"
+              : liveStep!.fromLine.replace(/^From\s+/, '')
+          }
+          count={{
+            steps: isSample ? 12 : liveStep!.totalSteps,
+            freeMonths: 3,
+            fleetSize: cardProps.totalSailors,
+          }}
         />
 
         <HkdwStepCard
           variant={isWeb ? 'web' : 'native'}
-          blueprintShortName={MOCK_STEP.blueprintShortName}
-          blueprintWeekLine={MOCK_STEP.blueprintWeekLine}
+          blueprintShortName={cardProps.blueprintShortName}
+          blueprintWeekLine={cardProps.blueprintWeekLine}
           eyebrow="Your first step"
-          stepCounter={MOCK_STEP.stepCounter}
+          stepCounter={cardProps.stepCounter}
           preTitle="Current step"
-          stepTitle={MOCK_STEP.stepTitle}
-          fromLine={MOCK_STEP.fromLine}
-          fleetChipLabel={MOCK_STEP.fleetChipLabel}
-          planWhatText={MOCK_STEP.planWhatText}
-          planHowText={isWeb ? MOCK_STEP.planHowText : MOCK_STEP.planHowTextNative}
+          stepTitle={cardProps.stepTitle}
+          fromLine={cardProps.fromLine}
+          fleetChipLabel={cardProps.fleetChipLabel}
+          planWhatText={cardProps.planWhatText}
+          planHowText={cardProps.planHowText}
           activePhase="plan"
-          totalSailors={63}
+          totalSailors={cardProps.totalSailors}
           onTapBlueprintStrip={goBlueprintIndex}
           onTapFleetChip={goFleet}
           onTapDiscussion={goDiscussion}
@@ -139,6 +187,11 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 24,
     gap: 8,
+  },
+  loading: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   disabledTitle: {
     fontSize: 18,
