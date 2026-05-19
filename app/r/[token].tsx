@@ -77,6 +77,15 @@ export default function RedeemRoute() {
         userId: user.id,
         blueprintId: result.blueprintId,
       });
+      // Sample fast-path: `sample-blueprint` is the dev mock id (not a real
+      // UUID), so the subscribe / firstStepIdFor / blueprint detail paths
+      // all fail. Skip them and route straight to the canonical first-step
+      // preview at /practice/step/boat-speed.
+      if (result.blueprintId === 'sample-blueprint') {
+        trackRedeemEvent({ name: 'first_step_written', userId: user.id, stepId: 'boat-speed' });
+        router.replace('/practice/step/boat-speed' as any);
+        return;
+      }
       const subscriptionId = await subscribeUserToBlueprint(user.id, result.blueprintId);
       const stepId = result.firstStepId ?? (await firstStepIdFor(result.blueprintId));
       if (stepId) {

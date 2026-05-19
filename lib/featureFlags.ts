@@ -417,7 +417,12 @@ export const FEATURE_FLAGS = {
    * Off by default in production until the partnership ships. Per
    * docs/redesign/ios-register/phase-10-hkdw-onboarding.md.
    */
-  HKDW_REDEEM_FLOW: readBooleanEnv('EXPO_PUBLIC_FF_HKDW_REDEEM_FLOW', false),
+  // Default ON in dev (__DEV__ === true) so the canonical /r/[token] flow,
+  // SmartAppBanner, InstallSheet, WelcomeToast, and the /practice/step sample
+  // mock-fast-path light up without anyone setting an env var. Production
+  // builds (__DEV__ === false) keep it gated behind the env var until the
+  // partnership ships.
+  HKDW_REDEEM_FLOW: readBooleanEnv('EXPO_PUBLIC_FF_HKDW_REDEEM_FLOW', __DEV__),
 
   /**
    * Phase 10 PR-1 — Blueprint Index & Worlds Fleet on real data.
