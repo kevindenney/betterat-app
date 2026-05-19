@@ -14,6 +14,7 @@
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { IOS_COLORS } from '@/lib/design-tokens-ios';
 
 interface Props {
@@ -36,8 +37,9 @@ export function AdoptStepFooter({
   secondaryLabel = 'Save idea as concept seed',
   disabled = false,
 }: Props) {
+  const insets = useSafeAreaInsets();
   return (
-    <View style={styles.footer}>
+    <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 14) }]}>
       {provenance ? (
         <Text style={styles.provenance} numberOfLines={2}>
           {provenance}
