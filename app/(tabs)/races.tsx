@@ -4521,16 +4521,14 @@ export default function RacesScreen() {
                 renderAboveGrid={
                   showSeriesStrip
                     ? () => (
-                        <View style={{ paddingTop: totalHeaderHeight + 8 }}>
-                          <SeriesStrip
-                            label={getSeriesLabel(currentInterest)}
-                            name={seriesStripName}
-                            currentIndex={headerCurrentRaceIndex ?? 0}
-                            totalSteps={headerTotalRaces}
-                            progress={seriesStripProgress}
-                            onPress={() => setShowSeasonPicker(true)}
-                          />
-                        </View>
+                        <SeriesStrip
+                          label={getSeriesLabel(currentInterest)}
+                          name={seriesStripName}
+                          currentIndex={headerCurrentRaceIndex ?? 0}
+                          totalSteps={headerTotalRaces}
+                          progress={seriesStripProgress}
+                          onPress={() => setShowSeasonPicker(true)}
+                        />
                       )
                     : undefined
                 }
@@ -4598,7 +4596,7 @@ export default function RacesScreen() {
                 onBulkUpdateStatus={isViewingOtherTimeline || isShowingOnlyDemos ? undefined : handleTimelineGridBulkStatusUpdate}
                 onBulkDeleteRaces={isViewingOtherTimeline || isShowingOnlyDemos ? undefined : handleTimelineGridBulkDelete}
                 onReorderRaces={isViewingOtherTimeline || isShowingOnlyDemos ? undefined : handleTimelineGridReorder}
-                topInset={showSeriesStrip ? 0 : (!isSailingInterest && hasTimelineSteps ? 0 : totalHeaderHeight)}
+                topInset={!isSailingInterest && hasTimelineSteps ? 0 : totalHeaderHeight}
                 onContentScroll={handleToolbarScroll}
                 // Auto-scroll the grid to a freshly-created step so the user
                 // never has to hunt for it — mirrors the carousel's existing
