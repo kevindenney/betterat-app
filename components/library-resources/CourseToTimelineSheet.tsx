@@ -19,7 +19,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
 import { useCreateStepsFromCourse } from '@/hooks/useTimelineSteps';
-import type { LibraryResourceRecord, CourseLesson } from '@/types/library';
+import type { LibraryResourceRecord } from '@/types/library';
 import { getCourseMetadata, getAllLessons } from '@/types/library';
 
 interface CourseToTimelineSheetProps {

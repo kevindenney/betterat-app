@@ -19,7 +19,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
 import { STEP_COLORS } from '@/lib/step-theme';
-import { ResourceTypeIcon, getResourceTypeLabel } from '@/components/library/ResourceTypeIcon';
+import { ResourceTypeIcon, getResourceTypeLabel } from '@/components/library-resources/ResourceTypeIcon';
 import { getResourcesByIds } from '@/services/LibraryService';
 import {
   getCourseMetadata,

@@ -4,7 +4,7 @@
  * DEPRECATED: Phase 1 of the Playbook migration renamed `user_libraries` →
  * `playbooks` and `library_resources` → `playbook_resources` (with
  * `library_id` → `playbook_id`). This file stays as a thin compat shim so the
- * `components/library/*` UI keeps working unchanged; Phase 10 deletes it in
+ * `components/library-resources/*` UI keeps working unchanged; Phase 10 deletes it in
  * favor of PlaybookService + ported UI.
  */
 

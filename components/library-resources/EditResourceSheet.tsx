@@ -14,7 +14,6 @@ import {
   Platform,
   KeyboardAvoidingView,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
 import { ResourceTypeIcon, getResourceTypeLabel } from './ResourceTypeIcon';
 import { useUpdateResource } from '@/hooks/useLibrary';

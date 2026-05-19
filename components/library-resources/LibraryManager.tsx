@@ -72,7 +72,7 @@ export function LibraryManager() {
       label: getResourceTypeLabel(type),
       items,
     }));
-  }, [resources]);
+  }, [filteredResources]);
 
   // Group resources by creator
   const groupedByCreator = useMemo(() => {
@@ -92,7 +92,7 @@ export function LibraryManager() {
         items,
         count: items.length,
       }));
-  }, [resources]);
+  }, [filteredResources]);
 
   const grouped = groupMode === 'type' ? groupedByType : groupedByCreator;
 

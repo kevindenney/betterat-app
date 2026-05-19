@@ -8,7 +8,7 @@
 
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
-import { LibraryManager } from '@/components/library/LibraryManager';
+import { LibraryManager } from '@/components/library-resources/LibraryManager';
 import { PlaybookBackLink } from '@/components/playbook/PlaybookBackLink';
 
 export default function PlaybookResourcesScreen() {

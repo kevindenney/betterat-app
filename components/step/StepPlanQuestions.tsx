@@ -18,7 +18,7 @@ import { CollaboratorPicker } from './CollaboratorPicker';
 import { CourseContextSheet } from './CourseContextSheet';
 import type { PlaybookPickerSelection } from '@/components/playbook/PlaybookPicker';
 import { AddToStepPlanSheet, type AddToStepPlanSelection } from './AddToStepPlanSheet';
-import { ResourceTypeIcon } from '@/components/library/ResourceTypeIcon';
+import { ResourceTypeIcon } from '@/components/library-resources/ResourceTypeIcon';
 import { addStepLink, removeStepLink, getStepLinks } from '@/services/PlaybookService';
 import { router } from 'expo-router';
 import { FromOtherPlaybooks } from './FromOtherPlaybooks';

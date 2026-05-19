@@ -13,7 +13,7 @@ import { BrainDumpEntry } from './BrainDumpEntry';
 import { ConversationalCapture } from './ConversationalCapture';
 import type { PlaybookPickerSelection } from '@/components/playbook/PlaybookPicker';
 import { AddToStepPlanSheet, type AddToStepPlanSelection } from './AddToStepPlanSheet';
-import { ResourceTypeIcon } from '@/components/library/ResourceTypeIcon';
+import { ResourceTypeIcon } from '@/components/library-resources/ResourceTypeIcon';
 import { getResourcesByIds } from '@/services/LibraryService';
 import { addStepLink, removeStepLink, getStepConceptLinks, getStepLinks, linkConceptToStep, unlinkConceptFromStep } from '@/services/PlaybookService';
 import { supabase } from '@/services/supabase';

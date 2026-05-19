@@ -10,7 +10,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
 import { STEP_COLORS, STEP_PALETTE } from '@/lib/step-theme';
-import { ResourceTypeIcon } from '@/components/library/ResourceTypeIcon';
+import { ResourceTypeIcon } from '@/components/library-resources/ResourceTypeIcon';
 import { useStepDetail, useUpdateStepMetadata } from '@/hooks/useStepDetail';
 import { useUpdateStep } from '@/hooks/useTimelineSteps';
 import { useAuth } from '@/providers/AuthProvider';
