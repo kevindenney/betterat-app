@@ -5,42 +5,39 @@ import { useToast } from '@/components/ui/AppToast';
 import { PlaybookHome } from '@/components/playbook/PlaybookHome';
 import { PlaybookIosPreview } from '@/app/playbook-ios';
 import { PlaybookLanding } from '@/components/playbook/PlaybookLanding';
+import { LibraryLanding } from '@/components/library/LibraryLanding';
 import { InspirationWizard } from '@/components/inspiration/InspirationWizard';
 import { FEATURE_FLAGS } from '@/lib/featureFlags';
 import { useInterest } from '@/providers/InterestProvider';
 import { usePlaybook, usePlaybookInsights, useLifecycleConcepts, useDiscardPlaybookInsight, useRefinePlaybookInsight } from '@/hooks/usePlaybook';
 import { useSubscribedBlueprints } from '@/hooks/useBlueprint';
 
-export default function PlaybookIndexScreen() {
+export default function LibraryIndexScreen() {
   const [inspirationWizardOpen, setInspirationWizardOpen] = React.useState(false);
 
-  if (FEATURE_FLAGS.PRACTICE_STEP_LOOP_IOS_REGISTER) {
-    return (
-      <>
-        <Phase6PlaybookLanding />
-        <InspirationWizard
-          visible={inspirationWizardOpen}
-          onClose={() => setInspirationWizardOpen(false)}
-        />
-      </>
-    );
-  }
+  // Pick the Concepts-zone body based on existing feature flags. Wave 1
+  // wraps it with the segmented zone header; Wave 2 will replace each
+  // body individually.
+  const conceptsBody = FEATURE_FLAGS.PRACTICE_STEP_LOOP_IOS_REGISTER ? (
+    <Phase6PlaybookLanding />
+  ) : FEATURE_FLAGS.PLAYBOOK_IOS_REGISTER ? (
+    <PlaybookIosPreview
+      embedded
+      onOpenInspiration={() => setInspirationWizardOpen(true)}
+    />
+  ) : (
+    <PlaybookHome />
+  );
 
-  if (FEATURE_FLAGS.PLAYBOOK_IOS_REGISTER) {
-    return (
-      <>
-        <PlaybookIosPreview
-          embedded
-          onOpenInspiration={() => setInspirationWizardOpen(true)}
-        />
-        <InspirationWizard
-          visible={inspirationWizardOpen}
-          onClose={() => setInspirationWizardOpen(false)}
-        />
-      </>
-    );
-  }
-  return <PlaybookHome />;
+  return (
+    <>
+      <LibraryLanding conceptsBody={conceptsBody} />
+      <InspirationWizard
+        visible={inspirationWizardOpen}
+        onClose={() => setInspirationWizardOpen(false)}
+      />
+    </>
+  );
 }
 
 function Phase6PlaybookLanding() {
