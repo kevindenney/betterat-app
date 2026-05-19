@@ -14,6 +14,7 @@
 import React, { useCallback } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { IOS_COLORS } from '@/lib/design-tokens-ios';
 import {
   SegmentedZoneHeader,
@@ -31,6 +32,7 @@ interface Props {
 }
 
 export function LibraryLanding({ conceptsBody }: Props) {
+  const insets = useSafeAreaInsets();
   const params = useLocalSearchParams<{ zone?: string }>();
   const rawZone = Array.isArray(params.zone) ? params.zone[0] : params.zone;
   const zone: LibraryZone =
@@ -44,7 +46,9 @@ export function LibraryLanding({ conceptsBody }: Props) {
 
   return (
     <View style={styles.container}>
-      <SegmentedZoneHeader zone={zone} onChange={handleZoneChange} />
+      <View style={[styles.headerWrap, { paddingTop: insets.top }]}>
+        <SegmentedZoneHeader zone={zone} onChange={handleZoneChange} />
+      </View>
       {zone === 'plans' ? (
         <ScrollView style={styles.body}>
           <PlansZone />
@@ -68,6 +72,11 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: IOS_COLORS.systemGroupedBackground,
+  },
+  headerWrap: {
+    backgroundColor: IOS_COLORS.systemBackground,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: 'rgba(60,60,67,0.18)',
   },
   body: {
     flex: 1,

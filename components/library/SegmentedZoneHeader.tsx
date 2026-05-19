@@ -58,9 +58,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: IOS_SPACING.md,
     paddingVertical: 6,
     borderRadius: 999,
-    backgroundColor: IOS_COLORS.secondarySystemGroupedBackground,
+    backgroundColor: IOS_COLORS.tertiarySystemGroupedBackground,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(60,60,67,0.1)',
+    borderColor: 'rgba(60,60,67,0.12)',
   },
   chipActive: {
     backgroundColor: IOS_COLORS.systemBlue,
