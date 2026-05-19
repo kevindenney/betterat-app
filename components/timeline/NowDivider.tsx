@@ -11,18 +11,20 @@ export function NowDivider() {
     <View style={styles.container} pointerEvents="none">
       <View style={styles.line} />
       <View style={styles.pill}>
-        <Text style={styles.pillText}>NOW</Text>
+        <Text style={styles.pillText} numberOfLines={1}>
+          NOW
+        </Text>
       </View>
-      <View style={styles.line} />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    width: 32,
+    width: 24,
     alignItems: 'center',
     justifyContent: 'center',
+    position: 'relative',
   },
   line: {
     flex: 1,
@@ -32,11 +34,13 @@ const styles = StyleSheet.create({
     borderStyle: 'dashed',
   },
   pill: {
-    paddingHorizontal: 6,
+    position: 'absolute',
+    top: '50%',
+    paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 999,
     backgroundColor: '#FF3B30',
-    marginVertical: 4,
+    transform: [{ translateY: -10 }],
   },
   pillText: {
     fontSize: 9,
