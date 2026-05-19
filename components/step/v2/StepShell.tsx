@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
+import { AdoptStepFooter } from '@/components/step/AdoptStepFooter';
 import { PlanTabBody } from './PlanTabBody';
 import type { StepPhaseTab, StepV2 } from './types';
 
@@ -13,6 +14,12 @@ interface Props {
   onTabChange: (tab: StepPhaseTab) => void;
   onToggleSubStep?: (subStepId: string) => void;
   backLabel?: string;
+  /** Render AdoptStepFooter; pass provenance copy to caption it. */
+  adopt?: {
+    provenance?: string;
+    onAddToTimeline: () => void;
+    onSaveAsConceptSeed: () => void;
+  };
 }
 
 const TAB_KEYS: StepPhaseTab[] = ['plan', 'do', 'reflect', 'discuss'];
@@ -36,6 +43,7 @@ export function StepShell({
   onTabChange,
   onToggleSubStep,
   backLabel = 'Practice',
+  adopt,
 }: Props) {
   const insets = useSafeAreaInsets();
   const showDiscuss = step.hasSharedAccess !== false; // default true if undefined
@@ -136,6 +144,13 @@ export function StepShell({
           />
         )}
       </ScrollView>
+      {adopt ? (
+        <AdoptStepFooter
+          provenance={adopt.provenance}
+          onAddToTimeline={adopt.onAddToTimeline}
+          onSaveAsConceptSeed={adopt.onSaveAsConceptSeed}
+        />
+      ) : null}
     </View>
   );
 }

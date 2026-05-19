@@ -132,11 +132,12 @@ const STEP: StepV2 = {
 };
 
 export default function StepV2DebugScreen() {
-  const params = useLocalSearchParams<{ tab?: string }>();
+  const params = useLocalSearchParams<{ tab?: string; adopt?: string }>();
   const paramTab: StepPhaseTab =
     params.tab && (VALID_TABS as string[]).includes(params.tab)
       ? (params.tab as StepPhaseTab)
       : 'plan';
+  const showAdoptFooter = params.adopt === '1';
   const [tab, setTab] = useState<StepPhaseTab>(paramTab);
   const [subSteps, setSubSteps] = useState(INITIAL_SUB_STEPS);
 
@@ -161,6 +162,16 @@ export default function StepV2DebugScreen() {
         onTabChange={setTab}
         onToggleSubStep={handleToggle}
         backLabel="Practice"
+        adopt={
+          showAdoptFooter
+            ? {
+                provenance:
+                  "Forked from Phyl Loong's Step 4 in Kevin's Worlds 2027 plan",
+                onAddToTimeline: () => {},
+                onSaveAsConceptSeed: () => {},
+              }
+            : undefined
+        }
       />
     </>
   );
