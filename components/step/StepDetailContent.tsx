@@ -1021,12 +1021,13 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab }
           useConversationalCapture={isOwner}
           onConversationalCreate={isOwner ? handleConversationalCreate : undefined}
           stepCategory={step.category}
+          embedded={FEATURE_FLAGS.PRACTICE_STEP_LOOP_IOS_REGISTER}
         />
       )}
       {activeTab === 'act' && (
-        <ActTab stepId={stepId} dateEnrichment={planData.date_enrichment} onNextTab={() => handleNextTab('review')} readOnly={!isOwner} footer={commentsFooter} interestId={step.interest_id} interestName={currentInterest?.name} interestSlug={currentInterest?.slug} />
+        <ActTab stepId={stepId} dateEnrichment={planData.date_enrichment} onNextTab={() => handleNextTab('review')} readOnly={!isOwner} footer={commentsFooter} interestId={step.interest_id} interestName={currentInterest?.name} interestSlug={currentInterest?.slug} embedded={FEATURE_FLAGS.PRACTICE_STEP_LOOP_IOS_REGISTER} />
       )}
-      {activeTab === 'review' && <ReviewTab stepId={stepId} readOnly={!isOwner} footer={commentsFooter} />}
+      {activeTab === 'review' && <ReviewTab stepId={stepId} readOnly={!isOwner} footer={commentsFooter} embedded={FEATURE_FLAGS.PRACTICE_STEP_LOOP_IOS_REGISTER} />}
       {activeTab === 'discussion' && <StepDiscussionInline stepId={stepId} />}
     </>
   );
@@ -1109,6 +1110,7 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab }
           />
         ) : null}
         <StepCard
+          scrollAsUnit
           pill={<StatePill variant={pillSpec.variant} label={pillSpec.label} />}
           onMenuPress={() =>
             shareStep.open({

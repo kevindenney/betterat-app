@@ -39,6 +39,8 @@ export interface DoTabIOSRegisterShellProps {
   onMoveToReflect?: () => void;
   /** Optional footer rendered beneath DoTabInterior (matches ActTab's contract). */
   footer?: React.ReactNode;
+  /** When true, render without flex:1 container + ScrollView so parent owns scroll. */
+  embedded?: boolean;
 }
 
 export function DoTabIOSRegisterShell({
@@ -49,6 +51,7 @@ export function DoTabIOSRegisterShell({
   interestSlug,
   onMoveToReflect,
   footer,
+  embedded,
 }: DoTabIOSRegisterShellProps) {
   const controller = useStepActCaptureController({
     stepId,
@@ -60,8 +63,8 @@ export function DoTabIOSRegisterShell({
   });
 
   return (
-    <View style={styles.container}>
-      <DoTabInterior {...controller.doTabInteriorProps} footer={footer} />
+    <View style={embedded ? styles.containerEmbedded : styles.container}>
+      <DoTabInterior {...controller.doTabInteriorProps} footer={footer} embedded={embedded} />
 
       <MarkAsEvidenceSheet
         visible={controller.markingCaptureId != null}
@@ -87,5 +90,8 @@ export function DoTabIOSRegisterShell({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  containerEmbedded: {
+    // intrinsic — parent ScrollView owns scroll
   },
 });

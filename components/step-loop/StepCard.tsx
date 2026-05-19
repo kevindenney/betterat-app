@@ -23,7 +23,7 @@
  */
 
 import React from 'react';
-import { Platform, Pressable, StyleSheet, View, ViewStyle } from 'react-native';
+import { Platform, Pressable, ScrollView, StyleSheet, View, ViewStyle } from 'react-native';
 import { MoreVertical } from 'lucide-react-native';
 import { GRAY_5, LABEL_3 } from '@/lib/design-tokens-step-loop-ios';
 import type { PhaseTabsProps } from './PhaseTabs';
@@ -51,6 +51,17 @@ export interface StepCardProps {
   footer?: React.ReactNode;
   /** Optional style override (e.g. extra horizontal inset). */
   style?: ViewStyle;
+  /**
+   * When true, chrome (stateHead + stepStrip + titleBlock + belowTitle +
+   * phaseTabs) and body live inside a single outer ScrollView so the
+   * entire card scrolls as one unit. Body slot drops `flex:1` so its
+   * children must size intrinsically — callers must pass `embedded`
+   * (or equivalent) to any inner scrolling tab body. Footer stays
+   * pinned outside the ScrollView. Used by the standalone /step/[id]
+   * route; the in-timeline carousel keeps the default pinned-chrome
+   * behavior.
+   */
+  scrollAsUnit?: boolean;
   testID?: string;
 }
 
@@ -64,27 +75,56 @@ export function StepCard({
   children,
   footer,
   style,
+  scrollAsUnit,
   testID,
 }: StepCardProps) {
+  const stateHead = (
+    <View style={styles.stateHead}>
+      <View style={styles.pillSlot}>{pill}</View>
+      {onMenuPress ? (
+        <Pressable
+          onPress={onMenuPress}
+          accessibilityRole="button"
+          accessibilityLabel="More actions"
+          hitSlop={8}
+          style={styles.menuButton}
+        >
+          <MoreVertical size={17} color={LABEL_3} />
+        </Pressable>
+      ) : null}
+    </View>
+  );
+
+  const titleBlockEl = titleBlock ? (
+    <View style={styles.titleBlock}>{titleBlock}</View>
+  ) : null;
+
+  if (scrollAsUnit) {
+    return (
+      <View style={[styles.card, style]} testID={testID}>
+        <ScrollView
+          style={styles.scrollContainer}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
+          {stateHead}
+          {stepStrip}
+          {titleBlockEl}
+          {belowTitle}
+          {phaseTabs}
+          <View style={styles.bodyIntrinsic}>{children}</View>
+        </ScrollView>
+        {footer ? <View style={styles.footer}>{footer}</View> : null}
+      </View>
+    );
+  }
+
   return (
     <View style={[styles.card, style]} testID={testID}>
-      <View style={styles.stateHead}>
-        <View style={styles.pillSlot}>{pill}</View>
-        {onMenuPress ? (
-          <Pressable
-            onPress={onMenuPress}
-            accessibilityRole="button"
-            accessibilityLabel="More actions"
-            hitSlop={8}
-            style={styles.menuButton}
-          >
-            <MoreVertical size={17} color={LABEL_3} />
-          </Pressable>
-        ) : null}
-      </View>
-
+      {stateHead}
       {stepStrip}
-      {titleBlock ? <View style={styles.titleBlock}>{titleBlock}</View> : null}
+      {titleBlockEl}
       {belowTitle}
       {phaseTabs}
 
@@ -147,6 +187,15 @@ const styles = StyleSheet.create({
   body: {
     flex: 1,
     minHeight: 0,
+  },
+  bodyIntrinsic: {
+    // scrollAsUnit mode: no flex — body sizes to its children.
+  },
+  scrollContainer: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingBottom: 24,
   },
   footer: {
     borderTopWidth: StyleSheet.hairlineWidth,

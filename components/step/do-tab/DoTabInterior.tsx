@@ -67,6 +67,8 @@ export interface DoTabInteriorProps {
    */
   onMarkAsEvidence?: (captureId: string) => void;
   footer?: React.ReactNode;
+  /** When true, the pre_activity branch drops its inner ScrollView. */
+  embedded?: boolean;
 }
 
 export function DoTabInterior({
@@ -102,10 +104,11 @@ export function DoTabInterior({
   onDiscardActivity,
   onMarkAsEvidence,
   footer,
+  embedded,
 }: DoTabInteriorProps) {
   if (state === 'live') {
     return (
-      <View style={styles.container}>
+      <View style={embedded ? styles.containerEmbedded : styles.container}>
         <DoLiveCard
           stepId={stepId}
           captures={captures}
@@ -134,7 +137,7 @@ export function DoTabInterior({
 
   if (state === 'post_activity') {
     return (
-      <View style={styles.container}>
+      <View style={embedded ? styles.containerEmbedded : styles.container}>
         <DoPostActivityCard
           captures={captures}
           stepTitle={stepTitle ?? ''}
@@ -152,6 +155,29 @@ export function DoTabInterior({
           onDiscardActivity={onDiscardActivity}
           onMarkAsEvidence={onMarkAsEvidence}
         />
+        {footer}
+      </View>
+    );
+  }
+
+  if (embedded) {
+    return (
+      <View style={styles.contentEmbedded}>
+        {state === 'pre_activity' && (
+          <>
+            <DoStartCard
+              readOnly={readOnly}
+              onVoiceNote={onVoiceNote}
+              onPhotoOrVideo={onPhotoOrVideo}
+              onQuickNoteSubmit={onQuickNoteSubmit}
+            />
+            <PlanStartingFrameRow
+              planData={planData}
+              onPress={readOnly ? undefined : onAutoSummarizePlan}
+              disabled={readOnly}
+            />
+          </>
+        )}
         {footer}
       </View>
     );
@@ -193,5 +219,12 @@ const styles = StyleSheet.create({
     padding: IOS_SPACING.md,
     paddingBottom: 96,
     gap: IOS_SPACING.sm,
+  },
+  contentEmbedded: {
+    padding: IOS_SPACING.md,
+    gap: IOS_SPACING.sm,
+  },
+  containerEmbedded: {
+    // intrinsic — parent ScrollView owns vertical scroll
   },
 });

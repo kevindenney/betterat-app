@@ -21,15 +21,18 @@ interface ReviewTabProps {
   stepId: string;
   readOnly?: boolean;
   footer?: React.ReactNode;
+  /** When true, the tab body renders without its own ScrollView. */
+  embedded?: boolean;
 }
 
-export function ReviewTab({ stepId, readOnly, footer }: ReviewTabProps) {
+export function ReviewTab({ stepId, readOnly, footer, embedded }: ReviewTabProps) {
   if (FEATURE_FLAGS.PRACTICE_STEP_LOOP_IOS_REGISTER) {
     return (
       <ReflectTabIOSRegisterShell
         stepId={stepId}
         readOnly={readOnly}
         footer={footer}
+        embedded={embedded}
       />
     );
   }

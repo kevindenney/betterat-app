@@ -27,9 +27,11 @@ interface ActTabProps {
   interestId?: string;
   interestName?: string;
   interestSlug?: string;
+  /** When true, the tab body renders without its own ScrollView. */
+  embedded?: boolean;
 }
 
-export function ActTab({ stepId, dateEnrichment, onNextTab, readOnly, footer, interestId, interestName, interestSlug }: ActTabProps) {
+export function ActTab({ stepId, dateEnrichment, onNextTab, readOnly, footer, interestId, interestName, interestSlug, embedded }: ActTabProps) {
   if (FEATURE_FLAGS.PRACTICE_DO_TAB_IOS_REGISTER) {
     return (
       <DoTabIOSRegisterShell
@@ -40,6 +42,7 @@ export function ActTab({ stepId, dateEnrichment, onNextTab, readOnly, footer, in
         interestSlug={interestSlug}
         onMoveToReflect={onNextTab}
         footer={footer}
+        embedded={embedded}
       />
     );
   }

@@ -15,6 +15,8 @@ export interface ReflectTabIOSRegisterShellProps {
   onGoToDo?: () => void;
   onNextStepCreated?: (newStepId: string) => void;
   footer?: React.ReactNode;
+  /** When true, render without flex:1 ScrollView — parent owns scroll. */
+  embedded?: boolean;
 }
 
 export function ReflectTabIOSRegisterShell({
@@ -23,6 +25,7 @@ export function ReflectTabIOSRegisterShell({
   onGoToDo,
   onNextStepCreated,
   footer,
+  embedded,
 }: ReflectTabIOSRegisterShellProps) {
   const controller = useStepReflectController({
     stepId,
@@ -38,13 +41,8 @@ export function ReflectTabIOSRegisterShell({
   const view = controller.reflectViewProps;
   const settled = view.state === 'settled';
 
-  return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={styles.content}
-      showsVerticalScrollIndicator={false}
-      keyboardShouldPersistTaps="handled"
-    >
+  const body = (
+    <>
       <StatePill
         variant={settled ? 'settled' : 'reflect'}
         label={settled ? view.config.settledPillLabel : view.config.statePillLabel}
@@ -142,6 +140,21 @@ export function ReflectTabIOSRegisterShell({
       ) : null}
 
       {footer}
+    </>
+  );
+
+  if (embedded) {
+    return <View style={styles.contentEmbedded}>{body}</View>;
+  }
+
+  return (
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={styles.content}
+      showsVerticalScrollIndicator={false}
+      keyboardShouldPersistTaps="handled"
+    >
+      {body}
     </ScrollView>
   );
 }
@@ -155,6 +168,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingTop: 12,
     paddingBottom: 96,
+    gap: 12,
+  },
+  contentEmbedded: {
+    paddingHorizontal: 14,
+    paddingTop: 12,
     gap: 12,
   },
   fieldStack: {

@@ -59,6 +59,12 @@ interface PlanTabProps {
   onConversationalCreate?: (planData: Partial<StepPlanData>, suggestedTitle?: string) => void;
   /** Step category for subtype-aware labels (e.g. 'nutrition', 'strength') */
   stepCategory?: string;
+  /**
+   * When true, the tab body renders without its own ScrollView so the
+   * parent (e.g. StepCard scrollAsUnit) can scroll the whole card. Only
+   * honored on the PRACTICE_STEP_LOOP_IOS_REGISTER branch.
+   */
+  embedded?: boolean;
 }
 
 export function PlanTab({
@@ -66,6 +72,7 @@ export function PlanTab({
   brainDumpData, onBrainDumpChange, onStructureWithAI,
   isStructuring, hasPlanContent, interestSlug, interestName,
   useConversationalCapture, onConversationalCreate, stepCategory,
+  embedded,
 }: PlanTabProps) {
   const { user } = useAuth();
   const catLabels = getStepCategoryLabels(stepCategory);
@@ -256,6 +263,7 @@ export function PlanTab({
 
     return (
       <PlanTabIOSRegisterInterior
+        embedded={embedded}
         planData={planData}
         onUpdate={onUpdate}
         readOnly={readOnly}
