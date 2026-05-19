@@ -2683,6 +2683,28 @@ function RaceSummaryCardImpl({
               </View>
             );
           }
+          if (onSetDueDate) {
+            return (
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
+                <Pressable
+                  onPress={() => setShowDueDatePicker(true)}
+                  style={{
+                    flexDirection: 'row', alignItems: 'center', gap: 4,
+                    paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10,
+                    backgroundColor: 'transparent',
+                    borderWidth: StyleSheet.hairlineWidth,
+                    borderColor: '#e0e0e0',
+                    borderStyle: 'dashed',
+                  }}
+                >
+                  <Ionicons name="calendar-outline" size={13} color="#8E8E93" />
+                  <Text style={{ fontSize: 12, fontWeight: '500', color: '#8E8E93' }}>
+                    Add date
+                  </Text>
+                </Pressable>
+              </View>
+            );
+          }
           return null;
         })()}
         {isNursingInterest && visibleTemplateSuggestedTitles.length > 0 ? (
