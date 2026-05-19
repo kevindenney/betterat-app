@@ -10,6 +10,7 @@
 
 import React, { useCallback } from 'react';
 import { Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { HkdwStepCard, SmartAppBanner, WelcomeToast } from '@/components/onboarding';
 import { FEATURE_FLAGS } from '@/lib/featureFlags';
@@ -80,7 +81,7 @@ export default function HkdwStepRoute() {
   }
 
   return (
-    <View style={styles.screen}>
+    <SafeAreaView style={styles.screen} edges={['top']}>
       <Stack.Screen options={{ headerShown: false }} />
 
       {isWeb ? (
@@ -118,7 +119,7 @@ export default function HkdwStepRoute() {
           onTapDiscussion={goDiscussion}
         />
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 }
 

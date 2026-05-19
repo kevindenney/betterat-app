@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { RedeemLanding } from '@/components/onboarding';
@@ -156,7 +157,7 @@ export default function RedeemRoute() {
     : `${preview.subscriberCount} sailors already started`;
 
   return (
-    <View style={styles.screen}>
+    <SafeAreaView style={styles.screen} edges={['top']}>
       <Stack.Screen options={{ headerShown: false }} />
       <RedeemLanding
         token={token!}
@@ -195,7 +196,7 @@ export default function RedeemRoute() {
           <ActivityIndicator color="#FFFFFF" />
         </View>
       ) : null}
-    </View>
+    </SafeAreaView>
   );
 }
 
