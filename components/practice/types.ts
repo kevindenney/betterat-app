@@ -15,4 +15,15 @@ export interface InboxItem {
   title: string;
   blurb?: string;
   fromLine?: string;
+  /** Raw fields carried for action handlers (accept / save / dismiss). */
+  raw: {
+    /** Interest the new timeline step or deck row will live under. */
+    interestId: string | null;
+    /** Source step id (the step being suggested or saved). */
+    sourceStepId: string;
+    /** User who suggested the step (null for on_deck rows). */
+    sourceUserId: string | null;
+    /** Source step's description, used as the body when forking. */
+    sourceDescription: string | null;
+  };
 }

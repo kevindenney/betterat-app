@@ -42,6 +42,13 @@ interface SailorProfileRow {
 interface StepRow {
   id: string;
   title: string | null;
+  description: string | null;
+  interest_id: string | null;
+}
+
+interface DeckRow {
+  id: string;
+  interest_id: string | null;
 }
 
 const KIND_CHIP: Record<InboxItemKind, string> = {
@@ -81,11 +88,18 @@ function toInboxItem(
   profile: ProfileRow | undefined,
   sailor: SailorProfileRow | undefined,
   step: StepRow | undefined,
+  deck: DeckRow | undefined,
 ): InboxItem {
   const fromName = profile?.full_name?.trim() || null;
   const kind: InboxItemKind = row.kind === 'suggestion' ? 'suggestion' : 'on_deck';
   const stepTitle = step?.title?.trim() || 'Untitled step';
   const blurb = row.body?.trim() || undefined;
+  const raw = {
+    interestId: kind === 'on_deck' ? deck?.interest_id ?? null : step?.interest_id ?? null,
+    sourceStepId: row.step_id,
+    sourceUserId: row.from_user_id,
+    sourceDescription: step?.description ?? null,
+  };
 
   if (kind === 'suggestion') {
     return {
@@ -101,6 +115,7 @@ function toInboxItem(
       fromLine: fromName
         ? `Suggested step from ${fromName}`
         : 'Suggested step from a teammate',
+      raw,
     };
   }
 
@@ -114,6 +129,7 @@ function toInboxItem(
     title: stepTitle,
     blurb,
     fromLine: `Forked from "${stepTitle}"`,
+    raw,
   };
 }
 
@@ -136,7 +152,16 @@ export function useInboxItems() {
       );
       const stepIds = Array.from(new Set(safeRows.map((r) => r.step_id).filter(Boolean)));
 
-      const [usersRes, sailorsRes, stepsRes] = await Promise.all([
+      const deckIds = Array.from(
+        new Set(
+          safeRows
+            .filter((r) => r.kind === 'on_deck')
+            .map((r) => r.id)
+            .filter(Boolean)
+        )
+      );
+
+      const [usersRes, sailorsRes, stepsRes, decksRes] = await Promise.all([
         fromUserIds.length > 0
           ? supabase.from('users').select('id, full_name').in('id', fromUserIds)
           : Promise.resolve({ data: [] as ProfileRow[], error: null }),
@@ -147,8 +172,14 @@ export function useInboxItems() {
               .in('user_id', fromUserIds)
           : Promise.resolve({ data: [] as SailorProfileRow[], error: null }),
         stepIds.length > 0
-          ? supabase.from('timeline_steps').select('id, title').in('id', stepIds)
+          ? supabase
+              .from('timeline_steps')
+              .select('id, title, description, interest_id')
+              .in('id', stepIds)
           : Promise.resolve({ data: [] as StepRow[], error: null }),
+        deckIds.length > 0
+          ? supabase.from('step_deck').select('id, interest_id').in('id', deckIds)
+          : Promise.resolve({ data: [] as DeckRow[], error: null }),
       ]);
 
       const profilesById = new Map<string, ProfileRow>();
@@ -159,6 +190,8 @@ export function useInboxItems() {
       );
       const stepsById = new Map<string, StepRow>();
       (stepsRes.data ?? []).forEach((s: StepRow) => stepsById.set(s.id, s));
+      const decksById = new Map<string, DeckRow>();
+      (decksRes.data ?? []).forEach((d: DeckRow) => decksById.set(d.id, d));
 
       return safeRows.map((row) =>
         toInboxItem(
@@ -166,6 +199,7 @@ export function useInboxItems() {
           row.from_user_id ? profilesById.get(row.from_user_id) : undefined,
           row.from_user_id ? sailorsByUser.get(row.from_user_id) : undefined,
           stepsById.get(row.step_id),
+          row.kind === 'on_deck' ? decksById.get(row.id) : undefined,
         ),
       );
     },

@@ -27,6 +27,8 @@ import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
 import { SuggestRow } from '@/components/practice/SuggestRow';
 import type { InboxFilter } from '@/components/practice/types';
 import { useInboxItems } from '@/hooks/useInboxItems';
+import { useInboxActions } from '@/hooks/useInboxActions';
+import type { InboxItem } from '@/components/practice/types';
 
 const VALID_FILTERS: InboxFilter[] = ['all', 'people', 'plans', 'deck'];
 
@@ -46,9 +48,11 @@ export default function PracticeInboxScreen() {
       : 'all';
   const [filter, setFilter] = useState<InboxFilter>(initialFilter);
   const { data: fetched, isLoading } = useInboxItems();
-  // Locally-dismissed ids hide rows in the UI without yet writing the
-  // status change back. Server-side dismiss lands with the "Step ⋮ →
-  // Suggest to…" send-path follow-up so the loop stays consistent.
+  const inboxActions = useInboxActions();
+  // Optimistic dismissal — the row drops out of the list before the
+  // server roundtrip resolves. The query invalidation in useInboxActions
+  // hard-removes it once the status flip lands; if the mutation fails the
+  // toast surfaces the error and the row reappears on the next refetch.
   const [dismissedIds, setDismissedIds] = useState<Set<string>>(new Set());
 
   const items = useMemo(() => {
@@ -73,12 +77,43 @@ export default function PracticeInboxScreen() {
     return items.filter((i) => i.kind === 'on_deck');
   }, [items, filter]);
 
-  const dismiss = (id: string) =>
+  const optimisticHide = (id: string) =>
     setDismissedIds((prev) => {
       const next = new Set(prev);
       next.add(id);
       return next;
     });
+
+  const handleAdd = (it: InboxItem) => {
+    optimisticHide(it.id);
+    inboxActions.accept(it).catch(() => {
+      setDismissedIds((prev) => {
+        const next = new Set(prev);
+        next.delete(it.id);
+        return next;
+      });
+    });
+  };
+  const handleSave = (it: InboxItem) => {
+    optimisticHide(it.id);
+    inboxActions.save(it).catch(() => {
+      setDismissedIds((prev) => {
+        const next = new Set(prev);
+        next.delete(it.id);
+        return next;
+      });
+    });
+  };
+  const handleDismiss = (it: InboxItem) => {
+    optimisticHide(it.id);
+    inboxActions.dismiss(it).catch(() => {
+      setDismissedIds((prev) => {
+        const next = new Set(prev);
+        next.delete(it.id);
+        return next;
+      });
+    });
+  };
 
   const subtitle =
     `${counts.people} from people you follow · ${counts.plans} from your plans · ${counts.deck} saved by you`;
@@ -144,9 +179,9 @@ export default function PracticeInboxScreen() {
               <SuggestRow
                 key={it.id}
                 item={it}
-                onAdd={() => dismiss(it.id)}
-                onSaveToDeck={() => dismiss(it.id)}
-                onDismiss={() => dismiss(it.id)}
+                onAdd={() => handleAdd(it)}
+                onSaveToDeck={() => handleSave(it)}
+                onDismiss={() => handleDismiss(it)}
               />
             ))
           )}
