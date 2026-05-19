@@ -27,6 +27,8 @@ import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { OfflineIndicator } from '@/components/ui/OfflineIndicator';
 import { NotificationBell } from '@/components/social/NotificationBell';
 import { TourStep } from '@/components/onboarding/TourStep';
+import { router } from 'expo-router';
+import { useInboxCount } from '@/hooks/useInboxCount';
 import {
   TabScreenToolbar,
   capsuleStyles,
@@ -163,6 +165,7 @@ export function RacesFloatingHeader({
   const [menuVisible, setMenuVisible] = useState(false);
   const config = useInterestEventConfig();
   const { vocab } = useVocabulary();
+  const { data: inboxCount = 0 } = useInboxCount();
 
   // Animation values
   const menuFadeAnim = useSharedValue(0);
@@ -378,13 +381,46 @@ export function RacesFloatingHeader({
 
   const subtitleContent = useCanonicalSeasonChip ? canonicalSubtitleContent : legacySubtitleContent;
 
-  // Custom right capsule with notification bell, grid toggle, and add button
+  // Custom right capsule with notification bell, inbox, grid toggle, and add button
   const rightCapsule = (
     <View style={capsuleStyles.capsule}>
       {/* Notification bell */}
       <View style={capsuleStyles.actionButton}>
         <NotificationBell size={20} color={IOS_COLORS.secondaryLabel} />
       </View>
+
+      <View style={capsuleStyles.capsuleDivider} />
+
+      {/* Practice Inbox — step suggestions + plan pushes + on-deck items */}
+      <Pressable
+        style={capsuleStyles.actionButton}
+        onPress={() => {
+          triggerHaptic('selection');
+          router.push('/practice/inbox' as any);
+        }}
+        accessibilityLabel={
+          inboxCount > 0
+            ? `Inbox — ${inboxCount} item${inboxCount === 1 ? '' : 's'} waiting`
+            : 'Inbox'
+        }
+        accessibilityRole="button"
+        hitSlop={6}
+      >
+        <View>
+          <Ionicons
+            name="mail-outline"
+            size={20}
+            color={IOS_COLORS.secondaryLabel}
+          />
+          {inboxCount > 0 ? (
+            <View style={inboxBadgeStyles.badge}>
+              <Text style={inboxBadgeStyles.badgeText}>
+                {inboxCount > 99 ? '99+' : inboxCount}
+              </Text>
+            </View>
+          ) : null}
+        </View>
+      </Pressable>
 
       <View style={capsuleStyles.capsuleDivider} />
 
@@ -911,6 +947,26 @@ const canonicalChipStyles = StyleSheet.create({
     fontSize: 13,
     color: IOS_COLORS.systemBlue,
     fontWeight: '500',
+  },
+});
+
+const inboxBadgeStyles = StyleSheet.create({
+  badge: {
+    position: 'absolute',
+    top: -4,
+    right: -7,
+    minWidth: 15,
+    height: 15,
+    borderRadius: 999,
+    backgroundColor: '#FF3B30',
+    paddingHorizontal: 3,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  badgeText: {
+    color: '#FFFFFF',
+    fontSize: 9.5,
+    fontWeight: '800',
   },
 });
 
