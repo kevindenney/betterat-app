@@ -5,12 +5,14 @@
  * From plans / On deck. Each SuggestRow primary-actions to "Add to
  * timeline", secondary to "Save to deck", icon-action to Dismiss.
  *
- * Wave 3: UI complete; real read from `inbox_items` view lands as a
- * follow-up.
+ * Reads from inbox_items view via useInboxItems(); falls back to an
+ * empty list when the user has no pending items (the segmented filter
+ * still shows zero counts so the layout doesn't jump).
  */
 
 import React, { useMemo, useState } from 'react';
 import {
+  ActivityIndicator,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -23,58 +25,10 @@ import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
 import { SuggestRow } from '@/components/practice/SuggestRow';
-import type { InboxFilter, InboxItem } from '@/components/practice/types';
+import type { InboxFilter } from '@/components/practice/types';
+import { useInboxItems } from '@/hooks/useInboxItems';
 
 const VALID_FILTERS: InboxFilter[] = ['all', 'people', 'plans', 'deck'];
-
-const DEMO_ITEMS: InboxItem[] = [
-  {
-    id: 'i1',
-    kind: 'suggestion',
-    chipLabel: 'Suggested',
-    fromInitials: 'SC',
-    fromTint: '#FF9500',
-    fromContext: 'Sam Cooke · mentor',
-    when: '2 days ago',
-    title: 'Try the pre-start lane drill before next Saturday',
-    blurb:
-      'You\'re hesitating at the pin in shifty light. Same drill Phyl logged last month — 25 min, 6 boats. Run it once and we\'ll talk.',
-    fromLine: "Suggested step from Sam Cooke's Heavy-air path · Step 7 of 9",
-  },
-  {
-    id: 'i2',
-    kind: 'suggestion',
-    chipLabel: 'Suggested',
-    fromInitials: 'EG',
-    fromTint: '#AF52DE',
-    fromContext: 'Emma Greene · follow',
-    when: 'yesterday',
-    title: '"Mark roundings under pressure" — try her version',
-    blurb:
-      'My take is different from Kevin\'s — I lean harder on the inside-overlap rule. Worth comparing if Race 5 has a crowded weather mark.',
-    fromLine: "Forked from Emma's Step 6 · would land as Solo step",
-  },
-  {
-    id: 'i3',
-    kind: 'plan_push',
-    chipLabel: 'New plan step',
-    fromContext: 'Kevin Ho · HKDW prep',
-    when: 'this morning',
-    title: 'Step 5 unlocked · Heavy-air upwind technique — 18+ kn',
-    blurb:
-      'Now that you\'ve settled lane choice, here\'s the next layer. Builds on what we did Saturday. Aim for Week 7.',
-    fromLine: 'From Worlds 2027 prep plan · Step 5 of 12 · would queue Next up',
-  },
-  {
-    id: 'i4',
-    kind: 'on_deck',
-    chipLabel: 'On deck',
-    fromContext: "Saved by you · from Phyl's Step 4",
-    when: 'last week',
-    title: '"Pick the favored end. Bail without losing a length."',
-    fromLine: "Forked from Phyl Loong's Step 4 · Worlds 2027",
-  },
-];
 
 const FILTER_LABELS: Record<InboxFilter, string> = {
   all: 'All',
@@ -91,7 +45,16 @@ export default function PracticeInboxScreen() {
       ? (params.filter as InboxFilter)
       : 'all';
   const [filter, setFilter] = useState<InboxFilter>(initialFilter);
-  const [items, setItems] = useState(DEMO_ITEMS);
+  const { data: fetched, isLoading } = useInboxItems();
+  // Locally-dismissed ids hide rows in the UI without yet writing the
+  // status change back. Server-side dismiss lands with the "Step ⋮ →
+  // Suggest to…" send-path follow-up so the loop stays consistent.
+  const [dismissedIds, setDismissedIds] = useState<Set<string>>(new Set());
+
+  const items = useMemo(() => {
+    const all = fetched ?? [];
+    return all.filter((it) => !dismissedIds.has(it.id));
+  }, [fetched, dismissedIds]);
 
   const counts = useMemo(
     () => ({
@@ -111,7 +74,11 @@ export default function PracticeInboxScreen() {
   }, [items, filter]);
 
   const dismiss = (id: string) =>
-    setItems((prev) => prev.filter((i) => i.id !== id));
+    setDismissedIds((prev) => {
+      const next = new Set(prev);
+      next.add(id);
+      return next;
+    });
 
   const subtitle =
     `${counts.people} from people you follow · ${counts.plans} from your plans · ${counts.deck} saved by you`;
@@ -166,7 +133,11 @@ export default function PracticeInboxScreen() {
         </View>
 
         <ScrollView style={styles.body}>
-          {visible.length === 0 ? (
+          {isLoading ? (
+            <View style={styles.loadingWrap}>
+              <ActivityIndicator color={IOS_COLORS.tertiaryLabel} />
+            </View>
+          ) : visible.length === 0 ? (
             <Text style={styles.empty}>Nothing waiting in this filter.</Text>
           ) : (
             visible.map((it) => (
@@ -275,5 +246,9 @@ const styles = StyleSheet.create({
     color: IOS_COLORS.tertiaryLabel,
     fontSize: 13,
     padding: 32,
+  },
+  loadingWrap: {
+    paddingVertical: 32,
+    alignItems: 'center',
   },
 });
