@@ -159,10 +159,6 @@ export function UniversalPlusProvider({ children }: { children: React.ReactNode 
           interestId,
           payload,
         });
-        // eslint-disable-next-line no-console
-        console.warn(
-          `[universal-plus] RPC returned id=${savedStep.id} interest_id=${savedStep.interest_id} status=${savedStep.status} title="${savedStep.title}"`,
-        );
         queryClient.setQueriesData<TimelineStepRecord[]>(
           { predicate: matchesMineQuery },
           (old) => {
@@ -176,10 +172,6 @@ export function UniversalPlusProvider({ children }: { children: React.ReactNode 
         queryClient.setQueryData<TimelineStepRecord[]>(
           currentTimelineKey,
           (old) => {
-            // eslint-disable-next-line no-console
-            console.warn(
-              `[universal-plus] setQueryData for ${JSON.stringify(currentTimelineKey)} — old=${old === undefined ? 'undefined' : Array.isArray(old) ? `array(len=${old.length})` : typeof old}`,
-            );
             if (!old) return [savedStep];
             const hasTemp = old.some((step) => step.id === tempId);
             const hasSaved = old.some((step) => step.id === savedStep.id);
@@ -189,38 +181,9 @@ export function UniversalPlusProvider({ children }: { children: React.ReactNode 
         );
         queryClient.removeQueries({ queryKey: ['timeline-steps', 'detail', tempId] });
         queryClient.setQueryData(['timeline-steps', 'detail', savedStep.id], savedStep);
-        // Dump ALL timeline-steps queries (not just 'mine') and their
-        // status, so we can see whether the cache entry we expect exists
-        // and what state it's in.
-        const allQueries = queryClient.getQueryCache().findAll({
-          queryKey: ['timeline-steps'],
-        });
-        const cacheReport = allQueries
-          .filter((q) => {
-            const k = q.queryKey;
-            return Array.isArray(k) && k[1] === 'mine';
-          })
-          .map((q) => {
-            const data = q.state.data as TimelineStepRecord[] | undefined;
-            const fetchStatus = q.state.fetchStatus;
-            const dataLen = Array.isArray(data) ? data.length : 'n';
-            const has = Array.isArray(data) && data.some((s) => s.id === savedStep.id);
-            return `${JSON.stringify(q.queryKey)} len=${dataLen} fetch=${fetchStatus} has=${has ? '✓' : '✗'} subs=${q.getObserversCount()}`;
-          })
-          .join(' || ');
-        // eslint-disable-next-line no-console
-        console.warn(`[universal-plus] post-write — interestId=${interestId} key=${JSON.stringify(currentTimelineKey)} || ${cacheReport}`);
         void queryClient.invalidateQueries({ queryKey: ['timeline-steps', 'mine'] });
         toast.show('Draft saved', 'success');
         // Route to the Practice tab's carousel centered on the new step.
-        // setParams updates the current screen if user is on /(tabs)/races
-        // (the common case); for the cross-tab case fall back to replace
-        // with the object form (more reliable than the string form for
-        // query-param updates on same-route push).
-        // eslint-disable-next-line no-console
-        console.warn(
-          `[universal-plus] saved id=${savedStep.id} title="${savedStep.title}" — calling setParams + navigate`,
-        );
         router.setParams({ selected: savedStep.id });
         router.navigate({
           pathname: '/(tabs)/races',
