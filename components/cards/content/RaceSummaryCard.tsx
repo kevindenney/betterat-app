@@ -1517,12 +1517,15 @@ function RaceSummaryCardImpl({
     if (!isTimelineStep && FEATURE_FLAGS.ENABLE_RACE_CREW_CHAT) {
       items.push({ label: `${teamNoun} Chat`, icon: 'chatbubbles-outline', onPress: () => setShowChat(true) });
     }
-    // Explicit collaborator entry point — step collaborator picker for timeline steps, crew hub for races
-    items.push({
-      label: 'Add Collaborators',
-      icon: 'people-outline',
-      onPress: isTimelineStep ? () => setShowStepCollabPicker(true) : () => openCrewHub('roster'),
-    });
+    // Collaborator picker for races — timeline steps use the inline WHO section
+    // on the Plan tab (same picker, same notification flow).
+    if (!isTimelineStep) {
+      items.push({
+        label: 'Add Collaborators',
+        icon: 'people-outline',
+        onPress: () => openCrewHub('roster'),
+      });
+    }
     // Share is always available
     items.push({ label: `Share ${noun}`, icon: 'share-outline', onPress: handleShare });
     // Suggest to another user — available for all timeline steps
@@ -1539,25 +1542,9 @@ function RaceSummaryCardImpl({
     }
     // Only show edit/delete for owners
     if (isOwner) {
-      // Mark Done / Mark Not Done handled by the status toggle in the header
-      // Due date
-      if (onSetDueDate && isTimelineStep) {
-        const currentDueAt = race.due_at;
-        if (currentDueAt) {
-          const dueLabel = new Date(currentDueAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-          items.push({
-            label: `Due: ${dueLabel}`,
-            icon: 'calendar-outline',
-            onPress: () => setShowDueDatePicker(true),
-          });
-        } else {
-          items.push({
-            label: 'Set Due Date',
-            icon: 'calendar-outline',
-            onPress: () => setShowDueDatePicker(true),
-          });
-        }
-      }
+      // Mark Done / Mark Not Done handled by the status toggle in the header.
+      // Set Due Date removed from menu — only settable on /step/:id detail page
+      // until an inline date chip lands on the cover.
       // Visibility picker
       if (isTimelineStep) {
         const visLabel = currentVisibility === 'private' ? 'Private' : currentVisibility.charAt(0).toUpperCase() + currentVisibility.slice(1);
@@ -1588,7 +1575,6 @@ function RaceSummaryCardImpl({
     teamNoun,
     openCrewHub,
     isNursingInterest,
-    onSetDueDate,
     isTimelineStep,
     currentVisibility,
     handleChangeVisibility,
