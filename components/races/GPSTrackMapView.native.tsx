@@ -1,20 +1,60 @@
 /**
  * GPS Track Map View Component
- * Displays GPS track on a minimalist map with auto-follow capability
+ * Displays GPS track on a minimalist map with auto-follow capability.
+ *
+ * Renders on MapLibre + OpenFreeMap "Positron" (clean gray basemap) — no
+ * Google Maps dependency, no API key. The user's own track and fleet
+ * tracks are drawn as GeoJSON LineString layers; course marks + current
+ * position are MapLibre Markers wrapping React Native Views so we can
+ * rotate the boat icon by heading.
  *
  * Features:
  * - Clean breadcrumb trail showing GPS track
  * - Auto-follow mode for live tracking
  * - Full track mode for post-race review
  * - Support for multiple track overlays (fleet comparison)
- * - Minimalist map styling (light blue water, green land)
+ * - Minimalist map styling via OpenFreeMap Positron
  */
 
-import React, { useEffect, useRef, useState } from 'react';
-import { View, StyleSheet, Platform } from 'react-native';
-import MapView, { Polyline, Marker, PROVIDER_GOOGLE } from 'react-native-maps';
+import React, { useEffect, useRef, useMemo } from 'react';
+import { View, StyleSheet } from 'react-native';
+import {
+  Map as MLMap,
+  Camera as MLCamera,
+  Marker as MLMarker,
+  GeoJSONSource as MLGeoJSONSource,
+  Layer as MLLayer,
+  type CameraRef,
+} from '@maplibre/maplibre-react-native';
 import { Navigation } from 'lucide-react-native';
 import type { GPSTrackMapViewProps } from './GPSTrackMapView.types';
+
+const MAP_STYLE_URL = 'https://tiles.openfreemap.org/styles/positron';
+
+// Default center if no points yet — Hong Kong (Victoria Harbour).
+const DEFAULT_CENTER: [number, number] = [114.1694, 22.3193];
+
+function pointToLngLat(p: { lat: number; lng: number }): [number, number] {
+  return [p.lng, p.lat];
+}
+
+/** [west, south, east, north] bbox covering all points; null when empty. */
+function computeBounds(
+  points: { lat: number; lng: number }[],
+): [number, number, number, number] | null {
+  if (points.length === 0) return null;
+  let minLat = Infinity;
+  let maxLat = -Infinity;
+  let minLng = Infinity;
+  let maxLng = -Infinity;
+  for (const p of points) {
+    if (p.lat < minLat) minLat = p.lat;
+    if (p.lat > maxLat) maxLat = p.lat;
+    if (p.lng < minLng) minLng = p.lng;
+    if (p.lng > maxLng) maxLng = p.lng;
+  }
+  return [minLng, minLat, maxLng, maxLat];
+}
 
 export function GPSTrackMapView({
   trackPoints,
@@ -23,179 +63,154 @@ export function GPSTrackMapView({
   initialRegion,
   courseMarks = [],
 }: GPSTrackMapViewProps) {
-  const mapRef = useRef<MapView>(null);
-  const [mapReady, setMapReady] = useState(false);
+  const cameraRef = useRef<CameraRef>(null);
 
   // Auto-follow current position
   useEffect(() => {
-    if (!autoFollow || !mapReady || trackPoints.length === 0) return;
-
-    const currentPosition = trackPoints[trackPoints.length - 1];
-
-    mapRef.current?.animateCamera({
-      center: {
-        latitude: currentPosition.lat,
-        longitude: currentPosition.lng,
-      },
-      zoom: 16, // Close zoom for live tracking
-    }, { duration: 300 });
-  }, [trackPoints, autoFollow, mapReady]);
+    if (!autoFollow || trackPoints.length === 0) return;
+    const current = trackPoints[trackPoints.length - 1];
+    cameraRef.current?.flyTo({
+      center: pointToLngLat(current),
+      zoom: 16,
+      duration: 300,
+    });
+  }, [trackPoints, autoFollow]);
 
   // Fit all track points when not auto-following
   useEffect(() => {
-    if (autoFollow || !mapReady || trackPoints.length === 0) return;
-
-    // Calculate bounds for all tracks
+    if (autoFollow || trackPoints.length === 0) return;
     const allPoints = [
       ...trackPoints,
-      ...fleetTracks.flatMap(ft => ft.trackPoints),
+      ...fleetTracks.flatMap((ft) => ft.trackPoints),
     ];
-
-    if (allPoints.length === 0) return;
-
-    const coordinates = allPoints.map(point => ({
-      latitude: point.lat,
-      longitude: point.lng,
-    }));
-
-    mapRef.current?.fitToCoordinates(coordinates, {
-      edgePadding: { top: 50, right: 50, bottom: 50, left: 50 },
-      animated: true,
+    const bounds = computeBounds(allPoints);
+    if (!bounds) return;
+    cameraRef.current?.fitBounds(bounds, {
+      padding: { paddingTop: 50, paddingRight: 50, paddingBottom: 50, paddingLeft: 50 },
+      duration: 400,
     });
-  }, [trackPoints, fleetTracks, autoFollow, mapReady]);
+  }, [trackPoints, fleetTracks, autoFollow]);
 
-  // Convert track points to coordinates for Polyline
-  const trackCoordinates = trackPoints.map(point => ({
-    latitude: point.lat,
-    longitude: point.lng,
-  }));
+  // Track + fleet GeoJSON features. Memoized so map sources don't rebuild
+  // every render unless the underlying points change.
+  const trackFeature = useMemo(() => {
+    if (trackPoints.length < 2) return null;
+    return {
+      type: 'Feature' as const,
+      properties: {},
+      geometry: {
+        type: 'LineString' as const,
+        coordinates: trackPoints.map(pointToLngLat),
+      },
+    };
+  }, [trackPoints]);
 
-  // Current position marker (last point in track)
-  const currentPosition = trackPoints.length > 0
-    ? trackPoints[trackPoints.length - 1]
-    : null;
+  const fleetFeatures = useMemo(() => {
+    return fleetTracks.map((ft, idx) => ({
+      id: `fleet-${idx}`,
+      color: ft.color,
+      feature: {
+        type: 'Feature' as const,
+        properties: {},
+        geometry: {
+          type: 'LineString' as const,
+          coordinates: ft.trackPoints.map(pointToLngLat),
+        },
+      },
+    }));
+  }, [fleetTracks]);
 
-  // Default region if no initial region provided
-  const defaultRegion = initialRegion || {
-    latitude: currentPosition?.lat || 22.3193,
-    longitude: currentPosition?.lng || 114.1694,
-    latitudeDelta: 0.05,
-    longitudeDelta: 0.05,
-  };
+  // Current position marker — last point in track, only shown in auto-follow.
+  const currentPosition =
+    trackPoints.length > 0 ? trackPoints[trackPoints.length - 1] : null;
+
+  const initialCenter: [number, number] = initialRegion
+    ? [initialRegion.longitude, initialRegion.latitude]
+    : currentPosition
+      ? pointToLngLat(currentPosition)
+      : DEFAULT_CENTER;
 
   return (
     <View style={styles.container}>
-      <MapView
-        ref={mapRef}
-        provider={PROVIDER_GOOGLE}
+      <MLMap
+        mapStyle={MAP_STYLE_URL}
         style={styles.map}
-        initialRegion={defaultRegion}
-        onMapReady={() => setMapReady(true)}
-        mapType="standard"
-        showsUserLocation={false}
-        showsMyLocationButton={false}
-        showsCompass={false}
-        scrollEnabled={!autoFollow} // Disable scroll in auto-follow mode
+        scrollEnabled={!autoFollow}
         zoomEnabled={!autoFollow}
         rotateEnabled={false}
         pitchEnabled={false}
-        customMapStyle={MINIMALIST_MAP_STYLE}
       >
-        {/* Course marks */}
-        {courseMarks.map((mark, index) => (
-          <Marker
-            key={`mark-${index}`}
-            coordinate={{
-              latitude: mark.latitude,
-              longitude: mark.longitude,
-            }}
-            title={mark.name}
-            pinColor="orange"
-          />
-        ))}
+        <MLCamera
+          ref={cameraRef}
+          initialViewState={{ center: initialCenter, zoom: 13 }}
+        />
 
-        {/* Fleet tracks */}
-        {fleetTracks.map((fleetTrack, index) => (
-          <Polyline
-            key={`fleet-${index}`}
-            coordinates={fleetTrack.trackPoints.map(p => ({
-              latitude: p.lat,
-              longitude: p.lng,
-            }))}
-            strokeColor={fleetTrack.color}
-            strokeWidth={2}
-            lineDashPattern={[5, 5]} // Dashed line for fleet tracks
-          />
+        {/* Fleet tracks — dashed lines, one source per fleet member */}
+        {fleetFeatures.map((ff) => (
+          <MLGeoJSONSource key={ff.id} id={ff.id} shape={ff.feature}>
+            <MLLayer
+              id={`${ff.id}-line`}
+              sourceID={ff.id}
+              style={{
+                lineColor: ff.color,
+                lineWidth: 2,
+                lineDasharray: [2, 2],
+                lineCap: 'round',
+                lineJoin: 'round',
+              }}
+            />
+          </MLGeoJSONSource>
         ))}
 
         {/* Your track (primary) */}
-        {trackCoordinates.length > 1 && (
-          <Polyline
-            coordinates={trackCoordinates}
-            strokeColor="#2563EB" // Blue for your track
-            strokeWidth={3}
-          />
+        {trackFeature && (
+          <MLGeoJSONSource id="own-track" shape={trackFeature}>
+            <MLLayer
+              id="own-track-line"
+              sourceID="own-track"
+              style={{
+                lineColor: '#2563EB',
+                lineWidth: 3,
+                lineCap: 'round',
+                lineJoin: 'round',
+              }}
+            />
+          </MLGeoJSONSource>
         )}
 
-        {/* Current position marker */}
-        {currentPosition && autoFollow && (
-          <Marker
-            coordinate={{
-              latitude: currentPosition.lat,
-              longitude: currentPosition.lng,
-            }}
-            anchor={{ x: 0.5, y: 0.5 }}
-            flat={true}
-            rotation={currentPosition.heading || 0}
+        {/* Course marks */}
+        {courseMarks.map((mark, idx) => (
+          <MLMarker
+            key={`mark-${idx}`}
+            id={`mark-${idx}`}
+            lngLat={[mark.longitude, mark.latitude]}
           >
-            <View style={styles.boatMarker}>
+            <View style={styles.courseMark} />
+          </MLMarker>
+        ))}
+
+        {/* Current position marker — boat icon rotated by heading */}
+        {currentPosition && autoFollow && (
+          <MLMarker
+            id="current-pos"
+            lngLat={pointToLngLat(currentPosition)}
+          >
+            <View
+              style={[
+                styles.boatMarker,
+                {
+                  transform: [{ rotate: `${currentPosition.heading || 0}deg` }],
+                },
+              ]}
+            >
               <Navigation size={24} color="#2563EB" fill="#2563EB" />
             </View>
-          </Marker>
+          </MLMarker>
         )}
-      </MapView>
+      </MLMap>
     </View>
   );
 }
-
-// Minimalist map style matching the design in the screenshots
-const MINIMALIST_MAP_STYLE = [
-  {
-    featureType: 'water',
-    elementType: 'geometry',
-    stylers: [{ color: '#C6E5F5' }], // Light blue water
-  },
-  {
-    featureType: 'landscape',
-    elementType: 'geometry',
-    stylers: [{ color: '#D4E8C4' }], // Light green land
-  },
-  {
-    featureType: 'poi',
-    elementType: 'all',
-    stylers: [{ visibility: 'off' }], // Hide points of interest
-  },
-  {
-    featureType: 'road',
-    elementType: 'all',
-    stylers: [{ visibility: 'off' }], // Hide roads
-  },
-  {
-    featureType: 'transit',
-    elementType: 'all',
-    stylers: [{ visibility: 'off' }], // Hide transit
-  },
-  {
-    featureType: 'administrative',
-    elementType: 'labels',
-    stylers: [{ visibility: 'off' }], // Hide admin labels
-  },
-  {
-    featureType: 'landscape',
-    elementType: 'labels',
-    stylers: [{ visibility: 'off' }], // Hide landscape labels
-  },
-];
 
 const styles = StyleSheet.create({
   container: {
@@ -206,6 +221,19 @@ const styles = StyleSheet.create({
   map: {
     width: '100%',
     height: '100%',
+  },
+  courseMark: {
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: '#F59E0B',
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.25,
+    shadowRadius: 2,
+    elevation: 3,
   },
   boatMarker: {
     width: 32,
