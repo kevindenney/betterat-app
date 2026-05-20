@@ -14,24 +14,28 @@ import {
   ScrollView,
   Modal,
   TextInput,
-  Platform,
-  TurboModuleRegistry,
 } from 'react-native';
 import {
-  Anchor,
   ArrowDown,
   ArrowUp,
   Check,
   Edit2,
-  Flag,
-  MapPin,
-  Navigation,
   Plus,
   RotateCcw,
   Trash2,
   X,
 } from 'lucide-react-native';
 import { showConfirm } from '@/lib/utils/crossPlatformAlert';
+
+import {
+  Map as MLMap,
+  Camera as MLCamera,
+  Marker as MLMarker,
+  GeoJSONSource as MLGeoJSONSource,
+  Layer as MLLayer,
+  type CameraRef,
+  type PressEvent,
+} from '@maplibre/maplibre-react-native';
 
 // Types
 export interface RouteWaypoint {
@@ -53,27 +57,7 @@ interface DistanceRouteMapProps {
   onReimportWaypoints?: () => void;
 }
 
-// Safely import react-native-maps (requires development build)
-let MapView: any = null;
-let Marker: any = null;
-let Polyline: any = null;
-let PROVIDER_GOOGLE: any = null;
-let mapsAvailable = false;
-
-// Check if native module is registered
-try {
-  const nativeModule = TurboModuleRegistry.get('RNMapsAirModule');
-  if (nativeModule) {
-    const maps = require('react-native-maps');
-    MapView = maps.default;
-    Marker = maps.Marker;
-    Polyline = maps.Polyline;
-    PROVIDER_GOOGLE = maps.PROVIDER_GOOGLE;
-    mapsAvailable = true;
-  }
-} catch (_e) {
-  // react-native-maps not available
-}
+const MAP_STYLE_URL = 'https://tiles.openfreemap.org/styles/liberty';
 
 // Waypoint type colors
 const WAYPOINT_TYPE_COLORS = {
@@ -121,9 +105,9 @@ export function DistanceRouteMap({
   onWaypointsChange,
   initialCenter = { lat: 22.28, lng: 114.16 },
   onTotalDistanceChange,
-  onReimportWaypoints,
+  onReimportWaypoints: _onReimportWaypoints,
 }: DistanceRouteMapProps) {
-  const mapRef = useRef<any>(null);
+  const cameraRef = useRef<CameraRef>(null);
   const [isAddingWaypoint, setIsAddingWaypoint] = useState(true);
   const [nextWaypointType, setNextWaypointType] = useState<RouteWaypoint['type']>('start');
   const [editingWaypoint, setEditingWaypoint] = useState<RouteWaypoint | null>(null);
@@ -136,38 +120,33 @@ export function DistanceRouteMap({
     onTotalDistanceChange?.(distance);
   }, [waypoints, onTotalDistanceChange]);
 
-  // Calculate initial region
-  const initialRegion = useMemo(() => {
-    if (waypoints.length > 0) {
-      const validWps = waypoints.filter(wp => wp.latitude && wp.longitude);
-      if (validWps.length > 0) {
-        const lats = validWps.map(wp => wp.latitude);
-        const lngs = validWps.map(wp => wp.longitude);
-        const minLat = Math.min(...lats);
-        const maxLat = Math.max(...lats);
-        const minLng = Math.min(...lngs);
-        const maxLng = Math.max(...lngs);
-        return {
-          latitude: (minLat + maxLat) / 2,
-          longitude: (minLng + maxLng) / 2,
-          latitudeDelta: Math.max((maxLat - minLat) * 1.5, 0.05),
-          longitudeDelta: Math.max((maxLng - minLng) * 1.5, 0.05),
-        };
-      }
+  // Calculate initial center + zoom
+  const initialView = useMemo(() => {
+    const valid = waypoints.filter((wp) => wp.latitude && wp.longitude);
+    if (valid.length > 0) {
+      const lats = valid.map((wp) => wp.latitude);
+      const lngs = valid.map((wp) => wp.longitude);
+      const minLat = Math.min(...lats);
+      const maxLat = Math.max(...lats);
+      const minLng = Math.min(...lngs);
+      const maxLng = Math.max(...lngs);
+      const latDelta = Math.max((maxLat - minLat) * 1.5, 0.05);
+      return {
+        center: [(minLng + maxLng) / 2, (minLat + maxLat) / 2] as [number, number],
+        zoom: Math.max(2, Math.min(20, Math.log2(360 / latDelta))),
+      };
     }
     return {
-      latitude: initialCenter.lat,
-      longitude: initialCenter.lng,
-      latitudeDelta: 0.1,
-      longitudeDelta: 0.1,
+      center: [initialCenter.lng, initialCenter.lat] as [number, number],
+      zoom: 11,
     };
   }, [initialCenter, waypoints]);
 
   // Handle map press to add waypoint
-  const handleMapPress = useCallback((event: any) => {
+  const handleMapPress = useCallback((event: { nativeEvent: PressEvent }) => {
     if (!isAddingWaypoint) return;
 
-    const { latitude, longitude } = event.nativeEvent.coordinate;
+    const [longitude, latitude] = event.nativeEvent.lngLat;
 
     const getWaypointName = () => {
       if (nextWaypointType === 'start') return 'Start';
@@ -197,14 +176,7 @@ export function DistanceRouteMap({
     }
   }, [isAddingWaypoint, nextWaypointType, waypoints, onWaypointsChange]);
 
-  // Handle marker drag end
-  const handleMarkerDragEnd = useCallback((index: number, event: any) => {
-    const { latitude, longitude } = event.nativeEvent.coordinate;
-    const updated = waypoints.map((w, i) =>
-      i === index ? { ...w, latitude, longitude } : w
-    );
-    onWaypointsChange(updated);
-  }, [waypoints, onWaypointsChange]);
+  // MapLibre RN markers aren't draggable — edits go through the list UI instead.
 
   // Start editing a waypoint
   const startEditWaypoint = useCallback((wp: RouteWaypoint) => {
@@ -268,51 +240,19 @@ export function DistanceRouteMap({
 
   const totalDistance = calculateTotalDistance(waypoints);
 
-  // Polyline coordinates
-  const polylineCoords = useMemo(() =>
-    waypoints
-      .filter(wp => wp.latitude && wp.longitude)
-      .map(wp => ({ latitude: wp.latitude, longitude: wp.longitude })),
-    [waypoints]
-  );
-
-  // Fallback UI when maps not available
-  if (!mapsAvailable) {
-    return (
-      <View style={styles.container}>
-        <View style={styles.fallbackContainer}>
-          <MapPin size={32} color="#9333ea" />
-          <Text style={styles.fallbackText}>
-            Map requires development build
-          </Text>
-          {waypoints.length > 0 && (
-            <Text style={styles.fallbackSubtext}>
-              {waypoints.length} waypoints • {totalDistance} nm
-            </Text>
-          )}
-        </View>
-
-        {/* Waypoint List */}
-        {waypoints.length > 0 && (
-          <View style={styles.waypointList}>
-            <Text style={styles.listTitle}>Route ({waypoints.length} waypoints)</Text>
-            <ScrollView style={styles.listScroll}>
-              {waypoints.map((wp, index) => (
-                <View key={wp.id} style={styles.waypointItem}>
-                  <Text style={styles.waypointIndex}>{index + 1}.</Text>
-                  <View style={[styles.typeIndicator, { backgroundColor: WAYPOINT_TYPE_COLORS[wp.type] }]} />
-                  <Text style={styles.waypointName}>{wp.name}</Text>
-                  <Pressable onPress={() => removeWaypoint(wp.id)} style={styles.deleteButton}>
-                    <Trash2 size={16} color="#ef4444" />
-                  </Pressable>
-                </View>
-              ))}
-            </ScrollView>
-          </View>
-        )}
-      </View>
-    );
-  }
+  // Polyline as a GeoJSON LineString feature.
+  const polylineFeature = useMemo(() => {
+    const valid = waypoints.filter((wp) => wp.latitude && wp.longitude);
+    if (valid.length < 2) return null;
+    return {
+      type: 'Feature' as const,
+      properties: {},
+      geometry: {
+        type: 'LineString' as const,
+        coordinates: valid.map((wp) => [wp.longitude, wp.latitude] as [number, number]),
+      },
+    };
+  }, [waypoints]);
 
   return (
     <View style={styles.container}>
@@ -370,43 +310,48 @@ export function DistanceRouteMap({
       )}
 
       {/* Map */}
-      <MapView
-        ref={mapRef}
-        style={styles.map}
-        initialRegion={initialRegion}
-        provider={Platform.OS === 'android' ? PROVIDER_GOOGLE : undefined}
-        onPress={handleMapPress}
-        showsUserLocation
-        showsCompass
-      >
-        {/* Route Polyline */}
-        {polylineCoords.length >= 2 && (
-          <Polyline
-            coordinates={polylineCoords}
-            strokeColor="#9333ea"
-            strokeWidth={3}
-            lineDashPattern={[10, 5]}
-          />
-        )}
-
-        {/* Waypoint Markers */}
+      <MLMap mapStyle={MAP_STYLE_URL} style={styles.map} onPress={handleMapPress}>
+        <MLCamera
+          ref={cameraRef}
+          initialViewState={{ center: initialView.center, zoom: initialView.zoom }}
+        />
+        {polylineFeature ? (
+          <MLGeoJSONSource id="route-polyline" data={polylineFeature}>
+            <MLLayer
+              id="route-polyline-layer"
+              type="line"
+              source="route-polyline"
+              style={{
+                lineColor: '#9333ea',
+                lineWidth: 3,
+                lineDasharray: [3, 1.5],
+              }}
+            />
+          </MLGeoJSONSource>
+        ) : null}
         {waypoints.map((wp, index) => (
-          <Marker
+          <MLMarker
             key={wp.id}
-            coordinate={{ latitude: wp.latitude, longitude: wp.longitude }}
-            draggable={!isAddingWaypoint}
-            onDragEnd={(e: any) => handleMarkerDragEnd(index, e)}
-            onPress={() => !isAddingWaypoint && startEditWaypoint(wp)}
-            anchor={{ x: 0.5, y: 0.5 }}
+            id={`wp-${wp.id}`}
+            lngLat={[wp.longitude, wp.latitude]}
           >
-            <View style={[styles.marker, { backgroundColor: WAYPOINT_TYPE_COLORS[wp.type] }]}>
+            <View
+              style={[styles.marker, { backgroundColor: WAYPOINT_TYPE_COLORS[wp.type] }]}
+              onTouchEnd={() => !isAddingWaypoint && startEditWaypoint(wp)}
+            >
               <Text style={styles.markerText}>
-                {wp.type === 'start' ? 'S' : wp.type === 'finish' ? 'F' : wp.type === 'gate' ? 'G' : index + 1}
+                {wp.type === 'start'
+                  ? 'S'
+                  : wp.type === 'finish'
+                    ? 'F'
+                    : wp.type === 'gate'
+                      ? 'G'
+                      : index + 1}
               </Text>
             </View>
-          </Marker>
+          </MLMarker>
         ))}
-      </MapView>
+      </MLMap>
 
       {/* Waypoint List */}
       {waypoints.length > 0 && (

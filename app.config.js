@@ -24,8 +24,6 @@ module.exports = {
       bundleIdentifier: 'com.betterat.app',
       buildNumber: '3',
       usesAppleSignIn: true,
-      // googleMapsApiKey removed from config — handled by withGoogleMaps plugin
-      // to avoid Expo's built-in autolinking which generates a broken podspec reference
       infoPlist: {
         ITSAppUsesNonExemptEncryption: false,
         NSLocationWhenInUseUsageDescription:
@@ -53,11 +51,6 @@ module.exports = {
       },
       edgeToEdgeEnabled: true,
       predictiveBackGestureEnabled: false,
-      config: {
-        googleMaps: {
-          apiKey: process.env.EXPO_PUBLIC_GOOGLE_MAPS_ANDROID_API_KEY || process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY,
-        },
-      },
     },
     web: {
       bundler: 'metro',
@@ -86,7 +79,6 @@ module.exports = {
         },
       ],
       './plugins/withAndroidDependencyFix',
-      './plugins/withGoogleMaps',
       '@maplibre/maplibre-react-native',
       'expo-apple-authentication',
       [

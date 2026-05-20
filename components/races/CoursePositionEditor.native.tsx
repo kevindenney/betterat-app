@@ -12,31 +12,25 @@
 import React, { useCallback, useEffect, useRef, useState, useMemo } from 'react';
 import {
   Modal,
-  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
   View,
   ActivityIndicator,
-  TurboModuleRegistry,
   Dimensions,
-  Linking,
 } from 'react-native';
 import { showAlert, showConfirm } from '@/lib/utils/crossPlatformAlert';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   ChevronDown,
   ChevronUp,
-  MapPin,
   RotateCcw,
   Save,
   Target,
   X,
   Anchor,
   Wind,
-  Minus,
-  Plus,
 } from 'lucide-react-native';
 import type {
   CourseType,
@@ -52,28 +46,17 @@ import { triggerHaptic } from '@/lib/haptics';
 import { WindOverlay } from '@/components/race-detail/map/WindOverlay';
 import { CurrentOverlay } from '@/components/race-detail/map/CurrentOverlay';
 
-// Safely import react-native-maps
-let MapView: any = null;
-let Marker: any = null;
-let Polyline: any = null;
-let Polygon: any = null;
-let PROVIDER_GOOGLE: any = null;
-let mapsAvailable = false;
+import {
+  Map as MLMap,
+  Camera as MLCamera,
+  Marker as MLMarker,
+  GeoJSONSource as MLGeoJSONSource,
+  Layer as MLLayer,
+  type CameraRef,
+  type PressEvent,
+} from '@maplibre/maplibre-react-native';
 
-try {
-  const nativeModule = TurboModuleRegistry.get('RNMapsAirModule');
-  if (nativeModule) {
-    const maps = require('react-native-maps');
-    MapView = maps.default;
-    Marker = maps.Marker;
-    Polyline = maps.Polyline;
-    PROVIDER_GOOGLE = maps.PROVIDER_GOOGLE;
-    Polygon = maps.Polygon;
-    mapsAvailable = true;
-  }
-} catch (_e) {
-  // react-native-maps not available
-}
+const MAP_STYLE_URL = 'https://tiles.openfreemap.org/styles/liberty';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -314,7 +297,7 @@ export function CoursePositionEditor({
   onSave,
   onCancel,
 }: CoursePositionEditorProps) {
-  const mapRef = useRef<any>(null);
+  const cameraRef = useRef<CameraRef>(null);
   const insets = useSafeAreaInsets();
 
   // State
@@ -341,17 +324,14 @@ export function CoursePositionEditor({
   const [isPlacingStartLine, setIsPlacingStartLine] = useState(!initialLocation && !existingCourse);
   const [hasChanges, setHasChanges] = useState(false);
   const [showControls, setShowControls] = useState(true);
-  const [mapRegion, setMapRegion] = useState<{ latitude: number; longitude: number; latitudeDelta: number; longitudeDelta: number } | null>(null);
   const [strategyMode, setStrategyMode] = useState<'upwind' | 'downwind'>('upwind');
 
-  // ── Zoom-dependent scaling ──
-  // When zoomed out (large latitudeDelta), shrink marks and labels to reduce clutter.
-  const zoomScale = useMemo(() => {
-    if (!mapRegion) return 1;
-    const baseDelta = 0.008;
-    const ratio = baseDelta / mapRegion.latitudeDelta;
-    return Math.max(0.55, Math.min(1.0, ratio));
-  }, [mapRegion?.latitudeDelta]);
+  // ── Marker scaling ──
+  // The legacy implementation scaled markers with zoom. MapLibre RN doesn't
+  // expose the current zoom level on every region change without extra
+  // subscription, so we run at a fixed scale. Re-add zoom-driven scaling
+  // later via onRegionDidChange if we miss it.
+  const zoomScale = 1;
 
   const markerTransform = useMemo(
     () => ({ transform: [{ scale: zoomScale }] as any }),
@@ -385,71 +365,52 @@ export function CoursePositionEditor({
     }
   }, [calculateCourse, existingCourse]);
 
-  // Initial region for map
-  const initialRegion = useMemo(() => {
+  // Initial view (center + zoom) for map
+  const initialView = useMemo(() => {
     if (existingCourse) {
       const allLats = [
-        ...existingCourse.marks.map(m => m.latitude),
+        ...existingCourse.marks.map((m) => m.latitude),
         existingCourse.startLine.pin.lat,
         existingCourse.startLine.committee.lat,
       ];
       const allLngs = [
-        ...existingCourse.marks.map(m => m.longitude),
+        ...existingCourse.marks.map((m) => m.longitude),
         existingCourse.startLine.pin.lng,
         existingCourse.startLine.committee.lng,
       ];
+      const minLat = Math.min(...allLats);
+      const maxLat = Math.max(...allLats);
+      const minLng = Math.min(...allLngs);
+      const maxLng = Math.max(...allLngs);
+      const latDelta = Math.max((maxLat - minLat) * 1.5, 0.02);
       return {
-        latitude: (Math.min(...allLats) + Math.max(...allLats)) / 2,
-        longitude: (Math.min(...allLngs) + Math.max(...allLngs)) / 2,
-        latitudeDelta: Math.max((Math.max(...allLats) - Math.min(...allLats)) * 1.5, 0.02),
-        longitudeDelta: Math.max((Math.max(...allLngs) - Math.min(...allLngs)) * 1.5, 0.02),
+        center: [(minLng + maxLng) / 2, (minLat + maxLat) / 2] as [number, number],
+        zoom: Math.max(2, Math.min(20, Math.log2(360 / latDelta))),
       };
     }
     const center = startLineCenter || initialLocation || { lat: 22.28, lng: 114.16 };
     return {
-      latitude: center.lat,
-      longitude: center.lng,
-      latitudeDelta: 0.02,
-      longitudeDelta: 0.02,
+      center: [center.lng, center.lat] as [number, number],
+      zoom: 13,
     };
   }, [startLineCenter, initialLocation, existingCourse]);
 
   // Handle map press for placing start line
   const handleMapPress = useCallback(
-    (event: any) => {
-      if (isPlacingStartLine) {
-        const { coordinate } = event.nativeEvent;
-        triggerHaptic('impactMedium');
-        setStartLineCenter({
-          lat: coordinate.latitude,
-          lng: coordinate.longitude,
-        });
-        setIsPlacingStartLine(false);
-
-        if (mapRef.current) {
-          mapRef.current.animateToRegion({
-            latitude: coordinate.latitude,
-            longitude: coordinate.longitude,
-            latitudeDelta: 0.015,
-            longitudeDelta: 0.015,
-          });
-        }
-      }
+    (event: { nativeEvent: PressEvent }) => {
+      if (!isPlacingStartLine) return;
+      const [longitude, latitude] = event.nativeEvent.lngLat;
+      triggerHaptic('impactMedium');
+      setStartLineCenter({ lat: latitude, lng: longitude });
+      setIsPlacingStartLine(false);
+      cameraRef.current?.flyTo({
+        center: [longitude, latitude],
+        zoom: 14,
+        duration: 400,
+      });
     },
-    [isPlacingStartLine]
+    [isPlacingStartLine],
   );
-
-  // Handle mark drag
-  const handleMarkDrag = useCallback((markId: string, coordinate: { latitude: number; longitude: number }) => {
-    setMarks((current) =>
-      CoursePositioningService.updateMarkPosition(current, markId, {
-        lat: coordinate.latitude,
-        lng: coordinate.longitude,
-      })
-    );
-    setHasChanges(true);
-    triggerHaptic('impactLight');
-  }, []);
 
   // Handle course type change
   const handleCourseTypeChange = useCallback((type: CourseType) => {
@@ -527,19 +488,22 @@ export function CoursePositionEditor({
     triggerHaptic('impactMedium');
   }, []);
 
-  // Center map on course
+  // Center map on course (computes bbox + flies camera)
   const handleCenterOnCourse = useCallback(() => {
-    if (!mapRef.current || marks.length === 0) return;
-    const allCoords = marks.map(m => ({ latitude: m.latitude, longitude: m.longitude }));
+    if (marks.length === 0) return;
+    const lats = marks.map((m) => m.latitude);
+    const lngs = marks.map((m) => m.longitude);
     if (startLine) {
-      allCoords.push(
-        { latitude: startLine.pin.lat, longitude: startLine.pin.lng },
-        { latitude: startLine.committee.lat, longitude: startLine.committee.lng },
-      );
+      lats.push(startLine.pin.lat, startLine.committee.lat);
+      lngs.push(startLine.pin.lng, startLine.committee.lng);
     }
-    mapRef.current.fitToCoordinates(allCoords, {
-      edgePadding: { top: 60, right: 40, bottom: 60, left: 40 },
-      animated: true,
+    const minLng = Math.min(...lngs);
+    const minLat = Math.min(...lats);
+    const maxLng = Math.max(...lngs);
+    const maxLat = Math.max(...lats);
+    cameraRef.current?.fitBounds([minLng, minLat, maxLng, maxLat], {
+      padding: { paddingTop: 60, paddingRight: 40, paddingBottom: 60, paddingLeft: 40 },
+      duration: 400,
     });
     triggerHaptic('selectionChanged');
   }, [marks, startLine]);
@@ -590,17 +554,6 @@ export function CoursePositionEditor({
     }
   }, [hasChanges, onCancel]);
 
-  const handleContactSupport = useCallback(() => {
-    const subject = encodeURIComponent('Course Positioning Map Unavailable');
-    const body = encodeURIComponent(
-      `Course positioning map is unavailable on this build.\n\n` +
-      `Regatta ID: ${regattaId}\n` +
-      `Platform: ${Platform.OS}\n` +
-      `Maps module available: ${mapsAvailable ? 'yes' : 'no'}`
-    );
-    const mailtoUrl = `mailto:support@regattaflow.com?subject=${subject}&body=${body}`;
-    Linking.openURL(mailtoUrl).catch(() => {});
-  }, [regattaId]);
 
   // Get wind direction label
   const getWindLabel = (degrees: number): string => {
@@ -618,14 +571,51 @@ export function CoursePositionEditor({
     return (index + 1).toString();
   };
 
-  // Start line coordinates
-  const startLineCoordinates = useMemo(() => {
-    if (!startLine) return [];
-    return [
-      { latitude: startLine.pin.lat, longitude: startLine.pin.lng },
-      { latitude: startLine.committee.lat, longitude: startLine.committee.lng },
-    ];
+  // Start line GeoJSON feature
+  const startLineFeature = useMemo(() => {
+    if (!startLine) return null;
+    return {
+      type: 'Feature' as const,
+      properties: {},
+      geometry: {
+        type: 'LineString' as const,
+        coordinates: [
+          [startLine.pin.lng, startLine.pin.lat],
+          [startLine.committee.lng, startLine.committee.lat],
+        ] as [number, number][],
+      },
+    };
   }, [startLine]);
+
+  /** Convert a {latitude, longitude} into MapLibre [lng, lat] tuple. */
+  const toLngLat = (c: { latitude: number; longitude: number }): [number, number] => [
+    c.longitude,
+    c.latitude,
+  ];
+
+  /** GeoJSON LineString feature helper. */
+  const lineFeature = (coords: { latitude: number; longitude: number }[]) => ({
+    type: 'Feature' as const,
+    properties: {},
+    geometry: {
+      type: 'LineString' as const,
+      coordinates: coords.map(toLngLat),
+    },
+  });
+
+  /** GeoJSON Polygon feature helper. Auto-closes the ring. */
+  const polygonFeature = (ring: { latitude: number; longitude: number }[]) => {
+    const closed =
+      ring[0] === ring[ring.length - 1] ? ring : [...ring, ring[0]];
+    return {
+      type: 'Feature' as const,
+      properties: {},
+      geometry: {
+        type: 'Polygon' as const,
+        coordinates: [closed.map(toLngLat)],
+      },
+    };
+  };
 
   // Course overlay: full race box (diamond) with laylines, start line inside
   const courseOverlay = useMemo(() => {
@@ -797,39 +787,6 @@ export function CoursePositionEditor({
     };
   }, [marks, windDirection, currentDirection, currentSpeed, startLine]);
 
-  // Fallback when maps not available
-  if (!mapsAvailable || !MapView) {
-    return (
-      <Modal visible={visible} animationType="slide" presentationStyle="fullScreen">
-        <SafeAreaView style={styles.container}>
-          <View style={styles.header}>
-            <Pressable onPress={onCancel} style={styles.closeButton}>
-              <X size={24} color={COLORS.label} />
-            </Pressable>
-            <Text style={styles.headerTitle}>Position Course</Text>
-            <View style={styles.headerRight} />
-          </View>
-
-          <View style={styles.fallbackContainer}>
-            <MapPin size={48} color={COLORS.gray} />
-            <Text style={styles.fallbackTitle}>Map Unavailable</Text>
-            <Text style={styles.fallbackText}>
-              Course positioning requires a development build with native maps support.
-            </Text>
-            <View style={styles.fallbackActions}>
-              <Pressable onPress={onCancel} style={styles.fallbackButton}>
-                <Text style={styles.fallbackButtonText}>Close</Text>
-              </Pressable>
-              <Pressable onPress={handleContactSupport} style={styles.fallbackButtonSecondary}>
-                <Text style={styles.fallbackButtonText}>Contact Support</Text>
-              </Pressable>
-            </View>
-          </View>
-        </SafeAreaView>
-      </Modal>
-    );
-  }
-
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="fullScreen">
       <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -862,38 +819,30 @@ export function CoursePositionEditor({
 
         {/* Map */}
         <View style={styles.mapContainer}>
-          <MapView
-            ref={mapRef}
-            style={styles.map}
-            initialRegion={initialRegion}
-            onPress={handleMapPress}
-            onRegionChangeComplete={(region: any) => setMapRegion(region)}
-            provider={Platform.OS === 'android' ? PROVIDER_GOOGLE : undefined}
-            showsUserLocation
-            showsMyLocationButton={false}
-            showsCompass
-            mapType="standard"
-          >
-            {/* Start Line */}
-            {startLineCoordinates.length === 2 && (
-              <Polyline
-                coordinates={startLineCoordinates}
-                strokeColor="#22c55e"
-                strokeWidth={4}
-              />
-            )}
+          <MLMap mapStyle={MAP_STYLE_URL} style={styles.map} onPress={handleMapPress}>
+            <MLCamera
+              ref={cameraRef}
+              initialViewState={{ center: initialView.center, zoom: initialView.zoom }}
+            />
 
-            {/* Course Marks */}
+            {/* Start Line */}
+            {startLineFeature ? (
+              <MLGeoJSONSource id="cpe-start-line" data={startLineFeature}>
+                <MLLayer
+                  id="cpe-start-line-layer"
+                  type="line"
+                  source="cpe-start-line"
+                  style={{ lineColor: '#22c55e', lineWidth: 4 }}
+                />
+              </MLGeoJSONSource>
+            ) : null}
+
+            {/* Course Marks (drag not supported on MapLibre RN) */}
             {marks.map((mark, index) => (
-              <Marker
+              <MLMarker
                 key={mark.id}
-                coordinate={{
-                  latitude: mark.latitude,
-                  longitude: mark.longitude,
-                }}
-                draggable
-                onDragEnd={(e: any) => handleMarkDrag(mark.id, e.nativeEvent.coordinate)}
-                anchor={{ x: 0.5, y: 0.5 }}
+                id={`cpe-mark-${mark.id}`}
+                lngLat={[mark.longitude, mark.latitude]}
               >
                 <View style={[styles.markContainer, markerTransform]}>
                   <View
@@ -906,171 +855,325 @@ export function CoursePositionEditor({
                     <Text style={styles.markLabel}>{getMarkLabel(mark, index)}</Text>
                   </View>
                 </View>
-              </Marker>
+              </MLMarker>
             ))}
 
             {/* Wind Direction Arrows */}
-            {mapRegion && initialWindSpeed != null && (
+            {initialView && initialWindSpeed != null ? (
               <WindOverlay
                 conditions={{ speed: initialWindSpeed, direction: windDirection }}
-                region={mapRegion}
+                region={{
+                  latitude: initialView.center[1],
+                  longitude: initialView.center[0],
+                  latitudeDelta: 0.02,
+                  longitudeDelta: 0.02,
+                }}
               />
-            )}
+            ) : null}
 
             {/* Current Flow Arrows */}
-            {mapRegion && currentDirection != null && currentSpeed != null && currentSpeed > 0.05 && (
+            {initialView && currentDirection != null && currentSpeed != null && currentSpeed > 0.05 ? (
               <CurrentOverlay
                 conditions={{
                   speed: currentSpeed,
                   direction: currentDirection,
                   strength: currentSpeed > 1 ? 'strong' : currentSpeed > 0.3 ? 'moderate' : 'slack',
                 }}
-                region={mapRegion}
+                region={{
+                  latitude: initialView.center[1],
+                  longitude: initialView.center[0],
+                  latitudeDelta: 0.02,
+                  longitudeDelta: 0.02,
+                }}
               />
-            )}
+            ) : null}
 
-            {/* ═══ Course Box: full diamond with laylines ═══ */}
-            {courseOverlay && Polygon && (
+            {/* Course Box: full diamond with laylines */}
+            {courseOverlay ? (
               <>
-                {/* ── Race area: left/right halves ── */}
-                <Polygon
-                  coordinates={courseOverlay.leftPoly}
-                  fillColor={courseOverlay.favoredSide === 'left' ? 'rgba(34, 197, 94, 0.13)' : 'rgba(148, 163, 184, 0.06)'}
-                  strokeColor="transparent"
-                />
-                <Polygon
-                  coordinates={courseOverlay.rightPoly}
-                  fillColor={courseOverlay.favoredSide === 'right' ? 'rgba(34, 197, 94, 0.13)' : 'rgba(148, 163, 184, 0.06)'}
-                  strokeColor="transparent"
-                />
+                {/* Race area: left/right halves */}
+                <MLGeoJSONSource id="cpe-left-poly" data={polygonFeature(courseOverlay.leftPoly)}>
+                  <MLLayer
+                    id="cpe-left-poly-fill"
+                    type="fill"
+                    source="cpe-left-poly"
+                    style={{
+                      fillColor:
+                        courseOverlay.favoredSide === 'left'
+                          ? 'rgba(34, 197, 94, 0.13)'
+                          : 'rgba(148, 163, 184, 0.06)',
+                    }}
+                  />
+                </MLGeoJSONSource>
+                <MLGeoJSONSource id="cpe-right-poly" data={polygonFeature(courseOverlay.rightPoly)}>
+                  <MLLayer
+                    id="cpe-right-poly-fill"
+                    type="fill"
+                    source="cpe-right-poly"
+                    style={{
+                      fillColor:
+                        courseOverlay.favoredSide === 'right'
+                          ? 'rgba(34, 197, 94, 0.13)'
+                          : 'rgba(148, 163, 184, 0.06)',
+                    }}
+                  />
+                </MLGeoJSONSource>
 
-                {/* ── Laylines (dashed yellow diamond outline) ── */}
-                <Polyline coordinates={[courseOverlay.W, courseOverlay.portCorner]} strokeColor={`rgba(234, 179, 8, ${zoomScale < 0.8 ? 0.4 : 0.8})`} strokeWidth={zoomScale < 0.8 ? 1 : 1.5} lineDashPattern={[8, 5]} />
-                <Polyline coordinates={[courseOverlay.C, courseOverlay.portCorner]} strokeColor={`rgba(234, 179, 8, ${zoomScale < 0.8 ? 0.4 : 0.8})`} strokeWidth={zoomScale < 0.8 ? 1 : 1.5} lineDashPattern={[8, 5]} />
-                <Polyline coordinates={[courseOverlay.W, courseOverlay.stbdCorner]} strokeColor={`rgba(234, 179, 8, ${zoomScale < 0.8 ? 0.4 : 0.8})`} strokeWidth={zoomScale < 0.8 ? 1 : 1.5} lineDashPattern={[8, 5]} />
-                <Polyline coordinates={[courseOverlay.P, courseOverlay.stbdCorner]} strokeColor={`rgba(234, 179, 8, ${zoomScale < 0.8 ? 0.4 : 0.8})`} strokeWidth={zoomScale < 0.8 ? 1 : 1.5} lineDashPattern={[8, 5]} />
-
-                {/* ── Rhumbline: W to start line midpoint (or leeward mark) ── */}
-                <Polyline
-                  coordinates={[courseOverlay.W, courseOverlay.startMid]}
-                  strokeColor="rgba(255, 255, 255, 0.5)"
-                  strokeWidth={1.5}
-                  lineDashPattern={[8, 4]}
-                />
-
-                {/* ── Third divider lines ── */}
-                {courseOverlay.thirdDividers.map((coords, i) => (
-                  <Polyline key={`third-${i}`} coordinates={coords} strokeColor="rgba(148, 163, 184, 0.35)" strokeWidth={1} lineDashPattern={[4, 4]} />
+                {/* Laylines */}
+                {(
+                  [
+                    [courseOverlay.W, courseOverlay.portCorner],
+                    [courseOverlay.C, courseOverlay.portCorner],
+                    [courseOverlay.W, courseOverlay.stbdCorner],
+                    [courseOverlay.P, courseOverlay.stbdCorner],
+                  ] as { latitude: number; longitude: number }[][]
+                ).map((segment, i) => (
+                  <MLGeoJSONSource
+                    key={`cpe-layline-${i}`}
+                    id={`cpe-layline-${i}`}
+                    data={lineFeature(segment)}
+                  >
+                    <MLLayer
+                      id={`cpe-layline-${i}-layer`}
+                      type="line"
+                      source={`cpe-layline-${i}`}
+                      style={{
+                        lineColor: `rgba(234, 179, 8, ${zoomScale < 0.8 ? 0.4 : 0.8})`,
+                        lineWidth: zoomScale < 0.8 ? 1 : 1.5,
+                        lineDasharray: [4, 2.5],
+                      }}
+                    />
+                  </MLGeoJSONSource>
                 ))}
 
-                {/* ── Third zone labels — hidden when zoomed out ── */}
-                {showDetailLabels && (
-                  <>
-                    <Marker coordinate={courseOverlay.thirdLabels.bottom} anchor={{ x: 0.5, y: 0.5 }} tracksViewChanges={false}>
-                      <View style={[courseOverlayStyles.thirdPill, markerTransform]}><Text style={courseOverlayStyles.thirdText}>Bottom 1/3</Text></View>
-                    </Marker>
-                    <Marker coordinate={courseOverlay.thirdLabels.middle} anchor={{ x: 0.5, y: 0.5 }} tracksViewChanges={false}>
-                      <View style={[courseOverlayStyles.thirdPill, markerTransform]}><Text style={courseOverlayStyles.thirdText}>Middle 1/3</Text></View>
-                    </Marker>
-                    <Marker coordinate={courseOverlay.thirdLabels.upper} anchor={{ x: 0.5, y: 0.5 }} tracksViewChanges={false}>
-                      <View style={[courseOverlayStyles.thirdPill, markerTransform]}><Text style={courseOverlayStyles.thirdText}>Upper 1/3</Text></View>
-                    </Marker>
-                  </>
-                )}
+                {/* Rhumbline */}
+                <MLGeoJSONSource
+                  id="cpe-rhumbline"
+                  data={lineFeature([courseOverlay.W, courseOverlay.startMid])}
+                >
+                  <MLLayer
+                    id="cpe-rhumbline-layer"
+                    type="line"
+                    source="cpe-rhumbline"
+                    style={{
+                      lineColor: 'rgba(255, 255, 255, 0.5)',
+                      lineWidth: 1.5,
+                      lineDasharray: [4, 2],
+                    }}
+                  />
+                </MLGeoJSONSource>
 
-                {/* ── Rhumbline label — hidden when zoomed out ── */}
-                {showDetailLabels && (
-                  <Marker coordinate={lerpCoord(courseOverlay.startMid, courseOverlay.W, 0.35)} anchor={{ x: 0.5, y: 0.5 }} tracksViewChanges={false}>
-                    <View style={[courseOverlayStyles.rhumblinePill, markerTransform]}><Text style={courseOverlayStyles.rhumblineText}>Rhumbline</Text></View>
-                  </Marker>
-                )}
-
-                {/* ── LEFT / RIGHT side labels ── */}
-                <Marker coordinate={courseOverlay.leftLabel} anchor={{ x: 0.5, y: 0.5 }} tracksViewChanges={false}>
-                  <View style={[courseOverlayStyles.sidePill, courseOverlay.favoredSide === 'left' && courseOverlayStyles.sidePillFavored, markerTransform]}>
-                    <Text style={[courseOverlayStyles.sideText, courseOverlay.favoredSide === 'left' && courseOverlayStyles.sideTextFavored]}>LEFT</Text>
-                  </View>
-                </Marker>
-                <Marker coordinate={courseOverlay.rightLabel} anchor={{ x: 0.5, y: 0.5 }} tracksViewChanges={false}>
-                  <View style={[courseOverlayStyles.sidePill, courseOverlay.favoredSide === 'right' && courseOverlayStyles.sidePillFavored, markerTransform]}>
-                    <Text style={[courseOverlayStyles.sideText, courseOverlay.favoredSide === 'right' && courseOverlayStyles.sideTextFavored]}>RIGHT</Text>
-                  </View>
-                </Marker>
-
-                {/* ── Layline labels — hidden when zoomed out ── */}
-                {showDetailLabels && (
-                  <>
-                    <Marker coordinate={courseOverlay.laylineLabels.port} anchor={{ x: 0.5, y: 0.5 }} tracksViewChanges={false}>
-                      <View style={[courseOverlayStyles.laylinePill, markerTransform]}><Text style={courseOverlayStyles.laylineText}>Stbd LL</Text></View>
-                    </Marker>
-                    <Marker coordinate={courseOverlay.laylineLabels.stbd} anchor={{ x: 0.5, y: 0.5 }} tracksViewChanges={false}>
-                      <View style={[courseOverlayStyles.laylinePill, markerTransform]}><Text style={courseOverlayStyles.laylineText}>Port LL</Text></View>
-                    </Marker>
-                  </>
-                )}
-
-                {/* ── Start box (rectangle extending downwind from start line) ── */}
-                {courseOverlay.startBox && (
-                  <>
-                    <Polyline
-                      coordinates={[...courseOverlay.startBox.outline, courseOverlay.startBox.outline[0]]}
-                      strokeColor={`rgba(249, 115, 22, ${zoomScale < 0.8 ? 0.35 : 0.6})`}
-                      strokeWidth={zoomScale < 0.8 ? 1 : 1.5}
-                      lineDashPattern={[6, 4]}
+                {/* Third divider lines */}
+                {courseOverlay.thirdDividers.map((coords, i) => (
+                  <MLGeoJSONSource
+                    key={`cpe-third-${i}`}
+                    id={`cpe-third-${i}`}
+                    data={lineFeature(coords)}
+                  >
+                    <MLLayer
+                      id={`cpe-third-${i}-layer`}
+                      type="line"
+                      source={`cpe-third-${i}`}
+                      style={{
+                        lineColor: 'rgba(148, 163, 184, 0.35)',
+                        lineWidth: 1,
+                        lineDasharray: [2, 2],
+                      }}
                     />
-                    {courseOverlay.startBox.dividers.map((coords, i) => (
-                      <Polyline
-                        key={`start-div-${i}`}
-                        coordinates={coords}
-                        strokeColor="rgba(249, 115, 22, 0.35)"
-                        strokeWidth={1}
-                        lineDashPattern={[4, 4]}
+                  </MLGeoJSONSource>
+                ))}
+
+                {/* Third zone labels */}
+                {showDetailLabels ? (
+                  <>
+                    <MLMarker id="cpe-third-bottom" lngLat={toLngLat(courseOverlay.thirdLabels.bottom)}>
+                      <View style={[courseOverlayStyles.thirdPill, markerTransform]}>
+                        <Text style={courseOverlayStyles.thirdText}>Bottom 1/3</Text>
+                      </View>
+                    </MLMarker>
+                    <MLMarker id="cpe-third-middle" lngLat={toLngLat(courseOverlay.thirdLabels.middle)}>
+                      <View style={[courseOverlayStyles.thirdPill, markerTransform]}>
+                        <Text style={courseOverlayStyles.thirdText}>Middle 1/3</Text>
+                      </View>
+                    </MLMarker>
+                    <MLMarker id="cpe-third-upper" lngLat={toLngLat(courseOverlay.thirdLabels.upper)}>
+                      <View style={[courseOverlayStyles.thirdPill, markerTransform]}>
+                        <Text style={courseOverlayStyles.thirdText}>Upper 1/3</Text>
+                      </View>
+                    </MLMarker>
+                  </>
+                ) : null}
+
+                {/* Rhumbline label */}
+                {showDetailLabels ? (
+                  <MLMarker
+                    id="cpe-rhumb-label"
+                    lngLat={toLngLat(lerpCoord(courseOverlay.startMid, courseOverlay.W, 0.35))}
+                  >
+                    <View style={[courseOverlayStyles.rhumblinePill, markerTransform]}>
+                      <Text style={courseOverlayStyles.rhumblineText}>Rhumbline</Text>
+                    </View>
+                  </MLMarker>
+                ) : null}
+
+                {/* LEFT / RIGHT pills */}
+                <MLMarker id="cpe-left-label" lngLat={toLngLat(courseOverlay.leftLabel)}>
+                  <View
+                    style={[
+                      courseOverlayStyles.sidePill,
+                      courseOverlay.favoredSide === 'left' && courseOverlayStyles.sidePillFavored,
+                      markerTransform,
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        courseOverlayStyles.sideText,
+                        courseOverlay.favoredSide === 'left' && courseOverlayStyles.sideTextFavored,
+                      ]}
+                    >
+                      LEFT
+                    </Text>
+                  </View>
+                </MLMarker>
+                <MLMarker id="cpe-right-label" lngLat={toLngLat(courseOverlay.rightLabel)}>
+                  <View
+                    style={[
+                      courseOverlayStyles.sidePill,
+                      courseOverlay.favoredSide === 'right' && courseOverlayStyles.sidePillFavored,
+                      markerTransform,
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        courseOverlayStyles.sideText,
+                        courseOverlay.favoredSide === 'right' && courseOverlayStyles.sideTextFavored,
+                      ]}
+                    >
+                      RIGHT
+                    </Text>
+                  </View>
+                </MLMarker>
+
+                {/* Layline labels */}
+                {showDetailLabels ? (
+                  <>
+                    <MLMarker
+                      id="cpe-stbd-ll-label"
+                      lngLat={toLngLat(courseOverlay.laylineLabels.port)}
+                    >
+                      <View style={[courseOverlayStyles.laylinePill, markerTransform]}>
+                        <Text style={courseOverlayStyles.laylineText}>Stbd LL</Text>
+                      </View>
+                    </MLMarker>
+                    <MLMarker
+                      id="cpe-port-ll-label"
+                      lngLat={toLngLat(courseOverlay.laylineLabels.stbd)}
+                    >
+                      <View style={[courseOverlayStyles.laylinePill, markerTransform]}>
+                        <Text style={courseOverlayStyles.laylineText}>Port LL</Text>
+                      </View>
+                    </MLMarker>
+                  </>
+                ) : null}
+
+                {/* Start box */}
+                {courseOverlay.startBox ? (
+                  <>
+                    <MLGeoJSONSource
+                      id="cpe-start-box"
+                      data={lineFeature([
+                        ...courseOverlay.startBox.outline,
+                        courseOverlay.startBox.outline[0],
+                      ])}
+                    >
+                      <MLLayer
+                        id="cpe-start-box-layer"
+                        type="line"
+                        source="cpe-start-box"
+                        style={{
+                          lineColor: `rgba(249, 115, 22, ${zoomScale < 0.8 ? 0.35 : 0.6})`,
+                          lineWidth: zoomScale < 0.8 ? 1 : 1.5,
+                          lineDasharray: [3, 2],
+                        }}
                       />
+                    </MLGeoJSONSource>
+                    {courseOverlay.startBox.dividers.map((segment, i) => (
+                      <MLGeoJSONSource
+                        key={`cpe-start-div-${i}`}
+                        id={`cpe-start-div-${i}`}
+                        data={lineFeature(segment)}
+                      >
+                        <MLLayer
+                          id={`cpe-start-div-${i}-layer`}
+                          type="line"
+                          source={`cpe-start-div-${i}`}
+                          style={{
+                            lineColor: 'rgba(249, 115, 22, 0.35)',
+                            lineWidth: 1,
+                            lineDasharray: [2, 2],
+                          }}
+                        />
+                      </MLGeoJSONSource>
                     ))}
                   </>
-                )}
+                ) : null}
 
-                {/* ── Start line labels (if available) ── */}
-                {courseOverlay.startLabels && (
+                {/* Start line labels */}
+                {courseOverlay.startLabels ? (
                   <>
-                    <Marker coordinate={courseOverlay.startLabels.pinEnd} anchor={{ x: 0.5, y: 0.5 }} tracksViewChanges={false}>
-                      <View style={[courseOverlayStyles.startPill, markerTransform]}><Text style={courseOverlayStyles.startText}>Pin End</Text></View>
-                    </Marker>
-                    {showDetailLabels && (
-                      <Marker coordinate={courseOverlay.startLabels.middle} anchor={{ x: 0.5, y: 0.5 }} tracksViewChanges={false}>
-                        <View style={[courseOverlayStyles.startPill, markerTransform]}><Text style={courseOverlayStyles.startText}>Middle</Text></View>
-                      </Marker>
-                    )}
-                    <Marker coordinate={courseOverlay.startLabels.boatEnd} anchor={{ x: 0.5, y: 0.5 }} tracksViewChanges={false}>
-                      <View style={[courseOverlayStyles.startPill, markerTransform]}><Text style={courseOverlayStyles.startText}>Boat End</Text></View>
-                    </Marker>
+                    <MLMarker
+                      id="cpe-start-pin-label"
+                      lngLat={toLngLat(courseOverlay.startLabels.pinEnd)}
+                    >
+                      <View style={[courseOverlayStyles.startPill, markerTransform]}>
+                        <Text style={courseOverlayStyles.startText}>Pin End</Text>
+                      </View>
+                    </MLMarker>
+                    {showDetailLabels ? (
+                      <MLMarker
+                        id="cpe-start-mid-label"
+                        lngLat={toLngLat(courseOverlay.startLabels.middle)}
+                      >
+                        <View style={[courseOverlayStyles.startPill, markerTransform]}>
+                          <Text style={courseOverlayStyles.startText}>Middle</Text>
+                        </View>
+                      </MLMarker>
+                    ) : null}
+                    <MLMarker
+                      id="cpe-start-boat-label"
+                      lngLat={toLngLat(courseOverlay.startLabels.boatEnd)}
+                    >
+                      <View style={[courseOverlayStyles.startPill, markerTransform]}>
+                        <Text style={courseOverlayStyles.startText}>Boat End</Text>
+                      </View>
+                    </MLMarker>
                   </>
-                )}
+                ) : null}
               </>
-            )}
+            ) : null}
 
-            {/* Start Line Endpoints */}
-            {startLine && (
+            {/* Start line endpoints */}
+            {startLine ? (
               <>
-                <Marker
-                  coordinate={{ latitude: startLine.pin.lat, longitude: startLine.pin.lng }}
-                  anchor={{ x: 0.5, y: 0.5 }}
+                <MLMarker
+                  id="cpe-start-pin"
+                  lngLat={[startLine.pin.lng, startLine.pin.lat]}
                 >
                   <View style={[styles.startLineEndpoint, { backgroundColor: '#f97316' }, markerTransform]}>
                     <Text style={styles.startLineLabel}>P</Text>
                   </View>
-                </Marker>
-                <Marker
-                  coordinate={{ latitude: startLine.committee.lat, longitude: startLine.committee.lng }}
-                  anchor={{ x: 0.5, y: 0.5 }}
+                </MLMarker>
+                <MLMarker
+                  id="cpe-start-committee"
+                  lngLat={[startLine.committee.lng, startLine.committee.lat]}
                 >
                   <View style={[styles.startLineEndpoint, { backgroundColor: '#3b82f6' }, markerTransform]}>
                     <Text style={styles.startLineLabel}>C</Text>
                   </View>
-                </Marker>
+                </MLMarker>
               </>
-            )}
-          </MapView>
+            ) : null}
+          </MLMap>
 
           {/* Wind Indicator — top left */}
           {startLineCenter && !isPlacingStartLine && initialWindSpeed != null && (

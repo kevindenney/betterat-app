@@ -14,23 +14,19 @@
 import React, { useCallback, useEffect, useRef, useState, useMemo } from 'react';
 import {
   Modal,
-  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
   View,
   ActivityIndicator,
-  TurboModuleRegistry,
   Dimensions,
-  Linking,
 } from 'react-native';
 import { showAlert, showConfirm } from '@/lib/utils/crossPlatformAlert';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   ChevronDown,
   ChevronUp,
-  MapPin,
   RotateCcw,
   Save,
   Target,
@@ -55,26 +51,17 @@ import { supabase } from '@/services/supabase';
 import { createLogger } from '@/lib/utils/logger';
 import { IOS_COLORS } from '@/components/cards/constants';
 
-// Safely import react-native-maps
-let MapView: any = null;
-let Marker: any = null;
-let Polyline: any = null;
-let PROVIDER_GOOGLE: any = null;
-let mapsAvailable = false;
+import {
+  Map as MLMap,
+  Camera as MLCamera,
+  Marker as MLMarker,
+  GeoJSONSource as MLGeoJSONSource,
+  Layer as MLLayer,
+  type CameraRef,
+  type PressEvent,
+} from '@maplibre/maplibre-react-native';
 
-try {
-  const nativeModule = TurboModuleRegistry.get('RNMapsAirModule');
-  if (nativeModule) {
-    const maps = require('react-native-maps');
-    MapView = maps.default;
-    Marker = maps.Marker;
-    Polyline = maps.Polyline;
-    PROVIDER_GOOGLE = maps.PROVIDER_GOOGLE;
-    mapsAvailable = true;
-  }
-} catch (_e) {
-  // react-native-maps not available
-}
+const MAP_STYLE_URL = 'https://tiles.openfreemap.org/styles/liberty';
 
 const logger = createLogger('CoursePositionEditor.native');
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -126,7 +113,7 @@ export function CoursePositionEditor({
   onSave,
   onCancel,
 }: CoursePositionEditorProps) {
-  const mapRef = useRef<any>(null);
+  const cameraRef = useRef<CameraRef>(null);
   const insets = useSafeAreaInsets();
 
   // State
@@ -166,52 +153,32 @@ export function CoursePositionEditor({
     calculateCourse();
   }, [calculateCourse]);
 
-  // Initial region for map
-  const initialRegion = useMemo(() => {
+  // Initial view (center + zoom) for map
+  const initialView = useMemo(() => {
     const center = startLineCenter || initialLocation || { lat: 22.28, lng: 114.16 };
     return {
-      latitude: center.lat,
-      longitude: center.lng,
-      latitudeDelta: 0.02,
-      longitudeDelta: 0.02,
+      center: [center.lng, center.lat] as [number, number],
+      zoom: 13,
     };
   }, [startLineCenter, initialLocation]);
 
   // Handle map press for placing start line
   const handleMapPress = useCallback(
-    (event: any) => {
-      if (isPlacingStartLine) {
-        const { coordinate } = event.nativeEvent;
-        setStartLineCenter({
-          lat: coordinate.latitude,
-          lng: coordinate.longitude,
-        });
-        setIsPlacingStartLine(false);
-
-        // Animate to new location
-        if (mapRef.current) {
-          mapRef.current.animateToRegion({
-            latitude: coordinate.latitude,
-            longitude: coordinate.longitude,
-            latitudeDelta: 0.015,
-            longitudeDelta: 0.015,
-          });
-        }
-      }
+    (event: { nativeEvent: PressEvent }) => {
+      if (!isPlacingStartLine) return;
+      const [longitude, latitude] = event.nativeEvent.lngLat;
+      setStartLineCenter({ lat: latitude, lng: longitude });
+      setIsPlacingStartLine(false);
+      cameraRef.current?.flyTo({
+        center: [longitude, latitude],
+        zoom: 14,
+        duration: 400,
+      });
     },
     [isPlacingStartLine]
   );
 
-  // Handle mark drag
-  const handleMarkDrag = useCallback((markId: string, coordinate: { latitude: number; longitude: number }) => {
-    setMarks((current) =>
-      CoursePositioningService.updateMarkPosition(current, markId, {
-        lat: coordinate.latitude,
-        lng: coordinate.longitude,
-      })
-    );
-    setHasChanges(true);
-  }, []);
+  // Mark drag isn't supported on MapLibre RN — edits go through controls below the map.
 
   // Handle course type change
   const handleCourseTypeChange = useCallback((type: CourseType) => {
@@ -363,18 +330,6 @@ export function CoursePositionEditor({
     }
   }, [hasChanges, onCancel]);
 
-  const handleContactSupport = useCallback(() => {
-    const subject = encodeURIComponent('Course Positioning Map Unavailable');
-    const body = encodeURIComponent(
-      `Course positioning map is unavailable in this build.\n\n` +
-      `Regatta ID: ${regattaId}\n` +
-      `Platform: ${Platform.OS}\n` +
-      `Maps module available: ${mapsAvailable ? 'yes' : 'no'}`
-    );
-    const mailtoUrl = `mailto:support@regattaflow.com?subject=${subject}&body=${body}`;
-    Linking.openURL(mailtoUrl).catch(() => {});
-  }, [regattaId]);
-
   // Get wind direction label
   const getWindLabel = (degrees: number): string => {
     const index = Math.round(degrees / 45) % 8;
@@ -391,47 +346,21 @@ export function CoursePositionEditor({
     return (index + 1).toString();
   };
 
-  // Start line coordinates
-  const startLineCoordinates = useMemo(() => {
-    if (!startLine) return [];
-    return [
-      { latitude: startLine.pin.lat, longitude: startLine.pin.lng },
-      { latitude: startLine.committee.lat, longitude: startLine.committee.lng },
-    ];
+  // Start-line GeoJSON LineString (pin → committee)
+  const startLineFeature = useMemo(() => {
+    if (!startLine) return null;
+    return {
+      type: 'Feature' as const,
+      properties: {},
+      geometry: {
+        type: 'LineString' as const,
+        coordinates: [
+          [startLine.pin.lng, startLine.pin.lat],
+          [startLine.committee.lng, startLine.committee.lat],
+        ] as [number, number][],
+      },
+    };
   }, [startLine]);
-
-  // Fallback when maps not available
-  if (!mapsAvailable || !MapView) {
-    return (
-      <Modal visible={visible} animationType="slide" presentationStyle="fullScreen">
-        <SafeAreaView style={styles.container}>
-          <View style={styles.header}>
-            <Pressable onPress={onCancel} style={styles.closeButton}>
-              <X size={24} color={IOS_COLORS.label} />
-            </Pressable>
-            <Text style={styles.headerTitle}>Position Course</Text>
-            <View style={styles.headerRight} />
-          </View>
-
-          <View style={styles.fallbackContainer}>
-            <MapPin size={48} color={IOS_COLORS.gray} />
-            <Text style={styles.fallbackTitle}>Map Unavailable</Text>
-            <Text style={styles.fallbackText}>
-              Course positioning requires a development build with native maps support.
-            </Text>
-            <View style={styles.fallbackActions}>
-              <Pressable onPress={onCancel} style={styles.fallbackButton}>
-                <Text style={styles.fallbackButtonText}>Close</Text>
-              </Pressable>
-              <Pressable onPress={handleContactSupport} style={styles.fallbackButtonSecondary}>
-                <Text style={styles.fallbackButtonText}>Contact Support</Text>
-              </Pressable>
-            </View>
-          </View>
-        </SafeAreaView>
-      </Modal>
-    );
-  }
 
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="fullScreen">
@@ -465,39 +394,30 @@ export function CoursePositionEditor({
 
         {/* Map */}
         <View style={styles.mapContainer}>
-          <MapView
-            ref={mapRef}
-            style={styles.map}
-            initialRegion={initialRegion}
-            onPress={handleMapPress}
-            provider={Platform.OS === 'android' ? PROVIDER_GOOGLE : undefined}
-            showsUserLocation
-            showsMyLocationButton={false}
-            showsCompass
-            mapType="standard"
-          >
-            {/* Course Line - removed per user feedback, only show start line */}
+          <MLMap mapStyle={MAP_STYLE_URL} style={styles.map} onPress={handleMapPress}>
+            <MLCamera
+              ref={cameraRef}
+              initialViewState={{ center: initialView.center, zoom: initialView.zoom }}
+            />
 
             {/* Start Line */}
-            {startLineCoordinates.length === 2 && (
-              <Polyline
-                coordinates={startLineCoordinates}
-                strokeColor="#22c55e"
-                strokeWidth={4}
-              />
-            )}
+            {startLineFeature ? (
+              <MLGeoJSONSource id="cpe-start-line" data={startLineFeature}>
+                <MLLayer
+                  id="cpe-start-line-layer"
+                  type="line"
+                  source="cpe-start-line"
+                  style={{ lineColor: '#22c55e', lineWidth: 4 }}
+                />
+              </MLGeoJSONSource>
+            ) : null}
 
-            {/* Course Marks */}
+            {/* Course Marks (drag not supported on MapLibre RN) */}
             {marks.map((mark, index) => (
-              <Marker
+              <MLMarker
                 key={mark.id}
-                coordinate={{
-                  latitude: mark.latitude,
-                  longitude: mark.longitude,
-                }}
-                draggable
-                onDragEnd={(e: any) => handleMarkDrag(mark.id, e.nativeEvent.coordinate)}
-                anchor={{ x: 0.5, y: 0.5 }}
+                id={`cpe-mark-${mark.id}`}
+                lngLat={[mark.longitude, mark.latitude]}
               >
                 <View style={styles.markContainer}>
                   <View
@@ -510,31 +430,31 @@ export function CoursePositionEditor({
                     <Text style={styles.markLabel}>{getMarkLabel(mark, index)}</Text>
                   </View>
                 </View>
-              </Marker>
+              </MLMarker>
             ))}
 
             {/* Start Line Endpoints */}
-            {startLine && (
+            {startLine ? (
               <>
-                <Marker
-                  coordinate={{ latitude: startLine.pin.lat, longitude: startLine.pin.lng }}
-                  anchor={{ x: 0.5, y: 0.5 }}
+                <MLMarker
+                  id="cpe-start-pin"
+                  lngLat={[startLine.pin.lng, startLine.pin.lat]}
                 >
                   <View style={[styles.startLineEndpoint, { backgroundColor: '#f97316' }]}>
                     <Text style={styles.startLineLabel}>P</Text>
                   </View>
-                </Marker>
-                <Marker
-                  coordinate={{ latitude: startLine.committee.lat, longitude: startLine.committee.lng }}
-                  anchor={{ x: 0.5, y: 0.5 }}
+                </MLMarker>
+                <MLMarker
+                  id="cpe-start-committee"
+                  lngLat={[startLine.committee.lng, startLine.committee.lat]}
                 >
                   <View style={[styles.startLineEndpoint, { backgroundColor: '#3b82f6' }]}>
                     <Text style={styles.startLineLabel}>C</Text>
                   </View>
-                </Marker>
+                </MLMarker>
               </>
-            )}
-          </MapView>
+            ) : null}
+          </MLMap>
 
           {/* Placement Instructions */}
           {isPlacingStartLine && (
