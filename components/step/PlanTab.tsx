@@ -35,7 +35,6 @@ import { getStepCategoryLabels } from '@/lib/step-category-config';
 import { FEATURE_FLAGS } from '@/lib/featureFlags';
 import { PlanTabInterior, PlanTabIOSRegisterInterior } from './plan-tab';
 import { PlanWithCard } from './plan-tab/PlanWithCard';
-import { syncStepCollaborators } from '@/services/StepCollaboratorService';
 import { useLibraryBeforeBinding } from '@/hooks/useStepLibraryBefore';
 import { buildSuggestions, crossInterestToMentorInput } from '@/services/SuggestionsService';
 import { useCrossInterestSuggestions } from '@/hooks/useCrossInterestSuggestions';
@@ -215,30 +214,14 @@ export function PlanTab({
 
   const handleCollaboratorsChange = useCallback(
     (next: StepCollaborator[]) => {
+      // Metadata write also triggers step_collaborators sync — see
+      // updateStepMetadata in services/TimelineStepService.ts.
       onUpdate({
         collaborators: next,
         who_collaborators: next.map((c) => c.display_name),
       });
-      // Log at error level so it surfaces with the default LOG_LEVEL=error.
-      // Remove once collaborator sync is confirmed working in production.
-      // eslint-disable-next-line no-console
-      console.error('[PlanTab] sync attempt', {
-        stepId,
-        userId: user?.id,
-        count: next.length,
-        platformCount: next.filter((c) => c.type === 'platform' && c.user_id).length,
-      });
-      if (stepId && user?.id) {
-        syncStepCollaborators(stepId, user.id, next)
-          // eslint-disable-next-line no-console
-          .then(() => console.error('[PlanTab] sync ok'))
-          .catch((err) => {
-            // eslint-disable-next-line no-console
-            console.error('[PlanTab] sync failed:', err);
-          });
-      }
     },
-    [onUpdate, stepId, user?.id],
+    [onUpdate],
   );
 
   // Brain dump visibility — expanded by default when plan is empty, collapsed when has content
