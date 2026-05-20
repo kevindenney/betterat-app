@@ -1,43 +1,42 @@
 /**
- * VenueMapView Component - Native Implementation with Clustering
- * Enhanced map view with custom markers and venue interactions
- * Universal support: iOS (Apple Maps), Android (Google Maps)
+ * VenueMapView Component - Native Implementation
+ *
+ * MapLibre + OpenFreeMap world map of sailing venues with built-in MapLibre
+ * clustering (no external clustering library). Venues render as colored
+ * circle dots when zoomed out (one CircleLayer for all points), and when
+ * zoomed in the same layer keeps them tappable. The yacht-club layer
+ * shares the same source.
+ *
+ * Lost capability vs the legacy super-cluster + react-native-maps version:
+ * - Custom React View markers with Ionicons inside — replaced with native
+ *   MapLibre CircleLayer styling. The trophy/star/boat icons that used to
+ *   sit inside the marker pin are dropped; color still encodes venue type.
+ *   Re-add later by switching to a SymbolLayer with sprite-based icons if
+ *   we want the original look back.
+ * - onMarkerPress relies on tap-on-feature: we resolve the pressed venue
+ *   from MLMap's onPress event via queryRenderedFeaturesAtPoint.
  */
 
-import React, { useEffect, useRef, useState, useMemo } from 'react';
-import { StyleSheet, View, ActivityIndicator, Platform, Text, TurboModuleRegistry, TouchableOpacity, Linking } from 'react-native';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import {
+  ActivityIndicator,
+  StyleSheet,
+  View,
+  Text,
+  type NativeSyntheticEvent,
+} from 'react-native';
+import {
+  Map as MLMap,
+  Camera as MLCamera,
+  GeoJSONSource as MLGeoJSONSource,
+  Layer as MLLayer,
+  type CameraRef,
+  type PressEventWithFeatures,
+} from '@maplibre/maplibre-react-native';
 import { ThemedText } from '@/components/themed-text';
 import { supabase } from '@/services/supabase';
-import { Ionicons } from '@expo/vector-icons';
 
-// Safely import react-native-maps (requires development build, not Expo Go)
-let MapView: any = null;
-let Marker: any = null;
-let PROVIDER_GOOGLE: any = null;
-let PROVIDER_DEFAULT: any = null;
-let ClusteredMapView: any = null;
-let mapsAvailable = false;
-
-// Check if native module is registered BEFORE requiring react-native-maps
-// This prevents TurboModuleRegistry.getEnforcing from throwing
-try {
-  // Use 'get' instead of 'getEnforcing' to check without throwing
-  const nativeModule = TurboModuleRegistry.get('RNMapsAirModule');
-  if (nativeModule) {
-    // Only require react-native-maps if native module exists
-    const maps = require('react-native-maps');
-    MapView = maps.default;
-    Marker = maps.Marker;
-    PROVIDER_GOOGLE = maps.PROVIDER_GOOGLE;
-    PROVIDER_DEFAULT = maps.PROVIDER_DEFAULT;
-    ClusteredMapView = require('react-native-maps-super-cluster').default;
-    mapsAvailable = true;
-  } else {
-    console.warn('[VenueMapView] RNMapsAirModule not registered - using fallback UI');
-  }
-} catch (e) {
-  console.warn('[VenueMapView] react-native-maps not available (requires development build):', e);
-}
+const MAP_STYLE_URL = 'https://tiles.openfreemap.org/styles/positron';
 
 interface Venue {
   id: string;
@@ -64,13 +63,9 @@ export interface VenueMapViewProps {
   onMarkerPress?: (venue: Venue) => void;
   showAllVenues?: boolean;
   selectedVenue?: Venue | null;
-  /** Filter to show only user's saved venues */
   showOnlySavedVenues?: boolean;
-  /** Set of saved venue IDs for filtering */
   savedVenueIds?: Set<string>;
-  /** Enable 3D mode (currently not implemented for react-native-maps) */
   is3DEnabled?: boolean;
-  /** Map layer configuration */
   mapLayers?: {
     yachtClubs?: boolean;
     sailmakers?: boolean;
@@ -84,6 +79,24 @@ export interface VenueMapViewProps {
   };
 }
 
+function venueColor(venueType: string): string {
+  switch (venueType) {
+    case 'championship':
+      return '#ffc107';
+    case 'premier':
+      return '#007AFF';
+    case 'regional':
+      return '#666';
+    default:
+      return '#007AFF';
+  }
+}
+
+function zoomFromLatDelta(delta: number): number {
+  if (!delta || delta <= 0) return 11;
+  return Math.max(2, Math.min(20, Math.log2(360 / delta)));
+}
+
 export function VenueMapView({
   currentVenue,
   onMarkerPress,
@@ -93,188 +106,127 @@ export function VenueMapView({
   savedVenueIds = new Set(),
   mapLayers = {},
 }: VenueMapViewProps) {
-  const mapRef = useRef<ClusteredMapView>(null);
+  const cameraRef = useRef<CameraRef>(null);
   const [venues, setVenues] = useState<Venue[]>([]);
   const [yachtClubs, setYachtClubs] = useState<YachtClub[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Fetch venues from database
   useEffect(() => {
-    if (!mapsAvailable) return;
-    fetchVenues();
+    let cancelled = false;
+    (async () => {
+      try {
+        const { data, error } = await supabase
+          .from('sailing_venues')
+          .select('id, name, country, region, venue_type, coordinates_lat, coordinates_lng')
+          .order('name', { ascending: true });
+        if (error) throw error;
+        if (!cancelled) setVenues(data || []);
+      } catch {
+        // empty list
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
-  // Fetch yacht clubs when layer is enabled
   useEffect(() => {
-    if (!mapsAvailable) return;
-    if (mapLayers.yachtClubs) {
-      fetchYachtClubs();
-    }
+    if (!mapLayers.yachtClubs) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const { data, error } = await supabase
+          .from('yacht_clubs')
+          .select('id, name, short_name, coordinates_lat, coordinates_lng, prestige_level, venue_id')
+          .not('coordinates_lat', 'is', null)
+          .not('coordinates_lng', 'is', null)
+          .order('name', { ascending: true });
+        if (error) throw error;
+        if (!cancelled) setYachtClubs(data || []);
+      } catch {
+        // empty list
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [mapLayers.yachtClubs]);
 
-  const fetchVenues = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('sailing_venues')
-        .select('id, name, country, region, venue_type, coordinates_lat, coordinates_lng')
-        .order('name', { ascending: true });
-
-      if (error) throw error;
-
-      setVenues(data || []);
-    } catch (error) {
-      // Silent error - venues will be empty
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchYachtClubs = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('yacht_clubs')
-        .select('id, name, short_name, coordinates_lat, coordinates_lng, prestige_level, venue_id')
-        .not('coordinates_lat', 'is', null)
-        .not('coordinates_lng', 'is', null)
-        .order('name', { ascending: true });
-
-      if (error) throw error;
-
-      setYachtClubs(data || []);
-    } catch (error) {
-      // Silent error - yacht clubs will be empty
-    }
-  };
-
-  // Center map on current venue or all venues
+  // Fly to the current/selected venue.
   useEffect(() => {
-    if (!mapsAvailable) return;
-    if (!mapRef.current) return;
-
-    const map = mapRef.current?.getMapRef?.() ?? mapRef.current;
-    if (!map) return;
-
-    if (currentVenue) {
-      // Center on current venue — tight zoom to show the racing area
-      map.animateToRegion?.({
-        latitude: currentVenue.coordinates_lat,
-        longitude: currentVenue.coordinates_lng,
-        latitudeDelta: 0.08,
-        longitudeDelta: 0.08,
-      }, 500);
-    } else if (showAllVenues && venues.length > 0) {
-      // Fit all venues in view
-      const coordinates = venues.map(v => ({
-        latitude: v.coordinates_lat,
-        longitude: v.coordinates_lng,
-      }));
-
-      map.fitToCoordinates?.(coordinates, {
-        edgePadding: { top: 50, right: 50, bottom: 50, left: 50 },
-        animated: true,
-      });
-    }
-  }, [currentVenue, venues, showAllVenues]);
-
-  // Center map when a venue is selected (via marker press or sidebar click)
-  useEffect(() => {
-    if (!mapsAvailable) return;
-    if (!mapRef.current || !selectedVenue) return;
-
-    // Center on selected venue
-    const map = mapRef.current?.getMapRef?.() ?? mapRef.current;
-    map?.animateToRegion?.({
-      latitude: selectedVenue.coordinates_lat,
-      longitude: selectedVenue.coordinates_lng,
-      latitudeDelta: 0.08,
-      longitudeDelta: 0.08,
-    }, 500);
-  }, [selectedVenue]);
-
-  // Venues to display - filter by saved venues if enabled
-  let displayVenues: Venue[];
-
-  if (showOnlySavedVenues && savedVenueIds.size > 0) {
-    // Show only saved venues
-    displayVenues = venues.filter(v => savedVenueIds.has(v.id));
-  } else if (showAllVenues) {
-    // Show all venues
-    displayVenues = venues;
-  } else if (currentVenue) {
-    // Show only current venue
-    displayVenues = [currentVenue];
-  } else {
-    // Show nothing
-    displayVenues = [];
-  }
-
-  // Prepare clustered marker data
-  const clusterData = useMemo(() => {
-    const data: any[] = [];
-
-    // Add venues
-    displayVenues.forEach(venue => {
-      data.push({
-        id: `venue-${venue.id}`,
-        location: {
-          latitude: venue.coordinates_lat,
-          longitude: venue.coordinates_lng,
-        },
-        type: 'venue',
-        data: venue,
-      });
+    const target = selectedVenue || currentVenue;
+    if (!target) return;
+    cameraRef.current?.flyTo({
+      center: [target.coordinates_lng, target.coordinates_lat],
+      zoom: zoomFromLatDelta(0.08),
+      duration: 500,
     });
+  }, [currentVenue, selectedVenue]);
 
-    // Add yacht clubs if enabled
-    if (mapLayers.yachtClubs) {
-      yachtClubs.forEach(club => {
-        data.push({
-          id: `club-${club.id}`,
-          location: {
-            latitude: club.coordinates_lat,
-            longitude: club.coordinates_lng,
-          },
-          type: 'yachtClub',
-          data: club,
-          parentVenue: venues.find(v => v.id === club.venue_id) || null,
-        });
-      });
+  const displayVenues = useMemo(() => {
+    if (showOnlySavedVenues && savedVenueIds.size > 0) {
+      return venues.filter((v) => savedVenueIds.has(v.id));
     }
+    if (showAllVenues) return venues;
+    if (currentVenue) return [currentVenue];
+    return [];
+  }, [venues, showAllVenues, currentVenue, showOnlySavedVenues, savedVenueIds]);
 
-    return data;
-  }, [displayVenues, yachtClubs, mapLayers.yachtClubs, venues]);
+  const venueFeatureCollection = useMemo(() => {
+    return {
+      type: 'FeatureCollection' as const,
+      features: displayVenues.map((v) => ({
+        type: 'Feature' as const,
+        properties: {
+          venueId: v.id,
+          venue_type: v.venue_type,
+          color: venueColor(v.venue_type),
+        },
+        geometry: {
+          type: 'Point' as const,
+          coordinates: [v.coordinates_lng, v.coordinates_lat],
+        },
+      })),
+    };
+  }, [displayVenues]);
 
-  // Fallback when react-native-maps isn't available (Expo Go)
-  if (!mapsAvailable) {
-    return (
-      <View style={styles.fallbackContainer}>
-        <Ionicons name="map-outline" size={48} color="#94A3B8" />
-        <Text style={styles.fallbackTitle}>Map Unavailable</Text>
-        <Text style={styles.fallbackText}>
-          Native maps require a development build.{'\n'}
-          Use web version or run with EAS Build.
-        </Text>
-        {currentVenue && onMarkerPress ? (
-          <TouchableOpacity
-            style={styles.fallbackButtonPrimary}
-            onPress={() => onMarkerPress(currentVenue)}
-          >
-            <Text style={styles.fallbackButtonPrimaryText}>Open Current Venue</Text>
-          </TouchableOpacity>
-        ) : null}
-        <TouchableOpacity
-          style={styles.fallbackButtonSecondary}
-          onPress={() =>
-            Linking.openURL(
-              'mailto:support@regattaflow.com?subject=Venue%20Map%20Unavailable&body=Please%20help%20me%20enable%20native%20maps%20for%20venue%20views.'
-            )
-          }
-        >
-          <Text style={styles.fallbackButtonSecondaryText}>Contact Support</Text>
-        </TouchableOpacity>
-      </View>
-    );
-  }
+  const yachtClubFeatureCollection = useMemo(() => {
+    return {
+      type: 'FeatureCollection' as const,
+      features: yachtClubs.map((c) => ({
+        type: 'Feature' as const,
+        properties: {
+          clubId: c.id,
+          venueId: c.venue_id,
+        },
+        geometry: {
+          type: 'Point' as const,
+          coordinates: [c.coordinates_lng, c.coordinates_lat],
+        },
+      })),
+    };
+  }, [yachtClubs]);
+
+  const initialCenter: [number, number] = currentVenue
+    ? [currentVenue.coordinates_lng, currentVenue.coordinates_lat]
+    : [114.1628, 22.2793];
+  const initialZoom = currentVenue ? 11 : 2;
+
+  const handleMapPress = (event: NativeSyntheticEvent<PressEventWithFeatures>) => {
+    const features = event.nativeEvent.features ?? [];
+    const venueFeature = features.find((f) => f.properties?.venueId);
+    if (!venueFeature) return;
+    const venueId = venueFeature.properties?.venueId as string;
+    const club = !venueId
+      ? features.find((f) => f.properties?.clubId)?.properties?.venueId
+      : null;
+    const targetId = venueId || club;
+    if (!targetId) return;
+    const venue = venues.find((v) => v.id === targetId);
+    if (venue && onMarkerPress) onMarkerPress(venue);
+  };
 
   if (loading) {
     return (
@@ -285,158 +237,85 @@ export function VenueMapView({
     );
   }
 
-  // Default region (centered on Hong Kong if no venue selected)
-  const defaultRegion = {
-    latitude: currentVenue?.coordinates_lat || 22.2793,
-    longitude: currentVenue?.coordinates_lng || 114.1628,
-    latitudeDelta: currentVenue ? 0.08 : 60,
-    longitudeDelta: currentVenue ? 0.08 : 60,
-  };
-
-  const getMarkerColor = (venueType: string) => {
-    switch (venueType) {
-      case 'championship': return '#ffc107'; // Gold
-      case 'premier': return '#007AFF'; // Blue
-      case 'regional': return '#666'; // Gray
-      default: return '#007AFF';
-    }
-  };
-
-  const getMarkerIcon = (venueType: string) => {
-    switch (venueType) {
-      case 'championship': return 'trophy';
-      case 'premier': return 'star';
-      case 'regional': return 'location';
-      default: return 'boat';
-    }
-  };
-
-  // Custom cluster marker renderer
-  const renderCluster = (cluster: any, onPress: any) => {
-    const pointCount = cluster.pointCount;
-    const coordinate = cluster.coordinate;
-
-    return (
-      <Marker key={`cluster-${cluster.id}`} coordinate={coordinate} onPress={onPress}>
-        <View style={styles.clusterMarker}>
-          <ThemedText style={styles.clusterText}>{pointCount}</ThemedText>
-        </View>
-      </Marker>
-    );
-  };
-
-  // Custom individual marker renderer
-  const renderMarker = (data: any) => {
-    const { type, data: markerData, location } = data;
-
-    if (type === 'venue') {
-      const venue: Venue = markerData;
-      const isSelected = selectedVenue?.id === venue.id || currentVenue?.id === venue.id;
-      const markerScale = isSelected ? 1.3 : 1;
-
-      return (
-        <Marker
-          key={`venue-${venue.id}`}
-          coordinate={location}
-          title={venue.name}
-          description={`${venue.country} - ${venue.venue_type}`}
-          onPress={() => onMarkerPress?.(venue)}
-        >
-          <View
-            style={[
-              styles.customMarker,
-              {
-                backgroundColor: getMarkerColor(venue.venue_type),
-                transform: [{ scale: markerScale }],
-                borderWidth: isSelected ? 3 : 2,
-                borderColor: isSelected ? '#fff' : 'rgba(255, 255, 255, 0.8)',
-              },
-            ]}
-          >
-            <Ionicons
-              name={getMarkerIcon(venue.venue_type) as any}
-              size={isSelected ? 22 : 18}
-              color="#fff"
-            />
-          </View>
-        </Marker>
-      );
-    }
-
-    if (type === 'yachtClub') {
-      const club: YachtClub = markerData;
-      const parentVenue: Venue | null = data.parentVenue;
-
-      if (!parentVenue) {
-        console.warn(`[VenueMap] Yacht club "${club.name}" has no resolved parent venue (venue_id: ${club.venue_id})`);
-      }
-
-      return (
-        <Marker
-          key={`club-${club.id}`}
-          coordinate={location}
-          title={club.short_name || club.name}
-          description={club.prestige_level ? `${club.prestige_level} yacht club` : 'Yacht Club'}
-          onPress={() => {
-            if (onMarkerPress && parentVenue) {
-              onMarkerPress(parentVenue);
-            }
-          }}
-        >
-          <View
-            style={[
-              styles.customMarker,
-              {
-                backgroundColor: '#34c759',
-                borderWidth: 2,
-                borderColor: 'rgba(255, 255, 255, 0.9)',
-              },
-            ]}
-          >
-            <Ionicons name="business" size={18} color="#fff" />
-          </View>
-        </Marker>
-      );
-    }
-
-    return null;
-  };
-
   return (
     <View style={styles.container}>
-      <ClusteredMapView
-        ref={mapRef}
-        style={styles.map}
-        initialRegion={defaultRegion}
-        provider={PROVIDER_GOOGLE}
-        showsUserLocation={true}
-        showsMyLocationButton={true}
-        showsCompass={true}
-        showsScale={true}
-        toolbarEnabled={false}
-        data={clusterData}
-        renderMarker={renderMarker}
-        renderCluster={renderCluster}
-        radius={100}
-        maxZoom={15}
-        minZoom={1}
-        extent={512}
-        nodeSize={64}
-        preserveClusterPressBehavior={false}
-        clusteringEnabled={clusterData.length > 50}
-        animationEnabled={true}
-      />
+      <MLMap mapStyle={MAP_STYLE_URL} style={styles.map} onPress={handleMapPress}>
+        <MLCamera
+          ref={cameraRef}
+          initialViewState={{ center: initialCenter, zoom: initialZoom }}
+        />
 
-      {/* Venue counter overlay */}
-      {showAllVenues && (
+        <MLGeoJSONSource
+          id="venues-source"
+          shape={venueFeatureCollection}
+          cluster
+          clusterRadius={50}
+          clusterMaxZoomLevel={14}
+        >
+          {/* Cluster circles (filled when point_count exists) */}
+          <MLLayer
+            id="venue-clusters"
+            sourceID="venues-source"
+            filter={['has', 'point_count']}
+            style={{
+              circleColor: '#3b82f6',
+              circleRadius: ['step', ['get', 'point_count'], 14, 10, 18, 50, 24],
+              circleStrokeColor: '#FFFFFF',
+              circleStrokeWidth: 2,
+            }}
+          />
+          {/* Cluster count labels */}
+          <MLLayer
+            id="venue-cluster-counts"
+            sourceID="venues-source"
+            filter={['has', 'point_count']}
+            style={{
+              textField: ['get', 'point_count_abbreviated'],
+              textSize: 12,
+              textColor: '#FFFFFF',
+              textHaloColor: 'rgba(0,0,0,0.4)',
+              textHaloWidth: 1,
+            }}
+          />
+          {/* Individual venue points */}
+          <MLLayer
+            id="venue-points"
+            sourceID="venues-source"
+            filter={['!', ['has', 'point_count']]}
+            style={{
+              circleColor: ['get', 'color'],
+              circleRadius: 6,
+              circleStrokeColor: '#FFFFFF',
+              circleStrokeWidth: 2,
+            }}
+          />
+        </MLGeoJSONSource>
+
+        {mapLayers.yachtClubs ? (
+          <MLGeoJSONSource id="yacht-clubs-source" shape={yachtClubFeatureCollection}>
+            <MLLayer
+              id="yacht-club-points"
+              sourceID="yacht-clubs-source"
+              style={{
+                circleColor: '#34c759',
+                circleRadius: 5,
+                circleStrokeColor: '#FFFFFF',
+                circleStrokeWidth: 1.5,
+              }}
+            />
+          </MLGeoJSONSource>
+        ) : null}
+      </MLMap>
+
+      {showAllVenues ? (
         <View style={styles.counterOverlay}>
-          <ThemedText style={styles.counterText}>
+          <Text style={styles.counterText}>
             {showOnlySavedVenues
               ? `${displayVenues.length} saved venue${displayVenues.length !== 1 ? 's' : ''}`
               : `${venues.length} venues worldwide`}
-          </ThemedText>
+          </Text>
         </View>
-      )}
+      ) : null}
     </View>
   );
 }
@@ -454,99 +333,29 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f8f9fa',
+    backgroundColor: '#F8FAFC',
   },
   loadingText: {
-    marginTop: 12,
-    fontSize: 14,
-    color: '#666',
-  },
-  fallbackContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#F8FAFC',
-    padding: 24,
-  },
-  fallbackTitle: {
-    marginTop: 16,
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#334155',
-  },
-  fallbackText: {
     marginTop: 8,
-    fontSize: 14,
+    fontSize: 13,
     color: '#64748B',
-    textAlign: 'center',
-    lineHeight: 20,
-  },
-  fallbackButtonPrimary: {
-    marginTop: 14,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 10,
-    backgroundColor: '#007AFF',
-  },
-  fallbackButtonPrimaryText: {
-    color: '#FFFFFF',
-    fontWeight: '600',
-  },
-  fallbackButtonSecondary: {
-    marginTop: 10,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#CBD5E1',
-    backgroundColor: '#FFFFFF',
-  },
-  fallbackButtonSecondaryText: {
-    color: '#334155',
-    fontWeight: '600',
-  },
-  customMarker: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...(Platform.OS === 'web'
-      ? { boxShadow: '0 2px 8px rgba(0, 0, 0, 0.3)' }
-      : { elevation: 6 }),
-  },
-  clusterMarker: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: '#007AFF',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 3,
-    borderColor: '#fff',
-    ...(Platform.OS === 'web'
-      ? { boxShadow: '0 4px 12px rgba(0, 122, 255, 0.4)' }
-      : { elevation: 8 }),
-  },
-  clusterText: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#fff',
   },
   counterOverlay: {
     position: 'absolute',
-    bottom: 20,
-    left: 20,
+    top: 12,
+    right: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
     backgroundColor: 'rgba(255, 255, 255, 0.95)',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    boxShadow: '0px 2px',
-    elevation: 3,
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
   },
   counterText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#333',
+    fontSize: 12,
+    color: '#475569',
+    fontWeight: '500',
   },
 });

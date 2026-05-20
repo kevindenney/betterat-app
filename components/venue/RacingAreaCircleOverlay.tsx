@@ -1,40 +1,25 @@
 /**
  * RacingAreaCircleOverlay
  *
- * Native map overlay for displaying racing areas as circles (point + radius).
- * Works with react-native-maps. Shows community areas with verification status.
- * Tufte-inspired: minimal chrome, clear visual hierarchy.
+ * MapLibre overlay for displaying racing areas as filled circles (point +
+ * radius). Each area becomes a GeoJSON Polygon (32-point approximation) + a
+ * Marker label at the center. Color encodes verification status:
+ * official/verified/pending/disputed.
+ *
+ * MapLibre RN has no native Circle primitive (unlike react-native-maps),
+ * so we approximate the circle as a polygon. The label callout was a
+ * react-native-maps Callout — dropped here; callers handle `onAreaPress`.
  */
 
-import React, { useMemo, useCallback } from 'react';
-import { View, Text, StyleSheet, Platform, TurboModuleRegistry } from 'react-native';
+import React, { useCallback, useMemo } from 'react';
+import { StyleSheet, Text, View } from 'react-native';
+import {
+  GeoJSONSource as MLGeoJSONSource,
+  Layer as MLLayer,
+  Marker as MLMarker,
+} from '@maplibre/maplibre-react-native';
 import type { VenueRacingArea } from '@/services/venue/CommunityVenueCreationService';
 import { TufteTokens } from '@/constants/designSystem';
-
-// Safely import react-native-maps Circle
-let Circle: any = null;
-let Marker: any = null;
-let Callout: any = null;
-let mapsAvailable = false;
-
-// Check if native module is registered BEFORE requiring react-native-maps
-// This prevents TurboModuleRegistry.getEnforcing from throwing
-if (Platform.OS !== 'web') {
-  try {
-    const nativeModule = TurboModuleRegistry.get('RNMapsAirModule');
-    if (nativeModule) {
-      const maps = require('react-native-maps');
-      Circle = maps.Circle;
-      Marker = maps.Marker;
-      Callout = maps.Callout;
-      mapsAvailable = true;
-    } else {
-      console.warn('[RacingAreaCircleOverlay] RNMapsAirModule not registered');
-    }
-  } catch (e) {
-    console.warn('[RacingAreaCircleOverlay] react-native-maps not available:', e);
-  }
-}
 
 interface RacingAreaCircleOverlayProps {
   areas: VenueRacingArea[];
@@ -43,7 +28,6 @@ interface RacingAreaCircleOverlayProps {
   showLabels?: boolean;
 }
 
-// Color configuration for different area states
 const AREA_COLORS = {
   official: {
     fill: 'rgba(37, 99, 235, 0.12)',
@@ -72,105 +56,139 @@ const AREA_COLORS = {
 };
 
 function getAreaColors(area: VenueRacingArea, isSelected: boolean) {
-  let colorSet = AREA_COLORS.official;
-
+  let set = AREA_COLORS.official;
   if (area.source === 'community') {
-    if (area.verification_status === 'verified') {
-      colorSet = AREA_COLORS.verified;
-    } else if (area.verification_status === 'disputed') {
-      colorSet = AREA_COLORS.disputed;
-    } else {
-      colorSet = AREA_COLORS.pending;
-    }
+    if (area.verification_status === 'verified') set = AREA_COLORS.verified;
+    else if (area.verification_status === 'disputed') set = AREA_COLORS.disputed;
+    else set = AREA_COLORS.pending;
   }
-
   return {
-    fill: isSelected ? colorSet.selectedFill : colorSet.fill,
-    stroke: isSelected ? colorSet.selectedStroke : colorSet.stroke,
+    fill: isSelected ? set.selectedFill : set.fill,
+    stroke: isSelected ? set.selectedStroke : set.stroke,
   };
 }
 
 /**
- * Main overlay component for native maps
+ * Approximate a circle (center + radius_meters) as a 32-point GeoJSON Polygon.
+ * Earth radius ≈ 6,371,000 m. Latitude degrees are ~constant; longitude
+ * scales by cos(latitude).
  */
+function circlePolygon(
+  centerLng: number,
+  centerLat: number,
+  radiusMeters: number,
+  points = 32,
+): [number, number][] {
+  const earthRadius = 6371000;
+  const latRad = (centerLat * Math.PI) / 180;
+  const dLat = ((radiusMeters / earthRadius) * 180) / Math.PI;
+  const dLng = dLat / Math.max(Math.cos(latRad), 0.0001);
+
+  const coords: [number, number][] = [];
+  for (let i = 0; i <= points; i++) {
+    const theta = (i / points) * 2 * Math.PI;
+    coords.push([centerLng + dLng * Math.cos(theta), centerLat + dLat * Math.sin(theta)]);
+  }
+  return coords;
+}
+
 export function RacingAreaCircleOverlay({
   areas,
   selectedAreaId,
   onAreaPress,
   showLabels = true,
 }: RacingAreaCircleOverlayProps) {
-  const handleAreaPress = useCallback(
-    (area: VenueRacingArea) => {
-      onAreaPress?.(area);
-    },
-    [onAreaPress]
+  const handlePress = useCallback(
+    (area: VenueRacingArea) => onAreaPress?.(area),
+    [onAreaPress],
   );
 
-  // Filter areas with valid circle data
   const validAreas = useMemo(
     () =>
       areas.filter(
-        (area) =>
-          area.center_lat != null &&
-          area.center_lng != null &&
-          area.radius_meters != null &&
-          area.radius_meters > 0
+        (a) =>
+          a.center_lat != null &&
+          a.center_lng != null &&
+          a.radius_meters != null &&
+          a.radius_meters > 0,
       ),
-    [areas]
+    [areas],
   );
 
-  // Return null if maps aren't available
-  if (!mapsAvailable) {
-    return null;
-  }
-
-  if (validAreas.length === 0) {
-    return null;
-  }
+  if (validAreas.length === 0) return null;
 
   return (
     <>
       {validAreas.map((area) => {
         const isSelected = area.id === selectedAreaId;
         const colors = getAreaColors(area, isSelected);
-        const strokeWidth = isSelected ? 2.5 : 1.5;
         const isPending = area.source === 'community' && area.verification_status === 'pending';
+        const polygonCoords = circlePolygon(
+          area.center_lng!,
+          area.center_lat!,
+          area.radius_meters!,
+        );
+
+        const polygonFeature = {
+          type: 'Feature' as const,
+          properties: {},
+          geometry: {
+            type: 'Polygon' as const,
+            coordinates: [polygonCoords],
+          },
+        };
 
         return (
           <React.Fragment key={area.id}>
-            {/* Circle overlay */}
-            <Circle
-              center={{
-                latitude: area.center_lat!,
-                longitude: area.center_lng!,
-              }}
-              radius={area.radius_meters!}
-              fillColor={colors.fill}
-              strokeColor={colors.stroke}
-              strokeWidth={strokeWidth}
-              zIndex={isSelected ? 10 : 1}
-              onPress={() => handleAreaPress(area)}
-              tappable
-              lineDashPattern={isPending ? [5, 5] : undefined}
-            />
-
-            {/* Label marker */}
-            {showLabels && (
-              <Marker
-                coordinate={{
-                  latitude: area.center_lat!,
-                  longitude: area.center_lng!,
+            <MLGeoJSONSource id={`area-${area.id}`} shape={polygonFeature}>
+              <MLLayer
+                id={`area-${area.id}-fill`}
+                sourceID={`area-${area.id}`}
+                style={{ fillColor: colors.fill, fillOutlineColor: colors.stroke }}
+              />
+              <MLLayer
+                id={`area-${area.id}-stroke`}
+                sourceID={`area-${area.id}`}
+                style={{
+                  lineColor: colors.stroke,
+                  lineWidth: isSelected ? 2.5 : 1.5,
+                  lineDasharray: isPending ? [2, 2] : undefined,
                 }}
-                anchor={{ x: 0.5, y: 0.5 }}
-                tracksViewChanges={false}
-                onPress={() => handleAreaPress(area)}
+              />
+            </MLGeoJSONSource>
+
+            {showLabels ? (
+              <MLMarker
+                id={`area-${area.id}-label`}
+                lngLat={[area.center_lng!, area.center_lat!]}
               >
-                <AreaLabelMarker area={area} isSelected={isSelected} />
-                <Callout tooltip>
-                  <AreaCallout area={area} />
-                </Callout>
-              </Marker>
-            )}
+                <View
+                  onTouchEnd={() => handlePress(area)}
+                  style={[styles.labelContainer, isSelected && styles.labelSelected]}
+                >
+                  <Text
+                    style={[
+                      styles.labelText,
+                      isSelected && styles.labelTextSelected,
+                      isPending && styles.labelTextPending,
+                    ]}
+                    numberOfLines={1}
+                  >
+                    {area.name}
+                  </Text>
+                  {isPending ? (
+                    <View style={styles.confirmBadge}>
+                      <Text style={styles.confirmBadgeText}>
+                        {area.confirmation_count}/3
+                      </Text>
+                    </View>
+                  ) : null}
+                  {area.source === 'official' && !isSelected ? (
+                    <View style={styles.officialDot} />
+                  ) : null}
+                </View>
+              </MLMarker>
+            ) : null}
           </React.Fragment>
         );
       })}
@@ -178,99 +196,20 @@ export function RacingAreaCircleOverlay({
   );
 }
 
-/**
- * Minimal label shown on the map
- */
-function AreaLabelMarker({
-  area,
-  isSelected,
-}: {
-  area: VenueRacingArea;
-  isSelected: boolean;
-}) {
-  const isPending = area.source === 'community' && area.verification_status === 'pending';
-  const isOfficial = area.source === 'official';
-
-  return (
-    <View style={[styles.labelContainer, isSelected && styles.labelSelected]}>
-      <Text
-        style={[
-          styles.labelText,
-          isSelected && styles.labelTextSelected,
-          isPending && styles.labelTextPending,
-        ]}
-        numberOfLines={1}
-      >
-        {area.name}
-      </Text>
-      {isPending && (
-        <View style={styles.confirmBadge}>
-          <Text style={styles.confirmBadgeText}>
-            {area.confirmation_count}/3
-          </Text>
-        </View>
-      )}
-      {isOfficial && !isSelected && (
-        <View style={styles.officialDot} />
-      )}
-    </View>
-  );
-}
-
-/**
- * Callout shown when marker is tapped
- */
-function AreaCallout({ area }: { area: VenueRacingArea }) {
-  const isPending = area.source === 'community' && area.verification_status === 'pending';
-
-  return (
-    <View style={styles.callout}>
-      <Text style={styles.calloutTitle}>{area.name}</Text>
-      {area.description && (
-        <Text style={styles.calloutDescription} numberOfLines={2}>
-          {area.description}
-        </Text>
-      )}
-      <View style={styles.calloutMeta}>
-        {area.source === 'official' && (
-          <Text style={styles.calloutOfficial}>Official Area</Text>
-        )}
-        {area.source === 'community' && area.verification_status === 'verified' && (
-          <Text style={styles.calloutVerified}>Community Verified</Text>
-        )}
-        {isPending && (
-          <Text style={styles.calloutPending}>
-            {area.confirmation_count}/3 confirmations
-          </Text>
-        )}
-        <Text style={styles.calloutRadius}>
-          {area.radius_meters! >= 1000
-            ? `${(area.radius_meters! / 1000).toFixed(1)}km radius`
-            : `${area.radius_meters}m radius`}
-        </Text>
-      </View>
-    </View>
-  );
-}
-
-/**
- * Export areas as GeoJSON for web/MapLibre compatibility
- */
+/** GeoJSON helper still used by the web map (unchanged). */
 export function useRacingAreasAsGeoJSON(
   areas: VenueRacingArea[],
-  selectedAreaId?: string | null
+  selectedAreaId?: string | null,
 ) {
   return useMemo(() => {
     const validAreas = areas.filter(
-      (a) => a.center_lat != null && a.center_lng != null && a.radius_meters
+      (a) => a.center_lat != null && a.center_lng != null && a.radius_meters,
     );
-
     return {
       type: 'FeatureCollection' as const,
       features: validAreas.map((area) => {
         const isSelected = area.id === selectedAreaId;
         const colors = getAreaColors(area, isSelected);
-
         return {
           type: 'Feature' as const,
           id: area.id,
@@ -296,7 +235,6 @@ export function useRacingAreasAsGeoJSON(
 }
 
 const styles = StyleSheet.create({
-  // Label styles
   labelContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -327,16 +265,12 @@ const styles = StyleSheet.create({
     color: '#6B7280',
     fontWeight: '500',
   },
-
-  // Official dot
   officialDot: {
     width: 5,
     height: 5,
     borderRadius: 2.5,
     backgroundColor: '#2563EB',
   },
-
-  // Confirm badge
   confirmBadge: {
     paddingHorizontal: 4,
     paddingVertical: 1,
@@ -348,49 +282,6 @@ const styles = StyleSheet.create({
     fontSize: 8,
     color: '#6B7280',
     fontWeight: '600',
-  },
-
-  // Callout styles
-  callout: {
-    backgroundColor: 'white',
-    borderRadius: 8,
-    padding: 12,
-    minWidth: 160,
-    maxWidth: 220,
-    ...TufteTokens.shadows.subtle,
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-  },
-  calloutTitle: {
-    ...TufteTokens.typography.primary,
-    color: '#111827',
-    marginBottom: 4,
-  },
-  calloutDescription: {
-    ...TufteTokens.typography.tertiary,
-    color: '#6B7280',
-    marginBottom: 8,
-  },
-  calloutMeta: {
-    gap: 2,
-  },
-  calloutOfficial: {
-    ...TufteTokens.typography.micro,
-    color: '#2563EB',
-    fontWeight: '600',
-  },
-  calloutVerified: {
-    ...TufteTokens.typography.micro,
-    color: '#059669',
-    fontWeight: '600',
-  },
-  calloutPending: {
-    ...TufteTokens.typography.micro,
-    color: '#6B7280',
-  },
-  calloutRadius: {
-    ...TufteTokens.typography.micro,
-    color: '#9CA3AF',
   },
 });
 

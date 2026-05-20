@@ -1,34 +1,21 @@
 /**
  * MapPostMarkers
  *
- * Overlay for VenueHeroMap rendering geo-pinned posts as colored dots.
- * Colors: amber=tip, blue=question, red=safety, gray=other
+ * Overlay for VenueHeroMap rendering geo-pinned posts as colored dots on a
+ * MapLibre map. Colors: amber=tip, blue=question, red=safety, etc.
+ *
+ * The legacy Callout popup is dropped — MapLibre Marker doesn't expose a
+ * built-in popup. Callers should handle `onPostPress` (e.g. show a bottom
+ * sheet) for the post detail UI.
  */
 
 import React from 'react';
-import { View, Text, StyleSheet, Platform, TurboModuleRegistry } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { Marker as MLMarker } from '@maplibre/maplibre-react-native';
 import { TufteTokens } from '@/constants/designSystem';
 import { POST_TYPE_CONFIG } from '@/types/community-feed';
 import type { FeedPost, PostType } from '@/types/community-feed';
-
-// Safely import Marker from react-native-maps
-let Marker: any = null;
-let Callout: any = null;
-
-if (Platform.OS !== 'web') {
-  try {
-    const nativeModule = TurboModuleRegistry.get('RNMapsAirModule');
-    if (nativeModule) {
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const maps = require('react-native-maps');
-      Marker = maps.Marker;
-      Callout = maps.Callout;
-    }
-  } catch {
-    // Maps not available
-  }
-}
 
 interface MapPostMarkersProps {
   posts: FeedPost[];
@@ -44,56 +31,25 @@ const MARKER_COLORS: Record<PostType, string> = {
 };
 
 export function MapPostMarkers({ posts, onPostPress }: MapPostMarkersProps) {
-  if (!Marker) return null;
-
   return (
     <>
-      {posts.map(post => {
+      {posts.map((post) => {
         if (post.location_lat == null || post.location_lng == null) return null;
-
         const color = MARKER_COLORS[post.post_type] || '#6B7280';
         const config = POST_TYPE_CONFIG[post.post_type] || POST_TYPE_CONFIG.discussion;
-
         return (
-          <Marker
+          <MLMarker
             key={post.id}
-            coordinate={{
-              latitude: post.location_lat,
-              longitude: post.location_lng,
-            }}
-            tracksViewChanges={false}
-            onPress={() => onPostPress?.(post)}
+            id={`post-${post.id}`}
+            lngLat={[post.location_lng, post.location_lat]}
           >
-            {/* Custom marker view */}
-            <View style={[styles.marker, { backgroundColor: color }]}>
-              <Ionicons name={config.icon as any} size={10} color="#FFFFFF" />
+            <View
+              style={[styles.marker, { backgroundColor: color }]}
+              onTouchEnd={() => onPostPress?.(post)}
+            >
+              <Ionicons name={config.icon as keyof typeof Ionicons.glyphMap} size={10} color="#FFFFFF" />
             </View>
-
-            {/* Callout popover */}
-            {Callout && (
-              <Callout tooltip>
-                <View style={styles.callout}>
-                  <View style={[styles.calloutType, { backgroundColor: config.bgColor }]}>
-                    <Text style={[styles.calloutTypeText, { color: config.color }]}>
-                      {config.label}
-                    </Text>
-                  </View>
-                  <Text style={styles.calloutTitle} numberOfLines={2}>
-                    {post.title}
-                  </Text>
-                  <View style={styles.calloutMeta}>
-                    <Ionicons name="arrow-up-outline" size={10} color="#6B7280" />
-                    <Text style={styles.calloutMetaText}>{post.upvotes}</Text>
-                    <Ionicons name="chatbubble-outline" size={10} color="#6B7280" />
-                    <Text style={styles.calloutMetaText}>{post.comment_count}</Text>
-                  </View>
-                  {post.location_label && (
-                    <Text style={styles.calloutLocation}>{post.location_label}</Text>
-                  )}
-                </View>
-              </Callout>
-            )}
-          </Marker>
+          </MLMarker>
         );
       })}
     </>
@@ -111,46 +67,6 @@ const styles = StyleSheet.create({
     borderColor: '#FFFFFF',
     ...TufteTokens.shadows.subtle,
     shadowOpacity: 0.3,
-  },
-  callout: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: TufteTokens.borderRadius.subtle,
-    padding: TufteTokens.spacing.standard,
-    minWidth: 160,
-    maxWidth: 220,
-    gap: 4,
-    ...TufteTokens.shadows.subtle,
-    shadowOpacity: 0.15,
-    shadowRadius: 6,
-  },
-  calloutType: {
-    alignSelf: 'flex-start',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: TufteTokens.borderRadius.minimal,
-  },
-  calloutTypeText: {
-    fontSize: 9,
-    fontWeight: '600',
-    textTransform: 'uppercase',
-  },
-  calloutTitle: {
-    ...TufteTokens.typography.secondary,
-    color: '#111827',
-    fontWeight: '500',
-  },
-  calloutMeta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  calloutMetaText: {
-    ...TufteTokens.typography.micro,
-    color: '#6B7280',
-  },
-  calloutLocation: {
-    ...TufteTokens.typography.micro,
-    color: '#9CA3AF',
   },
 });
 

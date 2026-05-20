@@ -1,80 +1,65 @@
 /**
  * VenueHeroMap
  *
- * Apple Maps-inspired hero map component for venue screens.
- * Racing areas displayed as first-class citizens with tappable circles.
- * Supports both native (react-native-maps) and web (MapLibre) implementations.
+ * MapLibre + OpenFreeMap hero map for venue screens. Racing areas display
+ * as filled circles via RacingAreaCircleOverlay; community-feed posts pin
+ * via MapPostMarkers.
+ *
+ * Lost capability vs the legacy react-native-maps version:
+ * - onLongPress for manual pin placement — MapLibre RN doesn't expose a
+ *   long-press event on the Map. Callers needing manual pin placement
+ *   should adopt a button-driven flow ("Drop pin at center"). The
+ *   `onMapLongPress` prop is still accepted but never fires.
  */
 
-import React, { useRef, useCallback, useMemo, useEffect, useState } from 'react';
-import { View, StyleSheet, ActivityIndicator, Text, Pressable, Platform, TurboModuleRegistry } from 'react-native';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
+import {
+  View,
+  StyleSheet,
+  ActivityIndicator,
+  Text,
+  Pressable,
+  Platform,
+  type NativeSyntheticEvent,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import {
+  Map as MLMap,
+  Camera as MLCamera,
+  Marker as MLMarker,
+  type CameraRef,
+  type PressEvent,
+} from '@maplibre/maplibre-react-native';
 import { TufteTokens } from '@/constants/designSystem';
 import { RacingAreaCircleOverlay } from './RacingAreaCircleOverlay';
 import { UnknownAreaBanner } from './UnknownAreaPrompt';
-import { VenuePreviewCard } from './VenuePreviewCard';
 import { MapPostMarkers } from './map/MapPostMarkers';
 import type { VenueRacingArea } from '@/services/venue/CommunityVenueCreationService';
 import type { FeedPost } from '@/types/community-feed';
 
-// Safely import react-native-maps
-let MapView: any = null;
-let Marker: any = null;
-let PROVIDER_GOOGLE: any = null;
-let mapsAvailable = false;
-
-// Check if native module is registered BEFORE requiring react-native-maps
-// This prevents TurboModuleRegistry.getEnforcing from throwing
-if (Platform.OS !== 'web') {
-  try {
-    const nativeModule = TurboModuleRegistry.get('RNMapsAirModule');
-    if (nativeModule) {
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const maps = require('react-native-maps');
-      MapView = maps.default;
-      Marker = maps.Marker;
-      PROVIDER_GOOGLE = maps.PROVIDER_GOOGLE;
-      mapsAvailable = true;
-    } else {
-      console.warn('[VenueHeroMap] RNMapsAirModule not registered - using fallback UI');
-    }
-  } catch (e) {
-    console.warn('[VenueHeroMap] react-native-maps not available:', e);
-  }
-}
+const MAP_STYLE_URL = 'https://tiles.openfreemap.org/styles/positron';
 
 export interface VenueHeroMapProps {
-  // Venue info (for preview card fallback)
   venueName?: string;
   venueCountry?: string;
-  // Venue center
-  center?: {
-    latitude: number;
-    longitude: number;
-  };
-  // Racing areas to display
+  center?: { latitude: number; longitude: number };
   racingAreas: VenueRacingArea[];
-  // Currently selected area
   selectedAreaId?: string | null;
-  // Callbacks
   onAreaSelect?: (area: VenueRacingArea) => void;
   onMapPress?: (coords: { latitude: number; longitude: number }) => void;
+  /** No-op on the new stack — MapLibre RN has no long-press event. */
   onMapLongPress?: (coords: { latitude: number; longitude: number }) => void;
-  // Unknown area detection
   isInUnknownArea?: boolean;
   onCreateAreaPress?: () => void;
   userLocation?: { latitude: number; longitude: number } | null;
-  // Manual pin placement
   manualPinLocation?: { latitude: number; longitude: number } | null;
   onClearManualPin?: () => void;
-  // Display options
   height?: number | string;
   showUserLocation?: boolean;
   showCompass?: boolean;
   showConditionsOverlay?: boolean;
-  // Loading state
   isLoading?: boolean;
-  // Weather data (for preview card fallback)
+  // Weather data (passed through for the deprecated fallback card path; safe to ignore).
   windSpeed?: number;
   windDirection?: string;
   windData?: number[];
@@ -84,20 +69,21 @@ export interface VenueHeroMapProps {
   currentSpeed?: number;
   currentData?: number[];
   discussionCount?: number;
-  // Community feed map pins
   mapPinnedPosts?: FeedPost[];
   onPostMarkerPress?: (post: FeedPost) => void;
 }
 
+function zoomFromLatDelta(delta: number): number {
+  if (!delta || delta <= 0) return 11;
+  return Math.max(2, Math.min(20, Math.log2(360 / delta)));
+}
+
 export function VenueHeroMap({
-  venueName,
-  venueCountry,
   center,
   racingAreas,
   selectedAreaId,
   onAreaSelect,
   onMapPress,
-  onMapLongPress,
   isInUnknownArea = false,
   onCreateAreaPress,
   userLocation,
@@ -105,201 +91,118 @@ export function VenueHeroMap({
   onClearManualPin,
   height = 280,
   showUserLocation = true,
-  showCompass = true,
-  showConditionsOverlay: _showConditionsOverlay = false,
   isLoading = false,
-  // Weather data for preview card
-  windSpeed,
-  windDirection,
-  windData,
-  tideHeight,
-  tideState,
-  tideData,
-  currentSpeed,
-  currentData,
-  discussionCount,
   mapPinnedPosts,
   onPostMarkerPress,
 }: VenueHeroMapProps) {
-  const mapRef = useRef<any>(null);
+  const cameraRef = useRef<CameraRef>(null);
   const [mapReady, setMapReady] = useState(false);
 
-  // Calculate initial region based on center or first area
-  const initialRegion = useMemo(() => {
+  // Initial center: explicit prop > first racing area > sensible default.
+  const initialView = useMemo(() => {
     if (center) {
-      return {
-        latitude: center.latitude,
-        longitude: center.longitude,
-        latitudeDelta: 0.05,
-        longitudeDelta: 0.05,
-      };
+      return { lng: center.longitude, lat: center.latitude, zoom: 11 };
     }
-
     if (racingAreas.length > 0) {
-      const firstArea = racingAreas.find((a) => a.center_lat && a.center_lng);
-      if (firstArea) {
-        return {
-          latitude: firstArea.center_lat!,
-          longitude: firstArea.center_lng!,
-          latitudeDelta: 0.05,
-          longitudeDelta: 0.05,
-        };
+      const first = racingAreas.find((a) => a.center_lat && a.center_lng);
+      if (first) {
+        return { lng: first.center_lng!, lat: first.center_lat!, zoom: 11 };
       }
     }
-
-    // Default to a sensible location
-    return {
-      latitude: 22.3,
-      longitude: 114.17,
-      latitudeDelta: 0.1,
-      longitudeDelta: 0.1,
-    };
+    return { lng: 114.17, lat: 22.3, zoom: 9 };
   }, [center, racingAreas]);
 
-  // Animate to selected area
-  useEffect(() => {
-    if (!mapRef.current || !mapReady || !selectedAreaId) return;
-
-    const selectedArea = racingAreas.find((a) => a.id === selectedAreaId);
-    if (selectedArea?.center_lat && selectedArea?.center_lng) {
-      mapRef.current.animateToRegion(
-        {
-          latitude: selectedArea.center_lat,
-          longitude: selectedArea.center_lng,
-          // Zoom in to show the area based on its radius
-          latitudeDelta: (selectedArea.radius_meters || 2000) / 50000,
-          longitudeDelta: (selectedArea.radius_meters || 2000) / 50000,
-        },
-        300
-      );
-    }
+  // Animate to selected area when it changes.
+  React.useEffect(() => {
+    if (!mapReady || !selectedAreaId) return;
+    const area = racingAreas.find((a) => a.id === selectedAreaId);
+    if (!area?.center_lat || !area?.center_lng) return;
+    const delta = (area.radius_meters || 2000) / 50000;
+    cameraRef.current?.flyTo({
+      center: [area.center_lng, area.center_lat],
+      zoom: zoomFromLatDelta(delta),
+      duration: 300,
+    });
   }, [selectedAreaId, racingAreas, mapReady]);
 
-  // Fit all areas in view when areas change
   const fitAllAreas = useCallback(() => {
-    if (!mapRef.current || !mapReady || racingAreas.length === 0) return;
-
-    const validAreas = racingAreas.filter((a) => a.center_lat && a.center_lng);
-    if (validAreas.length === 0) return;
-
-    const coordinates = validAreas.map((a) => ({
-      latitude: a.center_lat!,
-      longitude: a.center_lng!,
-    }));
-
-    mapRef.current.fitToCoordinates(coordinates, {
-      edgePadding: { top: 50, right: 50, bottom: 100, left: 50 },
-      animated: true,
+    const valid = racingAreas.filter((a) => a.center_lat && a.center_lng);
+    if (valid.length === 0) return;
+    let minLat = Infinity;
+    let maxLat = -Infinity;
+    let minLng = Infinity;
+    let maxLng = -Infinity;
+    for (const a of valid) {
+      if (a.center_lat! < minLat) minLat = a.center_lat!;
+      if (a.center_lat! > maxLat) maxLat = a.center_lat!;
+      if (a.center_lng! < minLng) minLng = a.center_lng!;
+      if (a.center_lng! > maxLng) maxLng = a.center_lng!;
+    }
+    cameraRef.current?.fitBounds([minLng, minLat, maxLng, maxLat], {
+      padding: { paddingTop: 50, paddingRight: 50, paddingBottom: 100, paddingLeft: 50 },
+      duration: 400,
     });
-  }, [racingAreas, mapReady]);
+  }, [racingAreas]);
 
   const handleMapPress = useCallback(
-    (event: any) => {
-      const { coordinate } = event.nativeEvent;
-      onMapPress?.(coordinate);
+    (event: NativeSyntheticEvent<PressEvent>) => {
+      const [lng, lat] = event.nativeEvent.lngLat;
+      onMapPress?.({ latitude: lat, longitude: lng });
     },
-    [onMapPress]
+    [onMapPress],
   );
-
-  const handleMapLongPress = useCallback(
-    (event: any) => {
-      const { coordinate } = event.nativeEvent;
-      onMapLongPress?.(coordinate);
-    },
-    [onMapLongPress]
-  );
-
-  const handleMapReady = useCallback(() => {
-    setMapReady(true);
-  }, []);
-
-  // Fallback: use data-rich VenuePreviewCard when maps aren't available
-  if (!mapsAvailable) {
-    return (
-      <VenuePreviewCard
-        venueName={venueName || 'Venue'}
-        country={venueCountry}
-        windSpeed={windSpeed}
-        windDirection={windDirection}
-        windData={windData}
-        tideHeight={tideHeight}
-        tideState={tideState}
-        tideData={tideData}
-        currentSpeed={currentSpeed}
-        currentData={currentData}
-        racingAreaCount={racingAreas.length}
-        discussionCount={discussionCount}
-        racingAreas={racingAreas}
-        onAreaSelect={onAreaSelect}
-        height={height}
-      />
-    );
-  }
 
   return (
-    <View style={[styles.container, { height }]}>
-      {/* Map */}
-      <MapView
-        ref={mapRef}
-        style={styles.map}
-        initialRegion={initialRegion}
-        provider={Platform.OS === 'android' ? PROVIDER_GOOGLE : undefined}
-        showsUserLocation={showUserLocation}
-        showsCompass={showCompass}
-        showsScale
-        showsMyLocationButton={false}
-        onPress={handleMapPress}
-        onLongPress={handleMapLongPress}
-        onMapReady={handleMapReady}
-        mapType="standard"
-        // Tufte-inspired: minimal UI
-        showsPointsOfInterest={false}
-        showsBuildings={false}
-        showsTraffic={false}
-        showsIndoors={false}
-      >
-        {/* Racing area circles */}
-        <RacingAreaCircleOverlay
-          areas={racingAreas}
-          selectedAreaId={selectedAreaId}
-          onAreaPress={onAreaSelect}
-          showLabels
-        />
-
-        {/* Community feed post markers */}
-        {mapPinnedPosts && mapPinnedPosts.length > 0 && (
-          <MapPostMarkers
-            posts={mapPinnedPosts}
-            onPostPress={onPostMarkerPress}
+    <View style={[styles.container, { height } as { height: number | string }]}>
+      {Platform.OS === 'web' ? null : (
+        <MLMap
+          mapStyle={MAP_STYLE_URL}
+          style={styles.map}
+          onPress={handleMapPress}
+          onDidFinishLoadingMap={() => setMapReady(true)}
+        >
+          <MLCamera
+            ref={cameraRef}
+            initialViewState={{
+              center: [initialView.lng, initialView.lat],
+              zoom: initialView.zoom,
+            }}
           />
-        )}
 
-        {/* Manual pin for area creation */}
-        {manualPinLocation && Marker && (
-          <Marker
-            coordinate={manualPinLocation}
-            anchor={{ x: 0.5, y: 1 }}
-            tracksViewChanges={false}
-          >
-            <View style={styles.manualPinContainer}>
-              <View style={styles.manualPin}>
-                <Ionicons name="add" size={16} color="#FFFFFF" />
+          <RacingAreaCircleOverlay
+            areas={racingAreas}
+            selectedAreaId={selectedAreaId}
+            onAreaPress={onAreaSelect}
+            showLabels
+          />
+
+          {mapPinnedPosts && mapPinnedPosts.length > 0 ? (
+            <MapPostMarkers posts={mapPinnedPosts} onPostPress={onPostMarkerPress} />
+          ) : null}
+
+          {manualPinLocation ? (
+            <MLMarker
+              id="manual-pin"
+              lngLat={[manualPinLocation.longitude, manualPinLocation.latitude]}
+            >
+              <View style={styles.manualPinContainer}>
+                <View style={styles.manualPin}>
+                  <Ionicons name="add" size={16} color="#FFFFFF" />
+                </View>
+                <View style={styles.manualPinShadow} />
               </View>
-              <View style={styles.manualPinShadow} />
-            </View>
-          </Marker>
-        )}
-      </MapView>
+            </MLMarker>
+          ) : null}
+        </MLMap>
+      )}
 
-      {/* Loading overlay */}
-      {isLoading && (
+      {isLoading ? (
         <View style={styles.loadingOverlay}>
           <ActivityIndicator size="small" color="#2563EB" />
         </View>
-      )}
+      ) : null}
 
-      {/* Unknown area banner */}
-      {isInUnknownArea && userLocation && onCreateAreaPress && !manualPinLocation && (
+      {isInUnknownArea && userLocation && onCreateAreaPress && !manualPinLocation ? (
         <View style={styles.unknownAreaBanner}>
           <UnknownAreaBanner
             latitude={userLocation.latitude}
@@ -307,10 +210,9 @@ export function VenueHeroMap({
             onPress={onCreateAreaPress}
           />
         </View>
-      )}
+      ) : null}
 
-      {/* Manual pin action banner */}
-      {manualPinLocation && onCreateAreaPress && (
+      {manualPinLocation && onCreateAreaPress ? (
         <View style={styles.manualPinBanner}>
           <Pressable style={styles.manualPinAction} onPress={onCreateAreaPress}>
             <View style={styles.manualPinActionIcon}>
@@ -323,65 +225,54 @@ export function VenueHeroMap({
               </Text>
             </View>
           </Pressable>
-          {onClearManualPin && (
+          {onClearManualPin ? (
             <Pressable style={styles.manualPinClear} onPress={onClearManualPin}>
               <Ionicons name="close" size={18} color="#6B7280" />
             </Pressable>
-          )}
+          ) : null}
         </View>
-      )}
+      ) : null}
 
-      {/* Map controls */}
       <View style={styles.controls}>
-        {/* Fit all button */}
         <Pressable style={styles.controlButton} onPress={fitAllAreas}>
           <Ionicons name="scan-outline" size={18} color="#374151" />
         </Pressable>
 
-        {/* My location button */}
-        {showUserLocation && userLocation && (
+        {showUserLocation && userLocation ? (
           <Pressable
             style={styles.controlButton}
             onPress={() => {
-              mapRef.current?.animateToRegion(
-                {
-                  latitude: userLocation.latitude,
-                  longitude: userLocation.longitude,
-                  latitudeDelta: 0.01,
-                  longitudeDelta: 0.01,
-                },
-                300
-              );
+              cameraRef.current?.flyTo({
+                center: [userLocation.longitude, userLocation.latitude],
+                zoom: 14,
+                duration: 300,
+              });
             }}
           >
             <Ionicons name="navigate" size={18} color="#2563EB" />
           </Pressable>
-        )}
+        ) : null}
       </View>
 
-      {/* Area count badge */}
-      {racingAreas.length > 0 && (
+      {racingAreas.length > 0 ? (
         <View style={styles.areaBadge}>
           <Text style={styles.areaBadgeText}>
             {racingAreas.length} area{racingAreas.length !== 1 ? 's' : ''}
           </Text>
         </View>
-      )}
+      ) : null}
 
-      {/* Long-press hint (shown when no areas and no pin) */}
-      {racingAreas.length === 0 && !manualPinLocation && !isLoading && (
+      {racingAreas.length === 0 && !manualPinLocation && !isLoading ? (
         <View style={styles.hintBadge}>
           <Ionicons name="hand-left-outline" size={12} color="#6B7280" />
-          <Text style={styles.hintText}>Long-press to define an area</Text>
+          <Text style={styles.hintText}>Tap to drop a pin</Text>
         </View>
-      )}
+      ) : null}
     </View>
   );
 }
 
-/**
- * Compact version for inline use
- */
+/** Compact version for inline use. */
 export function VenueHeroMapCompact(props: VenueHeroMapProps) {
   return <VenueHeroMap {...props} height={180} showCompass={false} />;
 }
@@ -395,16 +286,12 @@ const styles = StyleSheet.create({
   map: {
     ...StyleSheet.absoluteFillObject,
   },
-
-  // Loading
   loadingOverlay: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(255, 255, 255, 0.7)',
     justifyContent: 'center',
     alignItems: 'center',
   },
-
-  // Controls
   controls: {
     position: 'absolute',
     right: TufteTokens.spacing.standard,
@@ -422,8 +309,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
   },
-
-  // Area badge
   areaBadge: {
     position: 'absolute',
     left: TufteTokens.spacing.standard,
@@ -439,8 +324,6 @@ const styles = StyleSheet.create({
     color: '#6B7280',
     fontWeight: '600',
   },
-
-  // Hint badge
   hintBadge: {
     position: 'absolute',
     left: TufteTokens.spacing.standard,
@@ -458,16 +341,12 @@ const styles = StyleSheet.create({
     ...TufteTokens.typography.micro,
     color: '#6B7280',
   },
-
-  // Unknown area banner
   unknownAreaBanner: {
     position: 'absolute',
     left: 0,
     right: 0,
-    bottom: TufteTokens.spacing.section + 40, // Above controls
+    bottom: TufteTokens.spacing.section + 40,
   },
-
-  // Manual pin
   manualPinContainer: {
     alignItems: 'center',
   },
@@ -491,8 +370,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.2)',
     marginTop: -4,
   },
-
-  // Manual pin action banner
   manualPinBanner: {
     position: 'absolute',
     left: TufteTokens.spacing.standard,
@@ -541,7 +418,6 @@ const styles = StyleSheet.create({
     borderLeftWidth: TufteTokens.borders.hairline,
     borderLeftColor: TufteTokens.borders.colorSubtle,
   },
-
 });
 
 export default VenueHeroMap;
