@@ -19,15 +19,29 @@ import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
 import { STEP_COLORS } from '@/lib/step-theme';
 import type { StepLocation } from '@/types/step-detail';
 import { LocationMapPicker as LocationMapPickerModal } from '@/components/races/LocationMapPicker';
+import { useStepLocationNeighbors } from '@/hooks/useStepLocationNeighbors';
+
+/** Quick-pick chip (e.g. an org's known venues like "RHKYC Clubhouse"). */
+export interface PlanWhereQuickPick {
+  id: string;
+  name: string;
+  lat?: number;
+  lng?: number;
+}
 
 interface PlanWhereCardProps {
   location?: StepLocation;
   readOnly?: boolean;
   onChange: (next: StepLocation | undefined) => void;
+  /** Optional pre-seeded venues (e.g. user's club's racing areas). */
+  quickPicks?: PlanWhereQuickPick[];
 }
 
-export function PlanWhereCard({ location, readOnly, onChange }: PlanWhereCardProps) {
+export function PlanWhereCard({ location, readOnly, onChange, quickPicks }: PlanWhereCardProps) {
   const [pickerVisible, setPickerVisible] = useState(false);
+  const { data: neighbors } = useStepLocationNeighbors(location?.lat, location?.lng, 5);
+  // Subtract the current user's own pin if applicable — we want "OTHER sailors".
+  const otherSailors = Math.max(0, (neighbors?.sailors ?? 0) - 1);
 
   const handlePicked = useCallback(
     (picked: { name: string; lat: number; lng: number }) => {
@@ -63,7 +77,11 @@ export function PlanWhereCard({ location, readOnly, onChange }: PlanWhereCardPro
             <Text style={styles.venueName} numberOfLines={1}>
               {location!.name}
             </Text>
-            {hasCoords ? (
+            {hasCoords && otherSailors > 0 ? (
+              <Text style={styles.venueSub} numberOfLines={1}>
+                {otherSailors} {otherSailors === 1 ? 'sailor' : 'sailors'} set steps within 5 km
+              </Text>
+            ) : hasCoords ? (
               <Text style={styles.venueSub} numberOfLines={1}>
                 {location!.lat!.toFixed(4)}, {location!.lng!.toFixed(4)}
               </Text>
@@ -76,6 +94,43 @@ export function PlanWhereCard({ location, readOnly, onChange }: PlanWhereCardPro
           )}
         </View>
       ) : null}
+
+      {!readOnly && quickPicks && quickPicks.length > 0 && (
+        <View style={styles.quickPickRow}>
+          {quickPicks.map((qp) => {
+            const isActive = location?.name === qp.name;
+            return (
+              <Pressable
+                key={qp.id}
+                style={[styles.quickPickChip, isActive && styles.quickPickChipActive]}
+                onPress={() =>
+                  onChange({
+                    name: qp.name,
+                    lat: qp.lat,
+                    lng: qp.lng,
+                    venue_id: location?.venue_id,
+                  })
+                }
+              >
+                <Ionicons
+                  name="location"
+                  size={12}
+                  color={isActive ? STEP_COLORS.accent : IOS_COLORS.secondaryLabel}
+                />
+                <Text
+                  style={[
+                    styles.quickPickText,
+                    isActive && styles.quickPickTextActive,
+                  ]}
+                  numberOfLines={1}
+                >
+                  {qp.name}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+      )}
 
       {!readOnly && (
         <Pressable style={styles.pickBtn} onPress={() => setPickerVisible(true)}>
@@ -144,6 +199,35 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: IOS_COLORS.tertiaryLabel,
     marginTop: 1,
+  },
+  quickPickRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  quickPickChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: IOS_COLORS.systemGray6,
+    borderRadius: 14,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderWidth: 1,
+    borderColor: 'transparent',
+  },
+  quickPickChipActive: {
+    backgroundColor: STEP_COLORS.accentLight,
+    borderColor: STEP_COLORS.accent,
+  },
+  quickPickText: {
+    fontSize: 13,
+    color: IOS_COLORS.label,
+    maxWidth: 180,
+  },
+  quickPickTextActive: {
+    color: STEP_COLORS.accent,
+    fontWeight: '600',
   },
   pickBtn: {
     flexDirection: 'row',

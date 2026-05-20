@@ -28,6 +28,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { X, MapPin, Search, Navigation, Check } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '@/services/supabase';
+import { GeocodingService } from '@/services/GeocodingService';
 import { createLogger } from '@/lib/utils/logger';
 import { IOS_COLORS } from '@/components/cards/constants';
 import type { RaceType } from './RaceTypeSelector';
@@ -231,15 +232,22 @@ export function LocationMapPicker({
 
   const handleMapPress = useCallback((event: NativeSyntheticEvent<PressEvent>) => {
     const [lng, lat] = event.nativeEvent.lngLat;
-    const newLocation: VenueLocation = {
-      name: `${lat.toFixed(4)}, ${lng.toFixed(4)}`,
-      lat,
-      lng,
-    };
-    setSelectedLocation(newLocation);
+    const fallbackName = `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+    // Show the coordinate-based name immediately, then upgrade asynchronously
+    // when Nominatim returns a real venue name. Race-safe: only upgrade if
+    // the user hasn't picked a different point in the meantime.
+    setSelectedLocation({ name: fallbackName, lat, lng });
     setSearchText('');
     setShowSearchResults(false);
     Keyboard.dismiss();
+    void GeocodingService.reverseGeocode(lat, lng).then((name) => {
+      if (!name) return;
+      setSelectedLocation((current) => {
+        if (!current) return current;
+        if (current.lat !== lat || current.lng !== lng) return current;
+        return { ...current, name };
+      });
+    });
   }, []);
 
   const handleSelectVenue = useCallback((venue: VenueLocation) => {

@@ -17,6 +17,7 @@ import { SubStepEditor } from './SubStepEditor';
 import { CollaboratorPicker } from './CollaboratorPicker';
 import { CollaboratorRolePicker } from './plan-tab/CollaboratorRolePicker';
 import { AddPeoplePicker } from './plan-tab/AddPeoplePicker';
+import { PlanWhereCard } from './plan-tab/PlanWhereCard';
 import { CourseContextSheet } from './CourseContextSheet';
 import type { PlaybookPickerSelection } from '@/components/playbook/PlaybookPicker';
 import { AddToStepPlanSheet, type AddToStepPlanSelection } from './AddToStepPlanSheet';
@@ -1071,94 +1072,17 @@ RULES:
                 )}
               </View>
 
-              <View style={styles.phase1ContextCard}>
-                <View style={styles.phase1ContextHead}>
-                  <Ionicons name="location-outline" size={12} color={STEP_COLORS.secondaryLabel} />
-                  <Text style={styles.phase1ContextEye}>Where will you do this?</Text>
-                </View>
-
-                <TextInput
-                  style={[styles.phase1ContextInput, readOnly && styles.readOnlyInput]}
-                  value={localWhereLocation?.name ?? ''}
-                  onChangeText={readOnly ? undefined : (text) => {
-                    if (!text.trim()) {
-                      handleLocationChange(undefined);
-                    } else {
-                      handleLocationChange({
-                        ...(localWhereLocation ?? { name: '' }),
-                        name: text,
-                      });
-                    }
-                  }}
-                  placeholder={readOnly ? '' : 'Location, venue, or address...'}
-                  placeholderTextColor={IOS_COLORS.tertiaryLabel}
-                  editable={!readOnly}
-                />
-
-                {!readOnly && orgLocations.length > 0 && (
-                  <View style={styles.orgLocationChips}>
-                    {orgLocations.map((loc) => {
-                      const isSelected = localWhereLocation?.name === loc.name;
-                      return (
-                        <Pressable
-                          key={loc.id}
-                          style={[styles.orgLocationChip, isSelected && styles.orgLocationChipSelected]}
-                          onPress={() => handleLocationChange({
-                            name: loc.name,
-                            lat: loc.lat ?? undefined,
-                            lng: loc.lng ?? undefined,
-                          })}
-                        >
-                          <Ionicons
-                            name="location"
-                            size={13}
-                            color={isSelected ? STEP_COLORS.accent : IOS_COLORS.secondaryLabel}
-                          />
-                          <Text
-                            style={[styles.orgLocationChipText, isSelected && styles.orgLocationChipTextSelected]}
-                            numberOfLines={1}
-                          >
-                            {loc.name}
-                          </Text>
-                        </Pressable>
-                      );
-                    })}
-                  </View>
-                )}
-
-                {localWhereLocation?.lat != null && localWhereLocation?.lng != null && (
-                  <View style={styles.mapPreview}>
-                    <View style={styles.mapPreviewPin}>
-                      <Ionicons name="location" size={20} color={STEP_COLORS.accent} />
-                      <Text style={styles.mapPreviewCoords}>
-                        {localWhereLocation.lat.toFixed(4)}, {localWhereLocation.lng.toFixed(4)}
-                      </Text>
-                    </View>
-                    {!readOnly && (
-                      <Pressable
-                        onPress={() => handleLocationChange({
-                          ...localWhereLocation!,
-                          lat: undefined,
-                          lng: undefined,
-                        })}
-                        hitSlop={6}
-                      >
-                        <Ionicons name="close-circle" size={18} color={IOS_COLORS.systemGray3} />
-                      </Pressable>
-                    )}
-                  </View>
-                )}
-
-                {!readOnly && (
-                  <Pressable
-                    style={styles.addPeopleButton}
-                    onPress={() => setShowLocationPicker(true)}
-                  >
-                    <Ionicons name="map-outline" size={18} color={STEP_COLORS.accent} />
-                    <Text style={styles.addPeopleText}>Pick on map</Text>
-                  </Pressable>
-                )}
-              </View>
+              <PlanWhereCard
+                location={localWhereLocation}
+                readOnly={readOnly}
+                onChange={handleLocationChange}
+                quickPicks={orgLocations.map((loc) => ({
+                  id: loc.id,
+                  name: loc.name,
+                  lat: loc.lat ?? undefined,
+                  lng: loc.lng ?? undefined,
+                }))}
+              />
             </>
           }
           onNextPhase={onNextTab}
