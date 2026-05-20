@@ -1,33 +1,15 @@
 /**
- * CurrentOverlay Component
+ * CurrentOverlay — tidal-current arrow grid overlay for <RaceMap>.
  *
- * Displays current/tide flow arrows on the map
+ * 2×2 grid of arrows; color encodes current strength (slack/moderate/strong).
+ * Same pattern as WindOverlay but lower density.
  */
 
 import React from 'react';
-import { Platform, TurboModuleRegistry } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
+import { Marker as MLMarker } from '@maplibre/maplibre-react-native';
 import { colors } from '@/constants/designSystem';
 
-// Conditional imports for native only
-let Marker: any = null;
-let mapsAvailable = false;
-
-// Check if native module is registered BEFORE requiring react-native-maps
-if (Platform.OS !== 'web') {
-  try {
-    const nativeModule = TurboModuleRegistry.get('RNMapsAirModule');
-    if (nativeModule) {
-      const maps = require('react-native-maps');
-      Marker = maps.Marker;
-      mapsAvailable = true;
-    }
-  } catch (e) {
-    console.warn('[CurrentOverlay] react-native-maps not available:', e);
-  }
-}
-
-// Type definition compatible with both web and native
 interface Region {
   latitude: number;
   longitude: number;
@@ -46,44 +28,31 @@ interface CurrentOverlayProps {
   region: Region;
 }
 
-// Generate a grid of current arrows across the visible map area
-const generateCurrentArrowGrid = (region: Region, currentConditions: CurrentConditions) => {
-  const arrows = [];
-  const gridSize = 2; // 2x2 grid (less dense than wind)
-
-  const latStep = region.latitudeDelta / (gridSize + 1);
-  const lonStep = region.longitudeDelta / (gridSize + 1);
-
-  for (let i = 1; i <= gridSize; i++) {
-    for (let j = 1; j <= gridSize; j++) {
-      arrows.push({
-        coordinate: {
-          latitude: region.latitude - region.latitudeDelta / 2 + i * latStep,
-          longitude: region.longitude - region.longitudeDelta / 2 + j * lonStep,
-        },
-        direction: currentConditions.direction,
-        strength: currentConditions.strength,
-      });
+function generateGrid(region: Region) {
+  const grid: { lng: number; lat: number }[] = [];
+  const size = 2;
+  const latStep = region.latitudeDelta / (size + 1);
+  const lonStep = region.longitudeDelta / (size + 1);
+  const baseLat = region.latitude - region.latitudeDelta / 2;
+  const baseLng = region.longitude - region.longitudeDelta / 2;
+  for (let i = 1; i <= size; i++) {
+    for (let j = 1; j <= size; j++) {
+      grid.push({ lat: baseLat + i * latStep, lng: baseLng + j * lonStep });
     }
   }
-
-  return arrows;
-};
-
-interface CurrentArrowProps {
-  direction: number;
-  strength: 'slack' | 'moderate' | 'strong';
+  return grid;
 }
 
-const CurrentArrow: React.FC<CurrentArrowProps> = ({ direction, strength }) => {
-  // Color based on current strength
+const CurrentArrow: React.FC<{ direction: number; strength: 'slack' | 'moderate' | 'strong' }> = ({
+  direction,
+  strength,
+}) => {
   const color =
     strength === 'slack'
       ? colors.neutral[400]
       : strength === 'moderate'
-      ? colors.current
-      : colors.danger[600];
-
+        ? colors.current
+        : colors.danger[600];
   return (
     <Svg width={30} height={30}>
       <Path
@@ -98,22 +67,13 @@ const CurrentArrow: React.FC<CurrentArrowProps> = ({ direction, strength }) => {
 };
 
 export const CurrentOverlay: React.FC<CurrentOverlayProps> = ({ conditions, region }) => {
-  // When native maps aren't available, skip rendering (parent map handles the fallback)
-  if (!mapsAvailable || !Marker) return null;
-
-  const currentArrows = generateCurrentArrowGrid(region, conditions);
-
+  const grid = generateGrid(region);
   return (
     <>
-      {currentArrows.map((arrow, index) => (
-        <Marker
-          key={`current-${index}`}
-          coordinate={arrow.coordinate}
-          anchor={{ x: 0.5, y: 0.5 }}
-          tracksViewChanges={false} // Performance optimization
-        >
-          <CurrentArrow direction={arrow.direction} strength={arrow.strength} />
-        </Marker>
+      {grid.map((p, idx) => (
+        <MLMarker key={`current-${idx}`} id={`current-${idx}`} lngLat={[p.lng, p.lat]}>
+          <CurrentArrow direction={conditions.direction} strength={conditions.strength} />
+        </MLMarker>
       ))}
     </>
   );

@@ -6,28 +6,9 @@
  */
 
 import React from 'react';
-import { Platform, TurboModuleRegistry } from 'react-native';
+import { Platform } from 'react-native';
 import Svg, { Path, Circle, Text as SvgText } from 'react-native-svg';
-import { createLogger } from '@/lib/utils/logger';
-
-const logger = createLogger('SwellOverlay');
-
-// Conditional imports for native only
-let Marker: any = null;
-
-// Check if native module is registered BEFORE requiring react-native-maps
-if (Platform.OS !== 'web') {
-  try {
-    const nativeModule = TurboModuleRegistry.get('RNMapsAirModule');
-    if (nativeModule) {
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const maps = require('react-native-maps');
-      Marker = maps.Marker;
-    }
-  } catch (e) {
-    logger.warn('react-native-maps not available', e);
-  }
-}
+import { Marker as MLMarker } from '@maplibre/maplibre-react-native';
 
 export interface Region {
   latitude: number;
@@ -211,26 +192,20 @@ export const SwellOverlay: React.FC<SwellOverlayProps> = ({
     return null;
   }
 
-  if (!Marker) {
-    logger.warn('Swell overlay unavailable: react-native-maps Marker is not registered');
-    return null;
-  }
-
   return (
     <>
-      {positions.map((coordinate, index) => (
-        <Marker
-          key={`swell-${index}`}
-          coordinate={coordinate}
-          anchor={{ x: 0.5, y: 0.5 }}
-          tracksViewChanges={false}
+      {positions.map((p, idx) => (
+        <MLMarker
+          key={`swell-${idx}`}
+          id={`swell-${idx}`}
+          lngLat={[p.longitude, p.latitude]}
         >
           <SwellArrow
             primarySwell={conditions.primarySwell}
             secondarySwell={conditions.secondarySwell}
             showSecondary={showSecondary}
           />
-        </Marker>
+        </MLMarker>
       ))}
     </>
   );

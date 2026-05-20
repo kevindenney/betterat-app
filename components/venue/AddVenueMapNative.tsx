@@ -1,34 +1,28 @@
 /**
  * AddVenueMapNative - Native implementation
  *
- * React Native Maps-based venue picker for iOS/Android.
+ * MapLibre + OpenFreeMap "Liberty" venue picker for iOS/Android.
  * Shows existing venues and allows tapping to place a new venue marker.
+ * No Google Maps API key — uses OSM-based vector tiles.
  */
 
 import React, { useEffect, useState, useRef, useCallback } from 'react';
-import { View, StyleSheet, ActivityIndicator, Text, TurboModuleRegistry, TouchableOpacity, Linking } from 'react-native';
+import { View, StyleSheet, ActivityIndicator, type NativeSyntheticEvent } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import {
+  Map as MLMap,
+  Camera as MLCamera,
+  Marker as MLMarker,
+  type CameraRef,
+  type PressEvent,
+} from '@maplibre/maplibre-react-native';
 import { supabase } from '@/services/supabase';
 import { IOS_COLORS } from '@/lib/design-tokens-ios';
 
-// Safely import react-native-maps
-let MapView: any = null;
-let Marker: any = null;
-let PROVIDER_GOOGLE: any = null;
-let mapsAvailable = false;
-
-try {
-  const nativeModule = TurboModuleRegistry.get('RNMapsAirModule');
-  if (nativeModule) {
-    const maps = require('react-native-maps');
-    MapView = maps.default;
-    Marker = maps.Marker;
-    PROVIDER_GOOGLE = maps.PROVIDER_GOOGLE;
-    mapsAvailable = true;
-  }
-} catch (e) {
-  console.warn('[AddVenueMapNative] react-native-maps not available');
-}
+const MAP_STYLE_URL = 'https://tiles.openfreemap.org/styles/liberty';
+// Continental US view — matches the legacy "show me sailing in the world" start.
+const INITIAL_CENTER: [number, number] = [-95, 40];
+const INITIAL_ZOOM = 3;
 
 interface Venue {
   id: string;
@@ -44,12 +38,23 @@ interface AddVenueMapNativeProps {
   searchQuery?: string;
 }
 
+function venueTypeColor(venueType: string): string {
+  switch (venueType) {
+    case 'championship':
+      return '#ffc107';
+    case 'premier':
+      return '#007AFF';
+    default:
+      return '#8e8e93';
+  }
+}
+
 export function AddVenueMapNative({
   selectedLocation,
   onLocationSelect,
   searchQuery,
 }: AddVenueMapNativeProps) {
-  const mapRef = useRef<any>(null);
+  const cameraRef = useRef<CameraRef>(null);
   const [venues, setVenues] = useState<Venue[]>([]);
   const [loading, setLoading] = useState(true);
   const lastSearchRef = useRef<string>('');
@@ -77,114 +82,61 @@ export function AddVenueMapNative({
     fetchVenues();
   }, []);
 
-  // Handle map press
+  // Handle map press → forward as selected location
   const handleMapPress = useCallback(
-    (event: any) => {
-      const { latitude, longitude } = event.nativeEvent.coordinate;
-      onLocationSelect(latitude, longitude);
+    (event: NativeSyntheticEvent<PressEvent>) => {
+      const [lng, lat] = event.nativeEvent.lngLat;
+      onLocationSelect(lat, lng);
     },
-    [onLocationSelect]
+    [onLocationSelect],
   );
 
   // Animate to selected location
   useEffect(() => {
-    if (mapRef.current && selectedLocation) {
-      mapRef.current.animateToRegion(
-        {
-          latitude: selectedLocation.lat,
-          longitude: selectedLocation.lng,
-          latitudeDelta: 0.5,
-          longitudeDelta: 0.5,
-        },
-        300
-      );
-    }
+    if (!selectedLocation) return;
+    cameraRef.current?.flyTo({
+      center: [selectedLocation.lng, selectedLocation.lat],
+      zoom: 11,
+      duration: 400,
+    });
   }, [selectedLocation]);
 
-  // Geocode search query to find location
+  // Geocode the search query and pan to the result
   useEffect(() => {
-    if (!mapRef.current || !searchQuery) return;
-
+    if (!searchQuery) return;
     const trimmedQuery = searchQuery.trim();
     if (trimmedQuery.length < 3 || trimmedQuery === lastSearchRef.current) return;
 
-    // Debounce - only search after user stops typing
     const timeoutId = setTimeout(async () => {
       lastSearchRef.current = trimmedQuery;
-
       try {
-        // Use Nominatim for geocoding (free, no API key needed)
         const response = await fetch(
           `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(trimmedQuery)}&limit=1`,
           {
             headers: {
-              'User-Agent': 'RegattaFlow/1.0 (https://regattaflow.com)',
+              'User-Agent': 'BetterAt/1.0 (https://better.at)',
             },
-          }
+          },
         );
-
         if (response.ok) {
           const results = await response.json();
           if (results && results.length > 0) {
             const { lat, lon } = results[0];
-            mapRef.current?.animateToRegion(
-              {
-                latitude: parseFloat(lat),
-                longitude: parseFloat(lon),
-                latitudeDelta: 2,
-                longitudeDelta: 2,
-              },
-              500
-            );
+            cameraRef.current?.flyTo({
+              center: [parseFloat(lon), parseFloat(lat)],
+              zoom: 8,
+              duration: 600,
+            });
           }
         }
-      } catch (error) {
-        // Silent fail - just don't move the map
-        console.warn('Geocoding failed:', error);
+      } catch (err) {
+        // eslint-disable-next-line no-console
+        console.warn('Geocoding failed:', err);
       }
     }, 800);
 
     return () => clearTimeout(timeoutId);
   }, [searchQuery]);
-
-  // Handle marker drag
-  const handleMarkerDragEnd = useCallback(
-    (event: any) => {
-      const { latitude, longitude } = event.nativeEvent.coordinate;
-      onLocationSelect(latitude, longitude);
-    },
-    [onLocationSelect]
-  );
-
-  // Fallback UI when maps not available
-  if (!mapsAvailable) {
-    return (
-      <View style={styles.fallbackContainer}>
-        <Ionicons name="map-outline" size={48} color={IOS_COLORS.systemGray3} />
-        <Text style={styles.fallbackTitle}>Map Unavailable</Text>
-        <Text style={styles.fallbackText}>
-          Native maps require a development build.{'\n'}
-          Use web version or run with EAS Build.
-        </Text>
-        <TouchableOpacity
-          style={styles.fallbackButtonPrimary}
-          onPress={() => onLocationSelect(22.2793, 114.1628)}
-        >
-          <Text style={styles.fallbackButtonPrimaryText}>Use Default Coordinates</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.fallbackButtonSecondary}
-          onPress={() =>
-            Linking.openURL(
-              'mailto:support@regattaflow.com?subject=Native%20Map%20Setup&body=Please%20help%20me%20enable%20native%20maps%20for%20venue%20selection.'
-            )
-          }
-        >
-          <Text style={styles.fallbackButtonSecondaryText}>Contact Support</Text>
-        </TouchableOpacity>
-      </View>
-    );
-  }
 
   if (loading) {
     return (
@@ -194,65 +146,46 @@ export function AddVenueMapNative({
     );
   }
 
-  const getMarkerColor = (venueType: string) => {
-    switch (venueType) {
-      case 'championship':
-        return '#ffc107';
-      case 'premier':
-        return '#007AFF';
-      default:
-        return '#8e8e93';
-    }
-  };
-
   return (
     <View style={styles.container}>
-      <MapView
-        ref={mapRef}
+      <MLMap
+        mapStyle={MAP_STYLE_URL}
         style={styles.map}
-        initialRegion={{
-          latitude: 40,
-          longitude: -95,
-          latitudeDelta: 30,
-          longitudeDelta: 30,
-        }}
         onPress={handleMapPress}
-        showsUserLocation
-        showsMyLocationButton
-        mapType="standard"
       >
+        <MLCamera
+          ref={cameraRef}
+          initialViewState={{ center: INITIAL_CENTER, zoom: INITIAL_ZOOM }}
+        />
+
         {/* Existing venue markers */}
         {venues.map((venue) => (
-          <Marker
+          <MLMarker
             key={venue.id}
-            coordinate={{
-              latitude: venue.coordinates_lat,
-              longitude: venue.coordinates_lng,
-            }}
-            title={venue.name}
-            pinColor={getMarkerColor(venue.venue_type)}
-            opacity={0.7}
-          />
+            id={`venue-${venue.id}`}
+            lngLat={[venue.coordinates_lng, venue.coordinates_lat]}
+          >
+            <View
+              style={[
+                styles.venuePin,
+                { backgroundColor: venueTypeColor(venue.venue_type) },
+              ]}
+            />
+          </MLMarker>
         ))}
 
         {/* New venue location marker */}
         {selectedLocation && (
-          <Marker
-            coordinate={{
-              latitude: selectedLocation.lat,
-              longitude: selectedLocation.lng,
-            }}
-            draggable
-            onDragEnd={handleMarkerDragEnd}
-            pinColor="#007AFF"
-            title="New venue"
+          <MLMarker
+            id="new-venue"
+            lngLat={[selectedLocation.lng, selectedLocation.lat]}
           >
             <View style={styles.newVenueMarker}>
               <Ionicons name="add" size={24} color="#fff" />
             </View>
-          </Marker>
+          </MLMarker>
         )}
-      </MapView>
+      </MLMap>
     </View>
   );
 }
@@ -270,49 +203,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#f8f9fa',
   },
-  fallbackContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#F8FAFC',
-    padding: 24,
-  },
-  fallbackTitle: {
-    marginTop: 16,
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#334155',
-  },
-  fallbackText: {
-    marginTop: 8,
-    fontSize: 13,
-    color: '#64748B',
-    textAlign: 'center',
-    lineHeight: 18,
-  },
-  fallbackButtonPrimary: {
-    marginTop: 14,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 10,
-    backgroundColor: IOS_COLORS.systemBlue,
-  },
-  fallbackButtonPrimaryText: {
-    color: '#FFFFFF',
-    fontWeight: '600',
-  },
-  fallbackButtonSecondary: {
-    marginTop: 10,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#CBD5E1',
-    backgroundColor: '#FFFFFF',
-  },
-  fallbackButtonSecondaryText: {
-    color: '#334155',
-    fontWeight: '600',
+  venuePin: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+    opacity: 0.85,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.25,
+    shadowRadius: 2,
+    elevation: 2,
   },
   newVenueMarker: {
     width: 44,

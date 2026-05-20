@@ -1,33 +1,18 @@
 /**
- * WindOverlay Component
+ * WindOverlay — wind-arrow grid overlay rendered inside a <RaceMap>.
  *
- * Displays wind arrows on the map to show wind direction and speed
+ * Generates a 3×3 grid of arrows across the visible region. Each arrow is a
+ * MapLibre Marker with an inline SVG; arrow opacity scales with wind speed.
+ *
+ * `region` shape is kept for backward compat with the legacy react-native-maps
+ * API even though MapLibre uses lng/lat ordering internally.
  */
 
 import React from 'react';
-import { Platform, TurboModuleRegistry } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
+import { Marker as MLMarker } from '@maplibre/maplibre-react-native';
 import { colors } from '@/constants/designSystem';
 
-// Conditional imports for native only
-let Marker: any = null;
-let mapsAvailable = false;
-
-// Check if native module is registered BEFORE requiring react-native-maps
-if (Platform.OS !== 'web') {
-  try {
-    const nativeModule = TurboModuleRegistry.get('RNMapsAirModule');
-    if (nativeModule) {
-      const maps = require('react-native-maps');
-      Marker = maps.Marker;
-      mapsAvailable = true;
-    }
-  } catch (e) {
-    console.warn('[WindOverlay] react-native-maps not available:', e);
-  }
-}
-
-// Type definition compatible with both web and native
 interface Region {
   latitude: number;
   longitude: number;
@@ -46,39 +31,23 @@ interface WindOverlayProps {
   region: Region;
 }
 
-// Generate a grid of wind arrows across the visible map area
-const generateWindArrowGrid = (region: Region, windConditions: WindConditions) => {
-  const arrows = [];
-  const gridSize = 3; // 3x3 grid of arrows
-
-  const latStep = region.latitudeDelta / (gridSize + 1);
-  const lonStep = region.longitudeDelta / (gridSize + 1);
-
-  for (let i = 1; i <= gridSize; i++) {
-    for (let j = 1; j <= gridSize; j++) {
-      arrows.push({
-        coordinate: {
-          latitude: region.latitude - region.latitudeDelta / 2 + i * latStep,
-          longitude: region.longitude - region.longitudeDelta / 2 + j * lonStep,
-        },
-        direction: windConditions.direction,
-        speed: windConditions.speed,
-      });
+function generateGrid(region: Region) {
+  const grid: { lng: number; lat: number }[] = [];
+  const size = 3;
+  const latStep = region.latitudeDelta / (size + 1);
+  const lonStep = region.longitudeDelta / (size + 1);
+  const baseLat = region.latitude - region.latitudeDelta / 2;
+  const baseLng = region.longitude - region.longitudeDelta / 2;
+  for (let i = 1; i <= size; i++) {
+    for (let j = 1; j <= size; j++) {
+      grid.push({ lat: baseLat + i * latStep, lng: baseLng + j * lonStep });
     }
   }
-
-  return arrows;
-};
-
-interface WindArrowProps {
-  direction: number;
-  speed: number;
+  return grid;
 }
 
-const WindArrow: React.FC<WindArrowProps> = ({ direction, speed }) => {
-  // Opacity based on wind speed (stronger wind = more opaque)
+const WindArrow: React.FC<{ direction: number; speed: number }> = ({ direction, speed }) => {
   const opacity = Math.min(speed / 20, 1);
-
   return (
     <Svg width={30} height={30}>
       <Path
@@ -94,19 +63,13 @@ const WindArrow: React.FC<WindArrowProps> = ({ direction, speed }) => {
 };
 
 export const WindOverlay: React.FC<WindOverlayProps> = ({ conditions, region }) => {
-  const windArrows = generateWindArrowGrid(region, conditions);
-
+  const grid = generateGrid(region);
   return (
     <>
-      {windArrows.map((arrow, index) => (
-        <Marker
-          key={`wind-${index}`}
-          coordinate={arrow.coordinate}
-          anchor={{ x: 0.5, y: 0.5 }}
-          tracksViewChanges={false} // Performance optimization
-        >
-          <WindArrow direction={arrow.direction} speed={arrow.speed} />
-        </Marker>
+      {grid.map((p, idx) => (
+        <MLMarker key={`wind-${idx}`} id={`wind-${idx}`} lngLat={[p.lng, p.lat]}>
+          <WindArrow direction={conditions.direction} speed={conditions.speed} />
+        </MLMarker>
       ))}
     </>
   );

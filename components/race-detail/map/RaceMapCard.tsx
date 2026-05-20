@@ -1,45 +1,27 @@
 /**
- * RaceMapCard Component - HERO ELEMENT
+ * RaceMapCard — race-detail hero map.
  *
- * Interactive map showing race area with course, wind, and current overlays
- * This is the most prominent visual element on the race detail page
+ * Renders the race area on MapLibre/OpenFreeMap with the course overlay
+ * (start line, marks, path, finish) plus Wind/Current arrow grids that the
+ * user can toggle. Replaces the legacy react-native-maps + custom layer
+ * system; dead toggles (waves/depth/laylines/strategy) and the 3D pitch
+ * camera trick are dropped — they had UI but no real data backing them.
  */
 
-import React, { useState, useRef } from 'react';
-import { View, Text, StyleSheet, Pressable, LayoutAnimation, Platform, TurboModuleRegistry } from 'react-native';
+import React, { useRef, useState } from 'react';
+import { View, Text, StyleSheet, Pressable, LayoutAnimation, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { Map as MLMap, Camera as MLCamera, type CameraRef } from '@maplibre/maplibre-react-native';
 import { Card } from '@/components/race-ui/Card';
 import { Typography, Spacing, BorderRadius, colors } from '@/constants/designSystem';
 import { MapControlButton } from './MapControlButton';
 import { LayerToggle } from './LayerToggle';
+import { CourseOverlay } from './CourseOverlay';
+import { WindOverlay } from './WindOverlay';
+import { CurrentOverlay } from './CurrentOverlay';
 
-// Conditional imports for native only
-let MapView: any = null;
-let CourseOverlay: any = null;
-let WindOverlay: any = null;
-let CurrentOverlay: any = null;
-let mapsAvailable = false;
+const MAP_STYLE_URL = 'https://tiles.openfreemap.org/styles/liberty';
 
-// Check if native module is registered BEFORE requiring react-native-maps
-// This prevents TurboModuleRegistry.getEnforcing from throwing
-if (Platform.OS !== 'web') {
-  try {
-    const nativeModule = TurboModuleRegistry.get('RNMapsAirModule');
-    if (nativeModule) {
-      MapView = require('react-native-maps').default;
-      CourseOverlay = require('./CourseOverlay').CourseOverlay;
-      WindOverlay = require('./WindOverlay').WindOverlay;
-      CurrentOverlay = require('./CurrentOverlay').CurrentOverlay;
-      mapsAvailable = true;
-    } else {
-      console.warn('[RaceMapCard] RNMapsAirModule not registered - using fallback UI');
-    }
-  } catch (e) {
-    console.warn('[RaceMapCard] react-native-maps not available:', e);
-  }
-}
-
-// Type definition compatible with both web and native
 interface Region {
   latitude: number;
   longitude: number;
@@ -48,13 +30,17 @@ interface Region {
 }
 
 interface Course {
-  startLine: Array<{ latitude: number; longitude: number }>;
-  finishLine?: Array<{ latitude: number; longitude: number }>;
-  marks: Array<{
+  startLine: { latitude: number; longitude: number }[];
+  finishLine?: { latitude: number; longitude: number }[];
+  marks: {
+    id?: string;
     coordinate: { latitude: number; longitude: number };
     name?: string;
-  }>;
-  path: Array<{ latitude: number; longitude: number }>;
+    type?: string | null;
+    sequence?: number;
+    rounding?: string | null;
+  }[];
+  path: { latitude: number; longitude: number }[];
 }
 
 interface WindConditions {
@@ -78,6 +64,12 @@ interface RaceMapCardProps {
   onFullscreenPress?: () => void;
 }
 
+function zoomFromLatDelta(delta: number): number {
+  // 360 / 2^zoom ≈ delta, so zoom ≈ log2(360/delta).
+  if (!delta || delta <= 0) return 13;
+  return Math.max(2, Math.min(20, Math.log2(360 / delta)));
+}
+
 export const RaceMapCard: React.FC<RaceMapCardProps> = ({
   mapRegion,
   course,
@@ -87,47 +79,22 @@ export const RaceMapCard: React.FC<RaceMapCardProps> = ({
   onFullscreenPress,
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
-  const [is3D, setIs3D] = useState(false);
-  const [mapLayers, setMapLayers] = useState({
-    wind: true,
-    current: true,
-    waves: false,
-    depth: false,
-    laylines: false,
-    strategy: false,
-  });
-
-  const mapRef = useRef<any>(null);
+  const [mapLayers, setMapLayers] = useState({ wind: true, current: true });
+  const cameraRef = useRef<CameraRef>(null);
 
   const toggleExpand = () => {
     if (Platform.OS === 'ios' || Platform.OS === 'android') {
       LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     }
-    setIsExpanded(!isExpanded);
-  };
-
-  const toggle3D = () => {
-    setIs3D(!is3D);
-    if (!is3D) {
-      mapRef.current?.animateCamera(
-        {
-          pitch: 45,
-          altitude: 1000,
-        },
-        { duration: 500 }
-      );
-    } else {
-      mapRef.current?.animateCamera(
-        {
-          pitch: 0,
-        },
-        { duration: 500 }
-      );
-    }
+    setIsExpanded((prev) => !prev);
   };
 
   const centerOnVenue = () => {
-    mapRef.current?.animateToRegion(mapRegion, 500);
+    cameraRef.current?.flyTo({
+      center: [mapRegion.longitude, mapRegion.latitude],
+      zoom: zoomFromLatDelta(mapRegion.latitudeDelta),
+      duration: 500,
+    });
     onCenterPress?.();
   };
 
@@ -165,7 +132,6 @@ export const RaceMapCard: React.FC<RaceMapCardProps> = ({
         ]}
       >
         {Platform.OS === 'web' ? (
-          // Web fallback
           <View style={styles.webPlaceholder}>
             <Ionicons name="map-outline" size={40} color={colors.text.tertiary} />
             <Text style={styles.webPlaceholderText}>
@@ -177,43 +143,29 @@ export const RaceMapCard: React.FC<RaceMapCardProps> = ({
           </View>
         ) : (
           <>
-            <MapView
-              ref={mapRef}
-              style={styles.map}
-              initialRegion={mapRegion}
-              mapType="hybrid"
-              showsUserLocation
-              showsMyLocationButton={false}
-              showsCompass={false}
-              rotateEnabled
-              pitchEnabled
-            >
-              {/* Course overlay */}
-              {course && <CourseOverlay course={course} />}
-
-              {/* Wind arrows */}
-              {mapLayers.wind && windConditions && (
+            <MLMap mapStyle={MAP_STYLE_URL} style={styles.map}>
+              <MLCamera
+                ref={cameraRef}
+                initialViewState={{
+                  center: [mapRegion.longitude, mapRegion.latitude],
+                  zoom: zoomFromLatDelta(mapRegion.latitudeDelta),
+                }}
+              />
+              {course ? <CourseOverlay course={course} /> : null}
+              {mapLayers.wind && windConditions ? (
                 <WindOverlay conditions={windConditions} region={mapRegion} />
-              )}
-
-              {/* Current arrows */}
-              {mapLayers.current && currentConditions && (
+              ) : null}
+              {mapLayers.current && currentConditions ? (
                 <CurrentOverlay conditions={currentConditions} region={mapRegion} />
-              )}
-            </MapView>
+              ) : null}
+            </MLMap>
 
-            {/* Map Controls - Top Right */}
+            {/* Map Controls — top-right */}
             <View style={styles.mapControls}>
               <MapControlButton
                 icon="locate"
                 onPress={centerOnVenue}
                 tooltip="Center on venue"
-              />
-              <MapControlButton
-                icon={is3D ? 'cube' : 'cube-outline'}
-                onPress={toggle3D}
-                tooltip="3D View"
-                isActive={is3D}
               />
               <MapControlButton
                 icon="expand"
@@ -228,7 +180,6 @@ export const RaceMapCard: React.FC<RaceMapCardProps> = ({
       {/* Layer Toggles */}
       <View style={styles.layerToggles}>
         <Text style={styles.layerLabel}>MAP LAYERS</Text>
-
         <View style={styles.toggleRow}>
           <LayerToggle
             icon="cloudy-outline"
@@ -243,42 +194,6 @@ export const RaceMapCard: React.FC<RaceMapCardProps> = ({
             isActive={mapLayers.current}
             onToggle={() => toggleLayer('current')}
             color={colors.current}
-          />
-          <LayerToggle
-            icon="boat-outline"
-            label="Waves"
-            isActive={mapLayers.waves}
-            onToggle={() => toggleLayer('waves')}
-            color={colors.waves}
-          />
-          <LayerToggle
-            icon="swap-vertical-outline"
-            label="Depth"
-            isActive={mapLayers.depth}
-            onToggle={() => toggleLayer('depth')}
-            color={colors.depth}
-          />
-        </View>
-      </View>
-
-      {/* Tactical Layers */}
-      <View style={styles.layerToggles}>
-        <Text style={styles.layerLabel}>TACTICAL</Text>
-
-        <View style={styles.toggleRow}>
-          <LayerToggle
-            icon="navigate-outline"
-            label="Laylines"
-            isActive={mapLayers.laylines}
-            onToggle={() => toggleLayer('laylines')}
-            color={colors.laylines}
-          />
-          <LayerToggle
-            icon="trending-up-outline"
-            label="Strategy"
-            isActive={mapLayers.strategy}
-            onToggle={() => toggleLayer('strategy')}
-            color={colors.strategy}
           />
         </View>
       </View>

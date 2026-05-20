@@ -1,39 +1,25 @@
 /**
- * CourseOverlay Component
+ * CourseOverlay — race course rendered inside a <RaceMap>.
  *
- * Displays race course on map: start line, course marks, path, and finish line
- * Enhanced with mark type icons, colors, and labels
+ * Draws start line, course marks with type-based icons/colors, course path,
+ * and finish line. Each line is a GeoJSON LineString layer; marks are
+ * MapLibre Markers with React Native View children for the icon badge.
+ *
+ * Drops the legacy Callout popup (MapLibre Marker doesn't have native
+ * popups — re-implement as a tap → modal handler on the parent if/when
+ * we need labels back).
  */
 
-import React from 'react';
-import { View, Text, StyleSheet, Platform, TurboModuleRegistry } from 'react-native';
+import React, { useMemo } from 'react';
+import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors } from '@/constants/designSystem';
-import type { CourseMark, MarkType } from '@/types/raceEvents';
+import {
+  Marker as MLMarker,
+  GeoJSONSource as MLGeoJSONSource,
+  Layer as MLLayer,
+} from '@maplibre/maplibre-react-native';
+import type { CourseMark } from '@/types/raceEvents';
 
-// Conditional imports for native only
-let Polyline: any = null;
-let Marker: any = null;
-let Callout: any = null;
-let mapsAvailable = false;
-
-// Check if native module is registered BEFORE requiring react-native-maps
-if (Platform.OS !== 'web') {
-  try {
-    const nativeModule = TurboModuleRegistry.get('RNMapsAirModule');
-    if (nativeModule) {
-      const maps = require('react-native-maps');
-      Polyline = maps.Polyline;
-      Marker = maps.Marker;
-      Callout = maps.Callout;
-      mapsAvailable = true;
-    }
-  } catch (e) {
-    console.warn('[CourseOverlay] react-native-maps not available:', e);
-  }
-}
-
-// Mark colors matching web TacticalRaceMap
 const MARK_COLORS: Record<string, string> = {
   start: '#22c55e',
   committee_boat: '#22c55e',
@@ -46,13 +32,14 @@ const MARK_COLORS: Record<string, string> = {
   offset: '#ec4899',
 };
 
-const getMarkColor = (type?: string | null): string => {
+function markColor(type?: string | null): string {
   if (!type) return '#64748b';
   return MARK_COLORS[type] || '#64748b';
-};
+}
 
-// Mark icons
-const getMarkIcon = (type?: string | null): { name: keyof typeof Ionicons.glyphMap; size: number } => {
+type IconGlyph = keyof typeof Ionicons.glyphMap;
+
+function markIcon(type?: string | null): { name: IconGlyph; size: number } {
   switch (type) {
     case 'committee_boat':
       return { name: 'boat-outline', size: 16 };
@@ -72,28 +59,8 @@ const getMarkIcon = (type?: string | null): { name: keyof typeof Ionicons.glyphM
     default:
       return { name: 'location-outline', size: 14 };
   }
-};
+}
 
-// Mark display names
-const getMarkDisplayName = (mark: EnhancedMark): string => {
-  if (mark.name) return mark.name;
-
-  const names: Record<string, string> = {
-    committee_boat: 'Committee Boat',
-    pin: 'Pin',
-    windward: 'Windward Mark',
-    leeward: 'Leeward Mark',
-    gate_left: 'Gate A',
-    gate_right: 'Gate B',
-    offset: 'Offset Mark',
-    finish: 'Finish',
-    start: 'Start',
-  };
-
-  return names[mark.type || ''] || `Mark ${mark.sequence || ''}`;
-};
-
-// Enhanced mark interface supporting both legacy Course format and CourseMark
 interface EnhancedMark {
   id?: string;
   coordinate: { latitude: number; longitude: number };
@@ -104,173 +71,173 @@ interface EnhancedMark {
 }
 
 interface Course {
-  startLine: Array<{ latitude: number; longitude: number }>;
-  finishLine?: Array<{ latitude: number; longitude: number }>;
+  startLine: { latitude: number; longitude: number }[];
+  finishLine?: { latitude: number; longitude: number }[];
   marks: EnhancedMark[];
-  path: Array<{ latitude: number; longitude: number }>;
+  path: { latitude: number; longitude: number }[];
 }
 
 interface CourseOverlayProps {
   course: Course;
   onMarkPress?: (mark: EnhancedMark) => void;
-  showLabels?: boolean;
 }
 
-export const CourseOverlay: React.FC<CourseOverlayProps> = ({
-  course,
-  onMarkPress,
-  showLabels = true
-}) => {
+function toLngLat(p: { latitude: number; longitude: number }): [number, number] {
+  return [p.longitude, p.latitude];
+}
+
+function lineFeature(points: { latitude: number; longitude: number }[]) {
+  return {
+    type: 'Feature' as const,
+    properties: {},
+    geometry: {
+      type: 'LineString' as const,
+      coordinates: points.map(toLngLat),
+    },
+  };
+}
+
+export const CourseOverlay: React.FC<CourseOverlayProps> = ({ course, onMarkPress }) => {
+  const startLineFeature = useMemo(
+    () => (course.startLine.length >= 2 ? lineFeature(course.startLine) : null),
+    [course.startLine],
+  );
+  const pathFeature = useMemo(
+    () => (course.path.length > 1 ? lineFeature(course.path) : null),
+    [course.path],
+  );
+  const finishLineFeature = useMemo(
+    () =>
+      course.finishLine && course.finishLine.length >= 2
+        ? lineFeature(course.finishLine)
+        : null,
+    [course.finishLine],
+  );
+
   return (
     <>
-      {/* Start line - GREEN with thicker stroke */}
-      <Polyline
-        coordinates={course.startLine}
-        strokeColor={MARK_COLORS.start}
-        strokeWidth={4}
-        lineCap="round"
-      />
+      {startLineFeature ? (
+        <MLGeoJSONSource id="course-start-line" shape={startLineFeature}>
+          <MLLayer
+            id="course-start-line-layer"
+            sourceID="course-start-line"
+            style={{
+              lineColor: MARK_COLORS.start,
+              lineWidth: 4,
+              lineCap: 'round',
+            }}
+          />
+        </MLGeoJSONSource>
+      ) : null}
 
-      {/* Course marks with type-based styling */}
-      {course.marks.map((mark, index) => {
-        const markColor = getMarkColor(mark.type);
-        const markIcon = getMarkIcon(mark.type);
+      {pathFeature ? (
+        <MLGeoJSONSource id="course-path" shape={pathFeature}>
+          <MLLayer
+            id="course-path-layer"
+            sourceID="course-path"
+            style={{
+              lineColor: '#0ea5e9',
+              lineWidth: 3,
+              lineDasharray: [3, 1.5],
+              lineCap: 'round',
+            }}
+          />
+        </MLGeoJSONSource>
+      ) : null}
+
+      {finishLineFeature ? (
+        <MLGeoJSONSource id="course-finish-line" shape={finishLineFeature}>
+          <MLLayer
+            id="course-finish-line-layer"
+            sourceID="course-finish-line"
+            style={{
+              lineColor: MARK_COLORS.finish,
+              lineWidth: 4,
+              lineCap: 'round',
+            }}
+          />
+        </MLGeoJSONSource>
+      ) : null}
+
+      {course.marks.map((mark, idx) => {
+        const color = markColor(mark.type);
+        const icon = markIcon(mark.type);
         const isGate = mark.type === 'gate_left' || mark.type === 'gate_right';
-
         return (
-          <Marker
-            key={mark.id || `mark-${index}`}
-            coordinate={mark.coordinate}
-            anchor={{ x: 0.5, y: 0.5 }}
-            onPress={() => onMarkPress?.(mark)}
-            tracksViewChanges={false}
+          <MLMarker
+            key={mark.id || `mark-${idx}`}
+            id={`course-mark-${mark.id || idx}`}
+            lngLat={toLngLat(mark.coordinate)}
           >
-            <View style={[
-              styles.courseMark,
-              { backgroundColor: markColor },
-              isGate && styles.gateMark
-            ]}>
-              <Ionicons
-                name={markIcon.name}
-                size={markIcon.size}
-                color="#ffffff"
-              />
+            <View
+              style={[
+                styles.courseMark,
+                { backgroundColor: color },
+                isGate && styles.gateMark,
+              ]}
+              onTouchEnd={() => onMarkPress?.(mark)}
+            >
+              <Ionicons name={icon.name} size={icon.size} color="#ffffff" />
             </View>
-            {showLabels && Callout && (
-              <Callout tooltip>
-                <View style={styles.calloutContainer}>
-                  <Text style={styles.calloutTitle}>{getMarkDisplayName(mark)}</Text>
-                  {mark.rounding && (
-                    <Text style={styles.calloutSubtitle}>
-                      Round to {mark.rounding}
-                    </Text>
-                  )}
-                </View>
-              </Callout>
-            )}
-          </Marker>
+          </MLMarker>
         );
       })}
-
-      {/* Course path - BLUE DASHED with arrows */}
-      {course.path.length > 0 && (
-        <Polyline
-          coordinates={course.path}
-          strokeColor="#0ea5e9"
-          strokeWidth={3}
-          lineDashPattern={[8, 4]}
-          lineCap="round"
-        />
-      )}
-
-      {/* Finish line - RED/GOLD checkerboard style */}
-      {course.finishLine && course.finishLine.length > 0 && (
-        <>
-          {/* Outer glow */}
-          <Polyline
-            coordinates={course.finishLine}
-            strokeColor="rgba(239, 68, 68, 0.3)"
-            strokeWidth={8}
-            lineCap="round"
-          />
-          {/* Main line */}
-          <Polyline
-            coordinates={course.finishLine}
-            strokeColor={MARK_COLORS.finish}
-            strokeWidth={4}
-            lineCap="round"
-          />
-        </>
-      )}
     </>
   );
 };
 
-// Helper function to convert CourseMark[] to Course format
+/** Convert a flat CourseMark[] (from race-events tables) to Course shape. */
 export const convertMarksToCoourse = (marks: CourseMark[]): Course => {
-  // Extract coordinates from marks
-  const marksWithCoords = marks.map(m => ({
-    id: m.id,
-    name: m.mark_name || undefined,
-    type: m.mark_type || undefined,
-    sequence: m.sequence || undefined,
-    rounding: m.rounding || undefined,
-    coordinate: {
-      latitude: m.latitude,
-      longitude: m.longitude,
-    },
-  })).sort((a, b) => (a.sequence || 0) - (b.sequence || 0));
+  const marksWithCoords = marks
+    .map((m) => ({
+      id: m.id,
+      name: m.mark_name || undefined,
+      type: m.mark_type || undefined,
+      sequence: m.sequence || undefined,
+      rounding: m.rounding || undefined,
+      coordinate: {
+        latitude: m.latitude,
+        longitude: m.longitude,
+      },
+    }))
+    .sort((a, b) => (a.sequence || 0) - (b.sequence || 0));
 
-  // Find start line marks
-  const committeeBoat = marksWithCoords.find(m =>
-    m.type === 'committee_boat' || m.name?.toLowerCase().includes('committee')
+  const committeeBoat = marksWithCoords.find(
+    (m) => m.type === 'committee_boat' || m.name?.toLowerCase().includes('committee'),
   );
-  const pin = marksWithCoords.find(m =>
-    m.type === 'pin' || m.name?.toLowerCase().includes('pin')
+  const pin = marksWithCoords.find(
+    (m) => m.type === 'pin' || m.name?.toLowerCase().includes('pin'),
   );
-
-  // Find finish marks
-  const finishMark = marksWithCoords.find(m =>
-    m.type === 'finish' || m.name?.toLowerCase().includes('finish')
+  const finishMark = marksWithCoords.find(
+    (m) => m.type === 'finish' || m.name?.toLowerCase().includes('finish'),
   );
 
-  // Build start line
-  const startLine: Array<{ latitude: number; longitude: number }> = [];
+  const startLine: { latitude: number; longitude: number }[] = [];
   if (committeeBoat && pin) {
     startLine.push(committeeBoat.coordinate, pin.coordinate);
   }
 
-  // Build finish line (committee boat to finish mark if exists)
-  const finishLine: Array<{ latitude: number; longitude: number }> = [];
+  const finishLine: { latitude: number; longitude: number }[] = [];
   if (committeeBoat && finishMark) {
     finishLine.push(committeeBoat.coordinate, finishMark.coordinate);
   }
 
-  // Racing marks (exclude start/finish line marks)
-  const racingMarks = marksWithCoords.filter(m =>
-    m.type !== 'committee_boat' &&
-    m.type !== 'pin' &&
-    !m.name?.toLowerCase().includes('committee') &&
-    !m.name?.toLowerCase().includes('pin')
+  const racingMarks = marksWithCoords.filter(
+    (m) =>
+      m.type !== 'committee_boat' &&
+      m.type !== 'pin' &&
+      !m.name?.toLowerCase().includes('committee') &&
+      !m.name?.toLowerCase().includes('pin'),
   );
 
-  // Build course path through marks
-  const path: Array<{ latitude: number; longitude: number }> = [];
-
-  // Start from middle of start line
+  const path: { latitude: number; longitude: number }[] = [];
   if (startLine.length === 2) {
     path.push({
       latitude: (startLine[0].latitude + startLine[1].latitude) / 2,
       longitude: (startLine[0].longitude + startLine[1].longitude) / 2,
     });
   }
-
-  // Add racing marks to path
-  racingMarks.forEach(mark => {
-    path.push(mark.coordinate);
-  });
-
-  // End at middle of finish line
+  racingMarks.forEach((mark) => path.push(mark.coordinate));
   if (finishLine.length === 2) {
     path.push({
       latitude: (finishLine[0].latitude + finishLine[1].latitude) / 2,
@@ -306,24 +273,5 @@ const styles = StyleSheet.create({
     height: 32,
     borderRadius: 16,
     borderWidth: 2,
-  },
-  calloutContainer: {
-    backgroundColor: 'rgba(0, 0, 0, 0.85)',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
-    minWidth: 100,
-  },
-  calloutTitle: {
-    color: '#ffffff',
-    fontSize: 13,
-    fontWeight: '600',
-    textAlign: 'center',
-  },
-  calloutSubtitle: {
-    color: '#94a3b8',
-    fontSize: 11,
-    marginTop: 2,
-    textAlign: 'center',
   },
 });

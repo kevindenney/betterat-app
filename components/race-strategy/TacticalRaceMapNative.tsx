@@ -1,13 +1,24 @@
 /**
- * TacticalRaceMapNative - Native iOS/Android Race Map
+ * TacticalRaceMapNative — race-strategy tactical map.
  *
- * Native counterpart to TacticalRaceMap (web version using MapLibre GL)
- * Uses react-native-maps with course overlays, wind/current visualization
+ * MapLibre/OpenFreeMap rendering of the race course with Wind, Current
+ * (tide), and Laylines overlays. Layer toggles + center-on-course control
+ * sit on top of the map. Drops the old fallback "maps unavailable" path
+ * since MapLibre always works.
  */
-
 import React, { useCallback, useMemo, useRef, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Platform, TurboModuleRegistry, Linking } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import {
+  Map as MLMap,
+  Camera as MLCamera,
+  type CameraRef,
+} from '@maplibre/maplibre-react-native';
 import type {
   CourseMark,
   EnvironmentalIntelligence,
@@ -19,27 +30,7 @@ import { CurrentOverlay } from '@/components/race-detail/map/CurrentOverlay';
 import { LaylinesOverlay } from '@/components/race-detail/map/LaylinesOverlay';
 import { WindDirectionIndicator } from '@/components/race-detail/map/WindDirectionIndicator';
 
-// Conditional imports for native only (requires development build)
-let MapView: any = null;
-let PROVIDER_GOOGLE: any = null;
-let mapsAvailable = false;
-
-// Check if native module is registered BEFORE requiring react-native-maps
-// This prevents TurboModuleRegistry.getEnforcing from throwing
-if (Platform.OS !== 'web') {
-  try {
-    // Use 'get' instead of 'getEnforcing' to check without throwing
-    const nativeModule = TurboModuleRegistry.get('RNMapsAirModule');
-    if (nativeModule) {
-      const maps = require('react-native-maps');
-      MapView = maps.default;
-      PROVIDER_GOOGLE = maps.PROVIDER_GOOGLE;
-      mapsAvailable = true;
-    }
-  } catch (_e) {
-    // react-native-maps not available - will use fallback UI
-  }
-}
+const MAP_STYLE_URL = 'https://tiles.openfreemap.org/styles/liberty';
 
 interface TacticalRaceMapNativeProps {
   raceEvent: RaceEventWithDetails;
@@ -64,19 +55,22 @@ interface LayerState {
   laylines: boolean;
 }
 
-/**
- * Calculate map region from marks and venue
- */
-const calculateRegion = (marks: CourseMark[], venue?: any) => {
-  // Default to Hong Kong if no data
-  const defaultRegion = {
+interface ViewRegion {
+  latitude: number;
+  longitude: number;
+  latitudeDelta: number;
+  longitudeDelta: number;
+}
+
+/** Compute a region from marks (with padding) or fall back to venue / HK. */
+function calculateRegion(marks: CourseMark[], venue?: { coordinates_lat?: number; coordinates_lng?: number } | null): ViewRegion {
+  const defaultRegion: ViewRegion = {
     latitude: 22.265,
     longitude: 114.262,
     latitudeDelta: 0.02,
     longitudeDelta: 0.02,
   };
 
-  // Try venue coordinates first
   if (venue?.coordinates_lat && venue?.coordinates_lng) {
     return {
       latitude: venue.coordinates_lat,
@@ -86,33 +80,27 @@ const calculateRegion = (marks: CourseMark[], venue?: any) => {
     };
   }
 
-  // Calculate from marks
   if (marks && marks.length > 0) {
-    const lats = marks.map(m => m.latitude);
-    const lngs = marks.map(m => m.longitude);
-
+    const lats = marks.map((m) => m.latitude);
+    const lngs = marks.map((m) => m.longitude);
     const minLat = Math.min(...lats);
     const maxLat = Math.max(...lats);
     const minLng = Math.min(...lngs);
     const maxLng = Math.max(...lngs);
-
-    const centerLat = (minLat + maxLat) / 2;
-    const centerLng = (minLng + maxLng) / 2;
-
-    // Add padding
-    const latDelta = Math.max((maxLat - minLat) * 1.5, 0.01);
-    const lngDelta = Math.max((maxLng - minLng) * 1.5, 0.01);
-
     return {
-      latitude: centerLat,
-      longitude: centerLng,
-      latitudeDelta: latDelta,
-      longitudeDelta: lngDelta,
+      latitude: (minLat + maxLat) / 2,
+      longitude: (minLng + maxLng) / 2,
+      latitudeDelta: Math.max((maxLat - minLat) * 1.5, 0.01),
+      longitudeDelta: Math.max((maxLng - minLng) * 1.5, 0.01),
     };
   }
-
   return defaultRegion;
-};
+}
+
+function zoomFromLatDelta(delta: number): number {
+  if (!delta || delta <= 0) return 13;
+  return Math.max(2, Math.min(20, Math.log2(360 / delta)));
+}
 
 export default function TacticalRaceMapNative({
   raceEvent,
@@ -123,21 +111,21 @@ export default function TacticalRaceMapNative({
   externalLayers,
   onLayersChange,
 }: TacticalRaceMapNativeProps) {
-  const mapRef = useRef<any>(null);
-  const [mapReady, setMapReady] = useState(false);
-  const [region, setRegion] = useState(() => calculateRegion(marks, raceEvent?.venue));
+  const cameraRef = useRef<CameraRef>(null);
+  const initialRegion = useMemo(
+    () => calculateRegion(marks, raceEvent?.venue),
+    [marks, raceEvent?.venue],
+  );
 
-  // Layer visibility state
   const [layers, setLayers] = useState<LayerState>({
     wind: externalLayers?.wind ?? true,
     current: externalLayers?.current ?? true,
     laylines: externalLayers?.laylines ?? true,
   });
 
-  // Update layers from external control
   React.useEffect(() => {
     if (externalLayers) {
-      setLayers(prev => ({
+      setLayers((prev) => ({
         wind: externalLayers.wind ?? prev.wind,
         current: externalLayers.current ?? prev.current,
         laylines: externalLayers.laylines ?? prev.laylines,
@@ -145,13 +133,11 @@ export default function TacticalRaceMapNative({
     }
   }, [externalLayers]);
 
-  // Convert marks to course format
   const course = useMemo(() => {
     if (!marks || marks.length === 0) return null;
     return convertMarksToCoourse(marks);
   }, [marks]);
 
-  // Extract environmental data
   const windData = useMemo(() => {
     if (!environmental?.current?.wind) return null;
     return {
@@ -164,149 +150,98 @@ export default function TacticalRaceMapNative({
   const currentData = useMemo(() => {
     if (!environmental?.current?.tide) return null;
     const tide = environmental.current.tide;
+    const speed = tide.current_speed ?? 0;
     return {
       direction: tide.current_direction ?? 0,
-      speed: tide.current_speed ?? 0,
-      strength: (tide.current_speed ?? 0) < 0.3 ? 'slack' :
-                (tide.current_speed ?? 0) < 0.8 ? 'moderate' : 'strong',
+      speed,
+      strength: (speed < 0.3 ? 'slack' : speed < 0.8 ? 'moderate' : 'strong') as
+        | 'slack'
+        | 'moderate'
+        | 'strong',
     };
   }, [environmental]);
 
-  const handleContactSupport = useCallback(() => {
-    const subject = encodeURIComponent('3D Tactical Map Unavailable');
-    const body = encodeURIComponent(
-      `Tactical race map is unavailable in this build.\n\n` +
-      `Platform: ${Platform.OS}\n` +
-      `Maps module available: ${mapsAvailable ? 'yes' : 'no'}\n` +
-      `Race ID: ${raceEvent?.id || 'unknown'}`
-    );
-    const mailtoUrl = `mailto:support@regattaflow.com?subject=${subject}&body=${body}`;
-    Linking.openURL(mailtoUrl).catch(() => {});
-  }, [raceEvent?.id]);
+  const handleMarkPress = useCallback(
+    (mark: { coordinate: { latitude: number; longitude: number } }) => {
+      const courseMark = marks.find(
+        (m) =>
+          m.latitude === mark.coordinate.latitude &&
+          m.longitude === mark.coordinate.longitude,
+      );
+      if (courseMark) onMarkSelected?.(courseMark);
+    },
+    [marks, onMarkSelected],
+  );
 
-  // Handle mark press
-  const handleMarkPress = useCallback((mark: any) => {
-    // Find the corresponding CourseMark
-    const courseMark = marks.find(m =>
-      m.latitude === mark.coordinate.latitude &&
-      m.longitude === mark.coordinate.longitude
-    );
-    if (courseMark) {
-      onMarkSelected?.(courseMark);
-    }
-  }, [marks, onMarkSelected]);
+  const toggleLayer = useCallback(
+    (layerId: keyof LayerState) => {
+      setLayers((prev) => {
+        const next = { ...prev, [layerId]: !prev[layerId] };
+        onLayersChange?.(next);
+        return next;
+      });
+    },
+    [onLayersChange],
+  );
 
-  // Toggle layer visibility
-  const toggleLayer = useCallback((layerId: keyof LayerState) => {
-    setLayers(prev => {
-      const newLayers = { ...prev, [layerId]: !prev[layerId] };
-      onLayersChange?.(newLayers);
-      return newLayers;
-    });
-  }, [onLayersChange]);
-
-  // Center map on course
   const centerOnCourse = useCallback(() => {
-    if (mapRef.current && marks.length > 0) {
-      const newRegion = calculateRegion(marks, raceEvent?.venue);
-      mapRef.current.animateToRegion(newRegion, 500);
-    }
+    const region = calculateRegion(marks, raceEvent?.venue);
+    cameraRef.current?.flyTo({
+      center: [region.longitude, region.latitude],
+      zoom: zoomFromLatDelta(region.latitudeDelta),
+      duration: 500,
+    });
   }, [marks, raceEvent?.venue]);
-
-  // Handle region change
-  const handleRegionChange = useCallback((newRegion: any) => {
-    setRegion(newRegion);
-  }, []);
-
-  // Platform check - requires development build with react-native-maps
-  if (Platform.OS === 'web' || !mapsAvailable || !MapView) {
-    return (
-      <View style={styles.fallbackContainer}>
-        <Ionicons name="map-outline" size={64} color="#0066CC" />
-        <Text style={styles.fallbackText}>3D Tactical Race Map</Text>
-        <Text style={styles.fallbackSubtext}>
-          {Platform.OS === 'web'
-            ? 'Use the web version for full map features'
-            : 'Requires a development build with native maps.\nRun: npx expo prebuild && npx expo run:ios'}
-        </Text>
-        <TouchableOpacity style={styles.fallbackActionButton} onPress={handleContactSupport}>
-          <Text style={styles.fallbackActionText}>Contact Support</Text>
-        </TouchableOpacity>
-      </View>
-    );
-  }
 
   return (
     <View style={styles.container}>
-      <MapView
-        ref={mapRef}
-        style={styles.map}
-        provider={Platform.OS === 'android' ? PROVIDER_GOOGLE : undefined}
-        mapType="hybrid"
-        initialRegion={calculateRegion(marks, raceEvent?.venue)}
-        onRegionChangeComplete={handleRegionChange}
-        onMapReady={() => setMapReady(true)}
-        showsUserLocation
-        showsCompass={false}
-        rotateEnabled
-        pitchEnabled
-      >
-        {/* Course overlay (marks, lines) */}
-        {mapReady && course && (
-          <CourseOverlay
-            course={course}
-            onMarkPress={handleMarkPress}
-            showLabels={true}
-          />
-        )}
-
-        {/* Wind overlay */}
-        {mapReady && layers.wind && windData && (
+      <MLMap mapStyle={MAP_STYLE_URL} style={styles.map}>
+        <MLCamera
+          ref={cameraRef}
+          initialViewState={{
+            center: [initialRegion.longitude, initialRegion.latitude],
+            zoom: zoomFromLatDelta(initialRegion.latitudeDelta),
+          }}
+        />
+        {course ? (
+          <CourseOverlay course={course} onMarkPress={handleMarkPress} />
+        ) : null}
+        {layers.wind && windData ? (
           <WindOverlay
             conditions={{
               direction: windData.direction,
               speed: windData.speed,
               gusts: windData.gusts,
             }}
-            region={region}
+            region={initialRegion}
           />
-        )}
-
-        {/* Current/Tide overlay */}
-        {mapReady && layers.current && currentData && (
+        ) : null}
+        {layers.current && currentData ? (
           <CurrentOverlay
             conditions={{
               direction: currentData.direction,
               speed: currentData.speed,
-              strength: currentData.strength as 'slack' | 'moderate' | 'strong',
+              strength: currentData.strength,
             }}
-            region={region}
+            region={initialRegion}
           />
-        )}
+        ) : null}
+        {layers.laylines && windData && marks.length > 0 ? (
+          <LaylinesOverlay marks={marks} windDirection={windData.direction} />
+        ) : null}
+      </MLMap>
 
-        {/* Laylines overlay */}
-        {mapReady && layers.laylines && windData && marks.length > 0 && (
-          <LaylinesOverlay
-            marks={marks}
-            windDirection={windData.direction}
-          />
-        )}
-      </MapView>
-
-      {/* Wind direction indicator */}
-      {mapReady && windData && (
+      {windData ? (
         <WindDirectionIndicator
           direction={windData.direction}
           speed={windData.speed}
           gusts={windData.gusts}
           position="top-right"
         />
-      )}
+      ) : null}
 
-      {/* Map controls */}
-      {showControls && mapReady && (
+      {showControls ? (
         <View style={styles.controlsContainer}>
-          {/* Center button */}
           <TouchableOpacity
             style={styles.controlButton}
             onPress={centerOnCourse}
@@ -315,7 +250,6 @@ export default function TacticalRaceMapNative({
             <Ionicons name="locate-outline" size={20} color="#ffffff" />
           </TouchableOpacity>
 
-          {/* Layer toggles */}
           <View style={styles.layerControls}>
             <TouchableOpacity
               style={[styles.layerButton, layers.wind && styles.layerButtonActive]}
@@ -363,14 +297,7 @@ export default function TacticalRaceMapNative({
             </TouchableOpacity>
           </View>
         </View>
-      )}
-
-      {/* Loading state */}
-      {!mapReady && (
-        <View style={styles.loadingOverlay}>
-          <Text style={styles.loadingText}>Loading map...</Text>
-        </View>
-      )}
+      ) : null}
     </View>
   );
 }
@@ -383,41 +310,6 @@ const styles = StyleSheet.create({
   map: {
     ...StyleSheet.absoluteFillObject,
     borderRadius: 12,
-  },
-  fallbackContainer: {
-    flex: 1,
-    minHeight: 300,
-    backgroundColor: '#f1f5f9',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 12,
-  },
-  fallbackText: {
-    marginTop: 12,
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#64748b',
-  },
-  fallbackSubtext: {
-    marginTop: 8,
-    fontSize: 12,
-    color: '#94a3b8',
-    textAlign: 'center',
-    paddingHorizontal: 24,
-  },
-  fallbackActionButton: {
-    marginTop: 14,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 10,
-    backgroundColor: '#e2e8f0',
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: '#cbd5e1',
-  },
-  fallbackActionText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#2563eb',
   },
   controlsContainer: {
     position: 'absolute',
@@ -462,16 +354,5 @@ const styles = StyleSheet.create({
   },
   layerButtonTextActive: {
     color: '#3b82f6',
-  },
-  loadingOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(241, 245, 249, 0.9)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 12,
-  },
-  loadingText: {
-    fontSize: 14,
-    color: '#64748b',
   },
 });
