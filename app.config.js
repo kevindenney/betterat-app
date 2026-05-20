@@ -87,6 +87,7 @@ module.exports = {
       ],
       './plugins/withAndroidDependencyFix',
       './plugins/withGoogleMaps',
+      '@maplibre/maplibre-react-native',
       'expo-apple-authentication',
       [
         '@react-native-google-signin/google-signin',

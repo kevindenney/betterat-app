@@ -9,7 +9,7 @@
  * Uses react-native-maps (requires development build, not Expo Go)
  */
 
-import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
   StyleSheet,
   View,
@@ -17,13 +17,12 @@ import {
   TextInput,
   TouchableOpacity,
   Modal,
-  
   ActivityIndicator,
   FlatList,
   Keyboard,
   Platform,
-  TurboModuleRegistry,
   Linking,
+  type NativeSyntheticEvent,
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { X, MapPin, Search, Navigation, Check } from 'lucide-react-native';
@@ -32,28 +31,18 @@ import { supabase } from '@/services/supabase';
 import { createLogger } from '@/lib/utils/logger';
 import { IOS_COLORS } from '@/components/cards/constants';
 import type { RaceType } from './RaceTypeSelector';
+import {
+  Map as MLMap,
+  Camera as MLCamera,
+  Marker as MLMarker,
+  type CameraRef,
+  type PressEvent,
+} from '@maplibre/maplibre-react-native';
 
-// Safely import react-native-maps (requires development build)
-let MapView: any = null;
-let Marker: any = null;
-let PROVIDER_GOOGLE: any = null;
-let mapsAvailable = false;
-
-// Check if native module is registered BEFORE requiring react-native-maps
-// This prevents TurboModuleRegistry.getEnforcing from throwing
-try {
-  // Use 'get' instead of 'getEnforcing' to check without throwing
-  const nativeModule = TurboModuleRegistry.get('RNMapsAirModule');
-  if (nativeModule) {
-    const maps = require('react-native-maps');
-    MapView = maps.default;
-    Marker = maps.Marker;
-    PROVIDER_GOOGLE = maps.PROVIDER_GOOGLE;
-    mapsAvailable = true;
-  }
-} catch (_e) {
-  // react-native-maps not available - will use fallback UI
-}
+// OpenFreeMap "Liberty" — fully free, no API key, community-funded. We can
+// swap in MapTiler / Stadia later by changing this URL.
+const MAP_STYLE_URL = 'https://tiles.openfreemap.org/styles/liberty';
+const mapsAvailable = true;
 
 const logger = createLogger('LocationMapPicker');
 
@@ -81,7 +70,6 @@ interface VenueLocation {
 // =============================================================================
 
 const DEFAULT_CENTER = { lat: 22.3193, lng: 114.1694 }; // Hong Kong
-const DEFAULT_DELTA = { latitudeDelta: 0.1, longitudeDelta: 0.1 };
 const RECENT_VENUES_KEY = 'regattaflow_recent_venues';
 
 // Common fallback venues
@@ -105,7 +93,7 @@ export function LocationMapPicker({
   initialLocation,
   initialName = '',
 }: LocationMapPickerProps) {
-  const mapRef = useRef<any>(null);
+  const cameraRef = useRef<CameraRef>(null);
   const insets = useSafeAreaInsets();
 
   // State
@@ -241,12 +229,12 @@ export function LocationMapPicker({
   // HANDLERS
   // =============================================================================
 
-  const handleMapPress = useCallback((event: any) => {
-    const { coordinate } = event.nativeEvent;
+  const handleMapPress = useCallback((event: NativeSyntheticEvent<PressEvent>) => {
+    const [lng, lat] = event.nativeEvent.lngLat;
     const newLocation: VenueLocation = {
-      name: `${coordinate.latitude.toFixed(4)}, ${coordinate.longitude.toFixed(4)}`,
-      lat: coordinate.latitude,
-      lng: coordinate.longitude,
+      name: `${lat.toFixed(4)}, ${lng.toFixed(4)}`,
+      lat,
+      lng,
     };
     setSelectedLocation(newLocation);
     setSearchText('');
@@ -260,14 +248,12 @@ export function LocationMapPicker({
     setShowSearchResults(false);
     Keyboard.dismiss();
 
-    // Animate map to location
-    if (mapRef.current) {
-      mapRef.current.animateToRegion({
-        latitude: venue.lat,
-        longitude: venue.lng,
-        ...DEFAULT_DELTA,
-      });
-    }
+    // Animate map to location via Camera ref
+    cameraRef.current?.flyTo({
+      center: [venue.lng, venue.lat],
+      zoom: 11,
+      duration: 600,
+    });
   }, []);
 
   const handleConfirm = useCallback(() => {
@@ -306,11 +292,10 @@ export function LocationMapPicker({
   // RENDER
   // =============================================================================
 
-  const initialRegion = useMemo(() => ({
-    latitude: initialLocation?.lat || DEFAULT_CENTER.lat,
-    longitude: initialLocation?.lng || DEFAULT_CENTER.lng,
-    ...DEFAULT_DELTA,
-  }), [initialLocation]);
+  const initialCenter: [number, number] = [
+    initialLocation?.lng ?? DEFAULT_CENTER.lng,
+    initialLocation?.lat ?? DEFAULT_CENTER.lat,
+  ];
 
   // Fallback when maps not available
   if (!mapsAvailable) {
@@ -445,27 +430,29 @@ export function LocationMapPicker({
 
         {/* Map */}
         <View style={styles.mapContainer}>
-          <MapView
-            ref={mapRef}
+          <MLMap
+            mapStyle={MAP_STYLE_URL}
             style={styles.map}
-            initialRegion={initialRegion}
             onPress={handleMapPress}
-            provider={Platform.OS === 'android' ? PROVIDER_GOOGLE : undefined}
-            showsUserLocation
-            showsMyLocationButton={false}
-            showsCompass
-            mapType="standard"
           >
+            <MLCamera
+              ref={cameraRef}
+              initialViewState={{
+                center: initialCenter,
+                zoom: 10,
+              }}
+            />
             {selectedLocation && (
-              <Marker
-                coordinate={{
-                  latitude: selectedLocation.lat,
-                  longitude: selectedLocation.lng,
-                }}
-                pinColor={IOS_COLORS.blue}
-              />
+              <MLMarker
+                id="selected"
+                lngLat={[selectedLocation.lng, selectedLocation.lat]}
+              >
+                <View style={styles.mapPin}>
+                  <MapPin size={28} color={IOS_COLORS.blue} fill={IOS_COLORS.blue} />
+                </View>
+              </MLMarker>
             )}
-          </MapView>
+          </MLMap>
 
           {/* Selected Location Badge */}
           {selectedLocation && (
@@ -662,6 +649,10 @@ const styles = StyleSheet.create({
   },
   map: {
     ...StyleSheet.absoluteFillObject,
+  },
+  mapPin: {
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   selectedBadge: {
     position: 'absolute',
