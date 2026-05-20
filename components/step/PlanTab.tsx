@@ -35,6 +35,7 @@ import { getStepCategoryLabels } from '@/lib/step-category-config';
 import { FEATURE_FLAGS } from '@/lib/featureFlags';
 import { PlanTabInterior, PlanTabIOSRegisterInterior } from './plan-tab';
 import { PlanWithCard } from './plan-tab/PlanWithCard';
+import { syncStepCollaborators } from '@/services/StepCollaboratorService';
 import { useLibraryBeforeBinding } from '@/hooks/useStepLibraryBefore';
 import { buildSuggestions, crossInterestToMentorInput } from '@/services/SuggestionsService';
 import { useCrossInterestSuggestions } from '@/hooks/useCrossInterestSuggestions';
@@ -212,6 +213,21 @@ export function PlanTab({
     onUpdate({ where_location: location });
   }, [onUpdate]);
 
+  const handleCollaboratorsChange = useCallback(
+    (next: StepCollaborator[]) => {
+      onUpdate({
+        collaborators: next,
+        who_collaborators: next.map((c) => c.display_name),
+      });
+      if (stepId && user?.id) {
+        syncStepCollaborators(stepId, user.id, next).catch((err) => {
+          console.error('[PlanTab] syncStepCollaborators failed:', err);
+        });
+      }
+    },
+    [onUpdate, stepId, user?.id],
+  );
+
   // Brain dump visibility — expanded by default when plan is empty, collapsed when has content
   const showBrainDump = Boolean(brainDumpData !== undefined && onStructureWithAI);
   const [brainDumpExpanded, setBrainDumpExpanded] = useState(!hasPlanContent);
@@ -298,12 +314,7 @@ export function PlanTab({
           <PlanWithCard
             collaborators={collaborators}
             readOnly={readOnly}
-            onChange={(next) =>
-              onUpdate({
-                collaborators: next,
-                who_collaborators: next.map((c) => c.display_name),
-              })
-            }
+            onChange={handleCollaboratorsChange}
           />
         }
       />
