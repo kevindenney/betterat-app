@@ -212,25 +212,33 @@ export async function updateStepMetadata(
     if (error) throw error;
     if (!data) throw new Error(`Step ${stepId} not found or not owned by current user`);
 
-    // Mirror platform collaborators into the dedicated step_collaborators table.
-    // Lives inline here (not in a separate PlanTab callback) so it can't be
-    // bypassed by Fast Refresh closures — every metadata write that touches
-    // collaborators reconciles the table. Fire-and-forget; the metadata write
-    // is the source of truth and shouldn't block on this side write.
+    // Mirror collaborators + location into dedicated tables. Lives inline
+    // here (not in a separate PlanTab callback) so it can't be bypassed by
+    // Fast Refresh closures — every metadata write that touches `plan`
+    // reconciles both tables. Fire-and-forget; the metadata write is the
+    // source of truth and shouldn't block on these side writes.
     if ('plan' in partialMetadata) {
       void (async () => {
         try {
-          const { syncStepCollaborators } = await import('@/services/StepCollaboratorService');
           const { data: authData } = await supabase.auth.getUser();
           const userId = authData?.user?.id;
           if (!userId) return;
-          await syncStepCollaborators(
-            stepId,
-            userId,
-            (collaborators ?? []) as any,
-          );
+
+          const [{ syncStepCollaborators }, { syncStepLocation }] = await Promise.all([
+            import('@/services/StepCollaboratorService'),
+            import('@/services/StepLocationService'),
+          ]);
+
+          await Promise.allSettled([
+            syncStepCollaborators(stepId, userId, (collaborators ?? []) as any),
+            syncStepLocation(
+              stepId,
+              userId,
+              (merged.plan as any)?.where_location,
+            ),
+          ]);
         } catch (syncErr) {
-          logger.warn('step_collaborators sync failed (non-fatal)', syncErr);
+          logger.warn('step_collaborators/step_location sync failed (non-fatal)', syncErr);
         }
       })();
     }
