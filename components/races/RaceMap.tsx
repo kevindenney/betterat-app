@@ -173,10 +173,10 @@ export function RaceMap({
     <MLMap
       mapStyle={STYLE_URLS[styleVariant]}
       style={styles.map}
-      scrollEnabled={interactive}
-      zoomEnabled={interactive}
-      rotateEnabled={false}
-      pitchEnabled={false}
+      dragPan={interactive}
+      touchZoom={interactive}
+      touchRotate={false}
+      touchPitch={false}
     >
       <MLCamera
         ref={cameraRef}
@@ -184,20 +184,22 @@ export function RaceMap({
       />
 
       {startLine ? (
-        <MLGeoJSONSource id="rm-start-line" shape={startLine}>
+        <MLGeoJSONSource id="rm-start-line" data={startLine}>
           <MLLayer
+              type="line"
             id="rm-start-line-layer"
-            sourceID="rm-start-line"
+            source="rm-start-line"
             style={{ lineColor: '#FFFFFF', lineWidth: 2, lineDasharray: [3, 2] }}
           />
         </MLGeoJSONSource>
       ) : null}
 
       {finishLine ? (
-        <MLGeoJSONSource id="rm-finish-line" shape={finishLine}>
+        <MLGeoJSONSource id="rm-finish-line" data={finishLine}>
           <MLLayer
+              type="line"
             id="rm-finish-line-layer"
-            sourceID="rm-finish-line"
+            source="rm-finish-line"
             style={{ lineColor: '#FFFFFF', lineWidth: 2, lineDasharray: [3, 2] }}
           />
         </MLGeoJSONSource>

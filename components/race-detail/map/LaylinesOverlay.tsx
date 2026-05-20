@@ -75,10 +75,11 @@ export const LaylinesOverlay: React.FC<LaylinesOverlayProps> = ({
 
   return (
     <>
-      <MLGeoJSONSource id="layline-port" shape={features.port}>
+      <MLGeoJSONSource id="layline-port" data={features.port}>
         <MLLayer
+              type="line"
           id="layline-port-layer"
-          sourceID="layline-port"
+          source="layline-port"
           style={{
             lineColor: LAYLINE_COLORS.port,
             lineWidth: 3,
@@ -87,10 +88,11 @@ export const LaylinesOverlay: React.FC<LaylinesOverlayProps> = ({
           }}
         />
       </MLGeoJSONSource>
-      <MLGeoJSONSource id="layline-starboard" shape={features.starboard}>
+      <MLGeoJSONSource id="layline-starboard" data={features.starboard}>
         <MLLayer
+              type="line"
           id="layline-starboard-layer"
-          sourceID="layline-starboard"
+          source="layline-starboard"
           style={{
             lineColor: LAYLINE_COLORS.starboard,
             lineWidth: 3,

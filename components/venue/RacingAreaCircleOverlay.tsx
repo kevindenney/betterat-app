@@ -140,15 +140,17 @@ export function RacingAreaCircleOverlay({
 
         return (
           <React.Fragment key={area.id}>
-            <MLGeoJSONSource id={`area-${area.id}`} shape={polygonFeature}>
+            <MLGeoJSONSource id={`area-${area.id}`} data={polygonFeature}>
               <MLLayer
+              type="fill"
                 id={`area-${area.id}-fill`}
-                sourceID={`area-${area.id}`}
+                source={`area-${area.id}`}
                 style={{ fillColor: colors.fill, fillOutlineColor: colors.stroke }}
               />
               <MLLayer
+              type="line"
                 id={`area-${area.id}-stroke`}
-                sourceID={`area-${area.id}`}
+                source={`area-${area.id}`}
                 style={{
                   lineColor: colors.stroke,
                   lineWidth: isSelected ? 2.5 : 1.5,

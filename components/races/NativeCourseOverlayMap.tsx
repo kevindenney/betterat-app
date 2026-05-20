@@ -1,42 +1,34 @@
 /**
  * NativeCourseOverlayMap
  *
- * Read-only native map showing a positioned course with the full overlay:
- * laylines, start box, thirds, side labels, favored side shading.
+ * Read-only MapLibre map showing a positioned course with the full tactical
+ * overlay: laylines, start box, thirds, side labels, favored side shading.
+ * Each polygon/polyline becomes a GeoJSON layer; labels become MapLibre
+ * Markers with View children.
  *
- * Used in the briefing wizard Course tab and anywhere a course preview is needed on native.
+ * Migrated off react-native-maps — see RaceMap.tsx for the simpler shared
+ * primitive used by other surfaces.
  */
 
 import React, { useMemo, useRef } from 'react';
-import { View, Text, StyleSheet, Platform, TurboModuleRegistry } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
+import {
+  Map as MLMap,
+  Camera as MLCamera,
+  Marker as MLMarker,
+  GeoJSONSource as MLGeoJSONSource,
+  Layer as MLLayer,
+  type CameraRef,
+} from '@maplibre/maplibre-react-native';
 import type { PositionedCourse, StartLinePosition } from '@/types/courses';
 
-// ── Conditional react-native-maps ──
-let MapView: any = null;
-let Marker: any = null;
-let Polyline: any = null;
-let Polygon: any = null;
-let mapsAvailable = false;
-
-if (Platform.OS !== 'web') {
-  try {
-    const nativeModule = TurboModuleRegistry.get('RNMapsAirModule');
-    if (nativeModule) {
-      const maps = require('react-native-maps');
-      MapView = maps.default;
-      Marker = maps.Marker;
-      Polyline = maps.Polyline;
-      Polygon = maps.Polygon;
-      mapsAvailable = true;
-    }
-  } catch (e) {
-    // Maps not available
-  }
-}
-
-// ── Geometry helpers ──
+const MAP_STYLE_URL = 'https://tiles.openfreemap.org/styles/liberty';
 
 type Coord = { latitude: number; longitude: number };
+
+function toLngLat(c: Coord): [number, number] {
+  return [c.longitude, c.latitude];
+}
 
 function offsetCoordinate(lat: number, lng: number, bearingDeg: number, distanceM: number): Coord {
   const R = 6371000;
@@ -45,12 +37,14 @@ function offsetCoordinate(lat: number, lng: number, bearingDeg: number, distance
   const lng1 = (lng * Math.PI) / 180;
   const d = distanceM / R;
   const lat2 = Math.asin(
-    Math.sin(lat1) * Math.cos(d) + Math.cos(lat1) * Math.sin(d) * Math.cos(bearing)
+    Math.sin(lat1) * Math.cos(d) + Math.cos(lat1) * Math.sin(d) * Math.cos(bearing),
   );
-  const lng2 = lng1 + Math.atan2(
-    Math.sin(bearing) * Math.sin(d) * Math.cos(lat1),
-    Math.cos(d) - Math.sin(lat1) * Math.sin(lat2)
-  );
+  const lng2 =
+    lng1 +
+    Math.atan2(
+      Math.sin(bearing) * Math.sin(d) * Math.cos(lat1),
+      Math.cos(d) - Math.sin(lat1) * Math.sin(lat2),
+    );
   return { latitude: (lat2 * 180) / Math.PI, longitude: (lng2 * 180) / Math.PI };
 }
 
@@ -81,8 +75,10 @@ function flatBearing(from: Coord, to: Coord): number {
 function rayIntersection(p1: Coord, b1: number, p2: Coord, b2: number): Coord | null {
   const toRad = Math.PI / 180;
   const cosLat = Math.cos(p1.latitude * toRad);
-  const dx1 = Math.sin(b1 * toRad), dy1 = Math.cos(b1 * toRad);
-  const dx2 = Math.sin(b2 * toRad), dy2 = Math.cos(b2 * toRad);
+  const dx1 = Math.sin(b1 * toRad);
+  const dy1 = Math.cos(b1 * toRad);
+  const dx2 = Math.sin(b2 * toRad);
+  const dy2 = Math.cos(b2 * toRad);
   const det = dx1 * dy2 - dy1 * dx2;
   if (Math.abs(det) < 1e-10) return null;
   const ex = (p2.longitude - p1.longitude) * cosLat;
@@ -91,11 +87,38 @@ function rayIntersection(p1: Coord, b1: number, p2: Coord, b2: number): Coord | 
   if (t1 < 0) return null;
   return {
     latitude: p1.latitude + t1 * dy1,
-    longitude: p1.longitude + t1 * dx1 / cosLat,
+    longitude: p1.longitude + (t1 * dx1) / cosLat,
   };
 }
 
-// ── Mark colors ──
+function zoomFromLatDelta(delta: number): number {
+  if (!delta || delta <= 0) return 13;
+  return Math.max(2, Math.min(20, Math.log2(360 / delta)));
+}
+
+function lineFeature(points: Coord[]) {
+  return {
+    type: 'Feature' as const,
+    properties: {},
+    geometry: {
+      type: 'LineString' as const,
+      coordinates: points.map(toLngLat),
+    },
+  };
+}
+
+function polygonFeature(ring: Coord[]) {
+  const closed = ring[0] === ring[ring.length - 1] ? ring : [...ring, ring[0]];
+  return {
+    type: 'Feature' as const,
+    properties: {},
+    geometry: {
+      type: 'Polygon' as const,
+      coordinates: [closed.map(toLngLat)],
+    },
+  };
+}
+
 const MARK_COLORS: Record<string, string> = {
   windward: '#eab308',
   leeward: '#ef4444',
@@ -104,13 +127,12 @@ const MARK_COLORS: Record<string, string> = {
   offset: '#3b82f6',
 };
 
-// ── Props ──
 interface NativeCourseOverlayMapProps {
   positionedCourse: PositionedCourse;
   windDirection: number;
   currentDirection?: number;
   currentSpeed?: number;
-  style?: any;
+  style?: import('react-native').StyleProp<import('react-native').ViewStyle>;
 }
 
 export function NativeCourseOverlayMap({
@@ -120,11 +142,13 @@ export function NativeCourseOverlayMap({
   currentSpeed,
   style,
 }: NativeCourseOverlayMapProps) {
-  const mapRef = useRef<any>(null);
-  const marks = positionedCourse.marks || [];
+  const cameraRef = useRef<CameraRef>(null);
+  const marks = useMemo(
+    () => positionedCourse.marks || [],
+    [positionedCourse.marks],
+  );
   const startLine: StartLinePosition | null = positionedCourse.startLine || null;
 
-  // ── Course overlay computation (same as CoursePositionEditor) ──
   const courseOverlay = useMemo(() => {
     if (marks.length === 0) return null;
     const windwardMark = marks.find((m) => m.type === 'windward');
@@ -133,13 +157,17 @@ export function NativeCourseOverlayMap({
     const leewardPos = leewardMark
       ? { latitude: leewardMark.latitude, longitude: leewardMark.longitude }
       : gateMarks.length >= 2
-        ? { latitude: (gateMarks[0].latitude + gateMarks[1].latitude) / 2,
-            longitude: (gateMarks[0].longitude + gateMarks[1].longitude) / 2 }
+        ? {
+            latitude: (gateMarks[0].latitude + gateMarks[1].latitude) / 2,
+            longitude: (gateMarks[0].longitude + gateMarks[1].longitude) / 2,
+          }
         : gateMarks.length === 1
           ? { latitude: gateMarks[0].latitude, longitude: gateMarks[0].longitude }
           : startLine
-            ? { latitude: (startLine.pin.lat + startLine.committee.lat) / 2,
-                longitude: (startLine.pin.lng + startLine.committee.lng) / 2 }
+            ? {
+                latitude: (startLine.pin.lat + startLine.committee.lat) / 2,
+                longitude: (startLine.pin.lng + startLine.committee.lng) / 2,
+              }
             : null;
     if (!windwardMark || !leewardPos) return null;
 
@@ -157,7 +185,6 @@ export function NativeCourseOverlayMap({
     let portCorner = offsetCoordinate(M.latitude, M.longitude, rightBearing, halfWidth);
     let stbdCorner = offsetCoordinate(M.latitude, M.longitude, leftBearing, halfWidth);
 
-    // Third dividers
     const oneThird = lerpCoord(L, W, 1 / 3);
     const twoThirds = lerpCoord(L, W, 2 / 3);
     const oneThirdHW = halfWidth * (2 / 3);
@@ -171,12 +198,11 @@ export function NativeCourseOverlayMap({
     const middleThirdLabel = lerpCoord(L, W, 1 / 2);
     const upperThirdLabel = lerpCoord(L, W, 5 / 6);
 
-    // Favored side
     const hasCurrent = currentDirection !== undefined && currentSpeed !== undefined && currentSpeed > 0.05;
     let favoredSide: 'left' | 'right' | null = null;
     if (hasCurrent) {
-      const rel = ((currentDirection! - windDirection) % 360 + 360) % 360;
-      favoredSide = (rel > 0 && rel < 180) ? 'left' : 'right';
+      const rel = (((currentDirection! - windDirection) % 360) + 360) % 360;
+      favoredSide = rel > 0 && rel < 180 ? 'left' : 'right';
     }
 
     const sideOffset = halfWidth * 0.5;
@@ -204,8 +230,8 @@ export function NativeCourseOverlayMap({
 
       const candidateA = (lineBearingPtoC - 45 + 360) % 360;
       const candidateB = (lineBearingPtoC + 45) % 360;
-      const diffA = Math.abs(((candidateA - downwindBearing + 540) % 360) - 180);
-      const diffB = Math.abs(((candidateB - downwindBearing + 540) % 360) - 180);
+      const diffA = Math.abs((((candidateA - downwindBearing + 540) % 360) - 180));
+      const diffB = Math.abs((((candidateB - downwindBearing + 540) % 360) - 180));
       const shortSideBearing = diffA < diffB ? candidateA : candidateB;
 
       const pinDown = offsetCoordinate(P.latitude, P.longitude, shortSideBearing, boxDepth);
@@ -219,13 +245,15 @@ export function NativeCourseOverlayMap({
       const pinEndLabel = offsetCoordinate(
         lerpCoord(P, startOneThird, 0.5).latitude,
         lerpCoord(P, startOneThird, 0.5).longitude,
-        shortSideBearing, labelDownOffset
+        shortSideBearing,
+        labelDownOffset,
       );
       const startMidLabel = offsetCoordinate(startMid.latitude, startMid.longitude, shortSideBearing, labelDownOffset);
       const boatEndLabel = offsetCoordinate(
         lerpCoord(startTwoThirds, C, 0.5).latitude,
         lerpCoord(startTwoThirds, C, 0.5).longitude,
-        shortSideBearing, labelDownOffset
+        shortSideBearing,
+        labelDownOffset,
       );
 
       startBox = {
@@ -237,7 +265,6 @@ export function NativeCourseOverlayMap({
       };
       startLabels = { pinEnd: pinEndLabel, middle: startMidLabel, boatEnd: boatEndLabel };
 
-      // Extend lower laylines (45° to wind) to meet upper laylines
       const laylineBearingFromP = (windDirection - 45 + 360) % 360;
       const laylineBearingFromC = (windDirection + 45) % 360;
       const bearingWtoPort = flatBearing(W, portCorner);
@@ -254,7 +281,14 @@ export function NativeCourseOverlayMap({
     }
 
     return {
-      W, L, M, P, C, startMid, portCorner, stbdCorner,
+      W,
+      L,
+      M,
+      P,
+      C,
+      startMid,
+      portCorner,
+      stbdCorner,
       leftPoly: [W, stbdCorner, P, startMid],
       rightPoly: [W, portCorner, C, startMid],
       thirdDividers: [
@@ -271,256 +305,382 @@ export function NativeCourseOverlayMap({
     };
   }, [marks, windDirection, currentDirection, currentSpeed, startLine]);
 
-  // ── Map region from marks + overlay bounds ──
-  const mapRegion = useMemo(() => {
-    const allCoords: Coord[] = marks.map(m => ({ latitude: m.latitude, longitude: m.longitude }));
+  const initialView = useMemo(() => {
+    const all: Coord[] = marks.map((m) => ({ latitude: m.latitude, longitude: m.longitude }));
     if (startLine) {
-      allCoords.push({ latitude: startLine.pin.lat, longitude: startLine.pin.lng });
-      allCoords.push({ latitude: startLine.committee.lat, longitude: startLine.committee.lng });
+      all.push({ latitude: startLine.pin.lat, longitude: startLine.pin.lng });
+      all.push({ latitude: startLine.committee.lat, longitude: startLine.committee.lng });
     }
-    // Include overlay diamond corners so the full overlay fits in the region
     if (courseOverlay) {
-      allCoords.push(courseOverlay.portCorner, courseOverlay.stbdCorner, courseOverlay.W);
-      if (courseOverlay.startBox) {
-        courseOverlay.startBox.outline.forEach(c => allCoords.push(c));
-      }
+      all.push(courseOverlay.portCorner, courseOverlay.stbdCorner, courseOverlay.W);
+      if (courseOverlay.startBox) courseOverlay.startBox.outline.forEach((c) => all.push(c));
     }
-    if (allCoords.length === 0) return null;
+    if (all.length === 0) return null;
 
-    const lats = allCoords.map(c => c.latitude);
-    const lngs = allCoords.map(c => c.longitude);
+    const lats = all.map((c) => c.latitude);
+    const lngs = all.map((c) => c.longitude);
     const minLat = Math.min(...lats);
     const maxLat = Math.max(...lats);
     const minLng = Math.min(...lngs);
     const maxLng = Math.max(...lngs);
-
     const latDelta = Math.max((maxLat - minLat) * 1.6, 0.005);
-    const lngDelta = Math.max((maxLng - minLng) * 1.6, 0.005);
-
     return {
-      latitude: (minLat + maxLat) / 2,
-      longitude: (minLng + maxLng) / 2,
-      latitudeDelta: latDelta,
-      longitudeDelta: lngDelta,
+      center: [(minLng + maxLng) / 2, (minLat + maxLat) / 2] as [number, number],
+      zoom: zoomFromLatDelta(latDelta),
+      latDelta,
     };
   }, [marks, startLine, courseOverlay]);
 
-  // ── Zoom-dependent scaling ──
-  // When zoomed out (large latitudeDelta), shrink marks and labels to reduce clutter.
-  // Base delta ~0.008 (tight course view) → scale 1.0
-  // Larger deltas → proportionally smaller elements
   const zoomScale = useMemo(() => {
-    if (!mapRegion) return 1;
+    if (!initialView) return 1;
     const baseDelta = 0.008;
-    const ratio = baseDelta / mapRegion.latitudeDelta;
+    const ratio = baseDelta / initialView.latDelta;
     return Math.max(0.55, Math.min(1.0, ratio));
-  }, [mapRegion?.latitudeDelta]);
+  }, [initialView]);
 
   const markerTransform = useMemo(
-    () => ({ transform: [{ scale: zoomScale }] as any }),
+    () => ({ transform: [{ scale: zoomScale }] }) as { transform: { scale: number }[] },
     [zoomScale],
   );
 
   const showDetailLabels = zoomScale > 0.65;
 
-  if (!mapsAvailable || !MapView || !mapRegion) {
+  if (!initialView) {
     return (
       <View style={[styles.fallback, style]}>
-        <Text style={styles.fallbackText}>Map unavailable</Text>
+        <Text style={styles.fallbackText}>No course data</Text>
       </View>
     );
   }
 
   return (
     <View style={[styles.container, style]}>
-      <MapView
-        ref={mapRef}
+      <MLMap
+        mapStyle={MAP_STYLE_URL}
         style={StyleSheet.absoluteFillObject}
-        initialRegion={mapRegion}
-        scrollEnabled={false}
-        zoomEnabled={false}
-        rotateEnabled={false}
-        pitchEnabled={false}
-        mapType="standard"
+        dragPan={false}
+        touchZoom={false}
+        touchRotate={false}
+        touchPitch={false}
       >
-        {/* ── Course overlay ── */}
-        {courseOverlay && Polygon && (
+        <MLCamera
+          ref={cameraRef}
+          initialViewState={{ center: initialView.center, zoom: initialView.zoom }}
+        />
+
+        {courseOverlay ? (
           <>
             {/* Race area: left/right halves */}
-            <Polygon
-              coordinates={courseOverlay.leftPoly}
-              fillColor={courseOverlay.favoredSide === 'left' ? 'rgba(34, 197, 94, 0.13)' : 'rgba(148, 163, 184, 0.06)'}
-              strokeColor="transparent"
-            />
-            <Polygon
-              coordinates={courseOverlay.rightPoly}
-              fillColor={courseOverlay.favoredSide === 'right' ? 'rgba(34, 197, 94, 0.13)' : 'rgba(148, 163, 184, 0.06)'}
-              strokeColor="transparent"
-            />
+            <MLGeoJSONSource id="nco-left-poly" data={polygonFeature(courseOverlay.leftPoly)}>
+              <MLLayer
+              type="fill"
+                id="nco-left-poly-fill"
+                source="nco-left-poly"
+                style={{
+                  fillColor:
+                    courseOverlay.favoredSide === 'left'
+                      ? 'rgba(34, 197, 94, 0.13)'
+                      : 'rgba(148, 163, 184, 0.06)',
+                }}
+              />
+            </MLGeoJSONSource>
+            <MLGeoJSONSource id="nco-right-poly" data={polygonFeature(courseOverlay.rightPoly)}>
+              <MLLayer
+              type="fill"
+                id="nco-right-poly-fill"
+                source="nco-right-poly"
+                style={{
+                  fillColor:
+                    courseOverlay.favoredSide === 'right'
+                      ? 'rgba(34, 197, 94, 0.13)'
+                      : 'rgba(148, 163, 184, 0.06)',
+                }}
+              />
+            </MLGeoJSONSource>
 
-            {/* Laylines */}
-            <Polyline coordinates={[courseOverlay.W, courseOverlay.portCorner]} strokeColor={`rgba(234, 179, 8, ${zoomScale < 0.8 ? 0.4 : 0.8})`} strokeWidth={zoomScale < 0.8 ? 1 : 1.5} lineDashPattern={[8, 5]} />
-            <Polyline coordinates={[courseOverlay.C, courseOverlay.portCorner]} strokeColor={`rgba(234, 179, 8, ${zoomScale < 0.8 ? 0.4 : 0.8})`} strokeWidth={zoomScale < 0.8 ? 1 : 1.5} lineDashPattern={[8, 5]} />
-            <Polyline coordinates={[courseOverlay.W, courseOverlay.stbdCorner]} strokeColor={`rgba(234, 179, 8, ${zoomScale < 0.8 ? 0.4 : 0.8})`} strokeWidth={zoomScale < 0.8 ? 1 : 1.5} lineDashPattern={[8, 5]} />
-            <Polyline coordinates={[courseOverlay.P, courseOverlay.stbdCorner]} strokeColor={`rgba(234, 179, 8, ${zoomScale < 0.8 ? 0.4 : 0.8})`} strokeWidth={zoomScale < 0.8 ? 1 : 1.5} lineDashPattern={[8, 5]} />
-
-            {/* Rhumbline */}
-            <Polyline
-              coordinates={[courseOverlay.W, courseOverlay.startMid]}
-              strokeColor="rgba(255, 255, 255, 0.5)"
-              strokeWidth={1.5}
-              lineDashPattern={[8, 4]}
-            />
-
-            {/* Third dividers */}
-            {courseOverlay.thirdDividers.map((coords, i) => (
-              <Polyline key={`third-${i}`} coordinates={coords} strokeColor="rgba(148, 163, 184, 0.35)" strokeWidth={1} lineDashPattern={[4, 4]} />
+            {/* Laylines (4 segments) */}
+            {(
+              [
+                [courseOverlay.W, courseOverlay.portCorner],
+                [courseOverlay.C, courseOverlay.portCorner],
+                [courseOverlay.W, courseOverlay.stbdCorner],
+                [courseOverlay.P, courseOverlay.stbdCorner],
+              ] as Coord[][]
+            ).map((segment, i) => (
+              <MLGeoJSONSource key={`nco-layline-${i}`} id={`nco-layline-${i}`} data={lineFeature(segment)}>
+                <MLLayer
+              type="line"
+                  id={`nco-layline-${i}-layer`}
+                  source={`nco-layline-${i}`}
+                  style={{
+                    lineColor: `rgba(234, 179, 8, ${zoomScale < 0.8 ? 0.4 : 0.8})`,
+                    lineWidth: zoomScale < 0.8 ? 1 : 1.5,
+                    lineDasharray: [4, 2.5],
+                  }}
+                />
+              </MLGeoJSONSource>
             ))}
 
-            {/* Third labels — hidden when very zoomed out */}
-            {showDetailLabels && (
+            {/* Rhumbline */}
+            <MLGeoJSONSource id="nco-rhumbline" data={lineFeature([courseOverlay.W, courseOverlay.startMid])}>
+              <MLLayer
+              type="line"
+                id="nco-rhumbline-layer"
+                source="nco-rhumbline"
+                style={{
+                  lineColor: 'rgba(255, 255, 255, 0.5)',
+                  lineWidth: 1.5,
+                  lineDasharray: [4, 2],
+                }}
+              />
+            </MLGeoJSONSource>
+
+            {/* Third dividers */}
+            {courseOverlay.thirdDividers.map((segment, i) => (
+              <MLGeoJSONSource
+                key={`nco-third-${i}`}
+                id={`nco-third-${i}`}
+                data={lineFeature(segment)}
+              >
+                <MLLayer
+              type="line"
+                  id={`nco-third-${i}-layer`}
+                  source={`nco-third-${i}`}
+                  style={{
+                    lineColor: 'rgba(148, 163, 184, 0.35)',
+                    lineWidth: 1,
+                    lineDasharray: [2, 2],
+                  }}
+                />
+              </MLGeoJSONSource>
+            ))}
+
+            {/* Third labels */}
+            {showDetailLabels ? (
               <>
-                <Marker coordinate={courseOverlay.thirdLabels.bottom} anchor={{ x: 0.5, y: 0.5 }} tracksViewChanges={false}>
-                  <View style={[overlayStyles.thirdPill, markerTransform]}><Text style={overlayStyles.thirdText}>Bottom 1/3</Text></View>
-                </Marker>
-                <Marker coordinate={courseOverlay.thirdLabels.middle} anchor={{ x: 0.5, y: 0.5 }} tracksViewChanges={false}>
-                  <View style={[overlayStyles.thirdPill, markerTransform]}><Text style={overlayStyles.thirdText}>Middle 1/3</Text></View>
-                </Marker>
-                <Marker coordinate={courseOverlay.thirdLabels.upper} anchor={{ x: 0.5, y: 0.5 }} tracksViewChanges={false}>
-                  <View style={[overlayStyles.thirdPill, markerTransform]}><Text style={overlayStyles.thirdText}>Upper 1/3</Text></View>
-                </Marker>
+                <MLMarker id="nco-third-bottom" lngLat={toLngLat(courseOverlay.thirdLabels.bottom)}>
+                  <View style={[overlayStyles.thirdPill, markerTransform]}>
+                    <Text style={overlayStyles.thirdText}>Bottom 1/3</Text>
+                  </View>
+                </MLMarker>
+                <MLMarker id="nco-third-middle" lngLat={toLngLat(courseOverlay.thirdLabels.middle)}>
+                  <View style={[overlayStyles.thirdPill, markerTransform]}>
+                    <Text style={overlayStyles.thirdText}>Middle 1/3</Text>
+                  </View>
+                </MLMarker>
+                <MLMarker id="nco-third-upper" lngLat={toLngLat(courseOverlay.thirdLabels.upper)}>
+                  <View style={[overlayStyles.thirdPill, markerTransform]}>
+                    <Text style={overlayStyles.thirdText}>Upper 1/3</Text>
+                  </View>
+                </MLMarker>
               </>
-            )}
+            ) : null}
 
-            {/* Rhumbline label — hidden when zoomed out */}
-            {showDetailLabels && (
-              <Marker coordinate={lerpCoord(courseOverlay.startMid, courseOverlay.W, 0.35)} anchor={{ x: 0.5, y: 0.5 }} tracksViewChanges={false}>
-                <View style={[overlayStyles.rhumblinePill, markerTransform]}><Text style={overlayStyles.rhumblineText}>Rhumbline</Text></View>
-              </Marker>
-            )}
+            {/* Rhumbline label */}
+            {showDetailLabels ? (
+              <MLMarker
+                id="nco-rhumb-label"
+                lngLat={toLngLat(lerpCoord(courseOverlay.startMid, courseOverlay.W, 0.35))}
+              >
+                <View style={[overlayStyles.rhumblinePill, markerTransform]}>
+                  <Text style={overlayStyles.rhumblineText}>Rhumbline</Text>
+                </View>
+              </MLMarker>
+            ) : null}
 
-            {/* LEFT / RIGHT labels */}
-            <Marker coordinate={courseOverlay.leftLabel} anchor={{ x: 0.5, y: 0.5 }} tracksViewChanges={false}>
-              <View style={[overlayStyles.sidePill, courseOverlay.favoredSide === 'left' && overlayStyles.sidePillFavored, markerTransform]}>
-                <Text style={[overlayStyles.sideText, courseOverlay.favoredSide === 'left' && overlayStyles.sideTextFavored]}>LEFT</Text>
+            {/* LEFT / RIGHT pills */}
+            <MLMarker id="nco-left-label" lngLat={toLngLat(courseOverlay.leftLabel)}>
+              <View
+                style={[
+                  overlayStyles.sidePill,
+                  courseOverlay.favoredSide === 'left' && overlayStyles.sidePillFavored,
+                  markerTransform,
+                ]}
+              >
+                <Text
+                  style={[
+                    overlayStyles.sideText,
+                    courseOverlay.favoredSide === 'left' && overlayStyles.sideTextFavored,
+                  ]}
+                >
+                  LEFT
+                </Text>
               </View>
-            </Marker>
-            <Marker coordinate={courseOverlay.rightLabel} anchor={{ x: 0.5, y: 0.5 }} tracksViewChanges={false}>
-              <View style={[overlayStyles.sidePill, courseOverlay.favoredSide === 'right' && overlayStyles.sidePillFavored, markerTransform]}>
-                <Text style={[overlayStyles.sideText, courseOverlay.favoredSide === 'right' && overlayStyles.sideTextFavored]}>RIGHT</Text>
+            </MLMarker>
+            <MLMarker id="nco-right-label" lngLat={toLngLat(courseOverlay.rightLabel)}>
+              <View
+                style={[
+                  overlayStyles.sidePill,
+                  courseOverlay.favoredSide === 'right' && overlayStyles.sidePillFavored,
+                  markerTransform,
+                ]}
+              >
+                <Text
+                  style={[
+                    overlayStyles.sideText,
+                    courseOverlay.favoredSide === 'right' && overlayStyles.sideTextFavored,
+                  ]}
+                >
+                  RIGHT
+                </Text>
               </View>
-            </Marker>
+            </MLMarker>
 
-            {/* Layline labels — hidden when zoomed out */}
-            {showDetailLabels && (
+            {/* Layline labels */}
+            {showDetailLabels ? (
               <>
-                <Marker coordinate={courseOverlay.laylineLabels.port} anchor={{ x: 0.5, y: 0.5 }} tracksViewChanges={false}>
-                  <View style={[overlayStyles.laylinePill, markerTransform]}><Text style={overlayStyles.laylineText}>Stbd LL</Text></View>
-                </Marker>
-                <Marker coordinate={courseOverlay.laylineLabels.stbd} anchor={{ x: 0.5, y: 0.5 }} tracksViewChanges={false}>
-                  <View style={[overlayStyles.laylinePill, markerTransform]}><Text style={overlayStyles.laylineText}>Port LL</Text></View>
-                </Marker>
+                <MLMarker id="nco-stbd-ll-label" lngLat={toLngLat(courseOverlay.laylineLabels.port)}>
+                  <View style={[overlayStyles.laylinePill, markerTransform]}>
+                    <Text style={overlayStyles.laylineText}>Stbd LL</Text>
+                  </View>
+                </MLMarker>
+                <MLMarker id="nco-port-ll-label" lngLat={toLngLat(courseOverlay.laylineLabels.stbd)}>
+                  <View style={[overlayStyles.laylinePill, markerTransform]}>
+                    <Text style={overlayStyles.laylineText}>Port LL</Text>
+                  </View>
+                </MLMarker>
               </>
-            )}
+            ) : null}
 
             {/* Start box */}
-            {courseOverlay.startBox && (
+            {courseOverlay.startBox ? (
               <>
-                <Polyline
-                  coordinates={[...courseOverlay.startBox.outline, courseOverlay.startBox.outline[0]]}
-                  strokeColor={`rgba(249, 115, 22, ${zoomScale < 0.8 ? 0.35 : 0.6})`}
-                  strokeWidth={zoomScale < 0.8 ? 1 : 1.5}
-                  lineDashPattern={[6, 4]}
-                />
-                {courseOverlay.startBox.dividers.map((coords, i) => (
-                  <Polyline
-                    key={`start-div-${i}`}
-                    coordinates={coords}
-                    strokeColor="rgba(249, 115, 22, 0.35)"
-                    strokeWidth={1}
-                    lineDashPattern={[4, 4]}
+                <MLGeoJSONSource
+                  id="nco-start-box"
+                  data={lineFeature([
+                    ...courseOverlay.startBox.outline,
+                    courseOverlay.startBox.outline[0],
+                  ])}
+                >
+                  <MLLayer
+              type="line"
+                    id="nco-start-box-layer"
+                    source="nco-start-box"
+                    style={{
+                      lineColor: `rgba(249, 115, 22, ${zoomScale < 0.8 ? 0.35 : 0.6})`,
+                      lineWidth: zoomScale < 0.8 ? 1 : 1.5,
+                      lineDasharray: [3, 2],
+                    }}
                   />
+                </MLGeoJSONSource>
+                {courseOverlay.startBox.dividers.map((segment, i) => (
+                  <MLGeoJSONSource
+                    key={`nco-start-div-${i}`}
+                    id={`nco-start-div-${i}`}
+                    data={lineFeature(segment)}
+                  >
+                    <MLLayer
+              type="line"
+                      id={`nco-start-div-${i}-layer`}
+                      source={`nco-start-div-${i}`}
+                      style={{
+                        lineColor: 'rgba(249, 115, 22, 0.35)',
+                        lineWidth: 1,
+                        lineDasharray: [2, 2],
+                      }}
+                    />
+                  </MLGeoJSONSource>
                 ))}
               </>
-            )}
+            ) : null}
 
-            {/* Start line labels */}
-            {courseOverlay.startLabels && (
+            {/* Start labels */}
+            {courseOverlay.startLabels ? (
               <>
-                <Marker coordinate={courseOverlay.startLabels.pinEnd} anchor={{ x: 0.5, y: 0.5 }} tracksViewChanges={false}>
-                  <View style={[overlayStyles.startPill, markerTransform]}><Text style={overlayStyles.startText}>Pin End</Text></View>
-                </Marker>
-                {showDetailLabels && (
-                  <Marker coordinate={courseOverlay.startLabels.middle} anchor={{ x: 0.5, y: 0.5 }} tracksViewChanges={false}>
-                    <View style={[overlayStyles.startPill, markerTransform]}><Text style={overlayStyles.startText}>Middle</Text></View>
-                  </Marker>
-                )}
-                <Marker coordinate={courseOverlay.startLabels.boatEnd} anchor={{ x: 0.5, y: 0.5 }} tracksViewChanges={false}>
-                  <View style={[overlayStyles.startPill, markerTransform]}><Text style={overlayStyles.startText}>Boat End</Text></View>
-                </Marker>
+                <MLMarker
+                  id="nco-start-pin-label"
+                  lngLat={toLngLat(courseOverlay.startLabels.pinEnd)}
+                >
+                  <View style={[overlayStyles.startPill, markerTransform]}>
+                    <Text style={overlayStyles.startText}>Pin End</Text>
+                  </View>
+                </MLMarker>
+                {showDetailLabels ? (
+                  <MLMarker
+                    id="nco-start-mid-label"
+                    lngLat={toLngLat(courseOverlay.startLabels.middle)}
+                  >
+                    <View style={[overlayStyles.startPill, markerTransform]}>
+                      <Text style={overlayStyles.startText}>Middle</Text>
+                    </View>
+                  </MLMarker>
+                ) : null}
+                <MLMarker
+                  id="nco-start-boat-label"
+                  lngLat={toLngLat(courseOverlay.startLabels.boatEnd)}
+                >
+                  <View style={[overlayStyles.startPill, markerTransform]}>
+                    <Text style={overlayStyles.startText}>Boat End</Text>
+                  </View>
+                </MLMarker>
               </>
-            )}
+            ) : null}
           </>
-        )}
+        ) : null}
 
-        {/* ── Mark markers ── */}
+        {/* Mark markers */}
         {marks.map((mark) => {
           const color = MARK_COLORS[mark.type] || '#64748b';
-          const label = mark.type === 'windward' ? 'W'
-            : mark.type === 'gate' ? 'G'
-            : mark.type === 'leeward' ? 'L'
-            : mark.type.charAt(0).toUpperCase();
+          const label =
+            mark.type === 'windward'
+              ? 'W'
+              : mark.type === 'gate'
+                ? 'G'
+                : mark.type === 'leeward'
+                  ? 'L'
+                  : mark.type.charAt(0).toUpperCase();
           return (
-            <Marker
+            <MLMarker
               key={mark.id}
-              coordinate={{ latitude: mark.latitude, longitude: mark.longitude }}
-              anchor={{ x: 0.5, y: 0.5 }}
-              tracksViewChanges={false}
+              id={`nco-mark-${mark.id}`}
+              lngLat={[mark.longitude, mark.latitude]}
             >
               <View style={[markStyles.circle, { backgroundColor: color }, markerTransform]}>
                 <Text style={markStyles.label}>{label}</Text>
               </View>
-            </Marker>
+            </MLMarker>
           );
         })}
 
-        {/* ── Start line ── */}
-        {startLine && (
+        {/* Start line */}
+        {startLine ? (
           <>
-            <Polyline
-              coordinates={[
+            <MLGeoJSONSource
+              id="nco-start-line"
+              data={lineFeature([
                 { latitude: startLine.pin.lat, longitude: startLine.pin.lng },
                 { latitude: startLine.committee.lat, longitude: startLine.committee.lng },
-              ]}
-              strokeColor="#22c55e"
-              strokeWidth={2}
-            />
-            <Marker
-              coordinate={{ latitude: startLine.committee.lat, longitude: startLine.committee.lng }}
-              anchor={{ x: 0.5, y: 0.5 }}
-              tracksViewChanges={false}
+              ])}
+            >
+              <MLLayer
+              type="line"
+                id="nco-start-line-layer"
+                source="nco-start-line"
+                style={{ lineColor: '#22c55e', lineWidth: 2 }}
+              />
+            </MLGeoJSONSource>
+            <MLMarker
+              id="nco-start-committee"
+              lngLat={[startLine.committee.lng, startLine.committee.lat]}
             >
               <View style={[markStyles.circle, { backgroundColor: '#3b82f6' }, markerTransform]}>
                 <Text style={markStyles.label}>C</Text>
               </View>
-            </Marker>
-            <Marker
-              coordinate={{ latitude: startLine.pin.lat, longitude: startLine.pin.lng }}
-              anchor={{ x: 0.5, y: 0.5 }}
-              tracksViewChanges={false}
+            </MLMarker>
+            <MLMarker
+              id="nco-start-pin"
+              lngLat={[startLine.pin.lng, startLine.pin.lat]}
             >
               <View style={[markStyles.circle, { backgroundColor: '#f97316' }, markerTransform]}>
                 <Text style={markStyles.label}>P</Text>
               </View>
-            </Marker>
+            </MLMarker>
           </>
-        )}
-      </MapView>
+        ) : null}
+      </MLMap>
     </View>
   );
 }
-
-// ── Styles ──
 
 const styles = StyleSheet.create({
   container: {

@@ -1,32 +1,34 @@
 /**
- * CourseMapTile - Native Implementation
+ * CourseMapTile — Native (MapLibre) implementation.
  *
- * Shows the race venue location and course using react-native-maps.
- * On native: Renders an interactive map with course visualization
- *
- * Features:
- * - Large square format (~aspectRatio 1) for better map visibility
- * - Green completion badge when course is configured
- * - "COURSE" label overlay at bottom
- * - Tap to open CourseMapWizard
+ * Static preview tile of the race course. Renders the start line, course
+ * marks (windward/leeward/gate/wing/offset), pin/committee endpoints, and
+ * an optional location pin when no course is set. Non-interactive — tile
+ * is wrapped in a Pressable for "tap to open course wizard".
  */
 
-import React, { useMemo, useRef, useState, useEffect } from 'react';
+import React, { useMemo, useRef } from 'react';
 import {
   StyleSheet,
   View,
   Text,
   Pressable,
   Platform,
-  TurboModuleRegistry,
-  ActivityIndicator,
 } from 'react-native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withSpring,
 } from 'react-native-reanimated';
-import { Check, MapPin, Map, Wind, Waves } from 'lucide-react-native';
+import {
+  Map as MLMap,
+  Camera as MLCamera,
+  Marker as MLMarker,
+  GeoJSONSource as MLGeoJSONSource,
+  Layer as MLLayer,
+  type CameraRef,
+} from '@maplibre/maplibre-react-native';
+import { Check, MapPin, Wind, Waves } from 'lucide-react-native';
 import { triggerHaptic } from '@/lib/haptics';
 import { IOS_ANIMATIONS, IOS_SHADOWS } from '@/lib/design-tokens-ios';
 import type { PositionedCourse } from '@/types/courses';
@@ -34,28 +36,8 @@ import { COURSE_TEMPLATES } from '@/services/CoursePositioningService';
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
-// Safely import react-native-maps
-let MapView: any = null;
-let Marker: any = null;
-let Polyline: any = null;
-let PROVIDER_GOOGLE: any = null;
-let mapsAvailable = false;
+const MAP_STYLE_URL = 'https://tiles.openfreemap.org/styles/liberty';
 
-try {
-  const nativeModule = TurboModuleRegistry.get('RNMapsAirModule');
-  if (nativeModule) {
-    const maps = require('react-native-maps');
-    MapView = maps.default;
-    Marker = maps.Marker;
-    Polyline = maps.Polyline;
-    PROVIDER_GOOGLE = maps.PROVIDER_GOOGLE;
-    mapsAvailable = true;
-  }
-} catch (_e) {
-  // react-native-maps not available
-}
-
-// Mark colors by type
 const MARK_COLORS: Record<string, string> = {
   windward: '#eab308',
   leeward: '#ef4444',
@@ -78,30 +60,40 @@ const COLORS = {
 };
 
 export interface CourseMapTileProps {
-  /** Race venue coordinates */
   coords?: { lat: number; lng: number } | null;
-  /** Positioned course data (if set) */
   positionedCourse?: PositionedCourse | null;
-  /** Whether the course has been configured */
   isComplete?: boolean;
-  /** Callback when tile is pressed */
   onPress: () => void;
-  /** Optional venue name for display */
   venueName?: string;
-  /** Disable the tile */
   disabled?: boolean;
-  /** Wind direction in degrees (0-360) for overlay */
   windDirection?: number;
-  /** Wind speed in knots */
   windSpeed?: number;
-  /** Current direction in degrees (0-360) */
   currentDirection?: number;
-  /** Current speed in knots */
   currentSpeed?: number;
-  /** Wave height in meters */
   waveHeight?: number;
-  /** Wave direction in degrees (0-360) */
   waveDirection?: number;
+}
+
+function getMarkLabel(mark: { type: string }, index: number): string {
+  if (mark.type === 'windward') return 'W';
+  if (mark.type === 'leeward') return 'L';
+  if (mark.type === 'gate') return 'G';
+  if (mark.type === 'wing') return 'R';
+  if (mark.type === 'offset') return 'O';
+  return (index + 1).toString();
+}
+
+function zoomFromLatDelta(delta: number): number {
+  if (!delta || delta <= 0) return 13;
+  return Math.max(2, Math.min(20, Math.log2(360 / delta)));
+}
+
+function lineFeature(coords: [number, number][]) {
+  return {
+    type: 'Feature' as const,
+    properties: {},
+    geometry: { type: 'LineString' as const, coordinates: coords },
+  };
 }
 
 export function CourseMapTile({
@@ -112,14 +104,11 @@ export function CourseMapTile({
   venueName,
   disabled,
   windDirection,
-  windSpeed,
   currentDirection,
   currentSpeed,
 }: CourseMapTileProps) {
-  const mapRef = useRef<any>(null);
-  const [mapReady, setMapReady] = useState(false);
+  const cameraRef = useRef<CameraRef>(null);
 
-  // Animation
   const scale = useSharedValue(1);
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
@@ -141,8 +130,7 @@ export function CourseMapTile({
     ? COURSE_TEMPLATES[positionedCourse.courseType]?.name || 'Custom Course'
     : null;
 
-  // Calculate initial region
-  const initialRegion = useMemo(() => {
+  const initialView = useMemo(() => {
     if (positionedCourse) {
       const allLats = [
         ...positionedCourse.marks.map((m) => m.latitude),
@@ -156,58 +144,34 @@ export function CourseMapTile({
       ];
       const centerLat = (Math.min(...allLats) + Math.max(...allLats)) / 2;
       const centerLng = (Math.min(...allLngs) + Math.max(...allLngs)) / 2;
-      const latDelta = (Math.max(...allLats) - Math.min(...allLats)) * 1.5 || 0.02;
-      const lngDelta = (Math.max(...allLngs) - Math.min(...allLngs)) * 1.5 || 0.02;
-
-      return {
-        latitude: centerLat,
-        longitude: centerLng,
-        latitudeDelta: Math.max(latDelta, 0.01),
-        longitudeDelta: Math.max(lngDelta, 0.01),
-      };
-    } else if (coords) {
-      return {
-        latitude: coords.lat,
-        longitude: coords.lng,
-        latitudeDelta: 0.02,
-        longitudeDelta: 0.02,
-      };
+      const latDelta = Math.max((Math.max(...allLats) - Math.min(...allLats)) * 1.5, 0.01);
+      return { center: [centerLng, centerLat] as [number, number], zoom: zoomFromLatDelta(latDelta) };
+    }
+    if (coords) {
+      return { center: [coords.lng, coords.lat] as [number, number], zoom: 13 };
     }
     return null;
   }, [coords, positionedCourse]);
 
-  // Course line coordinates
-  const courseCoordinates = useMemo(() => {
-    if (!positionedCourse) return [];
-    return positionedCourse.marks
+  const courseLineFeature = useMemo(() => {
+    if (!positionedCourse) return null;
+    const points = positionedCourse.marks
+      .slice()
       .sort((a, b) => (a.sequenceOrder ?? 0) - (b.sequenceOrder ?? 0))
-      .map((m) => ({
-        latitude: m.latitude,
-        longitude: m.longitude,
-      }));
+      .map((m) => [m.longitude, m.latitude] as [number, number]);
+    if (points.length < 2) return null;
+    return lineFeature(points);
   }, [positionedCourse]);
 
-  // Start line coordinates
-  const startLineCoordinates = useMemo(() => {
-    if (!positionedCourse?.startLine) return [];
-    return [
-      { latitude: positionedCourse.startLine.pin.lat, longitude: positionedCourse.startLine.pin.lng },
-      { latitude: positionedCourse.startLine.committee.lat, longitude: positionedCourse.startLine.committee.lng },
-    ];
+  const startLineFeature = useMemo(() => {
+    if (!positionedCourse?.startLine) return null;
+    return lineFeature([
+      [positionedCourse.startLine.pin.lng, positionedCourse.startLine.pin.lat],
+      [positionedCourse.startLine.committee.lng, positionedCourse.startLine.committee.lat],
+    ]);
   }, [positionedCourse]);
 
-  // Get mark label
-  const getMarkLabel = (mark: { type: string }, index: number): string => {
-    if (mark.type === 'windward') return 'W';
-    if (mark.type === 'leeward') return 'L';
-    if (mark.type === 'gate') return 'G';
-    if (mark.type === 'wing') return 'R';
-    if (mark.type === 'offset') return 'O';
-    return (index + 1).toString();
-  };
-
-  // Fallback when maps not available or no coordinates
-  if (!mapsAvailable || !MapView || !initialRegion) {
+  if (!initialView) {
     return (
       <AnimatedPressable
         style={[
@@ -223,29 +187,15 @@ export function CourseMapTile({
         accessibilityRole="button"
         accessibilityLabel={`Course Map: ${isComplete ? 'Complete' : 'Not set'}`}
       >
-        {isComplete && (
+        {isComplete ? (
           <View style={styles.completeBadge}>
             <Check size={12} color="#FFFFFF" strokeWidth={3} />
           </View>
-        )}
+        ) : null}
         <View style={styles.placeholderContent}>
-          {!initialRegion ? (
-            <>
-              <MapPin size={32} color={COLORS.gray} />
-              <Text style={styles.placeholderText}>Set race location</Text>
-            </>
-          ) : (
-            <>
-              <Map size={32} color={COLORS.purple} />
-              <Text style={styles.placeholderText}>
-                {positionedCourse ? courseTypeName : 'Set course'}
-              </Text>
-              {venueName && <Text style={styles.venueText}>{venueName}</Text>}
-              <Text style={styles.hintText}>
-                Maps require a development build
-              </Text>
-            </>
-          )}
+          <MapPin size={32} color={COLORS.gray} />
+          <Text style={styles.placeholderText}>Set race location</Text>
+          {venueName ? <Text style={styles.venueText}>{venueName}</Text> : null}
         </View>
         <View style={styles.labelBar}>
           <Text style={styles.labelText}>COURSE</Text>
@@ -254,7 +204,6 @@ export function CourseMapTile({
     );
   }
 
-  // Native map implementation
   return (
     <AnimatedPressable
       style={[
@@ -270,60 +219,58 @@ export function CourseMapTile({
       accessibilityRole="button"
       accessibilityLabel={`Course Map: ${isComplete ? 'Complete' : 'Not set'}`}
     >
-      {/* Completion badge */}
-      {isComplete && (
+      {isComplete ? (
         <View style={styles.completeBadge}>
           <Check size={12} color="#FFFFFF" strokeWidth={3} />
         </View>
-      )}
+      ) : null}
 
-      {/* Map container */}
       <View style={styles.mapWrapper}>
-        <MapView
-          ref={mapRef}
+        <MLMap
+          mapStyle={MAP_STYLE_URL}
           style={styles.map}
-          initialRegion={initialRegion}
-          onMapReady={() => setMapReady(true)}
-          provider={Platform.OS === 'android' ? PROVIDER_GOOGLE : undefined}
-          scrollEnabled={false}
-          zoomEnabled={false}
-          rotateEnabled={false}
-          pitchEnabled={false}
-          showsUserLocation={false}
-          showsMyLocationButton={false}
-          showsCompass={false}
-          showsScale={false}
-          mapType="standard"
-          liteMode={Platform.OS === 'android'} // Better performance on Android for preview tiles
+          dragPan={false}
+          touchZoom={false}
+          touchRotate={false}
+          touchPitch={false}
         >
-          {/* Course Line */}
-          {courseCoordinates.length > 1 && (
-            <Polyline
-              coordinates={courseCoordinates}
-              strokeColor="#f97316"
-              strokeWidth={2}
-              lineDashPattern={[6, 4]}
-            />
-          )}
+          <MLCamera
+            ref={cameraRef}
+            initialViewState={{ center: initialView.center, zoom: initialView.zoom }}
+          />
 
-          {/* Start Line */}
-          {startLineCoordinates.length === 2 && (
-            <Polyline
-              coordinates={startLineCoordinates}
-              strokeColor="#22c55e"
-              strokeWidth={3}
-            />
-          )}
+          {courseLineFeature ? (
+            <MLGeoJSONSource id="course-line" data={courseLineFeature}>
+              <MLLayer
+              type="line"
+                id="course-line-layer"
+                source="course-line"
+                style={{
+                  lineColor: '#f97316',
+                  lineWidth: 2,
+                  lineDasharray: [3, 2],
+                  lineCap: 'round',
+                }}
+              />
+            </MLGeoJSONSource>
+          ) : null}
 
-          {/* Course Marks */}
-          {positionedCourse?.marks.map((mark, index) => (
-            <Marker
+          {startLineFeature ? (
+            <MLGeoJSONSource id="start-line" data={startLineFeature}>
+              <MLLayer
+              type="line"
+                id="start-line-layer"
+                source="start-line"
+                style={{ lineColor: '#22c55e', lineWidth: 3, lineCap: 'round' }}
+              />
+            </MLGeoJSONSource>
+          ) : null}
+
+          {positionedCourse?.marks.map((mark, idx) => (
+            <MLMarker
               key={mark.id}
-              coordinate={{
-                latitude: mark.latitude,
-                longitude: mark.longitude,
-              }}
-              anchor={{ x: 0.5, y: 0.5 }}
+              id={`tile-mark-${mark.id}`}
+              lngLat={[mark.longitude, mark.latitude]}
             >
               <View
                 style={[
@@ -331,85 +278,68 @@ export function CourseMapTile({
                   { backgroundColor: MARK_COLORS[mark.type] || '#64748b' },
                 ]}
               >
-                <Text style={styles.markLabel}>{getMarkLabel(mark, index)}</Text>
+                <Text style={styles.markLabel}>{getMarkLabel(mark, idx)}</Text>
               </View>
-            </Marker>
+            </MLMarker>
           ))}
 
-          {/* Start Line Endpoints */}
-          {positionedCourse?.startLine && (
+          {positionedCourse?.startLine ? (
             <>
-              <Marker
-                coordinate={{
-                  latitude: positionedCourse.startLine.pin.lat,
-                  longitude: positionedCourse.startLine.pin.lng,
-                }}
-                anchor={{ x: 0.5, y: 0.5 }}
+              <MLMarker
+                id="start-pin"
+                lngLat={[
+                  positionedCourse.startLine.pin.lng,
+                  positionedCourse.startLine.pin.lat,
+                ]}
               >
                 <View style={[styles.startLineEndpoint, { backgroundColor: '#f97316' }]}>
                   <Text style={styles.startLineLabel}>P</Text>
                 </View>
-              </Marker>
-              <Marker
-                coordinate={{
-                  latitude: positionedCourse.startLine.committee.lat,
-                  longitude: positionedCourse.startLine.committee.lng,
-                }}
-                anchor={{ x: 0.5, y: 0.5 }}
+              </MLMarker>
+              <MLMarker
+                id="start-committee"
+                lngLat={[
+                  positionedCourse.startLine.committee.lng,
+                  positionedCourse.startLine.committee.lat,
+                ]}
               >
                 <View style={[styles.startLineEndpoint, { backgroundColor: '#3b82f6' }]}>
                   <Text style={styles.startLineLabel}>C</Text>
                 </View>
-              </Marker>
+              </MLMarker>
             </>
-          )}
+          ) : null}
 
-          {/* Simple location marker when no course */}
-          {!positionedCourse && coords && (
-            <Marker
-              coordinate={{
-                latitude: coords.lat,
-                longitude: coords.lng,
-              }}
-              anchor={{ x: 0.5, y: 0.5 }}
-            >
+          {!positionedCourse && coords ? (
+            <MLMarker id="venue-pin" lngLat={[coords.lng, coords.lat]}>
               <View style={styles.locationMarker} />
-            </Marker>
-          )}
-        </MapView>
+            </MLMarker>
+          ) : null}
+        </MLMap>
 
-        {/* Loading overlay */}
-        {!mapReady && (
-          <View style={styles.loadingOverlay}>
-            <ActivityIndicator size="small" color={COLORS.purple} />
-          </View>
-        )}
-
-        {/* Wind/Current indicator badge */}
-        {mapReady && (windDirection !== undefined || currentDirection !== undefined) && (
+        {windDirection !== undefined || currentDirection !== undefined ? (
           <View style={styles.conditionsBadge}>
-            {windDirection !== undefined && (
+            {windDirection !== undefined ? (
               <View style={styles.conditionItem}>
                 <Wind size={12} color="#22c55e" />
                 <Text style={styles.conditionText}>{windDirection}°</Text>
               </View>
-            )}
-            {currentDirection !== undefined && currentSpeed !== undefined && currentSpeed > 0.1 && (
+            ) : null}
+            {currentDirection !== undefined && currentSpeed !== undefined && currentSpeed > 0.1 ? (
               <View style={styles.conditionItem}>
                 <Waves size={12} color="#0ea5e9" />
                 <Text style={styles.conditionText}>{currentSpeed.toFixed(1)}kt</Text>
               </View>
-            )}
+            ) : null}
           </View>
-        )}
+        ) : null}
       </View>
 
-      {/* Label bar at bottom */}
       <View style={styles.labelBar}>
         <Text style={styles.labelText}>COURSE</Text>
-        {courseTypeName && (
+        {courseTypeName ? (
           <Text style={styles.courseTypeText}>{courseTypeName}</Text>
-        )}
+        ) : null}
       </View>
     </AnimatedPressable>
   );
@@ -450,12 +380,6 @@ const styles = StyleSheet.create({
   map: {
     ...StyleSheet.absoluteFillObject,
   },
-  loadingOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(248, 250, 252, 0.9)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   placeholderContent: {
     flex: 1,
     alignItems: 'center',
@@ -475,12 +399,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: COLORS.gray,
     textAlign: 'center',
-  },
-  hintText: {
-    fontSize: 11,
-    color: COLORS.gray3,
-    textAlign: 'center',
-    marginTop: 4,
   },
   labelBar: {
     flexDirection: 'row',

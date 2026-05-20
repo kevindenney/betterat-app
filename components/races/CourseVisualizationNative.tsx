@@ -1,91 +1,71 @@
 /**
- * CourseVisualizationNative Component
+ * CourseVisualizationNative
  *
- * Native implementation for iOS and Android using react-native-maps
- * Renders course marks and lines from GeoJSON data
+ * MapLibre + OpenFreeMap render of a CourseGeoJSON. Converts the GeoJSON
+ * feature collection into the legacy Course shape and hands it to the
+ * shared CourseOverlay component.
  */
 
-import React, { useMemo, useRef, useState } from 'react';
-import { View, StyleSheet, Platform, Text, TurboModuleRegistry } from 'react-native';
+import React, { useMemo, useRef } from 'react';
+import { View, StyleSheet, Platform, Text } from 'react-native';
+import {
+  Map as MLMap,
+  Camera as MLCamera,
+  type CameraRef,
+} from '@maplibre/maplibre-react-native';
+import { MapPin } from 'lucide-react-native';
 import { CourseOverlay } from '@/components/race-detail/map/CourseOverlay';
 import type { CourseGeoJSON, CourseFeature, PointGeometry } from '@/types/raceEvents';
-import { MapPin } from 'lucide-react-native';
 
-// Conditional imports for native only (requires development build)
-let MapView: any = null;
-let PROVIDER_GOOGLE: any = null;
-let mapsAvailable = false;
-
-// Check if native module is registered BEFORE requiring react-native-maps
-// This prevents TurboModuleRegistry.getEnforcing from throwing
-if (Platform.OS !== 'web') {
-  try {
-    // Use 'get' instead of 'getEnforcing' to check without throwing
-    const nativeModule = TurboModuleRegistry.get('RNMapsAirModule');
-    if (nativeModule) {
-      // Only require react-native-maps if native module exists
-      const maps = require('react-native-maps');
-      MapView = maps.default;
-      PROVIDER_GOOGLE = maps.PROVIDER_GOOGLE;
-      mapsAvailable = true;
-    }
-  } catch (_e) {
-    // react-native-maps not available - will use fallback UI
-  }
-}
+const MAP_STYLE_URL = 'https://tiles.openfreemap.org/styles/liberty';
 
 interface CourseVisualizationNativeProps {
   geoJSON: CourseGeoJSON;
-  bounds: any;
+  bounds: { center?: [number, number]; delta?: [number, number] } | null | undefined;
   interactive: boolean;
-  onMarkPress?: (mark: any) => void;
+  onMarkPress?: (mark: { id?: string; coordinate: { latitude: number; longitude: number } }) => void;
 }
 
-/**
- * Convert GeoJSON features to Course format for CourseOverlay
- */
-const convertGeoJSONToCourse = (geoJSON: CourseGeoJSON) => {
-  const marks: Array<{
+function convertGeoJSONToCourse(geoJSON: CourseGeoJSON) {
+  const marks: {
     id?: string;
     coordinate: { latitude: number; longitude: number };
     name?: string;
     type?: string;
     sequence?: number;
     rounding?: string;
-  }> = [];
-
-  const path: Array<{ latitude: number; longitude: number }> = [];
-  const startLine: Array<{ latitude: number; longitude: number }> = [];
-  const finishLine: Array<{ latitude: number; longitude: number }> = [];
+  }[] = [];
+  const path: { latitude: number; longitude: number }[] = [];
+  const startLine: { latitude: number; longitude: number }[] = [];
+  const finishLine: { latitude: number; longitude: number }[] = [];
 
   geoJSON.features.forEach((feature: CourseFeature) => {
-    if (feature.geometry.type === 'Point') {
-      const [lng, lat] = (feature.geometry as PointGeometry).coordinates;
-      const props = feature.properties as any;
-
-      marks.push({
-        id: props.id,
-        coordinate: { latitude: lat, longitude: lng },
-        name: props.name,
-        type: props.type,
-        sequence: props.sequence,
-        rounding: props.rounding,
-      });
-
-      // Also add to path for course line
-      path.push({ latitude: lat, longitude: lng });
-
-      // Build start/finish lines if we have the right marks
-      if (props.type === 'committee_boat' || props.type === 'pin') {
-        startLine.push({ latitude: lat, longitude: lng });
-      }
-      if (props.type === 'finish' || props.type === 'committee_boat') {
-        finishLine.push({ latitude: lat, longitude: lng });
-      }
+    if (feature.geometry.type !== 'Point') return;
+    const [lng, lat] = (feature.geometry as PointGeometry).coordinates;
+    const props = feature.properties as {
+      id?: string;
+      name?: string;
+      type?: string;
+      sequence?: number;
+      rounding?: string;
+    };
+    marks.push({
+      id: props.id,
+      coordinate: { latitude: lat, longitude: lng },
+      name: props.name,
+      type: props.type,
+      sequence: props.sequence,
+      rounding: props.rounding,
+    });
+    path.push({ latitude: lat, longitude: lng });
+    if (props.type === 'committee_boat' || props.type === 'pin') {
+      startLine.push({ latitude: lat, longitude: lng });
+    }
+    if (props.type === 'finish' || props.type === 'committee_boat') {
+      finishLine.push({ latitude: lat, longitude: lng });
     }
   });
 
-  // Sort marks by sequence
   marks.sort((a, b) => (a.sequence || 0) - (b.sequence || 0));
 
   return {
@@ -94,86 +74,51 @@ const convertGeoJSONToCourse = (geoJSON: CourseGeoJSON) => {
     startLine: startLine.length === 2 ? startLine : [],
     finishLine: finishLine.length === 2 ? finishLine : undefined,
   };
-};
+}
 
-/**
- * Calculate map region from GeoJSON bounds or features
- */
-const calculateRegion = (geoJSON: CourseGeoJSON, bounds: any) => {
-  // Default region
-  const defaultRegion = {
-    latitude: 22.265,
-    longitude: 114.262,
-    latitudeDelta: 0.02,
-    longitudeDelta: 0.02,
-  };
-
-  // Try to use provided bounds
+function calculateView(geoJSON: CourseGeoJSON, bounds?: { center?: [number, number]; delta?: [number, number] } | null) {
   if (bounds?.center && bounds?.delta) {
+    const latDelta = bounds.delta[1] || 0.02;
     return {
-      latitude: bounds.center[1],
-      longitude: bounds.center[0],
-      latitudeDelta: bounds.delta[1] || 0.02,
-      longitudeDelta: bounds.delta[0] || 0.02,
+      center: bounds.center,
+      zoom: Math.max(2, Math.min(20, Math.log2(360 / latDelta))),
     };
   }
-
-  // Calculate from features
-  if (geoJSON.features.length > 0) {
-    const points: Array<{ lat: number; lng: number }> = [];
-
-    geoJSON.features.forEach((feature: CourseFeature) => {
-      if (feature.geometry.type === 'Point') {
-        const [lng, lat] = (feature.geometry as PointGeometry).coordinates;
-        points.push({ lat, lng });
-      }
-    });
-
-    if (points.length > 0) {
-      const lats = points.map(p => p.lat);
-      const lngs = points.map(p => p.lng);
-
-      const minLat = Math.min(...lats);
-      const maxLat = Math.max(...lats);
-      const minLng = Math.min(...lngs);
-      const maxLng = Math.max(...lngs);
-
-      return {
-        latitude: (minLat + maxLat) / 2,
-        longitude: (minLng + maxLng) / 2,
-        latitudeDelta: Math.max((maxLat - minLat) * 1.5, 0.01),
-        longitudeDelta: Math.max((maxLng - minLng) * 1.5, 0.01),
-      };
+  const points: { lat: number; lng: number }[] = [];
+  geoJSON.features.forEach((feature: CourseFeature) => {
+    if (feature.geometry.type === 'Point') {
+      const [lng, lat] = (feature.geometry as PointGeometry).coordinates;
+      points.push({ lat, lng });
     }
+  });
+  if (points.length === 0) {
+    return { center: [114.262, 22.265] as [number, number], zoom: 13 };
   }
-
-  return defaultRegion;
-};
+  const lats = points.map((p) => p.lat);
+  const lngs = points.map((p) => p.lng);
+  const minLat = Math.min(...lats);
+  const maxLat = Math.max(...lats);
+  const minLng = Math.min(...lngs);
+  const maxLng = Math.max(...lngs);
+  const latDelta = Math.max((maxLat - minLat) * 1.5, 0.01);
+  return {
+    center: [(minLng + maxLng) / 2, (minLat + maxLat) / 2] as [number, number],
+    zoom: Math.max(2, Math.min(20, Math.log2(360 / latDelta))),
+  };
+}
 
 export default function CourseVisualizationNative({
   geoJSON,
   bounds,
   interactive,
-  onMarkPress
+  onMarkPress,
 }: CourseVisualizationNativeProps) {
-  const mapRef = useRef<any>(null);
-  const [mapReady, setMapReady] = useState(false);
+  const cameraRef = useRef<CameraRef>(null);
 
-  // Convert GeoJSON to course format
   const course = useMemo(() => convertGeoJSONToCourse(geoJSON), [geoJSON]);
+  const initialView = useMemo(() => calculateView(geoJSON, bounds), [geoJSON, bounds]);
 
-  // Calculate initial region
-  const initialRegion = useMemo(() => calculateRegion(geoJSON, bounds), [geoJSON, bounds]);
-
-  // Handle mark press
-  const handleMarkPress = (mark: any) => {
-    if (interactive && onMarkPress) {
-      onMarkPress(mark);
-    }
-  };
-
-  // Platform check - show placeholder if maps not available
-  if (Platform.OS === 'web' || !MapView || !mapsAvailable) {
+  if (Platform.OS === 'web') {
     return (
       <View style={styles.placeholder}>
         <MapPin size={32} color="#94a3b8" />
@@ -187,27 +132,25 @@ export default function CourseVisualizationNative({
 
   return (
     <View style={styles.container}>
-      <MapView
-        ref={mapRef}
+      <MLMap
+        mapStyle={MAP_STYLE_URL}
         style={styles.map}
-        provider={Platform.OS === 'android' ? PROVIDER_GOOGLE : undefined}
-        mapType="hybrid"
-        initialRegion={initialRegion}
-        onMapReady={() => setMapReady(true)}
-        scrollEnabled={interactive}
-        zoomEnabled={interactive}
-        rotateEnabled={interactive}
-        pitchEnabled={false}
-        showsCompass={false}
+        dragPan={interactive}
+        touchZoom={interactive}
+        touchRotate={interactive}
+        touchPitch={false}
       >
-        {mapReady && course.marks.length > 0 && (
+        <MLCamera
+          ref={cameraRef}
+          initialViewState={{ center: initialView.center, zoom: initialView.zoom }}
+        />
+        {course.marks.length > 0 ? (
           <CourseOverlay
             course={course}
-            onMarkPress={handleMarkPress}
-            showLabels={interactive}
+            onMarkPress={interactive ? onMarkPress : undefined}
           />
-        )}
-      </MapView>
+        ) : null}
+      </MLMap>
     </View>
   );
 }

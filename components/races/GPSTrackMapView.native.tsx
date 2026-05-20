@@ -135,10 +135,10 @@ export function GPSTrackMapView({
       <MLMap
         mapStyle={MAP_STYLE_URL}
         style={styles.map}
-        scrollEnabled={!autoFollow}
-        zoomEnabled={!autoFollow}
-        rotateEnabled={false}
-        pitchEnabled={false}
+        dragPan={!autoFollow}
+        touchZoom={!autoFollow}
+        touchRotate={false}
+        touchPitch={false}
       >
         <MLCamera
           ref={cameraRef}
@@ -147,10 +147,11 @@ export function GPSTrackMapView({
 
         {/* Fleet tracks — dashed lines, one source per fleet member */}
         {fleetFeatures.map((ff) => (
-          <MLGeoJSONSource key={ff.id} id={ff.id} shape={ff.feature}>
+          <MLGeoJSONSource key={ff.id} id={ff.id} data={ff.feature}>
             <MLLayer
+              type="line"
               id={`${ff.id}-line`}
-              sourceID={ff.id}
+              source={ff.id}
               style={{
                 lineColor: ff.color,
                 lineWidth: 2,
@@ -164,10 +165,11 @@ export function GPSTrackMapView({
 
         {/* Your track (primary) */}
         {trackFeature && (
-          <MLGeoJSONSource id="own-track" shape={trackFeature}>
+          <MLGeoJSONSource id="own-track" data={trackFeature}>
             <MLLayer
+              type="line"
               id="own-track-line"
-              sourceID="own-track"
+              source="own-track"
               style={{
                 lineColor: '#2563EB',
                 lineWidth: 3,

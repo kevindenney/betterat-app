@@ -1,11 +1,19 @@
 /**
- * LocationPreviewMap (Native) - Small static map showing a race location pin
- * Uses react-native-maps MapView with interaction disabled.
- * Falls back to a simple colored rect when react-native-maps is unavailable (e.g. Expo Go).
+ * LocationPreviewMap (Native) — small static map showing a race location pin.
+ *
+ * MapLibre + OpenFreeMap Positron (clean light-gray basemap). Interactions
+ * disabled — this is a non-interactive preview tile.
  */
 
 import React from 'react';
-import { View, Text } from 'react-native';
+import { View, StyleSheet } from 'react-native';
+import {
+  Map as MLMap,
+  Camera as MLCamera,
+  Marker as MLMarker,
+} from '@maplibre/maplibre-react-native';
+
+const MAP_STYLE_URL = 'https://tiles.openfreemap.org/styles/positron';
 
 interface LocationPreviewMapProps {
   latitude: number;
@@ -14,76 +22,33 @@ interface LocationPreviewMapProps {
   height: number;
 }
 
-let MapViewComponent: any = null;
-let MarkerComponent: any = null;
-let PROVIDER_GOOGLE_VALUE: any = null;
-
-try {
-  const maps = require('react-native-maps');
-  MapViewComponent = maps.default;
-  MarkerComponent = maps.Marker;
-  PROVIDER_GOOGLE_VALUE = maps.PROVIDER_GOOGLE;
-} catch {
-  // react-native-maps not available (e.g. Expo Go)
-}
-
-const MAP_STYLE = [
-  { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#c9d7e4' }] },
-  { featureType: 'landscape', elementType: 'geometry', stylers: [{ color: '#f0f0f0' }] },
-  { featureType: 'road', stylers: [{ visibility: 'off' }] },
-  { featureType: 'transit', stylers: [{ visibility: 'off' }] },
-  { featureType: 'poi', stylers: [{ visibility: 'off' }] },
-  { featureType: 'administrative', elementType: 'labels', stylers: [{ visibility: 'off' }] },
-];
-
 export function LocationPreviewMap({ latitude, longitude, width, height }: LocationPreviewMapProps) {
-  if (!MapViewComponent) {
-    return (
-      <View
-        style={{
-          width,
-          height,
-          backgroundColor: '#c9d7e4',
-          alignItems: 'center',
-          justifyContent: 'center',
-          borderRadius: 8,
-        }}
-      >
-        <Text style={{ fontSize: 11, color: '#334155' }}>
-          {latitude.toFixed(3)}, {longitude.toFixed(3)}
-        </Text>
-      </View>
-    );
-  }
-
   return (
-    <MapViewComponent
-      provider={PROVIDER_GOOGLE_VALUE}
-      style={{ width, height }}
-      initialRegion={{
-        latitude,
-        longitude,
-        latitudeDelta: 0.04,
-        longitudeDelta: 0.04,
-      }}
-      scrollEnabled={false}
-      zoomEnabled={false}
-      rotateEnabled={false}
-      pitchEnabled={false}
-      toolbarEnabled={false}
-      showsUserLocation={false}
-      showsCompass={false}
-      showsScale={false}
-      showsMyLocationButton={false}
-      customMapStyle={MAP_STYLE}
-      pointerEvents="none"
-    >
-      {MarkerComponent && (
-        <MarkerComponent
-          coordinate={{ latitude, longitude }}
-          pinColor="#5AC8FA"
-        />
-      )}
-    </MapViewComponent>
+    <View style={{ width, height, borderRadius: 8, overflow: 'hidden' }}>
+      <MLMap
+        mapStyle={MAP_STYLE_URL}
+        style={StyleSheet.absoluteFill}
+        dragPan={false}
+        touchZoom={false}
+        touchRotate={false}
+        touchPitch={false}
+      >
+        <MLCamera initialViewState={{ center: [longitude, latitude], zoom: 12 }} />
+        <MLMarker id="location-preview" lngLat={[longitude, latitude]}>
+          <View style={styles.pin} />
+        </MLMarker>
+      </MLMap>
+    </View>
   );
 }
+
+const styles = StyleSheet.create({
+  pin: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: '#5AC8FA',
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+  },
+});

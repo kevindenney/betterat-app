@@ -247,15 +247,16 @@ export function VenueMapView({
 
         <MLGeoJSONSource
           id="venues-source"
-          shape={venueFeatureCollection}
+          data={venueFeatureCollection}
           cluster
           clusterRadius={50}
           clusterMaxZoomLevel={14}
         >
           {/* Cluster circles (filled when point_count exists) */}
           <MLLayer
+              type="circle"
             id="venue-clusters"
-            sourceID="venues-source"
+            source="venues-source"
             filter={['has', 'point_count']}
             style={{
               circleColor: '#3b82f6',
@@ -266,8 +267,9 @@ export function VenueMapView({
           />
           {/* Cluster count labels */}
           <MLLayer
+              type="symbol"
             id="venue-cluster-counts"
-            sourceID="venues-source"
+            source="venues-source"
             filter={['has', 'point_count']}
             style={{
               textField: ['get', 'point_count_abbreviated'],
@@ -279,8 +281,9 @@ export function VenueMapView({
           />
           {/* Individual venue points */}
           <MLLayer
+              type="circle"
             id="venue-points"
-            sourceID="venues-source"
+            source="venues-source"
             filter={['!', ['has', 'point_count']]}
             style={{
               circleColor: ['get', 'color'],
@@ -292,10 +295,11 @@ export function VenueMapView({
         </MLGeoJSONSource>
 
         {mapLayers.yachtClubs ? (
-          <MLGeoJSONSource id="yacht-clubs-source" shape={yachtClubFeatureCollection}>
+          <MLGeoJSONSource id="yacht-clubs-source" data={yachtClubFeatureCollection}>
             <MLLayer
+              type="circle"
               id="yacht-club-points"
-              sourceID="yacht-clubs-source"
+              source="yacht-clubs-source"
               style={{
                 circleColor: '#34c759',
                 circleRadius: 5,

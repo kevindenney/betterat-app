@@ -117,10 +117,11 @@ export const CourseOverlay: React.FC<CourseOverlayProps> = ({ course, onMarkPres
   return (
     <>
       {startLineFeature ? (
-        <MLGeoJSONSource id="course-start-line" shape={startLineFeature}>
+        <MLGeoJSONSource id="course-start-line" data={startLineFeature}>
           <MLLayer
+              type="line"
             id="course-start-line-layer"
-            sourceID="course-start-line"
+            source="course-start-line"
             style={{
               lineColor: MARK_COLORS.start,
               lineWidth: 4,
@@ -131,10 +132,11 @@ export const CourseOverlay: React.FC<CourseOverlayProps> = ({ course, onMarkPres
       ) : null}
 
       {pathFeature ? (
-        <MLGeoJSONSource id="course-path" shape={pathFeature}>
+        <MLGeoJSONSource id="course-path" data={pathFeature}>
           <MLLayer
+              type="line"
             id="course-path-layer"
-            sourceID="course-path"
+            source="course-path"
             style={{
               lineColor: '#0ea5e9',
               lineWidth: 3,
@@ -146,10 +148,11 @@ export const CourseOverlay: React.FC<CourseOverlayProps> = ({ course, onMarkPres
       ) : null}
 
       {finishLineFeature ? (
-        <MLGeoJSONSource id="course-finish-line" shape={finishLineFeature}>
+        <MLGeoJSONSource id="course-finish-line" data={finishLineFeature}>
           <MLLayer
+              type="line"
             id="course-finish-line-layer"
-            sourceID="course-finish-line"
+            source="course-finish-line"
             style={{
               lineColor: MARK_COLORS.finish,
               lineWidth: 4,
