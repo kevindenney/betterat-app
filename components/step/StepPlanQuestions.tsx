@@ -15,6 +15,8 @@ import { STEP_COLORS } from '@/lib/step-theme';
 import { PlanQuestionCard } from './PlanQuestionCard';
 import { SubStepEditor } from './SubStepEditor';
 import { CollaboratorPicker } from './CollaboratorPicker';
+import { CollaboratorRolePicker } from './plan-tab/CollaboratorRolePicker';
+import { AddPeoplePicker } from './plan-tab/AddPeoplePicker';
 import { CourseContextSheet } from './CourseContextSheet';
 import type { PlaybookPickerSelection } from '@/components/playbook/PlaybookPicker';
 import { AddToStepPlanSheet, type AddToStepPlanSelection } from './AddToStepPlanSheet';
@@ -116,6 +118,8 @@ export function StepPlanQuestions({
   const [localCollaborators, setLocalCollaborators] = useState<StepCollaborator[]>([]);
   const [localConnectionSpace, setLocalConnectionSpace] = useState('');
   const [showCollaboratorPicker, setShowCollaboratorPicker] = useState(false);
+  const [showAddPeoplePicker, setShowAddPeoplePicker] = useState(false);
+  const [roleEditing, setRoleEditing] = useState<StepCollaborator | null>(null);
   const [showLocationPicker, setShowLocationPicker] = useState(false);
   const [localWhereLocation, setLocalWhereLocation] = useState<StepLocation | undefined>(undefined);
   const [showCourseContext, setShowCourseContext] = useState(false);
@@ -393,6 +397,37 @@ export function StepPlanQuestions({
       return updated;
     });
   }, [debouncedSave]);
+
+  const handleSetCollaboratorRole = useCallback(
+    (collaboratorId: string, role: string | undefined) => {
+      setLocalCollaborators((prev) => {
+        const updated = prev.map((c) =>
+          c.id === collaboratorId ? { ...c, role: role || undefined } : c,
+        );
+        debouncedSave({ collaborators: updated });
+        return updated;
+      });
+    },
+    [debouncedSave],
+  );
+
+  const handleConfirmCollaborators = useCallback(
+    (next: StepCollaborator[]) => {
+      // AddPeoplePicker returns the full intended set. Preserve any existing
+      // external (off-platform) collaborators that the picker doesn't know
+      // about, since it only deals with platform users.
+      setLocalCollaborators((prev) => {
+        const externals = prev.filter((c) => c.type === 'external');
+        const merged = [...next, ...externals];
+        debouncedSave({
+          collaborators: merged,
+          who_collaborators: merged.map((c) => c.display_name),
+        });
+        return merged;
+      });
+    },
+    [debouncedSave],
+  );
 
   const handleShareWithCollaborator = useCallback(async (collaboratorName: string) => {
     if (!step) return;
@@ -967,8 +1002,15 @@ RULES:
                 {localCollaborators.length > 0 ? (
                   <View style={styles.collaboratorChipContainer}>
                     {localCollaborators.map((collab) => (
-                      <View
+                      <Pressable
                         key={collab.id}
+                        onPress={readOnly ? undefined : () => setRoleEditing(collab)}
+                        accessibilityRole={readOnly ? undefined : 'button'}
+                        accessibilityLabel={
+                          collab.role
+                            ? `Change ${collab.display_name}'s role (currently ${collab.role})`
+                            : `Assign a role to ${collab.display_name}`
+                        }
                         style={[
                           styles.collaboratorChip,
                           collab.type === 'platform' ? styles.collaboratorChipPlatform : styles.collaboratorChipExternal,
@@ -992,6 +1034,11 @@ RULES:
                         >
                           {collab.display_name}
                         </Text>
+                        {collab.role ? (
+                          <Text style={styles.collaboratorRoleTag} numberOfLines={1}>
+                            {collab.role}
+                          </Text>
+                        ) : null}
                         {collab.type === 'external' && !readOnly && (
                           <Pressable
                             onPress={() => handleShareWithCollaborator(collab.display_name)}
@@ -1006,7 +1053,7 @@ RULES:
                             <Ionicons name="close-circle" size={16} color={IOS_COLORS.systemGray3} />
                           </Pressable>
                         )}
-                      </View>
+                      </Pressable>
                     ))}
                   </View>
                 ) : (
@@ -1016,7 +1063,7 @@ RULES:
                 {!readOnly && (
                   <Pressable
                     style={styles.addPeopleButton}
-                    onPress={() => setShowCollaboratorPicker(true)}
+                    onPress={() => setShowAddPeoplePicker(true)}
                   >
                     <Ionicons name="person-add-outline" size={18} color={STEP_COLORS.accent} />
                     <Text style={styles.addPeopleText}>Add people</Text>
@@ -1213,6 +1260,30 @@ RULES:
               onClose={() => setShowCollaboratorPicker(false)}
               onAdd={handleAddCollaborator}
               existingIds={collaboratorExistingIds}
+            />
+            <CollaboratorRolePicker
+              visible={!!roleEditing}
+              collaboratorName={roleEditing?.display_name ?? ''}
+              currentRole={roleEditing?.role}
+              onClose={() => setRoleEditing(null)}
+              onSelect={(role) => {
+                if (roleEditing) {
+                  handleSetCollaboratorRole(roleEditing.id, role);
+                }
+              }}
+            />
+            <AddPeoplePicker
+              visible={showAddPeoplePicker}
+              existingUserIds={localCollaborators
+                .filter((c) => c.type === 'platform' && c.user_id)
+                .map((c) => c.user_id as string)}
+              existingRoles={Object.fromEntries(
+                localCollaborators
+                  .filter((c) => c.type === 'platform' && c.user_id)
+                  .map((c) => [c.user_id as string, c.role]),
+              )}
+              onClose={() => setShowAddPeoplePicker(false)}
+              onConfirm={handleConfirmCollaborators}
             />
             <CompetencyPickerModal
               visible={showCompetencyPicker}
@@ -2847,6 +2918,14 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '500',
     flexShrink: 1,
+  },
+  collaboratorRoleTag: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: IOS_COLORS.tertiaryLabel,
+    letterSpacing: 0.2,
+    textTransform: 'lowercase',
+    marginLeft: 2,
   },
   collaboratorChipTextPlatform: {
     color: STEP_COLORS.accent,

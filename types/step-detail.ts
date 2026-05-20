@@ -51,6 +51,8 @@ export interface StepCollaborator {
   avatar_emoji?: string;
   avatar_color?: string;
   connection_space?: string;
+  /** Role tag shown beside the name on the With chip — e.g. helm, foredeck, coach. */
+  role?: string;
 }
 
 export interface StepLocation {

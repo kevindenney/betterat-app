@@ -15,6 +15,8 @@ export interface InboxItem {
   title: string;
   blurb?: string;
   fromLine?: string;
+  /** Email of the suggester, shown small under the from line to disambiguate same-named users. */
+  fromEmail?: string;
   /** Raw fields carried for action handlers (accept / save / dismiss). */
   raw: {
     /** Interest the new timeline step or deck row will live under. */

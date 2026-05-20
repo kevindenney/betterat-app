@@ -39,6 +39,7 @@ interface SuggestStepSheetProps {
 interface UserRow {
   userId: string;
   displayName: string;
+  email?: string;
   avatarUrl?: string;
   avatarEmoji?: string;
   avatarColor?: string;
@@ -97,6 +98,7 @@ export function SuggestStepSheet({
         return memberIds.map((uid) => ({
           userId: uid,
           displayName: usersMap[uid]?.full_name || usersMap[uid]?.email || 'Unknown',
+          email: usersMap[uid]?.email,
           avatarEmoji: spMap[uid]?.avatar_emoji,
           avatarColor: spMap[uid]?.avatar_color,
         }));
@@ -122,6 +124,7 @@ export function SuggestStepSheet({
             users.map((u) => ({
               userId: u.userId,
               displayName: u.displayName,
+              email: u.email,
               avatarUrl: u.avatarUrl,
               avatarEmoji: u.avatarEmoji,
               avatarColor: u.avatarColor,
@@ -136,6 +139,7 @@ export function SuggestStepSheet({
               .map((r) => ({
                 userId: r.userId,
                 displayName: r.fullName,
+                email: r.email,
                 avatarEmoji: r.avatarEmoji,
                 avatarColor: r.avatarColor,
               }))
@@ -165,6 +169,7 @@ export function SuggestStepSheet({
               .map((r) => ({
                 userId: r.userId,
                 displayName: r.fullName,
+                email: r.email,
                 avatarEmoji: r.avatarEmoji,
                 avatarColor: r.avatarColor,
               }))
@@ -228,9 +233,16 @@ export function SuggestStepSheet({
             <Ionicons name="person" size={18} color={IOS_COLORS.systemGray2} />
           )}
         </View>
-        <Text style={styles.userName} numberOfLines={1}>
-          {item.displayName}
-        </Text>
+        <View style={styles.userTextWrap}>
+          <Text style={styles.userName} numberOfLines={1}>
+            {item.displayName}
+          </Text>
+          {item.email && item.email !== item.displayName ? (
+            <Text style={styles.userEmail} numberOfLines={1}>
+              {item.email}
+            </Text>
+          ) : null}
+        </View>
         {isSending ? (
           <ActivityIndicator size="small" color={STEP_COLORS.accent} />
         ) : alreadySent ? (
@@ -433,10 +445,18 @@ const styles = StyleSheet.create({
   avatarEmoji: {
     fontSize: 18,
   },
-  userName: {
+  userTextWrap: {
     flex: 1,
+    minWidth: 0,
+  },
+  userName: {
     fontSize: 15,
     fontWeight: '500',
     color: IOS_COLORS.label,
+  },
+  userEmail: {
+    fontSize: 12,
+    color: IOS_COLORS.tertiaryLabel,
+    marginTop: 1,
   },
 });

@@ -34,6 +34,7 @@ import { router } from 'expo-router';
 import { getStepCategoryLabels } from '@/lib/step-category-config';
 import { FEATURE_FLAGS } from '@/lib/featureFlags';
 import { PlanTabInterior, PlanTabIOSRegisterInterior } from './plan-tab';
+import { PlanWithCard } from './plan-tab/PlanWithCard';
 import { useLibraryBeforeBinding } from '@/hooks/useStepLibraryBefore';
 import { buildSuggestions, crossInterestToMentorInput } from '@/services/SuggestionsService';
 import { useCrossInterestSuggestions } from '@/hooks/useCrossInterestSuggestions';
@@ -293,6 +294,18 @@ export function PlanTab({
         onNextPhase={onNextTab}
         footer={footer}
         libraryBefore={libraryBefore}
+        contextRows={
+          <PlanWithCard
+            collaborators={collaborators}
+            readOnly={readOnly}
+            onChange={(next) =>
+              onUpdate({
+                collaborators: next,
+                who_collaborators: next.map((c) => c.display_name),
+              })
+            }
+          />
+        }
       />
     );
   }

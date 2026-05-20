@@ -65,7 +65,10 @@ export function SuggestRow({ item, onAdd, onSaveToDeck, onDismiss }: Props) {
         </Text>
       ) : null}
       {item.fromLine ? (
-        <Text style={styles.fromLine}>{item.fromLine}</Text>
+        <Text style={styles.fromLine}>
+          {item.fromLine}
+          {item.fromEmail ? <Text style={styles.fromEmail}>  ·  {item.fromEmail}</Text> : null}
+        </Text>
       ) : null}
 
       <View style={styles.actions}>
@@ -177,6 +180,11 @@ const styles = StyleSheet.create({
   fromLine: {
     fontSize: 11,
     color: IOS_COLORS.tertiaryLabel,
+  },
+  fromEmail: {
+    fontSize: 10.5,
+    color: IOS_COLORS.tertiaryLabel,
+    opacity: 0.75,
   },
   actions: {
     flexDirection: 'row',

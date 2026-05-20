@@ -31,6 +31,7 @@ interface InboxRow {
 interface ProfileRow {
   id: string;
   full_name: string | null;
+  email: string | null;
 }
 
 interface SailorProfileRow {
@@ -91,6 +92,7 @@ function toInboxItem(
   deck: DeckRow | undefined,
 ): InboxItem {
   const fromName = profile?.full_name?.trim() || null;
+  const fromEmail = profile?.email?.trim() || undefined;
   const kind: InboxItemKind = row.kind === 'suggestion' ? 'suggestion' : 'on_deck';
   const stepTitle = step?.title?.trim() || 'Untitled step';
   const blurb = row.body?.trim() || undefined;
@@ -115,6 +117,7 @@ function toInboxItem(
       fromLine: fromName
         ? `Suggested step from ${fromName}`
         : 'Suggested step from a teammate',
+      fromEmail: fromEmail && fromEmail !== fromName ? fromEmail : undefined,
       raw,
     };
   }
@@ -163,7 +166,7 @@ export function useInboxItems() {
 
       const [usersRes, sailorsRes, stepsRes, decksRes] = await Promise.all([
         fromUserIds.length > 0
-          ? supabase.from('users').select('id, full_name').in('id', fromUserIds)
+          ? supabase.from('users').select('id, full_name, email').in('id', fromUserIds)
           : Promise.resolve({ data: [] as ProfileRow[], error: null }),
         fromUserIds.length > 0
           ? supabase

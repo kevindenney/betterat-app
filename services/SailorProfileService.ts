@@ -734,6 +734,7 @@ class SailorProfileServiceClass {
     users: {
       userId: string;
       displayName: string;
+      email?: string;
       avatarUrl?: string;
       avatarEmoji?: string;
       avatarColor?: string;
@@ -776,12 +777,12 @@ class SailorProfileServiceClass {
     // Fetch profiles
     const { data: profiles } = await supabase
       .from('users')
-      .select('id, full_name, avatar_url')
+      .select('id, full_name, email, avatar_url')
       .in('id', followingIds);
 
     const { data: sailorProfiles } = await supabase
       .from('sailor_profiles')
-      .select('user_id, display_name, avatar_emoji, avatar_color')
+      .select('user_id, avatar_emoji, avatar_color')
       .in('user_id', followingIds);
 
     const profilesMap = new Map((profiles || []).map((p: any) => [p.id, p]));
@@ -795,8 +796,8 @@ class SailorProfileServiceClass {
 
       return {
         userId: id,
-        displayName:
-          sailorProfile?.display_name || profile?.full_name || 'Sailor',
+        displayName: profile?.full_name || 'Sailor',
+        email: profile?.email || undefined,
         avatarUrl: profile?.avatar_url,
         avatarEmoji: sailorProfile?.avatar_emoji,
         avatarColor: sailorProfile?.avatar_color,
