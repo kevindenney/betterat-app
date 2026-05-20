@@ -50,6 +50,10 @@ export function useInboxActions(): UseInboxActionsResult {
   const invalidate = useCallback(() => {
     qc.invalidateQueries({ queryKey: ['practice-inbox-items'] });
     qc.invalidateQueries({ queryKey: ['practice-inbox-count'] });
+    // Race / Plan / Reflect surfaces all read from ['timeline-steps', …];
+    // accept and on-deck place mutate the recipient's timeline so every
+    // consumer of that key needs to refetch.
+    qc.invalidateQueries({ queryKey: ['timeline-steps'] });
   }, [qc]);
 
   const accept = useCallback(
