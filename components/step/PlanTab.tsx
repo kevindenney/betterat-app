@@ -219,10 +219,23 @@ export function PlanTab({
         collaborators: next,
         who_collaborators: next.map((c) => c.display_name),
       });
+      // Log at error level so it surfaces with the default LOG_LEVEL=error.
+      // Remove once collaborator sync is confirmed working in production.
+      // eslint-disable-next-line no-console
+      console.error('[PlanTab] sync attempt', {
+        stepId,
+        userId: user?.id,
+        count: next.length,
+        platformCount: next.filter((c) => c.type === 'platform' && c.user_id).length,
+      });
       if (stepId && user?.id) {
-        syncStepCollaborators(stepId, user.id, next).catch((err) => {
-          console.error('[PlanTab] syncStepCollaborators failed:', err);
-        });
+        syncStepCollaborators(stepId, user.id, next)
+          // eslint-disable-next-line no-console
+          .then(() => console.error('[PlanTab] sync ok'))
+          .catch((err) => {
+            // eslint-disable-next-line no-console
+            console.error('[PlanTab] sync failed:', err);
+          });
       }
     },
     [onUpdate, stepId, user?.id],
