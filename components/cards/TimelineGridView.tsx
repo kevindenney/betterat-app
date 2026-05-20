@@ -816,9 +816,24 @@ export function TimelineGridView({
     const incomingIds = races.map((race) => race.id);
     setOrderedIds((prev) => {
       if (prev.length === 0) return incomingIds;
-      const next = prev.filter((id) => incomingIds.includes(id));
-      for (const id of incomingIds) {
-        if (!next.includes(id)) next.push(id);
+      // Drop ids that disappeared from incomingIds (deleted/filtered out).
+      let next = prev.filter((id) => incomingIds.includes(id));
+      // Insert new ids at the position they hold in incomingIds (which is
+      // sort_order ASC from useRaceListData). Naively appending to the end
+      // would land a freshly-accepted step at the bottom of the timeline
+      // even when its sort_order says it should be UP NEXT.
+      for (let i = 0; i < incomingIds.length; i += 1) {
+        const id = incomingIds[i];
+        if (next.includes(id)) continue;
+        let insertAt = 0;
+        for (let j = i - 1; j >= 0; j -= 1) {
+          const pos = next.indexOf(incomingIds[j]);
+          if (pos >= 0) {
+            insertAt = pos + 1;
+            break;
+          }
+        }
+        next = [...next.slice(0, insertAt), id, ...next.slice(insertAt)];
       }
       return next;
     });
