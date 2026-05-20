@@ -75,7 +75,7 @@ export function useInboxActions(): UseInboxActionsResult {
             userId: user.id,
             interestId: item.raw.interestId,
             preview,
-            placement: 'next-up',
+            placement: 'preempt',
             sourceType: 'user_fork',
             sourceId: item.raw.sourceStepId,
           });
@@ -84,7 +84,7 @@ export function useInboxActions(): UseInboxActionsResult {
             userId: user.id,
             interestId: item.raw.interestId,
             preview,
-            placement: 'next-up',
+            placement: 'preempt',
             sourceType: 'suggestion',
             sourceId: item.raw.sourceStepId,
             sourceUserId: item.raw.sourceUserId ?? undefined,

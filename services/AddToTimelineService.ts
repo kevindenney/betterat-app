@@ -3,7 +3,7 @@ import type { TimelineStepRecord, TimelineStepSourceType } from '@/types/timelin
 import { createStep } from '@/services/TimelineStepService';
 import { createOnDeckItem, discardOnDeckItem, markOnDeckPlaced, type StepDeckSourceType } from '@/services/StepDeckService';
 
-export type TimelinePlacement = 'next-up' | 'end' | 'specific-date';
+export type TimelinePlacement = 'next-up' | 'preempt' | 'end' | 'specific-date';
 
 export interface TimelineAddPreview {
   sourceLabel: string;
@@ -54,6 +54,24 @@ async function shiftSortOrdersAfter(userId: string, interestId: string, after: n
   }
 }
 
+async function shiftSortOrdersAtOrAfter(userId: string, interestId: string, atOrAfter: number): Promise<void> {
+  const { data, error } = await supabase
+    .from('timeline_steps')
+    .select('id, sort_order')
+    .eq('user_id', userId)
+    .eq('interest_id', interestId)
+    .gte('sort_order', atOrAfter)
+    .order('sort_order', { ascending: false });
+  if (error) throw error;
+  for (const row of (data ?? []) as Pick<TimelineStepRecord, 'id' | 'sort_order'>[]) {
+    const { error: updateError } = await supabase
+      .from('timeline_steps')
+      .update({ sort_order: row.sort_order + 1 })
+      .eq('id', row.id);
+    if (updateError) throw updateError;
+  }
+}
+
 async function resolvePlacement(userId: string, interestId: string, placement: TimelinePlacement, date?: string) {
   const steps = await getOwnOrderedSteps(userId, interestId);
   const currentStep = steps.find((step) => step.status === 'in_progress') ?? steps.find((step) => step.status === 'pending') ?? null;
@@ -62,6 +80,18 @@ async function resolvePlacement(userId: string, interestId: string, placement: T
     const anchor = currentStep?.sort_order ?? (steps.at(-1)?.sort_order ?? 0);
     await shiftSortOrdersAfter(userId, interestId, anchor);
     return { sortOrder: anchor + 1, startsAt: null as string | null };
+  }
+
+  if (placement === 'preempt') {
+    // "Become UP NEXT" — push the current up-next (and everything after it)
+    // down by one and slot in at its old position. Falls back to next-up
+    // semantics if the timeline has no current pending step yet.
+    if (!currentStep) {
+      const anchor = steps.at(-1)?.sort_order ?? 0;
+      return { sortOrder: anchor + 1, startsAt: null as string | null };
+    }
+    await shiftSortOrdersAtOrAfter(userId, interestId, currentStep.sort_order);
+    return { sortOrder: currentStep.sort_order, startsAt: null as string | null };
   }
 
   if (placement === 'specific-date') {
