@@ -48,6 +48,7 @@ import {
   BeforeTheShiftCard,
   type BeforeShiftItem,
 } from '@/components/step/v2/plan/BeforeTheShiftCard';
+import { LibraryBeforePicker } from '@/components/library/picker/LibraryBeforePicker';
 
 export interface PlanTabIOSRegisterInteriorProps {
   planData: StepPlanData;
@@ -109,6 +110,12 @@ export interface PlanTabIOSRegisterInteriorProps {
     totalEstimate?: string;
     onToggle?: (rowId: string) => void;
     onAddFromLibrary?: () => void;
+    picker?: {
+      visible: boolean;
+      onClose: () => void;
+      onSelect: (libraryItemId: string) => void;
+      attachedItemIds: string[];
+    };
   };
   testID?: string;
 }
@@ -203,12 +210,21 @@ export function PlanTabIOSRegisterInterior({
         onOpenCoach={canUseCoach ? () => setCoachOpen(true) : () => {}}
       />
 
-      {libraryBefore && libraryBefore.items.length > 0 ? (
+      {libraryBefore ? (
         <BeforeTheShiftCard
           items={libraryBefore.items}
           totalEstimate={libraryBefore.totalEstimate}
           onToggle={libraryBefore.onToggle}
           onAddFromLibrary={libraryBefore.onAddFromLibrary}
+        />
+      ) : null}
+
+      {libraryBefore?.picker ? (
+        <LibraryBeforePicker
+          visible={libraryBefore.picker.visible}
+          onClose={libraryBefore.picker.onClose}
+          onSelect={libraryBefore.picker.onSelect}
+          attachedItemIds={libraryBefore.picker.attachedItemIds}
         />
       ) : null}
 

@@ -44,6 +44,12 @@ export function BeforeTheShiftCard({
         ) : null}
       </View>
 
+      {items.length === 0 ? (
+        <Text style={styles.emptyHint}>
+          Pin a link, PDF, or note you want to skim before doing this.
+        </Text>
+      ) : null}
+
       {items.map((item) => {
         const tint = FORMAT_TINT[item.format];
         return (
@@ -122,6 +128,12 @@ const styles = StyleSheet.create({
   est: {
     fontSize: 11,
     color: IOS_COLORS.tertiaryLabel,
+  },
+  emptyHint: {
+    fontSize: 12,
+    color: IOS_COLORS.secondaryLabel,
+    lineHeight: 16,
+    paddingVertical: 4,
   },
   row: {
     flexDirection: 'row',

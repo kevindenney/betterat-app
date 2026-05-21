@@ -4,10 +4,10 @@
  * format, title, and meta in one shot.
  */
 
-import { useCallback } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { supabase } from '@/services/supabase';
-import { showAlert } from '@/lib/utils/crossPlatformAlert';
+import { useAuth } from '@/providers/AuthProvider';
 import type { BeforeShiftItem } from '@/components/step/v2/plan/BeforeTheShiftCard';
 import type { LibraryFormat } from '@/components/library/resources/types';
 
@@ -27,6 +27,10 @@ interface JoinedRow {
   } | null;
 }
 
+interface BeforeRowWithItemId extends BeforeShiftItem {
+  libraryItemId: string;
+}
+
 const VALID_FORMATS: LibraryFormat[] = [
   'pdf',
   'video',
@@ -38,7 +42,7 @@ const VALID_FORMATS: LibraryFormat[] = [
   'image',
 ];
 
-function toBeforeShiftItem(row: JoinedRow): BeforeShiftItem | null {
+function toBeforeShiftItem(row: JoinedRow): BeforeRowWithItemId | null {
   if (!row.library_items) return null;
   const kind = row.library_items.kind;
   const format: LibraryFormat = (VALID_FORMATS as string[]).includes(kind)
@@ -55,6 +59,7 @@ function toBeforeShiftItem(row: JoinedRow): BeforeShiftItem | null {
   }
   return {
     id: row.id,
+    libraryItemId: row.library_items.id,
     format,
     title: row.library_items.title,
     meta: metaParts.join(' · '),
@@ -63,7 +68,7 @@ function toBeforeShiftItem(row: JoinedRow): BeforeShiftItem | null {
 }
 
 export function useStepLibraryBefore(stepId: string | undefined) {
-  return useQuery<BeforeShiftItem[]>({
+  return useQuery<BeforeRowWithItemId[]>({
     queryKey: ['step-library-before', stepId],
     enabled: !!stepId,
     queryFn: async () => {
@@ -78,7 +83,7 @@ export function useStepLibraryBefore(stepId: string | undefined) {
       if (error) throw error;
       return (data as unknown as JoinedRow[])
         .map(toBeforeShiftItem)
-        .filter((x): x is BeforeShiftItem => x !== null);
+        .filter((x): x is BeforeRowWithItemId => x !== null);
     },
   });
 }
@@ -96,8 +101,8 @@ export function useToggleStepLibraryRead(stepId: string | undefined) {
     onMutate: async ({ rowId, read }) => {
       const key = ['step-library-before', stepId];
       await qc.cancelQueries({ queryKey: key });
-      const prev = qc.getQueryData<BeforeShiftItem[]>(key);
-      qc.setQueryData<BeforeShiftItem[]>(key, (old) =>
+      const prev = qc.getQueryData<BeforeRowWithItemId[]>(key);
+      qc.setQueryData<BeforeRowWithItemId[]>(key, (old) =>
         (old ?? []).map((it) => (it.id === rowId ? { ...it, read } : it))
       );
       return { prev };
@@ -113,9 +118,40 @@ export function useToggleStepLibraryRead(stepId: string | undefined) {
   });
 }
 
+export function useAttachLibraryItemToStepBefore(stepId: string | undefined) {
+  const qc = useQueryClient();
+  const { user } = useAuth();
+  return useMutation({
+    mutationFn: async ({ libraryItemId }: { libraryItemId: string }) => {
+      if (!stepId) throw new Error('stepId required');
+      if (!user?.id) throw new Error('not authenticated');
+      // Pick next position: count existing + 1, server-side via head:true.
+      const { count, error: countErr } = await supabase
+        .from('step_library_before')
+        .select('id', { count: 'exact', head: true })
+        .eq('step_id', stepId);
+      if (countErr) throw countErr;
+      const nextPosition = (count ?? 0) + 1;
+      const { error } = await supabase.from('step_library_before').insert({
+        step_id: stepId,
+        library_item_id: libraryItemId,
+        position: nextPosition,
+        added_by: user.id,
+      });
+      if (error) throw error;
+    },
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: ['step-library-before', stepId] });
+    },
+  });
+}
+
 export function useLibraryBeforeBinding(stepId: string | undefined) {
   const { data: items = [] } = useStepLibraryBefore(stepId);
   const toggle = useToggleStepLibraryRead(stepId);
+  const attach = useAttachLibraryItemToStepBefore(stepId);
+  const [pickerOpen, setPickerOpen] = useState(false);
+
   const onToggle = useCallback(
     (rowId: string) => {
       const row = items.find((it) => it.id === rowId);
@@ -124,18 +160,56 @@ export function useLibraryBeforeBinding(stepId: string | undefined) {
     },
     [items, toggle]
   );
-  // BeforeTheShiftCard's "+ Add from library" footer needs an onPress to
-  // not look dead. A real picker that inserts into step_library_before is
-  // the proper next step (see docs/roadmap/library-phase11-followups.md);
-  // until then, stub with a coming-soon so the button feels alive.
+
   const onAddFromLibrary = useCallback(() => {
-    showAlert(
-      'Add from library',
-      'Picker that attaches library items to this step is on the roadmap — not wired up yet.',
-    );
+    setPickerOpen(true);
   }, []);
+
+  const onPickerClose = useCallback(() => {
+    setPickerOpen(false);
+  }, []);
+
+  const onPickerSelect = useCallback(
+    (libraryItemId: string) => {
+      attach.mutate({ libraryItemId });
+      setPickerOpen(false);
+    },
+    [attach]
+  );
+
+  const attachedItemIds = useMemo(
+    () => items.map((it) => it.libraryItemId),
+    [items]
+  );
   const totalEstimate = computeTotalEstimate(items);
-  return { items, onToggle, onAddFromLibrary, totalEstimate };
+
+  // The card consumes BeforeShiftItem (no libraryItemId). Strip it here so
+  // callers don't have to know about the internal join shape.
+  const cardItems: BeforeShiftItem[] = useMemo(
+    () =>
+      items.map(({ id, format, title, meta, read }) => ({
+        id,
+        format,
+        title,
+        meta,
+        read,
+      })),
+    [items]
+  );
+
+  return {
+    items: cardItems,
+    onToggle,
+    onAddFromLibrary,
+    totalEstimate,
+    picker: {
+      visible: pickerOpen,
+      onClose: onPickerClose,
+      onSelect: onPickerSelect,
+      attachedItemIds,
+      stepId,
+    },
+  };
 }
 
 function computeTotalEstimate(items: BeforeShiftItem[]): string | undefined {

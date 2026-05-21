@@ -16,6 +16,7 @@ import {
   BeforeTheShiftCard,
   type BeforeShiftItem,
 } from '@/components/step/v2/plan/BeforeTheShiftCard';
+import { LibraryBeforePicker } from '@/components/library/picker/LibraryBeforePicker';
 
 interface PlanTabInteriorProps {
   planData: StepPlanData;
@@ -46,6 +47,12 @@ interface PlanTabInteriorProps {
     totalEstimate?: string;
     onToggle?: (rowId: string) => void;
     onAddFromLibrary?: () => void;
+    picker?: {
+      visible: boolean;
+      onClose: () => void;
+      onSelect: (libraryItemId: string) => void;
+      attachedItemIds: string[];
+    };
   };
 }
 
@@ -125,7 +132,7 @@ export function PlanTabInterior({
         </Pressable>
       )}
 
-      {libraryBefore && libraryBefore.items.length > 0 ? (
+      {libraryBefore ? (
         <View style={styles.libraryBeforeSlot}>
           <BeforeTheShiftCard
             items={libraryBefore.items}
@@ -134,6 +141,15 @@ export function PlanTabInterior({
             onAddFromLibrary={libraryBefore.onAddFromLibrary}
           />
         </View>
+      ) : null}
+
+      {libraryBefore?.picker ? (
+        <LibraryBeforePicker
+          visible={libraryBefore.picker.visible}
+          onClose={libraryBefore.picker.onClose}
+          onSelect={libraryBefore.picker.onSelect}
+          attachedItemIds={libraryBefore.picker.attachedItemIds}
+        />
       ) : null}
 
       {(manualExpanded || state !== 'empty') && (
