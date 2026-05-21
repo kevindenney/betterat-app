@@ -165,7 +165,16 @@ export function ResourcesZone({ onOpenCapture }: Props) {
         <Ionicons name="chevron-forward" size={16} color={IOS_COLORS.tertiaryLabel} />
       </TouchableOpacity>
 
-      <ShelfHead title="In play this week" count={IN_PLAY.length} />
+      <ShelfHead
+        title="In play this week"
+        count={IN_PLAY.length}
+        onSeeAll={() =>
+          showAlert(
+            'In play this week',
+            'Full list view is on the roadmap — not built yet.',
+          )
+        }
+      />
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -180,7 +189,15 @@ export function ResourcesZone({ onOpenCapture }: Props) {
         ))}
       </ScrollView>
 
-      <ShelfHead title="Recently added" />
+      <ShelfHead
+        title="Recently added"
+        onSeeAll={() =>
+          showAlert(
+            'Recently added',
+            'Full list view is on the roadmap — not built yet.',
+          )
+        }
+      />
       <View style={styles.recentBlock}>
         {RECENT.map((item) => (
           <RecentItemRow
@@ -191,7 +208,16 @@ export function ResourcesZone({ onOpenCapture }: Props) {
         ))}
       </View>
 
-      <ShelfHead title="Collections" topPad={IOS_SPACING.lg} />
+      <ShelfHead
+        title="Collections"
+        topPad={IOS_SPACING.lg}
+        onSeeAll={() =>
+          showAlert(
+            'Collections',
+            'Full list view is on the roadmap — not built yet.',
+          )
+        }
+      />
       <CollectionsRow
         collections={COLLECTIONS}
         onPress={(id) => {
@@ -216,10 +242,12 @@ function ShelfHead({
   title,
   count,
   topPad,
+  onSeeAll,
 }: {
   title: string;
   count?: number;
   topPad?: number;
+  onSeeAll?: () => void;
 }) {
   return (
     <View style={[styles.shelfHead, topPad ? { paddingTop: topPad } : null]}>
@@ -227,7 +255,7 @@ function ShelfHead({
         {title}
         {count != null ? <Text style={styles.shelfCount}>  {count}</Text> : null}
       </Text>
-      <TouchableOpacity hitSlop={8} activeOpacity={0.6}>
+      <TouchableOpacity hitSlop={8} activeOpacity={0.6} onPress={onSeeAll}>
         <Text style={styles.seeAll}>All</Text>
       </TouchableOpacity>
     </View>
