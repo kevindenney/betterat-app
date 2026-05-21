@@ -151,25 +151,18 @@ const styles = StyleSheet.create({
   bodyContent: {
     paddingBottom: IOS_SPACING.xl,
   },
-  // Canonical .lib-hero — single white card containing the Library title,
-  // italic lede, and segmented zone tabs. They read as one chunk per
-  // canonical §2 instead of three separate floating elements.
+  // Canonical .lib-hero — full-width white hero band containing the
+  // Library title, italic lede, and segmented zone tabs. NOT a floating
+  // rounded card — extends edge-to-edge with a hairline bottom border,
+  // so the chrome above (gray) → hero (white) → body (gray) reads as
+  // three horizontal bands per canonical §2.
   heroCard: {
-    marginHorizontal: IOS_SPACING.lg,
-    marginTop: IOS_SPACING.sm,
-    marginBottom: IOS_SPACING.md,
-    paddingHorizontal: IOS_SPACING.lg,
-    paddingTop: IOS_SPACING.md,
-    paddingBottom: IOS_SPACING.lg,
+    paddingHorizontal: 18,
+    paddingTop: 12,
+    paddingBottom: 16,
     backgroundColor: '#FFFFFF',
-    borderRadius: 14,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(60,60,67,0.15)',
-    shadowColor: '#000',
-    shadowOpacity: 0.06,
-    shadowOffset: { width: 0, height: 1 },
-    shadowRadius: 3,
-    elevation: 1,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: 'rgba(60,60,67,0.15)',
     gap: IOS_SPACING.sm,
   },
   heroTitle: {
