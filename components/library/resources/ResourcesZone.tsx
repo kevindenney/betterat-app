@@ -17,6 +17,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
+import { showAlert } from '@/lib/utils/crossPlatformAlert';
 import { LibraryItemCard } from './LibraryItemCard';
 import { RecentItemRow } from './RecentItemRow';
 import { CollectionsRow } from './CollectionsRow';
@@ -191,7 +192,16 @@ export function ResourcesZone({ onOpenCapture }: Props) {
       </View>
 
       <ShelfHead title="Collections" topPad={IOS_SPACING.lg} />
-      <CollectionsRow collections={COLLECTIONS} />
+      <CollectionsRow
+        collections={COLLECTIONS}
+        onPress={(id) => {
+          const c = COLLECTIONS.find((x) => x.id === id);
+          showAlert(
+            c?.name ?? 'Collection',
+            'Collection detail screen is on the roadmap — not built yet.',
+          );
+        }}
+      />
 
       <View style={styles.bottomPad} />
       <CaptureSheet
