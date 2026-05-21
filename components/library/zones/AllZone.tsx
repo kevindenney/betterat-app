@@ -24,9 +24,11 @@ import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
 import type { LibraryZone } from '@/components/library/SegmentedZoneHeader';
 import { useSubscribedPlansForLibrary } from '@/hooks/useSubscribedPlansForLibrary';
 import { useLifecycleConcepts } from '@/hooks/usePlaybook';
+import { useLibraryResourcesPreview } from '@/hooks/useLibraryResourcesPreview';
 import { useInterest } from '@/providers/InterestProvider';
 import { PlanRowCard } from '@/components/library/plans/PlanRowCard';
 import { ConceptCard } from '@/components/playbook/ConceptCard';
+import { RecentItemRow } from '@/components/library/resources/RecentItemRow';
 
 const PREVIEW_LIMIT = 3;
 
@@ -85,9 +87,12 @@ export function AllZone({ counts, onJumpToZone }: AllZoneProps) {
   const { data: concepts, isLoading: conceptsLoading } = useLifecycleConcepts(
     currentInterest?.id,
   );
+  const { data: resources, isLoading: resourcesLoading } =
+    useLibraryResourcesPreview(PREVIEW_LIMIT);
 
   const planPreview = (plans ?? []).slice(0, PREVIEW_LIMIT);
   const conceptPreview = (concepts ?? []).slice(0, PREVIEW_LIMIT);
+  const resourcePreview = resources ?? [];
 
   return (
     <View style={styles.container}>
@@ -163,9 +168,23 @@ export function AllZone({ counts, onJumpToZone }: AllZoneProps) {
           count={counts?.resources}
           onSeeAll={() => onJumpToZone('resources')}
         />
-        <EmptyHint>
-          Articles, videos, drills you've saved to come back to.
-        </EmptyHint>
+        {resourcesLoading && !resources ? (
+          <LoadingRow />
+        ) : resourcePreview.length === 0 ? (
+          <EmptyHint>
+            Articles, videos, drills you've saved to come back to.
+          </EmptyHint>
+        ) : (
+          <View style={styles.resourceList}>
+            {resourcePreview.map((item) => (
+              <RecentItemRow
+                key={item.id}
+                item={item}
+                onPress={() => router.push(`/library/items/${item.id}` as never)}
+              />
+            ))}
+          </View>
+        )}
       </View>
     </View>
   );
@@ -228,5 +247,12 @@ const styles = StyleSheet.create({
   conceptList: {
     gap: IOS_SPACING.sm,
     paddingHorizontal: IOS_SPACING.md,
+  },
+  resourceList: {
+    backgroundColor: IOS_COLORS.systemBackground,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: 'rgba(60,60,67,0.18)',
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: 'rgba(60,60,67,0.18)',
   },
 });

@@ -44,10 +44,13 @@ export function useLibraryCounts(interestId?: string | null) {
           .from('user_follows')
           .select('id', { count: 'exact', head: true })
           .eq('follower_id', userId),
+        // Concepts are per-user; mirror getLifecycleConcepts so the chip
+        // count agrees with the list query.
         interestId
           ? supabase
               .from('playbook_concepts')
               .select('id', { count: 'exact', head: true })
+              .eq('user_id', userId)
               .eq('interest_id', interestId)
           : Promise.resolve({ count: 0 }),
         supabase
