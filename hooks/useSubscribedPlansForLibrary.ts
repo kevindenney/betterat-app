@@ -154,6 +154,10 @@ export function useSubscribedPlansForLibrary(interestId?: string | null) {
         .order('subscribed_at', { ascending: false });
 
       const previewsByBp = new Map<string, string[]>();
+      // Total OTHER-subscriber count per blueprint (used as a fallback for
+      // blueprints whose denormalized subscriber_count column was never
+      // populated). The current user is +1 since we're in their plan list.
+      const otherCountByBp = new Map<string, number>();
       for (const r of (previewSubs ?? []) as {
         blueprint_id: string;
         subscriber_id: string;
@@ -163,6 +167,10 @@ export function useSubscribedPlansForLibrary(interestId?: string | null) {
           list.push(r.subscriber_id);
           previewsByBp.set(r.blueprint_id, list);
         }
+        otherCountByBp.set(
+          r.blueprint_id,
+          (otherCountByBp.get(r.blueprint_id) ?? 0) + 1,
+        );
       }
 
       const previewUserIds = Array.from(
@@ -222,6 +230,7 @@ export function useSubscribedPlansForLibrary(interestId?: string | null) {
             tint: previewTintByUser.get(sid) || PREVIEW_TINTS[i % PREVIEW_TINTS.length],
           };
         });
+        const derivedSubscriberCount = (otherCountByBp.get(bp.id) ?? 0) + 1;
         return {
           blueprintId: bp.id,
           title: bp.title,
@@ -229,7 +238,7 @@ export function useSubscribedPlansForLibrary(interestId?: string | null) {
           authorInitials: initialsOf(authorName),
           stepCount,
           doneCount,
-          subscriberCount: bp.subscriber_count ?? 0,
+          subscriberCount: bp.subscriber_count ?? derivedSubscriberCount,
           resourceCount: resCountByBp.get(bp.id) ?? 0,
           status,
           subscribedAt: subByBp.get(bp.id) ?? '',
