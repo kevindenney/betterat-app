@@ -194,6 +194,10 @@ export default function RacesScreen() {
   const eventConfig = useInterestEventConfig();
   const { currentInterest, effectiveInterestIds, viewMode, toggleDomainView, domainInterestIds, getDomainForInterest } = useInterest();
   const currentDomain = currentInterest ? getDomainForInterest(currentInterest.id) : null;
+  // Practice tab still hosts a lot of sail-racing-specific data fetching
+  // inherited from the RegattaFlow era. Gate those hooks on this flag so
+  // non-sailing interests don't fire dead queries against regatta tables.
+  const isSailingInterest = currentInterest?.slug === 'sail-racing';
   const hasSiblingInterests = domainInterestIds.length > 1;
   const { activeOrganization, activeMembership } = useOrganization();
   const { vocab } = useVocabulary();
@@ -401,8 +405,11 @@ export default function RacesScreen() {
     return effectiveSeason;
   }, [activeFilterSeasonId, effectiveSeason, userSeasons]);
 
-  // Get regattas linked to the filter season for filtering
-  const { data: seasonRegattas } = useSeasonRegattas(activeFilterSeasonId || undefined);
+  // Get regattas linked to the filter season for filtering. Seasons are
+  // sail-only; skip on other interests so we don't query season_regattas.
+  const { data: seasonRegattas } = useSeasonRegattas(
+    isSailingInterest ? (activeFilterSeasonId || undefined) : undefined,
+  );
   const seasonRegattaIds = useMemo(() => {
     if (!seasonRegattas) return new Set<string>();
     return new Set(seasonRegattas.map(sr => sr.regatta_id));
@@ -618,7 +625,10 @@ export default function RacesScreen() {
   // Pass the active interest slug so non-sailing interests (e.g. nursing,
   // drawing) don't get the sailing demo races leaked into their view.
   const guestRacesResult = useGuestRaces(currentInterest?.slug);
-  const authenticatedRacesResult = useLiveRaces(user?.id);
+  // useLiveRaces fans out to regattas + race_participants + race_timer_sessions
+  // + race_events + race_collaborators — all sail-only. Pass undefined when
+  // off sail-racing so the hook's `if (!userId)` early-return path runs.
+  const authenticatedRacesResult = useLiveRaces(isSailingInterest ? user?.id : undefined);
 
   // Select the appropriate races based on auth state
   const {
@@ -641,7 +651,8 @@ export default function RacesScreen() {
   // eventConfig when interest hasn't loaded yet, which would show sailing data
   // for non-sailing interests during the loading window.
   const interestSlug = currentInterest?.slug ?? eventConfig.interestSlug;
-  const isSailingInterest = interestSlug === 'sail-racing';
+  // isSailingInterest is already declared up at the top of the component
+  // for the sail-only data-hook gates added during the legacy-cleanup waves.
 
   const timelineOrderStorageKey = useMemo(
     () => `timeline_custom_order:${user?.id || 'guest'}:${interestSlug}`,
@@ -990,8 +1001,12 @@ export default function RacesScreen() {
   // demo race card. New users see an empty-state prompt with a single demo race
   // they can explore, rather than having fake data inserted into their account.
 
-  // Fetch user results for past races
-  const { results: userRaceResults } = useUserRaceResults(user?.id, pastRaceIds);
+  // Fetch user results for past races. race_results + series_standings are
+  // sail-only — skip on other interests.
+  const { results: userRaceResults } = useUserRaceResults(
+    isSailingInterest ? user?.id : undefined,
+    pastRaceIds,
+  );
 
   // Fetch practice sessions for timeline
   const { upcomingSessions: practiceSessions } = usePracticeSessions();
@@ -1538,11 +1553,12 @@ export default function RacesScreen() {
     }
   }, [raceBrief, selectedRaceData?.id, updateRaceBrief]);
 
-  // Use race brief sync for AI chat integration
+  // Use race brief sync for AI chat integration. Race brief is sail-only;
+  // gate the sync to the sailing interest so it doesn't run otherwise.
   const { getAIContext, isStale: isRaceBriefStale, refreshContext: _refreshContext } = useRaceBriefSync({
     regattaId: selectedRaceData?.id || null,
     raceBrief,
-    enabled: true,
+    enabled: isSailingInterest,
   });
 
   // Compute derived race preparation data
@@ -3068,8 +3084,10 @@ export default function RacesScreen() {
     setRefetchTrigger(prev => prev + 1);
   }, [handlePostRaceInterviewComplete]);
 
-  // Sailor profile (extracted to useSailorProfile hook)
-  const { sailorId } = useSailorProfile({ user });
+  // Sailor profile (extracted to useSailorProfile hook). sailor_profiles is
+  // a sail-only table; pass null user on other interests to keep the hook
+  // mounted (rules of hooks) but skip its fetch.
+  const { sailorId } = useSailorProfile({ user: isSailingInterest ? user : null });
 
   // Strategy sharing (extracted to useStrategySharing hook)
   const {
