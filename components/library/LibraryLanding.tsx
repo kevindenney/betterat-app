@@ -1,14 +1,17 @@
 /**
- * LibraryLanding — Wave 1 wrapper.
+ * LibraryLanding — Library tab shell.
  *
- * Adds the 4-zone segmented header (All / Plans / People / Concepts /
- * Resources) above the existing Concepts content. Tapping a chip updates
- * the `?zone=` URL param.
+ * Canonical §2/§6 layout:
+ *   - Library hero (h1 + lede)
+ *   - Segmented zone header (All · Plans · People · Concepts · Resources)
+ *     with per-zone counts
+ *   - Zone body: All renders four condensed sections; the per-zone tabs
+ *     render their own landings.
  *
- * Wave 1 scope: header + URL plumbing + empty scaffolds for the three
- * new zones. Concepts content is the existing landing variants (gated by
- * feature flags). Wave 2 replaces this with real Plans/People/Resources
- * content.
+ * The Concepts zone still embeds the legacy PlaybookLanding via the
+ * `conceptsBody` prop — that surface keeps its existing internals for
+ * now and will get a focused refactor once Plans + People zones are
+ * fully wired.
  */
 
 import React, { useCallback } from 'react';
@@ -16,13 +19,17 @@ import { ScrollView, StyleSheet, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { IOS_COLORS } from '@/lib/design-tokens-ios';
+import { LibraryHero } from '@/components/library/LibraryHero';
 import {
   SegmentedZoneHeader,
   type LibraryZone,
 } from '@/components/library/SegmentedZoneHeader';
+import { AllZone } from '@/components/library/zones/AllZone';
 import { PlansZone } from '@/components/library/zones/PlansZone';
 import { PeopleZone } from '@/components/library/zones/PeopleZone';
 import { ResourcesZone } from '@/components/library/zones/ResourcesZone';
+import { useLibraryCounts } from '@/hooks/useLibraryCounts';
+import { useInterest } from '@/providers/InterestProvider';
 
 const VALID_ZONES: LibraryZone[] = ['all', 'plans', 'people', 'concepts', 'resources'];
 
@@ -40,6 +47,9 @@ export function LibraryLanding({ conceptsBody }: Props) {
       ? (rawZone as LibraryZone)
       : 'all';
 
+  const { currentInterest } = useInterest();
+  const { data: counts } = useLibraryCounts(currentInterest?.id);
+
   const handleZoneChange = useCallback((next: LibraryZone) => {
     router.setParams({ zone: next === 'all' ? '' : next });
   }, []);
@@ -47,9 +57,18 @@ export function LibraryLanding({ conceptsBody }: Props) {
   return (
     <View style={styles.container}>
       <View style={[styles.headerWrap, { paddingTop: insets.top }]}>
-        <SegmentedZoneHeader zone={zone} onChange={handleZoneChange} />
+        <LibraryHero interestName={currentInterest?.name} />
+        <SegmentedZoneHeader
+          zone={zone}
+          onChange={handleZoneChange}
+          counts={counts}
+        />
       </View>
-      {zone === 'plans' ? (
+      {zone === 'all' ? (
+        <ScrollView style={styles.body}>
+          <AllZone counts={counts} onJumpToZone={handleZoneChange} />
+        </ScrollView>
+      ) : zone === 'plans' ? (
         <ScrollView style={styles.body}>
           <PlansZone />
         </ScrollView>
