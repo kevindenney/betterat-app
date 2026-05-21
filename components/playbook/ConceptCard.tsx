@@ -63,10 +63,6 @@ const styles = StyleSheet.create({
     paddingVertical: 24,
     paddingHorizontal: 20,
     gap: 14,
-    // [DEBUG] tint so we can see where the card boundary is during
-    // the breathing-room comparison pass. Remove once design is signed off.
-    borderWidth: 1,
-    borderColor: 'rgba(160, 0, 200, 0.6)',
   },
   touchablePressed: {
     opacity: 0.85,

@@ -251,10 +251,8 @@ const styles = StyleSheet.create({
     marginHorizontal: IOS_SPACING.lg,
     borderRadius: 14,
     backgroundColor: '#FFFFFF',
-    // [DEBUG] tint so we can see how the resource container looks vs
-    // plan/concept cards. Remove once design is signed off.
-    borderWidth: 1,
-    borderColor: 'rgba(255, 140, 0, 0.6)',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(60,60,67,0.15)',
     shadowColor: '#000',
     shadowOpacity: 0.08,
     shadowOffset: { width: 0, height: 2 },
