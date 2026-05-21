@@ -17,18 +17,13 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/services/supabase';
 import { useAuth } from '@/providers/AuthProvider';
+import { initialsOf } from '@/lib/utils/initials';
 import type {
   PlanResourceRow,
   PlanSummary,
   SubscriberRow as SubscriberRowData,
 } from '@/components/library/plans/types';
 import type { StepCardH } from '@/components/timeline/types';
-
-function initialsOf(name: string | null | undefined): string {
-  if (!name) return '?';
-  const parts = name.trim().split(/\s+/).slice(0, 2);
-  return parts.map((p) => p[0]?.toUpperCase() ?? '').join('') || '?';
-}
 
 const TINTS = [
   'rgba(0,122,255,0.18)',

@@ -35,12 +35,13 @@ export function PlanRowCard({ plan, onPress }: Props) {
   const progressPct = plan.stepCount > 0 ? Math.min(100, (plan.doneCount / plan.stepCount) * 100) : 0;
 
   return (
-    <Pressable
-      style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
-      onPress={onPress}
-      accessibilityRole="button"
-      accessibilityLabel={`Open ${plan.title}`}
-    >
+    <View style={styles.card}>
+      <Pressable
+        style={({ pressed }) => [styles.touchable, pressed && styles.touchablePressed]}
+        onPress={onPress}
+        accessibilityRole="button"
+        accessibilityLabel={`Open ${plan.title}`}
+      >
       <View style={styles.head}>
         <View style={styles.authorAvatar}>
           <Text style={styles.authorAvatarText}>{plan.authorInitials}</Text>
@@ -104,15 +105,18 @@ export function PlanRowCard({ plan, onPress }: Props) {
           </View>
         ) : null}
       </View>
-    </Pressable>
+      </Pressable>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  // Outer View carries the visible chrome. Wrapping Pressable inside a
+  // View like this is the canonical RN pattern when the chrome includes
+  // shadow/elevation — Pressable's own background-rendering on Android
+  // can swallow shadow + border treatments.
   card: {
     marginHorizontal: IOS_SPACING.md,
-    paddingVertical: IOS_SPACING.md,
-    paddingHorizontal: IOS_SPACING.md,
     borderRadius: 14,
     backgroundColor: '#FFFFFF',
     borderWidth: StyleSheet.hairlineWidth,
@@ -122,9 +126,14 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowRadius: 4,
     elevation: 2,
+  },
+  touchable: {
+    paddingVertical: IOS_SPACING.md,
+    paddingHorizontal: IOS_SPACING.md,
+    borderRadius: 14,
     gap: 10,
   },
-  cardPressed: {
+  touchablePressed: {
     opacity: 0.85,
   },
   head: {

@@ -18,6 +18,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/services/supabase';
 import { useAuth } from '@/providers/AuthProvider';
+import { initialsOf } from '@/lib/utils/initials';
 
 export interface FollowedPersonRow {
   userId: string;
@@ -28,12 +29,6 @@ export interface FollowedPersonRow {
   role?: string;
   lastActivity?: string;
   pendingSuggestions: number;
-}
-
-function initialsOf(name: string | null | undefined): string {
-  if (!name) return '?';
-  const parts = name.trim().split(/\s+/).slice(0, 2);
-  return parts.map((p) => p[0]?.toUpperCase() ?? '').join('') || '?';
 }
 
 function shortAgo(iso: string | null | undefined): string {

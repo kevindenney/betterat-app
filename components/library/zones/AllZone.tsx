@@ -146,7 +146,6 @@ export function AllZone({ counts, onJumpToZone }: AllZoneProps) {
                 key={concept.id}
                 state={concept.state}
                 title={concept.title}
-                whenLabel={`${concept.linked_step_count} linked steps`}
                 meta={[
                   { icon: 'steps', label: `${concept.linked_step_count} steps` },
                   { icon: 'quotes', label: `${concept.quote_count} quotes` },

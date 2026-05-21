@@ -131,22 +131,31 @@ export function ProfileDropdown({
           ) : (
             <Text style={[s.signUpText, isDark && s.signUpTextDark]}>Sign Up / Sign In</Text>
           )
-        ) : showAvatarImage ? (
-          <Image
-            source={{ uri: safeAvatarUrl! }}
-            style={[avatarDynamic, { borderRadius: halfSize }]}
-            onError={() => setImageFailed(true)}
-          />
         ) : (
-          <Text
-            style={[
-              s.avatarText,
-              { fontSize: size * 0.43 },
-              isDark && s.avatarTextDark,
-            ]}
-          >
-            {initials}
-          </Text>
+          // Always render initials so the avatar isn't a blank circle while
+          // an avatar_url image silently loads (or fails to surface its
+          // onError). Image, when present, sits on top via absolute fill.
+          <>
+            <Text
+              style={[
+                s.avatarText,
+                { fontSize: size * 0.43 },
+                isDark && s.avatarTextDark,
+              ]}
+            >
+              {initials}
+            </Text>
+            {showAvatarImage ? (
+              <Image
+                source={{ uri: safeAvatarUrl! }}
+                style={[
+                  avatarDynamic,
+                  { borderRadius: halfSize, position: 'absolute' },
+                ]}
+                onError={() => setImageFailed(true)}
+              />
+            ) : null}
+          </>
         )}
       </AnimatedPressable>
 
