@@ -112,8 +112,8 @@ export function ResourceItemDetail({ item }: Props) {
 
         <View style={styles.preview}>
           <View style={[styles.previewSpine, { backgroundColor: tint }]} />
-          <Text style={styles.previewStamp}>PRACTICE ALERT</Text>
-          <Text style={styles.previewPage}>P 1 / 8</Text>
+          <Text style={styles.previewStamp}>{item.formatLabel.toUpperCase()}</Text>
+          {item.meta ? <Text style={styles.previewPage}>{item.meta}</Text> : null}
         </View>
 
         <View style={styles.actionsRow}>
