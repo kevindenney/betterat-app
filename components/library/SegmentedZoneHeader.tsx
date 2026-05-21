@@ -4,10 +4,12 @@ import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
 
 export type LibraryZone = 'all' | 'plans' | 'people' | 'concepts' | 'resources';
 
+// Canonical §2 keeps the segmented strip to four pills (no People).
+// The People zone route still exists — it's reachable from Profile and
+// from cross-links — it just isn't part of the Library landing tab strip.
 const ZONES: { key: LibraryZone; label: string }[] = [
   { key: 'all', label: 'All' },
   { key: 'plans', label: 'Plans' },
-  { key: 'people', label: 'People' },
   { key: 'concepts', label: 'Concepts' },
   { key: 'resources', label: 'Resources' },
 ];

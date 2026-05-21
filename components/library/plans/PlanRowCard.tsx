@@ -69,16 +69,24 @@ export function PlanRowCard({ plan, onPress }: Props) {
       </View>
 
       <View style={styles.foot}>
-        <View style={styles.footItem}>
-          <Ionicons name="people-outline" size={13} color={IOS_COLORS.secondaryLabel} />
-          <Text style={styles.footText}>
-            <Text style={styles.footEm}>{plan.subscriberCount}</Text>{' '}
-            {plan.subscriberCount === 1 ? 'sailor' : 'sailors'}
-          </Text>
+        <View style={styles.footLeft}>
+          <View style={styles.footItem}>
+            <Ionicons name="people-outline" size={13} color={IOS_COLORS.secondaryLabel} />
+            <Text style={styles.footText}>
+              <Text style={styles.footEm}>{plan.subscriberCount}</Text>{' '}
+              {plan.subscriberCount === 1 ? 'sailor' : 'sailors'}
+            </Text>
+          </View>
+          {plan.resourceCount > 0 ? (
+            <View style={styles.footItem}>
+              <Ionicons name="library-outline" size={13} color={IOS_COLORS.secondaryLabel} />
+              <Text style={styles.footText}>
+                <Text style={styles.footEm}>{plan.resourceCount}</Text> resources
+              </Text>
+            </View>
+          ) : null}
         </View>
-        <View style={styles.footChev}>
-          <Ionicons name="chevron-forward" size={14} color={IOS_COLORS.tertiaryLabel} />
-        </View>
+        <Ionicons name="chevron-forward" size={14} color={IOS_COLORS.tertiaryLabel} />
       </View>
     </Pressable>
   );
@@ -90,7 +98,14 @@ const styles = StyleSheet.create({
     paddingVertical: IOS_SPACING.md,
     paddingHorizontal: IOS_SPACING.md,
     borderRadius: 14,
-    backgroundColor: IOS_COLORS.secondarySystemGroupedBackground,
+    backgroundColor: '#FFFFFF',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(60,60,67,0.18)',
+    shadowColor: '#000',
+    shadowOpacity: 0.04,
+    shadowOffset: { width: 0, height: 1 },
+    shadowRadius: 2,
+    elevation: 1,
     gap: 10,
   },
   cardPressed: {
@@ -176,6 +191,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
   },
+  footLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
   footItem: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -188,8 +208,5 @@ const styles = StyleSheet.create({
   footEm: {
     color: IOS_COLORS.label,
     fontWeight: '600',
-  },
-  footChev: {
-    paddingLeft: 4,
   },
 });

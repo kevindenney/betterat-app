@@ -26,6 +26,8 @@ export interface SubscribedPlanRow {
   /** Steps the current user has marked completed against this blueprint. */
   doneCount: number;
   subscriberCount: number;
+  /** Materials bundled with this plan (plan_resources count). */
+  resourceCount: number;
   status: 'active' | 'done' | 'paused';
   subscribedAt: string;
 }
@@ -97,6 +99,16 @@ export function useSubscribedPlansForLibrary(interestId?: string | null) {
         stepCountByBp.set(r.blueprint_id, (stepCountByBp.get(r.blueprint_id) ?? 0) + 1);
       }
 
+      // 3b. resources count per blueprint (plan_resources)
+      const { data: resRows } = await supabase
+        .from('plan_resources')
+        .select('plan_id')
+        .in('plan_id', blueprintIds);
+      const resCountByBp = new Map<string, number>();
+      for (const r of (resRows ?? []) as { plan_id: string }[]) {
+        resCountByBp.set(r.plan_id, (resCountByBp.get(r.plan_id) ?? 0) + 1);
+      }
+
       // 4. user's done count per blueprint (via adopted timeline steps)
       const { data: doneRows, error: doneErr } = await supabase
         .from('timeline_steps')
@@ -140,6 +152,7 @@ export function useSubscribedPlansForLibrary(interestId?: string | null) {
           stepCount,
           doneCount,
           subscriberCount: bp.subscriber_count ?? 0,
+          resourceCount: resCountByBp.get(bp.id) ?? 0,
           status,
           subscribedAt: subByBp.get(bp.id) ?? '',
         };
