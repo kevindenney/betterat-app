@@ -35,13 +35,6 @@ target 'BetterAt' do
       'ios'
     ]
   end
-# Google Maps for react-native-maps (added by withGoogleMaps plugin)
-rn_maps_path = File.dirname(`node --print "require.resolve('react-native-maps/package.json')"`)
-pod 'react-native-maps', path: rn_maps_path, subspecs: ['Google']
-pod 'GoogleMaps', '~> 9.0'
-pod 'Google-Maps-iOS-Utils', '~> 6.0'
-
-
 
   config = use_native_modules!(config_command)
 
