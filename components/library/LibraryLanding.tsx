@@ -56,7 +56,6 @@ export function LibraryLanding({ conceptsBody }: Props) {
   const [toolbarHeight, setToolbarHeight] = useState(0);
 
   const interestName = currentInterest?.name ?? 'your interest';
-  const lede = `Your understanding of ${interestName} — refined.`;
 
   const handleZoneChange = useCallback((next: LibraryZone) => {
     router.setParams({ zone: next === 'all' ? '' : next });
@@ -98,7 +97,13 @@ export function LibraryLanding({ conceptsBody }: Props) {
       <TabScreenToolbar
         title="Library"
         largeTitleBelow
-        subtitleContent={<Text style={styles.lede}>{lede}</Text>}
+        subtitleContent={
+          // Canonical italicizes only the interest name, not the whole
+          // sentence: "Your understanding of *sail racing* — refined."
+          <Text style={styles.lede}>
+            Your understanding of <Text style={styles.ledeEm}>{interestName}</Text> — refined.
+          </Text>
+        }
         topInset={insets.top}
         actions={[
           {
@@ -148,6 +153,8 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 18,
     color: IOS_COLORS.secondaryLabel,
+  },
+  ledeEm: {
     fontStyle: 'italic',
   },
   segmentContainer: {

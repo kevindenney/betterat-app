@@ -8,7 +8,7 @@
  */
 
 import React from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
 import type { SubscribedPlanRow } from '@/hooks/useSubscribedPlansForLibrary';
@@ -185,10 +185,20 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   title: {
-    fontSize: 16,
-    fontWeight: '700',
+    // Canonical uses a serif at weight 500 to give the title an
+    // editorial feel — the card reads as a "plan you're walking",
+    // not a list item. "Iowan Old Style" ships on iOS; Android falls
+    // back to its system serif.
+    fontFamily: Platform.select({
+      ios: 'Iowan Old Style',
+      android: 'serif',
+      default: 'serif',
+    }),
+    fontSize: 17,
+    fontWeight: '500',
+    letterSpacing: -0.2,
     color: IOS_COLORS.label,
-    lineHeight: 21,
+    lineHeight: 22,
   },
   progressRow: {
     flexDirection: 'row',
