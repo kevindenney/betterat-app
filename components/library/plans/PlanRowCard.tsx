@@ -49,7 +49,9 @@ export function PlanRowCard({ plan, onPress }: Props) {
           <Text style={styles.authorAvatarText}>{plan.authorInitials}</Text>
         </View>
         <Text style={styles.authorLine} numberOfLines={1}>
-          From <Text style={styles.authorName}>{plan.authorName}</Text> ·{' '}
+          From <Text style={styles.authorName}>{plan.authorName}</Text>
+          {plan.tagline ? ` · ${plan.tagline}` : ''}
+          {' · '}
           {plan.stepCount > 0 ? `${plan.stepCount} steps` : 'no steps yet'}
         </Text>
         <View style={[styles.pill, { backgroundColor: pill.bg }]}>
@@ -70,7 +72,7 @@ export function PlanRowCard({ plan, onPress }: Props) {
           <Text style={styles.progressMetaEm}>
             {plan.doneCount} of {plan.stepCount || '—'}
           </Text>
-          {plan.status === 'done' ? ' · done' : ''}
+          {plan.progressContext ? ` · ${plan.progressContext}` : ''}
         </Text>
       </View>
 

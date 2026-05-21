@@ -28,6 +28,8 @@ export interface SubscriberPreview {
 export interface SubscribedPlanRow {
   blueprintId: string;
   title: string;
+  /** Short theme phrase shown as middle segment of author line ("Worlds 2027 prep"). */
+  tagline: string | null;
   authorName: string;
   authorInitials: string;
   stepCount: number;
@@ -38,8 +40,36 @@ export interface SubscribedPlanRow {
   resourceCount: number;
   status: 'active' | 'done' | 'paused';
   subscribedAt: string;
+  /**
+   * Time-context tail for the progress row. Examples per canonical:
+   *   "Week 6 of 24" while mid-flight
+   *   "3 weeks left"  when ≤3 weeks remain
+   *   "done"          once all steps complete
+   *   null            if duration_weeks is unset on the blueprint
+   */
+  progressContext: string | null;
   /** Up to 3 most-recent OTHER subscribers, for the overlapping avatar stack. */
   subscriberPreviews: SubscriberPreview[];
+}
+
+function deriveProgressContext(
+  subscribedAt: string,
+  durationWeeks: number | null,
+  doneCount: number,
+  stepCount: number,
+): string | null {
+  if (stepCount > 0 && doneCount >= stepCount) return 'done';
+  if (!durationWeeks || durationWeeks <= 0) return null;
+  const subscribedMs = subscribedAt ? Date.parse(subscribedAt) : NaN;
+  if (Number.isNaN(subscribedMs)) return null;
+  const daysElapsed = (Date.now() - subscribedMs) / (1000 * 60 * 60 * 24);
+  const weekElapsed = Math.max(1, Math.floor(daysElapsed / 7) + 1);
+  const weeksRemaining = durationWeeks - weekElapsed + 1;
+  if (weeksRemaining <= 0) return 'overdue';
+  if (weeksRemaining <= 3) {
+    return weeksRemaining === 1 ? '1 week left' : `${weeksRemaining} weeks left`;
+  }
+  return `Week ${weekElapsed} of ${durationWeeks}`;
 }
 
 const PREVIEW_TINTS = [
@@ -75,7 +105,7 @@ export function useSubscribedPlansForLibrary(interestId?: string | null) {
       // 2. blueprint metadata + author
       let bpQuery = supabase
         .from('timeline_blueprints')
-        .select('id, title, user_id, interest_id, subscriber_count')
+        .select('id, title, tagline, duration_weeks, user_id, interest_id, subscriber_count')
         .in('id', blueprintIds)
         .eq('is_published', true);
       if (interestId) bpQuery = bpQuery.eq('interest_id', interestId);
@@ -207,6 +237,8 @@ export function useSubscribedPlansForLibrary(interestId?: string | null) {
       return (bps as {
         id: string;
         title: string;
+        tagline: string | null;
+        duration_weeks: number | null;
         user_id: string | null;
         subscriber_count: number | null;
       }[]).map<SubscribedPlanRow>((bp) => {
@@ -226,9 +258,11 @@ export function useSubscribedPlansForLibrary(interestId?: string | null) {
           };
         });
         const derivedSubscriberCount = (otherCountByBp.get(bp.id) ?? 0) + 1;
+        const subscribedAt = subByBp.get(bp.id) ?? '';
         return {
           blueprintId: bp.id,
           title: bp.title,
+          tagline: bp.tagline,
           authorName,
           authorInitials: initialsOf(authorName),
           stepCount,
@@ -236,7 +270,13 @@ export function useSubscribedPlansForLibrary(interestId?: string | null) {
           subscriberCount: bp.subscriber_count ?? derivedSubscriberCount,
           resourceCount: resCountByBp.get(bp.id) ?? 0,
           status,
-          subscribedAt: subByBp.get(bp.id) ?? '',
+          subscribedAt,
+          progressContext: deriveProgressContext(
+            subscribedAt,
+            bp.duration_weeks,
+            doneCount,
+            stepCount,
+          ),
           subscriberPreviews,
         };
       });
