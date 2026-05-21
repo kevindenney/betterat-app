@@ -20,6 +20,12 @@ export interface PlaybookLandingProps {
   onRefineInsight: (insightId: string) => void;
   onDiscardInsight: (insightId: string) => void;
   onOpenConcept: (conceptId: string) => void;
+  /**
+   * When true, suppress the inner "Playbook" h1 + stats hero. Used when
+   * this landing is embedded inside the Library shell, which provides its
+   * own hero — the inner one bleeds through as a duplicate title.
+   */
+  hideHero?: boolean;
 }
 
 export function PlaybookLanding({
@@ -31,18 +37,25 @@ export function PlaybookLanding({
   onRefineInsight,
   onDiscardInsight,
   onOpenConcept,
+  hideHero = false,
 }: PlaybookLandingProps) {
   const inDevelopment = concepts.filter((concept) => concept.state !== 'settled');
   const settled = concepts.filter((concept) => concept.state === 'settled');
 
   return (
     <View style={styles.wrap}>
-      <View style={styles.hero}>
-        <Text style={styles.title}>Playbook</Text>
-        <Text style={styles.stats}>
+      {hideHero ? (
+        <Text style={styles.statsAlone}>
           {stats.insights} insights · {stats.testing} testing · {stats.settled} settled
         </Text>
-      </View>
+      ) : (
+        <View style={styles.hero}>
+          <Text style={styles.title}>Playbook</Text>
+          <Text style={styles.stats}>
+            {stats.insights} insights · {stats.testing} testing · {stats.settled} settled
+          </Text>
+        </View>
+      )}
 
       <OnDeckBanner />
 
@@ -200,6 +213,13 @@ const styles = StyleSheet.create({
   stats: {
     fontSize: 15,
     color: '#3C3C43',
+  },
+  statsAlone: {
+    fontSize: 13,
+    color: '#3C3C43',
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 8,
   },
   section: {
     gap: 12,

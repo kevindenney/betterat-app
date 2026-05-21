@@ -79,6 +79,7 @@ function Phase6PlaybookLanding() {
   return (
     <ScrollView style={{ flex: 1, backgroundColor: '#F2F2F7' }} showsVerticalScrollIndicator={false}>
       <PlaybookLanding
+        hideHero
         stats={{
           insights: insights.length,
           testing: concepts.filter((concept) => concept.state === 'testing').length,

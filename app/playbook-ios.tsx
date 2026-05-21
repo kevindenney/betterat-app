@@ -194,27 +194,30 @@ export function PlaybookIosPreview({
 
         {!embedded && <PreviewBanner />}
 
-        {/* Title block — Books "Library" treatment */}
-        <View style={styles.titleBlock}>
-          <Text style={styles.title}>Your Playbook</Text>
-          <View style={styles.metaRow}>
-            <View style={styles.interestDot} />
-            <Text style={styles.titleMeta}>{interestName}</Text>
-            <View style={styles.metaSep} />
-            <Text style={styles.titleMeta}>
-              {conceptCount} {conceptCount === 1 ? 'concept' : 'concepts'}
-            </Text>
-            {reflections.length > 0 && (
-              <>
-                <View style={styles.metaSep} />
-                <Text style={styles.titleMeta}>
-                  {reflections.length}{' '}
-                  {reflections.length === 1 ? 'reflection' : 'reflections'}
-                </Text>
-              </>
-            )}
+        {/* Title block — suppressed when embedded inside the Library shell,
+            which provides its own hero. */}
+        {!embedded && (
+          <View style={styles.titleBlock}>
+            <Text style={styles.title}>Your Playbook</Text>
+            <View style={styles.metaRow}>
+              <View style={styles.interestDot} />
+              <Text style={styles.titleMeta}>{interestName}</Text>
+              <View style={styles.metaSep} />
+              <Text style={styles.titleMeta}>
+                {conceptCount} {conceptCount === 1 ? 'concept' : 'concepts'}
+              </Text>
+              {reflections.length > 0 && (
+                <>
+                  <View style={styles.metaSep} />
+                  <Text style={styles.titleMeta}>
+                    {reflections.length}{' '}
+                    {reflections.length === 1 ? 'reflection' : 'reflections'}
+                  </Text>
+                </>
+              )}
+            </View>
           </View>
-        </View>
+        )}
 
         {/* Vision card — frontispiece */}
         <View style={styles.visionCard}>
