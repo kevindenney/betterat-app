@@ -5,8 +5,38 @@
  * Shows offline status, sync progress, and provides caching methods.
  */
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { offlineService, OfflineStatus } from '@/services/offlineService';
+
+// The action surface (everything except the OfflineStatus fields) is bound
+// once at module load. Returning new `.bind()` references every render caused
+// any useEffect that listed these methods in its deps to re-fire infinitely,
+// which surfaced as a runaway-loop of /rest/v1/regattas requests from
+// races.tsx's cacheNextRace effect — see commit log.
+const offlineActions = {
+  cacheNextRace: offlineService.cacheNextRace.bind(offlineService),
+  cacheVenue: offlineService.cacheVenue.bind(offlineService),
+  setHomeVenue: offlineService.setHomeVenue.bind(offlineService),
+  cacheUpcomingRaces: offlineService.cacheUpcomingRaces.bind(offlineService),
+  cacheSailingDocuments: offlineService.cacheSailingDocuments.bind(offlineService),
+  cacheCourseVisualizations: offlineService.cacheCourseVisualizations.bind(offlineService),
+
+  getCachedRace: offlineService.getCachedRace.bind(offlineService),
+  getCachedVenue: offlineService.getCachedVenue.bind(offlineService),
+  getCachedStrategy: offlineService.getCachedStrategy.bind(offlineService),
+  getCachedTuningGuides: offlineService.getCachedTuningGuides.bind(offlineService),
+  getCachedWeather: offlineService.getCachedWeather.bind(offlineService),
+  getCachedUpcomingRaces: offlineService.getCachedUpcomingRaces.bind(offlineService),
+  getCachedDocuments: offlineService.getCachedDocuments.bind(offlineService),
+  getCachedVisualizations: offlineService.getCachedVisualizations.bind(offlineService),
+
+  saveGPSTrack: offlineService.saveGPSTrack.bind(offlineService),
+  logRaceEvent: offlineService.logRaceEvent.bind(offlineService),
+
+  forceSyncNow: offlineService.forceSyncNow.bind(offlineService),
+  clearExpiredCache: offlineService.clearExpiredCache.bind(offlineService),
+  clearCache: offlineService.clearCache.bind(offlineService),
+} as const;
 
 export function useOffline() {
   const [status, setStatus] = useState<OfflineStatus>({
@@ -25,13 +55,11 @@ export function useOffline() {
   }, []);
 
   useEffect(() => {
-    // Subscribe to offline status changes
     const unsubscribe = offlineService.subscribe((next) => {
       if (!isMountedRef.current) return;
       setStatus(next);
     });
 
-    // Get initial status
     void offlineService.getOfflineStatus().then((next) => {
       if (!isMountedRef.current) return;
       setStatus(next);
@@ -42,33 +70,5 @@ export function useOffline() {
     };
   }, []);
 
-  return {
-    ...status,
-    // Cache methods
-    cacheNextRace: offlineService.cacheNextRace.bind(offlineService),
-    cacheVenue: offlineService.cacheVenue.bind(offlineService),
-    setHomeVenue: offlineService.setHomeVenue.bind(offlineService),
-    cacheUpcomingRaces: offlineService.cacheUpcomingRaces.bind(offlineService),
-    cacheSailingDocuments: offlineService.cacheSailingDocuments.bind(offlineService),
-    cacheCourseVisualizations: offlineService.cacheCourseVisualizations.bind(offlineService),
-
-    // Cached data getters
-    getCachedRace: offlineService.getCachedRace.bind(offlineService),
-    getCachedVenue: offlineService.getCachedVenue.bind(offlineService),
-    getCachedStrategy: offlineService.getCachedStrategy.bind(offlineService),
-    getCachedTuningGuides: offlineService.getCachedTuningGuides.bind(offlineService),
-    getCachedWeather: offlineService.getCachedWeather.bind(offlineService),
-    getCachedUpcomingRaces: offlineService.getCachedUpcomingRaces.bind(offlineService),
-    getCachedDocuments: offlineService.getCachedDocuments.bind(offlineService),
-    getCachedVisualizations: offlineService.getCachedVisualizations.bind(offlineService),
-
-    // Race day operations
-    saveGPSTrack: offlineService.saveGPSTrack.bind(offlineService),
-    logRaceEvent: offlineService.logRaceEvent.bind(offlineService),
-
-    // Sync operations
-    forceSyncNow: offlineService.forceSyncNow.bind(offlineService),
-    clearExpiredCache: offlineService.clearExpiredCache.bind(offlineService),
-    clearCache: offlineService.clearCache.bind(offlineService),
-  };
+  return useMemo(() => ({ ...status, ...offlineActions }), [status]);
 }
