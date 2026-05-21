@@ -1,6 +1,5 @@
 export { useSailorDashboardData } from './useSailorDashboardData';
 export { useCoachDashboardData } from './useCoachDashboardData';
-export { useClubDashboardData } from './useClubDashboardData';
 export { useUserFleets, useFleetOverview, useFleetActivity } from './useFleetData';
 export { useFleetSuggestions, useTrendingFleets } from './useFleetDiscovery';
 export { useFleetResources } from './useFleetResources';
@@ -57,10 +56,6 @@ export type {
 export type {
   CoachDashboardData,
 } from './useCoachDashboardData';
-
-export type {
-  ClubDashboardData,
-} from './useClubDashboardData';
 
 // Equipment Flow for Cross-Race Tracking
 export { useEquipmentFlow } from './useEquipmentFlow';
