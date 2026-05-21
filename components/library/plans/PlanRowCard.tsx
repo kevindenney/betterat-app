@@ -18,13 +18,16 @@ interface Props {
   onPress: () => void;
 }
 
+// Canonical §2: ACTIVE pill is light-blue (in-progress), DONE is green
+// (a completed achievement reads as a win), PAUSED is muted gray.
+// Labels render uppercase like the canonical eyebrow.
 const STATUS_PILL: Record<
   SubscribedPlanRow['status'],
   { label: string; bg: string; fg: string }
 > = {
-  active: { label: 'Active', bg: 'rgba(52,199,89,0.14)', fg: '#10803F' },
-  done: { label: 'Done', bg: 'rgba(0,122,255,0.14)', fg: '#0048A2' },
-  paused: { label: 'Paused', bg: 'rgba(142,142,147,0.18)', fg: '#5C5C61' },
+  active: { label: 'ACTIVE', bg: 'rgba(0,122,255,0.12)', fg: '#0046A8' },
+  done: { label: 'DONE', bg: 'rgba(52,199,89,0.14)', fg: '#10803F' },
+  paused: { label: 'PAUSED', bg: 'rgba(142,142,147,0.18)', fg: '#5C5C61' },
 };
 
 export function PlanRowCard({ plan, onPress }: Props) {
@@ -69,24 +72,21 @@ export function PlanRowCard({ plan, onPress }: Props) {
       </View>
 
       <View style={styles.foot}>
-        <View style={styles.footLeft}>
+        <View style={styles.footItem}>
+          <Ionicons name="people-outline" size={13} color={IOS_COLORS.secondaryLabel} />
+          <Text style={styles.footText}>
+            <Text style={styles.footEm}>{plan.subscriberCount}</Text>{' '}
+            {plan.subscriberCount === 1 ? 'sailor' : 'sailors'}
+          </Text>
+        </View>
+        {plan.resourceCount > 0 ? (
           <View style={styles.footItem}>
-            <Ionicons name="people-outline" size={13} color={IOS_COLORS.secondaryLabel} />
+            <Ionicons name="library-outline" size={13} color={IOS_COLORS.secondaryLabel} />
             <Text style={styles.footText}>
-              <Text style={styles.footEm}>{plan.subscriberCount}</Text>{' '}
-              {plan.subscriberCount === 1 ? 'sailor' : 'sailors'}
+              <Text style={styles.footEm}>{plan.resourceCount}</Text> resources
             </Text>
           </View>
-          {plan.resourceCount > 0 ? (
-            <View style={styles.footItem}>
-              <Ionicons name="library-outline" size={13} color={IOS_COLORS.secondaryLabel} />
-              <Text style={styles.footText}>
-                <Text style={styles.footEm}>{plan.resourceCount}</Text> resources
-              </Text>
-            </View>
-          ) : null}
-        </View>
-        <Ionicons name="chevron-forward" size={14} color={IOS_COLORS.tertiaryLabel} />
+        ) : null}
       </View>
     </Pressable>
   );
@@ -100,12 +100,12 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     backgroundColor: '#FFFFFF',
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(60,60,67,0.18)',
+    borderColor: 'rgba(60,60,67,0.25)',
     shadowColor: '#000',
-    shadowOpacity: 0.04,
-    shadowOffset: { width: 0, height: 1 },
-    shadowRadius: 2,
-    elevation: 1,
+    shadowOpacity: 0.08,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 4,
+    elevation: 2,
     gap: 10,
   },
   cardPressed: {
@@ -187,11 +187,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   foot: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  footLeft: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
