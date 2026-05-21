@@ -99,7 +99,7 @@ export function AllZone({ counts, onJumpToZone }: AllZoneProps) {
       {/* Plans */}
       <View style={styles.section}>
         <SectionHeader
-          title="PLANS"
+          title="Plans"
           dotColor="#3B82F6"
           count={counts?.plans}
           onSeeAll={() => onJumpToZone('plans')}
@@ -128,7 +128,7 @@ export function AllZone({ counts, onJumpToZone }: AllZoneProps) {
       {/* Concepts */}
       <View style={styles.section}>
         <SectionHeader
-          title="CONCEPTS"
+          title="Concepts"
           dotColor="#A855F7"
           count={counts?.concepts}
           onSeeAll={() => onJumpToZone('concepts')}
@@ -162,7 +162,7 @@ export function AllZone({ counts, onJumpToZone }: AllZoneProps) {
       {/* Resources */}
       <View style={styles.section}>
         <SectionHeader
-          title="RESOURCES"
+          title="Resources"
           dotColor="#F59E0B"
           count={counts?.resources}
           onSeeAll={() => onJumpToZone('resources')}
@@ -214,9 +214,8 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   eyebrow: {
-    fontSize: 12,
-    fontWeight: '800',
-    letterSpacing: 0.8,
+    fontSize: 13,
+    fontWeight: '700',
     color: IOS_COLORS.label,
   },
   seeAllBtn: {
