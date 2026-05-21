@@ -19,6 +19,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
 import { TabScreenToolbar } from '@/components/ui/TabScreenToolbar';
 import { IOSSegmentedControl } from '@/components/ui/ios/IOSSegmentedControl';
+import { FLOATING_TAB_BAR_HEIGHT } from '@/components/navigation/FloatingTabBar';
 import { useUniversalPlus } from '@/components/capture';
 import { AllZone } from '@/components/library/zones/AllZone';
 import { PlansZone } from '@/components/library/zones/PlansZone';
@@ -79,7 +80,10 @@ export function LibraryLanding({ conceptsBody }: Props) {
         style={styles.body}
         contentContainerStyle={[
           styles.bodyContent,
-          { paddingTop: toolbarHeight + IOS_SPACING.md },
+          {
+            paddingTop: toolbarHeight + IOS_SPACING.md,
+            paddingBottom: FLOATING_TAB_BAR_HEIGHT + insets.bottom + IOS_SPACING.lg,
+          },
         ]}
       >
         {zone === 'all' ? (
@@ -149,7 +153,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   bodyContent: {
-    paddingBottom: IOS_SPACING.xl,
+    // paddingBottom set inline so it can incorporate safe-area + tab bar
   },
   // Canonical .lib-hero — full-width white hero band containing the
   // Library title, italic lede, and segmented zone tabs. NOT a floating
