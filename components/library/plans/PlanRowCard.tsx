@@ -10,12 +10,63 @@
 import React from 'react';
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
 import type { SubscribedPlanRow } from '@/hooks/useSubscribedPlansForLibrary';
 
 interface Props {
   plan: SubscribedPlanRow;
   onPress: () => void;
+}
+
+// Canonical .author-av / .av-stack .a backgrounds. Each variant is a
+// 135deg linear gradient between two muted brand-adjacent tones. We
+// deterministically pick a variant from a seed string (user id or
+// initials) so the same person always gets the same gradient.
+const AVATAR_GRADIENTS: readonly [string, string][] = [
+  ['#4E6A85', '#7C7B6E'], // slate -> olive (default)
+  ['#5A8C6A', '#3E6C4E'], // green
+  ['#7C5E9A', '#5C3F7A'], // purple
+  ['#6B5E48', '#4A3F2E'], // umber (subscriber-stack only in canonical)
+];
+
+function pickGradient(seed: string): readonly [string, string] {
+  let hash = 0;
+  for (let i = 0; i < seed.length; i++) {
+    hash = (hash * 31 + seed.charCodeAt(i)) | 0;
+  }
+  return AVATAR_GRADIENTS[Math.abs(hash) % AVATAR_GRADIENTS.length];
+}
+
+interface GradientAvatarProps {
+  seed: string;
+  initials: string;
+  size: number;
+  fontSize: number;
+  /** White ring around the avatar — used in overlapping subscriber stacks. */
+  ring?: boolean;
+}
+
+function GradientAvatar({ seed, initials, size, fontSize, ring }: GradientAvatarProps) {
+  const [from, to] = pickGradient(seed);
+  return (
+    <LinearGradient
+      colors={[from, to]}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
+      style={[
+        styles.gradientAvatar,
+        {
+          width: size,
+          height: size,
+          borderRadius: size / 2,
+          borderWidth: ring ? 1.5 : 0,
+        },
+      ]}
+    >
+      <Text style={[styles.gradientAvatarText, { fontSize }]}>{initials}</Text>
+    </LinearGradient>
+  );
 }
 
 // Canonical §2: ACTIVE pill is light-blue (in-progress), DONE is green
@@ -44,9 +95,12 @@ export function PlanRowCard({ plan, onPress }: Props) {
         accessibilityLabel={`Open ${plan.title}`}
       >
       <View style={styles.head}>
-        <View style={styles.authorAvatar}>
-          <Text style={styles.authorAvatarText}>{plan.authorInitials}</Text>
-        </View>
+        <GradientAvatar
+          seed={plan.authorName || plan.blueprintId}
+          initials={plan.authorInitials}
+          size={28}
+          fontSize={11}
+        />
         <Text style={styles.authorLine} numberOfLines={1}>
           From <Text style={styles.authorName}>{plan.authorName}</Text>
           {plan.tagline ? ` · ${plan.tagline}` : ''}
@@ -65,7 +119,12 @@ export function PlanRowCard({ plan, onPress }: Props) {
 
       <View style={styles.progressRow}>
         <View style={styles.progressTrack}>
-          <View style={[styles.progressFill, { width: `${progressPct}%` }]} />
+          <LinearGradient
+            colors={['#34C759', '#007AFF']}
+            start={{ x: 0, y: 0.5 }}
+            end={{ x: 1, y: 0.5 }}
+            style={[styles.progressFill, { width: `${progressPct}%` }]}
+          />
         </View>
         <Text style={styles.progressMeta}>
           <Text style={styles.progressMetaEm}>
@@ -82,12 +141,18 @@ export function PlanRowCard({ plan, onPress }: Props) {
               {plan.subscriberPreviews.map((s, i) => (
                 <View
                   key={s.id}
-                  style={[
-                    styles.stackAvatar,
-                    { backgroundColor: s.tint, marginLeft: i === 0 ? 0 : -6, zIndex: 10 - i },
-                  ]}
+                  style={{
+                    marginLeft: i === 0 ? 0 : -6,
+                    zIndex: 10 - i,
+                  }}
                 >
-                  <Text style={styles.stackAvatarText}>{s.initials}</Text>
+                  <GradientAvatar
+                    seed={s.id}
+                    initials={s.initials}
+                    size={20}
+                    fontSize={9}
+                    ring
+                  />
                 </View>
               ))}
             </View>
@@ -144,18 +209,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
   },
-  authorAvatar: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: '#E5E7EB',
+  gradientAvatar: {
     alignItems: 'center',
     justifyContent: 'center',
+    borderColor: '#FFFFFF',
   },
-  authorAvatarText: {
-    fontSize: 11,
+  gradientAvatarText: {
     fontWeight: '700',
-    color: '#374151',
+    color: '#FFFFFF',
   },
   authorLine: {
     flex: 1,
@@ -214,7 +275,7 @@ const styles = StyleSheet.create({
   },
   progressFill: {
     height: '100%',
-    backgroundColor: IOS_COLORS.systemBlue,
+    // Color comes from the inline LinearGradient — no backgroundColor.
   },
   progressMeta: {
     fontSize: 11,
@@ -246,19 +307,5 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginRight: 4,
-  },
-  stackAvatar: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1.5,
-    borderColor: '#FFFFFF',
-  },
-  stackAvatarText: {
-    fontSize: 9,
-    fontWeight: '700',
-    color: '#374151',
   },
 });
