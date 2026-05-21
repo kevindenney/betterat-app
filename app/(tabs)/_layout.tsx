@@ -832,30 +832,10 @@ function TabLayoutInner() {
             href: null,
           }}
         />
-        <Tabs.Screen
-          name="race/timer"
-          options={{
-            href: null,
-          }}
-        />
-        <Tabs.Screen
-          name="race/course"
-          options={{
-            href: null,
-          }}
-        />
-        <Tabs.Screen
-          name="race/strategy"
-          options={{
-            href: null,
-          }}
-        />
-        <Tabs.Screen
-          name="race/register/[id]"
-          options={{
-            href: null,
-          }}
-        />
+        {/* Wave 3 cleanup: race/timer, race/course, race/strategy,
+            race/register/[id], race-detail-demo, race-browser, and
+            affiliations were retired (zero remaining navigation/import
+            refs). See commit log for the inventory. */}
         <Tabs.Screen
           name="boat/[id]"
           options={{
@@ -876,12 +856,6 @@ function TabLayoutInner() {
         />
         <Tabs.Screen
           name="boats"
-          options={{
-            href: null,
-          }}
-        />
-        <Tabs.Screen
-          name="affiliations"
           options={{
             href: null,
           }}
@@ -916,18 +890,7 @@ function TabLayoutInner() {
             href: null,
           }}
         />
-        <Tabs.Screen
-          name="race-detail-demo"
-          options={{
-            href: null,
-          }}
-        />
-        <Tabs.Screen
-          name="race-browser"
-          options={{
-            href: null,
-          }}
-        />
+        {/* race-detail-demo and race-browser also retired in Wave 3 */}
 
         {/* Coach Tabs */}
         <Tabs.Screen
