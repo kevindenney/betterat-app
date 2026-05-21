@@ -196,10 +196,10 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   touchable: {
-    paddingVertical: IOS_SPACING.xxl,
-    paddingHorizontal: IOS_SPACING.xxl,
+    paddingVertical: 28,
+    paddingHorizontal: 28,
     borderRadius: 14,
-    gap: 16,
+    gap: 14,
   },
   touchablePressed: {
     opacity: 0.85,
