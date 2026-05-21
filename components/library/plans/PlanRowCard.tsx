@@ -196,10 +196,14 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   touchable: {
-    paddingVertical: IOS_SPACING.xl,
+    paddingVertical: IOS_SPACING.xxl,
     paddingHorizontal: IOS_SPACING.xl,
     borderRadius: 14,
-    gap: 12,
+    gap: 16,
+    // [DEBUG] tint so we can see where the card boundary is during
+    // the breathing-room comparison pass. Remove once design is signed off.
+    borderWidth: 1,
+    borderColor: 'rgba(255, 0, 80, 0.6)',
   },
   touchablePressed: {
     opacity: 0.85,
