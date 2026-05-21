@@ -47,9 +47,14 @@ export function ConceptCard({ state, title, whenLabel, meta, onPress }: ConceptC
 }
 
 const styles = StyleSheet.create({
+  // Outer View owns visible chrome AND inner padding. Pressable on
+  // Android can swallow padding when combined with shadow + bg, so we
+  // keep Pressable as a pure touch overlay and put spacing on the View.
   card: {
     backgroundColor: '#FFFFFF',
     borderRadius: 14,
+    paddingVertical: 20,
+    paddingHorizontal: 20,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: 'rgba(60,60,67,0.25)',
     borderLeftWidth: 2.5,
@@ -60,8 +65,6 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   touchable: {
-    paddingVertical: 24,
-    paddingHorizontal: 28,
     gap: 14,
   },
   touchablePressed: {

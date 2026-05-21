@@ -118,7 +118,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     backgroundColor: IOS_COLORS.systemGray5,
     borderRadius: 9,
-    padding: 2,
+    // Canonical .seg uses padding: 3 around the inner pills — 2 reads
+    // visibly tighter than the design mockup; 3 matches iOS native.
+    padding: 3,
     height: 36,
   },
   segment: {
@@ -158,7 +160,10 @@ const styles = StyleSheet.create({
   },
   selectedSegmentText: {
     fontWeight: '600',
-    color: IOS_REGISTER.accentUserAction,
+    // Canonical .seg .s.on uses var(--label) — primary dark text, the
+    // iOS UISegmentedControl convention. Earlier accentUserAction (blue)
+    // diverged from both the canonical mockup and native iOS behavior.
+    color: IOS_REGISTER.label,
   },
   // Inline count that follows the segment label. Quieter weight and
   // tertiary color so "Plans" reads as the word and "3" reads as a

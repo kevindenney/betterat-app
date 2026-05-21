@@ -179,14 +179,16 @@ export function PlanRowCard({ plan, onPress }: Props) {
 }
 
 const styles = StyleSheet.create({
-  // Outer View carries the visible chrome. Wrapping Pressable inside a
-  // View like this is the canonical RN pattern when the chrome includes
-  // shadow/elevation — Pressable's own background-rendering on Android
-  // can swallow shadow + border treatments.
+  // Outer View owns the visible chrome AND the inner padding. Pressable
+  // on Android doesn't reliably apply padding + backgroundColor + shadow
+  // together, so we keep the Pressable as a pure touch overlay and put
+  // all visual spacing on the wrapping View.
   card: {
     marginHorizontal: IOS_SPACING.lg,
     borderRadius: 14,
     backgroundColor: '#FFFFFF',
+    paddingVertical: 20,
+    paddingHorizontal: 20,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: 'rgba(60,60,67,0.25)',
     shadowColor: '#000',
@@ -196,8 +198,6 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   touchable: {
-    paddingVertical: 28,
-    paddingHorizontal: 28,
     borderRadius: 14,
     gap: 14,
   },
