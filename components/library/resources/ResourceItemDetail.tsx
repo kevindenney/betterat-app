@@ -10,8 +10,17 @@ import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
+import { showAlert } from '@/lib/utils/crossPlatformAlert';
+import { FLOATING_TAB_BAR_HEIGHT } from '@/components/navigation/FloatingTabBar';
 import { FORMAT_ICON, FORMAT_TINT } from './formatStyles';
 import type { BackRefRow, MarkedExcerpt, ResourceItemFull } from './types';
+
+// Most interactions on the resource detail screen don't have destinations
+// yet (no reader, no concept-from-mark wizard, no demo concept/step rows).
+// Stub them with a contextual coming-soon so the buttons feel alive and
+// the user knows what they would do.
+const comingSoon = (action: string) =>
+  showAlert(`${action}`, 'This action is on the roadmap — not wired up yet.');
 
 interface Props {
   item: ResourceItemFull;
@@ -34,12 +43,29 @@ export function ResourceItemDetail({ item }: Props) {
           <Text style={styles.backText}>Library</Text>
         </TouchableOpacity>
         <View style={styles.topbarRight}>
-          <Ionicons name="share-outline" size={20} color="#007AFF" />
-          <Ionicons name="ellipsis-horizontal" size={20} color="#007AFF" />
+          <TouchableOpacity
+            onPress={() => comingSoon('Share')}
+            hitSlop={8}
+            activeOpacity={0.6}
+          >
+            <Ionicons name="share-outline" size={20} color="#007AFF" />
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => comingSoon('More')}
+            hitSlop={8}
+            activeOpacity={0.6}
+          >
+            <Ionicons name="ellipsis-horizontal" size={20} color="#007AFF" />
+          </TouchableOpacity>
         </View>
       </View>
 
-      <ScrollView contentContainerStyle={styles.body}>
+      <ScrollView
+        contentContainerStyle={[
+          styles.body,
+          { paddingBottom: FLOATING_TAB_BAR_HEIGHT + insets.bottom + 24 },
+        ]}
+      >
         <View style={styles.head}>
           <View style={styles.fmtRow}>
             <View style={[styles.fmtChip, { backgroundColor: `${tint}1F` }]}>
@@ -59,15 +85,27 @@ export function ResourceItemDetail({ item }: Props) {
         </View>
 
         <View style={styles.actionsRow}>
-          <TouchableOpacity style={styles.action} activeOpacity={0.7}>
+          <TouchableOpacity
+            style={styles.action}
+            activeOpacity={0.7}
+            onPress={() => comingSoon('Read')}
+          >
             <Ionicons name="book-outline" size={16} color={IOS_COLORS.label} />
             <Text style={styles.actionText}>Read</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.action} activeOpacity={0.7}>
+          <TouchableOpacity
+            style={styles.action}
+            activeOpacity={0.7}
+            onPress={() => comingSoon('Listen')}
+          >
             <Ionicons name="headset-outline" size={16} color={IOS_COLORS.label} />
             <Text style={styles.actionText}>Listen</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.action} activeOpacity={0.7}>
+          <TouchableOpacity
+            style={styles.action}
+            activeOpacity={0.7}
+            onPress={() => comingSoon('Annotate')}
+          >
             <Ionicons name="brush-outline" size={16} color={IOS_COLORS.label} />
             <Text style={styles.actionText}>Annotate</Text>
           </TouchableOpacity>
@@ -76,7 +114,15 @@ export function ResourceItemDetail({ item }: Props) {
         <Text style={styles.sectionEyebrow}>Where this appears in your practice</Text>
         <View style={styles.usesList}>
           {item.backRefs.map((ref) => (
-            <BackRefRowView key={ref.id} ref_={ref} />
+            <BackRefRowView
+              key={ref.id}
+              ref_={ref}
+              onPress={() =>
+                comingSoon(
+                  ref.role === 'in_step' ? 'Open step' : 'Open concept',
+                )
+              }
+            />
           ))}
         </View>
 
@@ -94,7 +140,11 @@ export function ResourceItemDetail({ item }: Props) {
           </>
         ) : null}
 
-        <TouchableOpacity activeOpacity={0.7} style={styles.citeRow}>
+        <TouchableOpacity
+          activeOpacity={0.7}
+          style={styles.citeRow}
+          onPress={() => comingSoon('Cite as origin')}
+        >
           <View style={styles.citeIc}>
             <Ionicons name="sparkles" size={16} color="#5C2DAA" />
           </View>
@@ -111,13 +161,18 @@ export function ResourceItemDetail({ item }: Props) {
           />
         </TouchableOpacity>
 
-        <View style={styles.bottomPad} />
       </ScrollView>
     </View>
   );
 }
 
-function BackRefRowView({ ref_ }: { ref_: BackRefRow }) {
+function BackRefRowView({
+  ref_,
+  onPress,
+}: {
+  ref_: BackRefRow;
+  onPress: () => void;
+}) {
   const roleLabel = ref_.role === 'origin' ? 'Origin' : ref_.role === 'cited' ? 'Cited' : 'In step';
   const roleStyles = {
     origin: { bg: 'rgba(175,82,222,0.14)', color: '#5C2DAA' },
@@ -125,7 +180,7 @@ function BackRefRowView({ ref_ }: { ref_: BackRefRow }) {
     in_step: { bg: 'rgba(52,199,89,0.16)', color: '#1F8636' },
   }[ref_.role];
   return (
-    <TouchableOpacity activeOpacity={0.6} style={styles.useRow}>
+    <TouchableOpacity activeOpacity={0.6} style={styles.useRow} onPress={onPress}>
       <View
         style={[styles.roleChip, { backgroundColor: roleStyles.bg }]}
       >
@@ -184,7 +239,7 @@ const styles = StyleSheet.create({
     gap: IOS_SPACING.md,
   },
   body: {
-    paddingBottom: 24,
+    // paddingBottom set inline so it can incorporate safe-area + tab bar
   },
   head: {
     paddingHorizontal: IOS_SPACING.lg,
@@ -397,8 +452,5 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: IOS_COLORS.secondaryLabel,
     marginTop: 1,
-  },
-  bottomPad: {
-    height: 32,
   },
 });
