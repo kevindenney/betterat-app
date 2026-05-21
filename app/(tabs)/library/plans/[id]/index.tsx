@@ -265,12 +265,66 @@ export default function PlanDetailScreen() {
   const planId = typeof params.id === 'string' ? params.id : undefined;
   const { data: detail, isLoading } = usePlanDetail(planId);
 
-  // Fall back to the demo dataset when no plan-id is in the route (used
-  // by the Wave 2b debug routes) or when the row hasn't loaded yet.
-  const plan: PlanSummary = detail?.plan ?? HKDW_PLAN;
-  const steps: StepCardH[] = detail?.steps ?? HKDW_STEPS;
-  const subscribers: SubscriberRowData[] = detail?.subscribers ?? HKDW_SUBSCRIBERS;
-  const resources: PlanResourceRow[] = detail?.resources ?? HKDW_RESOURCES;
+  // Mock dataset is kept around only for the no-id debug route; real
+  // route hits always render the DB-backed plan or a "not found" card.
+  const isDemoRoute = !planId;
+  const plan: PlanSummary | undefined = detail?.plan ?? (isDemoRoute ? HKDW_PLAN : undefined);
+  const steps: StepCardH[] = detail?.steps ?? (isDemoRoute ? HKDW_STEPS : []);
+  const subscribers: SubscriberRowData[] =
+    detail?.subscribers ?? (isDemoRoute ? HKDW_SUBSCRIBERS : []);
+  const resources: PlanResourceRow[] =
+    detail?.resources ?? (isDemoRoute ? HKDW_RESOURCES : []);
+
+  // Real route with a resolved id but no DB row → show a not-found card.
+  if (!isDemoRoute && !isLoading && !plan) {
+    return (
+      <>
+        <Stack.Screen options={{ headerShown: false }} />
+        <View
+          style={[
+            styles.container,
+            { paddingTop: insets.top },
+          ]}
+        >
+          <View style={styles.topbar}>
+            <Pressable
+              onPress={() => (router.canGoBack() ? router.back() : router.replace('/library'))}
+              hitSlop={8}
+              style={styles.backBtn}
+            >
+              <Ionicons name="chevron-back" size={20} color="#007AFF" />
+              <Text style={styles.backText}>Library</Text>
+            </Pressable>
+          </View>
+          <View style={styles.notFoundCard}>
+            <Ionicons name="map-outline" size={28} color={IOS_COLORS.tertiaryLabel} />
+            <Text style={styles.notFoundTitle}>Plan not found</Text>
+            <Text style={styles.notFoundBlurb}>
+              This plan may have been removed, or you no longer have access to it.
+            </Text>
+          </View>
+        </View>
+      </>
+    );
+  }
+
+  if (!plan) {
+    return (
+      <>
+        <Stack.Screen options={{ headerShown: false }} />
+        <View
+          style={[
+            styles.container,
+            { paddingTop: insets.top },
+          ]}
+        >
+          <View style={styles.bodyCentered}>
+            <ActivityIndicator color={IOS_COLORS.tertiaryLabel} />
+          </View>
+        </View>
+      </>
+    );
+  }
 
   const counts = {
     steps: plan.stepCount,
@@ -420,6 +474,25 @@ const styles = StyleSheet.create({
     color: IOS_COLORS.secondaryLabel,
     paddingHorizontal: IOS_SPACING.lg,
     paddingVertical: IOS_SPACING.xl,
+    textAlign: 'center',
+  },
+  notFoundCard: {
+    margin: IOS_SPACING.md,
+    padding: IOS_SPACING.lg,
+    borderRadius: 14,
+    backgroundColor: IOS_COLORS.secondarySystemGroupedBackground,
+    alignItems: 'center',
+    gap: IOS_SPACING.sm,
+  },
+  notFoundTitle: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: IOS_COLORS.label,
+  },
+  notFoundBlurb: {
+    fontSize: 14,
+    lineHeight: 20,
+    color: IOS_COLORS.secondaryLabel,
     textAlign: 'center',
   },
 });

@@ -1,40 +1,43 @@
 /**
  * LibraryLanding — Library tab shell.
  *
- * Canonical §2/§6 layout:
- *   - Library hero (h1 + lede)
- *   - Segmented zone header (All · Plans · People · Concepts · Resources)
- *     with per-zone counts
- *   - Zone body: All renders four condensed sections; the per-zone tabs
- *     render their own landings.
+ * Top chrome matches the standard tab pattern used elsewhere in the app
+ * (TabScreenToolbar): interest switcher + search + universal-plus +
+ * profile avatar on the right; "Library" large title on the left with
+ * the canonical "Your understanding of X — refined." lede.
  *
- * The Concepts zone still embeds the legacy PlaybookLanding via the
- * `conceptsBody` prop — that surface keeps its existing internals for
- * now and will get a focused refactor once Plans + People zones are
- * fully wired.
+ * Below the toolbar, an iOS-style segmented pill switches between four
+ * zones (All / Plans / Concepts / Resources) per canonical §2. The
+ * People zone route still exists for cross-links but is no longer in
+ * the segmented strip.
  */
 
-import React, { useCallback } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import React, { useCallback, useState } from 'react';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { IOS_COLORS } from '@/lib/design-tokens-ios';
-import { LibraryHero } from '@/components/library/LibraryHero';
-import {
-  SegmentedZoneHeader,
-  type LibraryZone,
-} from '@/components/library/SegmentedZoneHeader';
+import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
+import { TabScreenToolbar } from '@/components/ui/TabScreenToolbar';
+import { IOSSegmentedControl } from '@/components/ui/ios/IOSSegmentedControl';
+import { useUniversalPlus } from '@/components/capture';
 import { AllZone } from '@/components/library/zones/AllZone';
 import { PlansZone } from '@/components/library/zones/PlansZone';
 import { PeopleZone } from '@/components/library/zones/PeopleZone';
 import { ResourcesZone } from '@/components/library/zones/ResourcesZone';
 import { useLibraryCounts } from '@/hooks/useLibraryCounts';
 import { useInterest } from '@/providers/InterestProvider';
+import type { LibraryZone } from '@/components/library/SegmentedZoneHeader';
 
 const VALID_ZONES: LibraryZone[] = ['all', 'plans', 'people', 'concepts', 'resources'];
+const SEGMENT_ZONES: { value: LibraryZone; label: string }[] = [
+  { value: 'all', label: 'All' },
+  { value: 'plans', label: 'Plans' },
+  { value: 'concepts', label: 'Concepts' },
+  { value: 'resources', label: 'Resources' },
+];
 
 interface Props {
-  /** Renders the Concepts/All zone body. Existing PlaybookLanding variants. */
+  /** Renders the Concepts zone body (Phase 6 PlaybookLanding variants). */
   conceptsBody: React.ReactNode;
 }
 
@@ -49,40 +52,77 @@ export function LibraryLanding({ conceptsBody }: Props) {
 
   const { currentInterest } = useInterest();
   const { data: counts } = useLibraryCounts(currentInterest?.id);
+  const universalPlus = useUniversalPlus();
+  const [toolbarHeight, setToolbarHeight] = useState(0);
+
+  const interestName = currentInterest?.name ?? 'your interest';
+  const lede = `Your understanding of ${interestName} — refined.`;
 
   const handleZoneChange = useCallback((next: LibraryZone) => {
     router.setParams({ zone: next === 'all' ? '' : next });
   }, []);
 
+  const segments = SEGMENT_ZONES.map((s) => ({
+    value: s.value,
+    label: s.label,
+    badge: s.value !== 'all' ? counts?.[s.value] : undefined,
+  }));
+
   return (
     <View style={styles.container}>
-      <View style={[styles.headerWrap, { paddingTop: insets.top }]}>
-        <LibraryHero interestName={currentInterest?.name} />
-        <SegmentedZoneHeader
-          zone={zone}
-          onChange={handleZoneChange}
-          counts={counts}
-        />
-      </View>
-      {zone === 'all' ? (
-        <ScrollView style={styles.body}>
+      <ScrollView
+        style={styles.body}
+        contentContainerStyle={[
+          styles.bodyContent,
+          { paddingTop: toolbarHeight + IOS_SPACING.md },
+        ]}
+      >
+        {zone === 'all' ? (
           <AllZone counts={counts} onJumpToZone={handleZoneChange} />
-        </ScrollView>
-      ) : zone === 'plans' ? (
-        <ScrollView style={styles.body}>
+        ) : zone === 'plans' ? (
           <PlansZone />
-        </ScrollView>
-      ) : zone === 'people' ? (
-        <ScrollView style={styles.body}>
+        ) : zone === 'people' ? (
           <PeopleZone />
-        </ScrollView>
-      ) : zone === 'resources' ? (
-        <ScrollView style={styles.body}>
+        ) : zone === 'resources' ? (
           <ResourcesZone />
-        </ScrollView>
-      ) : (
-        <View style={styles.body}>{conceptsBody}</View>
-      )}
+        ) : (
+          conceptsBody
+        )}
+      </ScrollView>
+
+      <TabScreenToolbar
+        title="Library"
+        subtitleContent={<Text style={styles.lede}>{lede}</Text>}
+        topInset={insets.top}
+        actions={[
+          {
+            icon: 'search-outline',
+            sfSymbol: 'magnifyingglass',
+            label: 'Search library',
+            onPress: () => router.push('/search?context=library' as never),
+          },
+          ...(universalPlus.isAvailable
+            ? [
+                {
+                  icon: 'add-outline',
+                  sfSymbol: 'plus',
+                  label: 'Add',
+                  onPress: () => universalPlus.open(),
+                },
+              ]
+            : []),
+        ]}
+        onMeasuredHeight={setToolbarHeight}
+        backgroundColor="rgba(242, 242, 247, 0.94)"
+      >
+        <View style={styles.segmentContainer}>
+          <IOSSegmentedControl
+            segments={segments}
+            selectedValue={zone === 'people' ? 'all' : zone}
+            onValueChange={(v) => handleZoneChange(v as LibraryZone)}
+          />
+        </View>
+      </TabScreenToolbar>
     </View>
   );
 }
@@ -92,12 +132,20 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: IOS_COLORS.systemGroupedBackground,
   },
-  headerWrap: {
-    backgroundColor: IOS_COLORS.systemBackground,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: 'rgba(60,60,67,0.18)',
-  },
   body: {
     flex: 1,
+  },
+  bodyContent: {
+    paddingBottom: IOS_SPACING.xl,
+  },
+  lede: {
+    fontSize: 13,
+    lineHeight: 18,
+    color: IOS_COLORS.secondaryLabel,
+    fontStyle: 'italic',
+  },
+  segmentContainer: {
+    paddingHorizontal: IOS_SPACING.md,
+    paddingBottom: IOS_SPACING.sm,
   },
 });
