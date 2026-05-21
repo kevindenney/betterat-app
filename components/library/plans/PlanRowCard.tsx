@@ -73,7 +73,23 @@ export function PlanRowCard({ plan, onPress }: Props) {
 
       <View style={styles.foot}>
         <View style={styles.footItem}>
-          <Ionicons name="people-outline" size={13} color={IOS_COLORS.secondaryLabel} />
+          {plan.subscriberPreviews.length > 0 ? (
+            <View style={styles.avatarStack}>
+              {plan.subscriberPreviews.map((s, i) => (
+                <View
+                  key={s.id}
+                  style={[
+                    styles.stackAvatar,
+                    { backgroundColor: s.tint, marginLeft: i === 0 ? 0 : -6, zIndex: 10 - i },
+                  ]}
+                >
+                  <Text style={styles.stackAvatarText}>{s.initials}</Text>
+                </View>
+              ))}
+            </View>
+          ) : (
+            <Ionicons name="people-outline" size={13} color={IOS_COLORS.secondaryLabel} />
+          )}
           <Text style={styles.footText}>
             <Text style={styles.footEm}>{plan.subscriberCount}</Text>{' '}
             {plan.subscriberCount === 1 ? 'sailor' : 'sailors'}
@@ -203,5 +219,24 @@ const styles = StyleSheet.create({
   footEm: {
     color: IOS_COLORS.label,
     fontWeight: '600',
+  },
+  avatarStack: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: 4,
+  },
+  stackAvatar: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1.5,
+    borderColor: '#FFFFFF',
+  },
+  stackAvatarText: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: '#374151',
   },
 });

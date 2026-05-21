@@ -17,6 +17,13 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/services/supabase';
 import { useAuth } from '@/providers/AuthProvider';
 
+export interface SubscriberPreview {
+  id: string;
+  initials: string;
+  /** rgba string used as the avatar background tint. */
+  tint: string;
+}
+
 export interface SubscribedPlanRow {
   blueprintId: string;
   title: string;
@@ -30,7 +37,18 @@ export interface SubscribedPlanRow {
   resourceCount: number;
   status: 'active' | 'done' | 'paused';
   subscribedAt: string;
+  /** Up to 3 most-recent OTHER subscribers, for the overlapping avatar stack. */
+  subscriberPreviews: SubscriberPreview[];
 }
+
+const PREVIEW_TINTS = [
+  'rgba(0,122,255,0.18)',
+  'rgba(52,199,89,0.18)',
+  'rgba(255,149,0,0.18)',
+  'rgba(175,82,222,0.18)',
+  'rgba(255,59,48,0.18)',
+];
+const PREVIEW_LIMIT = 3;
 
 function initialsOf(name: string | null | undefined): string {
   if (!name) return '?';
@@ -124,6 +142,57 @@ export function useSubscribedPlansForLibrary(interestId?: string | null) {
         }
       }
 
+      // 5. Subscriber previews — pull the most recent OTHER subscribers
+      //    per blueprint (top 3) for the overlapping avatar stack. Single
+      //    query sorted desc; we group client-side and slice 3 per bp
+      //    since Supabase has no "limit per group" primitive.
+      const { data: previewSubs } = await supabase
+        .from('blueprint_subscriptions')
+        .select('blueprint_id, subscriber_id, subscribed_at')
+        .in('blueprint_id', blueprintIds)
+        .neq('subscriber_id', userId)
+        .order('subscribed_at', { ascending: false });
+
+      const previewsByBp = new Map<string, string[]>();
+      for (const r of (previewSubs ?? []) as {
+        blueprint_id: string;
+        subscriber_id: string;
+      }[]) {
+        const list = previewsByBp.get(r.blueprint_id) ?? [];
+        if (list.length < PREVIEW_LIMIT) {
+          list.push(r.subscriber_id);
+          previewsByBp.set(r.blueprint_id, list);
+        }
+      }
+
+      const previewUserIds = Array.from(
+        new Set(Array.from(previewsByBp.values()).flat()),
+      );
+      const previewNameByUser = new Map<string, string>();
+      const previewTintByUser = new Map<string, string>();
+      if (previewUserIds.length > 0) {
+        const [{ data: previewUsers }, { data: previewSailors }] = await Promise.all([
+          supabase.from('users').select('id, full_name, email').in('id', previewUserIds),
+          supabase
+            .from('sailor_profiles')
+            .select('user_id, avatar_color')
+            .in('user_id', previewUserIds),
+        ]);
+        for (const u of (previewUsers ?? []) as {
+          id: string;
+          full_name: string | null;
+          email: string | null;
+        }[]) {
+          previewNameByUser.set(u.id, u.full_name || u.email || 'Anonymous');
+        }
+        for (const s of (previewSailors ?? []) as {
+          user_id: string;
+          avatar_color: string | null;
+        }[]) {
+          if (s.avatar_color) previewTintByUser.set(s.user_id, s.avatar_color);
+        }
+      }
+
       // Merge into final rows
       const subByBp = new Map<string, string>(
         (subs as { blueprint_id: string; subscribed_at: string }[]).map((s) => [
@@ -144,6 +213,15 @@ export function useSubscribedPlansForLibrary(interestId?: string | null) {
         const doneCount = doneByBp.get(bp.id) ?? 0;
         const status: SubscribedPlanRow['status'] =
           stepCount > 0 && doneCount >= stepCount ? 'done' : 'active';
+        const previewIds = previewsByBp.get(bp.id) ?? [];
+        const subscriberPreviews: SubscriberPreview[] = previewIds.map((sid, i) => {
+          const name = previewNameByUser.get(sid) || 'Anonymous';
+          return {
+            id: sid,
+            initials: initialsOf(name),
+            tint: previewTintByUser.get(sid) || PREVIEW_TINTS[i % PREVIEW_TINTS.length],
+          };
+        });
         return {
           blueprintId: bp.id,
           title: bp.title,
@@ -155,6 +233,7 @@ export function useSubscribedPlansForLibrary(interestId?: string | null) {
           resourceCount: resCountByBp.get(bp.id) ?? 0,
           status,
           subscribedAt: subByBp.get(bp.id) ?? '',
+          subscriberPreviews,
         };
       });
     },
