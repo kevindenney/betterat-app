@@ -22,6 +22,38 @@ import type { BackRefRow, MarkedExcerpt, ResourceItemFull } from './types';
 const comingSoon = (action: string) =>
   showAlert(`${action}`, 'This action is on the roadmap — not wired up yet.');
 
+// useLibraryItemDetail encodes back-ref targets as `${role}-${uuid}` in
+// BackRefRow.id; demoItems.ts uses semantic slugs like `origin-lactate-
+// perfusion` for the hardcoded MSN-Capstone cards. Real UUIDs we can
+// route; slugs fall through to a coming-soon explaining the demo gap.
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function extractTargetUuid(refId: string): string | null {
+  // Strip the leading role prefix: origin-, cited-, step-, in_step-.
+  const stripped = refId.replace(/^(origin|cited|step|in_step)-/, '');
+  return UUID_RE.test(stripped) ? stripped : null;
+}
+
+function handleBackRefPress(ref: BackRefRow) {
+  const uuid = extractTargetUuid(ref.id);
+  if (uuid) {
+    if (ref.role === 'in_step') {
+      router.push(`/step/${uuid}` as never);
+    } else {
+      router.push(`/(tabs)/library/concept/${uuid}` as never);
+    }
+    return;
+  }
+  // Demo back-ref — no real route to take. Tell the user it's demo-only
+  // so the dead-tap doesn't read like a bug.
+  showAlert(
+    ref.title,
+    ref.role === 'in_step'
+      ? 'This is a demo back-reference; opening real steps from a resource works once the item is attached to a step you own.'
+      : 'This is a demo back-reference; concept detail will open once this concept exists in your library.',
+  );
+}
+
 interface Props {
   item: ResourceItemFull;
 }
@@ -117,14 +149,7 @@ export function ResourceItemDetail({ item }: Props) {
             <BackRefRowView
               key={ref.id}
               ref_={ref}
-              onPress={() =>
-                showAlert(
-                  ref.title,
-                  ref.role === 'in_step'
-                    ? 'Opening a step from a resource is on the roadmap — not built yet.'
-                    : 'Concept detail from a resource back-ref is on the roadmap — not built yet.',
-                )
-              }
+              onPress={() => handleBackRefPress(ref)}
             />
           ))}
         </View>
