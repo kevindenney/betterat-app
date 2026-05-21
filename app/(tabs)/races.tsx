@@ -2657,14 +2657,20 @@ export default function RacesScreen() {
   // Venue insights handlers (loadCachedInsights, handleGetVenueInsights) and
   // related effects are now managed by useVenueInsights hook above
 
-  // Cache next race for offline use when it loads
+  // Cache next race for offline use when it loads.
+  // cacheNextRace fans out to regattas + race_strategies + sailor_profiles
+  // + sailor_boats + tuning_guides — entirely sail-racing tables. On other
+  // interests (Drawing, Nursing, etc.) the pipeline only generates dead
+  // queries against tables that don't apply, so gate the entire effect on
+  // the sailing interest.
   React.useEffect(() => {
+    if (currentInterest?.slug !== 'sail-racing') return;
     if (nextRace && user) {
       cacheNextRace(nextRace.id, user.id).catch(err =>
         logger.error('Failed to cache race:', err)
       );
     }
-  }, [nextRace, user, cacheNextRace]);
+  }, [nextRace, user, cacheNextRace, currentInterest?.slug]);
 
   // Auto-select first race when races load (only runs once when loading completes)
   // Using useRef to track if auto-selection has happened to prevent re-running
