@@ -7,6 +7,7 @@
 import { useCallback } from 'react';
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { supabase } from '@/services/supabase';
+import { showAlert } from '@/lib/utils/crossPlatformAlert';
 import type { BeforeShiftItem } from '@/components/step/v2/plan/BeforeTheShiftCard';
 import type { LibraryFormat } from '@/components/library/resources/types';
 
@@ -123,8 +124,18 @@ export function useLibraryBeforeBinding(stepId: string | undefined) {
     },
     [items, toggle]
   );
+  // BeforeTheShiftCard's "+ Add from library" footer needs an onPress to
+  // not look dead. A real picker that inserts into step_library_before is
+  // the proper next step (see docs/roadmap/library-phase11-followups.md);
+  // until then, stub with a coming-soon so the button feels alive.
+  const onAddFromLibrary = useCallback(() => {
+    showAlert(
+      'Add from library',
+      'Picker that attaches library items to this step is on the roadmap — not wired up yet.',
+    );
+  }, []);
   const totalEstimate = computeTotalEstimate(items);
-  return { items, onToggle, totalEstimate };
+  return { items, onToggle, onAddFromLibrary, totalEstimate };
 }
 
 function computeTotalEstimate(items: BeforeShiftItem[]): string | undefined {
