@@ -118,8 +118,11 @@ export function ResourceItemDetail({ item }: Props) {
               key={ref.id}
               ref_={ref}
               onPress={() =>
-                comingSoon(
-                  ref.role === 'in_step' ? 'Open step' : 'Open concept',
+                showAlert(
+                  ref.title,
+                  ref.role === 'in_step'
+                    ? 'Opening a step from a resource is on the roadmap — not built yet.'
+                    : 'Concept detail from a resource back-ref is on the roadmap — not built yet.',
                 )
               }
             />
