@@ -132,10 +132,10 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   touchable: {
-    paddingVertical: IOS_SPACING.md,
-    paddingHorizontal: IOS_SPACING.md,
+    paddingVertical: IOS_SPACING.lg,
+    paddingHorizontal: IOS_SPACING.lg,
     borderRadius: 14,
-    gap: 10,
+    gap: 12,
   },
   touchablePressed: {
     opacity: 0.85,

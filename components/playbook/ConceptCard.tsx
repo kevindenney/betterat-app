@@ -60,9 +60,9 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   touchable: {
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    gap: 6,
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+    gap: 8,
   },
   touchablePressed: {
     opacity: 0.85,
