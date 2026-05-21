@@ -68,7 +68,8 @@ export function LibraryLanding({ conceptsBody }: Props) {
     const count = s.value !== 'all' ? counts?.[s.value] : undefined;
     return {
       value: s.value,
-      label: count != null ? `${s.label}  ${count}` : s.label,
+      label: s.label,
+      count,
     };
   });
 
@@ -97,6 +98,7 @@ export function LibraryLanding({ conceptsBody }: Props) {
       <TabScreenToolbar
         title="Library"
         largeTitleBelow
+        interestSwitcherLeft
         subtitleContent={
           // Canonical italicizes only the interest name, not the whole
           // sentence: "Your understanding of *sail racing* — refined."
@@ -126,7 +128,7 @@ export function LibraryLanding({ conceptsBody }: Props) {
         onMeasuredHeight={setToolbarHeight}
         backgroundColor="rgba(242, 242, 247, 0.94)"
       >
-        <View style={styles.segmentContainer}>
+        <View style={styles.segmentCard}>
           <IOSSegmentedControl
             segments={segments}
             selectedValue={zone === 'people' ? 'all' : zone}
@@ -157,8 +159,22 @@ const styles = StyleSheet.create({
   ledeEm: {
     fontStyle: 'italic',
   },
-  segmentContainer: {
-    paddingHorizontal: IOS_SPACING.md,
-    paddingBottom: IOS_SPACING.sm,
+  // White container wrapping the segmented zone tabs — gives the
+  // "Library + four tabs in a single card" feel from the canonical mock.
+  segmentCard: {
+    marginHorizontal: IOS_SPACING.lg,
+    marginTop: IOS_SPACING.sm,
+    marginBottom: IOS_SPACING.md,
+    paddingHorizontal: IOS_SPACING.sm,
+    paddingVertical: IOS_SPACING.sm,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(60,60,67,0.15)',
+    shadowColor: '#000',
+    shadowOpacity: 0.04,
+    shadowOffset: { width: 0, height: 1 },
+    shadowRadius: 3,
+    elevation: 1,
   },
 });

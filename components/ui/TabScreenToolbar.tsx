@@ -92,6 +92,13 @@ export interface TabScreenToolbarProps {
    * Library landing layout this enables.
    */
   largeTitleBelow?: boolean;
+  /**
+   * Render the interest switcher on the LEFT side of the nav row,
+   * separate from the right-side action capsule + profile avatar.
+   * Defaults to false (legacy behavior: switcher lives in the right
+   * cluster). Library landing opts in to match canonical.
+   */
+  interestSwitcherLeft?: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -173,6 +180,7 @@ export function TabScreenToolbar({
   onMeasuredHeight,
   hidden = false,
   largeTitleBelow = false,
+  interestSwitcherLeft = false,
 }: TabScreenToolbarProps) {
   const { isDrawerOpen, openDrawer } = useWebDrawer();
 
@@ -244,6 +252,14 @@ export function TabScreenToolbar({
             </View>
           </Pressable>
         )}
+        {/* Optional: interest switcher on the LEFT side (canonical Library
+            layout). When set, the switcher is removed from the right
+            cluster below and sits as the first thing in the nav row. */}
+        {interestSwitcherLeft && (
+          <View style={styles.leftSwitcherSection}>
+            <InterestSwitcher />
+          </View>
+        )}
         {/* Left: title (hidden in largeTitleBelow mode — rendered as its own
             row below the nav row instead, so the interest switcher gets
             the full leading edge). */}
@@ -267,9 +283,10 @@ export function TabScreenToolbar({
           </View>
         )}
 
-        {/* Right: interest switcher + custom content or default action capsule + profile avatar */}
+        {/* Right: interest switcher (unless hoisted to left) + custom
+            content or default action capsule + profile avatar */}
         <View style={styles.rightSection}>
-          <InterestSwitcher />
+          {!interestSwitcherLeft && <InterestSwitcher />}
           {rightContent
             ? rightContent
             : hasActions && (
@@ -365,7 +382,14 @@ const styles = StyleSheet.create({
     // On web, add extra top padding since there's no safe area inset
     paddingTop: Platform.OS === 'web' ? 20 : 12,
     paddingBottom: Platform.OS === 'web' ? 12 : 4,
-    paddingHorizontal: 16,
+    paddingHorizontal: 20,
+  },
+
+  // Interest switcher when hoisted to the LEFT side of the nav row
+  // (canonical Library layout). Stays separate from the right cluster
+  // so the search/add/avatar capsule can still right-align.
+  leftSwitcherSection: {
+    marginRight: 'auto',
   },
 
   // Apple HIG-style sidebar toggle button (matches macOS window chrome)

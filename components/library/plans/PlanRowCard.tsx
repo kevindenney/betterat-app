@@ -196,8 +196,8 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   touchable: {
-    paddingVertical: IOS_SPACING.lg,
-    paddingHorizontal: IOS_SPACING.lg,
+    paddingVertical: IOS_SPACING.xl,
+    paddingHorizontal: IOS_SPACING.xl,
     borderRadius: 14,
     gap: 12,
   },
@@ -246,7 +246,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   title: {
-    // Canonical uses a serif at weight 500 to give the title an
+    // Canonical uses a serif at regular weight to give the title an
     // editorial feel — the card reads as a "plan you're walking",
     // not a list item. "Iowan Old Style" ships on iOS; Android falls
     // back to its system serif.
@@ -256,7 +256,7 @@ const styles = StyleSheet.create({
       default: 'serif',
     }),
     fontSize: 17,
-    fontWeight: '500',
+    fontWeight: '400',
     letterSpacing: -0.2,
     color: IOS_COLORS.label,
     lineHeight: 22,

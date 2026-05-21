@@ -19,6 +19,12 @@ interface SegmentWithKey {
 interface SegmentWithValue<T extends string = string> {
   value: T;
   label: string;
+  /**
+   * Optional count to render inline AFTER the label in a quieter weight
+   * — gives the canonical "Plans 3" treatment where the word and count
+   * read as visually distinct types.
+   */
+  count?: number;
   badge?: number;
 }
 
@@ -81,6 +87,12 @@ export function IOSSegmentedControl<T extends string = string>({
                 numberOfLines={1}
               >
                 {segment.label}
+                {'count' in segment && segment.count != null && (
+                  <Text style={styles.segmentCount}>
+                    {' '}
+                    {segment.count}
+                  </Text>
+                )}
               </Text>
               {segment.badge != null && segment.badge > 0 && (
                 <View style={styles.badge}>
@@ -147,6 +159,13 @@ const styles = StyleSheet.create({
   selectedSegmentText: {
     fontWeight: '600',
     color: IOS_REGISTER.accentUserAction,
+  },
+  // Inline count that follows the segment label. Quieter weight and
+  // tertiary color so "Plans" reads as the word and "3" reads as a
+  // secondary annotation.
+  segmentCount: {
+    fontWeight: '400',
+    color: IOS_REGISTER.labelTertiary,
   },
   badge: {
     backgroundColor: IOS_REGISTER.accentMarkedContent,
