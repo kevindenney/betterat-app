@@ -56,7 +56,12 @@ export interface ToolbarAction {
 }
 
 export interface TabScreenToolbarProps {
-  title: string;
+  /**
+   * Large title shown in the nav row (or below it if `largeTitleBelow` is
+   * set). Omit / pass empty string when the consumer is rendering its own
+   * heading inside a `children` card (e.g. Library's lib-hero pattern).
+   */
+  title?: string;
   subtitle?: string;
   /** Custom subtitle content — replaces the default text rendering */
   subtitleContent?: React.ReactNode;
@@ -262,8 +267,9 @@ export function TabScreenToolbar({
         )}
         {/* Left: title (hidden in largeTitleBelow mode — rendered as its own
             row below the nav row instead, so the interest switcher gets
-            the full leading edge). */}
-        {!largeTitleBelow && (
+            the full leading edge). Skipped entirely when no title is
+            supplied (consumer is rendering their own heading). */}
+        {!largeTitleBelow && title ? (
           <View style={styles.titleSection}>
             <Text
               style={styles.largeTitle}
@@ -281,7 +287,7 @@ export function TabScreenToolbar({
               />
             )}
           </View>
-        )}
+        ) : null}
 
         {/* Right: interest switcher (unless hoisted to left) + custom
             content or default action capsule + profile avatar */}
@@ -304,9 +310,10 @@ export function TabScreenToolbar({
       </View>
 
       {/* Large-title row (iOS HIG Large Title pattern). When largeTitleBelow
-          is set, the title renders on its own full-width row below the nav
-          row, mirroring the canonical Library hero layout. */}
-      {largeTitleBelow && (
+          is set AND a title is supplied, the title renders on its own
+          full-width row below the nav row, mirroring the canonical Library
+          hero layout. */}
+      {largeTitleBelow && title ? (
         <View style={styles.largeTitleRow}>
           <Text
             style={styles.largeTitle}
@@ -324,7 +331,7 @@ export function TabScreenToolbar({
             />
           )}
         </View>
-      )}
+      ) : null}
 
       {/* Subtitle row — below the nav row so it doesn't compete for horizontal space */}
       {subtitleContent ? (

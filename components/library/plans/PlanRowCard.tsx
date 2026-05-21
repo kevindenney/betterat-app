@@ -197,7 +197,7 @@ const styles = StyleSheet.create({
   },
   touchable: {
     paddingVertical: IOS_SPACING.xxl,
-    paddingHorizontal: IOS_SPACING.xl,
+    paddingHorizontal: IOS_SPACING.xxl,
     borderRadius: 14,
     gap: 16,
   },

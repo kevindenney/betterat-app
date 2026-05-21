@@ -95,17 +95,13 @@ export function LibraryLanding({ conceptsBody }: Props) {
         )}
       </ScrollView>
 
+      {/* Canonical pattern: action row (no title) sits as system chrome
+          above a unified white "lib-hero" card. The hero card holds the
+          Library title + lede + segmented control so the three read as
+          one chunk per canonical §2 — not as three independent floating
+          elements on the gray background. */}
       <TabScreenToolbar
-        title="Library"
-        largeTitleBelow
         interestSwitcherLeft
-        subtitleContent={
-          // Canonical italicizes only the interest name, not the whole
-          // sentence: "Your understanding of *sail racing* — refined."
-          <Text style={styles.lede}>
-            Your understanding of <Text style={styles.ledeEm}>{interestName}</Text> — refined.
-          </Text>
-        }
         topInset={insets.top}
         actions={[
           {
@@ -128,7 +124,11 @@ export function LibraryLanding({ conceptsBody }: Props) {
         onMeasuredHeight={setToolbarHeight}
         backgroundColor="rgba(242, 242, 247, 0.94)"
       >
-        <View style={styles.segmentCard}>
+        <View style={styles.heroCard}>
+          <Text style={styles.heroTitle}>Library</Text>
+          <Text style={styles.lede}>
+            Your understanding of <Text style={styles.ledeEm}>{interestName}</Text> — refined.
+          </Text>
           <IOSSegmentedControl
             segments={segments}
             selectedValue={zone === 'people' ? 'all' : zone}
@@ -151,6 +151,34 @@ const styles = StyleSheet.create({
   bodyContent: {
     paddingBottom: IOS_SPACING.xl,
   },
+  // Canonical .lib-hero — single white card containing the Library title,
+  // italic lede, and segmented zone tabs. They read as one chunk per
+  // canonical §2 instead of three separate floating elements.
+  heroCard: {
+    marginHorizontal: IOS_SPACING.lg,
+    marginTop: IOS_SPACING.sm,
+    marginBottom: IOS_SPACING.md,
+    paddingHorizontal: IOS_SPACING.lg,
+    paddingTop: IOS_SPACING.md,
+    paddingBottom: IOS_SPACING.lg,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(60,60,67,0.15)',
+    shadowColor: '#000',
+    shadowOpacity: 0.06,
+    shadowOffset: { width: 0, height: 1 },
+    shadowRadius: 3,
+    elevation: 1,
+    gap: IOS_SPACING.sm,
+  },
+  heroTitle: {
+    fontSize: 28,
+    fontWeight: '700',
+    letterSpacing: -0.6,
+    lineHeight: 32,
+    color: IOS_COLORS.label,
+  },
   lede: {
     fontSize: 13,
     lineHeight: 18,
@@ -158,23 +186,5 @@ const styles = StyleSheet.create({
   },
   ledeEm: {
     fontStyle: 'italic',
-  },
-  // White container wrapping the segmented zone tabs — gives the
-  // "Library + four tabs in a single card" feel from the canonical mock.
-  segmentCard: {
-    marginHorizontal: IOS_SPACING.lg,
-    marginTop: IOS_SPACING.sm,
-    marginBottom: IOS_SPACING.md,
-    paddingHorizontal: IOS_SPACING.sm,
-    paddingVertical: IOS_SPACING.sm,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(60,60,67,0.15)',
-    shadowColor: '#000',
-    shadowOpacity: 0.04,
-    shadowOffset: { width: 0, height: 1 },
-    shadowRadius: 3,
-    elevation: 1,
   },
 });
