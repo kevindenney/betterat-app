@@ -18,18 +18,17 @@ interface Props {
   onPress: () => void;
 }
 
-// Canonical §2: Active pill is light-blue (in-progress), Done is green
-// (a completed achievement reads as a win), Paused is muted gray.
-// Labels render title-case to match the canonical mock — the
-// surrounding badge dot + tint is what carries the status signal, not
-// shout-y all-caps text.
+// Canonical §2: ACTIVE pill is light-blue (in-progress), DONE is green
+// (a completed achievement reads as a win), PAUSED is muted gray.
+// Labels render uppercase via CSS text-transform in the canonical
+// mock (.zone-head .ttl + .badge text-transform: uppercase).
 const STATUS_PILL: Record<
   SubscribedPlanRow['status'],
   { label: string; bg: string; fg: string }
 > = {
-  active: { label: 'Active', bg: 'rgba(0,122,255,0.12)', fg: '#0046A8' },
-  done: { label: 'Done', bg: 'rgba(52,199,89,0.14)', fg: '#10803F' },
-  paused: { label: 'Paused', bg: 'rgba(142,142,147,0.18)', fg: '#5C5C61' },
+  active: { label: 'ACTIVE', bg: 'rgba(0,122,255,0.12)', fg: '#0046A8' },
+  done: { label: 'DONE', bg: 'rgba(52,199,89,0.14)', fg: '#10803F' },
+  paused: { label: 'PAUSED', bg: 'rgba(142,142,147,0.18)', fg: '#5C5C61' },
 };
 
 export function PlanRowCard({ plan, onPress }: Props) {
@@ -120,7 +119,7 @@ const styles = StyleSheet.create({
   // shadow/elevation — Pressable's own background-rendering on Android
   // can swallow shadow + border treatments.
   card: {
-    marginHorizontal: IOS_SPACING.md,
+    marginHorizontal: IOS_SPACING.lg,
     borderRadius: 14,
     backgroundColor: '#FFFFFF',
     borderWidth: StyleSheet.hairlineWidth,
@@ -181,8 +180,9 @@ const styles = StyleSheet.create({
     borderRadius: 3,
   },
   pillText: {
-    fontSize: 11,
-    fontWeight: '600',
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 0.5,
   },
   title: {
     fontSize: 16,

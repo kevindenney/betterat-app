@@ -87,9 +87,10 @@ const styles = StyleSheet.create({
     borderRadius: 2.5,
   },
   pillText: {
-    fontSize: 10,
-    fontWeight: '600',
-    textTransform: 'capitalize',
+    fontSize: 9,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   when: {
     flex: 1,

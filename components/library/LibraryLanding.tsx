@@ -97,6 +97,7 @@ export function LibraryLanding({ conceptsBody }: Props) {
 
       <TabScreenToolbar
         title="Library"
+        largeTitleBelow
         subtitleContent={<Text style={styles.lede}>{lede}</Text>}
         topInset={insets.top}
         actions={[

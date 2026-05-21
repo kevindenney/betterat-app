@@ -99,7 +99,7 @@ export function AllZone({ counts, onJumpToZone }: AllZoneProps) {
       {/* Plans */}
       <View style={styles.section}>
         <SectionHeader
-          title="Plans"
+          title="PLANS"
           dotColor="#3B82F6"
           count={counts?.plans}
           onSeeAll={() => onJumpToZone('plans')}
@@ -128,7 +128,7 @@ export function AllZone({ counts, onJumpToZone }: AllZoneProps) {
       {/* Concepts */}
       <View style={styles.section}>
         <SectionHeader
-          title="Concepts"
+          title="CONCEPTS"
           dotColor="#A855F7"
           count={counts?.concepts}
           onSeeAll={() => onJumpToZone('concepts')}
@@ -162,7 +162,7 @@ export function AllZone({ counts, onJumpToZone }: AllZoneProps) {
       {/* Resources */}
       <View style={styles.section}>
         <SectionHeader
-          title="Resources"
+          title="RESOURCES"
           dotColor="#F59E0B"
           count={counts?.resources}
           onSeeAll={() => onJumpToZone('resources')}
@@ -192,10 +192,10 @@ export function AllZone({ counts, onJumpToZone }: AllZoneProps) {
 const styles = StyleSheet.create({
   container: {
     paddingVertical: IOS_SPACING.md,
-    gap: IOS_SPACING.lg,
+    gap: IOS_SPACING.xl,
   },
   section: {
-    gap: IOS_SPACING.sm,
+    gap: IOS_SPACING.md,
   },
   sectionHead: {
     flexDirection: 'row',
@@ -214,8 +214,9 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   eyebrow: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '700',
+    letterSpacing: 0.8,
     color: IOS_COLORS.label,
   },
   seeAllBtn: {
@@ -240,14 +241,14 @@ const styles = StyleSheet.create({
     paddingVertical: IOS_SPACING.md,
   },
   cardList: {
-    gap: IOS_SPACING.sm,
+    gap: IOS_SPACING.md,
   },
   conceptList: {
-    gap: IOS_SPACING.sm,
-    paddingHorizontal: IOS_SPACING.md,
+    gap: IOS_SPACING.md,
+    paddingHorizontal: IOS_SPACING.lg,
   },
   resourceList: {
-    marginHorizontal: IOS_SPACING.md,
+    marginHorizontal: IOS_SPACING.lg,
     borderRadius: 14,
     backgroundColor: '#FFFFFF',
     borderWidth: StyleSheet.hairlineWidth,

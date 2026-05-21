@@ -83,6 +83,15 @@ export interface TabScreenToolbarProps {
   onMeasuredHeight?: (height: number) => void;
   /** When true the toolbar slides up off-screen */
   hidden?: boolean;
+  /**
+   * iOS Large Title pattern. When true the `title` does NOT render in the
+   * top nav row alongside the interest switcher / actions — instead it
+   * renders on its own full-width row BELOW the nav row, above the
+   * subtitle. Matches Apple HIG "Large Title" navigation. See
+   * `docs/redesign/ios-register/library-tab-canonical.html` §2 for the
+   * Library landing layout this enables.
+   */
+  largeTitleBelow?: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -163,6 +172,7 @@ export function TabScreenToolbar({
   children,
   onMeasuredHeight,
   hidden = false,
+  largeTitleBelow = false,
 }: TabScreenToolbarProps) {
   const { isDrawerOpen, openDrawer } = useWebDrawer();
 
@@ -234,24 +244,28 @@ export function TabScreenToolbar({
             </View>
           </Pressable>
         )}
-        {/* Left: title */}
-        <View style={styles.titleSection}>
-          <Text
-            style={styles.largeTitle}
-            numberOfLines={1}
-            adjustsFontSizeToFit
-            minimumFontScale={0.7}
-          >
-            {title}
-          </Text>
-          {isLoading && (
-            <ActivityIndicator
-              size="small"
-              color={IOS_COLORS.secondaryLabel}
-              style={styles.loadingSpinner}
-            />
-          )}
-        </View>
+        {/* Left: title (hidden in largeTitleBelow mode — rendered as its own
+            row below the nav row instead, so the interest switcher gets
+            the full leading edge). */}
+        {!largeTitleBelow && (
+          <View style={styles.titleSection}>
+            <Text
+              style={styles.largeTitle}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.7}
+            >
+              {title}
+            </Text>
+            {isLoading && (
+              <ActivityIndicator
+                size="small"
+                color={IOS_COLORS.secondaryLabel}
+                style={styles.loadingSpinner}
+              />
+            )}
+          </View>
+        )}
 
         {/* Right: interest switcher + custom content or default action capsule + profile avatar */}
         <View style={styles.rightSection}>
@@ -271,6 +285,29 @@ export function TabScreenToolbar({
           {showProfileAvatar && <ProfileDropdown size={PROFILE_AVATAR_SIZE} />}
         </View>
       </View>
+
+      {/* Large-title row (iOS HIG Large Title pattern). When largeTitleBelow
+          is set, the title renders on its own full-width row below the nav
+          row, mirroring the canonical Library hero layout. */}
+      {largeTitleBelow && (
+        <View style={styles.largeTitleRow}>
+          <Text
+            style={styles.largeTitle}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            minimumFontScale={0.7}
+          >
+            {title}
+          </Text>
+          {isLoading && (
+            <ActivityIndicator
+              size="small"
+              color={IOS_COLORS.secondaryLabel}
+              style={styles.loadingSpinner}
+            />
+          )}
+        </View>
+      )}
 
       {/* Subtitle row — below the nav row so it doesn't compete for horizontal space */}
       {subtitleContent ? (
@@ -389,6 +426,18 @@ const styles = StyleSheet.create({
   },
   loadingSpinner: {
     marginLeft: 0,
+  },
+
+  // Large-title row (iOS HIG Large Title) — full-width row below the nav
+  // row, used when `largeTitleBelow` is set so the interest switcher and
+  // action capsule sit on their own row above and the title gets its
+  // full leading width.
+  largeTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingTop: 6,
+    paddingBottom: 4,
   },
 
   // Subtitle row (below nav row)
