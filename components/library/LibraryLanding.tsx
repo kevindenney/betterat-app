@@ -62,11 +62,16 @@ export function LibraryLanding({ conceptsBody }: Props) {
     router.setParams({ zone: next === 'all' ? '' : next });
   }, []);
 
-  const segments = SEGMENT_ZONES.map((s) => ({
-    value: s.value,
-    label: s.label,
-    badge: s.value !== 'all' ? counts?.[s.value] : undefined,
-  }));
+  // Per canonical the count renders inline with the label as a quiet
+  // suffix ("Plans 3"), not the coral notification badge IOSSegmentedControl
+  // exposes via `badge` (which is reserved for marked-content counts).
+  const segments = SEGMENT_ZONES.map((s) => {
+    const count = s.value !== 'all' ? counts?.[s.value] : undefined;
+    return {
+      value: s.value,
+      label: count != null ? `${s.label}  ${count}` : s.label,
+    };
+  });
 
   return (
     <View style={styles.container}>
