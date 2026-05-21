@@ -33,36 +33,39 @@ The Phase 11 Library work that's already on `main`:
   change needed.** Card renders the moment a step has `step_library_before`
   rows. Currently every user has zero rows, hence the card has never appeared
   in production.
-- **"Add from library" footer stub** (uncommitted in this session) —
-  `useLibraryBeforeBinding` now returns an `onAddFromLibrary` that fires a
-  coming-soon alert, so the footer feels alive while we build the picker.
+- **"Add from library" picker** (commit `e85cecac`) — `BeforeTheShiftCard`'s
+  footer now opens a real `LibraryBeforePicker` modal that lists the user's
+  `library_items` (search + dedup against items already attached) and inserts
+  into `step_library_before` on tap. Card also renders an empty-hint state
+  when `libraryBefore` is provided but `items.length === 0`, so first-time
+  attachment is possible. Wired through `useLibraryBeforeBinding` → both
+  `PlanTabInterior` and `PlanTabIOSRegisterInterior`.
+- **Back-ref navigation** (commit `2884a0f4`) — `BackRefRowView` on resource
+  detail now parses `BackRefRow.id` (`${role}-${uuid}` format) and navigates
+  to `/(tabs)/library/concept/{id}` (origin/cited) or `/step/{id}` (in_step).
+  Demo slug ids (e.g. `origin-lactate-perfusion`) fall through to a clearer
+  "demo back-reference" alert instead of a generic coming-soon.
+- **Preview spine format label** (commit `f9995181`, roadmap §6) — replaced
+  hardcoded "PRACTICE ALERT" / "P 1 / 8" with `item.formatLabel.toUpperCase()`
+  and `item.meta` so non-PDF resources read correctly.
 
 ## What's still owed
 
 ### 1. Step library-before data path (HIGH PRIORITY)
 
-The whole reason `BeforeTheShiftCard` doesn't appear on real steps:
-`step_library_before` is empty for every user. Three ways to populate it,
-listed by ascending build cost:
+**1b shipped 2026-05-21** (see "What's already done"). Remaining sub-tasks:
 
 **1a. Seed during onboarding / demo creation.** When the demo flow creates a
 step, attach 2-3 relevant library items pulled from the user's library. This
 is a SQL/server-side change in the demo seeding scripts.
-
-**1b. "Add from library" picker on the step.** Wire the
-`BeforeTheShiftCard`'s `+ Add from library` footer (currently stubbed to
-coming-soon) to open a sheet that lists the user's `library_items` and lets
-them pick one to attach. The mutation is an insert into `step_library_before`
-with `(step_id, library_item_id, position)`. Existing sheet to copy from:
-`AddToStepPlanSheet` in StepPlanQuestions.
 
 **1c. Auto-attach when step is created from a concept.** If the user creates
 a step from a concept (origin), automatically attach the library items cited
 by that concept's `concept_origins` and `concept_citations`. Best UX but
 needs the cited-items pipeline to be solid first.
 
-Recommend doing 1b first — gives users agency, doesn't depend on demo data,
-unblocks the card showing up for the JHU demo.
+With 1b shipped, both 1a and 1c are nice-to-haves rather than blockers —
+users can now attach manually from the step.
 
 ### 2. Resource detail action wiring (MEDIUM PRIORITY)
 
@@ -84,17 +87,12 @@ The detail screen has six stubs that pop "coming soon" alerts. Real work owed:
   concept wizard already exists in `components/playbook/`; need to wire the
   marked-phrase → origin handoff.
 
-### 3. Back-ref row navigation (MEDIUM PRIORITY)
+### 3. Back-ref row navigation — SHIPPED
 
-`BackRefRowView` rows (Origin / Cited / In step) currently fire the same
-coming-soon alert. They should navigate:
-
-- `origin` / `cited` roles → `/library/concept/[slug]` (or the
-  `/concept-ios/[slug]` ios variant). Demo back-refs use semantic ids like
-  `origin-lactate-perfusion`, so will need the same demo-fallback pattern in
-  `useConceptDetail` (mirroring `demoItems.ts`).
-- `in_step` role → step route (`/step/[id]` or
-  `/practice/step/[id]/index.tsx`). Same demo-id concern.
+Done 2026-05-21 (commit `2884a0f4`). Demo back-refs gracefully degrade to a
+"this is a demo back-reference" alert; real UUID-targeted refs navigate. The
+real-data path will activate the moment any user has `concept_origins` /
+`concept_citations` / `step_library_before` rows pointing at a library item.
 
 ### 4. Live data for "In play this week" / "Recently added" (MEDIUM PRIORITY)
 
@@ -120,16 +118,10 @@ already render `BeforeTheShiftCard` via `PlanTabInterior` /
     state hooks v1 has)
   - We have a clear UX reason to swap (the v2 shell is leaner / cleaner)
 
-### 6. Hardcoded "PRACTICE ALERT" stamp on preview spine (TINY)
+### 6. Hardcoded "PRACTICE ALERT" stamp — SHIPPED
 
-`ResourceItemDetail.tsx` hardcodes the text `PRACTICE ALERT` and `P 1 / 8`
-on the preview pane. Should come from `item.formatLabel` and item page count.
-Trivial fix:
-```tsx
-<Text style={styles.previewStamp}>{item.formatLabel.toUpperCase()}</Text>
-<Text style={styles.previewPage}>{item.meta || ''}</Text>
-```
-…or render dynamic page navigation when a reader exists.
+Done 2026-05-21 (commit `f9995181`). Uses `item.formatLabel.toUpperCase()`
+and `item.meta`. Dynamic page navigation can land alongside the future reader.
 
 ### 7. Library Plans → Library tab "Library" rename (DEFERRED)
 
@@ -156,11 +148,19 @@ hooks/components/services into explicit `sailing/` subdirs. ~50 files,
 
 ## Suggested next session order
 
-1. Wire `+ Add from library` picker (Section 1b) — unblocks demo of
-   BeforeTheShiftCard on real steps.
-2. Back-ref row navigation (Section 3) — gets users out of "every tap is an
-   alert" dead-end on resource detail.
-3. Live data for Library zones (Section 4) — replaces demo cards with the
-   user's actual content.
-4. Read / Listen / Annotate / Share / cite (Section 2) — bigger lifts, do in
-   any order once 1-3 land.
+Sections 1b, 3, and 6 shipped overnight 2026-05-21. Remaining order:
+
+1. Live data for Library zones (Section 4) — replaces demo cards with the
+   user's actual content. **Risk:** changes the JHU-demo Resources zone the
+   moment the demo account captures any item. Recommended approach: query
+   live, fall back to demo if user has zero `library_items`. Consider gating
+   on FEATURE_FLAG until the demo path is reconfirmed.
+2. Section 1a (seed during onboarding) — would make `BeforeTheShiftCard`
+   appear on demo accounts without manual taps. Now optional given 1b ships
+   the manual path.
+3. Read / Listen / Annotate / Share / Cite (Section 2) — bigger lifts.
+   Cleanest standalone is Share (RN `Share.share({title, message})`); Read
+   needs URL plumbing through `ResourceItemFull`; Annotate needs the
+   `library_marks` table.
+4. Section 1c (auto-attach on concept origin) — depends on §1a or solid
+   real-data flows for `concept_origins` / `concept_citations`.
