@@ -8,6 +8,7 @@
 
 import React, { useEffect, useState } from 'react';
 import {
+  ActivityIndicator,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -29,6 +30,7 @@ import type {
   PlanSummary,
   SubscriberRow as SubscriberRowData,
 } from '@/components/library/plans/types';
+import { usePlanDetail } from '@/hooks/usePlanDetail';
 
 const HKDW_PLAN: PlanSummary = {
   id: 'hkdw-2027',
@@ -260,8 +262,16 @@ export default function PlanDetailScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [paramTab]);
 
-  // Wave 2b: for any id, render the HKDW demo. Real DB read lands later.
-  const plan = HKDW_PLAN;
+  const planId = typeof params.id === 'string' ? params.id : undefined;
+  const { data: detail, isLoading } = usePlanDetail(planId);
+
+  // Fall back to the demo dataset when no plan-id is in the route (used
+  // by the Wave 2b debug routes) or when the row hasn't loaded yet.
+  const plan: PlanSummary = detail?.plan ?? HKDW_PLAN;
+  const steps: StepCardH[] = detail?.steps ?? HKDW_STEPS;
+  const subscribers: SubscriberRowData[] = detail?.subscribers ?? HKDW_SUBSCRIBERS;
+  const resources: PlanResourceRow[] = detail?.resources ?? HKDW_RESOURCES;
+
   const counts = {
     steps: plan.stepCount,
     subscribers: plan.subscriberCount,
@@ -296,35 +306,61 @@ export default function PlanDetailScreen() {
 
         <PlanTabsBar active={activeTab} counts={counts} onChange={setActiveTab} />
 
-        {activeTab === 'steps' ? (
+        {planId && isLoading && !detail ? (
+          <View style={styles.bodyCentered}>
+            <ActivityIndicator color={IOS_COLORS.tertiaryLabel} />
+          </View>
+        ) : activeTab === 'steps' ? (
           <ScrollView style={styles.body}>
             <View style={styles.stepsHint}>
               <Text style={styles.stepsHintText}>
-                Tap a step to view Kevin's plan/do/reflect notes, or +
-                Add to your timeline.
-              </Text>
-              <Text style={styles.stepsHintDebug} accessibilityLabel="plan-id">
-                {params.id ? `plan id: ${params.id}` : 'demo'}
+                Tap a step to view {plan.authorName ? `${plan.authorName}'s` : "the author's"} plan/do/reflect notes, or + Add to your timeline.
               </Text>
             </View>
             <HorizontalTimeline
-              cards={HKDW_STEPS}
+              cards={steps}
               showAdopt
-              onAdopt={() => {}}
-              onCardPress={() => {}}
+              onAdopt={(stepId) => {
+                // TODO: wire blueprint-step adopt action; placeholder routes
+                // to the source step so the user can read it for now.
+                router.push(`/step/${stepId}` as never);
+              }}
+              onCardPress={(card) => {
+                router.push(`/step/${card.id}` as never);
+              }}
             />
           </ScrollView>
         ) : activeTab === 'subscribers' ? (
           <ScrollView style={styles.body}>
-            {HKDW_SUBSCRIBERS.map((s) => (
-              <SubscriberRow key={s.id} row={s} />
-            ))}
+            {subscribers.length === 0 ? (
+              <Text style={styles.emptyText}>
+                No other subscribers yet. You'll be in good company once others join.
+              </Text>
+            ) : (
+              subscribers.map((s) => (
+                <SubscriberRow
+                  key={s.id}
+                  row={s}
+                  onPress={() => router.push(`/sailor/${s.id}` as never)}
+                />
+              ))
+            )}
           </ScrollView>
         ) : (
           <ScrollView style={styles.body}>
-            {HKDW_RESOURCES.map((r) => (
-              <PlanResourceCard key={r.id} row={r} />
-            ))}
+            {resources.length === 0 ? (
+              <Text style={styles.emptyText}>
+                {plan.authorName} hasn't bundled materials with this plan yet.
+              </Text>
+            ) : (
+              resources.map((r) => (
+                <PlanResourceCard
+                  key={r.id}
+                  row={r}
+                  onPress={() => router.push(`/(tabs)/library/items/${r.id}` as never)}
+                />
+              ))
+            )}
           </ScrollView>
         )}
       </View>
@@ -363,6 +399,11 @@ const styles = StyleSheet.create({
   body: {
     flex: 1,
   },
+  bodyCentered: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   stepsHint: {
     paddingHorizontal: IOS_SPACING.lg,
     paddingTop: IOS_SPACING.sm,
@@ -373,8 +414,12 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: IOS_COLORS.secondaryLabel,
   },
-  stepsHintDebug: {
-    fontSize: 10,
-    color: IOS_COLORS.tertiaryLabel,
+  emptyText: {
+    fontSize: 14,
+    lineHeight: 20,
+    color: IOS_COLORS.secondaryLabel,
+    paddingHorizontal: IOS_SPACING.lg,
+    paddingVertical: IOS_SPACING.xl,
+    textAlign: 'center',
   },
 });
