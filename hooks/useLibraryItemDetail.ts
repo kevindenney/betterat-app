@@ -12,6 +12,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/services/supabase';
+import { DEMO_LIBRARY_ITEMS } from '@/components/library/resources/demoItems';
 import type {
   BackRefRow,
   LibraryFormat,
@@ -77,6 +78,12 @@ export function useLibraryItemDetail(id: string | undefined) {
     staleTime: 30_000,
     queryFn: async () => {
       if (!id) return null;
+
+      // ResourcesZone ships hardcoded demo cards (aacn-sepsis, jhh-code-blue,
+      // …). Without DB seeding, tapping one resolves nothing; short-circuit
+      // to inline demo data so the detail screen renders.
+      const demo = DEMO_LIBRARY_ITEMS[id];
+      if (demo) return demo;
 
       const { data: item, error: itemErr } = await supabase
         .from('library_items')
