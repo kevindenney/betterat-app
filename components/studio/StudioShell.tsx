@@ -53,13 +53,18 @@ export interface StudioShellProps {
     mono: string;          // "JH"
     monoColor: 'navy' | 'drawing' | 'solo';
   };
-  ctxLens: StudioCtxLens;
+  /** Hide the Practice/Studio/Mentor switcher when omitted — editor mode. */
+  ctxLens?: StudioCtxLens;
   onCtxChange?: (next: StudioCtxLens) => void;
+  /** Restrict context switcher options (e.g. independent author has no Mentor lens). */
+  ctxLensOptions?: StudioCtxLens[];
   navSections: StudioNavSection[];
   user: {
     name: string;
     email: string;
     initials: string;
+    /** Replace email line with a status string (e.g. "Editing now"). */
+    statusLine?: string;
   };
   onUserCardPress?: () => void;
   children: React.ReactNode;
@@ -106,19 +111,21 @@ export function StudioShell({
           <Ionicons name="chevron-down" size={16} color="rgba(60, 60, 67, 0.3)" />
         </View>
 
-        <View style={s.ctxSwitch}>
-          {(['practice', 'studio', 'mentor'] as const).map((lens) => (
-            <Pressable
-              key={lens}
-              onPress={() => onCtxChange?.(lens)}
-              style={[s.ctxOpt, ctxLens === lens && s.ctxOptOn]}
-            >
-              <Text style={[s.ctxOptText, ctxLens === lens && s.ctxOptTextOn]}>
-                {lens === 'practice' ? 'Practice' : lens === 'studio' ? 'Studio' : 'Mentor'}
-              </Text>
-            </Pressable>
-          ))}
-        </View>
+        {ctxLens ? (
+          <View style={s.ctxSwitch}>
+            {(ctxLensOptions ?? (['practice', 'studio', 'mentor'] as StudioCtxLens[])).map((lens) => (
+              <Pressable
+                key={lens}
+                onPress={() => onCtxChange?.(lens)}
+                style={[s.ctxOpt, ctxLens === lens && s.ctxOptOn]}
+              >
+                <Text style={[s.ctxOptText, ctxLens === lens && s.ctxOptTextOn]}>
+                  {lens === 'practice' ? 'Practice' : lens === 'studio' ? 'Studio' : 'Mentor'}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+        ) : null}
 
         <ScrollView style={s.navScroll} showsVerticalScrollIndicator={false}>
           {navSections.map((section, idx) => (
@@ -146,7 +153,7 @@ export function StudioShell({
               {user.name}
             </Text>
             <Text style={s.userEmail} numberOfLines={1}>
-              {user.email}
+              {user.statusLine ?? user.email}
             </Text>
           </View>
           <Ionicons
@@ -275,6 +282,50 @@ export function StudioHeader({
         </View>
         {actions ? <View style={h.actions}>{actions}</View> : null}
       </View>
+    </View>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// StudioTabs — the underlined section nav used by the editor (Overview · Steps · …)
+// ---------------------------------------------------------------------------
+
+export interface StudioTab {
+  key: string;
+  label: string;
+  count?: string;
+}
+
+export function StudioTabs({
+  tabs,
+  active,
+  accent = 'purple',
+  onChange,
+}: {
+  tabs: StudioTab[];
+  active: string;
+  accent?: StudioAccent;
+  onChange?: (key: string) => void;
+}) {
+  const underlineColor = ACCENT_COLORS[accent];
+  return (
+    <View style={t.bar}>
+      {tabs.map((tab) => {
+        const isActive = tab.key === active;
+        return (
+          <Pressable key={tab.key} onPress={() => onChange?.(tab.key)} style={t.tab}>
+            <Text style={[t.label, isActive && t.labelOn]}>
+              {tab.label}
+              {tab.count ? (
+                <Text style={t.count}>{` · ${tab.count}`}</Text>
+              ) : null}
+            </Text>
+            {isActive ? (
+              <View style={[t.underline, { backgroundColor: underlineColor }]} />
+            ) : null}
+          </Pressable>
+        );
+      })}
     </View>
   );
 }
@@ -582,4 +633,36 @@ const b = StyleSheet.create({
     borderRadius: 9,
   },
   btnText: { fontWeight: '600', letterSpacing: -0.1 },
+});
+
+const t = StyleSheet.create({
+  bar: {
+    flexDirection: 'row',
+    gap: 4,
+    marginTop: 4,
+    marginBottom: 16,
+    borderBottomWidth: 0.5,
+    borderBottomColor: 'rgba(0,0,0,0.12)',
+  },
+  tab: {
+    paddingHorizontal: 12,
+    paddingTop: 8,
+    paddingBottom: 10,
+    position: 'relative',
+  },
+  label: {
+    fontSize: 13,
+    color: 'rgba(60, 60, 67, 0.6)',
+    letterSpacing: -0.1,
+  },
+  labelOn: { color: '#1C1C1E', fontWeight: '600' },
+  count: { color: 'rgba(60, 60, 67, 0.6)', fontWeight: '400' },
+  underline: {
+    position: 'absolute',
+    left: 10,
+    right: 10,
+    bottom: -0.5,
+    height: 2,
+    borderRadius: 2,
+  },
 });

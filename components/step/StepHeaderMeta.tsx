@@ -16,8 +16,7 @@ import { StyleSheet, Text } from 'react-native';
 import { STEP_COLORS } from '@/lib/step-theme';
 import { useStepBlueprintChrome } from '@/hooks/useStepBlueprintChrome';
 
-interface Props {
-  stepId: string;
+interface SubtitleProps {
   startsAt?: string | null;
   endsAt?: string | null;
   metadata?: Record<string, unknown> | null;
@@ -32,7 +31,7 @@ export function StepHeaderEyebrow({ stepId }: { stepId: string }) {
   return <Text style={styles.eyebrow}>{label}</Text>;
 }
 
-export function StepHeaderSubtitle({ startsAt, endsAt, metadata }: Props) {
+export function StepHeaderSubtitle({ startsAt, endsAt, metadata }: SubtitleProps) {
   const parts = formatSubtitleParts({ startsAt, endsAt, metadata });
   if (parts.length === 0) return null;
   return <Text style={styles.subtitle}>{parts.join(' · ')}</Text>;
@@ -42,7 +41,7 @@ function formatSubtitleParts({
   startsAt,
   endsAt,
   metadata,
-}: Omit<Props, 'stepId'>): string[] {
+}: SubtitleProps): string[] {
   const out: string[] = [];
 
   if (startsAt) {

@@ -84,6 +84,7 @@ import { StepCritiqueContent } from '@/components/step/StepCritiqueContent';
 import { StepFocusConcepts } from '@/components/step/StepFocusConcepts';
 import { StepProvenanceBanner } from '@/components/step/StepProvenanceBanner';
 import { StepBlueprintChrome } from '@/components/step/StepBlueprintChrome';
+import { StepHeaderSubtitle } from '@/components/step/StepHeaderMeta';
 import { StepDiscussionPeek } from '@/components/step/StepDiscussionPeek';
 import { StepDiscussionInline } from '@/components/step/StepDiscussionInline';
 import { StepCompleteCelebration } from '@/components/step/StepCompleteCelebration';
@@ -1928,7 +1929,41 @@ function RaceSummaryCardImpl({
     // Plan/Do/Reflect phases when active. Renders the focused inline thread
     // view inside the same outer ScrollView.
     if (discussionTabActive && isTimelineStep && showDiscussionTab) {
-      return <StepDiscussionInline stepId={race.id} />;
+      const makeInitials = (name: string) => {
+        const parts = name.split(/\s+/).filter(Boolean).slice(0, 2);
+        return parts.map((p) => p[0]?.toUpperCase() ?? '').join('') || '?';
+      };
+      const ownerInCollabs = stepCollaborators.find(
+        (c) => c.type === 'platform' && c.user_id === race.created_by,
+      );
+      const ownerUserId = race.created_by ?? user?.id ?? '';
+      const ownerName =
+        ownerInCollabs?.display_name ??
+        (ownerUserId === user?.id
+          ? ((user?.user_metadata?.full_name as string | undefined) ?? 'You')
+          : 'Owner');
+      const accessList: import('@/components/step/StepDiscussionInline').StepAccessPerson[] = [
+        {
+          userId: ownerUserId,
+          displayName: ownerName,
+          initials: makeInitials(ownerName),
+          avatarColor: ownerInCollabs?.avatar_color,
+          role: null,
+          isOwner: true,
+        },
+        ...stepCollaborators
+          .filter(
+            (c) => c.type === 'platform' && c.user_id && c.user_id !== ownerUserId,
+          )
+          .map((c) => ({
+            userId: c.user_id as string,
+            displayName: c.display_name,
+            initials: makeInitials(c.display_name),
+            avatarColor: c.avatar_color,
+            role: c.role ?? null,
+          })),
+      ];
+      return <StepDiscussionInline stepId={race.id} access={accessList} />;
     }
 
     // Demo timeline steps: show phase-specific read-only content
@@ -2378,7 +2413,7 @@ function RaceSummaryCardImpl({
                 onTapFleetChip={goFleetView}
               />
             ) : null}
-            {showDiscussionPeek && discussionPeek ? (
+            {showDiscussionPeek && discussionPeek && !discussionTabActive ? (
               <StepDiscussionPeek
                 noteCount={discussionPeek.noteCount}
                 latestSnippet={discussionPeek.latest.body}
@@ -2629,6 +2664,21 @@ function RaceSummaryCardImpl({
             ellipsizeMode="tail"
           >{displayRaceName || '[No Step Name]'}</Text>
         )}
+        {/* Canonical subtitle line — "Tuesday May 26 · 7a-7p · Patricia
+            preceptor" — pulled from step starts_at / ends_at /
+            metadata.preceptor. StepHeaderSubtitle returns null when none
+            are set so the inline card stays unchanged for unscheduled steps. */}
+        {isTimelineStep ? (
+          <StepHeaderSubtitle
+            startsAt={(race as { starts_at?: string | null }).starts_at ?? null}
+            endsAt={(race as { ends_at?: string | null }).ends_at ?? null}
+            metadata={
+              ((race as { metadata?: Record<string, unknown> | null }).metadata ?? null) as
+                | Record<string, unknown>
+                | null
+            }
+          />
+        ) : null}
         {/* Compact progress bar for sub-steps */}
         {isTimelineStep && subStepProgress && !isTimelineDone && (
           <View style={styles.detailProgressRow}>
