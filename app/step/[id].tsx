@@ -27,11 +27,8 @@ export default function StepDetailScreen() {
     | 'discussion'
     | undefined;
   const { vocab } = useVocabulary();
-  // When the step has a blueprint parent, the back label switches from
-  // generic "Practice" → "← Pre-Clinical" so the canonical context line
-  // sits in the native nav header instead of duplicating below the title.
   const { data: blueprintChrome } = useStepBlueprintChrome(actualId);
-  const backLabel = blueprintChrome?.blueprintShortName ?? 'Practice';
+  const backLabel = 'Practice';
 
   if (!actualId) {
     return (

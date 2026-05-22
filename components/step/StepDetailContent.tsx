@@ -951,8 +951,12 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab }
         );
       })()}
 
-      {/* Step provenance — source blueprint OR follow-up chain */}
-      {(step.source_type !== 'manual' || brainDumpData?.source_step_id) && (
+      {/* Step provenance — source blueprint OR follow-up chain.
+          When the step has a blueprint parent, the StepHeaderEyebrow above
+          ("PRE-CLINICAL · STEP 5") already conveys provenance, so the
+          banner would duplicate. Render only for follow-up chains
+          (brainDumpData.source_step_id) or non-blueprint copied sources. */}
+      {((step.source_type !== 'manual' && step.source_type !== 'blueprint') || brainDumpData?.source_step_id) && (
         <StepProvenanceBanner
           sourceBlueprintId={step.source_blueprint_id}
           sourceType={step.source_type}
