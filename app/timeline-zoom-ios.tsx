@@ -58,7 +58,10 @@ export default function TimelineZoomIosPreview() {
         <Pressable
           style={styles.glyphBtn}
           hitSlop={8}
-          onPress={() => (router.canGoBack() ? router.back() : null)}
+          onPress={() => {
+            if (router.canGoBack()) router.back();
+            else router.replace('/(tabs)/practice' as never);
+          }}
           accessibilityLabel="Close iOS preview"
         >
           <Ionicons name="close" size={22} color={IOS_REGISTER.accentUserAction} />

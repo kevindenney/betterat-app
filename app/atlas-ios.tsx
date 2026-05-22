@@ -25,10 +25,10 @@
  * Open at /atlas-ios.
  */
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Stack, router } from 'expo-router';
+import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
 import { IOS_REGISTER } from '@/lib/design-tokens-ios';
@@ -49,8 +49,25 @@ const FRAMES: FramePickerItem[] = [
   { id: 'f6', label: 'F6', sub: 'commit-mode' },
 ];
 
+const VALID_FRAMES: AtlasFrameId[] = ['f1', 'f2', 'f3', 'f4', 'f5', 'f6'];
+
 export default function AtlasIosPreview() {
-  const [frame, setFrame] = useState<AtlasFrameId>('f1');
+  // Allow deep-linking to a specific frame via ?frame=f4 — useful for
+  // reviewer round-trips and for the screenshot-based dev loop.
+  const params = useLocalSearchParams<{ frame?: string }>();
+  const initial =
+    params.frame && (VALID_FRAMES as string[]).includes(params.frame)
+      ? (params.frame as AtlasFrameId)
+      : 'f1';
+  const [frame, setFrame] = useState<AtlasFrameId>(initial);
+
+  // Keep the in-memory frame in sync when the URL ?frame=... param changes
+  // (e.g. arriving via a fresh deep-link while the screen is already mounted).
+  useEffect(() => {
+    if (params.frame && (VALID_FRAMES as string[]).includes(params.frame)) {
+      setFrame(params.frame as AtlasFrameId);
+    }
+  }, [params.frame]);
 
   return (
     <SafeAreaView style={styles.page} edges={['top', 'bottom']}>
@@ -61,7 +78,10 @@ export default function AtlasIosPreview() {
         <Pressable
           style={styles.glyphBtn}
           hitSlop={8}
-          onPress={() => (router.canGoBack() ? router.back() : null)}
+          onPress={() => {
+            if (router.canGoBack()) router.back();
+            else router.replace('/(tabs)/practice' as never);
+          }}
           accessibilityLabel="Close iOS preview"
         >
           <Ionicons name="close" size={22} color={IOS_REGISTER.accentUserAction} />
@@ -106,6 +126,7 @@ export default function AtlasIosPreview() {
               label: 'Race 4',
               when: 'Sat 10am',
               where: 'Victoria Harbour, favoured end',
+              conditions: '12kn ESE · ebb 0.4kn',
             }}
           />
         </View>
