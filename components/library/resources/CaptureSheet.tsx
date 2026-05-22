@@ -35,7 +35,12 @@ interface Props {
     mode: CaptureMode;
     attachTo: AttachTo;
     tags: string[];
+    /** Used in upload/photo demo flows where a real file picker hasn't shipped. */
     title?: string;
+    /** Populated when mode === 'link'. */
+    url?: string;
+    /** Populated when mode === 'paste'. */
+    pastedText?: string;
   }) => void;
 }
 
@@ -48,6 +53,14 @@ export function CaptureSheet({ visible, onClose, onSave }: Props) {
   const [attachTo, setAttachTo] = useState<AttachTo>('standalone');
   const [pastedText, setPastedText] = useState('');
   const [linkUrl, setLinkUrl] = useState('');
+
+  // Don't let users tap "Add to Library" with nothing captured. Upload/photo
+  // are still demo flows (no real picker yet) so the hardcoded sample-PDF
+  // payload is treated as "savable" when hasFile is set.
+  const canSave =
+    (mode === 'link' && linkUrl.trim().length > 0)
+    || (mode === 'paste' && pastedText.trim().length > 0)
+    || ((mode === 'upload' || mode === 'photo') && hasFile);
 
   return (
     <Modal
@@ -230,16 +243,26 @@ export function CaptureSheet({ visible, onClose, onSave }: Props) {
         <View style={styles.footer}>
           <TouchableOpacity
             activeOpacity={0.7}
+            disabled={!canSave}
             onPress={() => {
               onSave?.({
                 mode,
                 attachTo,
-                tags: DEMO_TAGS,
-                title: 'AACN Practice Alert · Severe Sepsis',
+                // Tags only auto-detect in the upload/photo demo flows; link
+                // and paste captures land tag-free until real detection ships.
+                tags: mode === 'upload' || mode === 'photo' ? DEMO_TAGS : [],
+                title:
+                  mode === 'upload' || mode === 'photo'
+                    ? 'AACN Practice Alert · Severe Sepsis'
+                    : undefined,
+                url: mode === 'link' ? linkUrl.trim() : undefined,
+                pastedText: mode === 'paste' ? pastedText.trim() : undefined,
               });
+              setLinkUrl('');
+              setPastedText('');
               onClose();
             }}
-            style={styles.cta}
+            style={[styles.cta, !canSave ? styles.ctaDisabled : null]}
           >
             <Ionicons name="sparkles" size={16} color="#FFFFFF" />
             <Text style={styles.ctaText}>Add to Library</Text>
@@ -604,6 +627,9 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     paddingVertical: 14,
     marginTop: 8,
+  },
+  ctaDisabled: {
+    opacity: 0.45,
   },
   ctaText: {
     fontSize: 15,

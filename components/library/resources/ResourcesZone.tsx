@@ -18,10 +18,13 @@ import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
 import { showAlert } from '@/lib/utils/crossPlatformAlert';
+import { useCreateLibraryItem } from '@/hooks/useCreateLibraryItem';
+import { useInterest } from '@/providers/InterestProvider';
 import { LibraryItemCard } from './LibraryItemCard';
 import { RecentItemRow } from './RecentItemRow';
 import { CollectionsRow } from './CollectionsRow';
 import { CaptureSheet } from './CaptureSheet';
+import { mapCapturePayloadToLibraryItem } from './capturePayloadMap';
 import type { CollectionCard, LibraryItemRow } from './types';
 
 // Wave 2e demo data — Emily's MSN Capstone library.
@@ -128,6 +131,8 @@ interface Props {
 
 export function ResourcesZone({ onOpenCapture }: Props) {
   const [captureOpen, setCaptureOpen] = useState(false);
+  const { currentInterest } = useInterest();
+  const createLibraryItem = useCreateLibraryItem();
   const openItem = (id: string) => router.push(`/library/items/${id}` as any);
   const handleOpenCapture = () => {
     if (onOpenCapture) onOpenCapture();
@@ -233,6 +238,20 @@ export function ResourcesZone({ onOpenCapture }: Props) {
       <CaptureSheet
         visible={captureOpen}
         onClose={() => setCaptureOpen(false)}
+        onSave={(payload) => {
+          const input = mapCapturePayloadToLibraryItem(
+            payload,
+            currentInterest?.id,
+          );
+          if (!input) return;
+          createLibraryItem.mutate(input, {
+            onError: (err) =>
+              showAlert(
+                'Capture failed',
+                err instanceof Error ? err.message : String(err),
+              ),
+          });
+        }}
       />
     </ScrollView>
   );
