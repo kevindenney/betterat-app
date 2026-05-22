@@ -41,6 +41,7 @@ import {
 } from '@/components/studio/StudioShell';
 import { StudioLoading } from '@/components/studio/StudioLoading';
 import { AddPersonSheet } from '@/components/admin/AddPersonSheet';
+import { PersonDetailDrawer } from '@/components/admin/PersonDetailDrawer';
 
 type PeopleTab = 'all' | 'students' | 'authors' | 'mentors' | 'admins' | 'pending';
 
@@ -55,6 +56,7 @@ export default function AdminPeoplePage() {
   const [tab, setTab] = useState<PeopleTab>('all');
   const [search, setSearch] = useState('');
   const [showAddSheet, setShowAddSheet] = useState(false);
+  const [openPersonId, setOpenPersonId] = useState<string | null>(null);
 
   const filteredRows = useMemo(() => {
     let rows = data.rows;
@@ -253,7 +255,7 @@ export default function AdminPeoplePage() {
             ) : (
               <>
                 {filteredRows.map((row) => (
-                  <PersonRow key={row.id} row={row} />
+                  <PersonRow key={row.id} row={row} onPress={() => setOpenPersonId(row.id)} />
                 ))}
                 <Text style={styles.tableFooter}>
                   Showing {filteredRows.length} of {data.totalRows} ·{' '}
@@ -278,6 +280,11 @@ export default function AdminPeoplePage() {
         defaultCohortLabel="Spring '26 · MSN second-year"
         onClose={() => setShowAddSheet(false)}
       />
+
+      <PersonDetailDrawer
+        person={data.rows.find((r) => r.id === openPersonId) ?? null}
+        onClose={() => setOpenPersonId(null)}
+      />
     </View>
   );
 }
@@ -286,13 +293,14 @@ export default function AdminPeoplePage() {
 // Person row + helpers
 // ---------------------------------------------------------------------------
 
-function PersonRow({ row }: { row: AdminPersonRow }) {
+function PersonRow({ row, onPress }: { row: AdminPersonRow; onPress?: () => void }) {
   const isPending = row.status === 'pending';
   const isOffboarded = row.status === 'off-boarded';
   const isSso = row.source === 'sso';
 
   return (
-    <View
+    <Pressable
+      onPress={onPress}
       style={[
         styles.tableRow,
         row.isYou && styles.tableRowYou,
@@ -355,10 +363,10 @@ function PersonRow({ row }: { row: AdminPersonRow }) {
       <View style={{ width: 120 }}>
         <StatusPill status={row.status} />
       </View>
-      <Pressable hitSlop={8} style={{ width: 32, alignItems: 'center' }}>
+      <View style={{ width: 32, alignItems: 'center' }}>
         <Ionicons name="ellipsis-horizontal" size={16} color="rgba(60, 60, 67, 0.4)" />
-      </Pressable>
-    </View>
+      </View>
+    </Pressable>
   );
 }
 

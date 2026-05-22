@@ -44,6 +44,7 @@ export interface AdminCompetencyEvidenceData {
   cohortSize: number;
   competencies: Competency[];
   sites: SiteSummary[];
+  sitesGeo: Map<string, { lat: number; lng: number }>;     // siteId → real lat/lng
   evidence: Map<string, EvidenceCell>;          // key: `${competencyId}::${siteId}`
   rowTotals: Map<string, { count: number; pct: number }>;  // competency → coverage
   colTotals: Map<string, { count: number; pct: number }>;  // site → activity
@@ -107,6 +108,16 @@ export function useAdminCompetencyEvidence(orgId: string): AdminCompetencyEviden
       }));
   }, [sites.sites]);
 
+  const sitesGeo = useMemo(() => {
+    const m = new Map<string, { lat: number; lng: number }>();
+    for (const s of sites.sites) {
+      if (typeof s.lat === 'number' && typeof s.lng === 'number') {
+        m.set(s.id, { lat: s.lat, lng: s.lng });
+      }
+    }
+    return m;
+  }, [sites.sites]);
+
   const evidence = useMemo(() => {
     const m = new Map<string, EvidenceCell>();
     for (const c of competencies) {
@@ -163,6 +174,7 @@ export function useAdminCompetencyEvidence(orgId: string): AdminCompetencyEviden
     cohortSize,
     competencies,
     sites: evidenceSites,
+    sitesGeo,
     evidence,
     rowTotals,
     colTotals,

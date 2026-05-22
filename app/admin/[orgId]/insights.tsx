@@ -13,8 +13,8 @@
  * real RPC without changing this page.
  */
 
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView, Platform } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, Pressable, StyleSheet, ScrollView, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams } from 'expo-router';
 import { AdminShell } from '@/components/admin/AdminShell';
@@ -24,11 +24,15 @@ import {
   SiteSummary,
   EvidenceCell,
 } from '@/hooks/useAdminCompetencyEvidence';
+import { InsightsMapView } from '@/components/admin/InsightsMapView';
 import { StudioHeader, StudioButton } from '@/components/studio/StudioShell';
+
+type InsightsView = 'grid' | 'map';
 
 export default function AdminInsightsPage() {
   const { orgId } = useLocalSearchParams<{ orgId: string }>();
   const data = useAdminCompetencyEvidence(orgId as string);
+  const [view, setView] = useState<InsightsView>('grid');
 
   return (
     <AdminShell activeKey="insights">
@@ -48,6 +52,34 @@ export default function AdminInsightsPage() {
         ]}
         actions={
           <>
+            <View style={s.viewToggle}>
+              <Pressable
+                onPress={() => setView('grid')}
+                style={[s.viewBtn, view === 'grid' && s.viewBtnActive]}
+              >
+                <Ionicons
+                  name="grid-outline"
+                  size={13}
+                  color={view === 'grid' ? '#FFFFFF' : 'rgba(60, 60, 67, 0.85)'}
+                />
+                <Text style={[s.viewBtnText, view === 'grid' && s.viewBtnTextActive]}>
+                  Grid
+                </Text>
+              </Pressable>
+              <Pressable
+                onPress={() => setView('map')}
+                style={[s.viewBtn, view === 'map' && s.viewBtnActive]}
+              >
+                <Ionicons
+                  name="map-outline"
+                  size={13}
+                  color={view === 'map' ? '#FFFFFF' : 'rgba(60, 60, 67, 0.85)'}
+                />
+                <Text style={[s.viewBtnText, view === 'map' && s.viewBtnTextActive]}>
+                  Map
+                </Text>
+              </Pressable>
+            </View>
             <StudioButton variant="ghost" icon="download-outline" label="Export · CSV" />
             <StudioButton
               variant="primary"
@@ -62,10 +94,20 @@ export default function AdminInsightsPage() {
       <View style={s.lede}>
         <Ionicons name="bulb" size={16} color="#28406B" />
         <Text style={s.ledeText}>
-          The constellation across sites. Each cell shows{' '}
-          <Text style={s.ledeStrong}>how many cohort members</Text> have
-          evidenced this competency at this site. Click a cell to see the
-          underlying steps + reflections.
+          {view === 'grid' ? (
+            <>
+              The constellation across sites. Each cell shows{' '}
+              <Text style={s.ledeStrong}>how many cohort members</Text> have
+              evidenced this competency at this site. Click a cell to see the
+              underlying steps + reflections.
+            </>
+          ) : (
+            <>
+              Geographic view of the same data. Marker size + intensity reflect
+              evidence density at the site. Filter by a single competency to ask{' '}
+              <Text style={s.ledeStrong}>where</Text> the program is doing best.
+            </>
+          )}
         </Text>
       </View>
 
@@ -81,6 +123,15 @@ export default function AdminInsightsPage() {
             <Text style={s.emptyMono}>Cohorts</Text> to seed those first.
           </Text>
         </View>
+      ) : view === 'map' ? (
+        <InsightsMapView
+          cohortSize={data.cohortSize}
+          sites={data.sites}
+          competencies={data.competencies}
+          evidence={data.evidence}
+          colTotals={data.colTotals}
+          sitesGeo={data.sitesGeo}
+        />
       ) : (
         <ScrollView style={s.scroll} horizontal>
           <View>
@@ -89,8 +140,8 @@ export default function AdminInsightsPage() {
         </ScrollView>
       )}
 
-      {/* Legend */}
-      {data.sites.length > 0 ? (
+      {/* Legend — only on grid view; map has its own legend block */}
+      {data.sites.length > 0 && view === 'grid' ? (
         <View style={s.legend}>
           <Text style={s.legendLabel}>Coverage</Text>
           <View style={s.legendScale}>
@@ -259,6 +310,26 @@ const s = StyleSheet.create({
   },
   pillText: { fontSize: 11, fontWeight: '600', color: '#28406B' },
   subText: { fontSize: 13.5, color: 'rgba(60, 60, 67, 0.6)' },
+
+  viewToggle: {
+    flexDirection: 'row',
+    backgroundColor: 'rgba(118, 118, 128, 0.12)',
+    borderRadius: 8,
+    padding: 2,
+  },
+  viewBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 9,
+    paddingVertical: 6,
+    borderRadius: 6,
+  },
+  viewBtnActive: {
+    backgroundColor: '#28406B',
+  },
+  viewBtnText: { fontSize: 12, fontWeight: '500', color: 'rgba(60, 60, 67, 0.85)' },
+  viewBtnTextActive: { color: '#FFFFFF', fontWeight: '600' },
 
   lede: {
     flexDirection: 'row',
