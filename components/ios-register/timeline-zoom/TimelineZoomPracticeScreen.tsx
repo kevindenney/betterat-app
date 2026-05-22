@@ -20,9 +20,10 @@ import { useAuth } from '@/providers/AuthProvider';
 import { useInterest } from '@/providers/InterestProvider';
 import { useMyTimeline } from '@/hooks/useTimelineSteps';
 import { useCurrentSeason, useUserSeasons } from '@/hooks/useSeason';
+import { useSubscribedBlueprints, useBlueprintWithAuthor } from '@/hooks/useBlueprint';
 
 import { TimelineZoomCanvas } from './TimelineZoomCanvas';
-import { mapToTimelineDataset } from './realDataAdapter';
+import { mapToTimelineDataset, type BlueprintLookup } from './realDataAdapter';
 
 export function TimelineZoomPracticeScreen() {
   const { user } = useAuth();
@@ -32,6 +33,36 @@ export function TimelineZoomPracticeScreen() {
   const { data: steps = [], isLoading: stepsLoading } = useMyTimeline(interestId);
   const { data: currentSeason = null } = useCurrentSeason();
   const { data: allSeasons = [] } = useUserSeasons();
+  const { data: subscribedBlueprints = [] } = useSubscribedBlueprints(interestId);
+
+  // The focused step's blueprint gets the "suggested by …" author tag —
+  // only one extra query, only when the focused step actually came from a
+  // blueprint, so it's cheap.
+  const focusedStep = useMemo(() => {
+    const sorted = [...steps].sort((a, b) => a.sort_order - b.sort_order);
+    return (
+      sorted.find((s) => s.status === 'in_progress' || s.status === 'pending') ??
+      sorted[0] ??
+      null
+    );
+  }, [steps]);
+  const { data: focusedBlueprint } = useBlueprintWithAuthor(
+    focusedStep?.source_blueprint_id ?? null,
+  );
+
+  const blueprintsById = useMemo(() => {
+    const map = new Map<string, BlueprintLookup>();
+    for (const bp of subscribedBlueprints) {
+      map.set(bp.id, { title: bp.title });
+    }
+    if (focusedBlueprint) {
+      map.set(focusedBlueprint.id, {
+        title: focusedBlueprint.title,
+        author_name: focusedBlueprint.author_name,
+      });
+    }
+    return map;
+  }, [subscribedBlueprints, focusedBlueprint]);
 
   const userInitials = useMemo(() => {
     const name =
@@ -56,8 +87,9 @@ export function TimelineZoomPracticeScreen() {
         currentSeason,
         allSeasons,
         steps,
+        blueprintsById,
       }),
-    [currentInterest, userInitials, currentSeason, allSeasons, steps],
+    [currentInterest, userInitials, currentSeason, allSeasons, steps, blueprintsById],
   );
 
   const hasContent = dataset.seasons.some((s) => s.bricks.length > 0);

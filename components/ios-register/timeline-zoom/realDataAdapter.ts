@@ -2,30 +2,44 @@
  * Real-data adapter — maps the live timeline-step + season schema into the
  * TimelineDataset shape the zoom canvas expects.
  *
- * v1 mapping:
- *   • One Season = one TimelineSeason. Steps are bucketed into pseudo-weeks
- *     of 3 by sort_order when `starts_at` is missing; otherwise grouped by
- *     calendar ISO week.
- *   • status (pending/in_progress/completed/settled/skipped) → StepStatus
- *   • category → single derived capability chip (color hashed from string)
- *   • L4 bricks: one per step, colored by derived capability
+ * v2 mapping (2026-05-22):
+ *   • Rotation-relative week bucketing (3 per bucket, sort_order ordered).
+ *   • status → StepStatus.
+ *   • metadata.plan.how_sub_steps → L1 how-checklist.
+ *   • metadata.plan.collaborators → cohort avatars + meta-row preceptor/coach
+ *     callout. Free-text `role` matched against /preceptor|coach|mentor/i.
+ *   • metadata.plan.where_location.name → meta-row left ("Wed · JHH Bloomberg").
+ *   • Time-of-day modifier derived from starts_at hour:
+ *       4–8  → PRE-SHIFT,    8–12 → AM SHIFT,
+ *       12–17 → AFTERNOON,   17–21 → EVENING,
+ *       21–4 → NIGHT.
+ *   • source_blueprint_id → blueprint title (looked up in the
+ *     `blueprintsById` map passed in by the screen wrapper).
  *
- * Refinements that don't belong in v1 (provenance row, cohort avatars,
- * Discuss counts, multi-capability chips) are intentionally left
- * unimplemented — those land alongside Section H of the handoff.
+ * Still deferred to follow-ups: multi-capability tagging (schema gap),
+ * blueprint author "suggested by" name (needs per-step author query),
+ * archived season real brick counts (needs RPC).
  */
 
+import type { StepPlanData, StepCollaborator } from '@/types/step-detail';
 import type { Season } from '@/types/season';
 import type { TimelineStepRecord, TimelineStepStatus } from '@/types/timeline-steps';
 import { CAPABILITY_PALETTE } from './sampleData';
 import type {
+  CohortAvatar,
   DayKey,
+  StepHowItem,
   StepStatus,
   TimelineDataset,
   TimelineSeason,
   TimelineStep,
   TimelineWeek,
 } from './types';
+
+export interface BlueprintLookup {
+  title: string;
+  author_name?: string;
+}
 
 const DAY_KEYS: DayKey[] = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
 
@@ -121,6 +135,49 @@ function isToday(iso: string | null): boolean {
   );
 }
 
+const DAY_LABEL: Record<DayKey, string> = {
+  mon: 'Mon', tue: 'Tue', wed: 'Wed', thu: 'Thu',
+  fri: 'Fri', sat: 'Sat', sun: 'Sun',
+};
+
+function timeOfDayModifier(iso: string | null): string | null {
+  if (!iso) return null;
+  const h = new Date(iso).getHours();
+  if (h >= 4 && h < 8) return 'PRE-SHIFT';
+  if (h >= 8 && h < 12) return 'AM SHIFT';
+  if (h >= 12 && h < 17) return 'AFTERNOON';
+  if (h >= 17 && h < 21) return 'EVENING';
+  return 'NIGHT';
+}
+
+function getPlanData(metadata: Record<string, unknown> | null | undefined): StepPlanData | null {
+  if (!metadata) return null;
+  const plan = (metadata as { plan?: unknown }).plan;
+  if (plan && typeof plan === 'object') return plan as StepPlanData;
+  return null;
+}
+
+function initialsFromName(name: string): string {
+  const parts = name.replace(/[^\w\s]/g, '').split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return '··';
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
+function collabToAvatar(c: StepCollaborator): CohortAvatar {
+  return {
+    id: c.id,
+    initials: initialsFromName(c.display_name || ''),
+    color: c.avatar_color || '#8E8E93',
+  };
+}
+
+const ROLE_HONORIFIC_REGEX = /^(preceptor|coach|mentor|instructor|teacher|guide|attending)$/i;
+
+function findRoleCollab(collabs: StepCollaborator[]): StepCollaborator | null {
+  return collabs.find((c) => c.role && ROLE_HONORIFIC_REGEX.test(c.role)) ?? null;
+}
+
 function statusFromRecord(rec: TimelineStepRecord): StepStatus {
   return STATUS_MAP[rec.status] ?? 'plan';
 }
@@ -138,27 +195,87 @@ function recordToStep(
   rec: TimelineStepRecord,
   seasonId: string,
   weekId: string,
+  blueprintsById?: Map<string, BlueprintLookup>,
 ): TimelineStep {
   const cap = deriveCapability(rec.category);
   const today = isToday(rec.starts_at);
+  const plan = getPlanData(rec.metadata);
+
+  // Eyebrow — [TODAY | DAY] · [TIME_OF_DAY?] · [CATEGORY?]
+  const dayKey = dayKeyFromIso(rec.starts_at);
+  const dayPrefix = today
+    ? 'TODAY'
+    : rec.starts_at
+      ? DAY_LABEL[dayKey].toUpperCase()
+      : null;
+  const tod = timeOfDayModifier(rec.starts_at);
   const cat = rec.category?.toUpperCase();
-  const preTitle = today
-    ? cat
-      ? `TODAY · ${cat}`
-      : 'TODAY'
-    : cat || undefined;
+  const preTitleParts = [dayPrefix, tod, cat].filter(Boolean) as string[];
+  const preTitle = preTitleParts.length > 0 ? preTitleParts.join(' · ') : undefined;
+
+  // HOW WILL YOU DO IT? — from metadata.plan.how_sub_steps
+  const howItems: StepHowItem[] | undefined = plan?.how_sub_steps
+    ?.slice()
+    .sort((a, b) => a.sort_order - b.sort_order)
+    .map((sub) => ({ label: sub.text, checked: sub.completed }));
+
+  // Meta row — "Wed · <location>" left, "Preceptor: <name>" right
+  const locName = plan?.where_location?.name ?? rec.location_name ?? null;
+  const metaLeft = rec.starts_at
+    ? locName
+      ? `${DAY_LABEL[dayKey]} · ${locName}`
+      : DAY_LABEL[dayKey]
+    : locName || undefined;
+  const roleCollab = plan?.collaborators ? findRoleCollab(plan.collaborators) : null;
+  const metaRight = roleCollab
+    ? `${capitalize(roleCollab.role!)}: ${roleCollab.display_name}`
+    : undefined;
+
+  // Cohort avatars (excluding the role-tagged collab — they're called out
+  // separately on the right of the meta row).
+  const cohortAvatars: CohortAvatar[] | undefined = plan?.collaborators
+    ?.filter((c) => !roleCollab || c.id !== roleCollab.id)
+    .slice(0, 3)
+    .map(collabToAvatar);
+  const cohortLabel =
+    plan?.collaborators && plan.collaborators.length > 0
+      ? `${plan.collaborators.length} ${plan.collaborators.length === 1 ? 'collab' : 'collabs'}`
+      : undefined;
+
+  // FROM provenance — blueprint title from id map when available
+  let from: TimelineStep['from'] | undefined;
+  if (rec.source_blueprint_id) {
+    const bp = blueprintsById?.get(rec.source_blueprint_id);
+    from = bp
+      ? {
+          source: bp.title,
+          suggestedBy: bp.author_name,
+        }
+      : { source: 'Blueprint' };
+  }
+
   return {
     id: rec.id,
     title: rec.title || 'Untitled step',
     preTitle,
-    dayOfWeek: dayKeyFromIso(rec.starts_at),
+    dayOfWeek: dayKey,
     weekId,
     seasonId,
     status: statusFromRecord(rec),
-    whatBody: rec.description ?? undefined,
+    metaLeft,
+    metaRight,
+    whatBody: plan?.what_will_you_do || rec.description || undefined,
+    howItems,
     capabilities: [cap],
-    from: rec.source_blueprint_id ? { source: 'Blueprint' } : undefined,
+    from,
+    cohortAvatars,
+    cohortLabel,
   };
+}
+
+function capitalize(s: string): string {
+  if (!s) return s;
+  return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
 }
 
 interface AdapterInput {
@@ -168,6 +285,8 @@ interface AdapterInput {
   allSeasons: Season[];
   steps: TimelineStepRecord[];
   focusStepId?: string;
+  /** id → title (and optional author_name) lookup for FROM provenance row. */
+  blueprintsById?: Map<string, BlueprintLookup>;
 }
 
 export function mapToTimelineDataset({
@@ -177,6 +296,7 @@ export function mapToTimelineDataset({
   allSeasons,
   steps,
   focusStepId,
+  blueprintsById,
 }: AdapterInput): TimelineDataset {
   // Sort steps by sort_order, then starts_at. Stable ordering matters for
   // week bucketing fallback and L4 brick layout.
@@ -214,7 +334,7 @@ export function mapToTimelineDataset({
       number,
       dateRange: range,
       isCurrent: containsFocus || bucketIdx === 0,
-      steps: bucketRecs.map((r) => recordToStep(r, seasonIdForSteps, id)),
+      steps: bucketRecs.map((r) => recordToStep(r, seasonIdForSteps, id, blueprintsById)),
     };
   });
 
