@@ -11,6 +11,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import * as WebBrowser from 'expo-web-browser';
 import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
 import { showAlert } from '@/lib/utils/crossPlatformAlert';
 import { FLOATING_TAB_BAR_HEIGHT } from '@/components/navigation/FloatingTabBar';
@@ -71,16 +72,29 @@ export function ResourceItemDetail({ item }: Props) {
     if (!item.url) {
       showAlert(
         'Read',
-        'This item has no URL to open. A built-in reader for PDFs and uploaded files is on the roadmap.',
+        'This item has no URL to open. A built-in reader for notes and pasted text is on the roadmap.',
       );
       return;
     }
-    const can = await Linking.canOpenURL(item.url);
-    if (!can) {
-      showAlert('Read', `Can't open this URL: ${item.url}`);
-      return;
+    try {
+      // SFSafariViewController on iOS / Chrome Custom Tabs on Android — keeps
+      // the user in BetterAt, returns to this screen on close. PDFs and
+      // uploaded files (public URL from library-files bucket) render inline
+      // via the system's built-in PDF viewer when the URL ends in .pdf.
+      await WebBrowser.openBrowserAsync(item.url, {
+        toolbarColor: '#FFFFFF',
+        controlsColor: '#007AFF',
+        enableBarCollapsing: true,
+        readerMode: item.format === 'article' || item.format === 'link',
+      });
+    } catch (err) {
+      // openBrowserAsync rejects when the URL is malformed or there's no
+      // available handler. Fall back to system browser so the user still has
+      // a way to read.
+      const can = await Linking.canOpenURL(item.url);
+      if (can) await Linking.openURL(item.url);
+      else showAlert('Read', err instanceof Error ? err.message : String(err));
     }
-    await Linking.openURL(item.url);
   };
 
   const handleShare = async () => {
