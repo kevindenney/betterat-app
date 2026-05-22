@@ -253,7 +253,7 @@ export function BaltimoreColdMap() {
       <SvgText x="140" y="225" fill={LABEL} fontSize="9" fontWeight="500" letterSpacing="1.2">DOWNTOWN</SvgText>
       <SvgText x="240" y="335" fill={LABEL} fontSize="8.5" fontWeight="500" letterSpacing="1">FELLS PT.</SvgText>
       <SvgText x="140" y="355" fill={LABEL} fontSize="8.5" fontWeight="500" letterSpacing="1">FEDERAL HILL</SvgText>
-      <SvgText x="160" y="310" fill={LABEL} fontSize="9" fontStyle="italic" fontWeight="500" letterSpacing="0.6">
+      <SvgText x="170" y="318" fill={LABEL} fontSize="8.5" fontStyle="italic" fontWeight="500" letterSpacing="0.6">
         INNER HARBOR
       </SvgText>
 

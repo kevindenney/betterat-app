@@ -245,14 +245,22 @@ export function NextEventTag({
         {
           left: `${leftPct}%`,
           top: `${topPct}%`,
-          marginLeft: -64,
-          marginTop: -16,
+          marginLeft: -78,
+          marginTop: -20,
+          width: 156,
+          alignItems: 'center',
         },
       ]}
     >
       <View style={styles.nextEventTag}>
-        <Text style={styles.nextEventEyebrow}>{eyebrow}</Text>
-        {detail ? <Text style={styles.nextEventDetail}>{detail}</Text> : null}
+        <Text style={styles.nextEventEyebrow} numberOfLines={1}>
+          {eyebrow}
+        </Text>
+        {detail ? (
+          <Text style={styles.nextEventDetail} numberOfLines={1}>
+            {detail}
+          </Text>
+        ) : null}
       </View>
     </View>
   );

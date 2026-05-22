@@ -58,8 +58,13 @@ export interface AtlasNextEvent {
   label: string;
   /** Time/date snippet, e.g. "Sat 10am". */
   when?: string;
-  /** Venue/area snippet, e.g. "Victoria Harbour, favoured end". */
+  /** Venue/area snippet, e.g. "Victoria Harbour, favoured end".
+   *  Used in the bottom-sheet body — verbose is fine here. */
   where?: string;
+  /** Short wind/tide snippet for the amber map tag, e.g. "12kn ESE · ebb 0.4kn".
+   *  Kept terse to fit the small overlay; if absent the tag shows only
+   *  the eyebrow line. */
+  conditions?: string;
 }
 
 export interface AtlasFrameHandlers {
@@ -340,17 +345,6 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
       <View style={shellStyles.mapArea}>
         <HongKongOverviewMap />
 
-        {/* Highlighted next-event tag on Victoria Harbour — only when there
-            actually IS a next event. Otherwise the glow is a lie. */}
-        {hasNext && (
-          <NextEventTag
-            leftPct={50}
-            topPct={47}
-            eyebrow={`NEXT · ${next!.label.toUpperCase()}${next!.when ? ` · ${next!.when.toUpperCase()}` : ''}`}
-            detail={next!.where ?? '12kn ESE · ebb 0.4kn'}
-          />
-        )}
-
         {/* Racing-area last-race tags + the user's base pin only render
             once real resolver data is wired. Until then the labels would
             be fiction — see Phase A1 resolvers in the brief. */}
@@ -368,16 +362,30 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
           </>
         )}
 
-        {/* Peer pins around Victoria Harbour — crew/fleet/following */}
-        <AtlasPin kind="crew" leftPct={28} topPct={45} />
-        <AtlasPin kind="fleet" leftPct={36} topPct={42} />
-        <AtlasPin kind="fleet" leftPct={42} topPct={48} />
-        <AtlasPin kind="following" leftPct={56} topPct={43} />
-        <AtlasPin kind="fleet" leftPct={64} topPct={48} />
-        <AtlasPin kind="crew" leftPct={70} topPct={45} />
-        <AtlasPin kind="fleet" leftPct={32} topPct={50} />
-        <AtlasPin kind="following" leftPct={26} topPct={52} />
+        {/* Peer pins around Victoria Harbour — crew/fleet/following.
+            Nudged out of the next-event tag's horizontal band (rows 42-48)
+            so they sit above/below the tag rather than under it. */}
+        <AtlasPin kind="crew" leftPct={22} topPct={40} />
+        <AtlasPin kind="fleet" leftPct={32} topPct={36} />
+        <AtlasPin kind="fleet" leftPct={42} topPct={55} />
+        <AtlasPin kind="following" leftPct={58} topPct={36} />
+        <AtlasPin kind="fleet" leftPct={64} topPct={56} />
+        <AtlasPin kind="crew" leftPct={74} topPct={40} />
+        <AtlasPin kind="fleet" leftPct={28} topPct={55} />
+        <AtlasPin kind="following" leftPct={18} topPct={56} />
         <AtlasPin kind="following" leftPct={50} topPct={68} />
+
+        {/* Highlighted next-event tag on Victoria Harbour. Rendered LAST so
+            it stacks above the peer pins; otherwise the pins occlude the
+            tag's detail line. */}
+        {hasNext && (
+          <NextEventTag
+            leftPct={50}
+            topPct={47}
+            eyebrow={`NEXT · ${next!.label.toUpperCase()}${next!.when ? ` · ${next!.when.toUpperCase()}` : ''}`}
+            detail={next!.conditions}
+          />
+        )}
 
         <LayersFab />
       </View>
@@ -497,9 +505,14 @@ function FrameF3({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
       />
       <View style={shellStyles.mapArea}>
         <WorldDragonMap />
-        <ClusterTag leftPct={55} topPct={20} label="AMSTERDAM" count="18 sailors" />
-        <ClusterTag leftPct={80} topPct={40} label="RHKYC · 24" count="SAILORS" highlight />
-        <ClusterTag leftPct={47} topPct={30} label="WORLDS 2026" count="VILAMOURA" />
+        {/* Cluster bubbles spaced enough that the labels don't touch.
+            Amsterdam (NL), Vilamoura (Worlds, PT) and HK are real
+            geographic positions on the canonical world map; tightened
+            slightly so the bubbles fit the phone column without
+            collision. */}
+        <ClusterTag leftPct={58} topPct={18} label="AMSTERDAM" count="18 sailors" />
+        <ClusterTag leftPct={82} topPct={45} label="RHKYC · 24" count="SAILORS" highlight />
+        <ClusterTag leftPct={38} topPct={38} label="WORLDS 2026" count="VILAMOURA" />
         <LayersFab />
       </View>
 
@@ -548,11 +561,13 @@ function FrameF4({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
 
         {/* Generic OSM-sourced healthcare POIs */}
         <AtlasPin kind="osm-clinic" leftPct={48} topPct={50} label="Johns Hopkins Hosp." />
-        <AtlasPin kind="osm-clinic" leftPct={70} topPct={42} label="Bayview" />
-        <AtlasPin kind="osm-clinic" leftPct={25} topPct={62} label="U. of Maryland" />
-        <AtlasPin kind="osm-clinic" leftPct={20} topPct={45} label="Sinai" />
-        <AtlasPin kind="osm-clinic" leftPct={55} topPct={75} label="MedStar Harbor" />
-        <AtlasPin kind="osm-clinic" leftPct={82} topPct={66} label="VA Medical Ctr." />
+        <AtlasPin kind="osm-clinic" leftPct={72} topPct={42} label="Bayview" />
+        <AtlasPin kind="osm-clinic" leftPct={22} topPct={62} label="U. of Maryland" />
+        <AtlasPin kind="osm-clinic" leftPct={18} topPct={45} label="Sinai" />
+        {/* MedStar moved up + left from 55,75 so its label does not collide
+            with the "INNER HARBOR" italic water label below it. */}
+        <AtlasPin kind="osm-clinic" leftPct={62} topPct={82} label="MedStar Harbor" />
+        <AtlasPin kind="osm-clinic" leftPct={86} topPct={66} label="VA Medical Ctr." />
 
         {/* Ghost-pin sample stamp — fades when real cohort joins */}
         <GhostStampOverlay leftPct={50} topPct={32} />
@@ -602,23 +617,28 @@ function FrameF5({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
           <Text style={shellStyles.absChipText}>competency · IV supervised</Text>
         </View>
 
-        {/* JH-claimed sites with counts (constellation across affiliates) */}
+        {/* JH-claimed sites with counts (constellation across affiliates).
+            Positions spread enough that the labels below each pin don't
+            overlap; shortened "Hopkins East Baltimore" → "Hopkins EB" to
+            fit the pin's label width and match the bottom-sheet stat. */}
         <AtlasPin
           kind="jh-site"
-          leftPct={60}
-          topPct={42}
-          label="Hopkins East Baltimore"
+          leftPct={55}
+          topPct={48}
+          label="Hopkins EB"
           badge="JH"
         />
-        {/* Large peer count bubble on the main site */}
-        <View style={[shellStyles.absChip, { top: '36%', left: '56%', backgroundColor: '#AF52DE' }]}>
+        {/* Large peer count bubble — shifted further right of Hopkins so
+            it does not jam against the site label. */}
+        <View style={[shellStyles.absChip, { top: '38%', left: '68%', backgroundColor: '#AF52DE' }]}>
           <Text style={[shellStyles.absChipText, { color: '#FFF', fontWeight: '700' }]}>12</Text>
         </View>
 
-        <AtlasPin kind="jh-site" leftPct={78} topPct={42} label="Bayview" badge="JH" />
-        <AtlasPin kind="jh-site" leftPct={32} topPct={55} label="Suburban" badge="JH" />
-        <AtlasPin kind="jh-site" leftPct={84} topPct={66} label="Howard County" badge="JH" />
-        <AtlasPin kind="sim" leftPct={48} topPct={30} label="Pinkard sim" />
+        <AtlasPin kind="jh-site" leftPct={82} topPct={56} label="Bayview" badge="JH" />
+        <AtlasPin kind="jh-site" leftPct={18} topPct={62} label="Suburban" badge="JH" />
+        {/* Howard County shifted left so its label clears the layers FAB */}
+        <AtlasPin kind="jh-site" leftPct={66} topPct={80} label="Howard County" badge="JH" />
+        <AtlasPin kind="sim" leftPct={32} topPct={28} label="Pinkard" />
 
         <LayersFab />
       </View>
@@ -869,7 +889,8 @@ const shellStyles = StyleSheet.create({
     maxHeight: 36,
   },
   chipsContainer: {
-    paddingHorizontal: 16,
+    paddingLeft: 16,
+    paddingRight: 24,
     gap: 6,
     paddingBottom: 6,
   },
