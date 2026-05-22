@@ -19,110 +19,15 @@ import { router } from 'expo-router';
 import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
 import { showAlert } from '@/lib/utils/crossPlatformAlert';
 import { useCreateLibraryItem } from '@/hooks/useCreateLibraryItem';
+import { useLibraryZonesData } from '@/hooks/useLibraryZonesData';
+import { useLibraryCounts } from '@/hooks/useLibraryCounts';
 import { useInterest } from '@/providers/InterestProvider';
 import { LibraryItemCard } from './LibraryItemCard';
 import { RecentItemRow } from './RecentItemRow';
 import { CollectionsRow } from './CollectionsRow';
 import { CaptureSheet } from './CaptureSheet';
 import { mapCapturePayloadToLibraryItem } from './capturePayloadMap';
-import type { CollectionCard, LibraryItemRow } from './types';
-
-// Wave 2e demo data — Emily's MSN Capstone library.
-const IN_PLAY: LibraryItemRow[] = [
-  {
-    id: 'aacn-sepsis',
-    format: 'pdf',
-    source: 'AACN Practice Alert',
-    title: 'Severe sepsis & septic shock',
-    meta: '8 pages',
-    active: true,
-  },
-  {
-    id: 'bates-cardio',
-    format: 'video',
-    source: "Bates' video series",
-    title: 'Cardiovascular exam, bedside',
-    meta: '12 min',
-    active: true,
-  },
-  {
-    id: 'bates-ch8',
-    format: 'book',
-    source: "Bates' Guide · 13e",
-    title: 'Ch 8 · Cardiovascular system',
-    meta: '3 marks',
-  },
-  {
-    id: 'nejm-egdt',
-    format: 'link',
-    source: 'NEJM · 2001',
-    title: 'Early goal-directed therapy in sepsis',
-    meta: '5 min read',
-  },
-  {
-    id: 'curbsiders-lactate',
-    format: 'audio',
-    source: 'Curbsiders #441',
-    title: 'Lactate, demystified',
-    meta: '54 min',
-  },
-];
-
-const RECENT: LibraryItemRow[] = [
-  {
-    id: 'jhh-code-blue',
-    format: 'pdf',
-    source: '',
-    title: 'JHH Code Blue 2025 · pocket card',
-    capturedFrom: 'Uploaded',
-    capturedAt: '2 hr ago',
-    topicTag: 'Sepsis & rapid response',
-  },
-  {
-    id: 'piv-ultrasound',
-    format: 'video',
-    source: '',
-    title: 'Bedside ultrasound for PIV access',
-    capturedFrom: 'From YouTube',
-    capturedAt: 'Yesterday',
-    topicTag: 'Krista Murphy DNP',
-  },
-  {
-    id: 'lactate-clearance',
-    format: 'link',
-    source: '',
-    title: "When lactate doesn't fall: re-examining clearance",
-    capturedFrom: 'From Annals of EM',
-    capturedAt: 'Sunday',
-  },
-];
-
-const COLLECTIONS: CollectionCard[] = [
-  {
-    id: 'sepsis',
-    name: 'Sepsis & rapid response',
-    itemCount: 12,
-    formatStrip: ['pdf', 'link', 'video', 'audio'],
-  },
-  {
-    id: 'cardiac',
-    name: 'Cardiac & telemetry',
-    itemCount: 18,
-    formatStrip: ['book', 'video', 'pdf'],
-  },
-  {
-    id: 'peds',
-    name: 'Pediatric vitals & meds',
-    itemCount: 9,
-    formatStrip: ['pdf', 'link'],
-  },
-  {
-    id: 'pharm',
-    name: 'High-alert pharmacology',
-    itemCount: 14,
-    formatStrip: ['book', 'pdf', 'note'],
-  },
-];
+import { DEMO_COLLECTIONS, DEMO_IN_PLAY, DEMO_RECENT } from './demoZonesData';
 
 interface Props {
   /** Optional external open trigger; if not provided the zone opens its own sheet. */
@@ -133,6 +38,21 @@ export function ResourcesZone({ onOpenCapture }: Props) {
   const [captureOpen, setCaptureOpen] = useState(false);
   const { currentInterest } = useInterest();
   const createLibraryItem = useCreateLibraryItem();
+  const { data: zones } = useLibraryZonesData(currentInterest?.id);
+  const { data: counts } = useLibraryCounts(currentInterest?.id);
+
+  // Demo content stands in only when the account is completely empty so
+  // the JHU/MSN-Capstone screenshots keep working on a fresh account. Any
+  // real capture flips the zone to live data for that interest.
+  const isEmpty = zones ? !zones.hasAnyItems : false;
+  const inPlay = isEmpty ? DEMO_IN_PLAY : (zones?.inPlay ?? []);
+  const recent = isEmpty ? DEMO_RECENT : (zones?.recent ?? []);
+  const collections = isEmpty
+    ? DEMO_COLLECTIONS
+    : (zones?.collections ?? []);
+
+  const interestName = currentInterest?.name ?? 'Your library';
+  const itemCount = counts?.resources;
   const openItem = (id: string) => router.push(`/library/items/${id}` as any);
   const handleOpenCapture = () => {
     if (onOpenCapture) onOpenCapture();
@@ -145,11 +65,15 @@ export function ResourcesZone({ onOpenCapture }: Props) {
         <Text style={styles.title}>Library</Text>
         <View style={styles.metaRow}>
           <View style={styles.interestDot} />
-          <Text style={styles.metaText}>MSN Capstone</Text>
-          <Text style={styles.metaSep}>·</Text>
-          <Text style={styles.metaText}>84 items</Text>
-          <Text style={styles.metaSep}>·</Text>
-          <Text style={styles.metaText}>12 in active steps</Text>
+          <Text style={styles.metaText}>{interestName}</Text>
+          {typeof itemCount === 'number' ? (
+            <>
+              <Text style={styles.metaSep}>·</Text>
+              <Text style={styles.metaText}>
+                {itemCount} item{itemCount === 1 ? '' : 's'}
+              </Text>
+            </>
+          ) : null}
         </View>
       </View>
 
@@ -170,69 +94,81 @@ export function ResourcesZone({ onOpenCapture }: Props) {
         <Ionicons name="chevron-forward" size={16} color={IOS_COLORS.tertiaryLabel} />
       </TouchableOpacity>
 
-      <ShelfHead
-        title="In play this week"
-        count={IN_PLAY.length}
-        onSeeAll={() =>
-          showAlert(
-            'In play this week',
-            'Full list view is on the roadmap — not built yet.',
-          )
-        }
-      />
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.shelfTrack}
-      >
-        {IN_PLAY.map((item) => (
-          <LibraryItemCard
-            key={item.id}
-            item={item}
-            onPress={() => openItem(item.id)}
+      {inPlay.length > 0 ? (
+        <>
+          <ShelfHead
+            title="In play this week"
+            count={inPlay.length}
+            onSeeAll={() =>
+              showAlert(
+                'In play this week',
+                'Full list view is on the roadmap — not built yet.',
+              )
+            }
           />
-        ))}
-      </ScrollView>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.shelfTrack}
+          >
+            {inPlay.map((item) => (
+              <LibraryItemCard
+                key={item.id}
+                item={item}
+                onPress={() => openItem(item.id)}
+              />
+            ))}
+          </ScrollView>
+        </>
+      ) : null}
 
-      <ShelfHead
-        title="Recently added"
-        onSeeAll={() =>
-          showAlert(
-            'Recently added',
-            'Full list view is on the roadmap — not built yet.',
-          )
-        }
-      />
-      <View style={styles.recentBlock}>
-        {RECENT.map((item) => (
-          <RecentItemRow
-            key={item.id}
-            item={item}
-            onPress={() => openItem(item.id)}
+      {recent.length > 0 ? (
+        <>
+          <ShelfHead
+            title="Recently added"
+            onSeeAll={() =>
+              showAlert(
+                'Recently added',
+                'Full list view is on the roadmap — not built yet.',
+              )
+            }
           />
-        ))}
-      </View>
+          <View style={styles.recentBlock}>
+            {recent.map((item) => (
+              <RecentItemRow
+                key={item.id}
+                item={item}
+                onPress={() => openItem(item.id)}
+              />
+            ))}
+          </View>
+        </>
+      ) : null}
 
-      <ShelfHead
-        title="Collections"
-        topPad={IOS_SPACING.lg}
-        onSeeAll={() =>
-          showAlert(
-            'Collections',
-            'Full list view is on the roadmap — not built yet.',
-          )
-        }
-      />
-      <CollectionsRow
-        collections={COLLECTIONS}
-        onPress={(id) => {
-          const c = COLLECTIONS.find((x) => x.id === id);
-          showAlert(
-            c?.name ?? 'Collection',
-            'Collection detail screen is on the roadmap — not built yet.',
-          );
-        }}
-      />
+      {collections.length > 0 ? (
+        <>
+          <ShelfHead
+            title="Collections"
+            topPad={IOS_SPACING.lg}
+            onSeeAll={() =>
+              showAlert(
+                'Collections',
+                'Full list view is on the roadmap — not built yet.',
+              )
+            }
+          />
+          <CollectionsRow
+            collections={collections}
+            onPress={(id) => {
+              const c = collections.find((x) => x.id === id);
+              showAlert(
+                c?.name ?? 'Collection',
+                'Collection detail screen is on the roadmap — not built yet.',
+              );
+            }}
+          />
+        </>
+      ) : null}
 
       <View style={styles.bottomPad} />
       <CaptureSheet
