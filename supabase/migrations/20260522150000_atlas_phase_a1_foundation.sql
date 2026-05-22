@@ -306,7 +306,7 @@ RETURNS TABLE(
   set_by         uuid,
   relationship   text,
   preview_name   text,
-  precision      text,
+  loc_precision  text,    -- "precision" is a PG reserved word in return signatures
   poi_id         uuid,
   set_at         timestamptz
 )
@@ -339,7 +339,7 @@ BEGIN
       sl.lat,
       sl.lng,
       sl.set_by,
-      sl.location_precision AS precision,
+      sl.location_precision AS loc_precision,
       sl.poi_id,
       sl.name AS preview_name,
       sl.set_at,
@@ -384,7 +384,7 @@ BEGIN
   SELECT
     l.step_id,
     -- precision-aware coordinate transform
-    CASE l.precision
+    CASE l.loc_precision
       WHEN 'neighborhood' THEN
         -- ±500m jitter, stable per (set_by, jitter_seed)
         l.lat + ((('x' || substring(l.jitter_seed::text, 1, 8))::bit(32)::int % 1000 - 500) / 111000.0)
@@ -392,7 +392,7 @@ BEGIN
         COALESCE((SELECT p.lat FROM public.atlas_pois p WHERE p.id = l.poi_id), l.lat)
       ELSE l.lat
     END AS lat,
-    CASE l.precision
+    CASE l.loc_precision
       WHEN 'neighborhood' THEN
         l.lng + ((('x' || substring(l.jitter_seed::text, 9, 8))::bit(32)::int % 1000 - 500) / (111000.0 * COS(RADIANS(target_lat))))
       WHEN 'site' THEN
@@ -402,7 +402,7 @@ BEGIN
     l.set_by,
     l.relationship,
     l.preview_name,
-    l.precision,
+    l.loc_precision,
     l.poi_id,
     l.set_at
   FROM labeled l;
@@ -451,25 +451,26 @@ BEGIN
      OR lower_body ~ '\m\d+\s*(west|east|north|south|w|e|n|s)\s+bed\s*\d+'
      OR lower_body ~ '\m\d{1,2}-(west|east|north|south)\s+bed\M'
   THEN
-    offenses := offenses || 'ROOM_NUMBER';
+    offenses := offenses || ARRAY['ROOM_NUMBER']::text[];
   END IF;
 
   -- MRN-shaped (label adjacent to digits)
   IF lower_body ~ '\m(mrn|m\.r\.n\.?|medical\s+record\s+number)\s*:?\s*\d{4,}'
   THEN
-    offenses := offenses || 'MRN';
+    offenses := offenses || ARRAY['MRN']::text[];
   END IF;
 
   -- DOB-shaped
   IF lower_body ~ '\m(dob|d\.o\.b\.?|date\s+of\s+birth|born)\s*:?\s*(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}|\d{4}-\d{2}-\d{2})'
   THEN
-    offenses := offenses || 'DOB';
+    offenses := offenses || ARRAY['DOB']::text[];
   END IF;
 
-  -- Patient initials adjacent to 'pt' / 'patient' / 'Mr.' / 'Ms.' / 'Mrs.'
-  IF body ~ '\m(pt|patient|Mr\.|Ms\.|Mrs\.|Dr\.)\s+[A-Z]\.?\s*[A-Z]\.?\M'
+  -- Patient initials adjacent to 'pt' / 'patient' / 'Mr.' / 'Ms.' / 'Mrs.' / 'Dr.'
+  -- Case-insensitive (~*) so "Pt JK", "patient m.k.", "Mrs. AB" all match.
+  IF body ~* '\m(pt|patient|mr|ms|mrs|dr)\.?\s+[a-z]\.?\s*[a-z]\.?\M'
   THEN
-    offenses := offenses || 'PATIENT_INIT';
+    offenses := offenses || ARRAY['PATIENT_INIT']::text[];
   END IF;
 
   RETURN offenses;
