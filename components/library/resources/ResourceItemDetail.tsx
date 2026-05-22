@@ -1,6 +1,8 @@
 import React from 'react';
 import {
+  Linking,
   ScrollView,
+  Share,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -65,6 +67,34 @@ export function ResourceItemDetail({ item }: Props) {
   const tint = FORMAT_TINT[item.format];
   const isDemoItem = item.id in DEMO_LIBRARY_ITEMS;
 
+  const handleRead = async () => {
+    if (!item.url) {
+      showAlert(
+        'Read',
+        'This item has no URL to open. A built-in reader for PDFs and uploaded files is on the roadmap.',
+      );
+      return;
+    }
+    const can = await Linking.canOpenURL(item.url);
+    if (!can) {
+      showAlert('Read', `Can't open this URL: ${item.url}`);
+      return;
+    }
+    await Linking.openURL(item.url);
+  };
+
+  const handleShare = async () => {
+    try {
+      await Share.share({
+        title: item.title,
+        message: item.url ? `${item.title}\n${item.url}` : item.title,
+        ...(item.url ? { url: item.url } : {}),
+      });
+    } catch (err) {
+      showAlert('Share failed', err instanceof Error ? err.message : String(err));
+    }
+  };
+
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <View style={styles.topbar}>
@@ -79,7 +109,7 @@ export function ResourceItemDetail({ item }: Props) {
         </TouchableOpacity>
         <View style={styles.topbarRight}>
           <TouchableOpacity
-            onPress={() => comingSoon('Share')}
+            onPress={handleShare}
             hitSlop={8}
             activeOpacity={0.6}
           >
@@ -123,7 +153,7 @@ export function ResourceItemDetail({ item }: Props) {
           <TouchableOpacity
             style={styles.action}
             activeOpacity={0.7}
-            onPress={() => comingSoon('Read')}
+            onPress={handleRead}
           >
             <Ionicons name="book-outline" size={16} color={IOS_COLORS.label} />
             <Text style={styles.actionText}>Read</Text>

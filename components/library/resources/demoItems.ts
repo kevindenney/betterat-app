@@ -50,6 +50,7 @@ export const DEMO_LIBRARY_ITEMS: Record<string, ResourceItemFull> = {
         prov: 'p5 · highlighted Tue',
       },
     ],
+    url: 'https://www.aacn.org/clinical-resources/practice-alerts',
   },
   'bates-cardio': {
     id: 'bates-cardio',
@@ -73,6 +74,7 @@ export const DEMO_LIBRARY_ITEMS: Record<string, ResourceItemFull> = {
       },
     ],
     marks: [],
+    url: 'https://www.youtube.com/results?search_query=bates+cardiovascular+exam',
   },
   'bates-ch8': {
     id: 'bates-ch8',
@@ -97,6 +99,7 @@ export const DEMO_LIBRARY_ITEMS: Record<string, ResourceItemFull> = {
         prov: 'p217 · highlighted Sep 30',
       },
     ],
+    url: null,
   },
   'nejm-egdt': {
     id: 'nejm-egdt',
@@ -114,6 +117,7 @@ export const DEMO_LIBRARY_ITEMS: Record<string, ResourceItemFull> = {
       },
     ],
     marks: [],
+    url: 'https://www.nejm.org/doi/full/10.1056/NEJMoa010307',
   },
   'curbsiders-lactate': {
     id: 'curbsiders-lactate',
@@ -124,6 +128,7 @@ export const DEMO_LIBRARY_ITEMS: Record<string, ResourceItemFull> = {
     sourceLine: 'Curbsiders #441 · Added Oct 10',
     backRefs: [],
     marks: [],
+    url: 'https://thecurbsiders.com/podcast/441',
   },
   'jhh-code-blue': {
     id: 'jhh-code-blue',
@@ -141,6 +146,7 @@ export const DEMO_LIBRARY_ITEMS: Record<string, ResourceItemFull> = {
       },
     ],
     marks: [],
+    url: null,
   },
   'piv-ultrasound': {
     id: 'piv-ultrasound',
@@ -151,6 +157,7 @@ export const DEMO_LIBRARY_ITEMS: Record<string, ResourceItemFull> = {
     sourceLine: 'From YouTube · Krista Murphy DNP · Added yesterday',
     backRefs: [],
     marks: [],
+    url: 'https://www.youtube.com/results?search_query=bedside+ultrasound+PIV+access',
   },
   'lactate-clearance': {
     id: 'lactate-clearance',
@@ -168,5 +175,6 @@ export const DEMO_LIBRARY_ITEMS: Record<string, ResourceItemFull> = {
       },
     ],
     marks: [],
+    url: 'https://www.annemergmed.com/',
   },
 };

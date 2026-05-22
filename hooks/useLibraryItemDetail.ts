@@ -88,7 +88,7 @@ export function useLibraryItemDetail(id: string | undefined) {
       const { data: item, error: itemErr } = await supabase
         .from('library_items')
         .select(
-          'id, kind, title, source_label, year, page_count, duration_min, captured_at',
+          'id, kind, title, source_label, year, page_count, duration_min, captured_at, url_or_blob_id',
         )
         .eq('id', id)
         .maybeSingle();
@@ -199,8 +199,13 @@ export function useLibraryItemDetail(id: string | undefined) {
         page_count: number | null;
         duration_min: number | null;
         captured_at: string | null;
+        url_or_blob_id: string | null;
       };
       const format = toFormat(row.kind);
+      // url_or_blob_id holds a real URL for link/video/article kinds and
+      // the pasted-text body for notes; only the former is openable.
+      const looksLikeUrl =
+        !!row.url_or_blob_id && /^https?:\/\//i.test(row.url_or_blob_id);
 
       return {
         id: row.id,
@@ -209,6 +214,7 @@ export function useLibraryItemDetail(id: string | undefined) {
         meta: metaFor(row),
         title: row.title,
         sourceLine: sourceLineFor(row),
+        url: looksLikeUrl ? row.url_or_blob_id : null,
         backRefs,
         marks: [],
       };

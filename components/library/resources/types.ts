@@ -41,6 +41,9 @@ export interface ResourceItemFull {
   meta: string;
   title: string;
   sourceLine: string;
+  /** External URL when the item is a link/video/article and we have one to
+   *  open. NULL for notes/uploads or any item captured before url wiring. */
+  url: string | null;
   backRefs: BackRefRow[];
   marks: MarkedExcerpt[];
 }
