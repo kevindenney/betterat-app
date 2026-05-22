@@ -13,6 +13,8 @@
  */
 
 import { useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/services/supabase';
 import { useAdminOrgSites } from '@/hooks/useAdminOrgSites';
 import { useAdminCohorts } from '@/hooks/useAdminCohorts';
 
@@ -50,7 +52,8 @@ export interface AdminCompetencyEvidenceData {
   colTotals: Map<string, { count: number; pct: number }>;  // site → activity
 }
 
-// Demo competency list for the MSN program.
+// Fallback competency lists used when the org has no org_competencies rows
+// (small dev/sandbox orgs). Real orgs query the table.
 const NURSING_COMPETENCIES: Competency[] = [
   { id: 'iv', label: 'IV insertion · supervised', shortLabel: 'IV', category: 'Procedural' },
   { id: 'med-admin', label: 'Medication administration', shortLabel: 'Med admin', category: 'Procedural' },
@@ -90,9 +93,46 @@ export function useAdminCompetencyEvidence(orgId: string): AdminCompetencyEviden
   const cohortName = cohort?.name ?? 'No cohort';
   const slug = cohort?.interestSlug ?? 'nursing';
 
+  // Real competency framework from org_competencies, with a hardcoded fallback
+  // for orgs that haven't seeded any (keeps demos sane).
+  const { data: realCompetencies = [] } = useQuery({
+    queryKey: ['admin-org-competencies', orgId],
+    enabled: !!orgId,
+    staleTime: 5 * 60_000,
+    queryFn: async (): Promise<Competency[]> => {
+      const { data, error } = await supabase
+        .from('org_competencies')
+        .select('id, short_label, full_label, category, display_order')
+        .eq('org_id', orgId)
+        .eq('is_active', true)
+        .order('display_order', { ascending: true });
+      if (error) {
+        console.warn('[useAdminCompetencyEvidence] competencies query failed', error);
+        return [];
+      }
+      type Row = {
+        id: string;
+        short_label: string;
+        full_label: string;
+        category: string;
+      };
+      return ((data ?? []) as Row[]).map((r) => ({
+        id: r.id,
+        label: r.full_label,
+        shortLabel: r.short_label,
+        category: r.category,
+      }));
+    },
+  });
+
   const competencies = useMemo(
-    () => (slug === 'sail-racing' ? SAILING_COMPETENCIES : NURSING_COMPETENCIES),
-    [slug],
+    () =>
+      realCompetencies.length > 0
+        ? realCompetencies
+        : slug === 'sail-racing'
+        ? SAILING_COMPETENCIES
+        : NURSING_COMPETENCIES,
+    [realCompetencies, slug],
   );
 
   // Filter to "real" practice sites (skip sim_lab in evidence grid since
