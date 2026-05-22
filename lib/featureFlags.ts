@@ -421,6 +421,22 @@ export const FEATURE_FLAGS = {
   TIMELINE_ZOOM_IOS_REGISTER: readBooleanEnv('EXPO_PUBLIC_FF_TIMELINE_ZOOM_IOS_REGISTER', true),
 
   /**
+   * Timeline Zoom — canonical Practice tab cutover. When on, the Practice
+   * tab renders <TimelineZoomPracticeScreen /> (canvas wired to the
+   * signed-in user's real timeline-steps + seasons) instead of the legacy
+   * RacesScreen body. When off, the legacy view renders unchanged.
+   *
+   * Defaults true 2026-05-22. Flip to false via
+   * EXPO_PUBLIC_FF_TIMELINE_ZOOM_PRACTICE_CUTOVER=false to revert without a
+   * deploy. The /timeline-zoom-ios preview route remains available either
+   * way (gated separately by TIMELINE_ZOOM_IOS_REGISTER).
+   */
+  TIMELINE_ZOOM_PRACTICE_CUTOVER: readBooleanEnv(
+    'EXPO_PUBLIC_FF_TIMELINE_ZOOM_PRACTICE_CUTOVER',
+    true,
+  ),
+
+  /**
    * Phase 11 — Atlas tab iOS register preview. The fifth lens ("where"),
    * centered between Library and Discover. Renders the canonical six-frame
    * surface at the preview route /atlas-ios:

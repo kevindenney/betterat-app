@@ -5,6 +5,8 @@
  */
 
 export { TimelineZoomCanvas } from './TimelineZoomCanvas';
+export { TimelineZoomPracticeScreen } from './TimelineZoomPracticeScreen';
+export { mapToTimelineDataset } from './realDataAdapter';
 export { ZoomRailIndicator } from './ZoomRailIndicator';
 export { L1StepView } from './L1StepView';
 export { L2WeekView } from './L2WeekView';

@@ -78,6 +78,8 @@ export {
 } from './IOSRegisterErrorState';
 export {
   TimelineZoomCanvas,
+  TimelineZoomPracticeScreen,
+  mapToTimelineDataset,
   ZoomRailIndicator,
   L1StepView,
   L2WeekView,

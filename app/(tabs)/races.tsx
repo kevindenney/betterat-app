@@ -40,7 +40,7 @@ import {
 import { RaceListSection } from '@/components/races/RaceListSection';
 import { SeasonArchive } from '@/components/seasons/SeasonArchive';
 import { IOSRacesScreen } from '@/components/races/ios';
-import { RaceCardsScreen, type RaceCardItem } from '@/components/ios-register';
+import { RaceCardsScreen, TimelineZoomPracticeScreen, type RaceCardItem } from '@/components/ios-register';
 import { AddStepActionSheet, AddStepFab } from '@/components/practice';
 import { AIPatternDetection } from '@/components/races/debrief/AIPatternDetection';
 import { TourStep } from '@/components/onboarding/TourStep';
@@ -186,7 +186,25 @@ const normalizeDocumentType = (
 // Stable empty array to avoid creating new reference when liveRaces is null/undefined
 const EMPTY_RACES: any[] = [];
 
+/**
+ * Timeline Zoom cutover (2026-05-22).
+ *
+ * When FEATURE_FLAGS.TIMELINE_ZOOM_PRACTICE_CUTOVER is on, the Practice tab
+ * renders the new zoomable canvas instead of the legacy season/cards body.
+ * The legacy screen is preserved verbatim below as `LegacyRacesScreen` so a
+ * single env-var flip restores it.
+ *
+ * Per components/ios-register/timeline-zoom/ — Sections A–C of the May 2026
+ * Timeline Zoom & Admin handoff.
+ */
 export default function RacesScreen() {
+  if (FEATURE_FLAGS.TIMELINE_ZOOM_PRACTICE_CUTOVER) {
+    return <TimelineZoomPracticeScreen />;
+  }
+  return <LegacyRacesScreen />;
+}
+
+function LegacyRacesScreen() {
   const universalPlus = useUniversalPlus();
   const auth = useAuth();
   const { user, userProfile: _userProfile, signedIn, ready, isDemoSession, userType, isGuest, enterGuestMode, wasAuthenticated } = auth;

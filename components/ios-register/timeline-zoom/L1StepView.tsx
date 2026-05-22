@@ -173,7 +173,10 @@ const styles = StyleSheet.create({
   },
   metaRow: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     justifyContent: 'space-between',
+    columnGap: 12,
+    rowGap: 2,
     marginBottom: 16,
   },
   metaText: {
