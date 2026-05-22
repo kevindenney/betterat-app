@@ -99,7 +99,7 @@ import { CollaboratorPicker } from '@/components/step/CollaboratorPicker';
 import { DueDatePickerModal } from '@/components/step/DueDatePickerModal';
 import { SuggestStepSheet } from '@/components/step/SuggestStepSheet';
 import type { BrainDumpData, StepMetadata, StepPlanData, StepCollaborator, SubStep } from '@/types/step-detail';
-import { useUpdateStepMetadata } from '@/hooks/useStepDetail';
+import { useStepDetail, useUpdateStepMetadata } from '@/hooks/useStepDetail';
 import { useUserBlueprints } from '@/hooks/useBlueprint';
 import { useUpdateStep } from '@/hooks/useTimelineSteps';
 import type { TimelineStepVisibility, TimelineStepSourceType } from '@/types/timeline-steps';
@@ -535,6 +535,12 @@ function RaceSummaryCardImpl({
   const chromeStepId = isTimelineStep ? race.id : null;
   const { data: blueprintChrome } = useStepBlueprintChrome(chromeStepId);
   const { data: discussionPeek } = useStepDiscussionPeek(chromeStepId);
+  // The race prop comes from list queries that don't always select
+  // starts_at / ends_at / metadata. Pull the full step row so the
+  // StepHeaderSubtitle has real date + preceptor data to format.
+  const { data: stepDetailForHeader } = useStepDetail(
+    isTimelineStep ? race.id : undefined,
+  );
   const showBlueprintChrome =
     FEATURE_FLAGS.SUBSCRIBED_STEP_CHROME_V1 && Boolean(blueprintChrome);
   const showDiscussionPeek =
@@ -2670,10 +2676,10 @@ function RaceSummaryCardImpl({
             are set so the inline card stays unchanged for unscheduled steps. */}
         {isTimelineStep ? (
           <StepHeaderSubtitle
-            startsAt={(race as { starts_at?: string | null }).starts_at ?? null}
-            endsAt={(race as { ends_at?: string | null }).ends_at ?? null}
+            startsAt={stepDetailForHeader?.starts_at ?? null}
+            endsAt={stepDetailForHeader?.ends_at ?? null}
             metadata={
-              ((race as { metadata?: Record<string, unknown> | null }).metadata ?? null) as
+              (stepDetailForHeader?.metadata ?? null) as
                 | Record<string, unknown>
                 | null
             }
