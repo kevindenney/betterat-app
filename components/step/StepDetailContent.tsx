@@ -16,6 +16,7 @@ import { IOSPillTabs, usePillTabs } from '@/components/ui/ios/IOSPillTabs';
 import { useVocabulary } from '@/hooks/useVocabulary';
 import { useStepDetail, useUpdateStepMetadata } from '@/hooks/useStepDetail';
 import { useUpdateStep } from '@/hooks/useTimelineSteps';
+import { StepHeaderEyebrow, StepHeaderSubtitle } from './StepHeaderMeta';
 import { PlanTab } from './PlanTab';
 import { ActTab } from './ActTab';
 import { ReviewTab } from './ReviewTab';
@@ -862,6 +863,7 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab }
           <Ionicons name="ellipsis-vertical" size={18} color={STEP_COLORS.secondaryLabel} />
         </Pressable>
       </View>
+      <StepHeaderEyebrow stepId={step.id} />
       {isOwner ? (
         <TextInput
           style={styles.titleInput}
@@ -876,6 +878,11 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab }
       ) : (
         <Text style={styles.titleInput}>{step.title || `${vocab('Learning Event')}`}</Text>
       )}
+      <StepHeaderSubtitle
+        startsAt={step.starts_at}
+        endsAt={step.ends_at}
+        metadata={step.metadata as Record<string, unknown> | null | undefined}
+      />
       {step.description && (
         <Text style={styles.description} numberOfLines={2}>{step.description}</Text>
       )}
