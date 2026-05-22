@@ -123,8 +123,8 @@ export function DoTabInterior({
   );
 
   if (state === 'live') {
-    return (
-      <View style={embedded ? styles.containerEmbedded : styles.container}>
+    const liveBody = (
+      <>
         <DoLiveCard
           stepId={stepId}
           captures={captures}
@@ -146,14 +146,28 @@ export function DoTabInterior({
           onDeleteCapture={onDeleteCapture}
           onTagCapture={onTagCapture}
         />
+        {stepId ? beatsList : null}
         {footer}
-      </View>
+      </>
+    );
+    if (embedded) {
+      return <View style={styles.contentEmbedded}>{liveBody}</View>;
+    }
+    return (
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
+        {liveBody}
+      </ScrollView>
     );
   }
 
   if (state === 'post_activity') {
-    return (
-      <View style={embedded ? styles.containerEmbedded : styles.container}>
+    const postBody = (
+      <>
         <DoPostActivityCard
           captures={captures}
           stepTitle={stepTitle ?? ''}
@@ -171,8 +185,22 @@ export function DoTabInterior({
           onDiscardActivity={onDiscardActivity}
           onMarkAsEvidence={onMarkAsEvidence}
         />
+        {stepId ? beatsList : null}
         {footer}
-      </View>
+      </>
+    );
+    if (embedded) {
+      return <View style={styles.contentEmbedded}>{postBody}</View>;
+    }
+    return (
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
+        {postBody}
+      </ScrollView>
     );
   }
 
