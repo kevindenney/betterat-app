@@ -281,16 +281,170 @@ function FilterChip({
   );
 }
 
-function LayersFab() {
+function LayersFab({ onLayersPress }: { onLayersPress?: () => void }) {
   return (
-    <View pointerEvents="none" style={shellStyles.fabColumn}>
-      <View style={shellStyles.fab}>
+    <View style={shellStyles.fabColumn} pointerEvents="box-none">
+      <Pressable style={shellStyles.fab} onPress={onLayersPress} hitSlop={6}>
         <Ionicons name="layers-outline" size={16} color="rgba(60, 60, 67, 0.78)" />
-      </View>
-      <View style={shellStyles.fab}>
+      </Pressable>
+      <Pressable style={shellStyles.fab} hitSlop={6}>
         <Ionicons name="locate-outline" size={16} color="rgba(60, 60, 67, 0.78)" />
-      </View>
+      </Pressable>
     </View>
+  );
+}
+
+/**
+ * Per the brief's "Layer registry, locked v1":
+ *   core.peer_steps · core.own_steps · core.healthcare_pois ·
+ *   sailing.race_marks · institution.curated_sites
+ *
+ * Plus a couple of overlay toggles per persona (wind/tide for sailing,
+ * competency for nursing). Universal layers (own_steps, peer_steps) are
+ * locked on — the brief specifies own_steps is "always visible."
+ */
+export type AtlasLayerKey =
+  | 'sailing.race_marks'
+  | 'sailing.wind'
+  | 'sailing.tide'
+  | 'core.peer_steps'
+  | 'core.own_steps'
+  | 'core.healthcare_pois'
+  | 'nursing.cohort'
+  | 'nursing.competency'
+  | 'institution.curated_sites';
+
+interface LayerItem {
+  key: AtlasLayerKey;
+  label: string;
+  sub?: string;
+  defaultOn: boolean;
+  locked?: boolean;
+}
+
+function getLayersForFrame(frame: AtlasFrameId): LayerItem[] {
+  const peerSteps: LayerItem = {
+    key: 'core.peer_steps',
+    label: 'Peer steps',
+    sub: 'Color-coded by relationship',
+    defaultOn: true,
+  };
+  const ownSteps: LayerItem = {
+    key: 'core.own_steps',
+    label: 'My steps',
+    sub: 'Always visible',
+    defaultOn: true,
+    locked: true,
+  };
+
+  if (frame === 'f1' || frame === 'f2' || frame === 'f6') {
+    return [
+      { key: 'sailing.race_marks', label: 'Race marks', sub: 'Renders at zoom ≥ 14', defaultOn: true },
+      { key: 'sailing.wind', label: 'Wind', sub: 'Forecast vector + speed', defaultOn: true },
+      { key: 'sailing.tide', label: 'Tide', sub: 'Set + drift', defaultOn: true },
+      peerSteps,
+      ownSteps,
+    ];
+  }
+
+  if (frame === 'f3') {
+    return [
+      { key: 'core.peer_steps', label: 'Class lens · Dragon', sub: 'Fleets worldwide', defaultOn: true },
+      peerSteps,
+      ownSteps,
+    ];
+  }
+
+  if (frame === 'f4') {
+    return [
+      { key: 'core.healthcare_pois', label: 'Healthcare sites', sub: 'Site-level floor — cannot sharpen', defaultOn: true, locked: true },
+      peerSteps,
+      ownSteps,
+    ];
+  }
+
+  // f5 — JHU curated
+  return [
+    { key: 'institution.curated_sites', label: 'JHU partner sites', sub: 'Hopkins / Bayview / Suburban / Howard', defaultOn: true },
+    { key: 'nursing.competency', label: 'Competency overlay', sub: 'IV insertion · supervised', defaultOn: true },
+    { key: 'nursing.cohort', label: 'Cohort pins', sub: 'Site-level fuzz · per-viewer stable', defaultOn: true },
+    ownSteps,
+  ];
+}
+
+function LayersSheet({
+  frame,
+  onClose,
+}: {
+  frame: AtlasFrameId;
+  onClose: () => void;
+}) {
+  const layers = getLayersForFrame(frame);
+  const [activeKeys, setActiveKeys] = useState<Set<string>>(
+    () => new Set(layers.filter((l) => l.defaultOn).map((l) => l.key)),
+  );
+
+  const toggle = (item: LayerItem) => {
+    if (item.locked) return;
+    setActiveKeys((prev) => {
+      const next = new Set(prev);
+      if (next.has(item.key)) next.delete(item.key);
+      else next.add(item.key);
+      return next;
+    });
+  };
+
+  return (
+    <>
+      <Pressable style={shellStyles.layersBackdrop} onPress={onClose} />
+      <View style={shellStyles.layersSheet}>
+        <View style={shellStyles.layersHandle} />
+        <View style={shellStyles.layersHeader}>
+          <Text style={shellStyles.layersTitle}>Layers</Text>
+          <Pressable onPress={onClose} hitSlop={8}>
+            <Ionicons name="close" size={18} color={IOS_REGISTER.label} />
+          </Pressable>
+        </View>
+        {layers.map((layer) => {
+          const on = activeKeys.has(layer.key);
+          return (
+            <Pressable
+              key={layer.key}
+              style={shellStyles.layerRow}
+              onPress={() => toggle(layer)}
+              disabled={layer.locked}
+            >
+              <View style={{ flex: 1 }}>
+                <View style={shellStyles.layerLabelRow}>
+                  <Text style={shellStyles.layerLabel}>{layer.label}</Text>
+                  {layer.locked ? (
+                    <View style={shellStyles.layerLockPill}>
+                      <Ionicons name="lock-closed" size={9} color="rgba(60, 60, 67, 0.55)" />
+                      <Text style={shellStyles.layerLockText}>locked</Text>
+                    </View>
+                  ) : null}
+                </View>
+                {layer.sub ? <Text style={shellStyles.layerSub}>{layer.sub}</Text> : null}
+              </View>
+              <View
+                style={[
+                  shellStyles.layerToggle,
+                  on && shellStyles.layerToggleOn,
+                  layer.locked && shellStyles.layerToggleLocked,
+                ]}
+              >
+                <View
+                  style={[
+                    shellStyles.layerToggleKnob,
+                    on && shellStyles.layerToggleKnobOn,
+                  ]}
+                />
+              </View>
+            </Pressable>
+          );
+        })}
+      </View>
+    </>
   );
 }
 
@@ -334,6 +488,7 @@ function MockTabBar({ activeTab = 'atlas' }: { activeTab?: 'practice' | 'library
 function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFrameHandlers }) {
   const next = handlers.nextEvent;
   const hasNext = Boolean(next?.label);
+  const [layersOpen, setLayersOpen] = useState(false);
   return (
     <View style={shellStyles.frame}>
       {!embedded && <StatusBar />}
@@ -398,7 +553,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
           />
         )}
 
-        <LayersFab />
+        <LayersFab onLayersPress={() => setLayersOpen(true)} />
       </View>
 
       {hasNext ? (
@@ -419,6 +574,8 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
       )}
 
       {!embedded && <MockTabBar activeTab="atlas" />}
+
+      {layersOpen && <LayersSheet frame="f1" onClose={() => setLayersOpen(false)} />}
     </View>
   );
 }
@@ -427,6 +584,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
 // F2 — Race-marks zoom (Victoria Harbour)
 // ---------------------------------------------------------------------------
 function FrameF2({ embedded, handlers }: { embedded: boolean; handlers: AtlasFrameHandlers }) {
+  const [layersOpen, setLayersOpen] = useState(false);
   return (
     <View style={shellStyles.frame}>
       {!embedded && <StatusBar />}
@@ -471,7 +629,7 @@ function FrameF2({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
           <Text style={shellStyles.zoomText}>zoom 14.2</Text>
         </View>
 
-        <LayersFab />
+        <LayersFab onLayersPress={() => setLayersOpen(true)} />
       </View>
 
       <BottomSheet
@@ -490,6 +648,8 @@ function FrameF2({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
       />
 
       {!embedded && <MockTabBar activeTab="atlas" />}
+
+      {layersOpen && <LayersSheet frame="f2" onClose={() => setLayersOpen(false)} />}
     </View>
   );
 }
@@ -498,6 +658,7 @@ function FrameF2({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
 // F3 — World Dragon (cross-fleet class lens)
 // ---------------------------------------------------------------------------
 function FrameF3({ embedded, handlers }: { embedded: boolean; handlers: AtlasFrameHandlers }) {
+  const [layersOpen, setLayersOpen] = useState(false);
   return (
     <View style={shellStyles.frame}>
       {!embedded && <StatusBar />}
@@ -524,7 +685,7 @@ function FrameF3({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
         <ClusterTag leftPct={58} topPct={18} label="AMSTERDAM" count="18 sailors" />
         <ClusterTag leftPct={82} topPct={45} label="RHKYC · 24" count="SAILORS" highlight />
         <ClusterTag leftPct={38} topPct={38} label="WORLDS 2026" count="VILAMOURA" />
-        <LayersFab />
+        <LayersFab onLayersPress={() => setLayersOpen(true)} />
       </View>
 
       <BottomSheet
@@ -536,6 +697,8 @@ function FrameF3({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
       />
 
       {!embedded && <MockTabBar activeTab="atlas" />}
+
+      {layersOpen && <LayersSheet frame="f3" onClose={() => setLayersOpen(false)} />}
     </View>
   );
 }
@@ -544,6 +707,7 @@ function FrameF3({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
 // F4 — Emily · Baltimore cold
 // ---------------------------------------------------------------------------
 function FrameF4({ embedded, handlers }: { embedded: boolean; handlers: AtlasFrameHandlers }) {
+  const [layersOpen, setLayersOpen] = useState(false);
   return (
     <View style={shellStyles.frame}>
       {!embedded && <StatusBar />}
@@ -583,7 +747,7 @@ function FrameF4({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
         {/* Ghost-pin sample stamp — fades when real cohort joins */}
         <GhostStampOverlay leftPct={50} topPct={32} />
 
-        <LayersFab />
+        <LayersFab onLayersPress={() => setLayersOpen(true)} />
       </View>
 
       <BottomSheet
@@ -595,6 +759,8 @@ function FrameF4({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
       />
 
       {!embedded && <MockTabBar activeTab="atlas" />}
+
+      {layersOpen && <LayersSheet frame="f4" onClose={() => setLayersOpen(false)} />}
     </View>
   );
 }
@@ -603,6 +769,7 @@ function FrameF4({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
 // F5 — Emily · JHU curated (competency overlay live)
 // ---------------------------------------------------------------------------
 function FrameF5({ embedded, handlers }: { embedded: boolean; handlers: AtlasFrameHandlers }) {
+  const [layersOpen, setLayersOpen] = useState(false);
   return (
     <View style={shellStyles.frame}>
       {!embedded && <StatusBar />}
@@ -651,7 +818,7 @@ function FrameF5({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
         <AtlasPin kind="jh-site" leftPct={66} topPct={80} label="Howard County" badge="JH" />
         <AtlasPin kind="sim" leftPct={32} topPct={28} label="Pinkard" />
 
-        <LayersFab />
+        <LayersFab onLayersPress={() => setLayersOpen(true)} />
       </View>
 
       <BottomSheet
@@ -668,6 +835,8 @@ function FrameF5({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
       />
 
       {!embedded && <MockTabBar activeTab="atlas" />}
+
+      {layersOpen && <LayersSheet frame="f5" onClose={() => setLayersOpen(false)} />}
     </View>
   );
 }
@@ -676,6 +845,7 @@ function FrameF5({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
 // F6 — Commit-mode (opened from Plan · Where)
 // ---------------------------------------------------------------------------
 function FrameF6({ embedded, handlers }: { embedded: boolean; handlers: AtlasFrameHandlers }) {
+  const [layersOpen, setLayersOpen] = useState(false);
   return (
     <View style={shellStyles.frame}>
       {!embedded && <StatusBar />}
@@ -699,7 +869,7 @@ function FrameF6({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
         {/* Candidate pin where the user tapped */}
         <AtlasPin kind="candidate" leftPct={50} topPct={48} />
 
-        <LayersFab />
+        <LayersFab onLayersPress={() => setLayersOpen(true)} />
       </View>
 
       <View style={shellStyles.commitSheet}>
@@ -724,6 +894,8 @@ function FrameF6({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
           </Pressable>
         </View>
       </View>
+
+      {layersOpen && <LayersSheet frame="f6" onClose={() => setLayersOpen(false)} />}
     </View>
   );
 }
@@ -991,6 +1163,117 @@ const shellStyles = StyleSheet.create({
     shadowOpacity: 0.08,
     shadowRadius: 4,
     shadowOffset: { width: 0, height: 1 },
+  },
+  // --- Layers sheet -------------------------------------------------------
+  layersBackdrop: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.25)',
+    zIndex: 10,
+  },
+  layersSheet: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 14,
+    borderTopRightRadius: 14,
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 16,
+    zIndex: 11,
+    shadowColor: '#000',
+    shadowOpacity: 0.18,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: -4 },
+  },
+  layersHandle: {
+    alignSelf: 'center',
+    width: 36,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: IOS_REGISTER.fillPill,
+    marginBottom: 8,
+  },
+  layersHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 6,
+  },
+  layersTitle: {
+    fontSize: 17,
+    fontWeight: '600',
+    color: IOS_REGISTER.label,
+    letterSpacing: -0.4,
+  },
+  layerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 9,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: IOS_REGISTER.separator,
+    gap: 12,
+  },
+  layerLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  layerLabel: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: IOS_REGISTER.label,
+    letterSpacing: -0.2,
+  },
+  layerSub: {
+    marginTop: 1,
+    fontSize: 11,
+    color: IOS_REGISTER.labelSecondary,
+    letterSpacing: -0.05,
+  },
+  layerLockPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+    borderRadius: 4,
+    backgroundColor: IOS_REGISTER.fillPill,
+  },
+  layerLockText: {
+    fontSize: 9,
+    color: 'rgba(60, 60, 67, 0.62)',
+    fontWeight: '600',
+    letterSpacing: 0.3,
+    textTransform: 'uppercase',
+  },
+  layerToggle: {
+    width: 38,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: IOS_REGISTER.fillPill,
+    justifyContent: 'center',
+    padding: 2,
+  },
+  layerToggleOn: {
+    backgroundColor: '#34C759',
+  },
+  layerToggleLocked: {
+    opacity: 0.5,
+  },
+  layerToggleKnob: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: '#FFFFFF',
+  },
+  layerToggleKnobOn: {
+    alignSelf: 'flex-end',
   },
   // --- Bottom sheet -------------------------------------------------------
   bottomSheet: {
