@@ -59,7 +59,7 @@ interface ProfileUpdates {
 }
 
 export default function AccountModalContent() {
-  const { user, userProfile, signOut, updateUserProfile, isDemoSession, capabilities, coachProfile } = useAuth();
+  const { user, userProfile, signOut, updateUserProfile, isDemoSession, capabilities, coachProfile, addCapability, removeCapability } = useAuth();
   const { currentInterest } = useInterest();
   const { activeDomain } = useOrganization();
   const { vocab } = useVocabulary();
@@ -731,6 +731,53 @@ const [interestSectionY, setInterestSectionY] = useState<number>(0);
               leadingIconBackgroundColor={ICON_BACKGROUNDS.purple}
               trailingAccessory="chevron"
               onPress={() => router.push('/(auth)/coach-onboarding-welcome')}
+            />
+          )}
+        </IOSListSection>
+
+        {/* ── Mentoring ────────────────────────────────────────── */}
+        <IOSListSection
+          header="Mentoring"
+          footer={
+            capabilities?.hasMentoring
+              ? 'Other sailors see a MENTOR badge next to your name when they add people to a step.'
+              : 'Offer to mentor other sailors. Adds a public MENTOR badge to your profile.'
+          }
+        >
+          {capabilities?.hasMentoring ? (
+            <IOSListItem
+              title="Stop offering mentoring"
+              leadingIcon="people-outline"
+              leadingIconBackgroundColor={ICON_BACKGROUNDS.purple}
+              trailingAccessory="none"
+              onPress={() => {
+                showConfirm(
+                  'Stop mentoring?',
+                  'You can turn this back on anytime. Existing mentor badges on others’ timelines will disappear.',
+                  async () => {
+                    try {
+                      await removeCapability('mentoring');
+                    } catch {
+                      showAlert('Error', 'Could not update mentoring status. Please try again.');
+                    }
+                  },
+                  { destructive: true },
+                );
+              }}
+            />
+          ) : (
+            <IOSListItem
+              title="Offer mentoring"
+              leadingIcon="people-outline"
+              leadingIconBackgroundColor={ICON_BACKGROUNDS.purple}
+              trailingAccessory="none"
+              onPress={async () => {
+                try {
+                  await addCapability('mentoring');
+                } catch {
+                  showAlert('Error', 'Could not update mentoring status. Please try again.');
+                }
+              }}
             />
           )}
         </IOSListSection>

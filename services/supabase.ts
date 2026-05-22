@@ -42,7 +42,7 @@ type SecureStoreModule = typeof import('expo-secure-store');
 
 let SecureStore: SecureStoreModule | null = null;
 try {
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  // eslint-disable-next-line @typescript-eslint/no-var-requires, @typescript-eslint/no-require-imports
   SecureStore = require('expo-secure-store');
 } catch {
   SecureStore = null;
@@ -710,7 +710,7 @@ export interface Database {
         Row: {
           id: string
           user_id: string
-          capability_type: 'coaching'
+          capability_type: 'coaching' | 'mentoring'
           is_active: boolean
           activated_at: string
           deactivated_at: string | null
@@ -721,7 +721,7 @@ export interface Database {
         Insert: {
           id?: string
           user_id: string
-          capability_type: 'coaching'
+          capability_type: 'coaching' | 'mentoring'
           is_active?: boolean
           activated_at?: string
           deactivated_at?: string | null
@@ -732,7 +732,7 @@ export interface Database {
         Update: {
           id?: string
           user_id?: string
-          capability_type?: 'coaching'
+          capability_type?: 'coaching' | 'mentoring'
           is_active?: boolean
           activated_at?: string
           deactivated_at?: string | null
@@ -757,9 +757,7 @@ export const queryWithRetry = async <T>(
 ): Promise<T> => {
   for (let i = 0; i < retries; i++) {
     try {
-      const start = Date.now();
       const result = await queryFn();
-      const duration = Date.now() - start;
       return result;
     } catch (err: any) {
 

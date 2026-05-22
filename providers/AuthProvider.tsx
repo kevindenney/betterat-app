@@ -147,6 +147,12 @@ type AuthCtx = {
   fetchUserProfile: (userId?: string) => Promise<any>
   /** Add a capability to the current user (e.g., 'coaching') */
   addCapability: (type: CapabilityType) => Promise<void>
+  /**
+   * Deactivate a capability for the current user. The row stays in the table
+   * with is_active = false so it can be reactivated by re-calling
+   * addCapability without losing history.
+   */
+  removeCapability: (type: CapabilityType) => Promise<void>
   isDemoSession: boolean
 }
 
@@ -176,6 +182,7 @@ const Ctx = createContext<AuthCtx>({
   updateUserProfile: async () => {},
   fetchUserProfile: async (_userId?: string) => null,
   addCapability: async () => {},
+  removeCapability: async () => {},
   userType: null,
   userProfile: null,
   isDemoSession: false,
@@ -601,8 +608,13 @@ export function AuthProvider({children}:{children: React.ReactNode}) {
         (c: any) => c.capability_type === 'coaching'
       ) ?? false
 
+      const hasMentoringCapability = capabilityRecords?.some(
+        (c: any) => c.capability_type === 'mentoring'
+      ) ?? false
+
       authDebugLog('[loadPersonaContext] Capabilities loaded:', {
         hasCoaching: hasCoachingCapability,
+        hasMentoring: hasMentoringCapability,
         count: capabilityRecords?.length ?? 0
       })
 
@@ -635,6 +647,7 @@ export function AuthProvider({children}:{children: React.ReactNode}) {
       // 4. Update capabilities state with loaded data
       setCapabilities({
         hasCoaching,
+        hasMentoring: hasMentoringCapability,
         coachingProfile: loadedCoachProfile,
         rawCapabilities: capabilityRecords ?? [],
       })
@@ -1630,6 +1643,35 @@ export function AuthProvider({children}:{children: React.ReactNode}) {
   }, [user?.id, loadPersonaContext])
 
   /**
+   * Deactivate a capability on the current user. Soft-delete: row stays put
+   * with is_active = false and a deactivated_at timestamp so re-enabling
+   * later via addCapability flips the same row back on (the UNIQUE
+   * (user_id, capability_type) constraint prevents duplicates).
+   */
+  const removeCapability = useCallback(async (capabilityType: CapabilityType) => {
+    if (!user?.id) {
+      throw new Error('No user logged in')
+    }
+
+    authDebugLog('[AUTH] Removing capability:', capabilityType)
+
+    try {
+      const { error } = await supabase
+        .from('user_capabilities')
+        .update({ is_active: false, deactivated_at: new Date().toISOString() })
+        .eq('user_id', user.id)
+        .eq('capability_type', capabilityType)
+
+      if (error) throw error
+
+      await loadPersonaContext()
+    } catch (error) {
+      console.error('[AUTH] Failed to remove capability:', error)
+      throw error
+    }
+  }, [user?.id, loadPersonaContext])
+
+  /**
    * Enter guest mode for freemium experience
    * Called when user chooses to continue without signing up
    */
@@ -1683,11 +1725,12 @@ export function AuthProvider({children}:{children: React.ReactNode}) {
       updateUserProfile,
       fetchUserProfile,
       addCapability,
+      removeCapability,
       isDemoSession
     }
   // Intentionally memoized on state-like inputs only; auth handlers remain stable in practice.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ready, signedIn, isGuest, user, loading, personaLoading, userProfile, userType, capabilities, clubProfile, coachProfile, loadPersonaContext, isDemoSession, enterGuestMode, addCapability])
+  }, [ready, signedIn, isGuest, user, loading, personaLoading, userProfile, userType, capabilities, clubProfile, coachProfile, loadPersonaContext, isDemoSession, enterGuestMode, addCapability, removeCapability])
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>
 }

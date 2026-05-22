@@ -5,9 +5,11 @@ import type { CoachProfile } from './coach';
 
 /**
  * Available capability types that can be added to a user account.
- * Currently supports 'coaching', with room for expansion (e.g., 'race_volunteer').
+ * Additive flags layered on top of the base user_type — a sailor can opt
+ * into 'coaching' (full coach profile + dashboard) or 'mentoring' (lighter:
+ * a public flag others see when picking who to do a step with).
  */
-export type CapabilityType = 'coaching';
+export type CapabilityType = 'coaching' | 'mentoring';
 
 /**
  * Database record for a user capability.
@@ -32,6 +34,8 @@ export interface UserCapability {
 export interface UserCapabilities {
   /** Whether the user has an active coaching capability */
   hasCoaching: boolean;
+  /** Whether the user has an active mentoring capability */
+  hasMentoring: boolean;
   /** The user's coach profile if they have coaching capability */
   coachingProfile?: CoachProfile | null;
   /** Raw capability records from the database */
@@ -44,6 +48,7 @@ export interface UserCapabilities {
  */
 export const DEFAULT_CAPABILITIES: UserCapabilities = {
   hasCoaching: false,
+  hasMentoring: false,
   coachingProfile: null,
   rawCapabilities: [],
 };
