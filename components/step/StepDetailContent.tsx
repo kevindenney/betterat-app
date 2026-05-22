@@ -16,7 +16,7 @@ import { IOSPillTabs, usePillTabs } from '@/components/ui/ios/IOSPillTabs';
 import { useVocabulary } from '@/hooks/useVocabulary';
 import { useStepDetail, useUpdateStepMetadata } from '@/hooks/useStepDetail';
 import { useUpdateStep } from '@/hooks/useTimelineSteps';
-import { StepHeaderSubtitle } from './StepHeaderMeta';
+import { StepHeaderEyebrow, StepHeaderSubtitle } from './StepHeaderMeta';
 import { PlanTab } from './PlanTab';
 import { ActTab } from './ActTab';
 import { ReviewTab } from './ReviewTab';
@@ -55,7 +55,9 @@ import { useUniversalPlus } from '@/components/capture';
 import { Plus as PlusIcon } from 'lucide-react-native';
 import { useShareStep } from '@/hooks/useShareStep';
 import { ShareStepSheet } from '@/components/share';
-import { StepBlueprintChrome } from './StepBlueprintChrome';
+// StepBlueprintChrome was retired from this header in the redesign pass;
+// it still lives in components/step/StepBlueprintChrome.tsx for other
+// surfaces (RaceSummaryCard, future detail variants).
 import { StepDiscussionPeek } from './StepDiscussionPeek';
 import { useStepBlueprintChrome } from '@/hooks/useStepBlueprintChrome';
 import { useStepDiscussionPeek } from '@/hooks/useStepDiscussionPeek';
@@ -129,16 +131,9 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab }
   // no source_blueprint_id, so the chrome simply doesn't render for
   // non-subscribed steps.
   const { data: blueprintChrome } = useStepBlueprintChrome(stepId);
-  const subscribedStepChromeFlagOn = FEATURE_FLAGS.SUBSCRIBED_STEP_CHROME_V1;
-  const showBlueprintChrome = subscribedStepChromeFlagOn && Boolean(blueprintChrome);
-  const goBlueprintIndex = useCallback(() => {
-    if (!blueprintChrome) return;
-    router.push(`/(tabs)/library/blueprints/${blueprintChrome.blueprintId}/all-steps` as any);
-  }, [blueprintChrome]);
-  const goFleetView = useCallback(() => {
-    if (!blueprintChrome) return;
-    router.push(`/practice/blueprint/${blueprintChrome.blueprintId}/fleet` as any);
-  }, [blueprintChrome]);
+  // showBlueprintChrome / goBlueprintIndex / goFleetView were used by the
+  // retired in-header StepBlueprintChrome card. blueprintChrome itself
+  // is still read for the celebration screen's stepNumber/totalSteps.
 
   // Phase 10 PR-2 — Discussion peek on the step screen. Hook returns null
   // when the step has no notes, so the strip is purely additive.
@@ -853,17 +848,14 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab }
             </Text>
           </Pressable>
         )}
-        <Pressable
-          style={styles.menuButton}
-          onPress={() => router.push('/library')}
-        >
-          <Ionicons name="ellipsis-vertical" size={18} color={STEP_COLORS.secondaryLabel} />
-        </Pressable>
+        {/* The duplicate ••• that used to live here routed to /library — a
+            stale stub. The iOS-register shell already renders a real •••
+            in its StepCard stateHead (opens share). Dropping the dupe. */}
       </View>
-      {/* StepBlueprintChrome (rendered below the title block) already shows
-          "Pre-Clinical · Step 5 of 5" for blueprint-derived steps, so the
-          StepHeaderEyebrow would be a duplicate here. The eyebrow stays
-          available for surfaces that don't include the chrome card. */}
+      <StepHeaderEyebrow stepId={step.id} />
+      {/* The rich StepBlueprintChrome card was hidden in this pass — the
+          small eyebrow above carries the "PRE-CLINICAL · STEP 5" context
+          without the card's WITH/Fleet row competing for space. */}
       {isOwner ? (
         <TextInput
           style={styles.titleInput}
@@ -886,8 +878,12 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab }
       {step.description && (
         <Text style={styles.description} numberOfLines={2}>{step.description}</Text>
       )}
-      {/* Date chips row */}
-      {(step.starts_at || step.due_at || isOwner) && (
+      {/* Date chips row — hidden when subtitle covers the date already
+          (both starts_at + ends_at set). Falls through to the chip when
+          only starts_at is set (so the subtitle just shows the date) and
+          editing requires the chip's pencil affordance, or when no date
+          is set at all (so "Add date" stays reachable). */}
+      {!(step.starts_at && step.ends_at) && (step.starts_at || step.due_at || isOwner) && (
         <View style={styles.dueDateRow}>
           {/* Step date (starts_at) */}
           {step.starts_at ? (
@@ -1093,21 +1089,11 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab }
             ) : null
           }
         />
-        {showBlueprintChrome && blueprintChrome ? (
-          <StepBlueprintChrome
-            blueprintShortName={blueprintChrome.blueprintShortName}
-            positionLine={
-              blueprintChrome.stepNumber != null
-                ? `Step ${blueprintChrome.stepNumber} of ${blueprintChrome.totalSteps}`
-                : `${blueprintChrome.totalSteps} steps`
-            }
-            blueprintTitle={blueprintChrome.blueprintTitle}
-            authorName={blueprintChrome.authorName}
-            fleetCount={blueprintChrome.subscriberCount}
-            onTapBlueprintStrip={goBlueprintIndex}
-            onTapFleetChip={goFleetView}
-          />
-        ) : null}
+        {/* The rich blueprint chrome card (Pre-Clinical · Step 5 of 5 ›
+            with WITH/Fleet row) was demoted in the header redesign pass.
+            The small "PRE-CLINICAL · STEP 5" eyebrow above the title now
+            carries the parent-program context; jump-to-blueprint and
+            fleet view can return via the ••• menu in a follow-up. */}
         {showDiscussionPeek && discussionPeek ? (
           <StepDiscussionPeek
             noteCount={discussionPeek.noteCount}
