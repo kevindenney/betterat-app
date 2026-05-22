@@ -44,6 +44,7 @@ import {
   StudioTabs,
   StudioNavSection,
 } from '@/components/studio/StudioShell';
+import { StudioLoading } from '@/components/studio/StudioLoading';
 
 type EditorTab =
   | 'overview'
@@ -75,6 +76,10 @@ export default function BlueprintEditorPage() {
 
   if (width < 920) {
     return <NarrowScreenGate onBack={() => router.back()} />;
+  }
+
+  if (!user || menu.loading) {
+    return <StudioLoading />;
   }
 
   const displayName =

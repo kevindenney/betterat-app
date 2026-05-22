@@ -38,6 +38,7 @@ import {
   StudioButton,
   StudioNavSection,
 } from '@/components/studio/StudioShell';
+import { StudioLoading } from '@/components/studio/StudioLoading';
 
 export default function StudioPayoutsPage() {
   const { width } = useWindowDimensions();
@@ -48,6 +49,10 @@ export default function StudioPayoutsPage() {
 
   if (width < 920) {
     return <NarrowScreenGate onBack={() => router.back()} />;
+  }
+
+  if (!user || menu.loading) {
+    return <StudioLoading />;
   }
 
   const displayName =

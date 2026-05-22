@@ -145,18 +145,79 @@ export function useProfileMenuData(): ProfileMenuData {
   const isAuthor = !!activeOrg?.is_author || isFaculty;
   const isSolo = memberships.length === 0;
 
-  // TODO(profile-menu): wire counts as their backing queries land.
-  //  - notifications: existing useNotifications hook if any
-  //  - subscribedBlueprints: plan_subscriptions count
-  //  - authoredBlueprints: blueprint authorship table
-  //  - cohortsMentored / subscriberThreads: cohort_members + step_discussions
+  // Unread social_notifications for the signed-in user
+  const { data: notificationsCount = 0 } = useQuery({
+    queryKey: ['profile-menu-notifications', userId],
+    enabled: !!userId,
+    staleTime: 30_000,
+    queryFn: async (): Promise<number> => {
+      if (!userId) return 0;
+      const { count, error } = await supabase
+        .from('social_notifications')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', userId)
+        .eq('is_read', false);
+      if (error) {
+        console.warn('[useProfileMenuData] notifications count failed', error);
+        return 0;
+      }
+      return count ?? 0;
+    },
+  });
+
+  // Active plan subscriptions = "Subscribed blueprints" count
+  const { data: subscribedBlueprintsCount = 0 } = useQuery({
+    queryKey: ['profile-menu-subs', userId],
+    enabled: !!userId,
+    staleTime: 60_000,
+    queryFn: async (): Promise<number> => {
+      if (!userId) return 0;
+      const { count, error } = await supabase
+        .from('plan_subscriptions')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', userId)
+        .eq('status', 'active');
+      if (error) {
+        console.warn('[useProfileMenuData] subscribed-blueprints count failed', error);
+        return 0;
+      }
+      return count ?? 0;
+    },
+  });
+
+  // For admins, the People badge count = active memberships at their active org
+  const activeOrgId = activeOrg?.org_id ?? null;
+  const isAdminFlag = !!activeOrg?.is_admin;
+  const { data: seatsCount = 0 } = useQuery({
+    queryKey: ['profile-menu-seats', activeOrgId, isAdminFlag],
+    enabled: !!activeOrgId && isAdminFlag,
+    staleTime: 60_000,
+    queryFn: async (): Promise<number> => {
+      if (!activeOrgId) return 0;
+      const { count, error } = await supabase
+        .from('organization_memberships')
+        .select('id', { count: 'exact', head: true })
+        .eq('organization_id', activeOrgId)
+        .in('status', ['active', 'verified']);
+      if (error) {
+        console.warn('[useProfileMenuData] seats count failed', error);
+        return 0;
+      }
+      return count ?? 0;
+    },
+  });
+
+  // TODO(profile-menu): wire remaining counts as their backing queries land.
+  //  - authoredBlueprints: blueprint authorship table (no schema yet)
+  //  - cohortsMentored: betterat_org_cohorts where mentor_user_id = me (column not yet there)
+  //  - subscriberThreads: step_discussions joined to authored blueprints
   const counts = {
-    notifications: 0,
-    subscribedBlueprints: 0,
+    notifications: notificationsCount,
+    subscribedBlueprints: subscribedBlueprintsCount,
     authoredBlueprints: 0,
     cohortsMentored: 0,
     subscriberThreads: 0,
-    seats: 0,
+    seats: seatsCount,
   };
 
   // TODO(profile-menu): wire plan to BetterAt+ subscription table.

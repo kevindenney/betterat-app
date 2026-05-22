@@ -44,6 +44,7 @@ import {
   StudioButton,
   StudioNavSection,
 } from '@/components/studio/StudioShell';
+import { StudioLoading } from '@/components/studio/StudioLoading';
 
 export default function StudioHomePage() {
   const { width } = useWindowDimensions();
@@ -56,6 +57,10 @@ export default function StudioHomePage() {
 
   if (isNarrow) {
     return <NarrowScreenGate onBack={() => router.back()} />;
+  }
+
+  if (!user || menu.loading) {
+    return <StudioLoading />;
   }
 
   // Identity for sidebar user-card and org-card.
