@@ -24,19 +24,21 @@ import { Ionicons } from '@expo/vector-icons';
 // Phone frame chrome — shared
 // ---------------------------------------------------------------------------
 
-function PhoneFrame({
+export function PhoneFrame({
   children,
   statusBarLight,
+  statusBarTime = '9:41',
 }: {
   children: React.ReactNode;
   statusBarLight?: boolean;
+  statusBarTime?: string;
 }) {
   return (
     <View style={phone.outer}>
       <View style={phone.notch} />
       <View style={[phone.statusbar, statusBarLight && phone.statusbarLight]}>
         <Text style={[phone.statusbarText, statusBarLight && phone.statusbarTextLight]}>
-          9:41
+          {statusBarTime}
         </Text>
         <View style={phone.statusbarRight}>
           <Ionicons
