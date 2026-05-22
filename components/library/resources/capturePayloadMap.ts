@@ -17,6 +17,12 @@ export interface CaptureSheetPayload {
   title?: string;
   url?: string;
   pastedText?: string;
+  upload?: {
+    publicUrl: string;
+    mimeType: string;
+    fileName: string;
+    sizeBytes: number;
+  };
 }
 
 function deriveKindFromUrl(url: string): LibraryFormat {
@@ -81,13 +87,26 @@ export function mapCapturePayloadToLibraryItem(
     };
   }
 
-  // upload / photo — still demo flows. Use the sheet's hardcoded title so
-  // the row reads sensibly until a real file picker lands.
-  return {
-    ...base,
-    kind: payload.mode === 'photo' ? 'image' : 'pdf',
-    title: payload.title ?? 'Untitled capture',
-    source_label: payload.mode === 'photo' ? 'Photo' : 'Uploaded file',
-    url_or_blob_id: null,
-  };
+  // upload / photo — backed by a real Supabase storage upload now.
+  if ((payload.mode === 'upload' || payload.mode === 'photo') && payload.upload) {
+    const u = payload.upload;
+    return {
+      ...base,
+      kind: kindFromMime(u.mimeType, payload.mode),
+      title: payload.title ?? u.fileName,
+      source_label: payload.mode === 'photo' ? 'Photo' : 'Uploaded file',
+      url_or_blob_id: u.publicUrl,
+    };
+  }
+
+  return null;
+}
+
+function kindFromMime(mime: string, mode: 'upload' | 'photo'): LibraryFormat {
+  if (mode === 'photo') return 'image';
+  if (mime === 'application/pdf') return 'pdf';
+  if (mime.startsWith('image/')) return 'image';
+  if (mime.startsWith('audio/')) return 'audio';
+  if (mime.startsWith('video/')) return 'video';
+  return 'note';
 }

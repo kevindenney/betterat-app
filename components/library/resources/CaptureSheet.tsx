@@ -13,6 +13,7 @@
 
 import React, { useState } from 'react';
 import {
+  ActivityIndicator,
   Modal,
   ScrollView,
   StyleSheet,
@@ -24,9 +25,25 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
+import { useAuth } from '@/providers/AuthProvider';
+import { showAlert } from '@/lib/utils/crossPlatformAlert';
+import {
+  pickFile,
+  pickImage,
+  uploadFile,
+  type PickedFile,
+} from '@/services/LibraryUploadService';
 
 type CaptureMode = 'link' | 'upload' | 'photo' | 'paste';
 type AttachTo = 'standalone' | 'concept' | 'step';
+
+function formatBytes(bytes: number): string {
+  if (!bytes || bytes < 1024) return `${bytes || 0} B`;
+  const kb = bytes / 1024;
+  if (kb < 1024) return `${kb.toFixed(1)} KB`;
+  const mb = kb / 1024;
+  return `${mb.toFixed(1)} MB`;
+}
 
 interface Props {
   visible: boolean;
@@ -35,32 +52,108 @@ interface Props {
     mode: CaptureMode;
     attachTo: AttachTo;
     tags: string[];
-    /** Used in upload/photo demo flows where a real file picker hasn't shipped. */
     title?: string;
     /** Populated when mode === 'link'. */
     url?: string;
     /** Populated when mode === 'paste'. */
     pastedText?: string;
+    /** Populated when mode === 'upload' or 'photo' after successful upload. */
+    upload?: {
+      publicUrl: string;
+      mimeType: string;
+      fileName: string;
+      sizeBytes: number;
+    };
   }) => void;
 }
 
-const DEMO_TAGS = ['Sepsis', 'Septic shock', 'Lactate', 'Critical care'];
-
 export function CaptureSheet({ visible, onClose, onSave }: Props) {
   const insets = useSafeAreaInsets();
-  const [mode, setMode] = useState<CaptureMode>('upload');
-  const [hasFile, setHasFile] = useState(true);
+  const { user } = useAuth();
+  const [mode, setMode] = useState<CaptureMode>('link');
+  const [picked, setPicked] = useState<PickedFile | null>(null);
+  const [pickError, setPickError] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
   const [attachTo, setAttachTo] = useState<AttachTo>('standalone');
   const [pastedText, setPastedText] = useState('');
   const [linkUrl, setLinkUrl] = useState('');
 
-  // Don't let users tap "Add to Library" with nothing captured. Upload/photo
-  // are still demo flows (no real picker yet) so the hardcoded sample-PDF
-  // payload is treated as "savable" when hasFile is set.
+  const handleModeChange = (next: CaptureMode) => {
+    if (next !== mode) {
+      // Drop any picked file when switching modes so we don't carry stale
+      // upload state into a different capture flow.
+      setPicked(null);
+      setPickError(null);
+    }
+    setMode(next);
+  };
+
+  const handlePick = async (kind: 'file' | 'image' | 'camera') => {
+    setPickError(null);
+    try {
+      const result =
+        kind === 'file'
+          ? await pickFile()
+          : await pickImage({ fromCamera: kind === 'camera' });
+      if (result) setPicked(result);
+    } catch (err) {
+      setPickError(err instanceof Error ? err.message : String(err));
+    }
+  };
+
   const canSave =
     (mode === 'link' && linkUrl.trim().length > 0)
     || (mode === 'paste' && pastedText.trim().length > 0)
-    || ((mode === 'upload' || mode === 'photo') && hasFile);
+    || ((mode === 'upload' || mode === 'photo') && picked !== null);
+
+  const handleSubmit = async () => {
+    if (!canSave) return;
+    let upload:
+      | { publicUrl: string; mimeType: string; fileName: string; sizeBytes: number }
+      | undefined;
+    let titleFromUpload: string | undefined;
+    if ((mode === 'upload' || mode === 'photo') && picked) {
+      if (!user?.id) {
+        showAlert('Sign in required', 'Capture needs an authenticated user.');
+        return;
+      }
+      setUploading(true);
+      try {
+        const result = await uploadFile(user.id, picked);
+        if (!result.metadata.public_url) {
+          throw new Error('Upload succeeded but no public URL was returned.');
+        }
+        upload = {
+          publicUrl: result.metadata.public_url,
+          mimeType: result.metadata.mime_type,
+          fileName: result.metadata.original_filename,
+          sizeBytes: result.metadata.file_size,
+        };
+        titleFromUpload = result.suggestedTitle;
+      } catch (err) {
+        showAlert(
+          'Upload failed',
+          err instanceof Error ? err.message : String(err),
+        );
+        setUploading(false);
+        return;
+      }
+      setUploading(false);
+    }
+    onSave?.({
+      mode,
+      attachTo,
+      tags: [],
+      title: titleFromUpload,
+      url: mode === 'link' ? linkUrl.trim() : undefined,
+      pastedText: mode === 'paste' ? pastedText.trim() : undefined,
+      upload,
+    });
+    setLinkUrl('');
+    setPastedText('');
+    setPicked(null);
+    onClose();
+  };
 
   return (
     <Modal
@@ -94,41 +187,48 @@ export function CaptureSheet({ visible, onClose, onSave }: Props) {
             </Text>
           </View>
 
-          <ModeTabs mode={mode} onChange={setMode} />
+          <ModeTabs mode={mode} onChange={handleModeChange} />
 
           {mode === 'upload' ? (
             <View>
               <TouchableOpacity
                 activeOpacity={0.6}
                 style={styles.dropZone}
-                onPress={() => setHasFile(true)}
+                onPress={() => handlePick('file')}
               >
                 <Ionicons name="cloud-upload-outline" size={26} color={IOS_COLORS.tertiaryLabel} />
                 <Text style={styles.dropZoneText}>
-                  Drop PDF, EPUB, audio · or tap
+                  Tap to pick a PDF, image, or document
                 </Text>
               </TouchableOpacity>
 
-              {hasFile ? (
+              {picked ? (
                 <View style={styles.uploaded}>
                   <View style={styles.uploadedGlyph}>
-                    <Text style={styles.uploadedGlyphText}>PDF</Text>
+                    <Text style={styles.uploadedGlyphText}>
+                      {(picked.mimeType.split('/')[1] ?? 'FILE')
+                        .slice(0, 4)
+                        .toUpperCase()}
+                    </Text>
                   </View>
                   <View style={styles.uploadedBody}>
                     <Text style={styles.uploadedTitle} numberOfLines={1}>
-                      AACN-PracticeAlert-SevereSepsis.pdf
+                      {picked.name}
                     </Text>
                     <Text style={styles.uploadedMeta}>
-                      8 pages · 1.2 MB · just now
+                      {formatBytes(picked.size)} · ready to upload
                     </Text>
                   </View>
                   <TouchableOpacity
                     hitSlop={6}
-                    onPress={() => setHasFile(false)}
+                    onPress={() => setPicked(null)}
                   >
                     <Ionicons name="close-circle" size={18} color={IOS_COLORS.tertiaryLabel} />
                   </TouchableOpacity>
                 </View>
+              ) : null}
+              {pickError ? (
+                <Text style={styles.pickError}>{pickError}</Text>
               ) : null}
             </View>
           ) : mode === 'link' ? (
@@ -144,12 +244,50 @@ export function CaptureSheet({ visible, onClose, onSave }: Props) {
               />
             </View>
           ) : mode === 'photo' ? (
-            <TouchableOpacity style={styles.dropZone} activeOpacity={0.6}>
-              <Ionicons name="camera-outline" size={26} color={IOS_COLORS.tertiaryLabel} />
-              <Text style={styles.dropZoneText}>
-                Snap a textbook page · OCR detects title & topics
-              </Text>
-            </TouchableOpacity>
+            <View>
+              <View style={styles.photoRow}>
+                <TouchableOpacity
+                  style={[styles.dropZone, styles.dropZoneHalf]}
+                  activeOpacity={0.6}
+                  onPress={() => handlePick('camera')}
+                >
+                  <Ionicons name="camera-outline" size={26} color={IOS_COLORS.tertiaryLabel} />
+                  <Text style={styles.dropZoneText}>Take a photo</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.dropZone, styles.dropZoneHalf]}
+                  activeOpacity={0.6}
+                  onPress={() => handlePick('image')}
+                >
+                  <Ionicons name="image-outline" size={26} color={IOS_COLORS.tertiaryLabel} />
+                  <Text style={styles.dropZoneText}>Pick from library</Text>
+                </TouchableOpacity>
+              </View>
+              {picked ? (
+                <View style={styles.uploaded}>
+                  <View style={[styles.uploadedGlyph, styles.uploadedGlyphImage]}>
+                    <Text style={styles.uploadedGlyphText}>IMG</Text>
+                  </View>
+                  <View style={styles.uploadedBody}>
+                    <Text style={styles.uploadedTitle} numberOfLines={1}>
+                      {picked.name}
+                    </Text>
+                    <Text style={styles.uploadedMeta}>
+                      {formatBytes(picked.size)} · ready to upload
+                    </Text>
+                  </View>
+                  <TouchableOpacity
+                    hitSlop={6}
+                    onPress={() => setPicked(null)}
+                  >
+                    <Ionicons name="close-circle" size={18} color={IOS_COLORS.tertiaryLabel} />
+                  </TouchableOpacity>
+                </View>
+              ) : null}
+              {pickError ? (
+                <Text style={styles.pickError}>{pickError}</Text>
+              ) : null}
+            </View>
           ) : (
             <View style={styles.inputBlock}>
               <TextInput
@@ -164,36 +302,9 @@ export function CaptureSheet({ visible, onClose, onSave }: Props) {
             </View>
           )}
 
-          {hasFile && mode === 'upload' ? (
-            <View style={styles.autoMeta}>
-              <View style={styles.autoEyebrow}>
-                <Ionicons name="sparkles" size={12} color="#5C2DAA" />
-                <Text style={styles.autoEyebrowText}>Detected · from the PDF</Text>
-              </View>
-              <View style={styles.tagRow}>
-                {DEMO_TAGS.map((t) => (
-                  <View key={t} style={styles.tag}>
-                    <Ionicons name="pricetag-outline" size={10} color="#5C2DAA" />
-                    <Text style={styles.tagText}>{t}</Text>
-                  </View>
-                ))}
-              </View>
-              <View style={styles.metaRow}>
-                <Text style={styles.metaLbl}>Source</Text>
-                <View style={styles.metaValRow}>
-                  <Text style={styles.metaVal}>AACN</Text>
-                  <Ionicons name="pencil" size={11} color={IOS_COLORS.tertiaryLabel} />
-                </View>
-              </View>
-              <View style={styles.metaRow}>
-                <Text style={styles.metaLbl}>Year</Text>
-                <View style={styles.metaValRow}>
-                  <Text style={styles.metaVal}>2025</Text>
-                  <Ionicons name="pencil" size={11} color={IOS_COLORS.tertiaryLabel} />
-                </View>
-              </View>
-            </View>
-          ) : null}
+          {/* Auto-detected source/year/tags chip card was Wave 2e demo
+              content tied to the hardcoded AACN payload — hide until a real
+              detection pass exists. */}
 
           <View style={styles.attach}>
             <Text style={styles.attachLbl}>Attach to</Text>
@@ -243,32 +354,23 @@ export function CaptureSheet({ visible, onClose, onSave }: Props) {
         <View style={styles.footer}>
           <TouchableOpacity
             activeOpacity={0.7}
-            disabled={!canSave}
-            onPress={() => {
-              onSave?.({
-                mode,
-                attachTo,
-                // Tags only auto-detect in the upload/photo demo flows; link
-                // and paste captures land tag-free until real detection ships.
-                tags: mode === 'upload' || mode === 'photo' ? DEMO_TAGS : [],
-                title:
-                  mode === 'upload' || mode === 'photo'
-                    ? 'AACN Practice Alert · Severe Sepsis'
-                    : undefined,
-                url: mode === 'link' ? linkUrl.trim() : undefined,
-                pastedText: mode === 'paste' ? pastedText.trim() : undefined,
-              });
-              setLinkUrl('');
-              setPastedText('');
-              onClose();
-            }}
-            style={[styles.cta, !canSave ? styles.ctaDisabled : null]}
+            disabled={!canSave || uploading}
+            onPress={handleSubmit}
+            style={[styles.cta, (!canSave || uploading) ? styles.ctaDisabled : null]}
           >
-            <Ionicons name="sparkles" size={16} color="#FFFFFF" />
-            <Text style={styles.ctaText}>Add to Library</Text>
+            {uploading ? (
+              <ActivityIndicator color="#FFFFFF" />
+            ) : (
+              <>
+                <Ionicons name="sparkles" size={16} color="#FFFFFF" />
+                <Text style={styles.ctaText}>Add to Library</Text>
+              </>
+            )}
           </TouchableOpacity>
           <Text style={styles.ctaFoot}>
-            We'll extract excerpts and tag this against your playbook.
+            {uploading
+              ? 'Uploading…'
+              : "We'll tag this against your interest and you can refine from the detail screen."}
           </Text>
         </View>
       </View>
@@ -416,9 +518,21 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 6,
   },
+  dropZoneHalf: {
+    flex: 1,
+  },
   dropZoneText: {
     fontSize: 13,
     color: IOS_COLORS.secondaryLabel,
+  },
+  photoRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  pickError: {
+    marginTop: 6,
+    fontSize: 12,
+    color: '#FF3B30',
   },
   uploaded: {
     flexDirection: 'row',
@@ -438,6 +552,9 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,59,48,0.16)',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  uploadedGlyphImage: {
+    backgroundColor: 'rgba(255,204,0,0.18)',
   },
   uploadedGlyphText: {
     fontSize: 9,

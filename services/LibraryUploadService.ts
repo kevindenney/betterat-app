@@ -5,6 +5,7 @@
 
 import { supabase } from '@/services/supabase';
 import * as DocumentPicker from 'expo-document-picker';
+import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system/legacy';
 import { Platform } from 'react-native';
 import { createLogger } from '@/lib/utils/logger';
@@ -82,6 +83,46 @@ export async function pickFile(): Promise<PickedFile | null> {
     uri: asset.uri,
     mimeType: asset.mimeType || 'application/octet-stream',
     size: asset.size || 0,
+  };
+}
+
+/**
+ * Open the image picker (camera roll) and return a PickedFile.
+ *
+ * Camera mode (taking a new photo) is a separate launch — keeping this
+ * helper to library-only matches CaptureSheet's "Snap a textbook page"
+ * affordance which we wire to either path the user prefers.
+ */
+export async function pickImage(opts?: { fromCamera?: boolean }): Promise<PickedFile | null> {
+  const fromCamera = !!opts?.fromCamera;
+  const perm = fromCamera
+    ? await ImagePicker.requestCameraPermissionsAsync()
+    : await ImagePicker.requestMediaLibraryPermissionsAsync();
+  if (!perm.granted) return null;
+
+  const result = fromCamera
+    ? await ImagePicker.launchCameraAsync({
+        mediaTypes: ['images'],
+        quality: 0.85,
+      })
+    : await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        quality: 0.85,
+      });
+
+  if (result.canceled || !result.assets?.length) return null;
+
+  const asset = result.assets[0];
+  if (asset.fileSize && asset.fileSize > MAX_FILE_SIZE) {
+    throw new Error(`Image exceeds ${MAX_FILE_SIZE / (1024 * 1024)}MB limit`);
+  }
+
+  const inferredName = asset.fileName ?? `photo-${Date.now()}.jpg`;
+  return {
+    name: inferredName,
+    uri: asset.uri,
+    mimeType: asset.mimeType ?? 'image/jpeg',
+    size: asset.fileSize ?? 0,
   };
 }
 
