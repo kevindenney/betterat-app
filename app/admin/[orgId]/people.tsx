@@ -92,11 +92,12 @@ export default function AdminPeoplePage() {
   const seatsAvailable = data.seats.total - data.seats.used;
   const seatsPct = Math.round((data.seats.used / data.seats.total) * 100);
 
+  const goAdmin = (key: string) => router.push(`/admin/${orgId}/${key}` as any);
   const navSections: StudioNavSection[] = [
     {
       eyebrow: orgShortLabel,
       items: [
-        { key: 'overview', icon: 'grid-outline', label: 'Overview' },
+        { key: 'overview', icon: 'grid-outline', label: 'Overview', onPress: () => goAdmin('overview') },
         {
           key: 'people',
           icon: 'people-outline',
@@ -104,31 +105,26 @@ export default function AdminPeoplePage() {
           count: data.totalRows,
           active: true,
         },
-        { key: 'cohorts', icon: 'school-outline', label: 'Cohorts', count: 14 },
-        { key: 'blueprints', icon: 'git-branch-outline', label: 'Blueprints', count: 7 },
-        {
-          key: 'sites',
-          icon: 'map-outline',
-          label: 'Sites',
-          onPress: () => router.push(`/admin/${orgId}/sites`),
-        },
-        { key: 'insights', icon: 'pie-chart-outline', label: 'Insights' },
+        { key: 'cohorts', icon: 'school-outline', label: 'Cohorts', count: 14, onPress: () => goAdmin('cohorts') },
+        { key: 'blueprints', icon: 'git-branch-outline', label: 'Blueprints', count: 7, onPress: () => goAdmin('blueprints') },
+        { key: 'sites', icon: 'map-outline', label: 'Sites', onPress: () => goAdmin('sites') },
+        { key: 'insights', icon: 'pie-chart-outline', label: 'Insights', onPress: () => goAdmin('insights') },
       ],
     },
     {
       eyebrow: 'Plan',
       items: [
-        { key: 'billing', icon: 'card-outline', label: 'Billing & seats' },
-        { key: 'invoices', icon: 'document-text-outline', label: 'Invoices' },
-        { key: 'payouts', icon: 'receipt-outline', label: 'Author payouts', count: '$0' },
+        { key: 'billing', icon: 'card-outline', label: 'Billing & seats', onPress: () => goAdmin('billing') },
+        { key: 'invoices', icon: 'document-text-outline', label: 'Invoices', onPress: () => goAdmin('invoices') },
+        { key: 'payouts', icon: 'receipt-outline', label: 'Author payouts', count: '$0', onPress: () => goAdmin('payouts') },
       ],
     },
     {
       eyebrow: 'Security',
       items: [
-        { key: 'sso', icon: 'shield-half-outline', label: 'SSO & SAML' },
-        { key: 'domain', icon: 'key-outline', label: 'Domain claim' },
-        { key: 'audit', icon: 'time-outline', label: 'Audit log' },
+        { key: 'sso', icon: 'shield-half-outline', label: 'SSO & SAML', onPress: () => goAdmin('sso') },
+        { key: 'domain', icon: 'key-outline', label: 'Domain claim', onPress: () => goAdmin('domain') },
+        { key: 'audit', icon: 'time-outline', label: 'Audit log', onPress: () => goAdmin('audit') },
       ],
       footer: (
         <View>
