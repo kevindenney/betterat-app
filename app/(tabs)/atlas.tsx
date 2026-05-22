@@ -27,6 +27,7 @@ import {
 } from '@/components/ios-register/atlas/AtlasScreen';
 import { FLOATING_TAB_BAR_HEIGHT } from '@/components/navigation/FloatingTabBar';
 import { IOS_REGISTER } from '@/lib/design-tokens-ios';
+import { useAuth } from '@/providers/AuthProvider';
 import { useInterest } from '@/providers/InterestProvider';
 import { useAtlasNextEvent } from '@/hooks/useAtlasNextEvent';
 
@@ -58,11 +59,26 @@ function buildSubtitle(slug: string | null, name: string | null): string | undef
   return name ?? undefined;
 }
 
+// Single-letter avatar from the signed-in user. Prefers user_metadata.
+// full_name, then user_metadata.name, then the local part of email; falls
+// back to "?" so the chrome never renders an empty disc.
+function deriveAvatarInitial(user: { email?: string; user_metadata?: Record<string, unknown> | null } | null): string {
+  if (!user) return '?';
+  const meta = user.user_metadata ?? {};
+  const fullName = typeof meta.full_name === 'string' ? meta.full_name : undefined;
+  const name = typeof meta.name === 'string' ? meta.name : undefined;
+  const source = (fullName || name || user.email || '').trim();
+  if (!source) return '?';
+  return source.charAt(0).toUpperCase();
+}
+
 export default function AtlasTab() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { user } = useAuth();
   const { currentInterest } = useInterest();
   const nextEvent = useAtlasNextEvent();
+  const avatarInitial = deriveAvatarInitial(user as any);
 
   // FloatingTabBar floats above the home-indicator safe area; clear both
   // plus a small buffer so the BottomSheet CTAs aren't covered.
@@ -99,6 +115,7 @@ export default function AtlasTab() {
           embedded
           subtitleOverride={subtitleOverride}
           nextEvent={nextEvent}
+          avatarInitial={avatarInitial}
           onPrimaryAction={handlePrimary}
           onSecondaryAction={handleSecondary}
         />

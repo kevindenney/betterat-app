@@ -93,6 +93,13 @@ interface AtlasScreenProps extends AtlasFrameHandlers {
    * FloatingTabBar provides the tab bar.
    */
   embedded?: boolean;
+  /**
+   * Single-letter avatar shown in the top-right of the frame. When
+   * omitted, each frame keeps its canonical persona initial ("F" for
+   * Felix-sailing frames, "E" for Emily-nursing). Live tab passes the
+   * signed-in user's initial.
+   */
+  avatarInitial?: string;
 }
 
 export function AtlasScreen({
@@ -102,12 +109,14 @@ export function AtlasScreen({
   onSecondaryAction,
   subtitleOverride,
   nextEvent,
+  avatarInitial,
 }: AtlasScreenProps) {
-  const handlers: AtlasFrameHandlers = {
+  const handlers: AtlasFrameHandlers & { avatarInitial?: string } = {
     onPrimaryAction,
     onSecondaryAction,
     subtitleOverride,
     nextEvent,
+    avatarInitial,
   };
   switch (frame) {
     case 'f1':
@@ -331,7 +340,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
       <TopChrome
         title="Atlas"
         subtitle={handlers.subtitleOverride ?? 'Sailing · RHKYC · Hong Kong'}
-        avatarInitial="F"
+        avatarInitial={handlers.avatarInitial ?? "F"}
       />
       <FilterChipsRow
         chips={[
@@ -424,7 +433,7 @@ function FrameF2({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
       <TopChrome
         title="Race 4 course"
         subtitle={handlers.subtitleOverride ?? 'RHKYC · Victoria Harbour · Sat 10:00'}
-        avatarInitial="F"
+        avatarInitial={handlers.avatarInitial ?? "F"}
       />
       <FilterChipsRow
         chips={[
@@ -495,7 +504,7 @@ function FrameF3({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
       <TopChrome
         title="Dragon world"
         subtitle={handlers.subtitleOverride ?? '4 fleets · 1 class · zoom 3'}
-        avatarInitial="F"
+        avatarInitial={handlers.avatarInitial ?? "F"}
       />
       <FilterChipsRow
         chips={[
@@ -541,7 +550,7 @@ function FrameF4({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
       <TopChrome
         title="Atlas"
         subtitle={handlers.subtitleOverride ?? 'Nursing · MSN · Baltimore'}
-        avatarInitial="E"
+        avatarInitial={handlers.avatarInitial ?? "E"}
       />
       <FilterChipsRow
         chips={[
@@ -600,7 +609,7 @@ function FrameF5({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
       <TopChrome
         title="IV insertion · supervised"
         subtitle={handlers.subtitleOverride ?? '62 in cohort · 4 sites evidenced'}
-        avatarInitial="E"
+        avatarInitial={handlers.avatarInitial ?? "E"}
       />
       <FilterChipsRow
         chips={[
