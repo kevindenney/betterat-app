@@ -42,6 +42,14 @@ interface TimelineZoomCanvasProps {
   dataset: TimelineDataset;
   /** Starting zoom level. Defaults to 1 (Step). */
   initialLevel?: ZoomLevel;
+  /**
+   * Optional handler invoked when the user taps the focused L1 card to
+   * open the full step detail surface (existing `<StepDetailContent />`).
+   * When omitted, the L1 card is non-interactive (preview routes). When
+   * provided, the canvas stays mounted while detail pushes — pinch state
+   * is preserved on back.
+   */
+  onOpenStepDetail?: (stepId: string) => void;
 }
 
 const LEVELS: ZoomLevel[] = [1, 2, 3, 4];
@@ -49,6 +57,7 @@ const LEVELS: ZoomLevel[] = [1, 2, 3, 4];
 export function TimelineZoomCanvas({
   dataset,
   initialLevel = 1,
+  onOpenStepDetail,
 }: TimelineZoomCanvasProps) {
   const [level, setLevel] = useState<ZoomLevel>(initialLevel);
   const [focusStepId, setFocusStepId] = useState<string>(dataset.focusStepId);
@@ -134,7 +143,11 @@ export function TimelineZoomCanvas({
         <GestureDetector gesture={pinch}>
           <View style={styles.canvas}>
             {level === 1 && focusedStep ? (
-              <L1StepView dataset={dataset} step={focusedStep} />
+              <L1StepView
+                dataset={dataset}
+                step={focusedStep}
+                onOpenStepDetail={onOpenStepDetail}
+              />
             ) : null}
             {level === 2 ? (
               <L2WeekView

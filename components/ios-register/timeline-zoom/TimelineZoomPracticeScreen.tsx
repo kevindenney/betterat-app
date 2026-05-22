@@ -11,9 +11,10 @@
  * (RacesScreen in app/(tabs)/races.tsx).
  */
 
-import React, { useMemo } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { router } from 'expo-router';
 
 import { IOS_REGISTER } from '@/lib/design-tokens-ios';
 import { useAuth } from '@/providers/AuthProvider';
@@ -92,6 +93,10 @@ export function TimelineZoomPracticeScreen() {
     [currentInterest, userInitials, currentSeason, allSeasons, steps, blueprintsById],
   );
 
+  const handleOpenStepDetail = useCallback((stepId: string) => {
+    router.push(`/step/${stepId}` as never);
+  }, []);
+
   const hasContent = dataset.seasons.some((s) => s.bricks.length > 0);
 
   if (stepsLoading && !hasContent) {
@@ -118,7 +123,11 @@ export function TimelineZoomPracticeScreen() {
 
   return (
     <SafeAreaView style={styles.surface} edges={['top']}>
-      <TimelineZoomCanvas dataset={dataset} initialLevel={3} />
+      <TimelineZoomCanvas
+        dataset={dataset}
+        initialLevel={3}
+        onOpenStepDetail={handleOpenStepDetail}
+      />
     </SafeAreaView>
   );
 }

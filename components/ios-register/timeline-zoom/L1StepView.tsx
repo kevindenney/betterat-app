@@ -10,7 +10,7 @@
  */
 
 import React from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { IOS_REGISTER } from '@/lib/design-tokens-ios';
@@ -19,13 +19,25 @@ import type { TimelineDataset, TimelineStep } from './types';
 interface L1StepViewProps {
   dataset: TimelineDataset;
   step: TimelineStep;
+  /**
+   * When provided, the L1 card becomes pressable — tap → push to the full
+   * step detail surface (existing `<StepDetailContent />` at /step/[id]).
+   * The canvas itself stays mounted; back-gesture from detail returns here
+   * with zoom level preserved. Omitted in preview routes where no real
+   * step record exists.
+   */
+  onOpenStepDetail?: (stepId: string) => void;
 }
 
 const PHASES = ['Plan', 'Do', 'Reflect'] as const;
 
-export function L1StepView({ step }: L1StepViewProps) {
+export function L1StepView({ step, onOpenStepDetail }: L1StepViewProps) {
   const activePhase =
     step.status === 'plan' ? 'Plan' : step.status === 'do' ? 'Do' : 'Reflect';
+
+  const handleOpen = onOpenStepDetail
+    ? () => onOpenStepDetail(step.id)
+    : undefined;
 
   return (
     <ScrollView
@@ -33,7 +45,23 @@ export function L1StepView({ step }: L1StepViewProps) {
       contentContainerStyle={styles.scrollContent}
       showsVerticalScrollIndicator={false}
     >
-      <View style={styles.card}>
+      <Pressable
+        style={styles.card}
+        onPress={handleOpen}
+        disabled={!handleOpen}
+        accessibilityRole={handleOpen ? 'button' : undefined}
+        accessibilityLabel={handleOpen ? `Open ${step.title}` : undefined}
+      >
+        {handleOpen ? (
+          <View style={styles.openHint}>
+            <Text style={styles.openHintText}>OPEN</Text>
+            <Ionicons
+              name="chevron-forward"
+              size={12}
+              color={IOS_REGISTER.accentUserAction}
+            />
+          </View>
+        ) : null}
         {step.preTitle ? (
           <Text style={styles.eyebrow}>{step.preTitle}</Text>
         ) : null}
@@ -120,7 +148,7 @@ export function L1StepView({ step }: L1StepViewProps) {
             </View>
           </View>
         ) : null}
-      </View>
+      </Pressable>
     </ScrollView>
   );
 }
@@ -155,6 +183,24 @@ const styles = StyleSheet.create({
     padding: 18,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: IOS_REGISTER.separator,
+  },
+  openHint: {
+    position: 'absolute',
+    top: 14,
+    right: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 10,
+    backgroundColor: 'rgba(0, 122, 255, 0.10)',
+  },
+  openHintText: {
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+    color: IOS_REGISTER.accentUserAction,
   },
   eyebrow: {
     fontSize: 11,
