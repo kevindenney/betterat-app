@@ -53,13 +53,30 @@ import {
 
 export type AtlasFrameId = 'f1' | 'f2' | 'f3' | 'f4' | 'f5' | 'f6';
 
+export interface AtlasNextEvent {
+  /** Display label, e.g. "Race 4" or "Easter Regatta". */
+  label: string;
+  /** Time/date snippet, e.g. "Sat 10am". */
+  when?: string;
+  /** Venue/area snippet, e.g. "Victoria Harbour, favoured end". */
+  where?: string;
+}
+
 export interface AtlasFrameHandlers {
   /** Bottom-sheet primary CTA — "Plan a step" / "Anchor · pick site" etc. */
   onPrimaryAction?: () => void;
-  /** Bottom-sheet secondary CTA — "Open Race 4" / "Skip" etc. */
+  /** Bottom-sheet secondary CTA — "Open <next event>" / "Skip" etc. */
   onSecondaryAction?: () => void;
   /** Per-frame override of the top subtitle line, e.g. "Sailing · RHKYC · Hong Kong". */
   subtitleOverride?: string;
+  /**
+   * Real next-event data from the next_event_resolver. When provided, F1's
+   * bottom sheet pre-stages composition for it ("Plan a step for <label>"
+   * + "Open <label>"); when null/undefined, F1 falls back to honest
+   * generic copy and hides the secondary CTA so we don't reference a
+   * race that doesn't exist.
+   */
+  nextEvent?: AtlasNextEvent | null;
 }
 
 interface AtlasScreenProps extends AtlasFrameHandlers {
@@ -79,8 +96,14 @@ export function AtlasScreen({
   onPrimaryAction,
   onSecondaryAction,
   subtitleOverride,
+  nextEvent,
 }: AtlasScreenProps) {
-  const handlers: AtlasFrameHandlers = { onPrimaryAction, onSecondaryAction, subtitleOverride };
+  const handlers: AtlasFrameHandlers = {
+    onPrimaryAction,
+    onSecondaryAction,
+    subtitleOverride,
+    nextEvent,
+  };
   switch (frame) {
     case 'f1':
       return <FrameF1 embedded={embedded} handlers={handlers} />;
@@ -295,6 +318,8 @@ function MockTabBar({ activeTab = 'atlas' }: { activeTab?: 'practice' | 'library
 // F1 — Felix · first-run · Causeway Bay overview
 // ---------------------------------------------------------------------------
 function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFrameHandlers }) {
+  const next = handlers.nextEvent;
+  const hasNext = Boolean(next?.label);
   return (
     <View style={shellStyles.frame}>
       {!embedded && <StatusBar />}
@@ -315,21 +340,33 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
       <View style={shellStyles.mapArea}>
         <HongKongOverviewMap />
 
-        {/* Highlighted next-event tag on Victoria Harbour */}
-        <NextEventTag leftPct={50} topPct={47} eyebrow="NEXT · RACE 4 · SAT 10AM" detail="12kn ESE · ebb 0.4kn" />
+        {/* Highlighted next-event tag on Victoria Harbour — only when there
+            actually IS a next event. Otherwise the glow is a lie. */}
+        {hasNext && (
+          <NextEventTag
+            leftPct={50}
+            topPct={47}
+            eyebrow={`NEXT · ${next!.label.toUpperCase()}${next!.when ? ` · ${next!.when.toUpperCase()}` : ''}`}
+            detail={next!.where ?? '12kn ESE · ebb 0.4kn'}
+          />
+        )}
 
-        {/* Racing-area last-race tags on the dim areas */}
-        <RacingAreaTag leftPct={84} topPct={20} text="Apr 14 · 3 from fleet" />
-        <RacingAreaTag leftPct={65} topPct={61} text="Mar 28 · 4 from fleet" />
-
-        {/* RHKYC base pin on HK Island */}
-        <AtlasPin
-          kind="you"
-          leftPct={36}
-          topPct={70}
-          label="RHKYC CLUB"
-          sublabel="Lady Catriona · Berth 14"
-        />
+        {/* Racing-area last-race tags + the user's base pin only render
+            once real resolver data is wired. Until then the labels would
+            be fiction — see Phase A1 resolvers in the brief. */}
+        {hasNext && (
+          <>
+            <RacingAreaTag leftPct={84} topPct={20} text="Apr 14 · 3 from fleet" />
+            <RacingAreaTag leftPct={65} topPct={61} text="Mar 28 · 4 from fleet" />
+            <AtlasPin
+              kind="you"
+              leftPct={36}
+              topPct={70}
+              label="RHKYC CLUB"
+              sublabel="Lady Catriona · Berth 14"
+            />
+          </>
+        )}
 
         {/* Peer pins around Victoria Harbour — crew/fleet/following */}
         <AtlasPin kind="crew" leftPct={28} topPct={45} />
@@ -345,13 +382,22 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
         <LayersFab />
       </View>
 
-      <BottomSheet
-        eyebrow="NEXT RACE · PRE-STAGED"
-        title="Plan a step for Saturday's start."
-        body="Victoria Harbour, favoured end. Last Saturday's marks are visible."
-        primary={{ label: 'Plan a step', icon: 'add', onPress: handlers.onPrimaryAction }}
-        secondary={{ label: 'Open Race 4', onPress: handlers.onSecondaryAction }}
-      />
+      {hasNext ? (
+        <BottomSheet
+          eyebrow="NEXT · PRE-STAGED"
+          title={`Plan a step for ${next!.label}.`}
+          body={[next!.where, next!.when].filter(Boolean).join(' · ')}
+          primary={{ label: 'Plan a step', icon: 'add', onPress: handlers.onPrimaryAction }}
+          secondary={{ label: `Open ${next!.label}`, onPress: handlers.onSecondaryAction }}
+        />
+      ) : (
+        <BottomSheet
+          eyebrow="PLAN A STEP"
+          title="Anchor your next step to a place."
+          body="Drop a pin on the map, or pick a spot from your venues."
+          primary={{ label: 'Plan a step', icon: 'add', onPress: handlers.onPrimaryAction }}
+        />
+      )}
 
       {!embedded && <MockTabBar activeTab="atlas" />}
     </View>

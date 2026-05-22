@@ -97,7 +97,17 @@ export default function AtlasIosPreview() {
 
       <View style={styles.phoneStage}>
         <View style={styles.phoneFrame}>
-          <AtlasScreen frame={frame} />
+          <AtlasScreen
+            frame={frame}
+            // Preview keeps the canonical Race 4 fixture so the handoff
+            // mockup matches the design exactly. The live tab passes real
+            // next_event_resolver data (or null) — see (tabs)/atlas.tsx.
+            nextEvent={{
+              label: 'Race 4',
+              when: 'Sat 10am',
+              where: 'Victoria Harbour, favoured end',
+            }}
+          />
         </View>
       </View>
     </SafeAreaView>
