@@ -66,19 +66,15 @@ export function useLibraryItemsForBeforePicker(
     staleTime: 15_000,
     queryFn: async () => {
       if (!userId) return [];
-      // Scope to the step's interest when known. Legacy rows captured before
-      // interest_id existed have NULL — surface them too so they stay
-      // discoverable until re-scoped.
-      let query = supabase
-        .from('library_items')
-        .select('id, kind, title, source_label, page_count, duration_min')
-        .eq('user_id', userId)
-        .order('captured_at', { ascending: false })
-        .limit(200);
-      if (interestId) {
-        query = query.or(`interest_id.eq.${interestId},interest_id.is.null`);
-      }
-      const { data, error } = await query;
+      // RPC encodes the "tagged for this interest via
+      // library_item_interests OR completely untagged" filter that
+      // PostgREST can't express cleanly in one round-trip. Untagged items
+      // surface in every interest so polymath users don't have to
+      // pre-tag every capture; tagged items are scoped.
+      const { data, error } = await supabase.rpc(
+        'library_items_for_picker',
+        { p_interest_id: interestId ?? null },
+      );
       if (error) throw error;
       return ((data ?? []) as RawRow[]).map<PickerLibraryItem>((r) => ({
         id: r.id,
