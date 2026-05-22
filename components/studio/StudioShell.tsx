@@ -87,6 +87,7 @@ export function StudioShell({
   org,
   ctxLens,
   onCtxChange,
+  ctxLensOptions,
   navSections,
   user,
   onUserCardPress,
