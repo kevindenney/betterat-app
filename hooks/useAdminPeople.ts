@@ -162,12 +162,14 @@ export function useAdminPeople(orgId: string): AdminPeopleData {
     enabled: !!orgId,
     staleTime: 30_000,
     queryFn: async () => {
-      // Memberships at this org, joined to the user profile.
+      // Two-step query because there's no FK from
+      // organization_memberships.user_id → public.users.id (FK points to
+      // auth.users instead), so supabase-js's embedded join silently fails.
+      // Fetch memberships first, then users by id list separately.
       const { data: memberships, error } = await supabase
         .from('organization_memberships')
         .select(
-          'id, user_id, role, status, membership_status, verification_source, joined_at, created_at, ' +
-            'users:user_id(id, full_name, email, last_active_at, avatar_url)',
+          'id, user_id, role, status, membership_status, verification_source, joined_at, created_at',
         )
         .eq('organization_id', orgId)
         .order('created_at', { ascending: false });
@@ -186,17 +188,26 @@ export function useAdminPeople(orgId: string): AdminPeopleData {
         verification_source: string | null;
         joined_at: string | null;
         created_at: string | null;
-        users:
-          | {
-              id: string;
-              full_name: string | null;
-              email: string | null;
-              last_active_at: string | null;
-              avatar_url: string | null;
-            }
-          | null;
       };
       const rawMems = (memberships ?? []) as unknown as MembershipRow[];
+
+      // Pull the user profiles in a second query keyed off the membership rows.
+      const userIdList = Array.from(new Set(rawMems.map((m) => m.user_id).filter(Boolean)));
+      type UserProfile = {
+        id: string;
+        full_name: string | null;
+        email: string | null;
+        last_active_at: string | null;
+        avatar_url: string | null;
+      };
+      const userById = new Map<string, UserProfile>();
+      if (userIdList.length > 0) {
+        const { data: userRows } = await supabase
+          .from('users')
+          .select('id, full_name, email, last_active_at, avatar_url')
+          .in('id', userIdList);
+        for (const u of (userRows ?? []) as UserProfile[]) userById.set(u.id, u);
+      }
 
       // Cohort labels per user — single round-trip; small dataset.
       const userIds = rawMems.map((m) => m.user_id).filter(Boolean);
@@ -218,7 +229,7 @@ export function useAdminPeople(orgId: string): AdminPeopleData {
       }
 
       const rows: AdminPersonRow[] = rawMems.map((m) => {
-        const u = m.users;
+        const u = userById.get(m.user_id);
         const displayName = u?.full_name?.trim() || u?.email || 'Unknown';
         const email = u?.email ?? '';
         const status = mapStatus(m.status, m.membership_status);
