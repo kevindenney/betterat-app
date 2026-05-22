@@ -1,9 +1,19 @@
 /**
  * ProfileDropdown
  *
- * Unified profile avatar + dropdown menu used in both the landing nav
- * and the tab screen toolbar. Shows profile/settings/sign-out for
- * authenticated users, and log-in/sign-up for guests.
+ * Role-and-context switcher (Frames 1–3 of the Creator Studio & Org Admin
+ * design pass). The popover descends from the avatar in every screen's top
+ * header and shapes itself to who's looking at it:
+ *
+ *   - Solo subscriber (Felix): identity · plan card · Profile/Notifications/
+ *     Subscribed/Start authoring · Help · Sign out
+ *   - Faculty + author (Dr. Murphy at Hopkins): identity · roles · Creator
+ *     Studio/Cohorts/Threads · standard utility · Sign out of Hopkins
+ *   - Org admin (Dean Park): identity · roles · Hopkins admin/People/Billing/
+ *     SSO · Creator Studio · standard utility · Sign out of Hopkins
+ *
+ * The variants share one component; section visibility is driven by
+ * useProfileMenuData().
  */
 
 import React, { useMemo, useState } from 'react';
@@ -23,9 +33,9 @@ import Animated, {
 import { Ionicons } from '@expo/vector-icons';
 import { router, usePathname } from 'expo-router';
 import { useAuth } from '@/providers/AuthProvider';
+import { useProfileMenuData, OrgMembership } from '@/hooks/useProfileMenuData';
 import { IOS_COLORS, IOS_ANIMATIONS } from '@/lib/design-tokens-ios';
 import { triggerHaptic } from '@/lib/haptics';
-import { getDashboardRoute } from '@/lib/utils/userTypeRouting';
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
@@ -38,7 +48,7 @@ interface ProfileDropdownProps {
   currentInterestSlug?: string;
 }
 
-function getInitials(name?: string): string {
+function getInitials(name?: string | null): string {
   if (!name) return '?';
   const parts = name.trim().split(/\s+/);
   if (parts.length === 1) return parts[0][0]?.toUpperCase() ?? '?';
@@ -55,12 +65,13 @@ export function ProfileDropdown({
   const [open, setOpen] = useState(false);
   const [imageFailed, setImageFailed] = useState(false);
   const scale = useSharedValue(1);
+  const menu = useProfileMenuData();
 
   const isLoggedIn = !!user && !isGuest;
 
-  const initials = isGuest
-    ? '?'
-    : getInitials(userProfile?.full_name || userProfile?.display_name || user?.email);
+  const displayName =
+    userProfile?.full_name || userProfile?.display_name || user?.email || 'Your account';
+  const initials = isGuest ? '?' : getInitials(displayName);
 
   const avatarUrl = userProfile?.avatar_url;
   const safeAvatarUrl = useMemo(() => {
@@ -79,20 +90,13 @@ export function ProfileDropdown({
 
   const isDark = variant === 'dark';
   const halfSize = size / 2;
-
-  const avatarDynamic = {
-    width: size,
-    height: size,
-    borderRadius: halfSize,
-  };
+  const avatarDynamic = { width: size, height: size, borderRadius: halfSize };
 
   const handleClose = () => setOpen(false);
-
   const navigate = (path: string) => {
     setOpen(false);
     router.push(path as any);
   };
-
   const handleSignOut = async () => {
     setOpen(false);
     await signOut();
@@ -104,9 +108,11 @@ export function ProfileDropdown({
         style={[
           !isLoggedIn ? (Platform.OS !== 'web' ? s.avatar : s.signUpBtn) : s.avatar,
           !isLoggedIn
-            ? (Platform.OS !== 'web'
-                ? [avatarDynamic, isDark ? s.avatarDark : s.avatarGuestLight]
-                : (isDark ? s.signUpBtnDark : s.signUpBtnLight))
+            ? Platform.OS !== 'web'
+              ? [avatarDynamic, isDark ? s.avatarDark : s.avatarGuestLight]
+              : isDark
+              ? s.signUpBtnDark
+              : s.signUpBtnLight
             : avatarDynamic,
           isLoggedIn && (isDark ? s.avatarDark : s.avatarLight),
           showAvatarImage && s.avatarWithImage,
@@ -127,33 +133,32 @@ export function ProfileDropdown({
       >
         {!isLoggedIn ? (
           Platform.OS !== 'web' ? (
-            <Ionicons name="person-add-outline" size={size * 0.55} color={isDark ? '#1A1A1A' : '#FFFFFF'} />
+            <Ionicons
+              name="person-add-outline"
+              size={size * 0.55}
+              color={isDark ? '#1A1A1A' : '#FFFFFF'}
+            />
           ) : (
             <Text style={[s.signUpText, isDark && s.signUpTextDark]}>Sign Up / Sign In</Text>
           )
         ) : (
-          // Always render initials so the avatar isn't a blank circle while
-          // an avatar_url image silently loads (or fails to surface its
-          // onError). Image, when present, sits on top via absolute fill.
           <>
             <Text
-              style={[
-                s.avatarText,
-                { fontSize: size * 0.43 },
-                isDark && s.avatarTextDark,
-              ]}
+              style={[s.avatarText, { fontSize: size * 0.43 }, isDark && s.avatarTextDark]}
             >
               {initials}
             </Text>
             {showAvatarImage ? (
               <Image
                 source={{ uri: safeAvatarUrl! }}
-                style={[
-                  avatarDynamic,
-                  { borderRadius: halfSize, position: 'absolute' },
-                ]}
+                style={[avatarDynamic, { borderRadius: halfSize, position: 'absolute' }]}
                 onError={() => setImageFailed(true)}
               />
+            ) : null}
+            {menu.hasActiveOrg && menu.activeOrg ? (
+              <View style={s.orgPip}>
+                <Text style={s.orgPipText}>{menu.activeOrg.org_short_name}</Text>
+              </View>
             ) : null}
           </>
         )}
@@ -166,82 +171,22 @@ export function ProfileDropdown({
             onPress={(e) => e.stopPropagation?.()}
           >
             {isLoggedIn ? (
-              <>
-                <View style={s.profileHeader}>
-                  <View style={s.profileHeaderAvatar}>
-                    {showAvatarImage ? (
-                      <Image
-                        source={{ uri: safeAvatarUrl! }}
-                        style={s.profileHeaderAvatarImage}
-                      />
-                    ) : (
-                      <Text style={s.profileHeaderAvatarText}>{initials}</Text>
-                    )}
-                  </View>
-                  <View style={s.profileHeaderText}>
-                    <Text style={s.profileHeaderName} numberOfLines={1}>
-                      {userProfile?.full_name || userProfile?.display_name || 'Your account'}
-                    </Text>
-                    {!!user?.email && (
-                      <Text style={s.profileHeaderEmail} numberOfLines={1}>
-                        {user.email}
-                      </Text>
-                    )}
-                  </View>
-                </View>
-                <View style={s.headerDivider} />
-
-                <View style={s.menuSection}>
-                  <DropdownItem
-                    icon="home-outline"
-                    label="Home"
-                    onPress={() => navigate('/?view=landing')}
-                  />
-                  <View style={s.itemDivider} />
-                  <DropdownItem
-                    icon="grid-outline"
-                    label="Dashboard"
-                    onPress={() => {
-                      setOpen(false);
-                      const dest = getDashboardRoute(userProfile?.user_type ?? null);
-                      router.push(dest as any);
-                    }}
-                  />
-                  <View style={s.itemDivider} />
-                  <DropdownItem
-                    icon="person-outline"
-                    label="My Profile"
-                    onPress={() => navigate(`/person/${user!.id}`)}
-                  />
-                  <View style={s.itemDivider} />
-                  <DropdownItem
-                    icon="layers-outline"
-                    label="Creator Dashboard"
-                    onPress={() => navigate('/creator')}
-                  />
-                  <View style={s.itemDivider} />
-                  <DropdownItem
-                    icon="settings-outline"
-                    label="Settings"
-                    onPress={() => navigate('/account')}
-                  />
-                </View>
-
-                <View style={s.headerDivider} />
-                <View style={s.menuSection}>
-                  <DropdownItem
-                    icon="log-out-outline"
-                    label="Sign Out"
-                    onPress={handleSignOut}
-                    destructive
-                  />
-                </View>
-              </>
+              <LoggedInMenu
+                displayName={displayName}
+                email={user?.email ?? null}
+                initials={initials}
+                showAvatarImage={showAvatarImage}
+                safeAvatarUrl={safeAvatarUrl}
+                menu={menu}
+                onNavigate={navigate}
+                onSignOut={handleSignOut}
+              />
             ) : (
               <View style={s.guestMenu}>
                 <Text style={s.guestHeading}>Save your progress</Text>
                 <Text style={s.guestSubtext}>
-                  Create a free account to keep your work safe and pick up where you left off on any device.
+                  Create a free account to keep your work safe and pick up where you left off on
+                  any device.
                 </Text>
                 <Pressable
                   style={s.guestPrimaryBtn}
@@ -259,13 +204,12 @@ export function ProfileDropdown({
                 <Pressable
                   style={s.guestSecondaryBtn}
                   onPress={() =>
-                    navigate(
-                      `/(auth)/login?returnTo=${encodeURIComponent(pathname)}`,
-                    )
+                    navigate(`/(auth)/login?returnTo=${encodeURIComponent(pathname)}`)
                   }
                 >
                   <Text style={s.guestSecondaryBtnText}>
-                    Already have an account? <Text style={s.guestSecondaryBtnLink}>Log In</Text>
+                    Already have an account?{' '}
+                    <Text style={s.guestSecondaryBtnLink}>Log In</Text>
                   </Text>
                 </Pressable>
               </View>
@@ -278,20 +222,378 @@ export function ProfileDropdown({
 }
 
 // ---------------------------------------------------------------------------
-// Internal: dropdown menu item
+// Logged-in menu — composed from sub-blocks per the design's three variants
 // ---------------------------------------------------------------------------
+
+function LoggedInMenu({
+  displayName,
+  email,
+  initials,
+  showAvatarImage,
+  safeAvatarUrl,
+  menu,
+  onNavigate,
+  onSignOut,
+}: {
+  displayName: string;
+  email: string | null;
+  initials: string;
+  showAvatarImage: boolean;
+  safeAvatarUrl: string | null;
+  menu: ReturnType<typeof useProfileMenuData>;
+  onNavigate: (path: string) => void;
+  onSignOut: () => void;
+}) {
+  const signOutLabel = menu.activeOrg
+    ? `Sign out of ${menu.activeOrg.org_name.split(' ').slice(0, 2).join(' ')}`
+    : 'Sign out';
+
+  return (
+    <View style={s.popInner}>
+      <IdentityRow
+        displayName={displayName}
+        email={email}
+        initials={initials}
+        showAvatarImage={showAvatarImage}
+        safeAvatarUrl={safeAvatarUrl}
+      />
+
+      {menu.hasActiveOrg ? (
+        <RolesSection memberships={menu.memberships} activeOrg={menu.activeOrg} />
+      ) : (
+        <PlanCardMini plan={menu.plan} />
+      )}
+
+      {(menu.isAdmin || menu.isAuthor) && (
+        <RoleShortcuts menu={menu} onNavigate={onNavigate} />
+      )}
+
+      <View style={s.linkSection}>
+        <DropdownItem
+          icon="person-outline"
+          label="Profile & settings"
+          onPress={() => onNavigate('/account')}
+          trailing="chevron"
+        />
+        <ItemDivider />
+        <DropdownItem
+          icon="notifications-outline"
+          label="Notifications"
+          onPress={() => onNavigate('/notifications')}
+          trailing="count"
+          count={menu.counts.notifications}
+          countTone={menu.counts.notifications > 0 ? 'coral' : 'neutral'}
+        />
+        {!menu.isAuthor && !menu.isAdmin && (
+          <>
+            <ItemDivider />
+            <DropdownItem
+              icon="git-branch-outline"
+              label="Subscribed blueprints"
+              onPress={() => onNavigate('/library')}
+              trailing="count"
+              count={menu.counts.subscribedBlueprints}
+            />
+          </>
+        )}
+
+        {menu.isSolo && !menu.isAuthor && (
+          <>
+            <SectionDivider />
+            <DropdownItem
+              icon="create-outline"
+              label="Start authoring a blueprint"
+              onPress={() => onNavigate('/studio?empty=true')}
+              tone="author-mode"
+              trailing="chevron"
+            />
+          </>
+        )}
+      </View>
+
+      <SectionDivider />
+
+      <View style={s.linkSection}>
+        <DropdownItem
+          icon="help-circle-outline"
+          label="Help & feedback"
+          onPress={() => onNavigate('/help')}
+          trailing="chevron"
+        />
+        <DropdownItem
+          icon="log-out-outline"
+          label={signOutLabel}
+          onPress={onSignOut}
+          destructive
+        />
+      </View>
+    </View>
+  );
+}
+
+function IdentityRow({
+  displayName,
+  email,
+  initials,
+  showAvatarImage,
+  safeAvatarUrl,
+}: {
+  displayName: string;
+  email: string | null;
+  initials: string;
+  showAvatarImage: boolean;
+  safeAvatarUrl: string | null;
+}) {
+  return (
+    <View style={s.who}>
+      <View style={s.whoAvatar}>
+        {showAvatarImage ? (
+          <Image source={{ uri: safeAvatarUrl! }} style={s.whoAvatarImg} />
+        ) : (
+          <Text style={s.whoAvatarText}>{initials}</Text>
+        )}
+      </View>
+      <View style={s.whoText}>
+        <Text style={s.whoName} numberOfLines={1}>
+          {displayName}
+        </Text>
+        {!!email && (
+          <Text style={s.whoEmail} numberOfLines={1}>
+            {email}
+          </Text>
+        )}
+      </View>
+      <Ionicons name="pencil-outline" size={16} color={IOS_COLORS.tertiaryLabel} />
+    </View>
+  );
+}
+
+function PlanCardMini({
+  plan,
+}: {
+  plan: ReturnType<typeof useProfileMenuData>['plan'];
+}) {
+  if (!plan) return null;
+  return (
+    <View style={s.planCardMini}>
+      <View style={s.planBadge}>
+        <Text style={s.planBadgeText}>+</Text>
+      </View>
+      <View style={s.planCol}>
+        <Text style={s.planName}>{plan.label}</Text>
+        {!!plan.renewsAt && (
+          <Text style={s.planSub}>
+            Renews {plan.renewsAt}
+            {plan.pricePerYear != null ? ` · $${plan.pricePerYear} / yr` : ''}
+          </Text>
+        )}
+      </View>
+      <Ionicons name="chevron-forward" size={16} color={IOS_COLORS.tertiaryLabel} />
+    </View>
+  );
+}
+
+function RolesSection({
+  memberships,
+  activeOrg,
+}: {
+  memberships: OrgMembership[];
+  activeOrg: OrgMembership | null;
+}) {
+  return (
+    <View style={s.roles}>
+      <Text style={s.rolesKey}>Signed in at</Text>
+      {memberships.map((m) => (
+        <RoleCard key={m.org_id} membership={m} current={activeOrg?.org_id === m.org_id} />
+      ))}
+      <PersonalRoleCard active={!activeOrg} />
+      <Pressable style={s.joinRow}>
+        <Ionicons name="add" size={14} color={IOS_COLORS.systemBlue} />
+        <Text style={s.joinText}>Join another organization</Text>
+      </Pressable>
+    </View>
+  );
+}
+
+function RoleCard({ membership, current }: { membership: OrgMembership; current: boolean }) {
+  const pillTone = membership.is_admin
+    ? 'admin'
+    : membership.is_faculty
+    ? 'faculty'
+    : 'member';
+  const pillLabel = membership.is_admin
+    ? 'Admin'
+    : membership.is_faculty
+    ? 'Faculty'
+    : 'Member';
+  return (
+    <Pressable style={[s.roleCard, current && s.roleCardOn]}>
+      <View style={s.roleMono}>
+        <Text style={s.roleMonoText}>{membership.org_short_name}</Text>
+      </View>
+      <View style={s.roleLabel}>
+        <Text style={s.roleOrgName} numberOfLines={1}>
+          {membership.org_name}
+        </Text>
+        <Text style={s.roleSub} numberOfLines={1}>
+          {membership.is_admin
+            ? 'Administrator'
+            : membership.is_faculty
+            ? 'Faculty · author · mentor'
+            : 'Member'}
+        </Text>
+      </View>
+      <View style={[s.rolePill, pillToneStyles[pillTone]]}>
+        <Text style={[s.rolePillText, pillToneTextStyles[pillTone]]}>{pillLabel}</Text>
+      </View>
+      {current && (
+        <Ionicons name="checkmark" size={16} color={IOS_COLORS.systemBlue} style={s.roleCheck} />
+      )}
+    </Pressable>
+  );
+}
+
+function PersonalRoleCard({ active }: { active: boolean }) {
+  return (
+    <Pressable style={[s.roleCard, active && s.roleCardOn]}>
+      <View style={[s.roleMono, s.roleMonoSolo]}>
+        <Text style={s.roleMonoTextSolo}>·</Text>
+      </View>
+      <View style={s.roleLabel}>
+        <Text style={s.roleOrgName}>Personal</Text>
+        <Text style={s.roleSub}>For your own practice</Text>
+      </View>
+      <View style={[s.rolePill, pillToneStyles.you]}>
+        <Text style={[s.rolePillText, pillToneTextStyles.you]}>You</Text>
+      </View>
+      {active && (
+        <Ionicons name="checkmark" size={16} color={IOS_COLORS.systemBlue} style={s.roleCheck} />
+      )}
+    </Pressable>
+  );
+}
+
+function RoleShortcuts({
+  menu,
+  onNavigate,
+}: {
+  menu: ReturnType<typeof useProfileMenuData>;
+  onNavigate: (path: string) => void;
+}) {
+  return (
+    <>
+      <View style={s.linkSection}>
+        {menu.isAdmin && menu.activeOrg && (
+          <>
+            <DropdownItem
+              icon="business-outline"
+              label={`${menu.activeOrg.org_name.split(' ').slice(0, 2).join(' ')} admin`}
+              onPress={() => onNavigate(`/admin/${menu.activeOrg!.org_id}`)}
+              tone="admin"
+              trailing="chevron"
+            />
+            <ItemDivider />
+            <DropdownItem
+              icon="people-outline"
+              label="People"
+              onPress={() => onNavigate(`/admin/${menu.activeOrg!.org_id}/people`)}
+              trailing="count"
+              count={menu.counts.seats}
+            />
+            <ItemDivider />
+            <DropdownItem
+              icon="card-outline"
+              label="Billing & seats"
+              onPress={() => onNavigate(`/admin/${menu.activeOrg!.org_id}/billing`)}
+              trailing="chevron"
+            />
+            <ItemDivider />
+            <DropdownItem
+              icon="shield-half-outline"
+              label="SSO & security"
+              onPress={() => onNavigate(`/admin/${menu.activeOrg!.org_id}/security`)}
+              trailing="chevron"
+            />
+            <SectionDivider />
+          </>
+        )}
+        {menu.isAuthor && (
+          <>
+            <DropdownItem
+              icon="create-outline"
+              label="Creator Studio"
+              onPress={() => onNavigate('/studio')}
+              tone="studio"
+              trailing="count"
+              count={menu.counts.authoredBlueprints}
+              countLabel="blueprint"
+            />
+            {!menu.isAdmin && (
+              <>
+                <ItemDivider />
+                <DropdownItem
+                  icon="people-outline"
+                  label="Cohorts I mentor"
+                  onPress={() => onNavigate('/studio/cohorts')}
+                  trailing="count"
+                  count={menu.counts.cohortsMentored}
+                />
+                <ItemDivider />
+                <DropdownItem
+                  icon="chatbubbles-outline"
+                  label="Subscriber threads"
+                  onPress={() => onNavigate('/studio/threads')}
+                  trailing="count"
+                  count={menu.counts.subscriberThreads}
+                  countTone={menu.counts.subscriberThreads > 0 ? 'coral' : 'neutral'}
+                />
+              </>
+            )}
+          </>
+        )}
+      </View>
+      <SectionDivider />
+    </>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Reusable bits
+// ---------------------------------------------------------------------------
+
+type Tone = 'neutral' | 'studio' | 'admin' | 'author-mode';
+type Trailing = 'chevron' | 'count' | 'none';
 
 function DropdownItem({
   icon,
   label,
   onPress,
   destructive,
+  tone = 'neutral',
+  trailing = 'chevron',
+  count,
+  countTone = 'neutral',
+  countLabel,
 }: {
   icon: string;
   label: string;
   onPress: () => void;
   destructive?: boolean;
+  tone?: Tone;
+  trailing?: Trailing;
+  count?: number;
+  countTone?: 'neutral' | 'coral';
+  countLabel?: string;
 }) {
+  const labelColor = destructive
+    ? IOS_COLORS.systemRed
+    : tone === 'studio'
+    ? '#6B5BBF'
+    : tone === 'admin'
+    ? '#28406B'
+    : tone === 'author-mode'
+    ? IOS_COLORS.systemBlue
+    : IOS_COLORS.label;
   return (
     <Pressable
       onPress={onPress}
@@ -301,32 +603,60 @@ function DropdownItem({
       ]}
     >
       <View style={s.menuItemRow}>
-        <Text
-          style={[s.menuText, destructive && s.menuTextDestructive]}
-          numberOfLines={1}
-        >
-          {label}
-        </Text>
         <Ionicons
           name={icon as any}
-          size={19}
-          color={destructive ? IOS_COLORS.systemRed : IOS_COLORS.label}
+          size={18}
+          color={labelColor}
+          style={{ marginRight: 12 }}
         />
+        <Text style={[s.menuText, { color: labelColor }]} numberOfLines={1}>
+          {label}
+        </Text>
+        {trailing === 'count' && typeof count === 'number' && count >= 0 ? (
+          <View style={[s.countPill, countTone === 'coral' && s.countPillCoral]}>
+            <Text style={[s.countPillText, countTone === 'coral' && s.countPillTextCoral]}>
+              {countLabel ? `${count} ${countLabel}${count === 1 ? '' : 's'}` : String(count)}
+            </Text>
+          </View>
+        ) : null}
+        {trailing === 'chevron' && (
+          <Ionicons name="chevron-forward" size={16} color={IOS_COLORS.tertiaryLabel} />
+        )}
       </View>
     </Pressable>
   );
+}
+
+function ItemDivider() {
+  return <View style={s.itemDivider} />;
+}
+
+function SectionDivider() {
+  return <View style={s.sectionDivider} />;
 }
 
 // ---------------------------------------------------------------------------
 // Styles
 // ---------------------------------------------------------------------------
 
-const s = StyleSheet.create({
-  container: {
-    position: 'relative',
-  },
+const pillToneStyles = StyleSheet.create({
+  admin: { backgroundColor: 'rgba(40, 64, 107, 0.12)' },
+  faculty: { backgroundColor: 'rgba(107, 91, 191, 0.14)' },
+  member: { backgroundColor: 'rgba(60, 60, 67, 0.10)' },
+  you: { backgroundColor: 'rgba(60, 60, 67, 0.10)' },
+});
 
-  // Sign Up button (guest state)
+const pillToneTextStyles = StyleSheet.create({
+  admin: { color: '#28406B' },
+  faculty: { color: '#6B5BBF' },
+  member: { color: '#3C3C43' },
+  you: { color: '#3C3C43' },
+});
+
+const s = StyleSheet.create({
+  container: { position: 'relative' },
+
+  // Guest sign-up button variants (unchanged)
   signUpBtn: {
     paddingVertical: 6,
     paddingHorizontal: 14,
@@ -335,52 +665,42 @@ const s = StyleSheet.create({
     justifyContent: 'center',
     ...Platform.select({ web: { cursor: 'pointer' } as any }),
   },
-  signUpBtnDark: {
-    backgroundColor: '#FFFFFF',
-  },
-  signUpBtnLight: {
-    backgroundColor: IOS_COLORS.systemBlue,
-  },
-  signUpText: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#FFFFFF',
-  },
-  signUpTextDark: {
-    color: '#1A1A1A',
-  },
+  signUpBtnDark: { backgroundColor: '#FFFFFF' },
+  signUpBtnLight: { backgroundColor: IOS_COLORS.systemBlue },
+  signUpText: { fontSize: 14, fontWeight: '700', color: '#FFFFFF' },
+  signUpTextDark: { color: '#1A1A1A' },
 
-  // Avatar variants
-  avatar: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    overflow: 'hidden',
-  },
-  avatarLight: {
-    backgroundColor: IOS_COLORS.systemBlue,
-  },
-  avatarGuestLight: {
-    backgroundColor: IOS_COLORS.systemGray3,
-  },
+  // Avatar
+  avatar: { alignItems: 'center', justifyContent: 'center', overflow: 'visible' },
+  avatarLight: { backgroundColor: IOS_COLORS.systemBlue, overflow: 'hidden' },
+  avatarGuestLight: { backgroundColor: IOS_COLORS.systemGray3 },
   avatarDark: {
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
     borderWidth: 2,
     borderColor: 'rgba(255, 255, 255, 0.4)',
   },
-  avatarWithImage: {
-    backgroundColor: 'transparent',
-    borderWidth: 0,
-  },
-  avatarText: {
-    color: '#FFFFFF',
-    fontWeight: '600',
-    letterSpacing: 0.2,
-  },
-  avatarTextDark: {
-    fontWeight: '700',
-  },
+  avatarWithImage: { backgroundColor: 'transparent', borderWidth: 0 },
+  avatarText: { color: '#FFFFFF', fontWeight: '600', letterSpacing: 0.2 },
+  avatarTextDark: { fontWeight: '700' },
 
-  // Backdrop
+  // Org pip — tiny badge on the avatar showing the active org short name
+  orgPip: {
+    position: 'absolute',
+    bottom: -2,
+    right: -4,
+    minWidth: 16,
+    height: 16,
+    paddingHorizontal: 3,
+    borderRadius: 8,
+    backgroundColor: '#28406B',
+    borderWidth: 1.5,
+    borderColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  orgPipText: { color: '#FFFFFF', fontSize: 8, fontWeight: '700', letterSpacing: 0.2 },
+
+  // Backdrop + dropdown card
   backdrop: {
     ...Platform.select({
       web: {
@@ -393,15 +713,13 @@ const s = StyleSheet.create({
       },
     }),
   },
-
-  // Dropdown card
   dropdown: {
     position: 'absolute',
     right: 0,
     backgroundColor: '#FFFFFF',
     borderRadius: 16,
     paddingVertical: 0,
-    minWidth: 260,
+    width: 308,
     overflow: 'hidden',
     zIndex: 1000,
     ...Platform.select({
@@ -414,126 +732,164 @@ const s = StyleSheet.create({
         shadowOpacity: 0.18,
         shadowRadius: 24,
       },
-      android: {
-        elevation: 12,
-      },
+      android: { elevation: 12 },
     }),
   },
+  dropdownGuest: { width: 260 },
 
-  dropdownGuest: {
-    minWidth: 260,
-    paddingVertical: 0,
-  },
+  popInner: { paddingVertical: 8 },
 
-  // Profile header (logged-in)
-  profileHeader: {
+  // Identity row (".who" in the design)
+  who: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    backgroundColor: IOS_COLORS.secondarySystemBackground,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
   },
-  profileHeaderAvatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+  whoAvatar: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     backgroundColor: IOS_COLORS.systemBlue,
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
   },
-  profileHeaderAvatarImage: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+  whoAvatarImg: { width: 38, height: 38, borderRadius: 19 },
+  whoAvatarText: { color: '#FFFFFF', fontSize: 14, fontWeight: '700', letterSpacing: 0.2 },
+  whoText: { flex: 1, minWidth: 0 },
+  whoName: { fontSize: 15, fontWeight: '600', color: IOS_COLORS.label },
+  whoEmail: { fontSize: 12, color: IOS_COLORS.secondaryLabel, marginTop: 2 },
+
+  // Plan card mini (solo subscriber)
+  planCardMini: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginHorizontal: 12,
+    marginBottom: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 12,
+    backgroundColor: 'rgba(0, 122, 255, 0.08)',
   },
-  profileHeaderAvatarText: {
+  planBadge: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: IOS_COLORS.systemBlue,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  planBadgeText: { color: '#FFFFFF', fontSize: 16, fontWeight: '700', lineHeight: 18 },
+  planCol: { flex: 1, minWidth: 0 },
+  planName: { fontSize: 13, fontWeight: '600', color: IOS_COLORS.label },
+  planSub: { fontSize: 11, color: IOS_COLORS.secondaryLabel, marginTop: 1 },
+
+  // Roles section (org member)
+  roles: { paddingTop: 4, paddingBottom: 6 },
+  rolesKey: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: IOS_COLORS.tertiaryLabel,
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+    paddingHorizontal: 16,
+    marginBottom: 6,
+  },
+  roleCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginHorizontal: 12,
+    marginBottom: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 9,
+    borderRadius: 10,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: IOS_COLORS.separator,
+  },
+  roleCardOn: {
+    backgroundColor: 'rgba(0, 122, 255, 0.06)',
+    borderColor: 'rgba(0, 122, 255, 0.30)',
+  },
+  roleMono: {
+    width: 28,
+    height: 28,
+    borderRadius: 6,
+    backgroundColor: '#28406B',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  roleMonoSolo: { backgroundColor: IOS_COLORS.systemGray4 },
+  roleMonoText: {
     color: '#FFFFFF',
-    fontSize: 17,
+    fontSize: 11,
     fontWeight: '700',
     letterSpacing: 0.2,
   },
-  profileHeaderText: {
-    flex: 1,
-    minWidth: 0,
+  roleMonoTextSolo: { color: IOS_COLORS.label, fontSize: 16, fontWeight: '600' },
+  roleLabel: { flex: 1, minWidth: 0 },
+  roleOrgName: { fontSize: 13, fontWeight: '600', color: IOS_COLORS.label },
+  roleSub: { fontSize: 11, color: IOS_COLORS.secondaryLabel, marginTop: 1 },
+  rolePill: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 999,
   },
-  profileHeaderName: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: IOS_COLORS.label,
-  },
-  profileHeaderEmail: {
-    fontSize: 12,
-    fontWeight: '400',
-    color: IOS_COLORS.secondaryLabel,
+  rolePillText: { fontSize: 10, fontWeight: '700', letterSpacing: 0.3 },
+  roleCheck: { marginLeft: 2 },
+
+  joinRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
     marginTop: 2,
-  },
-
-  headerDivider: {
-    height: StyleSheet.hairlineWidth,
-    backgroundColor: IOS_COLORS.separator,
-  },
-
-  itemDivider: {
-    height: StyleSheet.hairlineWidth,
-    backgroundColor: IOS_COLORS.separator,
     marginLeft: 16,
   },
+  joinText: { fontSize: 12.5, color: IOS_COLORS.systemBlue, fontWeight: '500' },
 
-  menuSection: {
-    paddingVertical: 0,
-  },
-
-  // Menu items (iOS UIMenu style: label left, icon right)
-  menuItemPressable: {
-    ...Platform.select({ web: { cursor: 'pointer' } as any }),
-  },
+  // Link sections
+  linkSection: {},
+  menuItemPressable: { ...Platform.select({ web: { cursor: 'pointer' } as any }) },
   menuItemRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 13,
+    paddingVertical: 11,
     paddingHorizontal: 16,
   },
-  menuItemHover: {
-    backgroundColor: IOS_COLORS.tertiarySystemFill,
-  },
-  menuText: {
-    fontSize: 15,
-    fontWeight: '400',
-    color: IOS_COLORS.label,
-    flex: 1,
-    marginRight: 12,
-  },
-  menuTextDestructive: {
-    color: IOS_COLORS.systemRed,
-    fontWeight: '500',
-  },
+  menuItemHover: { backgroundColor: IOS_COLORS.tertiarySystemFill },
+  menuText: { fontSize: 14, fontWeight: '500', flex: 1, marginRight: 8 },
 
-  divider: {
+  // Count badge
+  countPill: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 999,
+    backgroundColor: 'rgba(60, 60, 67, 0.08)',
+  },
+  countPillCoral: { backgroundColor: 'rgba(255, 107, 107, 0.15)' },
+  countPillText: { fontSize: 11, fontWeight: '600', color: IOS_COLORS.secondaryLabel },
+  countPillTextCoral: { color: '#C84747' },
+
+  // Dividers
+  itemDivider: {
     height: StyleSheet.hairlineWidth,
     backgroundColor: IOS_COLORS.separator,
+    marginLeft: 46,
+  },
+  sectionDivider: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: IOS_COLORS.separator,
+    marginVertical: 6,
   },
 
-  // Guest auth menu
-  guestMenu: {
-    paddingHorizontal: 16,
-    paddingTop: 14,
-    paddingBottom: 12,
-  },
-  guestHeading: {
-    fontSize: 17,
-    fontWeight: '700',
-    color: '#111827',
-    marginBottom: 4,
-  },
-  guestSubtext: {
-    fontSize: 13,
-    lineHeight: 18,
-    color: '#6B7280',
-    marginBottom: 14,
-  },
+  // Guest auth menu (unchanged behavior)
+  guestMenu: { paddingHorizontal: 16, paddingTop: 14, paddingBottom: 12 },
+  guestHeading: { fontSize: 17, fontWeight: '700', color: '#111827', marginBottom: 4 },
+  guestSubtext: { fontSize: 13, lineHeight: 18, color: '#6B7280', marginBottom: 14 },
   guestPrimaryBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -544,23 +900,10 @@ const s = StyleSheet.create({
     borderRadius: 10,
     marginBottom: 10,
   },
-  guestPrimaryBtnText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-  guestSecondaryBtn: {
-    alignItems: 'center',
-    paddingVertical: 4,
-  },
-  guestSecondaryBtnText: {
-    fontSize: 13,
-    color: '#6B7280',
-  },
-  guestSecondaryBtnLink: {
-    color: IOS_COLORS.systemBlue,
-    fontWeight: '600',
-  },
+  guestPrimaryBtnText: { fontSize: 15, fontWeight: '600', color: '#FFFFFF' },
+  guestSecondaryBtn: { alignItems: 'center', paddingVertical: 4 },
+  guestSecondaryBtnText: { fontSize: 13, color: '#6B7280' },
+  guestSecondaryBtnLink: { color: IOS_COLORS.systemBlue, fontWeight: '600' },
 });
 
 export default ProfileDropdown;
