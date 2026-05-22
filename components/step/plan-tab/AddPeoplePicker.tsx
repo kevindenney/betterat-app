@@ -61,6 +61,14 @@ interface PersonRow {
   sharedPlans?: number;
 }
 
+// Per-capability pill colors. COACH leans iOS blue, MENTOR a warmer purple so
+// a sailor with both flags reads as two distinct badges, not "two coaches".
+const TAG_TONES: Record<string, { bg: string; fg: string }> = {
+  COACH: { bg: 'rgba(0,122,255,0.14)', fg: IOS_COLORS.systemBlue },
+  MENTOR: { bg: 'rgba(175,82,222,0.16)', fg: '#AF52DE' },
+  DEFAULT: { bg: 'rgba(0,122,255,0.14)', fg: IOS_COLORS.systemBlue },
+};
+
 /**
  * Compose the row subtitle from whatever metadata we have. Returns undefined
  * if there's nothing meaningful to show (caller falls back to the email line).
@@ -507,11 +515,14 @@ export function AddPeoplePicker({
             </View>
             {row.tags && row.tags.length > 0 ? (
               <View style={styles.tagRow}>
-                {row.tags.map((t) => (
-                  <View key={t} style={styles.tagPill}>
-                    <Text style={styles.tagPillText}>{t}</Text>
-                  </View>
-                ))}
+                {row.tags.map((t) => {
+                  const tone = TAG_TONES[t] ?? TAG_TONES.DEFAULT;
+                  return (
+                    <View key={t} style={[styles.tagPill, { backgroundColor: tone.bg }]}>
+                      <Text style={[styles.tagPillText, { color: tone.fg }]}>{t}</Text>
+                    </View>
+                  );
+                })}
                 {row.subtitle ? (
                   <Text style={styles.pkRowSub} numberOfLines={1}>
                     {row.subtitle}
@@ -911,12 +922,10 @@ const styles = StyleSheet.create({
     paddingVertical: 1,
     paddingHorizontal: 6,
     borderRadius: 4,
-    backgroundColor: 'rgba(0,122,255,0.14)',
   },
   tagPillText: {
     fontSize: 9.5,
     fontWeight: '700',
-    color: IOS_COLORS.systemBlue,
     letterSpacing: 0.4,
   },
   chk: {
