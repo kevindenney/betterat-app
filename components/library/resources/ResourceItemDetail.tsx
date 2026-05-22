@@ -13,6 +13,8 @@ import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
 import { showAlert } from '@/lib/utils/crossPlatformAlert';
 import { FLOATING_TAB_BAR_HEIGHT } from '@/components/navigation/FloatingTabBar';
 import { FORMAT_ICON, FORMAT_TINT } from './formatStyles';
+import { DEMO_LIBRARY_ITEMS } from './demoItems';
+import { InterestTagRow } from './InterestTagRow';
 import type { BackRefRow, MarkedExcerpt, ResourceItemFull } from './types';
 
 // Most interactions on the resource detail screen don't have destinations
@@ -61,6 +63,7 @@ interface Props {
 export function ResourceItemDetail({ item }: Props) {
   const insets = useSafeAreaInsets();
   const tint = FORMAT_TINT[item.format];
+  const isDemoItem = item.id in DEMO_LIBRARY_ITEMS;
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -142,6 +145,8 @@ export function ResourceItemDetail({ item }: Props) {
             <Text style={styles.actionText}>Annotate</Text>
           </TouchableOpacity>
         </View>
+
+        <InterestTagRow libraryItemId={item.id} isDemo={isDemoItem} />
 
         <Text style={styles.sectionEyebrow}>Where this appears in your practice</Text>
         <View style={styles.usesList}>
