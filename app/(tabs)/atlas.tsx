@@ -18,16 +18,21 @@
 
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AtlasScreen } from '@/components/ios-register/atlas/AtlasScreen';
 import { FLOATING_TAB_BAR_HEIGHT } from '@/components/navigation/FloatingTabBar';
 import { IOS_REGISTER } from '@/lib/design-tokens-ios';
 
 export default function AtlasTab() {
+  const insets = useSafeAreaInsets();
+  // FloatingTabBar floats above the home-indicator safe area; clear both
+  // plus a small buffer so the BottomSheet CTAs aren't covered.
+  const tabBarSpace = FLOATING_TAB_BAR_HEIGHT + insets.bottom + 12;
+
   return (
     <SafeAreaView style={styles.page} edges={['top']}>
-      <View style={styles.surface}>
+      <View style={[styles.surface, { paddingBottom: tabBarSpace }]}>
         <AtlasScreen frame="f1" embedded />
       </View>
     </SafeAreaView>
@@ -41,6 +46,5 @@ const styles = StyleSheet.create({
   },
   surface: {
     flex: 1,
-    paddingBottom: FLOATING_TAB_BAR_HEIGHT,
   },
 });
