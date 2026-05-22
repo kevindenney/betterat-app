@@ -74,46 +74,51 @@ function formatDateRange(start: string, end: string): string {
   return `${fmt(s)} — ${fmt(e)}`;
 }
 
-function isoWeekStart(date: Date): Date {
-  const d = new Date(date);
-  const day = d.getDay();
-  const diff = d.getDate() - day + (day === 0 ? -6 : 1); // shift to Monday
-  d.setDate(diff);
-  d.setHours(0, 0, 0, 0);
-  return d;
+/**
+ * Bucket steps into rotation-relative "weeks" — always 3 per bucket, ordered
+ * by sort_order. Numbering is 1-indexed (Week 1, Week 2, …) regardless of
+ * the calendar week the step actually falls in. This matches the design's
+ * "Week 7 of 14" framing where the count is a position within the rotation,
+ * not a calendar coordinate.
+ *
+ * The bucket key is just the bucket index, so steps with no starts_at still
+ * cluster cleanly.
+ */
+function weekKeyOf(fallbackIndex: number): string {
+  return `wk-${Math.floor(fallbackIndex / 3)}`;
 }
 
-function weekKeyOf(iso: string | null, fallbackIndex: number): string {
-  if (!iso) return `bucket-${Math.floor(fallbackIndex / 3)}`;
-  const start = isoWeekStart(new Date(iso));
-  return `wk-${start.toISOString().slice(0, 10)}`;
-}
-
-function weekRangeLabel(iso: string | null, fallbackIndex: number): {
-  range: string;
-  number: number;
-} {
-  if (!iso) {
+function weekRangeLabel(
+  bucketSteps: { starts_at: string | null }[],
+  bucketIndex: number,
+): { range: string; number: number } {
+  const dated = bucketSteps.filter((s) => s.starts_at);
+  if (dated.length === 0) {
     return {
-      range: `Steps ${fallbackIndex * 3 + 1}–${fallbackIndex * 3 + 3}`,
-      number: fallbackIndex + 1,
+      range: `Steps ${bucketIndex * 3 + 1}–${bucketIndex * 3 + Math.min(3, bucketSteps.length)}`,
+      number: bucketIndex + 1,
     };
   }
-  const start = isoWeekStart(new Date(iso));
-  const end = new Date(start);
-  end.setDate(end.getDate() + 6);
+  const sorted = [...dated].sort(
+    (a, b) => Date.parse(a.starts_at!) - Date.parse(b.starts_at!),
+  );
+  const start = new Date(sorted[0].starts_at!);
+  const end = new Date(sorted[sorted.length - 1].starts_at!);
   return {
     range: formatDateRange(start.toISOString(), end.toISOString()),
-    number: weekNumberOfYear(start),
+    number: bucketIndex + 1,
   };
 }
 
-function weekNumberOfYear(date: Date): number {
-  const firstJan = new Date(date.getFullYear(), 0, 1);
-  const days = Math.floor(
-    (date.getTime() - firstJan.getTime()) / 86_400_000,
+function isToday(iso: string | null): boolean {
+  if (!iso) return false;
+  const d = new Date(iso);
+  const now = new Date();
+  return (
+    d.getFullYear() === now.getFullYear() &&
+    d.getMonth() === now.getMonth() &&
+    d.getDate() === now.getDate()
   );
-  return Math.ceil((days + firstJan.getDay() + 1) / 7);
 }
 
 function statusFromRecord(rec: TimelineStepRecord): StepStatus {
@@ -133,15 +138,19 @@ function recordToStep(
   rec: TimelineStepRecord,
   seasonId: string,
   weekId: string,
-  isFocused: boolean,
 ): TimelineStep {
   const cap = deriveCapability(rec.category);
+  const today = isToday(rec.starts_at);
+  const cat = rec.category?.toUpperCase();
+  const preTitle = today
+    ? cat
+      ? `TODAY · ${cat}`
+      : 'TODAY'
+    : cat || undefined;
   return {
     id: rec.id,
     title: rec.title || 'Untitled step',
-    preTitle: isFocused
-      ? `TODAY · ${rec.category?.toUpperCase() || 'STEP'}`
-      : rec.category?.toUpperCase() || undefined,
+    preTitle,
     dayOfWeek: dayKeyFromIso(rec.starts_at),
     weekId,
     seasonId,
@@ -178,37 +187,46 @@ export function mapToTimelineDataset({
     return sa - sb;
   });
 
-  // Group steps into pseudo-weeks (calendar ISO when possible, else 3-buckets).
-  const weekBuckets = new Map<string, { number: number; range: string; steps: TimelineStep[] }>();
+  // Group steps into rotation-relative buckets of 3, ordered by sort_order.
   const seasonIdForSteps = currentSeason?.id ?? 'current';
-  const actualFocusId = focusStepId ?? sorted.find((s) => s.status === 'in_progress' || s.status === 'pending')?.id ?? sorted[0]?.id ?? '';
+  const actualFocusId =
+    focusStepId ??
+    sorted.find((s) => s.status === 'in_progress' || s.status === 'pending')?.id ??
+    sorted[0]?.id ??
+    '';
 
+  const bucketGroups: TimelineStepRecord[][] = [];
   sorted.forEach((rec, i) => {
-    const key = weekKeyOf(rec.starts_at, i);
-    if (!weekBuckets.has(key)) {
-      const labels = weekRangeLabel(rec.starts_at, Math.floor(i / 3));
-      weekBuckets.set(key, { number: labels.number, range: labels.range, steps: [] });
-    }
-    weekBuckets
-      .get(key)!
-      .steps.push(recordToStep(rec, seasonIdForSteps, key, rec.id === actualFocusId));
+    const bucketIdx = Math.floor(i / 3);
+    if (!bucketGroups[bucketIdx]) bucketGroups[bucketIdx] = [];
+    bucketGroups[bucketIdx].push(rec);
   });
 
-  const weeks: TimelineWeek[] = Array.from(weekBuckets.entries()).map(
-    ([id, { number, range, steps: weekSteps }], idx) => ({
+  const weeks: TimelineWeek[] = bucketGroups.map((bucketRecs, bucketIdx) => {
+    const id = weekKeyOf(bucketIdx * 3);
+    const { number, range } = weekRangeLabel(
+      bucketRecs.map((r) => ({ starts_at: r.starts_at })),
+      bucketIdx,
+    );
+    const containsFocus = bucketRecs.some((r) => r.id === actualFocusId);
+    return {
       id,
       number,
       dateRange: range,
-      isCurrent: idx === 0, // newest bucket first
-      steps: weekSteps,
-    }),
-  );
+      isCurrent: containsFocus || bucketIdx === 0,
+      steps: bucketRecs.map((r) => recordToStep(r, seasonIdForSteps, id)),
+    };
+  });
 
   // Current-season bricks (one brick per step, capability-hashed).
   const currentBricks = sorted.map((rec) => ({
     capabilityColor: hashCategoryToColor(rec.category),
   }));
 
+  const currentWeekIdx = Math.max(
+    0,
+    weeks.findIndex((w) => w.isCurrent),
+  );
   const currentSeasonNode: TimelineSeason = {
     id: seasonIdForSteps,
     title: currentSeason?.name ?? currentSeason?.short_name ?? 'Current rotation',
@@ -217,17 +235,27 @@ export function mapToTimelineDataset({
         ? formatDateRange(currentSeason.start_date, currentSeason.end_date)
         : '',
     weekOfTotal:
-      weeks.length > 1 ? { current: 1, total: weeks.length } : undefined,
+      weeks.length > 1
+        ? { current: currentWeekIdx + 1, total: weeks.length }
+        : undefined,
     weeks,
     bricks: currentBricks,
   };
 
-  // Archived season lanes — bricks-only (no week data needed for L4 visuals).
-  const archivedSeasons: TimelineSeason[] = allSeasons
-    .filter((s) => s.id !== currentSeason?.id)
-    .map((s) => ({
+  // Archived season lanes — dedupe by (name + start_date) so users with
+  // duplicate-row data don't see the same rotation listed dozens of times.
+  // Bricks-only (no week data needed for L4 visuals).
+  const seenArchiveKeys = new Set<string>();
+  const archivedSeasons: TimelineSeason[] = [];
+  for (const s of allSeasons) {
+    if (s.id === currentSeason?.id) continue;
+    const name = s.name ?? s.short_name ?? 'Past rotation';
+    const key = `${name}::${s.start_date ?? ''}::${s.end_date ?? ''}`;
+    if (seenArchiveKeys.has(key)) continue;
+    seenArchiveKeys.add(key);
+    archivedSeasons.push({
       id: s.id,
-      title: s.name ?? s.short_name ?? 'Past rotation',
+      title: name,
       dateRange:
         s.start_date && s.end_date ? formatDateRange(s.start_date, s.end_date) : '',
       archived: true,
@@ -238,7 +266,8 @@ export function mapToTimelineDataset({
       bricks: Array.from({ length: 8 }, () => ({
         capabilityColor: CAPABILITY_PALETTE.procedural.color,
       })),
-    }));
+    });
+  }
 
   return {
     interest: { id: 'live', label: interestLabel },
@@ -251,9 +280,10 @@ export function mapToTimelineDataset({
           total: sorted.length,
         }
       : undefined,
-    weekCounter: weeks.length > 0
-      ? { current: 1, total: weeks.length }
-      : undefined,
+    weekCounter:
+      weeks.length > 0
+        ? { current: currentWeekIdx + 1, total: weeks.length }
+        : undefined,
     totalSeasons: 1 + archivedSeasons.length,
     totalSteps:
       sorted.length + archivedSeasons.reduce((n, s) => n + s.bricks.length, 0),
