@@ -10,6 +10,7 @@
 import type { Ionicons } from '@expo/vector-icons';
 import type { UserCapabilities } from '@/providers/AuthProvider';
 import type { VocabularyMap } from '@/lib/vocabulary';
+import { FEATURE_FLAGS } from '@/lib/featureFlags';
 
 // =============================================================================
 // TYPES
@@ -106,12 +107,18 @@ export const getTabsForUserType = (
 
   // Guests get full learner-style tabs (same as logged-in learners)
   if (isGuest) {
-    return [
+    const tabs: TabConfig[] = [
       { name: 'races', title: eventTitle, icon: 'flag-outline', iconFocused: 'flag' },
       { name: 'library', title: 'Library', icon: 'library-outline', iconFocused: 'library' },
-      { name: 'discover', title: 'Discover', icon: 'compass-outline', iconFocused: 'compass' },
-      { name: 'reflect', title: 'Profile', icon: 'person-circle-outline', iconFocused: 'person-circle' },
     ];
+    if (FEATURE_FLAGS.ATLAS_IOS_REGISTER) {
+      tabs.push({ name: 'atlas', title: 'Atlas', icon: 'compass-outline', iconFocused: 'compass' });
+    }
+    tabs.push(
+      { name: 'discover', title: 'Discover', icon: 'people-outline', iconFocused: 'people' },
+      { name: 'reflect', title: 'Profile', icon: 'person-circle-outline', iconFocused: 'person-circle' },
+    );
+    return tabs;
   }
 
   // Club/institution admins get their own dedicated tabs (unchanged)
@@ -140,12 +147,20 @@ export const getTabsForUserType = (
 
   // Learners (sailors, nurses, artists, athletes — including those with coaching capability)
   if (userType === 'sailor' || userType === 'coach') {
+    // Phase 11: Atlas — the fifth lens ("where"), centered between Library
+    // and Discover. Gated on ATLAS_IOS_REGISTER. Per
+    // docs/redesign/ios-register/atlas-tab-brief.md decision A1.
     const tabs: TabConfig[] = [
       { name: 'races', title: eventTitle, icon: 'flag-outline', iconFocused: 'flag' },
       { name: 'library', title: 'Library', icon: 'library-outline', iconFocused: 'library' },
-      { name: 'discover', title: 'Discover', icon: 'compass-outline', iconFocused: 'compass' },
-      { name: 'reflect', title: 'Profile', icon: 'person-circle-outline', iconFocused: 'person-circle' },
     ];
+    if (FEATURE_FLAGS.ATLAS_IOS_REGISTER) {
+      tabs.push({ name: 'atlas', title: 'Atlas', icon: 'compass-outline', iconFocused: 'compass' });
+    }
+    tabs.push(
+      { name: 'discover', title: 'Discover', icon: 'people-outline', iconFocused: 'people' },
+      { name: 'reflect', title: 'Profile', icon: 'person-circle-outline', iconFocused: 'person-circle' },
+    );
 
     // Add coaching tabs if user has coaching capability
     if (capabilities?.hasCoaching) {
@@ -168,10 +183,21 @@ export const getTabsForUserType = (
 // =============================================================================
 
 // Navigation items by persona (used by NavigationDrawer and WebSidebarNav)
+// Phase 11: Atlas inserted between Library and Discover when
+// ATLAS_IOS_REGISTER is on. Compass icon belongs to Atlas; Discover
+// moves to people-outline.
 export const SAILOR_NAV_ITEMS: NavItem[] = [
   { key: 'races', label: 'Race', route: '/(tabs)/practice', icon: 'flag-outline' },
   { key: 'library', label: 'Library', route: '/(tabs)/library', icon: 'library-outline' },
-  { key: 'discover', label: 'Discover', route: '/(tabs)/discover', icon: 'compass-outline' },
+  ...(FEATURE_FLAGS.ATLAS_IOS_REGISTER
+    ? ([{ key: 'atlas', label: 'Atlas', route: '/(tabs)/atlas', icon: 'compass-outline' }] as NavItem[])
+    : []),
+  {
+    key: 'discover',
+    label: 'Discover',
+    route: '/(tabs)/discover',
+    icon: FEATURE_FLAGS.ATLAS_IOS_REGISTER ? 'people-outline' : 'compass-outline',
+  },
   { key: 'reflect', label: 'Profile', route: '/(tabs)/reflect', icon: 'person-circle-outline' },
 ];
 

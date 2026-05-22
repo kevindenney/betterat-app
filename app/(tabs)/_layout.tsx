@@ -362,6 +362,7 @@ function TabLayoutInner() {
   const tabBarActiveColor = isClubUser ? '#FFFFFF' : IOS_COLORS.systemBlue;
   const tabBarInactiveColor = isClubUser ? 'rgba(148,163,184,0.7)' : IOS_COLORS.systemGray;
 
+  const atlasTab = findTab('atlas');
   const racesTab = findTab('races');
   const _dashboardTab = findTab('dashboard'); // Legacy for non-sailor user types
   const calendarTab = findTab('calendar');
@@ -515,7 +516,28 @@ function TabLayoutInner() {
                 : undefined,
           }}
         />
-        {/* Tab 3: Discover (replaces Connect) */}
+        {/* Tab 3: Atlas (Phase 11 — "where" lens). Centered between Library
+            and Discover when ATLAS_IOS_REGISTER is on. Gated via the tab
+            visibility from getTabsForUserType. */}
+        <Tabs.Screen
+          name="atlas"
+          options={{
+            title: atlasTab?.title ?? 'Atlas',
+            tabBarIcon: isSailorUser ? () => null : ({ color, size, focused }) => (
+              <Ionicons
+                name={getIconName(atlasTab, focused, atlasTab?.iconFocused ?? 'compass', atlasTab?.icon ?? 'compass-outline') as any}
+                size={size}
+                color={color}
+              />
+            ),
+            tabBarButton: !isTabVisible('atlas')
+              ? () => null
+              : isSailorUser
+                ? renderSailorTabButton('atlas', atlasTab?.title ?? 'Atlas', atlasTab)
+                : undefined,
+          }}
+        />
+        {/* Tab 4: Discover (replaces Connect) */}
         <Tabs.Screen
           name="discover"
           options={{

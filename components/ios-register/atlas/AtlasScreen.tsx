@@ -55,22 +55,29 @@ export type AtlasFrameId = 'f1' | 'f2' | 'f3' | 'f4' | 'f5' | 'f6';
 
 interface AtlasScreenProps {
   frame: AtlasFrameId;
+  /**
+   * When true (default false), the mock iOS status bar and mock 5-tab bar
+   * are suppressed. Used when AtlasScreen renders inside the real tab
+   * navigator at /(tabs)/atlas — the OS provides the status bar and the
+   * FloatingTabBar provides the tab bar.
+   */
+  embedded?: boolean;
 }
 
-export function AtlasScreen({ frame }: AtlasScreenProps) {
+export function AtlasScreen({ frame, embedded = false }: AtlasScreenProps) {
   switch (frame) {
     case 'f1':
-      return <FrameF1 />;
+      return <FrameF1 embedded={embedded} />;
     case 'f2':
-      return <FrameF2 />;
+      return <FrameF2 embedded={embedded} />;
     case 'f3':
-      return <FrameF3 />;
+      return <FrameF3 embedded={embedded} />;
     case 'f4':
-      return <FrameF4 />;
+      return <FrameF4 embedded={embedded} />;
     case 'f5':
-      return <FrameF5 />;
+      return <FrameF5 embedded={embedded} />;
     case 'f6':
-      return <FrameF6 />;
+      return <FrameF6 embedded={embedded} />;
   }
 }
 
@@ -231,10 +238,10 @@ function MockTabBar({ activeTab = 'atlas' }: { activeTab?: 'practice' | 'library
 // ---------------------------------------------------------------------------
 // F1 — Felix · first-run · Causeway Bay overview
 // ---------------------------------------------------------------------------
-function FrameF1() {
+function FrameF1({ embedded }: { embedded: boolean }) {
   return (
     <View style={shellStyles.frame}>
-      <StatusBar />
+      {!embedded && <StatusBar />}
       <TopChrome title="Atlas" subtitle="Sailing · RHKYC · Hong Kong" avatarInitial="F" />
       <FilterChipsRow
         chips={[
@@ -286,7 +293,7 @@ function FrameF1() {
         secondary={{ label: 'Open Race 4' }}
       />
 
-      <MockTabBar activeTab="atlas" />
+      {!embedded && <MockTabBar activeTab="atlas" />}
     </View>
   );
 }
@@ -294,10 +301,10 @@ function FrameF1() {
 // ---------------------------------------------------------------------------
 // F2 — Race-marks zoom (Victoria Harbour)
 // ---------------------------------------------------------------------------
-function FrameF2() {
+function FrameF2({ embedded }: { embedded: boolean }) {
   return (
     <View style={shellStyles.frame}>
-      <StatusBar />
+      {!embedded && <StatusBar />}
       <TopChrome title="Race 4 course" subtitle="RHKYC · Victoria Harbour · Sat 10:00" avatarInitial="F" />
       <FilterChipsRow
         chips={[
@@ -353,7 +360,7 @@ function FrameF2() {
         secondary={{ label: 'Suggest to…', icon: 'paper-plane-outline' }}
       />
 
-      <MockTabBar activeTab="atlas" />
+      {!embedded && <MockTabBar activeTab="atlas" />}
     </View>
   );
 }
@@ -361,10 +368,10 @@ function FrameF2() {
 // ---------------------------------------------------------------------------
 // F3 — World Dragon (cross-fleet class lens)
 // ---------------------------------------------------------------------------
-function FrameF3() {
+function FrameF3({ embedded }: { embedded: boolean }) {
   return (
     <View style={shellStyles.frame}>
-      <StatusBar />
+      {!embedded && <StatusBar />}
       <TopChrome title="Dragon world" subtitle="4 fleets · 1 class · zoom 3" avatarInitial="F" />
       <FilterChipsRow
         chips={[
@@ -390,7 +397,7 @@ function FrameF3() {
         secondary={{ label: 'Follow Amsterdam' }}
       />
 
-      <MockTabBar activeTab="atlas" />
+      {!embedded && <MockTabBar activeTab="atlas" />}
     </View>
   );
 }
@@ -398,10 +405,10 @@ function FrameF3() {
 // ---------------------------------------------------------------------------
 // F4 — Emily · Baltimore cold
 // ---------------------------------------------------------------------------
-function FrameF4() {
+function FrameF4({ embedded }: { embedded: boolean }) {
   return (
     <View style={shellStyles.frame}>
-      <StatusBar />
+      {!embedded && <StatusBar />}
       <TopChrome title="Atlas" subtitle="Nursing · MSN · Baltimore" avatarInitial="E" />
       <FilterChipsRow
         chips={[
@@ -443,7 +450,7 @@ function FrameF4() {
         secondary={{ label: 'Skip' }}
       />
 
-      <MockTabBar activeTab="atlas" />
+      {!embedded && <MockTabBar activeTab="atlas" />}
     </View>
   );
 }
@@ -451,10 +458,10 @@ function FrameF4() {
 // ---------------------------------------------------------------------------
 // F5 — Emily · JHU curated (competency overlay live)
 // ---------------------------------------------------------------------------
-function FrameF5() {
+function FrameF5({ embedded }: { embedded: boolean }) {
   return (
     <View style={shellStyles.frame}>
-      <StatusBar />
+      {!embedded && <StatusBar />}
       <TopChrome
         title="IV insertion · supervised"
         subtitle="62 in cohort · 4 sites evidenced"
@@ -511,7 +518,7 @@ function FrameF5() {
         secondary={{ label: 'See peer steps', icon: 'list-outline' }}
       />
 
-      <MockTabBar activeTab="atlas" />
+      {!embedded && <MockTabBar activeTab="atlas" />}
     </View>
   );
 }
@@ -519,10 +526,10 @@ function FrameF5() {
 // ---------------------------------------------------------------------------
 // F6 — Commit-mode (opened from Plan · Where)
 // ---------------------------------------------------------------------------
-function FrameF6() {
+function FrameF6({ embedded }: { embedded: boolean }) {
   return (
     <View style={shellStyles.frame}>
-      <StatusBar />
+      {!embedded && <StatusBar />}
       <View style={shellStyles.commitHeaderRow}>
         <Text style={shellStyles.commitTitle}>Pick a spot</Text>
         <Pressable style={shellStyles.glyphBtn} hitSlop={6}>
