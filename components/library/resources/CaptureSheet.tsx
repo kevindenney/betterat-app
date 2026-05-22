@@ -28,6 +28,7 @@ import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
 import { useAuth } from '@/providers/AuthProvider';
 import { useInterest } from '@/providers/InterestProvider';
 import { showAlert } from '@/lib/utils/crossPlatformAlert';
+import { fetchOEmbedMetadata } from '@/lib/oEmbed';
 import {
   pickFile,
   pickImage,
@@ -69,6 +70,8 @@ interface Props {
      *  these into library_item_interests so the M2M scope lands at capture
      *  time (no untagged-everywhere fallback). */
     interestIds: string[];
+    /** Populated for link mode when YouTube/Vimeo oEmbed returns metadata. */
+    oEmbed?: { title?: string; thumbnailUrl?: string };
   }) => void;
 }
 
@@ -140,6 +143,20 @@ export function CaptureSheet({ visible, onClose, onSave }: Props) {
       | { publicUrl: string; mimeType: string; fileName: string; sizeBytes: number }
       | undefined;
     let titleFromUpload: string | undefined;
+    let oEmbed: { title?: string; thumbnailUrl?: string } | undefined;
+    if (mode === 'link' && linkUrl.trim()) {
+      // Best-effort enrichment — failure is silent and we fall back to
+      // hostname-only title plus a colored preview spine.
+      setUploading(true);
+      const meta = await fetchOEmbedMetadata(linkUrl.trim());
+      setUploading(false);
+      if (meta) {
+        oEmbed = {
+          title: meta.title,
+          thumbnailUrl: meta.thumbnailUrl,
+        };
+      }
+    }
     if ((mode === 'upload' || mode === 'photo') && picked) {
       if (!user?.id) {
         showAlert('Sign in required', 'Capture needs an authenticated user.');
@@ -177,6 +194,7 @@ export function CaptureSheet({ visible, onClose, onSave }: Props) {
       pastedText: mode === 'paste' ? pastedText.trim() : undefined,
       upload,
       interestIds: Array.from(interestIds),
+      oEmbed,
     });
     setLinkUrl('');
     setPastedText('');

@@ -51,6 +51,7 @@ export const DEMO_LIBRARY_ITEMS: Record<string, ResourceItemFull> = {
       },
     ],
     url: 'https://www.aacn.org/clinical-resources/practice-alerts',
+    thumbUrl: null,
   },
   'bates-cardio': {
     id: 'bates-cardio',
@@ -75,6 +76,7 @@ export const DEMO_LIBRARY_ITEMS: Record<string, ResourceItemFull> = {
     ],
     marks: [],
     url: 'https://www.youtube.com/results?search_query=bates+cardiovascular+exam',
+    thumbUrl: null,
   },
   'bates-ch8': {
     id: 'bates-ch8',
@@ -100,6 +102,7 @@ export const DEMO_LIBRARY_ITEMS: Record<string, ResourceItemFull> = {
       },
     ],
     url: null,
+    thumbUrl: null,
   },
   'nejm-egdt': {
     id: 'nejm-egdt',
@@ -118,6 +121,7 @@ export const DEMO_LIBRARY_ITEMS: Record<string, ResourceItemFull> = {
     ],
     marks: [],
     url: 'https://www.nejm.org/doi/full/10.1056/NEJMoa010307',
+    thumbUrl: null,
   },
   'curbsiders-lactate': {
     id: 'curbsiders-lactate',
@@ -129,6 +133,7 @@ export const DEMO_LIBRARY_ITEMS: Record<string, ResourceItemFull> = {
     backRefs: [],
     marks: [],
     url: 'https://thecurbsiders.com/podcast/441',
+    thumbUrl: null,
   },
   'jhh-code-blue': {
     id: 'jhh-code-blue',
@@ -147,6 +152,7 @@ export const DEMO_LIBRARY_ITEMS: Record<string, ResourceItemFull> = {
     ],
     marks: [],
     url: null,
+    thumbUrl: null,
   },
   'piv-ultrasound': {
     id: 'piv-ultrasound',
@@ -158,6 +164,7 @@ export const DEMO_LIBRARY_ITEMS: Record<string, ResourceItemFull> = {
     backRefs: [],
     marks: [],
     url: 'https://www.youtube.com/results?search_query=bedside+ultrasound+PIV+access',
+    thumbUrl: null,
   },
   'lactate-clearance': {
     id: 'lactate-clearance',
@@ -176,5 +183,6 @@ export const DEMO_LIBRARY_ITEMS: Record<string, ResourceItemFull> = {
     ],
     marks: [],
     url: 'https://www.annemergmed.com/',
+    thumbUrl: null,
   },
 };

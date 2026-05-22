@@ -29,6 +29,8 @@ export interface CreateLibraryItemInput {
   source_label?: string | null;
   /** URL for links/videos/articles; blob ref for uploads (when wired). */
   url_or_blob_id?: string | null;
+  /** Preview thumbnail URL (from oEmbed for YouTube/Vimeo, future cases too). */
+  thumb_url?: string | null;
   year?: number | null;
   page_count?: number | null;
   duration_min?: number | null;
@@ -56,6 +58,7 @@ export function useCreateLibraryItem() {
           title: input.title,
           source_label: input.source_label ?? null,
           url_or_blob_id: input.url_or_blob_id ?? null,
+          thumb_url: input.thumb_url ?? null,
           year: input.year ?? null,
           page_count: input.page_count ?? null,
           duration_min: input.duration_min ?? null,

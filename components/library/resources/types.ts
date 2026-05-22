@@ -44,6 +44,9 @@ export interface ResourceItemFull {
   /** External URL when the item is a link/video/article and we have one to
    *  open. NULL for notes/uploads or any item captured before url wiring. */
   url: string | null;
+  /** Preview thumbnail from oEmbed (YouTube/Vimeo) or future detection.
+   *  NULL means the spine renders as a colored band like before. */
+  thumbUrl: string | null;
   backRefs: BackRefRow[];
   marks: MarkedExcerpt[];
 }

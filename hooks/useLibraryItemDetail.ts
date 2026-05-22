@@ -88,7 +88,7 @@ export function useLibraryItemDetail(id: string | undefined) {
       const { data: item, error: itemErr } = await supabase
         .from('library_items')
         .select(
-          'id, kind, title, source_label, year, page_count, duration_min, captured_at, url_or_blob_id',
+          'id, kind, title, source_label, year, page_count, duration_min, captured_at, url_or_blob_id, thumb_url',
         )
         .eq('id', id)
         .maybeSingle();
@@ -200,6 +200,7 @@ export function useLibraryItemDetail(id: string | undefined) {
         duration_min: number | null;
         captured_at: string | null;
         url_or_blob_id: string | null;
+        thumb_url: string | null;
       };
       const format = toFormat(row.kind);
       // url_or_blob_id holds a real URL for link/video/article kinds and
@@ -215,6 +216,7 @@ export function useLibraryItemDetail(id: string | undefined) {
         title: row.title,
         sourceLine: sourceLineFor(row),
         url: looksLikeUrl ? row.url_or_blob_id : null,
+        thumbUrl: row.thumb_url,
         backRefs,
         marks: [],
       };

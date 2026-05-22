@@ -27,6 +27,9 @@ export interface CaptureSheetPayload {
    *  Pass-through into library_item_interests so M2M scoping lands at
    *  capture time. */
   interestIds: string[];
+  /** Populated when the link mode capture's URL resolved through oEmbed
+   *  (YouTube / Vimeo). Real title + thumbnail land on library_items. */
+  oEmbed?: { title?: string; thumbnailUrl?: string };
 }
 
 function deriveKindFromUrl(url: string): LibraryFormat {
@@ -77,9 +80,10 @@ export function mapCapturePayloadToLibraryItem(
     return {
       ...base,
       kind: deriveKindFromUrl(url),
-      title: titleFromUrl(url),
+      title: payload.oEmbed?.title?.trim() || titleFromUrl(url),
       source_label: hostnameOf(url),
       url_or_blob_id: url,
+      thumb_url: payload.oEmbed?.thumbnailUrl ?? null,
     };
   }
 

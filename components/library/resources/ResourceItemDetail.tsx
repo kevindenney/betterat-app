@@ -1,5 +1,6 @@
 import React from 'react';
 import {
+  Image,
   Linking,
   ScrollView,
   Share,
@@ -242,9 +243,39 @@ export function ResourceItemDetail({ item }: Props) {
         </View>
 
         <View style={styles.preview}>
+          {item.thumbUrl ? (
+            <Image
+              source={{ uri: item.thumbUrl }}
+              style={styles.previewImage}
+              resizeMode="cover"
+            />
+          ) : null}
           <View style={[styles.previewSpine, { backgroundColor: tint }]} />
-          <Text style={styles.previewStamp}>{item.formatLabel.toUpperCase()}</Text>
-          {item.meta ? <Text style={styles.previewPage}>{item.meta}</Text> : null}
+          <View
+            style={[
+              styles.previewStampPill,
+              item.thumbUrl ? styles.previewStampOverImage : null,
+            ]}
+          >
+            <Text
+              style={[
+                styles.previewStamp,
+                item.thumbUrl ? styles.previewStampOnImage : null,
+              ]}
+            >
+              {item.formatLabel.toUpperCase()}
+            </Text>
+          </View>
+          {item.meta ? (
+            <Text
+              style={[
+                styles.previewPage,
+                item.thumbUrl ? styles.previewPageOnImage : null,
+              ]}
+            >
+              {item.meta}
+            </Text>
+          ) : null}
         </View>
 
         <View style={styles.actionsRow}>
@@ -462,11 +493,38 @@ const styles = StyleSheet.create({
     bottom: 0,
     width: 4,
   },
+  previewImage: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  previewStampPill: {
+    alignSelf: 'flex-start',
+  },
+  previewStampOverImage: {
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
   previewStamp: {
     fontSize: 11,
     fontWeight: '800',
     letterSpacing: 0.6,
     color: IOS_COLORS.tertiaryLabel,
+  },
+  previewStampOnImage: {
+    color: '#FFFFFF',
+  },
+  previewPageOnImage: {
+    color: '#FFFFFF',
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    overflow: 'hidden',
   },
   previewPage: {
     position: 'absolute',
