@@ -16,7 +16,7 @@ import { IOSPillTabs, usePillTabs } from '@/components/ui/ios/IOSPillTabs';
 import { useVocabulary } from '@/hooks/useVocabulary';
 import { useStepDetail, useUpdateStepMetadata } from '@/hooks/useStepDetail';
 import { useUpdateStep } from '@/hooks/useTimelineSteps';
-import { StepHeaderEyebrow, StepHeaderSubtitle } from './StepHeaderMeta';
+import { StepHeaderSubtitle } from './StepHeaderMeta';
 import { PlanTab } from './PlanTab';
 import { ActTab } from './ActTab';
 import { ReviewTab } from './ReviewTab';
@@ -826,9 +826,6 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab }
   const headerInner = (
     <>
       <View style={styles.sessionRow}>
-        <View style={styles.sessionBadge}>
-          <Text style={styles.sessionBadgeText}>STEP</Text>
-        </View>
         {isOwner && lastSaved && (
           <View style={styles.autoSaveIndicator}>
             <Ionicons name="cloud-done-outline" size={12} color={STEP_COLORS.tertiaryLabel} />
@@ -863,7 +860,10 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab }
           <Ionicons name="ellipsis-vertical" size={18} color={STEP_COLORS.secondaryLabel} />
         </Pressable>
       </View>
-      <StepHeaderEyebrow stepId={step.id} />
+      {/* StepBlueprintChrome (rendered below the title block) already shows
+          "Pre-Clinical · Step 5 of 5" for blueprint-derived steps, so the
+          StepHeaderEyebrow would be a duplicate here. The eyebrow stays
+          available for surfaces that don't include the chrome card. */}
       {isOwner ? (
         <TextInput
           style={styles.titleInput}
