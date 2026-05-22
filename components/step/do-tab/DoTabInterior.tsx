@@ -8,6 +8,8 @@ import { DoStartCard } from './DoStartCard';
 import { PlanStartingFrameRow } from './PlanStartingFrameRow';
 import { DoLiveCard } from './DoLiveCard';
 import { DoPostActivityCard } from './DoPostActivityCard';
+import { BeatsList } from './BeatsList';
+import { useStepBeatsBinding } from '@/hooks/useStepBeats';
 
 export interface DoTabInteriorProps {
   state: DoInteriorState;
@@ -106,6 +108,20 @@ export function DoTabInterior({
   footer,
   embedded,
 }: DoTabInteriorProps) {
+  const beats = useStepBeatsBinding(stepId);
+  const beatsList = (
+    <BeatsList
+      beats={beats.beats}
+      readOnly={readOnly}
+      interestSlug={interestSlug}
+      interestName={interestName}
+      interestId={interestId}
+      onAdd={beats.onAdd}
+      onEdit={beats.onEdit}
+      onDelete={beats.onDelete}
+    />
+  );
+
   if (state === 'live') {
     return (
       <View style={embedded ? styles.containerEmbedded : styles.container}>
@@ -176,6 +192,7 @@ export function DoTabInterior({
               onPress={readOnly ? undefined : onAutoSummarizePlan}
               disabled={readOnly}
             />
+            {stepId ? beatsList : null}
           </>
         )}
         {footer}
@@ -203,6 +220,7 @@ export function DoTabInterior({
             onPress={readOnly ? undefined : onAutoSummarizePlan}
             disabled={readOnly}
           />
+          {stepId ? beatsList : null}
         </>
       )}
 

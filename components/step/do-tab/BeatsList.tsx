@@ -1,0 +1,393 @@
+/**
+ * BeatsList — time-stamped sub-events on a step's Do tab.
+ *
+ * Each beat is a {time_label, title, body} row. Inline-editable: tap a row
+ * to expand the title/body inputs; the time-label sits to the right and
+ * is also inline-editable. "+ Add a beat" footer appends a new row.
+ *
+ * Per-interest lexicon (sectionLabel, placeholders, empty hint) comes from
+ * getInterestBeatsConfig — same pattern as INTEREST_DO_TAB_CONFIG.
+ */
+
+import React, { useState } from 'react';
+import {
+  Pressable,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
+import {
+  getInterestBeatsConfig,
+  type InterestBeatsConfig,
+} from '@/lib/interest-config';
+import { showConfirm } from '@/lib/utils/crossPlatformAlert';
+import type { StepBeat } from '@/hooks/useStepBeats';
+
+interface Props {
+  beats: StepBeat[];
+  readOnly?: boolean;
+  interestSlug?: string | null;
+  interestName?: string | null;
+  interestId?: string | null;
+  onAdd: (input: { title: string; time_label?: string | null; body?: string | null }) => void;
+  onEdit: (
+    id: string,
+    patch: { title?: string; time_label?: string | null; body?: string | null },
+  ) => void;
+  onDelete: (id: string) => void;
+}
+
+export function BeatsList({
+  beats,
+  readOnly,
+  interestSlug,
+  interestName,
+  interestId,
+  onAdd,
+  onEdit,
+  onDelete,
+}: Props) {
+  const config = getInterestBeatsConfig({ interestSlug, interestName, interestId });
+
+  return (
+    <View style={styles.section}>
+      <Text style={styles.eyebrow}>{config.sectionLabel}</Text>
+
+      {beats.length === 0 ? (
+        <Text style={styles.emptyHint}>{config.emptyHint}</Text>
+      ) : (
+        <View style={styles.list}>
+          {beats.map((beat) => (
+            <BeatRow
+              key={beat.id}
+              beat={beat}
+              readOnly={readOnly}
+              config={config}
+              onEdit={onEdit}
+              onDelete={onDelete}
+            />
+          ))}
+        </View>
+      )}
+
+      {!readOnly ? <AddBeatRow config={config} onAdd={onAdd} /> : null}
+    </View>
+  );
+}
+
+interface BeatRowProps {
+  beat: StepBeat;
+  readOnly?: boolean;
+  config: InterestBeatsConfig;
+  onEdit: (
+    id: string,
+    patch: { title?: string; time_label?: string | null; body?: string | null },
+  ) => void;
+  onDelete: (id: string) => void;
+}
+
+function BeatRow({ beat, readOnly, config, onEdit, onDelete }: BeatRowProps) {
+  const [expanded, setExpanded] = useState(false);
+  const [title, setTitle] = useState(beat.title);
+  const [time, setTime] = useState(beat.time_label ?? '');
+  const [body, setBody] = useState(beat.body ?? '');
+
+  const commit = () => {
+    if (readOnly) return;
+    const patch: { title?: string; time_label?: string | null; body?: string | null } = {};
+    if (title.trim() !== beat.title) patch.title = title.trim();
+    if ((time.trim() || null) !== beat.time_label) patch.time_label = time;
+    if ((body.trim() || null) !== beat.body) patch.body = body;
+    if (Object.keys(patch).length > 0) onEdit(beat.id, patch);
+  };
+
+  const handleDelete = () => {
+    showConfirm(
+      'Delete beat',
+      `Remove "${beat.title}" from this step?`,
+      () => onDelete(beat.id),
+      { destructive: true, confirmText: 'Delete' },
+    );
+  };
+
+  return (
+    <View style={styles.beat}>
+      <Pressable
+        style={styles.beatHead}
+        onPress={() => setExpanded((p) => !p)}
+        disabled={readOnly}
+      >
+        <View style={styles.beatHeadLeft}>
+          <Text style={styles.beatTitle} numberOfLines={expanded ? undefined : 1}>
+            {beat.title}
+          </Text>
+          {beat.body && !expanded ? (
+            <Text style={styles.beatBody} numberOfLines={2}>
+              {beat.body}
+            </Text>
+          ) : null}
+        </View>
+        {beat.time_label ? (
+          <Text style={styles.beatTime}>{beat.time_label}</Text>
+        ) : null}
+      </Pressable>
+
+      {expanded && !readOnly ? (
+        <View style={styles.beatEdit}>
+          <View style={styles.beatEditRow}>
+            <TextInput
+              value={title}
+              onChangeText={setTitle}
+              onBlur={commit}
+              placeholder={config.titlePlaceholder}
+              placeholderTextColor={IOS_COLORS.tertiaryLabel}
+              style={[styles.input, styles.inputTitle]}
+            />
+            <TextInput
+              value={time}
+              onChangeText={setTime}
+              onBlur={commit}
+              placeholder={config.timePlaceholder}
+              placeholderTextColor={IOS_COLORS.tertiaryLabel}
+              style={[styles.input, styles.inputTime]}
+            />
+          </View>
+          <TextInput
+            value={body}
+            onChangeText={setBody}
+            onBlur={commit}
+            placeholder="Notes (optional)"
+            placeholderTextColor={IOS_COLORS.tertiaryLabel}
+            style={[styles.input, styles.inputBody]}
+            multiline
+          />
+          <Pressable hitSlop={8} onPress={handleDelete} style={styles.deleteBtn}>
+            <Ionicons name="trash-outline" size={14} color="#FF3B30" />
+            <Text style={styles.deleteText}>Delete beat</Text>
+          </Pressable>
+        </View>
+      ) : null}
+    </View>
+  );
+}
+
+function AddBeatRow({
+  config,
+  onAdd,
+}: {
+  config: InterestBeatsConfig;
+  onAdd: Props['onAdd'];
+}) {
+  const [open, setOpen] = useState(false);
+  const [title, setTitle] = useState('');
+  const [time, setTime] = useState('');
+
+  const reset = () => {
+    setOpen(false);
+    setTitle('');
+    setTime('');
+  };
+
+  const submit = () => {
+    if (!title.trim()) {
+      reset();
+      return;
+    }
+    onAdd({ title, time_label: time || null });
+    reset();
+  };
+
+  if (!open) {
+    return (
+      <Pressable style={styles.addRow} onPress={() => setOpen(true)} hitSlop={6}>
+        <Ionicons name="add" size={14} color="#007AFF" />
+        <Text style={styles.addText}>Add a beat</Text>
+      </Pressable>
+    );
+  }
+
+  return (
+    <View style={styles.addOpen}>
+      <View style={styles.beatEditRow}>
+        <TextInput
+          value={title}
+          onChangeText={setTitle}
+          placeholder={config.titlePlaceholder}
+          placeholderTextColor={IOS_COLORS.tertiaryLabel}
+          style={[styles.input, styles.inputTitle]}
+          autoFocus
+          onSubmitEditing={submit}
+          returnKeyType="done"
+        />
+        <TextInput
+          value={time}
+          onChangeText={setTime}
+          placeholder={config.timePlaceholder}
+          placeholderTextColor={IOS_COLORS.tertiaryLabel}
+          style={[styles.input, styles.inputTime]}
+        />
+      </View>
+      <View style={styles.addActions}>
+        <Pressable hitSlop={8} onPress={reset}>
+          <Text style={styles.cancelText}>Cancel</Text>
+        </Pressable>
+        <Pressable
+          hitSlop={8}
+          onPress={submit}
+          disabled={!title.trim()}
+        >
+          <Text
+            style={[
+              styles.saveText,
+              !title.trim() ? styles.saveTextDisabled : null,
+            ]}
+          >
+            Add
+          </Text>
+        </Pressable>
+      </View>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  section: {
+    backgroundColor: IOS_COLORS.systemBackground,
+    borderRadius: 14,
+    padding: IOS_SPACING.sm,
+    gap: 6,
+    borderWidth: 0.5,
+    borderColor: 'rgba(60,60,67,0.18)',
+  },
+  eyebrow: {
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 0.8,
+    color: IOS_COLORS.secondaryLabel,
+    textTransform: 'uppercase',
+    paddingHorizontal: 4,
+    paddingTop: 2,
+  },
+  emptyHint: {
+    fontSize: 12.5,
+    color: IOS_COLORS.tertiaryLabel,
+    paddingHorizontal: 4,
+    paddingVertical: 6,
+    lineHeight: 17,
+  },
+  list: {
+    gap: 6,
+  },
+  beat: {
+    backgroundColor: IOS_COLORS.tertiarySystemGroupedBackground,
+    borderRadius: 10,
+  },
+  beatHead: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+  },
+  beatHeadLeft: {
+    flex: 1,
+    minWidth: 0,
+  },
+  beatTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: IOS_COLORS.label,
+    letterSpacing: -0.2,
+  },
+  beatBody: {
+    fontSize: 12.5,
+    color: IOS_COLORS.secondaryLabel,
+    marginTop: 2,
+    lineHeight: 17,
+  },
+  beatTime: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: IOS_COLORS.tertiaryLabel,
+    letterSpacing: 0.2,
+  },
+  beatEdit: {
+    paddingHorizontal: 10,
+    paddingBottom: 10,
+    gap: 6,
+  },
+  beatEditRow: {
+    flexDirection: 'row',
+    gap: 6,
+  },
+  input: {
+    backgroundColor: IOS_COLORS.systemBackground,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(60,60,67,0.18)',
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 7,
+    fontSize: 13.5,
+    color: IOS_COLORS.label,
+  },
+  inputTitle: {
+    flex: 1,
+  },
+  inputTime: {
+    width: 110,
+  },
+  inputBody: {
+    minHeight: 48,
+    textAlignVertical: 'top',
+  },
+  deleteBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingTop: 4,
+  },
+  deleteText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#FF3B30',
+  },
+  addRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 8,
+  },
+  addText: {
+    fontSize: 12.5,
+    fontWeight: '600',
+    color: '#007AFF',
+  },
+  addOpen: {
+    gap: 6,
+    paddingHorizontal: 4,
+    paddingTop: 6,
+  },
+  addActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 14,
+    paddingTop: 2,
+  },
+  cancelText: {
+    fontSize: 13,
+    color: IOS_COLORS.secondaryLabel,
+  },
+  saveText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#007AFF',
+  },
+  saveTextDisabled: {
+    color: IOS_COLORS.tertiaryLabel,
+  },
+});
