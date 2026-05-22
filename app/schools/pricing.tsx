@@ -6,8 +6,8 @@
  * bars + value display; direct text input also accepted.
  */
 
-import React, { useMemo, useState } from 'react';
-import { View, Text, Pressable, StyleSheet, ScrollView, TextInput, Platform } from 'react-native';
+import React, { useMemo, useRef, useState } from 'react';
+import { View, Text, Pressable, StyleSheet, ScrollView, TextInput, Platform, PanResponder } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { MktNav } from '@/components/marketing/MktNav';
@@ -217,6 +217,76 @@ function SeatSlider({
   const max = steps[steps.length - 1];
   const pct = Math.min(100, Math.max(0, ((value - min) / (max - min)) * 100));
 
+  // Track geometry captured on layout so the PanResponder can convert
+  // touch coords → value.
+  const trackRef = useRef<View>(null);
+  const trackGeom = useRef({ pageX: 0, width: 0 });
+
+  function valueFromX(locationX: number): number {
+    const ratio = Math.min(1, Math.max(0, locationX / Math.max(1, trackGeom.current.width)));
+    // Piecewise-linear interpolation across the steps so each gap
+    // between two ticks gets the same drag distance regardless of the
+    // numeric jump (10 → 100 feels the same speed as 1000 → 2500+).
+    const segments = steps.length - 1;
+    const t = ratio * segments;
+    const segIdx = Math.min(segments - 1, Math.floor(t));
+    const segFrac = t - segIdx;
+    const v = steps[segIdx] + (steps[segIdx + 1] - steps[segIdx]) * segFrac;
+    return Math.round(v);
+  }
+
+  // Web: native HTML <input type="range"> gives us native drag, momentum,
+  // and accessibility for free. Hidden, but covers the track area.
+  const webRangeOverlay = Platform.OS === 'web' ? (
+    <input
+      type="range"
+      min={0}
+      max={1000}
+      step={1}
+      value={Math.round(pct * 10)}
+      onChange={(e: any) => {
+        const ratio = parseInt(e.target.value, 10) / 1000;
+        const segments = steps.length - 1;
+        const t = ratio * segments;
+        const segIdx = Math.min(segments - 1, Math.floor(t));
+        const segFrac = t - segIdx;
+        const v = steps[segIdx] + (steps[segIdx + 1] - steps[segIdx]) * segFrac;
+        onChange(Math.round(v));
+      }}
+      style={{
+        position: 'absolute',
+        left: 0,
+        right: 0,
+        top: -8,
+        height: 36,
+        width: '100%',
+        opacity: 0,
+        cursor: 'pointer',
+        margin: 0,
+        WebkitAppearance: 'none',
+        appearance: 'none',
+      } as any}
+      aria-label={label}
+    />
+  ) : null;
+
+  // Native: PanResponder for drag + tap.
+  const panResponder = useMemo(
+    () =>
+      PanResponder.create({
+        onStartShouldSetPanResponder: () => true,
+        onMoveShouldSetPanResponder: () => true,
+        onPanResponderGrant: (evt) => {
+          onChange(valueFromX(evt.nativeEvent.locationX));
+        },
+        onPanResponderMove: (evt) => {
+          onChange(valueFromX(evt.nativeEvent.locationX));
+        },
+      }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [steps],
+  );
+
   return (
     <View style={ss.wrap}>
       <View style={ss.headRow}>
@@ -232,7 +302,14 @@ function SeatSlider({
           keyboardType="numeric"
         />
       </View>
-      <View style={ss.barWrap}>
+      <View
+        ref={trackRef}
+        style={ss.barWrap}
+        onLayout={(e) => {
+          trackGeom.current.width = e.nativeEvent.layout.width;
+        }}
+        {...(Platform.OS !== 'web' ? panResponder.panHandlers : {})}
+      >
         <View style={ss.barTrack}>
           <View
             style={[
@@ -246,17 +323,20 @@ function SeatSlider({
             ss.knob,
             { left: `${pct}%`, borderColor: color },
           ]}
+          pointerEvents="none"
         />
-        {/* Click targets per step */}
-        <View style={ss.stepRow}>
+        {/* Per-step snap-targets (still useful for keyboard nav) */}
+        <View style={ss.stepRow} pointerEvents={Platform.OS === 'web' ? 'none' : 'auto'}>
           {steps.map((s) => (
             <Pressable
               key={s}
               onPress={() => onChange(s)}
               style={ss.stepBtn}
+              accessibilityLabel={`Set ${label} to ${s}`}
             />
           ))}
         </View>
+        {webRangeOverlay}
       </View>
       {showTicks ? (
         <View style={ss.tickRow}>
