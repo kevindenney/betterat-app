@@ -30,7 +30,7 @@
  *   - Next-event glow is the only Atlas accent that uses amber
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -53,7 +53,16 @@ import {
 
 export type AtlasFrameId = 'f1' | 'f2' | 'f3' | 'f4' | 'f5' | 'f6';
 
-interface AtlasScreenProps {
+export interface AtlasFrameHandlers {
+  /** Bottom-sheet primary CTA — "Plan a step" / "Anchor · pick site" etc. */
+  onPrimaryAction?: () => void;
+  /** Bottom-sheet secondary CTA — "Open Race 4" / "Skip" etc. */
+  onSecondaryAction?: () => void;
+  /** Per-frame override of the top subtitle line, e.g. "Sailing · RHKYC · Hong Kong". */
+  subtitleOverride?: string;
+}
+
+interface AtlasScreenProps extends AtlasFrameHandlers {
   frame: AtlasFrameId;
   /**
    * When true (default false), the mock iOS status bar and mock 5-tab bar
@@ -64,20 +73,27 @@ interface AtlasScreenProps {
   embedded?: boolean;
 }
 
-export function AtlasScreen({ frame, embedded = false }: AtlasScreenProps) {
+export function AtlasScreen({
+  frame,
+  embedded = false,
+  onPrimaryAction,
+  onSecondaryAction,
+  subtitleOverride,
+}: AtlasScreenProps) {
+  const handlers: AtlasFrameHandlers = { onPrimaryAction, onSecondaryAction, subtitleOverride };
   switch (frame) {
     case 'f1':
-      return <FrameF1 embedded={embedded} />;
+      return <FrameF1 embedded={embedded} handlers={handlers} />;
     case 'f2':
-      return <FrameF2 embedded={embedded} />;
+      return <FrameF2 embedded={embedded} handlers={handlers} />;
     case 'f3':
-      return <FrameF3 embedded={embedded} />;
+      return <FrameF3 embedded={embedded} handlers={handlers} />;
     case 'f4':
-      return <FrameF4 embedded={embedded} />;
+      return <FrameF4 embedded={embedded} handlers={handlers} />;
     case 'f5':
-      return <FrameF5 embedded={embedded} />;
+      return <FrameF5 embedded={embedded} handlers={handlers} />;
     case 'f6':
-      return <FrameF6 embedded={embedded} />;
+      return <FrameF6 embedded={embedded} handlers={handlers} />;
   }
 }
 
@@ -141,6 +157,33 @@ interface FilterChipItem {
 }
 
 function FilterChipsRow({ chips }: { chips: FilterChipItem[] }) {
+  // Local toggle state — chips are interactive even though the underlying
+  // query layer is not wired yet. Initial active chip is whichever item
+  // shipped active=true. Multi-select on data peer chips (You/Crew/Fleet
+  // etc.), single-select on the leading "All" / sticky chip.
+  const initialActive = chips.filter((c) => c.active).map((c) => c.id);
+  const [activeIds, setActiveIds] = useState<string[]>(
+    initialActive.length > 0 ? initialActive : [chips[0]?.id].filter(Boolean) as string[],
+  );
+
+  const isAllChip = (id: string) =>
+    id === 'all' || id === 'marks' || id === 'class' || id === 'cohort';
+
+  const handlePress = (chipId: string) => {
+    setActiveIds((prev) => {
+      // The leading "All / Race marks / Dragon class / Cohort" chip is a
+      // single-select anchor; tapping it clears the others.
+      if (isAllChip(chipId)) {
+        return prev.includes(chipId) ? prev : [chipId];
+      }
+      // Other chips toggle multi-select; tapping any clears the anchor.
+      const withoutAnchor = prev.filter((id) => !isAllChip(id));
+      return withoutAnchor.includes(chipId)
+        ? withoutAnchor.filter((id) => id !== chipId)
+        : [...withoutAnchor, chipId];
+    });
+  };
+
   return (
     <ScrollView
       horizontal
@@ -149,13 +192,25 @@ function FilterChipsRow({ chips }: { chips: FilterChipItem[] }) {
       style={shellStyles.chipsScroll}
     >
       {chips.map((chip) => (
-        <FilterChip key={chip.id} {...chip} />
+        <FilterChip
+          key={chip.id}
+          {...chip}
+          active={activeIds.includes(chip.id)}
+          onPress={() => handlePress(chip.id)}
+        />
       ))}
     </ScrollView>
   );
 }
 
-function FilterChip({ label, icon, active, tone, dim }: FilterChipItem) {
+function FilterChip({
+  label,
+  icon,
+  active,
+  tone,
+  dim,
+  onPress,
+}: FilterChipItem & { onPress?: () => void }) {
   const toneDot: Record<string, string> = {
     you: '#FF3B30',
     crew: '#FF3B30',
@@ -165,7 +220,8 @@ function FilterChip({ label, icon, active, tone, dim }: FilterChipItem) {
     sim: '#AF52DE',
   };
   return (
-    <View
+    <Pressable
+      onPress={onPress}
       style={[
         shellStyles.chip,
         active && shellStyles.chipActive,
@@ -184,7 +240,7 @@ function FilterChip({ label, icon, active, tone, dim }: FilterChipItem) {
         <View style={[shellStyles.chipDot, { backgroundColor: toneDot[tone] }]} />
       ) : null}
       <Text style={[shellStyles.chipText, active && shellStyles.chipTextActive]}>{label}</Text>
-    </View>
+    </Pressable>
   );
 }
 
@@ -238,11 +294,15 @@ function MockTabBar({ activeTab = 'atlas' }: { activeTab?: 'practice' | 'library
 // ---------------------------------------------------------------------------
 // F1 — Felix · first-run · Causeway Bay overview
 // ---------------------------------------------------------------------------
-function FrameF1({ embedded }: { embedded: boolean }) {
+function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFrameHandlers }) {
   return (
     <View style={shellStyles.frame}>
       {!embedded && <StatusBar />}
-      <TopChrome title="Atlas" subtitle="Sailing · RHKYC · Hong Kong" avatarInitial="F" />
+      <TopChrome
+        title="Atlas"
+        subtitle={handlers.subtitleOverride ?? 'Sailing · RHKYC · Hong Kong'}
+        avatarInitial="F"
+      />
       <FilterChipsRow
         chips={[
           { id: 'all', label: 'All', active: true },
@@ -289,8 +349,8 @@ function FrameF1({ embedded }: { embedded: boolean }) {
         eyebrow="NEXT RACE · PRE-STAGED"
         title="Plan a step for Saturday's start."
         body="Victoria Harbour, favoured end. Last Saturday's marks are visible."
-        primary={{ label: 'Plan a step', icon: 'add' }}
-        secondary={{ label: 'Open Race 4' }}
+        primary={{ label: 'Plan a step', icon: 'add', onPress: handlers.onPrimaryAction }}
+        secondary={{ label: 'Open Race 4', onPress: handlers.onSecondaryAction }}
       />
 
       {!embedded && <MockTabBar activeTab="atlas" />}
@@ -301,11 +361,15 @@ function FrameF1({ embedded }: { embedded: boolean }) {
 // ---------------------------------------------------------------------------
 // F2 — Race-marks zoom (Victoria Harbour)
 // ---------------------------------------------------------------------------
-function FrameF2({ embedded }: { embedded: boolean }) {
+function FrameF2({ embedded, handlers }: { embedded: boolean; handlers: AtlasFrameHandlers }) {
   return (
     <View style={shellStyles.frame}>
       {!embedded && <StatusBar />}
-      <TopChrome title="Race 4 course" subtitle="RHKYC · Victoria Harbour · Sat 10:00" avatarInitial="F" />
+      <TopChrome
+        title="Race 4 course"
+        subtitle={handlers.subtitleOverride ?? 'RHKYC · Victoria Harbour · Sat 10:00'}
+        avatarInitial="F"
+      />
       <FilterChipsRow
         chips={[
           { id: 'marks', label: 'Race marks', icon: 'triangle-outline', active: true },
@@ -356,8 +420,8 @@ function FrameF2({ embedded }: { embedded: boolean }) {
           { value: '6', label: 'CAPTURES' },
           { value: '2', label: 'CONCEPTS' },
         ]}
-        primary={{ label: 'Add to my timeline', icon: 'add' }}
-        secondary={{ label: 'Suggest to…', icon: 'paper-plane-outline' }}
+        primary={{ label: 'Add to my timeline', icon: 'add', onPress: handlers.onPrimaryAction }}
+        secondary={{ label: 'Suggest to…', icon: 'paper-plane-outline', onPress: handlers.onSecondaryAction }}
       />
 
       {!embedded && <MockTabBar activeTab="atlas" />}
@@ -368,11 +432,15 @@ function FrameF2({ embedded }: { embedded: boolean }) {
 // ---------------------------------------------------------------------------
 // F3 — World Dragon (cross-fleet class lens)
 // ---------------------------------------------------------------------------
-function FrameF3({ embedded }: { embedded: boolean }) {
+function FrameF3({ embedded, handlers }: { embedded: boolean; handlers: AtlasFrameHandlers }) {
   return (
     <View style={shellStyles.frame}>
       {!embedded && <StatusBar />}
-      <TopChrome title="Dragon world" subtitle="4 fleets · 1 class · zoom 3" avatarInitial="F" />
+      <TopChrome
+        title="Dragon world"
+        subtitle={handlers.subtitleOverride ?? '4 fleets · 1 class · zoom 3'}
+        avatarInitial="F"
+      />
       <FilterChipsRow
         chips={[
           { id: 'class', label: 'Dragon class', icon: 'globe-outline', active: true },
@@ -393,8 +461,8 @@ function FrameF3({ embedded }: { embedded: boolean }) {
         eyebrow="INTERNATIONAL PEERS · CLASS LENS"
         title="The Dragon community on one canvas."
         body="Zoom in to a fleet to see its pins. Race marks fade between zoom 8 — 9 to keep the world readable."
-        primary={{ label: 'Back to Hong Kong', icon: 'arrow-back' }}
-        secondary={{ label: 'Follow Amsterdam' }}
+        primary={{ label: 'Back to Hong Kong', icon: 'arrow-back', onPress: handlers.onPrimaryAction }}
+        secondary={{ label: 'Follow Amsterdam', onPress: handlers.onSecondaryAction }}
       />
 
       {!embedded && <MockTabBar activeTab="atlas" />}
@@ -405,11 +473,15 @@ function FrameF3({ embedded }: { embedded: boolean }) {
 // ---------------------------------------------------------------------------
 // F4 — Emily · Baltimore cold
 // ---------------------------------------------------------------------------
-function FrameF4({ embedded }: { embedded: boolean }) {
+function FrameF4({ embedded, handlers }: { embedded: boolean; handlers: AtlasFrameHandlers }) {
   return (
     <View style={shellStyles.frame}>
       {!embedded && <StatusBar />}
-      <TopChrome title="Atlas" subtitle="Nursing · MSN · Baltimore" avatarInitial="E" />
+      <TopChrome
+        title="Atlas"
+        subtitle={handlers.subtitleOverride ?? 'Nursing · MSN · Baltimore'}
+        avatarInitial="E"
+      />
       <FilterChipsRow
         chips={[
           { id: 'all', label: 'All', active: true },
@@ -446,8 +518,8 @@ function FrameF4({ embedded }: { embedded: boolean }) {
         eyebrow="FIRST STEP · ANCHOR WHERE"
         title="Tag your last clinical step to where it happened."
         body={'From your timeline: "Med-surg shift · Tuesday morning." One tap to anchor.'}
-        primary={{ label: 'Anchor · pick site', icon: 'location' }}
-        secondary={{ label: 'Skip' }}
+        primary={{ label: 'Anchor · pick site', icon: 'location', onPress: handlers.onPrimaryAction }}
+        secondary={{ label: 'Skip', onPress: handlers.onSecondaryAction }}
       />
 
       {!embedded && <MockTabBar activeTab="atlas" />}
@@ -458,13 +530,13 @@ function FrameF4({ embedded }: { embedded: boolean }) {
 // ---------------------------------------------------------------------------
 // F5 — Emily · JHU curated (competency overlay live)
 // ---------------------------------------------------------------------------
-function FrameF5({ embedded }: { embedded: boolean }) {
+function FrameF5({ embedded, handlers }: { embedded: boolean; handlers: AtlasFrameHandlers }) {
   return (
     <View style={shellStyles.frame}>
       {!embedded && <StatusBar />}
       <TopChrome
         title="IV insertion · supervised"
-        subtitle="62 in cohort · 4 sites evidenced"
+        subtitle={handlers.subtitleOverride ?? '62 in cohort · 4 sites evidenced'}
         avatarInitial="E"
       />
       <FilterChipsRow
@@ -514,8 +586,8 @@ function FrameF5({ embedded }: { embedded: boolean }) {
           { value: '6', label: 'SUBURBAN' },
           { value: '2', label: 'HOWARD CO.' },
         ]}
-        primary={{ label: 'Plan supervised step', icon: 'add' }}
-        secondary={{ label: 'See peer steps', icon: 'list-outline' }}
+        primary={{ label: 'Plan supervised step', icon: 'add', onPress: handlers.onPrimaryAction }}
+        secondary={{ label: 'See peer steps', icon: 'list-outline', onPress: handlers.onSecondaryAction }}
       />
 
       {!embedded && <MockTabBar activeTab="atlas" />}
@@ -526,7 +598,7 @@ function FrameF5({ embedded }: { embedded: boolean }) {
 // ---------------------------------------------------------------------------
 // F6 — Commit-mode (opened from Plan · Where)
 // ---------------------------------------------------------------------------
-function FrameF6({ embedded }: { embedded: boolean }) {
+function FrameF6({ embedded, handlers }: { embedded: boolean; handlers: AtlasFrameHandlers }) {
   return (
     <View style={shellStyles.frame}>
       {!embedded && <StatusBar />}
@@ -565,11 +637,11 @@ function FrameF6({ embedded }: { embedded: boolean }) {
           <Stat value="3" label="CREW" />
         </View>
         <View style={shellStyles.btnRow}>
-          <Pressable style={[shellStyles.btn, shellStyles.btnPrimary]}>
+          <Pressable onPress={handlers.onPrimaryAction} style={[shellStyles.btn, shellStyles.btnPrimary]}>
             <Ionicons name="checkmark" size={14} color="#FFF" />
             <Text style={shellStyles.btnPrimaryText}>Use this location</Text>
           </Pressable>
-          <Pressable style={[shellStyles.btn, shellStyles.btnSecondary]}>
+          <Pressable onPress={handlers.onSecondaryAction} style={[shellStyles.btn, shellStyles.btnSecondary]}>
             <Ionicons name="locate-outline" size={14} color={IOS_REGISTER.label} />
             <Text style={shellStyles.btnSecondaryText}>Adjust</Text>
           </Pressable>
@@ -592,8 +664,8 @@ interface BottomSheetProps {
   body?: string;
   peerHeader?: { name: string; quote: string; eyebrow: string };
   statsRow?: StatItem[];
-  primary?: { label: string; icon?: keyof typeof Ionicons.glyphMap };
-  secondary?: { label: string; icon?: keyof typeof Ionicons.glyphMap };
+  primary?: { label: string; icon?: keyof typeof Ionicons.glyphMap; onPress?: () => void };
+  secondary?: { label: string; icon?: keyof typeof Ionicons.glyphMap; onPress?: () => void };
 }
 
 function BottomSheet({
@@ -628,13 +700,13 @@ function BottomSheet({
       {(primary || secondary) && (
         <View style={shellStyles.btnRow}>
           {primary ? (
-            <Pressable style={[shellStyles.btn, shellStyles.btnPrimary]}>
+            <Pressable onPress={primary.onPress} style={[shellStyles.btn, shellStyles.btnPrimary]}>
               {primary.icon ? <Ionicons name={primary.icon} size={14} color="#FFF" /> : null}
               <Text style={shellStyles.btnPrimaryText}>{primary.label}</Text>
             </Pressable>
           ) : null}
           {secondary ? (
-            <Pressable style={[shellStyles.btn, shellStyles.btnSecondary]}>
+            <Pressable onPress={secondary.onPress} style={[shellStyles.btn, shellStyles.btnSecondary]}>
               {secondary.icon ? (
                 <Ionicons name={secondary.icon} size={14} color={IOS_REGISTER.label} />
               ) : null}
