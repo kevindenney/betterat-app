@@ -57,7 +57,7 @@ export function HongKongOverviewMap() {
       <SvgText x="40" y="310" fill={LABEL} fontSize="9.5" fontWeight="500" letterSpacing="1">HONG KONG IS.</SvgText>
       <SvgText x="33" y="436" fill={LABEL} fontSize="8" fontWeight="500" letterSpacing="1">LAMMA</SvgText>
       <SvgText x="130" y="200" fill={LABEL} fontSize="9.5" fontWeight="500" letterSpacing="1.2">VICTORIA HARBOUR</SvgText>
-      <SvgText x="262" y="98" fill={LABEL} fontSize="8" fontWeight="500" letterSpacing="0.8">PORT{`\n`}SHELTER</SvgText>
+      <SvgText x="262" y="98" fill={LABEL} fontSize="8" fontWeight="500" letterSpacing="0.8">PORT</SvgText>
       <SvgText x="262" y="108" fill={LABEL} fontSize="8" fontWeight="500" letterSpacing="0.8">SHELTER</SvgText>
       <SvgText x="200" y="260" fill={LABEL} fontSize="7.5" fontWeight="500" letterSpacing="0.8">MIDDLE IS. CH.</SvgText>
 
