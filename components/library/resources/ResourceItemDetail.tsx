@@ -12,6 +12,15 @@ import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as WebBrowser from 'expo-web-browser';
+import {
+  showAlertWithButtons,
+  showConfirm,
+  showPrompt,
+} from '@/lib/utils/crossPlatformAlert';
+import {
+  useDeleteLibraryItem,
+  useUpdateLibraryItem,
+} from '@/hooks/useLibraryItemMutations';
 import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
 import { showAlert } from '@/lib/utils/crossPlatformAlert';
 import { FLOATING_TAB_BAR_HEIGHT } from '@/components/navigation/FloatingTabBar';
@@ -67,6 +76,8 @@ export function ResourceItemDetail({ item }: Props) {
   const insets = useSafeAreaInsets();
   const tint = FORMAT_TINT[item.format];
   const isDemoItem = item.id in DEMO_LIBRARY_ITEMS;
+  const updateItem = useUpdateLibraryItem(item.id);
+  const deleteItem = useDeleteLibraryItem();
 
   const handleRead = async () => {
     if (!item.url) {
@@ -109,6 +120,79 @@ export function ResourceItemDetail({ item }: Props) {
     }
   };
 
+  const handleListen = async () => {
+    // Real audio playback needs an in-app player. For audio kinds with a
+    // URL we hand off to the in-app browser (system audio player renders);
+    // anything else surfaces the roadmap note explicitly instead of a
+    // generic "coming soon."
+    if (item.format === 'audio' && item.url) {
+      try {
+        await WebBrowser.openBrowserAsync(item.url);
+      } catch (err) {
+        showAlert('Listen', err instanceof Error ? err.message : String(err));
+      }
+      return;
+    }
+    if (item.format === 'audio') {
+      showAlert('Listen', 'This audio item has no URL to play.');
+      return;
+    }
+    comingSoon('Listen');
+  };
+
+  const handleEditTitle = async () => {
+    const next = await showPrompt('Rename item', undefined, item.title);
+    const trimmed = next?.trim();
+    if (!trimmed || trimmed === item.title) return;
+    updateItem.mutate(
+      { title: trimmed },
+      {
+        onError: (err) =>
+          showAlert('Rename failed', err instanceof Error ? err.message : String(err)),
+      },
+    );
+  };
+
+  const handleDelete = () => {
+    showConfirm(
+      'Delete from Library',
+      `This removes "${item.title}" from your library. Steps that pinned it as before-shift reading will lose the pin. This can't be undone.`,
+      () => {
+        deleteItem.mutate(item.id, {
+          onSuccess: () => {
+            if (router.canGoBack()) router.back();
+            else router.replace('/library?zone=resources');
+          },
+          onError: (err) =>
+            showAlert(
+              'Delete failed',
+              err instanceof Error ? err.message : String(err),
+            ),
+        });
+      },
+      { destructive: true, confirmText: 'Delete' },
+    );
+  };
+
+  const handleMore = () => {
+    if (isDemoItem) {
+      showAlert(
+        'More actions',
+        'Edit and delete are on real captures — this is a demo card.',
+      );
+      return;
+    }
+    showAlertWithButtons('More', undefined, [
+      { text: 'Rename', onPress: handleEditTitle },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: handleDelete,
+      },
+      { text: 'Cancel', style: 'cancel' },
+    ]);
+  };
+
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <View style={styles.topbar}>
@@ -130,7 +214,7 @@ export function ResourceItemDetail({ item }: Props) {
             <Ionicons name="share-outline" size={20} color="#007AFF" />
           </TouchableOpacity>
           <TouchableOpacity
-            onPress={() => comingSoon('More')}
+            onPress={handleMore}
             hitSlop={8}
             activeOpacity={0.6}
           >
@@ -175,7 +259,7 @@ export function ResourceItemDetail({ item }: Props) {
           <TouchableOpacity
             style={styles.action}
             activeOpacity={0.7}
-            onPress={() => comingSoon('Listen')}
+            onPress={handleListen}
           >
             <Ionicons name="headset-outline" size={16} color={IOS_COLORS.label} />
             <Text style={styles.actionText}>Listen</Text>

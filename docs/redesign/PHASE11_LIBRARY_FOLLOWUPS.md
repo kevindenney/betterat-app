@@ -1,6 +1,7 @@
 # Phase 11 — Library tab follow-ups roadmap
 
 **Date written:** 2026-05-21
+**Phase 11 closed:** 2026-05-22 — see "What's already done" below; "What's still owed" section now lists only items explicitly deferred to later phases.
 **Branch:** main (Phase 11 redesign work merged through `d7b8d536`)
 
 This doc captures everything that's still owed after the Phase 11 Library tab
@@ -48,8 +49,43 @@ The Phase 11 Library work that's already on `main`:
 - **Preview spine format label** (commit `f9995181`, roadmap §6) — replaced
   hardcoded "PRACTICE ALERT" / "P 1 / 8" with `item.formatLabel.toUpperCase()`
   and `item.meta` so non-PDF resources read correctly.
+- **Dupe "Resources for this step" card removed** (commit `dbbdf710`) — the
+  step Plan tab no longer shows two competing "+ Add from library" rows. The
+  lower "ALSO RELEVANT FOR" card stays to preserve Focus Concepts management
+  + existing `step_playbook_links` data; see project memory
+  `project_phase11_phase6_table_overlap` for the long-term plan.
+- **library_items.interest_id + library_item_interests M2M** (commits
+  `a399e386`, `e45e3622`) — items can be tagged to any number of interests
+  via the join table; picker RPC `library_items_for_picker(p_interest_id)`
+  resolves "tagged for this interest OR completely untagged" in one
+  round-trip. Single-interest `interest_id` stays as "captured-in" primary.
+- **Tag chips on resource detail** (commit `bed710fd`) — inline "RELEVANT
+  FOR" chip row on `/library/items/[id]` toggles tags optimistically.
+- **CaptureSheet writes to library_items** (commit `6256bc78`) — link / paste
+  modes capture real content; upload / photo wired via
+  `expo-document-picker` + `expo-image-picker` to the `library-files`
+  Supabase storage bucket (commit `75276c1a`).
+- **CaptureSheet "Relevant for" chips** (commit `a2535880`) — capture-time
+  interest tagging closes the M2M loop on the create side.
+- **Resources zone live data** (commit `de02e62a`, roadmap §4) — in-play /
+  recent / collections shelves read from real `library_items` +
+  `library_collections` scoped via the picker RPC. Demo fallback when the
+  account has zero captures so JHU screenshots still render.
+- **Read action via in-app browser** (commit `d5723d5e`, roadmap §2) — opens
+  via `expo-web-browser` (SFSafariViewController / Chrome Custom Tabs);
+  reader mode for articles, system PDF viewer for uploads.
+- **Share action** (commit `51b36adc`, roadmap §2) — RN `Share.share` with
+  title + URL.
+- **More menu + Delete + Rename** (this commit, roadmap §2) — ellipsis on
+  resource detail opens an action sheet with Rename and Delete (destructive
+  confirm). Delete cascades through the joins via `ON DELETE CASCADE`.
+- **Listen for audio kinds** (this commit, roadmap §2) — `audio`-kind items
+  with a URL play through the in-app browser's system audio player. Other
+  kinds still show "Listen coming soon" since real TTS is its own scope.
 
-## What's still owed
+## What's still owed (explicitly deferred to later phases)
+
+Phase 11 closed 2026-05-22. Items below are tracked but not in scope:
 
 ### 1. Step library-before data path (HIGH PRIORITY)
 
@@ -146,21 +182,19 @@ hooks/components/services into explicit `sailing/` subdirs. ~50 files,
 - **Pre-launch landing page placeholder** — intentional; redesign planned
   using India+JHU demo insights.
 
-## Suggested next session order
+## Phase 11 closed — what's next (separate scopes)
 
-Sections 1b, 3, and 6 shipped overnight 2026-05-21. Remaining order:
+The deferred items above are tracked under their own future scopes:
 
-1. Live data for Library zones (Section 4) — replaces demo cards with the
-   user's actual content. **Risk:** changes the JHU-demo Resources zone the
-   moment the demo account captures any item. Recommended approach: query
-   live, fall back to demo if user has zero `library_items`. Consider gating
-   on FEATURE_FLAG until the demo path is reconfirmed.
-2. Section 1a (seed during onboarding) — would make `BeforeTheShiftCard`
-   appear on demo accounts without manual taps. Now optional given 1b ships
-   the manual path.
-3. Read / Listen / Annotate / Share / Cite (Section 2) — bigger lifts.
-   Cleanest standalone is Share (RN `Share.share({title, message})`); Read
-   needs URL plumbing through `ResourceItemFull`; Annotate needs the
-   `library_marks` table.
-4. Section 1c (auto-attach on concept origin) — depends on §1a or solid
-   real-data flows for `concept_origins` / `concept_citations`.
+- **Reader work** (PDF text selection via `react-native-pdf`, article
+  Readability extraction, in-line audio player). Unblocks Annotate /
+  Cite as origin / TTS Listen as a coherent package.
+- **D33 step context UI** for `step_collaborators` (the "With" picker) +
+  `step_location` (the "Where" map). Schemas + RLS in place from Phase 11.
+- **D34 sub-step Resource-link chip** via `step_resource_links` — currently
+  no UI surfaces this table.
+- **`step_beat_pins`** — inline pinned references inside Do/beat content.
+  Schema present, no UI; landed alongside future Do-tab beat redesign.
+- **Phase 6 → Phase 11 concept migration** — move `step_playbook_links`
+  concept-link surface into a Phase 11 model so the "ALSO RELEVANT FOR"
+  card can retire. See project memory `project_phase11_phase6_table_overlap`.
