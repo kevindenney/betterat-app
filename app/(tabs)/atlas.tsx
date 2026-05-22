@@ -28,6 +28,7 @@ import {
 import { FLOATING_TAB_BAR_HEIGHT } from '@/components/navigation/FloatingTabBar';
 import { IOS_REGISTER } from '@/lib/design-tokens-ios';
 import { useInterest } from '@/providers/InterestProvider';
+import { useAtlasNextEvent } from '@/hooks/useAtlasNextEvent';
 
 // Interest-aware variant selection. Per the brief's "Universal empty-state
 // formula" + per-persona empty states. The mapping below is the v1 lookup;
@@ -61,6 +62,7 @@ export default function AtlasTab() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { currentInterest } = useInterest();
+  const nextEvent = useAtlasNextEvent();
 
   // FloatingTabBar floats above the home-indicator safe area; clear both
   // plus a small buffer so the BottomSheet CTAs aren't covered.
@@ -96,6 +98,7 @@ export default function AtlasTab() {
           frame={frame}
           embedded
           subtitleOverride={subtitleOverride}
+          nextEvent={nextEvent}
           onPrimaryAction={handlePrimary}
           onSecondaryAction={handleSecondary}
         />
