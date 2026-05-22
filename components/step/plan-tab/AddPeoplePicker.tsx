@@ -30,7 +30,6 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
-import { STEP_COLORS } from '@/lib/step-theme';
 import { useAuth } from '@/providers/AuthProvider';
 import { SailorProfileService } from '@/services/SailorProfileService';
 import { CrewFinderService } from '@/services/CrewFinderService';
@@ -46,8 +45,72 @@ interface PersonRow {
   avatarColor?: string;
   /** Source group — drives section grouping in the picker. */
   source: 'recent' | 'follow' | 'fleet';
-  /** Optional subtitle metadata, e.g. "sailed 14 races · last Saturday". */
+  /** Optional subtitle metadata, e.g. "RHKYC · sailed 4 times together · last Saturday". */
   subtitle?: string;
+  /** Capability tags rendered as small inline pills (e.g. COACH, MENTOR). */
+  tags?: string[];
+  /** ISO timestamp of the last collaboration (recent crew only). */
+  lastCollabAt?: string;
+  /** Times we've collaborated in the last 30 days. */
+  collabCount?: number;
+  /** Resolved home-club name for this person, when known. */
+  homeClubName?: string;
+  /** Primary boat name (e.g. "Moonraker"), when known. */
+  boatName?: string;
+  /** Count of plans we share — blueprint subscriptions both of us have. */
+  sharedPlans?: number;
+}
+
+/**
+ * Compose the row subtitle from whatever metadata we have. Returns undefined
+ * if there's nothing meaningful to show (caller falls back to the email line).
+ */
+function composeSubtitle(row: {
+  source: PersonRow['source'];
+  homeClubName?: string;
+  boatName?: string;
+  collabCount?: number;
+  lastCollabAt?: string;
+  sharedPlans?: number;
+}): string | undefined {
+  const parts: string[] = [];
+  if (row.homeClubName) parts.push(row.homeClubName);
+  if (row.boatName) parts.push(row.boatName);
+  if (row.source === 'recent' && row.collabCount) {
+    const times = row.collabCount === 1 ? '1 time' : `${row.collabCount} times`;
+    parts.push(`sailed ${times} together`);
+    if (row.lastCollabAt) parts.push(lastPrefixed(row.lastCollabAt));
+  } else if (row.sharedPlans && row.sharedPlans > 0) {
+    parts.push(`${row.sharedPlans} shared plan${row.sharedPlans === 1 ? '' : 's'}`);
+  } else if (row.source === 'follow' && row.sharedPlans === 0 && parts.length > 0) {
+    // Only tack on "no shared plan" when there's other context to anchor it —
+    // a bare "no shared plan" subtitle reads negative without club/boat.
+    parts.push('no shared plan');
+  }
+  return parts.length > 0 ? parts.join(' · ') : undefined;
+}
+
+/**
+ * Short, human relative date — "today", "yesterday", "Saturday", "Apr 12".
+ * Designed for subtitles where compactness matters more than precision.
+ */
+function formatRelative(iso: string): string {
+  const then = new Date(iso);
+  const now = new Date();
+  const days = Math.floor((now.getTime() - then.getTime()) / 86_400_000);
+  if (days <= 0) return 'today';
+  if (days === 1) return 'yesterday';
+  if (days < 7) return then.toLocaleDateString(undefined, { weekday: 'long' });
+  return then.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+}
+
+/**
+ * "today" reads weird after a "last" prefix; only prefix "last" for prior dates.
+ */
+function lastPrefixed(iso: string): string {
+  const rel = formatRelative(iso);
+  if (rel === 'today' || rel === 'yesterday') return rel;
+  return `last ${rel}`;
 }
 
 interface SelectedRow {
@@ -147,6 +210,10 @@ export function AddPeoplePicker({
       // 2. Recent crew — distinct user_ids from step_collaborators within the
       //    last 30 days where I was the owner. Falls back silently if the
       //    table is empty (Phase 11 schema, new feature).
+      //
+      //    We also aggregate count + most-recent timestamp per user so the
+      //    row subtitle can render "sailed N times · last Saturday".
+      const collabAgg = new Map<string, { count: number; lastAt: string }>();
       try {
         const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
         const { data: recent } = await supabase
@@ -155,11 +222,19 @@ export function AddPeoplePicker({
           .eq('added_by', user.id)
           .gte('added_at', since)
           .order('added_at', { ascending: false })
-          .limit(20);
+          .limit(100);
         if (recent && recent.length > 0) {
-          const recentIds = Array.from(new Set(recent.map((r: any) => r.user_id))).filter(
-            (id: string) => id !== user.id,
-          );
+          for (const row of recent as { user_id: string; added_at: string }[]) {
+            if (row.user_id === user.id) continue;
+            const prior = collabAgg.get(row.user_id);
+            if (!prior) {
+              collabAgg.set(row.user_id, { count: 1, lastAt: row.added_at });
+            } else {
+              prior.count += 1;
+              if (row.added_at > prior.lastAt) prior.lastAt = row.added_at;
+            }
+          }
+          const recentIds = Array.from(collabAgg.keys());
           if (recentIds.length > 0) {
             const { data: profs } = await supabase
               .from('users')
@@ -175,6 +250,7 @@ export function AddPeoplePicker({
               if (seen.has(id)) continue;
               const p = profMap.get(id) as any;
               const s = sailorMap.get(id) as any;
+              const agg = collabAgg.get(id)!;
               seen.add(id);
               aggregated.unshift({
                 userId: id,
@@ -183,12 +259,106 @@ export function AddPeoplePicker({
                 avatarEmoji: s?.avatar_emoji,
                 avatarColor: s?.avatar_color,
                 source: 'recent',
+                collabCount: agg.count,
+                lastCollabAt: agg.lastAt,
               });
             }
           }
         }
       } catch {
         /* swallow */
+      }
+
+      // 3. Enrichment pass — for every person we just collected, fetch home
+      //    club, primary boat, coach + mentor capabilities, and the count
+      //    of plans we share (blueprint subscriptions in common) so the
+      //    row subtitle and tag pills can render real data. Each query is
+      //    independent and tolerates missing tables/policies silently.
+      if (aggregated.length > 0) {
+        const allIds = aggregated.map((p) => p.userId);
+        const [clubsRes, coachesRes, boatsRes, mySubsRes, theirSubsRes, capsRes] = await Promise.all([
+          supabase
+            .from('sailor_profiles')
+            .select('user_id, home_club_id')
+            .in('user_id', allIds),
+          supabase
+            .from('coach_profiles')
+            .select('user_id, is_active')
+            .in('user_id', allIds)
+            .eq('is_active', true),
+          supabase
+            .from('sailor_boats')
+            .select('sailor_id, name, is_primary')
+            .in('sailor_id', allIds)
+            .eq('is_primary', true),
+          supabase
+            .from('blueprint_subscriptions')
+            .select('blueprint_id')
+            .eq('subscriber_id', user.id),
+          supabase
+            .from('blueprint_subscriptions')
+            .select('subscriber_id, blueprint_id')
+            .in('subscriber_id', allIds),
+          supabase
+            .from('user_capabilities')
+            .select('user_id, capability_type')
+            .in('user_id', allIds)
+            .eq('is_active', true),
+        ]);
+
+        const clubIdByUser = new Map<string, string>();
+        for (const row of (clubsRes.data ?? []) as { user_id: string; home_club_id: string | null }[]) {
+          if (row.home_club_id) clubIdByUser.set(row.user_id, row.home_club_id);
+        }
+        const coachSet = new Set<string>(
+          ((coachesRes.data ?? []) as { user_id: string }[]).map((c) => c.user_id),
+        );
+        const mentorSet = new Set<string>();
+        for (const row of (capsRes.data ?? []) as { user_id: string; capability_type: string }[]) {
+          if (row.capability_type === 'mentoring') mentorSet.add(row.user_id);
+          // Also accept 'coaching' capability as a COACH signal — coach_profiles
+          // is the legacy source; capabilities is the additive successor.
+          if (row.capability_type === 'coaching') coachSet.add(row.user_id);
+        }
+        const boatNameByUser = new Map<string, string>();
+        for (const b of (boatsRes.data ?? []) as { sailor_id: string; name: string }[]) {
+          if (b.name && !boatNameByUser.has(b.sailor_id)) {
+            boatNameByUser.set(b.sailor_id, b.name);
+          }
+        }
+
+        const mySubs = new Set<string>(
+          ((mySubsRes.data ?? []) as { blueprint_id: string }[]).map((s) => s.blueprint_id),
+        );
+        const sharedPlanCount = new Map<string, number>();
+        for (const row of (theirSubsRes.data ?? []) as { subscriber_id: string; blueprint_id: string }[]) {
+          if (!mySubs.has(row.blueprint_id)) continue;
+          sharedPlanCount.set(row.subscriber_id, (sharedPlanCount.get(row.subscriber_id) ?? 0) + 1);
+        }
+
+        let clubNameById = new Map<string, string>();
+        const clubIds = Array.from(new Set(Array.from(clubIdByUser.values())));
+        if (clubIds.length > 0) {
+          const { data: clubs } = await supabase
+            .from('clubs')
+            .select('id, name')
+            .in('id', clubIds);
+          clubNameById = new Map(
+            ((clubs ?? []) as { id: string; name: string }[]).map((c) => [c.id, c.name]),
+          );
+        }
+
+        for (const row of aggregated) {
+          const clubId = clubIdByUser.get(row.userId);
+          row.homeClubName = clubId ? clubNameById.get(clubId) : undefined;
+          row.boatName = boatNameByUser.get(row.userId);
+          row.sharedPlans = sharedPlanCount.get(row.userId) ?? 0;
+          const tags: string[] = [];
+          if (coachSet.has(row.userId)) tags.push('COACH');
+          if (mentorSet.has(row.userId)) tags.push('MENTOR');
+          row.tags = tags.length > 0 ? tags : undefined;
+          row.subtitle = composeSubtitle(row);
+        }
       }
 
       setPeople(aggregated);
@@ -323,10 +493,36 @@ export function AddPeoplePicker({
             )}
           </View>
           <View style={styles.pkRowText}>
-            <Text style={styles.pkRowName} numberOfLines={1}>
-              {row.displayName}
-            </Text>
-            {row.email && row.email !== row.displayName ? (
+            <View style={styles.nameLine}>
+              <Text style={styles.pkRowName} numberOfLines={1}>
+                {row.displayName}
+              </Text>
+              {isSelected && selectedRow?.role ? (
+                <View style={styles.rolePillInline}>
+                  <Text style={styles.rolePillInlineText}>
+                    {selectedRow.role.toUpperCase()}
+                  </Text>
+                </View>
+              ) : null}
+            </View>
+            {row.tags && row.tags.length > 0 ? (
+              <View style={styles.tagRow}>
+                {row.tags.map((t) => (
+                  <View key={t} style={styles.tagPill}>
+                    <Text style={styles.tagPillText}>{t}</Text>
+                  </View>
+                ))}
+                {row.subtitle ? (
+                  <Text style={styles.pkRowSub} numberOfLines={1}>
+                    {row.subtitle}
+                  </Text>
+                ) : null}
+              </View>
+            ) : row.subtitle ? (
+              <Text style={styles.pkRowSub} numberOfLines={1}>
+                {row.subtitle}
+              </Text>
+            ) : row.email && row.email !== row.displayName ? (
               <Text style={styles.pkRowSub} numberOfLines={1}>
                 {row.email}
               </Text>
@@ -368,8 +564,6 @@ export function AddPeoplePicker({
     );
   };
 
-  const totalSelectedRoles = selected.filter((s) => s.role).length;
-
   return (
     <Modal
       visible={visible}
@@ -409,8 +603,7 @@ export function AddPeoplePicker({
         {selected.length > 0 ? (
           <View style={styles.selectedStrip}>
             <Text style={styles.selectedEye}>
-              {selected.length} selected · {totalSelectedRoles}/{selected.length} role
-              {totalSelectedRoles === 1 ? '' : 's'} set
+              {selected.length} selected · Tap a chip to change role
             </Text>
             <ScrollView
               horizontal
@@ -461,13 +654,13 @@ export function AddPeoplePicker({
         >
           {loading ? (
             <View style={styles.loadingWrap}>
-              <ActivityIndicator color={STEP_COLORS.accent} />
+              <ActivityIndicator color={IOS_COLORS.systemBlue} />
             </View>
           ) : (
             <>
               {query && searching ? (
                 <View style={styles.loadingWrap}>
-                  <ActivityIndicator color={STEP_COLORS.accent} />
+                  <ActivityIndicator color={IOS_COLORS.systemBlue} />
                 </View>
               ) : null}
 
@@ -486,7 +679,7 @@ export function AddPeoplePicker({
                   <View style={styles.groupHead}>
                     <Text style={styles.groupHeadText}>People you follow</Text>
                     <Text style={styles.groupCount}>
-                      {grouped.follow.length} {grouped.follow.length === 1 ? 'person' : 'people'}
+                      {grouped.follow.length} followed
                     </Text>
                   </View>
                   {grouped.follow.map(renderRow)}
@@ -551,7 +744,7 @@ const styles = StyleSheet.create({
   },
   headBtn: {
     fontSize: 15,
-    color: STEP_COLORS.accent,
+    color: IOS_COLORS.systemBlue,
     minWidth: 70,
   },
   headDone: {
@@ -622,7 +815,7 @@ const styles = StyleSheet.create({
     fontSize: 12.5,
     fontWeight: '600',
     color: IOS_COLORS.label,
-    maxWidth: 110,
+    maxWidth: 180,
   },
   chipRole: {
     fontSize: 11,
@@ -678,15 +871,53 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: 0,
   },
+  nameLine: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
   pkRowName: {
     fontSize: 15,
     fontWeight: '500',
     color: IOS_COLORS.label,
+    flexShrink: 1,
   },
   pkRowSub: {
     fontSize: 12,
     color: IOS_COLORS.tertiaryLabel,
     marginTop: 1,
+    flexShrink: 1,
+  },
+  rolePillInline: {
+    paddingVertical: 1,
+    paddingHorizontal: 6,
+    borderRadius: 4,
+    backgroundColor: 'rgba(52,199,89,0.18)',
+  },
+  rolePillInlineText: {
+    fontSize: 9.5,
+    fontWeight: '700',
+    color: '#1B7F3A',
+    letterSpacing: 0.4,
+  },
+  tagRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 2,
+    flexWrap: 'wrap',
+  },
+  tagPill: {
+    paddingVertical: 1,
+    paddingHorizontal: 6,
+    borderRadius: 4,
+    backgroundColor: 'rgba(0,122,255,0.14)',
+  },
+  tagPillText: {
+    fontSize: 9.5,
+    fontWeight: '700',
+    color: IOS_COLORS.systemBlue,
+    letterSpacing: 0.4,
   },
   chk: {
     width: 22,
@@ -698,8 +929,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   chkOn: {
-    backgroundColor: '#34C759',
-    borderColor: '#34C759',
+    backgroundColor: IOS_COLORS.systemBlue,
+    borderColor: IOS_COLORS.systemBlue,
   },
   roleStrip: {
     flexDirection: 'row',
@@ -721,8 +952,8 @@ const styles = StyleSheet.create({
     borderColor: IOS_COLORS.systemGray4,
   },
   roleOptActive: {
-    backgroundColor: '#34C759',
-    borderColor: '#34C759',
+    backgroundColor: IOS_COLORS.systemBlue,
+    borderColor: IOS_COLORS.systemBlue,
   },
   roleOptText: {
     fontSize: 11.5,
