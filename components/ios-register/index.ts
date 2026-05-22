@@ -76,3 +76,20 @@ export {
   type IOSRegisterErrorAction,
   type IOSRegisterErrorDisclosure,
 } from './IOSRegisterErrorState';
+export {
+  TimelineZoomCanvas,
+  ZoomRailIndicator,
+  L1StepView,
+  L2WeekView,
+  L3SeasonView,
+  L4YearsView,
+  StepDigestCard,
+  InterestHeader,
+  SAMPLE_DATASET as TIMELINE_ZOOM_SAMPLE_DATASET,
+  CAPABILITY_PALETTE as TIMELINE_ZOOM_CAPABILITY_PALETTE,
+  type ZoomLevel,
+  type TimelineStep,
+  type TimelineWeek,
+  type TimelineSeason,
+  type TimelineDataset,
+} from './timeline-zoom';
