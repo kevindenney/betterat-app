@@ -45,6 +45,7 @@ import {
   StudioNavSection,
 } from '@/components/studio/StudioShell';
 import { StudioLoading } from '@/components/studio/StudioLoading';
+import { Gradient } from '@/components/studio/Gradient';
 
 type EditorTab =
   | 'overview'
@@ -370,13 +371,10 @@ function CoverCard({
   onPickGradient: (i: number) => void;
   selectedIdx: number;
 }) {
-  // Approximating CSS linear-gradient with a base color + soft top overlay
-  // until expo-linear-gradient is wired into Studio surfaces.
   return (
     <StudioPanel title="Cover" meta={<Text style={styles.panelMetaText}>1080 × 1350 · shown on Discover</Text>}>
       <View style={cover.body}>
-        <View style={[cover.preview, { backgroundColor: gradient[0] }]}>
-          <View style={[cover.previewOverlay, { backgroundColor: gradient[1] }]} />
+        <Gradient colors={gradient} style={cover.preview}>
           {orgShort ? (
             <View style={cover.badge}>
               <Text style={cover.badgeText}>{orgShort}</Text>
@@ -388,7 +386,7 @@ function CoverCard({
               {title || 'Untitled\nBlueprint'}
             </Text>
           </View>
-        </View>
+        </Gradient>
         <View style={cover.actions}>
           <StudioButton variant="ghost" icon="cloud-upload-outline" label="Replace image" />
           <StudioButton variant="ghost" icon="color-palette-outline" label="Generate gradient" />
@@ -397,13 +395,9 @@ function CoverCard({
               <Pressable
                 key={i}
                 onPress={() => onPickGradient(i)}
-                style={[
-                  cover.swatch,
-                  { backgroundColor: g[0] },
-                  i === selectedIdx && cover.swatchOn,
-                ]}
+                style={[cover.swatch, i === selectedIdx && cover.swatchOn]}
               >
-                <View style={[cover.swatchOverlay, { backgroundColor: g[1] }]} />
+                <Gradient colors={g} style={cover.swatchFill} />
               </Pressable>
             ))}
           </View>
@@ -857,14 +851,6 @@ const cover = StyleSheet.create({
       boxShadow: '0 8px 24px -10px rgba(184, 90, 102, 0.4)',
     } as any),
   },
-  previewOverlay: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    top: 0,
-    bottom: 0,
-    opacity: 0.5,
-  },
   previewText: { zIndex: 1 },
   previewOrg: {
     fontSize: 9,
@@ -898,10 +884,7 @@ const cover = StyleSheet.create({
     borderRadius: 6,
     overflow: 'hidden',
   },
-  swatchOverlay: {
-    flex: 1,
-    opacity: 0.5,
-  },
+  swatchFill: { flex: 1 },
   swatchOn: {
     borderWidth: 2,
     borderColor: '#007AFF',

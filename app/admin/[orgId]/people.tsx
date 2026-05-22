@@ -271,6 +271,8 @@ export default function AdminPeoplePage() {
 
       <AddPersonSheet
         visible={showAddSheet}
+        orgId={orgId as string}
+        invitedByUserId={user?.id ?? null}
         orgName={orgName}
         orgShortName={orgShortLabel}
         seatsAvailable={seatsAvailable}
@@ -279,7 +281,6 @@ export default function AdminPeoplePage() {
         defaultBlueprints={['Adult Health I · M4', 'MSN second-year onboarding']}
         defaultCohortLabel="Spring '26 · MSN second-year"
         onClose={() => setShowAddSheet(false)}
-        onSubmit={() => setShowAddSheet(false)}
       />
     </View>
   );

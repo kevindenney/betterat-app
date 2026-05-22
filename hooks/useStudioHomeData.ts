@@ -1,22 +1,16 @@
 /**
  * useStudioHomeData
  *
- * Data shape for Creator Studio · Home (Frame 4). Currently returns stub
- * empty arrays + zero counts — real queries land as the backing schema
- * settles. The component renders empty states gracefully so the surface
- * is testable before data arrives.
- *
- * Eventual queries (TODO):
- *   - blueprints: authored by user_id (via blueprint authorship table or
- *     blueprints.author_user_id)
- *   - threads: step_discussions where the user is a subscribed blueprint's
- *     mentor and the latest message is from a subscriber
- *   - kpis.activeSubscribers: distinct subscribers across authored blueprints
- *   - kpis.stepsReflected: 7d aggregate from step_reflections
- *   - kpis.needAttention: students with no step in last N days, or flagged
- *   - kpis.avgSession: average session duration across active subscribers
+ * Data shape for Creator Studio · Home (Frame 4). Queries real
+ * timeline_blueprints rows authored by the signed-in user + their
+ * subscriber counts. Threads and KPIs that don't have a clean
+ * backing source yet stay stubbed — see TODOs below.
  */
 
+import { useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/services/supabase';
+import { useAuth } from '@/providers/AuthProvider';
 import { useProfileMenuData } from '@/hooks/useProfileMenuData';
 
 export type BlueprintStatus = 'live' | 'draft';
@@ -26,31 +20,31 @@ export interface StudioBlueprint {
   title: string;
   subtitle: string;
   status: BlueprintStatus;
-  version: string | null;          // "v3.2" or null for drafts
+  version: string | null;
   subscriberCount: number;
   stepCount: number;
-  totalSteps: number | null;        // for drafts: "6 of 30"
-  coAuthors: string[];              // ["Patel", "Choi"]
-  coverGradient: [string, string];  // [from, to]
-  orgShort: string | null;          // "JH" badge on cover
-  lastEditLabel: string;            // "2h ago", "Tue", "Mon"
+  totalSteps: number | null;
+  coAuthors: string[];
+  coverGradient: [string, string];
+  orgShort: string | null;
+  lastEditLabel: string;
 }
 
 export interface StudioThread {
   id: string;
   fromInitials: string;
   fromName: string;
-  blueprintLabel: string;           // "HF handoff" · "Telemetry" · "general"
+  blueprintLabel: string;
   preview: string;
-  ageLabel: string;                 // "14m ago", "Tue"
+  ageLabel: string;
   awaiting: boolean;
   gradient: [string, string];
 }
 
 export interface StudioKpis {
   activeSubscribers: number;
-  activeSubscribersDelta: number | null;   // +4 this week
-  stepsReflectedPct: number | null;        // 87
+  activeSubscribersDelta: number | null;
+  stepsReflectedPct: number | null;
   needAttention: number | null;
   avgSessionMinutes: number | null;
 }
@@ -65,26 +59,110 @@ export interface StudioHomeData {
   threadAwaitingCount: number;
 }
 
-export function useStudioHomeData(): StudioHomeData {
-  // While stubbed we still pull the user's role so empty states can be
-  // copy-tailored ("first blueprint" vs "your authored blueprints").
-  const menu = useProfileMenuData();
+// Deterministic gradient per blueprint id so authored covers stay stable.
+const COVER_PALETTE: [string, string][] = [
+  ['#7A6A8E', '#4E6A85'],
+  ['#B85A66', '#7A6A8E'],
+  ['#5A8DB8', '#28406B'],
+  ['#6E8B5A', '#5A8B8B'],
+  ['#8B6E5A', '#B8855A'],
+];
 
-  // TODO: replace stubs with real queries. Returning empty arrays today so the
-  // home renders cleanly until the backing schema is decided.
-  const blueprints: StudioBlueprint[] = [];
+function gradientFor(id: string): [string, string] {
+  let h = 0;
+  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
+  return COVER_PALETTE[h % COVER_PALETTE.length];
+}
+
+function relativeEdit(iso: string | null | undefined): string {
+  if (!iso) return '—';
+  const d = new Date(iso).getTime();
+  const diffMin = Math.max(0, Math.round((Date.now() - d) / 60_000));
+  if (diffMin < 60) return `${diffMin}m ago`;
+  const diffHr = Math.round(diffMin / 60);
+  if (diffHr < 24) return `${diffHr}h ago`;
+  const diffDay = Math.round(diffHr / 24);
+  if (diffDay === 1) return 'Yesterday';
+  if (diffDay < 7) return `${diffDay}d ago`;
+  return new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+}
+
+export function useStudioHomeData(): StudioHomeData {
+  const { user } = useAuth();
+  const menu = useProfileMenuData();
+  const userId = user?.id;
+  const activeOrgShort = menu.activeOrg?.org_short_name ?? null;
+
+  const { data: blueprintsData, isLoading: blueprintsLoading } = useQuery({
+    queryKey: ['studio-home-blueprints', userId],
+    enabled: !!userId,
+    staleTime: 30_000,
+    queryFn: async (): Promise<StudioBlueprint[]> => {
+      if (!userId) return [];
+      const { data, error } = await supabase
+        .from('timeline_blueprints')
+        .select(
+          'id, title, tagline, description, is_published, subscriber_count, ' +
+            'duration_weeks, updated_at, organization_id',
+        )
+        .eq('user_id', userId)
+        .order('updated_at', { ascending: false });
+      if (error) {
+        console.warn('[useStudioHomeData] blueprints query failed', error);
+        return [];
+      }
+      type Row = {
+        id: string;
+        title: string | null;
+        tagline: string | null;
+        description: string | null;
+        is_published: boolean | null;
+        subscriber_count: number | null;
+        duration_weeks: number | null;
+        updated_at: string | null;
+        organization_id: string | null;
+      };
+      return ((data ?? []) as Row[]).map((r): StudioBlueprint => {
+        const status: BlueprintStatus = r.is_published ? 'live' : 'draft';
+        return {
+          id: r.id,
+          title: r.title ?? 'Untitled blueprint',
+          subtitle:
+            r.tagline?.trim() ||
+            r.description?.trim() ||
+            (r.duration_weeks ? `${r.duration_weeks}-week module` : '—'),
+          status,
+          version: r.is_published ? 'v1.0' : null,
+          subscriberCount: r.subscriber_count ?? 0,
+          stepCount: 0,             // TODO: count from timeline_steps when wired
+          totalSteps: null,
+          coAuthors: [],            // TODO: blueprint_authors table doesn't exist yet
+          coverGradient: gradientFor(r.id),
+          orgShort: r.organization_id && activeOrgShort ? activeOrgShort : null,
+          lastEditLabel: relativeEdit(r.updated_at),
+        };
+      });
+    },
+  });
+
+  const blueprints = useMemo(() => blueprintsData ?? [], [blueprintsData]);
+
+  // TODO: wire threads (step_discussions joined to authored blueprints).
+  // Today: stub empty so the panel renders its empty state cleanly.
   const threads: StudioThread[] = [];
 
+  const activeSubscribers = blueprints.reduce((sum, b) => sum + b.subscriberCount, 0);
+
   const kpis: StudioKpis = {
-    activeSubscribers: 0,
-    activeSubscribersDelta: null,
-    stepsReflectedPct: null,
-    needAttention: null,
-    avgSessionMinutes: null,
+    activeSubscribers,
+    activeSubscribersDelta: null,         // would need a week-over-week diff table
+    stepsReflectedPct: null,              // needs step_reflections aggregate
+    needAttention: null,                  // needs activity-staleness check
+    avgSessionMinutes: null,              // needs session events
   };
 
   return {
-    loading: menu.loading,
+    loading: menu.loading || blueprintsLoading,
     blueprints,
     threads,
     kpis,

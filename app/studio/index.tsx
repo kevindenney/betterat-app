@@ -45,6 +45,7 @@ import {
   StudioNavSection,
 } from '@/components/studio/StudioShell';
 import { StudioLoading } from '@/components/studio/StudioLoading';
+import { Gradient } from '@/components/studio/Gradient';
 
 export default function StudioHomePage() {
   const { width } = useWindowDimensions();
@@ -398,15 +399,7 @@ function BlueprintCover({ bp }: { bp: StudioBlueprint }) {
     );
   }
   return (
-    <View
-      style={[
-        styles.cover,
-        {
-          backgroundColor: bp.coverGradient[0],
-          // RN doesn't do gradients without a lib; approximate with solid + overlay text.
-        },
-      ]}
-    >
+    <Gradient colors={bp.coverGradient} style={styles.cover}>
       {bp.orgShort ? (
         <View style={styles.coverOrgBadge}>
           <Text style={styles.coverOrgBadgeText}>{bp.orgShort}</Text>
@@ -415,7 +408,7 @@ function BlueprintCover({ bp }: { bp: StudioBlueprint }) {
       <Text style={styles.coverLabel} numberOfLines={2}>
         {bp.title.split(' ').slice(0, 2).join(' ').toUpperCase()}
       </Text>
-    </View>
+    </Gradient>
   );
 }
 

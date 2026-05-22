@@ -16,6 +16,8 @@
 import React, { useMemo, useState } from 'react';
 import { View, Text, Pressable, StyleSheet, TextInput, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/services/supabase';
 import { StudioButton } from '@/components/studio/StudioShell';
 
 type InviteMethod = 'email' | 'csv' | 'sso' | 'link';
@@ -28,6 +30,8 @@ interface EmailChip {
 
 export interface AddPersonSheetProps {
   visible: boolean;
+  orgId: string;
+  invitedByUserId: string | null;
   orgName: string;
   orgShortName: string;
   seatsAvailable: number;
@@ -44,8 +48,24 @@ export interface AddPersonSheetProps {
   }) => void;
 }
 
+const ROLE_LABEL: Record<PersonRole, string> = {
+  student: 'Student',
+  author: 'Blueprint author',
+  mentor: 'Mentor',
+  admin: 'Admin',
+};
+
+const ROLE_KEY: Record<PersonRole, string> = {
+  student: 'member',
+  author: 'faculty',
+  mentor: 'preceptor',
+  admin: 'admin',
+};
+
 export function AddPersonSheet({
   visible,
+  orgId,
+  invitedByUserId,
   orgName,
   orgShortName,
   seatsAvailable,
@@ -56,16 +76,48 @@ export function AddPersonSheet({
   onClose,
   onSubmit,
 }: AddPersonSheetProps) {
+  const queryClient = useQueryClient();
   const [method, setMethod] = useState<InviteMethod>('email');
   const [emailDraft, setEmailDraft] = useState('');
-  const [emails, setEmails] = useState<EmailChip[]>([
-    { email: 'aida.salim@jh.edu', isValid: true },
-    { email: 'sam.okafor@jh.edu', isValid: true },
-    { email: 'priya.lin@gmail.com', isValid: false },
-  ]);
+  const [emails, setEmails] = useState<EmailChip[]>([]);
   const [role, setRole] = useState<PersonRole>('student');
   const [cohort] = useState(defaultCohortLabel);
   const [autoSubscribe, setAutoSubscribe] = useState(true);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+
+  const sendMutation = useMutation({
+    mutationFn: async () => {
+      if (!invitedByUserId) throw new Error('Not signed in');
+      if (emails.length === 0) throw new Error('Add at least one email address');
+      const payload = emails.map((chip) => ({
+        organization_id: orgId,
+        invitee_email: chip.email,
+        role_label: ROLE_LABEL[role],
+        role_key: ROLE_KEY[role],
+        invited_by: invitedByUserId,
+        channel: 'email',
+        status: 'sent' as const,
+        metadata: {
+          auto_subscribe: autoSubscribe,
+          cohort_label: cohort,
+          verified_domain: chip.isValid,
+        },
+      }));
+      const { error } = await supabase.from('organization_invites').insert(payload);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-people', orgId] });
+      onSubmit?.({ emails, role, cohort, autoSubscribe });
+      setEmails([]);
+      setSubmitError(null);
+      onClose();
+    },
+    onError: (err: unknown) => {
+      const msg = err instanceof Error ? err.message : 'Failed to send invites';
+      setSubmitError(msg);
+    },
+  });
 
   const seatNote = `${seatsAvailable} of ${seatsTotal} seats available · adds count against your plan`;
 
@@ -316,15 +368,18 @@ export function AddPersonSheet({
               : ''}
           </Text>
           <View style={s.footerActions}>
+            {submitError ? (
+              <Text style={s.submitError} numberOfLines={2}>
+                {submitError}
+              </Text>
+            ) : null}
             <StudioButton variant="ghost" label="Cancel" onPress={onClose} />
             <StudioButton
               variant="primary"
               accent="navy"
               icon="send"
-              label="Send invites"
-              onPress={() =>
-                onSubmit?.({ emails, role, cohort, autoSubscribe })
-              }
+              label={sendMutation.isPending ? 'Sending…' : 'Send invites'}
+              onPress={() => sendMutation.mutate()}
             />
           </View>
         </View>
@@ -567,5 +622,12 @@ const s = StyleSheet.create({
   },
   footerSummary: { flex: 1, fontSize: 12, color: 'rgba(60, 60, 67, 0.6)', lineHeight: 16 },
   footerSummaryStrong: { color: 'rgba(60, 60, 67, 0.85)', fontWeight: '600' },
-  footerActions: { flexDirection: 'row', gap: 8 },
+  footerActions: { flexDirection: 'row', gap: 8, alignItems: 'center' },
+  submitError: {
+    fontSize: 11.5,
+    color: '#FF3B30',
+    fontWeight: '500',
+    maxWidth: 280,
+    marginRight: 8,
+  },
 });
