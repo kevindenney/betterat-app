@@ -616,11 +616,7 @@ export function AddPeoplePicker({
             <Text style={styles.selectedEye}>
               {selected.length} selected · Tap a chip to change role
             </Text>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.chipsRow}
-            >
+            <View style={styles.chipsRow}>
               {selected.map((s) => (
                 <Pressable
                   key={s.userId}
@@ -654,7 +650,7 @@ export function AddPeoplePicker({
                   </Pressable>
                 </Pressable>
               ))}
-            </ScrollView>
+            </View>
           </View>
         ) : null}
 
@@ -797,8 +793,9 @@ const styles = StyleSheet.create({
   },
   chipsRow: {
     flexDirection: 'row',
-    gap: 6,
-    paddingRight: 8,
+    flexWrap: 'wrap',
+    rowGap: 6,
+    columnGap: 6,
   },
   pkChip: {
     flexDirection: 'row',
