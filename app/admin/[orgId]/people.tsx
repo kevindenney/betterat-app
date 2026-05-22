@@ -106,6 +106,12 @@ export default function AdminPeoplePage() {
         },
         { key: 'cohorts', icon: 'school-outline', label: 'Cohorts', count: 14 },
         { key: 'blueprints', icon: 'git-branch-outline', label: 'Blueprints', count: 7 },
+        {
+          key: 'sites',
+          icon: 'map-outline',
+          label: 'Sites',
+          onPress: () => router.push(`/admin/${orgId}/sites`),
+        },
         { key: 'insights', icon: 'pie-chart-outline', label: 'Insights' },
       ],
     },
