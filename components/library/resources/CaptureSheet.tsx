@@ -26,6 +26,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
 import { useAuth } from '@/providers/AuthProvider';
+import { useInterest } from '@/providers/InterestProvider';
 import { showAlert } from '@/lib/utils/crossPlatformAlert';
 import {
   pickFile,
@@ -64,12 +65,17 @@ interface Props {
       fileName: string;
       sizeBytes: number;
     };
+    /** Interest ids selected via the "Relevant for" chip row. Caller writes
+     *  these into library_item_interests so the M2M scope lands at capture
+     *  time (no untagged-everywhere fallback). */
+    interestIds: string[];
   }) => void;
 }
 
 export function CaptureSheet({ visible, onClose, onSave }: Props) {
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
+  const { userInterests, currentInterest } = useInterest();
   const [mode, setMode] = useState<CaptureMode>('link');
   const [picked, setPicked] = useState<PickedFile | null>(null);
   const [pickError, setPickError] = useState<string | null>(null);
@@ -77,6 +83,28 @@ export function CaptureSheet({ visible, onClose, onSave }: Props) {
   const [attachTo, setAttachTo] = useState<AttachTo>('standalone');
   const [pastedText, setPastedText] = useState('');
   const [linkUrl, setLinkUrl] = useState('');
+  const [interestIds, setInterestIds] = useState<Set<string>>(() =>
+    currentInterest ? new Set([currentInterest.id]) : new Set(),
+  );
+
+  // Keep the chip preselection aligned with the active interest each time
+  // the sheet opens. Only re-seeds on visible→true transitions so the
+  // user's mid-capture chip toggles aren't reset on re-render.
+  React.useEffect(() => {
+    if (!visible) return;
+    setInterestIds(currentInterest ? new Set([currentInterest.id]) : new Set());
+    // intentionally omit currentInterest to avoid wiping toggles mid-sheet
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visible]);
+
+  const toggleInterest = (id: string) => {
+    setInterestIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
 
   const handleModeChange = (next: CaptureMode) => {
     if (next !== mode) {
@@ -148,6 +176,7 @@ export function CaptureSheet({ visible, onClose, onSave }: Props) {
       url: mode === 'link' ? linkUrl.trim() : undefined,
       pastedText: mode === 'paste' ? pastedText.trim() : undefined,
       upload,
+      interestIds: Array.from(interestIds),
     });
     setLinkUrl('');
     setPastedText('');
@@ -305,6 +334,42 @@ export function CaptureSheet({ visible, onClose, onSave }: Props) {
           {/* Auto-detected source/year/tags chip card was Wave 2e demo
               content tied to the hardcoded AACN payload — hide until a real
               detection pass exists. */}
+
+          {userInterests.length > 0 ? (
+            <View style={styles.relevantFor}>
+              <Text style={styles.relevantForLbl}>Relevant for</Text>
+              <View style={styles.relevantChips}>
+                {userInterests.map((i) => {
+                  const on = interestIds.has(i.id);
+                  return (
+                    <TouchableOpacity
+                      key={i.id}
+                      activeOpacity={0.7}
+                      onPress={() => toggleInterest(i.id)}
+                      style={[styles.relChip, on ? styles.relChipOn : null]}
+                    >
+                      {on ? (
+                        <Ionicons name="checkmark" size={11} color="#FFFFFF" />
+                      ) : null}
+                      <Text
+                        style={[
+                          styles.relChipLabel,
+                          on ? styles.relChipLabelOn : null,
+                        ]}
+                      >
+                        {i.name}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+              <Text style={styles.relevantHint}>
+                {interestIds.size === 0
+                  ? 'Untagged — will show in every interest. Tap to scope.'
+                  : `Tagged for ${interestIds.size} interest${interestIds.size === 1 ? '' : 's'}.`}
+              </Text>
+            </View>
+          ) : null}
 
           <View style={styles.attach}>
             <Text style={styles.attachLbl}>Attach to</Text>
@@ -662,6 +727,51 @@ const styles = StyleSheet.create({
     gap: 8,
     borderWidth: 0.5,
     borderColor: 'rgba(60,60,67,0.18)',
+  },
+  relevantFor: {
+    backgroundColor: IOS_COLORS.systemBackground,
+    borderRadius: 12,
+    padding: 12,
+    gap: 8,
+    borderWidth: 0.5,
+    borderColor: 'rgba(60,60,67,0.18)',
+  },
+  relevantForLbl: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: IOS_COLORS.secondaryLabel,
+    letterSpacing: 0.3,
+    textTransform: 'uppercase',
+  },
+  relevantChips: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  relChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 999,
+    backgroundColor: IOS_COLORS.tertiarySystemGroupedBackground,
+  },
+  relChipOn: {
+    backgroundColor: IOS_COLORS.label,
+  },
+  relChipLabel: {
+    fontSize: 12.5,
+    fontWeight: '500',
+    color: IOS_COLORS.secondaryLabel,
+  },
+  relChipLabelOn: {
+    color: '#FFFFFF',
+  },
+  relevantHint: {
+    fontSize: 11,
+    color: IOS_COLORS.tertiaryLabel,
+    fontStyle: 'italic',
   },
   attachLbl: {
     fontSize: 12,

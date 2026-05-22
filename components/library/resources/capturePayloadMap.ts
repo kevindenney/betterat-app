@@ -23,6 +23,10 @@ export interface CaptureSheetPayload {
     fileName: string;
     sizeBytes: number;
   };
+  /** Interest ids selected via the "Relevant for" chip row in CaptureSheet.
+   *  Pass-through into library_item_interests so M2M scoping lands at
+   *  capture time. */
+  interestIds: string[];
 }
 
 function deriveKindFromUrl(url: string): LibraryFormat {
@@ -58,9 +62,13 @@ export function mapCapturePayloadToLibraryItem(
   payload: CaptureSheetPayload,
   interestId: string | undefined,
 ): CreateLibraryItemInput | null {
+  // The chip row defaults to the active interest preselected, so its ids
+  // already include `interestId`. Pass them through as extra_interest_ids
+  // — useCreateLibraryItem dedupes against the primary interest_id.
   const base = {
     interest_id: interestId ?? null,
     topic_tags: payload.tags,
+    extra_interest_ids: payload.interestIds,
   };
 
   if (payload.mode === 'link') {
