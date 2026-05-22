@@ -1134,7 +1134,7 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab }
               do={doPhase}
               reflect={reflectPhase}
               discussion={
-                showBlueprintChrome
+                blueprintChrome
                   ? activePhase === 'discussion'
                     ? 'live'
                     : (discussionPeek?.noteCount ?? 0) > 0
