@@ -362,18 +362,20 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
           </>
         )}
 
-        {/* Peer pins around Victoria Harbour — crew/fleet/following.
-            Nudged out of the next-event tag's horizontal band (rows 42-48)
-            so they sit above/below the tag rather than under it. */}
-        <AtlasPin kind="crew" leftPct={22} topPct={40} />
-        <AtlasPin kind="fleet" leftPct={32} topPct={36} />
-        <AtlasPin kind="fleet" leftPct={42} topPct={55} />
-        <AtlasPin kind="following" leftPct={58} topPct={36} />
-        <AtlasPin kind="fleet" leftPct={64} topPct={56} />
-        <AtlasPin kind="crew" leftPct={74} topPct={40} />
-        <AtlasPin kind="fleet" leftPct={28} topPct={55} />
-        <AtlasPin kind="following" leftPct={18} topPct={56} />
-        <AtlasPin kind="following" leftPct={50} topPct={68} />
+        {/* Peer pins inside Victoria Harbour. When the next-event amber tag
+            is rendered (preview/with-event mode), some of these pins sit
+            under it — the tag is rendered LAST so it stacks on top. When
+            the tag is absent (live tab cold-start), the pin cluster fills
+            the harbor cleanly. */}
+        <AtlasPin kind="crew" leftPct={22} topPct={44} />
+        <AtlasPin kind="fleet" leftPct={32} topPct={50} />
+        <AtlasPin kind="fleet" leftPct={42} topPct={45} />
+        <AtlasPin kind="following" leftPct={48} topPct={52} />
+        <AtlasPin kind="fleet" leftPct={56} topPct={44} />
+        <AtlasPin kind="crew" leftPct={66} topPct={47} />
+        <AtlasPin kind="fleet" leftPct={72} topPct={50} />
+        <AtlasPin kind="following" leftPct={28} topPct={56} />
+        <AtlasPin kind="following" leftPct={50} topPct={62} />
 
         {/* Highlighted next-event tag on Victoria Harbour. Rendered LAST so
             it stacks above the peer pins; otherwise the pins occlude the
