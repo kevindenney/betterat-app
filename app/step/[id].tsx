@@ -13,6 +13,7 @@ import { useLocalSearchParams, Stack, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { StepDetailContent } from '@/components/step/StepDetailContent';
 import { useVocabulary } from '@/hooks/useVocabulary';
+import { useStepBlueprintChrome } from '@/hooks/useStepBlueprintChrome';
 import { getEventTabRoute } from '@/lib/navigation-config';
 
 export default function StepDetailScreen() {
@@ -26,6 +27,11 @@ export default function StepDetailScreen() {
     | 'discussion'
     | undefined;
   const { vocab } = useVocabulary();
+  // When the step has a blueprint parent, the back label switches from
+  // generic "Practice" → "← Pre-Clinical" so the canonical context line
+  // sits in the native nav header instead of duplicating below the title.
+  const { data: blueprintChrome } = useStepBlueprintChrome(actualId);
+  const backLabel = blueprintChrome?.blueprintShortName ?? 'Practice';
 
   if (!actualId) {
     return (
@@ -59,24 +65,28 @@ export default function StepDetailScreen() {
     <SafeAreaView style={styles.container} edges={['bottom']}>
       <Stack.Screen
         options={{
-          title: vocab('Learning Event'),
+          // Title hidden so the canonical chrome reads "← {parent}" without
+          // a competing centered title. Falls back to vocab when needed for
+          // accessibility / breadcrumb consumers.
+          title: blueprintChrome?.blueprintTitle ?? vocab('Learning Event'),
+          headerTitle: '',
           headerShown: true,
-          headerBackTitle: 'Back',
+          headerBackTitle: backLabel,
           headerLeft: () =>
             Platform.OS === 'web' ? (
               <Text style={styles.webBackButton} onPress={handleBack}>
-                ← Back
+                ← {backLabel}
               </Text>
             ) : (
               <Pressable
                 onPress={handleBack}
                 style={styles.nativeBackBtn}
                 accessibilityRole="button"
-                accessibilityLabel="Back to Practice"
+                accessibilityLabel={`Back to ${backLabel}`}
                 hitSlop={8}
               >
                 <Ionicons name="chevron-back" size={22} color="#007AFF" />
-                <Text style={styles.nativeBackLabel}>Practice</Text>
+                <Text style={styles.nativeBackLabel}>{backLabel}</Text>
               </Pressable>
             ),
           headerRight: () => (
