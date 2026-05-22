@@ -20,13 +20,16 @@ import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
 import { TabScreenToolbar } from '@/components/ui/TabScreenToolbar';
 import { IOSSegmentedControl } from '@/components/ui/ios/IOSSegmentedControl';
 import { FLOATING_TAB_BAR_HEIGHT } from '@/components/navigation/FloatingTabBar';
-import { useUniversalPlus } from '@/components/capture';
 import { AllZone } from '@/components/library/zones/AllZone';
 import { PlansZone } from '@/components/library/zones/PlansZone';
 import { PeopleZone } from '@/components/library/zones/PeopleZone';
 import { ResourcesZone } from '@/components/library/zones/ResourcesZone';
+import { CaptureSheet } from '@/components/library/resources/CaptureSheet';
+import { mapCapturePayloadToLibraryItem } from '@/components/library/resources/capturePayloadMap';
+import { useCreateLibraryItem } from '@/hooks/useCreateLibraryItem';
 import { useLibraryCounts } from '@/hooks/useLibraryCounts';
 import { useInterest } from '@/providers/InterestProvider';
+import { showAlert } from '@/lib/utils/crossPlatformAlert';
 import type { LibraryZone } from '@/components/library/SegmentedZoneHeader';
 
 const VALID_ZONES: LibraryZone[] = ['all', 'plans', 'people', 'concepts', 'resources'];
@@ -53,8 +56,9 @@ export function LibraryLanding({ conceptsBody }: Props) {
 
   const { currentInterest } = useInterest();
   const { data: counts } = useLibraryCounts(currentInterest?.id);
-  const universalPlus = useUniversalPlus();
+  const createLibraryItem = useCreateLibraryItem();
   const [toolbarHeight, setToolbarHeight] = useState(0);
+  const [captureOpen, setCaptureOpen] = useState(false);
 
   const interestName = currentInterest?.name ?? 'your interest';
 
@@ -93,7 +97,7 @@ export function LibraryLanding({ conceptsBody }: Props) {
         ) : zone === 'people' ? (
           <PeopleZone />
         ) : zone === 'resources' ? (
-          <ResourcesZone />
+          <ResourcesZone onOpenCapture={() => setCaptureOpen(true)} />
         ) : (
           conceptsBody
         )}
@@ -114,16 +118,15 @@ export function LibraryLanding({ conceptsBody }: Props) {
             label: 'Search library',
             onPress: () => router.push('/search?context=library' as never),
           },
-          ...(universalPlus.isAvailable
-            ? [
-                {
-                  icon: 'add-outline',
-                  sfSymbol: 'plus',
-                  label: 'Add',
-                  onPress: () => universalPlus.open(),
-                },
-              ]
-            : []),
+          {
+            icon: 'add-outline',
+            sfSymbol: 'plus',
+            label: 'Add to library',
+            // The Library tab's + opens the library capture (link / paste /
+            // upload / photo), NOT the universal step-capture sheet — the
+            // user is in a library context, not a "draft a step" context.
+            onPress: () => setCaptureOpen(true),
+          },
         ]}
         onMeasuredHeight={setToolbarHeight}
         backgroundColor="rgba(242, 242, 247, 0.94)"
@@ -140,6 +143,25 @@ export function LibraryLanding({ conceptsBody }: Props) {
           />
         </View>
       </TabScreenToolbar>
+
+      <CaptureSheet
+        visible={captureOpen}
+        onClose={() => setCaptureOpen(false)}
+        onSave={(payload) => {
+          const input = mapCapturePayloadToLibraryItem(
+            payload,
+            currentInterest?.id,
+          );
+          if (!input) return;
+          createLibraryItem.mutate(input, {
+            onError: (err) =>
+              showAlert(
+                'Capture failed',
+                err instanceof Error ? err.message : String(err),
+              ),
+          });
+        }}
+      />
     </View>
   );
 }

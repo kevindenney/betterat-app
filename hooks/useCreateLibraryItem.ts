@@ -104,6 +104,7 @@ export function useCreateLibraryItem() {
       qc.invalidateQueries({ queryKey: ['library-counts'] });
       qc.invalidateQueries({ queryKey: ['library-resources-preview'] });
       qc.invalidateQueries({ queryKey: ['library-items-for-picker'] });
+      qc.invalidateQueries({ queryKey: ['library-zones-data'] });
     },
   });
 }
