@@ -405,6 +405,38 @@ export const FEATURE_FLAGS = {
   PRACTICE_STEP_LOOP_IOS_REGISTER: readBooleanEnv('EXPO_PUBLIC_FF_PRACTICE_STEP_LOOP_IOS_REGISTER', false),
 
   /**
+   * Timeline Zoom — practice tab as a single zoomable canvas with four
+   * deliberate depths (L1 Step → L2 Week → L3 Season → L4 Years). Pinch is
+   * the primary gesture; a right-rail 1/2/3/4 pill stack is the secondary
+   * affordance (tap to jump, long-press to fan open a labeled menu). Per
+   * the May 2026 Timeline Zoom & Admin handoff (Sections A–C).
+   *
+   * When on: the preview route at /timeline-zoom-ios renders the
+   * <TimelineZoomCanvas /> with sample data drawn from Emily's nursing year.
+   * The canonical Practice-tab cutover (replacing today's two-state taskbar
+   * toggle with the canvas) lands in a follow-up commit once the gesture +
+   * snap behavior is validated end-to-end. Defaults true; flip to false via
+   * EXPO_PUBLIC_FF_TIMELINE_ZOOM_IOS_REGISTER=false to revert.
+   */
+  TIMELINE_ZOOM_IOS_REGISTER: readBooleanEnv('EXPO_PUBLIC_FF_TIMELINE_ZOOM_IOS_REGISTER', true),
+
+  /**
+   * Phase 11 — Atlas tab iOS register preview. The fifth lens ("where"),
+   * centered between Library and Discover. Renders the canonical six-frame
+   * surface at the preview route /atlas-ios:
+   *   F1 Felix · Causeway Bay overview      F4 Emily · Baltimore cold
+   *   F2 Felix · race-marks zoom           F5 Emily · JHU curated
+   *   F3 Felix · world Dragon              F6 commit-mode (from Plan)
+   * Static demo data with stylized SVG-rendered map illustrations —
+   * MapLibre tiles, atlas_pois schema, peer-steps RPC, healthcare lint,
+   * and Cohort materialized view land in Phase A1 alongside the actual
+   * fifth-tab wiring. Per docs/redesign/ios-register/atlas-tab-brief.md.
+   * Defaults true; flip to false via
+   * EXPO_PUBLIC_FF_ATLAS_IOS_REGISTER=false to revert in one toggle.
+   */
+  ATLAS_IOS_REGISTER: readBooleanEnv('EXPO_PUBLIC_FF_ATLAS_IOS_REGISTER', true),
+
+  /**
    * Phase 10 — HKDW (Hong Kong Dragon Worlds) → BetterAt onboarding flow.
    *
    * When on:

@@ -1,0 +1,1018 @@
+/**
+ * AtlasScreen — canonical Atlas tab surface with six frame variants.
+ *
+ * Atlas is BetterAt's fifth lens: "where." The unit is a locatable step
+ * and the people doing them; the surface is one shell with a registered
+ * layer system that lets each interest opt into bespoke layers (race
+ * marks for sailing, healthcare POIs for nursing, curated sites for
+ * partner institutions).
+ *
+ * This screen renders the six canonical frames from the design handoff:
+ *   F1 — Felix · first-run · Causeway Bay overview (sailing template)
+ *   F2 — Felix · race-marks at zoom 14+
+ *   F3 — Felix · world Dragon (class-lens cross-fleet)
+ *   F4 — Emily · Baltimore cold (nursing template, no JHU curation)
+ *   F5 — Emily · JHU curated (institution.curated_sites layer live)
+ *   F6 — commit-mode (opened from Plan tab's Where field)
+ *
+ * Wire-up status:
+ *   Sample data drawn directly from the design handoff. The actual
+ *   MapLibre canvas, atlas_pois schema, peer-steps RPC, healthcare
+ *   content lint, and Cohort materialized view are Phase A1
+ *   foundation work — see docs/redesign/ios-register/atlas-tab-brief.md.
+ *
+ * Architectural commitments (from the brief's side rail):
+ *   - Universal empty-state formula across all interests (5 lines)
+ *   - Pins are steps; venues/marks/sites are decorative layers
+ *   - Privacy is per-interest, with hard healthcare floor at site level
+ *   - No real-time presence; no patient-identifiable text
+ *   - Cross-interest is a chip on the filter row, not a profile setting
+ *   - Next-event glow is the only Atlas accent that uses amber
+ */
+
+import React from 'react';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+
+import { IOS_REGISTER } from '@/lib/design-tokens-ios';
+import {
+  HongKongOverviewMap,
+  RaceMarksZoomMap,
+  WorldDragonMap,
+  BaltimoreColdMap,
+  JhuCuratedMap,
+  CommitHarbourMap,
+} from './AtlasMaps';
+import {
+  AtlasPin,
+  ClusterTag,
+  GhostStampOverlay,
+  NextEventTag,
+  RacingAreaTag,
+} from './AtlasPins';
+
+export type AtlasFrameId = 'f1' | 'f2' | 'f3' | 'f4' | 'f5' | 'f6';
+
+interface AtlasScreenProps {
+  frame: AtlasFrameId;
+}
+
+export function AtlasScreen({ frame }: AtlasScreenProps) {
+  switch (frame) {
+    case 'f1':
+      return <FrameF1 />;
+    case 'f2':
+      return <FrameF2 />;
+    case 'f3':
+      return <FrameF3 />;
+    case 'f4':
+      return <FrameF4 />;
+    case 'f5':
+      return <FrameF5 />;
+    case 'f6':
+      return <FrameF6 />;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Shared shell: top chrome, filter chips, layers FAB, mock tab bar
+// ---------------------------------------------------------------------------
+function StatusBar() {
+  return (
+    <View style={shellStyles.statusBar}>
+      <Text style={shellStyles.statusBarTime}>10:08</Text>
+      <View style={shellStyles.statusBarNotch} />
+      <View style={shellStyles.statusBarRight}>
+        <Ionicons name="cellular" size={11} color="#000" />
+        <Ionicons name="wifi" size={11} color="#000" />
+        <Ionicons name="battery-full" size={13} color="#000" />
+      </View>
+    </View>
+  );
+}
+
+function TopChrome({
+  title,
+  subtitle,
+  avatarInitial = 'F',
+}: {
+  title: string;
+  subtitle: string;
+  avatarInitial?: string;
+}) {
+  return (
+    <View style={shellStyles.topChromeRow}>
+      <View style={{ flex: 1 }}>
+        <Text style={shellStyles.title}>{title}</Text>
+        <View style={shellStyles.subtitleRow}>
+          <View style={shellStyles.subtitleDot} />
+          <Text style={shellStyles.subtitle}>{subtitle}</Text>
+        </View>
+      </View>
+      <View style={shellStyles.topRight}>
+        <Pressable style={shellStyles.glyphBtn} hitSlop={6}>
+          <Ionicons name="search" size={16} color={IOS_REGISTER.label} />
+        </Pressable>
+        <Pressable style={shellStyles.glyphBtn} hitSlop={6}>
+          <Ionicons name="layers-outline" size={16} color={IOS_REGISTER.label} />
+        </Pressable>
+        <View style={shellStyles.avatar}>
+          <Text style={shellStyles.avatarText}>{avatarInitial}</Text>
+        </View>
+      </View>
+    </View>
+  );
+}
+
+interface FilterChipItem {
+  id: string;
+  label: string;
+  icon?: keyof typeof Ionicons.glyphMap;
+  active?: boolean;
+  tone?: 'you' | 'crew' | 'fleet' | 'following' | 'cohort' | 'sim';
+  dim?: boolean;
+}
+
+function FilterChipsRow({ chips }: { chips: FilterChipItem[] }) {
+  return (
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      contentContainerStyle={shellStyles.chipsContainer}
+      style={shellStyles.chipsScroll}
+    >
+      {chips.map((chip) => (
+        <FilterChip key={chip.id} {...chip} />
+      ))}
+    </ScrollView>
+  );
+}
+
+function FilterChip({ label, icon, active, tone, dim }: FilterChipItem) {
+  const toneDot: Record<string, string> = {
+    you: '#FF3B30',
+    crew: '#FF3B30',
+    fleet: 'rgba(40, 50, 70, 0.78)',
+    following: 'rgba(60, 70, 90, 0.45)',
+    cohort: '#5856D6',
+    sim: '#AF52DE',
+  };
+  return (
+    <View
+      style={[
+        shellStyles.chip,
+        active && shellStyles.chipActive,
+        dim && shellStyles.chipDim,
+      ]}
+    >
+      {icon ? (
+        <Ionicons
+          name={icon}
+          size={11}
+          color={active ? '#FFFFFF' : 'rgba(60, 60, 67, 0.72)'}
+          style={{ marginRight: 4 }}
+        />
+      ) : null}
+      {tone ? (
+        <View style={[shellStyles.chipDot, { backgroundColor: toneDot[tone] }]} />
+      ) : null}
+      <Text style={[shellStyles.chipText, active && shellStyles.chipTextActive]}>{label}</Text>
+    </View>
+  );
+}
+
+function LayersFab() {
+  return (
+    <View pointerEvents="none" style={shellStyles.fabColumn}>
+      <View style={shellStyles.fab}>
+        <Ionicons name="layers-outline" size={16} color="rgba(60, 60, 67, 0.78)" />
+      </View>
+      <View style={shellStyles.fab}>
+        <Ionicons name="locate-outline" size={16} color="rgba(60, 60, 67, 0.78)" />
+      </View>
+    </View>
+  );
+}
+
+function MockTabBar({ activeTab = 'atlas' }: { activeTab?: 'practice' | 'library' | 'atlas' | 'discover' | 'profile' }) {
+  const items = [
+    { id: 'practice', label: 'Practice', icon: 'flag-outline' as const, focused: 'flag' as const },
+    { id: 'library', label: 'Library', icon: 'library-outline' as const, focused: 'library' as const },
+    { id: 'atlas', label: 'Atlas', icon: 'compass-outline' as const, focused: 'compass' as const },
+    { id: 'discover', label: 'Discover', icon: 'people-outline' as const, focused: 'people' as const },
+    { id: 'profile', label: 'Profile', icon: 'person-circle-outline' as const, focused: 'person-circle' as const },
+  ];
+  return (
+    <View style={shellStyles.tabBar}>
+      {items.map((item) => {
+        const isActive = item.id === activeTab;
+        return (
+          <View key={item.id} style={shellStyles.tabItem}>
+            <Ionicons
+              name={isActive ? item.focused : item.icon}
+              size={20}
+              color={isActive ? IOS_REGISTER.accentUserAction : 'rgba(60, 60, 67, 0.55)'}
+            />
+            <Text
+              style={[
+                shellStyles.tabLabel,
+                isActive && { color: IOS_REGISTER.accentUserAction, fontWeight: '600' },
+              ]}
+            >
+              {item.label}
+            </Text>
+          </View>
+        );
+      })}
+    </View>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// F1 — Felix · first-run · Causeway Bay overview
+// ---------------------------------------------------------------------------
+function FrameF1() {
+  return (
+    <View style={shellStyles.frame}>
+      <StatusBar />
+      <TopChrome title="Atlas" subtitle="Sailing · RHKYC · Hong Kong" avatarInitial="F" />
+      <FilterChipsRow
+        chips={[
+          { id: 'all', label: 'All', active: true },
+          { id: 'you', label: 'You', tone: 'you' },
+          { id: 'crew', label: 'Crew', tone: 'crew' },
+          { id: 'fleet', label: 'Fleet', tone: 'fleet' },
+          { id: 'following', label: 'Following', tone: 'following', dim: true },
+        ]}
+      />
+      <View style={shellStyles.mapArea}>
+        <HongKongOverviewMap />
+
+        {/* Highlighted next-event tag on Victoria Harbour */}
+        <NextEventTag leftPct={50} topPct={47} eyebrow="NEXT · RACE 4 · SAT 10AM" detail="12kn ESE · ebb 0.4kn" />
+
+        {/* Racing-area last-race tags on the dim areas */}
+        <RacingAreaTag leftPct={84} topPct={20} text="Apr 14 · 3 from fleet" />
+        <RacingAreaTag leftPct={65} topPct={61} text="Mar 28 · 4 from fleet" />
+
+        {/* RHKYC base pin on HK Island */}
+        <AtlasPin
+          kind="you"
+          leftPct={36}
+          topPct={70}
+          label="RHKYC CLUB"
+          sublabel="Lady Catriona · Berth 14"
+        />
+
+        {/* Peer pins around Victoria Harbour — crew/fleet/following */}
+        <AtlasPin kind="crew" leftPct={28} topPct={45} />
+        <AtlasPin kind="fleet" leftPct={36} topPct={42} />
+        <AtlasPin kind="fleet" leftPct={42} topPct={48} />
+        <AtlasPin kind="following" leftPct={56} topPct={43} />
+        <AtlasPin kind="fleet" leftPct={64} topPct={48} />
+        <AtlasPin kind="crew" leftPct={70} topPct={45} />
+        <AtlasPin kind="fleet" leftPct={32} topPct={50} />
+        <AtlasPin kind="following" leftPct={26} topPct={52} />
+        <AtlasPin kind="following" leftPct={50} topPct={68} />
+
+        <LayersFab />
+      </View>
+
+      <BottomSheet
+        eyebrow="NEXT RACE · PRE-STAGED"
+        title="Plan a step for Saturday's start."
+        body="Victoria Harbour, favoured end. Last Saturday's marks are visible."
+        primary={{ label: 'Plan a step', icon: 'add' }}
+        secondary={{ label: 'Open Race 4' }}
+      />
+
+      <MockTabBar activeTab="atlas" />
+    </View>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// F2 — Race-marks zoom (Victoria Harbour)
+// ---------------------------------------------------------------------------
+function FrameF2() {
+  return (
+    <View style={shellStyles.frame}>
+      <StatusBar />
+      <TopChrome title="Race 4 course" subtitle="RHKYC · Victoria Harbour · Sat 10:00" avatarInitial="F" />
+      <FilterChipsRow
+        chips={[
+          { id: 'marks', label: 'Race marks', icon: 'triangle-outline', active: true },
+          { id: 'crew', label: 'Crew', tone: 'crew' },
+          { id: 'fleet', label: 'Fleet', tone: 'fleet' },
+          { id: 'wind', label: 'Wind', icon: 'flag-outline' },
+          { id: 'tide', label: 'Tide', icon: 'water-outline' },
+        ]}
+      />
+      <View style={shellStyles.mapArea}>
+        <RaceMarksZoomMap />
+
+        {/* Wind chip top-right */}
+        <View style={[shellStyles.absChip, { top: 12, right: 12 }]}>
+          <Ionicons name="flag" size={9} color="rgba(60, 60, 67, 0.7)" />
+          <Text style={shellStyles.absChipText}>12KN ESE</Text>
+        </View>
+        {/* Tide chip bottom-left */}
+        <View style={[shellStyles.absChip, { bottom: 60, left: 12 }]}>
+          <Ionicons name="water" size={9} color="rgba(60, 60, 67, 0.7)" />
+          <Text style={shellStyles.absChipText}>EBB 0.4KN</Text>
+        </View>
+
+        {/* The selected peer pin near the pin end (Phyl Loong) — highlighted */}
+        <AtlasPin kind="crew" leftPct={32} topPct={66} selected />
+        {/* Other fleet pins scattered */}
+        <AtlasPin kind="fleet" leftPct={48} topPct={56} />
+        <AtlasPin kind="fleet" leftPct={62} topPct={68} />
+        <AtlasPin kind="fleet" leftPct={70} topPct={62} />
+        <AtlasPin kind="following" leftPct={42} topPct={72} />
+
+        {/* Zoom indicator */}
+        <View style={[shellStyles.zoomIndicator, { bottom: 12, right: 12 }]}>
+          <Text style={shellStyles.zoomText}>zoom 14.2</Text>
+        </View>
+
+        <LayersFab />
+      </View>
+
+      <BottomSheet
+        peerHeader={{
+          name: 'Phyl Loong',
+          quote: 'Pin-end approach in light air',
+          eyebrow: 'Crew · Race 3 · Sat April 27',
+        }}
+        statsRow={[
+          { value: '3', label: 'SUB-STEPS' },
+          { value: '6', label: 'CAPTURES' },
+          { value: '2', label: 'CONCEPTS' },
+        ]}
+        primary={{ label: 'Add to my timeline', icon: 'add' }}
+        secondary={{ label: 'Suggest to…', icon: 'paper-plane-outline' }}
+      />
+
+      <MockTabBar activeTab="atlas" />
+    </View>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// F3 — World Dragon (cross-fleet class lens)
+// ---------------------------------------------------------------------------
+function FrameF3() {
+  return (
+    <View style={shellStyles.frame}>
+      <StatusBar />
+      <TopChrome title="Dragon world" subtitle="4 fleets · 1 class · zoom 3" avatarInitial="F" />
+      <FilterChipsRow
+        chips={[
+          { id: 'class', label: 'Dragon class', icon: 'globe-outline', active: true },
+          { id: 'crew', label: 'Crew', tone: 'crew' },
+          { id: 'fleet', label: 'Fleet', tone: 'fleet' },
+          { id: 'following', label: 'Following', tone: 'following' },
+        ]}
+      />
+      <View style={shellStyles.mapArea}>
+        <WorldDragonMap />
+        <ClusterTag leftPct={55} topPct={20} label="AMSTERDAM" count="18 sailors" />
+        <ClusterTag leftPct={80} topPct={40} label="RHKYC · 24" count="SAILORS" highlight />
+        <ClusterTag leftPct={47} topPct={30} label="WORLDS 2026" count="VILAMOURA" />
+        <LayersFab />
+      </View>
+
+      <BottomSheet
+        eyebrow="INTERNATIONAL PEERS · CLASS LENS"
+        title="The Dragon community on one canvas."
+        body="Zoom in to a fleet to see its pins. Race marks fade between zoom 8 — 9 to keep the world readable."
+        primary={{ label: 'Back to Hong Kong', icon: 'arrow-back' }}
+        secondary={{ label: 'Follow Amsterdam' }}
+      />
+
+      <MockTabBar activeTab="atlas" />
+    </View>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// F4 — Emily · Baltimore cold
+// ---------------------------------------------------------------------------
+function FrameF4() {
+  return (
+    <View style={shellStyles.frame}>
+      <StatusBar />
+      <TopChrome title="Atlas" subtitle="Nursing · MSN · Baltimore" avatarInitial="E" />
+      <FilterChipsRow
+        chips={[
+          { id: 'all', label: 'All', active: true },
+          { id: 'you', label: 'You', tone: 'you' },
+          { id: 'cohort', label: 'Cohort', tone: 'cohort', dim: true },
+          { id: 'sites', label: 'Clinical sites', icon: 'medical-outline' },
+          { id: 'following', label: 'Following', tone: 'following', dim: true },
+        ]}
+      />
+      <View style={shellStyles.mapArea}>
+        <BaltimoreColdMap />
+
+        {/* Site-level only banner */}
+        <View style={[shellStyles.absChip, { top: 12, right: 12 }]}>
+          <Ionicons name="lock-closed" size={9} color="rgba(60, 60, 67, 0.55)" />
+          <Text style={shellStyles.absChipText}>site-level only</Text>
+        </View>
+
+        {/* Generic OSM-sourced healthcare POIs */}
+        <AtlasPin kind="osm-clinic" leftPct={48} topPct={50} label="Johns Hopkins Hosp." />
+        <AtlasPin kind="osm-clinic" leftPct={70} topPct={42} label="Bayview" />
+        <AtlasPin kind="osm-clinic" leftPct={25} topPct={62} label="U. of Maryland" />
+        <AtlasPin kind="osm-clinic" leftPct={20} topPct={45} label="Sinai" />
+        <AtlasPin kind="osm-clinic" leftPct={55} topPct={75} label="MedStar Harbor" />
+        <AtlasPin kind="osm-clinic" leftPct={82} topPct={66} label="VA Medical Ctr." />
+
+        {/* Ghost-pin sample stamp — fades when real cohort joins */}
+        <GhostStampOverlay leftPct={50} topPct={32} />
+
+        <LayersFab />
+      </View>
+
+      <BottomSheet
+        eyebrow="FIRST STEP · ANCHOR WHERE"
+        title="Tag your last clinical step to where it happened."
+        body={'From your timeline: "Med-surg shift · Tuesday morning." One tap to anchor.'}
+        primary={{ label: 'Anchor · pick site', icon: 'location' }}
+        secondary={{ label: 'Skip' }}
+      />
+
+      <MockTabBar activeTab="atlas" />
+    </View>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// F5 — Emily · JHU curated (competency overlay live)
+// ---------------------------------------------------------------------------
+function FrameF5() {
+  return (
+    <View style={shellStyles.frame}>
+      <StatusBar />
+      <TopChrome
+        title="IV insertion · supervised"
+        subtitle="62 in cohort · 4 sites evidenced"
+        avatarInitial="E"
+      />
+      <FilterChipsRow
+        chips={[
+          { id: 'you', label: 'You', tone: 'you' },
+          { id: 'cohort', label: 'Cohort', tone: 'cohort', active: true },
+          { id: 'jh', label: 'JH partners', icon: 'school-outline' },
+          { id: 'competency', label: 'Competency', icon: 'ribbon-outline' },
+        ]}
+      />
+      <View style={shellStyles.mapArea}>
+        <JhuCuratedMap />
+
+        {/* Competency badge top-right */}
+        <View style={[shellStyles.absChip, { top: 12, right: 12 }]}>
+          <Ionicons name="ribbon" size={9} color="#AF52DE" />
+          <Text style={shellStyles.absChipText}>competency · IV supervised</Text>
+        </View>
+
+        {/* JH-claimed sites with counts (constellation across affiliates) */}
+        <AtlasPin
+          kind="jh-site"
+          leftPct={60}
+          topPct={42}
+          label="Hopkins East Baltimore"
+          badge="JH"
+        />
+        {/* Large peer count bubble on the main site */}
+        <View style={[shellStyles.absChip, { top: '36%', left: '56%', backgroundColor: '#AF52DE' }]}>
+          <Text style={[shellStyles.absChipText, { color: '#FFF', fontWeight: '700' }]}>12</Text>
+        </View>
+
+        <AtlasPin kind="jh-site" leftPct={78} topPct={42} label="Bayview" badge="JH" />
+        <AtlasPin kind="jh-site" leftPct={32} topPct={55} label="Suburban" badge="JH" />
+        <AtlasPin kind="jh-site" leftPct={84} topPct={66} label="Howard County" badge="JH" />
+        <AtlasPin kind="sim" leftPct={48} topPct={30} label="Pinkard sim" />
+
+        <LayersFab />
+      </View>
+
+      <BottomSheet
+        title="Where your cohort has evidenced this skill."
+        body="38 of 62 · 4 sites · past 8 weeks"
+        statsRow={[
+          { value: '21', label: 'HOPKINS EB' },
+          { value: '9', label: 'BAYVIEW' },
+          { value: '6', label: 'SUBURBAN' },
+          { value: '2', label: 'HOWARD CO.' },
+        ]}
+        primary={{ label: 'Plan supervised step', icon: 'add' }}
+        secondary={{ label: 'See peer steps', icon: 'list-outline' }}
+      />
+
+      <MockTabBar activeTab="atlas" />
+    </View>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// F6 — Commit-mode (opened from Plan · Where)
+// ---------------------------------------------------------------------------
+function FrameF6() {
+  return (
+    <View style={shellStyles.frame}>
+      <StatusBar />
+      <View style={shellStyles.commitHeaderRow}>
+        <Text style={shellStyles.commitTitle}>Pick a spot</Text>
+        <Pressable style={shellStyles.glyphBtn} hitSlop={6}>
+          <Ionicons name="close" size={18} color={IOS_REGISTER.accentUserAction} />
+        </Pressable>
+      </View>
+
+      {/* Blue commit banner */}
+      <View style={shellStyles.commitBanner}>
+        <Ionicons name="location-outline" size={12} color="#FFF" />
+        <Text style={shellStyles.commitBannerText}>
+          Drop a pin to anchor <Text style={{ fontWeight: '700' }}>Race 4 plan</Text> to a location.
+        </Text>
+      </View>
+
+      <View style={[shellStyles.mapArea, { flex: 1 }]}>
+        <CommitHarbourMap />
+        {/* Candidate pin where the user tapped */}
+        <AtlasPin kind="candidate" leftPct={50} topPct={48} />
+
+        <LayersFab />
+      </View>
+
+      <View style={shellStyles.commitSheet}>
+        <View style={shellStyles.commitSheetRow}>
+          <Ionicons name="bookmark-outline" size={14} color="rgba(60, 60, 67, 0.62)" />
+          <Text style={shellStyles.commitSheetEyebrow}>Favoured pin end · Victoria Harbour</Text>
+        </View>
+        <Text style={shellStyles.commitSheetCoords}>22.286 N · 114.182 E · within Race 4 area</Text>
+        <View style={shellStyles.statsRow}>
+          <Stat value="14" label="PEERS ≤ 200M" />
+          <Stat value="6" label="IN YOUR FLEET" />
+          <Stat value="3" label="CREW" />
+        </View>
+        <View style={shellStyles.btnRow}>
+          <Pressable style={[shellStyles.btn, shellStyles.btnPrimary]}>
+            <Ionicons name="checkmark" size={14} color="#FFF" />
+            <Text style={shellStyles.btnPrimaryText}>Use this location</Text>
+          </Pressable>
+          <Pressable style={[shellStyles.btn, shellStyles.btnSecondary]}>
+            <Ionicons name="locate-outline" size={14} color={IOS_REGISTER.label} />
+            <Text style={shellStyles.btnSecondaryText}>Adjust</Text>
+          </Pressable>
+        </View>
+      </View>
+    </View>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// BottomSheet — shared bottom card with eyebrow / title / body / stats / btns
+// ---------------------------------------------------------------------------
+interface StatItem {
+  value: string;
+  label: string;
+}
+interface BottomSheetProps {
+  eyebrow?: string;
+  title?: string;
+  body?: string;
+  peerHeader?: { name: string; quote: string; eyebrow: string };
+  statsRow?: StatItem[];
+  primary?: { label: string; icon?: keyof typeof Ionicons.glyphMap };
+  secondary?: { label: string; icon?: keyof typeof Ionicons.glyphMap };
+}
+
+function BottomSheet({
+  eyebrow,
+  title,
+  body,
+  peerHeader,
+  statsRow,
+  primary,
+  secondary,
+}: BottomSheetProps) {
+  return (
+    <View style={shellStyles.bottomSheet}>
+      {eyebrow ? <Text style={shellStyles.eyebrow}>{eyebrow}</Text> : null}
+      {peerHeader ? (
+        <View>
+          <Text style={shellStyles.peerName}>
+            {peerHeader.name} <Text style={shellStyles.peerQuote}>· {peerHeader.quote}</Text>
+          </Text>
+          <Text style={shellStyles.peerEyebrow}>{peerHeader.eyebrow}</Text>
+        </View>
+      ) : null}
+      {title ? <Text style={shellStyles.sheetTitle}>{title}</Text> : null}
+      {body ? <Text style={shellStyles.sheetBody}>{body}</Text> : null}
+      {statsRow ? (
+        <View style={shellStyles.statsRow}>
+          {statsRow.map((stat) => (
+            <Stat key={stat.label} {...stat} />
+          ))}
+        </View>
+      ) : null}
+      {(primary || secondary) && (
+        <View style={shellStyles.btnRow}>
+          {primary ? (
+            <Pressable style={[shellStyles.btn, shellStyles.btnPrimary]}>
+              {primary.icon ? <Ionicons name={primary.icon} size={14} color="#FFF" /> : null}
+              <Text style={shellStyles.btnPrimaryText}>{primary.label}</Text>
+            </Pressable>
+          ) : null}
+          {secondary ? (
+            <Pressable style={[shellStyles.btn, shellStyles.btnSecondary]}>
+              {secondary.icon ? (
+                <Ionicons name={secondary.icon} size={14} color={IOS_REGISTER.label} />
+              ) : null}
+              <Text style={shellStyles.btnSecondaryText}>{secondary.label}</Text>
+            </Pressable>
+          ) : null}
+        </View>
+      )}
+    </View>
+  );
+}
+
+function Stat({ value, label }: StatItem) {
+  return (
+    <View style={shellStyles.stat}>
+      <Text style={shellStyles.statValue}>{value}</Text>
+      <Text style={shellStyles.statLabel}>{label}</Text>
+    </View>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Styles
+// ---------------------------------------------------------------------------
+const shellStyles = StyleSheet.create({
+  frame: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+  },
+  // --- Status bar ---------------------------------------------------------
+  statusBar: {
+    height: 28,
+    paddingHorizontal: 18,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  statusBarTime: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#000',
+    letterSpacing: -0.2,
+  },
+  statusBarNotch: {
+    width: 70,
+    height: 18,
+    borderRadius: 12,
+    backgroundColor: '#000',
+  },
+  statusBarRight: {
+    flexDirection: 'row',
+    gap: 4,
+    alignItems: 'center',
+  },
+  // --- Top chrome ---------------------------------------------------------
+  topChromeRow: {
+    paddingHorizontal: 16,
+    paddingTop: 6,
+    paddingBottom: 8,
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+  },
+  title: {
+    fontSize: 22,
+    fontWeight: '600',
+    color: IOS_REGISTER.label,
+    letterSpacing: -0.4,
+  },
+  subtitleRow: {
+    marginTop: 2,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+  },
+  subtitleDot: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: 'rgba(60, 60, 67, 0.4)',
+  },
+  subtitle: {
+    fontSize: 11,
+    color: IOS_REGISTER.labelSecondary,
+    letterSpacing: -0.05,
+  },
+  topRight: {
+    flexDirection: 'row',
+    gap: 6,
+    alignItems: 'center',
+  },
+  glyphBtn: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: IOS_REGISTER.fillPill,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatar: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: '#5856D6',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  // --- Chip row -----------------------------------------------------------
+  chipsScroll: {
+    maxHeight: 36,
+  },
+  chipsContainer: {
+    paddingHorizontal: 16,
+    gap: 6,
+    paddingBottom: 6,
+  },
+  chip: {
+    height: 24,
+    paddingHorizontal: 10,
+    borderRadius: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: IOS_REGISTER.fillPill,
+  },
+  chipActive: {
+    backgroundColor: '#000000',
+  },
+  chipDim: {
+    opacity: 0.55,
+  },
+  chipDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    marginRight: 5,
+  },
+  chipText: {
+    fontSize: 11,
+    color: 'rgba(60, 60, 67, 0.78)',
+    fontWeight: '500',
+    letterSpacing: -0.05,
+  },
+  chipTextActive: {
+    color: '#FFFFFF',
+    fontWeight: '600',
+  },
+  // --- Map area -----------------------------------------------------------
+  mapArea: {
+    flex: 1,
+    position: 'relative',
+    overflow: 'hidden',
+    backgroundColor: '#D9E8F0',
+  },
+  absChip: {
+    position: 'absolute',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    borderRadius: 4,
+    backgroundColor: 'rgba(255, 255, 255, 0.92)',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(60, 60, 67, 0.22)',
+  },
+  absChipText: {
+    fontSize: 8.5,
+    color: 'rgba(60, 60, 67, 0.72)',
+    fontWeight: '600',
+    letterSpacing: 0.3,
+  },
+  zoomIndicator: {
+    position: 'absolute',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 3,
+    backgroundColor: 'rgba(0, 0, 0, 0.55)',
+  },
+  zoomText: {
+    fontSize: 8.5,
+    color: '#FFFFFF',
+    fontWeight: '500',
+  },
+  fabColumn: {
+    position: 'absolute',
+    right: 10,
+    bottom: 14,
+    gap: 8,
+  },
+  fab: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: 'rgba(255, 255, 255, 0.94)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(60, 60, 67, 0.22)',
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 1 },
+  },
+  // --- Bottom sheet -------------------------------------------------------
+  bottomSheet: {
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 10,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderColor: IOS_REGISTER.separator,
+    backgroundColor: '#FFFFFF',
+  },
+  eyebrow: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#D2691E',
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
+    marginBottom: 4,
+  },
+  peerName: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: IOS_REGISTER.label,
+    letterSpacing: -0.2,
+  },
+  peerQuote: {
+    fontWeight: '400',
+    fontStyle: 'italic',
+    color: IOS_REGISTER.labelSecondary,
+  },
+  peerEyebrow: {
+    marginTop: 2,
+    fontSize: 11,
+    color: IOS_REGISTER.labelSecondary,
+    letterSpacing: -0.05,
+  },
+  sheetTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: IOS_REGISTER.label,
+    letterSpacing: -0.3,
+    marginTop: 2,
+  },
+  sheetBody: {
+    marginTop: 3,
+    fontSize: 12,
+    color: IOS_REGISTER.labelSecondary,
+    lineHeight: 16,
+    letterSpacing: -0.05,
+  },
+  statsRow: {
+    marginTop: 8,
+    marginBottom: 4,
+    flexDirection: 'row',
+    gap: 16,
+  },
+  stat: {
+    flexDirection: 'column',
+  },
+  statValue: {
+    fontSize: 18,
+    fontWeight: '500',
+    color: IOS_REGISTER.label,
+    letterSpacing: -0.3,
+  },
+  statLabel: {
+    fontSize: 8.5,
+    fontWeight: '600',
+    color: IOS_REGISTER.labelSecondary,
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+  },
+  btnRow: {
+    marginTop: 10,
+    flexDirection: 'row',
+    gap: 8,
+  },
+  btn: {
+    flex: 1,
+    height: 36,
+    borderRadius: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+  },
+  btnPrimary: {
+    backgroundColor: IOS_REGISTER.accentUserAction,
+  },
+  btnPrimaryText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '600',
+    letterSpacing: -0.1,
+  },
+  btnSecondary: {
+    backgroundColor: IOS_REGISTER.fillPill,
+  },
+  btnSecondaryText: {
+    color: IOS_REGISTER.label,
+    fontSize: 13,
+    fontWeight: '500',
+    letterSpacing: -0.1,
+  },
+  // --- Tab bar mock -------------------------------------------------------
+  tabBar: {
+    flexDirection: 'row',
+    paddingTop: 6,
+    paddingBottom: 14,
+    backgroundColor: '#FFFFFF',
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderColor: IOS_REGISTER.separator,
+  },
+  tabItem: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 2,
+  },
+  tabLabel: {
+    fontSize: 9,
+    color: 'rgba(60, 60, 67, 0.55)',
+    fontWeight: '500',
+  },
+  // --- Commit-mode (F6) ---------------------------------------------------
+  commitHeaderRow: {
+    paddingHorizontal: 16,
+    paddingTop: 6,
+    paddingBottom: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  commitTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: IOS_REGISTER.accentUserAction,
+    letterSpacing: -0.3,
+  },
+  commitBanner: {
+    marginHorizontal: 16,
+    marginBottom: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    backgroundColor: IOS_REGISTER.accentUserAction,
+    borderRadius: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  commitBannerText: {
+    flex: 1,
+    color: '#FFFFFF',
+    fontSize: 12,
+    letterSpacing: -0.05,
+    lineHeight: 16,
+  },
+  commitSheet: {
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 24,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderColor: IOS_REGISTER.separator,
+    backgroundColor: '#FFFFFF',
+  },
+  commitSheetRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  commitSheetEyebrow: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: IOS_REGISTER.label,
+    letterSpacing: -0.2,
+  },
+  commitSheetCoords: {
+    marginTop: 3,
+    fontSize: 11,
+    color: IOS_REGISTER.labelSecondary,
+    letterSpacing: -0.05,
+  },
+});
