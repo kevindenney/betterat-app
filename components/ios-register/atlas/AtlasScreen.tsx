@@ -191,6 +191,13 @@ interface FilterChipItem {
   active?: boolean;
   tone?: 'you' | 'crew' | 'fleet' | 'following' | 'cohort' | 'sim';
   dim?: boolean;
+  /**
+   * Cross-interest chip — renders a small compound-glyph swatch (three
+   * overlapping interest accents) in place of a single tone dot. Per the
+   * brief: "Show all my interests sits at the end of the chip row with a
+   * soft compound-glyph swatch." Discoverability is the point.
+   */
+  crossInterest?: boolean;
 }
 
 function FilterChipsRow({ chips }: { chips: FilterChipItem[] }) {
@@ -246,6 +253,7 @@ function FilterChip({
   active,
   tone,
   dim,
+  crossInterest,
   onPress,
 }: FilterChipItem & { onPress?: () => void }) {
   const toneDot: Record<string, string> = {
@@ -265,7 +273,8 @@ function FilterChip({
         dim && shellStyles.chipDim,
       ]}
     >
-      {icon ? (
+      {crossInterest ? <CrossInterestGlyph active={active} /> : null}
+      {icon && !crossInterest ? (
         <Ionicons
           name={icon}
           size={11}
@@ -273,11 +282,28 @@ function FilterChip({
           style={{ marginRight: 4 }}
         />
       ) : null}
-      {tone ? (
+      {tone && !crossInterest ? (
         <View style={[shellStyles.chipDot, { backgroundColor: toneDot[tone] }]} />
       ) : null}
       <Text style={[shellStyles.chipText, active && shellStyles.chipTextActive]}>{label}</Text>
     </Pressable>
+  );
+}
+
+/**
+ * Three overlapping coloured discs — sailing red, nursing purple, drawing
+ * teal. The order mirrors the rough chronological order interests landed
+ * in BetterAt's roadmap; the visual job is "this chip means cross-interest"
+ * rather than literal interest enumeration.
+ */
+function CrossInterestGlyph({ active }: { active?: boolean }) {
+  const opacity = active ? 1 : 0.78;
+  return (
+    <View style={shellStyles.crossInterestGlyph}>
+      <View style={[shellStyles.crossInterestDot, { backgroundColor: '#FF3B30', opacity, marginLeft: 0 }]} />
+      <View style={[shellStyles.crossInterestDot, { backgroundColor: '#5856D6', opacity, marginLeft: -3 }]} />
+      <View style={[shellStyles.crossInterestDot, { backgroundColor: '#00C7BE', opacity, marginLeft: -3 }]} />
+    </View>
   );
 }
 
@@ -504,6 +530,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
           { id: 'crew', label: 'Crew', tone: 'crew' },
           { id: 'fleet', label: 'Fleet', tone: 'fleet' },
           { id: 'following', label: 'Following', tone: 'following', dim: true },
+          { id: 'cross-interest', label: 'All my interests', crossInterest: true, dim: true },
         ]}
       />
       <View style={shellStyles.mapArea}>
@@ -600,6 +627,7 @@ function FrameF2({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
           { id: 'fleet', label: 'Fleet', tone: 'fleet' },
           { id: 'wind', label: 'Wind', icon: 'flag-outline' },
           { id: 'tide', label: 'Tide', icon: 'water-outline' },
+          { id: 'cross-interest', label: 'All my interests', crossInterest: true, dim: true },
         ]}
       />
       <View style={shellStyles.mapArea}>
@@ -723,6 +751,7 @@ function FrameF4({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
           { id: 'cohort', label: 'Cohort', tone: 'cohort', dim: true },
           { id: 'sites', label: 'Clinical sites', icon: 'medical-outline' },
           { id: 'following', label: 'Following', tone: 'following', dim: true },
+          { id: 'cross-interest', label: 'All my interests', crossInterest: true, dim: true },
         ]}
       />
       <View style={shellStyles.mapArea}>
@@ -1096,6 +1125,18 @@ const shellStyles = StyleSheet.create({
     height: 6,
     borderRadius: 3,
     marginRight: 5,
+  },
+  crossInterestGlyph: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: 5,
+  },
+  crossInterestDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.85)',
   },
   chipText: {
     fontSize: 11,
