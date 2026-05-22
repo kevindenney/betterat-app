@@ -146,7 +146,10 @@ export function useAttachLibraryItemToStepBefore(stepId: string | undefined) {
   });
 }
 
-export function useLibraryBeforeBinding(stepId: string | undefined) {
+export function useLibraryBeforeBinding(
+  stepId: string | undefined,
+  interestId?: string | undefined,
+) {
   const { data: items = [] } = useStepLibraryBefore(stepId);
   const toggle = useToggleStepLibraryRead(stepId);
   const attach = useAttachLibraryItemToStepBefore(stepId);
@@ -208,6 +211,7 @@ export function useLibraryBeforeBinding(stepId: string | undefined) {
       onSelect: onPickerSelect,
       attachedItemIds,
       stepId,
+      interestId,
     },
   };
 }

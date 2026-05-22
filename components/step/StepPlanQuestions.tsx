@@ -90,7 +90,7 @@ export function StepPlanQuestions({
   const { user } = useAuth();
   const { currentInterest, userInterests } = useInterest();
   const catLabels = getStepCategoryLabels(step?.category);
-  const libraryBefore = useLibraryBeforeBinding(stepId);
+  const libraryBefore = useLibraryBeforeBinding(stepId, interestId);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [addPickerDestination, setAddPickerDestination] = useState<string | null>(null);
   const openAddPicker = useCallback((destination: string) => setAddPickerDestination(destination), []);

@@ -54,22 +54,31 @@ function buildMeta(row: RawRow): string {
   return parts.join(' · ');
 }
 
-export function useLibraryItemsForBeforePicker() {
+export function useLibraryItemsForBeforePicker(
+  interestId: string | undefined,
+) {
   const { user } = useAuth();
   const userId = user?.id;
 
   return useQuery<PickerLibraryItem[]>({
-    queryKey: ['library-items-for-picker', userId],
+    queryKey: ['library-items-for-picker', userId, interestId ?? null],
     enabled: Boolean(userId),
     staleTime: 15_000,
     queryFn: async () => {
       if (!userId) return [];
-      const { data, error } = await supabase
+      // Scope to the step's interest when known. Legacy rows captured before
+      // interest_id existed have NULL — surface them too so they stay
+      // discoverable until re-scoped.
+      let query = supabase
         .from('library_items')
         .select('id, kind, title, source_label, page_count, duration_min')
         .eq('user_id', userId)
         .order('captured_at', { ascending: false })
         .limit(200);
+      if (interestId) {
+        query = query.or(`interest_id.eq.${interestId},interest_id.is.null`);
+      }
+      const { data, error } = await query;
       if (error) throw error;
       return ((data ?? []) as RawRow[]).map<PickerLibraryItem>((r) => ({
         id: r.id,

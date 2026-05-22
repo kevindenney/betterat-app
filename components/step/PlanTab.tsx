@@ -245,7 +245,7 @@ export function PlanTab({
   // D37 "Before the shift" library checklist binding. Resolved once at this
   // level so both the step-loop and PRACTICE_PLAN_TAB branches can pass it
   // down — hook always runs, the body just reads `items.length > 0`.
-  const libraryBefore = useLibraryBeforeBinding(stepId);
+  const libraryBefore = useLibraryBeforeBinding(stepId, interestId);
 
   // Phase 1 · iOS register — Plan tab body rebuild. When the step-loop flag
   // is on this branch takes precedence over the older PRACTICE_PLAN_TAB

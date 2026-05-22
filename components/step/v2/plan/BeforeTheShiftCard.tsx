@@ -93,7 +93,7 @@ export function BeforeTheShiftCard({
         style={styles.addRow}
       >
         <Ionicons name="add" size={14} color="#007AFF" />
-        <Text style={styles.addText}>Add from library</Text>
+        <Text style={styles.addText}>Pin from library</Text>
       </TouchableOpacity>
     </View>
   );

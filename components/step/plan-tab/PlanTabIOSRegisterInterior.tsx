@@ -115,6 +115,7 @@ export interface PlanTabIOSRegisterInteriorProps {
       onClose: () => void;
       onSelect: (libraryItemId: string) => void;
       attachedItemIds: string[];
+      interestId?: string;
     };
   };
   testID?: string;
@@ -225,6 +226,7 @@ export function PlanTabIOSRegisterInterior({
           onClose={libraryBefore.picker.onClose}
           onSelect={libraryBefore.picker.onSelect}
           attachedItemIds={libraryBefore.picker.attachedItemIds}
+          interestId={libraryBefore.picker.interestId}
         />
       ) : null}
 

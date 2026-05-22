@@ -32,6 +32,8 @@ export interface LibraryBeforePickerProps {
   attachedItemIds: string[];
   /** Called with the picked library_items.id; parent runs the insert. */
   onSelect: (libraryItemId: string) => void;
+  /** Scope the picker to a single interest's items (plus legacy NULL rows). */
+  interestId?: string;
 }
 
 export function LibraryBeforePicker({
@@ -39,9 +41,11 @@ export function LibraryBeforePicker({
   onClose,
   attachedItemIds,
   onSelect,
+  interestId,
 }: LibraryBeforePickerProps) {
   const [query, setQuery] = useState('');
-  const { data: allItems = [], isLoading } = useLibraryItemsForBeforePicker();
+  const { data: allItems = [], isLoading } =
+    useLibraryItemsForBeforePicker(interestId);
 
   const excludeSet = useMemo(() => new Set(attachedItemIds), [attachedItemIds]);
 
@@ -84,7 +88,7 @@ export function LibraryBeforePicker({
             <Pressable onPress={handleClose} hitSlop={12}>
               <Text style={styles.cancel}>Cancel</Text>
             </Pressable>
-            <Text style={styles.title}>Add from library</Text>
+            <Text style={styles.title}>Pin from library</Text>
             <Text style={styles.cancelGhost}>Cancel</Text>
           </View>
 
