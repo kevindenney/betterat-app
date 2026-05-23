@@ -7,6 +7,7 @@
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/services/supabase';
+import { logAuditEvent } from '@/services/auditLog';
 
 export type StepCategory = 'procedural' | 'assessment' | 'communication' | 'reasoning' | 'other';
 
@@ -56,9 +57,23 @@ function normalize(r: RpcRow): BlueprintStepTemplate {
   };
 }
 
-export function useBlueprintSteps(blueprintId: string) {
+export function useBlueprintSteps(blueprintId: string, orgId?: string | null) {
   const queryClient = useQueryClient();
   const queryKey = ['blueprint-step-templates', blueprintId];
+
+  function emitActivity(verbLabel: string, description: string, payload: Record<string, unknown>) {
+    if (!orgId) return;
+    void logAuditEvent({
+      orgId,
+      verb: 'edited',
+      verbLabel,
+      description,
+      targetType: 'blueprint',
+      targetId: blueprintId,
+      payload,
+    });
+    queryClient.invalidateQueries({ queryKey: ['blueprint-activity', blueprintId] });
+  }
 
   const { data: steps = [], isLoading } = useQuery({
     queryKey,
@@ -105,35 +120,58 @@ export function useBlueprintSteps(blueprintId: string) {
         .update(payload)
         .eq('id', input.id);
       if (error) throw error;
+      const existing = steps.find((s) => s.id === input.id);
+      return { input, existingTitle: existing?.title ?? null };
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey });
+      if (result) {
+        const title = result.input.title ?? result.existingTitle ?? 'a step';
+        emitActivity('Edited step', `Edited "${title}".`, {
+          step_id: result.input.id,
+          step_title: title,
+        });
+      }
     },
   });
 
   const addStep = useMutation({
     mutationFn: async (input: { title: string; category?: StepCategory }) => {
       const maxOrder = steps[steps.length - 1]?.sortOrder ?? 0;
+      const cleanTitle = input.title.trim() || 'Untitled step';
       const { error } = await supabase.from('blueprint_step_templates').insert({
         blueprint_id: blueprintId,
         sort_order: maxOrder + 1,
-        title: input.title.trim() || 'Untitled step',
+        title: cleanTitle,
         category: input.category ?? 'other',
       });
       if (error) throw error;
+      return { title: cleanTitle };
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey });
+      if (result) {
+        emitActivity('Added step', `Added "${result.title}".`, { step_title: result.title });
+      }
     },
   });
 
   const deleteStep = useMutation({
     mutationFn: async (id: string) => {
+      const existing = steps.find((s) => s.id === id);
       const { error } = await supabase.from('blueprint_step_templates').delete().eq('id', id);
       if (error) throw error;
+      return { id, title: existing?.title ?? null };
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey });
+      if (result) {
+        emitActivity(
+          'Removed step',
+          result.title ? `Removed "${result.title}".` : 'Removed a step.',
+          { step_id: result.id, step_title: result.title },
+        );
+      }
     },
   });
 

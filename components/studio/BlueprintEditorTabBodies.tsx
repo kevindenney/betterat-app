@@ -39,8 +39,17 @@ const CAT_TONES: Record<string, { bg: string; fg: string; label: string }> = {
   comm: { bg: 'rgba(110, 139, 90, 0.14)', fg: '#6E8B5A', label: 'Communication' },
 };
 
-export function StepsTabBody({ blueprintId }: { blueprintId: string }) {
-  const { steps, loading, addStep, deleteStep, updateStep } = useBlueprintSteps(blueprintId);
+export function StepsTabBody({
+  blueprintId,
+  orgId,
+}: {
+  blueprintId: string;
+  orgId: string | null;
+}) {
+  const { steps, loading, addStep, deleteStep, updateStep } = useBlueprintSteps(
+    blueprintId,
+    orgId,
+  );
   const [expandedId, setExpandedId] = React.useState<string | null>(null);
 
   // Auto-expand the second step (or first if there's only one) for visual
