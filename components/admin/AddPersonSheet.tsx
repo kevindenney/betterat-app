@@ -103,8 +103,34 @@ export function AddPersonSheet({
           verified_domain: chip.isValid,
         },
       }));
-      const { error } = await supabase.from('organization_invites').insert(payload);
+      const { data: inserted, error } = await supabase
+        .from('organization_invites')
+        .insert(payload)
+        .select('id');
       if (error) throw error;
+
+      // Dispatch the branded invite email via the edge function. We don't
+      // throw on dispatch failure — the row already exists, so the admin
+      // can resend later. Partial-failure detail surfaces in submitError.
+      const inviteIds = (inserted ?? []).map((r) => r.id);
+      if (inviteIds.length > 0) {
+        const { data: dispatch, error: invokeErr } = await supabase.functions.invoke(
+          'send-org-invite',
+          { body: { invite_ids: inviteIds } },
+        );
+        if (invokeErr) {
+          throw new Error(`Invite saved but email dispatch failed: ${invokeErr.message}`);
+        }
+        const failed = (dispatch?.results ?? []).filter(
+          (r: { ok: boolean }) => !r.ok,
+        ) as { email: string | null; error?: string }[];
+        if (failed.length > 0) {
+          const summary = failed
+            .map((f) => `${f.email ?? 'unknown'}${f.error ? `: ${f.error}` : ''}`)
+            .join('; ');
+          throw new Error(`Invite saved but email failed for: ${summary}`);
+        }
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-people', orgId] });
