@@ -302,7 +302,7 @@ export default function BlueprintEditorPage() {
         ) : tab === 'steps' ? (
           <StepsTabBody blueprintId={blueprintId} />
         ) : tab === 'capabilities' ? (
-          <CapabilitiesTabBody />
+          <CapabilitiesTabBody blueprintId={blueprintId} orgId={blueprint.orgId} />
         ) : tab === 'pricing' ? (
           <PricingTabBody />
         ) : tab === 'cohorts' ? (

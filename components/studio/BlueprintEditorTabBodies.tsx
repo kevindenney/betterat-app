@@ -19,6 +19,11 @@ import {
   BlueprintSubStep,
   StepCategory,
 } from '@/hooks/useBlueprintSteps';
+import {
+  useBlueprintCapabilities,
+  CapabilityStrength,
+  strengthLabel,
+} from '@/hooks/useBlueprintCapabilities';
 
 // =============================================================================
 // FRAME 18 · STEPS
@@ -352,97 +357,96 @@ function BlueprintStepRow({
 // FRAME 19 · CAPABILITIES
 // =============================================================================
 
-interface CapItem {
-  label: string;
-  on: boolean;
-  strength: 0 | 1 | 2 | 3; // 0=none, 1=supporting, 2=secondary, 3=primary
-  isNew?: boolean;
-}
+const CATEGORY_ICON: Record<string, keyof typeof Ionicons.glyphMap> = {
+  Procedural: 'construct-outline',
+  Assessment: 'pulse-outline',
+  Communication: 'chatbubbles-outline',
+  'Clinical reasoning': 'bulb-outline',
+  Tactics: 'flag-outline',
+  Boathandling: 'boat-outline',
+  Professionalism: 'shield-outline',
+  Other: 'apps-outline',
+};
 
-interface CapGroup {
-  category: 'proc' | 'asmt' | 'comm' | 'rsn';
-  icon: keyof typeof Ionicons.glyphMap;
-  name: string;
-  caps: CapItem[];
-}
+const CATEGORY_TONE_KEY: Record<string, 'proc' | 'asmt' | 'comm' | 'rsn'> = {
+  Procedural: 'proc',
+  Assessment: 'asmt',
+  Communication: 'comm',
+  'Clinical reasoning': 'rsn',
+  Tactics: 'rsn',
+  Boathandling: 'proc',
+  Professionalism: 'comm',
+  Other: 'asmt',
+};
 
-const CAP_GROUPS: CapGroup[] = [
-  {
-    category: 'proc',
-    icon: 'construct-outline',
-    name: 'Procedural',
-    caps: [
-      { label: 'IV insertion · supervised', on: true, strength: 2 },
-      { label: 'Medication administration', on: false, strength: 0 },
-      { label: 'Foley catheter placement', on: false, strength: 0 },
-      { label: 'NG tube placement', on: false, strength: 0 },
-    ],
-  },
-  {
-    category: 'asmt',
-    icon: 'pulse-outline',
-    name: 'Assessment',
-    caps: [
-      { label: 'Head-to-toe assessment', on: true, strength: 2 },
-      { label: 'Cardiac telemetry interpretation', on: true, strength: 1 },
-    ],
-  },
-  {
-    category: 'comm',
-    icon: 'chatbubbles-outline',
-    name: 'Communication',
-    caps: [
-      { label: 'ISBAR handoff communication', on: true, strength: 3 },
-      { label: 'Discharge teach-back', on: false, strength: 0 },
-    ],
-  },
-  {
-    category: 'rsn',
-    icon: 'bulb-outline',
-    name: 'Clinical reasoning',
-    caps: [{ label: 'Sepsis bundle recognition', on: true, strength: 3, isNew: true }],
-  },
-];
+export function CapabilitiesTabBody({
+  blueprintId,
+  orgId,
+}: {
+  blueprintId: string;
+  orgId: string | null;
+}) {
+  const { groups, totalSelected, loading, setCapability } = useBlueprintCapabilities(
+    blueprintId,
+    orgId,
+  );
 
-function strengthLabel(s: 0 | 1 | 2 | 3): string {
-  return ['—', 'Supporting', 'Secondary', 'Primary'][s];
-}
+  const cycleStrength = (current: CapabilityStrength): CapabilityStrength => {
+    // off → primary → secondary → supporting → off
+    if (current === 0) return 3;
+    if (current === 3) return 2;
+    if (current === 2) return 1;
+    return 0;
+  };
 
-export function CapabilitiesTabBody() {
   return (
     <ScrollView style={s.body} contentContainerStyle={s.bodyInner}>
       <View style={s.sectionHead}>
         <View>
-          <Text style={s.eyebrow}>Org_competencies · JHSON taxonomy</Text>
+          <Text style={s.eyebrow}>
+            Org_competencies · {orgId ? 'org taxonomy' : 'no org'}
+          </Text>
           <Text style={s.sectionH2}>Which capabilities does this blueprint train?</Text>
         </View>
         <Text style={s.sectionHint}>
-          Coverage strength sets how much evidence this blueprint contributes
+          {loading
+            ? 'Loading…'
+            : `${totalSelected} selected · coverage strength sets how much evidence this blueprint contributes`}
         </Text>
       </View>
 
       <View style={s.capGrid}>
-        {CAP_GROUPS.map((g) => {
-          const cat = CAT_TONES[g.category];
-          const selected = g.caps.filter((c) => c.on).length;
+        {groups.map((g) => {
+          const toneKey = CATEGORY_TONE_KEY[g.category] ?? 'asmt';
+          const cat = CAT_TONES[toneKey];
+          const icon = CATEGORY_ICON[g.category] ?? 'apps-outline';
           return (
-            <View key={g.name} style={s.capGroupCard}>
+            <View key={g.category} style={s.capGroupCard}>
               <View style={s.capGroupHead}>
                 <View style={[s.capIco, { backgroundColor: cat.bg }]}>
-                  <Ionicons name={g.icon} size={14} color={cat.fg} />
+                  <Ionicons name={icon} size={14} color={cat.fg} />
                 </View>
-                <Text style={s.capGroupName}>{g.name}</Text>
+                <Text style={s.capGroupName}>{g.category}</Text>
                 <Text style={s.capGroupCount}>
-                  {selected} of {g.caps.length} selected
+                  {g.selectedCount} of {g.totalCount} selected
                 </Text>
               </View>
               {g.caps.map((c) => (
-                <View key={c.label} style={[s.capItem, !c.on && s.capItemOff]}>
-                  <View style={[s.capCheck, c.on && s.capCheckOn]}>
-                    {c.on ? <Ionicons name="checkmark" size={12} color="#FFFFFF" /> : null}
+                <Pressable
+                  key={c.competencyId}
+                  onPress={() =>
+                    setCapability.mutate({
+                      competencyId: c.competencyId,
+                      strength: cycleStrength(c.strength),
+                    })
+                  }
+                  style={[s.capItem, !c.selected && s.capItemOff]}
+                >
+                  <View style={[s.capCheck, c.selected && s.capCheckOn]}>
+                    {c.selected ? <Ionicons name="checkmark" size={12} color="#FFFFFF" /> : null}
                   </View>
                   <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                    <Text style={[s.capLabel, !c.on && s.capLabelOff]}>{c.label}</Text>
+                    <Text style={[s.capLabel, !c.selected && s.capLabelOff]}>{c.fullLabel}</Text>
                     {c.isNew ? (
                       <View style={s.newChip}>
                         <Text style={s.newChipText}>New</Text>
@@ -459,11 +463,11 @@ export function CapabilitiesTabBody() {
                         ]}
                       />
                     ))}
-                    <Text style={[s.covLabelMini, !c.on && s.capLabelOff]}>
+                    <Text style={[s.covLabelMini, !c.selected && s.capLabelOff]}>
                       {strengthLabel(c.strength)}
                     </Text>
                   </View>
-                </View>
+                </Pressable>
               ))}
             </View>
           );
