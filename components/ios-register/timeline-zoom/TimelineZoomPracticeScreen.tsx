@@ -20,7 +20,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { IOS_REGISTER } from '@/lib/design-tokens-ios';
 import { useAuth } from '@/providers/AuthProvider';
 import { useInterest } from '@/providers/InterestProvider';
-import { openInterestSwitcher } from '@/components/InterestSwitcher';
+import { InterestSwitcher, openInterestSwitcher } from '@/components/InterestSwitcher';
 import { useMyTimeline } from '@/hooks/useTimelineSteps';
 import { useCurrentSeason, useUserSeasons } from '@/hooks/useSeason';
 import { useSubscribedBlueprints, useBlueprintWithAuthor } from '@/hooks/useBlueprint';
@@ -120,6 +120,9 @@ export function TimelineZoomPracticeScreen() {
   if (!hasContent && !showSample) {
     return (
       <SafeAreaView style={styles.surface} edges={['top']}>
+        {/* Mount the switcher so openInterestSwitcher() has an opener to
+            call. Self-registers + renders null until opened. */}
+        <InterestSwitcher />
         <InterestHeader
           interestLabel={dataset.interest.label}
           level={3}
@@ -164,6 +167,7 @@ export function TimelineZoomPracticeScreen() {
 
   return (
     <SafeAreaView style={styles.surface} edges={['top']}>
+      <InterestSwitcher />
       {showSample ? (
         <View style={styles.sampleBanner}>
           <Ionicons name="sparkles" size={12} color="#FFFFFF" />
