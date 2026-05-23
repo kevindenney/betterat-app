@@ -20,6 +20,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { IOS_REGISTER } from '@/lib/design-tokens-ios';
 import { useAuth } from '@/providers/AuthProvider';
 import { useInterest } from '@/providers/InterestProvider';
+import { openInterestSwitcher } from '@/components/InterestSwitcher';
 import { useMyTimeline } from '@/hooks/useTimelineSteps';
 import { useCurrentSeason, useUserSeasons } from '@/hooks/useSeason';
 import { useSubscribedBlueprints, useBlueprintWithAuthor } from '@/hooks/useBlueprint';
@@ -105,6 +106,10 @@ export function TimelineZoomPracticeScreen() {
     router.push(`/step/${stepId}` as never);
   }, []);
 
+  const handleOpenInterestSwitcher = useCallback(() => {
+    openInterestSwitcher();
+  }, []);
+
   const hasContent = dataset.seasons.some((s) => s.bricks.length > 0);
   const signedInEmail = (user?.email as string | undefined) ?? null;
 
@@ -119,6 +124,7 @@ export function TimelineZoomPracticeScreen() {
           interestLabel={dataset.interest.label}
           level={3}
           user={dataset.user}
+          onPressInterest={handleOpenInterestSwitcher}
         />
         <View style={styles.emptyWrap}>
           <View style={styles.emptyBox}>

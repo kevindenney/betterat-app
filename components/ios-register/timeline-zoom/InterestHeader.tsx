@@ -18,6 +18,13 @@ interface InterestHeaderProps {
   weekCounter?: { current: number; total: number };
   seasonCounter?: { current: number; total: number };
   user: { initials: string; color: string };
+  /**
+   * Tap handler for the interest pill. When provided, the pill chevron
+   * actually opens an interest switcher. When omitted (preview routes),
+   * the pill is non-interactive — chevron stays visible for visual
+   * continuity with the design.
+   */
+  onPressInterest?: () => void;
 }
 
 export function InterestHeader({
@@ -27,6 +34,7 @@ export function InterestHeader({
   weekCounter,
   seasonCounter,
   user,
+  onPressInterest,
 }: InterestHeaderProps) {
   let subtitle = '';
   if (level === 1 && stepCounter) {
@@ -41,7 +49,12 @@ export function InterestHeader({
 
   return (
     <View style={styles.row}>
-      <Pressable style={styles.interestPill}>
+      <Pressable
+        style={styles.interestPill}
+        onPress={onPressInterest}
+        disabled={!onPressInterest}
+        hitSlop={6}
+      >
         <View style={styles.interestDot} />
         <Text style={styles.interestLabel}>{interestLabel}</Text>
         <Ionicons name="chevron-down" size={14} color={IOS_REGISTER.label} />
