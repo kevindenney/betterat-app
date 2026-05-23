@@ -25,6 +25,7 @@ import {
   strengthLabel,
 } from '@/hooks/useBlueprintCapabilities';
 import { useBlueprintPricing } from '@/hooks/useBlueprintPricing';
+import { useBlueprintCohorts } from '@/hooks/useBlueprintCohorts';
 
 // =============================================================================
 // FRAME 18 · STEPS
@@ -768,84 +769,141 @@ export function PricingTabBody({
 }
 
 // =============================================================================
-// FRAME 21 · COHORTS
+// FRAME 21 · COHORTS — backed by blueprint_cohorts
 // =============================================================================
 
-interface CohortBp {
-  name: string;
-  students: number;
-  weekOf: string;
-  mentors: { initials: string; name: string; tone: 'navy' | 'brown' | 'green' }[];
+function formatCohortStartDate(iso: string | null): string | null {
+  if (!iso) return null;
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return null;
+  return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
-const COHORTS_BP: CohortBp[] = [
-  {
-    name: 'BSN Class of 2027 — Cohort A',
-    students: 30,
-    weekOf: 'Wk 6 of 18 · 22 students settled at least 1 step',
-    mentors: [
-      { initials: 'SP', name: 'Dean S. Park', tone: 'navy' },
-      { initials: 'RM', name: 'Dr. R. Murphy', tone: 'brown' },
-      { initials: 'JK', name: 'J. Kim, RN', tone: 'green' },
-    ],
-  },
-];
+export function CohortsTabBody({
+  blueprintId,
+  orgId,
+}: {
+  blueprintId: string;
+  orgId: string | null;
+}) {
+  const { assigned, unassigned, loading, assign, unassign } = useBlueprintCohorts(
+    blueprintId,
+    orgId,
+  );
+  const [pickerOpen, setPickerOpen] = React.useState(false);
 
-export function CohortsTabBody() {
+  const totalStudents = assigned.reduce((sum, c) => sum + c.memberCount, 0);
+  const summary =
+    assigned.length === 0
+      ? 'No cohorts subscribed yet'
+      : `${assigned.length} cohort${assigned.length === 1 ? '' : 's'} · ${totalStudents} student${
+          totalStudents === 1 ? '' : 's'
+        }`;
+
   return (
     <ScrollView style={s.body} contentContainerStyle={s.bodyInner}>
       <View style={s.sectionHead}>
         <View>
           <Text style={s.eyebrow}>Cohorts subscribed</Text>
-          <Text style={s.sectionH2}>1 cohort, 30 students, 3 mentors</Text>
+          <Text style={s.sectionH2}>{loading ? 'Loading cohorts…' : summary}</Text>
         </View>
-        <Pressable style={s.btnPrimary}>
+        <Pressable
+          style={[s.btnPrimary, (loading || unassigned.length === 0) && { opacity: 0.5 }]}
+          onPress={() => {
+            if (loading || unassigned.length === 0) return;
+            setPickerOpen((v) => !v);
+          }}
+        >
           <Ionicons name="add" size={13} color="#FFFFFF" />
           <Text style={s.btnPrimaryText}>Assign to cohort</Text>
         </Pressable>
       </View>
 
-      {COHORTS_BP.map((c) => (
-        <View key={c.name} style={s.cohortCard}>
-          <View style={s.cohortHead}>
-            <View>
-              <Text style={s.cohortName}>{c.name}</Text>
-              <Text style={s.cohortMeta}>
-                {c.students} students · {c.weekOf}
-              </Text>
-            </View>
-            <View style={[s.statusChip, { backgroundColor: 'rgba(30, 143, 71, 0.12)' }]}>
-              <Text style={[s.statusChipText, { color: '#1E8F47' }]}>Active</Text>
-            </View>
-          </View>
-          <View style={s.cohortDivider} />
-          <View style={s.cohortMentors}>
-            <Text style={s.cohortMentorsLabel}>Mentors</Text>
-            <View style={{ flexDirection: 'row', gap: 8 }}>
-              {c.mentors.map((m) => (
-                <View key={m.initials} style={s.mentorPill}>
-                  <View
-                    style={[
-                      s.mentorAv,
-                      {
-                        backgroundColor:
-                          m.tone === 'navy' ? '#28406B' : m.tone === 'brown' ? '#8B5A3C' : '#6E8B5A',
-                      },
-                    ]}
-                  >
-                    <Text style={s.mentorAvText}>{m.initials}</Text>
-                  </View>
-                  <Text style={s.mentorName}>{m.name}</Text>
-                </View>
-              ))}
-              <Pressable style={s.mentorAdd}>
-                <Ionicons name="add" size={12} color="#28406B" />
-                <Text style={s.mentorAddText}>Add</Text>
-              </Pressable>
-            </View>
-          </View>
+      {pickerOpen && unassigned.length > 0 && (
+        <View style={[s.cohortCard, { gap: 8 }]}>
+          <Text style={s.eyebrow}>Available cohorts</Text>
+          {unassigned.map((c) => (
+            <Pressable
+              key={c.id}
+              onPress={() => {
+                assign.mutate(c.id, {
+                  onSuccess: () => {
+                    if (unassigned.length <= 1) setPickerOpen(false);
+                  },
+                });
+              }}
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                paddingVertical: 8,
+                paddingHorizontal: 10,
+                borderRadius: 8,
+                backgroundColor: '#F4F1EC',
+              }}
+            >
+              <View>
+                <Text style={s.cohortName}>{c.name}</Text>
+                <Text style={s.cohortMeta}>
+                  {c.memberCount} student{c.memberCount === 1 ? '' : 's'}
+                  {c.maxSeats != null ? ` of ${c.maxSeats}` : ''}
+                  {formatCohortStartDate(c.startDate)
+                    ? ` · starts ${formatCohortStartDate(c.startDate)}`
+                    : ''}
+                </Text>
+              </View>
+              <Ionicons name="add-circle-outline" size={18} color="#28406B" />
+            </Pressable>
+          ))}
         </View>
-      ))}
+      )}
+
+      {!loading && assigned.length === 0 && (
+        <View style={[s.cohortCard, { alignItems: 'center', paddingVertical: 20 }]}>
+          <Text style={s.cohortMeta}>
+            No cohorts subscribed yet. Tap "Assign to cohort" to attach one.
+          </Text>
+        </View>
+      )}
+
+      {assigned.map((c) => {
+        const seatLine =
+          c.maxSeats != null
+            ? `${c.memberCount} of ${c.maxSeats} seats`
+            : `${c.memberCount} student${c.memberCount === 1 ? '' : 's'}`;
+        const dateLine = formatCohortStartDate(c.startDate);
+        const meta = dateLine ? `${seatLine} · starts ${dateLine}` : seatLine;
+        const statusTone =
+          c.status === 'active'
+            ? { bg: 'rgba(30, 143, 71, 0.12)', text: '#1E8F47', label: 'Active' }
+            : c.status === 'completed'
+              ? { bg: 'rgba(89, 100, 119, 0.12)', text: '#596477', label: 'Completed' }
+              : { bg: 'rgba(214, 167, 67, 0.12)', text: '#A07A2B', label: c.status ?? 'Planned' };
+        return (
+          <View key={c.id} style={s.cohortCard}>
+            <View style={s.cohortHead}>
+              <View style={{ flex: 1 }}>
+                <Text style={s.cohortName}>{c.name}</Text>
+                <Text style={s.cohortMeta}>{meta}</Text>
+              </View>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <View style={[s.statusChip, { backgroundColor: statusTone.bg }]}>
+                  <Text style={[s.statusChipText, { color: statusTone.text }]}>
+                    {statusTone.label}
+                  </Text>
+                </View>
+                <Pressable
+                  onPress={() => unassign.mutate(c.id)}
+                  hitSlop={8}
+                  style={{ padding: 4 }}
+                >
+                  <Ionicons name="close" size={16} color="#596477" />
+                </Pressable>
+              </View>
+            </View>
+          </View>
+        );
+      })}
     </ScrollView>
   );
 }

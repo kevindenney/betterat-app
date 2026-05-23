@@ -310,7 +310,7 @@ export default function BlueprintEditorPage() {
             orgShort={blueprint.orgShort}
           />
         ) : tab === 'cohorts' ? (
-          <CohortsTabBody />
+          <CohortsTabBody blueprintId={blueprintId} orgId={blueprint.orgId} />
         ) : tab === 'mentor' ? (
           <MentorSettingsTabBody />
         ) : tab === 'activity' ? (
