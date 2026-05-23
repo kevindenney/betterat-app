@@ -231,15 +231,13 @@ function OrgDetailScreenInner() {
     if (!org?.id) return;
     let cancelled = false;
     (async () => {
-      const { data: memberships, error } = await supabase
-        .from('organization_memberships')
-        .select('user_id, role, joined_at')
-        .eq('organization_id', org.id)
-        .eq('status', 'active')
-        .neq('role', 'admin') // staff/admin/owner are not "members you may know"
-        .neq('role', 'owner')
-        .neq('role', 'staff')
-        .limit(12);
+      // SECURITY DEFINER RPC — direct table reads return zero rows for
+      // non-members (org_memberships RLS is owner-only). The RPC bounds the
+      // exposure to active non-admin members so discovery can render.
+      const { data: memberships, error } = await supabase.rpc(
+        'discover_members_at_org',
+        { p_org_id: org.id, p_limit: 12 },
+      );
       if (cancelled || error || !memberships) return;
       const otherIds = memberships
         .filter((m) => m.user_id && m.user_id !== user?.id)
@@ -536,8 +534,9 @@ function OrgDetailScreenInner() {
         ) : null}
 
         {/* Cross-ref → People — actual members from this org.
-            Three rows is the canonical minimum; below that the section is absent. */}
-        {members.length >= 3 ? (
+            One suggestion still earns its place in discovery; absent only
+            when the RPC returns zero rows. */}
+        {members.length >= 1 ? (
           <IOSDetailSection
             header="Members you may know"
             seeAll={
