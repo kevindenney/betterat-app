@@ -162,26 +162,39 @@ class SailorProfileServiceClass {
   ): Promise<FullSailorProfile | null> {
     logger.info('Getting full profile', { targetUserId, currentUserId });
 
-    // Fetch all data in parallel for performance
-    const [profile, stats, achievements, boats, counts, isFollowing, followOptions] =
-      await Promise.all([
-        this.getProfile(targetUserId),
-        this.getStats(targetUserId),
-        this.getAchievements(targetUserId),
-        this.getBoats(targetUserId),
-        this.getFollowCounts(targetUserId),
-        currentUserId && currentUserId !== targetUserId
-          ? this.checkIsFollowing(currentUserId, targetUserId)
-          : Promise.resolve(false),
-        currentUserId && currentUserId !== targetUserId
-          ? CrewFinderService.getFollowOptions(currentUserId, targetUserId)
-          : Promise.resolve({ isFavorite: false, notificationsEnabled: false, isMuted: false }),
-      ]);
-
+    // Profile is the required gate — if this fails, surface "not found".
+    // Everything else is decoration and must not block the screen.
+    const profile = await this.getProfile(targetUserId);
     if (!profile) {
       logger.warn('Profile not found', { targetUserId });
       return null;
     }
+
+    const settle = async <T>(p: Promise<T>, fallback: T, label: string): Promise<T> => {
+      try {
+        return await p;
+      } catch (err) {
+        logger.warn(`[getFullProfile] ${label} failed; using fallback`, { err });
+        return fallback;
+      }
+    };
+
+    const [stats, achievements, boats, counts, isFollowing, followOptions] = await Promise.all([
+      settle<SailorStats | null>(this.getStats(targetUserId), null, 'getStats'),
+      settle<SailorAchievement[]>(this.getAchievements(targetUserId), [], 'getAchievements'),
+      settle<SailorBoat[]>(this.getBoats(targetUserId), [], 'getBoats'),
+      settle<FollowCounts>(this.getFollowCounts(targetUserId), { followers: 0, following: 0 }, 'getFollowCounts'),
+      currentUserId && currentUserId !== targetUserId
+        ? settle(this.checkIsFollowing(currentUserId, targetUserId), false, 'checkIsFollowing')
+        : Promise.resolve(false),
+      currentUserId && currentUserId !== targetUserId
+        ? settle(
+            CrewFinderService.getFollowOptions(currentUserId, targetUserId),
+            { isFavorite: false, notificationsEnabled: false, isMuted: false },
+            'getFollowOptions',
+          )
+        : Promise.resolve({ isFavorite: false, notificationsEnabled: false, isMuted: false }),
+    ]);
 
     return {
       ...profile,
@@ -220,6 +233,15 @@ class SailorProfileServiceClass {
       logger.warn('Profile not found', { userId, error: profileError });
       return null;
     }
+
+    // Seed sailors live in `profiles` with proper display name + bio + sailing
+    // metadata — the `users.full_name` for these rows is just the email. Pull
+    // `profiles` opportunistically so the hero shows the real name.
+    const { data: profileExtra } = await supabase
+      .from('profiles')
+      .select('full_name, avatar_url, bio, sailing_location, sailing_club')
+      .eq('id', userId)
+      .maybeSingle();
 
     let sailorProfile: any = null;
     if (!this.sailorProfilesUnavailable) {
@@ -284,14 +306,23 @@ class SailorProfileServiceClass {
       homeClubName = club?.name;
     }
 
+    // `users.full_name` is the email for seed sailors — prefer the real name
+    // from `profiles` when present. Same fallback chain for avatar/bio/location.
+    const looksLikeEmail = (s?: string | null) => !!s && /@/.test(s);
+    const usersName = looksLikeEmail(profile.full_name) ? undefined : profile.full_name;
+    const profilesLocClub = [profileExtra?.sailing_location, profileExtra?.sailing_club]
+      .filter(Boolean)
+      .join(' · ');
+
     return {
       userId: profile.id,
-      displayName: sailorProfile?.display_name || profile.full_name || 'Sailor',
-      avatarUrl: profile.avatar_url,
+      displayName:
+        sailorProfile?.display_name || profileExtra?.full_name || usersName || 'Sailor',
+      avatarUrl: profile.avatar_url || profileExtra?.avatar_url || undefined,
       avatarEmoji: sailorProfile?.avatar_emoji,
       avatarColor: sailorProfile?.avatar_color,
-      bio: sailorProfile?.bio,
-      location: sailorProfile?.location,
+      bio: sailorProfile?.bio || profileExtra?.bio || undefined,
+      location: sailorProfile?.location || profilesLocClub || undefined,
       sailingSince: sailorProfile?.sailing_since,
       homeClubId: sailorProfile?.home_club_id,
       homeClubName,

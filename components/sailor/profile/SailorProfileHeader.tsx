@@ -15,6 +15,7 @@ import { ChevronLeft, Share2 } from 'lucide-react-native';
 import { getInitials } from '@/components/account/accountStyles';
 import { FollowButton } from '@/components/social/FollowButton';
 import type { FullSailorProfile } from '@/services/SailorProfileService';
+import { IOSDetailSection, ConceptCard } from '@/components/discover/detail';
 import {
   IOS_COLORS,
   IOS_TYPOGRAPHY,
@@ -125,13 +126,6 @@ export function SailorProfileHeader({
           <Text style={styles.location}>{profile.location}</Text>
         )}
 
-        {/* Bio */}
-        {profile.bio && (
-          <Text style={styles.bio} numberOfLines={3}>
-            {profile.bio}
-          </Text>
-        )}
-
         {/* Follow Stats */}
         <View style={styles.statsRow}>
           <Pressable
@@ -176,6 +170,15 @@ export function SailorProfileHeader({
           </View>
         )}
       </View>
+
+      {/* Working on now — the practice signal carried over from Discover
+          Person detail. Same coral CURRENT CONCEPT treatment so the public
+          face matches the canonical practice-signal voice. */}
+      {profile.bio ? (
+        <IOSDetailSection header="Working on now" bare>
+          <ConceptCard text={profile.bio} />
+        </IOSDetailSection>
+      ) : null}
     </View>
   );
 }
