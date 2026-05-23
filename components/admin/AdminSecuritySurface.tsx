@@ -5,42 +5,61 @@
  * IdP/SP entity IDs, attribute mappings on the left; verified domains
  * with DNS TXT status + auto-add toggles on the right.
  *
- * Demo data — SAML config + domain claim aren't wired yet.
+ * Backed by org_sso_config + org_verified_domains via useOrgSecurity.
  */
 
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, TextInput } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useOrgSecurity, AttributeMapping } from '@/hooks/useOrgSecurity';
 
-interface AttrMap {
-  idp: string;
-  field: string;
+function formatRelative(iso: string | null): string | null {
+  if (!iso) return null;
+  const d = new Date(iso);
+  const days = Math.round((Date.now() - d.getTime()) / (24 * 60 * 60 * 1000));
+  if (days < 1) return 'today';
+  if (days < 2) return 'yesterday';
+  if (days < 30) return `${days} days ago`;
+  return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 }
 
-const ATTR_MAPS: AttrMap[] = [
-  { idp: 'NameID', field: 'email' },
-  { idp: 'eduPersonAffiliation', field: 'role' },
-  { idp: 'department', field: 'cohort_hint' },
-  { idp: 'displayName', field: 'name' },
-];
-
-interface DomainRow {
-  domain: string;
-  txt: string;
-  status: 'verified' | 'pending';
-  badge: string;
+function formatBytes(n: number | null | undefined): string {
+  if (n == null) return '';
+  if (n < 1024) return `${n} B`;
+  return `${(n / 1024).toFixed(1)} KB`;
 }
 
-const DOMAINS: DomainRow[] = [
-  { domain: 'jh.edu', txt: 'betterat-verify=8c2f…', status: 'verified', badge: 'primary' },
-  { domain: 'jhmi.edu', txt: 'betterat-verify=4a1d…', status: 'pending', badge: 'added Fri' },
-  { domain: 'jhu.edu', txt: 'betterat-verify=b7e3…', status: 'verified', badge: 'alias' },
-];
-
-export function AdminSecuritySurface() {
-  const [autoAdd, setAutoAdd] = useState(true);
-  const [requireSso, setRequireSso] = useState(true);
+export function AdminSecuritySurface({ orgId }: { orgId: string }) {
+  const { config, domains, loading, updateConfig, addDomain, removeDomain } = useOrgSecurity(orgId);
   const [newDomain, setNewDomain] = useState('');
+  const [addError, setAddError] = useState<string | null>(null);
+
+  const autoAdd = config?.autoAddVerifiedDomain ?? true;
+  const requireSso = config?.requireSsoForVerifiedDomain ?? true;
+  const attrMappings: AttributeMapping[] = config?.attributeMappings ?? [];
+
+  const lastExchange = formatRelative(config?.lastMetadataExchangeAt ?? null);
+  const uploadedRel = formatRelative(config?.metadataUploadedAt ?? null);
+  const uploadedBy = config?.metadataUploadedByName ?? null;
+  const filename = config?.metadataFilename ?? null;
+  const sizeLabel = formatBytes(config?.metadataSizeBytes);
+
+  const verifiedCount = domains.filter((d) => d.status === 'verified').length;
+
+  const handleAddDomain = () => {
+    setAddError(null);
+    if (!newDomain.trim()) return;
+    addDomain.mutate(
+      { domain: newDomain.trim() },
+      {
+        onSuccess: () => setNewDomain(''),
+        onError: (err: unknown) => {
+          const msg = err instanceof Error ? err.message : 'Failed to add domain';
+          setAddError(msg);
+        },
+      },
+    );
+  };
 
   return (
     <ScrollView style={s.body} contentContainerStyle={s.bodyInner}>
@@ -53,12 +72,14 @@ export function AdminSecuritySurface() {
                 <Text style={s.cardEyebrow}>SAML 2.0 · IdP-initiated & SP-initiated</Text>
                 <Text style={s.cardH3}>Identity provider</Text>
               </View>
-              <View style={[s.statusChip, s.statusOk]}>
-                <Ionicons name="checkmark" size={11} color="#1E8F47" />
-                <Text style={[s.statusText, { color: '#1E8F47' }]}>
-                  Last metadata exchange Apr 18
-                </Text>
-              </View>
+              {lastExchange ? (
+                <View style={[s.statusChip, s.statusOk]}>
+                  <Ionicons name="checkmark" size={11} color="#1E8F47" />
+                  <Text style={[s.statusText, { color: '#1E8F47' }]}>
+                    Last metadata exchange {lastExchange}
+                  </Text>
+                </View>
+              ) : null}
             </View>
             <View style={s.cardBody}>
               <View style={s.fileDrop}>
@@ -66,10 +87,15 @@ export function AdminSecuritySurface() {
                   <Ionicons name="document-text-outline" size={22} color="#28406B" />
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={s.fileDropTitle}>okta-jh-edu-metadata.xml</Text>
+                  <Text style={s.fileDropTitle}>
+                    {loading ? 'Loading…' : filename ?? 'No metadata uploaded yet'}
+                  </Text>
                   <Text style={s.fileDropSub}>
-                    Uploaded by Dean S. Park · 4.2 KB · Apr 18, 11:14a — drop a new file to
-                    re-key.
+                    {filename
+                      ? `Uploaded by ${uploadedBy ?? 'unknown'} · ${sizeLabel}${
+                          uploadedRel ? ` · ${uploadedRel}` : ''
+                        } — drop a new file to re-key.`
+                      : 'Drop your Okta / Azure AD metadata XML here.'}
                   </Text>
                 </View>
                 <Pressable style={s.btnSm}>
@@ -83,15 +109,9 @@ export function AdminSecuritySurface() {
               </View>
 
               <View style={{ gap: 8, marginTop: 14 }}>
-                <ConfigRow
-                  label="IdP Entity ID"
-                  value="http://www.okta.com/exk1j8h2k9aPfX0YQ357"
-                />
-                <ConfigRow
-                  label="ACS URL · BetterAt"
-                  value="https://betterat.app/auth/saml/jhson/acs"
-                />
-                <ConfigRow label="SP Entity ID" value="https://betterat.app/orgs/jhson" />
+                <ConfigRow label="IdP Entity ID" value={config?.idpEntityId ?? '—'} />
+                <ConfigRow label="ACS URL · BetterAt" value={config?.acsUrl ?? '—'} />
+                <ConfigRow label="SP Entity ID" value={config?.spEntityId ?? '—'} />
               </View>
             </View>
           </View>
@@ -109,8 +129,11 @@ export function AdminSecuritySurface() {
                 <View style={{ width: 32 }} />
                 <Text style={[s.attrHeadCell, { flex: 1 }]}>BetterAt field</Text>
               </View>
-              {ATTR_MAPS.map((m, idx) => (
-                <View key={m.idp} style={[s.attrRow, idx > 0 && s.attrRowDivider]}>
+              {attrMappings.length === 0 && !loading ? (
+                <Text style={s.attrEmpty}>No mappings configured yet.</Text>
+              ) : null}
+              {attrMappings.map((m, idx) => (
+                <View key={`${m.idp}-${idx}`} style={[s.attrRow, idx > 0 && s.attrRowDivider]}>
                   <View style={[s.attrCellMono, { flex: 1 }]}>
                     <Text style={s.attrCellMonoText}>{m.idp}</Text>
                   </View>
@@ -121,9 +144,27 @@ export function AdminSecuritySurface() {
                     <Text style={s.selectFakeText}>{m.field}</Text>
                     <Ionicons name="chevron-down" size={12} color="rgba(60, 60, 67, 0.4)" />
                   </View>
+                  <Pressable
+                    onPress={() => {
+                      const next = attrMappings.filter((_, i) => i !== idx);
+                      updateConfig.mutate({ attributeMappings: next });
+                    }}
+                    style={s.iconBtn}
+                  >
+                    <Ionicons name="close" size={14} color="rgba(60, 60, 67, 0.6)" />
+                  </Pressable>
                 </View>
               ))}
-              <Pressable style={[s.btnSmGhost, { marginTop: 10, alignSelf: 'flex-start' }]}>
+              <Pressable
+                style={[s.btnSmGhost, { marginTop: 10, alignSelf: 'flex-start' }]}
+                onPress={() => {
+                  const next = [
+                    ...attrMappings,
+                    { idp: 'newAttribute', field: 'name' } as AttributeMapping,
+                  ];
+                  updateConfig.mutate({ attributeMappings: next });
+                }}
+              >
                 <Ionicons name="add" size={12} color="rgba(60, 60, 67, 0.6)" />
                 <Text style={s.btnSmGhostText}>Add mapping</Text>
               </Pressable>
@@ -138,17 +179,21 @@ export function AdminSecuritySurface() {
               <View>
                 <Text style={s.cardEyebrow}>Verified domains</Text>
                 <Text style={s.cardH3}>
-                  {DOMAINS.length} domains · {DOMAINS.filter((d) => d.status === 'verified').length}{' '}
-                  active
+                  {loading
+                    ? 'Loading…'
+                    : `${domains.length} domain${domains.length === 1 ? '' : 's'} · ${verifiedCount} active`}
                 </Text>
               </View>
             </View>
             <View style={s.cardBody}>
-              {DOMAINS.map((d) => (
-                <View key={d.domain} style={s.domainRow}>
+              {!loading && domains.length === 0 ? (
+                <Text style={s.attrEmpty}>No domains added yet.</Text>
+              ) : null}
+              {domains.map((d) => (
+                <View key={d.id} style={s.domainRow}>
                   <View style={{ flex: 1 }}>
                     <Text style={s.domainName}>{d.domain}</Text>
-                    <Text style={s.domainTxt}>TXT: {d.txt}</Text>
+                    <Text style={s.domainTxt}>TXT: {d.txtRecord}</Text>
                   </View>
                   <View
                     style={[
@@ -170,27 +215,42 @@ export function AdminSecuritySurface() {
                       {d.status === 'verified' ? 'Verified' : 'Pending DNS'}
                     </Text>
                   </View>
-                  <Text style={s.domainBadge}>{d.badge}</Text>
-                  <Pressable style={s.iconBtn}>
-                    <Ionicons name="ellipsis-vertical" size={13} color="rgba(60, 60, 67, 0.6)" />
+                  <Text style={s.domainBadge}>{d.badgeText}</Text>
+                  <Pressable
+                    style={s.iconBtn}
+                    onPress={() => removeDomain.mutate(d.id)}
+                    hitSlop={8}
+                  >
+                    <Ionicons name="close" size={14} color="rgba(60, 60, 67, 0.6)" />
                   </Pressable>
                 </View>
               ))}
 
               <View style={s.addDomainRow}>
                 <Ionicons name="add" size={18} color="rgba(40, 64, 107, 0.6)" />
-                <Pressable
+                <TextInput
                   style={s.addDomainInput}
-                  onPress={() => setNewDomain((v) => (v ? v : ''))}
+                  placeholder="Add another domain · e.g. nursing.jhu.edu"
+                  placeholderTextColor="rgba(60, 60, 67, 0.4)"
+                  value={newDomain}
+                  onChangeText={(t) => {
+                    setNewDomain(t);
+                    if (addError) setAddError(null);
+                  }}
+                  autoCapitalize="none"
+                  onSubmitEditing={handleAddDomain}
+                />
+                <Pressable
+                  style={[s.btnSmPrimary, !newDomain.trim() && { opacity: 0.5 }]}
+                  onPress={handleAddDomain}
+                  disabled={!newDomain.trim() || addDomain.isPending}
                 >
-                  <Text style={[s.addDomainPlaceholder, newDomain ? s.addDomainValue : null]}>
-                    {newDomain || 'Add another domain · e.g. nursing.jhu.edu'}
+                  <Text style={s.btnSmPrimaryText}>
+                    {addDomain.isPending ? 'Adding…' : 'Add'}
                   </Text>
                 </Pressable>
-                <Pressable style={s.btnSmPrimary}>
-                  <Text style={s.btnSmPrimaryText}>Add</Text>
-                </Pressable>
               </View>
+              {addError ? <Text style={s.errorLine}>{addError}</Text> : null}
             </View>
           </View>
 
@@ -203,17 +263,17 @@ export function AdminSecuritySurface() {
             </View>
             <View style={[s.cardBody, { gap: 14 }]}>
               <ToggleRow
-                title="Auto-add new users with verified jh.edu / jhu.edu"
-                sub="When someone signs up with a verified-domain email, they join JHSON automatically as Student."
+                title="Auto-add new users with verified domains"
+                sub="When someone signs up with a verified-domain email, they join this org automatically as Student."
                 value={autoAdd}
-                onValueChange={setAutoAdd}
+                onValueChange={(v) => updateConfig.mutate({ autoAddVerifiedDomain: v })}
               />
               <View style={s.toggleDivider} />
               <ToggleRow
                 title="Require SSO for verified-domain emails"
-                sub="Members on jh.edu must sign in via Okta. Magic-link and password disabled for them."
+                sub="Members with verified-domain emails must sign in via SAML. Magic-link and password disabled for them."
                 value={requireSso}
-                onValueChange={setRequireSso}
+                onValueChange={(v) => updateConfig.mutate({ requireSsoForVerifiedDomain: v })}
               />
               <View style={s.toggleDivider} />
               <View style={s.dropdownRow}>
@@ -375,6 +435,7 @@ const s = StyleSheet.create({
     letterSpacing: 0.4,
     textTransform: 'uppercase',
   },
+  attrEmpty: { fontSize: 12, color: 'rgba(60, 60, 67, 0.5)', paddingVertical: 8 },
   attrRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -480,9 +541,12 @@ const s = StyleSheet.create({
     backgroundColor: '#F5F4EE',
     borderRadius: 10,
   },
-  addDomainInput: { flex: 1 },
-  addDomainPlaceholder: { fontSize: 13, color: 'rgba(60, 60, 67, 0.4)' },
-  addDomainValue: { color: '#1C1C1E' },
+  addDomainInput: { flex: 1, fontSize: 13, color: '#1C1C1E', paddingVertical: 4 },
+  errorLine: {
+    marginTop: 8,
+    fontSize: 11.5,
+    color: '#C0392B',
+  },
 
   // Toggle
   toggleRow: { flexDirection: 'row', alignItems: 'center', gap: 14 },

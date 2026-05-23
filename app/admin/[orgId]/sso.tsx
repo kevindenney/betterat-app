@@ -6,7 +6,7 @@ import { StudioHeader, StudioButton } from '@/components/studio/StudioShell';
 import { AdminSecuritySurface } from '@/components/admin/AdminSecuritySurface';
 
 export default function AdminSSOPage() {
-  const { orgId: _ } = useLocalSearchParams<{ orgId: string }>();
+  const { orgId } = useLocalSearchParams<{ orgId: string }>();
   return (
     <AdminShell activeKey="sso">
       <StudioHeader
@@ -17,7 +17,7 @@ export default function AdminSSOPage() {
             <Text style={{ fontWeight: '600', color: 'rgba(60, 60, 67, 0.95)' }}>
               SAML 2.0 · Okta
             </Text>
-            {' · '}3 verified domains · auto-add on · 284 of 412 members signed in via SSO this month
+            {' · '}auto-add on · backed by org_sso_config + org_verified_domains
           </Text>,
         ]}
         actions={
@@ -27,7 +27,7 @@ export default function AdminSSOPage() {
           </>
         }
       />
-      <AdminSecuritySurface />
+      <AdminSecuritySurface orgId={orgId} />
     </AdminShell>
   );
 }

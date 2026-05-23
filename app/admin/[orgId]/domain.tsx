@@ -6,7 +6,7 @@ import { StudioHeader, StudioButton } from '@/components/studio/StudioShell';
 import { AdminSecuritySurface } from '@/components/admin/AdminSecuritySurface';
 
 export default function AdminDomainPage() {
-  const { orgId: _ } = useLocalSearchParams<{ orgId: string }>();
+  const { orgId } = useLocalSearchParams<{ orgId: string }>();
   return (
     <AdminShell activeKey="domain">
       <StudioHeader
@@ -14,8 +14,7 @@ export default function AdminDomainPage() {
         title="SSO & domain"
         subtitleParts={[
           <Text key="sub" style={{ fontSize: 12.5, color: 'rgba(60, 60, 67, 0.85)' }}>
-            3 verified domains · DNS TXT status synced · auto-add new users with verified
-            domain
+            DNS TXT status · auto-add policy from org_verified_domains
           </Text>,
         ]}
         actions={
@@ -25,7 +24,7 @@ export default function AdminDomainPage() {
           </>
         }
       />
-      <AdminSecuritySurface />
+      <AdminSecuritySurface orgId={orgId} />
     </AdminShell>
   );
 }
