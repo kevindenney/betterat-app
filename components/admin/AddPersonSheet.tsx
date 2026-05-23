@@ -84,6 +84,12 @@ export function AddPersonSheet({
   const [cohort] = useState(defaultCohortLabel);
   const [autoSubscribe, setAutoSubscribe] = useState(true);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [csvDraft, setCsvDraft] = useState('');
+  const [csvSummary, setCsvSummary] = useState<{
+    added: number;
+    invalid: number;
+    duplicate: number;
+  } | null>(null);
 
   const sendMutation = useMutation({
     mutationFn: async () => {
@@ -202,6 +208,52 @@ export function AddPersonSheet({
 
   function removeChip(idx: number) {
     setEmails((prev) => prev.filter((_, i) => i !== idx));
+  }
+
+  function parseCsv() {
+    if (!csvDraft.trim()) {
+      setCsvSummary(null);
+      return;
+    }
+    // Per RFC 4180-ish: split into lines; for each line split on comma OR
+    // tab OR semicolon (people paste from spreadsheets a few different
+    // ways). Then within each row, the email is the cell that contains an
+    // '@'. Strips surrounding quotes/whitespace.
+    const lines = csvDraft.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+    const existing = new Set(emails.map((e) => e.email.toLowerCase()));
+    const collected: EmailChip[] = [];
+    let invalid = 0;
+    let duplicate = 0;
+    for (const line of lines) {
+      const cells = line
+        .split(/[,;\t]/)
+        .map((c) => c.trim().replace(/^"|"$/g, '').trim());
+      const candidate = cells.find((c) => c.includes('@'));
+      if (!candidate) continue;
+      if (!isValidEmail(candidate)) {
+        invalid += 1;
+        continue;
+      }
+      const lower = candidate.toLowerCase();
+      if (existing.has(lower) || collected.some((c) => c.email.toLowerCase() === lower)) {
+        duplicate += 1;
+        continue;
+      }
+      const domain = lower.split('@')[1] ?? '';
+      collected.push({ email: candidate, isValid: verifiedDomains.includes(domain) });
+    }
+    if (collected.length > 0) {
+      setEmails((prev) => [...prev, ...collected]);
+    }
+    setCsvSummary({ added: collected.length, invalid, duplicate });
+    if (collected.length > 0) {
+      setCsvDraft('');
+    }
+  }
+
+  function clearAllChips() {
+    setEmails([]);
+    setCsvSummary(null);
   }
 
   if (!visible) return null;
@@ -387,18 +439,146 @@ export function AddPersonSheet({
                 </View>
               </Pressable>
             </>
+          ) : method === 'csv' ? (
+            <>
+              <Field label="Paste CSV or spreadsheet rows">
+                <TextInput
+                  value={csvDraft}
+                  onChangeText={(t) => {
+                    setCsvDraft(t);
+                    if (csvSummary) setCsvSummary(null);
+                  }}
+                  placeholder={
+                    'name,email,role\nNora Helms,nora.helms@jh.edu,student\nDevon Aldridge,devon.aldridge@jh.edu,student'
+                  }
+                  placeholderTextColor="rgba(60, 60, 67, 0.4)"
+                  multiline
+                  numberOfLines={6}
+                  style={s.csvBox}
+                />
+                <Text style={s.helper}>
+                  Paste rows separated by newlines. The cell containing an{' '}
+                  <Text style={s.helperStrong}>@</Text> is treated as the email; other
+                  cells are ignored. Header row is optional. Duplicates and invalid
+                  addresses are skipped.
+                </Text>
+              </Field>
+
+              <View style={s.csvActions}>
+                <StudioButton
+                  variant="primary"
+                  accent="navy"
+                  icon="checkmark"
+                  label="Parse & add"
+                  onPress={parseCsv}
+                />
+                {emails.length > 0 ? (
+                  <StudioButton
+                    variant="ghost"
+                    icon="trash-outline"
+                    label={`Clear ${emails.length} queued`}
+                    onPress={clearAllChips}
+                  />
+                ) : null}
+              </View>
+
+              {csvSummary ? (
+                <View style={s.csvSummary}>
+                  <Ionicons
+                    name={csvSummary.added > 0 ? 'checkmark-circle' : 'information-circle'}
+                    size={14}
+                    color={csvSummary.added > 0 ? '#1E8F47' : '#28406B'}
+                  />
+                  <Text style={s.csvSummaryText}>
+                    Added{' '}
+                    <Text style={s.csvSummaryStrong}>
+                      {csvSummary.added} {csvSummary.added === 1 ? 'email' : 'emails'}
+                    </Text>
+                    {csvSummary.invalid > 0
+                      ? ` · ${csvSummary.invalid} skipped (invalid)`
+                      : ''}
+                    {csvSummary.duplicate > 0
+                      ? ` · ${csvSummary.duplicate} skipped (duplicate)`
+                      : ''}
+                  </Text>
+                </View>
+              ) : null}
+
+              {emails.length > 0 ? (
+                <Field label={`Queued (${emails.length})`}>
+                  <View style={s.chipInputWrap}>
+                    {emails.map((chip, i) => (
+                      <View
+                        key={`${chip.email}-${i}`}
+                        style={[s.chip, !chip.isValid && s.chipInvalid]}
+                      >
+                        <View style={[s.chipAt, !chip.isValid && s.chipAtInvalid]}>
+                          <Text style={s.chipAtText}>@</Text>
+                        </View>
+                        <Text style={[s.chipText, !chip.isValid && s.chipTextInvalid]}>
+                          {chip.email}
+                        </Text>
+                        {!chip.isValid ? (
+                          <View style={s.chipWarnRow}>
+                            <Ionicons name="warning" size={11} color="#C99632" />
+                            <Text style={s.chipWarnText}>
+                              not @{verifiedDomains[0]}
+                            </Text>
+                          </View>
+                        ) : null}
+                        <Pressable onPress={() => removeChip(i)} hitSlop={4}>
+                          <Ionicons
+                            name="close"
+                            size={11}
+                            color={chip.isValid ? '#007AFF' : '#C99632'}
+                          />
+                        </Pressable>
+                      </View>
+                    ))}
+                  </View>
+                </Field>
+              ) : null}
+
+              <Field label="Role">
+                <View style={s.roleGrid}>
+                  {(
+                    [
+                      { key: 'student', title: 'Student' },
+                      { key: 'author', title: 'Author' },
+                      { key: 'mentor', title: 'Mentor' },
+                      { key: 'admin', title: 'Admin' },
+                    ] as { key: PersonRole; title: string }[]
+                  ).map((r) => (
+                    <Pressable
+                      key={r.key}
+                      onPress={() => setRole(r.key)}
+                      style={[s.roleCard, role === r.key && s.roleCardOn]}
+                    >
+                      <View style={s.roleHead}>
+                        {role === r.key ? (
+                          <Ionicons name="checkmark-circle" size={14} color="#007AFF" />
+                        ) : null}
+                        <Text
+                          style={[s.roleTitle, role === r.key && s.roleTitleOn]}
+                        >
+                          {r.title}
+                        </Text>
+                      </View>
+                    </Pressable>
+                  ))}
+                </View>
+              </Field>
+            </>
           ) : (
             <View style={s.methodStub}>
               <Ionicons name="construct-outline" size={28} color="rgba(40, 64, 107, 0.5)" />
               <Text style={s.methodStubTitle}>
-                {method === 'csv'
-                  ? 'Bulk CSV upload coming next'
-                  : method === 'sso'
+                {method === 'sso'
                   ? 'SSO directory picker coming next'
                   : 'Shareable invite link coming next'}
               </Text>
               <Text style={s.methodStubBody}>
-                Use "Invite by email" today — it handles single or paste-batch invites
+                Use "Invite by email" or "Bulk · CSV" today — both handle batch invites
                 with the same role/cohort settings.
               </Text>
             </View>
@@ -646,6 +826,32 @@ const s = StyleSheet.create({
     marginTop: 3,
   },
   autoSubStrong: { color: 'rgba(60, 60, 67, 0.85)', fontWeight: '600' },
+
+  csvBox: {
+    minHeight: 120,
+    padding: 12,
+    borderWidth: 0.5,
+    borderColor: '#D1D1D6',
+    borderRadius: 9,
+    backgroundColor: '#FFFFFF',
+    fontSize: 12.5,
+    color: '#1C1C1E',
+    fontFamily: 'Menlo',
+    textAlignVertical: 'top',
+    ...(typeof document !== 'undefined' ? ({ outlineStyle: 'none' } as any) : {}),
+  },
+  csvActions: { flexDirection: 'row', gap: 8, alignItems: 'center' },
+  csvSummary: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    backgroundColor: '#F2F2F7',
+    borderRadius: 10,
+  },
+  csvSummaryText: { fontSize: 12, color: 'rgba(60, 60, 67, 0.85)', flex: 1 },
+  csvSummaryStrong: { fontWeight: '600', color: '#1C1C1E' },
 
   methodStub: { alignItems: 'center', paddingVertical: 32, gap: 6 },
   methodStubTitle: { fontSize: 14, fontWeight: '600', color: '#1C1C1E', marginTop: 4 },
