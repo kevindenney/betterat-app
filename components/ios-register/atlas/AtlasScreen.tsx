@@ -47,6 +47,7 @@ import { AtlasMapLibreCanvas } from './AtlasMapLibreCanvas';
 import { useAtlasFramePins } from '@/hooks/useAtlasFramePins';
 import { useNextRaceMarks } from '@/hooks/useNextRaceMarks';
 import { useWalkTimeAnnotations } from '@/hooks/useWalkTimeAnnotations';
+import { useWindOverlay } from '@/hooks/useWindOverlay';
 import {
   AtlasPin,
   ClusterTag,
@@ -612,7 +613,19 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
   const { data: raceMarkPins = [] } = useNextRaceMarks({
     regattaId: next?.event_kind === 'regatta' ? next.event_id : null,
   });
-  const pins = useMemo(() => [...framePins, ...raceMarkPins], [framePins, raceMarkPins]);
+  // Wind overlay — soft directional field anchored at the next event's
+  // venue (or the F1 camera centroid as fallback). Parses heading + speed
+  // from next.conditions; reads as field at low opacity, never foreground.
+  const windPins = useWindOverlay({
+    centerLat: next?.lat ?? 22.295,
+    centerLng: next?.lng ?? 114.18,
+    conditionsLine: next?.conditions,
+    enabled: true,
+  });
+  const pins = useMemo(
+    () => [...windPins, ...framePins, ...raceMarkPins],
+    [windPins, framePins, raceMarkPins],
+  );
   const exitCommit = useCallback(() => {
     setCommitMode(false);
     setCandidate(null);

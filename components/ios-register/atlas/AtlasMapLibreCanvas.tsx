@@ -26,6 +26,7 @@
 
 import React, { useCallback } from 'react';
 import { Platform, StyleSheet, Text, View, type NativeSyntheticEvent } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import {
   Map as MLMap,
   Camera as MLCamera,
@@ -102,7 +103,8 @@ export interface AtlasPinSpec {
     | 'poi-hospital'
     | 'poi-sim-lab'
     | 'poi-preceptor'
-    | 'walk-annotation';
+    | 'walk-annotation'
+    | 'wind-arrow';
   /** Optional short label rendered next to the pin (POIs get names). */
   label?: string;
   /**
@@ -323,6 +325,10 @@ const PIN_TONE: Record<
   // keeps it out of cluster math and shouldShowLabel; rendering handled
   // inline as a label-only marker.
   'walk-annotation': { size: 0, color: 'transparent', shape: 'circle' },
+  // Wind arrow — soft directional sprite rendered as a rotated triangle
+  // glyph at low opacity. Heading + knots come in via the label field
+  // ("degrees|knots") so the renderer can rotate without new pin fields.
+  'wind-arrow': { size: 14, color: 'rgba(60, 80, 110, 0.55)', shape: 'circle' },
 };
 
 /**
@@ -350,6 +356,19 @@ function LabeledPin({
         <Text style={styles.walkAnnotationText}>{label}</Text>
       </View>
     ) : null;
+  }
+  // Wind-arrow renders as a soft rotated chevron pointing downwind.
+  // label encodes "degrees|knots"; the wind direction is "from-X" in
+  // nautical convention, so the arrow points to (degrees + 180) % 360.
+  if (kind === 'wind-arrow') {
+    const [degStr] = (label ?? '0|0').split('|');
+    const fromDeg = Number(degStr) || 0;
+    const downwindDeg = (fromDeg + 180) % 360;
+    return (
+      <View style={[styles.windArrow, { transform: [{ rotate: `${downwindDeg}deg` }] }]}>
+        <Ionicons name="arrow-up" size={18} color="rgba(60, 80, 110, 0.55)" />
+      </View>
+    );
   }
   const tone = PIN_TONE[kind];
   return (
@@ -518,6 +537,13 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#FFFFFF',
     letterSpacing: 0.2,
+  },
+  windArrow: {
+    width: 18,
+    height: 18,
+    opacity: 0.7,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   nextTag: {
     backgroundColor: '#FFE6B0',
