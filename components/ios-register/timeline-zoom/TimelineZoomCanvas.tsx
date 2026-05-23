@@ -39,7 +39,7 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { IOS_REGISTER } from '@/lib/design-tokens-ios';
-import { CanvasBellButton } from './CanvasBellButton';
+import { CanvasTopBar } from './CanvasTopBar';
 import { InterestHeader } from './InterestHeader';
 import { L1StepView } from './L1StepView';
 import { L2WeekView } from './L2WeekView';
@@ -255,7 +255,15 @@ export function TimelineZoomCanvas({
   return (
     <GestureHandlerRootView style={styles.root}>
       <View style={styles.surface}>
-        {hideInterestHeader ? null : (
+        {hideInterestHeader ? (
+          level !== 1 && !select.enabled ? (
+            <CanvasTopBar
+              interestLabel={dataset.interest.label}
+              user={dataset.user}
+              onPressBell={() => setInboxOpen(true)}
+            />
+          ) : null
+        ) : (
           <InterestHeader
             interestLabel={dataset.interest.label}
             level={level}
@@ -327,13 +335,6 @@ export function TimelineZoomCanvas({
           </View>
         </GestureDetector>
 
-        {/* Section F bell — top-right floating affordance, badged with
-            unread count. Hidden while a card is lifted for drag-reorder
-            or while select-mode's action bar is up, since either covers
-            the canvas with its own primary UI. */}
-        {!select.enabled ? (
-          <CanvasBellButton onPress={() => setInboxOpen(true)} />
-        ) : null}
 
         <NotificationsInboxSheet
           visible={inboxOpen}
