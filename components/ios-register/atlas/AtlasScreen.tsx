@@ -1348,10 +1348,25 @@ function BottomSheet({
   primary,
   secondary,
 }: BottomSheetProps) {
+  // Two-state draggable sheet: collapsed (handle + eyebrow + primary
+  // CTA only, ~110pt) and expanded (full content, ~current height).
+  // Tap the handle to toggle. Default expanded so first-time users see
+  // the full context, then they can pull down to free the map.
+  const [expanded, setExpanded] = useState(true);
+  const toggle = useCallback(() => setExpanded((v) => !v), []);
   return (
     <View style={shellStyles.bottomSheet}>
+      <Pressable
+        onPress={toggle}
+        accessibilityRole="button"
+        accessibilityLabel={expanded ? 'Collapse sheet' : 'Expand sheet'}
+        hitSlop={8}
+        style={shellStyles.sheetHandleHit}
+      >
+        <View style={shellStyles.sheetHandle} />
+      </Pressable>
       {eyebrow ? <Text style={shellStyles.eyebrow}>{eyebrow}</Text> : null}
-      {peerHeader ? (
+      {expanded && peerHeader ? (
         <View>
           <Text style={shellStyles.peerName}>
             {peerHeader.name} <Text style={shellStyles.peerQuote}>· {peerHeader.quote}</Text>
@@ -1359,9 +1374,9 @@ function BottomSheet({
           <Text style={shellStyles.peerEyebrow}>{peerHeader.eyebrow}</Text>
         </View>
       ) : null}
-      {title ? <Text style={shellStyles.sheetTitle}>{title}</Text> : null}
-      {body ? <Text style={shellStyles.sheetBody}>{body}</Text> : null}
-      {statsRow ? (
+      {title ? <Text style={shellStyles.sheetTitle} numberOfLines={expanded ? undefined : 1}>{title}</Text> : null}
+      {expanded && body ? <Text style={shellStyles.sheetBody}>{body}</Text> : null}
+      {expanded && statsRow ? (
         <View style={shellStyles.statsRow}>
           {statsRow.map((stat) => (
             <Stat key={stat.label} {...stat} />
@@ -1376,7 +1391,7 @@ function BottomSheet({
               <Text style={shellStyles.btnPrimaryText}>{primary.label}</Text>
             </Pressable>
           ) : null}
-          {secondary ? (
+          {expanded && secondary ? (
             <Pressable onPress={secondary.onPress} style={[shellStyles.btn, shellStyles.btnSecondary]}>
               {secondary.icon ? (
                 <Ionicons name={secondary.icon} size={14} color={IOS_REGISTER.label} />
@@ -1773,11 +1788,22 @@ const shellStyles = StyleSheet.create({
   // --- Bottom sheet -------------------------------------------------------
   bottomSheet: {
     paddingHorizontal: 16,
-    paddingTop: 12,
+    paddingTop: 6,
     paddingBottom: 10,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderColor: IOS_REGISTER.separator,
     backgroundColor: '#FFFFFF',
+  },
+  sheetHandleHit: {
+    alignItems: 'center',
+    paddingVertical: 6,
+    marginBottom: 4,
+  },
+  sheetHandle: {
+    width: 36,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: 'rgba(60, 60, 67, 0.28)',
   },
   eyebrow: {
     fontSize: 10,
