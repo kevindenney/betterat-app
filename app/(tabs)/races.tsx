@@ -243,11 +243,11 @@ function LegacyRacesScreen() {
   // sheet and clear the params so re-mounts don't re-open. The pin coords
   // remain captured in component state (atlasPin) for the downstream flow
   // to consume; threading them into the step itself is Phase A1 work.
-  // _atlasPin is currently write-only — captured so downstream AI Coach /
-  // Blueprint paths can read it when they're refactored to accept an
-  // initial location. Prefixed with _ to silence the unused-var lint
-  // until that consumer lands in a Phase A1 follow-up.
-  const [_atlasPin, setAtlasPin] = useState<{ lat: number; lng: number; place?: string } | null>(null);
+  // atlasPin is captured from the Atlas tab's compose-at-location handoff
+  // (Atlas → "Plan a step here" pushes ?openAddStep=1&pinLat=...&pinLng=...
+  // here). The "Build with AI Coach" path in the canonical add-step sheet
+  // consumes it as the new step's initial location. Cleared on consume.
+  const [atlasPin, setAtlasPin] = useState<{ lat: number; lng: number; place?: string } | null>(null);
   useEffect(() => {
     if (searchParams?.openAddStep !== '1') return;
     const lat = searchParams.pinLat ? Number(searchParams.pinLat) : null;
@@ -1803,7 +1803,9 @@ function LegacyRacesScreen() {
   }, [user?.id, currentInterest?.id, vocab, queryClient]);
 
   // Quick-create a timeline step — optionally pre-filled from a template
-  const handleAddStep = useCallback(async () => {
+  const handleAddStep = useCallback(async (
+    initialLocation?: { lat: number; lng: number; place_name?: string },
+  ) => {
     if (!user?.id || !currentInterest?.id) return;
 
     // ---------------------------------------------------------------------
@@ -1854,9 +1856,9 @@ function LegacyRacesScreen() {
       status: 'pending',
       starts_at: null,
       ends_at: null,
-      location_name: null,
-      location_lat: null,
-      location_lng: null,
+      location_name: initialLocation?.place_name ?? null,
+      location_lat: initialLocation?.lat ?? null,
+      location_lng: initialLocation?.lng ?? null,
       location_place_id: null,
       visibility: 'private',
       share_approximate_location: false,
@@ -1925,6 +1927,9 @@ function LegacyRacesScreen() {
         category: 'general',
         status: 'pending',
         metadata: optimisticMetadata,
+        location_name: initialLocation?.place_name ?? null,
+        location_lat: initialLocation?.lat ?? null,
+        location_lng: initialLocation?.lng ?? null,
       });
 
       // Swap temp row → server row in list caches (by id).
@@ -5335,7 +5340,14 @@ function LegacyRacesScreen() {
         onClose={() => setShowCanonicalAddStepSheet(false)}
         onBuildWithCoach={() => {
           setShowCanonicalAddStepSheet(false);
-          handleAddStep();
+          // Forward an Atlas-handoff pin (if present) so the new step's
+          // optimistic + persisted row carries the location. Consume-and-
+          // clear so a later step doesn't accidentally inherit the pin.
+          const pin = atlasPin;
+          setAtlasPin(null);
+          handleAddStep(
+            pin ? { lat: pin.lat, lng: pin.lng, place_name: pin.place } : undefined,
+          );
         }}
         onChooseBlueprint={() => {
           setShowCanonicalAddStepSheet(false);
