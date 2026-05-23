@@ -146,62 +146,19 @@ export function ManageCompetenciesSheet({
         </View>
 
         <ScrollView style={s.body} contentContainerStyle={s.bodyInner}>
-          {/* Existing list */}
-          <View style={s.listSection}>
-            <Text style={s.sectionEyebrow}>
-              {rows.length} {rows.length === 1 ? 'competency' : 'competencies'}
-            </Text>
-            {isLoading ? (
-              <Text style={s.loading}>Loading…</Text>
-            ) : rows.length === 0 ? (
-              <Text style={s.empty}>
-                None yet. Add your first below — try a procedural skill like "IV
-                insertion · supervised" or an assessment like "Head-to-toe
-                assessment".
-              </Text>
-            ) : (
-              rows.map((r) => (
-                <View key={r.id} style={s.row}>
-                  <View style={s.rowCol}>
-                    <View style={s.rowHead}>
-                      <View style={s.shortChip}>
-                        <Text style={s.shortChipText}>{r.short_label}</Text>
-                      </View>
-                      <Text style={s.rowFull}>{r.full_label}</Text>
-                      <View style={[s.catChip, categoryToneStyle(r.category)]}>
-                        <Text style={[s.catChipText, categoryToneTextStyle(r.category)]}>
-                          {r.category}
-                        </Text>
-                      </View>
-                    </View>
-                    {r.description ? (
-                      <Text style={s.rowDesc} numberOfLines={2}>
-                        {r.description}
-                      </Text>
-                    ) : null}
-                  </View>
-                  <Pressable
-                    onPress={() => deleteMutation.mutate(r.id)}
-                    style={s.deleteBtn}
-                    hitSlop={6}
-                  >
-                    <Ionicons name="trash-outline" size={15} color="#FF3B30" />
-                  </Pressable>
-                </View>
-              ))
-            )}
-          </View>
-
-          {/* Add form */}
+          {/* Add form — placed first so the primary action is immediately visible */}
           <View style={s.formSection}>
-            <Text style={s.sectionEyebrow}>Add a competency</Text>
+            <View style={s.formHead}>
+              <Ionicons name="add-circle" size={16} color="#28406B" />
+              <Text style={s.formTitle}>Add a competency</Text>
+            </View>
             <View style={s.formRow}>
               <View style={[s.fieldCol, { flex: 1 }]}>
                 <Text style={s.fieldLabel}>Short label</Text>
                 <TextInput
                   value={draftShort}
                   onChangeText={setDraftShort}
-                  placeholder="e.g. IV, Med admin"
+                  placeholder="e.g. Sepsis"
                   placeholderTextColor="rgba(60, 60, 67, 0.4)"
                   style={s.input}
                 />
@@ -211,7 +168,7 @@ export function ManageCompetenciesSheet({
                 <TextInput
                   value={draftFull}
                   onChangeText={setDraftFull}
-                  placeholder="e.g. IV insertion · supervised"
+                  placeholder="e.g. Sepsis bundle recognition"
                   placeholderTextColor="rgba(60, 60, 67, 0.4)"
                   style={s.input}
                 />
@@ -253,6 +210,55 @@ export function ManageCompetenciesSheet({
             </View>
 
             {addError ? <Text style={s.addError}>{addError}</Text> : null}
+          </View>
+
+          {/* Divider between Add form and existing list */}
+          <View style={s.sectionDivider} />
+
+          {/* Existing list */}
+          <View style={s.listSection}>
+            <Text style={s.sectionEyebrow}>
+              {rows.length} existing {rows.length === 1 ? 'competency' : 'competencies'}
+            </Text>
+            {isLoading ? (
+              <Text style={s.loading}>Loading…</Text>
+            ) : rows.length === 0 ? (
+              <Text style={s.empty}>
+                None yet. Use the form above — try a procedural skill like "IV
+                insertion · supervised" or an assessment like "Head-to-toe
+                assessment".
+              </Text>
+            ) : (
+              rows.map((r) => (
+                <View key={r.id} style={s.row}>
+                  <View style={s.rowCol}>
+                    <View style={s.rowHead}>
+                      <View style={s.shortChip}>
+                        <Text style={s.shortChipText}>{r.short_label}</Text>
+                      </View>
+                      <Text style={s.rowFull}>{r.full_label}</Text>
+                      <View style={[s.catChip, categoryToneStyle(r.category)]}>
+                        <Text style={[s.catChipText, categoryToneTextStyle(r.category)]}>
+                          {r.category}
+                        </Text>
+                      </View>
+                    </View>
+                    {r.description ? (
+                      <Text style={s.rowDesc} numberOfLines={2}>
+                        {r.description}
+                      </Text>
+                    ) : null}
+                  </View>
+                  <Pressable
+                    onPress={() => deleteMutation.mutate(r.id)}
+                    style={s.deleteBtn}
+                    hitSlop={6}
+                  >
+                    <Ionicons name="trash-outline" size={15} color="#FF3B30" />
+                  </Pressable>
+                </View>
+              ))
+            )}
           </View>
         </ScrollView>
 
@@ -417,7 +423,22 @@ const s = StyleSheet.create({
     borderRadius: 6,
   },
 
-  formSection: { gap: 10 },
+  formSection: {
+    gap: 10,
+    padding: 16,
+    paddingHorizontal: 18,
+    backgroundColor: 'rgba(40, 64, 107, 0.05)',
+    borderRadius: 12,
+    borderWidth: 0.5,
+    borderColor: 'rgba(40, 64, 107, 0.15)',
+  },
+  formHead: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 2 },
+  formTitle: { fontSize: 14, fontWeight: '700', color: '#28406B', letterSpacing: -0.1 },
+  sectionDivider: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: 'rgba(60, 60, 67, 0.18)',
+    marginVertical: 4,
+  },
   formRow: { flexDirection: 'row', gap: 12 },
   fieldCol: { gap: 6 },
   fieldLabel: {
