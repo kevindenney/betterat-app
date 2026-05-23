@@ -16,7 +16,7 @@ import { IOSPillTabs, usePillTabs } from '@/components/ui/ios/IOSPillTabs';
 import { useVocabulary } from '@/hooks/useVocabulary';
 import { useStepDetail, useUpdateStepMetadata } from '@/hooks/useStepDetail';
 import { useUpdateStep } from '@/hooks/useTimelineSteps';
-import { StepHeaderEyebrow, StepHeaderSubtitle } from './StepHeaderMeta';
+import { StepHeaderSubtitle } from './StepHeaderMeta';
 import { PlanTab } from './PlanTab';
 import { ActTab } from './ActTab';
 import { ReviewTab } from './ReviewTab';
@@ -43,18 +43,18 @@ import {
   PhaseTabs,
   StatePill,
   StepCard,
-  StepStrip,
   TopHeader,
   type PhaseId,
   type PhaseState,
   type StatePillVariant,
 } from '@/components/step-loop';
-import { WithRow } from './plan-tab';
 import { GRAY_6, LABEL_2 } from '@/lib/design-tokens-step-loop-ios';
 import { useUniversalPlus } from '@/components/capture';
 import { Plus as PlusIcon } from 'lucide-react-native';
 import { useShareStep } from '@/hooks/useShareStep';
 import { ShareStepSheet } from '@/components/share';
+import { IOSActionSheet, type ActionSheetAction } from '@/components/ui/IOSActionSheet';
+import type { StepAccessPerson } from '@/components/step/StepDiscussionInline';
 // StepBlueprintChrome was retired from this header in the redesign pass;
 // it still lives in components/step/StepBlueprintChrome.tsx for other
 // surfaces (RaceSummaryCard, future detail variants).
@@ -140,12 +140,10 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab }
   const { data: discussionPeek } = useStepDiscussionPeek(stepId);
   const showDiscussionPeek =
     FEATURE_FLAGS.STEP_DISCUSSION_V1 && Boolean(discussionPeek);
-  const goDiscussion = useCallback(() => {
-    // Switch the active tab to Discussion (4th tab). The fullscreen
-    // /practice/step/[id]/discussion route stays available but the peek now
-    // surfaces the discussion inline next to Plan/Do/Reflect.
-    setActiveTab('discussion');
-  }, [setActiveTab]);
+  // `goDiscussion` is declared further below, after `setActiveTab` exists.
+  // Putting it here previously crashed render with a TDZ error
+  // (`Cannot access 'setActiveTab' before initialization`) — surfaced
+  // when the canvas's L1 embed mounts <StepDetailContent /> inline.
 
   // Phase 10 PR-4 — step-complete celebration data. Resolves whenever this
   // is a subscribed-blueprint step; we gate rendering at the tab body on
@@ -265,6 +263,15 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab }
     [initialTab, step?.status],
   );
   const [activeTab, setActiveTab] = usePillTabs<TabValue>(defaultTab);
+  const [menuOpen, setMenuOpen] = useState(false);
+  // Switch the active tab to Discussion (4th tab). The fullscreen
+  // /practice/step/[id]/discussion route stays available but the peek now
+  // surfaces the discussion inline next to Plan/Do/Reflect. Declared here
+  // (after `setActiveTab` exists) — see the TDZ note above where the
+  // discussion peek data is fetched.
+  const goDiscussion = useCallback(() => {
+    setActiveTab('discussion');
+  }, [setActiveTab]);
 
   const metadata = (step?.metadata ?? {}) as StepMetadata;
   const serverPlanData: StepPlanData = useMemo(() => metadata.plan ?? {}, [metadata.plan]);
@@ -784,6 +791,48 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab }
     [commentsData],
   );
 
+  // Owner + collaborators are the everyone-who-can-see-this-discussion list.
+  // "Fellow subscribers" (other people on the same blueprint) is a separate
+  // relationship we don't model here yet; when we do, append them onto this
+  // array with a different role bucket.
+  const discussionAccess: StepAccessPerson[] = useMemo(() => {
+    if (!step) return [];
+    const make = (name: string) => {
+      const parts = name.split(/\s+/).filter(Boolean).slice(0, 2);
+      const initials = parts.map((p) => p[0]?.toUpperCase() ?? '').join('') || '?';
+      return initials;
+    };
+    const out: StepAccessPerson[] = [];
+    const planCollabs = serverPlanData.collaborators ?? [];
+    const ownerInCollabs = planCollabs.find(
+      (c) => c.type === 'platform' && c.user_id === step.user_id,
+    );
+    const ownerName =
+      ownerInCollabs?.display_name ??
+      (step.user_id === user?.id
+        ? ((user?.user_metadata?.full_name as string | undefined) ?? 'You')
+        : 'Owner');
+    out.push({
+      userId: step.user_id,
+      displayName: ownerName,
+      initials: make(ownerName),
+      avatarColor: ownerInCollabs?.avatar_color,
+      role: null,
+      isOwner: true,
+    });
+    for (const c of planCollabs) {
+      if (c.type !== 'platform' || !c.user_id || c.user_id === step.user_id) continue;
+      out.push({
+        userId: c.user_id,
+        displayName: c.display_name,
+        initials: make(c.display_name),
+        avatarColor: c.avatar_color,
+        role: c.role ?? null,
+      });
+    }
+    return out;
+  }, [step, serverPlanData.collaborators, user]);
+
   const commentsFooter = useMemo(() => {
     if (!showComments) return null;
     return (
@@ -816,46 +865,32 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab }
     );
   }
 
-  // Shared header chrome (title input + done toggle + chips + banners). Used
-  // by both the legacy render and the iOS-register shell.
+  // Header → compact, design-spec card chrome. Just the title (+ optional
+  // when-line on the right). Date, description, due-dates, pin row, owner
+  // banner, and provenance banner moved into <planContextChrome> below so
+  // they only render at the top of the Plan tab body — keeping Plan / Do /
+  // Reflect / Discuss surfaces visually consistent.
+  const whenLine = (() => {
+    if (!step.starts_at) return null;
+    const d = new Date(step.starts_at);
+    if (Number.isNaN(d.getTime())) return null;
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+    const startOfThat = new Date(d);
+    startOfThat.setHours(0, 0, 0, 0);
+    const dayDiff = Math.round(
+      (startOfThat.getTime() - startOfToday.getTime()) / (24 * 60 * 60 * 1000),
+    );
+    if (dayDiff === 0) return 'today';
+    if (dayDiff === 1) return 'tomorrow';
+    if (dayDiff === -1) return 'yesterday';
+    return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  })();
   const headerInner = (
-    <>
-      <View style={styles.sessionRow}>
-        {isOwner && lastSaved && (
-          <View style={styles.autoSaveIndicator}>
-            <Ionicons name="cloud-done-outline" size={12} color={STEP_COLORS.tertiaryLabel} />
-            <Text style={styles.autoSaveText}>Saved</Text>
-          </View>
-        )}
-        {isOwner && (
-          <Pressable
-            style={[
-              styles.doneToggle,
-              step.status === 'completed' && styles.doneToggleActive,
-            ]}
-            onPress={handleToggleDone}
-          >
-            <Ionicons
-              name={step.status === 'completed' ? 'checkmark-circle' : 'checkmark-circle-outline'}
-              size={16}
-              color={step.status === 'completed' ? '#34C759' : STEP_COLORS.tertiaryLabel}
-            />
-            <Text style={[
-              styles.doneToggleText,
-              step.status === 'completed' && styles.doneToggleTextActive,
-            ]}>
-              {step.status === 'completed' ? 'Done' : 'Mark Done'}
-            </Text>
-          </Pressable>
-        )}
-        {/* The duplicate ••• that used to live here routed to /library — a
-            stale stub. The iOS-register shell already renders a real •••
-            in its StepCard stateHead (opens share). Dropping the dupe. */}
-      </View>
-      <StepHeaderEyebrow stepId={step.id} />
-      {/* The rich StepBlueprintChrome card was hidden in this pass — the
-          small eyebrow above carries the "PRE-CLINICAL · STEP 5" context
-          without the card's WITH/Fleet row competing for space. */}
+    <View>
+      {whenLine ? (
+        <Text style={styles.headerWhen}>{whenLine}</Text>
+      ) : null}
       {isOwner ? (
         <TextInput
           style={styles.titleInput}
@@ -866,26 +901,32 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab }
           placeholder={`${vocab('Learning Event')} title...`}
           placeholderTextColor={STEP_COLORS.tertiaryLabel}
           selectTextOnFocus
+          multiline
         />
       ) : (
         <Text style={styles.titleInput}>{step.title || `${vocab('Learning Event')}`}</Text>
       )}
+    </View>
+  );
+
+  const planContextChrome = (
+    <View style={styles.planChromeWrap}>
       <StepHeaderSubtitle
         startsAt={step.starts_at}
         endsAt={step.ends_at}
         metadata={step.metadata as Record<string, unknown> | null | undefined}
       />
-      {step.description && (
-        <Text style={styles.description} numberOfLines={2}>{step.description}</Text>
-      )}
-      {/* Date chips row — hidden when subtitle covers the date already
-          (both starts_at + ends_at set). Falls through to the chip when
-          only starts_at is set (so the subtitle just shows the date) and
-          editing requires the chip's pencil affordance, or when no date
-          is set at all (so "Add date" stays reachable). */}
-      {!(step.starts_at && step.ends_at) && (step.starts_at || step.due_at || isOwner) && (
+      {step.description ? (
+        <Text style={styles.description}>{step.description}</Text>
+      ) : null}
+      {isOwner && lastSaved ? (
+        <View style={styles.autoSaveIndicator}>
+          <Ionicons name="cloud-done-outline" size={12} color={STEP_COLORS.tertiaryLabel} />
+          <Text style={styles.autoSaveText}>Saved</Text>
+        </View>
+      ) : null}
+      {!(step.starts_at && step.ends_at) && (step.starts_at || step.due_at || isOwner) ? (
         <View style={styles.dueDateRow}>
-          {/* Step date (starts_at) */}
           {step.starts_at ? (
             <Pressable
               style={styles.dueDateChip}
@@ -895,22 +936,18 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab }
               <Text style={[styles.dueDateText, { color: STEP_COLORS.accent }]}>
                 {new Date(step.starts_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
               </Text>
-              {isOwner && (
+              {isOwner ? (
                 <Pressable onPress={handleClearStepDate} hitSlop={8}>
                   <Ionicons name="close-circle" size={14} color={STEP_COLORS.tertiaryLabel} />
                 </Pressable>
-              )}
+              ) : null}
             </Pressable>
           ) : isOwner ? (
-            <Pressable
-              style={styles.addDueDateButton}
-              onPress={handlePromptStepDate}
-            >
+            <Pressable style={styles.addDueDateButton} onPress={handlePromptStepDate}>
               <Ionicons name="calendar-outline" size={13} color={STEP_COLORS.tertiaryLabel} />
               <Text style={styles.addDueDateText}>Add date</Text>
             </Pressable>
           ) : null}
-          {/* Due date */}
           {step.due_at ? (
             <Pressable
               style={[styles.dueDateChip, isOverdue && styles.dueDateChipOverdue]}
@@ -925,17 +962,16 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab }
                 {isOverdue ? 'Overdue · ' : 'Due '}
                 {new Date(step.due_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
               </Text>
-              {isOwner && (
+              {isOwner ? (
                 <Pressable onPress={handleClearDueDate} hitSlop={8}>
                   <Ionicons name="close-circle" size={14} color={STEP_COLORS.tertiaryLabel} />
                 </Pressable>
-              )}
+              ) : null}
             </Pressable>
           ) : null}
         </View>
-      )}
-      {isOwner && <StepPinInterests stepId={stepId} stepInterestId={step.interest_id} />}
-      {isCollaborator && (() => {
+      ) : null}
+      {isCollaborator ? (() => {
         const planCollabs = serverPlanData.collaborators ?? [];
         const ownerCollab = planCollabs.find(
           (c) => c.type === 'platform' && c.user_id === step.user_id,
@@ -949,14 +985,8 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab }
             </Text>
           </View>
         );
-      })()}
-
-      {/* Step provenance — source blueprint OR follow-up chain.
-          When the step has a blueprint parent, the StepHeaderEyebrow above
-          ("PRE-CLINICAL · STEP 5") already conveys provenance, so the
-          banner would duplicate. Render only for follow-up chains
-          (brainDumpData.source_step_id) or non-blueprint copied sources. */}
-      {((step.source_type !== 'manual' && step.source_type !== 'blueprint') || brainDumpData?.source_step_id) && (
+      })() : null}
+      {((step.source_type !== 'manual' && step.source_type !== 'blueprint') || brainDumpData?.source_step_id) ? (
         <StepProvenanceBanner
           sourceBlueprintId={step.source_blueprint_id}
           sourceType={step.source_type}
@@ -964,8 +994,11 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab }
           followUpToStepId={brainDumpData?.source_step_id ?? null}
           variant="full"
         />
-      )}
-    </>
+      ) : null}
+      {isOwner ? (
+        <StepPinInterests stepId={stepId} stepInterestId={step.interest_id} />
+      ) : null}
+    </View>
   );
 
   // Shared tab body — the actual PlanTab / ActTab / ReviewTab interior. The
@@ -1010,32 +1043,37 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab }
       )}
       {/* Unified plan view — brain dump at top + plan fields below */}
       {activeTab === 'plan' && !(isOwner && showAiReview && aiReviewPlan) && (
-        <PlanTab
-          stepId={stepId}
-          planData={planData}
-          interestId={step.interest_id}
-          onUpdate={handlePlanUpdate}
-          onNextTab={() => handleNextTab('act')}
-          readOnly={!isOwner}
-          footer={commentsFooter}
-          brainDumpData={isOwner ? brainDumpData : undefined}
-          onBrainDumpChange={isOwner ? handleDraftChange : undefined}
-          onStructureWithAI={isOwner ? handleStructureWithAI : undefined}
-          isStructuring={aiStructuring}
-          hasPlanContent={hasPlanContent}
-          interestSlug={currentInterest?.slug}
-          interestName={currentInterest?.name}
-          useConversationalCapture={isOwner}
-          onConversationalCreate={isOwner ? handleConversationalCreate : undefined}
-          stepCategory={step.category}
-          embedded={FEATURE_FLAGS.PRACTICE_STEP_LOOP_IOS_REGISTER}
-        />
+        <>
+          {planContextChrome}
+          <PlanTab
+            stepId={stepId}
+            planData={planData}
+            interestId={step.interest_id}
+            onUpdate={handlePlanUpdate}
+            onNextTab={() => handleNextTab('act')}
+            readOnly={!isOwner}
+            footer={commentsFooter}
+            brainDumpData={isOwner ? brainDumpData : undefined}
+            onBrainDumpChange={isOwner ? handleDraftChange : undefined}
+            onStructureWithAI={isOwner ? handleStructureWithAI : undefined}
+            isStructuring={aiStructuring}
+            hasPlanContent={hasPlanContent}
+            interestSlug={currentInterest?.slug}
+            interestName={currentInterest?.name}
+            useConversationalCapture={isOwner}
+            onConversationalCreate={isOwner ? handleConversationalCreate : undefined}
+            stepCategory={step.category}
+            embedded={FEATURE_FLAGS.PRACTICE_STEP_LOOP_IOS_REGISTER}
+          />
+        </>
       )}
       {activeTab === 'act' && (
         <ActTab stepId={stepId} dateEnrichment={planData.date_enrichment} onNextTab={() => handleNextTab('review')} readOnly={!isOwner} footer={commentsFooter} interestId={step.interest_id} interestName={currentInterest?.name} interestSlug={currentInterest?.slug} embedded={FEATURE_FLAGS.PRACTICE_STEP_LOOP_IOS_REGISTER} />
       )}
       {activeTab === 'review' && <ReviewTab stepId={stepId} readOnly={!isOwner} footer={commentsFooter} embedded={FEATURE_FLAGS.PRACTICE_STEP_LOOP_IOS_REGISTER} />}
-      {activeTab === 'discussion' && <StepDiscussionInline stepId={stepId} />}
+      {activeTab === 'discussion' && (
+        <StepDiscussionInline stepId={stepId} access={discussionAccess} />
+      )}
     </>
   );
 
@@ -1052,27 +1090,86 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab }
     );
     const reflectPhase = derivePhaseState(isReviewComplete, false);
     const activePhase: PhaseId = TAB_TO_PHASE[activeTab];
-    const stepStripPrimary = vocab('Learning Event');
-    const stepStripSecondary = step.category ? String(step.category).replace(/_/g, ' ') : undefined;
 
-    // Phase 1 · D12b — quiet WITH row beneath the title block. Sails: pulls
-    // from existing collaborators[]. Fleet/cohort plumbing is out of scope
-    // for Phase 1 (no schema changes), so the row renders only when there
-    // are collaborators to show.
-    const withRowCrew = (serverPlanData.collaborators ?? [])
-      .filter((c) => c.display_name?.trim())
-      .map((c) => {
-        const initials = c.display_name
-          .split(/\s+/)
-          .map((part) => part[0] ?? '')
-          .join('')
-          .slice(0, 2) || c.display_name.slice(0, 2);
-        return {
-          id: c.user_id || c.id,
-          initials,
-          avatarColor: c.avatar_color,
-        };
+    // Compact bottom row beneath the title: interest pill + step counter +
+    // parent plan name. Matches the design's "● HKDW · Step 4 of 12 · Kevin's
+    // Worlds 2027 plan" strip.
+    const counterText = blueprintChrome?.stepNumber != null
+      ? blueprintChrome.totalSteps != null
+        ? `Step ${blueprintChrome.stepNumber} of ${blueprintChrome.totalSteps}`
+        : `Step ${blueprintChrome.stepNumber}`
+      : null;
+    const planName = blueprintChrome?.blueprintTitle ?? null;
+    const belowTitleRow = (currentInterest?.name || counterText || planName) ? (
+      <View style={styles.belowTitleRow}>
+        {currentInterest?.name ? (
+          <View style={styles.belowInterestPill}>
+            <View style={styles.belowInterestDot} />
+            <Text style={styles.belowInterestText} numberOfLines={1}>
+              {currentInterest.name}
+            </Text>
+          </View>
+        ) : null}
+        {counterText ? (
+          <Text style={styles.belowCounter}>{counterText}</Text>
+        ) : null}
+        {planName ? (
+          <Text style={styles.belowPlanName} numberOfLines={1}>
+            · {planName}
+          </Text>
+        ) : null}
+      </View>
+    ) : null;
+
+    const menuActions: ActionSheetAction[] = [];
+    if (isOwner) {
+      menuActions.push({
+        label: step.status === 'completed' ? 'Mark not done' : 'Mark done',
+        icon: (
+          <Ionicons
+            name={step.status === 'completed' ? 'checkmark-circle' : 'checkmark-circle-outline'}
+            size={20}
+            color={step.status === 'completed' ? '#34C759' : STEP_COLORS.label}
+          />
+        ),
+        onPress: () => {
+          setMenuOpen(false);
+          handleToggleDone();
+        },
       });
+    }
+    menuActions.push({
+      label: 'Share step',
+      icon: <Ionicons name="share-outline" size={20} color={STEP_COLORS.label} />,
+      onPress: () => {
+        setMenuOpen(false);
+        shareStep.open({
+          id: step.id,
+          title: step.title ?? `${vocab('Learning Event')}`,
+          body: step.description ?? '',
+        });
+      },
+    });
+    if (isOwner) {
+      menuActions.push({
+        label: 'Pin to other interests',
+        icon: <Ionicons name="pin-outline" size={20} color={STEP_COLORS.label} />,
+        onPress: () => {
+          setMenuOpen(false);
+          // StepPinInterests still renders inside planContextChrome, scroll
+          // to top of Plan tab so the row is visible.
+          setActiveTab('plan');
+        },
+      });
+    }
+    menuActions.push({
+      label: 'Open in iOS preview',
+      icon: <Ionicons name="sparkles-outline" size={20} color={STEP_COLORS.label} />,
+      onPress: () => {
+        setMenuOpen(false);
+        router.push(`/race/ios/${step.id}` as any);
+      },
+    });
 
     return (
       <View style={[styles.container, stepLoopShellStyles.screen]}>
@@ -1098,7 +1195,7 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab }
             The small "PRE-CLINICAL · STEP 5" eyebrow above the title now
             carries the parent-program context; jump-to-blueprint and
             fleet view can return via the ••• menu in a follow-up. */}
-        {showDiscussionPeek && discussionPeek ? (
+        {showDiscussionPeek && discussionPeek && activeTab !== 'discussion' ? (
           <StepDiscussionPeek
             noteCount={discussionPeek.noteCount}
             latestSnippet={discussionPeek.latest.body}
@@ -1109,49 +1206,29 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab }
         <StepCard
           scrollAsUnit
           pill={<StatePill variant={pillSpec.variant} label={pillSpec.label} />}
-          onMenuPress={() =>
-            shareStep.open({
-              id: step.id,
-              title: step.title ?? `${vocab('Learning Event')}`,
-              body: step.description ?? '',
-            })
-          }
-          stepStrip={
-            <StepStrip
-              icon="flag-3"
-              primary={stepStripPrimary}
-              secondary={stepStripSecondary}
-            />
-          }
+          onMenuPress={() => setMenuOpen(true)}
           titleBlock={headerInner}
-          belowTitle={
-            withRowCrew.length > 0 ? (
-              <WithRow
-                crew={withRowCrew}
-                onFleetPress={() => router.push(`/practice/step/${step.id}/fleet` as any)}
-              />
-            ) : null
-          }
+          belowTitle={belowTitleRow}
           phaseTabs={
             <PhaseTabs
               plan={planPhase}
               do={doPhase}
               reflect={reflectPhase}
               discussion={
-                blueprintChrome
-                  ? activePhase === 'discussion'
-                    ? 'live'
-                    : (discussionPeek?.noteCount ?? 0) > 0
-                      ? 'ready'
-                      : 'pending'
-                  : undefined
+                activePhase === 'discussion'
+                  ? 'live'
+                  : (discussionPeek?.noteCount ?? 0) > 0
+                    ? 'ready'
+                    : 'pending'
               }
+              discussionCount={discussionPeek?.noteCount}
               active={activePhase}
               onTabPress={(tab) => setActiveTab(PHASE_TO_TAB[tab])}
               labels={{
                 plan: categoryLabels.tabs.plan,
                 do: categoryLabels.tabs.act,
                 reflect: categoryLabels.tabs.review,
+                discussion: 'Discuss',
               }}
             />
           }
@@ -1168,6 +1245,12 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab }
           onCopyLink={shareStep.copyLink}
           onSuggestDirect={shareStep.suggestDirect}
           onDismiss={shareStep.close}
+        />
+        <IOSActionSheet
+          isOpen={menuOpen}
+          onClose={() => setMenuOpen(false)}
+          title="Step actions"
+          actions={menuActions}
         />
       </View>
     );
@@ -1376,5 +1459,60 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '500',
     color: STEP_PALETTE.textPrimary,
+  },
+  // Compact header chrome ----------------------------------------------------
+  headerWhen: {
+    fontSize: 12,
+    color: STEP_COLORS.tertiaryLabel,
+    textAlign: 'right',
+    marginBottom: 4,
+  },
+  belowTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 18,
+    paddingTop: 4,
+    paddingBottom: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: STEP_PALETTE.borderTertiary,
+  },
+  belowInterestPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    backgroundColor: STEP_PALETTE.bgSecondary,
+  },
+  belowInterestDot: {
+    width: 5,
+    height: 5,
+    borderRadius: 2.5,
+    backgroundColor: '#007AFF',
+  },
+  belowInterestText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: STEP_PALETTE.textPrimary,
+    letterSpacing: 0.3,
+    textTransform: 'uppercase',
+  },
+  belowCounter: {
+    fontSize: 12,
+    color: STEP_PALETTE.textSecondary,
+    fontWeight: '500',
+  },
+  belowPlanName: {
+    flex: 1,
+    fontSize: 12,
+    color: STEP_PALETTE.textSecondary,
+  },
+  planChromeWrap: {
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 4,
+    gap: 8,
   },
 });
