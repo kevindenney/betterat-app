@@ -131,9 +131,31 @@ export function AddPersonSheet({
           throw new Error(`Invite saved but email failed for: ${summary}`);
         }
       }
+
+      // Audit: one event for the whole batch (preserves "invited N people" framing)
+      const countLabel = `${emails.length} ${emails.length === 1 ? 'person' : 'people'}`;
+      const cohortLabel = cohort?.trim() ? ` to ${cohort.trim()}` : '';
+      await supabase.rpc('audit_log_event', {
+        p_org_id: orgId,
+        p_verb: 'invited',
+        p_verb_label: 'Invited',
+        p_description: `Invited ${countLabel}${cohortLabel} as ${ROLE_LABEL[role]}.`,
+        p_target_type: 'invite',
+        p_target_id: null,
+        p_target_label: countLabel,
+        p_payload: {
+          action: 'invite.bulk_send',
+          count: emails.length,
+          method: emails.length > 1 ? 'manual_batch' : 'manual_single',
+          role_key: ROLE_KEY[role],
+          cohort_label: cohort,
+          auto_subscribe: autoSubscribe,
+        },
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-people', orgId] });
+      queryClient.invalidateQueries({ queryKey: ['admin-audit-feed', orgId] });
       onSubmit?.({ emails, role, cohort, autoSubscribe });
       setEmails([]);
       setSubmitError(null);

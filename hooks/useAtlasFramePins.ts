@@ -44,6 +44,62 @@ export function mapPoiToPinKind(poi: AtlasPoi): AtlasPinSpec['kind'] | null {
 }
 
 /**
+ * Approximate km distance between two lng/lat pairs. Good enough for the
+ * <50km bbox scale Atlas operates at.
+ */
+function approxKm(
+  a: { lat: number; lng: number },
+  b: { lat: number; lng: number },
+): number {
+  const dLat = (b.lat - a.lat) * 111;
+  const dLng = (b.lng - a.lng) * 111 * Math.cos((a.lat * Math.PI) / 180);
+  return Math.sqrt(dLat * dLat + dLng * dLng);
+}
+
+/**
+ * Per design rule §5 (CLUSTER BEHAVIOR): peer pins (population) cluster
+ * when 5+ sit within 2km of each other; POIs (geography) never cluster.
+ * Returns one pin per cluster — either the original pin (clusters with
+ * <5 members are emitted as-is) or a single "+N" badge at the centroid.
+ */
+export function clusterPeerPins(
+  peerPins: AtlasPinSpec[],
+  thresholdKm = 2,
+  minClusterSize = 5,
+): AtlasPinSpec[] {
+  const visited = new Set<number>();
+  const out: AtlasPinSpec[] = [];
+  for (let i = 0; i < peerPins.length; i += 1) {
+    if (visited.has(i)) continue;
+    const group: number[] = [i];
+    for (let j = i + 1; j < peerPins.length; j += 1) {
+      if (visited.has(j)) continue;
+      if (approxKm(peerPins[i], peerPins[j]) < thresholdKm) group.push(j);
+    }
+    if (group.length >= minClusterSize) {
+      let lat = 0;
+      let lng = 0;
+      for (const idx of group) {
+        lat += peerPins[idx].lat;
+        lng += peerPins[idx].lng;
+        visited.add(idx);
+      }
+      out.push({
+        id: `peer-cluster:${peerPins[i].id}-${group.length}`,
+        lat: lat / group.length,
+        lng: lng / group.length,
+        kind: 'fleet',
+        clusterCount: group.length,
+      });
+    } else {
+      visited.add(i);
+      out.push(peerPins[i]);
+    }
+  }
+  return out;
+}
+
+/**
  * Trim long institution names so the inline label stays readable on the
  * map. Drops the leading "Royal/Johns Hopkins/Hospital" filler when it
  * makes the label too long.
@@ -114,14 +170,16 @@ export function useAtlasFramePins({
     }
 
     // Peer step pins from the RPC — already privacy-filtered server-side.
-    for (const step of peers) {
-      out.push({
-        id: `peer:${step.step_id}`,
-        lat: step.lat,
-        lng: step.lng,
-        kind: mapPeerToPinKind(step),
-      });
-    }
+    // Per design rule §5 (CLUSTER BEHAVIOR): 5+ peer pins in 2km merge
+    // to "+N". POIs are geography (never merge); peer pins are population
+    // (merge at relationship-neutral density).
+    const peerPins = peers.map((step) => ({
+      id: `peer:${step.step_id}`,
+      lat: step.lat,
+      lng: step.lng,
+      kind: mapPeerToPinKind(step),
+    }));
+    out.push(...clusterPeerPins(peerPins));
 
     return out;
   }, [pois, peers, interestSlug]);

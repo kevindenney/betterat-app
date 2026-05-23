@@ -99,9 +99,16 @@ export interface AtlasPinSpec {
     | 'poi-club'
     | 'poi-racing-area'
     | 'poi-hospital'
-    | 'poi-sim-lab';
+    | 'poi-sim-lab'
+    | 'poi-preceptor';
   /** Optional short label rendered next to the pin (POIs get names). */
   label?: string;
+  /**
+   * Peer cluster count when this pin is a merged-cluster badge. Per the
+   * design's cluster behavior rule: 5+ peer pins in 2km merge to "+N",
+   * POIs never cluster (geography vs population).
+   */
+  clusterCount?: number;
 }
 
 interface AtlasMapLibreCanvasProps {
@@ -169,7 +176,12 @@ export function AtlasMapLibreCanvas({
 
         {pins.map((pin) => (
           <MLMarker key={pin.id} id={pin.id} lngLat={[pin.lng, pin.lat]}>
-            <LabeledPin kind={pin.kind} label={pin.label} />
+            <LabeledPin
+              kind={pin.kind}
+              label={pin.label}
+              clusterCount={pin.clusterCount}
+              showLabel={shouldShowLabel(pin, pins)}
+            />
           </MLMarker>
         ))}
 
@@ -207,6 +219,39 @@ function CandidateMarker() {
   );
 }
 
+/**
+ * Approximate distance in km between two lng/lat pairs (haversine simplified
+ * for the bbox scale we care about — < 50km).
+ */
+function approxDistanceKm(a: AtlasPinSpec, b: AtlasPinSpec): number {
+  const dLat = (b.lat - a.lat) * 111;
+  const dLng = (b.lng - a.lng) * 111 * Math.cos((a.lat * Math.PI) / 180);
+  return Math.sqrt(dLat * dLat + dLng * dLng);
+}
+
+/**
+ * Per design rule §1 (LABEL LEGIBILITY): at z11 with >8 POI labels in 2km,
+ * hide labels until tap or zoom. We approximate that here without a live
+ * zoom signal by checking POI density — if the pin has 3+ POI neighbors
+ * within 2km, suppress its label.
+ *
+ * Peer pins, candidate, race-marks never have labels in this grammar (the
+ * label slot is reserved for institution POI names).
+ */
+function shouldShowLabel(pin: AtlasPinSpec, allPins: AtlasPinSpec[]): boolean {
+  if (!pin.label) return false;
+  const isPoi = pin.kind.startsWith('poi-');
+  if (!isPoi) return false;
+  let nearbyPoiCount = 0;
+  for (const other of allPins) {
+    if (other === pin) continue;
+    if (!other.kind.startsWith('poi-')) continue;
+    if (approxDistanceKm(pin, other) < 2) nearbyPoiCount += 1;
+    if (nearbyPoiCount >= 3) return false;
+  }
+  return true;
+}
+
 function pickSvgMap(frame: AtlasFrameId): React.ComponentType {
   switch (frame) {
     case 'f1':
@@ -224,21 +269,43 @@ function pickSvgMap(frame: AtlasFrameId): React.ComponentType {
   }
 }
 
-const PIN_TONE: Record<AtlasPinSpec['kind'], { size: number; color: string }> = {
-  you: { size: 14, color: '#FF3B30' },
-  crew: { size: 11, color: '#FF3B30' },
-  fleet: { size: 10, color: 'rgba(40, 50, 70, 0.85)' },
-  following: { size: 8, color: 'rgba(60, 70, 90, 0.55)' },
-  own: { size: 10, color: 'rgba(0, 122, 255, 0.9)' },
-  candidate: { size: 22, color: '#FF3B30' },
-  'race-mark': { size: 8, color: '#E07A3C' },
-  // Institution POIs read as the canonical iOS systemBlue, sized larger
-  // than peer pins so "place" reads distinct from "person." Sim-lab uses
-  // purple to differentiate practice-here from do-it-here per the brief.
-  'poi-club': { size: 14, color: 'rgba(0, 122, 255, 0.95)' },
-  'poi-racing-area': { size: 11, color: 'rgba(0, 122, 255, 0.65)' },
-  'poi-hospital': { size: 14, color: 'rgba(0, 122, 255, 0.95)' },
-  'poi-sim-lab': { size: 12, color: 'rgba(155, 92, 246, 0.95)' },
+/**
+ * Pin grammar — three distinct shape vocabularies live on one canvas
+ * without icon-vocabulary inflation:
+ *
+ *   • Circle = relationship (color-coded by relationship)
+ *   • Diamond = human curation (purple preceptor, green mentor, purple sim-lab)
+ *   • Numbered amber = race / coral drop = candidate
+ *
+ * POIs are circles differentiated by the iOS systemBlue color (institutions
+ * are blue) — adding diamond/triangle for them was tested and rejected.
+ * Diamond is reserved for curation (faculty-marked guided pins).
+ */
+type PinShape = 'circle' | 'diamond' | 'numbered' | 'drop';
+
+const PIN_TONE: Record<
+  AtlasPinSpec['kind'],
+  { size: number; color: string; shape: PinShape }
+> = {
+  // Relationships — circles
+  you: { size: 14, color: '#FF3B30', shape: 'circle' },
+  crew: { size: 11, color: '#FF3B30', shape: 'circle' },
+  fleet: { size: 10, color: 'rgba(40, 50, 70, 0.85)', shape: 'circle' },
+  following: { size: 8, color: 'rgba(60, 70, 90, 0.55)', shape: 'circle' },
+  own: { size: 10, color: 'rgba(0, 122, 255, 0.9)', shape: 'circle' },
+  // Compose-at-location: coral drop (per design grammar key)
+  candidate: { size: 22, color: '#FF3B30', shape: 'drop' },
+  // Race marks: numbered amber
+  'race-mark': { size: 16, color: '#E07A3C', shape: 'numbered' },
+  // Institution POIs — circles, iOS systemBlue
+  'poi-club': { size: 14, color: 'rgba(0, 122, 255, 0.95)', shape: 'circle' },
+  'poi-racing-area': { size: 11, color: 'rgba(0, 122, 255, 0.65)', shape: 'circle' },
+  'poi-hospital': { size: 14, color: 'rgba(0, 122, 255, 0.95)', shape: 'circle' },
+  // Curation pins — diamonds. Sim-lab is institutional but reads as
+  // "rehearse-here," which is curation-adjacent enough that the design
+  // commits it to the diamond vocabulary alongside preceptor pins.
+  'poi-sim-lab': { size: 12, color: 'rgba(155, 92, 246, 0.95)', shape: 'diamond' },
+  'poi-preceptor': { size: 13, color: 'rgba(155, 92, 246, 0.95)', shape: 'diamond' },
 };
 
 /**
@@ -249,29 +316,126 @@ const PIN_TONE: Record<AtlasPinSpec['kind'], { size: number; color: string }> = 
 function LabeledPin({
   kind,
   label,
+  clusterCount,
+  showLabel = true,
 }: {
   kind: AtlasPinSpec['kind'];
   label?: string;
+  clusterCount?: number;
+  /** When false, suppress the label pill — used for label-hide-until-tap at z11+. */
+  showLabel?: boolean;
 }) {
   const tone = PIN_TONE[kind];
   return (
     <View style={styles.pinRow}>
-      <View
-        style={{
-          width: tone.size,
-          height: tone.size,
-          borderRadius: tone.size / 2,
-          backgroundColor: tone.color,
-          borderWidth: 1.5,
-          borderColor: '#FFFFFF',
-        }}
+      <PinGlyph
+        shape={tone.shape}
+        size={tone.size}
+        color={tone.color}
+        clusterCount={clusterCount}
       />
-      {label ? (
+      {showLabel && label ? (
         <Text style={styles.pinLabel} numberOfLines={1}>
           {label}
         </Text>
       ) : null}
     </View>
+  );
+}
+
+function PinGlyph({
+  shape,
+  size,
+  color,
+  clusterCount,
+}: {
+  shape: PinShape;
+  size: number;
+  color: string;
+  clusterCount?: number;
+}) {
+  // Cluster badge: 5+ peer pins in 2km merge to "+N" per the design's
+  // cluster-behavior rule. Cluster pins always render as a circle with
+  // a number inside, regardless of the underlying relationship.
+  if (clusterCount != null) {
+    return (
+      <View
+        style={{
+          minWidth: 22,
+          height: 22,
+          borderRadius: 11,
+          paddingHorizontal: 4,
+          backgroundColor: color,
+          borderWidth: 1.5,
+          borderColor: '#FFFFFF',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        <Text style={styles.clusterCount}>+{clusterCount}</Text>
+      </View>
+    );
+  }
+  if (shape === 'diamond') {
+    // 45° rotated square — the curation grammar (preceptor, sim-lab).
+    return (
+      <View
+        style={{
+          width: size,
+          height: size,
+          backgroundColor: color,
+          borderWidth: 1.5,
+          borderColor: '#FFFFFF',
+          transform: [{ rotate: '45deg' }],
+        }}
+      />
+    );
+  }
+  if (shape === 'numbered') {
+    // Numbered amber for race marks. Number content sits in label slot;
+    // glyph itself is a small amber square outline.
+    return (
+      <View
+        style={{
+          width: size,
+          height: size,
+          backgroundColor: color,
+          borderWidth: 1.5,
+          borderColor: '#FFFFFF',
+          borderRadius: 3,
+        }}
+      />
+    );
+  }
+  if (shape === 'drop') {
+    // Coral drop-pin for compose-at-location candidate. Teardrop hint via
+    // larger size + heavier shadow handled in the consuming caller; the
+    // glyph stays a thick-bordered circle for now.
+    return (
+      <View
+        style={{
+          width: size,
+          height: size,
+          borderRadius: size / 2,
+          backgroundColor: color,
+          borderWidth: 3,
+          borderColor: '#FFFFFF',
+        }}
+      />
+    );
+  }
+  // Default: circle (relationship grammar)
+  return (
+    <View
+      style={{
+        width: size,
+        height: size,
+        borderRadius: size / 2,
+        backgroundColor: color,
+        borderWidth: 1.5,
+        borderColor: '#FFFFFF',
+      }}
+    />
   );
 }
 
@@ -310,6 +474,12 @@ const styles = StyleSheet.create({
     borderRadius: 3,
     maxWidth: 120,
     overflow: 'hidden',
+  },
+  clusterCount: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    letterSpacing: 0.2,
   },
   nextTag: {
     backgroundColor: '#FFE6B0',

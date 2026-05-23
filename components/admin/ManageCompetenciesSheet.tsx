@@ -96,19 +96,40 @@ export function ManageCompetenciesSheet({
       if (!draftShort.trim()) throw new Error('Short label is required');
       if (!draftFull.trim()) throw new Error('Full label is required');
       const nextOrder = (rows[rows.length - 1]?.display_order ?? 0) + 1;
-      const { error } = await supabase.from('org_competencies').insert({
-        org_id: orgId,
-        short_label: draftShort.trim(),
-        full_label: draftFull.trim(),
-        category: draftCategory,
-        description: draftDescription.trim() || null,
-        display_order: nextOrder,
-      });
+      const { data: inserted, error } = await supabase
+        .from('org_competencies')
+        .insert({
+          org_id: orgId,
+          short_label: draftShort.trim(),
+          full_label: draftFull.trim(),
+          category: draftCategory,
+          description: draftDescription.trim() || null,
+          display_order: nextOrder,
+        })
+        .select('id')
+        .single();
       if (error) throw error;
+      // Audit · best-effort, don't block on it
+      await supabase.rpc('audit_log_event', {
+        p_org_id: orgId,
+        p_verb: 'config_change',
+        p_verb_label: 'Added competency',
+        p_description: `Added competency ${draftFull.trim()} (${draftCategory}) to the framework.`,
+        p_target_type: 'competency',
+        p_target_id: inserted?.id ?? null,
+        p_target_label: draftShort.trim(),
+        p_payload: {
+          action: 'org_competency.add',
+          short_label: draftShort.trim(),
+          full_label: draftFull.trim(),
+          category: draftCategory,
+        },
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['manage-competencies', orgId] });
       queryClient.invalidateQueries({ queryKey: ['admin-org-competencies', orgId] });
+      queryClient.invalidateQueries({ queryKey: ['admin-audit-feed', orgId] });
       setLastAdded(draftShort.trim() || draftFull.trim());
       setDraftShort('');
       setDraftFull('');
