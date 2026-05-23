@@ -1,15 +1,19 @@
 /**
- * <LibrarianStrip> — top-of-Library "Ask the librarian" affordance.
+ * <LibrarianStrip> — top-of-Library "Ask the librarian" CTA.
  *
  * One of two librarian surfaces (the other is <LibrarianNoticedCard>).
- * Visually a tappable nav cell (book glyph, two-line copy, mic + chevron)
- * rather than a search field — early QA flagged the original input-style
- * pill as ambiguous between text entry and a button. The chevron-right
- * locks the read: tap → open the answer surface.
+ * A single button: small book chip, "Ask the librarian" + rotating
+ * italic example, trailing "Ask" pill. Whole strip is one tap target —
+ * earlier passes split it into book + text + mic + chevron and the user
+ * couldn't tell what to tap, so this consolidates to one obvious CTA.
  *
- * Mic glyph is a discrete sub-target hinting voice; for now both glyphs
- * route to the same answer screen — real voice capture and a typed-query
- * sheet land when the librarian is wired to a corpus reader.
+ * Voice capture and a typed-query sheet land when the librarian is
+ * wired to a real corpus reader; the existing route just opens the
+ * canonical answer.
+ *
+ * Note: `style` is a static array, NOT a `({pressed}) => …` callback —
+ * the callback form silently drops `flexDirection:'row'` on iOS, which
+ * was collapsing children into a vertical stack on the previous pass.
  */
 
 import React, { useEffect, useState } from 'react';
@@ -49,7 +53,7 @@ export function LibrarianStrip({ onAsk }: Props) {
       accessibilityRole="button"
       accessibilityLabel="Ask the librarian"
       accessibilityHint={`Example: ${example}`}
-      style={({ pressed }) => [styles.strip, pressed && styles.stripPressed]}
+      style={styles.strip}
     >
       <View style={styles.glyphSlot}>
         <Ionicons name="book" size={16} color={LIBRARIAN_PURPLE} />
@@ -62,25 +66,10 @@ export function LibrarianStrip({ onAsk }: Props) {
         </Text>
       </View>
 
-      <Pressable
-        onPress={() => onAsk()}
-        accessibilityRole="button"
-        accessibilityLabel="Ask the librarian by voice"
-        hitSlop={8}
-        style={({ pressed }) => [
-          styles.micBtn,
-          pressed && styles.micBtnPressed,
-        ]}
-      >
-        <Ionicons name="mic" size={16} color={LIBRARIAN_PURPLE_INK} />
-      </Pressable>
-
-      <Ionicons
-        name="chevron-forward"
-        size={16}
-        color="rgba(60,60,67,0.4)"
-        style={styles.chevron}
-      />
+      <View style={styles.askPill}>
+        <Text style={styles.askPillText}>Ask</Text>
+        <Ionicons name="chevron-forward" size={13} color="#FFFFFF" />
+      </View>
     </Pressable>
   );
 }
@@ -89,10 +78,10 @@ const styles = StyleSheet.create({
   strip: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: 12,
     paddingVertical: 12,
     paddingLeft: 12,
-    paddingRight: 10,
+    paddingRight: 8,
     borderRadius: 14,
     backgroundColor: '#FFFFFF',
     borderWidth: StyleSheet.hairlineWidth,
@@ -102,9 +91,6 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 1 },
     shadowRadius: 2,
     elevation: 1,
-  },
-  stripPressed: {
-    backgroundColor: 'rgba(124,77,255,0.06)',
   },
   glyphSlot: {
     width: 30,
@@ -130,18 +116,20 @@ const styles = StyleSheet.create({
     fontFamily: LIBRARIAN_SERIF,
     fontStyle: 'italic',
   },
-  micBtn: {
-    width: 30,
-    height: 30,
-    borderRadius: 8,
-    backgroundColor: 'rgba(124,77,255,0.10)',
+  askPill: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    gap: 2,
+    paddingLeft: 12,
+    paddingRight: 8,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: LIBRARIAN_PURPLE_INK,
   },
-  micBtnPressed: {
-    backgroundColor: 'rgba(124,77,255,0.20)',
-  },
-  chevron: {
-    marginLeft: 2,
+  askPillText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '700',
+    letterSpacing: 0.2,
   },
 });
