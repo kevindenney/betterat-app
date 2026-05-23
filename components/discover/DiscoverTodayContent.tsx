@@ -43,6 +43,7 @@ import type { NativeScrollEvent, NativeSyntheticEvent } from 'react-native';
 
 import { useAuth } from '@/providers/AuthProvider';
 import { useInterest } from '@/providers/InterestProvider';
+import { useVocabulary } from '@/hooks/useVocabulary';
 import { supabase } from '@/services/supabase';
 import { IOS_COLORS, IOS_REGISTER } from '@/lib/design-tokens-ios';
 import { initialsForName, pickSquareMarkColor } from '@/components/discover/canonical';
@@ -120,20 +121,21 @@ function useHomeClub(): HomeClub | null {
         const orgsById = new Map<string, any>();
         for (const o of orgs ?? []) orgsById.set(o.id, o);
 
-        // Prefer an org in the current interest; else fall back to the most
-        // recent active org regardless of interest. Either way, the home club
-        // identity is real.
+        // Only pick an org scoped to the user's current interest. Without
+        // this guard a nursing-school membership leaked into the Sail Racing
+        // Today surface (and vice versa). The Cover represents what's
+        // happening at "your club" *in this interest*; cross-interest orgs
+        // belong on the Today surface for those interests, not this one.
         const interestSlug = currentInterest?.slug ?? null;
         let pick: { row: { organization_id: string; role: string | null }; org: any } | null =
           null;
         for (const row of activeRows) {
           const org = orgsById.get(row.organization_id);
           if (!org) continue;
-          if (interestSlug && org.interest_slug === interestSlug) {
+          if (!interestSlug || org.interest_slug === interestSlug) {
             pick = { row, org };
             break;
           }
-          if (!pick) pick = { row, org };
         }
 
         if (pick) {
@@ -168,7 +170,15 @@ export function DiscoverTodayContent({
   onScroll,
 }: DiscoverTodayContentProps) {
   const homeClub = useHomeClub();
+  const { vocab } = useVocabulary();
   const todayLabel = useMemo(() => formatTodayLabel(new Date()), []);
+
+  // Vocabulary-aware eyebrow. The brief's "AT YOUR CLUB" is sailing-specific;
+  // BetterAt is multi-interest so the institution word swaps in:
+  //   sail-racing → "Yacht Club"   nursing → "Clinical Site"
+  //   drawing     → "Studio"       fitness → "Gym"
+  const institutionWord = vocab('Institution').toUpperCase();
+  const nowHappeningEyebrow = `NOW HAPPENING AT YOUR ${institutionWord}`;
 
   return (
     <ScrollView
@@ -195,10 +205,10 @@ export function DiscoverTodayContent({
         </Text>
       </View>
 
-      {/* NOW HAPPENING AT YOUR CLUB — omitted entirely when no home club */}
+      {/* NOW HAPPENING AT YOUR {INSTITUTION} — omitted entirely when no home org */}
       {homeClub ? (
         <>
-          <SectionEyebrow text="NOW HAPPENING AT YOUR CLUB" />
+          <SectionEyebrow text={nowHappeningEyebrow} />
           <View style={styles.homeClubCard}>
             <View style={styles.homeClubHeader}>
               <View
