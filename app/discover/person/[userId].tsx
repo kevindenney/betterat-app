@@ -256,7 +256,8 @@ function PersonDetailScreenInner() {
           </IOSDetailSection>
         ) : null}
 
-        {/* Recent trajectory — restrained, no medallions, just name + date. */}
+        {/* Recent trajectory — restrained, no medallions, just name + date.
+            Each row drills into the trophy detail surface. */}
         <IOSDetailSection header="Recent trajectory">
           <TrophyRow
             title={
@@ -266,16 +267,26 @@ function PersonDetailScreenInner() {
             }
             sub="Trophy of becoming"
             when="Mar 2026"
+            onPress={() =>
+              router.push(`/sailor/${userId}/trophy/heavy-air-helm` as any)
+            }
             isFirst
           />
           <TrophyRow
             title="Decision-making under start-line pressure"
             sub="Trophy of becoming"
             when="Sep 2025"
+            onPress={() =>
+              router.push(`/sailor/${userId}/trophy/start-line-patience` as any)
+            }
           />
         </IOSDetailSection>
 
-        {/* In common — concrete anchors with italic emphasis. */}
+        {/* In common — concrete anchors with italic emphasis.
+            These rows are intentionally inert: the in-common surface is a
+            *frame* for shared context, not a navigation surface. Drilling
+            into "Spring Series 2026" or "Heavy-air starts" belongs on the
+            italic anchor itself once topic/race detail surfaces exist. */}
         <IOSDetailSection header="In common">
           <InCommonRow icon="boat-outline" when="14–17 Apr · you finished 4th, Tomás 7th" isFirst>
             You both raced <Text style={styles.italic}>Spring Series 2026</Text> at RHKYC.
@@ -285,12 +296,18 @@ function PersonDetailScreenInner() {
           </InCommonRow>
         </IOSDetailSection>
 
-        {/* Public threads — renders only if user publishes; section absent otherwise. */}
+        {/* Public threads — renders only if user publishes; section absent
+            otherwise. Tap drills into the topic where the thread lives. */}
         <IOSDetailSection header="Public threads">
           <DRow
             icon="chatbubble-outline"
             title={`"Halyard tension downwind in chop"`}
-            sub="In Dragon rigging & tuning · 23 replies"
+            sub="In Dragon fleet · rig setup · 23 replies"
+            onPress={() =>
+              router.push(
+                `/discover/topic/rhkyc-dragon-rig-setup?from=people&name=${encodeURIComponent('Dragon fleet · rig setup')}` as any,
+              )
+            }
             isFirst
           />
         </IOSDetailSection>
