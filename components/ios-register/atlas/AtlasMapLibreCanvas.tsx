@@ -44,9 +44,38 @@ import {
 } from './AtlasMaps';
 import type { AtlasFrameId, AtlasNextEvent } from './AtlasScreen';
 
-// OpenFreeMap Liberty — free MapLibre style, no API key. Matches the
-// canonical RaceMapCard choice; one less endpoint to manage.
-const MAP_STYLE_URL = 'https://tiles.openfreemap.org/styles/liberty';
+// Per-frame base map style. Sailing frames keep Liberty (water/land
+// contrast matters when reading wind/tide over the harbor). Nursing
+// and entrepreneur frames switch to Positron — much fewer commercial
+// POI labels so cohort heatmap + walk-time annotations breathe.
+//
+// All three styles are free, no API key. See:
+//   https://openfreemap.org/quick_start/
+//
+// Future: when sailing gets a proper nautical chart base (OpenSeaMap
+// overlay or custom MapLibre style with bathymetry), swap that in here
+// for f1/f2/f6 without touching the canvas.
+const MAP_STYLE_LIBERTY = 'https://tiles.openfreemap.org/styles/liberty';
+const MAP_STYLE_POSITRON = 'https://tiles.openfreemap.org/styles/positron';
+
+function mapStyleForFrame(frame: AtlasFrameId): string {
+  switch (frame) {
+    // Sailing — water/land contrast matters; Liberty wins
+    case 'f1':
+    case 'f2':
+    case 'f3':
+    case 'f6':
+      return MAP_STYLE_LIBERTY;
+    // Nursing (campus-level) — quiet base lets cohort heatmap +
+    // preceptor diamonds dominate
+    case 'f4':
+    case 'f5':
+      return MAP_STYLE_POSITRON;
+    // Entrepreneur (rural/sparse) — minimal labels suit
+    case 'f7':
+      return MAP_STYLE_POSITRON;
+  }
+}
 
 interface CameraPreset {
   /** [longitude, latitude] */
@@ -169,7 +198,7 @@ export function AtlasMapLibreCanvas({
   return (
     <View style={styles.fill}>
       <MLMap
-        mapStyle={MAP_STYLE_URL}
+        mapStyle={mapStyleForFrame(frame)}
         style={styles.fill}
         onPress={onMapPress ? handlePress : undefined}
       >
