@@ -42,7 +42,7 @@ export default function SchoolsLanding() {
               >
                 <Text style={s.primaryBtnText}>Start a 30-day pilot</Text>
               </Pressable>
-              <Pressable>
+              <Pressable onPress={() => router.push('/schools/pricing')}>
                 <Text style={s.secondaryLink}>Talk to our team →</Text>
               </Pressable>
             </View>
@@ -112,7 +112,7 @@ export default function SchoolsLanding() {
             >
               <Text style={s.primaryBtnSmText}>Calculate your plan</Text>
             </Pressable>
-            <Pressable>
+            <Pressable onPress={() => router.push('/schools/start-pilot')}>
               <Text style={s.ctaStripLink}>Book a demo →</Text>
             </Pressable>
           </View>

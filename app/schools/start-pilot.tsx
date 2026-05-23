@@ -6,8 +6,9 @@
  * additional-domain chips, two verification methods (DNS TXT default,
  * email IT admin alternate), pilot summary card on the right.
  *
- * "Verify & continue →" submission stubbed — real handler lands when the
- * org-creation + DNS verify backend wires up.
+ * "Verify & continue →" routes into the seeded JHSON Overview so the
+ * dean's marketing→admin walk lands on a live dashboard. Real org-creation
+ * + DNS verify backend wires the multi-tenant version later.
  */
 
 import React, { useState } from 'react';
@@ -227,10 +228,15 @@ export default function SchoolsStartPilotPage() {
                 <Pressable style={s.backBtn} onPress={() => router.back()}>
                   <Text style={s.backBtnText}>← Back</Text>
                 </Pressable>
-                <Pressable style={s.continueBtn}>
+                <Pressable
+                  style={s.continueBtn}
+                  onPress={() => router.push('/admin/678e149e-2abb-422c-ac61-b76756a2150e/overview')}
+                >
                   <Text style={s.continueBtnText}>Verify & continue →</Text>
                 </Pressable>
-                <Text style={s.skipText}>Skip — verify after first invoice</Text>
+                <Pressable onPress={() => router.push('/admin/678e149e-2abb-422c-ac61-b76756a2150e/overview')}>
+                  <Text style={s.skipText}>Skip — verify after first invoice</Text>
+                </Pressable>
               </View>
             </View>
 

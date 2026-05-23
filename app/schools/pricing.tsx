@@ -160,7 +160,10 @@ export default function SchoolsPricingPage() {
                 >
                   <Text style={s.primaryBtnText}>Start 30-day pilot · no card</Text>
                 </Pressable>
-                <Pressable style={s.ghostBtn}>
+                <Pressable
+                  style={s.ghostBtn}
+                  onPress={() => router.push('/schools/start-pilot')}
+                >
                   <Text style={s.ghostBtnText}>Talk to procurement →</Text>
                 </Pressable>
               </View>
