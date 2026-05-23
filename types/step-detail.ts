@@ -77,6 +77,11 @@ export interface StepPlanData {
   equipment_context?: AnyExtractedEntity[];
   date_enrichment?: DateEnrichment;
   conversation_id?: string;               // AI conversation that created this plan
+  // Step → Event link. Polymorphic by design — the user picks a regatta,
+  // tournament, market_day, pitch, etc. that this step is in service of.
+  // See migration timeline_steps_target_event.
+  target_event_kind?: 'regatta' | 'race_event' | 'tournament' | 'competition' | 'market_day' | 'pitch' | null;
+  target_event_id?: string | null;
 }
 
 export interface Observation {

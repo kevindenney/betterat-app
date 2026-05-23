@@ -18,6 +18,7 @@ import { CollaboratorPicker } from './CollaboratorPicker';
 import { CollaboratorRolePicker } from './plan-tab/CollaboratorRolePicker';
 import { AddPeoplePicker } from './plan-tab/AddPeoplePicker';
 import { PlanWhereCard } from './plan-tab/PlanWhereCard';
+import { PlanInServiceOfCard } from './plan-tab/PlanInServiceOfCard';
 import { CourseContextSheet } from './CourseContextSheet';
 import type { PlaybookPickerSelection } from '@/components/playbook/PlaybookPicker';
 import { AddToStepPlanSheet, type AddToStepPlanSelection } from './AddToStepPlanSheet';
@@ -458,6 +459,16 @@ export function StepPlanQuestions({
     setLocalWhereLocation(location);
     debouncedSave({ where_location: location });
   }, [debouncedSave]);
+
+  const handleTargetEventChange = useCallback(
+    (next: { kind: StepPlanData['target_event_kind']; id: string } | null) => {
+      debouncedSave({
+        target_event_kind: next?.kind ?? null,
+        target_event_id: next?.id ?? null,
+      });
+    },
+    [debouncedSave],
+  );
 
   const handleSelectPlaybookItems = useCallback(async (selections: PlaybookPickerSelection[]) => {
     // Write typed step_playbook_links for every selection (await so other tabs see them)
@@ -1082,6 +1093,13 @@ RULES:
                   lat: loc.lat ?? undefined,
                   lng: loc.lng ?? undefined,
                 }))}
+              />
+
+              <PlanInServiceOfCard
+                targetEventKind={planData.target_event_kind ?? null}
+                targetEventId={planData.target_event_id ?? null}
+                readOnly={readOnly}
+                onChange={handleTargetEventChange}
               />
             </>
           }
