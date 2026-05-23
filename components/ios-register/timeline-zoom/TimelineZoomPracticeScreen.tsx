@@ -20,12 +20,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { IOS_REGISTER } from '@/lib/design-tokens-ios';
 import { useAuth } from '@/providers/AuthProvider';
 import { useInterest } from '@/providers/InterestProvider';
-import { InterestSwitcher, openInterestSwitcher } from '@/components/InterestSwitcher';
 import { useMyTimeline } from '@/hooks/useTimelineSteps';
 import { useCurrentSeason, useUserSeasons } from '@/hooks/useSeason';
 import { useSubscribedBlueprints, useBlueprintWithAuthor } from '@/hooks/useBlueprint';
 
-import { InterestHeader } from './InterestHeader';
 import { TimelineZoomCanvas } from './TimelineZoomCanvas';
 import { mapToTimelineDataset, type BlueprintLookup } from './realDataAdapter';
 import { SAMPLE_DATASET } from './sampleData';
@@ -106,10 +104,6 @@ export function TimelineZoomPracticeScreen() {
     router.push(`/step/${stepId}` as never);
   }, []);
 
-  const handleOpenInterestSwitcher = useCallback(() => {
-    openInterestSwitcher();
-  }, []);
-
   const hasContent = dataset.seasons.some((s) => s.bricks.length > 0);
   const signedInEmail = (user?.email as string | undefined) ?? null;
 
@@ -120,15 +114,9 @@ export function TimelineZoomPracticeScreen() {
   if (!hasContent && !showSample) {
     return (
       <SafeAreaView style={styles.surface} edges={['top']}>
-        {/* Mount the switcher so openInterestSwitcher() has an opener to
-            call. Self-registers + renders null until opened. */}
-        <InterestSwitcher />
-        <InterestHeader
-          interestLabel={dataset.interest.label}
-          level={3}
-          user={dataset.user}
-          onPressInterest={handleOpenInterestSwitcher}
-        />
+        {/* No InterestSwitcher / InterestHeader here — the app chrome
+            above already renders the interest pill (and mounts a
+            switcher). Empty-state message references that chrome pill. */}
         <View style={styles.emptyWrap}>
           <View style={styles.emptyBox}>
             <Text style={styles.emptyTitle}>
@@ -167,7 +155,6 @@ export function TimelineZoomPracticeScreen() {
 
   return (
     <SafeAreaView style={styles.surface} edges={['top']}>
-      <InterestSwitcher />
       {showSample ? (
         <View style={styles.sampleBanner}>
           <Ionicons name="sparkles" size={12} color="#FFFFFF" />
@@ -187,6 +174,7 @@ export function TimelineZoomPracticeScreen() {
         dataset={activeDataset}
         initialLevel={3}
         onOpenStepDetail={showSample ? undefined : handleOpenStepDetail}
+        hideInterestHeader
       />
     </SafeAreaView>
   );

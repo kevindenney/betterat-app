@@ -59,6 +59,14 @@ interface TimelineZoomCanvasProps {
    * is preserved on back.
    */
   onOpenStepDetail?: (stepId: string) => void;
+  /**
+   * Suppress the canvas's internal InterestHeader. Set true on the
+   * canonical Practice tab cutover where the app chrome above already
+   * shows the interest pill + avatar — rendering both creates a
+   * doubled-pill row. Defaults false (preview routes keep their
+   * header).
+   */
+  hideInterestHeader?: boolean;
 }
 
 const LEVELS: ZoomLevel[] = [1, 2, 3, 4];
@@ -80,6 +88,7 @@ export function TimelineZoomCanvas({
   dataset,
   initialLevel = 1,
   onOpenStepDetail,
+  hideInterestHeader = false,
 }: TimelineZoomCanvasProps) {
   const [level, setLevel] = useState<ZoomLevel>(initialLevel);
   const [focusStepId, setFocusStepId] = useState<string>(dataset.focusStepId);
@@ -195,21 +204,23 @@ export function TimelineZoomCanvas({
   return (
     <GestureHandlerRootView style={styles.root}>
       <View style={styles.surface}>
-        <InterestHeader
-          interestLabel={dataset.interest.label}
-          level={level}
-          stepCounter={dataset.stepCounter}
-          weekCounter={dataset.weekCounter}
-          seasonCounter={
-            dataset.seasons[0]
-              ? {
-                  current: dataset.seasons[0].bricks.length,
-                  total: dataset.totalSteps,
-                }
-              : undefined
-          }
-          user={dataset.user}
-        />
+        {hideInterestHeader ? null : (
+          <InterestHeader
+            interestLabel={dataset.interest.label}
+            level={level}
+            stepCounter={dataset.stepCounter}
+            weekCounter={dataset.weekCounter}
+            seasonCounter={
+              dataset.seasons[0]
+                ? {
+                    current: dataset.seasons[0].bricks.length,
+                    total: dataset.totalSteps,
+                  }
+                : undefined
+            }
+            user={dataset.user}
+          />
+        )}
 
         <GestureDetector gesture={pinch}>
           <View style={styles.canvas}>
