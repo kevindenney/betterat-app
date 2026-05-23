@@ -633,22 +633,23 @@ export function DiscoverTodayContent({
         </Pressable>
       ) : null}
 
-      {/* Banner explains what isn't wired yet. Per the brief's "no empty
-          state" rule, missing picks just drop out of the layout. */}
-      <View style={styles.previewBanner}>
-        <Ionicons
-          name="information-circle"
-          size={14}
-          color={IOS_REGISTER.labelSecondary}
-        />
-        <Text style={styles.previewBannerText}>
-          {homeOrg
-            ? 'Your home org is wired here.'
-            : 'No home org for this interest yet — join one in Orgs.'}
-          {' '}This week’s pick + sailor/room picks land when their scoring
-          is implemented.
-        </Text>
-      </View>
+      {/* Banner only renders when the surface is completely empty — per the
+          brief's "no empty state" rule, the Cover doesn't pad; but a totally
+          empty Today is disorienting and needs a nudge toward joining an
+          org. Otherwise the picks above speak for themselves. */}
+      {!homeOrg && !thisWeeksPick && !alsoSailor && !alsoClub && !alsoRoom ? (
+        <View style={styles.previewBanner}>
+          <Ionicons
+            name="information-circle"
+            size={14}
+            color={IOS_REGISTER.labelSecondary}
+          />
+          <Text style={styles.previewBannerText}>
+            Nothing for you yet in this interest. Open Orgs to join one, or
+            switch interests at the top.
+          </Text>
+        </View>
+      ) : null}
 
       <View style={{ height: 40 }} />
     </ScrollView>
