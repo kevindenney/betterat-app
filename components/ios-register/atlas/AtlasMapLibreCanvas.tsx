@@ -240,6 +240,11 @@ function approxDistanceKm(a: AtlasPinSpec, b: AtlasPinSpec): number {
  */
 function shouldShowLabel(pin: AtlasPinSpec, allPins: AtlasPinSpec[]): boolean {
   if (!pin.label) return false;
+  // Diamond curation pins (preceptor, sim-lab) always show their label —
+  // they're intentional faculty/institutional guidance, named by design.
+  // The label-hide-when-dense rule applies only to interchangeable
+  // institution circles (club / racing_area / hospital).
+  if (pin.kind === 'poi-preceptor' || pin.kind === 'poi-sim-lab') return true;
   const isPoi = pin.kind.startsWith('poi-');
   if (!isPoi) return false;
   let nearbyPoiCount = 0;
