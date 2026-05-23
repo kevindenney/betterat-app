@@ -30,7 +30,7 @@
  *   - Next-event glow is the only Atlas accent that uses amber
  */
 
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -45,6 +45,7 @@ import {
 } from './AtlasMaps';
 import { AtlasMapLibreCanvas } from './AtlasMapLibreCanvas';
 import { useAtlasFramePins } from '@/hooks/useAtlasFramePins';
+import { useNextRaceMarks } from '@/hooks/useNextRaceMarks';
 import {
   AtlasPin,
   ClusterTag,
@@ -586,12 +587,19 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
   const [candidate, setCandidate] = useState<{ lng: number; lat: number } | null>(null);
   // Real institution POIs + peer step pins for the Causeway Bay bbox.
   // 22.295, 114.18 is the F1 camera centroid — see AtlasMapLibreCanvas.FRAME_CAMERA.
-  const { pins } = useAtlasFramePins({
+  const { pins: framePins } = useAtlasFramePins({
     lat: 22.295,
     lng: 114.18,
     interestSlug: 'sail-racing',
     radiusKm: 20,
   });
+  // Race-marks layer — when the next event is a regatta, fetch its
+  // earliest race_event's marks and merge into the pin set. Renders as
+  // numbered amber pins per the design's pin grammar.
+  const { data: raceMarkPins = [] } = useNextRaceMarks({
+    regattaId: next?.event_kind === 'regatta' ? next.event_id : null,
+  });
+  const pins = useMemo(() => [...framePins, ...raceMarkPins], [framePins, raceMarkPins]);
   const exitCommit = useCallback(() => {
     setCommitMode(false);
     setCandidate(null);
