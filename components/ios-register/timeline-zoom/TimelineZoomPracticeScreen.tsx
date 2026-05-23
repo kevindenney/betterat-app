@@ -23,6 +23,7 @@ import { useMyTimeline } from '@/hooks/useTimelineSteps';
 import { useCurrentSeason, useUserSeasons } from '@/hooks/useSeason';
 import { useSubscribedBlueprints, useBlueprintWithAuthor } from '@/hooks/useBlueprint';
 
+import { InterestHeader } from './InterestHeader';
 import { TimelineZoomCanvas } from './TimelineZoomCanvas';
 import { mapToTimelineDataset, type BlueprintLookup } from './realDataAdapter';
 
@@ -99,23 +100,33 @@ export function TimelineZoomPracticeScreen() {
 
   const hasContent = dataset.seasons.some((s) => s.bricks.length > 0);
 
-  if (stepsLoading && !hasContent) {
-    return (
-      <SafeAreaView style={styles.empty} edges={['top']}>
-        <Text style={styles.emptyText}>Loading your timeline…</Text>
-      </SafeAreaView>
-    );
-  }
-
+  // The empty + loading states keep the InterestHeader visible so the user
+  // can still see which interest is selected, switch interests, and tap
+  // their avatar. Previously the early-return swapped the entire screen
+  // for an empty card and left the user with no controls.
   if (!hasContent) {
     return (
-      <SafeAreaView style={styles.empty} edges={['top']}>
-        <View style={styles.emptyBox}>
-          <Text style={styles.emptyTitle}>Nothing on the canvas yet</Text>
-          <Text style={styles.emptyText}>
-            Add a step to your timeline and it will appear here as L1 — pinch
-            to zoom out to Week, Season, or Years.
-          </Text>
+      <SafeAreaView style={styles.surface} edges={['top']}>
+        <InterestHeader
+          interestLabel={dataset.interest.label}
+          level={3}
+          user={dataset.user}
+        />
+        <View style={styles.emptyWrap}>
+          <View style={styles.emptyBox}>
+            <Text style={styles.emptyTitle}>
+              {stepsLoading ? 'Loading your timeline…' : 'Nothing on the canvas yet'}
+            </Text>
+            {!stepsLoading ? (
+              <>
+                <Text style={styles.emptyText}>
+                  {currentInterest
+                    ? `No steps in "${currentInterest.name}" yet. Add a step or switch interests from the pill above.`
+                    : 'Add a step to your timeline and it will appear here. Pinch to zoom between Step, Week, Season, and Years.'}
+                </Text>
+              </>
+            ) : null}
+          </View>
         </View>
       </SafeAreaView>
     );
@@ -137,9 +148,8 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: IOS_REGISTER.groundBg,
   },
-  empty: {
+  emptyWrap: {
     flex: 1,
-    backgroundColor: IOS_REGISTER.groundBg,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 24,
