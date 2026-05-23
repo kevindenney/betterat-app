@@ -27,6 +27,7 @@ import {
 import { useBlueprintPricing } from '@/hooks/useBlueprintPricing';
 import { useBlueprintCohorts } from '@/hooks/useBlueprintCohorts';
 import { useBlueprintActivity } from '@/hooks/useBlueprintActivity';
+import { useBlueprintMentorSettings, MentorSettings } from '@/hooks/useBlueprintMentorSettings';
 
 // =============================================================================
 // FRAME 18 · STEPS
@@ -924,7 +925,19 @@ export function CohortsTabBody({
 // FRAME 22 · MENTOR SETTINGS
 // =============================================================================
 
-export function MentorSettingsTabBody() {
+export function MentorSettingsTabBody({
+  blueprintId,
+  orgId,
+}: {
+  blueprintId: string;
+  orgId: string | null;
+}) {
+  const { settings, loading, update } = useBlueprintMentorSettings(blueprintId, orgId);
+
+  const onToggle = (key: keyof MentorSettings, current: boolean) => {
+    update.mutate({ [key]: !current } as Partial<MentorSettings>);
+  };
+
   return (
     <ScrollView style={s.body} contentContainerStyle={s.bodyInner}>
       <View style={s.sectionHead}>
@@ -932,6 +945,7 @@ export function MentorSettingsTabBody() {
           <Text style={s.eyebrow}>Mentor permissions</Text>
           <Text style={s.sectionH2}>Who can mentor and what they can do</Text>
         </View>
+        {loading ? <Text style={s.sectionHint}>Loading…</Text> : null}
       </View>
 
       <View style={s.card}>
@@ -945,17 +959,20 @@ export function MentorSettingsTabBody() {
           <ToggleSetting
             title="Faculty members assigned to the cohort"
             sub="All faculty in the cohort's mentor list."
-            on
+            on={settings.facultyCanMentor}
+            onPress={() => onToggle('facultyCanMentor', settings.facultyCanMentor)}
           />
           <ToggleSetting
             title="Preceptors at the placement site"
             sub="Auto-detected by site claim; auditable in the audit log."
-            on
+            on={settings.preceptorsCanMentor}
+            onPress={() => onToggle('preceptorsCanMentor', settings.preceptorsCanMentor)}
           />
           <ToggleSetting
             title="Peer mentors (senior students)"
             sub="Cohort admin must explicitly elevate. Limited to comment + suggest."
-            on={false}
+            on={settings.peersCanMentor}
+            onPress={() => onToggle('peersCanMentor', settings.peersCanMentor)}
           />
         </View>
       </View>
@@ -971,22 +988,26 @@ export function MentorSettingsTabBody() {
           <ToggleSetting
             title="Comment on student reflections"
             sub="Visible to the student and other mentors on the step."
-            on
+            on={settings.canComment}
+            onPress={() => onToggle('canComment', settings.canComment)}
           />
           <ToggleSetting
             title="Mark steps as settled"
             sub="The 'aha' moment that closes a step. Stays settled until explicitly reopened."
-            on
+            on={settings.canSettle}
+            onPress={() => onToggle('canSettle', settings.canSettle)}
           />
           <ToggleSetting
             title="Propose follow-up steps"
             sub="Inserts a templated step into the student's timeline. Student can decline."
-            on
+            on={settings.canProposeFollowup}
+            onPress={() => onToggle('canProposeFollowup', settings.canProposeFollowup)}
           />
           <ToggleSetting
             title="Edit blueprint content"
             sub="Only the blueprint's authors can edit. Mentors comment, not edit."
-            on={false}
+            on={settings.canEditBlueprint}
+            onPress={() => onToggle('canEditBlueprint', settings.canEditBlueprint)}
           />
         </View>
       </View>
@@ -1003,21 +1024,21 @@ export function MentorSettingsTabBody() {
             <View style={{ flex: 1 }}>
               <Text style={s.fieldLabel}>Daily digest</Text>
               <View style={s.selectFake}>
-                <Text style={s.selectFakeText}>8:00 AM · weekdays</Text>
+                <Text style={s.selectFakeText}>{settings.dailyDigestTime}</Text>
                 <Ionicons name="chevron-down" size={12} color="rgba(60, 60, 67, 0.4)" />
               </View>
             </View>
             <View style={{ flex: 1 }}>
               <Text style={s.fieldLabel}>On-action ping</Text>
               <View style={s.selectFake}>
-                <Text style={s.selectFakeText}>Flagged + Wants follow-up</Text>
+                <Text style={s.selectFakeText}>{settings.onActionPing}</Text>
                 <Ionicons name="chevron-down" size={12} color="rgba(60, 60, 67, 0.4)" />
               </View>
             </View>
             <View style={{ flex: 1 }}>
               <Text style={s.fieldLabel}>Weekly summary</Text>
               <View style={s.selectFake}>
-                <Text style={s.selectFakeText}>Fri 4:00 PM</Text>
+                <Text style={s.selectFakeText}>{settings.weeklySummaryTime}</Text>
                 <Ionicons name="chevron-down" size={12} color="rgba(60, 60, 67, 0.4)" />
               </View>
             </View>
@@ -1028,9 +1049,19 @@ export function MentorSettingsTabBody() {
   );
 }
 
-function ToggleSetting({ title, sub, on }: { title: string; sub: string; on: boolean }) {
-  return (
-    <View style={s.toggleSetting}>
+function ToggleSetting({
+  title,
+  sub,
+  on,
+  onPress,
+}: {
+  title: string;
+  sub: string;
+  on: boolean;
+  onPress?: () => void;
+}) {
+  const inner = (
+    <>
       <View style={{ flex: 1 }}>
         <Text style={s.toggleSettingTitle}>{title}</Text>
         <Text style={s.toggleSettingSub}>{sub}</Text>
@@ -1038,7 +1069,15 @@ function ToggleSetting({ title, sub, on }: { title: string; sub: string; on: boo
       <View style={[s.switch, on && s.switchOn]}>
         <View style={[s.switchKnob, on && s.switchKnobOn]} />
       </View>
-    </View>
+    </>
+  );
+  if (!onPress) {
+    return <View style={s.toggleSetting}>{inner}</View>;
+  }
+  return (
+    <Pressable style={s.toggleSetting} onPress={onPress}>
+      {inner}
+    </Pressable>
   );
 }
 
