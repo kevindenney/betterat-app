@@ -769,6 +769,11 @@ function FrameF3({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
 // ---------------------------------------------------------------------------
 function FrameF4({ embedded, handlers }: { embedded: boolean; handlers: AtlasFrameHandlers }) {
   const [layersOpen, setLayersOpen] = useState(false);
+  // The "FIRST STEP · ANCHOR WHERE" prompt dismisses to a smaller "Plan a
+  // step" sheet when the user taps Skip — same pattern as F1's cold-start.
+  // Local state for v1; per-user persistence ("don't show again") lands
+  // alongside Phase A1's user preferences surface.
+  const [anchorPromptDismissed, setAnchorPromptDismissed] = useState(false);
   return (
     <View style={shellStyles.frame}>
       {!embedded && <StatusBar />}
@@ -816,13 +821,28 @@ function FrameF4({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
         <LayersFab onLayersPress={() => setLayersOpen(true)} />
       </View>
 
-      <BottomSheet
-        eyebrow="FIRST STEP · ANCHOR WHERE"
-        title="Tag your last clinical step to where it happened."
-        body={'From your timeline: "Med-surg shift · Tuesday morning." One tap to anchor.'}
-        primary={{ label: 'Anchor · pick site', icon: 'location', onPress: handlers.onPrimaryAction }}
-        secondary={{ label: 'Skip', onPress: handlers.onSecondaryAction }}
-      />
+      {anchorPromptDismissed ? (
+        <BottomSheet
+          eyebrow="PLAN A STEP"
+          title="Anchor your next step to a place."
+          body="Drop a pin on the map, or pick a spot from your venues."
+          primary={{ label: 'Plan a step', icon: 'add', onPress: handlers.onPrimaryAction }}
+        />
+      ) : (
+        <BottomSheet
+          eyebrow="FIRST STEP · ANCHOR WHERE"
+          title="Tag your last clinical step to where it happened."
+          body={'From your timeline: "Med-surg shift · Tuesday morning." One tap to anchor.'}
+          primary={{ label: 'Anchor · pick site', icon: 'location', onPress: handlers.onPrimaryAction }}
+          secondary={{
+            label: 'Skip',
+            onPress: () => {
+              setAnchorPromptDismissed(true);
+              handlers.onSecondaryAction?.();
+            },
+          }}
+        />
+      )}
 
       {!embedded && <MockTabBar activeTab="atlas" />}
 
