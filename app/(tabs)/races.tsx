@@ -255,7 +255,11 @@ function LegacyRacesScreen() {
     if (lat != null && lng != null && Number.isFinite(lat) && Number.isFinite(lng)) {
       setAtlasPin({ lat, lng, place: searchParams.pinPlace });
     }
-    setShowAddStepSheet(true);
+    // Open the CANONICAL Add Step sheet — "Build with AI Coach / From a
+    // Blueprint" — same one the Practice FAB opens. The legacy
+    // showAddStepSheet (smart-suggestion sheet) is a different surface
+    // and not the right destination for the compose-at-location handoff.
+    setShowCanonicalAddStepSheet(true);
     // Strip the handoff params so re-renders / focus-effects don't re-open
     // the sheet on every focus.
     router.setParams({ openAddStep: undefined, pinLat: undefined, pinLng: undefined, pinPlace: undefined });
