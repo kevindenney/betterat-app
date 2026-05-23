@@ -30,7 +30,10 @@ AS $$
 DECLARE
   v_org uuid;
 BEGIN
-  SELECT org_id INTO v_org FROM public.blueprints WHERE id = p_blueprint_id;
+  -- Qualify both columns: `id` in the RETURNS TABLE shadows the
+  -- column name in PL/pgSQL bodies, so an unqualified `id` was
+  -- ambiguous (42702).
+  SELECT b.org_id INTO v_org FROM public.blueprints b WHERE b.id = p_blueprint_id;
   IF v_org IS NULL THEN
     RAISE EXCEPTION 'Blueprint not found' USING ERRCODE = 'foreign_key_violation';
   END IF;
