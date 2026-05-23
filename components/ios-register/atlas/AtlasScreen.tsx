@@ -43,6 +43,7 @@ import {
   JhuCuratedMap,
   CommitHarbourMap,
 } from './AtlasMaps';
+import { AtlasMapLibreCanvas } from './AtlasMapLibreCanvas';
 import {
   AtlasPin,
   ClusterTag,
@@ -100,6 +101,15 @@ interface AtlasScreenProps extends AtlasFrameHandlers {
    * signed-in user's initial.
    */
   avatarInitial?: string;
+  /**
+   * When true, render the real MapLibre tile canvas instead of the
+   * static SVG illustration. Pins and overlays still come from the SAME
+   * absolute-positioned components, layered ABOVE the tile canvas — the
+   * SVG geography moves to the tile layer but the pin grammar is shared.
+   * The /atlas-ios preview keeps this false so the canonical handoff
+   * stays pixel-for-pixel.
+   */
+  useMapLibre?: boolean;
 }
 
 export function AtlasScreen({
@@ -110,13 +120,15 @@ export function AtlasScreen({
   subtitleOverride,
   nextEvent,
   avatarInitial,
+  useMapLibre = false,
 }: AtlasScreenProps) {
-  const handlers: AtlasFrameHandlers & { avatarInitial?: string } = {
+  const handlers: AtlasFrameHandlers & { avatarInitial?: string; useMapLibre?: boolean } = {
     onPrimaryAction,
     onSecondaryAction,
     subtitleOverride,
     nextEvent,
     avatarInitial,
+    useMapLibre,
   };
   switch (frame) {
     case 'f1':
@@ -534,7 +546,11 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
         ]}
       />
       <View style={shellStyles.mapArea}>
-        <HongKongOverviewMap />
+        {handlers.useMapLibre ? (
+          <AtlasMapLibreCanvas frame="f1" />
+        ) : (
+          <HongKongOverviewMap />
+        )}
 
         {/* Racing-area last-race tags + the user's base pin only render
             once real resolver data is wired. Until then the labels would
@@ -557,16 +573,25 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
             is rendered (preview/with-event mode), some of these pins sit
             under it — the tag is rendered LAST so it stacks on top. When
             the tag is absent (live tab cold-start), the pin cluster fills
-            the harbor cleanly. */}
-        <AtlasPin kind="crew" leftPct={22} topPct={44} />
-        <AtlasPin kind="fleet" leftPct={32} topPct={50} />
-        <AtlasPin kind="fleet" leftPct={42} topPct={45} />
-        <AtlasPin kind="following" leftPct={48} topPct={52} />
-        <AtlasPin kind="fleet" leftPct={56} topPct={44} />
-        <AtlasPin kind="crew" leftPct={66} topPct={47} />
-        <AtlasPin kind="fleet" leftPct={72} topPct={50} />
-        <AtlasPin kind="following" leftPct={28} topPct={56} />
-        <AtlasPin kind="following" leftPct={50} topPct={62} />
+            the harbor cleanly.
+
+            Skipped in MapLibre mode — the canvas owns geographic pin
+            placement once real lat/lng data lands via the
+            atlas_peer_steps_near RPC. Until then the live MapLibre canvas
+            shows the base map without phantom percentage-positioned pins. */}
+        {!handlers.useMapLibre && (
+          <>
+            <AtlasPin kind="crew" leftPct={22} topPct={44} />
+            <AtlasPin kind="fleet" leftPct={32} topPct={50} />
+            <AtlasPin kind="fleet" leftPct={42} topPct={45} />
+            <AtlasPin kind="following" leftPct={48} topPct={52} />
+            <AtlasPin kind="fleet" leftPct={56} topPct={44} />
+            <AtlasPin kind="crew" leftPct={66} topPct={47} />
+            <AtlasPin kind="fleet" leftPct={72} topPct={50} />
+            <AtlasPin kind="following" leftPct={28} topPct={56} />
+            <AtlasPin kind="following" leftPct={50} topPct={62} />
+          </>
+        )}
 
         {/* Highlighted next-event tag on Victoria Harbour. Rendered LAST so
             it stacks above the peer pins; otherwise the pins occlude the
@@ -631,7 +656,11 @@ function FrameF2({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
         ]}
       />
       <View style={shellStyles.mapArea}>
-        <RaceMarksZoomMap />
+        {handlers.useMapLibre ? (
+          <AtlasMapLibreCanvas frame="f2" />
+        ) : (
+          <RaceMarksZoomMap />
+        )}
 
         {/* Wind chip top-right */}
         <View style={[shellStyles.absChip, { top: 12, right: 12 }]}>
@@ -704,7 +733,11 @@ function FrameF3({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
         ]}
       />
       <View style={shellStyles.mapArea}>
-        <WorldDragonMap />
+        {handlers.useMapLibre ? (
+          <AtlasMapLibreCanvas frame="f3" />
+        ) : (
+          <WorldDragonMap />
+        )}
         {/* Cluster bubbles spaced enough that the labels don't touch.
             Amsterdam (NL), Vilamoura (Worlds, PT) and HK are real
             geographic positions on the canonical world map; tightened
@@ -755,7 +788,11 @@ function FrameF4({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
         ]}
       />
       <View style={shellStyles.mapArea}>
-        <BaltimoreColdMap />
+        {handlers.useMapLibre ? (
+          <AtlasMapLibreCanvas frame="f4" />
+        ) : (
+          <BaltimoreColdMap />
+        )}
 
         {/* Site-level only banner */}
         <View style={[shellStyles.absChip, { top: 12, right: 12 }]}>
@@ -816,7 +853,11 @@ function FrameF5({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
         ]}
       />
       <View style={shellStyles.mapArea}>
-        <JhuCuratedMap />
+        {handlers.useMapLibre ? (
+          <AtlasMapLibreCanvas frame="f5" />
+        ) : (
+          <JhuCuratedMap />
+        )}
 
         {/* Competency badge top-right */}
         <View style={[shellStyles.absChip, { top: 12, right: 12 }]}>
@@ -894,7 +935,11 @@ function FrameF6({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
       </View>
 
       <View style={[shellStyles.mapArea, { flex: 1 }]}>
-        <CommitHarbourMap />
+        {handlers.useMapLibre ? (
+          <AtlasMapLibreCanvas frame="f6" />
+        ) : (
+          <CommitHarbourMap />
+        )}
         {/* Candidate pin where the user tapped */}
         <AtlasPin kind="candidate" leftPct={50} topPct={48} />
 

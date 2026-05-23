@@ -27,6 +27,7 @@ import {
 } from '@/components/ios-register/atlas/AtlasScreen';
 import { FLOATING_TAB_BAR_HEIGHT } from '@/components/navigation/FloatingTabBar';
 import { IOS_REGISTER } from '@/lib/design-tokens-ios';
+import { FEATURE_FLAGS } from '@/lib/featureFlags';
 import { useAuth } from '@/providers/AuthProvider';
 import { useInterest } from '@/providers/InterestProvider';
 import { useAtlasNextEvent } from '@/hooks/useAtlasNextEvent';
@@ -116,6 +117,7 @@ export default function AtlasTab() {
           subtitleOverride={subtitleOverride}
           nextEvent={nextEvent}
           avatarInitial={avatarInitial}
+          useMapLibre={FEATURE_FLAGS.ATLAS_MAPLIBRE_CANVAS}
           onPrimaryAction={handlePrimary}
           onSecondaryAction={handleSecondary}
         />

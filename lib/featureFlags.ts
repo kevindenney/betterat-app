@@ -453,6 +453,17 @@ export const FEATURE_FLAGS = {
   ATLAS_IOS_REGISTER: readBooleanEnv('EXPO_PUBLIC_FF_ATLAS_IOS_REGISTER', true),
 
   /**
+   * Phase 11 follow-up — render a real MapLibre tile canvas on the live
+   * /(tabs)/atlas surface instead of the static stylized SVG. The
+   * /atlas-ios preview keeps the SVG for canonical handoff fidelity. Web
+   * platform also keeps the SVG (the maplibre-gl/react-map-gl web bridge
+   * lands separately). When this flag is off, the live tab falls back to
+   * the SVG too — useful if the native MapLibre canvas crashes or the
+   * tile endpoint is unreachable. Defaults true.
+   */
+  ATLAS_MAPLIBRE_CANVAS: readBooleanEnv('EXPO_PUBLIC_FF_ATLAS_MAPLIBRE_CANVAS', true),
+
+  /**
    * Phase 10 — HKDW (Hong Kong Dragon Worlds) → BetterAt onboarding flow.
    *
    * When on:
