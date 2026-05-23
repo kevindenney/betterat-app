@@ -637,27 +637,35 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
     setShowWind(activeIds.includes('wind') || activeIds.includes('all'));
     setShowTide(activeIds.includes('tide') || activeIds.includes('all'));
   }, []);
-  // Wind overlay — directional field anchored at the next event's venue
-  // (or the F1 camera centroid as fallback). Parses heading + speed from
-  // next.conditions; chip-gated visibility.
+  // Wind overlay — 3×3 grid centered at the next event's venue (or F1
+  // camera centroid as fallback). Parses heading + speed from
+  // next.conditions; chip-gated visibility. 3×3 spacing chosen so the
+  // field reads as direction without crowding POI labels.
   const windPins = useWindOverlay({
     centerLat: next?.lat ?? 22.295,
     centerLng: next?.lng ?? 114.18,
     conditionsLine: next?.conditions,
     enabled: showWind,
-    spacingKm: 2.5,
-    gridSize: 5,
+    spacingKm: 4,
+    gridSize: 3,
   });
-  // Tide / current overlay — teal arrows pointing the flow direction
-  // (set), distinct from wind. Smaller grid so it reads as a sibling
-  // signal, not a duplicate of wind.
+  // Tide / current overlay — anchored at the racing_area POI coords so
+  // arrows snap to water (Victoria Harbour, Middle Island channel, Lamma
+  // Channel, Port Shelter) rather than appearing on land. Falls back to
+  // empty array when no water anchors are present.
+  const waterAnchors = useMemo(
+    () =>
+      framePins
+        .filter((p) => p.kind === 'poi-racing-area')
+        .map((p) => ({ lat: p.lat, lng: p.lng })),
+    [framePins],
+  );
   const tidePins = useTideOverlay({
     centerLat: next?.lat ?? 22.295,
     centerLng: next?.lng ?? 114.18,
     conditionsLine: next?.conditions,
     enabled: showTide,
-    spacingKm: 3,
-    gridSize: 3,
+    waterAnchors,
   });
   const pins = useMemo(
     () => [...windPins, ...tidePins, ...framePins, ...raceMarkPins],

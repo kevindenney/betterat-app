@@ -31,6 +31,14 @@ interface UseTideOverlayArgs {
   spacingKm?: number;
   /** Grid side length (n × n). Default 3. */
   gridSize?: number;
+  /**
+   * Water-anchored arrow positions. When provided, the tide field renders
+   * one arrow at each anchor INSTEAD of a grid — this prevents tide arrows
+   * appearing on land (e.g. mid-Kowloon) which is geographically wrong for
+   * a current overlay. Anchor list is typically the visible racing_area
+   * POI coords.
+   */
+  waterAnchors?: { lat: number; lng: number }[];
 }
 
 /**
@@ -61,32 +69,44 @@ export function useTideOverlay({
   enabled = true,
   spacingKm = 2.5,
   gridSize = 3,
+  waterAnchors,
 }: UseTideOverlayArgs): AtlasPinSpec[] {
   return useMemo(() => {
     if (!enabled) return [];
     const { setDegrees, knots } = parseTide(conditionsLine);
     if (knots === 0) return []; // slack — render nothing
+    // setDegrees|knots — tide convention is "set" (flow direction),
+    // so the arrow renders pointing at setDegrees directly, no +180.
+    const label = `${setDegrees}|${knots}`;
+
+    // Water-anchored mode: one arrow per provided anchor. Skips grid.
+    if (waterAnchors && waterAnchors.length > 0) {
+      return waterAnchors.map((a, idx) => ({
+        id: `tide-water:${idx}`,
+        lat: a.lat,
+        lng: a.lng,
+        kind: 'tide-arrow' as const,
+        label,
+      }));
+    }
+
+    // Fallback grid (legacy demo path — places arrows around centerLat/Lng).
     const out: AtlasPinSpec[] = [];
     const half = (gridSize - 1) / 2;
     const dLat = spacingKm / 111;
     const dLng = spacingKm / (111 * Math.cos((centerLat * Math.PI) / 180));
-    // Offset the tide grid slightly south so it doesn't collide with wind.
     const offsetLat = -spacingKm / 222;
     for (let i = 0; i < gridSize; i += 1) {
       for (let j = 0; j < gridSize; j += 1) {
-        const lat = centerLat + offsetLat + (i - half) * dLat;
-        const lng = centerLng + (j - half) * dLng;
         out.push({
           id: `tide:${i}-${j}`,
-          lat,
-          lng,
+          lat: centerLat + offsetLat + (i - half) * dLat,
+          lng: centerLng + (j - half) * dLng,
           kind: 'tide-arrow',
-          // setDegrees|knots — tide convention is "set" (flow direction),
-          // so the arrow renders pointing at setDegrees directly, no +180.
-          label: `${setDegrees}|${knots}`,
+          label,
         });
       }
     }
     return out;
-  }, [centerLat, centerLng, conditionsLine, enabled, spacingKm, gridSize]);
+  }, [centerLat, centerLng, conditionsLine, enabled, spacingKm, gridSize, waterAnchors]);
 }
