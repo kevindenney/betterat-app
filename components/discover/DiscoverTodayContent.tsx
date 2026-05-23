@@ -79,36 +79,69 @@ function useHomeClub(): HomeClub | null {
     let cancelled = false;
     (async () => {
       try {
-        // Pick the user's first active org membership scoped to the current
-        // interest. The brief's "home club" is the institution they race out
-        // of — the curated section-1 of Orgs would surface the same row.
-        const query = supabase
+        // Two-step lookup. (1) fetch every membership row this user has and
+        // filter by BOTH status columns in JS — `status` and
+        // `membership_status` can diverge in the seed data (see
+        // feedback_membership_status_split). (2) fetch the org rows for the
+        // matching membership IDs, preferring an org in the current interest
+        // when one exists, else any active org. (3) Embedded `!inner` joins
+        // also don't work here because organization_memberships → auth.users
+        // isn't a relationship PostgREST can resolve through public schema.
+        const { data: memberships, error: memErr } = await supabase
           .from('organization_memberships')
-          .select(
-            'role, organizations!inner(id, name, slug, interest_slug, is_active)'
-          )
+          .select('organization_id, role, status, membership_status, created_at')
           .eq('user_id', user.id)
-          .in('status', ['active', 'invite_accepted'])
-          .eq('organizations.is_active', true)
-          .limit(5);
-        if (currentInterest?.slug) {
-          query.eq('organizations.interest_slug', currentInterest.slug);
-        }
-        const { data, error } = await query;
-        if (error) throw error;
+          .order('created_at', { ascending: false });
+        if (memErr) throw memErr;
         if (cancelled) return;
 
-        const rows = (data ?? []) as unknown as {
-          role: string | null;
-          organizations: { id: string; name: string; slug: string | null } | null;
-        }[];
-        const first = rows.find((r) => r.organizations);
-        if (first && first.organizations) {
+        const activeRows = (memberships ?? []).filter((r: any) => {
+          const a = r.status === 'active' || r.status === 'invite_accepted';
+          const b =
+            r.membership_status === 'active' ||
+            r.membership_status === 'invite_accepted';
+          return a || b;
+        }) as { organization_id: string; role: string | null }[];
+
+        if (activeRows.length === 0) {
+          setClub(null);
+          return;
+        }
+
+        const orgIds = activeRows.map((r) => r.organization_id);
+        const { data: orgs, error: orgErr } = await supabase
+          .from('organizations')
+          .select('id, name, slug, interest_slug, is_active')
+          .in('id', orgIds)
+          .eq('is_active', true);
+        if (orgErr) throw orgErr;
+        if (cancelled) return;
+
+        const orgsById = new Map<string, any>();
+        for (const o of orgs ?? []) orgsById.set(o.id, o);
+
+        // Prefer an org in the current interest; else fall back to the most
+        // recent active org regardless of interest. Either way, the home club
+        // identity is real.
+        const interestSlug = currentInterest?.slug ?? null;
+        let pick: { row: { organization_id: string; role: string | null }; org: any } | null =
+          null;
+        for (const row of activeRows) {
+          const org = orgsById.get(row.organization_id);
+          if (!org) continue;
+          if (interestSlug && org.interest_slug === interestSlug) {
+            pick = { row, org };
+            break;
+          }
+          if (!pick) pick = { row, org };
+        }
+
+        if (pick) {
           setClub({
-            orgId: first.organizations.id,
-            name: first.organizations.name,
-            slug: first.organizations.slug,
-            role: first.role,
+            orgId: pick.org.id,
+            name: pick.org.name,
+            slug: pick.org.slug ?? null,
+            role: pick.row.role,
           });
         } else {
           setClub(null);
