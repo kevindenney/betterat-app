@@ -210,6 +210,37 @@ export function useBlueprintPricing(blueprintId: string, orgId?: string | null) 
     },
   });
 
+  const previewCheckout = useMutation({
+    mutationFn: async (): Promise<{ url: string; sessionId: string }> => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Not authenticated');
+      const origin =
+        typeof window !== 'undefined' && window.location?.origin
+          ? window.location.origin
+          : 'https://betterat.app';
+      const successUrl = `${origin}/studio/blueprints/${blueprintId}?stripe=success`;
+      const cancelUrl = `${origin}/studio/blueprints/${blueprintId}?stripe=cancelled`;
+      const url = `${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/marketplace-blueprint-checkout`;
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          blueprint_id: blueprintId,
+          success_url: successUrl,
+          cancel_url: cancelUrl,
+        }),
+      });
+      const payload = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(payload?.error ?? 'Checkout session failed');
+      }
+      return { url: payload.url, sessionId: payload.session_id };
+    },
+  });
+
   const syncStripe = useMutation({
     mutationFn: async (): Promise<{
       stripeProductId: string;
@@ -250,5 +281,6 @@ export function useBlueprintPricing(blueprintId: string, orgId?: string | null) 
     update,
     removeCohort,
     syncStripe,
+    previewCheckout,
   };
 }

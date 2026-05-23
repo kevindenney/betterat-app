@@ -533,10 +533,8 @@ export function PricingTabBody({
   orgName: string | null;
   orgShort: string | null;
 }) {
-  const { pricing, loading, update, removeCohort, syncStripe } = useBlueprintPricing(
-    blueprintId,
-    orgId,
-  );
+  const { pricing, loading, update, removeCohort, syncStripe, previewCheckout } =
+    useBlueprintPricing(blueprintId, orgId);
 
   const [priceInput, setPriceInput] = React.useState('');
   const [payoutInput, setPayoutInput] = React.useState('');
@@ -785,6 +783,7 @@ export function PricingTabBody({
         <MarketplaceListingCard
           pricing={pricing}
           syncStripe={syncStripe}
+          previewCheckout={previewCheckout}
         />
       ) : null}
     </ScrollView>
@@ -794,10 +793,27 @@ export function PricingTabBody({
 function MarketplaceListingCard({
   pricing,
   syncStripe,
+  previewCheckout,
 }: {
   pricing: NonNullable<ReturnType<typeof useBlueprintPricing>['pricing']>;
   syncStripe: ReturnType<typeof useBlueprintPricing>['syncStripe'];
+  previewCheckout: ReturnType<typeof useBlueprintPricing>['previewCheckout'];
 }) {
+  const [previewError, setPreviewError] = React.useState<string | null>(null);
+  const handlePreview = () => {
+    setPreviewError(null);
+    previewCheckout.mutate(undefined, {
+      onSuccess: ({ url }) => {
+        if (typeof window !== 'undefined') {
+          window.open(url, '_blank', 'noopener,noreferrer');
+        }
+      },
+      onError: (err: unknown) => {
+        const msg = err instanceof Error ? err.message : 'Checkout failed';
+        setPreviewError(msg);
+      },
+    });
+  };
   const hasListing = !!pricing.stripePriceId && !!pricing.stripeProductId;
   const lastSynced = pricing.stripeSyncedAt
     ? new Date(pricing.stripeSyncedAt).toLocaleString(undefined, {
@@ -828,27 +844,41 @@ function MarketplaceListingCard({
             <Text style={s.cardHeadMeta}>Last synced {lastSynced}</Text>
           ) : null}
         </View>
-        <Pressable
-          style={[
-            s.btnPrimary,
-            (syncStripe.isPending || pricing.pricePerSeatCents == null) && { opacity: 0.55 },
-          ]}
-          disabled={syncStripe.isPending || pricing.pricePerSeatCents == null}
-          onPress={() => syncStripe.mutate()}
-        >
-          <Ionicons
-            name={syncStripe.isPending ? 'sync' : hasListing ? 'refresh' : 'cloud-upload'}
-            size={13}
-            color="#FFFFFF"
-          />
-          <Text style={s.btnPrimaryText}>
-            {syncStripe.isPending
-              ? 'Syncing…'
-              : hasListing
-                ? 'Resync to Stripe'
-                : 'List on Stripe'}
-          </Text>
-        </Pressable>
+        <View style={{ flexDirection: 'row', gap: 8 }}>
+          {hasListing ? (
+            <Pressable
+              style={[s.btnGhost, previewCheckout.isPending && { opacity: 0.55 }]}
+              disabled={previewCheckout.isPending}
+              onPress={handlePreview}
+            >
+              <Ionicons name="open-outline" size={13} color="#28406B" />
+              <Text style={s.btnGhostText}>
+                {previewCheckout.isPending ? 'Opening…' : 'Preview as buyer'}
+              </Text>
+            </Pressable>
+          ) : null}
+          <Pressable
+            style={[
+              s.btnPrimary,
+              (syncStripe.isPending || pricing.pricePerSeatCents == null) && { opacity: 0.55 },
+            ]}
+            disabled={syncStripe.isPending || pricing.pricePerSeatCents == null}
+            onPress={() => syncStripe.mutate()}
+          >
+            <Ionicons
+              name={syncStripe.isPending ? 'sync' : hasListing ? 'refresh' : 'cloud-upload'}
+              size={13}
+              color="#FFFFFF"
+            />
+            <Text style={s.btnPrimaryText}>
+              {syncStripe.isPending
+                ? 'Syncing…'
+                : hasListing
+                  ? 'Resync to Stripe'
+                  : 'List on Stripe'}
+            </Text>
+          </Pressable>
+        </View>
       </View>
       <View style={s.cardBody}>
         {pricing.stripeSyncError ? (
@@ -859,6 +889,12 @@ function MarketplaceListingCard({
             </Text>
           </View>
         ) : null}
+        {previewError ? (
+          <View style={s.stripeErrorBox}>
+            <Ionicons name="warning" size={14} color="#C0392B" />
+            <Text style={s.stripeErrorText}>Preview failed: {previewError}</Text>
+          </View>
+        ) : null}
         {hasListing ? (
           <View style={{ gap: 8 }}>
             <StripeIdRow label="Product" value={pricing.stripeProductId!} />
@@ -866,6 +902,8 @@ function MarketplaceListingCard({
             <Text style={s.licenseLine}>
               Buyers will check out at the unit amount above. Stripe collects + the platform
               transfers {pricing.authorPayoutPct}% to the author Connect account on each clear.
+              The "Preview as buyer" button opens a real Stripe-hosted Checkout session in a
+              new tab — same URL the public marketplace will use.
             </Text>
           </View>
         ) : (
@@ -1789,6 +1827,16 @@ const s = StyleSheet.create({
     borderRadius: 8,
   },
   btnPrimaryText: { color: '#FFFFFF', fontSize: 12, fontWeight: '600' },
+  btnGhost: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 8,
+    backgroundColor: 'rgba(40, 64, 107, 0.10)',
+  },
+  btnGhostText: { color: '#28406B', fontSize: 12, fontWeight: '600' },
 
   // MENTOR SETTINGS
   toggleSetting: {
