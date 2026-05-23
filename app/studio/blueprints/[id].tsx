@@ -46,6 +46,14 @@ import {
 } from '@/components/studio/StudioShell';
 import { StudioLoading } from '@/components/studio/StudioLoading';
 import { Gradient } from '@/components/studio/Gradient';
+import {
+  StepsTabBody,
+  CapabilitiesTabBody,
+  PricingTabBody,
+  CohortsTabBody,
+  MentorSettingsTabBody,
+  ActivityTabBody,
+} from '@/components/studio/BlueprintEditorTabBodies';
 
 type EditorTab =
   | 'overview'
@@ -269,6 +277,18 @@ export default function BlueprintEditorPage() {
             coverGradientIdx={coverGradientIdx}
             onCoverGradient={setCoverGradientIdx}
           />
+        ) : tab === 'steps' ? (
+          <StepsTabBody />
+        ) : tab === 'capabilities' ? (
+          <CapabilitiesTabBody />
+        ) : tab === 'pricing' ? (
+          <PricingTabBody />
+        ) : tab === 'cohorts' ? (
+          <CohortsTabBody />
+        ) : tab === 'mentor' ? (
+          <MentorSettingsTabBody />
+        ) : tab === 'activity' ? (
+          <ActivityTabBody />
         ) : (
           <StubTabBody tab={tab} />
         )}
