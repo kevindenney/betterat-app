@@ -19,7 +19,7 @@
 import React, { useCallback, useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 
 import {
   AtlasScreen,
@@ -31,6 +31,7 @@ import { FEATURE_FLAGS } from '@/lib/featureFlags';
 import { useAuth } from '@/providers/AuthProvider';
 import { useInterest } from '@/providers/InterestProvider';
 import { useAtlasNextEvent } from '@/hooks/useAtlasNextEvent';
+import { AtlasPickerBus } from '@/services/AtlasPickerBus';
 
 // Interest-aware variant selection. Per the brief's "Universal empty-state
 // formula" + per-persona empty states. The mapping below is the v1 lookup;
@@ -80,6 +81,11 @@ export default function AtlasTab() {
   const { currentInterest } = useInterest();
   const nextEvent = useAtlasNextEvent();
   const avatarInitial = deriveAvatarInitial(user as any);
+  // ?fromPlan=1 — PlanWhereCard pushed us here expecting a location result.
+  // The commit-mode "Use this location" CTA emits to AtlasPickerBus and
+  // router.back()s instead of starting an add-step flow.
+  const params = useLocalSearchParams<{ fromPlan?: string }>();
+  const isFromPlan = params.fromPlan === '1';
 
   // FloatingTabBar floats above the home-indicator safe area; clear both
   // plus a small buffer so the BottomSheet CTAs aren't covered.
@@ -96,24 +102,30 @@ export default function AtlasTab() {
 
   const handlePrimary = useCallback(
     (pin?: { lat: number; lng: number; place?: string }) => {
+      // Round-trip mode — PlanWhereCard pushed here expecting a result.
+      // Emit to the picker bus and pop back; PlanWhereCard's awaiting
+      // listener applies the coords to the step's location field.
+      if (isFromPlan) {
+        if (pin) AtlasPickerBus.emit({ lat: pin.lat, lng: pin.lng, place: pin.place });
+        else AtlasPickerBus.cancel();
+        if (router.canGoBack()) router.back();
+        return;
+      }
       // F1 + sailing: "Plan a step" → Practice tab (canonical add-step entry).
       // F4 + nursing: "Anchor · pick site" → also Practice.
       //
       // When a compose-at-location pin is present, push the coords as URL
       // params and auto-open the add-step sheet so the user lands on the
-      // creation flow with their dropped pin remembered. Downstream
-      // threading into the step's location field is Phase A1 work; for
-      // now the params survive in the URL bar for the AI-Coach/Blueprint
-      // paths to pick up when they're ready.
-      const params: Record<string, string> = { openAddStep: '1' };
+      // creation flow with their dropped pin remembered.
+      const queryParams: Record<string, string> = { openAddStep: '1' };
       if (pin) {
-        params.pinLat = String(pin.lat);
-        params.pinLng = String(pin.lng);
-        if (pin.place) params.pinPlace = pin.place;
+        queryParams.pinLat = String(pin.lat);
+        queryParams.pinLng = String(pin.lng);
+        if (pin.place) queryParams.pinPlace = pin.place;
       }
-      router.push({ pathname: '/(tabs)/practice', params });
+      router.push({ pathname: '/(tabs)/practice', params: queryParams });
     },
-    [router],
+    [isFromPlan, router],
   );
 
   const handleSecondary = useCallback(() => {

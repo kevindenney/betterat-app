@@ -15,11 +15,14 @@
 import React, { useCallback, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
 import { STEP_COLORS } from '@/lib/step-theme';
 import type { StepLocation } from '@/types/step-detail';
 import { LocationMapPicker as LocationMapPickerModal } from '@/components/races/LocationMapPicker';
 import { useStepLocationNeighbors } from '@/hooks/useStepLocationNeighbors';
+import { FEATURE_FLAGS } from '@/lib/featureFlags';
+import { AtlasPickerBus, type AtlasPickerResult } from '@/services/AtlasPickerBus';
 
 /** Quick-pick chip (e.g. an org's known venues like "RHKYC Clubhouse"). */
 export interface PlanWhereQuickPick {
@@ -38,6 +41,7 @@ interface PlanWhereCardProps {
 }
 
 export function PlanWhereCard({ location, readOnly, onChange, quickPicks }: PlanWhereCardProps) {
+  const router = useRouter();
   const [pickerVisible, setPickerVisible] = useState(false);
   const { data: neighbors } = useStepLocationNeighbors(location?.lat, location?.lng, 5);
   // Subtract the current user's own pin if applicable — we want "OTHER sailors".
@@ -55,6 +59,29 @@ export function PlanWhereCard({ location, readOnly, onChange, quickPicks }: Plan
     },
     [onChange, location?.venue_id],
   );
+
+  /**
+   * Per brief A9, the legacy LocationMapPicker modal is absorbed into
+   * Atlas. When ATLAS_MAPLIBRE_CANVAS is on, "Pick on map" pushes to
+   * /(tabs)/atlas?fromPlan=1, subscribes to AtlasPickerBus for the result,
+   * and applies it via onChange. When the flag is off, the legacy modal
+   * still opens (so this lands as additive — old path stays as fallback).
+   */
+  const handleOpenPicker = useCallback(() => {
+    if (!FEATURE_FLAGS.ATLAS_MAPLIBRE_CANVAS) {
+      setPickerVisible(true);
+      return;
+    }
+    AtlasPickerBus.awaitResult((result: AtlasPickerResult) => {
+      onChange({
+        name: result.place ?? `${result.lat.toFixed(4)}, ${result.lng.toFixed(4)}`,
+        lat: result.lat,
+        lng: result.lng,
+        venue_id: location?.venue_id,
+      });
+    });
+    router.push({ pathname: '/(tabs)/atlas', params: { fromPlan: '1' } });
+  }, [router, onChange, location?.venue_id]);
 
   const handleClear = useCallback(() => {
     onChange(undefined);
@@ -133,7 +160,7 @@ export function PlanWhereCard({ location, readOnly, onChange, quickPicks }: Plan
       )}
 
       {!readOnly && (
-        <Pressable style={styles.pickBtn} onPress={() => setPickerVisible(true)}>
+        <Pressable style={styles.pickBtn} onPress={handleOpenPicker}>
           <Ionicons name="map-outline" size={16} color={STEP_COLORS.accent} />
           <Text style={styles.pickText}>
             {hasName ? 'Change location' : 'Pick on map'}
