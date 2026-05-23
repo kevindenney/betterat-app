@@ -240,7 +240,13 @@ export default function AdminSitesPage() {
               </Text>
             </View>
           ) : (
-            filteredSites.map((s) => <SiteRow key={s.id} site={s} />)
+            filteredSites.map((s) => (
+              <SiteRow
+                key={s.id}
+                site={s}
+                onPress={() => router.push(`/admin/${orgId}/sites/${s.id}`)}
+              />
+            ))
           )}
         </ScrollView>
       </StudioShell>
@@ -252,11 +258,11 @@ export default function AdminSitesPage() {
 // Site row
 // ---------------------------------------------------------------------------
 
-function SiteRow({ site }: { site: AdminOrgSite }) {
+function SiteRow({ site, onPress }: { site: AdminOrgSite; onPress?: () => void }) {
   const city = site.metadata?.city as string | undefined;
   const role = site.metadata?.role as string | undefined;
   return (
-    <View style={styles.siteRow}>
+    <Pressable onPress={onPress} style={styles.siteRow}>
       <View style={[styles.kindBadge, kindBadgeBg(site.kind)]}>
         <Ionicons name={kindIcon(site.kind)} size={16} color="#FFFFFF" />
       </View>
@@ -279,10 +285,10 @@ function SiteRow({ site }: { site: AdminOrgSite }) {
           </Text>
         </Text>
       </View>
-      <Pressable style={styles.siteAction}>
+      <View style={styles.siteAction}>
         <Ionicons name="ellipsis-horizontal" size={16} color="rgba(60, 60, 67, 0.4)" />
-      </Pressable>
-    </View>
+      </View>
+    </Pressable>
   );
 }
 

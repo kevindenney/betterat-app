@@ -15,12 +15,14 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { AdminShell } from '@/components/admin/AdminShell';
 import { useAdminCohortDetail, CohortMember } from '@/hooks/useAdminCohortDetail';
 import { StudioHeader, StudioButton } from '@/components/studio/StudioShell';
+import { CohortEditSheet } from '@/components/admin/CohortEditSheet';
 
 export default function AdminCohortDetailPage() {
   const { orgId, cohortId } = useLocalSearchParams<{ orgId: string; cohortId: string }>();
   const router = useRouter();
   const { cohort, loading } = useAdminCohortDetail(cohortId as string);
   const [search, setSearch] = useState('');
+  const [editOpen, setEditOpen] = useState(false);
 
   const filtered = cohort
     ? search
@@ -58,6 +60,12 @@ export default function AdminCohortDetailPage() {
           <>
             <StudioButton variant="ghost" icon="download-outline" label="Export · CSV" />
             <StudioButton
+              variant="ghost"
+              icon="create-outline"
+              label="Edit cohort"
+              onPress={() => setEditOpen(true)}
+            />
+            <StudioButton
               variant="primary"
               accent="navy"
               icon="add"
@@ -65,6 +73,12 @@ export default function AdminCohortDetailPage() {
             />
           </>
         }
+      />
+
+      <CohortEditSheet
+        visible={editOpen}
+        cohortName={cohort?.name ?? 'Cohort'}
+        onClose={() => setEditOpen(false)}
       />
 
       {cohort?.description ? (
