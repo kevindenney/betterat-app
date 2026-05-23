@@ -12,7 +12,7 @@
 
 import React from 'react';
 import { useLocalSearchParams } from 'expo-router';
-import { SailorProfileScreen } from '@/components/sailor/profile/SailorProfileScreen';
+import { PublicFaceScreen } from '@/components/sailor/public-face/PublicFaceScreen';
 
 export default function SailorProfileRoute() {
   const { userId } = useLocalSearchParams<{ userId: string }>();
@@ -21,5 +21,5 @@ export default function SailorProfileRoute() {
     return null;
   }
 
-  return <SailorProfileScreen userId={userId} />;
+  return <PublicFaceScreen userId={userId} />;
 }

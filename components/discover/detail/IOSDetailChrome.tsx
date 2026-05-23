@@ -614,18 +614,67 @@ export function InCommonRow({ icon, children, when, isFirst }: InCommonRowProps)
 
 export interface ConceptCardProps {
   label?: string;
+  /** Tail rendered after the label as ` · TAIL`, uppercase. E.g. "WEEK 3". */
+  tail?: string;
   text: string;
+  /**
+   * Optional stats line below the quote — e.g.
+   * "In play across 3 races · 2 reflections this week".
+   * Rendered with a small flame icon prefix.
+   */
+  stats?: string;
+  /**
+   * Optional concept-history affordance row below a hairline — "Followed: X · Y →".
+   * Carries the chronology of past concepts the practitioner has worked through.
+   */
+  history?: {
+    primary: string;
+    secondary?: string;
+    onPress: () => void;
+  };
+  /** Legacy footer link — "View public face →" on Discover Person detail. */
   link?: { label: string; onPress: () => void };
 }
 
-export function ConceptCard({ label = 'Current concept', text, link }: ConceptCardProps) {
+export function ConceptCard({
+  label = 'Current concept',
+  tail,
+  text,
+  stats,
+  history,
+  link,
+}: ConceptCardProps) {
   // Frame the practice signal in curly quotes so it reads as something the
   // person SAID about their practice, not as a tagline or bio. Editorial
   // italic-serif typeface (Iowan / Source Serif) mirrors the canonical voice.
   return (
     <View style={conceptStyles.card}>
-      <Text style={conceptStyles.label}>{label}</Text>
+      <Text style={conceptStyles.label}>
+        {label}
+        {tail ? <Text style={conceptStyles.labelTail}>{` · ${tail}`}</Text> : null}
+      </Text>
       <Text style={conceptStyles.text}>{`“${text}”`}</Text>
+      {stats ? (
+        <View style={conceptStyles.statsRow}>
+          <Ionicons name="flame" size={13} color={ACCENT_DISCOVER} />
+          <Text style={conceptStyles.statsText}>{stats}</Text>
+        </View>
+      ) : null}
+      {history ? (
+        <>
+          <View style={conceptStyles.divider} />
+          <Pressable onPress={history.onPress} style={conceptStyles.historyRow} hitSlop={6}>
+            <Text style={conceptStyles.historyText} numberOfLines={1}>
+              <Text style={conceptStyles.historyKey}>Followed: </Text>
+              {history.primary}
+              {history.secondary ? (
+                <Text style={conceptStyles.historySecondary}>{` · ${history.secondary}`}</Text>
+              ) : null}
+            </Text>
+            <Ionicons name="chevron-forward" size={14} color={LABEL_3} />
+          </Pressable>
+        </>
+      ) : null}
       {link ? (
         <Pressable onPress={link.onPress} style={conceptStyles.linkRow} hitSlop={6}>
           <Text style={conceptStyles.linkText}>{link.label}</Text>
@@ -1142,6 +1191,14 @@ const conceptStyles = StyleSheet.create({
     color: ACCENT_DISCOVER,
     marginBottom: 6,
   },
+  labelTail: {
+    fontSize: 11,
+    fontWeight: '600',
+    letterSpacing: 1.1,
+    textTransform: 'uppercase',
+    color: ACCENT_DISCOVER,
+    opacity: 0.75,
+  },
   text: {
     fontFamily: Platform.select({
       ios: 'Iowan Old Style',
@@ -1155,6 +1212,38 @@ const conceptStyles = StyleSheet.create({
     fontWeight: '500',
     color: '#2A2824',
   },
+  statsRow: {
+    marginTop: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  statsText: {
+    fontSize: 12.5,
+    letterSpacing: -0.05,
+    color: ACCENT_DISCOVER,
+    fontWeight: '500',
+  },
+  divider: {
+    marginTop: 12,
+    marginBottom: 10,
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: ACCENT_BORDER,
+  },
+  historyRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
+  historyText: {
+    flex: 1,
+    fontSize: 13,
+    letterSpacing: -0.08,
+    color: '#2A2824',
+  },
+  historyKey: { color: LABEL_3 },
+  historySecondary: { color: LABEL_2 },
   linkRow: {
     marginTop: 10,
     flexDirection: 'row',
