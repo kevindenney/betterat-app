@@ -39,11 +39,13 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { IOS_REGISTER } from '@/lib/design-tokens-ios';
+import { CanvasBellButton } from './CanvasBellButton';
 import { InterestHeader } from './InterestHeader';
 import { L1StepView } from './L1StepView';
 import { L2WeekView } from './L2WeekView';
 import { L3SeasonView } from './L3SeasonView';
 import { L4YearsView } from './L4YearsView';
+import { NotificationsInboxSheet } from './NotificationsInboxSheet';
 import { SelectActionBar } from './SelectActionBar';
 import { useSelectMode } from './useSelectMode';
 import { ZoomRailIndicator } from './ZoomRailIndicator';
@@ -140,6 +142,7 @@ export function TimelineZoomCanvas({
   const [level, setLevel] = useState<ZoomLevel>(initialLevel);
   const [focusStepId, setFocusStepId] = useState<string>(dataset.focusStepId);
   const [gestureDirection, setGestureDirection] = useState<'in' | 'out' | null>(null);
+  const [inboxOpen, setInboxOpen] = useState(false);
   const select = useSelectMode();
 
   // Continuous scale value driven by pinch — used to gate level changes on
@@ -323,6 +326,19 @@ export function TimelineZoomCanvas({
             </Animated.View>
           </View>
         </GestureDetector>
+
+        {/* Section F bell — top-right floating affordance, badged with
+            unread count. Hidden while a card is lifted for drag-reorder
+            or while select-mode's action bar is up, since either covers
+            the canvas with its own primary UI. */}
+        {!select.enabled ? (
+          <CanvasBellButton onPress={() => setInboxOpen(true)} />
+        ) : null}
+
+        <NotificationsInboxSheet
+          visible={inboxOpen}
+          onDismiss={() => setInboxOpen(false)}
+        />
 
         {targetLevel && gestureDirection ? (
           <PinchHintPill
