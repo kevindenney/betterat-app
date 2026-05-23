@@ -22,11 +22,12 @@ import { useAuth } from '@/providers/AuthProvider';
 import { useInterest } from '@/providers/InterestProvider';
 import { useMyTimeline, useUpdateStep, useDeleteStep } from '@/hooks/useTimelineSteps';
 import { showAlert, showConfirm } from '@/lib/utils/crossPlatformAlert';
-import { useCurrentSeason, useUserSeasons } from '@/hooks/useSeason';
+import { useCurrentSeason, useUserSeasons, useCreateSeason } from '@/hooks/useSeason';
 import { useSubscribedBlueprints, useBlueprintWithAuthor } from '@/hooks/useBlueprint';
 
 import { TimelineZoomCanvas } from './TimelineZoomCanvas';
 import { mapToTimelineDataset, type BlueprintLookup } from './realDataAdapter';
+import { MoveToSeasonSheet, buildMoveTargets } from './MoveToSeasonSheet';
 import { SAMPLE_DATASET } from './sampleData';
 
 export function TimelineZoomPracticeScreen() {
@@ -173,6 +174,48 @@ export function TimelineZoomPracticeScreen() {
     [],
   );
 
+  // Section E (Frames 15–16). When the bulk Move button fires, hold the
+  // selected step ids while the sheet is open so the move resolves
+  // against the right set even after select-mode exits. The sheet's
+  // dismiss clears the buffer.
+  const [moveTargetIds, setMoveTargetIds] = useState<string[] | null>(null);
+  const createSeason = useCreateSeason();
+  const moveTargets = useMemo(
+    () => buildMoveTargets(currentSeason, allSeasons),
+    [currentSeason, allSeasons],
+  );
+  const handleBulkMove = useCallback((stepIds: string[]) => {
+    if (stepIds.length > 0) setMoveTargetIds(stepIds);
+  }, []);
+  const handlePickSeason = useCallback(
+    (seasonId: string) => {
+      const ids = moveTargetIds ?? [];
+      ids.forEach((id) => {
+        const existing = steps.find((s) => s.id === id);
+        const nextMeta = {
+          ...((existing?.metadata as Record<string, unknown> | null) ?? {}),
+          season_id: seasonId,
+        };
+        updateStep.mutate({ stepId: id, input: { metadata: nextMeta } });
+      });
+      setMoveTargetIds(null);
+    },
+    [moveTargetIds, steps, updateStep],
+  );
+  const handleCreateSeason = useCallback(
+    async (input: { name: string; start_date: string; end_date: string }) => {
+      const year = new Date(input.start_date).getFullYear();
+      const created = await createSeason.mutateAsync({
+        name: input.name,
+        start_date: input.start_date,
+        end_date: input.end_date,
+        year,
+      });
+      return created.id;
+    },
+    [createSeason],
+  );
+
   const hasContent = dataset.seasons.some((s) => s.bricks.length > 0);
   const signedInEmail = (user?.email as string | undefined) ?? null;
 
@@ -247,9 +290,20 @@ export function TimelineZoomPracticeScreen() {
         onReorderStep={showSample ? undefined : handleReorderStep}
         onBulkArchive={showSample ? undefined : handleBulkArchive}
         onBulkDelete={showSample ? undefined : handleBulkDelete}
+        onBulkMove={showSample ? undefined : handleBulkMove}
         onUnsupportedBulkAction={showSample ? undefined : handleUnsupportedBulkAction}
         hideInterestHeader
       />
+      {!showSample ? (
+        <MoveToSeasonSheet
+          visible={moveTargetIds !== null}
+          stepIds={moveTargetIds ?? []}
+          seasons={moveTargets}
+          onPickSeason={handlePickSeason}
+          onCreateSeason={handleCreateSeason}
+          onDismiss={() => setMoveTargetIds(null)}
+        />
+      ) : null}
     </SafeAreaView>
   );
 }

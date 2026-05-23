@@ -338,10 +338,25 @@ export function mapToTimelineDataset({
     };
   });
 
-  // Current-season bricks (one brick per step, capability-hashed). Carrying
-  // the step id lets L4's brick tap navigate to the right step at L1, and
-  // lets Section D's drag-reorder identify the lifted brick.
-  const currentBricks = sorted.map((rec) => ({
+  // Steps moved to an archived season via Section E's MoveToSeasonSheet
+  // get `metadata.season_id` set to the target season's id. We use that
+  // to bucket bricks here so the L4 lanes reflect the move immediately —
+  // until/unless timeline_steps gains a real season_id column, this
+  // metadata field is the source of truth for cross-rotation grouping.
+  const seasonIdOf = (rec: TimelineStepRecord): string | null => {
+    const meta = rec.metadata as { season_id?: unknown } | null | undefined;
+    return typeof meta?.season_id === 'string' ? meta.season_id : null;
+  };
+
+  // Current-season bricks (one brick per step, capability-hashed). Only
+  // steps that are NOT pinned to an archived season land in the current
+  // rotation lane. Carrying the step id lets L4's brick tap navigate to
+  // the right step at L1, and lets Section D's drag-reorder identify
+  // the lifted brick.
+  const currentStepRecords = sorted.filter(
+    (rec) => !seasonIdOf(rec) || seasonIdOf(rec) === seasonIdForSteps,
+  );
+  const currentBricks = currentStepRecords.map((rec) => ({
     capabilityColor: hashCategoryToColor(rec.category),
     stepId: rec.id,
   }));
@@ -365,6 +380,17 @@ export function mapToTimelineDataset({
     bricks: currentBricks,
   };
 
+  // Index moved-via-Section-E step records by their target season id so
+  // archived lanes can show real bricks instead of placeholders.
+  const movedByArchiveId = new Map<string, TimelineStepRecord[]>();
+  for (const rec of sorted) {
+    const sid = seasonIdOf(rec);
+    if (!sid || sid === seasonIdForSteps) continue;
+    const bucket = movedByArchiveId.get(sid) ?? [];
+    bucket.push(rec);
+    movedByArchiveId.set(sid, bucket);
+  }
+
   // Archived season lanes — dedupe by (name + start_date) so users with
   // duplicate-row data don't see the same rotation listed dozens of times.
   // Bricks-only (no week data needed for L4 visuals).
@@ -376,6 +402,7 @@ export function mapToTimelineDataset({
     const key = `${name}::${s.start_date ?? ''}::${s.end_date ?? ''}`;
     if (seenArchiveKeys.has(key)) continue;
     seenArchiveKeys.add(key);
+    const moved = movedByArchiveId.get(s.id) ?? [];
     archivedSeasons.push({
       id: s.id,
       title: name,
@@ -383,12 +410,17 @@ export function mapToTimelineDataset({
         s.start_date && s.end_date ? formatDateRange(s.start_date, s.end_date) : '',
       archived: true,
       weeks: [],
-      // Bricks unknown for archived seasons here — emit a placeholder lane of
-      // 8 muted bricks so the L4 layout reads as a populated archive. Real
-      // brick counts ship with the archive RPC in a follow-up.
-      bricks: Array.from({ length: 8 }, () => ({
-        capabilityColor: CAPABILITY_PALETTE.procedural.color,
-      })),
+      // Real bricks for steps the user has moved here; placeholders only
+      // when no moved steps exist (until the archive RPC ships).
+      bricks:
+        moved.length > 0
+          ? moved.map((rec) => ({
+              capabilityColor: hashCategoryToColor(rec.category),
+              stepId: rec.id,
+            }))
+          : Array.from({ length: 8 }, () => ({
+              capabilityColor: CAPABILITY_PALETTE.procedural.color,
+            })),
     });
   }
 

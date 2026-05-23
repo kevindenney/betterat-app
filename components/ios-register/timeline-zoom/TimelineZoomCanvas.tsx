@@ -99,6 +99,14 @@ interface TimelineZoomCanvasProps {
    */
   onBulkArchive?: (stepIds: string[]) => void;
   onBulkDelete?: (stepIds: string[]) => void;
+  /**
+   * Section E (Frames 15–16). When provided, the bulk "Move" button
+   * fires this instead of routing through onUnsupportedBulkAction —
+   * the parent opens its MoveToSeasonSheet. The canvas exits select
+   * mode immediately so the sheet covers a clean canvas; the caller
+   * keeps the step ids in its own state until the move resolves.
+   */
+  onBulkMove?: (stepIds: string[]) => void;
   onUnsupportedBulkAction?: (actionId: 'move' | 'tag' | 'reschedule') => void;
 }
 
@@ -126,6 +134,7 @@ export function TimelineZoomCanvas({
   onReorderStep,
   onBulkArchive,
   onBulkDelete,
+  onBulkMove,
   onUnsupportedBulkAction,
 }: TimelineZoomCanvasProps) {
   const [level, setLevel] = useState<ZoomLevel>(initialLevel);
@@ -335,6 +344,15 @@ export function TimelineZoomCanvas({
               onBulkDelete?.(Array.from(select.selected));
               select.exit();
             }}
+            onMove={
+              onBulkMove
+                ? () => {
+                    const ids = Array.from(select.selected);
+                    select.exit();
+                    onBulkMove(ids);
+                  }
+                : undefined
+            }
             onUnsupportedAction={(id) => onUnsupportedBulkAction?.(id)}
           />
         ) : (

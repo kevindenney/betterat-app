@@ -20,6 +20,9 @@ interface SelectActionBarProps {
   onCancel: () => void;
   onArchive: () => void;
   onDelete: () => void;
+  /** When provided, the "Move" button opens the move-to-season sheet
+   * instead of routing through onUnsupportedAction. */
+  onMove?: () => void;
   onUnsupportedAction: (actionId: 'move' | 'tag' | 'reschedule') => void;
 }
 
@@ -43,6 +46,7 @@ export function SelectActionBar({
   onCancel,
   onArchive,
   onDelete,
+  onMove,
   onUnsupportedAction,
 }: SelectActionBarProps) {
   const noneSelected = selectedCount === 0;
@@ -65,6 +69,7 @@ export function SelectActionBar({
             const onPress = () => {
               if (a.id === 'archive') onArchive();
               else if (a.id === 'delete') onDelete();
+              else if (a.id === 'move' && onMove) onMove();
               else onUnsupportedAction(a.id);
             };
             return (
