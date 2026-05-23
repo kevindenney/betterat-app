@@ -105,7 +105,8 @@ export interface AtlasPinSpec {
     | 'poi-preceptor'
     | 'walk-annotation'
     | 'wind-arrow'
-    | 'tide-arrow';
+    | 'tide-arrow'
+    | 'cohort-cell';
   /** Optional short label rendered next to the pin (POIs get names). */
   label?: string;
   /**
@@ -298,6 +299,19 @@ function pickSvgMap(frame: AtlasFrameId): React.ComponentType {
  */
 type PinShape = 'circle' | 'diamond' | 'numbered' | 'drop';
 
+/**
+ * Cohort heatmap color palette by dominant competency cluster — coral
+ * for cardiac, slate for respiratory, amber for medication, neutral for
+ * general/unknown. Per the design's "color encodes competency, not
+ * relationship" rule for the F4 z14+ glow.
+ */
+const COHORT_CLUSTER_TONE: Record<string, string> = {
+  cardiac: 'rgba(255, 99, 99, 0.55)',
+  respiratory: 'rgba(90, 130, 200, 0.55)',
+  medication: 'rgba(255, 180, 80, 0.55)',
+  general: 'rgba(140, 140, 150, 0.45)',
+};
+
 const PIN_TONE: Record<
   AtlasPinSpec['kind'],
   { size: number; color: string; shape: PinShape }
@@ -334,6 +348,11 @@ const PIN_TONE: Record<
   // direction water FLOWS (set), not where it comes from. Slightly
   // smaller to read as the secondary field.
   'tide-arrow': { size: 12, color: 'rgba(0, 168, 168, 0.75)', shape: 'circle' },
+  // Cohort heatmap cell — semi-transparent disc rendered with a count
+  // label. Color encodes the dominant competency cluster; the renderer
+  // overrides the PIN_TONE color with a per-cluster shade. Size scales
+  // with step_count downstream.
+  'cohort-cell': { size: 36, color: 'rgba(120, 120, 130, 0.35)', shape: 'circle' },
 };
 
 /**
@@ -382,6 +401,29 @@ function LabeledPin({
     return (
       <View style={[styles.tideArrow, { transform: [{ rotate: `${setDeg}deg` }] }]}>
         <Ionicons name="chevron-up" size={20} color="rgba(0, 168, 168, 0.85)" />
+      </View>
+    );
+  }
+  if (kind === 'cohort-cell') {
+    // label encodes "count|cluster". Color comes from the cluster,
+    // diameter scales with count (clamped). Center text shows the count.
+    const [countStr, cluster] = (label ?? '0|general').split('|');
+    const count = Number(countStr) || 0;
+    const diameter = Math.min(60, 24 + count * 4);
+    return (
+      <View
+        style={{
+          width: diameter,
+          height: diameter,
+          borderRadius: diameter / 2,
+          backgroundColor: COHORT_CLUSTER_TONE[cluster] ?? COHORT_CLUSTER_TONE.general,
+          borderWidth: 1,
+          borderColor: 'rgba(255, 255, 255, 0.8)',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        <Text style={styles.cohortCount}>{count}</Text>
       </View>
     );
   }
@@ -566,6 +608,12 @@ const styles = StyleSheet.create({
     opacity: 1,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  cohortCount: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: 'rgba(28, 28, 30, 0.9)',
+    letterSpacing: 0.2,
   },
   nextTag: {
     backgroundColor: '#FFE6B0',

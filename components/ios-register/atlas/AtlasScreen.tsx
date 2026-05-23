@@ -49,6 +49,7 @@ import { useNextRaceMarks } from '@/hooks/useNextRaceMarks';
 import { useWalkTimeAnnotations } from '@/hooks/useWalkTimeAnnotations';
 import { useWindOverlay } from '@/hooks/useWindOverlay';
 import { useTideOverlay } from '@/hooks/useTideOverlay';
+import { useCohortHeatmap } from '@/hooks/useCohortHeatmap';
 import {
   AtlasPin,
   ClusterTag,
@@ -667,9 +668,11 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
     enabled: showTide,
     waterAnchors,
   });
+  // Z-order: wind (base field), POIs (places), race-marks, tide (so its
+  // chevron reads above the racing-area pin it points away from).
   const pins = useMemo(
-    () => [...windPins, ...tidePins, ...framePins, ...raceMarkPins],
-    [windPins, tidePins, framePins, raceMarkPins],
+    () => [...windPins, ...framePins, ...raceMarkPins, ...tidePins],
+    [windPins, framePins, raceMarkPins, tidePins],
   );
   const exitCommit = useCallback(() => {
     setCommitMode(false);
@@ -995,9 +998,22 @@ function FrameF4({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
   // Walk-time annotations between same-campus institution pins —
   // e.g. JHH East Baltimore ↔ Pinkard sim lab "8 min".
   const walkAnnotations = useWalkTimeAnnotations(framePins);
+  // Cohort heatmap — chip-gated, defaults on. Per the HIPAA gate the
+  // server-side RPC aggregates step pins into cells of ≥2 steps; we
+  // never render an individual peer pin on F4 above z13.
+  const [showHeatmap, setShowHeatmap] = useState(true);
+  const handleF4ChipsChange = useCallback((activeIds: string[]) => {
+    setShowHeatmap(activeIds.includes('heatmap') || activeIds.includes('all'));
+  }, []);
+  const { data: heatmapCells = [] } = useCohortHeatmap({
+    centerLat: 39.29,
+    centerLng: -76.61,
+    interestSlug: 'nursing',
+    enabled: showHeatmap,
+  });
   const pins = useMemo(
-    () => [...framePins, ...walkAnnotations],
-    [framePins, walkAnnotations],
+    () => [...heatmapCells, ...framePins, ...walkAnnotations],
+    [heatmapCells, framePins, walkAnnotations],
   );
   return (
     <View style={shellStyles.frame}>
@@ -1013,9 +1029,11 @@ function FrameF4({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
           { id: 'you', label: 'You', tone: 'you' },
           { id: 'cohort', label: 'Cohort', tone: 'cohort', dim: true },
           { id: 'sites', label: 'Clinical sites', icon: 'medical-outline' },
+          { id: 'heatmap', label: 'Cohort heatmap', icon: 'grid-outline', active: true },
           { id: 'following', label: 'Following', tone: 'following', dim: true },
           { id: 'cross-interest', label: 'All my interests', crossInterest: true, dim: true },
         ]}
+        onActiveIdsChange={handleF4ChipsChange}
       />
       <View style={shellStyles.mapArea}>
         {handlers.useMapLibre ? (

@@ -80,14 +80,27 @@ export function useTideOverlay({
     const label = `${setDegrees}|${knots}`;
 
     // Water-anchored mode: one arrow per provided anchor. Skips grid.
+    // Each arrow is offset ~250m in the direction of flow (setDegrees)
+    // so it doesn't sit directly under the racing-area POI pin — reads
+    // as "current flowing AWAY from this venue" rather than a duplicate
+    // pin at the same coords.
     if (waterAnchors && waterAnchors.length > 0) {
-      return waterAnchors.map((a, idx) => ({
-        id: `tide-water:${idx}`,
-        lat: a.lat,
-        lng: a.lng,
-        kind: 'tide-arrow' as const,
-        label,
-      }));
+      const offsetKm = 0.25;
+      const setRad = (setDegrees * Math.PI) / 180;
+      // Compass bearing → lat/lng delta. North = +lat. East = +lng.
+      const dLatKm = Math.cos(setRad) * offsetKm;
+      const dLngKm = Math.sin(setRad) * offsetKm;
+      return waterAnchors.map((a, idx) => {
+        const dLat = dLatKm / 111;
+        const dLng = dLngKm / (111 * Math.cos((a.lat * Math.PI) / 180));
+        return {
+          id: `tide-water:${idx}`,
+          lat: a.lat + dLat,
+          lng: a.lng + dLng,
+          kind: 'tide-arrow' as const,
+          label,
+        };
+      });
     }
 
     // Fallback grid (legacy demo path — places arrows around centerLat/Lng).
