@@ -46,6 +46,7 @@ import {
 import { AtlasMapLibreCanvas } from './AtlasMapLibreCanvas';
 import { useAtlasFramePins } from '@/hooks/useAtlasFramePins';
 import { useNextRaceMarks } from '@/hooks/useNextRaceMarks';
+import { useWalkTimeAnnotations } from '@/hooks/useWalkTimeAnnotations';
 import {
   AtlasPin,
   ClusterTag,
@@ -912,12 +913,19 @@ function FrameF4({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
   const [anchorPromptDismissed, setAnchorPromptDismissed] = useState(false);
   // Real institution POIs + peer step pins for Baltimore. F4 camera is
   // -76.61, 39.29 — see AtlasMapLibreCanvas.FRAME_CAMERA.
-  const { pins } = useAtlasFramePins({
+  const { pins: framePins } = useAtlasFramePins({
     lat: 39.29,
     lng: -76.61,
     interestSlug: 'nursing',
     radiusKm: 25,
   });
+  // Walk-time annotations between same-campus institution pins —
+  // e.g. JHH East Baltimore ↔ Pinkard sim lab "8 min".
+  const walkAnnotations = useWalkTimeAnnotations(framePins);
+  const pins = useMemo(
+    () => [...framePins, ...walkAnnotations],
+    [framePins, walkAnnotations],
+  );
   return (
     <View style={shellStyles.frame}>
       {!embedded && <StatusBar />}

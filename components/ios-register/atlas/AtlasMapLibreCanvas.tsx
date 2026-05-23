@@ -100,7 +100,8 @@ export interface AtlasPinSpec {
     | 'poi-racing-area'
     | 'poi-hospital'
     | 'poi-sim-lab'
-    | 'poi-preceptor';
+    | 'poi-preceptor'
+    | 'walk-annotation';
   /** Optional short label rendered next to the pin (POIs get names). */
   label?: string;
   /**
@@ -311,6 +312,11 @@ const PIN_TONE: Record<
   // commits it to the diamond vocabulary alongside preceptor pins.
   'poi-sim-lab': { size: 12, color: 'rgba(155, 92, 246, 0.95)', shape: 'diamond' },
   'poi-preceptor': { size: 13, color: 'rgba(155, 92, 246, 0.95)', shape: 'diamond' },
+  // Walk-time annotation — no pin glyph at all, just a grey distance pill
+  // floating between two same-campus institution pins. The 0-size sentinel
+  // keeps it out of cluster math and shouldShowLabel; rendering handled
+  // inline as a label-only marker.
+  'walk-annotation': { size: 0, color: 'transparent', shape: 'circle' },
 };
 
 /**
@@ -330,6 +336,15 @@ function LabeledPin({
   /** When false, suppress the label pill — used for label-hide-until-tap at z11+. */
   showLabel?: boolean;
 }) {
+  // Walk-annotation renders as a small grey pill at the midpoint between
+  // two same-campus pins — no dot glyph, just the label.
+  if (kind === 'walk-annotation') {
+    return label ? (
+      <View style={styles.walkAnnotation}>
+        <Text style={styles.walkAnnotationText}>{label}</Text>
+      </View>
+    ) : null;
+  }
   const tone = PIN_TONE[kind];
   return (
     <View style={styles.pinRow}>
@@ -483,6 +498,18 @@ const styles = StyleSheet.create({
   clusterCount: {
     fontSize: 10,
     fontWeight: '800',
+    color: '#FFFFFF',
+    letterSpacing: 0.2,
+  },
+  walkAnnotation: {
+    backgroundColor: 'rgba(118, 118, 128, 0.92)',
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+    borderRadius: 8,
+  },
+  walkAnnotationText: {
+    fontSize: 9,
+    fontWeight: '600',
     color: '#FFFFFF',
     letterSpacing: 0.2,
   },
