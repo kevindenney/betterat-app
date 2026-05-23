@@ -1,22 +1,35 @@
+import React from 'react';
+import { Text } from 'react-native';
+import { useLocalSearchParams } from 'expo-router';
 import { AdminShell } from '@/components/admin/AdminShell';
-import { AdminComingNext } from '@/components/admin/AdminComingNext';
+import { StudioHeader, StudioButton } from '@/components/studio/StudioShell';
+import { AdminPayoutsSurface } from '@/components/admin/AdminPayoutsSurface';
 
 export default function AdminPayoutsPage() {
+  const { orgId: _ } = useLocalSearchParams<{ orgId: string }>();
   return (
     <AdminShell activeKey="payouts">
-      <AdminComingNext
-        crumbs={['Admin', 'Author payouts']}
+      <StudioHeader
+        crumbs={['Admin', 'Plan', 'Author payouts']}
         title="Author payouts"
-        icon="receipt-outline"
-        pitch="Institutional authors don't collect personal payouts — but you can see what they've contributed and how their blueprints are doing across your cohorts."
-        bulletPromises={[
-          'Per-author activity: blueprints authored, subscribers, threads',
-          'Cohort coverage per blueprint to show institutional value',
-          'Author terms agreement signed during onboarding',
-          'Faculty payouts (if any) routed via your finance system, not Stripe',
-          'Quarterly export for faculty performance reviews',
+        subtitleParts={[
+          <Text key="sub" style={{ fontSize: 12.5, color: 'rgba(60, 60, 67, 0.85)' }}>
+            <Text style={{ fontWeight: '600', color: 'rgba(60, 60, 67, 0.95)' }}>
+              3 authors
+            </Text>
+            {' · '}$8,420.00 paid out YTD · next batch May 31 · policy: 70% to author · 10%
+            platform · 20% org rebate
+          </Text>,
         ]}
+        actions={
+          <>
+            <StudioButton variant="ghost" icon="time-outline" label="Payout history" />
+            <StudioButton variant="ghost" icon="download-outline" label="1099 exports" />
+            <StudioButton variant="primary" accent="navy" icon="send" label="Send next batch" />
+          </>
+        }
       />
+      <AdminPayoutsSurface />
     </AdminShell>
   );
 }

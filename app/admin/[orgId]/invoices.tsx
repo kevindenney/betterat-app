@@ -1,22 +1,29 @@
+import React from 'react';
+import { Text } from 'react-native';
+import { useLocalSearchParams } from 'expo-router';
 import { AdminShell } from '@/components/admin/AdminShell';
-import { AdminComingNext } from '@/components/admin/AdminComingNext';
+import { StudioHeader, StudioButton } from '@/components/studio/StudioShell';
+import { AdminBillingSurface } from '@/components/admin/AdminBillingSurface';
 
 export default function AdminInvoicesPage() {
+  const { orgId: _ } = useLocalSearchParams<{ orgId: string }>();
   return (
     <AdminShell activeKey="invoices">
-      <AdminComingNext
-        crumbs={['Admin', 'Invoices']}
+      <StudioHeader
+        crumbs={['Admin', 'Plan', 'Invoices']}
         title="Invoices"
-        icon="document-text-outline"
-        pitch="Every invoice your institution has been billed, downloadable as PDF for accounting and audit reconciliation."
-        bulletPromises={[
-          'Year-to-date and historical invoices in one table',
-          'Download as PDF or push directly to your AR system',
-          'Invoice-level seat breakdown + line-item discounts',
-          'Open / Paid / Overdue status synced from Stripe',
-          'Resend invoice to the billing contact in one tap',
+        subtitleParts={[
+          <Text key="sub" style={{ fontSize: 12.5, color: 'rgba(60, 60, 67, 0.85)' }}>
+            14 invoices on file · same surface as Billing for context
+          </Text>,
         ]}
+        actions={
+          <>
+            <StudioButton variant="ghost" icon="download-outline" label="Export CSV" />
+          </>
+        }
       />
+      <AdminBillingSurface />
     </AdminShell>
   );
 }

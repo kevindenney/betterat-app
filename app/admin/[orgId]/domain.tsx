@@ -1,22 +1,31 @@
+import React from 'react';
+import { Text } from 'react-native';
+import { useLocalSearchParams } from 'expo-router';
 import { AdminShell } from '@/components/admin/AdminShell';
-import { AdminComingNext } from '@/components/admin/AdminComingNext';
+import { StudioHeader, StudioButton } from '@/components/studio/StudioShell';
+import { AdminSecuritySurface } from '@/components/admin/AdminSecuritySurface';
 
 export default function AdminDomainPage() {
+  const { orgId: _ } = useLocalSearchParams<{ orgId: string }>();
   return (
     <AdminShell activeKey="domain">
-      <AdminComingNext
-        crumbs={['Admin', 'Domain claim']}
-        title="Domain claim"
-        icon="key-outline"
-        pitch="Every email address on your verified domains auto-redeems into the right cohort. Owns the question 'who counts as a Hopkins seat?'"
-        bulletPromises={[
-          'Add additional domains (@jhmi.edu, @jhu.edu) post-pilot',
-          'DNS TXT verification + email verification fallback',
-          'Block specific subdomains if needed (e.g. @alum.jh.edu)',
-          'See pending verifications and their TTL countdown',
-          'Audit which students entered via which domain',
+      <StudioHeader
+        crumbs={['Admin', 'Security', 'Domain claim']}
+        title="SSO & domain"
+        subtitleParts={[
+          <Text key="sub" style={{ fontSize: 12.5, color: 'rgba(60, 60, 67, 0.85)' }}>
+            3 verified domains · DNS TXT status synced · auto-add new users with verified
+            domain
+          </Text>,
         ]}
+        actions={
+          <>
+            <StudioButton variant="ghost" icon="flask-outline" label="Test login" />
+            <StudioButton variant="primary" accent="navy" icon="arrow-up-circle" label="Save changes" />
+          </>
+        }
       />
+      <AdminSecuritySurface />
     </AdminShell>
   );
 }

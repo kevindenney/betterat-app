@@ -1,22 +1,33 @@
+import React from 'react';
+import { Text } from 'react-native';
+import { useLocalSearchParams } from 'expo-router';
 import { AdminShell } from '@/components/admin/AdminShell';
-import { AdminComingNext } from '@/components/admin/AdminComingNext';
+import { StudioHeader, StudioButton } from '@/components/studio/StudioShell';
+import { AdminSecuritySurface } from '@/components/admin/AdminSecuritySurface';
 
 export default function AdminSSOPage() {
+  const { orgId: _ } = useLocalSearchParams<{ orgId: string }>();
   return (
     <AdminShell activeKey="sso">
-      <AdminComingNext
-        crumbs={['Admin', 'SSO & SAML']}
-        title="SSO & SAML"
-        icon="shield-half-outline"
-        pitch="Configure single sign-on against your existing identity provider so students never type a password and IT keeps the master roster."
-        bulletPromises={[
-          'SAML 2.0 with Microsoft 365, Okta, OneLogin, Google Workspace',
-          'OIDC option for newer IdPs',
-          'Just-in-time provisioning when a student first signs in',
-          'Group-claim mapping → cohort assignment automatically',
-          'Last-sync timestamp + connection health monitoring',
+      <StudioHeader
+        crumbs={['Admin', 'Security', 'SSO & domain']}
+        title="SSO & domain"
+        subtitleParts={[
+          <Text key="sub" style={{ fontSize: 12.5, color: 'rgba(60, 60, 67, 0.85)' }}>
+            <Text style={{ fontWeight: '600', color: 'rgba(60, 60, 67, 0.95)' }}>
+              SAML 2.0 · Okta
+            </Text>
+            {' · '}3 verified domains · auto-add on · 284 of 412 members signed in via SSO this month
+          </Text>,
         ]}
+        actions={
+          <>
+            <StudioButton variant="ghost" icon="flask-outline" label="Test login" />
+            <StudioButton variant="primary" accent="navy" icon="arrow-up-circle" label="Save changes" />
+          </>
+        }
       />
+      <AdminSecuritySurface />
     </AdminShell>
   );
 }
