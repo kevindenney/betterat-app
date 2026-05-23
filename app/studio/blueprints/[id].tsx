@@ -278,7 +278,7 @@ export default function BlueprintEditorPage() {
             onCoverGradient={setCoverGradientIdx}
           />
         ) : tab === 'steps' ? (
-          <StepsTabBody />
+          <StepsTabBody blueprintId={blueprintId} />
         ) : tab === 'capabilities' ? (
           <CapabilitiesTabBody />
         ) : tab === 'pricing' ? (

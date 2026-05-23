@@ -13,67 +13,16 @@
 import React from 'react';
 import { View, Text, Pressable, StyleSheet, ScrollView, TextInput } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import {
+  useBlueprintSteps,
+  BlueprintStepTemplate,
+  BlueprintSubStep,
+  StepCategory,
+} from '@/hooks/useBlueprintSteps';
 
 // =============================================================================
 // FRAME 18 · STEPS
 // =============================================================================
-
-interface StepItem {
-  n: number;
-  title: string;
-  description: string;
-  category: 'asmt' | 'rsn' | 'proc' | 'comm';
-  tags: string[];
-  expanded?: boolean;
-}
-
-const STEPS: StepItem[] = [
-  {
-    n: 1,
-    title: 'Recognize SIRS criteria',
-    description:
-      'At the bedside, the student names which two of the four SIRS criteria are present and explains why a third is being watched.',
-    category: 'asmt',
-    tags: ['Head-to-toe assessment', 'Sepsis bundle'],
-  },
-  {
-    n: 2,
-    title: 'Sepsis bundle recognition',
-    description:
-      'The 1-hour bundle: call it before the timer runs out. Student walks through the bundle aloud at the bedside, identifies what has been done, what is missing, and the next move.',
-    category: 'rsn',
-    tags: ['Sepsis bundle recognition', 'ISBAR handoff'],
-    expanded: true,
-  },
-  {
-    n: 3,
-    title: 'ISBAR handoff to rapid response',
-    description: 'Structured handoff to the responding team in <90 seconds. Student is graded on completeness, not speed.',
-    category: 'comm',
-    tags: ['ISBAR handoff communication'],
-  },
-  {
-    n: 4,
-    title: 'Place a second IV access · supervised',
-    description: 'Bundle requires fluids running fast. Establish a second 18–20G access with preceptor at bedside.',
-    category: 'proc',
-    tags: ['IV insertion · supervised'],
-  },
-  {
-    n: 5,
-    title: 'Reassess after 1 hour',
-    description: 'MAP, mental status, urine output, lactate trend. Student narrates what changed and what they would adjust.',
-    category: 'asmt',
-    tags: ['Head-to-toe assessment'],
-  },
-  {
-    n: 6,
-    title: 'Reflect in writing — 3 prompts',
-    description: 'What I missed · what I caught · what I would do differently. 5 minutes after handoff, before charting.',
-    category: 'rsn',
-    tags: [],
-  },
-];
 
 const CAT_TONES: Record<string, { bg: string; fg: string; label: string }> = {
   asmt: { bg: 'rgba(90, 107, 139, 0.14)', fg: '#5A6B8B', label: 'Assessment' },
@@ -82,7 +31,27 @@ const CAT_TONES: Record<string, { bg: string; fg: string; label: string }> = {
   comm: { bg: 'rgba(110, 139, 90, 0.14)', fg: '#6E8B5A', label: 'Communication' },
 };
 
-export function StepsTabBody() {
+export function StepsTabBody({ blueprintId }: { blueprintId: string }) {
+  const { steps, loading, addStep, deleteStep, updateStep } = useBlueprintSteps(blueprintId);
+  const [expandedId, setExpandedId] = React.useState<string | null>(null);
+
+  // Auto-expand the second step (or first if there's only one) for visual
+  // continuity with the design canonical — shows an in-line editor for at
+  // least one row when the page first loads.
+  React.useEffect(() => {
+    if (expandedId) return;
+    if (steps.length === 0) return;
+    setExpandedId(steps[Math.min(1, steps.length - 1)].id);
+  }, [steps, expandedId]);
+
+  if (loading) {
+    return (
+      <ScrollView style={s.body} contentContainerStyle={s.bodyInner}>
+        <Text style={s.sectionHint}>Loading steps…</Text>
+      </ScrollView>
+    );
+  }
+
   return (
     <ScrollView style={s.body} contentContainerStyle={s.bodyInner}>
       <View style={s.sectionHead}>
@@ -90,21 +59,48 @@ export function StepsTabBody() {
           <Text style={s.eyebrow}>Steps</Text>
           <Text style={s.sectionH2}>The shape students will work through</Text>
         </View>
-        <Text style={s.sectionHint}>Drag to reorder · click any row to expand</Text>
+        <Text style={s.sectionHint}>Click any row to expand · changes save inline</Text>
       </View>
 
-      <View style={{ gap: 6 }}>
-        {STEPS.map((step) => (
-          <StepRow key={step.n} step={step} />
-        ))}
-      </View>
+      {steps.length === 0 ? (
+        <View style={s.emptyStepsCard}>
+          <Text style={s.emptyStepsText}>
+            No steps yet. Click <Text style={{ fontWeight: '600' }}>Add step</Text> below to
+            author the first one.
+          </Text>
+        </View>
+      ) : (
+        <View style={{ gap: 6 }}>
+          {steps.map((step, idx) => (
+            <BlueprintStepRow
+              key={step.id}
+              step={step}
+              displayN={idx + 1}
+              expanded={expandedId === step.id}
+              onToggleExpand={() =>
+                setExpandedId((cur) => (cur === step.id ? null : step.id))
+              }
+              onSave={(input) =>
+                updateStep.mutateAsync({ id: step.id, ...input })
+              }
+              onDelete={() => deleteStep.mutate(step.id)}
+            />
+          ))}
+        </View>
+      )}
 
-      <Pressable style={s.addStep}>
+      <Pressable
+        style={s.addStep}
+        onPress={() => addStep.mutate({ title: 'New step' })}
+      >
         <View style={s.addStepPlus}>
           <Ionicons name="add" size={16} color="#28406B" />
         </View>
         <Text style={s.addStepLabel}>
-          <Text style={{ fontWeight: '600' }}>Add step</Text> — blank, or duplicate the last one
+          <Text style={{ fontWeight: '600' }}>
+            {addStep.isPending ? 'Adding…' : 'Add step'}
+          </Text>{' '}
+          — blank, or duplicate the last one
         </Text>
         <View style={{ flex: 1 }} />
         <Text style={s.addStepTempl}>Start from template ›</Text>
@@ -113,27 +109,140 @@ export function StepsTabBody() {
   );
 }
 
-function StepRow({ step }: { step: StepItem }) {
-  const cat = CAT_TONES[step.category];
+function categoryToCatKey(cat: StepCategory): 'asmt' | 'rsn' | 'proc' | 'comm' {
+  switch (cat) {
+    case 'assessment':
+      return 'asmt';
+    case 'reasoning':
+      return 'rsn';
+    case 'procedural':
+      return 'proc';
+    case 'communication':
+      return 'comm';
+    default:
+      return 'comm';
+  }
+}
+
+function BlueprintStepRow({
+  step,
+  displayN,
+  expanded,
+  onToggleExpand,
+  onSave,
+  onDelete,
+}: {
+  step: BlueprintStepTemplate;
+  displayN: number;
+  expanded: boolean;
+  onToggleExpand: () => void;
+  onSave: (input: {
+    title?: string;
+    description?: string | null;
+    whatQuestion?: string | null;
+    subSteps?: BlueprintSubStep[];
+    preceptorRole?: string | null;
+  }) => Promise<unknown>;
+  onDelete: () => void;
+}) {
+  const catKey = categoryToCatKey(step.category);
+  const cat = CAT_TONES[catKey];
+
+  const [title, setTitle] = React.useState(step.title);
+  const [description, setDescription] = React.useState(step.description ?? '');
+  const [whatQuestion, setWhatQuestion] = React.useState(step.whatQuestion ?? '');
+  const [preceptorRole, setPreceptorRole] = React.useState(step.preceptorRole ?? '');
+  const [subSteps, setSubSteps] = React.useState<BlueprintSubStep[]>(step.subSteps);
+
+  React.useEffect(() => {
+    setTitle(step.title);
+    setDescription(step.description ?? '');
+    setWhatQuestion(step.whatQuestion ?? '');
+    setPreceptorRole(step.preceptorRole ?? '');
+    setSubSteps(step.subSteps);
+  }, [step.id, step.title, step.description, step.whatQuestion, step.preceptorRole, step.subSteps]);
+
+  const persistTitle = () => {
+    const next = title.trim();
+    if (next && next !== step.title) onSave({ title: next });
+  };
+  const persistDescription = () => {
+    const next = description.trim();
+    if (next !== (step.description ?? '')) onSave({ description: next || null });
+  };
+  const persistWhat = () => {
+    const next = whatQuestion.trim();
+    if (next !== (step.whatQuestion ?? '')) onSave({ whatQuestion: next || null });
+  };
+  const persistPreceptor = () => {
+    const next = preceptorRole.trim();
+    if (next !== (step.preceptorRole ?? '')) onSave({ preceptorRole: next || null });
+  };
+
+  const updateSubStepAt = (idx: number, text: string) => {
+    setSubSteps((cur) => cur.map((ss, i) => (i === idx ? { ...ss, text } : ss)));
+  };
+  const persistSubSteps = () => {
+    const cleaned = subSteps
+      .map((ss, i) => ({ n: i + 1, text: ss.text.trim() }))
+      .filter((ss) => ss.text.length > 0);
+    if (JSON.stringify(cleaned) !== JSON.stringify(step.subSteps)) onSave({ subSteps: cleaned });
+  };
+  const removeSubStepAt = (idx: number) => {
+    const next = subSteps.filter((_, i) => i !== idx).map((ss, i) => ({ n: i + 1, text: ss.text }));
+    setSubSteps(next);
+    onSave({ subSteps: next });
+  };
+  const appendSubStep = () => {
+    const next = [...subSteps, { n: subSteps.length + 1, text: '' }];
+    setSubSteps(next);
+  };
+
   return (
-    <View style={[s.stepRow, step.expanded && s.stepRowExpanded]}>
+    <View style={[s.stepRow, expanded && s.stepRowExpanded]}>
       <View style={s.stepGrip}>
         <Ionicons name="reorder-three-outline" size={18} color="rgba(60, 60, 67, 0.3)" />
       </View>
       <View style={s.stepNum}>
-        <Text style={s.stepNumText}>{step.n}</Text>
+        <Text style={s.stepNumText}>{displayN}</Text>
       </View>
       <View style={{ flex: 1 }}>
         <View style={s.stepTitleRow}>
-          <Text style={s.stepTitle}>{step.title}</Text>
+          {expanded ? (
+            <TextInput
+              style={[s.stepInput, { flex: 1, marginRight: 8 }]}
+              value={title}
+              onChangeText={setTitle}
+              onBlur={persistTitle}
+              placeholder="Step title"
+            />
+          ) : (
+            <Pressable style={{ flex: 1 }} onPress={onToggleExpand}>
+              <Text style={s.stepTitle}>{step.title}</Text>
+            </Pressable>
+          )}
           <View style={[s.catChip, { backgroundColor: cat.bg }]}>
             <Text style={[s.catChipText, { color: cat.fg }]}>{cat.label}</Text>
           </View>
         </View>
-        <Text style={s.stepDesc}>{step.description}</Text>
-        {step.tags.length > 0 ? (
+        {expanded ? (
+          <TextInput
+            style={[s.stepInput, { marginTop: 6, minHeight: 56 }]}
+            value={description}
+            onChangeText={setDescription}
+            onBlur={persistDescription}
+            multiline
+            placeholder="What does this step look like at the bedside?"
+            placeholderTextColor="rgba(60, 60, 67, 0.4)"
+          />
+        ) : step.description ? (
+          <Pressable onPress={onToggleExpand}>
+            <Text style={s.stepDesc}>{step.description}</Text>
+          </Pressable>
+        ) : null}
+        {!expanded && step.capabilityTags.length > 0 ? (
           <View style={s.tagRow}>
-            {step.tags.map((t) => (
+            {step.capabilityTags.map((t) => (
               <View key={t} style={s.tagChip}>
                 <Text style={s.tagChipText}>{t}</Text>
               </View>
@@ -141,27 +250,50 @@ function StepRow({ step }: { step: StepItem }) {
           </View>
         ) : null}
 
-        {step.expanded ? (
+        {expanded ? (
           <View style={s.stepEdit}>
             <View style={s.stepField}>
               <Text style={s.stepFieldLabel}>What — the question the student answers</Text>
               <TextInput
                 style={s.stepInput}
-                defaultValue="Is this patient meeting sepsis bundle criteria right now, and what is the next action?"
+                value={whatQuestion}
+                onChangeText={setWhatQuestion}
+                onBlur={persistWhat}
+                placeholder="Phrase as a single question, asked at the bedside before action."
+                placeholderTextColor="rgba(60, 60, 67, 0.4)"
               />
-              <Text style={s.stepFieldHelp}>
-                Asked at the bedside before action. Phrase as a single question.
-              </Text>
             </View>
 
             <View style={s.stepField}>
               <Text style={s.stepFieldLabel}>How — sub-steps shown to the student</Text>
               <View style={{ gap: 6 }}>
-                <SubStep n={1} value="Identify SIRS criteria present" />
-                <SubStep n={2} value="Initiate fluid resuscitation — 30 mL/kg crystalloid" />
-                <SubStep n={3} value="Call rapid response and ISBAR the situation" />
+                {subSteps.map((ss, idx) => (
+                  <View key={`${ss.n}-${idx}`} style={s.subStep}>
+                    <View style={s.subStepGrip}>
+                      <Ionicons
+                        name="reorder-three-outline"
+                        size={14}
+                        color="rgba(60, 60, 67, 0.3)"
+                      />
+                    </View>
+                    <View style={s.subStepN}>
+                      <Text style={s.subStepNText}>{idx + 1}</Text>
+                    </View>
+                    <TextInput
+                      style={s.subStepInput}
+                      value={ss.text}
+                      onChangeText={(text) => updateSubStepAt(idx, text)}
+                      onBlur={persistSubSteps}
+                      placeholder="Sub-step text"
+                      placeholderTextColor="rgba(60, 60, 67, 0.4)"
+                    />
+                    <Pressable hitSlop={4} onPress={() => removeSubStepAt(idx)}>
+                      <Ionicons name="close" size={12} color="rgba(60, 60, 67, 0.4)" />
+                    </Pressable>
+                  </View>
+                ))}
               </View>
-              <Pressable style={s.addSub}>
+              <Pressable style={s.addSub} onPress={appendSubStep}>
                 <Ionicons name="add" size={12} color="rgba(60, 60, 67, 0.6)" />
                 <Text style={s.addSubText}>Add sub-step</Text>
               </Pressable>
@@ -170,60 +302,48 @@ function StepRow({ step }: { step: StepItem }) {
             <View style={s.stepFieldRow}>
               <View style={s.stepField}>
                 <Text style={s.stepFieldLabel}>Who — preceptor role (optional)</Text>
-                <View style={s.selectFake}>
-                  <Text style={s.selectFakeText}>Charge nurse or rapid-response RN</Text>
-                  <Ionicons name="chevron-down" size={12} color="rgba(60, 60, 67, 0.4)" />
-                </View>
-                <Text style={s.stepFieldHelp}>Shown to mentors as eligibility hint.</Text>
+                <TextInput
+                  style={s.stepInput}
+                  value={preceptorRole}
+                  onChangeText={setPreceptorRole}
+                  onBlur={persistPreceptor}
+                  placeholder="e.g. Charge nurse or rapid-response RN"
+                  placeholderTextColor="rgba(60, 60, 67, 0.4)"
+                />
               </View>
               <View style={s.stepField}>
                 <Text style={s.stepFieldLabel}>Capabilities trained</Text>
                 <View style={s.tagRow}>
-                  <View style={s.tagChip}>
-                    <Text style={s.tagChipText}>Sepsis bundle recognition</Text>
-                  </View>
-                  <View style={s.tagChip}>
-                    <Text style={s.tagChipText}>ISBAR handoff</Text>
-                  </View>
+                  {step.capabilityTags.map((t) => (
+                    <View key={t} style={s.tagChip}>
+                      <Text style={s.tagChipText}>{t}</Text>
+                    </View>
+                  ))}
                   <View style={s.tagChipAdd}>
                     <Ionicons name="add" size={11} color="rgba(60, 60, 67, 0.6)" />
                     <Text style={s.tagChipAddText}>Add</Text>
                   </View>
                 </View>
+                <Text style={s.stepFieldHelp}>
+                  Capability picker wires from the Capabilities tab.
+                </Text>
               </View>
             </View>
           </View>
         ) : null}
       </View>
       <View style={s.rowActions}>
-        <Pressable style={s.rowActionBtn}>
+        <Pressable style={s.rowActionBtn} onPress={onToggleExpand}>
           <Ionicons
-            name={step.expanded ? 'chevron-up' : 'copy-outline'}
+            name={expanded ? 'chevron-up' : 'chevron-down'}
             size={13}
             color="rgba(60, 60, 67, 0.6)"
           />
         </Pressable>
-        <Pressable style={s.rowActionBtn}>
-          <Ionicons name="ellipsis-vertical" size={13} color="rgba(60, 60, 67, 0.6)" />
+        <Pressable style={s.rowActionBtn} onPress={onDelete}>
+          <Ionicons name="trash-outline" size={13} color="#FF3B30" />
         </Pressable>
       </View>
-    </View>
-  );
-}
-
-function SubStep({ n, value }: { n: number; value: string }) {
-  return (
-    <View style={s.subStep}>
-      <View style={s.subStepGrip}>
-        <Ionicons name="reorder-three-outline" size={14} color="rgba(60, 60, 67, 0.3)" />
-      </View>
-      <View style={s.subStepN}>
-        <Text style={s.subStepNText}>{n}</Text>
-      </View>
-      <TextInput style={s.subStepInput} defaultValue={value} />
-      <Pressable hitSlop={4}>
-        <Ionicons name="close" size={12} color="rgba(60, 60, 67, 0.4)" />
-      </Pressable>
     </View>
   );
 }
@@ -1047,6 +1167,22 @@ const s = StyleSheet.create({
   },
   addStepLabel: { fontSize: 12.5, color: 'rgba(60, 60, 67, 0.85)' },
   addStepTempl: { fontSize: 11.5, color: '#28406B', fontWeight: '600' },
+
+  emptyStepsCard: {
+    padding: 24,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    borderWidth: 0.5,
+    borderColor: 'rgba(0,0,0,0.06)',
+    alignItems: 'center',
+  },
+  emptyStepsText: {
+    fontSize: 12.5,
+    color: 'rgba(60, 60, 67, 0.6)',
+    textAlign: 'center',
+    maxWidth: 400,
+    lineHeight: 18,
+  },
 
   // CAPABILITIES
   capGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 14 },
