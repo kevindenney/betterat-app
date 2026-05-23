@@ -6,6 +6,11 @@ import { PlaybookHome } from '@/components/playbook/PlaybookHome';
 import { PlaybookIosPreview } from '@/app/playbook-ios';
 import { PlaybookLanding } from '@/components/playbook/PlaybookLanding';
 import { LibraryLanding } from '@/components/library/LibraryLanding';
+import { LibrarianStrip } from '@/components/library/librarian/LibrarianStrip';
+import {
+  LibrarianNoticedCard,
+  type LibrarianObservation,
+} from '@/components/library/librarian/LibrarianNoticedCard';
 import { InspirationWizard } from '@/components/inspiration/InspirationWizard';
 import { FEATURE_FLAGS } from '@/lib/featureFlags';
 import { useInterest } from '@/providers/InterestProvider';
@@ -56,6 +61,13 @@ function Phase6PlaybookLanding() {
   const discardInsight = useDiscardPlaybookInsight(currentInterest?.id);
   const refineInsight = useRefinePlaybookInsight(currentInterest?.id, playbook?.id);
   const phase6UnavailableMessage = insightsError?.message ?? conceptsError?.message ?? null;
+  const [observationDismissed, setObservationDismissed] = React.useState(false);
+
+  const observation: LibrarianObservation | null = observationDismissed
+    ? null
+    : buildSampleObservation({
+        onDismiss: () => setObservationDismissed(true),
+      });
 
   if (phase6UnavailableMessage) {
     return (
@@ -99,9 +111,58 @@ function Phase6PlaybookLanding() {
           toast.show('Insight discarded', 'info');
         }}
         onOpenConcept={(conceptId) => router.push(`/(tabs)/library/concept/${conceptId}` as any)}
+        librarianStrip={
+          <LibrarianStrip
+            onAsk={(seedQuery) =>
+              router.push({
+                pathname: '/(tabs)/library/ask',
+                params: seedQuery ? { q: seedQuery } : {},
+              } as any)
+            }
+          />
+        }
+        librarianNoticed={
+          observation ? <LibrarianNoticedCard observation={observation} /> : null
+        }
       />
     </ScrollView>
   );
+}
+
+/**
+ * Until the librarian has a corpus reader, the unprompted-observation
+ * surface ships with a single canonical example so the design's voice
+ * lands before retrieval does. Concept lifecycle hooks will replace
+ * this with real "concept untouched for N weeks with contradicting
+ * debrief" pattern detection.
+ */
+function buildSampleObservation({
+  onDismiss,
+}: {
+  onDismiss: () => void;
+}): LibrarianObservation {
+  return {
+    id: 'sample-pick-a-side',
+    body: 'You\'ve held "Pick a side and commit" for 8 weeks without testing it. The most recent debrief contradicts it — Race 3, where you held the left and lost the leg to the shift.',
+    emphasise: ['Pick a side and commit'],
+    concept: {
+      title: 'Pick a side and commit',
+      state: 'forming',
+    },
+    evidence: {
+      label: 'Race 3 debrief',
+      date: 'Apr 19',
+    },
+    primaryAction: {
+      label: 'Promote to forming-with-tension',
+      onPress: onDismiss,
+    },
+    secondaryAction: {
+      label: 'Add evidence',
+      onPress: onDismiss,
+    },
+    onDismiss,
+  };
 }
 
 const styles = StyleSheet.create({

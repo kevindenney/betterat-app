@@ -13,6 +13,7 @@ export default function LibraryLayout() {
   return (
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="index" options={{ title: 'Library' }} />
+      <Stack.Screen name="ask" options={{ title: 'Ask the librarian' }} />
       <Stack.Screen name="blueprints/index" options={{ title: 'Blueprints' }} />
       <Stack.Screen name="blueprints/[id]/index" options={{ title: 'Blueprint timeline' }} />
       <Stack.Screen

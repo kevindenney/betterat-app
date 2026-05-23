@@ -26,6 +26,19 @@ export interface PlaybookLandingProps {
    * own hero — the inner one bleeds through as a duplicate title.
    */
   hideHero?: boolean;
+  /**
+   * Optional "Ask the librarian" strip rendered above the bench. Per the
+   * Librarian register this surface is the daily-driver entry point for
+   * "have I thought about this before?" — quiet, italic, one of two
+   * librarian touchpoints on the landing.
+   */
+  librarianStrip?: React.ReactNode;
+  /**
+   * Optional "The librarian noticed" observation card rendered between
+   * the bench (insights/concepts) and the capability index. Unprompted
+   * mode: rare, dismissable, always tied to a specific action.
+   */
+  librarianNoticed?: React.ReactNode;
 }
 
 export function PlaybookLanding({
@@ -38,6 +51,8 @@ export function PlaybookLanding({
   onDiscardInsight,
   onOpenConcept,
   hideHero = false,
+  librarianStrip,
+  librarianNoticed,
 }: PlaybookLandingProps) {
   const inDevelopment = concepts.filter((concept) => concept.state !== 'settled');
   const settled = concepts.filter((concept) => concept.state === 'settled');
@@ -57,7 +72,11 @@ export function PlaybookLanding({
         </View>
       )}
 
+      {librarianStrip}
+
       <OnDeckBanner />
+
+      {librarianNoticed}
 
       <Pressable
         style={[styles.entryCard, !onOpenBlueprints && styles.entryCardDisabled]}
