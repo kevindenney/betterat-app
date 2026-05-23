@@ -1,247 +1,173 @@
 /**
  * Org Admin · Audit log (Frame 29 of the JHSON Admin Suite)
  *
- * Filterable feed of admin actions with a sticky right-side detail
- * drawer showing the full event payload. Verbs are tone-tinted chips:
- * add/publish (green), edit (navy), del (danger), role (warn).
+ * Real audit_events feed via admin_audit_feed RPC. Day-grouped on the
+ * client side, verb-chip tinted, with a sticky right-side detail drawer
+ * showing the full event payload (JSON syntax-highlighted).
  *
- * Demo data — audit_events table isn't shipped yet. Wires up when the
- * SOC 2-style event log lands.
+ * Verbs are tone-tinted chips: add/publish (green), edit (navy),
+ * del (danger), role (warn).
  */
 
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { View, Text, Pressable, StyleSheet, ScrollView, TextInput, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams } from 'expo-router';
 import { AdminShell } from '@/components/admin/AdminShell';
 import { StudioHeader, StudioButton } from '@/components/studio/StudioShell';
+import {
+  useAdminAuditFeed,
+  AuditEvent,
+  AuditVerb,
+  AuditTone,
+} from '@/hooks/useAdminAuditFeed';
 
-type Verb = 'add' | 'edit' | 'del' | 'publish' | 'role' | 'edit-sso';
+const MONO: any =
+  Platform.OS === 'web' ? 'ui-monospace, SFMono-Regular, Menlo, monospace' : 'Menlo';
 
-interface AuditEntry {
-  id: string;
-  initials: string;
-  aviTone: 'warm' | 'navy' | 'brown';
-  verb: Verb;
-  verbLabel: string;
-  text: string[];
-  time: string;
-  shortRight: string;
-}
-
-interface DayGroup {
-  label: string;
-  count: number;
-  entries: AuditEntry[];
-}
-
-const DAYS: DayGroup[] = [
-  {
-    label: 'Today · Sat May 23',
-    count: 14,
-    entries: [
-      {
-        id: 'evt 01h…f8c',
-        initials: 'JA',
-        aviTone: 'warm',
-        verb: 'role',
-        verbLabel: 'Role changed',
-        text: [
-          'J. Akello',
-          ' changed ',
-          'R. Vasquez',
-          "'s role from ",
-          'Student',
-          ' to ',
-          'Peer mentor',
-          ' in ',
-          'BSN Class of 2027 — Cohort A',
-          '.',
-        ],
-        time: '2:14p',
-        shortRight: '2:14p',
-      },
-      {
-        id: 'evt 01h…e7b',
-        initials: 'SP',
-        aviTone: 'navy',
-        verb: 'publish',
-        verbLabel: 'Published',
-        text: [
-          'Dean S. Park',
-          ' published ',
-          'Sepsis bundle recognition v0.4',
-          ' to ',
-          'BSN Class of 2027 — Cohort A',
-          '.',
-        ],
-        time: '1:08p',
-        shortRight: '1:08p',
-      },
-      {
-        id: 'evt 01h…d3a',
-        initials: 'SP',
-        aviTone: 'navy',
-        verb: 'add',
-        verbLabel: 'Invited',
-        text: [
-          'Dean S. Park',
-          ' invited ',
-          '14 people',
-          ' via Bulk CSV to ',
-          'BSN Class of 2027 — Cohort A',
-          '.',
-        ],
-        time: '11:42a',
-        shortRight: '11:42a',
-      },
-      {
-        id: 'evt 01h…c08',
-        initials: 'JA',
-        aviTone: 'warm',
-        verb: 'edit',
-        verbLabel: 'Edited',
-        text: [
-          'J. Akello',
-          ' updated cohort ',
-          'BSN Class of 2027 — Cohort A',
-          ' · max seats 30 → 32.',
-        ],
-        time: '11:14a',
-        shortRight: '11:14a',
-      },
-      {
-        id: 'evt 01h…a8b',
-        initials: 'RM',
-        aviTone: 'brown',
-        verb: 'edit',
-        verbLabel: 'Edited',
-        text: [
-          'Dr. R. Murphy',
-          ' changed coverage strength on ',
-          'ISBAR handoff',
-          ' from ',
-          'secondary',
-          ' to ',
-          'primary',
-          ' for blueprint ',
-          'Sepsis bundle recognition',
-          '.',
-        ],
-        time: '9:02a',
-        shortRight: '9:02a',
-      },
-    ],
-  },
-  {
-    label: 'Yesterday · Fri May 22',
-    count: 38,
-    entries: [
-      {
-        id: 'evt 01h…916',
-        initials: 'SP',
-        aviTone: 'navy',
-        verb: 'add',
-        verbLabel: 'Claimed',
-        text: [
-          'Dean S. Park',
-          ' claimed site ',
-          'Howard County General Hospital',
-          ' for JHSON.',
-        ],
-        time: 'Fri 4:42p',
-        shortRight: 'Fri',
-      },
-      {
-        id: 'evt 01h…82e',
-        initials: 'JA',
-        aviTone: 'warm',
-        verb: 'del',
-        verbLabel: 'Removed',
-        text: [
-          'J. Akello',
-          ' removed ',
-          'T. Reynolds',
-          ' from ',
-          'BSN Class of 2027 — Cohort A',
-          ' (withdrew from program).',
-        ],
-        time: 'Fri 2:30p',
-        shortRight: 'Fri',
-      },
-      {
-        id: 'evt 01h…71d',
-        initials: 'SP',
-        aviTone: 'navy',
-        verb: 'edit-sso',
-        verbLabel: 'SSO config',
-        text: [
-          'Dean S. Park',
-          ' updated SAML attribute mapping: ',
-          'NameID → email',
-          ', ',
-          'eduPersonAffiliation → role',
-          '.',
-        ],
-        time: 'Fri 10:18a',
-        shortRight: 'Fri',
-      },
-    ],
-  },
-];
-
-function aviToneStyle(tone: 'warm' | 'navy' | 'brown') {
-  switch (tone) {
-    case 'warm':
-      return { backgroundColor: '#B8855A' };
-    case 'navy':
-      return { backgroundColor: '#28406B' };
-    case 'brown':
-      return { backgroundColor: '#8B5A3C' };
-  }
-}
-
-function verbToneStyle(v: Verb) {
+function verbToneStyle(v: AuditVerb) {
   switch (v) {
-    case 'add':
-    case 'publish':
+    case 'invited':
+    case 'published':
+    case 'claimed':
+    case 'membership_added':
+    case 'blueprint_publish':
+    case 'site_claim':
       return { bg: 'rgba(30, 143, 71, 0.12)', fg: '#1E8F47' };
-    case 'edit':
-    case 'edit-sso':
+    case 'edited':
+    case 'cohort_edit':
+    case 'sso_config':
+    case 'config_change':
+    case 'login':
       return { bg: 'rgba(40, 64, 107, 0.08)', fg: '#28406B' };
-    case 'del':
+    case 'removed':
+    case 'membership_removed':
       return { bg: 'rgba(255, 59, 48, 0.10)', fg: '#FF3B30' };
-    case 'role':
+    case 'role_changed':
       return { bg: 'rgba(201, 150, 50, 0.14)', fg: '#C99632' };
   }
 }
 
-function renderRichText(parts: string[]): React.ReactNode[] {
-  // Even-indexed parts are role names / strong; odd are connective text. Use heuristic:
-  // first part is always the actor (strong), then alternates.
-  return parts.map((p, i) => {
-    const isStrong = i % 2 === 0;
-    if (isStrong) {
-      return (
-        <Text key={i} style={s.entryStrong}>
-          {p}
-        </Text>
-      );
-    }
-    return (
-      <Text key={i} style={s.entryConnector}>
-        {p}
-      </Text>
-    );
-  });
+function detailIconStyle(v: AuditVerb): { bg: string; fg: string; icon: keyof typeof Ionicons.glyphMap } {
+  switch (v) {
+    case 'role_changed':
+      return { bg: 'rgba(201, 150, 50, 0.14)', fg: '#C99632', icon: 'people-circle-outline' };
+    case 'published':
+    case 'blueprint_publish':
+      return { bg: 'rgba(30, 143, 71, 0.12)', fg: '#1E8F47', icon: 'rocket-outline' };
+    case 'invited':
+    case 'membership_added':
+      return { bg: 'rgba(30, 143, 71, 0.12)', fg: '#1E8F47', icon: 'mail-outline' };
+    case 'edited':
+    case 'cohort_edit':
+      return { bg: 'rgba(40, 64, 107, 0.08)', fg: '#28406B', icon: 'create-outline' };
+    case 'claimed':
+    case 'site_claim':
+      return { bg: 'rgba(30, 143, 71, 0.12)', fg: '#1E8F47', icon: 'flag-outline' };
+    case 'removed':
+    case 'membership_removed':
+      return { bg: 'rgba(255, 59, 48, 0.10)', fg: '#FF3B30', icon: 'remove-circle-outline' };
+    case 'sso_config':
+    case 'config_change':
+      return { bg: 'rgba(40, 64, 107, 0.08)', fg: '#28406B', icon: 'settings-outline' };
+    case 'login':
+      return { bg: 'rgba(40, 64, 107, 0.08)', fg: '#28406B', icon: 'log-in-outline' };
+  }
 }
 
-const MONO: any = Platform.OS === 'web' ? 'ui-monospace, SFMono-Regular, Menlo, monospace' : 'Menlo';
+function aviToneStyle(tone: AuditTone) {
+  switch (tone) {
+    case 'navy':
+      return { backgroundColor: '#28406B' };
+    case 'brown':
+      return { backgroundColor: '#8B5A3C' };
+    case 'warm':
+      return { backgroundColor: '#B8855A' };
+    case 'green':
+      return { backgroundColor: '#6E8B5A' };
+  }
+}
+
+function dayBucketFor(iso: string, now = new Date()): string {
+  const d = new Date(iso);
+  const dayMs = 24 * 60 * 60 * 1000;
+  const startOfDay = (x: Date) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
+  const diffDays = Math.floor((startOfDay(now) - startOfDay(d)) / dayMs);
+  if (diffDays === 0) {
+    return `Today · ${d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}`;
+  }
+  if (diffDays === 1) {
+    return `Yesterday · ${d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}`;
+  }
+  if (diffDays < 7) {
+    return d.toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' });
+  }
+  return d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function formatTime(iso: string): string {
+  const d = new Date(iso);
+  const dayMs = 24 * 60 * 60 * 1000;
+  const now = Date.now();
+  const ageDays = (now - d.getTime()) / dayMs;
+  if (ageDays < 2) {
+    // "2:14p"
+    const hours = d.getHours();
+    const minutes = d.getMinutes().toString().padStart(2, '0');
+    const ampm = hours >= 12 ? 'p' : 'a';
+    const h12 = hours % 12 === 0 ? 12 : hours % 12;
+    return `${h12}:${minutes}${ampm}`;
+  }
+  return d.toLocaleDateString(undefined, { weekday: 'short' });
+}
+
+function shortenEventId(id: string): string {
+  return `evt ${id.replace(/-/g, '').slice(0, 4)}…${id.replace(/-/g, '').slice(-3)}`;
+}
+
+function formatPayloadJson(payload: Record<string, unknown>): string {
+  return JSON.stringify(payload, null, 2);
+}
+
+interface DayGroup {
+  label: string;
+  events: AuditEvent[];
+}
 
 export default function AdminAuditPage() {
-  const { orgId: _ } = useLocalSearchParams<{ orgId: string }>();
-  const [selectedId, setSelectedId] = useState<string>('evt 01h…f8c');
+  const { orgId } = useLocalSearchParams<{ orgId: string }>();
+  const { events, loading } = useAdminAuditFeed(orgId as string, 100);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return events;
+    return events.filter(
+      (e) =>
+        e.description.toLowerCase().includes(q) ||
+        e.actorName.toLowerCase().includes(q) ||
+        e.targetLabel?.toLowerCase().includes(q) ||
+        e.verbLabel.toLowerCase().includes(q) ||
+        e.id.includes(q),
+    );
+  }, [events, search]);
+
+  const groups: DayGroup[] = useMemo(() => {
+    const m = new Map<string, AuditEvent[]>();
+    const now = new Date();
+    for (const e of filtered) {
+      const label = dayBucketFor(e.occurredAt, now);
+      if (!m.has(label)) m.set(label, []);
+      m.get(label)!.push(e);
+    }
+    return Array.from(m.entries()).map(([label, list]) => ({ label, events: list }));
+  }, [filtered]);
+
+  const selected = useMemo(
+    () => filtered.find((e) => e.id === selectedId) ?? filtered[0] ?? null,
+    [filtered, selectedId],
+  );
 
   return (
     <AdminShell activeKey="audit">
@@ -251,9 +177,9 @@ export default function AdminAuditPage() {
         subtitleParts={[
           <Text key="sub" style={{ fontSize: 12.5, color: 'rgba(60, 60, 67, 0.85)' }}>
             <Text style={{ fontWeight: '600', color: 'rgba(60, 60, 67, 0.95)' }}>
-              1,402 events
+              {loading ? '…' : `${events.length} events`}
             </Text>
-            {' · '}14 actors · retention: 7 years for SOC 2
+            {' · '}retention: 7 years for SOC 2
           </Text>,
         ]}
         actions={
@@ -289,7 +215,7 @@ export default function AdminAuditPage() {
           </View>
           <View style={s.filterChip}>
             <Ionicons name="calendar-outline" size={13} color="rgba(60, 60, 67, 0.6)" />
-            <Text style={s.filterChipText}>Apr 1 – May 23</Text>
+            <Text style={s.filterChipText}>Last 90 days</Text>
             <Ionicons name="chevron-down" size={13} color="rgba(60, 60, 67, 0.6)" />
           </View>
         </View>
@@ -297,91 +223,113 @@ export default function AdminAuditPage() {
         {/* Feed + Detail */}
         <View style={s.split}>
           <View style={s.feed}>
-            {DAYS.map((day, di) => (
-              <View key={day.label} style={[di > 0 && { marginTop: 18 }]}>
-                <View style={s.dayHead}>
-                  <Text style={s.dayDate}>{day.label}</Text>
-                  <Text style={s.dayMeta}>{day.count} events</Text>
-                </View>
-                {day.entries.map((entry) => {
-                  const tone = verbToneStyle(entry.verb);
-                  const isSelected = entry.id === selectedId;
-                  return (
-                    <Pressable
-                      key={entry.id}
-                      onPress={() => setSelectedId(entry.id)}
-                      style={[s.auditRow, isSelected && s.auditRowSel]}
-                    >
-                      <View style={[s.entryAv, aviToneStyle(entry.aviTone)]}>
-                        <Text style={s.entryAvText}>{entry.initials}</Text>
-                      </View>
-                      <View style={{ flex: 1 }}>
-                        <Text style={s.entryText}>
-                          <Text
-                            style={[
-                              s.verbChip,
-                              { backgroundColor: tone.bg, color: tone.fg },
-                            ]}
-                          >
-                            {' '}
-                            {entry.verbLabel}{' '}
-                          </Text>
-                          {'  '}
-                          {renderRichText(entry.text)}
-                        </Text>
-                        <View style={s.entryMeta}>
-                          <Text style={s.entryMetaText}>{entry.time}</Text>
-                          <Text style={s.entryMetaDot}>·</Text>
-                          <Text style={s.entryMetaText}>{entry.id}</Text>
-                        </View>
-                      </View>
-                      <Text style={s.rowRight}>{entry.shortRight}</Text>
-                    </Pressable>
-                  );
-                })}
+            {loading ? (
+              <Text style={s.emptyText}>Loading…</Text>
+            ) : groups.length === 0 ? (
+              <View style={s.emptyCard}>
+                <Ionicons name="time-outline" size={18} color="rgba(60, 60, 67, 0.4)" />
+                <Text style={s.emptyText}>
+                  {search
+                    ? 'No events match that search. Try clearing or broadening it.'
+                    : 'No events yet. Activity will appear here as admins act on the org.'}
+                </Text>
               </View>
-            ))}
+            ) : (
+              groups.map((day, di) => (
+                <View key={day.label} style={[di > 0 && { marginTop: 18 }]}>
+                  <View style={s.dayHead}>
+                    <Text style={s.dayDate}>{day.label}</Text>
+                    <Text style={s.dayMeta}>
+                      {day.events.length} event{day.events.length === 1 ? '' : 's'}
+                    </Text>
+                  </View>
+                  {day.events.map((entry) => {
+                    const tone = verbToneStyle(entry.verb);
+                    const isSelected = entry.id === (selected?.id ?? '');
+                    return (
+                      <Pressable
+                        key={entry.id}
+                        onPress={() => setSelectedId(entry.id)}
+                        style={[s.auditRow, isSelected && s.auditRowSel]}
+                      >
+                        <View style={[s.entryAv, aviToneStyle(entry.actorTone)]}>
+                          <Text style={s.entryAvText}>{entry.actorInitials}</Text>
+                        </View>
+                        <View style={{ flex: 1 }}>
+                          <View style={s.entryHeadRow}>
+                            <Text
+                              style={[
+                                s.verbChip,
+                                { backgroundColor: tone.bg, color: tone.fg },
+                              ]}
+                            >
+                              {' '}
+                              {entry.verbLabel.toUpperCase()}{' '}
+                            </Text>
+                          </View>
+                          <Text style={s.entryText}>{entry.description}</Text>
+                          <View style={s.entryMeta}>
+                            <Text style={s.entryMetaText}>{formatTime(entry.occurredAt)}</Text>
+                            <Text style={s.entryMetaDot}>·</Text>
+                            <Text style={s.entryMetaText}>{shortenEventId(entry.id)}</Text>
+                          </View>
+                        </View>
+                        <Text style={s.rowRight}>{formatTime(entry.occurredAt)}</Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              ))
+            )}
           </View>
 
           {/* Detail drawer (sticky) */}
-          <View style={s.detail}>
-            <View style={s.detailHead}>
-              <View style={s.detailIco}>
-                <Ionicons name="construct-outline" size={16} color="#C99632" />
+          {selected ? (
+            <View style={s.detail}>
+              <View style={s.detailHead}>
+                <View style={[s.detailIco, { backgroundColor: detailIconStyle(selected.verb).bg }]}>
+                  <Ionicons
+                    name={detailIconStyle(selected.verb).icon}
+                    size={16}
+                    color={detailIconStyle(selected.verb).fg}
+                  />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={[s.detailVerb, { color: detailIconStyle(selected.verb).fg }]}>
+                    {selected.verbLabel}
+                  </Text>
+                  <Text style={s.detailH3}>{shortenEventId(selected.id)}</Text>
+                </View>
               </View>
-              <View style={{ flex: 1 }}>
-                <Text style={s.detailVerb}>Role changed</Text>
-                <Text style={s.detailH3}>evt 01h7n2q…f8c</Text>
-              </View>
+              <ScrollView style={{ maxHeight: 600 }}>
+                <View style={s.detailBody}>
+                  <DetailRow k="Actor" v={selected.actorName} />
+                  {selected.targetLabel ? (
+                    <DetailRow k="Target" v={selected.targetLabel} />
+                  ) : null}
+                  {selected.targetType ? (
+                    <DetailRow k="Resource" v={selected.targetType} />
+                  ) : null}
+                  <DetailRow
+                    k="When"
+                    v={new Date(selected.occurredAt).toLocaleString(undefined, {
+                      year: 'numeric',
+                      month: 'short',
+                      day: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })}
+                  />
+                  {selected.ip ? <DetailRow k="IP" v={selected.ip} /> : null}
+                  {selected.userAgent ? <DetailRow k="Client" v={selected.userAgent} /> : null}
+                  <Text style={s.payloadLabel}>Payload</Text>
+                  <View style={s.payloadBox}>
+                    <Text style={s.payloadText}>{formatPayloadJson(selected.payload)}</Text>
+                  </View>
+                </View>
+              </ScrollView>
             </View>
-            <View style={s.detailBody}>
-              <DetailRow k="Actor" v="J. Akello · org_admin" />
-              <DetailRow k="Target" v="R. Vasquez · membership_id mb_8c2" />
-              <DetailRow k="Resource" v="cohort/bsn-2027-a" />
-              <DetailRow k="When" v="2026-05-23 14:14:08 EDT" />
-              <DetailRow k="IP" v="76.124.18.42 · Baltimore, MD" />
-              <DetailRow k="Client" v="Web · Safari 18.4 · macOS 15.4" />
-              <Text style={s.payloadLabel}>Payload</Text>
-              <View style={s.payloadBox}>
-                <Text style={s.payloadText}>
-                  <Text style={s.payloadKey}>"action"</Text>:{' '}
-                  <Text style={s.payloadStr}>"membership.role.change"</Text>,{'\n'}
-                  <Text style={s.payloadKey}>"membership_id"</Text>:{' '}
-                  <Text style={s.payloadStr}>"mb_8c2"</Text>,{'\n'}
-                  <Text style={s.payloadKey}>"cohort"</Text>:{' '}
-                  <Text style={s.payloadStr}>"bsn-2027-a"</Text>,{'\n'}
-                  <Text style={s.payloadKey}>"before"</Text>: {'{ '}
-                  <Text style={s.payloadKey}>"role"</Text>:{' '}
-                  <Text style={s.payloadStr}>"student"</Text> {'}'},{'\n'}
-                  <Text style={s.payloadKey}>"after"</Text>: {'{ '}
-                  <Text style={s.payloadKey}>"role"</Text>:{' '}
-                  <Text style={s.payloadStr}>"peer_mentor"</Text> {'}'},{'\n'}
-                  <Text style={s.payloadKey}>"reason"</Text>:{' '}
-                  <Text style={s.payloadStr}>"manual"</Text>
-                </Text>
-              </View>
-            </View>
-          </View>
+          ) : null}
         </View>
       </ScrollView>
     </AdminShell>
@@ -435,7 +383,6 @@ const s = StyleSheet.create({
   filterChipText: { fontSize: 12, color: 'rgba(60, 60, 67, 0.85)', fontWeight: '500' },
   filterChipTextOn: { fontSize: 12, color: '#28406B', fontWeight: '600' },
 
-  // Split
   split: { flexDirection: 'row', gap: 18 },
   feed: { flex: 1 },
   detail: {
@@ -448,12 +395,10 @@ const s = StyleSheet.create({
     alignSelf: 'flex-start',
   },
 
-  // Day head
   dayHead: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 4, paddingBottom: 8 },
   dayDate: { fontSize: 12, color: '#1C1C1E', fontWeight: '600' },
   dayMeta: { fontSize: 11, color: 'rgba(60, 60, 67, 0.6)' },
 
-  // Audit row
   auditRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -468,10 +413,6 @@ const s = StyleSheet.create({
   },
   auditRowSel: {
     borderColor: '#28406B',
-    shadowColor: '#28406B',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.18,
-    shadowRadius: 0,
     ...({ boxShadow: '0 0 0 3px rgba(40, 64, 107, 0.08)' } as any),
   },
   entryAv: {
@@ -482,9 +423,8 @@ const s = StyleSheet.create({
     justifyContent: 'center',
   },
   entryAvText: { color: '#FFFFFF', fontSize: 11, fontWeight: '700' },
+  entryHeadRow: { flexDirection: 'row', marginBottom: 4 },
   entryText: { fontSize: 12.5, color: 'rgba(60, 60, 67, 0.85)', lineHeight: 19 },
-  entryStrong: { color: '#1C1C1E', fontWeight: '500' },
-  entryConnector: { color: 'rgba(60, 60, 67, 0.85)' },
   verbChip: {
     fontSize: 10.5,
     fontWeight: '700',
@@ -492,13 +432,13 @@ const s = StyleSheet.create({
     textTransform: 'uppercase',
     borderRadius: 4,
     overflow: 'hidden',
+    alignSelf: 'flex-start',
   },
   entryMeta: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 6 },
-  entryMetaText: { fontSize: 11, color: 'rgba(60, 60, 67, 0.6)' },
+  entryMetaText: { fontSize: 11, color: 'rgba(60, 60, 67, 0.6)', fontFamily: MONO },
   entryMetaDot: { fontSize: 11, color: 'rgba(60, 60, 67, 0.4)' },
   rowRight: { fontSize: 11, color: 'rgba(60, 60, 67, 0.6)', alignSelf: 'flex-start' },
 
-  // Detail drawer
   detailHead: {
     paddingHorizontal: 18,
     paddingVertical: 14,
@@ -512,21 +452,19 @@ const s = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 8,
-    backgroundColor: 'rgba(201, 150, 50, 0.14)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   detailVerb: {
     fontSize: 10,
     fontWeight: '700',
-    color: '#C99632',
     letterSpacing: 0.6,
     textTransform: 'uppercase',
   },
   detailH3: { marginTop: 2, fontSize: 14, fontWeight: '600', color: '#1C1C1E', letterSpacing: -0.15 },
 
   detailBody: { padding: 18, gap: 14 },
-  detailRow: { flexDirection: 'row', gap: 10, alignItems: 'center' },
+  detailRow: { flexDirection: 'row', gap: 10, alignItems: 'flex-start' },
   detailK: {
     width: 100,
     fontSize: 10.5,
@@ -556,6 +494,22 @@ const s = StyleSheet.create({
     color: 'rgba(60, 60, 67, 0.85)',
     lineHeight: 18,
   },
-  payloadKey: { color: '#28406B', fontWeight: '600' },
-  payloadStr: { color: '#6E8B5A' },
+
+  emptyCard: {
+    paddingHorizontal: 18,
+    paddingVertical: 32,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    borderWidth: 0.5,
+    borderColor: 'rgba(0,0,0,0.06)',
+    alignItems: 'center',
+    gap: 10,
+  },
+  emptyText: {
+    fontSize: 12.5,
+    color: 'rgba(60, 60, 67, 0.6)',
+    textAlign: 'center',
+    lineHeight: 18,
+    paddingHorizontal: 24,
+  },
 });
