@@ -45,9 +45,11 @@ import type { NativeScrollEvent, NativeSyntheticEvent } from 'react-native';
 
 import { useAuth } from '@/providers/AuthProvider';
 import { useInterest } from '@/providers/InterestProvider';
+import { usePopularCommunities } from '@/hooks/useCommunities';
 import { supabase } from '@/services/supabase';
 import { IOS_COLORS, IOS_REGISTER } from '@/lib/design-tokens-ios';
 import { initialsForName, pickSquareMarkColor } from '@/components/discover/canonical';
+import type { Community } from '@/types/community';
 
 interface DiscoverTodayContentProps {
   toolbarOffset: number;
@@ -235,6 +237,42 @@ function useAlsoClub(homeOrgId: string | null): AlsoClubPick | null {
 }
 
 // =============================================================================
+// ALSO-FOR-YOU · A ROOM — first popular community the user isn't already a
+// member of. Communities aren't currently scoped to BetterAt interests (their
+// linked-entity types are all sailing-flavored), so this currently lands a
+// useful pick for sailing users and quietly omits the section for other
+// interests until communities generalize.
+// =============================================================================
+
+interface AlsoRoomPick {
+  id: string;
+  slug: string;
+  name: string;
+  descriptor: string;
+}
+
+function useAlsoRoom(): AlsoRoomPick | null {
+  const { data: popular } = usePopularCommunities(20);
+
+  return useMemo(() => {
+    if (!popular || popular.length === 0) return null;
+    const candidate = (popular as Community[]).find((c) => !c.is_member);
+    if (!candidate) return null;
+    const descriptorParts: string[] = [];
+    if (candidate.category_name) descriptorParts.push(candidate.category_name);
+    return {
+      id: candidate.id,
+      slug: candidate.slug ?? candidate.id,
+      name: candidate.name,
+      descriptor:
+        descriptorParts.length > 0
+          ? descriptorParts.join(' · ')
+          : 'Worth knowing exists.',
+    };
+  }, [popular]);
+}
+
+// =============================================================================
 // MAIN
 // =============================================================================
 
@@ -245,6 +283,7 @@ export function DiscoverTodayContent({
   const router = useRouter();
   const homeOrg = useHomeOrg();
   const alsoClub = useAlsoClub(homeOrg?.orgId ?? null);
+  const alsoRoom = useAlsoRoom();
   const todayLabel = useMemo(() => formatTodayLabel(new Date()), []);
 
   // Eyebrow is intentionally plain "NOW HAPPENING" instead of the brief's
@@ -296,48 +335,78 @@ export function DiscoverTodayContent({
       ) : null}
 
       {/* ALSO FOR YOU — three cross-shelf invitations (sailor / room / club).
-          Currently wires only the CLUB pick; sailor + room land in follow-up
-          commits. Brief's "no empty state" rule: sections without a real
-          pick are omitted. */}
+          Currently wires the ORG and ROOM picks; SAILOR lands in a follow-up.
+          Brief's "no empty state" rule: sections without a real pick are
+          omitted; the whole header is omitted if no picks at all. */}
+      {alsoClub || alsoRoom ? (
+        <View style={styles.sectionEyebrowRow}>
+          <Text style={styles.sectionEyebrow}>ALSO FOR YOU</Text>
+        </View>
+      ) : null}
       {alsoClub ? (
-        <>
-          <View style={styles.sectionEyebrowRow}>
-            <Text style={styles.sectionEyebrow}>ALSO FOR YOU</Text>
+        <Pressable
+          style={styles.alsoCard}
+          onPress={() => {
+            if (alsoClub.slug) {
+              router.push(`/discover/org/${alsoClub.slug}?from=today` as any);
+            }
+          }}
+        >
+          <Text style={styles.alsoTag}>AN ORG</Text>
+          <View style={styles.alsoRowBody}>
+            <View
+              style={[
+                styles.avatar44,
+                { backgroundColor: pickSquareMarkColor(alsoClub.orgId) },
+              ]}
+            >
+              <Text style={styles.avatarInitials}>
+                {initialsForName(alsoClub.name)}
+              </Text>
+            </View>
+            <View style={styles.alsoRowText}>
+              <Text style={styles.alsoRowTitle}>{alsoClub.name}</Text>
+              <Text style={styles.alsoRowDesc}>
+                Worth knowing exists in your interest.
+              </Text>
+            </View>
+            <Ionicons
+              name="chevron-forward"
+              size={16}
+              color={IOS_REGISTER.labelTertiary}
+            />
           </View>
-          <Pressable
-            style={styles.alsoCard}
-            onPress={() => {
-              if (alsoClub.slug) {
-                router.push(`/discover/org/${alsoClub.slug}?from=today` as any);
-              }
-            }}
-          >
-            <Text style={styles.alsoTag}>AN ORG</Text>
-            <View style={styles.alsoRowBody}>
-              <View
-                style={[
-                  styles.avatar44,
-                  { backgroundColor: pickSquareMarkColor(alsoClub.orgId) },
-                ]}
-              >
-                <Text style={styles.avatarInitials}>
-                  {initialsForName(alsoClub.name)}
-                </Text>
-              </View>
-              <View style={styles.alsoRowText}>
-                <Text style={styles.alsoRowTitle}>{alsoClub.name}</Text>
-                <Text style={styles.alsoRowDesc}>
-                  Worth knowing exists in your interest.
-                </Text>
-              </View>
+        </Pressable>
+      ) : null}
+      {alsoRoom ? (
+        <Pressable
+          style={styles.alsoCard}
+          onPress={() => {
+            router.push(
+              `/discover/topic/${alsoRoom.slug}?from=today&name=${encodeURIComponent(alsoRoom.name)}` as any,
+            );
+          }}
+        >
+          <Text style={styles.alsoTag}>A ROOM</Text>
+          <View style={styles.alsoRowBody}>
+            <View style={styles.roomGlyph}>
               <Ionicons
-                name="chevron-forward"
-                size={16}
-                color={IOS_REGISTER.labelTertiary}
+                name="chatbubble-outline"
+                size={18}
+                color={IOS_REGISTER.labelSecondary}
               />
             </View>
-          </Pressable>
-        </>
+            <View style={styles.alsoRowText}>
+              <Text style={styles.alsoRowTitle}>{alsoRoom.name}</Text>
+              <Text style={styles.alsoRowDesc}>{alsoRoom.descriptor}</Text>
+            </View>
+            <Ionicons
+              name="chevron-forward"
+              size={16}
+              color={IOS_REGISTER.labelTertiary}
+            />
+          </View>
+        </Pressable>
       ) : null}
 
       {/* Banner explains what isn't wired yet. Per the brief's "no empty
@@ -464,6 +533,14 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  roomGlyph: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: IOS_COLORS.systemGray6,
     alignItems: 'center',
     justifyContent: 'center',
   },
