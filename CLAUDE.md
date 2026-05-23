@@ -1,231 +1,78 @@
-# CLAUDE.md - RegattaFlow App
+# CLAUDE.md — BetterAt
 
-This file provides context for Claude Code when working on this project.
+> The repo directory is `betterat-app` and the codebase was previously called RegattaFlow.
+> Sailing-specific code (races, fleets, venues, weather, tides) is the **first** vertical built
+> on BetterAt's platform primitives, not the product itself. New work should generalize.
 
-## Project Overview
+## What BetterAt actually is
 
-RegattaFlow is a comprehensive sailing race management and training platform built with Expo/React Native. It serves three main user personas:
-- **Sailors**: Race preparation, performance tracking, learning resources
-- **Coaches**: Athlete management, session planning, analytics
-- **Clubs/Race Officers**: Race management, results, fleet administration
+BetterAt is a learning-and-doing platform organized around a **four-tier social model**:
 
-## Tech Stack
+1. **Interests** — what a person is working on (sail racing, JHU MD program, marathon training…). Users **add** interests.
+2. **Organizations** — clubs, schools, programs that issue blueprints/cohorts. Users **join** orgs.
+3. **Programs** — curricula / training plans inside an org. Users **subscribe** to programs.
+4. **People** — coaches, peers, mentors. Users **follow** people.
 
-- **Framework**: Expo SDK 54 with React Native 0.81
-- **Router**: Expo Router (file-based routing in `app/` directory)
-- **Styling**: NativeWind (TailwindCSS for React Native)
-- **UI Components**: Gluestack UI
-- **Backend**: Supabase (PostgreSQL, Auth, Edge Functions, Realtime)
-- **State Management**: TanStack React Query
-- **AI**: Anthropic Claude SDK, Google Generative AI
-- **Maps**: MapLibre GL, react-map-gl, Google Maps
-- **Payments**: Stripe (native and web implementations)
-- **Language**: TypeScript
+> Terminology is load-bearing — see `feedback_interest_terminology.md`. Never say "follow a program".
 
-## Project Structure
+## Core domain primitives
 
-```
-app/                    # Expo Router pages (file-based routing)
-  (auth)/              # Auth flow screens (login, signup, callback)
-  (tabs)/              # Main tab navigation screens
-  club/                # Club management screens
-  coach/               # Coach-specific screens
-  race/                # Race-related screens
+| Concept | What it is | Where it lives |
+| --- | --- | --- |
+| **Step** | Atomic unit of planned or completed activity. Has plan ("what"), sub-steps ("how"), capability mapping ("why"), people ("who"), optional timing. | `step_*` tables, `components/steps`, `hooks/useSteps*` |
+| **Blueprint** | Reusable template of steps an org/program publishes. Subscribers receive steps from it. | `blueprints`, `blueprint_steps` |
+| **Competency** | Skill or capability tied to evidence. Steps log attempts; review surfaces gap vs framework. | `competencies`, `competency_attempts` |
+| **Evidence** | Artifacts that demonstrate a competency was actually exercised. | `evidence_*` tables, review flow |
+| **Cohort** | Group of people moving through a blueprint together. | `cohorts`, `cohort_members` |
+| **Atlas** | 5th top-level tab — the universal "where" lens. Not sailing-only. Brief at `docs/redesign/ios-register/atlas-tab-brief.md` |
+| **Playbook / Library** | User's saved concepts and references. UI-rename pending (`feedback_playbook_v1_scope`, `project_playbook_to_library_rename`). |
 
-components/            # React components organized by feature
-  dashboard/           # Dashboard components per persona
-  landing/             # Marketing/landing page components
-  learn/               # Learning/academy components
-  map/                 # Map visualization components
-  races/               # Race-related UI components
-  ui/                  # Shared UI primitives (Gluestack-based)
-  venue/               # Venue intelligence components
+Sailing tables (`races`, `race_series`, `race_entries`, `race_results`, `fleets`, `venues`, `racing_areas`, `coaching_sessions`) sit *alongside* these, not above them. Sailing-only code is being moved into explicit `sailing/` subdirs over time (`project_sailing_namespace_consolidation`).
 
-services/              # Business logic and API services
-  ai/                  # AI-powered services
-  venue/               # Venue-related services
-  weather/             # Weather data services
-  tides/               # Tidal data services
+## Stack at a glance
 
-hooks/                 # Custom React hooks
-  useData.ts           # Primary data fetching hook
-  useEnrichedRaces.ts  # Race data with enrichments
-  useApi.ts            # API utility hooks
+Expo SDK 54 / RN 0.81, Expo Router, TypeScript strict, NativeWind + Gluestack, TanStack Query, Supabase (Postgres + Auth + Edge Functions + Realtime), Anthropic + Google Generative AI, MapLibre GL, Stripe. Web via `react-native-web` → Vercel. Native via EAS.
 
-lib/                   # Utilities and configuration
-  auth/                # Auth utilities
-  subscriptions/       # Subscription management
-  i18n/                # Internationalization
+Most stack details and the file tree are discoverable from `package.json` and `app/`. Read those when you need specifics rather than trusting a stale list here.
 
-providers/             # React Context providers
-  AuthProvider.tsx     # Authentication state
-
-types/                 # TypeScript type definitions
-
-supabase/              # Supabase configuration
-  migrations/          # SQL migration files
-
-api/                   # Vercel serverless functions
-  public/              # Public API endpoints
-
-skills/                # Claude Skills for AI features
-```
-
-## Common Commands
+## Commands that aren't obvious
 
 ```bash
-# Development
-npm start                    # Start Expo dev server (with 12GB memory)
-npm run start:reset          # Reset cache and start fresh
-npm run web                  # Start web only
-
-# Building
-npm run build:web            # Build for web (Vercel deployment)
-
-# Code Quality
-npm run typecheck            # Run TypeScript type checking
-npm run lint                 # Run ESLint
-
-# Database
-npm run seed:rhkyc           # Seed demo data for RHKYC
-
-# Supabase
-npx supabase db push         # Push migrations to remote
-npx supabase functions deploy # Deploy edge functions
+npm start                # Expo dev (runs with --max-old-space-size=12288, needed for our build)
+npm run start:reset      # Clear Metro cache when bundles get weird
+npm run typecheck        # ALWAYS run before declaring done
+npm run lint             # ALWAYS run before declaring done (lint-staged uses --max-warnings 0)
+npm run seed:rhkyc       # Seed RHKYC sailing demo data
+npm run build:web        # Vercel build
+npx supabase db push     # Push migrations to remote dev project
 ```
 
-## Database (Supabase)
+> Vercel is currently **paused at project level** — see `project_vercel_deployment_paused`. No deploys, no crons, no serverless. Deployment Smoke CI fails by design.
 
-### Environment Variables
-```
-EXPO_PUBLIC_SUPABASE_URL     # Supabase project URL
-EXPO_PUBLIC_SUPABASE_ANON_KEY # Supabase anon/public key
-```
+## Web compatibility (critical)
 
-### Key Tables
-- `users` / `profiles` - User accounts and profiles
-- `clubs` - Sailing clubs
-- `fleets` - Fleet groups within clubs
-- `races` / `race_series` - Race events and series
-- `race_entries` - Race registrations
-- `race_results` - Race results and scoring
-- `venues` / `racing_areas` - Venue and racing area data
-- `coaching_sessions` - Coach session records
-- `boats` / `boat_classes` - Boat information
+⚠️ **Never use `Alert.alert()` directly** — silently no-ops on web.
 
-### Migrations
-Migrations are in `supabase/migrations/`. Use timestamped naming:
-```
-YYYYMMDDHHMMSS_description.sql
-```
-
-## Key Patterns
-
-### Data Fetching
-Use TanStack React Query via custom hooks:
-```typescript
-// hooks/useData.ts provides primary data access
-const { data, isLoading, error } = useData<Type>('queryKey', fetchFn);
-```
-
-### Services Pattern
-Services in `services/` encapsulate business logic:
-```typescript
-// Singleton pattern with static methods
-export class MyService {
-  static async getData(): Promise<Data> { ... }
-}
-```
-
-### Platform-Specific Files
-Use file extensions for platform code:
-```
-Component.tsx          # Shared
-Component.native.tsx   # iOS/Android only
-Component.web.tsx      # Web only
-```
-
-### Environment Variables
-Prefix with `EXPO_PUBLIC_` for client-side access:
-```
-EXPO_PUBLIC_SUPABASE_URL
-ANTHROPIC_API_KEY
-EXPO_PUBLIC_GOOGLE_MAPS_API_KEY
-```
-
-## Coding Conventions
-
-### TypeScript
-- Strict mode enabled
-- Prefer interfaces over types for objects
-- Use explicit return types on exported functions
-
-### Web Compatibility
-
-⚠️ **Alert Usage**: Never use `Alert.alert()` directly - it doesn't work on web!
-
-**Use instead:**
 ```typescript
 import { showAlert, showConfirm } from '@/lib/utils/crossPlatformAlert';
 
-// Simple alert
 showAlert('Error', 'Something went wrong');
-
-// Confirmation dialog
 showConfirm('Delete', 'Are you sure?', () => handleDelete(), { destructive: true });
 ```
 
-See [docs/WEB_COMPATIBILITY.md](docs/WEB_COMPATIBILITY.md) for complete API reference and migration guide.
+Full reference: `docs/WEB_COMPATIBILITY.md`.
 
-### Styling
-- Use NativeWind/Tailwind classes: `className="flex-1 bg-white"`
-- Design tokens in `lib/design-tokens.ts`
-- Responsive: use `web:` prefix for web-specific styles
+## Patterns worth knowing
 
-### File Naming
-- Components: PascalCase (`RaceCard.tsx`)
-- Hooks: camelCase with `use` prefix (`useRaceData.ts`)
-- Services: PascalCase with `Service` suffix (`RaceService.ts`)
-- Types: PascalCase in dedicated files
+- **Data fetching**: `hooks/useData.ts` is the primary TanStack Query wrapper. New query hooks **must** be added to relevant mutation `invalidateQueries` lists — see `feedback_query_cache_key_invalidation_audit`.
+- **Services**: Singleton classes with static methods under `services/` (`MyService.getData()`).
+- **Platform splits**: `Component.tsx` / `Component.native.tsx` / `Component.web.tsx`.
+- **Env vars**: `EXPO_PUBLIC_*` for anything the client reads.
+- **Migrations**: `supabase/migrations/YYYYMMDDHHMMSS_description.sql`. Wrap `auth.uid()` as `(SELECT auth.uid())` in RLS — see `feedback_rls_auth_uid_must_be_wrapped`.
 
-### Imports
-- Use `@/` alias for project root imports
-- Group: React, external libs, internal modules, types
+## Memory is the authoritative source for quirks
 
-## AI Integration
-
-### Claude Skills
-Skills are in `skills/` directory with `SKILL.md` files defining capabilities.
-Upload via `upload-all-skills.mjs`.
-
-### AI Services
-- `services/aiService.ts` - Core AI interactions
-- `services/ai/` - Specialized AI services
-- Uses Anthropic SDK and Google Generative AI
-
-## Deployment
-
-### Web (Vercel)
-- Config in `vercel.json`
-- API routes in `api/` directory
-- Build: `npm run build:web`
-
-### Mobile (EAS)
-- Config in `eas.json`
-- App config in `app.json` and `app.config.js`
-
-## Testing Demo Users
-
-Demo/test accounts require `DEMO_PASSWORD` env var (not committed to source).
-
-## Key Files to Know
-
-- `app/_layout.tsx` - Root layout with providers
-- `providers/AuthProvider.tsx` - Auth state management
-- `services/supabase.ts` - Supabase client setup
-- `hooks/useData.ts` - Primary data hook
-- `tailwind.config.js` - Tailwind/NativeWind config
-- `metro.config.js` - Metro bundler config
+This file gives the shape of the project. The lived gotchas — RLS recursion patterns, Supabase PKCE defaults, Pressable layout traps, Gemini thinking-budget quirks, the playbook-vs-library naming standoff, sailing direction conventions, etc. — are in `MEMORY.md`. **Check memory first when you hit something weird;** it's almost certainly already documented.
 
 ## Working Standards
 
@@ -255,10 +102,8 @@ Demo/test accounts require `DEMO_PASSWORD` env var (not committed to source).
 - When given a bug report: just fix it — don't ask for hand-holding
 - Point at logs, errors, failing tests — then resolve them
 - Zero context switching required from the user
-- Go fix failing CI tests without being told how
+- For routine fixes with a confirmed root cause (including dev-Supabase schema patches), don't ask permission — commit and push (`feedback_autonomous_commit_push`, `feedback_dont_ask_for_ok_on_routine_fixes`)
 
-## Notes
-
-- Memory limit: Node runs with `--max-old-space-size=12288` for large builds
-- Web platform uses `react-native-web` for compatibility
-- MapLibre GL used for map rendering (open-source alternative to Mapbox)
+### Git hygiene
+- Stage by explicit path. **Never** `git add -u` or `git add .` — `.pen` files are user WIP (`feedback_pen_files_are_user_wip`).
+- Create new commits rather than amending. Standard safety: no `--no-verify`, no force-push to main.
