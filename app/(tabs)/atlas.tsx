@@ -145,6 +145,7 @@ export default function AtlasTab() {
           nextEvent={nextEvent}
           avatarInitial={avatarInitial}
           useMapLibre={FEATURE_FLAGS.ATLAS_MAPLIBRE_CANVAS}
+          initialCommitMode={isFromPlan}
           onPrimaryAction={handlePrimary}
           onSecondaryAction={handleSecondary}
         />

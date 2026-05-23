@@ -78,6 +78,13 @@ export interface AtlasFrameHandlers {
   onPrimaryAction?: (pin?: { lat: number; lng: number; place?: string }) => void;
   /** Bottom-sheet secondary CTA — "Open <next event>" / "Skip" etc. */
   onSecondaryAction?: () => void;
+  /**
+   * When true, FrameF1 starts already in commit-mode (drop-pin FAB active,
+   * banner showing "Tap the map to drop a pin"). Atlas live tab sets this
+   * when arrived via PlanWhereCard with ?fromPlan=1 so the user doesn't
+   * have to tap + to enter pick-mode.
+   */
+  initialCommitMode?: boolean;
   /** Per-frame override of the top subtitle line, e.g. "Sailing · RHKYC · Hong Kong". */
   subtitleOverride?: string;
   /**
@@ -90,8 +97,10 @@ export interface AtlasFrameHandlers {
   nextEvent?: AtlasNextEvent | null;
 }
 
-interface AtlasScreenProps extends AtlasFrameHandlers {
+interface AtlasScreenProps extends Omit<AtlasFrameHandlers, 'initialCommitMode'> {
   frame: AtlasFrameId;
+  /** Forwarded to FrameF1 — see AtlasFrameHandlers.initialCommitMode. */
+  initialCommitMode?: boolean;
   /**
    * When true (default false), the mock iOS status bar and mock 5-tab bar
    * are suppressed. Used when AtlasScreen renders inside the real tab
@@ -126,6 +135,7 @@ export function AtlasScreen({
   nextEvent,
   avatarInitial,
   useMapLibre = false,
+  initialCommitMode = false,
 }: AtlasScreenProps) {
   const handlers: AtlasFrameHandlers & { avatarInitial?: string; useMapLibre?: boolean } = {
     onPrimaryAction,
@@ -134,6 +144,7 @@ export function AtlasScreen({
     nextEvent,
     avatarInitial,
     useMapLibre,
+    initialCommitMode,
   };
   switch (frame) {
     case 'f1':
@@ -343,14 +354,14 @@ function LayersFab({
       </Pressable>
       {onDropPinPress ? (
         <Pressable
-          style={[shellStyles.fab, commitMode && shellStyles.fabActive]}
+          style={[shellStyles.fabDropPin, commitMode && shellStyles.fabActive]}
           onPress={onDropPinPress}
-          hitSlop={6}
+          hitSlop={8}
         >
           <Ionicons
-            name={commitMode ? 'close' : 'add-circle-outline'}
-            size={16}
-            color={commitMode ? '#FFFFFF' : IOS_REGISTER.accentUserAction}
+            name={commitMode ? 'close' : 'add'}
+            size={22}
+            color={commitMode ? '#FFFFFF' : '#FFFFFF'}
           />
         </Pressable>
       ) : null}
@@ -556,8 +567,10 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
   // Compose-at-location: tap the + FAB to enter commit-mode, then any
   // tap on the map drops a candidate pin and rises the commit sheet.
   // Per the brief, this replaces the legacy SelectLocation modal — the
-  // picker IS the real surface in a different mode.
-  const [commitMode, setCommitMode] = useState(false);
+  // picker IS the real surface in a different mode. When arrived from
+  // PlanWhereCard with ?fromPlan=1, we start ALREADY in commit-mode so
+  // the user doesn't have to tap + after landing on Atlas.
+  const [commitMode, setCommitMode] = useState(handlers.initialCommitMode ?? false);
   const [candidate, setCandidate] = useState<{ lng: number; lat: number } | null>(null);
   const exitCommit = useCallback(() => {
     setCommitMode(false);
@@ -1355,6 +1368,21 @@ const shellStyles = StyleSheet.create({
   fabActive: {
     backgroundColor: IOS_REGISTER.accentUserAction,
     borderColor: IOS_REGISTER.accentUserAction,
+  },
+  // Larger, solid-blue + button so the compose-at-location entry point is
+  // obvious. Sits below the layers/locate icons in the FAB column.
+  fabDropPin: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: IOS_REGISTER.accentUserAction,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 0,
+    shadowColor: '#000',
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
   },
   commitBannerInline: {
     position: 'absolute',
