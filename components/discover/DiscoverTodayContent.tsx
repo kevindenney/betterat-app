@@ -46,9 +46,14 @@ import type { NativeScrollEvent, NativeSyntheticEvent } from 'react-native';
 import { useAuth } from '@/providers/AuthProvider';
 import { useInterest } from '@/providers/InterestProvider';
 import { usePopularCommunities } from '@/hooks/useCommunities';
+import { useSailorSuggestions } from '@/hooks/useSailorSuggestions';
 import { supabase } from '@/services/supabase';
 import { IOS_COLORS, IOS_REGISTER } from '@/lib/design-tokens-ios';
-import { initialsForName, pickSquareMarkColor } from '@/components/discover/canonical';
+import {
+  initialsForName,
+  pickAvatarMarkColor,
+  pickSquareMarkColor,
+} from '@/components/discover/canonical';
 import type { Community } from '@/types/community';
 
 interface DiscoverTodayContentProps {
@@ -273,6 +278,37 @@ function useAlsoRoom(): AlsoRoomPick | null {
 }
 
 // =============================================================================
+// ALSO-FOR-YOU · A SAILOR — first sailor suggestion the user isn't already
+// following. Uses the CrewFinder similarity service through
+// useSailorSuggestions; pick falls out as the first row not already followed.
+// Sailing-flavored today (CrewFinder is sailing-named); will quietly omit
+// for other interests until the cross-interest people graph generalizes.
+// =============================================================================
+
+interface AlsoSailorPick {
+  userId: string;
+  fullName: string;
+  initials: string;
+  descriptor: string;
+}
+
+function useAlsoSailor(): AlsoSailorPick | null {
+  const { suggestions } = useSailorSuggestions();
+  return useMemo(() => {
+    if (!suggestions || suggestions.length === 0) return null;
+    const candidate = suggestions[0];
+    if (!candidate) return null;
+    const reason = candidate.similarityReason?.trim();
+    return {
+      userId: candidate.userId,
+      fullName: candidate.fullName,
+      initials: initialsForName(candidate.fullName),
+      descriptor: reason && reason.length > 0 ? reason : 'Worth knowing exists.',
+    };
+  }, [suggestions]);
+}
+
+// =============================================================================
 // MAIN
 // =============================================================================
 
@@ -284,6 +320,7 @@ export function DiscoverTodayContent({
   const homeOrg = useHomeOrg();
   const alsoClub = useAlsoClub(homeOrg?.orgId ?? null);
   const alsoRoom = useAlsoRoom();
+  const alsoSailor = useAlsoSailor();
   const todayLabel = useMemo(() => formatTodayLabel(new Date()), []);
 
   // Eyebrow is intentionally plain "NOW HAPPENING" instead of the brief's
@@ -335,13 +372,43 @@ export function DiscoverTodayContent({
       ) : null}
 
       {/* ALSO FOR YOU — three cross-shelf invitations (sailor / room / club).
-          Currently wires the ORG and ROOM picks; SAILOR lands in a follow-up.
           Brief's "no empty state" rule: sections without a real pick are
           omitted; the whole header is omitted if no picks at all. */}
-      {alsoClub || alsoRoom ? (
+      {alsoSailor || alsoClub || alsoRoom ? (
         <View style={styles.sectionEyebrowRow}>
           <Text style={styles.sectionEyebrow}>ALSO FOR YOU</Text>
         </View>
+      ) : null}
+      {alsoSailor ? (
+        <Pressable
+          style={styles.alsoCard}
+          onPress={() => {
+            router.push(
+              `/discover/person/${alsoSailor.userId}?from=today&name=${encodeURIComponent(alsoSailor.fullName)}&initials=${encodeURIComponent(alsoSailor.initials)}` as any,
+            );
+          }}
+        >
+          <Text style={styles.alsoTag}>A SAILOR</Text>
+          <View style={styles.alsoRowBody}>
+            <View
+              style={[
+                styles.avatar44,
+                { backgroundColor: pickAvatarMarkColor(alsoSailor.userId) },
+              ]}
+            >
+              <Text style={styles.avatarInitials}>{alsoSailor.initials}</Text>
+            </View>
+            <View style={styles.alsoRowText}>
+              <Text style={styles.alsoRowTitle}>{alsoSailor.fullName}</Text>
+              <Text style={styles.alsoRowDesc}>{alsoSailor.descriptor}</Text>
+            </View>
+            <Ionicons
+              name="chevron-forward"
+              size={16}
+              color={IOS_REGISTER.labelTertiary}
+            />
+          </View>
+        </Pressable>
       ) : null}
       {alsoClub ? (
         <Pressable
