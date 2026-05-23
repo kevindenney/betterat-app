@@ -1,21 +1,19 @@
 /**
  * DiscussContent — Forums surface of the canonical Discover trio
  *
- * Renders the canonical Forums cell from
- * `docs/redesign/ios-register/discover-trio-canonical.html`:
+ * Pass 11 (docs/redesign/ios-register/discover-pass-11-brief.md):
  *
  *   - 44px square topic glyph mark on a tinted ground (the unit is a topic,
- *     not a person)
- *   - Name, broader-interest descriptor, activity row (thread count + last
- *     activity) — the canonical's "activity meaningful for a topic, not a
- *     thread"
- *   - Joined topics carry a gray "Following" mine tag plus the 8px coral
- *     unread dot when there is new activity (the only coral on the trio's
- *     cell metadata)
- *   - Concept-matching topics carry a coral "Matches your concept" fit tag;
- *     own-club topics carry "From your club"
+ *     not a person).
+ *   - Name + broader-interest descriptor. Thread-count and active-time
+ *     badges are gone — engagement-metric named-absence rule. The downstream
+ *     Topic detail surface is where threads live.
+ *   - No "Following" chip on the list view — following is a tap-deeper
+ *     decision, not a list-row state. The Following chip stays on the Topic
+ *     detail page where the user actually toggles it.
  *   - Joined + undiscovered mix in one list (canonical position: no section
- *     split). The downstream Topic detail surface is where threads live.
+ *     split).
+ *   - Search moves to a quiet pill at the foot, after the list.
  *
  * The in-tab feed sub-segment, sort pills, post composer, and post detail
  * modal that previously lived on the Forums surface are intentionally
@@ -48,14 +46,12 @@ import { IOS_COLORS, IOS_REGISTER } from '@/lib/design-tokens-ios';
 
 import type { Community } from '@/types/community';
 import { useInterest } from '@/providers/InterestProvider';
-import { useVocabulary } from '@/hooks/useVocabulary';
 import { getConnectDemoData } from '@/configs/connectDemoData';
 import type { DemoCommunity, InterestConnectData } from '@/configs/connectDemoData';
 import {
   CanonicalForumRow,
   CanonicalList,
   CanonicalListEyebrow,
-  type ForumTag,
 } from '@/components/discover/canonical';
 
 // =============================================================================
@@ -110,28 +106,6 @@ function glyphForDemoCommunity(community: DemoCommunity): GlyphName {
   return 'people-circle-outline';
 }
 
-function relativeTime(iso: string | null | undefined): string | undefined {
-  if (!iso) return undefined;
-  const then = new Date(iso).getTime();
-  if (Number.isNaN(then)) return undefined;
-  const deltaMs = Date.now() - then;
-  if (deltaMs < 0) return 'Active just now';
-  const minutes = Math.floor(deltaMs / 60_000);
-  if (minutes < 1) return 'Active just now';
-  if (minutes < 60) return `Active ${minutes}m ago`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `Active ${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  if (days < 7) return `Active ${days}d ago`;
-  const weeks = Math.floor(days / 7);
-  if (weeks < 5) return `Active ${weeks}w ago`;
-  return 'Active a while ago';
-}
-
-function formatThreadCount(postCount: number, vocabThreads: string): string {
-  return `${postCount.toLocaleString()} ${postCount === 1 ? vocabThreads.replace(/s$/, '') : vocabThreads}`;
-}
-
 // =============================================================================
 // MAIN COMPONENT
 // =============================================================================
@@ -146,7 +120,6 @@ export function DiscussContent({
   const rawSlug = currentInterest?.slug ?? 'sail-racing';
   const interestName = currentInterest?.name;
   const isSailingInterest = rawSlug === 'sail-racing';
-  const { vocab } = useVocabulary();
 
   const demoData = useMemo(
     () => (!isSailingInterest ? getConnectDemoData(rawSlug) : null),
@@ -162,7 +135,6 @@ export function DiscussContent({
         joinedIds={joinedIds}
         onToggleJoin={onToggleJoin}
         interestName={interestName}
-        vocab={vocab}
       />
     );
   }
@@ -172,7 +144,6 @@ export function DiscussContent({
       toolbarOffset={toolbarOffset}
       onScroll={onScroll}
       interestName={interestName}
-      vocab={vocab}
     />
   );
 }
@@ -188,7 +159,6 @@ interface DemoPathProps {
   joinedIds: Set<string>;
   onToggleJoin: (id: string) => void;
   interestName?: string;
-  vocab: (term: string) => string;
 }
 
 function DemoPath({
@@ -196,10 +166,10 @@ function DemoPath({
   onScroll,
   demoData,
   joinedIds,
-  onToggleJoin,
+  onToggleJoin: _onToggleJoin,
   interestName,
-  vocab,
 }: DemoPathProps) {
+  const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
 
   const filtered = useMemo(() => {
@@ -223,10 +193,6 @@ function DemoPath({
     return [...mine, ...others];
   }, [filtered, joinedIds]);
 
-  const threadsWord = vocab('thread').toLowerCase().endsWith('s')
-    ? vocab('thread').toLowerCase()
-    : `${vocab('thread').toLowerCase()}s`;
-
   const eyebrow = searchQuery
     ? { plain: 'Search · ', em: `${ordered.length} ${ordered.length === 1 ? 'topic' : 'topics'}` }
     : interestName
@@ -244,32 +210,24 @@ function DemoPath({
         keyboardDismissMode="on-drag"
         keyboardShouldPersistTaps="handled"
       >
-        <SearchField value={searchQuery} onChangeText={setSearchQuery} />
-
         {ordered.length > 0 ? (
           <>
             <CanonicalListEyebrow {...eyebrow} />
             <CanonicalList>
-              {ordered.map((community, idx) => {
-                const isFollowing = joinedIds.has(community.id);
-                const tag: ForumTag | undefined = isFollowing
-                  ? { kind: 'mine', label: 'Following', icon: 'checkmark' }
-                  : undefined;
-                return (
-                  <CanonicalForumRow
-                    key={community.id}
-                    first={idx === 0}
-                    glyph={glyphForDemoCommunity(community)}
-                    name={community.name}
-                    descriptor={`${community.description.split('.')[0]} · ${community.memberCount.toLocaleString()} members`}
-                    activity={{
-                      threads: `${community.postCount.toLocaleString()} ${community.postCount === 1 ? threadsWord.replace(/s$/, '') : threadsWord}`,
-                    }}
-                    tag={tag}
-                    onPress={() => onToggleJoin(community.id)}
-                  />
-                );
-              })}
+              {ordered.map((community, idx) => (
+                <CanonicalForumRow
+                  key={community.id}
+                  first={idx === 0}
+                  glyph={glyphForDemoCommunity(community)}
+                  name={community.name}
+                  descriptor={community.description.split('.')[0]}
+                  onPress={() =>
+                    router.push(
+                      `/discover/topic/${community.id}?from=forums&name=${encodeURIComponent(community.name)}` as any,
+                    )
+                  }
+                />
+              ))}
             </CanonicalList>
           </>
         ) : (
@@ -277,6 +235,9 @@ function DemoPath({
             label={searchQuery ? `No topics match “${searchQuery}” yet.` : 'No topics available.'}
           />
         )}
+
+        {/* Pass 11 — search moves to a quiet pill at the foot. */}
+        <SearchField value={searchQuery} onChangeText={setSearchQuery} />
       </ScrollView>
     </View>
   );
@@ -290,10 +251,9 @@ interface LivePathProps {
   toolbarOffset: number;
   onScroll?: (event: NativeSyntheticEvent<NativeScrollEvent>) => void;
   interestName?: string;
-  vocab: (term: string) => string;
 }
 
-function LivePath({ toolbarOffset, onScroll, interestName, vocab }: LivePathProps) {
+function LivePath({ toolbarOffset, onScroll, interestName }: LivePathProps) {
   const router = useRouter();
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -334,14 +294,10 @@ function LivePath({ toolbarOffset, onScroll, interestName, vocab }: LivePathProp
 
   const onPressCommunity = useCallback(
     (community: Community) => {
-      router.push(`/community/${community.slug}`);
+      router.push(`/discover/topic/${community.slug}?from=forums` as any);
     },
     [router]
   );
-
-  const threadsWord = vocab('thread').toLowerCase().endsWith('s')
-    ? vocab('thread').toLowerCase()
-    : `${vocab('thread').toLowerCase()}s`;
 
   const eyebrow = isFiltering
     ? { plain: 'Search · ', em: `${ordered.length} ${ordered.length === 1 ? 'topic' : 'topics'}` }
@@ -366,8 +322,6 @@ function LivePath({ toolbarOffset, onScroll, interestName, vocab }: LivePathProp
           />
         }
       >
-        <SearchField value={searchQuery} onChangeText={setSearchQuery} />
-
         {isLoading ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={IOS_COLORS.systemBlue} />
@@ -377,17 +331,11 @@ function LivePath({ toolbarOffset, onScroll, interestName, vocab }: LivePathProp
             <CanonicalListEyebrow {...eyebrow} />
             <CanonicalList>
               {ordered.map((community, idx) => {
-                const isMember = community.is_member ?? false;
-                const tag: ForumTag | undefined = isMember
-                  ? { kind: 'mine', label: 'Following', icon: 'checkmark' }
-                  : undefined;
                 const descriptorParts: string[] = [];
                 if (community.category_name) descriptorParts.push(community.category_name);
                 descriptorParts.push(
                   `${community.member_count.toLocaleString()} sailors`
                 );
-                const lastActivity = relativeTime(community.last_activity_at);
-                const unread = false; // No first-class "new since last visit" signal yet
                 return (
                   <CanonicalForumRow
                     key={community.id}
@@ -395,12 +343,6 @@ function LivePath({ toolbarOffset, onScroll, interestName, vocab }: LivePathProp
                     glyph={glyphForCommunity(community)}
                     name={community.name}
                     descriptor={descriptorParts.join(' · ')}
-                    activity={{
-                      threads: formatThreadCount(community.post_count, threadsWord),
-                      lastActivity,
-                    }}
-                    tag={tag}
-                    unread={unread && isMember}
                     onPress={() => onPressCommunity(community)}
                   />
                 );
@@ -416,6 +358,9 @@ function LivePath({ toolbarOffset, onScroll, interestName, vocab }: LivePathProp
             }
           />
         )}
+
+        {/* Pass 11 — search moves to a quiet pill at the foot. */}
+        <SearchField value={searchQuery} onChangeText={setSearchQuery} />
       </ScrollView>
     </View>
   );
@@ -470,7 +415,7 @@ const styles = StyleSheet.create({
   scrollView: { flex: 1 },
   scrollContent: { paddingBottom: 120 },
 
-  searchOuter: { paddingTop: 6, paddingBottom: 4 },
+  searchOuter: { paddingTop: 16, paddingBottom: 4 },
   searchBar: {
     marginHorizontal: 16,
     height: 36,

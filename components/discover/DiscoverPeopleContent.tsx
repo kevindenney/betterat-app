@@ -1,17 +1,19 @@
 /**
  * DiscoverPeopleContent — People surface of the canonical Discover trio
  *
- * Renders the canonical People cell from
- * `docs/redesign/ios-register/discover-trio-canonical.html`:
+ * Pass 11 (docs/redesign/ios-register/discover-pass-11-brief.md):
  *
- *   - 44px full-round avatar with initials, 16px name, 13px context line
- *   - Optional "Working on …" current concept (rendered only when present in
- *     the data; falls back gracefully when no concept signal is available)
- *   - Strong signals (followed peers, mutual connections, raced/met-with
- *     facts) carry a gray "mine" tag; weak signals carry an outlined
- *     "Suggested" / "Shared club" / "Met at …" tag
+ *   - 44px full-round avatar with initials, 16px name, 13px context line.
+ *   - No "Following" chip on the list view — following is a tap-deeper
+ *     decision, not a list-row state. The Following chip stays on the
+ *     Person detail page where the user actually toggles it.
+ *   - No follower counts — engagement-metric named-absence rule. Peer
+ *     signals (mutuals, similarity reason) stay; the metric goes.
+ *   - The "Network browsing" promo entry card is gone — the whole surface
+ *     is browsing; the card was redundant chrome on top of the chrome.
  *   - Followed and undiscovered peers mix in one list (canonical position:
- *     no section split)
+ *     no section split).
+ *   - Search moves to a quiet pill at the foot, after the list.
  *
  * Both the sailing live path (Supabase + `useSailorSuggestions`) and the
  * non-sailing demo path (from `connectDemoData`) render through the same
@@ -22,7 +24,6 @@ import React, { useCallback, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Platform,
-  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -86,7 +87,6 @@ export function DiscoverPeopleContent({
         toolbarOffset={toolbarOffset}
         onScroll={onScroll}
         peers={demoData.peers}
-        searchPlaceholder={demoData.searchPlaceholder ?? 'Find people'}
         interestName={interestName}
         searchQuery={searchQuery}
         setSearchQuery={setSearchQuery}
@@ -117,7 +117,6 @@ interface DemoPathProps {
   toolbarOffset: number;
   onScroll?: (event: NativeSyntheticEvent<NativeScrollEvent>) => void;
   peers: DemoPeer[];
-  searchPlaceholder: string;
   interestName?: string;
   searchQuery: string;
   setSearchQuery: (q: string) => void;
@@ -134,8 +133,8 @@ function DemoPath({
   searchQuery,
   setSearchQuery,
   searchInputRef,
-  followedIds,
-  onToggleFollow,
+  followedIds: _followedIds,
+  onToggleFollow: _onToggleFollow,
 }: DemoPathProps) {
   const router = useRouter();
   const filtered = useMemo(() => {
@@ -164,27 +163,14 @@ function DemoPath({
         scrollEventThrottle={16}
         keyboardShouldPersistTaps="handled"
       >
-        <EntryCard
-          title="People you follow"
-          body="Open the list of people you already follow, then view their public settled steps."
-          onPress={() => router.push('/discover/following' as any)}
-        />
-
-        <SearchField
-          ref={searchInputRef}
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-        />
-
         {filtered.length > 0 ? (
           <>
             <CanonicalListEyebrow {...eyebrow} />
             <CanonicalList>
               {filtered.map((peer, idx) => {
-                const isFollowing = followedIds.has(peer.id);
-                const tag: PersonTag = isFollowing
-                  ? { kind: 'mine', label: 'Following', icon: 'checkmark' }
-                  : { kind: 'weak', label: 'Suggested' };
+                // Pass 11 — no Following chip on list view. Suggested stays as
+                // the system-recommendation signal for not-yet-followed peers.
+                const tag: PersonTag | undefined = { kind: 'weak', label: 'Suggested' };
                 return (
                   <CanonicalPersonRow
                     key={peer.id}
@@ -198,7 +184,11 @@ function DemoPath({
                     tag={tag}
                     onPress={() => {
                       triggerHaptic('selection');
-                      onToggleFollow(peer.id);
+                      const initials = peer.avatarInitials || initialsForName(peer.name);
+                      const sub = peer.stat ? `${peer.subtitle} · ${peer.stat}` : peer.subtitle;
+                      router.push(
+                        `/discover/person/${peer.id}?from=people&name=${encodeURIComponent(peer.name)}&sub=${encodeURIComponent(sub)}&initials=${encodeURIComponent(initials)}` as any,
+                      );
                     }}
                   />
                 );
@@ -210,6 +200,13 @@ function DemoPath({
             label={searchQuery ? `No people match “${searchQuery}” yet.` : 'No people available.'}
           />
         )}
+
+        {/* Pass 11 — search moves to a quiet pill at the foot. */}
+        <SearchField
+          ref={searchInputRef}
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+        />
       </ScrollView>
     </View>
   );
@@ -242,7 +239,7 @@ function LivePath({
 
   const handlePersonPress = useCallback(
     (userId: string) => {
-      router.push(`/sailor/${userId}`);
+      router.push(`/discover/person/${userId}?from=people` as any);
     },
     [router]
   );
@@ -255,11 +252,11 @@ function LivePath({
     [toggleFollow]
   );
 
+  // Pass 11 — no "Following" chip on the list view. Surface peer-overlap
+  // signals (mutuals, similarity reason) only; following is a tap-deeper
+  // decision that lives on the Person detail page.
   const tagFor = useCallback(
     (sailor: SailorSuggestion): PersonTag => {
-      if (followedIds.has(sailor.userId)) {
-        return { kind: 'mine', label: 'Following', icon: 'checkmark' };
-      }
       if (sailor.mutualConnections && sailor.mutualConnections > 0) {
         return {
           kind: 'mine',
@@ -279,7 +276,7 @@ function LivePath({
       }
       return { kind: 'weak', label: 'Suggested' };
     },
-    [followedIds]
+    []
   );
 
   const eyebrow = searchQuery
@@ -298,18 +295,6 @@ function LivePath({
         scrollEventThrottle={16}
         keyboardShouldPersistTaps="handled"
       >
-        <EntryCard
-          title="People you follow"
-          body="Open the list of people you already follow, then browse their public settled steps."
-          onPress={() => router.push('/discover/following' as any)}
-        />
-
-        <SearchField
-          ref={searchInputRef}
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-        />
-
         {isLoading ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={IOS_COLORS.systemBlue} />
@@ -332,11 +317,8 @@ function LivePath({
                     `${mutuals} mutual${mutuals === 1 ? '' : 's'}`
                   );
                 }
-                if (sailor.followerCount != null) {
-                  descriptorParts.push(
-                    `${sailor.followerCount} ${sailor.followerCount === 1 ? 'follower' : 'followers'}`
-                  );
-                }
+                // Pass 11 — followerCount dropped from descriptor (engagement-
+                // metric named-absence rule).
                 if (longReason && descriptorParts.length === 0) {
                   descriptorParts.push(longReason);
                 }
@@ -384,6 +366,13 @@ function LivePath({
             }
           />
         )}
+
+        {/* Pass 11 — search moves to a quiet pill at the foot. */}
+        <SearchField
+          ref={searchInputRef}
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+        />
       </ScrollView>
     </View>
   );
@@ -427,29 +416,6 @@ function EmptyState({ label }: { label: string }) {
   );
 }
 
-function EntryCard({
-  title,
-  body,
-  onPress,
-}: {
-  title: string;
-  body: string;
-  onPress: () => void;
-}) {
-  return (
-    <View style={styles.entryOuter}>
-      <Pressable style={styles.entryCard} onPress={onPress}>
-        <View style={styles.entryCopy}>
-          <Text style={styles.entryEyebrow}>Network browsing</Text>
-          <Text style={styles.entryTitle}>{title}</Text>
-          <Text style={styles.entryBody}>{body}</Text>
-        </View>
-        <Text style={styles.entryCta}>Open</Text>
-      </Pressable>
-    </View>
-  );
-}
-
 // =============================================================================
 // STYLES
 // =============================================================================
@@ -459,51 +425,7 @@ const styles = StyleSheet.create({
   scrollView: { flex: 1 },
   scrollContent: { paddingBottom: 120 },
 
-  entryOuter: {
-    paddingTop: 8,
-    paddingBottom: 6,
-    paddingHorizontal: 16,
-  },
-  entryCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: '#E5E7EB',
-    paddingHorizontal: 14,
-    paddingVertical: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 16,
-  },
-  entryCopy: {
-    flex: 1,
-    gap: 4,
-  },
-  entryEyebrow: {
-    fontSize: 11,
-    fontWeight: '700',
-    letterSpacing: 0.5,
-    textTransform: 'uppercase',
-    color: IOS_REGISTER.labelSecondary,
-  },
-  entryTitle: {
-    fontSize: 17,
-    fontWeight: '600',
-    color: IOS_REGISTER.label,
-  },
-  entryBody: {
-    fontSize: 13,
-    lineHeight: 18,
-    color: IOS_REGISTER.labelSecondary,
-  },
-  entryCta: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: IOS_COLORS.systemBlue,
-  },
-
-  searchOuter: { paddingTop: 6, paddingBottom: 4 },
+  searchOuter: { paddingTop: 16, paddingBottom: 4 },
   searchBar: {
     marginHorizontal: 16,
     height: 36,

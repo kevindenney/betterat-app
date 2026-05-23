@@ -1,27 +1,26 @@
 /**
  * DiscoverOrgsContent — Orgs surface of the canonical Discover trio
  *
- * Renders the canonical Orgs cell from
- * `docs/redesign/ios-register/discover-trio-canonical.html`:
+ * Pass 11 (docs/redesign/ios-register/discover-pass-11-brief.md):
  *
- *   - 44px square letter-mark, 16px name, 13px descriptor (join-mode signal)
+ *   - 44px square letter-mark, 16px name, 13px descriptor (join-mode signal).
  *   - Joined orgs sit mixed in the list, marked only by a small gray "Joined"
  *     tag — no chunk-up, no row tint, no section split (canonical position:
- *     mine-and-undiscovered share one scroll)
- *   - List eyebrow names the current interest context
- *   - Search field placeholder is "Find an org"
+ *     mine-and-undiscovered share one scroll).
+ *   - List eyebrow names the current interest context.
+ *   - Join / Request-to-join CTAs moved to the Org detail page. Deciding to
+ *     join is a tap-and-read decision, not a list-row decision.
+ *   - Search moves to a quiet pill at the foot, after the list.
  *
- * Supabase wiring (orgs query, search, join request) is preserved from the
- * previous render path; only the cell visual is replaced. Membership state
- * comes from `useOrgMemberships` so already-joined orgs render with the
- * mine tag regardless of how they were joined.
+ * Supabase wiring (orgs query, search) is preserved from the previous render
+ * path; only the cell visual is replaced. Membership state comes from a
+ * direct lookup so already-joined orgs render with the mine tag.
  */
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Platform,
-  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -59,8 +58,6 @@ interface OrgRow {
   join_mode: OrganizationJoinMode;
 }
 
-type OrgJoinState = 'idle' | 'joining' | 'joined' | 'pending' | 'blocked';
-
 interface DiscoverOrgsContentProps {
   toolbarOffset: number;
   onScroll?: (event: NativeSyntheticEvent<NativeScrollEvent>) => void;
@@ -91,8 +88,7 @@ export function DiscoverOrgsContent({
   onScroll,
 }: DiscoverOrgsContentProps) {
   const router = useRouter();
-  const { user, isGuest } = useAuth();
-  const isLoggedIn = !!user && !isGuest;
+  const { user } = useAuth();
   const { currentInterest } = useInterest();
   const interestSlug = currentInterest?.slug;
   const interestName = currentInterest?.name;
@@ -102,7 +98,6 @@ export function DiscoverOrgsContent({
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<OrgRow[] | null>(null);
   const [searching, setSearching] = useState(false);
-  const [joinStates, setJoinStates] = useState<Record<string, OrgJoinState>>({});
   const [memberOrgIds, setMemberOrgIds] = useState<Set<string>>(new Set());
 
   // Load orgs for current interest
@@ -213,102 +208,33 @@ export function DiscoverOrgsContent({
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  const handleJoin = useCallback(
-    async (org: OrgRow) => {
-      if (!isLoggedIn) {
-        router.push('/(auth)/signup');
-        return;
-      }
-
-      setJoinStates((prev) => ({ ...prev, [org.id]: 'joining' }));
-      try {
-        const result = await organizationDiscoveryService.requestJoin({
-          orgId: org.id,
-          mode: org.join_mode,
-        });
-
-        if (result.status === 'active' || result.status === 'existing') {
-          setJoinStates((prev) => ({ ...prev, [org.id]: 'joined' }));
-          setMemberOrgIds((prev) => new Set(prev).add(org.id));
-        } else if (result.status === 'pending') {
-          setJoinStates((prev) => ({ ...prev, [org.id]: 'pending' }));
-        } else {
-          setJoinStates((prev) => ({ ...prev, [org.id]: 'blocked' }));
-        }
-      } catch (err) {
-        console.error('[DiscoverOrgs] Join error:', err);
-        setJoinStates((prev) => ({ ...prev, [org.id]: 'idle' }));
-      }
-    },
-    [isLoggedIn, router]
-  );
-
   const openOrg = useCallback(
     (org: OrgRow) => {
-      if (org.slug) router.push(`/org/${org.slug}` as any);
+      if (org.slug) router.push(`/discover/org/${org.slug}?from=orgs` as any);
     },
     [router]
-  );
-
-  const resolveJoinedLabel = useCallback(
-    (orgId: string): string | undefined => {
-      const interactive = joinStates[orgId];
-      if (interactive === 'joined') return 'Joined';
-      if (interactive === 'pending') return 'Pending';
-      if (memberOrgIds.has(orgId)) return 'Joined';
-      return undefined;
-    },
-    [joinStates, memberOrgIds]
   );
 
   const renderOrgRow = useCallback(
     (org: OrgRow, index: number) => {
       const initials = initialsForName(org.name);
       const markColor = pickSquareMarkColor(org.id || org.slug || org.name);
-      const joinedLabel = resolveJoinedLabel(org.id);
-      const state = joinStates[org.id] ?? 'idle';
+      const joinedLabel = memberOrgIds.has(org.id) ? 'Joined' : undefined;
 
       return (
-        <View key={org.id}>
-          <CanonicalOrgRow
-            first={index === 0}
-            initials={initials}
-            markColor={markColor}
-            name={org.name}
-            descriptor={joinModeDescriptor(org.join_mode)}
-            joinedLabel={joinedLabel}
-            onPress={() => openOrg(org)}
-          />
-          {/* Inline join affordance — quiet button below the row when not joined,
-              shown only for open / request-to-join orgs (invite-only stays read-only) */}
-          {!joinedLabel &&
-            org.join_mode !== 'invite_only' &&
-            state !== 'joining' && (
-              <Pressable
-                style={styles.inlineJoinBtn}
-                onPress={() => handleJoin(org)}
-                accessibilityRole="button"
-                accessibilityLabel={`Join ${org.name}`}
-              >
-                <Ionicons
-                  name="add-circle-outline"
-                  size={14}
-                  color={IOS_COLORS.systemBlue}
-                />
-                <Text style={styles.inlineJoinBtnText}>
-                  {org.join_mode === 'request_to_join' ? 'Request to join' : 'Join'}
-                </Text>
-              </Pressable>
-            )}
-          {state === 'joining' && (
-            <View style={styles.inlineJoinBtn}>
-              <ActivityIndicator size="small" color={IOS_COLORS.systemBlue} />
-            </View>
-          )}
-        </View>
+        <CanonicalOrgRow
+          key={org.id}
+          first={index === 0}
+          initials={initials}
+          markColor={markColor}
+          name={org.name}
+          descriptor={joinModeDescriptor(org.join_mode)}
+          joinedLabel={joinedLabel}
+          onPress={() => openOrg(org)}
+        />
       );
     },
-    [handleJoin, joinStates, openOrg, resolveJoinedLabel]
+    [memberOrgIds, openOrg]
   );
 
   // Cells to render — search results win when active
@@ -330,32 +256,6 @@ export function DiscoverOrgsContent({
         scrollEventThrottle={16}
         keyboardShouldPersistTaps="handled"
       >
-        {/* Search — single field, surface-tuned placeholder per the canonical */}
-        <View style={styles.searchOuter}>
-          <View style={styles.searchBar}>
-            <Ionicons
-              name="search"
-              size={16}
-              color={IOS_REGISTER.labelSecondary}
-              style={styles.searchLead}
-            />
-            <TextInput
-              style={styles.searchInput}
-              placeholder="Find an org"
-              placeholderTextColor={IOS_REGISTER.labelSecondary}
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-              autoCapitalize="none"
-              autoCorrect={false}
-              clearButtonMode="while-editing"
-              returnKeyType="search"
-            />
-            {searching ? (
-              <ActivityIndicator size="small" color={IOS_REGISTER.labelSecondary} />
-            ) : null}
-          </View>
-        </View>
-
         {!interestSlug && (
           <View style={styles.emptyContainer}>
             <Ionicons name="compass-outline" size={36} color={IOS_REGISTER.labelTertiary} />
@@ -392,6 +292,33 @@ export function DiscoverOrgsContent({
             </Text>
           </View>
         )}
+
+        {/* Pass 11 — search moves to a quiet pill at the foot. */}
+        {interestSlug && (
+          <View style={styles.searchOuter}>
+            <View style={styles.searchBar}>
+              <Ionicons
+                name="search"
+                size={16}
+                color={IOS_REGISTER.labelSecondary}
+              />
+              <TextInput
+                style={styles.searchInput}
+                placeholder="Find an org"
+                placeholderTextColor={IOS_REGISTER.labelSecondary}
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                autoCapitalize="none"
+                autoCorrect={false}
+                clearButtonMode="while-editing"
+                returnKeyType="search"
+              />
+              {searching ? (
+                <ActivityIndicator size="small" color={IOS_REGISTER.labelSecondary} />
+              ) : null}
+            </View>
+          </View>
+        )}
       </ScrollView>
     </View>
   );
@@ -406,9 +333,9 @@ const styles = StyleSheet.create({
   scrollView: { flex: 1 },
   scrollContent: { paddingBottom: 120 },
 
-  // Search — match canonical search field
+  // Search — quiet pill at the foot per Pass 11 brief
   searchOuter: {
-    paddingTop: 6,
+    paddingTop: 16,
     paddingBottom: 4,
   },
   searchBar: {
@@ -421,7 +348,6 @@ const styles = StyleSheet.create({
     gap: 6,
     paddingHorizontal: 10,
   },
-  searchLead: {},
   searchInput: {
     flex: 1,
     fontSize: 15,
@@ -432,24 +358,6 @@ const styles = StyleSheet.create({
       web: { outlineStyle: 'none' } as any,
       default: {},
     }),
-  },
-
-  // Inline join affordance under the row when unjoined + non-invite-only
-  inlineJoinBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 72, // align text past the 44px mark + leading padding
-    paddingVertical: 6,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: IOS_REGISTER.separator,
-  },
-  inlineJoinBtnText: {
-    fontSize: 12.5,
-    fontWeight: '600',
-    color: IOS_COLORS.systemBlue,
-    letterSpacing: -0.05,
   },
 
   // Empty + loading
