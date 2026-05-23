@@ -13,7 +13,7 @@
  * the swipe-to-scroll gesture stops competing once a card is lifted.
  */
 
-import React, { useCallback, useEffect, useMemo, useRef } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { GestureDetector } from 'react-native-gesture-handler';
 import Animated, { useAnimatedStyle } from 'react-native-reanimated';
@@ -60,7 +60,12 @@ export function L2WeekView({
   );
 
   const focusedStep = steps.find((s) => s.id === focusStepId) ?? steps[steps.length - 1];
-  const todayDay: DayKey = focusedStep?.dayOfWeek ?? 'wed';
+  // The "today" highlight in the M T W T F S S strip should follow the
+  // card the user is actually looking at. Mount-time defaults to the
+  // focused card's day; carousel scroll updates it as cards pass the
+  // viewport center.
+  const [scrollDay, setScrollDay] = useState<DayKey | null>(null);
+  const todayDay: DayKey = scrollDay ?? focusedStep?.dayOfWeek ?? 'wed';
 
   // Day-of-week → step (first wins) for the dot row.
   const stepsByDay = new Map<DayKey, TimelineStep>();
@@ -167,6 +172,20 @@ export function L2WeekView({
         snapToInterval={CARD_WIDTH + CARD_GAP}
         decelerationRate="fast"
         scrollEnabled={!drag.isDragging}
+        scrollEventThrottle={32}
+        onScroll={(e) => {
+          // Center-pinned: the card whose midpoint is closest to the
+          // viewport center wins the "today" highlight. CARD_WIDTH +
+          // CARD_GAP is the snap unit, so dividing by it gives the
+          // focused index directly.
+          const x = e.nativeEvent.contentOffset.x;
+          const idx = Math.max(
+            0,
+            Math.min(steps.length - 1, Math.round(x / (CARD_WIDTH + CARD_GAP))),
+          );
+          const nextDay = steps[idx]?.dayOfWeek ?? null;
+          if (nextDay && nextDay !== scrollDay) setScrollDay(nextDay);
+        }}
       >
         {steps.map((step, index) => {
           const isLifted = drag.liftedId === step.id;

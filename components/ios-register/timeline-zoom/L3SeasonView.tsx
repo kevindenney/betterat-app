@@ -90,12 +90,23 @@ export function L3SeasonView({
 
   if (!season) return null;
 
+  // Sticky week headers: the ScrollView's stickyHeaderIndices points at
+  // each WEEK N row's index among the top-level scroll children. Build
+  // a flat list of children (header chrome + toolbar + per-week
+  // [header, cards] pairs) so we can compute the sticky positions
+  // alongside the JSX.
+  const fixedChildrenBeforeWeeks = 2; // headerBlock + toolbar
+  const stickyHeaderIndices = season.weeks.map(
+    (_w, i) => fixedChildrenBeforeWeeks + i * 2,
+  );
+
   return (
     <ScrollView
       style={styles.scroll}
       contentContainerStyle={styles.scrollContent}
       showsVerticalScrollIndicator={false}
       scrollEnabled={!drag.isDragging}
+      stickyHeaderIndices={stickyHeaderIndices}
     >
       <View style={styles.headerBlock}>
         <Text style={styles.title}>{season.title}</Text>
@@ -127,8 +138,11 @@ export function L3SeasonView({
         />
       </View>
 
-      {season.weeks.map((week) => (
-        <View key={week.id} style={styles.weekBlock}>
+      {season.weeks.flatMap((week) => [
+        <View
+          key={`hdr-${week.id}`}
+          style={styles.weekHeaderSticky}
+        >
           <View style={styles.weekHeadRow}>
             <Text style={styles.weekHead}>
               WEEK {week.number}
@@ -136,6 +150,8 @@ export function L3SeasonView({
             </Text>
             <Text style={styles.weekRange}>{week.dateRange}</Text>
           </View>
+        </View>,
+        <View key={`body-${week.id}`} style={styles.weekBody}>
           <View style={styles.cardPair}>
             {week.steps.slice(0, 2).map((step) => {
               const flatIndex = flatSteps.findIndex((s) => s.id === step.id);
@@ -165,8 +181,8 @@ export function L3SeasonView({
             })}
             {week.steps.length === 1 ? <View style={{ flex: 1 }} /> : null}
           </View>
-        </View>
-      ))}
+        </View>,
+      ])}
     </ScrollView>
   );
 }
@@ -360,7 +376,13 @@ const styles = StyleSheet.create({
     color: IOS_REGISTER.accentUserAction,
     letterSpacing: -0.1,
   },
-  weekBlock: {
+  weekHeaderSticky: {
+    backgroundColor: IOS_REGISTER.groundBg,
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 10,
+  },
+  weekBody: {
     paddingHorizontal: 16,
     marginBottom: 20,
   },
