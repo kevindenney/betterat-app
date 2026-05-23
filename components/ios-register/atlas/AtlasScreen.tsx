@@ -50,6 +50,7 @@ import { useWalkTimeAnnotations } from '@/hooks/useWalkTimeAnnotations';
 import { useWindOverlay } from '@/hooks/useWindOverlay';
 import { useTideOverlay } from '@/hooks/useTideOverlay';
 import { useCohortHeatmap } from '@/hooks/useCohortHeatmap';
+import { useCompetencyGlow } from '@/hooks/useCompetencyGlow';
 import {
   AtlasPin,
   ClusterTag,
@@ -1016,9 +1017,14 @@ function FrameF4({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
     interestSlug: 'nursing',
     enabled: showHeatmap,
   });
+  // Competency-evidence glow — annotates institution POIs (JHH, Bayview,
+  // etc.) with a `glowCluster` derived from the nearest heatmap cell so
+  // the renderer paints a soft aura behind each pin in the dominant
+  // competency's color. Free relative to the heatmap query.
+  const framePinsWithGlow = useCompetencyGlow(framePins, heatmapCells);
   const pins = useMemo(
-    () => [...heatmapCells, ...framePins, ...walkAnnotations],
-    [heatmapCells, framePins, walkAnnotations],
+    () => [...heatmapCells, ...framePinsWithGlow, ...walkAnnotations],
+    [heatmapCells, framePinsWithGlow, walkAnnotations],
   );
   return (
     <View style={shellStyles.frame}>

@@ -144,6 +144,14 @@ export interface AtlasPinSpec {
    * POIs never cluster (geography vs population).
    */
   clusterCount?: number;
+  /**
+   * Competency-evidence glow cluster — when set on an institution POI
+   * (hospital/club), the renderer paints a soft aura behind the pin in
+   * the cluster's color (cardiac/respiratory/medication/general). Set
+   * by useCompetencyGlow which projects cohort heatmap dominant clusters
+   * onto nearby POIs.
+   */
+  glowCluster?: string;
 }
 
 interface AtlasMapLibreCanvasProps {
@@ -215,6 +223,7 @@ export function AtlasMapLibreCanvas({
               kind={pin.kind}
               label={pin.label}
               clusterCount={pin.clusterCount}
+              glowCluster={pin.glowCluster}
               showLabel={shouldShowLabel(pin, pins)}
             />
           </MLMarker>
@@ -395,11 +404,13 @@ function LabeledPin({
   kind,
   label,
   clusterCount,
+  glowCluster,
   showLabel = true,
 }: {
   kind: AtlasPinSpec['kind'];
   label?: string;
   clusterCount?: number;
+  glowCluster?: string;
   /** When false, suppress the label pill — used for label-hide-until-tap at z11+. */
   showLabel?: boolean;
 }) {
@@ -461,14 +472,26 @@ function LabeledPin({
     );
   }
   const tone = PIN_TONE[kind];
+  const glowColor = glowCluster ? COHORT_CLUSTER_TONE[glowCluster] : undefined;
   return (
     <View style={styles.pinRow}>
-      <PinGlyph
-        shape={tone.shape}
-        size={tone.size}
-        color={tone.color}
-        clusterCount={clusterCount}
-      />
+      <View style={styles.glyphCol}>
+        {glowColor ? (
+          <View
+            pointerEvents="none"
+            style={[
+              styles.glowAura,
+              { backgroundColor: glowColor },
+            ]}
+          />
+        ) : null}
+        <PinGlyph
+          shape={tone.shape}
+          size={tone.size}
+          color={tone.color}
+          clusterCount={clusterCount}
+        />
+      </View>
       {showLabel && label ? (
         <Text style={styles.pinLabel} numberOfLines={1}>
           {label}
@@ -647,6 +670,18 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: 'rgba(28, 28, 30, 0.9)',
     letterSpacing: 0.2,
+  },
+  glyphCol: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  glowAura: {
+    position: 'absolute',
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    top: -9,
+    left: -9,
   },
   nextTag: {
     backgroundColor: '#FFE6B0',
