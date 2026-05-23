@@ -259,7 +259,6 @@ export function TimelineZoomCanvas({
           level !== 1 && !select.enabled ? (
             <CanvasTopBar
               interestLabel={dataset.interest.label}
-              user={dataset.user}
               onPressBell={() => setInboxOpen(true)}
             />
           ) : null

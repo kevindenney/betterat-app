@@ -24,16 +24,15 @@ import { openInterestSwitcher } from '@/components/InterestSwitcher';
 import { useUniversalPlus } from '@/components/capture';
 import { useUnreadNotificationCount } from '@/hooks/useNotifications';
 import { useCrewThreadsUnreadCount } from '@/hooks/useCrewThreads';
+import { ProfileDropdown } from '@/components/ui/ProfileDropdown';
 
 interface CanvasTopBarProps {
   interestLabel: string;
-  user: { initials: string; color: string };
   onPressBell: () => void;
 }
 
 export function CanvasTopBar({
   interestLabel,
-  user,
   onPressBell,
 }: CanvasTopBarProps) {
   const universalPlus = useUniversalPlus();
@@ -80,14 +79,12 @@ export function CanvasTopBar({
           accessibilityLabel="Notifications"
         />
 
-        <Pressable
-          style={[styles.avatar, { backgroundColor: user.color }]}
-          onPress={() => router.push('/profile' as never)}
-          accessibilityLabel="Profile"
-          hitSlop={6}
-        >
-          <Text style={styles.avatarText}>{user.initials}</Text>
-        </Pressable>
+        {/* Role-aware popover (Frames 1–3 of the institutions pass) —
+            handles its own avatar + dropdown menu (Profile/Notifications/
+            Subscribed/Authoring/Help/Sign out, with role-specific sections
+            for faculty/admin). Avatar is sized 28px to match the rest of
+            the cluster. */}
+        <ProfileDropdown size={28} />
       </View>
     </View>
   );
@@ -182,18 +179,5 @@ const styles = StyleSheet.create({
     fontSize: 8,
     fontWeight: '700',
     letterSpacing: 0.1,
-  },
-  avatar: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginLeft: 4,
-  },
-  avatarText: {
-    color: '#FFFFFF',
-    fontSize: 11,
-    fontWeight: '600',
   },
 });
