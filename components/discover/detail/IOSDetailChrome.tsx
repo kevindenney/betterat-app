@@ -587,11 +587,13 @@ export interface InCommonRowProps {
   icon?: keyof typeof Ionicons.glyphMap;
   children: React.ReactNode;
   when?: string;
+  /** Tap target — opens the primary anchor in the row (org, topic, race…). */
+  onPress?: () => void;
   isFirst?: boolean;
 }
 
-export function InCommonRow({ icon, children, when, isFirst }: InCommonRowProps) {
-  return (
+export function InCommonRow({ icon, children, when, onPress, isFirst }: InCommonRowProps) {
+  const body = (
     <View
       style={[rowStyles.incommon, !isFirst && rowStyles.incommonBorder]}
     >
@@ -604,8 +606,12 @@ export function InCommonRow({ icon, children, when, isFirst }: InCommonRowProps)
         <Text style={rowStyles.incommonText}>{children}</Text>
         {when ? <Text style={rowStyles.incommonWhen}>{when}</Text> : null}
       </View>
+      {onPress ? (
+        <Ionicons name="chevron-forward" size={14} color={LABEL_3} />
+      ) : null}
     </View>
   );
+  return onPress ? <Pressable onPress={onPress}>{body}</Pressable> : body;
 }
 
 // =============================================================================

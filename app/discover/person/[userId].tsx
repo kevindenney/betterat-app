@@ -282,17 +282,30 @@ function PersonDetailScreenInner() {
           />
         </IOSDetailSection>
 
-        {/* In common — concrete anchors with italic emphasis.
-            These rows are intentionally inert: the in-common surface is a
-            *frame* for shared context, not a navigation surface. Drilling
-            into "Spring Series 2026" or "Heavy-air starts" belongs on the
-            italic anchor itself once topic/race detail surfaces exist. */}
+        {/* In common — concrete anchors with italic emphasis. Each row
+            drills into the primary anchor (the italic noun). */}
         <IOSDetailSection header="In common">
-          <InCommonRow icon="boat-outline" when="14–17 Apr · you finished 4th, Tomás 7th" isFirst>
-            You both raced <Text style={styles.italic}>Spring Series 2026</Text> at RHKYC.
+          <InCommonRow
+            icon="boat-outline"
+            when="Both based out of Victoria Harbour"
+            onPress={() =>
+              router.push(
+                '/discover/org/royal-hong-kong-yacht-club?from=people' as any,
+              )
+            }
+            isFirst
+          >
+            You both race out of <Text style={styles.italic}>RHKYC</Text>.
           </InCommonRow>
-          <InCommonRow icon="grid-outline">
-            You both follow <Text style={styles.italic}>Heavy-air starts</Text>.
+          <InCommonRow
+            icon="grid-outline"
+            onPress={() =>
+              router.push(
+                `/discover/topic/rhkyc-dragon-rig-setup?from=people&name=${encodeURIComponent('Dragon fleet · rig setup')}` as any,
+              )
+            }
+          >
+            You both follow <Text style={styles.italic}>Dragon fleet · rig setup</Text>.
           </InCommonRow>
         </IOSDetailSection>
 
