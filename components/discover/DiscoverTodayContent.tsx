@@ -23,8 +23,9 @@
  *     are checked (feedback_membership_status_split). Cross-interest
  *     fallback is intentionally absent — a nursing-school membership
  *     mustn't show under Sail Racing.
- *   - Vocabulary-aware eyebrow via vocab('Institution'): Yacht Club /
- *     Clinical Site / Studio / Gym / Training Group.
+ *   - Eyebrow is plain "NOW HAPPENING". The brief's "AT YOUR CLUB" was
+ *     sailing-specific; the home-org card directly below already names the
+ *     institution.
  *   - "This week's pick" + "Also for you" land when automated scoring is
  *     implemented. The scoring sketch lives in the Pass 11 brief.
  */
@@ -42,7 +43,6 @@ import type { NativeScrollEvent, NativeSyntheticEvent } from 'react-native';
 
 import { useAuth } from '@/providers/AuthProvider';
 import { useInterest } from '@/providers/InterestProvider';
-import { useVocabulary } from '@/hooks/useVocabulary';
 import { supabase } from '@/services/supabase';
 import { IOS_COLORS, IOS_REGISTER } from '@/lib/design-tokens-ios';
 import { initialsForName, pickSquareMarkColor } from '@/components/discover/canonical';
@@ -167,15 +167,15 @@ export function DiscoverTodayContent({
   onScroll,
 }: DiscoverTodayContentProps) {
   const homeOrg = useHomeOrg();
-  const { vocab } = useVocabulary();
   const todayLabel = useMemo(() => formatTodayLabel(new Date()), []);
 
-  // Vocabulary-aware eyebrow. The brief's "AT YOUR CLUB" is sailing-specific;
-  // BetterAt is multi-interest so the institution word swaps in:
-  //   sail-racing → "Yacht Club"   nursing → "Clinical Site"
-  //   drawing     → "Studio"       fitness → "Gym"
-  const institutionWord = vocab('Institution').toUpperCase();
-  const nowHappeningEyebrow = `NOW HAPPENING AT YOUR ${institutionWord}`;
+  // Eyebrow is intentionally plain "NOW HAPPENING" instead of the brief's
+  // sailing-flavored "NOW HAPPENING AT YOUR CLUB". The home-org card
+  // directly below already names the institution; an "AT YOUR ___" framer
+  // either repeats that or, worse, miscategorizes it (calling a nursing
+  // school a "club" or a "clinical site"). The plain eyebrow generalizes
+  // across every interest without vocab gymnastics.
+  const nowHappeningEyebrow = 'NOW HAPPENING';
 
   return (
     <ScrollView
