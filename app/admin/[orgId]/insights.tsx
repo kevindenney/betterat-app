@@ -25,6 +25,8 @@ import {
   EvidenceCell,
 } from '@/hooks/useAdminCompetencyEvidence';
 import { InsightsMapView } from '@/components/admin/InsightsMapView';
+import { ManageCompetenciesSheet } from '@/components/admin/ManageCompetenciesSheet';
+import { useProfileMenuData } from '@/hooks/useProfileMenuData';
 import { StudioHeader, StudioButton } from '@/components/studio/StudioShell';
 
 type InsightsView = 'grid' | 'map';
@@ -32,7 +34,11 @@ type InsightsView = 'grid' | 'map';
 export default function AdminInsightsPage() {
   const { orgId } = useLocalSearchParams<{ orgId: string }>();
   const data = useAdminCompetencyEvidence(orgId as string);
+  const menu = useProfileMenuData();
   const [view, setView] = useState<InsightsView>('grid');
+  const [manageOpen, setManageOpen] = useState(false);
+  const activeOrg = menu.memberships.find((m) => m.org_id === orgId) ?? menu.activeOrg;
+  const orgShortName = activeOrg ? shortNameFor(activeOrg.org_name) : 'Your org';
 
   return (
     <AdminShell activeKey="insights">
@@ -80,6 +86,12 @@ export default function AdminInsightsPage() {
                 </Text>
               </Pressable>
             </View>
+            <StudioButton
+              variant="ghost"
+              icon="construct-outline"
+              label="Manage competencies"
+              onPress={() => setManageOpen(true)}
+            />
             <StudioButton variant="ghost" icon="download-outline" label="Export · CSV" />
             <StudioButton
               variant="primary"
@@ -157,8 +169,22 @@ export default function AdminInsightsPage() {
           </Text>
         </View>
       ) : null}
+
+      <ManageCompetenciesSheet
+        visible={manageOpen}
+        orgId={orgId as string}
+        orgShortName={orgShortName}
+        onClose={() => setManageOpen(false)}
+      />
     </AdminShell>
   );
+}
+
+function shortNameFor(orgName: string): string {
+  if (orgName.includes(' · ')) return orgName.split(' · ').slice(0, 2).join(' ');
+  const tokens = orgName.split(/\s+/).filter(Boolean);
+  if (tokens.length <= 2) return orgName;
+  return tokens.map((t) => t[0]).join('').toUpperCase();
 }
 
 // ---------------------------------------------------------------------------
