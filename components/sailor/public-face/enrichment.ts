@@ -40,7 +40,16 @@ export interface PublicFaceEnrichment {
   /** Past concepts the practitioner has worked through (newest first). */
   conceptHistory?: { title: string; capability?: string; closed: string; text?: string }[];
   /** Practice timeline entries — chronological feed. */
-  timeline?: { title: string; settled?: boolean; sub: string; when: string }[];
+  timeline?: {
+    title: string;
+    settled?: boolean;
+    sub: string;
+    when: string;
+    /** Trophy id when settled — taps drill into /sailor/[userId]/trophy/[trophyId]. */
+    trophyId?: string;
+  }[];
+  /** Trophies keyed by id — the settled-concept deep page reads from here. */
+  trophies?: Record<string, Trophy>;
   /** Capabilities (visible 4, all behind link). */
   capabilities?: {
     name: string;
@@ -80,6 +89,31 @@ export interface PublicFaceEnrichment {
 type PublishedItem =
   | { kind: 'reflection'; text: string; provenance: string }
   | { kind: 'thread'; title: string; topic: string; replies: number; when: string };
+
+/**
+ * Trophy — the settled-concept deep page model.
+ *
+ * A trophy is what a practitioner walks away with when a concept settles:
+ * a name, the date it closed, the moment-of-realization synthesis they
+ * wrote, the journey of practice that earned it, the capabilities it
+ * settled, and the people who were part of the practice circle for it.
+ */
+export interface Trophy {
+  /** Display title — "Heavy-air helm work", "Trust the shift". */
+  title: string;
+  /** When the concept settled — "Mar 2026". */
+  settledAt: string;
+  /** Closing synthesis — italic-serif body the practitioner wrote at close. */
+  synthesis: { text: string; provenance: string };
+  /** Capabilities settled by this trophy — chip list. */
+  capabilities?: string[];
+  /** The journey — 4-8 reflections/debriefs that built up to settling. */
+  journey?: { text: string; when: string }[];
+  /** Who was part of this practice — subset of the practice circle. */
+  circleInThis?: { name: string; role: string; initials: string; userId?: string }[];
+  /** Optional follow-up concept — closes the loop with what's being worked on now. */
+  grewInto?: { title: string; sub?: string };
+}
 
 // =============================================================================
 // Lookup
@@ -141,6 +175,7 @@ const MARKUS: PublicFaceEnrichment = {
         'The conditions where my technique lives. Closed with the trophy ' +
         'synthesis; the concept now references this when it surfaces.',
       when: 'Mar 2026',
+      trophyId: 'heavy-air-helm',
     },
     {
       title: 'Decision-making under start-line pressure',
@@ -149,12 +184,14 @@ const MARKUS: PublicFaceEnrichment = {
         'Eight reflections, six races, then a Sunday where it stopped ' +
         'feeling like a decision.',
       when: 'Sep 2025',
+      trophyId: 'start-line-patience',
     },
     {
       title: 'Reading shifts on a tight reach',
       settled: true,
       sub: 'Closed in the bay series before the Hong Kong move.',
       when: 'Apr 2025',
+      trophyId: 'tight-reach-shifts',
     },
     {
       title: 'Bear-away under spinnaker, on the limit',
@@ -164,6 +201,124 @@ const MARKUS: PublicFaceEnrichment = {
       when: 'Aug 2024',
     },
   ],
+  trophies: {
+    'heavy-air-helm': {
+      title: 'Heavy-air helm work',
+      settledAt: 'Mar 2026',
+      synthesis: {
+        text:
+          'The day I stopped fighting the boat. Twenty-two knots, port-tack ' +
+          'lift on the second beat, and I didn’t tell my hands what to do — ' +
+          'they were already there. The technique wasn’t a thing I was ' +
+          'applying anymore. It was the shape of how I sit on the rail.',
+        provenance: 'Closing synthesis · 14 Mar 2026 · RHKYC Spring Series Race 4',
+      },
+      capabilities: ['Heavy-air helm work', 'Reading the starboard layline'],
+      journey: [
+        {
+          text:
+            'Kept the boat flat through the third leg without thinking ' +
+            'about kept-the-boat-flat. The technique was just there.',
+          when: '14 Mar 2026',
+        },
+        {
+          text:
+            'Sam told me to stop counting and just feel the puff arrive. ' +
+            'Second time I tried it the boat answered.',
+          when: '28 Feb 2026',
+        },
+        {
+          text:
+            'I’m still overcorrecting on port-tack lifts. The boat tells ' +
+            'me before I tell the boat.',
+          when: '7 Feb 2026',
+        },
+        {
+          text:
+            'Twenty-four knots and I had to remind myself to breathe. ' +
+            'Not yet a place I trust myself.',
+          when: '21 Jan 2026',
+        },
+      ],
+      circleInThis: [
+        {
+          name: 'Sam Whittaker',
+          role: 'Coach · drilled this with me through the winter',
+          initials: 'SW',
+          userId: '22222222-2222-2222-2222-000000000001',
+        },
+        {
+          name: 'Hugo Mira',
+          role: 'Tactician · crewed Aeolus through three of the closing races',
+          initials: 'HM',
+          userId: '22222222-2222-2222-2222-000000000003',
+        },
+      ],
+      grewInto: {
+        title: 'Holding the boat down through the heavy second beat',
+        sub: 'The current concept — what this trophy gave way to.',
+      },
+    },
+    'start-line-patience': {
+      title: 'Decision-making under start-line pressure',
+      settledAt: 'Sep 2025',
+      synthesis: {
+        text:
+          'The week the start stopped feeling like a decision and started ' +
+          'feeling like a position I already held. The work wasn’t to start ' +
+          'better. The work was to want different things at the gun.',
+        provenance: 'Closing synthesis · 19 Sep 2025 · RHKYC Autumn Series Race 2',
+      },
+      capabilities: ['Pre-start positioning in a shifty breeze'],
+      journey: [
+        {
+          text:
+            'Didn’t need to look up. I knew where I was relative to the line.',
+          when: '19 Sep 2025',
+        },
+        {
+          text:
+            'Patricia ran me through six start sequences in a half hour. ' +
+            'The fifth one I made the call before she finished the question.',
+          when: '5 Sep 2025',
+        },
+        {
+          text:
+            'Reset everything: stopped trying to win the start, started ' +
+            'trying to be where I wanted the second beat from.',
+          when: '12 Aug 2025',
+        },
+      ],
+      circleInThis: [
+        {
+          name: 'Patricia Cho',
+          role: 'Faculty · settled this concept with Markus',
+          initials: 'PC',
+          userId: '22222222-2222-2222-2222-000000000002',
+        },
+      ],
+    },
+    'tight-reach-shifts': {
+      title: 'Reading shifts on a tight reach',
+      settledAt: 'Apr 2025',
+      synthesis: {
+        text:
+          'The reach used to be the recovery leg. After the bay series, ' +
+          'it’s where I make up the ground. I stopped looking at the ' +
+          'masthead fly and started watching the water two boat-lengths ahead.',
+        provenance: 'Closing synthesis · 22 Apr 2025 · YC Argentino bay series',
+      },
+      capabilities: ['Tactical reads'],
+      journey: [
+        {
+          text:
+            'Closed it in the bay series before the Hong Kong move — three ' +
+            'races where the reach worked exactly how I wanted it to.',
+          when: '22 Apr 2025',
+        },
+      ],
+    },
+  },
   capabilities: [
     {
       name: 'Heavy-air helm work',
@@ -308,4 +463,8 @@ const ENRICHMENT_BY_ID: Record<string, PublicFaceEnrichment> = {
 
 export function getPublicFaceEnrichment(userId: string): PublicFaceEnrichment {
   return ENRICHMENT_BY_ID[userId] ?? EMPTY;
+}
+
+export function getTrophy(userId: string, trophyId: string): Trophy | undefined {
+  return getPublicFaceEnrichment(userId).trophies?.[trophyId];
 }

@@ -241,6 +241,11 @@ function PublicFaceScreenInner({ userId }: { userId: string }) {
                 settled={t.settled}
                 sub={t.sub}
                 when={t.when}
+                onPress={
+                  t.trophyId
+                    ? () => router.push(`/sailor/${userId}/trophy/${t.trophyId}` as any)
+                    : undefined
+                }
                 isFirst={i === 0}
               />
             ))}

@@ -5,7 +5,7 @@
  */
 
 import React from 'react';
-import { useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, router } from 'expo-router';
 
 import { PublicFaceListShell } from '@/components/sailor/public-face/PublicFaceListShell';
 import { TrophyRowPublic } from '@/components/sailor/public-face/PublicFacePrimitives';
@@ -30,6 +30,11 @@ export default function SailorTimelineRoute() {
           settled={t.settled}
           sub={t.sub}
           when={t.when}
+          onPress={
+            t.trophyId
+              ? () => router.push(`/sailor/${userId}/trophy/${t.trophyId}` as any)
+              : undefined
+          }
           isFirst={i === 0}
         />
       ))}
