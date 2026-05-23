@@ -59,11 +59,7 @@ export function PlaybookLanding({
 
   return (
     <View style={styles.wrap}>
-      {hideHero ? (
-        <Text style={styles.statsAlone}>
-          {stats.insights} insights · {stats.testing} testing · {stats.settled} settled
-        </Text>
-      ) : (
+      {hideHero ? null : (
         <View style={styles.hero}>
           <Text style={styles.title}>Playbook</Text>
           <Text style={styles.stats}>
@@ -232,13 +228,6 @@ const styles = StyleSheet.create({
   stats: {
     fontSize: 15,
     color: '#3C3C43',
-  },
-  statsAlone: {
-    fontSize: 13,
-    color: '#3C3C43',
-    paddingHorizontal: 16,
-    paddingTop: 12,
-    paddingBottom: 8,
   },
   section: {
     gap: 12,

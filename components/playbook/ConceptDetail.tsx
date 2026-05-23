@@ -1,6 +1,9 @@
 import React, { useMemo, useState } from 'react';
 import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { FLOATING_TAB_BAR_HEIGHT } from '@/components/navigation/FloatingTabBar';
 import { useAuth } from '@/providers/AuthProvider';
 import { useInterest } from '@/providers/InterestProvider';
 import {
@@ -22,6 +25,7 @@ import { showAlert } from '@/lib/utils/crossPlatformAlert';
 import type { TimelineStepRecord } from '@/types/timeline-steps';
 
 export function ConceptDetail({ conceptId }: { conceptId: string }) {
+  const insets = useSafeAreaInsets();
   const { user } = useAuth();
   const { currentInterest } = useInterest();
   const { data: playbook } = usePlaybook(currentInterest?.id);
@@ -106,9 +110,28 @@ export function ConceptDetail({ conceptId }: { conceptId: string }) {
   };
 
   return (
-    <ScrollView style={styles.page} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-      <Pressable onPress={() => router.back()} style={styles.back}>
-        <Text style={styles.backText}>Back to Playbook</Text>
+    <ScrollView
+      style={styles.page}
+      contentContainerStyle={[
+        styles.content,
+        {
+          paddingTop: insets.top + 12,
+          paddingBottom: FLOATING_TAB_BAR_HEIGHT + insets.bottom + 24,
+        },
+      ]}
+      showsVerticalScrollIndicator={false}
+    >
+      <Pressable
+        onPress={() =>
+          router.canGoBack() ? router.back() : router.replace('/(tabs)/library' as any)
+        }
+        accessibilityRole="button"
+        accessibilityLabel="Back to Library"
+        hitSlop={8}
+        style={styles.back}
+      >
+        <Ionicons name="chevron-back" size={18} color="#007AFF" />
+        <Text style={styles.backText}>Library</Text>
       </Pressable>
 
       <View style={styles.head}>
@@ -243,12 +266,16 @@ const styles = StyleSheet.create({
     backgroundColor: '#F2F2F7',
   },
   content: {
-    padding: 16,
-    paddingBottom: 96,
+    paddingHorizontal: 16,
     gap: 14,
   },
   back: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
     alignSelf: 'flex-start',
+    paddingVertical: 4,
+    marginBottom: 4,
   },
   backText: {
     fontSize: 15,

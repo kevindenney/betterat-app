@@ -117,29 +117,34 @@ export function LibrarianNoticedCard({ observation }: Props) {
         </View>
       </Pressable>
 
+      {/* Actions stack vertically so the primary CTA always gets full
+          width — a horizontal row left the long primary label fighting
+          for space with the secondary on iPhone-mini-class widths, and
+          the primary occasionally dropped out of layout. Vertical is
+          also the canonical pattern from the Librarian register. */}
       <View style={styles.actions}>
         <Pressable
           onPress={primaryAction.onPress}
           accessibilityRole="button"
           accessibilityLabel={primaryAction.label}
-          style={({ pressed }) => [
-            styles.primaryBtn,
-            pressed && styles.btnPressed,
-          ]}
+          style={styles.primaryBtn}
+          android_ripple={{ color: 'rgba(255,255,255,0.2)' }}
         >
-          <Text style={styles.primaryBtnText}>{primaryAction.label}</Text>
+          <Text style={styles.primaryBtnText} numberOfLines={1}>
+            {primaryAction.label}
+          </Text>
         </Pressable>
         {secondaryAction ? (
           <Pressable
             onPress={secondaryAction.onPress}
             accessibilityRole="button"
             accessibilityLabel={secondaryAction.label}
-            style={({ pressed }) => [
-              styles.secondaryBtn,
-              pressed && styles.btnPressed,
-            ]}
+            style={styles.secondaryBtn}
+            android_ripple={{ color: 'rgba(0,0,0,0.06)' }}
           >
-            <Text style={styles.secondaryBtnText}>{secondaryAction.label}</Text>
+            <Text style={styles.secondaryBtnText} numberOfLines={1}>
+              {secondaryAction.label}
+            </Text>
           </Pressable>
         ) : null}
       </View>
@@ -255,36 +260,32 @@ const styles = StyleSheet.create({
     color: 'rgba(60,60,67,0.6)',
   },
   actions: {
-    flexDirection: 'row',
     gap: 8,
   },
   primaryBtn: {
-    flex: 1.5,
     backgroundColor: LIBRARIAN_PURPLE,
-    paddingVertical: 11,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
     borderRadius: 12,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   primaryBtnText: {
     color: '#FFFFFF',
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '700',
   },
   secondaryBtn: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(60,60,67,0.18)',
-    paddingVertical: 11,
+    backgroundColor: 'transparent',
+    paddingVertical: 10,
+    paddingHorizontal: 14,
     borderRadius: 12,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   secondaryBtnText: {
-    color: IOS_COLORS.label,
+    color: LIBRARIAN_PURPLE_INK,
     fontSize: 13,
     fontWeight: '600',
-  },
-  btnPressed: {
-    opacity: 0.7,
   },
 });
