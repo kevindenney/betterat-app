@@ -26,9 +26,15 @@ export interface CohortMember {
 
 export interface AdminCohortDetail {
   id: string;
+  orgId: string | null;
   name: string;
   description: string | null;
   interestSlug: string | null;
+  status: string | null;
+  maxSeats: number | null;
+  startDate: string | null;
+  endDate: string | null;
+  program: string | null;
   createdAtLabel: string;
   members: CohortMember[];
   mentorCount: number;
@@ -91,7 +97,9 @@ export function useAdminCohortDetail(cohortId: string): {
     queryFn: async (): Promise<AdminCohortDetail | null> => {
       const { data: cohort, error: cohortErr } = await supabase
         .from('betterat_org_cohorts')
-        .select('id, name, description, interest_slug, created_at')
+        .select(
+          'id, org_id, name, description, interest_slug, status, max_seats, start_date, end_date, program, created_at',
+        )
         .eq('id', cohortId)
         .maybeSingle();
       if (cohortErr || !cohort) {
@@ -154,9 +162,15 @@ export function useAdminCohortDetail(cohortId: string): {
 
       return {
         id: cohort.id,
+        orgId: (cohort as { org_id?: string | null }).org_id ?? null,
         name: cohort.name ?? 'Untitled cohort',
         description: cohort.description,
         interestSlug: cohort.interest_slug,
+        status: (cohort as { status?: string | null }).status ?? null,
+        maxSeats: (cohort as { max_seats?: number | null }).max_seats ?? null,
+        startDate: (cohort as { start_date?: string | null }).start_date ?? null,
+        endDate: (cohort as { end_date?: string | null }).end_date ?? null,
+        program: (cohort as { program?: string | null }).program ?? null,
         createdAtLabel: relativeJoined(cohort.created_at),
         members,
         mentorCount,

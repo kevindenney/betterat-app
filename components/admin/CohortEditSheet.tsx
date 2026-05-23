@@ -5,16 +5,12 @@
  * matches ManageCompetenciesSheet — navy-tinted panels, explicit
  * success pill in footer, structured field labels.
  *
- * Sections:
- *  · Basics — name, description, status, start/end dates, max seats, program
- *  · Assigned blueprints — pickable list, on/off check chips
- *  · Mentor assignments — current mentors + Add mentor button
- *  · Footer — success pill, Archive (destructive), Cancel, Done
- *
- * Demo data — writes aren't wired to a real schema yet.
+ * Basics section persists to betterat_org_cohorts (name, description,
+ * status, max_seats, start/end dates, program). Blueprints + mentors
+ * sections are still visual placeholders pending those schemas.
  */
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -24,11 +20,48 @@ import {
   ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/services/supabase';
 
 export interface CohortEditSheetProps {
   visible: boolean;
+  cohortId: string;
+  orgId: string;
   cohortName: string;
+  description?: string | null;
+  status?: string | null;
+  startDate?: string | null;
+  endDate?: string | null;
+  maxSeats?: number | null;
+  program?: string | null;
   onClose: () => void;
+}
+
+const STATUS_OPTIONS: { key: string; label: string; tone: 'ok' | 'warn' | 'neutral' }[] = [
+  { key: 'recruiting', label: 'Recruiting', tone: 'warn' },
+  { key: 'active', label: 'Active', tone: 'ok' },
+  { key: 'completed', label: 'Completed', tone: 'neutral' },
+  { key: 'on_hold', label: 'On hold', tone: 'warn' },
+];
+
+function formatDateForInput(iso: string | null | undefined): string {
+  if (!iso) return '';
+  try {
+    return new Date(iso + (iso.length === 10 ? 'T00:00:00' : '')).toLocaleDateString(undefined, {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    });
+  } catch {
+    return iso;
+  }
+}
+
+function parseInputToIso(input: string): string | null {
+  if (!input.trim()) return null;
+  const d = new Date(input);
+  if (isNaN(d.getTime())) return null;
+  return d.toISOString().slice(0, 10);
 }
 
 interface BlueprintRow {
@@ -67,20 +100,101 @@ const MENTORS: MentorRow[] = [
   { initials: 'JK', tone: 'brown', name: 'J. Kim, RN', role: 'Clinical preceptor · East Baltimore', badge: 'Mentor' },
 ];
 
-export function CohortEditSheet({ visible, cohortName, onClose }: CohortEditSheetProps) {
+export function CohortEditSheet({
+  visible,
+  cohortId,
+  orgId,
+  cohortName,
+  description: initialDescription,
+  status: initialStatus,
+  startDate: initialStartDate,
+  endDate: initialEndDate,
+  maxSeats: initialMaxSeats,
+  program: initialProgram,
+  onClose,
+}: CohortEditSheetProps) {
+  const queryClient = useQueryClient();
+
   const [name, setName] = useState(cohortName);
-  const [description, setDescription] = useState(
-    'Spring/Summer rotation cohort. Medical-surgical, telemetry, and ED placements across 5 partner sites. 30 students.',
+  const [description, setDescription] = useState(initialDescription ?? '');
+  const [status, setStatus] = useState(initialStatus ?? 'active');
+  const [statusOpen, setStatusOpen] = useState(false);
+  const [startDate, setStartDate] = useState(formatDateForInput(initialStartDate));
+  const [endDate, setEndDate] = useState(formatDateForInput(initialEndDate));
+  const [maxSeats, setMaxSeats] = useState(
+    initialMaxSeats != null ? String(initialMaxSeats) : '',
   );
-  const [status] = useState('Active');
-  const [startDate, setStartDate] = useState('Apr 5, 2026');
-  const [endDate, setEndDate] = useState('Aug 14, 2026');
-  const [maxSeats, setMaxSeats] = useState('32');
+  const [program, setProgram] = useState(initialProgram ?? 'BSN · pre-licensure');
+  const [savedAt, setSavedAt] = useState<Date | null>(null);
   const [picked, setPicked] = useState<Record<string, boolean>>(() =>
     BLUEPRINTS.reduce((acc, b) => ({ ...acc, [b.id]: b.on }), {}),
   );
 
+  // Reset form when re-opening with a different cohort
+  useEffect(() => {
+    if (!visible) return;
+    setName(cohortName);
+    setDescription(initialDescription ?? '');
+    setStatus(initialStatus ?? 'active');
+    setStartDate(formatDateForInput(initialStartDate));
+    setEndDate(formatDateForInput(initialEndDate));
+    setMaxSeats(initialMaxSeats != null ? String(initialMaxSeats) : '');
+    setProgram(initialProgram ?? 'BSN · pre-licensure');
+    setSavedAt(null);
+  }, [
+    visible,
+    cohortName,
+    initialDescription,
+    initialStatus,
+    initialStartDate,
+    initialEndDate,
+    initialMaxSeats,
+    initialProgram,
+  ]);
+
+  const saveMutation = useMutation({
+    mutationFn: async () => {
+      const seatsInt = parseInt(maxSeats, 10);
+      const payload: Record<string, unknown> = {
+        name: name.trim(),
+        description: description.trim() || null,
+        status,
+        max_seats: Number.isFinite(seatsInt) ? seatsInt : null,
+        start_date: parseInputToIso(startDate),
+        end_date: parseInputToIso(endDate),
+        program: program.trim() || null,
+      };
+      const { error } = await supabase
+        .from('betterat_org_cohorts')
+        .update(payload)
+        .eq('id', cohortId);
+      if (error) throw error;
+
+      // Audit best-effort
+      await supabase.rpc('audit_log_event', {
+        p_org_id: orgId,
+        p_verb: 'cohort_edit',
+        p_verb_label: 'Edited',
+        p_description: `Updated cohort ${name.trim()} · status ${status}, max seats ${maxSeats || '—'}.`,
+        p_target_type: 'cohort',
+        p_target_id: cohortId,
+        p_target_label: name.trim(),
+        p_payload: { action: 'cohort.update', after: payload },
+      });
+    },
+    onSuccess: () => {
+      setSavedAt(new Date());
+      queryClient.invalidateQueries({ queryKey: ['admin-cohort-detail', cohortId] });
+      queryClient.invalidateQueries({ queryKey: ['admin-cohorts', orgId] });
+      queryClient.invalidateQueries({ queryKey: ['admin-audit-feed', orgId] });
+    },
+  });
+
   if (!visible) return null;
+
+  const saveError = saveMutation.error instanceof Error ? saveMutation.error.message : null;
+  const currentStatusLabel =
+    STATUS_OPTIONS.find((o) => o.key === status)?.label ?? status;
 
   return (
     <View style={s.scrim}>
@@ -123,11 +237,62 @@ export function CohortEditSheet({ visible, cohortName, onClose }: CohortEditShee
               <View style={s.row3}>
                 <View style={{ flex: 1 }}>
                   <Text style={s.fieldLabel}>Status</Text>
-                  <View style={s.selectFake}>
-                    <View style={s.statusDot} />
-                    <Text style={s.selectFakeText}>{status}</Text>
-                    <Ionicons name="chevron-down" size={12} color="rgba(60, 60, 67, 0.4)" />
-                  </View>
+                  <Pressable
+                    style={s.selectFake}
+                    onPress={() => setStatusOpen((v) => !v)}
+                  >
+                    <View
+                      style={[
+                        s.statusDot,
+                        {
+                          backgroundColor:
+                            status === 'active'
+                              ? '#1E8F47'
+                              : status === 'recruiting' || status === 'on_hold'
+                              ? '#C99632'
+                              : 'rgba(60, 60, 67, 0.6)',
+                        },
+                      ]}
+                    />
+                    <Text style={s.selectFakeText}>{currentStatusLabel}</Text>
+                    <Ionicons
+                      name={statusOpen ? 'chevron-up' : 'chevron-down'}
+                      size={12}
+                      color="rgba(60, 60, 67, 0.4)"
+                    />
+                  </Pressable>
+                  {statusOpen ? (
+                    <View style={s.statusDropdown}>
+                      {STATUS_OPTIONS.map((opt) => (
+                        <Pressable
+                          key={opt.key}
+                          style={s.statusOption}
+                          onPress={() => {
+                            setStatus(opt.key);
+                            setStatusOpen(false);
+                          }}
+                        >
+                          <View
+                            style={[
+                              s.statusDot,
+                              {
+                                backgroundColor:
+                                  opt.tone === 'ok'
+                                    ? '#1E8F47'
+                                    : opt.tone === 'warn'
+                                    ? '#C99632'
+                                    : 'rgba(60, 60, 67, 0.6)',
+                              },
+                            ]}
+                          />
+                          <Text style={s.statusOptionText}>{opt.label}</Text>
+                          {status === opt.key ? (
+                            <Ionicons name="checkmark" size={14} color="#28406B" />
+                          ) : null}
+                        </Pressable>
+                      ))}
+                    </View>
+                  ) : null}
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={s.fieldLabel}>Start date</Text>
@@ -160,8 +325,12 @@ export function CohortEditSheet({ visible, cohortName, onClose }: CohortEditShee
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={s.fieldLabel}>Program</Text>
-                  <View style={s.selectFake}>
-                    <Text style={s.selectFakeText}>BSN · pre-licensure</Text>
+                  <TextInput
+                    value={program}
+                    onChangeText={setProgram}
+                    style={s.input}
+                  />
+                  <View style={{ display: 'none' }}>
                     <Ionicons name="chevron-down" size={12} color="rgba(60, 60, 67, 0.4)" />
                   </View>
                 </View>
@@ -246,10 +415,23 @@ export function CohortEditSheet({ visible, cohortName, onClose }: CohortEditShee
         </ScrollView>
 
         <View style={s.mFoot}>
-          <View style={s.successPill}>
-            <Ionicons name="checkmark-circle" size={12} color="#1E8F47" />
-            <Text style={s.successPillText}>Changes saved Apr 12, 4:18p</Text>
-          </View>
+          {savedAt ? (
+            <View style={s.successPill}>
+              <Ionicons name="checkmark-circle" size={12} color="#1E8F47" />
+              <Text style={s.successPillText}>
+                Changes saved{' '}
+                {savedAt.toLocaleTimeString(undefined, {
+                  hour: 'numeric',
+                  minute: '2-digit',
+                })}
+              </Text>
+            </View>
+          ) : saveError ? (
+            <View style={s.errorPill}>
+              <Ionicons name="alert-circle" size={12} color="#FF3B30" />
+              <Text style={s.errorPillText}>{saveError}</Text>
+            </View>
+          ) : null}
           <View style={{ flex: 1 }} />
           <Pressable style={s.btnDangerGhost}>
             <Ionicons name="archive-outline" size={13} color="#FF3B30" />
@@ -258,8 +440,14 @@ export function CohortEditSheet({ visible, cohortName, onClose }: CohortEditShee
           <Pressable style={s.btnGhost} onPress={onClose}>
             <Text style={s.btnGhostText}>Cancel</Text>
           </Pressable>
-          <Pressable style={s.btnPrimary} onPress={onClose}>
-            <Text style={s.btnPrimaryText}>Done</Text>
+          <Pressable
+            style={[s.btnPrimary, saveMutation.isPending && s.btnPrimaryDisabled]}
+            disabled={saveMutation.isPending}
+            onPress={() => saveMutation.mutate()}
+          >
+            <Text style={s.btnPrimaryText}>
+              {saveMutation.isPending ? 'Saving…' : 'Done'}
+            </Text>
           </Pressable>
         </View>
       </View>
@@ -456,6 +644,38 @@ const s = StyleSheet.create({
     borderRadius: 999,
   },
   successPillText: { fontSize: 11, fontWeight: '600', color: '#1E8F47' },
+
+  errorPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    backgroundColor: 'rgba(255, 59, 48, 0.10)',
+    borderRadius: 999,
+    maxWidth: 320,
+  },
+  errorPillText: { fontSize: 11, fontWeight: '600', color: '#FF3B30', flex: 1 },
+
+  statusDropdown: {
+    marginTop: 4,
+    paddingVertical: 4,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 8,
+    borderWidth: 0.5,
+    borderColor: 'rgba(0,0,0,0.10)',
+    ...({ boxShadow: '0 8px 24px -8px rgba(0,0,0,0.15)' } as any),
+  },
+  statusOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+  },
+  statusOptionText: { flex: 1, fontSize: 13, color: '#1C1C1E' },
+
+  btnPrimaryDisabled: { opacity: 0.6 },
 
   btnDangerGhost: {
     flexDirection: 'row',

@@ -77,7 +77,15 @@ export default function AdminCohortDetailPage() {
 
       <CohortEditSheet
         visible={editOpen}
+        cohortId={cohortId as string}
+        orgId={(cohort?.orgId ?? (orgId as string)) as string}
         cohortName={cohort?.name ?? 'Cohort'}
+        description={cohort?.description ?? null}
+        status={cohort?.status ?? null}
+        startDate={cohort?.startDate ?? null}
+        endDate={cohort?.endDate ?? null}
+        maxSeats={cohort?.maxSeats ?? null}
+        program={cohort?.program ?? null}
         onClose={() => setEditOpen(false)}
       />
 
