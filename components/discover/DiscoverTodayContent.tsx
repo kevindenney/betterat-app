@@ -278,6 +278,125 @@ function useAlsoRoom(): AlsoRoomPick | null {
 }
 
 // =============================================================================
+// THIS WEEK'S PICK — first live blueprint from an org the user belongs to in
+// the current interest. The brief's "most considered editorial move per
+// week" — v1 ranks on recency (most-recently-published wins). Concept-
+// overlap + author-authority scoring lands later. Italic-serif Component-1
+// treatment; coral dot for the "extends your X" line (omitted until we
+// score against current concepts).
+// =============================================================================
+
+interface ThisWeeksPick {
+  id: string;
+  slug: string;
+  title: string;
+  description: string;
+  authorName: string | null;
+  stepCount: number;
+}
+
+function useThisWeeksPick(): ThisWeeksPick | null {
+  const { user } = useAuth();
+  const { currentInterest } = useInterest();
+  const [pick, setPick] = useState<ThisWeeksPick | null>(null);
+
+  useEffect(() => {
+    if (!user?.id || !currentInterest?.slug) {
+      setPick(null);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        // First find orgs the user belongs to in the current interest. RLS
+        // on blueprints requires active membership, so blueprints in any
+        // other org won't return anyway — but scoping to the right interest
+        // up front avoids surfacing cross-interest content.
+        const { data: memberships } = await supabase
+          .from('organization_memberships')
+          .select('organization_id, status, membership_status')
+          .eq('user_id', user.id);
+        const myOrgIds = new Set<string>();
+        for (const row of (memberships ?? []) as any[]) {
+          const a = row.status === 'active' || row.status === 'invite_accepted';
+          const b =
+            row.membership_status === 'active' ||
+            row.membership_status === 'invite_accepted';
+          if (a || b) myOrgIds.add(row.organization_id);
+        }
+        if (myOrgIds.size === 0) {
+          setPick(null);
+          return;
+        }
+        const { data: scopedOrgs } = await supabase
+          .from('organizations')
+          .select('id, interest_slug')
+          .in('id', Array.from(myOrgIds))
+          .eq('interest_slug', currentInterest.slug);
+        const interestOrgIds = (scopedOrgs ?? [])
+          .map((o: any) => o.id as string)
+          .filter(Boolean);
+        if (interestOrgIds.length === 0) {
+          setPick(null);
+          return;
+        }
+
+        const { data: blueprints, error } = await supabase
+          .from('blueprints')
+          .select('id, slug, title, description, author_user_id, step_count, published_at')
+          .in('org_id', interestOrgIds)
+          .eq('status', 'live')
+          .not('published_at', 'is', null)
+          .order('published_at', { ascending: false })
+          .limit(1);
+        if (error) throw error;
+        if (cancelled) return;
+
+        const winner = (blueprints ?? [])[0];
+        if (!winner) {
+          setPick(null);
+          return;
+        }
+
+        let authorName: string | null = null;
+        if (winner.author_user_id) {
+          const { data: author } = await supabase
+            .from('profiles')
+            .select('full_name, first_name, last_name')
+            .eq('id', winner.author_user_id)
+            .maybeSingle();
+          if (author) {
+            authorName =
+              author.full_name ||
+              [author.first_name, author.last_name].filter(Boolean).join(' ') ||
+              null;
+          }
+        }
+
+        if (!cancelled) {
+          setPick({
+            id: winner.id,
+            slug: winner.slug,
+            title: winner.title,
+            description: winner.description ?? '',
+            authorName,
+            stepCount: winner.step_count ?? 0,
+          });
+        }
+      } catch (err) {
+        console.warn('[DiscoverToday] this-weeks-pick query failed:', err);
+        if (!cancelled) setPick(null);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id, currentInterest?.slug]);
+
+  return pick;
+}
+
+// =============================================================================
 // ALSO-FOR-YOU · A SAILOR — first sailor suggestion the user isn't already
 // following. Uses the CrewFinder similarity service through
 // useSailorSuggestions; pick falls out as the first row not already followed.
@@ -318,6 +437,7 @@ export function DiscoverTodayContent({
 }: DiscoverTodayContentProps) {
   const router = useRouter();
   const homeOrg = useHomeOrg();
+  const thisWeeksPick = useThisWeeksPick();
   const alsoClub = useAlsoClub(homeOrg?.orgId ?? null);
   const alsoRoom = useAlsoRoom();
   const alsoSailor = useAlsoSailor();
@@ -368,6 +488,43 @@ export function DiscoverTodayContent({
               </Text>
             </View>
           </View>
+        </>
+      ) : null}
+
+      {/* THIS WEEK'S PICK — one Path, italic-serif treatment, the brief's
+          "most considered editorial move per week". v1 ranks on recency;
+          concept-overlap scoring lands later. Tap routes to the blueprint
+          detail. Omitted if no live blueprint in user's accessible
+          interest-scoped orgs. */}
+      {thisWeeksPick ? (
+        <>
+          <View style={styles.sectionEyebrowRow}>
+            <Text style={styles.sectionEyebrow}>THIS WEEK'S PICK</Text>
+          </View>
+          <Pressable
+            style={styles.pickCard}
+            onPress={() => {
+              router.push(`/blueprint/${thisWeeksPick.id}` as any);
+            }}
+          >
+            <Text style={styles.pickEyebrow}>FOR YOU, {todayLabel.toUpperCase()}</Text>
+            <Text style={styles.pickTitle}>{thisWeeksPick.title}</Text>
+            <Text style={styles.pickSource}>
+              {thisWeeksPick.authorName ?? 'Path'}
+              {thisWeeksPick.stepCount > 0 ? (
+                <>
+                  <Text style={styles.cardSourceSep}> · </Text>
+                  {thisWeeksPick.stepCount}{' '}
+                  {thisWeeksPick.stepCount === 1 ? 'step' : 'steps'}
+                </>
+              ) : null}
+              <Text style={styles.cardSourceSep}> · </Text>
+              Path
+            </Text>
+            {thisWeeksPick.description ? (
+              <Text style={styles.pickQuote}>{thisWeeksPick.description}</Text>
+            ) : null}
+          </Pressable>
         </>
       ) : null}
 
@@ -616,6 +773,68 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#FFFFFF',
     letterSpacing: 0.2,
+  },
+
+  // This week's pick — italic-serif treatment, coral-tinted border (the
+  // brief's full Component-1 weight for the editorial bet).
+  pickCard: {
+    backgroundColor: IOS_REGISTER.cardBg,
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingTop: 14,
+    paddingBottom: 14,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(217, 119, 87, 0.25)',
+    ...Platform.select({
+      web: {
+        boxShadow:
+          '0 1px 2px rgba(0,0,0,0.04), 0 2px 8px rgba(0,0,0,0.04)',
+      } as any,
+      default: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.04,
+        shadowRadius: 8,
+        elevation: 2,
+      },
+    }),
+  },
+  pickEyebrow: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#D97757',
+    letterSpacing: 0.6,
+    textTransform: 'uppercase',
+    marginBottom: 6,
+  },
+  pickTitle: {
+    fontSize: 22,
+    fontWeight: '600',
+    color: IOS_REGISTER.label,
+    letterSpacing: -0.5,
+    marginBottom: 4,
+  },
+  pickSource: {
+    fontSize: 13,
+    color: IOS_REGISTER.labelSecondary,
+    letterSpacing: -0.1,
+    marginBottom: 10,
+  },
+  pickQuote: {
+    fontSize: 15,
+    color: IOS_REGISTER.label,
+    lineHeight: 22,
+    letterSpacing: -0.15,
+    fontStyle: 'italic',
+    ...Platform.select({
+      ios: { fontFamily: 'Georgia' },
+      android: { fontFamily: 'serif' },
+      web: { fontFamily: 'Georgia, "Times New Roman", serif' } as any,
+    }),
+  },
+  cardSourceSep: {
+    color: IOS_REGISTER.labelTertiary,
   },
 
   // Also-for-you card — same shape as home-org card but with a tag
