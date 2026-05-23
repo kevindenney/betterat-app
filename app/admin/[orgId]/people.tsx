@@ -284,6 +284,13 @@ export default function AdminPeoplePage() {
       <PersonDetailDrawer
         person={data.rows.find((r) => r.id === openPersonId) ?? null}
         onClose={() => setOpenPersonId(null)}
+        onSuggestAction={(key) => {
+          if (key === 'open-timeline' && openPersonId) {
+            setOpenPersonId(null);
+            router.push(`/admin/${orgId}/person/${openPersonId}`);
+          }
+          // Other actions (send-message, change-role, flag) still pending wire-up.
+        }}
       />
     </View>
   );

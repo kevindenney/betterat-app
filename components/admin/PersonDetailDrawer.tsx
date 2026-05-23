@@ -2,19 +2,17 @@
  * PersonDetailDrawer — slide-in panel on Org Admin · People showing one
  * member's profile. Opens when a row is tapped. Header carries the
  * gradient avatar + name + role badges + cohort + last-active; body
- * surfaces a stub competency-evidence summary tying back to the Insights
- * page so the dean can drill into one student's specific record.
- *
- * Production-roadmap: the evidence section becomes a real query joining
- * step_reflections.user_id + step_location.poi_id → competencies once
- * that schema converges. Today it reuses useAdminCompetencyEvidence's
- * stub so the per-student view is consistent with the program-level view.
+ * surfaces real competency-evidence counts pulled from
+ * admin_person_practice_steps so the dean can drill into one student's
+ * specific record before opening the full practice timeline.
  */
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, Pressable, StyleSheet, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useLocalSearchParams } from 'expo-router';
 import { AdminPersonRow, PersonRoleBadge } from '@/hooks/useAdminPeople';
+import { useAdminPersonPractice } from '@/hooks/useAdminPersonPractice';
 
 export interface PersonDetailDrawerProps {
   person: AdminPersonRow | null;
@@ -32,25 +30,31 @@ const ROLE_TONE: Record<PersonRoleBadge, { bg: string; fg: string; label: string
 };
 
 export function PersonDetailDrawer({ person, onClose, onSuggestAction }: PersonDetailDrawerProps) {
+  const { orgId } = useLocalSearchParams<{ orgId: string }>();
+  const { steps, loading: practiceLoading } = useAdminPersonPractice(
+    orgId ?? '',
+    person?.id ?? '',
+  );
+
+  // Aggregate per-competency evidence counts from the same RPC the full
+  // practice-timeline page uses, so the drawer is always consistent with
+  // the deeper view.
+  const competencyCounts = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const step of steps) {
+      for (const label of step.competencyFullLabels) {
+        m.set(label, (m.get(label) ?? 0) + 1);
+      }
+    }
+    return m;
+  }, [steps]);
+
+  const lastSiteName = useMemo(() => {
+    const first = steps.find((s) => s.poiName);
+    return first?.poiName ?? null;
+  }, [steps]);
+
   if (!person) return null;
-
-  // Deterministic stub: each student "evidenced" ~5 of the 8 competencies.
-  // Real wiring later via step_reflections × step_location join.
-  const stubCompetencies = [
-    'IV insertion · supervised',
-    'Medication administration',
-    'Head-to-toe assessment',
-    'ISBAR handoff communication',
-    'Discharge teach-back',
-    'Foley catheter placement',
-    'NG tube placement',
-    'Cardiac telemetry interpretation',
-  ];
-  const evidenceCount = (person.id.charCodeAt(0) % 5) + 3;
-  const evidencedSet = new Set(stubCompetencies.slice(0, evidenceCount));
-
-  const stubSites = ['Hopkins East Baltimore', 'Bayview', 'Sibley Memorial', 'Suburban', 'Howard County'];
-  const stubLastSite = stubSites[person.id.charCodeAt(0) % stubSites.length];
 
   return (
     <View style={s.scrim} pointerEvents="auto">
@@ -107,34 +111,32 @@ export function PersonDetailDrawer({ person, onClose, onSuggestAction }: PersonD
               <Text style={s.sectionTitle}>Competency evidence</Text>
               <View style={s.evidencePill}>
                 <Text style={s.evidencePillText}>
-                  {evidencedSet.size} of {stubCompetencies.length}
+                  {practiceLoading ? '…' : `${competencyCounts.size} evidenced`}
                 </Text>
               </View>
             </View>
             <Text style={s.sectionLede}>
-              Stub view — pulled from the same Insights data until reflections wire
-              up. Last evidenced at{' '}
-              <Text style={s.sectionLedeStrong}>{stubLastSite}</Text>.
+              {practiceLoading
+                ? 'Pulling practice history…'
+                : steps.length === 0
+                ? 'No steps logged for this org yet.'
+                : lastSiteName
+                ? <>Last evidenced at <Text style={s.sectionLedeStrong}>{lastSiteName}</Text>. Tap below to see the full timeline.</>
+                : `${steps.length} steps logged. Tap below for the full timeline.`}
             </Text>
-            <View style={s.competencyList}>
-              {stubCompetencies.map((c) => {
-                const evidenced = evidencedSet.has(c);
-                return (
-                  <View key={c} style={[s.competencyRow, !evidenced && s.competencyRowEmpty]}>
-                    <Ionicons
-                      name={evidenced ? 'checkmark-circle' : 'ellipse-outline'}
-                      size={14}
-                      color={evidenced ? '#28406B' : 'rgba(60, 60, 67, 0.3)'}
-                    />
-                    <Text
-                      style={[s.competencyText, !evidenced && s.competencyTextEmpty]}
-                    >
-                      {c}
-                    </Text>
-                  </View>
-                );
-              })}
-            </View>
+            {competencyCounts.size > 0 ? (
+              <View style={s.competencyList}>
+                {Array.from(competencyCounts.entries())
+                  .sort((a, b) => b[1] - a[1])
+                  .map(([label, count]) => (
+                    <View key={label} style={s.competencyRow}>
+                      <Ionicons name="checkmark-circle" size={14} color="#28406B" />
+                      <Text style={s.competencyText}>{label}</Text>
+                      <Text style={s.competencyCount}>{count}×</Text>
+                    </View>
+                  ))}
+              </View>
+            ) : null}
           </View>
 
           {/* Actions */}
@@ -371,7 +373,17 @@ const s = StyleSheet.create({
     paddingVertical: 4,
   },
   competencyRowEmpty: { opacity: 0.6 },
-  competencyText: { fontSize: 12.5, color: '#1C1C1E' },
+  competencyText: { flex: 1, minWidth: 0, fontSize: 12.5, color: '#1C1C1E' },
+  competencyCount: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#28406B',
+    backgroundColor: 'rgba(40, 64, 107, 0.10)',
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    borderRadius: 999,
+    fontVariant: ['tabular-nums'],
+  },
   competencyTextEmpty: { color: 'rgba(60, 60, 67, 0.6)' },
 
   actionsCol: { gap: 6, marginTop: 4 },
