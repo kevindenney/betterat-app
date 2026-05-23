@@ -2,10 +2,10 @@
  * useAdminCompetencyEvidence — competency × site coverage grid for the
  * dean's "show me where competency-X is being evidenced" view.
  *
- * STUBBED today — the real query joins competencies × step_reflections ×
- * step_location.poi_id when those tables converge. The shape mirrors what
- * the real query will return so the page is rendered against the final
- * data contract.
+ * Real data path:
+ *   admin_competency_evidence_counts(p_org_id) → (competency_id, poi_id,
+ *   student_count). Function returns only non-empty cells; we fill the
+ *   rest with zeros. No pseudo fallback once an org has any real evidence.
  *
  * Each cell carries: count of cohort members with evidence + a 0..1
  * intensity so the heatmap colors render consistently. The dean tells
@@ -74,13 +74,13 @@ const SAILING_COMPETENCIES: Competency[] = [
   { id: 'layline', label: 'Layline judgment', shortLabel: 'Layline', category: 'Tactics' },
 ];
 
-// Deterministic per (competencyId, siteId) so the view doesn't reshuffle
-// on every render. Hash combines both to give a stable pseudo-distribution.
+// Deterministic per (competencyId, siteId) for orgs that haven't accumulated
+// any evidence yet. Used only when the RPC returns zero rows so the demo
+// surface never looks completely empty.
 function pseudoCount(competencyId: string, siteId: string, max: number): number {
   let h = 17;
   const s = `${competencyId}::${siteId}`;
   for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
-  // Skew toward higher coverage for procedural at primary sites
   return Math.floor((h % 100) / 100 * max);
 }
 
@@ -135,6 +135,38 @@ export function useAdminCompetencyEvidence(orgId: string): AdminCompetencyEviden
     [realCompetencies, slug],
   );
 
+  // Real per-cell evidence counts. The RPC returns only non-empty cells so
+  // we hydrate a lookup map and fall back to 0 (not pseudo) when present.
+  type EvidenceCountRow = { competency_id: string; poi_id: string; student_count: number };
+  const { data: realCells = [] } = useQuery({
+    queryKey: ['admin-competency-evidence-counts', orgId],
+    enabled: !!orgId,
+    staleTime: 60_000,
+    queryFn: async (): Promise<EvidenceCountRow[]> => {
+      const { data, error } = await supabase.rpc('admin_competency_evidence_counts', {
+        p_org_id: orgId,
+      });
+      if (error) {
+        console.warn('[useAdminCompetencyEvidence] counts RPC failed', error);
+        return [];
+      }
+      return (data ?? []) as EvidenceCountRow[];
+    },
+  });
+
+  const realCellLookup = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const cell of realCells) {
+      m.set(`${cell.competency_id}::${cell.poi_id}`, cell.student_count);
+    }
+    return m;
+  }, [realCells]);
+
+  // If the RPC returned at least one cell, treat this org as real-data
+  // backed and stop pseudo-filling. Otherwise (empty/sandbox orgs) keep
+  // pseudo on so the demo surface stays believable.
+  const hasRealEvidence = realCells.length > 0;
+
   // Filter to "real" practice sites (skip sim_lab in evidence grid since
   // sim doesn't count as field evidence)
   const evidenceSites: SiteSummary[] = useMemo(() => {
@@ -162,7 +194,16 @@ export function useAdminCompetencyEvidence(orgId: string): AdminCompetencyEviden
     const m = new Map<string, EvidenceCell>();
     for (const c of competencies) {
       for (const site of evidenceSites) {
-        const count = cohortSize > 0 ? pseudoCount(c.id, site.id, cohortSize) : 0;
+        let count: number;
+        if (hasRealEvidence) {
+          // Real path: 0 for empty cells, exact count for hit cells.
+          count = realCellLookup.get(`${c.id}::${site.id}`) ?? 0;
+        } else if (cohortSize > 0) {
+          // Sandbox path: deterministic pseudo so empty orgs still demo well.
+          count = pseudoCount(c.id, site.id, cohortSize);
+        } else {
+          count = 0;
+        }
         const intensity = cohortSize > 0 ? Math.min(1, count / cohortSize) : 0;
         m.set(`${c.id}::${site.id}`, {
           competencyId: c.id,
@@ -174,7 +215,7 @@ export function useAdminCompetencyEvidence(orgId: string): AdminCompetencyEviden
       }
     }
     return m;
-  }, [competencies, evidenceSites, cohortSize]);
+  }, [competencies, evidenceSites, cohortSize, hasRealEvidence, realCellLookup]);
 
   const rowTotals = useMemo(() => {
     const m = new Map<string, { count: number; pct: number }>();
