@@ -43,8 +43,9 @@ import {
   IOSOnlyNotice,
 } from '@/components/discover/detail';
 import { initialsForName } from '@/components/discover/canonical';
-import { showConfirm } from '@/lib/utils/crossPlatformAlert';
+import { showAlert, showConfirm } from '@/lib/utils/crossPlatformAlert';
 import { useSailorFullProfile } from '@/hooks/useSailorFullProfile';
+import { CrewThreadService } from '@/services/CrewThreadService';
 import { IOS_REGISTER } from '@/lib/design-tokens-ios';
 
 import {
@@ -87,15 +88,14 @@ function PublicFaceScreenInner({ userId }: { userId: string }) {
     else router.replace('/(tabs)/discover' as any);
   }, []);
 
-  const onMessage = useCallback(() => {
-    // Direct-thread surface lives elsewhere; for now just acknowledge.
-    showConfirm(
-      'Message this practitioner?',
-      'Direct messaging will open a thread with them.',
-      () => {},
-      { confirmText: 'OK' },
-    );
-  }, []);
+  const onMessage = useCallback(async () => {
+    const thread = await CrewThreadService.getOrCreateDirectThread(userId);
+    if (thread?.id) {
+      router.push(`/crew-thread/${thread.id}` as any);
+    } else {
+      showAlert('Could not open thread', 'Try again in a moment.');
+    }
+  }, [userId]);
 
   const enrichment = useMemo(() => getPublicFaceEnrichment(userId), [userId]);
 
@@ -297,6 +297,9 @@ function PublicFaceScreenInner({ userId }: { userId: string }) {
                 initials={p.initials}
                 markColor={p.markColor}
                 tail={p.tail}
+                onPress={
+                  p.userId ? () => router.push(`/sailor/${p.userId}` as any) : undefined
+                }
                 isFirst={i === 0}
               />
             ))}

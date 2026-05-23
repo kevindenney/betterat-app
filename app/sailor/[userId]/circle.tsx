@@ -4,7 +4,7 @@
  */
 
 import React from 'react';
-import { useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, router } from 'expo-router';
 
 import { PublicFaceListShell } from '@/components/sailor/public-face/PublicFaceListShell';
 import { PracticeCircleRow } from '@/components/sailor/public-face/PublicFacePrimitives';
@@ -30,6 +30,9 @@ export default function SailorCircleRoute() {
           initials={p.initials}
           markColor={p.markColor}
           tail={p.tail}
+          onPress={
+            p.userId ? () => router.push(`/sailor/${p.userId}` as any) : undefined
+          }
           isFirst={i === 0}
         />
       ))}

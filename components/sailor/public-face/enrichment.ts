@@ -56,6 +56,8 @@ export interface PublicFaceEnrichment {
     initials: string;
     markColor?: string;
     tail?: string;
+    /** Optional public-face target. Drops the chevron when absent. */
+    userId?: string;
   }[];
   circleTotal?: number;
   /** Published items — newest first. */
@@ -197,29 +199,38 @@ const MARKUS: PublicFaceEnrichment = {
   ],
   capabilitiesTotal: 9,
   circle: [
-    { name: 'Sam Whittaker', initials: 'SW', role: 'Coach · four seasons' },
+    {
+      name: 'Sam Whittaker',
+      initials: 'SW',
+      role: 'Coach · four seasons',
+      userId: '22222222-2222-2222-2222-000000000001',
+    },
     {
       name: 'Patricia Cho',
       initials: 'PC',
       role: 'Faculty · settled Decision-making under start-line pressure with Markus',
+      userId: '22222222-2222-2222-2222-000000000002',
     },
     {
       name: 'Hugo Mira',
       initials: 'HM',
       role: 'Tactician · Phyloong, RHKYC Dragon fleet',
       tail: 'Mutual',
+      userId: '22222222-2222-2222-2222-000000000003',
     },
     {
       name: 'Yvonne Leung',
       initials: 'YL',
       role: 'Peer · Dragon helm, also at RHKYC',
       tail: 'Mutual',
+      userId: '22222222-2222-2222-2222-000000000004',
     },
     {
       name: 'Tomás Renart',
       initials: 'TR',
       role: 'Peer · you both follow him',
       tail: 'You follow',
+      userId: '22222222-2222-2222-2222-000000000005',
     },
   ],
   circleTotal: 8,
