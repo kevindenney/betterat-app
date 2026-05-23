@@ -48,6 +48,7 @@ import { useAtlasFramePins } from '@/hooks/useAtlasFramePins';
 import { useNextRaceMarks } from '@/hooks/useNextRaceMarks';
 import { useWalkTimeAnnotations } from '@/hooks/useWalkTimeAnnotations';
 import { useWindOverlay } from '@/hooks/useWindOverlay';
+import { useTideOverlay } from '@/hooks/useTideOverlay';
 import {
   AtlasPin,
   ClusterTag,
@@ -245,7 +246,18 @@ interface FilterChipItem {
   crossInterest?: boolean;
 }
 
-function FilterChipsRow({ chips }: { chips: FilterChipItem[] }) {
+function FilterChipsRow({
+  chips,
+  onActiveIdsChange,
+}: {
+  chips: FilterChipItem[];
+  /**
+   * Optional callback fired whenever the active-chip set changes. Lets
+   * the parent frame (e.g. FrameF1) read Wind/Tide chip state to gate
+   * the corresponding overlay layers.
+   */
+  onActiveIdsChange?: (activeIds: string[]) => void;
+}) {
   // Local toggle state — chips are interactive even though the underlying
   // query layer is not wired yet. Initial active chip is whichever item
   // shipped active=true. Multi-select on data peer chips (You/Crew/Fleet
@@ -254,6 +266,10 @@ function FilterChipsRow({ chips }: { chips: FilterChipItem[] }) {
   const [activeIds, setActiveIds] = useState<string[]>(
     initialActive.length > 0 ? initialActive : [chips[0]?.id].filter(Boolean) as string[],
   );
+
+  React.useEffect(() => {
+    onActiveIdsChange?.(activeIds);
+  }, [activeIds, onActiveIdsChange]);
 
   const isAllChip = (id: string) =>
     id === 'all' || id === 'marks' || id === 'class' || id === 'cohort';
@@ -613,20 +629,39 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
   const { data: raceMarkPins = [] } = useNextRaceMarks({
     regattaId: next?.event_kind === 'regatta' ? next.event_id : null,
   });
-  // Wind overlay — soft directional field anchored at the next event's
-  // venue (or the F1 camera centroid as fallback). Parses heading + speed
-  // from next.conditions; reads as field at low opacity, never foreground.
+  // Chip-driven toggle for the wind + tide overlays. Both default on.
+  // Tapping "Wind" or "Tide" in the chip row hides/shows the field.
+  const [showWind, setShowWind] = useState(true);
+  const [showTide, setShowTide] = useState(true);
+  const handleChipsChange = useCallback((activeIds: string[]) => {
+    setShowWind(activeIds.includes('wind') || activeIds.includes('all'));
+    setShowTide(activeIds.includes('tide') || activeIds.includes('all'));
+  }, []);
+  // Wind overlay — directional field anchored at the next event's venue
+  // (or the F1 camera centroid as fallback). Parses heading + speed from
+  // next.conditions; chip-gated visibility.
   const windPins = useWindOverlay({
     centerLat: next?.lat ?? 22.295,
     centerLng: next?.lng ?? 114.18,
     conditionsLine: next?.conditions,
-    enabled: true,
+    enabled: showWind,
     spacingKm: 2.5,
     gridSize: 5,
   });
+  // Tide / current overlay — teal arrows pointing the flow direction
+  // (set), distinct from wind. Smaller grid so it reads as a sibling
+  // signal, not a duplicate of wind.
+  const tidePins = useTideOverlay({
+    centerLat: next?.lat ?? 22.295,
+    centerLng: next?.lng ?? 114.18,
+    conditionsLine: next?.conditions,
+    enabled: showTide,
+    spacingKm: 3,
+    gridSize: 3,
+  });
   const pins = useMemo(
-    () => [...windPins, ...framePins, ...raceMarkPins],
-    [windPins, framePins, raceMarkPins],
+    () => [...windPins, ...tidePins, ...framePins, ...raceMarkPins],
+    [windPins, tidePins, framePins, raceMarkPins],
   );
   const exitCommit = useCallback(() => {
     setCommitMode(false);
@@ -657,8 +692,11 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
           { id: 'crew', label: 'Crew', tone: 'crew' },
           { id: 'fleet', label: 'Fleet', tone: 'fleet' },
           { id: 'following', label: 'Following', tone: 'following', dim: true },
+          { id: 'wind', label: 'Wind', icon: 'arrow-up-outline', active: true },
+          { id: 'tide', label: 'Tide', icon: 'water-outline', active: true },
           { id: 'cross-interest', label: 'All my interests', crossInterest: true, dim: true },
         ]}
+        onActiveIdsChange={handleChipsChange}
       />
       <View style={shellStyles.mapArea}>
         {handlers.useMapLibre ? (

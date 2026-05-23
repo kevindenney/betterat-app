@@ -104,7 +104,8 @@ export interface AtlasPinSpec {
     | 'poi-sim-lab'
     | 'poi-preceptor'
     | 'walk-annotation'
-    | 'wind-arrow';
+    | 'wind-arrow'
+    | 'tide-arrow';
   /** Optional short label rendered next to the pin (POIs get names). */
   label?: string;
   /**
@@ -325,10 +326,14 @@ const PIN_TONE: Record<
   // keeps it out of cluster math and shouldShowLabel; rendering handled
   // inline as a label-only marker.
   'walk-annotation': { size: 0, color: 'transparent', shape: 'circle' },
-  // Wind arrow — soft directional sprite rendered as a rotated triangle
-  // glyph at low opacity. Heading + knots come in via the label field
-  // ("degrees|knots") so the renderer can rotate without new pin fields.
-  'wind-arrow': { size: 14, color: 'rgba(60, 80, 110, 0.55)', shape: 'circle' },
+  // Wind arrow — directional sprite, richer blue so the field reads as
+  // present without competing with POI label pills. Heading + knots come
+  // in via the label field ("degrees|knots").
+  'wind-arrow': { size: 14, color: 'rgba(0, 122, 255, 0.7)', shape: 'circle' },
+  // Tide / current arrow — teal, distinct from wind. Arrow points the
+  // direction water FLOWS (set), not where it comes from. Slightly
+  // smaller to read as the secondary field.
+  'tide-arrow': { size: 12, color: 'rgba(0, 168, 168, 0.75)', shape: 'circle' },
 };
 
 /**
@@ -366,7 +371,17 @@ function LabeledPin({
     const downwindDeg = (fromDeg + 180) % 360;
     return (
       <View style={[styles.windArrow, { transform: [{ rotate: `${downwindDeg}deg` }] }]}>
-        <Ionicons name="arrow-up" size={18} color="rgba(60, 80, 110, 0.5)" />
+        <Ionicons name="arrow-up" size={20} color="rgba(0, 122, 255, 0.78)" />
+      </View>
+    );
+  }
+  if (kind === 'tide-arrow') {
+    // Tide convention: "set" — arrow points where water FLOWS, no flip.
+    const [degStr] = (label ?? '0|0').split('|');
+    const setDeg = Number(degStr) || 0;
+    return (
+      <View style={[styles.tideArrow, { transform: [{ rotate: `${setDeg}deg` }] }]}>
+        <Ionicons name="chevron-up" size={20} color="rgba(0, 168, 168, 0.85)" />
       </View>
     );
   }
@@ -539,9 +554,16 @@ const styles = StyleSheet.create({
     letterSpacing: 0.2,
   },
   windArrow: {
-    width: 18,
-    height: 18,
-    opacity: 0.85,
+    width: 20,
+    height: 20,
+    opacity: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  tideArrow: {
+    width: 20,
+    height: 20,
+    opacity: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
