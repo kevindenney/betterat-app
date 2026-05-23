@@ -261,7 +261,9 @@ function PersonDetailScreenInner() {
         ) : null}
 
         {/* Recent trajectory — restrained, no medallions, just name + date.
-            Each row drills into the trophy detail surface. */}
+            Pass 11: dropped the "Trophy of becoming" chip from each row —
+            the section header carries that framing once. Tighter Component-2
+            chronology pattern. Each row drills into the trophy detail surface. */}
         <IOSDetailSection header="Recent trajectory">
           <TrophyRow
             title={
@@ -269,7 +271,6 @@ function PersonDetailScreenInner() {
                 Heavy-air helm work · <Text style={styles.italic}>settled</Text>
               </Text>
             }
-            sub="Trophy of becoming"
             when="Mar 2026"
             onPress={() =>
               router.push(`/sailor/${userId}/trophy/heavy-air-helm` as any)
@@ -278,7 +279,6 @@ function PersonDetailScreenInner() {
           />
           <TrophyRow
             title="Decision-making under start-line pressure"
-            sub="Trophy of becoming"
             when="Sep 2025"
             onPress={() =>
               router.push(`/sailor/${userId}/trophy/start-line-patience` as any)
