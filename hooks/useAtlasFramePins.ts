@@ -38,6 +38,8 @@ export function mapPoiToPinKind(poi: AtlasPoi): AtlasPinSpec['kind'] | null {
       return 'poi-hospital';
     case 'sim_lab':
       return 'poi-sim-lab';
+    case 'preceptor':
+      return 'poi-preceptor';
     default:
       return null;
   }
