@@ -33,7 +33,7 @@ export function useTargetEvent({ kind, id }: UseTargetEventArgs) {
       if (kind === 'regatta') {
         const { data, error } = await supabase
           .from('regattas')
-          .select('id, name, start_date, venue, latitude, longitude')
+          .select('id, name, start_date, location, latitude, longitude')
           .eq('id', id)
           .maybeSingle();
         if (error || !data) return null;
@@ -42,7 +42,7 @@ export function useTargetEvent({ kind, id }: UseTargetEventArgs) {
           id: data.id,
           label: data.name || 'Untitled regatta',
           starts_at: data.start_date,
-          subtitle: data.venue ?? undefined,
+          subtitle: data.location ?? undefined,
           lat: data.latitude ?? undefined,
           lng: data.longitude ?? undefined,
         };

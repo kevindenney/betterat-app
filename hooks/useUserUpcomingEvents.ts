@@ -89,14 +89,14 @@ async function fetchSailingEvents(
   const [ownedRes, participantRes] = await Promise.all([
     supabase
       .from('regattas')
-      .select('id, name, start_date, venue, latitude, longitude')
+      .select('id, name, start_date, location, latitude, longitude')
       .eq('created_by', userId)
       .gte('start_date', nowIso)
       .order('start_date', { ascending: true })
       .limit(20),
     supabase
       .from('race_participants')
-      .select('regattas:regatta_id(id, name, start_date, venue, latitude, longitude)')
+      .select('regattas:regatta_id(id, name, start_date, location, latitude, longitude)')
       .eq('user_id', userId),
   ]);
 
@@ -104,7 +104,7 @@ async function fetchSailingEvents(
     id: string;
     name: string;
     start_date: string | null;
-    venue: string | null;
+    location: string | null;
     latitude: number | null;
     longitude: number | null;
   };
@@ -117,7 +117,7 @@ async function fetchSailingEvents(
       id: r.id,
       label: r.name || 'Untitled regatta',
       starts_at: r.start_date,
-      subtitle: r.venue ?? undefined,
+      subtitle: r.location ?? undefined,
       lat: r.latitude ?? undefined,
       lng: r.longitude ?? undefined,
     });

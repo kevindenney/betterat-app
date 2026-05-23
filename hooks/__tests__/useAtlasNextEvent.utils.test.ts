@@ -146,7 +146,7 @@ describe('useAtlasNextEvent.utils', () => {
         id: 'r1',
         name: 'Easter Regatta',
         start_date: '2026-05-23T10:00:00Z',
-        venue: { name: 'Markermeer' },
+        location: { name: 'Markermeer' },
         metadata: { wind: '12kn ESE', tide: 'ebb 0.4kn' },
       });
       expect(event).not.toBeNull();
@@ -169,7 +169,7 @@ describe('useAtlasNextEvent.utils', () => {
         id: 'r1',
         name: 'Race',
         start_date: '2026-06-01T10:00:00Z',
-        venue: null,
+        location: null,
         metadata: { venue_name: 'Victoria Harbour' },
       });
       expect(event!.where).toBe('Victoria Harbour');
@@ -182,7 +182,7 @@ describe('useAtlasNextEvent.utils', () => {
         id: 're1',
         name: 'Wednesday night',
         start_time: '2026-05-27T18:30:00Z',
-        venue: 'Causeway Bay',
+        location: 'Causeway Bay',
         metadata: null,
       });
       expect(event!.label).toBe('Wednesday night');
