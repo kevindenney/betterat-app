@@ -15,7 +15,8 @@ import { getStepCategoryLabels } from '@/lib/step-category-config';
 import { IOSPillTabs, usePillTabs } from '@/components/ui/ios/IOSPillTabs';
 import { useVocabulary } from '@/hooks/useVocabulary';
 import { useStepDetail, useUpdateStepMetadata } from '@/hooks/useStepDetail';
-import { useUpdateStep } from '@/hooks/useTimelineSteps';
+import { useUpdateStep, useMyTimeline } from '@/hooks/useTimelineSteps';
+import { StepCombinatorsRow } from './StepCombinatorsRow';
 import { StepHeaderSubtitle } from './StepHeaderMeta';
 import { PlanTab } from './PlanTab';
 import { ActTab } from './ActTab';
@@ -125,6 +126,12 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab }
   const { currentInterest } = useInterest();
 
   const { data: step, isLoading, error } = useStepDetail(stepId);
+  // Loaded for Section H StepCombinatorsRow's "N related" count. React
+  // Query caches by interest id, so when this component is embedded in
+  // the canvas (which already calls useMyTimeline) the row count is
+  // free; on the standalone /step/[id] route it fetches once per
+  // interest per session.
+  const { data: viewerInterestSteps = [] } = useMyTimeline(step?.interest_id ?? null);
 
   // Phase 10 PR-3 — chrome rendered above Plan/Do/Reflect for steps that
   // came from a subscribed blueprint. Hook returns null when the step has
@@ -1101,25 +1108,40 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab }
       : null;
     const planName = blueprintChrome?.blueprintTitle ?? null;
     const belowTitleRow = (currentInterest?.name || counterText || planName) ? (
-      <View style={styles.belowTitleRow}>
-        {currentInterest?.name ? (
-          <View style={styles.belowInterestPill}>
-            <View style={styles.belowInterestDot} />
-            <Text style={styles.belowInterestText} numberOfLines={1}>
-              {currentInterest.name}
+      <>
+        <View style={styles.belowTitleRow}>
+          {currentInterest?.name ? (
+            <View style={styles.belowInterestPill}>
+              <View style={styles.belowInterestDot} />
+              <Text style={styles.belowInterestText} numberOfLines={1}>
+                {currentInterest.name}
+              </Text>
+            </View>
+          ) : null}
+          {counterText ? (
+            <Text style={styles.belowCounter}>{counterText}</Text>
+          ) : null}
+          {planName ? (
+            <Text style={styles.belowPlanName} numberOfLines={1}>
+              · {planName}
             </Text>
-          </View>
-        ) : null}
-        {counterText ? (
-          <Text style={styles.belowCounter}>{counterText}</Text>
-        ) : null}
-        {planName ? (
-          <Text style={styles.belowPlanName} numberOfLines={1}>
-            · {planName}
-          </Text>
-        ) : null}
-      </View>
-    ) : null;
+          ) : null}
+        </View>
+        <StepCombinatorsRow
+          step={step}
+          blueprintTitle={blueprintChrome?.blueprintTitle ?? null}
+          blueprintAuthorName={null}
+          viewerSteps={viewerInterestSteps}
+        />
+      </>
+    ) : (
+      <StepCombinatorsRow
+        step={step}
+        blueprintTitle={blueprintChrome?.blueprintTitle ?? null}
+        blueprintAuthorName={null}
+        viewerSteps={viewerInterestSteps}
+      />
+    );
 
     const menuActions: ActionSheetAction[] = [];
     if (isOwner) {
