@@ -6,7 +6,7 @@
  * batch, last batch, upcoming-cycle metadata) in one round-trip.
  */
 
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/services/supabase';
 
 export type AuthorTone = 'navy' | 'brown' | 'warm' | 'green' | 'purple';
@@ -25,6 +25,8 @@ export interface AdminPayoutAuthor {
   lastPayoutDate: string | null;
   lastPayoutAmountCents: number | null;
   stripeConnectStatus: ConnectStatus;
+  stripeConnectAccountId: string | null;
+  stripeStatusSyncedAt: string | null;
   blueprintCount: number;
   blueprintTitles: string[];
 }
@@ -44,6 +46,15 @@ export interface AdminPayoutsData {
   upcomingAuthorsPaid: number;
   upcomingAuthorsTotal: number;
   upcomingRebateCents: number;
+  stripeStatusSyncedAt: string | null;
+}
+
+export interface StripeRefreshResult {
+  ok: boolean;
+  count: number;
+  verifiedCount: number;
+  notConnectedCount: number;
+  actionNeededCount: number;
 }
 
 type RpcAuthor = {
@@ -58,6 +69,8 @@ type RpcAuthor = {
   last_payout_date: string | null;
   last_payout_amount_cents: number | null;
   stripe_connect_status: string;
+  stripe_connect_account_id: string | null;
+  stripe_status_synced_at: string | null;
   blueprint_count: number;
   blueprint_titles: string[] | null;
 };
@@ -77,6 +90,7 @@ type RpcPayload = {
   upcoming_authors_paid?: number;
   upcoming_authors_total?: number;
   upcoming_rebate_cents?: number;
+  stripe_status_synced_at?: string | null;
 };
 
 const EMPTY: AdminPayoutsData = {
@@ -94,11 +108,17 @@ const EMPTY: AdminPayoutsData = {
   upcomingAuthorsPaid: 0,
   upcomingAuthorsTotal: 0,
   upcomingRebateCents: 0,
+  stripeStatusSyncedAt: null,
 };
 
+const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL ?? '';
+
 export function useAdminOrgPayouts(orgId: string) {
+  const queryClient = useQueryClient();
+  const queryKey = ['admin-org-payouts', orgId];
+
   const { data = EMPTY, isLoading, error } = useQuery({
-    queryKey: ['admin-org-payouts', orgId],
+    queryKey,
     enabled: !!orgId,
     staleTime: 60_000,
     queryFn: async (): Promise<AdminPayoutsData> => {
@@ -122,6 +142,8 @@ export function useAdminOrgPayouts(orgId: string) {
         lastPayoutDate: r.last_payout_date,
         lastPayoutAmountCents: r.last_payout_amount_cents,
         stripeConnectStatus: r.stripe_connect_status as ConnectStatus,
+        stripeConnectAccountId: r.stripe_connect_account_id ?? null,
+        stripeStatusSyncedAt: r.stripe_status_synced_at ?? null,
         blueprintCount: r.blueprint_count,
         blueprintTitles: r.blueprint_titles ?? [],
       }));
@@ -140,11 +162,47 @@ export function useAdminOrgPayouts(orgId: string) {
         upcomingAuthorsPaid: p.upcoming_authors_paid ?? 0,
         upcomingAuthorsTotal: p.upcoming_authors_total ?? 0,
         upcomingRebateCents: p.upcoming_rebate_cents ?? 0,
+        stripeStatusSyncedAt: p.stripe_status_synced_at ?? null,
       };
     },
   });
 
-  return { ...data, loading: isLoading, error };
+  const refreshStripe = useMutation({
+    mutationFn: async (): Promise<StripeRefreshResult> => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Not authenticated');
+      const url = `${SUPABASE_URL}/functions/v1/admin-org-payouts-refresh-stripe`;
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ org_id: orgId }),
+      });
+      const payload = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(payload?.error ?? 'Failed to refresh');
+      }
+      const results = (payload?.results ?? []) as { status: ConnectStatus; account_id: string | null }[];
+      const verifiedCount = results.filter((r) => r.status === 'verified').length;
+      const notConnectedCount = results.filter((r) => !r.account_id).length;
+      const actionNeededCount = results.filter((r) => r.status === 'action_needed').length;
+      return {
+        ok: true,
+        count: payload?.count ?? results.length,
+        verifiedCount,
+        notConnectedCount,
+        actionNeededCount,
+      };
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey });
+      queryClient.invalidateQueries({ queryKey: ['admin-audit-feed', orgId] });
+    },
+  });
+
+  return { ...data, loading: isLoading, error, refreshStripe };
 }
 
 export function formatMoneyDollars(cents: number): string {

@@ -88,6 +88,17 @@ export function AdminPayoutsSurface() {
           <View>
             <Text style={s.cardEyebrow}>Authors</Text>
             <Text style={s.cardH3}>By total earned this year</Text>
+            {data.stripeStatusSyncedAt ? (
+              <Text style={s.syncedHint}>
+                Stripe Connect last synced{' '}
+                {new Date(data.stripeStatusSyncedAt).toLocaleString(undefined, {
+                  month: 'short',
+                  day: 'numeric',
+                  hour: 'numeric',
+                  minute: '2-digit',
+                })}
+              </Text>
+            ) : null}
           </View>
           <View style={s.cardHeadActions}>
             <View style={s.segControl}>
@@ -101,6 +112,20 @@ export function AdminPayoutsSurface() {
                 <Text style={s.segOptText}>Connect issues</Text>
               </View>
             </View>
+            <Pressable
+              style={[s.btnSm, data.refreshStripe.isPending && { opacity: 0.6 }]}
+              disabled={data.refreshStripe.isPending}
+              onPress={() => data.refreshStripe.mutate()}
+            >
+              <Ionicons
+                name={data.refreshStripe.isPending ? 'sync' : 'sync-outline'}
+                size={12}
+                color="#28406B"
+              />
+              <Text style={s.btnSmText}>
+                {data.refreshStripe.isPending ? 'Syncing…' : 'Sync from Stripe'}
+              </Text>
+            </Pressable>
             <Pressable style={s.btnSm}>
               <Ionicons name="add" size={12} color="#28406B" />
               <Text style={s.btnSmText}>Onboard author</Text>
@@ -154,17 +179,35 @@ export function AdminPayoutsSurface() {
             <Text style={s.panelCellValue}>
               {data.upcomingAuthorsPaid} of {data.upcomingAuthorsTotal}
             </Text>
-            {data.authors.some((a) => a.stripeConnectStatus === 'action_needed') ? (
-              <Text style={[s.panelCellSub, { color: '#C99632' }]}>
-                {data.authors
-                  .filter((a) => a.stripeConnectStatus === 'action_needed')
-                  .map((a) => a.authorName.split(' ').slice(-1)[0])
-                  .join(' / ')}{' '}
-                must complete Connect verification first
-              </Text>
-            ) : (
-              <Text style={s.panelCellSub}>All Connect accounts in good standing</Text>
-            )}
+            {(() => {
+              const blocked = data.authors.filter(
+                (a) => a.stripeConnectStatus !== 'verified',
+              );
+              if (blocked.length === 0) {
+                return (
+                  <Text style={s.panelCellSub}>All Connect accounts in good standing</Text>
+                );
+              }
+              const names = blocked
+                .map((a) => a.authorName.split(' ').slice(-1)[0])
+                .join(' / ');
+              const allAction = blocked.every(
+                (a) => a.stripeConnectStatus === 'action_needed',
+              );
+              const allPending = blocked.every(
+                (a) => a.stripeConnectStatus === 'pending',
+              );
+              const tail = allAction
+                ? 'must complete Connect verification first'
+                : allPending
+                  ? 'haven’t connected a Stripe account yet'
+                  : 'need Connect attention';
+              return (
+                <Text style={[s.panelCellSub, { color: '#C99632' }]}>
+                  {names} {tail}
+                </Text>
+              );
+            })()}
           </View>
           <View style={s.panelCell}>
             <Text style={s.panelCellLabel}>Batch total</Text>
@@ -402,6 +445,7 @@ const s = StyleSheet.create({
     gap: 12,
   },
   cardHeadActions: { flexDirection: 'row', gap: 8, alignItems: 'center' },
+  syncedHint: { marginTop: 4, fontSize: 11, color: 'rgba(60, 60, 67, 0.55)' },
   cardEyebrow: {
     fontSize: 10.5,
     fontWeight: '700',
