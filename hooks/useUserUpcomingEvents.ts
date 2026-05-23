@@ -27,10 +27,12 @@ export type StepTargetEventKind =
   | 'clinical_shift'
   | 'sim_session'
   | 'assessment'
-  | 'tournament'
-  | 'competition'
   | 'market_day'
-  | 'pitch';
+  | 'mentor_visit'
+  | 'delivery_run'
+  | 'pitch'
+  | 'tournament'
+  | 'competition';
 
 export interface UpcomingEventOption {
   kind: StepTargetEventKind;
@@ -53,16 +55,22 @@ export function useUserUpcomingEvents() {
     slug === 'sailing' || slug === 'sail-racing' || slug === 'sail';
   const isNursing =
     slug === 'nursing' || slug === 'msn' || slug === 'msn-nursing';
+  const isEntrepreneur =
+    slug === 'entrepreneur' ||
+    slug === 'micro-entrepreneur' ||
+    slug === 'home-entrepreneur' ||
+    slug === 'small-business';
 
   return useQuery({
     queryKey: ['user-upcoming-events', user?.id, slug],
-    enabled: Boolean(user?.id) && (isSailing || isNursing),
+    enabled: Boolean(user?.id) && (isSailing || isNursing || isEntrepreneur),
     staleTime: 60_000,
     queryFn: async (): Promise<UpcomingEventOption[]> => {
       if (!user?.id) return [];
       const nowIso = new Date().toISOString();
       if (isSailing) return fetchSailingEvents(user.id, nowIso);
       if (isNursing) return fetchNursingEvents(user.id, nowIso);
+      if (isEntrepreneur) return fetchEntrepreneurEvents(user.id, nowIso);
       return [];
     },
   });
@@ -223,6 +231,142 @@ async function fetchNursingEvents(
       label: r.title,
       starts_at: r.scheduled_at,
       subtitle: [kindLabel, site?.name].filter(Boolean).join(' · ') || undefined,
+      lat: site?.lat,
+      lng: site?.lng,
+    });
+  }
+
+  return sortByStartsAt(out);
+}
+
+async function fetchEntrepreneurEvents(
+  userId: string,
+  nowIso: string,
+): Promise<UpcomingEventOption[]> {
+  // Entrepreneur has four event tables, all owner-keyed on user_id:
+  // market_days (recurring market), pitches (microfinance / sales /
+  // investor), mentor_visits (NGO/SHG touchpoints), delivery_runs
+  // (customer cluster trips). Same parallel-merge pattern as nursing.
+  // label_local (Devanagari etc.) is appended when present so the
+  // picker reads bilingually without extra UI.
+  const [marketsRes, pitchesRes, mentorsRes, deliveriesRes] = await Promise.all([
+    supabase
+      .from('market_days')
+      .select('id, label, label_local, starts_at, atlas_pois:venue_poi_id(name, lat, lng)')
+      .eq('user_id', userId)
+      .gte('starts_at', nowIso)
+      .order('starts_at', { ascending: true })
+      .limit(10),
+    supabase
+      .from('pitches')
+      .select('id, label, label_local, counterparty, pitch_kind, scheduled_at, atlas_pois:venue_poi_id(name, lat, lng)')
+      .eq('user_id', userId)
+      .gte('scheduled_at', nowIso)
+      .order('scheduled_at', { ascending: true })
+      .limit(10),
+    supabase
+      .from('mentor_visits')
+      .select('id, label, label_local, mentor_name, scheduled_at, modality, atlas_pois:venue_poi_id(name, lat, lng)')
+      .eq('user_id', userId)
+      .gte('scheduled_at', nowIso)
+      .order('scheduled_at', { ascending: true })
+      .limit(10),
+    supabase
+      .from('delivery_runs')
+      .select('id, label, label_local, scheduled_at, atlas_pois:venue_poi_id(name, lat, lng)')
+      .eq('user_id', userId)
+      .gte('scheduled_at', nowIso)
+      .order('scheduled_at', { ascending: true })
+      .limit(10),
+  ]);
+
+  type SitePoi = { name: string; lat: number; lng: number } | null;
+  const readPoi = (raw: unknown): SitePoi => {
+    if (!raw) return null;
+    if (Array.isArray(raw)) return (raw[0] as SitePoi) ?? null;
+    return raw as SitePoi;
+  };
+  const bilingualLabel = (label: string, label_local?: string | null) =>
+    label_local && label_local.trim().length > 0 ? `${label} · ${label_local}` : label;
+
+  const out: UpcomingEventOption[] = [];
+
+  for (const row of marketsRes.data ?? []) {
+    const r = row as {
+      id: string;
+      label: string;
+      label_local: string | null;
+      starts_at: string;
+      atlas_pois?: unknown;
+    };
+    const site = readPoi(r.atlas_pois);
+    out.push({
+      kind: 'market_day',
+      id: r.id,
+      label: bilingualLabel(r.label, r.label_local),
+      starts_at: r.starts_at,
+      subtitle: site?.name,
+      lat: site?.lat,
+      lng: site?.lng,
+    });
+  }
+  for (const row of pitchesRes.data ?? []) {
+    const r = row as {
+      id: string;
+      label: string;
+      label_local: string | null;
+      counterparty: string;
+      pitch_kind: string;
+      scheduled_at: string;
+      atlas_pois?: unknown;
+    };
+    const site = readPoi(r.atlas_pois);
+    out.push({
+      kind: 'pitch',
+      id: r.id,
+      label: bilingualLabel(r.label, r.label_local),
+      starts_at: r.scheduled_at,
+      subtitle: [r.counterparty, site?.name].filter(Boolean).join(' · ') || undefined,
+      lat: site?.lat,
+      lng: site?.lng,
+    });
+  }
+  for (const row of mentorsRes.data ?? []) {
+    const r = row as {
+      id: string;
+      label: string;
+      label_local: string | null;
+      mentor_name: string;
+      modality: string | null;
+      scheduled_at: string;
+      atlas_pois?: unknown;
+    };
+    const site = readPoi(r.atlas_pois);
+    out.push({
+      kind: 'mentor_visit',
+      id: r.id,
+      label: bilingualLabel(r.label, r.label_local),
+      starts_at: r.scheduled_at,
+      subtitle: [r.mentor_name, r.modality, site?.name].filter(Boolean).join(' · ') || undefined,
+      lat: site?.lat,
+      lng: site?.lng,
+    });
+  }
+  for (const row of deliveriesRes.data ?? []) {
+    const r = row as {
+      id: string;
+      label: string;
+      label_local: string | null;
+      scheduled_at: string;
+      atlas_pois?: unknown;
+    };
+    const site = readPoi(r.atlas_pois);
+    out.push({
+      kind: 'delivery_run',
+      id: r.id,
+      label: bilingualLabel(r.label, r.label_local),
+      starts_at: r.scheduled_at,
+      subtitle: site?.name,
       lat: site?.lat,
       lng: site?.lng,
     });

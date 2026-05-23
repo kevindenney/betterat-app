@@ -86,10 +86,12 @@ export interface StepPlanData {
     | 'clinical_shift'
     | 'sim_session'
     | 'assessment'
+    | 'market_day'
+    | 'mentor_visit'
+    | 'delivery_run'
+    | 'pitch'
     | 'tournament'
     | 'competition'
-    | 'market_day'
-    | 'pitch'
     | null;
   target_event_id?: string | null;
 }

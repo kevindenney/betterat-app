@@ -106,9 +106,84 @@ export function useTargetEvent({ kind, id }: UseTargetEventArgs) {
         };
       }
 
-      // race_event / tournament / competition / market_day / pitch — not
-      // yet wired. Picker won't surface them so steps shouldn't have them
-      // linked in v1.
+      if (kind === 'market_day') {
+        const { data, error } = await supabase
+          .from('market_days')
+          .select('id, label, label_local, starts_at, atlas_pois:venue_poi_id(name, lat, lng)')
+          .eq('id', id)
+          .maybeSingle();
+        if (error || !data) return null;
+        const site = readPoi((data as { atlas_pois?: unknown }).atlas_pois);
+        return {
+          kind: 'market_day',
+          id: data.id,
+          label: data.label_local ? `${data.label} · ${data.label_local}` : data.label,
+          starts_at: data.starts_at,
+          subtitle: site?.name,
+          lat: site?.lat,
+          lng: site?.lng,
+        };
+      }
+
+      if (kind === 'pitch') {
+        const { data, error } = await supabase
+          .from('pitches')
+          .select('id, label, label_local, counterparty, scheduled_at, atlas_pois:venue_poi_id(name, lat, lng)')
+          .eq('id', id)
+          .maybeSingle();
+        if (error || !data) return null;
+        const site = readPoi((data as { atlas_pois?: unknown }).atlas_pois);
+        return {
+          kind: 'pitch',
+          id: data.id,
+          label: data.label_local ? `${data.label} · ${data.label_local}` : data.label,
+          starts_at: data.scheduled_at,
+          subtitle: [data.counterparty, site?.name].filter(Boolean).join(' · ') || undefined,
+          lat: site?.lat,
+          lng: site?.lng,
+        };
+      }
+
+      if (kind === 'mentor_visit') {
+        const { data, error } = await supabase
+          .from('mentor_visits')
+          .select('id, label, label_local, mentor_name, scheduled_at, atlas_pois:venue_poi_id(name, lat, lng)')
+          .eq('id', id)
+          .maybeSingle();
+        if (error || !data) return null;
+        const site = readPoi((data as { atlas_pois?: unknown }).atlas_pois);
+        return {
+          kind: 'mentor_visit',
+          id: data.id,
+          label: data.label_local ? `${data.label} · ${data.label_local}` : data.label,
+          starts_at: data.scheduled_at,
+          subtitle: [data.mentor_name, site?.name].filter(Boolean).join(' · ') || undefined,
+          lat: site?.lat,
+          lng: site?.lng,
+        };
+      }
+
+      if (kind === 'delivery_run') {
+        const { data, error } = await supabase
+          .from('delivery_runs')
+          .select('id, label, label_local, scheduled_at, atlas_pois:venue_poi_id(name, lat, lng)')
+          .eq('id', id)
+          .maybeSingle();
+        if (error || !data) return null;
+        const site = readPoi((data as { atlas_pois?: unknown }).atlas_pois);
+        return {
+          kind: 'delivery_run',
+          id: data.id,
+          label: data.label_local ? `${data.label} · ${data.label_local}` : data.label,
+          starts_at: data.scheduled_at,
+          subtitle: site?.name,
+          lat: site?.lat,
+          lng: site?.lng,
+        };
+      }
+
+      // race_event / tournament / competition — not yet wired. Picker
+      // won't surface them so steps shouldn't have them linked in v1.
       return null;
     },
   });
