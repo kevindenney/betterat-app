@@ -21,24 +21,53 @@ interface UseStepFellowSubscribersInput {
   blueprintId: string | null | undefined;
 }
 
+export interface FellowSubscriber {
+  userId: string;
+  displayName: string;
+  avatarColor: string | null;
+}
+
 export function useStepFellowSubscribers({
   blueprintId,
 }: UseStepFellowSubscribersInput) {
   const { user } = useAuth();
   const viewerId = user?.id ?? null;
-  return useQuery<{ totalPeers: number }>({
+  return useQuery<{ totalPeers: number; peers: FellowSubscriber[] }>({
     queryKey: ['step-fellow-subscribers', blueprintId, viewerId],
     queryFn: async () => {
-      if (!blueprintId || !viewerId) return { totalPeers: 0 };
-      const { data, error } = await supabase
+      if (!blueprintId || !viewerId) return { totalPeers: 0, peers: [] };
+      const { data: subs, error } = await supabase
         .from('blueprint_subscriptions')
         .select('subscriber_id')
         .eq('blueprint_id', blueprintId);
-      if (error) return { totalPeers: 0 };
-      const ids = ((data as { subscriber_id: string }[] | null) ?? [])
+      if (error) return { totalPeers: 0, peers: [] };
+      const ids = ((subs as { subscriber_id: string }[] | null) ?? [])
         .map((s) => s.subscriber_id)
         .filter((id) => id !== viewerId);
-      return { totalPeers: ids.length };
+
+      if (ids.length === 0) return { totalPeers: 0, peers: [] };
+
+      // Resolve names via the public profiles table — never reach into
+      // auth.users directly. profile_public is the discovery surface so
+      // RLS already permits cross-user reads here.
+      const { data: profiles } = await supabase
+        .from('profile_public')
+        .select('user_id, display_name')
+        .in('user_id', ids);
+
+      const profilesById = new Map<string, string>();
+      for (const row of (profiles as { user_id: string; display_name: string | null }[] | null) ??
+        []) {
+        if (row.user_id && row.display_name) {
+          profilesById.set(row.user_id, row.display_name);
+        }
+      }
+      const peers: FellowSubscriber[] = ids.map((id) => ({
+        userId: id,
+        displayName: profilesById.get(id) ?? 'Unknown',
+        avatarColor: null,
+      }));
+      return { totalPeers: ids.length, peers };
     },
     enabled: Boolean(blueprintId && viewerId),
     staleTime: 60 * 1000,

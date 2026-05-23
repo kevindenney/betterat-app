@@ -20,14 +20,14 @@
  * data — keeps quiet on solo manual steps.
  */
 
-import React, { useMemo } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text } from 'react-native';
+import React, { useMemo, useState } from 'react';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
 import { IOS_REGISTER } from '@/lib/design-tokens-ios';
-import { showAlert } from '@/lib/utils/crossPlatformAlert';
 import { useStepFellowSubscribers } from '@/hooks/useStepFellowSubscribers';
+import { StepCombinatorsSheet } from './StepCombinatorsSheet';
 import type { TimelineStepRecord } from '@/types/timeline-steps';
 
 interface StepCombinatorsRowProps {
@@ -48,16 +48,20 @@ export function StepCombinatorsRow({
     blueprintId: step.source_blueprint_id ?? null,
   });
   const peerCount = peers?.totalPeers ?? 0;
+  const peerList = peers?.peers ?? [];
 
-  const relatedCount = useMemo(() => {
+  const relatedSteps = useMemo(() => {
     return viewerSteps.filter(
       (s) =>
         s.id !== step.id &&
         ((step.source_blueprint_id != null &&
           s.source_blueprint_id === step.source_blueprint_id) ||
           (Boolean(step.category) && s.category === step.category)),
-    ).length;
+    );
   }, [viewerSteps, step]);
+  const relatedCount = relatedSteps.length;
+
+  const [sheet, setSheet] = useState<null | 'peers' | 'related'>(null);
 
   const hasFrom = Boolean(blueprintTitle);
   const hasPeers = peerCount > 0;
@@ -66,82 +70,83 @@ export function StepCombinatorsRow({
   if (!hasFrom && !hasPeers && !hasRelated) return null;
 
   return (
-    <ScrollView
-      horizontal
-      showsHorizontalScrollIndicator={false}
-      contentContainerStyle={styles.row}
-    >
-      {hasFrom ? (
-        <Pressable
-          style={styles.pill}
-          onPress={() => {
-            if (step.source_blueprint_id) {
-              router.push(`/blueprint/${step.source_blueprint_id}` as never);
-            }
-          }}
-        >
-          <Ionicons
-            name="git-network-outline"
-            size={12}
-            color={IOS_REGISTER.labelSecondary}
-          />
-          <Text style={styles.pillText} numberOfLines={1}>
-            <Text style={styles.pillBold}>{blueprintTitle}</Text>
-            {blueprintAuthorName ? (
-              <Text style={styles.pillDim}>{`  ·  ${blueprintAuthorName}`}</Text>
-            ) : null}
-          </Text>
-        </Pressable>
-      ) : null}
-
-      {hasPeers ? (
-        <Pressable
-          style={styles.pill}
-          onPress={() =>
-            showAlert(
-              `${peerCount} ${peerCount === 1 ? 'peer is' : 'peers are'} on this blueprint`,
-              'The peer list sheet ships in a follow-up. For now you can see the breakdown in the step-complete celebration.',
-            )
-          }
-        >
-          <Ionicons
-            name="people-outline"
-            size={12}
-            color={IOS_REGISTER.labelSecondary}
-          />
-          <Text style={styles.pillText}>
-            <Text style={styles.pillBold}>{peerCount}</Text>
-            <Text style={styles.pillDim}>{peerCount === 1 ? ' peer' : ' peers'}</Text>
-          </Text>
-        </Pressable>
-      ) : null}
-
-      {hasRelated ? (
-        <Pressable
-          style={styles.pill}
-          onPress={() =>
-            showAlert(
-              `${relatedCount} related ${relatedCount === 1 ? 'step' : 'steps'} in your timeline`,
-              step.source_blueprint_id
-                ? 'Other steps from the same blueprint, or sharing this step’s category. Filtering at L4 is a follow-up.'
-                : 'Other steps in your timeline sharing this step’s category. Filtering at L4 is a follow-up.',
-            )
-          }
-        >
-          <Ionicons
-            name="link-outline"
-            size={12}
-            color={IOS_REGISTER.labelSecondary}
-          />
-          <Text style={styles.pillText}>
-            <Text style={styles.pillBold}>{relatedCount}</Text>
-            <Text style={styles.pillDim}>
-              {relatedCount === 1 ? ' related' : ' related'}
+    <View>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.row}
+      >
+        {hasFrom ? (
+          <Pressable
+            style={styles.pill}
+            onPress={() => {
+              if (step.source_blueprint_id) {
+                router.push(`/blueprint/${step.source_blueprint_id}` as never);
+              }
+            }}
+          >
+            <Ionicons
+              name="git-network-outline"
+              size={12}
+              color={IOS_REGISTER.labelSecondary}
+            />
+            <Text style={styles.pillText} numberOfLines={1}>
+              <Text style={styles.pillBold}>{blueprintTitle}</Text>
+              {blueprintAuthorName ? (
+                <Text style={styles.pillDim}>{`  ·  ${blueprintAuthorName}`}</Text>
+              ) : null}
             </Text>
-          </Text>
-        </Pressable>
+          </Pressable>
+        ) : null}
+
+        {hasPeers ? (
+          <Pressable style={styles.pill} onPress={() => setSheet('peers')}>
+            <Ionicons
+              name="people-outline"
+              size={12}
+              color={IOS_REGISTER.labelSecondary}
+            />
+            <Text style={styles.pillText}>
+              <Text style={styles.pillBold}>{peerCount}</Text>
+              <Text style={styles.pillDim}>{peerCount === 1 ? ' peer' : ' peers'}</Text>
+            </Text>
+          </Pressable>
+        ) : null}
+
+        {hasRelated ? (
+          <Pressable style={styles.pill} onPress={() => setSheet('related')}>
+            <Ionicons
+              name="link-outline"
+              size={12}
+              color={IOS_REGISTER.labelSecondary}
+            />
+            <Text style={styles.pillText}>
+              <Text style={styles.pillBold}>{relatedCount}</Text>
+              <Text style={styles.pillDim}>
+                {relatedCount === 1 ? ' related' : ' related'}
+              </Text>
+            </Text>
+          </Pressable>
+        ) : null}
+      </ScrollView>
+
+      {sheet === 'peers' ? (
+        <StepCombinatorsSheet
+          visible
+          mode="peers"
+          peers={peerList}
+          onDismiss={() => setSheet(null)}
+        />
       ) : null}
-    </ScrollView>
+      {sheet === 'related' ? (
+        <StepCombinatorsSheet
+          visible
+          mode="related"
+          relatedSteps={relatedSteps}
+          onDismiss={() => setSheet(null)}
+        />
+      ) : null}
+    </View>
   );
 }
 
