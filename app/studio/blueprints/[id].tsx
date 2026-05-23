@@ -304,7 +304,11 @@ export default function BlueprintEditorPage() {
         ) : tab === 'capabilities' ? (
           <CapabilitiesTabBody blueprintId={blueprintId} orgId={blueprint.orgId} />
         ) : tab === 'pricing' ? (
-          <PricingTabBody />
+          <PricingTabBody
+            blueprintId={blueprintId}
+            orgName={blueprint.orgName}
+            orgShort={blueprint.orgShort}
+          />
         ) : tab === 'cohorts' ? (
           <CohortsTabBody />
         ) : tab === 'mentor' ? (

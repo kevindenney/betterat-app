@@ -24,6 +24,7 @@ import {
   CapabilityStrength,
   strengthLabel,
 } from '@/hooks/useBlueprintCapabilities';
+import { useBlueprintPricing } from '@/hooks/useBlueprintPricing';
 
 // =============================================================================
 // FRAME 18 · STEPS
@@ -509,7 +510,61 @@ export function CapabilitiesTabBody({
 // FRAME 20 · PRICING & ACCESS
 // =============================================================================
 
-export function PricingTabBody() {
+export function PricingTabBody({
+  blueprintId,
+  orgName,
+  orgShort,
+}: {
+  blueprintId: string;
+  orgName: string | null;
+  orgShort: string | null;
+}) {
+  const { pricing, loading, update, removeCohort } = useBlueprintPricing(blueprintId);
+
+  const [priceInput, setPriceInput] = React.useState('');
+  const [payoutInput, setPayoutInput] = React.useState('');
+  const [trialInput, setTrialInput] = React.useState('');
+
+  React.useEffect(() => {
+    if (!pricing) return;
+    setPriceInput(
+      pricing.pricePerSeatCents != null
+        ? (pricing.pricePerSeatCents / 100).toFixed(2)
+        : '14.00',
+    );
+    setPayoutInput(String(pricing.authorPayoutPct));
+    setTrialInput(String(pricing.trialDays));
+  }, [pricing]);
+
+  if (loading || !pricing) {
+    return (
+      <ScrollView style={s.body} contentContainerStyle={s.bodyInner}>
+        <Text style={s.sectionHint}>Loading pricing…</Text>
+      </ScrollView>
+    );
+  }
+
+  const isInstitutional = pricing.accessMode === 'institutional';
+
+  const persistPrice = () => {
+    const parsed = parseFloat(priceInput);
+    if (Number.isFinite(parsed) && parsed >= 0) {
+      update.mutate({ pricePerSeatCents: Math.round(parsed * 100) });
+    }
+  };
+  const persistPayout = () => {
+    const parsed = parseInt(payoutInput, 10);
+    if (Number.isFinite(parsed) && parsed >= 0 && parsed <= 100) {
+      update.mutate({ authorPayoutPct: parsed });
+    }
+  };
+  const persistTrial = () => {
+    const parsed = parseInt(trialInput, 10);
+    if (Number.isFinite(parsed) && parsed >= 0) {
+      update.mutate({ trialDays: parsed });
+    }
+  };
+
   return (
     <ScrollView style={s.body} contentContainerStyle={s.bodyInner}>
       <View style={s.sectionHead}>
@@ -520,20 +575,26 @@ export function PricingTabBody() {
       </View>
 
       <View style={s.togglePair}>
-        <View style={[s.toggleCard, s.toggleCardOn]}>
-          <View style={[s.radio, s.radioOn]} />
+        <Pressable
+          onPress={() => update.mutate({ accessMode: 'institutional' })}
+          style={[s.toggleCard, isInstitutional && s.toggleCardOn]}
+        >
+          <View style={[s.radio, isInstitutional && s.radioOn]} />
           <Text style={s.toggleCardH4}>Institutional · org-paid</Text>
           <Text style={s.toggleCardLead}>
-            Johns Hopkins School of Nursing pays from its plan. Free to enrolled students in
-            selected cohorts.
+            {orgName ?? 'Your org'} pays from its plan. Free to enrolled students in selected
+            cohorts.
           </Text>
           <View style={s.toggleCardWho}>
             <Ionicons name="shield-checkmark-outline" size={13} color="#28406B" />
-            <Text style={s.toggleCardWhoText}>JHSON · BSN seats</Text>
+            <Text style={s.toggleCardWhoText}>{orgShort ?? '·'} · enrolled seats</Text>
           </View>
-        </View>
-        <View style={s.toggleCard}>
-          <View style={s.radio} />
+        </Pressable>
+        <Pressable
+          onPress={() => update.mutate({ accessMode: 'independent' })}
+          style={[s.toggleCard, !isInstitutional && s.toggleCardOn]}
+        >
+          <View style={[s.radio, !isInstitutional && s.radioOn]} />
           <Text style={s.toggleCardH4}>Independent · per-seat</Text>
           <Text style={s.toggleCardLead}>
             Listed publicly. Anyone with a BetterAt account can subscribe. Author earns a
@@ -545,47 +606,92 @@ export function PricingTabBody() {
               Open marketplace
             </Text>
           </View>
-        </View>
+        </Pressable>
       </View>
 
-      <View style={s.panel}>
+      <View style={[s.panel, !isInstitutional && { opacity: 0.55 }]}>
         <View style={s.panelHead}>
           <Text style={s.panelEyebrow}>Institutional configuration</Text>
-          <Text style={s.panelHint}>Confirm org and choose cohort scope</Text>
+          <Text style={s.panelHint}>
+            {isInstitutional
+              ? 'Confirm org and choose cohort scope'
+              : 'Switch to Institutional above to edit'}
+          </Text>
         </View>
         <View style={s.row2}>
           <View style={{ flex: 1 }}>
             <Text style={s.fieldLabel}>Paying organization</Text>
             <View style={s.selectFake}>
               <View style={s.orgShield}>
-                <Text style={s.orgShieldText}>JH</Text>
+                <Text style={s.orgShieldText}>{orgShort ?? '·'}</Text>
               </View>
-              <Text style={[s.selectFakeText, { flex: 1 }]}>Johns Hopkins School of Nursing</Text>
+              <Text style={[s.selectFakeText, { flex: 1 }]}>
+                {orgName ?? 'No org assigned'}
+              </Text>
               <Ionicons name="chevron-down" size={12} color="rgba(60, 60, 67, 0.4)" />
             </View>
-            <Text style={s.fieldHelp}>Charges roll up to JHSON's plan invoice.</Text>
+            <Text style={s.fieldHelp}>Charges roll up to the org's plan invoice.</Text>
           </View>
           <View style={{ flex: 1 }}>
             <Text style={s.fieldLabel}>Cohort scope</Text>
             <View style={s.segControl}>
-              <View style={s.segOpt}>
-                <Text style={s.segOptText}>All cohorts</Text>
-              </View>
-              <View style={[s.segOpt, s.segOptOn]}>
-                <Text style={s.segOptTextOn}>Specific cohorts</Text>
-              </View>
+              <Pressable
+                style={[s.segOpt, pricing.cohortScope === 'all' && s.segOptOn]}
+                onPress={() => isInstitutional && update.mutate({ cohortScope: 'all' })}
+              >
+                <Text
+                  style={
+                    pricing.cohortScope === 'all' ? s.segOptTextOn : s.segOptText
+                  }
+                >
+                  All cohorts
+                </Text>
+              </Pressable>
+              <Pressable
+                style={[s.segOpt, pricing.cohortScope === 'specific' && s.segOptOn]}
+                onPress={() => isInstitutional && update.mutate({ cohortScope: 'specific' })}
+              >
+                <Text
+                  style={
+                    pricing.cohortScope === 'specific' ? s.segOptTextOn : s.segOptText
+                  }
+                >
+                  Specific cohorts
+                </Text>
+              </Pressable>
             </View>
-            <Text style={s.fieldHelp}>Limit which cohorts see this blueprint in their library.</Text>
+            <Text style={s.fieldHelp}>
+              Limit which cohorts see this blueprint in their library.
+            </Text>
           </View>
         </View>
         <View style={[s.stepField, { marginTop: 12 }]}>
           <Text style={s.fieldLabel}>Assigned cohorts</Text>
           <View style={s.tagRow}>
-            <View style={[s.tagChip, { borderWidth: 0.5, borderColor: 'rgba(40, 64, 107, 0.30)', backgroundColor: '#FFFFFF' }]}>
-              <Text style={s.tagChipText}>BSN Class of 2027 — Cohort A</Text>
-              <Ionicons name="close" size={11} color="#28406B" />
-            </View>
-            <View style={[s.tagChipDashed]}>
+            {pricing.assignedCohorts.length === 0 ? (
+              <Text style={s.fieldHelp}>
+                No cohorts assigned yet. Add one from the Cohorts tab.
+              </Text>
+            ) : (
+              pricing.assignedCohorts.map((c) => (
+                <Pressable
+                  key={c.id}
+                  onPress={() => removeCohort.mutate(c.id)}
+                  style={[
+                    s.tagChip,
+                    {
+                      borderWidth: 0.5,
+                      borderColor: 'rgba(40, 64, 107, 0.30)',
+                      backgroundColor: '#FFFFFF',
+                    },
+                  ]}
+                >
+                  <Text style={s.tagChipText}>{c.name}</Text>
+                  <Ionicons name="close" size={11} color="#28406B" />
+                </Pressable>
+              ))
+            )}
+            <View style={s.tagChipDashed}>
               <Ionicons name="add" size={11} color="rgba(60, 60, 67, 0.6)" />
               <Text style={s.tagChipAddText}>Add cohort</Text>
             </View>
@@ -593,13 +699,17 @@ export function PricingTabBody() {
         </View>
       </View>
 
-      <View style={[s.card, { opacity: 0.55 }]}>
+      <View style={[s.card, isInstitutional && { opacity: 0.55 }]}>
         <View style={s.cardHead}>
           <View>
-            <Text style={s.eyebrow}>Independent pricing · disabled</Text>
+            <Text style={s.eyebrow}>
+              Independent pricing{isInstitutional ? ' · disabled' : ''}
+            </Text>
             <Text style={s.cardH3}>Per-seat & per-cohort pricing</Text>
           </View>
-          <Text style={s.cardHeadMeta}>Switch to Independent above to enable</Text>
+          {isInstitutional ? (
+            <Text style={s.cardHeadMeta}>Switch to Independent above to edit</Text>
+          ) : null}
         </View>
         <View style={s.cardBody}>
           <View style={s.row3}>
@@ -607,19 +717,40 @@ export function PricingTabBody() {
               <Text style={s.fieldLabel}>Per-seat price · month</Text>
               <View style={[s.input, s.inputAffix]}>
                 <Text style={s.inputAffixPrefix}>USD</Text>
-                <TextInput style={s.inputAffixField} defaultValue="14.00" />
+                <TextInput
+                  style={s.inputAffixField}
+                  value={priceInput}
+                  onChangeText={setPriceInput}
+                  onBlur={persistPrice}
+                  keyboardType="decimal-pad"
+                  editable={!isInstitutional}
+                />
               </View>
             </View>
             <View style={{ flex: 1 }}>
               <Text style={s.fieldLabel}>Author payout %</Text>
               <View style={[s.input, s.inputAffix]}>
-                <TextInput style={s.inputAffixField} defaultValue="70" />
+                <TextInput
+                  style={s.inputAffixField}
+                  value={payoutInput}
+                  onChangeText={setPayoutInput}
+                  onBlur={persistPayout}
+                  keyboardType="number-pad"
+                  editable={!isInstitutional}
+                />
                 <Text style={s.inputAffixSuffix}>%</Text>
               </View>
             </View>
             <View style={{ flex: 1 }}>
               <Text style={s.fieldLabel}>Trial · days</Text>
-              <TextInput style={s.input} defaultValue="7" />
+              <TextInput
+                style={s.input}
+                value={trialInput}
+                onChangeText={setTrialInput}
+                onBlur={persistTrial}
+                keyboardType="number-pad"
+                editable={!isInstitutional}
+              />
             </View>
           </View>
           <View style={s.licensePrev}>
