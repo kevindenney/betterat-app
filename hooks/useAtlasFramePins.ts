@@ -44,6 +44,20 @@ export function mapPoiToPinKind(poi: AtlasPoi): AtlasPinSpec['kind'] | null {
 }
 
 /**
+ * Trim long institution names so the inline label stays readable on the
+ * map. Drops the leading "Royal/Johns Hopkins/Hospital" filler when it
+ * makes the label too long.
+ */
+export function shortenPoiName(name: string): string {
+  if (name.length <= 22) return name;
+  return name
+    .replace(/^Royal Hong Kong /i, 'RHKYC ')
+    .replace(/^Johns Hopkins /i, 'JH ')
+    .replace(/ — .*$/, '')
+    .slice(0, 22);
+}
+
+/**
  * Map a peer-step relationship to a pin kind. 'self' becomes 'you' so the
  * viewer's own pin reads bigger; everything else maps 1:1 except 'public'
  * and 'cohort' which both fall back to 'following' until we add a
@@ -90,7 +104,13 @@ export function useAtlasFramePins({
       }
       const kind = mapPoiToPinKind(poi);
       if (!kind) continue;
-      out.push({ id: `poi:${poi.id}`, lat: poi.lat, lng: poi.lng, kind });
+      out.push({
+        id: `poi:${poi.id}`,
+        lat: poi.lat,
+        lng: poi.lng,
+        kind,
+        label: shortenPoiName(poi.name),
+      });
     }
 
     // Peer step pins from the RPC — already privacy-filtered server-side.

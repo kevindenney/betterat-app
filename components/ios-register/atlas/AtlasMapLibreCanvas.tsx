@@ -100,6 +100,8 @@ export interface AtlasPinSpec {
     | 'poi-racing-area'
     | 'poi-hospital'
     | 'poi-sim-lab';
+  /** Optional short label rendered next to the pin (POIs get names). */
+  label?: string;
 }
 
 interface AtlasMapLibreCanvasProps {
@@ -167,7 +169,7 @@ export function AtlasMapLibreCanvas({
 
         {pins.map((pin) => (
           <MLMarker key={pin.id} id={pin.id} lngLat={[pin.lng, pin.lat]}>
-            <View style={pinStyle(pin.kind)} />
+            <LabeledPin kind={pin.kind} label={pin.label} />
           </MLMarker>
         ))}
 
@@ -239,16 +241,38 @@ const PIN_TONE: Record<AtlasPinSpec['kind'], { size: number; color: string }> = 
   'poi-sim-lab': { size: 12, color: 'rgba(155, 92, 246, 0.95)' },
 };
 
-function pinStyle(kind: AtlasPinSpec['kind']) {
+/**
+ * Pin + optional inline label. POIs read with their name (e.g. "RHKYC")
+ * next to the dot so the map is legible at zoom 11 where pins would
+ * otherwise cluster as anonymous blobs.
+ */
+function LabeledPin({
+  kind,
+  label,
+}: {
+  kind: AtlasPinSpec['kind'];
+  label?: string;
+}) {
   const tone = PIN_TONE[kind];
-  return {
-    width: tone.size,
-    height: tone.size,
-    borderRadius: tone.size / 2,
-    backgroundColor: tone.color,
-    borderWidth: 1.5,
-    borderColor: '#FFFFFF',
-  };
+  return (
+    <View style={styles.pinRow}>
+      <View
+        style={{
+          width: tone.size,
+          height: tone.size,
+          borderRadius: tone.size / 2,
+          backgroundColor: tone.color,
+          borderWidth: 1.5,
+          borderColor: '#FFFFFF',
+        }}
+      />
+      {label ? (
+        <Text style={styles.pinLabel} numberOfLines={1}>
+          {label}
+        </Text>
+      ) : null}
+    </View>
+  );
 }
 
 /**
@@ -270,6 +294,22 @@ function NextEventMarker({ label, when }: { label: string; when?: string }) {
 const styles = StyleSheet.create({
   fill: {
     flex: 1,
+  },
+  pinRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  pinLabel: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#1C1C1E',
+    backgroundColor: 'rgba(255, 255, 255, 0.92)',
+    paddingHorizontal: 4,
+    paddingVertical: 1,
+    borderRadius: 3,
+    maxWidth: 120,
+    overflow: 'hidden',
   },
   nextTag: {
     backgroundColor: '#FFE6B0',
