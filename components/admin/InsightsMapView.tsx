@@ -98,6 +98,50 @@ export function InsightsMapView({
   const VIEW_W = 820;
   const VIEW_H = 420;
 
+  // Pre-compute marker positions + radii so labels can be displaced when
+  // markers cluster (Baltimore JH Hospital + Bayview, DC Suburban + Sibley).
+  // Labels default to below the marker; clustered markers get pushed radially
+  // outward from cluster centroid with a leader line.
+  const markers = useMemo(() => {
+    const base = projected.points.map((p) => {
+      const pos = projected.project(p.lat, p.lng, VIEW_W, VIEW_H);
+      const cov = siteCoverageNum(p.id);
+      const radius = 18 + cov.intensity * 28;
+      return {
+        id: p.id,
+        site: p.site,
+        x: pos.x,
+        y: pos.y,
+        radius,
+        cov,
+      };
+    });
+    const LABEL_NEIGHBOR_PX = 140;
+    return base.map((m, i) => {
+      const neighbors = base.filter((other, j) => {
+        if (j === i) return false;
+        return Math.hypot(other.x - m.x, other.y - m.y) < LABEL_NEIGHBOR_PX;
+      });
+      let labelX = m.x;
+      let labelY = m.y + m.radius + 16;
+      let displaced = false;
+      if (neighbors.length > 0) {
+        const cx = neighbors.reduce((s, n) => s + n.x, 0) / neighbors.length;
+        const cy = neighbors.reduce((s, n) => s + n.y, 0) / neighbors.length;
+        const dirX = m.x - cx;
+        const dirY = m.y - cy;
+        const norm = Math.hypot(dirX, dirY) || 1;
+        const offset = m.radius + 28;
+        labelX = m.x + (dirX / norm) * offset;
+        labelY = m.y + (dirY / norm) * offset + 4;
+        displaced = true;
+      }
+      return { ...m, labelX, labelY, displaced };
+    });
+    // siteCoverageNum closes over filteredCompetency, colTotals, evidence — list those
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projected, filteredCompetency, colTotals, evidence, cohortSize]);
+
   return (
     <View style={s.wrap}>
       {/* Competency filter pills */}
@@ -175,41 +219,54 @@ export function InsightsMapView({
             </G>
           ) : null}
 
+          {/* Leader lines for displaced labels (drawn below markers) */}
+          {markers.map((m) =>
+            m.displaced ? (
+              <Line
+                key={`leader-${m.id}`}
+                x1={m.x}
+                y1={m.y}
+                x2={m.labelX}
+                y2={m.labelY - 6}
+                stroke="rgba(60, 60, 67, 0.35)"
+                strokeWidth={0.75}
+                strokeDasharray="2 3"
+              />
+            ) : null,
+          )}
+
           {/* Site markers */}
-          {projected.points.map((p) => {
-            const { x, y } = projected.project(p.lat, p.lng, VIEW_W, VIEW_H);
-            const cov = siteCoverageNum(p.id);
-            const radius = 18 + cov.intensity * 28;
-            const fill = intensityFill(cov.intensity);
+          {markers.map((m) => {
+            const fill = intensityFill(m.cov.intensity);
             return (
-              <G key={p.id}>
+              <G key={m.id}>
                 {/* Soft halo */}
-                <Circle cx={x} cy={y} r={radius + 6} fill={fill} opacity={0.18} />
+                <Circle cx={m.x} cy={m.y} r={m.radius + 6} fill={fill} opacity={0.18} />
                 {/* Inner disc */}
-                <Circle cx={x} cy={y} r={radius} fill={fill} opacity={0.85} />
+                <Circle cx={m.x} cy={m.y} r={m.radius} fill={fill} opacity={0.85} />
                 {/* Count text */}
                 <SvgText
-                  x={x}
-                  y={y + 5}
+                  x={m.x}
+                  y={m.y + 5}
                   fontSize={14}
                   fontWeight="700"
-                  fill={cov.intensity > 0.45 ? '#FFFFFF' : '#1C1C1E'}
+                  fill={m.cov.intensity > 0.45 ? '#FFFFFF' : '#1C1C1E'}
                   textAnchor="middle"
                   fontFamily="sans-serif"
                 >
-                  {cov.count}
+                  {m.cov.count}
                 </SvgText>
-                {/* Site short name */}
+                {/* Site short name — placed by label-displacement logic */}
                 <SvgText
-                  x={x}
-                  y={y + radius + 16}
+                  x={m.labelX}
+                  y={m.labelY}
                   fontSize={11}
                   fontWeight="600"
                   fill="#1C1C1E"
                   textAnchor="middle"
                   fontFamily="sans-serif"
                 >
-                  {p.site.short}
+                  {m.site.short}
                 </SvgText>
               </G>
             );
