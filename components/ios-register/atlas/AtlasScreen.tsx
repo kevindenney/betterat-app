@@ -1023,23 +1023,6 @@ function FrameF4({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
   return (
     <View style={shellStyles.frame}>
       {!embedded && <StatusBar />}
-      <TopChrome
-        title="Atlas"
-        subtitle={handlers.subtitleOverride ?? 'Nursing · MSN · Baltimore'}
-        avatarInitial={handlers.avatarInitial ?? "E"}
-      />
-      <FilterChipsRow
-        chips={[
-          { id: 'all', label: 'All', active: true },
-          { id: 'you', label: 'You', tone: 'you' },
-          { id: 'cohort', label: 'Cohort', tone: 'cohort', dim: true },
-          { id: 'sites', label: 'Clinical sites', icon: 'medical-outline' },
-          { id: 'heatmap', label: 'Cohort heatmap', icon: 'grid-outline', active: true },
-          { id: 'following', label: 'Following', tone: 'following', dim: true },
-          { id: 'cross-interest', label: 'All my interests', crossInterest: true, dim: true },
-        ]}
-        onActiveIdsChange={handleF4ChipsChange}
-      />
       <View style={shellStyles.mapArea}>
         {handlers.useMapLibre ? (
           <AtlasMapLibreCanvas frame="f4" pins={pins} />
@@ -1047,8 +1030,30 @@ function FrameF4({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
           <BaltimoreColdMap />
         )}
 
-        {/* Site-level only banner */}
-        <View style={[shellStyles.absChip, { top: 12, right: 12 }]}>
+        {/* Floating glass chrome — title + chips. Same pattern as F1. */}
+        <View style={shellStyles.floatingChrome}>
+          <TopChrome
+            title="Atlas"
+            subtitle={handlers.subtitleOverride ?? 'Nursing · MSN · Baltimore'}
+            avatarInitial={handlers.avatarInitial ?? 'E'}
+          />
+          <FilterChipsRow
+            chips={[
+              { id: 'all', label: 'All', active: true },
+              { id: 'you', label: 'You', tone: 'you' },
+              { id: 'cohort', label: 'Cohort', tone: 'cohort', dim: true },
+              { id: 'sites', label: 'Clinical sites', icon: 'medical-outline' },
+              { id: 'heatmap', label: 'Cohort heatmap', icon: 'grid-outline', active: true },
+              { id: 'following', label: 'Following', tone: 'following', dim: true },
+              { id: 'cross-interest', label: 'All my interests', crossInterest: true, dim: true },
+            ]}
+            onActiveIdsChange={handleF4ChipsChange}
+          />
+        </View>
+
+        {/* Site-level only banner — sits below the floating chrome so the
+            two don't visually collide. */}
+        <View style={[shellStyles.absChip, { top: 92, right: 12, zIndex: 20 }]}>
           <Ionicons name="lock-closed" size={9} color="rgba(60, 60, 67, 0.55)" />
           <Text style={shellStyles.absChipText}>site-level only</Text>
         </View>
@@ -1271,27 +1276,30 @@ function FrameF7({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
   return (
     <View style={shellStyles.frame}>
       {!embedded && <StatusBar />}
-      <TopChrome
-        title="Atlas"
-        subtitle={handlers.subtitleOverride ?? 'Entrepreneur · Jharkhand · Network'}
-        avatarInitial={handlers.avatarInitial ?? 'L'}
-      />
-      <FilterChipsRow
-        chips={[
-          { id: 'all', label: 'All', active: true },
-          { id: 'network', label: 'Network', tone: 'fleet' },
-          { id: 'haat', label: 'Haat · हाट', icon: 'storefront-outline' },
-          { id: 'suppliers', label: 'Suppliers', icon: 'leaf-outline' },
-          { id: 'mom', label: 'Mentees', tone: 'crew', dim: true },
-          { id: 'offline', label: 'OFFLINE · synced 4h', icon: 'cloud-offline-outline' },
-        ]}
-      />
       <View style={shellStyles.mapArea}>
         {handlers.useMapLibre ? (
           <AtlasMapLibreCanvas frame="f7" pins={pins} />
         ) : (
           <WorldDragonMap />
         )}
+        {/* Floating glass chrome — title + chips. Same pattern as F1/F4. */}
+        <View style={shellStyles.floatingChrome}>
+          <TopChrome
+            title="Atlas"
+            subtitle={handlers.subtitleOverride ?? 'Entrepreneur · Jharkhand · Network'}
+            avatarInitial={handlers.avatarInitial ?? 'L'}
+          />
+          <FilterChipsRow
+            chips={[
+              { id: 'all', label: 'All', active: true },
+              { id: 'network', label: 'Network', tone: 'fleet' },
+              { id: 'haat', label: 'Haat · हाट', icon: 'storefront-outline' },
+              { id: 'suppliers', label: 'Suppliers', icon: 'leaf-outline' },
+              { id: 'mom', label: 'Mentees', tone: 'crew', dim: true },
+              { id: 'offline', label: 'OFFLINE · synced 4h', icon: 'cloud-offline-outline' },
+            ]}
+          />
+        </View>
         <LayersFab onLayersPress={() => setLayersOpen(true)} />
       </View>
 
