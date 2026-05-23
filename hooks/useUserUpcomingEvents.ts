@@ -24,6 +24,9 @@ import { supabase } from '@/services/supabase';
 export type StepTargetEventKind =
   | 'regatta'
   | 'race_event'
+  | 'clinical_shift'
+  | 'sim_session'
+  | 'assessment'
   | 'tournament'
   | 'competition'
   | 'market_day'
@@ -48,69 +51,190 @@ export function useUserUpcomingEvents() {
   const slug = (currentInterest?.slug ?? '').toLowerCase();
   const isSailing =
     slug === 'sailing' || slug === 'sail-racing' || slug === 'sail';
+  const isNursing =
+    slug === 'nursing' || slug === 'msn' || slug === 'msn-nursing';
 
   return useQuery({
     queryKey: ['user-upcoming-events', user?.id, slug],
-    enabled: Boolean(user?.id) && isSailing,
+    enabled: Boolean(user?.id) && (isSailing || isNursing),
     staleTime: 60_000,
     queryFn: async (): Promise<UpcomingEventOption[]> => {
       if (!user?.id) return [];
       const nowIso = new Date().toISOString();
-      // Pull both owner-created and participant-registered regattas in
-      // parallel. Merge + dedupe by id; sort by starts_at ascending.
-      const [ownedRes, participantRes] = await Promise.all([
-        supabase
-          .from('regattas')
-          .select('id, name, start_date, venue, latitude, longitude')
-          .eq('created_by', user.id)
-          .gte('start_date', nowIso)
-          .order('start_date', { ascending: true })
-          .limit(20),
-        supabase
-          .from('race_participants')
-          .select('regattas:regatta_id(id, name, start_date, venue, latitude, longitude)')
-          .eq('user_id', user.id),
-      ]);
-
-      const byId = new Map<string, UpcomingEventOption>();
-      type Row = {
-        id: string;
-        name: string;
-        start_date: string | null;
-        venue: string | null;
-        latitude: number | null;
-        longitude: number | null;
-      };
-      const pushRow = (r: Row | null) => {
-        if (!r || !r.id) return;
-        if (r.start_date && r.start_date < nowIso) return;
-        byId.set(r.id, {
-          kind: 'regatta',
-          id: r.id,
-          label: r.name || 'Untitled regatta',
-          starts_at: r.start_date,
-          subtitle: r.venue ?? undefined,
-          lat: r.latitude ?? undefined,
-          lng: r.longitude ?? undefined,
-        });
-      };
-      (ownedRes.data ?? []).forEach((row) => pushRow(row as Row));
-      (participantRes.data ?? []).forEach((row) => {
-        // supabase-js types the FK-embedded relation as an array; in
-        // practice it's a single object since regatta_id is a singular FK.
-        const r = (row as unknown as { regattas: Row | Row[] | null }).regattas;
-        if (Array.isArray(r)) {
-          r.forEach((item) => pushRow(item));
-        } else {
-          pushRow(r);
-        }
-      });
-
-      return Array.from(byId.values()).sort((a, b) => {
-        const aT = a.starts_at ?? '9999';
-        const bT = b.starts_at ?? '9999';
-        return aT.localeCompare(bT);
-      });
+      if (isSailing) return fetchSailingEvents(user.id, nowIso);
+      if (isNursing) return fetchNursingEvents(user.id, nowIso);
+      return [];
     },
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Per-vertical event resolvers
+// ─────────────────────────────────────────────────────────────────────────
+
+async function fetchSailingEvents(
+  userId: string,
+  nowIso: string,
+): Promise<UpcomingEventOption[]> {
+  // Pull owner-created + participant-registered regattas in parallel.
+  // Merge + dedupe by id; sort by starts_at ascending.
+  const [ownedRes, participantRes] = await Promise.all([
+    supabase
+      .from('regattas')
+      .select('id, name, start_date, venue, latitude, longitude')
+      .eq('created_by', userId)
+      .gte('start_date', nowIso)
+      .order('start_date', { ascending: true })
+      .limit(20),
+    supabase
+      .from('race_participants')
+      .select('regattas:regatta_id(id, name, start_date, venue, latitude, longitude)')
+      .eq('user_id', userId),
+  ]);
+
+  type Row = {
+    id: string;
+    name: string;
+    start_date: string | null;
+    venue: string | null;
+    latitude: number | null;
+    longitude: number | null;
+  };
+  const byId = new Map<string, UpcomingEventOption>();
+  const pushRow = (r: Row | null) => {
+    if (!r || !r.id) return;
+    if (r.start_date && r.start_date < nowIso) return;
+    byId.set(r.id, {
+      kind: 'regatta',
+      id: r.id,
+      label: r.name || 'Untitled regatta',
+      starts_at: r.start_date,
+      subtitle: r.venue ?? undefined,
+      lat: r.latitude ?? undefined,
+      lng: r.longitude ?? undefined,
+    });
+  };
+  (ownedRes.data ?? []).forEach((row) => pushRow(row as Row));
+  (participantRes.data ?? []).forEach((row) => {
+    const r = (row as unknown as { regattas: Row | Row[] | null }).regattas;
+    if (Array.isArray(r)) {
+      r.forEach((item) => pushRow(item));
+    } else {
+      pushRow(r);
+    }
+  });
+  return sortByStartsAt(Array.from(byId.values()));
+}
+
+async function fetchNursingEvents(
+  userId: string,
+  nowIso: string,
+): Promise<UpcomingEventOption[]> {
+  // Nursing has three event tables — clinical_shifts (next dated clinical
+  // day at a partner hospital), sim_sessions (cohort sim lab bookings),
+  // assessments (OSCE / capstone / competency check). All three filter
+  // by student_id = current user and future timestamps. Pulled in
+  // parallel + merged; the picker shows them in one ascending list.
+  const [shiftsRes, simsRes, assessmentsRes] = await Promise.all([
+    supabase
+      .from('clinical_shifts')
+      .select('id, shift_label, shift_start, unit, specialty, atlas_pois:site_poi_id(name, lat, lng)')
+      .eq('student_id', userId)
+      .gte('shift_start', nowIso)
+      .order('shift_start', { ascending: true })
+      .limit(10),
+    supabase
+      .from('sim_sessions')
+      .select('id, scenario_label, session_start, atlas_pois:site_poi_id(name, lat, lng)')
+      .eq('student_id', userId)
+      .gte('session_start', nowIso)
+      .order('session_start', { ascending: true })
+      .limit(10),
+    supabase
+      .from('assessments')
+      .select('id, title, scheduled_at, assessment_kind, atlas_pois:venue_poi_id(name, lat, lng)')
+      .eq('student_id', userId)
+      .gte('scheduled_at', nowIso)
+      .order('scheduled_at', { ascending: true })
+      .limit(10),
+  ]);
+
+  type SitePoi = { name: string; lat: number; lng: number } | null;
+  const readPoi = (raw: unknown): SitePoi => {
+    if (!raw) return null;
+    if (Array.isArray(raw)) return (raw[0] as SitePoi) ?? null;
+    return raw as SitePoi;
+  };
+
+  const out: UpcomingEventOption[] = [];
+
+  for (const row of shiftsRes.data ?? []) {
+    const r = row as {
+      id: string;
+      shift_label: string;
+      shift_start: string;
+      unit?: string | null;
+      specialty?: string | null;
+      atlas_pois?: unknown;
+    };
+    const site = readPoi(r.atlas_pois);
+    const subtitleParts = [site?.name, r.unit, r.specialty].filter(Boolean);
+    out.push({
+      kind: 'clinical_shift',
+      id: r.id,
+      label: r.shift_label,
+      starts_at: r.shift_start,
+      subtitle: subtitleParts.length > 0 ? subtitleParts.join(' · ') : undefined,
+      lat: site?.lat,
+      lng: site?.lng,
+    });
+  }
+  for (const row of simsRes.data ?? []) {
+    const r = row as {
+      id: string;
+      scenario_label: string;
+      session_start: string;
+      atlas_pois?: unknown;
+    };
+    const site = readPoi(r.atlas_pois);
+    out.push({
+      kind: 'sim_session',
+      id: r.id,
+      label: r.scenario_label,
+      starts_at: r.session_start,
+      subtitle: site?.name,
+      lat: site?.lat,
+      lng: site?.lng,
+    });
+  }
+  for (const row of assessmentsRes.data ?? []) {
+    const r = row as {
+      id: string;
+      title: string;
+      scheduled_at: string;
+      assessment_kind?: string | null;
+      atlas_pois?: unknown;
+    };
+    const site = readPoi(r.atlas_pois);
+    const kindLabel = r.assessment_kind?.replace(/_/g, ' ');
+    out.push({
+      kind: 'assessment',
+      id: r.id,
+      label: r.title,
+      starts_at: r.scheduled_at,
+      subtitle: [kindLabel, site?.name].filter(Boolean).join(' · ') || undefined,
+      lat: site?.lat,
+      lng: site?.lng,
+    });
+  }
+
+  return sortByStartsAt(out);
+}
+
+function sortByStartsAt(events: UpcomingEventOption[]): UpcomingEventOption[] {
+  return [...events].sort((a, b) => {
+    const aT = a.starts_at ?? '9999';
+    const bT = b.starts_at ?? '9999';
+    return aT.localeCompare(bT);
   });
 }
