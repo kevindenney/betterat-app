@@ -303,13 +303,15 @@ type PinShape = 'circle' | 'diamond' | 'numbered' | 'drop';
  * Cohort heatmap color palette by dominant competency cluster — coral
  * for cardiac, slate for respiratory, amber for medication, neutral for
  * general/unknown. Per the design's "color encodes competency, not
- * relationship" rule for the F4 z14+ glow.
+ * relationship" rule for the F4 z14+ glow. Lowered to 0.38 alpha so
+ * institution circles + preceptor diamonds still read on top — cohort
+ * cells are background context, not foreground pins.
  */
 const COHORT_CLUSTER_TONE: Record<string, string> = {
-  cardiac: 'rgba(255, 99, 99, 0.55)',
-  respiratory: 'rgba(90, 130, 200, 0.55)',
-  medication: 'rgba(255, 180, 80, 0.55)',
-  general: 'rgba(140, 140, 150, 0.45)',
+  cardiac: 'rgba(255, 99, 99, 0.38)',
+  respiratory: 'rgba(90, 130, 200, 0.38)',
+  medication: 'rgba(255, 180, 80, 0.38)',
+  general: 'rgba(140, 140, 150, 0.30)',
 };
 
 const PIN_TONE: Record<
@@ -407,9 +409,11 @@ function LabeledPin({
   if (kind === 'cohort-cell') {
     // label encodes "count|cluster". Color comes from the cluster,
     // diameter scales with count (clamped). Center text shows the count.
+    // Tighter min size + softer border so the cell reads as a background
+    // density zone rather than a foreground pin.
     const [countStr, cluster] = (label ?? '0|general').split('|');
     const count = Number(countStr) || 0;
-    const diameter = Math.min(60, 24 + count * 4);
+    const diameter = Math.min(54, 20 + count * 3.5);
     return (
       <View
         style={{
@@ -418,7 +422,7 @@ function LabeledPin({
           borderRadius: diameter / 2,
           backgroundColor: COHORT_CLUSTER_TONE[cluster] ?? COHORT_CLUSTER_TONE.general,
           borderWidth: 1,
-          borderColor: 'rgba(255, 255, 255, 0.8)',
+          borderColor: 'rgba(255, 255, 255, 0.6)',
           alignItems: 'center',
           justifyContent: 'center',
         }}
