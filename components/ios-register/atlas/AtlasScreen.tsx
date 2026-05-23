@@ -44,6 +44,7 @@ import {
   CommitHarbourMap,
 } from './AtlasMaps';
 import { AtlasMapLibreCanvas } from './AtlasMapLibreCanvas';
+import { useAtlasFramePins } from '@/hooks/useAtlasFramePins';
 import {
   AtlasPin,
   ClusterTag,
@@ -572,6 +573,14 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
   // the user doesn't have to tap + after landing on Atlas.
   const [commitMode, setCommitMode] = useState(handlers.initialCommitMode ?? false);
   const [candidate, setCandidate] = useState<{ lng: number; lat: number } | null>(null);
+  // Real institution POIs + peer step pins for the Causeway Bay bbox.
+  // 22.295, 114.18 is the F1 camera centroid — see AtlasMapLibreCanvas.FRAME_CAMERA.
+  const { pins } = useAtlasFramePins({
+    lat: 22.295,
+    lng: 114.18,
+    interestSlug: 'sail-racing',
+    radiusKm: 20,
+  });
   const exitCommit = useCallback(() => {
     setCommitMode(false);
     setCandidate(null);
@@ -608,6 +617,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
         {handlers.useMapLibre ? (
           <AtlasMapLibreCanvas
             frame="f1"
+            pins={pins}
             onMapPress={commitMode ? handleMapPress : undefined}
             candidate={candidate}
           />
@@ -869,6 +879,14 @@ function FrameF4({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
   // Local state for v1; per-user persistence ("don't show again") lands
   // alongside Phase A1's user preferences surface.
   const [anchorPromptDismissed, setAnchorPromptDismissed] = useState(false);
+  // Real institution POIs + peer step pins for Baltimore. F4 camera is
+  // -76.61, 39.29 — see AtlasMapLibreCanvas.FRAME_CAMERA.
+  const { pins } = useAtlasFramePins({
+    lat: 39.29,
+    lng: -76.61,
+    interestSlug: 'nursing',
+    radiusKm: 25,
+  });
   return (
     <View style={shellStyles.frame}>
       {!embedded && <StatusBar />}
@@ -889,7 +907,7 @@ function FrameF4({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
       />
       <View style={shellStyles.mapArea}>
         {handlers.useMapLibre ? (
-          <AtlasMapLibreCanvas frame="f4" />
+          <AtlasMapLibreCanvas frame="f4" pins={pins} />
         ) : (
           <BaltimoreColdMap />
         )}

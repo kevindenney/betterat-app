@@ -72,8 +72,34 @@ export interface AtlasPinSpec {
   id: string;
   lng: number;
   lat: number;
-  /** Foreign key into the pin grammar. */
-  kind: 'you' | 'crew' | 'fleet' | 'following' | 'own' | 'candidate' | 'race-mark';
+  /**
+   * Foreign key into the pin grammar.
+   *
+   * Peer relationships (from atlas_peer_steps_near):
+   *   you/crew/fleet/following/own
+   *
+   * Places (from atlas_pois):
+   *   poi-club          — sailing club (RHKYC, etc.)
+   *   poi-racing-area   — sailing race grounds
+   *   poi-hospital      — healthcare site
+   *   poi-sim-lab       — nursing simulation lab
+   *
+   * UI-driven:
+   *   candidate         — red drop-pin during compose-at-location
+   *   race-mark         — windward/leeward marks for an active race
+   */
+  kind:
+    | 'you'
+    | 'crew'
+    | 'fleet'
+    | 'following'
+    | 'own'
+    | 'candidate'
+    | 'race-mark'
+    | 'poi-club'
+    | 'poi-racing-area'
+    | 'poi-hospital'
+    | 'poi-sim-lab';
 }
 
 interface AtlasMapLibreCanvasProps {
@@ -204,6 +230,13 @@ const PIN_TONE: Record<AtlasPinSpec['kind'], { size: number; color: string }> = 
   own: { size: 10, color: 'rgba(0, 122, 255, 0.9)' },
   candidate: { size: 22, color: '#FF3B30' },
   'race-mark': { size: 8, color: '#E07A3C' },
+  // Institution POIs read as the canonical iOS systemBlue, sized larger
+  // than peer pins so "place" reads distinct from "person." Sim-lab uses
+  // purple to differentiate practice-here from do-it-here per the brief.
+  'poi-club': { size: 14, color: 'rgba(0, 122, 255, 0.95)' },
+  'poi-racing-area': { size: 11, color: 'rgba(0, 122, 255, 0.65)' },
+  'poi-hospital': { size: 14, color: 'rgba(0, 122, 255, 0.95)' },
+  'poi-sim-lab': { size: 12, color: 'rgba(155, 92, 246, 0.95)' },
 };
 
 function pinStyle(kind: AtlasPinSpec['kind']) {
