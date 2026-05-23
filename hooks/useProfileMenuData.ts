@@ -207,16 +207,57 @@ export function useProfileMenuData(): ProfileMenuData {
     },
   });
 
-  // TODO(profile-menu): wire remaining counts as their backing queries land.
-  //  - authoredBlueprints: blueprint authorship table (no schema yet)
-  //  - cohortsMentored: betterat_org_cohorts where mentor_user_id = me (column not yet there)
-  //  - subscriberThreads: step_discussions joined to authored blueprints
+  // Cohorts where the user is a mentor (role='mentor' on the cohort-member row)
+  const { data: cohortsMentoredCount = 0 } = useQuery({
+    queryKey: ['profile-menu-cohorts-mentored', userId],
+    enabled: !!userId,
+    staleTime: 60_000,
+    queryFn: async (): Promise<number> => {
+      if (!userId) return 0;
+      const { data, error } = await supabase
+        .from('betterat_org_cohort_members')
+        .select('cohort_id')
+        .eq('user_id', userId)
+        .eq('role', 'mentor');
+      if (error) {
+        console.warn('[useProfileMenuData] cohortsMentored count failed', error);
+        return 0;
+      }
+      // Distinct cohorts — a person could appear twice across cohorts but we
+      // only care about the unique count.
+      return new Set((data ?? []).map((r) => r.cohort_id)).size;
+    },
+  });
+
+  // Discussion threads the user has participated in (counted as distinct
+  // step_ids with at least one of their messages). "Subscriber" reads as
+  // "in the conversation" — close enough for the menu badge.
+  const { data: subscriberThreadsCount = 0 } = useQuery({
+    queryKey: ['profile-menu-subscriber-threads', userId],
+    enabled: !!userId,
+    staleTime: 60_000,
+    queryFn: async (): Promise<number> => {
+      if (!userId) return 0;
+      const { data, error } = await supabase
+        .from('step_discussions')
+        .select('step_id')
+        .eq('user_id', userId);
+      if (error) {
+        console.warn('[useProfileMenuData] subscriberThreads count failed', error);
+        return 0;
+      }
+      return new Set((data ?? []).map((r) => r.step_id)).size;
+    },
+  });
+
+  // authoredBlueprints stays 0 — no blueprints table in the schema yet. Wire
+  // when the table lands.
   const counts = {
     notifications: notificationsCount,
     subscribedBlueprints: subscribedBlueprintsCount,
     authoredBlueprints: 0,
-    cohortsMentored: 0,
-    subscriberThreads: 0,
+    cohortsMentored: cohortsMentoredCount,
+    subscriberThreads: subscriberThreadsCount,
     seats: seatsCount,
   };
 
