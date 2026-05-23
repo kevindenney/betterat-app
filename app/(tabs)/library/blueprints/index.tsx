@@ -1,15 +1,41 @@
 import React from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import { useInterest } from '@/providers/InterestProvider';
 import { useSubscribedBlueprints } from '@/hooks/useBlueprint';
+import { FLOATING_TAB_BAR_HEIGHT } from '@/components/navigation/FloatingTabBar';
 
 export default function PlaybookBlueprintsListRoute() {
+  const insets = useSafeAreaInsets();
   const { currentInterest } = useInterest();
   const { data: blueprints = [] } = useSubscribedBlueprints(currentInterest?.id);
 
   return (
-    <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
+    <ScrollView
+      style={styles.screen}
+      contentContainerStyle={[
+        styles.content,
+        {
+          paddingTop: insets.top + 12,
+          paddingBottom: FLOATING_TAB_BAR_HEIGHT + insets.bottom + 24,
+        },
+      ]}
+    >
+      <Pressable
+        onPress={() =>
+          router.canGoBack() ? router.back() : router.replace('/(tabs)/library' as any)
+        }
+        accessibilityRole="button"
+        accessibilityLabel="Back to Library"
+        hitSlop={8}
+        style={styles.backLink}
+      >
+        <Ionicons name="chevron-back" size={18} color="#007AFF" />
+        <Text style={styles.backText}>Library</Text>
+      </Pressable>
+
       <View style={styles.header}>
         <Text style={styles.eyebrow}>Playbook</Text>
         <Text style={styles.title}>Blueprints you follow</Text>
@@ -41,9 +67,20 @@ const styles = StyleSheet.create({
     backgroundColor: '#F2F2F7',
   },
   content: {
-    padding: 16,
+    paddingHorizontal: 16,
     gap: 12,
-    paddingBottom: 40,
+  },
+  backLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+    alignSelf: 'flex-start',
+    paddingVertical: 4,
+    marginBottom: 4,
+  },
+  backText: {
+    fontSize: 17,
+    color: '#007AFF',
   },
   header: {
     gap: 4,

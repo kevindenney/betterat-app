@@ -1,5 +1,5 @@
 import React from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { useToast } from '@/components/ui/AppToast';
 import { PlaybookHome } from '@/components/playbook/PlaybookHome';
@@ -67,6 +67,16 @@ function Phase6PlaybookLanding() {
     ? null
     : buildSampleObservation({
         onDismiss: () => setObservationDismissed(true),
+        onPromote: () =>
+          toast.show(
+            'Promote needs corpus wiring · the librarian can\'t yet rewrite concepts',
+            'info',
+          ),
+        onAddEvidence: () =>
+          toast.show(
+            'Add evidence needs corpus wiring · attach drill coming with reflect-tab',
+            'info',
+          ),
       });
 
   if (phase6UnavailableMessage) {
@@ -88,44 +98,45 @@ function Phase6PlaybookLanding() {
     );
   }
 
+  // No inner ScrollView — LibraryLanding's body ScrollView already wraps
+  // this slot. A nested same-axis ScrollView was clipping the bottom of
+  // "Concepts in development" behind the floating tab bar.
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: '#F2F2F7' }} showsVerticalScrollIndicator={false}>
-      <PlaybookLanding
-        hideHero
-        stats={{
-          insights: insights.length,
-          testing: concepts.filter((concept) => concept.state === 'testing').length,
-          settled: concepts.filter((concept) => concept.state === 'settled').length,
-        }}
-        insights={insights}
-        concepts={concepts}
-        subscribedBlueprintCount={subscribedBlueprints.length}
-        onOpenBlueprints={() => router.push('/(tabs)/library/blueprints' as any)}
-        onRefineInsight={async (insightId) => {
-          const concept = await refineInsight.mutateAsync({ insightId });
-          toast.show('Concept refined', 'success');
-          router.push(`/(tabs)/library/concept/${concept.id}` as any);
-        }}
-        onDiscardInsight={async (insightId) => {
-          await discardInsight.mutateAsync({ insightId });
-          toast.show('Insight discarded', 'info');
-        }}
-        onOpenConcept={(conceptId) => router.push(`/(tabs)/library/concept/${conceptId}` as any)}
-        librarianStrip={
-          <LibrarianStrip
-            onAsk={(seedQuery) =>
-              router.push({
-                pathname: '/(tabs)/library/ask',
-                params: seedQuery ? { q: seedQuery } : {},
-              } as any)
-            }
-          />
-        }
-        librarianNoticed={
-          observation ? <LibrarianNoticedCard observation={observation} /> : null
-        }
-      />
-    </ScrollView>
+    <PlaybookLanding
+      hideHero
+      stats={{
+        insights: insights.length,
+        testing: concepts.filter((concept) => concept.state === 'testing').length,
+        settled: concepts.filter((concept) => concept.state === 'settled').length,
+      }}
+      insights={insights}
+      concepts={concepts}
+      subscribedBlueprintCount={subscribedBlueprints.length}
+      onOpenBlueprints={() => router.push('/(tabs)/library/blueprints' as any)}
+      onRefineInsight={async (insightId) => {
+        const concept = await refineInsight.mutateAsync({ insightId });
+        toast.show('Concept refined', 'success');
+        router.push(`/(tabs)/library/concept/${concept.id}` as any);
+      }}
+      onDiscardInsight={async (insightId) => {
+        await discardInsight.mutateAsync({ insightId });
+        toast.show('Insight discarded', 'info');
+      }}
+      onOpenConcept={(conceptId) => router.push(`/(tabs)/library/concept/${conceptId}` as any)}
+      librarianStrip={
+        <LibrarianStrip
+          onAsk={(seedQuery) =>
+            router.push({
+              pathname: '/(tabs)/library/ask',
+              params: seedQuery ? { q: seedQuery } : {},
+            } as any)
+          }
+        />
+      }
+      librarianNoticed={
+        observation ? <LibrarianNoticedCard observation={observation} /> : null
+      }
+    />
   );
 }
 
@@ -138,8 +149,12 @@ function Phase6PlaybookLanding() {
  */
 function buildSampleObservation({
   onDismiss,
+  onPromote,
+  onAddEvidence,
 }: {
   onDismiss: () => void;
+  onPromote: () => void;
+  onAddEvidence: () => void;
 }): LibrarianObservation {
   return {
     id: 'sample-pick-a-side',
@@ -155,11 +170,11 @@ function buildSampleObservation({
     },
     primaryAction: {
       label: 'Promote to forming-with-tension',
-      onPress: onDismiss,
+      onPress: onPromote,
     },
     secondaryAction: {
       label: 'Add evidence',
-      onPress: onDismiss,
+      onPress: onAddEvidence,
     },
     onDismiss,
   };
