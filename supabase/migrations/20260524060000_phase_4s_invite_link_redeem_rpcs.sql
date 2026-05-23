@@ -1,0 +1,174 @@
+-- Phase 4s · invite link redeem RPCs
+-- A pair of SECURITY DEFINER functions powering the /redeem/[token]
+-- public route:
+--
+--   resolve_invite_link(p_token)  → SELECT-style preview the page paints
+--   redeem_invite_link(p_token)   → mutation that creates membership +
+--                                   cohort member + bumps uses_count
+--
+-- Both are PUBLIC (anon-callable for resolve; auth required for
+-- redeem) so signed-out visitors can preview before logging in.
+
+CREATE OR REPLACE FUNCTION public.resolve_invite_link(p_token text)
+RETURNS jsonb
+LANGUAGE plpgsql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_link public.org_invite_links%ROWTYPE;
+  v_org public.organizations%ROWTYPE;
+  v_cohort_name text;
+  v_status text;
+  v_short text;
+BEGIN
+  SELECT * INTO v_link FROM public.org_invite_links WHERE token = p_token;
+  IF v_link.id IS NULL THEN
+    RETURN jsonb_build_object('ok', false, 'reason', 'not_found');
+  END IF;
+
+  IF v_link.revoked_at IS NOT NULL THEN
+    v_status := 'revoked';
+  ELSIF v_link.expires_at IS NOT NULL AND v_link.expires_at < now() THEN
+    v_status := 'expired';
+  ELSIF v_link.max_uses IS NOT NULL AND v_link.uses_count >= v_link.max_uses THEN
+    v_status := 'exhausted';
+  ELSE
+    v_status := 'active';
+  END IF;
+
+  SELECT * INTO v_org FROM public.organizations WHERE id = v_link.org_id;
+
+  -- organizations doesn't have a short_name column — derive from slug
+  -- or initials of the org name.
+  v_short := COALESCE(
+    v_org.slug,
+    upper(substr(regexp_replace(v_org.name, '[^A-Za-z]', '', 'g'), 1, 4))
+  );
+
+  IF v_link.cohort_id IS NOT NULL THEN
+    SELECT c.name INTO v_cohort_name
+    FROM public.betterat_org_cohorts c WHERE c.id = v_link.cohort_id;
+  END IF;
+
+  RETURN jsonb_build_object(
+    'ok', true,
+    'status', v_status,
+    'org_id', v_org.id,
+    'org_name', v_org.name,
+    'org_short_name', v_short,
+    'role_key', v_link.role_key,
+    'cohort_id', v_link.cohort_id,
+    'cohort_name', v_cohort_name,
+    'auto_subscribe', v_link.auto_subscribe,
+    'max_uses', v_link.max_uses,
+    'uses_count', v_link.uses_count,
+    'expires_at', v_link.expires_at
+  );
+END;
+$$;
+
+COMMENT ON FUNCTION public.resolve_invite_link(text) IS
+  'Public preview of an invite link by token. Returns ok=false / not_found when token does not exist.';
+
+CREATE OR REPLACE FUNCTION public.redeem_invite_link(p_token text)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_link public.org_invite_links%ROWTYPE;
+  v_uid uuid;
+  v_role text;
+  v_existing_membership uuid;
+BEGIN
+  v_uid := (SELECT auth.uid());
+  IF v_uid IS NULL THEN
+    RAISE EXCEPTION 'Sign in to redeem an invite link'
+      USING ERRCODE = 'insufficient_privilege';
+  END IF;
+
+  SELECT * INTO v_link FROM public.org_invite_links WHERE token = p_token;
+  IF v_link.id IS NULL THEN
+    RAISE EXCEPTION 'Invite link not found' USING ERRCODE = 'no_data_found';
+  END IF;
+
+  IF v_link.revoked_at IS NOT NULL THEN
+    RAISE EXCEPTION 'This invite link has been revoked.' USING ERRCODE = 'check_violation';
+  END IF;
+  IF v_link.expires_at IS NOT NULL AND v_link.expires_at < now() THEN
+    RAISE EXCEPTION 'This invite link has expired.' USING ERRCODE = 'check_violation';
+  END IF;
+  IF v_link.max_uses IS NOT NULL AND v_link.uses_count >= v_link.max_uses THEN
+    RAISE EXCEPTION 'This invite link has no remaining uses.' USING ERRCODE = 'check_violation';
+  END IF;
+
+  v_role := CASE v_link.role_key
+    WHEN 'admin'     THEN 'admin'
+    WHEN 'faculty'   THEN 'faculty'
+    WHEN 'preceptor' THEN 'preceptor'
+    ELSE 'member'
+  END;
+
+  SELECT id INTO v_existing_membership
+  FROM public.organization_memberships
+  WHERE organization_id = v_link.org_id AND user_id = v_uid;
+
+  IF v_existing_membership IS NULL THEN
+    INSERT INTO public.organization_memberships
+      (organization_id, user_id, role, status, membership_status, is_verified, joined_at, metadata)
+    VALUES
+      (v_link.org_id, v_uid, v_role, 'active', 'active', true, now(),
+       jsonb_build_object('source', 'invite_link', 'token', v_link.token));
+  ELSE
+    UPDATE public.organization_memberships
+      SET membership_status = 'active', status = 'active',
+          joined_at = COALESCE(joined_at, now()),
+          updated_at = now(),
+          metadata = COALESCE(metadata, '{}'::jsonb)
+                       || jsonb_build_object('last_redeemed_link', v_link.token)
+      WHERE id = v_existing_membership;
+  END IF;
+
+  IF v_link.cohort_id IS NOT NULL THEN
+    INSERT INTO public.betterat_org_cohort_members (cohort_id, user_id, role)
+    SELECT v_link.cohort_id, v_uid, v_role
+    WHERE NOT EXISTS (
+      SELECT 1 FROM public.betterat_org_cohort_members
+      WHERE cohort_id = v_link.cohort_id AND user_id = v_uid
+    );
+  END IF;
+
+  UPDATE public.org_invite_links
+    SET uses_count = uses_count + 1
+    WHERE id = v_link.id;
+
+  BEGIN
+    INSERT INTO public.audit_events
+      (org_id, actor_user_id, verb, verb_label, target_type, target_id, target_label, description, payload)
+    VALUES
+      (v_link.org_id, v_uid, 'membership_added', 'Redeemed invite link',
+       'invite_link', v_link.id, v_link.label,
+       'A user redeemed an invite link.',
+       jsonb_build_object('token', v_link.token, 'role', v_role, 'cohort_id', v_link.cohort_id));
+  EXCEPTION WHEN OTHERS THEN
+    NULL;
+  END;
+
+  RETURN jsonb_build_object(
+    'ok', true,
+    'org_id', v_link.org_id,
+    'role', v_role,
+    'cohort_id', v_link.cohort_id,
+    'already_member', v_existing_membership IS NOT NULL
+  );
+END;
+$$;
+
+COMMENT ON FUNCTION public.redeem_invite_link(text) IS
+  'Authenticated redemption: idempotently joins the caller to the org+cohort encoded in the invite link, bumps uses_count, emits audit.';
+
+GRANT EXECUTE ON FUNCTION public.resolve_invite_link(text) TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.redeem_invite_link(text) TO authenticated;
