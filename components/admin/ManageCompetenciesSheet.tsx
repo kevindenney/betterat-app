@@ -12,7 +12,7 @@
  * constraint surfaces as an inline error.
  */
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, Pressable, StyleSheet, TextInput, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
@@ -44,6 +44,7 @@ interface CompetencyRow {
   category: string;
   description: string | null;
   display_order: number;
+  created_at: string | null;
 }
 
 export function ManageCompetenciesSheet({
@@ -59,12 +60,15 @@ export function ManageCompetenciesSheet({
     enabled: !!orgId && visible,
     staleTime: 30_000,
     queryFn: async (): Promise<CompetencyRow[]> => {
+      // In the modal we sort newest-first so a just-added row sits right
+      // under the Add form and the user can immediately confirm it landed.
+      // The Insights view keeps display_order for stable framework ordering.
       const { data, error } = await supabase
         .from('org_competencies')
-        .select('id, short_label, full_label, category, description, display_order')
+        .select('id, short_label, full_label, category, description, display_order, created_at')
         .eq('org_id', orgId)
         .eq('is_active', true)
-        .order('display_order', { ascending: true });
+        .order('created_at', { ascending: false });
       if (error) {
         console.warn('[ManageCompetenciesSheet] query failed', error);
         return [];
@@ -78,6 +82,14 @@ export function ManageCompetenciesSheet({
   const [draftCategory, setDraftCategory] = useState<string>(CATEGORIES[0]);
   const [draftDescription, setDraftDescription] = useState('');
   const [addError, setAddError] = useState<string | null>(null);
+  const [lastAdded, setLastAdded] = useState<string | null>(null);
+
+  // Auto-clear the "added X" toast after 3 seconds so the form returns to neutral.
+  useEffect(() => {
+    if (!lastAdded) return;
+    const handle = setTimeout(() => setLastAdded(null), 3000);
+    return () => clearTimeout(handle);
+  }, [lastAdded]);
 
   const addMutation = useMutation({
     mutationFn: async () => {
@@ -97,6 +109,7 @@ export function ManageCompetenciesSheet({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['manage-competencies', orgId] });
       queryClient.invalidateQueries({ queryKey: ['admin-org-competencies', orgId] });
+      setLastAdded(draftShort.trim() || draftFull.trim());
       setDraftShort('');
       setDraftFull('');
       setDraftCategory(CATEGORIES[0]);
@@ -151,6 +164,12 @@ export function ManageCompetenciesSheet({
             <View style={s.formHead}>
               <Ionicons name="add-circle" size={16} color="#28406B" />
               <Text style={s.formTitle}>Add a competency</Text>
+              {lastAdded ? (
+                <View style={s.successPill}>
+                  <Ionicons name="checkmark-circle" size={12} color="#1E8F47" />
+                  <Text style={s.successPillText}>Added "{lastAdded}"</Text>
+                </View>
+              ) : null}
             </View>
             <View style={s.formRow}>
               <View style={[s.fieldCol, { flex: 1 }]}>
@@ -434,6 +453,17 @@ const s = StyleSheet.create({
   },
   formHead: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 2 },
   formTitle: { fontSize: 14, fontWeight: '700', color: '#28406B', letterSpacing: -0.1 },
+  successPill: {
+    marginLeft: 'auto',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    backgroundColor: 'rgba(52, 199, 89, 0.14)',
+    borderRadius: 999,
+  },
+  successPillText: { fontSize: 11, fontWeight: '600', color: '#1E8F47' },
   sectionDivider: {
     height: StyleSheet.hairlineWidth,
     backgroundColor: 'rgba(60, 60, 67, 0.18)',
