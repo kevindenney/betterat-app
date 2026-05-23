@@ -280,7 +280,11 @@ export function TimelineZoomCanvas({
                   />
                 ) : null}
                 {level === 4 ? (
-                  <L4YearsView dataset={dataset} onOpenStep={handleOpenStep} />
+                  <L4YearsView
+                    dataset={dataset}
+                    onOpenStep={handleOpenStep}
+                    onReorderStep={onReorderStep}
+                  />
                 ) : null}
               </Animated.View>
             </Animated.View>

@@ -7,21 +7,40 @@
  * season — current season in full color, archived seasons dimmed but
  * tappable. Each step is a small capability-tinted brick. Tap any brick →
  * zoom to L1 with that step focused.
+ *
+ * Section D drag-reorder (Frame 13 within the current lane only): long-
+ * press a brick in the current rotation to lift it, then drag along the
+ * row to reorder. Cross-season "drop into another season" (Frame 14)
+ * isn't wired yet — timeline_steps don't have a season_id column, so
+ * re-seasoning needs a schema decision before it can be built.
  */
 
-import React, { useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { GestureDetector } from 'react-native-gesture-handler';
+import Animated, { useAnimatedStyle } from 'react-native-reanimated';
 
 import { IOS_REGISTER } from '@/lib/design-tokens-ios';
+import { useDragReorder } from './useDragReorder';
 import type { TimelineDataset, TimelineSeason } from './types';
 
 interface L4YearsViewProps {
   dataset: TimelineDataset;
   onOpenStep: (stepId: string) => void;
+  /**
+   * Section D reorder — same neighbor-id contract as L2/L3. Only the
+   * current-rotation lane is reorderable; archived lanes are placeholder
+   * bricks until the archive RPC ships.
+   */
+  onReorderStep?: (
+    stepId: string,
+    beforeStepId: string | null,
+    afterStepId: string | null,
+  ) => void;
 }
 
-export function L4YearsView({ dataset, onOpenStep }: L4YearsViewProps) {
+export function L4YearsView({ dataset, onOpenStep, onReorderStep }: L4YearsViewProps) {
   const [activeFilter, setActiveFilter] = useState('all');
 
   return (
@@ -85,22 +104,55 @@ export function L4YearsView({ dataset, onOpenStep }: L4YearsViewProps) {
           key={season.id}
           season={season}
           isCurrent={idx === 0}
-          onOpenStep={() => onOpenStep(dataset.focusStepId)}
+          onOpenStep={onOpenStep}
+          onReorderStep={idx === 0 ? onReorderStep : undefined}
         />
       ))}
     </ScrollView>
   );
 }
 
-function SeasonLane({
-  season,
-  isCurrent,
-  onOpenStep,
-}: {
+interface SeasonLaneProps {
   season: TimelineSeason;
   isCurrent: boolean;
-  onOpenStep: () => void;
-}) {
+  onOpenStep: (stepId: string) => void;
+  onReorderStep?: (
+    stepId: string,
+    beforeStepId: string | null,
+    afterStepId: string | null,
+  ) => void;
+}
+
+function SeasonLane({ season, isCurrent, onOpenStep, onReorderStep }: SeasonLaneProps) {
+  // Bricks with a real stepId participate in drag-reorder; bricks without
+  // (archived placeholders) are display-only. The drag hook needs items
+  // with stable ids, so synthesize a stable id-list for the hook from
+  // those bricks that have step ids.
+  const reorderableItems = useMemo(
+    () =>
+      season.bricks
+        .map((b, i) => ({ id: b.stepId ?? `placeholder-${i}`, hasStepId: Boolean(b.stepId) }))
+        .filter((b) => b.hasStepId),
+    [season.bricks],
+  );
+
+  const drag = useDragReorder<{ id: string; hasStepId: boolean }>({
+    items: reorderableItems,
+    axis: 'horizontal',
+    enabled: Boolean(onReorderStep) && reorderableItems.length > 1,
+    onReorder: useCallback(
+      (id, from, to) => {
+        const without = reorderableItems.filter((b) => b.id !== id);
+        const clamped = Math.max(0, Math.min(to, without.length));
+        const before = without[clamped - 1]?.id ?? null;
+        const after = without[clamped]?.id ?? null;
+        onReorderStep?.(id, before, after);
+        void from;
+      },
+      [reorderableItems, onReorderStep],
+    ),
+  });
+
   return (
     <View style={[styles.lane, season.archived && styles.laneArchived]}>
       <View style={styles.laneHeadRow}>
@@ -119,18 +171,115 @@ function SeasonLane({
       </View>
 
       <View style={styles.bricksWrap}>
-        {season.bricks.map((b, i) => (
-          <Pressable
-            key={i}
-            onPress={onOpenStep}
-            style={[
-              styles.brick,
-              { backgroundColor: season.archived ? withAlpha(b.capabilityColor, 0.45) : b.capabilityColor },
-            ]}
-          />
-        ))}
+        {season.bricks.map((b, i) => {
+          const fill = season.archived
+            ? withAlpha(b.capabilityColor, 0.45)
+            : b.capabilityColor;
+          if (!b.stepId) {
+            return (
+              <View
+                key={`placeholder-${i}`}
+                style={[styles.brick, { backgroundColor: fill }]}
+              />
+            );
+          }
+          const isLifted = drag.liftedId === b.stepId;
+          const reorderableIndex = reorderableItems.findIndex(
+            (item) => item.id === b.stepId,
+          );
+          const showDrop =
+            drag.dropTargetIndex === reorderableIndex && !isLifted;
+          return (
+            <DraggableBrick
+              key={b.stepId}
+              stepId={b.stepId}
+              reorderableIndex={reorderableIndex}
+              fill={fill}
+              isLifted={isLifted}
+              showDropBefore={showDrop}
+              liftedTranslateX={drag.liftedTranslate}
+              onOpen={() => onOpenStep(b.stepId!)}
+              buildGesture={drag.buildItemGesture}
+              registerRowLayout={drag.registerRowLayout}
+              dragEnabled={Boolean(onReorderStep)}
+            />
+          );
+        })}
       </View>
     </View>
+  );
+}
+
+interface DraggableBrickProps {
+  stepId: string;
+  reorderableIndex: number;
+  fill: string;
+  isLifted: boolean;
+  showDropBefore: boolean;
+  liftedTranslateX: number;
+  onOpen: () => void;
+  buildGesture: ReturnType<typeof useDragReorder>['buildItemGesture'];
+  registerRowLayout: ReturnType<typeof useDragReorder>['registerRowLayout'];
+  dragEnabled: boolean;
+}
+
+function DraggableBrick({
+  stepId,
+  reorderableIndex,
+  fill,
+  isLifted,
+  showDropBefore,
+  liftedTranslateX,
+  onOpen,
+  buildGesture,
+  registerRowLayout,
+  dragEnabled,
+}: DraggableBrickProps) {
+  const gesture = useMemo(
+    () => buildGesture(stepId, reorderableIndex),
+    [buildGesture, stepId, reorderableIndex],
+  );
+
+  const liftStyle = useAnimatedStyle(() => {
+    if (!isLifted) return { transform: [] as never[] };
+    return {
+      transform: [
+        { translateX: liftedTranslateX },
+        { scale: 1.6 },
+        { rotateZ: '4deg' },
+      ],
+      zIndex: 10,
+      shadowColor: '#000',
+      shadowOpacity: 0.35,
+      shadowRadius: 8,
+      shadowOffset: { width: 0, height: 4 },
+      elevation: 12,
+    };
+  }, [isLifted, liftedTranslateX]);
+
+  // Brick is small (22px) — wrap in a Pressable so tap-to-open still works,
+  // and overlay the gesture detector on top so long-press → drag wins.
+  const inner = (
+    <Animated.View
+      style={[styles.brick, { backgroundColor: fill }, liftStyle]}
+      onLayout={(e) => {
+        const { x, width } = e.nativeEvent.layout;
+        registerRowLayout(stepId, { start: x, length: width });
+      }}
+    >
+      {showDropBefore ? <View style={styles.brickDropIndicator} /> : null}
+    </Animated.View>
+  );
+
+  if (!dragEnabled) {
+    return (
+      <Pressable onPress={onOpen}>{inner}</Pressable>
+    );
+  }
+  return (
+    <GestureDetector gesture={gesture}>
+      <Pressable onPress={onOpen}>{inner}</Pressable>
+    </GestureDetector>
   );
 }
 
@@ -261,5 +410,14 @@ const styles = StyleSheet.create({
     width: BRICK_SIZE,
     height: BRICK_SIZE,
     borderRadius: 3,
+  },
+  brickDropIndicator: {
+    position: 'absolute',
+    left: -BRICK_GAP / 2 - 1.5,
+    top: -2,
+    bottom: -2,
+    width: 2,
+    borderRadius: 1,
+    backgroundColor: IOS_REGISTER.accentUserAction,
   },
 });

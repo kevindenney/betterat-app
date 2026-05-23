@@ -91,8 +91,14 @@ export interface TimelineSeason {
   weekOfTotal?: { current: number; total: number }; // "Week 7 of 14"
   archived?: boolean;
   weeks: TimelineWeek[];
-  /** L4 brick lane — one entry per step in chronological order. */
-  bricks: { capabilityColor: string }[];
+  /**
+   * L4 brick lane — one entry per step in chronological order. `stepId`
+   * lets a brick tap navigate to the right step at L1 and lets Section
+   * D's drag-reorder identify which step was lifted. Optional because
+   * archived-season lanes (where we don't have per-step data yet) emit
+   * placeholder bricks.
+   */
+  bricks: { capabilityColor: string; stepId?: string }[];
 }
 
 export interface TimelineInterest {

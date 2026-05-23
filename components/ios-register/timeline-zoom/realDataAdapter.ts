@@ -338,9 +338,12 @@ export function mapToTimelineDataset({
     };
   });
 
-  // Current-season bricks (one brick per step, capability-hashed).
+  // Current-season bricks (one brick per step, capability-hashed). Carrying
+  // the step id lets L4's brick tap navigate to the right step at L1, and
+  // lets Section D's drag-reorder identify the lifted brick.
   const currentBricks = sorted.map((rec) => ({
     capabilityColor: hashCategoryToColor(rec.category),
+    stepId: rec.id,
   }));
 
   const currentWeekIdx = Math.max(
