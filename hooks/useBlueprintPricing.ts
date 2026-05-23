@@ -9,6 +9,7 @@
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/services/supabase';
+import { logAuditEvent } from '@/services/auditLog';
 
 export type AccessMode = 'institutional' | 'independent';
 export type BillingCadence = 'monthly' | 'annual' | 'one_time';
@@ -38,9 +39,59 @@ interface AssignedCohortRow {
   cohort: { id: string; name: string };
 }
 
-export function useBlueprintPricing(blueprintId: string) {
+export function useBlueprintPricing(blueprintId: string, orgId?: string | null) {
   const queryClient = useQueryClient();
   const queryKey = ['blueprint-pricing', blueprintId];
+
+  function describePricingPatch(
+    patch: Partial<{
+      accessMode: AccessMode;
+      cohortScope: CohortScope;
+      pricePerSeatCents: number | null;
+      billingCadence: BillingCadence;
+      authorPayoutPct: number;
+      trialDays: number;
+    }>,
+  ): { label: string; description: string } | null {
+    if (patch.accessMode !== undefined) {
+      return {
+        label: 'Changed access mode',
+        description: `Set access mode to ${patch.accessMode === 'institutional' ? 'Institutional' : 'Independent'}.`,
+      };
+    }
+    if (patch.cohortScope !== undefined) {
+      return {
+        label: 'Changed cohort scope',
+        description: `Set cohort scope to ${patch.cohortScope === 'all' ? 'All cohorts' : 'Specific cohorts'}.`,
+      };
+    }
+    if (patch.pricePerSeatCents !== undefined) {
+      const dollars = patch.pricePerSeatCents != null ? (patch.pricePerSeatCents / 100).toFixed(2) : null;
+      return {
+        label: 'Changed per-seat price',
+        description: dollars ? `Set per-seat price to $${dollars}.` : 'Cleared per-seat price.',
+      };
+    }
+    if (patch.billingCadence !== undefined) {
+      return {
+        label: 'Changed billing cadence',
+        description: `Set billing cadence to ${patch.billingCadence}.`,
+      };
+    }
+    if (patch.authorPayoutPct !== undefined) {
+      return {
+        label: 'Changed author payout',
+        description: `Set author payout to ${patch.authorPayoutPct}%.`,
+      };
+    }
+    if (patch.trialDays !== undefined) {
+      return {
+        label: 'Changed trial length',
+        description: `Set trial to ${patch.trialDays} day${patch.trialDays === 1 ? '' : 's'}.`,
+      };
+    }
+    return null;
+  }
 
   const { data, isLoading } = useQuery({
     queryKey,
@@ -93,13 +144,29 @@ export function useBlueprintPricing(blueprintId: string) {
       if (patch.billingCadence !== undefined) payload.billing_cadence = patch.billingCadence;
       if (patch.authorPayoutPct !== undefined) payload.author_payout_pct = patch.authorPayoutPct;
       if (patch.trialDays !== undefined) payload.trial_days = patch.trialDays;
-      if (Object.keys(payload).length === 0) return;
+      if (Object.keys(payload).length === 0) return { patch };
       const { error } = await supabase.from('blueprints').update(payload).eq('id', blueprintId);
       if (error) throw error;
+      return { patch };
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey });
       queryClient.invalidateQueries({ queryKey: ['studio-blueprint', blueprintId] });
+      if (orgId && result?.patch) {
+        const summary = describePricingPatch(result.patch);
+        if (summary) {
+          void logAuditEvent({
+            orgId,
+            verb: 'config_change',
+            verbLabel: summary.label,
+            description: summary.description,
+            targetType: 'blueprint',
+            targetId: blueprintId,
+            payload: result.patch as Record<string, unknown>,
+          });
+          queryClient.invalidateQueries({ queryKey: ['blueprint-activity', blueprintId] });
+        }
+      }
     },
   });
 
@@ -111,10 +178,23 @@ export function useBlueprintPricing(blueprintId: string) {
         .eq('blueprint_id', blueprintId)
         .eq('cohort_id', cohortId);
       if (error) throw error;
+      return { cohortId };
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey });
       queryClient.invalidateQueries({ queryKey: ['studio-blueprint', blueprintId] });
+      if (orgId && result) {
+        void logAuditEvent({
+          orgId,
+          verb: 'cohort_edit',
+          verbLabel: 'Unsubscribed cohort',
+          description: 'Removed a cohort from this blueprint.',
+          targetType: 'blueprint',
+          targetId: blueprintId,
+          payload: { cohort_id: result.cohortId },
+        });
+        queryClient.invalidateQueries({ queryKey: ['blueprint-activity', blueprintId] });
+      }
     },
   });
 

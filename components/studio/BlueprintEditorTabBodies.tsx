@@ -514,14 +514,16 @@ export function CapabilitiesTabBody({
 
 export function PricingTabBody({
   blueprintId,
+  orgId,
   orgName,
   orgShort,
 }: {
   blueprintId: string;
+  orgId: string | null;
   orgName: string | null;
   orgShort: string | null;
 }) {
-  const { pricing, loading, update, removeCohort } = useBlueprintPricing(blueprintId);
+  const { pricing, loading, update, removeCohort } = useBlueprintPricing(blueprintId, orgId);
 
   const [priceInput, setPriceInput] = React.useState('');
   const [payoutInput, setPayoutInput] = React.useState('');

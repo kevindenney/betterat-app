@@ -10,6 +10,7 @@
 import { useMemo } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/services/supabase';
+import { logAuditEvent } from '@/services/auditLog';
 
 export type CapabilityCategory =
   | 'Procedural'
@@ -159,7 +160,7 @@ export function useBlueprintCapabilities(blueprintId: string, orgId: string | nu
           .eq('blueprint_id', blueprintId)
           .eq('competency_id', input.competencyId);
         if (error) throw error;
-        return;
+        return input;
       }
       const { error } = await supabase.from('blueprint_capabilities').upsert(
         {
@@ -170,9 +171,33 @@ export function useBlueprintCapabilities(blueprintId: string, orgId: string | nu
         { onConflict: 'blueprint_id,competency_id' },
       );
       if (error) throw error;
+      return input;
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey });
+      if (orgId && result) {
+        const competencies = data?.competencies ?? [];
+        const cap = competencies.find((c) => c.id === result.competencyId);
+        const label = cap?.short_label ?? 'capability';
+        const isRemove = result.strength === 0;
+        const strengthName = isRemove ? null : strengthLabel(result.strength);
+        void logAuditEvent({
+          orgId,
+          verb: 'edited',
+          verbLabel: isRemove ? 'Removed capability' : 'Mapped capability',
+          description: isRemove
+            ? `Unmapped ${label}.`
+            : `Mapped ${label} (${strengthName}).`,
+          targetType: 'blueprint',
+          targetId: blueprintId,
+          payload: {
+            competency_id: result.competencyId,
+            competency_label: label,
+            strength: result.strength,
+          },
+        });
+        queryClient.invalidateQueries({ queryKey: ['blueprint-activity', blueprintId] });
+      }
     },
   });
 

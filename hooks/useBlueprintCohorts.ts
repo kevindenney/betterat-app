@@ -6,6 +6,7 @@
 import { useMemo } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/services/supabase';
+import { logAuditEvent } from '@/services/auditLog';
 
 export interface BlueprintCohortRow {
   id: string;
@@ -93,11 +94,27 @@ export function useBlueprintCohorts(blueprintId: string, orgId: string | null) {
         .from('blueprint_cohorts')
         .insert({ blueprint_id: blueprintId, cohort_id: cohortId });
       if (error) throw error;
+      const cohortName = rows.find((r) => r.id === cohortId)?.name ?? null;
+      return { cohortId, cohortName };
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey });
       queryClient.invalidateQueries({ queryKey: ['blueprint-pricing', blueprintId] });
       queryClient.invalidateQueries({ queryKey: ['studio-blueprint', blueprintId] });
+      if (orgId && result) {
+        void logAuditEvent({
+          orgId,
+          verb: 'cohort_edit',
+          verbLabel: 'Assigned to cohort',
+          description: result.cohortName
+            ? `Subscribed ${result.cohortName}.`
+            : 'Subscribed a cohort to this blueprint.',
+          targetType: 'blueprint',
+          targetId: blueprintId,
+          payload: { cohort_id: result.cohortId, cohort_name: result.cohortName },
+        });
+        queryClient.invalidateQueries({ queryKey: ['blueprint-activity', blueprintId] });
+      }
     },
   });
 
@@ -109,11 +126,27 @@ export function useBlueprintCohorts(blueprintId: string, orgId: string | null) {
         .eq('blueprint_id', blueprintId)
         .eq('cohort_id', cohortId);
       if (error) throw error;
+      const cohortName = rows.find((r) => r.id === cohortId)?.name ?? null;
+      return { cohortId, cohortName };
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey });
       queryClient.invalidateQueries({ queryKey: ['blueprint-pricing', blueprintId] });
       queryClient.invalidateQueries({ queryKey: ['studio-blueprint', blueprintId] });
+      if (orgId && result) {
+        void logAuditEvent({
+          orgId,
+          verb: 'cohort_edit',
+          verbLabel: 'Unsubscribed cohort',
+          description: result.cohortName
+            ? `Removed ${result.cohortName}.`
+            : 'Removed a cohort from this blueprint.',
+          targetType: 'blueprint',
+          targetId: blueprintId,
+          payload: { cohort_id: result.cohortId, cohort_name: result.cohortName },
+        });
+        queryClient.invalidateQueries({ queryKey: ['blueprint-activity', blueprintId] });
+      }
     },
   });
 

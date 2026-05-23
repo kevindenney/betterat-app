@@ -306,6 +306,7 @@ export default function BlueprintEditorPage() {
         ) : tab === 'pricing' ? (
           <PricingTabBody
             blueprintId={blueprintId}
+            orgId={blueprint.orgId}
             orgName={blueprint.orgName}
             orgShort={blueprint.orgShort}
           />
