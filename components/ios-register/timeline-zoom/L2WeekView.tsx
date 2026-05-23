@@ -8,7 +8,7 @@
  * came from is outlined iOS blue.
  */
 
-import React from 'react';
+import React, { useCallback, useEffect, useMemo, useRef } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { IOS_REGISTER } from '@/lib/design-tokens-ios';
@@ -30,7 +30,12 @@ const DAY_DATES = [13, 14, 15, 16, 17, 18, 19] as const;
 export function L2WeekView({ dataset, focusStepId, onOpenStep }: L2WeekViewProps) {
   const currentSeason = dataset.seasons.find((s) => s.id === dataset.currentSeasonId);
   const currentWeek = currentSeason?.weeks.find((w) => w.isCurrent);
-  const steps: TimelineStep[] = currentWeek?.steps ?? [];
+  // Memoize so the useEffect / useCallback dependencies below have a
+  // stable identity across renders.
+  const steps: TimelineStep[] = useMemo(
+    () => currentWeek?.steps ?? [],
+    [currentWeek],
+  );
 
   const focusedStep = steps.find((s) => s.id === focusStepId) ?? steps[steps.length - 1];
   const todayDay: DayKey = focusedStep?.dayOfWeek ?? 'wed';
@@ -40,6 +45,38 @@ export function L2WeekView({ dataset, focusStepId, onOpenStep }: L2WeekViewProps
   steps.forEach((s) => {
     if (!stepsByDay.has(s.dayOfWeek)) stepsByDay.set(s.dayOfWeek, s);
   });
+
+  // Carousel ref so the day strip can scroll the carousel without
+  // navigating away from L2. Frame 2: "the day strip is tappable — jump
+  // to Friday and the carousel scrolls to it."
+  const scrollRef = useRef<ScrollView>(null);
+
+  // Auto-scroll on mount + when focus changes (e.g. pinch-in/out preserves
+  // focusStepId; the carousel should open with that card visible).
+  useEffect(() => {
+    const idx = steps.findIndex((s) => s.id === focusStepId);
+    if (idx < 0) return;
+    // requestAnimationFrame so the ScrollView has finished its initial
+    // layout before we scroll into it on mount.
+    requestAnimationFrame(() => {
+      scrollRef.current?.scrollTo({
+        x: idx * (CARD_WIDTH + CARD_GAP),
+        animated: false,
+      });
+    });
+  }, [focusStepId, steps]);
+
+  const scrollToDay = useCallback(
+    (day: DayKey) => {
+      const idx = steps.findIndex((s) => s.dayOfWeek === day);
+      if (idx < 0) return;
+      scrollRef.current?.scrollTo({
+        x: idx * (CARD_WIDTH + CARD_GAP),
+        animated: true,
+      });
+    },
+    [steps],
+  );
 
   return (
     <View style={styles.container}>
@@ -56,10 +93,8 @@ export function L2WeekView({ dataset, focusStepId, onOpenStep }: L2WeekViewProps
             <Pressable
               key={d}
               style={styles.dayCell}
-              onPress={() => {
-                const step = stepsByDay.get(d);
-                if (step) onOpenStep(step.id);
-              }}
+              onPress={() => scrollToDay(d)}
+              disabled={!hasStep}
             >
               <Text style={[styles.dayLetter, isToday && styles.dayLetterToday]}>
                 {DAY_LABELS[d]}
@@ -86,6 +121,7 @@ export function L2WeekView({ dataset, focusStepId, onOpenStep }: L2WeekViewProps
       </View>
 
       <ScrollView
+        ref={scrollRef}
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.cardCarousel}

@@ -29,6 +29,7 @@ import {
 } from 'react-native-gesture-handler';
 import Animated, {
   Extrapolation,
+  FadeIn,
   interpolate,
   runOnJS,
   useAnimatedReaction,
@@ -213,30 +214,38 @@ export function TimelineZoomCanvas({
         <GestureDetector gesture={pinch}>
           <View style={styles.canvas}>
             <Animated.View style={[styles.canvasInner, canvasAnimStyle]}>
-              {level === 1 && focusedStep ? (
-                <L1StepView
-                  dataset={dataset}
-                  step={focusedStep}
-                  onOpenStepDetail={onOpenStepDetail}
-                />
-              ) : null}
-              {level === 2 ? (
-                <L2WeekView
-                  dataset={dataset}
-                  focusStepId={focusStepId}
-                  onOpenStep={handleOpenStep}
-                />
-              ) : null}
-              {level === 3 ? (
-                <L3SeasonView
-                  dataset={dataset}
-                  focusStepId={focusStepId}
-                  onOpenStep={handleOpenStep}
-                />
-              ) : null}
-              {level === 4 ? (
-                <L4YearsView dataset={dataset} onOpenStep={handleOpenStep} />
-              ) : null}
+              {/* keyed wrapper so React unmounts/mounts on level change,
+                  triggering the FadeIn entering animation each time */}
+              <Animated.View
+                key={`lvl-${level}`}
+                entering={FadeIn.duration(180)}
+                style={styles.levelStage}
+              >
+                {level === 1 && focusedStep ? (
+                  <L1StepView
+                    dataset={dataset}
+                    step={focusedStep}
+                    onOpenStepDetail={onOpenStepDetail}
+                  />
+                ) : null}
+                {level === 2 ? (
+                  <L2WeekView
+                    dataset={dataset}
+                    focusStepId={focusStepId}
+                    onOpenStep={handleOpenStep}
+                  />
+                ) : null}
+                {level === 3 ? (
+                  <L3SeasonView
+                    dataset={dataset}
+                    focusStepId={focusStepId}
+                    onOpenStep={handleOpenStep}
+                  />
+                ) : null}
+                {level === 4 ? (
+                  <L4YearsView dataset={dataset} onOpenStep={handleOpenStep} />
+                ) : null}
+              </Animated.View>
             </Animated.View>
           </View>
         </GestureDetector>
@@ -301,6 +310,9 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   canvasInner: {
+    flex: 1,
+  },
+  levelStage: {
     flex: 1,
   },
   hintPillWrap: {
