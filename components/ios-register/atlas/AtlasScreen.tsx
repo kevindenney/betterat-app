@@ -691,24 +691,9 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
   return (
     <View style={shellStyles.frame}>
       {!embedded && <StatusBar />}
-      <TopChrome
-        title="Atlas"
-        subtitle={handlers.subtitleOverride ?? 'Sailing · RHKYC · Hong Kong'}
-        avatarInitial={handlers.avatarInitial ?? "F"}
-      />
-      <FilterChipsRow
-        chips={[
-          { id: 'all', label: 'All', active: true },
-          { id: 'you', label: 'You', tone: 'you' },
-          { id: 'crew', label: 'Crew', tone: 'crew' },
-          { id: 'fleet', label: 'Fleet', tone: 'fleet' },
-          { id: 'following', label: 'Following', tone: 'following', dim: true },
-          { id: 'wind', label: 'Wind', icon: 'arrow-up-outline', active: true },
-          { id: 'tide', label: 'Tide', icon: 'water-outline', active: true },
-          { id: 'cross-interest', label: 'All my interests', crossInterest: true, dim: true },
-        ]}
-        onActiveIdsChange={handleChipsChange}
-      />
+      {/* Full-bleed map; chrome floats on top as glass cards. The chip
+          row + title pill no longer eat 100pt of vertical space — that
+          was the design's "full-screen with floating boxes" intent. */}
       <View style={shellStyles.mapArea}>
         {handlers.useMapLibre ? (
           <AtlasMapLibreCanvas
@@ -718,9 +703,6 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
               next
                 ? {
                     ...next,
-                    // Use the source row's venue coords when present;
-                    // fall back to Victoria Harbour for legacy rows that
-                    // pre-date the lat/lng backfill.
                     lat: next.lat ?? 22.2978,
                     lng: next.lng ?? 114.185,
                   }
@@ -733,10 +715,33 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
           <HongKongOverviewMap />
         )}
 
-        {/* Racing-area last-race tags + the user's base pin only render
-            once real resolver data is wired. Until then the labels would
-            be fiction — see Phase A1 resolvers in the brief. */}
-        {hasNext && !commitMode && (
+        {/* Floating glass chrome — title + chips */}
+        <View style={shellStyles.floatingChrome}>
+          <TopChrome
+            title="Atlas"
+            subtitle={handlers.subtitleOverride ?? 'Sailing · RHKYC · Hong Kong'}
+            avatarInitial={handlers.avatarInitial ?? 'F'}
+          />
+          <FilterChipsRow
+            chips={[
+              { id: 'all', label: 'All', active: true },
+              { id: 'you', label: 'You', tone: 'you' },
+              { id: 'crew', label: 'Crew', tone: 'crew' },
+              { id: 'fleet', label: 'Fleet', tone: 'fleet' },
+              { id: 'following', label: 'Following', tone: 'following', dim: true },
+              { id: 'wind', label: 'Wind', icon: 'arrow-up-outline', active: true },
+              { id: 'tide', label: 'Tide', icon: 'water-outline', active: true },
+              { id: 'cross-interest', label: 'All my interests', crossInterest: true, dim: true },
+            ]}
+            onActiveIdsChange={handleChipsChange}
+          />
+        </View>
+
+        {/* SVG-fallback fixtures (RacingAreaTag + base-club AtlasPin) —
+            these are percentage-positioned so they only render in the
+            non-MapLibre fallback path. On the live MapLibre canvas the
+            real RHKYC pin comes through useAtlasFramePins → MLMarker. */}
+        {hasNext && !commitMode && !handlers.useMapLibre && (
           <>
             <RacingAreaTag leftPct={84} topPct={20} text="Apr 14 · 3 from fleet" />
             <RacingAreaTag leftPct={65} topPct={61} text="Mar 28 · 4 from fleet" />
@@ -1528,6 +1533,26 @@ const shellStyles = StyleSheet.create({
     position: 'relative',
     overflow: 'hidden',
     backgroundColor: '#D9E8F0',
+  },
+  /**
+   * Floating glass-chrome container — sits absolute over the map at the
+   * top, holds TopChrome + FilterChipsRow. The translucent white panel
+   * provides legibility against any map style without going all the way
+   * to opaque (which would defeat the full-screen-map intent).
+   */
+  floatingChrome: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: 'rgba(255, 255, 255, 0.82)',
+    paddingTop: 4,
+    paddingBottom: 4,
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    zIndex: 10,
   },
   absChip: {
     position: 'absolute',
