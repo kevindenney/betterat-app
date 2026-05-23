@@ -20,7 +20,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { IOS_REGISTER } from '@/lib/design-tokens-ios';
 import { useAuth } from '@/providers/AuthProvider';
 import { useInterest } from '@/providers/InterestProvider';
-import { useMyTimeline, useUpdateStep } from '@/hooks/useTimelineSteps';
+import { useMyTimeline, useUpdateStep, useDeleteStep } from '@/hooks/useTimelineSteps';
+import { showAlert, showConfirm } from '@/lib/utils/crossPlatformAlert';
 import { useCurrentSeason, useUserSeasons } from '@/hooks/useSeason';
 import { useSubscribedBlueprints, useBlueprintWithAuthor } from '@/hooks/useBlueprint';
 
@@ -133,6 +134,45 @@ export function TimelineZoomPracticeScreen() {
     [steps, updateStep],
   );
 
+  // Frame 12 bulk actions. Archive flips status to 'skipped' (the
+  // schema's closest "off the active list" terminal state); delete is
+  // the real destroy mutation behind a confirm. Move/Tag/Reschedule
+  // route to a toast for now — they need single-row picker UI we
+  // haven't built into the canvas surface yet.
+  const deleteStep = useDeleteStep();
+  const handleBulkArchive = useCallback(
+    (stepIds: string[]) => {
+      stepIds.forEach((id) =>
+        updateStep.mutate({ stepId: id, input: { status: 'skipped' } }),
+      );
+    },
+    [updateStep],
+  );
+  const handleBulkDelete = useCallback(
+    (stepIds: string[]) => {
+      if (stepIds.length === 0) return;
+      const label = stepIds.length === 1 ? '1 step' : `${stepIds.length} steps`;
+      showConfirm(
+        `Delete ${label}?`,
+        'This removes them from your timeline. You can recreate any step from the source plan.',
+        () => stepIds.forEach((id) => deleteStep.mutate(id)),
+        { destructive: true, confirmText: 'Delete' },
+      );
+    },
+    [deleteStep],
+  );
+  const handleUnsupportedBulkAction = useCallback(
+    (actionId: 'move' | 'tag' | 'reschedule') => {
+      const labels: Record<typeof actionId, string> = {
+        move: 'Move',
+        tag: 'Tag',
+        reschedule: 'Reschedule',
+      };
+      showAlert(`${labels[actionId]} — coming soon`, 'Bulk this action lands in a follow-up pass.');
+    },
+    [],
+  );
+
   const hasContent = dataset.seasons.some((s) => s.bricks.length > 0);
   const signedInEmail = (user?.email as string | undefined) ?? null;
 
@@ -205,6 +245,9 @@ export function TimelineZoomPracticeScreen() {
         onOpenStepDetail={showSample ? undefined : handleOpenStepDetail}
         embedFullDetailAtL1={!showSample}
         onReorderStep={showSample ? undefined : handleReorderStep}
+        onBulkArchive={showSample ? undefined : handleBulkArchive}
+        onBulkDelete={showSample ? undefined : handleBulkDelete}
+        onUnsupportedBulkAction={showSample ? undefined : handleUnsupportedBulkAction}
         hideInterestHeader
       />
     </SafeAreaView>

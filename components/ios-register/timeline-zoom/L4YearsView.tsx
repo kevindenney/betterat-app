@@ -38,9 +38,22 @@ interface L4YearsViewProps {
     beforeStepId: string | null,
     afterStepId: string | null,
   ) => void;
+  /** Frame 12 — tap a Select pill to enter multi-select. */
+  onEnterSelectMode?: () => void;
+  selectEnabled?: boolean;
+  isSelected?: (stepId: string) => boolean;
+  onToggleSelect?: (stepId: string) => void;
 }
 
-export function L4YearsView({ dataset, onOpenStep, onReorderStep }: L4YearsViewProps) {
+export function L4YearsView({
+  dataset,
+  onOpenStep,
+  onReorderStep,
+  onEnterSelectMode,
+  selectEnabled = false,
+  isSelected,
+  onToggleSelect,
+}: L4YearsViewProps) {
   const [activeFilter, setActiveFilter] = useState('all');
 
   return (
@@ -66,6 +79,19 @@ export function L4YearsView({ dataset, onOpenStep, onReorderStep }: L4YearsViewP
           style={styles.searchMic}
         />
       </View>
+
+      {onEnterSelectMode && !selectEnabled ? (
+        <View style={styles.selectRow}>
+          <Pressable style={styles.selectPill} onPress={onEnterSelectMode} hitSlop={6}>
+            <Ionicons
+              name="checkmark-circle-outline"
+              size={13}
+              color={IOS_REGISTER.accentUserAction}
+            />
+            <Text style={styles.selectPillLabel}>Select</Text>
+          </Pressable>
+        </View>
+      ) : null}
 
       <ScrollView
         horizontal
@@ -106,6 +132,9 @@ export function L4YearsView({ dataset, onOpenStep, onReorderStep }: L4YearsViewP
           isCurrent={idx === 0}
           onOpenStep={onOpenStep}
           onReorderStep={idx === 0 ? onReorderStep : undefined}
+          selectEnabled={selectEnabled}
+          isSelected={isSelected}
+          onToggleSelect={onToggleSelect}
         />
       ))}
     </ScrollView>
@@ -121,9 +150,20 @@ interface SeasonLaneProps {
     beforeStepId: string | null,
     afterStepId: string | null,
   ) => void;
+  selectEnabled?: boolean;
+  isSelected?: (stepId: string) => boolean;
+  onToggleSelect?: (stepId: string) => void;
 }
 
-function SeasonLane({ season, isCurrent, onOpenStep, onReorderStep }: SeasonLaneProps) {
+function SeasonLane({
+  season,
+  isCurrent,
+  onOpenStep,
+  onReorderStep,
+  selectEnabled = false,
+  isSelected,
+  onToggleSelect,
+}: SeasonLaneProps) {
   // Bricks with a real stepId participate in drag-reorder; bricks without
   // (archived placeholders) are display-only. The drag hook needs items
   // with stable ids, so synthesize a stable id-list for the hook from
@@ -189,6 +229,10 @@ function SeasonLane({ season, isCurrent, onOpenStep, onReorderStep }: SeasonLane
           );
           const showDrop =
             drag.dropTargetIndex === reorderableIndex && !isLifted;
+          const selected = isSelected?.(b.stepId) ?? false;
+          const handlePress = selectEnabled
+            ? () => onToggleSelect?.(b.stepId!)
+            : () => onOpenStep(b.stepId!);
           return (
             <DraggableBrick
               key={b.stepId}
@@ -198,10 +242,12 @@ function SeasonLane({ season, isCurrent, onOpenStep, onReorderStep }: SeasonLane
               isLifted={isLifted}
               showDropBefore={showDrop}
               liftedTranslateX={drag.liftedTranslate}
-              onOpen={() => onOpenStep(b.stepId!)}
+              onOpen={handlePress}
               buildGesture={drag.buildItemGesture}
               registerRowLayout={drag.registerRowLayout}
-              dragEnabled={Boolean(onReorderStep)}
+              dragEnabled={Boolean(onReorderStep) && !selectEnabled}
+              selectEnabled={selectEnabled}
+              selected={selected}
             />
           );
         })}
@@ -221,6 +267,8 @@ interface DraggableBrickProps {
   buildGesture: ReturnType<typeof useDragReorder>['buildItemGesture'];
   registerRowLayout: ReturnType<typeof useDragReorder>['registerRowLayout'];
   dragEnabled: boolean;
+  selectEnabled: boolean;
+  selected: boolean;
 }
 
 function DraggableBrick({
@@ -234,6 +282,8 @@ function DraggableBrick({
   buildGesture,
   registerRowLayout,
   dragEnabled,
+  selectEnabled,
+  selected,
 }: DraggableBrickProps) {
   const gesture = useMemo(
     () => buildGesture(stepId, reorderableIndex),
@@ -259,9 +309,16 @@ function DraggableBrick({
 
   // Brick is small (22px) — wrap in a Pressable so tap-to-open still works,
   // and overlay the gesture detector on top so long-press → drag wins.
+  // In select mode we draw an iOS-blue ring + tiny inset checkmark so the
+  // tiny target reads as selectable even at 22px.
   const inner = (
     <Animated.View
-      style={[styles.brick, { backgroundColor: fill }, liftStyle]}
+      style={[
+        styles.brick,
+        { backgroundColor: fill },
+        selectEnabled && selected && styles.brickSelected,
+        liftStyle,
+      ]}
       onLayout={(e) => {
         const { x, width } = e.nativeEvent.layout;
         registerRowLayout(stepId, { start: x, length: width });
@@ -411,6 +468,10 @@ const styles = StyleSheet.create({
     height: BRICK_SIZE,
     borderRadius: 3,
   },
+  brickSelected: {
+    borderWidth: 2,
+    borderColor: IOS_REGISTER.accentUserAction,
+  },
   brickDropIndicator: {
     position: 'absolute',
     left: -BRICK_GAP / 2 - 1.5,
@@ -419,5 +480,27 @@ const styles = StyleSheet.create({
     width: 2,
     borderRadius: 1,
     backgroundColor: IOS_REGISTER.accentUserAction,
+  },
+  selectRow: {
+    flexDirection: 'row',
+    paddingHorizontal: 16,
+    marginBottom: 12,
+  },
+  selectPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 12,
+    backgroundColor: IOS_REGISTER.cardBg,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: IOS_REGISTER.separator,
+  },
+  selectPillLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: IOS_REGISTER.accentUserAction,
+    letterSpacing: -0.1,
   },
 });

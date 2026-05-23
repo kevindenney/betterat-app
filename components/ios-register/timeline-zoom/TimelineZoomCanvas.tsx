@@ -44,6 +44,8 @@ import { L1StepView } from './L1StepView';
 import { L2WeekView } from './L2WeekView';
 import { L3SeasonView } from './L3SeasonView';
 import { L4YearsView } from './L4YearsView';
+import { SelectActionBar } from './SelectActionBar';
+import { useSelectMode } from './useSelectMode';
 import { ZoomRailIndicator } from './ZoomRailIndicator';
 import { ZOOM_LEVEL_LABELS, type TimelineDataset, type ZoomLevel } from './types';
 
@@ -88,6 +90,16 @@ interface TimelineZoomCanvasProps {
     beforeStepId: string | null,
     afterStepId: string | null,
   ) => void;
+  /**
+   * Frame 12 bulk-edit hooks. The canvas owns select-mode state and the
+   * bottom action bar; the parent wires the actual mutations. Archive
+   * fires for every selected id with status='skipped'; Delete fires
+   * after a confirm. Move/Tag/Reschedule arrive via onUnsupportedBulkAction
+   * so the cutover screen can show a "coming soon" pill.
+   */
+  onBulkArchive?: (stepIds: string[]) => void;
+  onBulkDelete?: (stepIds: string[]) => void;
+  onUnsupportedBulkAction?: (actionId: 'move' | 'tag' | 'reschedule') => void;
 }
 
 const LEVELS: ZoomLevel[] = [1, 2, 3, 4];
@@ -112,10 +124,14 @@ export function TimelineZoomCanvas({
   hideInterestHeader = false,
   embedFullDetailAtL1 = false,
   onReorderStep,
+  onBulkArchive,
+  onBulkDelete,
+  onUnsupportedBulkAction,
 }: TimelineZoomCanvasProps) {
   const [level, setLevel] = useState<ZoomLevel>(initialLevel);
   const [focusStepId, setFocusStepId] = useState<string>(dataset.focusStepId);
   const [gestureDirection, setGestureDirection] = useState<'in' | 'out' | null>(null);
+  const select = useSelectMode();
 
   // Continuous scale value driven by pinch — used to gate level changes on
   // release and to animate the canvas scale during the gesture.
@@ -276,14 +292,22 @@ export function TimelineZoomCanvas({
                     dataset={dataset}
                     focusStepId={focusStepId}
                     onOpenStep={handleOpenStep}
-                    onReorderStep={onReorderStep}
+                    onReorderStep={select.enabled ? undefined : onReorderStep}
+                    onEnterSelectMode={select.enter}
+                    selectEnabled={select.enabled}
+                    isSelected={select.isSelected}
+                    onToggleSelect={select.toggle}
                   />
                 ) : null}
                 {level === 4 ? (
                   <L4YearsView
                     dataset={dataset}
                     onOpenStep={handleOpenStep}
-                    onReorderStep={onReorderStep}
+                    onReorderStep={select.enabled ? undefined : onReorderStep}
+                    onEnterSelectMode={select.enter}
+                    selectEnabled={select.enabled}
+                    isSelected={select.isSelected}
+                    onToggleSelect={select.toggle}
                   />
                 ) : null}
               </Animated.View>
@@ -299,11 +323,27 @@ export function TimelineZoomCanvas({
           />
         ) : null}
 
-        <ZoomRailIndicator
-          level={level}
-          onChange={setLevel}
-          onSnapToCurrent={handleSnapToCurrent}
-        />
+        {select.enabled ? (
+          <SelectActionBar
+            selectedCount={select.selected.size}
+            onCancel={select.exit}
+            onArchive={() => {
+              onBulkArchive?.(Array.from(select.selected));
+              select.exit();
+            }}
+            onDelete={() => {
+              onBulkDelete?.(Array.from(select.selected));
+              select.exit();
+            }}
+            onUnsupportedAction={(id) => onUnsupportedBulkAction?.(id)}
+          />
+        ) : (
+          <ZoomRailIndicator
+            level={level}
+            onChange={setLevel}
+            onSnapToCurrent={handleSnapToCurrent}
+          />
+        )}
       </View>
     </GestureHandlerRootView>
   );

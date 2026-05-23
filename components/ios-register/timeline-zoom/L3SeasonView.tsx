@@ -38,6 +38,10 @@ interface L3SeasonViewProps {
     beforeStepId: string | null,
     afterStepId: string | null,
   ) => void;
+  /** Frame 12 multi-select — when true, taps toggle selection instead of opening. */
+  selectEnabled?: boolean;
+  isSelected?: (stepId: string) => boolean;
+  onToggleSelect?: (stepId: string) => void;
 }
 
 export function L3SeasonView({
@@ -46,6 +50,9 @@ export function L3SeasonView({
   onOpenStep,
   onEnterSelectMode,
   onReorderStep,
+  selectEnabled = false,
+  isSelected,
+  onToggleSelect,
 }: L3SeasonViewProps) {
   const season = dataset.seasons.find((s) => s.id === dataset.currentSeasonId);
 
@@ -135,6 +142,10 @@ export function L3SeasonView({
               const isLifted = drag.liftedId === step.id;
               const showDropIndicatorBefore =
                 drag.dropTargetIndex === flatIndex && !isLifted;
+              const selected = isSelected?.(step.id) ?? false;
+              const handlePress = selectEnabled
+                ? () => onToggleSelect?.(step.id)
+                : () => onOpenStep(step.id);
               return (
                 <DraggableCardSlot
                   key={step.id}
@@ -143,8 +154,10 @@ export function L3SeasonView({
                   isLifted={isLifted}
                   showDropIndicatorBefore={showDropIndicatorBefore}
                   liftedTranslateY={drag.liftedTranslate}
-                  highlighted={step.id === focusStepId}
-                  onOpen={() => onOpenStep(step.id)}
+                  highlighted={step.id === focusStepId || selected}
+                  selected={selected}
+                  selectEnabled={selectEnabled}
+                  onOpen={handlePress}
                   buildGesture={drag.buildItemGesture}
                   registerRowLayout={drag.registerRowLayout}
                 />
@@ -165,6 +178,8 @@ interface DraggableCardSlotProps {
   showDropIndicatorBefore: boolean;
   liftedTranslateY: number;
   highlighted: boolean;
+  selected: boolean;
+  selectEnabled: boolean;
   onOpen: () => void;
   buildGesture: ReturnType<typeof useDragReorder>['buildItemGesture'];
   registerRowLayout: ReturnType<typeof useDragReorder>['registerRowLayout'];
@@ -177,6 +192,8 @@ function DraggableCardSlot({
   showDropIndicatorBefore,
   liftedTranslateY,
   highlighted,
+  selected,
+  selectEnabled,
   onOpen,
   buildGesture,
   registerRowLayout,
@@ -203,25 +220,42 @@ function DraggableCardSlot({
     };
   }, [isLifted, liftedTranslateY]);
 
+  // In select mode the drag gesture is disabled at the parent (canvas
+  // omits onReorderStep, the hook reports enabled=false). Skip the
+  // GestureDetector wrapper entirely so a plain tap reaches Pressable
+  // without racing the long-press detector.
+  const cardBody = (
+    <Animated.View
+      style={[styles.slotFlex, liftStyle]}
+      onLayout={(e) => {
+        const { y, height } = e.nativeEvent.layout;
+        registerRowLayout(step.id, { start: y, length: height });
+      }}
+    >
+      <StepDigestCard
+        step={step}
+        compact
+        highlighted={highlighted}
+        onPress={onOpen}
+      />
+      {selectEnabled ? (
+        <View style={[styles.selectBadge, selected && styles.selectBadgeOn]}>
+          {selected ? (
+            <Ionicons name="checkmark" size={14} color="#FFFFFF" />
+          ) : null}
+        </View>
+      ) : null}
+    </Animated.View>
+  );
+
   return (
     <View style={styles.dropSlotWrap}>
       {showDropIndicatorBefore ? <View style={styles.dropIndicator} /> : null}
-      <GestureDetector gesture={gesture}>
-        <Animated.View
-          style={[styles.slotFlex, liftStyle]}
-          onLayout={(e) => {
-            const { y, height } = e.nativeEvent.layout;
-            registerRowLayout(step.id, { start: y, length: height });
-          }}
-        >
-          <StepDigestCard
-            step={step}
-            compact
-            highlighted={highlighted}
-            onPress={onOpen}
-          />
-        </Animated.View>
-      </GestureDetector>
+      {selectEnabled ? (
+        cardBody
+      ) : (
+        <GestureDetector gesture={gesture}>{cardBody}</GestureDetector>
+      )}
     </View>
   );
 }
@@ -364,5 +398,22 @@ const styles = StyleSheet.create({
     borderRadius: 2,
     backgroundColor: IOS_REGISTER.accentUserAction,
     zIndex: 5,
+  },
+  selectBadge: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: 'rgba(255,255,255,0.85)',
+    borderWidth: 1.5,
+    borderColor: IOS_REGISTER.separatorStrong,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  selectBadgeOn: {
+    backgroundColor: IOS_REGISTER.accentUserAction,
+    borderColor: IOS_REGISTER.accentUserAction,
   },
 });
