@@ -69,8 +69,13 @@ export interface AtlasNextEvent {
 }
 
 export interface AtlasFrameHandlers {
-  /** Bottom-sheet primary CTA — "Plan a step" / "Anchor · pick site" etc. */
-  onPrimaryAction?: () => void;
+  /**
+   * Bottom-sheet primary CTA — "Plan a step" / "Anchor · pick site" / in
+   * commit-mode "Plan a step here". When the user is in compose-at-
+   * location mode with a dropped pin, F1 forwards the candidate coords
+   * so the caller can thread them into the add-step flow.
+   */
+  onPrimaryAction?: (pin?: { lat: number; lng: number; place?: string }) => void;
   /** Bottom-sheet secondary CTA — "Open <next event>" / "Skip" etc. */
   onSecondaryAction?: () => void;
   /** Per-frame override of the top subtitle line, e.g. "Sailing · RHKYC · Hong Kong". */
@@ -677,8 +682,10 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
             label: 'Plan a step here',
             icon: 'add',
             onPress: () => {
+              // Capture pin before clearing — exitCommit nulls it.
+              const pin = { lat: candidate.lat, lng: candidate.lng };
               exitCommit();
-              handlers.onPrimaryAction?.();
+              handlers.onPrimaryAction?.(pin);
             },
           }}
           secondary={{ label: 'Cancel', onPress: exitCommit }}

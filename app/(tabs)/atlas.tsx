@@ -94,12 +94,27 @@ export default function AtlasTab() {
     [currentInterest?.slug, currentInterest?.name],
   );
 
-  const handlePrimary = useCallback(() => {
-    // F1 + sailing: "Plan a step" → Practice tab (canonical add-step entry).
-    // F4 + nursing: "Anchor · pick site" → also Practice; the location-pick
-    //               flow into Plan tab's Where field is Phase A1 work.
-    router.push('/(tabs)/practice');
-  }, [router]);
+  const handlePrimary = useCallback(
+    (pin?: { lat: number; lng: number; place?: string }) => {
+      // F1 + sailing: "Plan a step" → Practice tab (canonical add-step entry).
+      // F4 + nursing: "Anchor · pick site" → also Practice.
+      //
+      // When a compose-at-location pin is present, push the coords as URL
+      // params and auto-open the add-step sheet so the user lands on the
+      // creation flow with their dropped pin remembered. Downstream
+      // threading into the step's location field is Phase A1 work; for
+      // now the params survive in the URL bar for the AI-Coach/Blueprint
+      // paths to pick up when they're ready.
+      const params: Record<string, string> = { openAddStep: '1' };
+      if (pin) {
+        params.pinLat = String(pin.lat);
+        params.pinLng = String(pin.lng);
+        if (pin.place) params.pinPlace = pin.place;
+      }
+      router.push({ pathname: '/(tabs)/practice', params });
+    },
+    [router],
+  );
 
   const handleSecondary = useCallback(() => {
     // F1: "Open Race 4" → Practice. Real next-event resolver lands in A1.

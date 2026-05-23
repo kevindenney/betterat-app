@@ -236,6 +236,31 @@ function LegacyRacesScreen() {
   // Smart Add Step Sheet: suggested next steps from subscribed blueprints
   const [showAddStepSheet, setShowAddStepSheet] = useState(false);
   const [showCanonicalAddStepSheet, setShowCanonicalAddStepSheet] = useState(false);
+
+  // Atlas → Practice compose-at-location handoff. When the user drops a pin
+  // on the Atlas tab in commit-mode and taps "Plan a step here", we arrive
+  // with ?openAddStep=1&pinLat=...&pinLng=... — auto-open the add-step
+  // sheet and clear the params so re-mounts don't re-open. The pin coords
+  // remain captured in component state (atlasPin) for the downstream flow
+  // to consume; threading them into the step itself is Phase A1 work.
+  // _atlasPin is currently write-only — captured so downstream AI Coach /
+  // Blueprint paths can read it when they're refactored to accept an
+  // initial location. Prefixed with _ to silence the unused-var lint
+  // until that consumer lands in a Phase A1 follow-up.
+  const [_atlasPin, setAtlasPin] = useState<{ lat: number; lng: number; place?: string } | null>(null);
+  useEffect(() => {
+    if (searchParams?.openAddStep !== '1') return;
+    const lat = searchParams.pinLat ? Number(searchParams.pinLat) : null;
+    const lng = searchParams.pinLng ? Number(searchParams.pinLng) : null;
+    if (lat != null && lng != null && Number.isFinite(lat) && Number.isFinite(lng)) {
+      setAtlasPin({ lat, lng, place: searchParams.pinPlace });
+    }
+    setShowAddStepSheet(true);
+    // Strip the handoff params so re-renders / focus-effects don't re-open
+    // the sheet on every focus.
+    router.setParams({ openAddStep: undefined, pinLat: undefined, pinLng: undefined, pinPlace: undefined });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams?.openAddStep, searchParams?.pinLat, searchParams?.pinLng]);
   const { data: suggestedNextSteps } = useSuggestedNextSteps(viewMode === 'domain' ? null : currentInterest?.id);
   const adoptBlueprintStep = useAdoptBlueprintStep();
   const dismissBlueprintStep = useDismissBlueprintStep();
@@ -440,7 +465,15 @@ function LegacyRacesScreen() {
   const router = useRouter();
   const routerRef = useRef(router);
   routerRef.current = router;
-  const searchParams = useLocalSearchParams<{ selected?: string }>();
+  const searchParams = useLocalSearchParams<{
+    selected?: string;
+    /** Atlas compose-at-location handoff — when '1', auto-open the add-step sheet. */
+    openAddStep?: string;
+    /** Atlas-dropped pin coords, threaded through for the add-step flow to consume. */
+    pinLat?: string;
+    pinLng?: string;
+    pinPlace?: string;
+  }>();
   const [showCalendarImport, setShowCalendarImport] = useState(false);
   const mainScrollViewRef = useRef<ScrollView>(null); // Main vertical ScrollView
   const raceCardsScrollViewRef = useRef<ScrollView>(null); // Horizontal race cards ScrollView
