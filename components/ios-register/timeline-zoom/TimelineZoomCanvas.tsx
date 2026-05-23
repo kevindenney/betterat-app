@@ -75,13 +75,19 @@ interface TimelineZoomCanvasProps {
    */
   embedFullDetailAtL1?: boolean;
   /**
-   * Section D drag-reorder. When provided, long-press on a digest card
-   * at L3 lifts it and dragging reorders the step within the current
-   * season; on drop, the canvas calls this with the source step id +
-   * from/to indices in the flat current-season step list. The caller
-   * persists the new sort_order via the existing updateStep mutation.
+   * Section D drag-reorder. Called when the user drops a card at a new
+   * position at L2 or L3. The view computes the new neighbor step IDs
+   * from its own ordered list and hands them to the caller; the caller
+   * looks up those neighbors' sort_orders and writes a value between
+   * them. Passing neighbor ids (not indices) keeps the owner agnostic
+   * about whether the drag was within a week (L2) or across the season
+   * (L3).
    */
-  onReorderStep?: (stepId: string, fromIndex: number, toIndex: number) => void;
+  onReorderStep?: (
+    stepId: string,
+    beforeStepId: string | null,
+    afterStepId: string | null,
+  ) => void;
 }
 
 const LEVELS: ZoomLevel[] = [1, 2, 3, 4];
@@ -262,6 +268,7 @@ export function TimelineZoomCanvas({
                     dataset={dataset}
                     focusStepId={focusStepId}
                     onOpenStep={handleOpenStep}
+                    onReorderStep={onReorderStep}
                   />
                 ) : null}
                 {level === 3 ? (

@@ -6,19 +6,36 @@
  * have steps. The day strip is tappable — jump the carousel to Friday and
  * the carousel scrolls to it (per Frame 2 description). The card the user
  * came from is outlined iOS blue.
+ *
+ * Section D drag-reorder (Frame 13): long-press a card in the carousel to
+ * lift it, then drag left/right to reorder. The hook uses horizontal axis
+ * hit-testing; ScrollView's scrollEnabled is bound to drag.isDragging so
+ * the swipe-to-scroll gesture stops competing once a card is lifted.
  */
 
 import React, { useCallback, useEffect, useMemo, useRef } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { GestureDetector } from 'react-native-gesture-handler';
+import Animated, { useAnimatedStyle } from 'react-native-reanimated';
 
 import { IOS_REGISTER } from '@/lib/design-tokens-ios';
 import { StepDigestCard } from './StepDigestCard';
+import { useDragReorder } from './useDragReorder';
 import type { DayKey, TimelineDataset, TimelineStep } from './types';
 
 interface L2WeekViewProps {
   dataset: TimelineDataset;
   focusStepId: string;
   onOpenStep: (stepId: string) => void;
+  /**
+   * Section D reorder commit. L2 resolves neighbor step ids from the
+   * current week's ordering and hands those to the canvas owner.
+   */
+  onReorderStep?: (
+    stepId: string,
+    beforeStepId: string | null,
+    afterStepId: string | null,
+  ) => void;
 }
 
 const DAY_KEYS: DayKey[] = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
@@ -27,7 +44,12 @@ const DAY_LABELS: Record<DayKey, string> = {
 };
 const DAY_DATES = [13, 14, 15, 16, 17, 18, 19] as const;
 
-export function L2WeekView({ dataset, focusStepId, onOpenStep }: L2WeekViewProps) {
+export function L2WeekView({
+  dataset,
+  focusStepId,
+  onOpenStep,
+  onReorderStep,
+}: L2WeekViewProps) {
   const currentSeason = dataset.seasons.find((s) => s.id === dataset.currentSeasonId);
   const currentWeek = currentSeason?.weeks.find((w) => w.isCurrent);
   // Memoize so the useEffect / useCallback dependencies below have a
@@ -50,6 +72,23 @@ export function L2WeekView({ dataset, focusStepId, onOpenStep }: L2WeekViewProps
   // navigating away from L2. Frame 2: "the day strip is tappable — jump
   // to Friday and the carousel scrolls to it."
   const scrollRef = useRef<ScrollView>(null);
+
+  const drag = useDragReorder<TimelineStep>({
+    items: steps,
+    axis: 'horizontal',
+    enabled: Boolean(onReorderStep),
+    onReorder: useCallback(
+      (id, from, to) => {
+        const without = steps.filter((s) => s.id !== id);
+        const clamped = Math.max(0, Math.min(to, without.length));
+        const before = without[clamped - 1]?.id ?? null;
+        const after = without[clamped]?.id ?? null;
+        onReorderStep?.(id, before, after);
+        void from;
+      },
+      [steps, onReorderStep],
+    ),
+  });
 
   // Auto-scroll on mount + when focus changes (e.g. pinch-in/out preserves
   // focusStepId; the carousel should open with that card visible).
@@ -127,17 +166,95 @@ export function L2WeekView({ dataset, focusStepId, onOpenStep }: L2WeekViewProps
         contentContainerStyle={styles.cardCarousel}
         snapToInterval={CARD_WIDTH + CARD_GAP}
         decelerationRate="fast"
+        scrollEnabled={!drag.isDragging}
       >
-        {steps.map((step) => (
-          <View key={step.id} style={styles.cardSlot}>
-            <StepDigestCard
+        {steps.map((step, index) => {
+          const isLifted = drag.liftedId === step.id;
+          const showDropIndicator =
+            drag.dropTargetIndex === index && !isLifted;
+          return (
+            <DraggableCarouselSlot
+              key={step.id}
               step={step}
+              index={index}
+              isLifted={isLifted}
+              showDropIndicatorBefore={showDropIndicator}
+              liftedTranslateX={drag.liftedTranslate}
               highlighted={step.id === focusStepId}
-              onPress={() => onOpenStep(step.id)}
+              onOpen={() => onOpenStep(step.id)}
+              buildGesture={drag.buildItemGesture}
+              registerRowLayout={drag.registerRowLayout}
             />
-          </View>
-        ))}
+          );
+        })}
       </ScrollView>
+    </View>
+  );
+}
+
+interface DraggableCarouselSlotProps {
+  step: TimelineStep;
+  index: number;
+  isLifted: boolean;
+  showDropIndicatorBefore: boolean;
+  liftedTranslateX: number;
+  highlighted: boolean;
+  onOpen: () => void;
+  buildGesture: ReturnType<typeof useDragReorder>['buildItemGesture'];
+  registerRowLayout: ReturnType<typeof useDragReorder>['registerRowLayout'];
+}
+
+function DraggableCarouselSlot({
+  step,
+  index,
+  isLifted,
+  showDropIndicatorBefore,
+  liftedTranslateX,
+  highlighted,
+  onOpen,
+  buildGesture,
+  registerRowLayout,
+}: DraggableCarouselSlotProps) {
+  const gesture = useMemo(
+    () => buildGesture(step.id, index),
+    [buildGesture, step.id, index],
+  );
+
+  const liftStyle = useAnimatedStyle(() => {
+    if (!isLifted) return { transform: [] as never[] };
+    return {
+      transform: [
+        { translateX: liftedTranslateX },
+        { scale: 1.04 },
+        { rotateZ: '1.5deg' },
+      ],
+      zIndex: 10,
+      shadowColor: '#000',
+      shadowOpacity: 0.22,
+      shadowRadius: 14,
+      shadowOffset: { width: 0, height: 8 },
+      elevation: 12,
+    };
+  }, [isLifted, liftedTranslateX]);
+
+  return (
+    <View style={styles.cardSlot}>
+      {showDropIndicatorBefore ? <View style={styles.dropIndicator} /> : null}
+      <GestureDetector gesture={gesture}>
+        <Animated.View
+          style={[styles.slotFlex, liftStyle]}
+          onLayout={(e) => {
+            const { x, width } = e.nativeEvent.layout;
+            registerRowLayout(step.id, { start: x, length: width });
+          }}
+        >
+          <StepDigestCard
+            step={step}
+            highlighted={highlighted}
+            onPress={onOpen}
+          />
+        </Animated.View>
+      </GestureDetector>
     </View>
   );
 }
@@ -223,5 +340,17 @@ const styles = StyleSheet.create({
   },
   cardSlot: {
     width: CARD_WIDTH,
+    position: 'relative',
+  },
+  slotFlex: { flex: 1 },
+  dropIndicator: {
+    position: 'absolute',
+    left: -8,
+    top: 0,
+    bottom: 0,
+    width: 3,
+    borderRadius: 2,
+    backgroundColor: IOS_REGISTER.accentUserAction,
+    zIndex: 5,
   },
 });

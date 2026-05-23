@@ -29,12 +29,15 @@ interface L3SeasonViewProps {
   onOpenStep: (stepId: string) => void;
   onEnterSelectMode?: () => void;
   /**
-   * Reorder commit. Called when the user drops a card at a new index.
-   * `fromIndex` and `toIndex` are positions in the flat current-season
-   * step list (weeks concatenated in order). The parent computes the
-   * neighbor sort_orders and writes to Supabase.
+   * Reorder commit. The L3 view resolves the neighbor step IDs from
+   * its flat current-season ordering and hands those to the canvas
+   * owner, which writes a sort_order between them.
    */
-  onReorderStep?: (stepId: string, fromIndex: number, toIndex: number) => void;
+  onReorderStep?: (
+    stepId: string,
+    beforeStepId: string | null,
+    afterStepId: string | null,
+  ) => void;
 }
 
 export function L3SeasonView({
@@ -59,8 +62,22 @@ export function L3SeasonView({
     items: flatSteps,
     enabled: Boolean(onReorderStep),
     onReorder: useCallback(
-      (id, from, to) => onReorderStep?.(id, from, to),
-      [onReorderStep],
+      (id, from, to) => {
+        // Resolve neighbor ids in the post-drop ordering. Remove the
+        // moved item first; the indices the hook hands us are already
+        // expressed as the target insertion index in the full list,
+        // but we need it in the without-moved list for the neighbor
+        // lookup to be unambiguous.
+        const without = flatSteps.filter((s) => s.id !== id);
+        const clamped = Math.max(0, Math.min(to, without.length));
+        const before = without[clamped - 1]?.id ?? null;
+        const after = without[clamped]?.id ?? null;
+        onReorderStep?.(id, before, after);
+        // `from` participated in computing `to`; silence the unused-arg
+        // lint without changing the public contract.
+        void from;
+      },
+      [flatSteps, onReorderStep],
     ),
   });
 
@@ -125,7 +142,7 @@ export function L3SeasonView({
                   flatIndex={flatIndex}
                   isLifted={isLifted}
                   showDropIndicatorBefore={showDropIndicatorBefore}
-                  liftedTranslateY={drag.liftedTranslateY}
+                  liftedTranslateY={drag.liftedTranslate}
                   highlighted={step.id === focusStepId}
                   onOpen={() => onOpenStep(step.id)}
                   buildGesture={drag.buildItemGesture}
@@ -194,7 +211,7 @@ function DraggableCardSlot({
           style={[styles.slotFlex, liftStyle]}
           onLayout={(e) => {
             const { y, height } = e.nativeEvent.layout;
-            registerRowLayout(step.id, { y, height });
+            registerRowLayout(step.id, { start: y, length: height });
           }}
         >
           <StepDigestCard

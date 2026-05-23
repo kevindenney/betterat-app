@@ -24,10 +24,16 @@ import { Gesture } from 'react-native-gesture-handler';
 import { runOnJS } from 'react-native-reanimated';
 
 interface RowRect {
-  /** Top of the row relative to the list's coordinate space. */
-  y: number;
-  height: number;
+  /**
+   * Start of the row along the active axis (y for vertical, x for
+   * horizontal) in the list's local coordinate space.
+   */
+  start: number;
+  /** Length along the active axis (height for vertical, width for horizontal). */
+  length: number;
 }
+
+export type DragAxis = 'vertical' | 'horizontal';
 
 export interface UseDragReorderArgs<T extends { id: string }> {
   items: T[];
@@ -35,6 +41,13 @@ export interface UseDragReorderArgs<T extends { id: string }> {
   onReorder: (itemId: string, fromIndex: number, toIndex: number) => void;
   /** Disabled in non-owner mode (e.g. blueprint preview surfaces). */
   enabled?: boolean;
+  /**
+   * Axis the items are arranged along — 'vertical' for L3's two-up
+   * weeks (default), 'horizontal' for L2's swiping carousel. Hit
+   * testing uses Y or X accordingly, and the translate that the
+   * caller applies to the lifted card should follow the same axis.
+   */
+  axis?: DragAxis;
 }
 
 export interface UseDragReorderApi {
@@ -48,8 +61,8 @@ export interface UseDragReorderApi {
   buildItemGesture: (itemId: string, index: number) => ReturnType<typeof Gesture.Pan>;
   /** Bind onLayout of each row wrapper to feed hit-testing. */
   registerRowLayout: (itemId: string, rect: RowRect) => void;
-  /** Translate-Y delta applied to the lifted card while dragging. */
-  liftedTranslateY: number;
+  /** Translate delta along the active axis (Y for vertical, X for horizontal). */
+  liftedTranslate: number;
 }
 
 const LIFT_ACTIVATION_MS = 280;
@@ -58,31 +71,34 @@ export function useDragReorder<T extends { id: string }>({
   items,
   onReorder,
   enabled = true,
+  axis = 'vertical',
 }: UseDragReorderArgs<T>): UseDragReorderApi {
   const [liftedId, setLiftedId] = useState<string | null>(null);
   const [dropTargetIndex, setDropTargetIndex] = useState<number | null>(null);
-  const [liftedTranslateY, setLiftedTranslateY] = useState(0);
+  const [liftedTranslate, setLiftedTranslate] = useState(0);
 
   const rowRectsRef = useRef<Map<string, RowRect>>(new Map());
   const startIndexRef = useRef<number>(-1);
-  const startCenterYRef = useRef<number>(0);
+  const startCenterRef = useRef<number>(0);
   const itemsRef = useRef(items);
   itemsRef.current = items;
+  const axisRef = useRef(axis);
+  axisRef.current = axis;
 
   const registerRowLayout = useCallback((itemId: string, rect: RowRect) => {
     rowRectsRef.current.set(itemId, rect);
   }, []);
 
-  const computeIndexFromY = useCallback((centerY: number): number => {
-    // Walk in order; the first row whose vertical midpoint is below the
-    // finger gives us the insertion index. If we never find one, the
-    // finger is past the last row → append.
+  const computeIndexFromCoord = useCallback((coord: number): number => {
+    // Walk in order; the first row whose midpoint along the active axis
+    // is past the finger gives us the insertion index. If we never find
+    // one, the finger is past the last row → append.
     const current = itemsRef.current;
     for (let i = 0; i < current.length; i++) {
       const rect = rowRectsRef.current.get(current[i].id);
       if (!rect) continue;
-      const mid = rect.y + rect.height / 2;
-      if (centerY < mid) return i;
+      const mid = rect.start + rect.length / 2;
+      if (coord < mid) return i;
     }
     return current.length - 1;
   }, []);
@@ -91,18 +107,18 @@ export function useDragReorder<T extends { id: string }>({
     const rect = rowRectsRef.current.get(itemId);
     if (!rect) return;
     startIndexRef.current = index;
-    startCenterYRef.current = rect.y + rect.height / 2;
+    startCenterRef.current = rect.start + rect.length / 2;
     setLiftedId(itemId);
     setDropTargetIndex(index);
-    setLiftedTranslateY(0);
+    setLiftedTranslate(0);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
   }, []);
 
   const handlePanUpdate = useCallback(
-    (translationY: number) => {
-      setLiftedTranslateY(translationY);
-      const fingerY = startCenterYRef.current + translationY;
-      const idx = computeIndexFromY(fingerY);
+    (translation: number) => {
+      setLiftedTranslate(translation);
+      const fingerCoord = startCenterRef.current + translation;
+      const idx = computeIndexFromCoord(fingerCoord);
       setDropTargetIndex((prev) => {
         if (prev !== idx) {
           Haptics.selectionAsync().catch(() => {});
@@ -110,7 +126,7 @@ export function useDragReorder<T extends { id: string }>({
         return idx;
       });
     },
-    [computeIndexFromY],
+    [computeIndexFromCoord],
   );
 
   const handleDrop = useCallback(() => {
@@ -126,7 +142,7 @@ export function useDragReorder<T extends { id: string }>({
       return null;
     });
     setLiftedId(null);
-    setLiftedTranslateY(0);
+    setLiftedTranslate(0);
     startIndexRef.current = -1;
   }, [liftedId, onReorder]);
 
@@ -141,7 +157,8 @@ export function useDragReorder<T extends { id: string }>({
         })
         .onUpdate((e) => {
           'worklet';
-          runOnJS(handlePanUpdate)(e.translationY);
+          const t = axisRef.current === 'horizontal' ? e.translationX : e.translationY;
+          runOnJS(handlePanUpdate)(t);
         })
         .onFinalize(() => {
           'worklet';
@@ -159,6 +176,6 @@ export function useDragReorder<T extends { id: string }>({
     isDragging: liftedId !== null,
     buildItemGesture,
     registerRowLayout,
-    liftedTranslateY,
+    liftedTranslate,
   };
 }

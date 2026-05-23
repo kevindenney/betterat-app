@@ -104,29 +104,18 @@ export function TimelineZoomPracticeScreen() {
     router.push(`/step/${stepId}` as never);
   }, []);
 
-  // Section D drag-reorder — compute new sort_order by averaging the
-  // neighbors in the flat current-season step list (weeks concatenated
-  // in render order). The L3 view passes flat indices because that's
-  // the coordinate space its drag hook reasons in.
+  // Section D drag-reorder — the view resolves the post-drop neighbor
+  // step ids and hands them here; we look up their sort_orders and
+  // write a value between them. Neighbor-id (not index) lets both L2
+  // and L3 share this handler without the owner needing to know which
+  // view called.
   const updateStep = useUpdateStep();
   const handleReorderStep = useCallback(
-    (stepId: string, fromIndex: number, toIndex: number) => {
-      if (fromIndex === toIndex) return;
-      const currentSeasonId = dataset.currentSeasonId;
-      const season = dataset.seasons.find((s) => s.id === currentSeasonId);
-      if (!season) return;
-      const flatIds = season.weeks.flatMap((w) => w.steps.map((s) => s.id));
-      const stepRecords = flatIds
-        .map((id) => steps.find((s) => s.id === id))
-        .filter((s): s is NonNullable<typeof s> => Boolean(s));
-
-      const without = stepRecords.filter((s) => s.id !== stepId);
-      const moved = stepRecords.find((s) => s.id === stepId);
+    (stepId: string, beforeStepId: string | null, afterStepId: string | null) => {
+      const moved = steps.find((s) => s.id === stepId);
       if (!moved) return;
-      // Clamp toIndex into the resulting array's index range.
-      const insertAt = Math.max(0, Math.min(toIndex, without.length));
-      const before = without[insertAt - 1];
-      const after = without[insertAt];
+      const before = beforeStepId ? steps.find((s) => s.id === beforeStepId) : null;
+      const after = afterStepId ? steps.find((s) => s.id === afterStepId) : null;
 
       let nextSort: number;
       if (before && after) {
@@ -136,11 +125,12 @@ export function TimelineZoomPracticeScreen() {
       } else if (after) {
         nextSort = after.sort_order - 1;
       } else {
-        nextSort = moved.sort_order;
+        return; // no neighbors at all = no list = nothing to do
       }
+      if (nextSort === moved.sort_order) return;
       updateStep.mutate({ stepId, input: { sort_order: nextSort } });
     },
-    [dataset, steps, updateStep],
+    [steps, updateStep],
   );
 
   const hasContent = dataset.seasons.some((s) => s.bricks.length > 0);
