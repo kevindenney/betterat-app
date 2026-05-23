@@ -366,7 +366,7 @@ function LabeledPin({
     const downwindDeg = (fromDeg + 180) % 360;
     return (
       <View style={[styles.windArrow, { transform: [{ rotate: `${downwindDeg}deg` }] }]}>
-        <Ionicons name="arrow-up" size={18} color="rgba(60, 80, 110, 0.55)" />
+        <Ionicons name="arrow-up" size={18} color="rgba(60, 80, 110, 0.5)" />
       </View>
     );
   }
@@ -541,7 +541,7 @@ const styles = StyleSheet.create({
   windArrow: {
     width: 18,
     height: 18,
-    opacity: 0.7,
+    opacity: 0.85,
     alignItems: 'center',
     justifyContent: 'center',
   },

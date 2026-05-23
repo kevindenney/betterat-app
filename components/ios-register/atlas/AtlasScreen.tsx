@@ -621,6 +621,8 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
     centerLng: next?.lng ?? 114.18,
     conditionsLine: next?.conditions,
     enabled: true,
+    spacingKm: 2.5,
+    gridSize: 5,
   });
   const pins = useMemo(
     () => [...windPins, ...framePins, ...raceMarkPins],
