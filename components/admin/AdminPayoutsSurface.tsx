@@ -5,97 +5,80 @@
  * total paid-out YTD, per-author table with blueprints + earned + Stripe
  * Connect status, upcoming-payout panel showing the next batch close.
  *
- * Demo data — Stripe Connect wiring uses the existing services/StripeConnectService
- * but per-author org rollup isn't a table yet.
+ * Real data via useAdminOrgPayouts → admin_org_payouts RPC. Stripe Connect
+ * webhooks (not yet wired) update author rows when payouts clear and
+ * connect-account state changes.
  */
 
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-
-interface Author {
-  id: string;
-  name: string;
-  subtitle: string;
-  initials: string;
-  aviTone: 'brown' | 'purple' | 'warm';
-  blueprintChips: string[];
-  extraCount?: number;
-  activeSeats: number;
-  earnedYTD: string;
-  lastPayout: string;
-  stripeStatus: { label: string; tone: 'ok' | 'warn' };
-}
-
-const AUTHORS: Author[] = [
-  {
-    id: 'rm',
-    name: 'Dr. R. Murphy',
-    subtitle: 'JHSON faculty · 12 blueprints',
-    initials: 'RM',
-    aviTone: 'brown',
-    blueprintChips: ['Sepsis bundle', 'IV insertion'],
-    extraCount: 10,
-    activeSeats: 22,
-    earnedYTD: '$5,180.00',
-    lastPayout: 'Apr 30 · $1,240',
-    stripeStatus: { label: 'Stripe · verified', tone: 'ok' },
-  },
-  {
-    id: 'jk',
-    name: 'J. Kim, RN',
-    subtitle: 'Preceptor · 4 blueprints',
-    initials: 'JK',
-    aviTone: 'purple',
-    blueprintChips: ['Head-to-toe', 'Foley placement'],
-    extraCount: 2,
-    activeSeats: 18,
-    earnedYTD: '$2,310.00',
-    lastPayout: 'Apr 30 · $480',
-    stripeStatus: { label: 'Stripe · verified', tone: 'ok' },
-  },
-  {
-    id: 'na',
-    name: 'Noor Aziz',
-    subtitle: 'Independent · 1 blueprint',
-    initials: 'NA',
-    aviTone: 'warm',
-    blueprintChips: ['Discharge teach-back'],
-    activeSeats: 6,
-    earnedYTD: '$930.00',
-    lastPayout: 'Apr 30 · $170',
-    stripeStatus: { label: 'Connect · action needed', tone: 'warn' },
-  },
-];
+import { useLocalSearchParams } from 'expo-router';
+import {
+  useAdminOrgPayouts,
+  AdminPayoutAuthor,
+  AuthorTone,
+  ConnectStatus,
+  formatMoneyDollars,
+  formatMoneyShort,
+  formatShortDate,
+  formatLongPeriod,
+  formatScheduledFor,
+} from '@/hooks/useAdminOrgPayouts';
 
 export function AdminPayoutsSurface() {
+  const { orgId } = useLocalSearchParams<{ orgId: string }>();
+  const data = useAdminOrgPayouts(orgId as string);
+
+  if (data.loading) {
+    return (
+      <ScrollView style={s.body}>
+        <View style={s.loadingCard}>
+          <Text style={s.loadingText}>Loading payouts…</Text>
+        </View>
+      </ScrollView>
+    );
+  }
+
+  const paidDollars = (data.paidYtdCents / 100).toFixed(2).split('.');
+  const pendingDollars = (data.pendingCents / 100).toFixed(2).split('.');
+  const lastBatchDollars = (data.lastBatchCents / 100).toFixed(2).split('.');
+
   return (
     <ScrollView style={s.body} contentContainerStyle={s.bodyInner}>
       {/* Stat strip */}
       <View style={s.statRow}>
         <StatCard
           k="Paid YTD"
-          v="$8,420"
-          vSub=".00"
-          d="across 3 authors, 5 blueprints"
+          v={`$${Math.round(data.paidYtdCents / 100).toLocaleString()}`}
+          vSub={`.${paidDollars[1]}`}
+          d={`across ${data.authors.length} ${data.authors.length === 1 ? 'author' : 'authors'}, ${data.authors.reduce((sum, a) => sum + a.blueprintCount, 0)} blueprints`}
         />
         <StatCard
           k="Pending · next batch"
-          v="$1,240"
-          vSub=".00"
-          d="clears May 31, 2026"
+          v={`$${Math.round(data.pendingCents / 100).toLocaleString()}`}
+          vSub={`.${pendingDollars[1]}`}
           vTone="warn"
+          d={
+            data.pendingClears
+              ? `clears ${new Date(data.pendingClears + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}`
+              : 'no scheduled batch'
+          }
         />
         <StatCard
           k="Cohort seats producing payouts"
-          v="30 / 30"
-          d="BSN Class of 2027 — Cohort A"
+          v={`${data.cohortSeats} / ${data.cohortSeats}`}
+          d={data.cohortLabel ?? 'No active cohort'}
         />
         <StatCard
           k="Last batch"
-          v="$1,890"
-          vSub=".00"
-          d="cleared Apr 30 · 3 authors"
+          v={`$${Math.round(data.lastBatchCents / 100).toLocaleString()}`}
+          vSub={`.${lastBatchDollars[1]}`}
+          d={
+            data.lastBatchDate
+              ? `cleared ${formatShortDate(data.lastBatchDate)} · ${data.lastBatchAuthors} ${data.lastBatchAuthors === 1 ? 'author' : 'authors'}`
+              : 'no prior batches'
+          }
         />
       </View>
 
@@ -125,100 +108,220 @@ export function AdminPayoutsSurface() {
           </View>
         </View>
 
-        <View style={s.tableHead}>
-          <Text style={[s.th, { width: 240 }]}>Author</Text>
-          <Text style={[s.th, { flex: 1.2 }]}>Blueprints</Text>
-          <Text style={[s.th, s.thRight, { width: 90 }]}>Active seats</Text>
-          <Text style={[s.th, s.thRight, { width: 110 }]}>Earned YTD</Text>
-          <Text style={[s.th, { width: 140 }]}>Last payout</Text>
-          <Text style={[s.th, { flex: 1 }]}>Connect status</Text>
-          <View style={{ width: 40 }} />
-        </View>
-        {AUTHORS.map((a, idx) => (
-          <View key={a.id} style={[s.tr, idx === AUTHORS.length - 1 && s.trLast]}>
-            <View style={[s.td, { width: 240, flexDirection: 'row', alignItems: 'center', gap: 10 }]}>
-              <View style={[s.avi, aviToneStyle(a.aviTone)]}>
-                <Text style={s.aviText}>{a.initials}</Text>
-              </View>
-              <View>
-                <Text style={s.authorName}>{a.name}</Text>
-                <Text style={s.authorSubtitle}>{a.subtitle}</Text>
-              </View>
-            </View>
-            <View style={[s.td, { flex: 1.2, flexDirection: 'row', flexWrap: 'wrap', gap: 4 }]}>
-              {a.blueprintChips.map((c) => (
-                <View key={c} style={s.bpChip}>
-                  <Text style={s.bpChipText}>{c}</Text>
-                </View>
-              ))}
-              {a.extraCount ? (
-                <View style={s.bpChipMuted}>
-                  <Text style={s.bpChipMutedText}>+{a.extraCount}</Text>
-                </View>
-              ) : null}
-            </View>
-            <Text style={[s.td, s.tdRight, s.tdNum, { width: 90 }]}>{a.activeSeats}</Text>
-            <Text style={[s.td, s.tdRight, s.tdNum, { width: 110 }]}>{a.earnedYTD}</Text>
-            <Text style={[s.td, { width: 140 }]}>{a.lastPayout}</Text>
-            <View style={[s.td, { flex: 1 }]}>
-              <View
-                style={[
-                  s.stripePill,
-                  a.stripeStatus.tone === 'warn' ? s.stripePillWarn : null,
-                ]}
-              >
-                <Ionicons
-                  name={a.stripeStatus.tone === 'warn' ? 'warning-outline' : 'checkmark'}
-                  size={11}
-                  color={a.stripeStatus.tone === 'warn' ? '#C99632' : '#5851D6'}
-                />
-                <Text
-                  style={[
-                    s.stripePillText,
-                    a.stripeStatus.tone === 'warn' && { color: '#C99632' },
-                  ]}
-                >
-                  {a.stripeStatus.label}
-                </Text>
-              </View>
-            </View>
-            <View style={{ width: 40, alignItems: 'flex-end' }}>
-              <Pressable style={s.iconBtn}>
-                <Ionicons name="ellipsis-vertical" size={13} color="rgba(60, 60, 67, 0.6)" />
-              </Pressable>
-            </View>
+        {data.authors.length === 0 ? (
+          <View style={s.emptyAuthors}>
+            <Text style={s.emptyText}>
+              No authors with payout history yet. Once a blueprint is published and accrues
+              seats, payouts will appear here.
+            </Text>
           </View>
-        ))}
+        ) : (
+          <>
+            <View style={s.tableHead}>
+              <Text style={[s.th, { width: 240 }]}>Author</Text>
+              <Text style={[s.th, { flex: 1.2 }]}>Blueprints</Text>
+              <Text style={[s.th, s.thRight, { width: 90 }]}>Active seats</Text>
+              <Text style={[s.th, s.thRight, { width: 110 }]}>Earned YTD</Text>
+              <Text style={[s.th, { width: 140 }]}>Last payout</Text>
+              <Text style={[s.th, { flex: 1 }]}>Connect status</Text>
+              <View style={{ width: 40 }} />
+            </View>
+            {data.authors.map((a, idx) => (
+              <AuthorRow key={a.id} a={a} isLast={idx === data.authors.length - 1} />
+            ))}
+          </>
+        )}
       </View>
 
       {/* Upcoming payout panel */}
       <View style={s.panel}>
         <View style={s.panelHead}>
-          <Text style={s.panelEyebrow}>Upcoming payout · Sun May 31</Text>
+          <Text style={s.panelEyebrow}>{formatScheduledFor(data.pendingClears)}</Text>
           <Text style={s.panelHint}>Cleared 5 business days after period close</Text>
         </View>
         <View style={s.panelRow}>
           <View style={s.panelCell}>
             <Text style={s.panelCellLabel}>Period</Text>
-            <Text style={s.panelCellValue}>May 1 – May 31, 2026</Text>
-            <Text style={s.panelCellSub}>30 active seats · 70/10/20 split</Text>
-          </View>
-          <View style={s.panelCell}>
-            <Text style={s.panelCellLabel}>Authors getting paid</Text>
-            <Text style={s.panelCellValue}>3 of 3</Text>
-            <Text style={[s.panelCellSub, { color: '#C99632' }]}>
-              N. Aziz must complete Connect verification first
+            <Text style={s.panelCellValue}>
+              {formatLongPeriod(data.upcomingPeriodStart, data.upcomingPeriodEnd)}
+            </Text>
+            <Text style={s.panelCellSub}>
+              {data.cohortSeats} active seats · 70/10/20 split
             </Text>
           </View>
           <View style={s.panelCell}>
+            <Text style={s.panelCellLabel}>Authors getting paid</Text>
+            <Text style={s.panelCellValue}>
+              {data.upcomingAuthorsPaid} of {data.upcomingAuthorsTotal}
+            </Text>
+            {data.authors.some((a) => a.stripeConnectStatus === 'action_needed') ? (
+              <Text style={[s.panelCellSub, { color: '#C99632' }]}>
+                {data.authors
+                  .filter((a) => a.stripeConnectStatus === 'action_needed')
+                  .map((a) => a.authorName.split(' ').slice(-1)[0])
+                  .join(' / ')}{' '}
+                must complete Connect verification first
+              </Text>
+            ) : (
+              <Text style={s.panelCellSub}>All Connect accounts in good standing</Text>
+            )}
+          </View>
+          <View style={s.panelCell}>
             <Text style={s.panelCellLabel}>Batch total</Text>
-            <Text style={s.panelCellValue}>$1,240.00</Text>
-            <Text style={s.panelCellSub}>Rebate back to JHSON: $248.00</Text>
+            <Text style={s.panelCellValue}>{formatMoneyDollars(data.pendingCents)}</Text>
+            <Text style={s.panelCellSub}>
+              Rebate back to {data.cohortLabel?.split(' ')[0] ?? 'org'}:{' '}
+              {formatMoneyDollars(data.upcomingRebateCents)}
+            </Text>
           </View>
         </View>
       </View>
     </ScrollView>
   );
+}
+
+function AuthorRow({ a, isLast }: { a: AdminPayoutAuthor; isLast: boolean }) {
+  const extra = a.blueprintCount - Math.min(2, a.blueprintTitles.length);
+  return (
+    <View style={[s.tr, isLast && s.trLast]}>
+      <View style={[s.td, { width: 240, flexDirection: 'row', alignItems: 'center', gap: 10 }]}>
+        <View style={[s.avi, aviToneStyle(a.authorTone)]}>
+          <Text style={s.aviText}>{a.authorInitials}</Text>
+        </View>
+        <View>
+          <Text style={s.authorName}>{a.authorName}</Text>
+          <Text style={s.authorSubtitle}>
+            {authorKindLabel(a.authorKind)} · {a.blueprintCount}{' '}
+            {a.blueprintCount === 1 ? 'blueprint' : 'blueprints'}
+          </Text>
+        </View>
+      </View>
+      <View style={[s.td, { flex: 1.2, flexDirection: 'row', flexWrap: 'wrap', gap: 4 }]}>
+        {a.blueprintTitles.slice(0, 2).map((title) => (
+          <View key={title} style={s.bpChip}>
+            <Text style={s.bpChipText}>{shortenBpTitle(title)}</Text>
+          </View>
+        ))}
+        {extra > 0 ? (
+          <View style={s.bpChipMuted}>
+            <Text style={s.bpChipMutedText}>+{extra}</Text>
+          </View>
+        ) : null}
+      </View>
+      <Text style={[s.td, s.tdRight, s.tdNum, { width: 90 }]}>{a.activeSeats}</Text>
+      <Text style={[s.td, s.tdRight, s.tdNum, { width: 110 }]}>
+        {formatMoneyDollars(a.earnedYtdCents)}
+      </Text>
+      <Text style={[s.td, { width: 140 }]}>
+        {a.lastPayoutDate ? formatShortDate(a.lastPayoutDate) : '—'}
+        {a.lastPayoutAmountCents != null
+          ? ` · ${formatMoneyShort(a.lastPayoutAmountCents)}`
+          : ''}
+      </Text>
+      <View style={[s.td, { flex: 1 }]}>
+        <ConnectStatusPill status={a.stripeConnectStatus} />
+      </View>
+      <View style={{ width: 40, alignItems: 'flex-end' }}>
+        <Pressable style={s.iconBtn}>
+          <Ionicons name="ellipsis-vertical" size={13} color="rgba(60, 60, 67, 0.6)" />
+        </Pressable>
+      </View>
+    </View>
+  );
+}
+
+function ConnectStatusPill({ status }: { status: ConnectStatus }) {
+  const def = connectDef(status);
+  return (
+    <View style={[s.stripePill, { backgroundColor: def.bg, borderColor: def.border }]}>
+      <Ionicons name={def.icon} size={11} color={def.fg} />
+      <Text style={[s.stripePillText, { color: def.fg }]}>{def.label}</Text>
+    </View>
+  );
+}
+
+function connectDef(s: ConnectStatus): {
+  bg: string;
+  border: string;
+  fg: string;
+  icon: keyof typeof Ionicons.glyphMap;
+  label: string;
+} {
+  switch (s) {
+    case 'verified':
+      return {
+        bg: 'rgba(99, 91, 255, 0.08)',
+        border: 'rgba(99, 91, 255, 0.18)',
+        fg: '#5851D6',
+        icon: 'checkmark',
+        label: 'Stripe · verified',
+      };
+    case 'action_needed':
+      return {
+        bg: 'rgba(201, 150, 50, 0.14)',
+        border: 'rgba(201, 150, 50, 0.3)',
+        fg: '#C99632',
+        icon: 'warning-outline',
+        label: 'Connect · action needed',
+      };
+    case 'pending':
+      return {
+        bg: 'rgba(60, 60, 67, 0.08)',
+        border: 'rgba(60, 60, 67, 0.15)',
+        fg: 'rgba(60, 60, 67, 0.85)',
+        icon: 'time-outline',
+        label: 'Stripe · pending',
+      };
+    case 'rejected':
+      return {
+        bg: 'rgba(255, 59, 48, 0.10)',
+        border: 'rgba(255, 59, 48, 0.25)',
+        fg: '#FF3B30',
+        icon: 'close-circle-outline',
+        label: 'Connect · rejected',
+      };
+    case 'disabled':
+      return {
+        bg: 'rgba(60, 60, 67, 0.08)',
+        border: 'rgba(60, 60, 67, 0.15)',
+        fg: 'rgba(60, 60, 67, 0.85)',
+        icon: 'remove-circle-outline',
+        label: 'Stripe · disabled',
+      };
+  }
+}
+
+function aviToneStyle(tone: AuthorTone) {
+  switch (tone) {
+    case 'navy':
+      return { backgroundColor: '#28406B' };
+    case 'brown':
+      return { backgroundColor: '#8B5A3C' };
+    case 'purple':
+      return { backgroundColor: '#7A5A8B' };
+    case 'warm':
+      return { backgroundColor: '#B8855A' };
+    case 'green':
+      return { backgroundColor: '#6E8B5A' };
+  }
+}
+
+function authorKindLabel(k: 'institutional' | 'independent' | 'contractor'): string {
+  switch (k) {
+    case 'institutional':
+      return 'Faculty';
+    case 'independent':
+      return 'Independent';
+    case 'contractor':
+      return 'Preceptor';
+  }
+}
+
+function shortenBpTitle(title: string): string {
+  // "Sepsis bundle recognition" → "Sepsis bundle"
+  // "Discharge teach-back" → "Discharge teach-back" (already short)
+  const cleaned = title.replace(/ · supervised$/, '');
+  return cleaned.length > 22 ? cleaned.slice(0, 22) + '…' : cleaned;
 }
 
 function StatCard({
@@ -246,20 +349,12 @@ function StatCard({
   );
 }
 
-function aviToneStyle(tone: 'brown' | 'purple' | 'warm') {
-  switch (tone) {
-    case 'brown':
-      return { backgroundColor: '#8B5A3C' };
-    case 'purple':
-      return { backgroundColor: '#7A5A8B' };
-    case 'warm':
-      return { backgroundColor: '#B8855A' };
-  }
-}
-
 const s = StyleSheet.create({
   body: { flex: 1, backgroundColor: '#F5F4EE' },
   bodyInner: { paddingHorizontal: 32, paddingTop: 18, paddingBottom: 40, gap: 22 },
+
+  loadingCard: { padding: 32, alignItems: 'center' },
+  loadingText: { fontSize: 13, color: 'rgba(60, 60, 67, 0.6)' },
 
   statRow: { flexDirection: 'row', gap: 12 },
   statCard: {
@@ -410,23 +505,25 @@ const s = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 6,
-    backgroundColor: 'rgba(99, 91, 255, 0.08)',
     borderWidth: 0.5,
-    borderColor: 'rgba(99, 91, 255, 0.18)',
-  },
-  stripePillWarn: {
-    backgroundColor: 'rgba(201, 150, 50, 0.14)',
-    borderColor: 'rgba(201, 150, 50, 0.3)',
   },
   stripePillText: {
     fontSize: 10.5,
     fontWeight: '700',
-    color: '#5851D6',
     letterSpacing: 0.5,
     textTransform: 'uppercase',
   },
 
   iconBtn: { padding: 5, borderRadius: 6, backgroundColor: 'rgba(60, 60, 67, 0.06)' },
+
+  emptyAuthors: { padding: 24, alignItems: 'center' },
+  emptyText: {
+    fontSize: 12.5,
+    color: 'rgba(60, 60, 67, 0.6)',
+    textAlign: 'center',
+    maxWidth: 400,
+    lineHeight: 18,
+  },
 
   panel: {
     padding: 18,
