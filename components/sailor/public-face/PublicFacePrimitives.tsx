@@ -220,7 +220,9 @@ export function CapabilityRow({
         <Text style={capStyles.name} numberOfLines={2}>{name}</Text>
         <View style={capStyles.headRight}>
           <StatusPill status={status} />
-          <Ionicons name="chevron-forward" size={14} color={LABEL_3} />
+          {onPress ? (
+            <Ionicons name="chevron-forward" size={14} color={LABEL_3} />
+          ) : null}
         </View>
       </View>
       <Text style={capStyles.evidence}>{`“${evidence}”`}</Text>
@@ -271,7 +273,9 @@ export function PracticeCircleRow({
         <Text style={circleStyles.role} numberOfLines={1}>{role}</Text>
       </View>
       {tail ? <Text style={circleStyles.tail}>{tail}</Text> : null}
-      <Ionicons name="chevron-forward" size={14} color={LABEL_3} />
+      {onPress ? (
+        <Ionicons name="chevron-forward" size={14} color={LABEL_3} />
+      ) : null}
     </View>
   );
   return onPress ? <Pressable onPress={onPress}>{body}</Pressable> : body;

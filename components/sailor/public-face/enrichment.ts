@@ -37,6 +37,8 @@ export interface PublicFaceEnrichment {
     stats?: string;
     history?: { primary: string; secondary?: string };
   };
+  /** Past concepts the practitioner has worked through (newest first). */
+  conceptHistory?: { title: string; capability?: string; closed: string; text?: string }[];
   /** Practice timeline entries — chronological feed. */
   timeline?: { title: string; settled?: boolean; sub: string; when: string }[];
   /** Capabilities (visible 4, all behind link). */
@@ -104,6 +106,31 @@ const MARKUS: PublicFaceEnrichment = {
     stats: 'In play across 3 races  ·  2 reflections this week',
     history: { primary: 'Trust the shift', secondary: 'Heavy-air helm work' },
   },
+  conceptHistory: [
+    {
+      title: 'Trust the shift',
+      capability: 'Heavy-air helm work',
+      closed: 'Closed Mar 2026',
+      text:
+        'Stopped overcorrecting on a port-tack lift. The technique was just ' +
+        'there before the next puff arrived.',
+    },
+    {
+      title: 'Start-line patience',
+      capability: 'Decision-making under start-line pressure',
+      closed: 'Closed Sep 2025',
+      text:
+        'The week the start stopped feeling like a decision and started ' +
+        'feeling like a position I already held.',
+    },
+    {
+      title: 'Reading shifts on a tight reach',
+      capability: 'Tactical reads',
+      closed: 'Closed Apr 2025',
+      text:
+        'Closed in the Buenos Aires bay series before the Hong Kong move.',
+    },
+  ],
   timeline: [
     {
       title: 'Heavy-air helm work',

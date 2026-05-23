@@ -214,7 +214,7 @@ function PublicFaceScreenInner({ userId }: { userId: string }) {
                   ? {
                       primary: enrichment.concept.history.primary,
                       secondary: enrichment.concept.history.secondary,
-                      onPress: () => {},
+                      onPress: () => router.push(`/sailor/${userId}/concepts` as any),
                     }
                   : undefined
               }
@@ -223,11 +223,16 @@ function PublicFaceScreenInner({ userId }: { userId: string }) {
         ) : null}
 
         {/* 04 · PRACTICE TIMELINE — chronological feed of settled moments.
-            No medallions; italic-emphasis settled marker on title. */}
+            No medallions; italic-emphasis settled marker on title.
+            Row-level taps reserved for a future trophy-detail surface — not
+            wired here so the chevron doesn't promise something undelivered. */}
         {enrichment.timeline && enrichment.timeline.length > 0 ? (
           <IOSDetailSection
             header="Practice timeline"
-            seeAll={{ label: 'See full timeline', onPress: () => {} }}
+            seeAll={{
+              label: 'See full timeline',
+              onPress: () => router.push(`/sailor/${userId}/timeline` as any),
+            }}
           >
             {enrichment.timeline.map((t, i) => (
               <TrophyRowPublic
@@ -236,7 +241,6 @@ function PublicFaceScreenInner({ userId }: { userId: string }) {
                 settled={t.settled}
                 sub={t.sub}
                 when={t.when}
-                openTrophy={t.settled ? { onPress: () => {} } : undefined}
                 isFirst={i === 0}
               />
             ))}
@@ -250,7 +254,10 @@ function PublicFaceScreenInner({ userId }: { userId: string }) {
             header="Capabilities at hand"
             seeAll={
               enrichment.capabilitiesTotal
-                ? { label: `All ${enrichment.capabilitiesTotal}`, onPress: () => {} }
+                ? {
+                    label: `All ${enrichment.capabilitiesTotal}`,
+                    onPress: () => router.push(`/sailor/${userId}/capabilities` as any),
+                  }
                 : undefined
             }
           >
@@ -261,7 +268,6 @@ function PublicFaceScreenInner({ userId }: { userId: string }) {
                 status={c.status}
                 evidence={c.evidence}
                 provenance={c.provenance}
-                onPress={() => {}}
                 isFirst={i === 0}
               />
             ))}
@@ -276,7 +282,10 @@ function PublicFaceScreenInner({ userId }: { userId: string }) {
             header="Practice circle"
             seeAll={
               enrichment.circleTotal
-                ? { label: `All ${enrichment.circleTotal}`, onPress: () => {} }
+                ? {
+                    label: `All ${enrichment.circleTotal}`,
+                    onPress: () => router.push(`/sailor/${userId}/circle` as any),
+                  }
                 : undefined
             }
           >
@@ -288,7 +297,6 @@ function PublicFaceScreenInner({ userId }: { userId: string }) {
                 initials={p.initials}
                 markColor={p.markColor}
                 tail={p.tail}
-                onPress={() => {}}
                 isFirst={i === 0}
               />
             ))}
@@ -302,7 +310,10 @@ function PublicFaceScreenInner({ userId }: { userId: string }) {
             header="Published"
             seeAll={
               enrichment.publishedTotal
-                ? { label: `All ${enrichment.publishedTotal}`, onPress: () => {} }
+                ? {
+                    label: `All ${enrichment.publishedTotal}`,
+                    onPress: () => router.push(`/sailor/${userId}/published` as any),
+                  }
                 : undefined
             }
           >
@@ -312,7 +323,6 @@ function PublicFaceScreenInner({ userId }: { userId: string }) {
                   key={i}
                   text={p.text}
                   provenance={p.provenance}
-                  onPress={() => {}}
                   isFirst={i === 0}
                 />
               ) : (
@@ -322,7 +332,6 @@ function PublicFaceScreenInner({ userId }: { userId: string }) {
                   topic={p.topic}
                   replies={p.replies}
                   when={p.when}
-                  onPress={() => {}}
                   isFirst={i === 0}
                 />
               ),
@@ -345,7 +354,10 @@ function PublicFaceScreenInner({ userId }: { userId: string }) {
             header="Events"
             seeAll={
               enrichment.eventsTotal
-                ? { label: `All ${enrichment.eventsTotal}`, onPress: () => {} }
+                ? {
+                    label: `All ${enrichment.eventsTotal}`,
+                    onPress: () => router.push(`/sailor/${userId}/events` as any),
+                  }
                 : undefined
             }
           >
@@ -358,7 +370,6 @@ function PublicFaceScreenInner({ userId }: { userId: string }) {
                 venue={e.venue}
                 resultTop={e.resultTop}
                 resultBottom={e.resultBottom}
-                onPress={() => {}}
                 isFirst={i === 0}
               />
             ))}
