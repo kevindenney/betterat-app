@@ -19,6 +19,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/services/supabase';
 import { StudioButton } from '@/components/studio/StudioShell';
+import { useOrgInviteLinks, InviteRole } from '@/hooks/useOrgInviteLinks';
 
 type InviteMethod = 'email' | 'csv' | 'sso' | 'link';
 type PersonRole = 'student' | 'author' | 'mentor' | 'admin';
@@ -569,17 +570,15 @@ export function AddPersonSheet({
                 </View>
               </Field>
             </>
+          ) : method === 'link' ? (
+            <InviteLinkPanel orgId={orgId} cohortLabel={cohort} />
           ) : (
             <View style={s.methodStub}>
               <Ionicons name="construct-outline" size={28} color="rgba(40, 64, 107, 0.5)" />
-              <Text style={s.methodStubTitle}>
-                {method === 'sso'
-                  ? 'SSO directory picker coming next'
-                  : 'Shareable invite link coming next'}
-              </Text>
+              <Text style={s.methodStubTitle}>SSO directory picker coming next</Text>
               <Text style={s.methodStubBody}>
-                Use "Invite by email" or "Bulk · CSV" today — both handle batch invites
-                with the same role/cohort settings.
+                Use "Invite by email", "Bulk · CSV", or "Share invite link" today — all
+                three handle the same role/cohort settings.
               </Text>
             </View>
           )}
@@ -630,6 +629,170 @@ function Field({
       <Text style={s.fieldLabel}>{label}</Text>
       {children}
     </View>
+  );
+}
+
+function InviteLinkPanel({ orgId, cohortLabel }: { orgId: string; cohortLabel: string }) {
+  const { links, loading, create, revoke } = useOrgInviteLinks(orgId);
+  const [role, setRole] = useState<InviteRole>('member');
+  const [expiryDays, setExpiryDays] = useState<7 | 30 | null>(7);
+  const [maxUsesInput, setMaxUsesInput] = useState('');
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  const activeLinks = links.filter((l) => !l.revokedAt);
+
+  const handleCreate = () => {
+    const maxUses = maxUsesInput.trim() ? parseInt(maxUsesInput, 10) : null;
+    const expiresAt = expiryDays
+      ? new Date(Date.now() + expiryDays * 24 * 60 * 60 * 1000).toISOString()
+      : null;
+    create.mutate({
+      label: cohortLabel?.trim() || null,
+      roleKey: role,
+      autoSubscribe: true,
+      maxUses: Number.isFinite(maxUses) && maxUses && maxUses > 0 ? maxUses : null,
+      expiresAt,
+    });
+  };
+
+  const copyToClipboard = async (id: string, url: string) => {
+    try {
+      if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(url);
+      }
+      setCopiedId(id);
+      setTimeout(() => setCopiedId((cur) => (cur === id ? null : cur)), 1500);
+    } catch (err) {
+      console.warn('[InviteLinkPanel] copy failed', err);
+    }
+  };
+
+  return (
+    <>
+      <Field label="Create a shareable link">
+        <View style={s.linkCreatorRow}>
+          {(
+            [
+              { key: 'member', title: 'Student' },
+              { key: 'faculty', title: 'Author' },
+              { key: 'preceptor', title: 'Mentor' },
+              { key: 'admin', title: 'Admin' },
+            ] as { key: InviteRole; title: string }[]
+          ).map((r) => (
+            <Pressable
+              key={r.key}
+              onPress={() => setRole(r.key)}
+              style={[s.linkRoleChip, role === r.key && s.linkRoleChipOn]}
+            >
+              <Text style={[s.linkRoleText, role === r.key && s.linkRoleTextOn]}>
+                {r.title}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+        <View style={s.linkOptionsRow}>
+          <View style={s.linkOptionGroup}>
+            <Text style={s.linkOptionLabel}>Expires</Text>
+            <View style={s.linkOptionChips}>
+              {(
+                [
+                  { key: 7, label: '7 days' },
+                  { key: 30, label: '30 days' },
+                  { key: null, label: 'Never' },
+                ] as { key: 7 | 30 | null; label: string }[]
+              ).map((o) => (
+                <Pressable
+                  key={String(o.key)}
+                  onPress={() => setExpiryDays(o.key)}
+                  style={[s.linkChip, expiryDays === o.key && s.linkChipOn]}
+                >
+                  <Text
+                    style={[s.linkChipText, expiryDays === o.key && s.linkChipTextOn]}
+                  >
+                    {o.label}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+          </View>
+          <View style={s.linkOptionGroup}>
+            <Text style={s.linkOptionLabel}>Max uses (optional)</Text>
+            <TextInput
+              value={maxUsesInput}
+              onChangeText={setMaxUsesInput}
+              placeholder="Unlimited"
+              placeholderTextColor="rgba(60, 60, 67, 0.4)"
+              keyboardType="number-pad"
+              style={s.linkMaxUsesInput}
+            />
+          </View>
+        </View>
+        <StudioButton
+          variant="primary"
+          accent="navy"
+          icon="link"
+          label={create.isPending ? 'Creating…' : 'Create link'}
+          onPress={handleCreate}
+        />
+      </Field>
+
+      <Field label={loading ? 'Active links…' : `Active links (${activeLinks.length})`}>
+        {!loading && activeLinks.length === 0 ? (
+          <Text style={s.linkEmpty}>No active links yet. Create one above.</Text>
+        ) : null}
+        {activeLinks.map((link) => {
+          const expired = link.expiresAt && new Date(link.expiresAt) < new Date();
+          const remainingUses =
+            link.maxUses != null ? Math.max(0, link.maxUses - link.usesCount) : null;
+          const exhausted = link.maxUses != null && link.usesCount >= link.maxUses;
+          return (
+            <View key={link.id} style={s.linkRow}>
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <Text style={s.linkUrl} numberOfLines={1}>
+                  {link.url}
+                </Text>
+                <Text style={s.linkMeta}>
+                  {link.roleKey === 'member' ? 'Student' : link.roleKey} ·{' '}
+                  {link.usesCount} use{link.usesCount === 1 ? '' : 's'}
+                  {link.maxUses != null ? ` of ${link.maxUses}` : ''}
+                  {link.expiresAt
+                    ? ` · ${
+                        expired
+                          ? 'expired'
+                          : `expires ${new Date(link.expiresAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`
+                      }`
+                    : ' · never expires'}
+                  {exhausted ? ' · exhausted' : ''}
+                  {remainingUses != null && !exhausted && remainingUses <= 3
+                    ? ` · ${remainingUses} left`
+                    : ''}
+                </Text>
+              </View>
+              <Pressable
+                onPress={() => copyToClipboard(link.id, link.url)}
+                style={s.linkBtn}
+              >
+                <Ionicons
+                  name={copiedId === link.id ? 'checkmark' : 'copy-outline'}
+                  size={13}
+                  color="#28406B"
+                />
+                <Text style={s.linkBtnText}>
+                  {copiedId === link.id ? 'Copied' : 'Copy'}
+                </Text>
+              </Pressable>
+              <Pressable
+                onPress={() => revoke.mutate(link.id)}
+                style={s.linkBtnGhost}
+                hitSlop={6}
+              >
+                <Ionicons name="close" size={14} color="rgba(60, 60, 67, 0.6)" />
+              </Pressable>
+            </View>
+          );
+        })}
+      </Field>
+    </>
   );
 }
 
@@ -852,6 +1015,81 @@ const s = StyleSheet.create({
   },
   csvSummaryText: { fontSize: 12, color: 'rgba(60, 60, 67, 0.85)', flex: 1 },
   csvSummaryStrong: { fontWeight: '600', color: '#1C1C1E' },
+
+  // Invite-link panel
+  linkCreatorRow: { flexDirection: 'row', gap: 6, flexWrap: 'wrap' },
+  linkRoleChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#D1D1D6',
+    backgroundColor: '#FFFFFF',
+  },
+  linkRoleChipOn: {
+    borderColor: '#007AFF',
+    backgroundColor: 'rgba(0, 122, 255, 0.10)',
+  },
+  linkRoleText: { fontSize: 12.5, fontWeight: '500', color: 'rgba(60, 60, 67, 0.85)' },
+  linkRoleTextOn: { color: '#007AFF', fontWeight: '600' },
+  linkOptionsRow: { flexDirection: 'row', gap: 16, alignItems: 'flex-start' },
+  linkOptionGroup: { flex: 1, gap: 6 },
+  linkOptionLabel: {
+    fontSize: 10.5,
+    fontWeight: '600',
+    color: 'rgba(60, 60, 67, 0.6)',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+  },
+  linkOptionChips: { flexDirection: 'row', gap: 6, flexWrap: 'wrap' },
+  linkChip: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 6,
+    backgroundColor: '#F2F2F7',
+  },
+  linkChipOn: { backgroundColor: '#28406B' },
+  linkChipText: { fontSize: 11.5, color: 'rgba(60, 60, 67, 0.85)' },
+  linkChipTextOn: { color: '#FFFFFF', fontWeight: '600' },
+  linkMaxUsesInput: {
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderWidth: 0.5,
+    borderColor: '#D1D1D6',
+    borderRadius: 7,
+    backgroundColor: '#FFFFFF',
+    fontSize: 12.5,
+    color: '#1C1C1E',
+    ...(typeof document !== 'undefined' ? ({ outlineStyle: 'none' } as any) : {}),
+  },
+  linkEmpty: {
+    fontSize: 12,
+    color: 'rgba(60, 60, 67, 0.5)',
+    paddingVertical: 8,
+    fontStyle: 'italic',
+  },
+  linkRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: 8,
+    backgroundColor: '#F2F2F7',
+  },
+  linkUrl: { fontSize: 12, color: '#1C1C1E', fontFamily: 'Menlo' },
+  linkMeta: { fontSize: 11, color: 'rgba(60, 60, 67, 0.6)', marginTop: 2 },
+  linkBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 9,
+    paddingVertical: 5,
+    borderRadius: 6,
+    backgroundColor: 'rgba(40, 64, 107, 0.10)',
+  },
+  linkBtnText: { fontSize: 11.5, fontWeight: '600', color: '#28406B' },
+  linkBtnGhost: { padding: 4 },
 
   methodStub: { alignItems: 'center', paddingVertical: 32, gap: 6 },
   methodStubTitle: { fontSize: 14, fontWeight: '600', color: '#1C1C1E', marginTop: 4 },
