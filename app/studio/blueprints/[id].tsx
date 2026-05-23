@@ -83,6 +83,22 @@ export default function BlueprintEditorPage() {
   );
   const [coverGradientIdx, setCoverGradientIdx] = useState(0);
 
+  // Resync local form state when the loaded blueprint changes (async).
+  React.useEffect(() => {
+    setTitle(blueprint.title);
+    setSubtitle(blueprint.subtitle);
+    setDescription(blueprint.description);
+    setDuration(blueprint.durationLabel);
+    setAccessMode(blueprint.accessMode);
+  }, [
+    blueprint.id,
+    blueprint.title,
+    blueprint.subtitle,
+    blueprint.description,
+    blueprint.durationLabel,
+    blueprint.accessMode,
+  ]);
+
   if (width < 920) {
     return <NarrowScreenGate onBack={() => router.back()} />;
   }
@@ -94,7 +110,13 @@ export default function BlueprintEditorPage() {
   const displayName =
     userProfile?.full_name || userProfile?.display_name || user?.email || 'You';
   const initials = getInitials(displayName);
-  const activeOrg = menu.activeOrg;
+  // Org chrome follows the blueprint's owning org (not the user's last
+  // active membership), so opening a JHSON blueprint while RHKYC is your
+  // "default" org still puts you in JHSON's studio chrome.
+  const blueprintOrgMembership = blueprint.orgId
+    ? menu.memberships.find((m) => m.org_id === blueprint.orgId)
+    : null;
+  const activeOrg = blueprintOrgMembership ?? menu.activeOrg;
   const orgShortName = activeOrg ? shortNameLabel(activeOrg.org_name) : null;
 
   const navSections: StudioNavSection[] = [

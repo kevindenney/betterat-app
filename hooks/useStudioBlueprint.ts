@@ -1,20 +1,19 @@
 /**
  * useStudioBlueprint
  *
- * Data shape for the Creator Studio blueprint editor (Frame 5 of the
- * institutions pass). Currently returns a stub object — the editor renders
- * with empty/draft state until the backing schema is decided.
+ * Data layer for the Creator Studio blueprint editor (Frame 5+). Loads the
+ * blueprint by id from public.blueprints, joins blueprint_cohorts for
+ * cohort context, counts step templates for stepsWritten, and resolves
+ * org name/short via organization_memberships.
  *
- * For `id === 'new'` returns a fresh empty draft with sensible defaults.
- *
- * Eventual queries (TODO):
- *   - Fetch from blueprints table by id, joined with cover_image, authors,
- *     pricing_mode, cohort_assignments, capabilities.
- *   - Mutations: title/subtitle/description PATCH, cover swap, access mode,
- *     cohort assignment add/remove, author add/remove.
+ * For `id === 'new'` returns a fresh empty draft tied to the user's
+ * currently-active org so the cover renders the right shield.
  */
 
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/services/supabase';
 import { useProfileMenuData } from '@/hooks/useProfileMenuData';
+import { useAuth } from '@/providers/AuthProvider';
 
 export type BlueprintAccessMode = 'institutional' | 'independent';
 export type BlueprintStatus = 'draft' | 'in_review' | 'live' | 'archived';
@@ -29,7 +28,7 @@ export interface BlueprintAuthor {
 
 export interface BlueprintCohort {
   id: string;
-  name: string;          // "Spring '26 · MSN second-years"
+  name: string;
   state: 'pending' | 'open' | 'closed';
   opensAtLabel: string | null;
   enrolledCount: number;
@@ -43,21 +42,22 @@ export interface StudioBlueprintDraft {
   subtitle: string;
   description: string;
   status: BlueprintStatus;
-  version: string;                 // "v0.4"
-  lastSavedLabel: string;          // "2 minutes ago · autosaved"
-  durationLabel: string;           // "14 weeks"
+  version: string;
+  lastSavedLabel: string;
+  durationLabel: string;
   skillLevel: 'introductory' | 'intermediate' | 'advanced';
-  estimatedSteps: number;          // 30
-  stepsWritten: number;            // 6
-  coverGradient: [string, string]; // [from, to]
+  estimatedSteps: number;
+  stepsWritten: number;
+  coverGradient: [string, string];
   coverImageUrl: string | null;
-  orgShort: string | null;         // "JH" badge on cover
-  orgName: string | null;          // "Hopkins · MSN"
+  orgId: string | null;
+  orgShort: string | null;
+  orgName: string | null;
   accessMode: BlueprintAccessMode;
-  pricePerMonth: number | null;    // null in institutional mode
+  pricePerMonth: number | null;
   authors: BlueprintAuthor[];
   cohorts: BlueprintCohort[];
-  coAuthorInvited: string | null;  // "Dr. A. Patel" header chip
+  coAuthorInvited: string | null;
 }
 
 export interface UseStudioBlueprintResult {
@@ -74,53 +74,262 @@ const DEFAULT_GRADIENTS: [string, string][] = [
   ['#7A6A8E', '#5A8B8B'],
 ];
 
+function gradientForSeed(seed: string): [string, string] {
+  let h = 0;
+  for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) >>> 0;
+  return DEFAULT_GRADIENTS[h % DEFAULT_GRADIENTS.length];
+}
+
+function initialsFor(name: string): string {
+  const trimmed = name.trim();
+  if (!trimmed) return '··';
+  const tokens = trimmed.split(/\s+/);
+  if (tokens.length === 1) return tokens[0].slice(0, 2).toUpperCase();
+  return (tokens[0][0] + tokens[tokens.length - 1][0]).toUpperCase();
+}
+
+function relativeLabel(iso: string | null): string {
+  if (!iso) return 'Not yet saved';
+  const d = new Date(iso);
+  const seconds = Math.max(0, (Date.now() - d.getTime()) / 1000);
+  if (seconds < 60) return 'Just now · autosaved';
+  const minutes = seconds / 60;
+  if (minutes < 60) return `${Math.round(minutes)}m ago · autosaved`;
+  const hours = minutes / 60;
+  if (hours < 24) return `${Math.round(hours)}h ago · autosaved`;
+  const days = hours / 24;
+  if (days < 14) return `${Math.round(days)}d ago · autosaved`;
+  return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) + ' · autosaved';
+}
+
+function shortNameFor(orgName: string): string {
+  if (!orgName) return '·';
+  const tokens = orgName.split(/\s+/).filter(Boolean);
+  if (tokens.length === 0) return '·';
+  if (tokens.length === 1) return tokens[0].slice(0, 2).toUpperCase();
+  return (tokens[0][0] + tokens[1][0]).toUpperCase();
+}
+
+function statusFromRow(status: string): BlueprintStatus {
+  switch (status) {
+    case 'live':
+      return 'live';
+    case 'review':
+      return 'in_review';
+    case 'archived':
+      return 'archived';
+    default:
+      return 'draft';
+  }
+}
+
+interface BlueprintRow {
+  id: string;
+  org_id: string;
+  author_user_id: string | null;
+  title: string;
+  slug: string;
+  category: string;
+  version: string;
+  status: string;
+  description: string | null;
+  last_edited_at: string;
+  published_at: string | null;
+}
+
+interface CohortAssignmentRow {
+  cohort_id: string;
+  cohort: {
+    id: string;
+    name: string;
+    status: string | null;
+    max_seats: number | null;
+    start_date: string | null;
+  };
+}
+
+interface OrgRow {
+  id: string;
+  name: string;
+}
+
+interface AuthorRow {
+  id: string;
+  full_name: string | null;
+  email: string | null;
+}
+
 export function useStudioBlueprint(id: string): UseStudioBlueprintResult {
   const menu = useProfileMenuData();
+  const { user } = useAuth();
   const activeOrg = menu.activeOrg;
-
-  // While stubbed, return an empty draft. `id === 'new'` and `id === any-uuid`
-  // both produce a placeholder shaped like the design's Pediatric Acute Care
-  // draft so the editor renders cleanly.
   const isNew = id === 'new';
-  const isInstitutional = !!activeOrg;
+
+  const { data, isLoading } = useQuery({
+    queryKey: ['studio-blueprint', id],
+    enabled: !isNew && !!id,
+    staleTime: 30_000,
+    queryFn: async (): Promise<{
+      bp: BlueprintRow | null;
+      org: OrgRow | null;
+      author: AuthorRow | null;
+      cohorts: CohortAssignmentRow[];
+      stepsWritten: number;
+    }> => {
+      const { data: bp, error } = await supabase
+        .from('blueprints')
+        .select(
+          'id, org_id, author_user_id, title, slug, category, version, status, description, last_edited_at, published_at',
+        )
+        .eq('id', id)
+        .maybeSingle();
+      if (error || !bp) {
+        if (error) console.warn('[useStudioBlueprint] query failed', error);
+        return { bp: null, org: null, author: null, cohorts: [], stepsWritten: 0 };
+      }
+      const row = bp as BlueprintRow;
+
+      const [orgRes, authorRes, cohortsRes, stepsRes] = await Promise.all([
+        supabase.from('organizations').select('id, name').eq('id', row.org_id).maybeSingle(),
+        row.author_user_id
+          ? supabase
+              .from('users')
+              .select('id, full_name, email')
+              .eq('id', row.author_user_id)
+              .maybeSingle()
+          : Promise.resolve({ data: null, error: null } as const),
+        supabase
+          .from('blueprint_cohorts')
+          .select('cohort_id, cohort:betterat_org_cohorts(id, name, status, max_seats, start_date)')
+          .eq('blueprint_id', id),
+        supabase
+          .from('blueprint_step_templates')
+          .select('id', { count: 'exact', head: true })
+          .eq('blueprint_id', id),
+      ]);
+
+      const cohorts = ((cohortsRes.data ?? []) as unknown as CohortAssignmentRow[]).filter(
+        (c) => c.cohort,
+      );
+
+      return {
+        bp: row,
+        org: (orgRes.data ?? null) as OrgRow | null,
+        author: (authorRes.data ?? null) as AuthorRow | null,
+        cohorts,
+        stepsWritten: stepsRes.count ?? 0,
+      };
+    },
+  });
+
+  // Empty draft for `new` route — tied to the user's currently-active org
+  if (isNew) {
+    const orgName = activeOrg?.org_name ?? null;
+    return {
+      loading: menu.loading,
+      isInstitutional: !!activeOrg,
+      blueprint: {
+        id: 'new',
+        isNew: true,
+        title: 'Untitled blueprint',
+        subtitle: '',
+        description: '',
+        status: 'draft',
+        version: 'v0.1',
+        lastSavedLabel: 'Not yet saved',
+        durationLabel: '',
+        skillLevel: 'intermediate',
+        estimatedSteps: 30,
+        stepsWritten: 0,
+        coverGradient: DEFAULT_GRADIENTS[0],
+        coverImageUrl: null,
+        orgId: activeOrg?.org_id ?? null,
+        orgShort: activeOrg?.org_short_name ?? null,
+        orgName,
+        accessMode: activeOrg ? 'institutional' : 'independent',
+        pricePerMonth: activeOrg ? null : 9,
+        authors: [
+          {
+            user_id: user?.id ?? 'self',
+            display_name: 'You',
+            initials: initialsFor(user?.email ?? 'You'),
+            gradient: gradientForSeed(user?.id ?? 'self'),
+            is_primary: true,
+          },
+        ],
+        cohorts: [],
+        coAuthorInvited: null,
+      },
+    };
+  }
+
+  // Real-row path
+  const bp = data?.bp ?? null;
+  const org = data?.org ?? null;
+  const author = data?.author ?? null;
+  const isInstitutional = !!org;
+
+  const authorName = author
+    ? (author.full_name?.trim() || author.email || 'Author')
+    : 'Unknown author';
+  const authorInitials = initialsFor(authorName);
 
   const blueprint: StudioBlueprintDraft = {
-    id: isNew ? 'new' : id,
-    isNew,
-    title: isNew ? 'Untitled blueprint' : 'Untitled blueprint',
+    id: id,
+    isNew: false,
+    title: bp?.title ?? 'Untitled blueprint',
     subtitle: '',
-    description: '',
-    status: 'draft',
-    version: 'v0.1',
-    lastSavedLabel: isNew ? 'Not yet saved' : 'Just now · autosaved',
+    description: bp?.description ?? '',
+    status: statusFromRow(bp?.status ?? 'draft'),
+    version: bp?.version ?? 'v0.1',
+    lastSavedLabel: relativeLabel(bp?.last_edited_at ?? null),
     durationLabel: '',
     skillLevel: 'intermediate',
     estimatedSteps: 30,
-    stepsWritten: 0,
-    coverGradient: DEFAULT_GRADIENTS[0],
+    stepsWritten: data?.stepsWritten ?? 0,
+    coverGradient: gradientForSeed(bp?.id ?? id),
     coverImageUrl: null,
-    orgShort: activeOrg?.org_short_name ?? null,
-    orgName: activeOrg?.org_name ?? null,
+    orgId: bp?.org_id ?? null,
+    orgShort: org?.name ? shortNameFor(org.name) : null,
+    orgName: org?.name ?? null,
     accessMode: isInstitutional ? 'institutional' : 'independent',
     pricePerMonth: isInstitutional ? null : 9,
-    authors: [
-      // Placeholder author = current user; replaced by real authorship join.
-      {
-        user_id: 'self',
-        display_name: 'You',
-        initials: 'KM',
-        gradient: ['#B85A66', '#7A6A8E'],
-        is_primary: true,
-      },
-    ],
-    cohorts: [],
+    authors: author
+      ? [
+          {
+            user_id: author.id,
+            display_name: authorName,
+            initials: authorInitials,
+            gradient: gradientForSeed(author.id),
+            is_primary: true,
+          },
+        ]
+      : [],
+    cohorts: (data?.cohorts ?? []).map((c) => ({
+      id: c.cohort.id,
+      name: c.cohort.name,
+      state:
+        c.cohort.status === 'completed' || c.cohort.status === 'archived'
+          ? 'closed'
+          : c.cohort.status === 'recruiting'
+          ? 'pending'
+          : 'open',
+      opensAtLabel: c.cohort.start_date
+        ? new Date(c.cohort.start_date + 'T00:00:00').toLocaleDateString(undefined, {
+            month: 'short',
+            day: 'numeric',
+          })
+        : null,
+      enrolledCount: 0,
+      capacity: c.cohort.max_seats ?? 0,
+    })),
     coAuthorInvited: null,
   };
 
   return {
-    loading: menu.loading,
-    blueprint,
+    loading: isLoading || menu.loading,
     isInstitutional,
+    blueprint,
   };
 }
 
