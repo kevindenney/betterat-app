@@ -67,6 +67,13 @@ interface TimelineZoomCanvasProps {
    * header).
    */
   hideInterestHeader?: boolean;
+  /**
+   * Forwarded to L1StepView. When true, the L1 surface renders the real
+   * <StepDetailContent /> (with PhaseTabs taskbar + full body) inline
+   * instead of the slim preview card. Only valid when steps are real
+   * Supabase rows — preview routes must leave this false.
+   */
+  embedFullDetailAtL1?: boolean;
 }
 
 const LEVELS: ZoomLevel[] = [1, 2, 3, 4];
@@ -89,6 +96,7 @@ export function TimelineZoomCanvas({
   initialLevel = 1,
   onOpenStepDetail,
   hideInterestHeader = false,
+  embedFullDetailAtL1 = false,
 }: TimelineZoomCanvasProps) {
   const [level, setLevel] = useState<ZoomLevel>(initialLevel);
   const [focusStepId, setFocusStepId] = useState<string>(dataset.focusStepId);
@@ -236,7 +244,8 @@ export function TimelineZoomCanvas({
                   <L1StepView
                     dataset={dataset}
                     step={focusedStep}
-                    onOpenStepDetail={onOpenStepDetail}
+                    onOpenStepDetail={embedFullDetailAtL1 ? undefined : onOpenStepDetail}
+                    embedFullDetail={embedFullDetailAtL1}
                   />
                 ) : null}
                 {level === 2 ? (

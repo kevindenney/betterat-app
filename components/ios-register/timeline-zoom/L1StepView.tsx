@@ -14,6 +14,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { IOS_REGISTER } from '@/lib/design-tokens-ios';
+import { StepDetailContent } from '@/components/step/StepDetailContent';
 import type { TimelineDataset, TimelineStep } from './types';
 
 interface L1StepViewProps {
@@ -27,11 +28,28 @@ interface L1StepViewProps {
    * step record exists.
    */
   onOpenStepDetail?: (stepId: string) => void;
+  /**
+   * When true, L1 embeds the full <StepDetailContent /> inline — same
+   * Plan/Do/Reflect/Discuss tabs ("taskbar") + rich body content as the
+   * /step/[id] route. The pinch-out gesture takes the user back to L2;
+   * no extra navigation push needed. Requires `step.id` to be a real
+   * Supabase row UUID. Sample-data routes leave this false and get the
+   * slim preview card.
+   */
+  embedFullDetail?: boolean;
 }
 
 const PHASES = ['Plan', 'Do', 'Reflect'] as const;
 
-export function L1StepView({ step, onOpenStepDetail }: L1StepViewProps) {
+export function L1StepView({ step, onOpenStepDetail, embedFullDetail }: L1StepViewProps) {
+  if (embedFullDetail) {
+    return (
+      <View style={styles.embedHost}>
+        <StepDetailContent stepId={step.id} />
+      </View>
+    );
+  }
+
   const activePhase =
     step.status === 'plan' ? 'Plan' : step.status === 'do' ? 'Do' : 'Reflect';
 
@@ -172,6 +190,7 @@ function darken(hex: string): string {
 }
 
 const styles = StyleSheet.create({
+  embedHost: { flex: 1 },
   scroll: { flex: 1 },
   scrollContent: {
     paddingHorizontal: 16,

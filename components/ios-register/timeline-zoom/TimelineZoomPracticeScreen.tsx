@@ -174,6 +174,7 @@ export function TimelineZoomPracticeScreen() {
         dataset={activeDataset}
         initialLevel={3}
         onOpenStepDetail={showSample ? undefined : handleOpenStepDetail}
+        embedFullDetailAtL1={!showSample}
         hideInterestHeader
       />
     </SafeAreaView>
