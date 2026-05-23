@@ -176,14 +176,16 @@ export function AdminShell({ activeKey, accent = 'navy', children }: AdminShellP
         <View>
           <Text style={s.seatsLabel}>Seats</Text>
           <Text style={s.seatsValue}>
-            {people.seats.used}{' '}
+            {people.loading ? '—' : people.seats.used}{' '}
             <Text style={s.seatsValueSub}>of {people.seats.total}</Text>
           </Text>
           <View style={s.seatsBar}>
-            <View style={[s.seatsBarFill, { width: `${seatsPct}%` }]} />
+            <View style={[s.seatsBarFill, { width: `${people.loading ? 0 : seatsPct}%` }]} />
           </View>
           <Text style={s.seatsFoot}>
-            {seatsAvailable} seats available · renews {people.seats.renewsAt}
+            {people.loading
+              ? 'Loading seats…'
+              : `${seatsAvailable} seats available · renews ${people.seats.renewsAt}`}
           </Text>
         </View>
       ),

@@ -280,11 +280,41 @@ export function useAdminPeople(orgId: string): AdminPeopleData {
     [rows],
   );
 
-  // Seats: until org_subscriptions surfaces real seat counts, derive used from
-  // active members and stub the total + renewal at a reasonable JHSON-class
-  // plan size. Once a subscription row exists this swaps to that source.
+  // Seats: derive used from active members. Total + renewal date come from
+  // org_billing if it exists; else fall back to a generous default while the
+  // billing row is being seeded.
   const usedSeats = rows.filter((r) => r.status === 'active').length;
-  const seats = { used: usedSeats, total: 350, renewsAt: 'Aug 15' };
+  const { data: billingPlan } = useQuery({
+    queryKey: ['admin-people-seats-plan', orgId],
+    enabled: !!orgId,
+    staleTime: 60_000,
+    queryFn: async (): Promise<{ total: number; renewsAt: string } | null> => {
+      const { data, error } = await supabase
+        .from('org_billing')
+        .select('seats_total, next_renewal_date')
+        .eq('org_id', orgId)
+        .maybeSingle();
+      if (error) {
+        console.warn('[useAdminPeople] org_billing query failed', error);
+        return null;
+      }
+      if (!data) return null;
+      return {
+        total: data.seats_total ?? 350,
+        renewsAt: data.next_renewal_date
+          ? new Date(data.next_renewal_date + 'T00:00:00').toLocaleDateString(undefined, {
+              month: 'short',
+              day: 'numeric',
+            })
+          : 'TBD',
+      };
+    },
+  });
+  const seats = {
+    used: usedSeats,
+    total: billingPlan?.total ?? 350,
+    renewsAt: billingPlan?.renewsAt ?? 'Aug 15',
+  };
 
   return {
     loading: isLoading,
