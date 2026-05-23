@@ -314,7 +314,7 @@ export default function BlueprintEditorPage() {
         ) : tab === 'mentor' ? (
           <MentorSettingsTabBody />
         ) : tab === 'activity' ? (
-          <ActivityTabBody />
+          <ActivityTabBody blueprintId={blueprintId} />
         ) : (
           <StubTabBody tab={tab} />
         )}

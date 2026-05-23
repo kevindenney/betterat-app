@@ -26,6 +26,7 @@ import {
 } from '@/hooks/useBlueprintCapabilities';
 import { useBlueprintPricing } from '@/hooks/useBlueprintPricing';
 import { useBlueprintCohorts } from '@/hooks/useBlueprintCohorts';
+import { useBlueprintActivity } from '@/hooks/useBlueprintActivity';
 
 // =============================================================================
 // FRAME 18 · STEPS
@@ -1034,82 +1035,6 @@ function ToggleSetting({ title, sub, on }: { title: string; sub: string; on: boo
 // FRAME 23 · ACTIVITY
 // =============================================================================
 
-interface ActivityRow {
-  initials: string;
-  aviTone: 'navy' | 'green' | 'steel' | 'brown' | 'warm';
-  actorBold: string;
-  rest: string;
-  when: string;
-  tag?: { label: string; tone: 'ok' | 'warn' | 'plain' };
-}
-
-interface ActivityDay {
-  label: string;
-  count: string;
-  rows: ActivityRow[];
-}
-
-const ACTIVITY: ActivityDay[] = [
-  {
-    label: 'Today · Sat May 23',
-    count: '14 events',
-    rows: [
-      {
-        initials: 'ET',
-        aviTone: 'navy',
-        actorBold: 'Emily Tran',
-        rest: ' settled step 3 · ISBAR handoff to rapid response.',
-        when: '2:14p',
-        tag: { label: 'Settled', tone: 'ok' },
-      },
-      {
-        initials: 'NH',
-        aviTone: 'steel',
-        actorBold: 'Nora Helms',
-        rest: ' reflected on step 2 · flagged for mentor follow-up.',
-        when: '1:08p',
-        tag: { label: 'Wants follow-up', tone: 'warn' },
-      },
-      {
-        initials: 'JK',
-        aviTone: 'brown',
-        actorBold: 'J. Kim, RN',
-        rest: ' marked Devon Aldridge\'s step 5 (Reassess after 1 hour) as settled.',
-        when: '11:42a',
-        tag: { label: 'Mentor signed off', tone: 'plain' },
-      },
-      {
-        initials: 'RM',
-        aviTone: 'warm',
-        actorBold: 'Dr. R. Murphy',
-        rest: ' changed coverage strength on ISBAR handoff from secondary to primary.',
-        when: '9:02a',
-      },
-    ],
-  },
-  {
-    label: 'Yesterday · Fri May 22',
-    count: '38 events',
-    rows: [
-      {
-        initials: 'DA',
-        aviTone: 'green',
-        actorBold: 'Devon Aldridge',
-        rest: ' started step 1 at Johns Hopkins Hospital — East Baltimore.',
-        when: 'Fri 4:42p',
-      },
-      {
-        initials: 'SP',
-        aviTone: 'navy',
-        actorBold: 'Dean S. Park',
-        rest: ' published v0.4 to BSN Class of 2027 — Cohort A.',
-        when: 'Fri 10:18a',
-        tag: { label: 'Published', tone: 'ok' },
-      },
-    ],
-  },
-];
-
 function tagTone(t: 'ok' | 'warn' | 'plain') {
   switch (t) {
     case 'ok':
@@ -1121,14 +1046,12 @@ function tagTone(t: 'ok' | 'warn' | 'plain') {
   }
 }
 
-function aviStyle(tone: 'navy' | 'green' | 'steel' | 'brown' | 'warm') {
+function aviStyle(tone: 'navy' | 'brown' | 'warm' | 'green') {
   switch (tone) {
     case 'navy':
       return '#28406B';
     case 'green':
       return '#6E8B5A';
-    case 'steel':
-      return '#5A6B8B';
     case 'brown':
       return '#8B5A3C';
     case 'warm':
@@ -1136,34 +1059,58 @@ function aviStyle(tone: 'navy' | 'green' | 'steel' | 'brown' | 'warm') {
   }
 }
 
-export function ActivityTabBody() {
+export function ActivityTabBody({ blueprintId }: { blueprintId: string }) {
+  const { groups, total, loading } = useBlueprintActivity(blueprintId, 50);
+
+  const headline = loading
+    ? 'Loading activity…'
+    : total === 0
+      ? 'No activity yet — edits and publishes will appear here'
+      : `What students, mentors, and authors did on this blueprint`;
+  const hint = loading
+    ? ''
+    : total === 0
+      ? 'audit_events filtered to this blueprint'
+      : `${total} event${total === 1 ? '' : 's'} loaded`;
+
   return (
     <ScrollView style={s.body} contentContainerStyle={s.bodyInner}>
       <View style={s.sectionHead}>
         <View>
           <Text style={s.eyebrow}>Activity</Text>
-          <Text style={s.sectionH2}>What students and mentors did on this blueprint</Text>
+          <Text style={s.sectionH2}>{headline}</Text>
         </View>
-        <Text style={s.sectionHint}>Last 90 days · 52 events total</Text>
+        {hint ? <Text style={s.sectionHint}>{hint}</Text> : null}
       </View>
 
-      {ACTIVITY.map((day) => (
+      {!loading && groups.length === 0 ? (
+        <View style={[s.cohortCard, { alignItems: 'center', paddingVertical: 24 }]}>
+          <Text style={s.cohortMeta}>
+            Nothing yet. As authors publish, deans review, and students settle steps, events land
+            here in real time.
+          </Text>
+        </View>
+      ) : null}
+
+      {groups.map((day) => (
         <View key={day.label} style={{ gap: 6 }}>
           <View style={s.actDayHead}>
             <Text style={s.actDayDate}>{day.label}</Text>
-            <Text style={s.actDayCount}>{day.count}</Text>
+            <Text style={s.actDayCount}>
+              {day.count} event{day.count === 1 ? '' : 's'}
+            </Text>
           </View>
-          {day.rows.map((r, i) => {
+          {day.rows.map((r) => {
             const tt = r.tag ? tagTone(r.tag.tone) : null;
             return (
-              <View key={i} style={s.actRow}>
-                <View style={[s.actAv, { backgroundColor: aviStyle(r.aviTone) }]}>
-                  <Text style={s.actAvText}>{r.initials}</Text>
+              <View key={r.id} style={s.actRow}>
+                <View style={[s.actAv, { backgroundColor: aviStyle(r.actorTone) }]}>
+                  <Text style={s.actAvText}>{r.actorInitials}</Text>
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={s.actText}>
-                    <Text style={s.actStrong}>{r.actorBold}</Text>
-                    <Text>{r.rest}</Text>
+                    <Text style={s.actStrong}>{r.actorName}</Text>
+                    <Text>{' · '}{r.description}</Text>
                   </Text>
                   {r.tag && tt ? (
                     <View style={[s.actTagChip, { backgroundColor: tt.bg, marginTop: 4 }]}>
@@ -1171,7 +1118,7 @@ export function ActivityTabBody() {
                     </View>
                   ) : null}
                 </View>
-                <Text style={s.actWhen}>{r.when}</Text>
+                <Text style={s.actWhen}>{r.whenLabel}</Text>
               </View>
             );
           })}
