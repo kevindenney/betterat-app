@@ -23,6 +23,10 @@ export interface BlueprintPricing {
   authorPayoutPct: number;
   trialDays: number;
   assignedCohorts: { id: string; name: string }[];
+  stripeProductId: string | null;
+  stripePriceId: string | null;
+  stripeSyncedAt: string | null;
+  stripeSyncError: string | null;
 }
 
 interface BlueprintPricingRow {
@@ -32,6 +36,10 @@ interface BlueprintPricingRow {
   billing_cadence: string | null;
   author_payout_pct: number | null;
   trial_days: number | null;
+  stripe_product_id: string | null;
+  stripe_price_id: string | null;
+  stripe_synced_at: string | null;
+  stripe_sync_error: string | null;
 }
 
 interface AssignedCohortRow {
@@ -102,7 +110,7 @@ export function useBlueprintPricing(blueprintId: string, orgId?: string | null) 
         supabase
           .from('blueprints')
           .select(
-            'access_mode, cohort_scope, price_per_seat_cents, billing_cadence, author_payout_pct, trial_days',
+            'access_mode, cohort_scope, price_per_seat_cents, billing_cadence, author_payout_pct, trial_days, stripe_product_id, stripe_price_id, stripe_synced_at, stripe_sync_error',
           )
           .eq('id', blueprintId)
           .maybeSingle(),
@@ -123,6 +131,10 @@ export function useBlueprintPricing(blueprintId: string, orgId?: string | null) 
         authorPayoutPct: bp.author_payout_pct ?? 70,
         trialDays: bp.trial_days ?? 7,
         assignedCohorts: assigned,
+        stripeProductId: bp.stripe_product_id ?? null,
+        stripePriceId: bp.stripe_price_id ?? null,
+        stripeSyncedAt: bp.stripe_synced_at ?? null,
+        stripeSyncError: bp.stripe_sync_error ?? null,
       };
     },
   });
@@ -198,10 +210,45 @@ export function useBlueprintPricing(blueprintId: string, orgId?: string | null) 
     },
   });
 
+  const syncStripe = useMutation({
+    mutationFn: async (): Promise<{
+      stripeProductId: string;
+      stripePriceId: string;
+      priceChanged: boolean;
+    }> => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Not authenticated');
+      const url = `${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/blueprint-stripe-sync`;
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ blueprint_id: blueprintId }),
+      });
+      const payload = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(payload?.error ?? 'Stripe sync failed');
+      }
+      return {
+        stripeProductId: payload.stripe_product_id,
+        stripePriceId: payload.stripe_price_id,
+        priceChanged: !!payload.price_changed,
+      };
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey });
+      queryClient.invalidateQueries({ queryKey: ['studio-blueprint', blueprintId] });
+      queryClient.invalidateQueries({ queryKey: ['blueprint-activity', blueprintId] });
+    },
+  });
+
   return {
     pricing: data ?? null,
     loading: isLoading,
     update,
     removeCohort,
+    syncStripe,
   };
 }

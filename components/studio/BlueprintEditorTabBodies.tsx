@@ -533,7 +533,10 @@ export function PricingTabBody({
   orgName: string | null;
   orgShort: string | null;
 }) {
-  const { pricing, loading, update, removeCohort } = useBlueprintPricing(blueprintId, orgId);
+  const { pricing, loading, update, removeCohort, syncStripe } = useBlueprintPricing(
+    blueprintId,
+    orgId,
+  );
 
   const [priceInput, setPriceInput] = React.useState('');
   const [payoutInput, setPayoutInput] = React.useState('');
@@ -777,7 +780,114 @@ export function PricingTabBody({
           </View>
         </View>
       </View>
+
+      {!isInstitutional ? (
+        <MarketplaceListingCard
+          pricing={pricing}
+          syncStripe={syncStripe}
+        />
+      ) : null}
     </ScrollView>
+  );
+}
+
+function MarketplaceListingCard({
+  pricing,
+  syncStripe,
+}: {
+  pricing: NonNullable<ReturnType<typeof useBlueprintPricing>['pricing']>;
+  syncStripe: ReturnType<typeof useBlueprintPricing>['syncStripe'];
+}) {
+  const hasListing = !!pricing.stripePriceId && !!pricing.stripeProductId;
+  const lastSynced = pricing.stripeSyncedAt
+    ? new Date(pricing.stripeSyncedAt).toLocaleString(undefined, {
+        month: 'short',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+      })
+    : null;
+  const dollars =
+    pricing.pricePerSeatCents != null ? (pricing.pricePerSeatCents / 100).toFixed(2) : null;
+  const cadenceLabel =
+    pricing.billingCadence === 'annual'
+      ? 'year'
+      : pricing.billingCadence === 'one_time'
+        ? 'one-time'
+        : 'mo';
+
+  return (
+    <View style={s.card}>
+      <View style={s.cardHead}>
+        <View>
+          <Text style={s.eyebrow}>Marketplace listing</Text>
+          <Text style={s.cardH3}>
+            {hasListing ? `Listed on Stripe · $${dollars}/${cadenceLabel}` : 'Not yet listed'}
+          </Text>
+          {lastSynced ? (
+            <Text style={s.cardHeadMeta}>Last synced {lastSynced}</Text>
+          ) : null}
+        </View>
+        <Pressable
+          style={[
+            s.btnPrimary,
+            (syncStripe.isPending || pricing.pricePerSeatCents == null) && { opacity: 0.55 },
+          ]}
+          disabled={syncStripe.isPending || pricing.pricePerSeatCents == null}
+          onPress={() => syncStripe.mutate()}
+        >
+          <Ionicons
+            name={syncStripe.isPending ? 'sync' : hasListing ? 'refresh' : 'cloud-upload'}
+            size={13}
+            color="#FFFFFF"
+          />
+          <Text style={s.btnPrimaryText}>
+            {syncStripe.isPending
+              ? 'Syncing…'
+              : hasListing
+                ? 'Resync to Stripe'
+                : 'List on Stripe'}
+          </Text>
+        </Pressable>
+      </View>
+      <View style={s.cardBody}>
+        {pricing.stripeSyncError ? (
+          <View style={s.stripeErrorBox}>
+            <Ionicons name="warning" size={14} color="#C0392B" />
+            <Text style={s.stripeErrorText}>
+              Last sync failed: {pricing.stripeSyncError}
+            </Text>
+          </View>
+        ) : null}
+        {hasListing ? (
+          <View style={{ gap: 8 }}>
+            <StripeIdRow label="Product" value={pricing.stripeProductId!} />
+            <StripeIdRow label="Price" value={pricing.stripePriceId!} />
+            <Text style={s.licenseLine}>
+              Buyers will check out at the unit amount above. Stripe collects + the platform
+              transfers {pricing.authorPayoutPct}% to the author Connect account on each clear.
+            </Text>
+          </View>
+        ) : (
+          <Text style={s.licenseLine}>
+            Click "List on Stripe" to create a real Stripe Product and recurring Price for
+            this blueprint. Buyers can then redeem via Checkout. Re-syncing later updates
+            metadata in place; price changes archive the old Price and mint a new one.
+          </Text>
+        )}
+      </View>
+    </View>
+  );
+}
+
+function StripeIdRow({ label, value }: { label: string; value: string }) {
+  return (
+    <View style={s.stripeIdRow}>
+      <Text style={s.stripeIdLabel}>{label}</Text>
+      <Text style={s.stripeIdValue} numberOfLines={1}>
+        {value}
+      </Text>
+    </View>
   );
 }
 
@@ -1573,6 +1683,36 @@ const s = StyleSheet.create({
     borderLeftColor: '#D1D1D6',
   },
   inputAffixField: { flex: 1, paddingHorizontal: 10, fontSize: 13, color: '#1C1C1E', paddingVertical: 9 },
+
+  stripeErrorBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 8,
+    backgroundColor: 'rgba(192, 57, 43, 0.10)',
+    marginBottom: 10,
+  },
+  stripeErrorText: { fontSize: 11.5, color: '#C0392B', flex: 1, lineHeight: 16 },
+  stripeIdRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    backgroundColor: '#F5F4EE',
+  },
+  stripeIdLabel: {
+    width: 64,
+    fontSize: 10.5,
+    fontWeight: '600',
+    color: 'rgba(60, 60, 67, 0.6)',
+    letterSpacing: 0.4,
+    textTransform: 'uppercase',
+  },
+  stripeIdValue: { flex: 1, fontSize: 12, color: '#1C1C1E', fontFamily: 'Menlo' },
 
   licensePrev: {
     padding: 14,
