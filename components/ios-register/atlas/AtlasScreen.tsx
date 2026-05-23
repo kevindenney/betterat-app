@@ -30,7 +30,7 @@
  *   - Next-event glow is the only Atlas accent that uses amber
  */
 
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -319,7 +319,15 @@ function CrossInterestGlyph({ active }: { active?: boolean }) {
   );
 }
 
-function LayersFab({ onLayersPress }: { onLayersPress?: () => void }) {
+function LayersFab({
+  onLayersPress,
+  onDropPinPress,
+  commitMode,
+}: {
+  onLayersPress?: () => void;
+  onDropPinPress?: () => void;
+  commitMode?: boolean;
+}) {
   return (
     <View style={shellStyles.fabColumn} pointerEvents="box-none">
       <Pressable style={shellStyles.fab} onPress={onLayersPress} hitSlop={6}>
@@ -328,6 +336,19 @@ function LayersFab({ onLayersPress }: { onLayersPress?: () => void }) {
       <Pressable style={shellStyles.fab} hitSlop={6}>
         <Ionicons name="locate-outline" size={16} color="rgba(60, 60, 67, 0.78)" />
       </Pressable>
+      {onDropPinPress ? (
+        <Pressable
+          style={[shellStyles.fab, commitMode && shellStyles.fabActive]}
+          onPress={onDropPinPress}
+          hitSlop={6}
+        >
+          <Ionicons
+            name={commitMode ? 'close' : 'add-circle-outline'}
+            size={16}
+            color={commitMode ? '#FFFFFF' : IOS_REGISTER.accentUserAction}
+          />
+        </Pressable>
+      ) : null}
     </View>
   );
 }
@@ -527,6 +548,26 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
   const next = handlers.nextEvent;
   const hasNext = Boolean(next?.label);
   const [layersOpen, setLayersOpen] = useState(false);
+  // Compose-at-location: tap the + FAB to enter commit-mode, then any
+  // tap on the map drops a candidate pin and rises the commit sheet.
+  // Per the brief, this replaces the legacy SelectLocation modal — the
+  // picker IS the real surface in a different mode.
+  const [commitMode, setCommitMode] = useState(false);
+  const [candidate, setCandidate] = useState<{ lng: number; lat: number } | null>(null);
+  const exitCommit = useCallback(() => {
+    setCommitMode(false);
+    setCandidate(null);
+  }, []);
+  const handleDropPinPress = useCallback(() => {
+    if (commitMode) exitCommit();
+    else setCommitMode(true);
+  }, [commitMode, exitCommit]);
+  const handleMapPress = useCallback(
+    (coords: { lng: number; lat: number }) => {
+      if (commitMode) setCandidate(coords);
+    },
+    [commitMode],
+  );
   return (
     <View style={shellStyles.frame}>
       {!embedded && <StatusBar />}
@@ -547,7 +588,11 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
       />
       <View style={shellStyles.mapArea}>
         {handlers.useMapLibre ? (
-          <AtlasMapLibreCanvas frame="f1" />
+          <AtlasMapLibreCanvas
+            frame="f1"
+            onMapPress={commitMode ? handleMapPress : undefined}
+            candidate={candidate}
+          />
         ) : (
           <HongKongOverviewMap />
         )}
@@ -555,7 +600,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
         {/* Racing-area last-race tags + the user's base pin only render
             once real resolver data is wired. Until then the labels would
             be fiction — see Phase A1 resolvers in the brief. */}
-        {hasNext && (
+        {hasNext && !commitMode && (
           <>
             <RacingAreaTag leftPct={84} topPct={20} text="Apr 14 · 3 from fleet" />
             <RacingAreaTag leftPct={65} topPct={61} text="Mar 28 · 4 from fleet" />
@@ -596,7 +641,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
         {/* Highlighted next-event tag on Victoria Harbour. Rendered LAST so
             it stacks above the peer pins; otherwise the pins occlude the
             tag's detail line. */}
-        {hasNext && (
+        {hasNext && !commitMode && (
           <NextEventTag
             leftPct={50}
             topPct={47}
@@ -605,10 +650,40 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
           />
         )}
 
-        <LayersFab onLayersPress={() => setLayersOpen(true)} />
+        {/* Commit-mode banner — tells the user the next tap will drop a
+            pin. Hides once a candidate is placed (the sheet takes over). */}
+        {commitMode && !candidate && (
+          <View style={shellStyles.commitBannerInline}>
+            <Ionicons name="location-outline" size={12} color="#FFFFFF" />
+            <Text style={shellStyles.commitBannerInlineText}>
+              Tap the map to drop a pin.
+            </Text>
+          </View>
+        )}
+
+        <LayersFab
+          onLayersPress={() => setLayersOpen(true)}
+          onDropPinPress={handlers.useMapLibre ? handleDropPinPress : undefined}
+          commitMode={commitMode}
+        />
       </View>
 
-      {hasNext ? (
+      {candidate ? (
+        <BottomSheet
+          eyebrow="PIN DROPPED"
+          title="Anchor a step at this location."
+          body={`${candidate.lat.toFixed(4)} N · ${candidate.lng.toFixed(4)} E`}
+          primary={{
+            label: 'Plan a step here',
+            icon: 'add',
+            onPress: () => {
+              exitCommit();
+              handlers.onPrimaryAction?.();
+            },
+          }}
+          secondary={{ label: 'Cancel', onPress: exitCommit }}
+        />
+      ) : hasNext ? (
         <BottomSheet
           eyebrow="NEXT · PRE-STAGED"
           title={`Plan a step for ${next!.label}.`}
@@ -1269,6 +1344,32 @@ const shellStyles = StyleSheet.create({
     shadowOpacity: 0.08,
     shadowRadius: 4,
     shadowOffset: { width: 0, height: 1 },
+  },
+  fabActive: {
+    backgroundColor: IOS_REGISTER.accentUserAction,
+    borderColor: IOS_REGISTER.accentUserAction,
+  },
+  commitBannerInline: {
+    position: 'absolute',
+    top: 12,
+    alignSelf: 'center',
+    backgroundColor: IOS_REGISTER.accentUserAction,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 999,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    shadowColor: '#000',
+    shadowOpacity: 0.18,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
+  },
+  commitBannerInlineText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '600',
+    letterSpacing: -0.1,
   },
   // --- Layers sheet -------------------------------------------------------
   layersBackdrop: {

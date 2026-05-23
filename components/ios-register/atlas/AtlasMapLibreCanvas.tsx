@@ -24,12 +24,13 @@
  * the canonical fixture coords baked from the design handoff.
  */
 
-import React from 'react';
-import { Platform, StyleSheet, Text, View } from 'react-native';
+import React, { useCallback } from 'react';
+import { Platform, StyleSheet, Text, View, type NativeSyntheticEvent } from 'react-native';
 import {
   Map as MLMap,
   Camera as MLCamera,
   Marker as MLMarker,
+  type PressEvent,
 } from '@maplibre/maplibre-react-native';
 
 import {
@@ -81,9 +82,36 @@ interface AtlasMapLibreCanvasProps {
   pins?: AtlasPinSpec[];
   /** When provided, an amber NEXT marker drops at the venue centroid. */
   nextEvent?: (AtlasNextEvent & { lng: number; lat: number }) | null;
+  /**
+   * When provided, single-tap on the map fires this callback with the
+   * tapped lng/lat. Atlas frames opt into this when commit-mode is on —
+   * see FrameF1's commitMode state.
+   */
+  onMapPress?: (coords: { lng: number; lat: number }) => void;
+  /**
+   * When provided, renders a red candidate drop-pin at this position.
+   * Used by commit-mode to show "you are about to anchor here."
+   */
+  candidate?: { lng: number; lat: number } | null;
 }
 
-export function AtlasMapLibreCanvas({ frame, pins = [], nextEvent }: AtlasMapLibreCanvasProps) {
+export function AtlasMapLibreCanvas({
+  frame,
+  pins = [],
+  nextEvent,
+  onMapPress,
+  candidate,
+}: AtlasMapLibreCanvasProps) {
+  // Hooks first, then early returns — rules-of-hooks compliance.
+  const handlePress = useCallback(
+    (event: NativeSyntheticEvent<PressEvent>) => {
+      if (!onMapPress) return;
+      const [lng, lat] = event.nativeEvent.lngLat;
+      onMapPress({ lng, lat });
+    },
+    [onMapPress],
+  );
+
   // Web platform: keep the SVG fallback. maplibre-gl + react-map-gl are
   // installed but the bridge to this component lands in a follow-up.
   if (Platform.OS === 'web') {
@@ -99,7 +127,11 @@ export function AtlasMapLibreCanvas({ frame, pins = [], nextEvent }: AtlasMapLib
 
   return (
     <View style={styles.fill}>
-      <MLMap mapStyle={MAP_STYLE_URL} style={styles.fill}>
+      <MLMap
+        mapStyle={MAP_STYLE_URL}
+        style={styles.fill}
+        onPress={onMapPress ? handlePress : undefined}
+      >
         <MLCamera
           initialViewState={{
             center: camera.center,
@@ -121,7 +153,28 @@ export function AtlasMapLibreCanvas({ frame, pins = [], nextEvent }: AtlasMapLib
             <NextEventMarker label={nextEvent.label} when={nextEvent.when} />
           </MLMarker>
         ) : null}
+
+        {candidate ? (
+          <MLMarker
+            id="atlas-commit-candidate"
+            lngLat={[candidate.lng, candidate.lat]}
+          >
+            <CandidateMarker />
+          </MLMarker>
+        ) : null}
       </MLMap>
+    </View>
+  );
+}
+
+/**
+ * The red drop-pin shown in commit-mode at the tapped coords. Larger
+ * than peer pins so it reads as "you are about to anchor a step here."
+ */
+function CandidateMarker() {
+  return (
+    <View style={styles.candidatePin}>
+      <View style={styles.candidatePinInner} />
     </View>
   );
 }
@@ -202,5 +255,23 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#8A4B00',
     letterSpacing: 0.7,
+  },
+  candidatePin: {
+    width: 26,
+    height: 32,
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+  },
+  candidatePinInner: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: '#FF3B30',
+    borderWidth: 3,
+    borderColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
   },
 });
