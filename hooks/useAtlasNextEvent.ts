@@ -59,7 +59,7 @@ export function useAtlasNextEvent(): AtlasNextEvent | null {
       const [regattaOwnedRes, participantRes, raceEventRes] = await Promise.all([
         supabase
           .from('regattas')
-          .select('id, name, start_date, venue, metadata')
+          .select('id, name, start_date, venue, metadata, latitude, longitude')
           .eq('created_by', user!.id)
           .gte('start_date', nowIso)
           .order('start_date', { ascending: true })
@@ -74,7 +74,7 @@ export function useAtlasNextEvent(): AtlasNextEvent | null {
           .limit(50),
         supabase
           .from('race_events')
-          .select('id, name, start_time, venue, metadata')
+          .select('id, name, start_time, venue, metadata, latitude, longitude')
           .eq('user_id', user!.id)
           .gte('start_time', nowIso)
           .order('start_time', { ascending: true })
@@ -91,7 +91,7 @@ export function useAtlasNextEvent(): AtlasNextEvent | null {
       if (participantIds.length > 0 && !participantRes.error) {
         const { data, error } = await supabase
           .from('regattas')
-          .select('id, name, start_date, venue, metadata')
+          .select('id, name, start_date, venue, metadata, latitude, longitude')
           .in('id', participantIds)
           .gte('start_date', nowIso)
           .order('start_date', { ascending: true })

@@ -67,6 +67,17 @@ export interface AtlasNextEvent {
    *  Kept terse to fit the small overlay; if absent the tag shows only
    *  the eyebrow line. */
   conditions?: string;
+  /**
+   * Polymorphic event reference — when set, downstream surfaces can
+   * auto-link a new Step to this Event (target_event_kind/id). The
+   * Atlas amber NEXT tag also uses the source row's venue coords for
+   * geographic anchoring.
+   */
+  event_kind?: 'regatta' | 'race_event' | 'tournament' | 'competition' | 'market_day' | 'pitch';
+  event_id?: string;
+  /** Venue coords from the source row when available. */
+  lat?: number;
+  lng?: number;
 }
 
 export interface AtlasFrameHandlers {
@@ -620,7 +631,14 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
             pins={pins}
             nextEvent={
               next
-                ? { ...next, lat: 22.2978, lng: 114.185 }
+                ? {
+                    ...next,
+                    // Use the source row's venue coords when present;
+                    // fall back to Victoria Harbour for legacy rows that
+                    // pre-date the lat/lng backfill.
+                    lat: next.lat ?? 22.2978,
+                    lng: next.lng ?? 114.185,
+                  }
                 : null
             }
             onMapPress={commitMode ? handleMapPress : undefined}

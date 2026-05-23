@@ -116,16 +116,23 @@ export default function AtlasTab() {
       //
       // When a compose-at-location pin is present, push the coords as URL
       // params and auto-open the add-step sheet so the user lands on the
-      // creation flow with their dropped pin remembered.
+      // creation flow with their dropped pin remembered. When a nextEvent
+      // exists, also pre-link the new step to it (target_event_kind/id) —
+      // dropping a pin during regatta week auto-anchors the new step
+      // to the upcoming regatta.
       const queryParams: Record<string, string> = { openAddStep: '1' };
       if (pin) {
         queryParams.pinLat = String(pin.lat);
         queryParams.pinLng = String(pin.lng);
         if (pin.place) queryParams.pinPlace = pin.place;
       }
+      if (nextEvent?.event_kind && nextEvent.event_id) {
+        queryParams.targetEventKind = nextEvent.event_kind;
+        queryParams.targetEventId = nextEvent.event_id;
+      }
       router.push({ pathname: '/(tabs)/practice', params: queryParams });
     },
-    [isFromPlan, router],
+    [isFromPlan, router, nextEvent?.event_kind, nextEvent?.event_id],
   );
 
   const handleSecondary = useCallback(() => {

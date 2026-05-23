@@ -14,6 +14,8 @@ export interface RegattaRow {
   start_date?: string | null;
   venue?: unknown;
   metadata?: Record<string, unknown> | null;
+  latitude?: number | null;
+  longitude?: number | null;
 }
 
 export interface RaceEventRow {
@@ -22,6 +24,8 @@ export interface RaceEventRow {
   start_time?: string | null;
   venue?: unknown;
   metadata?: Record<string, unknown> | null;
+  latitude?: number | null;
+  longitude?: number | null;
 }
 
 export function mapRegattaToNextEvent(row: RegattaRow): AtlasNextEvent | null {
@@ -29,7 +33,16 @@ export function mapRegattaToNextEvent(row: RegattaRow): AtlasNextEvent | null {
   const when = formatWhen(row.start_date);
   const where = readVenue(row.venue) || readMetadataString(row.metadata, 'venue_name') || undefined;
   const conditions = buildConditions(row.metadata);
-  return { label, when, where, conditions };
+  return {
+    label,
+    when,
+    where,
+    conditions,
+    event_kind: 'regatta',
+    event_id: row.id,
+    lat: row.latitude ?? undefined,
+    lng: row.longitude ?? undefined,
+  };
 }
 
 export function mapRaceEventToNextEvent(row: RaceEventRow): AtlasNextEvent | null {
@@ -37,7 +50,16 @@ export function mapRaceEventToNextEvent(row: RaceEventRow): AtlasNextEvent | nul
   const when = formatWhen(row.start_time);
   const where = readVenue(row.venue) || readMetadataString(row.metadata, 'venue_name') || undefined;
   const conditions = buildConditions(row.metadata);
-  return { label, when, where, conditions };
+  return {
+    label,
+    when,
+    where,
+    conditions,
+    event_kind: 'race_event',
+    event_id: row.id,
+    lat: row.latitude ?? undefined,
+    lng: row.longitude ?? undefined,
+  };
 }
 
 /**
