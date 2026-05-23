@@ -1,0 +1,2121 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=8200" />
+<title>BetterAt — Blueprint editor sub-tabs · JHSON · iOS register</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css" />
+<style>
+  :root {
+    /* Admin chrome — navy, warm-cream, paper-white */
+    --admin-cream:        #F5F4EE;
+    --admin-cream-2:      #EDEBE2;
+    --admin-paper:        #FFFFFF;
+    --admin-line:         rgba(0, 0, 0, 0.06);
+    --admin-line-strong:  rgba(0, 0, 0, 0.10);
+    --admin-line-soft:    rgba(0, 0, 0, 0.04);
+
+    --admin-navy:         #28406B;
+    --admin-navy-2:       #1E335A;
+    --admin-navy-3:       #4E6A85;
+    --admin-navy-tint:    rgba(40, 64, 107, 0.08);
+    --admin-navy-tint-2:  rgba(40, 64, 107, 0.12);
+    --admin-navy-tint-3:  rgba(40, 64, 107, 0.18);
+
+    --admin-ink:          #1C1C1E;
+    --admin-ink-2:        #3C3C43;
+    --admin-ink-3:        rgba(60, 60, 67, 0.62);
+    --admin-ink-4:        rgba(60, 60, 67, 0.36);
+    --admin-ink-5:        rgba(60, 60, 67, 0.18);
+
+    --admin-success:      #1E8F47;
+    --admin-success-tint: rgba(30, 143, 71, 0.12);
+    --admin-warn:         #C99632;
+    --admin-warn-tint:    rgba(201, 150, 50, 0.14);
+    --admin-danger:       #FF3B30;
+    --admin-danger-tint:  rgba(255, 59, 48, 0.10);
+
+    /* Category tones — competencies / capabilities */
+    --cat-procedural:     #8B5A3C;
+    --cat-procedural-tint:rgba(139, 90, 60, 0.12);
+    --cat-assessment:     #5A6B8B;
+    --cat-assessment-tint:rgba(90, 107, 139, 0.14);
+    --cat-comm:           #6E8B5A;
+    --cat-comm-tint:      rgba(110, 139, 90, 0.14);
+    --cat-reasoning:      #7A5A8B;
+    --cat-reasoning-tint: rgba(122, 90, 139, 0.14);
+
+    /* Page stage */
+    --stage:              #EFEAD8;
+    --stage-text:         #6B6558;
+    --stage-ink:          #2A2824;
+    --stage-line:         rgba(34, 30, 20, 0.12);
+    --stage-line-soft:    rgba(34, 30, 20, 0.06);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display",
+                 "Helvetica Neue", Helvetica, Arial, sans-serif;
+    color: var(--admin-ink);
+    background: var(--stage);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    font-variant-numeric: tabular-nums;
+  }
+  button, input, textarea, select { font-family: inherit; font-variant-numeric: tabular-nums; }
+
+  /* ============= Review-chrome page ============= */
+  .page { min-width: 8240px; padding: 56px 56px 96px; }
+  .page-head { max-width: 1240px; margin: 0 0 56px 32px; }
+  .page-head .eyebrow {
+    font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--stage-text); margin: 0 0 12px;
+  }
+  .page-head h1 {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 32px; line-height: 1.15; font-weight: 500;
+    letter-spacing: -0.015em; margin: 0 0 14px; color: var(--stage-ink);
+  }
+  .page-head h1 em { font-style: italic; }
+  .page-head p {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 17px; line-height: 1.55;
+    color: var(--stage-text); margin: 0; max-width: 1100px;
+    text-wrap: pretty;
+  }
+  .page-head p + p { margin-top: 12px; }
+  .page-head p em { font-style: italic; }
+  .page-head p strong { color: var(--stage-ink); font-weight: 500; }
+  .page-head .crumbs {
+    display: flex; gap: 10px; align-items: center; margin: 22px 0 0; flex-wrap: wrap;
+    font-size: 12px; color: var(--stage-text); letter-spacing: 0.02em;
+  }
+  .page-head .crumbs .pill {
+    padding: 3px 10px; border-radius: 999px;
+    border: 0.5px solid var(--stage-line);
+    background: rgba(255,255,255,0.4);
+  }
+  .page-head .crumbs .sep { color: var(--stage-line); }
+
+  /* Section divider between groups of frames */
+  .sect-head {
+    max-width: 1240px; margin: 32px 0 22px 32px;
+    padding-top: 28px;
+  }
+  .sect-head .eyebrow {
+    font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--stage-text); margin: 0 0 6px;
+  }
+  .sect-head h2 {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 22px; line-height: 1.22; font-weight: 500;
+    letter-spacing: -0.01em; margin: 0; color: var(--stage-ink);
+  }
+
+  /* ============= Frame row ============= */
+  .frame-row {
+    display: flex; gap: 36px; align-items: flex-start; padding: 0 8px;
+  }
+  .frame-col {
+    display: flex; flex-direction: column; gap: 14px;
+    width: 1280px; flex: 0 0 1280px;
+  }
+  .frame-cap {
+    font-size: 11px; letter-spacing: 0.10em; text-transform: uppercase;
+    color: var(--stage-text); padding: 0 4px;
+  }
+  .frame-cap strong { color: var(--stage-ink); font-weight: 600; }
+  .frame-cap .num {
+    display: inline-block; padding: 2px 8px; border-radius: 4px;
+    background: var(--stage-line-soft); color: var(--stage-ink);
+    margin-right: 8px; font-weight: 600;
+  }
+  .frame-blurb {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 13px; line-height: 1.5; color: #4D4A43;
+    margin: 0; max-width: 1240px; padding: 0 4px;
+  }
+  .frame-blurb em { font-style: italic; }
+  .frame-blurb strong { color: var(--stage-ink); font-weight: 500; }
+
+  /* ============= Desktop window shell ============= */
+  .desktop {
+    width: 1280px; height: 900px;
+    background: var(--admin-paper);
+    border-radius: 14px;
+    border: 0.5px solid rgba(0,0,0,0.12);
+    box-shadow:
+      0 30px 80px -40px rgba(34, 30, 20, 0.34),
+      0 6px 18px -10px rgba(34, 30, 20, 0.16),
+      0 1px 0 rgba(255,255,255,0.6) inset;
+    overflow: hidden; position: relative; isolation: isolate;
+  }
+  .desktop .chrome {
+    height: 36px; background: #F1F1F3;
+    border-bottom: 0.5px solid var(--admin-line-strong);
+    display: flex; align-items: center; gap: 12px; padding: 0 14px;
+  }
+  .desktop .chrome .lights { display: inline-flex; gap: 8px; }
+  .desktop .chrome .lights span { width: 12px; height: 12px; border-radius: 50%; }
+  .desktop .chrome .lights .r { background: #FF5F57; }
+  .desktop .chrome .lights .y { background: #FEBC2E; }
+  .desktop .chrome .lights .g { background: #28C840; }
+  .desktop .chrome .url { flex: 1; display: flex; justify-content: center; }
+  .desktop .chrome .url-inner {
+    height: 22px; padding: 0 14px; min-width: 480px; max-width: 640px;
+    border-radius: 6px; background: #FFFFFF;
+    border: 0.5px solid var(--admin-line-strong);
+    display: inline-flex; align-items: center; gap: 8px;
+    font-size: 11px; color: var(--admin-ink-3);
+  }
+  .desktop .chrome .url-inner i { font-size: 12px; color: var(--admin-ink-4); }
+  .desktop .chrome .url-inner strong { color: var(--admin-ink-2); font-weight: 500; }
+  .desktop .chrome .meta-right {
+    display: inline-flex; gap: 6px; align-items: center; color: var(--admin-ink-4);
+  }
+  .desktop .chrome .meta-right i { font-size: 13px; }
+
+  /* App layout: sidebar | content */
+  .app {
+    position: absolute; top: 36px; left: 0; right: 0; bottom: 0;
+    display: flex; background: var(--admin-cream);
+  }
+
+  /* ============= Admin sidebar (240px, sectioned) ============= */
+  .sidebar {
+    width: 240px; flex: 0 0 240px;
+    background: var(--admin-paper);
+    border-right: 0.5px solid var(--admin-line);
+    display: flex; flex-direction: column;
+    padding: 12px 0 12px;
+  }
+  .sidebar .org-switcher {
+    margin: 4px 12px 14px;
+    padding: 10px 12px; border-radius: 10px;
+    background: var(--admin-cream);
+    border: 0.5px solid var(--admin-line);
+    display: flex; align-items: center; gap: 10px; cursor: default;
+  }
+  .sidebar .org-switcher .shield {
+    width: 28px; height: 28px; border-radius: 7px;
+    background: linear-gradient(160deg, var(--admin-navy), var(--admin-navy-2));
+    color: #fff; font-weight: 700; font-size: 13px;
+    display: inline-flex; align-items: center; justify-content: center;
+    letter-spacing: -0.2px;
+    font-family: "Iowan Old Style", Georgia, serif;
+  }
+  .sidebar .org-switcher .meta { flex: 1; min-width: 0; line-height: 1.15; }
+  .sidebar .org-switcher .meta .name {
+    font-size: 13px; font-weight: 600; color: var(--admin-ink);
+    letter-spacing: -0.1px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .sidebar .org-switcher .meta .sub {
+    font-size: 10.5px; color: var(--admin-ink-3); margin-top: 2px;
+  }
+  .sidebar .org-switcher i.chev { color: var(--admin-ink-4); font-size: 14px; }
+
+  .sidebar .nav { display: flex; flex-direction: column; gap: 1px; padding: 0 10px; }
+  .sidebar .nav .group-label {
+    font-size: 10.5px; font-weight: 700; letter-spacing: 0.10em;
+    text-transform: uppercase; color: var(--admin-ink-4);
+    padding: 14px 10px 6px;
+  }
+  .sidebar .nav .item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 7px 10px; border-radius: 7px;
+    font-size: 13px; color: var(--admin-ink-2);
+    cursor: default; letter-spacing: -0.1px;
+  }
+  .sidebar .nav .item i { font-size: 16px; color: var(--admin-ink-4); width: 16px; }
+  .sidebar .nav .item .count {
+    margin-left: auto; font-size: 11px; color: var(--admin-ink-3);
+    font-weight: 500;
+  }
+  .sidebar .nav .item.on {
+    background: var(--admin-navy-tint);
+    color: var(--admin-navy);
+    font-weight: 600;
+  }
+  .sidebar .nav .item.on i { color: var(--admin-navy); }
+  .sidebar .nav .item.on .count { color: var(--admin-navy); }
+  .sidebar .nav .item .pip {
+    margin-left: auto; width: 6px; height: 6px; border-radius: 50%;
+    background: var(--admin-danger);
+  }
+  /* Editing-mode sidebar: replaces nav with section nav for the current blueprint */
+  .sidebar .editing-banner {
+    margin: 4px 12px 0; padding: 8px 10px;
+    border-radius: 8px;
+    background: var(--admin-navy);
+    color: #fff;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .sidebar .editing-banner .back {
+    width: 22px; height: 22px; border-radius: 6px;
+    background: rgba(255,255,255,0.14);
+    display: inline-flex; align-items: center; justify-content: center;
+    color: #fff;
+  }
+  .sidebar .editing-banner .back i { font-size: 13px; }
+  .sidebar .editing-banner .label { font-size: 10.5px; letter-spacing: 0.10em; text-transform: uppercase; font-weight: 700; opacity: 0.7; }
+  .sidebar .editing-banner .title { font-size: 12.5px; font-weight: 600; line-height: 1.2; margin-top: 1px; }
+  .sidebar .editing-meta {
+    margin: 8px 22px 4px; padding-bottom: 12px;
+    border-bottom: 0.5px solid var(--admin-line);
+    font-size: 11px; color: var(--admin-ink-3); line-height: 1.45;
+  }
+  .sidebar .editing-meta strong { color: var(--admin-ink-2); font-weight: 600; }
+  .sidebar .editing-meta .dot {
+    display: inline-block; width: 6px; height: 6px; border-radius: 50%;
+    background: var(--admin-warn); margin: 0 6px -1px 0;
+  }
+  .sidebar .editing-meta .dot.draft { background: var(--admin-warn); }
+  .sidebar .editing-meta .dot.published { background: var(--admin-success); }
+
+  .sidebar .spacer { flex: 1; }
+  .sidebar .user-card {
+    margin: 8px 14px 0; padding: 10px 12px;
+    border-radius: 10px;
+    border: 0.5px solid var(--admin-line);
+    background: var(--admin-cream);
+    display: flex; align-items: center; gap: 10px;
+  }
+  .sidebar .user-card .av {
+    width: 30px; height: 30px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--admin-navy), var(--admin-navy-3));
+    color: #fff; font-size: 11px; font-weight: 700;
+    display: inline-flex; align-items: center; justify-content: center;
+    letter-spacing: -0.2px;
+  }
+  .sidebar .user-card .meta { flex: 1; min-width: 0; line-height: 1.2; }
+  .sidebar .user-card .meta .name { font-size: 12.5px; font-weight: 600; color: var(--admin-ink); letter-spacing: -0.1px; }
+  .sidebar .user-card .meta .role { font-size: 10.5px; color: var(--admin-ink-3); margin-top: 1px; }
+  .sidebar .user-card i { color: var(--admin-ink-4); font-size: 14px; }
+
+  /* ============= Content area ============= */
+  .content {
+    flex: 1; display: flex; flex-direction: column; min-width: 0;
+    background: var(--admin-cream);
+  }
+
+  /* Header: breadcrumb · title · subtitle · actions */
+  .header {
+    background: var(--admin-cream);
+    padding: 16px 32px 14px;
+    border-bottom: 0.5px solid var(--admin-line);
+  }
+  .header .crumb {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 11.5px; color: var(--admin-ink-3); margin-bottom: 8px;
+  }
+  .header .crumb a, .header .crumb span { color: var(--admin-ink-3); text-decoration: none; }
+  .header .crumb .here { color: var(--admin-ink-2); font-weight: 500; }
+  .header .crumb i { font-size: 13px; color: var(--admin-ink-4); }
+  .header .title-row {
+    display: flex; align-items: center; gap: 14px;
+  }
+  .header h1 {
+    font-size: 22px; font-weight: 700; letter-spacing: -0.4px;
+    margin: 0; color: var(--admin-ink);
+  }
+  .header .status {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 3px 10px; border-radius: 999px;
+    font-size: 11.5px; font-weight: 600;
+    background: var(--admin-warn-tint); color: var(--admin-warn);
+  }
+  .header .status.published { background: var(--admin-success-tint); color: var(--admin-success); }
+  .header .status::before {
+    content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor;
+  }
+  .header .actions {
+    margin-left: auto; display: inline-flex; gap: 8px; align-items: center;
+  }
+  .header .subtitle {
+    margin-top: 4px; font-size: 13px; color: var(--admin-ink-3);
+    letter-spacing: -0.05px;
+  }
+  .header .subtitle strong { color: var(--admin-ink-2); font-weight: 500; }
+  .header .subtitle .sep { color: var(--admin-ink-5); margin: 0 8px; }
+
+  /* Tab strip — sub-tabs for the blueprint editor */
+  .sub-tabs {
+    display: flex; gap: 0;
+    background: var(--admin-cream);
+    border-bottom: 0.5px solid var(--admin-line);
+    padding: 0 32px;
+  }
+  .sub-tabs .tab {
+    padding: 10px 14px;
+    font-size: 13px; color: var(--admin-ink-3);
+    letter-spacing: -0.1px; cursor: default;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -0.5px;
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .sub-tabs .tab i { font-size: 14px; }
+  .sub-tabs .tab.on {
+    color: var(--admin-navy); font-weight: 600;
+    border-bottom-color: var(--admin-navy);
+  }
+  .sub-tabs .tab .badge {
+    margin-left: 4px; font-size: 10.5px; padding: 1px 6px;
+    border-radius: 999px; background: var(--admin-cream-2); color: var(--admin-ink-3);
+    font-weight: 600;
+  }
+  .sub-tabs .tab.on .badge { background: var(--admin-navy-tint-2); color: var(--admin-navy); }
+
+  /* Body scroll area */
+  .body {
+    flex: 1; overflow: hidden;
+    padding: 22px 32px; max-width: 100%;
+  }
+  .body-inner { max-width: 1120px; margin: 0 auto; display: flex; flex-direction: column; gap: 22px; }
+
+  /* ============= Buttons & form atoms ============= */
+  .btn {
+    height: 32px; padding: 0 14px; border-radius: 8px;
+    font-size: 12.5px; font-weight: 600; letter-spacing: -0.1px;
+    border: 0.5px solid var(--admin-line-strong);
+    background: var(--admin-paper); color: var(--admin-ink);
+    cursor: default; display: inline-flex; align-items: center; gap: 6px;
+  }
+  .btn i { font-size: 14px; }
+  .btn.primary { background: var(--admin-navy); color: #fff; border-color: var(--admin-navy); }
+  .btn.ghost { background: transparent; border-color: transparent; color: var(--admin-ink-2); }
+  .btn.ghost:hover { background: var(--admin-cream-2); }
+  .btn.danger { color: var(--admin-danger); }
+  .btn.sm { height: 26px; padding: 0 10px; font-size: 11.5px; }
+  .btn.icon { padding: 0; width: 32px; justify-content: center; }
+  .btn.icon i { font-size: 15px; }
+
+  .chip {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 2px 8px; border-radius: 999px;
+    font-size: 10.5px; font-weight: 700; letter-spacing: 0.04em;
+    text-transform: uppercase;
+    background: var(--admin-navy-tint); color: var(--admin-navy);
+  }
+  .chip.sq { border-radius: 4px; text-transform: none; letter-spacing: 0; font-weight: 600; font-size: 11px; padding: 2px 6px; }
+  .chip i { font-size: 12px; }
+  .chip.cat-proc { background: var(--cat-procedural-tint); color: var(--cat-procedural); }
+  .chip.cat-asmt { background: var(--cat-assessment-tint); color: var(--cat-assessment); }
+  .chip.cat-comm { background: var(--cat-comm-tint); color: var(--cat-comm); }
+  .chip.cat-rsn  { background: var(--cat-reasoning-tint); color: var(--cat-reasoning); }
+  .chip.warn { background: var(--admin-warn-tint); color: var(--admin-warn); }
+  .chip.ok { background: var(--admin-success-tint); color: var(--admin-success); }
+  .chip.site {
+    background: var(--admin-cream-2); color: var(--admin-ink-2);
+    text-transform: none; letter-spacing: 0; font-weight: 500;
+    font-size: 11px; padding: 2px 8px; border: 0.5px solid var(--admin-line);
+  }
+
+  /* Card */
+  .card {
+    background: var(--admin-paper);
+    border: 0.5px solid var(--admin-line);
+    border-radius: 12px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+  }
+  .card.tinted { background: var(--admin-cream-2); border-color: transparent; }
+  .card.flush > .card-head { padding: 14px 18px 4px; }
+  .card > .card-head {
+    padding: 16px 22px 6px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .card > .card-head .eyebrow {
+    font-size: 10.5px; letter-spacing: 0.10em; text-transform: uppercase;
+    font-weight: 700; color: var(--admin-ink-3);
+  }
+  .card > .card-head h3 {
+    font-size: 14px; font-weight: 600; letter-spacing: -0.2px;
+    margin: 0; color: var(--admin-ink);
+  }
+  .card > .card-head .actions { margin-left: auto; display: inline-flex; gap: 6px; }
+  .card > .card-body { padding: 12px 22px 20px; }
+
+  /* Section title */
+  .section-title {
+    display: flex; align-items: baseline; gap: 12px;
+    padding: 0 2px;
+  }
+  .section-title .eyebrow {
+    font-size: 10.5px; letter-spacing: 0.10em; text-transform: uppercase;
+    font-weight: 700; color: var(--admin-ink-3);
+  }
+  .section-title h2 {
+    font-size: 16px; font-weight: 600; letter-spacing: -0.2px;
+    margin: 0; color: var(--admin-ink);
+  }
+  .section-title .hint {
+    font-size: 12px; color: var(--admin-ink-3); margin-left: auto;
+  }
+
+  /* Steps list (Frame 18 — Steps tab) */
+  .step-list { display: flex; flex-direction: column; gap: 12px; }
+  .step-row {
+    background: var(--admin-paper);
+    border: 0.5px solid var(--admin-line);
+    border-radius: 12px;
+    padding: 14px 18px 14px 14px;
+    display: grid;
+    grid-template-columns: 24px 28px 1fr auto;
+    gap: 12px; align-items: flex-start;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+  }
+  .step-row.expanded { background: #FCFBF7; border-color: var(--admin-navy-tint-3); }
+  .step-row .drag {
+    color: var(--admin-ink-4); padding-top: 6px;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .step-row .drag i { font-size: 16px; }
+  .step-row .num {
+    width: 28px; height: 28px; border-radius: 8px;
+    background: var(--admin-navy-tint); color: var(--admin-navy);
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 700;
+  }
+  .step-row .main { min-width: 0; }
+  .step-row .main .title-line {
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  }
+  .step-row .main h4 {
+    font-size: 14px; font-weight: 600; color: var(--admin-ink);
+    margin: 0; letter-spacing: -0.15px;
+  }
+  .step-row .main .desc {
+    font-size: 12.5px; color: var(--admin-ink-3);
+    margin: 4px 0 0; line-height: 1.45;
+  }
+  .step-row .main .tag-row {
+    display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px;
+  }
+  .step-row .row-actions {
+    display: inline-flex; gap: 4px; align-items: center; padding-top: 2px;
+  }
+  .step-row .row-actions button {
+    width: 26px; height: 26px; border-radius: 6px;
+    border: none; background: transparent; color: var(--admin-ink-3);
+    cursor: default; display: inline-flex; align-items: center; justify-content: center;
+  }
+  .step-row .row-actions button i { font-size: 15px; }
+  .step-row .row-actions button:hover { background: var(--admin-cream-2); color: var(--admin-ink); }
+
+  /* Inline editor inside expanded step */
+  .step-edit {
+    grid-column: 2 / 5;
+    margin-top: 14px; padding-top: 14px;
+    border-top: 0.5px solid var(--admin-line);
+    display: grid; grid-template-columns: 1fr 1fr; gap: 16px 18px;
+  }
+  .step-edit.cols-1 { grid-template-columns: 1fr; }
+  .step-edit .field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+  .step-edit .field.span-2 { grid-column: span 2; }
+  .step-edit .field label {
+    font-size: 10.5px; letter-spacing: 0.10em; text-transform: uppercase;
+    font-weight: 700; color: var(--admin-ink-3);
+  }
+  .step-edit .field .help { font-size: 11.5px; color: var(--admin-ink-3); margin-top: -2px; line-height: 1.4; }
+  .input, .textarea, .select-fake {
+    border: 0.5px solid var(--admin-line-strong);
+    background: var(--admin-paper); border-radius: 8px;
+    padding: 9px 12px; font-size: 13px; color: var(--admin-ink);
+    letter-spacing: -0.1px;
+    width: 100%;
+  }
+  .textarea { resize: vertical; min-height: 60px; font: inherit; }
+  .input:focus, .textarea:focus { outline: none; border-color: var(--admin-navy); box-shadow: 0 0 0 3px var(--admin-navy-tint); }
+  .select-fake {
+    display: inline-flex; align-items: center; justify-content: space-between;
+  }
+  .select-fake i { color: var(--admin-ink-4); font-size: 14px; }
+  .input.has-affix { display: flex; align-items: center; gap: 8px; padding: 0; overflow: hidden; }
+  .input.has-affix .affix {
+    padding: 9px 12px; background: var(--admin-cream-2); color: var(--admin-ink-3);
+    border-right: 0.5px solid var(--admin-line); font-size: 12px;
+  }
+  .input.has-affix input {
+    flex: 1; border: none; outline: none; padding: 9px 12px;
+    font: inherit; background: transparent; color: var(--admin-ink);
+  }
+
+  .sub-steps { display: flex; flex-direction: column; gap: 6px; }
+  .sub-step {
+    display: grid; grid-template-columns: 20px 22px 1fr 24px; gap: 8px;
+    align-items: center; padding: 8px 10px;
+    background: var(--admin-cream); border-radius: 8px;
+    border: 0.5px solid var(--admin-line);
+  }
+  .sub-step .grip { color: var(--admin-ink-4); font-size: 14px; display: inline-flex; align-items: center; justify-content: center; }
+  .sub-step .n {
+    width: 22px; height: 22px; border-radius: 6px;
+    background: var(--admin-cream-2); color: var(--admin-ink-2);
+    font-size: 11px; font-weight: 700;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .sub-step .text { font-size: 12.5px; color: var(--admin-ink); letter-spacing: -0.1px; }
+  .sub-step .x { color: var(--admin-ink-4); font-size: 14px; display: inline-flex; align-items: center; justify-content: center; }
+  .sub-step .text input { width: 100%; border: none; background: transparent; outline: none; font: inherit; padding: 0; color: var(--admin-ink); }
+
+  .add-sub {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 11.5px; color: var(--admin-navy); font-weight: 600;
+    padding: 6px 10px; border-radius: 8px; border: 0.5px dashed var(--admin-navy-tint-3);
+    background: transparent; cursor: default; align-self: flex-start;
+  }
+
+  /* "Add step" trailing row */
+  .add-step {
+    margin-top: 6px;
+    padding: 14px 18px; border-radius: 12px;
+    border: 0.5px dashed var(--admin-line-strong);
+    background: rgba(255,255,255,0.5);
+    display: flex; align-items: center; gap: 10px;
+    color: var(--admin-ink-3); font-size: 12.5px; cursor: default;
+  }
+  .add-step .plus {
+    width: 26px; height: 26px; border-radius: 8px;
+    background: var(--admin-navy-tint); color: var(--admin-navy);
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .add-step .plus i { font-size: 16px; }
+  .add-step strong { color: var(--admin-ink); font-weight: 600; }
+  .add-step .spacer { flex: 1; }
+  .add-step .templ {
+    font-size: 11.5px; color: var(--admin-navy); font-weight: 500;
+  }
+
+  /* ============= Capabilities tab ============= */
+  .cap-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .cap-group {
+    background: var(--admin-paper); border: 0.5px solid var(--admin-line);
+    border-radius: 12px; padding: 14px 16px 12px;
+  }
+  .cap-group .group-head {
+    display: flex; align-items: center; gap: 8px; margin-bottom: 10px;
+  }
+  .cap-group .group-head .ico {
+    width: 22px; height: 22px; border-radius: 6px;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 12px;
+  }
+  .cap-group .group-head .ico.proc { background: var(--cat-procedural-tint); color: var(--cat-procedural); }
+  .cap-group .group-head .ico.asmt { background: var(--cat-assessment-tint); color: var(--cat-assessment); }
+  .cap-group .group-head .ico.comm { background: var(--cat-comm-tint); color: var(--cat-comm); }
+  .cap-group .group-head .ico.rsn  { background: var(--cat-reasoning-tint); color: var(--cat-reasoning); }
+  .cap-group .group-head .name {
+    font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase;
+    font-weight: 700; color: var(--admin-ink-2);
+  }
+  .cap-group .group-head .count {
+    margin-left: auto; font-size: 11px; color: var(--admin-ink-3); font-weight: 500;
+  }
+  .cap-item {
+    display: grid; grid-template-columns: 20px 1fr 220px; gap: 12px; align-items: center;
+    padding: 8px 0; border-top: 0.5px solid var(--admin-line);
+  }
+  .cap-item:first-of-type { border-top: none; }
+  .cap-item .check {
+    width: 18px; height: 18px; border-radius: 5px;
+    border: 1.5px solid var(--admin-line-strong);
+    background: var(--admin-paper);
+    display: inline-flex; align-items: center; justify-content: center;
+    color: #fff; font-size: 11px;
+  }
+  .cap-item.on .check { background: var(--admin-navy); border-color: var(--admin-navy); }
+  .cap-item .label { font-size: 13px; color: var(--admin-ink); letter-spacing: -0.1px; }
+  .cap-item.off .label { color: var(--admin-ink-3); }
+  .cap-item .coverage { display: flex; gap: 4px; align-items: center; }
+  .cap-item .coverage .seg {
+    flex: 1; height: 6px; border-radius: 3px; background: var(--admin-line);
+    cursor: default;
+  }
+  .cap-item .coverage .seg.on { background: var(--admin-navy); }
+  .cap-item .coverage .seg.on.secondary { background: var(--admin-navy-3); }
+  .cap-item .coverage .seg.on.supporting { background: var(--admin-navy-tint-3); }
+  .cap-item .coverage .label-mini {
+    font-size: 10.5px; color: var(--admin-ink-3);
+    margin-left: 8px; min-width: 64px; text-align: right;
+    text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600;
+  }
+
+  /* ============= Pricing tab ============= */
+  .toggle-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .toggle-card {
+    border: 1px solid var(--admin-line-strong); border-radius: 12px;
+    padding: 16px 18px; background: var(--admin-paper);
+    display: flex; flex-direction: column; gap: 6px; cursor: default;
+    position: relative;
+  }
+  .toggle-card.on { border-color: var(--admin-navy); background: var(--admin-navy-tint); box-shadow: 0 0 0 3px rgba(40,64,107,0.06); }
+  .toggle-card .radio {
+    position: absolute; top: 14px; right: 14px;
+    width: 18px; height: 18px; border-radius: 50%;
+    border: 1.5px solid var(--admin-line-strong); background: var(--admin-paper);
+  }
+  .toggle-card.on .radio { border-color: var(--admin-navy); }
+  .toggle-card.on .radio::after {
+    content: ""; position: absolute; inset: 3px;
+    border-radius: 50%; background: var(--admin-navy);
+  }
+  .toggle-card h4 {
+    font-size: 14px; font-weight: 600; margin: 0; color: var(--admin-ink);
+    letter-spacing: -0.2px;
+  }
+  .toggle-card .lead {
+    font-size: 12.5px; color: var(--admin-ink-3); line-height: 1.45;
+    margin: 0;
+  }
+  .toggle-card .who {
+    margin-top: 4px;
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 11px; color: var(--admin-navy); font-weight: 600;
+  }
+
+  /* Form section panel */
+  .panel {
+    background: var(--admin-navy-tint);
+    border: 0.5px solid transparent;
+    border-radius: 12px; padding: 16px 18px;
+  }
+  .panel .panel-head {
+    display: flex; align-items: center; gap: 8px; margin-bottom: 10px;
+  }
+  .panel .panel-head .eyebrow {
+    font-size: 10.5px; letter-spacing: 0.10em; text-transform: uppercase;
+    font-weight: 700; color: var(--admin-navy);
+  }
+  .panel .panel-head .hint {
+    margin-left: auto; font-size: 11.5px; color: var(--admin-ink-3);
+  }
+  .panel .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .panel .field { display: flex; flex-direction: column; gap: 6px; }
+  .panel .field label {
+    font-size: 11px; color: var(--admin-ink-2); font-weight: 600;
+    letter-spacing: -0.05px;
+  }
+  .panel .field .help { font-size: 11.5px; color: var(--admin-ink-3); margin-top: -2px; }
+
+  .success-pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 10px; border-radius: 999px;
+    background: var(--admin-success-tint); color: var(--admin-success);
+    font-size: 11px; font-weight: 600;
+  }
+  .success-pill i { font-size: 13px; }
+
+  /* Pricing — independent right column */
+  .pricing-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; }
+  .license-prev {
+    background: var(--admin-cream-2); border-radius: 10px;
+    padding: 12px 14px;
+    font-size: 11.5px; color: var(--admin-ink-3); line-height: 1.6;
+  }
+  .license-prev strong { color: var(--admin-ink); font-weight: 600; }
+
+  /* ============= Cohorts tab ============= */
+  .cohort-row-card {
+    background: var(--admin-paper);
+    border: 0.5px solid var(--admin-line);
+    border-radius: 12px;
+    padding: 14px 18px;
+    display: grid;
+    grid-template-columns: 36px 1.2fr 1fr 1fr auto;
+    gap: 16px; align-items: center;
+  }
+  .cohort-row-card .badge {
+    width: 36px; height: 36px; border-radius: 8px;
+    background: var(--admin-navy-tint); color: var(--admin-navy);
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 14px; font-weight: 700; letter-spacing: -0.3px;
+  }
+  .cohort-row-card .name { font-size: 13.5px; font-weight: 600; color: var(--admin-ink); letter-spacing: -0.15px; }
+  .cohort-row-card .name .sub { display: block; font-size: 11.5px; color: var(--admin-ink-3); font-weight: 400; margin-top: 2px; }
+  .cohort-row-card .stat .k { font-size: 10.5px; color: var(--admin-ink-3); letter-spacing: 0.08em; text-transform: uppercase; font-weight: 700; }
+  .cohort-row-card .stat .v { font-size: 14px; color: var(--admin-ink); font-weight: 600; margin-top: 2px; letter-spacing: -0.2px; }
+  .cohort-row-card .actions { display: inline-flex; gap: 6px; }
+
+  /* ============= Mentor settings ============= */
+  .perm-row {
+    display: grid; grid-template-columns: 1fr 60px; align-items: center;
+    padding: 10px 0; border-top: 0.5px solid var(--admin-line);
+    gap: 14px;
+  }
+  .perm-row:first-of-type { border-top: none; }
+  .perm-row .l { font-size: 13px; color: var(--admin-ink); }
+  .perm-row .l .sub { display: block; font-size: 11.5px; color: var(--admin-ink-3); margin-top: 2px; line-height: 1.4; }
+  .switch {
+    width: 38px; height: 22px; border-radius: 999px;
+    background: var(--admin-line); position: relative; cursor: default;
+    flex-shrink: 0; justify-self: end;
+  }
+  .switch::after {
+    content: ""; position: absolute; top: 2px; left: 2px;
+    width: 18px; height: 18px; border-radius: 50%; background: #fff;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    transition: left 0.18s ease;
+  }
+  .switch.on { background: var(--admin-navy); }
+  .switch.on::after { left: 18px; }
+
+  .seg-control {
+    display: inline-flex; padding: 2px;
+    background: var(--admin-cream-2); border-radius: 8px;
+  }
+  .seg-control .opt {
+    padding: 6px 12px; font-size: 12px; color: var(--admin-ink-2);
+    border-radius: 6px; cursor: default; font-weight: 500;
+  }
+  .seg-control .opt.on {
+    background: var(--admin-paper); color: var(--admin-ink); font-weight: 600;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+  }
+
+  /* Mentor roster card */
+  .roster-row {
+    display: grid; grid-template-columns: 32px 1fr auto auto; gap: 12px; align-items: center;
+    padding: 10px 0; border-top: 0.5px solid var(--admin-line);
+  }
+  .roster-row:first-of-type { border-top: none; }
+  .roster-row .av {
+    width: 32px; height: 32px; border-radius: 50%;
+    color: #fff; font-size: 11px; font-weight: 700;
+    display: inline-flex; align-items: center; justify-content: center;
+    letter-spacing: -0.2px;
+  }
+  .av.navy { background: linear-gradient(135deg, var(--admin-navy), var(--admin-navy-3)); }
+  .av.brown { background: linear-gradient(135deg, #8B5A3C, #5A3C28); }
+  .av.green { background: linear-gradient(135deg, #527B4E, #355538); }
+  .av.purple { background: linear-gradient(135deg, #7A5A8B, #4E3A5A); }
+  .av.steel { background: linear-gradient(135deg, #5E6B8A, #2F3B5A); }
+  .roster-row .info .name { font-size: 13px; color: var(--admin-ink); font-weight: 600; letter-spacing: -0.1px; }
+  .roster-row .info .meta { font-size: 11.5px; color: var(--admin-ink-3); margin-top: 1px; }
+  .roster-row .perms {
+    display: inline-flex; gap: 4px; flex-wrap: wrap;
+  }
+
+  /* ============= Activity feed ============= */
+  .day-head {
+    display: flex; align-items: baseline; gap: 10px;
+    margin: 6px 2px 8px;
+  }
+  .day-head .date {
+    font-size: 11px; letter-spacing: 0.10em; text-transform: uppercase;
+    font-weight: 700; color: var(--admin-ink-3);
+  }
+  .day-head .meta { font-size: 11.5px; color: var(--admin-ink-4); }
+  .day-head .meta .sep { margin: 0 6px; color: var(--admin-ink-5); }
+
+  .act-row {
+    display: grid; grid-template-columns: 32px 1fr auto; gap: 12px; align-items: flex-start;
+    padding: 10px 14px; background: var(--admin-paper);
+    border: 0.5px solid var(--admin-line); border-radius: 10px;
+  }
+  .act-row + .act-row { margin-top: 8px; }
+  .act-row .av { margin-top: 1px; }
+  .act-row .text { font-size: 12.5px; color: var(--admin-ink-2); line-height: 1.5; letter-spacing: -0.05px; }
+  .act-row .text strong { color: var(--admin-ink); font-weight: 600; }
+  .act-row .text .meta {
+    display: flex; gap: 8px; align-items: center; margin-top: 6px; flex-wrap: wrap;
+  }
+  .act-row .text .meta .when { font-size: 11px; color: var(--admin-ink-3); }
+  .act-row .text .meta .when::after { content: "·"; color: var(--admin-ink-5); margin: 0 6px; }
+  .act-row .text .meta .when:last-child::after { content: ""; }
+  .act-row .row-r { font-size: 11px; color: var(--admin-ink-4); padding-top: 3px; }
+
+  /* Empty state */
+  .empty {
+    background: var(--admin-cream); border: 0.5px dashed var(--admin-line-strong);
+    border-radius: 12px; padding: 28px 22px;
+    display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center;
+  }
+  .empty .gl {
+    width: 38px; height: 38px; border-radius: 10px;
+    background: var(--admin-navy-tint); color: var(--admin-navy);
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .empty .gl i { font-size: 20px; }
+  .empty p { margin: 0; font-size: 12.5px; color: var(--admin-ink-3); max-width: 360px; line-height: 1.5; }
+
+  /* Stat strip */
+  .stat-strip { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+  .stat-strip .stat {
+    background: var(--admin-paper); border: 0.5px solid var(--admin-line);
+    border-radius: 12px; padding: 12px 14px;
+  }
+  .stat-strip .stat .k {
+    font-size: 10.5px; letter-spacing: 0.10em; text-transform: uppercase;
+    font-weight: 700; color: var(--admin-ink-3);
+  }
+  .stat-strip .stat .v {
+    font-size: 22px; font-weight: 700; color: var(--admin-ink);
+    letter-spacing: -0.4px; margin-top: 6px;
+  }
+  .stat-strip .stat .d {
+    margin-top: 4px; font-size: 11.5px; color: var(--admin-ink-3);
+  }
+
+</style>
+</head>
+<body>
+
+<div class="page" data-screen-label="01 Canonical Stage">
+
+  <!-- Page head -->
+  <header class="page-head">
+    <p class="eyebrow">BetterAt · Blueprint Editor Sub-Tabs · 2026-05-23</p>
+    <h1>Six tabs behind the cover card — <em>Steps, Capabilities, Pricing, Cohorts, Mentors, Activity</em></h1>
+    <p>
+      Frame&nbsp;5 of the prior pass shipped the blueprint editor&rsquo;s cover. These six frames finish the editor — the left sidebar shifts into <strong>Editing</strong> mode (the org-switcher tucks under a navy back-banner; the section nav becomes a per-blueprint outline) and the body switches per sub-tab.
+      The tenant on screen is <em>Johns Hopkins School of Nursing</em>; the blueprint is <em>Sepsis bundle recognition</em>, authored by Dr.&nbsp;R.&nbsp;Murphy, assigned to BSN&nbsp;Class&nbsp;of&nbsp;2027 — Cohort&nbsp;A.
+    </p>
+    <p>
+      Navy <em>#28406B</em> is the only product-chrome accent on this surface — primary buttons, eyebrows, active-tab underline, coverage-strength fills. Status pills are tone-tinted (draft warn, published green). All counts tabular. Cards group at 22px.
+    </p>
+    <div class="crumbs">
+      <span class="pill">Frames 18 – 23</span>
+      <span class="sep">/</span>
+      <span>Completes Frame&nbsp;5 cover-card from Creator Studio &amp; Org Admin</span>
+      <span class="sep">/</span>
+      <span>Designed for iPad / desktop ≥ 1024px</span>
+    </div>
+  </header>
+
+  <div class="frame-row">
+
+    <!-- ====================================================================
+         FRAME 18 · STEPS TAB
+    ===================================================================== -->
+    <div class="frame-col" data-screen-label="18 Blueprint editor · Steps">
+      <div class="frame-cap"><span class="num">18</span> <strong>Steps</strong> — drag-orderable list, expandable inline editor</div>
+      <div class="desktop">
+        <div class="chrome">
+          <div class="lights"><span class="r"></span><span class="y"></span><span class="g"></span></div>
+          <div class="url"><div class="url-inner">
+            <i class="ti ti-lock"></i>
+            <span><strong>betterat.app</strong>/orgs/jhson/studio/blueprints/sepsis-bundle/steps</span>
+          </div></div>
+          <div class="meta-right"><i class="ti ti-cloud-check"></i><span>Saved 2 min ago</span></div>
+        </div>
+
+        <div class="app">
+
+          <aside class="sidebar">
+            <div class="editing-banner">
+              <div class="back"><i class="ti ti-arrow-left"></i></div>
+              <div>
+                <div class="label">Editing blueprint</div>
+                <div class="title">Sepsis bundle recognition</div>
+              </div>
+            </div>
+            <div class="editing-meta">
+              <div><span class="dot draft"></span><strong>Draft v0.4</strong> · 6 steps · 5 capabilities</div>
+              <div style="margin-top:4px;">Last edited Wed 11:42a · R.&nbsp;Murphy</div>
+            </div>
+
+            <div class="nav">
+              <div class="group-label">Blueprint</div>
+              <div class="item"><i class="ti ti-file-description"></i>Cover</div>
+              <div class="item on"><i class="ti ti-list-numbers"></i>Steps<span class="count">6</span></div>
+              <div class="item"><i class="ti ti-circles-relation"></i>Capabilities<span class="count">5</span></div>
+              <div class="item"><i class="ti ti-currency-dollar"></i>Pricing &amp; access</div>
+              <div class="item"><i class="ti ti-users-group"></i>Cohorts<span class="count">1</span></div>
+              <div class="item"><i class="ti ti-user-check"></i>Mentor settings</div>
+              <div class="item"><i class="ti ti-pulse"></i>Activity</div>
+
+              <div class="group-label">Versions</div>
+              <div class="item"><i class="ti ti-history"></i>v0.4 draft <span class="count">now</span></div>
+              <div class="item"><i class="ti ti-history" style="opacity:.4;"></i>v0.3 <span class="count">May 18</span></div>
+              <div class="item"><i class="ti ti-history" style="opacity:.4;"></i>v0.2 <span class="count">May 9</span></div>
+            </div>
+
+            <div class="spacer"></div>
+            <div class="user-card">
+              <div class="av">RM</div>
+              <div class="meta">
+                <div class="name">Dr. R. Murphy</div>
+                <div class="role">Author · JHSON</div>
+              </div>
+              <i class="ti ti-chevron-up"></i>
+            </div>
+          </aside>
+
+          <main class="content">
+            <div class="header">
+              <div class="crumb">
+                <a>Org admin</a><i class="ti ti-chevron-right"></i>
+                <a>Blueprints</a><i class="ti ti-chevron-right"></i>
+                <span class="here">Sepsis bundle recognition</span><i class="ti ti-chevron-right"></i>
+                <span class="here">Steps</span>
+              </div>
+              <div class="title-row">
+                <h1>Sepsis bundle recognition</h1>
+                <span class="status">Draft v0.4</span>
+                <div class="actions">
+                  <button class="btn"><i class="ti ti-eye"></i>Preview</button>
+                  <button class="btn"><i class="ti ti-versions"></i>Compare</button>
+                  <button class="btn primary"><i class="ti ti-arrow-up-right"></i>Publish</button>
+                </div>
+              </div>
+              <div class="subtitle">
+                <strong>6 steps</strong><span class="sep">·</span>est. 35 min<span class="sep">·</span>5 capabilities<span class="sep">·</span>BSN Class of 2027 — Cohort A
+              </div>
+            </div>
+
+            <div class="sub-tabs">
+              <div class="tab"><i class="ti ti-file-description"></i>Cover</div>
+              <div class="tab on"><i class="ti ti-list-numbers"></i>Steps<span class="badge">6</span></div>
+              <div class="tab"><i class="ti ti-circles-relation"></i>Capabilities<span class="badge">5</span></div>
+              <div class="tab"><i class="ti ti-currency-dollar"></i>Pricing &amp; access</div>
+              <div class="tab"><i class="ti ti-users-group"></i>Cohorts</div>
+              <div class="tab"><i class="ti ti-user-check"></i>Mentor settings</div>
+              <div class="tab"><i class="ti ti-pulse"></i>Activity</div>
+            </div>
+
+            <div class="body">
+              <div class="body-inner">
+                <div class="section-title">
+                  <div>
+                    <div class="eyebrow">Steps</div>
+                    <h2>The shape students will work through</h2>
+                  </div>
+                  <div class="hint">Drag to reorder · click any row to expand</div>
+                </div>
+
+                <div class="step-list">
+                  <!-- Step 1 — collapsed -->
+                  <div class="step-row">
+                    <div class="drag"><i class="ti ti-grip-vertical"></i></div>
+                    <div class="num">1</div>
+                    <div class="main">
+                      <div class="title-line">
+                        <h4>Recognize SIRS criteria</h4>
+                        <span class="chip sq cat-asmt">Assessment</span>
+                      </div>
+                      <p class="desc">At the bedside, the student names which two of the four SIRS criteria are present and explains why a third is being watched.</p>
+                      <div class="tag-row">
+                        <span class="chip">Head-to-toe assessment</span>
+                        <span class="chip">Sepsis bundle</span>
+                      </div>
+                    </div>
+                    <div class="row-actions">
+                      <button title="Duplicate"><i class="ti ti-copy"></i></button>
+                      <button title="More"><i class="ti ti-dots-vertical"></i></button>
+                    </div>
+                  </div>
+
+                  <!-- Step 2 — EXPANDED inline editor (sepsis example) -->
+                  <div class="step-row expanded">
+                    <div class="drag"><i class="ti ti-grip-vertical"></i></div>
+                    <div class="num">2</div>
+                    <div class="main">
+                      <div class="title-line">
+                        <h4>Sepsis bundle recognition</h4>
+                        <span class="chip sq cat-rsn">Clinical reasoning</span>
+                        <span class="chip sq cat-proc" style="margin-left:0;">Procedural</span>
+                      </div>
+                      <p class="desc">The 1-hour bundle: call it before the timer runs out. Student walks through the bundle aloud at the bedside, identifies what has been done, what is missing, and the next move.</p>
+                      <div class="tag-row">
+                        <span class="chip">Sepsis bundle recognition</span>
+                        <span class="chip">ISBAR handoff</span>
+                      </div>
+                    </div>
+                    <div class="row-actions">
+                      <button title="Collapse"><i class="ti ti-chevron-up"></i></button>
+                      <button title="More"><i class="ti ti-dots-vertical"></i></button>
+                    </div>
+
+                    <!-- Inline editor -->
+                    <div class="step-edit">
+                      <div class="field span-2">
+                        <label>What — the question the student answers</label>
+                        <input class="input" value="Is this patient meeting sepsis bundle criteria right now, and what is the next action?" />
+                        <div class="help">Asked at the bedside before action. Phrase as a single question.</div>
+                      </div>
+
+                      <div class="field span-2">
+                        <label>How — sub-steps shown to the student</label>
+                        <div class="sub-steps">
+                          <div class="sub-step">
+                            <span class="grip"><i class="ti ti-grip-vertical"></i></span>
+                            <span class="n">1</span>
+                            <span class="text"><input value="Identify SIRS criteria present" readonly /></span>
+                            <span class="x"><i class="ti ti-x"></i></span>
+                          </div>
+                          <div class="sub-step">
+                            <span class="grip"><i class="ti ti-grip-vertical"></i></span>
+                            <span class="n">2</span>
+                            <span class="text"><input value="Initiate fluid resuscitation — 30 mL/kg crystalloid" readonly /></span>
+                            <span class="x"><i class="ti ti-x"></i></span>
+                          </div>
+                          <div class="sub-step">
+                            <span class="grip"><i class="ti ti-grip-vertical"></i></span>
+                            <span class="n">3</span>
+                            <span class="text"><input value="Call rapid response and ISBAR the situation" readonly /></span>
+                            <span class="x"><i class="ti ti-x"></i></span>
+                          </div>
+                        </div>
+                        <button class="add-sub"><i class="ti ti-plus" style="font-size:12px;"></i>Add sub-step</button>
+                      </div>
+
+                      <div class="field">
+                        <label>Who — preceptor role (optional)</label>
+                        <div class="select-fake">Charge nurse or rapid-response RN<i class="ti ti-chevron-down"></i></div>
+                        <div class="help">Shown to mentors as eligibility hint.</div>
+                      </div>
+                      <div class="field">
+                        <label>Capabilities trained</label>
+                        <div style="display:flex; gap:6px; flex-wrap:wrap; padding-top:4px;">
+                          <span class="chip">Sepsis bundle recognition</span>
+                          <span class="chip">ISBAR handoff</span>
+                          <span class="chip" style="background:var(--admin-cream-2);color:var(--admin-ink-3);"><i class="ti ti-plus" style="font-size:11px;"></i> Add</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Step 3 -->
+                  <div class="step-row">
+                    <div class="drag"><i class="ti ti-grip-vertical"></i></div>
+                    <div class="num">3</div>
+                    <div class="main">
+                      <div class="title-line">
+                        <h4>ISBAR handoff to rapid response</h4>
+                        <span class="chip sq cat-comm">Communication</span>
+                      </div>
+                      <p class="desc">Structured handoff to the responding team in &lt;90 seconds. Student is graded on completeness, not speed.</p>
+                      <div class="tag-row">
+                        <span class="chip">ISBAR handoff communication</span>
+                      </div>
+                    </div>
+                    <div class="row-actions">
+                      <button title="Duplicate"><i class="ti ti-copy"></i></button>
+                      <button title="More"><i class="ti ti-dots-vertical"></i></button>
+                    </div>
+                  </div>
+
+                  <!-- Step 4 -->
+                  <div class="step-row">
+                    <div class="drag"><i class="ti ti-grip-vertical"></i></div>
+                    <div class="num">4</div>
+                    <div class="main">
+                      <div class="title-line">
+                        <h4>Place a second IV access · supervised</h4>
+                        <span class="chip sq cat-proc">Procedural</span>
+                      </div>
+                      <p class="desc">Bundle requires fluids running fast. Establish a second 18–20G access with preceptor at bedside.</p>
+                      <div class="tag-row">
+                        <span class="chip">IV insertion · supervised</span>
+                      </div>
+                    </div>
+                    <div class="row-actions">
+                      <button title="Duplicate"><i class="ti ti-copy"></i></button>
+                      <button title="More"><i class="ti ti-dots-vertical"></i></button>
+                    </div>
+                  </div>
+
+                  <!-- Step 5 -->
+                  <div class="step-row">
+                    <div class="drag"><i class="ti ti-grip-vertical"></i></div>
+                    <div class="num">5</div>
+                    <div class="main">
+                      <div class="title-line">
+                        <h4>Reassess after 1 hour</h4>
+                        <span class="chip sq cat-asmt">Assessment</span>
+                      </div>
+                      <p class="desc">MAP, mental status, urine output, lactate trend. Student narrates what changed and what they would adjust.</p>
+                      <div class="tag-row">
+                        <span class="chip">Head-to-toe assessment</span>
+                      </div>
+                    </div>
+                    <div class="row-actions">
+                      <button title="Duplicate"><i class="ti ti-copy"></i></button>
+                      <button title="More"><i class="ti ti-dots-vertical"></i></button>
+                    </div>
+                  </div>
+
+                  <!-- Step 6 -->
+                  <div class="step-row">
+                    <div class="drag"><i class="ti ti-grip-vertical"></i></div>
+                    <div class="num">6</div>
+                    <div class="main">
+                      <div class="title-line">
+                        <h4>Reflect in writing — 3 prompts</h4>
+                        <span class="chip sq cat-rsn">Clinical reasoning</span>
+                      </div>
+                      <p class="desc">What I missed · what I caught · what I would do differently. 5 minutes after handoff, before charting.</p>
+                    </div>
+                    <div class="row-actions">
+                      <button title="Duplicate"><i class="ti ti-copy"></i></button>
+                      <button title="More"><i class="ti ti-dots-vertical"></i></button>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="add-step">
+                  <div class="plus"><i class="ti ti-plus"></i></div>
+                  <div><strong>Add step</strong> — blank, or duplicate the last one</div>
+                  <div class="spacer"></div>
+                  <span class="templ">Start from template ›</span>
+                </div>
+              </div>
+            </div>
+          </main>
+        </div>
+      </div>
+    </div>
+
+    <!-- ====================================================================
+         FRAME 19 · CAPABILITIES TAB
+    ===================================================================== -->
+    <div class="frame-col" data-screen-label="19 Blueprint editor · Capabilities">
+      <div class="frame-cap"><span class="num">19</span> <strong>Capabilities</strong> — pick what this blueprint trains, set coverage strength</div>
+      <div class="desktop">
+        <div class="chrome">
+          <div class="lights"><span class="r"></span><span class="y"></span><span class="g"></span></div>
+          <div class="url"><div class="url-inner">
+            <i class="ti ti-lock"></i>
+            <span><strong>betterat.app</strong>/orgs/jhson/studio/blueprints/sepsis-bundle/capabilities</span>
+          </div></div>
+          <div class="meta-right"><i class="ti ti-cloud-check"></i><span>Saved just now</span></div>
+        </div>
+
+        <div class="app">
+          <aside class="sidebar">
+            <div class="editing-banner">
+              <div class="back"><i class="ti ti-arrow-left"></i></div>
+              <div>
+                <div class="label">Editing blueprint</div>
+                <div class="title">Sepsis bundle recognition</div>
+              </div>
+            </div>
+            <div class="editing-meta">
+              <div><span class="dot draft"></span><strong>Draft v0.4</strong> · 6 steps · 5 capabilities</div>
+              <div style="margin-top:4px;">Last edited Wed 11:42a · R.&nbsp;Murphy</div>
+            </div>
+            <div class="nav">
+              <div class="group-label">Blueprint</div>
+              <div class="item"><i class="ti ti-file-description"></i>Cover</div>
+              <div class="item"><i class="ti ti-list-numbers"></i>Steps<span class="count">6</span></div>
+              <div class="item on"><i class="ti ti-circles-relation"></i>Capabilities<span class="count">5</span></div>
+              <div class="item"><i class="ti ti-currency-dollar"></i>Pricing &amp; access</div>
+              <div class="item"><i class="ti ti-users-group"></i>Cohorts<span class="count">1</span></div>
+              <div class="item"><i class="ti ti-user-check"></i>Mentor settings</div>
+              <div class="item"><i class="ti ti-pulse"></i>Activity</div>
+            </div>
+            <div class="spacer"></div>
+            <div class="user-card">
+              <div class="av">RM</div>
+              <div class="meta"><div class="name">Dr. R. Murphy</div><div class="role">Author · JHSON</div></div>
+              <i class="ti ti-chevron-up"></i>
+            </div>
+          </aside>
+
+          <main class="content">
+            <div class="header">
+              <div class="crumb">
+                <a>Org admin</a><i class="ti ti-chevron-right"></i>
+                <a>Blueprints</a><i class="ti ti-chevron-right"></i>
+                <span class="here">Sepsis bundle recognition</span><i class="ti ti-chevron-right"></i>
+                <span class="here">Capabilities</span>
+              </div>
+              <div class="title-row">
+                <h1>Capabilities trained</h1>
+                <span class="status">Draft v0.4</span>
+                <div class="actions">
+                  <button class="btn"><i class="ti ti-list-tree"></i>Manage taxonomy</button>
+                  <button class="btn primary"><i class="ti ti-arrow-up-right"></i>Publish</button>
+                </div>
+              </div>
+              <div class="subtitle">
+                <strong>5 capabilities selected</strong><span class="sep">·</span>2 primary · 2 secondary · 1 supporting<span class="sep">·</span>from JHSON org taxonomy
+              </div>
+            </div>
+
+            <div class="sub-tabs">
+              <div class="tab"><i class="ti ti-file-description"></i>Cover</div>
+              <div class="tab"><i class="ti ti-list-numbers"></i>Steps<span class="badge">6</span></div>
+              <div class="tab on"><i class="ti ti-circles-relation"></i>Capabilities<span class="badge">5</span></div>
+              <div class="tab"><i class="ti ti-currency-dollar"></i>Pricing &amp; access</div>
+              <div class="tab"><i class="ti ti-users-group"></i>Cohorts</div>
+              <div class="tab"><i class="ti ti-user-check"></i>Mentor settings</div>
+              <div class="tab"><i class="ti ti-pulse"></i>Activity</div>
+            </div>
+
+            <div class="body">
+              <div class="body-inner">
+                <div class="section-title">
+                  <div>
+                    <div class="eyebrow">Org_competencies · JHSON taxonomy</div>
+                    <h2>Which capabilities does this blueprint train?</h2>
+                  </div>
+                  <div class="hint">Coverage strength sets how much evidence this blueprint contributes</div>
+                </div>
+
+                <div class="cap-grid">
+
+                  <!-- Procedural -->
+                  <div class="cap-group">
+                    <div class="group-head">
+                      <span class="ico proc"><i class="ti ti-tool"></i></span>
+                      <span class="name">Procedural</span>
+                      <span class="count">1 of 4 selected</span>
+                    </div>
+                    <div class="cap-item on">
+                      <div class="check"><i class="ti ti-check"></i></div>
+                      <div class="label">IV insertion · supervised</div>
+                      <div class="coverage">
+                        <div class="seg on"></div><div class="seg on"></div><div class="seg"></div>
+                        <span class="label-mini">Secondary</span>
+                      </div>
+                    </div>
+                    <div class="cap-item off">
+                      <div class="check"></div>
+                      <div class="label">Medication administration</div>
+                      <div class="coverage"><div class="seg"></div><div class="seg"></div><div class="seg"></div><span class="label-mini">—</span></div>
+                    </div>
+                    <div class="cap-item off">
+                      <div class="check"></div>
+                      <div class="label">Foley catheter placement</div>
+                      <div class="coverage"><div class="seg"></div><div class="seg"></div><div class="seg"></div><span class="label-mini">—</span></div>
+                    </div>
+                    <div class="cap-item off">
+                      <div class="check"></div>
+                      <div class="label">NG tube placement</div>
+                      <div class="coverage"><div class="seg"></div><div class="seg"></div><div class="seg"></div><span class="label-mini">—</span></div>
+                    </div>
+                  </div>
+
+                  <!-- Assessment -->
+                  <div class="cap-group">
+                    <div class="group-head">
+                      <span class="ico asmt"><i class="ti ti-stethoscope"></i></span>
+                      <span class="name">Assessment</span>
+                      <span class="count">2 of 2 selected</span>
+                    </div>
+                    <div class="cap-item on">
+                      <div class="check"><i class="ti ti-check"></i></div>
+                      <div class="label">Head-to-toe assessment</div>
+                      <div class="coverage">
+                        <div class="seg on"></div><div class="seg on"></div><div class="seg"></div>
+                        <span class="label-mini">Secondary</span>
+                      </div>
+                    </div>
+                    <div class="cap-item on">
+                      <div class="check"><i class="ti ti-check"></i></div>
+                      <div class="label">Cardiac telemetry interpretation</div>
+                      <div class="coverage">
+                        <div class="seg on supporting"></div><div class="seg"></div><div class="seg"></div>
+                        <span class="label-mini">Supporting</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Communication -->
+                  <div class="cap-group">
+                    <div class="group-head">
+                      <span class="ico comm"><i class="ti ti-messages"></i></span>
+                      <span class="name">Communication</span>
+                      <span class="count">1 of 2 selected</span>
+                    </div>
+                    <div class="cap-item on">
+                      <div class="check"><i class="ti ti-check"></i></div>
+                      <div class="label">ISBAR handoff communication</div>
+                      <div class="coverage">
+                        <div class="seg on"></div><div class="seg on"></div><div class="seg on"></div>
+                        <span class="label-mini">Primary</span>
+                      </div>
+                    </div>
+                    <div class="cap-item off">
+                      <div class="check"></div>
+                      <div class="label">Discharge teach-back</div>
+                      <div class="coverage"><div class="seg"></div><div class="seg"></div><div class="seg"></div><span class="label-mini">—</span></div>
+                    </div>
+                  </div>
+
+                  <!-- Clinical reasoning -->
+                  <div class="cap-group">
+                    <div class="group-head">
+                      <span class="ico rsn"><i class="ti ti-bulb"></i></span>
+                      <span class="name">Clinical reasoning</span>
+                      <span class="count">1 of 1 selected</span>
+                    </div>
+                    <div class="cap-item on">
+                      <div class="check"><i class="ti ti-check"></i></div>
+                      <div class="label">Sepsis bundle recognition <span class="chip sq" style="margin-left:6px;background:var(--admin-success-tint);color:var(--admin-success);">New</span></div>
+                      <div class="coverage">
+                        <div class="seg on"></div><div class="seg on"></div><div class="seg on"></div>
+                        <span class="label-mini">Primary</span>
+                      </div>
+                    </div>
+                  </div>
+
+                </div>
+
+                <!-- Coverage strength legend -->
+                <div class="card tinted">
+                  <div class="card-body" style="padding:14px 18px;display:flex;gap:24px;align-items:center;">
+                    <div style="font-size:11px;letter-spacing:0.10em;text-transform:uppercase;font-weight:700;color:var(--admin-ink-3);">Coverage strength</div>
+                    <div style="display:flex;gap:8px;align-items:center;font-size:12px;color:var(--admin-ink-2);">
+                      <span style="display:inline-flex;gap:3px;"><span style="width:14px;height:6px;border-radius:3px;background:var(--admin-navy);"></span><span style="width:14px;height:6px;border-radius:3px;background:var(--admin-navy);"></span><span style="width:14px;height:6px;border-radius:3px;background:var(--admin-navy);"></span></span>
+                      <strong style="color:var(--admin-ink);">Primary</strong> — main thing this trains
+                    </div>
+                    <div style="display:flex;gap:8px;align-items:center;font-size:12px;color:var(--admin-ink-2);">
+                      <span style="display:inline-flex;gap:3px;"><span style="width:14px;height:6px;border-radius:3px;background:var(--admin-navy-3);"></span><span style="width:14px;height:6px;border-radius:3px;background:var(--admin-navy-3);"></span><span style="width:14px;height:6px;border-radius:3px;background:var(--admin-line);"></span></span>
+                      <strong style="color:var(--admin-ink);">Secondary</strong> — practiced incidentally
+                    </div>
+                    <div style="display:flex;gap:8px;align-items:center;font-size:12px;color:var(--admin-ink-2);">
+                      <span style="display:inline-flex;gap:3px;"><span style="width:14px;height:6px;border-radius:3px;background:var(--admin-navy-tint-3);"></span><span style="width:14px;height:6px;border-radius:3px;background:var(--admin-line);"></span><span style="width:14px;height:6px;border-radius:3px;background:var(--admin-line);"></span></span>
+                      <strong style="color:var(--admin-ink);">Supporting</strong> — touched, not assessed
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+          </main>
+        </div>
+      </div>
+    </div>
+
+    <!-- ====================================================================
+         FRAME 20 · PRICING & ACCESS TAB
+    ===================================================================== -->
+    <div class="frame-col" data-screen-label="20 Blueprint editor · Pricing &amp; access">
+      <div class="frame-cap"><span class="num">20</span> <strong>Pricing &amp; access</strong> — Institutional / Independent toggle, cohort scope</div>
+      <div class="desktop">
+        <div class="chrome">
+          <div class="lights"><span class="r"></span><span class="y"></span><span class="g"></span></div>
+          <div class="url"><div class="url-inner">
+            <i class="ti ti-lock"></i>
+            <span><strong>betterat.app</strong>/orgs/jhson/studio/blueprints/sepsis-bundle/pricing</span>
+          </div></div>
+          <div class="meta-right"><i class="ti ti-cloud-check"></i><span>Saved 14s ago</span></div>
+        </div>
+
+        <div class="app">
+          <aside class="sidebar">
+            <div class="editing-banner">
+              <div class="back"><i class="ti ti-arrow-left"></i></div>
+              <div>
+                <div class="label">Editing blueprint</div>
+                <div class="title">Sepsis bundle recognition</div>
+              </div>
+            </div>
+            <div class="editing-meta">
+              <div><span class="dot draft"></span><strong>Draft v0.4</strong> · 6 steps · 5 capabilities</div>
+              <div style="margin-top:4px;">Last edited Wed 11:42a · R.&nbsp;Murphy</div>
+            </div>
+            <div class="nav">
+              <div class="group-label">Blueprint</div>
+              <div class="item"><i class="ti ti-file-description"></i>Cover</div>
+              <div class="item"><i class="ti ti-list-numbers"></i>Steps<span class="count">6</span></div>
+              <div class="item"><i class="ti ti-circles-relation"></i>Capabilities<span class="count">5</span></div>
+              <div class="item on"><i class="ti ti-currency-dollar"></i>Pricing &amp; access</div>
+              <div class="item"><i class="ti ti-users-group"></i>Cohorts<span class="count">1</span></div>
+              <div class="item"><i class="ti ti-user-check"></i>Mentor settings</div>
+              <div class="item"><i class="ti ti-pulse"></i>Activity</div>
+            </div>
+            <div class="spacer"></div>
+            <div class="user-card">
+              <div class="av">RM</div>
+              <div class="meta"><div class="name">Dr. R. Murphy</div><div class="role">Author · JHSON</div></div>
+              <i class="ti ti-chevron-up"></i>
+            </div>
+          </aside>
+
+          <main class="content">
+            <div class="header">
+              <div class="crumb">
+                <a>Org admin</a><i class="ti ti-chevron-right"></i>
+                <a>Blueprints</a><i class="ti ti-chevron-right"></i>
+                <span class="here">Sepsis bundle recognition</span><i class="ti ti-chevron-right"></i>
+                <span class="here">Pricing &amp; access</span>
+              </div>
+              <div class="title-row">
+                <h1>Pricing &amp; access</h1>
+                <span class="status">Draft v0.4</span>
+                <div class="actions">
+                  <span class="success-pill"><i class="ti ti-check"></i>Free to JHSON cohorts</span>
+                  <button class="btn primary"><i class="ti ti-arrow-up-right"></i>Publish</button>
+                </div>
+              </div>
+              <div class="subtitle">
+                Who can subscribe to this blueprint, who pays, and on what terms.
+              </div>
+            </div>
+
+            <div class="sub-tabs">
+              <div class="tab"><i class="ti ti-file-description"></i>Cover</div>
+              <div class="tab"><i class="ti ti-list-numbers"></i>Steps<span class="badge">6</span></div>
+              <div class="tab"><i class="ti ti-circles-relation"></i>Capabilities<span class="badge">5</span></div>
+              <div class="tab on"><i class="ti ti-currency-dollar"></i>Pricing &amp; access</div>
+              <div class="tab"><i class="ti ti-users-group"></i>Cohorts</div>
+              <div class="tab"><i class="ti ti-user-check"></i>Mentor settings</div>
+              <div class="tab"><i class="ti ti-pulse"></i>Activity</div>
+            </div>
+
+            <div class="body">
+              <div class="body-inner">
+
+                <div class="section-title">
+                  <div>
+                    <div class="eyebrow">Access model</div>
+                    <h2>Who is paying for this blueprint?</h2>
+                  </div>
+                </div>
+
+                <div class="toggle-pair">
+                  <div class="toggle-card on">
+                    <span class="radio"></span>
+                    <h4>Institutional · org-paid</h4>
+                    <p class="lead">Johns Hopkins School of Nursing pays from its plan. Free to enrolled students in selected cohorts.</p>
+                    <div class="who"><i class="ti ti-shield-check" style="font-size:13px;"></i>JHSON · BSN seats</div>
+                  </div>
+                  <div class="toggle-card">
+                    <span class="radio"></span>
+                    <h4>Independent · per-seat</h4>
+                    <p class="lead">Listed publicly. Anyone with a BetterAt account can subscribe. Author earns a payout per active seat.</p>
+                    <div class="who" style="color:var(--admin-ink-3);"><i class="ti ti-world" style="font-size:13px;"></i>Open marketplace</div>
+                  </div>
+                </div>
+
+                <!-- Institutional config panel -->
+                <div class="panel">
+                  <div class="panel-head">
+                    <span class="eyebrow">Institutional configuration</span>
+                    <span class="hint">Confirm org and choose cohort scope</span>
+                  </div>
+
+                  <div class="row-2">
+                    <div class="field">
+                      <label>Paying organization</label>
+                      <div class="select-fake" style="background:var(--admin-paper);">
+                        <span style="display:inline-flex;align-items:center;gap:8px;">
+                          <span style="width:20px;height:20px;border-radius:5px;background:linear-gradient(160deg,var(--admin-navy),var(--admin-navy-2));color:#fff;font-family:'Iowan Old Style',Georgia,serif;font-weight:700;font-size:11px;display:inline-flex;align-items:center;justify-content:center;">JH</span>
+                          Johns Hopkins School of Nursing
+                        </span>
+                        <i class="ti ti-chevron-down"></i>
+                      </div>
+                      <div class="help">Charges roll up to JHSON&rsquo;s plan invoice.</div>
+                    </div>
+                    <div class="field">
+                      <label>Cohort scope</label>
+                      <div class="seg-control" style="background:var(--admin-paper);border:0.5px solid var(--admin-line);">
+                        <div class="opt">All cohorts</div>
+                        <div class="opt on">Specific cohorts</div>
+                      </div>
+                      <div class="help">Limit which cohorts see this blueprint in their library.</div>
+                    </div>
+                  </div>
+
+                  <div class="field" style="margin-top:12px;">
+                    <label style="font-size:11px;color:var(--admin-ink-2);font-weight:600;">Assigned cohorts</label>
+                    <div style="display:flex;gap:6px;flex-wrap:wrap;padding-top:6px;">
+                      <span class="chip" style="background:var(--admin-paper);border:0.5px solid var(--admin-navy-tint-3);color:var(--admin-navy);">BSN Class of 2027 — Cohort A<i class="ti ti-x" style="font-size:11px;margin-left:4px;cursor:default;"></i></span>
+                      <span class="chip" style="background:var(--admin-paper);border:0.5px dashed var(--admin-line-strong);color:var(--admin-ink-3);"><i class="ti ti-plus" style="font-size:11px;"></i>Add cohort</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Independent config (greyed) -->
+                <div class="card" style="opacity:0.55;">
+                  <div class="card-head">
+                    <div>
+                      <div class="eyebrow">Independent pricing · disabled</div>
+                      <h3>Per-seat &amp; per-cohort pricing</h3>
+                    </div>
+                    <div class="actions" style="font-size:11px;color:var(--admin-ink-3);">Switch to Independent above to enable</div>
+                  </div>
+                  <div class="card-body" style="padding-top:4px;">
+                    <div class="pricing-grid">
+                      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;">
+                        <div class="field">
+                          <label style="font-size:11px;color:var(--admin-ink-2);font-weight:600;">Per-seat price · month</label>
+                          <div class="input has-affix"><span class="affix">USD</span><input value="14.00" /></div>
+                        </div>
+                        <div class="field">
+                          <label style="font-size:11px;color:var(--admin-ink-2);font-weight:600;">Author payout %</label>
+                          <div class="input has-affix"><input value="70" /><span class="affix" style="border-left:0.5px solid var(--admin-line);border-right:none;">%</span></div>
+                        </div>
+                        <div class="field">
+                          <label style="font-size:11px;color:var(--admin-ink-2);font-weight:600;">Trial · days</label>
+                          <div class="input"><input style="border:none;outline:none;width:100%;padding:0;background:transparent;font:inherit;" value="7" /></div>
+                        </div>
+                      </div>
+                      <div class="license-prev">
+                        <strong>License preview</strong><br/>
+                        Non-transferable, single-seat subscription.<br/>
+                        Author retains all step content. BetterAt routes payouts via Stripe Connect.<br/>
+                        Refund window: 14 days from first activation.
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+          </main>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="sect-head">
+    <p class="eyebrow">Group 2 of 2</p>
+    <h2>Cohorts, Mentor settings, Activity — the run-the-blueprint tabs</h2>
+  </div>
+
+  <div class="frame-row">
+
+    <!-- ====================================================================
+         FRAME 21 · COHORTS TAB
+    ===================================================================== -->
+    <div class="frame-col" data-screen-label="21 Blueprint editor · Cohorts">
+      <div class="frame-cap"><span class="num">21</span> <strong>Cohorts</strong> — which cohorts subscribe, per-cohort mentor assignments</div>
+      <div class="desktop">
+        <div class="chrome">
+          <div class="lights"><span class="r"></span><span class="y"></span><span class="g"></span></div>
+          <div class="url"><div class="url-inner">
+            <i class="ti ti-lock"></i>
+            <span><strong>betterat.app</strong>/orgs/jhson/studio/blueprints/sepsis-bundle/cohorts</span>
+          </div></div>
+          <div class="meta-right"><i class="ti ti-cloud-check"></i><span>Saved 1 min ago</span></div>
+        </div>
+
+        <div class="app">
+          <aside class="sidebar">
+            <div class="editing-banner">
+              <div class="back"><i class="ti ti-arrow-left"></i></div>
+              <div>
+                <div class="label">Editing blueprint</div>
+                <div class="title">Sepsis bundle recognition</div>
+              </div>
+            </div>
+            <div class="editing-meta">
+              <div><span class="dot draft"></span><strong>Draft v0.4</strong> · 6 steps · 5 capabilities</div>
+              <div style="margin-top:4px;">Last edited Wed 11:42a · R.&nbsp;Murphy</div>
+            </div>
+            <div class="nav">
+              <div class="group-label">Blueprint</div>
+              <div class="item"><i class="ti ti-file-description"></i>Cover</div>
+              <div class="item"><i class="ti ti-list-numbers"></i>Steps<span class="count">6</span></div>
+              <div class="item"><i class="ti ti-circles-relation"></i>Capabilities<span class="count">5</span></div>
+              <div class="item"><i class="ti ti-currency-dollar"></i>Pricing &amp; access</div>
+              <div class="item on"><i class="ti ti-users-group"></i>Cohorts<span class="count">1</span></div>
+              <div class="item"><i class="ti ti-user-check"></i>Mentor settings</div>
+              <div class="item"><i class="ti ti-pulse"></i>Activity</div>
+            </div>
+            <div class="spacer"></div>
+            <div class="user-card">
+              <div class="av">RM</div>
+              <div class="meta"><div class="name">Dr. R. Murphy</div><div class="role">Author · JHSON</div></div>
+              <i class="ti ti-chevron-up"></i>
+            </div>
+          </aside>
+
+          <main class="content">
+            <div class="header">
+              <div class="crumb">
+                <a>Org admin</a><i class="ti ti-chevron-right"></i>
+                <a>Blueprints</a><i class="ti ti-chevron-right"></i>
+                <span class="here">Sepsis bundle recognition</span><i class="ti ti-chevron-right"></i>
+                <span class="here">Cohorts</span>
+              </div>
+              <div class="title-row">
+                <h1>Assigned cohorts</h1>
+                <span class="status">Draft v0.4</span>
+                <div class="actions">
+                  <button class="btn"><i class="ti ti-filter"></i>Filter</button>
+                  <button class="btn primary"><i class="ti ti-plus"></i>Assign to cohort</button>
+                </div>
+              </div>
+              <div class="subtitle">
+                <strong>1 cohort</strong><span class="sep">·</span>30 students subscribed<span class="sep">·</span>2 mentors assigned
+              </div>
+            </div>
+
+            <div class="sub-tabs">
+              <div class="tab"><i class="ti ti-file-description"></i>Cover</div>
+              <div class="tab"><i class="ti ti-list-numbers"></i>Steps<span class="badge">6</span></div>
+              <div class="tab"><i class="ti ti-circles-relation"></i>Capabilities<span class="badge">5</span></div>
+              <div class="tab"><i class="ti ti-currency-dollar"></i>Pricing &amp; access</div>
+              <div class="tab on"><i class="ti ti-users-group"></i>Cohorts<span class="badge">1</span></div>
+              <div class="tab"><i class="ti ti-user-check"></i>Mentor settings</div>
+              <div class="tab"><i class="ti ti-pulse"></i>Activity</div>
+            </div>
+
+            <div class="body">
+              <div class="body-inner">
+
+                <!-- Cohort card — assigned -->
+                <div class="card">
+                  <div class="card-head">
+                    <div style="display:flex;align-items:center;gap:14px;">
+                      <span style="width:42px;height:42px;border-radius:10px;background:var(--admin-navy);color:#fff;font-weight:700;font-size:14px;display:inline-flex;align-items:center;justify-content:center;letter-spacing:-0.3px;">27A</span>
+                      <div>
+                        <div class="eyebrow" style="color:var(--admin-navy);">Active · subscribed Apr 5</div>
+                        <h3 style="margin-top:2px;">BSN Class of 2027 — Cohort A</h3>
+                      </div>
+                    </div>
+                    <div class="actions">
+                      <span class="chip ok"><i class="ti ti-circle-check-filled"></i>30 / 30 subscribed</span>
+                      <button class="btn"><i class="ti ti-settings"></i>Per-cohort settings</button>
+                      <button class="btn ghost danger"><i class="ti ti-unlink"></i>Unassign</button>
+                    </div>
+                  </div>
+                  <div class="card-body">
+                    <div class="stat-strip">
+                      <div class="stat"><div class="k">Students</div><div class="v">30</div><div class="d">subscribed on activation</div></div>
+                      <div class="stat"><div class="k">Started</div><div class="v">22</div><div class="d">opened ≥ 1 step</div></div>
+                      <div class="stat"><div class="k">Settled</div><div class="v">14</div><div class="d">at least one bundle completed</div></div>
+                      <div class="stat"><div class="k">Avg time</div><div class="v">38<span style="font-size:13px;color:var(--admin-ink-3);font-weight:500;"> min</span></div><div class="d">first attempt → reflect</div></div>
+                    </div>
+
+                    <div style="margin-top:18px;display:grid;grid-template-columns:1fr 1fr;gap:18px;">
+                      <div>
+                        <div class="eyebrow" style="font-size:10.5px;letter-spacing:0.10em;text-transform:uppercase;font-weight:700;color:var(--admin-ink-3);margin-bottom:8px;">Mentors on this cohort</div>
+                        <div class="roster-row">
+                          <span class="av navy">SP</span>
+                          <div class="info"><div class="name">Dean S. Park</div><div class="meta">Faculty · oversight</div></div>
+                          <span class="chip">Can mark settled</span>
+                          <button class="btn icon ghost"><i class="ti ti-dots-vertical"></i></button>
+                        </div>
+                        <div class="roster-row">
+                          <span class="av brown">JK</span>
+                          <div class="info"><div class="name">J. Kim, RN</div><div class="meta">Clinical preceptor · East Baltimore</div></div>
+                          <span class="chip">Comment &amp; settle</span>
+                          <button class="btn icon ghost"><i class="ti ti-dots-vertical"></i></button>
+                        </div>
+                        <button class="add-sub" style="margin-top:10px;"><i class="ti ti-plus" style="font-size:12px;"></i>Assign mentor</button>
+                      </div>
+
+                      <div>
+                        <div class="eyebrow" style="font-size:10.5px;letter-spacing:0.10em;text-transform:uppercase;font-weight:700;color:var(--admin-ink-3);margin-bottom:8px;">Schedule</div>
+                        <div class="card tinted" style="padding:12px 14px;display:flex;flex-direction:column;gap:8px;">
+                          <div style="display:flex;justify-content:space-between;font-size:12.5px;color:var(--admin-ink-2);"><span>Subscribed on</span><strong style="color:var(--admin-ink);">Apr 5, 2026</strong></div>
+                          <div style="display:flex;justify-content:space-between;font-size:12.5px;color:var(--admin-ink-2);"><span>Available from</span><strong style="color:var(--admin-ink);">Apr 8, 2026</strong></div>
+                          <div style="display:flex;justify-content:space-between;font-size:12.5px;color:var(--admin-ink-2);"><span>Closes</span><strong style="color:var(--admin-ink);">Aug 14, 2026</strong></div>
+                          <div style="display:flex;justify-content:space-between;font-size:12.5px;color:var(--admin-ink-2);"><span>Required for</span><strong style="color:var(--admin-ink);">Medical-surgical rotation</strong></div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Add another cohort -->
+                <div class="add-step">
+                  <div class="plus"><i class="ti ti-plus"></i></div>
+                  <div><strong>Assign to another cohort</strong> — Cohort&nbsp;B, MSN cohorts, accelerated programs</div>
+                  <div class="spacer"></div>
+                  <span class="templ">Browse cohorts ›</span>
+                </div>
+
+              </div>
+            </div>
+          </main>
+        </div>
+      </div>
+    </div>
+
+    <!-- ====================================================================
+         FRAME 22 · MENTOR SETTINGS TAB
+    ===================================================================== -->
+    <div class="frame-col" data-screen-label="22 Blueprint editor · Mentor settings">
+      <div class="frame-cap"><span class="num">22</span> <strong>Mentor settings</strong> — who can mentor, what they can do, notification cadence</div>
+      <div class="desktop">
+        <div class="chrome">
+          <div class="lights"><span class="r"></span><span class="y"></span><span class="g"></span></div>
+          <div class="url"><div class="url-inner">
+            <i class="ti ti-lock"></i>
+            <span><strong>betterat.app</strong>/orgs/jhson/studio/blueprints/sepsis-bundle/mentors</span>
+          </div></div>
+          <div class="meta-right"><i class="ti ti-cloud-check"></i><span>Saved just now</span></div>
+        </div>
+
+        <div class="app">
+          <aside class="sidebar">
+            <div class="editing-banner">
+              <div class="back"><i class="ti ti-arrow-left"></i></div>
+              <div>
+                <div class="label">Editing blueprint</div>
+                <div class="title">Sepsis bundle recognition</div>
+              </div>
+            </div>
+            <div class="editing-meta">
+              <div><span class="dot draft"></span><strong>Draft v0.4</strong> · 6 steps · 5 capabilities</div>
+              <div style="margin-top:4px;">Last edited Wed 11:42a · R.&nbsp;Murphy</div>
+            </div>
+            <div class="nav">
+              <div class="group-label">Blueprint</div>
+              <div class="item"><i class="ti ti-file-description"></i>Cover</div>
+              <div class="item"><i class="ti ti-list-numbers"></i>Steps<span class="count">6</span></div>
+              <div class="item"><i class="ti ti-circles-relation"></i>Capabilities<span class="count">5</span></div>
+              <div class="item"><i class="ti ti-currency-dollar"></i>Pricing &amp; access</div>
+              <div class="item"><i class="ti ti-users-group"></i>Cohorts<span class="count">1</span></div>
+              <div class="item on"><i class="ti ti-user-check"></i>Mentor settings</div>
+              <div class="item"><i class="ti ti-pulse"></i>Activity</div>
+            </div>
+            <div class="spacer"></div>
+            <div class="user-card">
+              <div class="av">RM</div>
+              <div class="meta"><div class="name">Dr. R. Murphy</div><div class="role">Author · JHSON</div></div>
+              <i class="ti ti-chevron-up"></i>
+            </div>
+          </aside>
+
+          <main class="content">
+            <div class="header">
+              <div class="crumb">
+                <a>Org admin</a><i class="ti ti-chevron-right"></i>
+                <a>Blueprints</a><i class="ti ti-chevron-right"></i>
+                <span class="here">Sepsis bundle recognition</span><i class="ti ti-chevron-right"></i>
+                <span class="here">Mentor settings</span>
+              </div>
+              <div class="title-row">
+                <h1>Mentor settings</h1>
+                <span class="status">Draft v0.4</span>
+                <div class="actions">
+                  <button class="btn primary"><i class="ti ti-arrow-up-right"></i>Publish</button>
+                </div>
+              </div>
+              <div class="subtitle">
+                Who can mentor on this blueprint, what they can do, and how often they hear about it.
+              </div>
+            </div>
+
+            <div class="sub-tabs">
+              <div class="tab"><i class="ti ti-file-description"></i>Cover</div>
+              <div class="tab"><i class="ti ti-list-numbers"></i>Steps<span class="badge">6</span></div>
+              <div class="tab"><i class="ti ti-circles-relation"></i>Capabilities<span class="badge">5</span></div>
+              <div class="tab"><i class="ti ti-currency-dollar"></i>Pricing &amp; access</div>
+              <div class="tab"><i class="ti ti-users-group"></i>Cohorts<span class="badge">1</span></div>
+              <div class="tab on"><i class="ti ti-user-check"></i>Mentor settings</div>
+              <div class="tab"><i class="ti ti-pulse"></i>Activity</div>
+            </div>
+
+            <div class="body">
+              <div class="body-inner">
+
+                <!-- Eligibility -->
+                <div class="card">
+                  <div class="card-head">
+                    <div>
+                      <div class="eyebrow">Eligibility</div>
+                      <h3>Who can mentor on this blueprint</h3>
+                    </div>
+                  </div>
+                  <div class="card-body">
+                    <div class="perm-row">
+                      <div class="l">Faculty on the cohort
+                        <span class="sub">JHSON faculty assigned to BSN Class of 2027 — Cohort A.</span>
+                      </div>
+                      <div class="switch on"></div>
+                    </div>
+                    <div class="perm-row">
+                      <div class="l">Clinical preceptors at assigned sites
+                        <span class="sub">RNs claimed at any of the 5 partner hospitals.</span>
+                      </div>
+                      <div class="switch on"></div>
+                    </div>
+                    <div class="perm-row">
+                      <div class="l">Peer mentors · senior cohort
+                        <span class="sub">Students in BSN Class of 2026 marked as peer mentors.</span>
+                      </div>
+                      <div class="switch"></div>
+                    </div>
+                    <div class="perm-row">
+                      <div class="l">Author &amp; co-authors
+                        <span class="sub">Dr.&nbsp;Murphy can always mentor; additional co-authors inherit.</span>
+                      </div>
+                      <div class="switch on"></div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Permissions matrix -->
+                <div class="card">
+                  <div class="card-head">
+                    <div>
+                      <div class="eyebrow">Permissions</div>
+                      <h3>What mentors can do</h3>
+                    </div>
+                  </div>
+                  <div class="card-body">
+                    <div class="perm-row">
+                      <div class="l">Comment on reflections
+                        <span class="sub">Inline notes on student debriefs. Default-on for all mentor types.</span>
+                      </div>
+                      <div class="switch on"></div>
+                    </div>
+                    <div class="perm-row">
+                      <div class="l">Mark steps as settled
+                        <span class="sub">Counts as evidence toward the trained capabilities.</span>
+                      </div>
+                      <div class="switch on"></div>
+                    </div>
+                    <div class="perm-row">
+                      <div class="l">Propose follow-up steps
+                        <span class="sub">Add a one-off step to a single student&rsquo;s path (e.g. &ldquo;re-do ISBAR after Friday&rdquo;).</span>
+                      </div>
+                      <div class="switch on"></div>
+                    </div>
+                    <div class="perm-row">
+                      <div class="l">Edit the blueprint itself
+                        <span class="sub">Only the author and co-authors. Read-only for mentors.</span>
+                      </div>
+                      <div class="switch"></div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Notification cadence -->
+                <div class="card">
+                  <div class="card-head">
+                    <div>
+                      <div class="eyebrow">Notifications</div>
+                      <h3>How often mentors hear about activity</h3>
+                    </div>
+                  </div>
+                  <div class="card-body" style="display:flex;flex-direction:column;gap:14px;">
+                    <div style="display:flex;align-items:center;gap:14px;">
+                      <div style="flex:1;">
+                        <div style="font-size:13px;color:var(--admin-ink);">Default cadence</div>
+                        <div style="font-size:11.5px;color:var(--admin-ink-3);margin-top:2px;">Mentors can override on their own settings.</div>
+                      </div>
+                      <div class="seg-control">
+                        <div class="opt">Daily digest</div>
+                        <div class="opt on">Weekly digest</div>
+                        <div class="opt">On every action</div>
+                        <div class="opt">Muted</div>
+                      </div>
+                    </div>
+
+                    <div style="display:flex;align-items:center;gap:14px;border-top:0.5px solid var(--admin-line);padding-top:14px;">
+                      <div style="flex:1;">
+                        <div style="font-size:13px;color:var(--admin-ink);">Always notify on</div>
+                        <div style="font-size:11.5px;color:var(--admin-ink-3);margin-top:2px;">These never roll into the digest.</div>
+                      </div>
+                      <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;max-width:520px;">
+                        <span class="chip" style="background:var(--admin-navy-tint);color:var(--admin-navy);"><i class="ti ti-check" style="font-size:11px;"></i>@-mentions</span>
+                        <span class="chip" style="background:var(--admin-navy-tint);color:var(--admin-navy);"><i class="ti ti-check" style="font-size:11px;"></i>Student flagged for support</span>
+                        <span class="chip" style="background:var(--admin-cream-2);color:var(--admin-ink-3);">Step requires approval</span>
+                        <span class="chip" style="background:var(--admin-cream-2);color:var(--admin-ink-3);">Cohort milestone</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+          </main>
+        </div>
+      </div>
+    </div>
+
+    <!-- ====================================================================
+         FRAME 23 · ACTIVITY TAB
+    ===================================================================== -->
+    <div class="frame-col" data-screen-label="23 Blueprint editor · Activity">
+      <div class="frame-cap"><span class="num">23</span> <strong>Activity</strong> — day-grouped feed of student/mentor events on this blueprint</div>
+      <div class="desktop">
+        <div class="chrome">
+          <div class="lights"><span class="r"></span><span class="y"></span><span class="g"></span></div>
+          <div class="url"><div class="url-inner">
+            <i class="ti ti-lock"></i>
+            <span><strong>betterat.app</strong>/orgs/jhson/studio/blueprints/sepsis-bundle/activity</span>
+          </div></div>
+          <div class="meta-right"><i class="ti ti-refresh"></i><span>Live</span></div>
+        </div>
+
+        <div class="app">
+          <aside class="sidebar">
+            <div class="editing-banner">
+              <div class="back"><i class="ti ti-arrow-left"></i></div>
+              <div>
+                <div class="label">Editing blueprint</div>
+                <div class="title">Sepsis bundle recognition</div>
+              </div>
+            </div>
+            <div class="editing-meta">
+              <div><span class="dot draft"></span><strong>Draft v0.4</strong> · 6 steps · 5 capabilities</div>
+              <div style="margin-top:4px;">Last edited Wed 11:42a · R.&nbsp;Murphy</div>
+            </div>
+            <div class="nav">
+              <div class="group-label">Blueprint</div>
+              <div class="item"><i class="ti ti-file-description"></i>Cover</div>
+              <div class="item"><i class="ti ti-list-numbers"></i>Steps<span class="count">6</span></div>
+              <div class="item"><i class="ti ti-circles-relation"></i>Capabilities<span class="count">5</span></div>
+              <div class="item"><i class="ti ti-currency-dollar"></i>Pricing &amp; access</div>
+              <div class="item"><i class="ti ti-users-group"></i>Cohorts<span class="count">1</span></div>
+              <div class="item"><i class="ti ti-user-check"></i>Mentor settings</div>
+              <div class="item on"><i class="ti ti-pulse"></i>Activity</div>
+            </div>
+            <div class="spacer"></div>
+            <div class="user-card">
+              <div class="av">RM</div>
+              <div class="meta"><div class="name">Dr. R. Murphy</div><div class="role">Author · JHSON</div></div>
+              <i class="ti ti-chevron-up"></i>
+            </div>
+          </aside>
+
+          <main class="content">
+            <div class="header">
+              <div class="crumb">
+                <a>Org admin</a><i class="ti ti-chevron-right"></i>
+                <a>Blueprints</a><i class="ti ti-chevron-right"></i>
+                <span class="here">Sepsis bundle recognition</span><i class="ti ti-chevron-right"></i>
+                <span class="here">Activity</span>
+              </div>
+              <div class="title-row">
+                <h1>Activity</h1>
+                <span class="status published">Last 7 days</span>
+                <div class="actions">
+                  <div class="seg-control"><div class="opt on">7d</div><div class="opt">30d</div><div class="opt">All</div></div>
+                  <button class="btn"><i class="ti ti-filter"></i>Filter</button>
+                  <button class="btn"><i class="ti ti-download"></i>Export</button>
+                </div>
+              </div>
+              <div class="subtitle">
+                <strong>47 events</strong><span class="sep">·</span>22 students contributed<span class="sep">·</span>5 sites<span class="sep">·</span>BSN Class of 2027 — Cohort A
+              </div>
+            </div>
+
+            <div class="sub-tabs">
+              <div class="tab"><i class="ti ti-file-description"></i>Cover</div>
+              <div class="tab"><i class="ti ti-list-numbers"></i>Steps<span class="badge">6</span></div>
+              <div class="tab"><i class="ti ti-circles-relation"></i>Capabilities<span class="badge">5</span></div>
+              <div class="tab"><i class="ti ti-currency-dollar"></i>Pricing &amp; access</div>
+              <div class="tab"><i class="ti ti-users-group"></i>Cohorts<span class="badge">1</span></div>
+              <div class="tab"><i class="ti ti-user-check"></i>Mentor settings</div>
+              <div class="tab on"><i class="ti ti-pulse"></i>Activity<span class="badge">47</span></div>
+            </div>
+
+            <div class="body">
+              <div class="body-inner">
+
+                <div class="day-head">
+                  <span class="date">Today · Sat May 23</span>
+                  <span class="meta">8 events <span class="sep">·</span> 6 students <span class="sep">·</span> 3 sites</span>
+                </div>
+
+                <div class="act-row">
+                  <span class="av navy">ET</span>
+                  <div class="text">
+                    <strong>Emily Tran</strong> settled <strong>Step 3 · ISBAR handoff to rapid response</strong>.
+                    <div class="meta">
+                      <span class="when">2 min ago</span>
+                      <span class="chip site"><i class="ti ti-map-pin" style="font-size:11px;"></i>Johns Hopkins Hospital — East Baltimore</span>
+                      <span class="chip">ISBAR handoff</span>
+                    </div>
+                  </div>
+                  <div class="row-r">2:14p</div>
+                </div>
+                <div class="act-row">
+                  <span class="av brown">JK</span>
+                  <div class="text">
+                    <strong>J. Kim, RN</strong> commented on <strong>Mei Sato</strong>&rsquo;s reflection for <strong>Step 2 · Sepsis bundle recognition</strong>: <em>&ldquo;Good catch on the lactate trend — try narrating the bundle out loud next time.&rdquo;</em>
+                    <div class="meta">
+                      <span class="when">38 min ago</span>
+                      <span class="chip site"><i class="ti ti-map-pin" style="font-size:11px;"></i>Johns Hopkins Bayview Medical Center</span>
+                      <span class="chip">Sepsis bundle recognition</span>
+                    </div>
+                  </div>
+                  <div class="row-r">1:38p</div>
+                </div>
+                <div class="act-row">
+                  <span class="av green">DA</span>
+                  <div class="text">
+                    <strong>Devon Aldridge</strong> completed all 6 steps. Bundle finished in <strong>34 min</strong> end-to-end.
+                    <div class="meta">
+                      <span class="when">1 hr ago</span>
+                      <span class="chip site"><i class="ti ti-map-pin" style="font-size:11px;"></i>Suburban Hospital</span>
+                      <span class="chip">Sepsis bundle recognition</span>
+                      <span class="chip">ISBAR handoff</span>
+                    </div>
+                  </div>
+                  <div class="row-r">1:08p</div>
+                </div>
+                <div class="act-row">
+                  <span class="av navy">SP</span>
+                  <div class="text">
+                    <strong>Dean S. Park</strong> marked <strong>Camille Otieno</strong>&rsquo;s Step 5 reassessment as settled.
+                    <div class="meta">
+                      <span class="when">3 hr ago</span>
+                      <span class="chip site"><i class="ti ti-map-pin" style="font-size:11px;"></i>Sibley Memorial Hospital</span>
+                      <span class="chip">Head-to-toe assessment</span>
+                    </div>
+                  </div>
+                  <div class="row-r">11:14a</div>
+                </div>
+                <div class="act-row">
+                  <span class="av purple">RV</span>
+                  <div class="text">
+                    <strong>R. Vasquez</strong> opened the blueprint for the first time. Still on Step 1.
+                    <div class="meta">
+                      <span class="when">5 hr ago</span>
+                      <span class="chip site"><i class="ti ti-map-pin" style="font-size:11px;"></i>Howard County General Hospital</span>
+                    </div>
+                  </div>
+                  <div class="row-r">9:02a</div>
+                </div>
+
+                <div class="day-head" style="margin-top:18px;">
+                  <span class="date">Yesterday · Fri May 22</span>
+                  <span class="meta">14 events <span class="sep">·</span> 9 students <span class="sep">·</span> 4 sites</span>
+                </div>
+
+                <div class="act-row">
+                  <span class="av steel">NH</span>
+                  <div class="text">
+                    <strong>Nora Helms</strong> finished all 6 steps. Reflected on a missed fluid bolus volume; mentor follow-up requested.
+                    <div class="meta">
+                      <span class="when">Fri 4:42p</span>
+                      <span class="chip site"><i class="ti ti-map-pin" style="font-size:11px;"></i>Johns Hopkins Hospital — East Baltimore</span>
+                      <span class="chip warn"><i class="ti ti-flag" style="font-size:11px;"></i>Wants follow-up</span>
+                    </div>
+                  </div>
+                  <div class="row-r">4:42p</div>
+                </div>
+                <div class="act-row">
+                  <span class="av brown">JK</span>
+                  <div class="text">
+                    <strong>J. Kim, RN</strong> proposed a follow-up step for <strong>R. Vasquez</strong>: <em>&ldquo;Re-do ISBAR on Monday at huddle.&rdquo;</em>
+                    <div class="meta">
+                      <span class="when">Fri 3:18p</span>
+                      <span class="chip site"><i class="ti ti-map-pin" style="font-size:11px;"></i>Howard County General Hospital</span>
+                      <span class="chip">ISBAR handoff</span>
+                    </div>
+                  </div>
+                  <div class="row-r">3:18p</div>
+                </div>
+                <div class="act-row">
+                  <span class="av navy">CC</span>
+                  <div class="text">
+                    <strong>11 students</strong> from Cohort A subscribed to this blueprint after morning huddle.
+                    <div class="meta">
+                      <span class="when">Fri 8:04a</span>
+                      <span class="chip">Cohort event</span>
+                    </div>
+                  </div>
+                  <div class="row-r">8:04a</div>
+                </div>
+
+              </div>
+            </div>
+          </main>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+
+</body>
+</html>

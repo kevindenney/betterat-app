@@ -1,0 +1,864 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=4180" />
+<title>BetterAt — JHSON invite landing, accreditation report &amp; audit log · iOS register</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css" />
+<link rel="stylesheet" href="admin-shell.css" />
+<style>
+  .page { min-width: 4200px; }
+
+  /* Frame 27 — Invite landing (recipient side, marketing-ish) */
+  .invite-page {
+    position: absolute; top: 36px; left: 0; right: 0; bottom: 0;
+    background:
+      radial-gradient(circle at 50% -10%, rgba(40,64,107,0.10), transparent 60%),
+      #FAF8F0;
+    overflow: hidden;
+    display: flex; flex-direction: column;
+  }
+  .invite-nav {
+    height: 56px; padding: 0 32px;
+    display: flex; align-items: center; justify-content: space-between;
+    border-bottom: 0.5px solid rgba(0,0,0,0.05);
+    background: rgba(250,248,240,0.85);
+    backdrop-filter: blur(20px);
+  }
+  .invite-nav .brand { display: inline-flex; align-items: center; gap: 8px; }
+  .invite-nav .brand .mark {
+    width: 24px; height: 24px; border-radius: 7px;
+    background: linear-gradient(135deg, var(--admin-ink), #3A3A3C);
+    color: #fff;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 12px; letter-spacing: -0.3px;
+  }
+  .invite-nav .brand .wm { font-size: 14px; font-weight: 600; letter-spacing: -0.2px; color: var(--admin-ink); }
+  .invite-nav .right { display: inline-flex; gap: 16px; align-items: center; font-size: 12.5px; color: var(--admin-ink-3); }
+
+  .invite-body {
+    flex: 1; overflow: hidden;
+    padding: 36px 32px 48px;
+  }
+  .invite-inner {
+    max-width: 720px; margin: 0 auto;
+    display: flex; flex-direction: column; gap: 22px;
+  }
+  .invite-hero {
+    text-align: center; display: flex; flex-direction: column; gap: 14px; align-items: center;
+    padding: 12px 0 6px;
+  }
+  .invite-hero .badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 12px; border-radius: 999px;
+    background: var(--admin-navy-tint); color: var(--admin-navy);
+    font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+  }
+  .invite-hero h1 {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 30px; line-height: 1.18; font-weight: 500;
+    letter-spacing: -0.015em; margin: 0; color: var(--admin-ink);
+    max-width: 600px;
+  }
+  .invite-hero h1 em { font-style: italic; }
+  .invite-hero .who {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 14px; border-radius: 999px;
+    background: var(--admin-paper); border: 0.5px solid var(--admin-line);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+  }
+  .invite-hero .who .av { width: 28px; height: 28px; font-size: 11px; }
+  .invite-hero .who .text { font-size: 13px; color: var(--admin-ink-2); }
+  .invite-hero .who .text strong { color: var(--admin-ink); font-weight: 600; }
+
+  .invite-card {
+    background: var(--admin-paper); border: 0.5px solid var(--admin-line);
+    border-radius: 16px; padding: 22px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+    display: flex; flex-direction: column; gap: 18px;
+  }
+  .invite-summary {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 14px;
+  }
+  .invite-summary .pill-row {
+    padding: 12px 14px; border-radius: 10px; background: var(--admin-cream);
+    display: flex; flex-direction: column; gap: 4px;
+  }
+  .invite-summary .pill-row .k {
+    font-size: 10.5px; letter-spacing: 0.10em; text-transform: uppercase;
+    font-weight: 700; color: var(--admin-ink-3);
+  }
+  .invite-summary .pill-row .v {
+    font-size: 14px; font-weight: 600; color: var(--admin-ink); letter-spacing: -0.15px;
+  }
+  .invite-summary .pill-row .sub { font-size: 11.5px; color: var(--admin-ink-3); }
+
+  .about-org {
+    display: grid; grid-template-columns: 56px 1fr; gap: 14px; align-items: flex-start;
+    padding: 14px; background: var(--admin-cream); border-radius: 12px;
+  }
+  .about-org .shield {
+    width: 56px; height: 56px; border-radius: 14px;
+    background: linear-gradient(160deg, var(--admin-navy), var(--admin-navy-2));
+    color: #fff; font-weight: 700; font-size: 20px;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-family: "Iowan Old Style", Georgia, serif;
+    letter-spacing: -0.5px;
+  }
+  .about-org h3 { font-size: 14px; font-weight: 700; margin: 0 0 4px; color: var(--admin-ink); }
+  .about-org p { font-size: 12.5px; color: var(--admin-ink-2); margin: 0; line-height: 1.5; }
+  .about-org .links {
+    margin-top: 8px; display: flex; gap: 14px; flex-wrap: wrap;
+    font-size: 11.5px; color: var(--admin-navy); font-weight: 600;
+  }
+  .about-org .links span { display: inline-flex; align-items: center; gap: 4px; }
+
+  .four-tier-explainer {
+    padding: 14px 16px; background: var(--admin-cream); border-radius: 12px;
+    border: 0.5px solid var(--admin-line-soft);
+    font-size: 12.5px; color: var(--admin-ink-3); line-height: 1.6;
+  }
+  .four-tier-explainer strong { color: var(--admin-ink-2); font-weight: 600; }
+
+  .cta-row { display: flex; gap: 10px; }
+  .cta-row .btn { height: 40px; padding: 0 20px; font-size: 13.5px; }
+  .cta-row .btn i { font-size: 16px; }
+
+  .alt-signin {
+    text-align: center; font-size: 11.5px; color: var(--admin-ink-3);
+    padding: 4px 0; line-height: 1.6;
+  }
+  .alt-signin a { color: var(--admin-navy); font-weight: 600; text-decoration: none; }
+  .alt-signin .switch-account {
+    margin-top: 12px; padding: 10px 14px; border-radius: 10px;
+    background: var(--admin-warn-tint); border: 0.5px solid var(--admin-warn);
+    color: var(--admin-warn); display: flex; gap: 10px; align-items: center;
+    text-align: left;
+  }
+  .alt-signin .switch-account i { font-size: 18px; }
+  .alt-signin .switch-account .text { flex: 1; font-size: 12.5px; line-height: 1.4; }
+  .alt-signin .switch-account .text strong { color: var(--admin-ink); font-weight: 600; }
+
+  /* Frame 28 — Accreditation report */
+  .report-toolbar {
+    background: var(--admin-cream-2); border-bottom: 0.5px solid var(--admin-line);
+    padding: 10px 32px;
+    display: flex; align-items: center; gap: 12px;
+    font-size: 12px; color: var(--admin-ink-3);
+  }
+  .report-toolbar .crumb {
+    display: inline-flex; align-items: center; gap: 6px;
+    color: var(--admin-ink-3); flex: 1;
+  }
+  .report-toolbar .crumb i { font-size: 13px; color: var(--admin-ink-4); }
+  .report-toolbar .crumb .here { color: var(--admin-ink-2); font-weight: 500; }
+  .report-toolbar .actions { display: inline-flex; gap: 8px; }
+
+  .report-page {
+    background: #FAF8F0; padding: 28px 32px 40px;
+    flex: 1; overflow: hidden;
+  }
+  .report-doc {
+    background: var(--admin-paper); border: 0.5px solid var(--admin-line);
+    border-radius: 6px;
+    margin: 0 auto;
+    max-width: 880px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.05);
+    padding: 48px 56px;
+    display: flex; flex-direction: column; gap: 28px;
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    color: var(--admin-ink);
+  }
+  .report-doc .doc-head {
+    display: grid; grid-template-columns: 56px 1fr auto; gap: 16px; align-items: center;
+    padding-bottom: 22px; border-bottom: 1px solid var(--admin-ink-5);
+  }
+  .report-doc .doc-head .shield {
+    width: 56px; height: 56px; border-radius: 14px;
+    background: linear-gradient(160deg, var(--admin-navy), var(--admin-navy-2));
+    color: #fff; font-weight: 700; font-size: 20px;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-family: "Iowan Old Style", Georgia, serif;
+    letter-spacing: -0.5px;
+  }
+  .report-doc .doc-head .meta .eyebrow {
+    font-family: -apple-system, sans-serif;
+    font-size: 10.5px; letter-spacing: 0.12em; text-transform: uppercase;
+    font-weight: 700; color: var(--admin-ink-3);
+    margin-bottom: 4px;
+  }
+  .report-doc .doc-head .meta h2 {
+    font-size: 22px; font-weight: 500; margin: 0; letter-spacing: -0.01em;
+  }
+  .report-doc .doc-head .right {
+    font-family: -apple-system, sans-serif; font-size: 11.5px;
+    color: var(--admin-ink-3); text-align: right; line-height: 1.5;
+  }
+  .report-doc h3 {
+    font-family: -apple-system, "SF Pro Text", sans-serif;
+    font-size: 11px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--admin-ink-3); margin: 0 0 12px;
+  }
+  .report-doc .lede {
+    font-size: 16px; line-height: 1.55; color: var(--admin-ink-2);
+    text-wrap: pretty; margin: 0;
+  }
+  .report-doc .lede em { font-style: italic; }
+  .report-doc .summary-grid {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px;
+    padding: 18px 0;
+    border-top: 0.5px solid var(--admin-line);
+    border-bottom: 0.5px solid var(--admin-line);
+  }
+  .report-doc .summary-grid .s .n {
+    font-family: -apple-system, "SF Pro Display", sans-serif;
+    font-size: 28px; font-weight: 600; color: var(--admin-ink); letter-spacing: -0.02em;
+  }
+  .report-doc .summary-grid .s .l {
+    font-family: -apple-system, sans-serif;
+    font-size: 11px; color: var(--admin-ink-3); margin-top: 2px;
+    letter-spacing: -0.05px; line-height: 1.4;
+  }
+  .report-doc .competency-row {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 8px;
+    padding: 18px 0;
+    border-top: 0.5px solid var(--admin-line);
+  }
+  .report-doc .competency-row:first-of-type { border-top: none; padding-top: 0; }
+  .report-doc .competency-row .title-line {
+    display: flex; align-items: baseline; gap: 12px;
+    font-family: -apple-system, sans-serif;
+  }
+  .report-doc .competency-row .title-line h4 {
+    margin: 0;
+    font-size: 14px; font-weight: 600; color: var(--admin-ink);
+    letter-spacing: -0.15px;
+  }
+  .report-doc .competency-row .title-line .stat-tag {
+    font-size: 11px; color: var(--admin-ink-3); font-variant-numeric: tabular-nums;
+  }
+  .report-doc .site-grid {
+    display: grid; grid-template-columns: 200px repeat(5, 1fr); gap: 4px;
+    font-family: -apple-system, sans-serif;
+    font-size: 10px; color: var(--admin-ink-3);
+  }
+  .report-doc .site-grid .lbl { color: var(--admin-ink-3); letter-spacing: 0.03em; font-size: 10px; padding: 4px 6px; }
+  .report-doc .site-grid .cell {
+    height: 32px; border-radius: 3px;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 600; color: var(--admin-ink); font-size: 11px;
+    font-variant-numeric: tabular-nums;
+  }
+  .report-doc .narrative {
+    font-family: "Iowan Old Style", Georgia, serif;
+    font-size: 13.5px; line-height: 1.6; color: var(--admin-ink-2);
+    margin: 4px 0 0;
+  }
+  .report-doc .narrative strong { color: var(--admin-ink); font-weight: 500; }
+  .report-doc .sig {
+    margin-top: 16px;
+    padding-top: 24px; border-top: 1px solid var(--admin-ink-5);
+    display: grid; grid-template-columns: 1fr 1fr; gap: 28px;
+    font-family: -apple-system, sans-serif;
+    font-size: 12px; color: var(--admin-ink-3);
+  }
+  .report-doc .sig .line {
+    border-top: 0.5px solid var(--admin-ink-2);
+    padding-top: 6px;
+  }
+  .report-doc .sig strong { color: var(--admin-ink); font-weight: 600; display: block; font-size: 13px; }
+
+  /* Audit log */
+  .filter-row {
+    display: flex; gap: 8px; align-items: center;
+    padding: 12px 16px; background: var(--admin-paper);
+    border: 0.5px solid var(--admin-line); border-radius: 12px;
+  }
+  .filter-row .search {
+    flex: 1; display: flex; align-items: center; gap: 8px;
+    padding: 0 12px; height: 32px; border-radius: 8px;
+    background: var(--admin-cream); border: 0.5px solid transparent;
+    color: var(--admin-ink-3); font-size: 12.5px;
+  }
+  .filter-row .search input {
+    flex: 1; border: none; outline: none; background: transparent;
+    color: var(--admin-ink); font: inherit;
+  }
+  .filter-row .search i { font-size: 14px; }
+  .filter-row .filter-chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 0 12px; height: 32px; border-radius: 8px;
+    background: var(--admin-cream); color: var(--admin-ink-2);
+    font-size: 12px; font-weight: 500;
+  }
+  .filter-row .filter-chip.on { background: var(--admin-navy-tint); color: var(--admin-navy); font-weight: 600; }
+  .filter-row .filter-chip i { font-size: 13px; }
+
+  /* Audit row + detail drawer split */
+  .audit-split { display: grid; grid-template-columns: 1fr 380px; gap: 18px; }
+  .audit-feed { display: flex; flex-direction: column; gap: 0; }
+  .audit-row {
+    display: grid; grid-template-columns: 32px 1fr auto; gap: 12px; align-items: flex-start;
+    padding: 10px 14px; background: var(--admin-paper);
+    border: 0.5px solid var(--admin-line); border-radius: 10px;
+  }
+  .audit-row + .audit-row { margin-top: 6px; }
+  .audit-row.sel { border-color: var(--admin-navy); box-shadow: 0 0 0 3px rgba(40,64,107,0.08); }
+  .audit-row .verb {
+    font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase;
+    font-weight: 700; padding: 1px 6px; border-radius: 4px;
+    background: var(--admin-cream-2); color: var(--admin-ink-2);
+    margin-right: 4px;
+  }
+  .audit-row .verb.add { background: var(--admin-success-tint); color: var(--admin-success); }
+  .audit-row .verb.edit { background: var(--admin-navy-tint); color: var(--admin-navy); }
+  .audit-row .verb.del { background: var(--admin-danger-tint); color: var(--admin-danger); }
+  .audit-row .verb.publish { background: var(--admin-success-tint); color: var(--admin-success); }
+  .audit-row .verb.role { background: var(--admin-warn-tint); color: var(--admin-warn); }
+  .audit-detail {
+    background: var(--admin-paper); border: 0.5px solid var(--admin-line);
+    border-radius: 12px;
+    display: flex; flex-direction: column;
+    height: fit-content;
+    overflow: hidden;
+  }
+  .audit-detail .d-head {
+    padding: 14px 18px; border-bottom: 0.5px solid var(--admin-line);
+    display: flex; align-items: center; gap: 10px;
+  }
+  .audit-detail .d-head .ico {
+    width: 32px; height: 32px; border-radius: 8px;
+    background: var(--admin-warn-tint); color: var(--admin-warn);
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .audit-detail .d-head .meta .verb {
+    font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase;
+    font-weight: 700; color: var(--admin-warn);
+  }
+  .audit-detail .d-head .meta h3 {
+    font-size: 14px; font-weight: 600; margin: 2px 0 0; color: var(--admin-ink);
+    letter-spacing: -0.15px;
+  }
+  .audit-detail .d-body { padding: 14px 18px; display: flex; flex-direction: column; gap: 14px; }
+  .audit-detail .d-row {
+    display: grid; grid-template-columns: 100px 1fr; gap: 10px;
+    font-size: 12px; align-items: center;
+  }
+  .audit-detail .d-row .k {
+    font-size: 10.5px; letter-spacing: 0.10em; text-transform: uppercase;
+    font-weight: 700; color: var(--admin-ink-3);
+  }
+  .audit-detail .d-row .v { font-size: 12.5px; color: var(--admin-ink); }
+  .audit-detail .payload {
+    background: var(--admin-cream); border-radius: 8px;
+    padding: 12px 14px; font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 11.5px; color: var(--admin-ink-2); line-height: 1.6;
+    white-space: pre-wrap; word-break: break-word;
+  }
+  .audit-detail .payload .k { color: var(--admin-navy); font-weight: 600; }
+  .audit-detail .payload .s { color: var(--cat-comm); }
+  .audit-detail .payload .n { color: var(--cat-procedural); }
+
+</style>
+</head>
+<body>
+
+<div class="page" data-screen-label="01 Canonical Stage">
+
+  <header class="page-head">
+    <p class="eyebrow">BetterAt · Invites &amp; Reports · 2026-05-23</p>
+    <h1>Recipient-side invite landing · Accreditation export · Audit log — <em>the three trust-shaped surfaces</em></h1>
+    <p>
+      The invite landing is the only frame in this set that leaves the AdminShell — it lives at <em>betterat.app/org-invite?token=…</em> with marketing chrome the recipient sees before they sign in.
+      The accreditation report inherits AdminShell but the doc itself is print-friendly: warm-cream review chrome around an 8.5&times;11 paper-white page with site×competency tables and editor-written narratives.
+      The audit log is a feed with a sticky right-side detail drawer for the full event payload.
+    </p>
+    <div class="crumbs">
+      <span class="pill">Frames 27 – 29</span>
+      <span class="sep">/</span>
+      <span>Invite landing is logged-out chrome</span>
+      <span class="sep">/</span>
+      <span>Report doc is PDF-export friendly</span>
+    </div>
+  </header>
+
+  <div class="frame-row">
+
+    <!-- =====================================================================
+         FRAME 27 · INVITE LANDING (recipient side)
+    ====================================================================== -->
+    <div class="frame-col" data-screen-label="27 Invite landing">
+      <div class="frame-cap"><span class="num">27</span> <strong>Invite acceptance landing</strong> — /org-invite?token=… · logged-in match state</div>
+      <div class="desktop">
+        <div class="chrome">
+          <div class="lights"><span class="r"></span><span class="y"></span><span class="g"></span></div>
+          <div class="url"><div class="url-inner">
+            <i class="ti ti-lock"></i>
+            <span><strong>betterat.app</strong>/org-invite?token=8f4c…2d1a</span>
+          </div></div>
+          <div class="meta-right"><i class="ti ti-mail-opened"></i><span>From inbox</span></div>
+        </div>
+
+        <div class="invite-page">
+          <div class="invite-nav">
+            <div class="brand"><div class="mark">B</div><div class="wm">BetterAt</div></div>
+            <div class="right">
+              <span>Signed in as <strong style="color:var(--admin-ink);">emily.tran@jh.edu</strong></span>
+              <span class="av sm navy">ET</span>
+            </div>
+          </div>
+
+          <div class="invite-body">
+            <div class="invite-inner">
+              <div class="invite-hero">
+                <span class="badge"><i class="ti ti-mail" style="font-size:12px;"></i>Invitation</span>
+                <h1>Dean&nbsp;S.&nbsp;Park invited you to <em>Johns&nbsp;Hopkins&nbsp;School&nbsp;of&nbsp;Nursing</em> on BetterAt</h1>
+                <div class="who">
+                  <span class="av navy">SP</span>
+                  <div class="text"><strong>Dean S. Park</strong> · Org Admin · sent Apr 4, 2026</div>
+                </div>
+              </div>
+
+              <div class="invite-card">
+
+                <div class="invite-summary">
+                  <div class="pill-row">
+                    <div class="k">Role</div>
+                    <div class="v">Student</div>
+                    <div class="sub">Can practice, reflect, and request mentorship.</div>
+                  </div>
+                  <div class="pill-row">
+                    <div class="k">Cohort</div>
+                    <div class="v">BSN Class of 2027 — Cohort A</div>
+                    <div class="sub">30 students · starts Apr 5 · 5 partner sites</div>
+                  </div>
+                </div>
+
+                <div class="about-org">
+                  <div class="shield">JH</div>
+                  <div>
+                    <h3>About Johns Hopkins School of Nursing</h3>
+                    <p>JHSON is the BSN program at JHU running clinical rotations across five Baltimore-area teaching hospitals. On BetterAt you&rsquo;ll track competencies, reflect on practice, and get mentored by faculty and preceptors at your placement sites.</p>
+                    <div class="links">
+                      <span><i class="ti ti-link" style="font-size:12px;"></i>nursing.jhu.edu</span>
+                      <span><i class="ti ti-users" style="font-size:12px;"></i>412 members on BetterAt</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="four-tier-explainer">
+                  Joining JHSON makes it an <strong>Organization</strong> you belong to. It will appear at the top of your BetterAt — alongside <strong>Interests</strong> you add, <strong>Programs</strong> you subscribe to, and <strong>People</strong> you follow. You can leave anytime.
+                </div>
+
+                <div class="cta-row">
+                  <button class="btn primary" style="flex:1;"><i class="ti ti-check"></i>Accept · join JHSON</button>
+                  <button class="btn" style="flex:0 0 auto;"><i class="ti ti-x"></i>Decline</button>
+                </div>
+
+                <div class="alt-signin">
+                  This invitation is tied to <strong>emily.tran@jh.edu</strong> — the address it was sent to matches your account.<br/>
+                  Accepting takes you straight to JHSON onboarding (~3 min).
+                </div>
+              </div>
+
+              <div class="alt-signin">
+                Not Emily? <a>Sign out and accept as someone else ›</a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- =====================================================================
+         FRAME 28 · ACCREDITATION REPORT
+    ====================================================================== -->
+    <div class="frame-col" data-screen-label="28 Accreditation report">
+      <div class="frame-cap"><span class="num">28</span> <strong>Accreditation report</strong> — print-friendly export · site × competency tables + narratives</div>
+      <div class="desktop tall">
+        <div class="chrome">
+          <div class="lights"><span class="r"></span><span class="y"></span><span class="g"></span></div>
+          <div class="url"><div class="url-inner">
+            <i class="ti ti-lock"></i>
+            <span><strong>betterat.app</strong>/orgs/jhson/admin/insights/accreditation-report</span>
+          </div></div>
+          <div class="meta-right"><i class="ti ti-printer"></i><span>Print preview</span></div>
+        </div>
+
+        <div class="report-toolbar">
+          <div class="crumb">
+            <span>Org admin</span><i class="ti ti-chevron-right"></i>
+            <span>Insights</span><i class="ti ti-chevron-right"></i>
+            <span class="here">Accreditation report</span>
+          </div>
+          <div class="actions">
+            <div class="seg-control" style="background:var(--admin-paper);border:0.5px solid var(--admin-line);">
+              <div class="opt on">Document</div>
+              <div class="opt">Cover letter</div>
+              <div class="opt">Appendix</div>
+            </div>
+            <button class="btn sm"><i class="ti ti-printer"></i>Print</button>
+            <button class="btn sm primary"><i class="ti ti-file-download"></i>Download PDF</button>
+          </div>
+        </div>
+
+        <div class="report-page">
+          <div class="report-doc">
+
+            <!-- Cover/head -->
+            <div class="doc-head">
+              <div class="shield">JH</div>
+              <div class="meta">
+                <div class="eyebrow">Accreditation Evidence Export</div>
+                <h2>Johns Hopkins School of Nursing</h2>
+              </div>
+              <div class="right">
+                <strong style="color:var(--admin-ink);font-weight:600;">BSN Class of 2027 — Cohort A</strong><br/>
+                Period: Apr 5 – Aug 14, 2026<br/>
+                Generated: May 23, 2026<br/>
+                Document v1.0
+              </div>
+            </div>
+
+            <!-- Executive summary -->
+            <div>
+              <h3>Executive summary</h3>
+              <p class="lede">
+                Across <em>30 students</em> in the BSN Class of 2027 — Cohort A, BetterAt recorded <em>1,184&nbsp;evidence rows</em> against <em>9 competencies</em> over <em>5 partner hospital sites</em> during the spring–summer rotation. Coverage breadth is <em>96%</em> — only Foley placement falls short of the 1-per-student floor; the remaining eight competencies clear the threshold at every site.
+              </p>
+            </div>
+
+            <div class="summary-grid">
+              <div class="s"><div class="n">30</div><div class="l">Students in cohort</div></div>
+              <div class="s"><div class="n">9</div><div class="l">Competencies tracked</div></div>
+              <div class="s"><div class="n">1,184</div><div class="l">Evidence rows recorded</div></div>
+              <div class="s"><div class="n">96<span style="font-size:18px;color:var(--admin-ink-3);">%</span></div><div class="l">Coverage achieved</div></div>
+            </div>
+
+            <!-- Per-competency -->
+            <div>
+              <h3>Coverage by competency &amp; site</h3>
+
+              <div class="site-grid">
+                <div></div>
+                <div class="lbl">JHH<br/>East&nbsp;Balt.</div>
+                <div class="lbl">Bayview</div>
+                <div class="lbl">Suburban</div>
+                <div class="lbl">Sibley</div>
+                <div class="lbl">Howard&nbsp;Co.</div>
+              </div>
+
+              <div class="competency-row">
+                <div class="title-line">
+                  <h4>Medication administration</h4>
+                  <span class="stat-tag">214 rows · 30 / 30 students · 5 / 5 sites</span>
+                </div>
+                <div class="site-grid">
+                  <div class="lbl" style="font-weight:600;color:var(--admin-ink-2);font-family:'Iowan Old Style',Georgia,serif;">Evidence rows</div>
+                  <div class="cell" style="background:rgba(40,64,107,0.42);color:#fff;">82</div>
+                  <div class="cell" style="background:rgba(40,64,107,0.30);">48</div>
+                  <div class="cell" style="background:rgba(40,64,107,0.18);">31</div>
+                  <div class="cell" style="background:rgba(40,64,107,0.18);">28</div>
+                  <div class="cell" style="background:rgba(40,64,107,0.12);">25</div>
+                </div>
+                <p class="narrative">All <strong>30 students</strong> evidenced Medication Administration at one or more sites, with <strong>Johns Hopkins Hospital — East Baltimore</strong> being the dominant site (82 rows, 38% of total). No student fell below 3 rows.</p>
+              </div>
+
+              <div class="competency-row">
+                <div class="title-line">
+                  <h4>Sepsis bundle recognition</h4>
+                  <span class="stat-tag">132 rows · 28 / 30 students · 5 / 5 sites · <em style="color:var(--admin-success);">new in v0.4</em></span>
+                </div>
+                <div class="site-grid">
+                  <div class="lbl" style="font-weight:600;color:var(--admin-ink-2);font-family:'Iowan Old Style',Georgia,serif;">Evidence rows</div>
+                  <div class="cell" style="background:rgba(40,64,107,0.36);">52</div>
+                  <div class="cell" style="background:rgba(40,64,107,0.24);">31</div>
+                  <div class="cell" style="background:rgba(40,64,107,0.18);">19</div>
+                  <div class="cell" style="background:rgba(40,64,107,0.12);">16</div>
+                  <div class="cell" style="background:rgba(40,64,107,0.10);">14</div>
+                </div>
+                <p class="narrative"><strong>28 of 30</strong> students evidenced Sepsis bundle recognition; two students from the late-onboarding subgroup are still mid-rotation. The competency was added April 5 alongside Dr.&nbsp;Murphy&rsquo;s new blueprint and reached 100% site coverage within six weeks.</p>
+              </div>
+
+              <div class="competency-row">
+                <div class="title-line">
+                  <h4>ISBAR handoff communication</h4>
+                  <span class="stat-tag">186 rows · 30 / 30 students · 5 / 5 sites</span>
+                </div>
+                <div class="site-grid">
+                  <div class="lbl" style="font-weight:600;color:var(--admin-ink-2);font-family:'Iowan Old Style',Georgia,serif;">Evidence rows</div>
+                  <div class="cell" style="background:rgba(40,64,107,0.30);">48</div>
+                  <div class="cell" style="background:rgba(40,64,107,0.24);">38</div>
+                  <div class="cell" style="background:rgba(40,64,107,0.24);">36</div>
+                  <div class="cell" style="background:rgba(40,64,107,0.20);">32</div>
+                  <div class="cell" style="background:rgba(40,64,107,0.20);">32</div>
+                </div>
+                <p class="narrative">ISBAR coverage is the most evenly distributed competency in the cohort — between 32 and 48 rows at every site. Mentor settle-rate of <strong>91%</strong> suggests it&rsquo;s also the most consistently signed off.</p>
+              </div>
+
+              <div class="competency-row">
+                <div class="title-line">
+                  <h4>Foley catheter placement</h4>
+                  <span class="stat-tag">38 rows · 22 / 30 students · 4 / 5 sites · <em style="color:var(--admin-warn);">below floor at 1 site</em></span>
+                </div>
+                <div class="site-grid">
+                  <div class="lbl" style="font-weight:600;color:var(--admin-ink-2);font-family:'Iowan Old Style',Georgia,serif;">Evidence rows</div>
+                  <div class="cell" style="background:rgba(40,64,107,0.20);">18</div>
+                  <div class="cell" style="background:rgba(40,64,107,0.14);">10</div>
+                  <div class="cell" style="background:rgba(40,64,107,0.08);">6</div>
+                  <div class="cell" style="background:rgba(40,64,107,0.06);">4</div>
+                  <div class="cell" style="background:rgba(201,150,50,0.18);color:var(--admin-warn);">0</div>
+                </div>
+                <p class="narrative">8 students have not yet evidenced Foley placement; <strong>Howard County General</strong> reported zero opportunities during the rotation window. Action: rotate remaining students through East Baltimore or Bayview in the final 4 weeks, or convene a simulation block.</p>
+              </div>
+
+            </div>
+
+            <!-- Signatures -->
+            <div class="sig">
+              <div class="line">
+                <strong>Dean Susanna Park, DNP, RN</strong>
+                Organization Admin · BetterAt
+              </div>
+              <div class="line">
+                <strong>R. Murphy, PhD, RN, CCRN</strong>
+                Curriculum Author · Sepsis bundle blueprint
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- =====================================================================
+         FRAME 29 · AUDIT LOG
+    ====================================================================== -->
+    <div class="frame-col" data-screen-label="29 Audit log">
+      <div class="frame-cap"><span class="num">29</span> <strong>Audit log</strong> — filterable feed + right-side detail drawer with full payload</div>
+      <div class="desktop">
+        <div class="chrome">
+          <div class="lights"><span class="r"></span><span class="y"></span><span class="g"></span></div>
+          <div class="url"><div class="url-inner">
+            <i class="ti ti-lock"></i>
+            <span><strong>betterat.app</strong>/orgs/jhson/admin/security/audit</span>
+          </div></div>
+          <div class="meta-right"><i class="ti ti-history-toggle"></i><span>Last 90 days</span></div>
+        </div>
+
+        <div class="app">
+          <aside class="sidebar">
+            <div class="org-switcher">
+              <div class="shield">JH</div>
+              <div class="meta"><div class="name">JHSON</div><div class="sub">BSN · 412 members</div></div>
+              <i class="ti ti-chevron-down chev"></i>
+            </div>
+            <div class="nav">
+              <div class="group-label">Institution</div>
+              <div class="item"><i class="ti ti-layout-dashboard"></i>Overview</div>
+              <div class="item"><i class="ti ti-users"></i>People</div>
+              <div class="item"><i class="ti ti-users-group"></i>Cohorts</div>
+              <div class="item"><i class="ti ti-map-pin"></i>Sites</div>
+              <div class="item"><i class="ti ti-circles-relation"></i>Competencies</div>
+              <div class="item"><i class="ti ti-chart-histogram"></i>Insights</div>
+              <div class="item"><i class="ti ti-file-text"></i>Blueprints</div>
+              <div class="group-label">Plan</div>
+              <div class="item"><i class="ti ti-credit-card"></i>Billing</div>
+              <div class="item"><i class="ti ti-receipt-2"></i>Invoices</div>
+              <div class="item"><i class="ti ti-cash"></i>Author payouts</div>
+              <div class="group-label">Security</div>
+              <div class="item"><i class="ti ti-key"></i>SSO &amp; domain</div>
+              <div class="item on"><i class="ti ti-history-toggle"></i>Audit log</div>
+            </div>
+            <div class="spacer"></div>
+            <div class="user-card">
+              <div class="av sm">SP</div>
+              <div class="meta"><div class="name">Dean S. Park</div><div class="role">Org Admin</div></div>
+              <i class="ti ti-chevron-up"></i>
+            </div>
+          </aside>
+
+          <main class="content">
+            <div class="header">
+              <div class="crumb">
+                <a>Org admin</a><i class="ti ti-chevron-right"></i>
+                <a>Security</a><i class="ti ti-chevron-right"></i>
+                <span class="here">Audit log</span>
+              </div>
+              <div class="title-row">
+                <h1>Audit log</h1>
+                <span class="status published">Live</span>
+                <div class="actions">
+                  <button class="btn"><i class="ti ti-calendar"></i>Last 90 days</button>
+                  <button class="btn"><i class="ti ti-download"></i>Export</button>
+                </div>
+              </div>
+              <div class="subtitle">
+                <strong>1,402 events</strong><span class="sep">·</span>14 actors<span class="sep">·</span>retention: 7 years for SOC&nbsp;2
+              </div>
+            </div>
+
+            <div class="body">
+              <div class="body-inner">
+
+                <!-- Filter row -->
+                <div class="filter-row">
+                  <div class="search"><i class="ti ti-search"></i><input placeholder="Search by target, actor, or event id…" /></div>
+                  <div class="filter-chip on"><i class="ti ti-tag"></i>All events <i class="ti ti-chevron-down"></i></div>
+                  <div class="filter-chip"><i class="ti ti-user"></i>Any actor <i class="ti ti-chevron-down"></i></div>
+                  <div class="filter-chip"><i class="ti ti-calendar"></i>Apr 1 – May 23 <i class="ti ti-chevron-down"></i></div>
+                </div>
+
+                <div class="audit-split">
+                  <div class="audit-feed">
+
+                    <div class="day-head">
+                      <span class="date">Today · Sat May 23</span>
+                      <span class="meta">14 events</span>
+                    </div>
+
+                    <div class="audit-row sel">
+                      <span class="av sm warm">JA</span>
+                      <div class="text" style="font-size:12.5px;color:var(--admin-ink-2);line-height:1.5;">
+                        <span class="verb role">Role changed</span>
+                        <strong>J. Akello</strong> changed <strong>R. Vasquez</strong>&rsquo;s role from <em>Student</em> to <em>Peer mentor</em> in <em>BSN Class of 2027 — Cohort A</em>.
+                        <div class="meta" style="display:flex;gap:8px;margin-top:6px;font-size:11px;color:var(--admin-ink-3);">
+                          <span>2:14p</span><span class="sep">·</span><span>evt&nbsp;01h…f8c</span>
+                        </div>
+                      </div>
+                      <div class="row-r">2:14p</div>
+                    </div>
+
+                    <div class="audit-row">
+                      <span class="av sm navy">SP</span>
+                      <div class="text" style="font-size:12.5px;color:var(--admin-ink-2);line-height:1.5;">
+                        <span class="verb publish">Published</span>
+                        <strong>Dean S. Park</strong> published <strong>Sepsis bundle recognition v0.4</strong> to <em>BSN Class of 2027 — Cohort A</em>.
+                        <div class="meta" style="display:flex;gap:8px;margin-top:6px;font-size:11px;color:var(--admin-ink-3);">
+                          <span>1:08p</span><span class="sep">·</span><span>evt&nbsp;01h…e7b</span>
+                        </div>
+                      </div>
+                      <div class="row-r">1:08p</div>
+                    </div>
+
+                    <div class="audit-row">
+                      <span class="av sm navy">SP</span>
+                      <div class="text" style="font-size:12.5px;color:var(--admin-ink-2);line-height:1.5;">
+                        <span class="verb add">Invited</span>
+                        <strong>Dean S. Park</strong> invited <strong>14 people</strong> via Bulk CSV to <em>BSN Class of 2027 — Cohort A</em>.
+                        <div class="meta" style="display:flex;gap:8px;margin-top:6px;font-size:11px;color:var(--admin-ink-3);">
+                          <span>11:42a</span><span class="sep">·</span><span>evt&nbsp;01h…d3a</span>
+                        </div>
+                      </div>
+                      <div class="row-r">11:42a</div>
+                    </div>
+
+                    <div class="audit-row">
+                      <span class="av sm warm">JA</span>
+                      <div class="text" style="font-size:12.5px;color:var(--admin-ink-2);line-height:1.5;">
+                        <span class="verb edit">Edited</span>
+                        <strong>J. Akello</strong> updated cohort <strong>BSN Class of 2027 — Cohort A</strong> · max seats 30 → 32.
+                        <div class="meta" style="display:flex;gap:8px;margin-top:6px;font-size:11px;color:var(--admin-ink-3);">
+                          <span>11:14a</span><span class="sep">·</span><span>evt&nbsp;01h…c08</span>
+                        </div>
+                      </div>
+                      <div class="row-r">11:14a</div>
+                    </div>
+
+                    <div class="audit-row">
+                      <span class="av sm brown">RM</span>
+                      <div class="text" style="font-size:12.5px;color:var(--admin-ink-2);line-height:1.5;">
+                        <span class="verb edit">Edited</span>
+                        <strong>Dr. R. Murphy</strong> changed coverage strength on <em>ISBAR handoff</em> from <em>secondary</em> to <em>primary</em> for blueprint <strong>Sepsis bundle recognition</strong>.
+                        <div class="meta" style="display:flex;gap:8px;margin-top:6px;font-size:11px;color:var(--admin-ink-3);">
+                          <span>9:02a</span><span class="sep">·</span><span>evt&nbsp;01h…a8b</span>
+                        </div>
+                      </div>
+                      <div class="row-r">9:02a</div>
+                    </div>
+
+                    <div class="day-head" style="margin-top:18px;">
+                      <span class="date">Yesterday · Fri May 22</span>
+                      <span class="meta">38 events</span>
+                    </div>
+
+                    <div class="audit-row">
+                      <span class="av sm navy">SP</span>
+                      <div class="text" style="font-size:12.5px;color:var(--admin-ink-2);line-height:1.5;">
+                        <span class="verb add">Claimed</span>
+                        <strong>Dean S. Park</strong> claimed site <strong>Howard County General Hospital</strong> for JHSON.
+                        <div class="meta" style="display:flex;gap:8px;margin-top:6px;font-size:11px;color:var(--admin-ink-3);">
+                          <span>Fri 4:42p</span><span class="sep">·</span><span>evt&nbsp;01h…916</span>
+                        </div>
+                      </div>
+                      <div class="row-r">Fri</div>
+                    </div>
+
+                    <div class="audit-row">
+                      <span class="av sm warm">JA</span>
+                      <div class="text" style="font-size:12.5px;color:var(--admin-ink-2);line-height:1.5;">
+                        <span class="verb del">Removed</span>
+                        <strong>J. Akello</strong> removed <strong>T. Reynolds</strong> from <em>BSN Class of 2027 — Cohort A</em> (withdrew from program).
+                        <div class="meta" style="display:flex;gap:8px;margin-top:6px;font-size:11px;color:var(--admin-ink-3);">
+                          <span>Fri 2:30p</span><span class="sep">·</span><span>evt&nbsp;01h…82e</span>
+                        </div>
+                      </div>
+                      <div class="row-r">Fri</div>
+                    </div>
+
+                    <div class="audit-row">
+                      <span class="av sm navy">SP</span>
+                      <div class="text" style="font-size:12.5px;color:var(--admin-ink-2);line-height:1.5;">
+                        <span class="verb edit">SSO config</span>
+                        <strong>Dean S. Park</strong> updated SAML attribute mapping: <em>NameID&nbsp;→&nbsp;email</em>, <em>eduPersonAffiliation&nbsp;→&nbsp;role</em>.
+                        <div class="meta" style="display:flex;gap:8px;margin-top:6px;font-size:11px;color:var(--admin-ink-3);">
+                          <span>Fri 10:18a</span><span class="sep">·</span><span>evt&nbsp;01h…71d</span>
+                        </div>
+                      </div>
+                      <div class="row-r">Fri</div>
+                    </div>
+
+                  </div>
+
+                  <!-- Detail drawer -->
+                  <div class="audit-detail">
+                    <div class="d-head">
+                      <div class="ico"><i class="ti ti-user-cog"></i></div>
+                      <div class="meta">
+                        <div class="verb">Role changed</div>
+                        <h3>evt&nbsp;01h7n2q…f8c</h3>
+                      </div>
+                    </div>
+                    <div class="d-body">
+                      <div class="d-row"><span class="k">Actor</span><span class="v">J. Akello · org_admin</span></div>
+                      <div class="d-row"><span class="k">Target</span><span class="v">R. Vasquez · membership_id&nbsp;mb_8c2</span></div>
+                      <div class="d-row"><span class="k">Resource</span><span class="v">cohort/bsn-2027-a</span></div>
+                      <div class="d-row"><span class="k">When</span><span class="v">2026-05-23 14:14:08 EDT</span></div>
+                      <div class="d-row"><span class="k">IP</span><span class="v">76.124.18.42 · Baltimore, MD</span></div>
+                      <div class="d-row"><span class="k">Client</span><span class="v">Web · Safari 18.4 · macOS 15.4</span></div>
+                      <div style="font-size:10.5px;letter-spacing:0.10em;text-transform:uppercase;font-weight:700;color:var(--admin-ink-3);margin-top:2px;">Payload</div>
+                      <pre class="payload" style="margin:0;"><span class="k">"action"</span>: <span class="s">"membership.role.change"</span>,
+<span class="k">"membership_id"</span>: <span class="s">"mb_8c2"</span>,
+<span class="k">"cohort"</span>: <span class="s">"bsn-2027-a"</span>,
+<span class="k">"before"</span>: { <span class="k">"role"</span>: <span class="s">"student"</span> },
+<span class="k">"after"</span>: { <span class="k">"role"</span>: <span class="s">"peer_mentor"</span> },
+<span class="k">"reason"</span>: <span class="s">"manual"</span></pre>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+          </main>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+
+</body>
+</html>

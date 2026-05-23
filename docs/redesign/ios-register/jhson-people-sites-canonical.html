@@ -1,0 +1,821 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=4180" />
+<title>BetterAt — JHSON People &amp; Sites admin · iOS register</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css" />
+<link rel="stylesheet" href="admin-shell.css" />
+<style>
+  .page { min-width: 4200px; }
+
+  /* Frame 24 — Cohort edit modal */
+  .cohort-form-section { display: flex; flex-direction: column; gap: 14px; }
+  .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+  .field-card label.bold-label {
+    font-size: 12px; color: var(--admin-ink-2); font-weight: 600;
+    letter-spacing: -0.05px; text-transform: none;
+  }
+  .pick-list { display: flex; flex-direction: column; gap: 6px; }
+  .pick-row {
+    display: grid; grid-template-columns: 22px 1fr auto; gap: 10px; align-items: center;
+    padding: 8px 12px; background: var(--admin-cream); border-radius: 8px;
+    border: 0.5px solid var(--admin-line);
+  }
+  .pick-row .check {
+    width: 18px; height: 18px; border-radius: 5px;
+    border: 1.5px solid var(--admin-line-strong); background: var(--admin-paper);
+    display: inline-flex; align-items: center; justify-content: center;
+    color: #fff; font-size: 11px;
+  }
+  .pick-row.on .check { background: var(--admin-navy); border-color: var(--admin-navy); }
+  .pick-row .title { font-size: 12.5px; color: var(--admin-ink); }
+  .pick-row .title .sub { display: block; font-size: 11px; color: var(--admin-ink-3); margin-top: 2px; }
+
+  /* Frame 25 — Site detail */
+  .site-hero {
+    background: var(--admin-paper); border: 0.5px solid var(--admin-line);
+    border-radius: 12px; overflow: hidden;
+    display: grid; grid-template-columns: 1fr 280px;
+  }
+  .site-hero .main { padding: 20px 22px; display: flex; flex-direction: column; gap: 10px; }
+  .site-hero .main .row-1 { display: flex; align-items: center; gap: 12px; }
+  .site-hero .main .shield {
+    width: 44px; height: 44px; border-radius: 10px;
+    background: var(--admin-navy-tint); color: var(--admin-navy);
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .site-hero .main .shield i { font-size: 22px; }
+  .site-hero .main h2 {
+    font-size: 18px; font-weight: 700; letter-spacing: -0.3px;
+    margin: 0; color: var(--admin-ink);
+  }
+  .site-hero .main .kind {
+    font-size: 11.5px; color: var(--admin-ink-3); margin-top: 2px;
+  }
+  .site-hero .main .addr {
+    font-size: 12.5px; color: var(--admin-ink-2); line-height: 1.5;
+  }
+  .site-hero .main .badges { display: flex; gap: 6px; flex-wrap: wrap; }
+  .site-hero .map {
+    background:
+      radial-gradient(circle at 65% 35%, rgba(40,64,107,0.10), transparent 60%),
+      repeating-linear-gradient(45deg, var(--admin-cream-2), var(--admin-cream-2) 24px, var(--admin-cream) 24px, var(--admin-cream) 48px);
+    position: relative;
+  }
+  .site-hero .map .pin {
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    width: 32px; height: 32px;
+  }
+  .site-hero .map .pin::before {
+    content: ""; position: absolute; inset: 0;
+    background: var(--admin-navy); border-radius: 50% 50% 50% 0;
+    transform: rotate(-45deg);
+    box-shadow: 0 4px 12px -2px rgba(40,64,107,0.5);
+  }
+  .site-hero .map .pin::after {
+    content: ""; position: absolute; top: 8px; left: 50%; transform: translateX(-50%);
+    width: 10px; height: 10px; border-radius: 50%; background: var(--admin-paper);
+  }
+  .site-hero .map .rings {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .site-hero .map .rings span {
+    position: absolute; border: 0.5px solid rgba(40,64,107,0.18); border-radius: 50%;
+  }
+
+  .cell-bar {
+    height: 18px; border-radius: 4px; background: var(--admin-cream-2);
+    position: relative; overflow: hidden;
+  }
+  .cell-bar > span {
+    position: absolute; left: 0; top: 0; bottom: 0; background: var(--admin-navy);
+  }
+  .cell-row {
+    display: grid; grid-template-columns: 1.3fr 60px 1fr 50px; gap: 14px;
+    align-items: center;
+    padding: 10px 0;
+    border-top: 0.5px solid var(--admin-line);
+  }
+  .cell-row:first-of-type { border-top: none; }
+  .cell-row .lbl { font-size: 12.5px; color: var(--admin-ink); letter-spacing: -0.1px; }
+  .cell-row .n { font-size: 12px; color: var(--admin-ink-3); text-align: right; font-variant-numeric: tabular-nums; }
+  .cell-row .num { font-size: 13px; font-weight: 600; color: var(--admin-ink); text-align: right; font-variant-numeric: tabular-nums; }
+
+  /* Frame 26 — Bulk CSV */
+  .drop-zone {
+    border: 1.5px dashed var(--admin-navy-tint-3);
+    border-radius: 14px;
+    background: var(--admin-cream);
+    padding: 18px 22px;
+    display: flex; align-items: center; gap: 18px;
+  }
+  .drop-zone .file-card {
+    background: var(--admin-paper); border-radius: 10px;
+    padding: 12px 14px; border: 0.5px solid var(--admin-line);
+    display: flex; align-items: center; gap: 12px; flex: 1;
+  }
+  .drop-zone .file-card .ico {
+    width: 32px; height: 32px; border-radius: 8px;
+    background: var(--admin-success-tint); color: var(--admin-success);
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .drop-zone .file-card .ico i { font-size: 16px; }
+  .drop-zone .file-card .name { font-size: 13px; color: var(--admin-ink); font-weight: 600; }
+  .drop-zone .file-card .meta { font-size: 11px; color: var(--admin-ink-3); margin-top: 2px; }
+  .drop-zone .file-card .actions { margin-left: auto; }
+
+  table.preview {
+    width: 100%; border-collapse: separate; border-spacing: 0;
+    font-size: 12.5px; color: var(--admin-ink-2);
+    background: var(--admin-paper);
+    border: 0.5px solid var(--admin-line); border-radius: 12px;
+    overflow: hidden;
+  }
+  table.preview thead th {
+    text-align: left; padding: 10px 12px;
+    background: var(--admin-cream);
+    border-bottom: 0.5px solid var(--admin-line);
+    font-size: 10.5px; font-weight: 700;
+    letter-spacing: 0.10em; text-transform: uppercase;
+    color: var(--admin-ink-3);
+    white-space: nowrap;
+  }
+  table.preview thead th .mapper {
+    margin-top: 6px;
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 4px 8px; background: var(--admin-paper);
+    border: 0.5px solid var(--admin-line-strong); border-radius: 6px;
+    color: var(--admin-navy); font-size: 11px; font-weight: 600;
+    text-transform: none; letter-spacing: -0.05px;
+  }
+  table.preview thead th .mapper i { font-size: 12px; }
+  table.preview tbody td {
+    padding: 8px 12px;
+    border-bottom: 0.5px solid var(--admin-line-soft);
+    color: var(--admin-ink); font-size: 12.5px;
+    vertical-align: middle;
+  }
+  table.preview tbody tr:last-child td { border-bottom: none; }
+  table.preview tbody tr.err td { background: rgba(255, 59, 48, 0.04); }
+  table.preview tbody tr.warn td { background: rgba(201, 150, 50, 0.04); }
+  table.preview .err-msg {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 11px; color: var(--admin-danger); font-weight: 600;
+  }
+  table.preview .warn-msg {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 11px; color: var(--admin-warn); font-weight: 600;
+  }
+  table.preview .ok-msg {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 11px; color: var(--admin-success); font-weight: 600;
+  }
+</style>
+</head>
+<body>
+
+<div class="page" data-screen-label="01 Canonical Stage">
+
+  <header class="page-head">
+    <p class="eyebrow">BetterAt · People &amp; Sites · 2026-05-23</p>
+    <h1>Cohort edit · Site detail · Bulk CSV — <em>the three roster-shaped admin surfaces</em></h1>
+    <p>
+      Three more iPad/desktop admin frames at 1280px. <strong>Frame 24</strong> opens from the cohort detail; it&rsquo;s a 720px modal that uses the same form vocabulary as ManageCompetenciesSheet (panel-tinted form sections, explicit success pill).
+      <strong>Frame 25</strong> is the per-site page reached from the Sites list; it can also enter a &ldquo;claim this site&rdquo; state.
+      <strong>Frame 26</strong> is the CSV-mapping interior of Frame 8&rsquo;s Add Person sheet — column dropdowns, per-row validation, a CTA that calls out errors honestly.
+    </p>
+    <div class="crumbs">
+      <span class="pill">Frames 24 – 26</span>
+      <span class="sep">/</span>
+      <span>Same AdminShell as the blueprint editor</span>
+      <span class="sep">/</span>
+      <span>BSN Class of 2027 — Cohort A · 5 hospital sites</span>
+    </div>
+  </header>
+
+  <div class="frame-row">
+
+    <!-- =====================================================================
+         FRAME 24 · COHORT EDIT MODAL
+    ====================================================================== -->
+    <div class="frame-col" data-screen-label="24 Cohort edit modal">
+      <div class="frame-cap"><span class="num">24</span> <strong>Cohort edit</strong> — opens from cohort detail; ManageCompetenciesSheet vocabulary</div>
+      <div class="desktop">
+        <div class="chrome">
+          <div class="lights"><span class="r"></span><span class="y"></span><span class="g"></span></div>
+          <div class="url"><div class="url-inner">
+            <i class="ti ti-lock"></i>
+            <span><strong>betterat.app</strong>/orgs/jhson/admin/cohorts/bsn-27-a</span>
+          </div></div>
+          <div class="meta-right"><i class="ti ti-edit"></i><span>Editing</span></div>
+        </div>
+
+        <div class="app">
+          <aside class="sidebar">
+            <div class="org-switcher">
+              <div class="shield">JH</div>
+              <div class="meta">
+                <div class="name">JHSON</div>
+                <div class="sub">BSN · 412 members</div>
+              </div>
+              <i class="ti ti-chevron-down chev"></i>
+            </div>
+            <div class="nav">
+              <div class="group-label">Institution</div>
+              <div class="item"><i class="ti ti-layout-dashboard"></i>Overview</div>
+              <div class="item"><i class="ti ti-users"></i>People<span class="count">412</span></div>
+              <div class="item on"><i class="ti ti-users-group"></i>Cohorts<span class="count">8</span></div>
+              <div class="item"><i class="ti ti-map-pin"></i>Sites<span class="count">5</span></div>
+              <div class="item"><i class="ti ti-circles-relation"></i>Competencies<span class="count">9</span></div>
+              <div class="item"><i class="ti ti-chart-histogram"></i>Insights</div>
+              <div class="item"><i class="ti ti-file-text"></i>Blueprints<span class="count">14</span></div>
+
+              <div class="group-label">Plan</div>
+              <div class="item"><i class="ti ti-credit-card"></i>Billing</div>
+              <div class="item"><i class="ti ti-receipt-2"></i>Invoices</div>
+              <div class="item"><i class="ti ti-cash"></i>Author payouts</div>
+
+              <div class="group-label">Security</div>
+              <div class="item"><i class="ti ti-key"></i>SSO &amp; domain</div>
+              <div class="item"><i class="ti ti-history-toggle"></i>Audit log</div>
+            </div>
+            <div class="spacer"></div>
+            <div class="user-card">
+              <div class="av sm">SP</div>
+              <div class="meta"><div class="name">Dean S. Park</div><div class="role">Org Admin</div></div>
+              <i class="ti ti-chevron-up"></i>
+            </div>
+          </aside>
+
+          <main class="content">
+            <div class="header">
+              <div class="crumb">
+                <a>Org admin</a><i class="ti ti-chevron-right"></i>
+                <a>Cohorts</a><i class="ti ti-chevron-right"></i>
+                <span class="here">BSN Class of 2027 — Cohort A</span>
+              </div>
+              <div class="title-row">
+                <h1>BSN Class of 2027 — Cohort A</h1>
+                <span class="status published">Active</span>
+                <div class="actions">
+                  <button class="btn"><i class="ti ti-user-plus"></i>Add students</button>
+                  <button class="btn"><i class="ti ti-message-dots"></i>Message cohort</button>
+                  <button class="btn primary"><i class="ti ti-edit"></i>Edit cohort</button>
+                </div>
+              </div>
+              <div class="subtitle">
+                <strong>30 students</strong><span class="sep">·</span>2 mentors<span class="sep">·</span>9 competencies tracked<span class="sep">·</span>started Apr 5, 2026
+              </div>
+            </div>
+
+            <div class="body" style="opacity: 0.55; filter: blur(0.3px);">
+              <!-- (background cohort roster — dimmed because modal is open) -->
+              <div class="body-inner">
+                <div class="stat-strip cols-4">
+                  <div class="stat"><div class="k">Students</div><div class="v">30</div></div>
+                  <div class="stat"><div class="k">Active blueprints</div><div class="v">7</div></div>
+                  <div class="stat"><div class="k">Sites</div><div class="v">5</div></div>
+                  <div class="stat"><div class="k">Avg progress</div><div class="v">62<span style="font-size:13px;color:var(--admin-ink-3);font-weight:500;">%</span></div></div>
+                </div>
+                <div class="card"><div class="card-head"><div><div class="eyebrow">Roster</div><h3>30 students</h3></div></div></div>
+              </div>
+            </div>
+
+            <!-- Modal -->
+            <div class="modal-veil"></div>
+            <div class="modal">
+              <div class="m-head">
+                <div>
+                  <h2>Edit cohort</h2>
+                  <div class="sub">Changes save on Done. Cohort assignment is preserved.</div>
+                </div>
+                <button class="x"><i class="ti ti-x"></i></button>
+              </div>
+
+              <div class="m-body">
+
+                <!-- Form section · Basics -->
+                <div class="panel">
+                  <div class="panel-head">
+                    <span class="eyebrow">Basics</span>
+                    <span class="hint">Visible to students and mentors</span>
+                  </div>
+                  <div class="cohort-form-section">
+                    <div class="field">
+                      <label style="font-size:11px;color:var(--admin-ink-2);font-weight:600;letter-spacing:-0.05px;text-transform:none;">Cohort name</label>
+                      <input class="input" value="BSN Class of 2027 — Cohort A" />
+                    </div>
+                    <div class="field">
+                      <label style="font-size:11px;color:var(--admin-ink-2);font-weight:600;letter-spacing:-0.05px;text-transform:none;">Description</label>
+                      <textarea class="textarea" rows="2">Spring/Summer rotation cohort. Medical-surgical, telemetry, and ED placements across 5 partner sites. 30 students.</textarea>
+                    </div>
+                    <div class="row-3">
+                      <div class="field">
+                        <label style="font-size:11px;color:var(--admin-ink-2);font-weight:600;letter-spacing:-0.05px;text-transform:none;">Status</label>
+                        <div class="select-fake"><span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--admin-success);margin-right:8px;vertical-align:1px;"></span>Active</span><i class="ti ti-chevron-down"></i></div>
+                      </div>
+                      <div class="field">
+                        <label style="font-size:11px;color:var(--admin-ink-2);font-weight:600;letter-spacing:-0.05px;text-transform:none;">Start date</label>
+                        <div class="input has-affix"><span class="affix"><i class="ti ti-calendar" style="font-size:12px;"></i></span><input value="Apr 5, 2026" /></div>
+                      </div>
+                      <div class="field">
+                        <label style="font-size:11px;color:var(--admin-ink-2);font-weight:600;letter-spacing:-0.05px;text-transform:none;">End date</label>
+                        <div class="input has-affix"><span class="affix"><i class="ti ti-calendar" style="font-size:12px;"></i></span><input value="Aug 14, 2026" /></div>
+                      </div>
+                    </div>
+                    <div class="row-2">
+                      <div class="field">
+                        <label style="font-size:11px;color:var(--admin-ink-2);font-weight:600;letter-spacing:-0.05px;text-transform:none;">Max seats</label>
+                        <input class="input" value="32" />
+                        <div class="help">30 currently subscribed · 2 spare seats</div>
+                      </div>
+                      <div class="field">
+                        <label style="font-size:11px;color:var(--admin-ink-2);font-weight:600;letter-spacing:-0.05px;text-transform:none;">Program</label>
+                        <div class="select-fake">BSN · pre-licensure<i class="ti ti-chevron-down"></i></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Blueprints -->
+                <div class="panel">
+                  <div class="panel-head">
+                    <span class="eyebrow">Assigned blueprints</span>
+                    <span class="hint">7 selected of 14 in the org</span>
+                  </div>
+                  <div class="pick-list">
+                    <div class="pick-row on">
+                      <div class="check"><i class="ti ti-check"></i></div>
+                      <div class="title">Sepsis bundle recognition <span class="sub">v0.4 draft · Dr. R. Murphy · 6 steps</span></div>
+                      <span class="chip cat-rsn sq">Clinical reasoning</span>
+                    </div>
+                    <div class="pick-row on">
+                      <div class="check"><i class="ti ti-check"></i></div>
+                      <div class="title">IV insertion · supervised <span class="sub">v2.1 · Dr. R. Murphy · 4 steps</span></div>
+                      <span class="chip cat-proc sq">Procedural</span>
+                    </div>
+                    <div class="pick-row on">
+                      <div class="check"><i class="ti ti-check"></i></div>
+                      <div class="title">Head-to-toe assessment <span class="sub">v3.0 · J. Kim, RN · 8 steps</span></div>
+                      <span class="chip cat-asmt sq">Assessment</span>
+                    </div>
+                    <div class="pick-row on">
+                      <div class="check"><i class="ti ti-check"></i></div>
+                      <div class="title">ISBAR handoff communication <span class="sub">v1.4 · Dean S. Park · 3 steps</span></div>
+                      <span class="chip cat-comm sq">Communication</span>
+                    </div>
+                    <div class="pick-row">
+                      <div class="check"></div>
+                      <div class="title">Discharge teach-back <span class="sub">v1.0 · Noor Aziz · 5 steps</span></div>
+                      <span class="chip cat-comm sq">Communication</span>
+                    </div>
+                  </div>
+                  <div style="margin-top:10px;font-size:11.5px;color:var(--admin-navy);font-weight:600;cursor:default;">Show all 14 ›</div>
+                </div>
+
+                <!-- Mentors -->
+                <div class="panel">
+                  <div class="panel-head">
+                    <span class="eyebrow">Mentor assignments</span>
+                    <span class="hint">Who can mentor across all blueprints in this cohort</span>
+                  </div>
+                  <div style="display:flex; flex-direction:column; gap:8px;">
+                    <div style="display:grid;grid-template-columns:32px 1fr auto auto;gap:10px;align-items:center;padding:8px 12px;background:var(--admin-paper);border-radius:8px;border:0.5px solid var(--admin-line);">
+                      <span class="av sm navy">SP</span>
+                      <div>
+                        <div style="font-size:12.5px;color:var(--admin-ink);font-weight:600;">Dean S. Park</div>
+                        <div style="font-size:11px;color:var(--admin-ink-3);margin-top:1px;">Faculty · oversight</div>
+                      </div>
+                      <span class="chip">Owner</span>
+                      <i class="ti ti-x" style="color:var(--admin-ink-4);font-size:14px;cursor:default;"></i>
+                    </div>
+                    <div style="display:grid;grid-template-columns:32px 1fr auto auto;gap:10px;align-items:center;padding:8px 12px;background:var(--admin-paper);border-radius:8px;border:0.5px solid var(--admin-line);">
+                      <span class="av sm brown">JK</span>
+                      <div>
+                        <div style="font-size:12.5px;color:var(--admin-ink);font-weight:600;">J. Kim, RN</div>
+                        <div style="font-size:11px;color:var(--admin-ink-3);margin-top:1px;">Clinical preceptor · East Baltimore</div>
+                      </div>
+                      <span class="chip">Mentor</span>
+                      <i class="ti ti-x" style="color:var(--admin-ink-4);font-size:14px;cursor:default;"></i>
+                    </div>
+                    <button class="btn sm" style="align-self:flex-start;margin-top:4px;"><i class="ti ti-plus"></i>Assign mentor</button>
+                  </div>
+                </div>
+
+              </div>
+
+              <div class="m-foot">
+                <span class="success-pill"><i class="ti ti-check"></i>Changes saved Apr 12, 4:18p</span>
+                <div class="spacer"></div>
+                <button class="btn danger ghost"><i class="ti ti-archive"></i>Archive cohort</button>
+                <button class="btn">Cancel</button>
+                <button class="btn primary">Done</button>
+              </div>
+            </div>
+
+          </main>
+        </div>
+      </div>
+    </div>
+
+    <!-- =====================================================================
+         FRAME 25 · SITE DETAIL
+    ====================================================================== -->
+    <div class="frame-col" data-screen-label="25 Site detail">
+      <div class="frame-cap"><span class="num">25</span> <strong>Site detail</strong> — claimed state, with roster, top competencies, recent steps</div>
+      <div class="desktop">
+        <div class="chrome">
+          <div class="lights"><span class="r"></span><span class="y"></span><span class="g"></span></div>
+          <div class="url"><div class="url-inner">
+            <i class="ti ti-lock"></i>
+            <span><strong>betterat.app</strong>/orgs/jhson/admin/sites/jhh-east-baltimore</span>
+          </div></div>
+          <div class="meta-right"><i class="ti ti-shield-check" style="color:var(--admin-success);"></i><span>Claimed</span></div>
+        </div>
+
+        <div class="app">
+          <aside class="sidebar">
+            <div class="org-switcher">
+              <div class="shield">JH</div>
+              <div class="meta">
+                <div class="name">JHSON</div>
+                <div class="sub">BSN · 412 members</div>
+              </div>
+              <i class="ti ti-chevron-down chev"></i>
+            </div>
+            <div class="nav">
+              <div class="group-label">Institution</div>
+              <div class="item"><i class="ti ti-layout-dashboard"></i>Overview</div>
+              <div class="item"><i class="ti ti-users"></i>People<span class="count">412</span></div>
+              <div class="item"><i class="ti ti-users-group"></i>Cohorts<span class="count">8</span></div>
+              <div class="item on"><i class="ti ti-map-pin"></i>Sites<span class="count">5</span></div>
+              <div class="item"><i class="ti ti-circles-relation"></i>Competencies</div>
+              <div class="item"><i class="ti ti-chart-histogram"></i>Insights</div>
+              <div class="item"><i class="ti ti-file-text"></i>Blueprints</div>
+              <div class="group-label">Plan</div>
+              <div class="item"><i class="ti ti-credit-card"></i>Billing</div>
+              <div class="item"><i class="ti ti-receipt-2"></i>Invoices</div>
+              <div class="item"><i class="ti ti-cash"></i>Author payouts</div>
+              <div class="group-label">Security</div>
+              <div class="item"><i class="ti ti-key"></i>SSO &amp; domain</div>
+              <div class="item"><i class="ti ti-history-toggle"></i>Audit log</div>
+            </div>
+            <div class="spacer"></div>
+            <div class="user-card">
+              <div class="av sm">SP</div>
+              <div class="meta"><div class="name">Dean S. Park</div><div class="role">Org Admin</div></div>
+              <i class="ti ti-chevron-up"></i>
+            </div>
+          </aside>
+
+          <main class="content">
+            <div class="header">
+              <div class="crumb">
+                <a>Org admin</a><i class="ti ti-chevron-right"></i>
+                <a>Sites</a><i class="ti ti-chevron-right"></i>
+                <span class="here">Johns Hopkins Hospital — East Baltimore</span>
+              </div>
+              <div class="title-row">
+                <h1>Johns Hopkins Hospital — East Baltimore</h1>
+                <span class="status published">Claimed · verified</span>
+                <div class="actions">
+                  <button class="btn"><i class="ti ti-clock"></i>Hours &amp; access</button>
+                  <button class="btn"><i class="ti ti-edit"></i>Edit claim</button>
+                  <button class="btn primary"><i class="ti ti-user-plus"></i>Add preceptor</button>
+                </div>
+              </div>
+              <div class="subtitle">
+                <strong>Teaching hospital</strong><span class="sep">·</span>1800 Orleans St, Baltimore MD 21287<span class="sep">·</span>Claimed by JHSON · Sep 2024
+              </div>
+            </div>
+
+            <div class="body">
+              <div class="body-inner">
+
+                <!-- Hero -->
+                <div class="site-hero">
+                  <div class="main">
+                    <div class="row-1">
+                      <span class="shield"><i class="ti ti-building-hospital"></i></span>
+                      <div>
+                        <h2>Johns Hopkins Hospital — East Baltimore</h2>
+                        <div class="kind">Teaching hospital · 1,162 beds · Level I trauma</div>
+                      </div>
+                    </div>
+                    <div class="addr">
+                      1800 Orleans St, Baltimore MD 21287<br/>
+                      Charge: <strong>(410) 555-0182</strong> · Parking validated for clinical rotations
+                    </div>
+                    <div class="badges">
+                      <span class="chip ok"><i class="ti ti-shield-check"></i>Verified site</span>
+                      <span class="chip">Claimed by JHSON</span>
+                      <span class="chip site">Teaching · Level I</span>
+                      <span class="chip site">Validated parking</span>
+                    </div>
+                  </div>
+                  <div class="map">
+                    <div class="rings"><span style="width:70%;height:70%;"></span><span style="width:46%;height:46%;"></span><span style="width:24%;height:24%;"></span></div>
+                    <div class="pin"></div>
+                  </div>
+                </div>
+
+                <!-- Stats -->
+                <div class="stat-strip cols-4">
+                  <div class="stat"><div class="k">Students rotating</div><div class="v">18</div><div class="d">12 BSN · 6 MSN this week</div></div>
+                  <div class="stat"><div class="k">Preceptors</div><div class="v">7</div><div class="d">2 added this term</div></div>
+                  <div class="stat"><div class="k">Steps evidenced · 30d</div><div class="v">214</div><div class="d">+34 vs prior 30d</div></div>
+                  <div class="stat"><div class="k">Settled rate</div><div class="v">82<span style="font-size:13px;color:var(--admin-ink-3);font-weight:500;">%</span></div><div class="d">of steps marked settled</div></div>
+                </div>
+
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;">
+
+                  <!-- Top competencies -->
+                  <div class="card">
+                    <div class="card-head">
+                      <div>
+                        <div class="eyebrow">Top 5 evidenced</div>
+                        <h3>Competencies most practiced here</h3>
+                      </div>
+                      <div class="actions"><span style="font-size:11px;color:var(--admin-ink-3);">trailing 90d</span></div>
+                    </div>
+                    <div class="card-body">
+                      <div class="cell-row"><span class="lbl">Sepsis bundle recognition</span><span class="n">52 ev.</span><div class="cell-bar"><span style="width:92%;"></span></div><span class="num">92</span></div>
+                      <div class="cell-row"><span class="lbl">Medication administration</span><span class="n">48 ev.</span><div class="cell-bar"><span style="width:84%;"></span></div><span class="num">84</span></div>
+                      <div class="cell-row"><span class="lbl">Head-to-toe assessment</span><span class="n">39 ev.</span><div class="cell-bar"><span style="width:68%;"></span></div><span class="num">68</span></div>
+                      <div class="cell-row"><span class="lbl">ISBAR handoff communication</span><span class="n">31 ev.</span><div class="cell-bar"><span style="width:54%;"></span></div><span class="num">54</span></div>
+                      <div class="cell-row"><span class="lbl">Cardiac telemetry interpretation</span><span class="n">22 ev.</span><div class="cell-bar"><span style="width:38%;"></span></div><span class="num">38</span></div>
+                    </div>
+                  </div>
+
+                  <!-- Roster -->
+                  <div class="card">
+                    <div class="card-head">
+                      <div>
+                        <div class="eyebrow">Roster · rotating this week</div>
+                        <h3>18 students currently here</h3>
+                      </div>
+                      <div class="actions"><button class="btn sm">View all ›</button></div>
+                    </div>
+                    <div class="card-body" style="padding-top:6px;">
+                      <div style="display:flex;flex-direction:column;">
+                        <div style="display:grid;grid-template-columns:32px 1fr auto;gap:12px;align-items:center;padding:8px 0;border-top:0.5px solid var(--admin-line);">
+                          <span class="av sm navy">ET</span>
+                          <div><div style="font-size:13px;color:var(--admin-ink);font-weight:600;">Emily Tran</div><div style="font-size:11px;color:var(--admin-ink-3);margin-top:1px;">BSN 27A · Wk 6 of 8 here</div></div>
+                          <span class="chip ok">On track</span>
+                        </div>
+                        <div style="display:grid;grid-template-columns:32px 1fr auto;gap:12px;align-items:center;padding:8px 0;border-top:0.5px solid var(--admin-line);">
+                          <span class="av sm green">DA</span>
+                          <div><div style="font-size:13px;color:var(--admin-ink);font-weight:600;">Devon Aldridge</div><div style="font-size:11px;color:var(--admin-ink-3);margin-top:1px;">BSN 27A · Wk 5 of 8 here</div></div>
+                          <span class="chip ok">On track</span>
+                        </div>
+                        <div style="display:grid;grid-template-columns:32px 1fr auto;gap:12px;align-items:center;padding:8px 0;border-top:0.5px solid var(--admin-line);">
+                          <span class="av sm steel">NH</span>
+                          <div><div style="font-size:13px;color:var(--admin-ink);font-weight:600;">Nora Helms</div><div style="font-size:11px;color:var(--admin-ink-3);margin-top:1px;">BSN 27A · Wk 6 of 8 here</div></div>
+                          <span class="chip warn">Wants follow-up</span>
+                        </div>
+                        <div style="display:grid;grid-template-columns:32px 1fr auto;gap:12px;align-items:center;padding:8px 0;border-top:0.5px solid var(--admin-line);">
+                          <span class="av sm purple">CO</span>
+                          <div><div style="font-size:13px;color:var(--admin-ink);font-weight:600;">Camille Otieno</div><div style="font-size:11px;color:var(--admin-ink-3);margin-top:1px;">BSN 27A · Wk 4 of 8 here</div></div>
+                          <span class="chip ok">On track</span>
+                        </div>
+                        <div style="display:grid;grid-template-columns:32px 1fr auto;gap:12px;align-items:center;padding:8px 0;border-top:0.5px solid var(--admin-line);">
+                          <span class="av sm warm">MS</span>
+                          <div><div style="font-size:13px;color:var(--admin-ink);font-weight:600;">Mei Sato</div><div style="font-size:11px;color:var(--admin-ink-3);margin-top:1px;">MSN · acute care · Wk 2 of 6</div></div>
+                          <span class="chip ok">On track</span>
+                        </div>
+                        <div style="font-size:11.5px;color:var(--admin-ink-3);padding-top:10px;">+ 13 more</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Recent steps at this site -->
+                <div class="card">
+                  <div class="card-head">
+                    <div>
+                      <div class="eyebrow">Recent practice at this site</div>
+                      <h3>Last 24 hours</h3>
+                    </div>
+                    <div class="actions">
+                      <div class="seg-control"><div class="opt on">24h</div><div class="opt">7d</div><div class="opt">30d</div></div>
+                    </div>
+                  </div>
+                  <div class="card-body" style="padding-top:6px;">
+                    <div class="act-row">
+                      <span class="av sm navy">ET</span>
+                      <div class="text">
+                        <strong>Emily Tran</strong> settled <strong>ISBAR handoff to rapid response</strong> on <em>Sepsis bundle recognition</em>.
+                        <div class="meta">
+                          <span class="when">2 min ago</span><span class="sep">·</span>
+                          <span class="chip sq cat-comm">Communication</span>
+                          <span class="chip">ISBAR handoff</span>
+                        </div>
+                      </div>
+                      <div class="row-r">2:14p</div>
+                    </div>
+                    <div class="act-row">
+                      <span class="av sm steel">NH</span>
+                      <div class="text">
+                        <strong>Nora Helms</strong> reflected on a missed fluid bolus volume and flagged for mentor follow-up.
+                        <div class="meta">
+                          <span class="when">Fri 4:42p</span><span class="sep">·</span>
+                          <span class="chip warn"><i class="ti ti-flag" style="font-size:11px;"></i>Wants follow-up</span>
+                          <span class="chip">Sepsis bundle recognition</span>
+                        </div>
+                      </div>
+                      <div class="row-r">Fri</div>
+                    </div>
+                    <div class="act-row">
+                      <span class="av sm brown">JK</span>
+                      <div class="text">
+                        <strong>J. Kim, RN</strong> marked <strong>Devon Aldridge</strong>&rsquo;s Head-to-toe assessment as settled.
+                        <div class="meta">
+                          <span class="when">Fri 11:08a</span><span class="sep">·</span>
+                          <span class="chip sq cat-asmt">Assessment</span>
+                        </div>
+                      </div>
+                      <div class="row-r">Fri</div>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+          </main>
+        </div>
+      </div>
+    </div>
+
+    <!-- =====================================================================
+         FRAME 26 · BULK CSV PREVIEW
+    ====================================================================== -->
+    <div class="frame-col" data-screen-label="26 Bulk CSV preview">
+      <div class="frame-cap"><span class="num">26</span> <strong>Bulk CSV</strong> — drop → column mapping → per-row validation → send</div>
+      <div class="desktop">
+        <div class="chrome">
+          <div class="lights"><span class="r"></span><span class="y"></span><span class="g"></span></div>
+          <div class="url"><div class="url-inner">
+            <i class="ti ti-lock"></i>
+            <span><strong>betterat.app</strong>/orgs/jhson/admin/people</span>
+          </div></div>
+          <div class="meta-right"><i class="ti ti-upload"></i><span>CSV staged</span></div>
+        </div>
+
+        <div class="app">
+          <aside class="sidebar">
+            <div class="org-switcher">
+              <div class="shield">JH</div>
+              <div class="meta">
+                <div class="name">JHSON</div>
+                <div class="sub">BSN · 412 members</div>
+              </div>
+              <i class="ti ti-chevron-down chev"></i>
+            </div>
+            <div class="nav">
+              <div class="group-label">Institution</div>
+              <div class="item"><i class="ti ti-layout-dashboard"></i>Overview</div>
+              <div class="item on"><i class="ti ti-users"></i>People<span class="count">412</span></div>
+              <div class="item"><i class="ti ti-users-group"></i>Cohorts<span class="count">8</span></div>
+              <div class="item"><i class="ti ti-map-pin"></i>Sites<span class="count">5</span></div>
+              <div class="item"><i class="ti ti-circles-relation"></i>Competencies</div>
+              <div class="item"><i class="ti ti-chart-histogram"></i>Insights</div>
+              <div class="item"><i class="ti ti-file-text"></i>Blueprints</div>
+            </div>
+            <div class="spacer"></div>
+            <div class="user-card">
+              <div class="av sm">SP</div>
+              <div class="meta"><div class="name">Dean S. Park</div><div class="role">Org Admin</div></div>
+              <i class="ti ti-chevron-up"></i>
+            </div>
+          </aside>
+
+          <main class="content">
+            <div class="header">
+              <div class="crumb">
+                <a>Org admin</a><i class="ti ti-chevron-right"></i>
+                <a>People</a><i class="ti ti-chevron-right"></i>
+                <span class="here">Add people · Bulk CSV</span>
+              </div>
+              <div class="title-row">
+                <h1>Add people · Bulk CSV</h1>
+                <div class="actions">
+                  <button class="btn"><i class="ti ti-download"></i>Download template</button>
+                  <button class="btn primary"><i class="ti ti-mail"></i>Send 28 invites · skip 4 errors</button>
+                </div>
+              </div>
+              <div class="subtitle">
+                Map columns, fix what we caught, then send. <strong>32 rows</strong><span class="sep">·</span><strong style="color:var(--admin-success);">28 valid</strong><span class="sep">·</span><strong style="color:var(--admin-danger);">4 errors</strong>
+              </div>
+            </div>
+
+            <div class="sub-tabs">
+              <div class="tab"><i class="ti ti-mail"></i>Email<span class="badge">manual</span></div>
+              <div class="tab on"><i class="ti ti-table"></i>Bulk CSV<span class="badge">32</span></div>
+              <div class="tab"><i class="ti ti-key"></i>From SSO</div>
+              <div class="tab"><i class="ti ti-link"></i>Invite link</div>
+            </div>
+
+            <div class="body">
+              <div class="body-inner">
+
+                <!-- Drop zone -->
+                <div class="drop-zone">
+                  <div style="width:42px;height:42px;border-radius:10px;background:var(--admin-navy-tint);color:var(--admin-navy);display:inline-flex;align-items:center;justify-content:center;">
+                    <i class="ti ti-table-import" style="font-size:22px;"></i>
+                  </div>
+                  <div class="file-card">
+                    <div class="ico"><i class="ti ti-file-spreadsheet"></i></div>
+                    <div>
+                      <div class="name">bsn-2027-cohort-a.csv</div>
+                      <div class="meta">32 rows · 5 columns · uploaded 14s ago</div>
+                    </div>
+                    <div class="actions" style="margin-left:auto;display:inline-flex;gap:6px;">
+                      <button class="btn sm ghost"><i class="ti ti-refresh"></i>Replace</button>
+                      <button class="btn sm ghost danger"><i class="ti ti-x"></i></button>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Validation summary -->
+                <div style="display:flex;gap:12px;">
+                  <div class="stat" style="flex:1;background:var(--admin-paper);border:0.5px solid var(--admin-line);border-radius:12px;padding:12px 14px;">
+                    <div style="font-size:10.5px;letter-spacing:0.10em;text-transform:uppercase;font-weight:700;color:var(--admin-success);">Valid &amp; ready</div>
+                    <div style="font-size:22px;font-weight:700;color:var(--admin-ink);margin-top:6px;">28</div>
+                    <div style="font-size:11.5px;color:var(--admin-ink-3);margin-top:2px;">rows will receive an invite</div>
+                  </div>
+                  <div class="stat" style="flex:1;background:var(--admin-paper);border:0.5px solid var(--admin-line);border-radius:12px;padding:12px 14px;">
+                    <div style="font-size:10.5px;letter-spacing:0.10em;text-transform:uppercase;font-weight:700;color:var(--admin-danger);">Errors</div>
+                    <div style="font-size:22px;font-weight:700;color:var(--admin-ink);margin-top:6px;">4</div>
+                    <div style="font-size:11.5px;color:var(--admin-ink-3);margin-top:2px;">will be skipped unless you fix them</div>
+                  </div>
+                  <div class="stat" style="flex:1;background:var(--admin-paper);border:0.5px solid var(--admin-line);border-radius:12px;padding:12px 14px;">
+                    <div style="font-size:10.5px;letter-spacing:0.10em;text-transform:uppercase;font-weight:700;color:var(--admin-warn);">Warnings</div>
+                    <div style="font-size:22px;font-weight:700;color:var(--admin-ink);margin-top:6px;">2</div>
+                    <div style="font-size:11.5px;color:var(--admin-ink-3);margin-top:2px;">e.g. domain not yet verified</div>
+                  </div>
+                  <div class="stat" style="flex:1;background:var(--admin-paper);border:0.5px solid var(--admin-line);border-radius:12px;padding:12px 14px;">
+                    <div style="font-size:10.5px;letter-spacing:0.10em;text-transform:uppercase;font-weight:700;color:var(--admin-ink-3);">Already on BetterAt</div>
+                    <div style="font-size:22px;font-weight:700;color:var(--admin-ink);margin-top:6px;">3</div>
+                    <div style="font-size:11.5px;color:var(--admin-ink-3);margin-top:2px;">will be added to cohort, no invite sent</div>
+                  </div>
+                </div>
+
+                <!-- Table preview -->
+                <table class="preview">
+                  <thead>
+                    <tr>
+                      <th style="width:32px;">#</th>
+                      <th>
+                        Email
+                        <div class="mapper">email <i class="ti ti-chevron-down"></i></div>
+                      </th>
+                      <th>
+                        Full name
+                        <div class="mapper">name <i class="ti ti-chevron-down"></i></div>
+                      </th>
+                      <th>
+                        Role
+                        <div class="mapper">role <i class="ti ti-chevron-down"></i></div>
+                      </th>
+                      <th>
+                        Cohort
+                        <div class="mapper">cohort <i class="ti ti-chevron-down"></i></div>
+                      </th>
+                      <th>
+                        Start
+                        <div class="mapper">start_date <i class="ti ti-chevron-down"></i></div>
+                      </th>
+                      <th style="width:200px;">Validation</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr><td>1</td><td>emily.tran@jh.edu</td><td>Emily Tran</td><td>Student</td><td>BSN 2027 A</td><td>Apr 5</td><td><span class="ok-msg"><i class="ti ti-circle-check-filled" style="font-size:13px;"></i>Ready</span></td></tr>
+                    <tr><td>2</td><td>d.aldridge@jh.edu</td><td>Devon Aldridge</td><td>Student</td><td>BSN 2027 A</td><td>Apr 5</td><td><span class="ok-msg"><i class="ti ti-circle-check-filled" style="font-size:13px;"></i>Ready</span></td></tr>
+                    <tr><td>3</td><td>n.helms@jh.edu</td><td>Nora Helms</td><td>Student</td><td>BSN 2027 A</td><td>Apr 5</td><td><span class="ok-msg"><i class="ti ti-circle-check-filled" style="font-size:13px;"></i>Ready</span></td></tr>
+                    <tr class="err"><td>4</td><td><em style="color:var(--admin-ink-4);">—</em></td><td>C. Otieno</td><td>Student</td><td>BSN 2027 A</td><td>Apr 5</td><td><span class="err-msg"><i class="ti ti-alert-circle-filled" style="font-size:13px;"></i>Missing email</span></td></tr>
+                    <tr><td>5</td><td>mei.sato@jh.edu</td><td>Mei Sato</td><td>Student</td><td>BSN 2027 A</td><td>Apr 5</td><td><span class="ok-msg" style="color:var(--admin-ink-3);"><i class="ti ti-user-check" style="font-size:13px;color:var(--admin-ink-3);"></i>Already on BetterAt</span></td></tr>
+                    <tr><td>6</td><td>r.vasquez@jh.edu</td><td>Rafael Vasquez</td><td>Student</td><td>BSN 2027 A</td><td>Apr 5</td><td><span class="ok-msg"><i class="ti ti-circle-check-filled" style="font-size:13px;"></i>Ready</span></td></tr>
+                    <tr class="err"><td>7</td><td>j.kim@jhmi.org</td><td>J. Kim, RN</td><td><em style="color:var(--admin-danger);">preceptor-rn</em></td><td>BSN 2027 A</td><td>Apr 5</td><td><span class="err-msg"><i class="ti ti-alert-circle-filled" style="font-size:13px;"></i>Invalid role · use &ldquo;Mentor&rdquo;</span></td></tr>
+                    <tr class="warn"><td>8</td><td>s.park@jhmi.edu</td><td>S. Park</td><td>Faculty</td><td>BSN 2027 A</td><td>Apr 5</td><td><span class="warn-msg"><i class="ti ti-alert-triangle-filled" style="font-size:13px;"></i>jhmi.edu not yet verified</span></td></tr>
+                    <tr><td>9</td><td>l.bryan@jh.edu</td><td>Liam Bryan</td><td>Student</td><td>BSN 2027 A</td><td>Apr 5</td><td><span class="ok-msg"><i class="ti ti-circle-check-filled" style="font-size:13px;"></i>Ready</span></td></tr>
+                    <tr class="err"><td>10</td><td>emily.tran@jh.edu</td><td>Emily Tran (dup)</td><td>Student</td><td>BSN 2027 A</td><td>Apr 5</td><td><span class="err-msg"><i class="ti ti-alert-circle-filled" style="font-size:13px;"></i>Duplicate of row 1</span></td></tr>
+                  </tbody>
+                </table>
+                <div style="font-size:11.5px;color:var(--admin-ink-3);text-align:center;padding-top:2px;">Showing 10 of 32 rows · scroll for the rest</div>
+
+              </div>
+            </div>
+          </main>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+
+</body>
+</html>

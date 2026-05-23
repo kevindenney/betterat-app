@@ -1,0 +1,276 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>BetterAt — JHSON Admin Suite · Frames 18–32</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css" />
+<link rel="stylesheet" href="docs/redesign/ios-register/admin-shell.css" />
+<style>
+  body { background: var(--stage); }
+  .index-page {
+    max-width: 1100px; margin: 0 auto; padding: 80px 56px 120px;
+  }
+  .index-page header { margin-bottom: 56px; }
+  .index-page header .eyebrow {
+    font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--stage-text); margin: 0 0 14px; font-weight: 600;
+  }
+  .index-page header h1 {
+    font-family: "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 44px; line-height: 1.1; font-weight: 500;
+    letter-spacing: -0.02em; margin: 0 0 20px; color: var(--stage-ink);
+  }
+  .index-page header h1 em { font-style: italic; }
+  .index-page header p {
+    font-family: "Iowan Old Style", Georgia, serif;
+    font-size: 18px; line-height: 1.55; color: var(--stage-text);
+    margin: 0 0 14px; max-width: 760px; text-wrap: pretty;
+  }
+  .index-page header p em { font-style: italic; }
+  .index-page header p strong { color: var(--stage-ink); font-weight: 500; }
+
+  .sys {
+    margin: 32px 0 14px; padding: 22px 26px;
+    background: rgba(255,255,255,0.5); border-radius: 14px;
+    border: 0.5px solid var(--stage-line);
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 22px;
+  }
+  .sys .cell { font-family: -apple-system, sans-serif; }
+  .sys .cell .k {
+    font-size: 10.5px; letter-spacing: 0.12em; text-transform: uppercase;
+    font-weight: 700; color: var(--stage-text); margin-bottom: 8px;
+  }
+  .sys .cell .swatches { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+  .sys .cell .sw {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 12px; color: var(--stage-ink);
+  }
+  .sys .cell .sw .dot {
+    width: 18px; height: 18px; border-radius: 5px;
+    border: 0.5px solid rgba(0,0,0,0.1);
+  }
+  .sys .cell .sw code {
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 11px; color: var(--stage-text);
+  }
+  .sys .cell .row {
+    font-size: 12.5px; color: var(--stage-ink); margin-top: 4px;
+  }
+  .sys .cell .row span {
+    display: inline-block; padding: 2px 8px; border-radius: 4px;
+    background: var(--stage-line-soft); margin-right: 4px; margin-top: 4px;
+    font-size: 11px;
+  }
+
+  .group-head {
+    margin: 56px 0 18px;
+    padding-top: 24px; border-top: 0.5px solid var(--stage-line);
+  }
+  .group-head .eyebrow {
+    font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--stage-text); font-weight: 600; margin: 0 0 6px;
+  }
+  .group-head h2 {
+    font-family: "Iowan Old Style", Georgia, serif;
+    font-size: 22px; font-weight: 500; letter-spacing: -0.01em;
+    margin: 0; color: var(--stage-ink);
+  }
+  .group-head h2 em { font-style: italic; }
+
+  .grid-cards {
+    display: grid; grid-template-columns: repeat(2, 1fr); gap: 22px;
+  }
+  .file-card-x {
+    background: var(--admin-paper); border-radius: 14px;
+    border: 0.5px solid rgba(0,0,0,0.08);
+    box-shadow: 0 4px 14px -8px rgba(34, 30, 20, 0.18);
+    padding: 24px 26px;
+    display: flex; flex-direction: column; gap: 14px;
+    text-decoration: none; color: inherit;
+    transition: transform 0.16s ease, box-shadow 0.16s ease;
+  }
+  .file-card-x:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 30px -16px rgba(34, 30, 20, 0.3);
+  }
+  .file-card-x .num-row {
+    display: flex; gap: 6px; align-items: center;
+    font-family: -apple-system, sans-serif;
+    font-size: 10.5px; letter-spacing: 0.10em; text-transform: uppercase;
+    font-weight: 700; color: var(--admin-navy);
+  }
+  .file-card-x .num-row .num-badge {
+    padding: 2px 8px; border-radius: 4px;
+    background: var(--admin-navy-tint); color: var(--admin-navy);
+  }
+  .file-card-x h3 {
+    font-family: "Iowan Old Style", Georgia, serif;
+    font-size: 22px; font-weight: 500; letter-spacing: -0.02em;
+    margin: 0; color: var(--admin-ink);
+  }
+  .file-card-x h3 em { font-style: italic; }
+  .file-card-x .desc {
+    font-size: 13.5px; color: var(--admin-ink-2); line-height: 1.55;
+    margin: 0;
+  }
+  .file-card-x .frames {
+    display: flex; gap: 6px; flex-wrap: wrap; margin-top: 4px;
+  }
+  .file-card-x .frame-chip {
+    font-size: 11.5px; color: var(--admin-ink-2); font-weight: 500;
+    padding: 4px 10px; border-radius: 6px;
+    background: var(--admin-cream); border: 0.5px solid var(--admin-line);
+  }
+  .file-card-x .open {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 12.5px; color: var(--admin-navy); font-weight: 600;
+    margin-top: 2px;
+  }
+
+  .note {
+    margin-top: 56px; padding: 22px 26px;
+    background: var(--admin-cream); border-radius: 14px;
+    border: 0.5px solid var(--admin-line);
+    font-family: "Iowan Old Style", Georgia, serif;
+    font-size: 14px; line-height: 1.6; color: var(--admin-ink-2);
+  }
+  .note strong { color: var(--admin-ink); font-weight: 500; }
+  .note em { font-style: italic; }
+</style>
+</head>
+<body>
+
+<div class="index-page" data-screen-label="Index">
+
+  <header>
+    <p class="eyebrow">BetterAt · JHSON Admin Suite · 2026-05-23</p>
+    <h1>Fifteen admin frames, four canonicals, one <em>AdminShell</em></h1>
+    <p>
+      This batch completes the JHSON nursing admin surface that the May 11 dashboard pass kicked off. <strong>Frame 5</strong>&rsquo;s blueprint editor cover gets its six sub-tabs; the People dashboard from <strong>Frame 7</strong> gains a cohort edit modal, a site detail page, and a CSV-mapping interior. A recipient-side invite landing closes the invitation loop. Three back-of-house surfaces — accreditation report, audit log, billing — round out compliance. Author payouts mirrors the independent author&rsquo;s view from the org side. SSO &amp; domain configures identity.
+    </p>
+    <p>
+      All frames sit inside one shared <strong>AdminShell</strong>: 240px sectioned sidebar with org-switcher at top and user card at bottom; warm-cream backdrop with navy <em>#28406B</em> as the only product-chrome accent; breadcrumb · title · subtitle · actions header; tone-tinted status pills. Tenant on screen throughout: <em>Johns Hopkins School of Nursing</em>, BSN Class of 2027 — Cohort A, 30 students, 5 partner hospitals.
+    </p>
+  </header>
+
+  <div class="sys">
+    <div class="cell">
+      <div class="k">Backdrop &amp; paper</div>
+      <div class="swatches">
+        <div class="sw"><span class="dot" style="background:#F5F4EE;"></span><code>#F5F4EE</code></div>
+        <div class="sw"><span class="dot" style="background:#FFFFFF;"></span><code>#FFFFFF</code></div>
+      </div>
+    </div>
+    <div class="cell">
+      <div class="k">Accent · navy</div>
+      <div class="swatches">
+        <div class="sw"><span class="dot" style="background:#28406B;"></span><code>#28406B</code></div>
+        <div class="sw"><span class="dot" style="background:#4E6A85;"></span><code>#4E6A85</code></div>
+      </div>
+    </div>
+    <div class="cell">
+      <div class="k">Status tones</div>
+      <div class="swatches">
+        <div class="sw"><span class="dot" style="background:#1E8F47;"></span><code>ok</code></div>
+        <div class="sw"><span class="dot" style="background:#C99632;"></span><code>warn</code></div>
+        <div class="sw"><span class="dot" style="background:#FF3B30;"></span><code>danger</code></div>
+      </div>
+    </div>
+    <div class="cell">
+      <div class="k">Type</div>
+      <div class="row">SF Pro · 22 / 14 / 12.5 / 11<br/>Iowan Old Style for review-chrome &amp; report doc</div>
+    </div>
+  </div>
+
+  <!-- Group A · Blueprint editor -->
+  <div class="group-head">
+    <p class="eyebrow">Group A · Highest priority</p>
+    <h2>Blueprint editor sub-tabs — <em>finishing Frame 5</em></h2>
+  </div>
+
+  <div class="grid-cards">
+    <a class="file-card-x" href="docs/redesign/ios-register/blueprint-editor-tabs-canonical.html">
+      <div class="num-row"><span class="num-badge">FRAMES 18 – 23</span> · 6 sub-tabs of one editor</div>
+      <h3>Steps, Capabilities, Pricing, Cohorts, Mentors, Activity</h3>
+      <p class="desc">The cover card exists; these six frames are the editor body for <em>Sepsis bundle recognition</em>. The sidebar shifts into Editing mode — a navy back-banner, the section nav becomes a per-blueprint outline.</p>
+      <div class="frames">
+        <span class="frame-chip">18 Steps</span>
+        <span class="frame-chip">19 Capabilities</span>
+        <span class="frame-chip">20 Pricing &amp; access</span>
+        <span class="frame-chip">21 Cohorts</span>
+        <span class="frame-chip">22 Mentor settings</span>
+        <span class="frame-chip">23 Activity</span>
+      </div>
+      <span class="open">Open canonical <i class="ti ti-arrow-right"></i></span>
+    </a>
+  </div>
+
+  <!-- Group B · People &amp; Sites -->
+  <div class="group-head">
+    <p class="eyebrow">Group B · Roster-shaped surfaces</p>
+    <h2>Cohort edit · Site detail · Bulk CSV</h2>
+  </div>
+
+  <div class="grid-cards">
+    <a class="file-card-x" href="docs/redesign/ios-register/jhson-people-sites-canonical.html">
+      <div class="num-row"><span class="num-badge">FRAMES 24 – 26</span> · 3 frames</div>
+      <h3>People &amp; Sites administration</h3>
+      <p class="desc">Cohort detail&rsquo;s edit modal uses ManageCompetenciesSheet form vocabulary. Site detail covers the claimed state for East Baltimore. Bulk CSV is the interior of Frame 8&rsquo;s sheet — column mapping, per-row validation, honest error CTA.</p>
+      <div class="frames">
+        <span class="frame-chip">24 Cohort edit modal</span>
+        <span class="frame-chip">25 Site detail</span>
+        <span class="frame-chip">26 Bulk CSV preview</span>
+      </div>
+      <span class="open">Open canonical <i class="ti ti-arrow-right"></i></span>
+    </a>
+  </div>
+
+  <!-- Group C · Trust -->
+  <div class="group-head">
+    <p class="eyebrow">Group C · Trust surfaces</p>
+    <h2>Invite landing · Accreditation report · Audit log</h2>
+  </div>
+
+  <div class="grid-cards">
+    <a class="file-card-x" href="docs/redesign/ios-register/jhson-invites-reports-canonical.html">
+      <div class="num-row"><span class="num-badge">FRAMES 27 – 29</span> · 3 frames</div>
+      <h3>Invite acceptance · Accred export · Audit feed</h3>
+      <p class="desc">The invite landing is the only frame outside the AdminShell — it&rsquo;s a logged-out marketing page. Accreditation export is a print-friendly doc with site×competency tables and editor-written narratives. Audit log is a feed with a sticky right-side payload drawer.</p>
+      <div class="frames">
+        <span class="frame-chip">27 Invite landing</span>
+        <span class="frame-chip">28 Accreditation report</span>
+        <span class="frame-chip">29 Audit log</span>
+      </div>
+      <span class="open">Open canonical <i class="ti ti-arrow-right"></i></span>
+    </a>
+  </div>
+
+  <!-- Group D · Money -->
+  <div class="group-head">
+    <p class="eyebrow">Group D · Back-of-house</p>
+    <h2>Billing · Payouts · SSO &amp; domain</h2>
+  </div>
+
+  <div class="grid-cards">
+    <a class="file-card-x" href="docs/redesign/ios-register/jhson-billing-sso-canonical.html">
+      <div class="num-row"><span class="num-badge">FRAMES 30 – 32</span> · 3 frames</div>
+      <h3>Billing &amp; invoices · Author payouts · SSO &amp; domain</h3>
+      <p class="desc">Billing unifies the two sidebar items into a single surface — tinted plan hero, payment card, invoice table. Author payouts mirrors Frame 6&rsquo;s independent-earnings vocabulary from the org side. SSO &amp; domain handles SAML, attribute mappings, and verified domain DNS status.</p>
+      <div class="frames">
+        <span class="frame-chip">30 Billing &amp; invoices</span>
+        <span class="frame-chip">31 Author payouts</span>
+        <span class="frame-chip">32 SSO &amp; domain</span>
+      </div>
+      <span class="open">Open canonical <i class="ti ti-arrow-right"></i></span>
+    </a>
+  </div>
+
+  <div class="note">
+    <strong>Hard constraints honored:</strong> iPad/desktop chrome only · every screen lives inside <em>AdminShell</em> · BSN Class of 2027 — Cohort A · 30 students · 9 competencies including new Sepsis bundle recognition · 5 hospital sites named exactly as specified · all numbers tabular · status pills tone-tinted, not solid · no emoji · no first-person AI persona language. The shared <code>admin-shell.css</code> in <em>docs/redesign/ios-register/</em> defines the chrome once.
+  </div>
+
+</div>
+
+</body>
+</html>

@@ -1,0 +1,833 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=4180" />
+<title>BetterAt — JHSON billing, payouts &amp; SSO · iOS register</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css" />
+<link rel="stylesheet" href="admin-shell.css" />
+<style>
+  .page { min-width: 4200px; }
+
+  /* Plan card */
+  .plan-card {
+    background: var(--admin-paper);
+    border: 0.5px solid var(--admin-line); border-radius: 12px;
+    overflow: hidden;
+    display: grid; grid-template-columns: 1.4fr 1fr;
+  }
+  .plan-card .plan-main {
+    padding: 20px 22px;
+    background: linear-gradient(160deg, #2A3F66 0%, #1E335A 100%);
+    color: #fff;
+    display: flex; flex-direction: column; gap: 14px;
+  }
+  .plan-card .plan-main .eyebrow {
+    font-size: 10.5px; letter-spacing: 0.12em; text-transform: uppercase;
+    font-weight: 700; color: rgba(255,255,255,0.6);
+  }
+  .plan-card .plan-main h2 {
+    font-size: 22px; font-weight: 700; margin: 0; letter-spacing: -0.3px;
+  }
+  .plan-card .plan-main h2 .sub {
+    font-size: 13px; font-weight: 500; color: rgba(255,255,255,0.7);
+    margin-left: 8px;
+  }
+  .plan-card .plan-main .price {
+    display: flex; align-items: baseline; gap: 8px;
+  }
+  .plan-card .plan-main .price .big {
+    font-size: 36px; font-weight: 700; letter-spacing: -0.6px;
+  }
+  .plan-card .plan-main .price .per { font-size: 13px; color: rgba(255,255,255,0.65); }
+  .plan-card .plan-main .feat {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 8px 14px;
+    font-size: 12.5px; color: rgba(255,255,255,0.86);
+  }
+  .plan-card .plan-main .feat .row {
+    display: flex; align-items: center; gap: 8px;
+  }
+  .plan-card .plan-main .feat .row i { color: rgba(255,255,255,0.7); font-size: 14px; }
+  .plan-card .plan-side { padding: 18px 20px; display: flex; flex-direction: column; gap: 14px; }
+  .plan-card .plan-side .seats {
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  .plan-card .plan-side .seats .top {
+    display: flex; align-items: baseline; gap: 6px; font-size: 12.5px; color: var(--admin-ink-3);
+  }
+  .plan-card .plan-side .seats .top .n { font-size: 26px; font-weight: 700; color: var(--admin-ink); letter-spacing: -0.5px; }
+  .plan-card .plan-side .seats .top .total { font-size: 14px; color: var(--admin-ink-3); margin-left: 4px; }
+  .plan-card .plan-side .seats .bar {
+    height: 10px; border-radius: 5px; background: var(--admin-cream-2); overflow: hidden;
+  }
+  .plan-card .plan-side .seats .bar > span {
+    display: block; height: 100%; background: var(--admin-navy);
+  }
+  .plan-card .plan-side .renewal {
+    background: var(--admin-cream); padding: 12px 14px; border-radius: 10px;
+    display: flex; flex-direction: column; gap: 4px;
+    font-size: 12px; color: var(--admin-ink-3);
+  }
+  .plan-card .plan-side .renewal strong { color: var(--admin-ink); font-weight: 600; font-size: 13px; }
+
+  /* Payment method card */
+  .pay-row {
+    display: grid; grid-template-columns: 56px 1fr auto; gap: 14px; align-items: center;
+  }
+  .pay-row .card-glyph {
+    width: 56px; height: 36px; border-radius: 6px;
+    background: linear-gradient(135deg, #1C1C1E 0%, #3A3A3C 100%);
+    color: #fff;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 11px; letter-spacing: 0.5px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+  }
+  .pay-row .name { font-size: 13.5px; color: var(--admin-ink); font-weight: 600; }
+  .pay-row .meta { font-size: 11.5px; color: var(--admin-ink-3); margin-top: 1px; }
+
+  /* Invoices table */
+  table.inv {
+    width: 100%; border-collapse: separate; border-spacing: 0;
+    font-size: 13px; color: var(--admin-ink-2);
+    background: var(--admin-paper);
+    border: 0.5px solid var(--admin-line); border-radius: 12px;
+    overflow: hidden;
+  }
+  table.inv thead th {
+    text-align: left; padding: 10px 14px;
+    background: var(--admin-cream);
+    border-bottom: 0.5px solid var(--admin-line);
+    font-size: 10.5px; font-weight: 700;
+    letter-spacing: 0.10em; text-transform: uppercase;
+    color: var(--admin-ink-3);
+  }
+  table.inv tbody td {
+    padding: 12px 14px;
+    border-bottom: 0.5px solid var(--admin-line-soft);
+    color: var(--admin-ink); font-size: 13px;
+    vertical-align: middle;
+  }
+  table.inv tbody tr:last-child td { border-bottom: none; }
+  table.inv tbody td.right { text-align: right; }
+  table.inv tbody td.num { font-variant-numeric: tabular-nums; font-weight: 600; }
+
+  /* Author payouts */
+  .stripe-pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 3px 8px; border-radius: 6px;
+    background: rgba(99, 91, 255, 0.08); color: #5851D6;
+    font-size: 10.5px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase;
+    border: 0.5px solid rgba(99, 91, 255, 0.18);
+  }
+
+  /* SSO/Domain */
+  .config-row {
+    display: grid; grid-template-columns: 200px 1fr auto;
+    gap: 16px; align-items: center;
+    padding: 14px 16px;
+    background: var(--admin-paper); border-radius: 10px;
+    border: 0.5px solid var(--admin-line);
+  }
+  .config-row + .config-row { margin-top: 8px; }
+  .config-row .label { font-size: 11px; color: var(--admin-ink-3); font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; }
+  .config-row .value {
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 12px; color: var(--admin-ink); padding: 8px 12px;
+    background: var(--admin-cream); border-radius: 8px;
+    word-break: break-all;
+  }
+  .config-row .actions { display: inline-flex; gap: 6px; }
+
+  .file-drop {
+    border: 1.5px dashed var(--admin-line-strong); background: var(--admin-cream);
+    border-radius: 10px; padding: 18px 20px;
+    display: flex; align-items: center; gap: 14px;
+  }
+  .file-drop .ico {
+    width: 44px; height: 44px; border-radius: 10px;
+    background: var(--admin-navy-tint); color: var(--admin-navy);
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .file-drop .ico i { font-size: 22px; }
+  .file-drop .body { flex: 1; }
+  .file-drop .body strong { font-size: 13px; color: var(--admin-ink); font-weight: 600; }
+  .file-drop .body p { margin: 2px 0 0; font-size: 11.5px; color: var(--admin-ink-3); }
+
+  .domain-row {
+    display: grid; grid-template-columns: 1fr auto auto auto; gap: 12px;
+    align-items: center; padding: 12px 14px;
+    background: var(--admin-paper); border: 0.5px solid var(--admin-line);
+    border-radius: 10px;
+  }
+  .domain-row + .domain-row { margin-top: 6px; }
+  .domain-row .dom { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 13px; color: var(--admin-ink); font-weight: 600; }
+  .domain-row .dns {
+    font-size: 11px; color: var(--admin-ink-3);
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  }
+</style>
+</head>
+<body>
+
+<div class="page" data-screen-label="01 Canonical Stage">
+
+  <header class="page-head">
+    <p class="eyebrow">BetterAt · Billing &amp; identity · 2026-05-23</p>
+    <h1>Billing &amp; invoices · Author payouts · SSO &amp; domain — <em>the three back-of-house surfaces</em></h1>
+    <p>
+      The trust-and-money admin frames. <strong>Frame 30</strong> unifies the two sidebar items (Billing + Invoices) into a single surface with a tinted plan hero, payment-method card, and an invoice table.
+      <strong>Frame 31</strong> mirrors Frame&nbsp;6&rsquo;s earnings vocabulary from the org side — total paid-out, per-author table, upcoming schedule, Stripe Connect status pills.
+      <strong>Frame 32</strong> combines SSO setup and domain claim — SAML metadata upload, attribute mappings, verified domains with DNS TXT status.
+    </p>
+    <div class="crumbs">
+      <span class="pill">Frames 30 – 32</span>
+      <span class="sep">/</span>
+      <span>Closes the priority list</span>
+      <span class="sep">/</span>
+      <span>BSN Class of 2027 — Cohort A · 30 seats of 50 plan</span>
+    </div>
+  </header>
+
+  <div class="frame-row">
+
+    <!-- =====================================================================
+         FRAME 30 · BILLING & INVOICES
+    ====================================================================== -->
+    <div class="frame-col" data-screen-label="30 Billing &amp; invoices">
+      <div class="frame-cap"><span class="num">30</span> <strong>Billing &amp; invoices</strong> — unified surface · plan hero + payment + invoice table</div>
+      <div class="desktop">
+        <div class="chrome">
+          <div class="lights"><span class="r"></span><span class="y"></span><span class="g"></span></div>
+          <div class="url"><div class="url-inner">
+            <i class="ti ti-lock"></i>
+            <span><strong>betterat.app</strong>/orgs/jhson/admin/billing</span>
+          </div></div>
+          <div class="meta-right"><i class="ti ti-credit-card"></i><span>Auto-renew on</span></div>
+        </div>
+
+        <div class="app">
+          <aside class="sidebar">
+            <div class="org-switcher">
+              <div class="shield">JH</div>
+              <div class="meta"><div class="name">JHSON</div><div class="sub">BSN · 412 members</div></div>
+              <i class="ti ti-chevron-down chev"></i>
+            </div>
+            <div class="nav">
+              <div class="group-label">Institution</div>
+              <div class="item"><i class="ti ti-layout-dashboard"></i>Overview</div>
+              <div class="item"><i class="ti ti-users"></i>People</div>
+              <div class="item"><i class="ti ti-users-group"></i>Cohorts</div>
+              <div class="item"><i class="ti ti-map-pin"></i>Sites</div>
+              <div class="item"><i class="ti ti-circles-relation"></i>Competencies</div>
+              <div class="item"><i class="ti ti-chart-histogram"></i>Insights</div>
+              <div class="item"><i class="ti ti-file-text"></i>Blueprints</div>
+
+              <div class="group-label">Plan</div>
+              <div class="item on"><i class="ti ti-credit-card"></i>Billing</div>
+              <div class="item"><i class="ti ti-receipt-2"></i>Invoices<span class="count">14</span></div>
+              <div class="item"><i class="ti ti-cash"></i>Author payouts</div>
+
+              <div class="group-label">Security</div>
+              <div class="item"><i class="ti ti-key"></i>SSO &amp; domain</div>
+              <div class="item"><i class="ti ti-history-toggle"></i>Audit log</div>
+            </div>
+            <div class="spacer"></div>
+            <div class="user-card">
+              <div class="av sm">SP</div>
+              <div class="meta"><div class="name">Dean S. Park</div><div class="role">Org Admin</div></div>
+              <i class="ti ti-chevron-up"></i>
+            </div>
+          </aside>
+
+          <main class="content">
+            <div class="header">
+              <div class="crumb">
+                <a>Org admin</a><i class="ti ti-chevron-right"></i>
+                <a>Plan</a><i class="ti ti-chevron-right"></i>
+                <span class="here">Billing &amp; invoices</span>
+              </div>
+              <div class="title-row">
+                <h1>Billing &amp; invoices</h1>
+                <span class="status published">Auto-renew Jun 1</span>
+                <div class="actions">
+                  <button class="btn"><i class="ti ti-mail"></i>Email receipts</button>
+                  <button class="btn"><i class="ti ti-arrow-up-circle"></i>Upgrade plan</button>
+                </div>
+              </div>
+              <div class="subtitle">
+                <strong>Institutional · 50-seat plan</strong><span class="sep">·</span>30 seats in use<span class="sep">·</span>$1,490 / mo<span class="sep">·</span>net-30 invoicing
+              </div>
+            </div>
+
+            <div class="body">
+              <div class="body-inner">
+
+                <!-- Plan hero -->
+                <div class="plan-card">
+                  <div class="plan-main">
+                    <div class="eyebrow">Current plan</div>
+                    <h2>Institutional · BSN <span class="sub">/ pilot</span></h2>
+                    <div class="price">
+                      <div class="big">$1,490</div>
+                      <div class="per">/ month · billed monthly · net-30</div>
+                    </div>
+                    <div class="feat">
+                      <div class="row"><i class="ti ti-check"></i>Up to 50 student seats</div>
+                      <div class="row"><i class="ti ti-check"></i>Unlimited mentor seats</div>
+                      <div class="row"><i class="ti ti-check"></i>SSO + domain claim</div>
+                      <div class="row"><i class="ti ti-check"></i>Audit log · 7-year retention</div>
+                      <div class="row"><i class="ti ti-check"></i>Accreditation reports</div>
+                      <div class="row"><i class="ti ti-check"></i>SOC 2 + HIPAA BAA</div>
+                    </div>
+                  </div>
+                  <div class="plan-side">
+                    <div class="seats">
+                      <div class="top">
+                        <span class="n">30</span><span class="total">/ 50 seats</span><span style="margin-left:auto;font-size:11.5px;color:var(--admin-success);font-weight:600;">20 spare</span>
+                      </div>
+                      <div class="bar"><span style="width:60%;"></span></div>
+                      <div style="font-size:11.5px;color:var(--admin-ink-3);">28 students · 2 mentors · 0 faculty (faculty seats are free)</div>
+                    </div>
+                    <div class="renewal">
+                      <span>Next renewal</span>
+                      <strong>Jun 1, 2026 · charge $1,490.00</strong>
+                      <span>Auto-renew is <strong style="color:var(--admin-success);font-size:11.5px;">on</strong>. Card on file will be charged.</span>
+                    </div>
+                    <button class="btn"><i class="ti ti-arrow-down-left"></i>Downgrade plan</button>
+                  </div>
+                </div>
+
+                <!-- Payment + alerts row -->
+                <div style="display:grid;grid-template-columns:1.4fr 1fr;gap:18px;">
+                  <div class="card">
+                    <div class="card-head">
+                      <div><div class="eyebrow">Payment method</div><h3>Card on file</h3></div>
+                      <div class="actions"><button class="btn sm"><i class="ti ti-edit"></i>Update</button></div>
+                    </div>
+                    <div class="card-body">
+                      <div class="pay-row">
+                        <div class="card-glyph">VISA</div>
+                        <div>
+                          <div class="name">Visa ending 4242</div>
+                          <div class="meta">Expires 09 / 28 · billed to Susanna Park · billing@nursing.jhu.edu</div>
+                        </div>
+                        <div class="actions" style="display:inline-flex;gap:6px;">
+                          <button class="btn sm ghost"><i class="ti ti-mail"></i>Change receipt email</button>
+                        </div>
+                      </div>
+                      <div style="margin-top:12px;padding-top:12px;border-top:0.5px solid var(--admin-line);font-size:11.5px;color:var(--admin-ink-3);">
+                        Alternative billing: <strong style="color:var(--admin-ink-2);">Net-30 ACH invoicing available for orgs &gt; 100 seats</strong>. Ask your account rep.
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="card">
+                    <div class="card-head">
+                      <div><div class="eyebrow">Account notices</div><h3>Nothing urgent</h3></div>
+                    </div>
+                    <div class="card-body" style="padding-top:6px;">
+                      <div style="display:flex;flex-direction:column;gap:8px;">
+                        <div style="display:flex;align-items:flex-start;gap:8px;font-size:12px;color:var(--admin-ink-2);line-height:1.5;">
+                          <i class="ti ti-info-circle" style="color:var(--admin-navy);font-size:15px;margin-top:1px;"></i>
+                          <div>You&rsquo;re at <strong>60%</strong> of plan seats. We&rsquo;ll email Susanna if you cross 90%.</div>
+                        </div>
+                        <div style="display:flex;align-items:flex-start;gap:8px;font-size:12px;color:var(--admin-ink-2);line-height:1.5;">
+                          <i class="ti ti-info-circle" style="color:var(--admin-navy);font-size:15px;margin-top:1px;"></i>
+                          <div>Pilot pricing locked until <strong>Sep 30, 2026</strong>. List rate after that is $2,250 / mo.</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Invoice table -->
+                <div class="card">
+                  <div class="card-head">
+                    <div><div class="eyebrow">Invoices</div><h3>Last 14 invoices</h3></div>
+                    <div class="actions">
+                      <div class="seg-control"><div class="opt on">All</div><div class="opt">Paid</div><div class="opt">Open</div></div>
+                      <button class="btn sm"><i class="ti ti-download"></i>Export CSV</button>
+                    </div>
+                  </div>
+                  <div class="card-body" style="padding-top:6px;">
+                    <table class="inv">
+                      <thead>
+                        <tr><th>Invoice</th><th>Period</th><th class="right">Seats</th><th class="right">Amount</th><th>Status</th><th></th></tr>
+                      </thead>
+                      <tbody>
+                        <tr><td>INV-2026-05</td><td>May 1 – May 31, 2026</td><td class="right num">30</td><td class="right num">$1,490.00</td><td><span class="chip warn"><i class="ti ti-clock-hour-4"></i>Due Jun 1</span></td><td class="right"><button class="btn sm"><i class="ti ti-eye"></i></button> <button class="btn sm"><i class="ti ti-download"></i>PDF</button></td></tr>
+                        <tr><td>INV-2026-04</td><td>Apr 1 – Apr 30, 2026</td><td class="right num">28</td><td class="right num">$1,490.00</td><td><span class="chip ok"><i class="ti ti-check"></i>Paid · Apr 28</span></td><td class="right"><button class="btn sm"><i class="ti ti-eye"></i></button> <button class="btn sm"><i class="ti ti-download"></i>PDF</button></td></tr>
+                        <tr><td>INV-2026-03</td><td>Mar 1 – Mar 31, 2026</td><td class="right num">22</td><td class="right num">$1,490.00</td><td><span class="chip ok"><i class="ti ti-check"></i>Paid · Mar 28</span></td><td class="right"><button class="btn sm"><i class="ti ti-eye"></i></button> <button class="btn sm"><i class="ti ti-download"></i>PDF</button></td></tr>
+                        <tr><td>INV-2026-02</td><td>Feb 1 – Feb 28, 2026</td><td class="right num">14</td><td class="right num">$1,490.00</td><td><span class="chip ok"><i class="ti ti-check"></i>Paid · Feb 26</span></td><td class="right"><button class="btn sm"><i class="ti ti-eye"></i></button> <button class="btn sm"><i class="ti ti-download"></i>PDF</button></td></tr>
+                        <tr><td>INV-2026-01</td><td>Jan 1 – Jan 31, 2026</td><td class="right num">8</td><td class="right num">$1,490.00</td><td><span class="chip ok"><i class="ti ti-check"></i>Paid · Jan 24</span></td><td class="right"><button class="btn sm"><i class="ti ti-eye"></i></button> <button class="btn sm"><i class="ti ti-download"></i>PDF</button></td></tr>
+                        <tr><td>INV-2025-12</td><td>Dec 1 – Dec 31, 2025</td><td class="right num">4</td><td class="right num">$0.00</td><td><span class="chip ok"><i class="ti ti-gift"></i>Pilot · waived</span></td><td class="right"><button class="btn sm"><i class="ti ti-eye"></i></button> <button class="btn sm"><i class="ti ti-download"></i>PDF</button></td></tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+          </main>
+        </div>
+      </div>
+    </div>
+
+    <!-- =====================================================================
+         FRAME 31 · AUTHOR PAYOUTS
+    ====================================================================== -->
+    <div class="frame-col" data-screen-label="31 Author payouts">
+      <div class="frame-cap"><span class="num">31</span> <strong>Author payouts</strong> — org-side mirror of Frame 6 · per-author table, Stripe Connect status</div>
+      <div class="desktop">
+        <div class="chrome">
+          <div class="lights"><span class="r"></span><span class="y"></span><span class="g"></span></div>
+          <div class="url"><div class="url-inner">
+            <i class="ti ti-lock"></i>
+            <span><strong>betterat.app</strong>/orgs/jhson/admin/payouts</span>
+          </div></div>
+          <div class="meta-right"><i class="ti ti-cash"></i><span>Stripe Connect · live</span></div>
+        </div>
+
+        <div class="app">
+          <aside class="sidebar">
+            <div class="org-switcher">
+              <div class="shield">JH</div>
+              <div class="meta"><div class="name">JHSON</div><div class="sub">BSN · 412 members</div></div>
+              <i class="ti ti-chevron-down chev"></i>
+            </div>
+            <div class="nav">
+              <div class="group-label">Institution</div>
+              <div class="item"><i class="ti ti-layout-dashboard"></i>Overview</div>
+              <div class="item"><i class="ti ti-users"></i>People</div>
+              <div class="item"><i class="ti ti-users-group"></i>Cohorts</div>
+              <div class="item"><i class="ti ti-map-pin"></i>Sites</div>
+              <div class="item"><i class="ti ti-circles-relation"></i>Competencies</div>
+              <div class="item"><i class="ti ti-chart-histogram"></i>Insights</div>
+              <div class="item"><i class="ti ti-file-text"></i>Blueprints</div>
+
+              <div class="group-label">Plan</div>
+              <div class="item"><i class="ti ti-credit-card"></i>Billing</div>
+              <div class="item"><i class="ti ti-receipt-2"></i>Invoices</div>
+              <div class="item on"><i class="ti ti-cash"></i>Author payouts</div>
+
+              <div class="group-label">Security</div>
+              <div class="item"><i class="ti ti-key"></i>SSO &amp; domain</div>
+              <div class="item"><i class="ti ti-history-toggle"></i>Audit log</div>
+            </div>
+            <div class="spacer"></div>
+            <div class="user-card">
+              <div class="av sm">SP</div>
+              <div class="meta"><div class="name">Dean S. Park</div><div class="role">Org Admin</div></div>
+              <i class="ti ti-chevron-up"></i>
+            </div>
+          </aside>
+
+          <main class="content">
+            <div class="header">
+              <div class="crumb">
+                <a>Org admin</a><i class="ti ti-chevron-right"></i>
+                <a>Plan</a><i class="ti ti-chevron-right"></i>
+                <span class="here">Author payouts</span>
+              </div>
+              <div class="title-row">
+                <h1>Author payouts</h1>
+                <span class="status published">Stripe Connect live</span>
+                <div class="actions">
+                  <button class="btn"><i class="ti ti-history"></i>Payout history</button>
+                  <button class="btn"><i class="ti ti-download"></i>1099 exports</button>
+                  <button class="btn primary"><i class="ti ti-send"></i>Send next batch</button>
+                </div>
+              </div>
+              <div class="subtitle">
+                <strong>3 authors</strong><span class="sep">·</span>$8,420.00 paid out YTD<span class="sep">·</span>next batch May 31<span class="sep">·</span>policy: 70% to author · 10% platform · 20% org rebate
+              </div>
+            </div>
+
+            <div class="body">
+              <div class="body-inner">
+
+                <!-- Stat strip -->
+                <div class="stat-strip cols-4">
+                  <div class="stat">
+                    <div class="k">Paid YTD</div>
+                    <div class="v">$8,420<span style="font-size:13px;color:var(--admin-ink-3);font-weight:500;">.00</span></div>
+                    <div class="d">across 3 authors, 5 blueprints</div>
+                  </div>
+                  <div class="stat">
+                    <div class="k">Pending · next batch</div>
+                    <div class="v" style="color:var(--admin-warn);">$1,240<span style="font-size:13px;color:var(--admin-ink-3);font-weight:500;">.00</span></div>
+                    <div class="d">clears May 31, 2026</div>
+                  </div>
+                  <div class="stat">
+                    <div class="k">Cohort seats producing payouts</div>
+                    <div class="v">30 / 30</div>
+                    <div class="d">BSN Class of 2027 — Cohort A</div>
+                  </div>
+                  <div class="stat">
+                    <div class="k">Last batch</div>
+                    <div class="v">$1,890<span style="font-size:13px;color:var(--admin-ink-3);font-weight:500;">.00</span></div>
+                    <div class="d">cleared Apr 30 · 3 authors</div>
+                  </div>
+                </div>
+
+                <!-- Author table -->
+                <div class="card">
+                  <div class="card-head">
+                    <div><div class="eyebrow">Authors</div><h3>By total earned this year</h3></div>
+                    <div class="actions">
+                      <div class="seg-control"><div class="opt on">All</div><div class="opt">Active</div><div class="opt">Connect issues</div></div>
+                      <button class="btn sm"><i class="ti ti-plus"></i>Onboard author</button>
+                    </div>
+                  </div>
+                  <div class="card-body" style="padding-top:6px;">
+                    <table class="inv">
+                      <thead>
+                        <tr>
+                          <th style="width:240px;">Author</th>
+                          <th>Blueprints</th>
+                          <th class="right">Active seats</th>
+                          <th class="right">Earned YTD</th>
+                          <th>Last payout</th>
+                          <th>Connect status</th>
+                          <th></th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr>
+                          <td>
+                            <div style="display:flex;align-items:center;gap:10px;">
+                              <span class="av sm brown">RM</span>
+                              <div>
+                                <div style="font-weight:600;color:var(--admin-ink);">Dr. R. Murphy</div>
+                                <div style="font-size:11px;color:var(--admin-ink-3);margin-top:1px;">JHSON faculty · 12 blueprints</div>
+                              </div>
+                            </div>
+                          </td>
+                          <td>
+                            <div style="display:flex;gap:4px;flex-wrap:wrap;max-width:220px;">
+                              <span class="chip sq">Sepsis bundle</span>
+                              <span class="chip sq">IV insertion</span>
+                              <span class="chip sq" style="background:var(--admin-cream-2);color:var(--admin-ink-3);">+10</span>
+                            </div>
+                          </td>
+                          <td class="right num">22</td>
+                          <td class="right num" style="color:var(--admin-ink);">$5,180.00</td>
+                          <td>Apr 30 · $1,240</td>
+                          <td><span class="stripe-pill"><i class="ti ti-check" style="font-size:11px;"></i>Stripe · verified</span></td>
+                          <td class="right"><button class="btn sm"><i class="ti ti-dots-vertical"></i></button></td>
+                        </tr>
+                        <tr>
+                          <td>
+                            <div style="display:flex;align-items:center;gap:10px;">
+                              <span class="av sm purple">JK</span>
+                              <div>
+                                <div style="font-weight:600;color:var(--admin-ink);">J. Kim, RN</div>
+                                <div style="font-size:11px;color:var(--admin-ink-3);margin-top:1px;">Preceptor · 4 blueprints</div>
+                              </div>
+                            </div>
+                          </td>
+                          <td>
+                            <div style="display:flex;gap:4px;flex-wrap:wrap;">
+                              <span class="chip sq">Head-to-toe</span>
+                              <span class="chip sq">Foley placement</span>
+                              <span class="chip sq" style="background:var(--admin-cream-2);color:var(--admin-ink-3);">+2</span>
+                            </div>
+                          </td>
+                          <td class="right num">18</td>
+                          <td class="right num">$2,310.00</td>
+                          <td>Apr 30 · $480</td>
+                          <td><span class="stripe-pill"><i class="ti ti-check" style="font-size:11px;"></i>Stripe · verified</span></td>
+                          <td class="right"><button class="btn sm"><i class="ti ti-dots-vertical"></i></button></td>
+                        </tr>
+                        <tr>
+                          <td>
+                            <div style="display:flex;align-items:center;gap:10px;">
+                              <span class="av sm warm">NA</span>
+                              <div>
+                                <div style="font-weight:600;color:var(--admin-ink);">Noor Aziz</div>
+                                <div style="font-size:11px;color:var(--admin-ink-3);margin-top:1px;">Independent · 1 blueprint</div>
+                              </div>
+                            </div>
+                          </td>
+                          <td><span class="chip sq">Discharge teach-back</span></td>
+                          <td class="right num">6</td>
+                          <td class="right num">$930.00</td>
+                          <td>Apr 30 · $170</td>
+                          <td><span class="stripe-pill" style="background:var(--admin-warn-tint);color:var(--admin-warn);border-color:rgba(201,150,50,0.3);"><i class="ti ti-alert-triangle" style="font-size:11px;"></i>Connect · action needed</span></td>
+                          <td class="right"><button class="btn sm"><i class="ti ti-dots-vertical"></i></button></td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <!-- Upcoming payout -->
+                <div class="panel">
+                  <div class="panel-head">
+                    <span class="eyebrow">Upcoming payout · Sun May 31</span>
+                    <span class="hint">Cleared 5 business days after period close</span>
+                  </div>
+                  <div style="display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:14px;">
+                    <div style="background:var(--admin-paper);border-radius:10px;padding:12px 14px;">
+                      <div style="font-size:10.5px;letter-spacing:0.10em;text-transform:uppercase;font-weight:700;color:var(--admin-ink-3);">Period</div>
+                      <div style="font-size:14px;font-weight:600;color:var(--admin-ink);margin-top:4px;">May 1 – May 31, 2026</div>
+                      <div style="font-size:11.5px;color:var(--admin-ink-3);margin-top:2px;">30 active seats · 70/10/20 split</div>
+                    </div>
+                    <div style="background:var(--admin-paper);border-radius:10px;padding:12px 14px;">
+                      <div style="font-size:10.5px;letter-spacing:0.10em;text-transform:uppercase;font-weight:700;color:var(--admin-ink-3);">Authors getting paid</div>
+                      <div style="font-size:14px;font-weight:600;color:var(--admin-ink);margin-top:4px;">3 of 3</div>
+                      <div style="font-size:11.5px;color:var(--admin-warn);margin-top:2px;">N. Aziz must complete Connect verification first</div>
+                    </div>
+                    <div style="background:var(--admin-paper);border-radius:10px;padding:12px 14px;">
+                      <div style="font-size:10.5px;letter-spacing:0.10em;text-transform:uppercase;font-weight:700;color:var(--admin-ink-3);">Batch total</div>
+                      <div style="font-size:14px;font-weight:600;color:var(--admin-ink);margin-top:4px;">$1,240.00</div>
+                      <div style="font-size:11.5px;color:var(--admin-ink-3);margin-top:2px;">Rebate back to JHSON: $248.00</div>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+          </main>
+        </div>
+      </div>
+    </div>
+
+    <!-- =====================================================================
+         FRAME 32 · SSO & DOMAIN
+    ====================================================================== -->
+    <div class="frame-col" data-screen-label="32 SSO &amp; domain">
+      <div class="frame-cap"><span class="num">32</span> <strong>SSO &amp; domain</strong> — SAML config + verified domains + auto-add toggle</div>
+      <div class="desktop">
+        <div class="chrome">
+          <div class="lights"><span class="r"></span><span class="y"></span><span class="g"></span></div>
+          <div class="url"><div class="url-inner">
+            <i class="ti ti-lock"></i>
+            <span><strong>betterat.app</strong>/orgs/jhson/admin/security/sso</span>
+          </div></div>
+          <div class="meta-right"><i class="ti ti-key"></i><span>SAML 2.0 · Okta</span></div>
+        </div>
+
+        <div class="app">
+          <aside class="sidebar">
+            <div class="org-switcher">
+              <div class="shield">JH</div>
+              <div class="meta"><div class="name">JHSON</div><div class="sub">BSN · 412 members</div></div>
+              <i class="ti ti-chevron-down chev"></i>
+            </div>
+            <div class="nav">
+              <div class="group-label">Institution</div>
+              <div class="item"><i class="ti ti-layout-dashboard"></i>Overview</div>
+              <div class="item"><i class="ti ti-users"></i>People</div>
+              <div class="item"><i class="ti ti-users-group"></i>Cohorts</div>
+              <div class="item"><i class="ti ti-map-pin"></i>Sites</div>
+              <div class="item"><i class="ti ti-circles-relation"></i>Competencies</div>
+              <div class="item"><i class="ti ti-chart-histogram"></i>Insights</div>
+              <div class="item"><i class="ti ti-file-text"></i>Blueprints</div>
+
+              <div class="group-label">Plan</div>
+              <div class="item"><i class="ti ti-credit-card"></i>Billing</div>
+              <div class="item"><i class="ti ti-receipt-2"></i>Invoices</div>
+              <div class="item"><i class="ti ti-cash"></i>Author payouts</div>
+
+              <div class="group-label">Security</div>
+              <div class="item on"><i class="ti ti-key"></i>SSO &amp; domain</div>
+              <div class="item"><i class="ti ti-history-toggle"></i>Audit log</div>
+            </div>
+            <div class="spacer"></div>
+            <div class="user-card">
+              <div class="av sm">SP</div>
+              <div class="meta"><div class="name">Dean S. Park</div><div class="role">Org Admin</div></div>
+              <i class="ti ti-chevron-up"></i>
+            </div>
+          </aside>
+
+          <main class="content">
+            <div class="header">
+              <div class="crumb">
+                <a>Org admin</a><i class="ti ti-chevron-right"></i>
+                <a>Security</a><i class="ti ti-chevron-right"></i>
+                <span class="here">SSO &amp; domain</span>
+              </div>
+              <div class="title-row">
+                <h1>SSO &amp; domain</h1>
+                <span class="status published">SAML · live</span>
+                <div class="actions">
+                  <button class="btn"><i class="ti ti-test-pipe"></i>Test login</button>
+                  <button class="btn primary"><i class="ti ti-arrow-up-circle"></i>Save changes</button>
+                </div>
+              </div>
+              <div class="subtitle">
+                <strong>SAML 2.0 · Okta</strong><span class="sep">·</span>3 verified domains<span class="sep">·</span>auto-add on<span class="sep">·</span>284 of 412 members signed in via SSO this month
+              </div>
+            </div>
+
+            <div class="body">
+              <div class="body-inner">
+
+                <div style="display:grid;grid-template-columns:1.4fr 1fr;gap:18px;align-items:flex-start;">
+
+                  <!-- SSO config column -->
+                  <div style="display:flex;flex-direction:column;gap:18px;">
+
+                    <div class="card">
+                      <div class="card-head">
+                        <div><div class="eyebrow">SAML 2.0 · IdP-initiated &amp; SP-initiated</div><h3>Identity provider</h3></div>
+                        <div class="actions">
+                          <span class="chip ok"><i class="ti ti-check"></i>Last metadata exchange Apr 18</span>
+                        </div>
+                      </div>
+                      <div class="card-body" style="padding-top:6px;">
+                        <div class="file-drop" style="margin-bottom:14px;">
+                          <div class="ico"><i class="ti ti-file-code"></i></div>
+                          <div class="body">
+                            <strong>okta-jh-edu-metadata.xml</strong>
+                            <p>Uploaded by Dean&nbsp;S.&nbsp;Park · 4.2 KB · Apr 18, 11:14a — drop a new file to re-key.</p>
+                          </div>
+                          <button class="btn sm"><i class="ti ti-refresh"></i>Replace</button>
+                          <button class="btn sm ghost"><i class="ti ti-download"></i>Download</button>
+                        </div>
+
+                        <div class="config-row">
+                          <div class="label">IdP Entity ID</div>
+                          <div class="value">http://www.okta.com/exk1j8h2k9aPfX0YQ357</div>
+                          <div class="actions"><button class="btn sm ghost"><i class="ti ti-copy"></i></button></div>
+                        </div>
+                        <div class="config-row">
+                          <div class="label">ACS URL · BetterAt</div>
+                          <div class="value">https://betterat.app/auth/saml/jhson/acs</div>
+                          <div class="actions"><button class="btn sm ghost"><i class="ti ti-copy"></i></button></div>
+                        </div>
+                        <div class="config-row">
+                          <div class="label">SP Entity ID</div>
+                          <div class="value">https://betterat.app/orgs/jhson</div>
+                          <div class="actions"><button class="btn sm ghost"><i class="ti ti-copy"></i></button></div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="card">
+                      <div class="card-head">
+                        <div><div class="eyebrow">Attribute mappings</div><h3>What IdP attributes become BetterAt fields</h3></div>
+                      </div>
+                      <div class="card-body" style="padding-top:6px;">
+                        <div style="display:grid;grid-template-columns:1fr 32px 1fr;gap:10px;align-items:center;font-size:11px;color:var(--admin-ink-3);font-weight:600;letter-spacing:0.06em;text-transform:uppercase;padding-bottom:6px;">
+                          <div>IdP attribute</div>
+                          <div></div>
+                          <div>BetterAt field</div>
+                        </div>
+
+                        <div style="display:grid;grid-template-columns:1fr 32px 1fr;gap:10px;align-items:center;padding:8px 0;border-top:0.5px solid var(--admin-line);">
+                          <div class="value" style="font-family:ui-monospace,SF Mono,Menlo,monospace;font-size:12px;color:var(--admin-ink);padding:8px 12px;background:var(--admin-cream);border-radius:8px;">NameID</div>
+                          <div style="text-align:center;color:var(--admin-ink-4);"><i class="ti ti-arrow-right"></i></div>
+                          <div class="select-fake" style="background:var(--admin-cream);"><span>email</span><i class="ti ti-chevron-down"></i></div>
+                        </div>
+                        <div style="display:grid;grid-template-columns:1fr 32px 1fr;gap:10px;align-items:center;padding:8px 0;border-top:0.5px solid var(--admin-line);">
+                          <div class="value" style="font-family:ui-monospace,SF Mono,Menlo,monospace;font-size:12px;color:var(--admin-ink);padding:8px 12px;background:var(--admin-cream);border-radius:8px;">eduPersonAffiliation</div>
+                          <div style="text-align:center;color:var(--admin-ink-4);"><i class="ti ti-arrow-right"></i></div>
+                          <div class="select-fake" style="background:var(--admin-cream);"><span>role</span><i class="ti ti-chevron-down"></i></div>
+                        </div>
+                        <div style="display:grid;grid-template-columns:1fr 32px 1fr;gap:10px;align-items:center;padding:8px 0;border-top:0.5px solid var(--admin-line);">
+                          <div class="value" style="font-family:ui-monospace,SF Mono,Menlo,monospace;font-size:12px;color:var(--admin-ink);padding:8px 12px;background:var(--admin-cream);border-radius:8px;">department</div>
+                          <div style="text-align:center;color:var(--admin-ink-4);"><i class="ti ti-arrow-right"></i></div>
+                          <div class="select-fake" style="background:var(--admin-cream);"><span>cohort_hint</span><i class="ti ti-chevron-down"></i></div>
+                        </div>
+                        <div style="display:grid;grid-template-columns:1fr 32px 1fr;gap:10px;align-items:center;padding:8px 0;border-top:0.5px solid var(--admin-line);">
+                          <div class="value" style="font-family:ui-monospace,SF Mono,Menlo,monospace;font-size:12px;color:var(--admin-ink);padding:8px 12px;background:var(--admin-cream);border-radius:8px;">displayName</div>
+                          <div style="text-align:center;color:var(--admin-ink-4);"><i class="ti ti-arrow-right"></i></div>
+                          <div class="select-fake" style="background:var(--admin-cream);"><span>name</span><i class="ti ti-chevron-down"></i></div>
+                        </div>
+
+                        <button class="btn sm ghost" style="margin-top:10px;align-self:flex-start;"><i class="ti ti-plus"></i>Add mapping</button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Domain column -->
+                  <div style="display:flex;flex-direction:column;gap:18px;">
+
+                    <div class="card">
+                      <div class="card-head">
+                        <div><div class="eyebrow">Verified domains</div><h3>3 domains · 2 active</h3></div>
+                      </div>
+                      <div class="card-body" style="padding-top:6px;">
+                        <div class="domain-row">
+                          <div>
+                            <div class="dom">jh.edu</div>
+                            <div class="dns">TXT: betterat-verify=8c2f…</div>
+                          </div>
+                          <span class="chip ok"><i class="ti ti-check"></i>Verified</span>
+                          <span class="chip" style="background:var(--admin-cream-2);color:var(--admin-ink-2);text-transform:none;letter-spacing:0;font-weight:500;font-size:11px;">primary</span>
+                          <button class="btn sm ghost"><i class="ti ti-dots-vertical"></i></button>
+                        </div>
+                        <div class="domain-row">
+                          <div>
+                            <div class="dom">jhmi.edu</div>
+                            <div class="dns">TXT: betterat-verify=4a1d…</div>
+                          </div>
+                          <span class="chip warn"><i class="ti ti-clock-hour-4"></i>Pending DNS</span>
+                          <span class="chip" style="background:transparent;color:var(--admin-ink-3);text-transform:none;letter-spacing:0;font-weight:500;font-size:11px;">added Fri</span>
+                          <button class="btn sm ghost"><i class="ti ti-dots-vertical"></i></button>
+                        </div>
+                        <div class="domain-row">
+                          <div>
+                            <div class="dom">jhu.edu</div>
+                            <div class="dns">TXT: betterat-verify=b7e3…</div>
+                          </div>
+                          <span class="chip ok"><i class="ti ti-check"></i>Verified</span>
+                          <span class="chip" style="background:transparent;color:var(--admin-ink-3);text-transform:none;letter-spacing:0;font-weight:500;font-size:11px;">alias</span>
+                          <button class="btn sm ghost"><i class="ti ti-dots-vertical"></i></button>
+                        </div>
+
+                        <div style="display:flex;align-items:center;gap:8px;margin-top:14px;padding:10px 12px;background:var(--admin-cream);border-radius:10px;">
+                          <i class="ti ti-plus" style="color:var(--admin-navy-tint-3);font-size:18px;"></i>
+                          <input style="flex:1;border:none;outline:none;background:transparent;font:inherit;font-size:13px;color:var(--admin-ink);" placeholder="Add another domain · e.g. nursing.jhu.edu" />
+                          <button class="btn sm primary">Add</button>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="card">
+                      <div class="card-head">
+                        <div><div class="eyebrow">Auto-add</div><h3>Users with matching domain</h3></div>
+                      </div>
+                      <div class="card-body" style="padding-top:6px;display:flex;flex-direction:column;gap:14px;">
+                        <div style="display:grid;grid-template-columns:1fr 60px;align-items:center;gap:14px;">
+                          <div>
+                            <div style="font-size:13px;color:var(--admin-ink);">Auto-add new users with verified jh.edu / jhu.edu</div>
+                            <div style="font-size:11.5px;color:var(--admin-ink-3);margin-top:2px;line-height:1.4;">When someone signs up with a verified-domain email, they join JHSON automatically as <em>Student</em>.</div>
+                          </div>
+                          <div class="switch on" style="justify-self:end;"></div>
+                        </div>
+                        <div style="display:grid;grid-template-columns:1fr 60px;align-items:center;gap:14px;border-top:0.5px solid var(--admin-line);padding-top:14px;">
+                          <div>
+                            <div style="font-size:13px;color:var(--admin-ink);">Require SSO for verified-domain emails</div>
+                            <div style="font-size:11.5px;color:var(--admin-ink-3);margin-top:2px;line-height:1.4;">Members on jh.edu must sign in via Okta. Magic-link and password disabled for them.</div>
+                          </div>
+                          <div class="switch on" style="justify-self:end;"></div>
+                        </div>
+                        <div style="display:grid;grid-template-columns:1fr 60px;align-items:center;gap:14px;border-top:0.5px solid var(--admin-line);padding-top:14px;">
+                          <div>
+                            <div style="font-size:13px;color:var(--admin-ink);">Default cohort for auto-added members</div>
+                            <div style="font-size:11.5px;color:var(--admin-ink-3);margin-top:2px;">Admin still has to assign individuals to specific cohorts.</div>
+                          </div>
+                          <div class="select-fake" style="justify-self:end;width:auto;min-width:180px;background:var(--admin-cream);"><span>Unassigned</span><i class="ti ti-chevron-down"></i></div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+          </main>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+
+</body>
+</html>
