@@ -33,10 +33,29 @@ const corsHeaders = {
 type ConnectStatus = 'verified' | 'action_needed' | 'pending' | 'rejected' | 'disabled';
 
 function deriveStatus(acct: any): ConnectStatus {
-  if (acct.requirements?.disabled_reason) return 'disabled';
-  if ((acct.requirements?.currently_due ?? []).length > 0) return 'action_needed';
-  if ((acct.requirements?.errors ?? []).length > 0) return 'rejected';
-  if (acct.charges_enabled && acct.payouts_enabled && acct.details_submitted) return 'verified';
+  const req = acct.requirements ?? {};
+  // Verified takes priority — charges + payouts + details submitted with nothing due
+  if (
+    acct.charges_enabled &&
+    acct.payouts_enabled &&
+    acct.details_submitted &&
+    (req.currently_due ?? []).length === 0
+  ) {
+    return 'verified';
+  }
+  // Errors block onboarding regardless of due lists
+  if ((req.errors ?? []).length > 0) return 'rejected';
+  // Past-due or actively-due items need admin attention
+  if ((req.past_due ?? []).length > 0 || (req.currently_due ?? []).length > 0) {
+    return 'action_needed';
+  }
+  // Terminal disabled reasons (not the transient pending_verification one Stripe
+  // sets while it processes a freshly-submitted account)
+  const disabled = req.disabled_reason as string | null | undefined;
+  if (disabled && disabled !== 'requirements.pending_verification') {
+    return 'disabled';
+  }
+  // Everything else (still being verified, or no connect account at all) → pending
   return 'pending';
 }
 
