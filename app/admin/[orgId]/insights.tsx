@@ -16,7 +16,7 @@
 import React, { useState } from 'react';
 import { View, Text, Pressable, StyleSheet, ScrollView, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { AdminShell } from '@/components/admin/AdminShell';
 import {
   useAdminCompetencyEvidence,
@@ -33,6 +33,7 @@ type InsightsView = 'grid' | 'map';
 
 export default function AdminInsightsPage() {
   const { orgId } = useLocalSearchParams<{ orgId: string }>();
+  const router = useRouter();
   const data = useAdminCompetencyEvidence(orgId as string);
   const menu = useProfileMenuData();
   const [view, setView] = useState<InsightsView>('grid');
@@ -98,6 +99,7 @@ export default function AdminInsightsPage() {
               accent="navy"
               icon="document-text-outline"
               label="Accreditation report"
+              onPress={() => router.push(`/admin/${orgId}/accreditation`)}
             />
           </>
         }
