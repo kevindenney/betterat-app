@@ -100,7 +100,7 @@ export function AdminBillingSurface() {
             </Text>
           </View>
           <Pressable style={s.ghostBtn}>
-            <Ionicons name="arrow-down-back" size={13} color="#28406B" />
+            <Ionicons name="arrow-down" size={13} color="#28406B" />
             <Text style={s.ghostBtnText}>Downgrade plan</Text>
           </Pressable>
         </View>
