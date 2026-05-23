@@ -1048,18 +1048,22 @@ function FrameF4({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
           <Text style={shellStyles.absChipText}>site-level only</Text>
         </View>
 
-        {/* Generic OSM-sourced healthcare POIs */}
-        <AtlasPin kind="osm-clinic" leftPct={48} topPct={50} label="Johns Hopkins Hosp." />
-        <AtlasPin kind="osm-clinic" leftPct={72} topPct={42} label="Bayview" />
-        <AtlasPin kind="osm-clinic" leftPct={22} topPct={62} label="U. of Maryland" />
-        <AtlasPin kind="osm-clinic" leftPct={18} topPct={45} label="Sinai" />
-        {/* MedStar moved up + left from 55,75 so its label does not collide
-            with the "INNER HARBOR" italic water label below it. */}
-        <AtlasPin kind="osm-clinic" leftPct={62} topPct={82} label="MedStar Harbor" />
-        <AtlasPin kind="osm-clinic" leftPct={86} topPct={66} label="VA Medical Ctr." />
-
-        {/* Ghost-pin sample stamp — fades when real cohort joins */}
-        <GhostStampOverlay leftPct={50} topPct={32} />
+        {/* SVG-fallback fixtures: absolutely-positioned percentage pins
+            only render when MapLibre is OFF. On the live MapLibre canvas
+            these would freeze to the viewport during pan instead of moving
+            with the map — the real institution pins come through the
+            useAtlasFramePins → MLMarker path inside AtlasMapLibreCanvas. */}
+        {!handlers.useMapLibre && (
+          <>
+            <AtlasPin kind="osm-clinic" leftPct={48} topPct={50} label="Johns Hopkins Hosp." />
+            <AtlasPin kind="osm-clinic" leftPct={72} topPct={42} label="Bayview" />
+            <AtlasPin kind="osm-clinic" leftPct={22} topPct={62} label="U. of Maryland" />
+            <AtlasPin kind="osm-clinic" leftPct={18} topPct={45} label="Sinai" />
+            <AtlasPin kind="osm-clinic" leftPct={62} topPct={82} label="MedStar Harbor" />
+            <AtlasPin kind="osm-clinic" leftPct={86} topPct={66} label="VA Medical Ctr." />
+            <GhostStampOverlay leftPct={50} topPct={32} />
+          </>
+        )}
 
         <LayersFab onLayersPress={() => setLayersOpen(true)} />
       </View>
@@ -1128,28 +1132,27 @@ function FrameF5({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
           <Text style={shellStyles.absChipText}>competency · IV supervised</Text>
         </View>
 
-        {/* JH-claimed sites with counts (constellation across affiliates).
-            Positions spread enough that the labels below each pin don't
-            overlap; shortened "Hopkins East Baltimore" → "Hopkins EB" to
-            fit the pin's label width and match the bottom-sheet stat. */}
-        <AtlasPin
-          kind="jh-site"
-          leftPct={55}
-          topPct={48}
-          label="Hopkins EB"
-          badge="JH"
-        />
-        {/* Large peer count bubble — shifted further right of Hopkins so
-            it does not jam against the site label. */}
-        <View style={[shellStyles.absChip, { top: '38%', left: '68%', backgroundColor: '#AF52DE' }]}>
-          <Text style={[shellStyles.absChipText, { color: '#FFF', fontWeight: '700' }]}>12</Text>
-        </View>
-
-        <AtlasPin kind="jh-site" leftPct={82} topPct={56} label="Bayview" badge="JH" />
-        <AtlasPin kind="jh-site" leftPct={18} topPct={62} label="Suburban" badge="JH" />
-        {/* Howard County shifted left so its label clears the layers FAB */}
-        <AtlasPin kind="jh-site" leftPct={66} topPct={80} label="Howard County" badge="JH" />
-        <AtlasPin kind="sim" leftPct={32} topPct={28} label="Pinkard" />
+        {/* SVG-fallback fixtures only — see F4 for the rationale. On the
+            live MapLibre canvas these would freeze to viewport while the
+            map pans, so we render them only when useMapLibre is OFF. */}
+        {!handlers.useMapLibre && (
+          <>
+            <AtlasPin
+              kind="jh-site"
+              leftPct={55}
+              topPct={48}
+              label="Hopkins EB"
+              badge="JH"
+            />
+            <View style={[shellStyles.absChip, { top: '38%', left: '68%', backgroundColor: '#AF52DE' }]}>
+              <Text style={[shellStyles.absChipText, { color: '#FFF', fontWeight: '700' }]}>12</Text>
+            </View>
+            <AtlasPin kind="jh-site" leftPct={82} topPct={56} label="Bayview" badge="JH" />
+            <AtlasPin kind="jh-site" leftPct={18} topPct={62} label="Suburban" badge="JH" />
+            <AtlasPin kind="jh-site" leftPct={66} topPct={80} label="Howard County" badge="JH" />
+            <AtlasPin kind="sim" leftPct={32} topPct={28} label="Pinkard" />
+          </>
+        )}
 
         <LayersFab onLayersPress={() => setLayersOpen(true)} />
       </View>
@@ -1203,8 +1206,11 @@ function FrameF6({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
         ) : (
           <CommitHarbourMap />
         )}
-        {/* Candidate pin where the user tapped */}
-        <AtlasPin kind="candidate" leftPct={50} topPct={48} />
+        {/* SVG-fallback fixture only — real candidate pin sits inside
+            AtlasMapLibreCanvas via the candidate prop when useMapLibre. */}
+        {!handlers.useMapLibre && (
+          <AtlasPin kind="candidate" leftPct={50} topPct={48} />
+        )}
 
         <LayersFab onLayersPress={() => setLayersOpen(true)} />
       </View>
