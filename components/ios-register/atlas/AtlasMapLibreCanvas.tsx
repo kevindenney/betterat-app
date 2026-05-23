@@ -66,6 +66,7 @@ const FRAME_CAMERA: Record<AtlasFrameId, CameraPreset> = {
   f4: { center: [-76.61, 39.29], zoom: 11 },           // Baltimore
   f5: { center: [-76.595, 39.30], zoom: 12.5 },        // East Baltimore (Hopkins)
   f6: { center: [114.182, 22.286], zoom: 13.4 },       // Commit-mode at Victoria Harbour
+  f7: { center: [85.45, 23.27], zoom: 9.8 },           // Ranchi · Jharkhand · entrepreneur network
 };
 
 export interface AtlasPinSpec {
@@ -272,6 +273,11 @@ function pickSvgMap(frame: AtlasFrameId): React.ComponentType {
       return JhuCuratedMap;
     case 'f6':
       return CommitHarbourMap;
+    case 'f7':
+      // No SVG mock for the Ranchi rural frame — design pass landed
+      // after the SVG era. Web fallback returns the world map so the
+      // route still renders something non-blank; native uses MapLibre.
+      return WorldDragonMap;
   }
 }
 

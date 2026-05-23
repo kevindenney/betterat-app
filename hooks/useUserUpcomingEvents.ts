@@ -59,7 +59,10 @@ export function useUserUpcomingEvents() {
     slug === 'entrepreneur' ||
     slug === 'micro-entrepreneur' ||
     slug === 'home-entrepreneur' ||
-    slug === 'small-business';
+    slug === 'small-business' ||
+    slug === 'lac-craft-business' ||
+    slug.includes('craft') ||
+    slug.includes('artisan');
 
   return useQuery({
     queryKey: ['user-upcoming-events', user?.id, slug],

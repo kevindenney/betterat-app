@@ -55,7 +55,7 @@ import {
   RacingAreaTag,
 } from './AtlasPins';
 
-export type AtlasFrameId = 'f1' | 'f2' | 'f3' | 'f4' | 'f5' | 'f6';
+export type AtlasFrameId = 'f1' | 'f2' | 'f3' | 'f4' | 'f5' | 'f6' | 'f7';
 
 export interface AtlasNextEvent {
   /** Display label, e.g. "Race 4" or "Easter Regatta". */
@@ -173,6 +173,8 @@ export function AtlasScreen({
       return <FrameF5 embedded={embedded} handlers={handlers} />;
     case 'f6':
       return <FrameF6 embedded={embedded} handlers={handlers} />;
+    case 'f7':
+      return <FrameF7 embedded={embedded} handlers={handlers} />;
   }
 }
 
@@ -448,6 +450,16 @@ function getLayersForFrame(frame: AtlasFrameId): LayerItem[] {
     return [
       { key: 'core.healthcare_pois', label: 'Healthcare sites', sub: 'Site-level floor — cannot sharpen', defaultOn: true, locked: true },
       peerSteps,
+      ownSteps,
+    ];
+  }
+
+  if (frame === 'f7') {
+    return [
+      { key: 'entrepreneur.markets', label: 'Haat · markets', sub: 'Day-of-week badges', defaultOn: true },
+      { key: 'entrepreneur.suppliers', label: 'Suppliers', sub: 'Source villages', defaultOn: true },
+      { key: 'entrepreneur.mentees', label: 'Mentees', sub: 'Glow when nearby', defaultOn: true },
+      { key: 'entrepreneur.offline', label: 'Offline tile cache', sub: 'Synced 4 hours ago', defaultOn: true, locked: true },
       ownSteps,
     ];
   }
@@ -1142,6 +1154,66 @@ function FrameF6({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
       </View>
 
       {layersOpen && <LayersSheet frame="f6" onClose={() => setLayersOpen(false)} />}
+    </View>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// F7 — Lakshmi · rural entrepreneur near Ranchi
+// ---------------------------------------------------------------------------
+// First-run frame for the entrepreneur vertical. Ranchi/Jharkhand camera,
+// offline-aware chip row, voice-memo CTA prominent. Bilingual labels live
+// on the event tables (label_local + locale_local) so the picker reads
+// "Khunti haat · खुनी हाट" natively without F7 owning the rendering.
+function FrameF7({ embedded, handlers }: { embedded: boolean; handlers: AtlasFrameHandlers }) {
+  const [layersOpen, setLayersOpen] = useState(false);
+  // No POI seed yet for entrepreneur — the canvas renders the base map
+  // with peer step pins as they accumulate. Real seeded data + per-village
+  // POI rows land in a follow-up.
+  const { pins } = useAtlasFramePins({
+    lat: 23.27,
+    lng: 85.45,
+    // The only real entrepreneur interest in the DB today is the lac-craft
+    // seed; new entrepreneur slugs land alongside this when their POIs do.
+    interestSlug: 'lac-craft-business',
+    radiusKm: 35,
+  });
+  return (
+    <View style={shellStyles.frame}>
+      {!embedded && <StatusBar />}
+      <TopChrome
+        title="Atlas"
+        subtitle={handlers.subtitleOverride ?? 'Entrepreneur · Jharkhand · Network'}
+        avatarInitial={handlers.avatarInitial ?? 'L'}
+      />
+      <FilterChipsRow
+        chips={[
+          { id: 'all', label: 'All', active: true },
+          { id: 'network', label: 'Network', tone: 'fleet' },
+          { id: 'haat', label: 'Haat · हाट', icon: 'storefront-outline' },
+          { id: 'suppliers', label: 'Suppliers', icon: 'leaf-outline' },
+          { id: 'mom', label: 'Mentees', tone: 'crew', dim: true },
+          { id: 'offline', label: 'OFFLINE · synced 4h', icon: 'cloud-offline-outline' },
+        ]}
+      />
+      <View style={shellStyles.mapArea}>
+        {handlers.useMapLibre ? (
+          <AtlasMapLibreCanvas frame="f7" pins={pins} />
+        ) : (
+          <WorldDragonMap />
+        )}
+        <LayersFab onLayersPress={() => setLayersOpen(true)} />
+      </View>
+
+      <BottomSheet
+        eyebrow="WEDNESDAY · KHUNTI HAAT"
+        title="Plan a step for tomorrow's market."
+        body="Khunti haat · खुनी हाट · ~11 km · leave by 5:30 to set up at 6"
+        primary={{ label: 'Voice memo', icon: 'mic', onPress: handlers.onPrimaryAction }}
+        secondary={{ label: 'Open route', icon: 'navigate-outline', onPress: handlers.onSecondaryAction }}
+      />
+
+      {layersOpen && <LayersSheet frame="f7" onClose={() => setLayersOpen(false)} />}
     </View>
   );
 }

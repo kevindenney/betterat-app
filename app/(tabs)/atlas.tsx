@@ -39,6 +39,17 @@ import { AtlasPickerBus } from '@/services/AtlasPickerBus';
 function pickFrameForInterest(slug: string | null): AtlasFrameId {
   const s = (slug ?? '').toLowerCase();
   if (s === 'nursing' || s === 'msn' || s === 'msn-nursing') return 'f4';
+  if (
+    s === 'entrepreneur' ||
+    s === 'micro-entrepreneur' ||
+    s === 'home-entrepreneur' ||
+    s === 'small-business' ||
+    s === 'lac-craft-business' ||
+    s.includes('craft') ||
+    s.includes('artisan')
+  ) {
+    return 'f7';
+  }
   // Sailing, drawing, fitness, default → sailor first-run shape (F1)
   return 'f1';
 }
@@ -54,6 +65,17 @@ function buildSubtitle(slug: string | null, name: string | null): string | undef
   }
   if (s === 'sailing' || s === 'sail-racing' || s === 'sail') {
     return `${name ?? 'Sailing'} · RHKYC · Hong Kong`;
+  }
+  if (
+    s === 'entrepreneur' ||
+    s === 'micro-entrepreneur' ||
+    s === 'home-entrepreneur' ||
+    s === 'small-business' ||
+    s === 'lac-craft-business' ||
+    s.includes('craft') ||
+    s.includes('artisan')
+  ) {
+    return `${name ?? 'Entrepreneur'} · Jharkhand · Network`;
   }
   // For interests without a curated empty-state yet (drawing, fitness, etc.)
   // we surface just the interest name — Atlas still renders a sailor-shape
