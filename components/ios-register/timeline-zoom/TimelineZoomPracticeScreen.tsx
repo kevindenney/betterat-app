@@ -11,10 +11,11 @@
  * (RacesScreen in app/(tabs)/races.tsx).
  */
 
-import React, { useCallback, useMemo } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import React, { useCallback, useMemo, useState } from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 
 import { IOS_REGISTER } from '@/lib/design-tokens-ios';
 import { useAuth } from '@/providers/AuthProvider';
@@ -26,10 +27,16 @@ import { useSubscribedBlueprints, useBlueprintWithAuthor } from '@/hooks/useBlue
 import { InterestHeader } from './InterestHeader';
 import { TimelineZoomCanvas } from './TimelineZoomCanvas';
 import { mapToTimelineDataset, type BlueprintLookup } from './realDataAdapter';
+import { SAMPLE_DATASET } from './sampleData';
 
 export function TimelineZoomPracticeScreen() {
   const { user } = useAuth();
   const { currentInterest } = useInterest();
+  // When the signed-in user has no steps, an opt-in lets you preview all
+  // the new zoom-canvas features against the canonical sample dataset
+  // (Emily Shaw's nursing year). Doesn't affect any real data — just
+  // swaps what the canvas reads from in-memory.
+  const [showSample, setShowSample] = useState(false);
 
   const interestId = currentInterest?.id ?? null;
   const { data: steps = [], isLoading: stepsLoading } = useMyTimeline(interestId);
@@ -99,12 +106,13 @@ export function TimelineZoomPracticeScreen() {
   }, []);
 
   const hasContent = dataset.seasons.some((s) => s.bricks.length > 0);
+  const signedInEmail = (user?.email as string | undefined) ?? null;
 
   // The empty + loading states keep the InterestHeader visible so the user
   // can still see which interest is selected, switch interests, and tap
   // their avatar. Previously the early-return swapped the entire screen
   // for an empty card and left the user with no controls.
-  if (!hasContent) {
+  if (!hasContent && !showSample) {
     return (
       <SafeAreaView style={styles.surface} edges={['top']}>
         <InterestHeader
@@ -118,13 +126,27 @@ export function TimelineZoomPracticeScreen() {
               {stepsLoading ? 'Loading your timeline…' : 'Nothing on the canvas yet'}
             </Text>
             {!stepsLoading ? (
-              <>
-                <Text style={styles.emptyText}>
-                  {currentInterest
-                    ? `No steps in "${currentInterest.name}" yet. Add a step or switch interests from the pill above.`
-                    : 'Add a step to your timeline and it will appear here. Pinch to zoom between Step, Week, Season, and Years.'}
-                </Text>
-              </>
+              <Text style={styles.emptyText}>
+                {currentInterest
+                  ? `No steps in "${currentInterest.name}" yet. Add a step or switch interests from the pill above.`
+                  : 'Add a step to your timeline and it will appear here. Pinch to zoom between Step, Week, Season, and Years.'}
+              </Text>
+            ) : null}
+
+            {!stepsLoading ? (
+              <Pressable
+                style={styles.sampleBtn}
+                onPress={() => setShowSample(true)}
+              >
+                <Ionicons name="sparkles-outline" size={14} color="#FFFFFF" />
+                <Text style={styles.sampleBtnText}>Preview with sample data</Text>
+              </Pressable>
+            ) : null}
+
+            {signedInEmail ? (
+              <Text style={styles.signedInLine}>
+                Signed in as <Text style={styles.signedInEmail}>{signedInEmail}</Text>
+              </Text>
             ) : null}
           </View>
         </View>
@@ -132,12 +154,29 @@ export function TimelineZoomPracticeScreen() {
     );
   }
 
+  const activeDataset = showSample ? SAMPLE_DATASET : dataset;
+
   return (
     <SafeAreaView style={styles.surface} edges={['top']}>
+      {showSample ? (
+        <View style={styles.sampleBanner}>
+          <Ionicons name="sparkles" size={12} color="#FFFFFF" />
+          <Text style={styles.sampleBannerText}>
+            Sample data · Emily Shaw, MSN
+          </Text>
+          <Pressable
+            hitSlop={8}
+            onPress={() => setShowSample(false)}
+            style={styles.sampleBannerExit}
+          >
+            <Text style={styles.sampleBannerExitText}>Exit</Text>
+          </Pressable>
+        </View>
+      ) : null}
       <TimelineZoomCanvas
-        dataset={dataset}
+        dataset={activeDataset}
         initialLevel={3}
-        onOpenStepDetail={handleOpenStepDetail}
+        onOpenStepDetail={showSample ? undefined : handleOpenStepDetail}
       />
     </SafeAreaView>
   );
@@ -171,5 +210,56 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     color: IOS_REGISTER.labelSecondary,
     textAlign: 'center',
+  },
+  sampleBtn: {
+    marginTop: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: IOS_REGISTER.accentUserAction,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 22,
+  },
+  sampleBtnText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
+    letterSpacing: -0.2,
+  },
+  signedInLine: {
+    marginTop: 14,
+    fontSize: 11,
+    color: IOS_REGISTER.labelTertiary,
+    textAlign: 'center',
+  },
+  signedInEmail: {
+    fontWeight: '600',
+    color: IOS_REGISTER.labelSecondary,
+  },
+  sampleBanner: {
+    backgroundColor: '#1F1F1F',
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  sampleBannerText: {
+    flex: 1,
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '500',
+    letterSpacing: -0.1,
+  },
+  sampleBannerExit: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+  },
+  sampleBannerExitText: {
+    color: 'rgba(255, 255, 255, 0.7)',
+    fontSize: 12,
+    fontWeight: '600',
+    letterSpacing: 0.2,
   },
 });
