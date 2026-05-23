@@ -33,12 +33,14 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   Platform,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import type { NativeScrollEvent, NativeSyntheticEvent } from 'react-native';
 
 import { useAuth } from '@/providers/AuthProvider';
@@ -159,6 +161,80 @@ function useHomeOrg(): HomeOrg | null {
 }
 
 // =============================================================================
+// ALSO-FOR-YOU · A CLUB — first active org in the current interest the user
+// isn't already a member of. The simplest of the three "Also for you" picks
+// to wire; sailor + room land in follow-up commits. Brief's automated
+// editor-like picking starts here: real query, real org, no placeholder.
+// =============================================================================
+
+interface AlsoClubPick {
+  orgId: string;
+  name: string;
+  slug: string | null;
+}
+
+function useAlsoClub(homeOrgId: string | null): AlsoClubPick | null {
+  const { user } = useAuth();
+  const { currentInterest } = useInterest();
+  const [pick, setPick] = useState<AlsoClubPick | null>(null);
+
+  useEffect(() => {
+    if (!currentInterest?.slug) {
+      setPick(null);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        // Collect the user's existing memberships so we don't suggest an org
+        // they're already in. Membership state uses both status columns
+        // (feedback_membership_status_split).
+        const ownedOrgIds = new Set<string>();
+        if (homeOrgId) ownedOrgIds.add(homeOrgId);
+        if (user?.id) {
+          const { data: mine } = await supabase
+            .from('organization_memberships')
+            .select('organization_id, status, membership_status')
+            .eq('user_id', user.id);
+          for (const row of (mine ?? []) as any[]) {
+            const a = row.status === 'active' || row.status === 'invite_accepted';
+            const b =
+              row.membership_status === 'active' ||
+              row.membership_status === 'invite_accepted';
+            if (a || b) ownedOrgIds.add(row.organization_id);
+          }
+        }
+
+        const { data: orgs, error } = await supabase
+          .from('organizations')
+          .select('id, name, slug')
+          .eq('interest_slug', currentInterest.slug)
+          .eq('is_active', true)
+          .order('name')
+          .limit(20);
+        if (error) throw error;
+        if (cancelled) return;
+
+        const candidate = (orgs ?? []).find((o: any) => !ownedOrgIds.has(o.id));
+        if (candidate) {
+          setPick({ orgId: candidate.id, name: candidate.name, slug: candidate.slug ?? null });
+        } else {
+          setPick(null);
+        }
+      } catch (err) {
+        console.warn('[DiscoverToday] also-club query failed:', err);
+        if (!cancelled) setPick(null);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id, currentInterest?.slug, homeOrgId]);
+
+  return pick;
+}
+
+// =============================================================================
 // MAIN
 // =============================================================================
 
@@ -166,7 +242,9 @@ export function DiscoverTodayContent({
   toolbarOffset,
   onScroll,
 }: DiscoverTodayContentProps) {
+  const router = useRouter();
   const homeOrg = useHomeOrg();
+  const alsoClub = useAlsoClub(homeOrg?.orgId ?? null);
   const todayLabel = useMemo(() => formatTodayLabel(new Date()), []);
 
   // Eyebrow is intentionally plain "NOW HAPPENING" instead of the brief's
@@ -217,11 +295,53 @@ export function DiscoverTodayContent({
         </>
       ) : null}
 
-      {/* This week's pick + Also for you intentionally omitted. They need
-          automated editor-like weekly scoring (concept overlap, author
-          authority, peer signal) that isn't yet implemented. Per the brief's
-          "no empty state" rule, omitting is correct. A single banner below
-          explains the state to anyone curious why the surface is thin. */}
+      {/* ALSO FOR YOU — three cross-shelf invitations (sailor / room / club).
+          Currently wires only the CLUB pick; sailor + room land in follow-up
+          commits. Brief's "no empty state" rule: sections without a real
+          pick are omitted. */}
+      {alsoClub ? (
+        <>
+          <View style={styles.sectionEyebrowRow}>
+            <Text style={styles.sectionEyebrow}>ALSO FOR YOU</Text>
+          </View>
+          <Pressable
+            style={styles.alsoCard}
+            onPress={() => {
+              if (alsoClub.slug) {
+                router.push(`/discover/org/${alsoClub.slug}?from=today` as any);
+              }
+            }}
+          >
+            <Text style={styles.alsoTag}>AN ORG</Text>
+            <View style={styles.alsoRowBody}>
+              <View
+                style={[
+                  styles.avatar44,
+                  { backgroundColor: pickSquareMarkColor(alsoClub.orgId) },
+                ]}
+              >
+                <Text style={styles.avatarInitials}>
+                  {initialsForName(alsoClub.name)}
+                </Text>
+              </View>
+              <View style={styles.alsoRowText}>
+                <Text style={styles.alsoRowTitle}>{alsoClub.name}</Text>
+                <Text style={styles.alsoRowDesc}>
+                  Worth knowing exists in your interest.
+                </Text>
+              </View>
+              <Ionicons
+                name="chevron-forward"
+                size={16}
+                color={IOS_REGISTER.labelTertiary}
+              />
+            </View>
+          </Pressable>
+        </>
+      ) : null}
+
+      {/* Banner explains what isn't wired yet. Per the brief's "no empty
+          state" rule, missing picks just drop out of the layout. */}
       <View style={styles.previewBanner}>
         <Ionicons
           name="information-circle"
@@ -232,8 +352,8 @@ export function DiscoverTodayContent({
           {homeOrg
             ? 'Your home org is wired here.'
             : 'No home org for this interest yet — join one in Orgs.'}
-          {' '}This week’s pick + Also for you land when automated weekly
-          scoring is implemented.
+          {' '}This week’s pick + sailor/room picks land when their scoring
+          is implemented.
         </Text>
       </View>
 
@@ -352,6 +472,58 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#FFFFFF',
     letterSpacing: 0.2,
+  },
+
+  // Also-for-you card — same shape as home-org card but with a tag
+  // eyebrow ("AN ORG" / "A SAILOR" / "A ROOM" once wired).
+  alsoCard: {
+    backgroundColor: IOS_REGISTER.cardBg,
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 14,
+    marginBottom: 10,
+    ...Platform.select({
+      web: {
+        boxShadow:
+          '0 1px 2px rgba(0,0,0,0.04), 0 2px 8px rgba(0,0,0,0.04)',
+      } as any,
+      default: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.04,
+        shadowRadius: 8,
+        elevation: 2,
+      },
+    }),
+  },
+  alsoTag: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: IOS_REGISTER.labelTertiary,
+    letterSpacing: 0.6,
+    textTransform: 'uppercase',
+    marginBottom: 10,
+  },
+  alsoRowBody: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  alsoRowText: {
+    flex: 1,
+  },
+  alsoRowTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: IOS_REGISTER.label,
+    letterSpacing: -0.3,
+    marginBottom: 2,
+  },
+  alsoRowDesc: {
+    fontSize: 13,
+    color: IOS_REGISTER.labelSecondary,
+    letterSpacing: -0.1,
   },
 
   // Preview banner — a single line explaining the not-yet-wired sections
