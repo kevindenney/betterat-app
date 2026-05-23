@@ -76,7 +76,15 @@ export type CreateTimelineStepInput = {
 
 export type UpdateTimelineStepInput = Partial<
   Omit<CreateTimelineStepInput, 'user_id' | 'interest_id' | 'source_type' | 'source_id'>
->;
+> & {
+  /**
+   * Set by the L2/L3 drag-reorder gesture (Section D, Frame 13). The
+   * client computes a new position by averaging neighbor sort_orders;
+   * the service does no special handling — sort_order falls through
+   * to the generic UPDATE payload.
+   */
+  sort_order?: number;
+};
 
 export type TimelineStepListFilters = {
   userId: string;

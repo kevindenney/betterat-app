@@ -20,7 +20,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { IOS_REGISTER } from '@/lib/design-tokens-ios';
 import { useAuth } from '@/providers/AuthProvider';
 import { useInterest } from '@/providers/InterestProvider';
-import { useMyTimeline } from '@/hooks/useTimelineSteps';
+import { useMyTimeline, useUpdateStep } from '@/hooks/useTimelineSteps';
 import { useCurrentSeason, useUserSeasons } from '@/hooks/useSeason';
 import { useSubscribedBlueprints, useBlueprintWithAuthor } from '@/hooks/useBlueprint';
 
@@ -104,6 +104,45 @@ export function TimelineZoomPracticeScreen() {
     router.push(`/step/${stepId}` as never);
   }, []);
 
+  // Section D drag-reorder — compute new sort_order by averaging the
+  // neighbors in the flat current-season step list (weeks concatenated
+  // in render order). The L3 view passes flat indices because that's
+  // the coordinate space its drag hook reasons in.
+  const updateStep = useUpdateStep();
+  const handleReorderStep = useCallback(
+    (stepId: string, fromIndex: number, toIndex: number) => {
+      if (fromIndex === toIndex) return;
+      const currentSeasonId = dataset.currentSeasonId;
+      const season = dataset.seasons.find((s) => s.id === currentSeasonId);
+      if (!season) return;
+      const flatIds = season.weeks.flatMap((w) => w.steps.map((s) => s.id));
+      const stepRecords = flatIds
+        .map((id) => steps.find((s) => s.id === id))
+        .filter((s): s is NonNullable<typeof s> => Boolean(s));
+
+      const without = stepRecords.filter((s) => s.id !== stepId);
+      const moved = stepRecords.find((s) => s.id === stepId);
+      if (!moved) return;
+      // Clamp toIndex into the resulting array's index range.
+      const insertAt = Math.max(0, Math.min(toIndex, without.length));
+      const before = without[insertAt - 1];
+      const after = without[insertAt];
+
+      let nextSort: number;
+      if (before && after) {
+        nextSort = (before.sort_order + after.sort_order) / 2;
+      } else if (before) {
+        nextSort = before.sort_order + 1;
+      } else if (after) {
+        nextSort = after.sort_order - 1;
+      } else {
+        nextSort = moved.sort_order;
+      }
+      updateStep.mutate({ stepId, input: { sort_order: nextSort } });
+    },
+    [dataset, steps, updateStep],
+  );
+
   const hasContent = dataset.seasons.some((s) => s.bricks.length > 0);
   const signedInEmail = (user?.email as string | undefined) ?? null;
 
@@ -175,6 +214,7 @@ export function TimelineZoomPracticeScreen() {
         initialLevel={3}
         onOpenStepDetail={showSample ? undefined : handleOpenStepDetail}
         embedFullDetailAtL1={!showSample}
+        onReorderStep={showSample ? undefined : handleReorderStep}
         hideInterestHeader
       />
     </SafeAreaView>

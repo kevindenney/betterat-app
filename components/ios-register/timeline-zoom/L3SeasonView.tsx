@@ -5,21 +5,36 @@
  * range and "Week N of M". Sticky toolbar: Sort / Capability / Select.
  * Vertical sections per week with WEEK header + 2-up step cards.
  * Today's card is outlined iOS blue.
+ *
+ * Section D drag-reorder (Frame 13): long-press any digest card to lift
+ * it and drag to a new position. The hook tracks finger Y vs. row
+ * midpoints and fires `onReorder` on drop. The parent canvas persists
+ * the new sort_order via the existing updateStep mutation.
  */
 
-import React from 'react';
+import React, { useCallback, useMemo } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { GestureDetector } from 'react-native-gesture-handler';
+import Animated, { useAnimatedStyle } from 'react-native-reanimated';
 
 import { IOS_REGISTER } from '@/lib/design-tokens-ios';
 import { StepDigestCard } from './StepDigestCard';
-import type { TimelineDataset } from './types';
+import { useDragReorder } from './useDragReorder';
+import type { TimelineDataset, TimelineStep } from './types';
 
 interface L3SeasonViewProps {
   dataset: TimelineDataset;
   focusStepId: string;
   onOpenStep: (stepId: string) => void;
   onEnterSelectMode?: () => void;
+  /**
+   * Reorder commit. Called when the user drops a card at a new index.
+   * `fromIndex` and `toIndex` are positions in the flat current-season
+   * step list (weeks concatenated in order). The parent computes the
+   * neighbor sort_orders and writes to Supabase.
+   */
+  onReorderStep?: (stepId: string, fromIndex: number, toIndex: number) => void;
 }
 
 export function L3SeasonView({
@@ -27,8 +42,28 @@ export function L3SeasonView({
   focusStepId,
   onOpenStep,
   onEnterSelectMode,
+  onReorderStep,
 }: L3SeasonViewProps) {
   const season = dataset.seasons.find((s) => s.id === dataset.currentSeasonId);
+
+  // Flatten the current season's steps into one ordered list. The drag
+  // hook reasons in this flat coordinate space; the UI still renders
+  // them grouped by week. Row layouts are stored per step id so the
+  // grouping doesn't matter for hit-testing.
+  const flatSteps: TimelineStep[] = useMemo(() => {
+    if (!season) return [];
+    return season.weeks.flatMap((w) => w.steps);
+  }, [season]);
+
+  const drag = useDragReorder<TimelineStep>({
+    items: flatSteps,
+    enabled: Boolean(onReorderStep),
+    onReorder: useCallback(
+      (id, from, to) => onReorderStep?.(id, from, to),
+      [onReorderStep],
+    ),
+  });
+
   if (!season) return null;
 
   return (
@@ -36,6 +71,7 @@ export function L3SeasonView({
       style={styles.scroll}
       contentContainerStyle={styles.scrollContent}
       showsVerticalScrollIndicator={false}
+      scrollEnabled={!drag.isDragging}
     >
       <View style={styles.headerBlock}>
         <Text style={styles.title}>{season.title}</Text>
@@ -77,20 +113,99 @@ export function L3SeasonView({
             <Text style={styles.weekRange}>{week.dateRange}</Text>
           </View>
           <View style={styles.cardPair}>
-            {week.steps.slice(0, 2).map((step) => (
-              <StepDigestCard
-                key={step.id}
-                step={step}
-                compact
-                highlighted={step.id === focusStepId}
-                onPress={() => onOpenStep(step.id)}
-              />
-            ))}
+            {week.steps.slice(0, 2).map((step) => {
+              const flatIndex = flatSteps.findIndex((s) => s.id === step.id);
+              const isLifted = drag.liftedId === step.id;
+              const showDropIndicatorBefore =
+                drag.dropTargetIndex === flatIndex && !isLifted;
+              return (
+                <DraggableCardSlot
+                  key={step.id}
+                  step={step}
+                  flatIndex={flatIndex}
+                  isLifted={isLifted}
+                  showDropIndicatorBefore={showDropIndicatorBefore}
+                  liftedTranslateY={drag.liftedTranslateY}
+                  highlighted={step.id === focusStepId}
+                  onOpen={() => onOpenStep(step.id)}
+                  buildGesture={drag.buildItemGesture}
+                  registerRowLayout={drag.registerRowLayout}
+                />
+              );
+            })}
             {week.steps.length === 1 ? <View style={{ flex: 1 }} /> : null}
           </View>
         </View>
       ))}
     </ScrollView>
+  );
+}
+
+interface DraggableCardSlotProps {
+  step: TimelineStep;
+  flatIndex: number;
+  isLifted: boolean;
+  showDropIndicatorBefore: boolean;
+  liftedTranslateY: number;
+  highlighted: boolean;
+  onOpen: () => void;
+  buildGesture: ReturnType<typeof useDragReorder>['buildItemGesture'];
+  registerRowLayout: ReturnType<typeof useDragReorder>['registerRowLayout'];
+}
+
+function DraggableCardSlot({
+  step,
+  flatIndex,
+  isLifted,
+  showDropIndicatorBefore,
+  liftedTranslateY,
+  highlighted,
+  onOpen,
+  buildGesture,
+  registerRowLayout,
+}: DraggableCardSlotProps) {
+  const gesture = useMemo(
+    () => buildGesture(step.id, flatIndex),
+    [buildGesture, step.id, flatIndex],
+  );
+
+  const liftStyle = useAnimatedStyle(() => {
+    if (!isLifted) return { transform: [] as never[] };
+    return {
+      transform: [
+        { translateY: liftedTranslateY },
+        { scale: 1.04 },
+        { rotateZ: '1.5deg' },
+      ],
+      zIndex: 10,
+      shadowColor: '#000',
+      shadowOpacity: 0.22,
+      shadowRadius: 14,
+      shadowOffset: { width: 0, height: 8 },
+      elevation: 12,
+    };
+  }, [isLifted, liftedTranslateY]);
+
+  return (
+    <View style={styles.dropSlotWrap}>
+      {showDropIndicatorBefore ? <View style={styles.dropIndicator} /> : null}
+      <GestureDetector gesture={gesture}>
+        <Animated.View
+          style={[styles.slotFlex, liftStyle]}
+          onLayout={(e) => {
+            const { y, height } = e.nativeEvent.layout;
+            registerRowLayout(step.id, { y, height });
+          }}
+        >
+          <StepDigestCard
+            step={step}
+            compact
+            highlighted={highlighted}
+            onPress={onOpen}
+          />
+        </Animated.View>
+      </GestureDetector>
+    </View>
   );
 }
 
@@ -217,5 +332,20 @@ const styles = StyleSheet.create({
   cardPair: {
     flexDirection: 'row',
     gap: 10,
+  },
+  dropSlotWrap: {
+    flex: 1,
+    position: 'relative',
+  },
+  slotFlex: { flex: 1 },
+  dropIndicator: {
+    position: 'absolute',
+    left: -6,
+    top: 0,
+    bottom: 0,
+    width: 3,
+    borderRadius: 2,
+    backgroundColor: IOS_REGISTER.accentUserAction,
+    zIndex: 5,
   },
 });

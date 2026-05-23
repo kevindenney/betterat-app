@@ -74,6 +74,14 @@ interface TimelineZoomCanvasProps {
    * Supabase rows — preview routes must leave this false.
    */
   embedFullDetailAtL1?: boolean;
+  /**
+   * Section D drag-reorder. When provided, long-press on a digest card
+   * at L3 lifts it and dragging reorders the step within the current
+   * season; on drop, the canvas calls this with the source step id +
+   * from/to indices in the flat current-season step list. The caller
+   * persists the new sort_order via the existing updateStep mutation.
+   */
+  onReorderStep?: (stepId: string, fromIndex: number, toIndex: number) => void;
 }
 
 const LEVELS: ZoomLevel[] = [1, 2, 3, 4];
@@ -97,6 +105,7 @@ export function TimelineZoomCanvas({
   onOpenStepDetail,
   hideInterestHeader = false,
   embedFullDetailAtL1 = false,
+  onReorderStep,
 }: TimelineZoomCanvasProps) {
   const [level, setLevel] = useState<ZoomLevel>(initialLevel);
   const [focusStepId, setFocusStepId] = useState<string>(dataset.focusStepId);
@@ -260,6 +269,7 @@ export function TimelineZoomCanvas({
                     dataset={dataset}
                     focusStepId={focusStepId}
                     onOpenStep={handleOpenStep}
+                    onReorderStep={onReorderStep}
                   />
                 ) : null}
                 {level === 4 ? (
