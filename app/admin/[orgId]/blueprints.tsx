@@ -1,164 +1,66 @@
 /**
  * Org Admin · Blueprints — list of every blueprint authored under this org.
  *
+ * Reads real rows from blueprints + blueprint_cohorts via admin_org_blueprints RPC.
  * Cards show title + author + version + status + subscriber count + cohort
  * assignment chips. Click a row → /studio/blueprints/[id] (the editor).
- *
- * Demo data — blueprints table doesn't exist yet. Visual layer matches
- * the rest of the admin chrome so the surface isn't a dead end during
- * walkthroughs.
  */
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, Pressable, StyleSheet, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { AdminShell } from '@/components/admin/AdminShell';
 import { StudioHeader, StudioButton } from '@/components/studio/StudioShell';
+import {
+  useAdminOrgBlueprints,
+  AdminBlueprintRow,
+  BlueprintCategory,
+  BlueprintStatus,
+  AuthorTone,
+  formatLastEditedRelative,
+} from '@/hooks/useAdminOrgBlueprints';
 
-interface BlueprintCard {
-  id: string;
-  title: string;
-  category: 'rsn' | 'proc' | 'asmt' | 'comm';
-  author: string;
-  authorInitials: string;
-  authorTone: 'navy' | 'brown' | 'green' | 'warm';
-  version: string;
-  status: 'live' | 'draft' | 'review';
-  stepCount: number;
-  subscribers: number;
-  cohorts: string[];
-  lastEditedRel: string;
-}
+const CAT_TONES: Record<BlueprintCategory, { bg: string; fg: string; label: string }> = {
+  reasoning: { bg: 'rgba(122, 90, 139, 0.14)', fg: '#7A5A8B', label: 'Clinical reasoning' },
+  procedural: { bg: 'rgba(139, 90, 60, 0.12)', fg: '#8B5A3C', label: 'Procedural' },
+  assessment: { bg: 'rgba(90, 107, 139, 0.14)', fg: '#5A6B8B', label: 'Assessment' },
+  communication: { bg: 'rgba(110, 139, 90, 0.14)', fg: '#6E8B5A', label: 'Communication' },
+  other: { bg: 'rgba(60, 60, 67, 0.10)', fg: 'rgba(60, 60, 67, 0.85)', label: 'Other' },
+};
 
-const BLUEPRINTS: BlueprintCard[] = [
-  {
-    id: 'sepsis-bundle',
-    title: 'Sepsis bundle recognition',
-    category: 'rsn',
-    author: 'Dr. R. Murphy',
-    authorInitials: 'RM',
-    authorTone: 'brown',
-    version: 'v0.4 draft',
-    status: 'draft',
-    stepCount: 6,
-    subscribers: 30,
-    cohorts: ['BSN Class of 2027 — Cohort A'],
-    lastEditedRel: 'Wed 11:42a',
-  },
-  {
-    id: 'iv-supervised',
-    title: 'IV insertion · supervised',
-    category: 'proc',
-    author: 'Dr. R. Murphy',
-    authorInitials: 'RM',
-    authorTone: 'brown',
-    version: 'v2.1 live',
-    status: 'live',
-    stepCount: 4,
-    subscribers: 28,
-    cohorts: ['BSN Class of 2027 — Cohort A'],
-    lastEditedRel: 'Mar 14',
-  },
-  {
-    id: 'med-admin',
-    title: 'Medication administration',
-    category: 'proc',
-    author: 'Dean S. Park',
-    authorInitials: 'SP',
-    authorTone: 'navy',
-    version: 'v1.3 live',
-    status: 'live',
-    stepCount: 5,
-    subscribers: 30,
-    cohorts: ['BSN Class of 2027 — Cohort A'],
-    lastEditedRel: 'Feb 22',
-  },
-  {
-    id: 'h2t',
-    title: 'Head-to-toe assessment',
-    category: 'asmt',
-    author: 'J. Kim, RN',
-    authorInitials: 'JK',
-    authorTone: 'green',
-    version: 'v3.0 live',
-    status: 'live',
-    stepCount: 8,
-    subscribers: 30,
-    cohorts: ['BSN Class of 2027 — Cohort A'],
-    lastEditedRel: 'Jan 19',
-  },
-  {
-    id: 'isbar',
-    title: 'ISBAR handoff communication',
-    category: 'comm',
-    author: 'Dean S. Park',
-    authorInitials: 'SP',
-    authorTone: 'navy',
-    version: 'v1.4 live',
-    status: 'live',
-    stepCount: 3,
-    subscribers: 30,
-    cohorts: ['BSN Class of 2027 — Cohort A'],
-    lastEditedRel: 'Jan 04',
-  },
-  {
-    id: 'teach-back',
-    title: 'Discharge teach-back',
-    category: 'comm',
-    author: 'Noor Aziz',
-    authorInitials: 'NA',
-    authorTone: 'warm',
-    version: 'v1.0 review',
-    status: 'review',
-    stepCount: 5,
-    subscribers: 0,
-    cohorts: [],
-    lastEditedRel: 'Apr 02',
-  },
-  {
-    id: 'foley',
-    title: 'Foley catheter placement',
-    category: 'proc',
-    author: 'Dr. R. Murphy',
-    authorInitials: 'RM',
-    authorTone: 'brown',
-    version: 'v2.0 live',
-    status: 'live',
-    stepCount: 4,
-    subscribers: 22,
-    cohorts: ['BSN Class of 2027 — Cohort A'],
-    lastEditedRel: 'Mar 28',
-  },
-];
-
-const CAT_TONES = {
-  rsn: { bg: 'rgba(122, 90, 139, 0.14)', fg: '#7A5A8B', label: 'Clinical reasoning' },
-  proc: { bg: 'rgba(139, 90, 60, 0.12)', fg: '#8B5A3C', label: 'Procedural' },
-  asmt: { bg: 'rgba(90, 107, 139, 0.14)', fg: '#5A6B8B', label: 'Assessment' },
-  comm: { bg: 'rgba(110, 139, 90, 0.14)', fg: '#6E8B5A', label: 'Communication' },
-} as const;
-
-const STATUS_TONES = {
+const STATUS_TONES: Record<BlueprintStatus, { bg: string; fg: string; label: string }> = {
   live: { bg: 'rgba(30, 143, 71, 0.12)', fg: '#1E8F47', label: 'Live' },
   draft: { bg: 'rgba(201, 150, 50, 0.14)', fg: '#C99632', label: 'Draft' },
   review: { bg: 'rgba(40, 64, 107, 0.10)', fg: '#28406B', label: 'In review' },
-} as const;
+  archived: { bg: 'rgba(60, 60, 67, 0.10)', fg: 'rgba(60, 60, 67, 0.85)', label: 'Archived' },
+};
 
-const AVI_BG: Record<BlueprintCard['authorTone'], string> = {
+const AVI_BG: Record<AuthorTone, string> = {
   navy: '#28406B',
   brown: '#8B5A3C',
-  green: '#6E8B5A',
   warm: '#B8855A',
+  green: '#6E8B5A',
 };
 
 export default function AdminBlueprintsPage() {
-  const { orgId: _orgId } = useLocalSearchParams<{ orgId: string }>();
+  const { orgId } = useLocalSearchParams<{ orgId: string }>();
   const router = useRouter();
-  const liveCount = BLUEPRINTS.filter((b) => b.status === 'live').length;
-  const draftCount = BLUEPRINTS.filter((b) => b.status === 'draft').length;
-  const reviewCount = BLUEPRINTS.filter((b) => b.status === 'review').length;
-  const totalSubscribers = BLUEPRINTS.reduce((sum, b) => sum + b.subscribers, 0);
+  const { blueprints, loading } = useAdminOrgBlueprints(orgId as string);
+
+  const stats = useMemo(() => {
+    const live = blueprints.filter((b) => b.status === 'live').length;
+    const draft = blueprints.filter((b) => b.status === 'draft').length;
+    const review = blueprints.filter((b) => b.status === 'review').length;
+    const subs = blueprints.reduce((sum, b) => sum + b.subscribers, 0);
+    const authorCounts = new Map<string, number>();
+    for (const b of blueprints) {
+      authorCounts.set(b.authorName, (authorCounts.get(b.authorName) ?? 0) + 1);
+    }
+    const topAuthor =
+      Array.from(authorCounts.entries()).sort((a, b) => b[1] - a[1])[0] ?? null;
+    return { live, draft, review, subs, topAuthor };
+  }, [blueprints]);
 
   return (
     <AdminShell activeKey="blueprints">
@@ -168,11 +70,11 @@ export default function AdminBlueprintsPage() {
         subtitleParts={[
           <Text key="sub" style={{ fontSize: 12.5, color: 'rgba(60, 60, 67, 0.85)' }}>
             <Text style={{ fontWeight: '600', color: 'rgba(60, 60, 67, 0.95)' }}>
-              {BLUEPRINTS.length} blueprints
+              {loading ? '…' : `${blueprints.length} blueprints`}
             </Text>
-            {' · '}
-            {liveCount} live · {draftCount} draft · {reviewCount} in review ·{' '}
-            {totalSubscribers} total subscriber-seats
+            {!loading
+              ? ` · ${stats.live} live · ${stats.draft} draft · ${stats.review} in review · ${stats.subs} total subscriber-seats`
+              : ''}
           </Text>,
         ]}
         actions={
@@ -192,69 +94,88 @@ export default function AdminBlueprintsPage() {
       <ScrollView style={s.body} contentContainerStyle={s.bodyInner}>
         {/* Stat strip */}
         <View style={s.statRow}>
-          <StatCard k="Live" v={String(liveCount)} d="published to a cohort" />
-          <StatCard k="Draft" v={String(draftCount)} d="in active editing" />
-          <StatCard k="In review" v={String(reviewCount)} d="awaiting publish sign-off" />
+          <StatCard k="Live" v={loading ? '—' : String(stats.live)} d="published to a cohort" />
+          <StatCard k="Draft" v={loading ? '—' : String(stats.draft)} d="in active editing" />
+          <StatCard k="In review" v={loading ? '—' : String(stats.review)} d="awaiting publish sign-off" />
           <StatCard
             k="Top author"
-            v="4"
-            d="Dr. R. Murphy · 4 blueprints"
+            v={loading ? '—' : stats.topAuthor ? String(stats.topAuthor[1]) : '—'}
+            d={stats.topAuthor ? `${stats.topAuthor[0]} · ${stats.topAuthor[1]} blueprints` : 'no authors yet'}
             short
           />
         </View>
 
         {/* Blueprint list */}
-        <View style={s.list}>
-          {BLUEPRINTS.map((b) => {
-            const cat = CAT_TONES[b.category];
-            const status = STATUS_TONES[b.status];
-            return (
-              <Pressable
+        {loading ? (
+          <View style={s.loadingCard}>
+            <Text style={s.loadingText}>Loading blueprints…</Text>
+          </View>
+        ) : blueprints.length === 0 ? (
+          <View style={s.emptyCard}>
+            <Ionicons name="git-branch-outline" size={20} color="rgba(60, 60, 67, 0.4)" />
+            <Text style={s.emptyText}>
+              No blueprints yet. Click <Text style={{ fontWeight: '600' }}>New blueprint</Text> to
+              author one in Studio.
+            </Text>
+          </View>
+        ) : (
+          <View style={s.list}>
+            {blueprints.map((b) => (
+              <BlueprintCardRow
                 key={b.id}
-                style={s.row}
+                bp={b}
                 onPress={() => router.push(`/studio/blueprints/${b.id}` as any)}
-              >
-                <View style={[s.avi, { backgroundColor: AVI_BG[b.authorTone] }]}>
-                  <Text style={s.aviText}>{b.authorInitials}</Text>
-                </View>
-                <View style={{ flex: 1, minWidth: 0 }}>
-                  <View style={s.rowTitleLine}>
-                    <Text style={s.rowTitle}>{b.title}</Text>
-                    <View style={[s.chip, { backgroundColor: cat.bg }]}>
-                      <Text style={[s.chipText, { color: cat.fg }]}>{cat.label}</Text>
-                    </View>
-                    <View style={[s.chip, { backgroundColor: status.bg }]}>
-                      <Text style={[s.chipText, { color: status.fg }]}>{status.label}</Text>
-                    </View>
-                  </View>
-                  <Text style={s.rowMeta}>
-                    {b.author} · {b.version} · {b.stepCount} steps · last edited{' '}
-                    {b.lastEditedRel}
-                  </Text>
-                  {b.cohorts.length > 0 ? (
-                    <View style={s.cohortRow}>
-                      <Ionicons name="people-outline" size={11} color="rgba(60, 60, 67, 0.6)" />
-                      {b.cohorts.map((c) => (
-                        <Text key={c} style={s.cohortChip}>
-                          {c}
-                        </Text>
-                      ))}
-                    </View>
-                  ) : (
-                    <Text style={s.cohortNone}>Not yet assigned to a cohort</Text>
-                  )}
-                </View>
-                <View style={s.subscriberBlock}>
-                  <Text style={s.subscriberN}>{b.subscribers}</Text>
-                  <Text style={s.subscriberLabel}>subscribers</Text>
-                </View>
-                <Ionicons name="chevron-forward" size={14} color="rgba(60, 60, 67, 0.4)" />
-              </Pressable>
-            );
-          })}
-        </View>
+              />
+            ))}
+          </View>
+        )}
       </ScrollView>
     </AdminShell>
+  );
+}
+
+function BlueprintCardRow({ bp, onPress }: { bp: AdminBlueprintRow; onPress: () => void }) {
+  const cat = CAT_TONES[bp.category] ?? CAT_TONES.other;
+  const status = STATUS_TONES[bp.status];
+  return (
+    <Pressable style={s.row} onPress={onPress}>
+      <View style={[s.avi, { backgroundColor: AVI_BG[bp.authorTone] }]}>
+        <Text style={s.aviText}>{bp.authorInitials}</Text>
+      </View>
+      <View style={{ flex: 1, minWidth: 0 }}>
+        <View style={s.rowTitleLine}>
+          <Text style={s.rowTitle}>{bp.title}</Text>
+          <View style={[s.chip, { backgroundColor: cat.bg }]}>
+            <Text style={[s.chipText, { color: cat.fg }]}>{cat.label}</Text>
+          </View>
+          <View style={[s.chip, { backgroundColor: status.bg }]}>
+            <Text style={[s.chipText, { color: status.fg }]}>{status.label}</Text>
+          </View>
+        </View>
+        <Text style={s.rowMeta}>
+          {bp.authorName} · {bp.version} · {bp.stepCount}{' '}
+          {bp.stepCount === 1 ? 'step' : 'steps'} · last edited{' '}
+          {formatLastEditedRelative(bp.lastEditedAt)}
+        </Text>
+        {bp.cohortLabels.length > 0 ? (
+          <View style={s.cohortRow}>
+            <Ionicons name="people-outline" size={11} color="rgba(60, 60, 67, 0.6)" />
+            {bp.cohortLabels.map((c) => (
+              <Text key={c} style={s.cohortChip}>
+                {c}
+              </Text>
+            ))}
+          </View>
+        ) : (
+          <Text style={s.cohortNone}>Not yet assigned to a cohort</Text>
+        )}
+      </View>
+      <View style={s.subscriberBlock}>
+        <Text style={s.subscriberN}>{bp.subscribers}</Text>
+        <Text style={s.subscriberLabel}>subscribers</Text>
+      </View>
+      <Ionicons name="chevron-forward" size={14} color="rgba(60, 60, 67, 0.4)" />
+    </Pressable>
   );
 }
 
@@ -342,6 +263,39 @@ const s = StyleSheet.create({
   cohortNone: { marginTop: 6, fontSize: 11, color: 'rgba(60, 60, 67, 0.4)', fontStyle: 'italic' },
 
   subscriberBlock: { alignItems: 'flex-end' },
-  subscriberN: { fontSize: 22, fontWeight: '700', color: '#1C1C1E', fontVariant: ['tabular-nums'], letterSpacing: -0.4 },
-  subscriberLabel: { fontSize: 10.5, color: 'rgba(60, 60, 67, 0.6)', letterSpacing: 0.4, textTransform: 'uppercase', fontWeight: '600' },
+  subscriberN: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#1C1C1E',
+    fontVariant: ['tabular-nums'],
+    letterSpacing: -0.4,
+  },
+  subscriberLabel: {
+    fontSize: 10.5,
+    color: 'rgba(60, 60, 67, 0.6)',
+    letterSpacing: 0.4,
+    textTransform: 'uppercase',
+    fontWeight: '600',
+  },
+
+  loadingCard: {
+    padding: 28,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    borderWidth: 0.5,
+    borderColor: 'rgba(0,0,0,0.06)',
+    alignItems: 'center',
+  },
+  loadingText: { fontSize: 13, color: 'rgba(60, 60, 67, 0.6)' },
+
+  emptyCard: {
+    padding: 32,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    borderWidth: 0.5,
+    borderColor: 'rgba(0,0,0,0.06)',
+    alignItems: 'center',
+    gap: 10,
+  },
+  emptyText: { fontSize: 12.5, color: 'rgba(60, 60, 67, 0.6)', textAlign: 'center', maxWidth: 400 },
 });
