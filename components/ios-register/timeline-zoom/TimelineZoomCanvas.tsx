@@ -109,6 +109,10 @@ interface TimelineZoomCanvasProps {
    * keeps the step ids in its own state until the move resolves.
    */
   onBulkMove?: (stepIds: string[]) => void;
+  /** Frame 12 — bulk Tag picker entry. Same pattern as onBulkMove. */
+  onBulkTag?: (stepIds: string[]) => void;
+  /** Frame 12 — bulk Schedule picker entry. Same pattern as onBulkMove. */
+  onBulkSchedule?: (stepIds: string[]) => void;
   onUnsupportedBulkAction?: (actionId: 'move' | 'tag' | 'reschedule') => void;
 }
 
@@ -137,6 +141,8 @@ export function TimelineZoomCanvas({
   onBulkArchive,
   onBulkDelete,
   onBulkMove,
+  onBulkTag,
+  onBulkSchedule,
   onUnsupportedBulkAction,
 }: TimelineZoomCanvasProps) {
   const [level, setLevel] = useState<ZoomLevel>(initialLevel);
@@ -366,6 +372,24 @@ export function TimelineZoomCanvas({
                     const ids = Array.from(select.selected);
                     select.exit();
                     onBulkMove(ids);
+                  }
+                : undefined
+            }
+            onTag={
+              onBulkTag
+                ? () => {
+                    const ids = Array.from(select.selected);
+                    select.exit();
+                    onBulkTag(ids);
+                  }
+                : undefined
+            }
+            onSchedule={
+              onBulkSchedule
+                ? () => {
+                    const ids = Array.from(select.selected);
+                    select.exit();
+                    onBulkSchedule(ids);
                   }
                 : undefined
             }

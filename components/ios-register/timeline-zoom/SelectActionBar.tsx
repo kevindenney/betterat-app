@@ -23,6 +23,10 @@ interface SelectActionBarProps {
   /** When provided, the "Move" button opens the move-to-season sheet
    * instead of routing through onUnsupportedAction. */
   onMove?: () => void;
+  /** When provided, the "Tag" button opens TagBulkSheet. */
+  onTag?: () => void;
+  /** When provided, the "Schedule" button opens ScheduleBulkSheet. */
+  onSchedule?: () => void;
   onUnsupportedAction: (actionId: 'move' | 'tag' | 'reschedule') => void;
 }
 
@@ -47,6 +51,8 @@ export function SelectActionBar({
   onArchive,
   onDelete,
   onMove,
+  onTag,
+  onSchedule,
   onUnsupportedAction,
 }: SelectActionBarProps) {
   const noneSelected = selectedCount === 0;
@@ -70,6 +76,8 @@ export function SelectActionBar({
               if (a.id === 'archive') onArchive();
               else if (a.id === 'delete') onDelete();
               else if (a.id === 'move' && onMove) onMove();
+              else if (a.id === 'tag' && onTag) onTag();
+              else if (a.id === 'reschedule' && onSchedule) onSchedule();
               else onUnsupportedAction(a.id);
             };
             return (

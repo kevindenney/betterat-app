@@ -28,6 +28,8 @@ import { useSubscribedBlueprints, useBlueprintWithAuthor } from '@/hooks/useBlue
 import { TimelineZoomCanvas } from './TimelineZoomCanvas';
 import { mapToTimelineDataset, type BlueprintLookup } from './realDataAdapter';
 import { MoveToSeasonSheet, buildMoveTargets } from './MoveToSeasonSheet';
+import { TagBulkSheet } from './TagBulkSheet';
+import { ScheduleBulkSheet } from './ScheduleBulkSheet';
 import { SAMPLE_DATASET } from './sampleData';
 
 export function TimelineZoomPracticeScreen() {
@@ -216,6 +218,64 @@ export function TimelineZoomPracticeScreen() {
     [createSeason],
   );
 
+  // Frame 12 — Tag bulk picker entry. Same id-buffer pattern as Move.
+  const [tagTargetIds, setTagTargetIds] = useState<string[] | null>(null);
+  const existingTags = useMemo(() => {
+    const set = new Set<string>();
+    for (const s of steps) {
+      if (s.category && s.category.trim()) set.add(s.category);
+    }
+    return Array.from(set);
+  }, [steps]);
+  const handleBulkTag = useCallback((stepIds: string[]) => {
+    if (stepIds.length > 0) setTagTargetIds(stepIds);
+  }, []);
+  const handlePickTag = useCallback(
+    (tag: string) => {
+      const ids = tagTargetIds ?? [];
+      ids.forEach((id) =>
+        updateStep.mutate({ stepId: id, input: { category: tag } }),
+      );
+      setTagTargetIds(null);
+    },
+    [tagTargetIds, updateStep],
+  );
+
+  // Frame 12 — Schedule bulk picker entry. Shift mode preserves each
+  // step's relative date offset; absolute mode collapses every step
+  // to the same starts_at.
+  const [scheduleTargetIds, setScheduleTargetIds] = useState<string[] | null>(null);
+  const handleBulkSchedule = useCallback((stepIds: string[]) => {
+    if (stepIds.length > 0) setScheduleTargetIds(stepIds);
+  }, []);
+  const handleApplyShift = useCallback(
+    (days: number) => {
+      const ids = scheduleTargetIds ?? [];
+      const msPerDay = 24 * 60 * 60 * 1000;
+      ids.forEach((id) => {
+        const existing = steps.find((s) => s.id === id);
+        if (!existing?.starts_at) return; // skip undated steps
+        const next = new Date(
+          new Date(existing.starts_at).getTime() + days * msPerDay,
+        ).toISOString();
+        updateStep.mutate({ stepId: id, input: { starts_at: next } });
+      });
+      setScheduleTargetIds(null);
+    },
+    [scheduleTargetIds, steps, updateStep],
+  );
+  const handleApplyAbsolute = useCallback(
+    (isoDate: string) => {
+      const ids = scheduleTargetIds ?? [];
+      const next = new Date(`${isoDate}T00:00:00`).toISOString();
+      ids.forEach((id) =>
+        updateStep.mutate({ stepId: id, input: { starts_at: next } }),
+      );
+      setScheduleTargetIds(null);
+    },
+    [scheduleTargetIds, updateStep],
+  );
+
   const hasContent = dataset.seasons.some((s) => s.bricks.length > 0);
   const signedInEmail = (user?.email as string | undefined) ?? null;
 
@@ -291,18 +351,36 @@ export function TimelineZoomPracticeScreen() {
         onBulkArchive={showSample ? undefined : handleBulkArchive}
         onBulkDelete={showSample ? undefined : handleBulkDelete}
         onBulkMove={showSample ? undefined : handleBulkMove}
+        onBulkTag={showSample ? undefined : handleBulkTag}
+        onBulkSchedule={showSample ? undefined : handleBulkSchedule}
         onUnsupportedBulkAction={showSample ? undefined : handleUnsupportedBulkAction}
         hideInterestHeader
       />
       {!showSample ? (
-        <MoveToSeasonSheet
-          visible={moveTargetIds !== null}
-          stepIds={moveTargetIds ?? []}
-          seasons={moveTargets}
-          onPickSeason={handlePickSeason}
-          onCreateSeason={handleCreateSeason}
-          onDismiss={() => setMoveTargetIds(null)}
-        />
+        <>
+          <MoveToSeasonSheet
+            visible={moveTargetIds !== null}
+            stepIds={moveTargetIds ?? []}
+            seasons={moveTargets}
+            onPickSeason={handlePickSeason}
+            onCreateSeason={handleCreateSeason}
+            onDismiss={() => setMoveTargetIds(null)}
+          />
+          <TagBulkSheet
+            visible={tagTargetIds !== null}
+            stepIds={tagTargetIds ?? []}
+            existingTags={existingTags}
+            onPickTag={handlePickTag}
+            onDismiss={() => setTagTargetIds(null)}
+          />
+          <ScheduleBulkSheet
+            visible={scheduleTargetIds !== null}
+            stepIds={scheduleTargetIds ?? []}
+            onApplyShift={handleApplyShift}
+            onApplyAbsolute={handleApplyAbsolute}
+            onDismiss={() => setScheduleTargetIds(null)}
+          />
+        </>
       ) : null}
     </SafeAreaView>
   );
