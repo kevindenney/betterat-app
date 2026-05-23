@@ -285,11 +285,11 @@ export default function AdminPeoplePage() {
         person={data.rows.find((r) => r.id === openPersonId) ?? null}
         onClose={() => setOpenPersonId(null)}
         onSuggestAction={(key) => {
-          if (key === 'open-timeline' && openPersonId) {
-            setOpenPersonId(null);
-            router.push(`/admin/${orgId}/person/${openPersonId}`);
-          }
-          // Other actions (send-message, change-role, flag) still pending wire-up.
+          if (key !== 'open-timeline') return; // other actions still pending wire-up
+          const selected = data.rows.find((r) => r.id === openPersonId);
+          if (!selected) return;
+          setOpenPersonId(null);
+          router.push(`/admin/${orgId}/person/${selected.userId}`);
         }}
       />
     </View>

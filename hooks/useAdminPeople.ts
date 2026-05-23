@@ -42,7 +42,10 @@ export type PersonStatus = 'active' | 'pending' | 'off-boarded' | 'suspended';
 export type PersonSource = 'invite' | 'sso' | 'self-join' | null;
 
 export interface AdminPersonRow {
+  /** organization_memberships.id — stable React key + the value people.tsx tracks as openPersonId. */
   id: string;
+  /** auth.users.id — what every per-user RPC (admin_person_practice_steps, etc.) needs. */
+  userId: string;
   name: string;
   email: string;
   initials: string;
@@ -236,6 +239,7 @@ export function useAdminPeople(orgId: string): AdminPeopleData {
         const source = mapSource(m.verification_source);
         return {
           id: m.id,
+          userId: m.user_id,
           name: displayName,
           email,
           initials: getInitials(displayName),

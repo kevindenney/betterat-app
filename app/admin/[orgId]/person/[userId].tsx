@@ -20,7 +20,8 @@ export default function AdminPersonDetailPage() {
   const { orgId, userId } = useLocalSearchParams<{ orgId: string; userId: string }>();
   const router = useRouter();
   const people = useAdminPeople(orgId as string);
-  const person = people.rows.find((r) => r.id === userId);
+  // URL carries auth.users.id; AdminPersonRow.id is the membership row, so match on userId.
+  const person = people.rows.find((r) => r.userId === userId);
   const { steps, loading } = useAdminPersonPractice(orgId as string, userId as string);
 
   const grouped = useMemo(() => groupByMonth(steps), [steps]);

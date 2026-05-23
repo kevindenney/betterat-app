@@ -33,7 +33,7 @@ export function PersonDetailDrawer({ person, onClose, onSuggestAction }: PersonD
   const { orgId } = useLocalSearchParams<{ orgId: string }>();
   const { steps, loading: practiceLoading } = useAdminPersonPractice(
     orgId ?? '',
-    person?.id ?? '',
+    person?.userId ?? '',
   );
 
   // Aggregate per-competency evidence counts from the same RPC the full
