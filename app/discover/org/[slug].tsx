@@ -23,13 +23,16 @@ import {
   Platform,
   ScrollView,
   StyleSheet,
+  Text,
   View,
   type NativeScrollEvent,
   type NativeSyntheticEvent,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
-import type { Ionicons } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
+
+import { IOS_REGISTER } from '@/lib/design-tokens-ios';
 
 import { supabase } from '@/services/supabase';
 import {
@@ -434,23 +437,40 @@ function OrgDetailScreenInner() {
 
   const upNext = org?.metadata?.up_next ?? null;
 
-  const heroMeta = useMemo(() => {
-    const items: { icon: IconName; text: string }[] = [];
-    if (precinct) items.push({ icon: 'location-outline', text: precinct });
+  // Hero meta is intentionally empty on the Org detail per the Pass 11 brief
+  // — founded year, member count, and location are reference facts, not
+  // practice signals. They live in the About strip near the bottom of the
+  // page, after the practice surface (Up next) and the cross-references
+  // (Members you may know, Club forums). Keeps the hero focused on identity
+  // and the one decision the page is asking for (Join / Calendar).
+  const aboutFacts = useMemo(() => {
+    const facts: { icon: IconName; text: string }[] = [];
+    if (precinct) {
+      const country = org?.global_clubs?.country;
+      facts.push({
+        icon: 'location-outline',
+        text: country ? `${precinct}, ${country}` : precinct,
+      });
+    }
     if (org?.global_clubs?.established_year) {
-      items.push({
+      facts.push({
         icon: 'flag-outline',
         text: `Founded ${org.global_clubs.established_year}`,
       });
     }
     if (effectiveMemberCount && effectiveMemberCount > 0) {
-      items.push({
+      facts.push({
         icon: 'people-outline',
         text: `${effectiveMemberCount.toLocaleString()} ${effectiveMemberCount === 1 ? 'sailor' : 'sailors'}`,
       });
     }
-    return items;
-  }, [precinct, org?.global_clubs?.established_year, effectiveMemberCount]);
+    return facts;
+  }, [
+    precinct,
+    org?.global_clubs?.country,
+    org?.global_clubs?.established_year,
+    effectiveMemberCount,
+  ]);
 
   if (!org) {
     return (
@@ -489,7 +509,6 @@ function OrgDetailScreenInner() {
           markColor={pickSquareMarkColor(org.id || org.slug || org.name)}
           name={org.name}
           descriptor={`Member club${descriptorScope ? ` · ${descriptorScope}` : ''}`}
-          meta={heroMeta}
         >
           {isMember ? (
             <>
@@ -597,6 +616,25 @@ function OrgDetailScreenInner() {
               />
             ))}
           </IOSDetailSection>
+        ) : null}
+
+        {/* About — reference facts demoted to a compact strip near the bottom,
+            per the Pass 11 brief. Founded year, member count, and location
+            are reference facts, not practice signals; they earn a quiet
+            position after the practice surfaces (Up next, Members, Forums). */}
+        {aboutFacts.length > 0 ? (
+          <View style={styles.aboutStrip}>
+            {aboutFacts.map((f, i) => (
+              <View key={i} style={styles.aboutFact}>
+                <Ionicons
+                  name={f.icon}
+                  size={12}
+                  color={IOS_REGISTER.labelTertiary}
+                />
+                <Text style={styles.aboutFactText}>{f.text}</Text>
+              </View>
+            ))}
+          </View>
         ) : null}
 
         {websiteUrl ? (
@@ -740,4 +778,26 @@ const styles = StyleSheet.create({
   scroll: { flex: 1 },
   scrollContent: { paddingBottom: 24 },
   bottomPad: { height: 120 },
+
+  // About strip — Pass 11 demoted-facts row. Sits between the cross-references
+  // and the external link. Flat horizontal layout, no card chrome, deliberately
+  // quiet typography.
+  aboutStrip: {
+    marginTop: 24,
+    paddingHorizontal: 22,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    columnGap: 14,
+    rowGap: 4,
+  },
+  aboutFact: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  aboutFactText: {
+    fontSize: 12,
+    letterSpacing: -0.05,
+    color: IOS_REGISTER.labelTertiary,
+  },
 });

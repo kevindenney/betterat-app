@@ -624,6 +624,13 @@ export interface ConceptCardProps {
   tail?: string;
   text: string;
   /**
+   * Provenance line directly under the quote — e.g.
+   * "captured at last debrief, three weeks ago".
+   * Pass 11 Component-2 grammar (italic-serif-with-provenance). Italic, small,
+   * tertiary color. Sits between the quote and any stats/history rows.
+   */
+  provenance?: string;
+  /**
    * Optional stats line below the quote — e.g.
    * "In play across 3 races · 2 reflections this week".
    * Rendered with a small flame icon prefix.
@@ -646,6 +653,7 @@ export function ConceptCard({
   label = 'Current concept',
   tail,
   text,
+  provenance,
   stats,
   history,
   link,
@@ -660,6 +668,9 @@ export function ConceptCard({
         {tail ? <Text style={conceptStyles.labelTail}>{` · ${tail}`}</Text> : null}
       </Text>
       <Text style={conceptStyles.text}>{`“${text}”`}</Text>
+      {provenance ? (
+        <Text style={conceptStyles.provenance}>{provenance}</Text>
+      ) : null}
       {stats ? (
         <View style={conceptStyles.statsRow}>
           <Ionicons name="flame" size={13} color={ACCENT_DISCOVER} />
@@ -1217,6 +1228,13 @@ const conceptStyles = StyleSheet.create({
     fontStyle: 'italic',
     fontWeight: '500',
     color: '#2A2824',
+  },
+  provenance: {
+    marginTop: 6,
+    fontSize: 12.5,
+    letterSpacing: -0.05,
+    color: LABEL_3,
+    fontStyle: 'italic',
   },
   statsRow: {
     marginTop: 10,

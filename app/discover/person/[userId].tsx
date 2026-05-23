@@ -54,6 +54,7 @@ type ProfileRow = {
   sailing_location?: string | null;
   sailing_club?: string | null;
   seasons_active?: number | null;
+  updated_at?: string | null;
 };
 
 export default function PersonDetailScreen() {
@@ -89,7 +90,7 @@ function PersonDetailScreenInner() {
       const { data } = await supabase
         .from('profiles')
         .select(
-          'id, full_name, first_name, last_name, bio, avatar_url, sailing_position, sailing_class, sailing_location, sailing_club, seasons_active'
+          'id, full_name, first_name, last_name, bio, avatar_url, sailing_position, sailing_class, sailing_location, sailing_club, seasons_active, updated_at'
         )
         .eq('id', userId)
         .maybeSingle();
@@ -243,11 +244,14 @@ function PersonDetailScreenInner() {
 
         {/* Working on now — the practice signal that travels.
             Coral-tinted card, italic serif body. The ONE place coral
-            appears on a Person detail. If no current concept, section absent. */}
+            appears on a Person detail. If no current concept, section absent.
+            Pass 11: provenance line under the quote ("captured at last
+            debrief, three weeks ago") matches Component-2 grammar exactly. */}
         {profile?.bio ? (
           <IOSDetailSection header="Working on now" bare>
             <ConceptCard
               text={profile.bio}
+              provenance={derivedProvenance(profile.updated_at)}
               link={{
                 label: 'View public face',
                 onPress: () => router.push(`/sailor/${userId}` as any),
@@ -329,6 +333,35 @@ function PersonDetailScreenInner() {
       </ScrollView>
     </SafeAreaView>
   );
+}
+
+/**
+ * Pass 11 provenance line for the Working-on-now ConceptCard.
+ * Derives "captured at last debrief, N ago" from the profile's updated_at.
+ * Returns undefined when the timestamp is missing or too fresh (< 1 day) to
+ * avoid claiming provenance the user hasn't earned. Brand-new profiles
+ * without a debrief loop yet should render the quote without the tag.
+ */
+function derivedProvenance(updatedAt: string | null | undefined): string | undefined {
+  if (!updatedAt) return undefined;
+  let then: number;
+  try {
+    then = new Date(updatedAt).getTime();
+  } catch {
+    return undefined;
+  }
+  if (!Number.isFinite(then)) return undefined;
+  const diffMs = Math.max(0, Date.now() - then);
+  const day = 24 * 60 * 60 * 1000;
+  if (diffMs < day) return undefined;
+  const days = Math.floor(diffMs / day);
+  if (days < 7) return `captured at last debrief, ${days} day${days === 1 ? '' : 's'} ago`;
+  const weeks = Math.floor(days / 7);
+  if (weeks < 4) return `captured at last debrief, ${weeks} week${weeks === 1 ? '' : 's'} ago`;
+  const months = Math.floor(days / 30);
+  if (months < 12) return `captured at last debrief, ${months} month${months === 1 ? '' : 's'} ago`;
+  const years = Math.floor(days / 365);
+  return `captured at last debrief, ${years} year${years === 1 ? '' : 's'} ago`;
 }
 
 const styles = StyleSheet.create({
