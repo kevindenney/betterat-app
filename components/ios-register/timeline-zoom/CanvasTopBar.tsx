@@ -126,6 +126,21 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     minHeight: 44,
     gap: 8,
+    // Lift the bar so the ProfileDropdown popover (rendered absolutely
+    // below the avatar) stacks above sibling canvas content beneath us
+    // in the flex column. Without this, L2's day strip / L3's headers
+    // render on top of the dropdown.
+    zIndex: 1000,
+    elevation: 20,
+  },
+  rightCluster: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    // Match the row's lift so the dropdown anchor's absolute child
+    // inherits the elevated stacking context.
+    zIndex: 1001,
+    elevation: 21,
   },
   interestPill: {
     flexDirection: 'row',
@@ -147,11 +162,6 @@ const styles = StyleSheet.create({
     letterSpacing: -0.4,
     color: IOS_REGISTER.label,
     flexShrink: 1,
-  },
-  rightCluster: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
   },
   iconBtn: {
     width: 32,
