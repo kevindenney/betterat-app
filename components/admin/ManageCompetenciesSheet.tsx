@@ -117,10 +117,15 @@ export function ManageCompetenciesSheet({
       setAddError(null);
     },
     onError: (err: unknown) => {
-      const msg = err instanceof Error ? err.message : 'Failed to add competency';
-      if (msg.includes('unique') || msg.includes('duplicate')) {
+      // Supabase returns PostgrestError (not Error instance), so read fields off the object.
+      const e = (err ?? {}) as { code?: string; message?: string; details?: string };
+      const code = e.code ?? '';
+      const msg = e.message ?? (err instanceof Error ? err.message : 'Failed to add competency');
+      const isUnique =
+        code === '23505' || /unique|duplicate/i.test(msg) || /unique|duplicate/i.test(e.details ?? '');
+      if (isUnique) {
         setAddError(
-          `"${draftShort.trim()}" already exists for ${orgShortName}. Pick a different short label.`,
+          `"${draftShort.trim()}" already exists for ${orgShortName}. Delete the existing row below to re-add with a different category, or pick a different short label.`,
         );
       } else {
         setAddError(msg);
