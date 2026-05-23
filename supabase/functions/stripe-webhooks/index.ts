@@ -1,7 +1,11 @@
 /**
  * Stripe Webhooks Edge Function
- * Handles all Stripe webhook events for payments, subscriptions, and Connect
+ * Handles all Stripe webhook events for payments, subscriptions, and Connect.
+ *
+ * Console.log is the primary log surface for edge functions — disabled
+ * here. A few legacy locals are kept intentionally for future use.
  */
+/* eslint-disable no-console, @typescript-eslint/no-unused-vars */
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.0';
@@ -475,9 +479,17 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
       .eq('course_id', metadata.course_id);
   }
 
-  // Handle blueprint purchase/subscription checkout
+  // Handle marketplace blueprint checkout (public.blueprints flow).
+  // Distinguished from the legacy blueprint_purchase path by presence
+  // of buyer_user_id (set by marketplace-blueprint-checkout) and the
+  // absence of metadata.type.
   console.log(`[checkout.session.completed] metadata:`, JSON.stringify(metadata));
   console.log(`[checkout.session.completed] mode: ${session.mode}, payment_status: ${session.payment_status}, amount_total: ${session.amount_total}`);
+  if (!metadata.type && metadata.blueprint_id && metadata.buyer_user_id) {
+    await handleMarketplaceBlueprintCheckout(session);
+    return;
+  }
+
   if (metadata.type === 'blueprint_purchase' && metadata.blueprint_id && metadata.user_id) {
     if (session.mode === 'subscription' && session.subscription) {
       // Recurring blueprint subscription
@@ -504,6 +516,127 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
         .update({ stripe_checkout_session_id: session.id })
         .eq('buyer_id', metadata.user_id)
         .eq('blueprint_id', metadata.blueprint_id);
+    }
+  }
+}
+
+/**
+ * Marketplace checkout.session.completed handler. Distinct from the
+ * legacy blueprint_purchase path — this one is for the new
+ * public.blueprints catalog + marketplace-blueprint-checkout flow.
+ *
+ * Writes a marketplace_subscriptions row, bumps active_seats on
+ * org_author_payouts (or just records active seats for the author
+ * even when no org payout row exists yet), and emits a published
+ * audit event.
+ */
+async function handleMarketplaceBlueprintCheckout(session: Stripe.Checkout.Session) {
+  const metadata = session.metadata || {};
+  const blueprintId = metadata.blueprint_id;
+  const buyerUserId = metadata.buyer_user_id;
+  if (!blueprintId || !buyerUserId) return;
+
+  // Load blueprint to discover author + org
+  const { data: blueprint, error: bpErr } = await supabase
+    .from('blueprints')
+    .select('id, title, org_id, author_user_id, billing_cadence')
+    .eq('id', blueprintId)
+    .maybeSingle();
+  if (bpErr || !blueprint) {
+    console.warn('[marketplace.checkout] blueprint not found', blueprintId);
+    return;
+  }
+
+  let trialEnd: string | null = null;
+  let currentPeriodEnd: string | null = null;
+  let subStatus: string = 'active';
+  if (session.subscription) {
+    try {
+      const sub = await stripe.subscriptions.retrieve(session.subscription as string);
+      if (sub.trial_end) trialEnd = new Date(sub.trial_end * 1000).toISOString();
+      if (sub.current_period_end)
+        currentPeriodEnd = new Date(sub.current_period_end * 1000).toISOString();
+      subStatus = sub.status as string;
+    } catch (err) {
+      console.warn('[marketplace.checkout] failed to retrieve subscription', err);
+    }
+  }
+
+  // Look up the price line item — for one-time, we still get amount_total
+  const unitAmount = session.amount_total ?? 0;
+  let stripePriceId: string | null = null;
+  try {
+    const items = await stripe.checkout.sessions.listLineItems(session.id, { limit: 1 });
+    stripePriceId = items.data[0]?.price?.id ?? null;
+  } catch (err) {
+    console.warn('[marketplace.checkout] listLineItems failed', err);
+  }
+
+  const cadence = (blueprint.billing_cadence ?? 'monthly') as
+    | 'monthly'
+    | 'annual'
+    | 'one_time';
+
+  const { error: upsertErr } = await supabase
+    .from('marketplace_subscriptions')
+    .upsert(
+      {
+        blueprint_id: blueprintId,
+        buyer_user_id: buyerUserId,
+        author_user_id: blueprint.author_user_id ?? null,
+        org_id: blueprint.org_id ?? null,
+        stripe_subscription_id: (session.subscription as string) ?? null,
+        stripe_customer_id: (session.customer as string) ?? null,
+        stripe_price_id: stripePriceId,
+        stripe_checkout_session_id: session.id,
+        status: subStatus,
+        unit_amount_cents: unitAmount,
+        currency: session.currency ?? 'usd',
+        cadence,
+        trial_ends_at: trialEnd,
+        current_period_end: currentPeriodEnd,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: 'blueprint_id,buyer_user_id' },
+    );
+  if (upsertErr) {
+    console.warn('[marketplace.checkout] marketplace_subscriptions upsert failed', upsertErr);
+    return;
+  }
+
+  // Bump active_seats on the author's org_author_payouts row (if it exists).
+  // Counts a fresh row, not a re-subscribe of the same user (UNIQUE
+  // constraint on the upsert already de-duped).
+  if (blueprint.author_user_id && blueprint.org_id) {
+    await supabase.rpc('bump_author_active_seats', {
+      p_org_id: blueprint.org_id,
+      p_author_user_id: blueprint.author_user_id,
+    }).then(({ error }) => {
+      if (error) console.warn('[marketplace.checkout] bump_author_active_seats failed', error);
+    });
+  }
+
+  // Audit
+  if (blueprint.org_id) {
+    try {
+      await supabase.from('audit_events').insert({
+        org_id: blueprint.org_id,
+        actor_user_id: buyerUserId,
+        verb: 'published',
+        verb_label: 'Subscribed via marketplace',
+        target_type: 'blueprint',
+        target_id: blueprintId,
+        target_label: blueprint.title,
+        description: `A new subscription started on "${blueprint.title}".`,
+        payload: {
+          stripe_session: session.id,
+          stripe_subscription: session.subscription ?? null,
+          unit_amount_cents: unitAmount,
+          cadence,
+        },
+      });
+    } catch (err) {
+      console.warn('[marketplace.checkout] audit insert failed', err);
     }
   }
 }
@@ -806,7 +939,36 @@ function generateInviteCode(): string {
 async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
   const metadata = subscription.metadata || {};
 
-  // ── Blueprint subscription canceled ──
+  // ── Marketplace subscription canceled ──
+  // (marketplace-blueprint-checkout doesn't set metadata.type, so this
+  // catches first via the marketplace_subscriptions row lookup.)
+  {
+    const { data: ms } = await supabase
+      .from('marketplace_subscriptions')
+      .select('id, blueprint_id, author_user_id, org_id')
+      .eq('stripe_subscription_id', subscription.id)
+      .maybeSingle();
+    if (ms) {
+      await supabase
+        .from('marketplace_subscriptions')
+        .update({
+          status: 'canceled',
+          canceled_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', ms.id);
+      if (ms.author_user_id && ms.org_id) {
+        await supabase.rpc('bump_author_active_seats', {
+          p_org_id: ms.org_id,
+          p_author_user_id: ms.author_user_id,
+        });
+      }
+      console.log(`[handleSubscriptionDeleted] Marketplace subscription ${subscription.id} canceled`);
+      return;
+    }
+  }
+
+  // ── Blueprint subscription canceled (legacy) ──
   if (metadata.type === 'blueprint_purchase') {
     await supabase
       .from('blueprint_subscriptions')
@@ -932,8 +1094,57 @@ async function handleSubscriptionTeamCleanup(userId: string) {
  * Handle paid invoice
  */
 async function handleInvoicePaid(invoice: Stripe.Invoice) {
+  // First — check if this invoice belongs to a marketplace subscription
+  // we're tracking, and if so, credit the author's payout row.
+  if (invoice.subscription) {
+    const { data: ms } = await supabase
+      .from('marketplace_subscriptions')
+      .select('blueprint_id, author_user_id, org_id, unit_amount_cents')
+      .eq('stripe_subscription_id', invoice.subscription as string)
+      .maybeSingle();
+    if (ms && ms.author_user_id && ms.org_id) {
+      // Use the blueprint's current author_payout_pct so changes apply
+      // going forward (price/payout are stored on blueprints).
+      const { data: bp } = await supabase
+        .from('blueprints')
+        .select('author_payout_pct')
+        .eq('id', ms.blueprint_id)
+        .maybeSingle();
+      const amountPaid = invoice.amount_paid ?? 0;
+      await supabase
+        .rpc('credit_author_payout', {
+          p_org_id: ms.org_id,
+          p_author_user_id: ms.author_user_id,
+          p_amount_cents: amountPaid,
+          p_author_payout_pct: bp?.author_payout_pct ?? null,
+        })
+        .then(({ error }) => {
+          if (error) console.warn('[invoice.paid] credit_author_payout failed', error);
+        });
+      // Audit
+      try {
+        await supabase.from('audit_events').insert({
+          org_id: ms.org_id,
+          actor_user_id: null,
+          verb: 'config_change',
+          verb_label: 'Marketplace invoice paid',
+          target_type: 'blueprint',
+          target_id: ms.blueprint_id,
+          description: `An invoice cleared on a marketplace subscription.`,
+          payload: {
+            stripe_invoice: invoice.id,
+            stripe_subscription: invoice.subscription,
+            amount_paid_cents: amountPaid,
+          },
+        });
+      } catch (err) {
+        console.warn('[invoice.paid] audit insert failed', err);
+      }
+    }
+  }
+
   const customerId = invoice.customer as string;
-  
+
   const { data: user } = await supabase
     .from('users')
     .select('id')
