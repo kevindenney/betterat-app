@@ -21,17 +21,27 @@ CREATE INDEX IF NOT EXISTS idx_step_capability_evidence_org_competency
 CREATE INDEX IF NOT EXISTS idx_step_location_poi
   ON public.step_location(poi_id);
 
+-- SECURITY DEFINER because the caller (org admin) does not own the
+-- step_capability_evidence rows of cohort members, so RLS would hide them.
+-- Authorization is gated explicitly via is_org_admin_member.
 CREATE OR REPLACE FUNCTION public.admin_competency_evidence_counts(p_org_id uuid)
 RETURNS TABLE (
   competency_id uuid,
   poi_id uuid,
   student_count integer
 )
-LANGUAGE sql
+LANGUAGE plpgsql
 STABLE
-SECURITY INVOKER
+SECURITY DEFINER
 SET search_path = public
 AS $$
+BEGIN
+  IF NOT public.is_org_admin_member(p_org_id) THEN
+    RAISE EXCEPTION 'Not authorized to view org competency evidence'
+      USING ERRCODE = 'insufficient_privilege';
+  END IF;
+
+  RETURN QUERY
   SELECT
     sce.org_competency_id AS competency_id,
     sl.poi_id,
@@ -44,7 +54,8 @@ AS $$
     AND sce.confirmed = true
     AND sl.poi_id IS NOT NULL
   GROUP BY sce.org_competency_id, sl.poi_id;
+END;
 $$;
 
 COMMENT ON FUNCTION public.admin_competency_evidence_counts(uuid) IS
-  'Insights heatmap backing query: distinct cohort-student counts per (org_competency_id, poi_id) for a given org. Returns only non-empty cells.';
+  'Insights heatmap RPC. SECURITY DEFINER so org admins see all cohort evidence; gated by is_org_admin_member.';
