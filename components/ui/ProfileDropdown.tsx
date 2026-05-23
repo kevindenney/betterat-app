@@ -534,7 +534,7 @@ function RoleShortcuts({
                 <DropdownItem
                   icon="people-outline"
                   label="Cohorts I mentor"
-                  onPress={() => onNavigate('/studio/cohorts')}
+                  onPress={() => onNavigate('/mentor/cohorts')}
                   trailing="count"
                   count={menu.counts.cohortsMentored}
                 />
