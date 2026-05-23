@@ -618,6 +618,11 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
           <AtlasMapLibreCanvas
             frame="f1"
             pins={pins}
+            nextEvent={
+              next
+                ? { ...next, lat: 22.2978, lng: 114.185 }
+                : null
+            }
             onMapPress={commitMode ? handleMapPress : undefined}
             candidate={candidate}
           />
