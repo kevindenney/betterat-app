@@ -309,13 +309,16 @@ function DraggableBrick({
 
   // Brick is small (22px) — wrap in a Pressable so tap-to-open still works,
   // and overlay the gesture detector on top so long-press → drag wins.
-  // In select mode we draw an iOS-blue ring + tiny inset checkmark so the
-  // tiny target reads as selectable even at 22px.
+  // In select mode, a selected brick FLIPS to solid iOS-blue with a
+  // centered white check (the capability color hides while selected).
+  // This avoids reflowing the row and is unmissable on a 22px target.
   const inner = (
     <Animated.View
       style={[
         styles.brick,
-        { backgroundColor: fill },
+        {
+          backgroundColor: selectEnabled && selected ? IOS_REGISTER.accentUserAction : fill,
+        },
         selectEnabled && selected && styles.brickSelected,
         liftStyle,
       ]}
@@ -324,6 +327,11 @@ function DraggableBrick({
         registerRowLayout(stepId, { start: x, length: width });
       }}
     >
+      {selectEnabled && selected ? (
+        <View style={styles.brickCheckCenter}>
+          <Ionicons name="checkmark" size={14} color="#FFFFFF" />
+        </View>
+      ) : null}
       {showDropBefore ? <View style={styles.brickDropIndicator} /> : null}
     </Animated.View>
   );
@@ -469,8 +477,22 @@ const styles = StyleSheet.create({
     borderRadius: 3,
   },
   brickSelected: {
-    borderWidth: 2,
-    borderColor: IOS_REGISTER.accentUserAction,
+    // Slight inner ring for crispness against the blue fill; not a
+    // border (which would shrink the inner color area).
+    shadowColor: IOS_REGISTER.accentUserAction,
+    shadowOpacity: 0.6,
+    shadowRadius: 2,
+    shadowOffset: { width: 0, height: 0 },
+    elevation: 4,
+  },
+  brickCheckCenter: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   brickDropIndicator: {
     position: 'absolute',
