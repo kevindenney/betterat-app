@@ -180,7 +180,7 @@ export default function DiscoverTab() {
           {
             icon: 'sparkles-outline',
             sfSymbol: 'wand.and.stars',
-            label: 'Preview Paths-for-you iOS register',
+            label: 'Preview Discover Pass 11 iOS register',
             onPress: () => router.push('/discover-ios' as any),
           },
         ]}
