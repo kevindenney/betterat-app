@@ -114,7 +114,11 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 0,
     right: 0,
-    bottom: 24,
+    // Sits above the app's bottom tab bar (~80px) with breathing room.
+    // The previous 24px tucked the action row entirely behind the
+    // Practice/Library/Atlas/Discover/Profile bar — counter row was
+    // visible, actions weren't.
+    bottom: 96,
     alignItems: 'center',
     zIndex: 100,
   },
