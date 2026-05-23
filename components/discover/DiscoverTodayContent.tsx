@@ -257,9 +257,15 @@ interface AlsoRoomPick {
 }
 
 function useAlsoRoom(): AlsoRoomPick | null {
+  // Communities aren't interest-scoped (linked_entity_type is sailing-only),
+  // so this hook would bleed sailing rooms into nursing / fitness / drawing
+  // surfaces. Gate to sail-racing until the communities schema generalizes.
+  const { currentInterest } = useInterest();
+  const enabled = currentInterest?.slug === 'sail-racing';
   const { data: popular } = usePopularCommunities(20);
 
   return useMemo(() => {
+    if (!enabled) return null;
     if (!popular || popular.length === 0) return null;
     const candidate = (popular as Community[]).find((c) => !c.is_member);
     if (!candidate) return null;
@@ -274,7 +280,7 @@ function useAlsoRoom(): AlsoRoomPick | null {
           ? descriptorParts.join(' · ')
           : 'Worth knowing exists.',
     };
-  }, [popular]);
+  }, [enabled, popular]);
 }
 
 // =============================================================================
@@ -412,8 +418,15 @@ interface AlsoSailorPick {
 }
 
 function useAlsoSailor(): AlsoSailorPick | null {
+  // CrewFinderService.getSimilarSailors is sailing-named and built on
+  // sailing-specific similarity signals (boat class, fleet, sailing position).
+  // Surfacing a Dragon helm under a Nursing user reads as a bug, so gate
+  // to sail-racing until the people similarity graph generalizes.
+  const { currentInterest } = useInterest();
+  const enabled = currentInterest?.slug === 'sail-racing';
   const { suggestions } = useSailorSuggestions();
   return useMemo(() => {
+    if (!enabled) return null;
     if (!suggestions || suggestions.length === 0) return null;
     const candidate = suggestions[0];
     if (!candidate) return null;
@@ -424,7 +437,7 @@ function useAlsoSailor(): AlsoSailorPick | null {
       initials: initialsForName(candidate.fullName),
       descriptor: reason && reason.length > 0 ? reason : 'Worth knowing exists.',
     };
-  }, [suggestions]);
+  }, [enabled, suggestions]);
 }
 
 // =============================================================================
