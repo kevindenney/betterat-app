@@ -44,6 +44,7 @@ import {
   CommitHarbourMap,
 } from './AtlasMaps';
 import { AtlasMapLibreCanvas, type AtlasPinSpec } from './AtlasMapLibreCanvas';
+import { ProfileDropdown } from '@/components/ui/ProfileDropdown';
 import { useAtlasFramePins } from '@/hooks/useAtlasFramePins';
 import { useNextRaceMarks } from '@/hooks/useNextRaceMarks';
 import { useWalkTimeAnnotations } from '@/hooks/useWalkTimeAnnotations';
@@ -218,9 +219,7 @@ function StatusBar() {
 
 function TopChrome({
   title,
-  avatarInitial = 'F',
   onLayersPress,
-  onAvatarPress,
 }: {
   title: string;
   /**
@@ -230,8 +229,10 @@ function TopChrome({
    * still pass it; the value is ignored.
    */
   subtitle?: string;
+  /** Unused — kept for callsite compat; avatar now lives in ProfileDropdown. */
   avatarInitial?: string;
   onLayersPress?: () => void;
+  /** Unused — kept for callsite compat; ProfileDropdown owns its own tap. */
   onAvatarPress?: () => void;
 }) {
   return (
@@ -245,9 +246,7 @@ function TopChrome({
             <Ionicons name="layers-outline" size={16} color={IOS_REGISTER.label} />
           </Pressable>
         ) : null}
-        <Pressable style={shellStyles.avatar} hitSlop={6} onPress={onAvatarPress}>
-          <Text style={shellStyles.avatarText}>{avatarInitial}</Text>
-        </Pressable>
+        <ProfileDropdown size={30} variant="light" />
       </View>
     </View>
   );
@@ -733,8 +732,12 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
   }, []);
   const clearSelectedPin = useCallback(() => setSelectedPin(null), []);
   const openLayersSheet = useCallback(() => {
-    // Mirror image: clear any active pin sheet when Layers opens.
+    // Layers is mutually exclusive with all the bottom-sheet variants —
+    // clear any active pin sheet AND exit commit-mode so the PIN DROPPED
+    // card doesn't stack under the Layers panel.
     setSelectedPin(null);
+    setCommitMode(false);
+    setCandidate(null);
     setLayersOpen(true);
   }, []);
   // Chip- and Layers-sheet-driven layer state. "all" chip is the anchor:
@@ -1009,7 +1012,9 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
             Storm Glass per-event tides land in a follow-up. */}
       </View>
 
-      {candidate ? (
+      {/* All bottom-sheet variants are suppressed while Layers is open
+          so the sheets never render inside / under the Layers panel. */}
+      {layersOpen ? null : candidate ? (
         <BottomSheet
           eyebrow="PIN DROPPED"
           title="Anchor a step at this location."

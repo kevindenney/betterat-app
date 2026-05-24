@@ -246,13 +246,15 @@ export function AtlasMapLibreCanvas({
   );
   // Recenter the camera on the tapped pin so it isn't clipped by the
   // iPhone Dynamic Island, the floating TopChrome, or the bottom sheet.
-  // A small southward bias (lat - 0.0035) pushes the pin into the upper
-  // third of the visible map area where the chrome and sheet don't sit.
+  // The camera goes slightly north of the pin (lat + 0.002) so the pin
+  // renders just south of screen center — clear of the Dynamic Island
+  // and chrome up top, and visible above the expanded bottom sheet
+  // that lives in the lower third.
   const handlePinTap = useCallback(
     (pin: AtlasPinSpec) => {
       onPinPress?.(pin);
       cameraRef.current?.flyTo({
-        center: [pin.lng, pin.lat - 0.0035],
+        center: [pin.lng, pin.lat + 0.002],
         duration: 400,
       });
     },
