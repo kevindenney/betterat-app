@@ -294,7 +294,13 @@ export function AtlasMapLibreCanvas({
             id="atlas-next-event"
             lngLat={[nextEvent.lng, nextEvent.lat]}
           >
-            <NextEventMarker label={nextEvent.label} when={nextEvent.when} />
+            {/* pointerEvents=none so the amber pill doesn't swallow taps
+                on the +N peer cluster / race-marks underneath when they
+                share a venue coord. The pill is informational, not a
+                tap target — tapping the NEXT card belongs to the sheet. */}
+            <View pointerEvents="none">
+              <NextEventMarker label={nextEvent.label} when={nextEvent.when} />
+            </View>
           </MLMarker>
         ) : null}
 

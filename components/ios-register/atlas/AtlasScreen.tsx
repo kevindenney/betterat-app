@@ -529,23 +529,48 @@ function getLayersForFrame(frame: AtlasFrameId): LayerItem[] {
 function LayersSheet({
   frame,
   onClose,
+  controlledActiveKeys,
+  onToggle,
 }: {
   frame: AtlasFrameId;
   onClose: () => void;
+  /**
+   * Layer keys the parent wants to keep in sync with map state (race-marks,
+   * wind, tide). When provided, the sheet renders these keys as on/off from
+   * the parent's value; other keys still use internal state.
+   */
+  controlledActiveKeys?: Set<string>;
+  /**
+   * Fires for every toggle, including controlled keys. Parent uses this to
+   * drive map filters (e.g. hide race-marks when sailing.race_marks is off).
+   */
+  onToggle?: (key: string, on: boolean) => void;
 }) {
   const layers = getLayersForFrame(frame);
-  const [activeKeys, setActiveKeys] = useState<Set<string>>(
+  const [internalKeys, setInternalKeys] = useState<Set<string>>(
     () => new Set(layers.filter((l) => l.defaultOn).map((l) => l.key)),
   );
+  // Merge controlled + internal — controlled keys win when both define.
+  const activeKeys = useMemo(() => {
+    if (!controlledActiveKeys) return internalKeys;
+    const out = new Set(internalKeys);
+    for (const layer of layers) {
+      if (!controlledActiveKeys.has(layer.key)) out.delete(layer.key);
+      else out.add(layer.key);
+    }
+    return out;
+  }, [internalKeys, controlledActiveKeys, layers]);
 
   const toggle = (item: LayerItem) => {
     if (item.locked) return;
-    setActiveKeys((prev) => {
+    const willBeOn = !activeKeys.has(item.key);
+    setInternalKeys((prev) => {
       const next = new Set(prev);
-      if (next.has(item.key)) next.delete(item.key);
-      else next.add(item.key);
+      if (willBeOn) next.add(item.key);
+      else next.delete(item.key);
       return next;
     });
+    onToggle?.(item.key, willBeOn);
   };
 
   return (
@@ -715,22 +740,39 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
     setSelectedPin(null);
     setLayersOpen(true);
   }, []);
-  // Chip-driven layer state. "all" is the anchor — when active, every
-  // peer relationship + wind + tide shows. Toggling specific chips
-  // (You/Crew/Fleet/Following) filters the peer pins shown.
+  // Chip- and Layers-sheet-driven layer state. "all" chip is the anchor:
+  // when active, every peer relationship + wind + tide + race-marks shows.
+  // Toggling specific chips (You/Crew/Fleet/Following/Wind/Tide/Race-marks)
+  // filters their corresponding pin kinds. Same state is shared with the
+  // LayersSheet so toggling there also moves the chips.
   const [showWind, setShowWind] = useState(true);
   const [showTide, setShowTide] = useState(true);
+  const [showRaceMarks, setShowRaceMarks] = useState(true);
   const [peerRelationshipFilter, setPeerRelationshipFilter] = useState<Set<string> | null>(null);
   const handleChipsChange = useCallback((activeIds: string[]) => {
     const all = activeIds.includes('all');
     setShowWind(all || activeIds.includes('wind'));
     setShowTide(all || activeIds.includes('tide'));
+    setShowRaceMarks(all || activeIds.includes('race-marks'));
     // Peer filter is null when "All" is active (show everything),
     // otherwise the active relationship chips form an allow-list.
     const peerChips = activeIds.filter((id) =>
       ['you', 'crew', 'fleet', 'following'].includes(id),
     );
     setPeerRelationshipFilter(all || peerChips.length === 0 ? null : new Set(peerChips));
+  }, []);
+  // Mirror layers/chips into the controlled keys the LayersSheet reads.
+  const controlledLayerKeys = useMemo(() => {
+    const out = new Set<string>();
+    if (showRaceMarks) out.add('sailing.race_marks');
+    if (showWind) out.add('sailing.wind');
+    if (showTide) out.add('sailing.tide');
+    return out;
+  }, [showRaceMarks, showWind, showTide]);
+  const handleLayerToggle = useCallback((key: string, on: boolean) => {
+    if (key === 'sailing.race_marks') setShowRaceMarks(on);
+    if (key === 'sailing.wind') setShowWind(on);
+    if (key === 'sailing.tide') setShowTide(on);
   }, []);
   // Minimal wind + tide overlays — water-anchored only, one large arrow
   // per racing area, no time scrubbing. Per design pass: "fewer larger
@@ -740,7 +782,11 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
   // least one arrow at the user's current focus (otherwise zooming into
   // Victoria Harbour can hide all the racing-area arrows and the wind
   // field appears to "disappear" after first render).
-  const waterAnchors = useMemo(() => {
+  //
+  // Wind anchors offset ~400m EAST of the venue so the arrow disc doesn't
+  // sit underneath the amber NEXT pill / +N cluster badge that lives at
+  // the venue centroid. Tide gets its own offset inside useTideOverlay.
+  const windAnchors = useMemo(() => {
     const out = framePins
       .filter((p) => p.kind === 'poi-racing-area')
       .map((p) => ({ lat: p.lat, lng: p.lng }));
@@ -752,21 +798,37 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
       );
       if (!exists) out.push({ lat: nextLat, lng: nextLng });
     }
-    return out;
+    const dLngOffset = 0.4 / (111 * Math.cos((22.295 * Math.PI) / 180));
+    return out.map((a) => ({ lat: a.lat + 0.0018, lng: a.lng + dLngOffset }));
+  }, [framePins, next?.lat, next?.lng]);
+  const tideAnchors = useMemo(() => {
+    const out = framePins
+      .filter((p) => p.kind === 'poi-racing-area')
+      .map((p) => ({ lat: p.lat, lng: p.lng }));
+    const nextLat = next?.lat;
+    const nextLng = next?.lng;
+    if (nextLat != null && nextLng != null) {
+      const exists = out.some(
+        (a) => Math.abs(a.lat - nextLat) < 0.005 && Math.abs(a.lng - nextLng) < 0.005,
+      );
+      if (!exists) out.push({ lat: nextLat, lng: nextLng });
+    }
+    const dLngOffset = -0.4 / (111 * Math.cos((22.295 * Math.PI) / 180));
+    return out.map((a) => ({ lat: a.lat - 0.0018, lng: a.lng + dLngOffset }));
   }, [framePins, next?.lat, next?.lng]);
   const windPins = useWindOverlay({
     centerLat: next?.lat ?? 22.295,
     centerLng: next?.lng ?? 114.18,
     conditionsLine: next?.conditions,
     enabled: showWind,
-    waterAnchors,
+    waterAnchors: windAnchors,
   });
   const tidePins = useTideOverlay({
     centerLat: next?.lat ?? 22.295,
     centerLng: next?.lng ?? 114.18,
     conditionsLine: next?.conditions,
     enabled: showTide,
-    waterAnchors,
+    waterAnchors: tideAnchors,
   });
   // Apply chip-driven peer-pin filtering: when "All" is off and one
   // or more relationship chips are active, hide peer pins whose kind
@@ -783,8 +845,13 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
   // Z-order: wind (base field), POIs (places), race-marks, tide (so its
   // chevron reads above the racing-area pin it points away from).
   const pins = useMemo(
-    () => [...windPins, ...filteredFramePins, ...raceMarkPins, ...tidePins],
-    [windPins, filteredFramePins, raceMarkPins, tidePins],
+    () => [
+      ...windPins,
+      ...filteredFramePins,
+      ...(showRaceMarks ? raceMarkPins : []),
+      ...tidePins,
+    ],
+    [windPins, filteredFramePins, raceMarkPins, tidePins, showRaceMarks],
   );
   const exitCommit = useCallback(() => {
     setCommitMode(false);
@@ -846,7 +913,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
               { id: 'following', label: 'Following', tone: 'following', dim: true },
               { id: 'wind', label: 'Wind', icon: 'arrow-up-outline', active: true },
               { id: 'tide', label: 'Tide', icon: 'water-outline', active: true },
-              { id: 'marks-hint', label: 'Race marks @ z14+', icon: 'alert-circle-outline', dim: true },
+              { id: 'race-marks', label: 'Race marks', icon: 'triangle-outline', active: true },
               { id: 'cross-interest', label: 'All my interests', crossInterest: true, dim: true },
             ]}
             onActiveIdsChange={handleChipsChange}
@@ -1016,7 +1083,14 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
 
       {!embedded && <MockTabBar activeTab="atlas" />}
 
-      {layersOpen && <LayersSheet frame="f1" onClose={() => setLayersOpen(false)} />}
+      {layersOpen && (
+        <LayersSheet
+          frame="f1"
+          onClose={() => setLayersOpen(false)}
+          controlledActiveKeys={controlledLayerKeys}
+          onToggle={handleLayerToggle}
+        />
+      )}
     </View>
   );
 }

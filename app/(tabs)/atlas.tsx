@@ -165,7 +165,9 @@ export default function AtlasTab() {
   }, [frame, router]);
 
   const handleAvatarPress = useCallback(() => {
-    router.push('/(tabs)/profile');
+    // /account is the canonical account modal; /(tabs)/profile is a
+    // legacy stub with placeholder "John Sailor" data.
+    router.push('/account');
   }, [router]);
 
   return (
