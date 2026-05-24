@@ -39,6 +39,37 @@ interface UseTideOverlayArgs {
    * POI coords.
    */
   waterAnchors?: { lat: number; lng: number }[];
+  /**
+   * Tide time-slider offset in hours from "now" (0–6). When provided,
+   * overrides the parsed conditions to simulate the standard semi-diurnal
+   * cycle:
+   *   0–2h  → ebb tapering from 0.5kn → slack
+   *   3h    → slack (renders no arrows)
+   *   4–6h  → flood building from slack → 0.5kn
+   * Real Storm Glass per-event tides land in a follow-up; this gets the
+   * "scrub to start" UX shipped against a believable demo cycle.
+   */
+  offsetHours?: number;
+}
+
+/**
+ * Project a time-offset (hours from now) onto the standard semi-diurnal
+ * tide cycle for the demo. Returns {setDegrees, knots} matching parseTide's
+ * shape so consumers can swap interchangeably.
+ *
+ * Cycle assumption: ebb at T+0 fading to slack at T+3, then flood building
+ * to T+6. Linear ramp between markers; real tide data replaces this with
+ * Storm Glass per-event tables.
+ */
+export function tideAtOffset(hours: number): { setDegrees: number; knots: number } {
+  const h = Math.max(0, Math.min(6, hours));
+  if (h < 3) {
+    // ebb tapering: 0.5kn at T+0 → 0 at T+3
+    return { setDegrees: 90, knots: 0.5 * (1 - h / 3) };
+  }
+  if (h === 3) return { setDegrees: 90, knots: 0 };
+  // flood building: 0 at T+3 → 0.5kn at T+6
+  return { setDegrees: 270, knots: 0.5 * ((h - 3) / 3) };
 }
 
 /**
@@ -70,11 +101,15 @@ export function useTideOverlay({
   spacingKm = 2.5,
   gridSize = 3,
   waterAnchors,
+  offsetHours,
 }: UseTideOverlayArgs): AtlasPinSpec[] {
   return useMemo(() => {
     if (!enabled) return [];
-    const { setDegrees, knots } = parseTide(conditionsLine);
-    if (knots === 0) return []; // slack — render nothing
+    const { setDegrees, knots } =
+      typeof offsetHours === 'number'
+        ? tideAtOffset(offsetHours)
+        : parseTide(conditionsLine);
+    if (knots < 0.05) return []; // slack — render nothing
     // setDegrees|knots — tide convention is "set" (flow direction),
     // so the arrow renders pointing at setDegrees directly, no +180.
     const label = `${setDegrees}|${knots}`;
@@ -121,5 +156,5 @@ export function useTideOverlay({
       }
     }
     return out;
-  }, [centerLat, centerLng, conditionsLine, enabled, spacingKm, gridSize, waterAnchors]);
+  }, [centerLat, centerLng, conditionsLine, enabled, spacingKm, gridSize, waterAnchors, offsetHours]);
 }
