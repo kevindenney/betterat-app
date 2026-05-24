@@ -23,7 +23,7 @@ import {
   Text,
   View,
 } from 'react-native';
-import { Stack } from 'expo-router';
+import { Stack, router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FLOATING_TAB_BAR_HEIGHT } from '@/components/navigation/FloatingTabBar';
 import { IOS_COLORS, IOS_REGISTER, IOS_SPACING } from '@/lib/design-tokens-ios';
@@ -264,12 +264,28 @@ function SuggestionCard({
   onAccept: () => void;
   onDecline: () => void;
 }) {
+  const sourceUserId = item.raw.sourceUserId;
+  const sourceStepId = item.raw.sourceStepId;
+  const goToSender = sourceUserId
+    ? () => router.push(`/discover/person/${sourceUserId}` as never)
+    : undefined;
+  const openSourceStep = sourceStepId
+    ? () => router.push(`/step/${sourceStepId}` as never)
+    : undefined;
+
   return (
     <View style={styles.card}>
       <View style={styles.cardHeader}>
-        <View style={[styles.avatar, { backgroundColor: item.fromTint || IOS_COLORS.systemGray3 }]}>
+        <Pressable
+          onPress={goToSender}
+          disabled={!goToSender}
+          hitSlop={6}
+          accessibilityRole="button"
+          accessibilityLabel={goToSender ? `Open ${item.fromContext}` : undefined}
+          style={[styles.avatar, { backgroundColor: item.fromTint || IOS_COLORS.systemGray3 }]}
+        >
           <Text style={styles.avatarText}>{item.fromInitials || '·'}</Text>
-        </View>
+        </Pressable>
         <View style={styles.cardHeaderText}>
           <Text style={styles.cardFrom}>
             <Text style={styles.cardFromName}>
@@ -300,6 +316,11 @@ function SuggestionCard({
         <Pressable style={styles.actionSecondary}>
           <Text style={styles.actionSecondaryText}>Reply</Text>
         </Pressable>
+        {openSourceStep ? (
+          <Pressable onPress={openSourceStep} style={styles.actionLink} hitSlop={4}>
+            <Text style={styles.actionLinkText}>Open</Text>
+          </Pressable>
+        ) : null}
       </View>
     </View>
   );
@@ -348,12 +369,23 @@ function ReadPanel({
 }
 
 function ReflectionCard({ item }: { item: InboxItem }) {
+  const sourceUserId = item.raw.sourceUserId;
+  const goToSender = sourceUserId
+    ? () => router.push(`/discover/person/${sourceUserId}` as never)
+    : undefined;
   return (
     <View style={[styles.card, styles.cardReflection]}>
       <View style={styles.cardHeader}>
-        <View style={[styles.avatar, { backgroundColor: item.fromTint || LILAC }]}>
+        <Pressable
+          onPress={goToSender}
+          disabled={!goToSender}
+          hitSlop={6}
+          accessibilityRole="button"
+          accessibilityLabel={goToSender ? `Open ${item.fromContext}` : undefined}
+          style={[styles.avatar, { backgroundColor: item.fromTint || LILAC }]}
+        >
           <Text style={styles.avatarText}>{item.fromInitials || '·'}</Text>
-        </View>
+        </Pressable>
         <View style={styles.cardHeaderText}>
           <Text style={styles.cardFrom}>
             <Text style={styles.cardFromName}>{item.fromContext}</Text>
@@ -591,6 +623,16 @@ const styles = StyleSheet.create({
     color: IOS_REGISTER.label,
     fontSize: 13,
     fontWeight: '600',
+  },
+  actionLink: {
+    paddingHorizontal: 6,
+    paddingVertical: 7,
+    marginLeft: 'auto',
+  },
+  actionLinkText: {
+    color: IOS_COLORS.systemBlue,
+    fontSize: 13,
+    fontWeight: '500',
   },
   loadingWrap: {
     paddingVertical: 48,
