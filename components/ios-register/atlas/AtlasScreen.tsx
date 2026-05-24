@@ -959,10 +959,12 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
           </>
         )}
 
-        {/* Highlighted next-event tag on Victoria Harbour. Rendered LAST so
-            it stacks above the peer pins; otherwise the pins occlude the
-            tag's detail line. */}
-        {hasNext && !commitMode && (
+        {/* Highlighted next-event tag — SVG-fallback fixture positioned by
+            screen percentage. On MapLibre mode the geographic NextEventMarker
+            (inside the canvas) is the authoritative tag, so we suppress this
+            fallback or two amber pills render, one of which doesn't pan with
+            the map. */}
+        {hasNext && !commitMode && !handlers.useMapLibre && (
           <NextEventTag
             leftPct={50}
             topPct={47}
