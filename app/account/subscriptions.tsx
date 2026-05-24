@@ -16,7 +16,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
+import { Link, router } from 'expo-router';
 import { useMySubscriptions, MySubscription } from '@/hooks/useMySubscriptions';
 
 const STATUS_TONE: Record<
@@ -106,9 +106,13 @@ export default function SubscriptionsPage() {
             return (
               <View key={sub.id} style={s.subCard}>
                 <View style={{ flex: 1, minWidth: 0, gap: 4 }}>
-                  <Text style={s.subTitle} numberOfLines={1}>
-                    {sub.blueprintTitle}
-                  </Text>
+                  <Link href={`/marketplace/${sub.blueprintId}` as any} asChild>
+                    <Pressable>
+                      <Text style={s.subTitle} numberOfLines={1}>
+                        {sub.blueprintTitle}
+                      </Text>
+                    </Pressable>
+                  </Link>
                   <Text style={s.subAuthor} numberOfLines={1}>
                     {sub.authorName}
                     {sub.orgName ? ` · ${sub.orgName}` : ''}
