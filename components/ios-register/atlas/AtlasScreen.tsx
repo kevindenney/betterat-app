@@ -218,29 +218,26 @@ function StatusBar() {
 
 function TopChrome({
   title,
-  subtitle,
   avatarInitial = 'F',
   onLayersPress,
   onAvatarPress,
 }: {
   title: string;
-  subtitle: string;
+  /**
+   * Legacy "Sail Racing · RHKYC · Hong Kong" subtitle removed — it was
+   * decorative-only and the chip rail conveys interest context.
+   * Argument kept for prop compatibility at all the frame callsites that
+   * still pass it; the value is ignored.
+   */
+  subtitle?: string;
   avatarInitial?: string;
   onLayersPress?: () => void;
   onAvatarPress?: () => void;
 }) {
-  // Search button was dead UI (no destination wired). Layers icon mirrors
-  // the LayersFab so the chrome stays orientable when the FAB is hidden
-  // behind a sheet. Avatar opens Profile when pressed; the chrome holds
-  // identity context, the FAB holds map-tool actions.
   return (
     <View style={shellStyles.topChromeRow}>
       <View style={{ flex: 1 }}>
         <Text style={shellStyles.title}>{title}</Text>
-        <View style={shellStyles.subtitleRow}>
-          <View style={shellStyles.subtitleDot} />
-          <Text style={shellStyles.subtitle}>{subtitle}</Text>
-        </View>
       </View>
       <View style={shellStyles.topRight}>
         {onLayersPress ? (
@@ -1027,7 +1024,11 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
                 : 'RACE MARK'
             }
             title={selectedPin.label ?? 'Mark'}
-            body={selectedPin.subtitle ?? bodyForPin(selectedPin)}
+            body={
+              [selectedPin.subtitle, selectedPin.provenance]
+                .filter(Boolean)
+                .join('\n') || bodyForPin(selectedPin)
+            }
             primary={
               next?.label
                 ? {

@@ -66,6 +66,30 @@ export function useNextRaceMarks({ regattaId, enabled = true }: UseNextRaceMarks
       }
       if (!raceId) return [];
 
+      // Provenance — who set these marks. Prefer organizing_authority
+      // (free-text, e.g. "RHKYC race committee"); fall back to the
+      // regatta's club name when that's absent. Rendered as a "Set by
+      // X · marks are read-only" line in the race-mark detail sheet so
+      // the user can answer "who put this here, can I move it" without
+      // a separate tap.
+      const { data: regatta } = await supabase
+        .from('regattas')
+        .select('organizing_authority, club_id')
+        .eq('id', regattaId)
+        .maybeSingle();
+      let organizer = regatta?.organizing_authority?.trim() || null;
+      if (!organizer && regatta?.club_id) {
+        const { data: club } = await supabase
+          .from('clubs')
+          .select('name')
+          .eq('id', regatta.club_id)
+          .maybeSingle();
+        organizer = club?.name ?? null;
+      }
+      const provenance = organizer
+        ? `Set by ${organizer} · marks are read-only`
+        : 'Set by the race organizer · marks are read-only';
+
       const { data: marks, error } = await supabase
         .from('race_marks')
         .select('id, name, mark_type, latitude, longitude, sequence_order')
@@ -92,6 +116,7 @@ export function useNextRaceMarks({ regattaId, enabled = true }: UseNextRaceMarks
           ]
             .filter(Boolean)
             .join(' · ') || undefined,
+          provenance,
         }));
     },
   });

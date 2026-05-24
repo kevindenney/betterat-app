@@ -169,6 +169,13 @@ export interface AtlasPinSpec {
    * inline — it's read by the consuming frame to populate detail sheets.
    */
   subtitle?: string;
+  /**
+   * Optional provenance line surfaced beneath the subtitle in the pin's
+   * detail sheet ("Set by RHKYC race officer · marks are read-only").
+   * Lets the user answer "who put this here, can I move it" without a
+   * separate tap. Currently used by race-marks.
+   */
+  provenance?: string;
 }
 
 interface AtlasMapLibreCanvasProps {
