@@ -22,6 +22,11 @@ const stripe = new Stripe(stripeSecretKey, {
 const webhookSecret = Deno.env.get('STRIPE_WEBHOOK_SECRET');
 if (!webhookSecret) throw new Error('STRIPE_WEBHOOK_SECRET environment variable is not set');
 
+// Connect endpoints sign with a different secret. Both endpoints point
+// at this same edge function URL, so we attempt platform first and
+// fall back to connect on signature failure.
+const connectWebhookSecret = Deno.env.get('STRIPE_CONNECT_WEBHOOK_SECRET') ?? null;
+
 const supabaseUrl = Deno.env.get('SUPABASE_URL');
 if (!supabaseUrl) throw new Error('SUPABASE_URL environment variable is not set');
 
@@ -41,16 +46,29 @@ serve(async (req: Request) => {
   try {
     const body = await req.text();
     
-    // Verify webhook signature
-    let event: Stripe.Event;
+    // Verify webhook signature — try platform secret first, then
+    // Connect (events from connected accounts carry event.account and
+    // are signed with a different secret).
+    let event: Stripe.Event | null = null;
+    let lastErr: unknown = null;
     try {
-      event = await stripe.webhooks.constructEventAsync(
-        body,
-        signature,
-        webhookSecret
-      );
+      event = await stripe.webhooks.constructEventAsync(body, signature, webhookSecret);
     } catch (err) {
-      console.error('Webhook signature verification failed:', err);
+      lastErr = err;
+      if (connectWebhookSecret) {
+        try {
+          event = await stripe.webhooks.constructEventAsync(
+            body,
+            signature,
+            connectWebhookSecret,
+          );
+        } catch (err2) {
+          lastErr = err2;
+        }
+      }
+    }
+    if (!event) {
+      console.error('Webhook signature verification failed:', lastErr);
       return new Response('Invalid signature', { status: 400 });
     }
 
