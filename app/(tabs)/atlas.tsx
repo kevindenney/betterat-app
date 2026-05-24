@@ -166,7 +166,7 @@ export default function AtlasTab() {
 
   return (
     <SafeAreaView style={styles.page} edges={[]}>
-      <View style={[styles.surface, { paddingBottom: tabBarSpace }]}>
+      <View style={styles.surface}>
         <AtlasScreen
           frame={frame}
           embedded
@@ -177,6 +177,7 @@ export default function AtlasTab() {
           initialCommitMode={isFromPlan}
           onPrimaryAction={handlePrimary}
           onSecondaryAction={handleSecondary}
+          bottomSheetOffset={tabBarSpace}
         />
       </View>
     </SafeAreaView>

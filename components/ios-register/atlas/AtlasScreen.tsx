@@ -144,6 +144,13 @@ interface AtlasScreenProps extends Omit<AtlasFrameHandlers, 'initialCommitMode'>
    * stays pixel-for-pixel.
    */
   useMapLibre?: boolean;
+  /**
+   * Distance in pixels to lift the absolute-positioned BottomSheet so it
+   * clears the FloatingTabBar at the device bottom. Passed in by the live
+   * /(tabs)/atlas route; preview routes default to 0 (sheet sits at the
+   * very bottom of the frame).
+   */
+  bottomSheetOffset?: number;
 }
 
 export function AtlasScreen({
@@ -156,8 +163,13 @@ export function AtlasScreen({
   avatarInitial,
   useMapLibre = false,
   initialCommitMode = false,
+  bottomSheetOffset = 0,
 }: AtlasScreenProps) {
-  const handlers: AtlasFrameHandlers & { avatarInitial?: string; useMapLibre?: boolean } = {
+  const handlers: AtlasFrameHandlers & {
+    avatarInitial?: string;
+    useMapLibre?: boolean;
+    bottomSheetOffset?: number;
+  } = {
     onPrimaryAction,
     onSecondaryAction,
     subtitleOverride,
@@ -165,6 +177,7 @@ export function AtlasScreen({
     avatarInitial,
     useMapLibre,
     initialCommitMode,
+    bottomSheetOffset,
   };
   switch (frame) {
     case 'f1':
@@ -838,13 +851,13 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
             label: 'Plan a step here',
             icon: 'add',
             onPress: () => {
-              // Capture pin before clearing — exitCommit nulls it.
               const pin = { lat: candidate.lat, lng: candidate.lng };
               exitCommit();
               handlers.onPrimaryAction?.(pin);
             },
           }}
           secondary={{ label: 'Cancel', onPress: exitCommit }}
+          bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
         />
       ) : hasNext ? (
         <BottomSheet
@@ -853,6 +866,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
           body={[next!.where, next!.when].filter(Boolean).join(' · ')}
           primary={{ label: 'Plan a step', icon: 'add', onPress: handlers.onPrimaryAction }}
           secondary={{ label: `Open ${next!.label}`, onPress: handlers.onSecondaryAction }}
+          bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
         />
       ) : (
         <BottomSheet
@@ -860,6 +874,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
           title="Anchor your next step to a place."
           body="Drop a pin on the map, or pick a spot from your venues."
           primary={{ label: 'Plan a step', icon: 'add', onPress: handlers.onPrimaryAction }}
+          bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
         />
       )}
 
@@ -1109,6 +1124,7 @@ function FrameF4({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
           title="Anchor your next step to a place."
           body="Drop a pin on the map, or pick a spot from your venues."
           primary={{ label: 'Plan a step', icon: 'add', onPress: handlers.onPrimaryAction }}
+          bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
         />
       ) : (
         <BottomSheet
@@ -1123,6 +1139,7 @@ function FrameF4({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
               handlers.onSecondaryAction?.();
             },
           }}
+          bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
         />
       )}
 
@@ -1334,6 +1351,7 @@ function FrameF7({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
         body="Khunti haat · खुनी हाट · ~11 km · leave by 5:30 to set up at 6"
         primary={{ label: 'Voice memo', icon: 'mic', onPress: handlers.onPrimaryAction }}
         secondary={{ label: 'Open route', icon: 'navigate-outline', onPress: handlers.onSecondaryAction }}
+        bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
       />
 
       {layersOpen && <LayersSheet frame="f7" onClose={() => setLayersOpen(false)} />}
@@ -1366,7 +1384,8 @@ function BottomSheet({
   statsRow,
   primary,
   secondary,
-}: BottomSheetProps) {
+  bottomOffset = 0,
+}: BottomSheetProps & { bottomOffset?: number }) {
   // Three-state sheet: HANDLE (28pt — just the pull tab, true edge-to-
   // edge map below), MID (~110pt — handle + eyebrow + primary CTA), and
   // EXPANDED (full content). Tap the handle to cycle: EXPANDED → MID →
@@ -1379,7 +1398,24 @@ function BottomSheet({
   const showFull = state === 'expanded';
   const showMid = state !== 'handle';
   return (
-    <View style={shellStyles.bottomSheet}>
+    <View
+      style={[
+        shellStyles.bottomSheet,
+        bottomOffset > 0 && {
+          position: 'absolute',
+          left: 0,
+          right: 0,
+          bottom: bottomOffset,
+          zIndex: 12,
+          borderRadius: 16,
+          marginHorizontal: 8,
+          shadowColor: '#000',
+          shadowOpacity: 0.12,
+          shadowRadius: 8,
+          shadowOffset: { width: 0, height: 2 },
+        },
+      ]}
+    >
       <Pressable
         onPress={cycle}
         accessibilityRole="button"
