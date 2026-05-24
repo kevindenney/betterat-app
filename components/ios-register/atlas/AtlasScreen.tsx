@@ -1733,23 +1733,44 @@ function FrameF6({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
 // "Khunti haat · खुनी हाट" natively without F7 owning the rendering.
 function FrameF7({ embedded, handlers }: { embedded: boolean; handlers: AtlasFrameHandlers }) {
   const [layersOpen, setLayersOpen] = useState(false);
-  // No POI seed yet for entrepreneur — the canvas renders the base map
-  // with peer step pins as they accumulate. Real seeded data + per-village
-  // POI rows land in a follow-up.
+  // Entrepreneur POIs — supplier villages (white squares), haat markets
+  // (green diamonds with day-of-week badges), Lakshmi's home anchor,
+  // and any active mentees.
   const { pins } = useAtlasFramePins({
     lat: 23.27,
     lng: 85.45,
-    // The only real entrepreneur interest in the DB today is the lac-craft
-    // seed; new entrepreneur slugs land alongside this when their POIs do.
     interestSlug: 'lac-craft-business',
     radiusKm: 35,
   });
+  // Next event — tomorrow's Khunti haat. Fixture for the demo until a
+  // real market-day resolver returns the next haat the user plans to
+  // visit. The amber NEXT pill makes the bottom-sheet headline legible
+  // on the map: "WED · KHUNTI HAAT" at Khunti's coords.
+  const nextHaat = useMemo<AtlasNextEvent>(() => {
+    if (handlers.nextEvent?.lat && handlers.nextEvent?.lng) return handlers.nextEvent;
+    return {
+      label: 'Khunti haat',
+      when: 'Wed 6am',
+      where: 'Khunti haat · खुनी हाट',
+      conditions: '~11 km · leave by 5:30',
+      lat: 23.075,
+      lng: 85.2792,
+    };
+  }, [handlers.nextEvent]);
   return (
     <View style={shellStyles.frame}>
       {!embedded && <StatusBar />}
       <View style={shellStyles.mapArea}>
         {handlers.useMapLibre ? (
-          <AtlasMapLibreCanvas frame="f7" pins={pins} />
+          <AtlasMapLibreCanvas
+            frame="f7"
+            pins={pins}
+            nextEvent={
+              nextHaat.lat != null && nextHaat.lng != null
+                ? { ...nextHaat, lat: nextHaat.lat, lng: nextHaat.lng }
+                : null
+            }
+          />
         ) : (
           <WorldDragonMap />
         )}
@@ -1779,8 +1800,8 @@ function FrameF7({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
 
       <BottomSheet
         eyebrow="WEDNESDAY · KHUNTI HAAT"
-        title="Plan a step for tomorrow's market."
-        body="Khunti haat · खुनी हाट · ~11 km · leave by 5:30 to set up at 6"
+        title={'Plan a step at कल का बाज़ार — tomorrow’s market.'}
+        body="5 suppliers report fresh stock. 1 mentee posted nearby this morning."
         primary={{ label: 'Voice memo', icon: 'mic', onPress: handlers.onPrimaryAction }}
         secondary={{ label: 'Open route', icon: 'navigate-outline', onPress: handlers.onSecondaryAction }}
         bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}

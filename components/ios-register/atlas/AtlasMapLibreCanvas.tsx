@@ -148,6 +148,10 @@ export interface AtlasPinSpec {
     | 'poi-sim-lab'
     | 'poi-sim-anchor'
     | 'poi-preceptor'
+    | 'poi-haat'
+    | 'poi-supplier'
+    | 'poi-mentee'
+    | 'poi-home-anchor'
     | 'walk-annotation'
     | 'wind-arrow'
     | 'tide-arrow'
@@ -235,6 +239,10 @@ const TAPPABLE_PIN_KINDS = new Set<AtlasPinSpec['kind']>([
   'poi-sim-lab',
   'poi-sim-anchor',
   'poi-preceptor',
+  'poi-haat',
+  'poi-supplier',
+  'poi-mentee',
+  'poi-home-anchor',
   'cohort-cell',
 ]);
 
@@ -453,7 +461,7 @@ function pickSvgMap(frame: AtlasFrameId): React.ComponentType {
  * are blue) — adding diamond/triangle for them was tested and rejected.
  * Diamond is reserved for curation (faculty-marked guided pins).
  */
-type PinShape = 'circle' | 'diamond' | 'numbered' | 'drop';
+type PinShape = 'circle' | 'diamond' | 'numbered' | 'drop' | 'square';
 
 /**
  * Cohort heatmap color palette by dominant competency cluster — coral
@@ -499,6 +507,14 @@ const PIN_TONE: Record<
   // mirrors the RHKYC anchor pattern for sailing.
   'poi-sim-anchor': { size: 14, color: 'rgba(0, 122, 255, 0.95)', shape: 'circle' },
   'poi-preceptor': { size: 13, color: 'rgba(155, 92, 246, 0.95)', shape: 'diamond' },
+  // Entrepreneur grammar — haats (weekly markets) are green diamonds
+  // with a day-of-week badge; supplier villages are small white squares
+  // (extraction grammar); mentees are tiny green circles (peer);
+  // home anchor mirrors RHKYC / Pinkard for Lakshmi's house.
+  'poi-haat': { size: 14, color: 'rgba(34, 139, 80, 0.95)', shape: 'diamond' },
+  'poi-supplier': { size: 11, color: 'rgba(255, 255, 255, 0.95)', shape: 'square' },
+  'poi-mentee': { size: 9, color: 'rgba(34, 139, 80, 0.9)', shape: 'circle' },
+  'poi-home-anchor': { size: 14, color: 'rgba(0, 122, 255, 0.95)', shape: 'circle' },
   // Walk-time annotation — no pin glyph at all, just a grey distance pill
   // floating between two same-campus institution pins. The 0-size sentinel
   // keeps it out of cluster math and shouldShowLabel; rendering handled
@@ -582,6 +598,52 @@ function LabeledPin({
               <Text style={styles.simBadgeText}>SIM</Text>
             </View>
           </>
+        ) : null}
+      </View>
+    );
+  }
+  // Lakshmi's home base — blue dot + "Home · घर" label, mirrors the
+  // RHKYC / Pinkard pattern for entrepreneur. Label content comes from
+  // the framePin builder.
+  if (kind === 'poi-home-anchor') {
+    return (
+      <View style={styles.pinRow}>
+        <View style={styles.simAnchorDot} />
+        {showLabel && label ? (
+          <Text style={[styles.pinLabel, styles.clubAnchorLabel]} numberOfLines={1}>
+            {label}
+          </Text>
+        ) : null}
+      </View>
+    );
+  }
+  // Haat — green diamond + day-of-week badge ("MON" / "WED" / "SAT").
+  // Day(s) ride on the label as a |-delimited tail (e.g. "Bero|mon").
+  if (kind === 'poi-haat') {
+    const parts = (label ?? '').split('|');
+    const haatLabel = parts[0] ?? '';
+    const dayBadge = (parts[1] ?? '').trim().toUpperCase();
+    return (
+      <View style={styles.pinRow}>
+        <View
+          style={{
+            width: 14,
+            height: 14,
+            backgroundColor: 'rgba(34, 139, 80, 0.95)',
+            borderWidth: 1.5,
+            borderColor: '#FFFFFF',
+            transform: [{ rotate: '45deg' }],
+          }}
+        />
+        {showLabel && haatLabel ? (
+          <Text style={styles.pinLabel} numberOfLines={1}>
+            {haatLabel}
+          </Text>
+        ) : null}
+        {showLabel && dayBadge ? (
+          <View style={styles.haatDayBadge}>
+            <Text style={styles.haatDayBadgeText}>{dayBadge}</Text>
+          </View>
         ) : null}
       </View>
     );
@@ -749,6 +811,21 @@ function PinGlyph({
       />
     );
   }
+  if (shape === 'square') {
+    // Square pin — extraction grammar for supplier villages on F7.
+    // Reserved for fixed-source places where supply originates.
+    return (
+      <View
+        style={{
+          width: size,
+          height: size,
+          backgroundColor: color,
+          borderWidth: 1,
+          borderColor: 'rgba(60, 60, 67, 0.55)',
+        }}
+      />
+    );
+  }
   // Default: circle (relationship grammar)
   return (
     <View
@@ -855,6 +932,20 @@ const styles = StyleSheet.create({
     fontSize: 8,
     fontWeight: '700',
     color: '#FFFFFF',
+    letterSpacing: 0.5,
+  },
+  haatDayBadge: {
+    backgroundColor: 'rgba(255, 230, 176, 0.95)',
+    borderWidth: 1,
+    borderColor: 'rgba(240, 169, 58, 0.7)',
+    paddingHorizontal: 4,
+    paddingVertical: 1,
+    borderRadius: 3,
+  },
+  haatDayBadgeText: {
+    fontSize: 8,
+    fontWeight: '800',
+    color: '#8A4B00',
     letterSpacing: 0.5,
   },
   clusterCount: {

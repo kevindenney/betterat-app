@@ -49,9 +49,29 @@ export function mapPoiToPinKind(poi: AtlasPoi): AtlasPinSpec['kind'] | null {
       return 'poi-sim-lab';
     case 'preceptor':
       return 'poi-preceptor';
+    case 'haat':
+      return 'poi-haat';
+    case 'supplier':
+      return 'poi-supplier';
+    case 'mentee':
+      return 'poi-mentee';
+    case 'home':
+      return 'poi-home-anchor';
     default:
       return null;
   }
+}
+
+/**
+ * Short label for a haat market — strip the bilingual tail so "Khunti
+ * haat · खुनी हाट" reads as "Khunti haat" in the pin row (the Hindi
+ * second half lives in the bottom-sheet body where it has room).
+ */
+function shortenHaatName(name: string): string {
+  // The seeded names use "English haat · हिन्दी" separator. Keep only
+  // the English part for the pin label.
+  const cut = name.split(' · ')[0];
+  return cut.replace(/\s+haat$/i, ''); // "Khunti haat" → "Khunti"
 }
 
 /**
@@ -185,21 +205,36 @@ export function useAtlasFramePins({
       if (!kind) continue;
       // Anchor pins get terser labels per the design. RHKYC reads as
       // "RHKYC CLUB"; the Pinkard sim base reads as "Pinkard" with the
-      // SIM badge rendered separately by the marker.
-      const label =
-        kind === 'poi-club-anchor'
-          ? 'RHKYC CLUB'
-          : kind === 'poi-sim-anchor'
-          ? 'Pinkard'
-          : shortenPoiName(poi.name);
-      // Preceptor diamonds carry an extra subtitle/provenance line so
-      // their tap-sheets read as "respiratory pathway · clinical
-      // instructor" not just "this person exists." Pulls from the POI
-      // metadata blob (specialty + preceptor_role).
+      // SIM badge rendered separately by the marker. Haat pins stuff a
+      // |-delimited day-of-week tail ("Bero|mon") so the marker can
+      // render a small "MON" badge next to the name.
       const meta =
         poi.metadata && typeof poi.metadata === 'object'
           ? (poi.metadata as Record<string, unknown>)
           : null;
+      let label: string;
+      if (kind === 'poi-club-anchor') {
+        label = 'RHKYC CLUB';
+      } else if (kind === 'poi-sim-anchor') {
+        label = 'Pinkard';
+      } else if (kind === 'poi-home-anchor') {
+        label = 'Home · घर';
+      } else if (kind === 'poi-haat') {
+        const days = Array.isArray(meta?.day_of_week)
+          ? (meta.day_of_week as string[])
+          : [];
+        const firstDay = days[0] ?? '';
+        label = `${shortenHaatName(poi.name)}|${firstDay}`;
+      } else if (kind === 'poi-mentee') {
+        label = ''; // mentee pin is decorative; detail lives in the sheet
+      } else {
+        label = shortenPoiName(poi.name);
+      }
+      // Preceptor diamonds carry an extra subtitle/provenance line so
+      // their tap-sheets read as "respiratory pathway · clinical
+      // instructor" not just "this person exists." Pulls from the POI
+      // metadata blob (specialty + preceptor_role) — reuses `meta` from
+      // the label-builder block above.
       const specialty =
         typeof meta?.specialty === 'string' ? String(meta.specialty) : null;
       const preceptorRole =
