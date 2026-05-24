@@ -17,7 +17,7 @@
  */
 
 import React, { useCallback, useMemo } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 
@@ -164,6 +164,13 @@ export default function AtlasTab() {
     router.push('/(tabs)/practice');
   }, [frame, router]);
 
+  // DEBUG overlay — temporary, while we debug why useAtlasNextEvent
+  // returns null at runtime despite the SQL query working server-side.
+  // Strip after the root cause is identified.
+  const debugLine = nextEvent
+    ? `next=${nextEvent.label} · ${nextEvent.when ?? '?'} · lat=${nextEvent.lat ?? '∅'} lng=${nextEvent.lng ?? '∅'} kind=${nextEvent.event_kind ?? '∅'}`
+    : `next=null · user=${user?.id ? user.id.slice(0, 8) : '∅'} · slug=${currentInterest?.slug ?? '∅'}`;
+
   return (
     <SafeAreaView style={styles.page} edges={['top']}>
       <View style={[styles.surface, { paddingBottom: tabBarSpace }]}>
@@ -178,12 +185,31 @@ export default function AtlasTab() {
           onPrimaryAction={handlePrimary}
           onSecondaryAction={handleSecondary}
         />
+        <View pointerEvents="none" style={styles.debugBanner}>
+          <Text style={styles.debugBannerText} numberOfLines={2}>{debugLine}</Text>
+        </View>
       </View>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  debugBanner: {
+    position: 'absolute',
+    bottom: 8,
+    left: 8,
+    right: 8,
+    backgroundColor: 'rgba(255, 235, 59, 0.95)',
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    borderRadius: 4,
+    zIndex: 9999,
+  },
+  debugBannerText: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: '#000',
+  },
   page: {
     flex: 1,
     backgroundColor: IOS_REGISTER.groundBg,
