@@ -166,10 +166,23 @@ export default function MarketplaceBlueprintPage() {
           ) : null}
         </View>
         <Text style={[s.h1, isCompact && { fontSize: 24 }]}>{blueprint.title}</Text>
-        <Text style={s.author}>
-          {blueprint.authorName}
-          {blueprint.orgName ? ` · ${blueprint.orgName}` : ''}
-        </Text>
+        <View style={s.authorRow}>
+          <Text style={s.author}>
+            {blueprint.authorName}
+            {blueprint.orgName ? ` · ${blueprint.orgName}` : ''}
+          </Text>
+          {blueprint.ratingCount > 0 ? (
+            <View style={s.headerRatingChip}>
+              <Ionicons name="star" size={11} color="#C99632" />
+              <Text style={s.headerRatingValue}>
+                {(blueprint.ratingAvg ?? 0).toFixed(1)}
+              </Text>
+              <Text style={s.headerRatingCount}>
+                · {blueprint.ratingCount} review{blueprint.ratingCount === 1 ? '' : 's'}
+              </Text>
+            </View>
+          ) : null}
+        </View>
         {blueprint.description ? <Text style={s.lede}>{blueprint.description}</Text> : null}
       </View>
 
@@ -545,7 +558,25 @@ const s = StyleSheet.create({
     marginTop: 6,
   },
   h2: { fontSize: 15, fontWeight: '700', color: '#1C1C1E', letterSpacing: -0.2, marginTop: 4 },
-  author: { fontSize: 13, color: 'rgba(60, 60, 67, 0.75)', marginTop: 4 },
+  author: { fontSize: 13, color: 'rgba(60, 60, 67, 0.75)' },
+  authorRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 10,
+    marginTop: 4,
+  },
+  headerRatingChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 999,
+    backgroundColor: 'rgba(201, 150, 50, 0.10)',
+  },
+  headerRatingValue: { fontSize: 12, fontWeight: '700', color: '#1C1C1E' },
+  headerRatingCount: { fontSize: 11, color: 'rgba(60, 60, 67, 0.7)' },
   lede: { fontSize: 14, color: 'rgba(60, 60, 67, 0.85)', lineHeight: 20, marginTop: 8 },
   copy: {
     fontSize: 13.5,
