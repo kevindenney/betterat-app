@@ -12,8 +12,8 @@ import type { Tool } from '@anthropic-ai/sdk/resources/messages';
 import type { AuthContext } from '../../services/mcp/server';
 import { buildStepButtons, buildCreatedStepButtons, buildPhotoAttachButtons, buildSubStepButtons } from './formatting';
 import type { InlineKeyboardButton } from './formatting';
-import { getReviewSections, getReviewSectionContent } from '@/lib/step/getReviewSections';
-import type { StepMetadata } from '@/types/step-detail';
+import { getReviewSections, getReviewSectionContent } from '../step/getReviewSections';
+import type { StepMetadata } from '../../types/step-detail';
 
 // ---------------------------------------------------------------------------
 // Types
