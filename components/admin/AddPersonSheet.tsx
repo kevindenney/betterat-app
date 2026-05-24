@@ -20,6 +20,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/services/supabase';
 import { StudioButton } from '@/components/studio/StudioShell';
 import { useOrgInviteLinks, InviteRole } from '@/hooks/useOrgInviteLinks';
+import { useOrgSsoDirectory } from '@/hooks/useOrgSsoDirectory';
 
 type InviteMethod = 'email' | 'csv' | 'sso' | 'link';
 type PersonRole = 'student' | 'author' | 'mentor' | 'admin';
@@ -572,16 +573,14 @@ export function AddPersonSheet({
             </>
           ) : method === 'link' ? (
             <InviteLinkPanel orgId={orgId} cohortLabel={cohort} />
-          ) : (
-            <View style={s.methodStub}>
-              <Ionicons name="construct-outline" size={28} color="rgba(40, 64, 107, 0.5)" />
-              <Text style={s.methodStubTitle}>SSO directory picker coming next</Text>
-              <Text style={s.methodStubBody}>
-                Use "Invite by email", "Bulk · CSV", or "Share invite link" today — all
-                three handle the same role/cohort settings.
-              </Text>
-            </View>
-          )}
+          ) : method === 'sso' ? (
+            <SsoDirectoryPanel
+              orgId={orgId}
+              verifiedDomains={verifiedDomains}
+              emails={emails}
+              setEmails={setEmails}
+            />
+          ) : null}
         </ScrollView>
 
         <View style={s.footer}>
@@ -629,6 +628,158 @@ function Field({
       <Text style={s.fieldLabel}>{label}</Text>
       {children}
     </View>
+  );
+}
+
+function SsoDirectoryPanel({
+  orgId,
+  verifiedDomains,
+  emails,
+  setEmails,
+}: {
+  orgId: string;
+  verifiedDomains: string[];
+  emails: EmailChip[];
+  setEmails: React.Dispatch<React.SetStateAction<EmailChip[]>>;
+}) {
+  const { entries, lastSyncedAt, loading } = useOrgSsoDirectory(orgId);
+  const [selectedIds, setSelectedIds] = React.useState<Set<string>>(new Set());
+
+  const candidates = entries.filter((e) => !e.alreadyMember);
+  const alreadyMemberCount = entries.length - candidates.length;
+
+  const lastSyncedLabel = lastSyncedAt
+    ? new Date(lastSyncedAt).toLocaleString(undefined, {
+        month: 'short',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+      })
+    : null;
+
+  const toggle = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleAll = () => {
+    if (selectedIds.size === candidates.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(candidates.map((c) => c.id)));
+    }
+  };
+
+  const addSelectedToQueue = () => {
+    const queuedEmails = new Set(emails.map((e) => e.email.toLowerCase()));
+    const additions: EmailChip[] = [];
+    for (const c of candidates) {
+      if (!selectedIds.has(c.id)) continue;
+      if (queuedEmails.has(c.email.toLowerCase())) continue;
+      const domain = c.email.split('@')[1]?.toLowerCase() ?? '';
+      additions.push({ email: c.email, isValid: verifiedDomains.includes(domain) });
+    }
+    if (additions.length > 0) {
+      setEmails((prev) => [...prev, ...additions]);
+    }
+    setSelectedIds(new Set());
+  };
+
+  return (
+    <>
+      <View style={s.directoryHead}>
+        <View style={{ flex: 1 }}>
+          <Text style={s.fieldLabel}>Okta directory · {entries.length} users</Text>
+          {lastSyncedLabel ? (
+            <Text style={s.helper}>
+              Last synced {lastSyncedLabel}
+              {alreadyMemberCount > 0
+                ? ` · ${alreadyMemberCount} already members`
+                : ''}
+            </Text>
+          ) : null}
+        </View>
+        <Pressable style={s.btnSmGhost} onPress={toggleAll}>
+          <Ionicons name="checkbox-outline" size={12} color="rgba(60, 60, 67, 0.7)" />
+          <Text style={s.btnSmGhostText}>
+            {selectedIds.size === candidates.length && candidates.length > 0
+              ? 'Deselect all'
+              : 'Select all'}
+          </Text>
+        </Pressable>
+      </View>
+
+      {loading ? (
+        <Text style={s.helper}>Loading directory…</Text>
+      ) : candidates.length === 0 ? (
+        <View style={s.methodStub}>
+          <Ionicons name="people-circle-outline" size={28} color="rgba(40, 64, 107, 0.5)" />
+          <Text style={s.methodStubTitle}>
+            {entries.length === 0
+              ? 'No directory users yet'
+              : 'Everyone in the directory is already a member'}
+          </Text>
+          <Text style={s.methodStubBody}>
+            {entries.length === 0
+              ? 'Configure SCIM provisioning in the SSO settings, then a sync will populate this list.'
+              : 'Nice. There are no new people to invite right now.'}
+          </Text>
+        </View>
+      ) : (
+        <View style={s.directoryList}>
+          {candidates.map((c) => {
+            const checked = selectedIds.has(c.id);
+            const validDomain =
+              verifiedDomains.includes(c.email.split('@')[1]?.toLowerCase() ?? '');
+            return (
+              <Pressable key={c.id} onPress={() => toggle(c.id)} style={s.directoryRow}>
+                <View style={[s.checkbox, checked && s.checkboxOn]}>
+                  {checked ? (
+                    <Ionicons name="checkmark" size={12} color="#FFFFFF" />
+                  ) : null}
+                </View>
+                <View style={s.directoryAvi}>
+                  <Text style={s.directoryAviText}>{c.initials}</Text>
+                </View>
+                <View style={{ flex: 1, minWidth: 0 }}>
+                  <Text style={s.directoryName} numberOfLines={1}>
+                    {c.displayName}
+                  </Text>
+                  <Text style={s.directoryMeta} numberOfLines={1}>
+                    {c.email}
+                    {c.title ? ` · ${c.title}` : c.department ? ` · ${c.department}` : ''}
+                  </Text>
+                </View>
+                {c.roleHint ? (
+                  <View style={s.directoryRolePill}>
+                    <Text style={s.directoryRolePillText}>{c.roleHint}</Text>
+                  </View>
+                ) : null}
+                {!validDomain ? (
+                  <View style={s.directoryWarnPill}>
+                    <Ionicons name="warning" size={11} color="#C99632" />
+                    <Text style={s.directoryWarnText}>off-domain</Text>
+                  </View>
+                ) : null}
+              </Pressable>
+            );
+          })}
+        </View>
+      )}
+
+      {selectedIds.size > 0 ? (
+        <Pressable style={s.btnPrimaryRow} onPress={addSelectedToQueue}>
+          <Ionicons name="add" size={13} color="#FFFFFF" />
+          <Text style={s.btnPrimaryRowText}>
+            Add {selectedIds.size} to invite queue
+          </Text>
+        </Pressable>
+      ) : null}
+    </>
   );
 }
 
@@ -1090,6 +1241,79 @@ const s = StyleSheet.create({
   },
   linkBtnText: { fontSize: 11.5, fontWeight: '600', color: '#28406B' },
   linkBtnGhost: { padding: 4 },
+
+  // SSO directory panel
+  directoryHead: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  directoryList: { gap: 4, marginTop: 4 },
+  directoryRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: 8,
+    backgroundColor: '#F2F2F7',
+  },
+  checkbox: {
+    width: 18,
+    height: 18,
+    borderRadius: 4,
+    borderWidth: 1.5,
+    borderColor: '#C7C7CC',
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  checkboxOn: { borderColor: '#28406B', backgroundColor: '#28406B' },
+  directoryAvi: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#28406B',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  directoryAviText: { color: '#FFFFFF', fontSize: 10.5, fontWeight: '700', letterSpacing: 0.4 },
+  directoryName: { fontSize: 13, fontWeight: '600', color: '#1C1C1E' },
+  directoryMeta: { fontSize: 11, color: 'rgba(60, 60, 67, 0.6)', marginTop: 2 },
+  directoryRolePill: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 999,
+    backgroundColor: 'rgba(40, 64, 107, 0.08)',
+  },
+  directoryRolePillText: {
+    fontSize: 10.5,
+    fontWeight: '600',
+    color: '#28406B',
+    textTransform: 'capitalize',
+  },
+  directoryWarnPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 999,
+    backgroundColor: 'rgba(201, 150, 50, 0.14)',
+  },
+  directoryWarnText: { fontSize: 10.5, fontWeight: '600', color: '#C99632' },
+  btnPrimaryRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 10,
+    backgroundColor: '#28406B',
+  },
+  btnPrimaryRowText: { color: '#FFFFFF', fontSize: 13, fontWeight: '600' },
 
   methodStub: { alignItems: 'center', paddingVertical: 32, gap: 6 },
   methodStubTitle: { fontSize: 14, fontWeight: '600', color: '#1C1C1E', marginTop: 4 },
