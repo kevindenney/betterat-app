@@ -1969,7 +1969,11 @@ const shellStyles = StyleSheet.create({
   },
   commitBannerInline: {
     position: 'absolute',
-    top: 12,
+    // Pushed down so the banner clears the Dynamic Island + status bar
+    // + floating TopChrome + chip rail. Previously top: 12 placed it
+    // directly under the iPhone notch where it looked like an iOS Live
+    // Activity indicator and ate the location-pin glyph.
+    top: 150,
     alignSelf: 'center',
     backgroundColor: IOS_REGISTER.accentUserAction,
     paddingHorizontal: 12,
