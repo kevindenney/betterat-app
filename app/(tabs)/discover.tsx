@@ -13,15 +13,17 @@
  * Works for authenticated and unauthenticated users (auth gate on actions).
  */
 
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router, useLocalSearchParams } from 'expo-router';
 
+import { DiscoverInterestsContent } from '@/components/discover/DiscoverInterestsContent';
 import { DiscoverOrgsContent } from '@/components/discover/DiscoverOrgsContent';
 import { DiscoverPeopleContent } from '@/components/discover/DiscoverPeopleContent';
 import { DiscoverTodayContent } from '@/components/discover/DiscoverTodayContent';
+import { useInterest } from '@/providers/InterestProvider';
 import { DiscussContent } from '@/components/connect/DiscussContent';
 import { IOSSegmentedControl } from '@/components/ui/ios/IOSSegmentedControl';
 import { TabScreenToolbar } from '@/components/ui/TabScreenToolbar';
@@ -33,22 +35,22 @@ import { useUniversalPlus } from '@/components/capture';
 // TYPES & CONSTANTS
 // =============================================================================
 
-type DiscoverSegment = 'today' | 'organizations' | 'people' | 'forums';
+type DiscoverSegment = 'today' | 'interests' | 'organizations' | 'people' | 'forums';
 
 const DISCOVER_SEGMENTS = [
   { value: 'today' as const, label: 'Today' },
+  { value: 'interests' as const, label: 'Interests' },
   { value: 'organizations' as const, label: 'Orgs' },
   { value: 'people' as const, label: 'People' },
   { value: 'forums' as const, label: 'Forums' },
 ];
 
-const VALID_SEGMENTS: DiscoverSegment[] = ['today', 'organizations', 'people', 'forums'];
+const VALID_SEGMENTS: DiscoverSegment[] = ['today', 'interests', 'organizations', 'people', 'forums'];
 
 // Legacy alias from the previous segment shapes — deep links with old segment
 // names fall through to the canonical default rather than 404.
 const LEGACY_SEGMENT_ALIASES: Record<string, DiscoverSegment> = {
   orgs: 'organizations',
-  interests: 'organizations',
   cover: 'today',
 };
 
@@ -73,6 +75,15 @@ export default function DiscoverTab() {
   const [toolbarHeight, setToolbarHeight] = useState(0);
   const { toolbarHidden, handleScroll } = useScrollToolbarHide();
   const [activeSegment, setActiveSegment] = useState<DiscoverSegment>('today');
+
+  // User's currently-added interests, fed to DiscoverInterestsContent so
+  // already-added interests render with an "Added" badge instead of the
+  // plus button.
+  const { userInterests } = useInterest();
+  const addedInterestSlugs = useMemo(
+    () => new Set(userInterests.map((i) => i.slug)),
+    [userInterests],
+  );
 
   // Shared follow/join state (lifted so it survives segment switches)
   const [followedIds, setFollowedIds] = useState<Set<string>>(new Set());
@@ -141,6 +152,17 @@ export default function DiscoverTab() {
         <DiscoverTodayContent
           toolbarOffset={toolbarHeight}
           onScroll={handleScroll}
+        />
+      )}
+      {activeSegment === 'interests' && (
+        <DiscoverInterestsContent
+          toolbarOffset={toolbarHeight}
+          onScroll={handleScroll}
+          addedInterestSlugs={addedInterestSlugs}
+          onAddInterest={() => {
+            /* component handles the supabase insert internally; this
+               hook is reserved for parent-level reactions (e.g. analytics). */
+          }}
         />
       )}
       {activeSegment === 'organizations' && (
