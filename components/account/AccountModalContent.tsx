@@ -577,7 +577,7 @@ const [interestSectionY, setInterestSectionY] = useState<number>(0);
               if (telegramLinked) {
                 router.push('/settings/telegram');
               } else {
-                const botUsername = process.env.EXPO_PUBLIC_TELEGRAM_BOT_USERNAME || 'BetterAtBot';
+                const botUsername = process.env.EXPO_PUBLIC_TELEGRAM_BOT_USERNAME || 'betterat_assistant_bot';
                 Linking.openURL(`https://t.me/${botUsername}`);
               }
             }}

@@ -65,7 +65,7 @@ export function useTelegramLink() {
 }
 
 export function telegramBotUsername(): string {
-  return process.env.EXPO_PUBLIC_TELEGRAM_BOT_USERNAME || 'BetterAtBot';
+  return process.env.EXPO_PUBLIC_TELEGRAM_BOT_USERNAME || 'betterat_assistant_bot';
 }
 
 export function telegramBotDeepLink(payload?: string): string {
