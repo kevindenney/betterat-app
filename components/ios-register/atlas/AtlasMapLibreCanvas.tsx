@@ -55,26 +55,16 @@ import type { AtlasFrameId, AtlasNextEvent } from './AtlasScreen';
 // Future: when sailing gets a proper nautical chart base (OpenSeaMap
 // overlay or custom MapLibre style with bathymetry), swap that in here
 // for f1/f2/f6 without touching the canvas.
-const MAP_STYLE_LIBERTY = 'https://tiles.openfreemap.org/styles/liberty';
 const MAP_STYLE_POSITRON = 'https://tiles.openfreemap.org/styles/positron';
 
-function mapStyleForFrame(frame: AtlasFrameId): string {
-  switch (frame) {
-    // Sailing — water/land contrast matters; Liberty wins
-    case 'f1':
-    case 'f2':
-    case 'f3':
-    case 'f6':
-      return MAP_STYLE_LIBERTY;
-    // Nursing (campus-level) — quiet base lets cohort heatmap +
-    // preceptor diamonds dominate
-    case 'f4':
-    case 'f5':
-      return MAP_STYLE_POSITRON;
-    // Entrepreneur (rural/sparse) — minimal labels suit
-    case 'f7':
-      return MAP_STYLE_POSITRON;
-  }
+function mapStyleForFrame(_frame: AtlasFrameId): string {
+  // Default Positron across all personas — quiet land, soft blue water,
+  // minimal commercial POI noise. Lets the persona layers (wind, tide,
+  // race-marks, cohort glow, preceptor diamonds) dominate. Sailing
+  // tried Liberty for water/land contrast but the road-density noise
+  // beat the contrast win. Future: per-vertical custom MapLibre style
+  // (nautical chart for sailing, campus simple for nursing, etc.).
+  return MAP_STYLE_POSITRON;
 }
 
 interface CameraPreset {
@@ -432,7 +422,7 @@ function LabeledPin({
     const downwindDeg = (fromDeg + 180) % 360;
     return (
       <View style={[styles.windArrow, { transform: [{ rotate: `${downwindDeg}deg` }] }]}>
-        <Ionicons name="arrow-up" size={20} color="rgba(0, 122, 255, 0.78)" />
+        <Ionicons name="arrow-up" size={32} color="rgba(0, 122, 255, 0.9)" />
       </View>
     );
   }
@@ -442,7 +432,7 @@ function LabeledPin({
     const setDeg = Number(degStr) || 0;
     return (
       <View style={[styles.tideArrow, { transform: [{ rotate: `${setDeg}deg` }] }]}>
-        <Ionicons name="chevron-up" size={20} color="rgba(0, 168, 168, 0.85)" />
+        <Ionicons name="chevron-up" size={32} color="rgba(0, 168, 168, 0.9)" />
       </View>
     );
   }

@@ -33,6 +33,12 @@ interface UseWindOverlayArgs {
   spacingKm?: number;
   /** Grid side length (n × n). Default 4. */
   gridSize?: number;
+  /**
+   * Water-anchored arrow positions. When provided, ONE arrow renders at
+   * each anchor instead of a grid — keeps wind arrows over water only,
+   * not crowding the canvas with land arrows. Mirror of useTideOverlay.
+   */
+  waterAnchors?: { lat: number; lng: number }[];
 }
 
 const COMPASS_DEG: Record<string, number> = {
@@ -83,30 +89,41 @@ export function useWindOverlay({
   enabled = true,
   spacingKm = 1.2,
   gridSize = 4,
+  waterAnchors,
 }: UseWindOverlayArgs): AtlasPinSpec[] {
   return useMemo(() => {
     if (!enabled) return [];
     const { degrees, knots } = parseWind(conditionsLine);
+    const label = `${degrees}|${knots}`;
+
+    // Water-anchored: one large arrow per anchor (offset upwind slightly
+    // so the arrow tip doesn't sit on top of the racing-area POI dot).
+    if (waterAnchors && waterAnchors.length > 0) {
+      return waterAnchors.map((a, idx) => ({
+        id: `wind-water:${idx}`,
+        lat: a.lat,
+        lng: a.lng,
+        kind: 'wind-arrow' as const,
+        label,
+      }));
+    }
+
+    // Fallback grid (preview routes / no anchors).
     const out: AtlasPinSpec[] = [];
     const half = (gridSize - 1) / 2;
-    // Convert km offset to lat/lng degrees at this latitude
     const dLat = spacingKm / 111;
     const dLng = spacingKm / (111 * Math.cos((centerLat * Math.PI) / 180));
     for (let i = 0; i < gridSize; i += 1) {
       for (let j = 0; j < gridSize; j += 1) {
-        const lat = centerLat + (i - half) * dLat;
-        const lng = centerLng + (j - half) * dLng;
         out.push({
           id: `wind:${i}-${j}`,
-          lat,
-          lng,
+          lat: centerLat + (i - half) * dLat,
+          lng: centerLng + (j - half) * dLng,
           kind: 'wind-arrow',
-          // Stash heading + knots in label; the renderer parses them
-          // back. Avoids adding new fields to AtlasPinSpec for one layer.
-          label: `${degrees}|${knots}`,
+          label,
         });
       }
     }
     return out;
-  }, [centerLat, centerLng, conditionsLine, enabled, spacingKm, gridSize]);
+  }, [centerLat, centerLng, conditionsLine, enabled, spacingKm, gridSize, waterAnchors]);
 }

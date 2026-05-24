@@ -51,8 +51,6 @@ import { useWindOverlay } from '@/hooks/useWindOverlay';
 import { useTideOverlay } from '@/hooks/useTideOverlay';
 import { useCohortHeatmap } from '@/hooks/useCohortHeatmap';
 import { useCompetencyGlow } from '@/hooks/useCompetencyGlow';
-import Slider from '@react-native-community/slider';
-import { tideAtOffset } from '@/hooks/useTideOverlay';
 import {
   AtlasPin,
   ClusterTag,
@@ -654,22 +652,9 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
     setShowWind(activeIds.includes('wind') || activeIds.includes('all'));
     setShowTide(activeIds.includes('tide') || activeIds.includes('all'));
   }, []);
-  // Wind overlay — 3×3 grid centered at the next event's venue (or F1
-  // camera centroid as fallback). Parses heading + speed from
-  // next.conditions; chip-gated visibility. 3×3 spacing chosen so the
-  // field reads as direction without crowding POI labels.
-  const windPins = useWindOverlay({
-    centerLat: next?.lat ?? 22.295,
-    centerLng: next?.lng ?? 114.18,
-    conditionsLine: next?.conditions,
-    enabled: showWind,
-    spacingKm: 4,
-    gridSize: 3,
-  });
-  // Tide / current overlay — anchored at the racing_area POI coords so
-  // arrows snap to water (Victoria Harbour, Middle Island channel, Lamma
-  // Channel, Port Shelter) rather than appearing on land. Falls back to
-  // empty array when no water anchors are present.
+  // Minimal wind + tide overlays — water-anchored only, one large arrow
+  // per racing area, no time scrubbing. Per design pass: "fewer larger
+  // arrows over water only".
   const waterAnchors = useMemo(
     () =>
       framePins
@@ -677,17 +662,19 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
         .map((p) => ({ lat: p.lat, lng: p.lng })),
     [framePins],
   );
-  // Tide time-slider — scrub T+0h ↔ T+6h to preview current at race
-  // start. Default 0 (now). When set, useTideOverlay overrides parsed
-  // conditions with a semi-diurnal ebb/slack/flood cycle.
-  const [tideOffsetHours, setTideOffsetHours] = useState(0);
+  const windPins = useWindOverlay({
+    centerLat: next?.lat ?? 22.295,
+    centerLng: next?.lng ?? 114.18,
+    conditionsLine: next?.conditions,
+    enabled: showWind,
+    waterAnchors,
+  });
   const tidePins = useTideOverlay({
     centerLat: next?.lat ?? 22.295,
     centerLng: next?.lng ?? 114.18,
     conditionsLine: next?.conditions,
     enabled: showTide,
     waterAnchors,
-    offsetHours: tideOffsetHours,
   });
   // Z-order: wind (base field), POIs (places), race-marks, tide (so its
   // chevron reads above the racing-area pin it points away from).
@@ -829,17 +816,9 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
           commitMode={commitMode}
         />
 
-        {/* Tide time-slider — floats above the bottom sheet when tide
-            layer is on. Scrubs the demo cycle T+0 (ebb) → T+3 (slack) →
-            T+6 (flood); the tide arrow field updates live as the slider
-            moves. Hidden in commit-mode so it doesn't compete with the
-            pin-dropping UX. */}
-        {showTide && !commitMode && (
-          <TideSlider
-            hours={tideOffsetHours}
-            onChange={setTideOffsetHours}
-          />
-        )}
+        {/* Tide time-slider removed per design feedback — keep wind/tide
+            minimal (large arrows over water only, no scrubbing). Real
+            Storm Glass per-event tides land in a follow-up. */}
       </View>
 
       {candidate ? (
@@ -1465,44 +1444,6 @@ function BottomSheet({
   );
 }
 
-/**
- * Tide time-slider — F1 z14+ feature from the design pass. Floats above
- * the bottom sheet, scrubs the demo semi-diurnal cycle from now (T+0) to
- * 6 hours out. Live label reads "T+Xh · ebb / slack / flood · 0.4kn"
- * so the user knows what the field is currently rendering.
- */
-function TideSlider({ hours, onChange }: { hours: number; onChange: (h: number) => void }) {
-  const { setDegrees, knots } = tideAtOffset(hours);
-  const phase =
-    knots < 0.05
-      ? 'slack'
-      : setDegrees === 270
-        ? 'flood'
-        : 'ebb';
-  const knotsTxt = knots < 0.05 ? '' : ` · ${knots.toFixed(1)}kn`;
-  return (
-    <View style={shellStyles.tideSlider}>
-      <View style={shellStyles.tideSliderRow}>
-        <Ionicons name="water-outline" size={11} color="rgba(0, 122, 122, 0.9)" />
-        <Text style={shellStyles.tideSliderLabel}>
-          TIDE · T+{hours.toFixed(0)}H · {phase.toUpperCase()}{knotsTxt}
-        </Text>
-      </View>
-      <Slider
-        style={shellStyles.tideSliderTrack}
-        minimumValue={0}
-        maximumValue={6}
-        step={0.5}
-        value={hours}
-        onValueChange={onChange}
-        minimumTrackTintColor="rgba(0, 168, 168, 0.9)"
-        maximumTrackTintColor="rgba(0, 168, 168, 0.25)"
-        thumbTintColor="rgba(0, 168, 168, 1)"
-      />
-    </View>
-  );
-}
-
 function Stat({ value, label }: StatItem) {
   return (
     <View style={shellStyles.stat}>
@@ -1673,13 +1614,9 @@ const shellStyles = StyleSheet.create({
     top: 0,
     left: 0,
     right: 0,
-    backgroundColor: 'rgba(255, 255, 255, 0.82)',
+    backgroundColor: 'transparent',
     paddingTop: 50,
     paddingBottom: 4,
-    shadowColor: '#000',
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 2 },
     zIndex: 10,
   },
   absChip: {
@@ -1903,38 +1840,6 @@ const shellStyles = StyleSheet.create({
     height: 4,
     borderRadius: 2,
     backgroundColor: 'rgba(60, 60, 67, 0.28)',
-  },
-  // --- Tide time-slider (F1 only) ----------------------------------------
-  tideSlider: {
-    position: 'absolute',
-    left: 12,
-    right: 12,
-    bottom: 12,
-    backgroundColor: 'rgba(255, 255, 255, 0.92)',
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingTop: 6,
-    paddingBottom: 2,
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 1 },
-    zIndex: 15,
-  },
-  tideSliderRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  tideSliderLabel: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: 'rgba(0, 100, 100, 0.85)',
-    letterSpacing: 0.4,
-  },
-  tideSliderTrack: {
-    width: '100%',
-    height: 28,
   },
   eyebrow: {
     fontSize: 10,
