@@ -50,6 +50,7 @@ const TAB_SWEEP_META: Record<(typeof TAB_SWEEP_REQUIRED_TABS)[number], { label: 
   reflect: { label: 'Profile', icon: 'person-circle-outline' },
 };
 const ROUTES_WITH_CUSTOM_TOOLBAR = [
+  '/atlas',
   '/discover',
   '/learn',
   '/library',
