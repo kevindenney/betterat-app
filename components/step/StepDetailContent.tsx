@@ -65,6 +65,7 @@ import type { StepAccessPerson } from '@/components/step/StepDiscussionInline';
 import { StepDiscussionPeek } from './StepDiscussionPeek';
 import { useStepBlueprintChrome } from '@/hooks/useStepBlueprintChrome';
 import { useStepDiscussionPeek } from '@/hooks/useStepDiscussionPeek';
+import { useLatestPeerReflection } from '@/hooks/useLatestPeerReflection';
 import { useStepCompleteCelebration } from '@/hooks/useStepCompleteCelebration';
 import { useContinueToNextBlueprintStep } from '@/hooks/useContinueToNextBlueprintStep';
 import { StepDiscussionInline } from './StepDiscussionInline';
@@ -150,6 +151,12 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab }
   const { data: discussionPeek } = useStepDiscussionPeek(stepId);
   const showDiscussionPeek =
     FEATURE_FLAGS.STEP_DISCUSSION_V1 && Boolean(discussionPeek);
+
+  // v3 Phase B follow-up — the lilac italic-serif quote on the step cover
+  // is sourced from peer_reflections (migration 20260524220000), not the
+  // discuss-tab comment thread. Returns null when no reflection targets
+  // this step.
+  const { data: latestReflection } = useLatestPeerReflection(stepId);
   // `goDiscussion` is declared further below, after `setActiveTab` exists.
   // Putting it here previously crashed render with a TDZ error
   // (`Cannot access 'setActiveTab' before initialization`) — surfaced
@@ -1247,10 +1254,13 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab }
     ) : null;
 
     const peerQuoteEl =
-      useIdentityDeck && discussionPeek?.latest ? (
+      useIdentityDeck && latestReflection ? (
         <PeerReflectionQuote
-          authorName={discussionPeek.latest.authorName ?? 'A peer'}
-          body={discussionPeek.latest.body ?? ''}
+          authorName={latestReflection.authorName}
+          authorInitials={latestReflection.authorInitials}
+          authorTint={latestReflection.authorTint}
+          body={latestReflection.body}
+          when={latestReflection.when}
           onReply={goDiscussion}
         />
       ) : null;
