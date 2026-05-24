@@ -623,8 +623,6 @@ async function handleMarketplaceBlueprintCheckout(session: Stripe.Checkout.Sessi
   }
 
   // Bump active_seats on the author's org_author_payouts row (if it exists).
-  // Counts a fresh row, not a re-subscribe of the same user (UNIQUE
-  // constraint on the upsert already de-duped).
   if (blueprint.author_user_id && blueprint.org_id) {
     await supabase.rpc('bump_author_active_seats', {
       p_org_id: blueprint.org_id,
@@ -632,6 +630,22 @@ async function handleMarketplaceBlueprintCheckout(session: Stripe.Checkout.Sessi
     }).then(({ error }) => {
       if (error) console.warn('[marketplace.checkout] bump_author_active_seats failed', error);
     });
+  }
+
+  // Materialize the blueprint's step templates into the buyer's
+  // timeline_steps so they can actually practice the steps, not just
+  // read them. Idempotent; service-role call bypasses the
+  // active-subscription check (we just created the row).
+  try {
+    const { error: matErr } = await supabase.rpc('materialize_marketplace_blueprint', {
+      p_blueprint_id: blueprintId,
+      p_buyer_user_id: buyerUserId,
+    });
+    if (matErr) {
+      console.warn('[marketplace.checkout] materialize failed', matErr);
+    }
+  } catch (err) {
+    console.warn('[marketplace.checkout] materialize threw', err);
   }
 
   // Audit

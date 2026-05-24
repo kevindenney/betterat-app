@@ -15,6 +15,8 @@ export interface MarketplaceBlueprintStep {
   description: string | null;
   category: string;
   whatQuestion: string | null;
+  buyerStatus: 'pending' | 'in_progress' | 'completed' | 'skipped' | null;
+  buyerStepId: string | null;
 }
 
 export interface MarketplaceBlueprintDetail {
@@ -74,6 +76,8 @@ interface RpcPayload {
     description: string | null;
     category: string;
     what_question: string | null;
+    buyer_status: 'pending' | 'in_progress' | 'completed' | 'skipped' | null;
+    buyer_step_id: string | null;
   }[];
 }
 
@@ -123,6 +127,8 @@ export function useMarketplaceBlueprint(blueprintId: string | undefined) {
           description: s.description,
           category: s.category,
           whatQuestion: s.what_question,
+          buyerStatus: s.buyer_status ?? null,
+          buyerStepId: s.buyer_step_id ?? null,
         })),
       };
     },

@@ -199,6 +199,17 @@ export default function MarketplaceBlueprintPage() {
             <View style={{ gap: 10 }}>
               {steps.map((step, idx) => {
                 const tone = CATEGORY_TONE[step.category] ?? CATEGORY_TONE.other;
+                const status = step.buyerStatus;
+                const statusTone =
+                  status === 'completed'
+                    ? { bg: 'rgba(30, 143, 71, 0.12)', fg: '#1E8F47', label: 'Done' }
+                    : status === 'in_progress'
+                      ? { bg: 'rgba(201, 150, 50, 0.14)', fg: '#C99632', label: 'In progress' }
+                      : status === 'skipped'
+                        ? { bg: 'rgba(89, 100, 119, 0.12)', fg: '#596477', label: 'Skipped' }
+                        : status === 'pending'
+                          ? { bg: 'rgba(40, 64, 107, 0.08)', fg: '#28406B', label: 'In your timeline' }
+                          : null;
                 return (
                   <View key={step.id} style={s.stepRow}>
                     <View style={s.stepIndex}>
@@ -209,10 +220,19 @@ export default function MarketplaceBlueprintPage() {
                       {step.description ? (
                         <Text style={s.stepDescription}>{step.description}</Text>
                       ) : null}
-                      <View style={[s.categoryChip, { backgroundColor: tone.bg }]}>
-                        <Text style={[s.categoryChipText, { color: tone.fg }]}>
-                          {tone.label}
-                        </Text>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                        <View style={[s.categoryChip, { backgroundColor: tone.bg }]}>
+                          <Text style={[s.categoryChipText, { color: tone.fg }]}>
+                            {tone.label}
+                          </Text>
+                        </View>
+                        {statusTone ? (
+                          <View style={[s.categoryChip, { backgroundColor: statusTone.bg }]}>
+                            <Text style={[s.categoryChipText, { color: statusTone.fg }]}>
+                              {statusTone.label}
+                            </Text>
+                          </View>
+                        ) : null}
                       </View>
                     </View>
                   </View>
