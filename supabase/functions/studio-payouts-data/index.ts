@@ -133,10 +133,11 @@ serve(async (req: Request) => {
       console.warn('[studio-payouts-data] accounts.retrieve failed', err);
     }
 
-    // ── 12-week series + recent transactions ──
+    // ── 12-week series + recent transactions + deltas ──
     const ninetyDaysAgo = Math.floor(Date.now() / 1000) - 90 * 24 * 60 * 60;
     let weeklySeries: { weekStart: string; amount: number }[] = [];
     let recentTransactions: any[] = [];
+    let deltaWeekPct: number | null = null;
     try {
       const txns = await stripe.balanceTransactions.list(
         {
@@ -153,8 +154,6 @@ serve(async (req: Request) => {
         buckets.set(shortWeekLabel(wkStart), 0);
       }
       for (const t of txns.data) {
-        // Only count "earning" transactions (payments/charges, not transfers
-        // or payout debits which would double-count).
         if (t.type === 'payment' || t.type === 'charge') {
           const wkStart = startOfWeek(new Date((t.created as number) * 1000));
           const key = shortWeekLabel(wkStart);
@@ -168,7 +167,19 @@ serve(async (req: Request) => {
         amount: cents / 100,
       }));
 
-      // Recent transactions (most recent 8)
+      // Week-over-week delta: compare the last fully-completed week
+      // (n-1) to the one before it (n-2). Skipping the current week so
+      // a mid-week snapshot doesn't read as a "drop".
+      if (weeklySeries.length >= 3) {
+        const prev = weeklySeries[weeklySeries.length - 2].amount;
+        const prevPrev = weeklySeries[weeklySeries.length - 3].amount;
+        if (prevPrev > 0) {
+          deltaWeekPct = Math.round(((prev - prevPrev) / prevPrev) * 100);
+        } else if (prev > 0) {
+          deltaWeekPct = 100;
+        }
+      }
+
       recentTransactions = txns.data
         .filter((t) => t.type === 'payment' || t.type === 'charge' || t.type === 'refund')
         .slice(0, 8)
@@ -182,6 +193,33 @@ serve(async (req: Request) => {
         }));
     } catch (err) {
       console.warn('[studio-payouts-data] balanceTransactions.list failed', err);
+    }
+
+    // ── Lifetime earnings (sum of all charges, no time bound) ──
+    // Stripe's API paginates 100/page; for the demo we cap at 1000
+    // (10 pages). Production would want a background materialised
+    // view, not a live API call here.
+    let lifetimeCents = 0;
+    let lifetimeSince: string | null = null;
+    try {
+      let starting_after: string | undefined = undefined;
+      for (let page = 0; page < 10; page++) {
+        const list = await stripe.balanceTransactions.list(
+          { limit: 100, type: 'charge', ...(starting_after ? { starting_after } : {}) },
+          stripeAccount,
+        );
+        for (const t of list.data) {
+          lifetimeCents += t.amount;
+          const createdIso = new Date((t.created as number) * 1000).toISOString();
+          if (!lifetimeSince || createdIso < lifetimeSince) {
+            lifetimeSince = createdIso;
+          }
+        }
+        if (!list.has_more || list.data.length === 0) break;
+        starting_after = list.data[list.data.length - 1].id;
+      }
+    } catch (err) {
+      console.warn('[studio-payouts-data] lifetime aggregation failed', err);
     }
 
     // ── Next payout ──
@@ -211,6 +249,11 @@ serve(async (req: Request) => {
         weeklySeries,
         recentTransactions,
         nextPayout,
+        lifetime: {
+          amount_cents: lifetimeCents,
+          since: lifetimeSince,
+        },
+        deltaWeekPct,
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     );

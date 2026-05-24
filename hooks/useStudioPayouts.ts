@@ -137,6 +137,8 @@ interface StripeSidePayload {
     currency: string;
     arrivalDate: string;
   } | null;
+  lifetime?: { amount_cents: number; since: string | null } | null;
+  deltaWeekPct?: number | null;
 }
 
 function nameToInitials(name: string): string {
@@ -210,10 +212,22 @@ export function useStudioPayouts(): StudioPayoutsData {
       }),
     );
 
-    const lifetimeCents = (stats?.byBlueprint ?? []).reduce(
+    // Lifetime: prefer the Stripe-derived sum (real money cleared);
+    // fall back to YTD-MRR sum from marketplace stats when no Stripe
+    // history exists yet.
+    const lifetimeCentsFromStripe = stripeSide?.lifetime?.amount_cents ?? 0;
+    const lifetimeCentsFromStats = (stats?.byBlueprint ?? []).reduce(
       (sum, b) => sum + b.mrrCents,
       0,
     );
+    const lifetimeCents =
+      lifetimeCentsFromStripe > 0 ? lifetimeCentsFromStripe : lifetimeCentsFromStats;
+    const lifetimeSince = stripeSide?.lifetime?.since
+      ? new Date(stripeSide.lifetime.since).toLocaleDateString('en-US', {
+          month: 'short',
+          year: 'numeric',
+        })
+      : 'YTD';
 
     // Stripe-side derived data (may be undefined if user has no Connect
     // account or the fetch failed). Fall back to empty/placeholder
@@ -264,11 +278,11 @@ export function useStudioPayouts(): StudioPayoutsData {
         dateLabel: nextPayoutDate,
         renewalsCount: stats?.activeCount ?? 0,
         firstTimeCount: stats?.trialingCount ?? 0,
-        deltaWeekPct: null,
+        deltaWeekPct: stripeSide?.deltaWeekPct ?? null,
       },
       lifetime: {
         amount: lifetimeCents / 100,
-        sinceLabel: 'YTD',
+        sinceLabel: lifetimeSince,
       },
       activeSubscribers: {
         count: activeCount,
