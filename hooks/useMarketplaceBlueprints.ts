@@ -20,6 +20,7 @@ export interface MarketplaceBlueprint {
   authorName: string;
   authorInitials: string;
   authorTone: AuthorTone;
+  authorBio: string | null;
   orgName: string | null;
   createdAt: string;
   ratingAvg: number | null;
@@ -42,6 +43,7 @@ interface Row {
   author_name: string;
   author_initials: string;
   author_tone: string;
+  author_bio: string | null;
   org_name: string | null;
   created_at: string;
   rating_avg: number | string | null;
@@ -76,6 +78,7 @@ export function useMarketplaceBlueprints() {
         authorName: r.author_name,
         authorInitials: r.author_initials,
         authorTone: (r.author_tone as AuthorTone) ?? 'navy',
+        authorBio: r.author_bio ?? null,
         orgName: r.org_name,
         createdAt: r.created_at,
         ratingAvg: r.rating_avg == null ? null : Number(r.rating_avg),

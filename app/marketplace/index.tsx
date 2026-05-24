@@ -200,6 +200,9 @@ export default function MarketplacePage() {
                 <Text style={s.scopeOrg}>· Independent author</Text>
               )}
             </View>
+            {scopedAuthor.authorBio ? (
+              <Text style={s.scopeBio}>{scopedAuthor.authorBio}</Text>
+            ) : null}
           </>
         ) : (
           <>
@@ -742,6 +745,15 @@ const s = StyleSheet.create({
   ratingEmpty: { fontSize: 11.5, color: 'rgba(60, 60, 67, 0.45)' },
   scopeBack: { fontSize: 12.5, fontWeight: '600', color: '#28406B' },
   scopeOrg: { fontSize: 12, color: 'rgba(60, 60, 67, 0.6)' },
+  scopeBio: {
+    fontSize: 13.5,
+    lineHeight: 20,
+    color: 'rgba(60, 60, 67, 0.85)',
+    marginTop: 12,
+    paddingLeft: 12,
+    borderLeftWidth: 2,
+    borderLeftColor: 'rgba(40, 64, 107, 0.25)',
+  },
 
   // Featured rail
   railHead: { flexDirection: 'row', alignItems: 'center', gap: 6 },

@@ -29,6 +29,7 @@ export interface MarketplaceBlueprintDetail {
   trialDays: number;
   authorUserId: string | null;
   authorName: string;
+  authorBio: string | null;
   orgName: string | null;
   stripePriceId: string;
   ratingAvg: number | null;
@@ -85,6 +86,7 @@ interface RpcPayload {
     trial_days: number;
     author_user_id: string | null;
     author_name: string;
+    author_bio: string | null;
     org_name: string | null;
     stripe_price_id: string;
     rating_avg: number | string | null;
@@ -157,6 +159,7 @@ export function useMarketplaceBlueprint(blueprintId: string | undefined) {
           trialDays: p.blueprint.trial_days,
           authorUserId: p.blueprint.author_user_id ?? null,
           authorName: p.blueprint.author_name,
+          authorBio: p.blueprint.author_bio ?? null,
           orgName: p.blueprint.org_name,
           stripePriceId: p.blueprint.stripe_price_id,
           ratingAvg:

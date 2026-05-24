@@ -206,6 +206,12 @@ export default function MarketplaceBlueprintPage() {
           ) : null}
         </View>
         {blueprint.description ? <Text style={s.lede}>{blueprint.description}</Text> : null}
+        {blueprint.authorBio ? (
+          <View style={s.authorBioBox}>
+            <Text style={s.authorBioLabel}>About {blueprint.authorName}</Text>
+            <Text style={s.authorBioText}>{blueprint.authorBio}</Text>
+          </View>
+        ) : null}
       </View>
 
       {!hasAccess ? (
@@ -617,6 +623,21 @@ const s = StyleSheet.create({
   },
   headerSubscriberText: { fontSize: 11, fontWeight: '600', color: 'rgba(60, 60, 67, 0.75)' },
   lede: { fontSize: 14, color: 'rgba(60, 60, 67, 0.85)', lineHeight: 20, marginTop: 8 },
+  authorBioBox: {
+    marginTop: 14,
+    padding: 14,
+    backgroundColor: 'rgba(40, 64, 107, 0.04)',
+    borderRadius: 10,
+    gap: 6,
+  },
+  authorBioLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#28406B',
+    letterSpacing: 0.6,
+    textTransform: 'uppercase',
+  },
+  authorBioText: { fontSize: 13, color: 'rgba(60, 60, 67, 0.85)', lineHeight: 19 },
   copy: {
     fontSize: 13.5,
     lineHeight: 19,
