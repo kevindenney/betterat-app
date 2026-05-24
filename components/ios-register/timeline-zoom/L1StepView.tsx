@@ -13,7 +13,13 @@ import React, { useCallback } from 'react';
 import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import { runOnJS } from 'react-native-reanimated';
+import Animated, {
+  runOnJS,
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+  withTiming,
+} from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 
 import { IOS_REGISTER } from '@/lib/design-tokens-ios';
@@ -57,6 +63,9 @@ interface L1StepViewProps {
    */
   onSwipePrev?: () => void;
   onSwipeNext?: () => void;
+  /** Adjacent step previews — drive the left/right peek slabs. */
+  prevStepTitle?: string | null;
+  nextStepTitle?: string | null;
 }
 
 const PHASES = ['Plan', 'Do', 'Reflect', 'Discuss'] as const;
@@ -64,6 +73,8 @@ const PHASES = ['Plan', 'Do', 'Reflect', 'Discuss'] as const;
 // Swipe threshold (Reanimated worklet uses these constants).
 const SWIPE_PX_THRESHOLD = 60;
 const SWIPE_VELOCITY_THRESHOLD = 600;
+const SWIPE_RUBBER_FACTOR = 0.5; // drag follows finger but dampened
+const PEEK_WIDTH = 18;
 
 export function L1StepView({
   step,
@@ -71,7 +82,12 @@ export function L1StepView({
   embedFullDetail,
   onSwipePrev,
   onSwipeNext,
+  prevStepTitle,
+  nextStepTitle,
 }: L1StepViewProps) {
+  const translateX = useSharedValue(0);
+  const passedThreshold = useSharedValue(false);
+
   const fireSwipe = useCallback(
     (direction: 'prev' | 'next') => {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
@@ -81,42 +97,98 @@ export function L1StepView({
     [onSwipePrev, onSwipeNext],
   );
 
+  const fireLightHaptic = useCallback(() => {
+    Haptics.selectionAsync().catch(() => {});
+  }, []);
+
   // Horizontal pan that only activates after 15px of x movement so vertical
   // scroll inside the embedded StepDetailContent still works untouched.
   const swipeGesture = Gesture.Pan()
     .activeOffsetX([-15, 15])
     .failOffsetY([-12, 12])
+    .onStart(() => {
+      'worklet';
+      passedThreshold.value = false;
+      runOnJS(fireLightHaptic)();
+    })
+    .onUpdate((e) => {
+      'worklet';
+      // Rubber-banded follow: the card moves with the finger but dampened
+      // so the gesture feels held back enough to read as intentional.
+      translateX.value = e.translationX * SWIPE_RUBBER_FACTOR;
+      // Threshold-cross light haptic — once per gesture.
+      const crossed = Math.abs(e.translationX) > SWIPE_PX_THRESHOLD;
+      if (crossed && !passedThreshold.value) {
+        passedThreshold.value = true;
+        runOnJS(fireLightHaptic)();
+      } else if (!crossed && passedThreshold.value) {
+        passedThreshold.value = false;
+      }
+    })
     .onEnd((e) => {
       'worklet';
       const enoughDistance = Math.abs(e.translationX) > SWIPE_PX_THRESHOLD;
       const enoughVelocity = Math.abs(e.velocityX) > SWIPE_VELOCITY_THRESHOLD;
-      if (!enoughDistance && !enoughVelocity) return;
-      // Positive translation = finger moved right = previous step.
-      if (e.translationX > 0) {
-        runOnJS(fireSwipe)('prev');
-      } else {
-        runOnJS(fireSwipe)('next');
+      if (!enoughDistance && !enoughVelocity) {
+        // Cancelled — spring back to center.
+        translateX.value = withSpring(0, { damping: 18, stiffness: 220 });
+        return;
       }
+      // Commit — finish the slide off-screen, then reset and fire callback.
+      // Reanimated will paint the new step (after focusStepId updates) at
+      // translateX=0 the next frame; we tween to 0 so the new card slides
+      // in cleanly without a visible jump.
+      const dir = e.translationX > 0 ? 1 : -1;
+      translateX.value = withTiming(dir * 80, { duration: 120 }, () => {
+        translateX.value = 0;
+      });
+      runOnJS(fireSwipe)(dir > 0 ? 'prev' : 'next');
     });
+
+  const translateStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: translateX.value }],
+  }));
 
   if (embedFullDetail) {
     return (
-      <GestureDetector gesture={swipeGesture}>
-        <View style={styles.embedHost}>
-          <View style={styles.embedNowBar} />
-          <View style={styles.embedNowPill}>
-            <Text style={styles.embedNowPillText}>NOW</Text>
-          </View>
-          <View style={styles.embedChrome}>
-            <Text style={styles.verbEyebrow}>ZOOM · STEP · DOING</Text>
-            {step.peerQuote ? <PeerQuoteBlock quote={step.peerQuote} /> : null}
-            {step.subStep ? <SessionStrap step={step} /> : null}
-          </View>
-          <View style={styles.embedDetailHost}>
-            <StepDetailContent stepId={step.id} />
-          </View>
+      <View style={styles.embedHost}>
+        <View style={styles.embedNowBar} />
+        <View style={styles.embedNowPill}>
+          <Text style={styles.embedNowPillText}>NOW</Text>
         </View>
-      </GestureDetector>
+
+        {/* Adjacent-step peek slabs — thin vertical strips at the edges
+            so the user can see "there's a card here." Tap to swipe. */}
+        {prevStepTitle ? (
+          <Pressable
+            style={styles.peekLeft}
+            onPress={() => fireSwipe('prev')}
+            accessibilityRole="button"
+            accessibilityLabel={`Previous step: ${prevStepTitle}`}
+          />
+        ) : null}
+        {nextStepTitle ? (
+          <Pressable
+            style={styles.peekRight}
+            onPress={() => fireSwipe('next')}
+            accessibilityRole="button"
+            accessibilityLabel={`Next step: ${nextStepTitle}`}
+          />
+        ) : null}
+
+        <GestureDetector gesture={swipeGesture}>
+          <Animated.View style={[styles.embedContent, translateStyle]}>
+            <View style={styles.embedChrome}>
+              <Text style={styles.verbEyebrow}>ZOOM · STEP · DOING</Text>
+              {step.peerQuote ? <PeerQuoteBlock quote={step.peerQuote} /> : null}
+              {step.subStep ? <SessionStrap step={step} /> : null}
+            </View>
+            <View style={styles.embedDetailHost}>
+              <StepDetailContent stepId={step.id} />
+            </View>
+          </Animated.View>
+        </GestureDetector>
+      </View>
     );
   }
 
@@ -349,6 +421,35 @@ const styles = StyleSheet.create({
     paddingBottom: 8,
   },
   embedDetailHost: { flex: 1 },
+  embedContent: { flex: 1 },
+  peekLeft: {
+    position: 'absolute',
+    left: 3, // sit just inside the NOW bar
+    top: 60,
+    bottom: 60,
+    width: PEEK_WIDTH,
+    backgroundColor: IOS_REGISTER.cardBg,
+    borderTopRightRadius: 6,
+    borderBottomRightRadius: 6,
+    borderRightWidth: StyleSheet.hairlineWidth,
+    borderRightColor: IOS_REGISTER.separator,
+    zIndex: 3,
+    opacity: 0.6,
+  },
+  peekRight: {
+    position: 'absolute',
+    right: 0,
+    top: 60,
+    bottom: 60,
+    width: PEEK_WIDTH,
+    backgroundColor: IOS_REGISTER.cardBg,
+    borderTopLeftRadius: 6,
+    borderBottomLeftRadius: 6,
+    borderLeftWidth: StyleSheet.hairlineWidth,
+    borderLeftColor: IOS_REGISTER.separator,
+    zIndex: 3,
+    opacity: 0.6,
+  },
   scroll: { flex: 1 },
   scrollContent: {
     paddingHorizontal: 16,

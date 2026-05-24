@@ -258,6 +258,16 @@ export function TimelineZoomCanvas({
     [flatSteps, focusStepId],
   );
 
+  const focusedFlatIdx = useMemo(
+    () => flatSteps.findIndex((s) => s.id === focusStepId),
+    [flatSteps, focusStepId],
+  );
+  const prevStepTitle = focusedFlatIdx > 0 ? flatSteps[focusedFlatIdx - 1].title : null;
+  const nextStepTitle =
+    focusedFlatIdx >= 0 && focusedFlatIdx < flatSteps.length - 1
+      ? flatSteps[focusedFlatIdx + 1].title
+      : null;
+
   // Compute the level the user is about to snap to, given direction +
   // current level. Returns null when at a boundary (can't go further).
   const targetLevel: ZoomLevel | null = useMemo(() => {
@@ -317,6 +327,8 @@ export function TimelineZoomCanvas({
                     embedFullDetail={embedFullDetailAtL1}
                     onSwipePrev={() => swipeToNeighbor('prev')}
                     onSwipeNext={() => swipeToNeighbor('next')}
+                    prevStepTitle={prevStepTitle}
+                    nextStepTitle={nextStepTitle}
                   />
                 ) : null}
                 {level === 2 ? (
