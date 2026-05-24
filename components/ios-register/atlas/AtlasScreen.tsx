@@ -221,6 +221,7 @@ function TopChrome({
   title,
   subtitle,
   onLayersPress,
+  onSearchPress,
 }: {
   title: string;
   /**
@@ -233,6 +234,11 @@ function TopChrome({
   /** Unused — kept for callsite compat; avatar now lives in ProfileDropdown. */
   avatarInitial?: string;
   onLayersPress?: () => void;
+  /**
+   * Optional search glyph — restored for F7 per design. Off on F1 by
+   * default. Frames opt in by passing a handler.
+   */
+  onSearchPress?: () => void;
   /** Unused — kept for callsite compat; ProfileDropdown owns its own tap. */
   onAvatarPress?: () => void;
 }) {
@@ -248,6 +254,11 @@ function TopChrome({
         ) : null}
       </View>
       <View style={shellStyles.topRight}>
+        {onSearchPress ? (
+          <Pressable style={shellStyles.glyphBtn} hitSlop={6} onPress={onSearchPress}>
+            <Ionicons name="search" size={16} color={IOS_REGISTER.label} />
+          </Pressable>
+        ) : null}
         {onLayersPress ? (
           <Pressable style={shellStyles.glyphBtn} hitSlop={6} onPress={onLayersPress}>
             <Ionicons name="layers-outline" size={16} color={IOS_REGISTER.label} />
@@ -1774,12 +1785,17 @@ function FrameF7({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
         ) : (
           <WorldDragonMap />
         )}
-        {/* Floating glass chrome — title + chips. Same pattern as F1/F4. */}
+        {/* Floating glass chrome — title + chips. Same pattern as F1/F4.
+            F7 adds the search glyph back (search-by-village is core to
+            the entrepreneur workflow). */}
         <View style={shellStyles.floatingChrome}>
           <TopChrome
             title="Atlas"
-            subtitle={handlers.subtitleOverride ?? 'Entrepreneur · Jharkhand · Network'}
+            subtitle={handlers.subtitleOverride ?? 'Home craft · Khunti · Jharkhand'}
             avatarInitial={handlers.avatarInitial ?? 'L'}
+            onSearchPress={() => {
+              /* search modal lands in a follow-up; glyph present per design. */
+            }}
           />
           <FilterChipsRow
             chips={[
@@ -1787,10 +1803,25 @@ function FrameF7({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
               { id: 'network', label: 'Network', tone: 'fleet' },
               { id: 'haat', label: 'Haat · हाट', icon: 'storefront-outline' },
               { id: 'suppliers', label: 'Suppliers', icon: 'leaf-outline' },
-              { id: 'mom', label: 'Mentees', tone: 'crew', dim: true },
-              { id: 'offline', label: 'OFFLINE · synced 4h', icon: 'cloud-offline-outline' },
+              { id: 'mentees', label: 'Mentees', tone: 'crew', dim: true },
             ]}
           />
+        </View>
+
+        {/* Standalone offline pill — dark, anchored top-left under the
+            chrome. Replaces a chip slot per design ("Offline pill
+            replaces a chip in the top-left."). */}
+        <View style={shellStyles.offlinePill}>
+          <Ionicons name="cloud-offline-outline" size={11} color="#FFFFFF" />
+          <Text style={shellStyles.offlinePillText}>OFFLINE · synced 4h ago</Text>
+        </View>
+
+        {/* "Route @ z14" hint chip — anchored top-right under the chrome,
+            tells the user the village-to-market route geometry only shows
+            up at deeper zoom. */}
+        <View style={shellStyles.routeHintChip}>
+          <Ionicons name="git-branch-outline" size={11} color="rgba(60, 60, 67, 0.75)" />
+          <Text style={shellStyles.routeHintText}>Route @ z14</Text>
         </View>
         <LayersFab
           onLayersPress={() => setLayersOpen(true)}
@@ -2308,6 +2339,46 @@ const shellStyles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.92)',
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: 'rgba(60, 60, 67, 0.18)',
+  },
+  offlinePill: {
+    position: 'absolute',
+    top: 138,
+    left: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+    borderRadius: 999,
+    backgroundColor: 'rgba(28, 28, 30, 0.92)',
+    zIndex: 20,
+  },
+  offlinePillText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    letterSpacing: 0.4,
+  },
+  routeHintChip: {
+    position: 'absolute',
+    top: 138,
+    right: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255, 255, 255, 0.92)',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(60, 60, 67, 0.18)',
+    zIndex: 20,
+  },
+  routeHintText: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: 'rgba(60, 60, 67, 0.85)',
+    letterSpacing: -0.1,
   },
   chipContextPillText: {
     fontSize: 11,

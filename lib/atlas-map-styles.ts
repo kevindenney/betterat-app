@@ -177,5 +177,29 @@ export const ENTREPRENEUR_MAP_STYLE = {
       filter: ['in', ['get', 'class'], ['literal', ['motorway', 'trunk', 'primary', 'secondary']]],
       paint: { 'line-color': PALETTE.road, 'line-width': 1, 'line-opacity': 0.5 },
     },
+    // Sparse italic place labels for major rural settlements (Ranchi,
+    // Tamar, Bero, Khunti, Karra). The entrepreneur frame is the only
+    // one that wants labels — the cream base is too featureless without
+    // them. Capped at z9+ so the labels don't clutter overview zooms.
+    {
+      id: 'place-major',
+      type: 'symbol' as const,
+      source: 'openmaptiles',
+      'source-layer': 'place',
+      minzoom: 9,
+      filter: ['in', ['get', 'class'], ['literal', ['city', 'town', 'village']]],
+      layout: {
+        'text-field': ['get', 'name'],
+        'text-font': ['Noto Sans Italic'],
+        'text-size': 11,
+        'text-letter-spacing': 0.06,
+        'text-transform': 'uppercase' as const,
+      },
+      paint: {
+        'text-color': 'rgba(60, 60, 67, 0.7)',
+        'text-halo-color': 'rgba(241, 233, 216, 0.9)',
+        'text-halo-width': 1.2,
+      },
+    },
   ],
 };
