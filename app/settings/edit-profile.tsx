@@ -35,6 +35,7 @@ export default function EditProfileScreen() {
   const { user, userProfile, updateUserProfile } = useAuth();
   const [saving, setSaving] = React.useState(false);
   const [fullName, setFullName] = React.useState('');
+  const [bio, setBio] = React.useState('');
   const [photoUri, setPhotoUri] = React.useState<string | null>(null);
   const [uploadingPhoto, setUploadingPhoto] = React.useState(false);
   const safePhotoUri = getSafeImageUri(photoUri);
@@ -43,6 +44,7 @@ export default function EditProfileScreen() {
   React.useEffect(() => {
     if (userProfile) {
       setFullName(userProfile.full_name || '');
+      setBio(userProfile.bio || '');
       setPhotoUri(userProfile.avatar_url || null);
     }
   }, [userProfile]);
@@ -129,8 +131,9 @@ export default function EditProfileScreen() {
     setSaving(true);
 
     try {
-      const updates: { full_name: string; avatar_url?: string } = {
+      const updates: { full_name: string; bio: string | null; avatar_url?: string } = {
         full_name: fullName.trim(),
+        bio: bio.trim() || null,
       };
 
       // Upload photo if it changed (local file URI vs remote URL)
@@ -250,6 +253,24 @@ export default function EditProfileScreen() {
             />
             <Text style={styles.fieldHint}>
               Email cannot be changed here
+            </Text>
+          </View>
+
+          <View style={styles.fieldContainer}>
+            <Text style={styles.fieldLabel}>Bio</Text>
+            <TextInput
+              value={bio}
+              onChangeText={setBio}
+              placeholder="A couple sentences about your practice, where you teach, what you've built. Shown on marketplace listings."
+              placeholderTextColor={IOS_COLORS.tertiaryLabel}
+              style={[styles.input, styles.inputMultiline]}
+              multiline
+              numberOfLines={4}
+              maxLength={400}
+              textAlignVertical="top"
+            />
+            <Text style={styles.fieldHint}>
+              {bio.length}/400 · shown on your marketplace listings
             </Text>
           </View>
         </View>
@@ -401,5 +422,10 @@ const styles = StyleSheet.create({
   inputDisabled: {
     backgroundColor: '#F1F3F4',
     color: IOS_COLORS.secondaryLabel,
+  },
+  inputMultiline: {
+    minHeight: 96,
+    paddingTop: 12,
+    lineHeight: 22,
   },
 });
