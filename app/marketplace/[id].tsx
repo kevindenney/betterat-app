@@ -214,70 +214,82 @@ export default function MarketplaceBlueprintPage() {
 
       <View style={s.stepsCard}>
         <View style={s.stepsHead}>
-          <Text style={s.eyebrow}>Steps</Text>
+          <Text style={s.eyebrow}>
+            {hasAccess ? 'Steps' : `${steps.length} steps · preview`}
+          </Text>
           <Text style={s.h2}>
             {hasAccess
               ? `What you'll work through · ${steps.length} step${steps.length === 1 ? '' : 's'}`
-              : 'Subscribe to see the full step list'}
+              : "Here's the shape of the playbook"}
           </Text>
         </View>
-        {hasAccess ? (
-          steps.length === 0 ? (
-            <Text style={s.muted}>This blueprint has no steps published yet.</Text>
-          ) : (
-            <View style={{ gap: 10 }}>
-              {steps.map((step, idx) => {
-                const tone = CATEGORY_TONE[step.category] ?? CATEGORY_TONE.other;
-                const status = step.buyerStatus;
-                const statusTone =
-                  status === 'completed'
-                    ? { bg: 'rgba(30, 143, 71, 0.12)', fg: '#1E8F47', label: 'Done' }
-                    : status === 'in_progress'
-                      ? { bg: 'rgba(201, 150, 50, 0.14)', fg: '#C99632', label: 'In progress' }
-                      : status === 'skipped'
-                        ? { bg: 'rgba(89, 100, 119, 0.12)', fg: '#596477', label: 'Skipped' }
-                        : status === 'pending'
-                          ? { bg: 'rgba(40, 64, 107, 0.08)', fg: '#28406B', label: 'In your timeline' }
-                          : null;
-                return (
-                  <View key={step.id} style={s.stepRow}>
-                    <View style={s.stepIndex}>
-                      <Text style={s.stepIndexText}>{idx + 1}</Text>
-                    </View>
-                    <View style={{ flex: 1, gap: 4 }}>
-                      <Text style={s.stepTitle}>{step.title}</Text>
-                      {step.description ? (
-                        <Text style={s.stepDescription}>{step.description}</Text>
-                      ) : null}
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                        <View style={[s.categoryChip, { backgroundColor: tone.bg }]}>
-                          <Text style={[s.categoryChipText, { color: tone.fg }]}>
-                            {tone.label}
+        {steps.length === 0 ? (
+          <Text style={s.muted}>
+            {hasAccess
+              ? 'This blueprint has no steps published yet.'
+              : 'The author is still drafting the step list.'}
+          </Text>
+        ) : (
+          <View style={{ gap: 10 }}>
+            {steps.map((step, idx) => {
+              const tone = CATEGORY_TONE[step.category] ?? CATEGORY_TONE.other;
+              const status = step.buyerStatus;
+              const statusTone =
+                status === 'completed'
+                  ? { bg: 'rgba(30, 143, 71, 0.12)', fg: '#1E8F47', label: 'Done' }
+                  : status === 'in_progress'
+                    ? { bg: 'rgba(201, 150, 50, 0.14)', fg: '#C99632', label: 'In progress' }
+                    : status === 'skipped'
+                      ? { bg: 'rgba(89, 100, 119, 0.12)', fg: '#596477', label: 'Skipped' }
+                      : status === 'pending'
+                        ? { bg: 'rgba(40, 64, 107, 0.08)', fg: '#28406B', label: 'In your timeline' }
+                        : null;
+              return (
+                <View key={step.id} style={s.stepRow}>
+                  <View style={s.stepIndex}>
+                    <Text style={s.stepIndexText}>{idx + 1}</Text>
+                  </View>
+                  <View style={{ flex: 1, gap: 4 }}>
+                    <Text style={s.stepTitle}>{step.title}</Text>
+                    {step.description ? (
+                      <Text style={s.stepDescription}>{step.description}</Text>
+                    ) : null}
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                      <View style={[s.categoryChip, { backgroundColor: tone.bg }]}>
+                        <Text style={[s.categoryChipText, { color: tone.fg }]}>
+                          {tone.label}
+                        </Text>
+                      </View>
+                      {statusTone ? (
+                        <View style={[s.categoryChip, { backgroundColor: statusTone.bg }]}>
+                          <Text style={[s.categoryChipText, { color: statusTone.fg }]}>
+                            {statusTone.label}
                           </Text>
                         </View>
-                        {statusTone ? (
-                          <View style={[s.categoryChip, { backgroundColor: statusTone.bg }]}>
-                            <Text style={[s.categoryChipText, { color: statusTone.fg }]}>
-                              {statusTone.label}
-                            </Text>
-                          </View>
-                        ) : null}
-                      </View>
+                      ) : null}
                     </View>
                   </View>
-                );
-              })}
-            </View>
-          )
-        ) : (
-          <View style={s.lockedBox}>
-            <Ionicons name="lock-closed" size={18} color="rgba(60, 60, 67, 0.5)" />
-            <Text style={s.lockedText}>
-              The full step-by-step playbook unlocks the moment you subscribe.
-              {blueprint.trialDays > 0 && blueprint.billingCadence !== 'one_time'
-                ? ` Try it free for ${blueprint.trialDays} days.`
-                : ''}
-            </Text>
+                  {!hasAccess ? (
+                    <Ionicons
+                      name="lock-closed"
+                      size={14}
+                      color="rgba(60, 60, 67, 0.4)"
+                      style={{ marginTop: 8 }}
+                    />
+                  ) : null}
+                </View>
+              );
+            })}
+            {!hasAccess ? (
+              <View style={s.lockedFooter}>
+                <Text style={s.lockedFooterText}>
+                  Full step content unlocks the moment you subscribe.
+                  {blueprint.trialDays > 0 && blueprint.billingCadence !== 'one_time'
+                    ? ` Try free for ${blueprint.trialDays} days.`
+                    : ''}
+                </Text>
+              </View>
+            ) : null}
           </View>
         )}
       </View>
@@ -686,15 +698,14 @@ const s = StyleSheet.create({
   },
   youChipText: { fontSize: 10, fontWeight: '600', color: '#28406B' },
 
-  lockedBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    padding: 14,
-    backgroundColor: 'rgba(60, 60, 67, 0.06)',
-    borderRadius: 10,
+  lockedFooter: {
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    backgroundColor: 'rgba(60, 60, 67, 0.05)',
+    borderRadius: 8,
+    marginTop: 4,
   },
-  lockedText: { flex: 1, fontSize: 12.5, color: 'rgba(60, 60, 67, 0.85)', lineHeight: 18 },
+  lockedFooterText: { fontSize: 11.5, color: 'rgba(60, 60, 67, 0.7)', lineHeight: 16 },
   muted: { fontSize: 12.5, color: 'rgba(60, 60, 67, 0.6)' },
 
   icoBad: {
