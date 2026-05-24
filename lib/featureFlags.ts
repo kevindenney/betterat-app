@@ -532,6 +532,58 @@ export const FEATURE_FLAGS = {
     'EXPO_PUBLIC_FF_STEP_DISCUSSION_V1',
     false,
   ),
+
+  /**
+   * v3 screen-designs Phase C — third-person timeline + Suggest verb.
+   *
+   * When on: the public-face hero on /sailor/[userId] gains a dual-CTA row
+   * — Suggest a step (filled, opens composer modal) + Reflect (outline,
+   * opens a "coming soon" stub for v1). The composer is the verb-first
+   * sheet from design screens 02–03: To (recipient, locked), re (optional
+   * recipient-step context), body textarea, Send. Send inserts a
+   * step_suggestions row using the sender's most-recent in-progress step
+   * as source_step_id (a v1 fallback — schema update for free-form
+   * suggestions is a follow-up). Lands in the recipient's Inbox via the
+   * existing inbox_items pipeline.
+   *
+   * Off by default. Flip via EXPO_PUBLIC_FF_SUGGEST_VERB_V3=true.
+   * Per docs/redesign/v3 · The reflecting & suggesting system, screens 02–03.
+   */
+  SUGGEST_VERB_V3: readBooleanEnv('EXPO_PUBLIC_FF_SUGGEST_VERB_V3', false),
+
+  /**
+   * v3 screen-designs Phase B — step cover identity deck.
+   *
+   * When on (and PRACTICE_STEP_LOOP_IOS_REGISTER is also on, since this
+   * gates inside the iOS-register branch of StepDetailContent): the step
+   * cover above PhaseTabs becomes a two-piece identity deck —
+   *   1. <IdentityDeck>          — sub-step counter, large serif title,
+   *                                 blueprint provenance, peer count,
+   *                                 cross-interest chip
+   *   2. <PeerReflectionQuote>   — lilac italic-serif quote of the latest
+   *                                 peer comment on this step, only when
+   *                                 discussionPeek surfaces one
+   *
+   * Off by default. Flip via EXPO_PUBLIC_FF_STEP_IDENTITY_DECK_V3=true.
+   * Per docs/redesign/v3 · The reflecting & suggesting system, screen 01.
+   */
+  STEP_IDENTITY_DECK_V3: readBooleanEnv('EXPO_PUBLIC_FF_STEP_IDENTITY_DECK_V3', false),
+
+  /**
+   * v3 screen-designs Phase A — Inbox as the 5th bottom tab.
+   *
+   * When on: the sailor/guest tab bar drops Profile (reflect) from the bar
+   * and adds Inbox at the rightmost position with a red-dot badge. Profile
+   * stays addressable via /reflect (deep link) and will move under the
+   * avatar in Phase B. The new tab renders <InboxScreen /> with Act / Read /
+   * Done segmentation and practice-grouped cards (lift of the design's
+   * SCREEN 04 surface). Reads from the existing inbox_items view via
+   * useInboxItems — no schema changes in this phase.
+   *
+   * Off by default. Flip via EXPO_PUBLIC_FF_INBOX_TAB_V3=true.
+   * Per docs/redesign/v3 · The reflecting & suggesting system, screen 04.
+   */
+  INBOX_TAB_V3: readBooleanEnv('EXPO_PUBLIC_FF_INBOX_TAB_V3', false),
 } as const;
 
 // =============================================================================

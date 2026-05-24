@@ -114,10 +114,12 @@ export const getTabsForUserType = (
     if (FEATURE_FLAGS.ATLAS_IOS_REGISTER) {
       tabs.push({ name: 'atlas', title: 'Atlas', icon: 'compass-outline', iconFocused: 'compass' });
     }
-    tabs.push(
-      { name: 'discover', title: 'Discover', icon: 'people-outline', iconFocused: 'people' },
-      { name: 'reflect', title: 'Profile', icon: 'person-circle-outline', iconFocused: 'person-circle' },
-    );
+    tabs.push({ name: 'discover', title: 'Discover', icon: 'people-outline', iconFocused: 'people' });
+    if (FEATURE_FLAGS.INBOX_TAB_V3) {
+      tabs.push({ name: 'inbox', title: 'Inbox', icon: 'mail-outline', iconFocused: 'mail' });
+    } else {
+      tabs.push({ name: 'reflect', title: 'Profile', icon: 'person-circle-outline', iconFocused: 'person-circle' });
+    }
     return tabs;
   }
 
@@ -157,10 +159,15 @@ export const getTabsForUserType = (
     if (FEATURE_FLAGS.ATLAS_IOS_REGISTER) {
       tabs.push({ name: 'atlas', title: 'Atlas', icon: 'compass-outline', iconFocused: 'compass' });
     }
-    tabs.push(
-      { name: 'discover', title: 'Discover', icon: 'people-outline', iconFocused: 'people' },
-      { name: 'reflect', title: 'Profile', icon: 'person-circle-outline', iconFocused: 'person-circle' },
-    );
+    tabs.push({ name: 'discover', title: 'Discover', icon: 'people-outline', iconFocused: 'people' });
+    if (FEATURE_FLAGS.INBOX_TAB_V3) {
+      // v3 screen-designs: Profile-as-tab is gone; Inbox earns its tab.
+      // Profile remains reachable via /reflect deep link and (Phase B) the
+      // avatar tap from any top header.
+      tabs.push({ name: 'inbox', title: 'Inbox', icon: 'mail-outline', iconFocused: 'mail' });
+    } else {
+      tabs.push({ name: 'reflect', title: 'Profile', icon: 'person-circle-outline', iconFocused: 'person-circle' });
+    }
 
     // Add coaching tabs if user has coaching capability
     if (capabilities?.hasCoaching) {

@@ -11,6 +11,7 @@ import { GlobalSearchProvider } from '@/providers/GlobalSearchProvider';
 import { useWebDrawer, WebDrawerProvider } from '@/providers/WebDrawerProvider';
 import { IOS_COLORS } from '@/lib/design-tokens-ios';
 import { useUnreadMessageCount } from '@/hooks/useMessaging';
+import { useInboxCount } from '@/hooks/useInboxCount';
 import { FEATURE_FLAGS } from '@/lib/featureFlags';
 import { type TabConfig, getTabsForUserType } from '@/lib/navigation-config';
 import { useVocabulary } from '@/hooks/useVocabulary';
@@ -85,6 +86,7 @@ function TabLayoutInner() {
     );
   }, [memberships]);
   const unreadMessageCount = useUnreadMessageCount(user?.id);
+  const { data: inboxCount = 0 } = useInboxCount();
   const router = useRouter();
   const routerRef = useRef(router);
   routerRef.current = router;
@@ -387,6 +389,7 @@ function TabLayoutInner() {
   const membersTab = findTab('members');
   const programsTab = findTab('programs');
   const raceManagementTab = findTab('race-management');
+  const inboxTab = findTab('inbox');
 
   // Determine tab bar and scene style based on platform.
   // Memoized so that React Navigation sees a stable tabBar component / tabBarStyle
@@ -413,7 +416,12 @@ function TabLayoutInner() {
           pathname={pathname}
           onTabVisited={markTabSweepVisited}
           position={isIPadPortrait ? 'top' : 'bottom'}
-          badgeCounts={unreadMessageCount > 0 ? { learn: unreadMessageCount } : undefined}
+          badgeCounts={(() => {
+            const counts: Record<string, number> = {};
+            if (unreadMessageCount > 0) counts.learn = unreadMessageCount;
+            if (inboxCount > 0) counts.inbox = inboxCount;
+            return Object.keys(counts).length > 0 ? counts : undefined;
+          })()}
         />
       ) : undefined,
       tabBarStyle: isSailorUser
@@ -436,6 +444,7 @@ function TabLayoutInner() {
     markTabSweepVisited,
     isIPadPortrait,
     unreadMessageCount,
+    inboxCount,
   ]);
 
   // Memoize screenOptions so React Navigation doesn't see a fresh function
@@ -611,6 +620,27 @@ function TabLayoutInner() {
               ? () => null
               : isSailorUser
                 ? renderSailorTabButton('reflect', reflectTab?.title ?? 'Profile', reflectTab)
+                : undefined,
+          }}
+        />
+        {/* Tab 5 (v3): Inbox — gated by INBOX_TAB_V3. When the flag is off,
+            this screen is unreachable via the tab bar but stays addressable
+            at /(tabs)/inbox for deep links and previews. */}
+        <Tabs.Screen
+          name="inbox"
+          options={{
+            title: inboxTab?.title ?? 'Inbox',
+            tabBarIcon: isSailorUser ? () => null : ({ color, size, focused }) => (
+              <Ionicons
+                name={getIconName(inboxTab, focused, inboxTab?.iconFocused ?? 'mail', inboxTab?.icon ?? 'mail-outline') as any}
+                size={size}
+                color={color}
+              />
+            ),
+            tabBarButton: !isTabVisible('inbox')
+              ? () => null
+              : isSailorUser
+                ? renderSailorTabButton('inbox', inboxTab?.title ?? 'Inbox', inboxTab)
                 : undefined,
           }}
         />
