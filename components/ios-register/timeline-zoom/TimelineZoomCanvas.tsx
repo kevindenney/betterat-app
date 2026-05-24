@@ -45,7 +45,6 @@ import { L1StepView } from './L1StepView';
 import { L2WeekView } from './L2WeekView';
 import { L3SeasonView } from './L3SeasonView';
 import { L4YearsView } from './L4YearsView';
-import { NotificationsInboxSheet } from './NotificationsInboxSheet';
 import { SelectActionBar } from './SelectActionBar';
 import { useSelectMode } from './useSelectMode';
 import { ZoomRailIndicator } from './ZoomRailIndicator';
@@ -148,7 +147,6 @@ export function TimelineZoomCanvas({
   const [level, setLevel] = useState<ZoomLevel>(initialLevel);
   const [focusStepId, setFocusStepId] = useState<string>(dataset.focusStepId);
   const [gestureDirection, setGestureDirection] = useState<'in' | 'out' | null>(null);
-  const [inboxOpen, setInboxOpen] = useState(false);
   const select = useSelectMode();
 
   // Continuous scale value driven by pinch — used to gate level changes on
@@ -286,10 +284,7 @@ export function TimelineZoomCanvas({
       <View style={styles.surface}>
         {hideInterestHeader ? (
           level !== 1 && !select.enabled ? (
-            <CanvasTopBar
-              interestLabel={dataset.interest.label}
-              onPressBell={() => setInboxOpen(true)}
-            />
+            <CanvasTopBar interestLabel={dataset.interest.label} />
           ) : null
         ) : (
           <InterestHeader
@@ -367,11 +362,6 @@ export function TimelineZoomCanvas({
           </View>
         </GestureDetector>
 
-
-        <NotificationsInboxSheet
-          visible={inboxOpen}
-          onDismiss={() => setInboxOpen(false)}
-        />
 
         {targetLevel && gestureDirection ? (
           <PinchHintPill

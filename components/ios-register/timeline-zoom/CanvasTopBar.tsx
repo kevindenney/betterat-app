@@ -22,21 +22,17 @@ import { Ionicons } from '@expo/vector-icons';
 import { IOS_REGISTER } from '@/lib/design-tokens-ios';
 import { openInterestSwitcher } from '@/components/InterestSwitcher';
 import { useUniversalPlus } from '@/components/capture';
-import { useUnreadNotificationCount } from '@/hooks/useNotifications';
 import { useCrewThreadsUnreadCount } from '@/hooks/useCrewThreads';
 import { ProfileDropdown } from '@/components/ui/ProfileDropdown';
 
 interface CanvasTopBarProps {
   interestLabel: string;
-  onPressBell: () => void;
 }
 
 export function CanvasTopBar({
   interestLabel,
-  onPressBell,
 }: CanvasTopBarProps) {
   const universalPlus = useUniversalPlus();
-  const { unreadCount: notifUnread } = useUnreadNotificationCount();
   const { unreadCount: msgsUnread } = useCrewThreadsUnreadCount();
 
   return (
@@ -71,13 +67,10 @@ export function CanvasTopBar({
           accessibilityLabel="Messages"
         />
 
-        <IconButton
-          icon="notifications-outline"
-          size={18}
-          badge={notifUnread}
-          onPress={onPressBell}
-          accessibilityLabel="Notifications"
-        />
+        {/* Bell removed per Option-4 plan — system notifications and
+            blueprint activity will live inside the bottom Inbox tab.
+            DMs (chat) stay here because they're a 1:1 threaded channel,
+            not the broadcast/system grammar Inbox owns. */}
 
         {/* Role-aware popover (Frames 1–3 of the institutions pass) —
             handles its own avatar + dropdown menu (Profile/Notifications/
