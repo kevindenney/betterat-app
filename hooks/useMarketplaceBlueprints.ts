@@ -24,6 +24,7 @@ export interface MarketplaceBlueprint {
   createdAt: string;
   ratingAvg: number | null;
   ratingCount: number;
+  activeSubscriberCount: number;
   isFeatured: boolean;
   featuredRank: number | null;
   featuredBlurb: string | null;
@@ -45,6 +46,7 @@ interface Row {
   created_at: string;
   rating_avg: number | string | null;
   rating_count: number;
+  active_subscriber_count: number;
   is_featured: boolean;
   featured_rank: number | null;
   featured_blurb: string | null;
@@ -78,6 +80,7 @@ export function useMarketplaceBlueprints() {
         createdAt: r.created_at,
         ratingAvg: r.rating_avg == null ? null : Number(r.rating_avg),
         ratingCount: r.rating_count ?? 0,
+        activeSubscriberCount: r.active_subscriber_count ?? 0,
         isFeatured: !!r.is_featured,
         featuredRank: r.featured_rank,
         featuredBlurb: r.featured_blurb,

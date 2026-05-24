@@ -182,6 +182,14 @@ export default function MarketplaceBlueprintPage() {
               </Text>
             </View>
           ) : null}
+          {blueprint.activeSubscriberCount > 0 ? (
+            <View style={s.headerSubscriberChip}>
+              <Ionicons name="people" size={11} color="rgba(60, 60, 67, 0.7)" />
+              <Text style={s.headerSubscriberText}>
+                {blueprint.activeSubscriberCount} subscriber{blueprint.activeSubscriberCount === 1 ? '' : 's'}
+              </Text>
+            </View>
+          ) : null}
         </View>
         {blueprint.description ? <Text style={s.lede}>{blueprint.description}</Text> : null}
       </View>
@@ -577,6 +585,16 @@ const s = StyleSheet.create({
   },
   headerRatingValue: { fontSize: 12, fontWeight: '700', color: '#1C1C1E' },
   headerRatingCount: { fontSize: 11, color: 'rgba(60, 60, 67, 0.7)' },
+  headerSubscriberChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 999,
+    backgroundColor: 'rgba(60, 60, 67, 0.06)',
+  },
+  headerSubscriberText: { fontSize: 11, fontWeight: '600', color: 'rgba(60, 60, 67, 0.75)' },
   lede: { fontSize: 14, color: 'rgba(60, 60, 67, 0.85)', lineHeight: 20, marginTop: 8 },
   copy: {
     fontSize: 13.5,

@@ -32,6 +32,7 @@ export interface MarketplaceBlueprintDetail {
   stripePriceId: string;
   ratingAvg: number | null;
   ratingCount: number;
+  activeSubscriberCount: number;
 }
 
 export interface MarketplaceReview {
@@ -86,6 +87,7 @@ interface RpcPayload {
     stripe_price_id: string;
     rating_avg: number | string | null;
     rating_count: number;
+    active_subscriber_count: number;
   };
   has_access?: boolean;
   subscription?: {
@@ -157,6 +159,7 @@ export function useMarketplaceBlueprint(blueprintId: string | undefined) {
           ratingAvg:
             p.blueprint.rating_avg == null ? null : Number(p.blueprint.rating_avg),
           ratingCount: p.blueprint.rating_count ?? 0,
+          activeSubscriberCount: p.blueprint.active_subscriber_count ?? 0,
         },
         hasAccess: !!p.has_access,
         subscription: p.subscription

@@ -336,19 +336,32 @@ export default function MarketplacePage() {
                       <Text style={s.priceTrial}>· {bp.trialDays}-day trial</Text>
                     ) : null}
                   </View>
-                  {bp.ratingCount > 0 ? (
-                    <View style={s.ratingRow}>
-                      <Ionicons name="star" size={12} color="#C99632" />
-                      <Text style={s.ratingValue}>
-                        {(bp.ratingAvg ?? 0).toFixed(1)}
-                      </Text>
-                      <Text style={s.ratingCount}>
-                        ({bp.ratingCount} review{bp.ratingCount === 1 ? '' : 's'})
-                      </Text>
-                    </View>
-                  ) : (
-                    <Text style={s.ratingEmpty}>No reviews yet</Text>
-                  )}
+                  <View style={s.ratingRow}>
+                    {bp.ratingCount > 0 ? (
+                      <>
+                        <Ionicons name="star" size={12} color="#C99632" />
+                        <Text style={s.ratingValue}>
+                          {(bp.ratingAvg ?? 0).toFixed(1)}
+                        </Text>
+                        <Text style={s.ratingCount}>
+                          ({bp.ratingCount})
+                        </Text>
+                      </>
+                    ) : null}
+                    {bp.activeSubscriberCount > 0 ? (
+                      <>
+                        {bp.ratingCount > 0 ? (
+                          <Text style={s.ratingDot}>·</Text>
+                        ) : null}
+                        <Ionicons name="people" size={12} color="rgba(60, 60, 67, 0.55)" />
+                        <Text style={s.ratingCount}>
+                          {bp.activeSubscriberCount} subscriber{bp.activeSubscriberCount === 1 ? '' : 's'}
+                        </Text>
+                      </>
+                    ) : bp.ratingCount === 0 ? (
+                      <Text style={s.ratingEmpty}>Be the first to try this</Text>
+                    ) : null}
+                  </View>
                   {err ? (
                     <View style={s.errorBox}>
                       <Ionicons name="warning" size={12} color="#C0392B" />
@@ -451,13 +464,28 @@ function FeaturedHero({
                 <Text style={s.priceTrial}>· {bp.trialDays}-day trial</Text>
               ) : null}
             </View>
-            {bp.ratingCount > 0 ? (
+            {bp.ratingCount > 0 || bp.activeSubscriberCount > 0 ? (
               <View style={s.ratingRow}>
-                <Ionicons name="star" size={12} color="#C99632" />
-                <Text style={s.ratingValue}>{(bp.ratingAvg ?? 0).toFixed(1)}</Text>
-                <Text style={s.ratingCount}>
-                  ({bp.ratingCount} review{bp.ratingCount === 1 ? '' : 's'})
-                </Text>
+                {bp.ratingCount > 0 ? (
+                  <>
+                    <Ionicons name="star" size={12} color="#C99632" />
+                    <Text style={s.ratingValue}>{(bp.ratingAvg ?? 0).toFixed(1)}</Text>
+                    <Text style={s.ratingCount}>
+                      ({bp.ratingCount})
+                    </Text>
+                  </>
+                ) : null}
+                {bp.activeSubscriberCount > 0 ? (
+                  <>
+                    {bp.ratingCount > 0 ? (
+                      <Text style={s.ratingDot}>·</Text>
+                    ) : null}
+                    <Ionicons name="people" size={12} color="rgba(60, 60, 67, 0.55)" />
+                    <Text style={s.ratingCount}>
+                      {bp.activeSubscriberCount} subscriber{bp.activeSubscriberCount === 1 ? '' : 's'}
+                    </Text>
+                  </>
+                ) : null}
               </View>
             ) : null}
           </View>
@@ -680,7 +708,8 @@ const s = StyleSheet.create({
   ratingRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: -2 },
   ratingValue: { fontSize: 12.5, fontWeight: '600', color: '#1C1C1E' },
   ratingCount: { fontSize: 11.5, color: 'rgba(60, 60, 67, 0.6)' },
-  ratingEmpty: { fontSize: 11.5, color: 'rgba(60, 60, 67, 0.45)', marginTop: -2 },
+  ratingDot: { fontSize: 11.5, color: 'rgba(60, 60, 67, 0.35)' },
+  ratingEmpty: { fontSize: 11.5, color: 'rgba(60, 60, 67, 0.45)' },
 
   // Featured rail
   railHead: { flexDirection: 'row', alignItems: 'center', gap: 6 },
