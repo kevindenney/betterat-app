@@ -534,6 +534,7 @@ function LayersSheet({
   onClose,
   controlledActiveKeys,
   onToggle,
+  bottomOffset = 0,
 }: {
   frame: AtlasFrameId;
   onClose: () => void;
@@ -548,6 +549,12 @@ function LayersSheet({
    * drive map filters (e.g. hide race-marks when sailing.race_marks is off).
    */
   onToggle?: (key: string, on: boolean) => void;
+  /**
+   * Lift the sheet above the floating tab bar so the last layer row + the
+   * attribution footer aren't hidden under it. Same pattern as the
+   * BottomSheet's bottomOffset prop.
+   */
+  bottomOffset?: number;
 }) {
   const layers = getLayersForFrame(frame);
   const [internalKeys, setInternalKeys] = useState<Set<string>>(
@@ -579,7 +586,12 @@ function LayersSheet({
   return (
     <>
       <Pressable style={shellStyles.layersBackdrop} onPress={onClose} />
-      <View style={shellStyles.layersSheet}>
+      <View
+        style={[
+          shellStyles.layersSheet,
+          bottomOffset > 0 && { bottom: bottomOffset },
+        ]}
+      >
         <View style={shellStyles.layersHandle} />
         <View style={shellStyles.layersHeader}>
           <Text style={shellStyles.layersTitle}>Layers</Text>
@@ -1118,6 +1130,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
           onClose={() => setLayersOpen(false)}
           controlledActiveKeys={controlledLayerKeys}
           onToggle={handleLayerToggle}
+          bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
         />
       )}
     </View>
@@ -1201,7 +1214,13 @@ function FrameF2({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
 
       {!embedded && <MockTabBar activeTab="atlas" />}
 
-      {layersOpen && <LayersSheet frame="f2" onClose={() => setLayersOpen(false)} />}
+      {layersOpen && (
+        <LayersSheet
+          frame="f2"
+          onClose={() => setLayersOpen(false)}
+          bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
+        />
+      )}
     </View>
   );
 }
@@ -1257,7 +1276,13 @@ function FrameF3({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
 
       {!embedded && <MockTabBar activeTab="atlas" />}
 
-      {layersOpen && <LayersSheet frame="f3" onClose={() => setLayersOpen(false)} />}
+      {layersOpen && (
+        <LayersSheet
+          frame="f3"
+          onClose={() => setLayersOpen(false)}
+          bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
+        />
+      )}
     </View>
   );
 }
@@ -1299,13 +1324,32 @@ function FrameF4({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
   // Walk-time annotations between same-campus institution pins —
   // e.g. JHH East Baltimore ↔ Pinkard sim lab "8 min".
   const walkAnnotations = useWalkTimeAnnotations(framePins);
-  // Cohort heatmap — chip-gated, defaults on. Per the HIPAA gate the
-  // server-side RPC aggregates step pins into cells of ≥2 steps; we
-  // never render an individual peer pin on F4 above z13.
+  // Chip state — cohort hexes, faculty diamonds, followed individuals.
+  // "All" toggles everything on. Defaults are heatmap + faculty on.
   const [showHeatmap, setShowHeatmap] = useState(true);
+  const [showFaculty, setShowFaculty] = useState(true);
+  const [showFollowing, setShowFollowing] = useState(false);
   const handleF4ChipsChange = useCallback((activeIds: string[]) => {
-    setShowHeatmap(activeIds.includes('heatmap') || activeIds.includes('all'));
+    const all = activeIds.includes('all');
+    setShowHeatmap(all || activeIds.includes('heatmap') || activeIds.includes('cohort'));
+    setShowFaculty(all || activeIds.includes('faculty'));
+    setShowFollowing(all || activeIds.includes('following'));
   }, []);
+  // Pin tap state — race-marks/peer/POI/cohort cells all route through
+  // selectedPin so the sheet swap is one place. Mirror of FrameF1.
+  const [selectedPin, setSelectedPin] = useState<AtlasPinSpec | null>(null);
+  const handleF4PinPress = useCallback((pin: AtlasPinSpec) => {
+    setLayersOpen(false);
+    setSelectedPin(pin);
+  }, []);
+  const clearF4SelectedPin = useCallback(() => setSelectedPin(null), []);
+  const [nextEventSheetOpen, setNextEventSheetOpen] = useState(false);
+  const handleNextEventTap = useCallback(() => {
+    setLayersOpen(false);
+    setSelectedPin(null);
+    setNextEventSheetOpen(true);
+  }, []);
+  const closeNextEventSheet = useCallback(() => setNextEventSheetOpen(false), []);
   const { data: heatmapCells = [] } = useCohortHeatmap({
     centerLat: 39.29,
     centerLng: -76.61,
@@ -1317,9 +1361,19 @@ function FrameF4({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
   // the renderer paints a soft aura behind each pin in the dominant
   // competency's color. Free relative to the heatmap query.
   const framePinsWithGlow = useCompetencyGlow(framePins, heatmapCells);
+  // Apply chip-driven filters. Faculty diamonds (poi-preceptor) hide
+  // when Faculty chip is off. Followed-people peer pins hide unless
+  // Following chip is on. Institutions + sim anchor always visible.
+  const filteredFramePins = useMemo(() => {
+    return framePinsWithGlow.filter((p) => {
+      if (p.kind === 'poi-preceptor') return showFaculty;
+      if (p.kind === 'following') return showFollowing;
+      return true;
+    });
+  }, [framePinsWithGlow, showFaculty, showFollowing]);
   const pins = useMemo(
-    () => [...heatmapCells, ...framePinsWithGlow, ...walkAnnotations],
-    [heatmapCells, framePinsWithGlow, walkAnnotations],
+    () => [...heatmapCells, ...filteredFramePins, ...walkAnnotations],
+    [heatmapCells, filteredFramePins, walkAnnotations],
   );
   return (
     <View style={shellStyles.frame}>
@@ -1334,6 +1388,8 @@ function FrameF4({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
                 ? { ...nextNursing, lat: nextNursing.lat, lng: nextNursing.lng }
                 : null
             }
+            onPinPress={handleF4PinPress}
+            onNextEventPress={handleNextEventTap}
           />
         ) : (
           <BaltimoreColdMap />
@@ -1393,7 +1449,81 @@ function FrameF4({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
         />
       </View>
 
-      {layersOpen ? null : anchorPromptDismissed ? (
+      {layersOpen ? null : nextEventSheetOpen ? (
+        <BottomSheet
+          eyebrow={`TOMORROW · ${nextNursing.label.toUpperCase()}${nextNursing.when ? ` · ${nextNursing.when.toUpperCase()}` : ''}`}
+          title={nextNursing.where ?? 'Your next clinical'}
+          body={[
+            nextNursing.conditions,
+            'Bring: stethoscope, scrub colors, badge.',
+            '4 of your cohort are also on tomorrow. Tap Plan a step to pre-record your intent.',
+          ]
+            .filter(Boolean)
+            .join('\n')}
+          primary={{
+            label: 'Plan a step here',
+            icon: 'add',
+            onPress: () => {
+              closeNextEventSheet();
+              handlers.onPrimaryAction?.(
+                nextNursing.lat != null && nextNursing.lng != null
+                  ? { lat: nextNursing.lat, lng: nextNursing.lng, place: nextNursing.where }
+                  : undefined,
+              );
+            },
+          }}
+          secondary={{ label: 'Close', onPress: closeNextEventSheet }}
+          bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
+          initialState="expanded"
+        />
+      ) : selectedPin ? (
+        selectedPin.kind === 'cohort-cell' ? (
+          (() => {
+            const [countStr, cluster] = (selectedPin.label ?? '0|general').split('|');
+            const count = Number(countStr) || 0;
+            const clusterLabel = cluster.charAt(0).toUpperCase() + cluster.slice(1);
+            return (
+              <BottomSheet
+                eyebrow="COHORT CELL · THIS WEEK"
+                title={`${count} step${count === 1 ? '' : 's'} here this week`}
+                body={`Dominant skill: ${clusterLabel}.\nTap Anchor to add your own step nearby.`}
+                primary={{
+                  label: 'Anchor a step here',
+                  icon: 'add',
+                  onPress: () => {
+                    handlers.onPrimaryAction?.({ lat: selectedPin.lat, lng: selectedPin.lng });
+                    clearF4SelectedPin();
+                  },
+                }}
+                secondary={{ label: 'Close', onPress: clearF4SelectedPin }}
+                bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
+                initialState="expanded"
+              />
+            );
+          })()
+        ) : (
+          <BottomSheet
+            eyebrow={eyebrowForPin(selectedPin)}
+            title={selectedPin.label ?? 'Pin'}
+            body={
+              [selectedPin.subtitle, selectedPin.provenance]
+                .filter(Boolean)
+                .join('\n') || bodyForPin(selectedPin)
+            }
+            primary={{
+              label: 'Anchor a step here',
+              icon: 'add',
+              onPress: () => {
+                handlers.onPrimaryAction?.({ lat: selectedPin.lat, lng: selectedPin.lng });
+                clearF4SelectedPin();
+              },
+            }}
+            secondary={{ label: 'Close', onPress: clearF4SelectedPin }}
+            bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
+            initialState="expanded"
+          />
+        )
+      ) : anchorPromptDismissed ? (
         <BottomSheet
           eyebrow="PLAN A STEP"
           title="Anchor your next step to a place."
@@ -1420,7 +1550,13 @@ function FrameF4({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
 
       {!embedded && <MockTabBar activeTab="atlas" />}
 
-      {layersOpen && <LayersSheet frame="f4" onClose={() => setLayersOpen(false)} />}
+      {layersOpen && (
+        <LayersSheet
+          frame="f4"
+          onClose={() => setLayersOpen(false)}
+          bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
+        />
+      )}
     </View>
   );
 }
@@ -1502,7 +1638,13 @@ function FrameF5({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
 
       {!embedded && <MockTabBar activeTab="atlas" />}
 
-      {layersOpen && <LayersSheet frame="f5" onClose={() => setLayersOpen(false)} />}
+      {layersOpen && (
+        <LayersSheet
+          frame="f5"
+          onClose={() => setLayersOpen(false)}
+          bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
+        />
+      )}
     </View>
   );
 }
@@ -1571,7 +1713,13 @@ function FrameF6({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
         </View>
       </View>
 
-      {layersOpen && <LayersSheet frame="f6" onClose={() => setLayersOpen(false)} />}
+      {layersOpen && (
+        <LayersSheet
+          frame="f6"
+          onClose={() => setLayersOpen(false)}
+          bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
+        />
+      )}
     </View>
   );
 }
@@ -1638,7 +1786,13 @@ function FrameF7({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
         bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
       />
 
-      {layersOpen && <LayersSheet frame="f7" onClose={() => setLayersOpen(false)} />}
+      {layersOpen && (
+        <LayersSheet
+          frame="f7"
+          onClose={() => setLayersOpen(false)}
+          bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
+        />
+      )}
     </View>
   );
 }

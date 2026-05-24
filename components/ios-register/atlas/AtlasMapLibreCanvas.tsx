@@ -204,10 +204,16 @@ interface AtlasMapLibreCanvasProps {
    * Fires when a pin is tapped. The whole pin spec is passed back so
    * the consuming frame can decide what to do (e.g. open a race-mark
    * detail sheet, focus a peer profile, etc.). Pin tap only fires for
-   * pins that have a tappable kind — wind/tide/cohort/walk-annotation
-   * are decorative and ignored.
+   * pins that have a tappable kind — wind/tide/walk-annotation are
+   * decorative and ignored. Cohort cells ARE tappable so the consumer
+   * can surface "10 steps · 8 heart-failure · you haven't been here."
    */
   onPinPress?: (pin: AtlasPinSpec) => void;
+  /**
+   * Fires when the amber NEXT pill is tapped. Opens the "tomorrow at X"
+   * sheet so the user can prep — checklist, cohort context, plan-a-step.
+   */
+  onNextEventPress?: () => void;
 }
 
 /**
@@ -229,6 +235,7 @@ const TAPPABLE_PIN_KINDS = new Set<AtlasPinSpec['kind']>([
   'poi-sim-lab',
   'poi-sim-anchor',
   'poi-preceptor',
+  'cohort-cell',
 ]);
 
 export function AtlasMapLibreCanvas({
@@ -238,6 +245,7 @@ export function AtlasMapLibreCanvas({
   onMapPress,
   candidate,
   onPinPress,
+  onNextEventPress,
 }: AtlasMapLibreCanvasProps) {
   // Hooks first, then early returns — rules-of-hooks compliance.
   const cameraRef = useRef<CameraRef>(null);
@@ -325,17 +333,26 @@ export function AtlasMapLibreCanvas({
             id="atlas-next-event"
             lngLat={[nextEvent.lng, nextEvent.lat]}
           >
-            {/* pointerEvents=none so the amber pill doesn't swallow taps
-                on the +N peer cluster / race-marks underneath when they
-                share a venue coord. The pill is informational, not a
-                tap target — tapping the NEXT card belongs to the sheet. */}
-            <View pointerEvents="none">
-              <NextEventMarker
-                label={nextEvent.label}
-                when={nextEvent.when}
-                conditions={nextEvent.conditions}
-              />
-            </View>
+            {onNextEventPress ? (
+              <Pressable onPress={onNextEventPress} hitSlop={4}>
+                <NextEventMarker
+                  label={nextEvent.label}
+                  when={nextEvent.when}
+                  conditions={nextEvent.conditions}
+                />
+              </Pressable>
+            ) : (
+              // pointerEvents=none so the amber pill doesn't swallow taps
+              // on the +N peer cluster / race-marks underneath when they
+              // share a venue coord.
+              <View pointerEvents="none">
+                <NextEventMarker
+                  label={nextEvent.label}
+                  when={nextEvent.when}
+                  conditions={nextEvent.conditions}
+                />
+              </View>
+            )}
           </MLMarker>
         ) : null}
 

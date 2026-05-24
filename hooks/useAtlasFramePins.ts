@@ -192,12 +192,36 @@ export function useAtlasFramePins({
           : kind === 'poi-sim-anchor'
           ? 'Pinkard'
           : shortenPoiName(poi.name);
+      // Preceptor diamonds carry an extra subtitle/provenance line so
+      // their tap-sheets read as "respiratory pathway · clinical
+      // instructor" not just "this person exists." Pulls from the POI
+      // metadata blob (specialty + preceptor_role).
+      const meta =
+        poi.metadata && typeof poi.metadata === 'object'
+          ? (poi.metadata as Record<string, unknown>)
+          : null;
+      const specialty =
+        typeof meta?.specialty === 'string' ? String(meta.specialty) : null;
+      const preceptorRole =
+        typeof meta?.preceptor_role === 'string'
+          ? String(meta.preceptor_role).replace(/-/g, ' ')
+          : null;
+      const subtitle =
+        kind === 'poi-preceptor' && (specialty || preceptorRole)
+          ? [specialty, preceptorRole].filter(Boolean).join(' · ')
+          : undefined;
+      const provenance =
+        kind === 'poi-preceptor'
+          ? 'Faculty preceptor — tap to see office hours and cohort shadowing history.'
+          : undefined;
       out.push({
         id: `poi:${poi.id}`,
         lat: poi.lat,
         lng: poi.lng,
         kind,
         label,
+        subtitle,
+        provenance,
       });
     }
 
