@@ -293,6 +293,19 @@ export default function MarketplacePage() {
                       <Text style={s.priceTrial}>· {bp.trialDays}-day trial</Text>
                     ) : null}
                   </View>
+                  {bp.ratingCount > 0 ? (
+                    <View style={s.ratingRow}>
+                      <Ionicons name="star" size={12} color="#C99632" />
+                      <Text style={s.ratingValue}>
+                        {(bp.ratingAvg ?? 0).toFixed(1)}
+                      </Text>
+                      <Text style={s.ratingCount}>
+                        ({bp.ratingCount} review{bp.ratingCount === 1 ? '' : 's'})
+                      </Text>
+                    </View>
+                  ) : (
+                    <Text style={s.ratingEmpty}>No reviews yet</Text>
+                  )}
                   {err ? (
                     <View style={s.errorBox}>
                       <Ionicons name="warning" size={12} color="#C0392B" />
@@ -518,6 +531,10 @@ const s = StyleSheet.create({
     minHeight: 36,
   },
   priceRow: { flexDirection: 'row', alignItems: 'baseline', gap: 6 },
+  ratingRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: -2 },
+  ratingValue: { fontSize: 12.5, fontWeight: '600', color: '#1C1C1E' },
+  ratingCount: { fontSize: 11.5, color: 'rgba(60, 60, 67, 0.6)' },
+  ratingEmpty: { fontSize: 11.5, color: 'rgba(60, 60, 67, 0.45)', marginTop: -2 },
   priceMain: { fontSize: 20, fontWeight: '700', color: '#1C1C1E', letterSpacing: -0.3 },
   priceTrial: { fontSize: 11.5, color: 'rgba(60, 60, 67, 0.6)' },
   errorBox: {
