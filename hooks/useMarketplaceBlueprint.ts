@@ -27,6 +27,7 @@ export interface MarketplaceBlueprintDetail {
   pricePerSeatCents: number;
   billingCadence: 'monthly' | 'annual' | 'one_time';
   trialDays: number;
+  authorUserId: string | null;
   authorName: string;
   orgName: string | null;
   stripePriceId: string;
@@ -82,6 +83,7 @@ interface RpcPayload {
     price_per_seat_cents: number;
     billing_cadence: 'monthly' | 'annual' | 'one_time';
     trial_days: number;
+    author_user_id: string | null;
     author_name: string;
     org_name: string | null;
     stripe_price_id: string;
@@ -153,6 +155,7 @@ export function useMarketplaceBlueprint(blueprintId: string | undefined) {
           pricePerSeatCents: p.blueprint.price_per_seat_cents,
           billingCadence: p.blueprint.billing_cadence,
           trialDays: p.blueprint.trial_days,
+          authorUserId: p.blueprint.author_user_id ?? null,
           authorName: p.blueprint.author_name,
           orgName: p.blueprint.org_name,
           stripePriceId: p.blueprint.stripe_price_id,

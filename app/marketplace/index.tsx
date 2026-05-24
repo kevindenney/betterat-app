@@ -56,7 +56,8 @@ export default function MarketplacePage() {
   const signedIn = !!user && !isGuest;
   const { width } = useWindowDimensions();
   const isCompact = width < 640;
-  const params = useLocalSearchParams<{ stripe?: string; bp?: string }>();
+  const params = useLocalSearchParams<{ stripe?: string; bp?: string; author?: string }>();
+  const authorScope = (params.author as string | undefined) ?? null;
   const { blueprints, loading } = useMarketplaceBlueprints();
   const checkout = useMarketplaceCheckout();
   const [pendingId, setPendingId] = React.useState<string | null>(null);
@@ -70,6 +71,7 @@ export default function MarketplacePage() {
   const filtered = React.useMemo(() => {
     const q = search.trim().toLowerCase();
     return blueprints.filter((bp) => {
+      if (authorScope && bp.authorUserId !== authorScope) return false;
       if (trialOnly && (bp.trialDays <= 0 || bp.billingCadence === 'one_time')) return false;
       if (!q) return true;
       return (
@@ -79,7 +81,12 @@ export default function MarketplacePage() {
         (bp.description ?? '').toLowerCase().includes(q)
       );
     });
-  }, [blueprints, search, trialOnly]);
+  }, [blueprints, search, trialOnly, authorScope]);
+
+  const scopedAuthor = React.useMemo(
+    () => (authorScope ? blueprints.find((b) => b.authorUserId === authorScope) ?? null : null),
+    [authorScope, blueprints],
+  );
 
   const [returnBanner, setReturnBanner] = React.useState<
     { kind: 'success' | 'cancelled'; bpId: string | null } | null
@@ -175,13 +182,36 @@ export default function MarketplacePage() {
 
       <View style={s.header}>
         <Text style={s.eyebrow}>Marketplace</Text>
-        <Text style={[s.h1, isCompact && { fontSize: 22 }]}>
-          Blueprints from independent authors
-        </Text>
-        <Text style={s.lede}>
-          Practical step-by-step playbooks you can subscribe to month-to-month. Authored by
-          practitioners; payouts route via Stripe Connect.
-        </Text>
+        {scopedAuthor ? (
+          <>
+            <Text style={[s.h1, isCompact && { fontSize: 22 }]}>
+              Blueprints by {scopedAuthor.authorName}
+            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 6 }}>
+              <Pressable
+                onPress={() => router.replace('/marketplace' as any)}
+                hitSlop={6}
+              >
+                <Text style={s.scopeBack}>← Browse all marketplace</Text>
+              </Pressable>
+              {scopedAuthor.orgName ? (
+                <Text style={s.scopeOrg}>· {scopedAuthor.orgName}</Text>
+              ) : (
+                <Text style={s.scopeOrg}>· Independent author</Text>
+              )}
+            </View>
+          </>
+        ) : (
+          <>
+            <Text style={[s.h1, isCompact && { fontSize: 22 }]}>
+              Blueprints from independent authors
+            </Text>
+            <Text style={s.lede}>
+              Practical step-by-step playbooks you can subscribe to month-to-month. Authored by
+              practitioners; payouts route via Stripe Connect.
+            </Text>
+          </>
+        )}
       </View>
 
       {!loading && blueprints.length > 0 ? (
@@ -710,6 +740,8 @@ const s = StyleSheet.create({
   ratingCount: { fontSize: 11.5, color: 'rgba(60, 60, 67, 0.6)' },
   ratingDot: { fontSize: 11.5, color: 'rgba(60, 60, 67, 0.35)' },
   ratingEmpty: { fontSize: 11.5, color: 'rgba(60, 60, 67, 0.45)' },
+  scopeBack: { fontSize: 12.5, fontWeight: '600', color: '#28406B' },
+  scopeOrg: { fontSize: 12, color: 'rgba(60, 60, 67, 0.6)' },
 
   // Featured rail
   railHead: { flexDirection: 'row', alignItems: 'center', gap: 6 },

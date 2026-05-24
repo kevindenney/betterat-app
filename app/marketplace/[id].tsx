@@ -167,10 +167,24 @@ export default function MarketplaceBlueprintPage() {
         </View>
         <Text style={[s.h1, isCompact && { fontSize: 24 }]}>{blueprint.title}</Text>
         <View style={s.authorRow}>
-          <Text style={s.author}>
-            {blueprint.authorName}
-            {blueprint.orgName ? ` · ${blueprint.orgName}` : ''}
-          </Text>
+          {blueprint.authorUserId ? (
+            <Pressable
+              onPress={() =>
+                router.push(`/marketplace?author=${blueprint.authorUserId}` as any)
+              }
+              hitSlop={4}
+            >
+              <Text style={s.authorLink}>
+                {blueprint.authorName}
+                {blueprint.orgName ? ` · ${blueprint.orgName}` : ''}
+              </Text>
+            </Pressable>
+          ) : (
+            <Text style={s.author}>
+              {blueprint.authorName}
+              {blueprint.orgName ? ` · ${blueprint.orgName}` : ''}
+            </Text>
+          )}
           {blueprint.ratingCount > 0 ? (
             <View style={s.headerRatingChip}>
               <Ionicons name="star" size={11} color="#C99632" />
@@ -567,6 +581,13 @@ const s = StyleSheet.create({
   },
   h2: { fontSize: 15, fontWeight: '700', color: '#1C1C1E', letterSpacing: -0.2, marginTop: 4 },
   author: { fontSize: 13, color: 'rgba(60, 60, 67, 0.75)' },
+  authorLink: {
+    fontSize: 13,
+    color: '#28406B',
+    fontWeight: '600',
+    textDecorationLine: 'underline',
+    textDecorationColor: 'rgba(40, 64, 107, 0.25)',
+  },
   authorRow: {
     flexDirection: 'row',
     alignItems: 'center',
