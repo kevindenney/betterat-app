@@ -25,6 +25,7 @@ import React, { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Platform,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -32,8 +33,11 @@ import {
   type NativeScrollEvent,
   type NativeSyntheticEvent,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, router } from 'expo-router';
+import { FEATURE_FLAGS } from '@/lib/featureFlags';
+import { SuggestStepComposer } from '@/components/sailor/SuggestStepComposer';
 
 import {
   IOSDetailNavBar,
@@ -78,6 +82,7 @@ function PublicFaceScreenInner({ userId }: { userId: string }) {
   const { profile, isLoading, error, toggleFollow, isToggling } =
     useSailorFullProfile(userId);
   const [docked, setDocked] = useState(false);
+  const [composerOpen, setComposerOpen] = useState(false);
 
   const onScroll = useCallback((e: NativeSyntheticEvent<NativeScrollEvent>) => {
     setDocked(e.nativeEvent.contentOffset.y > 140);
@@ -193,6 +198,33 @@ function PublicFaceScreenInner({ userId }: { userId: string }) {
           )}
           <MessageIconButton onPress={onMessage} />
         </PublicFaceHero>
+
+        {/* v3 screen-designs Phase C — dual CTA row: Suggest a step + Reflect.
+            Sits below the hero, above the framing line. Gated by
+            SUGGEST_VERB_V3. The Reflect path is a stub for v1 (peer
+            reflections schema lands in a follow-up). */}
+        {FEATURE_FLAGS.SUGGEST_VERB_V3 ? (
+          <View style={dualCtaStyles.row}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Suggest a step"
+              onPress={() => setComposerOpen(true)}
+              style={({ pressed }) => [dualCtaStyles.primary, pressed && dualCtaStyles.pressed]}
+            >
+              <Ionicons name="bulb-outline" size={15} color="#FFFFFF" />
+              <Text style={dualCtaStyles.primaryText}>Suggest a step</Text>
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Reflect"
+              onPress={() => showAlert('Reflect', 'Peer reflections are coming soon.')}
+              style={({ pressed }) => [dualCtaStyles.secondary, pressed && dualCtaStyles.pressed]}
+            >
+              <Ionicons name="chatbubble-outline" size={15} color={IOS_REGISTER.label} />
+              <Text style={dualCtaStyles.secondaryText}>Reflect</Text>
+            </Pressable>
+          </View>
+        ) : null}
 
         {/* 02 · FRAMING — the practitioner's own sentence at attribution.
             Italic-serif-with-provenance, separated from hero by hairline.
@@ -386,12 +418,70 @@ function PublicFaceScreenInner({ userId }: { userId: string }) {
 
         <View style={styles.bottomPad} />
       </ScrollView>
+
+      {FEATURE_FLAGS.SUGGEST_VERB_V3 ? (
+        <SuggestStepComposer
+          visible={composerOpen}
+          onClose={() => setComposerOpen(false)}
+          recipientId={userId}
+          recipientName={displayName}
+          recipientInitials={initials}
+          reContext={enrichment.concept?.weekTail ?? null}
+        />
+      ) : null}
     </SafeAreaView>
   );
 }
 
 // Re-export the status type so consumers can build local capability lists.
 export type { CapabilityStatus };
+
+const dualCtaStyles = StyleSheet.create({
+  row: {
+    flexDirection: 'row',
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 4,
+  },
+  primary: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 11,
+    borderRadius: 12,
+    backgroundColor: IOS_REGISTER.label,
+  },
+  primaryText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
+    letterSpacing: -0.1,
+  },
+  secondary: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 11,
+    borderRadius: 12,
+    backgroundColor: IOS_REGISTER.cardBg,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: IOS_REGISTER.separatorStrong,
+  },
+  secondaryText: {
+    color: IOS_REGISTER.label,
+    fontSize: 14,
+    fontWeight: '600',
+    letterSpacing: -0.1,
+  },
+  pressed: {
+    opacity: 0.7,
+  },
+});
 
 const styles = StyleSheet.create({
   ground: { flex: 1, backgroundColor: PUBLIC_FACE_GROUND_BG },

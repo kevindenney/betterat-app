@@ -13,6 +13,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Platform,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -20,11 +21,12 @@ import {
   type NativeScrollEvent,
   type NativeSyntheticEvent,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
 
 import { supabase } from '@/services/supabase';
-import { showConfirm } from '@/lib/utils/crossPlatformAlert';
+import { showAlert, showConfirm } from '@/lib/utils/crossPlatformAlert';
 import { initialsForName } from '@/components/discover/canonical';
 import {
   IOSDetailNavBar,
@@ -41,6 +43,9 @@ import {
   pickAvatarMarkColor,
 } from '@/components/discover/detail';
 import { useAuth } from '@/providers/AuthProvider';
+import { FEATURE_FLAGS } from '@/lib/featureFlags';
+import { IOS_REGISTER } from '@/lib/design-tokens-ios';
+import { SuggestStepComposer } from '@/components/sailor/SuggestStepComposer';
 
 type ProfileRow = {
   id: string;
@@ -82,6 +87,7 @@ function PersonDetailScreenInner() {
   const [isFollowing, setIsFollowing] = useState(false);
   const [followBusy, setFollowBusy] = useState(false);
   const [docked, setDocked] = useState(false);
+  const [composerOpen, setComposerOpen] = useState(false);
 
   useEffect(() => {
     if (!userId) return;
@@ -242,6 +248,33 @@ function PersonDetailScreenInner() {
           )}
         </IOSDetailHero>
 
+        {/* v3 screen-designs Phase C — dual CTA row: Suggest a step + Reflect.
+            Sits below the hero, above the first content section. Gated by
+            SUGGEST_VERB_V3. The Reflect path is a stub for v1 (peer
+            reflections schema lands in a follow-up). */}
+        {FEATURE_FLAGS.SUGGEST_VERB_V3 ? (
+          <View style={dualCtaStyles.row}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Suggest a step"
+              onPress={() => setComposerOpen(true)}
+              style={({ pressed }) => [dualCtaStyles.primary, pressed && dualCtaStyles.pressed]}
+            >
+              <Ionicons name="bulb-outline" size={15} color="#FFFFFF" />
+              <Text style={dualCtaStyles.primaryText}>Suggest a step</Text>
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Reflect"
+              onPress={() => showAlert('Reflect', 'Peer reflections are coming soon.')}
+              style={({ pressed }) => [dualCtaStyles.secondary, pressed && dualCtaStyles.pressed]}
+            >
+              <Ionicons name="chatbubble-outline" size={15} color={IOS_REGISTER.label} />
+              <Text style={dualCtaStyles.secondaryText}>Reflect</Text>
+            </Pressable>
+          </View>
+        ) : null}
+
         {/* Working on now — the practice signal that travels.
             Coral-tinted card, italic serif body. The ONE place coral
             appears on a Person detail. If no current concept, section absent.
@@ -331,9 +364,67 @@ function PersonDetailScreenInner() {
 
         <View style={styles.bottomPad} />
       </ScrollView>
+
+      {FEATURE_FLAGS.SUGGEST_VERB_V3 ? (
+        <SuggestStepComposer
+          visible={composerOpen}
+          onClose={() => setComposerOpen(false)}
+          recipientId={userId || ''}
+          recipientName={displayName}
+          recipientInitials={initials}
+          reContext={profile?.bio?.split(/[.!?]/)[0]?.trim() || null}
+        />
+      ) : null}
     </SafeAreaView>
   );
 }
+
+const dualCtaStyles = StyleSheet.create({
+  row: {
+    flexDirection: 'row',
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 4,
+  },
+  primary: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 11,
+    borderRadius: 12,
+    backgroundColor: IOS_REGISTER.label,
+  },
+  primaryText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
+    letterSpacing: -0.1,
+  },
+  secondary: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 11,
+    borderRadius: 12,
+    backgroundColor: IOS_REGISTER.cardBg,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: IOS_REGISTER.separatorStrong,
+  },
+  secondaryText: {
+    color: IOS_REGISTER.label,
+    fontSize: 14,
+    fontWeight: '600',
+    letterSpacing: -0.1,
+  },
+  pressed: {
+    opacity: 0.7,
+  },
+});
 
 /**
  * Pass 11 provenance line for the Working-on-now ConceptCard.
