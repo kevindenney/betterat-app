@@ -86,6 +86,17 @@ export default function MarketplaceBlueprintPage() {
   }
 
   const { blueprint, hasAccess, subscription, steps, reviews, myReview } = result;
+  const categoryCounts = new Map<string, number>();
+  for (const step of steps) {
+    categoryCounts.set(step.category, (categoryCounts.get(step.category) ?? 0) + 1);
+  }
+  const categorySummary = Array.from(categoryCounts.entries())
+    .sort((a, b) => b[1] - a[1])
+    .map(([key, count]) => ({
+      key,
+      count,
+      tone: CATEGORY_TONE[key] ?? CATEGORY_TONE.other,
+    }));
   const subscribeLabel = `Subscribe · ${formatPrice(blueprint.pricePerSeatCents, blueprint.billingCadence)}`;
 
   const handleSubscribe = () => {
@@ -205,6 +216,17 @@ export default function MarketplaceBlueprintPage() {
             </View>
           ) : null}
         </View>
+        {categorySummary.length > 0 ? (
+          <View style={s.categoryRow}>
+            {categorySummary.map(({ key, count, tone }) => (
+              <View key={key} style={[s.categoryChip, { backgroundColor: tone.bg }]}>
+                <Text style={[s.categoryChipText, { color: tone.fg }]}>
+                  {count} {tone.label.toLowerCase()}
+                </Text>
+              </View>
+            ))}
+          </View>
+        ) : null}
         {blueprint.description ? <Text style={s.lede}>{blueprint.description}</Text> : null}
         {blueprint.authorBio ? (
           <View style={s.authorBioBox}>
@@ -622,6 +644,12 @@ const s = StyleSheet.create({
     backgroundColor: 'rgba(60, 60, 67, 0.06)',
   },
   headerSubscriberText: { fontSize: 11, fontWeight: '600', color: 'rgba(60, 60, 67, 0.75)' },
+  categoryRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginTop: 8,
+  },
   lede: { fontSize: 14, color: 'rgba(60, 60, 67, 0.85)', lineHeight: 20, marginTop: 8 },
   authorBioBox: {
     marginTop: 14,
