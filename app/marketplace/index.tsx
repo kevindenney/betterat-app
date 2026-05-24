@@ -15,6 +15,7 @@ import {
   ScrollView,
   Pressable,
   ActivityIndicator,
+  useWindowDimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -51,6 +52,8 @@ function formatPrice(cents: number, cadence: 'monthly' | 'annual' | 'one_time'):
 export default function MarketplacePage() {
   const { user, isGuest } = useAuth();
   const signedIn = !!user && !isGuest;
+  const { width } = useWindowDimensions();
+  const isCompact = width < 640;
   const { blueprints, loading } = useMarketplaceBlueprints();
   const checkout = useMarketplaceCheckout();
   const [pendingId, setPendingId] = React.useState<string | null>(null);
@@ -79,10 +82,18 @@ export default function MarketplacePage() {
   };
 
   return (
-    <ScrollView style={s.body} contentContainerStyle={s.bodyInner}>
+    <ScrollView
+      style={s.body}
+      contentContainerStyle={[
+        s.bodyInner,
+        isCompact && { paddingHorizontal: 16, paddingTop: 24, gap: 20 },
+      ]}
+    >
       <View style={s.header}>
         <Text style={s.eyebrow}>Marketplace</Text>
-        <Text style={s.h1}>Blueprints from independent authors</Text>
+        <Text style={[s.h1, isCompact && { fontSize: 22 }]}>
+          Blueprints from independent authors
+        </Text>
         <Text style={s.lede}>
           Practical step-by-step playbooks you can subscribe to month-to-month. Authored by
           practitioners; payouts route via Stripe Connect.
@@ -105,12 +116,12 @@ export default function MarketplacePage() {
           </Text>
         </View>
       ) : (
-        <View style={s.grid}>
+        <View style={[s.grid, isCompact && { gap: 12 }]}>
           {blueprints.map((bp) => {
             const err = errorByBp[bp.id];
             const isPending = pendingId === bp.id;
             return (
-              <View key={bp.id} style={s.card}>
+              <View key={bp.id} style={[s.card, isCompact && s.cardCompact]}>
                 <View style={s.cardCover}>
                   <View style={[s.cardCoverInk, { backgroundColor: aviTone(bp.authorTone) }]} />
                   <Text style={s.cardCoverTitle} numberOfLines={3}>
@@ -254,6 +265,7 @@ const s = StyleSheet.create({
     borderColor: 'rgba(0,0,0,0.08)',
     overflow: 'hidden',
   },
+  cardCompact: { width: '100%' as const },
   cardCover: {
     height: 140,
     backgroundColor: '#28406B',

@@ -14,6 +14,7 @@ import {
   ScrollView,
   Pressable,
   ActivityIndicator,
+  useWindowDimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Link, router } from 'expo-router';
@@ -53,6 +54,8 @@ function formatDate(iso: string | null): string | null {
 }
 
 export default function SubscriptionsPage() {
+  const { width } = useWindowDimensions();
+  const isCompact = width < 640;
   const { subscriptions, loading, cancel } = useMySubscriptions();
   const [pendingId, setPendingId] = React.useState<string | null>(null);
 
@@ -64,10 +67,16 @@ export default function SubscriptionsPage() {
   };
 
   return (
-    <ScrollView style={s.body} contentContainerStyle={s.bodyInner}>
+    <ScrollView
+      style={s.body}
+      contentContainerStyle={[
+        s.bodyInner,
+        isCompact && { paddingHorizontal: 16, paddingTop: 24, gap: 16 },
+      ]}
+    >
       <View style={s.header}>
         <Text style={s.eyebrow}>Your subscriptions</Text>
-        <Text style={s.h1}>Marketplace blueprints</Text>
+        <Text style={[s.h1, isCompact && { fontSize: 22 }]}>Marketplace blueprints</Text>
         <Text style={s.lede}>
           Subscriptions you've started through the BetterAt marketplace. Cancel any time —
           access stays through the end of your current billing period.
@@ -104,7 +113,13 @@ export default function SubscriptionsPage() {
               (sub.status === 'active' || sub.status === 'trialing') &&
               !sub.cancelAtPeriodEnd;
             return (
-              <View key={sub.id} style={s.subCard}>
+              <View
+                key={sub.id}
+                style={[
+                  s.subCard,
+                  isCompact && { flexDirection: 'column', alignItems: 'stretch', gap: 10 },
+                ]}
+              >
                 <View style={{ flex: 1, minWidth: 0, gap: 4 }}>
                   <Link href={`/marketplace/${sub.blueprintId}` as any} asChild>
                     <Pressable>
@@ -132,7 +147,12 @@ export default function SubscriptionsPage() {
                       : ''}
                   </Text>
                 </View>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                <View
+                  style={[
+                    { flexDirection: 'row', alignItems: 'center', gap: 10 },
+                    isCompact && { justifyContent: 'space-between' },
+                  ]}
+                >
                   {sub.cancelAtPeriodEnd && sub.status !== 'canceled' ? (
                     <View style={[s.chip, { backgroundColor: 'rgba(201, 150, 50, 0.14)' }]}>
                       <Text style={[s.chipText, { color: '#C99632' }]}>

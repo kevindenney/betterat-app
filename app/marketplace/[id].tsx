@@ -14,6 +14,7 @@ import {
   ScrollView,
   Pressable,
   ActivityIndicator,
+  useWindowDimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -38,6 +39,8 @@ function formatPrice(cents: number, cadence: 'monthly' | 'annual' | 'one_time'):
 
 export default function MarketplaceBlueprintPage() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const { width } = useWindowDimensions();
+  const isCompact = width < 640;
   const { user, isGuest } = useAuth();
   const signedIn = !!user && !isGuest;
   const { result, loading } = useMarketplaceBlueprint(id);
@@ -106,7 +109,13 @@ export default function MarketplaceBlueprintPage() {
   };
 
   return (
-    <ScrollView style={s.body} contentContainerStyle={s.bodyInner}>
+    <ScrollView
+      style={s.body}
+      contentContainerStyle={[
+        s.bodyInner,
+        isCompact && { paddingHorizontal: 16, paddingTop: 24, gap: 16 },
+      ]}
+    >
       <View style={s.header}>
         <View style={s.eyebrowRow}>
           <Pressable onPress={() => router.replace('/marketplace' as any)} hitSlop={8}>
@@ -141,7 +150,7 @@ export default function MarketplaceBlueprintPage() {
             </View>
           ) : null}
         </View>
-        <Text style={s.h1}>{blueprint.title}</Text>
+        <Text style={[s.h1, isCompact && { fontSize: 24 }]}>{blueprint.title}</Text>
         <Text style={s.author}>
           {blueprint.authorName}
           {blueprint.orgName ? ` · ${blueprint.orgName}` : ''}
@@ -150,7 +159,12 @@ export default function MarketplaceBlueprintPage() {
       </View>
 
       {!hasAccess ? (
-        <View style={s.subscribeCard}>
+        <View
+          style={[
+            s.subscribeCard,
+            isCompact && { flexDirection: 'column', alignItems: 'stretch', gap: 12 },
+          ]}
+        >
           <View style={{ flex: 1 }}>
             <Text style={s.priceMain}>
               {formatPrice(blueprint.pricePerSeatCents, blueprint.billingCadence)}
