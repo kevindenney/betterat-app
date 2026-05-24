@@ -24,7 +24,7 @@
  * the canonical fixture coords baked from the design handoff.
  */
 
-import React, { useCallback } from 'react';
+import React, { useCallback, useRef } from 'react';
 import {
   Platform,
   Pressable,
@@ -38,6 +38,7 @@ import {
   Map as MLMap,
   Camera as MLCamera,
   Marker as MLMarker,
+  type CameraRef,
   type PressEvent,
 } from '@maplibre/maplibre-react-native';
 
@@ -234,6 +235,7 @@ export function AtlasMapLibreCanvas({
   onPinPress,
 }: AtlasMapLibreCanvasProps) {
   // Hooks first, then early returns — rules-of-hooks compliance.
+  const cameraRef = useRef<CameraRef>(null);
   const handlePress = useCallback(
     (event: NativeSyntheticEvent<PressEvent>) => {
       if (!onMapPress) return;
@@ -241,6 +243,20 @@ export function AtlasMapLibreCanvas({
       onMapPress({ lng, lat });
     },
     [onMapPress],
+  );
+  // Recenter the camera on the tapped pin so it isn't clipped by the
+  // iPhone Dynamic Island, the floating TopChrome, or the bottom sheet.
+  // A small southward bias (lat - 0.0035) pushes the pin into the upper
+  // third of the visible map area where the chrome and sheet don't sit.
+  const handlePinTap = useCallback(
+    (pin: AtlasPinSpec) => {
+      onPinPress?.(pin);
+      cameraRef.current?.flyTo({
+        center: [pin.lng, pin.lat - 0.0035],
+        duration: 400,
+      });
+    },
+    [onPinPress],
   );
 
   // Web platform: keep the SVG fallback. maplibre-gl + react-map-gl are
@@ -266,6 +282,7 @@ export function AtlasMapLibreCanvas({
         logo={false}
       >
         <MLCamera
+          ref={cameraRef}
           initialViewState={{
             center: camera.center,
             zoom: camera.zoom,
@@ -286,7 +303,7 @@ export function AtlasMapLibreCanvas({
           return (
             <MLMarker key={pin.id} id={pin.id} lngLat={[pin.lng, pin.lat]}>
               {isTappable ? (
-                <Pressable onPress={() => onPinPress?.(pin)} hitSlop={6}>
+                <Pressable onPress={() => handlePinTap(pin)} hitSlop={6}>
                   {inner}
                 </Pressable>
               ) : (
