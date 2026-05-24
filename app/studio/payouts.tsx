@@ -168,6 +168,8 @@ export default function StudioPayoutsPage() {
             orgName={menu.activeOrg!.org_name}
             orgShort={shortNameLabel(menu.activeOrg!.org_name)}
           />
+        ) : !data.isIndependent ? (
+          <NotConnectedBanner userId={user.id} />
         ) : null}
 
         <View style={styles.heroRow}>
@@ -295,6 +297,64 @@ function StatCard({
         >
           {footnote}
         </Text>
+      </View>
+    </View>
+  );
+}
+
+function NotConnectedBanner({ userId }: { userId: string }) {
+  const [pending, setPending] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
+  const onOnboard = async () => {
+    setPending(true);
+    setError(null);
+    try {
+      const { StripeConnectService } = await import('@/services/StripeConnectService');
+      const origin =
+        typeof window !== 'undefined' && window.location?.origin
+          ? window.location.origin
+          : 'https://betterat.app';
+      const result = await StripeConnectService.startOnboarding(
+        userId,
+        `${origin}/studio/payouts?connect=success`,
+        `${origin}/studio/payouts?connect=refresh`,
+      );
+      if (!result.success || !result.url) {
+        setError(result.error ?? 'Failed to start onboarding');
+        setPending(false);
+        return;
+      }
+      if (typeof window !== 'undefined') {
+        window.location.href = result.url;
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Onboarding failed');
+      setPending(false);
+    }
+  };
+  return (
+    <View style={styles.instBanner}>
+      <Ionicons name="card-outline" size={20} color="#28406B" />
+      <View style={styles.instCol}>
+        <Text style={styles.instTitle}>Connect a Stripe account to receive payouts</Text>
+        <Text style={styles.instBody}>
+          Your blueprints can be sold on the marketplace, but you don't have a Stripe
+          Connect account yet — buyers can subscribe, but payouts will be held by the
+          platform until you onboard. The flow is hosted by Stripe and takes about three
+          minutes (legal name, address, bank account).
+        </Text>
+        {error ? (
+          <Text style={[styles.instBody, { color: '#C0392B', marginTop: 6 }]}>{error}</Text>
+        ) : null}
+        <View style={{ flexDirection: 'row', marginTop: 10 }}>
+          <StudioButton
+            variant="primary"
+            accent="navy"
+            icon={pending ? 'sync' : 'arrow-forward'}
+            label={pending ? 'Opening Stripe…' : 'Onboard to Stripe Connect'}
+            onPress={onOnboard}
+          />
+        </View>
       </View>
     </View>
   );

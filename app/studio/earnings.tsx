@@ -8,9 +8,26 @@
  */
 
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  ActivityIndicator,
+  useWindowDimensions,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
+import { useAuth } from '@/providers/AuthProvider';
+import { useProfileMenuData } from '@/hooks/useProfileMenuData';
 import { useAuthorMarketplaceStats } from '@/hooks/useAuthorMarketplaceStats';
+import {
+  StudioShell,
+  StudioHeader,
+  StudioNavSection,
+  StudioButton,
+} from '@/components/studio/StudioShell';
+import { StudioLoading } from '@/components/studio/StudioLoading';
 
 function formatMoney(cents: number): string {
   return `$${(cents / 100).toLocaleString(undefined, {
@@ -25,19 +42,110 @@ function cadenceLabel(c: 'monthly' | 'annual' | 'one_time'): string {
   return ' one-time';
 }
 
+function getInitials(name: string): string {
+  const parts = name.trim().split(/\s+/);
+  if (parts.length === 0) return '?';
+  if (parts.length === 1) return parts[0][0]?.toUpperCase() ?? '?';
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
 export default function StudioEarningsPage() {
+  const { width } = useWindowDimensions();
+  const router = useRouter();
+  const { user, userProfile } = useAuth();
+  const menu = useProfileMenuData();
   const { stats, loading } = useAuthorMarketplaceStats();
 
-  return (
-    <ScrollView style={s.body} contentContainerStyle={s.bodyInner}>
-      <View style={s.header}>
-        <Text style={s.eyebrow}>Marketplace earnings</Text>
-        <Text style={s.h1}>Subscribers on your independent blueprints</Text>
-        <Text style={s.lede}>
-          Live from real Stripe subscriptions on the BetterAt marketplace. New subscriptions,
-          trials, and cancellations land here automatically via webhook.
-        </Text>
+  if (width < 920) {
+    return (
+      <View style={s.gate}>
+        <Ionicons name="desktop-outline" size={36} color="rgba(60, 60, 67, 0.4)" />
+        <Text style={s.gateTitle}>Open Earnings on iPad or desktop</Text>
+        <StudioButton variant="ghost" icon="arrow-back" label="Back" onPress={() => router.back()} />
       </View>
+    );
+  }
+
+  if (!user || menu.loading) {
+    return <StudioLoading />;
+  }
+
+  const displayName =
+    userProfile?.full_name || userProfile?.display_name || user?.email || 'You';
+  const initials = getInitials(displayName);
+  const isInstitutional = menu.hasActiveOrg;
+
+  const navSections: StudioNavSection[] = [
+    {
+      eyebrow: 'Studio',
+      items: [
+        { key: 'home', icon: 'grid-outline', label: 'Home', onPress: () => router.push('/studio') },
+        { key: 'blueprints', icon: 'git-branch-outline', label: 'Blueprints' },
+        { key: 'subscribers', icon: 'people-outline', label: 'Subscribers' },
+        { key: 'threads', icon: 'chatbubbles-outline', label: 'Threads' },
+      ],
+    },
+    {
+      eyebrow: 'Money',
+      items: [
+        {
+          key: 'payouts',
+          icon: 'cash-outline',
+          label: 'Payouts',
+          onPress: () => router.push('/studio/payouts'),
+        },
+        {
+          key: 'earnings',
+          icon: 'receipt-outline',
+          label: 'Earnings',
+          active: true,
+        },
+        { key: 'pricing', icon: 'pricetag-outline', label: 'Pricing' },
+        { key: 'legal', icon: 'document-text-outline', label: 'Tax & legal' },
+      ],
+    },
+  ];
+
+  return (
+    <View style={s.root}>
+      <StudioShell
+        accent="drawing"
+        org={{
+          name: isInstitutional ? menu.activeOrg!.org_name : `${displayName} · Studio`,
+          role: isInstitutional
+            ? `Studio · ${displayName.split(' ').slice(0, 2).join(' ')}`
+            : 'Independent · marketplace',
+          mono: isInstitutional ? menu.activeOrg!.org_short_name : '·',
+          monoColor: isInstitutional ? 'navy' : 'drawing',
+        }}
+        ctxLens="studio"
+        ctxLensOptions={['practice', 'studio']}
+        onCtxChange={(lens) => {
+          if (lens === 'practice') router.push('/');
+        }}
+        navSections={navSections}
+        user={{ name: displayName, email: user?.email ?? '', initials }}
+      >
+        <StudioHeader
+          crumbs={['Creator Studio', 'Earnings']}
+          title="Earnings"
+          subtitleParts={[
+            <Text key="sub" style={{ fontSize: 12.5, color: 'rgba(60, 60, 67, 0.85)' }}>
+              Live from marketplace_subscriptions · updates via Stripe webhook
+            </Text>,
+          ]}
+          pill={{ label: 'Independent · Marketplace', tone: 'amber' }}
+        />
+        <ScrollView style={s.body} contentContainerStyle={s.bodyInner}>
+          <View style={s.header}>
+            <Text style={s.eyebrow}>Marketplace earnings</Text>
+            <Text style={s.h1}>Subscribers on your independent blueprints</Text>
+            <Text style={s.lede}>
+              Live from real Stripe subscriptions on the BetterAt marketplace. New
+              subscriptions, trials, and cancellations land here automatically via
+              webhook.
+            </Text>
+          </View>
 
       {loading || !stats ? (
         <View style={s.loadingCard}>
@@ -105,14 +213,16 @@ export default function StudioEarningsPage() {
             <Ionicons name="information-circle-outline" size={16} color="#28406B" />
             <Text style={s.footnoteText}>
               Earnings are credited to your Stripe Connect account on each invoice clear. Your
-              configured author payout %% (default 70%%) applies — the platform takes the
+              configured author payout % (default 70%) applies — the platform takes the
               remainder as an application fee. Cancellations reflect immediately; access
               continues through the end of the paid period.
             </Text>
           </View>
         </>
       )}
-    </ScrollView>
+        </ScrollView>
+      </StudioShell>
+    </View>
   );
 }
 
@@ -135,6 +245,16 @@ function StatCard({
 }
 
 const s = StyleSheet.create({
+  root: { flex: 1, backgroundColor: '#F5F4EE' },
+  gate: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 14,
+    padding: 32,
+    backgroundColor: '#F5F4EE',
+  },
+  gateTitle: { fontSize: 16, fontWeight: '600', color: '#1C1C1E' },
   body: { flex: 1, backgroundColor: '#F5F4EE' },
   bodyInner: {
     paddingHorizontal: 24,
