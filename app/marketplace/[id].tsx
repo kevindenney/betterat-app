@@ -39,6 +39,22 @@ function formatPrice(cents: number, cadence: 'monthly' | 'annual' | 'one_time'):
   return `$${dollars}/mo`;
 }
 
+function initialsFromName(name: string): string {
+  const parts = name.trim().split(/\s+/).filter((p) => !/^(dr|mr|mrs|ms|prof)\.?$/i.test(p));
+  const first = parts[0]?.[0] ?? '';
+  const last = parts.length > 1 ? parts[parts.length - 1][0] : '';
+  const initials = (first + last).toUpperCase();
+  return initials || name.slice(0, 2).toUpperCase() || 'AU';
+}
+
+function toneFromAuthorId(uid: string | null): string {
+  if (!uid) return '#28406B';
+  const palette = ['#28406B', '#8B5A3C', '#B8855A', '#6E8B5A', '#7A5A8B'];
+  let hash = 0;
+  for (let i = 0; i < uid.length; i++) hash = (hash * 31 + uid.charCodeAt(i)) | 0;
+  return palette[Math.abs(hash) % palette.length];
+}
+
 export default function MarketplaceBlueprintPage() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { width } = useWindowDimensions();
@@ -178,6 +194,14 @@ export default function MarketplaceBlueprintPage() {
         </View>
         <Text style={[s.h1, isCompact && { fontSize: 24 }]}>{blueprint.title}</Text>
         <View style={s.authorRow}>
+          <View
+            style={[
+              s.authorAvi,
+              { backgroundColor: toneFromAuthorId(blueprint.authorUserId) },
+            ]}
+          >
+            <Text style={s.authorAviText}>{initialsFromName(blueprint.authorName)}</Text>
+          </View>
           {blueprint.authorUserId ? (
             <Pressable
               onPress={() =>
@@ -609,6 +633,14 @@ const s = StyleSheet.create({
   },
   h2: { fontSize: 15, fontWeight: '700', color: '#1C1C1E', letterSpacing: -0.2, marginTop: 4 },
   author: { fontSize: 13, color: 'rgba(60, 60, 67, 0.75)' },
+  authorAvi: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  authorAviText: { fontSize: 11, fontWeight: '700', color: '#FFFFFF' },
   authorLink: {
     fontSize: 13,
     color: '#28406B',
