@@ -45,10 +45,7 @@
     }
   ],
   "redirects": [],
-  "crons": [
-    { "path": "/api/cron/telegram-digest?type=morning", "schedule": "0 8 * * *" },
-    { "path": "/api/cron/telegram-digest?type=evening", "schedule": "0 20 * * *" }
-  ],
+  "crons": [],
   "rewrites": [
     {
       "source": "/p/step/:token",
