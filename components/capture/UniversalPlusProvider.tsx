@@ -31,6 +31,7 @@ import {
 } from '@/services/QuickCaptureService';
 import type { TimelineStepRecord } from '@/types/timeline-steps';
 import { UniversalPlusSheet } from './UniversalPlusSheet';
+import { PlusComposerV3Sheet } from './PlusComposerV3Sheet';
 
 export interface UniversalPlusContextValue {
   open: () => void;
@@ -260,15 +261,25 @@ export function UniversalPlusProvider({ children }: { children: React.ReactNode 
     <UniversalPlusContext.Provider value={value}>
       {children}
       {enabled ? (
-        <UniversalPlusSheet
-          visible={visible}
-          onDismiss={close}
-          onQuickCapture={handleQuickCapture}
-          onAddFromBlueprint={() => handleNavigate('/library/blueprints')}
-          onAddFromFollow={() => handleNavigate('/discover/following')}
-          onDropConcept={handleDropConcept}
-          onShareIdea={() => handleNavigate('/share/idea')}
-        />
+        FEATURE_FLAGS.PLUS_COMPOSER_V3 ? (
+          <PlusComposerV3Sheet
+            visible={visible}
+            onDismiss={close}
+            onSave={handleQuickCapture}
+            interestLabel={currentInterest?.name ?? null}
+            sessionLabel={null}
+          />
+        ) : (
+          <UniversalPlusSheet
+            visible={visible}
+            onDismiss={close}
+            onQuickCapture={handleQuickCapture}
+            onAddFromBlueprint={() => handleNavigate('/library/blueprints')}
+            onAddFromFollow={() => handleNavigate('/discover/following')}
+            onDropConcept={handleDropConcept}
+            onShareIdea={() => handleNavigate('/share/idea')}
+          />
+        )
       ) : null}
     </UniversalPlusContext.Provider>
   );

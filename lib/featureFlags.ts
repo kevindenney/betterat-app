@@ -564,6 +564,31 @@ export const FEATURE_FLAGS = {
   WHATSAPP_CONNECT_V3: readBooleanEnv('EXPO_PUBLIC_FF_WHATSAPP_CONNECT_V3', false),
 
   /**
+   * v3 screen-designs Screens 11–13 · the universal `+` composer.
+   *
+   * Canonical: "the + button only ever does two things — ad-hoc at the
+   * timeline, sub-step inside a step. Voice routes through one composer."
+   *
+   * v1 ships Screen 11 only (the ad-hoc-at-timeline composer): a focused
+   * sheet with lane chips (interest + session), a single text field,
+   * suggested tag chips, an AI-librarian "group as sub-step?" hint card,
+   * and a voice-mic affordance at the bottom. Save commits a real step
+   * via the existing createDraftStep() pipeline — same data path as the
+   * legacy UniversalPlusSheet.
+   *
+   * Replaces the legacy multi-option UniversalPlusSheet when on. The
+   * canvas's `+` button (CanvasTopBar) keeps calling useUniversalPlus().open();
+   * the provider routes that to the new sheet under the flag.
+   *
+   * Screens 12 (inline sub-step composer) and 13 (full-screen voice-first)
+   * are deferred — Screen 12 needs Plan-tab coupling, Screen 13 needs a
+   * speech-recognition adapter.
+   *
+   * Off by default. Flip via EXPO_PUBLIC_FF_PLUS_COMPOSER_V3=true.
+   */
+  PLUS_COMPOSER_V3: readBooleanEnv('EXPO_PUBLIC_FF_PLUS_COMPOSER_V3', false),
+
+  /**
    * v3 screen-designs Phase C — third-person timeline + Suggest verb.
    *
    * When on: the public-face hero on /sailor/[userId] gains a dual-CTA row
