@@ -70,6 +70,13 @@ export function telegramBotUsername(): string {
 
 export function telegramBotDeepLink(payload?: string): string {
   const username = telegramBotUsername();
-  if (payload) return `https://t.me/${username}?start=${encodeURIComponent(payload)}`;
+  // The webhook's /start handler only recognises `link_<code>` payloads
+  // (api/telegram/webhook.ts:216). Passing a bare user UUID or any other
+  // payload falls through to the generic welcome message, which spams the
+  // chat on every reopen for already-linked users. Only emit ?start= when
+  // the caller passes a properly-prefixed link code.
+  if (payload?.startsWith('link_')) {
+    return `https://t.me/${username}?start=${encodeURIComponent(payload)}`;
+  }
   return `https://t.me/${username}`;
 }

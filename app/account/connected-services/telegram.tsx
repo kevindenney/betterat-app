@@ -33,7 +33,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { IOS_COLORS, IOS_REGISTER, IOS_SPACING } from '@/lib/design-tokens-ios';
 import { FEATURE_FLAGS } from '@/lib/featureFlags';
-import { useAuth } from '@/providers/AuthProvider';
 import {
   useTelegramLink,
   telegramBotUsername,
@@ -45,15 +44,16 @@ const TG_TINT = '#2AABEE';
 
 export default function ConnectTelegramScreen() {
   const flagOn = FEATURE_FLAGS.WHATSAPP_CONNECT_V3;
-  const { user } = useAuth();
   const { link, isConnected, isLoaded, refresh, disconnect } = useTelegramLink();
 
   const openBot = useCallback(() => {
-    const url = telegramBotDeepLink(user?.id ?? undefined);
+    // No payload — webhook only auto-handles `link_<code>` and bare UUIDs
+    // fall through to the welcome message (noisy for already-linked users).
+    const url = telegramBotDeepLink();
     Linking.openURL(url).catch(() => {
       /* swallow — universal Telegram link, no fallback needed */
     });
-  }, [user?.id]);
+  }, []);
 
   const onDisconnect = useCallback(() => {
     showConfirm(
