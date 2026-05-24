@@ -259,8 +259,44 @@ export default function MarketplacePage() {
           ) : null}
         </View>
       ) : (
-        <View style={[s.grid, isCompact && { gap: 12 }]}>
-          {filtered.map((bp) => {
+        <View style={{ gap: isCompact ? 14 : 22 }}>
+          {filtered.some((b) => b.isFeatured) ? (
+            <View style={{ gap: 12 }}>
+              <View style={s.railHead}>
+                <Ionicons name="sparkles" size={14} color="#C99632" />
+                <Text style={s.railTitle}>Featured</Text>
+              </View>
+              <View style={{ gap: 12 }}>
+                {filtered
+                  .filter((b) => b.isFeatured)
+                  .map((bp) => (
+                    <FeaturedHero
+                      key={bp.id}
+                      bp={bp}
+                      isCompact={isCompact}
+                      pending={pendingId === bp.id}
+                      error={errorByBp[bp.id]}
+                      signedIn={signedIn}
+                      onSubscribe={() => handleSubscribe(bp)}
+                      onOpen={() => router.push(`/marketplace/${bp.id}` as any)}
+                    />
+                  ))}
+              </View>
+            </View>
+          ) : null}
+
+          {filtered.some((b) => !b.isFeatured) ? (
+            <View style={{ gap: 12 }}>
+              {filtered.some((b) => b.isFeatured) ? (
+                <View style={s.railHead}>
+                  <Ionicons name="grid-outline" size={14} color="rgba(60, 60, 67, 0.6)" />
+                  <Text style={s.railTitle}>All blueprints</Text>
+                </View>
+              ) : null}
+              <View style={[s.grid, isCompact && { gap: 12 }]}>
+                {filtered
+                  .filter((b) => !b.isFeatured)
+                  .map((bp) => {
             const err = errorByBp[bp.id];
             const isPending = pendingId === bp.id;
             return (
@@ -341,6 +377,9 @@ export default function MarketplacePage() {
               </View>
             );
           })}
+              </View>
+            </View>
+          ) : null}
         </View>
       )}
 
@@ -352,6 +391,106 @@ export default function MarketplacePage() {
         </Text>
       </View>
     </ScrollView>
+  );
+}
+
+function FeaturedHero({
+  bp,
+  isCompact,
+  pending,
+  error,
+  signedIn,
+  onSubscribe,
+  onOpen,
+}: {
+  bp: MarketplaceBlueprint;
+  isCompact: boolean;
+  pending: boolean;
+  error: string | undefined;
+  signedIn: boolean;
+  onSubscribe: () => void;
+  onOpen: () => void;
+}) {
+  return (
+    <Pressable onPress={onOpen} style={[s.featuredCard, isCompact && s.featuredCardCompact]}>
+      <View style={[s.featuredCover, { backgroundColor: aviTone(bp.authorTone) }]}>
+        <View style={s.featuredFlag}>
+          <Ionicons name="sparkles" size={11} color="#FFFFFF" />
+          <Text style={s.featuredFlagText}>Featured</Text>
+        </View>
+        <Text style={s.featuredCoverTitle} numberOfLines={3}>
+          {bp.title}
+        </Text>
+      </View>
+      <View style={[s.featuredBody, isCompact && { padding: 16 }]}>
+        <View style={s.authorRow}>
+          <View style={[s.avi, { backgroundColor: aviTone(bp.authorTone) }]}>
+            <Text style={s.aviText}>{bp.authorInitials}</Text>
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={s.authorName} numberOfLines={1}>
+              {bp.authorName}
+            </Text>
+            {bp.orgName ? (
+              <Text style={s.authorOrg} numberOfLines={1}>
+                {bp.orgName}
+              </Text>
+            ) : null}
+          </View>
+        </View>
+        <Text style={s.featuredBlurb} numberOfLines={isCompact ? 3 : 2}>
+          {bp.featuredBlurb ?? bp.description ?? ''}
+        </Text>
+        <View style={s.featuredFooter}>
+          <View style={{ flex: 1, gap: 4 }}>
+            <View style={s.priceRow}>
+              <Text style={s.priceMain}>
+                {formatPrice(bp.pricePerSeatCents, bp.billingCadence)}
+              </Text>
+              {bp.trialDays > 0 && bp.billingCadence !== 'one_time' ? (
+                <Text style={s.priceTrial}>· {bp.trialDays}-day trial</Text>
+              ) : null}
+            </View>
+            {bp.ratingCount > 0 ? (
+              <View style={s.ratingRow}>
+                <Ionicons name="star" size={12} color="#C99632" />
+                <Text style={s.ratingValue}>{(bp.ratingAvg ?? 0).toFixed(1)}</Text>
+                <Text style={s.ratingCount}>
+                  ({bp.ratingCount} review{bp.ratingCount === 1 ? '' : 's'})
+                </Text>
+              </View>
+            ) : null}
+          </View>
+          {error ? (
+            <View style={s.errorBox}>
+              <Ionicons name="warning" size={12} color="#C0392B" />
+              <Text style={s.errorText}>{error}</Text>
+            </View>
+          ) : null}
+          <Pressable
+            style={[s.btnPrimary, pending && { opacity: 0.6 }]}
+            disabled={pending}
+            onPress={(e) => {
+              e.stopPropagation();
+              onSubscribe();
+            }}
+          >
+            <Ionicons
+              name={pending ? 'sync' : 'card-outline'}
+              size={13}
+              color="#FFFFFF"
+            />
+            <Text style={s.btnPrimaryText}>
+              {pending
+                ? 'Opening Stripe…'
+                : signedIn
+                  ? `Subscribe · ${formatPrice(bp.pricePerSeatCents, bp.billingCadence)}`
+                  : 'Sign in to subscribe'}
+            </Text>
+          </Pressable>
+        </View>
+      </View>
+    </Pressable>
   );
 }
 
@@ -542,6 +681,59 @@ const s = StyleSheet.create({
   ratingValue: { fontSize: 12.5, fontWeight: '600', color: '#1C1C1E' },
   ratingCount: { fontSize: 11.5, color: 'rgba(60, 60, 67, 0.6)' },
   ratingEmpty: { fontSize: 11.5, color: 'rgba(60, 60, 67, 0.45)', marginTop: -2 },
+
+  // Featured rail
+  railHead: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  railTitle: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: 'rgba(60, 60, 67, 0.75)',
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
+  },
+  featuredCard: {
+    flexDirection: 'row',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 18,
+    borderWidth: 0.5,
+    borderColor: 'rgba(0,0,0,0.08)',
+    overflow: 'hidden',
+  },
+  featuredCardCompact: { flexDirection: 'column' as const },
+  featuredCover: {
+    width: 280,
+    minHeight: 220,
+    padding: 22,
+    justifyContent: 'flex-end',
+    gap: 10,
+  },
+  featuredFlag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    alignSelf: 'flex-start',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255, 255, 255, 0.18)',
+  },
+  featuredFlagText: { color: '#FFFFFF', fontSize: 10.5, fontWeight: '700', letterSpacing: 0.5 },
+  featuredCoverTitle: {
+    color: '#FFFFFF',
+    fontSize: 22,
+    fontWeight: '700',
+    letterSpacing: -0.3,
+    lineHeight: 28,
+  },
+  featuredBody: { flex: 1, padding: 22, gap: 12 },
+  featuredBlurb: { fontSize: 13.5, color: 'rgba(60, 60, 67, 0.85)', lineHeight: 19 },
+  featuredFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    flexWrap: 'wrap',
+    marginTop: 4,
+  },
   priceMain: { fontSize: 20, fontWeight: '700', color: '#1C1C1E', letterSpacing: -0.3 },
   priceTrial: { fontSize: 11.5, color: 'rgba(60, 60, 67, 0.6)' },
   errorBox: {
