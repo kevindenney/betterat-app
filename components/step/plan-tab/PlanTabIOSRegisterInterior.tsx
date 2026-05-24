@@ -257,6 +257,12 @@ export function PlanTabIOSRegisterInterior({
         )}
       />
 
+      {/* v3 screen-designs Phase B.1 — Plan body ordering becomes
+          WHAT → HOW → WITH WHOM · WHERE → WHY when the identity-deck
+          flag is on. The WITH/WHERE rows come from contextRows so
+          flag-off keeps them at their original position below WHY. */}
+      {FEATURE_FLAGS.STEP_IDENTITY_DECK_V3 ? contextRows : null}
+
       <FieldCard
         eyebrow="Why is this next?"
         icon="help"
@@ -266,7 +272,7 @@ export function PlanTabIOSRegisterInterior({
         readOnly={readOnly}
       />
 
-      {contextRows}
+      {FEATURE_FLAGS.STEP_IDENTITY_DECK_V3 ? null : contextRows}
 
       {(capabilities.length > 0 || onAddCapabilityPress) ? (
         <CapabilityChipSet
