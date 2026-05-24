@@ -18,7 +18,7 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useAuth } from '@/providers/AuthProvider';
 import {
   useMarketplaceBlueprints,
@@ -54,10 +54,31 @@ export default function MarketplacePage() {
   const signedIn = !!user && !isGuest;
   const { width } = useWindowDimensions();
   const isCompact = width < 640;
+  const params = useLocalSearchParams<{ stripe?: string; bp?: string }>();
   const { blueprints, loading } = useMarketplaceBlueprints();
   const checkout = useMarketplaceCheckout();
   const [pendingId, setPendingId] = React.useState<string | null>(null);
   const [errorByBp, setErrorByBp] = React.useState<Record<string, string>>({});
+
+  // Surface a banner when Stripe redirected back from a Checkout
+  // session. The flag dismisses on the user's click or after 10s.
+  const [returnBanner, setReturnBanner] = React.useState<
+    { kind: 'success' | 'cancelled'; bpId: string | null } | null
+  >(null);
+  React.useEffect(() => {
+    const stripe = params.stripe;
+    const bpId = (params.bp as string | undefined) ?? null;
+    if (stripe === 'success') setReturnBanner({ kind: 'success', bpId });
+    else if (stripe === 'cancelled') setReturnBanner({ kind: 'cancelled', bpId });
+  }, [params.stripe, params.bp]);
+  React.useEffect(() => {
+    if (!returnBanner) return;
+    const t = setTimeout(() => setReturnBanner(null), 10_000);
+    return () => clearTimeout(t);
+  }, [returnBanner]);
+  const returnBp = returnBanner?.bpId
+    ? blueprints.find((b) => b.id === returnBanner.bpId)
+    : null;
 
   const handleSubscribe = (bp: MarketplaceBlueprint) => {
     if (!signedIn) {
@@ -89,6 +110,44 @@ export default function MarketplacePage() {
         isCompact && { paddingHorizontal: 16, paddingTop: 24, gap: 20 },
       ]}
     >
+      {returnBanner ? (
+        <View
+          style={[
+            s.returnBanner,
+            returnBanner.kind === 'success' ? s.returnBannerOk : s.returnBannerWarn,
+          ]}
+        >
+          <Ionicons
+            name={returnBanner.kind === 'success' ? 'checkmark-circle' : 'warning'}
+            size={18}
+            color={returnBanner.kind === 'success' ? '#1E8F47' : '#C99632'}
+          />
+          <View style={{ flex: 1 }}>
+            <Text style={s.returnBannerTitle}>
+              {returnBanner.kind === 'success'
+                ? `You're subscribed${returnBp ? ` to ${returnBp.title}` : ''}.`
+                : 'Subscription canceled before completion.'}
+            </Text>
+            <Text style={s.returnBannerCopy}>
+              {returnBanner.kind === 'success'
+                ? 'The steps are now in your timeline. Open the blueprint to start practicing.'
+                : 'No charge was made. You can subscribe again any time.'}
+            </Text>
+          </View>
+          {returnBanner.kind === 'success' && returnBp ? (
+            <Pressable
+              style={s.returnBannerCta}
+              onPress={() => router.push(`/marketplace/${returnBp.id}` as any)}
+            >
+              <Text style={s.returnBannerCtaText}>Open</Text>
+            </Pressable>
+          ) : null}
+          <Pressable onPress={() => setReturnBanner(null)} hitSlop={8}>
+            <Ionicons name="close" size={16} color="rgba(60, 60, 67, 0.55)" />
+          </Pressable>
+        </View>
+      ) : null}
+
       <View style={s.header}>
         <Text style={s.eyebrow}>Marketplace</Text>
         <Text style={[s.h1, isCompact && { fontSize: 22 }]}>
@@ -210,6 +269,33 @@ const s = StyleSheet.create({
     alignSelf: 'center',
     gap: 28,
   },
+  returnBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderRadius: 12,
+    borderWidth: 0.5,
+  },
+  returnBannerOk: {
+    backgroundColor: 'rgba(30, 143, 71, 0.10)',
+    borderColor: 'rgba(30, 143, 71, 0.25)',
+  },
+  returnBannerWarn: {
+    backgroundColor: 'rgba(201, 150, 50, 0.12)',
+    borderColor: 'rgba(201, 150, 50, 0.30)',
+  },
+  returnBannerTitle: { fontSize: 13.5, fontWeight: '600', color: '#1C1C1E' },
+  returnBannerCopy: { fontSize: 12, color: 'rgba(60, 60, 67, 0.7)', marginTop: 2 },
+  returnBannerCta: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 8,
+    backgroundColor: '#28406B',
+  },
+  returnBannerCtaText: { color: '#FFFFFF', fontSize: 12.5, fontWeight: '600' },
+
   header: { gap: 6, maxWidth: 640 },
   eyebrow: {
     fontSize: 11,
