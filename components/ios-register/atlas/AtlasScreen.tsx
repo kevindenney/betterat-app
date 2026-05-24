@@ -1273,13 +1273,29 @@ function FrameF4({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
   // alongside Phase A1's user preferences surface.
   const [anchorPromptDismissed, setAnchorPromptDismissed] = useState(false);
   // Real institution POIs + peer step pins for Baltimore. F4 camera is
-  // -76.61, 39.29 — see AtlasMapLibreCanvas.FRAME_CAMERA.
+  // centered on JHSON campus (39.297, -76.591) — see FRAME_CAMERA.
   const { pins: framePins } = useAtlasFramePins({
-    lat: 39.29,
-    lng: -76.61,
+    lat: 39.297,
+    lng: -76.591,
     interestSlug: 'nursing',
     radiusKm: 25,
   });
+  // Next event — for the nursing demo we fall back to a fixture clinical
+  // at JHH 4 South 7am tomorrow so the amber NEXT pill always reads.
+  // When useAtlasNextEvent surfaces a real nursing event we'll prefer
+  // that. The amber pill answers Emily's first question on landing:
+  // "where am I tomorrow?"
+  const nextNursing = useMemo(() => {
+    if (handlers.nextEvent?.lat && handlers.nextEvent?.lng) return handlers.nextEvent;
+    return {
+      label: 'Clinical',
+      when: 'Tmrw 7am',
+      where: 'JHH 4 South',
+      conditions: 'JHH 4 South · cardiac',
+      lat: 39.2966,
+      lng: -76.5919,
+    } as AtlasNextEvent;
+  }, [handlers.nextEvent]);
   // Walk-time annotations between same-campus institution pins —
   // e.g. JHH East Baltimore ↔ Pinkard sim lab "8 min".
   const walkAnnotations = useWalkTimeAnnotations(framePins);
@@ -1310,7 +1326,15 @@ function FrameF4({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
       {!embedded && <StatusBar />}
       <View style={shellStyles.mapArea}>
         {handlers.useMapLibre ? (
-          <AtlasMapLibreCanvas frame="f4" pins={pins} />
+          <AtlasMapLibreCanvas
+            frame="f4"
+            pins={pins}
+            nextEvent={
+              nextNursing.lat != null && nextNursing.lng != null
+                ? { ...nextNursing, lat: nextNursing.lat, lng: nextNursing.lng }
+                : null
+            }
+          />
         ) : (
           <BaltimoreColdMap />
         )}

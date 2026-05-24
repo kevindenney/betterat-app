@@ -104,7 +104,10 @@ const FRAME_CAMERA: Record<AtlasFrameId, CameraPreset> = {
   f1: { center: [114.18, 22.295], zoom: 11.2 },       // Causeway Bay overview
   f2: { center: [114.182, 22.286], zoom: 14.2 },       // Victoria Harbour close-up
   f3: { center: [60, 25], zoom: 1.4 },                 // World — Atlantic + Eurasia
-  f4: { center: [-76.61, 39.29], zoom: 11 },           // Baltimore
+  // F4 default centers on JHSON's east-Baltimore campus so Pinkard SIM,
+  // JHH, the preceptor diamonds, and the active cohort cells all land in
+  // the first-load view. Wider 11.x zoom hid Emily's base entirely.
+  f4: { center: [-76.591, 39.297], zoom: 13.4 },       // JHSON · JHH campus
   f5: { center: [-76.595, 39.30], zoom: 12.5 },        // East Baltimore (Hopkins)
   f6: { center: [114.182, 22.286], zoom: 13.4 },       // Commit-mode at Victoria Harbour
   f7: { center: [85.45, 23.27], zoom: 9.8 },           // Ranchi · Jharkhand · entrepreneur network
