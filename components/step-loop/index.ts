@@ -20,3 +20,11 @@ export type { PhaseId, PhaseState, PhaseTabsProps } from './PhaseTabs';
 
 export { StepCard } from './StepCard';
 export type { StepCardProps } from './StepCard';
+
+// v3 screen-designs Phase B — step cover identity deck (gated by
+// STEP_IDENTITY_DECK_V3 at consumer sites; the primitives are flag-agnostic).
+export { IdentityDeck } from './IdentityDeck';
+export type { IdentityDeckProps, IdentityDeckStateVariant } from './IdentityDeck';
+
+export { PeerReflectionQuote } from './PeerReflectionQuote';
+export type { PeerReflectionQuoteProps } from './PeerReflectionQuote';

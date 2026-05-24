@@ -41,10 +41,13 @@ import { StepPinInterests } from './StepPinInterests';
 import { StepProvenanceBanner } from './StepProvenanceBanner';
 import { FEATURE_FLAGS } from '@/lib/featureFlags';
 import {
+  IdentityDeck,
+  PeerReflectionQuote,
   PhaseTabs,
   StatePill,
   StepCard,
   TopHeader,
+  type IdentityDeckStateVariant,
   type PhaseId,
   type PhaseState,
   type StatePillVariant,
@@ -1193,6 +1196,65 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab }
       },
     });
 
+    // v3 screen-designs Phase B — when STEP_IDENTITY_DECK_V3 is on we
+    // replace headerInner + belowTitleRow with <IdentityDeck> +
+    // <PeerReflectionQuote>. The state pill at the top of <StepCard>'s
+    // state head stays for continuity; the deck carries a secondary
+    // phase grammar pill in its own header row. The StepDiscussionPeek
+    // banner is suppressed because the same latest peer comment surfaces
+    // as the in-deck quote.
+    const useIdentityDeck = FEATURE_FLAGS.STEP_IDENTITY_DECK_V3;
+
+    const deckStateVariant: IdentityDeckStateVariant =
+      pillSpec.variant === 'complete'
+        ? 'complete'
+        : pillSpec.variant === 'live'
+          ? 'live'
+          : 'planned';
+    const deckStateLabel = useIdentityDeck
+      ? pillSpec.variant === 'complete'
+        ? 'complete'
+        : pillSpec.variant === 'live' || pillSpec.variant === 'current'
+          ? 'in play'
+          : 'planned'
+      : undefined;
+    const deckCounter =
+      useIdentityDeck && blueprintChrome?.stepNumber != null
+        ? blueprintChrome.totalSteps != null
+          ? `Step ${blueprintChrome.stepNumber} of ${blueprintChrome.totalSteps}`
+          : `Step ${blueprintChrome.stepNumber}`
+        : undefined;
+
+    const identityDeckEl = useIdentityDeck ? (
+      <IdentityDeck
+        title={step.title || `${vocab('Learning Event')}`}
+        counter={deckCounter}
+        stateLabel={deckStateLabel}
+        stateVariant={deckStateVariant}
+        blueprintTitle={blueprintChrome?.blueprintTitle ?? null}
+        blueprintAuthorName={blueprintChrome?.authorName ?? null}
+        peersCount={blueprintChrome?.subscriberCount ?? null}
+        peersLabel={vocab('Learner') || 'people'}
+        crossInterestSlot={
+          <StepCombinatorsRow
+            step={step}
+            blueprintTitle={blueprintChrome?.blueprintTitle ?? null}
+            blueprintAuthorName={null}
+            viewerSteps={viewerInterestSteps}
+          />
+        }
+      />
+    ) : null;
+
+    const peerQuoteEl =
+      useIdentityDeck && discussionPeek?.latest ? (
+        <PeerReflectionQuote
+          authorName={discussionPeek.latest.authorName ?? 'A peer'}
+          body={discussionPeek.latest.body ?? ''}
+          onReply={goDiscussion}
+        />
+      ) : null;
+
     return (
       <View style={[styles.container, stepLoopShellStyles.screen]}>
         <TopHeader
@@ -1217,7 +1279,7 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab }
             The small "PRE-CLINICAL · STEP 5" eyebrow above the title now
             carries the parent-program context; jump-to-blueprint and
             fleet view can return via the ••• menu in a follow-up. */}
-        {showDiscussionPeek && discussionPeek && activeTab !== 'discussion' ? (
+        {!useIdentityDeck && showDiscussionPeek && discussionPeek && activeTab !== 'discussion' ? (
           <StepDiscussionPeek
             noteCount={discussionPeek.noteCount}
             latestSnippet={discussionPeek.latest.body}
@@ -1229,8 +1291,8 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab }
           scrollAsUnit
           pill={<StatePill variant={pillSpec.variant} label={pillSpec.label} />}
           onMenuPress={() => setMenuOpen(true)}
-          titleBlock={headerInner}
-          belowTitle={belowTitleRow}
+          titleBlock={useIdentityDeck ? identityDeckEl : headerInner}
+          belowTitle={useIdentityDeck ? peerQuoteEl : belowTitleRow}
           phaseTabs={
             <PhaseTabs
               plan={planPhase}
