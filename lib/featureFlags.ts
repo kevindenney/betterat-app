@@ -641,10 +641,15 @@ export const FEATURE_FLAGS = {
    *                                 peer comment on this step, only when
    *                                 discussionPeek surfaces one
    *
-   * Off by default. Flip via EXPO_PUBLIC_FF_STEP_IDENTITY_DECK_V3=true.
+   * On by default — Screen 01 (the step cover identity deck) is the
+   * canonical L1 surface for the zoom canvas; the existing Plan body
+   * (Pin from library, beats, capabilities, cross-interest suggestions,
+   * etc.) keeps rendering underneath the deck unchanged. Flip
+   * EXPO_PUBLIC_FF_STEP_IDENTITY_DECK_V3=false to revert to the legacy
+   * headerInner + belowTitleRow chrome.
    * Per docs/redesign/v3 · The reflecting & suggesting system, screen 01.
    */
-  STEP_IDENTITY_DECK_V3: readBooleanEnv('EXPO_PUBLIC_FF_STEP_IDENTITY_DECK_V3', false),
+  STEP_IDENTITY_DECK_V3: readBooleanEnv('EXPO_PUBLIC_FF_STEP_IDENTITY_DECK_V3', true),
 
   /**
    * v3 screen-designs Phase A — Inbox as the 5th bottom tab.
