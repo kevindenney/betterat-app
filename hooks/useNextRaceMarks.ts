@@ -79,6 +79,12 @@ export function useNextRaceMarks({ regattaId, enabled = true }: UseNextRaceMarks
           lng: Number(m.longitude),
           kind: 'race-mark' as const,
           label: m.name || `#${m.sequence_order ?? '?'}`,
+          subtitle: [
+            m.mark_type ? String(m.mark_type) : null,
+            m.sequence_order != null ? `Mark ${m.sequence_order}` : null,
+          ]
+            .filter(Boolean)
+            .join(' · ') || undefined,
         }));
     },
   });

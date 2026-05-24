@@ -43,7 +43,7 @@ import {
   JhuCuratedMap,
   CommitHarbourMap,
 } from './AtlasMaps';
-import { AtlasMapLibreCanvas } from './AtlasMapLibreCanvas';
+import { AtlasMapLibreCanvas, type AtlasPinSpec } from './AtlasMapLibreCanvas';
 import { useAtlasFramePins } from '@/hooks/useAtlasFramePins';
 import { useNextRaceMarks } from '@/hooks/useNextRaceMarks';
 import { useWalkTimeAnnotations } from '@/hooks/useWalkTimeAnnotations';
@@ -625,6 +625,34 @@ function MockTabBar({ activeTab = 'atlas' }: { activeTab?: 'practice' | 'library
   );
 }
 
+/**
+ * Eyebrow copy for a tapped pin's detail sheet. Race marks read as
+ * "RACE MARK", institution POIs read as their grammar (CLUB / SITE /
+ * RACING AREA), peer pins surface as the relationship label.
+ */
+function eyebrowForPin(pin: AtlasPinSpec): string {
+  if (pin.kind === 'race-mark') return 'RACE MARK';
+  if (pin.kind === 'poi-club' || pin.kind === 'poi-club-anchor') return 'CLUB';
+  if (pin.kind === 'poi-racing-area') return 'RACING AREA';
+  if (pin.kind === 'poi-hospital') return 'HOSPITAL';
+  if (pin.kind === 'poi-sim-lab') return 'SIM LAB';
+  if (pin.kind === 'poi-preceptor') return 'PRECEPTOR';
+  if (pin.kind === 'you') return 'YOU';
+  if (pin.kind === 'crew') return 'CREW';
+  if (pin.kind === 'fleet') return 'FLEET';
+  if (pin.kind === 'following') return 'FOLLOWING';
+  return 'PIN';
+}
+
+/**
+ * Fallback body for pin detail sheets when the pin has no explicit
+ * subtitle — a terse coord readout keeps the sheet non-empty so the
+ * primary CTA reads as related-to-something.
+ */
+function bodyForPin(pin: AtlasPinSpec): string {
+  return `${pin.lat.toFixed(4)} N · ${pin.lng.toFixed(4)} E`;
+}
+
 // ---------------------------------------------------------------------------
 // F1 — Felix · first-run · Causeway Bay overview
 // ---------------------------------------------------------------------------
@@ -654,6 +682,14 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
   const { data: raceMarkPins = [] } = useNextRaceMarks({
     regattaId: next?.event_kind === 'regatta' ? next.event_id : null,
   });
+  // Pin tap target — when a race-mark / POI / peer pin is tapped, store
+  // it so the bottom sheet can swap from the default "Plan a step" CTA
+  // to a context-specific detail card. Null = default sheet.
+  const [selectedPin, setSelectedPin] = useState<AtlasPinSpec | null>(null);
+  const handlePinPress = useCallback((pin: AtlasPinSpec) => {
+    setSelectedPin(pin);
+  }, []);
+  const clearSelectedPin = useCallback(() => setSelectedPin(null), []);
   // Chip-driven layer state. "all" is the anchor — when active, every
   // peer relationship + wind + tide shows. Toggling specific chips
   // (You/Crew/Fleet/Following) filters the peer pins shown.
@@ -749,6 +785,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
             }
             onMapPress={commitMode ? handleMapPress : undefined}
             candidate={candidate}
+            onPinPress={handlePinPress}
           />
         ) : (
           <HongKongOverviewMap />
@@ -869,6 +906,22 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
             },
           }}
           secondary={{ label: 'Cancel', onPress: exitCommit }}
+          bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
+        />
+      ) : selectedPin ? (
+        <BottomSheet
+          eyebrow={eyebrowForPin(selectedPin)}
+          title={selectedPin.label ?? 'Pin'}
+          body={selectedPin.subtitle ?? bodyForPin(selectedPin)}
+          primary={{
+            label: 'Plan a step here',
+            icon: 'add',
+            onPress: () => {
+              handlers.onPrimaryAction?.({ lat: selectedPin.lat, lng: selectedPin.lng });
+              clearSelectedPin();
+            },
+          }}
+          secondary={{ label: 'Close', onPress: clearSelectedPin }}
           bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
         />
       ) : hasNext ? (

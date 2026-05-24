@@ -64,6 +64,9 @@ export function useAtlasPeerSteps({
         interest_filter: interestSlug,
       });
       if (error) {
+        // Surface RPC failures — silently swallowing them once already
+        // hid the RETURNS-TABLE column-shadow bug that wiped peer pins.
+        console.warn('[atlas] atlas_peer_steps_near error', error);
         return [];
       }
       return (data ?? []) as AtlasPeerStep[];

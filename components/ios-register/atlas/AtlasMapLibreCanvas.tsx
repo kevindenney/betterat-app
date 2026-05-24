@@ -25,7 +25,14 @@
  */
 
 import React, { useCallback } from 'react';
-import { Platform, StyleSheet, Text, View, type NativeSyntheticEvent } from 'react-native';
+import {
+  Platform,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+  type NativeSyntheticEvent,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import {
   Map as MLMap,
@@ -156,6 +163,12 @@ export interface AtlasPinSpec {
    * onto nearby POIs.
    */
   glowCluster?: string;
+  /**
+   * Optional secondary line surfaced when the pin is tapped (e.g. mark
+   * type for race-marks: "Windward · Mark 1"). Renderer doesn't show it
+   * inline — it's read by the consuming frame to populate detail sheets.
+   */
+  subtitle?: string;
 }
 
 interface AtlasMapLibreCanvasProps {
@@ -175,7 +188,35 @@ interface AtlasMapLibreCanvasProps {
    * Used by commit-mode to show "you are about to anchor here."
    */
   candidate?: { lng: number; lat: number } | null;
+  /**
+   * Fires when a pin is tapped. The whole pin spec is passed back so
+   * the consuming frame can decide what to do (e.g. open a race-mark
+   * detail sheet, focus a peer profile, etc.). Pin tap only fires for
+   * pins that have a tappable kind — wind/tide/cohort/walk-annotation
+   * are decorative and ignored.
+   */
+  onPinPress?: (pin: AtlasPinSpec) => void;
 }
+
+/**
+ * Pin kinds that fire onPinPress when tapped. Decorative overlays
+ * (wind/tide arrows, cohort cells, walk annotations) are excluded so
+ * a stray tap on the wind field doesn't open a sheet.
+ */
+const TAPPABLE_PIN_KINDS = new Set<AtlasPinSpec['kind']>([
+  'race-mark',
+  'you',
+  'crew',
+  'fleet',
+  'following',
+  'own',
+  'poi-club',
+  'poi-club-anchor',
+  'poi-racing-area',
+  'poi-hospital',
+  'poi-sim-lab',
+  'poi-preceptor',
+]);
 
 export function AtlasMapLibreCanvas({
   frame,
@@ -183,6 +224,7 @@ export function AtlasMapLibreCanvas({
   nextEvent,
   onMapPress,
   candidate,
+  onPinPress,
 }: AtlasMapLibreCanvasProps) {
   // Hooks first, then early returns — rules-of-hooks compliance.
   const handlePress = useCallback(
@@ -221,8 +263,9 @@ export function AtlasMapLibreCanvas({
           }}
         />
 
-        {pins.map((pin) => (
-          <MLMarker key={pin.id} id={pin.id} lngLat={[pin.lng, pin.lat]}>
+        {pins.map((pin) => {
+          const isTappable = Boolean(onPinPress) && TAPPABLE_PIN_KINDS.has(pin.kind);
+          const inner = (
             <LabeledPin
               kind={pin.kind}
               label={pin.label}
@@ -230,8 +273,19 @@ export function AtlasMapLibreCanvas({
               glowCluster={pin.glowCluster}
               showLabel={shouldShowLabel(pin, pins)}
             />
-          </MLMarker>
-        ))}
+          );
+          return (
+            <MLMarker key={pin.id} id={pin.id} lngLat={[pin.lng, pin.lat]}>
+              {isTappable ? (
+                <Pressable onPress={() => onPinPress?.(pin)} hitSlop={6}>
+                  {inner}
+                </Pressable>
+              ) : (
+                inner
+              )}
+            </MLMarker>
+          );
+        })}
 
         {nextEvent ? (
           <MLMarker
