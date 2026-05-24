@@ -1045,6 +1045,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
               next?.label ? { label: 'Close', onPress: clearSelectedPin } : undefined
             }
             bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
+            initialState="expanded"
           />
         ) : (
           <BottomSheet
@@ -1061,6 +1062,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
             }}
             secondary={{ label: 'Close', onPress: clearSelectedPin }}
             bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
+            initialState="expanded"
           />
         )
       ) : hasNext ? (
@@ -1603,6 +1605,13 @@ interface BottomSheetProps {
   statsRow?: StatItem[];
   primary?: { label: string; icon?: keyof typeof Ionicons.glyphMap; onPress?: () => void };
   secondary?: { label: string; icon?: keyof typeof Ionicons.glyphMap; onPress?: () => void };
+  /**
+   * Initial sheet state. Defaults to 'mid' for ambient sheets (persistent
+   * next-event card). Pin-detail sheets pass 'expanded' so body/provenance
+   * lines are visible immediately on first tap — the user asked for
+   * detail; they shouldn't have to also tap the pull-tab to see it.
+   */
+  initialState?: 'handle' | 'mid' | 'expanded';
 }
 
 function BottomSheet({
@@ -1614,13 +1623,13 @@ function BottomSheet({
   primary,
   secondary,
   bottomOffset = 0,
+  initialState = 'mid',
 }: BottomSheetProps & { bottomOffset?: number }) {
   // Three-state sheet: HANDLE (28pt — just the pull tab, true edge-to-
   // edge map below), MID (~110pt — handle + eyebrow + primary CTA), and
   // EXPANDED (full content). Tap the handle to cycle: EXPANDED → MID →
-  // HANDLE → EXPANDED. Default MID so first-time users see context but
-  // the map isn't crowded.
-  const [state, setState] = useState<'handle' | 'mid' | 'expanded'>('mid');
+  // HANDLE → EXPANDED.
+  const [state, setState] = useState<'handle' | 'mid' | 'expanded'>(initialState);
   const cycle = useCallback(() => {
     setState((v) => (v === 'expanded' ? 'mid' : v === 'mid' ? 'handle' : 'expanded'));
   }, []);
