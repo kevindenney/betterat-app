@@ -856,11 +856,24 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
   }, []);
   const handleDropPinPress = useCallback(() => {
     if (commitMode) exitCommit();
-    else setCommitMode(true);
+    else {
+      // Entering commit-mode — clear any other sheet so the pin-drop
+      // banner / candidate sheet doesn't render under the Layers panel.
+      setLayersOpen(false);
+      setSelectedPin(null);
+      setCommitMode(true);
+    }
   }, [commitMode, exitCommit]);
   const handleMapPress = useCallback(
     (coords: { lng: number; lat: number }) => {
-      if (commitMode) setCandidate(coords);
+      if (commitMode) {
+        // Same housekeeping as entering commit-mode — if the user opens
+        // Layers after entering commit-mode and then taps the map, the
+        // resulting PIN DROPPED sheet would stack inside the Layers card.
+        setLayersOpen(false);
+        setSelectedPin(null);
+        setCandidate(coords);
+      }
     },
     [commitMode],
   );

@@ -323,7 +323,11 @@ export function AtlasMapLibreCanvas({
                 share a venue coord. The pill is informational, not a
                 tap target — tapping the NEXT card belongs to the sheet. */}
             <View pointerEvents="none">
-              <NextEventMarker label={nextEvent.label} when={nextEvent.when} />
+              <NextEventMarker
+                label={nextEvent.label}
+                when={nextEvent.when}
+                conditions={nextEvent.conditions}
+              />
             </View>
           </MLMarker>
         ) : null}
@@ -724,13 +728,26 @@ function PinGlyph({
  * the canonical grammar. The outer MLMarker handles geographic
  * anchoring; this component is purely visual.
  */
-function NextEventMarker({ label, when }: { label: string; when?: string }) {
+function NextEventMarker({
+  label,
+  when,
+  conditions,
+}: {
+  label: string;
+  when?: string;
+  conditions?: string;
+}) {
   const eyebrow = `NEXT · ${label.toUpperCase()}${when ? ` · ${when.toUpperCase()}` : ''}`;
   return (
     <View style={styles.nextTag}>
       <Text style={styles.nextTagEyebrow} numberOfLines={1}>
         {eyebrow}
       </Text>
+      {conditions ? (
+        <Text style={styles.nextTagDetail} numberOfLines={1}>
+          {conditions}
+        </Text>
+      ) : null}
     </View>
   );
 }
@@ -861,6 +878,13 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#8A4B00',
     letterSpacing: 0.7,
+  },
+  nextTagDetail: {
+    marginTop: 1,
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#5A3000',
+    letterSpacing: 0.2,
   },
   candidatePin: {
     width: 26,
