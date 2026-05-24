@@ -39,6 +39,8 @@ import { PlanWhereCard } from './plan-tab/PlanWhereCard';
 import { useLibraryBeforeBinding } from '@/hooks/useStepLibraryBefore';
 import { buildSuggestions, crossInterestToMentorInput } from '@/services/SuggestionsService';
 import { useCrossInterestSuggestions } from '@/hooks/useCrossInterestSuggestions';
+import { useStepBeatsBinding } from '@/hooks/useStepBeats';
+import { BeatsList } from '@/components/step/do-tab/BeatsList';
 
 interface PlanTabProps {
   stepId?: string;
@@ -319,6 +321,20 @@ export function PlanTab({
               readOnly={readOnly}
               onChange={handleLocationChange}
             />
+            {/* Beats render on Plan as well as Do — the run-through
+                belongs in planning, and the same per-step beats are
+                surfaced live on Do for capture. Single shared dataset
+                keyed by stepId. Hidden when no stepId (new-step
+                composer). */}
+            {stepId ? (
+              <PlanBeatsSection
+                stepId={stepId}
+                readOnly={readOnly}
+                interestId={interestId}
+                interestName={interestName}
+                interestSlug={interestSlug}
+              />
+            ) : null}
           </>
         }
       />
@@ -1327,3 +1343,37 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 });
+
+/**
+ * <PlanBeatsSection> — mounts BeatsList on the Plan tab with the same
+ * binding the Do tab uses. Hook usage requires a sub-component since
+ * useStepBeatsBinding needs a stable stepId at call time and the parent
+ * renders multiple PlanTab branches conditionally.
+ */
+function PlanBeatsSection({
+  stepId,
+  readOnly,
+  interestId,
+  interestName,
+  interestSlug,
+}: {
+  stepId: string;
+  readOnly?: boolean;
+  interestId?: string;
+  interestName?: string;
+  interestSlug?: string;
+}) {
+  const beats = useStepBeatsBinding(stepId);
+  return (
+    <BeatsList
+      beats={beats.beats}
+      readOnly={readOnly}
+      interestSlug={interestSlug ?? null}
+      interestName={interestName ?? null}
+      interestId={interestId ?? null}
+      onAdd={beats.onAdd}
+      onEdit={beats.onEdit}
+      onDelete={beats.onDelete}
+    />
+  );
+}
