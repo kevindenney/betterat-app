@@ -91,26 +91,16 @@ export function ZoomRailIndicator({
               onLongPress={() => setMenuOpen(true)}
               delayLongPress={250}
               hitSlop={6}
-              style={[
-                styles.pill,
-                active ? styles.pillActive : styles.pillInactive,
-                active && lvl === 1 && styles.pillActiveLabeled,
-                active && lvl === 2 && styles.pillActiveLabeled,
-                active && lvl === 3 && styles.pillActiveLabeled,
-                active && lvl === 4 && styles.pillActiveLabeled,
-              ]}
+              style={styles.cell}
               accessibilityRole="button"
               accessibilityLabel={`Zoom to ${ZOOM_LEVEL_LABELS[lvl].toLowerCase()}`}
             >
               {active ? (
-                <View style={styles.pillActiveContent}>
-                  <Text style={styles.pillActiveLabelText}>{ZOOM_LEVEL_LABELS[lvl]}</Text>
-                  <View style={styles.pillActiveNumberCircle}>
-                    <Text style={styles.pillActiveNumberText}>{lvl}</Text>
-                  </View>
+                <View style={styles.activeChip}>
+                  <Text style={styles.activeText}>{ZOOM_LEVEL_LABELS[lvl]}</Text>
                 </View>
               ) : (
-                <Text style={styles.pillInactiveText}>{lvl}</Text>
+                <Text style={styles.inactiveText}>{ZOOM_LEVEL_LABELS[lvl]}</Text>
               )}
             </Pressable>
           );
@@ -119,10 +109,6 @@ export function ZoomRailIndicator({
     </View>
   );
 }
-
-const PILL_HEIGHT = 26;
-const PILL_WIDTH = 26;
-const ACTIVE_PILL_WIDTH = 78;
 
 const styles = StyleSheet.create({
   rail: {
@@ -133,63 +119,44 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   stack: {
+    // Tall vertical capsule containing all four cells — matches the
+    // canonical Screen 07 "STEP / FEW / SEASON / ALL" rail.
+    backgroundColor: 'rgba(120, 120, 128, 0.18)',
+    borderRadius: 22,
+    paddingVertical: 6,
+    paddingHorizontal: 6,
+    alignItems: 'center',
     gap: 2,
-    alignItems: 'flex-end',
   },
-  pill: {
-    height: PILL_HEIGHT,
-    borderRadius: PILL_HEIGHT / 2,
+  cell: {
+    minWidth: 48,
+    height: 32,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  pillInactive: {
-    width: PILL_WIDTH,
-    backgroundColor: '#FFFFFF',
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: IOS_REGISTER.separator,
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    shadowOffset: { width: 0, height: 1 },
-    elevation: 1,
-  },
-  pillInactiveText: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: IOS_REGISTER.labelSecondary,
-  },
-  pillActive: {
-    width: ACTIVE_PILL_WIDTH,
-    backgroundColor: '#1F1F1F',
     paddingHorizontal: 4,
-    paddingLeft: 12,
-    flexDirection: 'row',
   },
-  pillActiveLabeled: {},
-  pillActiveContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    width: '100%',
+  activeChip: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 14,
+    backgroundColor: '#1F1F1F',
+    shadowColor: '#000',
+    shadowOpacity: 0.18,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 3,
   },
-  pillActiveLabelText: {
+  activeText: {
     color: '#FFFFFF',
     fontSize: 11,
     fontWeight: '700',
-    letterSpacing: 0.5,
+    letterSpacing: 0.6,
   },
-  pillActiveNumberCircle: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: IOS_REGISTER.accentUserAction,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  pillActiveNumberText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '600',
+  inactiveText: {
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 0.6,
+    color: 'rgba(60, 60, 67, 0.35)',
   },
   // Long-press menu
   menu: {

@@ -12,9 +12,9 @@ export type ZoomLevel = 1 | 2 | 3 | 4;
 
 export const ZOOM_LEVEL_LABELS: Record<ZoomLevel, string> = {
   1: 'STEP',
-  2: 'WEEK',
+  2: 'FEW',
   3: 'SEASON',
-  4: 'YEARS',
+  4: 'ALL',
 };
 
 export type StepStatus = 'plan' | 'do' | 'reflect' | 'reflected' | 'done';
