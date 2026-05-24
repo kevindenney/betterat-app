@@ -11,6 +11,7 @@ import React from 'react';
 import {
   View,
   Text,
+  TextInput,
   StyleSheet,
   ScrollView,
   Pressable,
@@ -62,6 +63,23 @@ export default function MarketplacePage() {
 
   // Surface a banner when Stripe redirected back from a Checkout
   // session. The flag dismisses on the user's click or after 10s.
+  const [search, setSearch] = React.useState('');
+  const [trialOnly, setTrialOnly] = React.useState(false);
+
+  const filtered = React.useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return blueprints.filter((bp) => {
+      if (trialOnly && (bp.trialDays <= 0 || bp.billingCadence === 'one_time')) return false;
+      if (!q) return true;
+      return (
+        bp.title.toLowerCase().includes(q) ||
+        bp.authorName.toLowerCase().includes(q) ||
+        (bp.orgName ?? '').toLowerCase().includes(q) ||
+        (bp.description ?? '').toLowerCase().includes(q)
+      );
+    });
+  }, [blueprints, search, trialOnly]);
+
   const [returnBanner, setReturnBanner] = React.useState<
     { kind: 'success' | 'cancelled'; bpId: string | null } | null
   >(null);
@@ -159,24 +177,83 @@ export default function MarketplacePage() {
         </Text>
       </View>
 
+      {!loading && blueprints.length > 0 ? (
+        <View style={[s.filterRow, isCompact && { flexDirection: 'column', gap: 10 }]}>
+          <View style={[s.searchBox, isCompact && { width: '100%' }]}>
+            <Ionicons name="search" size={14} color="rgba(60, 60, 67, 0.55)" />
+            <TextInput
+              value={search}
+              onChangeText={setSearch}
+              placeholder="Search title, author, or org…"
+              placeholderTextColor="rgba(60, 60, 67, 0.45)"
+              style={s.searchInput}
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+            {search ? (
+              <Pressable onPress={() => setSearch('')} hitSlop={8}>
+                <Ionicons name="close-circle" size={14} color="rgba(60, 60, 67, 0.45)" />
+              </Pressable>
+            ) : null}
+          </View>
+          <Pressable
+            style={[s.filterChip, trialOnly && s.filterChipOn]}
+            onPress={() => setTrialOnly((v) => !v)}
+          >
+            <Ionicons
+              name={trialOnly ? 'checkmark' : 'time-outline'}
+              size={13}
+              color={trialOnly ? '#28406B' : 'rgba(60, 60, 67, 0.65)'}
+            />
+            <Text style={[s.filterChipText, trialOnly && s.filterChipTextOn]}>
+              Trial available
+            </Text>
+          </Pressable>
+          {search || trialOnly ? (
+            <Text style={s.filterCount}>
+              {filtered.length} of {blueprints.length}
+            </Text>
+          ) : null}
+        </View>
+      ) : null}
+
       {loading ? (
         <View style={s.loadingCard}>
           <ActivityIndicator color="#28406B" />
           <Text style={s.loadingText}>Loading marketplace…</Text>
         </View>
-      ) : blueprints.length === 0 ? (
+      ) : filtered.length === 0 ? (
         <View style={s.emptyCard}>
-          <Ionicons name="storefront-outline" size={28} color="rgba(60, 60, 67, 0.4)" />
-          <Text style={s.emptyTitle}>No marketplace blueprints yet</Text>
-          <Text style={s.emptyCopy}>
-            Authors haven't listed any independent blueprints to Stripe yet. Check back soon —
-            or, if you're an author, switch your blueprint to Independent and click "List on
-            Stripe" in the Studio editor.
+          <Ionicons
+            name={blueprints.length === 0 ? 'storefront-outline' : 'search-outline'}
+            size={28}
+            color="rgba(60, 60, 67, 0.4)"
+          />
+          <Text style={s.emptyTitle}>
+            {blueprints.length === 0
+              ? 'No marketplace blueprints yet'
+              : 'No matches for these filters'}
           </Text>
+          <Text style={s.emptyCopy}>
+            {blueprints.length === 0
+              ? 'Authors haven\'t listed any independent blueprints to Stripe yet. Check back soon — or, if you\'re an author, switch your blueprint to Independent and click "List on Stripe" in the Studio editor.'
+              : 'Try clearing the search or the Trial filter to see all blueprints again.'}
+          </Text>
+          {blueprints.length > 0 ? (
+            <Pressable
+              onPress={() => {
+                setSearch('');
+                setTrialOnly(false);
+              }}
+              style={s.btnPrimary}
+            >
+              <Text style={s.btnPrimaryText}>Clear filters</Text>
+            </Pressable>
+          ) : null}
         </View>
       ) : (
         <View style={[s.grid, isCompact && { gap: 12 }]}>
-          {blueprints.map((bp) => {
+          {filtered.map((bp) => {
             const err = errorByBp[bp.id];
             const isPending = pendingId === bp.id;
             return (
@@ -269,6 +346,52 @@ const s = StyleSheet.create({
     alignSelf: 'center',
     gap: 28,
   },
+  filterRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    flexWrap: 'wrap',
+  },
+  searchBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 10,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 0.5,
+    borderColor: 'rgba(0,0,0,0.08)',
+    minWidth: 280,
+    flexGrow: 1,
+    maxWidth: 480,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 13.5,
+    color: '#1C1C1E',
+    paddingVertical: 0,
+    ...(typeof document !== 'undefined' ? ({ outlineStyle: 'none' } as any) : {}),
+  },
+  filterChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 999,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 0.5,
+    borderColor: 'rgba(0,0,0,0.08)',
+  },
+  filterChipOn: {
+    backgroundColor: 'rgba(40, 64, 107, 0.10)',
+    borderColor: 'rgba(40, 64, 107, 0.30)',
+  },
+  filterChipText: { fontSize: 12.5, fontWeight: '500', color: 'rgba(60, 60, 67, 0.75)' },
+  filterChipTextOn: { color: '#28406B', fontWeight: '600' },
+  filterCount: { fontSize: 12, color: 'rgba(60, 60, 67, 0.6)', marginLeft: 'auto' as const },
+
   returnBanner: {
     flexDirection: 'row',
     alignItems: 'center',
