@@ -131,6 +131,7 @@ export interface AtlasPinSpec {
     | 'candidate'
     | 'race-mark'
     | 'poi-club'
+    | 'poi-club-anchor'
     | 'poi-racing-area'
     | 'poi-hospital'
     | 'poi-sim-lab'
@@ -371,6 +372,9 @@ const PIN_TONE: Record<
   'race-mark': { size: 16, color: '#E07A3C', shape: 'numbered' },
   // Institution POIs — circles, iOS systemBlue
   'poi-club': { size: 14, color: 'rgba(0, 122, 255, 0.95)', shape: 'circle' },
+  // "Your base" club — anchor icon, deeper navy. Distinct from generic
+  // institution circles so the user's home club reads as "this is mine".
+  'poi-club-anchor': { size: 22, color: 'rgba(28, 28, 56, 0.95)', shape: 'circle' },
   'poi-racing-area': { size: 11, color: 'rgba(0, 122, 255, 0.65)', shape: 'circle' },
   'poi-hospital': { size: 14, color: 'rgba(0, 122, 255, 0.95)', shape: 'circle' },
   // Curation pins — diamonds. Sim-lab is institutional but reads as
@@ -429,6 +433,23 @@ function LabeledPin({
   // Wind-arrow renders as a soft rotated chevron pointing downwind.
   // label encodes "degrees|knots"; the wind direction is "from-X" in
   // nautical convention, so the arrow points to (degrees + 180) % 360.
+  // "Your base" club anchor — render as anchor icon glyph inside a
+  // dark navy disc. Reads distinctly from generic blue institution
+  // circles so the user's home club stands out.
+  if (kind === 'poi-club-anchor') {
+    return (
+      <View style={styles.pinRow}>
+        <View style={styles.clubAnchorDisc}>
+          <Ionicons name="boat" size={14} color="#FFFFFF" />
+        </View>
+        {showLabel && label ? (
+          <Text style={[styles.pinLabel, styles.clubAnchorLabel]} numberOfLines={1}>
+            {label}
+          </Text>
+        ) : null}
+      </View>
+    );
+  }
   if (kind === 'wind-arrow') {
     const [degStr] = (label ?? '0|0').split('|');
     const fromDeg = Number(degStr) || 0;
@@ -635,6 +656,26 @@ const styles = StyleSheet.create({
     borderRadius: 3,
     maxWidth: 120,
     overflow: 'hidden',
+  },
+  clubAnchorDisc: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: 'rgba(28, 28, 56, 0.95)',
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.18,
+    shadowRadius: 3,
+    shadowOffset: { width: 0, height: 1 },
+  },
+  clubAnchorLabel: {
+    fontWeight: '700',
+    letterSpacing: 0.4,
+    textTransform: 'uppercase',
+    fontSize: 9,
   },
   clusterCount: {
     fontSize: 10,

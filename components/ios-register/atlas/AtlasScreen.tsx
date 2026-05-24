@@ -654,13 +654,22 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
   const { data: raceMarkPins = [] } = useNextRaceMarks({
     regattaId: next?.event_kind === 'regatta' ? next.event_id : null,
   });
-  // Chip-driven toggle for the wind + tide overlays. Both default on.
-  // Tapping "Wind" or "Tide" in the chip row hides/shows the field.
+  // Chip-driven layer state. "all" is the anchor — when active, every
+  // peer relationship + wind + tide shows. Toggling specific chips
+  // (You/Crew/Fleet/Following) filters the peer pins shown.
   const [showWind, setShowWind] = useState(true);
   const [showTide, setShowTide] = useState(true);
+  const [peerRelationshipFilter, setPeerRelationshipFilter] = useState<Set<string> | null>(null);
   const handleChipsChange = useCallback((activeIds: string[]) => {
-    setShowWind(activeIds.includes('wind') || activeIds.includes('all'));
-    setShowTide(activeIds.includes('tide') || activeIds.includes('all'));
+    const all = activeIds.includes('all');
+    setShowWind(all || activeIds.includes('wind'));
+    setShowTide(all || activeIds.includes('tide'));
+    // Peer filter is null when "All" is active (show everything),
+    // otherwise the active relationship chips form an allow-list.
+    const peerChips = activeIds.filter((id) =>
+      ['you', 'crew', 'fleet', 'following'].includes(id),
+    );
+    setPeerRelationshipFilter(all || peerChips.length === 0 ? null : new Set(peerChips));
   }, []);
   // Minimal wind + tide overlays — water-anchored only, one large arrow
   // per racing area, no time scrubbing. Per design pass: "fewer larger
@@ -686,11 +695,23 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
     enabled: showTide,
     waterAnchors,
   });
+  // Apply chip-driven peer-pin filtering: when "All" is off and one
+  // or more relationship chips are active, hide peer pins whose kind
+  // isn't in the allow-list. POIs / race-marks / wind / tide always
+  // show — they're not "peer" data.
+  const filteredFramePins = useMemo(() => {
+    if (!peerRelationshipFilter) return framePins;
+    return framePins.filter((p) => {
+      const isPeerKind = ['you', 'crew', 'fleet', 'following'].includes(p.kind);
+      if (!isPeerKind) return true;
+      return peerRelationshipFilter.has(p.kind);
+    });
+  }, [framePins, peerRelationshipFilter]);
   // Z-order: wind (base field), POIs (places), race-marks, tide (so its
   // chevron reads above the racing-area pin it points away from).
   const pins = useMemo(
-    () => [...windPins, ...framePins, ...raceMarkPins, ...tidePins],
-    [windPins, framePins, raceMarkPins, tidePins],
+    () => [...windPins, ...filteredFramePins, ...raceMarkPins, ...tidePins],
+    [windPins, filteredFramePins, raceMarkPins, tidePins],
   );
   const exitCommit = useCallback(() => {
     setCommitMode(false);
@@ -749,6 +770,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
               { id: 'following', label: 'Following', tone: 'following', dim: true },
               { id: 'wind', label: 'Wind', icon: 'arrow-up-outline', active: true },
               { id: 'tide', label: 'Tide', icon: 'water-outline', active: true },
+              { id: 'marks-hint', label: 'Race marks @ z14+', icon: 'alert-circle-outline', dim: true },
               { id: 'cross-interest', label: 'All my interests', crossInterest: true, dim: true },
             ]}
             onActiveIdsChange={handleChipsChange}

@@ -31,6 +31,9 @@ interface UseAtlasFramePinsArgs {
 export function mapPoiToPinKind(poi: AtlasPoi): AtlasPinSpec['kind'] | null {
   switch (poi.kind) {
     case 'club':
+      // RHKYC is treated as Felix's "home base" — render as anchor pin.
+      // Long-term: a `user_base_poi_id` per user picks the right anchor.
+      if (poi.name === 'Royal Hong Kong Yacht Club') return 'poi-club-anchor';
       return 'poi-club';
     case 'racing_area':
       return 'poi-racing-area';
@@ -162,12 +165,15 @@ export function useAtlasFramePins({
       }
       const kind = mapPoiToPinKind(poi);
       if (!kind) continue;
+      // Anchor pin gets a terser "RHKYC CLUB"-style label per the design.
+      const label =
+        kind === 'poi-club-anchor' ? 'RHKYC CLUB' : shortenPoiName(poi.name);
       out.push({
         id: `poi:${poi.id}`,
         lat: poi.lat,
         lng: poi.lng,
         kind,
-        label: shortenPoiName(poi.name),
+        label,
       });
     }
 
