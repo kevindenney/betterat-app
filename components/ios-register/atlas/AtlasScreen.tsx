@@ -1369,7 +1369,7 @@ function FrameF4({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
         />
       </View>
 
-      {anchorPromptDismissed ? (
+      {layersOpen ? null : anchorPromptDismissed ? (
         <BottomSheet
           eyebrow="PLAN A STEP"
           title="Anchor your next step to a place."
