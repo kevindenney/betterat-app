@@ -29,6 +29,7 @@ interface UseInboxActionsResult {
   accept: (item: InboxItem) => Promise<void>;
   save: (item: InboxItem) => Promise<void>;
   dismiss: (item: InboxItem) => Promise<void>;
+  archive: (item: InboxItem) => Promise<void>;
 }
 
 async function updateSuggestionStatus(
@@ -50,6 +51,7 @@ export function useInboxActions(): UseInboxActionsResult {
   const invalidate = useCallback(() => {
     qc.invalidateQueries({ queryKey: ['practice-inbox-items'] });
     qc.invalidateQueries({ queryKey: ['practice-inbox-count'] });
+    qc.invalidateQueries({ queryKey: ['practice-inbox-done'] });
     // Race / Plan / Reflect surfaces all read from ['timeline-steps', …];
     // accept and on-deck place mutate the recipient's timeline so every
     // consumer of that key needs to refetch.
@@ -159,5 +161,32 @@ export function useInboxActions(): UseInboxActionsResult {
     [user?.id, toast, invalidate],
   );
 
-  return { accept, save, dismiss };
+  const archive = useCallback(
+    async (item: InboxItem) => {
+      if (!user?.id) return;
+      try {
+        if (item.kind === 'reflection') {
+          const { error } = await supabase
+            .from('peer_reflections')
+            .update({ status: 'archived' })
+            .eq('id', item.id);
+          if (error) throw error;
+        } else if (item.kind === 'suggestion') {
+          // Suggestions don't have a dedicated 'archived' status — treat
+          // swipe-to-archive on a suggestion as a dismiss for now.
+          await updateSuggestionStatus(item.id, 'dismissed');
+        } else if (item.kind === 'on_deck') {
+          await discardDeck(item.id);
+        }
+      } catch (err) {
+        toast.show('Could not archive', 'error');
+        throw err;
+      } finally {
+        invalidate();
+      }
+    },
+    [user?.id, toast, invalidate],
+  );
+
+  return { accept, save, dismiss, archive };
 }

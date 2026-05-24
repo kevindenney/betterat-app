@@ -25,9 +25,11 @@ import {
 } from 'react-native';
 import { Stack, router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Swipeable } from 'react-native-gesture-handler';
 import { FLOATING_TAB_BAR_HEIGHT } from '@/components/navigation/FloatingTabBar';
 import { IOS_COLORS, IOS_REGISTER, IOS_SPACING } from '@/lib/design-tokens-ios';
 import { useInboxItems } from '@/hooks/useInboxItems';
+import { useInboxDoneItems } from '@/hooks/useInboxDoneItems';
 import { useInboxActions } from '@/hooks/useInboxActions';
 import type { InboxItem } from '@/components/practice/types';
 import { InterestSwitcher } from '@/components/InterestSwitcher';
@@ -44,9 +46,15 @@ export default function InboxTabScreen() {
   const inboxActions = useInboxActions();
   const [dismissedIds, setDismissedIds] = useState<Set<string>>(new Set());
 
+  const { data: doneFetched, isLoading: doneLoading } = useInboxDoneItems();
+
   const items = useMemo(
     () => (fetched ?? []).filter((it) => !dismissedIds.has(it.id)),
     [fetched, dismissedIds],
+  );
+  const doneItems = useMemo(
+    () => (doneFetched ?? []).filter((it) => !dismissedIds.has(it.id)),
+    [doneFetched, dismissedIds],
   );
 
   // Split by kind: suggestions + on_deck → Act, reflections → Read.
@@ -107,6 +115,16 @@ export default function InboxTabScreen() {
       });
     });
   };
+  const handleArchive = (it: InboxItem) => {
+    optimisticHide(it.id);
+    inboxActions.archive(it).catch(() => {
+      setDismissedIds((prev) => {
+        const next = new Set(prev);
+        next.delete(it.id);
+        return next;
+      });
+    });
+  };
 
   return (
     <>
@@ -153,12 +171,19 @@ export default function InboxTabScreen() {
               groups={groups}
               onAccept={handleAccept}
               onDecline={handleDecline}
+              onArchive={handleArchive}
             />
           )}
           {segment === 'read' && (
-            <ReadPanel isLoading={isLoading} items={readItems} />
+            <ReadPanel
+              isLoading={isLoading}
+              items={readItems}
+              onArchive={handleArchive}
+            />
           )}
-          {segment === 'done' && <DonePanel />}
+          {segment === 'done' && (
+            <DonePanel isLoading={doneLoading} items={doneItems} />
+          )}
         </ScrollView>
       </View>
     </>
@@ -202,12 +227,14 @@ function ActPanel({
   groups,
   onAccept,
   onDecline,
+  onArchive,
 }: {
   isLoading: boolean;
   count: number;
   groups: { title: string; items: InboxItem[] }[];
   onAccept: (it: InboxItem) => void;
   onDecline: (it: InboxItem) => void;
+  onArchive: (it: InboxItem) => void;
 }) {
   if (isLoading) {
     return (
@@ -247,6 +274,7 @@ function ActPanel({
               item={it}
               onAccept={() => onAccept(it)}
               onDecline={() => onDecline(it)}
+              onArchive={() => onArchive(it)}
             />
           ))}
         </View>
@@ -259,10 +287,12 @@ function SuggestionCard({
   item,
   onAccept,
   onDecline,
+  onArchive,
 }: {
   item: InboxItem;
   onAccept: () => void;
   onDecline: () => void;
+  onArchive: () => void;
 }) {
   const sourceUserId = item.raw.sourceUserId;
   const sourceStepId = item.raw.sourceStepId;
@@ -274,6 +304,16 @@ function SuggestionCard({
     : undefined;
 
   return (
+    <Swipeable
+      friction={2}
+      rightThreshold={48}
+      overshootRight={false}
+      renderRightActions={() => (
+        <Pressable onPress={onArchive} style={styles.swipeArchive}>
+          <Text style={styles.swipeArchiveText}>Archive</Text>
+        </Pressable>
+      )}
+    >
     <View style={styles.card}>
       <View style={styles.cardHeader}>
         <Pressable
@@ -323,15 +363,18 @@ function SuggestionCard({
         ) : null}
       </View>
     </View>
+    </Swipeable>
   );
 }
 
 function ReadPanel({
   isLoading,
   items,
+  onArchive,
 }: {
   isLoading: boolean;
   items: InboxItem[];
+  onArchive: (it: InboxItem) => void;
 }) {
   if (isLoading) {
     return (
@@ -361,19 +404,39 @@ function ReadPanel({
       </View>
       <View style={styles.group}>
         {items.map((it) => (
-          <ReflectionCard key={it.id} item={it} />
+          <ReflectionCard
+            key={it.id}
+            item={it}
+            onArchive={() => onArchive(it)}
+          />
         ))}
       </View>
     </View>
   );
 }
 
-function ReflectionCard({ item }: { item: InboxItem }) {
+function ReflectionCard({
+  item,
+  onArchive,
+}: {
+  item: InboxItem;
+  onArchive: () => void;
+}) {
   const sourceUserId = item.raw.sourceUserId;
   const goToSender = sourceUserId
     ? () => router.push(`/discover/person/${sourceUserId}` as never)
     : undefined;
   return (
+    <Swipeable
+      friction={2}
+      rightThreshold={48}
+      overshootRight={false}
+      renderRightActions={() => (
+        <Pressable onPress={onArchive} style={styles.swipeArchive}>
+          <Text style={styles.swipeArchiveText}>Archive</Text>
+        </Pressable>
+      )}
+    >
     <View style={[styles.card, styles.cardReflection]}>
       <View style={styles.cardHeader}>
         <Pressable
@@ -400,14 +463,74 @@ function ReflectionCard({ item }: { item: InboxItem }) {
         <Text style={styles.cardReflectionBody}>"{item.blurb}"</Text>
       ) : null}
     </View>
+    </Swipeable>
   );
 }
 
-function DonePanel() {
+function DonePanel({
+  isLoading,
+  items,
+}: {
+  isLoading: boolean;
+  items: InboxItem[];
+}) {
+  if (isLoading) {
+    return (
+      <View style={styles.loadingWrap}>
+        <ActivityIndicator color={IOS_COLORS.tertiaryLabel} />
+      </View>
+    );
+  }
+  if (items.length === 0) {
+    return (
+      <View style={styles.emptyWrap}>
+        <Text style={styles.emptyTitle}>Nothing here.</Text>
+        <Text style={styles.emptyBody}>
+          Accepted and dismissed items archive here.
+        </Text>
+      </View>
+    );
+  }
   return (
-    <View style={styles.emptyWrap}>
-      <Text style={styles.emptyTitle}>Nothing here.</Text>
-      <Text style={styles.emptyBody}>Accepted and dismissed items archive here.</Text>
+    <View>
+      <View style={styles.eyebrowRow}>
+        <Text style={styles.eyebrow}>DONE</Text>
+      </View>
+      <View style={styles.group}>
+        {items.map((it) => (
+          <DoneCard key={it.id} item={it} />
+        ))}
+      </View>
+    </View>
+  );
+}
+
+function DoneCard({ item }: { item: InboxItem }) {
+  const isReflection = item.kind === 'reflection';
+  return (
+    <View
+      style={[
+        styles.card,
+        styles.cardDone,
+        isReflection && styles.cardReflection,
+      ]}
+    >
+      <View style={styles.cardHeader}>
+        <View style={[styles.avatar, { backgroundColor: item.fromTint || IOS_COLORS.systemGray3 }]}>
+          <Text style={styles.avatarText}>{item.fromInitials || '·'}</Text>
+        </View>
+        <View style={styles.cardHeaderText}>
+          <Text style={styles.cardFrom}>
+            <Text style={styles.cardFromName}>{item.fromContext}</Text>
+            <Text style={styles.cardFromVerb}>
+              {isReflection ? ' · archived reflection' : ` · ${item.chipLabel.toLowerCase()}`}
+            </Text>
+          </Text>
+        </View>
+        <Text style={styles.cardWhen}>{item.when}</Text>
+      </View>
+      <Text style={styles.cardTitle}>{item.title}</Text>
+      {item.blurb ? <Text style={styles.cardBody}>{item.blurb}</Text> : null}
     </View>
   );
 }
@@ -525,6 +648,23 @@ const styles = StyleSheet.create({
   },
   cardReflection: {
     borderLeftColor: LILAC,
+  },
+  cardDone: {
+    opacity: 0.7,
+    borderLeftColor: IOS_REGISTER.separatorStrong,
+  },
+  swipeArchive: {
+    backgroundColor: IOS_COLORS.systemRed,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+    marginBottom: 12,
+    borderRadius: 14,
+  },
+  swipeArchiveText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
   },
   cardReflectionBody: {
     marginTop: 10,
