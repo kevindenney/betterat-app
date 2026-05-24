@@ -167,9 +167,36 @@ export default function AtlasTab() {
   // DEBUG overlay — temporary, while we debug why useAtlasNextEvent
   // returns null at runtime despite the SQL query working server-side.
   // Strip after the root cause is identified.
+  //
+  // The inline test bypasses useAtlasNextEvent and runs the EXACT same
+  // query against supabase directly. If this returns rows but the hook
+  // returns null, the bug is inside the hook. If both return null, the
+  // bug is RLS or auth.
+  const [debugTestResult, setDebugTestResult] = React.useState<string>('testing...');
+  React.useEffect(() => {
+    if (!user?.id) return;
+    (async () => {
+      const { supabase } = await import('@/services/supabase');
+      const nowIso = new Date().toISOString();
+      const { data, error } = await supabase
+        .from('regattas')
+        .select('id, name, start_date')
+        .eq('created_by', user.id)
+        .gte('start_date', nowIso)
+        .order('start_date', { ascending: true })
+        .limit(1);
+      if (error) {
+        setDebugTestResult(`err: ${error.message.slice(0, 60)}`);
+      } else if (!data || data.length === 0) {
+        setDebugTestResult(`empty (uid=${user.id.slice(0, 12)}...)`);
+      } else {
+        setDebugTestResult(`got: ${data[0].name}`);
+      }
+    })();
+  }, [user?.id]);
   const debugLine = nextEvent
-    ? `next=${nextEvent.label} · ${nextEvent.when ?? '?'} · lat=${nextEvent.lat ?? '∅'} lng=${nextEvent.lng ?? '∅'} kind=${nextEvent.event_kind ?? '∅'}`
-    : `next=null · uid=${user?.id ?? '∅'} · email=${user?.email ?? '∅'} · slug=${currentInterest?.slug ?? '∅'}`;
+    ? `next=${nextEvent.label} · ${nextEvent.when ?? '?'} · kind=${nextEvent.event_kind ?? '∅'}`
+    : `hook=null · raw=${debugTestResult} · slug=${currentInterest?.slug ?? '∅'}`;
 
   return (
     <SafeAreaView style={styles.page} edges={['top']}>
