@@ -657,10 +657,12 @@ export const FEATURE_FLAGS = {
    * SCREEN 04 surface). Reads from the existing inbox_items view via
    * useInboxItems — no schema changes in this phase.
    *
-   * Off by default. Flip via EXPO_PUBLIC_FF_INBOX_TAB_V3=true.
+   * On by default — Screen 07 canonical bottom-tab grammar shows
+   * "Inbox (3)" in place of Profile, and Phase A has shipped. Flip
+   * EXPO_PUBLIC_FF_INBOX_TAB_V3=false to revert to the legacy bar.
    * Per docs/redesign/v3 · The reflecting & suggesting system, screen 04.
    */
-  INBOX_TAB_V3: readBooleanEnv('EXPO_PUBLIC_FF_INBOX_TAB_V3', false),
+  INBOX_TAB_V3: readBooleanEnv('EXPO_PUBLIC_FF_INBOX_TAB_V3', true),
 } as const;
 
 // =============================================================================
