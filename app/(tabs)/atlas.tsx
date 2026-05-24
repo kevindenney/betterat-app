@@ -17,7 +17,7 @@
  */
 
 import React, { useCallback, useMemo } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 
@@ -32,7 +32,6 @@ import { useAuth } from '@/providers/AuthProvider';
 import { useInterest } from '@/providers/InterestProvider';
 import { useAtlasNextEvent } from '@/hooks/useAtlasNextEvent';
 import { AtlasPickerBus } from '@/services/AtlasPickerBus';
-import { supabase } from '@/services/supabase';
 
 // Interest-aware variant selection. Per the brief's "Universal empty-state
 // formula" + per-persona empty states. The mapping below is the v1 lookup;
@@ -165,39 +164,6 @@ export default function AtlasTab() {
     router.push('/(tabs)/practice');
   }, [frame, router]);
 
-  // DEBUG overlay — temporary, while we debug why useAtlasNextEvent
-  // returns null at runtime despite the SQL query working server-side.
-  // Strip after the root cause is identified.
-  //
-  // The inline test bypasses useAtlasNextEvent and runs the EXACT same
-  // query against supabase directly. If this returns rows but the hook
-  // returns null, the bug is inside the hook. If both return null, the
-  // bug is RLS or auth.
-  const [debugTestResult, setDebugTestResult] = React.useState<string>('testing...');
-  React.useEffect(() => {
-    if (!user?.id) return;
-    const nowIso = new Date().toISOString();
-    supabase
-      .from('regattas')
-      .select('id, name, start_date')
-      .eq('created_by', user.id)
-      .gte('start_date', nowIso)
-      .order('start_date', { ascending: true })
-      .limit(1)
-      .then(({ data, error }) => {
-        if (error) {
-          setDebugTestResult(`err: ${error.message.slice(0, 60)}`);
-        } else if (!data || data.length === 0) {
-          setDebugTestResult(`empty (uid=${user.id.slice(0, 12)}…)`);
-        } else {
-          setDebugTestResult(`got: ${data[0].name}`);
-        }
-      });
-  }, [user?.id]);
-  const debugLine = nextEvent
-    ? `next=${nextEvent.label} · ${nextEvent.when ?? '?'} · kind=${nextEvent.event_kind ?? '∅'}`
-    : `hook=null · raw=${debugTestResult} · slug=${currentInterest?.slug ?? '∅'}`;
-
   return (
     <SafeAreaView style={styles.page} edges={['top']}>
       <View style={[styles.surface, { paddingBottom: tabBarSpace }]}>
@@ -212,31 +178,12 @@ export default function AtlasTab() {
           onPrimaryAction={handlePrimary}
           onSecondaryAction={handleSecondary}
         />
-        <View pointerEvents="none" style={styles.debugBanner}>
-          <Text style={styles.debugBannerText} numberOfLines={2}>{debugLine}</Text>
-        </View>
       </View>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  debugBanner: {
-    position: 'absolute',
-    bottom: 8,
-    left: 8,
-    right: 8,
-    backgroundColor: 'rgba(255, 235, 59, 0.95)',
-    paddingHorizontal: 6,
-    paddingVertical: 3,
-    borderRadius: 4,
-    zIndex: 9999,
-  },
-  debugBannerText: {
-    fontSize: 9,
-    fontWeight: '700',
-    color: '#000',
-  },
   page: {
     flex: 1,
     backgroundColor: IOS_REGISTER.groundBg,
