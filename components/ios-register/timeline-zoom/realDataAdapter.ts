@@ -254,6 +254,12 @@ function recordToStep(
       : { source: 'Blueprint' };
   }
 
+  // Cross-interest pin marker — TimelineStepService stamps `_pinned: true`
+  // on steps surfaced via timeline_step_pins so the canvas can render a
+  // pin indicator without re-querying the pin table.
+  const pinnedFromOtherInterest =
+    (rec as TimelineStepRecord & { _pinned?: boolean })._pinned === true;
+
   return {
     id: rec.id,
     title: rec.title || 'Untitled step',
@@ -270,6 +276,7 @@ function recordToStep(
     from,
     cohortAvatars,
     cohortLabel,
+    pinnedFromOtherInterest,
   };
 }
 

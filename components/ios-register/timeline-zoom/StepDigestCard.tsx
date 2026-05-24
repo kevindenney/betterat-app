@@ -99,6 +99,15 @@ export function StepDigestCard({
             ) : null}
           </View>
         ) : null}
+
+        {step.pinnedFromOtherInterest ? (
+          <View style={styles.pinnedRow}>
+            <Ionicons name="pin" size={10} color={IOS_REGISTER.labelTertiary} />
+            <Text style={styles.pinnedLabel} numberOfLines={1}>
+              Pinned from another interest
+            </Text>
+          </View>
+        ) : null}
       </View>
     </Pressable>
   );
@@ -256,5 +265,16 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: IOS_REGISTER.labelSecondary,
     marginLeft: 4,
+  },
+  pinnedRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  pinnedLabel: {
+    fontSize: 10.5,
+    color: IOS_REGISTER.labelTertiary,
+    fontStyle: 'italic',
+    flexShrink: 1,
   },
 });

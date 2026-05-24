@@ -43,7 +43,11 @@ import {
   CommitHarbourMap,
 } from './AtlasMaps';
 import type { AtlasFrameId, AtlasNextEvent } from './AtlasScreen';
-import { SAILING_MAP_STYLE } from '@/lib/atlas-map-styles';
+import {
+  SAILING_MAP_STYLE,
+  NURSING_MAP_STYLE,
+  ENTREPRENEUR_MAP_STYLE,
+} from '@/lib/atlas-map-styles';
 
 // Per-frame base map style. Sailing frames keep Liberty (water/land
 // contrast matters when reading wind/tide over the harbor). Nursing
@@ -59,14 +63,20 @@ import { SAILING_MAP_STYLE } from '@/lib/atlas-map-styles';
 const MAP_STYLE_POSITRON = 'https://tiles.openfreemap.org/styles/positron';
 
 function mapStyleForFrame(frame: AtlasFrameId): string | object {
-  // Sailing — custom brand-palette MapLibre style (cream land, soft
-  // blue water, no labels/roads). Lets race-marks + wind/tide arrows +
-  // POI pins dominate.
+  // Sailing — custom brand-palette: cream land + soft blue water, no
+  // labels/roads. Lets race-marks + wind/tide arrows + POI pins dominate.
   if (frame === 'f1' || frame === 'f2' || frame === 'f3' || frame === 'f6') {
     return SAILING_MAP_STYLE;
   }
-  // Nursing + entrepreneur — Positron is quiet enough. Per-interest
-  // custom styles can land later as each persona's needs sharpen.
+  // Nursing — quiet urban: cream land + faint major roads + building
+  // footprints at z13+. Cohort heatmap + preceptor diamonds dominate.
+  if (frame === 'f4' || frame === 'f5') {
+    return NURSING_MAP_STYLE;
+  }
+  // Entrepreneur — sparse rural: cream land + rivers + faint road net.
+  if (frame === 'f7') {
+    return ENTREPRENEUR_MAP_STYLE;
+  }
   return MAP_STYLE_POSITRON;
 }
 

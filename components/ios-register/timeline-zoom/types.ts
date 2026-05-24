@@ -69,6 +69,9 @@ export interface TimelineStep {
   /** Header metadata row in L1 — "Wed · JHH Bloomberg 4S" / "Preceptor: A. Ngo, RN" */
   metaLeft?: string;
   metaRight?: string;
+  /** True when this step lives in a different interest and was
+      cross-interest-pinned into the current view via timeline_step_pins. */
+  pinnedFromOtherInterest?: boolean;
 }
 
 export interface TimelineWeek {
