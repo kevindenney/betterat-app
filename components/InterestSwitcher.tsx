@@ -12,14 +12,6 @@ import { useAuth } from '@/providers/AuthProvider'
 import { router } from 'expo-router'
 import { showConfirm } from '@/lib/utils/crossPlatformAlert'
 import React, { useEffect, useMemo, useState } from 'react'
-
-// Imperative opener so other parts of the app (e.g. the guest sample banner)
-// can pop the same sheet without prop-drilling. The mounted InterestSwitcher
-// registers its setOpen on mount and clears it on unmount.
-let externalOpener: (() => void) | null = null
-export function openInterestSwitcher() {
-  externalOpener?.()
-}
 import {
   Modal,
   Platform,
@@ -31,6 +23,14 @@ import {
   View,
 } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
+
+// Imperative opener so other parts of the app (e.g. the guest sample banner)
+// can pop the same sheet without prop-drilling. The mounted InterestSwitcher
+// registers its setOpen on mount and clears it on unmount.
+let externalOpener: (() => void) | null = null
+export function openInterestSwitcher() {
+  externalOpener?.()
+}
 
 /** Group a list of interests by their parent domain, preserving domain order. */
 function groupByDomain(
@@ -57,8 +57,8 @@ function groupByDomain(
   return groups
 }
 
-export function InterestSwitcher() {
-  const { currentInterest, userInterests, groupedInterests, domains, switchInterest, removeInterest, loading } = useInterest()
+export function InterestSwitcher({ headless = false }: { headless?: boolean } = {}) {
+  const { currentInterest, userInterests, groupedInterests, switchInterest, removeInterest, loading } = useInterest()
   const { signedIn } = useAuth()
   const [open, setOpen] = useState(false)
 
@@ -160,22 +160,27 @@ export function InterestSwitcher() {
 
   return (
     <>
-      {/* Trigger pill */}
-      <TouchableOpacity
-        style={styles.pill}
-        onPress={() => setOpen(true)}
-        activeOpacity={0.7}
-        accessibilityRole="button"
-        accessibilityLabel={`Current interest: ${currentInterest?.name ?? 'None'}. Tap to switch.`}
-      >
-        {currentInterest && (
-          <View style={[styles.dot, { backgroundColor: currentInterest.accent_color }]} />
-        )}
-        <Text style={styles.pillText} numberOfLines={1}>
-          {currentInterest?.name ?? 'Interest'}
-        </Text>
-        <Ionicons name="chevron-down" size={14} color="#6B7280" />
-      </TouchableOpacity>
+      {/* Trigger pill — omitted in headless mode so a globally-mounted
+          instance can serve openInterestSwitcher() callers from anywhere
+          (e.g. CanvasTopBar on the Practice tab, where the global
+          NavigationHeader is hidden). */}
+      {!headless ? (
+        <TouchableOpacity
+          style={styles.pill}
+          onPress={() => setOpen(true)}
+          activeOpacity={0.7}
+          accessibilityRole="button"
+          accessibilityLabel={`Current interest: ${currentInterest?.name ?? 'None'}. Tap to switch.`}
+        >
+          {currentInterest && (
+            <View style={[styles.dot, { backgroundColor: currentInterest.accent_color }]} />
+          )}
+          <Text style={styles.pillText} numberOfLines={1}>
+            {currentInterest?.name ?? 'Interest'}
+          </Text>
+          <Ionicons name="chevron-down" size={14} color="#6B7280" />
+        </TouchableOpacity>
+      ) : null}
 
       {/* Dropdown / Bottom Sheet */}
       <Modal

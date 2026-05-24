@@ -12,6 +12,7 @@ import { useWebDrawer, WebDrawerProvider } from '@/providers/WebDrawerProvider';
 import { IOS_COLORS } from '@/lib/design-tokens-ios';
 import { useUnreadMessageCount } from '@/hooks/useMessaging';
 import { useInboxCount } from '@/hooks/useInboxCount';
+import { InterestSwitcher } from '@/components/InterestSwitcher';
 import { FEATURE_FLAGS } from '@/lib/featureFlags';
 import { type TabConfig, getTabsForUserType } from '@/lib/navigation-config';
 import { useVocabulary } from '@/hooks/useVocabulary';
@@ -1150,6 +1151,12 @@ function TabLayoutInner() {
         showSkipButton={!__DEV__}
       />
 
+      {/* Headless InterestSwitcher — registers the imperative
+          openInterestSwitcher() opener globally so surfaces whose own pill
+          calls the opener (e.g. CanvasTopBar on /practice, where the
+          NavigationHeader is hidden) can still pop the sheet. Renders no
+          visible chrome on its own. */}
+      <InterestSwitcher headless />
     </View>
   );
 }
