@@ -100,7 +100,9 @@ export default function SubscriptionsPage() {
             const periodEnd = formatDate(sub.currentPeriodEnd);
             const trialEnd = formatDate(sub.trialEndsAt);
             const canceledAt = formatDate(sub.canceledAt);
-            const cancelable = sub.status === 'active' || sub.status === 'trialing';
+            const cancelable =
+              (sub.status === 'active' || sub.status === 'trialing') &&
+              !sub.cancelAtPeriodEnd;
             return (
               <View key={sub.id} style={s.subCard}>
                 <View style={{ flex: 1, minWidth: 0, gap: 4 }}>
@@ -115,8 +117,11 @@ export default function SubscriptionsPage() {
                     {formatMoney(sub.unitAmountCents, sub.currency)}
                     {formatCadence(sub.cadence)}
                     {trialEnd && sub.status === 'trialing' ? ` · trial ends ${trialEnd}` : ''}
-                    {periodEnd && sub.status === 'active'
+                    {periodEnd && sub.status === 'active' && !sub.cancelAtPeriodEnd
                       ? ` · renews ${periodEnd}`
+                      : ''}
+                    {periodEnd && sub.cancelAtPeriodEnd
+                      ? ` · access through ${periodEnd}`
                       : ''}
                     {canceledAt && sub.status === 'canceled'
                       ? ` · canceled ${canceledAt}`
@@ -124,9 +129,17 @@ export default function SubscriptionsPage() {
                   </Text>
                 </View>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                  <View style={[s.chip, { backgroundColor: tone.bg }]}>
-                    <Text style={[s.chipText, { color: tone.fg }]}>{tone.label}</Text>
-                  </View>
+                  {sub.cancelAtPeriodEnd && sub.status !== 'canceled' ? (
+                    <View style={[s.chip, { backgroundColor: 'rgba(201, 150, 50, 0.14)' }]}>
+                      <Text style={[s.chipText, { color: '#C99632' }]}>
+                        Cancels {formatDate(sub.currentPeriodEnd) ?? 'end of period'}
+                      </Text>
+                    </View>
+                  ) : (
+                    <View style={[s.chip, { backgroundColor: tone.bg }]}>
+                      <Text style={[s.chipText, { color: tone.fg }]}>{tone.label}</Text>
+                    </View>
+                  )}
                   {cancelable ? (
                     <Pressable
                       style={[s.btnGhost, pendingId === sub.id && { opacity: 0.55 }]}

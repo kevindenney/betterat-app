@@ -745,6 +745,47 @@ async function handleSubscriptionUpdate(subscription: Stripe.Subscription) {
   const customerId = subscription.customer as string;
   const metadata = subscription.metadata || {};
 
+  // ── Marketplace subscription update ──
+  // Sync status, cancel_at_period_end, current_period_end so the buyer
+  // surface reflects Stripe's source of truth.
+  {
+    const { data: ms } = await supabase
+      .from('marketplace_subscriptions')
+      .select('id, status, cancel_at_period_end, author_user_id, org_id')
+      .eq('stripe_subscription_id', subscription.id)
+      .maybeSingle();
+    if (ms) {
+      const update: Record<string, unknown> = {
+        status: subscription.status,
+        cancel_at_period_end: subscription.cancel_at_period_end ?? false,
+        updated_at: new Date().toISOString(),
+      };
+      if (subscription.current_period_end) {
+        update.current_period_end = new Date(
+          subscription.current_period_end * 1000,
+        ).toISOString();
+      }
+      if (subscription.trial_end) {
+        update.trial_ends_at = new Date(subscription.trial_end * 1000).toISOString();
+      }
+      await supabase
+        .from('marketplace_subscriptions')
+        .update(update)
+        .eq('id', ms.id);
+      // Active count may shift on trialing→active or status transitions
+      if (ms.author_user_id && ms.org_id) {
+        await supabase.rpc('bump_author_active_seats', {
+          p_org_id: ms.org_id,
+          p_author_user_id: ms.author_user_id,
+        });
+      }
+      console.log(
+        `[handleSubscriptionUpdate] Marketplace sub ${subscription.id} → ${subscription.status} (cancel_at_period_end=${subscription.cancel_at_period_end})`,
+      );
+      return;
+    }
+  }
+
   // ── Blueprint subscription update ──
   if (metadata.type === 'blueprint_purchase' && metadata.blueprint_id) {
     const statusMap: Record<string, string> = {

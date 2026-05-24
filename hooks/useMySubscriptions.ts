@@ -27,6 +27,7 @@ export interface MySubscription {
   trialEndsAt: string | null;
   currentPeriodEnd: string | null;
   canceledAt: string | null;
+  cancelAtPeriodEnd: boolean;
   createdAt: string;
 }
 
@@ -44,7 +45,7 @@ export function useMySubscriptions() {
         .from('marketplace_subscriptions')
         .select(
           `id, blueprint_id, status, unit_amount_cents, currency, cadence,
-           trial_ends_at, current_period_end, canceled_at, created_at`,
+           trial_ends_at, current_period_end, canceled_at, cancel_at_period_end, created_at`,
         )
         .eq('buyer_user_id', user.id)
         .order('created_at', { ascending: false });
@@ -95,6 +96,7 @@ export function useMySubscriptions() {
           trialEndsAt: s.trial_ends_at,
           currentPeriodEnd: s.current_period_end,
           canceledAt: s.canceled_at,
+          cancelAtPeriodEnd: (s as { cancel_at_period_end?: boolean }).cancel_at_period_end ?? false,
           createdAt: s.created_at,
         };
       });

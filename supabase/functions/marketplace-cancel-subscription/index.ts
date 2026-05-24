@@ -66,7 +66,9 @@ serve(async (req: Request) => {
 
     const { data: row } = await supabase
       .from('marketplace_subscriptions')
-      .select('id, buyer_user_id, stripe_subscription_id, status')
+      .select(
+        'id, buyer_user_id, stripe_subscription_id, status, cancel_at_period_end, current_period_end',
+      )
       .eq('id', subscriptionId)
       .maybeSingle();
 
@@ -84,31 +86,69 @@ serve(async (req: Request) => {
       });
     }
 
-    if (row.stripe_subscription_id) {
-      try {
-        await stripe.subscriptions.cancel(row.stripe_subscription_id);
-      } catch (err) {
-        console.warn('[marketplace-cancel] stripe cancel failed', err);
-        // Continue — the row update + webhook reconciliation will still flag
-        // the local row, and we don't want a stale-Stripe-state failure to
-        // block the buyer's UI.
-      }
+    if (row.cancel_at_period_end) {
+      return new Response(
+        JSON.stringify({ ok: true, already_scheduled: true }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      );
     }
 
-    // Optimistically flip the row; webhook will confirm.
-    await supabase
-      .from('marketplace_subscriptions')
-      .update({
-        status: 'canceled',
-        canceled_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', row.id);
+    let periodEnd: string | null = row.current_period_end ?? null;
+    let cancelAtPeriodEnd = false;
+    if (row.stripe_subscription_id) {
+      try {
+        // Set cancel_at_period_end so the buyer keeps access through the
+        // end of the period they've already paid for. The
+        // customer.subscription.deleted webhook will fire at period end
+        // (Stripe sends it then) and flip status to 'canceled'.
+        const sub = await stripe.subscriptions.update(row.stripe_subscription_id, {
+          cancel_at_period_end: true,
+        });
+        cancelAtPeriodEnd = sub.cancel_at_period_end ?? true;
+        if (sub.current_period_end) {
+          periodEnd = new Date(sub.current_period_end * 1000).toISOString();
+        }
+      } catch (err) {
+        console.warn('[marketplace-cancel] stripe update failed', err);
+        // Continue — we still mark the local row so the buyer's UI
+        // reflects intent. Webhook can reconcile later.
+        cancelAtPeriodEnd = true;
+      }
+    } else {
+      // No Stripe subscription (e.g. test session that never started a
+      // real sub). Treat as immediate cancel.
+      cancelAtPeriodEnd = false;
+    }
 
-    return new Response(JSON.stringify({ ok: true }), {
-      status: 200,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    if (cancelAtPeriodEnd) {
+      await supabase
+        .from('marketplace_subscriptions')
+        .update({
+          cancel_at_period_end: true,
+          current_period_end: periodEnd,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', row.id);
+    } else {
+      // Fallback path — no Stripe sub, flip immediately
+      await supabase
+        .from('marketplace_subscriptions')
+        .update({
+          status: 'canceled',
+          canceled_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', row.id);
+    }
+
+    return new Response(
+      JSON.stringify({
+        ok: true,
+        cancel_at_period_end: cancelAtPeriodEnd,
+        period_end: periodEnd,
+      }),
+      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+    );
   } catch (err) {
     return new Response(
       JSON.stringify({ error: err instanceof Error ? err.message : 'Internal error' }),
