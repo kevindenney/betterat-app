@@ -18,10 +18,12 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { GestureDetector } from 'react-native-gesture-handler';
 import Animated, { useAnimatedStyle } from 'react-native-reanimated';
 
+import { Ionicons } from '@expo/vector-icons';
 import { IOS_REGISTER } from '@/lib/design-tokens-ios';
 import { StepDigestCard } from './StepDigestCard';
 import { SeasonLibrarianPrompt } from './SeasonLibrarianPrompt';
 import { useDragReorder } from './useDragReorder';
+import { useUniversalPlus } from '@/components/capture/UniversalPlusProvider';
 import type { DayKey, TimelineDataset, TimelineStep } from './types';
 
 interface L2WeekViewProps {
@@ -169,49 +171,53 @@ export function L2WeekView({
         })}
       </View>
 
-      <ScrollView
-        ref={scrollRef}
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.cardCarousel}
-        snapToInterval={CARD_WIDTH + CARD_GAP}
-        decelerationRate="fast"
-        scrollEnabled={!drag.isDragging}
-        scrollEventThrottle={32}
-        onScroll={(e) => {
-          // Center-pinned: the card whose midpoint is closest to the
-          // viewport center wins the "today" highlight. CARD_WIDTH +
-          // CARD_GAP is the snap unit, so dividing by it gives the
-          // focused index directly.
-          const x = e.nativeEvent.contentOffset.x;
-          const idx = Math.max(
-            0,
-            Math.min(steps.length - 1, Math.round(x / (CARD_WIDTH + CARD_GAP))),
-          );
-          const nextDay = steps[idx]?.dayOfWeek ?? null;
-          if (nextDay && nextDay !== scrollDay) setScrollDay(nextDay);
-        }}
-      >
-        {steps.map((step, index) => {
-          const isLifted = drag.liftedId === step.id;
-          const showDropIndicator =
-            drag.dropTargetIndex === index && !isLifted;
-          return (
-            <DraggableCarouselSlot
-              key={step.id}
-              step={step}
-              index={index}
-              isLifted={isLifted}
-              showDropIndicatorBefore={showDropIndicator}
-              liftedTranslateX={drag.liftedTranslate}
-              highlighted={step.id === focusStepId}
-              onOpen={() => onOpenStep(step.id)}
-              buildGesture={drag.buildItemGesture}
-              registerRowLayout={drag.registerRowLayout}
-            />
-          );
-        })}
-      </ScrollView>
+      {steps.length === 0 ? (
+        <EmptyWeekInline />
+      ) : (
+        <ScrollView
+          ref={scrollRef}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.cardCarousel}
+          snapToInterval={CARD_WIDTH + CARD_GAP}
+          decelerationRate="fast"
+          scrollEnabled={!drag.isDragging}
+          scrollEventThrottle={32}
+          onScroll={(e) => {
+            // Center-pinned: the card whose midpoint is closest to the
+            // viewport center wins the "today" highlight. CARD_WIDTH +
+            // CARD_GAP is the snap unit, so dividing by it gives the
+            // focused index directly.
+            const x = e.nativeEvent.contentOffset.x;
+            const idx = Math.max(
+              0,
+              Math.min(steps.length - 1, Math.round(x / (CARD_WIDTH + CARD_GAP))),
+            );
+            const nextDay = steps[idx]?.dayOfWeek ?? null;
+            if (nextDay && nextDay !== scrollDay) setScrollDay(nextDay);
+          }}
+        >
+          {steps.map((step, index) => {
+            const isLifted = drag.liftedId === step.id;
+            const showDropIndicator =
+              drag.dropTargetIndex === index && !isLifted;
+            return (
+              <DraggableCarouselSlot
+                key={step.id}
+                step={step}
+                index={index}
+                isLifted={isLifted}
+                showDropIndicatorBefore={showDropIndicator}
+                liftedTranslateX={drag.liftedTranslate}
+                highlighted={step.id === focusStepId}
+                onOpen={() => onOpenStep(step.id)}
+                buildGesture={drag.buildItemGesture}
+                registerRowLayout={drag.registerRowLayout}
+              />
+            );
+          })}
+        </ScrollView>
+      )}
 
       {currentWeek?.planningHint ? (
         <View style={styles.planningHintWrap}>
@@ -285,6 +291,27 @@ function DraggableCarouselSlot({
           />
         </Animated.View>
       </GestureDetector>
+    </View>
+  );
+}
+
+function EmptyWeekInline() {
+  const universalPlus = useUniversalPlus();
+  return (
+    <View style={styles.emptyInline}>
+      <View style={styles.emptyIconWrap}>
+        <Ionicons name="leaf-outline" size={22} color={IOS_REGISTER.labelTertiary} />
+      </View>
+      <Text style={styles.emptyTitle}>No steps this week</Text>
+      <Text style={styles.emptyBody}>
+        Add a step or pick a day above to plan toward.
+      </Text>
+      {universalPlus.isAvailable ? (
+        <Pressable style={styles.emptyCta} onPress={universalPlus.open}>
+          <Ionicons name="add" size={16} color="#FFFFFF" />
+          <Text style={styles.emptyCtaText}>Add a step</Text>
+        </Pressable>
+      ) : null}
     </View>
   );
 }
@@ -389,6 +416,51 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingBottom: 240, // floating tab bar (96) + librarian hint (~140) + breathing room
     gap: CARD_GAP,
+  },
+  emptyInline: {
+    marginHorizontal: 16,
+    paddingHorizontal: 18,
+    paddingVertical: 22,
+    backgroundColor: IOS_REGISTER.cardBg,
+    borderRadius: 14,
+    alignItems: 'center',
+  },
+  emptyIconWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: IOS_REGISTER.fillPill,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 10,
+  },
+  emptyTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: IOS_REGISTER.label,
+    marginBottom: 6,
+    letterSpacing: -0.2,
+  },
+  emptyBody: {
+    fontSize: 13.5,
+    color: IOS_REGISTER.labelSecondary,
+    textAlign: 'center',
+    lineHeight: 18,
+    marginBottom: 14,
+  },
+  emptyCta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 999,
+    backgroundColor: IOS_REGISTER.accentUserAction,
+  },
+  emptyCtaText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '600',
   },
   cardSlot: {
     width: CARD_WIDTH,

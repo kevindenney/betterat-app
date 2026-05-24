@@ -45,6 +45,7 @@ import { L1StepView } from './L1StepView';
 import { L2WeekView } from './L2WeekView';
 import { L3SeasonView } from './L3SeasonView';
 import { L4YearsView } from './L4YearsView';
+import { ZoomEmptyState } from './EmptyStates';
 import { SelectActionBar } from './SelectActionBar';
 import { useSelectMode } from './useSelectMode';
 import { ZoomRailIndicator } from './ZoomRailIndicator';
@@ -314,17 +315,21 @@ export function TimelineZoomCanvas({
                 entering={FadeIn.duration(180)}
                 style={styles.levelStage}
               >
-                {level === 1 && focusedStep ? (
-                  <L1StepView
-                    dataset={dataset}
-                    step={focusedStep}
-                    onOpenStepDetail={embedFullDetailAtL1 ? undefined : onOpenStepDetail}
-                    embedFullDetail={embedFullDetailAtL1}
-                    onSwipePrev={() => swipeToNeighbor('prev')}
-                    onSwipeNext={() => swipeToNeighbor('next')}
-                    prevStepTitle={prevStepTitle}
-                    nextStepTitle={nextStepTitle}
-                  />
+                {level === 1 ? (
+                  focusedStep ? (
+                    <L1StepView
+                      dataset={dataset}
+                      step={focusedStep}
+                      onOpenStepDetail={embedFullDetailAtL1 ? undefined : onOpenStepDetail}
+                      embedFullDetail={embedFullDetailAtL1}
+                      onSwipePrev={() => swipeToNeighbor('prev')}
+                      onSwipeNext={() => swipeToNeighbor('next')}
+                      prevStepTitle={prevStepTitle}
+                      nextStepTitle={nextStepTitle}
+                    />
+                  ) : (
+                    <ZoomEmptyState level={1} interestLabel={dataset.interest.label} />
+                  )
                 ) : null}
                 {level === 2 ? (
                   <L2WeekView

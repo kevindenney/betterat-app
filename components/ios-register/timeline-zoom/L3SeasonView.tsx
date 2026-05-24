@@ -36,6 +36,7 @@ import { GestureDetector } from 'react-native-gesture-handler';
 import Animated, { useAnimatedStyle } from 'react-native-reanimated';
 
 import { IOS_REGISTER } from '@/lib/design-tokens-ios';
+import { useUniversalPlus } from '@/components/capture/UniversalPlusProvider';
 import { StepDigestCard } from './StepDigestCard';
 import { CapabilityRiverChart } from './CapabilityRiverChart';
 import { PeerJourneyChart } from './PeerJourneyChart';
@@ -198,6 +199,8 @@ export function L3SeasonView({
         </View>
       ) : null}
 
+      {season.weeks.length === 0 ? <EmptySeasonInline /> : null}
+
       <Text style={styles.browseEyebrow}>BROWSE WEEKS</Text>
 
       <View style={styles.toolbar}>
@@ -344,6 +347,27 @@ function DraggableCardSlot({
   );
 }
 
+function EmptySeasonInline() {
+  const universalPlus = useUniversalPlus();
+  return (
+    <View style={styles.emptyInline}>
+      <View style={styles.emptyIconWrap}>
+        <Ionicons name="leaf-outline" size={22} color={IOS_REGISTER.labelTertiary} />
+      </View>
+      <Text style={styles.emptyTitle}>This rotation is just starting</Text>
+      <Text style={styles.emptyBody}>
+        Add a step to begin the season arc. The capability river will fill in as you practice.
+      </Text>
+      {universalPlus.isAvailable ? (
+        <Pressable style={styles.emptyCta} onPress={universalPlus.open}>
+          <Ionicons name="add" size={16} color="#FFFFFF" />
+          <Text style={styles.emptyCtaText}>Add a step</Text>
+        </Pressable>
+      ) : null}
+    </View>
+  );
+}
+
 function ToolbarButton({
   icon,
   label,
@@ -451,6 +475,52 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 22,
     paddingBottom: 10,
+  },
+  emptyInline: {
+    marginHorizontal: 16,
+    marginTop: 4,
+    paddingHorizontal: 18,
+    paddingVertical: 22,
+    backgroundColor: IOS_REGISTER.cardBg,
+    borderRadius: 14,
+    alignItems: 'center',
+  },
+  emptyIconWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: IOS_REGISTER.fillPill,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 10,
+  },
+  emptyTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: IOS_REGISTER.label,
+    marginBottom: 6,
+    letterSpacing: -0.2,
+  },
+  emptyBody: {
+    fontSize: 13.5,
+    color: IOS_REGISTER.labelSecondary,
+    textAlign: 'center',
+    lineHeight: 18,
+    marginBottom: 14,
+  },
+  emptyCta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 999,
+    backgroundColor: IOS_REGISTER.accentUserAction,
+  },
+  emptyCtaText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '600',
   },
   toolbar: {
     flexDirection: 'row',
