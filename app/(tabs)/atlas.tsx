@@ -164,6 +164,10 @@ export default function AtlasTab() {
     router.push('/(tabs)/practice');
   }, [frame, router]);
 
+  const handleAvatarPress = useCallback(() => {
+    router.push('/(tabs)/profile');
+  }, [router]);
+
   return (
     <SafeAreaView style={styles.page} edges={[]}>
       <View style={styles.surface}>
@@ -177,6 +181,7 @@ export default function AtlasTab() {
           initialCommitMode={isFromPlan}
           onPrimaryAction={handlePrimary}
           onSecondaryAction={handleSecondary}
+          onAvatarPress={handleAvatarPress}
           bottomSheetOffset={tabBarSpace}
         />
       </View>

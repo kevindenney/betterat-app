@@ -255,6 +255,8 @@ export function AtlasMapLibreCanvas({
         mapStyle={mapStyleForFrame(frame)}
         style={styles.fill}
         onPress={onMapPress ? handlePress : undefined}
+        attribution={false}
+        logo={false}
       >
         <MLCamera
           initialViewState={{
@@ -505,22 +507,34 @@ function LabeledPin({
     );
   }
   if (kind === 'wind-arrow') {
-    const [degStr] = (label ?? '0|0').split('|');
+    const [degStr, knotsStr] = (label ?? '0|0').split('|');
     const fromDeg = Number(degStr) || 0;
     const downwindDeg = (fromDeg + 180) % 360;
+    const knots = Number(knotsStr) || 0;
     return (
-      <View style={[styles.windArrow, { transform: [{ rotate: `${downwindDeg}deg` }] }]}>
-        <Ionicons name="arrow-up" size={32} color="rgba(0, 122, 255, 0.9)" />
+      <View style={styles.windArrowWrap}>
+        <View style={[styles.arrowDisc, { transform: [{ rotate: `${downwindDeg}deg` }] }]}>
+          <Ionicons name="arrow-up" size={32} color="rgba(0, 122, 255, 0.95)" />
+        </View>
+        {knots > 0 ? (
+          <Text style={styles.arrowChip}>{`${Math.round(knots)} kn`}</Text>
+        ) : null}
       </View>
     );
   }
   if (kind === 'tide-arrow') {
     // Tide convention: "set" — arrow points where water FLOWS, no flip.
-    const [degStr] = (label ?? '0|0').split('|');
+    const [degStr, knotsStr] = (label ?? '0|0').split('|');
     const setDeg = Number(degStr) || 0;
+    const knots = Number(knotsStr) || 0;
     return (
-      <View style={[styles.tideArrow, { transform: [{ rotate: `${setDeg}deg` }] }]}>
-        <Ionicons name="chevron-up" size={32} color="rgba(0, 168, 168, 0.9)" />
+      <View style={styles.tideArrowWrap}>
+        <View style={[styles.arrowDisc, { transform: [{ rotate: `${setDeg}deg` }] }]}>
+          <Ionicons name="chevron-up" size={32} color="rgba(0, 168, 168, 0.95)" />
+        </View>
+        {knots > 0 ? (
+          <Text style={styles.arrowChip}>{`${knots.toFixed(1)} kn`}</Text>
+        ) : null}
       </View>
     );
   }
@@ -749,19 +763,38 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     letterSpacing: 0.2,
   },
-  windArrow: {
-    width: 20,
-    height: 20,
-    opacity: 1,
+  windArrowWrap: {
     alignItems: 'center',
     justifyContent: 'center',
   },
-  tideArrow: {
-    width: 20,
-    height: 20,
-    opacity: 1,
+  tideArrowWrap: {
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  arrowDisc: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255, 255, 255, 0.7)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.95)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.12,
+    shadowRadius: 2,
+    shadowOffset: { width: 0, height: 1 },
+  },
+  arrowChip: {
+    marginTop: 2,
+    fontSize: 9,
+    fontWeight: '700',
+    color: '#1C1C1E',
+    backgroundColor: 'rgba(255, 255, 255, 0.92)',
+    paddingHorizontal: 4,
+    paddingVertical: 1,
+    borderRadius: 3,
+    overflow: 'hidden',
   },
   cohortCount: {
     fontSize: 12,

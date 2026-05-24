@@ -96,6 +96,8 @@ export interface AtlasFrameHandlers {
   onPrimaryAction?: (pin?: { lat: number; lng: number; place?: string }) => void;
   /** Bottom-sheet secondary CTA — "Open <next event>" / "Skip" etc. */
   onSecondaryAction?: () => void;
+  /** TopChrome avatar tap — routes to Profile in the live tab. */
+  onAvatarPress?: () => void;
   /**
    * When true, FrameF1 starts already in commit-mode (drop-pin FAB active,
    * banner showing "Tap the map to drop a pin"). Atlas live tab sets this
@@ -156,6 +158,7 @@ export function AtlasScreen({
   embedded = false,
   onPrimaryAction,
   onSecondaryAction,
+  onAvatarPress,
   subtitleOverride,
   nextEvent,
   avatarInitial,
@@ -170,6 +173,7 @@ export function AtlasScreen({
   } = {
     onPrimaryAction,
     onSecondaryAction,
+    onAvatarPress,
     subtitleOverride,
     nextEvent,
     avatarInitial,
@@ -216,11 +220,19 @@ function TopChrome({
   title,
   subtitle,
   avatarInitial = 'F',
+  onLayersPress,
+  onAvatarPress,
 }: {
   title: string;
   subtitle: string;
   avatarInitial?: string;
+  onLayersPress?: () => void;
+  onAvatarPress?: () => void;
 }) {
+  // Search button was dead UI (no destination wired). Layers icon mirrors
+  // the LayersFab so the chrome stays orientable when the FAB is hidden
+  // behind a sheet. Avatar opens Profile when pressed; the chrome holds
+  // identity context, the FAB holds map-tool actions.
   return (
     <View style={shellStyles.topChromeRow}>
       <View style={{ flex: 1 }}>
@@ -231,15 +243,14 @@ function TopChrome({
         </View>
       </View>
       <View style={shellStyles.topRight}>
-        <Pressable style={shellStyles.glyphBtn} hitSlop={6}>
-          <Ionicons name="search" size={16} color={IOS_REGISTER.label} />
-        </Pressable>
-        <Pressable style={shellStyles.glyphBtn} hitSlop={6}>
-          <Ionicons name="layers-outline" size={16} color={IOS_REGISTER.label} />
-        </Pressable>
-        <View style={shellStyles.avatar}>
+        {onLayersPress ? (
+          <Pressable style={shellStyles.glyphBtn} hitSlop={6} onPress={onLayersPress}>
+            <Ionicons name="layers-outline" size={16} color={IOS_REGISTER.label} />
+          </Pressable>
+        ) : null}
+        <Pressable style={shellStyles.avatar} hitSlop={6} onPress={onAvatarPress}>
           <Text style={shellStyles.avatarText}>{avatarInitial}</Text>
-        </View>
+        </Pressable>
       </View>
     </View>
   );
@@ -586,6 +597,12 @@ function LayersSheet({
             </Pressable>
           );
         })}
+        {/* Attribution required by OpenFreeMap / OpenMapTiles / OSM
+            licenses. Lives at the bottom of the Layers sheet so the
+            (i) chrome button stays off the map canvas. */}
+        <Text style={shellStyles.layersAttribution}>
+          Tiles · OpenFreeMap · © OpenMapTiles · © OpenStreetMap
+        </Text>
       </View>
     </>
   );
@@ -687,9 +704,17 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
   // to a context-specific detail card. Null = default sheet.
   const [selectedPin, setSelectedPin] = useState<AtlasPinSpec | null>(null);
   const handlePinPress = useCallback((pin: AtlasPinSpec) => {
+    // Auto-close the Layers sheet when a pin is tapped so the detail
+    // sheet doesn't render inside / behind the Layers panel.
+    setLayersOpen(false);
     setSelectedPin(pin);
   }, []);
   const clearSelectedPin = useCallback(() => setSelectedPin(null), []);
+  const openLayersSheet = useCallback(() => {
+    // Mirror image: clear any active pin sheet when Layers opens.
+    setSelectedPin(null);
+    setLayersOpen(true);
+  }, []);
   // Chip-driven layer state. "all" is the anchor — when active, every
   // peer relationship + wind + tide shows. Toggling specific chips
   // (You/Crew/Fleet/Following) filters the peer pins shown.
@@ -710,13 +735,25 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
   // Minimal wind + tide overlays — water-anchored only, one large arrow
   // per racing area, no time scrubbing. Per design pass: "fewer larger
   // arrows over water only".
-  const waterAnchors = useMemo(
-    () =>
-      framePins
-        .filter((p) => p.kind === 'poi-racing-area')
-        .map((p) => ({ lat: p.lat, lng: p.lng })),
-    [framePins],
-  );
+  //
+  // We seed waterAnchors with the next-event coords so there's always at
+  // least one arrow at the user's current focus (otherwise zooming into
+  // Victoria Harbour can hide all the racing-area arrows and the wind
+  // field appears to "disappear" after first render).
+  const waterAnchors = useMemo(() => {
+    const out = framePins
+      .filter((p) => p.kind === 'poi-racing-area')
+      .map((p) => ({ lat: p.lat, lng: p.lng }));
+    const nextLat = next?.lat;
+    const nextLng = next?.lng;
+    if (nextLat != null && nextLng != null) {
+      const exists = out.some(
+        (a) => Math.abs(a.lat - nextLat) < 0.005 && Math.abs(a.lng - nextLng) < 0.005,
+      );
+      if (!exists) out.push({ lat: nextLat, lng: nextLng });
+    }
+    return out;
+  }, [framePins, next?.lat, next?.lng]);
   const windPins = useWindOverlay({
     centerLat: next?.lat ?? 22.295,
     centerLng: next?.lng ?? 114.18,
@@ -797,6 +834,8 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
             title="Atlas"
             subtitle={handlers.subtitleOverride ?? 'Sailing · RHKYC · Hong Kong'}
             avatarInitial={handlers.avatarInitial ?? 'F'}
+            onLayersPress={openLayersSheet}
+            onAvatarPress={handlers.onAvatarPress}
           />
           <FilterChipsRow
             chips={[
@@ -880,7 +919,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
         )}
 
         <LayersFab
-          onLayersPress={() => setLayersOpen(true)}
+          onLayersPress={openLayersSheet}
           onDropPinPress={handlers.useMapLibre ? handleDropPinPress : undefined}
           commitMode={commitMode}
           bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
@@ -909,21 +948,53 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
           bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
         />
       ) : selectedPin ? (
-        <BottomSheet
-          eyebrow={eyebrowForPin(selectedPin)}
-          title={selectedPin.label ?? 'Pin'}
-          body={selectedPin.subtitle ?? bodyForPin(selectedPin)}
-          primary={{
-            label: 'Plan a step here',
-            icon: 'add',
-            onPress: () => {
-              handlers.onPrimaryAction?.({ lat: selectedPin.lat, lng: selectedPin.lng });
-              clearSelectedPin();
-            },
-          }}
-          secondary={{ label: 'Close', onPress: clearSelectedPin }}
-          bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
-        />
+        // Race-marks are organizer-set artifacts of an upcoming race — the
+        // user can't "plan a step" at one. Surface a richer eyebrow that
+        // names the regatta they belong to, swap the CTA to "Open <race>"
+        // so the user can jump into the race detail.
+        selectedPin.kind === 'race-mark' ? (
+          <BottomSheet
+            eyebrow={
+              next?.label
+                ? `RACE MARK · ${next.label.toUpperCase()}`
+                : 'RACE MARK'
+            }
+            title={selectedPin.label ?? 'Mark'}
+            body={selectedPin.subtitle ?? bodyForPin(selectedPin)}
+            primary={
+              next?.label
+                ? {
+                    label: `Open ${next.label}`,
+                    icon: 'open-outline',
+                    onPress: () => {
+                      handlers.onSecondaryAction?.();
+                      clearSelectedPin();
+                    },
+                  }
+                : { label: 'Close', icon: 'close', onPress: clearSelectedPin }
+            }
+            secondary={
+              next?.label ? { label: 'Close', onPress: clearSelectedPin } : undefined
+            }
+            bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
+          />
+        ) : (
+          <BottomSheet
+            eyebrow={eyebrowForPin(selectedPin)}
+            title={selectedPin.label ?? 'Pin'}
+            body={selectedPin.subtitle ?? bodyForPin(selectedPin)}
+            primary={{
+              label: 'Plan a step here',
+              icon: 'add',
+              onPress: () => {
+                handlers.onPrimaryAction?.({ lat: selectedPin.lat, lng: selectedPin.lng });
+                clearSelectedPin();
+              },
+            }}
+            secondary={{ label: 'Close', onPress: clearSelectedPin }}
+            bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
+          />
+        )
       ) : hasNext ? (
         <BottomSheet
           eyebrow="NEXT · PRE-STAGED"
@@ -1901,6 +1972,13 @@ const shellStyles = StyleSheet.create({
     fontWeight: '600',
     letterSpacing: 0.3,
     textTransform: 'uppercase',
+  },
+  layersAttribution: {
+    marginTop: 14,
+    fontSize: 10,
+    color: 'rgba(60, 60, 67, 0.55)',
+    letterSpacing: -0.1,
+    textAlign: 'center',
   },
   layerToggle: {
     width: 38,

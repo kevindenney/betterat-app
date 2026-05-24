@@ -53,14 +53,16 @@ export function useNextRaceMarks({ regattaId, enabled = true }: UseNextRaceMarks
         .limit(1)
         .maybeSingle();
       let raceId = futureRace?.id;
+      let raceName = futureRace?.name ?? null;
       if (!raceId) {
         const { data: anyRace } = await supabase
           .from('race_events')
-          .select('id')
+          .select('id, name')
           .eq('regatta_id', regattaId)
           .limit(1)
           .maybeSingle();
         raceId = anyRace?.id;
+        raceName = anyRace?.name ?? raceName;
       }
       if (!raceId) return [];
 
@@ -79,9 +81,14 @@ export function useNextRaceMarks({ regattaId, enabled = true }: UseNextRaceMarks
           lng: Number(m.longitude),
           kind: 'race-mark' as const,
           label: m.name || `#${m.sequence_order ?? '?'}`,
+          // Subtitle reads as: "Windward · Mark 1 · Race 4". The race
+          // name carries the "what race did the organizer set this for"
+          // provenance — the regatta name lives in the sheet eyebrow
+          // (handled by FrameF1 since it has the nextEvent context).
           subtitle: [
             m.mark_type ? String(m.mark_type) : null,
             m.sequence_order != null ? `Mark ${m.sequence_order}` : null,
+            raceName,
           ]
             .filter(Boolean)
             .join(' · ') || undefined,
