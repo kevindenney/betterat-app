@@ -102,6 +102,71 @@ export interface TimelineSeason {
    * placeholder bricks.
    */
   bricks: { capabilityColor: string; stepId?: string }[];
+  /**
+   * L3 analysis layer (Screen 09 · REFLECTING ON NOW). The capability
+   * river chart + peer journey chart + inline reflections + librarian
+   * prompt that turn L3 from a smaller-L2 list into the verb=reflecting
+   * surface the canonical asks for. Optional — when absent, L3 falls
+   * back to a degraded "compact section list" mode.
+   */
+  analysis?: SeasonAnalysis;
+}
+
+export interface SeasonAnalysis {
+  /**
+   * Per-week capability mix across the full season span. One entry per
+   * week from week 1 → weekOfTotal.total. Each entry stacks the volume
+   * by capability so the chart can render a stacked-area "river".
+   *
+   * Computed from real data by realDataAdapter; hand-authored in
+   * sampleData.
+   */
+  weeklyCapabilities: WeeklyCapabilityMix[];
+  /** Peer crew who appeared this season + when. Drives the peer chart. */
+  peers: SeasonPeer[];
+  /** Inline italic-serif reflection quotes pinned to specific weeks. */
+  reflections: SeasonReflection[];
+  /** Mid-season lilac prompt at the bottom of L3. */
+  librarianPrompt?: SeasonLibrarianPrompt;
+}
+
+export interface WeeklyCapabilityMix {
+  weekNumber: number;          // 1, 2, …, weekOfTotal.total
+  /** Each band stacks on the previous in render order. */
+  bands: { capabilityColor: string; volume: number }[];
+}
+
+export interface SeasonPeer {
+  id: string;
+  initials: string;
+  /** Avatar bubble color. */
+  color: string;
+  /** "coach", "bow crew", "observer" — small italic role line. */
+  role?: string;
+  /** Week the peer first appeared in this season. */
+  firstWeek: number;
+  /** Per-week activity count for this peer — drives line thickness/dots. */
+  weeklyAppearances: { weekNumber: number; count: number }[];
+}
+
+export interface SeasonReflection {
+  id: string;
+  weekNumber: number;
+  /** Short italic-serif quote — "good speed off line". */
+  quote: string;
+  /** Capability color the reflection ties to (drives chip + caret tint). */
+  capabilityColor?: string;
+}
+
+export interface SeasonLibrarianPrompt {
+  /** Small eyebrow above the body — defaults to "THE LIBRARIAN NOTICED". */
+  eyebrow?: string;
+  /** Sentence(s) of italic-serif prose. */
+  body: string;
+  /** Primary CTA (lilac filled). */
+  primaryCta: { label: string; intent: 'open-season-check-in' | 'start-reflection' };
+  /** Optional secondary CTA (ghost). */
+  secondaryCta?: { label: string };
 }
 
 export interface TimelineInterest {

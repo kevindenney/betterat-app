@@ -28,12 +28,15 @@ import { CAPABILITY_PALETTE } from './sampleData';
 import type {
   CohortAvatar,
   DayKey,
+  SeasonAnalysis,
+  SeasonPeer,
   StepHowItem,
   StepStatus,
   TimelineDataset,
   TimelineSeason,
   TimelineStep,
   TimelineWeek,
+  WeeklyCapabilityMix,
 } from './types';
 
 export interface BlueprintLookup {
@@ -285,6 +288,120 @@ function capitalize(s: string): string {
   return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
 }
 
+/**
+ * Compute the L3 analysis layer (capability river + peer journey +
+ * librarian prompt) from the already-bucketed week list.
+ *
+ * Reflections are left empty for v1 — we don't yet have a reflection-
+ * text source on the step record. The prompt is a simple progress-based
+ * sentence so L3 has something to surface even when no human-authored
+ * librarian copy exists.
+ */
+function computeSeasonAnalysis(
+  weeks: TimelineWeek[],
+  seasonName: string | null,
+  currentWeekNumber: number,
+): SeasonAnalysis | undefined {
+  if (weeks.length === 0) return undefined;
+
+  // Per-week capability mix — count steps grouped by capability color so
+  // the stacked-area chart can render a band per capability.
+  const weeklyCapabilities: WeeklyCapabilityMix[] = weeks.map((week, idx) => {
+    const counts = new Map<string, number>();
+    for (const step of week.steps) {
+      const color = step.capabilities?.[0]?.color ?? CAPABILITY_PALETTE.procedural.color;
+      counts.set(color, (counts.get(color) ?? 0) + 1);
+    }
+    const bands = Array.from(counts.entries()).map(([capabilityColor, volume]) => ({
+      capabilityColor,
+      volume,
+    }));
+    return { weekNumber: idx + 1, bands };
+  });
+
+  // Peers — union of cohortAvatars across all steps in the season. For
+  // each unique avatar we compute first-week + per-week appearance count.
+  const peerMap = new Map<
+    string,
+    { initials: string; color: string; firstWeek: number; perWeek: Map<number, number> }
+  >();
+  weeks.forEach((week, weekIdx) => {
+    const weekNumber = weekIdx + 1;
+    for (const step of week.steps) {
+      for (const avatar of step.cohortAvatars ?? []) {
+        const entry = peerMap.get(avatar.id);
+        if (entry) {
+          entry.perWeek.set(weekNumber, (entry.perWeek.get(weekNumber) ?? 0) + 1);
+        } else {
+          peerMap.set(avatar.id, {
+            initials: avatar.initials,
+            color: avatar.color,
+            firstWeek: weekNumber,
+            perWeek: new Map([[weekNumber, 1]]),
+          });
+        }
+      }
+    }
+  });
+
+  const peers: SeasonPeer[] = Array.from(peerMap.entries())
+    .map(([id, p]) => ({
+      id,
+      initials: p.initials,
+      color: p.color,
+      firstWeek: p.firstWeek,
+      weeklyAppearances: Array.from(p.perWeek.entries())
+        .map(([weekNumber, count]) => ({ weekNumber, count }))
+        .sort((a, b) => a.weekNumber - b.weekNumber),
+    }))
+    // Most-frequent peers first so the chart's vertical order is meaningful.
+    .sort(
+      (a, b) =>
+        b.weeklyAppearances.reduce((n, w) => n + w.count, 0) -
+        a.weeklyAppearances.reduce((n, w) => n + w.count, 0),
+    )
+    .slice(0, 5);
+
+  // Simple progress prompt — surfaced when the season has both a sense
+  // of "where it is" (a current-week index) and at least one peer. Real
+  // librarian copy lives in the agent loop; this is the always-on
+  // baseline so L3 isn't empty for fresh seasons.
+  const dominantColor = weeklyCapabilities
+    .slice(0, currentWeekNumber)
+    .flatMap((w) => w.bands)
+    .reduce<{ color: string; volume: number } | null>((max, b) => {
+      if (!max || b.volume > max.volume) return { color: b.capabilityColor, volume: b.volume };
+      return max;
+    }, null);
+  const dominantLabel = dominantColor
+    ? colorToCapabilityLabel(dominantColor.color)
+    : null;
+  const promptBody = seasonName
+    ? `You're at week ${currentWeekNumber} of ${weeks.length} in ${seasonName}.${
+        dominantLabel ? ` ${dominantLabel} has been the dominant thread so far.` : ''
+      } What do you want this rotation to add up to?`
+    : `You're at week ${currentWeekNumber} of ${weeks.length}. What do you want this rotation to add up to?`;
+
+  return {
+    weeklyCapabilities,
+    peers,
+    reflections: [],
+    librarianPrompt: {
+      eyebrow: 'This rotation · the librarian noticed',
+      body: promptBody,
+      primaryCta: { label: 'Open a season check-in', intent: 'open-season-check-in' },
+      secondaryCta: { label: 'Not now' },
+    },
+  };
+}
+
+function colorToCapabilityLabel(color: string): string | null {
+  for (const cap of Object.values(CAPABILITY_PALETTE)) {
+    if (cap.color === color) return cap.label;
+  }
+  return null;
+}
+
 interface AdapterInput {
   interestLabel: string;
   user: { initials: string; color: string };
@@ -372,6 +489,12 @@ export function mapToTimelineDataset({
     0,
     weeks.findIndex((w) => w.isCurrent),
   );
+  const currentSeasonAnalysis = computeSeasonAnalysis(
+    weeks,
+    currentSeason?.name ?? currentSeason?.short_name ?? null,
+    currentWeekIdx + 1,
+  );
+
   const currentSeasonNode: TimelineSeason = {
     id: seasonIdForSteps,
     title: currentSeason?.name ?? currentSeason?.short_name ?? 'Current rotation',
@@ -385,6 +508,7 @@ export function mapToTimelineDataset({
         : undefined,
     weeks,
     bricks: currentBricks,
+    analysis: currentSeasonAnalysis,
   };
 
   // Index moved-via-Section-E step records by their target season id so

@@ -9,6 +9,7 @@
 
 import type {
   Capability,
+  SeasonAnalysis,
   TimelineDataset,
   TimelineSeason,
   TimelineStep,
@@ -123,12 +124,106 @@ function bricksFor(colors: string[]) {
   return colors.map((capabilityColor) => ({ capabilityColor }));
 }
 
+// Spring '26 analysis layer — hand-authored to match the canonical
+// "REFLECTING ON NOW" surface (Screen 09). Drives the capability river
+// + peer journey + librarian prompt on L3.
+//
+// Capability arc: weeks 1-3 procedural (orientation, IV, vitals),
+// weeks 4-6 assessment ramping, weeks 7-10 cardio dominance, weeks
+// 11-14 synthesis (comm + pharm). Volume peaks mid-season around
+// the cardio block.
+const SPRING_26_ANALYSIS: SeasonAnalysis = {
+  weeklyCapabilities: [
+    { weekNumber: 1,  bands: [{ capabilityColor: PALETTE.procedural.color, volume: 4 }, { capabilityColor: PALETTE.assess.color, volume: 1 }] },
+    { weekNumber: 2,  bands: [{ capabilityColor: PALETTE.procedural.color, volume: 3 }, { capabilityColor: PALETTE.comm.color, volume: 1 }] },
+    { weekNumber: 3,  bands: [{ capabilityColor: PALETTE.procedural.color, volume: 3 }, { capabilityColor: PALETTE.assess.color, volume: 2 }] },
+    { weekNumber: 4,  bands: [{ capabilityColor: PALETTE.assess.color, volume: 4 }, { capabilityColor: PALETTE.procedural.color, volume: 2 }] },
+    { weekNumber: 5,  bands: [{ capabilityColor: PALETTE.assess.color, volume: 3 }, { capabilityColor: PALETTE.pharm.color, volume: 2 }, { capabilityColor: PALETTE.procedural.color, volume: 1 }] },
+    { weekNumber: 6,  bands: [{ capabilityColor: PALETTE.assess.color, volume: 3 }, { capabilityColor: PALETTE.comm.color, volume: 2 }] },
+    { weekNumber: 7,  bands: [{ capabilityColor: PALETTE.cardio.color, volume: 4 }, { capabilityColor: PALETTE.sbar.color, volume: 2 }, { capabilityColor: PALETTE.assess.color, volume: 1 }] },
+    { weekNumber: 8,  bands: [{ capabilityColor: PALETTE.cardio.color, volume: 3 }, { capabilityColor: PALETTE.diuretic.color, volume: 2 }] },
+    { weekNumber: 9,  bands: [{ capabilityColor: PALETTE.cardio.color, volume: 3 }, { capabilityColor: PALETTE.sbar.color, volume: 1 }] },
+    { weekNumber: 10, bands: [{ capabilityColor: PALETTE.cardio.color, volume: 2 }, { capabilityColor: PALETTE.comm.color, volume: 2 }] },
+    { weekNumber: 11, bands: [{ capabilityColor: PALETTE.comm.color, volume: 3 }, { capabilityColor: PALETTE.pharm.color, volume: 2 }] },
+    { weekNumber: 12, bands: [{ capabilityColor: PALETTE.comm.color, volume: 2 }, { capabilityColor: PALETTE.assess.color, volume: 2 }] },
+    { weekNumber: 13, bands: [{ capabilityColor: PALETTE.pharm.color, volume: 3 }, { capabilityColor: PALETTE.comm.color, volume: 1 }] },
+    { weekNumber: 14, bands: [{ capabilityColor: PALETTE.assess.color, volume: 2 }, { capabilityColor: PALETTE.comm.color, volume: 1 }] },
+  ],
+  peers: [
+    {
+      id: 'ngo',
+      initials: 'AN',
+      color: '#5BA46F',
+      role: 'preceptor',
+      firstWeek: 1,
+      weeklyAppearances: Array.from({ length: 14 }, (_, i) => ({ weekNumber: i + 1, count: 2 })),
+    },
+    {
+      id: 'rivera',
+      initials: 'MR',
+      color: '#7BA0C4',
+      role: 'cohort',
+      firstWeek: 2,
+      weeklyAppearances: [
+        { weekNumber: 2, count: 1 }, { weekNumber: 3, count: 1 }, { weekNumber: 4, count: 2 },
+        { weekNumber: 5, count: 2 }, { weekNumber: 6, count: 1 }, { weekNumber: 7, count: 2 },
+        { weekNumber: 8, count: 1 }, { weekNumber: 9, count: 2 }, { weekNumber: 10, count: 1 },
+        { weekNumber: 11, count: 1 }, { weekNumber: 12, count: 2 }, { weekNumber: 13, count: 1 },
+      ],
+    },
+    {
+      id: 'kim',
+      initials: 'JK',
+      color: '#A47A52',
+      role: 'cohort',
+      firstWeek: 1,
+      weeklyAppearances: [
+        { weekNumber: 1, count: 1 }, { weekNumber: 3, count: 1 }, { weekNumber: 5, count: 2 },
+        { weekNumber: 6, count: 1 }, { weekNumber: 7, count: 1 }, { weekNumber: 8, count: 2 },
+        { weekNumber: 10, count: 1 }, { weekNumber: 12, count: 1 },
+      ],
+    },
+    {
+      id: 'murphy',
+      initials: 'KM',
+      color: '#A04CC4',
+      role: 'faculty',
+      firstWeek: 4,
+      weeklyAppearances: [
+        { weekNumber: 4, count: 1 }, { weekNumber: 7, count: 2 }, { weekNumber: 11, count: 1 },
+      ],
+    },
+  ],
+  reflections: [
+    {
+      id: 'r-w5',
+      weekNumber: 5,
+      quote: 'vitals before story',
+      capabilityColor: PALETTE.assess.color,
+    },
+    {
+      id: 'r-w7',
+      weekNumber: 7,
+      quote: 'named the lasix',
+      capabilityColor: PALETTE.cardio.color,
+    },
+  ],
+  librarianPrompt: {
+    eyebrow: 'This season · the librarian noticed',
+    body:
+      "You're halfway through Spring '26. Cardio has tightened around assessment + handoff; procedural has cooled off since Week 4. Dr. Murphy joins again next week. What do you want this season to add up to?",
+    primaryCta: { label: 'Open a season check-in', intent: 'open-season-check-in' },
+    secondaryCta: { label: 'Not now' },
+  },
+};
+
 const SPRING_26: TimelineSeason = {
   id: 'spring26',
   title: "Spring '26 clinical",
   orgChip: { monogram: 'JH', label: 'Johns Hopkins · MSN' },
   dateRange: 'Jan 14 — May 8',
   weekOfTotal: { current: 7, total: 14 },
+  analysis: SPRING_26_ANALYSIS,
   weeks: [
     {
       id: 'w7',

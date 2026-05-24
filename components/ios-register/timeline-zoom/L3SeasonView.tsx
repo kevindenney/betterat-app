@@ -1,25 +1,45 @@
 /**
- * L3 — current season in full, weeks as section heads, vertical scroll.
+ * L3 — VERB: REFLECTING ON NOW (Screen 09 of v3 screen designs).
  *
- * Frame 3/7. Season title (e.g. "Spring '26 clinical"), org chip, date
- * range and "Week N of M". Sticky toolbar: Sort / Capability / Select.
- * Vertical sections per week with WEEK header + 2-up step cards.
- * Today's card is outlined iOS blue.
+ * "Zoom isn't a density slider — it's a verb slider." L3 isn't a smaller
+ * L2; it's the mini-REFLECT scoped to the current session. The capability
+ * river + peer journey chart + librarian prompt at the top tell the user
+ * what this season *means*; the existing week-section list lives below
+ * for drill-in and drag-reorder.
  *
- * Section D drag-reorder (Frame 13): long-press any digest card to lift
- * it and drag to a new position. The hook tracks finger Y vs. row
- * midpoints and fires `onReorder` on drop. The parent canvas persists
- * the new sort_order via the existing updateStep mutation.
+ * Composition:
+ *   - Header block — title, org chip, "wk N of M"
+ *   - Capability river chart (CapabilityRiverChart) — stacked area per
+ *     week, NOW bar, inline reflection quotes
+ *   - Peer journey chart (PeerJourneyChart) — crew arrival timeline
+ *   - Season librarian prompt (SeasonLibrarianPrompt) — lilac mid-season
+ *     "what do you want this season to add up to?" CTA
+ *   - Browse-weeks list — the previous L3 layout, now scrolled below the
+ *     analysis layer. Drag-reorder + multi-select still work.
+ *
+ * When `season.analysis` is absent (data adapter hasn't filled it in
+ * yet, or the season is too sparse) the analysis layer is omitted and
+ * the view falls back to the original toolbar + week-list.
  */
 
-import React, { useCallback, useMemo } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import React, { useCallback, useMemo, useState } from 'react';
+import {
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
+import type { LayoutChangeEvent } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { GestureDetector } from 'react-native-gesture-handler';
 import Animated, { useAnimatedStyle } from 'react-native-reanimated';
 
 import { IOS_REGISTER } from '@/lib/design-tokens-ios';
 import { StepDigestCard } from './StepDigestCard';
+import { CapabilityRiverChart } from './CapabilityRiverChart';
+import { PeerJourneyChart } from './PeerJourneyChart';
+import { SeasonLibrarianPrompt } from './SeasonLibrarianPrompt';
 import { useDragReorder } from './useDragReorder';
 import type { TimelineDataset, TimelineStep } from './types';
 
@@ -42,6 +62,10 @@ interface L3SeasonViewProps {
   selectEnabled?: boolean;
   isSelected?: (stepId: string) => boolean;
   onToggleSelect?: (stepId: string) => void;
+  /** Librarian primary CTA tap — defaults to no-op (preview surface). */
+  onLibrarianPrimary?: () => void;
+  /** Librarian "Not now" tap — defaults to no-op. */
+  onLibrarianSecondary?: () => void;
 }
 
 export function L3SeasonView({
@@ -53,8 +77,16 @@ export function L3SeasonView({
   selectEnabled = false,
   isSelected,
   onToggleSelect,
+  onLibrarianPrimary,
+  onLibrarianSecondary,
 }: L3SeasonViewProps) {
   const season = dataset.seasons.find((s) => s.id === dataset.currentSeasonId);
+  const [chartWidth, setChartWidth] = useState(0);
+
+  const onAnalysisLayout = useCallback((e: LayoutChangeEvent) => {
+    const w = e.nativeEvent.layout.width;
+    if (w !== chartWidth) setChartWidth(w);
+  }, [chartWidth]);
 
   // Flatten the current season's steps into one ordered list. The drag
   // hook reasons in this flat coordinate space; the UI still renders
@@ -70,18 +102,11 @@ export function L3SeasonView({
     enabled: Boolean(onReorderStep),
     onReorder: useCallback(
       (id, from, to) => {
-        // Resolve neighbor ids in the post-drop ordering. Remove the
-        // moved item first; the indices the hook hands us are already
-        // expressed as the target insertion index in the full list,
-        // but we need it in the without-moved list for the neighbor
-        // lookup to be unambiguous.
         const without = flatSteps.filter((s) => s.id !== id);
         const clamped = Math.max(0, Math.min(to, without.length));
         const before = without[clamped - 1]?.id ?? null;
         const after = without[clamped]?.id ?? null;
         onReorderStep?.(id, before, after);
-        // `from` participated in computing `to`; silence the unused-arg
-        // lint without changing the public contract.
         void from;
       },
       [flatSteps, onReorderStep],
@@ -90,12 +115,20 @@ export function L3SeasonView({
 
   if (!season) return null;
 
+  const analysis = season.analysis;
+  const totalWeeks = season.weekOfTotal?.total ?? season.weeks.length;
+  const currentWeek = season.weekOfTotal?.current ?? 1;
+
   // Sticky week headers: the ScrollView's stickyHeaderIndices points at
-  // each WEEK N row's index among the top-level scroll children. Build
-  // a flat list of children (header chrome + toolbar + per-week
-  // [header, cards] pairs) so we can compute the sticky positions
-  // alongside the JSX.
-  const fixedChildrenBeforeWeeks = 2; // headerBlock + toolbar
+  // each WEEK N row's index among the top-level scroll children. With
+  // the analysis layer in the tree, we count the fixed children before
+  // the per-week pairs and add per-week pairs from there.
+  const hasAnalysis = Boolean(analysis);
+  const fixedChildrenBeforeWeeks =
+    // headerBlock + browseWeeksEyebrow + toolbar
+    3
+    // analysis block (one wrapper View if present)
+    + (hasAnalysis ? 1 : 0);
   const stickyHeaderIndices = season.weeks.map(
     (_w, i) => fixedChildrenBeforeWeeks + i * 2,
   );
@@ -109,6 +142,7 @@ export function L3SeasonView({
       stickyHeaderIndices={stickyHeaderIndices}
     >
       <View style={styles.headerBlock}>
+        <Text style={styles.eyebrow}>ZOOM · SEASON · REFLECTING ON NOW</Text>
         <Text style={styles.title}>{season.title}</Text>
         <View style={styles.metaRow}>
           {season.orgChip ? (
@@ -127,6 +161,44 @@ export function L3SeasonView({
           </Text>
         ) : null}
       </View>
+
+      {hasAnalysis && analysis ? (
+        <View style={styles.analysisBlock} onLayout={onAnalysisLayout}>
+          <Text style={styles.sectionEyebrow}>CAPABILITY RIVER</Text>
+          <CapabilityRiverChart
+            weeklyCapabilities={analysis.weeklyCapabilities}
+            totalWeeks={totalWeeks}
+            currentWeekNumber={currentWeek}
+            reflections={analysis.reflections}
+            width={chartWidth}
+            height={130}
+          />
+
+          {analysis.peers.length > 0 ? (
+            <>
+              <Text style={[styles.sectionEyebrow, styles.sectionEyebrowSpace]}>
+                CREW
+              </Text>
+              <PeerJourneyChart
+                peers={analysis.peers}
+                totalWeeks={totalWeeks}
+                currentWeekNumber={currentWeek}
+                width={chartWidth}
+              />
+            </>
+          ) : null}
+
+          {analysis.librarianPrompt ? (
+            <SeasonLibrarianPrompt
+              prompt={analysis.librarianPrompt}
+              onPrimary={onLibrarianPrimary}
+              onSecondary={onLibrarianSecondary}
+            />
+          ) : null}
+        </View>
+      ) : null}
+
+      <Text style={styles.browseEyebrow}>BROWSE WEEKS</Text>
 
       <View style={styles.toolbar}>
         <ToolbarButton icon="swap-vertical-outline" label="Sort" />
@@ -236,10 +308,6 @@ function DraggableCardSlot({
     };
   }, [isLifted, liftedTranslateY]);
 
-  // In select mode the drag gesture is disabled at the parent (canvas
-  // omits onReorderStep, the hook reports enabled=false). Skip the
-  // GestureDetector wrapper entirely so a plain tap reaches Pressable
-  // without racing the long-press detector.
   const cardBody = (
     <Animated.View
       style={[styles.slotFlex, liftStyle]}
@@ -301,6 +369,13 @@ const styles = StyleSheet.create({
     paddingTop: 4,
     paddingBottom: 12,
   },
+  eyebrow: {
+    fontSize: 10.5,
+    fontWeight: '700',
+    letterSpacing: 0.6,
+    color: IOS_REGISTER.labelSecondary,
+    marginBottom: 8,
+  },
   title: {
     fontSize: 28,
     fontWeight: '700',
@@ -351,6 +426,31 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: IOS_REGISTER.labelSecondary,
     marginTop: 6,
+  },
+  analysisBlock: {
+    paddingHorizontal: 0,
+    paddingTop: 4,
+    paddingBottom: 8,
+  },
+  sectionEyebrow: {
+    fontSize: 10.5,
+    fontWeight: '700',
+    letterSpacing: 0.6,
+    color: IOS_REGISTER.labelSecondary,
+    marginLeft: 16,
+    marginBottom: 6,
+  },
+  sectionEyebrowSpace: {
+    marginTop: 16,
+  },
+  browseEyebrow: {
+    fontSize: 10.5,
+    fontWeight: '700',
+    letterSpacing: 0.6,
+    color: IOS_REGISTER.labelSecondary,
+    paddingHorizontal: 16,
+    paddingTop: 22,
+    paddingBottom: 10,
   },
   toolbar: {
     flexDirection: 'row',
