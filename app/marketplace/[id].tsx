@@ -22,6 +22,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useAuth } from '@/providers/AuthProvider';
 import { useMarketplaceBlueprint } from '@/hooks/useMarketplaceBlueprint';
 import { useMarketplaceCheckout } from '@/hooks/useMarketplaceBlueprints';
+import { WebMeta } from '@/components/marketplace/WebMeta';
 
 const CATEGORY_TONE: Record<string, { bg: string; fg: string; label: string }> = {
   procedural: { bg: 'rgba(139, 90, 60, 0.12)', fg: '#8B5A3C', label: 'Procedural' },
@@ -117,6 +118,19 @@ export default function MarketplaceBlueprintPage() {
         isCompact && { paddingHorizontal: 16, paddingTop: 24, gap: 16 },
       ]}
     >
+      <WebMeta
+        title={`${blueprint.title} · BetterAt Marketplace`}
+        description={
+          blueprint.description ??
+          `${blueprint.title} — a step-by-step blueprint by ${blueprint.authorName}${
+            blueprint.orgName ? ` (${blueprint.orgName})` : ''
+          }.`
+        }
+        ogType="product"
+        url={typeof window !== 'undefined' ? window.location.href : undefined}
+        priceAmount={blueprint.pricePerSeatCents / 100}
+        priceCurrency="USD"
+      />
       <View style={s.header}>
         <View style={s.eyebrowRow}>
           <Pressable onPress={() => router.replace('/marketplace' as any)} hitSlop={8}>

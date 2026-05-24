@@ -21,6 +21,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useAuth } from '@/providers/AuthProvider';
+import { WebMeta } from '@/components/marketplace/WebMeta';
 import {
   useMarketplaceBlueprints,
   useMarketplaceCheckout,
@@ -128,6 +129,12 @@ export default function MarketplacePage() {
         isCompact && { paddingHorizontal: 16, paddingTop: 24, gap: 20 },
       ]}
     >
+      <WebMeta
+        title="Marketplace · BetterAt"
+        description="Practical step-by-step blueprints from independent authors. Subscribe monthly, cancel anytime, payouts route via Stripe Connect."
+        ogType="website"
+        url={typeof window !== 'undefined' ? window.location.href : undefined}
+      />
       {returnBanner ? (
         <View
           style={[

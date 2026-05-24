@@ -30,6 +30,7 @@ import { IOS_COLORS, IOS_REGISTER, IOS_SPACING } from '@/lib/design-tokens-ios';
 import { useInboxItems } from '@/hooks/useInboxItems';
 import { useInboxActions } from '@/hooks/useInboxActions';
 import type { InboxItem } from '@/components/practice/types';
+import { InterestSwitcher } from '@/components/InterestSwitcher';
 
 type Segment = 'act' | 'read' | 'done';
 
@@ -112,6 +113,11 @@ export default function InboxTabScreen() {
       <Stack.Screen options={{ headerShown: false }} />
       <View style={[styles.container, { paddingTop: insets.top }]}>
         <View style={styles.header}>
+          {/* Interest switcher pill — matches the chrome on other tabs so
+              users can switch interests from Inbox without backing out. */}
+          <View style={styles.interestRow}>
+            <InterestSwitcher />
+          </View>
           <Text style={styles.title}>Inbox</Text>
           <View style={styles.segRow}>
             <SegmentPill
@@ -386,6 +392,11 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: IOS_REGISTER.separator,
+  },
+  interestRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
   },
   title: {
     fontSize: 32,
