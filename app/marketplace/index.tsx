@@ -217,6 +217,47 @@ export default function MarketplacePage() {
         )}
       </View>
 
+      {!scopedAuthor ? (
+        <View style={[s.howRow, isCompact && { flexDirection: 'column', gap: 12 }]}>
+          <View style={s.howStep}>
+            <View style={s.howIco}>
+              <Ionicons name="search" size={14} color="#28406B" />
+            </View>
+            <View style={{ flex: 1, gap: 4 }}>
+              <Text style={s.howStepTitle}>Browse</Text>
+              <Text style={s.howStepCopy}>
+                Curated playbooks from practitioners. Read the curriculum, reviews, and bio
+                before you subscribe.
+              </Text>
+            </View>
+          </View>
+          <View style={s.howStep}>
+            <View style={s.howIco}>
+              <Ionicons name="card" size={14} color="#28406B" />
+            </View>
+            <View style={{ flex: 1, gap: 4 }}>
+              <Text style={s.howStepTitle}>Subscribe</Text>
+              <Text style={s.howStepCopy}>
+                Pay via Stripe. Cancel anytime. 70% routes to the author; the platform takes
+                30%.
+              </Text>
+            </View>
+          </View>
+          <View style={s.howStep}>
+            <View style={s.howIco}>
+              <Ionicons name="git-branch" size={14} color="#28406B" />
+            </View>
+            <View style={{ flex: 1, gap: 4 }}>
+              <Text style={s.howStepTitle}>Practice</Text>
+              <Text style={s.howStepCopy}>
+                Steps land in your timeline. Work through them on shift; review when you're
+                done.
+              </Text>
+            </View>
+          </View>
+        </View>
+      ) : null}
+
       {!loading && blueprints.length > 0 ? (
         <View style={[s.filterRow, isCompact && { flexDirection: 'column', gap: 10 }]}>
           <View style={[s.searchBox, isCompact && { width: '100%' }]}>
@@ -754,6 +795,26 @@ const s = StyleSheet.create({
     borderLeftWidth: 2,
     borderLeftColor: 'rgba(40, 64, 107, 0.25)',
   },
+  howRow: {
+    flexDirection: 'row',
+    gap: 18,
+    padding: 18,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    borderWidth: 0.5,
+    borderColor: 'rgba(0,0,0,0.06)',
+  },
+  howStep: { flex: 1, flexDirection: 'row', gap: 12, alignItems: 'flex-start' },
+  howIco: {
+    width: 30,
+    height: 30,
+    borderRadius: 8,
+    backgroundColor: 'rgba(40, 64, 107, 0.10)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  howStepTitle: { fontSize: 13.5, fontWeight: '700', color: '#1C1C1E' },
+  howStepCopy: { fontSize: 12, lineHeight: 17, color: 'rgba(60, 60, 67, 0.75)' },
 
   // Featured rail
   railHead: { flexDirection: 'row', alignItems: 'center', gap: 6 },
