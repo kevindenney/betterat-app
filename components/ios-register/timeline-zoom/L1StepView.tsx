@@ -421,34 +421,46 @@ const styles = StyleSheet.create({
     paddingBottom: 8,
   },
   embedDetailHost: { flex: 1 },
-  embedContent: { flex: 1 },
+  embedContent: {
+    flex: 1,
+    // Active card surface — sits *on top of* the peek slabs so the eye
+    // reads a stacked-deck effect: gray plate behind, white card on top.
+    backgroundColor: IOS_REGISTER.cardBg,
+    // Inset both sides slightly so the peeks are visible just past the
+    // card edge — gives the "edge of the deck" silhouette.
+    marginHorizontal: PEEK_WIDTH - 4,
+    // Slight shadow so the active card sits visually above the peeks.
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    elevation: 2,
+    zIndex: 2,
+  },
   peekLeft: {
     position: 'absolute',
     left: 3, // sit just inside the NOW bar
-    top: 60,
-    bottom: 60,
+    top: 40,
+    bottom: 40,
     width: PEEK_WIDTH,
-    backgroundColor: IOS_REGISTER.cardBg,
-    borderTopRightRadius: 6,
-    borderBottomRightRadius: 6,
-    borderRightWidth: StyleSheet.hairlineWidth,
-    borderRightColor: IOS_REGISTER.separator,
-    zIndex: 3,
-    opacity: 0.6,
+    // Darker than the active card — reads as the card behind. Tuned so
+    // the silhouette is unmistakably "another card" without competing
+    // with the focused card's content for the eye.
+    backgroundColor: '#D5D5DA',
+    borderTopRightRadius: 4,
+    borderBottomRightRadius: 4,
+    zIndex: 1,
   },
   peekRight: {
     position: 'absolute',
     right: 0,
-    top: 60,
-    bottom: 60,
+    top: 40,
+    bottom: 40,
     width: PEEK_WIDTH,
-    backgroundColor: IOS_REGISTER.cardBg,
-    borderTopLeftRadius: 6,
-    borderBottomLeftRadius: 6,
-    borderLeftWidth: StyleSheet.hairlineWidth,
-    borderLeftColor: IOS_REGISTER.separator,
-    zIndex: 3,
-    opacity: 0.6,
+    backgroundColor: '#D5D5DA',
+    borderTopLeftRadius: 4,
+    borderBottomLeftRadius: 4,
+    zIndex: 1,
   },
   scroll: { flex: 1 },
   scrollContent: {
