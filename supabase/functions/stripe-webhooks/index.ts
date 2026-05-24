@@ -1461,6 +1461,63 @@ function getCurrencySymbol(currency: string): string {
  */
 async function handleChargeRefunded(charge: Stripe.Charge) {
   const paymentIntentId = charge.payment_intent as string | null;
+
+  // Marketplace refund debit — runs before the legacy coaching path so
+  // a refund on a marketplace invoice rolls back the author payout
+  // credit even if no coaching_sessions row matches.
+  if (charge.invoice) {
+    try {
+      const invoice = await stripe.invoices.retrieve(charge.invoice as string);
+      if (invoice.subscription) {
+        const { data: ms } = await supabase
+          .from('marketplace_subscriptions')
+          .select('blueprint_id, author_user_id, org_id')
+          .eq('stripe_subscription_id', invoice.subscription as string)
+          .maybeSingle();
+        if (ms && ms.author_user_id && ms.org_id) {
+          const { data: bp } = await supabase
+            .from('blueprints')
+            .select('author_payout_pct, title')
+            .eq('id', ms.blueprint_id)
+            .maybeSingle();
+          const refunded = charge.amount_refunded ?? 0;
+          if (refunded > 0) {
+            await supabase.rpc('credit_author_payout', {
+              p_org_id: ms.org_id,
+              p_author_user_id: ms.author_user_id,
+              p_amount_cents: -refunded, // negative = debit
+              p_author_payout_pct: bp?.author_payout_pct ?? null,
+            }).then(({ error }) => {
+              if (error) console.warn('[charge.refunded] credit_author_payout debit failed', error);
+            });
+            try {
+              await supabase.from('audit_events').insert({
+                org_id: ms.org_id,
+                actor_user_id: null,
+                verb: 'config_change',
+                verb_label: 'Marketplace refund',
+                target_type: 'blueprint',
+                target_id: ms.blueprint_id,
+                target_label: bp?.title ?? null,
+                description: `Refund processed on a marketplace subscription — author credit reversed.`,
+                payload: {
+                  stripe_charge: charge.id,
+                  stripe_invoice: charge.invoice,
+                  amount_refunded_cents: refunded,
+                  is_full_refund: charge.amount_refunded >= charge.amount,
+                },
+              });
+            } catch (err) {
+              console.warn('[charge.refunded] audit insert failed', err);
+            }
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('[charge.refunded] marketplace lookup failed', err);
+    }
+  }
+
   if (!paymentIntentId) return;
 
   // Find coaching session by payment intent
