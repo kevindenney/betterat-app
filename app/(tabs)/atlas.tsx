@@ -169,7 +169,7 @@ export default function AtlasTab() {
   // Strip after the root cause is identified.
   const debugLine = nextEvent
     ? `next=${nextEvent.label} · ${nextEvent.when ?? '?'} · lat=${nextEvent.lat ?? '∅'} lng=${nextEvent.lng ?? '∅'} kind=${nextEvent.event_kind ?? '∅'}`
-    : `next=null · user=${user?.id ? user.id.slice(0, 8) : '∅'} · slug=${currentInterest?.slug ?? '∅'}`;
+    : `next=null · uid=${user?.id ?? '∅'} · email=${user?.email ?? '∅'} · slug=${currentInterest?.slug ?? '∅'}`;
 
   return (
     <SafeAreaView style={styles.page} edges={['top']}>
