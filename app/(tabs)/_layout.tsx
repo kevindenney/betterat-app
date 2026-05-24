@@ -532,6 +532,10 @@ function TabLayoutInner() {
           name="atlas"
           options={{
             title: atlasTab?.title ?? 'Atlas',
+            // Edge-to-edge: hide the screen header so the map fills
+            // from the top safe-area down. The Atlas surface owns its
+            // own floating chrome.
+            headerShown: false,
             tabBarIcon: isSailorUser ? () => null : ({ color, size, focused }) => (
               <Ionicons
                 name={getIconName(atlasTab, focused, atlasTab?.iconFocused ?? 'compass', atlasTab?.icon ?? 'compass-outline') as any}

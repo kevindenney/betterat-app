@@ -165,7 +165,7 @@ export default function AtlasTab() {
   }, [frame, router]);
 
   return (
-    <SafeAreaView style={styles.page} edges={['top']}>
+    <SafeAreaView style={styles.page} edges={[]}>
       <View style={[styles.surface, { paddingBottom: tabBarSpace }]}>
         <AtlasScreen
           frame={frame}

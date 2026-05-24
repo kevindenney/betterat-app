@@ -1367,25 +1367,30 @@ function BottomSheet({
   primary,
   secondary,
 }: BottomSheetProps) {
-  // Two-state draggable sheet: collapsed (handle + eyebrow + primary
-  // CTA only, ~110pt) and expanded (full content, ~current height).
-  // Tap the handle to toggle. Default expanded so first-time users see
-  // the full context, then they can pull down to free the map.
-  const [expanded, setExpanded] = useState(true);
-  const toggle = useCallback(() => setExpanded((v) => !v), []);
+  // Three-state sheet: HANDLE (28pt — just the pull tab, true edge-to-
+  // edge map below), MID (~110pt — handle + eyebrow + primary CTA), and
+  // EXPANDED (full content). Tap the handle to cycle: EXPANDED → MID →
+  // HANDLE → EXPANDED. Default MID so first-time users see context but
+  // the map isn't crowded.
+  const [state, setState] = useState<'handle' | 'mid' | 'expanded'>('mid');
+  const cycle = useCallback(() => {
+    setState((v) => (v === 'expanded' ? 'mid' : v === 'mid' ? 'handle' : 'expanded'));
+  }, []);
+  const showFull = state === 'expanded';
+  const showMid = state !== 'handle';
   return (
     <View style={shellStyles.bottomSheet}>
       <Pressable
-        onPress={toggle}
+        onPress={cycle}
         accessibilityRole="button"
-        accessibilityLabel={expanded ? 'Collapse sheet' : 'Expand sheet'}
-        hitSlop={8}
+        accessibilityLabel={`Sheet state: ${state}. Tap to cycle.`}
+        hitSlop={12}
         style={shellStyles.sheetHandleHit}
       >
         <View style={shellStyles.sheetHandle} />
       </Pressable>
-      {eyebrow ? <Text style={shellStyles.eyebrow}>{eyebrow}</Text> : null}
-      {expanded && peerHeader ? (
+      {showMid && eyebrow ? <Text style={shellStyles.eyebrow}>{eyebrow}</Text> : null}
+      {showFull && peerHeader ? (
         <View>
           <Text style={shellStyles.peerName}>
             {peerHeader.name} <Text style={shellStyles.peerQuote}>· {peerHeader.quote}</Text>
@@ -1393,16 +1398,16 @@ function BottomSheet({
           <Text style={shellStyles.peerEyebrow}>{peerHeader.eyebrow}</Text>
         </View>
       ) : null}
-      {title ? <Text style={shellStyles.sheetTitle} numberOfLines={expanded ? undefined : 1}>{title}</Text> : null}
-      {expanded && body ? <Text style={shellStyles.sheetBody}>{body}</Text> : null}
-      {expanded && statsRow ? (
+      {showMid && title ? <Text style={shellStyles.sheetTitle} numberOfLines={showFull ? undefined : 1}>{title}</Text> : null}
+      {showFull && body ? <Text style={shellStyles.sheetBody}>{body}</Text> : null}
+      {showFull && statsRow ? (
         <View style={shellStyles.statsRow}>
           {statsRow.map((stat) => (
             <Stat key={stat.label} {...stat} />
           ))}
         </View>
       ) : null}
-      {(primary || secondary) && (
+      {showMid && (primary || secondary) && (
         <View style={shellStyles.btnRow}>
           {primary ? (
             <Pressable onPress={primary.onPress} style={[shellStyles.btn, shellStyles.btnPrimary]}>
@@ -1410,7 +1415,7 @@ function BottomSheet({
               <Text style={shellStyles.btnPrimaryText}>{primary.label}</Text>
             </Pressable>
           ) : null}
-          {expanded && secondary ? (
+          {showFull && secondary ? (
             <Pressable onPress={secondary.onPress} style={[shellStyles.btn, shellStyles.btnSecondary]}>
               {secondary.icon ? (
                 <Ionicons name={secondary.icon} size={14} color={IOS_REGISTER.label} />
@@ -1622,9 +1627,10 @@ const shellStyles = StyleSheet.create({
   },
   /**
    * Floating glass-chrome container — sits absolute over the map at the
-   * top, holds TopChrome + FilterChipsRow. The translucent white panel
-   * provides legibility against any map style without going all the way
-   * to opaque (which would defeat the full-screen-map intent).
+   * top, holds TopChrome + FilterChipsRow. paddingTop accounts for the
+   * iOS notch / Dynamic Island so chrome sits cleanly below status bar
+   * without a SafeAreaView wrapper above the map (which would cut into
+   * the edge-to-edge canvas).
    */
   floatingChrome: {
     position: 'absolute',
@@ -1632,7 +1638,7 @@ const shellStyles = StyleSheet.create({
     left: 0,
     right: 0,
     backgroundColor: 'rgba(255, 255, 255, 0.82)',
-    paddingTop: 4,
+    paddingTop: 50,
     paddingBottom: 4,
     shadowColor: '#000',
     shadowOpacity: 0.08,
