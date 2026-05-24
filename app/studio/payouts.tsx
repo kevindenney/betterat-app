@@ -86,7 +86,12 @@ export default function StudioPayoutsPage() {
           count: data.currencySymbol,
           active: true,
         },
-        { key: 'earnings', icon: 'receipt-outline', label: 'Earnings' },
+        {
+          key: 'earnings',
+          icon: 'receipt-outline',
+          label: 'Earnings',
+          onPress: () => router.push('/studio/earnings'),
+        },
         { key: 'pricing', icon: 'pricetag-outline', label: 'Pricing' },
         { key: 'legal', icon: 'document-text-outline', label: 'Tax & legal' },
       ],

@@ -107,7 +107,12 @@ export default function StudioHomePage() {
           label: 'Payouts',
           count: isInstitutional ? '—' : undefined,
         },
-        { key: 'earnings', icon: 'receipt-outline', label: 'Earnings' },
+        {
+          key: 'earnings',
+          icon: 'receipt-outline',
+          label: 'Earnings',
+          onPress: () => router.push('/studio/earnings'),
+        },
       ],
       footer: isInstitutional ? (
         <Text style={styles.institutionalNote}>
