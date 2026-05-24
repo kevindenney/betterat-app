@@ -16,6 +16,7 @@
  */
 
 import React, { useCallback, useMemo, useState } from 'react';
+import type { LayoutChangeEvent } from 'react-native';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { GestureDetector } from 'react-native-gesture-handler';
@@ -23,7 +24,18 @@ import Animated, { useAnimatedStyle } from 'react-native-reanimated';
 
 import { IOS_REGISTER } from '@/lib/design-tokens-ios';
 import { useDragReorder } from './useDragReorder';
-import type { TimelineDataset, TimelineSeason } from './types';
+import { CapabilityRiverChart } from './CapabilityRiverChart';
+import type { RiverChartMarker } from './CapabilityRiverChart';
+import { PeerJourneyChart } from './PeerJourneyChart';
+import { SeasonLibrarianPrompt } from './SeasonLibrarianPrompt';
+import type {
+  LifetimeAnalysis,
+  SeasonPeer,
+  SeasonReflection,
+  TimelineDataset,
+  TimelineSeason,
+  WeeklyCapabilityMix,
+} from './types';
 
 interface L4YearsViewProps {
   dataset: TimelineDataset;
@@ -43,6 +55,66 @@ interface L4YearsViewProps {
   selectEnabled?: boolean;
   isSelected?: (stepId: string) => boolean;
   onToggleSelect?: (stepId: string) => void;
+  /** Lifetime librarian primary CTA — "Start a reflection". */
+  onLibrarianPrimary?: () => void;
+  /** Lifetime librarian "Not now" tap. */
+  onLibrarianSecondary?: () => void;
+}
+
+/**
+ * Map a LifetimeAnalysis into the unit-agnostic shapes the river +
+ * peer charts already consume. The charts use "weekNumber" naming
+ * because they were built for L3 first; here "weekNumber" actually
+ * means sessionIndex. Same math, different label.
+ */
+function adaptLifetimeForCharts(lifetime: LifetimeAnalysis | undefined): {
+  weeklyCapabilities: WeeklyCapabilityMix[];
+  peers: SeasonPeer[];
+  reflections: SeasonReflection[];
+  markers: RiverChartMarker[];
+  totalUnits: number;
+  currentUnit: number;
+} | null {
+  if (!lifetime || lifetime.sessions.length === 0) return null;
+  const totalUnits = lifetime.sessions.length;
+  // Current session = the newest non-future session. Sessions are
+  // chronological so the last one is the "now" anchor unless the
+  // caller has explicitly flagged a future stub (skipped for v1).
+  const currentUnit = totalUnits;
+
+  const weeklyCapabilities: WeeklyCapabilityMix[] = lifetime.sessions.map((s) => ({
+    weekNumber: s.sessionIndex,
+    bands: [{ capabilityColor: s.dominantCapabilityColor, volume: Math.max(1, s.volume) }],
+  }));
+
+  const peers: SeasonPeer[] = lifetime.peers.map((p) => ({
+    id: p.id,
+    initials: p.initials,
+    color: p.color,
+    role: p.role,
+    firstWeek: p.firstSessionIndex,
+    weeklyAppearances: p.sessionAppearances.map((a) => ({
+      weekNumber: a.sessionIndex,
+      count: a.count,
+    })),
+  }));
+
+  const reflections: SeasonReflection[] = lifetime.reflections.map((r) => ({
+    id: r.id,
+    weekNumber: r.sessionIndex,
+    quote: r.quote,
+    capabilityColor: r.capabilityColor,
+  }));
+
+  const markers: RiverChartMarker[] = lifetime.trophies.map((t) => ({
+    id: t.id,
+    unit: t.sessionIndex,
+    kind: 'trophy',
+    label: t.label,
+    capabilityColor: t.capabilityColor,
+  }));
+
+  return { weeklyCapabilities, peers, reflections, markers, totalUnits, currentUnit };
 }
 
 export function L4YearsView({
@@ -53,8 +125,23 @@ export function L4YearsView({
   selectEnabled = false,
   isSelected,
   onToggleSelect,
+  onLibrarianPrimary,
+  onLibrarianSecondary,
 }: L4YearsViewProps) {
   const [activeFilter, setActiveFilter] = useState('all');
+  const [chartWidth, setChartWidth] = useState(0);
+
+  const onAnalysisLayout = useCallback((e: LayoutChangeEvent) => {
+    const w = e.nativeEvent.layout.width;
+    if (w !== chartWidth) setChartWidth(w);
+  }, [chartWidth]);
+
+  const lifetime = dataset.lifetime;
+
+  // Convert lifetime data into the existing chart shapes (the charts
+  // don't know about lifetime semantics — they operate on the generic
+  // "unit" axis whether that's weeks or sessions).
+  const adapted = useMemo(() => adaptLifetimeForCharts(lifetime), [lifetime]);
 
   return (
     <ScrollView
@@ -63,11 +150,56 @@ export function L4YearsView({
       showsVerticalScrollIndicator={false}
     >
       <View style={styles.headerBlock}>
+        <Text style={styles.eyebrow}>ZOOM · ALL TIME · REFLECTING ON A LIFE</Text>
         <Text style={styles.title}>All your steps</Text>
         <Text style={styles.subtitle}>
           {dataset.totalSeasons} seasons · {dataset.totalSteps} steps · since {dataset.sinceDate}
         </Text>
       </View>
+
+      {adapted && lifetime ? (
+        <View style={styles.analysisBlock} onLayout={onAnalysisLayout}>
+          <Text style={styles.sectionEyebrow}>CAPABILITY RIVER</Text>
+          <CapabilityRiverChart
+            weeklyCapabilities={adapted.weeklyCapabilities}
+            totalWeeks={adapted.totalUnits}
+            currentWeekNumber={adapted.currentUnit}
+            reflections={adapted.reflections}
+            markers={adapted.markers}
+            tickLabel={(unit) =>
+              lifetime.sessions.find((s) => s.sessionIndex === unit)?.label ?? `s${unit}`
+            }
+            tickEveryN={1}
+            nowLabel="NOW"
+            width={chartWidth}
+            height={150}
+          />
+
+          {adapted.peers.length > 0 ? (
+            <>
+              <Text style={[styles.sectionEyebrow, styles.sectionEyebrowSpace]}>
+                PEERS
+              </Text>
+              <PeerJourneyChart
+                peers={adapted.peers}
+                totalWeeks={adapted.totalUnits}
+                currentWeekNumber={adapted.currentUnit}
+                width={chartWidth}
+              />
+            </>
+          ) : null}
+
+          {lifetime.librarianPrompt ? (
+            <SeasonLibrarianPrompt
+              prompt={lifetime.librarianPrompt}
+              onPrimary={onLibrarianPrimary}
+              onSecondary={onLibrarianSecondary}
+            />
+          ) : null}
+
+          <Text style={styles.browseEyebrow}>BROWSE LANES</Text>
+        </View>
+      ) : null}
 
       <View style={styles.searchBar}>
         <Ionicons name="search-outline" size={15} color={IOS_REGISTER.labelTertiary} />
@@ -368,6 +500,13 @@ const styles = StyleSheet.create({
     paddingTop: 4,
     paddingBottom: 12,
   },
+  eyebrow: {
+    fontSize: 10.5,
+    fontWeight: '700',
+    letterSpacing: 0.6,
+    color: IOS_REGISTER.labelSecondary,
+    marginBottom: 8,
+  },
   title: {
     fontSize: 28,
     fontWeight: '700',
@@ -378,6 +517,31 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 13,
     color: IOS_REGISTER.labelSecondary,
+  },
+  analysisBlock: {
+    paddingHorizontal: 0,
+    paddingTop: 4,
+    paddingBottom: 8,
+  },
+  sectionEyebrow: {
+    fontSize: 10.5,
+    fontWeight: '700',
+    letterSpacing: 0.6,
+    color: IOS_REGISTER.labelSecondary,
+    marginLeft: 16,
+    marginBottom: 6,
+  },
+  sectionEyebrowSpace: {
+    marginTop: 16,
+  },
+  browseEyebrow: {
+    fontSize: 10.5,
+    fontWeight: '700',
+    letterSpacing: 0.6,
+    color: IOS_REGISTER.labelSecondary,
+    paddingHorizontal: 16,
+    paddingTop: 22,
+    paddingBottom: 4,
   },
   searchBar: {
     marginHorizontal: 16,

@@ -36,15 +36,42 @@ const SERIF_FAMILY = Platform.select({
   default: 'Georgia',
 }) as string;
 
+/**
+ * Optional trophy / milestone marker pinned above the river at a given
+ * unit (week for L3, session for L4). v1 renders trophies as a small
+ * gold flag glyph above the band + a one-line label below.
+ */
+export interface RiverChartMarker {
+  id: string;
+  /** 1-based — same coordinate space as WeeklyCapabilityMix.weekNumber
+      (or the lifetime sessionIndex when reused by L4). */
+  unit: number;
+  kind: 'trophy';
+  label: string;
+  /** Tint for the glyph stroke. Defaults to gold. */
+  capabilityColor?: string;
+}
+
 interface CapabilityRiverChartProps {
   weeklyCapabilities: WeeklyCapabilityMix[];
   /** 1-based — drives the NOW bar position. */
   currentWeekNumber: number;
   totalWeeks: number;
   reflections?: SeasonReflection[];
+  /** Trophy / milestone markers above the river. */
+  markers?: RiverChartMarker[];
   height?: number;
   /** Chart width — comes from the surrounding layout. */
   width: number;
+  /**
+   * Override the under-chart tick labels. Defaults to "wk N" — L4 passes
+   * a function that returns the session label ("Fall '24", etc).
+   */
+  tickLabel?: (unit: number) => string;
+  /** Stride between ticks. Defaults to 4 (every fourth week). */
+  tickEveryN?: number;
+  /** Override the NOW label above the orange bar. */
+  nowLabel?: string;
 }
 
 export function CapabilityRiverChart({
@@ -52,11 +79,15 @@ export function CapabilityRiverChart({
   currentWeekNumber,
   totalWeeks,
   reflections = [],
+  markers = [],
   height = 120,
   width,
+  tickLabel = (n) => `wk ${n}`,
+  tickEveryN = 4,
+  nowLabel = 'NOW',
 }: CapabilityRiverChartProps) {
   const padX = 12;
-  const padTopForNow = 14;
+  const padTopForNow = markers.length > 0 ? 26 : 14;
   const padBottomForTicks = 20;
   const innerWidth = Math.max(0, width - padX * 2);
   const innerHeight = Math.max(0, height - padTopForNow - padBottomForTicks);
@@ -97,14 +128,14 @@ export function CapabilityRiverChart({
 
   const nowX = padX + (currentWeekNumber - 0.5) * colWidth;
 
-  // Tick marks: every ~4 weeks + week 1 + last.
+  // Tick marks: every tickEveryN units + first + last + current.
   const tickWeeks = useMemo(() => {
     const ticks = new Set<number>([1]);
     if (totalWeeks > 0) ticks.add(totalWeeks);
-    for (let w = 4; w < totalWeeks; w += 4) ticks.add(w);
+    for (let w = tickEveryN; w < totalWeeks; w += tickEveryN) ticks.add(w);
     ticks.add(currentWeekNumber);
     return Array.from(ticks).sort((a, b) => a - b);
-  }, [totalWeeks, currentWeekNumber]);
+  }, [totalWeeks, currentWeekNumber, tickEveryN]);
 
   if (width <= 0 || weeklyCapabilities.length === 0) {
     return <View style={[styles.empty, { width, height }]} />;
@@ -145,8 +176,37 @@ export function CapabilityRiverChart({
           fill={NOW_COLOR}
           textAnchor="middle"
         >
-          NOW
+          {nowLabel}
         </SvgText>
+
+        {/* Markers (trophies) above the river */}
+        {markers.map((m) => {
+          const x = padX + (m.unit - 0.5) * colWidth;
+          const stroke = m.capabilityColor ?? '#C99632';
+          return (
+            <React.Fragment key={`marker-${m.id}`}>
+              <SvgText
+                x={x}
+                y={14}
+                fontSize={11}
+                fill={stroke}
+                textAnchor="middle"
+              >
+                ★
+              </SvgText>
+              <SvgText
+                x={x}
+                y={padTopForNow - 4}
+                fontSize={8}
+                fontWeight="600"
+                fill={IOS_REGISTER.labelSecondary}
+                textAnchor="middle"
+              >
+                {m.label}
+              </SvgText>
+            </React.Fragment>
+          );
+        })}
 
         {/* Week tick labels */}
         {tickWeeks.map((wk) => {
@@ -160,7 +220,7 @@ export function CapabilityRiverChart({
               fill={IOS_REGISTER.labelTertiary}
               textAnchor="middle"
             >
-              wk {wk}
+              {tickLabel(wk)}
             </SvgText>
           );
         })}

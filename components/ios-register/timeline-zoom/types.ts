@@ -194,4 +194,71 @@ export interface TimelineDataset {
   sinceDate: string;
   /** L4 capability filter chips. Always begins with "All". */
   capabilityFilters: { id: string; label: string; icon?: string; color?: string }[];
+  /**
+   * L4 analysis layer (Screen 10 · REFLECTING ON A LIFE). Lifetime
+   * capability river spanning every session + lifetime peer chart +
+   * trophies + librarian "worth a reflection?" prompt. Optional —
+   * when absent L4 falls back to just the season-lane brick view.
+   */
+  lifetime?: LifetimeAnalysis;
+}
+
+export interface LifetimeAnalysis {
+  /** One entry per session/season, oldest to newest. Drives the lifetime
+      capability river (one column per session). */
+  sessions: LifetimeSession[];
+  /** Peers who appeared anywhere across the lifetime, with their arrival
+      session + per-session activity counts. */
+  peers: LifetimePeer[];
+  /** Inline italic-serif reflection quotes pinned to specific sessions. */
+  reflections: LifetimeReflection[];
+  /** Trophy markers floated above the river at the session they were earned. */
+  trophies: LifetimeTrophy[];
+  /** Bottom lilac card — usually intent='start-reflection' for L4. */
+  librarianPrompt?: SeasonLibrarianPrompt;
+}
+
+export interface LifetimeSession {
+  /** 1-based index, ordered chronologically. */
+  sessionIndex: number;
+  /** Pointer back to the TimelineSeason — lets a marker tap navigate to
+      the corresponding lane. Optional because synthesized sessions
+      (e.g. "future" stub) don't have a backing season. */
+  seasonId?: string;
+  /** Short label shown under the river ("Fall '24", "Spring '25"). */
+  label: string;
+  /** The capability that defines this session's color band. */
+  dominantCapabilityColor: string;
+  /** Total step count this session — scales the band height. */
+  volume: number;
+  /** True for race/showcase sessions (canonical's "race vs prep rhythm"). */
+  isRace?: boolean;
+}
+
+export interface LifetimePeer {
+  id: string;
+  initials: string;
+  color: string;
+  /** Italic role line — "coach", "bow crew", "faculty". */
+  role?: string;
+  /** Session this peer first appeared in. */
+  firstSessionIndex: number;
+  /** Per-session activity count — drives line thickness/dots. */
+  sessionAppearances: { sessionIndex: number; count: number }[];
+}
+
+export interface LifetimeReflection {
+  id: string;
+  sessionIndex: number;
+  quote: string;
+  capabilityColor?: string;
+}
+
+export interface LifetimeTrophy {
+  id: string;
+  sessionIndex: number;
+  /** Short label below the trophy glyph ("HKDW '26", "FFG win"). */
+  label: string;
+  /** Capability color the win is attributed to (tints the glyph stroke). */
+  capabilityColor?: string;
 }

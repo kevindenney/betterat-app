@@ -28,6 +28,9 @@ import { CAPABILITY_PALETTE } from './sampleData';
 import type {
   CohortAvatar,
   DayKey,
+  LifetimeAnalysis,
+  LifetimePeer,
+  LifetimeSession,
   SeasonAnalysis,
   SeasonPeer,
   StepHowItem,
@@ -402,6 +405,140 @@ function colorToCapabilityLabel(color: string): string | null {
   return null;
 }
 
+/**
+ * Compute the L4 lifetime analysis (capability river spanning every
+ * session + lifetime peer chart + librarian "worth a reflection?"
+ * prompt) from the full season list.
+ *
+ * Each session = one TimelineSeason. Dominant capability per session
+ * is the most-frequent brick color. Volume = brick count. Peers are
+ * a union across every season's collaborators (which appear via the
+ * cohort avatar union performed at the per-step level upstream, so
+ * here we union by going through the season's step lists).
+ *
+ * Trophies and reflections are left empty for v1 — there's no
+ * "milestone" or "reflection text" source wired into the live data
+ * yet. The librarian prompt is a baseline sentence keyed off the
+ * first→latest capability drift so L4 has something to surface.
+ */
+function computeLifetimeAnalysis(seasons: TimelineSeason[]): LifetimeAnalysis | undefined {
+  if (seasons.length === 0) return undefined;
+
+  // Sessions oldest → newest. The dataset's `seasons` array lists the
+  // current rotation first then archived; reverse for chronological
+  // order so the river reads left-to-right as past → present.
+  const chronoSeasons = [...seasons].reverse();
+
+  const sessions: LifetimeSession[] = chronoSeasons.map((season, idx) => {
+    const counts = new Map<string, number>();
+    for (const brick of season.bricks) {
+      counts.set(brick.capabilityColor, (counts.get(brick.capabilityColor) ?? 0) + 1);
+    }
+    let dominantColor = CAPABILITY_PALETTE.procedural.color;
+    let dominantCount = 0;
+    for (const [color, count] of counts) {
+      if (count > dominantCount) {
+        dominantColor = color;
+        dominantCount = count;
+      }
+    }
+    return {
+      sessionIndex: idx + 1,
+      seasonId: season.id,
+      label: shortenSeasonLabel(season.title),
+      dominantCapabilityColor: dominantColor,
+      volume: Math.max(1, season.bricks.length),
+    };
+  });
+
+  // Peer union — walk every season's steps, accumulate per-session counts.
+  const peerMap = new Map<
+    string,
+    {
+      initials: string;
+      color: string;
+      firstSessionIndex: number;
+      perSession: Map<number, number>;
+    }
+  >();
+  chronoSeasons.forEach((season, idx) => {
+    const sessionIndex = idx + 1;
+    for (const week of season.weeks) {
+      for (const step of week.steps) {
+        for (const avatar of step.cohortAvatars ?? []) {
+          const entry = peerMap.get(avatar.id);
+          if (entry) {
+            entry.perSession.set(sessionIndex, (entry.perSession.get(sessionIndex) ?? 0) + 1);
+          } else {
+            peerMap.set(avatar.id, {
+              initials: avatar.initials,
+              color: avatar.color,
+              firstSessionIndex: sessionIndex,
+              perSession: new Map([[sessionIndex, 1]]),
+            });
+          }
+        }
+      }
+    }
+  });
+
+  const peers: LifetimePeer[] = Array.from(peerMap.entries())
+    .map(([id, p]) => ({
+      id,
+      initials: p.initials,
+      color: p.color,
+      firstSessionIndex: p.firstSessionIndex,
+      sessionAppearances: Array.from(p.perSession.entries())
+        .map(([sessionIndex, count]) => ({ sessionIndex, count }))
+        .sort((a, b) => a.sessionIndex - b.sessionIndex),
+    }))
+    .sort(
+      (a, b) =>
+        b.sessionAppearances.reduce((n, s) => n + s.count, 0) -
+        a.sessionAppearances.reduce((n, s) => n + s.count, 0),
+    )
+    .slice(0, 6);
+
+  // Baseline librarian sentence — drift from first session's dominant
+  // capability to the latest. Honest about not knowing the user's
+  // milestones yet.
+  const firstCap = sessions[0]?.dominantCapabilityColor;
+  const lastCap = sessions[sessions.length - 1]?.dominantCapabilityColor;
+  const firstLabel = firstCap ? colorToCapabilityLabel(firstCap) : null;
+  const lastLabel = lastCap ? colorToCapabilityLabel(lastCap) : null;
+  const drift =
+    firstLabel && lastLabel && firstLabel !== lastLabel
+      ? `Since ${sessions[0].label} you've drifted from ${firstLabel.toLowerCase()} toward ${lastLabel.toLowerCase()}.`
+      : firstLabel
+        ? `${firstLabel} has been the steady thread across your practice.`
+        : '';
+  const promptBody =
+    sessions.length > 1
+      ? `${drift} Worth a reflection on what you're becoming?`
+      : "You're early in your practice. Keep going — patterns will emerge over the next few sessions.";
+
+  return {
+    sessions,
+    peers,
+    reflections: [],
+    trophies: [],
+    librarianPrompt: {
+      eyebrow: 'Across your practice · the librarian noticed',
+      body: promptBody,
+      primaryCta: { label: 'Start a reflection', intent: 'start-reflection' },
+      secondaryCta: { label: 'Not now' },
+    },
+  };
+}
+
+function shortenSeasonLabel(title: string): string {
+  // "Spring '26 clinical" → "Spring '26". Keep the first ≤ 2 tokens
+  // that include a quote/digit so the L4 tick stays readable.
+  const tokens = title.split(/\s+/);
+  if (tokens.length <= 2) return title;
+  return tokens.slice(0, 2).join(' ');
+}
+
 interface AdapterInput {
   interestLabel: string;
   user: { initials: string; color: string };
@@ -581,5 +718,6 @@ export function mapToTimelineDataset({
       : '',
     seasons: [currentSeasonNode, ...archivedSeasons],
     capabilityFilters: [{ id: 'all', label: 'All' }],
+    lifetime: computeLifetimeAnalysis([currentSeasonNode, ...archivedSeasons]),
   };
 }

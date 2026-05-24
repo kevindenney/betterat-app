@@ -9,6 +9,7 @@
 
 import type {
   Capability,
+  LifetimeAnalysis,
   SeasonAnalysis,
   TimelineDataset,
   TimelineSeason,
@@ -326,6 +327,97 @@ const FALL_24: TimelineSeason = {
   ]),
 };
 
+// Lifetime analysis layer — drives L4 (Screen 10 · REFLECTING ON A LIFE).
+// Five sessions oldest → newest (Fall '24 first, Spring '26 last). Capability
+// arc shows Emily evolving from procedural-heavy first semester →
+// assessment/NCLEX prep → return to procedural in Fall '25 → cardio
+// dominance in Spring '26 (the current rotation). Two trophies and two
+// italic-serif reflections track the inflection points.
+const LIFETIME_SAMPLE: LifetimeAnalysis = {
+  sessions: [
+    { sessionIndex: 1, seasonId: 'fall24',   label: "Fall '24",   dominantCapabilityColor: PALETTE.procedural.color, volume: 28 },
+    { sessionIndex: 2, seasonId: 'spring25', label: "Spring '25", dominantCapabilityColor: PALETTE.procedural.color, volume: 31 },
+    { sessionIndex: 3, seasonId: 'summer25', label: "Summer '25", dominantCapabilityColor: PALETTE.assess.color,     volume: 22, isRace: true },
+    { sessionIndex: 4, seasonId: 'fall25',   label: "Fall '25",   dominantCapabilityColor: PALETTE.procedural.color, volume: 37 },
+    { sessionIndex: 5, seasonId: 'spring26', label: "Spring '26", dominantCapabilityColor: PALETTE.cardio.color,     volume: 23 },
+  ],
+  peers: [
+    {
+      id: 'ngo',
+      initials: 'AN',
+      color: '#5BA46F',
+      role: 'preceptor',
+      firstSessionIndex: 4,
+      sessionAppearances: [
+        { sessionIndex: 4, count: 6 },
+        { sessionIndex: 5, count: 8 },
+      ],
+    },
+    {
+      id: 'kim',
+      initials: 'JK',
+      color: '#A47A52',
+      role: 'cohort',
+      firstSessionIndex: 1,
+      sessionAppearances: [
+        { sessionIndex: 1, count: 3 },
+        { sessionIndex: 2, count: 4 },
+        { sessionIndex: 3, count: 2 },
+        { sessionIndex: 4, count: 5 },
+        { sessionIndex: 5, count: 3 },
+      ],
+    },
+    {
+      id: 'murphy',
+      initials: 'KM',
+      color: '#A04CC4',
+      role: 'faculty',
+      firstSessionIndex: 2,
+      sessionAppearances: [
+        { sessionIndex: 2, count: 2 },
+        { sessionIndex: 4, count: 1 },
+        { sessionIndex: 5, count: 2 },
+      ],
+    },
+    {
+      id: 'rivera',
+      initials: 'MR',
+      color: '#7BA0C4',
+      role: 'cohort',
+      firstSessionIndex: 4,
+      sessionAppearances: [
+        { sessionIndex: 4, count: 3 },
+        { sessionIndex: 5, count: 5 },
+      ],
+    },
+  ],
+  reflections: [
+    {
+      id: 'lr-s3',
+      sessionIndex: 3,
+      quote: 'passed NCLEX',
+      capabilityColor: PALETTE.assess.color,
+    },
+    {
+      id: 'lr-s5',
+      sessionIndex: 5,
+      quote: 'first solo handoff',
+      capabilityColor: PALETTE.cardio.color,
+    },
+  ],
+  trophies: [
+    { id: 'tr-s3', sessionIndex: 3, label: 'NCLEX', capabilityColor: PALETTE.assess.color },
+    { id: 'tr-s4', sessionIndex: 4, label: 'Dean’s List', capabilityColor: PALETTE.procedural.color },
+  ],
+  librarianPrompt: {
+    eyebrow: 'Across your practice · the librarian noticed',
+    body:
+      "Since Fall '24 you've drifted from procedural toward cardio + assessment. Your two milestones both came from assessment-heavy work. Worth a reflection on what you're becoming?",
+    primaryCta: { label: 'Start a reflection', intent: 'start-reflection' },
+    secondaryCta: { label: 'Not now' },
+  },
+};
+
 export const SAMPLE_DATASET: TimelineDataset = {
   interest: { id: 'nursing', label: 'Nursing' },
   user: { initials: 'ES', color: '#7BA0C4' },
@@ -344,4 +436,5 @@ export const SAMPLE_DATASET: TimelineDataset = {
     { id: 'comm',   label: 'Comm',   icon: 'chatbubble-outline',color: PALETTE.comm.color },
     { id: 'assess', label: 'Assess', icon: 'pulse-outline',     color: PALETTE.assess.color },
   ],
+  lifetime: LIFETIME_SAMPLE,
 };
