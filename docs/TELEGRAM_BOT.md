@@ -52,7 +52,7 @@ Everything runs on Vercel — no separate server. The bot is a webhook endpoint,
 1. Open Telegram, message `@BotFather`
 2. Send `/newbot`
 3. Choose a display name (e.g. "BetterAt Assistant")
-4. Choose a username (e.g. `betterat_assistant_bot`) — must end in `bot`
+4. Choose a username (e.g. `betterat_bot`) — must end in `bot`
 5. BotFather replies with a token like `7123456789:AAH...` — save this
 
 ### 2. Set environment variables
@@ -62,7 +62,7 @@ Add to Vercel (Dashboard → Settings → Environment Variables) or `.env.local`
 ```
 TELEGRAM_BOT_TOKEN=7123456789:AAHxxxxxxxxx    # From BotFather
 TELEGRAM_WEBHOOK_SECRET=<random string>        # Generate: openssl rand -hex 32
-EXPO_PUBLIC_TELEGRAM_BOT_USERNAME=betterat_assistant_bot
+EXPO_PUBLIC_TELEGRAM_BOT_USERNAME=betterat_bot
 ```
 
 These are also needed (should already be set):
