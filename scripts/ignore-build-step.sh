@@ -35,12 +35,26 @@ if [ "${VERCEL_ENV:-}" = "preview" ]; then
   exit 0
 fi
 
-CHANGED=$(git diff --name-only HEAD~1 HEAD 2>/dev/null || echo "")
+# Vercel shallow-clones the repo, so HEAD~1 frequently doesn't exist. Use
+# VERCEL_GIT_PREVIOUS_SHA (the previous successful deploy's SHA, injected by
+# Vercel) — fetch it if missing from the local clone, then diff against it.
+PREV="${VERCEL_GIT_PREVIOUS_SHA:-}"
+
+if [ -n "$PREV" ]; then
+  if ! git cat-file -e "$PREV^{commit}" 2>/dev/null; then
+    git fetch --depth=1 origin "$PREV" 2>/dev/null || true
+  fi
+  CHANGED=$(git diff --name-only "$PREV" HEAD 2>/dev/null || echo "")
+else
+  CHANGED=$(git diff --name-only HEAD~1 HEAD 2>/dev/null || echo "")
+fi
 
 if [ -z "$CHANGED" ]; then
-  # Can't determine diff (first commit, shallow clone edge case): build to be safe.
-  echo "✅ Cannot determine changes — proceeding with build"
-  exit 1
+  # Genuinely can't determine diff (first deploy, or fetch failed). Skip
+  # rather than fall through to a build — the explicit allowlist will catch
+  # the next commit that actually needs to build.
+  echo "⏭️  Cannot determine changes — skipping build (paused-mode default)"
+  exit 0
 fi
 
 # Paths that DO require a Vercel rebuild while the SPA is paused.
