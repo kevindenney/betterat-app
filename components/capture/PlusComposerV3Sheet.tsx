@@ -37,7 +37,9 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { IOS_COLORS, IOS_REGISTER, IOS_SPACING } from '@/lib/design-tokens-ios';
+import { FEATURE_FLAGS } from '@/lib/featureFlags';
 import type { QuickCapturePayload } from '@/services/QuickCaptureService';
+import { VoiceComposerV3Sheet } from './VoiceComposerV3Sheet';
 
 const SERIF_FAMILY = Platform.select({
   ios: 'Georgia',
@@ -84,6 +86,8 @@ export function PlusComposerV3Sheet({
 }: PlusComposerV3SheetProps) {
   const [text, setText] = useState('');
   const [activeTags, setActiveTags] = useState<string[]>([]);
+  const [voiceVisible, setVoiceVisible] = useState(false);
+  const voiceEnabled = FEATURE_FLAGS.VOICE_COMPOSER_V3;
 
   const handleSave = useCallback(() => {
     const trimmed = text.trim();
@@ -215,7 +219,15 @@ export function PlusComposerV3Sheet({
               <Ionicons name="image-outline" size={20} color={IOS_REGISTER.labelSecondary} />
             </Pressable>
             <View style={styles.micWrap}>
-              <Pressable style={styles.mic} accessibilityLabel="Voice input — coming soon">
+              <Pressable
+                style={styles.mic}
+                accessibilityLabel={
+                  voiceEnabled
+                    ? 'Open voice composer'
+                    : 'Voice input — coming soon'
+                }
+                onPress={voiceEnabled ? () => setVoiceVisible(true) : undefined}
+              >
                 <Ionicons name="mic" size={22} color="#FFFFFF" />
               </Pressable>
             </View>
@@ -225,6 +237,23 @@ export function PlusComposerV3Sheet({
           </View>
         </KeyboardAvoidingView>
       </SafeAreaView>
+
+      {voiceEnabled ? (
+        <VoiceComposerV3Sheet
+          visible={voiceVisible}
+          onDismiss={() => setVoiceVisible(false)}
+          onAcceptSingle={() => {
+            // v1: "just one step" from voice = no-op stub. Real flow
+            // will pipe the transcript into onSave as a single step.
+            setVoiceVisible(false);
+          }}
+          onAcceptBlock={() => {
+            // v1: "add as N-step block" stub — real flow creates a
+            // structured set of sub-steps from the AI proposal.
+            setVoiceVisible(false);
+          }}
+        />
+      ) : null}
     </Modal>
   );
 }

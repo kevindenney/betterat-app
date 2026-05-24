@@ -589,6 +589,28 @@ export const FEATURE_FLAGS = {
   PLUS_COMPOSER_V3: readBooleanEnv('EXPO_PUBLIC_FF_PLUS_COMPOSER_V3', false),
 
   /**
+   * v3 screen-designs Screen 13 · full-screen voice-first composer.
+   *
+   * Canonical: "Tell me what you're planning." Mic centered (locked
+   * component grammar — the lone mic), waveform animation, recording
+   * timer. The lilac AI offer card reads the input and proposes either
+   * a single step or a structured block of N steps. One-tap accept on
+   * the proposal; one-tap "just one step" to override.
+   *
+   * v1 ships UI-only: the modal renders, the waveform animates, the
+   * timer counts up, the AI proposal is a hand-authored mock ("a
+   * 4-week light-air block before HKDW"). No real audio capture, no
+   * speech-to-text, no AI proposal generation — all of those need
+   * adapters that aren't here yet. Explicit "preview" footnote.
+   *
+   * Wired as the mic button on the PlusComposerV3Sheet footer (Screen
+   * 11). Tapping the mic on Screen 11 → opens the Screen 13 modal.
+   *
+   * Off by default. Flip via EXPO_PUBLIC_FF_VOICE_COMPOSER_V3=true.
+   */
+  VOICE_COMPOSER_V3: readBooleanEnv('EXPO_PUBLIC_FF_VOICE_COMPOSER_V3', false),
+
+  /**
    * v3 screen-designs Phase C — third-person timeline + Suggest verb.
    *
    * When on: the public-face hero on /sailor/[userId] gains a dual-CTA row
