@@ -36,6 +36,7 @@ import { useAuth } from '@/providers/AuthProvider';
 import { useProfileMenuData, OrgMembership } from '@/hooks/useProfileMenuData';
 import { IOS_COLORS, IOS_ANIMATIONS } from '@/lib/design-tokens-ios';
 import { triggerHaptic } from '@/lib/haptics';
+import { FEATURE_FLAGS } from '@/lib/featureFlags';
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
@@ -314,6 +315,14 @@ function LoggedInMenu({
       <SectionDivider />
 
       <View style={s.linkSection}>
+        {FEATURE_FLAGS.WHATSAPP_CONNECT_V3 ? (
+          <DropdownItem
+            icon="chatbubbles-outline"
+            label="Connected services"
+            onPress={() => onNavigate('/account/connected-services')}
+            trailing="chevron"
+          />
+        ) : null}
         <DropdownItem
           icon="help-circle-outline"
           label="Help & feedback"

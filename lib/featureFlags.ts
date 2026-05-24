@@ -534,6 +534,36 @@ export const FEATURE_FLAGS = {
   ),
 
   /**
+   * v3 screen-designs Phase E — Connect WhatsApp / Telegram UI.
+   *
+   * When on: the avatar menu (ProfileDropdown) gains a "Connected services"
+   * row that routes to /account/connected-services, where the user can
+   * preview the canonical Connect-WhatsApp flow (QR + 6-digit code +
+   * deep-link), the confirmed-state pane (three toggles: peer suggestions,
+   * daily prompt, SHG bridge), and a chat-as-client preview of how the
+   * bot appears in Lakshmi's WhatsApp.
+   *
+   * v1 is UI-only behind this flag — no bot infra, no real code-pairing,
+   * no message routing. The "Mark as connected" button on the connect
+   * pane flips a local AsyncStorage key so reviewers can walk the
+   * connected-state UX without a backend. Production wiring (BSP
+   * webhook, code verification, message ingestion) is a follow-up.
+   *
+   * Per the WhatsApp Business Platform ToS analysis (2026-05-24): Screen
+   * 06 (BetterAt Bridge inside the SHG group) is intentionally NOT built.
+   * The Groups API has 100K+ business-initiated-conversation gating, an
+   * 8-participant cap, and the "bot joins user-owned group" pattern isn't
+   * supported. The same UX outcome ships via 1:1 relay (Sunita's bot
+   * routes a suggestion to Lakshmi's bot, already supported by Phase A's
+   * inbox surface).
+   *
+   * Off by default. Flip via EXPO_PUBLIC_FF_WHATSAPP_CONNECT_V3=true.
+   * Per docs/redesign/v3 · The reflecting & suggesting system, screens
+   * 05, 14, 15, 17.
+   */
+  WHATSAPP_CONNECT_V3: readBooleanEnv('EXPO_PUBLIC_FF_WHATSAPP_CONNECT_V3', false),
+
+  /**
    * v3 screen-designs Phase C — third-person timeline + Suggest verb.
    *
    * When on: the public-face hero on /sailor/[userId] gains a dual-CTA row
