@@ -40,6 +40,12 @@ export function mapPoiToPinKind(poi: AtlasPoi): AtlasPinSpec['kind'] | null {
     case 'hospital':
       return 'poi-hospital';
     case 'sim_lab':
+      // Pinkard is Emily's home base — render as the distinctive
+      // sim-anchor pin (blue dot + SIM badge) so it reads as "your
+      // base" the same way RHKYC reads on the sailing canvas.
+      if (poi.name === 'JHU School of Nursing — Pinkard Building') {
+        return 'poi-sim-anchor';
+      }
       return 'poi-sim-lab';
     case 'preceptor':
       return 'poi-preceptor';
@@ -106,10 +112,22 @@ export function clusterPeerPins(
 
 /**
  * Trim long institution names so the inline label stays readable on the
- * map. Drops the leading "Royal/Johns Hopkins/Hospital" filler when it
- * makes the label too long.
+ * map. A small per-name lookup handles the "design-canonical" short
+ * forms the design uses (Sibley / Suburban / Howard Co. / Pinkard / JH
+ * Bayview etc.); everything else falls through to generic trimming.
  */
+const POI_NICE_LABELS: Record<string, string> = {
+  'Sibley Memorial Hospital': 'Sibley',
+  'Suburban Hospital': 'Suburban',
+  'Howard County General Hospital': 'Howard Co.',
+  'Johns Hopkins Bayview Medical Center': 'JH Bayview',
+  'Johns Hopkins Hospital — East Baltimore': 'JHH',
+  'JHU School of Nursing — Pinkard Building': 'Pinkard',
+};
+
 export function shortenPoiName(name: string): string {
+  const nice = POI_NICE_LABELS[name];
+  if (nice) return nice;
   if (name.length <= 22) return name;
   return name
     .replace(/^Royal Hong Kong /i, 'RHKYC ')
@@ -165,9 +183,15 @@ export function useAtlasFramePins({
       }
       const kind = mapPoiToPinKind(poi);
       if (!kind) continue;
-      // Anchor pin gets a terser "RHKYC CLUB"-style label per the design.
+      // Anchor pins get terser labels per the design. RHKYC reads as
+      // "RHKYC CLUB"; the Pinkard sim base reads as "Pinkard" with the
+      // SIM badge rendered separately by the marker.
       const label =
-        kind === 'poi-club-anchor' ? 'RHKYC CLUB' : shortenPoiName(poi.name);
+        kind === 'poi-club-anchor'
+          ? 'RHKYC CLUB'
+          : kind === 'poi-sim-anchor'
+          ? 'Pinkard'
+          : shortenPoiName(poi.name);
       out.push({
         id: `poi:${poi.id}`,
         lat: poi.lat,

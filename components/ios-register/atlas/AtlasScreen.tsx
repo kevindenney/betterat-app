@@ -219,14 +219,15 @@ function StatusBar() {
 
 function TopChrome({
   title,
+  subtitle,
   onLayersPress,
 }: {
   title: string;
   /**
-   * Legacy "Sail Racing · RHKYC · Hong Kong" subtitle removed — it was
-   * decorative-only and the chip rail conveys interest context.
-   * Argument kept for prop compatibility at all the frame callsites that
-   * still pass it; the value is ignored.
+   * Optional context line shown beneath the title (e.g. "Nursing · JHSON ·
+   * Baltimore"). Hidden on F1 sailing per earlier user feedback; restored
+   * on F4 nursing and F7 entrepreneur where the line is genuinely useful
+   * map context (interest · program · region).
    */
   subtitle?: string;
   /** Unused — kept for callsite compat; avatar now lives in ProfileDropdown. */
@@ -239,6 +240,12 @@ function TopChrome({
     <View style={shellStyles.topChromeRow}>
       <View style={{ flex: 1 }}>
         <Text style={shellStyles.title}>{title}</Text>
+        {subtitle ? (
+          <View style={shellStyles.subtitleRow}>
+            <View style={shellStyles.subtitleDot} />
+            <Text style={shellStyles.subtitle}>{subtitle}</Text>
+          </View>
+        ) : null}
       </View>
       <View style={shellStyles.topRight}>
         {onLayersPress ? (
@@ -912,7 +919,6 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
         <View style={shellStyles.floatingChrome}>
           <TopChrome
             title="Atlas"
-            subtitle={handlers.subtitleOverride ?? 'Sailing · RHKYC · Hong Kong'}
             avatarInitial={handlers.avatarInitial ?? 'F'}
             onLayersPress={openLayersSheet}
             onAvatarPress={handlers.onAvatarPress}
@@ -1313,28 +1319,31 @@ function FrameF4({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
         <View style={shellStyles.floatingChrome}>
           <TopChrome
             title="Atlas"
-            subtitle={handlers.subtitleOverride ?? 'Nursing · MSN · Baltimore'}
+            subtitle={handlers.subtitleOverride ?? 'Nursing · JHSON · Baltimore'}
             avatarInitial={handlers.avatarInitial ?? 'E'}
           />
           <FilterChipsRow
             chips={[
               { id: 'all', label: 'All', active: true },
-              { id: 'you', label: 'You', tone: 'you' },
-              { id: 'cohort', label: 'Cohort', tone: 'cohort', dim: true },
-              { id: 'sites', label: 'Clinical sites', icon: 'medical-outline' },
-              { id: 'heatmap', label: 'Cohort heatmap', icon: 'grid-outline', active: true },
+              { id: 'cohort', label: 'Cohort', tone: 'cohort' },
+              { id: 'heatmap', label: 'Heatmap', icon: 'grid-outline', active: true },
+              { id: 'faculty', label: 'Faculty', icon: 'school-outline' },
               { id: 'following', label: 'Following', tone: 'following', dim: true },
               { id: 'cross-interest', label: 'All my interests', crossInterest: true, dim: true },
             ]}
             onActiveIdsChange={handleF4ChipsChange}
           />
-        </View>
-
-        {/* Site-level only banner — sits below the floating chrome so the
-            two don't visually collide. */}
-        <View style={[shellStyles.absChip, { top: 92, right: 12, zIndex: 20 }]}>
-          <Ionicons name="lock-closed" size={9} color="rgba(60, 60, 67, 0.55)" />
-          <Text style={shellStyles.absChipText}>site-level only</Text>
+          {/* Active-chip context pill — surfaces what the heatmap is
+              showing right now ("Cohort heatmap · this week"). Only shown
+              when the heatmap chip is selected. */}
+          {showHeatmap ? (
+            <View style={shellStyles.chipContextPill}>
+              <Ionicons name="apps-outline" size={10} color="rgba(60, 60, 67, 0.75)" />
+              <Text style={shellStyles.chipContextPillText}>
+                Cohort heatmap · this week
+              </Text>
+            </View>
+          ) : null}
         </View>
 
         {/* SVG-fallback fixtures: absolutely-positioned percentage pins
@@ -1370,12 +1379,12 @@ function FrameF4({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
         />
       ) : (
         <BottomSheet
-          eyebrow="FIRST STEP · ANCHOR WHERE"
-          title="Tag your last clinical step to where it happened."
-          body={'From your timeline: "Med-surg shift · Tuesday morning." One tap to anchor.'}
-          primary={{ label: 'Anchor · pick site', icon: 'location', onPress: handlers.onPrimaryAction }}
+          eyebrow="COHORT · THIS WEEK"
+          title="21 of 30 classmates practiced central-line at Bloomberg this week."
+          body="Tomorrow 7am — clinical at JHH 4 South. Tap to anchor your last shift."
+          primary={{ label: 'Anchor shift', icon: 'add', onPress: handlers.onPrimaryAction }}
           secondary={{
-            label: 'Skip',
+            label: 'See heatmap',
             onPress: () => {
               setAnchorPromptDismissed(true);
               handlers.onSecondaryAction?.();
@@ -2087,6 +2096,25 @@ const shellStyles = StyleSheet.create({
     color: 'rgba(60, 60, 67, 0.55)',
     letterSpacing: -0.1,
     textAlign: 'center',
+  },
+  chipContextPill: {
+    alignSelf: 'center',
+    marginTop: 6,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255, 255, 255, 0.92)',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(60, 60, 67, 0.18)',
+  },
+  chipContextPillText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: 'rgba(28, 28, 30, 0.78)',
+    letterSpacing: -0.1,
   },
   layerToggle: {
     width: 38,

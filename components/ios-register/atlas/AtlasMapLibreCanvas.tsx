@@ -143,6 +143,7 @@ export interface AtlasPinSpec {
     | 'poi-racing-area'
     | 'poi-hospital'
     | 'poi-sim-lab'
+    | 'poi-sim-anchor'
     | 'poi-preceptor'
     | 'walk-annotation'
     | 'wind-arrow'
@@ -223,6 +224,7 @@ const TAPPABLE_PIN_KINDS = new Set<AtlasPinSpec['kind']>([
   'poi-racing-area',
   'poi-hospital',
   'poi-sim-lab',
+  'poi-sim-anchor',
   'poi-preceptor',
 ]);
 
@@ -473,6 +475,9 @@ const PIN_TONE: Record<
   // "rehearse-here," which is curation-adjacent enough that the design
   // commits it to the diamond vocabulary alongside preceptor pins.
   'poi-sim-lab': { size: 12, color: 'rgba(155, 92, 246, 0.95)', shape: 'diamond' },
+  // "Your base" sim — Pinkard for nursing. Blue dot + SIM badge,
+  // mirrors the RHKYC anchor pattern for sailing.
+  'poi-sim-anchor': { size: 14, color: 'rgba(0, 122, 255, 0.95)', shape: 'circle' },
   'poi-preceptor': { size: 13, color: 'rgba(155, 92, 246, 0.95)', shape: 'diamond' },
   // Walk-time annotation — no pin glyph at all, just a grey distance pill
   // floating between two same-campus institution pins. The 0-size sentinel
@@ -542,6 +547,25 @@ function LabeledPin({
       </View>
     );
   }
+  // Pinkard sim-base — blue dot + "Pinkard" label + small "SIM" badge.
+  // Mirror of the RHKYC anchor for the nursing canvas.
+  if (kind === 'poi-sim-anchor') {
+    return (
+      <View style={styles.pinRow}>
+        <View style={styles.simAnchorDot} />
+        {showLabel && label ? (
+          <>
+            <Text style={styles.pinLabel} numberOfLines={1}>
+              {label}
+            </Text>
+            <View style={styles.simBadge}>
+              <Text style={styles.simBadgeText}>SIM</Text>
+            </View>
+          </>
+        ) : null}
+      </View>
+    );
+  }
   if (kind === 'wind-arrow') {
     const [degStr, knotsStr] = (label ?? '0|0').split('|');
     const fromDeg = Number(degStr) || 0;
@@ -577,25 +601,20 @@ function LabeledPin({
   if (kind === 'cohort-cell') {
     // label encodes "count|cluster". Color comes from the cluster,
     // diameter scales with count (clamped). Center text shows the count.
-    // Tighter min size + softer border so the cell reads as a background
-    // density zone rather than a foreground pin.
+    // Renders as a hexagon (Unicode '⬢') so the cohort heatmap reads as
+    // a tiled grid of cells rather than discrete circular badges — that
+    // matches the F4 design's "honeycomb over Baltimore" pattern.
     const [countStr, cluster] = (label ?? '0|general').split('|');
     const count = Number(countStr) || 0;
-    const diameter = Math.min(54, 20 + count * 3.5);
+    const diameter = Math.min(54, 22 + count * 3.5);
+    const tone =
+      COHORT_CLUSTER_TONE[cluster] ?? COHORT_CLUSTER_TONE.general;
     return (
-      <View
-        style={{
-          width: diameter,
-          height: diameter,
-          borderRadius: diameter / 2,
-          backgroundColor: COHORT_CLUSTER_TONE[cluster] ?? COHORT_CLUSTER_TONE.general,
-          borderWidth: 1,
-          borderColor: 'rgba(255, 255, 255, 0.6)',
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}
-      >
-        <Text style={styles.cohortCount}>{count}</Text>
+      <View style={styles.hexWrap}>
+        <Text style={[styles.hexGlyph, { color: tone, fontSize: diameter }]}>
+          {'⬢'}
+        </Text>
+        <Text style={[styles.hexCount, { lineHeight: diameter }]}>{count}</Text>
       </View>
     );
   }
@@ -794,6 +813,30 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     fontSize: 9,
   },
+  simAnchorDot: {
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: 'rgba(0, 122, 255, 0.95)',
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOpacity: 0.15,
+    shadowRadius: 2,
+    shadowOffset: { width: 0, height: 1 },
+  },
+  simBadge: {
+    backgroundColor: 'rgba(60, 60, 67, 0.62)',
+    paddingHorizontal: 4,
+    paddingVertical: 1,
+    borderRadius: 3,
+  },
+  simBadgeText: {
+    fontSize: 8,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    letterSpacing: 0.5,
+  },
   clusterCount: {
     fontSize: 10,
     fontWeight: '800',
@@ -850,6 +893,23 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: 'rgba(28, 28, 30, 0.9)',
     letterSpacing: 0.2,
+  },
+  hexWrap: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  hexGlyph: {
+    fontWeight: '400',
+    lineHeight: undefined,
+    textAlign: 'center',
+  },
+  hexCount: {
+    position: 'absolute',
+    fontSize: 11,
+    fontWeight: '800',
+    color: 'rgba(28, 28, 30, 0.85)',
+    letterSpacing: 0.2,
+    textAlign: 'center',
   },
   glyphCol: {
     alignItems: 'center',
