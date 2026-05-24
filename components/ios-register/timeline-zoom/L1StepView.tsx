@@ -54,7 +54,15 @@ export function L1StepView({ step, onOpenStepDetail, embedFullDetail }: L1StepVi
   if (embedFullDetail) {
     return (
       <View style={styles.embedHost}>
-        <StepDetailContent stepId={step.id} />
+        <View style={styles.embedNowBar} />
+        <View style={styles.embedChrome}>
+          <Text style={styles.verbEyebrow}>ZOOM · STEP · DOING</Text>
+          {step.peerQuote ? <PeerQuoteBlock quote={step.peerQuote} /> : null}
+          {step.subStep ? <SessionStrap step={step} /> : null}
+        </View>
+        <View style={styles.embedDetailHost}>
+          <StepDetailContent stepId={step.id} />
+        </View>
       </View>
     );
   }
@@ -94,44 +102,8 @@ export function L1StepView({ step, onOpenStepDetail, embedFullDetail }: L1StepVi
 
         <Text style={styles.verbEyebrow}>ZOOM · STEP · DOING</Text>
 
-        {step.peerQuote ? (
-          <View style={styles.peerQuoteBlock}>
-            <View style={styles.peerQuoteHeader}>
-              {step.peerQuote.avatarInitials ? (
-                <View
-                  style={[
-                    styles.peerAvatar,
-                    {
-                      backgroundColor:
-                        step.peerQuote.avatarColor ?? IOS_REGISTER.labelSecondary,
-                    },
-                  ]}
-                >
-                  <Text style={styles.peerAvatarText}>
-                    {step.peerQuote.avatarInitials}
-                  </Text>
-                </View>
-              ) : null}
-              <Text style={styles.peerQuoteAuthor}>
-                {step.peerQuote.author.toUpperCase()}
-                {'  ·  '}
-                <Text style={styles.peerQuoteWhen}>{step.peerQuote.when.toUpperCase()}</Text>
-              </Text>
-            </View>
-            <Text style={styles.peerQuoteBody}>&ldquo;{step.peerQuote.body}&rdquo;</Text>
-          </View>
-        ) : null}
-
-        {step.subStep ? (
-          <Text style={styles.sessionStrap}>
-            SUB-STEP {step.subStep.current} OF {step.subStep.total}
-            {step.subStep.label ? `  ·  ${step.subStep.label.toUpperCase()}` : ''}
-            {step.status === 'do' ? '  ·  ' : ''}
-            {step.status === 'do' ? (
-              <Text style={styles.inPlay}>● in play</Text>
-            ) : null}
-          </Text>
-        ) : null}
+        {step.peerQuote ? <PeerQuoteBlock quote={step.peerQuote} /> : null}
+        {step.subStep ? <SessionStrap step={step} /> : null}
 
         {step.preTitle ? (
           <Text style={styles.eyebrow}>{step.preTitle}</Text>
@@ -233,6 +205,43 @@ export function L1StepView({ step, onOpenStepDetail, embedFullDetail }: L1StepVi
   );
 }
 
+function PeerQuoteBlock({ quote }: { quote: NonNullable<TimelineStep['peerQuote']> }) {
+  return (
+    <View style={styles.peerQuoteBlock}>
+      <View style={styles.peerQuoteHeader}>
+        {quote.avatarInitials ? (
+          <View
+            style={[
+              styles.peerAvatar,
+              { backgroundColor: quote.avatarColor ?? IOS_REGISTER.labelSecondary },
+            ]}
+          >
+            <Text style={styles.peerAvatarText}>{quote.avatarInitials}</Text>
+          </View>
+        ) : null}
+        <Text style={styles.peerQuoteAuthor}>
+          {quote.author.toUpperCase()}
+          {'  ·  '}
+          <Text style={styles.peerQuoteWhen}>{quote.when.toUpperCase()}</Text>
+        </Text>
+      </View>
+      <Text style={styles.peerQuoteBody}>&ldquo;{quote.body}&rdquo;</Text>
+    </View>
+  );
+}
+
+function SessionStrap({ step }: { step: TimelineStep }) {
+  if (!step.subStep) return null;
+  return (
+    <Text style={styles.sessionStrap}>
+      SUB-STEP {step.subStep.current} OF {step.subStep.total}
+      {step.subStep.label ? `  ·  ${step.subStep.label.toUpperCase()}` : ''}
+      {step.status === 'do' ? '  ·  ' : ''}
+      {step.status === 'do' ? <Text style={styles.inPlay}>● in play</Text> : null}
+    </Text>
+  );
+}
+
 function withAlpha(hex: string, alpha: number): string {
   const m = hex.match(/^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i);
   if (!m) return hex;
@@ -252,7 +261,22 @@ function darken(hex: string): string {
 }
 
 const styles = StyleSheet.create({
-  embedHost: { flex: 1 },
+  embedHost: { flex: 1, position: 'relative' },
+  embedNowBar: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: 3,
+    backgroundColor: NOW_COLOR,
+    zIndex: 1,
+  },
+  embedChrome: {
+    paddingHorizontal: 22,
+    paddingTop: 8,
+    paddingBottom: 8,
+  },
+  embedDetailHost: { flex: 1 },
   scroll: { flex: 1 },
   scrollContent: {
     paddingHorizontal: 16,
