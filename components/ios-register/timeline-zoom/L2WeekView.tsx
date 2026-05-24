@@ -20,6 +20,7 @@ import Animated, { useAnimatedStyle } from 'react-native-reanimated';
 
 import { IOS_REGISTER } from '@/lib/design-tokens-ios';
 import { StepDigestCard } from './StepDigestCard';
+import { SeasonLibrarianPrompt } from './SeasonLibrarianPrompt';
 import { useDragReorder } from './useDragReorder';
 import type { DayKey, TimelineDataset, TimelineStep } from './types';
 
@@ -124,9 +125,13 @@ export function L2WeekView({
 
   return (
     <View style={styles.container}>
+      <Text style={styles.verbEyebrow}>ZOOM · FEW · PLANNING</Text>
+      {currentWeek?.contextStrip ? (
+        <Text style={styles.contextStrip}>{currentWeek.contextStrip}</Text>
+      ) : null}
       <View style={styles.titleRow}>
         <Text style={styles.title}>This week</Text>
-        <Text style={styles.titleRight}>Mon 13 → Sun 19</Text>
+        <Text style={styles.titleRight}>{currentWeek?.dateRange ?? 'Mon 13 → Sun 19'}</Text>
       </View>
 
       <View style={styles.dayStrip}>
@@ -207,6 +212,12 @@ export function L2WeekView({
           );
         })}
       </ScrollView>
+
+      {currentWeek?.planningHint ? (
+        <View style={styles.planningHintWrap}>
+          <SeasonLibrarianPrompt prompt={currentWeek.planningHint} />
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -286,6 +297,28 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingTop: 4,
   },
+  verbEyebrow: {
+    fontSize: 10.5,
+    fontWeight: '700',
+    letterSpacing: 0.6,
+    color: IOS_REGISTER.labelSecondary,
+    paddingHorizontal: 16,
+    marginBottom: 6,
+  },
+  contextStrip: {
+    fontSize: 13,
+    fontStyle: 'italic',
+    color: IOS_REGISTER.labelSecondary,
+    paddingHorizontal: 16,
+    marginBottom: 10,
+    lineHeight: 18,
+  },
+  planningHintWrap: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 96, // clear the floating tab bar
+  },
   titleRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -354,7 +387,7 @@ const styles = StyleSheet.create({
   },
   cardCarousel: {
     paddingHorizontal: 16,
-    paddingBottom: 120,
+    paddingBottom: 240, // floating tab bar (96) + librarian hint (~140) + breathing room
     gap: CARD_GAP,
   },
   cardSlot: {

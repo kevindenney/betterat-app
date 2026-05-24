@@ -632,6 +632,28 @@ export function mapToTimelineDataset({
     currentWeekIdx + 1,
   );
 
+  // L2 context strip — "{Season} has been {capability}-heavy." Drives
+  // the italic-serif sentence above the L2 carousel title. Same
+  // dominant-capability derivation as the librarian prompt; computed
+  // once and stamped on the current week.
+  if (currentSeasonAnalysis && weeks[currentWeekIdx]) {
+    const dominant = currentSeasonAnalysis.weeklyCapabilities
+      .slice(0, currentWeekIdx + 1)
+      .flatMap((w) => w.bands)
+      .reduce<{ color: string; volume: number } | null>((max, b) => {
+        if (!max || b.volume > max.volume) {
+          return { color: b.capabilityColor, volume: b.volume };
+        }
+        return max;
+      }, null);
+    const dominantLabel = dominant ? colorToCapabilityLabel(dominant.color) : null;
+    const seasonShortName =
+      currentSeason?.short_name ?? currentSeason?.name ?? 'This season';
+    if (dominantLabel) {
+      weeks[currentWeekIdx].contextStrip = `${seasonShortName} has been ${dominantLabel.toLowerCase()}-heavy.`;
+    }
+  }
+
   const currentSeasonNode: TimelineSeason = {
     id: seasonIdForSteps,
     title: currentSeason?.name ?? currentSeason?.short_name ?? 'Current rotation',

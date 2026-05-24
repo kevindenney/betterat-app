@@ -72,6 +72,21 @@ export interface TimelineStep {
   /** True when this step lives in a different interest and was
       cross-interest-pinned into the current view via timeline_step_pins. */
   pinnedFromOtherInterest?: boolean;
+  /** L1 session strap — "SUB-STEP 3 OF 5 · NEXT UP". current is the
+      1-based position within the sub-step list. Optional because not
+      every step is part of a multi-step session. */
+  subStep?: { current: number; total: number; label?: string };
+  /** L1 peer pre-title block — italic-serif quote rendered above the
+      title in Screen 07. From an org-mate / coach / cohort peer who
+      reacted to the prior step ("MIHKEL THIS MORNING / You released
+      the kicker earlier than I would have…"). */
+  peerQuote?: {
+    author: string;
+    when: string;     // "THIS MORNING" / "YESTERDAY"
+    body: string;     // The quote itself, no surrounding quote marks.
+    avatarInitials?: string;
+    avatarColor?: string;
+  };
 }
 
 export interface TimelineWeek {
@@ -80,6 +95,14 @@ export interface TimelineWeek {
   dateRange: string;          // "May 13 — 19"
   isCurrent?: boolean;
   steps: TimelineStep[];
+  /** L2 "season's shape" context strip — short italic-serif sentence
+      printed above the week title in Screen 08, e.g. "Spring '26 has
+      been tactics-heavy." Lets the user plan with awareness of what's
+      already accumulated. */
+  contextStrip?: string;
+  /** L2 lilac librarian planning hint — same prompt type as L3/L4
+      but with planning-intent CTAs (e.g. "Accept Mihkel's suggestion"). */
+  planningHint?: SeasonLibrarianPrompt;
 }
 
 export interface TimelineSeason {
@@ -164,7 +187,15 @@ export interface SeasonLibrarianPrompt {
   /** Sentence(s) of italic-serif prose. */
   body: string;
   /** Primary CTA (lilac filled). */
-  primaryCta: { label: string; intent: 'open-season-check-in' | 'start-reflection' };
+  primaryCta: {
+    label: string;
+    intent:
+      | 'open-season-check-in'
+      | 'start-reflection'
+      | 'accept-suggestion'
+      | 'add-step'
+      | 'open-suggestion-inbox';
+  };
   /** Optional secondary CTA (ghost). */
   secondaryCta?: { label: string };
 }

@@ -57,7 +57,15 @@ const spring26Steps: TimelineStep[] = [
     dayOfWeek: 'wed',
     weekId: 'w7',
     seasonId: 'spring26',
-    status: 'plan',
+    status: 'do',
+    subStep: { current: 3, total: 5, label: 'next up' },
+    peerQuote: {
+      author: 'A. Ngo',
+      when: 'this morning',
+      body: 'You named the lasix before I asked — that was the moment I knew you were ready.',
+      avatarInitials: 'AN',
+      avatarColor: '#5BA46F',
+    },
     metaLeft: 'Wed · JHH Bloomberg 4S',
     metaRight: 'Preceptor: A. Ngo, RN',
     whatBody:
@@ -232,6 +240,15 @@ const SPRING_26: TimelineSeason = {
       dateRange: 'May 13 — 19',
       isCurrent: true,
       steps: spring26Steps.filter((s) => s.weekId === 'w7'),
+      contextStrip:
+        "Spring '26 has been cardio-heavy. Next two weeks: one HF handoff + two pharm sessions.",
+      planningHint: {
+        eyebrow: 'The librarian noticed',
+        body:
+          'A. Ngo offered to walk you through the new lasix flow on Friday. Slot it in?',
+        primaryCta: { label: "Accept A. Ngo's offer", intent: 'accept-suggestion' },
+        secondaryCta: { label: 'Not now' },
+      },
     },
     {
       id: 'w6',

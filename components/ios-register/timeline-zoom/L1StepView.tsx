@@ -10,12 +10,21 @@
  */
 
 import React from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { IOS_REGISTER } from '@/lib/design-tokens-ios';
 import { StepDetailContent } from '@/components/step/StepDetailContent';
 import type { TimelineDataset, TimelineStep } from './types';
+
+const SERIF_FAMILY = Platform.select({
+  ios: 'Georgia',
+  android: 'serif',
+  web: 'Georgia, "Times New Roman", serif',
+  default: 'Georgia',
+}) as string;
+
+const NOW_COLOR = '#FF6B5A';
 
 interface L1StepViewProps {
   dataset: TimelineDataset;
@@ -39,7 +48,7 @@ interface L1StepViewProps {
   embedFullDetail?: boolean;
 }
 
-const PHASES = ['Plan', 'Do', 'Reflect'] as const;
+const PHASES = ['Plan', 'Do', 'Reflect', 'Discuss'] as const;
 
 export function L1StepView({ step, onOpenStepDetail, embedFullDetail }: L1StepViewProps) {
   if (embedFullDetail) {
@@ -70,6 +79,8 @@ export function L1StepView({ step, onOpenStepDetail, embedFullDetail }: L1StepVi
         accessibilityRole={handleOpen ? 'button' : undefined}
         accessibilityLabel={handleOpen ? `Open ${step.title}` : undefined}
       >
+        <View style={styles.nowBar} />
+
         {handleOpen ? (
           <View style={styles.openHint}>
             <Text style={styles.openHintText}>OPEN</Text>
@@ -80,6 +91,48 @@ export function L1StepView({ step, onOpenStepDetail, embedFullDetail }: L1StepVi
             />
           </View>
         ) : null}
+
+        <Text style={styles.verbEyebrow}>ZOOM · STEP · DOING</Text>
+
+        {step.peerQuote ? (
+          <View style={styles.peerQuoteBlock}>
+            <View style={styles.peerQuoteHeader}>
+              {step.peerQuote.avatarInitials ? (
+                <View
+                  style={[
+                    styles.peerAvatar,
+                    {
+                      backgroundColor:
+                        step.peerQuote.avatarColor ?? IOS_REGISTER.labelSecondary,
+                    },
+                  ]}
+                >
+                  <Text style={styles.peerAvatarText}>
+                    {step.peerQuote.avatarInitials}
+                  </Text>
+                </View>
+              ) : null}
+              <Text style={styles.peerQuoteAuthor}>
+                {step.peerQuote.author.toUpperCase()}
+                {'  ·  '}
+                <Text style={styles.peerQuoteWhen}>{step.peerQuote.when.toUpperCase()}</Text>
+              </Text>
+            </View>
+            <Text style={styles.peerQuoteBody}>&ldquo;{step.peerQuote.body}&rdquo;</Text>
+          </View>
+        ) : null}
+
+        {step.subStep ? (
+          <Text style={styles.sessionStrap}>
+            SUB-STEP {step.subStep.current} OF {step.subStep.total}
+            {step.subStep.label ? `  ·  ${step.subStep.label.toUpperCase()}` : ''}
+            {step.status === 'do' ? '  ·  ' : ''}
+            {step.status === 'do' ? (
+              <Text style={styles.inPlay}>● in play</Text>
+            ) : null}
+          </Text>
+        ) : null}
+
         {step.preTitle ? (
           <Text style={styles.eyebrow}>{step.preTitle}</Text>
         ) : null}
@@ -95,9 +148,18 @@ export function L1StepView({ step, onOpenStepDetail, embedFullDetail }: L1StepVi
         <View style={styles.phaseRow}>
           {PHASES.map((p) => {
             const active = p === activePhase;
+            const count =
+              p === 'Discuss' && (step.discussCount ?? 0) > 0 ? step.discussCount : null;
             return (
               <View key={p} style={styles.phaseTab}>
-                <Text style={[styles.phaseLabel, active && styles.phaseLabelActive]}>{p}</Text>
+                <View style={styles.phaseLabelRow}>
+                  <Text style={[styles.phaseLabel, active && styles.phaseLabelActive]}>{p}</Text>
+                  {count != null ? (
+                    <View style={styles.phaseBadge}>
+                      <Text style={styles.phaseBadgeText}>{count}</Text>
+                    </View>
+                  ) : null}
+                </View>
                 {active ? <View style={styles.phaseUnderline} /> : null}
               </View>
             );
@@ -200,8 +262,98 @@ const styles = StyleSheet.create({
     backgroundColor: IOS_REGISTER.cardBg,
     borderRadius: 16,
     padding: 18,
+    paddingLeft: 22,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: IOS_REGISTER.separator,
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  nowBar: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: 3,
+    backgroundColor: NOW_COLOR,
+  },
+  verbEyebrow: {
+    fontSize: 10.5,
+    fontWeight: '700',
+    letterSpacing: 0.6,
+    color: IOS_REGISTER.labelSecondary,
+    marginBottom: 12,
+  },
+  peerQuoteBlock: {
+    marginBottom: 14,
+    paddingBottom: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: IOS_REGISTER.separator,
+  },
+  peerQuoteHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 6,
+  },
+  peerAvatar: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  peerAvatarText: {
+    color: '#FFFFFF',
+    fontSize: 9.5,
+    fontWeight: '700',
+    letterSpacing: 0.1,
+  },
+  peerQuoteAuthor: {
+    fontSize: 10.5,
+    fontWeight: '700',
+    letterSpacing: 0.6,
+    color: IOS_REGISTER.labelSecondary,
+  },
+  peerQuoteWhen: {
+    fontWeight: '500',
+    color: IOS_REGISTER.labelTertiary,
+  },
+  peerQuoteBody: {
+    fontFamily: SERIF_FAMILY,
+    fontStyle: 'italic',
+    fontSize: 15,
+    lineHeight: 21,
+    color: IOS_REGISTER.label,
+  },
+  sessionStrap: {
+    fontSize: 10.5,
+    fontWeight: '700',
+    letterSpacing: 0.6,
+    color: IOS_REGISTER.labelSecondary,
+    marginBottom: 6,
+  },
+  inPlay: {
+    color: '#34C759',
+    fontWeight: '700',
+  },
+  phaseLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  phaseBadge: {
+    minWidth: 16,
+    height: 16,
+    paddingHorizontal: 4,
+    borderRadius: 8,
+    backgroundColor: '#AF52DE',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  phaseBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '700',
   },
   openHint: {
     position: 'absolute',
