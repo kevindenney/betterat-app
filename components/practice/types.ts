@@ -1,4 +1,4 @@
-export type InboxItemKind = 'suggestion' | 'plan_push' | 'on_deck';
+export type InboxItemKind = 'suggestion' | 'plan_push' | 'on_deck' | 'reflection';
 export type InboxFilter = 'all' | 'people' | 'plans' | 'deck';
 
 export interface InboxItem {

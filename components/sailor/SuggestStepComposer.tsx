@@ -10,13 +10,13 @@
  *   - Body voice-or-text input
  *   - Send → inserts into step_suggestions and lands in recipient's Inbox
  *
- * v1 schema accommodation: step_suggestions.source_step_id is NOT NULL in
- * the current schema. We fall back to the sender's most-recent in-progress
- * step. Free-form sub-step suggestions (no source step on the sender side)
- * need a schema follow-up — tracked in the screen-designs v3 brief.
+ * source_step_id is nullable as of migration
+ * 20260524220000_v3_peer_reflections_and_freeform_suggestions — Send writes
+ * NULL so the recipient sees a true free-form suggestion rather than a
+ * sender-side step shoehorned in.
  */
 
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -33,7 +33,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '@/services/supabase';
 import { useAuth } from '@/providers/AuthProvider';
-import { useMyTimeline } from '@/hooks/useTimelineSteps';
 import { useToast } from '@/components/ui/AppToast';
 import { useQueryClient } from '@tanstack/react-query';
 import { IOS_COLORS, IOS_REGISTER, IOS_SPACING } from '@/lib/design-tokens-ios';
@@ -53,15 +52,6 @@ export interface SuggestStepComposerProps {
   reContext?: string | null;
 }
 
-function pickFallbackSourceStep<T extends { id: string; status?: string | null; updated_at?: string | null }>(
-  steps: T[] | undefined,
-): T | null {
-  if (!steps || steps.length === 0) return null;
-  const inProgress = steps.find((s) => s.status === 'in_progress');
-  if (inProgress) return inProgress;
-  return steps[0];
-}
-
 export function SuggestStepComposer({
   visible,
   onClose,
@@ -73,15 +63,13 @@ export function SuggestStepComposer({
 }: SuggestStepComposerProps) {
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
-  const { data: myTimeline, isLoading: timelineLoading } = useMyTimeline();
   const toast = useToast();
   const qc = useQueryClient();
 
   const [body, setBody] = useState('');
   const [sending, setSending] = useState(false);
 
-  const fallbackStep = useMemo(() => pickFallbackSourceStep(myTimeline), [myTimeline]);
-  const canSend = body.trim().length > 0 && Boolean(fallbackStep) && !sending;
+  const canSend = body.trim().length > 0 && !sending;
 
   const handleClose = useCallback(() => {
     if (sending) return;
@@ -90,12 +78,12 @@ export function SuggestStepComposer({
   }, [sending, onClose]);
 
   const handleSend = useCallback(async () => {
-    if (!user?.id || !fallbackStep) return;
+    if (!user?.id) return;
     setSending(true);
     const { error } = await supabase.from('step_suggestions').insert({
       source_user_id: user.id,
       target_user_id: recipientId,
-      source_step_id: fallbackStep.id,
+      source_step_id: null,
       message: body.trim(),
       status: 'pending',
     });
@@ -109,7 +97,7 @@ export function SuggestStepComposer({
     toast.show(`Suggestion sent to ${recipientName.split(' ')[0]}`, 'success');
     setBody('');
     onClose();
-  }, [user?.id, fallbackStep, recipientId, recipientName, body, toast, qc, onClose]);
+  }, [user?.id, recipientId, recipientName, body, toast, qc, onClose]);
 
   const initials = recipientInitials ?? recipientName.charAt(0).toUpperCase();
   const tint = recipientTint ?? IOS_COLORS.systemGray3;
@@ -180,18 +168,6 @@ export function SuggestStepComposer({
               autoFocus
               textAlignVertical="top"
             />
-
-            {timelineLoading ? (
-              <View style={styles.fallbackNote}>
-                <ActivityIndicator size="small" color={IOS_REGISTER.labelTertiary} />
-              </View>
-            ) : !fallbackStep ? (
-              <View style={styles.fallbackNote}>
-                <Text style={styles.fallbackNoteText}>
-                  Add a step to your own timeline before sending suggestions.
-                </Text>
-              </View>
-            ) : null}
           </ScrollView>
 
           <View style={[styles.footer, { paddingBottom: insets.bottom + 12 }]}>
@@ -310,15 +286,6 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     color: IOS_REGISTER.label,
     letterSpacing: -0.2,
-  },
-  fallbackNote: {
-    paddingHorizontal: IOS_SPACING.lg,
-    paddingTop: 14,
-  },
-  fallbackNoteText: {
-    fontSize: 12.5,
-    color: IOS_REGISTER.labelSecondary,
-    fontStyle: 'italic',
   },
   footer: {
     flexDirection: 'row',

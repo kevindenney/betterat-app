@@ -16,6 +16,7 @@
 import React, { useMemo, useState } from 'react';
 import {
   ActivityIndicator,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -47,17 +48,26 @@ export default function InboxTabScreen() {
     [fetched, dismissedIds],
   );
 
-  // v1: every live inbox_items row is "Act". Read/Done are stubs until
-  // peer_reflections + a per-user inbox state column ship.
-  const actCount = items.length;
-  const readCount = 0;
+  // Split by kind: suggestions + on_deck → Act, reflections → Read.
+  // Done is still a stub until per-user inbox state column lands.
+  const actItems = useMemo(
+    () => items.filter((it) => it.kind !== 'reflection'),
+    [items],
+  );
+  const readItems = useMemo(
+    () => items.filter((it) => it.kind === 'reflection'),
+    [items],
+  );
+  const actCount = actItems.length;
+  const readCount = readItems.length;
 
   // Practice grouping — design key is "the practice each item is about."
   // The closest analog in the current data model is the source step the
-  // suggestion attaches to. Fold same-source items together.
+  // suggestion attaches to. Fold same-source items together. Items with
+  // no step (free-form suggestions) group under their own title.
   const groups = useMemo(() => {
     const byKey = new Map<string, { title: string; items: InboxItem[] }>();
-    items.forEach((it) => {
+    actItems.forEach((it) => {
       const key = it.raw.sourceStepId || it.title;
       const existing = byKey.get(key);
       if (existing) {
@@ -67,7 +77,7 @@ export default function InboxTabScreen() {
       }
     });
     return Array.from(byKey.values());
-  }, [items]);
+  }, [actItems]);
 
   const optimisticHide = (id: string) =>
     setDismissedIds((prev) => {
@@ -139,7 +149,9 @@ export default function InboxTabScreen() {
               onDecline={handleDecline}
             />
           )}
-          {segment === 'read' && <ReadPanel />}
+          {segment === 'read' && (
+            <ReadPanel isLoading={isLoading} items={readItems} />
+          )}
           {segment === 'done' && <DonePanel />}
         </ScrollView>
       </View>
@@ -287,13 +299,68 @@ function SuggestionCard({
   );
 }
 
-function ReadPanel() {
+function ReadPanel({
+  isLoading,
+  items,
+}: {
+  isLoading: boolean;
+  items: InboxItem[];
+}) {
+  if (isLoading) {
+    return (
+      <View style={styles.loadingWrap}>
+        <ActivityIndicator color={IOS_COLORS.tertiaryLabel} />
+      </View>
+    );
+  }
+  if (items.length === 0) {
+    return (
+      <View style={styles.emptyWrap}>
+        <Text style={styles.emptyTitle}>No peer reflections yet.</Text>
+        <Text style={styles.emptyBody}>
+          Reflections from the people you share an interest with will land here.
+        </Text>
+      </View>
+    );
+  }
+
   return (
-    <View style={styles.emptyWrap}>
-      <Text style={styles.emptyTitle}>No peer reflections yet.</Text>
-      <Text style={styles.emptyBody}>
-        Reflections from the people you share an interest with will land here.
-      </Text>
+    <View>
+      <View style={styles.eyebrowRow}>
+        <Text style={styles.eyebrow}>PEER REFLECTIONS</Text>
+        <View style={[styles.eyebrowPip, { backgroundColor: LILAC }]}>
+          <Text style={styles.eyebrowPipText}>{items.length}</Text>
+        </View>
+      </View>
+      <View style={styles.group}>
+        {items.map((it) => (
+          <ReflectionCard key={it.id} item={it} />
+        ))}
+      </View>
+    </View>
+  );
+}
+
+function ReflectionCard({ item }: { item: InboxItem }) {
+  return (
+    <View style={[styles.card, styles.cardReflection]}>
+      <View style={styles.cardHeader}>
+        <View style={[styles.avatar, { backgroundColor: item.fromTint || LILAC }]}>
+          <Text style={styles.avatarText}>{item.fromInitials || '·'}</Text>
+        </View>
+        <View style={styles.cardHeaderText}>
+          <Text style={styles.cardFrom}>
+            <Text style={styles.cardFromName}>{item.fromContext}</Text>
+            <Text style={styles.cardFromVerb}> reflected on </Text>
+            <Text style={styles.cardFromName}>{item.title}</Text>
+          </Text>
+        </View>
+        <Text style={styles.cardWhen}>{item.when}</Text>
+      </View>
+
+      {item.blurb ? (
+        <Text style={styles.cardReflectionBody}>"{item.blurb}"</Text>
+      ) : null}
     </View>
   );
 }
@@ -413,6 +480,23 @@ const styles = StyleSheet.create({
     shadowRadius: 3,
     elevation: 1,
   },
+  cardReflection: {
+    borderLeftColor: LILAC,
+  },
+  cardReflectionBody: {
+    marginTop: 10,
+    fontSize: 15,
+    lineHeight: 21,
+    fontStyle: 'italic',
+    color: IOS_REGISTER.label,
+    fontFamily: Platform.select({
+      ios: 'Georgia',
+      android: 'serif',
+      web: 'Georgia, "Times New Roman", serif',
+      default: 'Georgia',
+    }) as string,
+    letterSpacing: -0.1,
+  },
   cardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -520,5 +604,3 @@ const styles = StyleSheet.create({
     lineHeight: 19,
   },
 });
-// Mark LILAC as future-use; consumed by ReadPanel cards when peer_reflections lands.
-void LILAC;

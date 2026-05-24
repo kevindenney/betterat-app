@@ -18,11 +18,11 @@ import type { InboxItem, InboxItemKind } from '@/components/practice/types';
 
 interface InboxRow {
   id: string;
-  kind: 'suggestion' | 'on_deck';
+  kind: 'suggestion' | 'on_deck' | 'reflection';
   user_id: string;
   from_user_id: string | null;
   from_plan_id: string | null;
-  step_id: string;
+  step_id: string | null;
   body: string | null;
   status: string;
   created_at: string;
@@ -56,6 +56,7 @@ const KIND_CHIP: Record<InboxItemKind, string> = {
   suggestion: 'Suggested',
   plan_push: 'New plan step',
   on_deck: 'On deck',
+  reflection: 'Reflected',
 };
 
 const TINT_FALLBACK = '#5AC8FA';
@@ -93,17 +94,20 @@ function toInboxItem(
 ): InboxItem {
   const fromName = profile?.full_name?.trim() || null;
   const fromEmail = profile?.email?.trim() || undefined;
-  const kind: InboxItemKind = row.kind === 'suggestion' ? 'suggestion' : 'on_deck';
+  const kind: InboxItemKind = row.kind;
   const stepTitle = step?.title?.trim() || 'Untitled step';
   const blurb = row.body?.trim() || undefined;
   const raw = {
     interestId: kind === 'on_deck' ? deck?.interest_id ?? null : step?.interest_id ?? null,
-    sourceStepId: row.step_id,
+    sourceStepId: row.step_id ?? '',
     sourceUserId: row.from_user_id,
     sourceDescription: step?.description ?? null,
   };
 
   if (kind === 'suggestion') {
+    // Free-form suggestions (post-2026-05-24 migration) carry no source step
+    // — the title surfaces a short preview of the body instead.
+    const title = step?.title?.trim() || blurb?.split(/[.!?]/)[0]?.trim() || 'Free-form suggestion';
     return {
       id: row.id,
       kind,
@@ -112,11 +116,34 @@ function toInboxItem(
       fromTint: sailor?.avatar_color || TINT_FALLBACK,
       fromContext: fromName ? `${fromName}` : 'A teammate',
       when: whenLabel(row.created_at),
-      title: stepTitle,
+      title,
       blurb,
       fromLine: fromName
         ? `Suggested step from ${fromName}`
         : 'Suggested step from a teammate',
+      fromEmail: fromEmail && fromEmail !== fromName ? fromEmail : undefined,
+      raw,
+    };
+  }
+
+  if (kind === 'reflection') {
+    // Peer reflection — sender wrote a short note about the recipient's step.
+    // Title is the recipient's step (or a generic "your practice" when no
+    // target_step_id was attached). Body is the reflection itself.
+    const title = step?.title?.trim() || 'your practice';
+    return {
+      id: row.id,
+      kind,
+      chipLabel: KIND_CHIP.reflection,
+      fromInitials: initials(fromName),
+      fromTint: sailor?.avatar_color || TINT_FALLBACK,
+      fromContext: fromName ? `${fromName}` : 'A peer',
+      when: whenLabel(row.created_at),
+      title,
+      blurb,
+      fromLine: fromName
+        ? `Reflection from ${fromName}`
+        : 'Reflection from a peer',
       fromEmail: fromEmail && fromEmail !== fromName ? fromEmail : undefined,
       raw,
     };
@@ -153,7 +180,13 @@ export function useInboxItems() {
       const fromUserIds = Array.from(
         new Set(safeRows.map((r) => r.from_user_id).filter((id): id is string => !!id))
       );
-      const stepIds = Array.from(new Set(safeRows.map((r) => r.step_id).filter(Boolean)));
+      const stepIds = Array.from(
+        new Set(
+          safeRows
+            .map((r) => r.step_id)
+            .filter((id): id is string => Boolean(id))
+        )
+      );
 
       const deckIds = Array.from(
         new Set(
@@ -201,7 +234,7 @@ export function useInboxItems() {
           row,
           row.from_user_id ? profilesById.get(row.from_user_id) : undefined,
           row.from_user_id ? sailorsByUser.get(row.from_user_id) : undefined,
-          stepsById.get(row.step_id),
+          row.step_id ? stepsById.get(row.step_id) : undefined,
           row.kind === 'on_deck' ? decksById.get(row.id) : undefined,
         ),
       );
