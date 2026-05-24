@@ -139,19 +139,40 @@ export default function AdminAuditPage() {
   const { events, loading } = useAdminAuditFeed(orgId as string, 100);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
+  const [stripeOnly, setStripeOnly] = useState(false);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return events;
-    return events.filter(
-      (e) =>
+    const stripeLabels = new Set([
+      'Synced from Stripe',
+      'Listed on Stripe',
+      'Refreshed Stripe listing',
+      'Subscribed via marketplace',
+      'Marketplace invoice paid',
+    ]);
+    return events.filter((e) => {
+      if (stripeOnly && !stripeLabels.has(e.verbLabel)) return false;
+      if (!q) return true;
+      return (
         e.description.toLowerCase().includes(q) ||
         e.actorName.toLowerCase().includes(q) ||
         e.targetLabel?.toLowerCase().includes(q) ||
         e.verbLabel.toLowerCase().includes(q) ||
-        e.id.includes(q),
-    );
-  }, [events, search]);
+        e.id.includes(q)
+      );
+    });
+  }, [events, search, stripeOnly]);
+
+  const stripeEventCount = useMemo(() => {
+    const stripeLabels = new Set([
+      'Synced from Stripe',
+      'Listed on Stripe',
+      'Refreshed Stripe listing',
+      'Subscribed via marketplace',
+      'Marketplace invoice paid',
+    ]);
+    return events.filter((e) => stripeLabels.has(e.verbLabel)).length;
+  }, [events]);
 
   const groups: DayGroup[] = useMemo(() => {
     const m = new Map<string, AuditEvent[]>();
@@ -203,11 +224,32 @@ export default function AdminAuditPage() {
               style={s.searchInput}
             />
           </View>
-          <View style={[s.filterChip, s.filterChipOn]}>
-            <Ionicons name="pricetag-outline" size={13} color="#28406B" />
-            <Text style={s.filterChipTextOn}>All events</Text>
-            <Ionicons name="chevron-down" size={13} color="#28406B" />
-          </View>
+          <Pressable
+            style={[s.filterChip, !stripeOnly && s.filterChipOn]}
+            onPress={() => setStripeOnly(false)}
+          >
+            <Ionicons
+              name="pricetag-outline"
+              size={13}
+              color={!stripeOnly ? '#28406B' : 'rgba(60, 60, 67, 0.6)'}
+            />
+            <Text style={!stripeOnly ? s.filterChipTextOn : s.filterChipText}>
+              All events
+            </Text>
+          </Pressable>
+          <Pressable
+            style={[s.filterChip, stripeOnly && s.filterChipOn]}
+            onPress={() => setStripeOnly(true)}
+          >
+            <Ionicons
+              name="card-outline"
+              size={13}
+              color={stripeOnly ? '#28406B' : 'rgba(60, 60, 67, 0.6)'}
+            />
+            <Text style={stripeOnly ? s.filterChipTextOn : s.filterChipText}>
+              Stripe · {stripeEventCount}
+            </Text>
+          </Pressable>
           <View style={s.filterChip}>
             <Ionicons name="person-outline" size={13} color="rgba(60, 60, 67, 0.6)" />
             <Text style={s.filterChipText}>Any actor</Text>
