@@ -7,6 +7,7 @@ import { View, Text, TextInput, Pressable, ActivityIndicator, StyleSheet, Platfo
 import { showAlert } from '@/lib/utils/crossPlatformAlert';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { openInterestSwitcher } from '@/components/InterestSwitcher';
 import { useQueryClient } from '@tanstack/react-query';
 import { IOS_COLORS as _IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
 import { STEP_COLORS, STEP_PALETTE } from '@/lib/step-theme';
@@ -1269,6 +1270,7 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab }
       <View style={[styles.container, stepLoopShellStyles.screen]}>
         <TopHeader
           interestName={currentInterest?.name ?? undefined}
+          onInterestPress={openInterestSwitcher}
           stepCounter={step.title ? undefined : 'Step'}
           rightCluster={
             universalPlus.isAvailable ? (

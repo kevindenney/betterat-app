@@ -238,12 +238,25 @@ export function TimelineZoomCanvas({
     setLevel(1);
   }, [dataset.focusStepId]);
 
+  const flatSteps = useMemo(
+    () => dataset.seasons.flatMap((s) => s.weeks).flatMap((w) => w.steps),
+    [dataset.seasons],
+  );
   const focusedStep =
-    dataset.seasons
-      .flatMap((s) => s.weeks)
-      .flatMap((w) => w.steps)
-      .find((s) => s.id === focusStepId) ??
+    flatSteps.find((s) => s.id === focusStepId) ??
     dataset.seasons[0].weeks[0]?.steps[0];
+
+  const swipeToNeighbor = useCallback(
+    (direction: 'prev' | 'next') => {
+      if (flatSteps.length < 2) return;
+      const idx = flatSteps.findIndex((s) => s.id === focusStepId);
+      if (idx < 0) return;
+      const nextIdx = direction === 'prev' ? idx - 1 : idx + 1;
+      if (nextIdx < 0 || nextIdx >= flatSteps.length) return;
+      setFocusStepId(flatSteps[nextIdx].id);
+    },
+    [flatSteps, focusStepId],
+  );
 
   // Compute the level the user is about to snap to, given direction +
   // current level. Returns null when at a boundary (can't go further).
@@ -302,6 +315,8 @@ export function TimelineZoomCanvas({
                     step={focusedStep}
                     onOpenStepDetail={embedFullDetailAtL1 ? undefined : onOpenStepDetail}
                     embedFullDetail={embedFullDetailAtL1}
+                    onSwipePrev={() => swipeToNeighbor('prev')}
+                    onSwipeNext={() => swipeToNeighbor('next')}
                   />
                 ) : null}
                 {level === 2 ? (

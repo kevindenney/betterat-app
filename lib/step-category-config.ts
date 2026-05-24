@@ -39,7 +39,7 @@ export interface StepCategoryLabels {
 
 const DEFAULT_LABELS: StepCategoryLabels = {
   badge: 'STEP',
-  tabs: { plan: 'Plan', act: 'Do', review: 'Reflect' },
+  tabs: { plan: 'Plan', act: 'Do', review: 'Review' },
   questions: {
     what: 'What will you do?',
     how: 'How will you do it?',
@@ -62,7 +62,7 @@ const DEFAULT_LABELS: StepCategoryLabels = {
 
 const NUTRITION_LABELS: StepCategoryLabels = {
   badge: 'NUTRITION',
-  tabs: { plan: 'Plan', act: 'Do', review: 'Reflect' },
+  tabs: { plan: 'Plan', act: 'Do', review: 'Review' },
   questions: {
     what: "What's your nutrition plan?",
     how: 'What meals will you prepare?',
@@ -85,7 +85,7 @@ const NUTRITION_LABELS: StepCategoryLabels = {
 
 const STRENGTH_LABELS: StepCategoryLabels = {
   badge: 'STRENGTH',
-  tabs: { plan: 'Plan', act: 'Do', review: 'Reflect' },
+  tabs: { plan: 'Plan', act: 'Do', review: 'Review' },
   questions: {
     what: 'What will you train?',
     how: 'What exercises will you do?',
@@ -108,7 +108,7 @@ const STRENGTH_LABELS: StepCategoryLabels = {
 
 const CARDIO_LABELS: StepCategoryLabels = {
   badge: 'CARDIO',
-  tabs: { plan: 'Plan', act: 'Do', review: 'Reflect' },
+  tabs: { plan: 'Plan', act: 'Do', review: 'Review' },
   questions: {
     what: 'What cardio will you do?',
     how: 'What is your route or plan?',
@@ -131,7 +131,7 @@ const CARDIO_LABELS: StepCategoryLabels = {
 
 const HIIT_LABELS: StepCategoryLabels = {
   badge: 'HIIT',
-  tabs: { plan: 'Plan', act: 'Do', review: 'Reflect' },
+  tabs: { plan: 'Plan', act: 'Do', review: 'Review' },
   questions: {
     what: 'What HIIT workout will you do?',
     how: 'What intervals will you use?',
@@ -154,7 +154,7 @@ const HIIT_LABELS: StepCategoryLabels = {
 
 const SPORT_LABELS: StepCategoryLabels = {
   badge: 'SPORT',
-  tabs: { plan: 'Plan', act: 'Do', review: 'Reflect' },
+  tabs: { plan: 'Plan', act: 'Do', review: 'Review' },
   questions: {
     what: 'What will you practice or play?',
     how: 'What drills or activities?',
@@ -177,7 +177,7 @@ const SPORT_LABELS: StepCategoryLabels = {
 
 const RACE_DAY_CHECK_LABELS: StepCategoryLabels = {
   badge: 'RACE DAY',
-  tabs: { plan: 'Plan', act: 'Do', review: 'Reflect' },
+  tabs: { plan: 'Plan', act: 'Do', review: 'Review' },
   questions: {
     what: 'What needs to be checked?',
     how: 'What is your checklist?',
@@ -200,7 +200,7 @@ const RACE_DAY_CHECK_LABELS: StepCategoryLabels = {
 
 const READING_LABELS: StepCategoryLabels = {
   badge: 'READING',
-  tabs: { plan: 'Plan', act: 'Do', review: 'Reflect' },
+  tabs: { plan: 'Plan', act: 'Do', review: 'Review' },
   questions: {
     what: 'What will you read?',
     how: 'How will you approach this reading?',

@@ -9,9 +9,12 @@
  * Pinch out → L2. Tap the right-rail pill → jump.
  */
 
-import React from 'react';
+import React, { useCallback } from 'react';
 import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import { runOnJS } from 'react-native-reanimated';
+import * as Haptics from 'expo-haptics';
 
 import { IOS_REGISTER } from '@/lib/design-tokens-ios';
 import { StepDetailContent } from '@/components/step/StepDetailContent';
@@ -46,24 +49,74 @@ interface L1StepViewProps {
    * slim preview card.
    */
   embedFullDetail?: boolean;
+  /**
+   * L1 horizontal swipe (Screen 07 canonical: "Past on the left, future
+   * on the right. Swipe to traverse"). Called on threshold-met left/right
+   * pan to switch the focused step. The canvas computes neighbors from
+   * the season's flat step list.
+   */
+  onSwipePrev?: () => void;
+  onSwipeNext?: () => void;
 }
 
 const PHASES = ['Plan', 'Do', 'Reflect', 'Discuss'] as const;
 
-export function L1StepView({ step, onOpenStepDetail, embedFullDetail }: L1StepViewProps) {
+// Swipe threshold (Reanimated worklet uses these constants).
+const SWIPE_PX_THRESHOLD = 60;
+const SWIPE_VELOCITY_THRESHOLD = 600;
+
+export function L1StepView({
+  step,
+  onOpenStepDetail,
+  embedFullDetail,
+  onSwipePrev,
+  onSwipeNext,
+}: L1StepViewProps) {
+  const fireSwipe = useCallback(
+    (direction: 'prev' | 'next') => {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+      if (direction === 'prev') onSwipePrev?.();
+      else onSwipeNext?.();
+    },
+    [onSwipePrev, onSwipeNext],
+  );
+
+  // Horizontal pan that only activates after 15px of x movement so vertical
+  // scroll inside the embedded StepDetailContent still works untouched.
+  const swipeGesture = Gesture.Pan()
+    .activeOffsetX([-15, 15])
+    .failOffsetY([-12, 12])
+    .onEnd((e) => {
+      'worklet';
+      const enoughDistance = Math.abs(e.translationX) > SWIPE_PX_THRESHOLD;
+      const enoughVelocity = Math.abs(e.velocityX) > SWIPE_VELOCITY_THRESHOLD;
+      if (!enoughDistance && !enoughVelocity) return;
+      // Positive translation = finger moved right = previous step.
+      if (e.translationX > 0) {
+        runOnJS(fireSwipe)('prev');
+      } else {
+        runOnJS(fireSwipe)('next');
+      }
+    });
+
   if (embedFullDetail) {
     return (
-      <View style={styles.embedHost}>
-        <View style={styles.embedNowBar} />
-        <View style={styles.embedChrome}>
-          <Text style={styles.verbEyebrow}>ZOOM · STEP · DOING</Text>
-          {step.peerQuote ? <PeerQuoteBlock quote={step.peerQuote} /> : null}
-          {step.subStep ? <SessionStrap step={step} /> : null}
+      <GestureDetector gesture={swipeGesture}>
+        <View style={styles.embedHost}>
+          <View style={styles.embedNowBar} />
+          <View style={styles.embedNowPill}>
+            <Text style={styles.embedNowPillText}>NOW</Text>
+          </View>
+          <View style={styles.embedChrome}>
+            <Text style={styles.verbEyebrow}>ZOOM · STEP · DOING</Text>
+            {step.peerQuote ? <PeerQuoteBlock quote={step.peerQuote} /> : null}
+            {step.subStep ? <SessionStrap step={step} /> : null}
+          </View>
+          <View style={styles.embedDetailHost}>
+            <StepDetailContent stepId={step.id} />
+          </View>
         </View>
-        <View style={styles.embedDetailHost}>
-          <StepDetailContent stepId={step.id} />
-        </View>
-      </View>
+      </GestureDetector>
     );
   }
 
@@ -75,6 +128,7 @@ export function L1StepView({ step, onOpenStepDetail, embedFullDetail }: L1StepVi
     : undefined;
 
   return (
+    <GestureDetector gesture={swipeGesture}>
     <ScrollView
       style={styles.scroll}
       contentContainerStyle={styles.scrollContent}
@@ -202,6 +256,7 @@ export function L1StepView({ step, onOpenStepDetail, embedFullDetail }: L1StepVi
         ) : null}
       </Pressable>
     </ScrollView>
+    </GestureDetector>
   );
 }
 
@@ -270,6 +325,23 @@ const styles = StyleSheet.create({
     width: 3,
     backgroundColor: NOW_COLOR,
     zIndex: 1,
+  },
+  embedNowPill: {
+    position: 'absolute',
+    left: 0,
+    top: 2,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    backgroundColor: NOW_COLOR,
+    borderTopRightRadius: 3,
+    borderBottomRightRadius: 3,
+    zIndex: 2,
+  },
+  embedNowPillText: {
+    color: '#FFFFFF',
+    fontSize: 9.5,
+    fontWeight: '700',
+    letterSpacing: 0.6,
   },
   embedChrome: {
     paddingHorizontal: 22,
