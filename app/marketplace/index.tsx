@@ -88,6 +88,16 @@ export default function MarketplacePage() {
     [authorScope, blueprints],
   );
 
+  const stats = React.useMemo(() => {
+    const authors = new Set<string>();
+    let subscribers = 0;
+    for (const bp of blueprints) {
+      if (bp.authorUserId) authors.add(bp.authorUserId);
+      subscribers += bp.activeSubscriberCount;
+    }
+    return { blueprints: blueprints.length, authors: authors.size, subscribers };
+  }, [blueprints]);
+
   const [returnBanner, setReturnBanner] = React.useState<
     { kind: 'success' | 'cancelled'; bpId: string | null } | null
   >(null);
@@ -213,6 +223,26 @@ export default function MarketplacePage() {
               Practical step-by-step playbooks you can subscribe to month-to-month. Authored by
               practitioners; payouts route via Stripe Connect.
             </Text>
+            {stats.blueprints > 0 ? (
+              <View style={s.statRow}>
+                <View style={s.statChip}>
+                  <Text style={s.statNum}>{stats.blueprints}</Text>
+                  <Text style={s.statLabel}>
+                    blueprint{stats.blueprints === 1 ? '' : 's'}
+                  </Text>
+                </View>
+                <View style={s.statChip}>
+                  <Text style={s.statNum}>{stats.authors}</Text>
+                  <Text style={s.statLabel}>
+                    author{stats.authors === 1 ? '' : 's'}
+                  </Text>
+                </View>
+                <View style={s.statChip}>
+                  <Text style={s.statNum}>{stats.subscribers}</Text>
+                  <Text style={s.statLabel}>active subscribers</Text>
+                </View>
+              </View>
+            ) : null}
           </>
         )}
       </View>
@@ -815,6 +845,18 @@ const s = StyleSheet.create({
   },
   howStepTitle: { fontSize: 13.5, fontWeight: '700', color: '#1C1C1E' },
   howStepCopy: { fontSize: 12, lineHeight: 17, color: 'rgba(60, 60, 67, 0.75)' },
+  statRow: { flexDirection: 'row', gap: 16, flexWrap: 'wrap', marginTop: 14 },
+  statChip: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 999,
+    backgroundColor: 'rgba(40, 64, 107, 0.07)',
+  },
+  statNum: { fontSize: 14, fontWeight: '700', color: '#28406B', letterSpacing: -0.2 },
+  statLabel: { fontSize: 11.5, color: 'rgba(60, 60, 67, 0.7)' },
 
   // Featured rail
   railHead: { flexDirection: 'row', alignItems: 'center', gap: 6 },
