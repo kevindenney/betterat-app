@@ -72,34 +72,19 @@ export interface StudioPayoutsData {
   };
 }
 
-// Cosmetic demo data — used for the parts of the surface that don't
-// yet have a real source. Series + recent transactions would need a
-// Stripe Connect transactions-by-week aggregation; bank info would
-// come from stripe.accounts.retrieve external_accounts. Both are
-// follow-up work.
-const DEMO_SERIES: PayoutWeek[] = [
-  { weekStart: 'Mar 4', amount: 690 },
-  { weekStart: 'Mar 11', amount: 800 },
-  { weekStart: 'Mar 18', amount: 920 },
-  { weekStart: 'Mar 25', amount: 640 },
-  { weekStart: 'Apr 1', amount: 1020 },
-  { weekStart: 'Apr 8', amount: 1140 },
-  { weekStart: 'Apr 15', amount: 1060 },
-  { weekStart: 'Apr 22', amount: 940 },
-  { weekStart: 'Apr 29', amount: 1220 },
-  { weekStart: 'May 6', amount: 1300 },
-  { weekStart: 'May 13', amount: 1340 },
-  { weekStart: 'May 20', amount: 1480 },
-];
-
-const DEMO_BANK = {
+// Fallback bank chip when the user has no Stripe Connect account.
+const FALLBACK_BANK = {
   flag: 'US',
   flagGradient: ['#28406B', '#5A6B8B'] as [string, string],
   typeLabel: 'ACH',
-  accountMasked: '··· 6789',
+  accountMasked: 'Not connected',
   bankName: 'Stripe Connect',
-  connectLabel: 'Express',
+  connectLabel: 'Onboard to receive payouts',
 };
+
+// Empty 12-week series shape — overlaid by the real series from the
+// studio-payouts-data edge function when it loads.
+const EMPTY_SERIES: PayoutWeek[] = [];
 
 const GRADIENT_POOL: [string, string][] = [
   ['#B8855A', '#5C3F22'],
@@ -127,6 +112,41 @@ function subtitleFor(unitAmountCents: number, cadence: string, count: number): s
   return `$${dollars} ${cadenceLabel} · ${subscriberLabel}`;
 }
 
+interface StripeSidePayload {
+  ok: boolean;
+  connected: boolean;
+  bank: {
+    flag: string;
+    flagGradient: [string, string];
+    typeLabel: string;
+    accountMasked: string;
+    bankName: string;
+    connectLabel: string;
+  } | null;
+  weeklySeries: { weekStart: string; amount: number }[];
+  recentTransactions: {
+    id: string;
+    amount: number;
+    currency: string;
+    ageLabel: string;
+    description: string;
+    type: string;
+  }[];
+  nextPayout: {
+    amount: number;
+    currency: string;
+    arrivalDate: string;
+  } | null;
+}
+
+function nameToInitials(name: string): string {
+  const trimmed = name.trim();
+  if (!trimmed) return 'XX';
+  const parts = trimmed.split(/\s+/);
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
 export function useStudioPayouts(): StudioPayoutsData {
   const { stats, loading: statsLoading } = useAuthorMarketplaceStats();
 
@@ -145,8 +165,29 @@ export function useStudioPayouts(): StudioPayoutsData {
     },
   });
 
+  const { data: stripeSide, isLoading: stripeLoading } = useQuery({
+    queryKey: ['studio-payouts-data', connectAccount?.stripe_account_id ?? null],
+    enabled: !!connectAccount?.stripe_account_id,
+    staleTime: 60_000,
+    queryFn: async (): Promise<StripeSidePayload | null> => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return null;
+      const url = `${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/studio-payouts-data`;
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({}),
+      });
+      if (!res.ok) return null;
+      return (await res.json()) as StripeSidePayload;
+    },
+  });
+
   return useMemo<StudioPayoutsData>(() => {
-    const loading = statsLoading || csLoading;
+    const loading = statsLoading || csLoading || stripeLoading;
     const isIndependent = !!connectAccount?.stripe_account_id;
     const activeCount = (stats?.activeCount ?? 0) + (stats?.trialingCount ?? 0);
     const mrr = stats?.mrrCents ?? 0;
@@ -169,11 +210,48 @@ export function useStudioPayouts(): StudioPayoutsData {
       }),
     );
 
-    // Lifetime is YTD for now (we don't have year-spanning history).
     const lifetimeCents = (stats?.byBlueprint ?? []).reduce(
       (sum, b) => sum + b.mrrCents,
       0,
     );
+
+    // Stripe-side derived data (may be undefined if user has no Connect
+    // account or the fetch failed). Fall back to empty/placeholder
+    // shapes so the existing surface keeps rendering.
+    const weeklySeries: PayoutWeek[] =
+      stripeSide?.weeklySeries && stripeSide.weeklySeries.length > 0
+        ? stripeSide.weeklySeries
+        : EMPTY_SERIES;
+
+    const recentTransactions: PayoutTransaction[] = (stripeSide?.recentTransactions ?? []).map(
+      (t, idx) => ({
+        id: t.id,
+        fromInitials: nameToInitials(t.description || 'Stripe'),
+        fromName: t.description || 'Stripe transaction',
+        fromOrgChip: null,
+        blueprintLabel:
+          t.type === 'refund'
+            ? 'Refund'
+            : t.type === 'charge' || t.type === 'payment'
+              ? 'Subscribed'
+              : t.type,
+        ageLabel: t.ageLabel,
+        amount: t.amount,
+        currency: t.currency,
+        gradient: blueprintGradient(idx),
+      }),
+    );
+
+    const bank = stripeSide?.bank ?? FALLBACK_BANK;
+
+    const nextPayoutAmount = stripeSide?.nextPayout?.amount ?? mrr / 100;
+    const nextPayoutDate = stripeSide?.nextPayout?.arrivalDate
+      ? new Date(stripeSide.nextPayout.arrivalDate).toLocaleDateString('en-US', {
+          weekday: 'short',
+          month: 'short',
+          day: 'numeric',
+        })
+      : '—';
 
     return {
       loading,
@@ -182,8 +260,8 @@ export function useStudioPayouts(): StudioPayoutsData {
       currencySymbol: '$',
       scheduleLabel: 'Payouts weekly · 7-day rolling reserve',
       nextPayout: {
-        amount: mrr / 100,
-        dateLabel: '—',
+        amount: nextPayoutAmount,
+        dateLabel: nextPayoutDate,
         renewalsCount: stats?.activeCount ?? 0,
         firstTimeCount: stats?.trialingCount ?? 0,
         deltaWeekPct: null,
@@ -196,11 +274,11 @@ export function useStudioPayouts(): StudioPayoutsData {
         count: activeCount,
         weeklyDelta: stats?.trialingCount ?? 0,
       },
-      weeklySeries: DEMO_SERIES,
+      weeklySeries,
       blueprintEarnings,
-      recentTransactions: [],
-      totalTransactionCount: 0,
-      bank: DEMO_BANK,
+      recentTransactions,
+      totalTransactionCount: recentTransactions.length,
+      bank,
     };
-  }, [stats, statsLoading, csLoading, connectAccount]);
+  }, [stats, statsLoading, csLoading, stripeLoading, connectAccount, stripeSide]);
 }
