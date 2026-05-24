@@ -387,13 +387,23 @@ function LayersFab({
   onLayersPress,
   onDropPinPress,
   commitMode,
+  bottomOffset = 0,
 }: {
   onLayersPress?: () => void;
   onDropPinPress?: () => void;
   commitMode?: boolean;
+  /** Lift the FAB column above the floating bottom sheet + tab bar. */
+  bottomOffset?: number;
 }) {
+  // When the sheet floats above the tab bar, the FAB column must sit
+  // ABOVE the sheet — otherwise the layers/locate/+ buttons get covered.
+  // ~120pt of sheet (MID state) + 12pt margin on top of the offset.
+  const dynamicBottom = bottomOffset > 0 ? bottomOffset + 132 : 14;
   return (
-    <View style={shellStyles.fabColumn} pointerEvents="box-none">
+    <View
+      style={[shellStyles.fabColumn, { bottom: dynamicBottom }]}
+      pointerEvents="box-none"
+    >
       <Pressable style={shellStyles.fab} onPress={onLayersPress} hitSlop={6}>
         <Ionicons name="layers-outline" size={16} color="rgba(60, 60, 67, 0.78)" />
       </Pressable>
@@ -814,6 +824,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
           onLayersPress={() => setLayersOpen(true)}
           onDropPinPress={handlers.useMapLibre ? handleDropPinPress : undefined}
           commitMode={commitMode}
+          bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
         />
 
         {/* Tide time-slider removed per design feedback — keep wind/tide
@@ -918,7 +929,10 @@ function FrameF2({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
           <Text style={shellStyles.zoomText}>zoom 14.2</Text>
         </View>
 
-        <LayersFab onLayersPress={() => setLayersOpen(true)} />
+        <LayersFab
+          onLayersPress={() => setLayersOpen(true)}
+          bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
+        />
       </View>
 
       <BottomSheet
@@ -978,7 +992,10 @@ function FrameF3({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
         <ClusterTag leftPct={58} topPct={18} label="AMSTERDAM" count="18 sailors" />
         <ClusterTag leftPct={82} topPct={45} label="RHKYC · 24" count="SAILORS" highlight />
         <ClusterTag leftPct={38} topPct={38} label="WORLDS 2026" count="VILAMOURA" />
-        <LayersFab onLayersPress={() => setLayersOpen(true)} />
+        <LayersFab
+          onLayersPress={() => setLayersOpen(true)}
+          bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
+        />
       </View>
 
       <BottomSheet
@@ -1094,7 +1111,10 @@ function FrameF4({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
           </>
         )}
 
-        <LayersFab onLayersPress={() => setLayersOpen(true)} />
+        <LayersFab
+          onLayersPress={() => setLayersOpen(true)}
+          bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
+        />
       </View>
 
       {anchorPromptDismissed ? (
@@ -1185,7 +1205,10 @@ function FrameF5({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
           </>
         )}
 
-        <LayersFab onLayersPress={() => setLayersOpen(true)} />
+        <LayersFab
+          onLayersPress={() => setLayersOpen(true)}
+          bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
+        />
       </View>
 
       <BottomSheet
@@ -1243,7 +1266,10 @@ function FrameF6({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
           <AtlasPin kind="candidate" leftPct={50} topPct={48} />
         )}
 
-        <LayersFab onLayersPress={() => setLayersOpen(true)} />
+        <LayersFab
+          onLayersPress={() => setLayersOpen(true)}
+          bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
+        />
       </View>
 
       <View style={shellStyles.commitSheet}>
@@ -1321,7 +1347,10 @@ function FrameF7({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
             ]}
           />
         </View>
-        <LayersFab onLayersPress={() => setLayersOpen(true)} />
+        <LayersFab
+          onLayersPress={() => setLayersOpen(true)}
+          bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
+        />
       </View>
 
       <BottomSheet
