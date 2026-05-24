@@ -704,7 +704,12 @@ function eyebrowForPin(pin: AtlasPinSpec): string {
   if (pin.kind === 'poi-racing-area') return 'RACING AREA';
   if (pin.kind === 'poi-hospital') return 'HOSPITAL';
   if (pin.kind === 'poi-sim-lab') return 'SIM LAB';
+  if (pin.kind === 'poi-sim-anchor') return 'SIM · YOUR BASE';
   if (pin.kind === 'poi-preceptor') return 'PRECEPTOR';
+  if (pin.kind === 'poi-haat') return 'HAAT · WEEKLY MARKET';
+  if (pin.kind === 'poi-supplier') return 'SUPPLIER VILLAGE';
+  if (pin.kind === 'poi-mentee') return 'MENTEE';
+  if (pin.kind === 'poi-home-anchor') return 'HOME · YOUR WORKSHOP';
   if (pin.kind === 'you') return 'YOU';
   if (pin.kind === 'crew') return 'CREW';
   if (pin.kind === 'fleet') return 'FLEET';
@@ -1768,6 +1773,23 @@ function FrameF7({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
       lng: 85.2792,
     };
   }, [handlers.nextEvent]);
+  // Pin tap state — supplier/haat/home/mentee/next-event all route
+  // through here. Mirror of FrameF4's pattern. Opening any sheet
+  // auto-closes the Layers panel + clears the other surfaces.
+  const [selectedPin, setSelectedPin] = useState<AtlasPinSpec | null>(null);
+  const [nextHaatSheetOpen, setNextHaatSheetOpen] = useState(false);
+  const handleF7PinPress = useCallback((pin: AtlasPinSpec) => {
+    setLayersOpen(false);
+    setNextHaatSheetOpen(false);
+    setSelectedPin(pin);
+  }, []);
+  const clearF7SelectedPin = useCallback(() => setSelectedPin(null), []);
+  const handleF7NextTap = useCallback(() => {
+    setLayersOpen(false);
+    setSelectedPin(null);
+    setNextHaatSheetOpen(true);
+  }, []);
+  const closeF7NextSheet = useCallback(() => setNextHaatSheetOpen(false), []);
   return (
     <View style={shellStyles.frame}>
       {!embedded && <StatusBar />}
@@ -1781,6 +1803,8 @@ function FrameF7({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
                 ? { ...nextHaat, lat: nextHaat.lat, lng: nextHaat.lng }
                 : null
             }
+            onPinPress={handleF7PinPress}
+            onNextEventPress={handleF7NextTap}
           />
         ) : (
           <WorldDragonMap />
@@ -1829,14 +1853,100 @@ function FrameF7({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
         />
       </View>
 
-      <BottomSheet
-        eyebrow="WEDNESDAY · KHUNTI HAAT"
-        title={'Plan a step at कल का बाज़ार — tomorrow’s market.'}
-        body="5 suppliers report fresh stock. 1 mentee posted nearby this morning."
-        primary={{ label: 'Voice memo', icon: 'mic', onPress: handlers.onPrimaryAction }}
-        secondary={{ label: 'Open route', icon: 'navigate-outline', onPress: handlers.onSecondaryAction }}
-        bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
-      />
+      {layersOpen ? null : nextHaatSheetOpen ? (
+        <BottomSheet
+          eyebrow={`TOMORROW · ${nextHaat.label.toUpperCase()}${nextHaat.when ? ` · ${nextHaat.when.toUpperCase()}` : ''}`}
+          title={nextHaat.where ?? 'Your next market'}
+          body={[
+            nextHaat.conditions,
+            '5 suppliers report fresh stock. 1 mentee posted nearby this morning.',
+            'Bring: 20 lac bangles · ask Asha about beadwork pricing.',
+          ]
+            .filter(Boolean)
+            .join('\n')}
+          primary={{
+            label: 'Voice memo',
+            icon: 'mic',
+            onPress: () => {
+              closeF7NextSheet();
+              handlers.onPrimaryAction?.(
+                nextHaat.lat != null && nextHaat.lng != null
+                  ? { lat: nextHaat.lat, lng: nextHaat.lng, place: nextHaat.where }
+                  : undefined,
+              );
+            },
+          }}
+          secondary={{
+            label: 'Open route',
+            icon: 'navigate-outline',
+            onPress: () => {
+              closeF7NextSheet();
+              handlers.onSecondaryAction?.();
+            },
+          }}
+          bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
+          initialState="expanded"
+        />
+      ) : selectedPin ? (
+        <BottomSheet
+          eyebrow={eyebrowForPin(selectedPin)}
+          title={(selectedPin.label ?? 'Pin').split('|')[0]}
+          body={
+            [selectedPin.subtitle, selectedPin.provenance]
+              .filter(Boolean)
+              .join('\n') || bodyForPin(selectedPin)
+          }
+          primary={
+            selectedPin.kind === 'poi-supplier'
+              ? {
+                  label: 'Plan a sourcing run',
+                  icon: 'add',
+                  onPress: () => {
+                    handlers.onPrimaryAction?.({ lat: selectedPin.lat, lng: selectedPin.lng });
+                    clearF7SelectedPin();
+                  },
+                }
+              : selectedPin.kind === 'poi-haat'
+                ? {
+                    label: 'Plan a step here',
+                    icon: 'add',
+                    onPress: () => {
+                      handlers.onPrimaryAction?.({ lat: selectedPin.lat, lng: selectedPin.lng });
+                      clearF7SelectedPin();
+                    },
+                  }
+                : selectedPin.kind === 'poi-home-anchor'
+                  ? {
+                      label: 'Log a work session',
+                      icon: 'add',
+                      onPress: () => {
+                        handlers.onPrimaryAction?.({ lat: selectedPin.lat, lng: selectedPin.lng });
+                        clearF7SelectedPin();
+                      },
+                    }
+                  : {
+                      label: 'Anchor a step here',
+                      icon: 'add',
+                      onPress: () => {
+                        handlers.onPrimaryAction?.({ lat: selectedPin.lat, lng: selectedPin.lng });
+                        clearF7SelectedPin();
+                      },
+                    }
+          }
+          secondary={{ label: 'Close', onPress: clearF7SelectedPin }}
+          bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
+          initialState="expanded"
+        />
+      ) : (
+        <BottomSheet
+          eyebrow="WEDNESDAY · KHUNTI HAAT"
+          title={'Plan a step at कल का बाज़ार — tomorrow’s market.'}
+          body="5 suppliers report fresh stock. 1 mentee posted nearby this morning."
+          primary={{ label: 'Voice memo', icon: 'mic', onPress: handlers.onPrimaryAction }}
+          secondary={{ label: 'Open route', icon: 'navigate-outline', onPress: handlers.onSecondaryAction }}
+          bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
+        />
+      )}
 
       {layersOpen && (
         <LayersSheet

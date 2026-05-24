@@ -230,25 +230,44 @@ export function useAtlasFramePins({
       } else {
         label = shortenPoiName(poi.name);
       }
-      // Preceptor diamonds carry an extra subtitle/provenance line so
-      // their tap-sheets read as "respiratory pathway · clinical
-      // instructor" not just "this person exists." Pulls from the POI
-      // metadata blob (specialty + preceptor_role) — reuses `meta` from
-      // the label-builder block above.
+      // Each pin kind reads its own subtitle/provenance off the POI's
+      // metadata blob. Reuses `meta` from the label-builder block above.
       const specialty =
         typeof meta?.specialty === 'string' ? String(meta.specialty) : null;
       const preceptorRole =
         typeof meta?.preceptor_role === 'string'
           ? String(meta.preceptor_role).replace(/-/g, ' ')
           : null;
-      const subtitle =
-        kind === 'poi-preceptor' && (specialty || preceptorRole)
-          ? [specialty, preceptorRole].filter(Boolean).join(' · ')
-          : undefined;
-      const provenance =
-        kind === 'poi-preceptor'
-          ? 'Faculty preceptor — tap to see office hours and cohort shadowing history.'
-          : undefined;
+      const craft =
+        typeof meta?.craft === 'string' ? String(meta.craft) : null;
+      const dayOfWeek = Array.isArray(meta?.day_of_week)
+        ? (meta.day_of_week as string[])
+            .map((d) => d.charAt(0).toUpperCase() + d.slice(1))
+            .join(' · ')
+        : null;
+      const postedAt =
+        typeof meta?.posted_at === 'string' ? String(meta.posted_at) : null;
+
+      let subtitle: string | undefined;
+      let provenance: string | undefined;
+      if (kind === 'poi-preceptor' && (specialty || preceptorRole)) {
+        subtitle = [specialty, preceptorRole].filter(Boolean).join(' · ');
+        provenance = 'Faculty preceptor — tap to see office hours and cohort shadowing history.';
+      } else if (kind === 'poi-supplier') {
+        subtitle = craft ? `${craft.charAt(0).toUpperCase() + craft.slice(1)} supplier` : 'Raw material supplier';
+        provenance = 'Tap to see craft, distance, and last contact. Plan a sourcing run.';
+      } else if (kind === 'poi-haat') {
+        subtitle = dayOfWeek ? `${dayOfWeek} · weekly market` : 'Weekly market';
+        provenance = 'Tap to see what sold last week and plan a step here.';
+      } else if (kind === 'poi-mentee') {
+        subtitle = [specialty, postedAt && `posted ${postedAt}`]
+          .filter(Boolean)
+          .join(' · ') || 'Mentee';
+        provenance = 'Tap to view their recent post and reach out.';
+      } else if (kind === 'poi-home-anchor') {
+        subtitle = 'Your workshop · home base';
+        provenance = 'Tap to see today\'s tasks, log a work session, or check inventory.';
+      }
       out.push({
         id: `poi:${poi.id}`,
         lat: poi.lat,
