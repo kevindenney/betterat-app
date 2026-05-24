@@ -24,10 +24,12 @@ import { Ionicons } from '@expo/vector-icons';
 import { IOS_COLORS, IOS_REGISTER, IOS_SPACING } from '@/lib/design-tokens-ios';
 import { FEATURE_FLAGS } from '@/lib/featureFlags';
 import { useIsConnectedToWhatsApp } from '@/hooks/useConnectedServices';
+import { useTelegramLink } from '@/hooks/useTelegramLink';
 
 export default function ConnectedServicesIndexScreen() {
   const flagOn = FEATURE_FLAGS.WHATSAPP_CONNECT_V3;
   const { isConnected } = useIsConnectedToWhatsApp();
+  const { isConnected: telegramConnected } = useTelegramLink();
 
   if (!flagOn) {
     return (
@@ -75,9 +77,9 @@ export default function ConnectedServicesIndexScreen() {
             tint="#2AABEE"
             name="Telegram"
             sub="your BetterAt as a chat thread"
-            actionLabel="Connect"
-            connected={false}
-            onPress={() => router.push('/account/connected-services/whatsapp?provider=telegram' as never)}
+            actionLabel={telegramConnected ? 'Connected' : 'Connect'}
+            connected={telegramConnected}
+            onPress={() => router.push('/account/connected-services/telegram' as never)}
           />
         </View>
         <Text style={styles.sectionFootnote}>
