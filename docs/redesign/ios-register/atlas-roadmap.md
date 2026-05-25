@@ -64,11 +64,11 @@ Item 6 from F7 walkthrough — deferred because the audio-recording surface does
 ### ✅ Phase G — Chip selected-state visual fix
 Walkthrough 2026-05-25 surfaced: black-bg active chip + light-gray inactive chip reads ambiguous — users (validly) interpret black as "off / disabled" and gray as "on / active." Active chips now use iOS systemBlue with white text. Optional future refinement: add small checkmark glyph for redundant affordance.
 
-### ⬜ Phase H — Walk-time annotations need visible line connectors
-"2 min" / "4 min" labels float in midair between same-campus POIs (JHH ↔ Pinkard, Sibley ↔ Suburban). Users can't tell which two pins they connect. Add a thin gray line (~1px dashed) between the endpoint pins, label centered on midpoint. Touches `useWalkTimeAnnotations` (emit endpoint pairs) + AtlasMapLibreCanvas (render line layer).
+### ✅ Phase H — Walk-time annotations need visible line connectors
+"2 min" / "4 min" labels floated in midair between same-campus POIs (JHH ↔ Pinkard, Sibley ↔ Suburban). Users couldn't tell which two pins they connect. `useWalkTimeAnnotations` now emits endpoint pairs and AtlasMapLibreCanvas renders dashed MapLibre line connectors under the label.
 
-### ⬜ Phase I — Heatmap legend popover
-"Cohort heatmap · this week" pill needs a tap-to-explain affordance. Show small floating card explaining: hex size = step count, color = dominant competency (cardiac=red, respiratory=blue, medication=teal, general=gray), source = your cohort's last 7 days. Same pattern works for the F7 entrepreneur frame when we add density layers.
+### ✅ Phase I — Heatmap legend popover
+"Cohort heatmap · this week" pill now toggles a small floating legend explaining: hex number = step count, color = dominant skill cluster, source = cohort-level cells (no individual patient sites). Same pattern can extend to F7 entrepreneur density layers later.
 
 ### ✅ Phase J — Atlas auth-gated query keys
 Walkthrough 2026-05-25 surfaced: toggling F4 Heatmap changed nothing because `useCohortHeatmap` could cache an empty pre-auth RPC result. Same pattern can affect peer steps and POIs. Fixed by including `user.id` in query keys and gating queries until auth is ready for `useCohortHeatmap`, `useAtlasPeerSteps`, and `useAtlasPois`. Shipped 2026-05-25.

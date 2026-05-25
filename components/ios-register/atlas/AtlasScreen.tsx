@@ -1410,12 +1410,15 @@ function FrameF4({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
   const [showHeatmap, setShowHeatmap] = useState(true);
   const [showFaculty, setShowFaculty] = useState(true);
   const [showFollowing, setShowFollowing] = useState(false);
+  const [heatmapLegendOpen, setHeatmapLegendOpen] = useState(false);
   const handleF4ChipsChange = useCallback((activeIds: string[]) => {
     const all = activeIds.includes('all');
     // Heatmap chip controls only the cohort-density hex layer. Previously
     // the Cohort chip also forced showHeatmap=true, so turning Heatmap off
     // appeared to do nothing whenever Cohort was still selected.
-    setShowHeatmap(all || activeIds.includes('heatmap'));
+    const nextShowHeatmap = all || activeIds.includes('heatmap');
+    setShowHeatmap(nextShowHeatmap);
+    if (!nextShowHeatmap) setHeatmapLegendOpen(false);
     setShowFaculty(all || activeIds.includes('faculty'));
     setShowFollowing(all || activeIds.includes('following'));
   }, []);
@@ -1516,14 +1519,41 @@ function FrameF4({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
               showing right now ("Cohort heatmap · this week"). Only shown
               when the heatmap chip is selected. */}
           {showHeatmap ? (
-            <View style={shellStyles.chipContextPill}>
+            <Pressable
+              style={shellStyles.chipContextPill}
+              onPress={() => setHeatmapLegendOpen((v) => !v)}
+              hitSlop={6}
+            >
               <Ionicons name="apps-outline" size={10} color="rgba(60, 60, 67, 0.75)" />
               <Text style={shellStyles.chipContextPillText}>
                 Cohort heatmap · this week
               </Text>
-            </View>
+              <Ionicons
+                name={heatmapLegendOpen ? 'chevron-up' : 'chevron-down'}
+                size={10}
+                color="rgba(60, 60, 67, 0.65)"
+              />
+            </Pressable>
           ) : null}
         </View>
+
+        {showHeatmap && heatmapLegendOpen ? (
+          <View style={shellStyles.heatmapLegendCard}>
+            <Text style={shellStyles.heatmapLegendTitle}>Cohort heatmap</Text>
+            <View style={shellStyles.heatmapLegendRow}>
+              <View style={[shellStyles.heatmapLegendSwatch, { backgroundColor: 'rgba(255, 59, 48, 0.34)' }]} />
+              <Text style={shellStyles.heatmapLegendText}>Hex number = steps here this week</Text>
+            </View>
+            <View style={shellStyles.heatmapLegendRow}>
+              <View style={[shellStyles.heatmapLegendSwatch, { backgroundColor: 'rgba(88, 86, 214, 0.34)' }]} />
+              <Text style={shellStyles.heatmapLegendText}>Color = dominant skill cluster</Text>
+            </View>
+            <View style={shellStyles.heatmapLegendRow}>
+              <Ionicons name="lock-closed" size={10} color="rgba(60, 60, 67, 0.58)" />
+              <Text style={shellStyles.heatmapLegendText}>Only cohort-level cells, no individual patient sites</Text>
+            </View>
+          </View>
+        ) : null}
 
         {/* SVG-fallback fixtures: absolutely-positioned percentage pins
             only render when MapLibre is OFF. On the live MapLibre canvas
@@ -2806,6 +2836,50 @@ const shellStyles = StyleSheet.create({
     fontWeight: '600',
     color: 'rgba(28, 28, 30, 0.78)',
     letterSpacing: -0.1,
+  },
+  heatmapLegendCard: {
+    position: 'absolute',
+    top: 126,
+    alignSelf: 'center',
+    width: 242,
+    paddingHorizontal: 11,
+    paddingVertical: 9,
+    borderRadius: 10,
+    backgroundColor: 'rgba(255, 255, 255, 0.96)',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(60, 60, 67, 0.16)',
+    shadowColor: '#000',
+    shadowOpacity: 0.12,
+    shadowRadius: 7,
+    shadowOffset: { width: 0, height: 3 },
+    zIndex: 24,
+  },
+  heatmapLegendTitle: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: IOS_REGISTER.label,
+    letterSpacing: -0.1,
+    marginBottom: 6,
+  },
+  heatmapLegendRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 4,
+  },
+  heatmapLegendSwatch: {
+    width: 14,
+    height: 14,
+    borderRadius: 4,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(60, 60, 67, 0.18)',
+  },
+  heatmapLegendText: {
+    flex: 1,
+    fontSize: 10.5,
+    lineHeight: 13,
+    color: IOS_REGISTER.labelSecondary,
+    letterSpacing: -0.05,
   },
   layerToggle: {
     width: 38,

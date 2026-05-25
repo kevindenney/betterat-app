@@ -24,7 +24,7 @@
  * the canonical fixture coords baked from the design handoff.
  */
 
-import React, { useCallback, useRef } from 'react';
+import React, { useCallback, useMemo, useRef } from 'react';
 import {
   Platform,
   Pressable,
@@ -38,6 +38,8 @@ import {
   Map as MLMap,
   Camera as MLCamera,
   Marker as MLMarker,
+  GeoJSONSource as MLGeoJSONSource,
+  Layer as MLLayer,
   type CameraRef,
   type PressEvent,
 } from '@maplibre/maplibre-react-native';
@@ -199,6 +201,15 @@ export interface AtlasPinSpec {
    * for my-step-* kinds.
    */
   stepId?: string;
+  /**
+   * Optional connector line for non-pin annotations such as walk-time
+   * labels. Coordinates are [lng, lat]. The map renders these as dashed
+   * GeoJSON line features beneath markers.
+   */
+  walkLine?: {
+    from: [number, number];
+    to: [number, number];
+  };
 }
 
 interface AtlasMapLibreCanvasProps {
@@ -301,6 +312,20 @@ export function AtlasMapLibreCanvas({
     },
     [onPinPress],
   );
+  const walkLineCollection = useMemo<GeoJSON.FeatureCollection>(() => {
+    const features: GeoJSON.Feature[] = pins
+      .filter((pin) => pin.kind === 'walk-annotation' && pin.walkLine)
+      .map((pin) => ({
+        type: 'Feature',
+        id: pin.id,
+        properties: {},
+        geometry: {
+          type: 'LineString',
+          coordinates: [pin.walkLine!.from, pin.walkLine!.to],
+        },
+      }));
+    return { type: 'FeatureCollection', features };
+  }, [pins]);
 
   // Web platform: keep the SVG fallback. maplibre-gl + react-map-gl are
   // installed but the bridge to this component lands in a follow-up.
@@ -331,6 +356,21 @@ export function AtlasMapLibreCanvas({
             zoom: camera.zoom,
           }}
         />
+
+        {walkLineCollection.features.length > 0 ? (
+          <MLGeoJSONSource id="atlas-walk-lines" data={walkLineCollection}>
+            <MLLayer
+              id="atlas-walk-lines-layer"
+              type="line"
+              style={{
+                lineColor: 'rgba(118, 118, 128, 0.55)',
+                lineWidth: 1,
+                lineOpacity: 0.8,
+                lineDasharray: [2, 2],
+              }}
+            />
+          </MLGeoJSONSource>
+        ) : null}
 
         {pins.map((pin) => {
           const isTappable = Boolean(onPinPress) && TAPPABLE_PIN_KINDS.has(pin.kind);

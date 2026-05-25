@@ -11,9 +11,10 @@
  * Returns one annotation per pair at the midpoint. Walking speed assumption:
  * 5 km/h (~84m/min); rendered as "X min" with the value rounded.
  *
- * The annotation itself is just another AtlasPinSpec rendered as a small
- * grey label by AtlasMapLibreCanvas — no new shape vocabulary, no new
- * MLLineLayer, no zoom listener (deferred until camera state is wired).
+ * The annotation itself is an AtlasPinSpec rendered as a small grey label
+ * by AtlasMapLibreCanvas. It also carries endpoint coords so the canvas can
+ * draw a thin connector line under the label — otherwise "2 min" floats in
+ * the middle of the map with no obvious pair.
  */
 
 import { useMemo } from 'react';
@@ -45,6 +46,10 @@ export function useWalkTimeAnnotations(pins: AtlasPinSpec[]): AtlasPinSpec[] {
           lng: (a.lng + b.lng) / 2,
           kind: 'walk-annotation',
           label: `${minutes} min`,
+          walkLine: {
+            from: [a.lng, a.lat],
+            to: [b.lng, b.lat],
+          },
         });
       }
     }
