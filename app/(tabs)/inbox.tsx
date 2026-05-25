@@ -29,6 +29,8 @@ import { Swipeable } from 'react-native-gesture-handler';
 import { FLOATING_TAB_BAR_HEIGHT } from '@/components/navigation/FloatingTabBar';
 import { IOS_COLORS, IOS_REGISTER, IOS_SPACING } from '@/lib/design-tokens-ios';
 import { useInboxItems } from '@/hooks/useInboxItems';
+import { useNotifications } from '@/hooks/useNotifications';
+import type { SocialNotification } from '@/services/NotificationService';
 import { useInboxDoneItems } from '@/hooks/useInboxDoneItems';
 import { useInboxActions } from '@/hooks/useInboxActions';
 import type { InboxItem } from '@/components/practice/types';
@@ -47,6 +49,17 @@ export default function InboxTabScreen() {
   const [dismissedIds, setDismissedIds] = useState<Set<string>>(new Set());
 
   const { data: doneFetched, isLoading: doneLoading } = useInboxDoneItems();
+
+  // Option-4 Pass 2: the Inbox absorbs social notifications. They land
+  // in the Read panel as an ACTIVITY group below peer reflections —
+  // same surface, same archive grammar, one unified unread weight.
+  const {
+    rawNotifications,
+    isLoading: notifsLoading,
+    unreadCount: notifUnreadCount,
+    markAsRead: markNotificationAsRead,
+    markAllAsRead: markAllNotificationsAsRead,
+  } = useNotifications();
 
   const items = useMemo(
     () => (fetched ?? []).filter((it) => !dismissedIds.has(it.id)),
@@ -179,6 +192,11 @@ export default function InboxTabScreen() {
               isLoading={isLoading}
               items={readItems}
               onArchive={handleArchive}
+              notifications={rawNotifications}
+              notifsLoading={notifsLoading}
+              notifUnreadCount={notifUnreadCount}
+              onMarkNotificationRead={(id) => void markNotificationAsRead(id)}
+              onMarkAllNotificationsRead={() => void markAllNotificationsAsRead()}
             />
           )}
           {segment === 'done' && (
@@ -371,24 +389,39 @@ function ReadPanel({
   isLoading,
   items,
   onArchive,
+  notifications,
+  notifsLoading,
+  notifUnreadCount,
+  onMarkNotificationRead,
+  onMarkAllNotificationsRead,
 }: {
   isLoading: boolean;
   items: InboxItem[];
   onArchive: (it: InboxItem) => void;
+  notifications: SocialNotification[];
+  notifsLoading: boolean;
+  notifUnreadCount: number;
+  onMarkNotificationRead: (id: string) => void;
+  onMarkAllNotificationsRead: () => void;
 }) {
-  if (isLoading) {
+  if (isLoading && notifsLoading) {
     return (
       <View style={styles.loadingWrap}>
         <ActivityIndicator color={IOS_COLORS.tertiaryLabel} />
       </View>
     );
   }
-  if (items.length === 0) {
+
+  const hasReflections = items.length > 0;
+  const hasNotifications = notifications.length > 0;
+
+  if (!hasReflections && !hasNotifications) {
     return (
       <View style={styles.emptyWrap}>
-        <Text style={styles.emptyTitle}>No peer reflections yet.</Text>
+        <Text style={styles.emptyTitle}>Nothing to read yet.</Text>
         <Text style={styles.emptyBody}>
-          Reflections from the people you share an interest with will land here.
+          Peer reflections and system activity will land here when they
+          come in.
         </Text>
       </View>
     );
@@ -396,23 +429,121 @@ function ReadPanel({
 
   return (
     <View>
-      <View style={styles.eyebrowRow}>
-        <Text style={styles.eyebrow}>PEER REFLECTIONS</Text>
-        <View style={[styles.eyebrowPip, { backgroundColor: LILAC }]}>
-          <Text style={styles.eyebrowPipText}>{items.length}</Text>
-        </View>
-      </View>
-      <View style={styles.group}>
-        {items.map((it) => (
-          <ReflectionCard
-            key={it.id}
-            item={it}
-            onArchive={() => onArchive(it)}
-          />
-        ))}
-      </View>
+      {hasReflections ? (
+        <>
+          <View style={styles.eyebrowRow}>
+            <Text style={styles.eyebrow}>PEER REFLECTIONS</Text>
+            <View style={[styles.eyebrowPip, { backgroundColor: LILAC }]}>
+              <Text style={styles.eyebrowPipText}>{items.length}</Text>
+            </View>
+          </View>
+          <View style={styles.group}>
+            {items.map((it) => (
+              <ReflectionCard
+                key={it.id}
+                item={it}
+                onArchive={() => onArchive(it)}
+              />
+            ))}
+          </View>
+        </>
+      ) : null}
+
+      {hasNotifications ? (
+        <>
+          <View style={[styles.eyebrowRow, hasReflections && styles.eyebrowRowSpace]}>
+            <Text style={styles.eyebrow}>ACTIVITY</Text>
+            {notifUnreadCount > 0 ? (
+              <View style={[styles.eyebrowPip, { backgroundColor: IOS_REGISTER.accentUserAction }]}>
+                <Text style={styles.eyebrowPipText}>{notifUnreadCount}</Text>
+              </View>
+            ) : null}
+            {notifUnreadCount > 0 ? (
+              <Pressable
+                onPress={onMarkAllNotificationsRead}
+                hitSlop={6}
+                style={styles.markAllPill}
+              >
+                <Text style={styles.markAllPillText}>Mark all read</Text>
+              </Pressable>
+            ) : null}
+          </View>
+          <View style={styles.group}>
+            {notifications.map((n) => (
+              <ActivityCard
+                key={n.id}
+                notification={n}
+                onPress={() => {
+                  if (!n.isRead) onMarkNotificationRead(n.id);
+                }}
+              />
+            ))}
+          </View>
+        </>
+      ) : null}
     </View>
   );
+}
+
+function ActivityCard({
+  notification,
+  onPress,
+}: {
+  notification: SocialNotification;
+  onPress: () => void;
+}) {
+  const initials = (notification.actorName ?? '··')
+    .split(/\s+/)
+    .map((p) => p[0] ?? '')
+    .join('')
+    .slice(0, 2)
+    .toUpperCase() || '··';
+  const tint = notification.actorAvatarColor ?? IOS_REGISTER.labelSecondary;
+  const relativeTime = formatRelativeTime(notification.createdAt);
+  return (
+    <Pressable
+      onPress={onPress}
+      style={[
+        styles.card,
+        styles.cardActivity,
+        !notification.isRead && styles.cardActivityUnread,
+      ]}
+    >
+      <View style={styles.cardHeader}>
+        <View style={[styles.activityAvatar, { backgroundColor: tint }]}>
+          <Text style={styles.activityAvatarText}>
+            {notification.actorAvatarEmoji ?? initials}
+          </Text>
+        </View>
+        <View style={styles.cardHeaderText}>
+          <Text style={styles.activityTitle} numberOfLines={2}>
+            {notification.title}
+          </Text>
+          {notification.body ? (
+            <Text style={styles.activityBody} numberOfLines={2}>
+              {notification.body}
+            </Text>
+          ) : null}
+        </View>
+        <Text style={styles.activityWhen}>{relativeTime}</Text>
+      </View>
+    </Pressable>
+  );
+}
+
+function formatRelativeTime(iso: string): string {
+  const then = new Date(iso).getTime();
+  const now = Date.now();
+  const diff = Math.max(0, now - then);
+  const mins = Math.floor(diff / 60_000);
+  if (mins < 1) return 'now';
+  if (mins < 60) return `${mins}m`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h`;
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `${days}d`;
+  const weeks = Math.floor(days / 7);
+  return `${weeks}w`;
 }
 
 function ReflectionCard({
@@ -619,6 +750,60 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 11,
     fontWeight: '700',
+  },
+  eyebrowRowSpace: {
+    paddingTop: 28,
+  },
+  markAllPill: {
+    marginLeft: 'auto',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 999,
+    backgroundColor: IOS_REGISTER.fillPill,
+  },
+  markAllPillText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: IOS_REGISTER.accentUserAction,
+    letterSpacing: -0.1,
+  },
+  cardActivity: {
+    backgroundColor: IOS_REGISTER.cardBg,
+    borderLeftWidth: 3,
+    borderLeftColor: IOS_REGISTER.separator,
+  },
+  cardActivityUnread: {
+    borderLeftColor: IOS_REGISTER.accentUserAction,
+  },
+  activityAvatar: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  activityAvatarText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 0.2,
+  },
+  activityTitle: {
+    fontSize: 13.5,
+    fontWeight: '500',
+    color: IOS_REGISTER.label,
+    lineHeight: 18,
+  },
+  activityBody: {
+    fontSize: 12.5,
+    color: IOS_REGISTER.labelSecondary,
+    lineHeight: 17,
+    marginTop: 2,
+  },
+  activityWhen: {
+    fontSize: 11,
+    color: IOS_REGISTER.labelTertiary,
+    marginLeft: 6,
   },
   group: {
     paddingHorizontal: IOS_SPACING.lg,
