@@ -1252,8 +1252,12 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
         <BottomSheet
           eyebrow="PLAN A STEP"
           title="Anchor your next step to a place."
-          body="Drop a pin on the map, or pick a spot from your venues."
-          primary={{ label: 'Plan a step', icon: 'add', onPress: handlers.onPrimaryAction }}
+          body="Drop a pin first so the step starts with a real map location."
+          primary={{
+            label: handlers.useMapLibre ? 'Drop a pin' : 'Plan a step',
+            icon: handlers.useMapLibre ? 'location-outline' : 'add',
+            onPress: handlers.useMapLibre ? handleDropPinPress : handlers.onPrimaryAction,
+          }}
           bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
         />
       )}
