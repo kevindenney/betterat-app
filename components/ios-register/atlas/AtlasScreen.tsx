@@ -85,6 +85,14 @@ export interface AtlasNextEvent {
   /** Venue coords from the source row when available. */
   lat?: number;
   lng?: number;
+  /**
+   * True when the viewing user already has a planned step tied to this
+   * event (e.g. she added a "Wednesday market" step at the Khunti haat
+   * POI). When true, frames flip the NEXT bottom-sheet CTA from "Plan a
+   * step here" → "Open Wednesday step" so we don't suggest duplicating
+   * an existing plan. Defaults to false.
+   */
+  has_user_step?: boolean;
 }
 
 export interface AtlasFrameHandlers {
@@ -1472,12 +1480,20 @@ function FrameF4({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
           body={[
             nextNursing.conditions,
             'Bring: stethoscope, scrub colors, badge.',
-            '4 of your cohort are also on tomorrow. Tap Plan a step to pre-record your intent.',
+            '4 of your cohort are also on tomorrow. Tap Open clinical to review your intent and preceptor notes.',
           ]
             .filter(Boolean)
             .join('\n')}
           primary={{
-            label: 'Plan a step here',
+            label: `Open ${nextNursing.label.toLowerCase()}`,
+            icon: 'open-outline',
+            onPress: () => {
+              closeNextEventSheet();
+              handlers.onSecondaryAction?.();
+            },
+          }}
+          secondary={{
+            label: 'Plan a step nearby',
             icon: 'add',
             onPress: () => {
               closeNextEventSheet();
@@ -1488,7 +1504,6 @@ function FrameF4({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
               );
             },
           }}
-          secondary={{ label: 'Close', onPress: closeNextEventSheet }}
           bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
           initialState="expanded"
         />
@@ -1550,8 +1565,8 @@ function FrameF4({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
       ) : (
         <BottomSheet
           eyebrow="COHORT · THIS WEEK"
-          title="21 of 30 classmates practiced central-line at Bloomberg this week."
-          body="Tomorrow 7am — clinical at JHH 4 South. Tap to anchor your last shift."
+          title="21 of 30 practiced central-line"
+          body={'At Bloomberg this week.\nTomorrow 7am — clinical at JHH 4 South. Tap to anchor your last shift.'}
           primary={{ label: 'Anchor shift', icon: 'add', onPress: handlers.onPrimaryAction }}
           secondary={{
             label: 'See heatmap',
@@ -1809,13 +1824,16 @@ function FrameF7({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
   // to the destination. Uses universal Google Maps web URL — iOS opens
   // it in Apple Maps, Android opens Google Maps. Avoids the iOS-only
   // maps:// scheme so the same code works on both platforms.
-  const openRouteToHaat = useCallback(() => {
-    if (nextHaat.lat == null || nextHaat.lng == null) return;
-    const url = `https://www.google.com/maps/dir/?api=1&destination=${nextHaat.lat},${nextHaat.lng}&travelmode=driving`;
+  const openRouteTo = useCallback((lat: number, lng: number) => {
+    const url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&travelmode=driving`;
     Linking.openURL(url).catch((err) => {
       console.warn('[atlas] Failed to open route', err);
     });
-  }, [nextHaat.lat, nextHaat.lng]);
+  }, []);
+  const openRouteToHaat = useCallback(() => {
+    if (nextHaat.lat == null || nextHaat.lng == null) return;
+    openRouteTo(nextHaat.lat, nextHaat.lng);
+  }, [nextHaat.lat, nextHaat.lng, openRouteTo]);
   // Apply chip filters to the raw pin list. Home anchor is always
   // visible (it's the user's base, not a filter target).
   const pins = useMemo(
@@ -1900,22 +1918,35 @@ function FrameF7({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
           body={[
             nextHaat.conditions,
             '5 suppliers report fresh stock. 1 mentee posted nearby this morning.',
-            'Bring: 20 lac bangles · ask Asha about beadwork pricing.',
+            nextHaat.has_user_step
+              ? 'You have a step planned for this market — open it to add notes or capture a voice memo.'
+              : 'Bring: 20 lac bangles · ask Asha about beadwork pricing.',
           ]
             .filter(Boolean)
             .join('\n')}
-          primary={{
-            label: 'Voice memo',
-            icon: 'mic',
-            onPress: () => {
-              closeF7NextSheet();
-              handlers.onPrimaryAction?.(
-                nextHaat.lat != null && nextHaat.lng != null
-                  ? { lat: nextHaat.lat, lng: nextHaat.lng, place: nextHaat.where }
-                  : undefined,
-              );
-            },
-          }}
+          primary={
+            nextHaat.has_user_step
+              ? {
+                  label: `Open ${nextHaat.when?.split(' ')[0] ?? 'market'} step`,
+                  icon: 'open-outline',
+                  onPress: () => {
+                    closeF7NextSheet();
+                    handlers.onSecondaryAction?.();
+                  },
+                }
+              : {
+                  label: 'Voice memo',
+                  icon: 'mic',
+                  onPress: () => {
+                    closeF7NextSheet();
+                    handlers.onPrimaryAction?.(
+                      nextHaat.lat != null && nextHaat.lng != null
+                        ? { lat: nextHaat.lat, lng: nextHaat.lng, place: nextHaat.where }
+                        : undefined,
+                    );
+                  },
+                }
+          }
           secondary={{
             label: 'Open route',
             icon: 'navigate-outline',
@@ -1964,16 +1995,38 @@ function FrameF7({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
                         clearF7SelectedPin();
                       },
                     }
-                  : {
-                      label: 'Anchor a step here',
-                      icon: 'add',
-                      onPress: () => {
-                        handlers.onPrimaryAction?.({ lat: selectedPin.lat, lng: selectedPin.lng });
-                        clearF7SelectedPin();
-                      },
-                    }
+                  : selectedPin.kind === 'poi-mentee'
+                    ? {
+                        label: 'Open recent post',
+                        icon: 'open-outline',
+                        onPress: () => {
+                          handlers.onSecondaryAction?.();
+                          clearF7SelectedPin();
+                        },
+                      }
+                    : {
+                        label: 'Anchor a step here',
+                        icon: 'add',
+                        onPress: () => {
+                          handlers.onPrimaryAction?.({ lat: selectedPin.lat, lng: selectedPin.lng });
+                          clearF7SelectedPin();
+                        },
+                      }
           }
-          secondary={{ label: 'Close', onPress: clearF7SelectedPin }}
+          secondary={
+            selectedPin.kind === 'poi-mentee' ||
+            selectedPin.kind === 'poi-supplier' ||
+            selectedPin.kind === 'poi-haat'
+              ? {
+                  label: 'Route',
+                  icon: 'navigate-outline',
+                  onPress: () => {
+                    openRouteTo(selectedPin.lat, selectedPin.lng);
+                    clearF7SelectedPin();
+                  },
+                }
+              : { label: 'Close', onPress: clearF7SelectedPin }
+          }
           bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
           initialState="expanded"
         />
