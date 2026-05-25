@@ -1193,6 +1193,34 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
             bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
             initialState="expanded"
           />
+        ) : selectedPin.clusterCount != null ? (
+          <BottomSheet
+            eyebrow="PEER STEPS"
+            title={`${selectedPin.clusterCount} nearby peer steps`}
+            body={
+              [
+                selectedPin.subtitle,
+                selectedPin.provenance,
+                'Use this as social context: people in your crew, fleet, following graph, or cohort have activity around this water.',
+              ]
+                .filter(Boolean)
+                .join('\n')
+            }
+            primary={{
+              label: 'Explore peer steps',
+              icon: 'people-outline',
+              onPress: () => {
+                clearSelectedPin();
+                comingSoonAlert(
+                  'Explore peer steps',
+                  'This will open the privacy-safe list behind the cluster: relationship, public preview, and any steps the viewer is allowed to open. For now the badge is a density signal only.',
+                );
+              },
+            }}
+            secondary={{ label: 'Close', onPress: clearSelectedPin }}
+            bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
+            initialState="expanded"
+          />
         ) : (
           <BottomSheet
             eyebrow={eyebrowForPin(selectedPin)}

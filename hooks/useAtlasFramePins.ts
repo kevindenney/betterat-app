@@ -122,6 +122,11 @@ export function clusterPeerPins(
         lng: lng / group.length,
         kind: 'fleet',
         clusterCount: group.length,
+        label: `${group.length} nearby peer steps`,
+        subtitle:
+          'Privacy-safe cluster of crew, fleet, following, and cohort steps near this area.',
+        provenance:
+          'Shown as a count because individual peer locations may be approximate, hidden, or jittered.',
       });
     } else {
       visited.add(i);

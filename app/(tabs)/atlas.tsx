@@ -152,7 +152,12 @@ export default function AtlasTab() {
         queryParams.targetEventKind = nextEvent.event_kind;
         queryParams.targetEventId = nextEvent.event_id;
       }
-      router.push({ pathname: '/(tabs)/practice', params: queryParams });
+      // The user-facing tab is "Practice", but the implementation that
+      // consumes openAddStep/pinLat/pinLng still lives in /(tabs)/races
+      // (practice.tsx re-exports it). Pushing the implementation route
+      // ensures the handoff effect actually sees the params and opens the
+      // canonical add-step sheet instead of just landing on L2 Practice.
+      router.push({ pathname: '/(tabs)/races', params: queryParams });
     },
     [isFromPlan, router, nextEvent?.event_kind, nextEvent?.event_id],
   );
