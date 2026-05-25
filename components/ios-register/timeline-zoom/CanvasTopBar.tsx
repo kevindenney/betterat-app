@@ -4,7 +4,7 @@
  * Brings back the affordance set the user is used to seeing at the top
  * of the practice surface, in one row:
  *
- *   [interest pill ▼]                [+]  [messages]  [bell]  [avatar]
+ *   [interest pill ▼]                [+]  [avatar]
  *
  * L1 deliberately skips this bar — the embedded <StepDetailContent />
  * already renders its own TopHeader with the interest pill + plus.
@@ -16,13 +16,11 @@
 
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
 import { IOS_REGISTER } from '@/lib/design-tokens-ios';
 import { openInterestSwitcher } from '@/components/InterestSwitcher';
 import { useUniversalPlus } from '@/components/capture';
-import { useCrewThreadsUnreadCount } from '@/hooks/useCrewThreads';
 import { ProfileDropdown } from '@/components/ui/ProfileDropdown';
 
 interface CanvasTopBarProps {
@@ -33,7 +31,6 @@ export function CanvasTopBar({
   interestLabel,
 }: CanvasTopBarProps) {
   const universalPlus = useUniversalPlus();
-  const { unreadCount: msgsUnread } = useCrewThreadsUnreadCount();
 
   return (
     <View style={styles.row}>
@@ -59,18 +56,10 @@ export function CanvasTopBar({
           />
         ) : null}
 
-        <IconButton
-          icon="chatbubble-ellipses-outline"
-          size={18}
-          badge={msgsUnread}
-          onPress={() => router.push('/messages' as never)}
-          accessibilityLabel="Messages"
-        />
-
-        {/* Bell removed per Option-4 plan — system notifications and
-            blueprint activity will live inside the bottom Inbox tab.
-            DMs (chat) stay here because they're a 1:1 threaded channel,
-            not the broadcast/system grammar Inbox owns. */}
+        {/* Bell + messages removed per the v3 Inbox plan. System
+            notifications, peer reflections, and message-like activity
+            live inside the bottom Inbox tab now; keeping a separate
+            chat affordance here duplicated that destination. */}
 
         {/* Role-aware popover (Frames 1–3 of the institutions pass) —
             handles its own avatar + dropdown menu (Profile/Notifications/
@@ -88,11 +77,9 @@ interface IconButtonProps {
   size: number;
   onPress: () => void;
   accessibilityLabel: string;
-  badge?: number;
 }
 
-function IconButton({ icon, size, onPress, accessibilityLabel, badge }: IconButtonProps) {
-  const badgeText = badge && badge > 99 ? '99+' : String(badge ?? 0);
+function IconButton({ icon, size, onPress, accessibilityLabel }: IconButtonProps) {
   return (
     <Pressable
       style={styles.iconBtn}
@@ -101,11 +88,6 @@ function IconButton({ icon, size, onPress, accessibilityLabel, badge }: IconButt
       hitSlop={6}
     >
       <Ionicons name={icon} size={size} color={IOS_REGISTER.label} />
-      {badge && badge > 0 ? (
-        <View style={styles.badge}>
-          <Text style={styles.badgeText}>{badgeText}</Text>
-        </View>
-      ) : null}
     </Pressable>
   );
 }
@@ -162,25 +144,5 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 16,
-  },
-  badge: {
-    position: 'absolute',
-    top: 2,
-    right: 2,
-    minWidth: 14,
-    height: 14,
-    borderRadius: 7,
-    backgroundColor: '#FF3B30',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 3,
-    borderWidth: 1.5,
-    borderColor: IOS_REGISTER.groundBg,
-  },
-  badgeText: {
-    color: '#FFFFFF',
-    fontSize: 8,
-    fontWeight: '700',
-    letterSpacing: 0.1,
   },
 });
