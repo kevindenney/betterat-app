@@ -38,6 +38,7 @@ import {
   type OrganizationJoinMode,
 } from '@/services/OrganizationDiscoveryService';
 import { supabase } from '@/services/supabase';
+import { isMissingSupabaseColumn } from '@/lib/utils/supabaseSchemaFallback';
 import { IOS_COLORS, IOS_REGISTER } from '@/lib/design-tokens-ios';
 import {
   CanonicalList,
@@ -56,6 +57,11 @@ interface OrgRow {
   name: string;
   slug: string;
   join_mode: OrganizationJoinMode;
+  organization_type?: string | null;
+  status?: string | null;
+  official?: boolean | null;
+  claim_status?: string | null;
+  source?: string | null;
 }
 
 interface DiscoverOrgsContentProps {
@@ -67,8 +73,21 @@ interface DiscoverOrgsContentProps {
 // HELPERS
 // =============================================================================
 
-function joinModeDescriptor(mode: OrganizationJoinMode): string {
-  switch (mode) {
+function isYachtClubPlaceholder(org: OrgRow): boolean {
+  return (
+    org.organization_type === 'yacht_club' &&
+    (org.status === 'placeholder' || org.official === false || org.source === 'dragon_worlds_clubspot')
+  );
+}
+
+function orgDescriptor(org: OrgRow): string {
+  if (isYachtClubPlaceholder(org)) {
+    if (org.claim_status === 'claim_pending') return 'Yacht club placeholder · claim pending';
+    if (org.claim_status === 'rejected') return 'Yacht club placeholder · claim rejected';
+    return 'Yacht club placeholder · unclaimed';
+  }
+
+  switch (org.join_mode) {
     case 'open_join':
       return 'Open to join';
     case 'request_to_join':
@@ -111,14 +130,34 @@ export function DiscoverOrgsContent({
           return;
         }
 
-        const { data, error } = await supabase
+        let orgQuery = await supabase
           .from('organizations')
-          .select('id, name, slug, join_mode')
+          .select('id, name, slug, join_mode, organization_type, status, official, claim_status, source')
           .eq('interest_slug', interestSlug)
           .eq('is_active', true)
           .order('name')
           .limit(30);
 
+        if (
+          orgQuery.error &&
+          (
+            isMissingSupabaseColumn(orgQuery.error, 'organizations.organization_type') ||
+            isMissingSupabaseColumn(orgQuery.error, 'organizations.status') ||
+            isMissingSupabaseColumn(orgQuery.error, 'organizations.official') ||
+            isMissingSupabaseColumn(orgQuery.error, 'organizations.claim_status') ||
+            isMissingSupabaseColumn(orgQuery.error, 'organizations.source')
+          )
+        ) {
+          orgQuery = await supabase
+            .from('organizations')
+            .select('id, name, slug, join_mode')
+            .eq('interest_slug', interestSlug)
+            .eq('is_active', true)
+            .order('name')
+            .limit(30);
+        }
+
+        const { data, error } = orgQuery;
         if (error) throw error;
 
         if (!cancelled) {
@@ -195,6 +234,11 @@ export function DiscoverOrgsContent({
             name: r.name,
             slug: r.slug || '',
             join_mode: r.join_mode,
+            organization_type: r.organization_type,
+            status: r.status,
+            official: r.official,
+            claim_status: r.claim_status,
+            source: r.source,
           }))
         );
       } catch (err) {
@@ -210,7 +254,12 @@ export function DiscoverOrgsContent({
 
   const openOrg = useCallback(
     (org: OrgRow) => {
-      if (org.slug) router.push(`/discover/org/${org.slug}?from=orgs` as any);
+      if (!org.slug) return;
+      if (isYachtClubPlaceholder(org)) {
+        router.push(`/organizations/${org.slug}` as any);
+        return;
+      }
+      router.push(`/discover/org/${org.slug}?from=orgs` as any);
     },
     [router]
   );
@@ -220,15 +269,16 @@ export function DiscoverOrgsContent({
       const initials = initialsForName(org.name);
       const markColor = pickSquareMarkColor(org.id || org.slug || org.name);
       const joinedLabel = memberOrgIds.has(org.id) ? 'Joined' : undefined;
+      const rowKey = [org.id, org.slug, index].filter(Boolean).join(':');
 
       return (
         <CanonicalOrgRow
-          key={org.id}
+          key={rowKey}
           first={index === 0}
           initials={initials}
           markColor={markColor}
           name={org.name}
-          descriptor={joinModeDescriptor(org.join_mode)}
+          descriptor={orgDescriptor(org)}
           joinedLabel={joinedLabel}
           onPress={() => openOrg(org)}
         />
