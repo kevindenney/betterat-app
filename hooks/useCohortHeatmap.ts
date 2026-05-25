@@ -12,6 +12,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/services/supabase';
+import { useAuth } from '@/providers/AuthProvider';
 import type { AtlasPinSpec } from '@/components/ios-register/atlas/AtlasMapLibreCanvas';
 
 export interface CohortHexCell {
@@ -44,9 +45,17 @@ export function useCohortHeatmap({
   cellKm = 0.5,
   enabled = true,
 }: UseCohortHeatmapArgs) {
+  // Without user.id in the queryKey, the query that fires before auth
+  // loads caches an empty result forever (the RPC is SECURITY DEFINER
+  // and requires auth.uid() to be non-null — returns nothing otherwise).
+  // See feedback_interest_query_key_needs_userid for the canonical
+  // pattern. Also gate enabled on userId so we don't even attempt the
+  // pre-auth call.
+  const { user } = useAuth();
+  const userId = user?.id ?? null;
   return useQuery({
-    queryKey: ['cohort-heatmap', centerLat, centerLng, radiusKm, interestSlug, cellKm],
-    enabled,
+    queryKey: ['cohort-heatmap', userId, centerLat, centerLng, radiusKm, interestSlug, cellKm],
+    enabled: enabled && !!userId,
     staleTime: 60_000,
     queryFn: async (): Promise<AtlasPinSpec[]> => {
       const { data, error } = await supabase.rpc('atlas_cohort_step_hex', {
@@ -56,7 +65,12 @@ export function useCohortHeatmap({
         interest_filter: interestSlug,
         cell_km: cellKm,
       });
-      if (error || !data) return [];
+      if (error) {
+        // Surface the RPC failure so we don't silently render nothing.
+        console.warn('[atlas] atlas_cohort_step_hex error', error);
+        return [];
+      }
+      if (!data) return [];
       const cells = data as CohortHexCell[];
       return cells.map((c) => ({
         id: `cohort-cell:${c.sample_step_id}`,
