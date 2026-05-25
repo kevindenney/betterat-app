@@ -106,16 +106,20 @@ export default function AtlasTab() {
   // ?fromPlan=1 — PlanWhereCard pushed us here expecting a location result.
   // The commit-mode "Use this location" CTA emits to AtlasPickerBus and
   // router.back()s instead of starting an add-step flow.
-  const params = useLocalSearchParams<{ fromPlan?: string }>();
+  const params = useLocalSearchParams<{ fromPlan?: string; frame?: string }>();
   const isFromPlan = params.fromPlan === '1';
+  const requestedFrame =
+    typeof params.frame === 'string' && ['f1', 'f2', 'f3', 'f4', 'f5', 'f6', 'f7'].includes(params.frame)
+      ? (params.frame as AtlasFrameId)
+      : null;
 
   // FloatingTabBar floats above the home-indicator safe area; clear both
   // plus a small buffer so the BottomSheet CTAs aren't covered.
   const tabBarSpace = FLOATING_TAB_BAR_HEIGHT + insets.bottom + 12;
 
   const frame = useMemo(
-    () => (isFromPlan ? 'f6' : pickFrameForInterest(currentInterest?.slug ?? null)),
-    [isFromPlan, currentInterest?.slug],
+    () => (isFromPlan ? 'f6' : requestedFrame ?? pickFrameForInterest(currentInterest?.slug ?? null)),
+    [isFromPlan, requestedFrame, currentInterest?.slug],
   );
   const subtitleOverride = useMemo(
     () => buildSubtitle(currentInterest?.slug ?? null, currentInterest?.name ?? null),
@@ -163,11 +167,17 @@ export default function AtlasTab() {
   );
 
   const handleSecondary = useCallback(() => {
-    // F1: "Open Race 4" → Practice. Real next-event resolver lands in A1.
+    // F1 sailing "Open Race" is the z11 → z14 Atlas transition from the
+    // design grid. Keep it inside Atlas instead of dumping through the
+    // generic Practice tab.
+    if (frame === 'f1' && (currentInterest?.slug ?? '').includes('sail')) {
+      router.push({ pathname: '/(tabs)/atlas', params: { frame: 'f2' } } as any);
+      return;
+    }
     // F4: "Skip" → no-op (stays on Atlas).
     if (frame === 'f4') return;
     router.push('/(tabs)/practice');
-  }, [frame, router]);
+  }, [currentInterest?.slug, frame, router]);
 
   const handleAvatarPress = useCallback(() => {
     // /account is the canonical account modal; /(tabs)/profile is a
