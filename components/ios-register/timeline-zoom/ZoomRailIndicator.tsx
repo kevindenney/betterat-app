@@ -1,15 +1,22 @@
 /**
- * Right-rail stacked-pill zoom indicator.
+ * Compact zoom scope control for the timeline canvas.
  *
- * Always visible at the right edge above the taskbar. Active level is filled
- * iOS blue with its label (STEP / WEEK / SEASON / YEARS); inactive pills are
- * number-only on a white-fill base. Tap any pill to jump levels (Frame 11
- * "tap any card · zoom to that step" inverse). Long-press fans the stack open
- * into a labeled menu with a "Snap to current step" escape hatch (Frame 10).
+ * Gestures are primary: users pinch in/out and swipe. This button is a
+ * secondary escape hatch, so it stays small and out of the content path.
+ * The persistent STEP/FEW/SEASON/ALL rail was too hard to read and lived
+ * in the thumb/action area; now the always-visible state is just the
+ * screen eyebrow, and this opens a temporary scope sheet.
  */
 
 import React, { useEffect, useState } from 'react';
-import { Keyboard, Pressable, StyleSheet, Text, View } from 'react-native';
+import {
+  Keyboard,
+  Modal,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { IOS_REGISTER } from '@/lib/design-tokens-ios';
@@ -22,24 +29,24 @@ interface ZoomRailIndicatorProps {
 }
 
 const LEVELS: ZoomLevel[] = [1, 2, 3, 4];
+const LEVEL_COPY: Record<ZoomLevel, { title: string; subtitle: string }> = {
+  1: { title: 'One step', subtitle: 'Plan, do, review, discuss' },
+  2: { title: 'This week', subtitle: 'A few nearby steps' },
+  3: { title: 'This season', subtitle: 'Patterns across the rotation' },
+  4: { title: 'All time', subtitle: 'Long view of your practice' },
+};
 
 export function ZoomRailIndicator({
   level,
   onChange,
   onSnapToCurrent,
 }: ZoomRailIndicatorProps) {
-  const [menuOpen, setMenuOpen] = useState(false);
-  // Hide the rail whenever the soft keyboard is up so it doesn't occlude
-  // bottom-anchored inputs (Discuss compose send button, sub-step editor,
-  // brain-dump textarea). The user is composing — they don't need to zoom
-  // right then, and the rail reappears the moment the keyboard dismisses.
+  const [sheetOpen, setSheetOpen] = useState(false);
   const [keyboardVisible, setKeyboardVisible] = useState(false);
+
   useEffect(() => {
     const show = Keyboard.addListener('keyboardWillShow', () => setKeyboardVisible(true));
     const hide = Keyboard.addListener('keyboardWillHide', () => setKeyboardVisible(false));
-    // Android fires `keyboardDidShow`/`keyboardDidHide` instead of the
-    // iOS-only `Will*` events. Subscribing to both is safe (no-op on
-    // platforms that don't emit them).
     const showDid = Keyboard.addListener('keyboardDidShow', () => setKeyboardVisible(true));
     const hideDid = Keyboard.addListener('keyboardDidHide', () => setKeyboardVisible(false));
     return () => {
@@ -53,203 +60,206 @@ export function ZoomRailIndicator({
   if (keyboardVisible) return null;
 
   return (
-    <View pointerEvents="box-none" style={styles.rail}>
-      {menuOpen ? (
-        <View style={styles.menu}>
-          <Text style={styles.menuEyebrow}>ZOOM TO</Text>
-          {LEVELS.map((lvl) => {
-            const active = lvl === level;
-            return (
+    <View pointerEvents="box-none" style={styles.wrap}>
+      <Pressable
+        style={styles.button}
+        onPress={() => setSheetOpen(true)}
+        hitSlop={8}
+        accessibilityRole="button"
+        accessibilityLabel={`Current zoom: ${LEVEL_COPY[level].title}. Change zoom level.`}
+      >
+        <Ionicons name="scan-outline" size={15} color={IOS_REGISTER.label} />
+        <Text style={styles.buttonText}>{ZOOM_LEVEL_LABELS[level]}</Text>
+      </Pressable>
+
+      <Modal
+        visible={sheetOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setSheetOpen(false)}
+      >
+        <View style={styles.backdrop}>
+          <Pressable style={StyleSheet.absoluteFill} onPress={() => setSheetOpen(false)} />
+          <View style={styles.sheet}>
+            <View style={styles.grabber} />
+            <Text style={styles.sheetTitle}>Zoom scope</Text>
+            <Text style={styles.sheetSub}>Pinch in or out anywhere on the timeline.</Text>
+
+            {LEVELS.map((lvl) => {
+              const active = lvl === level;
+              const copy = LEVEL_COPY[lvl];
+              return (
+                <Pressable
+                  key={lvl}
+                  style={[styles.row, active && styles.rowActive]}
+                  onPress={() => {
+                    setSheetOpen(false);
+                    onChange(lvl);
+                  }}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: active }}
+                >
+                  <View style={[styles.scopeBadge, active && styles.scopeBadgeActive]}>
+                    <Text style={[styles.scopeBadgeText, active && styles.scopeBadgeTextActive]}>
+                      {ZOOM_LEVEL_LABELS[lvl]}
+                    </Text>
+                  </View>
+                  <View style={styles.rowCopy}>
+                    <Text style={styles.rowTitle}>{copy.title}</Text>
+                    <Text style={styles.rowSub}>{copy.subtitle}</Text>
+                  </View>
+                  {active ? (
+                    <Ionicons
+                      name="checkmark"
+                      size={18}
+                      color={IOS_REGISTER.accentUserAction}
+                    />
+                  ) : null}
+                </Pressable>
+              );
+            })}
+
+            {onSnapToCurrent ? (
               <Pressable
-                key={lvl}
-                style={styles.menuRow}
+                style={styles.snapRow}
                 onPress={() => {
-                  setMenuOpen(false);
-                  onChange(lvl);
+                  setSheetOpen(false);
+                  onSnapToCurrent();
                 }}
               >
-                <View style={[styles.menuChip, active && styles.menuChipActive]}>
-                  <Text style={[styles.menuChipNum, active && styles.menuChipNumActive]}>
-                    {lvl}
-                  </Text>
-                </View>
-                <Text style={[styles.menuLabel, active && styles.menuLabelActive]}>
-                  {ZOOM_LEVEL_LABELS[lvl].charAt(0) +
-                    ZOOM_LEVEL_LABELS[lvl].slice(1).toLowerCase()}
-                </Text>
-                {active ? (
-                  <Ionicons
-                    name="checkmark"
-                    size={16}
-                    color={IOS_REGISTER.accentUserAction}
-                    style={styles.menuCheck}
-                  />
-                ) : null}
+                <Ionicons name="locate" size={16} color={IOS_REGISTER.accentUserAction} />
+                <Text style={styles.snapText}>Snap to current step</Text>
               </Pressable>
-            );
-          })}
-          {onSnapToCurrent ? (
-            <Pressable
-              style={[styles.menuRow, styles.menuRowFooter]}
-              onPress={() => {
-                setMenuOpen(false);
-                onSnapToCurrent();
-              }}
-            >
-              <Ionicons name="locate" size={16} color={IOS_REGISTER.accentUserAction} />
-              <Text style={styles.menuFooterText}>Snap to current step</Text>
-            </Pressable>
-          ) : null}
+            ) : null}
+          </View>
         </View>
-      ) : null}
-
-      <View style={styles.stack}>
-        {LEVELS.map((lvl) => {
-          const active = lvl === level;
-          return (
-            <Pressable
-              key={lvl}
-              onPress={() => onChange(lvl)}
-              onLongPress={() => setMenuOpen(true)}
-              delayLongPress={250}
-              hitSlop={6}
-              style={styles.cell}
-              accessibilityRole="button"
-              accessibilityLabel={`Zoom to ${ZOOM_LEVEL_LABELS[lvl].toLowerCase()}`}
-            >
-              {active ? (
-                <View style={styles.activeChip}>
-                  <Text style={styles.activeText}>{ZOOM_LEVEL_LABELS[lvl]}</Text>
-                </View>
-              ) : (
-                <Text style={styles.inactiveText}>{ZOOM_LEVEL_LABELS[lvl]}</Text>
-              )}
-            </Pressable>
-          );
-        })}
-      </View>
+      </Modal>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  rail: {
+  wrap: {
     position: 'absolute',
-    right: 2,
-    bottom: 142, // floats above tab bar + Discuss badge/input zone
+    right: 16,
+    top: 92,
     alignItems: 'flex-end',
-    gap: 4,
   },
-  stack: {
-    // Tall vertical capsule containing all four cells — matches the
-    // canonical Screen 07 "STEP / FEW / SEASON / ALL" rail.
-    backgroundColor: 'rgba(120, 120, 128, 0.14)',
-    borderRadius: 22,
-    paddingVertical: 5,
-    paddingHorizontal: 4,
-    alignItems: 'center',
-    gap: 2,
-  },
-  cell: {
-    minWidth: 42,
-    height: 30,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 4,
-  },
-  activeChip: {
-    paddingHorizontal: 9,
-    paddingVertical: 5,
-    borderRadius: 14,
-    backgroundColor: '#1F1F1F',
-    shadowColor: '#000',
-    shadowOpacity: 0.18,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 3,
-  },
-  activeText: {
-    color: '#FFFFFF',
-    fontSize: 11,
-    fontWeight: '700',
-    letterSpacing: 0.6,
-  },
-  inactiveText: {
-    fontSize: 11,
-    fontWeight: '700',
-    letterSpacing: 0.6,
-    color: 'rgba(60, 60, 67, 0.28)',
-  },
-  // Long-press menu
-  menu: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    paddingVertical: 6,
-    paddingHorizontal: 0,
-    marginBottom: 6,
-    minWidth: 188,
-    shadowColor: '#000',
-    shadowOpacity: 0.12,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 6,
-  },
-  menuEyebrow: {
-    fontSize: 11,
-    fontWeight: '700',
-    letterSpacing: 0.5,
-    color: IOS_REGISTER.labelTertiary,
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-  },
-  menuRow: {
+  button: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    gap: 10,
+    gap: 5,
+    paddingHorizontal: 9,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: 'rgba(255,255,255,0.86)',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: IOS_REGISTER.separator,
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 4,
   },
-  menuChip: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    backgroundColor: IOS_REGISTER.fillPill,
-    alignItems: 'center',
-    justifyContent: 'center',
+  buttonText: {
+    fontSize: 10.5,
+    fontWeight: '700',
+    letterSpacing: 0.6,
+    color: IOS_REGISTER.label,
   },
-  menuChipActive: {
-    backgroundColor: IOS_REGISTER.accentUserAction,
+  backdrop: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(0,0,0,0.20)',
   },
-  menuChipNum: {
-    fontSize: 12,
-    fontWeight: '600',
+  sheet: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 18,
+    borderTopRightRadius: 18,
+    paddingHorizontal: 16,
+    paddingTop: 10,
+    paddingBottom: 34,
+  },
+  grabber: {
+    alignSelf: 'center',
+    width: 36,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: IOS_REGISTER.separatorStrong,
+    marginBottom: 12,
+  },
+  sheetTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: IOS_REGISTER.label,
+    letterSpacing: -0.4,
+  },
+  sheetSub: {
+    marginTop: 3,
+    marginBottom: 12,
+    fontSize: 13,
     color: IOS_REGISTER.labelSecondary,
   },
-  menuChipNumActive: {
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 11,
+    paddingHorizontal: 8,
+    borderRadius: 12,
+  },
+  rowActive: {
+    backgroundColor: 'rgba(0,122,255,0.08)',
+  },
+  scopeBadge: {
+    minWidth: 54,
+    paddingHorizontal: 8,
+    height: 26,
+    borderRadius: 13,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: IOS_REGISTER.fillPill,
+  },
+  scopeBadgeActive: {
+    backgroundColor: '#1F1F1F',
+  },
+  scopeBadgeText: {
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 0.6,
+    color: IOS_REGISTER.labelSecondary,
+  },
+  scopeBadgeTextActive: {
     color: '#FFFFFF',
   },
-  menuLabel: {
+  rowCopy: {
     flex: 1,
-    fontSize: 16,
-    color: IOS_REGISTER.label,
-    letterSpacing: -0.3,
+    minWidth: 0,
   },
-  menuLabelActive: {
+  rowTitle: {
+    fontSize: 15.5,
     fontWeight: '600',
+    color: IOS_REGISTER.label,
+    letterSpacing: -0.2,
   },
-  menuCheck: {
-    marginLeft: 4,
+  rowSub: {
+    marginTop: 1,
+    fontSize: 12.5,
+    color: IOS_REGISTER.labelSecondary,
   },
-  menuRowFooter: {
+  snapRow: {
+    marginTop: 8,
+    paddingTop: 12,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: IOS_REGISTER.separator,
-    marginTop: 4,
-    paddingTop: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
   },
-  menuFooterText: {
-    fontSize: 15,
-    fontWeight: '500',
+  snapText: {
+    fontSize: 14,
+    fontWeight: '600',
     color: IOS_REGISTER.accentUserAction,
-    letterSpacing: -0.2,
   },
 });
