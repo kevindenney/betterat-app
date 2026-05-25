@@ -218,10 +218,10 @@ const SPRING_26_ANALYSIS: SeasonAnalysis = {
     },
   ],
   librarianPrompt: {
-    eyebrow: 'This season · the librarian noticed',
+    eyebrow: 'This arc · the librarian noticed',
     body:
-      "You're halfway through Spring '26. Cardio has tightened around assessment + handoff; procedural has cooled off since Week 4. Dr. Murphy joins again next week. What do you want this season to add up to?",
-    primaryCta: { label: 'Open a season check-in', intent: 'open-season-check-in' },
+      "You're halfway through Spring '26. Cardio has tightened around assessment + handoff; procedural has cooled off since Week 4. Dr. Murphy joins again next week. What do you want this arc to add up to?",
+    primaryCta: { label: 'Open an arc check-in', intent: 'open-season-check-in' },
     secondaryCta: { label: 'Not now' },
   },
 };

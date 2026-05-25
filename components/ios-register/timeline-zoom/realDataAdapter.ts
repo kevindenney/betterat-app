@@ -648,7 +648,7 @@ export function mapToTimelineDataset({
       }, null);
     const dominantLabel = dominant ? colorToCapabilityLabel(dominant.color) : null;
     const seasonShortName =
-      currentSeason?.short_name ?? currentSeason?.name ?? 'This season';
+      currentSeason?.short_name ?? currentSeason?.name ?? 'This arc';
     if (dominantLabel) {
       weeks[currentWeekIdx].contextStrip = `${seasonShortName} has been ${dominantLabel.toLowerCase()}-heavy.`;
     }

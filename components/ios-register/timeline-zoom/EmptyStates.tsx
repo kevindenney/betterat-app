@@ -31,14 +31,14 @@ const COPY: Record<1 | 2 | 3, { verb: string; title: string; body: string }> = {
     body: 'Add your first step in this interest to start practicing.',
   },
   2: {
-    verb: 'ZOOM · THIS WEEK · PLANNING',
-    title: 'No steps this week',
-    body: 'Add a step or pick a day to plan toward.',
+    verb: 'ZOOM · NEARBY · PLANNING',
+    title: 'No nearby steps',
+    body: 'Add a step to start building nearby practice context.',
   },
   3: {
-    verb: 'ZOOM · THIS SEASON · REFLECTING',
-    title: 'This rotation is just starting',
-    body: 'Add a step to begin the season arc. The capability river will fill in as you practice.',
+    verb: 'ZOOM · CURRENT ARC · REFLECTING',
+    title: 'This arc is just starting',
+    body: 'Add a step to begin the arc. The capability river will fill in as you practice.',
   },
 };
 

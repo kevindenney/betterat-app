@@ -143,7 +143,7 @@ export function L3SeasonView({
       stickyHeaderIndices={stickyHeaderIndices}
     >
       <View style={styles.headerBlock}>
-        <Text style={styles.eyebrow}>ZOOM · THIS SEASON · REFLECTING</Text>
+        <Text style={styles.eyebrow}>ZOOM · CURRENT ARC · REFLECTING</Text>
         <Text style={styles.title}>{season.title}</Text>
         <View style={styles.metaRow}>
           {season.orgChip ? (

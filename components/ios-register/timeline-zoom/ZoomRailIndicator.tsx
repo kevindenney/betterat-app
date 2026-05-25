@@ -3,7 +3,7 @@
  *
  * Gestures are primary: users pinch in/out and swipe. This button is a
  * secondary escape hatch, so it stays small and out of the content path.
- * The persistent STEP/FEW/SEASON/ALL rail was too hard to read and lived
+ * The persistent STEP/NEAR/ARC/ALL rail was too hard to read and lived
  * in the thumb/action area; now the always-visible state is just the
  * screen eyebrow, and this opens a temporary scope sheet.
  */
@@ -32,8 +32,8 @@ interface ZoomRailIndicatorProps {
 const LEVELS: ZoomLevel[] = [1, 2, 3, 4];
 const LEVEL_COPY: Record<ZoomLevel, { title: string; subtitle: string }> = {
   1: { title: ZOOM_LEVEL_SCOPE_LABELS[1], subtitle: 'Plan, do, review, discuss' },
-  2: { title: ZOOM_LEVEL_SCOPE_LABELS[2], subtitle: 'A few nearby steps' },
-  3: { title: ZOOM_LEVEL_SCOPE_LABELS[3], subtitle: 'Patterns across the rotation' },
+  2: { title: ZOOM_LEVEL_SCOPE_LABELS[2], subtitle: 'Related steps around this one' },
+  3: { title: ZOOM_LEVEL_SCOPE_LABELS[3], subtitle: 'Patterns across this season or project' },
   4: { title: ZOOM_LEVEL_SCOPE_LABELS[4], subtitle: 'Long view of your practice' },
 };
 

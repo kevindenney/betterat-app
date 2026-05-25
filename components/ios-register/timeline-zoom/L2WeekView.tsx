@@ -1,7 +1,7 @@
 /**
- * L2 — three step cards across, day strip on top. Swipe scrolls in weeks.
+ * L2 — nearby step cards across, day strip on top when dates exist.
  *
- * Frame 2/6. "This week" big headline + Mon → Sun date range. Day strip
+ * Frame 2/6. "Nearby" big headline + optional date range. Day strip
  * M T W T F S S with today highlighted iOS-blue and dots under days that
  * have steps. The day strip is tappable — jump the carousel to Friday and
  * the carousel scrolls to it (per Frame 2 description). The card the user
@@ -134,13 +134,13 @@ export function L2WeekView({
 
   return (
     <View style={styles.container}>
-      <Text style={styles.verbEyebrow}>ZOOM · THIS WEEK · PLANNING</Text>
+      <Text style={styles.verbEyebrow}>ZOOM · NEARBY · PLANNING</Text>
       {currentWeek?.contextStrip ? (
         <Text style={styles.contextStrip}>{currentWeek.contextStrip}</Text>
       ) : null}
       <View style={styles.titleRow}>
-        <Text style={styles.title}>This week</Text>
-        <Text style={styles.titleRight}>{currentWeek?.dateRange ?? 'Mon 13 → Sun 19'}</Text>
+        <Text style={styles.title}>Nearby</Text>
+        <Text style={styles.titleRight}>{currentWeek?.dateRange ?? 'Related steps'}</Text>
       </View>
 
       <View style={styles.dayStrip}>
@@ -410,7 +410,7 @@ function EmptyWeekInline() {
       <View style={styles.emptyIconWrap}>
         <Ionicons name="leaf-outline" size={22} color={IOS_REGISTER.labelTertiary} />
       </View>
-      <Text style={styles.emptyTitle}>No steps this week</Text>
+      <Text style={styles.emptyTitle}>No nearby steps</Text>
       <Text style={styles.emptyBody}>
         Add a step or pick a day above to plan toward.
       </Text>
