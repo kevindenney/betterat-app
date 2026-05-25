@@ -33,12 +33,10 @@ import { Linking } from 'react-native';
 import { router } from 'expo-router';
 import { getStepCategoryLabels } from '@/lib/step-category-config';
 import { FEATURE_FLAGS } from '@/lib/featureFlags';
-import { showAlert } from '@/lib/utils/crossPlatformAlert';
 import { PlanTabInterior, PlanTabIOSRegisterInterior } from './plan-tab';
 import { PlanWithCard } from './plan-tab/PlanWithCard';
 import { PlanWhereCard } from './plan-tab/PlanWhereCard';
 import { useLibraryBeforeBinding } from '@/hooks/useStepLibraryBefore';
-import { buildSuggestions, crossInterestToMentorInput } from '@/services/SuggestionsService';
 import { useCrossInterestSuggestions } from '@/hooks/useCrossInterestSuggestions';
 import { useStepBeatsBinding } from '@/hooks/useStepBeats';
 import { BeatsList } from '@/components/step/do-tab/BeatsList';
@@ -360,49 +358,6 @@ export function PlanTab({
       suggestions: crossInterestSuggestions ?? [],
     });
 
-    const mentorInput = crossInterestToMentorInput(
-      crossInterestSuggestions ?? [],
-      async (s) => {
-        if (!user?.id) return;
-        const targetInterest =
-          userInterests.find((i) => i.slug === s.sourceInterestSlug) ??
-          userInterests.find((i) => i.id === interestId);
-        if (!targetInterest) {
-          showAlert('Could not create step', 'No target interest found for this suggestion.');
-          return;
-        }
-        try {
-          const created = await createStep({
-            user_id: user.id,
-            interest_id: targetInterest.id,
-            title: s.suggestion.slice(0, 80),
-            status: 'pending',
-            source_type: 'suggestion',
-            source_id: stepId ?? null,
-            category: s.suggestedCategory || stepCategory || 'general',
-            metadata: {
-              plan: {
-                what_will_you_do: s.suggestion,
-                capability_goals: [s.sourceInterestName, interestName]
-                  .filter(Boolean)
-                  .map((name) => `${name} blend`),
-              },
-              suggestion_context: {
-                source_step_id: stepId ?? null,
-                source_interest_slug: s.sourceInterestSlug,
-                source_interest_name: s.sourceInterestName,
-                relevance: s.relevance,
-              },
-            },
-          });
-          router.push(`/step/${created.id}` as never);
-        } catch {
-          showAlert('Could not create step', 'Please try again.');
-        }
-      },
-    );
-    const suggestions = buildSuggestions({ mentor: mentorInput });
-
     return (
       <>
         <PlanTabIOSRegisterInterior
@@ -430,7 +385,6 @@ export function PlanTab({
             onUpdate({ competency_ids: updated });
           }}
           onAddCapabilityPress={() => setShowCompetencyPicker(true)}
-          suggestions={suggestions}
           workingWithConcepts={linkedConcepts.map((concept) => ({
             id: concept.id,
             title: concept.title,

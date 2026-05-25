@@ -17,6 +17,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { GestureDetector } from 'react-native-gesture-handler';
 import Animated, { useAnimatedStyle } from 'react-native-reanimated';
+import { router } from 'expo-router';
 
 import { Ionicons } from '@expo/vector-icons';
 import { IOS_REGISTER } from '@/lib/design-tokens-ios';
@@ -24,6 +25,12 @@ import { StepDigestCard } from './StepDigestCard';
 import { SeasonLibrarianPrompt } from './SeasonLibrarianPrompt';
 import { useDragReorder } from './useDragReorder';
 import { useUniversalPlus } from '@/components/capture/UniversalPlusProvider';
+import { useAuth } from '@/providers/AuthProvider';
+import { useInterest } from '@/providers/InterestProvider';
+import { showAlert } from '@/lib/utils/crossPlatformAlert';
+import { createStep } from '@/services/TimelineStepService';
+import { useCrossInterestSuggestions } from '@/hooks/useCrossInterestSuggestions';
+import type { CrossInterestSuggestion } from '@/types/step-detail';
 import type { DayKey, TimelineDataset, TimelineStep } from './types';
 
 interface L2WeekViewProps {
@@ -219,11 +226,112 @@ export function L2WeekView({
         </ScrollView>
       )}
 
+      <L2SuggestedSteps
+        focusStepId={focusStepId}
+        focusHint={focusedStep?.title}
+        currentInterestId={dataset.interest.id === 'live' ? undefined : dataset.interest.id}
+      />
+
       {currentWeek?.planningHint ? (
         <View style={styles.planningHintWrap}>
           <SeasonLibrarianPrompt prompt={currentWeek.planningHint} />
         </View>
       ) : null}
+    </View>
+  );
+}
+
+function L2SuggestedSteps({
+  focusStepId,
+  focusHint,
+  currentInterestId,
+}: {
+  focusStepId: string;
+  focusHint?: string;
+  currentInterestId?: string;
+}) {
+  const { user } = useAuth();
+  const { currentInterest, userInterests } = useInterest();
+  const resolvedInterestId = currentInterestId ?? currentInterest?.id;
+  const { suggestions, isLoading } = useCrossInterestSuggestions(
+    focusStepId,
+    resolvedInterestId,
+    focusHint,
+  );
+  const [creatingId, setCreatingId] = useState<string | null>(null);
+
+  const visible = suggestions.slice(0, 2);
+  if (isLoading || visible.length === 0) return null;
+
+  const createSuggestedStep = async (suggestion: CrossInterestSuggestion) => {
+    if (!user?.id) return;
+    const targetInterest =
+      userInterests.find((i) => i.slug === suggestion.sourceInterestSlug) ??
+      userInterests.find((i) => i.id === resolvedInterestId);
+    if (!targetInterest) {
+      showAlert('Could not create step', 'No target interest found for this suggestion.');
+      return;
+    }
+    setCreatingId(suggestion.id);
+    try {
+      const created = await createStep({
+        user_id: user.id,
+        interest_id: targetInterest.id,
+        title: suggestion.suggestion.slice(0, 80),
+        status: 'pending',
+        source_type: 'suggestion',
+        source_id: focusStepId,
+        category: suggestion.suggestedCategory || 'general',
+        metadata: {
+          plan: {
+            what_will_you_do: suggestion.suggestion,
+            capability_goals: [
+              `${currentInterest?.name ?? 'Current interest'} + ${suggestion.sourceInterestName}`,
+            ],
+          },
+          suggestion_context: {
+            source_step_id: focusStepId,
+            source_interest_slug: suggestion.sourceInterestSlug,
+            source_interest_name: suggestion.sourceInterestName,
+            relevance: suggestion.relevance,
+          },
+        },
+      });
+      router.push(`/step/${created.id}` as never);
+    } catch {
+      showAlert('Could not create step', 'Please try again.');
+    } finally {
+      setCreatingId(null);
+    }
+  };
+
+  return (
+    <View style={styles.suggestedWrap}>
+      <View style={styles.suggestedHeader}>
+        <Ionicons name="sparkles-outline" size={12} color="#AF52DE" />
+        <Text style={styles.suggestedEye}>Suggested next steps</Text>
+      </View>
+      {visible.map((suggestion) => (
+        <Pressable
+          key={suggestion.id}
+          style={styles.suggestedCard}
+          onPress={() => void createSuggestedStep(suggestion)}
+          disabled={creatingId === suggestion.id}
+        >
+          <View style={styles.suggestedIcon}>
+            <Ionicons name="sparkles" size={13} color="#7B3FB0" />
+          </View>
+          <View style={styles.suggestedCopy}>
+            <Text style={styles.suggestedTitle} numberOfLines={1}>
+              {suggestion.suggestion}
+            </Text>
+            <Text style={styles.suggestedMeta} numberOfLines={1}>
+              Create in {suggestion.sourceInterestName}
+            </Text>
+          </View>
+          <Ionicons name="add-circle-outline" size={17} color={IOS_REGISTER.accentUserAction} />
+        </Pressable>
+      ))}
     </View>
   );
 }
@@ -345,6 +453,59 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 96, // clear the floating tab bar
+  },
+  suggestedWrap: {
+    position: 'absolute',
+    left: 16,
+    right: 16,
+    bottom: 238,
+    gap: 6,
+  },
+  suggestedHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+  },
+  suggestedEye: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: IOS_REGISTER.labelSecondary,
+    letterSpacing: 0.7,
+    textTransform: 'uppercase',
+  },
+  suggestedCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 9,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: 12,
+    backgroundColor: 'rgba(175, 82, 222, 0.08)',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(175, 82, 222, 0.28)',
+  },
+  suggestedIcon: {
+    width: 24,
+    height: 24,
+    borderRadius: 7,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(175, 82, 222, 0.12)',
+  },
+  suggestedCopy: {
+    flex: 1,
+    minWidth: 0,
+  },
+  suggestedTitle: {
+    fontSize: 12.5,
+    fontWeight: '600',
+    color: IOS_REGISTER.label,
+    letterSpacing: -0.1,
+  },
+  suggestedMeta: {
+    marginTop: 1,
+    fontSize: 10.5,
+    color: IOS_REGISTER.labelSecondary,
   },
   titleRow: {
     flexDirection: 'row',
