@@ -362,6 +362,15 @@ export function PlanTab({
     const mentorInput = crossInterestToMentorInput(
       crossInterestSuggestions ?? [],
       (s) => {
+        // A network suggestion is a candidate plan, not just a passive
+        // related row. If the step's WHAT is still empty, accepting the
+        // suggestion should visibly fill the primary field so the user can
+        // continue. Once WHAT already exists, the same suggestion becomes a
+        // concrete HOW sub-step.
+        if (!planData.what_will_you_do?.trim()) {
+          onUpdate({ what_will_you_do: s.suggestion });
+          return;
+        }
         const existing = planData.how_sub_steps ?? [];
         const newSubStep: SubStep = {
           id: `cross_${Date.now()}`,
