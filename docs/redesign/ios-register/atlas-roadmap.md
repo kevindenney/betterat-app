@@ -70,6 +70,9 @@ Walkthrough 2026-05-25 surfaced: black-bg active chip + light-gray inactive chip
 ### ⬜ Phase I — Heatmap legend popover
 "Cohort heatmap · this week" pill needs a tap-to-explain affordance. Show small floating card explaining: hex size = step count, color = dominant competency (cardiac=red, respiratory=blue, medication=teal, general=gray), source = your cohort's last 7 days. Same pattern works for the F7 entrepreneur frame when we add density layers.
 
+### ✅ Phase J — Atlas auth-gated query keys
+Walkthrough 2026-05-25 surfaced: toggling F4 Heatmap changed nothing because `useCohortHeatmap` could cache an empty pre-auth RPC result. Same pattern can affect peer steps and POIs. Fixed by including `user.id` in query keys and gating queries until auth is ready for `useCohortHeatmap`, `useAtlasPeerSteps`, and `useAtlasPois`. Shipped 2026-05-25.
+
 ### ⬜ Phase F — Reach-out channel sheet
 When a user taps "Reach out" on a mentor/peer/preceptor/mentee pin, surface a channel-aware action sheet:
 - US/EU professional → email primary, in-app secondary

@@ -9,6 +9,7 @@
  */
 
 import { useQuery } from '@tanstack/react-query';
+import { useAuth } from '@/providers/AuthProvider';
 import { supabase } from '@/services/supabase';
 
 export interface AtlasPoi {
@@ -34,8 +35,14 @@ export interface AtlasPoiData {
 }
 
 export function useAtlasPois(): AtlasPoiData {
+  // RLS allows authenticated users to read atlas_pois. Gate the query on
+  // auth and include user.id in the key so a pre-auth empty/error result
+  // cannot poison the cache for the signed-in session.
+  const { user } = useAuth();
+  const userId = user?.id ?? null;
   const { data, isLoading } = useQuery({
-    queryKey: ['atlas-pois'],
+    queryKey: ['atlas-pois', userId],
+    enabled: !!userId,
     staleTime: 60_000,
     queryFn: async (): Promise<AtlasPoi[]> => {
       const { data: rows, error } = await supabase

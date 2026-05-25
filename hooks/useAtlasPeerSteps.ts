@@ -9,6 +9,7 @@
  */
 
 import { useQuery } from '@tanstack/react-query';
+import { useAuth } from '@/providers/AuthProvider';
 import { supabase } from '@/services/supabase';
 
 export type AtlasPeerRelationship =
@@ -51,9 +52,15 @@ export function useAtlasPeerSteps({
   interestSlug = null,
   enabled = true,
 }: UseAtlasPeerStepsArgs) {
-  const queryEnabled = enabled && lat != null && lng != null;
+  // atlas_peer_steps_near uses auth.uid() inside the RPC. If this query
+  // fires before auth is ready, the RPC returns no rows and React Query can
+  // cache that empty result. Include user.id in the key and gate execution
+  // until auth is available.
+  const { user } = useAuth();
+  const userId = user?.id ?? null;
+  const queryEnabled = enabled && !!userId && lat != null && lng != null;
   return useQuery({
-    queryKey: ['atlas-peer-steps', lat, lng, radiusKm, interestSlug],
+    queryKey: ['atlas-peer-steps', userId, lat, lng, radiusKm, interestSlug],
     enabled: queryEnabled,
     staleTime: 30_000,
     queryFn: async (): Promise<AtlasPeerStep[]> => {
