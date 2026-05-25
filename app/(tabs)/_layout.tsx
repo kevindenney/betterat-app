@@ -53,6 +53,7 @@ const TAB_SWEEP_META: Record<(typeof TAB_SWEEP_REQUIRED_TABS)[number], { label: 
 const ROUTES_WITH_CUSTOM_TOOLBAR = [
   '/atlas',
   '/discover',
+  '/inbox',
   '/learn',
   '/library',
   '/practice',

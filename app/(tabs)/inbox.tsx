@@ -88,6 +88,13 @@ export default function InboxTabScreen() {
   // and the user wouldn't know where the other ~8 items live.
   const readCount = readItems.length + notifUnreadCount;
 
+  // DEBUG OVERLAY — diagnose Read count vs badge mismatch. Reads every
+  // intermediate count we depend on. Remove once the math is confirmed.
+  const rawNotifCount = rawNotifications.length;
+  const rawUnreadNotifCount = rawNotifications.filter((n) => !n.isRead).length;
+  const inboxItemsLen = fetched?.length ?? 0;
+  const dismissedCount = dismissedIds.size;
+
   // Practice grouping — design key is "the practice each item is about."
   // The closest analog in the current data model is the source step the
   // suggestion attaches to. Fold same-source items together. Items with
@@ -174,6 +181,32 @@ export default function InboxTabScreen() {
               onPress={() => setSegment('done')}
             />
           </View>
+        </View>
+
+        {/* DEBUG OVERLAY — temporary, validates badge=segments math.
+            Reads every count we depend on so a screenshot is enough to
+            diagnose. Remove once root cause is confirmed. */}
+        <View
+          style={{
+            paddingHorizontal: 12,
+            paddingVertical: 6,
+            backgroundColor: 'rgba(255,235,59,0.18)',
+            borderTopWidth: 1,
+            borderBottomWidth: 1,
+            borderColor: 'rgba(0,0,0,0.08)',
+          }}
+        >
+          <Text style={{ fontSize: 10, fontWeight: '600', color: '#1F1F1F' }}>
+            badge={actCount + readCount} · act={actCount} · read={readCount}
+            {'  ·  '}
+            inbox_items={inboxItemsLen} · dismissed={dismissedCount}
+          </Text>
+          <Text style={{ fontSize: 10, fontWeight: '600', color: '#1F1F1F' }}>
+            notif raw={rawNotifCount} · notif rawUnread={rawUnreadNotifCount} · notif unreadGrouped={notifUnreadCount}
+          </Text>
+          <Text style={{ fontSize: 10, fontWeight: '600', color: '#1F1F1F' }}>
+            reflections={readItems.length} · suggestions={actItems.length}
+          </Text>
         </View>
 
         <ScrollView
