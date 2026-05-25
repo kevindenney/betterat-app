@@ -46,11 +46,13 @@ Render every step with lat/lng as a status-encoded dot on the atlas — not just
 - ⬜ A.4 — Layers chip "My steps" toggle (default on)
 - ⬜ A.5 — "New since last visit" pulse — store `atlas_last_visited_at` per user; pins authored after that timestamp get a brief 1s pulse on next mount, then quiet. Includes both new POIs in scope and new peer steps.
 
-### ⬜ Phase B — Mobile interaction polish + picker handoff
+### 🟨 Phase B — Mobile interaction polish + picker handoff
 - ⬜ B.1 — Wire v2 StepShell "Pick on map" → LocationMapPickerModal (or eventually /atlas?fromPlan=1 with commit-mode handoff). Today the v2 button is dead — onPickWhere isn't threaded through StepShell. Walkthrough 2026-05-25 surfaced this.
-- ⬜ B.2 — Long-press → "Add a pin here" (gated on Phase 8.4)
-- ⬜ B.3 — Two-finger rotate disable on iOS (compass disorientation in slow zooms)
-- ⬜ B.4 — Pin-tap haptic feedback (light impact)
+- ✅ B.2 — Pin-tap camera padding (zoom-independent) so tapped pin lands above the bottom sheet instead of behind it. Walkthrough 2026-05-25.
+- ✅ B.3 — Faculty filter exempts anchor/institution/my-step kinds (Pinkard no longer hides when Faculty chip toggled). Walkthrough 2026-05-25.
+- ⬜ B.4 — Long-press → "Add a pin here" (gated on Phase 8.4)
+- ⬜ B.5 — Two-finger rotate disable on iOS (compass disorientation in slow zooms)
+- ⬜ B.6 — Pin-tap haptic feedback (light impact)
 
 ### ⬜ Phase C — Voice memo real audio capture
 Item 6 from F7 walkthrough — deferred because the audio-recording surface doesn't exist yet. Needs:

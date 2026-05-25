@@ -35,6 +35,7 @@ import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-na
 import { Ionicons } from '@expo/vector-icons';
 
 import { IOS_REGISTER } from '@/lib/design-tokens-ios';
+import { showAlert } from '@/lib/utils/crossPlatformAlert';
 import {
   HongKongOverviewMap,
   RaceMarksZoomMap,
@@ -61,6 +62,16 @@ import {
 } from './AtlasPins';
 
 export type AtlasFrameId = 'f1' | 'f2' | 'f3' | 'f4' | 'f5' | 'f6' | 'f7';
+
+/**
+ * Stub for unwired CTAs. Tells the user what the action WILL do once
+ * built, rather than silently bouncing them to the wrong tab. Honest
+ * placeholder until the real surface (profile page, reach-out sheet,
+ * step detail navigator) lands.
+ */
+function comingSoonAlert(action: string, futureBlurb: string): void {
+  showAlert(`${action} · Coming soon`, futureBlurb);
+}
 
 export interface AtlasNextEvent {
   /** Display label, e.g. "Race 4" or "Easter Regatta". */
@@ -215,6 +226,23 @@ export function AtlasScreen({
       return <FrameF7 embedded={embedded} handlers={handlers} />;
   }
 }
+
+/**
+ * Pin kinds that bypass chip-driven filtering — anchor pins are map
+ * chrome (your-base markers), institutions are persistent geography,
+ * viewer's own steps belong to the user regardless of filter state.
+ * Faculty/Following chips should never hide these.
+ */
+const ALWAYS_VISIBLE_KINDS: Set<AtlasPinSpec['kind']> = new Set([
+  'poi-sim-anchor',
+  'poi-club-anchor',
+  'poi-home-anchor',
+  'poi-hospital',
+  'poi-club',
+  'my-step-planned',
+  'my-step-done-recent',
+  'my-step-done-old',
+]);
 
 // ---------------------------------------------------------------------------
 // Shared shell: top chrome, filter chips, layers FAB, mock tab bar
@@ -1416,9 +1444,12 @@ function FrameF4({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
   const framePinsWithGlow = useCompetencyGlow(framePins, heatmapCells);
   // Apply chip-driven filters. Faculty diamonds (poi-preceptor) hide
   // when Faculty chip is off. Followed-people peer pins hide unless
-  // Following chip is on. Institutions + sim anchor always visible.
+  // Following chip is on. ALWAYS_VISIBLE_KINDS (module scope) bypasses
+  // chip state entirely — anchor pins are map chrome, not data, so they
+  // shouldn't disappear when a user filters by Faculty.
   const filteredFramePins = useMemo(() => {
     return framePinsWithGlow.filter((p) => {
+      if (ALWAYS_VISIBLE_KINDS.has(p.kind)) return true;
       if (p.kind === 'poi-preceptor') return showFaculty;
       if (p.kind === 'following') return showFollowing;
       return true;
@@ -1506,8 +1537,8 @@ function FrameF4({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
         <BottomSheet
           eyebrow={`TOMORROW · ${nextNursing.label.toUpperCase()}${nextNursing.when ? ` · ${nextNursing.when.toUpperCase()}` : ''}`}
           title={nextNursing.where ?? 'Your next clinical'}
+          source={nextNursing.source_label}
           body={[
-            nextNursing.source_label,
             nextNursing.conditions,
             'Bring: stethoscope, scrub colors, badge.',
             nextNursing.has_user_step
@@ -1523,7 +1554,10 @@ function FrameF4({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
                   icon: 'open-outline',
                   onPress: () => {
                     closeNextEventSheet();
-                    handlers.onSecondaryAction?.();
+                    comingSoonAlert(
+                      `Open ${nextNursing.label.toLowerCase()}`,
+                      'This will open the existing step detail so you can review intent, preceptor notes, and pre-shift prep. Step-from-atlas navigation is being wired in Phase A.3.',
+                    );
                   },
                 }
               : {
@@ -1586,6 +1620,17 @@ function FrameF4({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
                     : 'Anchor a step here',
               icon: 'add',
               onPress: () => {
+                // Preceptor "Open profile" is unwired — no profile route
+                // exists yet for faculty. Stub honestly until Phase F
+                // (reach-out channel sheet) lands.
+                if (selectedPin.kind === 'poi-preceptor') {
+                  clearF4SelectedPin();
+                  comingSoonAlert(
+                    'Open profile',
+                    "Faculty profiles (office hours, shadowing history, contact channels) ship in Phase F. For now, you can save this preceptor to your mentors list when that lands.",
+                  );
+                  return;
+                }
                 handlers.onPrimaryAction?.({ lat: selectedPin.lat, lng: selectedPin.lng });
                 clearF4SelectedPin();
               },
@@ -1974,8 +2019,8 @@ function FrameF7({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
         <BottomSheet
           eyebrow={`TOMORROW · ${nextHaat.label.toUpperCase()}${nextHaat.when ? ` · ${nextHaat.when.toUpperCase()}` : ''}`}
           title={nextHaat.where ?? 'Your next market'}
+          source={nextHaat.source_label}
           body={[
-            nextHaat.source_label,
             nextHaat.conditions,
             '5 suppliers report fresh stock. 1 mentee posted nearby this morning.',
             nextHaat.has_user_step
@@ -1991,7 +2036,10 @@ function FrameF7({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
                   icon: 'open-outline',
                   onPress: () => {
                     closeF7NextSheet();
-                    handlers.onSecondaryAction?.();
+                    comingSoonAlert(
+                      `Open ${nextHaat.when?.split(' ')[0] ?? 'market'} step`,
+                      'This will open the existing market step so you can add notes, capture a voice memo, or update what you plan to sell. Step-from-atlas navigation ships in Phase A.3.',
+                    );
                   },
                 }
               : {
@@ -2060,8 +2108,11 @@ function FrameF7({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
                         label: 'Open profile',
                         icon: 'person-circle-outline',
                         onPress: () => {
-                          handlers.onSecondaryAction?.();
                           clearF7SelectedPin();
+                          comingSoonAlert(
+                            'Open profile',
+                            "Mentee profiles (their craft, recent posts, contact via WhatsApp) ship in Phase F. For now, you can use the Route button to drop in on them in person.",
+                          );
                         },
                       }
                     : {
@@ -2122,6 +2173,14 @@ interface StatItem {
 interface BottomSheetProps {
   eyebrow?: string;
   title?: string;
+  /**
+   * One-line provenance shown directly under the title in *both* mid
+   * and expanded states (hidden only in 'handle'). Use for NEXT-pill
+   * source attribution ("From: your timeline / cohort schedule / etc.")
+   * so the user can answer "where did this come from?" without having
+   * to expand the sheet.
+   */
+  source?: string;
   body?: string;
   peerHeader?: { name: string; quote: string; eyebrow: string };
   statsRow?: StatItem[];
@@ -2139,6 +2198,7 @@ interface BottomSheetProps {
 function BottomSheet({
   eyebrow,
   title,
+  source,
   body,
   peerHeader,
   statsRow,
@@ -2195,6 +2255,7 @@ function BottomSheet({
         </View>
       ) : null}
       {showMid && title ? <Text style={shellStyles.sheetTitle} numberOfLines={showFull ? undefined : 1}>{title}</Text> : null}
+      {showMid && source ? <Text style={shellStyles.sheetSource}>{source}</Text> : null}
       {showFull && body ? <Text style={shellStyles.sheetBody}>{body}</Text> : null}
       {showFull && statsRow ? (
         <View style={shellStyles.statsRow}>
@@ -2729,6 +2790,13 @@ const shellStyles = StyleSheet.create({
     fontSize: 12,
     color: IOS_REGISTER.labelSecondary,
     lineHeight: 16,
+    letterSpacing: -0.05,
+  },
+  sheetSource: {
+    marginTop: 4,
+    fontSize: 11,
+    color: IOS_REGISTER.labelTertiary,
+    fontStyle: 'italic',
     letterSpacing: -0.05,
   },
   statsRow: {

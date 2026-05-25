@@ -282,17 +282,20 @@ export function AtlasMapLibreCanvas({
     },
     [onMapPress],
   );
-  // Recenter the camera on the tapped pin so it isn't clipped by the
-  // iPhone Dynamic Island, the floating TopChrome, or the bottom sheet.
-  // The camera goes slightly north of the pin (lat + 0.002) so the pin
-  // renders just south of screen center — clear of the Dynamic Island
-  // and chrome up top, and visible above the expanded bottom sheet
-  // that lives in the lower third.
+  // Recenter the camera on the tapped pin and reserve screen space for
+  // the top chrome (filter chips) and the bottom sheet that will pop
+  // open. MapLibre's `padding` insets shift the *visual center* away
+  // from the geometric center — `padding.bottom: 380` tells the camera
+  // to ignore the bottom ~380px (where the sheet sits), so the pin
+  // lands in the middle of the remaining top band. `padding.top: 120`
+  // does the same for the floating chrome. This is zoom-independent,
+  // unlike the lat-offset approach.
   const handlePinTap = useCallback(
     (pin: AtlasPinSpec) => {
       onPinPress?.(pin);
       cameraRef.current?.flyTo({
-        center: [pin.lng, pin.lat + 0.002],
+        center: [pin.lng, pin.lat],
+        padding: { top: 120, bottom: 380 },
         duration: 400,
       });
     },
