@@ -31,7 +31,7 @@
  */
 
 import React, { useCallback, useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { IOS_REGISTER } from '@/lib/design-tokens-ios';
@@ -1752,7 +1752,7 @@ function FrameF7({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
   // Entrepreneur POIs — supplier villages (white squares), haat markets
   // (green diamonds with day-of-week badges), Lakshmi's home anchor,
   // and any active mentees.
-  const { pins } = useAtlasFramePins({
+  const { pins: rawPins } = useAtlasFramePins({
     lat: 23.27,
     lng: 85.45,
     interestSlug: 'lac-craft-business',
@@ -1790,6 +1790,45 @@ function FrameF7({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
     setNextHaatSheetOpen(true);
   }, []);
   const closeF7NextSheet = useCallback(() => setNextHaatSheetOpen(false), []);
+  // Chip filter state — pin kinds visible. Defaults: everything on so
+  // the user sees the network on first load. Cohort/heatmap chips don't
+  // exist on F7 (those are F4 nursing); F7 has Network/Haat/Suppliers/
+  // Mentees plus the implicit "All" anchor.
+  const [showHaats, setShowHaats] = useState(true);
+  const [showSuppliers, setShowSuppliers] = useState(true);
+  const [showMentees, setShowMentees] = useState(true);
+  const [showNetwork, setShowNetwork] = useState(false);
+  const handleF7ChipsChange = useCallback((activeIds: string[]) => {
+    const all = activeIds.includes('all');
+    setShowHaats(all || activeIds.includes('haat'));
+    setShowSuppliers(all || activeIds.includes('suppliers'));
+    setShowMentees(all || activeIds.includes('mentees'));
+    setShowNetwork(all || activeIds.includes('network'));
+  }, []);
+  // Open the device's Maps app with directions from current location
+  // to the destination. Uses universal Google Maps web URL — iOS opens
+  // it in Apple Maps, Android opens Google Maps. Avoids the iOS-only
+  // maps:// scheme so the same code works on both platforms.
+  const openRouteToHaat = useCallback(() => {
+    if (nextHaat.lat == null || nextHaat.lng == null) return;
+    const url = `https://www.google.com/maps/dir/?api=1&destination=${nextHaat.lat},${nextHaat.lng}&travelmode=driving`;
+    Linking.openURL(url).catch((err) => {
+      console.warn('[atlas] Failed to open route', err);
+    });
+  }, [nextHaat.lat, nextHaat.lng]);
+  // Apply chip filters to the raw pin list. Home anchor is always
+  // visible (it's the user's base, not a filter target).
+  const pins = useMemo(
+    () =>
+      rawPins.filter((p) => {
+        if (p.kind === 'poi-haat') return showHaats;
+        if (p.kind === 'poi-supplier') return showSuppliers;
+        if (p.kind === 'poi-mentee') return showMentees;
+        if (p.kind === 'following' || p.kind === 'crew') return showNetwork;
+        return true;
+      }),
+    [rawPins, showHaats, showSuppliers, showMentees, showNetwork],
+  );
   return (
     <View style={shellStyles.frame}>
       {!embedded && <StatusBar />}
@@ -1825,10 +1864,11 @@ function FrameF7({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
             chips={[
               { id: 'all', label: 'All', active: true },
               { id: 'network', label: 'Network', tone: 'fleet' },
-              { id: 'haat', label: 'Haat · हाट', icon: 'storefront-outline' },
-              { id: 'suppliers', label: 'Suppliers', icon: 'leaf-outline' },
-              { id: 'mentees', label: 'Mentees', tone: 'crew', dim: true },
+              { id: 'haat', label: 'Haat · हाट', icon: 'storefront-outline', active: true },
+              { id: 'suppliers', label: 'Suppliers', icon: 'leaf-outline', active: true },
+              { id: 'mentees', label: 'Mentees', tone: 'crew' },
             ]}
+            onActiveIdsChange={handleF7ChipsChange}
           />
         </View>
 
@@ -1881,7 +1921,7 @@ function FrameF7({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
             icon: 'navigate-outline',
             onPress: () => {
               closeF7NextSheet();
-              handlers.onSecondaryAction?.();
+              openRouteToHaat();
             },
           }}
           bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
@@ -1943,7 +1983,7 @@ function FrameF7({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
           title={'Plan a step at कल का बाज़ार — tomorrow’s market.'}
           body="5 suppliers report fresh stock. 1 mentee posted nearby this morning."
           primary={{ label: 'Voice memo', icon: 'mic', onPress: handlers.onPrimaryAction }}
-          secondary={{ label: 'Open route', icon: 'navigate-outline', onPress: handlers.onSecondaryAction }}
+          secondary={{ label: 'Open route', icon: 'navigate-outline', onPress: openRouteToHaat }}
           bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
         />
       )}
