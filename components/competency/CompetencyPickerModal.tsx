@@ -30,6 +30,14 @@ interface CompetencyPickerModalProps {
   selectedIds: string[];
   onToggle: (competencyId: string, title: string) => void;
   interestId: string;
+  /**
+   * Lightweight capability suggestions shown when the interest does not
+   * have a formal competency catalog, or when AI/network suggestions imply
+   * useful tags that are not yet structured competencies.
+   */
+  suggestedCapabilities?: { id: string; label: string; source?: string }[];
+  selectedSuggestedLabels?: string[];
+  onToggleSuggested?: (label: string) => void;
 }
 
 export function CompetencyPickerModal({
@@ -38,6 +46,9 @@ export function CompetencyPickerModal({
   selectedIds,
   onToggle,
   interestId,
+  suggestedCapabilities = [],
+  selectedSuggestedLabels = [],
+  onToggleSuggested,
 }: CompetencyPickerModalProps) {
   const { user } = useAuth();
   const [search, setSearch] = useState('');
@@ -73,6 +84,20 @@ export function CompetencyPickerModal({
   }, [competencies, search]);
 
   const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds]);
+  const selectedSuggestedSet = useMemo(
+    () => new Set(selectedSuggestedLabels.map(normalizeLabel)),
+    [selectedSuggestedLabels],
+  );
+  const filteredSuggestions = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return suggestedCapabilities.filter((sug) => {
+      if (!q) return true;
+      return (
+        sug.label.toLowerCase().includes(q) ||
+        sug.source?.toLowerCase().includes(q)
+      );
+    });
+  }, [search, suggestedCapabilities]);
 
   if (!visible) return null;
 
@@ -118,17 +143,49 @@ export function CompetencyPickerModal({
           </View>
 
           {/* Selected count */}
-          {selectedIds.length > 0 && (
+          {selectedIds.length + selectedSuggestedLabels.length > 0 && (
             <Text style={s.selectedCount}>
-              {selectedIds.length} selected
+              {selectedIds.length + selectedSuggestedLabels.length} selected
             </Text>
           )}
 
           {/* Category list */}
           <ScrollView style={s.list} showsVerticalScrollIndicator={false}>
-            {categories.length === 0 && (
+            {filteredSuggestions.length > 0 && (
+              <View style={s.suggestedBlock}>
+                <Text style={s.suggestedEye}>Suggested for this step</Text>
+                {filteredSuggestions.map((sug) => {
+                  const selected = selectedSuggestedSet.has(normalizeLabel(sug.label));
+                  return (
+                    <Pressable
+                      key={sug.id}
+                      style={[s.compRow, selected && s.compRowSelected]}
+                      onPress={() => onToggleSuggested?.(sug.label)}
+                    >
+                      <Ionicons
+                        name={selected ? 'checkbox' : 'sparkles-outline'}
+                        size={20}
+                        color={selected ? '#0097A7' : '#8B5CF6'}
+                      />
+                      <View style={s.compInfo}>
+                        <Text style={s.compTitle} numberOfLines={1}>
+                          {sug.label}
+                        </Text>
+                        {sug.source ? (
+                          <Text style={s.compDesc} numberOfLines={1}>
+                            {sug.source}
+                          </Text>
+                        ) : null}
+                      </View>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            )}
+
+            {categories.length === 0 && filteredSuggestions.length === 0 && (
               <Text style={s.emptyText}>
-                {search ? 'No competencies match your search' : 'No competencies available'}
+                {search ? 'No capabilities match your search' : 'No suggested capabilities yet'}
               </Text>
             )}
 
@@ -200,6 +257,10 @@ export function CompetencyPickerModal({
       </KeyboardAvoidingView>
     </Modal>
   );
+}
+
+function normalizeLabel(label: string): string {
+  return label.trim().toLowerCase();
 }
 
 const s = StyleSheet.create({
@@ -275,6 +336,21 @@ const s = StyleSheet.create({
     color: '#9CA3AF',
     fontSize: 14,
     paddingTop: 40,
+  },
+  suggestedBlock: {
+    paddingTop: 8,
+    paddingBottom: 8,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#F3F4F6',
+  },
+  suggestedEye: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: IOS_COLORS.secondaryLabel,
+    letterSpacing: 0.7,
+    textTransform: 'uppercase',
+    paddingHorizontal: 20,
+    paddingBottom: 8,
   },
   categoryBlock: {
     borderBottomWidth: StyleSheet.hairlineWidth,

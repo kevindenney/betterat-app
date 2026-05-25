@@ -72,6 +72,91 @@ interface PlanTabProps {
   embedded?: boolean;
 }
 
+const FREEFORM_CAPABILITY_PREFIX = 'capability-goal:';
+
+function freeformCapabilityId(label: string): string {
+  return `${FREEFORM_CAPABILITY_PREFIX}${label}`;
+}
+
+function normalizeCapability(label: string): string {
+  return label.trim().toLowerCase();
+}
+
+function titleCaseCapability(raw: string): string {
+  return raw
+    .replace(/[^\w\s-]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 5)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(' ');
+}
+
+function addCapabilityCandidate(
+  out: { id: string; label: string; source?: string }[],
+  label: string,
+  source?: string,
+) {
+  const clean = titleCaseCapability(label);
+  if (clean.length < 3) return;
+  if (out.some((item) => normalizeCapability(item.label) === normalizeCapability(clean))) return;
+  out.push({
+    id: `suggested:${normalizeCapability(clean).replace(/\s+/g, '-')}`,
+    label: clean,
+    source,
+  });
+}
+
+function buildSuggestedCapabilityTags({
+  planData,
+  suggestions,
+}: {
+  planData: StepPlanData;
+  suggestions: { suggestion: string; sourceInterestName?: string }[];
+}): { id: string; label: string; source?: string }[] {
+  const out: { id: string; label: string; source?: string }[] = [];
+  for (const goal of planData.capability_goals ?? []) {
+    addCapabilityCandidate(out, goal, 'Already on this step');
+  }
+
+  const text = [
+    planData.what_will_you_do,
+    planData.why_reasoning,
+    ...suggestions.map((s) => s.suggestion),
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase();
+
+  if (text.includes('first aid')) addCapabilityCandidate(out, 'First aid readiness', 'Suggested from step text');
+  if (text.includes('rescue')) addCapabilityCandidate(out, 'Rescue fundamentals', 'Suggested from step text');
+  if (text.includes('emergenc')) addCapabilityCandidate(out, 'Emergency response', 'Suggested from step text');
+  if (text.includes('visual') || text.includes('infographic') || text.includes('diagram')) {
+    addCapabilityCandidate(out, 'Visual instruction', 'Suggested from network');
+  }
+  if (text.includes('carry') || text.includes('transfer')) {
+    addCapabilityCandidate(out, 'Safe transfer mechanics', 'Suggested from network');
+  }
+  if (text.includes('culturally') || text.includes('sensitive')) {
+    addCapabilityCandidate(out, 'Culturally responsive care', 'Suggested from network');
+  }
+
+  for (const s of suggestions) {
+    const firstPhrase = s.suggestion.split(/[,.;:()]/)[0] ?? '';
+    addCapabilityCandidate(
+      out,
+      firstPhrase
+        .replace(/^(design|create|practice|research|learn|review|build)\s+/i, '')
+        .replace(/\b(clear|basic|new)\b/gi, ''),
+      s.sourceInterestName ? `From ${s.sourceInterestName}` : 'Suggested from network',
+    );
+  }
+
+  return out.slice(0, 8);
+}
+
 export function PlanTab({
   stepId, planData, interestId, onUpdate, onNextTab, readOnly, footer,
   brainDumpData, onBrainDumpChange, onStructureWithAI,
@@ -262,7 +347,17 @@ export function PlanTab({
         const comp = (availableCompetencies ?? []).find((c: Competency) => c.id === id);
         return comp ? { id: comp.id, label: comp.title } : null;
       })
-      .filter((x): x is { id: string; label: string } => x !== null);
+      .filter((x): x is { id: string; label: string } => x !== null)
+      .concat(
+        (planData.capability_goals ?? []).map((label) => ({
+          id: freeformCapabilityId(label),
+          label,
+        })),
+      );
+    const suggestedCapabilities = buildSuggestedCapabilityTags({
+      planData,
+      suggestions: crossInterestSuggestions ?? [],
+    });
 
     const mentorInput = crossInterestToMentorInput(
       crossInterestSuggestions ?? [],
@@ -293,6 +388,15 @@ export function PlanTab({
           onConversationalCreate={useConversationalCapture ? onConversationalCreate : undefined}
           capabilities={capabilityChips}
           onRemoveCapability={(id) => {
+            if (id.startsWith(FREEFORM_CAPABILITY_PREFIX)) {
+              const label = id.slice(FREEFORM_CAPABILITY_PREFIX.length);
+              onUpdate({
+                capability_goals: (planData.capability_goals ?? []).filter(
+                  (goal) => normalizeCapability(goal) !== normalizeCapability(label),
+                ),
+              });
+              return;
+            }
             const updated = (planData.competency_ids ?? []).filter((c) => c !== id);
             onUpdate({ competency_ids: updated });
           }}
@@ -342,12 +446,22 @@ export function PlanTab({
             onClose={() => setShowCompetencyPicker(false)}
             selectedIds={planData.competency_ids ?? []}
             interestId={interestId}
+            suggestedCapabilities={suggestedCapabilities}
+            selectedSuggestedLabels={planData.capability_goals ?? []}
             onToggle={(competencyId) => {
               const existing = planData.competency_ids ?? [];
               const next = existing.includes(competencyId)
                 ? existing.filter((id) => id !== competencyId)
                 : [...existing, competencyId];
               onUpdate({ competency_ids: next });
+            }}
+            onToggleSuggested={(label) => {
+              const existing = planData.capability_goals ?? [];
+              const normalized = normalizeCapability(label);
+              const next = existing.some((goal) => normalizeCapability(goal) === normalized)
+                ? existing.filter((goal) => normalizeCapability(goal) !== normalized)
+                : [...existing, label];
+              onUpdate({ capability_goals: next });
             }}
           />
         ) : null}
