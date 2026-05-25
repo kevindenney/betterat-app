@@ -1,23 +1,25 @@
 /**
- * StepCombinatorsRow — Section H / Frames 21–23.
+ * StepCombinatorsRow — context pill row under the IdentityDeck title.
  *
- * Horizontal context row that sits above the Plan/Do/Reflect/Discuss
- * PhaseTabs in the L1 step view. Surfaces three relationships the
- * step has with the wider context:
+ * Canonical Screen 01 / Identity Deck 05C+ shows a single cross-interest
+ * pill ("⇄ Also relevant for Match racing") below the peer-avatar line
+ * — and nothing else. Blueprint provenance and peer count are already
+ * carried as text lines inside the IdentityDeck itself ("from your
+ * active blueprint X by Y" and "N peers working this step"), so this
+ * row deliberately does NOT re-surface them as chips. Duplicating those
+ * was the gap-B finding in the v3 alignment pass.
  *
- *   [● From <Blueprint> · <Author>]  [👥 N peers]  [🔗 N related]
+ * What this row renders:
+ *   [⇄ Also relevant for <OtherInterest>]   [🔗 N related]
  *
- * - From — only renders when the step came from a subscribed
- *   blueprint. Tap → push to the blueprint detail.
- * - Peers — count of other subscribers on the same blueprint
- *   (uses useStepFellowSubscribers). Tap → toast for now; a
- *   peer-list sheet is a follow-up.
- * - Related — count of the viewer's OWN steps that share blueprint
- *   or category with this one. Tap → toast for now; routing to a
- *   filtered L4 view is a follow-up.
+ * - Cross-interest — first AI-generated cross-interest suggestion's
+ *   source interest, when the user has more than one interest and
+ *   the AI has produced suggestions for this step. Tap → routes to
+ *   that interest's timeline.
+ * - Related — viewer's own steps that share blueprint or category
+ *   with this one (distinct from peers, who are *other* users).
  *
- * The row hides itself entirely when none of the three slots has
- * data — keeps quiet on solo manual steps.
+ * The row hides itself when neither slot has data.
  */
 
 import React, { useMemo, useState } from 'react';
@@ -26,12 +28,17 @@ import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
 import { IOS_REGISTER } from '@/lib/design-tokens-ios';
-import { useStepFellowSubscribers } from '@/hooks/useStepFellowSubscribers';
+import { useCrossInterestSuggestions } from '@/hooks/useCrossInterestSuggestions';
 import { StepCombinatorsSheet } from './StepCombinatorsSheet';
 import type { TimelineStepRecord } from '@/types/timeline-steps';
 
 interface StepCombinatorsRowProps {
   step: TimelineStepRecord;
+  /**
+   * Kept on the prop signature for back-compat with callers that still
+   * pass them, but unused now — the IdentityDeck above us renders
+   * blueprint provenance as a text line so we don't duplicate it here.
+   */
   blueprintTitle?: string | null;
   blueprintAuthorName?: string | null;
   /** Viewer's own timeline steps — used to count related entries. */
@@ -40,15 +47,13 @@ interface StepCombinatorsRowProps {
 
 export function StepCombinatorsRow({
   step,
-  blueprintTitle,
-  blueprintAuthorName,
   viewerSteps,
 }: StepCombinatorsRowProps) {
-  const { data: peers } = useStepFellowSubscribers({
-    blueprintId: step.source_blueprint_id ?? null,
-  });
-  const peerCount = peers?.totalPeers ?? 0;
-  const peerList = peers?.peers ?? [];
+  const { suggestions } = useCrossInterestSuggestions(
+    step.id,
+    step.interest_id ?? undefined,
+  );
+  const crossInterest = suggestions[0] ?? null;
 
   const relatedSteps = useMemo(() => {
     return viewerSteps.filter(
@@ -61,13 +66,12 @@ export function StepCombinatorsRow({
   }, [viewerSteps, step]);
   const relatedCount = relatedSteps.length;
 
-  const [sheet, setSheet] = useState<null | 'peers' | 'related'>(null);
+  const [sheet, setSheet] = useState<null | 'related'>(null);
 
-  const hasFrom = Boolean(blueprintTitle);
-  const hasPeers = peerCount > 0;
+  const hasCross = Boolean(crossInterest);
   const hasRelated = relatedCount > 0;
 
-  if (!hasFrom && !hasPeers && !hasRelated) return null;
+  if (!hasCross && !hasRelated) return null;
 
   return (
     <View>
@@ -76,39 +80,25 @@ export function StepCombinatorsRow({
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.row}
       >
-        {hasFrom ? (
+        {hasCross && crossInterest ? (
           <Pressable
-            style={styles.pill}
+            style={styles.crossPill}
             onPress={() => {
-              if (step.source_blueprint_id) {
-                router.push(`/blueprint/${step.source_blueprint_id}` as never);
-              }
+              router.push(
+                `/(tabs)/practice?interest=${crossInterest.sourceInterestSlug}` as never,
+              );
             }}
           >
             <Ionicons
-              name="git-network-outline"
+              name="swap-horizontal-outline"
               size={12}
               color={IOS_REGISTER.labelSecondary}
             />
             <Text style={styles.pillText} numberOfLines={1}>
-              <Text style={styles.pillBold}>{blueprintTitle}</Text>
-              {blueprintAuthorName ? (
-                <Text style={styles.pillDim}>{`  ·  ${blueprintAuthorName}`}</Text>
-              ) : null}
-            </Text>
-          </Pressable>
-        ) : null}
-
-        {hasPeers ? (
-          <Pressable style={styles.pill} onPress={() => setSheet('peers')}>
-            <Ionicons
-              name="people-outline"
-              size={12}
-              color={IOS_REGISTER.labelSecondary}
-            />
-            <Text style={styles.pillText}>
-              <Text style={styles.pillBold}>{peerCount}</Text>
-              <Text style={styles.pillDim}>{peerCount === 1 ? ' peer' : ' peers'}</Text>
+              <Text style={styles.pillDim}>Also relevant for </Text>
+              <Text style={styles.pillCrossEmphasis}>
+                {crossInterest.sourceInterestName}
+              </Text>
             </Text>
           </Pressable>
         ) : null}
@@ -130,14 +120,6 @@ export function StepCombinatorsRow({
         ) : null}
       </ScrollView>
 
-      {sheet === 'peers' ? (
-        <StepCombinatorsSheet
-          visible
-          mode="peers"
-          peers={peerList}
-          onDismiss={() => setSheet(null)}
-        />
-      ) : null}
       {sheet === 'related' ? (
         <StepCombinatorsSheet
           visible
@@ -170,6 +152,21 @@ const styles = StyleSheet.create({
     borderColor: IOS_REGISTER.separator,
     maxWidth: 280,
   },
+  crossPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 12,
+    // Faint lilac wash + lilac border — canonical Screen 01 treatment
+    // that ties the cross-interest pill visually to the lilac peer
+    // reflection deck above (both are "synthesis" grammar).
+    backgroundColor: 'rgba(175, 82, 222, 0.08)',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(175, 82, 222, 0.30)',
+    maxWidth: 280,
+  },
   pillText: {
     fontSize: 12,
     letterSpacing: -0.1,
@@ -181,5 +178,9 @@ const styles = StyleSheet.create({
   pillDim: {
     color: IOS_REGISTER.labelSecondary,
     fontWeight: '400',
+  },
+  pillCrossEmphasis: {
+    color: '#7B3FB0',
+    fontWeight: '600',
   },
 });

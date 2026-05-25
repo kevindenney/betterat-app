@@ -71,14 +71,30 @@ export function useStepBlueprintChrome(stepId: string | null | undefined) {
         user_id: string;
       };
 
-      // 3. Author display name
+      // 3. Author display name — fall back to null when the stored value
+      //    is just an email. profiles.full_name often holds the seed
+      //    sailor's email rather than a real display name (see memory
+      //    feedback_seed_sailors_users_vs_profiles); rendering "by
+      //    jhu2+denneyke@gmail.com" reads worse than dropping the clause
+      //    entirely. IdentityDeck only renders "by X" when this is
+      //    truthy, so returning null gracefully degrades.
       const { data: authorRow } = await supabase
         .from('profiles')
-        .select('full_name')
+        .select('full_name, first_name, last_name')
         .eq('id', blueprintRow.user_id)
         .maybeSingle();
+      const profileRow = authorRow as
+        | { full_name?: string | null; first_name?: string | null; last_name?: string | null }
+        | null;
+      const rawFullName = profileRow?.full_name?.trim() ?? null;
+      const composedName = [profileRow?.first_name, profileRow?.last_name]
+        .map((s) => s?.trim())
+        .filter(Boolean)
+        .join(' ');
+      const looksLikeEmail = (s: string | null | undefined): boolean =>
+        !!s && /\S+@\S+\.\S+/.test(s);
       const authorName =
-        ((authorRow as { full_name?: string | null } | null)?.full_name) ?? null;
+        (composedName || (looksLikeEmail(rawFullName) ? null : rawFullName)) || null;
 
       // 4. Step position within the blueprint
       const { data: bpStepsRows } = await supabase
