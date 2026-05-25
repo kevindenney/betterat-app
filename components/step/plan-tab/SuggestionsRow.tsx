@@ -1,5 +1,5 @@
 /**
- * <SuggestionsRow> — 3-row "Suggestions from your network" list on Plan.
+ * <SuggestionsRow> — 3-row "Suggested new steps" list on Plan.
  *
  * Phase 1 · iOS register · D12a. Renders blueprint / follow / mentor
  * suggestions ranked by recency+relevance, capped at 3. Empty state hides
@@ -70,7 +70,7 @@ export function SuggestionsRow({ items, onSeeAll, testID }: SuggestionsRowProps)
   return (
     <View style={styles.section} testID={testID}>
       <View style={styles.head}>
-        <Text style={styles.eyeText}>Suggestions from your network</Text>
+        <Text style={styles.eyeText}>Suggested new steps</Text>
         {onSeeAll ? (
           <Pressable
             onPress={onSeeAll}
