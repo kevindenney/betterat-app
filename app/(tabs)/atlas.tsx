@@ -185,6 +185,13 @@ export default function AtlasTab() {
     router.push('/account');
   }, [router]);
 
+  const handleStepPress = useCallback(
+    (stepId: string) => {
+      router.push({ pathname: '/step/[id]', params: { id: stepId, origin: 'atlas' } } as any);
+    },
+    [router],
+  );
+
   return (
     <SafeAreaView style={styles.page} edges={[]}>
       <View style={styles.surface}>
@@ -198,6 +205,7 @@ export default function AtlasTab() {
           initialCommitMode={isFromPlan}
           onPrimaryAction={handlePrimary}
           onSecondaryAction={handleSecondary}
+          onStepPress={handleStepPress}
           onAvatarPress={handleAvatarPress}
           bottomSheetOffset={tabBarSpace}
         />

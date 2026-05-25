@@ -138,6 +138,8 @@ export interface AtlasFrameHandlers {
   onPrimaryAction?: (pin?: { lat: number; lng: number; place?: string }) => void;
   /** Bottom-sheet secondary CTA — "Open <next event>" / "Skip" etc. */
   onSecondaryAction?: () => void;
+  /** Open an existing timeline step surfaced as a my-step-* atlas pin. */
+  onStepPress?: (stepId: string) => void;
   /** TopChrome avatar tap — routes to Profile in the live tab. */
   onAvatarPress?: () => void;
   /** Club pin tap — opens the corresponding organization page. */
@@ -786,6 +788,18 @@ function bodyForPin(pin: AtlasPinSpec): string {
   return `${pin.lat.toFixed(4)} N · ${pin.lng.toFixed(4)} E`;
 }
 
+function isUserStepPin(pin: AtlasPinSpec): boolean {
+  return (
+    pin.kind === 'my-step-planned' ||
+    pin.kind === 'my-step-done-recent' ||
+    pin.kind === 'my-step-done-old'
+  );
+}
+
+function titleForUserStepPin(pin: AtlasPinSpec): string {
+  return (pin.label ?? 'Step').split('|')[0]?.trim() || 'Step';
+}
+
 // ---------------------------------------------------------------------------
 // F1 — Felix · first-run · Causeway Bay overview
 // ---------------------------------------------------------------------------
@@ -1221,6 +1235,30 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
             bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
             initialState="expanded"
           />
+        ) : isUserStepPin(selectedPin) ? (
+          <BottomSheet
+            eyebrow="YOUR STEP"
+            title={titleForUserStepPin(selectedPin)}
+            body={selectedPin.subtitle ?? bodyForPin(selectedPin)}
+            primary={{
+              label: 'Open step',
+              icon: 'open-outline',
+              onPress: () => {
+                clearSelectedPin();
+                if (selectedPin.stepId) {
+                  handlers.onStepPress?.(selectedPin.stepId);
+                  return;
+                }
+                comingSoonAlert(
+                  'Open step',
+                  'This pin is a step location, but it is missing a step id. Refresh Atlas and try again.',
+                );
+              },
+            }}
+            secondary={{ label: 'Close', onPress: clearSelectedPin }}
+            bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
+            initialState="expanded"
+          />
         ) : (
           <BottomSheet
             eyebrow={eyebrowForPin(selectedPin)}
@@ -1244,9 +1282,10 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
           eyebrow="NEXT · PRE-STAGED"
           title={`Plan a step for ${next!.label}.`}
           body={[next!.where, next!.when].filter(Boolean).join(' · ')}
-          primary={{ label: 'Plan a step', icon: 'add', onPress: handlers.onPrimaryAction }}
+          primary={{ label: 'Drop a pin', icon: 'location-outline', onPress: handleDropPinPress }}
           secondary={{ label: `Open ${next!.label}`, onPress: handlers.onSecondaryAction }}
           bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
+          initialState="expanded"
         />
       ) : (
         <BottomSheet
@@ -1254,11 +1293,13 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
           title="Anchor your next step to a place."
           body="Drop a pin first so the step starts with a real map location."
           primary={{
-            label: handlers.useMapLibre ? 'Drop a pin' : 'Plan a step',
-            icon: handlers.useMapLibre ? 'location-outline' : 'add',
-            onPress: handlers.useMapLibre ? handleDropPinPress : handlers.onPrimaryAction,
+            label: 'Drop a pin',
+            icon: 'location-outline',
+            onPress: handleDropPinPress,
           }}
+          secondary={{ label: 'Open Race 5', icon: 'open-outline', onPress: handlers.onSecondaryAction }}
           bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
+          initialState="expanded"
         />
       )}
 
