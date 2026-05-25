@@ -1282,27 +1282,96 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
 // ---------------------------------------------------------------------------
 function FrameF2({ embedded, handlers }: { embedded: boolean; handlers: AtlasFrameHandlers }) {
   const [layersOpen, setLayersOpen] = useState(false);
+  const raceStart = { lat: 22.2838, lng: 114.1779 };
+  const coursePins = useMemo<AtlasPinSpec[]>(
+    () => [
+      {
+        id: 'f2-wind-ese',
+        lat: 22.2886,
+        lng: 114.176,
+        kind: 'wind-arrow',
+        label: '112|12',
+      },
+      {
+        id: 'f2-tide-ebb',
+        lat: 22.2861,
+        lng: 114.1795,
+        kind: 'tide-arrow',
+        label: '270|0.4',
+      },
+      {
+        id: 'f2-race-start',
+        lat: raceStart.lat,
+        lng: raceStart.lng,
+        kind: 'race-mark',
+        label: 'PIN',
+        subtitle: 'Favoured end · start line',
+        provenance: 'Set by RHKYC race committee · marks are live',
+      },
+      {
+        id: 'f2-race-mark-1',
+        lat: 22.289,
+        lng: 114.1834,
+        kind: 'race-mark',
+        label: '1',
+        subtitle: 'Windward mark · Race 5',
+        provenance: 'Set by RHKYC race committee · marks are live',
+      },
+      {
+        id: 'f2-race-mark-2',
+        lat: 22.2808,
+        lng: 114.184,
+        kind: 'race-mark',
+        label: '2',
+        subtitle: 'Leeward mark · Race 5',
+        provenance: 'Set by RHKYC race committee · marks are live',
+      },
+      {
+        id: 'f2-race-mark-3a',
+        lat: 22.2848,
+        lng: 114.181,
+        kind: 'race-mark',
+        label: '3A',
+        subtitle: 'Gate mark · Race 5',
+        provenance: 'Set by RHKYC race committee · marks are live',
+      },
+      {
+        id: 'f2-race-mark-3b',
+        lat: 22.2849,
+        lng: 114.1864,
+        kind: 'race-mark',
+        label: '3B',
+        subtitle: 'Gate mark · Race 5',
+        provenance: 'Set by RHKYC race committee · marks are live',
+      },
+      { id: 'f2-you-pin-end', lat: 22.2828, lng: 114.1768, kind: 'you', label: 'You' },
+      { id: 'f2-crew-pin', lat: 22.2831, lng: 114.1786, kind: 'crew', label: 'Crew' },
+      { id: 'f2-fleet-1', lat: 22.2819, lng: 114.181, kind: 'fleet' },
+      { id: 'f2-fleet-2', lat: 22.2823, lng: 114.1852, kind: 'fleet' },
+    ],
+    [raceStart.lat, raceStart.lng],
+  );
   return (
     <View style={shellStyles.frame}>
       {!embedded && <StatusBar />}
       <TopChrome
-        title="Race 4 course"
+        title="Race 5 · course"
         subtitle={handlers.subtitleOverride ?? 'RHKYC · Victoria Harbour · Sat 10:00'}
         avatarInitial={handlers.avatarInitial ?? "F"}
       />
       <FilterChipsRow
         chips={[
           { id: 'marks', label: 'Race marks', icon: 'triangle-outline', active: true },
-          { id: 'crew', label: 'Crew', tone: 'crew' },
+          { id: 'wind', label: 'Wind', icon: 'flag-outline', active: true },
+          { id: 'tide', label: 'Tide', icon: 'water-outline', active: true },
+          { id: 'crew', label: 'Crew', tone: 'crew', active: true },
           { id: 'fleet', label: 'Fleet', tone: 'fleet' },
-          { id: 'wind', label: 'Wind', icon: 'flag-outline' },
-          { id: 'tide', label: 'Tide', icon: 'water-outline' },
           { id: 'cross-interest', label: 'All my interests', crossInterest: true, dim: true },
         ]}
       />
       <View style={shellStyles.mapArea}>
         {handlers.useMapLibre ? (
-          <AtlasMapLibreCanvas frame="f2" />
+          <AtlasMapLibreCanvas frame="f2" pins={coursePins} />
         ) : (
           <RaceMarksZoomMap />
         )}
@@ -1318,13 +1387,17 @@ function FrameF2({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
           <Text style={shellStyles.absChipText}>EBB 0.4KN</Text>
         </View>
 
-        {/* The selected peer pin near the pin end (Phyl Loong) — highlighted */}
-        <AtlasPin kind="crew" leftPct={32} topPct={66} selected />
-        {/* Other fleet pins scattered */}
-        <AtlasPin kind="fleet" leftPct={48} topPct={56} />
-        <AtlasPin kind="fleet" leftPct={62} topPct={68} />
-        <AtlasPin kind="fleet" leftPct={70} topPct={62} />
-        <AtlasPin kind="following" leftPct={42} topPct={72} />
+        {!handlers.useMapLibre ? (
+          <>
+            {/* The selected peer pin near the pin end — highlighted */}
+            <AtlasPin kind="crew" leftPct={32} topPct={66} selected />
+            {/* Other fleet pins scattered */}
+            <AtlasPin kind="fleet" leftPct={48} topPct={56} />
+            <AtlasPin kind="fleet" leftPct={62} topPct={68} />
+            <AtlasPin kind="fleet" leftPct={70} topPct={62} />
+            <AtlasPin kind="following" leftPct={42} topPct={72} />
+          </>
+        ) : null}
 
         {/* Zoom indicator */}
         <View style={[shellStyles.zoomIndicator, { bottom: 12, right: 12 }]}>
@@ -1338,18 +1411,35 @@ function FrameF2({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
       </View>
 
       <BottomSheet
-        peerHeader={{
-          name: 'Phyl Loong',
-          quote: 'Pin-end approach in light air',
-          eyebrow: 'Crew · Race 3 · Sat April 27',
-        }}
+        eyebrow="TIDE · SCRUB TO START"
+        title="Plan the first beat at T + 3h."
+        body={'ESE 12 kn over an ebbing 0.4 kn current.\nSlack around 09:48. Pin end is favoured, but the flood line opens if the start slips.'}
         statsRow={[
-          { value: '3', label: 'SUB-STEPS' },
-          { value: '6', label: 'CAPTURES' },
-          { value: '2', label: 'CONCEPTS' },
+          { value: 'T + 3h', label: 'TIDE SCRUB' },
+          { value: '09:48', label: 'SLACK' },
+          { value: '12 kn', label: 'ESE WIND' },
         ]}
-        primary={{ label: 'Add to my timeline', icon: 'add', onPress: handlers.onPrimaryAction }}
-        secondary={{ label: 'Suggest to…', icon: 'paper-plane-outline', onPress: handlers.onSecondaryAction }}
+        primary={{
+          label: 'Plan first beat',
+          icon: 'add',
+          onPress: () =>
+            handlers.onPrimaryAction?.({
+              lat: raceStart.lat,
+              lng: raceStart.lng,
+              place: 'Race 5 start · Victoria Harbour',
+            }),
+        }}
+        secondary={{
+          label: 'Leader replay',
+          icon: 'play-circle-outline',
+          onPress: () =>
+            comingSoonAlert(
+              'Leader replay',
+              'This will replay the best starts from the fleet against the current wind and tide window. Race replay ships with the race-course phase.',
+            ),
+        }}
+        bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
+        initialState="expanded"
       />
 
       {!embedded && <MockTabBar activeTab="atlas" />}
