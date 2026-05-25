@@ -4,7 +4,7 @@
 
 import React, { useMemo, useCallback, useRef, useState, useEffect } from 'react';
 import { View, Text, TextInput, Pressable, ActivityIndicator, StyleSheet, Platform, Alert, Modal } from 'react-native';
-import { showAlert } from '@/lib/utils/crossPlatformAlert';
+import { showAlert, showConfirm } from '@/lib/utils/crossPlatformAlert';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { openInterestSwitcher } from '@/components/InterestSwitcher';
@@ -16,7 +16,7 @@ import { getStepCategoryLabels } from '@/lib/step-category-config';
 import { IOSPillTabs, usePillTabs } from '@/components/ui/ios/IOSPillTabs';
 import { useVocabulary } from '@/hooks/useVocabulary';
 import { useStepDetail, useUpdateStepMetadata } from '@/hooks/useStepDetail';
-import { useUpdateStep, useMyTimeline } from '@/hooks/useTimelineSteps';
+import { useUpdateStep, useDeleteStep, useMyTimeline } from '@/hooks/useTimelineSteps';
 import { StepCombinatorsRow } from './StepCombinatorsRow';
 import { StepHeaderSubtitle } from './StepHeaderMeta';
 import { PlanTab } from './PlanTab';
@@ -88,13 +88,10 @@ const TAB_TO_PHASE: Record<TabValue, PhaseId> = {
 
 function deriveStatePill(
   status: TimelineStepStatus | undefined,
-  activeTab: TabValue,
 ): { variant: StatePillVariant; label: string } {
   if (status === 'completed') return { variant: 'complete', label: 'Complete' };
   if (status === 'in_progress') {
-    return activeTab === 'act'
-      ? { variant: 'live', label: 'Live · capturing' }
-      : { variant: 'current', label: 'Current' };
+    return { variant: 'live', label: 'Live · capturing' };
   }
   return { variant: 'planned', label: 'Planned' };
 }
@@ -189,6 +186,7 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab }
   const queryClient = useQueryClient();
   const updateMetadata = useUpdateStepMetadata(stepId);
   const updateStep = useUpdateStep();
+  const deleteStep = useDeleteStep();
 
   // Ownership detection — readOnlyProp forces read-only mode (e.g. blueprint author viewing subscriber step)
   const isOwner = readOnlyProp ? false : (!step || user?.id === step.user_id);
@@ -747,6 +745,31 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab }
     );
     updateStep.mutate({ stepId, input: { status: nextStatus } });
   }, [step, stepId, isOwner, updateStep, queryClient]);
+
+  const handleDeleteStep = useCallback(() => {
+    if (!step || !isOwner) return;
+    showConfirm(
+      'Delete step?',
+      `Delete "${step.title || 'this step'}"? This cannot be undone.`,
+      () => {
+        deleteStep.mutate(stepId, {
+          onSuccess: () => {
+            if (router.canGoBack()) {
+              router.back();
+            } else {
+              router.replace('/(tabs)/practice' as never);
+            }
+          },
+          onError: (error) => {
+            const message =
+              error instanceof Error ? error.message : 'Could not delete this step.';
+            showAlert('Delete failed', message);
+          },
+        });
+      },
+      { destructive: true, confirmText: 'Delete' },
+    );
+  }, [deleteStep, isOwner, step, stepId]);
   const _prevSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Stable refs so debounced timeouts and unmount cleanup always see latest values
@@ -1081,7 +1104,7 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab }
   // above. Internal tab body contents are unchanged. Per
   // docs/redesign/ios-register/phase-0-shared-chrome.md.
   if (FEATURE_FLAGS.PRACTICE_STEP_LOOP_IOS_REGISTER) {
-    const pillSpec = deriveStatePill(step.status, activeTab);
+    const pillSpec = deriveStatePill(step.status);
     const planPhase = derivePhaseState(isPlanComplete, false);
     const doPhase = derivePhaseState(isActComplete, step.status === 'in_progress');
     const reflectPhase = derivePhaseState(isReviewComplete, false);
@@ -1184,6 +1207,16 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab }
         onPress: () => {
           setMenuOpen(false);
           setPinInterestsOpen(true);
+        },
+      });
+      menuActions.push({
+        label: 'Delete step',
+        destructive: true,
+        disabled: deleteStep.isPending,
+        icon: <Ionicons name="trash-outline" size={20} color="#FF3B30" />,
+        onPress: () => {
+          setMenuOpen(false);
+          handleDeleteStep();
         },
       });
     }
