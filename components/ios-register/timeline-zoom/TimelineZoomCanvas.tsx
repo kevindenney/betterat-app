@@ -425,7 +425,7 @@ export function TimelineZoomCanvas({
             level={level}
             onChange={setLevel}
             onSnapToCurrent={handleSnapToCurrent}
-            topOffset={isFocusedStepSurface ? 44 : 92}
+            topOffset={92}
           />
         )}
       </View>

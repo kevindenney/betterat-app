@@ -1339,7 +1339,7 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab }
               }
               discussionCount={discussionPeek?.noteCount}
               active={activePhase}
-              onTabPress={(tab) => setActiveTab(PHASE_TO_TAB[tab])}
+              onTabPress={(tab) => handleNextTab(PHASE_TO_TAB[tab])}
               labels={{
                 plan: categoryLabels.tabs.plan,
                 do: categoryLabels.tabs.act,
