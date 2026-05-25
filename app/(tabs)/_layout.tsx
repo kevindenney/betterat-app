@@ -1,6 +1,10 @@
 import { EmojiTabIcon } from '@/components/icons/EmojiTabIcon';
 import FloatingTabBar, { FLOATING_TAB_BAR_HEIGHT } from '@/components/navigation/FloatingTabBar';
 import { NavigationHeader } from '@/components/navigation/NavigationHeader';
+import {
+  TabBarVisibilityProvider,
+  useTabBarVisibility,
+} from '@/components/navigation/TabBarVisibilityContext';
 import { TourOverlay } from '@/components/onboarding/FeatureTour';
 import { WelcomeCard } from '@/components/onboarding/WelcomeCard';
 import { TourBackdrop } from '@/components/onboarding/TourBackdrop';
@@ -137,6 +141,7 @@ function TabLayoutInner() {
   const resumeTop = insets.top + 12;
   const floatingTabEdgeBottom = Math.max(Math.round(insets.bottom / 2), 8);
   const showTabSweepFocus = isTourActive && shouldShowTour && currentStep === 'tab_sweep' && !isIPadPortrait;
+  const { hidden: tabBarHiddenByScreen } = useTabBarVisibility();
 
   // Get tabs based on user type and capabilities
   // Sailors with coaching capability will see both sailor and coach tabs
@@ -410,6 +415,14 @@ function TabLayoutInner() {
     // Native / web without sidebar: existing behavior
     // Each tab screen handles its own scroll content bottom padding so content
     // flows underneath the floating tab bar (blur visible through).
+    if (tabBarHiddenByScreen) {
+      return {
+        tabBar: () => null as any,
+        tabBarStyle: { display: 'none' as const },
+        sceneStyle: undefined,
+      };
+    }
+
     return {
       tabBar: isSailorUser ? (props: any) => (
         <FloatingTabBar
@@ -440,6 +453,7 @@ function TabLayoutInner() {
     };
   }, [
     useWebSidebar,
+    tabBarHiddenByScreen,
     isSailorUser,
     isClubUser,
     tabs,
@@ -1565,7 +1579,9 @@ export default function TabLayout() {
       <CoachWorkspaceProvider>
         <GlobalSearchProvider>
           <FeatureTourProvider autoStart={true}>
-            <TabLayoutInner />
+            <TabBarVisibilityProvider>
+              <TabLayoutInner />
+            </TabBarVisibilityProvider>
           </FeatureTourProvider>
         </GlobalSearchProvider>
       </CoachWorkspaceProvider>

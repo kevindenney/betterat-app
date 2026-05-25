@@ -39,6 +39,7 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { IOS_REGISTER } from '@/lib/design-tokens-ios';
+import { useHideTabBar } from '@/components/navigation/TabBarVisibilityContext';
 import { CanvasTopBar } from './CanvasTopBar';
 import { InterestHeader } from './InterestHeader';
 import { L1StepView } from './L1StepView';
@@ -149,6 +150,8 @@ export function TimelineZoomCanvas({
   const [focusStepId, setFocusStepId] = useState<string>(dataset.focusStepId);
   const [gestureDirection, setGestureDirection] = useState<'in' | 'out' | null>(null);
   const select = useSelectMode();
+  const isFocusedStepSurface = level === 1;
+  useHideTabBar(embedFullDetailAtL1 && isFocusedStepSurface);
 
   // Continuous scale value driven by pinch — used to gate level changes on
   // release and to animate the canvas scale during the gesture.
@@ -417,7 +420,7 @@ export function TimelineZoomCanvas({
             }
             onUnsupportedAction={(id) => onUnsupportedBulkAction?.(id)}
           />
-        ) : (
+        ) : isFocusedStepSurface ? null : (
           <ZoomRailIndicator
             level={level}
             onChange={setLevel}
