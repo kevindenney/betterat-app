@@ -774,10 +774,23 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab }
     };
   }, [stepId]);
 
-  // Navigate to next tab
+  // Navigate to next tab. In the focused L1 surface, moving from Plan →
+  // Do is a real state transition, not just a tab switch: the identity
+  // deck / state pill should start reading as "doing" immediately. Timed
+  // Do steps still stamp started_at inside useStepActCaptureController;
+  // untimed steps rely on this transition so they can enter capture mode
+  // without starting a stopwatch.
   const handleNextTab = useCallback((next: TabValue) => {
+    if (next === 'act' && step?.status === 'pending' && isOwner) {
+      queryClient.setQueryData(
+        ['timeline-steps', 'detail', stepId],
+        (old: any) => old ? { ...old, status: 'in_progress' } : old,
+      );
+      queryClient.invalidateQueries({ queryKey: ['timeline-steps'] });
+      updateStep.mutate({ stepId, input: { status: 'in_progress' } });
+    }
     setActiveTab(next);
-  }, [setActiveTab]);
+  }, [isOwner, queryClient, setActiveTab, step?.status, stepId, updateStep]);
 
   // Owner + collaborators are the everyone-who-can-see-this-discussion list.
   // "Fellow subscribers" (other people on the same blueprint) is a separate
