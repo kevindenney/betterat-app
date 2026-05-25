@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
 import { AdoptStepFooter } from '@/components/step/AdoptStepFooter';
+import { AtlasPickerBus, type AtlasPickerResult } from '@/services/AtlasPickerBus';
 import { PlanTabBody } from './PlanTabBody';
 import type { BeforeShiftItem } from './plan/BeforeTheShiftCard';
 import type { StepPhaseTab, StepV2 } from './types';
@@ -54,6 +55,42 @@ export function StepShell({
   beforeShift,
 }: Props) {
   const insets = useSafeAreaInsets();
+  const [pickedLocation, setPickedLocation] = useState<AtlasPickerResult | null>(null);
+  const unsubscribePickerRef = useRef<(() => void) | null>(null);
+
+  useEffect(() => {
+    setPickedLocation(null);
+  }, [step.id]);
+
+  useEffect(() => {
+    return () => {
+      unsubscribePickerRef.current?.();
+      unsubscribePickerRef.current = null;
+    };
+  }, []);
+
+  const displayStep = useMemo<StepV2>(() => {
+    if (!pickedLocation) return step;
+    const name =
+      pickedLocation.place ??
+      `${pickedLocation.lat.toFixed(4)}, ${pickedLocation.lng.toFixed(4)}`;
+    return {
+      ...step,
+      where: `${name} · ${pickedLocation.lat.toFixed(4)}, ${pickedLocation.lng.toFixed(4)}`,
+    };
+  }, [pickedLocation, step]);
+
+  const handlePickWhere = useCallback(() => {
+    unsubscribePickerRef.current?.();
+    unsubscribePickerRef.current = AtlasPickerBus.awaitResult((result) => {
+      unsubscribePickerRef.current = null;
+      setPickedLocation(result);
+    }, () => {
+      unsubscribePickerRef.current = null;
+    });
+    router.push({ pathname: '/(tabs)/atlas', params: { fromPlan: '1' } });
+  }, []);
+
   const showDiscuss = step.hasSharedAccess !== false; // default true if undefined
   const visibleTabs = showDiscuss
     ? TAB_KEYS
@@ -135,8 +172,9 @@ export function StepShell({
       <ScrollView style={styles.body} contentContainerStyle={styles.bodyContent}>
         {tab === 'plan' ? (
           <PlanTabBody
-            step={step}
+            step={displayStep}
             onToggleSubStep={onToggleSubStep}
+            onPickWhere={handlePickWhere}
             beforeShift={beforeShift}
           />
         ) : tab === 'do' ? (
