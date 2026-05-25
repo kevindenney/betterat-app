@@ -14,10 +14,12 @@ import { useStepPinInterestIds, usePinStep, useUnpinStep } from '@/hooks/useTime
 interface StepPinInterestsProps {
   stepId: string;
   stepInterestId: string;
+  /** Open the interest list immediately when hosted inside a sheet/menu. */
+  initialExpanded?: boolean;
 }
 
-export function StepPinInterests({ stepId, stepInterestId }: StepPinInterestsProps) {
-  const [expanded, setExpanded] = useState(false);
+export function StepPinInterests({ stepId, stepInterestId, initialExpanded = false }: StepPinInterestsProps) {
+  const [expanded, setExpanded] = useState(initialExpanded);
   const { userInterests } = useInterest();
   const { data: pinnedIds, isLoading } = useStepPinInterestIds(stepId);
   const pinMutation = usePinStep();

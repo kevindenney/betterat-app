@@ -206,11 +206,6 @@ export function PlanTabIOSRegisterInterior({
 
   const body = (
     <>
-      <AIHelperLine
-        state={helperState}
-        onOpenCoach={canUseCoach ? () => setCoachOpen(true) : () => {}}
-      />
-
       {libraryBefore ? (
         <BeforeTheShiftCard
           items={libraryBefore.items}
@@ -238,6 +233,12 @@ export function PlanTabIOSRegisterInterior({
         onChangeText={(v) => onUpdate({ what_will_you_do: v })}
         readOnly={readOnly}
         autoFocus={autoFocusWhat}
+        footer={
+          <AIHelperLine
+            state={helperState}
+            onOpenCoach={canUseCoach ? () => setCoachOpen(true) : () => {}}
+          />
+        }
       />
 
       {belowWhatCard}

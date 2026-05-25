@@ -2,8 +2,8 @@
  * <FieldCard> — composable card for WHAT / HOW / WHY (and any future plan field).
  *
  * Phase 1 · iOS register (revised by Phase 1 refinements, D25 + D26).
- * White card with eyebrow + body. AI affordance lives in <AIHelperLine> at the
- * top of the Plan body — no per-field spark button.
+ * White card with eyebrow + body. Optional footer hosts quiet field-local
+ * affordances such as the AI Coach helper.
  *
  * Text inputs auto-grow with content (no inner scrollbar). The Plan body
  * scrolls; individual fields do not.
@@ -55,6 +55,8 @@ export interface FieldCardProps {
    * text field (e.g. SubStepEditor for the HOW field).
    */
   renderBody?: () => React.ReactNode;
+  /** Optional quiet affordance below the body, inside the same field card. */
+  footer?: React.ReactNode;
   /** When true, the TextInput focuses on mount. Has no effect when readOnly. */
   autoFocus?: boolean;
   testID?: string;
@@ -76,6 +78,7 @@ export function FieldCard({
   readOnly,
   style,
   renderBody,
+  footer,
   autoFocus,
   testID,
 }: FieldCardProps) {
@@ -118,6 +121,7 @@ export function FieldCard({
           autoFocus={!readOnly && autoFocus}
         />
       )}
+      {footer ? <View style={styles.footer}>{footer}</View> : null}
     </View>
   );
 }
@@ -160,5 +164,8 @@ const styles = StyleSheet.create({
   },
   inputEmpty: {
     fontStyle: 'italic',
+  },
+  footer: {
+    marginTop: 8,
   },
 });

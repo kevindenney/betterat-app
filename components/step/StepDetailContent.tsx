@@ -3,7 +3,7 @@
  */
 
 import React, { useMemo, useCallback, useRef, useState, useEffect } from 'react';
-import { View, Text, TextInput, Pressable, ActivityIndicator, StyleSheet, Platform, Alert } from 'react-native';
+import { View, Text, TextInput, Pressable, ActivityIndicator, StyleSheet, Platform, Alert, Modal } from 'react-native';
 import { showAlert } from '@/lib/utils/crossPlatformAlert';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -283,6 +283,7 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab }
   );
   const [activeTab, setActiveTab] = usePillTabs<TabValue>(defaultTab);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [pinInterestsOpen, setPinInterestsOpen] = useState(false);
   // Switch the active tab to Discussion (4th tab). The fullscreen
   // /practice/step/[id]/discussion route stays available but the peek now
   // surfaces the discussion inline next to Plan/Do/Reflect. Declared here
@@ -928,6 +929,8 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab }
     </View>
   );
 
+  const keepPlanInlineActions = !FEATURE_FLAGS.STEP_IDENTITY_DECK_V3;
+
   const planContextChrome = (
     <View style={styles.planChromeWrap}>
       <StepHeaderSubtitle
@@ -944,7 +947,7 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab }
           <Text style={styles.autoSaveText}>Saved</Text>
         </View>
       ) : null}
-      {!(step.starts_at && step.ends_at) && (step.starts_at || step.due_at || isOwner) ? (
+      {keepPlanInlineActions && !(step.starts_at && step.ends_at) && (step.starts_at || step.due_at || isOwner) ? (
         <View style={styles.dueDateRow}>
           {step.starts_at ? (
             <Pressable
@@ -1014,7 +1017,7 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab }
           variant="full"
         />
       ) : null}
-      {isOwner ? (
+      {isOwner && keepPlanInlineActions ? (
         <StepPinInterests stepId={stepId} stepInterestId={step.interest_id} />
       ) : null}
     </View>
@@ -1186,13 +1189,27 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab }
     });
     if (isOwner) {
       menuActions.push({
+        label: step.starts_at ? 'Change date' : 'Add date',
+        icon: <Ionicons name="calendar-outline" size={20} color={STEP_COLORS.label} />,
+        onPress: () => {
+          setMenuOpen(false);
+          handlePromptStepDate();
+        },
+      });
+      menuActions.push({
+        label: step.due_at ? 'Change due date' : 'Add due date',
+        icon: <Ionicons name="time-outline" size={20} color={STEP_COLORS.label} />,
+        onPress: () => {
+          setMenuOpen(false);
+          handlePromptDueDate();
+        },
+      });
+      menuActions.push({
         label: 'Pin to other interests',
         icon: <Ionicons name="pin-outline" size={20} color={STEP_COLORS.label} />,
         onPress: () => {
           setMenuOpen(false);
-          // StepPinInterests still renders inside planContextChrome, scroll
-          // to top of Plan tab so the row is visible.
-          setActiveTab('plan');
+          setPinInterestsOpen(true);
         },
       });
     }
@@ -1368,6 +1385,38 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab }
           onSuggestDirect={shareStep.suggestDirect}
           onDismiss={shareStep.close}
         />
+        <Modal
+          visible={pinInterestsOpen}
+          transparent
+          animationType="slide"
+          statusBarTranslucent
+          onRequestClose={() => setPinInterestsOpen(false)}
+        >
+          <View style={styles.pinSheetBackdrop}>
+            <Pressable
+              style={StyleSheet.absoluteFill}
+              onPress={() => setPinInterestsOpen(false)}
+            />
+            <View style={styles.pinSheet}>
+              <View style={styles.pinSheetGrabber} />
+              <View style={styles.pinSheetHeader}>
+                <Text style={styles.pinSheetTitle}>Pin to other interests</Text>
+                <Pressable
+                  onPress={() => setPinInterestsOpen(false)}
+                  hitSlop={8}
+                  style={styles.pinSheetClose}
+                >
+                  <Ionicons name="close" size={18} color={STEP_COLORS.secondaryLabel} />
+                </Pressable>
+              </View>
+              <StepPinInterests
+                stepId={stepId}
+                stepInterestId={step.interest_id}
+                initialExpanded
+              />
+            </View>
+          </View>
+        </Modal>
         <IOSActionSheet
           isOpen={menuOpen}
           onClose={() => setMenuOpen(false)}
@@ -1636,5 +1685,48 @@ const styles = StyleSheet.create({
     paddingTop: 12,
     paddingBottom: 4,
     gap: 8,
+  },
+  pinSheetBackdrop: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(0, 0, 0, 0.35)',
+  },
+  pinSheet: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 18,
+    borderTopRightRadius: 18,
+    paddingHorizontal: 20,
+    paddingTop: 8,
+    paddingBottom: 28,
+  },
+  pinSheetGrabber: {
+    alignSelf: 'center',
+    width: 36,
+    height: 5,
+    borderRadius: 3,
+    backgroundColor: '#C7C7CC',
+    marginBottom: 12,
+  },
+  pinSheetHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingBottom: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: STEP_PALETTE.borderTertiary,
+  },
+  pinSheetTitle: {
+    flex: 1,
+    fontSize: 17,
+    fontWeight: '600',
+    color: STEP_PALETTE.textPrimary,
+    letterSpacing: -0.3,
+  },
+  pinSheetClose: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: STEP_PALETTE.bgSecondary,
   },
 });
