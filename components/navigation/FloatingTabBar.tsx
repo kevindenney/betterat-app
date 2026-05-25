@@ -120,7 +120,7 @@ function TabItem({
           {badgeCount != null && badgeCount > 0 && (
             <View style={styles.badge}>
               <Text style={styles.badgeText}>
-                {badgeCount > 9 ? '9+' : badgeCount}
+                {badgeCount > 99 ? '99+' : badgeCount}
               </Text>
             </View>
           )}
