@@ -1412,7 +1412,10 @@ function FrameF4({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
   const [showFollowing, setShowFollowing] = useState(false);
   const handleF4ChipsChange = useCallback((activeIds: string[]) => {
     const all = activeIds.includes('all');
-    setShowHeatmap(all || activeIds.includes('heatmap') || activeIds.includes('cohort'));
+    // Heatmap chip controls only the cohort-density hex layer. Previously
+    // the Cohort chip also forced showHeatmap=true, so turning Heatmap off
+    // appeared to do nothing whenever Cohort was still selected.
+    setShowHeatmap(all || activeIds.includes('heatmap'));
     setShowFaculty(all || activeIds.includes('faculty'));
     setShowFollowing(all || activeIds.includes('following'));
   }, []);
@@ -1436,12 +1439,19 @@ function FrameF4({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
     setNextEventSheetOpen(true);
   }, []);
   const closeNextEventSheet = useCallback(() => setNextEventSheetOpen(false), []);
-  const { data: heatmapCells = [] } = useCohortHeatmap({
+  const { data: queriedHeatmapCells = [] } = useCohortHeatmap({
     centerLat: 39.29,
     centerLng: -76.61,
     interestSlug: 'nursing',
     enabled: showHeatmap,
   });
+  // React Query retains the last successful data even when a query is
+  // disabled. Keep the render layer honest: when the Heatmap chip is off,
+  // pass no cohort cells and no competency glow to the canvas.
+  const heatmapCells = useMemo(
+    () => (showHeatmap ? queriedHeatmapCells : []),
+    [showHeatmap, queriedHeatmapCells],
+  );
   // Competency-evidence glow — annotates institution POIs (JHH, Bayview,
   // etc.) with a `glowCluster` derived from the nearest heatmap cell so
   // the renderer paints a soft aura behind each pin in the dominant
@@ -1663,8 +1673,16 @@ function FrameF4({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
         <BottomSheet
           eyebrow="COHORT · THIS WEEK"
           title="21 of 30 practiced central-line"
-          body={'At Bloomberg this week.\nTomorrow 7am — clinical at JHH 4 South. Tap Log shift after you complete it.'}
-          primary={{ label: 'Log shift', icon: 'add', onPress: handlers.onPrimaryAction }}
+          body={'At Bloomberg this week.\nTomorrow 7am — clinical at JHH 4 South. Shift logging from Atlas is not wired yet.'}
+          primary={{
+            label: 'Log shift',
+            icon: 'add',
+            onPress: () =>
+              comingSoonAlert(
+                'Log shift',
+                'This will open the completed-shift capture flow for the clinical site, not the generic Practice tab. Atlas-to-shift logging is queued in Phase A.3.',
+              ),
+          }}
           secondary={{
             label: 'See heatmap',
             onPress: () => {
@@ -2480,7 +2498,10 @@ const shellStyles = StyleSheet.create({
     backgroundColor: IOS_REGISTER.fillPill,
   },
   chipActive: {
-    backgroundColor: '#000000',
+    // Active chips use iOS system blue instead of black. In walkthroughs,
+    // black read as "disabled/off" while light gray read as "selected";
+    // blue is the clearer iOS affordance for "on".
+    backgroundColor: '#007AFF',
   },
   chipDim: {
     opacity: 0.55,
