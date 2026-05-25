@@ -169,9 +169,10 @@ const styles = StyleSheet.create({
     backgroundColor: IOS_REGISTER.cardBg,
     borderTopLeftRadius: 18,
     borderTopRightRadius: 18,
+    minHeight: 240,
     maxHeight: '80%',
     paddingTop: 8,
-    paddingBottom: Platform.OS === 'ios' ? 0 : 12,
+    paddingBottom: Platform.OS === 'ios' ? 18 : 12,
   },
   handle: {
     alignSelf: 'center',
@@ -207,7 +208,7 @@ const styles = StyleSheet.create({
     color: IOS_REGISTER.accentUserAction,
   },
   scroll: { maxHeight: 500 },
-  scrollContent: { paddingVertical: 8 },
+  scrollContent: { paddingTop: 8, paddingBottom: 18 },
   emptyText: {
     fontSize: 13,
     color: IOS_REGISTER.labelSecondary,
@@ -246,7 +247,6 @@ const styles = StyleSheet.create({
   },
   rowTextBlock: { flex: 1, minWidth: 0 },
   rowName: {
-    flex: 1,
     fontSize: 15,
     fontWeight: '500',
     color: IOS_REGISTER.label,

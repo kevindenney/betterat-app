@@ -41,6 +41,7 @@ import { buildSuggestions, crossInterestToMentorInput } from '@/services/Suggest
 import { useCrossInterestSuggestions } from '@/hooks/useCrossInterestSuggestions';
 import { useStepBeatsBinding } from '@/hooks/useStepBeats';
 import { BeatsList } from '@/components/step/do-tab/BeatsList';
+import { CompetencyPickerModal } from '@/components/competency/CompetencyPickerModal';
 
 interface PlanTabProps {
   stepId?: string;
@@ -86,6 +87,7 @@ export function PlanTab({
   const closeAddPicker = useCallback(() => setAddPickerDestination(null), []);
   const [showCollaboratorPicker, setShowCollaboratorPicker] = useState(false);
   const [showLocationPicker, setShowLocationPicker] = useState(false);
+  const [showCompetencyPicker, setShowCompetencyPicker] = useState(false);
   const [linkedResources, setLinkedResources] = useState<LibraryResourceRecord[]>([]);
   const [linkedConcepts, setLinkedConcepts] = useState<{ id: string; title: string; slug?: string }[]>([]);
   const { data: availableCompetencies } = useCompetenciesForInterest(interestId);
@@ -278,66 +280,78 @@ export function PlanTab({
     const suggestions = buildSuggestions({ mentor: mentorInput });
 
     return (
-      <PlanTabIOSRegisterInterior
-        embedded={embedded}
-        planData={planData}
-        onUpdate={onUpdate}
-        readOnly={readOnly}
-        interestId={interestId}
-        interestName={interestName}
-        stepTitle={planData.what_will_you_do || 'New step'}
-        stepCategory={stepCategory}
-        onConversationalCreate={useConversationalCapture ? onConversationalCreate : undefined}
-        capabilities={capabilityChips}
-        onRemoveCapability={(id) => {
-          const updated = (planData.competency_ids ?? []).filter((c) => c !== id);
-          onUpdate({ competency_ids: updated });
-        }}
-        onAddCapabilityPress={() => {
-          // Lifted to consumer in a follow-up; for now we focus the search field
-          // by leaving the existing CompetencyPicker integration untouched. The
-          // chip set hint surfaces a no-op-friendly affordance.
-        }}
-        suggestions={suggestions}
-        workingWithConcepts={linkedConcepts.map((concept) => ({
-          id: concept.id,
-          title: concept.title,
-        }))}
-        onPressWorkingConcept={(conceptId) => {
-          router.push(`/(tabs)/library/concept/${conceptId}` as any);
-        }}
-        onNextPhase={onNextTab}
-        footer={footer}
-        libraryBefore={libraryBefore}
-        contextRows={
-          <>
-            <PlanWithCard
-              collaborators={collaborators}
-              readOnly={readOnly}
-              onChange={handleCollaboratorsChange}
-            />
-            <PlanWhereCard
-              location={planData.where_location}
-              readOnly={readOnly}
-              onChange={handleLocationChange}
-            />
-            {/* Beats render on Plan as well as Do — the run-through
-                belongs in planning, and the same per-step beats are
-                surfaced live on Do for capture. Single shared dataset
-                keyed by stepId. Hidden when no stepId (new-step
-                composer). */}
-            {stepId ? (
-              <PlanBeatsSection
-                stepId={stepId}
+      <>
+        <PlanTabIOSRegisterInterior
+          embedded={embedded}
+          planData={planData}
+          onUpdate={onUpdate}
+          readOnly={readOnly}
+          interestId={interestId}
+          interestName={interestName}
+          stepTitle={planData.what_will_you_do || 'New step'}
+          stepCategory={stepCategory}
+          onConversationalCreate={useConversationalCapture ? onConversationalCreate : undefined}
+          capabilities={capabilityChips}
+          onRemoveCapability={(id) => {
+            const updated = (planData.competency_ids ?? []).filter((c) => c !== id);
+            onUpdate({ competency_ids: updated });
+          }}
+          onAddCapabilityPress={() => setShowCompetencyPicker(true)}
+          suggestions={suggestions}
+          workingWithConcepts={linkedConcepts.map((concept) => ({
+            id: concept.id,
+            title: concept.title,
+          }))}
+          onPressWorkingConcept={(conceptId) => {
+            router.push(`/(tabs)/library/concept/${conceptId}` as any);
+          }}
+          onNextPhase={onNextTab}
+          libraryBefore={libraryBefore}
+          contextRows={
+            <>
+              <PlanWithCard
+                collaborators={collaborators}
                 readOnly={readOnly}
-                interestId={interestId}
-                interestName={interestName}
-                interestSlug={interestSlug}
+                onChange={handleCollaboratorsChange}
               />
-            ) : null}
-          </>
-        }
-      />
+              <PlanWhereCard
+                location={planData.where_location}
+                readOnly={readOnly}
+                onChange={handleLocationChange}
+              />
+              {/* Beats render on Plan as well as Do — the run-through
+                  belongs in planning, and the same per-step beats are
+                  surfaced live on Do for capture. Single shared dataset
+                  keyed by stepId. Hidden when no stepId (new-step
+                  composer). */}
+              {stepId ? (
+                <PlanBeatsSection
+                  stepId={stepId}
+                  readOnly={readOnly}
+                  interestId={interestId}
+                  interestName={interestName}
+                  interestSlug={interestSlug}
+                />
+              ) : null}
+            </>
+          }
+        />
+        {interestId ? (
+          <CompetencyPickerModal
+            visible={showCompetencyPicker}
+            onClose={() => setShowCompetencyPicker(false)}
+            selectedIds={planData.competency_ids ?? []}
+            interestId={interestId}
+            onToggle={(competencyId) => {
+              const existing = planData.competency_ids ?? [];
+              const next = existing.includes(competencyId)
+                ? existing.filter((id) => id !== competencyId)
+                : [...existing, competencyId];
+              onUpdate({ competency_ids: next });
+            }}
+          />
+        ) : null}
+      </>
     );
   }
 

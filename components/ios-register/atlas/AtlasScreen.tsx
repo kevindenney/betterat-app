@@ -1830,7 +1830,16 @@ function FrameF6({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
           <Stat value="3" label="CREW" />
         </View>
         <View style={shellStyles.btnRow}>
-          <Pressable onPress={handlers.onPrimaryAction} style={[shellStyles.btn, shellStyles.btnPrimary]}>
+          <Pressable
+            onPress={() =>
+              handlers.onPrimaryAction?.({
+                lat: 22.286,
+                lng: 114.182,
+                place: 'Victoria Harbour',
+              })
+            }
+            style={[shellStyles.btn, shellStyles.btnPrimary]}
+          >
             <Ionicons name="checkmark" size={14} color="#FFF" />
             <Text style={shellStyles.btnPrimaryText}>Use this location</Text>
           </Pressable>

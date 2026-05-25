@@ -29,8 +29,6 @@ import type { StepPlanData, StepActData as _StepActData, StepReviewData as _Step
 import type { TimelineStepStatus } from '@/types/timeline-steps';
 import { useAuth } from '@/providers/AuthProvider';
 import { useInterest } from '@/providers/InterestProvider';
-import { CommentsSection } from '@/components/social/CommentsSection';
-import { useStepComments, useAddStepComment, useDeleteStepComment } from '@/hooks/useStepComments';
 import { structureBrainDump } from '@/services/ai/StepPlanAIService';
 import { saveUrlsToLibrary } from '@/services/ai/BrainDumpAIService';
 import { dropInsight } from '@/services/QuickCaptureService';
@@ -781,36 +779,6 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab }
     setActiveTab(next);
   }, [setActiveTab]);
 
-  // Step comments (discussion thread) — visible to owner, collaborators, and blueprint authors (readOnly)
-  const showComments = isOwner || isCollaborator || readOnlyProp;
-  const { data: commentsData, isLoading: commentsLoading } = useStepComments(showComments ? stepId : undefined);
-  const addComment = useAddStepComment(stepId);
-  const deleteComment = useDeleteStepComment(stepId);
-
-  const handleAddComment = useCallback(async (text: string, parentId?: string | null) => {
-    await addComment.mutateAsync({ content: text, parentId });
-  }, [addComment]);
-
-  const handleDeleteComment = useCallback(async (commentId: string) => {
-    await deleteComment.mutateAsync(commentId);
-  }, [deleteComment]);
-
-  // Map step comments to CommentsSection format
-  const mappedComments = useMemo(() =>
-    (commentsData ?? []).map((c) => ({
-      id: c.id,
-      userId: c.userId,
-      userName: c.userName,
-      userAvatarEmoji: c.userAvatarEmoji,
-      userAvatarColor: c.userAvatarColor,
-      userAvatarUrl: c.userAvatarUrl,
-      content: c.content,
-      createdAt: c.createdAt,
-      parentId: c.parentId,
-    })),
-    [commentsData],
-  );
-
   // Owner + collaborators are the everyone-who-can-see-this-discussion list.
   // "Fellow subscribers" (other people on the same blueprint) is a separate
   // relationship we don't model here yet; when we do, append them onto this
@@ -852,21 +820,6 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab }
     }
     return out;
   }, [step, serverPlanData.collaborators, user]);
-
-  const commentsFooter = useMemo(() => {
-    if (!showComments) return null;
-    return (
-      <View style={styles.discussionSection}>
-        <CommentsSection
-          comments={mappedComments}
-          isLoading={commentsLoading}
-          onAddComment={handleAddComment}
-          onDeleteComment={handleDeleteComment}
-          totalCount={mappedComments.length}
-        />
-      </View>
-    );
-  }, [showComments, mappedComments, commentsLoading, handleAddComment, handleDeleteComment]);
 
   if (isLoading) {
     return (
@@ -1074,7 +1027,6 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab }
             onUpdate={handlePlanUpdate}
             onNextTab={() => handleNextTab('act')}
             readOnly={!isOwner}
-            footer={commentsFooter}
             brainDumpData={isOwner ? brainDumpData : undefined}
             onBrainDumpChange={isOwner ? handleDraftChange : undefined}
             onStructureWithAI={isOwner ? handleStructureWithAI : undefined}
@@ -1090,9 +1042,9 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab }
         </>
       )}
       {activeTab === 'act' && (
-        <ActTab stepId={stepId} dateEnrichment={planData.date_enrichment} onNextTab={() => handleNextTab('review')} readOnly={!isOwner} footer={commentsFooter} interestId={step.interest_id} interestName={currentInterest?.name} interestSlug={currentInterest?.slug} embedded={FEATURE_FLAGS.PRACTICE_STEP_LOOP_IOS_REGISTER} />
+        <ActTab stepId={stepId} dateEnrichment={planData.date_enrichment} onNextTab={() => handleNextTab('review')} readOnly={!isOwner} interestId={step.interest_id} interestName={currentInterest?.name} interestSlug={currentInterest?.slug} embedded={FEATURE_FLAGS.PRACTICE_STEP_LOOP_IOS_REGISTER} />
       )}
-      {activeTab === 'review' && <ReviewTab stepId={stepId} readOnly={!isOwner} footer={commentsFooter} embedded={FEATURE_FLAGS.PRACTICE_STEP_LOOP_IOS_REGISTER} />}
+      {activeTab === 'review' && <ReviewTab stepId={stepId} readOnly={!isOwner} embedded={FEATURE_FLAGS.PRACTICE_STEP_LOOP_IOS_REGISTER} />}
       {activeTab === 'discussion' && (
         <StepDiscussionInline stepId={stepId} access={discussionAccess} />
       )}

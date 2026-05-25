@@ -114,8 +114,8 @@ export default function AtlasTab() {
   const tabBarSpace = FLOATING_TAB_BAR_HEIGHT + insets.bottom + 12;
 
   const frame = useMemo(
-    () => pickFrameForInterest(currentInterest?.slug ?? null),
-    [currentInterest?.slug],
+    () => (isFromPlan ? 'f6' : pickFrameForInterest(currentInterest?.slug ?? null)),
+    [isFromPlan, currentInterest?.slug],
   );
   const subtitleOverride = useMemo(
     () => buildSubtitle(currentInterest?.slug ?? null, currentInterest?.name ?? null),

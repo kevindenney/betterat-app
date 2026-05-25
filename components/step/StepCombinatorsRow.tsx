@@ -29,6 +29,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { IOS_REGISTER } from '@/lib/design-tokens-ios';
 import { useCrossInterestSuggestions } from '@/hooks/useCrossInterestSuggestions';
+import { useInterest } from '@/providers/InterestProvider';
 import { StepCombinatorsSheet } from './StepCombinatorsSheet';
 import type { TimelineStepRecord } from '@/types/timeline-steps';
 
@@ -53,6 +54,7 @@ export function StepCombinatorsRow({
     step.id,
     step.interest_id ?? undefined,
   );
+  const { switchInterest } = useInterest();
   const crossInterest = suggestions[0] ?? null;
 
   const relatedSteps = useMemo(() => {
@@ -83,10 +85,9 @@ export function StepCombinatorsRow({
         {hasCross && crossInterest ? (
           <Pressable
             style={styles.crossPill}
-            onPress={() => {
-              router.push(
-                `/(tabs)/practice?interest=${crossInterest.sourceInterestSlug}` as never,
-              );
+            onPress={async () => {
+              await switchInterest(crossInterest.sourceInterestSlug);
+              router.replace('/(tabs)/practice' as never);
             }}
           >
             <Ionicons
