@@ -73,6 +73,20 @@ function comingSoonAlert(action: string, futureBlurb: string): void {
   showAlert(`${action} · Coming soon`, futureBlurb);
 }
 
+function openOrganizationPin(
+  pin: AtlasPinSpec,
+  onOrgPress?: (orgSlug: string) => void,
+): void {
+  if (pin.orgSlug && onOrgPress) {
+    onOrgPress(pin.orgSlug);
+    return;
+  }
+  comingSoonAlert(
+    'Open organization',
+    'This place is not linked to a claimed BetterAt organization yet. Once claimed, this pin will open the club or institution page.',
+  );
+}
+
 export interface AtlasNextEvent {
   /** Display label, e.g. "Race 4" or "Easter Regatta". */
   label: string;
@@ -126,6 +140,8 @@ export interface AtlasFrameHandlers {
   onSecondaryAction?: () => void;
   /** TopChrome avatar tap — routes to Profile in the live tab. */
   onAvatarPress?: () => void;
+  /** Club pin tap — opens the corresponding organization page. */
+  onOrgPress?: (orgSlug: string) => void;
   /**
    * When true, FrameF1 starts already in commit-mode (drop-pin FAB active,
    * banner showing "Tap the map to drop a pin"). Atlas live tab sets this
@@ -542,8 +558,8 @@ function getLayersForFrame(frame: AtlasFrameId): LayerItem[] {
   if (frame === 'f1' || frame === 'f2' || frame === 'f6') {
     return [
       { key: 'sailing.race_marks', label: 'Race marks', sub: 'Renders at zoom ≥ 14', defaultOn: true },
-      { key: 'sailing.wind', label: 'Wind', sub: 'Forecast vector + speed', defaultOn: true },
-      { key: 'sailing.tide', label: 'Tide', sub: 'Set + drift', defaultOn: true },
+      { key: 'sailing.wind', label: 'Wind forecast', sub: 'Direction + speed', defaultOn: true },
+      { key: 'sailing.tide', label: 'Tidal current', sub: 'Set + drift', defaultOn: true },
       peerSteps,
       ownSteps,
     ];
@@ -830,8 +846,9 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
   const [peerRelationshipFilter, setPeerRelationshipFilter] = useState<Set<string> | null>(null);
   const handleChipsChange = useCallback((activeIds: string[]) => {
     const all = activeIds.includes('all');
-    setShowWind(all || activeIds.includes('wind'));
-    setShowTide(all || activeIds.includes('tide'));
+    const showConditions = all || activeIds.includes('conditions');
+    setShowWind(showConditions);
+    setShowTide(showConditions);
     setShowRaceMarks(all || activeIds.includes('race-marks'));
     // Peer filter is null when "All" is active (show everything),
     // otherwise the active relationship chips form an allow-list.
@@ -1002,8 +1019,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
               { id: 'crew', label: 'Crew', tone: 'crew' },
               { id: 'fleet', label: 'Fleet', tone: 'fleet' },
               { id: 'following', label: 'Following', tone: 'following', dim: true },
-              { id: 'wind', label: 'Wind', icon: 'arrow-up-outline', active: true },
-              { id: 'tide', label: 'Tide', icon: 'water-outline', active: true },
+              { id: 'conditions', label: 'Wind/tide', icon: 'navigate-outline', active: true },
               { id: 'race-marks', label: 'Race marks', icon: 'triangle-outline', active: true },
               { id: 'cross-interest', label: 'All my interests', crossInterest: true, dim: true },
             ]}
@@ -1142,6 +1158,38 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
             secondary={
               next?.label ? { label: 'Close', onPress: clearSelectedPin } : undefined
             }
+            bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
+            initialState="expanded"
+          />
+        ) : selectedPin.kind === 'poi-club' || selectedPin.kind === 'poi-club-anchor' ? (
+          <BottomSheet
+            eyebrow="CLUB"
+            title={selectedPin.label ?? 'Club'}
+            body={[
+              selectedPin.orgSlug
+                ? 'Linked BetterAt organization.'
+                : 'Club place pin — not linked to a claimed BetterAt organization yet.',
+              'Club lens should show this organization’s events, fleets, pins, and public activity from the club’s point of view.',
+            ].join('\n')}
+            primary={{
+              label: selectedPin.orgSlug ? 'Open organization' : 'Claim / link club',
+              icon: selectedPin.orgSlug ? 'business-outline' : 'flag-outline',
+              onPress: () => {
+                clearSelectedPin();
+                openOrganizationPin(selectedPin, handlers.onOrgPress);
+              },
+            }}
+            secondary={{
+              label: 'View club lens',
+              icon: 'map-outline',
+              onPress: () => {
+                clearSelectedPin();
+                comingSoonAlert(
+                  'Club lens',
+                  'This will recenter Atlas around the club and filter to that organization’s events, fleets, sailors, and public steps. Fleet-specific lenses, like RHKYC · Dragon, sit one level below this.',
+                );
+              },
+            }}
             bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
             initialState="expanded"
           />

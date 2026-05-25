@@ -73,6 +73,12 @@ Walkthrough 2026-05-25 surfaced: black-bg active chip + light-gray inactive chip
 ### ✅ Phase J — Atlas auth-gated query keys
 Walkthrough 2026-05-25 surfaced: toggling F4 Heatmap changed nothing because `useCohortHeatmap` could cache an empty pre-auth RPC result. Same pattern can affect peer steps and POIs. Fixed by including `user.id` in query keys and gating queries until auth is ready for `useCohortHeatmap`, `useAtlasPeerSteps`, and `useAtlasPois`. Shipped 2026-05-25.
 
+### 🟨 Phase K — Organization and fleet lenses
+Atlas POIs that map to claimed BetterAt organizations should not behave like generic "plan here" pins. Club/institution pins now carry `orgSlug` from `atlas_pois → organizations` and the RHKYC sheet opens the organization route when linked; the sheet also exposes a stubbed "View club lens" action. Remaining work: a real Atlas lens state for organization POV (`RHKYC`) and nested fleet/class POV (`RHKYC · Dragon`, `HHYC · Etchells`, etc.), with empty-state copy when a class does not exist at a club.
+
+### 🟨 Phase L — Sailing conditions overlays
+The top sailing chip now reads `Wind/tide` and toggles both weather vectors so users do not think the visible current arrow is controlled by a wind-only filter. Layers still expose separate `Wind forecast` and `Tidal current` toggles. Remaining work: replace one-off arrows with race-useful sailing intelligence — favored side, cross-current legs, tide gates, start-line set, layline/current interaction, and time-to-start scrubbing.
+
 ### ⬜ Phase F — Reach-out channel sheet
 When a user taps "Reach out" on a mentor/peer/preceptor/mentee pin, surface a channel-aware action sheet:
 - US/EU professional → email primary, in-app secondary

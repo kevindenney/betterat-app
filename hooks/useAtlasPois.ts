@@ -23,6 +23,7 @@ export interface AtlasPoi {
   is_healthcare_site: boolean;
   claimed_by_org_id: string | null;
   org_name: string | null;
+  org_slug: string | null;
   org_interest_slug: string | null;
   metadata: Record<string, unknown>;
 }
@@ -48,7 +49,7 @@ export function useAtlasPois(): AtlasPoiData {
       const { data: rows, error } = await supabase
         .from('atlas_pois')
         .select(
-          'id, name, lat, lng, kind, interest_slug, source, is_healthcare_site, claimed_by_org_id, metadata, organizations(name, interest_slug)',
+          'id, name, lat, lng, kind, interest_slug, source, is_healthcare_site, claimed_by_org_id, metadata, organizations(name, slug, interest_slug)',
         )
         .order('claimed_by_org_id', { ascending: true })
         .order('name', { ascending: true });
@@ -67,7 +68,7 @@ export function useAtlasPois(): AtlasPoiData {
         is_healthcare_site: boolean;
         claimed_by_org_id: string | null;
         metadata: Record<string, unknown>;
-        organizations: { name: string; interest_slug: string | null } | null;
+        organizations: { name: string; slug: string | null; interest_slug: string | null } | null;
       };
       const typed = (rows ?? []) as unknown as Row[];
       return typed.map((r) => ({
@@ -81,6 +82,7 @@ export function useAtlasPois(): AtlasPoiData {
         is_healthcare_site: r.is_healthcare_site,
         claimed_by_org_id: r.claimed_by_org_id,
         org_name: r.organizations?.name ?? null,
+        org_slug: r.organizations?.slug ?? null,
         org_interest_slug: r.organizations?.interest_slug ?? null,
         metadata: r.metadata,
       }));

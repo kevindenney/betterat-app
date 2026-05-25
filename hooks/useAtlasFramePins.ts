@@ -301,6 +301,8 @@ export function useAtlasFramePins({
         label,
         subtitle,
         provenance,
+        orgId: poi.claimed_by_org_id,
+        orgSlug: poi.org_slug,
       });
     }
 

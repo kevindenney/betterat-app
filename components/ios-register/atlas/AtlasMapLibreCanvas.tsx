@@ -194,6 +194,10 @@ export interface AtlasPinSpec {
    * separate tap. Currently used by race-marks.
    */
   provenance?: string;
+  /** Organization backing this place pin, when the POI is claimed. */
+  orgId?: string | null;
+  /** Slug for the public organization route, e.g. /organizations/rhkyc. */
+  orgSlug?: string | null;
   /**
    * Phase A — viewer's own step reference. When set, tapping the pin
    * opens that step in the live tab (via onPinPress → AtlasScreen which
