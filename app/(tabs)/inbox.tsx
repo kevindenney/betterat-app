@@ -43,7 +43,6 @@ import { useInboxActions } from '@/hooks/useInboxActions';
 import type { InboxItem } from '@/components/practice/types';
 import { InterestSwitcher } from '@/components/InterestSwitcher';
 import { useUniversalPlus } from '@/components/capture/UniversalPlusProvider';
-import { useCrewThreadsUnreadCount } from '@/hooks/useCrewThreads';
 import { ProfileDropdown } from '@/components/ui/ProfileDropdown';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -179,10 +178,16 @@ export default function InboxTabScreen() {
   }, [headerHeight]);
   const hideOffset = useSharedValue(0);
   useEffect(() => {
-    hideOffset.value = withTiming(toolbarHidden ? -headerHeight : 0, {
-      duration: 200,
-    });
-  }, [toolbarHidden, headerHeight, hideOffset]);
+    // Translate by headerHeight + insets.top so the bottom edge of the
+    // header (which sits at y = insets.top before the slide) clears
+    // the safe-area band too. Without the +insets.top, the bottom of
+    // the header (segment pills, etc.) stays visible behind the
+    // dynamic island / clock when the user scrolls.
+    hideOffset.value = withTiming(
+      toolbarHidden ? -(headerHeight + insets.top) : 0,
+      { duration: 200 },
+    );
+  }, [toolbarHidden, headerHeight, insets.top, hideOffset]);
   const headerAnimStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: hideOffset.value }],
   }));
@@ -269,12 +274,14 @@ export default function InboxTabScreen() {
 
 /**
  * Inbox top-chrome row — interest pill on the left, action icons on
- * the right. Mirrors the CanvasTopBar pattern from /(tabs)/races so
- * the same affordances are reachable from /inbox.
+ * the right. Mirrors the CanvasTopBar pattern from /(tabs)/races. The
+ * chat-bubble icon that used to live here was removed in v3 Pass 3:
+ * messaging now flows through the Inbox itself (peer reflections +
+ * activity), so a separate /messages entry-point on this surface
+ * doubles up on grammar without adding a verb.
  */
 function InboxTopRow() {
   const universalPlus = useUniversalPlus();
-  const { unreadCount: msgsUnread } = useCrewThreadsUnreadCount();
   return (
     <View style={styles.topRow}>
       <View style={styles.topRowLeft}>
@@ -291,25 +298,6 @@ function InboxTopRow() {
             <Ionicons name="add" size={22} color={IOS_REGISTER.label} />
           </Pressable>
         ) : null}
-        <Pressable
-          onPress={() => router.push('/messages' as never)}
-          hitSlop={6}
-          style={styles.topIconBtn}
-          accessibilityLabel="Messages"
-        >
-          <Ionicons
-            name="chatbubble-ellipses-outline"
-            size={18}
-            color={IOS_REGISTER.label}
-          />
-          {msgsUnread > 0 ? (
-            <View style={styles.topIconBadge}>
-              <Text style={styles.topIconBadgeText}>
-                {msgsUnread > 9 ? '9+' : msgsUnread}
-              </Text>
-            </View>
-          ) : null}
-        </Pressable>
         <ProfileDropdown />
       </View>
     </View>
@@ -821,24 +809,6 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
-    position: 'relative',
-  },
-  topIconBadge: {
-    position: 'absolute',
-    top: 2,
-    right: 0,
-    minWidth: 14,
-    height: 14,
-    paddingHorizontal: 3,
-    borderRadius: 7,
-    backgroundColor: IOS_COLORS.systemRed,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  topIconBadgeText: {
-    color: '#FFFFFF',
-    fontSize: 9,
-    fontWeight: '700',
   },
   title: {
     fontSize: 32,

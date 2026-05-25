@@ -663,7 +663,16 @@ const pillToneTextStyles = StyleSheet.create({
 });
 
 const s = StyleSheet.create({
-  container: { position: 'relative' },
+  // High zIndex + Android elevation so the open dropdown stacks above
+  // sibling top-row icons (+, interest pill) and any content rendered
+  // by the surrounding header. Without this the dropdown can be drawn
+  // *under* later siblings on Android, and on iOS it can lose to
+  // higher-elevation cards in the body.
+  container: {
+    position: 'relative',
+    zIndex: 9999,
+    ...Platform.select({ android: { elevation: 24 } }),
+  },
 
   // Guest sign-up button variants (unchanged)
   signUpBtn: {
