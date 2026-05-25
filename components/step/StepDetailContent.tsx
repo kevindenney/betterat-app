@@ -280,8 +280,20 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab }
     [initialTab, step?.status],
   );
   const [activeTab, setActiveTab] = usePillTabs<TabValue>(defaultTab);
+  const didApplyLoadedStatusDefaultRef = useRef(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [pinInterestsOpen, setPinInterestsOpen] = useState(false);
+
+  // The step record often arrives after this component first renders. If
+  // usePillTabs initializes while `step` is still undefined, the surface can
+  // get stuck on Plan even when the loaded step is already in progress. Apply
+  // the status-derived default exactly once after data arrives, unless the
+  // caller explicitly requested an initial tab.
+  useEffect(() => {
+    if (initialTab || didApplyLoadedStatusDefaultRef.current || !step?.status) return;
+    didApplyLoadedStatusDefaultRef.current = true;
+    setActiveTab(getDefaultTab(step.status));
+  }, [initialTab, setActiveTab, step?.status]);
   // Switch the active tab to Discussion (4th tab). The fullscreen
   // /practice/step/[id]/discussion route stays available but the peek now
   // surfaces the discussion inline next to Plan/Do/Reflect. Declared here
@@ -1071,10 +1083,7 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab }
   if (FEATURE_FLAGS.PRACTICE_STEP_LOOP_IOS_REGISTER) {
     const pillSpec = deriveStatePill(step.status, activeTab);
     const planPhase = derivePhaseState(isPlanComplete, false);
-    const doPhase = derivePhaseState(
-      isActComplete,
-      step.status === 'in_progress' && activeTab === 'act',
-    );
+    const doPhase = derivePhaseState(isActComplete, step.status === 'in_progress');
     const reflectPhase = derivePhaseState(isReviewComplete, false);
     const activePhase: PhaseId = TAB_TO_PHASE[activeTab];
 
