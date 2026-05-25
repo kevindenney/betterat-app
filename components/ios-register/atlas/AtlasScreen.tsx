@@ -1780,8 +1780,28 @@ function FrameF5({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
 // ---------------------------------------------------------------------------
 // F6 — Commit-mode (opened from Plan · Where)
 // ---------------------------------------------------------------------------
+const F6_DEFAULT_CANDIDATE = {
+  lat: 22.286,
+  lng: 114.182,
+  place: 'Victoria Harbour',
+};
+
 function FrameF6({ embedded, handlers }: { embedded: boolean; handlers: AtlasFrameHandlers }) {
   const [layersOpen, setLayersOpen] = useState(false);
+  const [candidate, setCandidate] = useState<{ lat: number; lng: number }>({
+    lat: F6_DEFAULT_CANDIDATE.lat,
+    lng: F6_DEFAULT_CANDIDATE.lng,
+  });
+  const candidateIsDefault =
+    Math.abs(candidate.lat - F6_DEFAULT_CANDIDATE.lat) < 0.000001 &&
+    Math.abs(candidate.lng - F6_DEFAULT_CANDIDATE.lng) < 0.000001;
+  const candidateLabel = candidateIsDefault
+    ? `Favoured pin end · ${F6_DEFAULT_CANDIDATE.place}`
+    : 'Dropped pin · selected spot';
+  const candidatePlace = candidateIsDefault
+    ? F6_DEFAULT_CANDIDATE.place
+    : `Dropped pin (${candidate.lat.toFixed(3)}, ${candidate.lng.toFixed(3)})`;
+
   return (
     <View style={shellStyles.frame}>
       {!embedded && <StatusBar />}
@@ -1802,7 +1822,11 @@ function FrameF6({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
 
       <View style={[shellStyles.mapArea, { flex: 1 }]}>
         {handlers.useMapLibre ? (
-          <AtlasMapLibreCanvas frame="f6" />
+          <AtlasMapLibreCanvas
+            frame="f6"
+            candidate={candidate}
+            onMapPress={setCandidate}
+          />
         ) : (
           <CommitHarbourMap />
         )}
@@ -1821,9 +1845,11 @@ function FrameF6({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
       <View style={shellStyles.commitSheet}>
         <View style={shellStyles.commitSheetRow}>
           <Ionicons name="bookmark-outline" size={14} color="rgba(60, 60, 67, 0.62)" />
-          <Text style={shellStyles.commitSheetEyebrow}>Favoured pin end · Victoria Harbour</Text>
+          <Text style={shellStyles.commitSheetEyebrow}>{candidateLabel}</Text>
         </View>
-        <Text style={shellStyles.commitSheetCoords}>22.286 N · 114.182 E · within Race 4 area</Text>
+        <Text style={shellStyles.commitSheetCoords}>
+          {candidate.lat.toFixed(3)} N · {candidate.lng.toFixed(3)} E · within Race 4 area
+        </Text>
         <View style={shellStyles.statsRow}>
           <Stat value="14" label="PEERS ≤ 200M" />
           <Stat value="6" label="IN YOUR FLEET" />
@@ -1833,9 +1859,9 @@ function FrameF6({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
           <Pressable
             onPress={() =>
               handlers.onPrimaryAction?.({
-                lat: 22.286,
-                lng: 114.182,
-                place: 'Victoria Harbour',
+                lat: candidate.lat,
+                lng: candidate.lng,
+                place: candidatePlace,
               })
             }
             style={[shellStyles.btn, shellStyles.btnPrimary]}
@@ -1843,7 +1869,15 @@ function FrameF6({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
             <Ionicons name="checkmark" size={14} color="#FFF" />
             <Text style={shellStyles.btnPrimaryText}>Use this location</Text>
           </Pressable>
-          <Pressable onPress={handlers.onSecondaryAction} style={[shellStyles.btn, shellStyles.btnSecondary]}>
+          <Pressable
+            onPress={() =>
+              setCandidate({
+                lat: F6_DEFAULT_CANDIDATE.lat,
+                lng: F6_DEFAULT_CANDIDATE.lng,
+              })
+            }
+            style={[shellStyles.btn, shellStyles.btnSecondary]}
+          >
             <Ionicons name="locate-outline" size={14} color={IOS_REGISTER.label} />
             <Text style={shellStyles.btnSecondaryText}>Adjust</Text>
           </Pressable>
