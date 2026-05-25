@@ -48,6 +48,13 @@ export interface IdentityDeckProps {
   peersCount?: number | null;
   /** Singular label for one peer (e.g. "sailor", "cohort member"). */
   peersLabel?: string;
+  /**
+   * Optional avatar stack rendered to the left of the peer count line.
+   * Caller passes up to ~6 entries; we display the first 4 + "+N" for
+   * overflow. Matches canonical Screen 07 "MK EW JD CL +3 · 7 sailors
+   * working this step" pattern.
+   */
+  peerAvatars?: { id: string; initials: string; color: string }[];
   /** Pre-rendered cross-interest chip slot (e.g. StepCombinatorsRow output). */
   crossInterestSlot?: React.ReactNode;
   testID?: string;
@@ -68,6 +75,7 @@ export function IdentityDeck({
   blueprintAuthorName,
   peersCount,
   peersLabel = 'people',
+  peerAvatars,
   crossInterestSlot,
   testID,
 }: IdentityDeckProps) {
@@ -106,6 +114,35 @@ export function IdentityDeck({
 
       {showPeers ? (
         <View style={styles.peersRow}>
+          {peerAvatars && peerAvatars.length > 0 ? (
+            <View style={styles.avatarStack}>
+              {peerAvatars.slice(0, 4).map((a, idx) => (
+                <View
+                  key={a.id}
+                  style={[
+                    styles.avatarChip,
+                    { backgroundColor: a.color },
+                    idx > 0 && styles.avatarChipOverlap,
+                  ]}
+                >
+                  <Text style={styles.avatarChipText}>{a.initials}</Text>
+                </View>
+              ))}
+              {peerAvatars.length > 4 ? (
+                <View
+                  style={[
+                    styles.avatarChip,
+                    styles.avatarChipOverlap,
+                    styles.avatarChipOverflow,
+                  ]}
+                >
+                  <Text style={styles.avatarChipOverflowText}>
+                    +{peerAvatars.length - 4}
+                  </Text>
+                </View>
+              ) : null}
+            </View>
+          ) : null}
           <Text style={styles.peersText}>
             <Text style={styles.peersCount}>{peersCount} </Text>
             {peersCount === 1 ? peersLabel : pluralize(peersLabel)} working this step
@@ -189,6 +226,39 @@ const styles = StyleSheet.create({
     paddingTop: 10,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: GRAY_5,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  avatarStack: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  avatarChip: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1.5,
+    borderColor: '#FFFFFF',
+  },
+  avatarChipOverlap: {
+    marginLeft: -6,
+  },
+  avatarChipText: {
+    color: '#FFFFFF',
+    fontSize: 9.5,
+    fontWeight: '700',
+    letterSpacing: 0.1,
+  },
+  avatarChipOverflow: {
+    backgroundColor: GRAY_5,
+  },
+  avatarChipOverflowText: {
+    color: LABEL_2,
+    fontSize: 9.5,
+    fontWeight: '700',
   },
   peersText: {
     fontSize: 13,

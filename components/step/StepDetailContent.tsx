@@ -1243,6 +1243,14 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab }
         blueprintAuthorName={blueprintChrome?.authorName ?? null}
         peersCount={blueprintChrome?.subscriberCount ?? null}
         peersLabel={vocab('Learner') || 'people'}
+        peerAvatars={discussionAccess
+          .filter((p) => !p.isOwner)
+          .slice(0, 6)
+          .map((p) => ({
+            id: p.userId,
+            initials: p.initials,
+            color: p.avatarColor ?? '#8E8E93',
+          }))}
         crossInterestSlot={
           <StepCombinatorsRow
             step={step}

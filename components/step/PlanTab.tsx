@@ -689,6 +689,12 @@ export function PlanTab({
         </View>
       )}
 
+      <WhyWithWhereSummary
+        why={planData.why_reasoning}
+        collaborators={collaborators}
+        location={planData.where_location?.name ?? null}
+      />
+
       {/* Q1: What will you do? */}
       <PlanQuestionCard
         icon="bulb-outline"
@@ -1117,6 +1123,69 @@ export function PlanTab({
     </ScrollView>
   );
 }
+
+/**
+ * WhyWithWhereSummary — canonical Screen 07 inline at the top of the
+ * Plan body: `"why-quote" · people · location` in italic-serif. Read-
+ * only; the editable sections (WHY / WITH / WHERE) still render below
+ * via the existing PlanQuestionCards. When all three fields are
+ * empty the row collapses entirely.
+ */
+const SERIF_FAMILY = Platform.select({
+  ios: 'Georgia',
+  android: 'serif',
+  web: 'Georgia, "Times New Roman", serif',
+  default: 'Georgia',
+}) as string;
+
+function WhyWithWhereSummary({
+  why,
+  collaborators,
+  location,
+}: {
+  why: string | null | undefined;
+  collaborators: { display_name?: string | null }[];
+  location: string | null;
+}) {
+  const whyText = why?.trim() || '';
+  const names = collaborators
+    .map((c) => c.display_name?.trim())
+    .filter((n): n is string => !!n);
+  const namesText = names.length === 0
+    ? ''
+    : names.length <= 3
+      ? names.join(', ')
+      : `${names.slice(0, 3).join(', ')} +${names.length - 3}`;
+  const locationText = location?.trim() || '';
+  const parts = [
+    whyText ? `"${whyText.length > 40 ? whyText.slice(0, 38).trimEnd() + '…' : whyText}"` : '',
+    namesText,
+    locationText,
+  ].filter(Boolean);
+  if (parts.length === 0) return null;
+  return (
+    <View style={summaryStyles.row}>
+      <Text style={summaryStyles.text} numberOfLines={2}>
+        {parts.join('  ·  ')}
+      </Text>
+    </View>
+  );
+}
+
+const summaryStyles = StyleSheet.create({
+  row: {
+    paddingHorizontal: 4,
+    paddingTop: 4,
+    paddingBottom: 12,
+  },
+  text: {
+    fontFamily: SERIF_FAMILY,
+    fontStyle: 'italic',
+    fontSize: 13.5,
+    lineHeight: 19,
+    color: STEP_COLORS.secondaryLabel,
+  },
+});
 
 const styles = StyleSheet.create({
   container: {
