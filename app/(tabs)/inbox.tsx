@@ -13,7 +13,14 @@
  * — peer_reflections schema lands in a follow-up.
  */
 
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from 'react-native-reanimated';
+import type { LayoutChangeEvent } from 'react-native';
+import { useScrollToolbarHide } from '@/hooks/useScrollToolbarHide';
 import {
   ActivityIndicator,
   Platform,
@@ -35,6 +42,10 @@ import { useInboxDoneItems } from '@/hooks/useInboxDoneItems';
 import { useInboxActions } from '@/hooks/useInboxActions';
 import type { InboxItem } from '@/components/practice/types';
 import { InterestSwitcher } from '@/components/InterestSwitcher';
+import { useUniversalPlus } from '@/components/capture/UniversalPlusProvider';
+import { useCrewThreadsUnreadCount } from '@/hooks/useCrewThreads';
+import { ProfileDropdown } from '@/components/ui/ProfileDropdown';
+import { Ionicons } from '@expo/vector-icons';
 
 type Segment = 'act' | 'read' | 'done';
 
@@ -154,16 +165,46 @@ export default function InboxTabScreen() {
     });
   };
 
+  // Hide-on-scroll wiring for the in-screen header. The header is
+  // overlaid (position:absolute) so when it translates up the body
+  // content scrolls through the space behind it; scrolling back up
+  // brings the header back into view.
+  const { toolbarHidden, handleScroll } = useScrollToolbarHide();
+  const [headerHeight, setHeaderHeight] = useState(170);
+  const onHeaderLayout = useCallback((e: LayoutChangeEvent) => {
+    const h = e.nativeEvent.layout.height;
+    if (h > 0 && Math.abs(h - headerHeight) > 1) {
+      setHeaderHeight(h);
+    }
+  }, [headerHeight]);
+  const hideOffset = useSharedValue(0);
+  useEffect(() => {
+    hideOffset.value = withTiming(toolbarHidden ? -headerHeight : 0, {
+      duration: 200,
+    });
+  }, [toolbarHidden, headerHeight, hideOffset]);
+  const headerAnimStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: hideOffset.value }],
+  }));
+
   return (
     <>
       <Stack.Screen options={{ headerShown: false }} />
       <View style={[styles.container, { paddingTop: insets.top }]}>
-        <View style={styles.header}>
-          {/* Interest switcher pill — matches the chrome on other tabs so
-              users can switch interests from Inbox without backing out. */}
-          <View style={styles.interestRow}>
-            <InterestSwitcher />
-          </View>
+        <Animated.View
+          style={[
+            styles.header,
+            styles.headerOverlay,
+            { top: insets.top },
+            headerAnimStyle,
+          ]}
+          onLayout={onHeaderLayout}
+        >
+          {/* Top chrome row — interest pill on the left, action icons
+              on the right. Matches CanvasTopBar's pattern so the same
+              affordances (+, chat to /messages, avatar dropdown) are
+              reachable from /inbox too. */}
+          <InboxTopRow />
           <Text style={styles.title}>Inbox</Text>
           <View style={styles.segRow}>
             <SegmentPill
@@ -184,13 +225,16 @@ export default function InboxTabScreen() {
               onPress={() => setSegment('done')}
             />
           </View>
-        </View>
+        </Animated.View>
 
         <ScrollView
           style={styles.body}
           contentContainerStyle={{
+            paddingTop: headerHeight,
             paddingBottom: FLOATING_TAB_BAR_HEIGHT + insets.bottom + 32,
           }}
+          onScroll={handleScroll}
+          scrollEventThrottle={16}
         >
           {segment === 'act' && (
             <ActPanel
@@ -220,6 +264,55 @@ export default function InboxTabScreen() {
         </ScrollView>
       </View>
     </>
+  );
+}
+
+/**
+ * Inbox top-chrome row — interest pill on the left, action icons on
+ * the right. Mirrors the CanvasTopBar pattern from /(tabs)/races so
+ * the same affordances are reachable from /inbox.
+ */
+function InboxTopRow() {
+  const universalPlus = useUniversalPlus();
+  const { unreadCount: msgsUnread } = useCrewThreadsUnreadCount();
+  return (
+    <View style={styles.topRow}>
+      <View style={styles.topRowLeft}>
+        <InterestSwitcher />
+      </View>
+      <View style={styles.topRowRight}>
+        {universalPlus.isAvailable ? (
+          <Pressable
+            onPress={universalPlus.open}
+            hitSlop={6}
+            style={styles.topIconBtn}
+            accessibilityLabel="Add"
+          >
+            <Ionicons name="add" size={22} color={IOS_REGISTER.label} />
+          </Pressable>
+        ) : null}
+        <Pressable
+          onPress={() => router.push('/messages' as never)}
+          hitSlop={6}
+          style={styles.topIconBtn}
+          accessibilityLabel="Messages"
+        >
+          <Ionicons
+            name="chatbubble-ellipses-outline"
+            size={18}
+            color={IOS_REGISTER.label}
+          />
+          {msgsUnread > 0 ? (
+            <View style={styles.topIconBadge}>
+              <Text style={styles.topIconBadgeText}>
+                {msgsUnread > 9 ? '9+' : msgsUnread}
+              </Text>
+            </View>
+          ) : null}
+        </Pressable>
+        <ProfileDropdown />
+      </View>
+    </View>
   );
 }
 
@@ -694,10 +787,58 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: IOS_REGISTER.separator,
   },
+  headerOverlay: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: 0,
+    zIndex: 10,
+  },
   interestRow: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 8,
+  },
+  topRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  topRowLeft: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  topRowRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  topIconBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+  },
+  topIconBadge: {
+    position: 'absolute',
+    top: 2,
+    right: 0,
+    minWidth: 14,
+    height: 14,
+    paddingHorizontal: 3,
+    borderRadius: 7,
+    backgroundColor: IOS_COLORS.systemRed,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  topIconBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 9,
+    fontWeight: '700',
   },
   title: {
     fontSize: 32,
