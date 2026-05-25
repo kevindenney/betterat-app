@@ -1603,7 +1603,17 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   focusStepCard: {
-    marginTop: 6,
+    // Identity-deck L1 is the focused, most-zoomed step surface. It should
+    // read as the screen itself, not as an inset card inside another canvas.
+    marginHorizontal: 0,
+    marginTop: 0,
+    marginBottom: 0,
+    borderRadius: 0,
+    borderWidth: 0,
+    shadowOpacity: 0,
+    shadowRadius: 0,
+    shadowOffset: { width: 0, height: 0 },
+    elevation: 0,
   },
   autoSaveIndicator: {
     flexDirection: 'row',

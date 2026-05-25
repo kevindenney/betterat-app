@@ -74,7 +74,6 @@ const PHASES = ['Plan', 'Do', 'Reflect', 'Discuss'] as const;
 const SWIPE_PX_THRESHOLD = 60;
 const SWIPE_VELOCITY_THRESHOLD = 600;
 const SWIPE_RUBBER_FACTOR = 0.5; // drag follows finger but dampened
-const PEEK_WIDTH = 18;
 
 export function L1StepView({
   step,
@@ -82,8 +81,8 @@ export function L1StepView({
   embedFullDetail,
   onSwipePrev,
   onSwipeNext,
-  prevStepTitle,
-  nextStepTitle,
+  prevStepTitle: _prevStepTitle,
+  nextStepTitle: _nextStepTitle,
 }: L1StepViewProps) {
   const translateX = useSharedValue(0);
   const passedThreshold = useSharedValue(false);
@@ -156,25 +155,6 @@ export function L1StepView({
         <View style={styles.embedNowPill}>
           <Text style={styles.embedNowPillText}>NOW</Text>
         </View>
-
-        {/* Adjacent-step peek slabs — thin vertical strips at the edges
-            so the user can see "there's a card here." Tap to swipe. */}
-        {prevStepTitle ? (
-          <Pressable
-            style={styles.peekLeft}
-            onPress={() => fireSwipe('prev')}
-            accessibilityRole="button"
-            accessibilityLabel={`Previous step: ${prevStepTitle}`}
-          />
-        ) : null}
-        {nextStepTitle ? (
-          <Pressable
-            style={styles.peekRight}
-            onPress={() => fireSwipe('next')}
-            accessibilityRole="button"
-            accessibilityLabel={`Next step: ${nextStepTitle}`}
-          />
-        ) : null}
 
         <GestureDetector gesture={swipeGesture}>
           <Animated.View style={[styles.embedContent, translateStyle]}>
@@ -423,44 +403,10 @@ const styles = StyleSheet.create({
   embedDetailHost: { flex: 1 },
   embedContent: {
     flex: 1,
-    // Active card surface — sits *on top of* the peek slabs so the eye
-    // reads a stacked-deck effect: gray plate behind, white card on top.
+    // Most-zoomed L1 is a focused full-screen step detail. Adjacent-card
+    // peeks live one zoom level out, not here.
     backgroundColor: IOS_REGISTER.cardBg,
-    // Inset both sides slightly so the peeks are visible just past the
-    // card edge — gives the "edge of the deck" silhouette.
-    marginHorizontal: PEEK_WIDTH - 4,
-    // Slight shadow so the active card sits visually above the peeks.
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 6,
-    elevation: 2,
     zIndex: 2,
-  },
-  peekLeft: {
-    position: 'absolute',
-    left: 3, // sit just inside the NOW bar
-    top: 40,
-    bottom: 40,
-    width: PEEK_WIDTH,
-    // Darker than the active card — reads as the card behind. Tuned so
-    // the silhouette is unmistakably "another card" without competing
-    // with the focused card's content for the eye.
-    backgroundColor: '#D5D5DA',
-    borderTopRightRadius: 4,
-    borderBottomRightRadius: 4,
-    zIndex: 1,
-  },
-  peekRight: {
-    position: 'absolute',
-    right: 0,
-    top: 40,
-    bottom: 40,
-    width: PEEK_WIDTH,
-    backgroundColor: '#D5D5DA',
-    borderTopLeftRadius: 4,
-    borderBottomLeftRadius: 4,
-    zIndex: 1,
   },
   scroll: { flex: 1 },
   scrollContent: {
