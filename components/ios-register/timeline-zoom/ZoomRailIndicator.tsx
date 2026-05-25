@@ -8,8 +8,8 @@
  * into a labeled menu with a "Snap to current step" escape hatch (Frame 10).
  */
 
-import React, { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { Keyboard, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { IOS_REGISTER } from '@/lib/design-tokens-ios';
@@ -29,6 +29,28 @@ export function ZoomRailIndicator({
   onSnapToCurrent,
 }: ZoomRailIndicatorProps) {
   const [menuOpen, setMenuOpen] = useState(false);
+  // Hide the rail whenever the soft keyboard is up so it doesn't occlude
+  // bottom-anchored inputs (Discuss compose send button, sub-step editor,
+  // brain-dump textarea). The user is composing — they don't need to zoom
+  // right then, and the rail reappears the moment the keyboard dismisses.
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
+  useEffect(() => {
+    const show = Keyboard.addListener('keyboardWillShow', () => setKeyboardVisible(true));
+    const hide = Keyboard.addListener('keyboardWillHide', () => setKeyboardVisible(false));
+    // Android fires `keyboardDidShow`/`keyboardDidHide` instead of the
+    // iOS-only `Will*` events. Subscribing to both is safe (no-op on
+    // platforms that don't emit them).
+    const showDid = Keyboard.addListener('keyboardDidShow', () => setKeyboardVisible(true));
+    const hideDid = Keyboard.addListener('keyboardDidHide', () => setKeyboardVisible(false));
+    return () => {
+      show.remove();
+      hide.remove();
+      showDid.remove();
+      hideDid.remove();
+    };
+  }, []);
+
+  if (keyboardVisible) return null;
 
   return (
     <View pointerEvents="box-none" style={styles.rail}>
