@@ -134,7 +134,7 @@ export function L2WeekView({
 
   return (
     <View style={styles.container}>
-      <Text style={styles.verbEyebrow}>ZOOM · FEW · PLANNING</Text>
+      <Text style={styles.verbEyebrow}>ZOOM · THIS WEEK · PLANNING</Text>
       {currentWeek?.contextStrip ? (
         <Text style={styles.contextStrip}>{currentWeek.contextStrip}</Text>
       ) : null}

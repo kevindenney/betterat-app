@@ -26,17 +26,17 @@ interface ZoomEmptyStateProps {
 
 const COPY: Record<1 | 2 | 3, { verb: string; title: string; body: string }> = {
   1: {
-    verb: 'ZOOM · STEP · DOING',
+    verb: 'ZOOM · ONE STEP · DOING',
     title: 'No step in focus yet',
     body: 'Add your first step in this interest to start practicing.',
   },
   2: {
-    verb: 'ZOOM · FEW · PLANNING',
+    verb: 'ZOOM · THIS WEEK · PLANNING',
     title: 'No steps this week',
     body: 'Add a step or pick a day to plan toward.',
   },
   3: {
-    verb: 'ZOOM · SEASON · REFLECTING ON NOW',
+    verb: 'ZOOM · THIS SEASON · REFLECTING',
     title: 'This rotation is just starting',
     body: 'Add a step to begin the season arc. The capability river will fill in as you practice.',
   },

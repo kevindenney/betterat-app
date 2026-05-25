@@ -50,7 +50,11 @@ import { ZoomEmptyState } from './EmptyStates';
 import { SelectActionBar } from './SelectActionBar';
 import { useSelectMode } from './useSelectMode';
 import { ZoomRailIndicator } from './ZoomRailIndicator';
-import { ZOOM_LEVEL_LABELS, type TimelineDataset, type ZoomLevel } from './types';
+import {
+  ZOOM_LEVEL_SCOPE_LABELS,
+  type TimelineDataset,
+  type ZoomLevel,
+} from './types';
 
 interface TimelineZoomCanvasProps {
   dataset: TimelineDataset;
@@ -127,10 +131,6 @@ const HINT_IN = 1.12;
 const HINT_OUT = 0.88;
 const ZOOM_IN_SNAP = 1.6;
 const ZOOM_OUT_SNAP = 0.6;
-
-function titleCase(label: string): string {
-  return label.charAt(0) + label.slice(1).toLowerCase();
-}
 
 export function TimelineZoomCanvas({
   dataset,
@@ -420,11 +420,12 @@ export function TimelineZoomCanvas({
             }
             onUnsupportedAction={(id) => onUnsupportedBulkAction?.(id)}
           />
-        ) : isFocusedStepSurface ? null : (
+        ) : (
           <ZoomRailIndicator
             level={level}
             onChange={setLevel}
             onSnapToCurrent={handleSnapToCurrent}
+            topOffset={isFocusedStepSurface ? 44 : 92}
           />
         )}
       </View>
@@ -454,7 +455,7 @@ function PinchHintPill({ from, to, direction }: PinchHintPillProps) {
     <Animated.View pointerEvents="none" style={[styles.hintPillWrap, animStyle]}>
       <View style={styles.hintPill}>
         <Text style={styles.hintTitle}>
-          {titleCase(ZOOM_LEVEL_LABELS[from])} → {titleCase(ZOOM_LEVEL_LABELS[to])}
+          {ZOOM_LEVEL_SCOPE_LABELS[from]} → {ZOOM_LEVEL_SCOPE_LABELS[to]}
         </Text>
         <Text style={styles.hintSub}>
           {direction === 'in' ? 'PINCH TO ZOOM IN' : 'PINCH TO ZOOM OUT'}

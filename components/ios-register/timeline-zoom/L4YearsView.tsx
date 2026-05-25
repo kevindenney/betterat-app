@@ -150,7 +150,7 @@ export function L4YearsView({
       showsVerticalScrollIndicator={false}
     >
       <View style={styles.headerBlock}>
-        <Text style={styles.eyebrow}>ZOOM · ALL TIME · REFLECTING ON A LIFE</Text>
+        <Text style={styles.eyebrow}>ZOOM · ALL TIME · REFLECTING</Text>
         <Text style={styles.title}>All your steps</Text>
         <Text style={styles.subtitle}>
           {dataset.totalSeasons} seasons · {dataset.totalSteps} steps · since {dataset.sinceDate}

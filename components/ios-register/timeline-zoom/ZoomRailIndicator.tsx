@@ -20,26 +20,28 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 
 import { IOS_REGISTER } from '@/lib/design-tokens-ios';
-import { ZOOM_LEVEL_LABELS, type ZoomLevel } from './types';
+import { ZOOM_LEVEL_LABELS, ZOOM_LEVEL_SCOPE_LABELS, type ZoomLevel } from './types';
 
 interface ZoomRailIndicatorProps {
   level: ZoomLevel;
   onChange: (next: ZoomLevel) => void;
   onSnapToCurrent?: () => void;
+  topOffset?: number;
 }
 
 const LEVELS: ZoomLevel[] = [1, 2, 3, 4];
 const LEVEL_COPY: Record<ZoomLevel, { title: string; subtitle: string }> = {
-  1: { title: 'One step', subtitle: 'Plan, do, review, discuss' },
-  2: { title: 'This week', subtitle: 'A few nearby steps' },
-  3: { title: 'This season', subtitle: 'Patterns across the rotation' },
-  4: { title: 'All time', subtitle: 'Long view of your practice' },
+  1: { title: ZOOM_LEVEL_SCOPE_LABELS[1], subtitle: 'Plan, do, review, discuss' },
+  2: { title: ZOOM_LEVEL_SCOPE_LABELS[2], subtitle: 'A few nearby steps' },
+  3: { title: ZOOM_LEVEL_SCOPE_LABELS[3], subtitle: 'Patterns across the rotation' },
+  4: { title: ZOOM_LEVEL_SCOPE_LABELS[4], subtitle: 'Long view of your practice' },
 };
 
 export function ZoomRailIndicator({
   level,
   onChange,
   onSnapToCurrent,
+  topOffset = 92,
 }: ZoomRailIndicatorProps) {
   const [sheetOpen, setSheetOpen] = useState(false);
   const [keyboardVisible, setKeyboardVisible] = useState(false);
@@ -60,7 +62,7 @@ export function ZoomRailIndicator({
   if (keyboardVisible) return null;
 
   return (
-    <View pointerEvents="box-none" style={styles.wrap}>
+    <View pointerEvents="box-none" style={[styles.wrap, { top: topOffset }]}>
       <Pressable
         style={styles.button}
         onPress={() => setSheetOpen(true)}
@@ -82,8 +84,8 @@ export function ZoomRailIndicator({
           <Pressable style={StyleSheet.absoluteFill} onPress={() => setSheetOpen(false)} />
           <View style={styles.sheet}>
             <View style={styles.grabber} />
-            <Text style={styles.sheetTitle}>Zoom scope</Text>
-            <Text style={styles.sheetSub}>Pinch in or out anywhere on the timeline.</Text>
+            <Text style={styles.sheetTitle}>View scope</Text>
+            <Text style={styles.sheetSub}>Pinch in or out, or choose a scope.</Text>
 
             {LEVELS.map((lvl) => {
               const active = lvl === level;
@@ -142,7 +144,6 @@ const styles = StyleSheet.create({
   wrap: {
     position: 'absolute',
     right: 16,
-    top: 92,
     alignItems: 'flex-end',
   },
   button: {

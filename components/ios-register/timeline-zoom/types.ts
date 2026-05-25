@@ -17,6 +17,13 @@ export const ZOOM_LEVEL_LABELS: Record<ZoomLevel, string> = {
   4: 'ALL',
 };
 
+export const ZOOM_LEVEL_SCOPE_LABELS: Record<ZoomLevel, string> = {
+  1: 'One step',
+  2: 'This week',
+  3: 'This season',
+  4: 'All time',
+};
+
 export type StepStatus = 'plan' | 'do' | 'reflect' | 'reflected' | 'done';
 
 export type DayKey = 'mon' | 'tue' | 'wed' | 'thu' | 'fri' | 'sat' | 'sun';

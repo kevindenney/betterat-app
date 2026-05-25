@@ -159,7 +159,7 @@ export function L1StepView({
         <GestureDetector gesture={swipeGesture}>
           <Animated.View style={[styles.embedContent, translateStyle]}>
             <View style={styles.embedChrome}>
-              <Text style={styles.verbEyebrow}>ZOOM · STEP · DOING</Text>
+              <Text style={styles.verbEyebrow}>ZOOM · ONE STEP · DOING</Text>
               {step.peerQuote ? <PeerQuoteBlock quote={step.peerQuote} /> : null}
               {step.subStep ? <SessionStrap step={step} /> : null}
             </View>
@@ -206,7 +206,7 @@ export function L1StepView({
           </View>
         ) : null}
 
-        <Text style={styles.verbEyebrow}>ZOOM · STEP · DOING</Text>
+        <Text style={styles.verbEyebrow}>ZOOM · ONE STEP · DOING</Text>
 
         {step.peerQuote ? <PeerQuoteBlock quote={step.peerQuote} /> : null}
         {step.subStep ? <SessionStrap step={step} /> : null}
