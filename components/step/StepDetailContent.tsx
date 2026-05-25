@@ -33,6 +33,7 @@ import { CommentsSection } from '@/components/social/CommentsSection';
 import { useStepComments, useAddStepComment, useDeleteStepComment } from '@/hooks/useStepComments';
 import { structureBrainDump } from '@/services/ai/StepPlanAIService';
 import { saveUrlsToLibrary } from '@/services/ai/BrainDumpAIService';
+import { dropInsight } from '@/services/QuickCaptureService';
 import { getSkillGoalTitles } from '@/services/SkillGoalService';
 import { resolveEntities, buildEntityInput } from '@/services/ai/EntityResolutionService';
 import { enrichDateForSailing } from '@/services/ai/DateEnrichmentService';
@@ -1262,6 +1263,22 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab }
       />
     ) : null;
 
+    const handleMarkReflectionAsConcept = async () => {
+      if (!user?.id || !latestReflection?.body?.trim()) return;
+      try {
+        await dropInsight({
+          userId: user.id,
+          interestId: step?.interest_id ?? currentInterest?.id ?? null,
+          payload: { kind: 'text', content: latestReflection.body.trim() },
+        });
+        showAlert('Saved to Library', 'Concept seed added to Recent insights.');
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : 'Could not save concept seed.';
+        showAlert('Save failed', message);
+      }
+    };
+
     const peerQuoteEl =
       useIdentityDeck && latestReflection ? (
         <PeerReflectionQuote
@@ -1271,6 +1288,7 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab }
           body={latestReflection.body}
           when={latestReflection.when}
           onReply={goDiscussion}
+          onMarkAsConcept={handleMarkReflectionAsConcept}
         />
       ) : null;
 

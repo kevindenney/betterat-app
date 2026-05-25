@@ -689,11 +689,19 @@ export function PlanTab({
         </View>
       )}
 
-      <WhyWithWhereSummary
-        why={planData.why_reasoning}
-        collaborators={collaborators}
-        location={planData.where_location?.name ?? null}
-      />
+      {/* The WhyWithWhereSummary italic-serif line sits at the top of the
+          Plan body for non-v3 surfaces. When STEP_IDENTITY_DECK_V3 is on,
+          the canonical Screen 01 (Identity Deck 05C+) uses the lilac
+          latest-peer-reflection quote *above* the phase tabs to carry
+          that narrative role — surfacing both would double-narrate the
+          step's "why." Suppress the inline summary in that case. */}
+      {!FEATURE_FLAGS.STEP_IDENTITY_DECK_V3 ? (
+        <WhyWithWhereSummary
+          why={planData.why_reasoning}
+          collaborators={collaborators}
+          location={planData.where_location?.name ?? null}
+        />
+      ) : null}
 
       {/* Q1: What will you do? */}
       <PlanQuestionCard
@@ -788,24 +796,6 @@ export function PlanTab({
           subSteps={planData.how_sub_steps ?? []}
           onChange={readOnly ? () => {} : handleSubStepsChange}
           readOnly={readOnly}
-        />
-      </PlanQuestionCard>
-
-      {/* Q3: Why is this next? */}
-      <PlanQuestionCard
-        icon="help-circle-outline"
-        title="why"
-        isComplete={q3Complete}
-      >
-        <TextInput
-          style={[styles.textArea, readOnly && styles.readOnlyInput]}
-          value={planData.why_reasoning ?? ''}
-          onChangeText={readOnly ? undefined : (text) => onUpdate({ why_reasoning: text })}
-          placeholder={readOnly ? '' : catLabels.placeholders.why}
-          placeholderTextColor={IOS_COLORS.tertiaryLabel}
-          multiline
-          textAlignVertical="top"
-          editable={!readOnly}
         />
       </PlanQuestionCard>
 
@@ -924,6 +914,28 @@ export function PlanTab({
             <Text style={styles.addLibraryText}>Pick on map</Text>
           </Pressable>
         )}
+      </PlanQuestionCard>
+
+      {/* Q3: Why is this next? — moved to the bottom of the task questions
+          per canonical Screen 01 ordering. With the lilac peer-reflection
+          quote above the phase tabs already carrying the why, the editable
+          why card stays available but doesn't crowd the task-first
+          arrangement of what / how / who / where. */}
+      <PlanQuestionCard
+        icon="help-circle-outline"
+        title="why"
+        isComplete={q3Complete}
+      >
+        <TextInput
+          style={[styles.textArea, readOnly && styles.readOnlyInput]}
+          value={planData.why_reasoning ?? ''}
+          onChangeText={readOnly ? undefined : (text) => onUpdate({ why_reasoning: text })}
+          placeholder={readOnly ? '' : catLabels.placeholders.why}
+          placeholderTextColor={IOS_COLORS.tertiaryLabel}
+          multiline
+          textAlignVertical="top"
+          editable={!readOnly}
+        />
       </PlanQuestionCard>
 
       {/* Q5: Competencies */}
