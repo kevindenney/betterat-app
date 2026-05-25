@@ -1419,12 +1419,17 @@ function FrameF4({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
   // Pin tap state — race-marks/peer/POI/cohort cells all route through
   // selectedPin so the sheet swap is one place. Mirror of FrameF1.
   const [selectedPin, setSelectedPin] = useState<AtlasPinSpec | null>(null);
+  const [nextEventSheetOpen, setNextEventSheetOpen] = useState(false);
   const handleF4PinPress = useCallback((pin: AtlasPinSpec) => {
     setLayersOpen(false);
+    // Tapping a pin while the NEXT-clinical sheet is open should swap
+    // to the pin's detail sheet, not stack behind the NEXT sheet. The
+    // bottom-sheet render order priorities NEXT over selectedPin, so
+    // we have to close NEXT explicitly here.
+    setNextEventSheetOpen(false);
     setSelectedPin(pin);
   }, []);
   const clearF4SelectedPin = useCallback(() => setSelectedPin(null), []);
-  const [nextEventSheetOpen, setNextEventSheetOpen] = useState(false);
   const handleNextEventTap = useCallback(() => {
     setLayersOpen(false);
     setSelectedPin(null);
@@ -1538,6 +1543,12 @@ function FrameF4({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
           eyebrow={`TOMORROW · ${nextNursing.label.toUpperCase()}${nextNursing.when ? ` · ${nextNursing.when.toUpperCase()}` : ''}`}
           title={nextNursing.where ?? 'Your next clinical'}
           source={nextNursing.source_label}
+          onSourcePress={() =>
+            comingSoonAlert(
+              'Open source',
+              "Tapping the source line will open whatever surfaced this NEXT pill — a blueprint (e.g. MSN Acute Care · Week 6), a program session scheduled by your cohort lead, or your own timeline. The provenance routing ships with Phase 8 (pin source attribution).",
+            )
+          }
           body={[
             nextNursing.conditions,
             'Bring: stethoscope, scrub colors, badge.',
@@ -2020,6 +2031,12 @@ function FrameF7({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
           eyebrow={`TOMORROW · ${nextHaat.label.toUpperCase()}${nextHaat.when ? ` · ${nextHaat.when.toUpperCase()}` : ''}`}
           title={nextHaat.where ?? 'Your next market'}
           source={nextHaat.source_label}
+          onSourcePress={() =>
+            comingSoonAlert(
+              'Open source',
+              "Tapping the source line will open whatever surfaced this NEXT haat — your own pin, an NGO blueprint (e.g. SEWA Bharat weekly markets), or a government scheme. Provenance routing ships with Phase 8.",
+            )
+          }
           body={[
             nextHaat.conditions,
             '5 suppliers report fresh stock. 1 mentee posted nearby this morning.',
@@ -2181,6 +2198,13 @@ interface BottomSheetProps {
    * to expand the sheet.
    */
   source?: string;
+  /**
+   * When provided, the source line renders as a Pressable that fires
+   * this callback — lets users drill into the blueprint, program, or
+   * schedule that surfaced the NEXT event. Optional; if omitted source
+   * is static text.
+   */
+  onSourcePress?: () => void;
   body?: string;
   peerHeader?: { name: string; quote: string; eyebrow: string };
   statsRow?: StatItem[];
@@ -2199,6 +2223,7 @@ function BottomSheet({
   eyebrow,
   title,
   source,
+  onSourcePress,
   body,
   peerHeader,
   statsRow,
@@ -2255,7 +2280,15 @@ function BottomSheet({
         </View>
       ) : null}
       {showMid && title ? <Text style={shellStyles.sheetTitle} numberOfLines={showFull ? undefined : 1}>{title}</Text> : null}
-      {showMid && source ? <Text style={shellStyles.sheetSource}>{source}</Text> : null}
+      {showMid && source ? (
+        onSourcePress ? (
+          <Pressable onPress={onSourcePress} hitSlop={6}>
+            <Text style={[shellStyles.sheetSource, shellStyles.sheetSourceLink]}>{source}</Text>
+          </Pressable>
+        ) : (
+          <Text style={shellStyles.sheetSource}>{source}</Text>
+        )
+      ) : null}
       {showFull && body ? <Text style={shellStyles.sheetBody}>{body}</Text> : null}
       {showFull && statsRow ? (
         <View style={shellStyles.statsRow}>
@@ -2798,6 +2831,10 @@ const shellStyles = StyleSheet.create({
     color: IOS_REGISTER.labelTertiary,
     fontStyle: 'italic',
     letterSpacing: -0.05,
+  },
+  sheetSourceLink: {
+    color: '#007AFF',
+    textDecorationLine: 'underline',
   },
   statsRow: {
     marginTop: 8,

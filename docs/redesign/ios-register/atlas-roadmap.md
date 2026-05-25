@@ -61,6 +61,15 @@ Item 6 from F7 walkthrough — deferred because the audio-recording surface does
 - ⬜ C.3 — Step extraction: voice → transcript → AI step proposal (reuse existing AddStep AI flow)
 - ⬜ C.4 — Wire Voice memo CTA on F7 NEXT-haat sheet to capture flow
 
+### ⬜ Phase G — Chip selected-state visual fix
+Walkthrough 2026-05-25 surfaced: black-bg active chip + light-gray inactive chip reads ambiguous — users (validly) interpret black as "off / disabled" and gray as "on / active." Switch active state to iOS systemBlue with white text (matches iOS HIG segmented control). Optional: add small checkmark glyph for redundant affordance. Touches `shellStyles.chipActive` + FilterChip render.
+
+### ⬜ Phase H — Walk-time annotations need visible line connectors
+"2 min" / "4 min" labels float in midair between same-campus POIs (JHH ↔ Pinkard, Sibley ↔ Suburban). Users can't tell which two pins they connect. Add a thin gray line (~1px dashed) between the endpoint pins, label centered on midpoint. Touches `useWalkTimeAnnotations` (emit endpoint pairs) + AtlasMapLibreCanvas (render line layer).
+
+### ⬜ Phase I — Heatmap legend popover
+"Cohort heatmap · this week" pill needs a tap-to-explain affordance. Show small floating card explaining: hex size = step count, color = dominant competency (cardiac=red, respiratory=blue, medication=teal, general=gray), source = your cohort's last 7 days. Same pattern works for the F7 entrepreneur frame when we add density layers.
+
 ### ⬜ Phase F — Reach-out channel sheet
 When a user taps "Reach out" on a mentor/peer/preceptor/mentee pin, surface a channel-aware action sheet:
 - US/EU professional → email primary, in-app secondary
