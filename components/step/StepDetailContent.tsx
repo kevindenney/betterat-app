@@ -1309,26 +1309,28 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab }
         />
       ) : null;
 
-    return (
-      <View style={[styles.container, stepLoopShellStyles.screen]}>
-        <TopHeader
-          interestName={currentInterest?.name ?? undefined}
-          onInterestPress={openInterestSwitcher}
-          stepCounter={step.title ? undefined : 'Step'}
-          rightCluster={
-            universalPlus.isAvailable ? (
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Add"
-                onPress={universalPlus.open}
-                hitSlop={8}
-                style={styles.topPlusButton}
-              >
-                <PlusIcon size={20} color={LABEL_2} strokeWidth={2} />
-              </Pressable>
-            ) : null
-          }
-        />
+      return (
+        <View style={[styles.container, stepLoopShellStyles.screen]}>
+        {useIdentityDeck ? null : (
+          <TopHeader
+            interestName={currentInterest?.name ?? undefined}
+            onInterestPress={openInterestSwitcher}
+            stepCounter={step.title ? undefined : 'Step'}
+            rightCluster={
+              universalPlus.isAvailable ? (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Add"
+                  onPress={universalPlus.open}
+                  hitSlop={8}
+                  style={styles.topPlusButton}
+                >
+                  <PlusIcon size={20} color={LABEL_2} strokeWidth={2} />
+                </Pressable>
+              ) : null
+            }
+          />
+        )}
         {/* The rich blueprint chrome card (Pre-Clinical · Step 5 of 5 ›
             with WITH/Fleet row) was demoted in the header redesign pass.
             The small "PRE-CLINICAL · STEP 5" eyebrow above the title now
@@ -1344,6 +1346,7 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab }
         ) : null}
         <StepCard
           scrollAsUnit
+          style={useIdentityDeck ? styles.focusStepCard : undefined}
           pill={<StatePill variant={pillSpec.variant} label={pillSpec.label} />}
           onMenuPress={() => setMenuOpen(true)}
           titleBlock={useIdentityDeck ? identityDeckEl : headerInner}
@@ -1598,6 +1601,9 @@ const styles = StyleSheet.create({
     height: 32,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  focusStepCard: {
+    marginTop: 6,
   },
   autoSaveIndicator: {
     flexDirection: 'row',

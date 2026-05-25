@@ -32,6 +32,19 @@ export function BeforeTheShiftCard({
   onToggle,
   onAddFromLibrary,
 }: Props) {
+  if (items.length === 0) {
+    return (
+      <TouchableOpacity
+        onPress={onAddFromLibrary}
+        activeOpacity={0.65}
+        style={styles.emptyRow}
+      >
+        <Ionicons name="bookmark-outline" size={14} color="#5C2DAA" />
+        <Text style={styles.emptyRowText}>Pin from library</Text>
+      </TouchableOpacity>
+    );
+  }
+
   return (
     <View style={styles.card}>
       <View style={styles.head}>
@@ -43,12 +56,6 @@ export function BeforeTheShiftCard({
           <Text style={styles.est}>{totalEstimate}</Text>
         ) : null}
       </View>
-
-      {items.length === 0 ? (
-        <Text style={styles.emptyHint}>
-          Pin a link, PDF, or note you want to skim before doing this.
-        </Text>
-      ) : null}
 
       {items.map((item) => {
         const tint = FORMAT_TINT[item.format];
@@ -129,11 +136,19 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: IOS_COLORS.tertiaryLabel,
   },
-  emptyHint: {
-    fontSize: 12,
-    color: IOS_COLORS.secondaryLabel,
-    lineHeight: 16,
+  emptyRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    alignSelf: 'flex-start',
+    paddingHorizontal: 2,
     paddingVertical: 4,
+  },
+  emptyRowText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#5C2DAA',
+    letterSpacing: -0.05,
   },
   row: {
     flexDirection: 'row',

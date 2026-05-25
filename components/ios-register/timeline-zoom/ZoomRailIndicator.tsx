@@ -135,30 +135,30 @@ export function ZoomRailIndicator({
 const styles = StyleSheet.create({
   rail: {
     position: 'absolute',
-    right: 8,
-    bottom: 84, // sits above the taskbar
+    right: 2,
+    bottom: 142, // floats above tab bar + Discuss badge/input zone
     alignItems: 'flex-end',
     gap: 4,
   },
   stack: {
     // Tall vertical capsule containing all four cells — matches the
     // canonical Screen 07 "STEP / FEW / SEASON / ALL" rail.
-    backgroundColor: 'rgba(120, 120, 128, 0.18)',
+    backgroundColor: 'rgba(120, 120, 128, 0.14)',
     borderRadius: 22,
-    paddingVertical: 6,
-    paddingHorizontal: 6,
+    paddingVertical: 5,
+    paddingHorizontal: 4,
     alignItems: 'center',
     gap: 2,
   },
   cell: {
-    minWidth: 48,
-    height: 32,
+    minWidth: 42,
+    height: 30,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 4,
   },
   activeChip: {
-    paddingHorizontal: 10,
+    paddingHorizontal: 9,
     paddingVertical: 5,
     borderRadius: 14,
     backgroundColor: '#1F1F1F',
@@ -178,7 +178,7 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '700',
     letterSpacing: 0.6,
-    color: 'rgba(60, 60, 67, 0.35)',
+    color: 'rgba(60, 60, 67, 0.28)',
   },
   // Long-press menu
   menu: {
