@@ -455,10 +455,9 @@ const styles = StyleSheet.create({
     bottom: 96, // clear the floating tab bar
   },
   suggestedWrap: {
-    position: 'absolute',
-    left: 16,
-    right: 16,
-    bottom: 238,
+    marginHorizontal: 16,
+    marginTop: 10,
+    marginBottom: 180,
     gap: 6,
   },
   suggestedHeader: {
@@ -575,7 +574,7 @@ const styles = StyleSheet.create({
   },
   cardCarousel: {
     paddingHorizontal: 16,
-    paddingBottom: 240, // floating tab bar (96) + librarian hint (~140) + breathing room
+    paddingBottom: 18,
     gap: CARD_GAP,
   },
   emptyInline: {
