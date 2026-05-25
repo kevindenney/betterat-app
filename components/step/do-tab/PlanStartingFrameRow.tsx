@@ -42,7 +42,7 @@ export function PlanStartingFrameRow({
         <Ionicons name="sparkles" size={14} color="#FFFFFF" />
       </View>
       <View style={styles.text}>
-        <Text style={styles.title}>Auto-summarize my Plan as a starting frame</Text>
+        <Text style={styles.title}>Use plan as starting frame</Text>
         <Text style={styles.sub}>
           Pull <Text style={styles.subEm}>What · How · Why</Text> into Do as opening context
         </Text>
@@ -57,12 +57,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: IOS_SPACING.sm,
-    paddingVertical: IOS_SPACING.sm,
-    paddingHorizontal: IOS_SPACING.md,
-    borderRadius: 12,
-    backgroundColor: IOS_COLORS.systemGray6,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    borderRadius: 10,
+    backgroundColor: 'transparent',
     borderWidth: 1,
-    borderColor: IOS_COLORS.systemGray5,
+    borderColor: 'transparent',
   },
   rowPressed: {
     opacity: 0.7,
@@ -71,10 +71,10 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   glyph: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: IOS_COLORS.systemBlue,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: 'rgba(0, 122, 255, 0.85)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -82,9 +82,9 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   title: {
-    fontSize: 13,
+    fontSize: 12.5,
     fontWeight: '600',
-    color: IOS_COLORS.label,
+    color: IOS_COLORS.secondaryLabel,
   },
   sub: {
     fontSize: 11,

@@ -81,8 +81,9 @@ export function DoStartCard({
 
   return (
     <View style={styles.card}>
-      <Text style={styles.title}>Start capturing</Text>
-      <Text style={styles.subtitle}>Voice, photo, or quick notes — capture as you go.</Text>
+      <Text style={styles.eyebrow}>Live capture</Text>
+      <Text style={styles.title}>What is happening?</Text>
+      <Text style={styles.subtitle}>Voice, photo, or quick notes. Capture the moment first; organize it later.</Text>
 
       <View style={styles.duo}>
         <CaptureButton
@@ -145,21 +146,34 @@ export function DoStartCard({
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: IOS_COLORS.systemBackground,
-    borderRadius: 14,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 18,
     borderWidth: 1,
-    borderColor: IOS_COLORS.systemGray5,
-    padding: IOS_SPACING.md,
-    gap: 4,
+    borderColor: 'rgba(0, 122, 255, 0.18)',
+    padding: IOS_SPACING.lg,
+    gap: 6,
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 3,
+  },
+  eyebrow: {
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 0.7,
+    color: IOS_COLORS.systemBlue,
+    textTransform: 'uppercase',
   },
   title: {
-    fontSize: 15,
+    fontSize: 20,
     fontWeight: '700',
     color: IOS_COLORS.label,
-    letterSpacing: -0.2,
+    letterSpacing: -0.4,
   },
   subtitle: {
-    fontSize: 13,
+    fontSize: 13.5,
+    lineHeight: 19,
     color: IOS_COLORS.secondaryLabel,
     marginBottom: IOS_SPACING.sm,
   },
@@ -174,9 +188,11 @@ const styles = StyleSheet.create({
     gap: 8,
     marginTop: IOS_SPACING.sm,
     paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 12,
-    backgroundColor: IOS_COLORS.systemGray6,
+    paddingVertical: 8,
+    borderRadius: 14,
+    backgroundColor: '#F7F8FA',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: IOS_COLORS.systemGray4,
   },
   composerIcon: {
     width: 24,
@@ -187,18 +203,18 @@ const styles = StyleSheet.create({
   },
   composerInput: {
     flex: 1,
-    minHeight: 36,
+    minHeight: 42,
     maxHeight: 120,
-    fontSize: 15,
-    lineHeight: 21,
+    fontSize: 16,
+    lineHeight: 22,
     color: IOS_COLORS.label,
     paddingVertical: 8,
     paddingHorizontal: 4,
   },
   sendBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: IOS_COLORS.systemBlue,
     alignItems: 'center',
     justifyContent: 'center',
@@ -210,8 +226,8 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     gap: 8,
-    paddingVertical: IOS_SPACING.sm,
-    borderRadius: 12,
+    paddingVertical: IOS_SPACING.md,
+    borderRadius: 14,
     backgroundColor: IOS_COLORS.systemGray6,
   },
   capBtnPressed: {
