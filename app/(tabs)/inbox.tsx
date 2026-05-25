@@ -81,7 +81,12 @@ export default function InboxTabScreen() {
     [items],
   );
   const actCount = actItems.length;
-  const readCount = readItems.length;
+  // Read segment count = active reflections + unread notifications, so the
+  // segment-pill total stays in sync with the bottom Inbox tab badge
+  // (which sums inbox_items + unread notifications). Without this, the
+  // badge would read "9+" while the Read pill only shows "1" reflection
+  // and the user wouldn't know where the other ~8 items live.
+  const readCount = readItems.length + notifUnreadCount;
 
   // Practice grouping — design key is "the practice each item is about."
   // The closest analog in the current data model is the source step the
