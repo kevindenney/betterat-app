@@ -18,10 +18,13 @@ import { useNotifications } from '@/hooks/useNotifications';
 
 export function useInboxCount() {
   const itemsQuery = useInboxItems();
-  const { unreadCount: notifUnread } = useNotifications();
+  const { rawNotifications } = useNotifications();
 
   const itemsCount = itemsQuery.data?.length ?? 0;
-  const total = itemsCount + (notifUnread ?? 0);
+  // RAW unread count (every individual unread row), not grouped — must
+  // match what the Read panel actually renders inside the Inbox.
+  const notifUnread = rawNotifications.filter((n) => !n.isRead).length;
+  const total = itemsCount + notifUnread;
   // Preserve the shape callers depend on by wrapping the merged total
   // back into the original query result.
   return { ...itemsQuery, data: total };

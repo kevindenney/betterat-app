@@ -53,13 +53,23 @@ export default function InboxTabScreen() {
   // Option-4 Pass 2: the Inbox absorbs social notifications. They land
   // in the Read panel as an ACTIVITY group below peer reflections —
   // same surface, same archive grammar, one unified unread weight.
+  //
+  // We deliberately use RAW unread (every individual notification row)
+  // rather than grouped unread (multi-notifications from one actor in
+  // a 24h window collapsed to 1). The bell icon used the grouped count
+  // for terseness, but inside the Inbox we render each row as its own
+  // card — so the count must match what the user can actually see.
   const {
     rawNotifications,
     isLoading: notifsLoading,
-    unreadCount: notifUnreadCount,
     markAsRead: markNotificationAsRead,
     markAllAsRead: markAllNotificationsAsRead,
   } = useNotifications();
+  const unreadNotifications = useMemo(
+    () => rawNotifications.filter((n) => !n.isRead),
+    [rawNotifications],
+  );
+  const notifUnreadCount = unreadNotifications.length;
 
   const items = useMemo(
     () => (fetched ?? []).filter((it) => !dismissedIds.has(it.id)),
@@ -87,13 +97,6 @@ export default function InboxTabScreen() {
   // badge would read "9+" while the Read pill only shows "1" reflection
   // and the user wouldn't know where the other ~8 items live.
   const readCount = readItems.length + notifUnreadCount;
-
-  // DEBUG OVERLAY — diagnose Read count vs badge mismatch. Reads every
-  // intermediate count we depend on. Remove once the math is confirmed.
-  const rawNotifCount = rawNotifications.length;
-  const rawUnreadNotifCount = rawNotifications.filter((n) => !n.isRead).length;
-  const inboxItemsLen = fetched?.length ?? 0;
-  const dismissedCount = dismissedIds.size;
 
   // Practice grouping — design key is "the practice each item is about."
   // The closest analog in the current data model is the source step the
@@ -183,32 +186,6 @@ export default function InboxTabScreen() {
           </View>
         </View>
 
-        {/* DEBUG OVERLAY — temporary, validates badge=segments math.
-            Reads every count we depend on so a screenshot is enough to
-            diagnose. Remove once root cause is confirmed. */}
-        <View
-          style={{
-            paddingHorizontal: 12,
-            paddingVertical: 6,
-            backgroundColor: 'rgba(255,235,59,0.18)',
-            borderTopWidth: 1,
-            borderBottomWidth: 1,
-            borderColor: 'rgba(0,0,0,0.08)',
-          }}
-        >
-          <Text style={{ fontSize: 10, fontWeight: '600', color: '#1F1F1F' }}>
-            badge={actCount + readCount} · act={actCount} · read={readCount}
-            {'  ·  '}
-            inbox_items={inboxItemsLen} · dismissed={dismissedCount}
-          </Text>
-          <Text style={{ fontSize: 10, fontWeight: '600', color: '#1F1F1F' }}>
-            notif raw={rawNotifCount} · notif rawUnread={rawUnreadNotifCount} · notif unreadGrouped={notifUnreadCount}
-          </Text>
-          <Text style={{ fontSize: 10, fontWeight: '600', color: '#1F1F1F' }}>
-            reflections={readItems.length} · suggestions={actItems.length}
-          </Text>
-        </View>
-
         <ScrollView
           style={styles.body}
           contentContainerStyle={{
@@ -230,7 +207,7 @@ export default function InboxTabScreen() {
               isLoading={isLoading}
               items={readItems}
               onArchive={handleArchive}
-              notifications={rawNotifications}
+              notifications={unreadNotifications}
               notifsLoading={notifsLoading}
               notifUnreadCount={notifUnreadCount}
               onMarkNotificationRead={(id) => void markNotificationAsRead(id)}
