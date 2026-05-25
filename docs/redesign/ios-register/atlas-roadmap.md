@@ -36,16 +36,13 @@ Sub-phases:
 - ⬜ 8.4 — Add-a-pin long-press flow + visibility picker
 - ⬜ 8.5 — Network-step satellites attached to parent POI
 
-### ⬜ Phase A — Time-aware pin status
+### 🟨 Phase A — Time-aware pin status
 Render every step with lat/lng as a status-encoded dot on the atlas — not just the single NEXT pill.
 
-- ⬜ A.1 — Step status vocabulary
-  - `done-recent` (last 7 days) → desaturated dot
-  - `done-old` (>7 days) → tiny ghost dot
-  - `planned-week` (next 7 days) → bright dot + day badge
-  - `planned-next` (the very next planned step) → existing amber pill (already shipped as NEXT)
-- ⬜ A.2 — `useAtlasFramePins` extension to query user's own steps with lat/lng + interest_slug match + window filter
-- ⬜ A.3 — Marker variants in AtlasMapLibreCanvas + tap → opens the step (no need to "plan" a new one)
+- ✅ A.1 — Step status vocabulary + marker variants (`my-step-planned`, `my-step-done-recent`, `my-step-done-old`); planned-next promoted to the existing amber NEXT pill. Shipped in commit pending.
+- ✅ A.2 — `useUserAtlasSteps` hook queries `timeline_steps` joined to `interests.slug`, classifies into status, returns `AtlasPinSpec[]` merged into `useAtlasFramePins`. Shipped.
+- ✅ A.2b — F4 nextNursing + F7 nextHaat now detect `has_user_step` (planned-week pin within ~500m of NEXT POI) and flip the bottom-sheet primary CTA to "Open clinical" / "Open Wednesday step". Shipped.
+- ⬜ A.3 — Tap on `my-step-*` → open step detail in the live tab (currently routes to `onPrimaryAction` via selected-pin path; need explicit `onPinPress`→ step detail wiring)
 - ⬜ A.4 — Layers chip "My steps" toggle (default on)
 - ⬜ A.5 — "New since last visit" pulse — store `atlas_last_visited_at` per user; pins authored after that timestamp get a brief 1s pulse on next mount, then quiet. Includes both new POIs in scope and new peer steps.
 

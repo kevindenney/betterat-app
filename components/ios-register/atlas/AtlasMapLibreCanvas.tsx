@@ -155,7 +155,14 @@ export interface AtlasPinSpec {
     | 'walk-annotation'
     | 'wind-arrow'
     | 'tide-arrow'
-    | 'cohort-cell';
+    | 'cohort-cell'
+    // Phase A — viewer's own steps, status-encoded:
+    // planned-week  → hollow blue circle + day-of-week badge ("MON")
+    // done-recent   → solid blue dot, no label
+    // done-old      → tiny faint blue ring (>7 days ago, ≤30d)
+    | 'my-step-planned'
+    | 'my-step-done-recent'
+    | 'my-step-done-old';
   /** Optional short label rendered next to the pin (POIs get names). */
   label?: string;
   /**
@@ -185,6 +192,13 @@ export interface AtlasPinSpec {
    * separate tap. Currently used by race-marks.
    */
   provenance?: string;
+  /**
+   * Phase A — viewer's own step reference. When set, tapping the pin
+   * opens that step in the live tab (via onPinPress → AtlasScreen which
+   * forwards to handlers.onSecondaryAction with the id). Only populated
+   * for my-step-* kinds.
+   */
+  stepId?: string;
 }
 
 interface AtlasMapLibreCanvasProps {
@@ -244,6 +258,9 @@ const TAPPABLE_PIN_KINDS = new Set<AtlasPinSpec['kind']>([
   'poi-mentee',
   'poi-home-anchor',
   'cohort-cell',
+  'my-step-planned',
+  'my-step-done-recent',
+  'my-step-done-old',
 ]);
 
 export function AtlasMapLibreCanvas({
@@ -533,6 +550,12 @@ const PIN_TONE: Record<
   // overrides the PIN_TONE color with a per-cluster shade. Size scales
   // with step_count downstream.
   'cohort-cell': { size: 36, color: 'rgba(120, 120, 130, 0.35)', shape: 'circle' },
+  // Phase A — viewer's own steps. Blue palette mirrors the "own"/"you"
+  // peer tone so the viewer's pins read as theirs at a glance, with the
+  // size + opacity carrying the time gradient.
+  'my-step-planned':     { size: 12, color: 'rgba(0, 122, 255, 0.95)', shape: 'circle' },
+  'my-step-done-recent': { size: 10, color: 'rgba(0, 122, 255, 0.65)', shape: 'circle' },
+  'my-step-done-old':    { size: 7,  color: 'rgba(0, 122, 255, 0.30)', shape: 'circle' },
 };
 
 /**
@@ -676,6 +699,38 @@ function LabeledPin({
         </View>
         {knots > 0 ? (
           <Text style={styles.arrowChip}>{`${knots.toFixed(1)} kn`}</Text>
+        ) : null}
+      </View>
+    );
+  }
+  // Phase A — viewer's own planned step. Solid blue dot with a small
+  // day-of-week badge ("MON"). label = "stepTitle|MON" so the renderer
+  // can split out the badge text the same way haats do.
+  if (kind === 'my-step-planned') {
+    const parts = (label ?? '').split('|');
+    const titleLabel = parts[0] ?? '';
+    const dayBadge = (parts[1] ?? '').trim().toUpperCase();
+    return (
+      <View style={styles.pinRow}>
+        <View
+          style={{
+            width: 12,
+            height: 12,
+            borderRadius: 6,
+            backgroundColor: 'rgba(0, 122, 255, 0.95)',
+            borderWidth: 2,
+            borderColor: '#FFFFFF',
+          }}
+        />
+        {showLabel && titleLabel ? (
+          <Text style={styles.pinLabel} numberOfLines={1}>
+            {titleLabel}
+          </Text>
+        ) : null}
+        {showLabel && dayBadge ? (
+          <View style={styles.haatDayBadge}>
+            <Text style={styles.haatDayBadgeText}>{dayBadge}</Text>
+          </View>
         ) : null}
       </View>
     );

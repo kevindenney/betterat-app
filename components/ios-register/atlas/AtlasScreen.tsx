@@ -1334,17 +1334,32 @@ function FrameF4({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
   // When useAtlasNextEvent surfaces a real nursing event we'll prefer
   // that. The amber pill answers Emily's first question on landing:
   // "where am I tomorrow?"
-  const nextNursing = useMemo(() => {
-    if (handlers.nextEvent?.lat && handlers.nextEvent?.lng) return handlers.nextEvent;
-    return {
-      label: 'Clinical',
-      when: 'Tmrw 7am',
-      where: 'JHH 4 South',
-      conditions: 'JHH 4 South · cardiac',
-      lat: 39.2966,
-      lng: -76.5919,
-    } as AtlasNextEvent;
-  }, [handlers.nextEvent]);
+  const nextNursing = useMemo<AtlasNextEvent>(() => {
+    const base: AtlasNextEvent =
+      handlers.nextEvent?.lat && handlers.nextEvent?.lng
+        ? handlers.nextEvent
+        : {
+            label: 'Clinical',
+            when: 'Tmrw 7am',
+            where: 'JHH 4 South',
+            conditions: 'JHH 4 South · cardiac',
+            lat: 39.2966,
+            lng: -76.5919,
+          };
+    // Phase A.2b — if the viewer already has a planned step within ~500m
+    // of the NEXT POI, flip has_user_step so the bottom sheet's primary
+    // CTA becomes "Open clinical" instead of "Plan a step here".
+    const hasUserStep =
+      base.lat != null &&
+      base.lng != null &&
+      framePins.some(
+        (p) =>
+          p.kind === 'my-step-planned' &&
+          Math.abs(p.lat - (base.lat ?? 0)) < 0.005 &&
+          Math.abs(p.lng - (base.lng ?? 0)) < 0.005,
+      );
+    return { ...base, has_user_step: hasUserStep };
+  }, [handlers.nextEvent, framePins]);
   // Walk-time annotations between same-campus institution pins —
   // e.g. JHH East Baltimore ↔ Pinkard sim lab "8 min".
   const walkAnnotations = useWalkTimeAnnotations(framePins);
@@ -1480,30 +1495,36 @@ function FrameF4({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
           body={[
             nextNursing.conditions,
             'Bring: stethoscope, scrub colors, badge.',
-            '4 of your cohort are also on tomorrow. Tap Open clinical to review your intent and preceptor notes.',
+            nextNursing.has_user_step
+              ? 'You have a clinical step on your timeline — open it to review intent and preceptor notes.'
+              : '4 of your cohort are also on tomorrow. Tap Plan a step to pre-record your intent.',
           ]
             .filter(Boolean)
             .join('\n')}
-          primary={{
-            label: `Open ${nextNursing.label.toLowerCase()}`,
-            icon: 'open-outline',
-            onPress: () => {
-              closeNextEventSheet();
-              handlers.onSecondaryAction?.();
-            },
-          }}
-          secondary={{
-            label: 'Plan a step nearby',
-            icon: 'add',
-            onPress: () => {
-              closeNextEventSheet();
-              handlers.onPrimaryAction?.(
-                nextNursing.lat != null && nextNursing.lng != null
-                  ? { lat: nextNursing.lat, lng: nextNursing.lng, place: nextNursing.where }
-                  : undefined,
-              );
-            },
-          }}
+          primary={
+            nextNursing.has_user_step
+              ? {
+                  label: `Open ${nextNursing.label.toLowerCase()}`,
+                  icon: 'open-outline',
+                  onPress: () => {
+                    closeNextEventSheet();
+                    handlers.onSecondaryAction?.();
+                  },
+                }
+              : {
+                  label: 'Plan a step here',
+                  icon: 'add',
+                  onPress: () => {
+                    closeNextEventSheet();
+                    handlers.onPrimaryAction?.(
+                      nextNursing.lat != null && nextNursing.lng != null
+                        ? { lat: nextNursing.lat, lng: nextNursing.lng, place: nextNursing.where }
+                        : undefined,
+                    );
+                  },
+                }
+          }
+          secondary={{ label: 'Close', onPress: closeNextEventSheet }}
           bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
           initialState="expanded"
         />
@@ -1542,7 +1563,12 @@ function FrameF4({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
                 .join('\n') || bodyForPin(selectedPin)
             }
             primary={{
-              label: 'Anchor a step here',
+              label:
+                selectedPin.kind === 'poi-sim-anchor'
+                  ? 'Schedule sim session'
+                  : selectedPin.kind === 'poi-preceptor'
+                    ? 'Request a shadow'
+                    : 'Anchor a step here',
               icon: 'add',
               onPress: () => {
                 handlers.onPrimaryAction?.({ lat: selectedPin.lat, lng: selectedPin.lng });
@@ -1566,8 +1592,8 @@ function FrameF4({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
         <BottomSheet
           eyebrow="COHORT · THIS WEEK"
           title="21 of 30 practiced central-line"
-          body={'At Bloomberg this week.\nTomorrow 7am — clinical at JHH 4 South. Tap to anchor your last shift.'}
-          primary={{ label: 'Anchor shift', icon: 'add', onPress: handlers.onPrimaryAction }}
+          body={'At Bloomberg this week.\nTomorrow 7am — clinical at JHH 4 South. Tap Log shift after you complete it.'}
+          primary={{ label: 'Log shift', icon: 'add', onPress: handlers.onPrimaryAction }}
           secondary={{
             label: 'See heatmap',
             onPress: () => {
@@ -1778,16 +1804,31 @@ function FrameF7({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
   // visit. The amber NEXT pill makes the bottom-sheet headline legible
   // on the map: "WED · KHUNTI HAAT" at Khunti's coords.
   const nextHaat = useMemo<AtlasNextEvent>(() => {
-    if (handlers.nextEvent?.lat && handlers.nextEvent?.lng) return handlers.nextEvent;
-    return {
-      label: 'Khunti haat',
-      when: 'Wed 6am',
-      where: 'Khunti haat · खुनी हाट',
-      conditions: '~11 km · leave by 5:30',
-      lat: 23.075,
-      lng: 85.2792,
-    };
-  }, [handlers.nextEvent]);
+    const base: AtlasNextEvent =
+      handlers.nextEvent?.lat && handlers.nextEvent?.lng
+        ? handlers.nextEvent
+        : {
+            label: 'Khunti haat',
+            when: 'Wed 6am',
+            where: 'Khunti haat · खुनी हाट',
+            conditions: '~11 km · leave by 5:30',
+            lat: 23.075,
+            lng: 85.2792,
+          };
+    // Phase A.2b — if the viewer already has a planned step within ~500m
+    // of the NEXT haat, set has_user_step so the sheet flips its primary
+    // CTA from "Voice memo" to "Open Wednesday step".
+    const hasUserStep =
+      base.lat != null &&
+      base.lng != null &&
+      rawPins.some(
+        (p) =>
+          p.kind === 'my-step-planned' &&
+          Math.abs(p.lat - (base.lat ?? 0)) < 0.005 &&
+          Math.abs(p.lng - (base.lng ?? 0)) < 0.005,
+      );
+    return { ...base, has_user_step: hasUserStep };
+  }, [handlers.nextEvent, rawPins]);
   // Pin tap state — supplier/haat/home/mentee/next-event all route
   // through here. Mirror of FrameF4's pattern. Opening any sheet
   // auto-closes the Layers panel + clears the other surfaces.
@@ -1997,8 +2038,8 @@ function FrameF7({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
                     }
                   : selectedPin.kind === 'poi-mentee'
                     ? {
-                        label: 'Open recent post',
-                        icon: 'open-outline',
+                        label: 'Open profile',
+                        icon: 'person-circle-outline',
                         onPress: () => {
                           handlers.onSecondaryAction?.();
                           clearF7SelectedPin();

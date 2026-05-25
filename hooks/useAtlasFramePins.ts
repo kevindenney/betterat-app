@@ -11,6 +11,7 @@
 import { useMemo } from 'react';
 import { useAtlasPois, type AtlasPoi } from './useAtlasPois';
 import { useAtlasPeerSteps, type AtlasPeerStep } from './useAtlasPeerSteps';
+import { useUserAtlasSteps, type UserAtlasStep } from './useUserAtlasSteps';
 import type { AtlasPinSpec } from '@/components/ios-register/atlas/AtlasMapLibreCanvas';
 
 interface UseAtlasFramePinsArgs {
@@ -178,6 +179,27 @@ export function mapPeerToPinKind(step: AtlasPeerStep): AtlasPinSpec['kind'] {
   }
 }
 
+/**
+ * Phase A — map a viewer-owned step's status to the matching marker
+ * kind. planned-next is rendered by the existing amber NEXT pill (the
+ * frame promotes the soonest planned step separately), so here it falls
+ * back to planned-week. done-recent/done-old/planned-week each get
+ * their own pin kind for status-encoded rendering.
+ */
+function mapUserStepStatusToPinKind(
+  step: UserAtlasStep,
+): AtlasPinSpec['kind'] {
+  switch (step.status) {
+    case 'planned-next':
+    case 'planned-week':
+      return 'my-step-planned';
+    case 'done-recent':
+      return 'my-step-done-recent';
+    case 'done-old':
+      return 'my-step-done-old';
+  }
+}
+
 export function useAtlasFramePins({
   lat,
   lng,
@@ -189,6 +211,9 @@ export function useAtlasFramePins({
     lat,
     lng,
     radiusKm,
+    interestSlug,
+  });
+  const { steps: userSteps, loading: userStepsLoading } = useUserAtlasSteps({
     interestSlug,
   });
 
@@ -291,8 +316,29 @@ export function useAtlasFramePins({
     }));
     out.push(...clusterPeerPins(peerPins));
 
-    return out;
-  }, [pois, peers, interestSlug]);
+    // Phase A — viewer's own steps with location, status-encoded as a
+    // colored dot (planned/done-recent/done-old). planned-week pins
+    // carry a "|MON" tail so the canvas renders the day-of-week badge
+    // the same way it does for haats.
+    for (const step of userSteps) {
+      const kind = mapUserStepStatusToPinKind(step);
+      const label =
+        kind === 'my-step-planned'
+          ? `${step.title}|${step.day_badge ?? ''}`
+          : step.title;
+      out.push({
+        id: `mystep:${step.step_id}`,
+        lat: step.lat,
+        lng: step.lng,
+        kind,
+        label,
+        subtitle: step.location_name ?? undefined,
+        stepId: step.step_id,
+      });
+    }
 
-  return { pins, loading: poisLoading || peersLoading };
+    return out;
+  }, [pois, peers, userSteps, interestSlug]);
+
+  return { pins, loading: poisLoading || peersLoading || userStepsLoading };
 }
