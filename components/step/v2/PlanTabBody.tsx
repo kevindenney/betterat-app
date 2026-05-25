@@ -113,7 +113,7 @@ export function PlanTabBody({
         >
           <Ionicons name="map-outline" size={14} color="#1F8636" />
           <Text style={styles.linkBtnText}>
-            Pick on map · see what other sailors did here
+            Pick on map · see where others have practiced
           </Text>
         </Pressable>
       </Section>

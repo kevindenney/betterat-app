@@ -93,6 +93,14 @@ export interface AtlasNextEvent {
    * an existing plan. Defaults to false.
    */
   has_user_step?: boolean;
+  /**
+   * Human-readable provenance for the bottom sheet ("From: MSN Acute
+   * Care cohort · Week 6"). Rendered as a small italic line so the user
+   * can trace where the NEXT pill came from — their own timeline, a
+   * blueprint, the org schedule, etc. Defaults to a generic fixture
+   * label when omitted (the demo case).
+   */
+  source_label?: string;
 }
 
 export interface AtlasFrameHandlers {
@@ -1358,7 +1366,13 @@ function FrameF4({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
           Math.abs(p.lat - (base.lat ?? 0)) < 0.005 &&
           Math.abs(p.lng - (base.lng ?? 0)) < 0.005,
       );
-    return { ...base, has_user_step: hasUserStep };
+    // Source attribution — fixture-labeled until a real next_event_resolver
+    // surfaces the row. When hasUserStep is true the source is the user's
+    // own timeline; otherwise it's the demo placeholder.
+    const sourceLabel =
+      base.source_label ??
+      (hasUserStep ? 'From: your timeline' : 'From: demo cohort schedule');
+    return { ...base, has_user_step: hasUserStep, source_label: sourceLabel };
   }, [handlers.nextEvent, framePins]);
   // Walk-time annotations between same-campus institution pins —
   // e.g. JHH East Baltimore ↔ Pinkard sim lab "8 min".
@@ -1493,6 +1507,7 @@ function FrameF4({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
           eyebrow={`TOMORROW · ${nextNursing.label.toUpperCase()}${nextNursing.when ? ` · ${nextNursing.when.toUpperCase()}` : ''}`}
           title={nextNursing.where ?? 'Your next clinical'}
           body={[
+            nextNursing.source_label,
             nextNursing.conditions,
             'Bring: stethoscope, scrub colors, badge.',
             nextNursing.has_user_step
@@ -1565,9 +1580,9 @@ function FrameF4({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
             primary={{
               label:
                 selectedPin.kind === 'poi-sim-anchor'
-                  ? 'Schedule sim session'
+                  ? 'Block practice time'
                   : selectedPin.kind === 'poi-preceptor'
-                    ? 'Request a shadow'
+                    ? 'Open profile'
                     : 'Anchor a step here',
               icon: 'add',
               onPress: () => {
@@ -1827,7 +1842,10 @@ function FrameF7({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
           Math.abs(p.lat - (base.lat ?? 0)) < 0.005 &&
           Math.abs(p.lng - (base.lng ?? 0)) < 0.005,
       );
-    return { ...base, has_user_step: hasUserStep };
+    const sourceLabel =
+      base.source_label ??
+      (hasUserStep ? 'From: your timeline' : 'From: weekly market schedule (curated)');
+    return { ...base, has_user_step: hasUserStep, source_label: sourceLabel };
   }, [handlers.nextEvent, rawPins]);
   // Pin tap state — supplier/haat/home/mentee/next-event all route
   // through here. Mirror of FrameF4's pattern. Opening any sheet
@@ -1957,6 +1975,7 @@ function FrameF7({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
           eyebrow={`TOMORROW · ${nextHaat.label.toUpperCase()}${nextHaat.when ? ` · ${nextHaat.when.toUpperCase()}` : ''}`}
           title={nextHaat.where ?? 'Your next market'}
           body={[
+            nextHaat.source_label,
             nextHaat.conditions,
             '5 suppliers report fresh stock. 1 mentee posted nearby this morning.',
             nextHaat.has_user_step

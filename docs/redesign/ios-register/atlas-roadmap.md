@@ -46,10 +46,11 @@ Render every step with lat/lng as a status-encoded dot on the atlas — not just
 - ⬜ A.4 — Layers chip "My steps" toggle (default on)
 - ⬜ A.5 — "New since last visit" pulse — store `atlas_last_visited_at` per user; pins authored after that timestamp get a brief 1s pulse on next mount, then quiet. Includes both new POIs in scope and new peer steps.
 
-### ⬜ Phase B — Mobile interaction polish
-- ⬜ B.1 — Long-press → "Add a pin here" (gated on Phase 8.4)
-- ⬜ B.2 — Two-finger rotate disable on iOS (compass disorientation in slow zooms)
-- ⬜ B.3 — Pin-tap haptic feedback (light impact)
+### ⬜ Phase B — Mobile interaction polish + picker handoff
+- ⬜ B.1 — Wire v2 StepShell "Pick on map" → LocationMapPickerModal (or eventually /atlas?fromPlan=1 with commit-mode handoff). Today the v2 button is dead — onPickWhere isn't threaded through StepShell. Walkthrough 2026-05-25 surfaced this.
+- ⬜ B.2 — Long-press → "Add a pin here" (gated on Phase 8.4)
+- ⬜ B.3 — Two-finger rotate disable on iOS (compass disorientation in slow zooms)
+- ⬜ B.4 — Pin-tap haptic feedback (light impact)
 
 ### ⬜ Phase C — Voice memo real audio capture
 Item 6 from F7 walkthrough — deferred because the audio-recording surface doesn't exist yet. Needs:
@@ -57,6 +58,13 @@ Item 6 from F7 walkthrough — deferred because the audio-recording surface does
 - ⬜ C.2 — Upload pipeline to Supabase Storage with size cap + tus for >50MB
 - ⬜ C.3 — Step extraction: voice → transcript → AI step proposal (reuse existing AddStep AI flow)
 - ⬜ C.4 — Wire Voice memo CTA on F7 NEXT-haat sheet to capture flow
+
+### ⬜ Phase F — Reach-out channel sheet
+When a user taps "Reach out" on a mentor/peer/preceptor/mentee pin, surface a channel-aware action sheet:
+- US/EU professional → email primary, in-app secondary
+- India/SEA/Africa community → WhatsApp primary, in-app secondary
+- Same-cohort peers → in-app message primary
+Needs profile contact fields + mailto/WhatsApp deep-link helpers + the in-app messaging surface (none of which exist yet). Until shipped, mentor/preceptor pins use the honest "Open profile" CTA.
 
 ### ⏸ Phase D — Atlas round-trip with /races timeline rebuild
 Deferred until the parallel /races rebuild lands (`project_races_rebuild_in_flight`). Then verify atlas pins → races timeline → atlas restores state.
