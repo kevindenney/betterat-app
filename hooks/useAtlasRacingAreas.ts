@@ -98,18 +98,30 @@ function circlePolygon(
   return { type: 'Polygon', coordinates: [ring] };
 }
 
-function fillOpacityFor(classesUsed: string[], userClassesLower: Set<string>): number {
-  if (userClassesLower.size === 0) return OPACITY_BRIGHT;
+function classMatches(areaClass: string, userClassesLower: string[]): boolean {
+  const a = areaClass.toLowerCase();
+  // Bidirectional substring match — handles the "Dragon" vs
+  // "International Dragon" naming gap: a sailor whose sailor_classes
+  // row reads "International Dragon" should still light up areas
+  // tagged simply "Dragon", and vice-versa.
+  for (const u of userClassesLower) {
+    if (a === u || a.includes(u) || u.includes(a)) return true;
+  }
+  return false;
+}
+
+function fillOpacityFor(classesUsed: string[], userClassesLower: string[]): number {
+  if (userClassesLower.length === 0) return OPACITY_BRIGHT;
   if (classesUsed.length === 0) return OPACITY_BRIGHT;
   for (const c of classesUsed) {
-    if (userClassesLower.has(c.toLowerCase())) return OPACITY_BRIGHT;
+    if (classMatches(c, userClassesLower)) return OPACITY_BRIGHT;
   }
   return OPACITY_DIM;
 }
 
 function toFeature(
   row: RawArea,
-  userClassesLower: Set<string>,
+  userClassesLower: string[],
 ): Feature<Polygon, RacingAreaProperties> | null {
   let geometry: Polygon | null = null;
   if (isPolygonGeometry(row.geometry)) {
@@ -176,7 +188,7 @@ export function useAtlasRacingAreas({
   });
 
   const userClassesLower = useMemo(
-    () => new Set((userClasses ?? []).map((c) => c.toLowerCase())),
+    () => (userClasses ?? []).map((c) => c.toLowerCase()),
     [userClasses],
   );
 

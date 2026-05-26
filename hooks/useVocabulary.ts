@@ -13,7 +13,7 @@
  * <Text>{vocab('Learning Event')}</Text>  // "Race" | "Clinical Shift" | …
  */
 
-import { useCallback, useMemo, useRef } from 'react';
+import { useCallback, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useInterest } from '@/providers/InterestProvider';
 import {
@@ -59,8 +59,16 @@ export function useVocabulary(overrideInterestId?: string) {
     [effectiveInterest?.slug],
   );
 
-  // Use interest-specific fallback while loading or when Supabase has no data
-  const vocabulary: VocabularyMap = fetchedVocabulary ?? fallback;
+  // Merge: fetched values win when present, fallback fills the gaps.
+  // A `?? fallback` fall-through was wrong for partially-populated tables —
+  // a sail-racing row missing 'Step' would otherwise leak the literal noun
+  // into the UI (e.g. the Atlas cluster pill rendered "+12 Steps" instead
+  // of "+12 sessions"). Merge keeps DB-authoritative terms while ensuring
+  // new universal terms have a default.
+  const vocabulary: VocabularyMap = useMemo(
+    () => ({ ...fallback, ...(fetchedVocabulary ?? {}) }),
+    [fallback, fetchedVocabulary],
+  );
 
   const vocab = useCallback(
     (term: string): string => vocabLookup(term, vocabulary),
