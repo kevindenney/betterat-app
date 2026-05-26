@@ -573,7 +573,7 @@ export function CapabilityRiverChart({
                     // label back to the colored band above the rule.
                     fill={phase.color}
                     textAnchor="middle"
-                    opacity={containsNow ? 1 : 0.45}
+                    opacity={containsNow ? 1 : 0.55}
                   >
                     {displayLabel}
                   </SvgText>
