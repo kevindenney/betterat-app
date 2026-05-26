@@ -214,6 +214,7 @@ export function L3SeasonView({
               label: m.label,
               capabilityColor: m.capabilityColor,
             }))}
+            onPhasePress={(phase) => scrollToWeekByIndex(phase.startWeek)}
             shapeMode="flow"
             nowDoublePill
             columnBleed={8}
@@ -233,6 +234,8 @@ export function L3SeasonView({
                 totalWeeks={totalWeeks}
                 currentWeekNumber={currentWeek}
                 width={chartWidth}
+                compact={analysis.peers.length <= 3}
+                showRole={analysis.peers.length > 2}
               />
             </>
           ) : null}
@@ -245,6 +248,7 @@ export function L3SeasonView({
               }}
               onPrimary={onLibrarianPrimary}
               onSecondary={onLibrarianSecondary}
+              variant={currentWeek <= 2 ? 'compact' : 'full'}
             />
           ) : null}
         </View>

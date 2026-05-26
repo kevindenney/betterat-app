@@ -20,7 +20,7 @@
  */
 
 import React, { useMemo } from 'react';
-import { StyleSheet, Text, View, Platform } from 'react-native';
+import { Pressable, StyleSheet, Text, View, Platform } from 'react-native';
 import Svg, { Path, Rect, Line, Text as SvgText } from 'react-native-svg';
 import { IOS_REGISTER } from '@/lib/design-tokens-ios';
 import type {
@@ -104,6 +104,12 @@ interface CapabilityRiverChartProps {
   annotationMode?: 'season' | 'lifetime';
   /** Lifetime view can render a continuous river instead of discrete blocks. */
   shapeMode?: 'columns' | 'flow';
+  /**
+   * Tap handler for phase labels under the river. When set, an invisible
+   * press target overlays each phase's bottom-label region so the user
+   * can jump to the corresponding range in the BROWSE WEEKS list.
+   */
+  onPhasePress?: (phase: SeasonPhase) => void;
 }
 
 interface RiverRect {
@@ -141,6 +147,7 @@ export function CapabilityRiverChart({
   bandOpacity = 0.86,
   annotationMode = 'season',
   shapeMode = 'columns',
+  onPhasePress,
 }: CapabilityRiverChartProps) {
   const hasPhases = !!phases && phases.length > 0;
   const phaseAxisOnBottom = hasPhases && showBottomTicks;
@@ -227,15 +234,22 @@ export function CapabilityRiverChart({
     if (shapeMode !== 'flow' || weeklyCapabilities.length === 0) return [];
     const baseCenterY = padTopForNow + innerHeight * 0.58;
     const thicknessScale = innerHeight * 0.78;
+    // Minimum thickness floor — the river never reads as anorexic / "data
+    // ends". Low-volume weeks taper visually but stay readable as a band.
+    const minThicknessRatio = 0.28;
+    const scaledThickness = (volume: number) => {
+      const ratio = Math.max(minThicknessRatio, Math.max(1, volume) / maxVolume);
+      return ratio * thicknessScale;
+    };
     return weeklyCapabilities.map((unit, idx) => {
       const prev = weeklyCapabilities[idx - 1] ?? unit;
       const next = weeklyCapabilities[idx + 1] ?? unit;
       const total = unit.bands.reduce((s, b) => s + b.volume, 0);
       const prevTotal = prev.bands.reduce((s, b) => s + b.volume, 0);
       const nextTotal = next.bands.reduce((s, b) => s + b.volume, 0);
-      const currentThickness = (Math.max(1, total) / maxVolume) * thicknessScale;
-      const prevThickness = (Math.max(1, prevTotal) / maxVolume) * thicknessScale;
-      const nextThickness = (Math.max(1, nextTotal) / maxVolume) * thicknessScale;
+      const currentThickness = scaledThickness(total);
+      const prevThickness = scaledThickness(prevTotal);
+      const nextThickness = scaledThickness(nextTotal);
       const centerX = padX + (unit.weekNumber - 0.5) * colWidth;
       const prevCenterX = padX + ((prev.weekNumber ?? unit.weekNumber) - 0.5) * colWidth;
       const nextCenterX = padX + ((next.weekNumber ?? unit.weekNumber) - 0.5) * colWidth;
@@ -309,6 +323,15 @@ export function CapabilityRiverChart({
 
   const nowX = padX + (currentWeekNumber - 0.5) * colWidth;
   const nowBandWidth = Math.max(22, colWidth * 0.34);
+  // When NOW sits within ~24px of either chart edge, the double-pill
+  // label clamps inward so it stays fully visible above the river. The
+  // NOW bar still drops at the true week position; only the label x
+  // shifts.
+  const pillHalfWidth = 17;
+  const pillLabelX = Math.min(
+    Math.max(nowX, padX + pillHalfWidth + 2),
+    padX + innerWidth - pillHalfWidth - 2,
+  );
 
   // Tick marks: every tickEveryN units + first + last + current.
   const tickWeeks = useMemo(() => {
@@ -372,16 +395,28 @@ export function CapabilityRiverChart({
 
         {nowDoublePill ? (
           <React.Fragment>
+            {/* Connector hairline from clamped label down to the true NOW x. */}
+            {pillLabelX !== nowX ? (
+              <Line
+                x1={pillLabelX}
+                x2={nowX}
+                y1={padTopForNow - 2}
+                y2={padTopForNow}
+                stroke={NOW_COLOR}
+                strokeWidth={1}
+                opacity={0.7}
+              />
+            ) : null}
             <Rect
-              x={nowX - 17}
+              x={pillLabelX - pillHalfWidth}
               y={padTopForNow - 32}
-              width={34}
+              width={pillHalfWidth * 2}
               height={14}
               rx={7}
               fill={NOW_COLOR}
             />
             <SvgText
-              x={nowX}
+              x={pillLabelX}
               y={padTopForNow - 22}
               fontSize={8.5}
               fontWeight="700"
@@ -392,15 +427,15 @@ export function CapabilityRiverChart({
               {nowLabel}
             </SvgText>
             <Rect
-              x={nowX - 17}
+              x={pillLabelX - pillHalfWidth}
               y={padTopForNow - 16}
-              width={34}
+              width={pillHalfWidth * 2}
               height={14}
               rx={7}
               fill={NOW_COLOR}
             />
             <SvgText
-              x={nowX}
+              x={pillLabelX}
               y={padTopForNow - 6}
               fontSize={8.5}
               fontWeight="700"
@@ -493,7 +528,8 @@ export function CapabilityRiverChart({
           : null}
 
         {/* Phase labels under the river — these are the "what the color means" decoder.
-            Phases that don't contain NOW are dimmed so the eye reads "where we are now". */}
+            Phases that don't contain NOW are dimmed harder so the eye reads
+            "where we are now" first and "where we've been / will be" second. */}
         {phaseAxisOnBottom
           ? phases!.map((phase) => {
               const midWeek = (phase.startWeek + phase.endWeek) / 2;
@@ -511,17 +547,17 @@ export function CapabilityRiverChart({
                     y1={ruleY}
                     y2={ruleY}
                     stroke={phase.color}
-                    strokeWidth={1}
-                    opacity={containsNow ? 0.55 : 0.22}
+                    strokeWidth={containsNow ? 1.5 : 1}
+                    opacity={containsNow ? 0.85 : 0.18}
                   />
                   <SvgText
                     x={x}
                     y={ruleY + 13}
                     fontSize={9.5}
-                    fontWeight="600"
-                    fill={containsNow ? IOS_REGISTER.label : IOS_REGISTER.labelTertiary}
+                    fontWeight={containsNow ? '700' : '500'}
+                    fill={containsNow ? phase.color : IOS_REGISTER.labelTertiary}
                     textAnchor="middle"
-                    opacity={containsNow ? 1 : 0.55}
+                    opacity={containsNow ? 1 : 0.42}
                   >
                     {phase.label}
                   </SvgText>
@@ -590,6 +626,37 @@ export function CapabilityRiverChart({
           </View>
         );
       })}
+
+      {/* Phase press targets — absolutely positioned over the bottom phase
+          label band so the user can tap any phase to jump to that range
+          in the BROWSE WEEKS list. Rendered only when a press handler is
+          supplied so static views (L4) stay non-interactive. */}
+      {phaseAxisOnBottom && onPhasePress
+        ? phases!.map((phase) => {
+            const startX = padX + (phase.startWeek - 1) * colWidth;
+            const phaseWidth = (phase.endWeek - phase.startWeek + 1) * colWidth;
+            const top = padTopForNow + innerHeight + 3;
+            const targetHeight = Math.max(16, padBottomForPhases - 3);
+            return (
+              <Pressable
+                key={`phase-press-${phase.id}`}
+                accessibilityRole="button"
+                accessibilityLabel={`Jump to ${phase.label}`}
+                onPress={() => onPhasePress(phase)}
+                style={({ pressed }) => [
+                  styles.phaseTarget,
+                  {
+                    left: startX,
+                    top,
+                    width: phaseWidth,
+                    height: targetHeight,
+                    opacity: pressed ? 0.5 : 1,
+                  },
+                ]}
+              />
+            );
+          })
+        : null}
     </View>
   );
 }
@@ -600,6 +667,9 @@ const styles = StyleSheet.create({
   },
   empty: {
     backgroundColor: 'transparent',
+  },
+  phaseTarget: {
+    position: 'absolute',
   },
   quoteWrap: {
     position: 'absolute',

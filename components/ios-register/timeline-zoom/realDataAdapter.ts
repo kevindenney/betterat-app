@@ -156,6 +156,27 @@ function computeSeasonPhases(weeks: TimelineWeek[]): SeasonPhase[] {
     });
     i = j + 1;
   }
+  // De-duplicate phase labels: when two non-adjacent phases share a label
+  // (e.g. "Practice" bookending the season), suffix the second occurrence
+  // with "· late" and tag the first with "· early" so the user can tell
+  // them apart in the legend strip under the river.
+  const labelCounts = new Map<string, number>();
+  for (const p of phases) {
+    labelCounts.set(p.label, (labelCounts.get(p.label) ?? 0) + 1);
+  }
+  const seen = new Map<string, number>();
+  for (let k = 0; k < phases.length; k++) {
+    const phase = phases[k]!;
+    const total = labelCounts.get(phase.label) ?? 1;
+    if (total < 2) continue;
+    // Skip suffixing for protected single-purpose labels.
+    if (phase.label === 'wk 1 · entry' || phase.label === 'finale') continue;
+    const idx = (seen.get(phase.label) ?? 0) + 1;
+    seen.set(phase.label, idx);
+    const suffix =
+      total === 2 ? (idx === 1 ? '· early' : '· late') : `· ${idx}`;
+    phases[k] = { ...phase, label: `${phase.label} ${suffix}` };
+  }
   return phases;
 }
 
