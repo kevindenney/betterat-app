@@ -568,9 +568,12 @@ export function CapabilityRiverChart({
                     y={ruleY + 13}
                     fontSize={9.5}
                     fontWeight={containsNow ? '700' : '500'}
-                    fill={containsNow ? phase.color : IOS_REGISTER.labelTertiary}
+                    // Dimmed phases keep their phase color at low opacity
+                    // (instead of going gray) so the eye can still link a
+                    // label back to the colored band above the rule.
+                    fill={phase.color}
                     textAnchor="middle"
-                    opacity={containsNow ? 1 : 0.42}
+                    opacity={containsNow ? 1 : 0.45}
                   >
                     {displayLabel}
                   </SvgText>
