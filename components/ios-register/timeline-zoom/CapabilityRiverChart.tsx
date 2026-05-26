@@ -571,9 +571,13 @@ export function CapabilityRiverChart({
                     // Dimmed phases keep their phase color at low opacity
                     // (instead of going gray) so the eye can still link a
                     // label back to the colored band above the rule.
-                    fill={phase.color}
+                    // Dimmed labels use a darkened phase color at moderate
+                    // opacity. Pre-darkening preserves chroma when opacity
+                    // drops, so "Practice" reads as a saturated dim green
+                    // instead of washing out to gray on the light background.
+                    fill={containsNow ? phase.color : darkenHex(phase.color, 0.22)}
                     textAnchor="middle"
-                    opacity={containsNow ? 1 : 0.55}
+                    opacity={containsNow ? 1 : 0.7}
                   >
                     {displayLabel}
                   </SvgText>
@@ -717,4 +721,19 @@ function withAlpha(hex: string, alpha: number): string {
   const g = parseInt(m[2], 16);
   const b = parseInt(m[3], 16);
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
+/**
+ * Multiply a hex color toward black by `amount` (0..1). Used to keep
+ * chroma when rendering a color at lower opacity on a light background.
+ */
+function darkenHex(hex: string, amount: number): string {
+  const m = hex.match(/^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i);
+  if (!m) return hex;
+  const k = 1 - Math.max(0, Math.min(1, amount));
+  const r = Math.round(parseInt(m[1], 16) * k);
+  const g = Math.round(parseInt(m[2], 16) * k);
+  const b = Math.round(parseInt(m[3], 16) * k);
+  const toHex = (n: number) => n.toString(16).padStart(2, '0');
+  return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
 }
