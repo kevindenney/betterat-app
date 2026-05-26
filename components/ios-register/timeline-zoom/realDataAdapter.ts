@@ -25,6 +25,11 @@ import type { StepPlanData, StepCollaborator } from '@/types/step-detail';
 import type { Season } from '@/types/season';
 import type { TimelineStepRecord, TimelineStepStatus } from '@/types/timeline-steps';
 import { CAPABILITY_PALETTE } from './sampleData';
+import {
+  detectPhaseLabelFromTitles,
+  resolveInterestVocab,
+  type InterestVocab,
+} from './interestVocab';
 import type {
   Capability,
   CohortAvatar,
@@ -64,34 +69,52 @@ import type {
  * Sailing is the first vertical, so race-vernacular wins when present;
  * nursing / non-sailing data falls back to capability-block phases.
  */
-function computeSeasonPhases(weeks: TimelineWeek[]): SeasonPhase[] {
+function computeSeasonPhases(
+  weeks: TimelineWeek[],
+  interestVocab: InterestVocab,
+): SeasonPhase[] {
   if (weeks.length === 0) return [];
 
   const raceRe = /\bRace\s+(\d+)\b/i;
-  const dominantPerWeek: { weekNumber: number; capability: Capability | null; raceNum: number | null; isPrep: boolean }[] =
-    weeks.map((week, idx) => {
-      let raceNum: number | null = null;
-      for (const step of week.steps) {
-        const match = step.title.match(raceRe);
-        if (match) {
-          raceNum = parseInt(match[1]!, 10);
-          break;
-        }
+  // Per-week detection: race number (sailing-specific built-in), named
+  // phase label from the interest's pattern list, dominant capability,
+  // and whether this is the prep/entry week.
+  const dominantPerWeek: {
+    weekNumber: number;
+    capability: Capability | null;
+    raceNum: number | null;
+    namedPhase: string | null;
+    isPrep: boolean;
+  }[] = weeks.map((week, idx) => {
+    let raceNum: number | null = null;
+    for (const step of week.steps) {
+      const match = step.title.match(raceRe);
+      if (match) {
+        raceNum = parseInt(match[1]!, 10);
+        break;
       }
-      const counts = new Map<string, { cap: Capability; count: number }>();
-      for (const step of week.steps) {
-        const cap = step.capabilities?.[0];
-        if (!cap) continue;
-        const entry = counts.get(cap.id);
-        if (entry) entry.count += 1;
-        else counts.set(cap.id, { cap, count: 1 });
-      }
-      const sorted = Array.from(counts.values()).sort((a, b) => b.count - a.count);
-      const dominant = sorted[0]?.cap ?? null;
-      // First week with no race + mixed steps reads as "entry" / prep.
-      const isPrep = idx === 0 && raceNum === null;
-      return { weekNumber: idx + 1, capability: dominant, raceNum, isPrep };
-    });
+    }
+    const counts = new Map<string, { cap: Capability; count: number }>();
+    for (const step of week.steps) {
+      const cap = step.capabilities?.[0];
+      if (!cap) continue;
+      const entry = counts.get(cap.id);
+      if (entry) entry.count += 1;
+      else counts.set(cap.id, { cap, count: 1 });
+    }
+    const sorted = Array.from(counts.values()).sort((a, b) => b.count - a.count);
+    const dominant = sorted[0]?.cap ?? null;
+    // Interest-aware pattern scan — uses the user's domain vocabulary
+    // (regatta names, rotation names, festival names, etc.) so the
+    // phase label speaks the persona's language when titles match.
+    const namedPhase = detectPhaseLabelFromTitles(
+      week.steps.map((s) => s.title),
+      interestVocab,
+    );
+    // First week with no race + mixed steps reads as "entry" / prep.
+    const isPrep = idx === 0 && raceNum === null && !namedPhase;
+    return { weekNumber: idx + 1, capability: dominant, raceNum, namedPhase, isPrep };
+  });
 
   const phases: SeasonPhase[] = [];
   const fallbackColor = CAPABILITY_PALETTE.procedural.color;
@@ -121,7 +144,7 @@ function computeSeasonPhases(weeks: TimelineWeek[]): SeasonPhase[] {
       i = j + 1;
       continue;
     }
-    // Entry: first week of the season with no race tag.
+    // Entry: first week of the season with no race tag and no named pattern match.
     if (head.isPrep) {
       phases.push({
         id: `phase-entry`,
@@ -133,12 +156,35 @@ function computeSeasonPhases(weeks: TimelineWeek[]): SeasonPhase[] {
       i += 1;
       continue;
     }
+    // Named-phase block: consecutive weeks sharing a pattern-detected
+    // label (e.g. "Spring Series", "Med-Surg", "Diwali rush") collapse
+    // into one phase. This takes precedence over capability dominance.
+    if (head.namedPhase) {
+      const named = head.namedPhase;
+      while (
+        j + 1 < dominantPerWeek.length &&
+        dominantPerWeek[j + 1]!.namedPhase === named &&
+        dominantPerWeek[j + 1]!.raceNum === null
+      ) {
+        j += 1;
+      }
+      phases.push({
+        id: `phase-${i}-${named.replace(/\s+/g, '-').toLowerCase()}`,
+        label: named,
+        startWeek: head.weekNumber,
+        endWeek: dominantPerWeek[j]!.weekNumber,
+        color: head.capability?.color ?? fallbackColor,
+      });
+      i = j + 1;
+      continue;
+    }
     // Capability block: collapse consecutive weeks sharing dominant capability.
     const capId = head.capability?.id ?? '__none__';
     while (
       j + 1 < dominantPerWeek.length &&
       (dominantPerWeek[j + 1]!.capability?.id ?? '__none__') === capId &&
-      dominantPerWeek[j + 1]!.raceNum === null
+      dominantPerWeek[j + 1]!.raceNum === null &&
+      dominantPerWeek[j + 1]!.namedPhase === null
     ) {
       j += 1;
     }
@@ -544,6 +590,7 @@ function computeSeasonAnalysis(
   weeks: TimelineWeek[],
   seasonName: string | null,
   currentWeekNumber: number,
+  interestVocab: InterestVocab,
 ): SeasonAnalysis | undefined {
   if (weeks.length === 0) return undefined;
 
@@ -631,7 +678,7 @@ function computeSeasonAnalysis(
       } What do you want this arc to add up to?`
     : `You're at week ${currentWeekNumber} of ${weeks.length}. What do you want this arc to add up to?`;
 
-  const phases = computeSeasonPhases(weeks);
+  const phases = computeSeasonPhases(weeks, interestVocab);
 
   return {
     weeklyCapabilities,
@@ -1020,10 +1067,12 @@ export function mapToTimelineDataset({
     0,
     weeks.findIndex((w) => w.isCurrent),
   );
+  const interestVocab = resolveInterestVocab(interestId || interestLabel);
   const currentSeasonAnalysis = computeSeasonAnalysis(
     weeks,
     currentSeason?.name ?? currentSeason?.short_name ?? null,
     currentWeekIdx + 1,
+    interestVocab,
   );
 
   // L2 context strip — "{Season} has been {capability}-heavy." Drives
