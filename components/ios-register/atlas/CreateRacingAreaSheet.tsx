@@ -187,6 +187,11 @@ const styles = StyleSheet.create({
     bottom: 0,
     paddingHorizontal: 12,
     paddingBottom: 24,
+    // Stacks above the empty-state BottomSheet ("Anchor your next
+    // step to a place") which renders later in the AtlasScreen JSX
+    // tree and would otherwise paint on top.
+    zIndex: 1000,
+    elevation: 24,
   },
   card: {
     backgroundColor: IOS_REGISTER.cardBg,
