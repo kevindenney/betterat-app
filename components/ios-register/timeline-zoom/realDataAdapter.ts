@@ -156,6 +156,51 @@ function computeSeasonPhases(weeks: TimelineWeek[]): SeasonPhase[] {
     });
     i = j + 1;
   }
+
+  // Cap the phase count for short seasons. The raw heuristic emits one
+  // phase whenever the dominant capability changes between consecutive
+  // weeks, which over-segments short or high-variety seasons (8 weeks ×
+  // 7 phases = labels colliding under the river). Target ~3-weeks per
+  // phase as a readable density and merge the smallest internal phases
+  // first to get there.
+  const targetPhaseCount = Math.max(3, Math.ceil(weeks.length / 3));
+  while (phases.length > targetPhaseCount) {
+    let smallestIdx = -1;
+    let smallestSize = Infinity;
+    for (let k = 0; k < phases.length; k++) {
+      const phase = phases[k]!;
+      const isProtected =
+        (k === 0 && phase.label === 'wk 1 · entry') ||
+        (k === phases.length - 1 && phase.label === 'finale');
+      if (isProtected) continue;
+      const size = phase.endWeek - phase.startWeek + 1;
+      if (size < smallestSize) {
+        smallestSize = size;
+        smallestIdx = k;
+      }
+    }
+    if (smallestIdx === -1) break;
+    // Merge the smallest into its longer neighbor so the absorbed range
+    // disappears into a meaningful block. Prefer the previous neighbor
+    // for visual continuity unless it's protected or smaller.
+    const target = phases[smallestIdx]!;
+    const prev = phases[smallestIdx - 1];
+    const next = phases[smallestIdx + 1];
+    const mergeIntoPrev =
+      prev != null &&
+      (next == null ||
+        prev.endWeek - prev.startWeek >= next.endWeek - next.startWeek);
+    if (mergeIntoPrev && prev) {
+      phases[smallestIdx - 1] = { ...prev, endWeek: target.endWeek };
+      phases.splice(smallestIdx, 1);
+    } else if (next) {
+      phases[smallestIdx + 1] = { ...next, startWeek: target.startWeek };
+      phases.splice(smallestIdx, 1);
+    } else {
+      break;
+    }
+  }
+
   // De-duplicate phase labels: when two non-adjacent phases share a label
   // (e.g. "Practice" bookending the season), suffix the second occurrence
   // with "· late" and tag the first with "· early" so the user can tell

@@ -236,7 +236,7 @@ export function CapabilityRiverChart({
     const thicknessScale = innerHeight * 0.78;
     // Minimum thickness floor — the river never reads as anorexic / "data
     // ends". Low-volume weeks taper visually but stay readable as a band.
-    const minThicknessRatio = 0.28;
+    const minThicknessRatio = 0.18;
     const scaledThickness = (volume: number) => {
       const ratio = Math.max(minThicknessRatio, Math.max(1, volume) / maxVolume);
       return ratio * thicknessScale;
@@ -538,7 +538,17 @@ export function CapabilityRiverChart({
                 currentWeekNumber >= phase.startWeek && currentWeekNumber <= phase.endWeek;
               const startX = padX + (phase.startWeek - 1) * colWidth;
               const endX = padX + phase.endWeek * colWidth;
+              const phasePixelWidth = endX - startX;
               const ruleY = padTopForNow + innerHeight + 3;
+              // Truncate the label when its rendered width would overrun
+              // the phase's slot. The ~5.5px-per-char heuristic suits the
+              // 9.5pt label font; under that budget we drop characters
+              // from the right and tack on a single trailing ellipsis.
+              const charBudget = Math.max(3, Math.floor((phasePixelWidth - 4) / 5.5));
+              const displayLabel =
+                phase.label.length <= charBudget
+                  ? phase.label
+                  : `${phase.label.slice(0, Math.max(1, charBudget - 1))}…`;
               return (
                 <React.Fragment key={`phase-${phase.id}`}>
                   <Line
@@ -559,7 +569,7 @@ export function CapabilityRiverChart({
                     textAnchor="middle"
                     opacity={containsNow ? 1 : 0.42}
                   >
-                    {phase.label}
+                    {displayLabel}
                   </SvgText>
                 </React.Fragment>
               );
