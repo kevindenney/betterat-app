@@ -44,6 +44,33 @@ import type {
  * directly under the river so the lifetime view answers "what is this
  * stretch?" without a separate axis row above the chart.
  */
+/**
+ * Format a lifetime duration string for the L4 subtitle ("2 years",
+ * "8 months", "3 weeks"). Returns null when the timestamp is missing
+ * so the caller can fall back to the legacy "{N} arcs · {M} steps"
+ * subtitle.
+ */
+function formatLifetimeDuration(isoStart: string | undefined): string | null {
+  if (!isoStart) return null;
+  const start = Date.parse(isoStart);
+  if (Number.isNaN(start)) return null;
+  const elapsedMs = Date.now() - start;
+  if (elapsedMs <= 0) return null;
+  const days = Math.floor(elapsedMs / (1000 * 60 * 60 * 24));
+  if (days < 14) return `${Math.max(1, days)} ${days === 1 ? 'day' : 'days'}`;
+  if (days < 60) {
+    const weeks = Math.round(days / 7);
+    return `${weeks} ${weeks === 1 ? 'week' : 'weeks'}`;
+  }
+  const years = elapsedMs / (1000 * 60 * 60 * 24 * 365.25);
+  if (years < 1) {
+    const months = Math.max(1, Math.round(days / 30));
+    return `${months} ${months === 1 ? 'month' : 'months'}`;
+  }
+  const rounded = Math.round(years);
+  return `${rounded} ${rounded === 1 ? 'year' : 'years'}`;
+}
+
 function phasesFromLifetime(lifetime: LifetimeAnalysis): SeasonPhase[] {
   return lifetime.sessions.map((s) => ({
     id: `lifetime-phase-${s.sessionIndex}`,
@@ -167,9 +194,20 @@ export function L4YearsView({
     >
       <View style={styles.headerBlock}>
         <Text style={styles.eyebrow}>ZOOM · ALL · REFLECTING ON A LIFE</Text>
-        <Text style={styles.title}>All your practice</Text>
+        <View style={styles.titleRow}>
+          <Text style={styles.title} numberOfLines={1}>
+            {dataset.interest.label}
+          </Text>
+          <Ionicons
+            name="chevron-down"
+            size={16}
+            color={IOS_REGISTER.labelTertiary}
+            style={styles.titleChevron}
+          />
+        </View>
         <Text style={styles.subtitle}>
-          {dataset.totalSeasons} arcs · {dataset.totalSteps} steps · since {dataset.sinceDate}
+          {formatLifetimeDuration(dataset.sinceTimestamp) ??
+            `${dataset.totalSeasons} arcs · ${dataset.totalSteps} steps · since ${dataset.sinceDate}`}
         </Text>
       </View>
 
@@ -493,12 +531,21 @@ const styles = StyleSheet.create({
     color: IOS_REGISTER.labelSecondary,
     marginBottom: 6,
   },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginBottom: 2,
+  },
   title: {
     fontSize: 24,
     fontWeight: '700',
     letterSpacing: -0.6,
     color: IOS_REGISTER.label,
-    marginBottom: 2,
+    flexShrink: 1,
+  },
+  titleChevron: {
+    marginTop: 2,
   },
   subtitle: {
     fontSize: 12.5,

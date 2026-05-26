@@ -280,6 +280,10 @@ export interface TimelineDataset {
   totalSeasons: number;
   totalSteps: number;
   sinceDate: string;
+  /** Raw ISO timestamp of the earliest known step/season — drives the
+      L4 duration subtitle ("2 years", "8 months"). Optional because
+      sparse / brand-new accounts won't have any historical anchor. */
+  sinceTimestamp?: string;
   /** L4 capability filter chips. Always begins with "All". */
   capabilityFilters: { id: string; label: string; icon?: string; color?: string }[];
   /**

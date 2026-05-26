@@ -1073,6 +1073,7 @@ export function mapToTimelineDataset({
           year: '2-digit',
         })
       : '',
+    sinceTimestamp: allSeasons[allSeasons.length - 1]?.start_date ?? undefined,
     seasons: [currentSeasonNode, ...archivedSeasons],
     capabilityFilters: [{ id: 'all', label: 'All' }],
     lifetime: computeLifetimeAnalysis([currentSeasonNode, ...archivedSeasons]),
