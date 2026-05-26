@@ -83,20 +83,36 @@ const SAILING_VOCAB: InterestVocab = {
   librarianEyebrow: 'This arc · logbook noticed',
   riverHeader: 'PRACTICE LOG',
   phasePatterns: [
+    // Named events — most specific first so they win against
+    // generic words like "championship" or "tune-up".
     { pattern: /spring\s+series/i, label: 'Spring Series' },
     { pattern: /winter\s+series|frostbite/i, label: 'Frostbite' },
     { pattern: /summer\s+series/i, label: 'Summer Series' },
     { pattern: /easter\s+regatta/i, label: 'Easter Regatta' },
+    { pattern: /\bworlds?\b/i, label: 'Worlds' },
+    { pattern: /\bAPAC\b|asia.?pacific/i, label: 'APAC' },
+    { pattern: /european\s+championship/i, label: 'Europeans' },
+    { pattern: /club\s+championship|club\s+champs/i, label: 'Club Champs' },
     { pattern: /championship|champs\b/i, label: 'Champs' },
     { pattern: /regatta/i, label: 'Regatta' },
     { pattern: /\brace\s*\d/i, label: 'Race day' },
-    { pattern: /tune.?up|tuning|rig\s+set/i, label: 'Tune-up' },
+    // Tuning / rig setup vocabulary — sailors talk about rake, shrouds,
+    // forestay tension; "tune-up" reads as a phase boundary too.
+    { pattern: /tune.?up|rig\s+set|rig\s+setup/i, label: 'Tune-up' },
+    { pattern: /\brake\b|shroud|forestay|measure\s+rig|measure\s+rake|rig\s+tun/i, label: 'Rig tuning' },
+    // Boatspeed / conditions practice.
+    { pattern: /boat.?speed|points\s+of\s+sail/i, label: 'Boatspeed' },
     { pattern: /start.?(?:s|drill|practice)|line\s+work/i, label: 'Start drills' },
     { pattern: /heavy\s+air|big\s+breeze/i, label: 'Heavy air' },
     { pattern: /light\s+air|drifter/i, label: 'Light air' },
     { pattern: /downwind|spinnaker|kite\b/i, label: 'Downwind work' },
     { pattern: /upwind|beat|tacking/i, label: 'Upwind work' },
     { pattern: /mark\s+rounding/i, label: 'Mark roundings' },
+    { pattern: /tactical|tactics|tactic\b/i, label: 'Tactics' },
+    { pattern: /local\s+conditions|venue\s+scout|venue\s+conditions|local\s+venue/i, label: 'Venue scouting' },
+    // Planning / goal-setting work.
+    { pattern: /goal.?setting|\bgoal\b/i, label: 'Goal-setting' },
+    { pattern: /commit\s+to|register\s+for|entry\s+form/i, label: 'Goal-setting' },
     { pattern: /\bdebrief\b/i, label: 'Debrief' },
   ],
 };
