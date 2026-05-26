@@ -544,9 +544,12 @@ export function CapabilityRiverChart({
               // the phase's slot. The ~5.5px-per-char heuristic suits the
               // 9.5pt label font; under that budget we drop characters
               // from the right and tack on a single trailing ellipsis.
+              // The in-frame (containsNow) phase is exempt — it's the
+              // one label the user most needs to read, so we let it
+              // overflow into adjacent slots rather than hide its name.
               const charBudget = Math.max(3, Math.floor((phasePixelWidth - 4) / 5.5));
               const displayLabel =
-                phase.label.length <= charBudget
+                containsNow || phase.label.length <= charBudget
                   ? phase.label
                   : `${phase.label.slice(0, Math.max(1, charBudget - 1))}…`;
               return (
