@@ -1067,7 +1067,7 @@ export function mapToTimelineDataset({
     0,
     weeks.findIndex((w) => w.isCurrent),
   );
-  const interestVocab = resolveInterestVocab(interestId || interestLabel);
+  const interestVocab = resolveInterestVocab(interestId, interestLabel);
   const currentSeasonAnalysis = computeSeasonAnalysis(
     weeks,
     currentSeason?.name ?? currentSeason?.short_name ?? null,

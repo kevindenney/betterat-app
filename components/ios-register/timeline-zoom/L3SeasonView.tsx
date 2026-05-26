@@ -166,7 +166,8 @@ export function L3SeasonView({
   // domain (sailor → "TUNING UP", entrepreneur → "PLANNING") instead
   // of the generic system label.
   const interestVocab = resolveInterestVocab(
-    dataset.interest.id || dataset.interest.label,
+    dataset.interest.id,
+    dataset.interest.label,
   );
   const verbTier = pickVerbTier(currentWeek, totalWeeks);
   const arcEyebrow = composeArcEyebrow(interestVocab, verbTier);

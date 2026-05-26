@@ -191,7 +191,8 @@ export function L4YearsView({
   // view, so we always use the late-tier verb and the persona's native
   // librarian eyebrow.
   const interestVocab = resolveInterestVocab(
-    dataset.interest.id || dataset.interest.label,
+    dataset.interest.id,
+    dataset.interest.label,
   );
   const lifetimeEyebrow = `ZOOM · ALL · ${interestVocab.verb.late}`;
 

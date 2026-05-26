@@ -249,15 +249,20 @@ const VOCAB_PATTERNS: { pattern: RegExp; vocab: InterestVocab }[] = [
 ];
 
 /**
- * Resolve an interest id/label to its vocab. Accepts either the id or
- * label so the caller doesn't need to thread both — sample data uses
- * "sailing" / "Sail Racing", real data uses Supabase ids that often
- * match the label slug ("sail-racing").
+ * Resolve an interest id/label to its vocab. Accepts either or both —
+ * real data passes a UUID for `id` (no semantic content) plus a
+ * human label ("Sail Racing"), while sample data passes a slug-ish
+ * id ("sailing"). The matcher tests patterns against ALL provided
+ * strings, so a UUID id + "Sail Racing" label still resolves to
+ * sailing.
  */
-export function resolveInterestVocab(idOrLabel: string | null | undefined): InterestVocab {
-  if (!idOrLabel) return DEFAULT_VOCAB;
+export function resolveInterestVocab(
+  ...candidates: (string | null | undefined)[]
+): InterestVocab {
+  const haystack = candidates.filter(Boolean).join(' ');
+  if (!haystack) return DEFAULT_VOCAB;
   for (const entry of VOCAB_PATTERNS) {
-    if (entry.pattern.test(idOrLabel)) return entry.vocab;
+    if (entry.pattern.test(haystack)) return entry.vocab;
   }
   return DEFAULT_VOCAB;
 }
