@@ -42,6 +42,12 @@ export interface InterestVocab {
    * want a quieter second-person observation, etc.
    */
   librarianEyebrow: string;
+  /**
+   * Section eyebrow above the capability river chart. "CAPABILITY"
+   * is nursing-native; other personas read it as generic-tracker
+   * vocab. Each interest provides its own framing.
+   */
+  riverHeader: string;
 }
 
 const DEFAULT_VOCAB: InterestVocab = {
@@ -52,6 +58,7 @@ const DEFAULT_VOCAB: InterestVocab = {
     late: 'REFLECTING',
   },
   librarianEyebrow: 'This arc · the librarian noticed',
+  riverHeader: 'CAPABILITY RIVER',
 };
 
 const SAILING_VOCAB: InterestVocab = {
@@ -62,6 +69,7 @@ const SAILING_VOCAB: InterestVocab = {
     late: 'DEBRIEFING',
   },
   librarianEyebrow: 'This arc · logbook noticed',
+  riverHeader: 'PRACTICE LOG',
 };
 
 const NURSING_VOCAB: InterestVocab = {
@@ -72,6 +80,7 @@ const NURSING_VOCAB: InterestVocab = {
     late: 'DEBRIEFING',
   },
   librarianEyebrow: "This rotation · preceptor's debrief",
+  riverHeader: 'CAPABILITY RIVER',
 };
 
 const ENTREPRENEUR_VOCAB: InterestVocab = {
@@ -82,6 +91,7 @@ const ENTREPRENEUR_VOCAB: InterestVocab = {
     late: 'TALLYING',
   },
   librarianEyebrow: 'This season · what your books noticed',
+  riverHeader: 'BUSINESS MIX',
 };
 
 const GOLF_VOCAB: InterestVocab = {
@@ -92,6 +102,7 @@ const GOLF_VOCAB: InterestVocab = {
     late: 'SCORING',
   },
   librarianEyebrow: "This season · coach's notebook",
+  riverHeader: 'ROUND MIX',
 };
 
 const DRAWING_VOCAB: InterestVocab = {
@@ -102,6 +113,7 @@ const DRAWING_VOCAB: InterestVocab = {
     late: 'REVIEWING',
   },
   librarianEyebrow: 'This sketchbook · studio notes',
+  riverHeader: 'STUDIO LOG',
 };
 
 const KNITTING_VOCAB: InterestVocab = {
@@ -112,6 +124,7 @@ const KNITTING_VOCAB: InterestVocab = {
     late: 'BINDING OFF',
   },
   librarianEyebrow: 'This project · pattern notes',
+  riverHeader: 'PROJECT LOG',
 };
 
 /**

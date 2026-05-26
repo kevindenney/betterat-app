@@ -222,7 +222,7 @@ export function L4YearsView({
 
       {adapted && lifetime ? (
         <View style={styles.analysisBlock} onLayout={onAnalysisLayout}>
-          <Text style={styles.sectionEyebrow}>CAPABILITY RIVER</Text>
+          <Text style={styles.sectionEyebrow}>{interestVocab.riverHeader}</Text>
           <CapabilityRiverChart
             weeklyCapabilities={adapted.weeklyCapabilities}
             totalWeeks={adapted.totalUnits}

@@ -216,7 +216,7 @@ export function L3SeasonView({
 
       {hasAnalysis && analysis ? (
         <View style={styles.analysisBlock} onLayout={onAnalysisLayout}>
-          <Text style={styles.sectionEyebrow}>CAPABILITY RIVER</Text>
+          <Text style={styles.sectionEyebrow}>{interestVocab.riverHeader}</Text>
           <CapabilityRiverChart
             weeklyCapabilities={analysis.weeklyCapabilities}
             totalWeeks={totalWeeks}
