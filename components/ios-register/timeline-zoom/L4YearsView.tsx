@@ -3,10 +3,9 @@
  * lives here.
  *
  * Frame 4/8. "All your steps" headline + N seasons · M steps · since DATE.
- * Search field. Filter chips (All + capability shortcuts). Lanes per
- * season — current season in full color, archived seasons dimmed but
- * tappable. Each step is a small capability-tinted brick. Tap any brick →
- * zoom to L1 with that step focused.
+ * Lifetime axis + capability river + peer timeline + librarian reflection
+ * prompt, then arc lanes below. Tap any brick → zoom to L1 with that step
+ * focused.
  *
  * Section D drag-reorder (Frame 13 within the current lane only): long-
  * press a brick in the current rotation to lift it, then drag along the
@@ -31,11 +30,29 @@ import { SeasonLibrarianPrompt } from './SeasonLibrarianPrompt';
 import type {
   LifetimeAnalysis,
   SeasonPeer,
+  SeasonPhase,
   SeasonReflection,
   TimelineDataset,
   TimelineSeason,
   WeeklyCapabilityMix,
 } from './types';
+
+/**
+ * Build per-session SeasonPhase entries from a LifetimeAnalysis. Each
+ * session becomes a one-unit phase carrying the season label and the
+ * dominant-capability color. The river chart renders these labels
+ * directly under the river so the lifetime view answers "what is this
+ * stretch?" without a separate axis row above the chart.
+ */
+function phasesFromLifetime(lifetime: LifetimeAnalysis): SeasonPhase[] {
+  return lifetime.sessions.map((s) => ({
+    id: `lifetime-phase-${s.sessionIndex}`,
+    label: s.label,
+    startWeek: s.sessionIndex,
+    endWeek: s.sessionIndex,
+    color: s.dominantCapabilityColor,
+  }));
+}
 
 interface L4YearsViewProps {
   dataset: TimelineDataset;
@@ -128,7 +145,6 @@ export function L4YearsView({
   onLibrarianPrimary,
   onLibrarianSecondary,
 }: L4YearsViewProps) {
-  const [activeFilter, setActiveFilter] = useState('all');
   const [chartWidth, setChartWidth] = useState(0);
 
   const onAnalysisLayout = useCallback((e: LayoutChangeEvent) => {
@@ -150,10 +166,10 @@ export function L4YearsView({
       showsVerticalScrollIndicator={false}
     >
       <View style={styles.headerBlock}>
-        <Text style={styles.eyebrow}>ZOOM · ALL TIME · REFLECTING</Text>
-        <Text style={styles.title}>All your steps</Text>
+        <Text style={styles.eyebrow}>ZOOM · ALL · REFLECTING ON A LIFE</Text>
+        <Text style={styles.title}>All your practice</Text>
         <Text style={styles.subtitle}>
-          {dataset.totalSeasons} seasons · {dataset.totalSteps} steps · since {dataset.sinceDate}
+          {dataset.totalSeasons} arcs · {dataset.totalSteps} steps · since {dataset.sinceDate}
         </Text>
       </View>
 
@@ -166,25 +182,34 @@ export function L4YearsView({
             currentWeekNumber={adapted.currentUnit}
             reflections={adapted.reflections}
             markers={adapted.markers}
+            phases={phasesFromLifetime(lifetime)}
             tickLabel={(unit) =>
               lifetime.sessions.find((s) => s.sessionIndex === unit)?.label ?? `s${unit}`
             }
             tickEveryN={1}
             nowLabel="NOW"
+            nowDoublePill
+            columnBleed={10}
+            bandRadius={4}
+            bandOpacity={0.9}
+            shapeMode="flow"
+            annotationMode="lifetime"
             width={chartWidth}
-            height={150}
+            height={212}
           />
 
           {adapted.peers.length > 0 ? (
             <>
               <Text style={[styles.sectionEyebrow, styles.sectionEyebrowSpace]}>
-                PEERS
+                PEER THREADS
               </Text>
               <PeerJourneyChart
                 peers={adapted.peers}
                 totalWeeks={adapted.totalUnits}
                 currentWeekNumber={adapted.currentUnit}
                 width={chartWidth}
+                compact
+                showRole={false}
               />
             </>
           ) : null}
@@ -196,24 +221,12 @@ export function L4YearsView({
               onSecondary={onLibrarianSecondary}
             />
           ) : null}
-
-          <Text style={styles.browseEyebrow}>BROWSE LANES</Text>
         </View>
       ) : null}
 
-      <View style={styles.searchBar}>
-        <Ionicons name="search-outline" size={15} color={IOS_REGISTER.labelTertiary} />
-        <Text style={styles.searchPlaceholder}>Search steps, capabilities, blueprints…</Text>
-        <Ionicons
-          name="mic-outline"
-          size={15}
-          color={IOS_REGISTER.labelTertiary}
-          style={styles.searchMic}
-        />
-      </View>
-
-      {onEnterSelectMode && !selectEnabled ? (
-        <View style={styles.selectRow}>
+      <View style={styles.browseHeaderRow}>
+        <Text style={styles.browseEyebrow}>BROWSE ARCS</Text>
+        {onEnterSelectMode && !selectEnabled ? (
           <Pressable style={styles.selectPill} onPress={onEnterSelectMode} hitSlop={6}>
             <Ionicons
               name="checkmark-circle-outline"
@@ -222,40 +235,8 @@ export function L4YearsView({
             />
             <Text style={styles.selectPillLabel}>Select</Text>
           </Pressable>
-        </View>
-      ) : null}
-
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.filterRow}
-      >
-        {dataset.capabilityFilters.map((filter) => {
-          const active = filter.id === activeFilter;
-          return (
-            <Pressable
-              key={filter.id}
-              style={[styles.filterChip, active && styles.filterChipActive]}
-              onPress={() => setActiveFilter(filter.id)}
-            >
-              {filter.icon ? (
-                <Ionicons
-                  name={filter.icon as keyof typeof Ionicons.glyphMap}
-                  size={12}
-                  color={
-                    active
-                      ? '#FFFFFF'
-                      : filter.color ?? IOS_REGISTER.labelSecondary
-                  }
-                />
-              ) : null}
-              <Text style={[styles.filterLabel, active && styles.filterLabelActive]}>
-                {filter.label}
-              </Text>
-            </Pressable>
-          );
-        })}
-      </ScrollView>
+        ) : null}
+      </View>
 
       {dataset.seasons.map((season, idx) => (
         <SeasonLane
@@ -342,7 +323,12 @@ function SeasonLane({
         <Text style={styles.laneCount}>{season.bricks.length}</Text>
       </View>
 
-      <View style={styles.bricksWrap}>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.bricksWrap}
+        style={styles.laneScroller}
+      >
         {season.bricks.map((b, i) => {
           const fill = season.archived
             ? withAlpha(b.capabilityColor, 0.45)
@@ -383,7 +369,7 @@ function SeasonLane({
             />
           );
         })}
-      </View>
+      </ScrollView>
     </View>
   );
 }
@@ -489,8 +475,8 @@ function withAlpha(hex: string, alpha: number): string {
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
-const BRICK_SIZE = 22;
-const BRICK_GAP = 4;
+const BRICK_SIZE = 18;
+const BRICK_GAP = 2;
 
 const styles = StyleSheet.create({
   scroll: { flex: 1 },
@@ -498,30 +484,30 @@ const styles = StyleSheet.create({
   headerBlock: {
     paddingHorizontal: 16,
     paddingTop: 4,
-    paddingBottom: 12,
+    paddingBottom: 8,
   },
   eyebrow: {
-    fontSize: 10.5,
+    fontSize: 10,
     fontWeight: '700',
     letterSpacing: 0.6,
     color: IOS_REGISTER.labelSecondary,
-    marginBottom: 8,
+    marginBottom: 6,
   },
   title: {
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: '700',
     letterSpacing: -0.6,
     color: IOS_REGISTER.label,
-    marginBottom: 4,
+    marginBottom: 2,
   },
   subtitle: {
-    fontSize: 13,
+    fontSize: 12.5,
     color: IOS_REGISTER.labelSecondary,
   },
   analysisBlock: {
     paddingHorizontal: 0,
     paddingTop: 4,
-    paddingBottom: 8,
+    paddingBottom: 10,
   },
   sectionEyebrow: {
     fontSize: 10.5,
@@ -532,77 +518,35 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   sectionEyebrowSpace: {
-    marginTop: 16,
+    marginTop: 18,
+  },
+  browseHeaderRow: {
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    opacity: 0.74,
   },
   browseEyebrow: {
-    fontSize: 10.5,
+    fontSize: 10,
     fontWeight: '700',
     letterSpacing: 0.6,
     color: IOS_REGISTER.labelSecondary,
-    paddingHorizontal: 16,
-    paddingTop: 22,
-    paddingBottom: 4,
-  },
-  searchBar: {
-    marginHorizontal: 16,
-    marginBottom: 12,
-    height: 36,
-    backgroundColor: IOS_REGISTER.fillPill,
-    borderRadius: 10,
-    paddingHorizontal: 10,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  searchPlaceholder: {
-    flex: 1,
-    fontSize: 14,
-    color: IOS_REGISTER.labelTertiary,
-  },
-  searchMic: {
-    marginLeft: 'auto',
-  },
-  filterRow: {
-    paddingHorizontal: 16,
-    gap: 6,
-    marginBottom: 16,
-  },
-  filterChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 12,
-    backgroundColor: IOS_REGISTER.cardBg,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: IOS_REGISTER.separator,
-  },
-  filterChipActive: {
-    backgroundColor: '#1F1F1F',
-    borderColor: '#1F1F1F',
-  },
-  filterLabel: {
-    fontSize: 13,
-    fontWeight: '500',
-    color: IOS_REGISTER.label,
-    letterSpacing: -0.1,
-  },
-  filterLabelActive: {
-    color: '#FFFFFF',
   },
   lane: {
     paddingHorizontal: 16,
-    marginBottom: 20,
+    marginBottom: 8,
   },
   laneArchived: {
-    opacity: 0.95,
+    opacity: 0.8,
   },
   laneHeadRow: {
     flexDirection: 'row',
     alignItems: 'baseline',
     justifyContent: 'space-between',
-    marginBottom: 8,
+    marginBottom: 3,
   },
   laneTitleRow: {
     flexDirection: 'row',
@@ -611,7 +555,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   laneTitle: {
-    fontSize: 17,
+    fontSize: 13,
     fontWeight: '600',
     letterSpacing: -0.3,
     color: IOS_REGISTER.label,
@@ -621,24 +565,29 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   laneDates: {
-    fontSize: 12,
+    fontSize: 10.5,
     color: IOS_REGISTER.labelTertiary,
     marginLeft: 4,
   },
   laneCount: {
-    fontSize: 13,
+    fontSize: 10.5,
     color: IOS_REGISTER.labelTertiary,
     fontWeight: '500',
   },
+  laneScroller: {
+    marginRight: -16,
+    opacity: 0.9,
+  },
   bricksWrap: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
     gap: BRICK_GAP,
+    paddingTop: 1,
+    paddingRight: 16,
   },
   brick: {
     width: BRICK_SIZE,
     height: BRICK_SIZE,
-    borderRadius: 3,
+    borderRadius: 2.5,
   },
   brickSelected: {
     // Slight inner ring for crispness against the blue fill; not a
@@ -669,8 +618,6 @@ const styles = StyleSheet.create({
   },
   selectRow: {
     flexDirection: 'row',
-    paddingHorizontal: 16,
-    marginBottom: 12,
   },
   selectPill: {
     flexDirection: 'row',

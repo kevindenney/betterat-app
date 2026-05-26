@@ -26,13 +26,18 @@ import type { Season } from '@/types/season';
 import type { TimelineStepRecord, TimelineStepStatus } from '@/types/timeline-steps';
 import { CAPABILITY_PALETTE } from './sampleData';
 import type {
+  Capability,
   CohortAvatar,
   DayKey,
   LifetimeAnalysis,
   LifetimePeer,
+  LifetimeReflection,
   LifetimeSession,
+  LifetimeTrophy,
   SeasonAnalysis,
+  SeasonLibrarianPrompt,
   SeasonPeer,
+  SeasonPhase,
   StepHowItem,
   StepStatus,
   TimelineDataset,
@@ -41,6 +46,118 @@ import type {
   TimelineWeek,
   WeeklyCapabilityMix,
 } from './types';
+
+/**
+ * Derive named phases from the bucketed week list. The phase labels
+ * are what answer "what does this color mean" for the user — written
+ * in domain vernacular and placed directly under the river in L3.
+ *
+ * Strategy:
+ *   1. Look for race-block structure in step titles ("Race 3", "Race 4"…).
+ *      Consecutive race weeks collapse into "Race N" or "Race N–M".
+ *   2. Outside race weeks, group consecutive weeks with the same
+ *      dominant capability into a single phase, labeled with the
+ *      capability name ("Tactics", "Boatspeed").
+ *   3. First week with mixed prep work labels as "entry"; the trailing
+ *      week of a season labels as "finale" when not race-locked.
+ *
+ * Sailing is the first vertical, so race-vernacular wins when present;
+ * nursing / non-sailing data falls back to capability-block phases.
+ */
+function computeSeasonPhases(weeks: TimelineWeek[]): SeasonPhase[] {
+  if (weeks.length === 0) return [];
+
+  const raceRe = /\bRace\s+(\d+)\b/i;
+  const dominantPerWeek: { weekNumber: number; capability: Capability | null; raceNum: number | null; isPrep: boolean }[] =
+    weeks.map((week, idx) => {
+      let raceNum: number | null = null;
+      for (const step of week.steps) {
+        const match = step.title.match(raceRe);
+        if (match) {
+          raceNum = parseInt(match[1]!, 10);
+          break;
+        }
+      }
+      const counts = new Map<string, { cap: Capability; count: number }>();
+      for (const step of week.steps) {
+        const cap = step.capabilities?.[0];
+        if (!cap) continue;
+        const entry = counts.get(cap.id);
+        if (entry) entry.count += 1;
+        else counts.set(cap.id, { cap, count: 1 });
+      }
+      const sorted = Array.from(counts.values()).sort((a, b) => b.count - a.count);
+      const dominant = sorted[0]?.cap ?? null;
+      // First week with no race + mixed steps reads as "entry" / prep.
+      const isPrep = idx === 0 && raceNum === null;
+      return { weekNumber: idx + 1, capability: dominant, raceNum, isPrep };
+    });
+
+  const phases: SeasonPhase[] = [];
+  const fallbackColor = CAPABILITY_PALETTE.procedural.color;
+  let i = 0;
+  while (i < dominantPerWeek.length) {
+    const head = dominantPerWeek[i]!;
+    let j = i;
+    // Race-block: collapse consecutive weeks that share race-number-ish structure.
+    if (head.raceNum !== null) {
+      const firstRace = head.raceNum;
+      let lastRace = head.raceNum;
+      while (
+        j + 1 < dominantPerWeek.length &&
+        dominantPerWeek[j + 1]!.raceNum !== null
+      ) {
+        j += 1;
+        lastRace = dominantPerWeek[j]!.raceNum!;
+      }
+      const label = firstRace === lastRace ? `Race ${firstRace}` : `Race ${firstRace}–${lastRace}`;
+      phases.push({
+        id: `phase-race-${firstRace}-${lastRace}`,
+        label,
+        startWeek: head.weekNumber,
+        endWeek: dominantPerWeek[j]!.weekNumber,
+        color: head.capability?.color ?? fallbackColor,
+      });
+      i = j + 1;
+      continue;
+    }
+    // Entry: first week of the season with no race tag.
+    if (head.isPrep) {
+      phases.push({
+        id: `phase-entry`,
+        label: `wk 1 · entry`,
+        startWeek: head.weekNumber,
+        endWeek: head.weekNumber,
+        color: head.capability?.color ?? fallbackColor,
+      });
+      i += 1;
+      continue;
+    }
+    // Capability block: collapse consecutive weeks sharing dominant capability.
+    const capId = head.capability?.id ?? '__none__';
+    while (
+      j + 1 < dominantPerWeek.length &&
+      (dominantPerWeek[j + 1]!.capability?.id ?? '__none__') === capId &&
+      dominantPerWeek[j + 1]!.raceNum === null
+    ) {
+      j += 1;
+    }
+    const isLastBucket = j === dominantPerWeek.length - 1;
+    const label =
+      isLastBucket && head.weekNumber !== 1
+        ? 'finale'
+        : head.capability?.label ?? 'prep';
+    phases.push({
+      id: `phase-${i}-${capId}`,
+      label,
+      startWeek: head.weekNumber,
+      endWeek: dominantPerWeek[j]!.weekNumber,
+      color: head.capability?.color ?? fallbackColor,
+    });
+    i = j + 1;
+  }
+  return phases;
+}
 
 export interface BlueprintLookup {
   title: string;
@@ -156,6 +273,46 @@ function timeOfDayModifier(iso: string | null): string | null {
   return 'NIGHT';
 }
 
+function looksLikeCreationTimeFallback(rec: TimelineStepRecord): boolean {
+  if (!rec.starts_at || !rec.created_at) return false;
+  const startsAt = Date.parse(rec.starts_at);
+  const createdAt = Date.parse(rec.created_at);
+  if (Number.isNaN(startsAt) || Number.isNaN(createdAt)) return false;
+  return Math.abs(startsAt - createdAt) <= 5 * 60 * 1000;
+}
+
+function resolveScheduleAnchor(rec: TimelineStepRecord): string | null {
+  if (rec.due_at) return rec.due_at;
+
+  if (!rec.starts_at) return null;
+
+  const metadata = rec.metadata as { draft?: unknown; capture_source?: unknown } | null | undefined;
+  const isQuickCaptureDraft =
+    metadata?.draft === true &&
+    metadata?.capture_source === 'universal_plus_sheet';
+
+  if (isQuickCaptureDraft || looksLikeCreationTimeFallback(rec)) {
+    return null;
+  }
+
+  return rec.starts_at;
+}
+
+function formatWhenLabel(iso: string | null): string | undefined {
+  if (!iso) return undefined;
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return undefined;
+  return date
+    .toLocaleString('en-US', {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: date.getMinutes() === 0 ? undefined : '2-digit',
+    })
+    .replace(',', ' ·');
+}
+
 function getPlanData(metadata: Record<string, unknown> | null | undefined): StepPlanData | null {
   if (!metadata) return null;
   const plan = (metadata as { plan?: unknown }).plan;
@@ -189,12 +346,25 @@ function statusFromRecord(rec: TimelineStepRecord): StepStatus {
 }
 
 function deriveCapability(category: string) {
+  const normalized = category?.trim().toLowerCase();
   const color = hashCategoryToColor(category || 'general');
-  const label =
-    category && category.length > 0
-      ? category.charAt(0).toUpperCase() + category.slice(1)
-      : 'Practice';
+  if (!normalized || normalized === 'general') {
+    return { id: 'general', label: 'Practice', color };
+  }
+  const label = category.charAt(0).toUpperCase() + category.slice(1);
   return { id: category || 'general', label, color };
+}
+
+function fallbackCapability(color?: string): Capability {
+  return {
+    id: 'general',
+    label: 'Practice',
+    color: color ?? CAPABILITY_PALETTE.procedural.color,
+  };
+}
+
+function capabilityForStep(step: TimelineStep): Capability {
+  return step.capabilities?.[0] ?? fallbackCapability();
 }
 
 function recordToStep(
@@ -204,19 +374,19 @@ function recordToStep(
   blueprintsById?: Map<string, BlueprintLookup>,
 ): TimelineStep {
   const cap = deriveCapability(rec.category);
-  const today = isToday(rec.starts_at);
+  const scheduleAnchor = resolveScheduleAnchor(rec);
+  const today = isToday(scheduleAnchor);
   const plan = getPlanData(rec.metadata);
 
-  // Eyebrow — [TODAY | DAY] · [TIME_OF_DAY?] · [CATEGORY?]
-  const dayKey = dayKeyFromIso(rec.starts_at);
+  // Eyebrow — [TODAY | DAY] · [TIME_OF_DAY?]
+  const dayKey = dayKeyFromIso(scheduleAnchor);
   const dayPrefix = today
     ? 'TODAY'
-    : rec.starts_at
+    : scheduleAnchor
       ? DAY_LABEL[dayKey].toUpperCase()
       : null;
-  const tod = timeOfDayModifier(rec.starts_at);
-  const cat = rec.category?.toUpperCase();
-  const preTitleParts = [dayPrefix, tod, cat].filter(Boolean) as string[];
+  const tod = timeOfDayModifier(scheduleAnchor);
+  const preTitleParts = [dayPrefix, tod].filter(Boolean) as string[];
   const preTitle = preTitleParts.length > 0 ? preTitleParts.join(' · ') : undefined;
 
   // HOW WILL YOU DO IT? — from metadata.plan.how_sub_steps
@@ -224,10 +394,12 @@ function recordToStep(
     ?.slice()
     .sort((a, b) => a.sort_order - b.sort_order)
     .map((sub) => ({ label: sub.text, checked: sub.completed }));
+  const whyReasoning = plan?.why_reasoning?.trim() || undefined;
+  const whenLabel = formatWhenLabel(scheduleAnchor);
 
   // Meta row — "Wed · <location>" left, "Preceptor: <name>" right
   const locName = plan?.where_location?.name ?? rec.location_name ?? null;
-  const metaLeft = rec.starts_at
+  const metaLeft = scheduleAnchor
     ? locName
       ? `${DAY_LABEL[dayKey]} · ${locName}`
       : DAY_LABEL[dayKey]
@@ -277,6 +449,8 @@ function recordToStep(
     metaLeft,
     metaRight,
     whatBody: plan?.what_will_you_do || rec.description || undefined,
+    whyReasoning,
+    whenLabel,
     howItems,
     capabilities: [cap],
     from,
@@ -369,30 +543,39 @@ function computeSeasonAnalysis(
   // of "where it is" (a current-week index) and at least one peer. Real
   // librarian copy lives in the agent loop; this is the always-on
   // baseline so L3 isn't empty for fresh seasons.
-  const dominantColor = weeklyCapabilities
-    .slice(0, currentWeekNumber)
-    .flatMap((w) => w.bands)
-    .reduce<{ color: string; volume: number } | null>((max, b) => {
-      if (!max || b.volume > max.volume) return { color: b.capabilityColor, volume: b.volume };
-      return max;
-    }, null);
-  const dominantLabel = dominantColor
-    ? colorToCapabilityLabel(dominantColor.color)
-    : null;
+  const seenCapabilityCounts = new Map<string, { label: string; count: number }>();
+  for (const week of weeks.slice(0, currentWeekNumber)) {
+    for (const step of week.steps) {
+      const capability = capabilityForStep(step);
+      const existing = seenCapabilityCounts.get(capability.id);
+      if (existing) {
+        existing.count += 1;
+      } else {
+        seenCapabilityCounts.set(capability.id, { label: capability.label, count: 1 });
+      }
+    }
+  }
+  const dominantLabel = Array.from(seenCapabilityCounts.values())
+    .sort((a, b) => b.count - a.count)
+    .map((entry) => (entry.label === 'Practice' || entry.label === 'General' ? null : entry.label))
+    .find(Boolean) ?? null;
   const promptBody = seasonName
     ? `You're at week ${currentWeekNumber} of ${weeks.length} in ${seasonName}.${
         dominantLabel ? ` ${dominantLabel} has been the dominant thread so far.` : ''
-      } What do you want this rotation to add up to?`
-    : `You're at week ${currentWeekNumber} of ${weeks.length}. What do you want this rotation to add up to?`;
+      } What do you want this arc to add up to?`
+    : `You're at week ${currentWeekNumber} of ${weeks.length}. What do you want this arc to add up to?`;
+
+  const phases = computeSeasonPhases(weeks);
 
   return {
     weeklyCapabilities,
+    phases,
     peers,
     reflections: [],
     librarianPrompt: {
       eyebrow: 'This rotation · the librarian noticed',
       body: promptBody,
-      primaryCta: { label: 'Open a season check-in', intent: 'open-season-check-in' },
+      primaryCta: { label: 'Review this arc', intent: 'open-season-check-in' },
       secondaryCta: { label: 'Not now' },
     },
   };
@@ -403,6 +586,111 @@ function colorToCapabilityLabel(color: string): string | null {
     if (cap.color === color) return cap.label;
   }
   return null;
+}
+
+function shortenPromptAnchor(title: string | null | undefined): string | null {
+  const raw = String(title ?? '').replace(/\s+/g, ' ').trim();
+  if (!raw) return null;
+  const raceMatch = raw.match(/\b(Race\s+\d+)\b/i);
+  if (raceMatch?.[1]) return raceMatch[1];
+  const sessionMatch = raw.match(/\b(Session\s+\d+)\b/i);
+  if (sessionMatch?.[1]) return sessionMatch[1];
+  const firstSegment = raw.split(/ · | — |: |- /)[0]?.trim() ?? raw;
+  if (firstSegment.length <= 28) return firstSegment;
+  return firstSegment.split(/\s+/).slice(0, 4).join(' ');
+}
+
+function findPromptAnchorStep(currentWeek: TimelineWeek): TimelineStep | null {
+  return (
+    currentWeek.steps.find((step) => step.status === 'plan') ??
+    currentWeek.steps.find((step) => step.status === 'do') ??
+    currentWeek.steps.find((step) => step.status === 'reflect') ??
+    currentWeek.steps[currentWeek.steps.length - 1] ??
+    null
+  );
+}
+
+function buildWeekPlanningHint(
+  weeks: TimelineWeek[],
+  currentWeekIdx: number,
+  seasonName: string | null,
+): SeasonLibrarianPrompt | undefined {
+  const currentWeek = weeks[currentWeekIdx];
+  if (!currentWeek) return undefined;
+
+  const seenCounts = new Map<string, { label: string; count: number }>();
+  for (const week of weeks.slice(0, currentWeekIdx + 1)) {
+    for (const step of week.steps) {
+      const capability = capabilityForStep(step);
+      const existing = seenCounts.get(capability.id);
+      if (existing) {
+        existing.count += 1;
+      } else {
+        seenCounts.set(capability.id, { label: capability.label, count: 1 });
+      }
+    }
+  }
+  if (seenCounts.size === 0) return undefined;
+
+  const currentCapabilityIds = new Set(
+    currentWeek.steps.map((step) => capabilityForStep(step).id),
+  );
+  const anchorLabel = shortenPromptAnchor(findPromptAnchorStep(currentWeek)?.title);
+  const missingCandidate = Array.from(seenCounts.entries())
+    .filter(([capabilityId]) => !currentCapabilityIds.has(capabilityId))
+    .sort((a, b) => b[1].count - a[1].count)[0];
+
+  if (missingCandidate) {
+    const [missingCapabilityId, missingCapability] = missingCandidate;
+    const missingLabel =
+      missingCapability.label === 'Practice' || missingCapability.label === 'General'
+        ? null
+        : missingCapability.label;
+    let lastSeenWeekIdx = -1;
+    for (let idx = currentWeekIdx - 1; idx >= 0; idx -= 1) {
+      if (weeks[idx]?.steps.some((step) => capabilityForStep(step).id === missingCapabilityId)) {
+        lastSeenWeekIdx = idx;
+        break;
+      }
+    }
+    const weeksSinceSeen =
+      lastSeenWeekIdx >= 0 ? currentWeekIdx - lastSeenWeekIdx : null;
+    const timeCopy =
+      lastSeenWeekIdx >= 0
+        ? ` since Week ${weeks[lastSeenWeekIdx]?.number ?? lastSeenWeekIdx + 1}`
+        : '';
+
+    return {
+      eyebrow: 'The librarian noticed',
+      body: missingLabel
+        ? `${missingLabel} hasn't appeared in the nearby run${timeCopy}.`
+        : `One capability thread hasn't appeared in the nearby run${timeCopy}.`,
+      emphasisLine: anchorLabel
+        ? `Slot a session before ${anchorLabel}?`
+        : 'Slot a session into the next move?',
+      supportingLine: weeksSinceSeen && weeksSinceSeen > 1
+        ? `This gap has been open for ${weeksSinceSeen} weeks. Use the next slot to rebalance the arc before the pattern hardens.`
+        : 'Use the next slot to rebalance the arc before the pattern hardens.',
+      primaryCta: { label: missingLabel ? `Add ${missingLabel}` : 'Add a step', intent: 'add-step' },
+      secondaryCta: { label: 'Not now' },
+    };
+  }
+
+  const dominantLabel = Array.from(seenCounts.values())
+    .sort((a, b) => b.count - a.count)
+    .map((entry) => (entry.label === 'Practice' || entry.label === 'General' ? null : entry.label))
+    .find(Boolean) ?? null;
+  const seasonCopy = seasonName ?? 'this arc';
+  return {
+    eyebrow: 'The librarian noticed',
+    body: dominantLabel
+      ? `${dominantLabel} is carrying most of the nearby weight in ${seasonCopy}.`
+      : `This nearby run is clustering around one thread in ${seasonCopy}.`,
+    emphasisLine: 'What should the next move add?',
+    supportingLine: 'Use the next slot to add contrast, not more of the same.',
+    primaryCta: { label: 'Review this arc', intent: 'open-season-check-in' },
+    secondaryCta: { label: 'Not now' },
+  };
 }
 
 /**
@@ -450,6 +738,11 @@ function computeLifetimeAnalysis(seasons: TimelineSeason[]): LifetimeAnalysis | 
       volume: Math.max(1, season.bricks.length),
     };
   });
+
+  const sessionCapabilityLabels = sessions.map((session) => ({
+    sessionIndex: session.sessionIndex,
+    label: colorToCapabilityLabel(session.dominantCapabilityColor),
+  }));
 
   // Peer union — walk every season's steps, accumulate per-session counts.
   const peerMap = new Map<
@@ -499,6 +792,39 @@ function computeLifetimeAnalysis(seasons: TimelineSeason[]): LifetimeAnalysis | 
     )
     .slice(0, 6);
 
+  const reflections: LifetimeReflection[] = [];
+  for (let idx = 1; idx < sessionCapabilityLabels.length; idx += 1) {
+    const prev = sessionCapabilityLabels[idx - 1];
+    const current = sessionCapabilityLabels[idx];
+    if (!prev.label || !current.label || prev.label === current.label) continue;
+    reflections.push({
+      id: `lifetime-shift-${current.sessionIndex}`,
+      sessionIndex: current.sessionIndex,
+      quote: `${current.label.toLowerCase()} took over`,
+      capabilityColor: sessions[idx].dominantCapabilityColor,
+    });
+  }
+
+  const peakSession = [...sessions].sort((a, b) => b.volume - a.volume)[0];
+  const latestSession = sessions[sessions.length - 1];
+  const trophies: LifetimeTrophy[] = [];
+  if (peakSession) {
+    trophies.push({
+      id: `peak-volume-${peakSession.sessionIndex}`,
+      sessionIndex: peakSession.sessionIndex,
+      label: peakSession === latestSession ? 'peak now' : 'peak load',
+      capabilityColor: peakSession.dominantCapabilityColor,
+    });
+  }
+  if (latestSession && latestSession !== peakSession) {
+    trophies.push({
+      id: `current-arc-${latestSession.sessionIndex}`,
+      sessionIndex: latestSession.sessionIndex,
+      label: 'current arc',
+      capabilityColor: latestSession.dominantCapabilityColor,
+    });
+  }
+
   // Baseline librarian sentence — drift from first session's dominant
   // capability to the latest. Honest about not knowing the user's
   // milestones yet.
@@ -520,8 +846,8 @@ function computeLifetimeAnalysis(seasons: TimelineSeason[]): LifetimeAnalysis | 
   return {
     sessions,
     peers,
-    reflections: [],
-    trophies: [],
+    reflections: reflections.slice(-3),
+    trophies,
     librarianPrompt: {
       eyebrow: 'Across your practice · the librarian noticed',
       body: promptBody,
@@ -540,6 +866,7 @@ function shortenSeasonLabel(title: string): string {
 }
 
 interface AdapterInput {
+  interestId?: string | null;
   interestLabel: string;
   user: { initials: string; color: string };
   currentSeason: Season | null;
@@ -551,6 +878,7 @@ interface AdapterInput {
 }
 
 export function mapToTimelineDataset({
+  interestId,
   interestLabel,
   user,
   currentSeason,
@@ -637,26 +965,33 @@ export function mapToTimelineDataset({
   // dominant-capability derivation as the librarian prompt; computed
   // once and stamped on the current week.
   if (currentSeasonAnalysis && weeks[currentWeekIdx]) {
-    const dominant = currentSeasonAnalysis.weeklyCapabilities
+    const dominant = weeks
       .slice(0, currentWeekIdx + 1)
-      .flatMap((w) => w.bands)
-      .reduce<{ color: string; volume: number } | null>((max, b) => {
-        if (!max || b.volume > max.volume) {
-          return { color: b.capabilityColor, volume: b.volume };
+      .flatMap((week) => week.steps)
+      .reduce<{ id: string; label: string; count: number }[]>((acc, step) => {
+        const capability = capabilityForStep(step);
+        const existing = acc.find((entry) => entry.id === capability.id);
+        if (existing) {
+          existing.count += 1;
+        } else {
+          acc.push({ id: capability.id, label: capability.label, count: 1 });
         }
-        return max;
-      }, null);
-    const dominantLabel = dominant ? colorToCapabilityLabel(dominant.color) : null;
+        return acc;
+      }, [])
+      .sort((a, b) => b.count - a.count)[0];
+    const dominantLabel = dominant?.label ?? null;
     const seasonShortName =
       currentSeason?.short_name ?? currentSeason?.name ?? 'This arc';
     if (dominantLabel) {
       weeks[currentWeekIdx].contextStrip = `${seasonShortName} has been ${dominantLabel.toLowerCase()}-heavy.`;
     }
+    weeks[currentWeekIdx].planningHint =
+      buildWeekPlanningHint(weeks, currentWeekIdx, seasonShortName);
   }
 
   const currentSeasonNode: TimelineSeason = {
     id: seasonIdForSteps,
-    title: currentSeason?.name ?? currentSeason?.short_name ?? 'Current rotation',
+    title: currentSeason?.name ?? currentSeason?.short_name ?? 'Current arc',
     dateRange:
       currentSeason && currentSeason.start_date && currentSeason.end_date
         ? formatDateRange(currentSeason.start_date, currentSeason.end_date)
@@ -688,7 +1023,7 @@ export function mapToTimelineDataset({
   const archivedSeasons: TimelineSeason[] = [];
   for (const s of allSeasons) {
     if (s.id === currentSeason?.id) continue;
-    const name = s.name ?? s.short_name ?? 'Past rotation';
+    const name = s.name ?? s.short_name ?? 'Past arc';
     const key = `${name}::${s.start_date ?? ''}::${s.end_date ?? ''}`;
     if (seenArchiveKeys.has(key)) continue;
     seenArchiveKeys.add(key);
@@ -715,7 +1050,7 @@ export function mapToTimelineDataset({
   }
 
   return {
-    interest: { id: 'live', label: interestLabel },
+    interest: { id: interestId ?? 'live', label: interestLabel },
     user,
     focusStepId: actualFocusId,
     currentSeasonId: seasonIdForSteps,

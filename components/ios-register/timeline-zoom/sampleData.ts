@@ -158,6 +158,17 @@ const SPRING_26_ANALYSIS: SeasonAnalysis = {
     { weekNumber: 13, bands: [{ capabilityColor: PALETTE.pharm.color, volume: 3 }, { capabilityColor: PALETTE.comm.color, volume: 1 }] },
     { weekNumber: 14, bands: [{ capabilityColor: PALETTE.assess.color, volume: 2 }, { capabilityColor: PALETTE.comm.color, volume: 1 }] },
   ],
+  phases: [
+    { id: 'p-entry',      label: 'wk 1 · entry', startWeek: 1,  endWeek: 1,  color: PALETTE.procedural.color },
+    { id: 'p-procedural', label: 'Procedural',   startWeek: 2,  endWeek: 3,  color: PALETTE.procedural.color },
+    { id: 'p-assess',     label: 'Assessment',   startWeek: 4,  endWeek: 6,  color: PALETTE.assess.color },
+    { id: 'p-cardio',     label: 'Cardio block', startWeek: 7,  endWeek: 10, color: PALETTE.cardio.color },
+    { id: 'p-synthesis',  label: 'Synthesis',    startWeek: 11, endWeek: 13, color: PALETTE.comm.color },
+    { id: 'p-finale',     label: 'finale',       startWeek: 14, endWeek: 14, color: PALETTE.assess.color },
+  ],
+  markers: [
+    { id: 'm-cardio-aha', weekNumber: 7, kind: 'trophy', label: 'named the lasix', capabilityColor: PALETTE.cardio.color },
+  ],
   peers: [
     {
       id: 'ngo',
@@ -245,7 +256,9 @@ const SPRING_26: TimelineSeason = {
       planningHint: {
         eyebrow: 'The librarian noticed',
         body:
-          'A. Ngo offered to walk you through the new lasix flow on Friday. Slot it in?',
+          "Lasix-flow practice hasn't appeared in the nearby run since Week 4.",
+        emphasisLine: 'Slot a session before Friday?',
+        supportingLine: "A. Ngo's walkthrough would fit that gap.",
         primaryCta: { label: "Accept A. Ngo's offer", intent: 'accept-suggestion' },
         secondaryCta: { label: 'Not now' },
       },

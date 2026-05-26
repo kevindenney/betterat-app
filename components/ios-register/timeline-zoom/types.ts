@@ -65,6 +65,8 @@ export interface TimelineStep {
   status: StepStatus;
   /** L1-only — the Plan body. */
   whatBody?: string;
+  whyReasoning?: string;
+  whenLabel?: string;
   howItems?: StepHowItem[];
   capabilities?: Capability[];
   from?: BlueprintProvenance;
@@ -152,12 +154,56 @@ export interface SeasonAnalysis {
    * sampleData.
    */
   weeklyCapabilities: WeeklyCapabilityMix[];
+  /**
+   * Named segments of the season — what each colored stretch of the
+   * river *means*, written in domain vernacular. The chart renders
+   * these labels directly under the river so the user doesn't need a
+   * legend to decode colors (e.g. "Race 1–2", "Light-air", "finale"
+   * for sailing; "Orientation", "ICU block" for nursing).
+   *
+   * Each phase spans an inclusive week range and carries the color
+   * used for that stretch of the river when shapeMode='flow'. When
+   * phases are omitted, the chart falls back to the legacy "wk N"
+   * tick labels.
+   */
+  phases?: SeasonPhase[];
   /** Peer crew who appeared this season + when. Drives the peer chart. */
   peers: SeasonPeer[];
   /** Inline italic-serif reflection quotes pinned to specific weeks. */
   reflections: SeasonReflection[];
+  /** Trophy / milestone markers floated above the river. */
+  markers?: SeasonMarker[];
   /** Mid-season lilac prompt at the bottom of L3. */
   librarianPrompt?: SeasonLibrarianPrompt;
+}
+
+/**
+ * A named stretch of the season — the unit the river chart labels
+ * directly under itself. Phases are how the user decodes "what does
+ * this color mean" without a separate legend.
+ */
+export interface SeasonPhase {
+  id: string;
+  /** Domain-vernacular label — "Race 1–2", "Light-air", "Orientation". */
+  label: string;
+  /** Inclusive 1-based week range. */
+  startWeek: number;
+  endWeek: number;
+  /** Color used for this stretch of the river in flow mode. */
+  color: string;
+}
+
+/**
+ * Trophy / milestone marker pinned to a specific week of the season.
+ * Mirrors RiverChartMarker but lives in the data layer so the adapter
+ * + sample data can author them without depending on the chart module.
+ */
+export interface SeasonMarker {
+  id: string;
+  weekNumber: number;
+  kind: 'trophy';
+  label: string;
+  capabilityColor?: string;
 }
 
 export interface WeeklyCapabilityMix {
@@ -191,8 +237,12 @@ export interface SeasonReflection {
 export interface SeasonLibrarianPrompt {
   /** Small eyebrow above the body — defaults to "THE LIBRARIAN NOTICED". */
   eyebrow?: string;
-  /** Sentence(s) of italic-serif prose. */
+  /** Lead sentence(s) of italic-serif prose. */
   body: string;
+  /** Optional emphasized planning move shown as its own line. */
+  emphasisLine?: string;
+  /** Optional supporting context / provenance line under the emphasis. */
+  supportingLine?: string;
   /** Primary CTA (lilac filled). */
   primaryCta: {
     label: string;

@@ -22,7 +22,7 @@
  * the view falls back to the original toolbar + week-list.
  */
 
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import {
   Pressable,
   ScrollView,
@@ -41,12 +41,21 @@ import { StepDigestCard } from './StepDigestCard';
 import { CapabilityRiverChart } from './CapabilityRiverChart';
 import { PeerJourneyChart } from './PeerJourneyChart';
 import { SeasonLibrarianPrompt } from './SeasonLibrarianPrompt';
+import { SeasonHeaderChips } from './SeasonHeaderChips';
+import { PickerListSheet } from './PickerListSheet';
+import { SeasonCalendarSheet } from './SeasonCalendarSheet';
 import { useDragReorder } from './useDragReorder';
-import type { TimelineDataset, TimelineStep } from './types';
+import type { TimelineDataset, TimelineSeason, TimelineStep } from './types';
 
 interface L3SeasonViewProps {
   dataset: TimelineDataset;
   focusStepId: string;
+  /**
+   * Currently displayed season. Lifted to the canvas so the choice
+   * survives zoom-level changes. Falls back to dataset.currentSeasonId.
+   */
+  selectedSeasonId?: string;
+  onSelectSeason?: (seasonId: string) => void;
   onOpenStep: (stepId: string) => void;
   onEnterSelectMode?: () => void;
   /**
@@ -72,6 +81,8 @@ interface L3SeasonViewProps {
 export function L3SeasonView({
   dataset,
   focusStepId,
+  selectedSeasonId,
+  onSelectSeason,
   onOpenStep,
   onEnterSelectMode,
   onReorderStep,
@@ -81,8 +92,33 @@ export function L3SeasonView({
   onLibrarianPrimary,
   onLibrarianSecondary,
 }: L3SeasonViewProps) {
-  const season = dataset.seasons.find((s) => s.id === dataset.currentSeasonId);
+  const effectiveSeasonId = selectedSeasonId ?? dataset.currentSeasonId;
+  const season = dataset.seasons.find((s) => s.id === effectiveSeasonId)
+    ?? dataset.seasons.find((s) => s.id === dataset.currentSeasonId);
+
   const [chartWidth, setChartWidth] = useState(0);
+  const [openPicker, setOpenPicker] = useState<
+    'season' | 'step' | 'calendar' | null
+  >(null);
+  const scrollRef = useRef<ScrollView>(null);
+  const weekOffsetsRef = useRef<Record<string, number>>({});
+
+  const registerWeekOffset = useCallback((weekId: string, y: number) => {
+    weekOffsetsRef.current[weekId] = y;
+  }, []);
+
+  const scrollToWeekByIndex = useCallback(
+    (weekIndex: number) => {
+      if (!season) return;
+      const target = season.weeks.find((w) => w.number === weekIndex);
+      if (!target) return;
+      const y = weekOffsetsRef.current[target.id];
+      if (typeof y === 'number') {
+        scrollRef.current?.scrollTo({ y: Math.max(0, y - 8), animated: true });
+      }
+    },
+    [season],
+  );
 
   const onAnalysisLayout = useCallback((e: LayoutChangeEvent) => {
     const w = e.nativeEvent.layout.width;
@@ -120,13 +156,21 @@ export function L3SeasonView({
   const totalWeeks = season.weekOfTotal?.total ?? season.weeks.length;
   const currentWeek = season.weekOfTotal?.current ?? 1;
 
+  // "Step N of M" for the step-counter chip. Picks the focused step's
+  // ordinal within the flat season list when known; falls back to 1.
+  const focusedStepIndex = flatSteps.findIndex((s) => s.id === focusStepId);
+  const stepOfTotal =
+    flatSteps.length > 0
+      ? { current: focusedStepIndex >= 0 ? focusedStepIndex + 1 : 1, total: flatSteps.length }
+      : undefined;
+
   // Sticky week headers: the ScrollView's stickyHeaderIndices points at
   // each WEEK N row's index among the top-level scroll children. With
   // the analysis layer in the tree, we count the fixed children before
   // the per-week pairs and add per-week pairs from there.
   const hasAnalysis = Boolean(analysis);
   const fixedChildrenBeforeWeeks =
-    // headerBlock + browseWeeksEyebrow + toolbar
+    // headerChips + browseWeeksEyebrow + toolbar
     3
     // analysis block (one wrapper View if present)
     + (hasAnalysis ? 1 : 0);
@@ -135,33 +179,24 @@ export function L3SeasonView({
   );
 
   return (
+    <>
     <ScrollView
+      ref={scrollRef}
       style={styles.scroll}
       contentContainerStyle={styles.scrollContent}
       showsVerticalScrollIndicator={false}
       scrollEnabled={!drag.isDragging}
       stickyHeaderIndices={stickyHeaderIndices}
     >
-      <View style={styles.headerBlock}>
-        <Text style={styles.eyebrow}>ZOOM · CURRENT ARC · REFLECTING</Text>
-        <Text style={styles.title}>{season.title}</Text>
-        <View style={styles.metaRow}>
-          {season.orgChip ? (
-            <View style={styles.orgChip}>
-              <View style={styles.orgMonogram}>
-                <Text style={styles.orgMonogramText}>{season.orgChip.monogram}</Text>
-              </View>
-              <Text style={styles.orgLabel}>{season.orgChip.label}</Text>
-            </View>
-          ) : null}
-          <Text style={styles.dateRange}>{season.dateRange}</Text>
-        </View>
-        {season.weekOfTotal ? (
-          <Text style={styles.weekOf}>
-            Week {season.weekOfTotal.current} of {season.weekOfTotal.total}
-          </Text>
-        ) : null}
-      </View>
+      <SeasonHeaderChips
+        seasonTitle={season.title}
+        dateRange={season.dateRange}
+        weekOfTotal={season.weekOfTotal}
+        stepOfTotal={stepOfTotal}
+        onPressSeason={() => setOpenPicker('season')}
+        onPressDate={() => setOpenPicker('calendar')}
+        onPressStep={() => setOpenPicker('step')}
+      />
 
       {hasAnalysis && analysis ? (
         <View style={styles.analysisBlock} onLayout={onAnalysisLayout}>
@@ -171,8 +206,21 @@ export function L3SeasonView({
             totalWeeks={totalWeeks}
             currentWeekNumber={currentWeek}
             reflections={analysis.reflections}
+            phases={analysis.phases}
+            markers={analysis.markers?.map((m) => ({
+              id: m.id,
+              unit: m.weekNumber,
+              kind: m.kind,
+              label: m.label,
+              capabilityColor: m.capabilityColor,
+            }))}
+            shapeMode="flow"
+            nowDoublePill
+            columnBleed={8}
+            bandOpacity={0.9}
             width={chartWidth}
-            height={130}
+            height={188}
+            tickEveryN={2}
           />
 
           {analysis.peers.length > 0 ? (
@@ -191,7 +239,10 @@ export function L3SeasonView({
 
           {analysis.librarianPrompt ? (
             <SeasonLibrarianPrompt
-              prompt={analysis.librarianPrompt}
+              prompt={{
+                ...analysis.librarianPrompt,
+                eyebrow: 'This arc · the librarian noticed',
+              }}
               onPrimary={onLibrarianPrimary}
               onSecondary={onLibrarianSecondary}
             />
@@ -217,6 +268,7 @@ export function L3SeasonView({
         <View
           key={`hdr-${week.id}`}
           style={styles.weekHeaderSticky}
+          onLayout={(e) => registerWeekOffset(week.id, e.nativeEvent.layout.y)}
         >
           <View style={styles.weekHeadRow}>
             <Text style={styles.weekHead}>
@@ -259,6 +311,81 @@ export function L3SeasonView({
         </View>,
       ])}
     </ScrollView>
+
+      <PickerListSheet<TimelineSeason>
+        visible={openPicker === 'season'}
+        title="Switch arc"
+        items={dataset.seasons}
+        keyExtractor={(s) => s.id}
+        isSelected={(s) => s.id === effectiveSeasonId}
+        onSelect={(s) => {
+          onSelectSeason?.(s.id);
+          setOpenPicker(null);
+        }}
+        onClose={() => setOpenPicker(null)}
+        renderRow={(s) => {
+          const wkCount = s.weekOfTotal?.total ?? s.weeks.length;
+          return (
+            <>
+              <View style={styles.pickerTitleRow}>
+                <Text style={styles.pickerPrimary} numberOfLines={1}>
+                  {s.title}
+                </Text>
+                {s.archived ? (
+                  <View style={styles.pickerArchivedTag}>
+                    <Text style={styles.pickerArchivedText}>archived</Text>
+                  </View>
+                ) : null}
+              </View>
+              <Text style={styles.pickerSecondary} numberOfLines={1}>
+                {s.dateRange} · {wkCount} {wkCount === 1 ? 'week' : 'weeks'}
+              </Text>
+            </>
+          );
+        }}
+      />
+
+      <PickerListSheet<TimelineStep>
+        visible={openPicker === 'step'}
+        title="Jump to step"
+        items={flatSteps}
+        keyExtractor={(s) => s.id}
+        isSelected={(s) => s.id === focusStepId}
+        onSelect={(s) => {
+          setOpenPicker(null);
+          onOpenStep(s.id);
+        }}
+        onClose={() => setOpenPicker(null)}
+        renderRow={(s) => {
+          const ordinal = flatSteps.findIndex((x) => x.id === s.id) + 1;
+          return (
+            <>
+              <Text style={styles.pickerPrimary} numberOfLines={1}>
+                {ordinal}. {s.title}
+              </Text>
+              {s.preTitle ? (
+                <Text style={styles.pickerSecondary} numberOfLines={1}>
+                  {s.preTitle}
+                </Text>
+              ) : null}
+            </>
+          );
+        }}
+      />
+
+      <SeasonCalendarSheet
+        visible={openPicker === 'calendar'}
+        seasonTitle={season.title}
+        dateRange={season.dateRange}
+        currentWeek={currentWeek}
+        totalWeeks={totalWeeks}
+        onPickWeek={(weekIndex) => {
+          setOpenPicker(null);
+          scrollToWeekByIndex(weekIndex);
+        }}
+        onClose={() => setOpenPicker(null)}
+      />
+    </>
   );
 }
 
@@ -388,73 +515,40 @@ function ToolbarButton({
 const styles = StyleSheet.create({
   scroll: { flex: 1 },
   scrollContent: { paddingBottom: 120 },
-  headerBlock: {
-    paddingHorizontal: 16,
-    paddingTop: 4,
-    paddingBottom: 12,
-  },
-  eyebrow: {
-    fontSize: 10.5,
-    fontWeight: '700',
-    letterSpacing: 0.6,
-    color: IOS_REGISTER.labelSecondary,
-    marginBottom: 8,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: '700',
-    letterSpacing: -0.6,
+  pickerPrimary: {
+    flexShrink: 1,
+    fontSize: 15,
+    fontWeight: '600',
     color: IOS_REGISTER.label,
-    marginBottom: 8,
+    letterSpacing: -0.2,
   },
-  metaRow: {
+  pickerSecondary: {
+    fontSize: 12,
+    color: IOS_REGISTER.labelSecondary,
+    marginTop: 3,
+  },
+  pickerTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    flexWrap: 'wrap',
   },
-  orgChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  pickerArchivedTag: {
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    borderRadius: 4,
     backgroundColor: IOS_REGISTER.fillPill,
-    borderRadius: 14,
-    paddingLeft: 2,
-    paddingRight: 10,
-    paddingVertical: 2,
-    gap: 6,
   },
-  orgMonogram: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    backgroundColor: '#6E2E8B',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  orgMonogramText: {
-    color: '#FFFFFF',
-    fontSize: 10,
+  pickerArchivedText: {
+    fontSize: 9.5,
     fontWeight: '700',
-  },
-  orgLabel: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: IOS_REGISTER.label,
-    letterSpacing: -0.1,
-  },
-  dateRange: {
-    fontSize: 13,
     color: IOS_REGISTER.labelSecondary,
-  },
-  weekOf: {
-    fontSize: 13,
-    color: IOS_REGISTER.labelSecondary,
-    marginTop: 6,
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
   },
   analysisBlock: {
     paddingHorizontal: 0,
-    paddingTop: 4,
-    paddingBottom: 8,
+    paddingTop: 6,
+    paddingBottom: 18,
   },
   sectionEyebrow: {
     fontSize: 10.5,
@@ -465,7 +559,7 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   sectionEyebrowSpace: {
-    marginTop: 16,
+    marginTop: 18,
   },
   browseEyebrow: {
     fontSize: 10.5,
@@ -473,8 +567,8 @@ const styles = StyleSheet.create({
     letterSpacing: 0.6,
     color: IOS_REGISTER.labelSecondary,
     paddingHorizontal: 16,
-    paddingTop: 22,
-    paddingBottom: 10,
+    paddingTop: 18,
+    paddingBottom: 8,
   },
   emptyInline: {
     marginHorizontal: 16,
@@ -526,7 +620,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     paddingHorizontal: 16,
     gap: 8,
-    marginBottom: 16,
+    marginBottom: 12,
   },
   toolBtn: {
     flex: 1,
@@ -538,10 +632,10 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: IOS_REGISTER.separator,
     borderRadius: 10,
-    paddingVertical: 10,
+    paddingVertical: 8,
   },
   toolLabel: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '500',
     color: IOS_REGISTER.accentUserAction,
     letterSpacing: -0.1,
