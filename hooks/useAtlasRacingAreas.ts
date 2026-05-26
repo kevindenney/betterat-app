@@ -10,6 +10,13 @@
  * `geometry`, use it directly; otherwise synthesize a circle polygon
  * from center + radius. Falls back to the bundled fixture on
  * error/empty so the Atlas tab still shows something offline.
+ *
+ * When `userClasses` is non-empty, each feature is tagged with a
+ * `fillOpacity` property that the canvas can read via a data-driven
+ * paint expression: areas the user races in stay at 0.20, others dim
+ * to 0.05 so the relevant water reads first. Areas with no class
+ * metadata stay bright by default — generic places shouldn't be
+ * punished for missing data.
  */
 
 import { useMemo } from 'react';
@@ -28,6 +35,8 @@ export interface RacingAreaProperties {
   verificationStatus: 'pending' | 'verified' | 'disputed';
   classesUsed: string[];
   createdBy: string | null;
+  /** Data-driven fill opacity — read by the MapLibre paint expression. */
+  fillOpacity: number;
 }
 
 interface UseAtlasRacingAreasArgs {
@@ -36,6 +45,12 @@ interface UseAtlasRacingAreasArgs {
   /** Half-side of the lat/lng bbox in km. Default 100. */
   radiusKm?: number;
   enabled?: boolean;
+  /**
+   * Boat classes the viewer races in. Areas whose `classes_used`
+   * intersects this list keep the bright opacity; others dim. Pass
+   * `[]` (or omit) to render every area at full brightness.
+   */
+  userClasses?: string[];
 }
 
 interface RawArea {
@@ -54,6 +69,8 @@ interface RawArea {
 
 const KM_PER_DEG_LAT = 111.32;
 const CIRCLE_SEGMENTS = 48;
+const OPACITY_BRIGHT = 0.20;
+const OPACITY_DIM = 0.05;
 
 function isPolygonGeometry(geom: unknown): geom is Polygon {
   if (!geom || typeof geom !== 'object') return false;
@@ -81,7 +98,19 @@ function circlePolygon(
   return { type: 'Polygon', coordinates: [ring] };
 }
 
-function toFeature(row: RawArea): Feature<Polygon, RacingAreaProperties> | null {
+function fillOpacityFor(classesUsed: string[], userClassesLower: Set<string>): number {
+  if (userClassesLower.size === 0) return OPACITY_BRIGHT;
+  if (classesUsed.length === 0) return OPACITY_BRIGHT;
+  for (const c of classesUsed) {
+    if (userClassesLower.has(c.toLowerCase())) return OPACITY_BRIGHT;
+  }
+  return OPACITY_DIM;
+}
+
+function toFeature(
+  row: RawArea,
+  userClassesLower: Set<string>,
+): Feature<Polygon, RacingAreaProperties> | null {
   let geometry: Polygon | null = null;
   if (isPolygonGeometry(row.geometry)) {
     geometry = row.geometry;
@@ -93,6 +122,7 @@ function toFeature(row: RawArea): Feature<Polygon, RacingAreaProperties> | null 
     geometry = circlePolygon(row.center_lng, row.center_lat, row.radius_meters);
   }
   if (!geometry) return null;
+  const classesUsed = row.classes_used ?? [];
   return {
     type: 'Feature',
     geometry,
@@ -101,8 +131,9 @@ function toFeature(row: RawArea): Feature<Polygon, RacingAreaProperties> | null 
       name: row.area_name,
       source: row.source ?? 'official',
       verificationStatus: row.verification_status ?? 'verified',
-      classesUsed: row.classes_used ?? [],
+      classesUsed,
       createdBy: row.created_by,
+      fillOpacity: fillOpacityFor(classesUsed, userClassesLower),
     },
   };
 }
@@ -112,6 +143,7 @@ export function useAtlasRacingAreas({
   centerLng,
   radiusKm = 100,
   enabled = true,
+  userClasses,
 }: UseAtlasRacingAreasArgs) {
   const queryEnabled =
     enabled && centerLat != null && centerLng != null && Number.isFinite(radiusKm);
@@ -143,10 +175,15 @@ export function useAtlasRacingAreas({
     },
   });
 
+  const userClassesLower = useMemo(
+    () => new Set((userClasses ?? []).map((c) => c.toLowerCase())),
+    [userClasses],
+  );
+
   const featureCollection = useMemo<FeatureCollection<Polygon, RacingAreaProperties>>(() => {
     const rows = query.data ?? [];
     const features = rows
-      .map(toFeature)
+      .map((row) => toFeature(row, userClassesLower))
       .filter((f): f is Feature<Polygon, RacingAreaProperties> => f !== null);
     if (features.length === 0) {
       return {
@@ -161,12 +198,13 @@ export function useAtlasRacingAreas({
             verificationStatus: 'verified' as const,
             classesUsed: [],
             createdBy: null,
+            fillOpacity: OPACITY_BRIGHT,
           },
         })),
       };
     }
     return { type: 'FeatureCollection', features };
-  }, [query.data]);
+  }, [query.data, userClassesLower]);
 
   return {
     featureCollection,
