@@ -27,6 +27,7 @@ import { CapabilityRiverChart } from './CapabilityRiverChart';
 import type { RiverChartMarker } from './CapabilityRiverChart';
 import { PeerJourneyChart } from './PeerJourneyChart';
 import { SeasonLibrarianPrompt } from './SeasonLibrarianPrompt';
+import { resolveInterestVocab } from './interestVocab';
 import type {
   LifetimeAnalysis,
   SeasonPeer,
@@ -186,6 +187,14 @@ export function L4YearsView({
   // "unit" axis whether that's weeks or sessions).
   const adapted = useMemo(() => adaptLifetimeForCharts(lifetime), [lifetime]);
 
+  // Resolve interest-native vocab — L4 is by definition the reflective
+  // view, so we always use the late-tier verb and the persona's native
+  // librarian eyebrow.
+  const interestVocab = resolveInterestVocab(
+    dataset.interest.id || dataset.interest.label,
+  );
+  const lifetimeEyebrow = `ZOOM · ALL · ${interestVocab.verb.late}`;
+
   return (
     <ScrollView
       style={styles.scroll}
@@ -193,7 +202,7 @@ export function L4YearsView({
       showsVerticalScrollIndicator={false}
     >
       <View style={styles.headerBlock}>
-        <Text style={styles.eyebrow}>ZOOM · ALL · REFLECTING ON A LIFE</Text>
+        <Text style={styles.eyebrow}>{lifetimeEyebrow}</Text>
         <View style={styles.titleRow}>
           <Text style={styles.title} numberOfLines={1}>
             {dataset.interest.label}
@@ -254,7 +263,13 @@ export function L4YearsView({
 
           {lifetime.librarianPrompt ? (
             <SeasonLibrarianPrompt
-              prompt={lifetime.librarianPrompt}
+              prompt={{
+                ...lifetime.librarianPrompt,
+                eyebrow: interestVocab.librarianEyebrow.replace(
+                  /^This arc/i,
+                  'Across your practice',
+                ),
+              }}
               onPrimary={onLibrarianPrimary}
               onSecondary={onLibrarianSecondary}
             />

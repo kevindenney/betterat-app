@@ -45,6 +45,11 @@ import { SeasonHeaderChips } from './SeasonHeaderChips';
 import { PickerListSheet } from './PickerListSheet';
 import { SeasonCalendarSheet } from './SeasonCalendarSheet';
 import { useDragReorder } from './useDragReorder';
+import {
+  composeArcEyebrow,
+  pickVerbTier,
+  resolveInterestVocab,
+} from './interestVocab';
 import type { TimelineDataset, TimelineSeason, TimelineStep } from './types';
 
 interface L3SeasonViewProps {
@@ -156,6 +161,16 @@ export function L3SeasonView({
   const totalWeeks = season.weekOfTotal?.total ?? season.weeks.length;
   const currentWeek = season.weekOfTotal?.current ?? 1;
 
+  // Resolve interest-native vocab — the eyebrow verb above the season
+  // title and the librarian card eyebrow should speak the user's
+  // domain (sailor → "TUNING UP", entrepreneur → "PLANNING") instead
+  // of the generic system label.
+  const interestVocab = resolveInterestVocab(
+    dataset.interest.id || dataset.interest.label,
+  );
+  const verbTier = pickVerbTier(currentWeek, totalWeeks);
+  const arcEyebrow = composeArcEyebrow(interestVocab, verbTier);
+
   // "Step N of M" for the step-counter chip. Picks the focused step's
   // ordinal within the flat season list when known; falls back to 1.
   const focusedStepIndex = flatSteps.findIndex((s) => s.id === focusStepId);
@@ -193,6 +208,7 @@ export function L3SeasonView({
         dateRange={season.dateRange}
         weekOfTotal={season.weekOfTotal}
         stepOfTotal={stepOfTotal}
+        eyebrow={arcEyebrow}
         onPressSeason={() => setOpenPicker('season')}
         onPressDate={() => setOpenPicker('calendar')}
         onPressStep={() => setOpenPicker('step')}
@@ -244,7 +260,7 @@ export function L3SeasonView({
             <SeasonLibrarianPrompt
               prompt={{
                 ...analysis.librarianPrompt,
-                eyebrow: 'This arc · the librarian noticed',
+                eyebrow: interestVocab.librarianEyebrow,
               }}
               onPrimary={onLibrarianPrimary}
               onSecondary={onLibrarianSecondary}
