@@ -44,6 +44,10 @@ export const FALLBACK_VOCABULARY: VocabularyMap = {
   'Equipment': 'Boat / Sails',
   'Competency': 'Skill',
   'Supervision': 'Requires Coach',
+  // Unit noun for atlas peer clusters ("+12 sessions" at Victoria
+  // Harbour reads as "12 things other sailors did here", whereas
+  // the platform's "+12 steps" is jargon to a Dragon sailor.
+  'Step': 'session',
 };
 
 // ---------------------------------------------------------------------------
@@ -67,6 +71,7 @@ const NURSING_VOCABULARY: VocabularyMap = {
   'Equipment': 'Clinical Gear',
   'Competency': 'Competency',
   'Supervision': 'Requires Supervision',
+  'Step': 'shift',
 };
 
 const DRAWING_VOCABULARY: VocabularyMap = {
@@ -282,6 +287,7 @@ const GENERIC_VOCABULARY: VocabularyMap = {
   'Skill': 'Skill',
   'Community': 'Community',
   'Equipment': 'Equipment',
+  'Step': 'log',
 };
 
 /**
