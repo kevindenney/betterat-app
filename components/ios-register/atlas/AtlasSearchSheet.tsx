@@ -249,15 +249,17 @@ async function fetchSearchResults(
   if (!peopleRes.error && peopleRes.data) {
     for (const p of peopleRes.data as Record<string, unknown>[]) {
       const userId = String(p.id);
-      // Skip self — searching for yourself in the open results is noise.
-      if (viewerId && userId === viewerId) continue;
       const name = String(p.full_name ?? p.username ?? 'Sailor');
+      const isSelf = viewerId !== null && userId === viewerId;
       const isFollowing = followingIds.has(userId);
       out.push({
         id: `person:${userId}`,
         kind: 'person',
         name,
-        detail: isFollowing ? 'Following' : undefined,
+        // Tag the row with a relationship hint when there is one;
+        // self comes first ("You") so the searcher sees themselves at
+        // the top of People when matching their own name.
+        detail: isSelf ? 'You' : isFollowing ? 'Following' : undefined,
         userId,
         isFollowing,
       });
@@ -512,7 +514,7 @@ export function AtlasSearchSheet({
           </Text>
         ) : null}
         {showNoMatches ? (
-          <Text style={styles.hint}>No places match "{trimmed}". Try a shorter term.</Text>
+          <Text style={styles.hint}>No matches for "{trimmed}". Try a shorter term.</Text>
         ) : null}
         {(() => {
           // Section results by category — people, steps, blueprint
