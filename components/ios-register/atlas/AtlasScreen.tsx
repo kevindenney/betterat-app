@@ -59,6 +59,7 @@ import { OpenStepPicker } from './OpenStepPicker';
 import { ManageRacingAreasSheet, type ManageAreasEditTarget } from './ManageRacingAreasSheet';
 import type { EditingRacingArea } from './CreateRacingAreaSheet';
 import { RepositionAreaBanner } from './RepositionAreaBanner';
+import { RetraceAreaBanner } from './RetraceAreaBanner';
 import { useUpdateRacingArea } from '@/hooks/useUpdateRacingArea';
 import { useUpdateStepLocation } from '@/hooks/useUpdateStepLocation';
 import { useAtlasRacingAreas } from '@/hooks/useAtlasRacingAreas';
@@ -1315,6 +1316,21 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
     setAreaSheetPolygon(polygon);
     return () => setAreaSheetPolygon(null);
   }, [repositionTarget]);
+  // While retracing, paint the in-flight polygon as the user adds
+  // vertices. Needs ≥3 points to be a valid polygon; below that we
+  // just clear the preview (the dots aren't visible yet — a future
+  // pass could render them as standalone markers).
+  React.useEffect(() => {
+    if (!retraceTarget) return;
+    if (retraceTarget.vertices.length < 3) {
+      setAreaSheetPolygon(null);
+      return;
+    }
+    const ring: [number, number][] = retraceTarget.vertices.map((v) => [v.lng, v.lat]);
+    ring.push(ring[0]);
+    setAreaSheetPolygon({ type: 'Polygon', coordinates: [ring] });
+    return () => setAreaSheetPolygon(null);
+  }, [retraceTarget]);
   const handleSaveReposition = useCallback(async () => {
     if (!repositionTarget) return;
     try {
@@ -1877,6 +1893,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
             onMapPress={
               commitMode ||
               repositionTarget ||
+              retraceTarget ||
               editingArea ||
               areaSheetCenter ||
               anchorStepTarget
@@ -2392,6 +2409,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
         center={areaSheetCenterForSheet}
         editingArea={editingArea}
         onMoveOnMap={handleMoveOnMap}
+        onRetraceOnMap={handleRetraceOnMap}
         onClose={() => {
           // Lock searchFocus to the area's coords before clearing the
           // sheet center. Otherwise focusLocation falls through to a
@@ -2419,6 +2437,18 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
           saving={updateRacingAreaMutation.isPending}
           onCancel={handleCancelReposition}
           onSave={handleSaveReposition}
+          bottomOffset={((handlers as { bottomSheetOffset?: number }).bottomSheetOffset ?? 0) + 16}
+        />
+      ) : null}
+
+      {retraceTarget ? (
+        <RetraceAreaBanner
+          areaName={retraceTarget.name}
+          vertexCount={retraceTarget.vertices.length}
+          saving={updateRacingAreaMutation.isPending}
+          onUndo={handleRetraceUndo}
+          onCancel={handleCancelRetrace}
+          onSave={handleSaveRetrace}
           bottomOffset={((handlers as { bottomSheetOffset?: number }).bottomSheetOffset ?? 0) + 16}
         />
       ) : null}

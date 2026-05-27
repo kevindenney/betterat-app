@@ -64,6 +64,12 @@ interface CreateRacingAreaSheetProps {
    */
   onMoveOnMap?: (target: EditingRacingArea) => void;
   /**
+   * Edit mode only: open the tap-to-trace flow where the user
+   * replaces the area's simple circle/rectangle with a real polygon
+   * by tapping vertices on the map.
+   */
+  onRetraceOnMap?: (target: EditingRacingArea) => void;
+  /**
    * Pixels to push the sheet up from the bottom edge to clear floating
    * chrome like a tab bar. Matches the `bottomOffset` prop on Atlas's
    * other BottomSheet variants. Defaults to a safe iOS tab-bar height.
@@ -142,6 +148,7 @@ export function CreateRacingAreaSheet({
   defaultBoatClass,
   editingArea,
   onMoveOnMap,
+  onRetraceOnMap,
   bottomOffset = DEFAULT_BOTTOM_OFFSET,
   onShapeChange,
   onClose,
@@ -419,16 +426,31 @@ export function CreateRacingAreaSheet({
           returnKeyType="done"
         />
 
-        {isEditing && onMoveOnMap && editingArea ? (
-          <Pressable
-            onPress={() => onMoveOnMap(editingArea)}
-            style={({ pressed }) => [styles.moveOnMapLink, pressed && { opacity: 0.6 }]}
-            accessibilityRole="button"
-            accessibilityLabel="Move on map"
-          >
-            <Ionicons name="move" size={14} color={IOS_REGISTER.accentUserAction} />
-            <Text style={styles.moveOnMapLinkText}>Move on map</Text>
-          </Pressable>
+        {isEditing && editingArea ? (
+          <View style={styles.mapLinkRow}>
+            {onMoveOnMap ? (
+              <Pressable
+                onPress={() => onMoveOnMap(editingArea)}
+                style={({ pressed }) => [styles.moveOnMapLink, pressed && { opacity: 0.6 }]}
+                accessibilityRole="button"
+                accessibilityLabel="Move on map"
+              >
+                <Ionicons name="move" size={14} color={IOS_REGISTER.accentUserAction} />
+                <Text style={styles.moveOnMapLinkText}>Move on map</Text>
+              </Pressable>
+            ) : null}
+            {onRetraceOnMap ? (
+              <Pressable
+                onPress={() => onRetraceOnMap(editingArea)}
+                style={({ pressed }) => [styles.moveOnMapLink, pressed && { opacity: 0.6 }]}
+                accessibilityRole="button"
+                accessibilityLabel="Trace actual shape on map"
+              >
+                <Ionicons name="create-outline" size={14} color={IOS_REGISTER.accentUserAction} />
+                <Text style={styles.moveOnMapLinkText}>Trace actual shape</Text>
+              </Pressable>
+            ) : null}
+          </View>
         ) : null}
 
         <View style={styles.actionsRow}>
@@ -570,6 +592,12 @@ const styles = StyleSheet.create({
   actionsRow: {
     flexDirection: 'row',
     gap: 10,
+    marginTop: 12,
+  },
+  mapLinkRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
     marginTop: 12,
   },
   moveOnMapLink: {
