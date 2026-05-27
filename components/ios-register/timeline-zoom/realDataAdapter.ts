@@ -549,26 +549,32 @@ function computeSeasonAnalysis(
   // — sister capabilities like "Sail Design" + "Sail Measurement" merge
   // into one "Sails" stream instead of fragmenting into adjacent
   // identical-color bands.
+  // Untagged steps (no capability_goals AND category="general") are
+  // hidden from the chart entirely. The chart's job is to show what
+  // the user has actually tagged — pretending unknowns are "Practice"
+  // would be dishonest. Steps with a non-"general" category still
+  // contribute via the palette resolver, so "planning" / "boat" /
+  // "fitness" categories count even if the user hasn't tagged
+  // capability_goals explicitly.
   const weeklyCapabilities: WeeklyCapabilityMix[] = weeks.map((week, idx) => {
     const counts = new Map<string, { label: string; color: string; volume: number }>();
     for (const step of week.steps) {
       const caps = step.capabilities;
-      const labels: { label: string; color: string }[] = [];
-      if (caps && caps.length > 0) {
-        for (const cap of caps) {
-          const v = resolveCapabilityVisuals(cap.label, interestVocab);
-          labels.push({ label: v.canonicalLabel, color: v.color });
-        }
-      } else {
-        // Step has no tagged capability_goals — fall back to a quiet
-        // neutral so it doesn't masquerade as a real capability.
-        labels.push({ label: 'Untagged', color: CAPABILITY_PALETTE.procedural.color });
-      }
-      for (const { label, color } of labels) {
-        const id = label.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+      const onlyFallback =
+        !caps ||
+        caps.length === 0 ||
+        (caps.length === 1 && (caps[0]!.label === 'Practice' || caps[0]!.label === 'General'));
+      if (onlyFallback) continue; // hide truly-unspecified steps
+      for (const cap of caps!) {
+        // Skip any fallback "Practice"/"General" entries inside a
+        // mixed list (defensive — shouldn't happen post-Goal tagging
+        // but keeps the chart honest if it does).
+        if (cap.label === 'Practice' || cap.label === 'General') continue;
+        const v = resolveCapabilityVisuals(cap.label, interestVocab);
+        const id = v.canonicalLabel.toLowerCase().replace(/[^a-z0-9]+/g, '-');
         const existing = counts.get(id);
         if (existing) existing.volume += 1;
-        else counts.set(id, { label, color, volume: 1 });
+        else counts.set(id, { label: v.canonicalLabel, color: v.color, volume: 1 });
       }
     }
     const bands = Array.from(counts.entries()).map(([id, info]) => ({
