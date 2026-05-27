@@ -1565,9 +1565,23 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
   const handleMapPress = useCallback(
     (coords: { lng: number; lat: number }) => {
       if (anchorStepTarget) {
-        setAnchorStepTarget((prev) =>
-          prev ? { ...prev, newLat: coords.lat, newLng: coords.lng } : prev,
-        );
+        // Commit immediately on the first tap — clearer than a preview-
+        // then-save dance. Fire the mutation, exit anchor mode, and
+        // fly the camera to the new pin so the user sees the result.
+        const target = anchorStepTarget;
+        setAnchorStepTarget(null);
+        setSearchFocus({ lat: coords.lat, lng: coords.lng });
+        updateStepLocationMutation
+          .mutateAsync({
+            stepId: target.stepId,
+            lat: coords.lat,
+            lng: coords.lng,
+          })
+          .catch((err) => {
+            console.warn('[atlas] anchor step failed', err);
+            // Restore anchor mode so the user can try again.
+            setAnchorStepTarget(target);
+          });
         return;
       }
       if (repositionTarget) {
@@ -1602,7 +1616,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
         setCandidate(coords);
       }
     },
-    [commitMode, repositionTarget, editingArea, areaSheetCenter, anchorStepTarget],
+    [commitMode, repositionTarget, editingArea, areaSheetCenter, anchorStepTarget, updateStepLocationMutation],
   );
   const chromePaddingTop = embedded ? Math.max(insets.top + 8, 48) : 50;
   const lastChromeHeightRef = useRef<number | null>(null);
@@ -1861,7 +1875,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
 
       {/* All bottom-sheet variants are suppressed while Layers is open
           so the sheets never render inside / under the Layers panel. */}
-      {layersOpen ? null : candidate ? (
+      {layersOpen || anchorStepTarget || repositionTarget ? null : candidate ? (
         <BottomSheet
           eyebrow="PIN DROPPED"
           title="Anchor a step at this location."
