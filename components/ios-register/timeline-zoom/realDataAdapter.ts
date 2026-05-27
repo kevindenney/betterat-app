@@ -1008,6 +1008,8 @@ export function mapToTimelineDataset({
   focusStepId,
   blueprintsById,
 }: AdapterInput): TimelineDataset {
+  // eslint-disable-next-line no-console
+  console.log('[mapToTimelineDataset] called with', { interestId, interestLabel, interestSlug, stepCount: steps?.length });
   // Sort steps by sort_order, then starts_at. Stable ordering matters for
   // week bucketing fallback and L4 brick layout.
   const sorted = [...steps].sort((a, b) => {
