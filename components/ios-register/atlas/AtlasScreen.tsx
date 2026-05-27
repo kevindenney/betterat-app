@@ -1225,16 +1225,16 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
     | null
   >(null);
   const updateRacingAreaMutation = useUpdateRacingArea();
-  const _handleRetraceOnMap = useCallback((target: EditingRacingArea) => {
+  const handleRetraceOnMap = useCallback((target: EditingRacingArea) => {
     setEditingArea(null);
     setRetraceTarget({ ...target, vertices: [] });
   }, []);
-  const _handleRetraceUndo = useCallback(() => {
+  const handleRetraceUndo = useCallback(() => {
     setRetraceTarget((prev) =>
       prev ? { ...prev, vertices: prev.vertices.slice(0, -1) } : prev,
     );
   }, []);
-  const _handleCancelRetrace = useCallback(() => {
+  const handleCancelRetrace = useCallback(() => {
     const reverted = retraceTarget
       ? {
           id: retraceTarget.id,
@@ -1248,7 +1248,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
     setRetraceTarget(null);
     if (reverted) setEditingArea(reverted);
   }, [retraceTarget]);
-  const _handleSaveRetrace = useCallback(async () => {
+  const handleSaveRetrace = useCallback(async () => {
     if (!retraceTarget || retraceTarget.vertices.length < 3) return;
     // Build a closed Polygon ring: [v1, v2, ..., vN, v1].
     const ring: [number, number][] = retraceTarget.vertices.map((v) => [v.lng, v.lat]);
@@ -2168,7 +2168,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
 
       {/* All bottom-sheet variants are suppressed while Layers is open
           so the sheets never render inside / under the Layers panel. */}
-      {layersOpen || anchorStepTarget || repositionTarget ? null : candidate ? (
+      {layersOpen || anchorStepTarget || repositionTarget || retraceTarget ? null : candidate ? (
         <BottomSheet
           eyebrow="PIN DROPPED"
           title="Anchor a step at this location."
@@ -2374,7 +2374,12 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
           secondary={{ label: 'Drop a pin', icon: 'location-outline', onPress: handleDropPinPress }}
           showSecondaryInMid
           bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
-          initialState="mid"
+          // Start collapsed so the sheet doesn't eat the map by
+          // default. User can pull it up via the handle when they
+          // want it. Selected-pin and committed-mode sheets keep
+          // initialState="mid" / "expanded" since those are the
+          // result of an explicit user action.
+          initialState="handle"
         />
       ) : (
         <BottomSheet
