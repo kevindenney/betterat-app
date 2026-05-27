@@ -407,6 +407,14 @@ export function AtlasMapLibreCanvas({
   // Hooks first, then early returns — rules-of-hooks compliance.
   const cameraRef = useRef<CameraRef>(null);
   const baseCamera = FRAME_CAMERA[frame];
+  // Track map bearing so a compass affordance can surface when the
+  // user has rotated the map off north — matches Apple Maps' pattern
+  // (no compass when north-aligned, compass appears on rotation).
+  const [bearing, setBearing] = useState(0);
+  const resetBearing = useCallback(() => {
+    cameraRef.current?.setCamera({ heading: 0, animationDuration: 300 });
+    setBearing(0);
+  }, []);
   const { classes: userBoatClasses } = useUserBoatClasses();
   const { featureCollection: raceAreasCollection } = useAtlasRacingAreas({
     centerLng: baseCamera.center[0],
@@ -493,7 +501,13 @@ export function AtlasMapLibreCanvas({
   const pendingCenterRef = useRef<{ lng: number; lat: number } | null>(null);
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const handleRegionChange = useCallback(
-    (event: NativeSyntheticEvent<{ center: [number, number] }>) => {
+    (event: NativeSyntheticEvent<{ center: [number, number]; heading?: number }>) => {
+      const heading = event.nativeEvent.heading;
+      if (typeof heading === 'number' && Number.isFinite(heading)) {
+        // Normalize to (-180, 180] so abs() reads as "how far from north".
+        const norm = ((heading + 180) % 360 + 360) % 360 - 180;
+        setBearing(norm);
+      }
       if (!onMapCenterChange) return;
       const [lng, lat] = event.nativeEvent.center;
       pendingCenterRef.current = { lng, lat };
@@ -586,8 +600,11 @@ export function AtlasMapLibreCanvas({
         style={styles.fill}
         onPress={onMapPress ? handlePress : undefined}
         onLongPress={onMapLongPress ? handleLongPress : undefined}
-        onRegionIsChanging={onMapCenterChange ? handleRegionChange : undefined}
-        onRegionDidChange={onMapCenterChange ? handleRegionChange : undefined}
+        // Always wire — handleRegionChange also tracks bearing for the
+        // compass affordance, so we want it firing even when no consumer
+        // is subscribed to map-center updates.
+        onRegionIsChanging={handleRegionChange}
+        onRegionDidChange={handleRegionChange}
         attribution={false}
         logo={false}
       >
@@ -737,6 +754,23 @@ export function AtlasMapLibreCanvas({
           </MLMarker>
         ) : null}
       </MLMap>
+      {/* Compass — appears only when the map is rotated off north.
+          The needle inside rotates with the current bearing so users
+          can see how far off they are; tapping snaps back to north.
+          Matches Apple Maps' compass-on-rotation pattern. */}
+      {Math.abs(bearing) > 1 ? (
+        <Pressable
+          style={styles.compassButton}
+          onPress={resetBearing}
+          hitSlop={8}
+          accessibilityRole="button"
+          accessibilityLabel="Reset map to north"
+        >
+          <View style={{ transform: [{ rotate: `${-bearing}deg` }] }}>
+            <Ionicons name="navigate" size={18} color="#D44646" />
+          </View>
+        </Pressable>
+      ) : null}
     </View>
   );
 }
@@ -770,6 +804,11 @@ function WebAtlasMapLibreCanvas({
   const candidateMarkerRef = useRef<any | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
   const [mapError, setMapError] = useState<string | null>(null);
+  const [bearing, setBearing] = useState(0);
+  const resetBearing = useCallback(() => {
+    mapRef.current?.easeTo({ bearing: 0, duration: 300 });
+    setBearing(0);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -816,6 +855,14 @@ function WebAtlasMapLibreCanvas({
             onMapPress({ lng: event.lngLat.lng, lat: event.lngLat.lat });
           });
         }
+
+        // Track bearing so a compass affordance can surface only when
+        // the user has rotated the map off north.
+        map.on('rotate', () => {
+          const raw = map.getBearing();
+          const norm = ((raw + 180) % 360 + 360) % 360 - 180;
+          setBearing(norm);
+        });
 
         if (onMapCenterChange) {
           map.on('moveend', () => {
@@ -970,7 +1017,26 @@ function WebAtlasMapLibreCanvas({
     );
   }
 
-  return <View ref={containerRef} style={styles.fill} />;
+  return (
+    <View style={styles.fill}>
+      <View ref={containerRef} style={styles.fill} />
+      {/* Compass — appears only when the user has rotated the map off
+          north. Tap to snap back to north. Mirror of the native
+          compass overlay above. */}
+      {Math.abs(bearing) > 1 ? (
+        <Pressable
+          style={styles.compassButton}
+          onPress={resetBearing}
+          accessibilityRole="button"
+          accessibilityLabel="Reset map to north"
+        >
+          <View style={{ transform: [{ rotate: `${-bearing}deg` }] }}>
+            <Ionicons name="navigate" size={18} color="#D44646" />
+          </View>
+        </Pressable>
+      ) : null}
+    </View>
+  );
 }
 
 function syncGeoJsonLayer(
@@ -1876,6 +1942,24 @@ function NextEventMarker({
 const styles = StyleSheet.create({
   fill: {
     flex: 1,
+  },
+  compassButton: {
+    position: 'absolute',
+    right: 12,
+    top: 118,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: 'rgba(255, 255, 255, 0.96)',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(60, 60, 67, 0.22)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.14,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 4,
   },
   pinRow: {
     flexDirection: 'row',
