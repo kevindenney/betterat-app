@@ -25,6 +25,7 @@ import { showAlert, showConfirm } from '@/lib/utils/crossPlatformAlert';
 import { useCurrentSeason, useUserSeasons, useCreateSeason, useUpdateSeason, useArchiveSeason } from '@/hooks/useSeason';
 import { useSubscribedBlueprints, useBlueprintWithAuthor } from '@/hooks/useBlueprint';
 import { useStepCapabilityEvidence } from '@/hooks/useStepCapabilityEvidence';
+import { useStepSuggestionsForRange } from '@/hooks/useStepSuggestionsForRange';
 import { SeasonEditSheet } from './SeasonEditSheet';
 import type { CreateSeasonInput, UpdateSeasonInput, Season } from '@/types/season';
 
@@ -63,6 +64,14 @@ export function TimelineZoomPracticeScreen() {
   const { data: subscribedBlueprints = [] } = useSubscribedBlueprints(interestId);
   const stepIdsForEvidence = useMemo(() => steps.map((s) => s.id), [steps]);
   const { data: stepEvidenceMap } = useStepCapabilityEvidence(stepIdsForEvidence);
+  // INPUT lane data — step_suggestions involving the viewer within this
+  // arc's date range. The hook returns [] when arguments are missing, so
+  // the L3 chart simply doesn't get extra peers until a season is loaded.
+  const { data: suggestionInputs = [] } = useStepSuggestionsForRange({
+    viewerUserId: user?.id ?? null,
+    rangeStart: currentSeason?.start_date ?? null,
+    rangeEnd: currentSeason?.end_date ?? null,
+  });
 
   // The focused step's blueprint gets the "suggested by …" author tag —
   // only one extra query, only when the focused step actually came from a
@@ -122,6 +131,7 @@ export function TimelineZoomPracticeScreen() {
         focusStepId: selectedStepId,
         blueprintsById,
         stepEvidenceMap,
+        suggestionInputs,
       }),
     [
       interestId,
@@ -134,6 +144,7 @@ export function TimelineZoomPracticeScreen() {
       selectedStepId,
       blueprintsById,
       stepEvidenceMap,
+      suggestionInputs,
     ],
   );
 

@@ -545,13 +545,40 @@ function capitalize(s: string): string {
  * sentence so L3 has something to surface even when no human-authored
  * librarian copy exists.
  */
+/**
+ * Suggestion-channel peer input: a step_suggestion the viewer sent or
+ * received. Bucketed into the INPUT chart by created_at via linear
+ * projection across the season's date range.
+ */
+export interface SuggestionInputRow {
+  peerUserId: string;
+  peerDisplayName: string | null;
+  createdAt: string;
+  direction: 'sent' | 'received';
+}
+
 function computeSeasonAnalysis(
   weeks: TimelineWeek[],
   seasonName: string | null,
   currentWeekNumber: number,
   interestVocab: InterestVocab,
   stepEvidenceMap?: Map<string, { capabilityName: string }[]>,
+  suggestionInputs?: SuggestionInputRow[],
+  seasonStart?: string | null,
+  seasonEnd?: string | null,
 ): SeasonAnalysis | undefined {
+  // Linear projection of an ISO timestamp into a 1-based week index
+  // across the season's date range. Returns null when we can't anchor
+  // the projection (missing range or unparseable date).
+  const weekIndexFor = (iso: string): number | null => {
+    if (!seasonStart || !seasonEnd || weeks.length === 0) return null;
+    const t = Date.parse(iso);
+    const a = Date.parse(seasonStart);
+    const b = Date.parse(seasonEnd);
+    if (!isFinite(t) || !isFinite(a) || !isFinite(b) || b <= a) return null;
+    const ratio = Math.max(0, Math.min(1, (t - a) / (b - a)));
+    return Math.min(weeks.length, Math.max(1, Math.floor(ratio * weeks.length) + 1));
+  };
   if (weeks.length === 0) return undefined;
 
   // Per-week capability mix. Each step contributes once to EVERY tagged
@@ -698,6 +725,24 @@ function computeSeasonAnalysis(
       }
     }
   });
+
+  // Channels 3 + 4 — step_suggestions sent or received. Each
+  // suggestion places its counterpart on the chart at the week of
+  // created_at (projected linearly across the season's date range
+  // because our buckets are sort_order-based, not calendar weeks).
+  // Direction is encoded into the role so the chart can distinguish
+  // "suggested to you" vs "you suggested to them".
+  for (const sg of suggestionInputs ?? []) {
+    const wk = weekIndexFor(sg.createdAt);
+    if (!wk) continue;
+    const name = sg.peerDisplayName?.trim() || 'Peer';
+    const role = sg.direction === 'sent' ? 'you suggested' : 'suggested it';
+    bumpPeer(`sg:${sg.peerUserId}`, wk, {
+      initials: initialsFromName(name),
+      color: deterministicPeerColor(sg.peerUserId),
+      role,
+    });
+  }
 
   const peers: SeasonPeer[] = Array.from(peerMap.entries())
     .map(([id, p]) => ({
@@ -1094,6 +1139,13 @@ interface AdapterInput {
    * planned-as-ghost-outline + proven-as-solid-fill in each band.
    */
   stepEvidenceMap?: Map<string, { capabilityName: string }[]>;
+  /**
+   * Optional step_suggestions involving the viewer within the current
+   * season's date range, with peer display info pre-resolved. When
+   * supplied, each suggestion places its counterpart peer on the
+   * INPUT lane at the week of created_at.
+   */
+  suggestionInputs?: SuggestionInputRow[];
 }
 
 export function mapToTimelineDataset({
@@ -1107,6 +1159,7 @@ export function mapToTimelineDataset({
   focusStepId,
   blueprintsById,
   stepEvidenceMap,
+  suggestionInputs,
 }: AdapterInput): TimelineDataset {
   // Sort steps by sort_order, then starts_at. Stable ordering matters for
   // week bucketing fallback and L4 brick layout.
@@ -1182,6 +1235,9 @@ export function mapToTimelineDataset({
     currentWeekIdx + 1,
     interestVocab,
     stepEvidenceMap,
+    suggestionInputs,
+    currentSeason?.start_date ?? null,
+    currentSeason?.end_date ?? null,
   );
 
   // L2 context strip — "{Season} has been {capability}-heavy." Drives
