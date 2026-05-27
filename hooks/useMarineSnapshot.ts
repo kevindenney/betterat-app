@@ -40,7 +40,16 @@ function roundCoord(n: number): number {
 }
 
 async function fetchWind(lat: number, lng: number): Promise<MarineSnapshot['wind']> {
-  const url = `${WEATHER_URL}?latitude=${lat}&longitude=${lng}&current=wind_speed_10m,wind_direction_10m&wind_speed_unit=kn`;
+  // `models=jma_seamless` switches Open-Meteo from its global best_match
+  // ensemble to JMA's seamless model. JMA is the regional met service for
+  // East Asia and its MSM mesoscale (~5km) is materially more accurate
+  // for HK / Japan / Taiwan / coastal China than the ICON model that
+  // best_match was picking for HK (verified: 9.5kn JMA vs 7.2kn ICON for
+  // 22.3°N 114.2°E — 30% delta, crosses the drifting/light-air boundary).
+  // Outside East Asia, jma_seamless falls back to JMA's GSM (~20km),
+  // slightly coarser than best_match's regional picks. Acceptable
+  // trade-off for a sailing app whose primary users are HK-based.
+  const url = `${WEATHER_URL}?latitude=${lat}&longitude=${lng}&current=wind_speed_10m,wind_direction_10m&wind_speed_unit=kn&models=jma_seamless`;
   try {
     const res = await fetch(url);
     if (!res.ok) return null;
