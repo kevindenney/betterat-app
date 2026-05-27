@@ -254,7 +254,7 @@ export function L3SeasonView({
           {analysis.peers.length > 0 ? (
             <>
               <Text style={[styles.sectionEyebrow, styles.sectionEyebrowSpace]}>
-                CREW
+                {interestVocab.crewHeader}
               </Text>
               <PeerJourneyChart
                 peers={analysis.peers}

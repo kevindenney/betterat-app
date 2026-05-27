@@ -490,6 +490,24 @@ function recordToStep(
   const today = isToday(scheduleAnchor);
   const plan = getPlanData(rec.metadata);
 
+  // Capability tags — metadata.plan.capability_goals holds the user-facing
+  // chips ("Sail Selection", "Sail Design", "Sail Measurement"). A step
+  // can have many; each one contributes its own band to the river so the
+  // chart reads as a real river of *capability development*, not just
+  // the dominant category. Falls back to the single category-derived
+  // capability when the user hasn't tagged any goals yet.
+  const goalLabels = Array.isArray(plan?.capability_goals)
+    ? (plan!.capability_goals as string[]).filter((s) => typeof s === 'string' && s.trim().length > 0)
+    : [];
+  const goalCapabilities: Capability[] = goalLabels.map((label) => {
+    const id = label
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-|-$/g, '') || 'cap';
+    return { id, label, color: hashCategoryToColor(label) };
+  });
+  const stepCapabilities: Capability[] = goalCapabilities.length > 0 ? goalCapabilities : [cap];
+
   // Eyebrow — [TODAY | DAY] · [TIME_OF_DAY?]
   const dayKey = dayKeyFromIso(scheduleAnchor);
   const dayPrefix = today
@@ -564,7 +582,7 @@ function recordToStep(
     whyReasoning,
     whenLabel,
     howItems,
-    capabilities: [cap],
+    capabilities: stepCapabilities,
     from,
     cohortAvatars,
     cohortLabel,
@@ -594,13 +612,23 @@ function computeSeasonAnalysis(
 ): SeasonAnalysis | undefined {
   if (weeks.length === 0) return undefined;
 
-  // Per-week capability mix — count steps grouped by capability color so
-  // the stacked-area chart can render a band per capability.
+  // Per-week capability mix — count contributions per capability color
+  // so the stacked-area chart can render a band per capability. Each
+  // step contributes once to EVERY capability it's tagged with (not just
+  // the first), so a step tagged with "Sail Selection · Sail Design ·
+  // Sail Measurement" produces three bands of equal weight that week.
   const weeklyCapabilities: WeeklyCapabilityMix[] = weeks.map((week, idx) => {
     const counts = new Map<string, number>();
     for (const step of week.steps) {
-      const color = step.capabilities?.[0]?.color ?? CAPABILITY_PALETTE.procedural.color;
-      counts.set(color, (counts.get(color) ?? 0) + 1);
+      const caps = step.capabilities;
+      if (caps && caps.length > 0) {
+        for (const cap of caps) {
+          counts.set(cap.color, (counts.get(cap.color) ?? 0) + 1);
+        }
+      } else {
+        const fallback = CAPABILITY_PALETTE.procedural.color;
+        counts.set(fallback, (counts.get(fallback) ?? 0) + 1);
+      }
     }
     const bands = Array.from(counts.entries()).map(([capabilityColor, volume]) => ({
       capabilityColor,

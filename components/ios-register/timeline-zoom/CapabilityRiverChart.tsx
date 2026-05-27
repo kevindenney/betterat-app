@@ -165,20 +165,6 @@ export function CapabilityRiverChart({
   const innerHeight = Math.max(0, height - padTopForNow - padBottomForTicks);
   const colWidth = totalWeeks > 0 ? innerWidth / totalWeeks : 0;
 
-  // Phase color lookup keyed by weekNumber so the flow-mode renderer
-  // can paint each stretch with its phase color (the "what does this
-  // color mean" decoder is the label written under that stretch).
-  const phaseColorByWeek = useMemo(() => {
-    if (!hasPhases) return null;
-    const map = new Map<number, string>();
-    for (const phase of phases!) {
-      for (let w = phase.startWeek; w <= phase.endWeek; w++) {
-        map.set(w, phase.color);
-      }
-    }
-    return map;
-  }, [hasPhases, phases]);
-
   // Compute max volume across weeks so we can scale to chart height.
   const maxVolume = useMemo(() => {
     let max = 0;
@@ -189,15 +175,16 @@ export function CapabilityRiverChart({
     return max || 1;
   }, [weeklyCapabilities]);
 
-  // Pre-compute each band's rect for the SVG. When phases are provided
-  // they override the per-band capability color so the whole week-column
-  // reads as the phase the user actually named.
+  // Pre-compute each band's rect for the SVG. Bands always show the
+  // capability color — the river is a river of *capability development*,
+  // so the colored stripes within each week reveal the mix of skills the
+  // user practiced. Phase labels below the river add named-segment
+  // context but do not recolor the bands.
   const bandRects = useMemo<RiverRect[]>(() => {
     const out: RiverRect[] = [];
     for (const w of weeklyCapabilities) {
       const colX = padX + (w.weekNumber - 1) * colWidth;
       let stackY = padTopForNow + innerHeight;
-      const phaseColor = phaseColorByWeek?.get(w.weekNumber);
       for (let i = 0; i < w.bands.length; i++) {
         const band = w.bands[i];
         const h = (band.volume / maxVolume) * innerHeight;
@@ -206,14 +193,13 @@ export function CapabilityRiverChart({
         const isLast = w.weekNumber === totalWeeks;
         const bleedLeft = isFirst ? 0 : columnBleed / 2;
         const bleedRight = isLast ? 0 : columnBleed / 2;
-        const fill = phaseColor ?? band.capabilityColor;
         out.push({
           x: colX + 0.5 - bleedLeft,
           y: stackY,
           w: Math.max(0, colWidth - 1 + bleedLeft + bleedRight),
           h,
-          color: fill,
-          key: `${w.weekNumber}-${i}-${fill}`,
+          color: band.capabilityColor,
+          key: `${w.weekNumber}-${i}-${band.capabilityColor}`,
         });
       }
     }
@@ -227,7 +213,6 @@ export function CapabilityRiverChart({
     padTopForNow,
     totalWeeks,
     columnBleed,
-    phaseColorByWeek,
   ]);
 
   const lifetimeFlowPaths = useMemo<FlowPath[]>(() => {
@@ -300,9 +285,11 @@ export function CapabilityRiverChart({
         'Z',
       ].join(' ');
 
-      const phaseColor = phaseColorByWeek?.get(unit.weekNumber);
+      // Flow mode collapses each week to one color. Use the dominant
+      // capability of the week — the river is a river of capability,
+      // not a river of named phases.
       const color =
-        phaseColor ?? unit.bands[0]?.capabilityColor ?? IOS_REGISTER.accentUserAction;
+        unit.bands[0]?.capabilityColor ?? IOS_REGISTER.accentUserAction;
       return {
         key: `${unit.weekNumber}-${color}`,
         color,
@@ -318,7 +305,6 @@ export function CapabilityRiverChart({
     padX,
     colWidth,
     innerWidth,
-    phaseColorByWeek,
   ]);
 
   const nowX = padX + (currentWeekNumber - 0.5) * colWidth;

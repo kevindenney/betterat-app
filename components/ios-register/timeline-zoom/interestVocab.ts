@@ -49,6 +49,12 @@ export interface InterestVocab {
    */
   riverHeader: string;
   /**
+   * Section eyebrow above the peer / crew row. Sailing "CREW" reads
+   * naturally; for nursing students "COHORT" is the native term, for
+   * knitters "KAL" / "CIRCLE", for golfers "FOURSOME", etc.
+   */
+  crewHeader: string;
+  /**
    * Ordered list of (regex → vernacular label) pairs used to detect
    * named phases from step titles. The phase generator scans every
    * step in a week against these patterns and uses the most-frequent
@@ -71,6 +77,7 @@ const DEFAULT_VOCAB: InterestVocab = {
   },
   librarianEyebrow: 'This arc · the librarian noticed',
   riverHeader: 'CAPABILITY RIVER',
+  crewHeader: 'TEAM',
 };
 
 const SAILING_VOCAB: InterestVocab = {
@@ -82,6 +89,7 @@ const SAILING_VOCAB: InterestVocab = {
   },
   librarianEyebrow: 'This arc · logbook noticed',
   riverHeader: 'PRACTICE LOG',
+  crewHeader: 'CREW',
   phasePatterns: [
     // Named events — most specific first so they win against
     // generic words like "championship" or "tune-up".
@@ -148,6 +156,7 @@ const NURSING_VOCAB: InterestVocab = {
   },
   librarianEyebrow: "This rotation · preceptor's debrief",
   riverHeader: 'CAPABILITY RIVER',
+  crewHeader: 'COHORT',
   phasePatterns: [
     { pattern: /med.?surg/i, label: 'Med-Surg' },
     { pattern: /\bICU\b|intensive\s+care/i, label: 'ICU' },
@@ -172,6 +181,7 @@ const ENTREPRENEUR_VOCAB: InterestVocab = {
   },
   librarianEyebrow: 'This season · what your books noticed',
   riverHeader: 'BUSINESS MIX',
+  crewHeader: 'TEAM',
   phasePatterns: [
     { pattern: /diwali/i, label: 'Diwali rush' },
     { pattern: /wedding\s+season|wedding\s+orders?/i, label: 'Wedding season' },
@@ -197,6 +207,7 @@ const GOLF_VOCAB: InterestVocab = {
   },
   librarianEyebrow: "This season · coach's notebook",
   riverHeader: 'ROUND MIX',
+  crewHeader: 'FOURSOME',
   phasePatterns: [
     { pattern: /club\s+championship|club\s+champs/i, label: 'Club Champs' },
     { pattern: /championship|tourney|tournament/i, label: 'Tournament' },
@@ -219,6 +230,7 @@ const DRAWING_VOCAB: InterestVocab = {
   },
   librarianEyebrow: 'This sketchbook · studio notes',
   riverHeader: 'STUDIO LOG',
+  crewHeader: 'STUDIO',
   phasePatterns: [
     { pattern: /anatomy/i, label: 'Anatomy' },
     { pattern: /portrait/i, label: 'Portrait' },
@@ -243,6 +255,7 @@ const KNITTING_VOCAB: InterestVocab = {
   },
   librarianEyebrow: 'This project · pattern notes',
   riverHeader: 'PROJECT LOG',
+  crewHeader: 'CIRCLE',
   phasePatterns: [
     { pattern: /\bsocks?\b/i, label: 'Socks' },
     { pattern: /sweater|jumper|pullover|cardigan/i, label: 'Sweater' },
