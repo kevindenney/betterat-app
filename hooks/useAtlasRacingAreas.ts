@@ -166,19 +166,18 @@ export function useAtlasRacingAreas({
     staleTime: 60_000,
     queryFn: async (): Promise<RawArea[]> => {
       if (centerLat == null || centerLng == null) return [];
-      const dLat = radiusKm / KM_PER_DEG_LAT;
-      const lngScale = Math.cos((centerLat * Math.PI) / 180) * KM_PER_DEG_LAT;
-      const dLng = lngScale > 0 ? radiusKm / lngScale : dLat;
+      // No bbox filter for now: official seed rows store only Polygon
+      // geometry (center_lat/lng are NULL), and a bbox on center_lat
+      // would exclude every one of them — the seeded HK areas would
+      // disappear and the fixture-fallback would kick in only as long
+      // as the user hadn't created their own area. Global row count is
+      // small; full SELECT is fine until we have a real spatial RPC.
       const { data, error } = await supabase
         .from('venue_racing_areas')
         .select(
           'id, area_name, geometry, center_lat, center_lng, radius_meters, source, verification_status, classes_used, created_by, is_active',
         )
-        .eq('is_active', true)
-        .gte('center_lat', centerLat - dLat)
-        .lte('center_lat', centerLat + dLat)
-        .gte('center_lng', centerLng - dLng)
-        .lte('center_lng', centerLng + dLng);
+        .eq('is_active', true);
       if (error) {
         console.warn('[atlas] venue_racing_areas fetch error', error);
         return [];
