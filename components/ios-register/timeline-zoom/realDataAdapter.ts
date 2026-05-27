@@ -225,6 +225,18 @@ function hashCategoryToColor(category: string): string {
   return CAPABILITY_COLORS[Math.abs(h) % CAPABILITY_COLORS.length];
 }
 
+// Avatar-bubble palette for input contributors we don't already have a
+// stored color for (blueprint authors, suggestion senders). Picked to be
+// perceptually distinct from each other and from the capability palette.
+const PEER_PALETTE = ['#7BA0C4', '#A47A52', '#8FAE5C', '#C99632', '#B86EAA', '#5BA4A6'];
+function deterministicPeerColor(seed: string): string {
+  let h = 0;
+  for (let i = 0; i < seed.length; i++) {
+    h = ((h << 5) - h + seed.charCodeAt(i)) | 0;
+  }
+  return PEER_PALETTE[Math.abs(h) % PEER_PALETTE.length];
+}
+
 function dayKeyFromIso(iso: string | null): DayKey {
   if (!iso) return 'wed';
   const d = new Date(iso);
@@ -621,27 +633,68 @@ function computeSeasonAnalysis(
     return { weekNumber: idx + 1, bands };
   });
 
-  // Peers — union of cohortAvatars across all steps in the season. For
-  // each unique avatar we compute first-week + per-week appearance count.
+  // Peers — people who had INPUT into each step, not just attendance.
+  // Union across all four channels:
+  //   1. step.cohortAvatars      — tagged via "with who?" on the step
+  //   2. step.from.suggestedBy   — blueprint author (the step came from
+  //                                a blueprint they wrote)
+  //   3. step_suggestions sender — someone suggested it to you (TODO,
+  //                                needs a separate query)
+  //   4. step_suggestions target — someone you suggested it to (TODO,
+  //                                needs a separate query)
+  // For now (3) and (4) are stubbed — channels 1+2 already pull in
+  // coaches/instructors that authored the source blueprint, which is the
+  // most common input signal beyond direct tagging.
   const peerMap = new Map<
     string,
-    { initials: string; color: string; firstWeek: number; perWeek: Map<number, number> }
+    {
+      initials: string;
+      color: string;
+      role?: string;
+      firstWeek: number;
+      perWeek: Map<number, number>;
+    }
   >();
+  const bumpPeer = (
+    id: string,
+    weekNumber: number,
+    seed: { initials: string; color: string; role?: string },
+  ) => {
+    const entry = peerMap.get(id);
+    if (entry) {
+      entry.perWeek.set(weekNumber, (entry.perWeek.get(weekNumber) ?? 0) + 1);
+      // Preserve the first role we saw — direct tags beat blueprint roles
+      // because they appear in week 1 of any step that has both.
+      if (!entry.role && seed.role) entry.role = seed.role;
+    } else {
+      peerMap.set(id, {
+        initials: seed.initials,
+        color: seed.color,
+        role: seed.role,
+        firstWeek: weekNumber,
+        perWeek: new Map([[weekNumber, 1]]),
+      });
+    }
+  };
   weeks.forEach((week, weekIdx) => {
     const weekNumber = weekIdx + 1;
     for (const step of week.steps) {
+      // Channel 1 — direct "with who?" tags.
       for (const avatar of step.cohortAvatars ?? []) {
-        const entry = peerMap.get(avatar.id);
-        if (entry) {
-          entry.perWeek.set(weekNumber, (entry.perWeek.get(weekNumber) ?? 0) + 1);
-        } else {
-          peerMap.set(avatar.id, {
-            initials: avatar.initials,
-            color: avatar.color,
-            firstWeek: weekNumber,
-            perWeek: new Map([[weekNumber, 1]]),
-          });
-        }
+        bumpPeer(avatar.id, weekNumber, {
+          initials: avatar.initials,
+          color: avatar.color,
+        });
+      }
+      // Channel 2 — blueprint author. Namespaced id keeps them distinct
+      // from a real tagged collaborator who happens to share a name.
+      const author = step.from?.suggestedBy?.trim();
+      if (author) {
+        bumpPeer(`bp:${author.toLowerCase()}`, weekNumber, {
+          initials: initialsFromName(author),
+          color: deterministicPeerColor(author),
+          role: 'blueprint',
+        });
       }
     }
   });
@@ -651,6 +704,7 @@ function computeSeasonAnalysis(
       id,
       initials: p.initials,
       color: p.color,
+      role: p.role,
       firstWeek: p.firstWeek,
       weeklyAppearances: Array.from(p.perWeek.entries())
         .map(([weekNumber, count]) => ({ weekNumber, count }))
@@ -876,7 +930,9 @@ function computeLifetimeAnalysis(seasons: TimelineSeason[]): LifetimeAnalysis | 
     label: colorToCapabilityLabel(session.dominantCapabilityColor),
   }));
 
-  // Peer union — walk every season's steps, accumulate per-session counts.
+  // Peer union — same input channels as L3 (see computeSeasonAnalysis):
+  // direct "with who?" tags + blueprint authors. Accumulated per session
+  // instead of per week.
   const peerMap = new Map<
     string,
     {
@@ -886,22 +942,39 @@ function computeLifetimeAnalysis(seasons: TimelineSeason[]): LifetimeAnalysis | 
       perSession: Map<number, number>;
     }
   >();
+  const bumpLifetimePeer = (
+    id: string,
+    sessionIndex: number,
+    seed: { initials: string; color: string },
+  ) => {
+    const entry = peerMap.get(id);
+    if (entry) {
+      entry.perSession.set(sessionIndex, (entry.perSession.get(sessionIndex) ?? 0) + 1);
+    } else {
+      peerMap.set(id, {
+        initials: seed.initials,
+        color: seed.color,
+        firstSessionIndex: sessionIndex,
+        perSession: new Map([[sessionIndex, 1]]),
+      });
+    }
+  };
   chronoSeasons.forEach((season, idx) => {
     const sessionIndex = idx + 1;
     for (const week of season.weeks) {
       for (const step of week.steps) {
         for (const avatar of step.cohortAvatars ?? []) {
-          const entry = peerMap.get(avatar.id);
-          if (entry) {
-            entry.perSession.set(sessionIndex, (entry.perSession.get(sessionIndex) ?? 0) + 1);
-          } else {
-            peerMap.set(avatar.id, {
-              initials: avatar.initials,
-              color: avatar.color,
-              firstSessionIndex: sessionIndex,
-              perSession: new Map([[sessionIndex, 1]]),
-            });
-          }
+          bumpLifetimePeer(avatar.id, sessionIndex, {
+            initials: avatar.initials,
+            color: avatar.color,
+          });
+        }
+        const author = step.from?.suggestedBy?.trim();
+        if (author) {
+          bumpLifetimePeer(`bp:${author.toLowerCase()}`, sessionIndex, {
+            initials: initialsFromName(author),
+            color: deterministicPeerColor(author),
+          });
         }
       }
     }

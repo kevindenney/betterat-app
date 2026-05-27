@@ -98,29 +98,24 @@ export function PickerListSheet<T>({
               <View key={keyExtractor(item, idx)} style={styles.rowOuter}>
                 <Pressable
                   onPress={() => onSelect(item)}
-                  style={({ pressed }) => [
-                    styles.rowSelectable,
-                    pressed && styles.pressed,
-                  ]}
+                  style={[styles.row, selected && styles.rowSelected]}
                   accessibilityRole="button"
                   accessibilityState={{ selected }}
                 >
-                  <View style={[styles.row, selected && styles.rowSelected]}>
-                    <View style={styles.rowBody}>{renderRow(item, selected)}</View>
-                    {selected ? (
-                      <Ionicons
-                        name="checkmark"
-                        size={20}
-                        color={IOS_REGISTER.accentUserAction}
-                      />
-                    ) : (
-                      <Ionicons
-                        name="chevron-forward"
-                        size={16}
-                        color={IOS_REGISTER.labelTertiary}
-                      />
-                    )}
-                  </View>
+                  <View style={styles.rowBody}>{renderRow(item, selected)}</View>
+                  {selected ? (
+                    <Ionicons
+                      name="checkmark"
+                      size={20}
+                      color={IOS_REGISTER.accentUserAction}
+                    />
+                  ) : (
+                    <Ionicons
+                      name="chevron-forward"
+                      size={16}
+                      color={IOS_REGISTER.labelTertiary}
+                    />
+                  )}
                 </Pressable>
                 {onRowEdit ? (
                   <Pressable
@@ -214,14 +209,12 @@ const styles = StyleSheet.create({
   },
   rowOuter: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'stretch',
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: IOS_REGISTER.separator,
   },
-  rowSelectable: {
-    flex: 1,
-  },
   row: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,

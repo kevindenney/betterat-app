@@ -246,6 +246,9 @@ export function L3SeasonView({
               <Text style={[styles.sectionEyebrow, styles.sectionEyebrowSpace]}>
                 {interestVocab.crewHeader}
               </Text>
+              <Text style={styles.sectionSubeyebrow}>
+                {interestVocab.inputSubtitle}
+              </Text>
               <PeerJourneyChart
                 peers={analysis.peers}
                 totalWeeks={totalWeeks}
@@ -592,6 +595,15 @@ const styles = StyleSheet.create({
   },
   sectionEyebrowSpace: {
     marginTop: 18,
+  },
+  sectionSubeyebrow: {
+    fontSize: 11,
+    fontStyle: 'italic',
+    color: IOS_REGISTER.labelTertiary,
+    marginLeft: 16,
+    marginTop: -2,
+    marginBottom: 8,
+    letterSpacing: 0.1,
   },
   riverEmpty: {
     marginHorizontal: 16,

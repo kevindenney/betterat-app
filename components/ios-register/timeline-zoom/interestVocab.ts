@@ -49,11 +49,23 @@ export interface InterestVocab {
    */
   riverHeader: string;
   /**
-   * Section eyebrow above the peer / crew row. Sailing "CREW" reads
-   * naturally; for nursing students "COHORT" is the native term, for
-   * knitters "KAL" / "CIRCLE", for golfers "FOURSOME", etc.
+   * Section eyebrow above the peer row. Sailing "CREW" reads naturally;
+   * for nursing students "COHORT" is the native term, for knitters
+   * "KAL" / "CIRCLE", for golfers "FOURSOME", etc.
+   *
+   * Despite the persona vocab, the lane no longer means "people who
+   * showed up" — it means *people who had input into your steps*:
+   * tagged in with-who, blueprint author, suggested-to-you, or
+   * suggested-by-you. The header keeps the persona word for warmth;
+   * inputSubtitle below it clarifies the new meaning.
    */
   crewHeader: string;
+  /**
+   * Dim subtitle under crewHeader explaining what the dots mean in
+   * each persona's voice. Examples: "who shaped this arc" (sailing),
+   * "who shaped these shifts" (nursing).
+   */
+  inputSubtitle: string;
   /**
    * Deliberate semantic palette for this interest. Each entry maps a
    * capability LABEL family (matched by `pattern`) to a stable color
@@ -88,6 +100,7 @@ const DEFAULT_VOCAB: InterestVocab = {
   librarianEyebrow: 'This arc · the librarian noticed',
   riverHeader: 'CAPABILITY RIVER',
   crewHeader: 'TEAM',
+  inputSubtitle: 'who shaped this arc',
 };
 
 const SAILING_VOCAB: InterestVocab = {
@@ -100,6 +113,7 @@ const SAILING_VOCAB: InterestVocab = {
   librarianEyebrow: 'This arc · logbook noticed',
   riverHeader: 'PRACTICE LOG',
   crewHeader: 'CREW',
+  inputSubtitle: 'who shaped this arc',
   // Deliberate sailing palette — 8 capability families, perceptually
   // distinct, with the same family color across the app. Order matters:
   // first match wins, so more-specific patterns lead.
@@ -184,6 +198,7 @@ const NURSING_VOCAB: InterestVocab = {
   librarianEyebrow: "This rotation · preceptor's debrief",
   riverHeader: 'CAPABILITY RIVER',
   crewHeader: 'COHORT',
+  inputSubtitle: 'who shaped these shifts',
   phasePatterns: [
     { pattern: /med.?surg/i, label: 'Med-Surg' },
     { pattern: /\bICU\b|intensive\s+care/i, label: 'ICU' },
@@ -209,6 +224,7 @@ const ENTREPRENEUR_VOCAB: InterestVocab = {
   librarianEyebrow: 'This season · what your books noticed',
   riverHeader: 'BUSINESS MIX',
   crewHeader: 'TEAM',
+  inputSubtitle: 'who shaped this season',
   phasePatterns: [
     { pattern: /diwali/i, label: 'Diwali rush' },
     { pattern: /wedding\s+season|wedding\s+orders?/i, label: 'Wedding season' },
@@ -235,6 +251,7 @@ const GOLF_VOCAB: InterestVocab = {
   librarianEyebrow: "This season · coach's notebook",
   riverHeader: 'ROUND MIX',
   crewHeader: 'FOURSOME',
+  inputSubtitle: 'who shaped your game',
   phasePatterns: [
     { pattern: /club\s+championship|club\s+champs/i, label: 'Club Champs' },
     { pattern: /championship|tourney|tournament/i, label: 'Tournament' },
@@ -258,6 +275,7 @@ const DRAWING_VOCAB: InterestVocab = {
   librarianEyebrow: 'This sketchbook · studio notes',
   riverHeader: 'STUDIO LOG',
   crewHeader: 'STUDIO',
+  inputSubtitle: 'who shaped your work',
   phasePatterns: [
     { pattern: /anatomy/i, label: 'Anatomy' },
     { pattern: /portrait/i, label: 'Portrait' },
@@ -283,6 +301,7 @@ const KNITTING_VOCAB: InterestVocab = {
   librarianEyebrow: 'This project · pattern notes',
   riverHeader: 'PROJECT LOG',
   crewHeader: 'CIRCLE',
+  inputSubtitle: 'who shaped this project',
   phasePatterns: [
     { pattern: /\bsocks?\b/i, label: 'Socks' },
     { pattern: /sweater|jumper|pullover|cardigan/i, label: 'Sweater' },

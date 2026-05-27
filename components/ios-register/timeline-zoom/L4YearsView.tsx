@@ -225,7 +225,10 @@ export function L4YearsView({
           {adapted.peers.length > 0 ? (
             <>
               <Text style={[styles.sectionEyebrow, styles.sectionEyebrowSpace]}>
-                PEER THREADS
+                {interestVocab.crewHeader}
+              </Text>
+              <Text style={styles.sectionSubeyebrow}>
+                {interestVocab.inputSubtitle}
               </Text>
               <PeerJourneyChart
                 peers={adapted.peers}
@@ -598,6 +601,15 @@ const styles = StyleSheet.create({
   },
   sectionEyebrowSpace: {
     marginTop: 18,
+  },
+  sectionSubeyebrow: {
+    fontSize: 11,
+    fontStyle: 'italic',
+    color: IOS_REGISTER.labelTertiary,
+    marginLeft: 16,
+    marginTop: -2,
+    marginBottom: 8,
+    letterSpacing: 0.1,
   },
   browseHeaderRow: {
     paddingHorizontal: 16,
