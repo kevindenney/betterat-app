@@ -2034,12 +2034,26 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
             body={detailBodyForPin(selectedPin)}
             primary={{
               label: 'Open step',
+              icon: 'open-outline',
+              onPress: () => {
+                if (selectedPin.stepId) {
+                  handlers.onStepPress?.(selectedPin.stepId);
+                  return;
+                }
+                comingSoonAlert(
+                  'Open step',
+                  'This pin is a step location, but it is missing a step id. Refresh Atlas and try again.',
+                );
+              },
+            }}
+            secondary={{
+              label: 'Pick another',
               icon: 'chevron-down',
               onPress: () => setOpenStepPickerVisible(true),
             }}
-            secondary={{ label: 'Close', onPress: clearSelectedPin }}
+            showSecondaryInMid
             bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
-            initialState="expanded"
+            initialState="mid"
           />
         ) : (
           <BottomSheet

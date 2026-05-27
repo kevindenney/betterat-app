@@ -417,19 +417,33 @@ export function useAtlasFramePins({
     // colored dot (planned/done-recent/done-old). planned-week pins
     // carry a "|MON" tail so the canvas renders the day-of-week badge
     // the same way it does for haats.
+    const STATUS_NOTES: Record<UserAtlasStep['status'], string> = {
+      'planned-next': 'NEXT STEP',
+      'planned-week': 'Planned',
+      'done-just-completed': 'Just completed',
+      'done-recent': 'Recently done',
+      'done-old': 'Done',
+    };
     for (const step of userSteps) {
       const kind = mapUserStepStatusToPinKind(step);
       const label =
         kind === 'my-step-planned'
           ? `${step.title}|${step.day_badge ?? ''}`
           : step.title;
+      // Subtitle reads "<STATUS NOTE> · <location-or-day>" so the YOUR
+      // STEP sheet doesn't bottom out at just lat/lng coordinates. Skip
+      // any segment when missing so we don't render orphan dots.
+      const subtitleParts = [
+        STATUS_NOTES[step.status],
+        step.location_name ?? (step.day_badge ? step.day_badge : null),
+      ].filter(Boolean);
       out.push({
         id: `mystep:${step.step_id}`,
         lat: step.lat,
         lng: step.lng,
         kind,
         label,
-        subtitle: step.location_name ?? undefined,
+        subtitle: subtitleParts.join(' · ') || undefined,
         stepId: step.step_id,
       });
     }
