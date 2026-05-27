@@ -1354,9 +1354,19 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
   );
   const handleSearchSelect = useCallback((result: AtlasSearchResult) => {
     setSearchOpen(false);
-    // People route to their profile — no coords, no camera move.
+    // People route to profile, steps to step detail, blueprint steps
+    // to the blueprint — none of those carry coords, so no camera
+    // move. Place results still fly to their lat/lng.
     if (result.kind === 'person' && result.userId) {
       router.push(`/sailor/${result.userId}` as never);
+      return;
+    }
+    if (result.kind === 'step' && result.stepId) {
+      router.push(`/step/${result.stepId}` as never);
+      return;
+    }
+    if (result.kind === 'blueprint_step' && result.blueprintId) {
+      router.push(`/library/blueprints/${result.blueprintId}` as never);
       return;
     }
     if (result.lat != null && result.lng != null) {

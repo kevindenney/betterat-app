@@ -32,6 +32,8 @@ import { IOS_REGISTER } from '@/lib/design-tokens-ios';
  */
 export type AtlasSearchResultKind =
   | 'person'
+  | 'step'
+  | 'blueprint_step'
   | 'club'
   | 'marina'
   | 'sail_loft'
@@ -53,6 +55,12 @@ export interface AtlasSearchResult {
   userId?: string;
   /** True when the searching user already follows this person. */
   isFollowing?: boolean;
+  /** Step id — present for step / blueprint_step results. */
+  stepId?: string;
+  /** Blueprint id — present for blueprint_step results. */
+  blueprintId?: string;
+  /** Whether this is the viewer's own step / a step from someone they follow. */
+  ownership?: 'yours' | 'following' | 'public';
 }
 
 export interface AtlasSearchFilterChip {
@@ -99,6 +107,8 @@ const CHIP_TONE_COLOR: Record<NonNullable<AtlasSearchFilterChip['tone']>, string
 
 const KIND_GLYPH: Record<AtlasSearchResultKind, keyof typeof Ionicons.glyphMap> = {
   person: 'person-circle-outline',
+  step: 'checkbox-outline',
+  blueprint_step: 'reader-outline',
   club: 'boat-outline',
   marina: 'water-outline',
   sail_loft: 'cut-outline',
@@ -110,6 +120,8 @@ const KIND_GLYPH: Record<AtlasSearchResultKind, keyof typeof Ionicons.glyphMap> 
 
 const KIND_TONE: Record<AtlasSearchResultKind, string> = {
   person: 'rgba(56, 175, 122, 0.95)',
+  step: 'rgba(0, 122, 255, 0.95)',
+  blueprint_step: 'rgba(124, 92, 196, 0.95)',
   club: 'rgba(0, 122, 255, 0.95)',
   marina: 'rgba(0, 150, 160, 0.95)',
   sail_loft: 'rgba(124, 92, 196, 0.95)',
@@ -138,26 +150,41 @@ async function fetchSearchResults(
   if (!trimmed) return [];
   const like = `%${trimmed}%`;
 
-  // People first — per the four-tier model, sailors search to find each
-  // other, not chandlers. Place results stay below as scaffolding.
-  const [peopleRes, followingIds, clubsRes, sailingRes] = await Promise.all([
-    supabase
-      .from('profiles')
-      .select('id, full_name, username')
-      .ilike('full_name', like)
-      .limit(15),
-    fetchFollowingIds(viewerId),
-    supabase
-      .from('clubs')
-      .select('id, name, short_name, city, country, latitude, longitude, country_code')
-      .or(`name.ilike.${like},short_name.ilike.${like}`)
-      .limit(15),
-    supabase
-      .from('sailing_pois')
-      .select('id, kind, name, short_name, city, country, latitude, longitude, country_code')
-      .or(`name.ilike.${like},short_name.ilike.${like}`)
-      .limit(15),
-  ]);
+  // People + steps first — per the four-tier model, sailors search to
+  // find each other and what they're working on, not chandlers. Place
+  // results stay below as scaffolding.
+  const [peopleRes, followingIds, ownStepsRes, blueprintStepsRes, clubsRes, sailingRes] =
+    await Promise.all([
+      supabase
+        .from('profiles')
+        .select('id, full_name, username')
+        .ilike('full_name', like)
+        .limit(15),
+      fetchFollowingIds(viewerId),
+      viewerId
+        ? supabase
+            .from('timeline_steps')
+            .select('id, title, description, user_id')
+            .eq('user_id', viewerId)
+            .ilike('title', like)
+            .limit(10)
+        : Promise.resolve({ data: null, error: null } as { data: null; error: null }),
+      supabase
+        .from('blueprint_steps')
+        .select('id, blueprint_id, title, description')
+        .ilike('title', like)
+        .limit(10),
+      supabase
+        .from('clubs')
+        .select('id, name, short_name, city, country, latitude, longitude, country_code')
+        .or(`name.ilike.${like},short_name.ilike.${like}`)
+        .limit(15),
+      supabase
+        .from('sailing_pois')
+        .select('id, kind, name, short_name, city, country, latitude, longitude, country_code')
+        .or(`name.ilike.${like},short_name.ilike.${like}`)
+        .limit(15),
+    ]);
 
   const out: AtlasSearchResult[] = [];
 
@@ -175,6 +202,39 @@ async function fetchSearchResults(
         detail: isFollowing ? 'Following' : undefined,
         userId,
         isFollowing,
+      });
+    }
+  }
+
+  if (ownStepsRes && !ownStepsRes.error && ownStepsRes.data) {
+    for (const s of ownStepsRes.data as Record<string, unknown>[]) {
+      const stepId = String(s.id);
+      const title = String(s.title ?? 'Step');
+      const desc = s.description ? String(s.description) : null;
+      out.push({
+        id: `step:${stepId}`,
+        kind: 'step',
+        name: title,
+        detail: desc ? desc.slice(0, 80) : 'Your step',
+        stepId,
+        ownership: 'yours',
+      });
+    }
+  }
+
+  if (!blueprintStepsRes.error && blueprintStepsRes.data) {
+    for (const s of blueprintStepsRes.data as Record<string, unknown>[]) {
+      const stepId = String(s.id);
+      const blueprintId = s.blueprint_id ? String(s.blueprint_id) : undefined;
+      const title = String(s.title ?? 'Blueprint step');
+      const desc = s.description ? String(s.description) : null;
+      out.push({
+        id: `blueprint_step:${stepId}`,
+        kind: 'blueprint_step',
+        name: title,
+        detail: desc ? desc.slice(0, 80) : 'Blueprint step',
+        stepId,
+        blueprintId,
       });
     }
   }
@@ -213,15 +273,19 @@ async function fetchSearchResults(
     }
   }
 
-  // Two-level sort: section by category priority (people first, places
-  // last), then prefix-match within each section so the most relevant
-  // person/place leads.
+  // Section by category priority (people > steps > blueprint steps >
+  // places), then prefix-match within each section so the most relevant
+  // result leads.
   const needle = trimmed.toLowerCase();
-  const sectionRank = (k: AtlasSearchResultKind): number => (k === 'person' ? 0 : 2);
+  const sectionRank = (k: AtlasSearchResultKind): number => {
+    if (k === 'person') return 0;
+    if (k === 'step') return 1;
+    if (k === 'blueprint_step') return 2;
+    return 3;
+  };
   return out.sort((a, b) => {
     const section = sectionRank(a.kind) - sectionRank(b.kind);
     if (section !== 0) return section;
-    // People: followed first within the people section
     if (a.kind === 'person' && b.kind === 'person') {
       if (a.isFollowing !== b.isFollowing) return a.isFollowing ? -1 : 1;
     }
@@ -346,10 +410,16 @@ export function AtlasSearchSheet({
           <Text style={styles.hint}>No places match "{trimmed}". Try a shorter term.</Text>
         ) : null}
         {(() => {
-          // Section results by category — people first, places last —
-          // with light headers so users scan top-down by intent.
+          // Section results by category — people, steps, blueprint
+          // steps, then places — with light headers so users scan
+          // top-down by intent.
           const people = results.filter((r) => r.kind === 'person');
-          const places = results.filter((r) => r.kind !== 'person');
+          const steps = results.filter((r) => r.kind === 'step');
+          const blueprintSteps = results.filter((r) => r.kind === 'blueprint_step');
+          const places = results.filter(
+            (r) =>
+              r.kind !== 'person' && r.kind !== 'step' && r.kind !== 'blueprint_step',
+          );
           const renderRow = (r: AtlasSearchResult) => (
             <Pressable
               key={r.id}
@@ -383,6 +453,18 @@ export function AtlasSearchSheet({
                 <>
                   <Text style={styles.sectionHeader}>People</Text>
                   {people.map(renderRow)}
+                </>
+              ) : null}
+              {steps.length > 0 ? (
+                <>
+                  <Text style={styles.sectionHeader}>Your steps</Text>
+                  {steps.map(renderRow)}
+                </>
+              ) : null}
+              {blueprintSteps.length > 0 ? (
+                <>
+                  <Text style={styles.sectionHeader}>Blueprint steps</Text>
+                  {blueprintSteps.map(renderRow)}
                 </>
               ) : null}
               {places.length > 0 ? (
