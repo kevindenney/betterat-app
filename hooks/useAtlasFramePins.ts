@@ -11,7 +11,8 @@
 import { useMemo } from 'react';
 import { useAtlasPois, type AtlasPoi } from './useAtlasPois';
 import { useAtlasPeerSteps, type AtlasPeerStep } from './useAtlasPeerSteps';
-import { useUserAtlasSteps, type UserAtlasStep } from './useUserAtlasSteps';
+import { useUserAtlasSteps, type PickerStep, type UserAtlasStep } from './useUserAtlasSteps';
+import { useSailingPoisNear, type SailingPoiRow } from './useSailingPoisNear';
 import type { AtlasPinSpec } from '@/components/ios-register/atlas/AtlasMapLibreCanvas';
 
 interface UseAtlasFramePinsArgs {
@@ -23,6 +24,37 @@ interface UseAtlasFramePinsArgs {
   interestSlug: string | null;
   /** Half-side of the bbox in km for peer steps. Default 8. */
   radiusKm?: number;
+  /**
+   * Layer-toggle flags. When the Marinas layer is on, marina POIs are
+   * fetched + included. Sail services covers the rest of the sailing
+   * POI kinds. When both are off, no sailing-pois query fires.
+   */
+  showMarinas?: boolean;
+  showSailServices?: boolean;
+  /**
+   * When set, peer step pins are filtered to only those authored by
+   * users in this Set. Used by Atlas chip-row contextual groups —
+   * e.g. when "Dragon HK" sub-chip is active, only Dragon HK members'
+   * peer steps render. `null` means no filter (show all peers).
+   * Own steps (self / my-step-*) and institution POIs ignore the
+   * filter since they're not "peer" data.
+   */
+  restrictPeersToUserIds?: Set<string> | null;
+}
+
+function mapSailingPoiToPinKind(poi: SailingPoiRow): AtlasPinSpec['kind'] | null {
+  switch (poi.kind) {
+    case 'marina':
+      return 'poi-marina';
+    case 'sail_loft':
+      return 'poi-sail-loft';
+    case 'chandler':
+    case 'rigging':
+    case 'repair':
+      return 'poi-chandler';
+    default:
+      return null;
+  }
 }
 
 /**
@@ -186,18 +218,20 @@ export function mapPeerToPinKind(step: AtlasPeerStep): AtlasPinSpec['kind'] {
 
 /**
  * Phase A — map a viewer-owned step's status to the matching marker
- * kind. planned-next is rendered by the existing amber NEXT pill (the
- * frame promotes the soonest planned step separately), so here it falls
- * back to planned-week. done-recent/done-old/planned-week each get
- * their own pin kind for status-encoded rendering.
+ * kind. The "next" step (right of timeline NOW) gets its own hero pin,
+ * as does the most recently completed step (left of NOW). Other
+ * planned/done variants render with the small status-encoded pins.
  */
 function mapUserStepStatusToPinKind(
   step: UserAtlasStep,
 ): AtlasPinSpec['kind'] {
   switch (step.status) {
     case 'planned-next':
+      return 'my-step-next';
     case 'planned-week':
       return 'my-step-planned';
+    case 'done-just-completed':
+      return 'my-step-done-just';
     case 'done-recent':
       return 'my-step-done-recent';
     case 'done-old':
@@ -210,16 +244,54 @@ export function useAtlasFramePins({
   lng,
   interestSlug,
   radiusKm = 8,
-}: UseAtlasFramePinsArgs): { pins: AtlasPinSpec[]; loading: boolean } {
+  showMarinas = false,
+  showSailServices = false,
+  restrictPeersToUserIds = null,
+}: UseAtlasFramePinsArgs): { pins: AtlasPinSpec[]; pickerSteps: PickerStep[]; loading: boolean } {
   const { pois, loading: poisLoading } = useAtlasPois();
+  // restrictPeersToUserIds (chip-row contextual group filter) is pushed
+  // down to the RPC via restrict_user_ids[] so the bbox scan narrows at
+  // the SQL level instead of after the network round-trip. Set → array
+  // because the Supabase JSON RPC arg expects uuid[].
+  const restrictUserIds = useMemo(
+    () =>
+      restrictPeersToUserIds && restrictPeersToUserIds.size > 0
+        ? Array.from(restrictPeersToUserIds)
+        : null,
+    [restrictPeersToUserIds],
+  );
   const { data: peers = [], isLoading: peersLoading } = useAtlasPeerSteps({
     lat,
     lng,
     radiusKm,
     interestSlug,
+    restrictUserIds,
   });
-  const { steps: userSteps, loading: userStepsLoading } = useUserAtlasSteps({
+  const { steps: userSteps, pickerSteps, loading: userStepsLoading } = useUserAtlasSteps({
     interestSlug,
+  });
+  // Sailing POI bbox — ~radiusKm half-side in lat (1° ≈ 111km) and lng
+  // (cos-corrected at the given latitude). Cheap approximation; the
+  // RPC LIMITs to 200 anyway.
+  const latDelta = radiusKm / 111;
+  const lngDelta = radiusKm / (111 * Math.cos((lat * Math.PI) / 180));
+  const sailingKinds = useMemo(() => {
+    const out: ('marina' | 'sail_loft' | 'chandler' | 'repair' | 'rigging')[] = [];
+    if (showMarinas) out.push('marina');
+    if (showSailServices) out.push('sail_loft', 'chandler', 'repair', 'rigging');
+    return out;
+  }, [showMarinas, showSailServices]);
+  const sailingPoisEnabled = sailingKinds.length > 0;
+  const { data: sailingPois = [] } = useSailingPoisNear({
+    bbox: sailingPoisEnabled
+      ? {
+          minLat: lat - latDelta,
+          maxLat: lat + latDelta,
+          minLng: lng - lngDelta,
+          maxLng: lng + lngDelta,
+        }
+      : null,
+    kinds: sailingPoisEnabled ? sailingKinds : undefined,
   });
 
   const pins = useMemo<AtlasPinSpec[]>(() => {
@@ -311,10 +383,28 @@ export function useAtlasFramePins({
       });
     }
 
-    // Peer step pins from the RPC — already privacy-filtered server-side.
-    // Per design rule §5 (CLUSTER BEHAVIOR): 5+ peer pins in 2km merge
-    // to "+N". POIs are geography (never merge); peer pins are population
-    // (merge at relationship-neutral density).
+    // Sailing land-side POIs (marinas, sail lofts, chandlers, repair,
+    // rigging). Gated by the layer toggles passed in via args — when
+    // both toggles are off, `sailingPois` is empty and this loop is a
+    // no-op. POIs from this source render as ring-grammar pins (place,
+    // not person) tinted by kind.
+    for (const poi of sailingPois) {
+      const kind = mapSailingPoiToPinKind(poi);
+      if (!kind) continue;
+      out.push({
+        id: `sailing-poi:${poi.id}`,
+        lat: Number(poi.latitude),
+        lng: Number(poi.longitude),
+        kind,
+        label: poi.short_name ?? poi.name,
+      });
+    }
+
+    // Peer step pins from the RPC — privacy-filtered server-side AND
+    // (when chip-row contextual groups are active) scoped to the group
+    // roster server-side via restrict_user_ids[]. Per design rule §5
+    // (CLUSTER BEHAVIOR): 5+ peer pins in 2km merge to "+N"; POIs are
+    // geography (never merge).
     const peerPins = peers.map((step) => ({
       id: `peer:${step.step_id}`,
       lat: step.lat,
@@ -345,7 +435,7 @@ export function useAtlasFramePins({
     }
 
     return out;
-  }, [pois, peers, userSteps, interestSlug]);
+  }, [pois, peers, userSteps, sailingPois, interestSlug]);
 
-  return { pins, loading: poisLoading || peersLoading || userStepsLoading };
+  return { pins, pickerSteps, loading: poisLoading || peersLoading || userStepsLoading };
 }

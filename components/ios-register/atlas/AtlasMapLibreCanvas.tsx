@@ -7,10 +7,8 @@
  * geography.
  *
  * Wire-up status (v1):
- *   • Native only. Web platform falls back to the static SVG (the
- *     existing pattern — RaceMapCard does the same). The
- *     `maplibre-gl`/`react-map-gl` web stack is installed; wiring it lands
- *     in a follow-up.
+ *   • Native and web both render live MapLibre tiles. Web loads
+ *     maplibre-gl lazily so the Atlas route can run in Expo web.
  *   • Camera presets per frame match the canonical brief: F1 Causeway
  *     Bay overview, F2 Victoria Harbour close-up, F3 world Dragon,
  *     F4/F5 Baltimore, F6 candidate-pin commit-mode at Victoria Harbour.
@@ -24,7 +22,7 @@
  * the canonical fixture coords baked from the design handoff.
  */
 
-import React, { useCallback, useMemo, useRef } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Platform,
   Pressable,
@@ -58,6 +56,10 @@ import {
   NURSING_MAP_STYLE,
   ENTREPRENEUR_MAP_STYLE,
 } from '@/lib/atlas-map-styles';
+import { ensureMapLibreCss, ensureMapLibreScript } from '@/lib/maplibreWeb';
+import { useAtlasRacingAreas } from '@/hooks/useAtlasRacingAreas';
+import { useUserBoatClasses } from '@/hooks/useUserBoatClasses';
+import { useVocabulary } from '@/hooks/useVocabulary';
 
 // Per-frame base map style. Sailing frames keep Liberty (water/land
 // contrast matters when reading wind/tide over the harbor). Nursing
@@ -72,7 +74,72 @@ import {
 // for f1/f2/f6 without touching the canvas.
 const MAP_STYLE_POSITRON = 'https://tiles.openfreemap.org/styles/positron';
 
-function mapStyleForFrame(frame: AtlasFrameId): string | object {
+export type AtlasBasemap = 'map' | 'satellite' | 'nautical';
+
+const SATELLITE_MAP_STYLE = {
+  version: 8 as const,
+  name: 'BetterAt · Satellite',
+  sources: {
+    esri: {
+      type: 'raster' as const,
+      tiles: [
+        'https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+      ],
+      tileSize: 256,
+      attribution: 'Tiles · Esri',
+    },
+  },
+  layers: [
+    {
+      id: 'esri-satellite',
+      type: 'raster' as const,
+      source: 'esri',
+      minzoom: 0,
+      maxzoom: 22,
+    },
+  ],
+};
+
+const NAUTICAL_MAP_STYLE = {
+  version: 8 as const,
+  name: 'BetterAt · Nautical',
+  sources: {
+    osm: {
+      type: 'raster' as const,
+      tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
+      tileSize: 256,
+      attribution: '© OpenStreetMap',
+    },
+    seamarks: {
+      type: 'raster' as const,
+      tiles: ['https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png'],
+      tileSize: 256,
+      attribution: '© OpenSeaMap',
+    },
+  },
+  layers: [
+    {
+      id: 'osm-base',
+      type: 'raster' as const,
+      source: 'osm',
+      minzoom: 0,
+      maxzoom: 22,
+      paint: { 'raster-opacity': 0.92 },
+    },
+    {
+      id: 'seamarks',
+      type: 'raster' as const,
+      source: 'seamarks',
+      minzoom: 0,
+      maxzoom: 22,
+      paint: { 'raster-opacity': 0.9 },
+    },
+  ],
+};
+
+function mapStyleForFrame(frame: AtlasFrameId, basemap: AtlasBasemap = 'map'): string | object {
+  if (basemap === 'satellite') return SATELLITE_MAP_STYLE;
+  if (basemap === 'nautical') return NAUTICAL_MAP_STYLE;
   // Sailing — custom brand-palette: cream land + soft blue water, no
   // labels/roads. Lets race-marks + wind/tide arrows + POI pins dominate.
   if (frame === 'f1' || frame === 'f2' || frame === 'f3' || frame === 'f6') {
@@ -146,6 +213,9 @@ export interface AtlasPinSpec {
     | 'poi-club'
     | 'poi-club-anchor'
     | 'poi-racing-area'
+    | 'poi-marina'
+    | 'poi-sail-loft'
+    | 'poi-chandler'
     | 'poi-hospital'
     | 'poi-sim-lab'
     | 'poi-sim-anchor'
@@ -159,10 +229,16 @@ export interface AtlasPinSpec {
     | 'tide-arrow'
     | 'cohort-cell'
     // Phase A — viewer's own steps, status-encoded:
-    // planned-week  → hollow blue circle + day-of-week badge ("MON")
-    // done-recent   → solid blue dot, no label
-    // done-old      → tiny faint blue ring (>7 days ago, ≤30d)
+    // next            → large blue dot + amber halo, "NEXT" badge — the
+    //                   step to the right of the timeline NOW bar.
+    // planned-week    → hollow blue circle + day-of-week badge ("MON")
+    // done-just       → solid blue dot + green halo — the step just
+    //                   completed (left of NOW).
+    // done-recent     → solid blue dot, no label
+    // done-old        → tiny faint blue ring (>7 days ago, ≤30d)
+    | 'my-step-next'
     | 'my-step-planned'
+    | 'my-step-done-just'
     | 'my-step-done-recent'
     | 'my-step-done-old';
   /** Optional short label rendered next to the pin (POIs get names). */
@@ -220,6 +296,8 @@ interface AtlasMapLibreCanvasProps {
   frame: AtlasFrameId;
   /** Optional peer pin list — empty in cold-start. */
   pins?: AtlasPinSpec[];
+  /** Optional point to fly the map toward after mount. */
+  focusLocation?: { lng: number; lat: number } | null;
   /** When provided, an amber NEXT marker drops at the venue centroid. */
   nextEvent?: (AtlasNextEvent & { lng: number; lat: number }) | null;
   /**
@@ -247,6 +325,27 @@ interface AtlasMapLibreCanvasProps {
    * sheet so the user can prep — checklist, cohort context, plan-a-step.
    */
   onNextEventPress?: () => void;
+  /**
+   * F1/F6 "Race areas" toggle — renders soft polygons over the canonical
+   * HK racing zones (Victoria Harbour, Port Shelter, Middle Island
+   * Channel) so the sailor sees where racing happens at country zoom.
+   */
+  showRaceAreas?: boolean;
+  /**
+   * Fires when the user long-presses the map. Atlas uses this to open
+   * the racing-area create sheet — the user marks where racing happens
+   * even when their club isn't yet in BetterAt.
+   */
+  onMapLongPress?: (coords: { lng: number; lat: number }) => void;
+  /**
+   * Transient preview polygon rendered while the racing-area create
+   * sheet is open. The sheet computes the polygon from its current
+   * shape state (circle, rectangle, …) so the canvas needs no
+   * shape-specific code paths.
+   */
+  racingAreaPreviewPolygon?: GeoJSON.Polygon | null;
+  /** Base map style used by web and native MapLibre surfaces. */
+  basemap?: AtlasBasemap;
 }
 
 /**
@@ -264,6 +363,9 @@ const TAPPABLE_PIN_KINDS = new Set<AtlasPinSpec['kind']>([
   'poi-club',
   'poi-club-anchor',
   'poi-racing-area',
+  'poi-marina',
+  'poi-sail-loft',
+  'poi-chandler',
   'poi-hospital',
   'poi-sim-lab',
   'poi-sim-anchor',
@@ -273,7 +375,9 @@ const TAPPABLE_PIN_KINDS = new Set<AtlasPinSpec['kind']>([
   'poi-mentee',
   'poi-home-anchor',
   'cohort-cell',
+  'my-step-next',
   'my-step-planned',
+  'my-step-done-just',
   'my-step-done-recent',
   'my-step-done-old',
 ]);
@@ -281,14 +385,56 @@ const TAPPABLE_PIN_KINDS = new Set<AtlasPinSpec['kind']>([
 export function AtlasMapLibreCanvas({
   frame,
   pins = [],
+  focusLocation = null,
   nextEvent,
   onMapPress,
   candidate,
   onPinPress,
+  showRaceAreas = false,
   onNextEventPress,
+  onMapLongPress,
+  racingAreaPreviewPolygon = null,
+  basemap = 'map',
 }: AtlasMapLibreCanvasProps) {
   // Hooks first, then early returns — rules-of-hooks compliance.
   const cameraRef = useRef<CameraRef>(null);
+  const baseCamera = FRAME_CAMERA[frame];
+  const [, setCurrentZoom] = useState(baseCamera.zoom);
+  const { classes: userBoatClasses } = useUserBoatClasses();
+  const { featureCollection: raceAreasCollection } = useAtlasRacingAreas({
+    centerLng: baseCamera.center[0],
+    centerLat: baseCamera.center[1],
+    enabled: showRaceAreas,
+    userClasses: userBoatClasses,
+  });
+  // Cluster pill noun varies by interest — sailors read "session", nurses
+  // "shift", generic users "log". Default ("step") is platform jargon.
+  const { vocab } = useVocabulary();
+  const clusterUnit = vocab('Step');
+
+  // Wrap the supplied preview polygon (circle, rectangle, …) in a
+  // FeatureCollection so MapLibre can paint it via the same source
+  // pattern as the persisted areas. The sheet owns the shape math.
+  const racingAreaPreviewCollection = useMemo<GeoJSON.FeatureCollection | null>(() => {
+    if (!racingAreaPreviewPolygon) return null;
+    return {
+      type: 'FeatureCollection',
+      features: [
+        {
+          type: 'Feature',
+          properties: {},
+          geometry: racingAreaPreviewPolygon,
+        },
+      ],
+    };
+  }, [racingAreaPreviewPolygon]);
+  const zoomBy = useCallback((delta: number) => {
+    setCurrentZoom((value) => {
+      const next = Math.max(1, Math.min(18, Number((value + delta).toFixed(1))));
+      cameraRef.current?.zoomTo(next, { duration: 180 });
+      return next;
+    });
+  }, []);
   const handlePress = useCallback(
     (event: NativeSyntheticEvent<PressEvent>) => {
       if (!onMapPress) return;
@@ -296,6 +442,14 @@ export function AtlasMapLibreCanvas({
       onMapPress({ lng, lat });
     },
     [onMapPress],
+  );
+  const handleLongPress = useCallback(
+    (event: NativeSyntheticEvent<PressEvent>) => {
+      if (!onMapLongPress) return;
+      const [lng, lat] = event.nativeEvent.lngLat;
+      onMapLongPress({ lng, lat });
+    },
+    [onMapLongPress],
   );
   // Recenter the camera on the tapped pin and reserve screen space for
   // the top chrome (filter chips) and the bottom sheet that will pop
@@ -316,6 +470,15 @@ export function AtlasMapLibreCanvas({
     },
     [onPinPress],
   );
+  useEffect(() => {
+    if (!focusLocation) return;
+    cameraRef.current?.flyTo({
+      center: [focusLocation.lng, focusLocation.lat],
+      padding: { top: 120, bottom: 380 },
+      duration: 500,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focusLocation?.lat, focusLocation?.lng]);
   const walkLineCollection = useMemo<GeoJSON.FeatureCollection>(() => {
     const features: GeoJSON.Feature[] = pins
       .filter((pin) => pin.kind === 'walk-annotation' && pin.walkLine)
@@ -331,33 +494,41 @@ export function AtlasMapLibreCanvas({
     return { type: 'FeatureCollection', features };
   }, [pins]);
 
-  // Web platform: keep the SVG fallback. maplibre-gl + react-map-gl are
-  // installed but the bridge to this component lands in a follow-up.
   if (Platform.OS === 'web') {
-    const SvgMap = pickSvgMap(frame);
     return (
-      <View style={styles.fill} pointerEvents="none">
-        <SvgMap />
-      </View>
+      <WebAtlasMapLibreCanvas
+        frame={frame}
+        pins={pins}
+        focusLocation={focusLocation}
+        nextEvent={nextEvent}
+        onMapPress={onMapPress}
+        candidate={candidate}
+        onPinPress={onPinPress}
+        showRaceAreas={showRaceAreas}
+        onNextEventPress={onNextEventPress}
+        basemap={basemap}
+        baseCamera={baseCamera}
+        walkLineCollection={walkLineCollection}
+        raceAreasCollection={raceAreasCollection}
+      />
     );
   }
-
-  const camera = FRAME_CAMERA[frame];
 
   return (
     <View style={styles.fill}>
       <MLMap
-        mapStyle={mapStyleForFrame(frame)}
+        mapStyle={mapStyleForFrame(frame, basemap)}
         style={styles.fill}
         onPress={onMapPress ? handlePress : undefined}
+        onLongPress={onMapLongPress ? handleLongPress : undefined}
         attribution={false}
         logo={false}
       >
         <MLCamera
           ref={cameraRef}
           initialViewState={{
-            center: camera.center,
-            zoom: camera.zoom,
+            center: baseCamera.center,
+            zoom: baseCamera.zoom,
           }}
         />
 
@@ -376,6 +547,64 @@ export function AtlasMapLibreCanvas({
           </MLGeoJSONSource>
         ) : null}
 
+        {showRaceAreas ? (
+          <MLGeoJSONSource id="atlas-race-areas" data={raceAreasCollection}>
+            <MLLayer
+              id="atlas-race-areas-fill"
+              type="fill"
+              style={{
+                fillColor: 'rgb(255, 191, 99)',
+                // Data-driven: each feature carries its own fillOpacity so
+                // areas not in the viewer's boat class dim out.
+                fillOpacity: ['get', 'fillOpacity'],
+                fillOutlineColor: 'rgba(231, 137, 60, 0.55)',
+              }}
+            />
+            {/* Label each area with its name at the polygon centroid so
+                "what racing area is this?" reads immediately. Halo keeps
+                the text legible over the tan fill. Kept to the
+                MapLibre-native-safe property subset — letterSpacing /
+                transform / allowOverlap have triggered C++ assertions
+                on some bridge versions. */}
+            <MLLayer
+              id="atlas-race-areas-label"
+              type="symbol"
+              style={{
+                textField: ['get', 'name'],
+                textSize: 12,
+                textColor: 'rgba(60, 40, 20, 0.9)',
+                textHaloColor: 'rgba(255, 255, 255, 0.92)',
+                textHaloWidth: 1.4,
+              }}
+            />
+          </MLGeoJSONSource>
+        ) : null}
+
+        {racingAreaPreviewCollection ? (
+          <MLGeoJSONSource
+            id="atlas-race-area-preview"
+            data={racingAreaPreviewCollection}
+          >
+            <MLLayer
+              id="atlas-race-area-preview-fill"
+              type="fill"
+              style={{
+                fillColor: 'rgb(0, 122, 255)',
+                fillOpacity: 0.12,
+              }}
+            />
+            <MLLayer
+              id="atlas-race-area-preview-outline"
+              type="line"
+              style={{
+                lineColor: 'rgba(0, 122, 255, 0.85)',
+                lineWidth: 1.5,
+                lineDasharray: [3, 2],
+              }}
+            />
+          </MLGeoJSONSource>
+        ) : null}
+
         {pins.map((pin) => {
           const isTappable = Boolean(onPinPress) && TAPPABLE_PIN_KINDS.has(pin.kind);
           const inner = (
@@ -383,6 +612,7 @@ export function AtlasMapLibreCanvas({
               kind={pin.kind}
               label={pin.label}
               clusterCount={pin.clusterCount}
+              clusterUnit={clusterUnit}
               glowCluster={pin.glowCluster}
               showLabel={shouldShowLabel(pin, pins)}
             />
@@ -390,7 +620,7 @@ export function AtlasMapLibreCanvas({
           return (
             <MLMarker key={pin.id} id={pin.id} lngLat={[pin.lng, pin.lat]}>
               {isTappable ? (
-                <Pressable onPress={() => handlePinTap(pin)} hitSlop={6}>
+                <Pressable onPress={() => handlePinTap(pin)} hitSlop={14}>
                   {inner}
                 </Pressable>
               ) : (
@@ -437,8 +667,398 @@ export function AtlasMapLibreCanvas({
           </MLMarker>
         ) : null}
       </MLMap>
+      <View style={styles.zoomControls}>
+        <Pressable
+          style={styles.zoomButton}
+          onPress={() => zoomBy(1)}
+          hitSlop={8}
+          accessibilityRole="button"
+          accessibilityLabel="Zoom in"
+        >
+          <Ionicons name="add" size={19} color="#1C1C1E" />
+        </Pressable>
+        <View style={styles.zoomDivider} />
+        <Pressable
+          style={styles.zoomButton}
+          onPress={() => zoomBy(-1)}
+          hitSlop={8}
+          accessibilityRole="button"
+          accessibilityLabel="Zoom out"
+        >
+          <Ionicons name="remove" size={19} color="#1C1C1E" />
+        </Pressable>
+      </View>
     </View>
   );
+}
+
+function WebAtlasMapLibreCanvas({
+  frame,
+  pins,
+  focusLocation,
+  nextEvent,
+  onMapPress,
+  candidate,
+  onPinPress,
+  showRaceAreas,
+  onNextEventPress,
+  basemap = 'map',
+  baseCamera,
+  walkLineCollection,
+  raceAreasCollection,
+}: AtlasMapLibreCanvasProps & {
+  pins: AtlasPinSpec[];
+  baseCamera: CameraPreset;
+  walkLineCollection: GeoJSON.FeatureCollection;
+  raceAreasCollection: GeoJSON.FeatureCollection;
+}) {
+  const containerRef = useRef<any>(null);
+  const mapRef = useRef<any>(null);
+  const maplibreRef = useRef<any>(null);
+  const pinMarkersRef = useRef<any[]>([]);
+  const nextMarkerRef = useRef<any | null>(null);
+  const candidateMarkerRef = useRef<any | null>(null);
+  const [isLoaded, setIsLoaded] = useState(false);
+  const [mapError, setMapError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    setIsLoaded(false);
+    setMapError(null);
+
+    const initialize = async () => {
+      try {
+        let maplibregl: any = null;
+        try {
+          const maplibreModule = await import('maplibre-gl');
+          maplibregl = (maplibreModule as any).default || maplibreModule;
+        } catch (_moduleError) {
+          await ensureMapLibreScript('maplibre-gl-script-atlas');
+          maplibregl = typeof window !== 'undefined' ? (window as any).maplibregl : null;
+        }
+
+        try {
+          await import('maplibre-gl/dist/maplibre-gl.css');
+        } catch (_cssError) {
+          ensureMapLibreCss('maplibre-gl-css-atlas');
+        }
+
+        if (cancelled || !containerRef.current) return;
+        const MapConstructor = maplibregl?.Map;
+        if (!MapConstructor) {
+          throw new Error('MapLibre Map constructor is unavailable');
+        }
+
+        const map = new MapConstructor({
+          container: containerRef.current,
+          style: mapStyleForFrame(frame, basemap),
+          center: baseCamera.center,
+          zoom: baseCamera.zoom,
+          attributionControl: false,
+          logoPosition: 'bottom-left',
+        });
+
+        mapRef.current = map;
+        maplibreRef.current = maplibregl;
+
+        if (onMapPress) {
+          map.on('click', (event: any) => {
+            onMapPress({ lng: event.lngLat.lng, lat: event.lngLat.lat });
+          });
+        }
+
+        map.on('load', () => {
+          if (cancelled) return;
+          setMapError(null);
+          setIsLoaded(true);
+        });
+
+        map.on('error', (event: any) => {
+          const styleLoaded =
+            typeof map.isStyleLoaded === 'function' ? map.isStyleLoaded() : false;
+          if (styleLoaded) return;
+          const detail = event?.error?.message || event?.message || 'Unknown map error';
+          setMapError(detail);
+        });
+      } catch (error) {
+        if (!cancelled) {
+          setMapError(error instanceof Error ? error.message : 'Map failed to initialize');
+        }
+      }
+    };
+
+    void initialize();
+
+    return () => {
+      cancelled = true;
+      pinMarkersRef.current.forEach((marker) => marker.remove());
+      pinMarkersRef.current = [];
+      nextMarkerRef.current?.remove();
+      nextMarkerRef.current = null;
+      candidateMarkerRef.current?.remove();
+      candidateMarkerRef.current = null;
+      mapRef.current?.remove();
+      mapRef.current = null;
+      maplibreRef.current = null;
+    };
+  }, [baseCamera.center, baseCamera.zoom, basemap, frame, onMapPress]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !isLoaded || !focusLocation) return;
+    map.easeTo({
+      center: [focusLocation.lng, focusLocation.lat],
+      padding: { top: 120, bottom: 380 },
+      duration: 500,
+    });
+  }, [focusLocation, focusLocation?.lat, focusLocation?.lng, isLoaded]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !isLoaded) return;
+    syncGeoJsonLayer(map, 'atlas-web-walk-lines', 'line', walkLineCollection, {
+      'line-color': 'rgba(118, 118, 128, 0.55)',
+      'line-width': 1,
+      'line-opacity': 0.8,
+      'line-dasharray': [2, 2],
+    });
+  }, [isLoaded, walkLineCollection]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !isLoaded) return;
+
+    if (!showRaceAreas) {
+      removeLayerAndSource(map, 'atlas-web-race-areas-fill', 'atlas-web-race-areas');
+      return;
+    }
+
+    syncGeoJsonLayer(map, 'atlas-web-race-areas', 'fill', raceAreasCollection, {
+      'fill-color': 'rgba(255, 191, 99, 0.20)',
+      'fill-outline-color': 'rgba(231, 137, 60, 0.55)',
+    });
+  }, [isLoaded, raceAreasCollection, showRaceAreas]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    const Marker = maplibreRef.current?.Marker;
+    if (!map || !Marker || !isLoaded) return;
+
+    pinMarkersRef.current.forEach((marker) => marker.remove());
+    pinMarkersRef.current = pins.map((pin) => {
+      const isTappable = Boolean(onPinPress) && TAPPABLE_PIN_KINDS.has(pin.kind);
+      const element = createWebPinElement({
+        pin,
+        showLabel: shouldShowLabel(pin, pins),
+        isTappable,
+        onPress: isTappable
+          ? () => {
+              onPinPress?.(pin);
+              map.easeTo({
+                center: [pin.lng, pin.lat],
+                padding: { top: 120, bottom: 380 },
+                duration: 400,
+              });
+            }
+          : undefined,
+      });
+      return new Marker({ element }).setLngLat([pin.lng, pin.lat]).addTo(map);
+    });
+  }, [isLoaded, onPinPress, pins]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    const Marker = maplibreRef.current?.Marker;
+    if (!map || !Marker || !isLoaded) return;
+
+    nextMarkerRef.current?.remove();
+    nextMarkerRef.current = null;
+    if (!nextEvent) return;
+
+    const element = createWebNextEventElement(nextEvent, onNextEventPress);
+    nextMarkerRef.current = new Marker({ element })
+      .setLngLat([nextEvent.lng, nextEvent.lat])
+      .addTo(map);
+  }, [isLoaded, nextEvent, onNextEventPress]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    const Marker = maplibreRef.current?.Marker;
+    if (!map || !Marker || !isLoaded) return;
+
+    candidateMarkerRef.current?.remove();
+    candidateMarkerRef.current = null;
+    if (!candidate) return;
+
+    candidateMarkerRef.current = new Marker({ element: createWebCandidateElement() })
+      .setLngLat([candidate.lng, candidate.lat])
+      .addTo(map);
+  }, [candidate, isLoaded]);
+
+  if (mapError) {
+    const SvgMap = pickSvgMap(frame);
+    return (
+      <View style={styles.fill}>
+        <SvgMap />
+        <View style={styles.webMapError}>
+          <Text style={styles.webMapErrorTitle}>Map unavailable</Text>
+          <Text style={styles.webMapErrorBody}>{mapError}</Text>
+        </View>
+      </View>
+    );
+  }
+
+  return <View ref={containerRef} style={styles.fill} />;
+}
+
+function syncGeoJsonLayer(
+  map: any,
+  sourceId: string,
+  layerType: 'fill' | 'line',
+  data: GeoJSON.FeatureCollection,
+  paint: Record<string, unknown>,
+) {
+  const layerId = layerType === 'fill' ? `${sourceId}-fill` : `${sourceId}-layer`;
+  const source = map.getSource(sourceId);
+  if (source?.setData) {
+    source.setData(data);
+    return;
+  }
+
+  map.addSource(sourceId, { type: 'geojson', data });
+  map.addLayer({
+    id: layerId,
+    type: layerType,
+    source: sourceId,
+    paint,
+  });
+}
+
+function removeLayerAndSource(map: any, layerId: string, sourceId: string) {
+  if (map.getLayer(layerId)) map.removeLayer(layerId);
+  if (map.getSource(sourceId)) map.removeSource(sourceId);
+}
+
+function createWebPinElement({
+  pin,
+  showLabel,
+  isTappable,
+  onPress,
+}: {
+  pin: AtlasPinSpec;
+  showLabel: boolean;
+  isTappable: boolean;
+  onPress?: () => void;
+}) {
+  const tone = PIN_TONE[pin.kind];
+  const root = document.createElement(isTappable ? 'button' : 'div');
+  root.style.display = 'flex';
+  root.style.alignItems = 'center';
+  root.style.gap = '6px';
+  root.style.border = '0';
+  root.style.padding = '0';
+  root.style.background = 'transparent';
+  root.style.cursor = isTappable ? 'pointer' : 'default';
+  root.style.transform = 'translateY(-50%)';
+  root.style.font = '600 11px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+  root.style.color = 'rgba(28, 28, 30, 0.86)';
+
+  if (isTappable && onPress) {
+    root.addEventListener('click', (event) => {
+      event.stopPropagation();
+      onPress();
+    });
+  }
+
+  const marker = document.createElement('span');
+  marker.style.display = 'inline-flex';
+  marker.style.alignItems = 'center';
+  marker.style.justifyContent = 'center';
+  marker.style.width = `${Math.max(tone.size, 8)}px`;
+  marker.style.height = `${Math.max(tone.size, 8)}px`;
+  marker.style.background = pin.glowCluster
+    ? COHORT_CLUSTER_TONE[pin.glowCluster] ?? tone.color
+    : tone.color;
+  marker.style.border = '2px solid #fff';
+  marker.style.boxShadow = '0 2px 8px rgba(0,0,0,0.18)';
+  marker.style.color = '#fff';
+  marker.style.fontSize = '9px';
+  marker.style.lineHeight = '1';
+
+  if (tone.shape === 'diamond') {
+    marker.style.transform = 'rotate(45deg)';
+    marker.style.borderRadius = '3px';
+  } else if (tone.shape === 'square') {
+    marker.style.borderRadius = '3px';
+    marker.style.borderColor = 'rgba(28,28,30,0.32)';
+  } else if (tone.shape === 'ring') {
+    marker.style.borderRadius = '999px';
+    marker.style.background = '#fff';
+    marker.style.borderColor = tone.color;
+  } else if (tone.shape === 'drop') {
+    marker.style.borderRadius = '50% 50% 50% 0';
+    marker.style.transform = 'rotate(-45deg)';
+  } else {
+    marker.style.borderRadius = '999px';
+  }
+
+  if (pin.clusterCount) marker.textContent = `+${pin.clusterCount}`;
+  if (pin.kind === 'race-mark' && pin.label) {
+    marker.textContent = pin.label.match(/\d+/)?.[0] ?? '';
+  }
+
+  root.appendChild(marker);
+
+  if (showLabel && pin.label) {
+    const label = document.createElement('span');
+    label.textContent = pin.label.split('|')[0]?.trim() || pin.label;
+    label.style.maxWidth = '150px';
+    label.style.padding = '3px 6px';
+    label.style.borderRadius = '999px';
+    label.style.background = 'rgba(255,255,255,0.92)';
+    label.style.boxShadow = '0 2px 8px rgba(0,0,0,0.10)';
+    label.style.whiteSpace = 'nowrap';
+    label.style.overflow = 'hidden';
+    label.style.textOverflow = 'ellipsis';
+    root.appendChild(label);
+  }
+
+  return root;
+}
+
+function createWebNextEventElement(
+  nextEvent: AtlasNextEvent & { lng: number; lat: number },
+  onPress?: () => void,
+) {
+  const root = document.createElement(onPress ? 'button' : 'div');
+  root.textContent = `${nextEvent.label}${nextEvent.when ? ` · ${nextEvent.when}` : ''}`;
+  root.style.border = '0';
+  root.style.padding = '5px 8px';
+  root.style.borderRadius = '999px';
+  root.style.background = 'rgba(255, 184, 77, 0.96)';
+  root.style.color = '#3A2500';
+  root.style.font = '700 11px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+  root.style.boxShadow = '0 4px 12px rgba(0,0,0,0.18)';
+  root.style.cursor = onPress ? 'pointer' : 'default';
+  if (onPress) {
+    root.addEventListener('click', (event) => {
+      event.stopPropagation();
+      onPress();
+    });
+  }
+  return root;
+}
+
+function createWebCandidateElement() {
+  const root = document.createElement('div');
+  root.style.width = '22px';
+  root.style.height = '22px';
+  root.style.borderRadius = '50% 50% 50% 0';
+  root.style.background = '#FF3B30';
+  root.style.border = '3px solid #fff';
+  root.style.boxShadow = '0 4px 12px rgba(0,0,0,0.22)';
+  root.style.transform = 'rotate(-45deg) translateY(-50%)';
+  return root;
 }
 
 /**
@@ -474,6 +1094,7 @@ function approxDistanceKm(a: AtlasPinSpec, b: AtlasPinSpec): number {
  */
 function shouldShowLabel(pin: AtlasPinSpec, allPins: AtlasPinSpec[]): boolean {
   if (!pin.label) return false;
+  if (pin.kind === 'race-mark') return true;
   // Diamond curation pins (preceptor, sim-lab) always show their label —
   // they're intentional faculty/institutional guidance, named by design.
   // The label-hide-when-dense rule applies only to interchangeable
@@ -525,7 +1146,7 @@ function pickSvgMap(frame: AtlasFrameId): React.ComponentType {
  * are blue) — adding diamond/triangle for them was tested and rejected.
  * Diamond is reserved for curation (faculty-marked guided pins).
  */
-type PinShape = 'circle' | 'diamond' | 'numbered' | 'drop' | 'square';
+type PinShape = 'circle' | 'diamond' | 'numbered' | 'drop' | 'square' | 'ring';
 
 /**
  * Cohort heatmap color palette by dominant competency cluster — coral
@@ -557,11 +1178,19 @@ const PIN_TONE: Record<
   // Race marks: numbered amber
   'race-mark': { size: 16, color: '#E07A3C', shape: 'numbered' },
   // Institution POIs — circles, iOS systemBlue
-  'poi-club': { size: 14, color: 'rgba(0, 122, 255, 0.95)', shape: 'circle' },
+  'poi-club': { size: 14, color: 'rgba(0, 122, 255, 0.95)', shape: 'ring' },
   // "Your base" club — anchor icon, deeper navy. Distinct from generic
   // institution circles so the user's home club reads as "this is mine".
   'poi-club-anchor': { size: 22, color: 'rgba(28, 28, 56, 0.95)', shape: 'circle' },
-  'poi-racing-area': { size: 11, color: 'rgba(0, 122, 255, 0.65)', shape: 'circle' },
+  'poi-racing-area': { size: 11, color: 'rgba(0, 122, 255, 0.65)', shape: 'ring' },
+  // Sailing land-side POIs — ring grammar (institution = place), each
+  // tinted to read distinctly from yacht clubs (systemBlue rings):
+  //   - marina: teal — sail water-adjacent but distinct from a club
+  //   - sail loft: violet — service venue, indoor canvas work
+  //   - chandler: amber — retail (rigging, hardware, chandlery)
+  'poi-marina': { size: 12, color: 'rgba(0, 150, 160, 0.95)', shape: 'ring' },
+  'poi-sail-loft': { size: 11, color: 'rgba(124, 92, 196, 0.95)', shape: 'ring' },
+  'poi-chandler': { size: 11, color: 'rgba(204, 124, 36, 0.95)', shape: 'ring' },
   'poi-hospital': { size: 14, color: 'rgba(0, 122, 255, 0.95)', shape: 'circle' },
   // Curation pins — diamonds. Sim-lab is institutional but reads as
   // "rehearse-here," which is curation-adjacent enough that the design
@@ -600,7 +1229,9 @@ const PIN_TONE: Record<
   // Phase A — viewer's own steps. Blue palette mirrors the "own"/"you"
   // peer tone so the viewer's pins read as theirs at a glance, with the
   // size + opacity carrying the time gradient.
+  'my-step-next':        { size: 18, color: 'rgba(0, 122, 255, 1)',    shape: 'circle' },
   'my-step-planned':     { size: 12, color: 'rgba(0, 122, 255, 0.95)', shape: 'circle' },
+  'my-step-done-just':   { size: 14, color: 'rgba(0, 122, 255, 0.85)', shape: 'circle' },
   'my-step-done-recent': { size: 10, color: 'rgba(0, 122, 255, 0.65)', shape: 'circle' },
   'my-step-done-old':    { size: 7,  color: 'rgba(0, 122, 255, 0.30)', shape: 'circle' },
 };
@@ -614,12 +1245,15 @@ function LabeledPin({
   kind,
   label,
   clusterCount,
+  clusterUnit,
   glowCluster,
   showLabel = true,
 }: {
   kind: AtlasPinSpec['kind'];
   label?: string;
   clusterCount?: number;
+  /** Interest-aware noun for the cluster pill ("session"/"shift"/…). */
+  clusterUnit?: string;
   glowCluster?: string;
   /** When false, suppress the label pill — used for label-hide-until-tap at z11+. */
   showLabel?: boolean;
@@ -718,17 +1352,31 @@ function LabeledPin({
       </View>
     );
   }
+  if (kind === 'race-mark') {
+    return (
+      <View style={styles.raceMarkWrap}>
+        <View style={styles.raceMarkGlyph}>
+          <Text style={styles.raceMarkGlyphText}>{label}</Text>
+        </View>
+      </View>
+    );
+  }
   if (kind === 'wind-arrow') {
-    const [degStr, knotsStr] = (label ?? '0|0').split('|');
+    const [degStr, knotsStr, variant] = (label ?? '0|0').split('|');
     const fromDeg = Number(degStr) || 0;
     const downwindDeg = (fromDeg + 180) % 360;
     const knots = Number(knotsStr) || 0;
+    const isField = variant === 'field';
     return (
-      <View style={styles.windArrowWrap}>
-        <View style={[styles.arrowDisc, { transform: [{ rotate: `${downwindDeg}deg` }] }]}>
-          <Ionicons name="arrow-up" size={32} color="rgba(0, 122, 255, 0.95)" />
+      <View style={isField ? styles.windFieldWrap : styles.windArrowWrap}>
+        <View style={[isField ? styles.fieldArrowDisc : styles.arrowDisc, { transform: [{ rotate: `${downwindDeg}deg` }] }]}>
+          <Ionicons
+            name="arrow-up"
+            size={isField ? 20 : 32}
+            color={isField ? 'rgba(113, 143, 168, 0.78)' : 'rgba(0, 122, 255, 0.95)'}
+          />
         </View>
-        {knots > 0 ? (
+        {!isField && knots > 0 ? (
           <Text style={styles.arrowChip}>{`${Math.round(knots)} kn`}</Text>
         ) : null}
       </View>
@@ -747,6 +1395,53 @@ function LabeledPin({
         {knots > 0 ? (
           <Text style={styles.arrowChip}>{`${knots.toFixed(1)} kn`}</Text>
         ) : null}
+      </View>
+    );
+  }
+  // Hero treatment for the "next" step — the one right of the timeline
+  // NOW bar. Bold blue dot inside an amber halo with a NEXT badge so the
+  // viewer can spot their next move at a glance.
+  if (kind === 'my-step-next') {
+    const titleLabel = (label ?? '').split('|')[0] ?? '';
+    return (
+      <View style={styles.pinRow}>
+        <View style={styles.glyphCol}>
+          <View pointerEvents="none" style={styles.myStepNextHalo} />
+          <View style={styles.myStepNextDot} />
+        </View>
+        <View style={styles.myStepHeroLabelCol}>
+          <View style={styles.myStepNextBadge}>
+            <Text style={styles.myStepNextBadgeText}>NEXT</Text>
+          </View>
+          {showLabel && titleLabel ? (
+            <Text style={styles.pinLabel} numberOfLines={1}>
+              {titleLabel}
+            </Text>
+          ) : null}
+        </View>
+      </View>
+    );
+  }
+  // Hero treatment for the most recently completed step — left of NOW.
+  // Smaller halo than NEXT, green-tinted, with a DONE badge.
+  if (kind === 'my-step-done-just') {
+    const titleLabel = (label ?? '').split('|')[0] ?? '';
+    return (
+      <View style={styles.pinRow}>
+        <View style={styles.glyphCol}>
+          <View pointerEvents="none" style={styles.myStepDoneJustHalo} />
+          <View style={styles.myStepDoneJustDot} />
+        </View>
+        <View style={styles.myStepHeroLabelCol}>
+          <View style={styles.myStepDoneJustBadge}>
+            <Text style={styles.myStepDoneJustBadgeText}>DONE</Text>
+          </View>
+          {showLabel && titleLabel ? (
+            <Text style={styles.pinLabel} numberOfLines={1}>
+              {titleLabel}
+            </Text>
+          ) : null}
+        </View>
       </View>
     );
   }
@@ -803,6 +1498,12 @@ function LabeledPin({
     );
   }
   const tone = PIN_TONE[kind];
+  if (!tone) {
+    // Pin kind not in PIN_TONE — likely a new kind added without a
+    // matching tone entry. Skip rather than crash the whole canvas.
+    if (__DEV__) console.warn('[atlas] no PIN_TONE entry for kind', kind);
+    return null;
+  }
   const glowColor = glowCluster ? COHORT_CLUSTER_TONE[glowCluster] : undefined;
   return (
     <View style={styles.pinRow}>
@@ -821,6 +1522,7 @@ function LabeledPin({
           size={tone.size}
           color={tone.color}
           clusterCount={clusterCount}
+          clusterUnit={clusterUnit}
         />
       </View>
       {showLabel && label ? (
@@ -837,31 +1539,25 @@ function PinGlyph({
   size,
   color,
   clusterCount,
+  clusterUnit = 'logs',
 }: {
   shape: PinShape;
   size: number;
   color: string;
   clusterCount?: number;
+  /** Interest-aware plural noun for the cluster pill. */
+  clusterUnit?: string;
 }) {
-  // Cluster badge: 5+ peer pins in 2km merge to "+N" per the design's
-  // cluster-behavior rule. Cluster pins always render as a circle with
-  // a number inside, regardless of the underlying relationship.
+  // Cluster badge: 5+ peer pins in 2km merge to "+N <unit>" per the
+  // design's cluster-behavior rule. Pill rather than circle so the unit
+  // label fits — a bare "+12" reads as undescribed data; the unit tells
+  // the user they're looking at a count of activity, not sailors.
   if (clusterCount != null) {
+    const unitLabel = clusterCount === 1 ? clusterUnit : `${clusterUnit}s`;
     return (
-      <View
-        style={{
-          minWidth: 22,
-          height: 22,
-          borderRadius: 11,
-          paddingHorizontal: 4,
-          backgroundColor: color,
-          borderWidth: 1.5,
-          borderColor: '#FFFFFF',
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}
-      >
+      <View style={styles.clusterPill}>
         <Text style={styles.clusterCount}>+{clusterCount}</Text>
+        <Text style={styles.clusterUnit}>{unitLabel}</Text>
       </View>
     );
   }
@@ -924,6 +1620,24 @@ function PinGlyph({
           backgroundColor: color,
           borderWidth: 1,
           borderColor: 'rgba(60, 60, 67, 0.55)',
+        }}
+      />
+    );
+  }
+  if (shape === 'ring') {
+    // Ring (institution grammar) — white fill + colored border, so POIs
+    // read as "place" rather than "data point." Distinct from peer pins
+    // (filled circles) so a user scanning the map can tell at a glance
+    // whether a dot is a person/step or a venue/club.
+    return (
+      <View
+        style={{
+          width: size,
+          height: size,
+          borderRadius: size / 2,
+          backgroundColor: '#FFFFFF',
+          borderWidth: 2.5,
+          borderColor: color,
         }}
       />
     );
@@ -1050,11 +1764,28 @@ const styles = StyleSheet.create({
     color: '#8A4B00',
     letterSpacing: 0.5,
   },
+  clusterPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    minHeight: 22,
+    paddingHorizontal: 8,
+    borderRadius: 11,
+    backgroundColor: 'rgba(28, 28, 56, 0.92)',
+    borderWidth: 1.5,
+    borderColor: '#FFFFFF',
+  },
   clusterCount: {
     fontSize: 10,
     fontWeight: '800',
     color: '#FFFFFF',
     letterSpacing: 0.2,
+  },
+  clusterUnit: {
+    fontSize: 9,
+    fontWeight: '600',
+    color: 'rgba(255, 255, 255, 0.78)',
+    letterSpacing: 0.3,
   },
   walkAnnotation: {
     backgroundColor: 'rgba(118, 118, 128, 0.92)',
@@ -1068,11 +1799,47 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     letterSpacing: 0.2,
   },
+  raceMarkWrap: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  raceMarkGlyph: {
+    minWidth: 22,
+    height: 22,
+    paddingHorizontal: 4,
+    borderRadius: 11,
+    backgroundColor: '#D89A2B',
+    borderWidth: 1.5,
+    borderColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#8A4B00',
+    shadowOpacity: 0.14,
+    shadowRadius: 2,
+    shadowOffset: { width: 0, height: 1 },
+  },
+  raceMarkGlyphText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#2C2417',
+    letterSpacing: -0.1,
+  },
   windArrowWrap: {
     alignItems: 'center',
     justifyContent: 'center',
   },
+  windFieldWrap: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    opacity: 0.9,
+  },
   tideArrowWrap: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  fieldArrowDisc: {
+    width: 24,
+    height: 24,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1136,6 +1903,76 @@ const styles = StyleSheet.create({
     top: -9,
     left: -9,
   },
+  myStepNextHalo: {
+    position: 'absolute',
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    top: -8,
+    left: -8,
+    backgroundColor: 'rgba(240, 169, 58, 0.28)',
+    borderWidth: 2,
+    borderColor: 'rgba(240, 169, 58, 0.75)',
+  },
+  myStepNextDot: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: 'rgba(0, 122, 255, 1)',
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+  },
+  myStepDoneJustHalo: {
+    position: 'absolute',
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    top: -6,
+    left: -6,
+    backgroundColor: 'rgba(52, 199, 89, 0.22)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(52, 199, 89, 0.75)',
+  },
+  myStepDoneJustDot: {
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: 'rgba(0, 122, 255, 0.85)',
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+  },
+  myStepHeroLabelCol: {
+    marginLeft: 8,
+    alignItems: 'flex-start',
+  },
+  myStepNextBadge: {
+    backgroundColor: '#FFE6B0',
+    borderColor: '#F0A93A',
+    borderWidth: 1,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  myStepNextBadgeText: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: '#8A4B00',
+    letterSpacing: 0.7,
+  },
+  myStepDoneJustBadge: {
+    backgroundColor: 'rgba(52, 199, 89, 0.18)',
+    borderColor: 'rgba(52, 199, 89, 0.85)',
+    borderWidth: 1,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  myStepDoneJustBadgeText: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: '#1F7A3A',
+    letterSpacing: 0.7,
+  },
   nextTag: {
     backgroundColor: '#FFE6B0',
     borderColor: '#F0A93A',
@@ -1178,5 +2015,31 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 4,
     shadowOffset: { width: 0, height: 2 },
+  },
+  zoomControls: {
+    position: 'absolute',
+    right: 12,
+    top: 118,
+    width: 38,
+    borderRadius: 12,
+    overflow: 'hidden',
+    backgroundColor: 'rgba(255, 255, 255, 0.92)',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(60, 60, 67, 0.22)',
+    shadowColor: '#000',
+    shadowOpacity: 0.14,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 4,
+  },
+  zoomButton: {
+    width: 38,
+    height: 38,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  zoomDivider: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: 'rgba(60, 60, 67, 0.20)',
   },
 });

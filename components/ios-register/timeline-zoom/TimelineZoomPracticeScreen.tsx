@@ -11,10 +11,10 @@
  * (RacesScreen in app/(tabs)/races.tsx).
  */
 
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
 import { IOS_REGISTER } from '@/lib/design-tokens-ios';
@@ -31,10 +31,12 @@ import { MoveToSeasonSheet, buildMoveTargets } from './MoveToSeasonSheet';
 import { TagBulkSheet } from './TagBulkSheet';
 import { ScheduleBulkSheet } from './ScheduleBulkSheet';
 import { SAMPLE_DATASET } from './sampleData';
+import { useStarterStepSeed } from '@/hooks/useStarterStepSeed';
 
 export function TimelineZoomPracticeScreen() {
   const { user } = useAuth();
   const { currentInterest } = useInterest();
+  const searchParams = useLocalSearchParams<{ selected?: string | string[] }>();
   // When the signed-in user has no steps, an opt-in lets you preview all
   // the new zoom-canvas features against the canonical sample dataset
   // (Emily Shaw's nursing year). Doesn't affect any real data — just
@@ -42,6 +44,16 @@ export function TimelineZoomPracticeScreen() {
   const [showSample, setShowSample] = useState(false);
 
   const interestId = currentInterest?.id ?? null;
+  const selectedStepId = useMemo(() => {
+    if (typeof searchParams.selected === 'string' && searchParams.selected.trim()) {
+      return searchParams.selected;
+    }
+    if (Array.isArray(searchParams.selected)) {
+      const first = searchParams.selected.find((value) => typeof value === 'string' && value.trim());
+      return first;
+    }
+    return undefined;
+  }, [searchParams.selected]);
   const { data: steps = [], isLoading: stepsLoading } = useMyTimeline(interestId);
   const { data: currentSeason = null } = useCurrentSeason();
   const { data: allSeasons = [] } = useUserSeasons();
@@ -91,6 +103,7 @@ export function TimelineZoomPracticeScreen() {
   const dataset = useMemo(
     () =>
       mapToTimelineDataset({
+        interestId,
         interestLabel: currentInterest?.name ?? 'Practice',
         user: {
           initials: userInitials,
@@ -99,9 +112,19 @@ export function TimelineZoomPracticeScreen() {
         currentSeason,
         allSeasons,
         steps,
+        focusStepId: selectedStepId,
         blueprintsById,
       }),
-    [currentInterest, userInitials, currentSeason, allSeasons, steps, blueprintsById],
+    [
+      interestId,
+      currentInterest,
+      userInitials,
+      currentSeason,
+      allSeasons,
+      steps,
+      selectedStepId,
+      blueprintsById,
+    ],
   );
 
   const handleOpenStepDetail = useCallback((stepId: string) => {
@@ -279,39 +302,35 @@ export function TimelineZoomPracticeScreen() {
   const hasContent = dataset.seasons.some((s) => s.bricks.length > 0);
   const signedInEmail = (user?.email as string | undefined) ?? null;
 
-  // The empty + loading states keep the InterestHeader visible so the user
-  // can still see which interest is selected, switch interests, and tap
-  // their avatar. Previously the early-return swapped the entire screen
-  // for an empty card and left the user with no controls.
+  // Auto-seed a starter step the first time a user lands on an interest
+  // with zero steps. Race-safe (claim-then-insert via UPDATE predicate)
+  // and one-shot (the seed timestamp on user_interests is never cleared
+  // — if the user deletes the starter, we don't re-seed).
+  useStarterStepSeed({
+    interestId,
+    interestSlug: currentInterest?.slug ?? null,
+    hasZeroSteps: !stepsLoading && steps.length === 0,
+    stepsLoading,
+  });
+
+  // Auto-exit the legacy "Preview with sample data" if it's still on.
+  // Kept for users who had it toggled on before the auto-seed shipped.
+  useEffect(() => {
+    if (showSample && hasContent) {
+      setShowSample(false);
+    }
+  }, [showSample, hasContent]);
+
+  // Brief loading shim while the seeder runs OR while step query is in
+  // flight. The auto-seed replaces the old empty-state CTA entirely.
   if (!hasContent && !showSample) {
     return (
       <SafeAreaView style={styles.surface} edges={['top']}>
-        {/* No InterestSwitcher / InterestHeader here — the app chrome
-            above already renders the interest pill (and mounts a
-            switcher). Empty-state message references that chrome pill. */}
         <View style={styles.emptyWrap}>
           <View style={styles.emptyBox}>
             <Text style={styles.emptyTitle}>
-              {stepsLoading ? 'Loading your timeline…' : 'Nothing on the canvas yet'}
+              {stepsLoading ? 'Loading your timeline…' : 'Setting up your starter step…'}
             </Text>
-            {!stepsLoading ? (
-              <Text style={styles.emptyText}>
-                {currentInterest
-                  ? `No steps in "${currentInterest.name}" yet. Add a step or switch interests from the pill above.`
-                  : 'Add a step to your timeline and it will appear here. Pinch to zoom between Step, Week, Season, and Years.'}
-              </Text>
-            ) : null}
-
-            {!stepsLoading ? (
-              <Pressable
-                style={styles.sampleBtn}
-                onPress={() => setShowSample(true)}
-              >
-                <Ionicons name="sparkles-outline" size={14} color="#FFFFFF" />
-                <Text style={styles.sampleBtnText}>Preview with sample data</Text>
-              </Pressable>
-            ) : null}
-
             {signedInEmail ? (
               <Text style={styles.signedInLine}>
                 Signed in as <Text style={styles.signedInEmail}>{signedInEmail}</Text>
@@ -331,7 +350,7 @@ export function TimelineZoomPracticeScreen() {
         <View style={styles.sampleBanner}>
           <Ionicons name="sparkles" size={12} color="#FFFFFF" />
           <Text style={styles.sampleBannerText}>
-            Sample data · Emily Shaw, MSN
+            Nursing sample · Emily Shaw, MSN student
           </Text>
           <Pressable
             hitSlop={8}
@@ -408,28 +427,6 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: '600',
     color: IOS_REGISTER.label,
-  },
-  emptyText: {
-    fontSize: 14,
-    lineHeight: 20,
-    color: IOS_REGISTER.labelSecondary,
-    textAlign: 'center',
-  },
-  sampleBtn: {
-    marginTop: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: IOS_REGISTER.accentUserAction,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 22,
-  },
-  sampleBtnText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '600',
-    letterSpacing: -0.2,
   },
   signedInLine: {
     marginTop: 14,

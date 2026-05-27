@@ -217,29 +217,39 @@ export function L3SeasonView({
 
       {hasAnalysis && analysis ? (
         <View style={styles.analysisBlock} onLayout={onAnalysisLayout}>
-          <Text style={styles.sectionEyebrow}>{interestVocab.riverHeader}</Text>
-          <CapabilityRiverChart
-            weeklyCapabilities={analysis.weeklyCapabilities}
-            totalWeeks={totalWeeks}
-            currentWeekNumber={currentWeek}
-            reflections={analysis.reflections}
-            phases={analysis.phases}
-            markers={analysis.markers?.map((m) => ({
-              id: m.id,
-              unit: m.weekNumber,
-              kind: m.kind,
-              label: m.label,
-              capabilityColor: m.capabilityColor,
-            }))}
-            onPhasePress={(phase) => scrollToWeekByIndex(phase.startWeek)}
-            shapeMode="flow"
-            nowDoublePill
-            columnBleed={8}
-            bandOpacity={0.9}
-            width={chartWidth}
-            height={188}
-            tickEveryN={2}
-          />
+          {flatSteps.length >= 5 ? (
+            <>
+              <Text style={styles.sectionEyebrow}>{interestVocab.riverHeader}</Text>
+              <CapabilityRiverChart
+                weeklyCapabilities={analysis.weeklyCapabilities}
+                totalWeeks={totalWeeks}
+                currentWeekNumber={currentWeek}
+                reflections={analysis.reflections}
+                phases={analysis.phases}
+                markers={analysis.markers?.map((m) => ({
+                  id: m.id,
+                  unit: m.weekNumber,
+                  kind: m.kind,
+                  label: m.label,
+                  capabilityColor: m.capabilityColor,
+                }))}
+                onPhasePress={(phase) => scrollToWeekByIndex(phase.startWeek)}
+                shapeMode="flow"
+                nowDoublePill
+                columnBleed={8}
+                bandOpacity={0.9}
+                width={chartWidth}
+                height={188}
+                tickEveryN={2}
+              />
+            </>
+          ) : (
+            <View style={styles.riverEmpty}>
+              <Text style={styles.riverEmptyText}>
+                Add a few more steps to see how your work spreads across capabilities.
+              </Text>
+            </View>
+          )}
 
           {analysis.peers.length > 0 ? (
             <>
@@ -581,6 +591,20 @@ const styles = StyleSheet.create({
   },
   sectionEyebrowSpace: {
     marginTop: 18,
+  },
+  riverEmpty: {
+    marginHorizontal: 16,
+    paddingVertical: 14,
+    paddingHorizontal: 14,
+    borderRadius: 10,
+    backgroundColor: 'rgba(120, 120, 130, 0.06)',
+    borderWidth: 1,
+    borderColor: 'rgba(120, 120, 130, 0.14)',
+  },
+  riverEmptyText: {
+    fontSize: 12,
+    color: IOS_REGISTER.labelSecondary,
+    lineHeight: 17,
   },
   browseEyebrow: {
     fontSize: 10.5,

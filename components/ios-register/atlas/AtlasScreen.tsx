@@ -30,11 +30,15 @@
  *   - Next-event glow is the only Atlas accent that uses amber
  */
 
-import React, { useCallback, useMemo, useState } from 'react';
-import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
+import { LayoutChangeEvent, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import Slider from '@react-native-community/slider';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { IOS_REGISTER } from '@/lib/design-tokens-ios';
+import { IOS_COLORS, IOS_REGISTER } from '@/lib/design-tokens-ios';
+import { FEATURE_FLAGS } from '@/lib/featureFlags';
+import { useWebDrawer } from '@/providers/WebDrawerProvider';
 import { showAlert } from '@/lib/utils/crossPlatformAlert';
 import {
   HongKongOverviewMap,
@@ -44,15 +48,26 @@ import {
   JhuCuratedMap,
   CommitHarbourMap,
 } from './AtlasMaps';
-import { AtlasMapLibreCanvas, type AtlasPinSpec } from './AtlasMapLibreCanvas';
+import { AtlasMapLibreCanvas, type AtlasBasemap, type AtlasPinSpec } from './AtlasMapLibreCanvas';
+import { CreateRacingAreaSheet } from './CreateRacingAreaSheet';
+import { LocationAnchor } from '@/components/ui/LocationAnchor';
 import { ProfileDropdown } from '@/components/ui/ProfileDropdown';
+import { NotificationBell } from '@/components/social/NotificationBell';
+import { AtlasSearchSheet, type AtlasSearchResult } from './AtlasSearchSheet';
+import { StepPickerStrip } from './StepPickerStrip';
+import { useUserHomeVenue } from '@/hooks/useUserHomeVenue';
+import { useUserAffinityGroups, affinityGroupTone, type UserAffinityGroup } from '@/hooks/useUserAffinityGroups';
+import { useAffinityGroupMembers } from '@/hooks/useAffinityGroupMembers';
 import { useAtlasFramePins } from '@/hooks/useAtlasFramePins';
 import { useNextRaceMarks } from '@/hooks/useNextRaceMarks';
 import { useWalkTimeAnnotations } from '@/hooks/useWalkTimeAnnotations';
-import { useWindOverlay } from '@/hooks/useWindOverlay';
-import { useTideOverlay } from '@/hooks/useTideOverlay';
 import { useCohortHeatmap } from '@/hooks/useCohortHeatmap';
 import { useCompetencyGlow } from '@/hooks/useCompetencyGlow';
+import {
+  YACHT_CLUB_DEMO_LOCATION,
+  YACHT_CLUB_DEMO_NAME,
+  isYachtClubDemoSlug,
+} from '@/services/YachtClubDemoService';
 import {
   AtlasPin,
   ClusterTag,
@@ -73,6 +88,12 @@ function comingSoonAlert(action: string, futureBlurb: string): void {
   showAlert(`${action} · Coming soon`, futureBlurb);
 }
 
+function logAtlasDebug(scope: string, payload: Record<string, unknown>) {
+  if (!__DEV__) return;
+  // eslint-disable-next-line no-console
+  console.log(`[AtlasDebug:${scope}]`, JSON.stringify(payload));
+}
+
 function openOrganizationPin(
   pin: AtlasPinSpec,
   onOrgPress?: (orgSlug: string) => void,
@@ -84,6 +105,20 @@ function openOrganizationPin(
   comingSoonAlert(
     'Open organization',
     'This place is not linked to a claimed BetterAt organization yet. Once claimed, this pin will open the club or institution page.',
+  );
+}
+
+function openClubLens(
+  pin: AtlasPinSpec,
+  onOrgLensPress?: (orgSlug: string) => void,
+): void {
+  if (pin.orgSlug && onOrgLensPress) {
+    onOrgLensPress(pin.orgSlug);
+    return;
+  }
+  comingSoonAlert(
+    'Club lens',
+    'This will recenter Atlas around the club and filter to that organization’s events, fleets, sailors, and public steps. Fleet-specific lenses, like RHKYC · Dragon, sit one level below this.',
   );
 }
 
@@ -135,7 +170,15 @@ export interface AtlasFrameHandlers {
    * location mode with a dropped pin, F1 forwards the candidate coords
    * so the caller can thread them into the add-step flow.
    */
-  onPrimaryAction?: (pin?: { lat: number; lng: number; place?: string }) => void;
+  onPrimaryAction?: (pin?: {
+    lat: number;
+    lng: number;
+    place?: string;
+    suggestedTitle?: string;
+    suggestedCategory?: string;
+    suggestedInterestSlug?: string;
+    metadata?: Record<string, unknown>;
+  }) => void;
   /** Bottom-sheet secondary CTA — "Open <next event>" / "Skip" etc. */
   onSecondaryAction?: () => void;
   /** Open an existing timeline step surfaced as a my-step-* atlas pin. */
@@ -144,6 +187,10 @@ export interface AtlasFrameHandlers {
   onAvatarPress?: () => void;
   /** Club pin tap — opens the corresponding organization page. */
   onOrgPress?: (orgSlug: string) => void;
+  /** Club pin secondary action — opens the org-scoped Atlas lens. */
+  onOrgLensPress?: (orgSlug: string) => void;
+  /** Optional org slug for org-scoped Atlas entry. */
+  focusOrgSlug?: string | null;
   /**
    * When true, FrameF1 starts already in commit-mode (drop-pin FAB active,
    * banner showing "Tap the map to drop a pin"). Atlas live tab sets this
@@ -257,7 +304,9 @@ const ALWAYS_VISIBLE_KINDS: Set<AtlasPinSpec['kind']> = new Set([
   'poi-home-anchor',
   'poi-hospital',
   'poi-club',
+  'my-step-next',
   'my-step-planned',
+  'my-step-done-just',
   'my-step-done-recent',
   'my-step-done-old',
 ]);
@@ -304,8 +353,29 @@ function TopChrome({
   /** Unused — kept for callsite compat; ProfileDropdown owns its own tap. */
   onAvatarPress?: () => void;
 }) {
+  const { isDrawerOpen, openDrawer } = useWebDrawer();
+  const showWebSidebarToggle =
+    Platform.OS === 'web' && FEATURE_FLAGS.USE_WEB_SIDEBAR_LAYOUT && !isDrawerOpen;
+
   return (
     <View style={shellStyles.topChromeRow}>
+      {showWebSidebarToggle && (
+        <Pressable
+          onPress={openDrawer}
+          style={({ pressed, hovered }) => [
+            shellStyles.sidebarToggle,
+            (hovered as boolean) && shellStyles.sidebarToggleHover,
+            pressed && shellStyles.sidebarTogglePressed,
+          ]}
+          accessibilityLabel="Show sidebar"
+          accessibilityRole="button"
+        >
+          <View style={shellStyles.sidebarIcon}>
+            <View style={shellStyles.sidebarIconLeft} />
+            <View style={shellStyles.sidebarIconRight} />
+          </View>
+        </Pressable>
+      )}
       <View style={{ flex: 1 }}>
         <Text style={shellStyles.title}>{title}</Text>
         {subtitle ? (
@@ -321,6 +391,7 @@ function TopChrome({
             <Ionicons name="search" size={16} color={IOS_REGISTER.label} />
           </Pressable>
         ) : null}
+        <NotificationBell size={16} color={IOS_REGISTER.label} />
         {onLayersPress ? (
           <Pressable style={shellStyles.glyphBtn} hitSlop={6} onPress={onLayersPress}>
             <Ionicons name="layers-outline" size={16} color={IOS_REGISTER.label} />
@@ -351,6 +422,10 @@ interface FilterChipItem {
 function FilterChipsRow({
   chips,
   onActiveIdsChange,
+  rightInset = 148,
+  compact = false,
+  debugScope,
+  onDebugMetrics,
 }: {
   chips: FilterChipItem[];
   /**
@@ -359,6 +434,14 @@ function FilterChipsRow({
    * the corresponding overlay layers.
    */
   onActiveIdsChange?: (activeIds: string[]) => void;
+  /**
+   * Reserve horizontal clearance for top-right controls that sit over the
+   * same floating chrome row. Different Atlas frames have different chrome.
+   */
+  rightInset?: number;
+  compact?: boolean;
+  debugScope?: string;
+  onDebugMetrics?: (metrics: { scrollHeight?: number; contentHeight?: number }) => void;
 }) {
   // Local toggle state — chips are interactive even though the underlying
   // query layer is not wired yet. Initial active chip is whichever item
@@ -368,6 +451,8 @@ function FilterChipsRow({
   const [activeIds, setActiveIds] = useState<string[]>(
     initialActive.length > 0 ? initialActive : [chips[0]?.id].filter(Boolean) as string[],
   );
+  const chipScrollHeightRef = useRef<number | null>(null);
+  const chipContentHeightRef = useRef<number | null>(null);
 
   React.useEffect(() => {
     onActiveIdsChange?.(activeIds);
@@ -391,21 +476,66 @@ function FilterChipsRow({
     });
   };
 
+  const handleScrollLayout = useCallback((event: LayoutChangeEvent) => {
+    if (!debugScope) return;
+    const height = Math.round(event.nativeEvent.layout.height);
+    if (chipScrollHeightRef.current === height) return;
+    chipScrollHeightRef.current = height;
+    onDebugMetrics?.({ scrollHeight: height, contentHeight: chipContentHeightRef.current ?? undefined });
+    logAtlasDebug(`${debugScope}:chip-scroll`, {
+      height,
+      rightInset,
+      compact,
+      chips: chips.map((chip) => chip.id),
+    });
+  }, [chips, compact, debugScope, onDebugMetrics, rightInset]);
+
+  const handleContentLayout = useCallback((event: LayoutChangeEvent) => {
+    if (!debugScope) return;
+    const height = Math.round(event.nativeEvent.layout.height);
+    if (chipContentHeightRef.current === height) return;
+    chipContentHeightRef.current = height;
+    onDebugMetrics?.({ scrollHeight: chipScrollHeightRef.current ?? undefined, contentHeight: height });
+    logAtlasDebug(`${debugScope}:chip-content`, {
+      height,
+      rightInset,
+      compact,
+      activeIds,
+    });
+  }, [activeIds, compact, debugScope, onDebugMetrics, rightInset]);
+
   return (
     <ScrollView
       horizontal
       showsHorizontalScrollIndicator={false}
-      contentContainerStyle={shellStyles.chipsContainer}
+      onLayout={handleScrollLayout}
+      onContentSizeChange={(_, height) => {
+        if (!debugScope) return;
+        const rounded = Math.round(height);
+        if (chipContentHeightRef.current === rounded) return;
+        chipContentHeightRef.current = rounded;
+        onDebugMetrics?.({ scrollHeight: chipScrollHeightRef.current ?? undefined, contentHeight: rounded });
+        logAtlasDebug(`${debugScope}:chip-content`, {
+          height: rounded,
+          rightInset,
+          compact,
+          activeIds,
+        });
+      }}
+      contentContainerStyle={[shellStyles.chipsContainer, { paddingRight: rightInset }]}
       style={shellStyles.chipsScroll}
     >
-      {chips.map((chip) => (
-        <FilterChip
-          key={chip.id}
-          {...chip}
-          active={activeIds.includes(chip.id)}
-          onPress={() => handlePress(chip.id)}
-        />
-      ))}
+      <View onLayout={handleContentLayout} style={shellStyles.chipsInnerRow}>
+        {chips.map((chip) => (
+          <FilterChip
+            key={chip.id}
+            {...chip}
+            active={activeIds.includes(chip.id)}
+            compact={compact}
+            onPress={() => handlePress(chip.id)}
+          />
+        ))}
+      </View>
     </ScrollView>
   );
 }
@@ -417,8 +547,9 @@ function FilterChip({
   tone,
   dim,
   crossInterest,
+  compact,
   onPress,
-}: FilterChipItem & { onPress?: () => void }) {
+}: FilterChipItem & { compact?: boolean; onPress?: () => void }) {
   const toneDot: Record<string, string> = {
     you: '#FF3B30',
     crew: '#FF3B30',
@@ -432,6 +563,7 @@ function FilterChip({
       onPress={onPress}
       style={[
         shellStyles.chip,
+        compact && shellStyles.chipCompact,
         active && shellStyles.chipActive,
         dim && shellStyles.chipDim,
       ]}
@@ -440,15 +572,29 @@ function FilterChip({
       {icon && !crossInterest ? (
         <Ionicons
           name={icon}
-          size={11}
+          size={compact ? 10 : 11}
           color={active ? '#FFFFFF' : 'rgba(60, 60, 67, 0.72)'}
-          style={{ marginRight: 4 }}
+          style={{ marginRight: compact ? 3 : 4 }}
         />
       ) : null}
       {tone && !crossInterest ? (
-        <View style={[shellStyles.chipDot, { backgroundColor: toneDot[tone] }]} />
+        <View
+          style={[
+            shellStyles.chipDot,
+            compact && shellStyles.chipDotCompact,
+            { backgroundColor: toneDot[tone] },
+          ]}
+        />
       ) : null}
-      <Text style={[shellStyles.chipText, active && shellStyles.chipTextActive]}>{label}</Text>
+      <Text
+        style={[
+          shellStyles.chipText,
+          compact && shellStyles.chipTextCompact,
+          active && shellStyles.chipTextActive,
+        ]}
+      >
+        {label}
+      </Text>
     </Pressable>
   );
 }
@@ -470,33 +616,91 @@ function CrossInterestGlyph({ active }: { active?: boolean }) {
   );
 }
 
+/**
+ * Sub-chip rendered under the primary social-tier chip row when the
+ * user belongs to affinity groups (class-fleets, cohorts, crew pods,
+ * practice groups). Each chip carries a small dot in the tone that
+ * matches the relationship label `atlas_peer_steps_near` would emit
+ * for a member of that group, so the chip's color matches the pin
+ * color on the map.
+ */
+const GROUP_TONE_DOT: Record<string, string> = {
+  you: '#FF3B30',
+  crew: '#FF3B30',
+  fleet: 'rgba(40, 50, 70, 0.78)',
+  cohort: '#5856D6',
+};
+
+function GroupSubchip({
+  group,
+  active,
+  onPress,
+}: {
+  group: UserAffinityGroup;
+  active: boolean;
+  onPress: () => void;
+}) {
+  const tone = affinityGroupTone(group.kind);
+  return (
+    <Pressable
+      onPress={onPress}
+      style={[shellStyles.groupSubchip, active && shellStyles.groupSubchipActive]}
+      hitSlop={4}
+    >
+      <View
+        style={[
+          shellStyles.groupSubchipDot,
+          { backgroundColor: GROUP_TONE_DOT[tone] ?? GROUP_TONE_DOT.fleet },
+        ]}
+      />
+      <Text
+        style={[
+          shellStyles.groupSubchipText,
+          active && shellStyles.groupSubchipTextActive,
+        ]}
+        numberOfLines={1}
+      >
+        {group.short_name ?? group.name}
+      </Text>
+    </Pressable>
+  );
+}
+
 function LayersFab({
   onLayersPress,
   onDropPinPress,
   commitMode,
   bottomOffset = 0,
+  showLocate = true,
 }: {
   onLayersPress?: () => void;
   onDropPinPress?: () => void;
   commitMode?: boolean;
   /** Lift the FAB column above the floating bottom sheet + tab bar. */
   bottomOffset?: number;
+  /** When false, omit the locate glyph (F1 moves it into the top-right cluster). */
+  showLocate?: boolean;
 }) {
   // When the sheet floats above the tab bar, the FAB column must sit
   // ABOVE the sheet — otherwise the layers/locate/+ buttons get covered.
-  // ~120pt of sheet (MID state) + 12pt margin on top of the offset.
-  const dynamicBottom = bottomOffset > 0 ? bottomOffset + 132 : 14;
+  // Default atlas sheets are often taller than the nominal MID state,
+  // so we clear a bit more headroom to keep the + button visible.
+  const dynamicBottom = bottomOffset > 0 ? bottomOffset + 176 : 96;
   return (
     <View
       style={[shellStyles.fabColumn, { bottom: dynamicBottom }]}
       pointerEvents="box-none"
     >
-      <Pressable style={shellStyles.fab} onPress={onLayersPress} hitSlop={6}>
-        <Ionicons name="layers-outline" size={16} color="rgba(60, 60, 67, 0.78)" />
-      </Pressable>
-      <Pressable style={shellStyles.fab} hitSlop={6}>
-        <Ionicons name="locate-outline" size={16} color="rgba(60, 60, 67, 0.78)" />
-      </Pressable>
+      {onLayersPress ? (
+        <Pressable style={shellStyles.fab} onPress={onLayersPress} hitSlop={6}>
+          <Ionicons name="layers-outline" size={16} color="rgba(60, 60, 67, 0.78)" />
+        </Pressable>
+      ) : null}
+      {showLocate ? (
+        <Pressable style={shellStyles.fab} hitSlop={6}>
+          <Ionicons name="locate-outline" size={16} color="rgba(60, 60, 67, 0.78)" />
+        </Pressable>
+      ) : null}
       {onDropPinPress ? (
         <Pressable
           style={[shellStyles.fabDropPin, commitMode && shellStyles.fabActive]}
@@ -525,8 +729,11 @@ function LayersFab({
  */
 export type AtlasLayerKey =
   | 'sailing.race_marks'
+  | 'sailing.race_areas'
   | 'sailing.wind'
   | 'sailing.tide'
+  | 'sailing.marinas'
+  | 'sailing.sail_services'
   | 'core.peer_steps'
   | 'core.own_steps'
   | 'core.healthcare_pois'
@@ -557,7 +764,27 @@ function getLayersForFrame(frame: AtlasFrameId): LayerItem[] {
     locked: true,
   };
 
-  if (frame === 'f1' || frame === 'f2' || frame === 'f6') {
+  if (frame === 'f1' || frame === 'f6') {
+    // Sailing-specific F1/F6 layer set. Chips own the social filter
+    // (You/Crew/Fleet) so peer-steps and own-steps no longer appear here
+    // as toggle rows — they're not in the same mental model. What
+    // belongs in layers is environment + context the sailor wants to
+    // see / hide: conditions (wind, tide), course geometry (race
+    // areas, race marks), and infrastructure (clubs, marinas, sail
+    // services). Race marks stays gated at z ≥ 14 — a layer that
+    // can't render at the current zoom is honest about it via the
+    // sub-label rather than silently no-op'ing.
+    return [
+      { key: 'sailing.wind', label: 'Wind forecast', sub: 'Direction + speed for next race day', defaultOn: false },
+      { key: 'sailing.tide', label: 'Tidal current', sub: 'Set + drift around the course', defaultOn: false },
+      { key: 'sailing.race_areas', label: 'Race areas', sub: 'Highlighted racing zones', defaultOn: true },
+      { key: 'sailing.race_marks', label: 'Race marks', sub: 'Visible at zoom ≥ 14', defaultOn: false },
+      { key: 'sailing.marinas', label: 'Marinas & clubs', sub: 'Sailing venues nearby', defaultOn: true },
+      { key: 'sailing.sail_services', label: 'Sail services', sub: 'Lofts, chandlers, repair · zoom ≥ 13', defaultOn: false },
+    ];
+  }
+
+  if (frame === 'f2') {
     return [
       { key: 'sailing.race_marks', label: 'Race marks', sub: 'Renders at zoom ≥ 14', defaultOn: true },
       { key: 'sailing.wind', label: 'Wind forecast', sub: 'Direction + speed', defaultOn: true },
@@ -607,6 +834,8 @@ function LayersSheet({
   onClose,
   controlledActiveKeys,
   onToggle,
+  basemap,
+  onBasemapChange,
   bottomOffset = 0,
 }: {
   frame: AtlasFrameId;
@@ -622,6 +851,8 @@ function LayersSheet({
    * drive map filters (e.g. hide race-marks when sailing.race_marks is off).
    */
   onToggle?: (key: string, on: boolean) => void;
+  basemap?: AtlasBasemap;
+  onBasemapChange?: (basemap: AtlasBasemap) => void;
   /**
    * Lift the sheet above the floating tab bar so the last layer row + the
    * attribution footer aren't hidden under it. Same pattern as the
@@ -630,6 +861,11 @@ function LayersSheet({
   bottomOffset?: number;
 }) {
   const layers = getLayersForFrame(frame);
+  const showBasemapControl = Boolean(
+    basemap &&
+      onBasemapChange &&
+      (frame === 'f1' || frame === 'f2' || frame === 'f6'),
+  );
   const [internalKeys, setInternalKeys] = useState<Set<string>>(
     () => new Set(layers.filter((l) => l.defaultOn).map((l) => l.key)),
   );
@@ -637,12 +873,19 @@ function LayersSheet({
   const activeKeys = useMemo(() => {
     if (!controlledActiveKeys) return internalKeys;
     const out = new Set(internalKeys);
-    for (const layer of layers) {
-      if (!controlledActiveKeys.has(layer.key)) out.delete(layer.key);
-      else out.add(layer.key);
+    // Only the sailing condition overlays are parent-controlled from the
+    // chip rail. Clear those first, then reapply the parent's current on-set.
+    // Uncontrolled layers like "Peer steps" and "My steps" keep their own
+    // internal state instead of being dimmed just because they're absent
+    // from controlledActiveKeys.
+    for (const key of ['sailing.race_marks', 'sailing.wind', 'sailing.tide'] as const) {
+      out.delete(key);
+    }
+    for (const key of controlledActiveKeys) {
+      out.add(key as AtlasLayerKey);
     }
     return out;
-  }, [internalKeys, controlledActiveKeys, layers]);
+  }, [internalKeys, controlledActiveKeys]);
 
   const toggle = (item: LayerItem) => {
     if (item.locked) return;
@@ -672,6 +915,39 @@ function LayersSheet({
             <Ionicons name="close" size={18} color={IOS_REGISTER.label} />
           </Pressable>
         </View>
+        {showBasemapControl ? (
+          <View style={shellStyles.basemapSection}>
+            <Text style={shellStyles.basemapLabel}>Basemap</Text>
+            <View style={shellStyles.basemapSegmented}>
+              {([
+                ['map', 'Map'],
+                ['satellite', 'Satellite'],
+                ['nautical', 'Nautical'],
+              ] as const).map(([value, label]) => {
+                const selected = basemap === value;
+                return (
+                  <Pressable
+                    key={value}
+                    onPress={() => onBasemapChange?.(value)}
+                    style={[
+                      shellStyles.basemapSegment,
+                      selected && shellStyles.basemapSegmentActive,
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        shellStyles.basemapSegmentText,
+                        selected && shellStyles.basemapSegmentTextActive,
+                      ]}
+                    >
+                      {label}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </View>
+        ) : null}
         {layers.map((layer) => {
           const on = activeKeys.has(layer.key);
           return (
@@ -714,7 +990,7 @@ function LayersSheet({
             licenses. Lives at the bottom of the Layers sheet so the
             (i) chrome button stays off the map canvas. */}
         <Text style={shellStyles.layersAttribution}>
-          Tiles · OpenFreeMap · © OpenMapTiles · © OpenStreetMap
+          Basemaps · OpenFreeMap · © OpenMapTiles · © OpenStreetMap · Esri · OpenSeaMap
         </Text>
       </View>
     </>
@@ -788,9 +1064,39 @@ function bodyForPin(pin: AtlasPinSpec): string {
   return `${pin.lat.toFixed(4)} N · ${pin.lng.toFixed(4)} E`;
 }
 
+function detailBodyForPin(pin: AtlasPinSpec, extra: (string | undefined | null)[] = []): string {
+  return [
+    pin.subtitle,
+    pin.provenance,
+    ...extra,
+    bodyForPin(pin),
+  ]
+    .filter(Boolean)
+    .join('\n');
+}
+
+function atlasPinContextNote(pin: AtlasPinSpec): string | undefined {
+  if (pin.kind !== 'poi-haat') return undefined;
+  const day = (pin.label ?? '').split('|')[1]?.trim();
+  if (!day) return undefined;
+  return `Day badge: ${day.toUpperCase()} marks this market's weekly haat day.`;
+}
+
+function titleForPin(pin: AtlasPinSpec): string {
+  if (pin.label?.trim()) return pin.label.trim();
+  if (pin.kind === 'fleet') return 'Fleet boat';
+  if (pin.kind === 'crew') return 'Crew boat';
+  if (pin.kind === 'you') return 'Your boat';
+  if (pin.kind === 'wind-arrow') return 'Wind';
+  if (pin.kind === 'tide-arrow') return 'Tide';
+  return 'Pin';
+}
+
 function isUserStepPin(pin: AtlasPinSpec): boolean {
   return (
+    pin.kind === 'my-step-next' ||
     pin.kind === 'my-step-planned' ||
+    pin.kind === 'my-step-done-just' ||
     pin.kind === 'my-step-done-recent' ||
     pin.kind === 'my-step-done-old'
   );
@@ -806,7 +1112,22 @@ function titleForUserStepPin(pin: AtlasPinSpec): string {
 function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFrameHandlers }) {
   const next = handlers.nextEvent;
   const hasNext = Boolean(next?.label);
+  const insets = useSafeAreaInsets();
+  const homeVenue = useUserHomeVenue();
+  const { groups: userGroups } = useUserAffinityGroups('sail-racing');
+  const [activeGroupIds, setActiveGroupIds] = useState<string[]>([]);
+  const toggleGroupChip = useCallback((groupId: string) => {
+    setActiveGroupIds((prev) =>
+      prev.includes(groupId) ? prev.filter((id) => id !== groupId) : [...prev, groupId],
+    );
+  }, []);
   const [layersOpen, setLayersOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchFocus, setSearchFocus] = useState<{ lat: number; lng: number } | null>(null);
+  const handleSearchSelect = useCallback((result: AtlasSearchResult) => {
+    setSearchFocus({ lat: result.lat, lng: result.lng });
+    setSearchOpen(false);
+  }, []);
   // Compose-at-location: tap the + FAB to enter commit-mode, then any
   // tap on the map drops a candidate pin and rises the commit sheet.
   // Per the brief, this replaces the legacy SelectLocation modal — the
@@ -815,24 +1136,71 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
   // the user doesn't have to tap + after landing on Atlas.
   const [commitMode, setCommitMode] = useState(handlers.initialCommitMode ?? false);
   const [candidate, setCandidate] = useState<{ lng: number; lat: number } | null>(null);
+  // Long-press on water opens the racing-area create sheet — the user
+  // marks where racing happens even when their club isn't in BetterAt.
+  const [areaSheetCenter, setAreaSheetCenter] = useState<{ lat: number; lng: number } | null>(null);
+  // Mirrors the create-sheet's current shape polygon (circle, rectangle, …)
+  // so the canvas can paint a live preview as the user adjusts.
+  const [areaSheetPolygon, setAreaSheetPolygon] = useState<GeoJSON.Polygon | null>(null);
+  // Chip- and Layers-sheet-driven layer state. Overview owns peer
+  // relationship filtering plus race-mark visibility only. Wind / tide
+  // lives on the dedicated course frame; leaving it here made the chip
+  // advertise data the overview no longer renders.
+  const [showRaceMarks, setShowRaceMarks] = useState(true);
+  const [showMarinas, setShowMarinas] = useState(true);
+  const [showSailServices, setShowSailServices] = useState(false);
+  const [showWind, setShowWind] = useState(false);
+  const [showTide, setShowTide] = useState(false);
+  const [showRaceAreas, setShowRaceAreas] = useState(true);
+  const [basemap, setBasemap] = useState<AtlasBasemap>('map');
+  const [peerRelationshipFilter, setPeerRelationshipFilter] = useState<Set<string> | null>(null);
   // Real institution POIs + peer step pins for the Causeway Bay bbox.
   // 22.295, 114.18 is the F1 camera centroid — see AtlasMapLibreCanvas.FRAME_CAMERA.
-  const { pins: framePins } = useAtlasFramePins({
+  const restrictPeersToUserIds = useAffinityGroupMembers(activeGroupIds);
+  const { pins: framePins, pickerSteps } = useAtlasFramePins({
     lat: 22.295,
     lng: 114.18,
     interestSlug: 'sail-racing',
     radiusKm: 20,
+    showMarinas,
+    showSailServices,
+    restrictPeersToUserIds,
   });
-  // Race-marks layer — when the next event is a regatta, fetch its
-  // earliest race_event's marks and merge into the pin set. Renders as
-  // numbered amber pins per the design's pin grammar.
-  const { data: raceMarkPins = [] } = useNextRaceMarks({
-    regattaId: next?.event_kind === 'regatta' ? next.event_id : null,
-  });
+  const demoClubPin = useMemo<AtlasPinSpec | null>(() => {
+    if (!isYachtClubDemoSlug(handlers.focusOrgSlug)) return null;
+    return {
+      id: 'demo-yacht-club-pin',
+      kind: 'poi-club',
+      label: YACHT_CLUB_DEMO_NAME,
+      lat: YACHT_CLUB_DEMO_LOCATION.lat,
+      lng: YACHT_CLUB_DEMO_LOCATION.lng,
+      orgSlug: handlers.focusOrgSlug,
+      subtitle: 'Synthetic club demo · public page, pricing, fleets, and map lens',
+      provenance: 'Synthetic BetterAt demo data',
+    };
+  }, [handlers.focusOrgSlug]);
+  const framePinsWithDemo = useMemo(
+    () => (demoClubPin ? [...framePins, demoClubPin] : framePins),
+    [demoClubPin, framePins],
+  );
+  const myNextStepPin = useMemo(
+    () => framePinsWithDemo.find((pin) => pin.kind === 'my-step-next') ?? null,
+    [framePinsWithDemo],
+  );
+  const focusedClubPin = useMemo(
+    () =>
+      handlers.focusOrgSlug
+        ? framePinsWithDemo.find((pin) => pin.orgSlug === handlers.focusOrgSlug) ?? null
+        : null,
+    [framePinsWithDemo, handlers.focusOrgSlug],
+  );
   // Pin tap target — when a race-mark / POI / peer pin is tapped, store
   // it so the bottom sheet can swap from the default "Plan a step" CTA
   // to a context-specific detail card. Null = default sheet.
   const [selectedPin, setSelectedPin] = useState<AtlasPinSpec | null>(null);
+  React.useEffect(() => {
+    if (focusedClubPin) setSelectedPin(focusedClubPin);
+  }, [focusedClubPin]);
   const handlePinPress = useCallback((pin: AtlasPinSpec) => {
     // Auto-close the Layers sheet when a pin is tapped so the detail
     // sheet doesn't render inside / behind the Layers panel.
@@ -840,6 +1208,51 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
     setSelectedPin(pin);
   }, []);
   const clearSelectedPin = useCallback(() => setSelectedPin(null), []);
+  const stepPickerStripNode = (
+    <StepPickerStrip
+      steps={pickerSteps}
+      activeStepId={selectedPin?.stepId ?? null}
+      onPickStepWithPlace={(step) => {
+        if (step.lat != null && step.lng != null) {
+          setSearchFocus({ lat: step.lat, lng: step.lng });
+          clearSelectedPin();
+        }
+      }}
+      onPickStepWithoutPlace={(step) => {
+        comingSoonAlert(
+          `Anchor "${step.title}" to a place`,
+          'Soon you’ll be able to tap a step here and drop its pin onto the map. For now, open the step and add a location from Plan.',
+        );
+      }}
+    />
+  );
+  const visibleFramePins = useMemo(() => {
+    if (!handlers.focusOrgSlug) return framePinsWithDemo;
+    const allowPeerKind = (kind: AtlasPinSpec['kind']) =>
+      kind === 'you'
+      || kind === 'crew'
+      || kind === 'fleet'
+      || kind === 'following'
+      || kind === 'my-step-next'
+      || kind === 'my-step-planned'
+      || kind === 'my-step-done-just'
+      || kind === 'my-step-done-recent'
+      || kind === 'my-step-done-old';
+    return framePinsWithDemo.filter((pin) => {
+      if (allowPeerKind(pin.kind)) return true;
+      if (pin.kind === 'poi-racing-area') return true;
+      if (pin.kind === 'poi-club' || pin.kind === 'poi-club-anchor') {
+        return pin.orgSlug === handlers.focusOrgSlug;
+      }
+      return pin.orgSlug === handlers.focusOrgSlug;
+    });
+  }, [framePinsWithDemo, handlers.focusOrgSlug]);
+  // Race-marks layer — when the next event is a regatta, fetch its
+  // earliest race_event's marks and merge into the pin set. Renders as
+  // numbered amber pins per the design's pin grammar.
+  const { data: raceMarkPins = [] } = useNextRaceMarks({
+    regattaId: next?.event_kind === 'regatta' ? next.event_id : null,
+  });
   const openLayersSheet = useCallback(() => {
     // Layers is mutually exclusive with all the bottom-sheet variants —
     // clear any active pin sheet AND exit commit-mode so the PIN DROPPED
@@ -849,20 +1262,14 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
     setCandidate(null);
     setLayersOpen(true);
   }, []);
-  // Chip- and Layers-sheet-driven layer state. "all" chip is the anchor:
-  // when active, every peer relationship + wind + tide + race-marks shows.
-  // Toggling specific chips (You/Crew/Fleet/Following/Wind/Tide/Race-marks)
-  // filters their corresponding pin kinds. Same state is shared with the
-  // LayersSheet so toggling there also moves the chips.
-  const [showWind, setShowWind] = useState(true);
-  const [showTide, setShowTide] = useState(true);
-  const [showRaceMarks, setShowRaceMarks] = useState(true);
-  const [peerRelationshipFilter, setPeerRelationshipFilter] = useState<Set<string> | null>(null);
+  // Collapsed-filter pill state. Sailors come to Atlas to scout the next
+  // race, not to toggle social filters — so chips default to hidden behind
+  // a small pill that reflects the active filter when expanded.
+  const [filterExpanded, setFilterExpanded] = useState(false);
+  const [activeFilterIds, setActiveFilterIds] = useState<string[]>(['all']);
   const handleChipsChange = useCallback((activeIds: string[]) => {
+    setActiveFilterIds(activeIds);
     const all = activeIds.includes('all');
-    const showConditions = all || activeIds.includes('conditions');
-    setShowWind(showConditions);
-    setShowTide(showConditions);
     setShowRaceMarks(all || activeIds.includes('race-marks'));
     // Peer filter is null when "All" is active (show everything),
     // otherwise the active relationship chips form an allow-list.
@@ -871,97 +1278,85 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
     );
     setPeerRelationshipFilter(all || peerChips.length === 0 ? null : new Set(peerChips));
   }, []);
+  const filterPillLabel = useMemo(() => {
+    if (activeFilterIds.length === 0 || activeFilterIds.includes('all')) return 'Filter';
+    const map: Record<string, string> = { you: 'You', crew: 'Crew', fleet: 'Fleet', following: 'Following' };
+    if (activeFilterIds.length === 1) {
+      const single = map[activeFilterIds[0]];
+      return single ? `Filter · ${single}` : 'Filter · Custom';
+    }
+    return `Filter · ${activeFilterIds.length}`;
+  }, [activeFilterIds]);
   // Mirror layers/chips into the controlled keys the LayersSheet reads.
   const controlledLayerKeys = useMemo(() => {
     const out = new Set<string>();
     if (showRaceMarks) out.add('sailing.race_marks');
+    if (showMarinas) out.add('sailing.marinas');
+    if (showSailServices) out.add('sailing.sail_services');
     if (showWind) out.add('sailing.wind');
     if (showTide) out.add('sailing.tide');
+    if (showRaceAreas) out.add('sailing.race_areas');
     return out;
-  }, [showRaceMarks, showWind, showTide]);
+  }, [showRaceMarks, showMarinas, showSailServices, showWind, showTide, showRaceAreas]);
   const handleLayerToggle = useCallback((key: string, on: boolean) => {
     if (key === 'sailing.race_marks') setShowRaceMarks(on);
+    if (key === 'sailing.marinas') setShowMarinas(on);
+    if (key === 'sailing.sail_services') setShowSailServices(on);
     if (key === 'sailing.wind') setShowWind(on);
     if (key === 'sailing.tide') setShowTide(on);
+    if (key === 'sailing.race_areas') setShowRaceAreas(on);
   }, []);
-  // Minimal wind + tide overlays — water-anchored only, one large arrow
-  // per racing area, no time scrubbing. Per design pass: "fewer larger
-  // arrows over water only".
-  //
-  // We seed waterAnchors with the next-event coords so there's always at
-  // least one arrow at the user's current focus (otherwise zooming into
-  // Victoria Harbour can hide all the racing-area arrows and the wind
-  // field appears to "disappear" after first render).
-  //
-  // Wind anchors offset ~400m EAST of the venue so the arrow disc doesn't
-  // sit underneath the amber NEXT pill / +N cluster badge that lives at
-  // the venue centroid. Tide gets its own offset inside useTideOverlay.
-  const windAnchors = useMemo(() => {
-    const out = framePins
-      .filter((p) => p.kind === 'poi-racing-area')
-      .map((p) => ({ lat: p.lat, lng: p.lng }));
-    const nextLat = next?.lat;
-    const nextLng = next?.lng;
-    if (nextLat != null && nextLng != null) {
-      const exists = out.some(
-        (a) => Math.abs(a.lat - nextLat) < 0.005 && Math.abs(a.lng - nextLng) < 0.005,
-      );
-      if (!exists) out.push({ lat: nextLat, lng: nextLng });
+  // F1 wind/tide demo arrow — a single representative arrow pair over
+  // the next-race area when the user toggles wind / tide on at country
+  // zoom. Real per-event forecast values land when StormGlass / OpenWind
+  // hooks are wired; for now the labels match the F2 race-day values.
+  const windTidePins = useMemo<AtlasPinSpec[]>(() => {
+    const out: AtlasPinSpec[] = [];
+    const center = { lat: next?.lat ?? 22.2978, lng: next?.lng ?? 114.185 };
+    if (showWind) {
+      out.push({
+        id: 'f1-wind-primary',
+        lat: center.lat + 0.005,
+        lng: center.lng,
+        kind: 'wind-arrow',
+        label: '12 kts · NE',
+        subtitle: 'Forecast for next race day · NE 8–14',
+      });
     }
-    const dLngOffset = 0.4 / (111 * Math.cos((22.295 * Math.PI) / 180));
-    return out.map((a) => ({ lat: a.lat + 0.0018, lng: a.lng + dLngOffset }));
-  }, [framePins, next?.lat, next?.lng]);
-  const tideAnchors = useMemo(() => {
-    const out = framePins
-      .filter((p) => p.kind === 'poi-racing-area')
-      .map((p) => ({ lat: p.lat, lng: p.lng }));
-    const nextLat = next?.lat;
-    const nextLng = next?.lng;
-    if (nextLat != null && nextLng != null) {
-      const exists = out.some(
-        (a) => Math.abs(a.lat - nextLat) < 0.005 && Math.abs(a.lng - nextLng) < 0.005,
-      );
-      if (!exists) out.push({ lat: nextLat, lng: nextLng });
+    if (showTide) {
+      out.push({
+        id: 'f1-tide-primary',
+        lat: center.lat - 0.005,
+        lng: center.lng,
+        kind: 'tide-arrow',
+        label: 'Outgoing · 0.4 kt',
+        subtitle: 'Set + drift around the course · ebb peak 13:40',
+      });
     }
-    const dLngOffset = -0.4 / (111 * Math.cos((22.295 * Math.PI) / 180));
-    return out.map((a) => ({ lat: a.lat - 0.0018, lng: a.lng + dLngOffset }));
-  }, [framePins, next?.lat, next?.lng]);
-  const windPins = useWindOverlay({
-    centerLat: next?.lat ?? 22.295,
-    centerLng: next?.lng ?? 114.18,
-    conditionsLine: next?.conditions,
-    enabled: showWind,
-    waterAnchors: windAnchors,
-  });
-  const tidePins = useTideOverlay({
-    centerLat: next?.lat ?? 22.295,
-    centerLng: next?.lng ?? 114.18,
-    conditionsLine: next?.conditions,
-    enabled: showTide,
-    waterAnchors: tideAnchors,
-  });
+    return out;
+  }, [showWind, showTide, next?.lat, next?.lng]);
   // Apply chip-driven peer-pin filtering: when "All" is off and one
   // or more relationship chips are active, hide peer pins whose kind
   // isn't in the allow-list. POIs / race-marks / wind / tide always
   // show — they're not "peer" data.
   const filteredFramePins = useMemo(() => {
-    if (!peerRelationshipFilter) return framePins;
-    return framePins.filter((p) => {
+    if (!peerRelationshipFilter) return visibleFramePins;
+    return visibleFramePins.filter((p) => {
       const isPeerKind = ['you', 'crew', 'fleet', 'following'].includes(p.kind);
       if (!isPeerKind) return true;
       return peerRelationshipFilter.has(p.kind);
     });
-  }, [framePins, peerRelationshipFilter]);
-  // Z-order: wind (base field), POIs (places), race-marks, tide (so its
-  // chevron reads above the racing-area pin it points away from).
+  }, [visibleFramePins, peerRelationshipFilter]);
+  // Overview keeps the geography + race-mark vocabulary only. The older
+  // wind/tide arrow field was too noisy and conflicted with the course
+  // frame, which owns the richer conditions treatment.
   const pins = useMemo(
     () => [
-      ...windPins,
       ...filteredFramePins,
       ...(showRaceMarks ? raceMarkPins : []),
-      ...tidePins,
+      ...windTidePins,
     ],
-    [windPins, filteredFramePins, raceMarkPins, tidePins, showRaceMarks],
+    [filteredFramePins, raceMarkPins, showRaceMarks, windTidePins],
   );
   const exitCommit = useCallback(() => {
     setCommitMode(false);
@@ -990,6 +1385,31 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
     },
     [commitMode],
   );
+  const chromePaddingTop = embedded ? Math.max(insets.top + 8, 48) : 50;
+  const lastChromeHeightRef = useRef<number | null>(null);
+  const lastHeaderHeightRef = useRef<number | null>(null);
+  const handleFloatingChromeLayout = useCallback((event: LayoutChangeEvent) => {
+    const height = Math.round(event.nativeEvent.layout.height);
+    if (lastChromeHeightRef.current === height) return;
+    lastChromeHeightRef.current = height;
+    logAtlasDebug('f1:floating-chrome', {
+      embedded,
+      insetTop: Math.round(insets.top),
+      chromePaddingTop,
+      height,
+      useMapLibre: handlers.useMapLibre ?? false,
+    });
+  }, [chromePaddingTop, embedded, handlers.useMapLibre, insets.top]);
+  const handleHeaderLayout = useCallback((event: LayoutChangeEvent) => {
+    const height = Math.round(event.nativeEvent.layout.height);
+    if (lastHeaderHeightRef.current === height) return;
+    lastHeaderHeightRef.current = height;
+    logAtlasDebug('f1:header-row', {
+      height,
+      embedded,
+      insetTop: Math.round(insets.top),
+    });
+  }, [embedded, insets.top]);
   return (
     <View style={shellStyles.frame}>
       {!embedded && <StatusBar />}
@@ -1001,6 +1421,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
           <AtlasMapLibreCanvas
             frame="f1"
             pins={pins}
+            focusLocation={searchFocus ?? (focusedClubPin ? { lat: focusedClubPin.lat, lng: focusedClubPin.lng } : null)}
             nextEvent={
               next
                 ? {
@@ -1011,34 +1432,120 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
                 : null
             }
             onMapPress={commitMode ? handleMapPress : undefined}
-            candidate={candidate}
+            onMapLongPress={(coords) => setAreaSheetCenter({ lat: coords.lat, lng: coords.lng })}
+            // Render a candidate pin where the area will center. When the
+            // area sheet is open we forward areaSheetCenter so the user
+            // sees a red marker move as they long-press different spots.
+            candidate={
+              areaSheetCenter
+                ? { lat: areaSheetCenter.lat, lng: areaSheetCenter.lng }
+                : candidate
+            }
+            racingAreaPreviewPolygon={areaSheetPolygon}
             onPinPress={handlePinPress}
+            showRaceAreas={showRaceAreas}
+            basemap={basemap}
           />
         ) : (
           <HongKongOverviewMap />
         )}
 
-        {/* Floating glass chrome — title + chips */}
-        <View style={shellStyles.floatingChrome}>
-          <TopChrome
-            title="Atlas"
-            avatarInitial={handlers.avatarInitial ?? 'F'}
-            onLayersPress={openLayersSheet}
-            onAvatarPress={handlers.onAvatarPress}
-          />
-          <FilterChipsRow
-            chips={[
-              { id: 'all', label: 'All', active: true },
-              { id: 'you', label: 'You', tone: 'you' },
-              { id: 'crew', label: 'Crew', tone: 'crew' },
-              { id: 'fleet', label: 'Fleet', tone: 'fleet' },
-              { id: 'following', label: 'Following', tone: 'following', dim: true },
-              { id: 'conditions', label: 'Wind/tide', icon: 'navigate-outline', active: true },
-              { id: 'race-marks', label: 'Race marks', icon: 'triangle-outline', active: true },
-              { id: 'cross-interest', label: 'All my interests', crossInterest: true, dim: true },
-            ]}
-            onActiveIdsChange={handleChipsChange}
-          />
+        {/* Floating glass chrome — chips on the left, action cluster on
+            the right. Title pill removed (the tab-bar highlight already
+            names the screen); profile + layers + locate now float as a
+            standalone top-right cluster, separate from the filter strip. */}
+        <View
+          style={[shellStyles.floatingChrome, { paddingTop: chromePaddingTop }]}
+          onLayout={handleFloatingChromeLayout}
+        >
+          <View style={shellStyles.clusterRow} onLayout={handleHeaderLayout}>
+            <View style={shellStyles.locationAnchorSlot}>
+              <LocationAnchor region={homeVenue?.region} venue={homeVenue?.venue} />
+            </View>
+            <View style={shellStyles.topRightCluster}>
+              <Pressable
+                style={shellStyles.clusterBtn}
+                onPress={() => setSearchOpen(true)}
+                hitSlop={6}
+                accessibilityLabel="Search places"
+              >
+                <Ionicons name="search" size={16} color="rgba(60, 60, 67, 0.85)" />
+              </Pressable>
+              <Pressable
+                style={shellStyles.clusterBtn}
+                onPress={openLayersSheet}
+                hitSlop={6}
+              >
+                <Ionicons name="layers-outline" size={16} color="rgba(60, 60, 67, 0.85)" />
+              </Pressable>
+              <NotificationBell size={16} color="rgba(60, 60, 67, 0.85)" />
+              <ProfileDropdown size={30} variant="light" />
+            </View>
+          </View>
+          {filterExpanded ? (
+            <View style={shellStyles.filterExpandedBlock}>
+              <View style={shellStyles.filterExpandedRow}>
+                <View style={shellStyles.chipPlate}>
+                  <FilterChipsRow
+                    chips={[
+                      { id: 'all', label: 'All', active: activeFilterIds.includes('all') },
+                      { id: 'you', label: 'You', tone: 'you', active: activeFilterIds.includes('you') },
+                      { id: 'crew', label: 'Crew', tone: 'crew', active: activeFilterIds.includes('crew') },
+                      { id: 'fleet', label: 'Fleet', tone: 'fleet', active: activeFilterIds.includes('fleet') },
+                    ]}
+                    onActiveIdsChange={handleChipsChange}
+                    rightInset={10}
+                    compact
+                    debugScope="f1"
+                  />
+                </View>
+                <Pressable
+                  style={shellStyles.filterCollapseBtn}
+                  onPress={() => setFilterExpanded(false)}
+                  hitSlop={6}
+                  accessibilityLabel="Collapse filters"
+                >
+                  <Ionicons name="chevron-up" size={14} color="rgba(60, 60, 67, 0.78)" />
+                </Pressable>
+              </View>
+
+              {userGroups.length > 0 ? (
+                <View style={shellStyles.groupSubchipRow}>
+                  {userGroups.map((g: UserAffinityGroup) => (
+                    <GroupSubchip
+                      key={g.id}
+                      group={g}
+                      active={activeGroupIds.includes(g.id)}
+                      onPress={() => toggleGroupChip(g.id)}
+                    />
+                  ))}
+                </View>
+              ) : null}
+            </View>
+          ) : (
+            <View style={shellStyles.filterPillRow}>
+              <Pressable
+                style={shellStyles.filterPill}
+                onPress={() => setFilterExpanded(true)}
+                hitSlop={6}
+                accessibilityLabel="Expand filters"
+              >
+                <Ionicons
+                  name="funnel-outline"
+                  size={13}
+                  color="rgba(60, 60, 67, 0.78)"
+                  style={{ marginRight: 5 }}
+                />
+                <Text style={shellStyles.filterPillText}>{filterPillLabel}</Text>
+                <Ionicons
+                  name="chevron-down"
+                  size={12}
+                  color="rgba(60, 60, 67, 0.55)"
+                  style={{ marginLeft: 3 }}
+                />
+              </Pressable>
+            </View>
+          )}
         </View>
 
         {/* SVG-fallback fixtures (RacingAreaTag + base-club AtlasPin) —
@@ -1109,7 +1616,6 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
         )}
 
         <LayersFab
-          onLayersPress={openLayersSheet}
           onDropPinPress={handlers.useMapLibre ? handleDropPinPress : undefined}
           commitMode={commitMode}
           bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
@@ -1198,10 +1704,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
               icon: 'map-outline',
               onPress: () => {
                 clearSelectedPin();
-                comingSoonAlert(
-                  'Club lens',
-                  'This will recenter Atlas around the club and filter to that organization’s events, fleets, sailors, and public steps. Fleet-specific lenses, like RHKYC · Dragon, sit one level below this.',
-                );
+                openClubLens(selectedPin, handlers.onOrgLensPress);
               },
             }}
             bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
@@ -1239,12 +1742,12 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
           <BottomSheet
             eyebrow="YOUR STEP"
             title={titleForUserStepPin(selectedPin)}
-            body={selectedPin.subtitle ?? bodyForPin(selectedPin)}
+            body={detailBodyForPin(selectedPin)}
+            topStripContent={stepPickerStripNode}
             primary={{
               label: 'Open step',
               icon: 'open-outline',
               onPress: () => {
-                clearSelectedPin();
                 if (selectedPin.stepId) {
                   handlers.onStepPress?.(selectedPin.stepId);
                   return;
@@ -1263,7 +1766,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
           <BottomSheet
             eyebrow={eyebrowForPin(selectedPin)}
             title={selectedPin.label ?? 'Pin'}
-            body={selectedPin.subtitle ?? bodyForPin(selectedPin)}
+            body={detailBodyForPin(selectedPin)}
             primary={{
               label: 'Plan a step here',
               icon: 'add',
@@ -1279,29 +1782,70 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
         )
       ) : hasNext ? (
         <BottomSheet
-          eyebrow="NEXT · PRE-STAGED"
+          eyebrow={`NEXT · ${next!.label.toUpperCase()}`}
           title={`Plan a step for ${next!.label}.`}
-          body={[next!.where, next!.when].filter(Boolean).join(' · ')}
-          primary={{ label: 'Drop a pin', icon: 'location-outline', onPress: handleDropPinPress }}
-          secondary={{ label: `Open ${next!.label}`, onPress: handlers.onSecondaryAction }}
+          body={`${[next!.where, next!.when].filter(Boolean).join(' · ')}\nNo steps here from you, your crew, or your fleet yet.`}
+          topStripContent={stepPickerStripNode}
+          primary={{ label: `${next!.label} details`, icon: 'open-outline', onPress: handlers.onSecondaryAction }}
+          secondary={{ label: 'Drop a pin', icon: 'location-outline', onPress: handleDropPinPress }}
+          showSecondaryInMid
           bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
-          initialState="expanded"
+          initialState="mid"
+        />
+      ) : myNextStepPin ? (
+        <BottomSheet
+          eyebrow="YOUR NEXT STEP"
+          title={titleForUserStepPin(myNextStepPin)}
+          body={[
+            myNextStepPin.label?.includes('|') ? null : myNextStepPin.label,
+            'Tap to open this step, or drop a pin to anchor a new one.',
+          ]
+            .filter(Boolean)
+            .join('\n')}
+          topStripContent={stepPickerStripNode}
+          primary={{
+            label: 'Open step',
+            icon: 'open-outline',
+            onPress: () => {
+              if (myNextStepPin.stepId) {
+                handlers.onStepPress?.(myNextStepPin.stepId);
+              }
+            },
+          }}
+          secondary={{ label: 'Drop a pin', icon: 'location-outline', onPress: handleDropPinPress }}
+          showSecondaryInMid
+          bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
+          initialState="mid"
         />
       ) : (
         <BottomSheet
-          eyebrow="PLAN A STEP"
+          eyebrow="ATLAS"
           title="Anchor your next step to a place."
-          body="Drop a pin first so the step starts with a real map location."
+          body="No steps here from you, your crew, or your fleet yet. Drop a pin to start, or tap any pin to see who's there."
+          topStripContent={stepPickerStripNode}
           primary={{
             label: 'Drop a pin',
             icon: 'location-outline',
             onPress: handleDropPinPress,
           }}
-          secondary={{ label: 'Open Race 5', icon: 'open-outline', onPress: handlers.onSecondaryAction }}
           bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
-          initialState="expanded"
+          initialState="mid"
         />
       )}
+
+      {/* Racing-area sheet sits OUTSIDE mapArea so zIndex actually wins —
+          the next-step/empty-state BottomSheets are siblings of mapArea,
+          so an inner-mapArea sheet couldn't stack above them no matter
+          how high its zIndex went. Render last + high zIndex + the same
+          bottomOffset the other Atlas BottomSheets use so the tab bar
+          doesn't eat the Save button. */}
+      <CreateRacingAreaSheet
+        visible={areaSheetCenter !== null}
+        center={areaSheetCenter}
+        onClose={() => setAreaSheetCenter(null)}
+        bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
+        onShapeChange={setAreaSheetPolygon}
+      />
 
       {!embedded && <MockTabBar activeTab="atlas" />}
 
@@ -1311,9 +1855,17 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
           onClose={() => setLayersOpen(false)}
           controlledActiveKeys={controlledLayerKeys}
           onToggle={handleLayerToggle}
+          basemap={basemap}
+          onBasemapChange={setBasemap}
           bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
         />
       )}
+
+      <AtlasSearchSheet
+        visible={searchOpen}
+        onClose={() => setSearchOpen(false)}
+        onSelect={handleSearchSelect}
+      />
     </View>
   );
 }
@@ -1322,166 +1874,475 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
 // F2 — Race-marks zoom (Victoria Harbour)
 // ---------------------------------------------------------------------------
 function FrameF2({ embedded, handlers }: { embedded: boolean; handlers: AtlasFrameHandlers }) {
+  const insets = useSafeAreaInsets();
   const [layersOpen, setLayersOpen] = useState(false);
+  const [selectedPin, setSelectedPin] = useState<AtlasPinSpec | null>(null);
+  const [showRaceMarks, setShowRaceMarks] = useState(true);
+  const [showWind, setShowWind] = useState(true);
+  const [showTide, setShowTide] = useState(true);
+  const [showCrew, setShowCrew] = useState(true);
+  const [showFleet, setShowFleet] = useState(true);
+  const [scrubIndex, setScrubIndex] = useState(3);
+  const next = handlers.nextEvent ?? null;
   const raceStart = { lat: 22.2838, lng: 114.1779 };
-  const coursePins = useMemo<AtlasPinSpec[]>(
+  const { data: liveRaceMarkPins = [] } = useNextRaceMarks({
+    regattaId: next?.event_kind === 'regatta' ? next.event_id : null,
+    enabled: Boolean(next?.event_kind === 'regatta' && next?.event_id),
+  });
+  const tideWindows = useMemo(
     () => [
       {
-        id: 'f2-wind-ese',
-        lat: 22.2886,
-        lng: 114.176,
-        kind: 'wind-arrow',
-        label: '112|12',
+        sliderLabel: 'now',
+        title: 'Read the line right now.',
+        body:
+          'The current is still weak and the pin-end bias is small. A clean lane matters more than forcing the favoured end.',
+        windOverlayLabel: '102|10.5',
+        windChip: '10.5 kn ESE',
+        tideOverlayLabel: '246|0.1',
+        tideChip: 'Flood 0.1 kn',
+        slack: '11:22',
+        ctaLabel: 'Plan start setup',
       },
       {
-        id: 'f2-tide-ebb',
-        lat: 22.2861,
-        lng: 114.1795,
-        kind: 'tide-arrow',
-        label: '270|0.4',
+        sliderLabel: '+1h',
+        title: 'Preview the first shift at T + 1h.',
+        body:
+          'The breeze builds and starts to bend right. Mid-line starts still work, but the pin-end cross is beginning to matter.',
+        windOverlayLabel: '108|11.3',
+        windChip: '11.3 kn ESE',
+        tideOverlayLabel: '255|0.2',
+        tideChip: 'Flood 0.2 kn',
+        slack: '10:54',
+        ctaLabel: 'Plan line approach',
       },
+      {
+        sliderLabel: '+2h',
+        title: 'Scrub forward to the first beat at T + 2h.',
+        body:
+          'Pressure improves up the right edge while the flood weakens. This is the cleanest setup if the sequence stays on time.',
+        windOverlayLabel: '111|11.8',
+        windChip: '11.8 kn ESE',
+        tideOverlayLabel: '264|0.3',
+        tideChip: 'Flood 0.3 kn',
+        slack: '10:21',
+        ctaLabel: 'Plan first beat',
+      },
+      {
+        sliderLabel: '+3h',
+        title: 'Plan the first beat at T + 3h.',
+        body:
+          'ESE 12 kn over an ebbing 0.4 kn current. Slack around 09:48. Pin end is favoured, but the flood line opens if the start slips.',
+        windOverlayLabel: '112|12',
+        windChip: '12 kn ESE',
+        tideOverlayLabel: '270|0.4',
+        tideChip: 'Ebb 0.4 kn',
+        slack: '09:48',
+        ctaLabel: 'Plan first beat',
+      },
+      {
+        sliderLabel: '+4h',
+        title: 'Project the late-race current at T + 4h.',
+        body:
+          'The ebb strengthens and the left gate becomes safer. Overstanding the weather mark is less punished, but exits need more pace.',
+        windOverlayLabel: '116|12.6',
+        windChip: '12.6 kn ESE',
+        tideOverlayLabel: '278|0.6',
+        tideChip: 'Ebb 0.6 kn',
+        slack: '09:12',
+        ctaLabel: 'Plan gate exit',
+      },
+      {
+        sliderLabel: '+5h',
+        title: 'Read the final run at T + 5h.',
+        body:
+          'The ebb is now fully on and the breeze is strongest. Downwind lanes compress quickly, so protect room at the leeward gate.',
+        windOverlayLabel: '120|13.2',
+        windChip: '13.2 kn ESE',
+        tideOverlayLabel: '284|0.7',
+        tideChip: 'Ebb 0.7 kn',
+        slack: '08:41',
+        ctaLabel: 'Plan final run',
+      },
+    ],
+    [],
+  );
+  const scrubWindow = tideWindows[Math.min(scrubIndex, tideWindows.length - 1)] ?? tideWindows[0];
+  const fallbackRaceMarkPins = useMemo<AtlasPinSpec[]>(
+    () => [
       {
         id: 'f2-race-start',
-        lat: raceStart.lat,
-        lng: raceStart.lng,
+        lat: 22.2819,
+        lng: 114.1772,
         kind: 'race-mark',
         label: 'PIN',
         subtitle: 'Favoured end · start line',
-        provenance: 'Set by RHKYC race committee · marks are live',
+        provenance: 'Local course draft · share with crew or fleet when ready',
+      },
+      {
+        id: 'f2-race-cb',
+        lat: 22.2813,
+        lng: 114.1849,
+        kind: 'race-mark',
+        label: 'CB',
+        subtitle: 'Committee boat end · start line',
+        provenance: 'Local course draft · share with crew or fleet when ready',
       },
       {
         id: 'f2-race-mark-1',
-        lat: 22.289,
-        lng: 114.1834,
+        lat: 22.2874,
+        lng: 114.1808,
         kind: 'race-mark',
         label: '1',
-        subtitle: 'Windward mark · Race 5',
-        provenance: 'Set by RHKYC race committee · marks are live',
+        subtitle: `Windward mark · ${next?.label ?? 'Race 5'}`,
+        provenance: 'Local course draft · share with crew or fleet when ready',
       },
       {
         id: 'f2-race-mark-2',
-        lat: 22.2808,
-        lng: 114.184,
+        lat: 22.2832,
+        lng: 114.1807,
         kind: 'race-mark',
         label: '2',
-        subtitle: 'Leeward mark · Race 5',
-        provenance: 'Set by RHKYC race committee · marks are live',
+        subtitle: `Leeward mark · ${next?.label ?? 'Race 5'}`,
+        provenance: 'Local course draft · share with crew or fleet when ready',
       },
       {
         id: 'f2-race-mark-3a',
-        lat: 22.2848,
-        lng: 114.181,
+        lat: 22.2852,
+        lng: 114.1785,
         kind: 'race-mark',
         label: '3A',
-        subtitle: 'Gate mark · Race 5',
-        provenance: 'Set by RHKYC race committee · marks are live',
+        subtitle: `Gate mark · ${next?.label ?? 'Race 5'}`,
+        provenance: 'Local course draft · share with crew or fleet when ready',
       },
       {
         id: 'f2-race-mark-3b',
-        lat: 22.2849,
-        lng: 114.1864,
+        lat: 22.2852,
+        lng: 114.1829,
         kind: 'race-mark',
         label: '3B',
-        subtitle: 'Gate mark · Race 5',
-        provenance: 'Set by RHKYC race committee · marks are live',
+        subtitle: `Gate mark · ${next?.label ?? 'Race 5'}`,
+        provenance: 'Local course draft · share with crew or fleet when ready',
       },
-      { id: 'f2-you-pin-end', lat: 22.2828, lng: 114.1768, kind: 'you', label: 'You' },
-      { id: 'f2-crew-pin', lat: 22.2831, lng: 114.1786, kind: 'crew', label: 'Crew' },
-      { id: 'f2-fleet-1', lat: 22.2819, lng: 114.181, kind: 'fleet' },
-      { id: 'f2-fleet-2', lat: 22.2823, lng: 114.1852, kind: 'fleet' },
+      {
+        id: 'f2-start-line',
+        lat: 22.2816,
+        lng: 114.1810,
+        kind: 'walk-annotation',
+        walkLine: {
+          from: [114.1772, 22.2819],
+          to: [114.1849, 22.2813],
+        },
+      },
+      {
+        id: 'f2-leg-1',
+        lat: 22.2844,
+        lng: 114.1791,
+        kind: 'walk-annotation',
+        walkLine: {
+          from: [114.1772, 22.2819],
+          to: [114.1808, 22.2874],
+        },
+      },
+      {
+        id: 'f2-leg-2',
+        lat: 22.2854,
+        lng: 114.1807,
+        kind: 'walk-annotation',
+        walkLine: {
+          from: [114.1785, 22.2852],
+          to: [114.1829, 22.2852],
+        },
+      },
+      {
+        id: 'f2-leg-3',
+        lat: 22.2839,
+        lng: 114.1796,
+        kind: 'walk-annotation',
+        walkLine: {
+          from: [114.1785, 22.2852],
+          to: [114.1807, 22.2832],
+        },
+      },
     ],
-    [raceStart.lat, raceStart.lng],
+    [next?.label],
   );
+  const raceMarkPins = liveRaceMarkPins.length > 0 ? liveRaceMarkPins : fallbackRaceMarkPins;
+  const windFieldPins = useMemo<AtlasPinSpec[]>(
+    () => [
+      { id: 'f2-wind-field-1', lat: 22.2878, lng: 114.1778, kind: 'wind-arrow', label: `${scrubWindow.windOverlayLabel}|field` },
+      { id: 'f2-wind-field-2', lat: 22.2878, lng: 114.1805, kind: 'wind-arrow', label: `${scrubWindow.windOverlayLabel}|field` },
+      { id: 'f2-wind-field-3', lat: 22.2878, lng: 114.1832, kind: 'wind-arrow', label: `${scrubWindow.windOverlayLabel}|field` },
+      { id: 'f2-wind-field-4', lat: 22.2860, lng: 114.1778, kind: 'wind-arrow', label: `${scrubWindow.windOverlayLabel}|field` },
+      { id: 'f2-wind-field-5', lat: 22.2860, lng: 114.1805, kind: 'wind-arrow', label: `${scrubWindow.windOverlayLabel}|field` },
+      { id: 'f2-wind-field-6', lat: 22.2860, lng: 114.1832, kind: 'wind-arrow', label: `${scrubWindow.windOverlayLabel}|field` },
+      { id: 'f2-wind-field-7', lat: 22.2842, lng: 114.1778, kind: 'wind-arrow', label: `${scrubWindow.windOverlayLabel}|field` },
+      { id: 'f2-wind-field-8', lat: 22.2842, lng: 114.1805, kind: 'wind-arrow', label: `${scrubWindow.windOverlayLabel}|field` },
+      { id: 'f2-wind-field-9', lat: 22.2842, lng: 114.1832, kind: 'wind-arrow', label: `${scrubWindow.windOverlayLabel}|field` },
+      { id: 'f2-wind-primary', lat: 22.2885, lng: 114.1788, kind: 'wind-arrow', label: scrubWindow.windOverlayLabel, subtitle: scrubWindow.windChip },
+    ],
+    [scrubWindow.windChip, scrubWindow.windOverlayLabel],
+  );
+  const coursePins = useMemo<AtlasPinSpec[]>(
+    () => [
+      ...windFieldPins,
+      {
+        id: 'f2-tide-ebb',
+        lat: 22.2863,
+        lng: 114.1817,
+        kind: 'tide-arrow',
+        label: scrubWindow.tideOverlayLabel,
+        subtitle: scrubWindow.tideChip,
+      },
+      ...raceMarkPins,
+      {
+        id: 'f2-you-pin-end',
+        lat: 22.2815,
+        lng: 114.1789,
+        kind: 'you',
+        label: 'You',
+        subtitle: 'Helm setup near the pin end.',
+        provenance: 'Your current approach line.',
+      },
+      {
+        id: 'f2-crew-pin',
+        lat: 22.2818,
+        lng: 114.1804,
+        kind: 'crew',
+        label: 'Crew',
+        subtitle: 'Your crew staging just off the line.',
+        provenance: 'Shared boat position.',
+      },
+      {
+        id: 'f2-fleet-1',
+        lat: 22.2812,
+        lng: 114.1827,
+        kind: 'fleet',
+        label: 'Fleet',
+        subtitle: 'Fleet boat holding the middle lane.',
+        provenance: 'Nearby competitor track.',
+      },
+      {
+        id: 'f2-fleet-2',
+        lat: 22.2820,
+        lng: 114.1841,
+        kind: 'fleet',
+        subtitle: 'Fleet boat setting up to leeward.',
+        provenance: 'Nearby competitor track.',
+      },
+      {
+        id: 'f2-fleet-3',
+        lat: 22.2826,
+        lng: 114.1851,
+        kind: 'fleet',
+        subtitle: 'Fleet boat reaching in from the starboard side.',
+        provenance: 'Nearby competitor track.',
+      },
+    ],
+    [raceMarkPins, scrubWindow.tideChip, scrubWindow.tideOverlayLabel, windFieldPins],
+  );
+  const visiblePins = useMemo(
+    () =>
+      coursePins.filter((pin) => {
+        if (pin.kind === 'race-mark') return showRaceMarks;
+        if (pin.kind === 'walk-annotation') return showRaceMarks;
+        if (pin.kind === 'wind-arrow') return showWind;
+        if (pin.kind === 'tide-arrow') return showTide;
+        if (pin.kind === 'you' || pin.kind === 'crew') return showCrew;
+        if (pin.kind === 'fleet') return showFleet;
+        return true;
+      }),
+    [coursePins, showCrew, showFleet, showRaceMarks, showTide, showWind],
+  );
+  const controlledLayerKeys = useMemo(() => {
+    const out = new Set<string>();
+    if (showRaceMarks) out.add('sailing.race_marks');
+    if (showWind) out.add('sailing.wind');
+    if (showTide) out.add('sailing.tide');
+    return out;
+  }, [showRaceMarks, showTide, showWind]);
+  const handleLayerToggle = useCallback((key: string, on: boolean) => {
+    if (key === 'sailing.race_marks') setShowRaceMarks(on);
+    if (key === 'sailing.wind') setShowWind(on);
+    if (key === 'sailing.tide') setShowTide(on);
+  }, []);
+  const handleChipChange = useCallback((activeIds: string[]) => {
+    setShowRaceMarks(activeIds.includes('race-marks'));
+    setShowWind(activeIds.includes('wind'));
+    setShowTide(activeIds.includes('tide'));
+    setShowCrew(activeIds.includes('crew'));
+    setShowFleet(activeIds.includes('fleet'));
+  }, []);
+  const handlePinPress = useCallback((pin: AtlasPinSpec) => {
+    setLayersOpen(false);
+    setSelectedPin(pin);
+  }, []);
+  const clearSelectedPin = useCallback(() => setSelectedPin(null), []);
+  const title = next?.label ? `${next.label} · course` : 'Race 5 · course';
+  const subtitle = next
+    ? [next.where, next.when].filter(Boolean).join(' · ') || handlers.subtitleOverride || 'RHKYC · Victoria Harbour'
+    : handlers.subtitleOverride ?? 'RHKYC · Victoria Harbour · Sat 10:00';
   return (
     <View style={shellStyles.frame}>
       {!embedded && <StatusBar />}
-      <TopChrome
-        title="Race 5 · course"
-        subtitle={handlers.subtitleOverride ?? 'RHKYC · Victoria Harbour · Sat 10:00'}
-        avatarInitial={handlers.avatarInitial ?? "F"}
-      />
-      <FilterChipsRow
-        chips={[
-          { id: 'marks', label: 'Race marks', icon: 'triangle-outline', active: true },
-          { id: 'wind', label: 'Wind', icon: 'flag-outline', active: true },
-          { id: 'tide', label: 'Tide', icon: 'water-outline', active: true },
-          { id: 'crew', label: 'Crew', tone: 'crew', active: true },
-          { id: 'fleet', label: 'Fleet', tone: 'fleet' },
-          { id: 'cross-interest', label: 'All my interests', crossInterest: true, dim: true },
-        ]}
-      />
       <View style={shellStyles.mapArea}>
+        <View style={[shellStyles.floatingChrome, { paddingTop: embedded ? Math.max(insets.top + 8, 48) : 50 }]}>
+          <TopChrome
+            title={title}
+            subtitle={subtitle}
+            avatarInitial={handlers.avatarInitial ?? 'F'}
+            onLayersPress={() => setLayersOpen(true)}
+            onAvatarPress={handlers.onAvatarPress}
+          />
+          <FilterChipsRow
+            chips={[
+              { id: 'race-marks', label: 'Race marks', icon: 'triangle-outline', active: true },
+              { id: 'wind', label: 'Wind', icon: 'flag-outline', active: true },
+              { id: 'tide', label: 'Tide', icon: 'water-outline', active: true },
+              { id: 'crew', label: 'Crew', tone: 'crew', active: true },
+              { id: 'fleet', label: 'Fleet', tone: 'fleet', active: true },
+            ]}
+            onActiveIdsChange={handleChipChange}
+            rightInset={104}
+            compact
+          />
+        </View>
+
         {handlers.useMapLibre ? (
-          <AtlasMapLibreCanvas frame="f2" pins={coursePins} />
+          <AtlasMapLibreCanvas frame="f2" pins={visiblePins} onPinPress={handlePinPress} />
         ) : (
           <RaceMarksZoomMap />
         )}
 
-        {/* Wind chip top-right */}
-        <View style={[shellStyles.absChip, { top: 12, right: 12 }]}>
-          <Ionicons name="flag" size={9} color="rgba(60, 60, 67, 0.7)" />
-          <Text style={shellStyles.absChipText}>12KN ESE</Text>
-        </View>
-        {/* Tide chip bottom-left */}
-        <View style={[shellStyles.absChip, { bottom: 60, left: 12 }]}>
-          <Ionicons name="water" size={9} color="rgba(60, 60, 67, 0.7)" />
-          <Text style={shellStyles.absChipText}>EBB 0.4KN</Text>
-        </View>
-
         {!handlers.useMapLibre ? (
           <>
-            {/* The selected peer pin near the pin end — highlighted */}
-            <AtlasPin kind="crew" leftPct={32} topPct={66} selected />
-            {/* Other fleet pins scattered */}
-            <AtlasPin kind="fleet" leftPct={48} topPct={56} />
-            <AtlasPin kind="fleet" leftPct={62} topPct={68} />
-            <AtlasPin kind="fleet" leftPct={70} topPct={62} />
-            <AtlasPin kind="following" leftPct={42} topPct={72} />
+            {showCrew ? <AtlasPin kind="crew" leftPct={32} topPct={66} selected /> : null}
+            {showFleet ? (
+              <>
+                <AtlasPin kind="fleet" leftPct={48} topPct={56} />
+                <AtlasPin kind="fleet" leftPct={62} topPct={68} />
+                <AtlasPin kind="fleet" leftPct={70} topPct={62} />
+                <AtlasPin kind="following" leftPct={42} topPct={72} />
+              </>
+            ) : null}
           </>
         ) : null}
 
-        {/* Zoom indicator */}
         <View style={[shellStyles.zoomIndicator, { bottom: 12, right: 12 }]}>
           <Text style={shellStyles.zoomText}>zoom 14.2</Text>
         </View>
-
-        <LayersFab
-          onLayersPress={() => setLayersOpen(true)}
-          bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
-        />
       </View>
 
-      <BottomSheet
-        eyebrow="TIDE · SCRUB TO START"
-        title="Plan the first beat at T + 3h."
-        body={'ESE 12 kn over an ebbing 0.4 kn current.\nSlack around 09:48. Pin end is favoured, but the flood line opens if the start slips.'}
-        statsRow={[
-          { value: 'T + 3h', label: 'TIDE SCRUB' },
-          { value: '09:48', label: 'SLACK' },
-          { value: '12 kn', label: 'ESE WIND' },
-        ]}
-        primary={{
-          label: 'Plan first beat',
-          icon: 'add',
-          onPress: () =>
-            handlers.onPrimaryAction?.({
-              lat: raceStart.lat,
-              lng: raceStart.lng,
-              place: 'Race 5 start · Victoria Harbour',
-            }),
-        }}
-        secondary={{
-          label: 'Leader replay',
-          icon: 'play-circle-outline',
-          onPress: () =>
-            comingSoonAlert(
-              'Leader replay',
-              'This will replay the best starts from the fleet against the current wind and tide window. Race replay ships with the race-course phase.',
-            ),
-        }}
-        bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
-        initialState="expanded"
-      />
+      {layersOpen ? null : selectedPin ? (
+        <BottomSheet
+          eyebrow={eyebrowForPin(selectedPin)}
+          title={titleForPin(selectedPin)}
+          body={detailBodyForPin(selectedPin, [
+            selectedPin.kind === 'you' || selectedPin.kind === 'crew' || selectedPin.kind === 'fleet'
+              ? 'These dots are nearby boat positions, not planned or completed steps.'
+              : null,
+            selectedPin.kind === 'race-mark'
+              ? 'Committee-set marks are informational here. You read them and plan around them; moving them belongs in race management, not on your practice map.'
+              : null,
+          ])}
+          primary={{ label: 'Close', icon: 'close', onPress: clearSelectedPin }}
+          bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
+          initialState="expanded"
+        />
+      ) : (
+        <BottomSheet
+          eyebrow="TIDE · SCRUB TO START"
+          title={scrubWindow.title}
+          body={scrubWindow.body}
+          expandedContent={
+            <View style={shellStyles.f2ScrubWrap}>
+              <View style={shellStyles.f2ScrubHeader}>
+                <Text style={shellStyles.f2ScrubHeaderLabel}>Tide window</Text>
+                <Text style={shellStyles.f2ScrubHeaderValue}>{scrubWindow.sliderLabel.toUpperCase()}</Text>
+              </View>
+              <Slider
+                minimumValue={0}
+                maximumValue={tideWindows.length - 1}
+                step={1}
+                value={scrubIndex}
+                minimumTrackTintColor="#007AFF"
+                maximumTrackTintColor="rgba(60, 60, 67, 0.18)"
+                thumbTintColor="#007AFF"
+                onValueChange={(value) => setScrubIndex(Math.round(value))}
+                onSlidingComplete={(value) => setScrubIndex(Math.round(value))}
+              />
+              <View style={shellStyles.f2ScrubTicks}>
+                {tideWindows.map((window) => (
+                  <Text key={window.sliderLabel} style={shellStyles.f2ScrubTickText}>
+                    {window.sliderLabel}
+                  </Text>
+                ))}
+              </View>
+              <View style={shellStyles.f2ScrubMetrics}>
+                <Stat value={scrubWindow.sliderLabel.toUpperCase()} label="TIDE SCRUB" />
+                <Stat value={scrubWindow.slack} label="SLACK" />
+                <Stat value={scrubWindow.windChip.toUpperCase()} label="WIND" />
+              </View>
+              <View style={shellStyles.f2SheetLegend}>
+                <View style={shellStyles.f2SheetLegendRow}>
+                  <View style={shellStyles.f2LegendSquare} />
+                  <Text style={shellStyles.f2SheetLegendText}>Orange squares are committee-set race marks.</Text>
+                </View>
+                <View style={shellStyles.f2SheetLegendRow}>
+                  <View style={shellStyles.f2LegendDotCrew} />
+                  <Text style={shellStyles.f2SheetLegendText}>Red dots are you and your crew.</Text>
+                </View>
+                <View style={shellStyles.f2SheetLegendRow}>
+                  <View style={shellStyles.f2LegendDotFleet} />
+                  <Text style={shellStyles.f2SheetLegendText}>Dark dots are other fleet boats nearby.</Text>
+                </View>
+              </View>
+            </View>
+          }
+          primary={{
+            label: scrubWindow.ctaLabel,
+            icon: 'add',
+            onPress: () =>
+              handlers.onPrimaryAction?.({
+                lat: raceStart.lat,
+                lng: raceStart.lng,
+                place: `${next?.label ?? 'Race 5'} start · ${next?.where ?? 'Victoria Harbour'}`,
+                suggestedTitle: `${next?.label ?? 'Upcoming race'} · ${scrubWindow.ctaLabel.toLowerCase()}`,
+                suggestedCategory: 'sailing',
+                suggestedInterestSlug: 'sail-racing',
+                metadata: {
+                  atlas: {
+                    course_source: liveRaceMarkPins.length > 0 ? 'official' : 'draft',
+                    local_knowledge_sharing: {
+                      audiences: ['crew', 'fleet', 'followers', 'following', 'public'],
+                      share_marks: true,
+                      share_notes: true,
+                      share_track: false,
+                    },
+                    race_course_context: {
+                      scrub_label: scrubWindow.sliderLabel,
+                      scrub_title: scrubWindow.title,
+                      plan_focus: scrubWindow.ctaLabel,
+                      wind_chip: scrubWindow.windChip,
+                      tide_chip: scrubWindow.tideChip,
+                      slack: scrubWindow.slack,
+                    },
+                  },
+                },
+              }),
+          }}
+          secondary={{
+            label: 'Leader replay',
+            icon: 'play-circle-outline',
+            onPress: () =>
+              comingSoonAlert(
+                'Leader replay',
+                'This will replay the best starts from the fleet against the current wind and tide window. Race replay ships with the race-course phase.',
+              ),
+          }}
+          bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
+          initialState="mid"
+        />
+      )}
 
       {!embedded && <MockTabBar activeTab="atlas" />}
 
@@ -1489,6 +2350,8 @@ function FrameF2({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
         <LayersSheet
           frame="f2"
           onClose={() => setLayersOpen(false)}
+          controlledActiveKeys={controlledLayerKeys}
+          onToggle={handleLayerToggle}
           bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
         />
       )}
@@ -1854,7 +2717,11 @@ function FrameF4({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
                   label: 'Anchor a step here',
                   icon: 'add',
                   onPress: () => {
-                    handlers.onPrimaryAction?.({ lat: selectedPin.lat, lng: selectedPin.lng });
+                    handlers.onPrimaryAction?.({
+                      lat: selectedPin.lat,
+                      lng: selectedPin.lng,
+                      place: selectedPin.label ?? undefined,
+                    });
                     clearF4SelectedPin();
                   },
                 }}
@@ -1893,7 +2760,11 @@ function FrameF4({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
                   );
                   return;
                 }
-                handlers.onPrimaryAction?.({ lat: selectedPin.lat, lng: selectedPin.lng });
+                handlers.onPrimaryAction?.({
+                  lat: selectedPin.lat,
+                  lng: selectedPin.lng,
+                  place: selectedPin.label ?? selectedPin.subtitle ?? undefined,
+                });
                 clearF4SelectedPin();
               },
             }}
@@ -2047,28 +2918,50 @@ const F6_DEFAULT_CANDIDATE = {
 
 function FrameF6({ embedded, handlers }: { embedded: boolean; handlers: AtlasFrameHandlers }) {
   const [layersOpen, setLayersOpen] = useState(false);
-  const [candidate, setCandidate] = useState<{ lat: number; lng: number }>({
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchFocus, setSearchFocus] = useState<{ lat: number; lng: number } | null>(null);
+  const [candidate, setCandidate] = useState<{ lat: number; lng: number; place?: string }>({
     lat: F6_DEFAULT_CANDIDATE.lat,
     lng: F6_DEFAULT_CANDIDATE.lng,
+    place: F6_DEFAULT_CANDIDATE.place,
   });
   const candidateIsDefault =
     Math.abs(candidate.lat - F6_DEFAULT_CANDIDATE.lat) < 0.000001 &&
     Math.abs(candidate.lng - F6_DEFAULT_CANDIDATE.lng) < 0.000001;
   const candidateLabel = candidateIsDefault
     ? `Favoured pin end · ${F6_DEFAULT_CANDIDATE.place}`
-    : 'Dropped pin · selected spot';
+    : candidate.place
+      ? `Selected place · ${candidate.place}`
+      : 'Dropped pin · selected spot';
   const candidatePlace = candidateIsDefault
     ? F6_DEFAULT_CANDIDATE.place
-    : `Dropped pin (${candidate.lat.toFixed(3)}, ${candidate.lng.toFixed(3)})`;
+    : candidate.place ?? `Dropped pin (${candidate.lat.toFixed(3)}, ${candidate.lng.toFixed(3)})`;
+  const handleSearchSelect = useCallback((result: AtlasSearchResult) => {
+    const next = { lat: result.lat, lng: result.lng, place: result.name };
+    setCandidate(next);
+    setSearchFocus(next);
+    setSearchOpen(false);
+  }, []);
 
   return (
     <View style={shellStyles.frame}>
       {!embedded && <StatusBar />}
       <View style={shellStyles.commitHeaderRow}>
         <Text style={shellStyles.commitTitle}>Pick a spot</Text>
-        <Pressable style={shellStyles.glyphBtn} hitSlop={6}>
-          <Ionicons name="close" size={18} color={IOS_REGISTER.accentUserAction} />
-        </Pressable>
+        <View style={shellStyles.commitHeaderActions}>
+          <Pressable
+            style={shellStyles.glyphBtn}
+            hitSlop={6}
+            onPress={() => setSearchOpen(true)}
+            accessibilityRole="button"
+            accessibilityLabel="Search map"
+          >
+            <Ionicons name="search" size={17} color={IOS_REGISTER.accentUserAction} />
+          </Pressable>
+          <Pressable style={shellStyles.glyphBtn} hitSlop={6}>
+            <Ionicons name="close" size={18} color={IOS_REGISTER.accentUserAction} />
+          </Pressable>
+        </View>
       </View>
 
       {/* Blue commit banner */}
@@ -2084,7 +2977,11 @@ function FrameF6({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
           <AtlasMapLibreCanvas
             frame="f6"
             candidate={candidate}
-            onMapPress={setCandidate}
+            focusLocation={searchFocus}
+            onMapPress={(coords) => {
+              setCandidate(coords);
+              setSearchFocus(coords);
+            }}
           />
         ) : (
           <CommitHarbourMap />
@@ -2133,6 +3030,7 @@ function FrameF6({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
               setCandidate({
                 lat: F6_DEFAULT_CANDIDATE.lat,
                 lng: F6_DEFAULT_CANDIDATE.lng,
+                place: F6_DEFAULT_CANDIDATE.place,
               })
             }
             style={[shellStyles.btn, shellStyles.btnSecondary]}
@@ -2150,6 +3048,12 @@ function FrameF6({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
           bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
         />
       )}
+      <AtlasSearchSheet
+        visible={searchOpen}
+        onClose={() => setSearchOpen(false)}
+        onSelect={handleSearchSelect}
+        countryCode="HK"
+      />
     </View>
   );
 }
@@ -2389,11 +3293,7 @@ function FrameF7({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
         <BottomSheet
           eyebrow={eyebrowForPin(selectedPin)}
           title={(selectedPin.label ?? 'Pin').split('|')[0]}
-          body={
-            [selectedPin.subtitle, selectedPin.provenance]
-              .filter(Boolean)
-              .join('\n') || bodyForPin(selectedPin)
-          }
+          body={detailBodyForPin(selectedPin, [atlasPinContextNote(selectedPin)])}
           primary={
             selectedPin.kind === 'poi-supplier'
               ? {
@@ -2409,7 +3309,11 @@ function FrameF7({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
                     label: 'Plan a step here',
                     icon: 'add',
                     onPress: () => {
-                      handlers.onPrimaryAction?.({ lat: selectedPin.lat, lng: selectedPin.lng });
+                      handlers.onPrimaryAction?.({
+                        lat: selectedPin.lat,
+                        lng: selectedPin.lng,
+                        place: selectedPin.label ?? selectedPin.subtitle ?? undefined,
+                      });
                       clearF7SelectedPin();
                     },
                   }
@@ -2418,7 +3322,11 @@ function FrameF7({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
                       label: 'Log a work session',
                       icon: 'add',
                       onPress: () => {
-                        handlers.onPrimaryAction?.({ lat: selectedPin.lat, lng: selectedPin.lng });
+                        handlers.onPrimaryAction?.({
+                          lat: selectedPin.lat,
+                          lng: selectedPin.lng,
+                          place: selectedPin.label ?? selectedPin.subtitle ?? undefined,
+                        });
                         clearF7SelectedPin();
                       },
                     }
@@ -2438,7 +3346,11 @@ function FrameF7({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
                         label: 'Anchor a step here',
                         icon: 'add',
                         onPress: () => {
-                          handlers.onPrimaryAction?.({ lat: selectedPin.lat, lng: selectedPin.lng });
+                          handlers.onPrimaryAction?.({
+                            lat: selectedPin.lat,
+                            lng: selectedPin.lng,
+                            place: selectedPin.label ?? selectedPin.subtitle ?? undefined,
+                          });
                           clearF7SelectedPin();
                         },
                       }
@@ -2508,10 +3420,25 @@ interface BottomSheetProps {
    */
   onSourcePress?: () => void;
   body?: string;
+  expandedContent?: React.ReactNode;
   peerHeader?: { name: string; quote: string; eyebrow: string };
   statsRow?: StatItem[];
   primary?: { label: string; icon?: keyof typeof Ionicons.glyphMap; onPress?: () => void };
   secondary?: { label: string; icon?: keyof typeof Ionicons.glyphMap; onPress?: () => void };
+  /**
+   * Render the secondary CTA in the mid state as well. Use this when the
+   * secondary action is actually a primary navigation path, not a detail-
+   * only affordance hidden behind sheet expansion.
+   */
+  showSecondaryInMid?: boolean;
+  /**
+   * Optional inline strip rendered between the pull-tab handle and the
+   * eyebrow/title block. Shown in mid + expanded states, hidden in
+   * handle-only. Used on Atlas to embed the step picker chips at the
+   * top of the sheet so the user can jump between or anchor steps
+   * without leaving the sheet.
+   */
+  topStripContent?: React.ReactNode;
   /**
    * Initial sheet state. Defaults to 'mid' for ambient sheets (persistent
    * next-event card). Pin-detail sheets pass 'expanded' so body/provenance
@@ -2527,10 +3454,13 @@ function BottomSheet({
   source,
   onSourcePress,
   body,
+  expandedContent,
   peerHeader,
   statsRow,
   primary,
   secondary,
+  showSecondaryInMid = false,
+  topStripContent,
   bottomOffset = 0,
   initialState = 'mid',
 }: BottomSheetProps & { bottomOffset?: number }) {
@@ -2544,6 +3474,14 @@ function BottomSheet({
   }, []);
   const showFull = state === 'expanded';
   const showMid = state !== 'handle';
+  const handleIcon: keyof typeof Ionicons.glyphMap =
+    state === 'expanded' ? 'chevron-down' : state === 'mid' ? 'remove' : 'chevron-up';
+  const handleLabel =
+    state === 'expanded'
+      ? 'Collapse sheet'
+      : state === 'mid'
+        ? 'Minimize sheet'
+        : 'Expand sheet';
   return (
     <View
       style={[
@@ -2572,6 +3510,18 @@ function BottomSheet({
       >
         <View style={shellStyles.sheetHandle} />
       </Pressable>
+      <Pressable
+        onPress={cycle}
+        accessibilityRole="button"
+        accessibilityLabel={handleLabel}
+        hitSlop={8}
+        style={shellStyles.sheetStateBtn}
+      >
+        <Ionicons name={handleIcon} size={16} color="rgba(60, 60, 67, 0.72)" />
+      </Pressable>
+      {showMid && topStripContent ? (
+        <View style={shellStyles.sheetTopStrip}>{topStripContent}</View>
+      ) : null}
       {showMid && eyebrow ? <Text style={shellStyles.eyebrow}>{eyebrow}</Text> : null}
       {showFull && peerHeader ? (
         <View>
@@ -2592,6 +3542,7 @@ function BottomSheet({
         )
       ) : null}
       {showFull && body ? <Text style={shellStyles.sheetBody}>{body}</Text> : null}
+      {showFull && expandedContent}
       {showFull && statsRow ? (
         <View style={shellStyles.statsRow}>
           {statsRow.map((stat) => (
@@ -2607,7 +3558,7 @@ function BottomSheet({
               <Text style={shellStyles.btnPrimaryText}>{primary.label}</Text>
             </Pressable>
           ) : null}
-          {showFull && secondary ? (
+          {(showFull || showSecondaryInMid) && secondary ? (
             <Pressable onPress={secondary.onPress} style={[shellStyles.btn, shellStyles.btnSecondary]}>
               {secondary.icon ? (
                 <Ionicons name={secondary.icon} size={14} color={IOS_REGISTER.label} />
@@ -2666,19 +3617,19 @@ const shellStyles = StyleSheet.create({
   // --- Top chrome ---------------------------------------------------------
   topChromeRow: {
     paddingHorizontal: 16,
-    paddingTop: 6,
-    paddingBottom: 8,
+    paddingTop: 4,
+    paddingBottom: 5,
     flexDirection: 'row',
-    alignItems: 'flex-end',
+    alignItems: 'center',
   },
   title: {
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: '600',
     color: IOS_REGISTER.label,
     letterSpacing: -0.4,
   },
   subtitleRow: {
-    marginTop: 2,
+    marginTop: 1,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
@@ -2707,6 +3658,41 @@ const shellStyles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  sidebarToggle: {
+    width: 32,
+    height: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 8,
+    borderRadius: 5,
+    borderWidth: 1,
+    borderColor: IOS_COLORS.separator,
+    backgroundColor: IOS_COLORS.systemBackground,
+  },
+  sidebarToggleHover: {
+    backgroundColor: IOS_COLORS.secondarySystemBackground,
+    borderColor: IOS_COLORS.opaqueSeparator,
+  },
+  sidebarTogglePressed: {
+    backgroundColor: IOS_COLORS.tertiarySystemFill,
+  },
+  sidebarIcon: {
+    width: 16,
+    height: 12,
+    flexDirection: 'row',
+    borderRadius: 2,
+    borderWidth: 1.5,
+    borderColor: IOS_COLORS.secondaryLabel,
+    overflow: 'hidden',
+  },
+  sidebarIconLeft: {
+    width: 5,
+    height: '100%',
+    backgroundColor: IOS_COLORS.secondaryLabel,
+  },
+  sidebarIconRight: {
+    flex: 1,
+  },
   avatar: {
     width: 26,
     height: 26,
@@ -2726,17 +3712,26 @@ const shellStyles = StyleSheet.create({
   },
   chipsContainer: {
     paddingLeft: 16,
-    paddingRight: 24,
-    gap: 6,
+    paddingRight: 148,
     paddingBottom: 6,
+  },
+  chipsInnerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
   },
   chip: {
     height: 24,
-    paddingHorizontal: 10,
+    paddingHorizontal: 9,
     borderRadius: 12,
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: IOS_REGISTER.fillPill,
+  },
+  chipCompact: {
+    height: 22,
+    paddingHorizontal: 7,
+    borderRadius: 11,
   },
   chipActive: {
     // Active chips use iOS system blue instead of black. In walkthroughs,
@@ -2752,6 +3747,12 @@ const shellStyles = StyleSheet.create({
     height: 6,
     borderRadius: 3,
     marginRight: 5,
+  },
+  chipDotCompact: {
+    width: 5,
+    height: 5,
+    borderRadius: 2.5,
+    marginRight: 4,
   },
   crossInterestGlyph: {
     flexDirection: 'row',
@@ -2770,6 +3771,10 @@ const shellStyles = StyleSheet.create({
     color: 'rgba(60, 60, 67, 0.78)',
     fontWeight: '500',
     letterSpacing: -0.05,
+  },
+  chipTextCompact: {
+    fontSize: 10,
+    letterSpacing: -0.08,
   },
   chipTextActive: {
     color: '#FFFFFF',
@@ -2796,8 +3801,186 @@ const shellStyles = StyleSheet.create({
     right: 0,
     backgroundColor: 'transparent',
     paddingTop: 50,
-    paddingBottom: 4,
+    paddingBottom: 2,
     zIndex: 10,
+  },
+  chromePlate: {
+    marginHorizontal: 10,
+    paddingTop: 0,
+    paddingBottom: 2,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255,255,255,0.82)',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(60, 60, 67, 0.12)',
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 3,
+  },
+  /**
+   * F1 split-chrome row: chip plate on the left (flex), action cluster on
+   * the right. Replaces the unified plate that wrapped title + chips +
+   * profile. Title is gone (the highlighted tab names the screen), and
+   * the cluster floats as its own piece of glass so global nav (profile)
+   * and contextual filters (chips) read as separate UI families.
+   */
+  clusterRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 10,
+    marginBottom: 8,
+    gap: 8,
+  },
+  locationAnchorSlot: {
+    flex: 1,
+    minWidth: 0,
+  },
+  /**
+   * Container that stacks the primary chip row + an optional second
+   * row of affinity-group sub-chips beneath it.
+   */
+  filterExpandedBlock: {
+    gap: 4,
+  },
+  /**
+   * Row that wraps the expanded chip plate + an external collapse button.
+   * Splitting the button out of the plate lets the plate shrink to chip
+   * width instead of stretching across empty space.
+   */
+  filterExpandedRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    gap: 6,
+  },
+  /**
+   * Sub-chip row for affinity groups (class-fleets, cohorts, crew pods,
+   * practice groups). Renders only when the user belongs to at least
+   * one group relevant to the active interest.
+   */
+  groupSubchipRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 4,
+    paddingHorizontal: 16,
+  },
+  groupSubchip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 10,
+    backgroundColor: 'rgba(255,255,255,0.78)',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(60, 60, 67, 0.10)',
+  },
+  groupSubchipActive: {
+    backgroundColor: '#007AFF',
+    borderColor: '#007AFF',
+  },
+  groupSubchipDot: {
+    width: 5,
+    height: 5,
+    borderRadius: 2.5,
+  },
+  groupSubchipText: {
+    fontSize: 10.5,
+    fontWeight: '600',
+    color: 'rgba(60, 60, 67, 0.85)',
+    letterSpacing: -0.05,
+  },
+  groupSubchipTextActive: {
+    color: '#FFFFFF',
+  },
+  chipPlate: {
+    flexShrink: 1,
+    paddingVertical: 4,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255,255,255,0.72)',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(60, 60, 67, 0.10)',
+    shadowColor: '#000',
+    shadowOpacity: 0.06,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 2,
+  },
+  /**
+   * Collapsed filter pill — Atlas's default state. Sailors come here to
+   * scout the next race, not to toggle social filters, so the chip row is
+   * hidden behind this pill on cold load. Tap to expand; the pill label
+   * reflects the active filter so users at-a-glance know if a filter is
+   * applied (e.g. "Filter · Crew").
+   */
+  filterPillRow: {
+    flexDirection: 'row',
+    paddingHorizontal: 10,
+  },
+  filterPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255,255,255,0.82)',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(60, 60, 67, 0.10)',
+    shadowColor: '#000',
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 2,
+  },
+  filterPillText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: 'rgba(60, 60, 67, 0.85)',
+    letterSpacing: -0.1,
+  },
+  filterCollapseBtn: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255,255,255,0.82)',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(60, 60, 67, 0.10)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 2,
+  },
+  topRightCluster: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    flexShrink: 0,
+    // marginLeft: 'auto' so the cluster always right-aligns regardless of
+    // whether LocationAnchor renders (it returns null when the user has
+    // no home venue). Without this, `space-between` on a one-child row
+    // snaps the only child to the start, putting the cluster on the
+    // left edge.
+    marginLeft: 'auto',
+  },
+  clusterBtn: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: 'rgba(255,255,255,0.82)',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(60, 60, 67, 0.10)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 2,
   },
   absChip: {
     position: 'absolute',
@@ -2817,6 +4000,62 @@ const shellStyles = StyleSheet.create({
     fontWeight: '600',
     letterSpacing: 0.3,
   },
+  f2WindChip: {
+    top: 132,
+    right: 12,
+  },
+  f2TideChip: {
+    top: 168,
+    right: 12,
+  },
+  f2LegendCard: {
+    position: 'absolute',
+    top: 132,
+    left: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: 10,
+    backgroundColor: 'rgba(255, 255, 255, 0.94)',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(60, 60, 67, 0.16)',
+    gap: 6,
+    zIndex: 12,
+  },
+  f2LegendRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  f2LegendText: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: 'rgba(28, 28, 30, 0.78)',
+    letterSpacing: -0.1,
+  },
+  f2LegendSquare: {
+    width: 9,
+    height: 9,
+    borderRadius: 2,
+    backgroundColor: '#E07A3C',
+    borderWidth: 1,
+    borderColor: '#FFFFFF',
+  },
+  f2LegendDotCrew: {
+    width: 9,
+    height: 9,
+    borderRadius: 4.5,
+    backgroundColor: '#FF3B30',
+    borderWidth: 1,
+    borderColor: '#FFFFFF',
+  },
+  f2LegendDotFleet: {
+    width: 9,
+    height: 9,
+    borderRadius: 4.5,
+    backgroundColor: 'rgba(40, 50, 70, 0.85)',
+    borderWidth: 1,
+    borderColor: '#FFFFFF',
+  },
   zoomIndicator: {
     position: 'absolute',
     paddingHorizontal: 6,
@@ -2833,6 +4072,7 @@ const shellStyles = StyleSheet.create({
     position: 'absolute',
     right: 10,
     bottom: 14,
+    alignItems: 'center',
     gap: 8,
   },
   fab: {
@@ -2902,7 +4142,7 @@ const shellStyles = StyleSheet.create({
     right: 0,
     bottom: 0,
     backgroundColor: 'rgba(0, 0, 0, 0.25)',
-    zIndex: 10,
+    zIndex: 40,
   },
   layersSheet: {
     position: 'absolute',
@@ -2915,7 +4155,7 @@ const shellStyles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 8,
     paddingBottom: 16,
-    zIndex: 11,
+    zIndex: 41,
     shadowColor: '#000',
     shadowOpacity: 0.18,
     shadowRadius: 14,
@@ -2940,6 +4180,51 @@ const shellStyles = StyleSheet.create({
     fontWeight: '600',
     color: IOS_REGISTER.label,
     letterSpacing: -0.4,
+  },
+  basemapSection: {
+    paddingVertical: 8,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: IOS_REGISTER.separator,
+    marginBottom: 2,
+  },
+  basemapLabel: {
+    marginBottom: 7,
+    fontSize: 11,
+    fontWeight: '700',
+    color: IOS_REGISTER.labelSecondary,
+    letterSpacing: 0.4,
+    textTransform: 'uppercase',
+  },
+  basemapSegmented: {
+    flexDirection: 'row',
+    padding: 2,
+    borderRadius: 9,
+    backgroundColor: IOS_REGISTER.fillPill,
+    gap: 2,
+  },
+  basemapSegment: {
+    flex: 1,
+    minHeight: 28,
+    borderRadius: 7,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 8,
+  },
+  basemapSegmentActive: {
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 1 },
+  },
+  basemapSegmentText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: IOS_REGISTER.labelSecondary,
+    letterSpacing: -0.1,
+  },
+  basemapSegmentTextActive: {
+    color: IOS_REGISTER.label,
   },
   layerRow: {
     flexDirection: 'row',
@@ -3042,6 +4327,62 @@ const shellStyles = StyleSheet.create({
     color: 'rgba(60, 60, 67, 0.85)',
     letterSpacing: -0.1,
   },
+  f2ScrubWrap: {
+    marginTop: 12,
+    paddingTop: 10,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: IOS_REGISTER.separator,
+  },
+  f2ScrubHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 4,
+  },
+  f2ScrubHeaderLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: 'rgba(60, 60, 67, 0.62)',
+    letterSpacing: 0.3,
+    textTransform: 'uppercase',
+  },
+  f2ScrubHeaderValue: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: IOS_REGISTER.label,
+    letterSpacing: -0.1,
+  },
+  f2ScrubTicks: {
+    marginTop: 4,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  f2ScrubTickText: {
+    fontSize: 10,
+    color: 'rgba(60, 60, 67, 0.62)',
+    letterSpacing: -0.1,
+  },
+  f2ScrubMetrics: {
+    marginTop: 10,
+    flexDirection: 'row',
+    gap: 8,
+  },
+  f2SheetLegend: {
+    marginTop: 10,
+    gap: 6,
+  },
+  f2SheetLegendRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  f2SheetLegendText: {
+    flex: 1,
+    fontSize: 11,
+    color: 'rgba(60, 60, 67, 0.82)',
+    lineHeight: 15,
+    letterSpacing: -0.1,
+  },
   chipContextPillText: {
     fontSize: 11,
     fontWeight: '600',
@@ -3129,11 +4470,30 @@ const shellStyles = StyleSheet.create({
     paddingVertical: 6,
     marginBottom: 4,
   },
+  sheetStateBtn: {
+    position: 'absolute',
+    top: 8,
+    right: 14,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255, 255, 255, 0.96)',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(60, 60, 67, 0.18)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 2,
+  },
   sheetHandle: {
     width: 36,
     height: 4,
     borderRadius: 2,
     backgroundColor: 'rgba(60, 60, 67, 0.28)',
+  },
+  sheetTopStrip: {
+    marginHorizontal: -16,
+    marginBottom: 8,
+    paddingHorizontal: 12,
   },
   eyebrow: {
     fontSize: 10,
@@ -3273,6 +4633,11 @@ const shellStyles = StyleSheet.create({
     fontWeight: '600',
     color: IOS_REGISTER.accentUserAction,
     letterSpacing: -0.3,
+  },
+  commitHeaderActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   commitBanner: {
     marginHorizontal: 16,

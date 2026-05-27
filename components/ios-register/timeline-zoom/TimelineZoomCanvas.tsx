@@ -20,7 +20,7 @@
  */
 
 import React, { useCallback, useMemo, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Platform, StyleSheet, Text, View } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import {
   Gesture,
@@ -149,6 +149,16 @@ export function TimelineZoomCanvas({
   const [level, setLevel] = useState<ZoomLevel>(initialLevel);
   const [focusStepId, setFocusStepId] = useState<string>(dataset.focusStepId);
   const [gestureDirection, setGestureDirection] = useState<'in' | 'out' | null>(null);
+  // Canvas-wide season selection — survives zoom-level changes so the
+  // user's pick at L3 persists when they pinch back in and out.
+  const [selectedSeasonId, setSelectedSeasonId] = useState<string>(
+    dataset.currentSeasonId,
+  );
+  // If the dataset itself swaps to a new current season (e.g. user
+  // switched interest), reset to that.
+  React.useEffect(() => {
+    setSelectedSeasonId(dataset.currentSeasonId);
+  }, [dataset.currentSeasonId]);
   const select = useSelectMode();
   const isFocusedStepSurface = level === 1;
   useHideTabBar(embedFullDetailAtL1 && isFocusedStepSurface);
@@ -287,7 +297,7 @@ export function TimelineZoomCanvas({
     <GestureHandlerRootView style={styles.root}>
       <View style={styles.surface}>
         {hideInterestHeader ? (
-          level !== 1 && !select.enabled ? (
+          (level !== 1 || Platform.OS === 'web') && !select.enabled ? (
             <CanvasTopBar interestLabel={dataset.interest.label} />
           ) : null
         ) : (
@@ -346,6 +356,8 @@ export function TimelineZoomCanvas({
                   <L3SeasonView
                     dataset={dataset}
                     focusStepId={focusStepId}
+                    selectedSeasonId={selectedSeasonId}
+                    onSelectSeason={setSelectedSeasonId}
                     onOpenStep={handleOpenStep}
                     onReorderStep={select.enabled ? undefined : onReorderStep}
                     onEnterSelectMode={select.enter}
@@ -425,7 +437,7 @@ export function TimelineZoomCanvas({
             level={level}
             onChange={setLevel}
             onSnapToCurrent={handleSnapToCurrent}
-            topOffset={level === 1 ? 28 : 92}
+            topOffset={level === 1 ? 28 : level === 2 ? 88 : 92}
           />
         )}
       </View>
