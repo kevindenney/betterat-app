@@ -1618,6 +1618,36 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
   }, [commitMode, exitCommit]);
   const handleMapPress = useCallback(
     (coords: { lng: number; lat: number }) => {
+      // Polygon hit-test for racing areas first — runs before all
+      // other tap modes so tapping a polygon you authored jumps to
+      // the edit form. Skip while any tap-consuming mode is already
+      // active (commit / anchor / reposition / editing / area-create).
+      const inActiveTapMode =
+        commitMode ||
+        anchorStepTarget ||
+        repositionTarget ||
+        editingArea ||
+        areaSheetCenter;
+      if (!inActiveTapMode && authUser?.id) {
+        const hit = findRacingAreaAtPoint(raceAreasForHitTest, coords.lng, coords.lat);
+        if (hit && hit.properties.createdBy === authUser.id) {
+          // Reuse the existing edit form. The hook returns
+          // synthesized polygon for circle-only seeds; we don't have
+          // the original radius_meters/classes_used in
+          // RacingAreaProperties, so query Supabase or fall back to
+          // 1500m. For now the edit form will read radius from the
+          // editingArea prop and show 1500 if absent.
+          setEditingArea({
+            id: hit.properties.id,
+            name: hit.properties.name,
+            centerLat: coords.lat,
+            centerLng: coords.lng,
+            radiusMeters: null,
+            classesUsed: hit.properties.classesUsed ?? [],
+          });
+          return;
+        }
+      }
       if (anchorStepTarget) {
         // Commit immediately on the first tap — clearer than a preview-
         // then-save dance. Fire the mutation, exit anchor mode, and
@@ -1767,7 +1797,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
               and notification bell sit at the trailing edge. */}
           <View style={shellStyles.topCapsuleRow} onLayout={handleHeaderLayout}>
             <View style={shellStyles.topCapsule}>
-              <ProfileDropdown size={30} variant="light" />
+              <ProfileDropdown size={30} variant="light" menuAlign="left" />
               <Pressable
                 style={shellStyles.capsuleSearch}
                 onPress={() => setSearchOpen(true)}
@@ -1922,19 +1952,28 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
         )}
 
         {/* Commit-mode banner — tells the user the next tap will drop a
-            pin. Hides once a candidate is placed (the sheet takes over). */}
+            pin and gives them an explicit way out. The blue + FAB is
+            gone (entry is the Next Step sheet's "Drop a pin" button);
+            this banner is the only commit-mode chrome remaining, so it
+            absorbs the cancel affordance the FAB used to carry. */}
         {commitMode && !candidate && (
           <View style={shellStyles.commitBannerInline}>
             <Ionicons name="location-outline" size={12} color="#FFFFFF" />
             <Text style={shellStyles.commitBannerInlineText}>
               Tap the map to drop a pin.
             </Text>
+            <Pressable
+              style={shellStyles.commitBannerCancel}
+              onPress={exitCommit}
+              hitSlop={8}
+              accessibilityLabel="Cancel pin drop"
+            >
+              <Ionicons name="close" size={12} color="#FFFFFF" />
+            </Pressable>
           </View>
         )}
 
         <LayersFab
-          onDropPinPress={handlers.useMapLibre ? handleDropPinPress : undefined}
-          commitMode={commitMode}
           bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
         />
 
@@ -4589,6 +4628,15 @@ const shellStyles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
     letterSpacing: -0.1,
+  },
+  commitBannerCancel: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: 'rgba(255,255,255,0.22)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 2,
   },
   // --- Layers sheet -------------------------------------------------------
   layersBackdrop: {
