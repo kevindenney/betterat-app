@@ -1,21 +1,20 @@
 /**
- * useMarineSnapshot — fetch a "right now" wind + ocean-current
+ * useMarineSnapshot — fetch a "right now" wind + ocean-current + wave
  * snapshot from Open-Meteo for a given lat/lng. Lighter than the
  * existing OpenMeteoService (which pulls a full 72h hourly forecast)
- * — we only need the *current* hour to feed Atlas's wind-arrow and
- * tide-arrow overlays as the user pans the map.
+ * — we only need the *current* hour to feed Atlas's overlays as the
+ * user pans the map.
  *
- * Open-Meteo's marine API returns ocean_current_velocity (m/s) and
- * ocean_current_direction (degrees from north, in the direction the
- * current is flowing TO — set, not source). We convert m/s → knots
- * for the existing overlay hooks which expect knots.
+ * - Wind: forecast API, JMA seamless (~5km East Asia, ~20km elsewhere)
+ * - Current: marine API, ocean_current_velocity + direction (m/s → kn)
+ * - Waves: marine API, height (m), direction (set, degrees), period (s)
  *
- * Cached per 4dp coord (~11m) for 5 minutes so a slider drag or
- * minor pan doesn't refetch. Two endpoints are called in parallel.
+ * Cached per 4dp coord (~11m) for 5 minutes so a slider drag or minor
+ * pan doesn't refetch. Three endpoints in parallel — Open-Meteo is
+ * keyless and free for non-commercial / low volume.
  *
- * Open-Meteo is keyless and free for non-commercial / low volume.
- * If marine data isn't available for a coordinate (deep inland),
- * the marine fetch returns nulls and we surface only wind.
+ * If marine data isn't available for a coordinate (deep inland, lake,
+ * etc.) the marine fetches return null and consumers skip those layers.
  */
 
 import { useQuery } from '@tanstack/react-query';
@@ -27,6 +26,7 @@ const MS_TO_KNOTS = 1.94384;
 export interface MarineSnapshot {
   wind: { degrees: number; knots: number } | null;
   current: { degrees: number; knots: number } | null;
+  waves: { degrees: number; heightMeters: number; periodSeconds: number } | null;
 }
 
 interface UseMarineSnapshotArgs {
@@ -93,6 +93,38 @@ async function fetchCurrent(lat: number, lng: number): Promise<MarineSnapshot['c
   }
 }
 
+async function fetchWaves(lat: number, lng: number): Promise<MarineSnapshot['waves']> {
+  // wave_direction is the bearing the waves are TRAVELING TO (set
+  // convention, same as ocean current). wave_height is significant
+  // height in meters. wave_period is energy proxy in seconds — long
+  // periods (10s+) mean ocean swell, short (4-6s) means local wind-
+  // generated chop. All three matter for sailors.
+  const url = `${MARINE_URL}?latitude=${lat}&longitude=${lng}&current=wave_height,wave_direction,wave_period`;
+  try {
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    const json = (await res.json()) as {
+      current?: {
+        wave_height?: number;
+        wave_direction?: number;
+        wave_period?: number;
+      };
+    };
+    const c = json.current;
+    if (!c || c.wave_height == null || c.wave_direction == null || c.wave_period == null) {
+      return null;
+    }
+    return {
+      degrees: Math.round(c.wave_direction),
+      heightMeters: Math.round(c.wave_height * 10) / 10,
+      periodSeconds: Math.round(c.wave_period * 10) / 10,
+    };
+  } catch (err) {
+    console.warn('[atlas] waves fetch failed', err);
+    return null;
+  }
+}
+
 export function useMarineSnapshot({ lat, lng, enabled = true }: UseMarineSnapshotArgs) {
   const queryEnabled = enabled && lat != null && lng != null;
   const rLat = lat != null ? roundCoord(lat) : null;
@@ -103,12 +135,13 @@ export function useMarineSnapshot({ lat, lng, enabled = true }: UseMarineSnapsho
     enabled: queryEnabled,
     staleTime: 5 * 60_000,
     queryFn: async (): Promise<MarineSnapshot> => {
-      if (lat == null || lng == null) return { wind: null, current: null };
-      const [wind, current] = await Promise.all([
+      if (lat == null || lng == null) return { wind: null, current: null, waves: null };
+      const [wind, current, waves] = await Promise.all([
         fetchWind(lat, lng),
         fetchCurrent(lat, lng),
+        fetchWaves(lat, lng),
       ]);
-      return { wind, current };
+      return { wind, current, waves };
     },
   });
 }
