@@ -2366,6 +2366,19 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
         visible={searchOpen}
         onClose={() => setSearchOpen(false)}
         onSelect={handleSearchSelect}
+        filterChips={[
+          { id: 'all', label: 'All', active: activeFilterIds.includes('all') },
+          { id: 'you', label: 'You', tone: 'you', active: activeFilterIds.includes('you') },
+          { id: 'crew', label: 'Crew', tone: 'crew', active: activeFilterIds.includes('crew') },
+          { id: 'fleet', label: 'Fleet', tone: 'fleet', active: activeFilterIds.includes('fleet') },
+          {
+            id: 'following',
+            label: 'Following',
+            tone: 'following',
+            active: activeFilterIds.includes('following'),
+          },
+        ]}
+        onFilterChipsChange={handleChipsChange}
       />
     </View>
   );
@@ -4489,6 +4502,8 @@ const shellStyles = StyleSheet.create({
     paddingVertical: 4,
     minHeight: 30,
     maxWidth: 140,
+    flexShrink: 1,
+    minWidth: 0,
   },
   capsuleInterestDot: {
     width: 7,
@@ -4501,6 +4516,8 @@ const shellStyles = StyleSheet.create({
     fontWeight: '600',
     color: 'rgba(28, 28, 30, 0.86)',
     letterSpacing: -0.1,
+    flexShrink: 1,
+    minWidth: 0,
   },
   capsuleInterestChevron: {
     marginLeft: 3,
