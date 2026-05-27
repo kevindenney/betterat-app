@@ -10,6 +10,7 @@
  */
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import type { Polygon } from 'geojson';
 import { useAuth } from '@/providers/AuthProvider';
 import { supabase } from '@/services/supabase';
 
@@ -18,8 +19,18 @@ export interface CreateRacingAreaInput {
   name: string;
   centerLat: number;
   centerLng: number;
-  /** Radius of the circular area in meters. Default 1500. */
+  /**
+   * Radius of the circular area in meters. Used as a fallback when no
+   * polygon is provided, and also stored on every row so consumers that
+   * read the simplified point+radius columns keep working.
+   */
   radiusMeters?: number;
+  /**
+   * Explicit Polygon geometry. When provided this becomes the canonical
+   * shape (rectangle, hand-drawn polygon, etc.) and `radiusMeters` is
+   * used only for the fallback column.
+   */
+  polygon?: Polygon;
   /**
    * Boat classes that race here (free-text tags so users can write
    * their own class names — e.g. "Dragon", "J/80", "Etchells").
@@ -58,6 +69,15 @@ export function useCreateRacingArea() {
       const classesUsed = (input.classesUsed ?? [])
         .map((c) => c.trim())
         .filter(Boolean);
+      // Polygon geometry wins when provided (rectangles, hand-drawn).
+      // Otherwise fall back to a Point so simplified center+radius
+      // consumers still get a usable centroid.
+      const geometry: Record<string, unknown> = input.polygon
+        ? input.polygon
+        : {
+            type: 'Point',
+            coordinates: [input.centerLng, input.centerLat],
+          };
       const { data, error } = await supabase
         .from('venue_racing_areas')
         .insert({
@@ -70,12 +90,7 @@ export function useCreateRacingArea() {
           radius_meters: radiusMeters,
           classes_used: classesUsed,
           description: input.description?.trim() || null,
-          // Point geometry mirrors the seed shape so any consumer that
-          // still reads `geometry` directly gets a usable centroid.
-          geometry: {
-            type: 'Point',
-            coordinates: [input.centerLng, input.centerLat],
-          },
+          geometry,
         })
         .select(
           'id, area_name, center_lat, center_lng, radius_meters, source, verification_status, classes_used, created_by',
