@@ -54,7 +54,9 @@ import { LocationAnchor } from '@/components/ui/LocationAnchor';
 import { ProfileDropdown } from '@/components/ui/ProfileDropdown';
 import { NotificationBell } from '@/components/social/NotificationBell';
 import { AtlasSearchSheet, type AtlasSearchResult } from './AtlasSearchSheet';
-import { StepPickerStrip } from './StepPickerStrip';
+import { supabase } from '@/services/supabase';
+import { OpenStepPicker } from './OpenStepPicker';
+import type { PickerStep } from '@/hooks/useUserAtlasSteps';
 import { useUserHomeVenue } from '@/hooks/useUserHomeVenue';
 import { useUserAffinityGroups, affinityGroupTone, type UserAffinityGroup } from '@/hooks/useUserAffinityGroups';
 import { useAffinityGroupMembers } from '@/hooks/useAffinityGroupMembers';
@@ -1208,23 +1210,17 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
     setSelectedPin(pin);
   }, []);
   const clearSelectedPin = useCallback(() => setSelectedPin(null), []);
-  const stepPickerStripNode = (
-    <StepPickerStrip
-      steps={pickerSteps}
-      activeStepId={selectedPin?.stepId ?? null}
-      onPickStepWithPlace={(step) => {
-        if (step.lat != null && step.lng != null) {
-          setSearchFocus({ lat: step.lat, lng: step.lng });
-          clearSelectedPin();
-        }
-      }}
-      onPickStepWithoutPlace={(step) => {
-        comingSoonAlert(
-          `Anchor "${step.title}" to a place`,
-          'Soon you’ll be able to tap a step here and drop its pin onto the map. For now, open the step and add a location from Plan.',
-        );
-      }}
-    />
+  const [openStepPickerVisible, setOpenStepPickerVisible] = useState(false);
+  const handlePickStepFromPicker = useCallback(
+    (step: PickerStep) => {
+      setOpenStepPickerVisible(false);
+      if (step.lat != null && step.lng != null) {
+        setSearchFocus({ lat: step.lat, lng: step.lng });
+        clearSelectedPin();
+      }
+      handlers.onStepPress?.(step.step_id);
+    },
+    [handlers, clearSelectedPin],
   );
   const visibleFramePins = useMemo(() => {
     if (!handlers.focusOrgSlug) return framePinsWithDemo;
@@ -1421,7 +1417,12 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
           <AtlasMapLibreCanvas
             frame="f1"
             pins={pins}
-            focusLocation={searchFocus ?? (focusedClubPin ? { lat: focusedClubPin.lat, lng: focusedClubPin.lng } : null)}
+            focusLocation={
+              // Area-sheet center wins so a long-press flies the camera
+              // above the sheet (the canvas's flyTo uses bottom-inset
+              // padding). Falls through to existing focus sources.
+              areaSheetCenter ?? searchFocus ?? (focusedClubPin ? { lat: focusedClubPin.lat, lng: focusedClubPin.lng } : null)
+            }
             nextEvent={
               next
                 ? {
@@ -1636,8 +1637,29 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
           primary={{
             label: 'Plan a step here',
             icon: 'add',
-            onPress: () => {
-              const pin = { lat: candidate.lat, lng: candidate.lng };
+            // Before forwarding the pin to the add-step flow, resolve
+            // the lat/lng to the nearest named place (club / sailing
+            // POI within 1km). This stamps the location with a
+            // human-readable name at write-time so the resulting step
+            // never reads as "Dropped pin (22.366, 114.270)" later.
+            onPress: async () => {
+              const pin: { lat: number; lng: number; place?: string } = {
+                lat: candidate.lat,
+                lng: candidate.lng,
+              };
+              try {
+                const { data } = await supabase.rpc('nearest_named_place', {
+                  target_lat: candidate.lat,
+                  target_lng: candidate.lng,
+                  max_km: 1.0,
+                });
+                const row = (data as { name: string; short_name: string | null }[] | null)?.[0];
+                if (row?.name) {
+                  pin.place = row.short_name ?? row.name;
+                }
+              } catch {
+                // Best-effort — fall through with no place name on RPC failure.
+              }
               exitCommit();
               handlers.onPrimaryAction?.(pin);
             },
@@ -1743,20 +1765,10 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
             eyebrow="YOUR STEP"
             title={titleForUserStepPin(selectedPin)}
             body={detailBodyForPin(selectedPin)}
-            topStripContent={stepPickerStripNode}
             primary={{
               label: 'Open step',
-              icon: 'open-outline',
-              onPress: () => {
-                if (selectedPin.stepId) {
-                  handlers.onStepPress?.(selectedPin.stepId);
-                  return;
-                }
-                comingSoonAlert(
-                  'Open step',
-                  'This pin is a step location, but it is missing a step id. Refresh Atlas and try again.',
-                );
-              },
+              icon: 'chevron-down',
+              onPress: () => setOpenStepPickerVisible(true),
             }}
             secondary={{ label: 'Close', onPress: clearSelectedPin }}
             bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
@@ -1785,7 +1797,6 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
           eyebrow={`NEXT · ${next!.label.toUpperCase()}`}
           title={`Plan a step for ${next!.label}.`}
           body={`${[next!.where, next!.when].filter(Boolean).join(' · ')}\nNo steps here from you, your crew, or your fleet yet.`}
-          topStripContent={stepPickerStripNode}
           primary={{ label: `${next!.label} details`, icon: 'open-outline', onPress: handlers.onSecondaryAction }}
           secondary={{ label: 'Drop a pin', icon: 'location-outline', onPress: handleDropPinPress }}
           showSecondaryInMid
@@ -1802,15 +1813,10 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
           ]
             .filter(Boolean)
             .join('\n')}
-          topStripContent={stepPickerStripNode}
           primary={{
             label: 'Open step',
-            icon: 'open-outline',
-            onPress: () => {
-              if (myNextStepPin.stepId) {
-                handlers.onStepPress?.(myNextStepPin.stepId);
-              }
-            },
+            icon: 'chevron-down',
+            onPress: () => setOpenStepPickerVisible(true),
           }}
           secondary={{ label: 'Drop a pin', icon: 'location-outline', onPress: handleDropPinPress }}
           showSecondaryInMid
@@ -1822,7 +1828,6 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
           eyebrow="ATLAS"
           title="Anchor your next step to a place."
           body="No steps here from you, your crew, or your fleet yet. Drop a pin to start, or tap any pin to see who's there."
-          topStripContent={stepPickerStripNode}
           primary={{
             label: 'Drop a pin',
             icon: 'location-outline',
@@ -1839,6 +1844,13 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
           how high its zIndex went. Render last + high zIndex + the same
           bottomOffset the other Atlas BottomSheets use so the tab bar
           doesn't eat the Save button. */}
+      <OpenStepPicker
+        visible={openStepPickerVisible}
+        steps={pickerSteps}
+        onDismiss={() => setOpenStepPickerVisible(false)}
+        onPickStep={handlePickStepFromPicker}
+      />
+
       <CreateRacingAreaSheet
         visible={areaSheetCenter !== null}
         center={areaSheetCenter}
