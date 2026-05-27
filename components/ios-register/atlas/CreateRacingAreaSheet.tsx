@@ -250,24 +250,19 @@ export function CreateRacingAreaSheet({
             <Ionicons name="close" size={20} color={IOS_REGISTER.labelSecondary} />
           </Pressable>
         </View>
-        <Text style={styles.title}>Draw where racing happens</Text>
-        <Text style={styles.subtitle}>
-          Long-press a different spot on the map to move the area. Refine size + shape below.
-        </Text>
+        <Text style={styles.title}>Racing area</Text>
 
-        <Text style={styles.fieldLabel}>Name</Text>
         <TextInput
           value={name}
           onChangeText={setName}
-          placeholder="e.g. Middle Island"
+          placeholder="Name (e.g. Middle Island)"
           placeholderTextColor={IOS_REGISTER.labelTertiary}
           style={styles.input}
           autoCapitalize="words"
           returnKeyType="next"
         />
 
-        <Text style={styles.fieldLabel}>Shape</Text>
-        <View style={styles.segmented}>
+        <View style={[styles.segmented, styles.fieldGap]}>
           <Pressable
             onPress={() => setShapeKind('circle')}
             style={[styles.segment, isCircle && styles.segmentActive]}
@@ -297,9 +292,9 @@ export function CreateRacingAreaSheet({
         </View>
 
         {isCircle ? (
-          <>
-            <View style={styles.sizeHeaderRow}>
-              <Text style={styles.fieldLabel}>Size</Text>
+          <View style={styles.sliderBlock}>
+            <View style={styles.sliderHeader}>
+              <Text style={styles.sliderLabel}>Size</Text>
               <Text style={styles.sizeValue}>{formatMeters(radiusMeters)}</Text>
             </View>
             <Slider
@@ -313,61 +308,55 @@ export function CreateRacingAreaSheet({
               maximumTrackTintColor={IOS_REGISTER.fillPill}
               thumbTintColor={IOS_REGISTER.accentUserAction}
             />
-            <View style={styles.sizeScaleRow}>
-              <Text style={styles.sizeScaleLabel}>Dinghy</Text>
-              <Text style={styles.sizeScaleLabel}>Keelboat</Text>
-              <Text style={styles.sizeScaleLabel}>Offshore</Text>
-            </View>
-          </>
+          </View>
         ) : (
           <>
-            <View style={styles.sizeHeaderRow}>
-              <Text style={styles.fieldLabel}>Length (E–W)</Text>
-              <Text style={styles.sizeValue}>{formatMeters(rectLengthM)}</Text>
+            <View style={styles.sliderBlock}>
+              <View style={styles.sliderHeader}>
+                <Text style={styles.sliderLabel}>Length (E–W)</Text>
+                <Text style={styles.sizeValue}>{formatMeters(rectLengthM)}</Text>
+              </View>
+              <Slider
+                style={styles.slider}
+                minimumValue={500}
+                maximumValue={10000}
+                step={250}
+                value={rectLengthM}
+                onValueChange={handleLengthChange}
+                minimumTrackTintColor={IOS_REGISTER.accentUserAction}
+                maximumTrackTintColor={IOS_REGISTER.fillPill}
+                thumbTintColor={IOS_REGISTER.accentUserAction}
+              />
             </View>
-            <Slider
-              style={styles.slider}
-              minimumValue={500}
-              maximumValue={10000}
-              step={250}
-              value={rectLengthM}
-              onValueChange={handleLengthChange}
-              minimumTrackTintColor={IOS_REGISTER.accentUserAction}
-              maximumTrackTintColor={IOS_REGISTER.fillPill}
-              thumbTintColor={IOS_REGISTER.accentUserAction}
-            />
-            <View style={styles.sizeHeaderRow}>
-              <Text style={styles.fieldLabel}>Width (N–S)</Text>
-              <Text style={styles.sizeValue}>{formatMeters(rectWidthM)}</Text>
+            <View style={styles.sliderBlock}>
+              <View style={styles.sliderHeader}>
+                <Text style={styles.sliderLabel}>Width (N–S)</Text>
+                <Text style={styles.sizeValue}>{formatMeters(rectWidthM)}</Text>
+              </View>
+              <Slider
+                style={styles.slider}
+                minimumValue={250}
+                maximumValue={6000}
+                step={250}
+                value={rectWidthM}
+                onValueChange={handleWidthChange}
+                minimumTrackTintColor={IOS_REGISTER.accentUserAction}
+                maximumTrackTintColor={IOS_REGISTER.fillPill}
+                thumbTintColor={IOS_REGISTER.accentUserAction}
+              />
             </View>
-            <Slider
-              style={styles.slider}
-              minimumValue={250}
-              maximumValue={6000}
-              step={250}
-              value={rectWidthM}
-              onValueChange={handleWidthChange}
-              minimumTrackTintColor={IOS_REGISTER.accentUserAction}
-              maximumTrackTintColor={IOS_REGISTER.fillPill}
-              thumbTintColor={IOS_REGISTER.accentUserAction}
-            />
-            <Text style={styles.hint}>
-              Axis-aligned for now. Rotation to wind axis coming soon.
-            </Text>
           </>
         )}
 
-        <Text style={styles.fieldLabel}>Boat classes</Text>
         <TextInput
           value={classesText}
           onChangeText={setClassesText}
-          placeholder="Dragon, Etchells, IRC"
+          placeholder="Boat classes — Dragon, Etchells, IRC"
           placeholderTextColor={IOS_REGISTER.labelTertiary}
-          style={styles.input}
+          style={[styles.input, styles.fieldGap]}
           autoCapitalize="words"
           returnKeyType="done"
         />
-        <Text style={styles.hint}>Comma-separated. Used to show this area to the right sailors.</Text>
 
         <View style={styles.actionsRow}>
           <Pressable onPress={onClose} style={[styles.btn, styles.btnSecondary]} disabled={mutation.isPending}>
@@ -403,7 +392,9 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: IOS_REGISTER.cardBg,
     borderRadius: 18,
-    padding: 18,
+    paddingHorizontal: 14,
+    paddingTop: 8,
+    paddingBottom: 12,
     shadowColor: '#000',
     shadowOpacity: 0.15,
     shadowRadius: 18,
@@ -416,7 +407,7 @@ const styles = StyleSheet.create({
     height: 4,
     borderRadius: 2,
     backgroundColor: IOS_REGISTER.separatorStrong,
-    marginBottom: 12,
+    marginBottom: 8,
   },
   headerRow: {
     flexDirection: 'row',
@@ -430,40 +421,24 @@ const styles = StyleSheet.create({
     color: IOS_REGISTER.labelSecondary,
   },
   title: {
-    fontSize: 20,
+    fontSize: 17,
     fontWeight: '600',
     color: IOS_REGISTER.label,
-    marginTop: 6,
-  },
-  subtitle: {
-    fontSize: 13,
-    color: IOS_REGISTER.labelSecondary,
-    marginTop: 4,
-    marginBottom: 16,
-  },
-  fieldLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    letterSpacing: 0.3,
-    color: IOS_REGISTER.labelSecondary,
-    textTransform: 'uppercase',
-    marginTop: 10,
-    marginBottom: 6,
+    marginTop: 2,
+    marginBottom: 10,
   },
   input: {
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: IOS_REGISTER.separatorStrong,
     borderRadius: 10,
     paddingHorizontal: 12,
-    paddingVertical: 10,
+    paddingVertical: 9,
     fontSize: 15,
     color: IOS_REGISTER.label,
     backgroundColor: '#FFFFFF',
   },
-  hint: {
-    fontSize: 11,
-    color: IOS_REGISTER.labelTertiary,
-    marginTop: 4,
+  fieldGap: {
+    marginTop: 8,
   },
   segmented: {
     flexDirection: 'row',
@@ -478,7 +453,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    paddingVertical: 8,
+    paddingVertical: 7,
     borderRadius: 8,
   },
   segmentActive: {
@@ -492,12 +467,20 @@ const styles = StyleSheet.create({
   segmentTextActive: {
     color: '#FFFFFF',
   },
-  sizeHeaderRow: {
+  sliderBlock: {
+    marginTop: 6,
+  },
+  sliderHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'baseline',
-    marginTop: 10,
-    marginBottom: 4,
+  },
+  sliderLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    letterSpacing: 0.3,
+    color: IOS_REGISTER.labelSecondary,
+    textTransform: 'uppercase',
   },
   sizeValue: {
     fontSize: 14,
@@ -507,28 +490,16 @@ const styles = StyleSheet.create({
   },
   slider: {
     width: '100%',
-    height: 32,
-  },
-  sizeScaleRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: -4,
-  },
-  sizeScaleLabel: {
-    fontSize: 10,
-    fontWeight: '600',
-    letterSpacing: 0.3,
-    color: IOS_REGISTER.labelTertiary,
-    textTransform: 'uppercase',
+    height: 28,
   },
   actionsRow: {
     flexDirection: 'row',
     gap: 10,
-    marginTop: 18,
+    marginTop: 12,
   },
   btn: {
     flex: 1,
-    paddingVertical: 12,
+    paddingVertical: 11,
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
