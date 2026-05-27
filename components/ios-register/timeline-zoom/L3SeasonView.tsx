@@ -41,10 +41,10 @@ import { StepDigestCard } from './StepDigestCard';
 import { CapabilityMix } from './CapabilityMix';
 import { PeerJourneyChart } from './PeerJourneyChart';
 import { CrewSparseList } from './CrewSparseList';
+import { ReflectionSparkline } from './ReflectionSparkline';
 import { SeasonLibrarianPrompt } from './SeasonLibrarianPrompt';
 import { SeasonHeaderChips } from './SeasonHeaderChips';
 import { PickerListSheet } from './PickerListSheet';
-import { SeasonCalendarSheet } from './SeasonCalendarSheet';
 import { useDragReorder } from './useDragReorder';
 import { resolveInterestVocab } from './interestVocab';
 import type { TimelineDataset, TimelineSeason, TimelineStep } from './types';
@@ -106,7 +106,7 @@ export function L3SeasonView({
 
   const [chartWidth, setChartWidth] = useState(0);
   const [openPicker, setOpenPicker] = useState<
-    'season' | 'step' | 'calendar' | null
+    'season' | 'step' | null
   >(null);
   const scrollRef = useRef<ScrollView>(null);
   const weekOffsetsRef = useRef<Record<string, number>>({});
@@ -114,19 +114,6 @@ export function L3SeasonView({
   const registerWeekOffset = useCallback((weekId: string, y: number) => {
     weekOffsetsRef.current[weekId] = y;
   }, []);
-
-  const scrollToWeekByIndex = useCallback(
-    (weekIndex: number) => {
-      if (!season) return;
-      const target = season.weeks.find((w) => w.number === weekIndex);
-      if (!target) return;
-      const y = weekOffsetsRef.current[target.id];
-      if (typeof y === 'number') {
-        scrollRef.current?.scrollTo({ y: Math.max(0, y - 8), animated: true });
-      }
-    },
-    [season],
-  );
 
   const onAnalysisLayout = useCallback((e: LayoutChangeEvent) => {
     const w = e.nativeEvent.layout.width;
@@ -206,11 +193,9 @@ export function L3SeasonView({
     >
       <SeasonHeaderChips
         seasonTitle={season.title}
-        dateRange={season.dateRange}
         weekOfTotal={season.weekOfTotal}
         stepOfTotal={stepOfTotal}
         onPressSeason={() => setOpenPicker('season')}
-        onPressDate={() => setOpenPicker('calendar')}
         onPressStep={() => setOpenPicker('step')}
       />
 
@@ -241,6 +226,25 @@ export function L3SeasonView({
               </Text>
             </View>
           )}
+
+          {analysis.reflectionDensity && analysis.reflectionDensity.length > 0 ? (
+            <>
+              <Text style={[styles.sectionEyebrow, styles.sectionEyebrowSpace]}>
+                REFLECTIONS
+              </Text>
+              <Text style={styles.sectionSubeyebrow}>
+                weeks you paused to think
+              </Text>
+              <View style={styles.sparklineWrap}>
+                <ReflectionSparkline
+                  density={analysis.reflectionDensity}
+                  totalWeeks={totalWeeks}
+                  currentWeekNumber={currentWeek}
+                  width={chartWidth}
+                />
+              </View>
+            </>
+          ) : null}
 
           {analysis.peers.length > 0 ? (
             <>
@@ -416,18 +420,6 @@ export function L3SeasonView({
         }}
       />
 
-      <SeasonCalendarSheet
-        visible={openPicker === 'calendar'}
-        seasonTitle={season.title}
-        dateRange={season.dateRange}
-        currentWeek={currentWeek}
-        totalWeeks={totalWeeks}
-        onPickWeek={(weekIndex) => {
-          setOpenPicker(null);
-          scrollToWeekByIndex(weekIndex);
-        }}
-        onClose={() => setOpenPicker(null)}
-      />
     </>
   );
 }
@@ -627,6 +619,9 @@ const styles = StyleSheet.create({
     marginTop: -2,
     marginBottom: 8,
     letterSpacing: 0.1,
+  },
+  sparklineWrap: {
+    marginHorizontal: 16,
   },
   riverEmpty: {
     marginHorizontal: 16,

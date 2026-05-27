@@ -174,6 +174,12 @@ export interface SeasonAnalysis {
   peers: SeasonPeer[];
   /** Inline italic-serif reflection quotes pinned to specific weeks. */
   reflections: SeasonReflection[];
+  /** Per-week reflection count for the REFLECTIONS sparkline. Drives
+   *  one bar per week on the same x-axis as the capability bands —
+   *  sparse weeks become a visible nudge ("you didn't reflect in wk 3").
+   *  Currently sourced from peer_reflections; could fold in own reviews
+   *  later. */
+  reflectionDensity?: { weekNumber: number; count: number }[];
   /** Trophy / milestone markers floated above the river. */
   markers?: SeasonMarker[];
   /** Mid-season lilac prompt at the bottom of L3. */

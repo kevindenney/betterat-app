@@ -809,6 +809,9 @@ function computeSeasonAnalysis(
   // to a specific step the viewer owns, so we look up that step's
   // week directly (no date projection). Adds the reflecting peer at
   // the step's week with role "reflected on it".
+  // Per-week reflection count for the REFLECTIONS sparkline. Built up
+  // alongside the peer bumping so we walk the reflection map once.
+  const reflectionsPerWeek = new Map<number, number>();
   if (stepReflectionsMap && stepReflectionsMap.size > 0) {
     const stepWeekById = new Map<string, number>();
     weeks.forEach((w, i) => {
@@ -819,6 +822,7 @@ function computeSeasonAnalysis(
       if (!wk) continue;
       const reflectedStep = stepById.get(stepId);
       const reflectedColor = stepCapabilityColor(reflectedStep);
+      reflectionsPerWeek.set(wk, (reflectionsPerWeek.get(wk) ?? 0) + reflections.length);
       for (const r of reflections) {
         const peerName = r.peerDisplayName?.trim() || 'Peer';
         bumpPeer(`rf:${r.peerUserId}`, wk, {
@@ -831,6 +835,10 @@ function computeSeasonAnalysis(
       }
     }
   }
+  const reflectionDensity = weeks.map((_w, i) => ({
+    weekNumber: i + 1,
+    count: reflectionsPerWeek.get(i + 1) ?? 0,
+  }));
 
   const peers: SeasonPeer[] = Array.from(peerMap.entries())
     .map(([id, p]) => {
@@ -906,6 +914,7 @@ function computeSeasonAnalysis(
     phases,
     peers,
     reflections: [],
+    reflectionDensity,
     librarianPrompt: {
       eyebrow: 'This rotation · the librarian noticed',
       body: promptBody,
