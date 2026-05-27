@@ -39,6 +39,7 @@ import {
   GeoJSONSource as MLGeoJSONSource,
   Layer as MLLayer,
   type CameraRef,
+  type MapRef,
   type PressEvent,
 } from '@maplibre/maplibre-react-native';
 
@@ -406,6 +407,7 @@ export function AtlasMapLibreCanvas({
 }: AtlasMapLibreCanvasProps) {
   // Hooks first, then early returns — rules-of-hooks compliance.
   const cameraRef = useRef<CameraRef>(null);
+  const mapRef = useRef<MapRef>(null);
   const baseCamera = FRAME_CAMERA[frame];
   // Track map bearing so a compass affordance can surface when the
   // user has rotated the map off north — matches Apple Maps' pattern
@@ -413,7 +415,19 @@ export function AtlasMapLibreCanvas({
   // Note: MapLibre RN v11 uses `bearing` (not `heading`) on both the
   // region event payload and the camera options. `setCamera` doesn't
   // exist on this bridge version — `setStop` is the equivalent.
+  // We read bearing via `mapRef.getBearing()` (async, reliable) instead
+  // of the event payload, because the legacy/Fabric bridge field shape
+  // for `event.nativeEvent.bearing` is brittle between RN architectures.
   const [bearing, setBearing] = useState(0);
+  const pollBearing = useCallback(() => {
+    const m = mapRef.current;
+    if (!m) return;
+    void m.getBearing().then((b: number) => {
+      if (typeof b !== 'number' || !Number.isFinite(b)) return;
+      const norm = ((b + 180) % 360 + 360) % 360 - 180;
+      setBearing(norm);
+    });
+  }, []);
   const resetBearing = useCallback(() => {
     void cameraRef.current?.setStop({ bearing: 0, duration: 300 });
     setBearing(0);
@@ -504,13 +518,11 @@ export function AtlasMapLibreCanvas({
   const pendingCenterRef = useRef<{ lng: number; lat: number } | null>(null);
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const handleRegionChange = useCallback(
-    (event: NativeSyntheticEvent<{ center: [number, number]; bearing?: number }>) => {
-      const b = event.nativeEvent.bearing;
-      if (typeof b === 'number' && Number.isFinite(b)) {
-        // Normalize to (-180, 180] so abs() reads as "how far from north".
-        const norm = ((b + 180) % 360 + 360) % 360 - 180;
-        setBearing(norm);
-      }
+    (event: NativeSyntheticEvent<{ center: [number, number] }>) => {
+      // Always poll the map's bearing — reading from the event payload
+      // was unreliable across legacy/Fabric bridges; the async ref read
+      // is the source of truth.
+      pollBearing();
       if (!onMapCenterChange) return;
       const [lng, lat] = event.nativeEvent.center;
       pendingCenterRef.current = { lng, lat };
@@ -522,7 +534,7 @@ export function AtlasMapLibreCanvas({
         onMapCenterChange(next);
       }, 300);
     },
-    [onMapCenterChange],
+    [onMapCenterChange, pollBearing],
   );
   useEffect(() => {
     // Clean up any pending debounce on unmount so a late timer doesn't
@@ -599,6 +611,7 @@ export function AtlasMapLibreCanvas({
   return (
     <View style={styles.fill}>
       <MLMap
+        ref={mapRef}
         mapStyle={mapStyleForFrame(frame, basemap)}
         style={styles.fill}
         onPress={onMapPress ? handlePress : undefined}
