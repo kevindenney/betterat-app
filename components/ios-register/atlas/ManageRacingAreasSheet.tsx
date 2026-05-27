@@ -42,6 +42,11 @@ interface ManageRacingAreasSheetProps {
   /** When provided, the row's edit button calls this. Parent opens
    *  CreateRacingAreaSheet in edit mode with the supplied target. */
   onEditArea?: (target: ManageAreasEditTarget) => void;
+  /** When provided, an "Add race area" CTA renders at the top of the
+   *  sheet. Parent typically closes this sheet and opens
+   *  CreateRacingAreaSheet at a sensible default center (current map
+   *  camera or focused venue). */
+  onAddArea?: () => void;
 }
 
 interface AreaRow {
@@ -62,7 +67,7 @@ function formatMeters(meters: number | null): string {
   return km % 1 === 0 ? `${km} km` : `${km.toFixed(1)} km`;
 }
 
-export function ManageRacingAreasSheet({ visible, onClose, onEditArea }: ManageRacingAreasSheetProps) {
+export function ManageRacingAreasSheet({ visible, onClose, onEditArea, onAddArea }: ManageRacingAreasSheetProps) {
   const { user } = useAuth();
   const deleteArea = useDeleteRacingArea();
   // Inline confirm — the id of the row showing its [Cancel] [Delete]
@@ -116,6 +121,18 @@ export function ManageRacingAreasSheet({ visible, onClose, onEditArea }: ManageR
           <Text style={styles.hint}>
             Community-added areas you can delete. Seeded official areas aren’t shown.
           </Text>
+          {onAddArea ? (
+            <Pressable
+              onPress={onAddArea}
+              hitSlop={6}
+              style={({ pressed }) => [styles.addBtn, pressed && styles.addBtnPressed]}
+              accessibilityRole="button"
+              accessibilityLabel="Add race area"
+            >
+              <Ionicons name="add-circle-outline" size={18} color={IOS_COLORS.systemBlue} />
+              <Text style={styles.addBtnText}>Add race area</Text>
+            </Pressable>
+          ) : null}
           {isLoading ? (
             <View style={styles.center}>
               <ActivityIndicator color={IOS_COLORS.systemBlue} />
@@ -283,6 +300,26 @@ const styles = StyleSheet.create({
     color: IOS_REGISTER.labelSecondary,
     paddingHorizontal: 4,
     paddingBottom: 10,
+  },
+  addBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    alignSelf: 'flex-start',
+    marginHorizontal: 4,
+    marginBottom: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: 10,
+    backgroundColor: 'rgba(10, 132, 255, 0.12)',
+  },
+  addBtnPressed: {
+    backgroundColor: 'rgba(10, 132, 255, 0.22)',
+  },
+  addBtnText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: IOS_COLORS.systemBlue,
   },
   center: {
     paddingVertical: 30,

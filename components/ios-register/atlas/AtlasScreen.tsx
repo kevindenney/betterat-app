@@ -58,6 +58,9 @@ import { supabase } from '@/services/supabase';
 import { OpenStepPicker } from './OpenStepPicker';
 import { ManageRacingAreasSheet, type ManageAreasEditTarget } from './ManageRacingAreasSheet';
 import type { EditingRacingArea } from './CreateRacingAreaSheet';
+import { RepositionAreaBanner } from './RepositionAreaBanner';
+import { useUpdateRacingArea } from '@/hooks/useUpdateRacingArea';
+import { shapeToPolygon } from '@/lib/atlas-racing-area-shape';
 import type { PickerStep } from '@/hooks/useUserAtlasSteps';
 import { useUserHomeVenue } from '@/hooks/useUserHomeVenue';
 import { useUserAffinityGroups, affinityGroupTone, type UserAffinityGroup } from '@/hooks/useUserAffinityGroups';
@@ -1164,6 +1167,68 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
     setManageAreasOpen(false);
     setEditingArea(target);
   }, []);
+  // Tap-to-reposition flow. Captures the area we're moving plus the
+  // current candidate center (initially the existing center; updated
+  // on each map tap). Stays null when not active.
+  const [repositionTarget, setRepositionTarget] = useState<
+    | (EditingRacingArea & { newLat: number; newLng: number })
+    | null
+  >(null);
+  const updateRacingAreaMutation = useUpdateRacingArea();
+  const handleMoveOnMap = useCallback((target: EditingRacingArea) => {
+    setEditingArea(null);
+    setRepositionTarget({
+      ...target,
+      newLat: target.centerLat,
+      newLng: target.centerLng,
+    });
+  }, []);
+  const handleCancelReposition = useCallback(() => {
+    // Reopen the edit form at the original area so the user doesn't
+    // lose their place.
+    const reverted = repositionTarget
+      ? {
+          id: repositionTarget.id,
+          name: repositionTarget.name,
+          centerLat: repositionTarget.centerLat,
+          centerLng: repositionTarget.centerLng,
+          radiusMeters: repositionTarget.radiusMeters,
+          classesUsed: repositionTarget.classesUsed,
+        }
+      : null;
+    setRepositionTarget(null);
+    if (reverted) setEditingArea(reverted);
+  }, [repositionTarget]);
+  // While repositioning, paint a live preview at the candidate center
+  // using the area's existing radius. Reuses the create-sheet preview
+  // slot so the canvas renders it the same way as a brand-new shape.
+  React.useEffect(() => {
+    if (!repositionTarget) return;
+    const polygon = shapeToPolygon({
+      kind: 'circle',
+      centerLat: repositionTarget.newLat,
+      centerLng: repositionTarget.newLng,
+      radiusMeters: repositionTarget.radiusMeters ?? 1500,
+    });
+    setAreaSheetPolygon(polygon);
+    return () => setAreaSheetPolygon(null);
+  }, [repositionTarget]);
+  const handleSaveReposition = useCallback(async () => {
+    if (!repositionTarget) return;
+    try {
+      await updateRacingAreaMutation.mutateAsync({
+        id: repositionTarget.id,
+        name: repositionTarget.name,
+        centerLat: repositionTarget.newLat,
+        centerLng: repositionTarget.newLng,
+        radiusMeters: repositionTarget.radiusMeters ?? undefined,
+        classesUsed: repositionTarget.classesUsed,
+      });
+      setRepositionTarget(null);
+    } catch (err) {
+      console.warn('[atlas] save reposition failed', err);
+    }
+  }, [repositionTarget, updateRacingAreaMutation]);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchFocus, setSearchFocus] = useState<{ lat: number; lng: number } | null>(
     handlers.initialFocus ?? null,
@@ -1447,6 +1512,12 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
   }, [commitMode, exitCommit]);
   const handleMapPress = useCallback(
     (coords: { lng: number; lat: number }) => {
+      if (repositionTarget) {
+        setRepositionTarget((prev) =>
+          prev ? { ...prev, newLat: coords.lat, newLng: coords.lng } : prev,
+        );
+        return;
+      }
       if (commitMode) {
         // Same housekeeping as entering commit-mode — if the user opens
         // Layers after entering commit-mode and then taps the map, the
@@ -1456,7 +1527,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
         setCandidate(coords);
       }
     },
-    [commitMode],
+    [commitMode, repositionTarget],
   );
   const chromePaddingTop = embedded ? Math.max(insets.top + 8, 48) : 50;
   const lastChromeHeightRef = useRef<number | null>(null);
@@ -1937,6 +2008,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
             : areaSheetCenter
         }
         editingArea={editingArea}
+        onMoveOnMap={handleMoveOnMap}
         onClose={() => {
           setAreaSheetCenter(null);
           setEditingArea(null);
@@ -1944,6 +2016,20 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
         bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
         onShapeChange={setAreaSheetPolygon}
       />
+
+      {repositionTarget ? (
+        <RepositionAreaBanner
+          areaName={repositionTarget.name}
+          hasMoved={
+            repositionTarget.newLat !== repositionTarget.centerLat ||
+            repositionTarget.newLng !== repositionTarget.centerLng
+          }
+          saving={updateRacingAreaMutation.isPending}
+          onCancel={handleCancelReposition}
+          onSave={handleSaveReposition}
+          bottomOffset={((handlers as { bottomSheetOffset?: number }).bottomSheetOffset ?? 0) + 16}
+        />
+      ) : null}
 
       {!embedded && <MockTabBar activeTab="atlas" />}
 

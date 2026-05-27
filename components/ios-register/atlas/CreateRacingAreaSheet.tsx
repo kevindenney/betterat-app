@@ -58,6 +58,12 @@ interface CreateRacingAreaSheetProps {
    */
   editingArea?: EditingRacingArea | null;
   /**
+   * In edit mode only: when provided, a "Move on map" link renders next
+   * to the save button. Parent should close this sheet and enter the
+   * tap-to-reposition flow with the supplied target.
+   */
+  onMoveOnMap?: (target: EditingRacingArea) => void;
+  /**
    * Pixels to push the sheet up from the bottom edge to clear floating
    * chrome like a tab bar. Matches the `bottomOffset` prop on Atlas's
    * other BottomSheet variants. Defaults to a safe iOS tab-bar height.
@@ -135,6 +141,7 @@ export function CreateRacingAreaSheet({
   center,
   defaultBoatClass,
   editingArea,
+  onMoveOnMap,
   bottomOffset = DEFAULT_BOTTOM_OFFSET,
   onShapeChange,
   onClose,
@@ -412,6 +419,18 @@ export function CreateRacingAreaSheet({
           returnKeyType="done"
         />
 
+        {isEditing && onMoveOnMap && editingArea ? (
+          <Pressable
+            onPress={() => onMoveOnMap(editingArea)}
+            style={({ pressed }) => [styles.moveOnMapLink, pressed && { opacity: 0.6 }]}
+            accessibilityRole="button"
+            accessibilityLabel="Move on map"
+          >
+            <Ionicons name="move" size={14} color={IOS_REGISTER.accentUserAction} />
+            <Text style={styles.moveOnMapLinkText}>Move on map</Text>
+          </Pressable>
+        ) : null}
+
         <View style={styles.actionsRow}>
           <Pressable onPress={onClose} style={[styles.btn, styles.btnSecondary]} disabled={mutationPending}>
             <Text style={styles.btnSecondaryText}>Cancel</Text>
@@ -552,6 +571,23 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 10,
     marginTop: 12,
+  },
+  moveOnMapLink: {
+    marginTop: 12,
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    borderRadius: 8,
+    backgroundColor: 'rgba(10, 132, 255, 0.10)',
+  },
+  moveOnMapLinkText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: IOS_REGISTER.accentUserAction,
+    letterSpacing: -0.1,
   },
   btn: {
     flex: 1,
