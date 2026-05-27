@@ -680,6 +680,7 @@ function computeSeasonAnalysis(
     string,
     {
       initials: string;
+      name?: string;
       color: string;
       role?: string;
       firstWeek: number;
@@ -689,7 +690,7 @@ function computeSeasonAnalysis(
   const bumpPeer = (
     id: string,
     weekNumber: number,
-    seed: { initials: string; color: string; role?: string },
+    seed: { initials: string; name?: string; color: string; role?: string },
   ) => {
     const entry = peerMap.get(id);
     if (entry) {
@@ -697,9 +698,11 @@ function computeSeasonAnalysis(
       // Preserve the first role we saw — direct tags beat blueprint roles
       // because they appear in week 1 of any step that has both.
       if (!entry.role && seed.role) entry.role = seed.role;
+      if (!entry.name && seed.name) entry.name = seed.name;
     } else {
       peerMap.set(id, {
         initials: seed.initials,
+        name: seed.name,
         color: seed.color,
         role: seed.role,
         firstWeek: weekNumber,
@@ -723,6 +726,7 @@ function computeSeasonAnalysis(
       if (author) {
         bumpPeer(`bp:${author.toLowerCase()}`, weekNumber, {
           initials: initialsFromName(author),
+          name: author,
           color: deterministicPeerColor(author),
           role: 'blueprint',
         });
@@ -739,10 +743,11 @@ function computeSeasonAnalysis(
   for (const sg of suggestionInputs ?? []) {
     const wk = weekIndexFor(sg.createdAt);
     if (!wk) continue;
-    const name = sg.peerDisplayName?.trim() || 'Peer';
+    const peerName = sg.peerDisplayName?.trim() || 'Peer';
     const role = sg.direction === 'sent' ? 'you suggested' : 'suggested it';
     bumpPeer(`sg:${sg.peerUserId}`, wk, {
-      initials: initialsFromName(name),
+      initials: initialsFromName(peerName),
+      name: peerName,
       color: deterministicPeerColor(sg.peerUserId),
       role,
     });
@@ -761,9 +766,10 @@ function computeSeasonAnalysis(
       const wk = stepWeekById.get(stepId);
       if (!wk) continue;
       for (const r of reflections) {
-        const name = r.peerDisplayName?.trim() || 'Peer';
+        const peerName = r.peerDisplayName?.trim() || 'Peer';
         bumpPeer(`rf:${r.peerUserId}`, wk, {
-          initials: initialsFromName(name),
+          initials: initialsFromName(peerName),
+          name: peerName,
           color: deterministicPeerColor(r.peerUserId),
           role: 'reflected on it',
         });
@@ -775,6 +781,7 @@ function computeSeasonAnalysis(
     .map(([id, p]) => ({
       id,
       initials: p.initials,
+      name: p.name,
       color: p.color,
       role: p.role,
       firstWeek: p.firstWeek,

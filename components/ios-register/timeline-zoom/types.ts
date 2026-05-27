@@ -236,6 +236,10 @@ export interface WeeklyCapabilityMix {
 export interface SeasonPeer {
   id: string;
   initials: string;
+  /** Display name when known — surfaced in sparse-list mode and in
+   *  hover/tap detail on the chart. Initials alone aren't enough to
+   *  identify a peer ("D" could be Diane / David / Demo). */
+  name?: string;
   /** Avatar bubble color. */
   color: string;
   /** "coach", "bow crew", "observer" — small italic role line. */

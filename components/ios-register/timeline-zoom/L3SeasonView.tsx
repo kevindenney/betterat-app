@@ -40,6 +40,7 @@ import { useUniversalPlus } from '@/components/capture/UniversalPlusProvider';
 import { StepDigestCard } from './StepDigestCard';
 import { CapabilityMix } from './CapabilityMix';
 import { PeerJourneyChart } from './PeerJourneyChart';
+import { CrewSparseList } from './CrewSparseList';
 import { SeasonLibrarianPrompt } from './SeasonLibrarianPrompt';
 import { SeasonHeaderChips } from './SeasonHeaderChips';
 import { PickerListSheet } from './PickerListSheet';
@@ -249,14 +250,21 @@ export function L3SeasonView({
               <Text style={styles.sectionSubeyebrow}>
                 {interestVocab.inputSubtitle}
               </Text>
-              <PeerJourneyChart
-                peers={analysis.peers}
-                totalWeeks={totalWeeks}
-                currentWeekNumber={currentWeek}
-                width={chartWidth}
-                compact={analysis.peers.length <= 3}
-                showRole={analysis.peers.length > 2}
-              />
+              {isSparseCrew(analysis.peers) ? (
+                <CrewSparseList
+                  peers={analysis.peers}
+                  totalWeeks={totalWeeks}
+                />
+              ) : (
+                <PeerJourneyChart
+                  peers={analysis.peers}
+                  totalWeeks={totalWeeks}
+                  currentWeekNumber={currentWeek}
+                  width={chartWidth}
+                  compact={analysis.peers.length <= 3}
+                  showRole
+                />
+              )}
             </>
           ) : null}
 
@@ -546,6 +554,21 @@ function ToolbarButton({
     </Pressable>
   );
 }
+
+// CREW data is "sparse" when the chart would be mostly whitespace. We
+// switch to a logbook-style list in that case so a single contribution
+// reads as "Name · suggested it · week 7", not a lonely dot on the
+// right edge of an empty x-axis.
+function isSparseCrew(peers: SeasonPeerLike[]): boolean {
+  if (peers.length === 0) return true;
+  if (peers.length > 2) return false;
+  const total = peers.reduce(
+    (n, p) => n + p.weeklyAppearances.reduce((m, w) => m + w.count, 0),
+    0,
+  );
+  return total <= 3;
+}
+type SeasonPeerLike = { weeklyAppearances: { weekNumber: number; count: number }[] };
 
 const styles = StyleSheet.create({
   scroll: { flex: 1 },
