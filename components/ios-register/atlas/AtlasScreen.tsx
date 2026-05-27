@@ -71,6 +71,7 @@ import { useUserHomeVenue } from '@/hooks/useUserHomeVenue';
 import { useCurrentLocation } from '@/hooks/useCurrentLocation';
 import { useInterest } from '@/providers/InterestProvider';
 import { InterestSwitcher, openInterestSwitcher } from '@/components/InterestSwitcher';
+import { useUniversalPlus } from '@/components/capture';
 import { useUserAffinityGroups, affinityGroupTone, type UserAffinityGroup } from '@/hooks/useUserAffinityGroups';
 import { useAffinityGroupMembers } from '@/hooks/useAffinityGroupMembers';
 import { useAtlasFramePins } from '@/hooks/useAtlasFramePins';
@@ -393,63 +394,105 @@ function TopChrome({
   const { isDrawerOpen, openDrawer } = useWebDrawer();
   const showWebSidebarToggle =
     Platform.OS === 'web' && FEATURE_FLAGS.USE_WEB_SIDEBAR_LAYOUT && !isDrawerOpen;
+  const { currentInterest } = useInterest();
+  const universalPlus = useUniversalPlus();
 
   return (
-    <View style={shellStyles.topCapsuleRow}>
-      {showWebSidebarToggle && (
-        <Pressable
-          onPress={openDrawer}
-          style={({ pressed, hovered }) => [
-            shellStyles.sidebarToggle,
-            (hovered as boolean) && shellStyles.sidebarToggleHover,
-            pressed && shellStyles.sidebarTogglePressed,
-          ]}
-          accessibilityLabel="Show sidebar"
-          accessibilityRole="button"
-        >
-          <View style={shellStyles.sidebarIcon}>
-            <View style={shellStyles.sidebarIconLeft} />
-            <View style={shellStyles.sidebarIconRight} />
-          </View>
-        </Pressable>
-      )}
-      <View style={shellStyles.topCapsule}>
-        <ProfileDropdown size={30} variant="light" menuAlign="left" />
-        <View style={shellStyles.topCapsuleTextSlot}>
-          <Text style={shellStyles.topCapsuleTitle} numberOfLines={1}>
-            {title}
-          </Text>
-          {subtitle ? (
-            <Text style={shellStyles.topCapsuleSubtitle} numberOfLines={1}>
-              {subtitle}
-            </Text>
+    <>
+      <View style={shellStyles.topCapsuleRow}>
+        {showWebSidebarToggle && (
+          <Pressable
+            onPress={openDrawer}
+            style={({ pressed, hovered }) => [
+              shellStyles.sidebarToggle,
+              (hovered as boolean) && shellStyles.sidebarToggleHover,
+              pressed && shellStyles.sidebarTogglePressed,
+            ]}
+            accessibilityLabel="Show sidebar"
+            accessibilityRole="button"
+          >
+            <View style={shellStyles.sidebarIcon}>
+              <View style={shellStyles.sidebarIconLeft} />
+              <View style={shellStyles.sidebarIconRight} />
+            </View>
+          </Pressable>
+        )}
+        <View style={shellStyles.topCapsule}>
+          {currentInterest ? (
+            <Pressable
+              style={shellStyles.capsuleInterest}
+              onPress={() => openInterestSwitcher()}
+              hitSlop={4}
+              accessibilityLabel={`Current interest: ${currentInterest.name}. Tap to switch.`}
+            >
+              <View
+                style={[
+                  shellStyles.capsuleInterestDot,
+                  { backgroundColor: currentInterest.accent_color },
+                ]}
+              />
+              <Text style={shellStyles.capsuleInterestText} numberOfLines={1}>
+                {currentInterest.name}
+              </Text>
+              <Ionicons
+                name="chevron-down"
+                size={11}
+                color="rgba(60, 60, 67, 0.62)"
+                style={shellStyles.capsuleInterestChevron}
+              />
+            </Pressable>
           ) : null}
-        </View>
-        {onSearchPress ? (
-          <Pressable
-            style={shellStyles.capsuleAction}
-            hitSlop={6}
-            onPress={onSearchPress}
-            accessibilityLabel="Search"
-          >
-            <Ionicons name="search" size={16} color="rgba(60, 60, 67, 0.85)" />
-          </Pressable>
-        ) : null}
-        {onLayersPress ? (
-          <Pressable
-            style={shellStyles.capsuleAction}
-            hitSlop={6}
-            onPress={onLayersPress}
-            accessibilityLabel="Map layers"
-          >
-            <Ionicons name="layers-outline" size={16} color="rgba(60, 60, 67, 0.85)" />
-          </Pressable>
-        ) : null}
-        <View style={shellStyles.capsuleAction}>
-          <NotificationBell size={16} color="rgba(60, 60, 67, 0.85)" />
+          <View style={shellStyles.topCapsuleTextSlot}>
+            <Text style={shellStyles.topCapsuleTitle} numberOfLines={1}>
+              {title}
+            </Text>
+            {subtitle ? (
+              <Text style={shellStyles.topCapsuleSubtitle} numberOfLines={1}>
+                {subtitle}
+              </Text>
+            ) : null}
+          </View>
+          {onSearchPress ? (
+            <Pressable
+              style={shellStyles.capsuleAction}
+              hitSlop={6}
+              onPress={onSearchPress}
+              accessibilityLabel="Search"
+            >
+              <Ionicons name="search" size={16} color="rgba(60, 60, 67, 0.85)" />
+            </Pressable>
+          ) : null}
+          {onLayersPress ? (
+            <Pressable
+              style={shellStyles.capsuleAction}
+              hitSlop={6}
+              onPress={onLayersPress}
+              accessibilityLabel="Map layers"
+            >
+              <Ionicons name="layers-outline" size={16} color="rgba(60, 60, 67, 0.85)" />
+            </Pressable>
+          ) : null}
+          {universalPlus.isAvailable ? (
+            <Pressable
+              style={shellStyles.capsuleAction}
+              hitSlop={6}
+              onPress={universalPlus.open}
+              accessibilityLabel="Add"
+            >
+              <Ionicons name="add" size={18} color="rgba(60, 60, 67, 0.85)" />
+            </Pressable>
+          ) : null}
+          <View style={shellStyles.capsuleAction}>
+            <NotificationBell size={16} color="rgba(60, 60, 67, 0.85)" />
+          </View>
+          <ProfileDropdown size={30} variant="light" menuAlign="right" />
         </View>
       </View>
-    </View>
+      {/* Headless InterestSwitcher hosts the modal so the pill's
+          openInterestSwitcher() call can pop the sheet on F2–F7. F1
+          mounts its own headless inside the inline capsule render. */}
+      <InterestSwitcher headless />
+    </>
   );
 }
 
@@ -1197,6 +1240,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
   const homeVenue = useUserHomeVenue();
   const { getCurrentLocation } = useCurrentLocation();
   const { currentInterest } = useInterest();
+  const universalPlus = useUniversalPlus();
   const { groups: userGroups } = useUserAffinityGroups('sail-racing');
   const [activeGroupIds, setActiveGroupIds] = useState<string[]>([]);
   const toggleGroupChip = useCallback((groupId: string) => {
@@ -1919,16 +1963,13 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
                   }
                 : null
             }
-            onMapPress={
-              commitMode ||
-              repositionTarget ||
-              retraceTarget ||
-              editingArea ||
-              areaSheetCenter ||
-              anchorStepTarget
-                ? handleMapPress
-                : undefined
-            }
+            // Always wire onMapPress when the user is signed in.
+            // handleMapPress's first branch is "tap inside one of your
+            // own polygons → open the edit form" which has to run from
+            // an idle state (no active tap-mode). Gating the prop on
+            // an existing mode meant taps in idle never reached the
+            // polygon hit-test, so Lamma Channel etc. felt dead.
+            onMapPress={authUser?.id ? handleMapPress : undefined}
             onMapLongPress={(coords) => {
               // Long-press = "anchor a step at this exact spot". Skip the
               // commit-mode tap-to-drop dance and jump straight to the
@@ -1974,7 +2015,6 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
               and notification bell sit at the trailing edge. */}
           <View style={shellStyles.topCapsuleRow} onLayout={handleHeaderLayout}>
             <View style={shellStyles.topCapsule}>
-              <ProfileDropdown size={30} variant="light" menuAlign="left" />
               {currentInterest ? (
                 <Pressable
                   style={shellStyles.capsuleInterest}
@@ -2025,9 +2065,20 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
               >
                 <Ionicons name="layers-outline" size={16} color="rgba(60, 60, 67, 0.85)" />
               </Pressable>
+              {universalPlus.isAvailable ? (
+                <Pressable
+                  style={shellStyles.capsuleAction}
+                  onPress={universalPlus.open}
+                  hitSlop={6}
+                  accessibilityLabel="Add"
+                >
+                  <Ionicons name="add" size={18} color="rgba(60, 60, 67, 0.85)" />
+                </Pressable>
+              ) : null}
               <View style={shellStyles.capsuleAction}>
                 <NotificationBell size={16} color="rgba(60, 60, 67, 0.85)" />
               </View>
+              <ProfileDropdown size={30} variant="light" menuAlign="right" />
             </View>
           </View>
           {/* Headless InterestSwitcher hosts the modal so the imperative
