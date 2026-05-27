@@ -1535,6 +1535,13 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
     lng: mapCenter.lng,
     enabled: showWind || showTide,
   });
+  const { user: authUser } = useAuth();
+  // Racing-area feature collection — same query key as the canvas, so
+  // free cached read. Used by handleMapPress for polygon hit-testing.
+  const { featureCollection: raceAreasForHitTest } = useAtlasRacingAreas({
+    centerLat: mapCenter.lat,
+    centerLng: mapCenter.lng,
+  });
   // HKO observations override Open-Meteo wind when a station is within
   // ~5km of map center. Real anemometer beats a 5km model grid for the
   // local read, but only inside the HK bbox — outside we don't bother
