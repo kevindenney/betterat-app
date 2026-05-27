@@ -9,6 +9,7 @@
 import React from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { IOS_COLORS, IOS_REGISTER } from '@/lib/design-tokens-ios';
 
@@ -21,6 +22,12 @@ interface RepositionAreaBannerProps {
   bottomOffset?: number;
 }
 
+// The Atlas floating chrome (location anchor + layers/mail/profile
+// cluster + filter pill) eats ~96pt below the safe-area inset on F1.
+// Push the reposition banner past that so it never sits behind the
+// system clock / dynamic island AND never overlaps the cluster row.
+const CHROME_CLEAR_HEIGHT = 96;
+
 export function RepositionAreaBanner({
   areaName,
   hasMoved,
@@ -29,9 +36,11 @@ export function RepositionAreaBanner({
   onSave,
   bottomOffset = 16,
 }: RepositionAreaBannerProps) {
+  const insets = useSafeAreaInsets();
+  const top = Math.max(insets.top, 8) + CHROME_CLEAR_HEIGHT;
   return (
     <>
-      <View style={styles.topBanner} pointerEvents="none">
+      <View style={[styles.topBanner, { top }]} pointerEvents="none">
         <View style={styles.topBannerInner}>
           <Ionicons name="move" size={14} color="#FFFFFF" />
           <Text style={styles.topBannerText} numberOfLines={2}>
@@ -71,7 +80,12 @@ export function RepositionAreaBanner({
           {saving ? (
             <ActivityIndicator color="#FFFFFF" />
           ) : (
-            <Text style={styles.btnPrimaryText}>
+            <Text
+              style={[
+                styles.btnPrimaryText,
+                !hasMoved && styles.btnDisabledText,
+              ]}
+            >
               {hasMoved ? 'Save position' : 'Tap the map…'}
             </Text>
           )}
@@ -84,7 +98,7 @@ export function RepositionAreaBanner({
 const styles = StyleSheet.create({
   topBanner: {
     position: 'absolute',
-    top: 12,
+    // `top` is overridden inline (safe-area insets + chrome clearance).
     left: 12,
     right: 12,
     zIndex: 1300,
@@ -148,7 +162,16 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#FFFFFF',
   },
+  // Disabled state needs to stay legible against the white card.
+  // rgba(blue, 0.4) over white reads as pale near-white with white
+  // text — the user sees no button there. Use a mid-tone gray fill
+  // and dark gray text so the "Tap the map…" affordance is visible
+  // and obviously inactive.
   btnDisabled: {
-    backgroundColor: 'rgba(10, 132, 255, 0.4)',
+    backgroundColor: 'rgba(120, 120, 130, 0.16)',
+  },
+  btnDisabledText: {
+    color: IOS_REGISTER.label,
+    opacity: 0.55,
   },
 });

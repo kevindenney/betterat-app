@@ -105,7 +105,12 @@ export function RetraceAreaBanner({
           {saving ? (
             <ActivityIndicator color="#FFFFFF" />
           ) : (
-            <Text style={styles.btnPrimaryText}>
+            <Text
+              style={[
+                styles.btnPrimaryText,
+                !canSave && styles.btnDisabledText,
+              ]}
+            >
               {canSave ? 'Save shape' : `${vertexCount}/${MIN_VERTICES}`}
             </Text>
           )}
@@ -188,7 +193,15 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#FFFFFF',
   },
+  // Disabled state needs to stay legible against the white card.
+  // rgba(blue, 0.4) over white reads as near-white with white text —
+  // user sees no button. Mid-tone gray fill + dark gray text keeps
+  // the "vertex count / 3" affordance visible and obviously inactive.
   btnDisabled: {
-    backgroundColor: 'rgba(10, 132, 255, 0.4)',
+    backgroundColor: 'rgba(120, 120, 130, 0.16)',
+  },
+  btnDisabledText: {
+    color: IOS_REGISTER.label,
+    opacity: 0.55,
   },
 });
