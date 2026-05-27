@@ -28,17 +28,35 @@ import type { Polygon } from 'geojson';
 import { IOS_REGISTER } from '@/lib/design-tokens-ios';
 import { showAlert } from '@/lib/utils/crossPlatformAlert';
 import { useCreateRacingArea } from '@/hooks/useCreateRacingArea';
+import { useUpdateRacingArea } from '@/hooks/useUpdateRacingArea';
 import {
   shapeBoundingRadiusMeters,
   shapeToPolygon,
   type RacingAreaShape,
 } from '@/lib/atlas-racing-area-shape';
 
+export interface EditingRacingArea {
+  id: string;
+  name: string;
+  centerLat: number;
+  centerLng: number;
+  /** Stored radius — used as initial slider value in circle mode. */
+  radiusMeters: number | null;
+  classesUsed: string[];
+}
+
 interface CreateRacingAreaSheetProps {
   visible: boolean;
   center: { lat: number; lng: number } | null;
   /** Optional pre-filled boat class — usually the user's primary class. */
   defaultBoatClass?: string | null;
+  /**
+   * When provided, the sheet enters EDIT mode: form is pre-filled with
+   * the area's name/center/radius/classes, the save call UPDATEs by id
+   * instead of INSERTing, and the eyebrow + button label reflect edit
+   * intent.
+   */
+  editingArea?: EditingRacingArea | null;
   /**
    * Pixels to push the sheet up from the bottom edge to clear floating
    * chrome like a tab bar. Matches the `bottomOffset` prop on Atlas's
@@ -116,11 +134,13 @@ export function CreateRacingAreaSheet({
   visible,
   center,
   defaultBoatClass,
+  editingArea,
   bottomOffset = DEFAULT_BOTTOM_OFFSET,
   onShapeChange,
   onClose,
   onCreated,
 }: CreateRacingAreaSheetProps) {
+  const isEditing = Boolean(editingArea);
   const [name, setName] = useState('');
   const [shapeKind, setShapeKind] = useState<ShapeKind>('circle');
   const [radiusMeters, setRadiusMeters] = useState<number>(DEFAULT_RADIUS_METERS);
@@ -131,19 +151,32 @@ export function CreateRacingAreaSheet({
   // class-appropriate radius while this is false; once they move the
   // slider their explicit choice wins, even if they then edit classes.
   const [sizeTouched, setSizeTouched] = useState(false);
-  const mutation = useCreateRacingArea();
+  const createMutation = useCreateRacingArea();
+  const updateMutation = useUpdateRacingArea();
+  const mutationPending = createMutation.isPending || updateMutation.isPending;
 
   useEffect(() => {
-    if (visible) {
-      setName('');
+    if (!visible) return;
+    if (editingArea) {
+      setName(editingArea.name);
       setShapeKind('circle');
-      setRadiusMeters(DEFAULT_RADIUS_METERS);
+      setRadiusMeters(editingArea.radiusMeters ?? DEFAULT_RADIUS_METERS);
       setRectLengthM(DEFAULT_RECT_LENGTH_M);
       setRectWidthM(DEFAULT_RECT_WIDTH_M);
-      setClassesText(defaultBoatClass ?? '');
-      setSizeTouched(false);
+      setClassesText(editingArea.classesUsed.join(', '));
+      // Treat the existing radius as user-chosen so the class-based
+      // auto-suggester doesn't overwrite it while they edit.
+      setSizeTouched(true);
+      return;
     }
-  }, [visible, defaultBoatClass]);
+    setName('');
+    setShapeKind('circle');
+    setRadiusMeters(DEFAULT_RADIUS_METERS);
+    setRectLengthM(DEFAULT_RECT_LENGTH_M);
+    setRectWidthM(DEFAULT_RECT_WIDTH_M);
+    setClassesText(defaultBoatClass ?? '');
+    setSizeTouched(false);
+  }, [visible, defaultBoatClass, editingArea]);
 
   // Smart default: as the user types classes ("Dragon", "IRC", …),
   // snap the circle slider to a sensible radius. Only applies to the
@@ -203,8 +236,8 @@ export function CreateRacingAreaSheet({
   }, [visible, shape, onShapeChange]);
 
   const canSave = useMemo(
-    () => name.trim().length > 0 && shape !== null && !mutation.isPending,
-    [name, shape, mutation.isPending],
+    () => name.trim().length > 0 && shape !== null && !mutationPending,
+    [name, shape, mutationPending],
   );
 
   const handleSave = async () => {
@@ -213,9 +246,28 @@ export function CreateRacingAreaSheet({
       .split(',')
       .map((c) => c.trim())
       .filter(Boolean);
+    const polygon = shapeKind === 'rectangle' ? shapeToPolygon(shape) : undefined;
     try {
-      const polygon = shapeKind === 'rectangle' ? shapeToPolygon(shape) : undefined;
-      const area = await mutation.mutateAsync({
+      if (editingArea) {
+        await updateMutation.mutateAsync({
+          id: editingArea.id,
+          name,
+          centerLat: shape.centerLat,
+          centerLng: shape.centerLng,
+          radiusMeters: shapeBoundingRadiusMeters(shape),
+          polygon,
+          classesUsed: classes,
+        });
+        onCreated?.({
+          id: editingArea.id,
+          name: name.trim(),
+          lat: shape.centerLat,
+          lng: shape.centerLng,
+        });
+        onClose();
+        return;
+      }
+      const area = await createMutation.mutateAsync({
         name,
         centerLat: shape.centerLat,
         centerLng: shape.centerLng,
@@ -245,7 +297,9 @@ export function CreateRacingAreaSheet({
       <View style={styles.card}>
         <View style={styles.handle} />
         <View style={styles.headerRow}>
-          <Text style={styles.eyebrow}>NEW RACING AREA</Text>
+          <Text style={styles.eyebrow}>
+            {isEditing ? 'EDIT RACING AREA' : 'NEW RACING AREA'}
+          </Text>
           <Pressable onPress={onClose} hitSlop={10} accessibilityLabel="Close">
             <Ionicons name="close" size={20} color={IOS_REGISTER.labelSecondary} />
           </Pressable>
@@ -359,7 +413,7 @@ export function CreateRacingAreaSheet({
         />
 
         <View style={styles.actionsRow}>
-          <Pressable onPress={onClose} style={[styles.btn, styles.btnSecondary]} disabled={mutation.isPending}>
+          <Pressable onPress={onClose} style={[styles.btn, styles.btnSecondary]} disabled={mutationPending}>
             <Text style={styles.btnSecondaryText}>Cancel</Text>
           </Pressable>
           <Pressable
@@ -367,10 +421,12 @@ export function CreateRacingAreaSheet({
             disabled={!canSave}
             style={[styles.btn, styles.btnPrimary, !canSave && styles.btnDisabled]}
           >
-            {mutation.isPending ? (
+            {mutationPending ? (
               <ActivityIndicator color="#FFFFFF" />
             ) : (
-              <Text style={styles.btnPrimaryText}>Save area</Text>
+              <Text style={styles.btnPrimaryText}>
+                {isEditing ? 'Save changes' : 'Save area'}
+              </Text>
             )}
           </Pressable>
         </View>

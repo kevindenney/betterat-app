@@ -56,13 +56,17 @@ import { NotificationBell } from '@/components/social/NotificationBell';
 import { AtlasSearchSheet, type AtlasSearchResult } from './AtlasSearchSheet';
 import { supabase } from '@/services/supabase';
 import { OpenStepPicker } from './OpenStepPicker';
-import { ManageRacingAreasSheet } from './ManageRacingAreasSheet';
+import { ManageRacingAreasSheet, type ManageAreasEditTarget } from './ManageRacingAreasSheet';
+import type { EditingRacingArea } from './CreateRacingAreaSheet';
 import type { PickerStep } from '@/hooks/useUserAtlasSteps';
 import { useUserHomeVenue } from '@/hooks/useUserHomeVenue';
 import { useUserAffinityGroups, affinityGroupTone, type UserAffinityGroup } from '@/hooks/useUserAffinityGroups';
 import { useAffinityGroupMembers } from '@/hooks/useAffinityGroupMembers';
 import { useAtlasFramePins } from '@/hooks/useAtlasFramePins';
 import { useNearestPlace, formatNearLabel } from '@/hooks/useNearestPlace';
+import { useMarineSnapshot, conditionsLineFor } from '@/hooks/useMarineSnapshot';
+import { useWindOverlay } from '@/hooks/useWindOverlay';
+import { useTideOverlay } from '@/hooks/useTideOverlay';
 import { useNextRaceMarks } from '@/hooks/useNextRaceMarks';
 import { useWalkTimeAnnotations } from '@/hooks/useWalkTimeAnnotations';
 import { useCohortHeatmap } from '@/hooks/useCohortHeatmap';
@@ -1155,6 +1159,11 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
   }, []);
   const [layersOpen, setLayersOpen] = useState(false);
   const [manageAreasOpen, setManageAreasOpen] = useState(false);
+  const [editingArea, setEditingArea] = useState<EditingRacingArea | null>(null);
+  const handleEditArea = useCallback((target: ManageAreasEditTarget) => {
+    setManageAreasOpen(false);
+    setEditingArea(target);
+  }, []);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchFocus, setSearchFocus] = useState<{ lat: number; lng: number } | null>(
     handlers.initialFocus ?? null,
@@ -1360,35 +1369,45 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
     if (key === 'sailing.tide') setShowTide(on);
     if (key === 'sailing.race_areas') setShowRaceAreas(on);
   }, []);
-  // F1 wind/tide demo arrow — a single representative arrow pair over
-  // the next-race area when the user toggles wind / tide on at country
-  // zoom. Real per-event forecast values land when StormGlass / OpenWind
-  // hooks are wired; for now the labels match the F2 race-day values.
-  const windTidePins = useMemo<AtlasPinSpec[]>(() => {
-    const out: AtlasPinSpec[] = [];
-    const center = { lat: next?.lat ?? 22.2978, lng: next?.lng ?? 114.185 };
-    if (showWind) {
-      out.push({
-        id: 'f1-wind-primary',
-        lat: center.lat + 0.005,
-        lng: center.lng,
-        kind: 'wind-arrow',
-        label: '12 kts · NE',
-        subtitle: 'Forecast for next race day · NE 8–14',
-      });
-    }
-    if (showTide) {
-      out.push({
-        id: 'f1-tide-primary',
-        lat: center.lat - 0.005,
-        lng: center.lng,
-        kind: 'tide-arrow',
-        label: 'Outgoing · 0.4 kt',
-        subtitle: 'Set + drift around the course · ebb peak 13:40',
-      });
-    }
-    return out;
-  }, [showWind, showTide, next?.lat, next?.lng]);
+  // Map-center-following wind & tide. The user pans, MapLibre's
+  // onRegionDidChange updates `mapCenter`, Open-Meteo returns the
+  // marine snapshot for that water, and the overlay hooks paint
+  // arrow grids around the new center. Defaults to the next-race
+  // venue centroid so we have something to draw before the user
+  // moves the map.
+  const [mapCenter, setMapCenter] = useState<{ lat: number; lng: number }>({
+    lat: next?.lat ?? 22.2978,
+    lng: next?.lng ?? 114.185,
+  });
+  const { data: marineSnapshot } = useMarineSnapshot({
+    lat: mapCenter.lat,
+    lng: mapCenter.lng,
+    enabled: showWind || showTide,
+  });
+  const windConditionsLine = useMemo(
+    () => conditionsLineFor(marineSnapshot?.wind ?? null),
+    [marineSnapshot],
+  );
+  const tideConditionsLine = useMemo(
+    () => conditionsLineFor(marineSnapshot?.current ?? null),
+    [marineSnapshot],
+  );
+  const windPins = useWindOverlay({
+    centerLat: mapCenter.lat,
+    centerLng: mapCenter.lng,
+    conditionsLine: windConditionsLine ?? '0|0',
+    enabled: showWind && windConditionsLine !== null,
+  });
+  const tidePins = useTideOverlay({
+    centerLat: mapCenter.lat,
+    centerLng: mapCenter.lng,
+    conditionsLine: tideConditionsLine ?? '0|0',
+    enabled: showTide && tideConditionsLine !== null,
+  });
+  const windTidePins = useMemo<AtlasPinSpec[]>(
+    () => [...windPins, ...tidePins],
+    [windPins, tidePins],
+  );
   // Apply chip-driven peer-pin filtering: when "All" is off and one
   // or more relationship chips are active, hide peer pins whose kind
   // isn't in the allow-list. POIs / race-marks / wind / tide always
@@ -1501,6 +1520,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
                 : candidate
             }
             racingAreaPreviewPolygon={areaSheetPolygon}
+            onMapCenterChange={setMapCenter}
             onPinPress={handlePinPress}
             showRaceAreas={showRaceAreas}
             basemap={basemap}
@@ -1910,9 +1930,17 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
       />
 
       <CreateRacingAreaSheet
-        visible={areaSheetCenter !== null}
-        center={areaSheetCenter}
-        onClose={() => setAreaSheetCenter(null)}
+        visible={areaSheetCenter !== null || editingArea !== null}
+        center={
+          editingArea
+            ? { lat: editingArea.centerLat, lng: editingArea.centerLng }
+            : areaSheetCenter
+        }
+        editingArea={editingArea}
+        onClose={() => {
+          setAreaSheetCenter(null);
+          setEditingArea(null);
+        }}
         bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
         onShapeChange={setAreaSheetPolygon}
       />
@@ -1938,6 +1966,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
       <ManageRacingAreasSheet
         visible={manageAreasOpen}
         onClose={() => setManageAreasOpen(false)}
+        onEditArea={handleEditArea}
       />
 
       <AtlasSearchSheet

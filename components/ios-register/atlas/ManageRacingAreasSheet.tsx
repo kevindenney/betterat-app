@@ -27,9 +27,21 @@ import { supabase } from '@/services/supabase';
 import { useAuth } from '@/providers/AuthProvider';
 import { useDeleteRacingArea } from '@/hooks/useDeleteRacingArea';
 
+export interface ManageAreasEditTarget {
+  id: string;
+  name: string;
+  centerLat: number;
+  centerLng: number;
+  radiusMeters: number | null;
+  classesUsed: string[];
+}
+
 interface ManageRacingAreasSheetProps {
   visible: boolean;
   onClose: () => void;
+  /** When provided, the row's edit button calls this. Parent opens
+   *  CreateRacingAreaSheet in edit mode with the supplied target. */
+  onEditArea?: (target: ManageAreasEditTarget) => void;
 }
 
 interface AreaRow {
@@ -37,6 +49,8 @@ interface AreaRow {
   area_name: string;
   source: string | null;
   classes_used: string[] | null;
+  center_lat: number | null;
+  center_lng: number | null;
   radius_meters: number | null;
   created_by: string | null;
 }
@@ -48,7 +62,7 @@ function formatMeters(meters: number | null): string {
   return km % 1 === 0 ? `${km} km` : `${km.toFixed(1)} km`;
 }
 
-export function ManageRacingAreasSheet({ visible, onClose }: ManageRacingAreasSheetProps) {
+export function ManageRacingAreasSheet({ visible, onClose, onEditArea }: ManageRacingAreasSheetProps) {
   const { user } = useAuth();
   const deleteArea = useDeleteRacingArea();
   // Inline confirm — the id of the row showing its [Cancel] [Delete]
@@ -62,7 +76,7 @@ export function ManageRacingAreasSheet({ visible, onClose }: ManageRacingAreasSh
     queryFn: async (): Promise<AreaRow[]> => {
       const { data, error } = await supabase
         .from('venue_racing_areas')
-        .select('id, area_name, source, classes_used, radius_meters, created_by')
+        .select('id, area_name, source, classes_used, center_lat, center_lng, radius_meters, created_by')
         .eq('is_active', true)
         .neq('source', 'official')
         .order('area_name');
@@ -169,18 +183,43 @@ export function ManageRacingAreasSheet({ visible, onClose }: ManageRacingAreasSh
                         </Pressable>
                       </View>
                     ) : (
-                      <Pressable
-                        onPress={() => requestDelete(area)}
-                        hitSlop={8}
-                        style={({ pressed }) => [
-                          styles.deleteBtn,
-                          pressed && styles.deleteBtnPressed,
-                        ]}
-                        accessibilityRole="button"
-                        accessibilityLabel={`Delete ${area.area_name}`}
-                      >
-                        <Ionicons name="trash-outline" size={18} color="#C4474A" />
-                      </Pressable>
+                      <View style={styles.rowActions}>
+                        {onEditArea && area.center_lat != null && area.center_lng != null ? (
+                          <Pressable
+                            onPress={() =>
+                              onEditArea({
+                                id: area.id,
+                                name: area.area_name,
+                                centerLat: area.center_lat!,
+                                centerLng: area.center_lng!,
+                                radiusMeters: area.radius_meters,
+                                classesUsed: area.classes_used ?? [],
+                              })
+                            }
+                            hitSlop={8}
+                            style={({ pressed }) => [
+                              styles.editBtn,
+                              pressed && styles.editBtnPressed,
+                            ]}
+                            accessibilityRole="button"
+                            accessibilityLabel={`Edit ${area.area_name}`}
+                          >
+                            <Ionicons name="pencil-outline" size={16} color={IOS_COLORS.systemBlue} />
+                          </Pressable>
+                        ) : null}
+                        <Pressable
+                          onPress={() => requestDelete(area)}
+                          hitSlop={8}
+                          style={({ pressed }) => [
+                            styles.deleteBtn,
+                            pressed && styles.deleteBtnPressed,
+                          ]}
+                          accessibilityRole="button"
+                          accessibilityLabel={`Delete ${area.area_name}`}
+                        >
+                          <Ionicons name="trash-outline" size={18} color="#C4474A" />
+                        </Pressable>
+                      </View>
                     )}
                   </View>
                 );
@@ -284,6 +323,22 @@ const styles = StyleSheet.create({
   rowMeta: {
     fontSize: 12,
     color: IOS_REGISTER.labelSecondary,
+  },
+  rowActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  editBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(10, 132, 255, 0.12)',
+  },
+  editBtnPressed: {
+    backgroundColor: 'rgba(10, 132, 255, 0.22)',
   },
   deleteBtn: {
     width: 36,
