@@ -1518,6 +1518,18 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
         );
         return;
       }
+      // Racing-area create/edit sheet is open — a single tap repositions
+      // the area's center. No intermediate "Move on map" step needed.
+      if (editingArea) {
+        setEditingArea((prev) =>
+          prev ? { ...prev, centerLat: coords.lat, centerLng: coords.lng } : prev,
+        );
+        return;
+      }
+      if (areaSheetCenter) {
+        setAreaSheetCenter({ lat: coords.lat, lng: coords.lng });
+        return;
+      }
       if (commitMode) {
         // Same housekeeping as entering commit-mode — if the user opens
         // Layers after entering commit-mode and then taps the map, the
@@ -1527,7 +1539,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
         setCandidate(coords);
       }
     },
-    [commitMode, repositionTarget],
+    [commitMode, repositionTarget, editingArea, areaSheetCenter],
   );
   const chromePaddingTop = embedded ? Math.max(insets.top + 8, 48) : 50;
   const lastChromeHeightRef = useRef<number | null>(null);
@@ -1580,7 +1592,11 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
                   }
                 : null
             }
-            onMapPress={commitMode ? handleMapPress : undefined}
+            onMapPress={
+              commitMode || repositionTarget || editingArea || areaSheetCenter
+                ? handleMapPress
+                : undefined
+            }
             onMapLongPress={(coords) => setAreaSheetCenter({ lat: coords.lat, lng: coords.lng })}
             // Render a candidate pin where the area will center. When the
             // area sheet is open we forward areaSheetCenter so the user
@@ -2053,6 +2069,18 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
         visible={manageAreasOpen}
         onClose={() => setManageAreasOpen(false)}
         onEditArea={handleEditArea}
+        onAddArea={() => {
+          setManageAreasOpen(false);
+          // Seed the create sheet with the current camera focus when we
+          // have one (search/result fly), otherwise fall back to the F1
+          // canonical centroid. User can drag the center inside the
+          // create sheet's map preview before saving.
+          setAreaSheetCenter(
+            searchFocus
+              ? { lat: searchFocus.lat, lng: searchFocus.lng }
+              : { lat: 22.295, lng: 114.18 },
+          );
+        }}
       />
 
       <AtlasSearchSheet
