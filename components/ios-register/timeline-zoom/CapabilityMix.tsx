@@ -48,6 +48,12 @@ interface CapabilityMixProps {
   markers?: CapabilityMixMarker[];
   /** Optional tap on a band — opens a deeper view for that capability. */
   onCapabilityPress?: (capabilityId: string, capabilityLabel: string) => void;
+  /**
+   * Override the tick label for the x-axis. L3 defaults to "wk N";
+   * L4 passes a function that returns the session label ("Winter '26",
+   * "Fall '24") for each unit.
+   */
+  unitLabel?: (n: number) => string;
 }
 
 interface ResolvedBand {
@@ -102,6 +108,7 @@ export function CapabilityMix({
   height = 168,
   markers = [],
   onCapabilityPress,
+  unitLabel = (n) => `wk ${n}`,
 }: CapabilityMixProps) {
   const padX = 12;
   // Top zone holds the NOW pill + marker labels; bottom holds the
@@ -361,7 +368,7 @@ export function CapabilityMix({
               textAnchor="middle"
               fontWeight={isNow ? '700' : '400'}
             >
-              wk {wk}
+              {unitLabel(wk)}
             </SvgText>
           );
         })}

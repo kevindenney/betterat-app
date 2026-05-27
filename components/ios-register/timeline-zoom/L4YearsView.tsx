@@ -23,28 +23,20 @@ import Animated, { useAnimatedStyle } from 'react-native-reanimated';
 
 import { IOS_REGISTER } from '@/lib/design-tokens-ios';
 import { useDragReorder } from './useDragReorder';
-import { CapabilityRiverChart } from './CapabilityRiverChart';
-import type { RiverChartMarker } from './CapabilityRiverChart';
+import { CapabilityMix } from './CapabilityMix';
+import type { CapabilityMixMarker } from './CapabilityMix';
 import { PeerJourneyChart } from './PeerJourneyChart';
 import { SeasonLibrarianPrompt } from './SeasonLibrarianPrompt';
 import { resolveInterestVocab } from './interestVocab';
 import type {
   LifetimeAnalysis,
   SeasonPeer,
-  SeasonPhase,
   SeasonReflection,
   TimelineDataset,
   TimelineSeason,
   WeeklyCapabilityMix,
 } from './types';
 
-/**
- * Build per-session SeasonPhase entries from a LifetimeAnalysis. Each
- * session becomes a one-unit phase carrying the season label and the
- * dominant-capability color. The river chart renders these labels
- * directly under the river so the lifetime view answers "what is this
- * stretch?" without a separate axis row above the chart.
- */
 /**
  * Format a lifetime duration string for the L4 subtitle ("2 years",
  * "8 months", "3 weeks"). Returns null when the timestamp is missing
@@ -70,16 +62,6 @@ function formatLifetimeDuration(isoStart: string | undefined): string | null {
   }
   const rounded = Math.round(years);
   return `${rounded} ${rounded === 1 ? 'year' : 'years'}`;
-}
-
-function phasesFromLifetime(lifetime: LifetimeAnalysis): SeasonPhase[] {
-  return lifetime.sessions.map((s) => ({
-    id: `lifetime-phase-${s.sessionIndex}`,
-    label: s.label,
-    startWeek: s.sessionIndex,
-    endWeek: s.sessionIndex,
-    color: s.dominantCapabilityColor,
-  }));
 }
 
 interface L4YearsViewProps {
@@ -151,12 +133,11 @@ function adaptLifetimeForCharts(lifetime: LifetimeAnalysis | undefined): {
     capabilityColor: r.capabilityColor,
   }));
 
-  const markers: RiverChartMarker[] = lifetime.trophies.map((t) => ({
+  const markers: CapabilityMixMarker[] = lifetime.trophies.map((t) => ({
     id: t.id,
-    unit: t.sessionIndex,
-    kind: 'trophy',
+    weekNumber: t.sessionIndex,
     label: t.label,
-    capabilityColor: t.capabilityColor,
+    color: t.capabilityColor,
   }));
 
   return { weeklyCapabilities, peers, reflections, markers, totalUnits, currentUnit };
@@ -224,24 +205,15 @@ export function L4YearsView({
       {adapted && lifetime ? (
         <View style={styles.analysisBlock} onLayout={onAnalysisLayout}>
           <Text style={styles.sectionEyebrow}>{interestVocab.riverHeader}</Text>
-          <CapabilityRiverChart
+          <CapabilityMix
             weeklyCapabilities={adapted.weeklyCapabilities}
             totalWeeks={adapted.totalUnits}
             currentWeekNumber={adapted.currentUnit}
             reflections={adapted.reflections}
             markers={adapted.markers}
-            phases={phasesFromLifetime(lifetime)}
-            tickLabel={(unit) =>
+            unitLabel={(unit) =>
               lifetime.sessions.find((s) => s.sessionIndex === unit)?.label ?? `s${unit}`
             }
-            tickEveryN={1}
-            nowLabel="NOW"
-            nowDoublePill
-            columnBleed={10}
-            bandRadius={4}
-            bandOpacity={0.9}
-            shapeMode="flow"
-            annotationMode="lifetime"
             width={chartWidth}
             height={212}
           />
