@@ -47,7 +47,6 @@ import {
   StatePill,
   StepCard,
   TopHeader,
-  type IdentityDeckStateVariant,
   type PhaseId,
   type PhaseState,
   type StatePillVariant,
@@ -70,6 +69,7 @@ import { useStepCompleteCelebration } from '@/hooks/useStepCompleteCelebration';
 import { useContinueToNextBlueprintStep } from '@/hooks/useContinueToNextBlueprintStep';
 import { StepDiscussionInline } from './StepDiscussionInline';
 import { StepCompleteCelebration } from './StepCompleteCelebration';
+import { SuggestStepSheet } from './SuggestStepSheet';
 
 type TabValue = 'plan' | 'act' | 'review' | 'discussion';
 
@@ -91,7 +91,7 @@ function deriveStatePill(
 ): { variant: StatePillVariant; label: string } {
   if (status === 'completed') return { variant: 'complete', label: 'Complete' };
   if (status === 'in_progress') {
-    return { variant: 'live', label: 'Live · capturing' };
+    return { variant: 'live', label: 'Doing' };
   }
   return { variant: 'planned', label: 'Planned' };
 }
@@ -281,6 +281,7 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab }
   const didApplyLoadedStatusDefaultRef = useRef(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [pinInterestsOpen, setPinInterestsOpen] = useState(false);
+  const [suggestSheetOpen, setSuggestSheetOpen] = useState(false);
 
   // The step record often arrives after this component first renders. If
   // usePillTabs initializes while `step` is still undefined, the surface can
@@ -930,7 +931,7 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab }
     </View>
   );
 
-  const keepPlanInlineActions = !FEATURE_FLAGS.STEP_IDENTITY_DECK_V3;
+    const keepPlanInlineActions = true;
 
   const planContextChrome = (
     <View style={styles.planChromeWrap}>
@@ -1184,6 +1185,14 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab }
         });
       },
     });
+    menuActions.push({
+      label: 'Suggest to…',
+      icon: <Ionicons name="paper-plane-outline" size={20} color={STEP_COLORS.label} />,
+      onPress: () => {
+        setMenuOpen(false);
+        setSuggestSheetOpen(true);
+      },
+    });
     if (isOwner) {
       menuActions.push({
         label: step.starts_at ? 'Change date' : 'Add date',
@@ -1238,19 +1247,6 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab }
     // as the in-deck quote.
     const useIdentityDeck = FEATURE_FLAGS.STEP_IDENTITY_DECK_V3;
 
-    const deckStateVariant: IdentityDeckStateVariant =
-      pillSpec.variant === 'complete'
-        ? 'complete'
-        : pillSpec.variant === 'live'
-          ? 'live'
-          : 'planned';
-    const deckStateLabel = useIdentityDeck
-      ? pillSpec.variant === 'complete'
-        ? 'complete'
-        : pillSpec.variant === 'live' || pillSpec.variant === 'current'
-          ? 'in play'
-          : 'planned'
-      : undefined;
     const deckCounter =
       useIdentityDeck && blueprintChrome?.stepNumber != null
         ? blueprintChrome.totalSteps != null
@@ -1261,9 +1257,22 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab }
     const identityDeckEl = useIdentityDeck ? (
       <IdentityDeck
         title={step.title || `${vocab('Learning Event')}`}
+        titleSlot={
+          isOwner ? (
+            <TextInput
+              style={[styles.titleInput, styles.identityTitleInput]}
+              value={editingTitle ?? step.title}
+              onChangeText={handleTitleChange}
+              onBlur={handleTitleBlur}
+              onSubmitEditing={handleTitleBlur}
+              placeholder={`${vocab('Learning Event')} title...`}
+              placeholderTextColor={STEP_COLORS.tertiaryLabel}
+              selectTextOnFocus
+              multiline
+            />
+          ) : undefined
+        }
         counter={deckCounter}
-        stateLabel={deckStateLabel}
-        stateVariant={deckStateVariant}
         blueprintTitle={blueprintChrome?.blueprintTitle ?? null}
         blueprintAuthorName={blueprintChrome?.authorName ?? null}
         peersCount={blueprintChrome?.subscriberCount ?? null}
@@ -1276,6 +1285,7 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab }
             initials: p.initials,
             color: p.avatarColor ?? '#8E8E93',
           }))}
+        onPeerAvatarPress={(userId) => router.push(`/discover/person/${userId}` as never)}
         crossInterestSlot={
           <StepCombinatorsRow
             step={step}
@@ -1433,6 +1443,14 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab }
           title="Step actions"
           actions={menuActions}
         />
+        <SuggestStepSheet
+          visible={suggestSheetOpen}
+          onClose={() => setSuggestSheetOpen(false)}
+          stepId={step.id}
+          stepTitle={step.title ?? `${vocab('Learning Event')}`}
+          stepDescription={step.description ?? undefined}
+          interestId={step.interest_id ?? undefined}
+        />
       </View>
     );
   }
@@ -1585,6 +1603,11 @@ const styles = StyleSheet.create({
     ...Platform.select({
       web: { outlineStyle: 'none' } as any,
     }),
+  },
+  identityTitleInput: {
+    fontSize: 24,
+    lineHeight: 28,
+    minHeight: 56,
   },
   description: {
     fontSize: 14,
