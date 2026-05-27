@@ -41,9 +41,12 @@ import type { SocialNotification } from '@/services/NotificationService';
 import { useInboxDoneItems } from '@/hooks/useInboxDoneItems';
 import { useInboxActions } from '@/hooks/useInboxActions';
 import type { InboxItem } from '@/components/practice/types';
+import { SuggestStepComposer } from '@/components/sailor/SuggestStepComposer';
 import { InterestSwitcher } from '@/components/InterestSwitcher';
 import { useUniversalPlus } from '@/components/capture/UniversalPlusProvider';
+import { LocationAnchor } from '@/components/ui/LocationAnchor';
 import { ProfileDropdown } from '@/components/ui/ProfileDropdown';
+import { useUserHomeVenue } from '@/hooks/useUserHomeVenue';
 import { Ionicons } from '@expo/vector-icons';
 
 type Segment = 'act' | 'read' | 'done';
@@ -282,10 +285,31 @@ export default function InboxTabScreen() {
  */
 function InboxTopRow() {
   const universalPlus = useUniversalPlus();
+  const homeVenue = useUserHomeVenue();
+  // canGoBack() is true when the user arrived via router.push (e.g. tapped
+  // the mail icon from Practice / Atlas). In that case, render a "Done"
+  // affordance that returns them to the tab they came from. When they
+  // arrived by tapping the bottom Inbox tab directly, history is empty
+  // and we show the normal row.
+  const canDismiss = router.canGoBack();
   return (
     <View style={styles.topRow}>
       <View style={styles.topRowLeft}>
-        <InterestSwitcher />
+        {canDismiss ? (
+          <Pressable
+            onPress={() => router.back()}
+            hitSlop={8}
+            style={styles.topDoneBtn}
+            accessibilityLabel="Close inbox and return"
+          >
+            <Text style={styles.topDoneBtnText}>Done</Text>
+          </Pressable>
+        ) : (
+          <>
+            <InterestSwitcher />
+            <LocationAnchor region={homeVenue?.region} venue={homeVenue?.venue} />
+          </>
+        )}
       </View>
       <View style={styles.topRowRight}>
         {universalPlus.isAvailable ? (
@@ -416,8 +440,17 @@ function SuggestionCard({
   const openSourceStep = sourceStepId
     ? () => router.push(`/step/${sourceStepId}` as never)
     : undefined;
+  // "Suggest back" — person-centric reciprocity. Pre-fills the
+  // composer with the sender as recipient so the user can immediately
+  // fire a suggestion back the other way. This is the canonical place
+  // for the verb because the avatar is right there and the intent is
+  // top-of-mind.
+  const [composerOpen, setComposerOpen] = useState(false);
+  const senderName =
+    item.fromContext.split('·')[0]?.trim() || 'A teammate';
 
   return (
+    <>
     <Swipeable
       friction={2}
       rightThreshold={48}
@@ -467,9 +500,16 @@ function SuggestionCard({
         <Pressable onPress={onDecline} style={styles.actionSecondary}>
           <Text style={styles.actionSecondaryText}>Decline</Text>
         </Pressable>
-        <Pressable style={styles.actionSecondary}>
-          <Text style={styles.actionSecondaryText}>Reply</Text>
-        </Pressable>
+        {sourceUserId ? (
+          <Pressable
+            onPress={() => setComposerOpen(true)}
+            style={styles.actionSecondary}
+            accessibilityRole="button"
+            accessibilityLabel={`Suggest a step back to ${senderName}`}
+          >
+            <Text style={styles.actionSecondaryText}>Suggest back</Text>
+          </Pressable>
+        ) : null}
         {openSourceStep ? (
           <Pressable onPress={openSourceStep} style={styles.actionLink} hitSlop={4}>
             <Text style={styles.actionLinkText}>Open</Text>
@@ -478,6 +518,18 @@ function SuggestionCard({
       </View>
     </View>
     </Swipeable>
+    {sourceUserId ? (
+      <SuggestStepComposer
+        visible={composerOpen}
+        onClose={() => setComposerOpen(false)}
+        recipientId={sourceUserId}
+        recipientName={senderName}
+        recipientInitials={item.fromInitials}
+        recipientTint={item.fromTint}
+        reContext={item.title}
+      />
+    ) : null}
+    </>
   );
 }
 
@@ -809,6 +861,15 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  topDoneBtn: {
+    paddingHorizontal: 4,
+    paddingVertical: 6,
+  },
+  topDoneBtnText: {
+    fontSize: 15,
+    color: '#007AFF',
+    fontWeight: '500',
   },
   title: {
     fontSize: 32,
