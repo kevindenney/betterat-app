@@ -1,11 +1,7 @@
 /**
- * OpenStepPicker — modal popup that replaces the standalone chip strip.
- *
- * Reachable from the "Open step ▾" button in the Atlas bottom sheet.
- * Lists every active and recently-done step the viewer has for the
- * current interest, with the next step pinned at the top and visually
- * marked with a NEXT badge. Tap any row to navigate. Tapping the
- * backdrop dismisses.
+ * OpenStepPicker — modal popup of all interest steps. Reachable from
+ * the "Open step ▾" button in the Atlas bottom sheet. Tapping any row
+ * closes the picker and centers the map on that step.
  */
 
 import React from 'react';
@@ -29,21 +25,40 @@ interface OpenStepPickerProps {
   onPickStep: (step: PickerStep) => void;
 }
 
-const STATUS_DOT: Record<UserStepStatus, string> = {
-  'planned-next': '#F0A93A',
-  'planned-week': '#0A84FF',
-  'done-just-completed': '#34C759',
-  'done-recent': 'rgba(0, 122, 255, 0.55)',
-  'done-old': 'rgba(0, 122, 255, 0.3)',
+const STATUS_BADGE_LABEL: Partial<Record<UserStepStatus, string>> = {
+  'planned-next': 'NEXT',
+  'done-just-completed': 'JUST DONE',
 };
 
-const STATUS_LABEL: Record<UserStepStatus, string> = {
-  'planned-next': 'NEXT',
-  'planned-week': '',
-  'done-just-completed': 'JUST DONE',
-  'done-recent': '',
-  'done-old': '',
+const STATUS_BADGE_TONE: Partial<
+  Record<
+    UserStepStatus,
+    { background: string; border: string; text: string }
+  >
+> = {
+  'planned-next': {
+    background: 'rgba(240, 169, 58, 0.18)',
+    border: 'rgba(240, 169, 58, 0.7)',
+    text: '#8A4B00',
+  },
+  'done-just-completed': {
+    background: 'rgba(52, 199, 89, 0.18)',
+    border: 'rgba(52, 199, 89, 0.7)',
+    text: '#1F7A3A',
+  },
 };
+
+/**
+ * Some steps carry an unhelpful auto-generated subtitle like
+ * "Dropped pin (22.366, 114.270)" because the user dropped a raw pin
+ * without naming the place. Treat those as no-subtitle so the row
+ * stays clean.
+ */
+function readableLocationName(name: string | null): string | null {
+  if (!name) return null;
+  if (/^Dropped pin/i.test(name.trim())) return null;
+  return name;
+}
 
 export function OpenStepPicker({
   visible,
@@ -55,13 +70,29 @@ export function OpenStepPicker({
     <Modal
       visible={visible}
       transparent
-      animationType="fade"
+      animationType="slide"
       onRequestClose={onDismiss}
     >
       <Pressable style={styles.backdrop} onPress={onDismiss}>
-        <Pressable style={styles.sheet} onPress={() => {}}>
-          <View style={styles.handle} />
-          <Text style={styles.title}>Pick a step to open</Text>
+        <Pressable
+          style={styles.sheet}
+          onPress={(e) => e.stopPropagation()}
+          // Pressable inside a Pressable backdrop — stop propagation so
+          // taps on the sheet body don't dismiss.
+        >
+          <View style={styles.handleRow}>
+            <View style={styles.handle} />
+            <Pressable
+              onPress={onDismiss}
+              hitSlop={12}
+              style={styles.closeBtn}
+              accessibilityRole="button"
+              accessibilityLabel="Close step picker"
+            >
+              <Ionicons name="close" size={20} color={IOS_COLORS.label} />
+            </Pressable>
+          </View>
+          <Text style={styles.heading}>Pick a step to focus</Text>
           {steps.length === 0 ? (
             <Text style={styles.empty}>No steps in this interest yet.</Text>
           ) : (
@@ -71,41 +102,52 @@ export function OpenStepPicker({
               showsVerticalScrollIndicator={false}
             >
               {steps.map((step) => {
-                const badge = STATUS_LABEL[step.status];
+                const badgeLabel = STATUS_BADGE_LABEL[step.status];
+                const badgeTone = STATUS_BADGE_TONE[step.status];
+                const subtitle = readableLocationName(step.location_name);
+                const isHeroStep = step.status === 'planned-next';
                 return (
                   <Pressable
                     key={step.step_id}
                     onPress={() => onPickStep(step)}
                     style={({ pressed }) => [
                       styles.row,
+                      isHeroStep && styles.rowHero,
                       pressed && styles.rowPressed,
-                      step.status === 'planned-next' && styles.rowNext,
                     ]}
                     accessibilityRole="button"
-                    accessibilityLabel={`Open ${step.title}`}
+                    accessibilityLabel={`Focus on ${step.title}`}
                   >
-                    <View
-                      style={[
-                        styles.dot,
-                        { backgroundColor: STATUS_DOT[step.status] },
-                      ]}
-                    />
-                    <View style={styles.rowText}>
-                      {badge ? (
-                        <Text style={styles.badge}>{badge}</Text>
+                    <View style={styles.rowBody}>
+                      {badgeLabel && badgeTone ? (
+                        <View
+                          style={[
+                            styles.badge,
+                            {
+                              backgroundColor: badgeTone.background,
+                              borderColor: badgeTone.border,
+                            },
+                          ]}
+                        >
+                          <Text
+                            style={[styles.badgeText, { color: badgeTone.text }]}
+                          >
+                            {badgeLabel}
+                          </Text>
+                        </View>
                       ) : null}
-                      <Text style={styles.rowTitle} numberOfLines={2}>
+                      <Text style={styles.title} numberOfLines={2}>
                         {step.title}
                       </Text>
-                      {step.location_name ? (
-                        <Text style={styles.rowMeta} numberOfLines={1}>
-                          {step.location_name}
+                      {subtitle ? (
+                        <Text style={styles.subtitle} numberOfLines={1}>
+                          {subtitle}
                         </Text>
                       ) : null}
                     </View>
                     <Ionicons
                       name={step.has_place ? 'location' : 'location-outline'}
-                      size={14}
+                      size={16}
                       color={
                         step.has_place
                           ? IOS_COLORS.systemBlue
@@ -131,36 +173,53 @@ const styles = StyleSheet.create({
   },
   sheet: {
     backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
-    paddingTop: 8,
-    paddingBottom: 24,
+    borderTopLeftRadius: 18,
+    borderTopRightRadius: 18,
     paddingHorizontal: 12,
-    maxHeight: '70%',
+    paddingBottom: 28,
+    maxHeight: '75%',
+  },
+  handleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingTop: 8,
+    paddingBottom: 4,
   },
   handle: {
+    flex: 1,
     alignSelf: 'center',
     width: 40,
     height: 4,
     borderRadius: 2,
     backgroundColor: 'rgba(60, 60, 67, 0.28)',
-    marginBottom: 8,
   },
-  title: {
-    fontSize: 13,
+  closeBtn: {
+    position: 'absolute',
+    right: 4,
+    top: 4,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(120, 120, 130, 0.12)',
+  },
+  heading: {
+    fontSize: 12,
     fontWeight: '700',
-    letterSpacing: 0.4,
+    letterSpacing: 0.6,
     color: IOS_COLORS.labelSecondary,
     textTransform: 'uppercase',
     paddingHorizontal: 4,
-    marginBottom: 6,
+    paddingTop: 4,
+    paddingBottom: 8,
   },
   scroll: {
-    maxHeight: 400,
+    maxHeight: 440,
   },
   scrollContent: {
     paddingVertical: 4,
-    gap: 4,
+    gap: 6,
   },
   empty: {
     fontSize: 13,
@@ -171,44 +230,46 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-    paddingHorizontal: 10,
+    gap: 12,
+    paddingHorizontal: 14,
     paddingVertical: 12,
-    borderRadius: 10,
-    backgroundColor: 'rgba(120, 120, 130, 0.06)',
+    borderRadius: 12,
+    backgroundColor: 'rgba(120, 120, 130, 0.07)',
+  },
+  rowHero: {
+    backgroundColor: 'rgba(240, 169, 58, 0.10)',
+    borderWidth: 1,
+    borderColor: 'rgba(240, 169, 58, 0.42)',
   },
   rowPressed: {
-    backgroundColor: 'rgba(120, 120, 130, 0.14)',
+    backgroundColor: 'rgba(120, 120, 130, 0.18)',
   },
-  rowNext: {
-    backgroundColor: 'rgba(240, 169, 58, 0.12)',
-    borderWidth: 1,
-    borderColor: 'rgba(240, 169, 58, 0.45)',
-  },
-  rowText: {
+  rowBody: {
     flex: 1,
+    gap: 2,
   },
   badge: {
-    fontSize: 9,
-    fontWeight: '700',
-    letterSpacing: 0.6,
-    color: '#8A4B00',
+    alignSelf: 'flex-start',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    borderWidth: 1,
     marginBottom: 2,
   },
-  rowTitle: {
-    fontSize: 14,
+  badgeText: {
+    fontSize: 9,
+    fontWeight: '700',
+    letterSpacing: 0.7,
+  },
+  title: {
+    fontSize: 15,
     fontWeight: '500',
     color: IOS_COLORS.label,
-    lineHeight: 18,
+    lineHeight: 19,
   },
-  rowMeta: {
-    fontSize: 11,
+  subtitle: {
+    fontSize: 12,
     color: IOS_COLORS.labelSecondary,
-    marginTop: 2,
-  },
-  dot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+    marginTop: 1,
   },
 });

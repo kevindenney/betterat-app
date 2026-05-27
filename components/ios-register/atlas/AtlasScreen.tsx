@@ -1189,6 +1189,20 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
     () => framePinsWithDemo.find((pin) => pin.kind === 'my-step-next') ?? null,
     [framePinsWithDemo],
   );
+  // Auto-center on the viewer's next step the first time it appears.
+  // The point of Atlas is "show me where I'm going" — landing on the
+  // bbox centroid is a useless default when we already know which
+  // pin matters most. Fires once per session per next-step id so
+  // panning away doesn't snap back.
+  const autoCenteredNextStepIdRef = React.useRef<string | null>(null);
+  React.useEffect(() => {
+    if (!myNextStepPin) return;
+    const id = myNextStepPin.stepId ?? myNextStepPin.id ?? null;
+    if (!id) return;
+    if (autoCenteredNextStepIdRef.current === id) return;
+    autoCenteredNextStepIdRef.current = id;
+    setSearchFocus({ lat: myNextStepPin.lat, lng: myNextStepPin.lng });
+  }, [myNextStepPin]);
   const focusedClubPin = useMemo(
     () =>
       handlers.focusOrgSlug
