@@ -112,19 +112,19 @@ function computeSeasonPhases(
       titlesForDetection,
       interestVocab,
     );
-    if (__DEV__) {
-      // eslint-disable-next-line no-console
-      console.log(
-        '[phases] week',
-        idx + 1,
-        'vocab:',
-        interestVocab.id,
-        'titles:',
-        titlesForDetection,
-        '→ named:',
-        namedPhase,
-      );
-    }
+    // eslint-disable-next-line no-console
+    console.log(
+      '[phases v2] week',
+      idx + 1,
+      'vocab:',
+      interestVocab.id,
+      'patterns?:',
+      (interestVocab.phasePatterns?.length ?? 0),
+      'titles:',
+      titlesForDetection,
+      '→ named:',
+      namedPhase,
+    );
     // First week with no race + mixed steps reads as "entry" / prep.
     const isPrep = idx === 0 && raceNum === null && !namedPhase;
     return { weekNumber: idx + 1, capability: dominant, raceNum, namedPhase, isPrep };

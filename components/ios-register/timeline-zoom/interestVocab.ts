@@ -25,6 +25,9 @@
  *     Each interest provides its own native verb for each tier.
  */
 
+// eslint-disable-next-line no-console
+console.log('[interestVocab] module loaded — phase patterns shipped 2026-05-27');
+
 export type ArcVerbTier = 'early' | 'mid' | 'late';
 
 export interface InterestVocab {
