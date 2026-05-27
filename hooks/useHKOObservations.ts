@@ -1,59 +1,66 @@
 /**
- * useHKOObservations — fetches the Hong Kong Observatory's regional
- * weather report ("rhrread") and exposes a `findNearest(lat, lng)`
- * helper that returns the nearest station with live wind data.
+ * useHKOObservations — fetches the Hong Kong Observatory's 10-minute
+ * mean wind CSV from the regional-weather bucket and exposes a
+ * `findNearest(lat, lng)` helper.
  *
- * For sailors in HK this is materially better than a model forecast:
- * HKO reports 10-minute mean wind from real anemometers at Waglan,
- * Cheung Chau, Sai Kung, Star Ferry, etc. The endpoint is keyless,
- * returns ~10KB JSON, and updates every ~10 minutes.
+ * For sailors in HK this beats a numerical model: HKO publishes
+ * 10-min mean wind from real anemometers at Waglan, Cheung Chau, Sai
+ * Kung, Star Ferry, etc. The CSV is keyless, ~3KB, updates every 10
+ * minutes.
  *
- * Direction is reported as a compass token ("Southeast", "South
- * Southeast"); speed as km/h. We normalize to degrees + knots so the
+ * Endpoint shape (CSV, header + N rows):
+ *   Date time,Automatic Weather Station,
+ *   10-Minute Mean Wind Direction(Compass points),
+ *   10-Minute Mean Speed(km/hour),
+ *   10-Minute Maximum Gust(km/hour)
+ *
+ * Wind direction is a compass token ("Southeast", "South Southeast",
+ * "Variable"); speed is km/h. We normalize to degrees + knots so the
  * rest of the overlay pipeline can consume it identically to the
- * Open-Meteo path.
- *
- * Outside HK the endpoint returns the same shape but stations are
- * irrelevant; the consumer is responsible for only calling
- * `findNearest` when the map center is in HK.
+ * Open-Meteo path. "Variable" / "Calm" rows are dropped — direction
+ * isn't useful for an arrow.
  */
 
 import { useQuery } from '@tanstack/react-query';
 
 const HKO_URL =
-  'https://data.weather.gov.hk/weatherAPI/opendata/opendata.php?dataType=rhrread&lang=en';
+  'https://data.weather.gov.hk/weatherAPI/hko_data/regional-weather/latest_10min_wind.csv';
 const KMH_TO_KNOTS = 0.539957;
 
-// Approximate coords for HKO/EMSD automatic weather stations that
-// commonly appear in the rhrread `wind` block. Sourced from HKO's
-// station list. Coords are best-effort — fine for "is this station
-// within 5km of my map center?" routing.
+// Approximate coords for HKO's automatic weather stations. Sourced
+// from HKO's station list. Coords are best-effort — fine for "is this
+// station within 5km of my map center?" routing. Keys must match
+// the station names HKO publishes in the CSV's column 2 exactly.
 const STATION_COORDS: Record<string, { lat: number; lng: number }> = {
+  'Central Pier': { lat: 22.288, lng: 114.16 },
+  'Chek Lap Kok': { lat: 22.309, lng: 113.922 },
   'Cheung Chau': { lat: 22.201, lng: 114.027 },
   'Cheung Chau Beach': { lat: 22.21, lng: 114.024 },
-  'Chek Lap Kok': { lat: 22.309, lng: 113.922 },
-  "Green Island": { lat: 22.286, lng: 114.111 },
-  'Hong Kong Observatory': { lat: 22.302, lng: 114.174 },
+  'Green Island': { lat: 22.286, lng: 114.111 },
+  'Hong Kong Sea School': { lat: 22.219, lng: 114.213 },
+  'Kai Tak': { lat: 22.305, lng: 114.214 },
   "King's Park": { lat: 22.312, lng: 114.173 },
-  'Kai Tak Runway Park': { lat: 22.305, lng: 114.214 },
+  'Lamma Island': { lat: 22.218, lng: 114.131 },
   'Lau Fau Shan': { lat: 22.469, lng: 113.984 },
   'Ngong Ping': { lat: 22.255, lng: 113.911 },
-  'Pak Tam Chung': { lat: 22.408, lng: 114.323 },
+  'North Point': { lat: 22.292, lng: 114.201 },
   'Peng Chau': { lat: 22.29, lng: 114.044 },
   'Sai Kung': { lat: 22.376, lng: 114.275 },
-  'Sha Lo Wan': { lat: 22.286, lng: 113.901 },
+  'Sha Chau': { lat: 22.354, lng: 113.892 },
   'Sha Tin': { lat: 22.398, lng: 114.197 },
-  'Sham Shui Po': { lat: 22.335, lng: 114.162 },
+  'Shek Kong': { lat: 22.435, lng: 114.082 },
+  Stanley: { lat: 22.218, lng: 114.213 },
   'Star Ferry': { lat: 22.295, lng: 114.169 },
-  'Stanley': { lat: 22.218, lng: 114.213 },
+  'Ta Kwu Ling': { lat: 22.529, lng: 114.157 },
   'Tai Mei Tuk': { lat: 22.475, lng: 114.238 },
-  'Tai Mo Shan': { lat: 22.41, lng: 114.124 },
-  'Tai Po': { lat: 22.451, lng: 114.165 },
+  'Tai Po Kau': { lat: 22.435, lng: 114.184 },
+  'Tap Mun': { lat: 22.471, lng: 114.362 },
   "Tate's Cairn": { lat: 22.358, lng: 114.218 },
   'Tseung Kwan O': { lat: 22.316, lng: 114.259 },
   'Tsing Yi': { lat: 22.345, lng: 114.107 },
   'Tuen Mun': { lat: 22.39, lng: 113.973 },
   'Waglan Island': { lat: 22.183, lng: 114.303 },
+  'Wetland Park': { lat: 22.466, lng: 114.007 },
   'Wong Chuk Hang': { lat: 22.247, lng: 114.171 },
 };
 
@@ -90,8 +97,6 @@ const DIRECTION_DEG: Record<string, number> = {
   NORTHWEST: 315,
   NNW: 337.5,
   'NORTH NORTHWEST': 337.5,
-  VARIABLE: NaN,
-  CALM: NaN,
 };
 
 export interface HKOWindStation {
@@ -104,10 +109,10 @@ export interface HKOWindStation {
 
 function directionToDegrees(direction: string): number | null {
   const key = direction.trim().toUpperCase();
+  // Variable / Calm: arrow direction isn't meaningful, drop these
+  if (!key || key === 'VARIABLE' || key === 'CALM') return null;
   const deg = DIRECTION_DEG[key];
-  if (deg == null) return null;
-  if (!Number.isFinite(deg)) return null;
-  return deg;
+  return deg == null ? null : deg;
 }
 
 function haversineKm(a: { lat: number; lng: number }, b: { lat: number; lng: number }): number {
@@ -122,49 +127,50 @@ function haversineKm(a: { lat: number; lng: number }, b: { lat: number; lng: num
   return 2 * R * Math.asin(Math.sqrt(h));
 }
 
-interface RhrreadWindRow {
-  place?: string;
-  value?: number; // km/h
-  direction?: string;
-}
-
-interface RhrreadResponse {
-  windspeed?: {
-    data?: RhrreadWindRow[];
-  };
+function parseHKOCsv(csv: string): HKOWindStation[] {
+  const lines = csv.split(/\r?\n/);
+  const out: HKOWindStation[] = [];
+  // Skip header (line 0). Columns: time, station, direction, kph, gust
+  for (let i = 1; i < lines.length; i += 1) {
+    const line = lines[i].trim();
+    if (!line) continue;
+    const cols = line.split(',');
+    if (cols.length < 4) continue;
+    const place = cols[1].trim();
+    const direction = cols[2].trim();
+    const kphStr = cols[3].trim();
+    const coords = STATION_COORDS[place];
+    if (!coords) continue;
+    const degrees = directionToDegrees(direction);
+    if (degrees == null) continue;
+    const kph = Number(kphStr);
+    if (!Number.isFinite(kph)) continue;
+    out.push({
+      place,
+      lat: coords.lat,
+      lng: coords.lng,
+      degrees,
+      knots: Math.round(kph * KMH_TO_KNOTS),
+    });
+  }
+  return out;
 }
 
 async function fetchHKOStations(): Promise<HKOWindStation[]> {
   try {
     const res = await fetch(HKO_URL);
     if (!res.ok) return [];
-    const json = (await res.json()) as RhrreadResponse;
-    const rows = json.windspeed?.data ?? [];
-    const out: HKOWindStation[] = [];
-    for (const row of rows) {
-      if (!row.place || row.value == null || !row.direction) continue;
-      const coords = STATION_COORDS[row.place];
-      if (!coords) continue;
-      const degrees = directionToDegrees(row.direction);
-      if (degrees == null) continue;
-      out.push({
-        place: row.place,
-        lat: coords.lat,
-        lng: coords.lng,
-        degrees,
-        knots: Math.round(row.value * KMH_TO_KNOTS),
-      });
-    }
-    return out;
+    const csv = await res.text();
+    return parseHKOCsv(csv);
   } catch (err) {
-    console.warn('[atlas] HKO rhrread fetch failed', err);
+    console.warn('[atlas] HKO 10-min wind fetch failed', err);
     return [];
   }
 }
 
 export function useHKOObservations() {
   const query = useQuery({
-    queryKey: ['hko', 'rhrread', 'windspeed'],
+    queryKey: ['hko', '10min-wind'],
     staleTime: 5 * 60_000,
     queryFn: fetchHKOStations,
   });
