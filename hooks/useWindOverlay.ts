@@ -108,7 +108,12 @@ export function useWindOverlay({
       }));
     }
 
-    // Fallback grid (preview routes / no anchors).
+    // Fallback grid. Surrounding arrows use the canvas's `|field`
+    // variant — smaller, soft slate, no per-arrow knot chip. One
+    // primary arrow at the exact center carries the full "045° · 12 kn"
+    // chip so the user gets a readable indicator without the grid
+    // reading as N hard-labeled duplicates.
+    const fieldLabel = `${label}|field`;
     const out: AtlasPinSpec[] = [];
     const half = (gridSize - 1) / 2;
     const dLat = spacingKm / 111;
@@ -120,10 +125,17 @@ export function useWindOverlay({
           lat: centerLat + (i - half) * dLat,
           lng: centerLng + (j - half) * dLng,
           kind: 'wind-arrow',
-          label,
+          label: fieldLabel,
         });
       }
     }
+    out.push({
+      id: 'wind:primary',
+      lat: centerLat,
+      lng: centerLng,
+      kind: 'wind-arrow',
+      label,
+    });
     return out;
   }, [centerLat, centerLng, conditionsLine, enabled, spacingKm, gridSize, waterAnchors]);
 }

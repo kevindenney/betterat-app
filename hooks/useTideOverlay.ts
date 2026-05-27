@@ -138,7 +138,11 @@ export function useTideOverlay({
       });
     }
 
-    // Fallback grid (legacy demo path — places arrows around centerLat/Lng).
+    // Fallback grid — soft surface treatment via the `|field` label
+    // suffix so each arrow renders as a small slate-teal chevron with
+    // no per-arrow knot chip. Plus one primary at the center with the
+    // full "120° · 0.4 kn" chip so the user has a readable indicator.
+    const fieldLabel = `${label}|field`;
     const out: AtlasPinSpec[] = [];
     const half = (gridSize - 1) / 2;
     const dLat = spacingKm / 111;
@@ -151,10 +155,17 @@ export function useTideOverlay({
           lat: centerLat + offsetLat + (i - half) * dLat,
           lng: centerLng + (j - half) * dLng,
           kind: 'tide-arrow',
-          label,
+          label: fieldLabel,
         });
       }
     }
+    out.push({
+      id: 'tide:primary',
+      lat: centerLat + offsetLat,
+      lng: centerLng,
+      kind: 'tide-arrow',
+      label,
+    });
     return out;
   }, [centerLat, centerLng, conditionsLine, enabled, spacingKm, gridSize, waterAnchors, offsetHours]);
 }
