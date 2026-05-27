@@ -115,18 +115,24 @@ export function OpenStepPicker({
                         ? '#0A84FF'
                         : 'rgba(120, 120, 130, 0.5)';
                 return (
-                  <Pressable
+                  // Outer View carries the static row layout so the
+                  // Pressable's function-form style can't strip it (see
+                  // feedback_pressable_margin_row_stripping). Inner
+                  // Pressable handles taps + pressed-state tint only.
+                  <View
                     key={step.step_id}
-                    onPress={() => onPickStep(step)}
-                    style={({ pressed }) => [
-                      styles.row,
-                      isHeroStep && styles.rowHero,
-                      pressed && styles.rowPressed,
-                    ]}
-                    accessibilityRole="button"
-                    accessibilityLabel={`Focus on ${step.title}`}
+                    style={[styles.row, isHeroStep && styles.rowHero]}
                   >
                     <View style={[styles.accentBar, { backgroundColor: accentColor }]} />
+                    <Pressable
+                      onPress={() => onPickStep(step)}
+                      style={({ pressed }) => [
+                        styles.rowPressable,
+                        pressed && styles.rowPressed,
+                      ]}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Focus on ${step.title}`}
+                    >
                     <View style={styles.rowBody}>
                       <View style={styles.rowTitleRow}>
                         <Text style={styles.title} numberOfLines={2}>
@@ -165,12 +171,13 @@ export function OpenStepPicker({
                         </Text>
                       </View>
                     </View>
-                    <Ionicons
-                      name="chevron-forward"
-                      size={16}
-                      color={IOS_COLORS.tertiaryLabel}
-                    />
-                  </Pressable>
+                      <Ionicons
+                        name="chevron-forward"
+                        size={16}
+                        color={IOS_COLORS.tertiaryLabel}
+                      />
+                    </Pressable>
+                  </View>
                 );
               })}
             </ScrollView>
@@ -253,11 +260,7 @@ const styles = StyleSheet.create({
   },
   row: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    paddingRight: 12,
-    paddingVertical: 10,
-    paddingLeft: 0,
+    alignItems: 'stretch',
     borderRadius: 12,
     backgroundColor: 'rgba(120, 120, 130, 0.06)',
     overflow: 'hidden',
@@ -267,14 +270,19 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(240, 169, 58, 0.42)',
   },
+  rowPressable: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
   rowPressed: {
     backgroundColor: 'rgba(120, 120, 130, 0.16)',
   },
   accentBar: {
     width: 4,
-    alignSelf: 'stretch',
-    borderTopLeftRadius: 12,
-    borderBottomLeftRadius: 12,
   },
   rowBody: {
     flex: 1,
