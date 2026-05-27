@@ -55,6 +55,16 @@ export interface InterestVocab {
    */
   crewHeader: string;
   /**
+   * Deliberate semantic palette for this interest. Each entry maps a
+   * capability LABEL family (matched by `pattern`) to a stable color
+   * + canonical short label that survives across the app. This
+   * replaces hashed-from-string color assignment so the same idea
+   * (e.g. "Sail Selection", "Sail Design", "Sail Measurement") shares
+   * one stable color family, and adjacent capabilities are picked to
+   * be perceptually distinct.
+   */
+  palette?: { pattern: RegExp; canonicalLabel: string; color: string }[];
+  /**
    * Ordered list of (regex → vernacular label) pairs used to detect
    * named phases from step titles. The phase generator scans every
    * step in a week against these patterns and uses the most-frequent
@@ -90,6 +100,23 @@ const SAILING_VOCAB: InterestVocab = {
   librarianEyebrow: 'This arc · logbook noticed',
   riverHeader: 'PRACTICE LOG',
   crewHeader: 'CREW',
+  // Deliberate sailing palette — 8 capability families, perceptually
+  // distinct, with the same family color across the app. Order matters:
+  // first match wins, so more-specific patterns lead.
+  palette: [
+    { pattern: /\bsail\b|\bsails\b|sail\s+(selection|design|trim|measurement|inventory|set|change)/i, canonicalLabel: 'Sails', color: '#2F8FB0' },
+    { pattern: /rig|rake|shroud|forestay|mast\s+(step|base|partner|bend)|tune/i, canonicalLabel: 'Rig', color: '#A47A52' },
+    { pattern: /boat.?speed|points\s+of\s+sail|optim|hull/i, canonicalLabel: 'Boatspeed', color: '#5BA46F' },
+    { pattern: /start|line\s+work/i, canonicalLabel: 'Starts', color: '#C99632' },
+    { pattern: /tactic|mark\s+round|shift|cover|lane/i, canonicalLabel: 'Tactics', color: '#C46E49' },
+    { pattern: /crew|comm|handoff|brief|debrief|teamwork|alignment/i, canonicalLabel: 'Crew', color: '#7BA0C4' },
+    { pattern: /weather|wind|breeze|forecast|conditions|venue|local/i, canonicalLabel: 'Conditions', color: '#7E6FC8' },
+    { pattern: /fitness|strength|endurance|nutrition|recovery|sleep/i, canonicalLabel: 'Fitness', color: '#C4474A' },
+    { pattern: /tactical\s+recovery|race\s+execution|race\s+(history|rules?|culture)/i, canonicalLabel: 'Race craft', color: '#A04CC4' },
+    { pattern: /goal|commit|decision|plan|register|entry/i, canonicalLabel: 'Planning', color: '#5A7A98' },
+    { pattern: /logistics|ship|trailer|travel|gear/i, canonicalLabel: 'Logistics', color: '#8A8A8A' },
+    { pattern: /navigation|chart|gps|safety|survival/i, canonicalLabel: 'Safety & Nav', color: '#4F9DA6' },
+  ],
   phasePatterns: [
     // Named events — most specific first so they win against
     // generic words like "championship" or "tune-up".
@@ -315,6 +342,36 @@ export function pickVerbTier(currentWeek: number, totalWeeks: number): ArcVerbTi
   if (ratio < 0.34) return 'early';
   if (ratio < 0.75) return 'mid';
   return 'late';
+}
+
+/**
+ * Resolve a capability label to a (canonicalLabel, color) pair using
+ * the interest's deliberate palette. Falls back to the raw label +
+ * a stable hash-derived color when no palette pattern matches — this
+ * keeps unknown capabilities visible while the palette grows.
+ */
+export function resolveCapabilityVisuals(
+  rawLabel: string,
+  vocab: InterestVocab,
+): { canonicalLabel: string; color: string } {
+  const palette = vocab.palette ?? [];
+  for (const entry of palette) {
+    if (entry.pattern.test(rawLabel)) {
+      return { canonicalLabel: entry.canonicalLabel, color: entry.color };
+    }
+  }
+  // Fallback — keep the user's exact label; pick a stable color from a
+  // small neutral set so even unknown capabilities don't blow up the
+  // chart's color story.
+  const FALLBACK_COLORS = ['#9B9085', '#B0A28E', '#8C9CA8'];
+  let h = 0;
+  for (let i = 0; i < rawLabel.length; i++) {
+    h = ((h << 5) - h + rawLabel.charCodeAt(i)) | 0;
+  }
+  return {
+    canonicalLabel: rawLabel,
+    color: FALLBACK_COLORS[Math.abs(h) % FALLBACK_COLORS.length]!,
+  };
 }
 
 /** Convenience — fully composed eyebrow line for the SeasonHeaderChips. */

@@ -25,6 +25,7 @@ export const ZOOM_LEVEL_SCOPE_LABELS: Record<ZoomLevel, string> = {
 };
 
 export type StepStatus = 'plan' | 'do' | 'reflect' | 'reflected' | 'done';
+export type StepOriginKind = 'mine' | 'shared' | 'blueprint';
 
 export type DayKey = 'mon' | 'tue' | 'wed' | 'thu' | 'fri' | 'sat' | 'sun';
 
@@ -63,6 +64,8 @@ export interface TimelineStep {
   weekId: string;
   seasonId: string;
   status: StepStatus;
+  /** Near-zoom ownership/source treatment: own step, shared collaborator step, or adopted blueprint step. */
+  originKind?: StepOriginKind;
   /** L1-only — the Plan body. */
   whatBody?: string;
   whyReasoning?: string;
@@ -208,8 +211,19 @@ export interface SeasonMarker {
 
 export interface WeeklyCapabilityMix {
   weekNumber: number;          // 1, 2, …, weekOfTotal.total
-  /** Each band stacks on the previous in render order. */
-  bands: { capabilityColor: string; volume: number }[];
+  /**
+   * Each band stacks on the previous in render order. capabilityId
+   * lets the chart group same-capability bands across weeks into a
+   * single stream; capabilityLabel is the in-band text the chart
+   * draws at the widest point so the user reads the chart directly
+   * instead of via a separate legend.
+   */
+  bands: {
+    capabilityId?: string;
+    capabilityLabel?: string;
+    capabilityColor: string;
+    volume: number;
+  }[];
 }
 
 export interface SeasonPeer {

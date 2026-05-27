@@ -38,7 +38,7 @@ import Animated, { useAnimatedStyle } from 'react-native-reanimated';
 import { IOS_REGISTER } from '@/lib/design-tokens-ios';
 import { useUniversalPlus } from '@/components/capture/UniversalPlusProvider';
 import { StepDigestCard } from './StepDigestCard';
-import { CapabilityRiverChart } from './CapabilityRiverChart';
+import { CapabilityMix } from './CapabilityMix';
 import { PeerJourneyChart } from './PeerJourneyChart';
 import { SeasonLibrarianPrompt } from './SeasonLibrarianPrompt';
 import { SeasonHeaderChips } from './SeasonHeaderChips';
@@ -220,27 +220,19 @@ export function L3SeasonView({
           {flatSteps.length >= 5 ? (
             <>
               <Text style={styles.sectionEyebrow}>{interestVocab.riverHeader}</Text>
-              <CapabilityRiverChart
+              <CapabilityMix
                 weeklyCapabilities={analysis.weeklyCapabilities}
                 totalWeeks={totalWeeks}
                 currentWeekNumber={currentWeek}
                 reflections={analysis.reflections}
-                phases={analysis.phases}
                 markers={analysis.markers?.map((m) => ({
                   id: m.id,
-                  unit: m.weekNumber,
-                  kind: m.kind,
+                  weekNumber: m.weekNumber,
                   label: m.label,
-                  capabilityColor: m.capabilityColor,
+                  color: m.capabilityColor,
                 }))}
-                onPhasePress={(phase) => scrollToWeekByIndex(phase.startWeek)}
-                shapeMode="flow"
-                nowDoublePill
-                columnBleed={8}
-                bandOpacity={0.9}
                 width={chartWidth}
                 height={188}
-                tickEveryN={2}
               />
             </>
           ) : (

@@ -26,6 +26,7 @@ import type { Season } from '@/types/season';
 import type { TimelineStepRecord, TimelineStepStatus } from '@/types/timeline-steps';
 import { CAPABILITY_PALETTE } from './sampleData';
 import {
+  resolveCapabilityVisuals,
   resolveInterestVocab,
   type InterestVocab,
 } from './interestVocab';
@@ -70,31 +71,27 @@ import type {
  */
 function computeSeasonPhases(
   weeks: TimelineWeek[],
-  _interestVocab: InterestVocab,
+  interestVocab: InterestVocab,
 ): SeasonPhase[] {
   if (weeks.length === 0) return [];
 
-  // Per-week dominant capability — counts contributions from EVERY tagged
-  // capability per step (not just the first), so a step tagged with
-  // "Sail Selection · Sail Design · Sail Measurement" contributes one
-  // count to each. The dominant capability for the week is the most-
-  // counted; phase labels mirror what the bands above the rule actually
-  // show, so the chart reads as one coherent capability story.
-  //
-  // We deliberately do NOT pattern-match step titles for phase labels
-  // anymore — when a band is colored "Sail Selection" but the label
-  // under it says "Rig tuning" (because a title contained "tune the
-  // rig"), the user gets two contradictory stories on one chart. The
-  // capability tags the user explicitly applied win.
+  // Per-week dominant capability mapped through the interest's palette
+  // (same lookup the chart bands use). Phase labels mirror band colors
+  // because both flow through resolveCapabilityVisuals — no contradictions.
   const dominantPerWeek: { weekNumber: number; capability: Capability | null }[] =
     weeks.map((week, idx) => {
       const counts = new Map<string, { cap: Capability; count: number }>();
       for (const step of week.steps) {
         const caps = step.capabilities ?? [];
         for (const cap of caps) {
-          const entry = counts.get(cap.id);
+          const v = resolveCapabilityVisuals(cap.label, interestVocab);
+          const canonId = v.canonicalLabel.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+          const entry = counts.get(canonId);
           if (entry) entry.count += 1;
-          else counts.set(cap.id, { cap, count: 1 });
+          else counts.set(canonId, {
+            cap: { id: canonId, label: v.canonicalLabel, color: v.color },
+            count: 1,
+          });
         }
       }
       const sorted = Array.from(counts.values()).sort((a, b) => b.count - a.count);
@@ -544,27 +541,41 @@ function computeSeasonAnalysis(
 ): SeasonAnalysis | undefined {
   if (weeks.length === 0) return undefined;
 
-  // Per-week capability mix — count contributions per capability color
-  // so the stacked-area chart can render a band per capability. Each
-  // step contributes once to EVERY capability it's tagged with (not just
-  // the first), so a step tagged with "Sail Selection · Sail Design ·
-  // Sail Measurement" produces three bands of equal weight that week.
+  // Per-week capability mix. Each step contributes once to EVERY tagged
+  // capability so "Sail Selection · Sail Design · Sail Measurement"
+  // produces three contributions. We then map each raw capability label
+  // through the interest's deliberate palette so the chart shows the
+  // canonical family ("Sails", "Rig", "Tactics", …) with a stable color
+  // — sister capabilities like "Sail Design" + "Sail Measurement" merge
+  // into one "Sails" stream instead of fragmenting into adjacent
+  // identical-color bands.
   const weeklyCapabilities: WeeklyCapabilityMix[] = weeks.map((week, idx) => {
-    const counts = new Map<string, number>();
+    const counts = new Map<string, { label: string; color: string; volume: number }>();
     for (const step of week.steps) {
       const caps = step.capabilities;
+      const labels: { label: string; color: string }[] = [];
       if (caps && caps.length > 0) {
         for (const cap of caps) {
-          counts.set(cap.color, (counts.get(cap.color) ?? 0) + 1);
+          const v = resolveCapabilityVisuals(cap.label, interestVocab);
+          labels.push({ label: v.canonicalLabel, color: v.color });
         }
       } else {
-        const fallback = CAPABILITY_PALETTE.procedural.color;
-        counts.set(fallback, (counts.get(fallback) ?? 0) + 1);
+        // Step has no tagged capability_goals — fall back to a quiet
+        // neutral so it doesn't masquerade as a real capability.
+        labels.push({ label: 'Untagged', color: CAPABILITY_PALETTE.procedural.color });
+      }
+      for (const { label, color } of labels) {
+        const id = label.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+        const existing = counts.get(id);
+        if (existing) existing.volume += 1;
+        else counts.set(id, { label, color, volume: 1 });
       }
     }
-    const bands = Array.from(counts.entries()).map(([capabilityColor, volume]) => ({
-      capabilityColor,
-      volume,
+    const bands = Array.from(counts.entries()).map(([id, info]) => ({
+      capabilityId: id,
+      capabilityLabel: info.label,
+      capabilityColor: info.color,
+      volume: info.volume,
     }));
     return { weekNumber: idx + 1, bands };
   });
