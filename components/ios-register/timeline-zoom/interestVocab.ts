@@ -92,27 +92,49 @@ const SAILING_VOCAB: InterestVocab = {
     { pattern: /\bworlds?\b/i, label: 'Worlds' },
     { pattern: /\bAPAC\b|asia.?pacific/i, label: 'APAC' },
     { pattern: /european\s+championship/i, label: 'Europeans' },
-    { pattern: /club\s+championship|club\s+champs/i, label: 'Club Champs' },
+    { pattern: /club\s+champ(?:ionship|s)?/i, label: 'Club Champs' },
     { pattern: /championship|champs\b/i, label: 'Champs' },
     { pattern: /regatta/i, label: 'Regatta' },
+    // Race-related (order matters — specific phrasings first)
     { pattern: /\brace\s*\d/i, label: 'Race day' },
-    // Tuning / rig setup vocabulary — sailors talk about rake, shrouds,
-    // forestay tension; "tune-up" reads as a phase boundary too.
-    { pattern: /tune.?up|rig\s+set|rig\s+setup/i, label: 'Tune-up' },
-    { pattern: /\brake\b|shroud|forestay|measure\s+rig|measure\s+rake|rig\s+tun/i, label: 'Rig tuning' },
-    // Boatspeed / conditions practice.
+    { pattern: /race\s+day|race\s+morning/i, label: 'Race day' },
+    { pattern: /qualif(?:ier|ying)/i, label: 'Qualifier' },
+    { pattern: /race\s+plan|race\s+strategy/i, label: 'Race planning' },
+    { pattern: /race\s+(history|culture|rules?|regulations?)/i, label: 'Race study' },
+    // Tuning / rig — both orders (tune the rig + rig tune)
+    { pattern: /tune.?up/i, label: 'Tune-up' },
+    { pattern: /tune\s+(?:the\s+)?rig|rig\s+tun(?:e|ing)?|rig\s+setup?|tuning/i, label: 'Rig tuning' },
+    { pattern: /\brake\b|shroud|forestay|measure\s+rig|measure\s+rake/i, label: 'Rig tuning' },
+    { pattern: /mast\s+(step|base|partner|bend)/i, label: 'Rig tuning' },
+    // Boat / sails
     { pattern: /boat.?speed|points\s+of\s+sail/i, label: 'Boatspeed' },
-    { pattern: /start.?(?:s|drill|practice)|line\s+work/i, label: 'Start drills' },
-    { pattern: /heavy\s+air|big\s+breeze/i, label: 'Heavy air' },
-    { pattern: /light\s+air|drifter/i, label: 'Light air' },
-    { pattern: /downwind|spinnaker|kite\b/i, label: 'Downwind work' },
-    { pattern: /upwind|beat|tacking/i, label: 'Upwind work' },
-    { pattern: /mark\s+rounding/i, label: 'Mark roundings' },
-    { pattern: /tactical|tactics|tactic\b/i, label: 'Tactics' },
+    { pattern: /sail\s+(detail|select|set|trim|change|inventory)/i, label: 'Sail work' },
+    { pattern: /boat\s+optim|hull\s+optim|optim.+(hull|rig|sail)/i, label: 'Boat optimization' },
+    // Crew
+    { pattern: /crew\s+(roster|work|comm|communication|teamwork|sync|brief)/i, label: 'Crew work' },
+    { pattern: /\bcrew\b/i, label: 'Crew work' },
+    // Conditions / techniques
+    { pattern: /start.?(?:s|drill|practice|line)|line\s+work|start.?line/i, label: 'Start drills' },
+    { pattern: /heavy\s+air|big\s+breeze|25.?30\s*kt|strong\s+breeze/i, label: 'Heavy air' },
+    { pattern: /light\s+air|drifter|shifty\s+breeze/i, label: 'Light air' },
+    { pattern: /downwind|spinnaker|kite\b|gybe|jibe/i, label: 'Downwind' },
+    { pattern: /upwind|beating?|tacking/i, label: 'Upwind' },
+    { pattern: /mark\s+rounding|rounding\s+mark/i, label: 'Mark roundings' },
+    { pattern: /tactical|tactics|tactic\b|shift/i, label: 'Tactics' },
+    // Offshore / venue / weather
+    { pattern: /\boffshore\b/i, label: 'Offshore' },
     { pattern: /local\s+conditions|venue\s+scout|venue\s+conditions|local\s+venue/i, label: 'Venue scouting' },
-    // Planning / goal-setting work.
-    { pattern: /goal.?setting|\bgoal\b/i, label: 'Goal-setting' },
+    { pattern: /weather\s+(forecast|strategy|routing)|\brouting\b/i, label: 'Weather strategy' },
+    { pattern: /sea\s+survival|safety\s+training|safety\s+gear/i, label: 'Safety training' },
+    { pattern: /navigation|chart\s+work|gps\b/i, label: 'Navigation' },
+    // Planning / logistics / goal-setting
+    { pattern: /goal.?setting|\bgoal\b|aims?\b/i, label: 'Goal-setting' },
     { pattern: /commit\s+to|register\s+for|entry\s+form/i, label: 'Goal-setting' },
+    { pattern: /ship\s+(?:the\s+)?boat|logistics|trailer/i, label: 'Logistics' },
+    { pattern: /gear\s+(select|prep|inventory)/i, label: 'Gear prep' },
+    { pattern: /nutrition|endurance|strength|fitness/i, label: 'Fitness' },
+    // Generic catch-alls last
+    { pattern: /\brace\b/i, label: 'Racing' },
     { pattern: /\bdebrief\b/i, label: 'Debrief' },
   ],
 };
