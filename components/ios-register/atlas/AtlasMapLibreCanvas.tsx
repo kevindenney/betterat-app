@@ -344,6 +344,12 @@ interface AtlasMapLibreCanvasProps {
    * shape-specific code paths.
    */
   racingAreaPreviewPolygon?: GeoJSON.Polygon | null;
+  /**
+   * Fires after a pan/zoom gesture settles. Atlas uses this to keep
+   * wind/tide overlays anchored to whatever water the user is looking
+   * at, refetching marine conditions for the new center.
+   */
+  onMapCenterChange?: (coords: { lng: number; lat: number }) => void;
   /** Base map style used by web and native MapLibre surfaces. */
   basemap?: AtlasBasemap;
 }
@@ -394,6 +400,7 @@ export function AtlasMapLibreCanvas({
   onNextEventPress,
   onMapLongPress,
   racingAreaPreviewPolygon = null,
+  onMapCenterChange,
   basemap = 'map',
 }: AtlasMapLibreCanvasProps) {
   // Hooks first, then early returns — rules-of-hooks compliance.
@@ -415,6 +422,38 @@ export function AtlasMapLibreCanvas({
   // Wrap the supplied preview polygon (circle, rectangle, …) in a
   // FeatureCollection so MapLibre can paint it via the same source
   // pattern as the persisted areas. The sheet owns the shape math.
+  // Centroids of every racing-area polygon, so we can render labels
+  // as MLMarker overlays instead of a MapLibre symbol layer. Native
+  // iOS rejected the symbol layer (see feedback_maplibre_native_strict_expressions),
+  // and overlay text bypasses that path entirely while still reading
+  // correctly over the tan fill thanks to the white-pill background.
+  const racingAreaLabels = useMemo<
+    { id: string; name: string; lng: number; lat: number }[]
+  >(() => {
+    const out: { id: string; name: string; lng: number; lat: number }[] = [];
+    for (const feature of raceAreasCollection.features) {
+      const geom = feature.geometry;
+      if (!geom || geom.type !== 'Polygon') continue;
+      const ring = geom.coordinates[0];
+      if (!ring || ring.length === 0) continue;
+      let lngSum = 0;
+      let latSum = 0;
+      for (const [lng, lat] of ring) {
+        lngSum += lng;
+        latSum += lat;
+      }
+      const name = (feature.properties as { id?: string; name?: string } | null)?.name;
+      const id = (feature.properties as { id?: string } | null)?.id;
+      if (!name || !id) continue;
+      out.push({
+        id,
+        name,
+        lng: lngSum / ring.length,
+        lat: latSum / ring.length,
+      });
+    }
+    return out;
+  }, [raceAreasCollection]);
   const racingAreaPreviewCollection = useMemo<GeoJSON.FeatureCollection | null>(() => {
     if (!racingAreaPreviewPolygon) return null;
     return {
@@ -450,6 +489,24 @@ export function AtlasMapLibreCanvas({
       onMapLongPress({ lng, lat });
     },
     [onMapLongPress],
+  );
+  // Throttle map-center updates so we don't hammer Open-Meteo as the
+  // user pans. iOS native MapLibre's onRegionDidChange is unreliable
+  // for user-pan gestures on this bridge version (only fires for
+  // programmatic flyTos), so we also listen to onRegionIsChanging
+  // (which fires throughout the pan) and only call setMapCenter at
+  // most once every 600ms.
+  const lastCenterUpdateRef = useRef(0);
+  const handleRegionChange = useCallback(
+    (event: NativeSyntheticEvent<{ center: [number, number] }>) => {
+      if (!onMapCenterChange) return;
+      const now = Date.now();
+      if (now - lastCenterUpdateRef.current < 600) return;
+      lastCenterUpdateRef.current = now;
+      const [lng, lat] = event.nativeEvent.center;
+      onMapCenterChange({ lng, lat });
+    },
+    [onMapCenterChange],
   );
   // Recenter the camera on the tapped pin and reserve screen space for
   // the top chrome (filter chips) and the bottom sheet that will pop
@@ -507,6 +564,7 @@ export function AtlasMapLibreCanvas({
         onPinPress={onPinPress}
         showRaceAreas={showRaceAreas}
         onNextEventPress={onNextEventPress}
+        onMapCenterChange={onMapCenterChange}
         basemap={basemap}
         baseCamera={baseCamera}
         walkLineCollection={walkLineCollection}
@@ -522,6 +580,8 @@ export function AtlasMapLibreCanvas({
         style={styles.fill}
         onPress={onMapPress ? handlePress : undefined}
         onLongPress={onMapLongPress ? handleLongPress : undefined}
+        onRegionIsChanging={onMapCenterChange ? handleRegionChange : undefined}
+        onRegionDidChange={onMapCenterChange ? handleRegionChange : undefined}
         attribution={false}
         logo={false}
       >
@@ -548,6 +608,14 @@ export function AtlasMapLibreCanvas({
           </MLGeoJSONSource>
         ) : null}
 
+        {/* Race-area fill is split into a constant color + data-driven
+            opacity expression (defensive coalesce so missing properties
+            fall back to 0.20). The earlier bare `['get','fillOpacity']`
+            form was rejected by MapLibre Native iOS — coalesce is the
+            more universal expression shape and tends to validate. If
+            this re-introduction silently breaks iOS rendering again,
+            revert to a constant fillColor with embedded alpha; see
+            feedback_maplibre_native_strict_expressions for context. */}
         {showRaceAreas ? (
           <MLGeoJSONSource id="atlas-race-areas" data={raceAreasCollection}>
             <MLLayer
@@ -555,31 +623,28 @@ export function AtlasMapLibreCanvas({
               type="fill"
               style={{
                 fillColor: 'rgb(255, 191, 99)',
-                // Data-driven: each feature carries its own fillOpacity so
-                // areas not in the viewer's boat class dim out.
-                fillOpacity: ['get', 'fillOpacity'],
+                fillOpacity: ['coalesce', ['get', 'fillOpacity'], 0.20],
                 fillOutlineColor: 'rgba(231, 137, 60, 0.55)',
-              }}
-            />
-            {/* Label each area with its name at the polygon centroid so
-                "what racing area is this?" reads immediately. Halo keeps
-                the text legible over the tan fill. Kept to the
-                MapLibre-native-safe property subset — letterSpacing /
-                transform / allowOverlap have triggered C++ assertions
-                on some bridge versions. */}
-            <MLLayer
-              id="atlas-race-areas-label"
-              type="symbol"
-              style={{
-                textField: ['get', 'name'],
-                textSize: 12,
-                textColor: 'rgba(60, 40, 20, 0.9)',
-                textHaloColor: 'rgba(255, 255, 255, 0.92)',
-                textHaloWidth: 1.4,
               }}
             />
           </MLGeoJSONSource>
         ) : null}
+
+        {showRaceAreas
+          ? racingAreaLabels.map((label) => (
+              <MLMarker
+                key={`area-label:${label.id}`}
+                id={`atlas-area-label:${label.id}`}
+                lngLat={[label.lng, label.lat]}
+              >
+                <View pointerEvents="none" style={styles.areaLabelPill}>
+                  <Text style={styles.areaLabelText} numberOfLines={1}>
+                    {label.name}
+                  </Text>
+                </View>
+              </MLMarker>
+            ))
+          : null}
 
         {racingAreaPreviewCollection ? (
           <MLGeoJSONSource
@@ -590,8 +655,7 @@ export function AtlasMapLibreCanvas({
               id="atlas-race-area-preview-fill"
               type="fill"
               style={{
-                fillColor: 'rgb(0, 122, 255)',
-                fillOpacity: 0.12,
+                fillColor: 'rgba(0, 122, 255, 0.12)',
               }}
             />
             <MLLayer
@@ -600,7 +664,6 @@ export function AtlasMapLibreCanvas({
               style={{
                 lineColor: 'rgba(0, 122, 255, 0.85)',
                 lineWidth: 1.5,
-                lineDasharray: [3, 2],
               }}
             />
           </MLGeoJSONSource>
@@ -703,6 +766,7 @@ function WebAtlasMapLibreCanvas({
   onPinPress,
   showRaceAreas,
   onNextEventPress,
+  onMapCenterChange,
   basemap = 'map',
   baseCamera,
   walkLineCollection,
@@ -768,6 +832,13 @@ function WebAtlasMapLibreCanvas({
           });
         }
 
+        if (onMapCenterChange) {
+          map.on('moveend', () => {
+            const c = map.getCenter();
+            onMapCenterChange({ lng: c.lng, lat: c.lat });
+          });
+        }
+
         map.on('load', () => {
           if (cancelled) return;
           setMapError(null);
@@ -802,7 +873,7 @@ function WebAtlasMapLibreCanvas({
       mapRef.current = null;
       maplibreRef.current = null;
     };
-  }, [baseCamera.center, baseCamera.zoom, basemap, frame, onMapPress]);
+  }, [baseCamera.center, baseCamera.zoom, basemap, frame, onMapPress, onMapCenterChange]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -813,7 +884,12 @@ function WebAtlasMapLibreCanvas({
       padding: { top: 120, bottom: 380 },
       duration: 500,
     });
-  }, [focusLocation, focusLocation?.lat, focusLocation?.lng, isLoaded]);
+    // Depend only on the lat/lng values — including the focusLocation
+    // object itself causes easeTo to re-fire on every parent render
+    // (the parent recreates the object inline), which flies the camera
+    // back to its last focus on every state change unrelated to focus.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focusLocation?.lat, focusLocation?.lng, isLoaded]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -952,6 +1028,14 @@ function createWebPinElement({
   isTappable: boolean;
   onPress?: () => void;
 }) {
+  // Wind and tide arrows have their own DOM shape — a rotated glyph
+  // plus an optional value chip. The generic circle path below would
+  // otherwise render them as blue dots (which is what reached web
+  // before this branch). Native uses LabeledPin's wind-arrow /
+  // tide-arrow blocks; this mirrors them in plain DOM for web parity.
+  if (pin.kind === 'wind-arrow' || pin.kind === 'tide-arrow') {
+    return createWebArrowElement(pin);
+  }
   const tone = PIN_TONE[pin.kind];
   const root = document.createElement(isTappable ? 'button' : 'div');
   root.style.display = 'flex';
@@ -1028,6 +1112,62 @@ function createWebPinElement({
   return root;
 }
 
+function createWebArrowElement(pin: AtlasPinSpec) {
+  const root = document.createElement('div');
+  root.style.display = 'flex';
+  root.style.flexDirection = 'column';
+  root.style.alignItems = 'center';
+  root.style.gap = '2px';
+  root.style.pointerEvents = 'none';
+
+  const [degStr, knotsStr, variant] = (pin.label ?? '0|0').split('|');
+  const isWind = pin.kind === 'wind-arrow';
+  const isField = variant === 'field';
+  const deg = Number(degStr) || 0;
+  const knots = Number(knotsStr) || 0;
+  // Wind: arrow points DOWNWIND (away from source). Tide: arrow points
+  // the direction the current flows TO (set). So wind needs +180,
+  // tide does not.
+  const rotateDeg = isWind ? (deg + 180) % 360 : deg;
+
+  const glyphSize = isField ? 16 : 26;
+  const glyph = document.createElement('div');
+  glyph.style.fontSize = `${glyphSize}px`;
+  glyph.style.lineHeight = '1';
+  glyph.style.transform = `rotate(${rotateDeg}deg)`;
+  glyph.style.color = isField
+    ? isWind
+      ? 'rgba(113, 143, 168, 0.78)'
+      : 'rgba(96, 130, 138, 0.78)'
+    : isWind
+      ? 'rgba(0, 122, 255, 0.95)'
+      : 'rgba(0, 168, 168, 0.95)';
+  // Up-arrow (wind) / chevron-up (tide), both natively point north so
+  // rotation maps cleanly to compass bearings.
+  glyph.textContent = isWind ? '↑' : '⌃';
+  root.appendChild(glyph);
+
+  if (!isField && knots > 0) {
+    const chip = document.createElement('span');
+    const padded = ((Math.round(deg) % 360) + 360) % 360;
+    const padStr = padded.toString().padStart(3, '0');
+    const knotsLabel = isWind ? Math.round(knots) : knots.toFixed(1);
+    chip.textContent = `${padStr}° · ${knotsLabel} kn`;
+    chip.style.padding = '2px 6px';
+    chip.style.borderRadius = '999px';
+    chip.style.background = 'rgba(255,255,255,0.92)';
+    chip.style.boxShadow = '0 2px 8px rgba(0,0,0,0.10)';
+    chip.style.fontFamily = '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+    chip.style.fontSize = '10px';
+    chip.style.fontWeight = '600';
+    chip.style.color = 'rgba(28, 28, 30, 0.86)';
+    chip.style.whiteSpace = 'nowrap';
+    root.appendChild(chip);
+  }
+
+  return root;
+}
+
 function createWebNextEventElement(
   nextEvent: AtlasNextEvent & { lng: number; lat: number },
   onPress?: () => void,
@@ -1067,6 +1207,12 @@ function createWebCandidateElement() {
  * The red drop-pin shown in commit-mode at the tapped coords. Larger
  * than peer pins so it reads as "you are about to anchor a step here."
  */
+/** Pad a compass bearing to a 3-digit string (`045`, `120`, `005`). */
+function padDeg(deg: number): string {
+  const v = ((Math.round(deg) % 360) + 360) % 360;
+  return v.toString().padStart(3, '0');
+}
+
 function CandidateMarker() {
   return (
     <View style={styles.candidatePin}>
@@ -1379,23 +1525,36 @@ function LabeledPin({
           />
         </View>
         {!isField && knots > 0 ? (
-          <Text style={styles.arrowChip}>{`${Math.round(knots)} kn`}</Text>
+          <Text style={styles.arrowChip}>{`${padDeg(fromDeg)}° · ${Math.round(knots)} kn`}</Text>
         ) : null}
       </View>
     );
   }
   if (kind === 'tide-arrow') {
     // Tide convention: "set" — arrow points where water FLOWS, no flip.
-    const [degStr, knotsStr] = (label ?? '0|0').split('|');
+    // `|field` suffix opts into the soft surface treatment (small,
+    // muted slate-teal, no kn chip) so a dense grid reads as ambience
+    // rather than N hard-labeled duplicates. Mirror of wind-arrow.
+    const [degStr, knotsStr, variant] = (label ?? '0|0').split('|');
     const setDeg = Number(degStr) || 0;
     const knots = Number(knotsStr) || 0;
+    const isField = variant === 'field';
     return (
-      <View style={styles.tideArrowWrap}>
-        <View style={[styles.arrowDisc, { transform: [{ rotate: `${setDeg}deg` }] }]}>
-          <Ionicons name="chevron-up" size={32} color="rgba(0, 168, 168, 0.95)" />
+      <View style={isField ? styles.windFieldWrap : styles.tideArrowWrap}>
+        <View
+          style={[
+            isField ? styles.fieldArrowDisc : styles.arrowDisc,
+            { transform: [{ rotate: `${setDeg}deg` }] },
+          ]}
+        >
+          <Ionicons
+            name="chevron-up"
+            size={isField ? 18 : 32}
+            color={isField ? 'rgba(96, 130, 138, 0.78)' : 'rgba(0, 168, 168, 0.95)'}
+          />
         </View>
-        {knots > 0 ? (
-          <Text style={styles.arrowChip}>{`${knots.toFixed(1)} kn`}</Text>
+        {!isField && knots > 0 ? (
+          <Text style={styles.arrowChip}>{`${padDeg(setDeg)}° · ${knots.toFixed(1)} kn`}</Text>
         ) : null}
       </View>
     );
@@ -1999,6 +2158,20 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#5A3000',
     letterSpacing: 0.2,
+  },
+  areaLabelPill: {
+    backgroundColor: 'rgba(255, 255, 255, 0.92)',
+    borderRadius: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    maxWidth: 140,
+  },
+  areaLabelText: {
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 0.4,
+    color: 'rgba(60, 40, 20, 0.95)',
+    textTransform: 'uppercase',
   },
   candidatePin: {
     width: 26,
