@@ -109,7 +109,7 @@ export function ManageRacingAreasSheet({ visible, onClose, onEditArea }: ManageR
               accessibilityRole="button"
               accessibilityLabel="Close"
             >
-              <Ionicons name="close" size={20} color={IOS_COLORS.label} />
+              <Ionicons name="close" size={22} color={IOS_COLORS.label} />
             </Pressable>
           </View>
           <Text style={styles.title}>Manage racing areas</Text>
@@ -262,14 +262,14 @@ const styles = StyleSheet.create({
   },
   closeBtn: {
     position: 'absolute',
-    right: 4,
-    top: 4,
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    right: 8,
+    top: 6,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(120, 120, 130, 0.12)',
+    backgroundColor: 'rgba(120, 120, 130, 0.18)',
   },
   title: {
     fontSize: 17,
