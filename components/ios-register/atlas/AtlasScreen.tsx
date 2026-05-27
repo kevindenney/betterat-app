@@ -38,6 +38,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { IOS_COLORS, IOS_REGISTER } from '@/lib/design-tokens-ios';
 import { FEATURE_FLAGS } from '@/lib/featureFlags';
+import { useAuth } from '@/providers/AuthProvider';
 import { useWebDrawer } from '@/providers/WebDrawerProvider';
 import { showAlert } from '@/lib/utils/crossPlatformAlert';
 import {
@@ -60,6 +61,8 @@ import type { EditingRacingArea } from './CreateRacingAreaSheet';
 import { RepositionAreaBanner } from './RepositionAreaBanner';
 import { useUpdateRacingArea } from '@/hooks/useUpdateRacingArea';
 import { useUpdateStepLocation } from '@/hooks/useUpdateStepLocation';
+import { useAtlasRacingAreas } from '@/hooks/useAtlasRacingAreas';
+import { findRacingAreaAtPoint } from '@/lib/atlas-racing-area-hit-test';
 import { shapeToPolygon } from '@/lib/atlas-racing-area-shape';
 import type { PickerStep } from '@/hooks/useUserAtlasSteps';
 import { useUserHomeVenue } from '@/hooks/useUserHomeVenue';
@@ -3972,14 +3975,6 @@ function BottomSheet({
   }, []);
   const showFull = state === 'expanded';
   const showMid = state !== 'handle';
-  const handleIcon: keyof typeof Ionicons.glyphMap =
-    state === 'expanded' ? 'chevron-down' : state === 'mid' ? 'remove' : 'chevron-up';
-  const handleLabel =
-    state === 'expanded'
-      ? 'Collapse sheet'
-      : state === 'mid'
-        ? 'Minimize sheet'
-        : 'Expand sheet';
   return (
     <View
       style={[
@@ -3999,6 +3994,9 @@ function BottomSheet({
         },
       ]}
     >
+      {/* Grabber is the only sheet-state control — Apple sheets don't
+          render a separate corner button. Tap the grabber to cycle
+          handle → mid → expanded. */}
       <Pressable
         onPress={cycle}
         accessibilityRole="button"
@@ -4007,15 +4005,6 @@ function BottomSheet({
         style={shellStyles.sheetHandleHit}
       >
         <View style={shellStyles.sheetHandle} />
-      </Pressable>
-      <Pressable
-        onPress={cycle}
-        accessibilityRole="button"
-        accessibilityLabel={handleLabel}
-        hitSlop={8}
-        style={shellStyles.sheetStateBtn}
-      >
-        <Ionicons name={handleIcon} size={16} color="rgba(60, 60, 67, 0.72)" />
       </Pressable>
       {showMid && topStripContent ? (
         <View style={shellStyles.sheetTopStrip}>{topStripContent}</View>
@@ -5069,20 +5058,6 @@ const shellStyles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 6,
     marginBottom: 4,
-  },
-  sheetStateBtn: {
-    position: 'absolute',
-    top: 8,
-    right: 14,
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: 'rgba(255, 255, 255, 0.96)',
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(60, 60, 67, 0.18)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 2,
   },
   sheetHandle: {
     width: 36,
