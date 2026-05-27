@@ -538,6 +538,7 @@ function computeSeasonAnalysis(
   seasonName: string | null,
   currentWeekNumber: number,
   interestVocab: InterestVocab,
+  stepEvidenceMap?: Map<string, { capabilityName: string }[]>,
 ): SeasonAnalysis | undefined {
   if (weeks.length === 0) return undefined;
 
@@ -557,31 +558,65 @@ function computeSeasonAnalysis(
   // "fitness" categories count even if the user hasn't tagged
   // capability_goals explicitly.
   const weeklyCapabilities: WeeklyCapabilityMix[] = weeks.map((week, idx) => {
-    const counts = new Map<string, { label: string; color: string; volume: number }>();
+    const counts = new Map<
+      string,
+      { label: string; color: string; planned: number; proven: number }
+    >();
+    const bump = (
+      label: string,
+      color: string,
+      kind: 'planned' | 'proven',
+    ) => {
+      const id = label.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+      const existing = counts.get(id);
+      if (existing) {
+        if (kind === 'planned') existing.planned += 1;
+        else existing.proven += 1;
+      } else {
+        counts.set(id, {
+          label,
+          color,
+          planned: kind === 'planned' ? 1 : 0,
+          proven: kind === 'proven' ? 1 : 0,
+        });
+      }
+    };
     for (const step of week.steps) {
       const caps = step.capabilities;
       const onlyFallback =
         !caps ||
         caps.length === 0 ||
         (caps.length === 1 && (caps[0]!.label === 'Practice' || caps[0]!.label === 'General'));
-      if (onlyFallback) continue; // hide truly-unspecified steps
-      for (const cap of caps!) {
-        // Skip any fallback "Practice"/"General" entries inside a
-        // mixed list (defensive — shouldn't happen post-Goal tagging
-        // but keeps the chart honest if it does).
-        if (cap.label === 'Practice' || cap.label === 'General') continue;
-        const v = resolveCapabilityVisuals(cap.label, interestVocab);
-        const id = v.canonicalLabel.toLowerCase().replace(/[^a-z0-9]+/g, '-');
-        const existing = counts.get(id);
-        if (existing) existing.volume += 1;
-        else counts.set(id, { label: v.canonicalLabel, color: v.color, volume: 1 });
+      // Planned layer — capability_goals from the Plan tab.
+      if (!onlyFallback) {
+        for (const cap of caps!) {
+          if (cap.label === 'Practice' || cap.label === 'General') continue;
+          const v = resolveCapabilityVisuals(cap.label, interestVocab);
+          bump(v.canonicalLabel, v.color, 'planned');
+        }
+      }
+      // Proven layer — confirmed step_capability_evidence rows. Mapped
+      // through the same palette so a planned "Sail Design" and a
+      // proven "sail design" merge into one canonical "Sails" stream
+      // (chart bands and evidence dots stay color-aligned).
+      const evidenceRows = stepEvidenceMap?.get(step.id) ?? [];
+      for (const ev of evidenceRows) {
+        const label = (ev.capabilityName || '').trim();
+        if (!label) continue;
+        const v = resolveCapabilityVisuals(label, interestVocab);
+        bump(v.canonicalLabel, v.color, 'proven');
       }
     }
     const bands = Array.from(counts.entries()).map(([id, info]) => ({
       capabilityId: id,
       capabilityLabel: info.label,
       capabilityColor: info.color,
-      volume: info.volume,
+      // Legacy `volume` is the max of planned/proven so any consumer
+      // that doesn't read planned/proven still sees a sensible band
+      // size. New consumers use plannedVolume + provenVolume.
+      volume: Math.max(info.planned, info.proven),
+      plannedVolume: info.planned,
+      provenVolume: info.proven,
     }));
     return { weekNumber: idx + 1, bands };
   });
@@ -979,6 +1014,13 @@ interface AdapterInput {
   focusStepId?: string;
   /** id → title (and optional author_name) lookup for FROM provenance row. */
   blueprintsById?: Map<string, BlueprintLookup>;
+  /**
+   * Optional step-id → confirmed step_capability_evidence rows. When
+   * supplied, weeklyCapabilities carries a `provenVolume` per band
+   * alongside `plannedVolume`, and the CapabilityMix chart renders
+   * planned-as-ghost-outline + proven-as-solid-fill in each band.
+   */
+  stepEvidenceMap?: Map<string, { capabilityName: string }[]>;
 }
 
 export function mapToTimelineDataset({
@@ -991,6 +1033,7 @@ export function mapToTimelineDataset({
   steps,
   focusStepId,
   blueprintsById,
+  stepEvidenceMap,
 }: AdapterInput): TimelineDataset {
   // Sort steps by sort_order, then starts_at. Stable ordering matters for
   // week bucketing fallback and L4 brick layout.
@@ -1065,6 +1108,7 @@ export function mapToTimelineDataset({
     currentSeason?.name ?? currentSeason?.short_name ?? null,
     currentWeekIdx + 1,
     interestVocab,
+    stepEvidenceMap,
   );
 
   // L2 context strip — "{Season} has been {capability}-heavy." Drives

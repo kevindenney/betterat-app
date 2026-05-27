@@ -213,16 +213,23 @@ export interface WeeklyCapabilityMix {
   weekNumber: number;          // 1, 2, …, weekOfTotal.total
   /**
    * Each band stacks on the previous in render order. capabilityId
-   * lets the chart group same-capability bands across weeks into a
-   * single stream; capabilityLabel is the in-band text the chart
-   * draws at the widest point so the user reads the chart directly
-   * instead of via a separate legend.
+   * groups same-capability bands across weeks into a single stream;
+   * capabilityLabel is the in-band text the chart writes at the
+   * widest point.
+   *
+   * `volume` is the legacy combined count (kept for back-compat); the
+   * chart prefers `plannedVolume` (capability_goals from Plan tab)
+   * and `provenVolume` (step_capability_evidence rows from Reflect
+   * tab) when present so it can render planned-as-ghost-outline and
+   * proven-as-solid-fill in the same band.
    */
   bands: {
     capabilityId?: string;
     capabilityLabel?: string;
     capabilityColor: string;
     volume: number;
+    plannedVolume?: number;
+    provenVolume?: number;
   }[];
 }
 

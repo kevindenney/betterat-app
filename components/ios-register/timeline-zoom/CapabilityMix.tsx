@@ -54,18 +54,36 @@ interface ResolvedBand {
   id: string;
   label: string;
   color: string;
-  /** Volume per week, indexed by weekNumber-1. */
+  /** max(planned, proven) per week — drives stack layout + label placement. */
   perWeek: number[];
+  /** Planned volume per week (capability_goals from the Plan tab). */
+  perWeekPlanned: number[];
+  /** Proven volume per week (confirmed step_capability_evidence from Reflect). */
+  perWeekProven: number[];
 }
 
+/**
+ * Rendering unit for one band's contribution in one week. We emit BOTH
+ * a ghost rect (planned, faint outline) and a solid rect (proven,
+ * saturated fill). When proven > planned, ghostHeight = 0 and the
+ * solid extends to the full cell. When planned > proven, the solid
+ * sits at the bottom and the ghost fills the remaining gap above —
+ * "you planned X, proved Y, the gap is the rest."
+ */
 interface StackedRect {
   bandId: string;
   bandColor: string;
   bandLabel: string;
   x: number;
-  y: number;
+  /** Bottom y of the cell (solid fill bottom). */
+  yBottom: number;
   w: number;
-  h: number;
+  /** Full cell height = scale(max(planned, proven)). */
+  cellHeight: number;
+  /** Solid (proven) fill height; from yBottom up. */
+  solidHeight: number;
+  /** Ghost (gap above solid) height; from solid top up to cell top. */
+  ghostHeight: number;
 }
 
 interface LabelPlacement {
@@ -94,10 +112,10 @@ export function CapabilityMix({
   const innerHeight = Math.max(0, height - padTop - padBottom);
   const colWidth = totalWeeks > 0 ? innerWidth / totalWeeks : 0;
 
-  // Resolve all capabilities present anywhere in the season. The
-  // chart needs one stream per capability across all weeks, even
-  // when that capability is absent some weeks (its stream just
-  // shrinks to zero those weeks).
+  // Resolve all capabilities present anywhere in the season. Each band
+  // tracks planned + proven volumes separately so the chart can show
+  // "intent vs evidence" as ghost outline + solid fill in the same
+  // cell. `perWeek` carries max(planned, proven) for layout/labelling.
   const bands: ResolvedBand[] = useMemo(() => {
     const map = new Map<string, ResolvedBand>();
     weeklyCapabilities.forEach((w) => {
@@ -109,6 +127,8 @@ export function CapabilityMix({
             label: b.capabilityLabel ?? '',
             color: b.capabilityColor,
             perWeek: new Array(totalWeeks).fill(0),
+            perWeekPlanned: new Array(totalWeeks).fill(0),
+            perWeekProven: new Array(totalWeeks).fill(0),
           });
         }
       }
@@ -119,7 +139,15 @@ export function CapabilityMix({
       for (const b of w.bands) {
         const id = b.capabilityId ?? b.capabilityColor;
         const band = map.get(id);
-        if (band) band.perWeek[idx] = (band.perWeek[idx] ?? 0) + b.volume;
+        if (!band) continue;
+        const planned = b.plannedVolume ?? b.volume ?? 0;
+        const proven = b.provenVolume ?? 0;
+        band.perWeekPlanned[idx] = (band.perWeekPlanned[idx] ?? 0) + planned;
+        band.perWeekProven[idx] = (band.perWeekProven[idx] ?? 0) + proven;
+        band.perWeek[idx] = Math.max(
+          band.perWeekPlanned[idx]!,
+          band.perWeekProven[idx]!,
+        );
       }
     });
     // Largest-total streams render at the bottom so the eye reads
@@ -143,26 +171,34 @@ export function CapabilityMix({
     return max || 1;
   }, [bands, totalWeeks]);
 
-  // Build a flat list of rectangles. Each rectangle = one band's
-  // contribution for one week. Stacked from the bottom up.
+  // Build rendering rects. Each cell carries cellHeight (= max planned
+  // proven), solidHeight (proven), and ghostHeight (planned-proven
+  // gap above the solid, when planned > proven).
   const rects: StackedRect[] = useMemo(() => {
     const out: StackedRect[] = [];
     const scale = (v: number) => (v / maxStack) * innerHeight;
     for (let i = 0; i < totalWeeks; i++) {
       let yCursor = padTop + innerHeight;
       for (const band of bands) {
-        const v = band.perWeek[i] ?? 0;
-        if (v <= 0) continue;
-        const h = scale(v);
-        yCursor -= h;
+        const planned = band.perWeekPlanned[i] ?? 0;
+        const proven = band.perWeekProven[i] ?? 0;
+        const cellVol = Math.max(planned, proven);
+        if (cellVol <= 0) continue;
+        const cellH = scale(cellVol);
+        const solidH = scale(proven);
+        const ghostH = Math.max(0, cellH - solidH);
+        const yBottom = yCursor;
+        yCursor -= cellH;
         out.push({
           bandId: band.id,
           bandColor: band.color,
           bandLabel: band.label,
           x: padX + i * colWidth + 0.5,
-          y: yCursor,
+          yBottom,
           w: Math.max(0, colWidth - 1),
-          h,
+          cellHeight: cellH,
+          solidHeight: solidH,
+          ghostHeight: ghostH,
         });
       }
     }
@@ -242,19 +278,42 @@ export function CapabilityMix({
   return (
     <View style={[styles.wrap, { width, height }]}>
       <Svg width={width} height={height}>
-        {/* Stacked-area bands rendered as adjacent rectangles. Honest
-            geometry — each rect's height is its volume, nothing more. */}
-        {rects.map((r) => (
-          <Rect
-            key={`${r.bandId}-${r.x}`}
-            x={r.x}
-            y={r.y}
-            width={r.w}
-            height={r.h}
-            fill={r.bandColor}
-            opacity={0.9}
-          />
-        ))}
+        {/* Stacked-area bands rendered with dual encoding:
+            - Ghost rect (faint fill) covers the planned portion above
+              the solid — "what you set out to develop"
+            - Solid rect (saturated fill) covers the proven portion at
+              the bottom of the cell — "what you actually demonstrated"
+            Where the ghost is gone (planned == proven == cellHeight)
+            the band is fully solid = perfect alignment. Where the
+            solid is short = unfulfilled plan. */}
+        {rects.map((r) => {
+          const solidY = r.yBottom - r.solidHeight;
+          const ghostY = solidY - r.ghostHeight;
+          return (
+            <React.Fragment key={`${r.bandId}-${r.x}`}>
+              {r.ghostHeight > 0 ? (
+                <Rect
+                  x={r.x}
+                  y={ghostY}
+                  width={r.w}
+                  height={r.ghostHeight}
+                  fill={r.bandColor}
+                  opacity={0.22}
+                />
+              ) : null}
+              {r.solidHeight > 0 ? (
+                <Rect
+                  x={r.x}
+                  y={solidY}
+                  width={r.w}
+                  height={r.solidHeight}
+                  fill={r.bandColor}
+                  opacity={0.95}
+                />
+              ) : null}
+            </React.Fragment>
+          );
+        })}
 
         {/* Single hairline x-axis at the baseline. */}
         <Line

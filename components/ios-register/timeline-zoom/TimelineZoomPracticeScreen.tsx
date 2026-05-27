@@ -24,6 +24,7 @@ import { useMyTimeline, useUpdateStep, useDeleteStep } from '@/hooks/useTimeline
 import { showAlert, showConfirm } from '@/lib/utils/crossPlatformAlert';
 import { useCurrentSeason, useUserSeasons, useCreateSeason } from '@/hooks/useSeason';
 import { useSubscribedBlueprints, useBlueprintWithAuthor } from '@/hooks/useBlueprint';
+import { useStepCapabilityEvidence } from '@/hooks/useStepCapabilityEvidence';
 
 import { TimelineZoomCanvas } from './TimelineZoomCanvas';
 import { mapToTimelineDataset, type BlueprintLookup } from './realDataAdapter';
@@ -58,6 +59,8 @@ export function TimelineZoomPracticeScreen() {
   const { data: currentSeason = null } = useCurrentSeason();
   const { data: allSeasons = [] } = useUserSeasons();
   const { data: subscribedBlueprints = [] } = useSubscribedBlueprints(interestId);
+  const stepIdsForEvidence = useMemo(() => steps.map((s) => s.id), [steps]);
+  const { data: stepEvidenceMap } = useStepCapabilityEvidence(stepIdsForEvidence);
 
   // The focused step's blueprint gets the "suggested by …" author tag —
   // only one extra query, only when the focused step actually came from a
@@ -107,6 +110,7 @@ export function TimelineZoomPracticeScreen() {
         interestLabel: currentInterest?.name ?? 'Practice',
         interestSlug: currentInterest?.slug ?? null,
         user: {
+          id: user?.id ?? null,
           initials: userInitials,
           color: currentInterest?.accent_color || '#7BA0C4',
         },
@@ -115,16 +119,19 @@ export function TimelineZoomPracticeScreen() {
         steps,
         focusStepId: selectedStepId,
         blueprintsById,
+        stepEvidenceMap,
       }),
     [
       interestId,
       currentInterest,
+      user?.id,
       userInitials,
       currentSeason,
       allSeasons,
       steps,
       selectedStepId,
       blueprintsById,
+      stepEvidenceMap,
     ],
   );
 
