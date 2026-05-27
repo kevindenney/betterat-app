@@ -106,6 +106,14 @@ export function OpenStepPicker({
                 const badgeTone = STATUS_BADGE_TONE[step.status];
                 const subtitle = readableLocationName(step.location_name);
                 const isHeroStep = step.status === 'planned-next';
+                const accentColor =
+                  step.status === 'planned-next'
+                    ? '#F0A93A'
+                    : step.status === 'done-just-completed'
+                      ? '#34C759'
+                      : step.has_place
+                        ? '#0A84FF'
+                        : 'rgba(120, 120, 130, 0.5)';
                 return (
                   <Pressable
                     key={step.step_id}
@@ -118,41 +126,49 @@ export function OpenStepPicker({
                     accessibilityRole="button"
                     accessibilityLabel={`Focus on ${step.title}`}
                   >
+                    <View style={[styles.accentBar, { backgroundColor: accentColor }]} />
                     <View style={styles.rowBody}>
-                      {badgeLabel && badgeTone ? (
-                        <View
-                          style={[
-                            styles.badge,
-                            {
-                              backgroundColor: badgeTone.background,
-                              borderColor: badgeTone.border,
-                            },
-                          ]}
-                        >
-                          <Text
-                            style={[styles.badgeText, { color: badgeTone.text }]}
-                          >
-                            {badgeLabel}
-                          </Text>
-                        </View>
-                      ) : null}
-                      <Text style={styles.title} numberOfLines={2}>
-                        {step.title}
-                      </Text>
-                      {subtitle ? (
-                        <Text style={styles.subtitle} numberOfLines={1}>
-                          {subtitle}
+                      <View style={styles.rowTitleRow}>
+                        <Text style={styles.title} numberOfLines={2}>
+                          {step.title}
                         </Text>
-                      ) : null}
+                        {badgeLabel && badgeTone ? (
+                          <View
+                            style={[
+                              styles.badge,
+                              {
+                                backgroundColor: badgeTone.background,
+                                borderColor: badgeTone.border,
+                              },
+                            ]}
+                          >
+                            <Text
+                              style={[styles.badgeText, { color: badgeTone.text }]}
+                            >
+                              {badgeLabel}
+                            </Text>
+                          </View>
+                        ) : null}
+                      </View>
+                      <View style={styles.rowMetaRow}>
+                        <Ionicons
+                          name={step.has_place ? 'location' : 'location-outline'}
+                          size={12}
+                          color={
+                            step.has_place
+                              ? IOS_COLORS.systemBlue
+                              : IOS_COLORS.tertiaryLabel
+                          }
+                        />
+                        <Text style={styles.metaText} numberOfLines={1}>
+                          {subtitle ?? (step.has_place ? 'On the map' : 'Tap to anchor on the map')}
+                        </Text>
+                      </View>
                     </View>
                     <Ionicons
-                      name={step.has_place ? 'location' : 'location-outline'}
+                      name="chevron-forward"
                       size={16}
-                      color={
-                        step.has_place
-                          ? IOS_COLORS.systemBlue
-                          : IOS_COLORS.tertiaryLabel
-                      }
+                      color={IOS_COLORS.tertiaryLabel}
                     />
                   </Pressable>
                 );
@@ -238,11 +254,13 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
+    gap: 10,
+    paddingRight: 12,
+    paddingVertical: 10,
+    paddingLeft: 0,
     borderRadius: 12,
-    backgroundColor: 'rgba(120, 120, 130, 0.07)',
+    backgroundColor: 'rgba(120, 120, 130, 0.06)',
+    overflow: 'hidden',
   },
   rowHero: {
     backgroundColor: 'rgba(240, 169, 58, 0.10)',
@@ -250,11 +268,33 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(240, 169, 58, 0.42)',
   },
   rowPressed: {
-    backgroundColor: 'rgba(120, 120, 130, 0.18)',
+    backgroundColor: 'rgba(120, 120, 130, 0.16)',
+  },
+  accentBar: {
+    width: 4,
+    alignSelf: 'stretch',
+    borderTopLeftRadius: 12,
+    borderBottomLeftRadius: 12,
   },
   rowBody: {
     flex: 1,
-    gap: 2,
+    gap: 4,
+    paddingLeft: 8,
+  },
+  rowTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+  },
+  rowMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  metaText: {
+    fontSize: 12,
+    color: IOS_COLORS.labelSecondary,
+    flexShrink: 1,
   },
   badge: {
     alignSelf: 'flex-start',
@@ -262,7 +302,7 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
     borderRadius: 4,
     borderWidth: 1,
-    marginBottom: 2,
+    marginTop: 1,
   },
   badgeText: {
     fontSize: 9,
@@ -270,14 +310,10 @@ const styles = StyleSheet.create({
     letterSpacing: 0.7,
   },
   title: {
+    flex: 1,
     fontSize: 15,
     fontWeight: '500',
     color: IOS_COLORS.label,
     lineHeight: 19,
-  },
-  subtitle: {
-    fontSize: 12,
-    color: IOS_COLORS.labelSecondary,
-    marginTop: 1,
   },
 });
