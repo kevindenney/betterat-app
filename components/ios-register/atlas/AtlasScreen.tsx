@@ -1700,7 +1700,21 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
         setCandidate(coords);
       }
     },
-    [commitMode, repositionTarget, editingArea, areaSheetCenter, anchorStepTarget, updateStepLocationMutation],
+    // authUser.id + raceAreasForHitTest are real reactive deps (auth
+    // context + react-query result) — the exhaustive-deps rule
+    // misclassifies them as outer-scope. Leave them in so a fresh
+    // sign-in or area refetch rebuilds the closure.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [
+      commitMode,
+      repositionTarget,
+      editingArea,
+      areaSheetCenter,
+      anchorStepTarget,
+      updateStepLocationMutation,
+      authUser?.id,
+      raceAreasForHitTest,
+    ],
   );
   const chromePaddingTop = embedded ? Math.max(insets.top + 8, 48) : 50;
   const lastChromeHeightRef = useRef<number | null>(null);
