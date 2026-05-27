@@ -1908,7 +1908,17 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
                 ? handleMapPress
                 : undefined
             }
-            onMapLongPress={(coords) => setAreaSheetCenter({ lat: coords.lat, lng: coords.lng })}
+            onMapLongPress={(coords) => {
+              // Long-press = "anchor a step at this exact spot". Skip the
+              // commit-mode tap-to-drop dance and jump straight to the
+              // PIN DROPPED sheet (same surface "Plan a step here" /
+              // "Drop a pin" → tap-map produces). Racing-area creation
+              // is reached via Manage racing areas, not by accident.
+              setLayersOpen(false);
+              setSelectedPin(null);
+              setCommitMode(true);
+              setCandidate(coords);
+            }}
             // Render a candidate pin where the area will center. When the
             // area sheet is open we forward areaSheetCenter so the user
             // sees a red marker move as they long-press different spots.
@@ -2176,8 +2186,15 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
 
       {/* All bottom-sheet variants are suppressed while Layers is open
           so the sheets never render inside / under the Layers panel. */}
+      {/* `key` on each branch forces a fresh BottomSheet mount when the
+          conditional swaps — otherwise React reconciles the sheet to the
+          same instance and `useState(initialState)` only fires on the
+          first ever mount. That made initialState='handle' silently
+          inherit a prior 'mid' state when myNextStepPin loaded after
+          the ATLAS empty-state branch had already mounted the sheet. */}
       {layersOpen || anchorStepTarget || repositionTarget || retraceTarget ? null : candidate ? (
         <BottomSheet
+          key="candidate"
           eyebrow="PIN DROPPED"
           title="Anchor a step at this location."
           body={candidateBody}
@@ -2221,6 +2238,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
         // so the user can jump into the race detail.
         selectedPin.kind === 'race-mark' ? (
           <BottomSheet
+            key="race-mark"
             eyebrow={
               next?.label
                 ? `RACE MARK · ${next.label.toUpperCase()}`
@@ -2252,6 +2270,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
           />
         ) : selectedPin.kind === 'poi-club' || selectedPin.kind === 'poi-club-anchor' ? (
           <BottomSheet
+            key="poi-club"
             eyebrow="CLUB"
             title={selectedPin.label ?? 'Club'}
             body={[
@@ -2281,6 +2300,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
           />
         ) : selectedPin.clusterCount != null ? (
           <BottomSheet
+            key="peer-steps"
             eyebrow="PEER STEPS"
             title={`${selectedPin.clusterCount} nearby peer steps`}
             body={
@@ -2309,6 +2329,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
           />
         ) : isUserStepPin(selectedPin) ? (
           <BottomSheet
+            key="user-step"
             eyebrow="YOUR STEP"
             title={titleForUserStepPin(selectedPin)}
             body={detailBodyForPin(selectedPin)}
@@ -2337,6 +2358,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
           />
         ) : (
           <BottomSheet
+            key="pin-generic"
             eyebrow={eyebrowForPin(selectedPin)}
             title={selectedPin.label ?? 'Pin'}
             body={detailBodyForPin(selectedPin)}
@@ -2355,6 +2377,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
         )
       ) : hasNext ? (
         <BottomSheet
+          key="has-next"
           eyebrow={`NEXT · ${next!.label.toUpperCase()}`}
           title={`Plan a step for ${next!.label}.`}
           body={`${[next!.where, next!.when].filter(Boolean).join(' · ')}\nNo steps here from you, your crew, or your fleet yet.`}
@@ -2366,6 +2389,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
         />
       ) : myNextStepPin ? (
         <BottomSheet
+          key="my-next-step"
           eyebrow="YOUR NEXT STEP"
           title={titleForUserStepPin(myNextStepPin)}
           body={[
@@ -2391,6 +2415,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
         />
       ) : (
         <BottomSheet
+          key="atlas-empty"
           eyebrow="ATLAS"
           title="Anchor your next step to a place."
           body="No steps here from you, your crew, or your fleet yet. Drop a pin to start, or tap any pin to see who's there."
