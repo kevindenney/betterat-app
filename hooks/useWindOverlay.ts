@@ -61,11 +61,24 @@ const COMPASS_DEG: Record<string, number> = {
 };
 
 /**
- * Parse "12kn ESE" / "10-14 kts WSW" / "wind: SE 8" → degrees + speed.
+ * Parse wind conditions into degrees + speed. Accepts two formats:
+ *   - Natural language: "12kn ESE" / "10-14 kts WSW" / "wind: SE 8"
+ *   - Numeric pipe (from useMarineSnapshot's conditionsLineFor):
+ *     "212|7" (degrees|knots), no compass token, no "kn" suffix
+ *
  * Falls back to HK summer trade wind (ESE 12kn) when nothing matches.
+ * The numeric-pipe fast-path is load-bearing: without it, Open-Meteo
+ * data was being discarded and every overlay rendered as the ESE/12
+ * default, which read as "wind never changes" no matter where the
+ * user panned.
  */
 export function parseWind(conditions?: string): { degrees: number; knots: number } {
   if (!conditions) return { degrees: COMPASS_DEG.ESE, knots: 12 };
+  // Fast path: degrees|knots numeric format emitted by useMarineSnapshot.
+  const numericMatch = conditions.match(/^(\d+(?:\.\d+)?)\|(\d+(?:\.\d+)?)$/);
+  if (numericMatch) {
+    return { degrees: Number(numericMatch[1]), knots: Number(numericMatch[2]) };
+  }
   const upper = conditions.toUpperCase();
   // Find direction token — longest match first so "ESE" beats "E"
   const tokens = Object.keys(COMPASS_DEG).sort((a, b) => b.length - a.length);

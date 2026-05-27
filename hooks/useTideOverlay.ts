@@ -73,12 +73,24 @@ export function tideAtOffset(hours: number): { setDegrees: number; knots: number
 }
 
 /**
- * Parse "ebb 0.4kn" / "flood 0.6 kt" / "tide: slack" → set degrees + knots.
- * Returns null when the conditions string has no tide reference at all so
- * the caller can decide whether to render the demo default or skip.
+ * Parse tide / ocean-current conditions into set degrees + knots.
+ * Accepts two formats:
+ *   - Natural language: "ebb 0.4kn" / "flood 0.6 kt" / "tide: slack"
+ *   - Numeric pipe (from useMarineSnapshot's conditionsLineFor):
+ *     "120|0.4" (setDegrees|knots)
+ *
+ * The numeric-pipe fast-path is load-bearing — without it, Open-Meteo
+ * ocean-current data falls through to the ebb-90°/0.5kn demo default
+ * and every tide overlay reads as static. Mirror of useWindOverlay's
+ * parseWind fix.
  */
 export function parseTide(conditions?: string): { setDegrees: number; knots: number } {
   if (!conditions) return { setDegrees: 90, knots: 0.5 }; // demo: ebb
+  // Fast path: degrees|knots numeric format emitted by useMarineSnapshot.
+  const numericMatch = conditions.match(/^(\d+(?:\.\d+)?)\|(\d+(?:\.\d+)?)$/);
+  if (numericMatch) {
+    return { setDegrees: Number(numericMatch[1]), knots: Number(numericMatch[2]) };
+  }
   const upper = conditions.toUpperCase();
   let setDegrees = 90;
   let knots = 0.5;
