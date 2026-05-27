@@ -155,6 +155,7 @@ export function useCreateStep() {
     onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['timeline-steps', variables.user_id] });
       queryClient.invalidateQueries({ queryKey: KEYS.myTimeline() });
+      queryClient.invalidateQueries({ queryKey: ['user-atlas-steps'] });
       // Fire cross-interest suggestions for the new step (fire-and-forget)
       PlaybookAIService.crossInterest(data.id).catch(() => {});
     },
@@ -176,6 +177,11 @@ export function useUpdateStep() {
     mutationFn: ({ stepId, input }) => updateStep(stepId, input),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['timeline-steps'] });
+      // useUserAtlasSteps is keyed under its own root, so a timeline
+      // mutation must invalidate it explicitly or the Atlas picker /
+      // pin set goes stale ("saved but didn't appear" pattern from
+      // feedback_query_cache_key_invalidation_audit).
+      queryClient.invalidateQueries({ queryKey: ['user-atlas-steps'] });
     },
   });
 }
@@ -191,6 +197,11 @@ export function useDeleteStep() {
     mutationFn: deleteStep,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['timeline-steps'] });
+      // useUserAtlasSteps is keyed under its own root, so a timeline
+      // mutation must invalidate it explicitly or the Atlas picker /
+      // pin set goes stale ("saved but didn't appear" pattern from
+      // feedback_query_cache_key_invalidation_audit).
+      queryClient.invalidateQueries({ queryKey: ['user-atlas-steps'] });
     },
   });
 }
@@ -214,6 +225,11 @@ export function useAdoptStep() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['timeline-steps'] });
+      // useUserAtlasSteps is keyed under its own root, so a timeline
+      // mutation must invalidate it explicitly or the Atlas picker /
+      // pin set goes stale ("saved but didn't appear" pattern from
+      // feedback_query_cache_key_invalidation_audit).
+      queryClient.invalidateQueries({ queryKey: ['user-atlas-steps'] });
     },
   });
 }
@@ -233,6 +249,11 @@ export function useCreateStepsFromCourse() {
     mutationFn: createStepsFromCourse,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['timeline-steps'] });
+      // useUserAtlasSteps is keyed under its own root, so a timeline
+      // mutation must invalidate it explicitly or the Atlas picker /
+      // pin set goes stale ("saved but didn't appear" pattern from
+      // feedback_query_cache_key_invalidation_audit).
+      queryClient.invalidateQueries({ queryKey: ['user-atlas-steps'] });
     },
   });
 }
@@ -262,6 +283,11 @@ export function usePinStep() {
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['step-pins', variables.stepId] });
       queryClient.invalidateQueries({ queryKey: ['timeline-steps'] });
+      // useUserAtlasSteps is keyed under its own root, so a timeline
+      // mutation must invalidate it explicitly or the Atlas picker /
+      // pin set goes stale ("saved but didn't appear" pattern from
+      // feedback_query_cache_key_invalidation_audit).
+      queryClient.invalidateQueries({ queryKey: ['user-atlas-steps'] });
     },
   });
 }
@@ -278,6 +304,11 @@ export function useUnpinStep() {
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['step-pins', variables.stepId] });
       queryClient.invalidateQueries({ queryKey: ['timeline-steps'] });
+      // useUserAtlasSteps is keyed under its own root, so a timeline
+      // mutation must invalidate it explicitly or the Atlas picker /
+      // pin set goes stale ("saved but didn't appear" pattern from
+      // feedback_query_cache_key_invalidation_audit).
+      queryClient.invalidateQueries({ queryKey: ['user-atlas-steps'] });
     },
   });
 }

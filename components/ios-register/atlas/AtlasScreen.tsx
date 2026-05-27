@@ -60,6 +60,7 @@ import { ManageRacingAreasSheet, type ManageAreasEditTarget } from './ManageRaci
 import type { EditingRacingArea } from './CreateRacingAreaSheet';
 import { RepositionAreaBanner } from './RepositionAreaBanner';
 import { useUpdateRacingArea } from '@/hooks/useUpdateRacingArea';
+import { useUpdateStepLocation } from '@/hooks/useUpdateStepLocation';
 import { shapeToPolygon } from '@/lib/atlas-racing-area-shape';
 import type { PickerStep } from '@/hooks/useUserAtlasSteps';
 import { useUserHomeVenue } from '@/hooks/useUserHomeVenue';
@@ -1248,6 +1249,16 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
   // Long-press on water opens the racing-area create sheet — the user
   // marks where racing happens even when their club isn't in BetterAt.
   const [areaSheetCenter, setAreaSheetCenter] = useState<{ lat: number; lng: number } | null>(null);
+  // Stabilize the `center` reference passed to CreateRacingAreaSheet so
+  // it doesn't generate a new {lat,lng} object literal on every render.
+  // The sheet's useMemo(shape, [center, ...]) depended on identity, which
+  // combined with the onShapeChange feedback up to AtlasScreen looped
+  // forever once a tap-to-move handler became active. Keying on the raw
+  // primitive lat/lng values eliminates the identity churn.
+  const areaSheetCenterForSheet = useMemo(() => {
+    if (editingArea) return { lat: editingArea.centerLat, lng: editingArea.centerLng };
+    return areaSheetCenter;
+  }, [editingArea, areaSheetCenter]);
   // Mirrors the create-sheet's current shape polygon (circle, rectangle, …)
   // so the canvas can paint a live preview as the user adjusts.
   const [areaSheetPolygon, setAreaSheetPolygon] = useState<GeoJSON.Polygon | null>(null);
@@ -1343,17 +1354,58 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
   }, []);
   const clearSelectedPin = useCallback(() => setSelectedPin(null), []);
   const [openStepPickerVisible, setOpenStepPickerVisible] = useState(false);
+  // Tap-to-anchor flow: when the user picks a step without a place,
+  // we enter "tap the map to anchor STEP here" mode. Reuses the same
+  // banner/save-bar plumbing as racing-area reposition, just writing
+  // to timeline_steps.location_lat/lng instead of venue_racing_areas.
+  const [anchorStepTarget, setAnchorStepTarget] = useState<{
+    stepId: string;
+    title: string;
+    newLat: number | null;
+    newLng: number | null;
+  } | null>(null);
+  const updateStepLocationMutation = useUpdateStepLocation();
   const handlePickStepFromPicker = useCallback(
     (step: PickerStep) => {
       setOpenStepPickerVisible(false);
-      if (step.lat != null && step.lng != null) {
+      if (step.has_place && step.lat != null && step.lng != null) {
         setSearchFocus({ lat: step.lat, lng: step.lng });
         clearSelectedPin();
+        handlers.onStepPress?.(step.step_id);
+        return;
       }
-      handlers.onStepPress?.(step.step_id);
+      // No place yet — start anchor mode rather than opening the step.
+      setAnchorStepTarget({
+        stepId: step.step_id,
+        title: step.title,
+        newLat: null,
+        newLng: null,
+      });
     },
     [handlers, clearSelectedPin],
   );
+  const handleCancelAnchorStep = useCallback(() => {
+    setAnchorStepTarget(null);
+  }, []);
+  const handleSaveAnchorStep = useCallback(async () => {
+    if (
+      !anchorStepTarget ||
+      anchorStepTarget.newLat == null ||
+      anchorStepTarget.newLng == null
+    ) {
+      return;
+    }
+    try {
+      await updateStepLocationMutation.mutateAsync({
+        stepId: anchorStepTarget.stepId,
+        lat: anchorStepTarget.newLat,
+        lng: anchorStepTarget.newLng,
+      });
+      setAnchorStepTarget(null);
+    } catch (err) {
+      console.warn('[atlas] save anchor step failed', err);
+    }
+  }, [anchorStepTarget, updateStepLocationMutation]);
   const visibleFramePins = useMemo(() => {
     if (!handlers.focusOrgSlug) return framePinsWithDemo;
     const allowPeerKind = (kind: AtlasPinSpec['kind']) =>
@@ -1512,6 +1564,12 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
   }, [commitMode, exitCommit]);
   const handleMapPress = useCallback(
     (coords: { lng: number; lat: number }) => {
+      if (anchorStepTarget) {
+        setAnchorStepTarget((prev) =>
+          prev ? { ...prev, newLat: coords.lat, newLng: coords.lng } : prev,
+        );
+        return;
+      }
       if (repositionTarget) {
         setRepositionTarget((prev) =>
           prev ? { ...prev, newLat: coords.lat, newLng: coords.lng } : prev,
@@ -1520,14 +1578,19 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
       }
       // Racing-area create/edit sheet is open — a single tap repositions
       // the area's center. No intermediate "Move on map" step needed.
+      // Also fly the camera to the new center so the marker stays in the
+      // visible viewport above the sheet, which otherwise hides the
+      // lower half of the map.
       if (editingArea) {
         setEditingArea((prev) =>
           prev ? { ...prev, centerLat: coords.lat, centerLng: coords.lng } : prev,
         );
+        setSearchFocus({ lat: coords.lat, lng: coords.lng });
         return;
       }
       if (areaSheetCenter) {
         setAreaSheetCenter({ lat: coords.lat, lng: coords.lng });
+        setSearchFocus({ lat: coords.lat, lng: coords.lng });
         return;
       }
       if (commitMode) {
@@ -1539,7 +1602,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
         setCandidate(coords);
       }
     },
-    [commitMode, repositionTarget, editingArea, areaSheetCenter],
+    [commitMode, repositionTarget, editingArea, areaSheetCenter, anchorStepTarget],
   );
   const chromePaddingTop = embedded ? Math.max(insets.top + 8, 48) : 50;
   const lastChromeHeightRef = useRef<number | null>(null);
@@ -1593,7 +1656,11 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
                 : null
             }
             onMapPress={
-              commitMode || repositionTarget || editingArea || areaSheetCenter
+              commitMode ||
+              repositionTarget ||
+              editingArea ||
+              areaSheetCenter ||
+              anchorStepTarget
                 ? handleMapPress
                 : undefined
             }
@@ -2018,14 +2085,19 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
 
       <CreateRacingAreaSheet
         visible={areaSheetCenter !== null || editingArea !== null}
-        center={
-          editingArea
-            ? { lat: editingArea.centerLat, lng: editingArea.centerLng }
-            : areaSheetCenter
-        }
+        center={areaSheetCenterForSheet}
         editingArea={editingArea}
         onMoveOnMap={handleMoveOnMap}
         onClose={() => {
+          // Lock searchFocus to the area's coords before clearing the
+          // sheet center. Otherwise focusLocation falls through to a
+          // stale searchFocus / focusedClubPin and the camera flies
+          // away from where the user just saved.
+          const lat = editingArea?.centerLat ?? areaSheetCenter?.lat;
+          const lng = editingArea?.centerLng ?? areaSheetCenter?.lng;
+          if (lat != null && lng != null) {
+            setSearchFocus({ lat, lng });
+          }
           setAreaSheetCenter(null);
           setEditingArea(null);
         }}
@@ -2043,6 +2115,17 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
           saving={updateRacingAreaMutation.isPending}
           onCancel={handleCancelReposition}
           onSave={handleSaveReposition}
+          bottomOffset={((handlers as { bottomSheetOffset?: number }).bottomSheetOffset ?? 0) + 16}
+        />
+      ) : null}
+
+      {anchorStepTarget ? (
+        <RepositionAreaBanner
+          areaName={anchorStepTarget.title}
+          hasMoved={anchorStepTarget.newLat != null && anchorStepTarget.newLng != null}
+          saving={updateStepLocationMutation.isPending}
+          onCancel={handleCancelAnchorStep}
+          onSave={handleSaveAnchorStep}
           bottomOffset={((handlers as { bottomSheetOffset?: number }).bottomSheetOffset ?? 0) + 16}
         />
       ) : null}
