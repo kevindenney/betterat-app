@@ -66,6 +66,7 @@ import { findRacingAreaAtPoint } from '@/lib/atlas-racing-area-hit-test';
 import { shapeToPolygon } from '@/lib/atlas-racing-area-shape';
 import type { PickerStep } from '@/hooks/useUserAtlasSteps';
 import { useUserHomeVenue } from '@/hooks/useUserHomeVenue';
+import { useCurrentLocation } from '@/hooks/useCurrentLocation';
 import { useInterest } from '@/providers/InterestProvider';
 import { InterestSwitcher, openInterestSwitcher } from '@/components/InterestSwitcher';
 import { useUserAffinityGroups, affinityGroupTone, type UserAffinityGroup } from '@/hooks/useUserAffinityGroups';
@@ -1192,6 +1193,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
   const hasNext = Boolean(next?.label);
   const insets = useSafeAreaInsets();
   const homeVenue = useUserHomeVenue();
+  const { getCurrentLocation } = useCurrentLocation();
   const { currentInterest } = useInterest();
   const { groups: userGroups } = useUserAffinityGroups('sail-racing');
   const [activeGroupIds, setActiveGroupIds] = useState<string[]>([]);
@@ -1812,6 +1814,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
     [
       commitMode,
       repositionTarget,
+      retraceTarget,
       editingArea,
       areaSheetCenter,
       anchorStepTarget,
@@ -2125,11 +2128,20 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
 
         <LayersFab
           bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
-          onLocatePress={
-            homeVenue?.lat != null && homeVenue?.lng != null
-              ? () => setSearchFocus({ lat: homeVenue.lat!, lng: homeVenue.lng! })
-              : undefined
-          }
+          onLocatePress={() => {
+            // Try GPS first (iOS Maps locate behavior). If the user
+            // denies permission or we're on web, fall back to flying
+            // to the home venue. If neither is available, no-op.
+            void getCurrentLocation().then((pos) => {
+              if (pos) {
+                setSearchFocus({ lat: pos.lat, lng: pos.lng });
+                return;
+              }
+              if (homeVenue?.lat != null && homeVenue?.lng != null) {
+                setSearchFocus({ lat: homeVenue.lat, lng: homeVenue.lng });
+              }
+            });
+          }}
         />
 
         {/* Tide time-slider removed per design feedback — keep wind/tide
