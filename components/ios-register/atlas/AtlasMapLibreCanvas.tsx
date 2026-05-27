@@ -474,6 +474,7 @@ export function AtlasMapLibreCanvas({
     if (!focusLocation) return;
     cameraRef.current?.flyTo({
       center: [focusLocation.lng, focusLocation.lat],
+      zoomLevel: 14,
       padding: { top: 120, bottom: 380 },
       duration: 500,
     });
@@ -808,6 +809,7 @@ function WebAtlasMapLibreCanvas({
     if (!map || !isLoaded || !focusLocation) return;
     map.easeTo({
       center: [focusLocation.lng, focusLocation.lat],
+      zoom: 14,
       padding: { top: 120, bottom: 380 },
       duration: 500,
     });
