@@ -1557,12 +1557,18 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
     () => conditionsLineFor(marineSnapshot?.current ?? null),
     [marineSnapshot],
   );
+  const windSourceLabel = useMemo(() => {
+    if (hkoWind) return `${hkoWind.place} obs`;
+    if (marineSnapshot?.wind) return 'JMA model';
+    return undefined;
+  }, [hkoWind, marineSnapshot]);
   const windPins = useWindOverlay({
     centerLat: mapCenter.lat,
     centerLng: mapCenter.lng,
     conditionsLine: windConditionsLine ?? '0|0',
     enabled: showWind && windConditionsLine !== null,
     waveHeightMeters: marineSnapshot?.waves?.heightMeters,
+    source: windSourceLabel,
   });
   const tidePins = useTideOverlay({
     centerLat: mapCenter.lat,

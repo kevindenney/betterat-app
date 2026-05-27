@@ -1134,15 +1134,17 @@ function createWebArrowElement(pin: AtlasPinSpec) {
   root.style.pointerEvents = 'none';
 
   // Label formats:
-  //   wind primary:        "deg|kn"            or "deg|kn||waveM"
+  //   wind primary:        "deg|kn", "deg|kn||waveM", "deg|kn||waveM|source"
   //   wind/tide field:     "deg|kn|field"
   //   tide primary:        "deg|kn"
-  const [degStr, knotsStr, variant, waveStr] = (pin.label ?? '0|0').split('|');
+  const labelParts = (pin.label ?? '0|0').split('|');
+  const [degStr, knotsStr, variant, waveStr, sourceStr] = labelParts;
   const isWind = pin.kind === 'wind-arrow';
   const isField = variant === 'field';
   const deg = Number(degStr) || 0;
   const knots = Number(knotsStr) || 0;
   const waveM = isWind && waveStr ? Number(waveStr) : null;
+  const source = isWind && sourceStr && sourceStr.length > 0 ? sourceStr : null;
   // Wind: arrow points DOWNWIND (away from source). Tide: arrow points
   // the direction the current flows TO (set). So wind needs +180,
   // tide does not.
@@ -1183,6 +1185,19 @@ function createWebArrowElement(pin: AtlasPinSpec) {
     chip.style.color = 'rgba(28, 28, 30, 0.86)';
     chip.style.whiteSpace = 'nowrap';
     root.appendChild(chip);
+
+    if (source) {
+      const sub = document.createElement('span');
+      sub.textContent = source;
+      sub.style.marginTop = '1px';
+      sub.style.fontFamily = '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+      sub.style.fontSize = '8px';
+      sub.style.fontWeight = '600';
+      sub.style.letterSpacing = '0.2px';
+      sub.style.color = 'rgba(28, 28, 30, 0.55)';
+      sub.style.whiteSpace = 'nowrap';
+      root.appendChild(sub);
+    }
   }
 
   return root;
@@ -1531,16 +1546,19 @@ function LabeledPin({
   }
   if (kind === 'wind-arrow') {
     // Label format from useWindOverlay:
-    //   "deg|kn"            — primary, no waves
-    //   "deg|kn|field"      — small field arrow (no chip)
-    //   "deg|kn||waveM"     — primary with wave height appended (empty
-    //                         variant slot distinguishes from "field")
-    const [degStr, knotsStr, variant, waveStr] = (label ?? '0|0').split('|');
+    //   "deg|kn"                       — primary, no waves, no source
+    //   "deg|kn|field"                 — small field arrow (no chip)
+    //   "deg|kn||waveM"                — primary with wave height
+    //   "deg|kn|||source"              — primary with source attribution
+    //   "deg|kn||waveM|source"         — primary with waves AND source
+    const labelParts = (label ?? '0|0').split('|');
+    const [degStr, knotsStr, variant, waveStr, sourceStr] = labelParts;
     const fromDeg = Number(degStr) || 0;
     const downwindDeg = (fromDeg + 180) % 360;
     const knots = Number(knotsStr) || 0;
     const isField = variant === 'field';
     const waveM = waveStr ? Number(waveStr) : null;
+    const source = sourceStr && sourceStr.length > 0 ? sourceStr : null;
     // Primary arrow takes Beaufort-band color so the user sees sail-choice
     // bands at a glance; field arrows stay soft slate so the dense grid
     // reads as ambience, not 16 simultaneous foreground signals.
@@ -1560,6 +1578,9 @@ function LabeledPin({
               ? `${padDeg(fromDeg)}° · ${Math.round(knots)} kn · ${waveM.toFixed(1)}m`
               : `${padDeg(fromDeg)}° · ${Math.round(knots)} kn`}
           </Text>
+        ) : null}
+        {!isField && source ? (
+          <Text style={styles.arrowSourceLabel}>{source}</Text>
         ) : null}
       </View>
     );
@@ -2062,6 +2083,13 @@ const styles = StyleSheet.create({
     paddingVertical: 1,
     borderRadius: 3,
     overflow: 'hidden',
+  },
+  arrowSourceLabel: {
+    marginTop: 1,
+    fontSize: 8,
+    fontWeight: '600',
+    color: 'rgba(28, 28, 30, 0.55)',
+    letterSpacing: 0.2,
   },
   cohortCount: {
     fontSize: 12,

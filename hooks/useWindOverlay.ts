@@ -45,6 +45,13 @@ interface UseWindOverlayArgs {
    * wave segment. Field arrows always omit it (no chip).
    */
   waveHeightMeters?: number;
+  /**
+   * Provenance string rendered beneath the primary chip — e.g.
+   * "Waglan Island obs", "JMA model". Lets the user tell a real
+   * anemometer reading from a numerical model at a glance. Optional;
+   * when omitted no subtitle renders. Field arrows always omit it.
+   */
+  source?: string;
 }
 
 const COMPASS_DEG: Record<string, number> = {
@@ -110,17 +117,22 @@ export function useWindOverlay({
   gridSize = 4,
   waterAnchors,
   waveHeightMeters,
+  source,
 }: UseWindOverlayArgs): AtlasPinSpec[] {
   return useMemo(() => {
     if (!enabled) return [];
     const { degrees, knots } = parseWind(conditionsLine);
-    // Primary label carries wave height in the 4th slot when available.
-    // 4-part format: `${deg}|${knots}||${waveM}` — empty variant slot
-    // distinguishes primary-with-waves from "field" arrows. The canvas
-    // wind-arrow render parses by index, so an empty 3rd part is fine.
+    // Primary label slots: `${deg}|${knots}|${variant}|${waveM}|${source}`
+    //   variant=''      → primary chip
+    //   variant='field' → small field arrow (no chip)
+    // Trailing empty slots are tolerated by the canvas parsers, so we
+    // can pad with empty strings when only some of waveM / source are
+    // present.
+    const waveSlot = waveHeightMeters != null && waveHeightMeters >= 0 ? `${waveHeightMeters}` : '';
+    const sourceSlot = source ?? '';
     const primaryLabel =
-      waveHeightMeters != null && waveHeightMeters >= 0
-        ? `${degrees}|${knots}||${waveHeightMeters}`
+      sourceSlot || waveSlot
+        ? `${degrees}|${knots}||${waveSlot}|${sourceSlot}`
         : `${degrees}|${knots}`;
     const label = `${degrees}|${knots}`;
 
@@ -165,5 +177,5 @@ export function useWindOverlay({
       label: primaryLabel,
     });
     return out;
-  }, [centerLat, centerLng, conditionsLine, enabled, spacingKm, gridSize, waterAnchors, waveHeightMeters]);
+  }, [centerLat, centerLng, conditionsLine, enabled, spacingKm, gridSize, waterAnchors, waveHeightMeters, source]);
 }
