@@ -195,13 +195,15 @@ const styles = StyleSheet.create({
   },
   // Disabled state needs to stay legible against the white card.
   // rgba(blue, 0.4) over white reads as near-white with white text —
-  // user sees no button. Mid-tone gray fill + dark gray text keeps
-  // the "vertex count / 3" affordance visible and obviously inactive.
+  // user sees no button. Strong mid-gray fill + outline + dark text
+  // keeps the affordance visibly inactive.
   btnDisabled: {
-    backgroundColor: 'rgba(120, 120, 130, 0.16)',
+    backgroundColor: '#EDEDF0',
+    borderWidth: 1,
+    borderColor: 'rgba(60, 60, 67, 0.18)',
   },
   btnDisabledText: {
     color: IOS_REGISTER.label,
-    opacity: 0.55,
+    opacity: 0.7,
   },
 });

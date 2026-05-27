@@ -162,16 +162,18 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#FFFFFF',
   },
-  // Disabled state needs to stay legible against the white card.
-  // rgba(blue, 0.4) over white reads as pale near-white with white
-  // text — the user sees no button there. Use a mid-tone gray fill
-  // and dark gray text so the "Tap the map…" affordance is visible
-  // and obviously inactive.
+  // Disabled state was previously rgba(blue, 0.4) with white text —
+  // over the white card that resolves to near-white with white text
+  // and the user reasonably reports "Save is missing." Use a strong
+  // mid-gray fill with a 1pt outline and dark gray text so the
+  // "Tap the map…" affordance is impossible to miss.
   btnDisabled: {
-    backgroundColor: 'rgba(120, 120, 130, 0.16)',
+    backgroundColor: '#EDEDF0',
+    borderWidth: 1,
+    borderColor: 'rgba(60, 60, 67, 0.18)',
   },
   btnDisabledText: {
     color: IOS_REGISTER.label,
-    opacity: 0.55,
+    opacity: 0.7,
   },
 });
