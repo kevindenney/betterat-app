@@ -1369,9 +1369,30 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
     (step: PickerStep) => {
       setOpenStepPickerVisible(false);
       if (step.has_place && step.lat != null && step.lng != null) {
+        // Recenter the map AND swap the bottom sheet to show this step's
+        // detail. We find the existing my-step-* pin for this step and
+        // set it as selectedPin so the "YOUR STEP" sheet renders with
+        // title + body + Open step CTA — same as if the user tapped the
+        // pin directly on the canvas.
         setSearchFocus({ lat: step.lat, lng: step.lng });
-        clearSelectedPin();
-        handlers.onStepPress?.(step.step_id);
+        const matchingPin = framePinsWithDemo.find(
+          (pin) => pin.stepId === step.step_id,
+        );
+        if (matchingPin) {
+          setSelectedPin(matchingPin);
+        } else {
+          // No my-step-* pin renders for this step (e.g. status filtered
+          // out, or the canvas refetch hasn't landed yet). Synthesize a
+          // minimal pin so the sheet still updates immediately.
+          setSelectedPin({
+            id: `picked-${step.step_id}`,
+            lat: step.lat,
+            lng: step.lng,
+            kind: 'my-step-planned',
+            label: step.title,
+            stepId: step.step_id,
+          });
+        }
         return;
       }
       // No place yet — start anchor mode rather than opening the step.
@@ -1382,7 +1403,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
         newLng: null,
       });
     },
-    [handlers, clearSelectedPin],
+    [framePinsWithDemo],
   );
   const handleCancelAnchorStep = useCallback(() => {
     setAnchorStepTarget(null);

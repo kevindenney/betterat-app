@@ -38,7 +38,38 @@ export function useUpdateStepLocation() {
       }
       return stepId;
     },
-    onSuccess: () => {
+    // Optimistic patch — without this the user sees a beat between
+    // tap-to-anchor and the pin appearing on the canvas, because the
+    // invalidation triggers a fresh network fetch. Patch both query
+    // roots locally so the pin renders instantly. The settled refetch
+    // confirms the value from the server.
+    onMutate: async ({ stepId, lat, lng, locationName }) => {
+      await queryClient.cancelQueries({ queryKey: ['user-atlas-steps'] });
+      await queryClient.cancelQueries({ queryKey: ['timeline-steps'] });
+      const nowIso = new Date().toISOString();
+      const patchRow = (row: Record<string, unknown> | null | undefined) => {
+        if (!row || (row as { id?: string }).id !== stepId) return row;
+        const next: Record<string, unknown> = {
+          ...row,
+          location_lat: lat,
+          location_lng: lng,
+          updated_at: nowIso,
+        };
+        if (locationName != null) next.location_name = locationName;
+        return next;
+      };
+      queryClient.setQueriesData<unknown[]>(
+        { predicate: (q) => Array.isArray(q.queryKey) && q.queryKey[0] === 'user-atlas-steps' },
+        (old) => (Array.isArray(old) ? old.map((r) => patchRow(r as Record<string, unknown>)) : old),
+      );
+      queryClient.setQueriesData<unknown[]>(
+        { predicate: (q) => Array.isArray(q.queryKey) && q.queryKey[0] === 'timeline-steps' },
+        (old) => (Array.isArray(old) ? old.map((r) => patchRow(r as Record<string, unknown>)) : old),
+      );
+    },
+    onSettled: () => {
+      // Confirm via refetch regardless of mutation outcome — keeps
+      // optimistic cache from drifting if the server rejected.
       queryClient.invalidateQueries({ queryKey: ['timeline-steps'] });
       queryClient.invalidateQueries({ queryKey: ['user-atlas-steps'] });
     },
