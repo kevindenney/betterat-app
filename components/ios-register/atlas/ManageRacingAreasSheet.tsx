@@ -79,11 +79,17 @@ export function ManageRacingAreasSheet({ visible, onClose, onEditArea, onAddArea
     queryKey: ['atlas-racing-areas', 'manage', user?.id ?? null],
     enabled: visible && Boolean(user?.id),
     queryFn: async (): Promise<AreaRow[]> => {
+      if (!user?.id) return [];
+      // Show every area the viewer authored — regardless of source.
+      // The "official" flag is for seeded/curated stand-ins; once orgs
+      // claim themselves, their areas get elevated via a separate flow
+      // (see the Atlas content-provenance note). For self-authored
+      // areas, the viewer should always see + manage their own work.
       const { data, error } = await supabase
         .from('venue_racing_areas')
         .select('id, area_name, source, classes_used, center_lat, center_lng, radius_meters, created_by')
         .eq('is_active', true)
-        .neq('source', 'official')
+        .eq('created_by', user.id)
         .order('area_name');
       if (error) {
         console.warn('[atlas] manage areas fetch error', error);
@@ -117,9 +123,9 @@ export function ManageRacingAreasSheet({ visible, onClose, onEditArea, onAddArea
               <Ionicons name="close" size={24} color={IOS_COLORS.label} />
             </Pressable>
           </View>
-          <Text style={styles.title}>Manage racing areas</Text>
+          <Text style={styles.title}>Your racing areas</Text>
           <Text style={styles.hint}>
-            Community-added areas you can delete. Seeded official areas aren’t shown.
+            Areas you drew. Edit, move, or delete. Areas authored by other people or claimed organizations aren’t shown here.
           </Text>
           {onAddArea ? (
             <Pressable
@@ -138,7 +144,7 @@ export function ManageRacingAreasSheet({ visible, onClose, onEditArea, onAddArea
               <ActivityIndicator color={IOS_COLORS.systemBlue} />
             </View>
           ) : areas.length === 0 ? (
-            <Text style={styles.empty}>No community areas yet. Long-press on water to add one.</Text>
+            <Text style={styles.empty}>You haven’t drawn any racing areas yet. Long-press on water to add one.</Text>
           ) : (
             <ScrollView
               style={styles.scroll}

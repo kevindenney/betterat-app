@@ -50,7 +50,6 @@ import {
 } from './AtlasMaps';
 import { AtlasMapLibreCanvas, type AtlasBasemap, type AtlasPinSpec } from './AtlasMapLibreCanvas';
 import { CreateRacingAreaSheet } from './CreateRacingAreaSheet';
-import { LocationAnchor } from '@/components/ui/LocationAnchor';
 import { ProfileDropdown } from '@/components/ui/ProfileDropdown';
 import { NotificationBell } from '@/components/social/NotificationBell';
 import { AtlasSearchSheet, type AtlasSearchResult } from './AtlasSearchSheet';
@@ -1031,10 +1030,10 @@ function LayersSheet({
               pressed && { opacity: 0.6 },
             ]}
             accessibilityRole="button"
-            accessibilityLabel="Manage racing areas"
+            accessibilityLabel="Your racing areas"
           >
             <Ionicons name="create-outline" size={14} color={IOS_REGISTER.accentUserAction} />
-            <Text style={shellStyles.manageAreasText}>Manage racing areas</Text>
+            <Text style={shellStyles.manageAreasText}>Your racing areas</Text>
           </Pressable>
         ) : null}
         {/* Attribution required by OpenFreeMap / OpenMapTiles / OSM
@@ -1760,28 +1759,44 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
           style={[shellStyles.floatingChrome, { paddingTop: chromePaddingTop }]}
           onLayout={handleFloatingChromeLayout}
         >
-          <View style={shellStyles.clusterRow} onLayout={handleHeaderLayout}>
-            <View style={shellStyles.locationAnchorSlot}>
-              <LocationAnchor region={homeVenue?.region} venue={homeVenue?.venue} />
-            </View>
-            <View style={shellStyles.topRightCluster}>
+          {/* Single floating capsule consolidating profile + search +
+              layers + inbox. Apple-Maps style: one chrome element, not
+              four. ProfileDropdown leads (avatar acts as the user's
+              "home" affordance), the central search button shows
+              "Region · Venue" and routes to the search modal, layers
+              and notification bell sit at the trailing edge. */}
+          <View style={shellStyles.topCapsuleRow} onLayout={handleHeaderLayout}>
+            <View style={shellStyles.topCapsule}>
+              <ProfileDropdown size={30} variant="light" />
               <Pressable
-                style={shellStyles.clusterBtn}
+                style={shellStyles.capsuleSearch}
                 onPress={() => setSearchOpen(true)}
-                hitSlop={6}
+                hitSlop={4}
                 accessibilityLabel="Search places"
               >
-                <Ionicons name="search" size={16} color="rgba(60, 60, 67, 0.85)" />
+                <Ionicons
+                  name="search"
+                  size={14}
+                  color="rgba(60, 60, 67, 0.62)"
+                  style={shellStyles.capsuleSearchIcon}
+                />
+                <Text style={shellStyles.capsuleSearchText} numberOfLines={1}>
+                  {homeVenue?.region && homeVenue?.venue
+                    ? `${homeVenue.region} · ${homeVenue.venue}`
+                    : (homeVenue?.region ?? homeVenue?.venue ?? 'Search places')}
+                </Text>
               </Pressable>
               <Pressable
-                style={shellStyles.clusterBtn}
+                style={shellStyles.capsuleAction}
                 onPress={openLayersSheet}
                 hitSlop={6}
+                accessibilityLabel="Map layers"
               >
                 <Ionicons name="layers-outline" size={16} color="rgba(60, 60, 67, 0.85)" />
               </Pressable>
-              <NotificationBell size={16} color="rgba(60, 60, 67, 0.85)" />
-              <ProfileDropdown size={30} variant="light" />
+              <View style={shellStyles.capsuleAction}>
+                <NotificationBell size={16} color="rgba(60, 60, 67, 0.85)" />
+              </View>
             </View>
           </View>
           {filterExpanded ? (
@@ -4349,11 +4364,64 @@ const shellStyles = StyleSheet.create({
     gap: 6,
     flexShrink: 0,
     // marginLeft: 'auto' so the cluster always right-aligns regardless of
-    // whether LocationAnchor renders (it returns null when the user has
-    // no home venue). Without this, `space-between` on a one-child row
-    // snaps the only child to the start, putting the cluster on the
-    // left edge.
+    // whether the leading slot renders. Without this, `space-between` on
+    // a one-child row snaps the only child to the start, putting the
+    // cluster on the left edge.
     marginLeft: 'auto',
+  },
+  /**
+   * Consolidated top capsule — Apple-Maps style. Single floating pill
+   * containing: avatar | search field | layers | bell. Replaces the
+   * previous split layout (LocationAnchor pill on left + topRightCluster
+   * on right). One chrome element, not four.
+   */
+  topCapsuleRow: {
+    flexDirection: 'row',
+    paddingHorizontal: 10,
+    marginBottom: 8,
+  },
+  topCapsule: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingLeft: 4,
+    paddingRight: 6,
+    paddingVertical: 4,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255,255,255,0.88)',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(60, 60, 67, 0.12)',
+    shadowColor: '#000',
+    shadowOpacity: 0.10,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 3,
+  },
+  capsuleSearch: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 6,
+    paddingVertical: 4,
+    minHeight: 30,
+  },
+  capsuleSearchIcon: {
+    marginRight: 6,
+  },
+  capsuleSearchText: {
+    flex: 1,
+    fontSize: 13,
+    fontWeight: '600',
+    color: 'rgba(60, 60, 67, 0.78)',
+    letterSpacing: -0.1,
+  },
+  capsuleAction: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   clusterBtn: {
     width: 30,
