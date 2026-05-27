@@ -81,6 +81,10 @@ interface L3SeasonViewProps {
   onLibrarianPrimary?: () => void;
   /** Librarian "Not now" tap — defaults to no-op. */
   onLibrarianSecondary?: () => void;
+  /** Picker footer "+ New arc" — opens parent's SeasonEditSheet in add mode. */
+  onAddArc?: () => void;
+  /** Picker per-row pencil — opens parent's SeasonEditSheet in edit mode for this arc. */
+  onEditArc?: (arcId: string) => void;
 }
 
 export function L3SeasonView({
@@ -96,6 +100,8 @@ export function L3SeasonView({
   onToggleSelect,
   onLibrarianPrimary,
   onLibrarianSecondary,
+  onAddArc,
+  onEditArc,
 }: L3SeasonViewProps) {
   const effectiveSeasonId = selectedSeasonId ?? dataset.currentSeasonId;
   const season = dataset.seasons.find((s) => s.id === effectiveSeasonId)
@@ -346,6 +352,17 @@ export function L3SeasonView({
           setOpenPicker(null);
         }}
         onClose={() => setOpenPicker(null)}
+        onRowEdit={onEditArc ? (s) => {
+          setOpenPicker(null);
+          onEditArc(s.id);
+        } : undefined}
+        footerAction={onAddArc ? {
+          label: 'New arc',
+          onPress: () => {
+            setOpenPicker(null);
+            onAddArc();
+          },
+        } : undefined}
         renderRow={(s) => {
           const wkCount = s.weekOfTotal?.total ?? s.weeks.length;
           return (

@@ -119,6 +119,14 @@ interface TimelineZoomCanvasProps {
   /** Frame 12 — bulk Schedule picker entry. Same pattern as onBulkMove. */
   onBulkSchedule?: (stepIds: string[]) => void;
   onUnsupportedBulkAction?: (actionId: 'move' | 'tag' | 'reschedule') => void;
+  /**
+   * Open the SeasonEditSheet in "add" mode. Wired by L3 (picker
+   * footer) and L4 (BROWSE ARCS header) so the user can create new
+   * arcs from either zoom.
+   */
+  onAddArc?: () => void;
+  /** Open the SeasonEditSheet pre-populated with this arc for editing. */
+  onEditArc?: (arcId: string) => void;
 }
 
 const LEVELS: ZoomLevel[] = [1, 2, 3, 4];
@@ -145,6 +153,8 @@ export function TimelineZoomCanvas({
   onBulkTag,
   onBulkSchedule,
   onUnsupportedBulkAction,
+  onAddArc,
+  onEditArc,
 }: TimelineZoomCanvasProps) {
   const [level, setLevel] = useState<ZoomLevel>(initialLevel);
   const [focusStepId, setFocusStepId] = useState<string>(dataset.focusStepId);
@@ -364,6 +374,8 @@ export function TimelineZoomCanvas({
                     selectEnabled={select.enabled}
                     isSelected={select.isSelected}
                     onToggleSelect={select.toggle}
+                    onAddArc={onAddArc}
+                    onEditArc={onEditArc}
                   />
                 ) : null}
                 {level === 4 ? (
@@ -375,6 +387,8 @@ export function TimelineZoomCanvas({
                     selectEnabled={select.enabled}
                     isSelected={select.isSelected}
                     onToggleSelect={select.toggle}
+                    onAddArc={onAddArc}
+                    onEditArc={onEditArc}
                   />
                 ) : null}
               </Animated.View>

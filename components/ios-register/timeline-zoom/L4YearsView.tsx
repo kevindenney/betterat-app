@@ -86,6 +86,10 @@ interface L4YearsViewProps {
   onLibrarianPrimary?: () => void;
   /** Lifetime librarian "Not now" tap. */
   onLibrarianSecondary?: () => void;
+  /** "+ New arc" affordance in the BROWSE ARCS header. */
+  onAddArc?: () => void;
+  /** Per-arc edit affordance from the BROWSE ARCS list. */
+  onEditArc?: (arcId: string) => void;
 }
 
 /**
@@ -153,6 +157,8 @@ export function L4YearsView({
   onToggleSelect,
   onLibrarianPrimary,
   onLibrarianSecondary,
+  onAddArc,
+  onEditArc,
 }: L4YearsViewProps) {
   const [chartWidth, setChartWidth] = useState(0);
 
@@ -252,16 +258,34 @@ export function L4YearsView({
 
       <View style={styles.browseHeaderRow}>
         <Text style={styles.browseEyebrow}>BROWSE ARCS</Text>
-        {onEnterSelectMode && !selectEnabled ? (
-          <Pressable style={styles.selectPill} onPress={onEnterSelectMode} hitSlop={6}>
-            <Ionicons
-              name="checkmark-circle-outline"
-              size={13}
-              color={IOS_REGISTER.accentUserAction}
-            />
-            <Text style={styles.selectPillLabel}>Select</Text>
-          </Pressable>
-        ) : null}
+        <View style={styles.browseHeaderActions}>
+          {onAddArc ? (
+            <Pressable
+              style={styles.selectPill}
+              onPress={onAddArc}
+              hitSlop={6}
+              accessibilityRole="button"
+              accessibilityLabel="New arc"
+            >
+              <Ionicons
+                name="add"
+                size={14}
+                color={IOS_REGISTER.accentUserAction}
+              />
+              <Text style={styles.selectPillLabel}>New arc</Text>
+            </Pressable>
+          ) : null}
+          {onEnterSelectMode && !selectEnabled ? (
+            <Pressable style={styles.selectPill} onPress={onEnterSelectMode} hitSlop={6}>
+              <Ionicons
+                name="checkmark-circle-outline"
+                size={13}
+                color={IOS_REGISTER.accentUserAction}
+              />
+              <Text style={styles.selectPillLabel}>Select</Text>
+            </Pressable>
+          ) : null}
+        </View>
       </View>
 
       {dataset.seasons.map((season, idx) => (
@@ -274,6 +298,7 @@ export function L4YearsView({
           selectEnabled={selectEnabled}
           isSelected={isSelected}
           onToggleSelect={onToggleSelect}
+          onEditArc={onEditArc}
         />
       ))}
     </ScrollView>
@@ -292,6 +317,7 @@ interface SeasonLaneProps {
   selectEnabled?: boolean;
   isSelected?: (stepId: string) => boolean;
   onToggleSelect?: (stepId: string) => void;
+  onEditArc?: (arcId: string) => void;
 }
 
 function SeasonLane({
@@ -302,6 +328,7 @@ function SeasonLane({
   selectEnabled = false,
   isSelected,
   onToggleSelect,
+  onEditArc,
 }: SeasonLaneProps) {
   // Bricks with a real stepId participate in drag-reorder; bricks without
   // (archived placeholders) are display-only. The drag hook needs items
@@ -346,7 +373,23 @@ function SeasonLane({
             {isCurrent ? `${season.dateRange.split('—')[0].trim()} — present` : season.dateRange}
           </Text>
         </View>
-        <Text style={styles.laneCount}>{season.bricks.length}</Text>
+        <View style={styles.laneActions}>
+          {onEditArc ? (
+            <Pressable
+              onPress={() => onEditArc(season.id)}
+              hitSlop={10}
+              accessibilityRole="button"
+              accessibilityLabel="Edit arc"
+              style={({ pressed }) => [
+                styles.laneEditBtn,
+                pressed && styles.lanePressed,
+              ]}
+            >
+              <Ionicons name="pencil-outline" size={14} color={IOS_REGISTER.labelSecondary} />
+            </Pressable>
+          ) : null}
+          <Text style={styles.laneCount}>{season.bricks.length}</Text>
+        </View>
       </View>
 
       <ScrollView
@@ -513,31 +556,34 @@ const styles = StyleSheet.create({
     paddingBottom: 8,
   },
   eyebrow: {
-    fontSize: 10,
+    fontSize: 9.5,
     fontWeight: '700',
-    letterSpacing: 0.6,
-    color: IOS_REGISTER.labelSecondary,
-    marginBottom: 6,
+    letterSpacing: 0.55,
+    color: IOS_REGISTER.labelTertiary,
+    textTransform: 'uppercase',
+    marginBottom: 4,
   },
   titleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    marginBottom: 2,
+    gap: 6,
+    marginBottom: 4,
   },
   title: {
-    fontSize: 24,
+    fontSize: 26,
     fontWeight: '700',
     letterSpacing: -0.6,
     color: IOS_REGISTER.label,
     flexShrink: 1,
   },
   titleChevron: {
-    marginTop: 2,
+    marginTop: 4,
   },
   subtitle: {
     fontSize: 12.5,
+    fontWeight: '500',
     color: IOS_REGISTER.labelSecondary,
+    letterSpacing: -0.1,
   },
   analysisBlock: {
     paddingHorizontal: 0,
@@ -608,6 +654,22 @@ const styles = StyleSheet.create({
     fontSize: 10.5,
     color: IOS_REGISTER.labelTertiary,
     fontWeight: '500',
+  },
+  laneActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  laneEditBtn: {
+    padding: 4,
+  },
+  lanePressed: {
+    opacity: 0.55,
+  },
+  browseHeaderActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   laneScroller: {
     marginRight: -16,

@@ -1,12 +1,13 @@
 /**
- * SeasonHeaderChips — the L3 season header turned into a row of three
- * tappable affordances:
- *   1. Season title chip (opens season picker)
- *   2. Date-range chip (opens calendar week picker)
- *   3. Step counter chip (opens step picker)
+ * SeasonHeaderChips — L3 season header. Tufte-quiet treatment:
+ *   1. Tiny eyebrow (ZOOM · CURRENT ARC · <VERB>)
+ *   2. Large title + chevron — opens season picker
+ *   3. Single dim metadata line below the title: date range · step
+ *      counter, as plain tappable text linked by middle dots. No
+ *      chips, no pill chrome — the data IS the affordance.
  *
- * Replaces the previous static text block. The chips telegraph "this is
- * navigable" — the title acts as a section anchor + a switcher.
+ * Pattern mirrors L4's title-row + duration-subtitle, so both zoom
+ * levels share the same visual rhythm.
  */
 
 import React from 'react';
@@ -62,63 +63,37 @@ export function SeasonHeaderChips({
         />
       </Pressable>
 
-      <View style={styles.chipRow}>
+      <View style={styles.metaRow}>
         <Pressable
           onPress={onPressDate}
-          style={({ pressed }) => [styles.chip, pressed && styles.pressed]}
           accessibilityRole="button"
           accessibilityLabel={`Date range: ${dateRange}. Tap for calendar.`}
+          style={({ pressed }) => (pressed ? styles.pressed : null)}
+          hitSlop={6}
         >
-          <Ionicons
-            name="calendar-outline"
-            size={13}
-            color={IOS_REGISTER.labelSecondary}
-          />
-          <Text style={styles.chipText}>{dateRange}</Text>
+          <Text style={styles.metaLink}>{dateRange}</Text>
         </Pressable>
-
-        {stepOfTotal ? (
-          <Pressable
-            onPress={onPressStep}
-            style={({ pressed }) => [styles.chip, pressed && styles.pressed]}
-            accessibilityRole="button"
-            accessibilityLabel={`Step ${stepOfTotal.current} of ${stepOfTotal.total}. Tap to jump.`}
-          >
-            <Ionicons
-              name="list-outline"
-              size={13}
-              color={IOS_REGISTER.labelSecondary}
-            />
-            <Text style={styles.chipText}>
-              Step {stepOfTotal.current} of {stepOfTotal.total}
-            </Text>
-            <Ionicons
-              name="chevron-down"
-              size={12}
-              color={IOS_REGISTER.labelTertiary}
-            />
-          </Pressable>
-        ) : weekOfTotal ? (
-          <Pressable
-            onPress={onPressStep}
-            style={({ pressed }) => [styles.chip, pressed && styles.pressed]}
-            accessibilityRole="button"
-            accessibilityLabel={`Week ${weekOfTotal.current} of ${weekOfTotal.total}. Tap to jump.`}
-          >
-            <Ionicons
-              name="list-outline"
-              size={13}
-              color={IOS_REGISTER.labelSecondary}
-            />
-            <Text style={styles.chipText}>
-              Week {weekOfTotal.current} of {weekOfTotal.total}
-            </Text>
-            <Ionicons
-              name="chevron-down"
-              size={12}
-              color={IOS_REGISTER.labelTertiary}
-            />
-          </Pressable>
+        {stepOfTotal || weekOfTotal ? (
+          <>
+            <Text style={styles.metaSep}>·</Text>
+            <Pressable
+              onPress={onPressStep}
+              accessibilityRole="button"
+              accessibilityLabel={
+                stepOfTotal
+                  ? `Step ${stepOfTotal.current} of ${stepOfTotal.total}. Tap to jump.`
+                  : `Week ${weekOfTotal!.current} of ${weekOfTotal!.total}. Tap to jump.`
+              }
+              style={({ pressed }) => (pressed ? styles.pressed : null)}
+              hitSlop={6}
+            >
+              <Text style={styles.metaLink}>
+                {stepOfTotal
+                  ? `Step ${stepOfTotal.current} of ${stepOfTotal.total}`
+                  : `Week ${weekOfTotal!.current} of ${weekOfTotal!.total}`}
+              </Text>
+            </Pressable>
+          </>
         ) : null}
       </View>
     </View>
@@ -132,17 +107,18 @@ const styles = StyleSheet.create({
     paddingBottom: 10,
   },
   eyebrow: {
-    fontSize: 10.5,
+    fontSize: 9.5,
     fontWeight: '700',
-    letterSpacing: 0.6,
-    color: IOS_REGISTER.labelSecondary,
-    marginBottom: 8,
+    letterSpacing: 0.55,
+    color: IOS_REGISTER.labelTertiary,
+    textTransform: 'uppercase',
+    marginBottom: 4,
   },
   titleRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    marginBottom: 8,
+    marginBottom: 4,
   },
   title: {
     flexShrink: 1,
@@ -157,24 +133,20 @@ const styles = StyleSheet.create({
   pressed: {
     opacity: 0.55,
   },
-  chipRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  chip: {
+  metaRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
-    backgroundColor: IOS_REGISTER.fillPill,
-    borderRadius: 999,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
+    gap: 6,
+    flexWrap: 'wrap',
   },
-  chipText: {
-    fontSize: 12,
+  metaLink: {
+    fontSize: 12.5,
     fontWeight: '500',
-    color: IOS_REGISTER.label,
+    color: IOS_REGISTER.labelSecondary,
     letterSpacing: -0.1,
+  },
+  metaSep: {
+    fontSize: 12.5,
+    color: IOS_REGISTER.labelTertiary,
   },
 });

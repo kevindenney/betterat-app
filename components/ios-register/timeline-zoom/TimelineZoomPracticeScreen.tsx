@@ -22,9 +22,11 @@ import { useAuth } from '@/providers/AuthProvider';
 import { useInterest } from '@/providers/InterestProvider';
 import { useMyTimeline, useUpdateStep, useDeleteStep } from '@/hooks/useTimelineSteps';
 import { showAlert, showConfirm } from '@/lib/utils/crossPlatformAlert';
-import { useCurrentSeason, useUserSeasons, useCreateSeason } from '@/hooks/useSeason';
+import { useCurrentSeason, useUserSeasons, useCreateSeason, useUpdateSeason, useArchiveSeason } from '@/hooks/useSeason';
 import { useSubscribedBlueprints, useBlueprintWithAuthor } from '@/hooks/useBlueprint';
 import { useStepCapabilityEvidence } from '@/hooks/useStepCapabilityEvidence';
+import { SeasonEditSheet } from './SeasonEditSheet';
+import type { CreateSeasonInput, UpdateSeasonInput, Season } from '@/types/season';
 
 import { TimelineZoomCanvas } from './TimelineZoomCanvas';
 import { mapToTimelineDataset, type BlueprintLookup } from './realDataAdapter';
@@ -213,6 +215,41 @@ export function TimelineZoomPracticeScreen() {
   // dismiss clears the buffer.
   const [moveTargetIds, setMoveTargetIds] = useState<string[] | null>(null);
   const createSeason = useCreateSeason();
+  const updateSeasonMutation = useUpdateSeason();
+  const archiveSeasonMutation = useArchiveSeason();
+
+  // Season add/edit sheet — opened from L3 picker footer + L4 BROWSE ARCS
+  // header. The sheet handles both modes via the same form; we resolve
+  // the underlying Season record from the id when editing.
+  const [seasonSheetState, setSeasonSheetState] = useState<
+    { mode: 'add' } | { mode: 'edit'; season: Season } | null
+  >(null);
+  const handleAddArc = useCallback(() => setSeasonSheetState({ mode: 'add' }), []);
+  const handleEditArc = useCallback(
+    (arcId: string) => {
+      const found = allSeasons.find((s) => s.id === arcId);
+      if (found) setSeasonSheetState({ mode: 'edit', season: found });
+    },
+    [allSeasons],
+  );
+  const handleSeasonCreate = useCallback(
+    async (input: CreateSeasonInput) => {
+      await createSeason.mutateAsync(input);
+    },
+    [createSeason],
+  );
+  const handleSeasonUpdate = useCallback(
+    async (seasonId: string, input: UpdateSeasonInput) => {
+      await updateSeasonMutation.mutateAsync({ seasonId, input });
+    },
+    [updateSeasonMutation],
+  );
+  const handleSeasonArchive = useCallback(
+    async (seasonId: string) => {
+      await archiveSeasonMutation.mutateAsync(seasonId);
+    },
+    [archiveSeasonMutation],
+  );
   const moveTargets = useMemo(
     () => buildMoveTargets(currentSeason, allSeasons),
     [currentSeason, allSeasons],
@@ -381,10 +418,21 @@ export function TimelineZoomPracticeScreen() {
         onBulkTag={showSample ? undefined : handleBulkTag}
         onBulkSchedule={showSample ? undefined : handleBulkSchedule}
         onUnsupportedBulkAction={showSample ? undefined : handleUnsupportedBulkAction}
+        onAddArc={showSample ? undefined : handleAddArc}
+        onEditArc={showSample ? undefined : handleEditArc}
         hideInterestHeader
       />
       {!showSample ? (
         <>
+          <SeasonEditSheet
+            visible={seasonSheetState !== null}
+            mode={seasonSheetState?.mode ?? 'add'}
+            season={seasonSheetState?.mode === 'edit' ? seasonSheetState.season : null}
+            onClose={() => setSeasonSheetState(null)}
+            onCreate={handleSeasonCreate}
+            onUpdate={handleSeasonUpdate}
+            onArchive={handleSeasonArchive}
+          />
           <MoveToSeasonSheet
             visible={moveTargetIds !== null}
             stepIds={moveTargetIds ?? []}
