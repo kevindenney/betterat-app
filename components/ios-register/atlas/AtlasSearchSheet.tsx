@@ -188,10 +188,14 @@ async function fetchSearchResults(
   // People + steps first — per the four-tier model, sailors search to
   // find each other and what they're working on, not chandlers. Place
   // results stay below as scaffolding.
+  // Follow set has to be resolved first so peer-step query can filter
+  // by it. Everything else fans out in parallel.
+  const followingIds = await fetchFollowingIds(viewerId);
+
   const [
     peopleRes,
-    followingIds,
     ownStepsRes,
+    peerStepsRes,
     blueprintStepsRes,
     orgsRes,
     orgMemberIds,
@@ -205,13 +209,21 @@ async function fetchSearchResults(
       .select('id, full_name, username')
       .ilike('full_name', like)
       .limit(15),
-    fetchFollowingIds(viewerId),
     viewerId
       ? supabase
           .from('timeline_steps')
           .select('id, title, description, user_id')
           .eq('user_id', viewerId)
           .ilike('title', like)
+          .limit(10)
+      : Promise.resolve({ data: null, error: null } as { data: null; error: null }),
+    followingIds.size > 0
+      ? supabase
+          .from('timeline_steps')
+          .select('id, title, description, user_id')
+          .in('user_id', Array.from(followingIds))
+          .ilike('title', like)
+          .neq('visibility', 'private')
           .limit(10)
       : Promise.resolve({ data: null, error: null } as { data: null; error: null }),
     supabase
@@ -278,6 +290,26 @@ async function fetchSearchResults(
         detail: desc ? desc.slice(0, 80) : 'Your step',
         stepId,
         ownership: 'yours',
+      });
+    }
+  }
+
+  if (peerStepsRes && !peerStepsRes.error && peerStepsRes.data) {
+    // Peer steps — owned by people the viewer follows. RLS already
+    // gates this via "Users can view followed users timeline steps".
+    // Tag with ownership='following' so consumers can render them
+    // distinctly from the viewer's own steps.
+    for (const s of peerStepsRes.data as Record<string, unknown>[]) {
+      const stepId = String(s.id);
+      const title = String(s.title ?? 'Step');
+      const desc = s.description ? String(s.description) : null;
+      out.push({
+        id: `peer_step:${stepId}`,
+        kind: 'step',
+        name: title,
+        detail: desc ? desc.slice(0, 80) : 'From someone you follow',
+        stepId,
+        ownership: 'following',
       });
     }
   }
@@ -392,6 +424,13 @@ async function fetchSearchResults(
     if (section !== 0) return section;
     if (a.kind === 'person' && b.kind === 'person') {
       if (a.isFollowing !== b.isFollowing) return a.isFollowing ? -1 : 1;
+    }
+    // Within the steps section, own steps (ownership !== 'following')
+    // come before peer steps.
+    if (a.kind === 'step' && b.kind === 'step') {
+      const aPeer = a.ownership === 'following' ? 1 : 0;
+      const bPeer = b.ownership === 'following' ? 1 : 0;
+      if (aPeer !== bPeer) return aPeer - bPeer;
     }
     if ((a.kind === 'organization' || a.kind === 'group') && a.kind === b.kind) {
       if (a.isMember !== b.isMember) return a.isMember ? -1 : 1;
@@ -521,7 +560,12 @@ export function AtlasSearchSheet({
           // steps, then places — with light headers so users scan
           // top-down by intent.
           const people = results.filter((r) => r.kind === 'person');
-          const steps = results.filter((r) => r.kind === 'step');
+          const ownSteps = results.filter(
+            (r) => r.kind === 'step' && r.ownership !== 'following',
+          );
+          const peerSteps = results.filter(
+            (r) => r.kind === 'step' && r.ownership === 'following',
+          );
           const blueprintSteps = results.filter((r) => r.kind === 'blueprint_step');
           const orgs = results.filter((r) => r.kind === 'organization');
           const groups = results.filter((r) => r.kind === 'group');
@@ -568,10 +612,16 @@ export function AtlasSearchSheet({
                   {people.map(renderRow)}
                 </>
               ) : null}
-              {steps.length > 0 ? (
+              {ownSteps.length > 0 ? (
                 <>
                   <Text style={styles.sectionHeader}>Your steps</Text>
-                  {steps.map(renderRow)}
+                  {ownSteps.map(renderRow)}
+                </>
+              ) : null}
+              {peerSteps.length > 0 ? (
+                <>
+                  <Text style={styles.sectionHeader}>From people you follow</Text>
+                  {peerSteps.map(renderRow)}
                 </>
               ) : null}
               {blueprintSteps.length > 0 ? (
