@@ -703,12 +703,16 @@ function GroupSubchip({
 function LayersFab({
   onLayersPress,
   onDropPinPress,
+  onLocatePress,
   commitMode,
   bottomOffset = 0,
   showLocate = true,
 }: {
   onLayersPress?: () => void;
   onDropPinPress?: () => void;
+  /** Optional handler for the locate glyph — when omitted, tapping the
+   *  glyph is a no-op (legacy behavior for frames that haven't wired it). */
+  onLocatePress?: () => void;
   commitMode?: boolean;
   /** Lift the FAB column above the floating bottom sheet + tab bar. */
   bottomOffset?: number;
@@ -731,7 +735,13 @@ function LayersFab({
         </Pressable>
       ) : null}
       {showLocate ? (
-        <Pressable style={shellStyles.fab} hitSlop={6}>
+        <Pressable
+          style={shellStyles.fab}
+          onPress={onLocatePress}
+          hitSlop={6}
+          accessibilityRole="button"
+          accessibilityLabel="Recenter map"
+        >
           <Ionicons name="locate-outline" size={16} color="rgba(60, 60, 67, 0.78)" />
         </Pressable>
       ) : null}
@@ -2034,6 +2044,11 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
 
         <LayersFab
           bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
+          onLocatePress={
+            homeVenue?.lat != null && homeVenue?.lng != null
+              ? () => setSearchFocus({ lat: homeVenue.lat!, lng: homeVenue.lng! })
+              : undefined
+          }
         />
 
         {/* Tide time-slider removed per design feedback — keep wind/tide
