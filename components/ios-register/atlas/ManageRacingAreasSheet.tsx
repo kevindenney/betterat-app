@@ -9,7 +9,7 @@
  * just flips `is_active` false so history is preserved.
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import {
   ActivityIndicator,
   Modal,
@@ -23,7 +23,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { useQuery } from '@tanstack/react-query';
 
 import { IOS_COLORS, IOS_REGISTER } from '@/lib/design-tokens-ios';
-import { showConfirm } from '@/lib/utils/crossPlatformAlert';
 import { supabase } from '@/services/supabase';
 import { useAuth } from '@/providers/AuthProvider';
 import { useDeleteRacingArea } from '@/hooks/useDeleteRacingArea';
@@ -52,6 +51,10 @@ function formatMeters(meters: number | null): string {
 export function ManageRacingAreasSheet({ visible, onClose }: ManageRacingAreasSheetProps) {
   const { user } = useAuth();
   const deleteArea = useDeleteRacingArea();
+  // Inline confirm — the id of the row showing its [Cancel] [Delete]
+  // confirmation. Avoids the z-index war between system confirm dialogs
+  // and the sheet's Modal portal on web.
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
 
   const { data: areas = [], isLoading } = useQuery({
     queryKey: ['atlas-racing-areas', 'manage', user?.id ?? null],
@@ -71,15 +74,12 @@ export function ManageRacingAreasSheet({ visible, onClose }: ManageRacingAreasSh
     },
   });
 
-  const handleDelete = (area: AreaRow) => {
-    showConfirm(
-      `Delete "${area.area_name}"?`,
-      'This hides the racing area from your Atlas. Seeded official areas are not affected.',
-      () => {
-        deleteArea.mutate(area.id);
-      },
-      { destructive: true, confirmText: 'Delete' },
-    );
+  const requestDelete = (area: AreaRow) => setPendingDeleteId(area.id);
+  const cancelDelete = () => setPendingDeleteId(null);
+  const confirmDelete = (area: AreaRow) => {
+    deleteArea.mutate(area.id, {
+      onSettled: () => setPendingDeleteId(null),
+    });
   };
 
   return (
@@ -118,30 +118,70 @@ export function ManageRacingAreasSheet({ visible, onClose }: ManageRacingAreasSh
                 const radius = formatMeters(area.radius_meters);
                 const classes = (area.classes_used ?? []).join(' · ');
                 const subtitle = [radius, classes].filter(Boolean).join(' · ');
+                const isPending = pendingDeleteId === area.id;
                 return (
-                  <View key={area.id} style={styles.row}>
+                  <View key={area.id} style={[styles.row, isPending && styles.rowPending]}>
                     <View style={styles.rowBody}>
                       <Text style={styles.rowTitle} numberOfLines={2}>
                         {area.area_name}
                       </Text>
-                      {subtitle ? (
+                      {isPending ? (
+                        <Text style={styles.rowConfirmText} numberOfLines={2}>
+                          Delete this area? It hides from your Atlas; seeded official areas aren’t affected.
+                        </Text>
+                      ) : subtitle ? (
                         <Text style={styles.rowMeta} numberOfLines={1}>
                           {subtitle}
                         </Text>
                       ) : null}
                     </View>
-                    <Pressable
-                      onPress={() => handleDelete(area)}
-                      hitSlop={8}
-                      style={({ pressed }) => [
-                        styles.deleteBtn,
-                        pressed && styles.deleteBtnPressed,
-                      ]}
-                      accessibilityRole="button"
-                      accessibilityLabel={`Delete ${area.area_name}`}
-                    >
-                      <Ionicons name="trash-outline" size={18} color="#C4474A" />
-                    </Pressable>
+                    {isPending ? (
+                      <View style={styles.confirmRow}>
+                        <Pressable
+                          onPress={cancelDelete}
+                          hitSlop={8}
+                          style={({ pressed }) => [
+                            styles.cancelBtn,
+                            pressed && styles.cancelBtnPressed,
+                          ]}
+                          accessibilityRole="button"
+                          accessibilityLabel="Cancel delete"
+                        >
+                          <Text style={styles.cancelBtnText}>Cancel</Text>
+                        </Pressable>
+                        <Pressable
+                          onPress={() => confirmDelete(area)}
+                          disabled={deleteArea.isPending}
+                          hitSlop={8}
+                          style={({ pressed }) => [
+                            styles.confirmDeleteBtn,
+                            pressed && styles.confirmDeleteBtnPressed,
+                            deleteArea.isPending && { opacity: 0.6 },
+                          ]}
+                          accessibilityRole="button"
+                          accessibilityLabel={`Confirm delete ${area.area_name}`}
+                        >
+                          {deleteArea.isPending ? (
+                            <ActivityIndicator size="small" color="#FFFFFF" />
+                          ) : (
+                            <Text style={styles.confirmDeleteBtnText}>Delete</Text>
+                          )}
+                        </Pressable>
+                      </View>
+                    ) : (
+                      <Pressable
+                        onPress={() => requestDelete(area)}
+                        hitSlop={8}
+                        style={({ pressed }) => [
+                          styles.deleteBtn,
+                          pressed && styles.deleteBtnPressed,
+                        ]}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Delete ${area.area_name}`}
+                      >
+                        <Ionicons name="trash-outline" size={18} color="#C4474A" />
+                      </Pressable>
+                    )}
                   </View>
                 );
               })}
@@ -255,5 +295,51 @@ const styles = StyleSheet.create({
   },
   deleteBtnPressed: {
     backgroundColor: 'rgba(196, 71, 74, 0.22)',
+  },
+  rowPending: {
+    backgroundColor: 'rgba(196, 71, 74, 0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(196, 71, 74, 0.32)',
+  },
+  rowConfirmText: {
+    fontSize: 12,
+    color: IOS_REGISTER.labelSecondary,
+    marginTop: 2,
+  },
+  confirmRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  cancelBtn: {
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: 10,
+    backgroundColor: 'rgba(120, 120, 130, 0.14)',
+  },
+  cancelBtnPressed: {
+    backgroundColor: 'rgba(120, 120, 130, 0.26)',
+  },
+  cancelBtnText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: IOS_REGISTER.label,
+  },
+  confirmDeleteBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 10,
+    backgroundColor: '#C4474A',
+    minWidth: 62,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  confirmDeleteBtnPressed: {
+    backgroundColor: '#A93B3E',
+  },
+  confirmDeleteBtnText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#FFFFFF',
   },
 });
