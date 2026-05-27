@@ -107,10 +107,24 @@ function computeSeasonPhases(
     // Interest-aware pattern scan — uses the user's domain vocabulary
     // (regatta names, rotation names, festival names, etc.) so the
     // phase label speaks the persona's language when titles match.
+    const titlesForDetection = week.steps.map((s) => s.title);
     const namedPhase = detectPhaseLabelFromTitles(
-      week.steps.map((s) => s.title),
+      titlesForDetection,
       interestVocab,
     );
+    if (__DEV__) {
+      // eslint-disable-next-line no-console
+      console.log(
+        '[phases] week',
+        idx + 1,
+        'vocab:',
+        interestVocab.id,
+        'titles:',
+        titlesForDetection,
+        '→ named:',
+        namedPhase,
+      );
+    }
     // First week with no race + mixed steps reads as "entry" / prep.
     const isPrep = idx === 0 && raceNum === null && !namedPhase;
     return { weekNumber: idx + 1, capability: dominant, raceNum, namedPhase, isPrep };
