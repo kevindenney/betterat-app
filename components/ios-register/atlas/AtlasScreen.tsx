@@ -1369,6 +1369,17 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
       router.push(`/library/blueprints/${result.blueprintId}` as never);
       return;
     }
+    if (result.kind === 'organization' && result.orgSlug) {
+      router.push(`/organizations/${result.orgSlug}` as never);
+      return;
+    }
+    if (result.kind === 'group' && result.groupId) {
+      // Groups don't have a dedicated route yet — pass through the
+      // groupId as a query param to a generic surface. v2 lands a
+      // proper /group/[id] page.
+      router.push(`/discover?group=${result.groupId}` as never);
+      return;
+    }
     if (result.lat != null && result.lng != null) {
       setSearchFocus({ lat: result.lat, lng: result.lng });
     }

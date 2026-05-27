@@ -34,6 +34,8 @@ export type AtlasSearchResultKind =
   | 'person'
   | 'step'
   | 'blueprint_step'
+  | 'organization'
+  | 'group'
   | 'club'
   | 'marina'
   | 'sail_loft'
@@ -61,6 +63,13 @@ export interface AtlasSearchResult {
   blueprintId?: string;
   /** Whether this is the viewer's own step / a step from someone they follow. */
   ownership?: 'yours' | 'following' | 'public';
+  /** Org slug — present for organization results. */
+  orgSlug?: string;
+  /** Org/group id — present for organization or group results. */
+  orgId?: string;
+  groupId?: string;
+  /** True when the viewer is a member of this org or group. */
+  isMember?: boolean;
 }
 
 export interface AtlasSearchFilterChip {
@@ -109,6 +118,8 @@ const KIND_GLYPH: Record<AtlasSearchResultKind, keyof typeof Ionicons.glyphMap> 
   person: 'person-circle-outline',
   step: 'checkbox-outline',
   blueprint_step: 'reader-outline',
+  organization: 'business-outline',
+  group: 'people-outline',
   club: 'boat-outline',
   marina: 'water-outline',
   sail_loft: 'cut-outline',
@@ -122,6 +133,8 @@ const KIND_TONE: Record<AtlasSearchResultKind, string> = {
   person: 'rgba(56, 175, 122, 0.95)',
   step: 'rgba(0, 122, 255, 0.95)',
   blueprint_step: 'rgba(124, 92, 196, 0.95)',
+  organization: 'rgba(231, 137, 60, 0.95)',
+  group: 'rgba(124, 92, 196, 0.95)',
   club: 'rgba(0, 122, 255, 0.95)',
   marina: 'rgba(0, 150, 160, 0.95)',
   sail_loft: 'rgba(124, 92, 196, 0.95)',
@@ -141,6 +154,28 @@ async function fetchFollowingIds(viewerId: string | null): Promise<Set<string>> 
   return new Set((data as { following_id: string }[]).map((r) => r.following_id));
 }
 
+async function fetchOrgMembershipIds(viewerId: string | null): Promise<Set<string>> {
+  if (!viewerId) return new Set();
+  const { data, error } = await supabase
+    .from('organization_memberships')
+    .select('organization_id')
+    .eq('user_id', viewerId)
+    .eq('membership_status', 'active');
+  if (error || !data) return new Set();
+  return new Set((data as { organization_id: string }[]).map((r) => r.organization_id));
+}
+
+async function fetchGroupMembershipIds(viewerId: string | null): Promise<Set<string>> {
+  if (!viewerId) return new Set();
+  const { data, error } = await supabase
+    .from('affinity_group_members')
+    .select('group_id')
+    .eq('user_id', viewerId)
+    .eq('status', 'active');
+  if (error || !data) return new Set();
+  return new Set((data as { group_id: string }[]).map((r) => r.group_id));
+}
+
 async function fetchSearchResults(
   query: string,
   viewerId: string | null,
@@ -153,38 +188,61 @@ async function fetchSearchResults(
   // People + steps first — per the four-tier model, sailors search to
   // find each other and what they're working on, not chandlers. Place
   // results stay below as scaffolding.
-  const [peopleRes, followingIds, ownStepsRes, blueprintStepsRes, clubsRes, sailingRes] =
-    await Promise.all([
-      supabase
-        .from('profiles')
-        .select('id, full_name, username')
-        .ilike('full_name', like)
-        .limit(15),
-      fetchFollowingIds(viewerId),
-      viewerId
-        ? supabase
-            .from('timeline_steps')
-            .select('id, title, description, user_id')
-            .eq('user_id', viewerId)
-            .ilike('title', like)
-            .limit(10)
-        : Promise.resolve({ data: null, error: null } as { data: null; error: null }),
-      supabase
-        .from('blueprint_steps')
-        .select('id, blueprint_id, title, description')
-        .ilike('title', like)
-        .limit(10),
-      supabase
-        .from('clubs')
-        .select('id, name, short_name, city, country, latitude, longitude, country_code')
-        .or(`name.ilike.${like},short_name.ilike.${like}`)
-        .limit(15),
-      supabase
-        .from('sailing_pois')
-        .select('id, kind, name, short_name, city, country, latitude, longitude, country_code')
-        .or(`name.ilike.${like},short_name.ilike.${like}`)
-        .limit(15),
-    ]);
+  const [
+    peopleRes,
+    followingIds,
+    ownStepsRes,
+    blueprintStepsRes,
+    orgsRes,
+    orgMemberIds,
+    groupsRes,
+    groupMemberIds,
+    clubsRes,
+    sailingRes,
+  ] = await Promise.all([
+    supabase
+      .from('profiles')
+      .select('id, full_name, username')
+      .ilike('full_name', like)
+      .limit(15),
+    fetchFollowingIds(viewerId),
+    viewerId
+      ? supabase
+          .from('timeline_steps')
+          .select('id, title, description, user_id')
+          .eq('user_id', viewerId)
+          .ilike('title', like)
+          .limit(10)
+      : Promise.resolve({ data: null, error: null } as { data: null; error: null }),
+    supabase
+      .from('blueprint_steps')
+      .select('id, blueprint_id, title, description')
+      .ilike('title', like)
+      .limit(10),
+    supabase
+      .from('organizations')
+      .select('id, name, slug, organization_type')
+      .or(`name.ilike.${like},slug.ilike.${like}`)
+      .limit(10),
+    fetchOrgMembershipIds(viewerId),
+    supabase
+      .from('affinity_groups')
+      .select('id, name, short_name, kind, interest_slug')
+      .eq('is_active', true)
+      .or(`name.ilike.${like},short_name.ilike.${like}`)
+      .limit(10),
+    fetchGroupMembershipIds(viewerId),
+    supabase
+      .from('clubs')
+      .select('id, name, short_name, city, country, latitude, longitude, country_code')
+      .or(`name.ilike.${like},short_name.ilike.${like}`)
+      .limit(15),
+    supabase
+      .from('sailing_pois')
+      .select('id, kind, name, short_name, city, country, latitude, longitude, country_code')
+      .or(`name.ilike.${like},short_name.ilike.${like}`)
+      .limit(15),
+  ]);
 
   const out: AtlasSearchResult[] = [];
 
@@ -239,6 +297,48 @@ async function fetchSearchResults(
     }
   }
 
+  if (!orgsRes.error && orgsRes.data) {
+    for (const o of orgsRes.data as Record<string, unknown>[]) {
+      const orgId = String(o.id);
+      const isMember = orgMemberIds.has(orgId);
+      out.push({
+        id: `org:${orgId}`,
+        kind: 'organization',
+        name: String(o.name ?? 'Organization'),
+        detail: isMember
+          ? 'Member'
+          : o.organization_type
+            ? String(o.organization_type)
+            : undefined,
+        orgId,
+        orgSlug: o.slug ? String(o.slug) : undefined,
+        isMember,
+      });
+    }
+  }
+
+  if (!groupsRes.error && groupsRes.data) {
+    for (const g of groupsRes.data as Record<string, unknown>[]) {
+      const groupId = String(g.id);
+      const isMember = groupMemberIds.has(groupId);
+      const name = String(g.short_name ?? g.name ?? 'Group');
+      out.push({
+        id: `group:${groupId}`,
+        kind: 'group',
+        name,
+        detail: isMember
+          ? 'Member'
+          : g.interest_slug
+            ? String(g.interest_slug)
+            : g.kind
+              ? String(g.kind)
+              : undefined,
+        groupId,
+        isMember,
+      });
+    }
+  }
+
   if (!clubsRes.error && clubsRes.data) {
     for (const club of clubsRes.data as Record<string, unknown>[]) {
       const lat = Number(club.latitude);
@@ -281,13 +381,18 @@ async function fetchSearchResults(
     if (k === 'person') return 0;
     if (k === 'step') return 1;
     if (k === 'blueprint_step') return 2;
-    return 3;
+    if (k === 'organization') return 3;
+    if (k === 'group') return 4;
+    return 5;
   };
   return out.sort((a, b) => {
     const section = sectionRank(a.kind) - sectionRank(b.kind);
     if (section !== 0) return section;
     if (a.kind === 'person' && b.kind === 'person') {
       if (a.isFollowing !== b.isFollowing) return a.isFollowing ? -1 : 1;
+    }
+    if ((a.kind === 'organization' || a.kind === 'group') && a.kind === b.kind) {
+      if (a.isMember !== b.isMember) return a.isMember ? -1 : 1;
     }
     const aPrefix = a.name.toLowerCase().startsWith(needle) ? 0 : 1;
     const bPrefix = b.name.toLowerCase().startsWith(needle) ? 0 : 1;
@@ -416,9 +521,15 @@ export function AtlasSearchSheet({
           const people = results.filter((r) => r.kind === 'person');
           const steps = results.filter((r) => r.kind === 'step');
           const blueprintSteps = results.filter((r) => r.kind === 'blueprint_step');
+          const orgs = results.filter((r) => r.kind === 'organization');
+          const groups = results.filter((r) => r.kind === 'group');
           const places = results.filter(
             (r) =>
-              r.kind !== 'person' && r.kind !== 'step' && r.kind !== 'blueprint_step',
+              r.kind !== 'person' &&
+              r.kind !== 'step' &&
+              r.kind !== 'blueprint_step' &&
+              r.kind !== 'organization' &&
+              r.kind !== 'group',
           );
           const renderRow = (r: AtlasSearchResult) => (
             <Pressable
@@ -465,6 +576,18 @@ export function AtlasSearchSheet({
                 <>
                   <Text style={styles.sectionHeader}>Blueprint steps</Text>
                   {blueprintSteps.map(renderRow)}
+                </>
+              ) : null}
+              {orgs.length > 0 ? (
+                <>
+                  <Text style={styles.sectionHeader}>Organizations</Text>
+                  {orgs.map(renderRow)}
+                </>
+              ) : null}
+              {groups.length > 0 ? (
+                <>
+                  <Text style={styles.sectionHeader}>Groups</Text>
+                  {groups.map(renderRow)}
                 </>
               ) : null}
               {places.length > 0 ? (
