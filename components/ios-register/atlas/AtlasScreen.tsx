@@ -35,6 +35,7 @@ import { LayoutChangeEvent, Linking, Platform, Pressable, ScrollView, StyleSheet
 import { Ionicons } from '@expo/vector-icons';
 import Slider from '@react-native-community/slider';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { router } from 'expo-router';
 
 import { IOS_COLORS, IOS_REGISTER } from '@/lib/design-tokens-ios';
 import { FEATURE_FLAGS } from '@/lib/featureFlags';
@@ -1352,8 +1353,15 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
     handlers.initialFocus ?? null,
   );
   const handleSearchSelect = useCallback((result: AtlasSearchResult) => {
-    setSearchFocus({ lat: result.lat, lng: result.lng });
     setSearchOpen(false);
+    // People route to their profile — no coords, no camera move.
+    if (result.kind === 'person' && result.userId) {
+      router.push(`/sailor/${result.userId}` as never);
+      return;
+    }
+    if (result.lat != null && result.lng != null) {
+      setSearchFocus({ lat: result.lat, lng: result.lng });
+    }
   }, []);
   // Compose-at-location: tap the + FAB to enter commit-mode, then any
   // tap on the map drops a candidate pin and rises the commit sheet.
@@ -2509,6 +2517,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
         visible={searchOpen}
         onClose={() => setSearchOpen(false)}
         onSelect={handleSearchSelect}
+        viewerId={authUser?.id ?? null}
         filterChips={[
           { id: 'all', label: 'All', active: activeFilterIds.includes('all') },
           { id: 'you', label: 'You', tone: 'you', active: activeFilterIds.includes('you') },
