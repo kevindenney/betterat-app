@@ -63,6 +63,8 @@ import { useUpdateStepLocation } from '@/hooks/useUpdateStepLocation';
 import { shapeToPolygon } from '@/lib/atlas-racing-area-shape';
 import type { PickerStep } from '@/hooks/useUserAtlasSteps';
 import { useUserHomeVenue } from '@/hooks/useUserHomeVenue';
+import { useInterest } from '@/providers/InterestProvider';
+import { InterestSwitcher, openInterestSwitcher } from '@/components/InterestSwitcher';
 import { useUserAffinityGroups, affinityGroupTone, type UserAffinityGroup } from '@/hooks/useUserAffinityGroups';
 import { useAffinityGroupMembers } from '@/hooks/useAffinityGroupMembers';
 import { useAtlasFramePins } from '@/hooks/useAtlasFramePins';
@@ -1164,6 +1166,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
   const hasNext = Boolean(next?.label);
   const insets = useSafeAreaInsets();
   const homeVenue = useUserHomeVenue();
+  const { currentInterest } = useInterest();
   const { groups: userGroups } = useUserAffinityGroups('sail-racing');
   const [activeGroupIds, setActiveGroupIds] = useState<string[]>([]);
   const toggleGroupChip = useCallback((groupId: string) => {
@@ -1812,6 +1815,30 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
           <View style={shellStyles.topCapsuleRow} onLayout={handleHeaderLayout}>
             <View style={shellStyles.topCapsule}>
               <ProfileDropdown size={30} variant="light" menuAlign="left" />
+              {currentInterest ? (
+                <Pressable
+                  style={shellStyles.capsuleInterest}
+                  onPress={() => openInterestSwitcher()}
+                  hitSlop={4}
+                  accessibilityLabel={`Current interest: ${currentInterest.name}. Tap to switch.`}
+                >
+                  <View
+                    style={[
+                      shellStyles.capsuleInterestDot,
+                      { backgroundColor: currentInterest.accent_color },
+                    ]}
+                  />
+                  <Text style={shellStyles.capsuleInterestText} numberOfLines={1}>
+                    {currentInterest.name}
+                  </Text>
+                  <Ionicons
+                    name="chevron-down"
+                    size={11}
+                    color="rgba(60, 60, 67, 0.62)"
+                    style={shellStyles.capsuleInterestChevron}
+                  />
+                </Pressable>
+              ) : null}
               <Pressable
                 style={shellStyles.capsuleSearch}
                 onPress={() => setSearchOpen(true)}
@@ -1843,6 +1870,10 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
               </View>
             </View>
           </View>
+          {/* Headless InterestSwitcher hosts the modal so the imperative
+              opener inside the capsule can pop it. Atlas doesn't mount
+              the global NavigationHeader, so the sheet lives here. */}
+          <InterestSwitcher headless />
           {filterExpanded ? (
             <View style={shellStyles.filterExpandedBlock}>
               <View style={shellStyles.filterExpandedRow}>
@@ -1883,7 +1914,11 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
                 </View>
               ) : null}
             </View>
-          ) : (
+          ) : activeFilterIds.length > 0 && !activeFilterIds.includes('all') ? (
+            // Filter pill only appears when filters are actually applied.
+            // Default "All" state hides this entirely so the map reads
+            // clean — matches Apple Maps' "Open Now" chip pattern where
+            // the chip surfaces only when a filter is active.
             <View style={shellStyles.filterPillRow}>
               <Pressable
                 style={shellStyles.filterPill}
@@ -1906,7 +1941,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
                 />
               </Pressable>
             </View>
-          )}
+          ) : null}
         </View>
 
         {/* SVG-fallback fixtures (RacingAreaTag + base-club AtlasPin) —
@@ -4450,6 +4485,29 @@ const shellStyles = StyleSheet.create({
     shadowRadius: 12,
     shadowOffset: { width: 0, height: 4 },
     elevation: 3,
+  },
+  capsuleInterest: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    minHeight: 30,
+    maxWidth: 140,
+  },
+  capsuleInterestDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    marginRight: 6,
+  },
+  capsuleInterestText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: 'rgba(28, 28, 30, 0.86)',
+    letterSpacing: -0.1,
+  },
+  capsuleInterestChevron: {
+    marginLeft: 3,
   },
   capsuleSearch: {
     flex: 1,
