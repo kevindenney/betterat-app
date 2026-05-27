@@ -206,8 +206,8 @@ async function fetchSearchResults(
   ] = await Promise.all([
     supabase
       .from('profiles')
-      .select('id, full_name, username')
-      .ilike('full_name', like)
+      .select('id, full_name, first_name, last_name')
+      .or(`full_name.ilike.${like},first_name.ilike.${like},last_name.ilike.${like}`)
       .limit(15),
     viewerId
       ? supabase
@@ -261,7 +261,10 @@ async function fetchSearchResults(
   if (!peopleRes.error && peopleRes.data) {
     for (const p of peopleRes.data as Record<string, unknown>[]) {
       const userId = String(p.id);
-      const name = String(p.full_name ?? p.username ?? 'Sailor');
+      // Prefer full_name; fall back to "First Last" or whichever name
+      // part exists. Skip rows where every name field is null.
+      const composed = [p.first_name, p.last_name].filter(Boolean).join(' ').trim();
+      const name = String(p.full_name ?? (composed.length > 0 ? composed : 'Sailor'));
       const isSelf = viewerId !== null && userId === viewerId;
       const isFollowing = followingIds.has(userId);
       out.push({

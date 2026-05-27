@@ -2,11 +2,30 @@ import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { RelationshipButton } from '@/components/discover/detail';
+import { IOSDetailNavBar } from '@/components/discover/detail';
 import {
   YachtClubClaimService,
   type YachtClubOrganization,
 } from '@/services/YachtClubClaimService';
+import {
+  YACHT_CLUB_DEMO_CALENDAR,
+  YACHT_CLUB_DEMO_FLEETS,
+  YACHT_CLUB_DEMO_FOCUS,
+  YACHT_CLUB_DEMO_MAJOR_CLASSES,
+  YACHT_CLUB_DEMO_MEMBERSHIP,
+  YACHT_CLUB_DEMO_PROGRAMS,
+  YACHT_CLUB_DEMO_RACES,
+  YACHT_CLUB_DEMO_PROFILE,
+  YACHT_CLUB_DEMO_SOCIAL_CALENDAR,
+  YACHT_CLUB_DEMO_SURFACES,
+  YACHT_CLUB_DEMO_TAGLINE,
+  YACHT_CLUB_DEMO_NAME,
+  YACHT_CLUB_DEMO_STATS,
+  YACHT_CLUB_DEMO_TIERS,
+  isYachtClubDemoSlug,
+} from '@/services/YachtClubDemoService';
 
 const C = {
   bg: '#F7FAFC',
@@ -27,6 +46,58 @@ function statusLabel(org: YachtClubOrganization): string {
   return 'Unclaimed placeholder';
 }
 
+/**
+ * Resolve display copy by `organizations.organization_type`. The page
+ * used to be yacht-club-only; now that non-yacht orgs (e.g. JHSON for
+ * nursing) appear via search, we render the right vocabulary instead
+ * of "BetterAt Yacht Clubs" on every page.
+ */
+function orgTypeLabels(type: string | null | undefined): {
+  eyebrow: string;
+  contextLabel: string;
+  pricingLabel: string;
+} {
+  switch (type) {
+    case 'yacht_club':
+      return {
+        eyebrow: 'BetterAt Yacht Clubs',
+        contextLabel: 'Yacht club',
+        pricingLabel: 'Yacht-club pricing',
+      };
+    case 'institution':
+      return {
+        eyebrow: 'BetterAt Institutions',
+        contextLabel: 'Institution',
+        pricingLabel: 'Institutional pricing',
+      };
+    case 'association':
+      return {
+        eyebrow: 'BetterAt Associations',
+        contextLabel: 'Association',
+        pricingLabel: 'Pricing',
+      };
+    case 'community':
+      return {
+        eyebrow: 'BetterAt Communities',
+        contextLabel: 'Community',
+        pricingLabel: 'Pricing',
+      };
+    case 'business':
+      return {
+        eyebrow: 'BetterAt Businesses',
+        contextLabel: 'Business',
+        pricingLabel: 'Pricing',
+      };
+    case 'club':
+    default:
+      return {
+        eyebrow: 'BetterAt Clubs',
+        contextLabel: 'Club',
+        pricingLabel: 'Club pricing',
+      };
+  }
+}
+
 function tierLabel(tier: string | null): string {
   switch (tier) {
     case 'club_free':
@@ -34,9 +105,9 @@ function tierLabel(tier: string | null): string {
     case 'club_plus':
       return 'Club Plus';
     case 'club_pro':
-      return 'Regatta / Club Pro';
+      return 'Regatta Pro';
     case 'enterprise':
-      return 'Enterprise';
+      return 'Institutional';
     default:
       return 'Club tier';
   }
@@ -45,9 +116,14 @@ function tierLabel(tier: string | null): string {
 export default function OrganizationPlaceholderPage() {
   const params = useLocalSearchParams<{ slug?: string }>();
   const slug = typeof params.slug === 'string' ? params.slug.trim() : '';
+  const isDemo = isYachtClubDemoSlug(slug);
   const [loading, setLoading] = useState(true);
   const [org, setOrg] = useState<YachtClubOrganization | null>(null);
   const [errorText, setErrorText] = useState<string | null>(null);
+  const handleBack = React.useCallback(() => {
+    if (router.canGoBack()) router.back();
+    else router.replace('/(tabs)/discover' as never);
+  }, []);
   const handleOpenAtlas = React.useCallback(() => {
     if (!slug) return;
     router.push({ pathname: '/(tabs)/atlas', params: { orgSlug: slug } } as any);
@@ -59,6 +135,13 @@ export default function OrganizationPlaceholderPage() {
       setLoading(true);
       setErrorText(null);
       try {
+        if (isDemo) {
+          const demoOrg = await YachtClubClaimService.getOrganizationBySlug(slug);
+          if (!demoOrg) throw new Error('Organization not found.');
+          if (cancelled) return;
+          setOrg(demoOrg);
+          return;
+        }
         const nextOrg = await YachtClubClaimService.getOrganizationBySlug(slug);
         if (!nextOrg) throw new Error('Organization not found.');
         if (cancelled) return;
@@ -72,124 +155,376 @@ export default function OrganizationPlaceholderPage() {
     return () => {
       cancelled = true;
     };
-  }, [slug]);
+  }, [isDemo, slug]);
 
   const isPlaceholder = org?.status === 'placeholder' || org?.official === false;
   const visibleAliases = Array.from(new Set(org?.aliases ?? []));
+  const demoTierCards = YACHT_CLUB_DEMO_TIERS;
+  const typeLabels = orgTypeLabels(org?.organization_type);
 
   return (
-    <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
-      <Stack.Screen options={{ title: org?.name || 'Organization' }} />
-      {loading ? (
-        <View style={styles.center}>
-          <ActivityIndicator color={C.blue} />
-        </View>
-      ) : errorText || !org ? (
-        <View style={styles.card}>
-          <Ionicons name="business-outline" size={36} color={C.muted} />
-          <Text style={styles.title}>Organization not found</Text>
-          <Text style={styles.body}>{errorText || 'This organization may not exist yet.'}</Text>
-        </View>
-      ) : (
-        <>
-          <View style={styles.hero}>
-            <View style={styles.mark}>
-              <Text style={styles.markText}>{org.name.slice(0, 1).toUpperCase()}</Text>
-            </View>
-          <View style={styles.heroText}>
-            <Text style={styles.eyebrow}>BetterAt Yacht Clubs</Text>
-            <Text style={styles.h1}>{org.name}</Text>
-            <View style={[styles.badge, org.official ? styles.badgeOfficial : styles.badgePlaceholder]}>
-              <Ionicons
-                  name={org.official ? 'checkmark-circle-outline' : 'alert-circle-outline'}
-                  size={15}
-                  color={org.official ? C.green : C.amber}
-                />
-              <Text style={[styles.badgeText, org.official ? styles.officialText : styles.placeholderText]}>
-                {statusLabel(org)}
-              </Text>
-            </View>
+    <SafeAreaView style={styles.screen} edges={['top']}>
+      <Stack.Screen options={{ headerShown: false, title: org?.name || 'Organization' }} />
+      <IOSDetailNavBar
+        backLabel="Orgs"
+        contextLabel={typeLabels.contextLabel}
+        dockedName={org?.name}
+        docked={false}
+        onBack={handleBack}
+      />
+      <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
+        {loading ? (
+          <View style={styles.center}>
+            <ActivityIndicator color={C.blue} />
           </View>
-        </View>
-
-        <View style={styles.mapActionRow}>
-          <RelationshipButton
-            label="Open map"
-            icon="map-outline"
-            secondary
-            fullWidth={false}
-            onPress={handleOpenAtlas}
-          />
-        </View>
-
-          {isPlaceholder ? (
-            <View style={styles.notice}>
-              <Text style={styles.noticeTitle}>This is not an official club account yet.</Text>
-              <Text style={styles.noticeBody}>
-                BetterAt created this placeholder from public Dragon Worlds ClubSpot entrant club strings.
-                No sailors or entrants have been attached to this club automatically.
-              </Text>
-              <Pressable
-                style={styles.primaryButton}
-                onPress={() => router.push(`/organizations/${org.slug || slug}/claim` as never)}
-              >
-                <Ionicons name="flag-outline" size={17} color="#FFFFFF" />
-                <Text style={styles.primaryButtonText}>Claim this organization</Text>
-              </Pressable>
-            </View>
-          ) : null}
-
-          <View style={styles.grid}>
-            <View style={styles.stat}>
-              <Text style={styles.statValue}>{org.total_entry_refs}</Text>
-              <Text style={styles.statLabel}>Dragon Worlds/APAC entry references</Text>
-            </View>
-            <View style={styles.stat}>
-              <Text style={styles.statValue}>{org.confidence || 'review'}</Text>
-              <Text style={styles.statLabel}>Import confidence</Text>
-            </View>
-            <View style={styles.stat}>
-              <Text style={styles.statValue}>{tierLabel(org.pricing_tier)}</Text>
-              <Text style={styles.statLabel}>Yacht-club pricing</Text>
-            </View>
+        ) : errorText || !org ? (
+          <View style={styles.card}>
+            <Ionicons name="business-outline" size={36} color={C.muted} />
+            <Text style={styles.title}>Organization not found</Text>
+            <Text style={styles.body}>{errorText || 'This organization may not exist yet.'}</Text>
           </View>
-
-          {visibleAliases.length > 0 ? (
-            <View style={styles.card}>
-              <Text style={styles.sectionTitle}>Known ClubSpot Aliases</Text>
-              <View style={styles.chips}>
-                {visibleAliases.map((alias) => (
-                  <View key={alias} style={styles.chip}>
-                    <Text style={styles.chipText}>{alias}</Text>
-                  </View>
-                ))}
+        ) : (
+          <>
+            <View style={styles.hero}>
+              <View style={styles.mark}>
+                <Text style={styles.markText}>{org.name.slice(0, 1).toUpperCase()}</Text>
+              </View>
+              <View style={styles.heroText}>
+                <Text style={styles.eyebrow}>{typeLabels.eyebrow}</Text>
+                <Text style={styles.h1}>{org.name}</Text>
+                <View
+                  style={[
+                    styles.badge,
+                    isDemo
+                      ? styles.badgeDemo
+                      : org.official
+                        ? styles.badgeOfficial
+                        : styles.badgePlaceholder,
+                  ]}
+                >
+                  <Ionicons
+                    name={isDemo ? 'sparkles-outline' : org.official ? 'checkmark-circle-outline' : 'alert-circle-outline'}
+                    size={15}
+                    color={isDemo ? C.blue : org.official ? C.green : C.amber}
+                  />
+                  <Text
+                    style={[
+                      styles.badgeText,
+                      isDemo ? styles.demoText : org.official ? styles.officialText : styles.placeholderText,
+                    ]}
+                  >
+                    {isDemo ? 'Synthetic demo club' : statusLabel(org)}
+                  </Text>
+                </View>
+                {isDemo ? <Text style={styles.heroSub}>{YACHT_CLUB_DEMO_TAGLINE}</Text> : null}
               </View>
             </View>
-          ) : null}
-        </>
-      )}
-    </ScrollView>
+
+            <View style={styles.mapActionRow}>
+              <RelationshipButton
+                label="Open map"
+                icon="map-outline"
+                secondary
+                fullWidth={false}
+                onPress={handleOpenAtlas}
+              />
+            </View>
+
+            {isDemo ? (
+              <>
+                <View style={styles.demoNotice}>
+                  <Text style={styles.noticeTitle}>This is a synthetic sample club.</Text>
+                  <Text style={styles.noticeBody}>
+                    {YACHT_CLUB_DEMO_NAME} is not claimable and is not tied to a real venue. Use it to see
+                    the club profile, linked club surfaces, and Atlas handoff before you build the real one.
+                  </Text>
+                </View>
+
+                <View style={styles.grid}>
+                  {YACHT_CLUB_DEMO_STATS.map((card) => (
+                    <View key={card.label} style={styles.stat}>
+                      <Text style={styles.statValue}>{card.value}</Text>
+                      <Text style={styles.statLabel}>{card.label}</Text>
+                    </View>
+                  ))}
+                </View>
+
+                <View style={styles.card}>
+                  <Text style={styles.sectionTitle}>Current focus</Text>
+                  <Text style={styles.focusBody}>{YACHT_CLUB_DEMO_FOCUS}</Text>
+                  <View style={styles.focusPills}>
+                    <View style={styles.focusPill}>
+                      <Text style={styles.focusPillText}>{YACHT_CLUB_DEMO_CALENDAR[0].title}</Text>
+                    </View>
+                    <View style={styles.focusPill}>
+                      <Text style={styles.focusPillText}>{YACHT_CLUB_DEMO_RACES[0].title}</Text>
+                    </View>
+                    <View style={styles.focusPill}>
+                      <Text style={styles.focusPillText}>{YACHT_CLUB_DEMO_PROGRAMS[0].title}</Text>
+                    </View>
+                  </View>
+                </View>
+
+                <View style={styles.card}>
+                  <Text style={styles.sectionTitle}>Club profile</Text>
+                  <View style={styles.profileList}>
+                    {YACHT_CLUB_DEMO_PROFILE.map((field) => (
+                      <View key={field.label} style={styles.profileRow}>
+                        <Text style={styles.profileLabel}>{field.label}</Text>
+                        <Text style={styles.profileValue}>{field.value}</Text>
+                      </View>
+                    ))}
+                  </View>
+                </View>
+
+                <View style={styles.card}>
+                  <Text style={styles.sectionTitle}>Club surfaces</Text>
+                  <View style={styles.surfaceList}>
+                    {YACHT_CLUB_DEMO_SURFACES.map((surface) => (
+                      <Pressable
+                        key={surface.key}
+                        style={styles.surfaceRow}
+                        onPress={() => router.push(surface.route as never)}
+                      >
+                        <View style={styles.surfaceCopy}>
+                          <Text style={styles.surfaceLabel}>{surface.label}</Text>
+                          <Text style={styles.surfaceDetail}>{surface.detail}</Text>
+                        </View>
+                        <Ionicons name="chevron-forward" size={18} color={C.muted} />
+                      </Pressable>
+                    ))}
+                  </View>
+                </View>
+
+                <View style={styles.card}>
+                  <Text style={styles.sectionTitle}>Calendar and races</Text>
+                  <View style={styles.previewGroup}>
+                    <Text style={styles.previewLabel}>Club calendar</Text>
+                    <View style={styles.featureList}>
+                      {YACHT_CLUB_DEMO_CALENDAR.map((item) => (
+                        <View key={item.title} style={styles.featureRow}>
+                          <View style={styles.featureDot} />
+                          <View style={styles.featureCopy}>
+                            <Text style={styles.featureTitle}>{item.title}</Text>
+                            <Text style={styles.featureSub}>{item.detail}</Text>
+                          </View>
+                        </View>
+                      ))}
+                    </View>
+                  </View>
+                  <View style={styles.previewGroup}>
+                    <Text style={styles.previewLabel}>Races</Text>
+                    <View style={styles.featureList}>
+                      {YACHT_CLUB_DEMO_RACES.map((item) => (
+                        <View key={item.title} style={styles.featureRow}>
+                          <View style={[styles.featureDot, styles.featureDotAlt]} />
+                          <View style={styles.featureCopy}>
+                            <Text style={styles.featureTitle}>{item.title}</Text>
+                            <Text style={styles.featureSub}>{item.detail}</Text>
+                          </View>
+                        </View>
+                      ))}
+                    </View>
+                  </View>
+                </View>
+
+                <View style={styles.card}>
+                  <Text style={styles.sectionTitle}>Fleets and classes</Text>
+                  <View style={styles.previewGroup}>
+                    <Text style={styles.previewLabel}>Fleets</Text>
+                    <View style={styles.featureList}>
+                      {YACHT_CLUB_DEMO_FLEETS.map((fleet) => (
+                        <View key={fleet.name} style={styles.featureRow}>
+                          <View style={styles.featureDot} />
+                          <View style={styles.featureCopy}>
+                            <Text style={styles.featureTitle}>{fleet.name}</Text>
+                            <Text style={styles.featureSub}>{fleet.note}</Text>
+                          </View>
+                        </View>
+                      ))}
+                    </View>
+                  </View>
+                  <View style={styles.previewGroup}>
+                    <Text style={styles.previewLabel}>Major classes</Text>
+                    <View style={styles.chips}>
+                      {YACHT_CLUB_DEMO_MAJOR_CLASSES.map((item) => (
+                        <View key={item.title} style={styles.chip}>
+                          <Text style={styles.chipText}>{item.title}</Text>
+                          <Text style={styles.chipSubText}>{item.detail}</Text>
+                        </View>
+                      ))}
+                    </View>
+                  </View>
+                </View>
+
+                <View style={styles.card}>
+                  <Text style={styles.sectionTitle}>Programs and social calendar</Text>
+                  <View style={styles.previewGroup}>
+                    <Text style={styles.previewLabel}>Programs</Text>
+                    <View style={styles.featureList}>
+                      {YACHT_CLUB_DEMO_PROGRAMS.map((item) => (
+                        <View key={item.title} style={styles.featureRow}>
+                          <View style={[styles.featureDot, styles.featureDotAlt]} />
+                          <View style={styles.featureCopy}>
+                            <Text style={styles.featureTitle}>{item.title}</Text>
+                            <Text style={styles.featureSub}>{item.detail}</Text>
+                          </View>
+                        </View>
+                      ))}
+                    </View>
+                  </View>
+                  <View style={styles.previewGroup}>
+                    <Text style={styles.previewLabel}>Social calendar</Text>
+                    <View style={styles.featureList}>
+                      {YACHT_CLUB_DEMO_SOCIAL_CALENDAR.map((item) => (
+                        <View key={item.title} style={styles.featureRow}>
+                          <View style={styles.featureDot} />
+                          <View style={styles.featureCopy}>
+                            <Text style={styles.featureTitle}>{item.title}</Text>
+                            <Text style={styles.featureSub}>{item.detail}</Text>
+                          </View>
+                        </View>
+                      ))}
+                    </View>
+                  </View>
+                </View>
+
+                <View style={styles.card}>
+                  <Text style={styles.sectionTitle}>Membership</Text>
+                  <View style={styles.featureList}>
+                    {YACHT_CLUB_DEMO_MEMBERSHIP.map((item) => (
+                      <View key={item.title} style={styles.featureRow}>
+                        <View style={styles.featureDot} />
+                        <View style={styles.featureCopy}>
+                          <Text style={styles.featureTitle}>{item.title}</Text>
+                          <Text style={styles.featureSub}>{item.detail}</Text>
+                        </View>
+                      </View>
+                    ))}
+                  </View>
+                  <View style={styles.profileList}>
+                    <View style={styles.profileRow}>
+                      <Text style={styles.profileLabel}>Claim path</Text>
+                      <Text style={styles.profileValue}>Free by default, review before official status</Text>
+                    </View>
+                    <View style={styles.profileRow}>
+                      <Text style={styles.profileLabel}>Primary contact</Text>
+                      <Text style={styles.profileValue}>membership@harborview.example</Text>
+                    </View>
+                  </View>
+                </View>
+
+                <View style={styles.card}>
+                  <Text style={styles.sectionTitle}>Pricing ladder</Text>
+                  <View style={styles.tierGrid}>
+                    {demoTierCards.map((tier) => (
+                      <View
+                        key={tier.tier}
+                        style={[styles.tierCard, tier.highlight && styles.tierCardHighlight]}
+                      >
+                        <View style={styles.tierHeaderRow}>
+                          <View style={styles.tierHeaderCopy}>
+                            <Text style={[styles.tierLabel, tier.highlight && styles.tierLabelHighlight]}>
+                              {tier.label}
+                            </Text>
+                            <Text style={styles.tierAudience}>{tier.audience}</Text>
+                          </View>
+                          <View style={styles.tierPricePill}>
+                            <Text style={styles.tierPrice}>{tier.price}</Text>
+                            {tier.cadence ? <Text style={styles.tierCadence}>{tier.cadence}</Text> : null}
+                          </View>
+                        </View>
+                        <Text style={styles.tierBody}>{tier.description}</Text>
+                        <View style={styles.tierPills}>
+                          {tier.includes.map((item) => (
+                            <View key={item} style={styles.tierMiniPill}>
+                              <Text style={styles.tierMiniPillText}>{item}</Text>
+                            </View>
+                          ))}
+                        </View>
+                      </View>
+                    ))}
+                  </View>
+                </View>
+              </>
+            ) : (
+              <>
+                {isPlaceholder ? (
+                  <View style={styles.notice}>
+                    <Text style={styles.noticeTitle}>This is not an official club account yet.</Text>
+                    <Text style={styles.noticeBody}>
+                      BetterAt created this placeholder from public Dragon Worlds ClubSpot entrant club strings.
+                      No sailors or entrants have been attached to this club automatically.
+                    </Text>
+                    <Pressable
+                      style={styles.primaryButton}
+                      onPress={() => router.push(`/organizations/${org.slug || slug}/claim` as never)}
+                    >
+                      <Ionicons name="flag-outline" size={17} color="#FFFFFF" />
+                      <Text style={styles.primaryButtonText}>Claim this organization</Text>
+                    </Pressable>
+                  </View>
+                ) : null}
+
+                <View style={styles.grid}>
+                  <View style={styles.stat}>
+                    <Text style={styles.statValue}>{org.total_entry_refs}</Text>
+                    <Text style={styles.statLabel}>Import evidence</Text>
+                  </View>
+                  <View style={styles.stat}>
+                    <Text style={styles.statValue}>{org.confidence || 'review'}</Text>
+                    <Text style={styles.statLabel}>Import confidence</Text>
+                  </View>
+                  <View style={styles.stat}>
+                    <Text style={styles.statValue}>{tierLabel(org.pricing_tier)}</Text>
+                    <Text style={styles.statLabel}>{typeLabels.pricingLabel}</Text>
+                  </View>
+                </View>
+
+                {visibleAliases.length > 0 ? (
+                  <View style={styles.card}>
+                    <Text style={styles.sectionTitle}>Known ClubSpot Aliases</Text>
+                    <View style={styles.chips}>
+                      {visibleAliases.map((alias) => (
+                        <View key={alias} style={styles.chip}>
+                          <Text style={styles.chipText}>{alias}</Text>
+                        </View>
+                      ))}
+                    </View>
+                  </View>
+                ) : null}
+              </>
+            )}
+          </>
+        )}
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: C.bg },
+  scroll: { flex: 1 },
   content: { width: '100%', maxWidth: 960, alignSelf: 'center', padding: 20, gap: 16 },
   center: { minHeight: 260, alignItems: 'center', justifyContent: 'center' },
   hero: { flexDirection: 'row', gap: 16, alignItems: 'center', paddingVertical: 16 },
   mark: { width: 64, height: 64, borderRadius: 12, backgroundColor: C.ink, alignItems: 'center', justifyContent: 'center' },
   markText: { color: '#FFFFFF', fontSize: 30, fontWeight: '800' },
   heroText: { flex: 1, gap: 8 },
+  heroSub: { color: C.muted, fontSize: 14, lineHeight: 20, fontWeight: '600' },
   mapActionRow: { paddingBottom: 8 },
   eyebrow: { color: C.muted, fontSize: 12, fontWeight: '700', textTransform: 'uppercase' },
   h1: { color: C.ink, fontSize: 34, lineHeight: 40, fontWeight: '800' },
   badge: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 6, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 6 },
   badgeOfficial: { backgroundColor: '#E6F4F1' },
   badgePlaceholder: { backgroundColor: '#FFF7ED' },
+  badgeDemo: { backgroundColor: '#EAF2FF' },
   badgeText: { fontSize: 13, fontWeight: '700' },
   officialText: { color: C.green },
   placeholderText: { color: C.amber },
+  demoText: { color: C.blue },
   notice: { backgroundColor: '#FFFBEB', borderColor: '#FCD34D', borderWidth: 1, borderRadius: 8, padding: 16, gap: 10 },
+  demoNotice: { backgroundColor: '#F7FAFF', borderColor: 'rgba(11, 99, 206, 0.16)', borderWidth: 1, borderRadius: 8, padding: 16, gap: 10 },
   noticeTitle: { color: C.ink, fontSize: 18, fontWeight: '800' },
   noticeBody: { color: C.ink, fontSize: 15, lineHeight: 22 },
   primaryButton: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: C.blue, borderRadius: 7, paddingHorizontal: 14, paddingVertical: 10 },
@@ -202,7 +537,101 @@ const styles = StyleSheet.create({
   title: { color: C.ink, fontSize: 24, fontWeight: '800' },
   sectionTitle: { color: C.ink, fontSize: 18, fontWeight: '800' },
   body: { color: C.muted, fontSize: 15, lineHeight: 22 },
+  focusBody: { color: C.ink, fontSize: 15, lineHeight: 22, fontWeight: '700' },
+  focusPills: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingTop: 4 },
+  focusPill: { borderRadius: 999, backgroundColor: '#EEF4FF', paddingHorizontal: 10, paddingVertical: 6 },
+  focusPillText: { color: C.blue, fontSize: 12, fontWeight: '700' },
+  previewGroup: { gap: 8 },
+  previewLabel: { color: C.muted, fontSize: 12, fontWeight: '700', textTransform: 'uppercase' },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  chip: { borderRadius: 999, backgroundColor: '#EEF4FF', paddingHorizontal: 10, paddingVertical: 6 },
+  chip: {
+    borderRadius: 8,
+    backgroundColor: '#EEF4FF',
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    minWidth: 132,
+    gap: 2,
+  },
   chipText: { color: C.blue, fontSize: 13, fontWeight: '700' },
+  chipSubText: { color: C.blue, fontSize: 11, lineHeight: 15 },
+  surfaceList: { gap: 8 },
+  surfaceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+    padding: 12,
+    borderRadius: 8,
+    backgroundColor: '#F8FBFF',
+    borderWidth: 1,
+    borderColor: 'rgba(11, 99, 206, 0.12)',
+  },
+  surfaceCopy: { flex: 1, gap: 2 },
+  surfaceLabel: { color: C.ink, fontSize: 14, fontWeight: '800' },
+  surfaceDetail: { color: C.muted, fontSize: 13, lineHeight: 18 },
+  tierGrid: { gap: 10 },
+  tierCard: {
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: C.line,
+    padding: 12,
+    gap: 4,
+    backgroundColor: '#FBFCFE',
+  },
+  tierHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  tierHeaderCopy: { flex: 1, gap: 2 },
+  tierCardHighlight: {
+    borderColor: 'rgba(11, 99, 206, 0.22)',
+    backgroundColor: '#F7FAFF',
+  },
+  tierLabel: { color: C.ink, fontSize: 16, fontWeight: '800' },
+  tierLabelHighlight: { color: C.blue },
+  tierAudience: { color: C.muted, fontSize: 12, lineHeight: 16 },
+  tierPricePill: {
+    alignItems: 'flex-end',
+    backgroundColor: '#EEF4FF',
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    minWidth: 84,
+  },
+  tierPrice: { color: C.blue, fontSize: 16, fontWeight: '800' },
+  tierCadence: { color: C.blue, fontSize: 11, fontWeight: '700', textTransform: 'uppercase' },
+  tierBody: { color: C.muted, fontSize: 13, lineHeight: 18 },
+  tierPills: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, paddingTop: 4 },
+  tierMiniPill: {
+    borderRadius: 999,
+    backgroundColor: '#EEF4FF',
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+  },
+  tierMiniPillText: { color: C.blue, fontSize: 11, fontWeight: '700' },
+  featureList: { gap: 10 },
+  featureRow: { flexDirection: 'row', gap: 8, alignItems: 'flex-start' },
+  profileList: { gap: 12 },
+  profileRow: {
+    gap: 4,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(217, 226, 236, 0.8)',
+  },
+  profileLabel: { color: C.muted, fontSize: 12, fontWeight: '700', textTransform: 'uppercase' },
+  profileValue: { color: C.ink, fontSize: 15, lineHeight: 22, fontWeight: '700' },
+  featureDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 999,
+    backgroundColor: C.blue,
+    marginTop: 6,
+  },
+  featureDotAlt: { backgroundColor: C.green },
+  featureCopy: { flex: 1, gap: 2 },
+  featureTitle: { color: C.ink, fontSize: 14, fontWeight: '800' },
+  featureSub: { color: C.muted, fontSize: 13, lineHeight: 18 },
+  featureText: { flex: 1, color: C.ink, fontSize: 14, lineHeight: 20 },
 });
