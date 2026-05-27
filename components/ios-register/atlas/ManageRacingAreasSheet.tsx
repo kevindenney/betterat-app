@@ -84,8 +84,9 @@ export function ManageRacingAreasSheet({ visible, onClose }: ManageRacingAreasSh
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <Pressable style={styles.backdrop} onPress={onClose}>
-        <Pressable style={styles.sheet} onPress={(e) => e.stopPropagation()}>
+      <View style={styles.backdrop}>
+        <Pressable style={styles.backdropTapZone} onPress={onClose} />
+        <View style={styles.sheet}>
           <View style={styles.headerRow}>
             <View style={styles.handle} />
             <Pressable
@@ -187,8 +188,8 @@ export function ManageRacingAreasSheet({ visible, onClose }: ManageRacingAreasSh
               })}
             </ScrollView>
           )}
-        </Pressable>
-      </Pressable>
+        </View>
+      </View>
     </Modal>
   );
 }
@@ -198,6 +199,13 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.35)',
     justifyContent: 'flex-end',
+  },
+  backdropTapZone: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
   },
   sheet: {
     backgroundColor: '#FFFFFF',
