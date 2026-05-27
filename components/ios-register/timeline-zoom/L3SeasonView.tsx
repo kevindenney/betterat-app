@@ -45,11 +45,7 @@ import { SeasonHeaderChips } from './SeasonHeaderChips';
 import { PickerListSheet } from './PickerListSheet';
 import { SeasonCalendarSheet } from './SeasonCalendarSheet';
 import { useDragReorder } from './useDragReorder';
-import {
-  composeArcEyebrow,
-  pickVerbTier,
-  resolveInterestVocab,
-} from './interestVocab';
+import { resolveInterestVocab } from './interestVocab';
 import type { TimelineDataset, TimelineSeason, TimelineStep } from './types';
 
 interface L3SeasonViewProps {
@@ -175,9 +171,6 @@ export function L3SeasonView({
     dataset.interest.id,
     dataset.interest.label,
   );
-  const verbTier = pickVerbTier(currentWeek, totalWeeks);
-  const arcEyebrow = composeArcEyebrow(interestVocab, verbTier);
-
   // "Step N of M" for the step-counter chip. Picks the focused step's
   // ordinal within the flat season list when known; falls back to 1.
   const focusedStepIndex = flatSteps.findIndex((s) => s.id === focusStepId);
@@ -215,7 +208,6 @@ export function L3SeasonView({
         dateRange={season.dateRange}
         weekOfTotal={season.weekOfTotal}
         stepOfTotal={stepOfTotal}
-        eyebrow={arcEyebrow}
         onPressSeason={() => setOpenPicker('season')}
         onPressDate={() => setOpenPicker('calendar')}
         onPressStep={() => setOpenPicker('step')}

@@ -1,10 +1,16 @@
 /**
  * SeasonHeaderChips — L3 season header. Tufte-quiet treatment:
- *   1. Tiny eyebrow (ZOOM · CURRENT ARC · <VERB>)
- *   2. Large title + chevron — opens season picker
- *   3. Single dim metadata line below the title: date range · step
+ *   1. Large title + inline chevron — reads as a single dropdown
+ *      button, opens the season picker on tap. The chevron lives
+ *      next to the text (not below it) so the affordance is
+ *      obvious.
+ *   2. Single dim metadata line below the title: date range · step
  *      counter, as plain tappable text linked by middle dots. No
  *      chips, no pill chrome — the data IS the affordance.
+ *
+ * The "ZOOM · CURRENT ARC · <VERB>" eyebrow is gone. The chart's
+ * scope is already clear from the title + zoom indicator on the
+ * right; the verb wasn't earning its space.
  *
  * Pattern mirrors L4's title-row + duration-subtitle, so both zoom
  * levels share the same visual rhythm.
@@ -20,13 +26,6 @@ interface Props {
   dateRange: string;
   weekOfTotal?: { current: number; total: number };
   stepOfTotal?: { current: number; total: number };
-  /**
-   * Eyebrow text above the season title. The parent composes this from
-   * interest vocab + arc position (e.g. "ZOOM · CURRENT ARC · TUNING
-   * UP" for a sailor at week 1 of 8) so the verb here speaks the
-   * user's domain instead of a generic system label.
-   */
-  eyebrow?: string;
   onPressSeason: () => void;
   onPressDate: () => void;
   onPressStep: () => void;
@@ -37,27 +36,25 @@ export function SeasonHeaderChips({
   dateRange,
   weekOfTotal,
   stepOfTotal,
-  eyebrow = 'ZOOM · CURRENT ARC · REFLECTING',
   onPressSeason,
   onPressDate,
   onPressStep,
 }: Props) {
   return (
     <View style={styles.block}>
-      <Text style={styles.eyebrow}>{eyebrow}</Text>
-
       <Pressable
         onPress={onPressSeason}
         style={({ pressed }) => [styles.titleRow, pressed && styles.pressed]}
         accessibilityRole="button"
-        accessibilityLabel={`Season: ${seasonTitle}. Tap to switch.`}
+        accessibilityLabel={`Arc: ${seasonTitle}. Tap to switch arc or create a new one.`}
+        hitSlop={4}
       >
-        <Text style={styles.title} numberOfLines={2}>
+        <Text style={styles.title} numberOfLines={1}>
           {seasonTitle}
         </Text>
         <Ionicons
           name="chevron-down"
-          size={18}
+          size={20}
           color={IOS_REGISTER.labelSecondary}
           style={styles.titleCaret}
         />
@@ -106,18 +103,10 @@ const styles = StyleSheet.create({
     paddingTop: 4,
     paddingBottom: 10,
   },
-  eyebrow: {
-    fontSize: 9.5,
-    fontWeight: '700',
-    letterSpacing: 0.55,
-    color: IOS_REGISTER.labelTertiary,
-    textTransform: 'uppercase',
-    marginBottom: 4,
-  },
   titleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 4,
     marginBottom: 4,
   },
   title: {

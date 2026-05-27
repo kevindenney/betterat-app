@@ -181,7 +181,6 @@ export function L4YearsView({
     dataset.interest.id,
     dataset.interest.label,
   );
-  const lifetimeEyebrow = `ZOOM · ALL · ${interestVocab.verb.late}`;
 
   return (
     <ScrollView
@@ -190,7 +189,6 @@ export function L4YearsView({
       showsVerticalScrollIndicator={false}
     >
       <View style={styles.headerBlock}>
-        <Text style={styles.eyebrow}>{lifetimeEyebrow}</Text>
         <View style={styles.titleRow}>
           <Text style={styles.title} numberOfLines={1}>
             {dataset.interest.label}
