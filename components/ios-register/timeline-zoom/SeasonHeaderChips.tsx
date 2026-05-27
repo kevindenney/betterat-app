@@ -44,7 +44,7 @@ export function SeasonHeaderChips({
     <View style={styles.block}>
       <Pressable
         onPress={onPressSeason}
-        style={({ pressed }) => [styles.titleRow, pressed && styles.pressed]}
+        style={styles.titleRow}
         accessibilityRole="button"
         accessibilityLabel={`Arc: ${seasonTitle}. Tap to switch arc or create a new one.`}
         hitSlop={4}
@@ -65,32 +65,41 @@ export function SeasonHeaderChips({
           onPress={onPressDate}
           accessibilityRole="button"
           accessibilityLabel={`Date range: ${dateRange}. Tap for calendar.`}
-          style={({ pressed }) => (pressed ? styles.pressed : null)}
+          style={styles.metaPill}
           hitSlop={6}
         >
           <Text style={styles.metaLink}>{dateRange}</Text>
+          <Ionicons
+            name="chevron-down"
+            size={11}
+            color={IOS_REGISTER.accentUserAction}
+            style={styles.metaCaret}
+          />
         </Pressable>
         {stepOfTotal || weekOfTotal ? (
-          <>
-            <Text style={styles.metaSep}>·</Text>
-            <Pressable
-              onPress={onPressStep}
-              accessibilityRole="button"
-              accessibilityLabel={
-                stepOfTotal
-                  ? `Step ${stepOfTotal.current} of ${stepOfTotal.total}. Tap to jump.`
-                  : `Week ${weekOfTotal!.current} of ${weekOfTotal!.total}. Tap to jump.`
-              }
-              style={({ pressed }) => (pressed ? styles.pressed : null)}
-              hitSlop={6}
-            >
-              <Text style={styles.metaLink}>
-                {stepOfTotal
-                  ? `Step ${stepOfTotal.current} of ${stepOfTotal.total}`
-                  : `Week ${weekOfTotal!.current} of ${weekOfTotal!.total}`}
-              </Text>
-            </Pressable>
-          </>
+          <Pressable
+            onPress={onPressStep}
+            accessibilityRole="button"
+            accessibilityLabel={
+              stepOfTotal
+                ? `Step ${stepOfTotal.current} of ${stepOfTotal.total}. Tap to jump.`
+                : `Week ${weekOfTotal!.current} of ${weekOfTotal!.total}. Tap to jump.`
+            }
+            style={styles.metaPill}
+            hitSlop={6}
+          >
+            <Text style={styles.metaLink}>
+              {stepOfTotal
+                ? `Step ${stepOfTotal.current} of ${stepOfTotal.total}`
+                : `Week ${weekOfTotal!.current} of ${weekOfTotal!.total}`}
+            </Text>
+            <Ionicons
+              name="chevron-down"
+              size={11}
+              color={IOS_REGISTER.accentUserAction}
+              style={styles.metaCaret}
+            />
+          </Pressable>
         ) : null}
       </View>
     </View>
@@ -119,23 +128,24 @@ const styles = StyleSheet.create({
   titleCaret: {
     marginTop: 4,
   },
-  pressed: {
-    opacity: 0.55,
-  },
   metaRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 12,
     flexWrap: 'wrap',
+  },
+  metaPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
   },
   metaLink: {
     fontSize: 12.5,
     fontWeight: '500',
-    color: IOS_REGISTER.labelSecondary,
+    color: IOS_REGISTER.accentUserAction,
     letterSpacing: -0.1,
   },
-  metaSep: {
-    fontSize: 12.5,
-    color: IOS_REGISTER.labelTertiary,
+  metaCaret: {
+    marginTop: 1,
   },
 });
