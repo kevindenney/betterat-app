@@ -410,9 +410,12 @@ export function AtlasMapLibreCanvas({
   // Track map bearing so a compass affordance can surface when the
   // user has rotated the map off north — matches Apple Maps' pattern
   // (no compass when north-aligned, compass appears on rotation).
+  // Note: MapLibre RN v11 uses `bearing` (not `heading`) on both the
+  // region event payload and the camera options. `setCamera` doesn't
+  // exist on this bridge version — `setStop` is the equivalent.
   const [bearing, setBearing] = useState(0);
   const resetBearing = useCallback(() => {
-    cameraRef.current?.setCamera({ heading: 0, animationDuration: 300 });
+    void cameraRef.current?.setStop({ bearing: 0, duration: 300 });
     setBearing(0);
   }, []);
   const { classes: userBoatClasses } = useUserBoatClasses();
@@ -501,11 +504,11 @@ export function AtlasMapLibreCanvas({
   const pendingCenterRef = useRef<{ lng: number; lat: number } | null>(null);
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const handleRegionChange = useCallback(
-    (event: NativeSyntheticEvent<{ center: [number, number]; heading?: number }>) => {
-      const heading = event.nativeEvent.heading;
-      if (typeof heading === 'number' && Number.isFinite(heading)) {
+    (event: NativeSyntheticEvent<{ center: [number, number]; bearing?: number }>) => {
+      const b = event.nativeEvent.bearing;
+      if (typeof b === 'number' && Number.isFinite(b)) {
         // Normalize to (-180, 180] so abs() reads as "how far from north".
-        const norm = ((heading + 180) % 360 + 360) % 360 - 180;
+        const norm = ((b + 180) % 360 + 360) % 360 - 180;
         setBearing(norm);
       }
       if (!onMapCenterChange) return;
