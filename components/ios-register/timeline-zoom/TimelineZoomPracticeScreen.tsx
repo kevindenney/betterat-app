@@ -25,6 +25,7 @@ import { showAlert, showConfirm } from '@/lib/utils/crossPlatformAlert';
 import { useCurrentSeason, useUserSeasons, useCreateSeason, useUpdateSeason, useArchiveSeason } from '@/hooks/useSeason';
 import { useSubscribedBlueprints, useBlueprintWithAuthor } from '@/hooks/useBlueprint';
 import { useStepCapabilityEvidence } from '@/hooks/useStepCapabilityEvidence';
+import { useStepPeerReflections } from '@/hooks/useStepPeerReflections';
 import { useStepSuggestionsForRange } from '@/hooks/useStepSuggestionsForRange';
 import { SeasonEditSheet } from './SeasonEditSheet';
 import type { CreateSeasonInput, UpdateSeasonInput, Season } from '@/types/season';
@@ -72,6 +73,10 @@ export function TimelineZoomPracticeScreen() {
     rangeStart: currentSeason?.start_date ?? null,
     rangeEnd: currentSeason?.end_date ?? null,
   });
+  // INPUT channel 5 — peer_reflections. target_step_id directly links
+  // a reflection to one of the viewer's steps, so the chart can place
+  // the reflecting peer at that step's week without date projection.
+  const { data: stepReflectionsMap } = useStepPeerReflections(stepIdsForEvidence);
 
   // The focused step's blueprint gets the "suggested by …" author tag —
   // only one extra query, only when the focused step actually came from a
@@ -132,6 +137,7 @@ export function TimelineZoomPracticeScreen() {
         blueprintsById,
         stepEvidenceMap,
         suggestionInputs,
+        stepReflectionsMap,
       }),
     [
       interestId,
@@ -145,6 +151,7 @@ export function TimelineZoomPracticeScreen() {
       blueprintsById,
       stepEvidenceMap,
       suggestionInputs,
+      stepReflectionsMap,
     ],
   );
 

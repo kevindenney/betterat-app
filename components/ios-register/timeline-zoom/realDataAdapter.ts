@@ -566,6 +566,10 @@ function computeSeasonAnalysis(
   suggestionInputs?: SuggestionInputRow[],
   seasonStart?: string | null,
   seasonEnd?: string | null,
+  stepReflectionsMap?: Map<
+    string,
+    { peerUserId: string; peerDisplayName: string | null }[]
+  >,
 ): SeasonAnalysis | undefined {
   // Linear projection of an ISO timestamp into a 1-based week index
   // across the season's date range. Returns null when we can't anchor
@@ -742,6 +746,29 @@ function computeSeasonAnalysis(
       color: deterministicPeerColor(sg.peerUserId),
       role,
     });
+  }
+
+  // Channel 5 — peer_reflections. target_step_id pins the reflection
+  // to a specific step the viewer owns, so we look up that step's
+  // week directly (no date projection). Adds the reflecting peer at
+  // the step's week with role "reflected on it".
+  if (stepReflectionsMap && stepReflectionsMap.size > 0) {
+    const stepWeekById = new Map<string, number>();
+    weeks.forEach((w, i) => {
+      for (const s of w.steps) stepWeekById.set(s.id, i + 1);
+    });
+    for (const [stepId, reflections] of stepReflectionsMap) {
+      const wk = stepWeekById.get(stepId);
+      if (!wk) continue;
+      for (const r of reflections) {
+        const name = r.peerDisplayName?.trim() || 'Peer';
+        bumpPeer(`rf:${r.peerUserId}`, wk, {
+          initials: initialsFromName(name),
+          color: deterministicPeerColor(r.peerUserId),
+          role: 'reflected on it',
+        });
+      }
+    }
   }
 
   const peers: SeasonPeer[] = Array.from(peerMap.entries())
@@ -1146,6 +1173,16 @@ interface AdapterInput {
    * INPUT lane at the week of created_at.
    */
   suggestionInputs?: SuggestionInputRow[];
+  /**
+   * Optional step-id → peer_reflections grouping. Each reflection on
+   * one of the viewer's steps adds the reflecting peer to the INPUT
+   * lane at the step's week (no date projection needed — the linkage
+   * via target_step_id is exact).
+   */
+  stepReflectionsMap?: Map<
+    string,
+    { peerUserId: string; peerDisplayName: string | null }[]
+  >;
 }
 
 export function mapToTimelineDataset({
@@ -1160,6 +1197,7 @@ export function mapToTimelineDataset({
   blueprintsById,
   stepEvidenceMap,
   suggestionInputs,
+  stepReflectionsMap,
 }: AdapterInput): TimelineDataset {
   // Sort steps by sort_order, then starts_at. Stable ordering matters for
   // week bucketing fallback and L4 brick layout.
@@ -1238,6 +1276,7 @@ export function mapToTimelineDataset({
     suggestionInputs,
     currentSeason?.start_date ?? null,
     currentSeason?.end_date ?? null,
+    stepReflectionsMap,
   );
 
   // L2 context strip — "{Season} has been {capability}-heavy." Drives
