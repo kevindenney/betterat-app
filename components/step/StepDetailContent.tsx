@@ -69,7 +69,6 @@ import { useStepCompleteCelebration } from '@/hooks/useStepCompleteCelebration';
 import { useContinueToNextBlueprintStep } from '@/hooks/useContinueToNextBlueprintStep';
 import { StepDiscussionInline } from './StepDiscussionInline';
 import { StepCompleteCelebration } from './StepCompleteCelebration';
-import { SuggestStepSheet } from './SuggestStepSheet';
 
 type TabValue = 'plan' | 'act' | 'review' | 'discussion';
 
@@ -281,7 +280,6 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab }
   const didApplyLoadedStatusDefaultRef = useRef(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [pinInterestsOpen, setPinInterestsOpen] = useState(false);
-  const [suggestSheetOpen, setSuggestSheetOpen] = useState(false);
 
   // The step record often arrives after this component first renders. If
   // usePillTabs initializes while `step` is still undefined, the surface can
@@ -1185,14 +1183,6 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab }
         });
       },
     });
-    menuActions.push({
-      label: 'Suggest to…',
-      icon: <Ionicons name="paper-plane-outline" size={20} color={STEP_COLORS.label} />,
-      onPress: () => {
-        setMenuOpen(false);
-        setSuggestSheetOpen(true);
-      },
-    });
     if (isOwner) {
       menuActions.push({
         label: step.starts_at ? 'Change date' : 'Add date',
@@ -1442,14 +1432,6 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab }
           onClose={() => setMenuOpen(false)}
           title="Step actions"
           actions={menuActions}
-        />
-        <SuggestStepSheet
-          visible={suggestSheetOpen}
-          onClose={() => setSuggestSheetOpen(false)}
-          stepId={step.id}
-          stepTitle={step.title ?? `${vocab('Learning Event')}`}
-          stepDescription={step.description ?? undefined}
-          interestId={step.interest_id ?? undefined}
         />
       </View>
     );
