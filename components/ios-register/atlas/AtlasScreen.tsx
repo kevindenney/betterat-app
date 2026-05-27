@@ -56,11 +56,13 @@ import { NotificationBell } from '@/components/social/NotificationBell';
 import { AtlasSearchSheet, type AtlasSearchResult } from './AtlasSearchSheet';
 import { supabase } from '@/services/supabase';
 import { OpenStepPicker } from './OpenStepPicker';
+import { ManageRacingAreasSheet } from './ManageRacingAreasSheet';
 import type { PickerStep } from '@/hooks/useUserAtlasSteps';
 import { useUserHomeVenue } from '@/hooks/useUserHomeVenue';
 import { useUserAffinityGroups, affinityGroupTone, type UserAffinityGroup } from '@/hooks/useUserAffinityGroups';
 import { useAffinityGroupMembers } from '@/hooks/useAffinityGroupMembers';
 import { useAtlasFramePins } from '@/hooks/useAtlasFramePins';
+import { useNearestPlace, formatNearLabel } from '@/hooks/useNearestPlace';
 import { useNextRaceMarks } from '@/hooks/useNextRaceMarks';
 import { useWalkTimeAnnotations } from '@/hooks/useWalkTimeAnnotations';
 import { useCohortHeatmap } from '@/hooks/useCohortHeatmap';
@@ -210,6 +212,13 @@ export interface AtlasFrameHandlers {
    * race that doesn't exist.
    */
   nextEvent?: AtlasNextEvent | null;
+  /**
+   * When provided, the MapLibre canvas flies its camera to this point on
+   * mount. Used when a Plan-tab Where card pushes the user to Atlas to
+   * inspect the venue ("see what's nearby"), or when an external link
+   * deep-links to a specific lat/lng.
+   */
+  initialFocus?: { lat: number; lng: number } | null;
 }
 
 interface AtlasScreenProps extends Omit<AtlasFrameHandlers, 'initialCommitMode'> {
@@ -838,6 +847,7 @@ function LayersSheet({
   onToggle,
   basemap,
   onBasemapChange,
+  onOpenManageAreas,
   bottomOffset = 0,
 }: {
   frame: AtlasFrameId;
@@ -855,6 +865,11 @@ function LayersSheet({
   onToggle?: (key: string, on: boolean) => void;
   basemap?: AtlasBasemap;
   onBasemapChange?: (basemap: AtlasBasemap) => void;
+  /**
+   * Opens the Manage Racing Areas sheet — a list of user-defined areas
+   * with delete buttons. Only F1 (sailing) supplies this prop.
+   */
+  onOpenManageAreas?: () => void;
   /**
    * Lift the sheet above the floating tab bar so the last layer row + the
    * attribution footer aren't hidden under it. Same pattern as the
@@ -988,6 +1003,21 @@ function LayersSheet({
             </Pressable>
           );
         })}
+        {onOpenManageAreas ? (
+          <Pressable
+            onPress={onOpenManageAreas}
+            hitSlop={6}
+            style={({ pressed }) => [
+              shellStyles.manageAreasBtn,
+              pressed && { opacity: 0.6 },
+            ]}
+            accessibilityRole="button"
+            accessibilityLabel="Manage racing areas"
+          >
+            <Ionicons name="create-outline" size={14} color={IOS_REGISTER.accentUserAction} />
+            <Text style={shellStyles.manageAreasText}>Manage racing areas</Text>
+          </Pressable>
+        ) : null}
         {/* Attribution required by OpenFreeMap / OpenMapTiles / OSM
             licenses. Lives at the bottom of the Layers sheet so the
             (i) chrome button stays off the map canvas. */}
@@ -1124,8 +1154,11 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
     );
   }, []);
   const [layersOpen, setLayersOpen] = useState(false);
+  const [manageAreasOpen, setManageAreasOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
-  const [searchFocus, setSearchFocus] = useState<{ lat: number; lng: number } | null>(null);
+  const [searchFocus, setSearchFocus] = useState<{ lat: number; lng: number } | null>(
+    handlers.initialFocus ?? null,
+  );
   const handleSearchSelect = useCallback((result: AtlasSearchResult) => {
     setSearchFocus({ lat: result.lat, lng: result.lng });
     setSearchOpen(false);
@@ -1144,6 +1177,17 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
   // Mirrors the create-sheet's current shape polygon (circle, rectangle, …)
   // so the canvas can paint a live preview as the user adjusts.
   const [areaSheetPolygon, setAreaSheetPolygon] = useState<GeoJSON.Polygon | null>(null);
+  // Reverse-geocode the active commit-mode candidate so the "Pin
+  // dropped" sheet reads "Near Hebe Haven" instead of raw coords.
+  const { data: candidateNearest } = useNearestPlace({
+    lat: candidate?.lat ?? null,
+    lng: candidate?.lng ?? null,
+    enabled: candidate !== null,
+  });
+  const candidateBody = useMemo(
+    () => (candidate ? formatNearLabel(candidateNearest ?? null, candidate.lat, candidate.lng) : ''),
+    [candidate, candidateNearest],
+  );
   // Chip- and Layers-sheet-driven layer state. Overview owns peer
   // relationship filtering plus race-mark visibility only. Wind / tide
   // lives on the dedicated course frame; leaving it here made the chip
@@ -1647,7 +1691,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
         <BottomSheet
           eyebrow="PIN DROPPED"
           title="Anchor a step at this location."
-          body={`${candidate.lat.toFixed(4)} N · ${candidate.lng.toFixed(4)} E`}
+          body={candidateBody}
           primary={{
             label: 'Plan a step here',
             icon: 'add',
@@ -1883,9 +1927,18 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
           onToggle={handleLayerToggle}
           basemap={basemap}
           onBasemapChange={setBasemap}
+          onOpenManageAreas={() => {
+            setLayersOpen(false);
+            setManageAreasOpen(true);
+          }}
           bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
         />
       )}
+
+      <ManageRacingAreasSheet
+        visible={manageAreasOpen}
+        onClose={() => setManageAreasOpen(false)}
+      />
 
       <AtlasSearchSheet
         visible={searchOpen}
@@ -4299,6 +4352,23 @@ const shellStyles = StyleSheet.create({
     color: 'rgba(60, 60, 67, 0.55)',
     letterSpacing: -0.1,
     textAlign: 'center',
+  },
+  manageAreasBtn: {
+    marginTop: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 10,
+    backgroundColor: 'rgba(10, 132, 255, 0.08)',
+  },
+  manageAreasText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: IOS_REGISTER.accentUserAction,
+    letterSpacing: -0.1,
   },
   chipContextPill: {
     alignSelf: 'center',
