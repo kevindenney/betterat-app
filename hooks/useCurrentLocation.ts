@@ -34,6 +34,8 @@ export interface CurrentLocation {
   accuracy: number | null;
 }
 
+const GPS_TIMEOUT_MS = 4000;
+
 export function useCurrentLocation() {
   // Session-scoped denial flag so we don't re-prompt after the user
   // declined once. Survives re-renders but resets on app restart, so
@@ -43,16 +45,35 @@ export function useCurrentLocation() {
   const getCurrentLocation = useCallback(async (): Promise<CurrentLocation | null> => {
     if (deniedRef.current) return null;
     const Location = await getLocationModule();
-    if (!Location) return null;
+    if (!Location) {
+      if (__DEV__) console.warn('[atlas] GPS unavailable (web or expo-location not loaded)');
+      return null;
+    }
     try {
+      // Cache hit: if already granted, no prompt — call returns
+      // immediately with current status. If undetermined, iOS shows
+      // the system prompt the first time only.
       const { status } = await Location.requestForegroundPermissionsAsync();
+      if (__DEV__) console.warn(`[atlas] GPS permission status=${status}`);
       if (status !== 'granted') {
         deniedRef.current = true;
         return null;
       }
-      const pos = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.Balanced,
-      });
+      // Race against a timeout — iOS Simulator without a simulated
+      // location set will hang `getCurrentPositionAsync` forever, and
+      // even on device a cold GPS lock can take 10+ seconds. Bail at
+      // 4s so the locate button stays responsive and the caller can
+      // fall back to home venue.
+      const pos = await Promise.race([
+        Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced }),
+        new Promise<null>((resolve) =>
+          setTimeout(() => {
+            if (__DEV__) console.warn('[atlas] GPS timed out after 4s');
+            resolve(null);
+          }, GPS_TIMEOUT_MS),
+        ),
+      ]);
+      if (!pos) return null;
       return {
         lat: pos.coords.latitude,
         lng: pos.coords.longitude,
