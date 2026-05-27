@@ -57,6 +57,7 @@ import {
   ENTREPRENEUR_MAP_STYLE,
 } from '@/lib/atlas-map-styles';
 import { ensureMapLibreCss, ensureMapLibreScript } from '@/lib/maplibreWeb';
+import { windColorForKnots } from '@/lib/wind-color';
 import { useAtlasRacingAreas } from '@/hooks/useAtlasRacingAreas';
 import { useUserBoatClasses } from '@/hooks/useUserBoatClasses';
 import { useVocabulary } from '@/hooks/useVocabulary';
@@ -490,24 +491,37 @@ export function AtlasMapLibreCanvas({
     },
     [onMapLongPress],
   );
-  // Throttle map-center updates so we don't hammer Open-Meteo as the
-  // user pans. iOS native MapLibre's onRegionDidChange is unreliable
-  // for user-pan gestures on this bridge version (only fires for
-  // programmatic flyTos), so we also listen to onRegionIsChanging
-  // (which fires throughout the pan) and only call setMapCenter at
-  // most once every 600ms.
-  const lastCenterUpdateRef = useRef(0);
+  // Trailing-debounce the map-center update. iOS native MapLibre's
+  // onRegionDidChange is unreliable for user-pan gestures on this
+  // bridge version, so we listen to onRegionIsChanging (fires through-
+  // out the pan) and wait for a 300ms quiet period before committing.
+  // This guarantees we capture the *final* settled position, not an
+  // intermediate one — a rate-limit throttle silently dropped the last
+  // event on long pans, leaving the snapshot ~300m behind the camera.
+  const pendingCenterRef = useRef<{ lng: number; lat: number } | null>(null);
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const handleRegionChange = useCallback(
     (event: NativeSyntheticEvent<{ center: [number, number] }>) => {
       if (!onMapCenterChange) return;
-      const now = Date.now();
-      if (now - lastCenterUpdateRef.current < 600) return;
-      lastCenterUpdateRef.current = now;
       const [lng, lat] = event.nativeEvent.center;
-      onMapCenterChange({ lng, lat });
+      pendingCenterRef.current = { lng, lat };
+      if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+      debounceTimerRef.current = setTimeout(() => {
+        const next = pendingCenterRef.current;
+        if (!next) return;
+        if (__DEV__) console.warn(`[atlas-ios] region settled → lat=${next.lat.toFixed(4)} lng=${next.lng.toFixed(4)}`);
+        onMapCenterChange(next);
+      }, 300);
     },
     [onMapCenterChange],
   );
+  useEffect(() => {
+    // Clean up any pending debounce on unmount so a late timer doesn't
+    // call setMapCenter on a stale component.
+    return () => {
+      if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+    };
+  }, []);
   // Recenter the camera on the tapped pin and reserve screen space for
   // the top chrome (filter chips) and the bottom sheet that will pop
   // open. MapLibre's `padding` insets shift the *visual center* away
@@ -888,8 +902,7 @@ function WebAtlasMapLibreCanvas({
     // object itself causes easeTo to re-fire on every parent render
     // (the parent recreates the object inline), which flies the camera
     // back to its last focus on every state change unrelated to focus.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [focusLocation?.lat, focusLocation?.lng, isLoaded]);
+  }, [focusLocation?.lat, focusLocation?.lng, isLoaded]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     const map = mapRef.current;
@@ -1120,11 +1133,16 @@ function createWebArrowElement(pin: AtlasPinSpec) {
   root.style.gap = '2px';
   root.style.pointerEvents = 'none';
 
-  const [degStr, knotsStr, variant] = (pin.label ?? '0|0').split('|');
+  // Label formats:
+  //   wind primary:        "deg|kn"            or "deg|kn||waveM"
+  //   wind/tide field:     "deg|kn|field"
+  //   tide primary:        "deg|kn"
+  const [degStr, knotsStr, variant, waveStr] = (pin.label ?? '0|0').split('|');
   const isWind = pin.kind === 'wind-arrow';
   const isField = variant === 'field';
   const deg = Number(degStr) || 0;
   const knots = Number(knotsStr) || 0;
+  const waveM = isWind && waveStr ? Number(waveStr) : null;
   // Wind: arrow points DOWNWIND (away from source). Tide: arrow points
   // the direction the current flows TO (set). So wind needs +180,
   // tide does not.
@@ -1140,7 +1158,7 @@ function createWebArrowElement(pin: AtlasPinSpec) {
       ? 'rgba(113, 143, 168, 0.78)'
       : 'rgba(96, 130, 138, 0.78)'
     : isWind
-      ? 'rgba(0, 122, 255, 0.95)'
+      ? windColorForKnots(knots, 0.95)
       : 'rgba(0, 168, 168, 0.95)';
   // Up-arrow (wind) / chevron-up (tide), both natively point north so
   // rotation maps cleanly to compass bearings.
@@ -1152,7 +1170,9 @@ function createWebArrowElement(pin: AtlasPinSpec) {
     const padded = ((Math.round(deg) % 360) + 360) % 360;
     const padStr = padded.toString().padStart(3, '0');
     const knotsLabel = isWind ? Math.round(knots) : knots.toFixed(1);
-    chip.textContent = `${padStr}° · ${knotsLabel} kn`;
+    const waveSuffix =
+      waveM != null && Number.isFinite(waveM) ? ` · ${waveM.toFixed(1)}m` : '';
+    chip.textContent = `${padStr}° · ${knotsLabel} kn${waveSuffix}`;
     chip.style.padding = '2px 6px';
     chip.style.borderRadius = '999px';
     chip.style.background = 'rgba(255,255,255,0.92)';
@@ -1510,22 +1530,36 @@ function LabeledPin({
     );
   }
   if (kind === 'wind-arrow') {
-    const [degStr, knotsStr, variant] = (label ?? '0|0').split('|');
+    // Label format from useWindOverlay:
+    //   "deg|kn"            — primary, no waves
+    //   "deg|kn|field"      — small field arrow (no chip)
+    //   "deg|kn||waveM"     — primary with wave height appended (empty
+    //                         variant slot distinguishes from "field")
+    const [degStr, knotsStr, variant, waveStr] = (label ?? '0|0').split('|');
     const fromDeg = Number(degStr) || 0;
     const downwindDeg = (fromDeg + 180) % 360;
     const knots = Number(knotsStr) || 0;
     const isField = variant === 'field';
+    const waveM = waveStr ? Number(waveStr) : null;
+    // Primary arrow takes Beaufort-band color so the user sees sail-choice
+    // bands at a glance; field arrows stay soft slate so the dense grid
+    // reads as ambience, not 16 simultaneous foreground signals.
+    const primaryColor = windColorForKnots(knots, 0.95);
     return (
       <View style={isField ? styles.windFieldWrap : styles.windArrowWrap}>
         <View style={[isField ? styles.fieldArrowDisc : styles.arrowDisc, { transform: [{ rotate: `${downwindDeg}deg` }] }]}>
           <Ionicons
             name="arrow-up"
             size={isField ? 20 : 32}
-            color={isField ? 'rgba(113, 143, 168, 0.78)' : 'rgba(0, 122, 255, 0.95)'}
+            color={isField ? 'rgba(113, 143, 168, 0.78)' : primaryColor}
           />
         </View>
         {!isField && knots > 0 ? (
-          <Text style={styles.arrowChip}>{`${padDeg(fromDeg)}° · ${Math.round(knots)} kn`}</Text>
+          <Text style={styles.arrowChip}>
+            {waveM != null && Number.isFinite(waveM)
+              ? `${padDeg(fromDeg)}° · ${Math.round(knots)} kn · ${waveM.toFixed(1)}m`
+              : `${padDeg(fromDeg)}° · ${Math.round(knots)} kn`}
+          </Text>
         ) : null}
       </View>
     );

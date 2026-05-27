@@ -69,6 +69,7 @@ import { useAffinityGroupMembers } from '@/hooks/useAffinityGroupMembers';
 import { useAtlasFramePins } from '@/hooks/useAtlasFramePins';
 import { useNearestPlace, formatNearLabel } from '@/hooks/useNearestPlace';
 import { useMarineSnapshot, conditionsLineFor } from '@/hooks/useMarineSnapshot';
+import { useHKOObservations, isInHongKong } from '@/hooks/useHKOObservations';
 import { useWindOverlay } from '@/hooks/useWindOverlay';
 import { useTideOverlay } from '@/hooks/useTideOverlay';
 import { useNextRaceMarks } from '@/hooks/useNextRaceMarks';
@@ -1532,9 +1533,25 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
     lng: mapCenter.lng,
     enabled: showWind || showTide,
   });
+  // HKO observations override Open-Meteo wind when a station is within
+  // ~5km of map center. Real anemometer beats a 5km model grid for the
+  // local read, but only inside the HK bbox — outside we don't bother
+  // running the lookup.
+  const hko = useHKOObservations();
+  const hkoWind = useMemo(() => {
+    if (!showWind) return null;
+    if (!isInHongKong(mapCenter.lat, mapCenter.lng)) return null;
+    return hko.findNearest(mapCenter.lat, mapCenter.lng, 5);
+    // hko.findNearest is a stable closure over query.data; recompute
+    // when the dataset (or center) changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mapCenter.lat, mapCenter.lng, hko.data, showWind]);
   const windConditionsLine = useMemo(
-    () => conditionsLineFor(marineSnapshot?.wind ?? null),
-    [marineSnapshot],
+    () =>
+      hkoWind
+        ? `${hkoWind.degrees}|${hkoWind.knots}`
+        : conditionsLineFor(marineSnapshot?.wind ?? null),
+    [hkoWind, marineSnapshot],
   );
   const tideConditionsLine = useMemo(
     () => conditionsLineFor(marineSnapshot?.current ?? null),
@@ -1545,6 +1562,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
     centerLng: mapCenter.lng,
     conditionsLine: windConditionsLine ?? '0|0',
     enabled: showWind && windConditionsLine !== null,
+    waveHeightMeters: marineSnapshot?.waves?.heightMeters,
   });
   const tidePins = useTideOverlay({
     centerLat: mapCenter.lat,
