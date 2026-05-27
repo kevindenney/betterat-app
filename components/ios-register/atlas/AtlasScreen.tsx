@@ -392,7 +392,7 @@ function TopChrome({
     Platform.OS === 'web' && FEATURE_FLAGS.USE_WEB_SIDEBAR_LAYOUT && !isDrawerOpen;
 
   return (
-    <View style={shellStyles.topChromeRow}>
+    <View style={shellStyles.topCapsuleRow}>
       {showWebSidebarToggle && (
         <Pressable
           onPress={openDrawer}
@@ -410,28 +410,41 @@ function TopChrome({
           </View>
         </Pressable>
       )}
-      <View style={{ flex: 1 }}>
-        <Text style={shellStyles.title}>{title}</Text>
-        {subtitle ? (
-          <View style={shellStyles.subtitleRow}>
-            <View style={shellStyles.subtitleDot} />
-            <Text style={shellStyles.subtitle}>{subtitle}</Text>
-          </View>
-        ) : null}
-      </View>
-      <View style={shellStyles.topRight}>
+      <View style={shellStyles.topCapsule}>
+        <ProfileDropdown size={30} variant="light" menuAlign="left" />
+        <View style={shellStyles.topCapsuleTextSlot}>
+          <Text style={shellStyles.topCapsuleTitle} numberOfLines={1}>
+            {title}
+          </Text>
+          {subtitle ? (
+            <Text style={shellStyles.topCapsuleSubtitle} numberOfLines={1}>
+              {subtitle}
+            </Text>
+          ) : null}
+        </View>
         {onSearchPress ? (
-          <Pressable style={shellStyles.glyphBtn} hitSlop={6} onPress={onSearchPress}>
-            <Ionicons name="search" size={16} color={IOS_REGISTER.label} />
+          <Pressable
+            style={shellStyles.capsuleAction}
+            hitSlop={6}
+            onPress={onSearchPress}
+            accessibilityLabel="Search"
+          >
+            <Ionicons name="search" size={16} color="rgba(60, 60, 67, 0.85)" />
           </Pressable>
         ) : null}
-        <NotificationBell size={16} color={IOS_REGISTER.label} />
         {onLayersPress ? (
-          <Pressable style={shellStyles.glyphBtn} hitSlop={6} onPress={onLayersPress}>
-            <Ionicons name="layers-outline" size={16} color={IOS_REGISTER.label} />
+          <Pressable
+            style={shellStyles.capsuleAction}
+            hitSlop={6}
+            onPress={onLayersPress}
+            accessibilityLabel="Map layers"
+          >
+            <Ionicons name="layers-outline" size={16} color="rgba(60, 60, 67, 0.85)" />
           </Pressable>
         ) : null}
-        <ProfileDropdown size={30} variant="light" />
+        <View style={shellStyles.capsuleAction}>
+          <NotificationBell size={16} color="rgba(60, 60, 67, 0.85)" />
+        </View>
       </View>
     </View>
   );
@@ -1201,7 +1214,67 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
     | (EditingRacingArea & { newLat: number; newLng: number })
     | null
   >(null);
+  // Tap-to-trace flow: user replaces the area's existing shape with a
+  // real polygon by tapping vertices on the map. vertices grows on
+  // each map tap while active.
+  const [retraceTarget, setRetraceTarget] = useState<
+    | (EditingRacingArea & { vertices: { lat: number; lng: number }[] })
+    | null
+  >(null);
   const updateRacingAreaMutation = useUpdateRacingArea();
+  const _handleRetraceOnMap = useCallback((target: EditingRacingArea) => {
+    setEditingArea(null);
+    setRetraceTarget({ ...target, vertices: [] });
+  }, []);
+  const _handleRetraceUndo = useCallback(() => {
+    setRetraceTarget((prev) =>
+      prev ? { ...prev, vertices: prev.vertices.slice(0, -1) } : prev,
+    );
+  }, []);
+  const _handleCancelRetrace = useCallback(() => {
+    const reverted = retraceTarget
+      ? {
+          id: retraceTarget.id,
+          name: retraceTarget.name,
+          centerLat: retraceTarget.centerLat,
+          centerLng: retraceTarget.centerLng,
+          radiusMeters: retraceTarget.radiusMeters,
+          classesUsed: retraceTarget.classesUsed,
+        }
+      : null;
+    setRetraceTarget(null);
+    if (reverted) setEditingArea(reverted);
+  }, [retraceTarget]);
+  const _handleSaveRetrace = useCallback(async () => {
+    if (!retraceTarget || retraceTarget.vertices.length < 3) return;
+    // Build a closed Polygon ring: [v1, v2, ..., vN, v1].
+    const ring: [number, number][] = retraceTarget.vertices.map((v) => [v.lng, v.lat]);
+    ring.push(ring[0]);
+    // Centroid for center_lat/lng (used by old consumers that still
+    // read the point-fallback shape).
+    let sumLat = 0;
+    let sumLng = 0;
+    for (const v of retraceTarget.vertices) {
+      sumLat += v.lat;
+      sumLng += v.lng;
+    }
+    const centerLat = sumLat / retraceTarget.vertices.length;
+    const centerLng = sumLng / retraceTarget.vertices.length;
+    try {
+      await updateRacingAreaMutation.mutateAsync({
+        id: retraceTarget.id,
+        name: retraceTarget.name,
+        centerLat,
+        centerLng,
+        radiusMeters: retraceTarget.radiusMeters ?? undefined,
+        polygon: { type: 'Polygon', coordinates: [ring] },
+        classesUsed: retraceTarget.classesUsed,
+      });
+      setRetraceTarget(null);
+    } catch (err) {
+      console.warn('[atlas] save retrace failed', err);
+    }
+  }, [retraceTarget, updateRacingAreaMutation]);
   const handleMoveOnMap = useCallback((target: EditingRacingArea) => {
     setEditingArea(null);
     setRepositionTarget({
@@ -1670,6 +1743,14 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
           });
           return;
         }
+      }
+      if (retraceTarget) {
+        setRetraceTarget((prev) =>
+          prev
+            ? { ...prev, vertices: [...prev.vertices, { lat: coords.lat, lng: coords.lng }] }
+            : prev,
+        );
+        return;
       }
       if (anchorStepTarget) {
         // Commit immediately on the first tap — clearer than a preview-
@@ -4544,6 +4625,32 @@ const shellStyles = StyleSheet.create({
     paddingHorizontal: 6,
     paddingVertical: 4,
     minHeight: 30,
+  },
+  /**
+   * Text slot used by TopChrome (F2-F7) for inline title + subtitle.
+   * Sits in place of the capsuleSearch slot on F1. Flexes to fill the
+   * gap between the leading avatar and trailing icons; truncates with
+   * ellipsis on both lines so a long race title doesn't overflow.
+   */
+  topCapsuleTextSlot: {
+    flex: 1,
+    minWidth: 0,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    justifyContent: 'center',
+  },
+  topCapsuleTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: 'rgba(28, 28, 30, 0.92)',
+    letterSpacing: -0.15,
+  },
+  topCapsuleSubtitle: {
+    fontSize: 10.5,
+    fontWeight: '500',
+    color: 'rgba(60, 60, 67, 0.65)',
+    letterSpacing: -0.05,
+    marginTop: 1,
   },
   capsuleSearchIcon: {
     marginRight: 6,
