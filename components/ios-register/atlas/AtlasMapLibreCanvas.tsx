@@ -407,7 +407,6 @@ export function AtlasMapLibreCanvas({
   // Hooks first, then early returns — rules-of-hooks compliance.
   const cameraRef = useRef<CameraRef>(null);
   const baseCamera = FRAME_CAMERA[frame];
-  const [, setCurrentZoom] = useState(baseCamera.zoom);
   const { classes: userBoatClasses } = useUserBoatClasses();
   const { featureCollection: raceAreasCollection } = useAtlasRacingAreas({
     centerLng: baseCamera.center[0],
@@ -468,13 +467,6 @@ export function AtlasMapLibreCanvas({
       ],
     };
   }, [racingAreaPreviewPolygon]);
-  const zoomBy = useCallback((delta: number) => {
-    setCurrentZoom((value) => {
-      const next = Math.max(1, Math.min(18, Number((value + delta).toFixed(1))));
-      cameraRef.current?.zoomTo(next, { duration: 180 });
-      return next;
-    });
-  }, []);
   const handlePress = useCallback(
     (event: NativeSyntheticEvent<PressEvent>) => {
       if (!onMapPress) return;
@@ -745,27 +737,6 @@ export function AtlasMapLibreCanvas({
           </MLMarker>
         ) : null}
       </MLMap>
-      <View style={styles.zoomControls}>
-        <Pressable
-          style={styles.zoomButton}
-          onPress={() => zoomBy(1)}
-          hitSlop={8}
-          accessibilityRole="button"
-          accessibilityLabel="Zoom in"
-        >
-          <Ionicons name="add" size={19} color="#1C1C1E" />
-        </Pressable>
-        <View style={styles.zoomDivider} />
-        <Pressable
-          style={styles.zoomButton}
-          onPress={() => zoomBy(-1)}
-          hitSlop={8}
-          accessibilityRole="button"
-          accessibilityLabel="Zoom out"
-        >
-          <Ionicons name="remove" size={19} color="#1C1C1E" />
-        </Pressable>
-      </View>
     </View>
   );
 }
@@ -2252,31 +2223,5 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 4,
     shadowOffset: { width: 0, height: 2 },
-  },
-  zoomControls: {
-    position: 'absolute',
-    right: 12,
-    top: 118,
-    width: 38,
-    borderRadius: 12,
-    overflow: 'hidden',
-    backgroundColor: 'rgba(255, 255, 255, 0.92)',
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(60, 60, 67, 0.22)',
-    shadowColor: '#000',
-    shadowOpacity: 0.14,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 4,
-  },
-  zoomButton: {
-    width: 38,
-    height: 38,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  zoomDivider: {
-    height: StyleSheet.hairlineWidth,
-    backgroundColor: 'rgba(60, 60, 67, 0.20)',
   },
 });
