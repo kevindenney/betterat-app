@@ -105,6 +105,7 @@ export function TimelineZoomPracticeScreen() {
       mapToTimelineDataset({
         interestId,
         interestLabel: currentInterest?.name ?? 'Practice',
+        interestSlug: currentInterest?.slug ?? null,
         user: {
           initials: userInitials,
           color: currentInterest?.accent_color || '#7BA0C4',

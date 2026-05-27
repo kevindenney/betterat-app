@@ -107,23 +107,9 @@ function computeSeasonPhases(
     // Interest-aware pattern scan — uses the user's domain vocabulary
     // (regatta names, rotation names, festival names, etc.) so the
     // phase label speaks the persona's language when titles match.
-    const titlesForDetection = week.steps.map((s) => s.title);
     const namedPhase = detectPhaseLabelFromTitles(
-      titlesForDetection,
+      week.steps.map((s) => s.title),
       interestVocab,
-    );
-    // eslint-disable-next-line no-console
-    console.log(
-      '[phases v2] week',
-      idx + 1,
-      'vocab:',
-      interestVocab.id,
-      'patterns?:',
-      (interestVocab.phasePatterns?.length ?? 0),
-      'titles:',
-      titlesForDetection,
-      '→ named:',
-      namedPhase,
     );
     // First week with no race + mixed steps reads as "entry" / prep.
     const isPrep = idx === 0 && raceNum === null && !namedPhase;
@@ -995,6 +981,13 @@ function shortenSeasonLabel(title: string): string {
 interface AdapterInput {
   interestId?: string | null;
   interestLabel: string;
+  /**
+   * Optional slug ("sail-racing", "nursing") for the user's current
+   * interest. Used as an extra candidate when resolving interest vocab
+   * so the resolver still matches even if `interestLabel` arrives as
+   * the generic "Practice" fallback before currentInterest fully loads.
+   */
+  interestSlug?: string | null;
   user: { initials: string; color: string };
   currentSeason: Season | null;
   allSeasons: Season[];
@@ -1007,6 +1000,7 @@ interface AdapterInput {
 export function mapToTimelineDataset({
   interestId,
   interestLabel,
+  interestSlug,
   user,
   currentSeason,
   allSeasons,
@@ -1081,7 +1075,7 @@ export function mapToTimelineDataset({
     0,
     weeks.findIndex((w) => w.isCurrent),
   );
-  const interestVocab = resolveInterestVocab(interestId, interestLabel);
+  const interestVocab = resolveInterestVocab(interestId, interestLabel, interestSlug);
   const currentSeasonAnalysis = computeSeasonAnalysis(
     weeks,
     currentSeason?.name ?? currentSeason?.short_name ?? null,
