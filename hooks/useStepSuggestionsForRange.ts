@@ -38,12 +38,16 @@ export function useStepSuggestionsForRange({ viewerUserId, rangeStart, rangeEnd 
     staleTime: STALE_MS,
     queryFn: async (): Promise<StepSuggestionInputRow[]> => {
       if (!viewerUserId || !rangeStart || !rangeEnd) return [];
+      // No upper-bound on created_at — suggestions sent AFTER an arc's
+      // declared end_date are still meaningful (the arc lives on as the
+      // user keeps reflecting). The adapter's weekIndexFor clamps any
+      // post-end timestamp to the last week, so the visual still lands
+      // somewhere sensible.
       const { data: sugg, error } = await supabase
         .from('step_suggestions')
         .select('id, source_user_id, target_user_id, created_at')
         .or(`source_user_id.eq.${viewerUserId},target_user_id.eq.${viewerUserId}`)
-        .gte('created_at', rangeStart)
-        .lte('created_at', rangeEnd);
+        .gte('created_at', rangeStart);
       if (error) throw error;
       const rows = (sugg ?? []) as {
         id: string;

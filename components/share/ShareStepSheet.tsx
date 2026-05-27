@@ -9,6 +9,8 @@ export interface ShareStepSheetRecipient {
   initials: string;
   avatarColor?: string;
   name: string;
+  /** Disambiguator (email / handle) shown beneath the name when present. */
+  handle?: string;
 }
 
 export interface ShareStepSheetGroup {
@@ -180,6 +182,11 @@ export function ShareStepSheet({
                       <Text style={styles.personInitials}>{person.initials.slice(0, 2).toUpperCase()}</Text>
                     </View>
                     <Text style={styles.personName} numberOfLines={1}>{person.name}</Text>
+                    {person.handle ? (
+                      <Text style={styles.personHandle} numberOfLines={1}>
+                        {person.handle}
+                      </Text>
+                    ) : null}
                   </Pressable>
                 ))}
               </ScrollView>
@@ -230,9 +237,16 @@ export function ShareStepSheet({
                         {person.initials.slice(0, 2).toUpperCase()}
                       </Text>
                     </View>
-                    <Text style={styles.suggestName} numberOfLines={1}>
-                      {person.name}
-                    </Text>
+                    <View style={styles.suggestNameWrap}>
+                      <Text style={styles.suggestName} numberOfLines={1}>
+                        {person.name}
+                      </Text>
+                      {person.handle ? (
+                        <Text style={styles.suggestHandle} numberOfLines={1}>
+                          {person.handle}
+                        </Text>
+                      ) : null}
+                    </View>
                     <ChevronRight size={18} color="#9CA3AF" />
                   </Pressable>
                 ))}
@@ -344,11 +358,18 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: '#F3F4F6',
   },
-  suggestName: {
+  suggestNameWrap: {
     flex: 1,
+    gap: 1,
+  },
+  suggestName: {
     fontSize: 15,
     fontWeight: '500',
     color: '#111827',
+  },
+  suggestHandle: {
+    fontSize: 11,
+    color: '#9CA3AF',
   },
   suggestEmpty: {
     paddingVertical: 18,
@@ -406,6 +427,12 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#374151',
     maxWidth: 64,
+  },
+  personHandle: {
+    fontSize: 9.5,
+    color: '#9CA3AF',
+    maxWidth: 64,
+    marginTop: 1,
   },
   cancel: {
     alignItems: 'center',

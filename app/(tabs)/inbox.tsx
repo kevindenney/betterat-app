@@ -483,6 +483,11 @@ function SuggestionCard({
               {item.kind === 'on_deck' ? 'saved a step' : 'suggested a step'}
             </Text>
           </Text>
+          {item.fromEmail ? (
+            <Text style={styles.cardFromEmail} numberOfLines={1}>
+              {item.fromEmail}
+            </Text>
+          ) : null}
         </View>
         <Text style={styles.cardWhen}>{item.when}</Text>
       </View>
@@ -1082,6 +1087,11 @@ const styles = StyleSheet.create({
   },
   cardFromVerb: {
     color: IOS_REGISTER.labelSecondary,
+  },
+  cardFromEmail: {
+    fontSize: 11,
+    color: IOS_REGISTER.labelTertiary,
+    marginTop: 1,
   },
   cardWhen: {
     fontSize: 12,

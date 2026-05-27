@@ -42,23 +42,44 @@ async function loadRecentRecipients(userId: string): Promise<ShareStepSheetRecip
   if (error || !data || data.length === 0) return [];
 
   const followingIds = (data as { following_id: string }[]).map((row) => row.following_id);
-  const { data: profiles } = await supabase
-    .from('profiles')
-    .select('id, full_name')
-    .in('id', followingIds);
+  const [{ data: profiles }, { data: emails }] = await Promise.all([
+    supabase.from('profiles').select('id, full_name').in('id', followingIds),
+    supabase.from('users').select('id, email').in('id', followingIds),
+  ]);
 
   const profileMap = new Map((profiles ?? []).map((p: any) => [p.id, p]));
+  const emailMap = new Map((emails ?? []).map((u: any) => [u.id, u.email as string | null]));
+
+  // Same-named user disambiguation — only attach the email handle when
+  // it's actually needed (two or more recipients share a display name).
+  // Avoids cluttering avatar tiles when names are already unique.
+  const nameOf = (id: string): string => {
+    const profile = profileMap.get(id) as { id: string; full_name?: string | null } | undefined;
+    return profile?.full_name?.trim() || 'Practitioner';
+  };
+  const nameCounts = new Map<string, number>();
+  for (const id of followingIds) {
+    const name = nameOf(id).toLowerCase();
+    nameCounts.set(name, (nameCounts.get(name) ?? 0) + 1);
+  }
+
   return followingIds
     .map((id) => {
-      const profile = profileMap.get(id) as { id: string; full_name?: string | null } | undefined;
-      const name = profile?.full_name ?? 'Practitioner';
+      const name = nameOf(id);
       const initials = name
         .split(/\s+/)
         .filter(Boolean)
         .slice(0, 2)
         .map((part: string) => part[0]?.toUpperCase() ?? '')
         .join('');
-      return { id, name, initials: initials || 'PR' };
+      const collides = (nameCounts.get(name.toLowerCase()) ?? 0) > 1;
+      const handle = collides ? emailMap.get(id) ?? undefined : undefined;
+      return {
+        id,
+        name,
+        initials: initials || 'PR',
+        ...(handle ? { handle } : {}),
+      } satisfies ShareStepSheetRecipient;
     })
     .filter(Boolean) as ShareStepSheetRecipient[];
 }
