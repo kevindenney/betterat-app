@@ -39,6 +39,12 @@ interface UseWindOverlayArgs {
    * not crowding the canvas with land arrows. Mirror of useTideOverlay.
    */
   waterAnchors?: { lat: number; lng: number }[];
+  /**
+   * Wave height in meters, appended to the primary arrow's chip as
+   * "210° · 9 kn · 0.4m". Optional — when omitted the chip omits the
+   * wave segment. Field arrows always omit it (no chip).
+   */
+  waveHeightMeters?: number;
 }
 
 const COMPASS_DEG: Record<string, number> = {
@@ -103,10 +109,19 @@ export function useWindOverlay({
   spacingKm = 1.2,
   gridSize = 4,
   waterAnchors,
+  waveHeightMeters,
 }: UseWindOverlayArgs): AtlasPinSpec[] {
   return useMemo(() => {
     if (!enabled) return [];
     const { degrees, knots } = parseWind(conditionsLine);
+    // Primary label carries wave height in the 4th slot when available.
+    // 4-part format: `${deg}|${knots}||${waveM}` — empty variant slot
+    // distinguishes primary-with-waves from "field" arrows. The canvas
+    // wind-arrow render parses by index, so an empty 3rd part is fine.
+    const primaryLabel =
+      waveHeightMeters != null && waveHeightMeters >= 0
+        ? `${degrees}|${knots}||${waveHeightMeters}`
+        : `${degrees}|${knots}`;
     const label = `${degrees}|${knots}`;
 
     // Water-anchored: one large arrow per anchor (offset upwind slightly
@@ -147,8 +162,8 @@ export function useWindOverlay({
       lat: centerLat,
       lng: centerLng,
       kind: 'wind-arrow',
-      label,
+      label: primaryLabel,
     });
     return out;
-  }, [centerLat, centerLng, conditionsLine, enabled, spacingKm, gridSize, waterAnchors]);
+  }, [centerLat, centerLng, conditionsLine, enabled, spacingKm, gridSize, waterAnchors, waveHeightMeters]);
 }
