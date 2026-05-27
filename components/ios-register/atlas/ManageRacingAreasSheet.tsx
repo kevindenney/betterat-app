@@ -84,8 +84,7 @@ export function ManageRacingAreasSheet({ visible, onClose }: ManageRacingAreasSh
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <View style={styles.backdrop}>
-        <Pressable style={styles.backdropTapZone} onPress={onClose} />
+      <View style={styles.backdrop} pointerEvents="box-none">
         <View style={styles.sheet}>
           <View style={styles.headerRow}>
             <View style={styles.handle} />
@@ -199,13 +198,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.35)',
     justifyContent: 'flex-end',
-  },
-  backdropTapZone: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
   },
   sheet: {
     backgroundColor: '#FFFFFF',
