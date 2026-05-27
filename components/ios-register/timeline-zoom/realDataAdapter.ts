@@ -26,7 +26,6 @@ import type { Season } from '@/types/season';
 import type { TimelineStepRecord, TimelineStepStatus } from '@/types/timeline-steps';
 import { CAPABILITY_PALETTE } from './sampleData';
 import {
-  detectPhaseLabelFromTitles,
   resolveInterestVocab,
   type InterestVocab,
 } from './interestVocab';
@@ -71,131 +70,53 @@ import type {
  */
 function computeSeasonPhases(
   weeks: TimelineWeek[],
-  interestVocab: InterestVocab,
+  _interestVocab: InterestVocab,
 ): SeasonPhase[] {
   if (weeks.length === 0) return [];
 
-  const raceRe = /\bRace\s+(\d+)\b/i;
-  // Per-week detection: race number (sailing-specific built-in), named
-  // phase label from the interest's pattern list, dominant capability,
-  // and whether this is the prep/entry week.
-  const dominantPerWeek: {
-    weekNumber: number;
-    capability: Capability | null;
-    raceNum: number | null;
-    namedPhase: string | null;
-    isPrep: boolean;
-  }[] = weeks.map((week, idx) => {
-    let raceNum: number | null = null;
-    for (const step of week.steps) {
-      const match = step.title.match(raceRe);
-      if (match) {
-        raceNum = parseInt(match[1]!, 10);
-        break;
+  // Per-week dominant capability — counts contributions from EVERY tagged
+  // capability per step (not just the first), so a step tagged with
+  // "Sail Selection · Sail Design · Sail Measurement" contributes one
+  // count to each. The dominant capability for the week is the most-
+  // counted; phase labels mirror what the bands above the rule actually
+  // show, so the chart reads as one coherent capability story.
+  //
+  // We deliberately do NOT pattern-match step titles for phase labels
+  // anymore — when a band is colored "Sail Selection" but the label
+  // under it says "Rig tuning" (because a title contained "tune the
+  // rig"), the user gets two contradictory stories on one chart. The
+  // capability tags the user explicitly applied win.
+  const dominantPerWeek: { weekNumber: number; capability: Capability | null }[] =
+    weeks.map((week, idx) => {
+      const counts = new Map<string, { cap: Capability; count: number }>();
+      for (const step of week.steps) {
+        const caps = step.capabilities ?? [];
+        for (const cap of caps) {
+          const entry = counts.get(cap.id);
+          if (entry) entry.count += 1;
+          else counts.set(cap.id, { cap, count: 1 });
+        }
       }
-    }
-    const counts = new Map<string, { cap: Capability; count: number }>();
-    for (const step of week.steps) {
-      const cap = step.capabilities?.[0];
-      if (!cap) continue;
-      const entry = counts.get(cap.id);
-      if (entry) entry.count += 1;
-      else counts.set(cap.id, { cap, count: 1 });
-    }
-    const sorted = Array.from(counts.values()).sort((a, b) => b.count - a.count);
-    const dominant = sorted[0]?.cap ?? null;
-    // Interest-aware pattern scan — uses the user's domain vocabulary
-    // (regatta names, rotation names, festival names, etc.) so the
-    // phase label speaks the persona's language when titles match.
-    const namedPhase = detectPhaseLabelFromTitles(
-      week.steps.map((s) => s.title),
-      interestVocab,
-    );
-    // First week with no race + mixed steps reads as "entry" / prep.
-    const isPrep = idx === 0 && raceNum === null && !namedPhase;
-    return { weekNumber: idx + 1, capability: dominant, raceNum, namedPhase, isPrep };
-  });
+      const sorted = Array.from(counts.values()).sort((a, b) => b.count - a.count);
+      return { weekNumber: idx + 1, capability: sorted[0]?.cap ?? null };
+    });
 
   const phases: SeasonPhase[] = [];
   const fallbackColor = CAPABILITY_PALETTE.procedural.color;
   let i = 0;
   while (i < dominantPerWeek.length) {
     const head = dominantPerWeek[i]!;
-    let j = i;
-    // Race-block: collapse consecutive weeks that share race-number-ish structure.
-    if (head.raceNum !== null) {
-      const firstRace = head.raceNum;
-      let lastRace = head.raceNum;
-      while (
-        j + 1 < dominantPerWeek.length &&
-        dominantPerWeek[j + 1]!.raceNum !== null
-      ) {
-        j += 1;
-        lastRace = dominantPerWeek[j]!.raceNum!;
-      }
-      const label = firstRace === lastRace ? `Race ${firstRace}` : `Race ${firstRace}–${lastRace}`;
-      phases.push({
-        id: `phase-race-${firstRace}-${lastRace}`,
-        label,
-        startWeek: head.weekNumber,
-        endWeek: dominantPerWeek[j]!.weekNumber,
-        color: head.capability?.color ?? fallbackColor,
-      });
-      i = j + 1;
-      continue;
-    }
-    // Entry: first week of the season with no race tag and no named pattern match.
-    if (head.isPrep) {
-      phases.push({
-        id: `phase-entry`,
-        label: `wk 1 · entry`,
-        startWeek: head.weekNumber,
-        endWeek: head.weekNumber,
-        color: head.capability?.color ?? fallbackColor,
-      });
-      i += 1;
-      continue;
-    }
-    // Named-phase block: consecutive weeks sharing a pattern-detected
-    // label (e.g. "Spring Series", "Med-Surg", "Diwali rush") collapse
-    // into one phase. This takes precedence over capability dominance.
-    if (head.namedPhase) {
-      const named = head.namedPhase;
-      while (
-        j + 1 < dominantPerWeek.length &&
-        dominantPerWeek[j + 1]!.namedPhase === named &&
-        dominantPerWeek[j + 1]!.raceNum === null
-      ) {
-        j += 1;
-      }
-      phases.push({
-        id: `phase-${i}-${named.replace(/\s+/g, '-').toLowerCase()}`,
-        label: named,
-        startWeek: head.weekNumber,
-        endWeek: dominantPerWeek[j]!.weekNumber,
-        color: head.capability?.color ?? fallbackColor,
-      });
-      i = j + 1;
-      continue;
-    }
-    // Capability block: collapse consecutive weeks sharing dominant capability.
     const capId = head.capability?.id ?? '__none__';
+    let j = i;
     while (
       j + 1 < dominantPerWeek.length &&
-      (dominantPerWeek[j + 1]!.capability?.id ?? '__none__') === capId &&
-      dominantPerWeek[j + 1]!.raceNum === null &&
-      dominantPerWeek[j + 1]!.namedPhase === null
+      (dominantPerWeek[j + 1]!.capability?.id ?? '__none__') === capId
     ) {
       j += 1;
     }
-    const isLastBucket = j === dominantPerWeek.length - 1;
-    const label =
-      isLastBucket && head.weekNumber !== 1
-        ? 'finale'
-        : head.capability?.label ?? 'prep';
     phases.push({
       id: `phase-${i}-${capId}`,
-      label,
+      label: head.capability?.label ?? 'prep',
       startWeek: head.weekNumber,
       endWeek: dominantPerWeek[j]!.weekNumber,
       color: head.capability?.color ?? fallbackColor,
@@ -484,6 +405,7 @@ function recordToStep(
   seasonId: string,
   weekId: string,
   blueprintsById?: Map<string, BlueprintLookup>,
+  viewerUserId?: string | null,
 ): TimelineStep {
   const cap = deriveCapability(rec.category);
   const scheduleAnchor = resolveScheduleAnchor(rec);
@@ -567,6 +489,15 @@ function recordToStep(
   // pin indicator without re-querying the pin table.
   const pinnedFromOtherInterest =
     (rec as TimelineStepRecord & { _pinned?: boolean })._pinned === true;
+  const isSharedWithViewer =
+    Boolean(viewerUserId) &&
+    rec.user_id !== viewerUserId &&
+    rec.collaborator_user_ids?.includes(viewerUserId!);
+  const originKind: TimelineStep['originKind'] = isSharedWithViewer
+    ? 'shared'
+    : rec.source_blueprint_id || rec.source_type === 'blueprint'
+      ? 'blueprint'
+      : 'mine';
 
   return {
     id: rec.id,
@@ -576,6 +507,7 @@ function recordToStep(
     weekId,
     seasonId,
     status: statusFromRecord(rec),
+    originKind,
     metaLeft,
     metaRight,
     whatBody: plan?.what_will_you_do || rec.description || undefined,
@@ -684,15 +616,22 @@ function computeSeasonAnalysis(
   // of "where it is" (a current-week index) and at least one peer. Real
   // librarian copy lives in the agent loop; this is the always-on
   // baseline so L3 isn't empty for fresh seasons.
+  // Count contributions from EVERY tagged capability on each step so a
+  // multi-tagged step ("Sail Selection · Sail Design · Sail Measurement")
+  // contributes to all three — same logic as the river bands above.
   const seenCapabilityCounts = new Map<string, { label: string; count: number }>();
   for (const week of weeks.slice(0, currentWeekNumber)) {
     for (const step of week.steps) {
-      const capability = capabilityForStep(step);
-      const existing = seenCapabilityCounts.get(capability.id);
-      if (existing) {
-        existing.count += 1;
-      } else {
-        seenCapabilityCounts.set(capability.id, { label: capability.label, count: 1 });
+      const caps = step.capabilities && step.capabilities.length > 0
+        ? step.capabilities
+        : [capabilityForStep(step)];
+      for (const capability of caps) {
+        const existing = seenCapabilityCounts.get(capability.id);
+        if (existing) {
+          existing.count += 1;
+        } else {
+          seenCapabilityCounts.set(capability.id, { label: capability.label, count: 1 });
+        }
       }
     }
   }
@@ -1016,7 +955,7 @@ interface AdapterInput {
    * the generic "Practice" fallback before currentInterest fully loads.
    */
   interestSlug?: string | null;
-  user: { initials: string; color: string };
+  user: { id?: string | null; initials: string; color: string };
   currentSeason: Season | null;
   allSeasons: Season[];
   steps: TimelineStepRecord[];
@@ -1072,7 +1011,7 @@ export function mapToTimelineDataset({
       number,
       dateRange: range,
       isCurrent: containsFocus || bucketIdx === 0,
-      steps: bucketRecs.map((r) => recordToStep(r, seasonIdForSteps, id, blueprintsById)),
+      steps: bucketRecs.map((r) => recordToStep(r, seasonIdForSteps, id, blueprintsById, user.id)),
     };
   });
 
