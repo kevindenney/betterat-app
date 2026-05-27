@@ -669,7 +669,7 @@ export default function AtlasTab() {
             if (targetInterest.slug !== currentInterest?.slug) {
               await switchInterest(targetInterest.slug);
             }
-            router.push({ pathname: '/practice/step/[id]', params: { id: existing.id, origin: 'atlas' } } as any);
+            router.push({ pathname: '/step/[id]', params: { id: existing.id, origin: 'atlas' } } as any);
             return;
           }
 
@@ -694,7 +694,7 @@ export default function AtlasTab() {
           if (targetInterest.slug !== currentInterest?.slug) {
             await switchInterest(targetInterest.slug);
           }
-          router.push({ pathname: '/practice/step/[id]', params: { id: createdRaceStep.id, origin: 'atlas' } } as any);
+          router.push({ pathname: '/step/[id]', params: { id: createdRaceStep.id, origin: 'atlas' } } as any);
           return;
         }
 
@@ -757,7 +757,7 @@ export default function AtlasTab() {
         if (targetInterest.slug !== currentInterest?.slug) {
           await switchInterest(targetInterest.slug);
         }
-        router.push({ pathname: '/practice/step/[id]', params: { id: created.id, origin: 'atlas' } } as any);
+        router.push({ pathname: '/step/[id]', params: { id: created.id, origin: 'atlas' } } as any);
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Could not create a step from this pin.';
         showAlert('Step creation failed', message);
