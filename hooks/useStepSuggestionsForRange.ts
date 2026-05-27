@@ -21,6 +21,10 @@ export interface StepSuggestionInputRow {
   peerUserId: string;
   peerDisplayName: string | null;
   direction: 'sent' | 'received';
+  /** Sender's source step id when the suggestion references an existing
+   *  step (channel 4 — "you suggested"). NULL for free-form suggestions
+   *  and for inbound suggestions whose source step we don't have locally. */
+  sourceStepId: string | null;
 }
 
 interface Args {
@@ -45,7 +49,7 @@ export function useStepSuggestionsForRange({ viewerUserId, rangeStart, rangeEnd 
       // somewhere sensible.
       const { data: sugg, error } = await supabase
         .from('step_suggestions')
-        .select('id, source_user_id, target_user_id, created_at')
+        .select('id, source_user_id, target_user_id, source_step_id, created_at')
         .or(`source_user_id.eq.${viewerUserId},target_user_id.eq.${viewerUserId}`)
         .gte('created_at', rangeStart);
       if (error) throw error;
@@ -53,6 +57,7 @@ export function useStepSuggestionsForRange({ viewerUserId, rangeStart, rangeEnd 
         id: string;
         source_user_id: string;
         target_user_id: string;
+        source_step_id: string | null;
         created_at: string;
       }[];
       if (rows.length === 0) return [];
@@ -94,6 +99,11 @@ export function useStepSuggestionsForRange({ viewerUserId, rangeStart, rangeEnd 
           peerUserId,
           peerDisplayName: nameOf(peerUserId),
           direction,
+          // Only carry the source_step_id when WE were the sender — that
+          // means it's our own step and we can look it up in `weeks` for
+          // capability coloring. For inbound suggestions the source step
+          // lives in the sender's timeline, not ours.
+          sourceStepId: direction === 'sent' ? r.source_step_id : null,
         };
       });
     },

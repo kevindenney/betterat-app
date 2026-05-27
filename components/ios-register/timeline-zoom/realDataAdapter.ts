@@ -555,6 +555,10 @@ export interface SuggestionInputRow {
   peerDisplayName: string | null;
   createdAt: string;
   direction: 'sent' | 'received';
+  /** Sender's source step id when known and resolvable to one of the
+   *  viewer's own steps (i.e. "sent" direction). Used for capability
+   *  coloring. NULL for free-form / inbound suggestions. */
+  sourceStepId?: string | null;
 }
 
 function computeSeasonAnalysis(
@@ -685,12 +689,21 @@ function computeSeasonAnalysis(
       role?: string;
       firstWeek: number;
       perWeek: Map<number, number>;
+      /** Per-capability-color contribution count. Dominant color wins
+       *  in the SeasonPeer mapping below. */
+      capabilityCounts: Map<string, number>;
     }
   >();
   const bumpPeer = (
     id: string,
     weekNumber: number,
-    seed: { initials: string; name?: string; color: string; role?: string },
+    seed: {
+      initials: string;
+      name?: string;
+      color: string;
+      role?: string;
+      capabilityColor?: string;
+    },
   ) => {
     const entry = peerMap.get(id);
     if (entry) {
@@ -699,7 +712,15 @@ function computeSeasonAnalysis(
       // because they appear in week 1 of any step that has both.
       if (!entry.role && seed.role) entry.role = seed.role;
       if (!entry.name && seed.name) entry.name = seed.name;
+      if (seed.capabilityColor) {
+        entry.capabilityCounts.set(
+          seed.capabilityColor,
+          (entry.capabilityCounts.get(seed.capabilityColor) ?? 0) + 1,
+        );
+      }
     } else {
+      const capabilityCounts = new Map<string, number>();
+      if (seed.capabilityColor) capabilityCounts.set(seed.capabilityColor, 1);
       peerMap.set(id, {
         initials: seed.initials,
         name: seed.name,
@@ -707,17 +728,41 @@ function computeSeasonAnalysis(
         role: seed.role,
         firstWeek: weekNumber,
         perWeek: new Map([[weekNumber, 1]]),
+        capabilityCounts,
       });
     }
+  };
+  // Pre-build a stepId → TimelineStep lookup so reflection / suggestion
+  // handlers can resolve the capability color of the step they reference
+  // without re-walking weeks.
+  const stepById = new Map<string, TimelineStep>();
+  for (const week of weeks) {
+    for (const step of week.steps) stepById.set(step.id, step);
+  }
+  // Derive the dominant in-palette capability color from a step's
+  // capability tags. Returns undefined when the step has no real
+  // capabilities (only "Practice" / "General" fallbacks) — in that
+  // case we leave the peer's color as their identity color so the
+  // dot doesn't lie about what was shaped.
+  const stepCapabilityColor = (step: TimelineStep | undefined): string | undefined => {
+    if (!step?.capabilities?.length) return undefined;
+    for (const cap of step.capabilities) {
+      if (cap.label === 'Practice' || cap.label === 'General') continue;
+      const v = resolveCapabilityVisuals(cap.label, interestVocab);
+      return v.color;
+    }
+    return undefined;
   };
   weeks.forEach((week, weekIdx) => {
     const weekNumber = weekIdx + 1;
     for (const step of week.steps) {
+      const capColor = stepCapabilityColor(step);
       // Channel 1 — direct "with who?" tags.
       for (const avatar of step.cohortAvatars ?? []) {
         bumpPeer(avatar.id, weekNumber, {
           initials: avatar.initials,
           color: avatar.color,
+          capabilityColor: capColor,
         });
       }
       // Channel 2 — blueprint author. Namespaced id keeps them distinct
@@ -729,6 +774,7 @@ function computeSeasonAnalysis(
           name: author,
           color: deterministicPeerColor(author),
           role: 'blueprint',
+          capabilityColor: capColor,
         });
       }
     }
@@ -745,11 +791,17 @@ function computeSeasonAnalysis(
     if (!wk) continue;
     const peerName = sg.peerDisplayName?.trim() || 'Peer';
     const role = sg.direction === 'sent' ? 'you suggested' : 'suggested it';
+    // For "sent" suggestions the source_step_id is one of OUR steps,
+    // so we can resolve a capability color. For "received" suggestions
+    // the source step lives in the sender's timeline — we don't have it
+    // locally, so leave the color as identity.
+    const sourceStep = sg.sourceStepId ? stepById.get(sg.sourceStepId) : undefined;
     bumpPeer(`sg:${sg.peerUserId}`, wk, {
       initials: initialsFromName(peerName),
       name: peerName,
       color: deterministicPeerColor(sg.peerUserId),
       role,
+      capabilityColor: stepCapabilityColor(sourceStep),
     });
   }
 
@@ -765,6 +817,8 @@ function computeSeasonAnalysis(
     for (const [stepId, reflections] of stepReflectionsMap) {
       const wk = stepWeekById.get(stepId);
       if (!wk) continue;
+      const reflectedStep = stepById.get(stepId);
+      const reflectedColor = stepCapabilityColor(reflectedStep);
       for (const r of reflections) {
         const peerName = r.peerDisplayName?.trim() || 'Peer';
         bumpPeer(`rf:${r.peerUserId}`, wk, {
@@ -772,23 +826,38 @@ function computeSeasonAnalysis(
           name: peerName,
           color: deterministicPeerColor(r.peerUserId),
           role: 'reflected on it',
+          capabilityColor: reflectedColor,
         });
       }
     }
   }
 
   const peers: SeasonPeer[] = Array.from(peerMap.entries())
-    .map(([id, p]) => ({
-      id,
-      initials: p.initials,
-      name: p.name,
-      color: p.color,
-      role: p.role,
-      firstWeek: p.firstWeek,
-      weeklyAppearances: Array.from(p.perWeek.entries())
-        .map(([weekNumber, count]) => ({ weekNumber, count }))
-        .sort((a, b) => a.weekNumber - b.weekNumber),
-    }))
+    .map(([id, p]) => {
+      // Dominant capability color across all contributions for this peer.
+      // Undefined when nothing tagged in-palette was touched (e.g. all
+      // contributions were on untagged or "Practice" fallback steps).
+      let dominantColor: string | undefined;
+      let dominantCount = 0;
+      for (const [color, count] of p.capabilityCounts) {
+        if (count > dominantCount) {
+          dominantColor = color;
+          dominantCount = count;
+        }
+      }
+      return {
+        id,
+        initials: p.initials,
+        name: p.name,
+        color: p.color,
+        capabilityColor: dominantColor,
+        role: p.role,
+        firstWeek: p.firstWeek,
+        weeklyAppearances: Array.from(p.perWeek.entries())
+          .map(([weekNumber, count]) => ({ weekNumber, count }))
+          .sort((a, b) => a.weekNumber - b.weekNumber),
+      };
+    })
     // Most-frequent peers first so the chart's vertical order is meaningful.
     .sort(
       (a, b) =>

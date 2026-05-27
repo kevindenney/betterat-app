@@ -116,6 +116,12 @@ export function PeerJourneyChart({
             );
           }
 
+          // Capability color encodes "what they shaped" — fall back to
+          // identity color when the capability isn't known (free-form
+          // suggestion, inbound suggestion whose source step we don't
+          // have locally, untagged step).
+          const dotColor = peer.capabilityColor ?? peer.color;
+
           // Solid hairline from firstX → current week so the "still aboard"
           // thread reads even when weekly dots are sparse.
           const endX = padX + Math.min(totalWeeks, currentWeekNumber) * colWidth;
@@ -126,7 +132,7 @@ export function PeerJourneyChart({
               x2={endX}
               y1={rowY}
               y2={rowY}
-              stroke={peer.color}
+              stroke={dotColor}
               strokeWidth={compact ? 0.8 : 1}
               opacity={compact ? 0.35 : 0.45}
             />,
@@ -144,7 +150,7 @@ export function PeerJourneyChart({
                 cx={cx}
                 cy={rowY}
                 r={radius}
-                fill={peer.color}
+                fill={dotColor}
                 opacity={0.95}
               />,
             );

@@ -240,8 +240,16 @@ export interface SeasonPeer {
    *  hover/tap detail on the chart. Initials alone aren't enough to
    *  identify a peer ("D" could be Diane / David / Demo). */
   name?: string;
-  /** Avatar bubble color. */
+  /** Avatar bubble color (identity — stable per peer regardless of
+   *  what they shaped). Used as the fallback when capabilityColor is
+   *  not known. */
   color: string;
+  /** Color of the dominant capability this peer touched across their
+   *  contributions in this arc. When set, the chart prefers this so
+   *  the eye can read "this person shaped Tactics" / "Sails" / etc.
+   *  Falls back to `color` (identity) when no in-scope capability is
+   *  known (free-form suggestions, untagged steps). */
+  capabilityColor?: string;
   /** "coach", "bow crew", "observer" — small italic role line. */
   role?: string;
   /** Week the peer first appeared in this season. */
