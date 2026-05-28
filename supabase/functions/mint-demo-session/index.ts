@@ -196,8 +196,14 @@ async function consumeDemoToken(req: Request, sb: ReturnType<typeof createClient
   }
 
   try {
-    const redirectTo = absoluteRedirect(row.redirect_to ?? persona.landingRoute);
-    const actionLink = await generateMagicLink(persona.email, redirectTo);
+    const landingPath = row.redirect_to ?? persona.landingRoute;
+    const absoluteRedirectTo = absoluteRedirect(landingPath);
+    const actionLink = await generateMagicLink(
+      persona.email,
+      absoluteRedirectTo,
+      row.persona_key,
+      landingPath,
+    );
     await sb
       .from('demo_session_audit')
       .update({ status: 'consumed', consumed_at: new Date().toISOString() })
@@ -213,7 +219,12 @@ async function consumeDemoToken(req: Request, sb: ReturnType<typeof createClient
   }
 }
 
-async function generateMagicLink(email: string, redirectTo: string): Promise<string> {
+async function generateMagicLink(
+  email: string,
+  redirectTo: string,
+  personaKey: string,
+  landingPath: string,
+): Promise<string> {
   const resp = await fetch(`${SUPABASE_URL}/auth/v1/admin/generate_link`, {
     method: 'POST',
     headers: {
@@ -226,7 +237,14 @@ async function generateMagicLink(email: string, redirectTo: string): Promise<str
       email,
       options: {
         redirect_to: redirectTo,
-        data: { demo_persona: true },
+        // app/index.tsx reads demo_persona_landing from user_metadata
+        // and routes there — works around the Supabase URL allowlist
+        // silently dropping paths it doesn't recognize.
+        data: {
+          demo_persona: true,
+          demo_persona_key: personaKey,
+          demo_persona_landing: landingPath,
+        },
       },
     }),
   });
