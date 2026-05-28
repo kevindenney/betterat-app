@@ -28,6 +28,9 @@ interface ObservationAnchor {
   id: string;
   title: string;
   state: 'forming' | 'forming-with-tension' | 'testing' | 'settled';
+  /** Number of step_concept_links rows pointing at this concept.
+   *  Powers the body copy ("0 evidence yet" vs "3 steps tested it"). */
+  evidenceCount: number;
 }
 
 export default function LibraryIndexScreen() {
@@ -39,17 +42,41 @@ export default function LibraryIndexScreen() {
   const { data: playbook } = usePlaybook(currentInterest?.id);
   const { data: concepts = [] } = useLifecycleConcepts(currentInterest?.id);
 
-  // Pick a real concept to anchor the librarian observation on. Prefer
-  // a non-settled one (still under exercise); fall back to any. The
-  // sample observation only renders when the user has no concepts yet.
+  // Pick a real concept to anchor the librarian observation on.
+  // Priority — the librarian's job is "what needs attention":
+  //   1. Forming, zero evidence — you said this matters but haven't
+  //      tested it. Highest priority.
+  //   2. Forming-with-tension, low evidence — you've promoted it but
+  //      it still needs more steps.
+  //   3. Testing, oldest by updated_at — under exercise but stalled.
+  //   4. Anything else (including settled) — last.
+  // Falls back to the sample observation only when the user has zero
+  // concepts.
   const observationAnchor = React.useMemo<ObservationAnchor | null>(() => {
-    const candidate =
-      concepts.find((c) => c.state !== 'settled') ?? concepts[0] ?? null;
-    if (!candidate) return null;
+    if (concepts.length === 0) return null;
+    const stateWeight: Record<string, number> = {
+      forming: 0,
+      'forming-with-tension': 1,
+      testing: 2,
+      settled: 3,
+    };
+    const ranked = [...concepts].sort((a, b) => {
+      const wa = stateWeight[a.state ?? 'forming'] ?? 4;
+      const wb = stateWeight[b.state ?? 'forming'] ?? 4;
+      if (wa !== wb) return wa - wb;
+      const ea = a.linked_step_count ?? 0;
+      const eb = b.linked_step_count ?? 0;
+      if (ea !== eb) return ea - eb;
+      const ta = a.updated_at ? new Date(a.updated_at).getTime() : 0;
+      const tb = b.updated_at ? new Date(b.updated_at).getTime() : 0;
+      return ta - tb;
+    });
+    const candidate = ranked[0];
     return {
       id: candidate.id,
       title: candidate.title ?? 'Untitled concept',
       state: candidate.state ?? 'forming',
+      evidenceCount: candidate.linked_step_count ?? 0,
     };
   }, [concepts]);
 
@@ -272,9 +299,14 @@ function buildObservationForConcept({
   onPromote: () => void;
   onAddEvidence: () => void;
 }): LibrarianObservation {
+  const stateClause = humanState(anchor.state);
+  const evidenceClause =
+    anchor.evidenceCount === 0
+      ? 'No steps have tested it yet.'
+      : `${anchor.evidenceCount} step${anchor.evidenceCount === 1 ? '' : 's'} tested it so far.`;
   return {
     id: `concept:${anchor.id}`,
-    body: `"${anchor.title}" is ${humanState(anchor.state)}. Attach a step that exercises or contradicts it to move it along.`,
+    body: `"${anchor.title}" is ${stateClause}. ${evidenceClause} Attach another step that exercises or contradicts it to move it along.`,
     emphasise: [anchor.title],
     concept: {
       id: anchor.id,
@@ -282,7 +314,10 @@ function buildObservationForConcept({
       state: anchor.state,
     },
     evidence: {
-      label: 'No evidence yet',
+      label:
+        anchor.evidenceCount === 0
+          ? 'No evidence yet'
+          : `${anchor.evidenceCount} evidence step${anchor.evidenceCount === 1 ? '' : 's'}`,
       date: '',
     },
     primaryAction: {
