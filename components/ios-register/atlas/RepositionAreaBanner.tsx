@@ -64,7 +64,7 @@ export function RepositionAreaBanner({
             accessibilityRole="button"
             accessibilityLabel="Cancel reposition"
           >
-            <Text style={styles.btnSecondaryText}>Cancel</Text>
+            <Text style={styles.btnSecondaryText}>Cancel · v3</Text>
           </Pressable>
         </View>
         <View style={styles.btnCol}>
