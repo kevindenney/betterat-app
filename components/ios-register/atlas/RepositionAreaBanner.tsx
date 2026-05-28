@@ -51,45 +51,49 @@ export function RepositionAreaBanner({
       </View>
 
       <View style={[styles.actionBar, { bottom: bottomOffset }]} pointerEvents="box-none">
-        <Pressable
-          onPress={onCancel}
-          disabled={saving}
-          style={({ pressed }) => [
-            styles.btn,
-            styles.btnSecondary,
-            pressed && { opacity: 0.7 },
-            saving && { opacity: 0.5 },
-          ]}
-          accessibilityRole="button"
-          accessibilityLabel="Cancel reposition"
-        >
-          <Text style={styles.btnSecondaryText}>Cancel</Text>
-        </Pressable>
-        <Pressable
-          onPress={onSave}
-          disabled={!hasMoved || saving}
-          style={({ pressed }) => [
-            styles.btn,
-            styles.btnPrimary,
-            (!hasMoved || saving) && styles.btnDisabled,
-            pressed && hasMoved && !saving && { opacity: 0.8 },
-          ]}
-          accessibilityRole="button"
-          accessibilityLabel="Save new position"
-        >
-          {saving ? (
-            <ActivityIndicator color="#FFFFFF" />
-          ) : (
-            <Text
-              style={[
-                styles.btnPrimaryText,
-                !hasMoved && styles.btnDisabledText,
-              ]}
-            >
-              {hasMoved ? 'Save position' : 'Tap the map…'}
-            </Text>
-          )}
-        </Pressable>
+        <View style={[styles.btnCol, styles.btnColLeft]}>
+          <Pressable
+            onPress={onCancel}
+            disabled={saving}
+            style={({ pressed }) => [
+              styles.btn,
+              styles.btnSecondary,
+              pressed && { opacity: 0.7 },
+              saving && { opacity: 0.5 },
+            ]}
+            accessibilityRole="button"
+            accessibilityLabel="Cancel reposition"
+          >
+            <Text style={styles.btnSecondaryText}>Cancel</Text>
+          </Pressable>
+        </View>
+        <View style={styles.btnCol}>
+          <Pressable
+            onPress={onSave}
+            disabled={!hasMoved || saving}
+            style={({ pressed }) => [
+              styles.btn,
+              styles.btnPrimary,
+              (!hasMoved || saving) && styles.btnDisabled,
+              pressed && hasMoved && !saving && { opacity: 0.8 },
+            ]}
+            accessibilityRole="button"
+            accessibilityLabel="Save new position"
+          >
+            {saving ? (
+              <ActivityIndicator color="#FFFFFF" />
+            ) : (
+              <Text
+                style={[
+                  styles.btnPrimaryText,
+                  !hasMoved && styles.btnDisabledText,
+                ]}
+              >
+                {hasMoved ? 'Save position' : 'Tap the map…'}
+              </Text>
+            )}
+          </Pressable>
+        </View>
       </View>
     </>
   );
@@ -130,7 +134,6 @@ const styles = StyleSheet.create({
     right: 12,
     zIndex: 1310,
     flexDirection: 'row',
-    gap: 10,
     backgroundColor: '#FFFFFF',
     padding: 10,
     borderRadius: 14,
@@ -139,8 +142,17 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     shadowOffset: { width: 0, height: 4 },
   },
-  btn: {
+  // Two equal-width slots with an explicit 10pt margin between them.
+  // RN `gap` was unreliable here — some bundles rendered only the
+  // first child as full width, hiding Save. Explicit columns force
+  // both Pressables to claim half the bar regardless.
+  btnCol: {
     flex: 1,
+  },
+  btnColLeft: {
+    marginRight: 10,
+  },
+  btn: {
     height: 44,
     borderRadius: 10,
     alignItems: 'center',
