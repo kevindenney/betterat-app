@@ -139,9 +139,14 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, 
   // straight to the Cohort scope (used by the Watch stream and
   // cohort_discussion_post notification taps). Anything else falls
   // through to the default Private scope.
+  //
+  // scope=cohort implicitly also forces the active tab to Discussion
+  // — landing on Do/Plan and making the user hunt for the thread
+  // they were just told about defeats the deep-link.
   const routeParams = useLocalSearchParams<{ scope?: string }>();
   const initialDiscussionScope: 'private' | 'cohort' =
     routeParams?.scope === 'cohort' ? 'cohort' : 'private';
+  const routeForcesDiscussionTab = routeParams?.scope === 'cohort';
 
   const { data: step, isLoading, error } = useStepDetail(stepId);
   // Loaded for Section H StepCombinatorsRow's "N related" count. React
@@ -291,8 +296,10 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, 
 
   // Default tab based on step status
   const defaultTab = useMemo(
-    () => initialTab ?? getDefaultTab(step?.status),
-    [initialTab, step?.status],
+    () =>
+      (routeForcesDiscussionTab ? 'discussion' : initialTab)
+      ?? getDefaultTab(step?.status),
+    [routeForcesDiscussionTab, initialTab, step?.status],
   );
   const [activeTab, setActiveTab] = usePillTabs<TabValue>(defaultTab);
   const didApplyLoadedStatusDefaultRef = useRef(false);
@@ -303,12 +310,17 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, 
   // usePillTabs initializes while `step` is still undefined, the surface can
   // get stuck on Plan even when the loaded step is already in progress. Apply
   // the status-derived default exactly once after data arrives, unless the
-  // caller explicitly requested an initial tab.
+  // caller explicitly requested an initial tab (or the URL forces one).
   useEffect(() => {
-    if (initialTab || didApplyLoadedStatusDefaultRef.current || !step?.status) return;
+    if (
+      initialTab ||
+      routeForcesDiscussionTab ||
+      didApplyLoadedStatusDefaultRef.current ||
+      !step?.status
+    ) return;
     didApplyLoadedStatusDefaultRef.current = true;
     setActiveTab(getDefaultTab(step.status));
-  }, [initialTab, setActiveTab, step?.status]);
+  }, [initialTab, routeForcesDiscussionTab, setActiveTab, step?.status]);
   // Switch the active tab to Discussion (4th tab). The fullscreen
   // /practice/step/[id]/discussion route stays available but the peek now
   // surfaces the discussion inline next to Plan/Do/Reflect. Declared here
