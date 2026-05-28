@@ -108,7 +108,7 @@ export const DEMO_PERSONAS: DemoPersona[] = [
     initial: 'S',
     avatarColor: '#3155B5',
     landingRoute: '/admin/johns-hopkins-school-of-nursing/overview',
-    available: false, // pending seed (Wave 1 Codex item)
+    available: true,
   },
   {
     key: 'patricia',
@@ -143,7 +143,7 @@ export const DEMO_PERSONAS: DemoPersona[] = [
     initial: 'F',
     avatarColor: '#A05A2C',
     landingRoute: '/admin/pradan-khunti/overview',
-    available: false, // pending seed (Wave 1 Codex item)
+    available: true,
   },
   {
     key: 'savitri',

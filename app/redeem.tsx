@@ -140,7 +140,7 @@ export default function RedeemScreen() {
           <View style={styles.heroCopy}>
             <Text style={styles.eyebrow}>
               <Text style={[styles.swatch, signedOut ? null : styles.swatchGreen]}> </Text>
-              {signedOut ? ' Dragon Worlds 2027 - Hong Kong' : ' Signed in - Dragon Worlds 2027'}
+              {signedOut ? ' Worlds 2027 · Hong Kong · November 2026' : ' Signed in · Worlds 2027'}
             </Text>
             <Text style={[styles.title, isDesktop && styles.titleDesktop]}>
               {signedOut ? (
@@ -152,7 +152,7 @@ export default function RedeemScreen() {
             <Text style={styles.subtitle}>
               {signedOut
                 ? "Follow Kevin Denney's preparation blueprint. Plan, do, reflect - together with the fleet."
-                : "Follow Kevin's Dragon Worlds 2027 prep blueprint? You will get all fourteen steps on your Plan tab, and Kevin will see your reflections."}
+                : "Follow Kevin's Worlds 2027 · November 2026 prep blueprint? You will get all fourteen steps on your Plan tab, and Kevin will see your reflections."}
             </Text>
 
             <View style={styles.ctaStack}>
@@ -189,7 +189,7 @@ export default function RedeemScreen() {
 
             {signedOut && (
               <View style={styles.secondaryCtaCard}>
-                <Text style={styles.secondaryCtaTitle}>Not racing in Dragon Worlds 2027?</Text>
+                <Text style={styles.secondaryCtaTitle}>Not racing in Worlds 2027?</Text>
                 <Text style={styles.secondaryCtaBody}>
                   BetterAt works for any hard thing you're getting better at - drawing, nursing,
                   fitness, anything. Same Plan/Do/Reflect loop, just pick your own interest in setup.
@@ -225,7 +225,7 @@ export default function RedeemScreen() {
               <View style={styles.sailShapeOne} />
               <View style={styles.sailShapeTwo} />
               <Text style={styles.sailCaption}>
-                Dragon Worlds 2027 prep blueprint
+                Worlds 2027 · November 2026 prep blueprint
               </Text>
             </View>
           ) : (

@@ -16,15 +16,11 @@
  *         ARRAY['owner','admin','manager','faculty','instructor']) AND
  *         target is an active member of org_id.
  *
- * Both RPCs are SECURITY DEFINER. When neither is callable (no
- * relationship, target hasn't opted in), the RPC returns no rows and
- * we surface a typed PortfolioAccessDeniedError so the page can render
- * a "private portfolio" state.
- *
- * Codex ships the RPCs in Wave 1 (backend slice). Until they exist,
- * supabase.rpc throws "function not found"; we surface that as
- * PortfolioRpcUnavailableError so the page renders an explanation
- * rather than a crash.
+ * Both RPCs are SECURITY DEFINER. The RPCs return a FLAT jsonb shape
+ * (profile + interests[] + organizations[] + plans[] + recent_activity[]);
+ * this service reshapes that into the per-interest grouped MemberPortfolio
+ * the UI renders. Access denials raise typed exceptions so the page
+ * can render a "private portfolio" state instead of a generic failure.
  */
 
 import { supabase } from '@/services/supabase';
@@ -45,7 +41,7 @@ export interface PortfolioInterest {
   interestSlug: string | null;
   /** Display name — "Nursing", "Sail Racing", "Lac craft business". */
   interestName: string;
-  /** Hex accent color. */
+  /** Hex accent color, looked up from a small per-slug table. */
   accentColor: string;
   /** Active plan, if one exists for this interest. */
   activePlan: PortfolioPlan | null;
@@ -64,7 +60,8 @@ export interface PortfolioPlan {
   status: 'active' | 'paused' | 'completed' | 'abandoned';
   /** Up to 3 most-recent step previews so the card has a pulse. */
   recentSteps: PortfolioStepPreview[];
-  /** Latest cohort thread activity, when this plan has a blueprint. */
+  /** Latest cohort thread activity. Reserved for a follow-up RPC; for
+   *  now always null. */
   cohortPeek: PortfolioCohortPeek | null;
 }
 
@@ -76,9 +73,7 @@ export interface PortfolioStepPreview {
 }
 
 export interface PortfolioCohortPeek {
-  /** How many other plan-members have posted in the cohort thread. */
   cohortSize: number;
-  /** Most recent post author (excluding the target user themselves). */
   latestPostBy: string | null;
   latestPostAt: string | null;
   totalPosts: number;
@@ -107,149 +102,292 @@ export class PortfolioRpcUnavailableError extends Error {
   }
 }
 
-interface RawPortfolioRow {
-  user: {
-    id: string;
-    full_name: string | null;
-    first_name: string | null;
-    last_name: string | null;
-    avatar_url: string | null;
-    bio: string | null;
-    profile_public: boolean | null;
+// ─── Raw RPC shape (what Codex's RPCs actually return) ───────────────
+
+interface RawPortfolioProfile {
+  id: string;
+  email: string | null;
+  full_name: string | null;
+  avatar_url: string | null;
+  profile_public: boolean | null;
+  portfolio_public_opt_in: boolean | null;
+}
+
+interface RawInterestMembership {
+  id: string;
+  slug: string | null;
+  name: string;
+  added_at: string;
+}
+
+interface RawOrgMembership {
+  id: string;
+  name: string;
+  slug: string | null;
+  interest_slug: string | null;
+  role: string | null;
+}
+
+interface RawPlan {
+  id: string;
+  title: string | null;
+  vision_statement: string | null;
+  status: string;
+  started_at: string;
+  ended_at: string | null;
+  interest_id: string | null;
+  interest_slug: string | null;
+}
+
+interface RawActivity {
+  id: string;
+  title: string | null;
+  status: string | null;
+  updated_at: string;
+  interest_id: string | null;
+  interest_slug: string | null;
+}
+
+interface RawPortfolioFull {
+  scope: 'full';
+  target_user_id: string;
+  profile: RawPortfolioProfile;
+  interests: RawInterestMembership[];
+  organizations: RawOrgMembership[];
+  plans: RawPlan[];
+  recent_activity: RawActivity[];
+}
+
+interface RawPortfolioOrgScoped {
+  scope: 'org';
+  target_user_id: string;
+  org_id: string;
+  profile: RawPortfolioProfile;
+  organization: { id: string; name: string; slug: string | null; interest_slug: string | null };
+  cohorts: { id: string; name: string; role: string | null; joined_at: string }[];
+  plans: RawPlan[];
+  recent_activity: RawActivity[];
+}
+
+// ─── Helpers ──────────────────────────────────────────────────────────
+
+const INTEREST_ACCENTS: Record<string, string> = {
+  'sail-racing': '#2F8FB0',
+  'sailing': '#2F8FB0',
+  'nursing': '#3155B5',
+  'jhu-nursing': '#3155B5',
+  'lac-craft-business': '#A05A2C',
+  'india-shg': '#A05A2C',
+  'micro-business': '#A05A2C',
+  'golf': '#0A6A56',
+  'drawing': '#9333EA',
+  'running': '#DC2626',
+};
+
+const STATUS_LABEL: Record<string, string> = {
+  planning: 'Plan',
+  planned: 'Plan',
+  in_progress: 'Doing',
+  doing: 'Doing',
+  reflected: 'Reflected',
+  reflect: 'Reflect',
+  completed: 'Done',
+  done: 'Done',
+  pending: 'Plan',
+  archived: 'Archived',
+  paused: 'Paused',
+};
+
+function deriveInitial(fullName: string | null): string {
+  const trimmed = fullName?.trim() ?? '';
+  return trimmed.charAt(0).toUpperCase() || '?';
+}
+
+function deriveDisplayName(profile: RawPortfolioProfile): string {
+  return (
+    profile.full_name?.trim() ||
+    profile.email?.split('@')[0] ||
+    'Member'
+  );
+}
+
+function accentFor(interestSlug: string | null | undefined): string {
+  if (!interestSlug) return '#94A3B8';
+  return INTEREST_ACCENTS[interestSlug] ?? '#94A3B8';
+}
+
+function statusLabelFor(status: string | null): string {
+  if (!status) return 'Plan';
+  return STATUS_LABEL[status.toLowerCase()] ?? status.charAt(0).toUpperCase() + status.slice(1);
+}
+
+function planStatus(raw: string): PortfolioPlan['status'] {
+  if (raw === 'active' || raw === 'paused' || raw === 'completed' || raw === 'abandoned') {
+    return raw;
+  }
+  return 'active';
+}
+
+function buildUser(profile: RawPortfolioProfile): PortfolioUser {
+  return {
+    id: profile.id,
+    displayName: deriveDisplayName(profile),
+    initial: deriveInitial(profile.full_name),
+    avatarUrl: profile.avatar_url,
+    bio: null,
+    profilePublic: Boolean(profile.profile_public),
   };
-  interests: {
-    interest_id: string;
-    interest_slug: string | null;
-    interest_name: string;
-    accent_color: string | null;
-    active_plan: {
-      id: string;
-      title: string | null;
-      vision_statement: string | null;
-      started_at: string;
-      ended_at: string | null;
-      status: string;
-      recent_steps: {
-        id: string;
-        title: string;
-        status_label: string;
-        updated_at: string;
-      }[];
-      cohort_peek: {
-        cohort_size: number;
-        latest_post_by: string | null;
-        latest_post_at: string | null;
-        total_posts: number;
-      } | null;
-    } | null;
-    total_plans: number;
-    total_steps: number;
-  }[];
+}
+
+interface InterestSlot {
+  interestId: string;
+  interestSlug: string | null;
+  interestName: string;
+}
+
+/**
+ * Group flat plans + activity arrays into per-interest cards. Picks
+ * the active plan (or most-recently-started if multiple) per interest
+ * and attaches up to 3 most-recent activity rows from that interest.
+ */
+function buildInterestCards(
+  interestSlots: InterestSlot[],
+  plans: RawPlan[],
+  activity: RawActivity[],
+): PortfolioInterest[] {
+  // Bucket plans by interest_id (fallback to interest_slug when the
+  // backend didn't resolve an id but did set a slug).
+  const plansByInterest = new Map<string, RawPlan[]>();
+  for (const p of plans) {
+    const key = p.interest_id ?? p.interest_slug ?? '__none__';
+    const list = plansByInterest.get(key) ?? [];
+    list.push(p);
+    plansByInterest.set(key, list);
+  }
+  const activityByInterest = new Map<string, RawActivity[]>();
+  for (const a of activity) {
+    const key = a.interest_id ?? a.interest_slug ?? '__none__';
+    const list = activityByInterest.get(key) ?? [];
+    list.push(a);
+    activityByInterest.set(key, list);
+  }
+
+  // Seed cards from the interest membership list; tack on any plan
+  // buckets whose interest doesn't appear in the membership list (rare
+  // edge case — plan still attributes to an interest the user dropped).
+  const seenKeys = new Set<string>();
+  const cards: PortfolioInterest[] = interestSlots.map((slot) => {
+    const key = slot.interestId;
+    seenKeys.add(key);
+    const interestPlans = plansByInterest.get(key) ?? [];
+    const interestActivity = activityByInterest.get(key) ?? [];
+    const active =
+      interestPlans
+        .filter((p) => p.status === 'active')
+        .sort((a, b) => b.started_at.localeCompare(a.started_at))[0]
+      ?? interestPlans.sort((a, b) => b.started_at.localeCompare(a.started_at))[0]
+      ?? null;
+    return {
+      interestId: slot.interestId,
+      interestSlug: slot.interestSlug,
+      interestName: slot.interestName,
+      accentColor: accentFor(slot.interestSlug),
+      totalPlans: interestPlans.length,
+      totalSteps: interestActivity.length,
+      activePlan: active
+        ? {
+            id: active.id,
+            title: active.title,
+            visionStatement: active.vision_statement,
+            startedAt: active.started_at,
+            endedAt: active.ended_at,
+            status: planStatus(active.status),
+            recentSteps: interestActivity
+              .sort((a, b) => b.updated_at.localeCompare(a.updated_at))
+              .slice(0, 3)
+              .map((step) => ({
+                id: step.id,
+                title: step.title ?? 'Untitled step',
+                statusLabel: statusLabelFor(step.status),
+                updatedAt: step.updated_at,
+              })),
+            cohortPeek: null,
+          }
+        : null,
+    };
+  });
+
+  return cards;
+}
+
+function mapFullPortfolio(raw: RawPortfolioFull): MemberPortfolio {
+  const slots: InterestSlot[] = raw.interests.map((i) => ({
+    interestId: i.id,
+    interestSlug: i.slug,
+    interestName: i.name,
+  }));
+  return {
+    user: buildUser(raw.profile),
+    interests: buildInterestCards(slots, raw.plans, raw.recent_activity),
+  };
+}
+
+function mapOrgScopedPortfolio(raw: RawPortfolioOrgScoped): MemberPortfolio {
+  // Org-scoped view collapses to a single interest slot (the org's own
+  // interest). The page still renders the per-interest card layout —
+  // there's just one card.
+  const slots: InterestSlot[] = raw.organization.interest_slug
+    ? [
+        {
+          interestId: raw.organization.interest_slug,
+          interestSlug: raw.organization.interest_slug,
+          interestName: raw.organization.name,
+        },
+      ]
+    : [];
+  return {
+    user: buildUser(raw.profile),
+    interests: buildInterestCards(slots, raw.plans, raw.recent_activity),
+  };
 }
 
 function isFunctionNotFound(error: { message?: string; code?: string }): boolean {
   const msg = error.message?.toLowerCase() ?? '';
   return (
-    error.code === 'PGRST202' || // PostgREST: not found
+    error.code === 'PGRST202' ||
     msg.includes('does not exist') ||
-    msg.includes('not found')
+    msg.includes('not found') ||
+    msg.includes('schema cache')
   );
 }
 
-function deriveInitial(
-  full: string | null,
-  first: string | null,
-  last: string | null,
-): string {
-  const candidate =
-    full?.trim().charAt(0) ||
-    first?.trim().charAt(0) ||
-    last?.trim().charAt(0) ||
-    '?';
-  return candidate.toUpperCase();
-}
-
-function deriveDisplayName(
-  full: string | null,
-  first: string | null,
-  last: string | null,
-): string {
-  const trimmed = full?.trim();
-  if (trimmed) return trimmed;
-  const joined = [first, last]
-    .filter((s): s is string => Boolean(s && s.trim()))
-    .join(' ')
-    .trim();
-  return joined || 'Member';
-}
-
-function mapRowToPortfolio(row: RawPortfolioRow): MemberPortfolio {
-  return {
-    user: {
-      id: row.user.id,
-      displayName: deriveDisplayName(
-        row.user.full_name,
-        row.user.first_name,
-        row.user.last_name,
-      ),
-      initial: deriveInitial(
-        row.user.full_name,
-        row.user.first_name,
-        row.user.last_name,
-      ),
-      avatarUrl: row.user.avatar_url,
-      bio: row.user.bio,
-      profilePublic: Boolean(row.user.profile_public),
-    },
-    interests: row.interests.map((i) => ({
-      interestId: i.interest_id,
-      interestSlug: i.interest_slug,
-      interestName: i.interest_name,
-      accentColor: i.accent_color ?? '#94A3B8',
-      totalPlans: i.total_plans,
-      totalSteps: i.total_steps,
-      activePlan: i.active_plan
-        ? {
-            id: i.active_plan.id,
-            title: i.active_plan.title,
-            visionStatement: i.active_plan.vision_statement,
-            startedAt: i.active_plan.started_at,
-            endedAt: i.active_plan.ended_at,
-            status: (i.active_plan.status as PortfolioPlan['status']) ?? 'active',
-            recentSteps: i.active_plan.recent_steps.map((s) => ({
-              id: s.id,
-              title: s.title,
-              statusLabel: s.status_label,
-              updatedAt: s.updated_at,
-            })),
-            cohortPeek: i.active_plan.cohort_peek
-              ? {
-                  cohortSize: i.active_plan.cohort_peek.cohort_size,
-                  latestPostBy: i.active_plan.cohort_peek.latest_post_by,
-                  latestPostAt: i.active_plan.cohort_peek.latest_post_at,
-                  totalPosts: i.active_plan.cohort_peek.total_posts,
-                }
-              : null,
-          }
-        : null,
-    })),
-  };
+function isAccessDenied(error: { message?: string; code?: string }): boolean {
+  const msg = error.message?.toLowerCase() ?? '';
+  return (
+    error.code === '42501' ||
+    msg.includes('insufficient_privilege') ||
+    msg.includes('not authorized') ||
+    msg.includes('not public')
+  );
 }
 
 export async function fetchMemberPortfolioFull(
   targetUserId: string,
 ): Promise<MemberPortfolio> {
   const { data, error } = await supabase.rpc('get_member_portfolio_full', {
-    p_target_user_id: targetUserId,
+    target_user_id: targetUserId,
   });
   if (error) {
     if (isFunctionNotFound(error as { message?: string; code?: string })) {
       throw new PortfolioRpcUnavailableError();
     }
+    if (isAccessDenied(error as { message?: string; code?: string })) {
+      throw new PortfolioAccessDeniedError();
+    }
     throw new Error(error.message || 'Failed to load portfolio');
   }
   if (!data) throw new PortfolioAccessDeniedError();
-  return mapRowToPortfolio(data as RawPortfolioRow);
+  return mapFullPortfolio(data as RawPortfolioFull);
 }
 
 export async function fetchMemberPortfolioOrgScoped(
@@ -257,15 +395,18 @@ export async function fetchMemberPortfolioOrgScoped(
   orgId: string,
 ): Promise<MemberPortfolio> {
   const { data, error } = await supabase.rpc('get_member_portfolio_org_scoped', {
-    p_target_user_id: targetUserId,
-    p_org_id: orgId,
+    target_user_id: targetUserId,
+    org_id: orgId,
   });
   if (error) {
     if (isFunctionNotFound(error as { message?: string; code?: string })) {
       throw new PortfolioRpcUnavailableError();
     }
+    if (isAccessDenied(error as { message?: string; code?: string })) {
+      throw new PortfolioAccessDeniedError();
+    }
     throw new Error(error.message || 'Failed to load org-scoped portfolio');
   }
   if (!data) throw new PortfolioAccessDeniedError();
-  return mapRowToPortfolio(data as RawPortfolioRow);
+  return mapOrgScopedPortfolio(data as RawPortfolioOrgScoped);
 }

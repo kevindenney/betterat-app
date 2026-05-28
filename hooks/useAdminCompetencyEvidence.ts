@@ -3,9 +3,10 @@
  * dean's "show me where competency-X is being evidenced" view.
  *
  * Real data path:
- *   admin_competency_evidence_counts(p_org_id) → (competency_id, poi_id,
- *   student_count). Function returns only non-empty cells; we fill the
- *   rest with zeros. No pseudo fallback once an org has any real evidence.
+ *   admin_competency_evidence_counts(p_org_id, p_cohort_id) →
+ *   (competency_id, poi_id, student_count). Function returns only non-empty
+ *   cells; we fill the rest with zeros. No pseudo fallback once an org has
+ *   any real evidence.
  *
  * Each cell carries: count of cohort members with evidence + a 0..1
  * intensity so the heatmap colors render consistently. The dean tells
@@ -84,7 +85,10 @@ function pseudoCount(competencyId: string, siteId: string, max: number): number 
   return Math.floor((h % 100) / 100 * max);
 }
 
-export function useAdminCompetencyEvidence(orgId: string): AdminCompetencyEvidenceData {
+export function useAdminCompetencyEvidence(
+  orgId: string,
+  cohortId?: string | null,
+): AdminCompetencyEvidenceData {
   const sites = useAdminOrgSites(orgId);
   const cohorts = useAdminCohorts(orgId);
 
@@ -139,12 +143,13 @@ export function useAdminCompetencyEvidence(orgId: string): AdminCompetencyEviden
   // we hydrate a lookup map and fall back to 0 (not pseudo) when present.
   type EvidenceCountRow = { competency_id: string; poi_id: string; student_count: number };
   const { data: realCells = [] } = useQuery({
-    queryKey: ['admin-competency-evidence-counts', orgId],
+    queryKey: ['admin-competency-evidence-counts', orgId, cohortId ?? null],
     enabled: !!orgId,
     staleTime: 60_000,
     queryFn: async (): Promise<EvidenceCountRow[]> => {
       const { data, error } = await supabase.rpc('admin_competency_evidence_counts', {
         p_org_id: orgId,
+        p_cohort_id: cohortId ?? null,
       });
       if (error) {
         console.warn('[useAdminCompetencyEvidence] counts RPC failed', error);
