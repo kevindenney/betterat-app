@@ -19,6 +19,30 @@ import { useSubscribedBlueprints } from '@/hooks/useBlueprint';
 
 export default function LibraryIndexScreen() {
   const [inspirationWizardOpen, setInspirationWizardOpen] = React.useState(false);
+  const [observationDismissed, setObservationDismissed] = React.useState(false);
+  const toast = useToast();
+
+  // Librarian strip + noticed card live above the All zone (canonical
+  // §2 rev — Librarian was previously the top of Concepts; user moved
+  // it to All so it surfaces on the default landing).
+  const librarianSlot = (
+    <LibrarianSlot
+      observationDismissed={observationDismissed}
+      onDismissObservation={() => setObservationDismissed(true)}
+      onPromote={() =>
+        toast.show(
+          'Promote needs corpus wiring · the librarian can\'t yet rewrite concepts',
+          'info',
+        )
+      }
+      onAddEvidence={() =>
+        toast.show(
+          'Add evidence needs corpus wiring · attach drill coming with reflect-tab',
+          'info',
+        )
+      }
+    />
+  );
 
   // Pick the Concepts-zone body based on existing feature flags. Wave 1
   // wraps it with the segmented zone header; Wave 2 will replace each
@@ -36,11 +60,44 @@ export default function LibraryIndexScreen() {
 
   return (
     <>
-      <LibraryLanding conceptsBody={conceptsBody} />
+      <LibraryLanding conceptsBody={conceptsBody} librarianSlot={librarianSlot} />
       <InspirationWizard
         visible={inspirationWizardOpen}
         onClose={() => setInspirationWizardOpen(false)}
       />
+    </>
+  );
+}
+
+function LibrarianSlot({
+  observationDismissed,
+  onDismissObservation,
+  onPromote,
+  onAddEvidence,
+}: {
+  observationDismissed: boolean;
+  onDismissObservation: () => void;
+  onPromote: () => void;
+  onAddEvidence: () => void;
+}) {
+  const observation: LibrarianObservation | null = observationDismissed
+    ? null
+    : buildSampleObservation({
+        onDismiss: onDismissObservation,
+        onPromote,
+        onAddEvidence,
+      });
+  return (
+    <>
+      <LibrarianStrip
+        onAsk={(seedQuery) =>
+          router.push({
+            pathname: '/(tabs)/library/ask',
+            params: seedQuery ? { q: seedQuery } : {},
+          } as any)
+        }
+      />
+      {observation ? <LibrarianNoticedCard observation={observation} /> : null}
     </>
   );
 }
@@ -61,23 +118,6 @@ function Phase6PlaybookLanding() {
   const discardInsight = useDiscardPlaybookInsight(currentInterest?.id);
   const refineInsight = useRefinePlaybookInsight(currentInterest?.id, playbook?.id);
   const phase6UnavailableMessage = insightsError?.message ?? conceptsError?.message ?? null;
-  const [observationDismissed, setObservationDismissed] = React.useState(false);
-
-  const observation: LibrarianObservation | null = observationDismissed
-    ? null
-    : buildSampleObservation({
-        onDismiss: () => setObservationDismissed(true),
-        onPromote: () =>
-          toast.show(
-            'Promote needs corpus wiring · the librarian can\'t yet rewrite concepts',
-            'info',
-          ),
-        onAddEvidence: () =>
-          toast.show(
-            'Add evidence needs corpus wiring · attach drill coming with reflect-tab',
-            'info',
-          ),
-      });
 
   if (phase6UnavailableMessage) {
     return (
@@ -123,19 +163,6 @@ function Phase6PlaybookLanding() {
         toast.show('Insight discarded', 'info');
       }}
       onOpenConcept={(conceptId) => router.push(`/(tabs)/library/concept/${conceptId}` as any)}
-      librarianStrip={
-        <LibrarianStrip
-          onAsk={(seedQuery) =>
-            router.push({
-              pathname: '/(tabs)/library/ask',
-              params: seedQuery ? { q: seedQuery } : {},
-            } as any)
-          }
-        />
-      }
-      librarianNoticed={
-        observation ? <LibrarianNoticedCard observation={observation} /> : null
-      }
     />
   );
 }

@@ -12,14 +12,18 @@
  * the segmented strip.
  */
 
-import React, { useCallback, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import React, { useCallback, useMemo, useState } from 'react';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
+import { LocationAnchor } from '@/components/ui/LocationAnchor';
 import { TabScreenToolbar } from '@/components/ui/TabScreenToolbar';
+import { useUserHomeVenue } from '@/hooks/useUserHomeVenue';
 import { IOSSegmentedControl } from '@/components/ui/ios/IOSSegmentedControl';
 import { FLOATING_TAB_BAR_HEIGHT } from '@/components/navigation/FloatingTabBar';
+import { WORKSHOP_CATEGORIES } from '@/components/betterat/mockProductLoopData';
 import { AllZone } from '@/components/library/zones/AllZone';
 import { PlansZone } from '@/components/library/zones/PlansZone';
 import { PeopleZone } from '@/components/library/zones/PeopleZone';
@@ -43,10 +47,14 @@ const SEGMENT_ZONES: { value: LibraryZone; label: string }[] = [
 interface Props {
   /** Renders the Concepts zone body (Phase 6 PlaybookLanding variants). */
   conceptsBody: React.ReactNode;
+  /** Renders above AllZone — the Librarian ask-strip + noticed card.
+   * Optional so non-Phase-6 builds still work. */
+  librarianSlot?: React.ReactNode;
 }
 
-export function LibraryLanding({ conceptsBody }: Props) {
+export function LibraryLanding({ conceptsBody, librarianSlot }: Props) {
   const insets = useSafeAreaInsets();
+  const homeVenue = useUserHomeVenue();
   const params = useLocalSearchParams<{ zone?: string }>();
   const rawZone = Array.isArray(params.zone) ? params.zone[0] : params.zone;
   const zone: LibraryZone =
@@ -65,6 +73,42 @@ export function LibraryLanding({ conceptsBody }: Props) {
   const handleZoneChange = useCallback((next: LibraryZone) => {
     router.setParams({ zone: next === 'all' ? '' : next });
   }, []);
+
+  const workshopCategories = useMemo(
+    () =>
+      WORKSHOP_CATEGORIES.map((category) => ({
+        ...category,
+        onPress: () => {
+          switch (category.target) {
+            case 'practice':
+            case 'saved-steps':
+              router.push('/practice/create' as never);
+              break;
+            case 'plans':
+              handleZoneChange('plans');
+              break;
+            case 'resources':
+              handleZoneChange('resources');
+              break;
+            case 'concepts':
+              handleZoneChange('concepts');
+              break;
+            case 'network':
+              handleZoneChange('people');
+              break;
+            case 'organizations':
+              router.push('/(tabs)/discover?category=organizations' as never);
+              break;
+            case 'blueprints':
+              router.push('/(tabs)/library/blueprints' as never);
+              break;
+            default:
+              break;
+          }
+        },
+      })),
+    [handleZoneChange],
+  );
 
   // Per canonical the count renders inline with the label as a quiet
   // suffix ("Plans 3"), not the coral notification badge IOSSegmentedControl
@@ -90,8 +134,58 @@ export function LibraryLanding({ conceptsBody }: Props) {
           },
         ]}
       >
+        <View style={styles.heroCard}>
+          <Text style={styles.heroTitle}>Library</Text>
+          <Text style={styles.lede}>
+            Your library for turning plans, resources, concepts, and people into real-world steps.
+          </Text>
+          <Text style={styles.supportingCopy}>
+            Save resources, shape concepts, follow people, and prepare your next step in{' '}
+            <Text style={styles.ledeEm}>{interestName}</Text>.
+          </Text>
+          <View style={styles.heroActions}>
+            <Pressable
+              onPress={() => router.push('/practice/create' as never)}
+              style={[styles.heroButton, styles.heroButtonPrimary]}
+            >
+              <Ionicons name="checkmark-circle-outline" size={16} color="#FFFFFF" />
+              <Text style={styles.heroButtonPrimaryText}>Add to Practice</Text>
+            </Pressable>
+            <Pressable
+              onPress={() => setCaptureOpen(true)}
+              style={[styles.heroButton, styles.heroButtonSecondary]}
+            >
+              <Ionicons name="add-outline" size={16} color={IOS_COLORS.label} />
+              <Text style={styles.heroButtonSecondaryText}>Capture for Library</Text>
+            </Pressable>
+          </View>
+          <View style={styles.categoryGrid}>
+            {workshopCategories.map((category) => (
+              <Pressable
+                key={category.id}
+                onPress={category.onPress}
+                style={styles.categoryCard}
+              >
+                <View style={styles.categoryIcon}>
+                  <Ionicons name={category.icon as any} size={16} color={IOS_COLORS.systemBlue} />
+                </View>
+                <Text style={styles.categoryTitle}>{category.title}</Text>
+                <Text style={styles.categoryDescription}>{category.description}</Text>
+              </Pressable>
+            ))}
+          </View>
+          <IOSSegmentedControl
+            segments={segments}
+            selectedValue={zone === 'people' ? 'all' : zone}
+            onValueChange={(v) => handleZoneChange(v as LibraryZone)}
+          />
+        </View>
+
         {zone === 'all' ? (
-          <AllZone counts={counts} onJumpToZone={handleZoneChange} />
+          <>
+            {librarianSlot}
+            <AllZone counts={counts} onJumpToZone={handleZoneChange} />
+          </>
         ) : zone === 'plans' ? (
           <PlansZone />
         ) : zone === 'people' ? (
@@ -109,7 +203,7 @@ export function LibraryLanding({ conceptsBody }: Props) {
           one chunk per canonical §2 — not as three independent floating
           elements on the gray background. */}
       <TabScreenToolbar
-        interestSwitcherLeft
+        subtitleContent={<LocationAnchor region={homeVenue?.region} venue={homeVenue?.venue} />}
         topInset={insets.top}
         actions={[
           {
@@ -122,27 +216,12 @@ export function LibraryLanding({ conceptsBody }: Props) {
             icon: 'add-outline',
             sfSymbol: 'plus',
             label: 'Add to library',
-            // The Library tab's + opens the library capture (link / paste /
-            // upload / photo), NOT the universal step-capture sheet — the
-            // user is in a library context, not a "draft a step" context.
             onPress: () => setCaptureOpen(true),
           },
         ]}
         onMeasuredHeight={setToolbarHeight}
         backgroundColor="rgba(242, 242, 247, 0.94)"
-      >
-        <View style={styles.heroCard}>
-          <Text style={styles.heroTitle}>Library</Text>
-          <Text style={styles.lede}>
-            Your understanding of <Text style={styles.ledeEm}>{interestName}</Text> — refined.
-          </Text>
-          <IOSSegmentedControl
-            segments={segments}
-            selectedValue={zone === 'people' ? 'all' : zone}
-            onValueChange={(v) => handleZoneChange(v as LibraryZone)}
-          />
-        </View>
-      </TabScreenToolbar>
+      />
 
       <CaptureSheet
         visible={captureOpen}
@@ -199,11 +278,78 @@ const styles = StyleSheet.create({
     color: IOS_COLORS.label,
   },
   lede: {
+    fontSize: 14,
+    lineHeight: 20,
+    color: IOS_COLORS.label,
+  },
+  supportingCopy: {
     fontSize: 13,
     lineHeight: 18,
     color: IOS_COLORS.secondaryLabel,
   },
   ledeEm: {
     fontStyle: 'italic',
+  },
+  heroActions: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  heroButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    borderRadius: 999,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+  },
+  heroButtonPrimary: {
+    backgroundColor: IOS_COLORS.systemBlue,
+  },
+  heroButtonSecondary: {
+    backgroundColor: IOS_COLORS.secondarySystemGroupedBackground,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(60,60,67,0.18)',
+  },
+  heroButtonPrimaryText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  heroButtonSecondaryText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: IOS_COLORS.label,
+  },
+  categoryGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+  },
+  categoryCard: {
+    width: '48%',
+    borderRadius: 16,
+    padding: 12,
+    backgroundColor: IOS_COLORS.secondarySystemGroupedBackground,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(60,60,67,0.15)',
+    gap: 6,
+  },
+  categoryIcon: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(0, 122, 255, 0.12)',
+  },
+  categoryTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: IOS_COLORS.label,
+  },
+  categoryDescription: {
+    fontSize: 12,
+    lineHeight: 17,
+    color: IOS_COLORS.secondaryLabel,
   },
 });
