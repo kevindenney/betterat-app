@@ -1,6 +1,7 @@
 import React from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/providers/AuthProvider';
 import { useBlueprintSubscribers, useBlueprintCoSubscriberProgress, useBlueprintWithAuthor } from '@/hooks/useBlueprint';
@@ -24,35 +25,45 @@ function initials(name?: string | null) {
     .join('');
 }
 
-function currentStep(steps: PeerStep[]): PeerStep | undefined {
-  return (
-    steps.find((step) => step.status === 'current') ??
-    steps.find((step) => step.status === 'planned')
-  );
-}
-
-function currentStepLabel(steps: PeerStep[]) {
-  const cur = currentStep(steps);
-  return cur ? cur.step_title : 'No active step yet';
-}
-
-function currentWhenLabel(steps: PeerStep[]) {
-  if (steps.some((step) => step.status === 'current')) return 'this week';
-  if (steps.some((step) => step.status === 'planned')) return 'next up';
-  if (steps.length > 0 && steps.every((step) => step.status === 'settled')) return 'all settled';
-  return 'settled';
-}
-
 function tagsForPeer(steps: PeerStep[]): string[] {
-  const cur = currentStep(steps);
-  const tags = cur?.capabilities ?? [];
-  return tags.slice(0, 2);
+  const cur =
+    steps.find((step) => step.status === 'current') ??
+    steps.find((step) => step.status === 'planned');
+  return (cur?.capabilities ?? []).slice(0, 2);
 }
 
-function peerOverallStatus(steps: PeerStep[]): 'in-progress' | 'settled' | 'planned' {
+function peerOverallStatus(steps: PeerStep[]): 'in-progress' | 'settled' | 'planned' | 'idle' {
+  if (steps.length === 0) return 'idle';
   if (steps.some((step) => step.status === 'current')) return 'in-progress';
-  if (steps.length > 0 && steps.every((step) => step.status === 'settled')) return 'settled';
-  return 'planned';
+  if (steps.every((step) => step.status === 'settled')) return 'settled';
+  if (steps.some((step) => step.status === 'planned')) return 'planned';
+  return 'idle';
+}
+
+/**
+ * Render the activity line that summarises where a peer stands relative
+ * to this Blueprint. Each branch produces ONE sentence — the legacy
+ * pattern of "current step title" + a separate "when" label often
+ * collided ("No active step yet · settled") because the two labels were
+ * computed independently.
+ */
+function peerActivityLine({
+  steps,
+  overall,
+}: {
+  steps: PeerStep[];
+  overall: 'in-progress' | 'settled' | 'planned' | 'idle';
+}): string {
+  if (overall === 'settled') return `Settled all ${steps.length} steps`;
+  if (overall === 'in-progress') {
+    const current = steps.find((step) => step.status === 'current');
+    return current ? `Working on “${current.step_title}”` : 'Working through it';
+  }
+  if (overall === 'planned') {
+    const planned = steps.find((step) => step.status === 'planned');
+    return planned ? `Next up · ${planned.step_title}` : 'Steps planned, none started';
+  }
+  return 'Just subscribed — no steps adopted yet';
 }
 
 export function CoPractitionerList({ blueprintId }: { blueprintId: string }) {
@@ -122,10 +133,28 @@ export function CoPractitionerList({ blueprintId }: { blueprintId: string }) {
   return (
     <View style={styles.screen}>
       <View style={styles.header}>
+        <Pressable
+          onPress={() =>
+            router.canGoBack()
+              ? router.back()
+              : router.replace(`/(tabs)/library/blueprints/${blueprintId}` as never)
+          }
+          accessibilityRole="button"
+          accessibilityLabel="Back to Blueprint"
+          hitSlop={8}
+          style={styles.backLink}
+        >
+          <Ionicons name="chevron-back" size={18} color="#007AFF" />
+          <Text style={styles.backText}>Blueprint</Text>
+        </Pressable>
         <Text style={styles.eyebrow}>Co-practitioners</Text>
         <Text style={styles.title}>{blueprint?.title ?? 'Blueprint'}</Text>
         <Text style={styles.subtitle}>
-          {counts.all} active{counts.settled > 0 ? ` · ${counts.settled} settled` : ''}
+          {counts.all === 0
+            ? "You're the only one on this path so far."
+            : `${counts.all} other ${counts.all === 1 ? 'practitioner' : 'practitioners'}${
+                counts.settled > 0 ? ` · ${counts.settled} settled` : ''
+              }`}
         </Text>
       </View>
 
@@ -144,16 +173,17 @@ export function CoPractitionerList({ blueprintId }: { blueprintId: string }) {
         {visiblePeers.length === 0 ? (
           <Text style={styles.empty}>
             {filter === 'fleet'
-              ? 'No subscribers from your fleet yet.'
+              ? 'No co-practitioners from your fleet yet.'
               : filter === 'in-progress'
-                ? 'No subscribers actively working through this blueprint right now.'
+                ? "Nobody's actively working through this right now."
                 : filter === 'settled'
-                  ? 'No subscribers have settled every step yet.'
-                  : 'No other subscribers on this path yet.'}
+                  ? "Nobody's settled every step yet."
+                  : "No other practitioners on this Blueprint yet — you're early."}
           </Text>
         ) : (
-          visiblePeers.map(({ subscriber, steps, inFleet }) => {
+          visiblePeers.map(({ subscriber, steps, inFleet, overall }) => {
             const tags = tagsForPeer(steps);
+            const activity = peerActivityLine({ steps, overall });
             return (
               <Pressable
                 key={subscriber.id}
@@ -164,14 +194,20 @@ export function CoPractitionerList({ blueprintId }: { blueprintId: string }) {
                   <Text style={styles.avatarText}>{initials(subscriber.subscriber_name)}</Text>
                 </View>
                 <View style={styles.copy}>
-                  <Text style={styles.name}>{subscriber.subscriber_name ?? 'Subscriber'}</Text>
-                  <Text style={styles.affiliation}>
-                    {inFleet ? 'In your fleet' : 'Subscriber'}
+                  <View style={styles.nameRow}>
+                    <Text style={styles.name} numberOfLines={1}>
+                      {subscriber.subscriber_name ?? 'Practitioner'}
+                    </Text>
+                    {inFleet ? (
+                      <View style={styles.fleetPill}>
+                        <Ionicons name="people" size={10} color="#4338CA" />
+                        <Text style={styles.fleetPillText}>Fleet</Text>
+                      </View>
+                    ) : null}
+                  </View>
+                  <Text style={styles.activity} numberOfLines={1}>
+                    {activity}
                   </Text>
-                  <Text style={styles.stepLine} numberOfLines={1}>
-                    {currentStepLabel(steps)}
-                  </Text>
-                  <Text style={styles.when}>{currentWhenLabel(steps)}</Text>
                   {tags.length > 0 && (
                     <View style={styles.tagRow}>
                       {tags.map((tag) => (
@@ -182,7 +218,7 @@ export function CoPractitionerList({ blueprintId }: { blueprintId: string }) {
                     </View>
                   )}
                 </View>
-                <Text style={styles.view}>View ›</Text>
+                <Ionicons name="chevron-forward" size={16} color="#C7C7CC" />
               </Pressable>
             );
           })
@@ -205,9 +241,21 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingHorizontal: 16,
-    paddingTop: 18,
-    paddingBottom: 6,
+    paddingTop: 12,
+    paddingBottom: 8,
     gap: 4,
+  },
+  backLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+    alignSelf: 'flex-start',
+    paddingVertical: 4,
+    marginBottom: 4,
+  },
+  backText: {
+    fontSize: 17,
+    color: '#007AFF',
   },
   eyebrow: {
     fontSize: 11,
@@ -217,13 +265,13 @@ const styles = StyleSheet.create({
     color: '#6D5EF7',
   },
   title: {
-    fontSize: 28,
-    lineHeight: 34,
+    fontSize: 26,
+    lineHeight: 32,
     fontWeight: '700',
     color: '#111827',
   },
   subtitle: {
-    fontSize: 14,
+    fontSize: 13,
     color: '#6B7280',
   },
   scroll: {
@@ -233,7 +281,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 10,
     paddingBottom: 32,
-    gap: 12,
+    gap: 8,
   },
   empty: {
     fontSize: 14,
@@ -243,18 +291,19 @@ const styles = StyleSheet.create({
   },
   row: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 18,
+    borderRadius: 14,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: '#E5E7EB',
-    padding: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     gap: 12,
   },
   avatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: '#E0E7FF',
     alignItems: 'center',
     justifyContent: 'center',
@@ -262,50 +311,56 @@ const styles = StyleSheet.create({
   avatarText: {
     color: '#4338CA',
     fontWeight: '700',
-    fontSize: 14,
+    fontSize: 13,
   },
   copy: {
     flex: 1,
-    gap: 2,
+    gap: 3,
+  },
+  nameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   name: {
-    fontSize: 16,
+    flex: 0,
+    fontSize: 15,
     fontWeight: '600',
     color: '#111827',
   },
-  affiliation: {
-    fontSize: 12,
-    color: '#6B7280',
+  fleetPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    backgroundColor: '#E0E7FF',
+    borderRadius: 999,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
   },
-  stepLine: {
+  fleetPillText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#4338CA',
+    letterSpacing: 0.2,
+  },
+  activity: {
     fontSize: 13,
-    color: '#374151',
-    marginTop: 4,
-  },
-  when: {
-    fontSize: 12,
-    color: '#9CA3AF',
+    color: '#4B5563',
   },
   tagRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 6,
-    marginTop: 6,
+    gap: 5,
+    marginTop: 4,
   },
   tag: {
     borderRadius: 999,
     backgroundColor: '#F3F4F6',
     paddingHorizontal: 8,
-    paddingVertical: 3,
+    paddingVertical: 2,
   },
   tagText: {
     fontSize: 11,
     color: '#6B7280',
-  },
-  view: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#2563EB',
-    marginTop: 4,
   },
 });

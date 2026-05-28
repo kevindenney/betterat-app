@@ -120,7 +120,8 @@ export function BlueprintTimeline({ blueprintId }: { blueprintId: string }) {
       return pill === 'current';
     }).length;
     const settled = rows.filter((row) => toPillState(row) === 'settled').length;
-    return { all: rows.length, inProgress, settled };
+    const adopted = rows.filter((row) => row.adoptedStepId != null).length;
+    return { all: rows.length, inProgress, settled, adopted };
   }, [rows]);
 
   const visibleRows = React.useMemo(() => {
@@ -139,12 +140,14 @@ export function BlueprintTimeline({ blueprintId }: { blueprintId: string }) {
 
   const authorName = blueprint?.author_name ?? 'Author';
   const subscriberCount = subscribers.length;
+  const adoptionPct =
+    counts.all > 0 ? Math.min(100, Math.round((counts.adopted / counts.all) * 100)) : 0;
 
   return (
     <View style={styles.screen}>
       <View style={styles.hero}>
         <View style={styles.heroTopRow}>
-          <Text style={styles.eyebrow}>Blueprint timeline</Text>
+          <Text style={styles.eyebrow}>Blueprint</Text>
           <Pressable
             onPress={() => router.push(`/(tabs)/library/blueprints/${blueprintId}/co-practitioners` as any)}
             hitSlop={8}
@@ -168,6 +171,22 @@ export function BlueprintTimeline({ blueprintId }: { blueprintId: string }) {
             </>
           )}
         </View>
+
+        {subscription && counts.all > 0 ? (
+          <View style={styles.adoptionWrap}>
+            <View style={styles.adoptionTextRow}>
+              <Text style={styles.adoptionLabel}>In your Plan</Text>
+              <Text style={styles.adoptionCount}>
+                {counts.adopted} of {counts.all}
+              </Text>
+            </View>
+            <View style={styles.adoptionTrack}>
+              <View
+                style={[styles.adoptionFill, { width: `${adoptionPct}%` }]}
+              />
+            </View>
+          </View>
+        ) : null}
       </View>
 
       <FilterStrip
@@ -329,6 +348,38 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#4338CA',
     letterSpacing: 0.3,
+  },
+  adoptionWrap: {
+    marginTop: 6,
+    gap: 6,
+  },
+  adoptionTextRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'baseline',
+  },
+  adoptionLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#6B7280',
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+  },
+  adoptionCount: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#111827',
+  },
+  adoptionTrack: {
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#E5E7EB',
+    overflow: 'hidden',
+  },
+  adoptionFill: {
+    height: '100%',
+    backgroundColor: '#6D5EF7',
+    borderRadius: 2,
   },
   scroll: {
     flex: 1,

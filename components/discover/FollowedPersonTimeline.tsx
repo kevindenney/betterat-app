@@ -1,5 +1,7 @@
 import React from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { router } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/providers/AuthProvider';
 import { useInterest } from '@/providers/InterestProvider';
@@ -35,6 +37,16 @@ function extractPreview(step: TimelineStepRecord, sourceLabel: string): Timeline
       '',
     capabilities: ((plan.capability_goals as string[] | undefined) ?? []).slice(0, 5),
   };
+}
+
+function initials(name: string | undefined): string {
+  if (!name) return '?';
+  return name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() ?? '')
+    .join('') || '?';
 }
 
 async function loadFollowedPersonTimeline(
@@ -138,31 +150,48 @@ export function FollowedPersonTimeline({ handle }: { handle: string }) {
   const sameFleet = fleetMateIds.includes(handle);
   const visibleSteps = filter === 'in-fleet' && sameFleet ? steps : steps;
   const counts = { all: steps.length, fleet: sameFleet ? steps.length : 0 };
+  const personName = data?.person.name ?? 'Practitioner';
+  const interestLabel = data?.person.interestName ?? null;
+  const settledCount = data?.person.settledCount ?? 0;
 
   return (
     <View style={styles.screen}>
       <View style={styles.header}>
-        <View style={styles.heroTopRow}>
-          <Text style={styles.eyebrow}>Followed person</Text>
-          {data?.person.isFollowing && (
+        <Pressable
+          onPress={() =>
+            router.canGoBack()
+              ? router.back()
+              : router.replace('/(tabs)/discover?segment=people' as never)
+          }
+          accessibilityRole="button"
+          accessibilityLabel="Back"
+          hitSlop={8}
+          style={styles.backLink}
+        >
+          <Ionicons name="chevron-back" size={18} color="#007AFF" />
+          <Text style={styles.backText}>Back</Text>
+        </Pressable>
+
+        <View style={styles.identityRow}>
+          <View style={styles.avatar}>
+            <Text style={styles.avatarText}>{initials(personName)}</Text>
+          </View>
+          <View style={styles.identityCopy}>
+            <Text style={styles.title}>{personName}</Text>
+            <Text style={styles.subtitle}>
+              {settledCount === 0
+                ? 'No public settled steps yet'
+                : `${settledCount} public settled step${settledCount === 1 ? '' : 's'}`}
+              {interestLabel ? ` · ${interestLabel}` : ''}
+            </Text>
+          </View>
+          {data?.person.isFollowing ? (
             <View style={styles.followingPill}>
+              <Ionicons name="checkmark" size={11} color="#4338CA" />
               <Text style={styles.followingPillText}>Following</Text>
             </View>
-          )}
+          ) : null}
         </View>
-        <Text style={styles.title}>{data?.person.name ?? 'Practitioner'}</Text>
-        <View style={styles.metaRow}>
-          {sameFleet && (
-            <>
-              <Text style={styles.meta}>same fleet</Text>
-              <View style={styles.metaDot} />
-            </>
-          )}
-          <Text style={styles.meta}>{data?.person.settledCount ?? 0} settled steps</Text>
-        </View>
-        <Text style={styles.section}>
-          Recent practice · {data?.person.interestName ?? 'all interests'} · last 30 days · public
-        </Text>
       </View>
 
       <FilterStrip
@@ -176,7 +205,17 @@ export function FollowedPersonTimeline({ handle }: { handle: string }) {
 
       <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
         {visibleSteps.length === 0 ? (
-          <Text style={styles.empty}>No public settled steps yet.</Text>
+          <View style={styles.emptyWrap}>
+            <View style={styles.emptyIcon}>
+              <Ionicons name="lock-closed-outline" size={22} color="#9CA3AF" />
+            </View>
+            <Text style={styles.emptyTitle}>Nothing public yet</Text>
+            <Text style={styles.emptyBody}>
+              {personName.split(/\s+/)[0] ?? 'They'} hasn't marked any settled
+              steps as public{interestLabel ? ` in ${interestLabel}` : ''}. Follow
+              them to be notified when they do.
+            </Text>
+          </View>
         ) : (
           visibleSteps.map((step) => {
             const preview = extractPreview(step, '');
@@ -200,7 +239,7 @@ export function FollowedPersonTimeline({ handle }: { handle: string }) {
         visible={Boolean(pendingStep)}
         preview={
           pendingStep
-            ? extractPreview(pendingStep, `From ${data?.person.name ?? 'person'}`)
+            ? extractPreview(pendingStep, `From ${personName}`)
             : { sourceLabel: '', title: '', body: '', capabilities: [] }
         }
         onDismiss={() => setPendingStep(null)}
@@ -209,7 +248,7 @@ export function FollowedPersonTimeline({ handle }: { handle: string }) {
           await addToTimeline({
             userId: user.id,
             interestId: currentInterest.id,
-            preview: extractPreview(pendingStep, `From ${data?.person.name ?? 'person'}`),
+            preview: extractPreview(pendingStep, `From ${personName}`),
             placement,
             sourceType: 'user_fork',
             sourceId: pendingStep.id,
@@ -226,7 +265,7 @@ export function FollowedPersonTimeline({ handle }: { handle: string }) {
           await saveToDeck({
             userId: user.id,
             interestId: currentInterest.id,
-            preview: extractPreview(pendingStep, `From ${data?.person.name ?? 'person'}`),
+            preview: extractPreview(pendingStep, `From ${personName}`),
             sourceType: 'user_fork',
             sourceId: pendingStep.id,
             sourceUserId: pendingStep.user_id,
@@ -253,60 +292,67 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingHorizontal: 16,
-    paddingTop: 18,
-    paddingBottom: 8,
-    gap: 6,
+    paddingTop: 12,
+    paddingBottom: 10,
+    gap: 12,
   },
-  heroTopRow: {
+  backLink: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    gap: 2,
+    alignSelf: 'flex-start',
+    paddingVertical: 2,
   },
-  eyebrow: {
-    fontSize: 11,
+  backText: {
+    fontSize: 17,
+    color: '#007AFF',
+  },
+  identityRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  avatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#E0E7FF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarText: {
+    color: '#4338CA',
     fontWeight: '700',
-    textTransform: 'uppercase',
-    letterSpacing: 0.6,
-    color: '#6D5EF7',
+    fontSize: 16,
+  },
+  identityCopy: {
+    flex: 1,
+    gap: 2,
+  },
+  title: {
+    fontSize: 22,
+    lineHeight: 26,
+    fontWeight: '700',
+    color: '#111827',
+  },
+  subtitle: {
+    fontSize: 13,
+    color: '#6B7280',
   },
   followingPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
     backgroundColor: '#E0E7FF',
     borderRadius: 999,
-    paddingHorizontal: 10,
-    paddingVertical: 3,
+    paddingHorizontal: 9,
+    paddingVertical: 4,
   },
   followingPillText: {
     fontSize: 11,
     fontWeight: '700',
     color: '#4338CA',
     letterSpacing: 0.3,
-  },
-  title: {
-    fontSize: 28,
-    lineHeight: 34,
-    fontWeight: '700',
-    color: '#111827',
-  },
-  metaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    flexWrap: 'wrap',
-  },
-  meta: {
-    fontSize: 13,
-    color: '#6B7280',
-  },
-  metaDot: {
-    width: 3,
-    height: 3,
-    borderRadius: 1.5,
-    backgroundColor: '#D1D5DB',
-  },
-  section: {
-    fontSize: 12,
-    color: '#9CA3AF',
-    marginTop: 4,
   },
   scroll: {
     flex: 1,
@@ -316,10 +362,33 @@ const styles = StyleSheet.create({
     paddingBottom: 32,
     gap: 12,
   },
-  empty: {
-    fontSize: 14,
-    color: '#9CA3AF',
+  emptyWrap: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: '#E5E7EB',
+    padding: 22,
+    marginTop: 12,
+    alignItems: 'center',
+    gap: 10,
+  },
+  emptyIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#F3F4F6',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#111827',
+  },
+  emptyBody: {
+    fontSize: 13,
+    lineHeight: 18,
+    color: '#6B7280',
     textAlign: 'center',
-    paddingVertical: 32,
   },
 });
