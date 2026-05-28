@@ -23,7 +23,7 @@ import React from 'react';
 import { Platform, Pressable, StyleSheet, View } from 'react-native';
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
 
-import { IOS_REGISTER } from '@/lib/design-tokens-ios';
+import { IOS_COLORS, IOS_REGISTER } from '@/lib/design-tokens-ios';
 import { ZOOM_LEVEL_SCOPE_LABELS, type ZoomLevel } from './types';
 
 interface ZoomLevelPickerProps {
@@ -103,7 +103,7 @@ export function ZoomLevelPicker({
       <View style={styles.rail}>
         {RAIL_ORDER.map((l) => {
           const active = l === level;
-          const tint = active ? IOS_REGISTER.label : IOS_REGISTER.labelSecondary;
+          const tint = active ? IOS_COLORS.systemBlue : IOS_REGISTER.labelSecondary;
           return (
             <Pressable
               key={l}
@@ -161,7 +161,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   segmentActive: {
-    backgroundColor: IOS_REGISTER.groundBg,
+    backgroundColor: 'rgba(0, 122, 255, 0.14)',
   },
   segmentPressed: {
     backgroundColor: 'rgba(118, 118, 128, 0.08)',
