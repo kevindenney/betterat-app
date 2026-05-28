@@ -229,7 +229,7 @@ export function L1StepView({
               </View>
             ) : null}
             <View style={styles.embedDetailHost}>
-              <StepDetailContent stepId={step.id} onScroll={onScroll} />
+              <StepDetailContent stepId={step.id} onScroll={onScroll} hideStatePill />
             </View>
           </Animated.View>
         </GestureDetector>

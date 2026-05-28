@@ -31,8 +31,13 @@ import type { StatePillProps } from './StatePill';
 import type { StepStripProps } from './StepStrip';
 
 export interface StepCardProps {
-  /** Header band — required (StatePill instance). */
-  pill: React.ReactElement<StatePillProps>;
+  /**
+   * Header band. When omitted the dedicated stateHead row collapses and
+   * the menu (if any) floats top-right over the title block — used by
+   * the L1 timeline surface where the active phase tab is the state
+   * indicator and the pill is redundant.
+   */
+  pill?: React.ReactElement<StatePillProps>;
   onMenuPress?: () => void;
   /** Optional sub-context band beneath the state header. */
   stepStrip?: React.ReactElement<StepStripProps>;
@@ -85,25 +90,32 @@ export function StepCard({
   onScroll,
   testID,
 }: StepCardProps) {
-  const stateHead = (
+  const menuButton = onMenuPress ? (
+    <Pressable
+      onPress={onMenuPress}
+      accessibilityRole="button"
+      accessibilityLabel="More actions"
+      hitSlop={8}
+      style={styles.menuButton}
+    >
+      <MoreVertical size={17} color={LABEL_3} />
+    </Pressable>
+  ) : null;
+
+  const stateHead = pill ? (
     <View style={styles.stateHead}>
       <View style={styles.pillSlot}>{pill}</View>
-      {onMenuPress ? (
-        <Pressable
-          onPress={onMenuPress}
-          accessibilityRole="button"
-          accessibilityLabel="More actions"
-          hitSlop={8}
-          style={styles.menuButton}
-        >
-          <MoreVertical size={17} color={LABEL_3} />
-        </Pressable>
-      ) : null}
+      {menuButton}
     </View>
-  );
+  ) : null;
 
   const titleBlockEl = titleBlock ? (
-    <View style={styles.titleBlock}>{titleBlock}</View>
+    <View style={styles.titleBlock}>
+      {titleBlock}
+      {!pill && menuButton ? (
+        <View style={styles.floatingMenuButton}>{menuButton}</View>
+      ) : null}
+    </View>
   ) : null;
 
   if (scrollAsUnit) {
@@ -190,6 +202,14 @@ const styles = StyleSheet.create({
     paddingBottom: 10,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: GRAY_5,
+    position: 'relative',
+  },
+  // Used only when there's no stateHead — keeps the menu reachable
+  // without claiming a whole row above the title.
+  floatingMenuButton: {
+    position: 'absolute',
+    top: 4,
+    right: 12,
   },
   body: {
     flex: 1,

@@ -122,9 +122,15 @@ interface StepDetailContentProps {
    * (e.g. the timeline canvas) animate hide/show based on inner scroll.
    */
   onScroll?: React.ComponentProps<typeof StepCard>['onScroll'];
+  /**
+   * Suppress the top StatePill (PLANNED / DOING / REFLECTED). Used by
+   * the L1 timeline surface where the active phase tab is the state
+   * indicator and the pill is redundant chrome.
+   */
+  hideStatePill?: boolean;
 }
 
-export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, onScroll }: StepDetailContentProps) {
+export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, onScroll, hideStatePill }: StepDetailContentProps) {
   const universalPlus = useUniversalPlus();
   const shareStep = useShareStep();
   const { user } = useAuth();
@@ -1022,9 +1028,6 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, 
           variant="full"
         />
       ) : null}
-      {isOwner && keepPlanInlineActions ? (
-        <StepPinInterests stepId={stepId} stepInterestId={step.interest_id} />
-      ) : null}
     </View>
   );
 
@@ -1360,7 +1363,7 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, 
           scrollAsUnit
           onScroll={onScroll}
           style={useIdentityDeck ? styles.focusStepCard : undefined}
-          pill={<StatePill variant={pillSpec.variant} label={pillSpec.label} />}
+          pill={hideStatePill ? undefined : <StatePill variant={pillSpec.variant} label={pillSpec.label} />}
           onMenuPress={() => setMenuOpen(true)}
           titleBlock={useIdentityDeck ? identityDeckEl : headerInner}
           belowTitle={useIdentityDeck ? peerQuoteEl : belowTitleRow}
