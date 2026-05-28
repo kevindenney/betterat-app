@@ -1406,6 +1406,15 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
       return;
     }
     if (result.kind === 'step' && result.stepId) {
+      // Step-with-location: keep the user on Atlas, fly the camera so
+      // they see geographic context. Step-detail card overlay on
+      // Atlas is the next step (see
+      // feedback_atlas_search_step_overlay.md). Until then, location-
+      // less steps still route to /step/[id] so the user can drill in.
+      if (result.lat != null && result.lng != null) {
+        setSearchFocus({ lat: result.lat, lng: result.lng });
+        return;
+      }
       router.push(`/step/${result.stepId}` as never);
       return;
     }

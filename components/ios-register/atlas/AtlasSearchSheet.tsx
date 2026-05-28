@@ -212,7 +212,7 @@ async function fetchSearchResults(
     viewerId
       ? supabase
           .from('timeline_steps')
-          .select('id, title, description, user_id')
+          .select('id, title, description, user_id, location_name, location_lat, location_lng')
           .eq('user_id', viewerId)
           .ilike('title', like)
           .limit(10)
@@ -220,7 +220,7 @@ async function fetchSearchResults(
     followingIds.size > 0
       ? supabase
           .from('timeline_steps')
-          .select('id, title, description, user_id')
+          .select('id, title, description, user_id, location_name, location_lat, location_lng')
           .in('user_id', Array.from(followingIds))
           .ilike('title', like)
           .neq('visibility', 'private')
@@ -265,6 +265,14 @@ async function fetchSearchResults(
       // part exists. Skip rows where every name field is null.
       const composed = [p.first_name, p.last_name].filter(Boolean).join(' ').trim();
       const name = String(p.full_name ?? (composed.length > 0 ? composed : 'Sailor'));
+      // Filter out institutional profiles that got created with org
+      // names in full_name (e.g. "Johns Hopkins School of Nursing").
+      // These belong in the ORGANIZATIONS section, not People. Until
+      // there's a proper account_type=institution flag, name heuristic
+      // catches the common cases.
+      if (/\b(school|university|college|institute|yacht club|marina|foundation|sailing club|regatta|verein|squadron|association|society|federation|department|hospital|hospitals)\b/i.test(name)) {
+        continue;
+      }
       const isSelf = viewerId !== null && userId === viewerId;
       const isFollowing = followingIds.has(userId);
       out.push({
@@ -286,13 +294,22 @@ async function fetchSearchResults(
       const stepId = String(s.id);
       const title = String(s.title ?? 'Step');
       const desc = s.description ? String(s.description) : null;
+      const lat = Number(s.location_lat);
+      const lng = Number(s.location_lng);
+      const hasLoc = Number.isFinite(lat) && Number.isFinite(lng);
       out.push({
         id: `step:${stepId}`,
         kind: 'step',
         name: title,
-        detail: desc ? desc.slice(0, 80) : 'Your step',
+        detail: s.location_name
+          ? String(s.location_name)
+          : desc
+            ? desc.slice(0, 80)
+            : 'Your step',
         stepId,
         ownership: 'yours',
+        lat: hasLoc ? lat : undefined,
+        lng: hasLoc ? lng : undefined,
       });
     }
   }
@@ -306,13 +323,22 @@ async function fetchSearchResults(
       const stepId = String(s.id);
       const title = String(s.title ?? 'Step');
       const desc = s.description ? String(s.description) : null;
+      const lat = Number(s.location_lat);
+      const lng = Number(s.location_lng);
+      const hasLoc = Number.isFinite(lat) && Number.isFinite(lng);
       out.push({
         id: `peer_step:${stepId}`,
         kind: 'step',
         name: title,
-        detail: desc ? desc.slice(0, 80) : 'From someone you follow',
+        detail: s.location_name
+          ? String(s.location_name)
+          : desc
+            ? desc.slice(0, 80)
+            : 'From someone you follow',
         stepId,
         ownership: 'following',
+        lat: hasLoc ? lat : undefined,
+        lng: hasLoc ? lng : undefined,
       });
     }
   }
