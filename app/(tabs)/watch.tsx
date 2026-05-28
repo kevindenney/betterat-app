@@ -22,6 +22,7 @@ import {
   type FollowedStepStatus,
 } from '@/hooks/useFollowedStepsFeed';
 import { useCohortStream, type CohortStreamItem } from '@/hooks/useCohortStream';
+import { WatchNearbySection } from '@/components/watch/WatchNearbySection';
 import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
 
 const STATUS_META: Record<
@@ -60,9 +61,9 @@ type GroupingId = 'all' | 'fleet' | 'blueprint' | 'location';
 
 const GROUPING_CHIPS: { id: GroupingId; label: string; ready: boolean }[] = [
   { id: 'all', label: 'Following', ready: true },
+  { id: 'location', label: 'Nearby', ready: true },
   { id: 'fleet', label: 'By fleet', ready: false },
   { id: 'blueprint', label: 'By blueprint', ready: false },
-  { id: 'location', label: 'By location', ready: false },
 ];
 
 function formatRelativeTime(iso: string): string {
@@ -156,7 +157,13 @@ export default function WatchScreen() {
           </View>
         ) : null}
 
-        {isLoading ? (
+        {grouping === 'location' ? (
+          <WatchNearbySection
+            homeVenueLat={homeVenue?.lat ?? null}
+            homeVenueLng={homeVenue?.lng ?? null}
+            homeVenueLabel={homeVenue?.venue ?? homeVenue?.region ?? null}
+          />
+        ) : isLoading ? (
           <Text style={styles.emptyCopy}>Loading…</Text>
         ) : !hasFeed ? (
           <View style={styles.emptyCard}>
