@@ -327,7 +327,7 @@ export function StepDiscussionInline({ stepId, access = [] }: StepDiscussionInli
                 effectiveScope === 'private' && styles.scopePillTextActive,
               ]}
             >
-              Private
+              Mine
             </Text>
           </Pressable>
           <Pressable
@@ -349,7 +349,14 @@ export function StepDiscussionInline({ stepId, access = [] }: StepDiscussionInli
             </Text>
           </Pressable>
         </View>
-      ) : null}
+      ) : (
+        // No cohort thread for this step — surface a small hint so the
+        // absence of the toggle reads as deliberate ("you're not in a
+        // shared template here") rather than missing.
+        <Text style={styles.scopeHint}>
+          MINE · no cohort thread to share into
+        </Text>
+      )}
 
       {isEmpty ? (
         <View style={styles.empty}>
@@ -362,7 +369,7 @@ export function StepDiscussionInline({ stepId, access = [] }: StepDiscussionInli
           <Text style={styles.emptyBody}>
             {effectiveScope === 'cohort'
               ? 'Be the first to share with everyone subscribed to this plan.'
-              : 'Share a reflection below to start the discussion for this step.'}
+              : 'Capture a private note below — only people with direct access to this step will see it.'}
           </Text>
         </View>
       ) : (
@@ -879,6 +886,13 @@ const styles = StyleSheet.create({
   },
   scopePillTextActive: {
     color: '#0F172A',
+  },
+  scopeHint: {
+    fontSize: 11,
+    fontWeight: '600',
+    letterSpacing: 0.4,
+    color: '#94A3B8',
+    marginBottom: 10,
   },
   wrap: {
     paddingHorizontal: 14,
