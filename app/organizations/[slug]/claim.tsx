@@ -2,7 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '@/providers/AuthProvider';
+import { IOSDetailNavBar } from '@/components/discover/detail';
 import { YachtClubClaimService, type YachtClubOrganization } from '@/services/YachtClubClaimService';
 
 const C = {
@@ -30,6 +32,10 @@ export default function ClaimYachtClubPage() {
   const [email, setEmail] = useState('');
   const [evidenceUrl, setEvidenceUrl] = useState('');
   const [message, setMessage] = useState('');
+  const handleBack = React.useCallback(() => {
+    if (router.canGoBack()) router.back();
+    else router.replace(`/organizations/${slug}` as never);
+  }, [slug]);
 
   useEffect(() => {
     if (user?.email && !email) setEmail(user.email);
@@ -86,82 +92,95 @@ export default function ClaimYachtClubPage() {
   };
 
   return (
-    <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
-      <Stack.Screen options={{ title: org ? `Claim ${org.name}` : 'Claim organization' }} />
-      {loading ? (
-        <View style={styles.center}>
-          <ActivityIndicator color={C.blue} />
-        </View>
-      ) : submitted ? (
-        <View style={styles.card}>
-          <Ionicons name="checkmark-circle-outline" size={42} color={C.green} />
-          <Text style={styles.title}>Claim submitted</Text>
-          <Text style={styles.body}>
-            BetterAt will review your club claim before marking this organization official or adding admins.
-          </Text>
-          <Pressable style={styles.secondaryButton} onPress={() => router.replace(`/organizations/${slug}` as never)}>
-            <Text style={styles.secondaryButtonText}>Back to organization</Text>
-          </Pressable>
-        </View>
-      ) : (
-        <View style={styles.card}>
-          <Text style={styles.eyebrow}>Yacht Club Claim</Text>
-          <Text style={styles.title}>{org?.name || 'Organization'}</Text>
-          <Text style={styles.body}>
-            Claims are manually reviewed. Approval marks the organization official and adds the claimant as a
-            BetterAt org admin.
-          </Text>
+    <SafeAreaView style={styles.screen} edges={['top']}>
+      <Stack.Screen options={{ headerShown: false, title: org ? `Claim ${org.name}` : 'Claim organization' }} />
+      <IOSDetailNavBar
+        backLabel="Organization"
+        contextLabel="Claim"
+        onBack={handleBack}
+      />
+      <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
+        {loading ? (
+          <View style={styles.center}>
+            <ActivityIndicator color={C.blue} />
+          </View>
+        ) : submitted ? (
+          <View style={styles.card}>
+            <Ionicons name="checkmark-circle-outline" size={42} color={C.green} />
+            <Text style={styles.title}>Claim submitted</Text>
+            <Text style={styles.body}>
+              BetterAt will review your club claim before marking this organization official or adding admins.
+            </Text>
+            <Pressable style={styles.secondaryButton} onPress={() => router.replace(`/organizations/${slug}` as never)}>
+              <Text style={styles.secondaryButtonText}>Back to organization</Text>
+            </Pressable>
+          </View>
+        ) : (
+          <View style={styles.card}>
+            <Text style={styles.eyebrow}>Yacht Club Claim</Text>
+            <Text style={styles.title}>{org?.name || 'Organization'}</Text>
+            <Text style={styles.body}>
+              Claims are manually reviewed. Approval marks the organization official and adds the claimant as a
+              BetterAt org admin.
+            </Text>
 
-          {!signedIn ? (
-            <View style={styles.notice}>
-              <Text style={styles.noticeText}>Sign in before submitting a claim.</Text>
-              <Pressable style={styles.primaryButton} onPress={() => router.push('/(auth)/login' as never)}>
-                <Text style={styles.primaryButtonText}>Log in</Text>
+            {!signedIn ? (
+              <View style={styles.notice}>
+                <Text style={styles.noticeText}>Sign in before submitting a claim.</Text>
+                <Pressable style={styles.primaryButton} onPress={() => router.push('/(auth)/login' as never)}>
+                  <Text style={styles.primaryButtonText}>Log in</Text>
+                </Pressable>
+              </View>
+            ) : null}
+
+            <View style={styles.field}>
+              <Text style={styles.label}>Your name</Text>
+              <TextInput value={claimantName} onChangeText={setClaimantName} style={styles.input} placeholder="Jane Smith" />
+            </View>
+            <View style={styles.field}>
+              <Text style={styles.label}>Club role</Text>
+              <TextInput value={claimantRole} onChangeText={setClaimantRole} style={styles.input} placeholder="Commodore, secretary, sailing manager" />
+            </View>
+            <View style={styles.field}>
+              <Text style={styles.label}>Official email</Text>
+              <TextInput value={email} onChangeText={setEmail} style={styles.input} autoCapitalize="none" keyboardType="email-address" placeholder="name@club.org" />
+            </View>
+            <View style={styles.field}>
+              <Text style={styles.label}>Verification URL</Text>
+              <TextInput value={evidenceUrl} onChangeText={setEvidenceUrl} style={styles.input} autoCapitalize="none" placeholder="Club staff page or contact page" />
+            </View>
+            <View style={styles.field}>
+              <Text style={styles.label}>Message</Text>
+              <TextInput
+                value={message}
+                onChangeText={setMessage}
+                style={[styles.input, styles.textarea]}
+                multiline
+                placeholder="Anything BetterAt should know when reviewing this claim"
+              />
+            </View>
+
+            {errorText ? <Text style={styles.error}>{errorText}</Text> : null}
+
+            <View style={styles.buttonRow}>
+              <Pressable style={[styles.secondaryButton, styles.rowButton]} onPress={handleBack}>
+                <Text style={styles.secondaryButtonText}>Cancel</Text>
+              </Pressable>
+              <Pressable style={[styles.primaryButton, styles.rowButton, !canSubmit && styles.buttonDisabled]} disabled={!canSubmit} onPress={submit}>
+                {submitting ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.primaryButtonText}>Submit claim</Text>}
               </Pressable>
             </View>
-          ) : null}
-
-          <View style={styles.field}>
-            <Text style={styles.label}>Your name</Text>
-            <TextInput value={claimantName} onChangeText={setClaimantName} style={styles.input} placeholder="Jane Smith" />
           </View>
-          <View style={styles.field}>
-            <Text style={styles.label}>Club role</Text>
-            <TextInput value={claimantRole} onChangeText={setClaimantRole} style={styles.input} placeholder="Commodore, secretary, sailing manager" />
-          </View>
-          <View style={styles.field}>
-            <Text style={styles.label}>Official email</Text>
-            <TextInput value={email} onChangeText={setEmail} style={styles.input} autoCapitalize="none" keyboardType="email-address" placeholder="name@club.org" />
-          </View>
-          <View style={styles.field}>
-            <Text style={styles.label}>Verification URL</Text>
-            <TextInput value={evidenceUrl} onChangeText={setEvidenceUrl} style={styles.input} autoCapitalize="none" placeholder="Club staff page or contact page" />
-          </View>
-          <View style={styles.field}>
-            <Text style={styles.label}>Message</Text>
-            <TextInput
-              value={message}
-              onChangeText={setMessage}
-              style={[styles.input, styles.textarea]}
-              multiline
-              placeholder="Anything BetterAt should know when reviewing this claim"
-            />
-          </View>
-
-          {errorText ? <Text style={styles.error}>{errorText}</Text> : null}
-
-          <Pressable style={[styles.primaryButton, !canSubmit && styles.buttonDisabled]} disabled={!canSubmit} onPress={submit}>
-            {submitting ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.primaryButtonText}>Submit claim</Text>}
-          </Pressable>
-        </View>
-      )}
-    </ScrollView>
+        )}
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: C.bg },
-  content: { width: '100%', maxWidth: 760, alignSelf: 'center', padding: 20 },
+  scroll: { flex: 1 },
+  content: { width: '100%', maxWidth: 760, alignSelf: 'center', padding: 20, gap: 14 },
   center: { minHeight: 260, alignItems: 'center', justifyContent: 'center' },
   card: { backgroundColor: C.card, borderRadius: 8, borderWidth: 1, borderColor: C.line, padding: 18, gap: 14 },
   eyebrow: { color: C.muted, fontSize: 12, fontWeight: '800', textTransform: 'uppercase' },
@@ -177,6 +196,8 @@ const styles = StyleSheet.create({
   primaryButtonText: { color: '#FFFFFF', fontSize: 15, fontWeight: '800' },
   secondaryButton: { alignSelf: 'flex-start', borderWidth: 1, borderColor: C.line, borderRadius: 7, paddingHorizontal: 16, paddingVertical: 10 },
   secondaryButtonText: { color: C.ink, fontSize: 15, fontWeight: '800' },
+  buttonRow: { flexDirection: 'row', gap: 10, flexWrap: 'wrap' },
+  rowButton: { flexGrow: 1, minWidth: 120, alignSelf: 'stretch' },
   buttonDisabled: { opacity: 0.45 },
   error: { color: C.red, fontSize: 14, fontWeight: '700' },
 });
