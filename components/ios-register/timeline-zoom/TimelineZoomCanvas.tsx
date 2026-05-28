@@ -20,7 +20,7 @@
  */
 
 import React, { useCallback, useMemo, useState } from 'react';
-import { Platform, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import {
   Gesture,
@@ -40,9 +40,12 @@ import Animated, {
 
 import { IOS_REGISTER } from '@/lib/design-tokens-ios';
 import { useHideTabBar } from '@/components/navigation/TabBarVisibilityContext';
-import { CanvasTopBar } from './CanvasTopBar';
+import { AppChromeRow } from '@/components/ui/AppChromeRow';
+import { LocationAnchor } from '@/components/ui/LocationAnchor';
+import { useUserHomeVenue } from '@/hooks/useUserHomeVenue';
 import { InterestHeader } from './InterestHeader';
 import { L1StepView } from './L1StepView';
+import { L1SwipeTitle } from './L1SwipeTitle';
 import { L2WeekView } from './L2WeekView';
 import { L3SeasonView } from './L3SeasonView';
 import { L4YearsView } from './L4YearsView';
@@ -156,9 +159,15 @@ export function TimelineZoomCanvas({
   onAddArc,
   onEditArc,
 }: TimelineZoomCanvasProps) {
+  const homeVenue = useUserHomeVenue();
   const [level, setLevel] = useState<ZoomLevel>(initialLevel);
   const [focusStepId, setFocusStepId] = useState<string>(dataset.focusStepId);
   const [gestureDirection, setGestureDirection] = useState<'in' | 'out' | null>(null);
+  // Last user-swipe direction at L1. Drives the L1SwipeTitle's slide
+  // direction so the chrome title animates in step with the card swipe.
+  // Cleared on non-swipe focus changes (zoom-in, search-jump) so the
+  // title fades instead of sliding from an arbitrary direction.
+  const [lastSwipeDir, setLastSwipeDir] = useState<'prev' | 'next' | null>(null);
   // Canvas-wide season selection — survives zoom-level changes so the
   // user's pick at L3 persists when they pinch back in and out.
   const [selectedSeasonId, setSelectedSeasonId] = useState<string>(
@@ -251,11 +260,13 @@ export function TimelineZoomCanvas({
   }));
 
   const handleOpenStep = useCallback((stepId: string) => {
+    setLastSwipeDir(null);
     setFocusStepId(stepId);
     setLevel(1);
   }, []);
 
   const handleSnapToCurrent = useCallback(() => {
+    setLastSwipeDir(null);
     setFocusStepId(dataset.focusStepId);
     setLevel(1);
   }, [dataset.focusStepId]);
@@ -275,6 +286,7 @@ export function TimelineZoomCanvas({
       if (idx < 0) return;
       const nextIdx = direction === 'prev' ? idx - 1 : idx + 1;
       if (nextIdx < 0 || nextIdx >= flatSteps.length) return;
+      setLastSwipeDir(direction);
       setFocusStepId(flatSteps[nextIdx].id);
     },
     [flatSteps, focusStepId],
@@ -307,8 +319,20 @@ export function TimelineZoomCanvas({
     <GestureHandlerRootView style={styles.root}>
       <View style={styles.surface}>
         {hideInterestHeader ? (
-          (level !== 1 || Platform.OS === 'web') && !select.enabled ? (
-            <CanvasTopBar interestLabel={dataset.interest.label} />
+          !select.enabled ? (
+            <AppChromeRow
+              leftExtras={
+                <LocationAnchor region={homeVenue?.region} venue={homeVenue?.venue} />
+              }
+            >
+              {level === 1 && focusedStep ? (
+                <L1SwipeTitle
+                  title={focusedStep.title}
+                  stepId={focusedStep.id}
+                  direction={lastSwipeDir}
+                />
+              ) : null}
+            </AppChromeRow>
           ) : null
         ) : (
           <InterestHeader

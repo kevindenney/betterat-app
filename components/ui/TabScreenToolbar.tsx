@@ -31,11 +31,8 @@ import {
   IOS_ANIMATIONS,
   IOS_TYPOGRAPHY,
 } from '@/lib/design-tokens-ios';
-import { FEATURE_FLAGS } from '@/lib/featureFlags';
 import { triggerHaptic } from '@/lib/haptics';
-import { useWebDrawer } from '@/providers/WebDrawerProvider';
-import { InterestSwitcher } from '@/components/InterestSwitcher';
-import { ProfileDropdown } from '@/components/ui/ProfileDropdown';
+import { AppChromeRow } from '@/components/ui/AppChromeRow';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -53,6 +50,8 @@ export interface ToolbarAction {
   isActive?: boolean;
   /** Override tint color when active (default: systemBlue) */
   activeTint?: string;
+  /** Optional badge rendered in the top-right corner of the icon button */
+  badgeCount?: number;
 }
 
 export interface TabScreenToolbarProps {
@@ -98,12 +97,13 @@ export interface TabScreenToolbarProps {
    */
   largeTitleBelow?: boolean;
   /**
-   * Render the interest switcher on the LEFT side of the nav row,
-   * separate from the right-side action capsule + profile avatar.
-   * Defaults to false (legacy behavior: switcher lives in the right
-   * cluster). Library landing opts in to match canonical.
+   * Render the unified inbox bell in the right cluster (between the
+   * actions capsule / rightContent and the profile avatar). On by
+   * default — it's part of the cross-tab chrome contract. Suppress
+   * with false when a surface intentionally hides inbox (e.g. the
+   * Inbox tab itself).
    */
-  interestSwitcherLeft?: boolean;
+  showInboxBell?: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -150,17 +150,26 @@ function ActionButton({ action }: { action: ToolbarAction }) {
         scale.value = withSpring(1, IOS_ANIMATIONS.spring.snappy);
       }}
     >
-      {action.sfSymbol ? (
-        <SFSymbolIcon
-          name={action.sfSymbol}
-          fallback={iconName}
-          size={20}
-          color={tint}
-          weight="medium"
-        />
-      ) : (
-        <Ionicons name={iconName as any} size={20} color={tint} />
-      )}
+      <View style={styles.actionIconWrap}>
+        {action.sfSymbol ? (
+          <SFSymbolIcon
+            name={action.sfSymbol}
+            fallback={iconName}
+            size={20}
+            color={tint}
+            weight="medium"
+          />
+        ) : (
+          <Ionicons name={iconName as any} size={20} color={tint} />
+        )}
+        {action.badgeCount != null && action.badgeCount > 0 ? (
+          <View style={styles.actionBadge}>
+            <Text style={styles.actionBadgeText}>
+              {action.badgeCount > 99 ? '99+' : action.badgeCount}
+            </Text>
+          </View>
+        ) : null}
+      </View>
     </AnimatedPressable>
   );
 }
@@ -185,14 +194,8 @@ export function TabScreenToolbar({
   onMeasuredHeight,
   hidden = false,
   largeTitleBelow = false,
-  interestSwitcherLeft = false,
+  showInboxBell = true,
 }: TabScreenToolbarProps) {
-  const { isDrawerOpen, openDrawer } = useWebDrawer();
-
-  // Show sidebar toggle on web ONLY when sidebar is closed (so user can re-open it)
-  // When sidebar is open, the toggle inside the sidebar handles closing
-  const showWebSidebarToggle = Platform.OS === 'web' && FEATURE_FLAGS.USE_WEB_SIDEBAR_LAYOUT && !isDrawerOpen;
-
   const hasActions = actions && actions.length > 0;
 
   // Measured height for hide animation - use state to trigger re-renders
@@ -236,39 +239,35 @@ export function TabScreenToolbar({
       ]}
       onLayout={handleLayout}
     >
-      {/* Nav row: title left  |  capsule right */}
-      <View style={styles.navRow}>
-        {/* Web: Apple HIG-style sidebar toggle button (only shown when sidebar is closed) */}
-        {showWebSidebarToggle && (
-          <Pressable
-            onPress={openDrawer}
-            style={({ pressed, hovered }) => [
-              styles.sidebarToggle,
-              (hovered as boolean) && styles.sidebarToggleHover,
-              pressed && styles.sidebarTogglePressed,
-            ]}
-            accessibilityLabel="Show sidebar"
-            accessibilityRole="button"
-          >
-            {/* Apple-style sidebar icon: rectangle with left panel */}
-            <View style={styles.sidebarIcon}>
-              <View style={styles.sidebarIconLeft} />
-              <View style={styles.sidebarIconRight} />
-            </View>
-          </Pressable>
-        )}
-        {/* Optional: interest switcher on the LEFT side (canonical Library
-            layout). When set, the switcher is removed from the right
-            cluster below and sits as the first thing in the nav row. */}
-        {interestSwitcherLeft && (
-          <View style={styles.leftSwitcherSection}>
-            <InterestSwitcher />
-          </View>
-        )}
-        {/* Left: title (hidden in largeTitleBelow mode — rendered as its own
-            row below the nav row instead, so the interest switcher gets
-            the full leading edge). Skipped entirely when no title is
-            supplied (consumer is rendering their own heading). */}
+      {/* Nav row — delegates Identity (interest pill) and the right-side
+          global cluster (inbox, avatar) to the shared AppChromeRow. The
+          tab-local action capsule + the large title sit on top via the
+          slots AppChromeRow exposes. We force showPlus={false} because
+          tab-local `+` actions (Add to Practice, Add to Library, etc.)
+          come in through the `actions` array, not the UniversalPlus
+          provider — wiring both would double-stamp the + glyph. */}
+      <AppChromeRow
+        showPlus={false}
+        showInboxBell={showInboxBell}
+        showAvatar={showProfileAvatar}
+        avatarSize={PROFILE_AVATAR_SIZE}
+        trailingActions={
+          rightContent
+            ? rightContent
+            : hasActions
+              ? (
+                  <View style={styles.capsule}>
+                    {actions!.map((action, idx) => (
+                      <React.Fragment key={action.label}>
+                        {idx > 0 && <View style={styles.capsuleDivider} />}
+                        <ActionButton action={action} />
+                      </React.Fragment>
+                    ))}
+                  </View>
+                )
+              : null
+        }
+      >
         {!largeTitleBelow && title ? (
           <View style={styles.titleSection}>
             <Text
@@ -288,26 +287,7 @@ export function TabScreenToolbar({
             )}
           </View>
         ) : null}
-
-        {/* Right: interest switcher (unless hoisted to left) + custom
-            content or default action capsule + profile avatar */}
-        <View style={styles.rightSection}>
-          {!interestSwitcherLeft && <InterestSwitcher />}
-          {rightContent
-            ? rightContent
-            : hasActions && (
-                <View style={styles.capsule}>
-                  {actions!.map((action, idx) => (
-                    <React.Fragment key={action.label}>
-                      {idx > 0 && <View style={styles.capsuleDivider} />}
-                      <ActionButton action={action} />
-                    </React.Fragment>
-                  ))}
-                </View>
-              )}
-          {showProfileAvatar && <ProfileDropdown size={PROFILE_AVATAR_SIZE} />}
-        </View>
-      </View>
+      </AppChromeRow>
 
       {/* Large-title row (iOS HIG Large Title pattern). When largeTitleBelow
           is set AND a title is supplied, the title renders on its own
@@ -494,6 +474,17 @@ const styles = StyleSheet.create({
     marginLeft: 'auto',
   },
 
+  // Wrapper for the always-on inbox bell so it visually sizes like
+  // an action button (same 36×36 box as the bell glyphs inside the
+  // capsule). Without the wrap the bell sat at its intrinsic icon
+  // size and pulled the avatar inward.
+  inboxBellSlot: {
+    width: 36,
+    height: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
   // Capsule pill
   capsule: {
     flexDirection: 'row',
@@ -521,6 +512,31 @@ const styles = StyleSheet.create({
     height: 36,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  actionIconWrap: {
+    position: 'relative',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  actionBadge: {
+    position: 'absolute',
+    top: -7,
+    right: -10,
+    minWidth: 16,
+    height: 16,
+    paddingHorizontal: 4,
+    borderRadius: 8,
+    backgroundColor: IOS_COLORS.systemRed,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1.5,
+    borderColor: IOS_COLORS.systemBackground,
+  },
+  actionBadgeText: {
+    fontSize: 9,
+    lineHeight: 10,
+    fontWeight: '700',
+    color: '#FFFFFF',
   },
 });
 
