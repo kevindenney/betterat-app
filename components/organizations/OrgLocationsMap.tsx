@@ -37,16 +37,16 @@ export interface OrgLocationsMapProps {
 }
 
 /**
- * Compute the center + reasonable zoom that fits all locations. Uses
- * the bounding box's longest side to pick zoom; a small padding factor
- * makes sure the edge markers don't sit flush against the frame.
+ * Compute the LngLatBounds tuple [west, south, east, north] for a
+ * non-empty set of locations. MLCamera honors this directly via
+ * `initialViewState={{ bounds, padding }}` — that's the right path
+ * (centering with a hand-rolled zoom heuristic always under- or
+ * over-shot, depending on the canvas aspect ratio).
  */
-function fitBounds(locs: OrgLocation[]): {
-  center: [number, number];
-  zoom: number;
-} {
-  if (locs.length === 0) return { center: [114.17, 22.3], zoom: 11 };
-  if (locs.length === 1) return { center: [locs[0].lng, locs[0].lat], zoom: 14 };
+function computeBounds(
+  locs: OrgLocation[],
+): { bounds: [number, number, number, number]; center: [number, number] } | null {
+  if (locs.length === 0) return null;
   let minLat = locs[0].lat;
   let maxLat = locs[0].lat;
   let minLng = locs[0].lng;
@@ -57,21 +57,25 @@ function fitBounds(locs: OrgLocation[]): {
     if (l.lng < minLng) minLng = l.lng;
     if (l.lng > maxLng) maxLng = l.lng;
   }
-  const center: [number, number] = [(minLng + maxLng) / 2, (minLat + maxLat) / 2];
-  const spanLng = Math.max(maxLng - minLng, 0.001);
-  const spanLat = Math.max(maxLat - minLat, 0.001);
-  // World ≈ 360° at zoom 0 → each zoom doubles resolution. Aim to fit
-  // the longer span in ~70% of the visible canvas (rough heuristic).
-  const span = Math.max(spanLng, spanLat * 1.6);
-  const zoom = Math.max(3, Math.min(16, Math.log2(360 / span) - 0.5));
-  return { center, zoom };
+  // Inflate degenerate (single-point) bounds slightly so the camera
+  // doesn't zoom to maximum and clip the marker against the edge.
+  if (minLat === maxLat && minLng === maxLng) {
+    minLat -= 0.005;
+    maxLat += 0.005;
+    minLng -= 0.005;
+    maxLng += 0.005;
+  }
+  return {
+    bounds: [minLng, minLat, maxLng, maxLat],
+    center: [(minLng + maxLng) / 2, (minLat + maxLat) / 2],
+  };
 }
 
 export function OrgLocationsMap({ locations, height = 220 }: OrgLocationsMapProps) {
   const cameraRef = useRef<CameraRef>(null);
-  const { center, zoom } = useMemo(() => fitBounds(locations), [locations]);
+  const fitted = useMemo(() => computeBounds(locations), [locations]);
 
-  if (locations.length === 0) {
+  if (locations.length === 0 || !fitted) {
     return (
       <View style={[styles.empty, { height }]}>
         <Text style={styles.emptyText}>No mapped locations yet.</Text>
@@ -92,7 +96,10 @@ export function OrgLocationsMap({ locations, height = 220 }: OrgLocationsMapProp
       <MLMap mapStyle={MAP_STYLE_URL} style={styles.fill} attribution={false} logo={false}>
         <MLCamera
           ref={cameraRef}
-          initialViewState={{ center, zoom }}
+          // bounds = [west, south, east, north]; MLCamera fits all
+          // markers into the visible frame. Padding keeps the edge
+          // markers off the frame border so their labels aren't cut.
+          initialViewState={{ bounds: fitted.bounds, padding: 40 }}
         />
         {locations.map((loc) => (
           <MLMarker
