@@ -818,6 +818,8 @@ function WebAtlasMapLibreCanvas({
   const pinMarkersRef = useRef<any[]>([]);
   const nextMarkerRef = useRef<any | null>(null);
   const candidateMarkerRef = useRef<any | null>(null);
+  const onMapPressRef = useRef(onMapPress);
+  const onMapCenterChangeRef = useRef(onMapCenterChange);
   const [isLoaded, setIsLoaded] = useState(false);
   const [mapError, setMapError] = useState<string | null>(null);
   const [bearing, setBearing] = useState(0);
@@ -825,6 +827,14 @@ function WebAtlasMapLibreCanvas({
     mapRef.current?.easeTo({ bearing: 0, duration: 300 });
     setBearing(0);
   }, []);
+
+  useEffect(() => {
+    onMapPressRef.current = onMapPress;
+  }, [onMapPress]);
+
+  useEffect(() => {
+    onMapCenterChangeRef.current = onMapCenterChange;
+  }, [onMapCenterChange]);
 
   useEffect(() => {
     let cancelled = false;
@@ -866,11 +876,9 @@ function WebAtlasMapLibreCanvas({
         mapRef.current = map;
         maplibreRef.current = maplibregl;
 
-        if (onMapPress) {
-          map.on('click', (event: any) => {
-            onMapPress({ lng: event.lngLat.lng, lat: event.lngLat.lat });
-          });
-        }
+        map.on('click', (event: any) => {
+          onMapPressRef.current?.({ lng: event.lngLat.lng, lat: event.lngLat.lat });
+        });
 
         // Track bearing so a compass affordance can surface only when
         // the user has rotated the map off north.
@@ -880,12 +888,10 @@ function WebAtlasMapLibreCanvas({
           setBearing(norm);
         });
 
-        if (onMapCenterChange) {
-          map.on('moveend', () => {
-            const c = map.getCenter();
-            onMapCenterChange({ lng: c.lng, lat: c.lat });
-          });
-        }
+        map.on('moveend', () => {
+          const c = map.getCenter();
+          onMapCenterChangeRef.current?.({ lng: c.lng, lat: c.lat });
+        });
 
         map.on('load', () => {
           if (cancelled) return;
@@ -921,7 +927,7 @@ function WebAtlasMapLibreCanvas({
       mapRef.current = null;
       maplibreRef.current = null;
     };
-  }, [baseCamera.center, baseCamera.zoom, basemap, frame, onMapPress, onMapCenterChange]);
+  }, [baseCamera.center, baseCamera.zoom, basemap, frame]);
 
   useEffect(() => {
     const map = mapRef.current;
