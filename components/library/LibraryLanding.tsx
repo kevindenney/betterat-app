@@ -31,6 +31,7 @@ import { FLOATING_TAB_BAR_HEIGHT } from '@/components/navigation/FloatingTabBar'
 import { PlansZone } from '@/components/library/zones/PlansZone';
 import { PeopleZone } from '@/components/library/zones/PeopleZone';
 import { ResourcesZone } from '@/components/library/zones/ResourcesZone';
+import { LibraryNearbyContent } from '@/components/library/LibraryNearbyContent';
 import { CaptureSheet } from '@/components/library/resources/CaptureSheet';
 import { ConceptEditor } from '@/components/playbook/concepts/ConceptEditor';
 import { mapCapturePayloadToLibraryItem } from '@/components/library/resources/capturePayloadMap';
@@ -41,12 +42,20 @@ import { useInterest } from '@/providers/InterestProvider';
 import { showAlert } from '@/lib/utils/crossPlatformAlert';
 import type { LibraryZone } from '@/components/library/SegmentedZoneHeader';
 
-const VALID_ZONES: LibraryZone[] = ['all', 'plans', 'people', 'concepts', 'resources'];
+const VALID_ZONES: LibraryZone[] = [
+  'all',
+  'nearby',
+  'plans',
+  'people',
+  'concepts',
+  'resources',
+];
 // 'all' is the underlying zone id (deep links + URL param stay stable);
 // the visible label is "Librarian" — the first tab is now the
 // AI-curated cross-cutting surface, not a preview of the other tabs.
 const SEGMENT_ZONES: { value: LibraryZone; label: string }[] = [
   { value: 'all', label: 'Librarian' },
+  { value: 'nearby', label: 'Nearby' },
   { value: 'plans', label: 'Blueprints' },
   { value: 'concepts', label: 'Concepts' },
   { value: 'resources', label: 'Resources' },
@@ -57,6 +66,7 @@ const SEGMENT_ZONES: { value: LibraryZone; label: string }[] = [
 // the current view, not abstract advertising.
 const ZONE_DESCRIPTION: Record<LibraryZone, string> = {
   all: 'Cross-cutting insights the librarian noticed across your library.',
+  nearby: 'Curriculum and content from clubs and sailors around you.',
   plans: 'Subscribed Blueprints you can pull into your own Plan.',
   concepts: "Mental models you're forming, refining, or have settled.",
   resources: 'Saved articles, docs, and references.',
@@ -182,6 +192,12 @@ export function LibraryLanding({ conceptsBody, librarianSlot }: Props) {
               </Text>
             </View>
           )
+        ) : zone === 'nearby' ? (
+          <LibraryNearbyContent
+            homeVenueLat={homeVenue?.lat ?? null}
+            homeVenueLng={homeVenue?.lng ?? null}
+            homeVenueLabel={homeVenue?.venue ?? homeVenue?.region ?? null}
+          />
         ) : zone === 'plans' ? (
           <PlansZone />
         ) : zone === 'people' ? (

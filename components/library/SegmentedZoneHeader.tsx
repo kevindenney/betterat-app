@@ -2,7 +2,13 @@ import React from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity } from 'react-native';
 import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
 
-export type LibraryZone = 'all' | 'plans' | 'people' | 'concepts' | 'resources';
+export type LibraryZone =
+  | 'all'
+  | 'nearby'
+  | 'plans'
+  | 'people'
+  | 'concepts'
+  | 'resources';
 
 // Canonical §2 keeps the segmented strip to four pills (no People).
 // The People zone route still exists — it's reachable from Profile and
