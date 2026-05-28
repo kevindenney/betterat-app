@@ -374,6 +374,11 @@ function OrgDetailScreenInner() {
     router.push(`/club/${org.id}/calendar` as any);
   }, [org?.id]);
 
+  const handleOpenAtlas = useCallback(() => {
+    if (!org?.slug && !slug) return;
+    router.push({ pathname: '/(tabs)/atlas', params: { orgSlug: org?.slug || slug } } as any);
+  }, [org?.slug, slug]);
+
   const websiteUrl = org?.global_clubs?.website ?? null;
   const handleOpenWebsite = useCallback(() => {
     if (websiteUrl) Linking.openURL(websiteUrl);
@@ -530,6 +535,13 @@ function OrgDetailScreenInner() {
               onPress={handleRequestJoin}
             />
           )}
+          <RelationshipButton
+            label="Open map"
+            icon="map-outline"
+            secondary
+            fullWidth={false}
+            onPress={handleOpenAtlas}
+          />
         </IOSDetailHero>
 
         {/* "Up next at the club" — institutional activity signal.
