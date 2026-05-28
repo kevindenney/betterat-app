@@ -5,6 +5,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { RelationshipButton } from '@/components/discover/detail';
 import { IOSDetailNavBar } from '@/components/discover/detail';
+import { supabase } from '@/services/supabase';
+import { useAuth } from '@/providers/AuthProvider';
 import {
   YachtClubClaimService,
   type YachtClubOrganization,
@@ -113,6 +115,12 @@ function tierLabel(tier: string | null): string {
   }
 }
 
+interface ViewerMembership {
+  role: string | null;
+  status: string;
+  isAdmin: boolean;
+}
+
 export default function OrganizationPlaceholderPage() {
   const params = useLocalSearchParams<{ slug?: string }>();
   const slug = typeof params.slug === 'string' ? params.slug.trim() : '';
@@ -120,6 +128,11 @@ export default function OrganizationPlaceholderPage() {
   const [loading, setLoading] = useState(true);
   const [org, setOrg] = useState<YachtClubOrganization | null>(null);
   const [errorText, setErrorText] = useState<string | null>(null);
+  // Viewer's membership in this org, resolved alongside the org row.
+  // `null` once loaded means non-member; non-null with status='active'
+  // means full member; pending/rejected statuses are shown distinctly.
+  const [membership, setMembership] = useState<ViewerMembership | null>(null);
+  const { user: authUser } = useAuth();
   const handleBack = React.useCallback(() => {
     if (router.canGoBack()) router.back();
     else router.replace('/(tabs)/discover' as never);
@@ -128,6 +141,42 @@ export default function OrganizationPlaceholderPage() {
     if (!slug) return;
     router.push({ pathname: '/(tabs)/atlas', params: { orgSlug: slug } } as any);
   }, [slug]);
+  // Resolve viewer membership when the org id is known. Runs in
+  // parallel with the org fetch above; harmless to refetch on slug
+  // change. Membership reads are RLS-gated to the viewer's own row.
+  useEffect(() => {
+    let cancelled = false;
+    if (!authUser?.id || !org?.id) {
+      setMembership(null);
+      return () => {
+        cancelled = true;
+      };
+    }
+    void (async () => {
+      const { data } = await supabase
+        .from('organization_memberships')
+        .select('role, membership_status, status')
+        .eq('user_id', authUser.id)
+        .eq('organization_id', org.id)
+        .maybeSingle();
+      if (cancelled) return;
+      if (!data) {
+        setMembership(null);
+        return;
+      }
+      const row = data as { role: string | null; membership_status: string; status: string };
+      const effectiveStatus = row.membership_status || row.status || 'pending';
+      const role = row.role ?? null;
+      setMembership({
+        role,
+        status: effectiveStatus,
+        isAdmin: role === 'admin' || role === 'owner',
+      });
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [authUser?.id, org?.id]);
 
   useEffect(() => {
     let cancelled = false;
@@ -220,6 +269,50 @@ export default function OrganizationPlaceholderPage() {
               </View>
             </View>
 
+            {/* Membership badge — sits between hero and actions so the
+                viewer immediately knows their relationship to this org.
+                Shown only for non-demo orgs (demo orgs use a separate
+                'Synthetic demo club' badge in the hero). */}
+            {!isDemo && membership ? (
+              <View
+                style={[
+                  styles.membershipBadge,
+                  membership.status === 'active'
+                    ? styles.membershipBadgeActive
+                    : membership.status === 'pending'
+                      ? styles.membershipBadgePending
+                      : styles.membershipBadgeMuted,
+                ]}
+              >
+                <Ionicons
+                  name={
+                    membership.status === 'active'
+                      ? 'shield-checkmark-outline'
+                      : membership.status === 'pending'
+                        ? 'hourglass-outline'
+                        : 'close-circle-outline'
+                  }
+                  size={14}
+                  color={
+                    membership.status === 'active'
+                      ? C.green
+                      : membership.status === 'pending'
+                        ? C.amber
+                        : C.muted
+                  }
+                />
+                <Text style={styles.membershipBadgeText}>
+                  {membership.status === 'active'
+                    ? membership.isAdmin
+                      ? `You're an ${membership.role}`
+                      : "You're a member"
+                    : membership.status === 'pending'
+                      ? 'Membership pending'
+                      : `Membership ${membership.status}`}
+                </Text>
+              </View>
+            ) : null}
+
             <View style={styles.mapActionRow}>
               <RelationshipButton
                 label="Open map"
@@ -228,6 +321,36 @@ export default function OrganizationPlaceholderPage() {
                 fullWidth={false}
                 onPress={handleOpenAtlas}
               />
+              {/* Member-vs-non-member CTA. Members get straight access
+                  to their org surfaces; non-members see a join CTA.
+                  Admins additionally get a Manage shortcut. */}
+              {!isDemo && membership?.status === 'active' ? (
+                <>
+                  {membership.isAdmin ? (
+                    <RelationshipButton
+                      label="Manage"
+                      icon="settings-outline"
+                      secondary
+                      fullWidth={false}
+                      onPress={() =>
+                        router.push(`/admin/organizations/${slug}` as never)
+                      }
+                    />
+                  ) : null}
+                </>
+              ) : !isDemo && org && !membership ? (
+                <RelationshipButton
+                  label="Join organization"
+                  icon="add-circle-outline"
+                  fullWidth={false}
+                  onPress={() => {
+                    // Placeholder — actual join flow needs join_mode
+                    // resolution (open vs request) and a confirmation
+                    // sheet. Tracked in project_atlas_backlog.md.
+                    router.push(`/organizations/${slug}/claim` as never);
+                  }}
+                />
+              ) : null}
             </View>
 
             {isDemo ? (
@@ -512,7 +635,43 @@ const styles = StyleSheet.create({
   markText: { color: '#FFFFFF', fontSize: 30, fontWeight: '800' },
   heroText: { flex: 1, gap: 8 },
   heroSub: { color: C.muted, fontSize: 14, lineHeight: 20, fontWeight: '600' },
-  mapActionRow: { paddingBottom: 8 },
+  mapActionRow: {
+    paddingBottom: 8,
+    flexDirection: 'row',
+    gap: 8,
+    flexWrap: 'wrap',
+  },
+  membershipBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 12,
+    alignSelf: 'flex-start',
+    marginBottom: 8,
+  },
+  membershipBadgeActive: {
+    backgroundColor: 'rgba(56, 175, 122, 0.10)',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(56, 175, 122, 0.35)',
+  },
+  membershipBadgePending: {
+    backgroundColor: 'rgba(231, 137, 60, 0.10)',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(231, 137, 60, 0.35)',
+  },
+  membershipBadgeMuted: {
+    backgroundColor: 'rgba(120, 120, 128, 0.10)',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(120, 120, 128, 0.30)',
+  },
+  membershipBadgeText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: C.ink,
+    letterSpacing: -0.1,
+  },
   eyebrow: { color: C.muted, fontSize: 12, fontWeight: '700', textTransform: 'uppercase' },
   h1: { color: C.ink, fontSize: 34, lineHeight: 40, fontWeight: '800' },
   badge: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 6, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 6 },
