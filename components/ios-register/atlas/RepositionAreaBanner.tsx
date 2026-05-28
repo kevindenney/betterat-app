@@ -51,49 +51,40 @@ export function RepositionAreaBanner({
       </View>
 
       <View style={[styles.actionBar, { bottom: bottomOffset }]} pointerEvents="box-none">
-        <View style={[styles.btnCol, styles.btnColLeft]}>
-          <Pressable
-            onPress={onCancel}
-            disabled={saving}
-            style={({ pressed }) => [
-              styles.btn,
-              styles.btnSecondary,
-              pressed && { opacity: 0.7 },
-              saving && { opacity: 0.5 },
-            ]}
-            accessibilityRole="button"
-            accessibilityLabel="Cancel reposition"
-          >
-            <Text style={styles.btnSecondaryText}>Cancel</Text>
-          </Pressable>
-        </View>
-        <View style={styles.btnCol}>
-          <Pressable
-            onPress={onSave}
-            disabled={!hasMoved || saving}
-            style={({ pressed }) => [
-              styles.btn,
-              styles.btnPrimary,
-              (!hasMoved || saving) && styles.btnDisabled,
-              pressed && hasMoved && !saving && { opacity: 0.8 },
-            ]}
-            accessibilityRole="button"
-            accessibilityLabel="Save new position"
-          >
-            {saving ? (
-              <ActivityIndicator color="#FFFFFF" />
-            ) : (
-              <Text
-                style={[
-                  styles.btnPrimaryText,
-                  !hasMoved && styles.btnDisabledText,
-                ]}
-              >
-                {hasMoved ? 'Save position' : 'Tap the map…'}
-              </Text>
-            )}
-          </Pressable>
-        </View>
+        <Pressable
+          onPress={onCancel}
+          disabled={saving}
+          style={({ pressed }) => [
+            styles.btn,
+            styles.btnCancel,
+            pressed && { opacity: 0.7 },
+            saving && { opacity: 0.5 },
+          ]}
+          accessibilityRole="button"
+          accessibilityLabel="Cancel reposition"
+        >
+          <Text style={styles.btnText}>Cancel</Text>
+        </Pressable>
+        <Pressable
+          onPress={onSave}
+          disabled={!hasMoved || saving}
+          style={({ pressed }) => [
+            styles.btn,
+            hasMoved ? styles.btnSave : styles.btnSaveDisabled,
+            pressed && hasMoved && !saving && { opacity: 0.85 },
+            saving && { opacity: 0.7 },
+          ]}
+          accessibilityRole="button"
+          accessibilityLabel="Save new position"
+        >
+          {saving ? (
+            <ActivityIndicator color="#FFFFFF" />
+          ) : (
+            <Text style={styles.btnText}>
+              {hasMoved ? 'Save position' : 'Tap the map…'}
+            </Text>
+          )}
+        </Pressable>
       </View>
     </>
   );
@@ -134,6 +125,7 @@ const styles = StyleSheet.create({
     right: 12,
     zIndex: 1310,
     flexDirection: 'row',
+    gap: 10,
     backgroundColor: '#FFFFFF',
     padding: 10,
     borderRadius: 14,
@@ -142,49 +134,29 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     shadowOffset: { width: 0, height: 4 },
   },
-  // Equal-share columns. flex:1 alone wasn't producing a visible
-  // Save button on iOS — Cancel appeared to fill the whole bar
-  // with "Cancel · v3" centered over the entire pill. Forcing
-  // flexBasis: 0 + flexGrow: 1 + flexShrink: 1 is the verbose
-  // long-hand that RN's iOS flex implementation honors reliably.
-  btnCol: {
-    flexBasis: 0,
-    flexGrow: 1,
-    flexShrink: 1,
-  },
-  btnColLeft: {
-    marginRight: 10,
-  },
+  // Each button takes 50% of the bar via flex:1. Solid-color fills with
+  // white text — no transparent alphas, no wrapper Views, no subtle
+  // borders. After several rounds of "white on white" reports, this is
+  // the simplest shape that's guaranteed to render two visible pills.
   btn: {
-    width: '100%',
+    flex: 1,
     height: 44,
     borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  // High-contrast solid fills — no transparent / subtle alphas anywhere.
-  // Earlier passes used D1D1D6 + thin outline and the user still
-  // reported "white on white." Going dark-on-light removes all doubt.
-  btnSecondary: {
+  btnCancel: {
     backgroundColor: '#3A3A3C',
   },
-  btnSecondaryText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-  btnPrimary: {
+  btnSave: {
     backgroundColor: IOS_COLORS.systemBlue,
   },
-  btnPrimaryText: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#FFFFFF',
-  },
-  btnDisabled: {
+  btnSaveDisabled: {
     backgroundColor: '#8E8E93',
   },
-  btnDisabledText: {
+  btnText: {
+    fontSize: 14,
+    fontWeight: '700',
     color: '#FFFFFF',
   },
 });
