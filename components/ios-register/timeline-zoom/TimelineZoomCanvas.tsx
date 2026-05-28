@@ -52,7 +52,7 @@ import { L4YearsView } from './L4YearsView';
 import { ZoomEmptyState } from './EmptyStates';
 import { SelectActionBar } from './SelectActionBar';
 import { useSelectMode } from './useSelectMode';
-import { ZoomRailIndicator } from './ZoomRailIndicator';
+import { ZoomLevelPicker } from './ZoomLevelPicker';
 import {
   ZOOM_LEVEL_SCOPE_LABELS,
   type TimelineDataset,
@@ -471,11 +471,10 @@ export function TimelineZoomCanvas({
             onUnsupportedAction={(id) => onUnsupportedBulkAction?.(id)}
           />
         ) : (
-          <ZoomRailIndicator
+          <ZoomLevelPicker
             level={level}
             onChange={setLevel}
             onSnapToCurrent={handleSnapToCurrent}
-            topOffset={level === 1 ? 28 : level === 2 ? 88 : 92}
           />
         )}
       </View>

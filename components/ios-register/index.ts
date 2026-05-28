@@ -80,7 +80,7 @@ export {
   TimelineZoomCanvas,
   TimelineZoomPracticeScreen,
   mapToTimelineDataset,
-  ZoomRailIndicator,
+  ZoomLevelPicker,
   L1StepView,
   L2WeekView,
   L3SeasonView,
