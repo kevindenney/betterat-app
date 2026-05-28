@@ -145,6 +145,11 @@ export interface TimelineSeason {
    * back to a degraded "compact section list" mode.
    */
   analysis?: SeasonAnalysis;
+  /** Free-text vision for the arc. Null when not yet set. */
+  visionStatement?: string | null;
+  /** Optional org_competencies(id) anchors that drive per-competency
+   *  progress bars on the VISION lane. */
+  visionCompetencyIds?: string[];
 }
 
 export interface SeasonAnalysis {

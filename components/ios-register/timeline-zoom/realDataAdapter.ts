@@ -1420,6 +1420,8 @@ export function mapToTimelineDataset({
     weeks,
     bricks: currentBricks,
     analysis: currentSeasonAnalysis,
+    visionStatement: currentSeason?.vision_statement ?? null,
+    visionCompetencyIds: currentSeason?.vision_competency_ids ?? [],
   };
 
   // Index moved-via-Section-E step records by their target season id so

@@ -33,6 +33,13 @@ export interface Season {
   discard_rules?: DiscardRules | null;
 
   description?: string | null;
+
+  /** Free-text vision — what the user wants this arc to add up to. */
+  vision_statement?: string | null;
+  /** Optional anchors to org_competencies(id) — drives per-competency
+   *  progress bars on the L3 VISION lane when present. */
+  vision_competency_ids?: string[];
+
   created_at: string;
   updated_at: string;
 }
@@ -242,4 +249,6 @@ export interface UpdateSeasonInput {
   description?: string;
   scoring_rules?: SeasonScoringRules;
   discard_rules?: DiscardRules;
+  vision_statement?: string | null;
+  vision_competency_ids?: string[];
 }

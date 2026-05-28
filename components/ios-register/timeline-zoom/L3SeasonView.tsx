@@ -43,6 +43,10 @@ import { PeerJourneyChart } from './PeerJourneyChart';
 import { CrewSparseList } from './CrewSparseList';
 import { ReflectionSparkline } from './ReflectionSparkline';
 import { CapabilityFamilySheet } from './CapabilityFamilySheet';
+import { VisionBlock } from './VisionBlock';
+import { VisionEditSheet } from './VisionEditSheet';
+import { useUpdateSeason } from '@/hooks/useSeason';
+import { useUserOrgCompetencies } from '@/hooks/useUserOrgCompetencies';
 import { SeasonLibrarianPrompt } from './SeasonLibrarianPrompt';
 import { SeasonHeaderChips } from './SeasonHeaderChips';
 import { PickerListSheet } from './PickerListSheet';
@@ -114,6 +118,10 @@ export function L3SeasonView({
   const [openFamily, setOpenFamily] = useState<
     { id: string; label: string; color: string } | null
   >(null);
+  // VISION lane edit sheet open state + handlers.
+  const [visionEditOpen, setVisionEditOpen] = useState(false);
+  const updateSeason = useUpdateSeason();
+  const { data: orgCompetencies = [] } = useUserOrgCompetencies();
   const scrollRef = useRef<ScrollView>(null);
   const weekOffsetsRef = useRef<Record<string, number>>({});
 
@@ -203,6 +211,23 @@ export function L3SeasonView({
         stepOfTotal={stepOfTotal}
         onPressSeason={() => setOpenPicker('season')}
         onPressStep={() => setOpenPicker('step')}
+      />
+
+      <VisionBlock
+        statement={season.visionStatement}
+        competencyIds={season.visionCompetencyIds ?? []}
+        allCompetencies={orgCompetencies}
+        totalWeeks={totalWeeks}
+        currentWeek={currentWeek}
+        provenEvidenceCount={
+          analysis?.weeklyCapabilities.reduce(
+            (n, w) =>
+              n +
+              w.bands.reduce((m, b) => m + (b.provenVolume ?? 0), 0),
+            0,
+          ) ?? 0
+        }
+        onEdit={() => setVisionEditOpen(true)}
       />
 
       {hasAnalysis && analysis ? (
@@ -438,6 +463,21 @@ export function L3SeasonView({
         capabilityColor={openFamily?.color ?? null}
         interestVocab={interestVocab}
         onOpenStep={onOpenStep}
+      />
+      <VisionEditSheet
+        visible={visionEditOpen}
+        onClose={() => setVisionEditOpen(false)}
+        initialStatement={season.visionStatement}
+        initialCompetencyIds={season.visionCompetencyIds}
+        onSave={async (statement, competencyIds) => {
+          await updateSeason.mutateAsync({
+            seasonId: season.id,
+            input: {
+              vision_statement: statement.length > 0 ? statement : null,
+              vision_competency_ids: competencyIds,
+            },
+          });
+        }}
       />
     </>
   );

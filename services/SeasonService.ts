@@ -14,8 +14,6 @@ import type {
   SeasonStatus,
   SeasonStanding,
   SeasonRegatta,
-  SeasonScoringRules,
-  DiscardRules,
   CreateSeasonInput,
   UpdateSeasonInput,
   SeasonListItem,
@@ -44,6 +42,10 @@ function mapSeasonRow(row: any): Season {
     scoring_rules: row.scoring_rules,
     discard_rules: row.discard_rules,
     description: row.description,
+    vision_statement: row.vision_statement ?? null,
+    vision_competency_ids: Array.isArray(row.vision_competency_ids)
+      ? (row.vision_competency_ids as string[])
+      : [],
     created_at: row.created_at,
     updated_at: row.updated_at,
   };
@@ -173,6 +175,9 @@ class SeasonServiceClass {
     if (input.description !== undefined) updateData.description = input.description;
     if (input.scoring_rules !== undefined) updateData.scoring_rules = input.scoring_rules;
     if (input.discard_rules !== undefined) updateData.discard_rules = input.discard_rules;
+    if (input.vision_statement !== undefined) updateData.vision_statement = input.vision_statement;
+    if (input.vision_competency_ids !== undefined)
+      updateData.vision_competency_ids = input.vision_competency_ids;
 
     const { data, error } = await supabase
       .from('seasons')
