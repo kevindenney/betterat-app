@@ -288,7 +288,7 @@ export function CapabilityMix({
 
   return (
     <View style={[styles.wrap, { width, height }]}>
-      <Svg width={width} height={height}>
+      <Svg width={width} height={height} pointerEvents="none">
         {/* Stacked-area bands rendered with dual encoding:
             - Ghost rect (faint fill) covers the planned portion above
               the solid — "what you set out to develop"
