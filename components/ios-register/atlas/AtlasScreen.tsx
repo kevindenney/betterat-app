@@ -1347,11 +1347,22 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
     setRepositionTarget(null);
     if (reverted) setEditingArea(reverted);
   }, [repositionTarget]);
-  // While repositioning, paint a live preview at the candidate center
-  // using the area's existing radius. Reuses the create-sheet preview
-  // slot so the canvas renders it the same way as a brand-new shape.
+  // While repositioning, paint a live preview at the candidate center.
+  // If the area has a polygon shape (hand-traced), translate every
+  // vertex by the (newLat-centerLat, newLng-centerLng) delta so the
+  // shape rides with the new center. Otherwise fall back to a circle
+  // preview using the stored radius.
   React.useEffect(() => {
     if (!repositionTarget) return;
+    if (repositionTarget.polygon) {
+      const dLat = repositionTarget.newLat - repositionTarget.centerLat;
+      const dLng = repositionTarget.newLng - repositionTarget.centerLng;
+      const translated: [number, number][][] = repositionTarget.polygon.coordinates.map(
+        (ring) => ring.map(([lng, lat]) => [lng + dLng, lat + dLat]),
+      );
+      setAreaSheetPolygon({ type: 'Polygon', coordinates: translated });
+      return () => setAreaSheetPolygon(null);
+    }
     const polygon = shapeToPolygon({
       kind: 'circle',
       centerLat: repositionTarget.newLat,
@@ -1378,6 +1389,21 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
   }, [retraceTarget]);
   const handleSaveReposition = useCallback(async () => {
     if (!repositionTarget) return;
+    // For polygon-shaped areas, translate every vertex by the delta so
+    // the hand-traced shape rides with the new center. Without this
+    // the mutation would store the original geometry against the new
+    // center, leaving the polygon visibly disconnected from its name.
+    let translatedPolygon: { type: 'Polygon'; coordinates: [number, number][][] } | undefined;
+    if (repositionTarget.polygon) {
+      const dLat = repositionTarget.newLat - repositionTarget.centerLat;
+      const dLng = repositionTarget.newLng - repositionTarget.centerLng;
+      translatedPolygon = {
+        type: 'Polygon',
+        coordinates: repositionTarget.polygon.coordinates.map((ring) =>
+          ring.map(([lng, lat]) => [lng + dLng, lat + dLat] as [number, number]),
+        ),
+      };
+    }
     try {
       await updateRacingAreaMutation.mutateAsync({
         id: repositionTarget.id,
@@ -1386,6 +1412,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
         centerLng: repositionTarget.newLng,
         radiusMeters: repositionTarget.radiusMeters ?? undefined,
         classesUsed: repositionTarget.classesUsed,
+        polygon: translatedPolygon,
       });
       setRepositionTarget(null);
     } catch (err) {
@@ -1833,19 +1860,30 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
       if (!inActiveTapMode && authUser?.id) {
         const hit = findRacingAreaAtPoint(raceAreasForHitTest, coords.lng, coords.lat);
         if (hit && hit.properties.createdBy === authUser.id) {
-          // Reuse the existing edit form. The hook returns
-          // synthesized polygon for circle-only seeds; we don't have
-          // the original radius_meters/classes_used in
-          // RacingAreaProperties, so query Supabase or fall back to
-          // 1500m. For now the edit form will read radius from the
-          // editingArea prop and show 1500 if absent.
+          // Compute the polygon's centroid so Move on Map can use it as
+          // the anchor for translation deltas. Using the tap coords as
+          // the center (the old behavior) made move-delta math wrong —
+          // every tap registered as a large displacement from where the
+          // user happened to tap, not the polygon's actual center.
+          const ring = hit.geometry.coordinates[0] ?? [];
+          let sumLat = 0;
+          let sumLng = 0;
+          for (const v of ring) {
+            sumLng += v[0];
+            sumLat += v[1];
+          }
+          const cLat = ring.length > 0 ? sumLat / ring.length : coords.lat;
+          const cLng = ring.length > 0 ? sumLng / ring.length : coords.lng;
           setEditingArea({
             id: hit.properties.id,
             name: hit.properties.name,
-            centerLat: coords.lat,
-            centerLng: coords.lng,
+            centerLat: cLat,
+            centerLng: cLng,
             radiusMeters: null,
             classesUsed: hit.properties.classesUsed ?? [],
+            // Capture the polygon so Move on Map can translate it
+            // instead of collapsing to a circle preview.
+            polygon: hit.geometry,
           });
           return;
         }

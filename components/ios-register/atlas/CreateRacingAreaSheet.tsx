@@ -43,6 +43,13 @@ export interface EditingRacingArea {
   /** Stored radius — used as initial slider value in circle mode. */
   radiusMeters: number | null;
   classesUsed: string[];
+  /**
+   * The area's current Polygon geometry, if any. Captured when the
+   * user taps a polygon-shaped area so Move on Map can translate the
+   * vertices (preserving the hand-traced shape) instead of collapsing
+   * to a circle preview. Null for circle-only areas.
+   */
+  polygon?: Polygon | null;
 }
 
 interface CreateRacingAreaSheetProps {
