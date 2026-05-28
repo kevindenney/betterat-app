@@ -7,6 +7,7 @@ import { RelationshipButton } from '@/components/discover/detail';
 import { IOSDetailNavBar } from '@/components/discover/detail';
 import { supabase } from '@/services/supabase';
 import { useAuth } from '@/providers/AuthProvider';
+import { OrgLocationsMap, type OrgLocation } from '@/components/organizations/OrgLocationsMap';
 import {
   YachtClubClaimService,
   type YachtClubOrganization,
@@ -132,6 +133,7 @@ export default function OrganizationPlaceholderPage() {
   // `null` once loaded means non-member; non-null with status='active'
   // means full member; pending/rejected statuses are shown distinctly.
   const [membership, setMembership] = useState<ViewerMembership | null>(null);
+  const [orgLocations, setOrgLocations] = useState<OrgLocation[]>([]);
   const { user: authUser } = useAuth();
   const handleBack = React.useCallback(() => {
     if (router.canGoBack()) router.back();
@@ -177,6 +179,44 @@ export default function OrganizationPlaceholderPage() {
       cancelled = true;
     };
   }, [authUser?.id, org?.id]);
+  // Fetch all organization_locations for the embedded map below the
+  // hero. Ordered by sort_order so the primary site sits first in any
+  // future "Sites" list. Public read on org_locations; no RLS hurdle.
+  useEffect(() => {
+    let cancelled = false;
+    if (!org?.id) {
+      setOrgLocations([]);
+      return () => {
+        cancelled = true;
+      };
+    }
+    void (async () => {
+      const { data } = await supabase
+        .from('organization_locations')
+        .select('id, name, lat, lng, sort_order')
+        .eq('organization_id', org.id)
+        .order('sort_order', { ascending: true });
+      if (cancelled) return;
+      const rows = (data ?? []) as Record<string, unknown>[];
+      const out: OrgLocation[] = [];
+      for (const r of rows) {
+        const lat = Number(r.lat);
+        const lng = Number(r.lng);
+        if (!Number.isFinite(lat) || !Number.isFinite(lng)) continue;
+        if (lat === 0 && lng === 0) continue;
+        out.push({
+          id: r.id ? String(r.id) : undefined,
+          name: r.name ? String(r.name) : 'Site',
+          lat,
+          lng,
+        });
+      }
+      setOrgLocations(out);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [org?.id]);
 
   useEffect(() => {
     let cancelled = false;
@@ -309,6 +349,20 @@ export default function OrganizationPlaceholderPage() {
                     : membership.status === 'pending'
                       ? 'Membership pending'
                       : `Membership ${membership.status}`}
+                </Text>
+              </View>
+            ) : null}
+
+            {/* Embedded map of all the org's locations. Hidden when
+                there are zero rows in organization_locations so the
+                hero/CTAs don't get an empty placeholder card. */}
+            {orgLocations.length > 0 ? (
+              <View style={styles.embeddedMapWrap}>
+                <OrgLocationsMap locations={orgLocations} height={220} />
+                <Text style={styles.embeddedMapCaption}>
+                  {orgLocations.length === 1
+                    ? '1 site'
+                    : `${orgLocations.length} sites`}
                 </Text>
               </View>
             ) : null}
@@ -635,6 +689,17 @@ const styles = StyleSheet.create({
   markText: { color: '#FFFFFF', fontSize: 30, fontWeight: '800' },
   heroText: { flex: 1, gap: 8 },
   heroSub: { color: C.muted, fontSize: 14, lineHeight: 20, fontWeight: '600' },
+  embeddedMapWrap: {
+    marginBottom: 12,
+  },
+  embeddedMapCaption: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: 'rgba(60, 60, 67, 0.55)',
+    letterSpacing: 0.2,
+    textTransform: 'uppercase',
+    marginTop: 6,
+  },
   mapActionRow: {
     paddingBottom: 8,
     flexDirection: 'row',
