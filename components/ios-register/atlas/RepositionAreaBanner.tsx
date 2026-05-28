@@ -11,7 +11,7 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-nati
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { IOS_COLORS, IOS_REGISTER } from '@/lib/design-tokens-ios';
+import { IOS_COLORS } from '@/lib/design-tokens-ios';
 
 interface RepositionAreaBannerProps {
   areaName: string;
@@ -162,15 +162,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  // High-contrast solid fills — no transparent / subtle alphas anywhere.
+  // Earlier passes used D1D1D6 + thin outline and the user still
+  // reported "white on white." Going dark-on-light removes all doubt.
   btnSecondary: {
-    backgroundColor: '#D1D1D6',
-    borderWidth: 1,
-    borderColor: 'rgba(60, 60, 67, 0.18)',
+    backgroundColor: '#3A3A3C',
   },
   btnSecondaryText: {
     fontSize: 14,
     fontWeight: '600',
-    color: IOS_REGISTER.label,
+    color: '#FFFFFF',
   },
   btnPrimary: {
     backgroundColor: IOS_COLORS.systemBlue,
@@ -180,17 +181,10 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#FFFFFF',
   },
-  // Strong gray fill with outline so the disabled Save reads as a
-  // visibly-inactive button against the white action-bar card. Earlier
-  // attempts at #EDEDF0 + 0.16-alpha borders weren't visually distinct
-  // enough on-device — the user kept reading the bar as Cancel-only.
   btnDisabled: {
-    backgroundColor: '#D1D1D6',
-    borderWidth: 1,
-    borderColor: 'rgba(60, 60, 67, 0.18)',
+    backgroundColor: '#8E8E93',
   },
   btnDisabledText: {
-    color: IOS_REGISTER.label,
-    opacity: 0.7,
+    color: '#FFFFFF',
   },
 });
