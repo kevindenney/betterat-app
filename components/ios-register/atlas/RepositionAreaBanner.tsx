@@ -64,7 +64,7 @@ export function RepositionAreaBanner({
             accessibilityRole="button"
             accessibilityLabel="Cancel reposition"
           >
-            <Text style={styles.btnSecondaryText}>Cancel · v3</Text>
+            <Text style={styles.btnSecondaryText}>Cancel</Text>
           </Pressable>
         </View>
         <View style={styles.btnCol}>
@@ -142,17 +142,21 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     shadowOffset: { width: 0, height: 4 },
   },
-  // Two equal-width slots with an explicit 10pt margin between them.
-  // RN `gap` was unreliable here — some bundles rendered only the
-  // first child as full width, hiding Save. Explicit columns force
-  // both Pressables to claim half the bar regardless.
+  // Equal-share columns. flex:1 alone wasn't producing a visible
+  // Save button on iOS — Cancel appeared to fill the whole bar
+  // with "Cancel · v3" centered over the entire pill. Forcing
+  // flexBasis: 0 + flexGrow: 1 + flexShrink: 1 is the verbose
+  // long-hand that RN's iOS flex implementation honors reliably.
   btnCol: {
-    flex: 1,
+    flexBasis: 0,
+    flexGrow: 1,
+    flexShrink: 1,
   },
   btnColLeft: {
     marginRight: 10,
   },
   btn: {
+    width: '100%',
     height: 44,
     borderRadius: 10,
     alignItems: 'center',
