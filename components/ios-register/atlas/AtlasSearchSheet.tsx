@@ -289,14 +289,25 @@ async function fetchSearchResults(
     }
   }
 
+  // Helper — Number(null) === 0 and Number.isFinite(0) === true, so a
+  // step with NULL location_lat/lng would otherwise be tagged as "at
+  // (0, 0)" and the camera would fly to the Gulf of Guinea. Guard
+  // against nullish AND zero-pair AND non-finite explicitly.
+  const stepCoords = (row: Record<string, unknown>): { lat: number; lng: number } | null => {
+    if (row.location_lat == null || row.location_lng == null) return null;
+    const lat = Number(row.location_lat);
+    const lng = Number(row.location_lng);
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+    if (lat === 0 && lng === 0) return null;
+    return { lat, lng };
+  };
+
   if (ownStepsRes && !ownStepsRes.error && ownStepsRes.data) {
     for (const s of ownStepsRes.data as Record<string, unknown>[]) {
       const stepId = String(s.id);
       const title = String(s.title ?? 'Step');
       const desc = s.description ? String(s.description) : null;
-      const lat = Number(s.location_lat);
-      const lng = Number(s.location_lng);
-      const hasLoc = Number.isFinite(lat) && Number.isFinite(lng);
+      const coords = stepCoords(s);
       out.push({
         id: `step:${stepId}`,
         kind: 'step',
@@ -308,8 +319,8 @@ async function fetchSearchResults(
             : 'Your step',
         stepId,
         ownership: 'yours',
-        lat: hasLoc ? lat : undefined,
-        lng: hasLoc ? lng : undefined,
+        lat: coords?.lat,
+        lng: coords?.lng,
       });
     }
   }
@@ -323,9 +334,7 @@ async function fetchSearchResults(
       const stepId = String(s.id);
       const title = String(s.title ?? 'Step');
       const desc = s.description ? String(s.description) : null;
-      const lat = Number(s.location_lat);
-      const lng = Number(s.location_lng);
-      const hasLoc = Number.isFinite(lat) && Number.isFinite(lng);
+      const coords = stepCoords(s);
       out.push({
         id: `peer_step:${stepId}`,
         kind: 'step',
@@ -337,8 +346,8 @@ async function fetchSearchResults(
             : 'From someone you follow',
         stepId,
         ownership: 'following',
-        lat: hasLoc ? lat : undefined,
-        lng: hasLoc ? lng : undefined,
+        lat: coords?.lat,
+        lng: coords?.lng,
       });
     }
   }
