@@ -25,6 +25,7 @@ import { showAlert, showConfirm } from '@/lib/utils/crossPlatformAlert';
 import { useCurrentSeason, useUserSeasons, useCreateSeason, useUpdateSeason, useArchiveSeason } from '@/hooks/useSeason';
 import { useSubscribedBlueprints, useBlueprintWithAuthor } from '@/hooks/useBlueprint';
 import { useStepCapabilityEvidence } from '@/hooks/useStepCapabilityEvidence';
+import { useInterestVision } from '@/hooks/useInterestVision';
 import { useStepPeerReflections } from '@/hooks/useStepPeerReflections';
 import { useStepSuggestionsForRange } from '@/hooks/useStepSuggestionsForRange';
 import { SeasonEditSheet } from './SeasonEditSheet';
@@ -77,6 +78,10 @@ export function TimelineZoomPracticeScreen() {
   // a reflection to one of the viewer's steps, so the chart can place
   // the reflecting peer at that step's week without date projection.
   const { data: stepReflectionsMap } = useStepPeerReflections(stepIdsForEvidence);
+  // Vision is per-interest (persona), not per-season — seasons are
+  // calendar partitions shared across the user's interests, so a
+  // vision stored on a season would bleed across personas.
+  const { data: interestVision } = useInterestVision(interestId);
 
   // The focused step's blueprint gets the "suggested by …" author tag —
   // only one extra query, only when the focused step actually came from a
@@ -138,6 +143,12 @@ export function TimelineZoomPracticeScreen() {
         stepEvidenceMap,
         suggestionInputs,
         stepReflectionsMap,
+        interestVision: interestVision
+          ? {
+              statement: interestVision.vision_statement,
+              competencyIds: interestVision.vision_competency_ids,
+            }
+          : undefined,
       }),
     [
       interestId,
@@ -152,6 +163,7 @@ export function TimelineZoomPracticeScreen() {
       stepEvidenceMap,
       suggestionInputs,
       stepReflectionsMap,
+      interestVision,
     ],
   );
 

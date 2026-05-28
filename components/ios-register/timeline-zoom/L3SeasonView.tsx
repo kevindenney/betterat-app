@@ -45,7 +45,7 @@ import { ReflectionSparkline } from './ReflectionSparkline';
 import { CapabilityFamilySheet } from './CapabilityFamilySheet';
 import { VisionBlock } from './VisionBlock';
 import { VisionEditSheet } from './VisionEditSheet';
-import { useUpdateSeason } from '@/hooks/useSeason';
+import { useUpdateInterestVision } from '@/hooks/useInterestVision';
 import { useUserOrgCompetencies } from '@/hooks/useUserOrgCompetencies';
 import { SeasonLibrarianPrompt } from './SeasonLibrarianPrompt';
 import { SeasonHeaderChips } from './SeasonHeaderChips';
@@ -120,7 +120,7 @@ export function L3SeasonView({
   >(null);
   // VISION lane edit sheet open state + handlers.
   const [visionEditOpen, setVisionEditOpen] = useState(false);
-  const updateSeason = useUpdateSeason();
+  const updateInterestVision = useUpdateInterestVision();
   const { data: orgCompetencies = [] } = useUserOrgCompetencies();
   const scrollRef = useRef<ScrollView>(null);
   const weekOffsetsRef = useRef<Record<string, number>>({});
@@ -473,12 +473,10 @@ export function L3SeasonView({
         initialStatement={season.visionStatement}
         initialCompetencyIds={season.visionCompetencyIds}
         onSave={async (statement, competencyIds) => {
-          await updateSeason.mutateAsync({
-            seasonId: season.id,
-            input: {
-              vision_statement: statement.length > 0 ? statement : null,
-              vision_competency_ids: competencyIds,
-            },
+          await updateInterestVision.mutateAsync({
+            interestId: dataset.interest.id,
+            vision_statement: statement.length > 0 ? statement : null,
+            vision_competency_ids: competencyIds,
           });
         }}
       />

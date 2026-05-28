@@ -1287,6 +1287,16 @@ interface AdapterInput {
     string,
     { peerUserId: string; peerDisplayName: string | null }[]
   >;
+  /**
+   * Per-interest vision data. Vision lives on user_interests (not on
+   * seasons) so each persona carries its own — a sailor's vision
+   * doesn't bleed into the same user's nursing canvas just because
+   * both share the "Winter 2025-2026" calendar partition.
+   */
+  interestVision?: {
+    statement: string | null;
+    competencyIds: string[];
+  };
 }
 
 export function mapToTimelineDataset({
@@ -1302,6 +1312,7 @@ export function mapToTimelineDataset({
   stepEvidenceMap,
   suggestionInputs,
   stepReflectionsMap,
+  interestVision,
 }: AdapterInput): TimelineDataset {
   // Sort steps by sort_order, then starts_at. Stable ordering matters for
   // week bucketing fallback and L4 brick layout.
@@ -1469,8 +1480,8 @@ export function mapToTimelineDataset({
     weeks,
     bricks: currentBricks,
     analysis: currentSeasonAnalysis,
-    visionStatement: currentSeason?.vision_statement ?? null,
-    visionCompetencyIds: currentSeason?.vision_competency_ids ?? [],
+    visionStatement: interestVision?.statement ?? null,
+    visionCompetencyIds: interestVision?.competencyIds ?? [],
     visionEvidenceByCompetency,
     visionEvidenceTrendByCompetency,
     visionEvidenceTrend,
