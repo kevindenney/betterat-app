@@ -1,7 +1,8 @@
 /**
  * Step digest card — the canonical small step representation used by L2
- * (week carousel peek) and L3 (week section pairs). One card, three layouts:
- * compact (peek), full (focused), and section (L3 two-up).
+ * and L3. L2's nearby mode is intentionally sparse: neighboring cards stay
+ * identifiable while the centered card can surface one relevant content
+ * snippet without becoming a full L1 detail surface.
  *
  * Matches Frame 2/3/6/7. Status dot, pre-title eyebrow, title, capability
  * chips, provenance footer, cohort avatars.
@@ -12,7 +13,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { IOS_REGISTER } from '@/lib/design-tokens-ios';
-import type { Capability, CohortAvatar, StepStatus, TimelineStep } from './types';
+import type { Capability, CohortAvatar, StepOriginKind, StepStatus, TimelineStep } from './types';
 
 const STATUS_VISUAL: Record<
   StepStatus,
@@ -25,12 +26,51 @@ const STATUS_VISUAL: Record<
   done:      { label: 'Done',      color: IOS_REGISTER.labelSecondary,   dotColor: IOS_REGISTER.labelTertiary },
 };
 
+const NEARBY_STATUS_LABEL: Record<StepStatus, string> = {
+  plan: 'Queued',
+  do: 'In play',
+  reflect: 'Reflecting',
+  reflected: 'Done',
+  done: 'Done',
+};
+
+const ORIGIN_VISUAL: Record<
+  StepOriginKind,
+  { label: string; icon: keyof typeof Ionicons.glyphMap; color: string; bg: string; border: string }
+> = {
+  mine: {
+    label: 'Mine',
+    icon: 'person-circle-outline',
+    color: IOS_REGISTER.accentUserAction,
+    bg: 'rgba(0, 122, 255, 0.08)',
+    border: 'rgba(0, 122, 255, 0.22)',
+  },
+  shared: {
+    label: 'Shared',
+    icon: 'people-outline',
+    color: '#2D8B6A',
+    bg: 'rgba(45, 139, 106, 0.10)',
+    border: 'rgba(45, 139, 106, 0.30)',
+  },
+  blueprint: {
+    label: 'Blueprint',
+    icon: 'bookmark-outline',
+    color: '#7B3FB0',
+    bg: 'rgba(123, 63, 176, 0.10)',
+    border: 'rgba(123, 63, 176, 0.28)',
+  },
+};
+
 interface StepDigestCardProps {
   step: TimelineStep;
   /** Visually highlights the card with iOS-blue outline (the "came from" or "today" card). */
   highlighted?: boolean;
   /** L3 section layout — narrower, no capability chips, no provenance. */
   compact?: boolean;
+  /** L2 nearby layout — slim planning columns around NOW. */
+  variant?: 'default' | 'nearby';
+  /** When true, surface one high-signal snippet for the centered nearby card. */
+  showRelevantSnippet?: boolean;
   onPress?: () => void;
 }
 
@@ -38,10 +78,31 @@ export function StepDigestCard({
   step,
   highlighted,
   compact,
+  variant = 'default',
+  showRelevantSnippet = false,
   onPress,
 }: StepDigestCardProps) {
   const status = STATUS_VISUAL[step.status];
   const isToday = step.preTitle?.startsWith('TODAY');
+  const isNearby = variant === 'nearby';
+  const origin = ORIGIN_VISUAL[step.originKind ?? 'mine'];
+  const relevantBlock = showRelevantSnippet ? getRelevantBlock(step) : null;
+  const visibleCapabilities = (step.capabilities ?? []).filter((cap) => {
+    const normalized = cap.label.trim().toLowerCase();
+    return ![
+      'general',
+      'practice',
+      'planning',
+      'plan',
+      'do',
+      'done',
+      'reflect',
+      'reflecting',
+      'review',
+    ].includes(normalized);
+  });
+  const primaryCapability = visibleCapabilities[0];
+  const statusLabel = isNearby ? NEARBY_STATUS_LABEL[step.status] : status.label;
 
   return (
     <Pressable
@@ -49,13 +110,40 @@ export function StepDigestCard({
       style={[
         styles.card,
         compact && styles.cardCompact,
+        isNearby && styles.cardNearby,
+        isNearby && { borderColor: origin.border },
+        isNearby && highlighted && styles.cardNearbyFocused,
+        isNearby && !highlighted && styles.cardNearbySide,
         highlighted && styles.cardHighlighted,
       ]}
     >
+      {isNearby ? (
+        <View style={[styles.originAccent, { backgroundColor: origin.color }]} />
+      ) : null}
+
+      {isNearby && primaryCapability ? (
+        <View
+          style={[
+            styles.nearbyRail,
+            { backgroundColor: withAlpha(primaryCapability.color, highlighted ? 0.8 : 0.45) },
+          ]}
+        />
+      ) : null}
+
+      {isNearby ? (
+        <View style={[styles.originPill, { backgroundColor: origin.bg, borderColor: origin.border }]}>
+          <Ionicons name={origin.icon} size={10} color={origin.color} />
+          <Text style={[styles.originPillText, { color: origin.color }]} numberOfLines={1}>
+            {origin.label}
+          </Text>
+        </View>
+      ) : null}
+
       {step.preTitle ? (
         <Text
           style={[
             styles.eyebrow,
+            isNearby && styles.eyebrowNearby,
             isToday && styles.eyebrowToday,
           ]}
           numberOfLines={1}
@@ -64,25 +152,65 @@ export function StepDigestCard({
         </Text>
       ) : null}
 
-      <Text style={styles.title} numberOfLines={3}>
+      <Text
+        style={[
+          styles.title,
+          isNearby && styles.titleNearby,
+          isNearby && !highlighted && styles.titleNearbySide,
+        ]}
+        numberOfLines={isNearby ? 2 : 3}
+      >
         {step.title}
       </Text>
+
+      {isNearby && relevantBlock ? (
+        <View style={styles.relevantWrap}>
+          {relevantBlock.context ? (
+            <Text style={styles.relevantContext} numberOfLines={1}>
+              {relevantBlock.context}
+            </Text>
+          ) : null}
+          {relevantBlock.beats.length > 0 ? (
+            <View style={styles.beatsList}>
+              {relevantBlock.beats.map((beat, idx) => (
+                <View key={idx} style={styles.beatRow}>
+                  <Text style={styles.beatBullet}>•</Text>
+                  <Text style={styles.beatText} numberOfLines={2}>{beat}</Text>
+                </View>
+              ))}
+            </View>
+          ) : null}
+          {relevantBlock.why ? (
+            <Text style={styles.relevantWhy} numberOfLines={2}>
+              {relevantBlock.why}
+            </Text>
+          ) : null}
+        </View>
+      ) : null}
 
       <View style={styles.bottomBlock}>
         <View style={styles.statusRow}>
           <View style={[styles.statusDot, { backgroundColor: status.dotColor }]} />
-          <Text style={[styles.statusLabel, { color: status.color }]}>{status.label}</Text>
+          <Text style={[styles.statusLabel, { color: status.color }]}>{statusLabel}</Text>
+          {isNearby && step.cohortAvatars?.length ? (
+            <View style={styles.statusWithChip}>
+              <AvatarStack avatars={step.cohortAvatars} max={2} compact />
+              <Text style={styles.statusWithCount}>
+                +{step.cohortAvatars.length}
+              </Text>
+            </View>
+          ) : null}
         </View>
 
-        {!compact && step.capabilities?.length ? (
+        {!compact && visibleCapabilities.length ? (
           <View style={styles.chipRow}>
-            {step.capabilities.slice(0, 3).map((cap) => (
+            {visibleCapabilities.slice(0, isNearby ? 1 : 3).map((cap) => (
               <CapabilityChip key={cap.id} cap={cap} />
             ))}
           </View>
         ) : null}
 
-        {!compact && step.from ? (
+        {!compact && step.from && !isNearby ? (
           <View style={styles.fromRow}>
             <Ionicons name="git-network-outline" size={11} color={IOS_REGISTER.labelTertiary} />
             <Text style={styles.fromText} numberOfLines={1}>
@@ -91,7 +219,7 @@ export function StepDigestCard({
           </View>
         ) : null}
 
-        {!compact && step.cohortAvatars?.length ? (
+        {!compact && step.cohortAvatars?.length && !isNearby ? (
           <View style={styles.cohortRow}>
             <AvatarStack avatars={step.cohortAvatars} />
             {step.cohortLabel ? (
@@ -113,6 +241,68 @@ export function StepDigestCard({
   );
 }
 
+/**
+ * Build the richer "what does this step actually involve" block shown
+ * under the title on a nearby (centered) card.
+ *
+ * Returns three optional strands:
+ *   - context: a single one-liner with who/when/where (synthesized from
+ *     metaLeft, whenLabel, cohortLabel)
+ *   - beats: up to three unchecked howItems as bullets
+ *   - why: one whyReasoning sentence under the beats (when present)
+ *
+ * If a step has nothing to add beyond its title (no beats, no context,
+ * no why), the block resolves to null so the card stays compact.
+ */
+// Phrases that creep into metaLeft for steps created via drop-pin,
+// blueprint adoption, or other UI affordances. They describe *how* the
+// step was created, not where/when/who — so they don't belong in the
+// context line. When metaLeft starts with one of these, we skip it and
+// fall through to whenLabel · cohortLabel instead.
+const CREATION_SOURCE_PREFIXES = [
+  'dropped pin',
+  'from blueprint',
+  'from playbook',
+  'from suggestion',
+  'pinned from',
+  'imported from',
+  'shared by',
+];
+
+function isCreationSourceMeta(meta: string): boolean {
+  const m = meta.trim().toLowerCase();
+  return CREATION_SOURCE_PREFIXES.some((p) => m.startsWith(p));
+}
+
+function getRelevantBlock(
+  step: TimelineStep,
+): { context?: string; beats: string[]; why?: string } | null {
+  // Unchecked beats — the "what to do next" set.
+  const uncheckedBeats = (step.howItems ?? [])
+    .filter((h) => !h.checked)
+    .slice(0, 3)
+    .map((h) => h.label);
+
+  // Context line — prefer metaLeft (already includes day · venue), but
+  // skip provenance/creation-source values like "Dropped pin · ..." that
+  // describe how the step was created rather than where/when/who. Fall
+  // back to a synthesized when · cohort line.
+  const useMetaLeft = step.metaLeft && !isCreationSourceMeta(step.metaLeft);
+  const contextParts: string[] = [];
+  if (useMetaLeft && step.metaLeft) {
+    contextParts.push(step.metaLeft);
+  } else {
+    if (step.whenLabel) contextParts.push(step.whenLabel);
+    if (step.cohortLabel) contextParts.push(step.cohortLabel);
+  }
+  const context = contextParts.join(' · ') || undefined;
+
+  const why = step.whyReasoning?.trim() || undefined;
+
+  if (!context && uncheckedBeats.length === 0 && !why) return null;
+  return { context, beats: uncheckedBeats, why };
+}
+
 function CapabilityChip({ cap }: { cap: Capability }) {
   return (
     <View style={[styles.chip, { backgroundColor: withAlpha(cap.color, 0.12) }]}>
@@ -121,18 +311,28 @@ function CapabilityChip({ cap }: { cap: Capability }) {
   );
 }
 
-function AvatarStack({ avatars }: { avatars: CohortAvatar[] }) {
+function AvatarStack({
+  avatars,
+  max = 3,
+  compact = false,
+}: {
+  avatars: CohortAvatar[];
+  max?: number;
+  compact?: boolean;
+}) {
   return (
     <View style={styles.avatarStack}>
-      {avatars.slice(0, 3).map((av, idx) => (
+      {avatars.slice(0, max).map((av, idx) => (
         <View
           key={av.id}
           style={[
-            styles.avatarBubble,
+            compact ? styles.avatarBubbleCompact : styles.avatarBubble,
             { backgroundColor: av.color, marginLeft: idx === 0 ? 0 : -6 },
           ]}
         >
-          <Text style={styles.avatarText}>{av.initials}</Text>
+          <Text style={compact ? styles.avatarTextCompact : styles.avatarText}>
+            {compact ? av.initials.slice(0, 1) : av.initials}
+          </Text>
         </View>
       ))}
     </View>
@@ -173,9 +373,62 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 12,
   },
+  cardNearby: {
+    minHeight: 312,
+    paddingTop: 15,
+    paddingBottom: 14,
+    paddingHorizontal: 14,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255, 255, 255, 0.96)',
+  },
+  cardNearbyFocused: {
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 5,
+  },
+  cardNearbySide: {
+    backgroundColor: 'rgba(255, 255, 255, 0.88)',
+  },
   cardHighlighted: {
     borderWidth: 1.5,
     borderColor: IOS_REGISTER.accentUserAction,
+  },
+  nearbyRail: {
+    position: 'absolute',
+    left: 10,
+    top: 16,
+    bottom: 16,
+    width: 3,
+    borderRadius: 999,
+  },
+  originAccent: {
+    position: 'absolute',
+    top: 7,
+    left: 24,
+    right: 24,
+    height: 3,
+    borderRadius: 999,
+  },
+  originPill: {
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    maxWidth: '100%',
+    marginLeft: 10,
+    marginBottom: 7,
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: 999,
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  originPillText: {
+    fontSize: 9.5,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
   },
   eyebrow: {
     fontSize: 10.5,
@@ -183,6 +436,9 @@ const styles = StyleSheet.create({
     letterSpacing: 0.6,
     color: IOS_REGISTER.labelTertiary,
     marginBottom: 6,
+  },
+  eyebrowNearby: {
+    paddingLeft: 10,
   },
   eyebrowToday: {
     color: IOS_REGISTER.accentUserAction,
@@ -194,6 +450,62 @@ const styles = StyleSheet.create({
     letterSpacing: -0.3,
     color: IOS_REGISTER.label,
     marginBottom: 12,
+  },
+  titleNearby: {
+    fontSize: 14.5,
+    lineHeight: 19,
+    fontWeight: '650',
+    paddingLeft: 10,
+    marginBottom: 8,
+  },
+  titleNearbySide: {
+    fontSize: 13,
+    lineHeight: 17,
+    marginBottom: 7,
+  },
+  relevantWrap: {
+    marginBottom: 8,
+    marginLeft: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: 12,
+    backgroundColor: 'rgba(210, 123, 84, 0.08)',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(210, 123, 84, 0.18)',
+    gap: 6,
+  },
+  relevantContext: {
+    fontSize: 10.5,
+    fontWeight: '600',
+    letterSpacing: 0.4,
+    color: '#B45F06',
+    textTransform: 'uppercase',
+  },
+  beatsList: {
+    gap: 3,
+  },
+  beatRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 4,
+  },
+  beatBullet: {
+    fontSize: 12,
+    lineHeight: 16,
+    color: IOS_REGISTER.labelSecondary,
+    width: 8,
+  },
+  beatText: {
+    flex: 1,
+    fontSize: 12,
+    lineHeight: 16,
+    color: IOS_REGISTER.label,
+  },
+  relevantWhy: {
+    fontSize: 11,
+    lineHeight: 15,
+    fontStyle: 'italic',
+    color: IOS_REGISTER.labelSecondary,
   },
   bottomBlock: {
     gap: 8,
@@ -256,10 +568,35 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: '#FFFFFF',
   },
+  avatarBubbleCompact: {
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#FFFFFF',
+  },
   avatarText: {
     color: '#FFFFFF',
     fontSize: 9,
     fontWeight: '600',
+  },
+  avatarTextCompact: {
+    color: '#FFFFFF',
+    fontSize: 7,
+    fontWeight: '700',
+  },
+  statusWithChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    marginLeft: 'auto',
+  },
+  statusWithCount: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: IOS_REGISTER.labelSecondary,
   },
   cohortLabel: {
     fontSize: 11,

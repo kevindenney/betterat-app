@@ -185,12 +185,26 @@ export function StepCombinatorsRow({
         ) : null}
 
         {hasWith ? (
-          <Pressable style={styles.pill} onPress={() => setSheet('people')}>
-            <Ionicons
-              name="people-outline"
-              size={12}
-              color={IOS_REGISTER.labelSecondary}
-            />
+          <Pressable style={[styles.pill, styles.withPill]} onPress={() => setSheet('people')}>
+            <View style={styles.withAvatarStack}>
+              {people.slice(0, 3).map((person, idx) => (
+                <View
+                  key={person.userId}
+                  style={[
+                    styles.withAvatar,
+                    idx > 0 && styles.withAvatarOverlap,
+                    {
+                      backgroundColor:
+                        person.avatarColor ?? withAvatarFallback(person.userId),
+                    },
+                  ]}
+                >
+                  <Text style={styles.withAvatarText}>
+                    {person.initials.slice(0, 1) || '?'}
+                  </Text>
+                </View>
+              ))}
+            </View>
             <Text style={styles.pillText}>
               <Text style={styles.pillBold}>{withCount}</Text>
               <Text style={styles.pillDim}> with</Text>
@@ -259,6 +273,13 @@ export function StepCombinatorsRow({
   );
 }
 
+const WITH_AVATAR_COLORS = ['#1F6FEB', '#22A06B', '#F08C00', '#9333EA', '#DC2626'];
+function withAvatarFallback(seed: string): string {
+  let h = 0;
+  for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) | 0;
+  return WITH_AVATAR_COLORS[Math.abs(h) % WITH_AVATAR_COLORS.length] as string;
+}
+
 const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
@@ -306,5 +327,35 @@ const styles = StyleSheet.create({
   pillCrossEmphasis: {
     color: '#7B3FB0',
     fontWeight: '600',
+  },
+  // WITH chip with inline avatar stack so the people on this step read
+  // at a glance — surfacing them only via the popup sheet hid the
+  // most useful "who's here?" signal.
+  withPill: {
+    paddingLeft: 4,
+    paddingRight: 9,
+    gap: 6,
+  },
+  withAvatarStack: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  withAvatar: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1.5,
+    borderColor: IOS_REGISTER.cardBg,
+  },
+  withAvatarOverlap: {
+    marginLeft: -7,
+  },
+  withAvatarText: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+    fontSize: 9,
+    letterSpacing: 0.1,
   },
 });
