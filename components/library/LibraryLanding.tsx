@@ -1,21 +1,24 @@
 /**
  * LibraryLanding — Library tab shell.
  *
- * Top chrome matches the standard tab pattern used elsewhere in the app
- * (TabScreenToolbar): interest switcher + search + universal-plus +
- * profile avatar on the right; "Library" large title on the left with
- * the canonical "Your understanding of X — refined." lede.
+ * Layout (post-redesign, 2026-05-28):
+ *   • Compact white hero band: "Library" title + segmented pill +
+ *     per-zone one-liner description.
+ *   • Body renders the active zone (All / Plans / Concepts / Resources).
+ *   • Floating TabScreenToolbar overlays the top with search + add.
  *
- * Below the toolbar, an iOS-style segmented pill switches between four
- * zones (All / Plans / Concepts / Resources) per canonical §2. The
- * People zone route still exists for cross-links but is no longer in
- * the segmented strip.
+ * Drops the old lede paragraph, supporting copy, action buttons, and
+ * the 8-card workshop-category grid that sat between the title and
+ * the segmented control — those weren't navigating to anything new
+ * (every target was already reachable via the tabs or the toolbar).
+ * The descriptive language from those cards now lives as the per-zone
+ * one-liner under the segmented pill, where it actually informs the
+ * user about the current view.
  */
 
-import React, { useCallback, useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import React, { useCallback, useState } from 'react';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
 import { LocationAnchor } from '@/components/ui/LocationAnchor';
@@ -23,7 +26,6 @@ import { TabScreenToolbar } from '@/components/ui/TabScreenToolbar';
 import { useUserHomeVenue } from '@/hooks/useUserHomeVenue';
 import { IOSSegmentedControl } from '@/components/ui/ios/IOSSegmentedControl';
 import { FLOATING_TAB_BAR_HEIGHT } from '@/components/navigation/FloatingTabBar';
-import { WORKSHOP_CATEGORIES } from '@/components/betterat/mockProductLoopData';
 import { AllZone } from '@/components/library/zones/AllZone';
 import { PlansZone } from '@/components/library/zones/PlansZone';
 import { PeopleZone } from '@/components/library/zones/PeopleZone';
@@ -43,6 +45,18 @@ const SEGMENT_ZONES: { value: LibraryZone; label: string }[] = [
   { value: 'concepts', label: 'Concepts' },
   { value: 'resources', label: 'Resources' },
 ];
+
+// One-liner shown beneath the segmented pill. Re-uses the language
+// from the old workshop-category cards (Plans → "Subscribed structures
+// you can pull into practice…"), now positioned where it's actually
+// useful — describing the current view, not advertising a card.
+const ZONE_DESCRIPTION: Record<LibraryZone, string> = {
+  all: "Everything you've saved — plans, concepts, resources, and your notes.",
+  plans: 'Subscribed structures you can pull into practice when needed.',
+  concepts: "Mental models you're forming, refining, or have settled.",
+  resources: 'Saved articles, docs, and references.',
+  people: 'People shaping your practice.',
+};
 
 interface Props {
   /** Renders the Concepts zone body (Phase 6 PlaybookLanding variants). */
@@ -68,47 +82,9 @@ export function LibraryLanding({ conceptsBody, librarianSlot }: Props) {
   const [toolbarHeight, setToolbarHeight] = useState(0);
   const [captureOpen, setCaptureOpen] = useState(false);
 
-  const interestName = currentInterest?.name ?? 'your interest';
-
   const handleZoneChange = useCallback((next: LibraryZone) => {
     router.setParams({ zone: next === 'all' ? '' : next });
   }, []);
-
-  const workshopCategories = useMemo(
-    () =>
-      WORKSHOP_CATEGORIES.map((category) => ({
-        ...category,
-        onPress: () => {
-          switch (category.target) {
-            case 'practice':
-            case 'saved-steps':
-              router.push('/practice/create' as never);
-              break;
-            case 'plans':
-              handleZoneChange('plans');
-              break;
-            case 'resources':
-              handleZoneChange('resources');
-              break;
-            case 'concepts':
-              handleZoneChange('concepts');
-              break;
-            case 'network':
-              handleZoneChange('people');
-              break;
-            case 'organizations':
-              router.push('/(tabs)/discover?category=organizations' as never);
-              break;
-            case 'blueprints':
-              router.push('/(tabs)/library/blueprints' as never);
-              break;
-            default:
-              break;
-          }
-        },
-      })),
-    [handleZoneChange],
-  );
 
   // Per canonical the count renders inline with the label as a quiet
   // suffix ("Plans 3"), not the coral notification badge IOSSegmentedControl
@@ -121,6 +97,8 @@ export function LibraryLanding({ conceptsBody, librarianSlot }: Props) {
       count,
     };
   });
+
+  const segmentedValue: LibraryZone = zone === 'people' ? 'all' : zone;
 
   return (
     <View style={styles.container}>
@@ -136,49 +114,14 @@ export function LibraryLanding({ conceptsBody, librarianSlot }: Props) {
       >
         <View style={styles.heroCard}>
           <Text style={styles.heroTitle}>Library</Text>
-          <Text style={styles.lede}>
-            Your library for turning plans, resources, concepts, and people into real-world steps.
-          </Text>
-          <Text style={styles.supportingCopy}>
-            Save resources, shape concepts, follow people, and prepare your next step in{' '}
-            <Text style={styles.ledeEm}>{interestName}</Text>.
-          </Text>
-          <View style={styles.heroActions}>
-            <Pressable
-              onPress={() => router.push('/practice/create' as never)}
-              style={[styles.heroButton, styles.heroButtonPrimary]}
-            >
-              <Ionicons name="checkmark-circle-outline" size={16} color="#FFFFFF" />
-              <Text style={styles.heroButtonPrimaryText}>Add to Practice</Text>
-            </Pressable>
-            <Pressable
-              onPress={() => setCaptureOpen(true)}
-              style={[styles.heroButton, styles.heroButtonSecondary]}
-            >
-              <Ionicons name="add-outline" size={16} color={IOS_COLORS.label} />
-              <Text style={styles.heroButtonSecondaryText}>Capture for Library</Text>
-            </Pressable>
-          </View>
-          <View style={styles.categoryGrid}>
-            {workshopCategories.map((category) => (
-              <Pressable
-                key={category.id}
-                onPress={category.onPress}
-                style={styles.categoryCard}
-              >
-                <View style={styles.categoryIcon}>
-                  <Ionicons name={category.icon as any} size={16} color={IOS_COLORS.systemBlue} />
-                </View>
-                <Text style={styles.categoryTitle}>{category.title}</Text>
-                <Text style={styles.categoryDescription}>{category.description}</Text>
-              </Pressable>
-            ))}
-          </View>
           <IOSSegmentedControl
             segments={segments}
-            selectedValue={zone === 'people' ? 'all' : zone}
+            selectedValue={segmentedValue}
             onValueChange={(v) => handleZoneChange(v as LibraryZone)}
           />
+          <Text style={styles.zoneDescription}>
+            {ZONE_DESCRIPTION[segmentedValue]}
+          </Text>
         </View>
 
         {zone === 'all' ? (
@@ -197,11 +140,6 @@ export function LibraryLanding({ conceptsBody, librarianSlot }: Props) {
         )}
       </ScrollView>
 
-      {/* Canonical pattern: action row (no title) sits as system chrome
-          above a unified white "lib-hero" card. The hero card holds the
-          Library title + lede + segmented control so the three read as
-          one chunk per canonical §2 — not as three independent floating
-          elements on the gray background. */}
       <TabScreenToolbar
         subtitleContent={<LocationAnchor region={homeVenue?.region} venue={homeVenue?.venue} />}
         topInset={insets.top}
@@ -256,100 +194,28 @@ const styles = StyleSheet.create({
   bodyContent: {
     // paddingBottom set inline so it can incorporate safe-area + tab bar
   },
-  // Canonical .lib-hero — full-width white hero band containing the
-  // Library title, italic lede, and segmented zone tabs. NOT a floating
-  // rounded card — extends edge-to-edge with a hairline bottom border,
-  // so the chrome above (gray) → hero (white) → body (gray) reads as
-  // three horizontal bands per canonical §2.
+  // Full-width white hero band — title + segmented tabs + per-zone
+  // description. Edge-to-edge with a hairline bottom so chrome (gray)
+  // → hero (white) → body (gray) reads as three horizontal bands.
   heroCard: {
     paddingHorizontal: 18,
-    paddingTop: 12,
-    paddingBottom: 16,
+    paddingTop: 10,
+    paddingBottom: 12,
     backgroundColor: '#FFFFFF',
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: 'rgba(60,60,67,0.15)',
-    gap: IOS_SPACING.sm,
+    gap: 10,
   },
   heroTitle: {
-    fontSize: 28,
+    fontSize: 26,
     fontWeight: '700',
     letterSpacing: -0.6,
-    lineHeight: 32,
+    lineHeight: 30,
     color: IOS_COLORS.label,
   },
-  lede: {
-    fontSize: 14,
-    lineHeight: 20,
-    color: IOS_COLORS.label,
-  },
-  supportingCopy: {
+  zoneDescription: {
     fontSize: 13,
     lineHeight: 18,
-    color: IOS_COLORS.secondaryLabel,
-  },
-  ledeEm: {
-    fontStyle: 'italic',
-  },
-  heroActions: {
-    flexDirection: 'row',
-    gap: 10,
-  },
-  heroButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    borderRadius: 999,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-  },
-  heroButtonPrimary: {
-    backgroundColor: IOS_COLORS.systemBlue,
-  },
-  heroButtonSecondary: {
-    backgroundColor: IOS_COLORS.secondarySystemGroupedBackground,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(60,60,67,0.18)',
-  },
-  heroButtonPrimaryText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#FFFFFF',
-  },
-  heroButtonSecondaryText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: IOS_COLORS.label,
-  },
-  categoryGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
-  },
-  categoryCard: {
-    width: '48%',
-    borderRadius: 16,
-    padding: 12,
-    backgroundColor: IOS_COLORS.secondarySystemGroupedBackground,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(60,60,67,0.15)',
-    gap: 6,
-  },
-  categoryIcon: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(0, 122, 255, 0.12)',
-  },
-  categoryTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: IOS_COLORS.label,
-  },
-  categoryDescription: {
-    fontSize: 12,
-    lineHeight: 17,
     color: IOS_COLORS.secondaryLabel,
   },
 });
