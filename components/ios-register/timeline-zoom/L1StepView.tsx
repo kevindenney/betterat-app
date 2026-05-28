@@ -10,7 +10,15 @@
  */
 
 import React, { useCallback } from 'react';
-import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import {
+  Dimensions,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
@@ -63,9 +71,13 @@ interface L1StepViewProps {
    */
   onSwipePrev?: () => void;
   onSwipeNext?: () => void;
-  /** Adjacent step previews — drive the left/right peek slabs. */
-  prevStepTitle?: string | null;
-  nextStepTitle?: string | null;
+  /**
+   * Neighbor steps — drive the ghost cards that slide in from the left
+   * (prev) and right (next) along with the user's swipe gesture, giving
+   * the pager illusion. Null when at the first/last step.
+   */
+  prevStep?: TimelineStep | null;
+  nextStep?: TimelineStep | null;
   /**
    * Forwarded to the inner step detail's scroll so the canvas's chrome
    * row can animate hide/show on scroll.
@@ -79,7 +91,11 @@ const PHASES = ['Plan', 'Do', 'Reflect', 'Discuss'] as const;
 const SWIPE_PX_THRESHOLD = 60;
 const SWIPE_VELOCITY_THRESHOLD = 600;
 const SWIPE_RUBBER_FACTOR = 1; // drag follows finger 1:1 so the motion reads
-const SWIPE_OFF_SCREEN_PX = 500; // commit animates the card fully off-screen
+const SCREEN_WIDTH = Dimensions.get('window').width;
+// Commit animates the focused card fully off the screen. Using full
+// screen width also makes the prev/next ghost cards arrive exactly at
+// center as their translateX = ±SCREEN_WIDTH offset cancels out.
+const SWIPE_OFF_SCREEN_PX = SCREEN_WIDTH;
 
 export function L1StepView({
   dataset,
@@ -88,12 +104,12 @@ export function L1StepView({
   embedFullDetail,
   onSwipePrev,
   onSwipeNext,
-  prevStepTitle,
-  nextStepTitle,
+  prevStep,
+  nextStep,
   onScroll,
 }: L1StepViewProps) {
-  const hasPrev = prevStepTitle != null;
-  const hasNext = nextStepTitle != null;
+  const hasPrev = prevStep != null;
+  const hasNext = nextStep != null;
   // NOW indicator only on the canonical "current" step. The user can
   // swipe to past/future steps; those are not "now".
   const isNowStep = step.id === dataset.focusStepId;
@@ -163,12 +179,39 @@ export function L1StepView({
   const translateStyle = useAnimatedStyle(() => ({
     transform: [{ translateX: translateX.value }],
   }));
+  // Ghost cards live a full screen-width to either side of the focused
+  // card. They share the same translateX so they slide in lockstep with
+  // the user's swipe gesture, giving the pager illusion. Pointer-events
+  // are disabled on the ghosts — the GestureDetector lives on the
+  // focused card.
+  const prevTranslateStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: translateX.value - SCREEN_WIDTH }],
+  }));
+  const nextTranslateStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: translateX.value + SCREEN_WIDTH }],
+  }));
 
   if (embedFullDetail) {
     return (
       <View style={styles.embedHost}>
         {hasPrev ? <View style={styles.peekLeft} pointerEvents="none" /> : null}
         {hasNext ? <View style={styles.peekRight} pointerEvents="none" /> : null}
+        {prevStep ? (
+          <Animated.View
+            style={[styles.ghostCard, prevTranslateStyle]}
+            pointerEvents="none"
+          >
+            <GhostCard step={prevStep} />
+          </Animated.View>
+        ) : null}
+        {nextStep ? (
+          <Animated.View
+            style={[styles.ghostCard, nextTranslateStyle]}
+            pointerEvents="none"
+          >
+            <GhostCard step={nextStep} />
+          </Animated.View>
+        ) : null}
         <GestureDetector gesture={swipeGesture}>
           <Animated.View style={[styles.embedContent, translateStyle]}>
             {isNowStep ? (
@@ -337,6 +380,20 @@ export function L1StepView({
   );
 }
 
+function GhostCard({ step }: { step: TimelineStep }) {
+  return (
+    <View style={styles.ghostInner}>
+      <Text style={styles.verbEyebrow}>ZOOM · ONE STEP</Text>
+      {step.preTitle ? (
+        <Text style={styles.eyebrow}>{step.preTitle}</Text>
+      ) : null}
+      <Text style={styles.title} numberOfLines={3}>
+        {step.title}
+      </Text>
+    </View>
+  );
+}
+
 function PeerQuoteBlock({ quote }: { quote: NonNullable<TimelineStep['peerQuote']> }) {
   return (
     <View style={styles.peerQuoteBlock}>
@@ -451,6 +508,37 @@ const styles = StyleSheet.create({
       android: { elevation: 4 },
       default: {},
     }),
+  },
+  // Pager-illusion ghost cards — full-card-shaped slabs sitting one
+  // screen-width to either side. Same visual envelope as the focused
+  // embedContent so the slide-in feels continuous; contents are minimal
+  // (verb eyebrow + title) for cheap render and so the heavy
+  // StepDetailContent only mounts for the committed step.
+  ghostCard: {
+    position: 'absolute',
+    top: 10,
+    bottom: 10,
+    left: CARD_INSET,
+    right: CARD_INSET,
+    backgroundColor: IOS_REGISTER.cardBg,
+    borderRadius: 16,
+    overflow: 'hidden',
+    zIndex: 2,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOpacity: 0.08,
+        shadowRadius: 14,
+        shadowOffset: { width: 0, height: 4 },
+      },
+      android: { elevation: 4 },
+      default: {},
+    }),
+  },
+  ghostInner: {
+    flex: 1,
+    paddingHorizontal: 22,
+    paddingTop: 16,
   },
   // Adjacent-step silhouettes — edge + corner + shadow only, no content.
   // Sit behind the main card; the user reads them as "more here".

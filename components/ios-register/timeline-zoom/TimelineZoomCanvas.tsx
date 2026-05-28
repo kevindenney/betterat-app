@@ -289,10 +289,10 @@ export function TimelineZoomCanvas({
     () => flatSteps.findIndex((s) => s.id === focusStepId),
     [flatSteps, focusStepId],
   );
-  const prevStepTitle = focusedFlatIdx > 0 ? flatSteps[focusedFlatIdx - 1].title : null;
-  const nextStepTitle =
+  const prevStep = focusedFlatIdx > 0 ? flatSteps[focusedFlatIdx - 1] : null;
+  const nextStep =
     focusedFlatIdx >= 0 && focusedFlatIdx < flatSteps.length - 1
-      ? flatSteps[focusedFlatIdx + 1].title
+      ? flatSteps[focusedFlatIdx + 1]
       : null;
 
   // Compute the level the user is about to snap to, given direction +
@@ -358,8 +358,8 @@ export function TimelineZoomCanvas({
                       embedFullDetail={embedFullDetailAtL1}
                       onSwipePrev={() => swipeToNeighbor('prev')}
                       onSwipeNext={() => swipeToNeighbor('next')}
-                      prevStepTitle={prevStepTitle}
-                      nextStepTitle={nextStepTitle}
+                      prevStep={prevStep}
+                      nextStep={nextStep}
                       onScroll={onInnerScroll}
                     />
                   ) : (
