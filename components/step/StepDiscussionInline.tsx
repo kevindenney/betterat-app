@@ -27,7 +27,6 @@ import {
 } from 'lucide-react-native';
 import { useAuth } from '@/providers/AuthProvider';
 import { useMyTimeline } from '@/hooks/useTimelineSteps';
-import { useCohortMates, type CohortMate } from '@/hooks/useCohortMates';
 import { supabase } from '@/services/supabase';
 import {
   getBlueprintStepDiscussion,
@@ -96,40 +95,6 @@ function roleLabel(role: string | null | undefined, isOwner?: boolean): string |
   return r.toUpperCase();
 }
 
-/**
- * "Kevin Ho · plan coach · Bram & Steve · your crew · Phyl & Rohan · fellow subscribers"
- * Today we only render real collaborators — the "fellow subscribers" group
- * stays out until subscriber-on-step is modeled.
- */
-function buildAccessSummary(access: StepAccessPerson[], viewerUserId: string | null): string {
-  if (access.length === 0) return '';
-  // Group by role bucket. Owner is its own group.
-  const owners: string[] = [];
-  const coaches: string[] = [];
-  const mentors: string[] = [];
-  const crew: string[] = [];
-  const others: string[] = [];
-  for (const p of access) {
-    const name = p.userId === viewerUserId ? 'You' : p.displayName;
-    if (p.isOwner) {
-      owners.push(name);
-      continue;
-    }
-    const r = (p.role ?? '').toLowerCase();
-    if (r === 'coach') coaches.push(name);
-    else if (r === 'mentor') mentors.push(name);
-    else if (r === 'helm' || r === 'crew' || r === 'foredeck') crew.push(name);
-    else others.push(name);
-  }
-  const parts: string[] = [];
-  if (owners.length) parts.push(`${owners.join(' & ')} · owner`);
-  if (coaches.length) parts.push(`${coaches.join(' & ')} · ${coaches.length > 1 ? 'coaches' : 'coach'}`);
-  if (mentors.length) parts.push(`${mentors.join(' & ')} · ${mentors.length > 1 ? 'mentors' : 'mentor'}`);
-  if (crew.length) parts.push(`${crew.join(' & ')} · crew`);
-  if (others.length) parts.push(`${others.join(' & ')}`);
-  return parts.join(' · ');
-}
-
 const AVATAR_COLORS = ['#1F6FEB', '#22A06B', '#F08C00', '#9333EA', '#DC2626'];
 function fallbackAvatarColor(seed: string): string {
   let h = 0;
@@ -173,8 +138,6 @@ export function StepDiscussionInline({ stepId, access = [] }: StepDiscussionInli
   // Snap back to Private if the user is somehow on Cohort but the
   // link goes away (rename, delete, etc.).
   const effectiveScope: DiscussionScope = hasCohort ? scope : 'private';
-
-  const { data: cohortMates = [] } = useCohortMates(blueprintStepId);
 
   // Realtime cohort subscription — when the user is viewing the
   // Cohort tab on a blueprint-linked step, subscribe to inserts on
@@ -338,10 +301,6 @@ export function StepDiscussionInline({ stepId, access = [] }: StepDiscussionInli
 
   return (
     <View style={styles.wrap}>
-      {access.length > 0 ? (
-        <AccessCard access={access} viewerUserId={user?.id ?? null} />
-      ) : null}
-
       {hasCohort ? (
         <View style={styles.scopeRow}>
           <View style={styles.scopePillGroup}>
@@ -382,9 +341,6 @@ export function StepDiscussionInline({ stepId, access = [] }: StepDiscussionInli
               </Text>
             </Pressable>
           </View>
-          {cohortMates.length > 0 ? (
-            <CohortMatesIndicator mates={cohortMates} />
-          ) : null}
         </View>
       ) : (
         // No cohort thread for this step — surface a small hint so the
@@ -518,113 +474,6 @@ export function StepDiscussionInline({ stepId, access = [] }: StepDiscussionInli
           setQuotePickerOpen(false);
         }}
       />
-    </View>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// AccessCard
-// ---------------------------------------------------------------------------
-
-interface CohortMatesIndicatorProps {
-  mates: CohortMate[];
-}
-
-function CohortMatesIndicator({ mates }: CohortMatesIndicatorProps) {
-  // Viewer is always sorted to position 0 in the hook. For the
-  // avatar stack we want to show OTHERS first (you don't need to
-  // see yourself), so split + rebuild.
-  const others = mates.filter((m) => !m.isViewer);
-  const isAudienceOfOne = others.length === 0;
-  const visible = others.slice(0, 3);
-  const overflow = Math.max(0, others.length - visible.length);
-
-  const label = isAudienceOfOne
-    ? 'Just you on this plan'
-    : others.length === 1
-      ? `${others[0]!.displayName} is also on this plan`
-      : overflow === 0
-        ? `${others.length} sailors on this plan`
-        : `${visible.length}+${overflow} on this plan`;
-
-  return (
-    <View style={styles.cohortMates}>
-      {!isAudienceOfOne ? (
-        <View style={styles.cohortMatesStack}>
-          {visible.map((mate, idx) => (
-            <View
-              key={mate.userId}
-              style={[
-                styles.cohortMateAvatar,
-                idx > 0 && styles.cohortMateAvatarOverlap,
-                { backgroundColor: fallbackAvatarColor(mate.userId) },
-              ]}
-            >
-              <Text style={styles.cohortMateInitial}>
-                {initialsFrom(mate.displayName).slice(0, 1) || '?'}
-              </Text>
-            </View>
-          ))}
-        </View>
-      ) : null}
-      <Text style={styles.cohortMatesLabel} numberOfLines={1}>
-        {label}
-      </Text>
-    </View>
-  );
-}
-
-interface AccessCardProps {
-  access: StepAccessPerson[];
-  viewerUserId: string | null;
-}
-
-function AccessCard({ access, viewerUserId }: AccessCardProps) {
-  const summary = buildAccessSummary(access, viewerUserId);
-  const stack = access.slice(0, 3);
-  const remainder = Math.max(0, access.length - stack.length);
-
-  return (
-    <View style={styles.accessCard}>
-      <View style={styles.accessChat}>
-        <MessageCircle size={14} color={C.label2} strokeWidth={1.8} />
-      </View>
-      <View style={styles.accessText}>
-        <Text style={styles.accessTitle}>
-          {access.length} {access.length === 1 ? 'person has' : 'people have'} access
-        </Text>
-        <Text style={styles.accessSummary} numberOfLines={2}>
-          {summary}
-        </Text>
-      </View>
-      <View style={styles.avatarStack}>
-        {stack.map((p, idx) => (
-          <View
-            key={p.userId}
-            style={[
-              styles.stackAvatar,
-              {
-                backgroundColor: p.avatarColor ?? fallbackAvatarColor(p.userId),
-                marginLeft: idx === 0 ? 0 : -8,
-                zIndex: stack.length - idx,
-              },
-            ]}
-          >
-            <Text style={styles.stackAvatarText}>{p.initials}</Text>
-          </View>
-        ))}
-        {remainder > 0 ? (
-          <View
-            style={[
-              styles.stackAvatar,
-              styles.stackAvatarRemainder,
-              { marginLeft: -8, zIndex: 0 },
-            ]}
-          >
-            <Text style={styles.stackAvatarText}>+{remainder}</Text>
-          </View>
-        ) : null}
-      </View>
     </View>
   );
 }

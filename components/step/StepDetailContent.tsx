@@ -1151,7 +1151,7 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, 
           blueprintTitle={blueprintChrome?.blueprintTitle ?? null}
           blueprintAuthorName={null}
           viewerSteps={viewerInterestSteps}
-          onShowPeers={() => setActiveTab('discussion')}
+          accessPeople={discussionAccess}
           onShowPlaybook={() => setActiveTab('plan')}
         />
       </>
@@ -1275,17 +1275,6 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, 
         counter={deckCounter}
         blueprintTitle={blueprintChrome?.blueprintTitle ?? null}
         blueprintAuthorName={blueprintChrome?.authorName ?? null}
-        peersCount={blueprintChrome?.subscriberCount ?? null}
-        peersLabel={vocab('Learner') || 'people'}
-        peerAvatars={discussionAccess
-          .filter((p) => !p.isOwner)
-          .slice(0, 6)
-          .map((p) => ({
-            id: p.userId,
-            initials: p.initials,
-            color: p.avatarColor ?? '#8E8E93',
-          }))}
-        onPeerAvatarPress={(userId) => router.push(`/discover/person/${userId}` as never)}
         crossInterestSlot={
           <StepCombinatorsRow
             step={step}

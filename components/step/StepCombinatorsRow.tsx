@@ -1,25 +1,28 @@
 /**
  * StepCombinatorsRow — context pill row under the IdentityDeck title.
  *
- * Canonical Screen 01 / Identity Deck 05C+ shows a single cross-interest
- * pill ("⇄ Also relevant for Match racing") below the peer-avatar line
- * — and nothing else. Blueprint provenance and peer count are already
- * carried as text lines inside the IdentityDeck itself ("from your
- * active blueprint X by Y" and "N peers working this step"), so this
- * row deliberately does NOT re-surface them as chips. Duplicating those
- * was the gap-B finding in the v3 alignment pass.
+ * Surfaces a small set of typed chips that name what's "around" this
+ * step so the user can predict where a tap goes before tapping:
  *
- * What this row renders:
- *   [⇄ Also relevant for <OtherInterest>]   [🔗 N related]
+ *   [⇄ Also relevant for <OtherInterest>] · [WITH · N] · [N yours] · [N playbook]
  *
- * - Cross-interest — first AI-generated cross-interest suggestion's
- *   source interest, when the user has more than one interest and
- *   the AI has produced suggestions for this step. Tap → routes to
- *   that interest's timeline.
- * - Related — viewer's own steps that share blueprint or category
- *   with this one (distinct from peers, who are *other* users).
+ * Cross-interest — first AI-generated cross-interest suggestion's
+ * source interest. Tap → routes to that interest's timeline.
  *
- * The row hides itself when neither slot has data.
+ * WITH — distinct people on this step (owner + explicit access grants +
+ * blueprint-cohort), deduplicated. Replaces the older fragmented
+ * cluster of "N peers" / "X person has access" / cohort avatar stack
+ * that each answered "who's on this step" with a different number.
+ * Tap → opens the People sheet listing everyone once with role tags.
+ *
+ * yours — viewer's other timeline steps that share blueprint / category
+ * / capability with this one. Tap → existing related-steps sheet.
+ *
+ * playbook — library items linked to this step. Tap → switches to the
+ * Plan tab where the library-before list lives.
+ *
+ * Each chip hides when its count is zero; the row hides entirely when
+ * nothing has data.
  */
 
 import React, { useMemo, useState } from 'react';
@@ -30,11 +33,14 @@ import { Ionicons } from '@expo/vector-icons';
 import { IOS_REGISTER } from '@/lib/design-tokens-ios';
 import { useCrossInterestSuggestions } from '@/hooks/useCrossInterestSuggestions';
 import { useInterest } from '@/providers/InterestProvider';
+import { useAuth } from '@/providers/AuthProvider';
 import { getAtlasStepData, isAtlasRaceCourseStep } from '@/lib/atlasRaceStep';
-import { useStepPeerReflections } from '@/hooks/useStepPeerReflections';
 import { useStepLibraryBefore } from '@/hooks/useStepLibraryBefore';
+import { useStepWithPeople } from '@/hooks/useStepWithPeople';
 import { StepCombinatorsSheet } from './StepCombinatorsSheet';
+import { StepPeopleSheet } from './StepPeopleSheet';
 import type { TimelineStepRecord } from '@/types/timeline-steps';
+import type { StepAccessPerson } from './StepDiscussionInline';
 import { showAlertWithButtons } from '@/lib/utils/crossPlatformAlert';
 
 interface StepCombinatorsRowProps {
@@ -49,11 +55,10 @@ interface StepCombinatorsRowProps {
   /** Viewer's own timeline steps — used to count related entries. */
   viewerSteps: TimelineStepRecord[];
   /**
-   * Called when the "N peers" chip is tapped. Typically routes the
-   * parent to the Discuss tab where peer_reflections render in full.
-   * When omitted the chip stays informational (no tap target).
+   * Owner + collaborators with access to this step. Sourced from the
+   * parent's discussionAccess. Feeds the WITH chip's deduped count.
    */
-  onShowPeers?: () => void;
+  accessPeople?: StepAccessPerson[];
   /**
    * Called when the "N playbook" chip is tapped. Typically routes the
    * parent to the Plan tab where the step_library_before list lives.
@@ -64,7 +69,7 @@ interface StepCombinatorsRowProps {
 export function StepCombinatorsRow({
   step,
   viewerSteps,
-  onShowPeers,
+  accessPeople = [],
   onShowPlaybook,
 }: StepCombinatorsRowProps) {
   const { suggestions } = useCrossInterestSuggestions(
@@ -72,6 +77,7 @@ export function StepCombinatorsRow({
     step.interest_id ?? undefined,
   );
   const { switchInterest } = useInterest();
+  const { user } = useAuth();
   const atlasData = getAtlasStepData(step.metadata);
   const suppressCrossInterest =
     isAtlasRaceCourseStep(step.metadata) ||
@@ -117,24 +123,23 @@ export function StepCombinatorsRow({
   }, [viewerSteps, step]);
   const relatedCount = relatedSteps.length;
 
-  // Typed breakdown of "what's like this step?" — the previous bare
-  // "N related" count combined three different mental categories into
-  // a meaningless number. Split into yours / peers / playbook so the
-  // user can predict what they'll find before tapping.
-  const peerReflectionStepIds = useMemo(() => [step.id], [step.id]);
-  const { data: peerReflectionsMap } = useStepPeerReflections(peerReflectionStepIds);
-  const peersCount = peerReflectionsMap?.get(step.id)?.length ?? 0;
+  const { people, totalCount: withCount } = useStepWithPeople({
+    stepId: step.id,
+    accessPeople,
+    viewerUserId: user?.id ?? null,
+  });
+
   const { data: libraryBefore } = useStepLibraryBefore(step.id);
   const playbookCount = libraryBefore?.length ?? 0;
 
-  const [sheet, setSheet] = useState<null | 'related'>(null);
+  const [sheet, setSheet] = useState<null | 'related' | 'people'>(null);
 
   const hasCross = Boolean(crossInterest);
   const hasRelated = relatedCount > 0;
-  const hasPeers = peersCount > 0;
+  const hasWith = withCount > 0;
   const hasPlaybook = playbookCount > 0;
 
-  if (!hasCross && !hasRelated && !hasPeers && !hasPlaybook) return null;
+  if (!hasCross && !hasRelated && !hasWith && !hasPlaybook) return null;
 
   return (
     <View>
@@ -177,32 +182,18 @@ export function StepCombinatorsRow({
           </Pressable>
         ) : null}
 
-        {hasPeers ? (
-          onShowPeers ? (
-            <Pressable style={styles.pill} onPress={onShowPeers}>
-              <Ionicons
-                name="people-outline"
-                size={12}
-                color={IOS_REGISTER.labelSecondary}
-              />
-              <Text style={styles.pillText}>
-                <Text style={styles.pillBold}>{peersCount}</Text>
-                <Text style={styles.pillDim}> peers</Text>
-              </Text>
-            </Pressable>
-          ) : (
-            <View style={styles.pill}>
-              <Ionicons
-                name="people-outline"
-                size={12}
-                color={IOS_REGISTER.labelSecondary}
-              />
-              <Text style={styles.pillText}>
-                <Text style={styles.pillBold}>{peersCount}</Text>
-                <Text style={styles.pillDim}> peers</Text>
-              </Text>
-            </View>
-          )
+        {hasWith ? (
+          <Pressable style={styles.pill} onPress={() => setSheet('people')}>
+            <Ionicons
+              name="people-outline"
+              size={12}
+              color={IOS_REGISTER.labelSecondary}
+            />
+            <Text style={styles.pillText}>
+              <Text style={styles.pillBold}>{withCount}</Text>
+              <Text style={styles.pillDim}> with</Text>
+            </Text>
+          </Pressable>
         ) : null}
 
         {hasRelated ? (
@@ -256,6 +247,12 @@ export function StepCombinatorsRow({
           onDismiss={() => setSheet(null)}
         />
       ) : null}
+
+      <StepPeopleSheet
+        visible={sheet === 'people'}
+        people={people}
+        onDismiss={() => setSheet(null)}
+      />
     </View>
   );
 }
@@ -287,9 +284,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 12,
-    // Faint lilac wash + lilac border — canonical Screen 01 treatment
-    // that ties the cross-interest pill visually to the lilac peer
-    // reflection deck above (both are "synthesis" grammar).
     backgroundColor: 'rgba(175, 82, 222, 0.08)',
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: 'rgba(175, 82, 222, 0.30)',
