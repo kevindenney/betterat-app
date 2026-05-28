@@ -73,10 +73,12 @@ export function mapPoiToPinKind(poi: AtlasPoi): AtlasPinSpec['kind'] | null {
     case 'hospital':
       return 'poi-hospital';
     case 'sim_lab':
-      // Pinkard is Emily's home base — render as the distinctive
-      // sim-anchor pin (blue dot + SIM badge) so it reads as "your
-      // base" the same way RHKYC reads on the sailing canvas.
-      if (poi.name === 'JHU School of Nursing — Pinkard Building') {
+      // The SoN's Wolfe St building is Emily's home base — render as
+      // the distinctive sim-anchor pin (blue dot + SIM badge) so it
+      // reads as "your base" the same way RHKYC reads on the sailing
+      // canvas. The other sim_lab row (EAST Building / Simulation
+      // Center) renders as the regular sim-lab pin.
+      if (poi.name === 'JHU School of Nursing — Wolfe St Building') {
         return 'poi-sim-anchor';
       }
       return 'poi-sim-lab';
@@ -426,10 +428,15 @@ export function useAtlasFramePins({
     };
     for (const step of userSteps) {
       const kind = mapUserStepStatusToPinKind(step);
+      // Drafts (Atlas long-press) start with title=null until the user types
+      // one on /step/[id]. Fall back to "Untitled step" so the pin doesn't
+      // render as a bare badge ("NEXT" with no caption) or the literal
+      // string "null" baked into the day-badge concatenation.
+      const titleForPin = step.title?.trim() || 'Untitled step';
       const label =
         kind === 'my-step-planned'
-          ? `${step.title}|${step.day_badge ?? ''}`
-          : step.title;
+          ? `${titleForPin}|${step.day_badge ?? ''}`
+          : titleForPin;
       // Subtitle reads "<STATUS NOTE> · <location-or-day>" so the YOUR
       // STEP sheet doesn't bottom out at just lat/lng coordinates. Skip
       // any segment when missing so we don't render orphan dots.
