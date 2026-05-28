@@ -32,6 +32,11 @@ interface Props {
   onClose: () => void;
   initialStatement: string | null | undefined;
   initialCompetencyIds: string[] | undefined;
+  /** Scope the competency picker to the active interest's slug — so
+   *  the sailor's VISION edit doesn't surface JHU Nursing
+   *  competencies. Null/undefined falls back to all orgs the viewer
+   *  belongs to. */
+  interestSlug?: string | null;
   onSave: (statement: string, competencyIds: string[]) => Promise<void> | void;
 }
 
@@ -40,10 +45,11 @@ export function VisionEditSheet({
   onClose,
   initialStatement,
   initialCompetencyIds,
+  interestSlug,
   onSave,
 }: Props) {
   const insets = useSafeAreaInsets();
-  const { data: competencies = [], isLoading } = useUserOrgCompetencies();
+  const { data: competencies = [], isLoading } = useUserOrgCompetencies(interestSlug);
 
   const [statement, setStatement] = useState(initialStatement ?? '');
   const [selected, setSelected] = useState<Set<string>>(

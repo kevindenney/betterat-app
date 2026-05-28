@@ -121,7 +121,7 @@ export function L3SeasonView({
   // VISION lane edit sheet open state + handlers.
   const [visionEditOpen, setVisionEditOpen] = useState(false);
   const updateInterestVision = useUpdateInterestVision();
-  const { data: orgCompetencies = [] } = useUserOrgCompetencies();
+  const { data: orgCompetencies = [] } = useUserOrgCompetencies(dataset.interest.slug);
   const scrollRef = useRef<ScrollView>(null);
   const weekOffsetsRef = useRef<Record<string, number>>({});
 
@@ -472,6 +472,7 @@ export function L3SeasonView({
         onClose={() => setVisionEditOpen(false)}
         initialStatement={season.visionStatement}
         initialCompetencyIds={season.visionCompetencyIds}
+        interestSlug={dataset.interest.slug}
         onSave={async (statement, competencyIds) => {
           await updateInterestVision.mutateAsync({
             interestId: dataset.interest.id,

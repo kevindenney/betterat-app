@@ -316,8 +316,11 @@ export interface SeasonLibrarianPrompt {
 }
 
 export interface TimelineInterest {
-  id: string;                 // 'nursing'
+  id: string;                 // uuid
   label: string;              // 'Nursing'
+  /** URL/canonical slug — e.g. 'nursing', 'sail-racing'. Used to
+   *  scope per-interest queries (org competencies, etc.). */
+  slug?: string | null;
 }
 
 export interface TimelineDataset {

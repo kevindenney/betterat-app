@@ -1532,7 +1532,7 @@ export function mapToTimelineDataset({
   }
 
   return {
-    interest: { id: interestId ?? 'live', label: interestLabel },
+    interest: { id: interestId ?? 'live', label: interestLabel, slug: interestSlug },
     user,
     focusStepId: actualFocusId,
     currentSeasonId: seasonIdForSteps,
