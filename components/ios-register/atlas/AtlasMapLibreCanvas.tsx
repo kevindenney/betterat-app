@@ -816,6 +816,7 @@ function WebAtlasMapLibreCanvas({
   const mapRef = useRef<any>(null);
   const maplibreRef = useRef<any>(null);
   const pinMarkersRef = useRef<any[]>([]);
+  const areaLabelMarkersRef = useRef<any[]>([]);
   const nextMarkerRef = useRef<any | null>(null);
   const candidateMarkerRef = useRef<any | null>(null);
   const onMapPressRef = useRef(onMapPress);
@@ -919,6 +920,8 @@ function WebAtlasMapLibreCanvas({
       cancelled = true;
       pinMarkersRef.current.forEach((marker) => marker.remove());
       pinMarkersRef.current = [];
+      areaLabelMarkersRef.current.forEach((marker) => marker.remove());
+      areaLabelMarkersRef.current = [];
       nextMarkerRef.current?.remove();
       nextMarkerRef.current = null;
       candidateMarkerRef.current?.remove();
@@ -959,6 +962,9 @@ function WebAtlasMapLibreCanvas({
     const map = mapRef.current;
     if (!map || !isLoaded) return;
 
+    areaLabelMarkersRef.current.forEach((marker) => marker.remove());
+    areaLabelMarkersRef.current = [];
+
     if (!showRaceAreas) {
       removeLayerAndSource(map, 'atlas-web-race-areas-fill', 'atlas-web-race-areas');
       return;
@@ -968,6 +974,14 @@ function WebAtlasMapLibreCanvas({
       'fill-color': 'rgba(255, 191, 99, 0.20)',
       'fill-outline-color': 'rgba(231, 137, 60, 0.55)',
     });
+
+    const Marker = maplibreRef.current?.Marker;
+    if (!Marker) return;
+    areaLabelMarkersRef.current = getRacingAreaLabels(raceAreasCollection).map((label) =>
+      new Marker({ element: createWebAreaLabelElement(label.name) })
+        .setLngLat([label.lng, label.lat])
+        .addTo(map),
+    );
   }, [isLoaded, raceAreasCollection, showRaceAreas]);
 
   useEffect(() => {
@@ -1087,6 +1101,52 @@ function syncGeoJsonLayer(
 function removeLayerAndSource(map: any, layerId: string, sourceId: string) {
   if (map.getLayer(layerId)) map.removeLayer(layerId);
   if (map.getSource(sourceId)) map.removeSource(sourceId);
+}
+
+function getRacingAreaLabels(
+  raceAreasCollection: GeoJSON.FeatureCollection,
+): { id: string; name: string; lng: number; lat: number }[] {
+  const out: { id: string; name: string; lng: number; lat: number }[] = [];
+  for (const feature of raceAreasCollection.features) {
+    const geom = feature.geometry;
+    if (!geom || geom.type !== 'Polygon') continue;
+    const ring = geom.coordinates[0];
+    if (!ring || ring.length === 0) continue;
+    let lngSum = 0;
+    let latSum = 0;
+    for (const [lng, lat] of ring) {
+      lngSum += lng;
+      latSum += lat;
+    }
+    const name = (feature.properties as { id?: string; name?: string } | null)?.name;
+    const id = (feature.properties as { id?: string } | null)?.id;
+    if (!name || !id) continue;
+    out.push({
+      id,
+      name,
+      lng: lngSum / ring.length,
+      lat: latSum / ring.length,
+    });
+  }
+  return out;
+}
+
+function createWebAreaLabelElement(name: string) {
+  const root = document.createElement('div');
+  root.textContent = name;
+  root.style.maxWidth = '140px';
+  root.style.padding = '2px 6px';
+  root.style.borderRadius = '4px';
+  root.style.background = 'rgba(255, 255, 255, 0.92)';
+  root.style.font = '700 10px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+  root.style.letterSpacing = '0.4px';
+  root.style.color = 'rgba(60, 40, 20, 0.95)';
+  root.style.textTransform = 'uppercase';
+  root.style.whiteSpace = 'nowrap';
+  root.style.overflow = 'hidden';
+  root.style.textOverflow = 'ellipsis';
+  root.style.pointerEvents = 'none';
+  return root;
 }
 
 function createWebPinElement({
