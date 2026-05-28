@@ -69,6 +69,7 @@ import { useLatestPeerReflection } from '@/hooks/useLatestPeerReflection';
 import { useStepCompleteCelebration } from '@/hooks/useStepCompleteCelebration';
 import { useContinueToNextBlueprintStep } from '@/hooks/useContinueToNextBlueprintStep';
 import { StepDiscussionInline } from './StepDiscussionInline';
+import { FacultyAttestSheet } from '@/components/competency/FacultyAttestSheet';
 import { StepCompleteCelebration } from './StepCompleteCelebration';
 
 type TabValue = 'plan' | 'act' | 'review' | 'discussion';
@@ -305,6 +306,7 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, 
   const [activeTab, setActiveTab] = usePillTabs<TabValue>(defaultTab);
   const didApplyLoadedStatusDefaultRef = useRef(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [attestSheetOpen, setAttestSheetOpen] = useState(false);
   const [pinInterestsOpen, setPinInterestsOpen] = useState(false);
   const [linkBlueprintStepOpen, setLinkBlueprintStepOpen] = useState(false);
 
@@ -1372,17 +1374,31 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, 
             onInterestPress={openInterestSwitcher}
             stepCounter={step.title ? undefined : 'Step'}
             rightCluster={
-              universalPlus.isAvailable ? (
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel="Add"
-                  onPress={universalPlus.open}
-                  hitSlop={8}
-                  style={styles.topPlusButton}
-                >
-                  <PlusIcon size={20} color={LABEL_2} strokeWidth={2} />
-                </Pressable>
-              ) : null
+              <>
+                {!isOwner ? (
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel="Attest competency"
+                    onPress={() => setAttestSheetOpen(true)}
+                    hitSlop={8}
+                    style={styles.topAttestButton}
+                  >
+                    <Ionicons name="checkmark-done-outline" size={14} color="#FFFFFF" />
+                    <Text style={styles.topAttestButtonText}>Attest</Text>
+                  </Pressable>
+                ) : null}
+                {universalPlus.isAvailable ? (
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel="Add"
+                    onPress={universalPlus.open}
+                    hitSlop={8}
+                    style={styles.topPlusButton}
+                  >
+                    <PlusIcon size={20} color={LABEL_2} strokeWidth={2} />
+                  </Pressable>
+                ) : null}
+              </>
             }
           />
         )}
@@ -1443,6 +1459,12 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, 
           onCopyLink={shareStep.copyLink}
           onSuggestDirect={shareStep.suggestDirect}
           onDismiss={shareStep.close}
+        />
+        <FacultyAttestSheet
+          visible={attestSheetOpen}
+          onClose={() => setAttestSheetOpen(false)}
+          stepId={stepId}
+          interestSlug={currentInterest?.slug ?? null}
         />
         {step.source_blueprint_id ? (
           <LinkBlueprintStepSheet
@@ -1670,6 +1692,22 @@ const styles = StyleSheet.create({
     height: 32,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  topAttestButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: '#15803D',
+    marginRight: 8,
+  },
+  topAttestButtonText: {
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 0.2,
+    color: '#FFFFFF',
   },
   focusStepCard: {
     // Identity-deck L1 is the focused, most-zoomed step surface. It should
