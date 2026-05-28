@@ -294,6 +294,16 @@ export interface AtlasPinSpec {
   };
 }
 
+export interface AtlasRacingAreaPressTarget {
+  id: string;
+  name: string;
+  centerLat: number;
+  centerLng: number;
+  classesUsed: string[];
+  createdBy: string | null;
+  polygon: GeoJSON.Polygon;
+}
+
 interface AtlasMapLibreCanvasProps {
   frame: AtlasFrameId;
   /** Optional peer pin list — empty in cold-start. */
@@ -322,6 +332,8 @@ interface AtlasMapLibreCanvasProps {
    * can surface "10 steps · 8 heart-failure · you haven't been here."
    */
   onPinPress?: (pin: AtlasPinSpec) => void;
+  /** Fires when a rendered racing-area label is tapped/clicked. */
+  onRacingAreaPress?: (area: AtlasRacingAreaPressTarget) => void;
   /**
    * Fires when the amber NEXT pill is tapped. Opens the "tomorrow at X"
    * sheet so the user can prep — checklist, cohort context, plan-a-step.
@@ -398,6 +410,7 @@ export function AtlasMapLibreCanvas({
   onMapPress,
   candidate,
   onPinPress,
+  onRacingAreaPress,
   showRaceAreas = false,
   onNextEventPress,
   onMapLongPress,
@@ -597,6 +610,7 @@ export function AtlasMapLibreCanvas({
         onMapPress={onMapPress}
         candidate={candidate}
         onPinPress={onPinPress}
+        onRacingAreaPress={onRacingAreaPress}
         showRaceAreas={showRaceAreas}
         onNextEventPress={onNextEventPress}
         onMapCenterChange={onMapCenterChange}
@@ -676,11 +690,21 @@ export function AtlasMapLibreCanvas({
                 id={`atlas-area-label:${label.id}`}
                 lngLat={[label.lng, label.lat]}
               >
-                <View pointerEvents="none" style={styles.areaLabelPill}>
-                  <Text style={styles.areaLabelText} numberOfLines={1}>
-                    {label.name}
-                  </Text>
-                </View>
+                <Pressable
+                  onPress={
+                    onRacingAreaPress
+                      ? () => onRacingAreaPress(label.area)
+                      : undefined
+                  }
+                  accessibilityRole="button"
+                  accessibilityLabel={`Open ${label.name} racing area`}
+                >
+                  <View pointerEvents="none" style={styles.areaLabelPill}>
+                    <Text style={styles.areaLabelText} numberOfLines={1}>
+                      {label.name}
+                    </Text>
+                  </View>
+                </Pressable>
               </MLMarker>
             ))
           : null}
@@ -799,6 +823,7 @@ function WebAtlasMapLibreCanvas({
   onMapPress,
   candidate,
   onPinPress,
+  onRacingAreaPress,
   showRaceAreas,
   onNextEventPress,
   onMapCenterChange,
@@ -820,6 +845,7 @@ function WebAtlasMapLibreCanvas({
   const nextMarkerRef = useRef<any | null>(null);
   const candidateMarkerRef = useRef<any | null>(null);
   const onMapPressRef = useRef(onMapPress);
+  const onRacingAreaPressRef = useRef(onRacingAreaPress);
   const onMapCenterChangeRef = useRef(onMapCenterChange);
   const [isLoaded, setIsLoaded] = useState(false);
   const [mapError, setMapError] = useState<string | null>(null);
@@ -832,6 +858,10 @@ function WebAtlasMapLibreCanvas({
   useEffect(() => {
     onMapPressRef.current = onMapPress;
   }, [onMapPress]);
+
+  useEffect(() => {
+    onRacingAreaPressRef.current = onRacingAreaPress;
+  }, [onRacingAreaPress]);
 
   useEffect(() => {
     onMapCenterChangeRef.current = onMapCenterChange;
@@ -980,7 +1010,7 @@ function WebAtlasMapLibreCanvas({
     areaLabelMarkersRef.current = getRacingAreaLabels(raceAreasCollection).map((label) =>
       new Marker({
         element: createWebAreaLabelElement(label.name, () => {
-          onMapPressRef.current?.({ lng: label.lng, lat: label.lat });
+          onRacingAreaPressRef.current?.(label.area);
         }),
       })
         .setLngLat([label.lng, label.lat])
@@ -1109,8 +1139,20 @@ function removeLayerAndSource(map: any, layerId: string, sourceId: string) {
 
 function getRacingAreaLabels(
   raceAreasCollection: GeoJSON.FeatureCollection,
-): { id: string; name: string; lng: number; lat: number }[] {
-  const out: { id: string; name: string; lng: number; lat: number }[] = [];
+): {
+  id: string;
+  name: string;
+  lng: number;
+  lat: number;
+  area: AtlasRacingAreaPressTarget;
+}[] {
+  const out: {
+    id: string;
+    name: string;
+    lng: number;
+    lat: number;
+    area: AtlasRacingAreaPressTarget;
+  }[] = [];
   for (const feature of raceAreasCollection.features) {
     const geom = feature.geometry;
     if (!geom || geom.type !== 'Polygon') continue;
@@ -1122,14 +1164,31 @@ function getRacingAreaLabels(
       lngSum += lng;
       latSum += lat;
     }
-    const name = (feature.properties as { id?: string; name?: string } | null)?.name;
-    const id = (feature.properties as { id?: string } | null)?.id;
+    const props = feature.properties as {
+      id?: string;
+      name?: string;
+      classesUsed?: string[];
+      createdBy?: string | null;
+    } | null;
+    const name = props?.name;
+    const id = props?.id;
     if (!name || !id) continue;
+    const lng = lngSum / ring.length;
+    const lat = latSum / ring.length;
     out.push({
       id,
       name,
-      lng: lngSum / ring.length,
-      lat: latSum / ring.length,
+      lng,
+      lat,
+      area: {
+        id,
+        name,
+        centerLat: lat,
+        centerLng: lng,
+        classesUsed: props?.classesUsed ?? [],
+        createdBy: props?.createdBy ?? null,
+        polygon: geom,
+      },
     });
   }
   return out;

@@ -50,7 +50,12 @@ import {
   JhuCuratedMap,
   CommitHarbourMap,
 } from './AtlasMaps';
-import { AtlasMapLibreCanvas, type AtlasBasemap, type AtlasPinSpec } from './AtlasMapLibreCanvas';
+import {
+  AtlasMapLibreCanvas,
+  type AtlasBasemap,
+  type AtlasPinSpec,
+  type AtlasRacingAreaPressTarget,
+} from './AtlasMapLibreCanvas';
 import { CreateRacingAreaSheet } from './CreateRacingAreaSheet';
 import { ProfileDropdown } from '@/components/ui/ProfileDropdown';
 import { NotificationBell } from '@/components/social/NotificationBell';
@@ -1784,6 +1789,21 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
     centerLat: mapCenter.lat,
     centerLng: mapCenter.lng,
   });
+  const handleRacingAreaPress = useCallback(
+    (area: AtlasRacingAreaPressTarget) => {
+      if (area.createdBy !== authUser?.id) return;
+      setEditingArea({
+        id: area.id,
+        name: area.name,
+        centerLat: area.centerLat,
+        centerLng: area.centerLng,
+        radiusMeters: null,
+        classesUsed: area.classesUsed,
+        polygon: area.polygon,
+      });
+    },
+    [authUser?.id],
+  );
   // HKO observations override Open-Meteo wind when a station is within
   // ~5km of map center. Real anemometer beats a 5km model grid for the
   // local read, but only inside the HK bbox — outside we don't bother
@@ -1897,15 +1917,13 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
           }
           const cLat = ring.length > 0 ? sumLat / ring.length : coords.lat;
           const cLng = ring.length > 0 ? sumLng / ring.length : coords.lng;
-          setEditingArea({
+          handleRacingAreaPress({
             id: hit.properties.id,
             name: hit.properties.name,
             centerLat: cLat,
             centerLng: cLng,
-            radiusMeters: null,
             classesUsed: hit.properties.classesUsed ?? [],
-            // Capture the polygon so Move on Map can translate it
-            // instead of collapsing to a circle preview.
+            createdBy: hit.properties.createdBy,
             polygon: hit.geometry,
           });
           return;
@@ -1984,6 +2002,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
       areaSheetCenter,
       anchorStepTarget,
       updateStepLocationMutation,
+      handleRacingAreaPress,
       authUser?.id,
       raceAreasForHitTest,
     ],
@@ -2075,6 +2094,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
             racingAreaPreviewPolygon={areaSheetPolygon}
             onMapCenterChange={setMapCenter}
             onPinPress={handlePinPress}
+            onRacingAreaPress={handleRacingAreaPress}
             showRaceAreas={showRaceAreas}
             basemap={basemap}
           />
