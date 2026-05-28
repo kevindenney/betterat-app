@@ -136,7 +136,9 @@ export function StepCombinatorsRow({
 
   const hasCross = Boolean(crossInterest);
   const hasRelated = relatedCount > 0;
-  const hasWith = withCount > 0;
+  // Only surface the WITH chip when others are involved — "1 with"
+  // when the only person is the viewer themselves is noise.
+  const hasWith = withCount >= 2;
   const hasPlaybook = playbookCount > 0;
 
   if (!hasCross && !hasRelated && !hasWith && !hasPlaybook) return null;

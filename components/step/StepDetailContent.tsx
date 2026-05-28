@@ -5,7 +5,7 @@
 import React, { useMemo, useCallback, useRef, useState, useEffect } from 'react';
 import { View, Text, TextInput, Pressable, ActivityIndicator, StyleSheet, Platform, Alert, Modal } from 'react-native';
 import { showAlert, showConfirm } from '@/lib/utils/crossPlatformAlert';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { openInterestSwitcher } from '@/components/InterestSwitcher';
 import { useQueryClient } from '@tanstack/react-query';
@@ -135,6 +135,13 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, 
   const shareStep = useShareStep();
   const { user } = useAuth();
   const { currentInterest } = useInterest();
+  // Route param: /step/[id]?scope=cohort routes the Discussion tab
+  // straight to the Cohort scope (used by the Watch stream and
+  // cohort_discussion_post notification taps). Anything else falls
+  // through to the default Private scope.
+  const routeParams = useLocalSearchParams<{ scope?: string }>();
+  const initialDiscussionScope: 'private' | 'cohort' =
+    routeParams?.scope === 'cohort' ? 'cohort' : 'private';
 
   const { data: step, isLoading, error } = useStepDetail(stepId);
   // Loaded for Section H StepCombinatorsRow's "N related" count. React
@@ -1101,7 +1108,11 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, 
       )}
       {activeTab === 'review' && <ReviewTab stepId={stepId} readOnly={!isOwner} embedded={FEATURE_FLAGS.PRACTICE_STEP_LOOP_IOS_REGISTER} />}
       {activeTab === 'discussion' && (
-        <StepDiscussionInline stepId={stepId} access={discussionAccess} />
+        <StepDiscussionInline
+          stepId={stepId}
+          access={discussionAccess}
+          initialScope={initialDiscussionScope}
+        />
       )}
     </>
   );
@@ -1161,6 +1172,8 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, 
         blueprintTitle={blueprintChrome?.blueprintTitle ?? null}
         blueprintAuthorName={null}
         viewerSteps={viewerInterestSteps}
+        accessPeople={discussionAccess}
+        onShowPlaybook={() => setActiveTab('plan')}
       />
     );
 
@@ -1281,6 +1294,8 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, 
             blueprintTitle={blueprintChrome?.blueprintTitle ?? null}
             blueprintAuthorName={null}
             viewerSteps={viewerInterestSteps}
+            accessPeople={discussionAccess}
+            onShowPlaybook={() => setActiveTab('plan')}
           />
         }
       />
