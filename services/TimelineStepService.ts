@@ -303,13 +303,10 @@ export async function createStep(
   input: CreateTimelineStepInput,
 ): Promise<TimelineStepRecord> {
   try {
-    // Guard: titles are NOT NULL in schema, but an empty string still passes.
-    // Rejecting here prevents "Untitled step" placeholders from leaking into
-    // the user's timeline from any creation flow.
-    const trimmedTitle = input.title?.trim();
-    if (!trimmedTitle) {
-      throw new Error('Timeline step title is required and cannot be empty.');
-    }
+    // Title may be empty/null (Atlas long-press drops a draft pin and expects
+    // the user to type a title on /step/[id]). The RPC normalises '' → NULL
+    // and downstream renderers fall back to 'Untitled step'.
+    const trimmedTitle = input.title?.trim() ?? null;
     const normalizedInput = { ...input, title: trimmedTitle };
 
     logger.debug('Creating timeline step', { title: trimmedTitle, userId: input.user_id });
@@ -340,6 +337,35 @@ export async function createStep(
     return created;
   } catch (err) {
     logger.error('Failed to create timeline step', err);
+    throw err;
+  }
+}
+
+export async function shiftTimelineSortOrdersAtOrAfter(
+  userId: string,
+  interestId: string,
+  atOrAfter: number,
+): Promise<void> {
+  try {
+    const { data, error } = await supabase
+      .from('timeline_steps')
+      .select('id, sort_order')
+      .eq('user_id', userId)
+      .eq('interest_id', interestId)
+      .gte('sort_order', atOrAfter)
+      .order('sort_order', { ascending: false });
+
+    if (error) throw error;
+
+    for (const row of (data ?? []) as Pick<TimelineStepRecord, 'id' | 'sort_order'>[]) {
+      const { error: updateError } = await supabase
+        .from('timeline_steps')
+        .update({ sort_order: row.sort_order + 1 })
+        .eq('id', row.id);
+      if (updateError) throw updateError;
+    }
+  } catch (err) {
+    logger.error('Failed to shift timeline sort orders', err);
     throw err;
   }
 }
@@ -503,6 +529,26 @@ export async function adoptStep(
 
     if (blueprintId) {
       insertPayload.source_blueprint_id = blueprintId;
+      // Resolve the blueprint_steps join row for (blueprintId, sourceStepId)
+      // so the adopter's timeline_step keeps the back-pointer to the
+      // canonical blueprint step. Without this the WITH cohort count + the
+      // Discuss tab's Cohort thread can't find the shared blueprint_step
+      // and silently fall back to "no cohort thread to share into" even
+      // though this is a blueprint-derived step.
+      const { data: bsRow, error: bsErr } = await supabase
+        .from('blueprint_steps')
+        .select('id')
+        .eq('blueprint_id', blueprintId)
+        .eq('step_id', sourceStepId)
+        .maybeSingle();
+      if (bsErr) {
+        logger.warn(
+          'Failed to resolve blueprint_steps row during adoption — adopted step will be unlinked',
+          { blueprintId, sourceStepId, error: bsErr },
+        );
+      } else if (bsRow?.id) {
+        insertPayload.source_blueprint_step_id = bsRow.id;
+      }
     }
 
     const { data, error } = await supabase
