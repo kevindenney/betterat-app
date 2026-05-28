@@ -17,7 +17,7 @@
  */
 
 import React, { useMemo } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import Svg, { Line, Path, Rect, Text as SvgText } from 'react-native-svg';
 import { IOS_REGISTER } from '@/lib/design-tokens-ios';
 import type { SeasonReflection, WeeklyCapabilityMix } from './types';
@@ -288,15 +288,7 @@ export function CapabilityMix({
 
   return (
     <View style={[styles.wrap, { width, height }]}>
-      {/* Wrap the Svg in a pointerEvents="none" View — passing the prop
-          to <Svg> directly doesn't reliably block touches on iOS
-          (RNSVGSvgView has its own touch handling). The wrapper guarantees
-          taps fall through to the Pressable tap targets below. */}
-      <View
-        pointerEvents="none"
-        style={[styles.svgFill, { width, height }]}
-      >
-        <Svg width={width} height={height}>
+      <Svg width={width} height={height}>
         {/* Stacked-area bands rendered with dual encoding:
             - Ghost rect (faint fill) covers the planned portion above
               the solid — "what you set out to develop"
@@ -425,62 +417,57 @@ export function CapabilityMix({
             </React.Fragment>
           );
         })}
-      </Svg>
-      </View>
 
-      {/* Invisible press targets per band. Each target is the band's
-          stacked-area bounding box (not the full chart height), so two
-          bands stacked at the same week have non-overlapping touch
-          areas and the user can tap whichever band their finger is on.
-          Previously every target was full innerHeight, so the last-
-          rendered band swallowed every tap. */}
-      {onCapabilityPress
-        ? (() => {
-            const bounds = new Map<
-              string,
-              { xMin: number; xMax: number; yMin: number; yMax: number }
-            >();
-            for (const r of rects) {
-              const yTop = r.yBottom - r.cellHeight;
-              const b = bounds.get(r.bandId);
-              if (b) {
-                if (r.x < b.xMin) b.xMin = r.x;
-                if (r.x + r.w > b.xMax) b.xMax = r.x + r.w;
-                if (yTop < b.yMin) b.yMin = yTop;
-                if (r.yBottom > b.yMax) b.yMax = r.yBottom;
-              } else {
-                bounds.set(r.bandId, {
-                  xMin: r.x,
-                  xMax: r.x + r.w,
-                  yMin: yTop,
-                  yMax: r.yBottom,
-                });
+        {/* Per-band transparent tap rects, rendered LAST inside the Svg
+            so they sit on top of all visible shapes in the SVG's own
+            z-order. Using react-native-svg's native onPress on Rect
+            avoids the iOS quirk where layered RN Pressables don't
+            receive touches through the SVG view. Each tap rect is the
+            band's stacked-area bounding box — bands never overlap, so
+            you tap the band you visually meant. */}
+        {onCapabilityPress
+          ? (() => {
+              const bounds = new Map<
+                string,
+                { xMin: number; xMax: number; yMin: number; yMax: number }
+              >();
+              for (const r of rects) {
+                const yTop = r.yBottom - r.cellHeight;
+                const b = bounds.get(r.bandId);
+                if (b) {
+                  if (r.x < b.xMin) b.xMin = r.x;
+                  if (r.x + r.w > b.xMax) b.xMax = r.x + r.w;
+                  if (yTop < b.yMin) b.yMin = yTop;
+                  if (r.yBottom > b.yMax) b.yMax = r.yBottom;
+                } else {
+                  bounds.set(r.bandId, {
+                    xMin: r.x,
+                    xMax: r.x + r.w,
+                    yMin: yTop,
+                    yMax: r.yBottom,
+                  });
+                }
               }
-            }
-            return bands.map((band) => {
-              const b = bounds.get(band.id);
-              if (!b) return null;
-              return (
-                <Pressable
-                  key={`tap-${band.id}`}
-                  accessibilityRole="button"
-                  accessibilityLabel={`Open ${band.label}`}
-                  onPress={() => onCapabilityPress(band.id, band.label, band.color)}
-                  style={({ pressed }) => [
-                    styles.tapTarget,
-                    {
-                      left: b.xMin,
-                      top: b.yMin,
-                      width: Math.max(8, b.xMax - b.xMin),
-                      height: Math.max(8, b.yMax - b.yMin),
-                      opacity: pressed ? 0.7 : 1,
-                    },
-                  ]}
-                />
-              );
-            });
-          })()
-        : null}
+              return bands.map((band) => {
+                const b = bounds.get(band.id);
+                if (!b) return null;
+                return (
+                  <Rect
+                    key={`tap-${band.id}`}
+                    x={b.xMin}
+                    y={b.yMin}
+                    width={Math.max(8, b.xMax - b.xMin)}
+                    height={Math.max(8, b.yMax - b.yMin)}
+                    fill="transparent"
+                    onPress={() =>
+                      onCapabilityPress(band.id, band.label, band.color)
+                    }
+                  />
+                );
+              });
+            })()
+          : null}
+      </Svg>
     </View>
   );
 }
