@@ -164,6 +164,10 @@ export interface TimelineSeason {
    *  count. Drives the sparkline on the no-anchor path of the VISION
    *  lane and the "+N this week" footer in both paths. */
   visionEvidenceTrend?: number[];
+  /** The viewer's active plan id for this interest, when one exists.
+   *  Drives the VISION edit write path on L3 — vision updates land
+   *  on this plan (or create one when null). */
+  activePlanId?: string | null;
 }
 
 export interface SeasonAnalysis {

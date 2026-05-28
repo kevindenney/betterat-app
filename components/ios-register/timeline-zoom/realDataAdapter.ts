@@ -1288,15 +1288,20 @@ interface AdapterInput {
     { peerUserId: string; peerDisplayName: string | null }[]
   >;
   /**
-   * Per-interest vision data. Vision lives on user_interests (not on
-   * seasons) so each persona carries its own — a sailor's vision
-   * doesn't bleed into the same user's nursing canvas just because
-   * both share the "Winter 2025-2026" calendar partition.
+   * Per-interest vision data. Sourced from the user's active plan
+   * for this interest (falls back to legacy user_interests when no
+   * plan exists yet — backfill should have moved most accounts over).
    */
   interestVision?: {
     statement: string | null;
     competencyIds: string[];
   };
+  /**
+   * The user's active plan id for this interest. Drives the vision
+   * edit write path: when set, VisionEditSheet updates this plan;
+   * when null, it creates a new plan + writes vision to it.
+   */
+  activePlanId?: string | null;
 }
 
 export function mapToTimelineDataset({
@@ -1313,6 +1318,7 @@ export function mapToTimelineDataset({
   suggestionInputs,
   stepReflectionsMap,
   interestVision,
+  activePlanId,
 }: AdapterInput): TimelineDataset {
   // Sort steps by sort_order, then starts_at. Stable ordering matters for
   // week bucketing fallback and L4 brick layout.
@@ -1485,6 +1491,7 @@ export function mapToTimelineDataset({
     visionEvidenceByCompetency,
     visionEvidenceTrendByCompetency,
     visionEvidenceTrend,
+    activePlanId: activePlanId ?? null,
   };
 
   // Index moved-via-Section-E step records by their target season id so

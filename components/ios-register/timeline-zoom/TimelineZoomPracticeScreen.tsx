@@ -26,6 +26,7 @@ import { useCurrentSeason, useUserSeasons, useCreateSeason, useUpdateSeason, use
 import { useSubscribedBlueprints, useBlueprintWithAuthor } from '@/hooks/useBlueprint';
 import { useStepCapabilityEvidence } from '@/hooks/useStepCapabilityEvidence';
 import { useInterestVision } from '@/hooks/useInterestVision';
+import { useActivePlan } from '@/hooks/usePlan';
 import { useStepPeerReflections } from '@/hooks/useStepPeerReflections';
 import { useStepSuggestionsForRange } from '@/hooks/useStepSuggestionsForRange';
 import { SeasonEditSheet } from './SeasonEditSheet';
@@ -78,10 +79,28 @@ export function TimelineZoomPracticeScreen() {
   // a reflection to one of the viewer's steps, so the chart can place
   // the reflecting peer at that step's week without date projection.
   const { data: stepReflectionsMap } = useStepPeerReflections(stepIdsForEvidence);
-  // Vision is per-interest (persona), not per-season — seasons are
-  // calendar partitions shared across the user's interests, so a
-  // vision stored on a season would bleed across personas.
+  // Vision lives on the active plan — the user's tailored journey.
+  // useInterestVision stays as a fallback for users who haven't been
+  // migrated to a plan yet (and as the legacy write path); the
+  // backfill SQL copies user_interests.vision_* onto a plan, so for
+  // most accounts the activePlan branch wins.
   const { data: interestVision } = useInterestVision(interestId);
+  const { data: activePlan } = useActivePlan(interestId);
+  const effectiveVision = useMemo(() => {
+    if (activePlan) {
+      return {
+        statement: activePlan.vision_statement,
+        competencyIds: activePlan.vision_competency_ids,
+      };
+    }
+    if (interestVision) {
+      return {
+        statement: interestVision.vision_statement,
+        competencyIds: interestVision.vision_competency_ids,
+      };
+    }
+    return undefined;
+  }, [activePlan, interestVision]);
 
   // The focused step's blueprint gets the "suggested by …" author tag —
   // only one extra query, only when the focused step actually came from a
@@ -143,12 +162,8 @@ export function TimelineZoomPracticeScreen() {
         stepEvidenceMap,
         suggestionInputs,
         stepReflectionsMap,
-        interestVision: interestVision
-          ? {
-              statement: interestVision.vision_statement,
-              competencyIds: interestVision.vision_competency_ids,
-            }
-          : undefined,
+        interestVision: effectiveVision,
+        activePlanId: activePlan?.id ?? null,
       }),
     [
       interestId,
@@ -163,7 +178,8 @@ export function TimelineZoomPracticeScreen() {
       stepEvidenceMap,
       suggestionInputs,
       stepReflectionsMap,
-      interestVision,
+      effectiveVision,
+      activePlan?.id,
     ],
   );
 

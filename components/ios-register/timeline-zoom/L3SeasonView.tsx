@@ -46,6 +46,7 @@ import { CapabilityFamilySheet } from './CapabilityFamilySheet';
 import { VisionBlock } from './VisionBlock';
 import { VisionEditSheet } from './VisionEditSheet';
 import { useUpdateInterestVision } from '@/hooks/useInterestVision';
+import { useUpdatePlan, useCreatePlan } from '@/hooks/usePlan';
 import { useUserOrgCompetencies } from '@/hooks/useUserOrgCompetencies';
 import { useViewerFleetCohort } from '@/hooks/useViewerFleetCohort';
 import { SeasonLibrarianPrompt } from './SeasonLibrarianPrompt';
@@ -122,6 +123,8 @@ export function L3SeasonView({
   // VISION lane edit sheet open state + handlers.
   const [visionEditOpen, setVisionEditOpen] = useState(false);
   const updateInterestVision = useUpdateInterestVision();
+  const updatePlan = useUpdatePlan();
+  const createPlan = useCreatePlan();
   const { data: orgCompetencies = [] } = useUserOrgCompetencies(dataset.interest.slug);
   // FLEET section grouping — falls back to flat render when the
   // viewer has no fleets or no shared-fleet peers.
@@ -480,9 +483,32 @@ export function L3SeasonView({
         initialCompetencyIds={season.visionCompetencyIds}
         interestSlug={dataset.interest.slug}
         onSave={async (statement, competencyIds) => {
+          const visionStatement = statement.length > 0 ? statement : null;
+          const planId = dataset.activePlanId;
+          if (planId) {
+            await updatePlan.mutateAsync({
+              planId,
+              input: {
+                vision_statement: visionStatement,
+                vision_competency_ids: competencyIds,
+              },
+            });
+          } else {
+            // No plan yet for this interest — auto-create one so the
+            // vision has a home. Title stays null; the user can name
+            // the plan from a dedicated plan-management surface later.
+            await createPlan.mutateAsync({
+              interest_id: dataset.interest.id,
+              vision_statement: visionStatement,
+              vision_competency_ids: competencyIds,
+            });
+          }
+          // Mirror the write to user_interests until the legacy
+          // fallback path is dropped (slice C) — keeps cross-surface
+          // reads consistent during the transition.
           await updateInterestVision.mutateAsync({
             interestId: dataset.interest.id,
-            vision_statement: statement.length > 0 ? statement : null,
+            vision_statement: visionStatement,
             vision_competency_ids: competencyIds,
           });
         }}
