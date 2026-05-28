@@ -212,7 +212,7 @@ async function fetchSearchResults(
     viewerId
       ? supabase
           .from('timeline_steps')
-          .select('id, title, description, user_id, location_name, location_lat, location_lng')
+          .select('id, title, description, user_id')
           .eq('user_id', viewerId)
           .ilike('title', like)
           .limit(10)
@@ -220,7 +220,7 @@ async function fetchSearchResults(
     followingIds.size > 0
       ? supabase
           .from('timeline_steps')
-          .select('id, title, description, user_id, location_name, location_lat, location_lng')
+          .select('id, title, description, user_id')
           .in('user_id', Array.from(followingIds))
           .ilike('title', like)
           .neq('visibility', 'private')
@@ -289,38 +289,60 @@ async function fetchSearchResults(
     }
   }
 
-  // Helper — Number(null) === 0 and Number.isFinite(0) === true, so a
-  // step with NULL location_lat/lng would otherwise be tagged as "at
-  // (0, 0)" and the camera would fly to the Gulf of Guinea. Guard
-  // against nullish AND zero-pair AND non-finite explicitly.
-  const stepCoords = (row: Record<string, unknown>): { lat: number; lng: number } | null => {
-    if (row.location_lat == null || row.location_lng == null) return null;
-    const lat = Number(row.location_lat);
-    const lng = Number(row.location_lng);
-    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
-    if (lat === 0 && lng === 0) return null;
-    return { lat, lng };
-  };
+  // Step location lives in `step_location` (joined by step_id), NOT in
+  // `timeline_steps.location_lat/lng` (legacy/unused). After the
+  // step queries resolve, fetch step_location rows in one batch and
+  // merge into a per-step coord map. There's no FK between the
+  // tables so a PostgREST embed isn't available — we do a follow-up
+  // .in('step_id', [...]) query instead.
+  const candidateStepIds = new Set<string>();
+  if (ownStepsRes && !ownStepsRes.error && ownStepsRes.data) {
+    for (const s of ownStepsRes.data as Record<string, unknown>[]) {
+      if (s.id) candidateStepIds.add(String(s.id));
+    }
+  }
+  if (peerStepsRes && !peerStepsRes.error && peerStepsRes.data) {
+    for (const s of peerStepsRes.data as Record<string, unknown>[]) {
+      if (s.id) candidateStepIds.add(String(s.id));
+    }
+  }
+  const stepCoordMap = new Map<string, { lat: number; lng: number; name?: string }>();
+  if (candidateStepIds.size > 0) {
+    const { data: locs } = await supabase
+      .from('step_location')
+      .select('step_id, lat, lng, name')
+      .in('step_id', Array.from(candidateStepIds));
+    if (locs) {
+      for (const row of locs as Record<string, unknown>[]) {
+        const stepId = String(row.step_id);
+        const lat = Number(row.lat);
+        const lng = Number(row.lng);
+        if (!Number.isFinite(lat) || !Number.isFinite(lng)) continue;
+        if (lat === 0 && lng === 0) continue;
+        stepCoordMap.set(stepId, {
+          lat,
+          lng,
+          name: row.name ? String(row.name) : undefined,
+        });
+      }
+    }
+  }
 
   if (ownStepsRes && !ownStepsRes.error && ownStepsRes.data) {
     for (const s of ownStepsRes.data as Record<string, unknown>[]) {
       const stepId = String(s.id);
       const title = String(s.title ?? 'Step');
       const desc = s.description ? String(s.description) : null;
-      const coords = stepCoords(s);
+      const loc = stepCoordMap.get(stepId);
       out.push({
         id: `step:${stepId}`,
         kind: 'step',
         name: title,
-        detail: s.location_name
-          ? String(s.location_name)
-          : desc
-            ? desc.slice(0, 80)
-            : 'Your step',
+        detail: loc?.name ?? (desc ? desc.slice(0, 80) : 'Your step'),
         stepId,
         ownership: 'yours',
-        lat: coords?.lat,
-        lng: coords?.lng,
+        lat: loc?.lat,
+        lng: loc?.lng,
       });
     }
   }
@@ -334,20 +356,16 @@ async function fetchSearchResults(
       const stepId = String(s.id);
       const title = String(s.title ?? 'Step');
       const desc = s.description ? String(s.description) : null;
-      const coords = stepCoords(s);
+      const loc = stepCoordMap.get(stepId);
       out.push({
         id: `peer_step:${stepId}`,
         kind: 'step',
         name: title,
-        detail: s.location_name
-          ? String(s.location_name)
-          : desc
-            ? desc.slice(0, 80)
-            : 'From someone you follow',
+        detail: loc?.name ?? (desc ? desc.slice(0, 80) : 'From someone you follow'),
         stepId,
         ownership: 'following',
-        lat: coords?.lat,
-        lng: coords?.lng,
+        lat: loc?.lat,
+        lng: loc?.lng,
       });
     }
   }

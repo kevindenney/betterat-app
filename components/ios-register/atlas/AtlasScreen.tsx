@@ -2094,7 +2094,17 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
               ) : null}
               <Pressable
                 style={shellStyles.capsuleSearch}
-                onPress={() => setSearchOpen(true)}
+                onPress={() => {
+                  // Opening search exits any modal-like state (reposition,
+                  // retrace, commit-mode) so the user isn't visually
+                  // "in" two flows at once. The reposition banner used
+                  // to bleed through the search modal.
+                  setRepositionTarget(null);
+                  setRetraceTarget(null);
+                  setCommitMode(false);
+                  setCandidate(null);
+                  setSearchOpen(true);
+                }}
                 hitSlop={4}
                 accessibilityLabel="Search places"
               >
