@@ -62,6 +62,12 @@ export interface StepCardProps {
    * behavior.
    */
   scrollAsUnit?: boolean;
+  /**
+   * Forwarded to the inner ScrollView when scrollAsUnit is true. Lets
+   * outer chrome (e.g. the timeline canvas) animate hide/show based on
+   * the card's own scroll position.
+   */
+  onScroll?: React.ComponentProps<typeof ScrollView>['onScroll'];
   testID?: string;
 }
 
@@ -76,6 +82,7 @@ export function StepCard({
   footer,
   style,
   scrollAsUnit,
+  onScroll,
   testID,
 }: StepCardProps) {
   const stateHead = (
@@ -107,6 +114,8 @@ export function StepCard({
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
+          onScroll={onScroll}
+          scrollEventThrottle={onScroll ? 16 : undefined}
         >
           {stateHead}
           {stepStrip}

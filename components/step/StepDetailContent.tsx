@@ -117,9 +117,14 @@ interface StepDetailContentProps {
   readOnly?: boolean;
   /** Optional initial active tab override (e.g. from ?tab=discussion query). */
   initialTab?: TabValue;
+  /**
+   * Forwarded to the inner StepCard's ScrollView. Lets outer chrome
+   * (e.g. the timeline canvas) animate hide/show based on inner scroll.
+   */
+  onScroll?: React.ComponentProps<typeof StepCard>['onScroll'];
 }
 
-export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab }: StepDetailContentProps) {
+export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, onScroll }: StepDetailContentProps) {
   const universalPlus = useUniversalPlus();
   const shareStep = useShareStep();
   const { user } = useAuth();
@@ -918,7 +923,7 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab }
           onChangeText={handleTitleChange}
           onBlur={handleTitleBlur}
           onSubmitEditing={handleTitleBlur}
-          placeholder={`${vocab('Learning Event')} title...`}
+          placeholder="Step title..."
           placeholderTextColor={STEP_COLORS.tertiaryLabel}
           selectTextOnFocus
           multiline
@@ -1255,7 +1260,7 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab }
               onChangeText={handleTitleChange}
               onBlur={handleTitleBlur}
               onSubmitEditing={handleTitleBlur}
-              placeholder={`${vocab('Learning Event')} title...`}
+              placeholder="Step title..."
               placeholderTextColor={STEP_COLORS.tertiaryLabel}
               selectTextOnFocus
               multiline
@@ -1353,6 +1358,7 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab }
         ) : null}
         <StepCard
           scrollAsUnit
+          onScroll={onScroll}
           style={useIdentityDeck ? styles.focusStepCard : undefined}
           pill={<StatePill variant={pillSpec.variant} label={pillSpec.label} />}
           onMenuPress={() => setMenuOpen(true)}

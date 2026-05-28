@@ -42,6 +42,7 @@ import { IOS_REGISTER } from '@/lib/design-tokens-ios';
 import { useHideTabBar } from '@/components/navigation/TabBarVisibilityContext';
 import { AppChromeRow } from '@/components/ui/AppChromeRow';
 import { LocationAnchor } from '@/components/ui/LocationAnchor';
+import { useScrollHideChrome } from '@/hooks/useScrollHideChrome';
 import { useUserHomeVenue } from '@/hooks/useUserHomeVenue';
 import { InterestHeader } from './InterestHeader';
 import { L1StepView } from './L1StepView';
@@ -175,6 +176,7 @@ export function TimelineZoomCanvas({
   const select = useSelectMode();
   const isFocusedStepSurface = level === 1;
   useHideTabBar(embedFullDetailAtL1 && isFocusedStepSurface);
+  const { onScroll: onInnerScroll, chromeAnimStyle } = useScrollHideChrome();
 
   // Continuous scale value driven by pinch — used to gate level changes on
   // release and to animate the canvas scale during the gesture.
@@ -311,11 +313,13 @@ export function TimelineZoomCanvas({
       <View style={styles.surface}>
         {hideInterestHeader ? (
           !select.enabled ? (
-            <AppChromeRow
-              leftExtras={
-                <LocationAnchor region={homeVenue?.region} venue={homeVenue?.venue} />
-              }
-            />
+            <Animated.View style={chromeAnimStyle}>
+              <AppChromeRow
+                leftExtras={
+                  <LocationAnchor region={homeVenue?.region} venue={homeVenue?.venue} />
+                }
+              />
+            </Animated.View>
           ) : null
         ) : (
           <InterestHeader
@@ -356,6 +360,7 @@ export function TimelineZoomCanvas({
                       onSwipeNext={() => swipeToNeighbor('next')}
                       prevStepTitle={prevStepTitle}
                       nextStepTitle={nextStepTitle}
+                      onScroll={onInnerScroll}
                     />
                   ) : (
                     <ZoomEmptyState level={1} interestLabel={dataset.interest.label} />

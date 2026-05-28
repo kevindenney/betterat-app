@@ -66,6 +66,11 @@ interface L1StepViewProps {
   /** Adjacent step previews — drive the left/right peek slabs. */
   prevStepTitle?: string | null;
   nextStepTitle?: string | null;
+  /**
+   * Forwarded to the inner step detail's scroll so the canvas's chrome
+   * row can animate hide/show on scroll.
+   */
+  onScroll?: React.ComponentProps<typeof StepDetailContent>['onScroll'];
 }
 
 const PHASES = ['Plan', 'Do', 'Reflect', 'Discuss'] as const;
@@ -85,6 +90,7 @@ export function L1StepView({
   onSwipeNext,
   prevStepTitle,
   nextStepTitle,
+  onScroll,
 }: L1StepViewProps) {
   const hasPrev = prevStepTitle != null;
   const hasNext = nextStepTitle != null;
@@ -179,7 +185,7 @@ export function L1StepView({
               {step.subStep ? <SessionStrap step={step} /> : null}
             </View>
             <View style={styles.embedDetailHost}>
-              <StepDetailContent stepId={step.id} />
+              <StepDetailContent stepId={step.id} onScroll={onScroll} />
             </View>
           </Animated.View>
         </GestureDetector>
