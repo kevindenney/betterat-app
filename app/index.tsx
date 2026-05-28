@@ -15,8 +15,27 @@ import { router } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import { Platform, StyleSheet, View, type ViewStyle } from 'react-native';
 
+/**
+ * If the just-signed-in user is a demo persona, route them to the
+ * persona-specific landing baked into user_metadata by the
+ * mint-demo-session edge function. Returns true when handled so the
+ * caller can skip the regular lastTab routing.
+ *
+ * Demo personas sign in via magic link and the link sets
+ * user_metadata.demo_persona_landing on the auth user; we honor that
+ * over any stale lastTab from an earlier browser session.
+ */
+function demoPersonaRedirect(meta: Record<string, unknown> | null | undefined): boolean {
+  if (!meta) return false;
+  const isDemo = meta.demo_persona === true;
+  const landing = meta.demo_persona_landing;
+  if (!isDemo || typeof landing !== 'string' || !landing.startsWith('/')) return false;
+  router.replace(landing as never);
+  return true;
+}
+
 export default function LandingPage() {
-  const { signedIn, ready, userProfile, loading, isGuest, state } = useAuth();
+  const { signedIn, ready, userProfile, loading, user } = useAuth();
   const [isRedirecting, setIsRedirecting] = useState(false);
   const [showSkeleton, setShowSkeleton] = useState(() => hasPersistedSessionHint());
 
@@ -36,11 +55,12 @@ export default function LandingPage() {
 
     setIsRedirecting(true);
     if (signedIn) {
+      if (demoPersonaRedirect(user?.user_metadata as Record<string, unknown> | null)) return;
       router.replace(getLastTabRoute(userProfile?.user_type ?? null));
     } else {
       router.replace('/(auth)/login');
     }
-  }, [isNative, ready, loading, isRedirecting, signedIn, userProfile]);
+  }, [isNative, ready, loading, isRedirecting, signedIn, userProfile, user]);
 
   // Web: check for persisted session hint (one-shot)
   useEffect(() => {
@@ -56,6 +76,7 @@ export default function LandingPage() {
 
     if (signedIn) {
       setIsRedirecting(true);
+      if (demoPersonaRedirect(user?.user_metadata as Record<string, unknown> | null)) return;
       router.replace(getLastTabRoute(userProfile?.user_type ?? null));
     } else {
       // Session hint was stale (or never existed). Lock the skeleton
@@ -63,7 +84,7 @@ export default function LandingPage() {
       skeletonLockedOff.current = true;
       if (showSkeleton) setShowSkeleton(false);
     }
-  }, [isNative, signedIn, ready, userProfile, loading, isRedirecting, showSkeleton]);
+  }, [isNative, signedIn, ready, userProfile, loading, isRedirecting, showSkeleton, user]);
 
   // Native: skeleton while redirecting
   if (isNative) {
