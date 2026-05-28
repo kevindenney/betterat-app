@@ -288,7 +288,15 @@ export function CapabilityMix({
 
   return (
     <View style={[styles.wrap, { width, height }]}>
-      <Svg width={width} height={height} pointerEvents="none">
+      {/* Wrap the Svg in a pointerEvents="none" View — passing the prop
+          to <Svg> directly doesn't reliably block touches on iOS
+          (RNSVGSvgView has its own touch handling). The wrapper guarantees
+          taps fall through to the Pressable tap targets below. */}
+      <View
+        pointerEvents="none"
+        style={[styles.svgFill, { width, height }]}
+      >
+        <Svg width={width} height={height}>
         {/* Stacked-area bands rendered with dual encoding:
             - Ghost rect (faint fill) covers the planned portion above
               the solid — "what you set out to develop"
@@ -418,6 +426,7 @@ export function CapabilityMix({
           );
         })}
       </Svg>
+      </View>
 
       {/* Invisible press targets per band. Each target is the band's
           stacked-area bounding box (not the full chart height), so two
@@ -485,6 +494,11 @@ const styles = StyleSheet.create({
   },
   tapTarget: {
     position: 'absolute',
+  },
+  svgFill: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
   },
 });
 
