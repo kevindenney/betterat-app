@@ -10,8 +10,8 @@
  *      ("+N this week · M total · week X of Y")
  *   3. Vision set + competency anchors — italic-serif statement +
  *      per-competency row (label · weekly sparkline · season-to-date
- *      relative bar · running total) + same velocity footer
- *      summarized across anchored competencies.
+ *      relative bar · running total · pace arrow) + same velocity
+ *      footer summarized across anchored competencies.
  *
  * Tap anywhere → edit sheet opens.
  */
@@ -19,8 +19,51 @@
 import React, { useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { IOS_REGISTER } from '@/lib/design-tokens-ios';
+import { IOS_COLORS, IOS_REGISTER } from '@/lib/design-tokens-ios';
 import type { OrgCompetencyOption } from '@/hooks/useUserOrgCompetencies';
+
+type Pace = 'up' | 'flat' | 'down' | 'none';
+type PaceIconName = 'trending-up' | 'remove' | 'trending-down';
+
+/**
+ * Compare this-week's evidence count to the average of prior weeks in
+ * the season. Returns 'none' when there's nothing meaningful to
+ * compare (week 1, or all-zero history with no current). Else returns
+ * a direction based on a ±25% band around the prior average.
+ */
+function computePace(trend: number[], currentWeek: number): Pace {
+  if (currentWeek < 1 || trend.length < currentWeek) return 'none';
+  const thisIdx = currentWeek - 1;
+  if (thisIdx === 0) return 'none';
+  const prior = trend.slice(0, thisIdx);
+  const priorSum = prior.reduce((a, b) => a + b, 0);
+  const priorAvg = priorSum / prior.length;
+  const thisCount = trend[thisIdx] ?? 0;
+  if (priorAvg === 0 && thisCount === 0) return 'none';
+  if (priorAvg === 0 && thisCount > 0) return 'up';
+  const ratio = thisCount / priorAvg;
+  if (ratio >= 1.25) return 'up';
+  if (ratio <= 0.75) return 'down';
+  return 'flat';
+}
+
+const PACE_ICON: Record<Exclude<Pace, 'none'>, PaceIconName> = {
+  up: 'trending-up',
+  flat: 'remove',
+  down: 'trending-down',
+};
+
+const PACE_COLOR: Record<Exclude<Pace, 'none'>, string> = {
+  up: IOS_COLORS.systemGreen,
+  flat: IOS_REGISTER.labelTertiary,
+  down: IOS_COLORS.systemOrange,
+};
+
+const PACE_A11Y: Record<Exclude<Pace, 'none'>, string> = {
+  up: 'trending up vs prior weeks',
+  flat: 'on pace with prior weeks',
+  down: 'below prior-week average',
+};
 
 interface Props {
   statement: string | null | undefined;
@@ -52,6 +95,18 @@ interface Props {
 const SPARK_HEIGHT = 14;
 const SPARK_MIN_BAR = 2;
 const AGGREGATE_SPARK_HEIGHT = 22;
+
+function PaceIcon({ pace, size = 12 }: { pace: Pace; size?: number }) {
+  if (pace === 'none') return null;
+  return (
+    <Ionicons
+      name={PACE_ICON[pace]}
+      size={size}
+      color={PACE_COLOR[pace]}
+      accessibilityLabel={PACE_A11Y[pace]}
+    />
+  );
+}
 
 export function VisionBlock({
   statement,
@@ -111,6 +166,11 @@ export function VisionBlock({
     return max;
   }, [evidenceTrend]);
 
+  const aggregatePace = useMemo(
+    () => computePace(evidenceTrend, currentWeek),
+    [evidenceTrend, currentWeek],
+  );
+
   const trimmed = statement?.trim() ?? '';
 
   if (!trimmed) {
@@ -138,11 +198,6 @@ export function VisionBlock({
     );
   }
 
-  const footerLine =
-    provenEvidenceCount === 0
-      ? `week ${currentWeek} of ${totalWeeks} · log a reflection to start tracking`
-      : `+${thisWeekCount} this week · ${provenEvidenceCount} total · week ${currentWeek} of ${totalWeeks}`;
-
   return (
     <Pressable
       onPress={onEdit}
@@ -166,6 +221,7 @@ export function VisionBlock({
             const count = evidenceByCompetency[c.id] ?? 0;
             const pct = maxAnchorCount > 0 ? count / maxAnchorCount : 0;
             const trend = evidenceTrendByCompetency[c.id] ?? [];
+            const pace = computePace(trend, currentWeek);
             return (
               <View key={c.id} style={styles.compRow}>
                 <Text style={styles.compLabel} numberOfLines={1}>
@@ -200,6 +256,9 @@ export function VisionBlock({
                   />
                 </View>
                 <Text style={styles.compCount}>{count}</Text>
+                <View style={styles.compPace}>
+                  <PaceIcon pace={pace} />
+                </View>
               </View>
             );
           })}
@@ -232,9 +291,23 @@ export function VisionBlock({
         </View>
       ) : null}
 
-      <Text style={styles.footer} numberOfLines={1}>
-        {footerLine}
-      </Text>
+      <View style={styles.footerRow}>
+        {provenEvidenceCount === 0 ? (
+          <Text style={styles.footer} numberOfLines={1}>
+            week {currentWeek} of {totalWeeks} · log a reflection to start tracking
+          </Text>
+        ) : (
+          <>
+            <Text style={styles.footerStrong} numberOfLines={1}>
+              +{thisWeekCount} this week
+            </Text>
+            <PaceIcon pace={aggregatePace} size={13} />
+            <Text style={styles.footer} numberOfLines={1}>
+              · {provenEvidenceCount} total · week {currentWeek} of {totalWeeks}
+            </Text>
+          </>
+        )}
+      </View>
     </Pressable>
   );
 }
@@ -306,10 +379,20 @@ const styles = StyleSheet.create({
   aggregateSparkBarCurrent: {
     backgroundColor: IOS_REGISTER.label,
   },
+  footerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 2,
+  },
   footer: {
     fontSize: 11.5,
     color: IOS_REGISTER.labelSecondary,
-    marginTop: 2,
+  },
+  footerStrong: {
+    fontSize: 11.5,
+    fontWeight: '600',
+    color: IOS_REGISTER.label,
   },
   compStack: { gap: 6, marginTop: 4 },
   compRow: {
@@ -351,5 +434,10 @@ const styles = StyleSheet.create({
     textAlign: 'right',
     fontSize: 11,
     color: IOS_REGISTER.labelTertiary,
+  },
+  compPace: {
+    width: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });
