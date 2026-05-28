@@ -387,10 +387,42 @@ async function fetchSearchResults(
     }
   }
 
+  // Primary location per org (lowest sort_order) — flies the camera
+  // to the institution's main site when the user picks it from search.
+  // No FK between organization_locations and organizations in the
+  // PostgREST schema, so we batch-fetch by id and pick the smallest
+  // sort_order per organization_id.
+  const orgPrimaryLoc = new Map<string, { lat: number; lng: number; name?: string }>();
   if (!orgsRes.error && orgsRes.data) {
+    const orgIds = (orgsRes.data as Record<string, unknown>[])
+      .map((o) => (o.id ? String(o.id) : null))
+      .filter((x): x is string => Boolean(x));
+    if (orgIds.length > 0) {
+      const { data: locRows } = await supabase
+        .from('organization_locations')
+        .select('organization_id, name, lat, lng, sort_order')
+        .in('organization_id', orgIds)
+        .order('sort_order', { ascending: true });
+      if (locRows) {
+        for (const row of locRows as Record<string, unknown>[]) {
+          const orgId = String(row.organization_id);
+          if (orgPrimaryLoc.has(orgId)) continue; // first (lowest sort_order) wins
+          const lat = Number(row.lat);
+          const lng = Number(row.lng);
+          if (!Number.isFinite(lat) || !Number.isFinite(lng)) continue;
+          if (lat === 0 && lng === 0) continue;
+          orgPrimaryLoc.set(orgId, {
+            lat,
+            lng,
+            name: row.name ? String(row.name) : undefined,
+          });
+        }
+      }
+    }
     for (const o of orgsRes.data as Record<string, unknown>[]) {
       const orgId = String(o.id);
       const isMember = orgMemberIds.has(orgId);
+      const loc = orgPrimaryLoc.get(orgId);
       out.push({
         id: `org:${orgId}`,
         kind: 'organization',
@@ -403,6 +435,8 @@ async function fetchSearchResults(
         orgId,
         orgSlug: o.slug ? String(o.slug) : undefined,
         isMember,
+        lat: loc?.lat,
+        lng: loc?.lng,
       });
     }
   }

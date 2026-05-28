@@ -1429,6 +1429,10 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
   // Keeps the user on Atlas (map-first surface). Cleared when the
   // user dismisses it or picks something else.
   const [stepPreview, setStepPreview] = useState<AtlasSearchResult | null>(null);
+  // Org preview — mirrors stepPreview for organization search results
+  // that carry a primary `organization_locations` lat/lng. Lets the
+  // user see the org's main location on the map before drilling in.
+  const [orgPreview, setOrgPreview] = useState<AtlasSearchResult | null>(null);
   const handleSearchSelect = useCallback((result: AtlasSearchResult) => {
     setSearchOpen(false);
     // People route to profile, steps to step detail, blueprint steps
@@ -1456,6 +1460,14 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
       return;
     }
     if (result.kind === 'organization' && result.orgSlug) {
+      if (result.lat != null && result.lng != null) {
+        // Org has a primary `organization_locations` row — fly the
+        // camera and surface a preview sheet. User can drill into
+        // /organizations/[slug] from the sheet's CTA.
+        setSearchFocus({ lat: result.lat, lng: result.lng });
+        setOrgPreview(result);
+        return;
+      }
       router.push(`/organizations/${result.orgSlug}` as never);
       return;
     }
@@ -2327,7 +2339,31 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
           first ever mount. That made initialState='handle' silently
           inherit a prior 'mid' state when myNextStepPin loaded after
           the ATLAS empty-state branch had already mounted the sheet. */}
-      {layersOpen || anchorStepTarget || repositionTarget || retraceTarget ? null : stepPreview ? (
+      {layersOpen || anchorStepTarget || repositionTarget || retraceTarget ? null : orgPreview ? (
+        <BottomSheet
+          key={`org-preview:${orgPreview.orgId}`}
+          eyebrow={orgPreview.isMember ? 'YOUR ORGANIZATION' : 'ORGANIZATION'}
+          title={orgPreview.name}
+          body={orgPreview.detail ?? null}
+          primary={{
+            label: 'Open organization',
+            icon: 'open-outline',
+            onPress: () => {
+              const slug = orgPreview.orgSlug;
+              setOrgPreview(null);
+              if (slug) router.push(`/organizations/${slug}` as never);
+            },
+          }}
+          secondary={{
+            label: 'Dismiss',
+            icon: 'close',
+            onPress: () => setOrgPreview(null),
+          }}
+          showSecondaryInMid
+          bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
+          initialState="mid"
+        />
+      ) : stepPreview ? (
         <BottomSheet
           key={`step-preview:${stepPreview.stepId}`}
           eyebrow={
