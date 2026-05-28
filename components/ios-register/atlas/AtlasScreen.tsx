@@ -1396,6 +1396,12 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
   const [searchFocus, setSearchFocus] = useState<{ lat: number; lng: number } | null>(
     handlers.initialFocus ?? null,
   );
+  // Step preview state — set when a step picked from search has
+  // coords, so the camera flies AND a BottomSheet shows the step
+  // detail with an "Open step" CTA that drills into /step/[id].
+  // Keeps the user on Atlas (map-first surface). Cleared when the
+  // user dismisses it or picks something else.
+  const [stepPreview, setStepPreview] = useState<AtlasSearchResult | null>(null);
   const handleSearchSelect = useCallback((result: AtlasSearchResult) => {
     setSearchOpen(false);
     // People route to profile, steps to step detail, blueprint steps
@@ -1406,15 +1412,15 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
       return;
     }
     if (result.kind === 'step' && result.stepId) {
-      // Step-with-location: keep the user on Atlas, fly the camera so
-      // they see geographic context. Step-detail card overlay on
-      // Atlas is the next step (see
-      // feedback_atlas_search_step_overlay.md). Until then, location-
-      // less steps still route to /step/[id] so the user can drill in.
       if (result.lat != null && result.lng != null) {
+        // Step-with-location: keep the user on Atlas, fly the camera
+        // and show a step-preview BottomSheet they can drill into.
         setSearchFocus({ lat: result.lat, lng: result.lng });
+        setStepPreview(result);
         return;
       }
+      // Location-less steps still route to /step/[id] so the user
+      // can drill in — there's no map context to preserve.
       router.push(`/step/${result.stepId}` as never);
       return;
     }
@@ -2273,7 +2279,37 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
           first ever mount. That made initialState='handle' silently
           inherit a prior 'mid' state when myNextStepPin loaded after
           the ATLAS empty-state branch had already mounted the sheet. */}
-      {layersOpen || anchorStepTarget || repositionTarget || retraceTarget ? null : candidate ? (
+      {layersOpen || anchorStepTarget || repositionTarget || retraceTarget ? null : stepPreview ? (
+        <BottomSheet
+          key={`step-preview:${stepPreview.stepId}`}
+          eyebrow={
+            stepPreview.ownership === 'yours'
+              ? 'YOUR STEP'
+              : stepPreview.ownership === 'following'
+                ? 'FROM SOMEONE YOU FOLLOW'
+                : 'STEP'
+          }
+          title={stepPreview.name}
+          body={stepPreview.detail ?? null}
+          primary={{
+            label: 'Open step',
+            icon: 'open-outline',
+            onPress: () => {
+              const id = stepPreview.stepId;
+              setStepPreview(null);
+              if (id) router.push(`/step/${id}` as never);
+            },
+          }}
+          secondary={{
+            label: 'Dismiss',
+            icon: 'close',
+            onPress: () => setStepPreview(null),
+          }}
+          showSecondaryInMid
+          bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
+          initialState="mid"
+        />
+      ) : candidate ? (
         <BottomSheet
           key="candidate"
           eyebrow="PIN DROPPED"
