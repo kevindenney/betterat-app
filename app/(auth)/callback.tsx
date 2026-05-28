@@ -19,6 +19,20 @@ import {
 
 const logger = createLogger('OAuthCallback')
 
+// Demo personas sign in via magic links minted by mint-demo-session, which
+// stashes the persona-specific landing route in user_metadata. Honor it over
+// any stale lastTab / dashboard fallback so Markus lands on /practice and
+// Szanton lands on /admin/<org>/overview instead of a generic dashboard.
+const readDemoPersonaLanding = (
+  meta: Record<string, any> | null | undefined,
+): string | null => {
+  if (!meta) return null
+  if (meta.demo_persona !== true) return null
+  const landing = meta.demo_persona_landing
+  if (typeof landing !== 'string' || !landing.startsWith('/')) return null
+  return landing
+}
+
 // [TRAIL] Persist a diagnostic trail of the OAuth flow to localStorage so we
 // can post-mortem failures by reading it via Chrome DevTools after the fact.
 // Capped to last 50 entries. Key: 'auth_trail'.
@@ -223,6 +237,10 @@ export default function Callback(){
               } catch {}
             }
             if (!destination) destination = getDashboardRoute(null) as string
+
+            // Demo persona landing wins over generic dashboard fallback.
+            const demoLanding = readDemoPersonaLanding(user.user_metadata)
+            if (demoLanding) destination = demoLanding
 
             // Mark auth as settling so AuthGate on the destination page holds
             // off the bounce-to-/ until onAuthStateChange broadcasts.
@@ -450,6 +468,20 @@ export default function Callback(){
           } catch (e) {
             trail('callback:commitOnboardingBlueprint_error', { err: String(e) })
           }
+        }
+
+        // Demo personas never go through onboarding — they sign in via
+        // mint-demo-session and the persona-specific landing is in
+        // user_metadata. Short-circuit before the onboarding branch.
+        const demoLandingEarly = readDemoPersonaLanding(session.user.user_metadata)
+        if (demoLandingEarly) {
+          trail('callback:routing_demo_persona_landing_early', { demoLandingEarly })
+          setStatus('Almost there...')
+          setTimeout(() => {
+            router.replace(demoLandingEarly as any)
+          }, 100)
+          clearTimeout(safetyTimeout)
+          return
         }
 
         // Route based on the effective user type

@@ -34,10 +34,24 @@ function demoPersonaRedirect(meta: Record<string, unknown> | null | undefined): 
   return true;
 }
 
+// Magic links (incl. demo persona sign-in) land on bare `/#access_token=...`
+// when the redirect path isn't on the Supabase URL allowlist. The supabase
+// client is configured with detectSessionInUrl:false (services/supabase.ts),
+// so the hash will sit unprocessed on the marketing landing forever. Forward
+// it to the manual hash-parser at /(auth)/callback.
+function forwardImplicitTokenHash(): boolean {
+  if (typeof window === 'undefined') return false;
+  const hash = window.location.hash || '';
+  if (!hash.startsWith('#') || !hash.includes('access_token=')) return false;
+  window.location.replace(`/callback${hash}`);
+  return true;
+}
+
 export default function LandingPage() {
   const { signedIn, ready, userProfile, loading, user } = useAuth();
   const [isRedirecting, setIsRedirecting] = useState(false);
   const [showSkeleton, setShowSkeleton] = useState(() => hasPersistedSessionHint());
+  const [forwardingHash] = useState(() => forwardImplicitTokenHash());
 
   // Once we've confirmed the user is signed-out, never re-arm the
   // skeleton. Without this, the async `hasPersistedSessionHintAsync`
@@ -91,8 +105,8 @@ export default function LandingPage() {
     return <DashboardSkeleton />;
   }
 
-  // Web: skeleton while checking auth or redirecting
-  if (!ready || showSkeleton || signedIn || isRedirecting) {
+  // Web: skeleton while checking auth, forwarding a magic-link hash, or redirecting
+  if (!ready || showSkeleton || signedIn || isRedirecting || forwardingHash) {
     return <DashboardSkeleton />;
   }
 
