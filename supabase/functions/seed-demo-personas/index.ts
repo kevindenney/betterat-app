@@ -9,9 +9,8 @@
  * them is a no-op (idempotent by email lookup).
  *
  * For each persona this:
- *   1. Looks up auth.users by email; creates via admin.createUser if
- *      missing (email auto-confirmed; no password — sign-in is via
- *      magic link from mint-demo-session).
+ *   1. Tries admin.createUser with email auto-confirmed; on
+ *      email_exists, falls back to find_auth_user_id_by_email RPC.
  *   2. Upserts profiles row with full_name, profile_public=true,
  *      portfolio_public_opt_in=true.
  *   3. Upserts user_interests for the org's interest_slug.
@@ -22,12 +21,6 @@
  * Gating mirrors mint-demo-session: DEMO_MODE_ENABLED env required;
  * without it the function returns 410 Gone. Idempotent: POST again to
  * verify the state.
- *
- * Invoke:
- *   POST https://qavekrwdbsobecwrfxwu.supabase.co/functions/v1/seed-demo-personas
- *
- * Returns: { personas: [{ key, email, created, profileUpdated,
- *           membershipUpserted, interestUpserted, orgId }] }
  */
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
@@ -38,8 +31,6 @@ interface PersonaSeed {
   email: string;
   fullName: string;
   orgSlug: string;
-  /** Membership role we want this persona to have. Must be in the
-   *  role allowlists Codex's RPCs check. */
   role: 'admin' | 'manager' | 'faculty' | 'instructor';
 }
 
@@ -114,7 +105,6 @@ async function seedPersona(
   sb: ReturnType<typeof createClient>,
   persona: PersonaSeed,
 ): Promise<PersonaResult> {
-  // 1. Resolve org first — fail fast if it doesn't exist.
   const { data: orgRow, error: orgErr } = await sb
     .from('organizations')
     .select('id, interest_slug')
@@ -125,15 +115,9 @@ async function seedPersona(
   const orgId = orgRow.id as string;
   const interestSlug = (orgRow as { interest_slug: string | null }).interest_slug;
 
-  // 2. Look up or create the auth.user. The admin API doesn't expose a
-  //    findByEmail; we use listUsers with a filter and pick the first
-  //    match. That endpoint is paginated — for a 2-persona seed in dev
-  //    we only need to walk the first page (1000 users).
-  const userId = await ensureAuthUser(persona.email);
+  const userId = await ensureAuthUser(sb, persona.email);
   const created = userId.created;
 
-  // 3. Upsert profile. Some triggers may already have created the row
-  //    when the auth user was inserted; either way, ensure our fields.
   const { error: profileErr } = await sb.from('profiles').upsert(
     {
       id: userId.id,
@@ -146,7 +130,6 @@ async function seedPersona(
   );
   if (profileErr) throw new Error(`profile upsert failed: ${profileErr.message}`);
 
-  // 4. Upsert user_interests for the org's interest_slug (when set).
   let interestUpserted = false;
   if (interestSlug) {
     const { data: interestRow, error: interestLookupErr } = await sb
@@ -167,8 +150,6 @@ async function seedPersona(
     }
   }
 
-  // 5. Upsert organization_membership. Match on (organization_id,
-  //    user_id) — both columns participate in the unique constraint.
   const { error: memErr } = await sb.from('organization_memberships').upsert(
     {
       organization_id: orgId,
@@ -202,56 +183,62 @@ interface EnsuredUser {
  * Resolves an auth user by email; creates one with email auto-confirmed
  * if missing. No password — sign-in is via magic link from
  * mint-demo-session, so a credential set isn't needed.
+ *
+ * Uses supabase-js admin.createUser; on email_exists falls back to the
+ * SECURITY DEFINER find_auth_user_id_by_email RPC because GoTrue's
+ * admin/users list endpoint 500s on this project.
  */
-async function ensureAuthUser(email: string): Promise<EnsuredUser> {
-  // listUsers paginates; for the dev seed we walk pages until we find
-  // the match or exhaust. Cap at 10 pages (10k users) so a runaway
-  // doesn't time out.
-  const PER_PAGE = 1000;
-  for (let page = 1; page <= 10; page++) {
-    const resp = await fetch(
-      `${SUPABASE_URL}/auth/v1/admin/users?per_page=${PER_PAGE}&page=${page}`,
-      {
-        headers: {
-          apikey: SERVICE_ROLE_KEY!,
-          Authorization: `Bearer ${SERVICE_ROLE_KEY}`,
-        },
-      },
-    );
-    if (!resp.ok) {
-      const detail = await resp.text();
-      throw new Error(`admin/users list failed: ${resp.status} ${detail}`);
-    }
-    const body = (await resp.json()) as { users?: { id: string; email?: string | null }[] };
-    const match = body.users?.find(
-      (u) => (u.email ?? '').trim().toLowerCase() === email.toLowerCase(),
-    );
-    if (match?.id) return { id: match.id, created: false };
-    if (!body.users || body.users.length < PER_PAGE) break;
+async function ensureAuthUser(
+  sb: ReturnType<typeof createClient>,
+  email: string,
+): Promise<EnsuredUser> {
+  // Type the admin client loosely — supabase-js v2 exposes
+  // sb.auth.admin.createUser on a service-role client.
+  const adminAuth = (sb.auth as unknown as {
+    admin: {
+      createUser: (params: {
+        email: string;
+        email_confirm?: boolean;
+        user_metadata?: Record<string, unknown>;
+      }) => Promise<{ data: { user: { id: string } | null }; error: { message?: string; code?: string; status?: number } | null }>;
+    };
+  }).admin;
+
+  const { data, error } = await adminAuth.createUser({
+    email,
+    email_confirm: true,
+    user_metadata: { demo_persona: true },
+  });
+
+  if (data?.user?.id) {
+    return { id: data.user.id, created: true };
   }
 
-  // Not found — create.
-  const createResp = await fetch(`${SUPABASE_URL}/auth/v1/admin/users`, {
-    method: 'POST',
-    headers: {
-      apikey: SERVICE_ROLE_KEY!,
-      Authorization: `Bearer ${SERVICE_ROLE_KEY}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      email,
-      email_confirm: true,
-      user_metadata: { demo_persona: true },
-    }),
-  });
-  if (!createResp.ok) {
-    const detail = await createResp.text();
-    throw new Error(`admin/users create failed: ${createResp.status} ${detail}`);
+  if (error) {
+    const msg = (error.message ?? '').toLowerCase();
+    const isExists =
+      error.code === 'email_exists' ||
+      msg.includes('already been registered') ||
+      msg.includes('already exists') ||
+      msg.includes('duplicate');
+
+    if (!isExists) {
+      throw new Error(`createUser failed: ${error.message ?? JSON.stringify(error)}`);
+    }
   }
-  const createdBody = (await createResp.json()) as { id?: string; user?: { id: string } };
-  const id = createdBody.id ?? createdBody.user?.id;
-  if (!id) throw new Error(`admin/users create returned no id: ${JSON.stringify(createdBody)}`);
-  return { id, created: true };
+
+  // Fall back to RPC lookup.
+  const { data: existingId, error: lookupErr } = await sb.rpc(
+    'find_auth_user_id_by_email',
+    { p_email: email },
+  );
+  if (lookupErr) {
+    throw new Error(`find_auth_user_id_by_email failed: ${lookupErr.message}`);
+  }
+  if (typeof existingId !== 'string' || !existingId) {
+    throw new Error(`auth.user not found after createUser conflict: ${email}`);
+  }
+  return { id: existingId, created: false };
 }
 
 function json(body: unknown, status = 200): Response {
