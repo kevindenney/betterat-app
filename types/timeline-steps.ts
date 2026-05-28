@@ -23,7 +23,9 @@ export type TimelineStepRecord = {
   program_session_id: string | null;
   source_type: TimelineStepSourceType;
   source_id: string | null;
-  title: string;
+  /** Nullable as of 20260528030937 — Atlas-draft steps land here with null
+   *  until the user types a title on /step/[id]. Renderers must coalesce. */
+  title: string | null;
   description: string | null;
   category: string;
   status: TimelineStepStatus;
@@ -37,6 +39,9 @@ export type TimelineStepRecord = {
   share_approximate_location: boolean;
   copied_from_user_id: string | null;
   source_blueprint_id: string | null;
+  /** Back-pointer to the canonical blueprint_steps join row. Null on
+   *  older adopted rows (pre-fix) and on non-blueprint steps. */
+  source_blueprint_step_id?: string | null;
   sort_order: number;
   metadata: Record<string, unknown>;
   collaborator_user_ids: string[];
@@ -57,7 +62,12 @@ export type CreateTimelineStepInput = {
   program_session_id?: string | null;
   source_type?: TimelineStepSourceType;
   source_id?: string | null;
-  title: string;
+  /**
+   * Step title. May be empty/null for drafts (e.g. atlas long-press
+   * creates a step then expects the user to type a title on the
+   * detail screen). DB constraint was relaxed in 20260528030937.
+   */
+  title?: string | null;
   description?: string | null;
   category?: string;
   status?: TimelineStepStatus;
@@ -69,6 +79,7 @@ export type CreateTimelineStepInput = {
   location_place_id?: string | null;
   visibility?: TimelineStepVisibility;
   share_approximate_location?: boolean;
+  sort_order?: number;
   due_at?: string | null;
   metadata?: Record<string, unknown>;
   is_timed?: boolean;

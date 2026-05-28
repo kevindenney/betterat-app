@@ -38,6 +38,7 @@ import { enrichDateForSailing } from '@/services/ai/DateEnrichmentService';
 import { sailorBoatService } from '@/services/SailorBoatService';
 import { equipmentService } from '@/services/EquipmentService';
 import { StepPinInterests } from './StepPinInterests';
+import { LinkBlueprintStepSheet } from './LinkBlueprintStepSheet';
 import { StepProvenanceBanner } from './StepProvenanceBanner';
 import { FEATURE_FLAGS } from '@/lib/featureFlags';
 import {
@@ -305,6 +306,7 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, 
   const didApplyLoadedStatusDefaultRef = useRef(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [pinInterestsOpen, setPinInterestsOpen] = useState(false);
+  const [linkBlueprintStepOpen, setLinkBlueprintStepOpen] = useState(false);
 
   // The step record often arrives after this component first renders. If
   // usePillTabs initializes while `step` is still undefined, the surface can
@@ -1243,6 +1245,26 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, 
           setPinInterestsOpen(true);
         },
       });
+      // Only surface "Link to blueprint step" when this is an adopted
+      // step that's missing the back-pointer — i.e. source_blueprint_id
+      // is set but source_blueprint_step_id isn't. Otherwise the action
+      // is noise.
+      if (step.source_blueprint_id && !step.source_blueprint_step_id) {
+        menuActions.push({
+          label: 'Link to blueprint step',
+          icon: (
+            <Ionicons
+              name="git-network-outline"
+              size={20}
+              color={STEP_COLORS.label}
+            />
+          ),
+          onPress: () => {
+            setMenuOpen(false);
+            setLinkBlueprintStepOpen(true);
+          },
+        });
+      }
       menuActions.push({
         label: 'Delete step',
         destructive: true,
@@ -1422,6 +1444,14 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, 
           onSuggestDirect={shareStep.suggestDirect}
           onDismiss={shareStep.close}
         />
+        {step.source_blueprint_id ? (
+          <LinkBlueprintStepSheet
+            visible={linkBlueprintStepOpen}
+            stepId={step.id}
+            blueprintId={step.source_blueprint_id}
+            onDismiss={() => setLinkBlueprintStepOpen(false)}
+          />
+        ) : null}
         <Modal
           visible={pinInterestsOpen}
           transparent
