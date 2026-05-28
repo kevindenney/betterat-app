@@ -1,0 +1,451 @@
+import React, { useState } from 'react';
+import {
+  Image,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+import { TabScreenToolbar } from '@/components/ui/TabScreenToolbar';
+import { LocationAnchor } from '@/components/ui/LocationAnchor';
+import { FLOATING_TAB_BAR_HEIGHT } from '@/components/navigation/FloatingTabBar';
+import { useUserHomeVenue } from '@/hooks/useUserHomeVenue';
+import { useAuth } from '@/providers/AuthProvider';
+import {
+  useFollowedStepsFeed,
+  type FollowedStepItem,
+  type FollowedStepStatus,
+} from '@/hooks/useFollowedStepsFeed';
+import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
+
+const STATUS_META: Record<
+  FollowedStepStatus,
+  { label: string; color: string; background: string; icon: keyof typeof Ionicons.glyphMap }
+> = {
+  planning: {
+    label: 'Planning',
+    color: '#8A4B08',
+    background: '#FFF4D6',
+    icon: 'time-outline',
+  },
+  doing: {
+    label: 'Doing',
+    color: '#0A6A56',
+    background: '#DDF8F0',
+    icon: 'play-circle-outline',
+  },
+  reflected: {
+    label: 'Reflected',
+    color: '#3155B5',
+    background: '#E5EDFF',
+    icon: 'sparkles-outline',
+  },
+  completed: {
+    label: 'Completed',
+    color: '#5B2C83',
+    background: '#F0E6FF',
+    icon: 'checkmark-done-outline',
+  },
+};
+
+// Grouping options. Only 'all' is wired in v1; the rest render as
+// disabled chips so the surface signals the planned shape.
+type GroupingId = 'all' | 'fleet' | 'blueprint' | 'location';
+
+const GROUPING_CHIPS: { id: GroupingId; label: string; ready: boolean }[] = [
+  { id: 'all', label: 'Following', ready: true },
+  { id: 'fleet', label: 'By fleet', ready: false },
+  { id: 'blueprint', label: 'By blueprint', ready: false },
+  { id: 'location', label: 'By location', ready: false },
+];
+
+function formatRelativeTime(iso: string): string {
+  const t = new Date(iso).getTime();
+  if (Number.isNaN(t)) return '';
+  const minutes = Math.floor((Date.now() - t) / 60000);
+  if (minutes < 1) return 'just now';
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `${days}d ago`;
+  const weeks = Math.floor(days / 7);
+  if (weeks < 5) return `${weeks}w ago`;
+  return new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+}
+
+export default function WatchScreen() {
+  const insets = useSafeAreaInsets();
+  const homeVenue = useUserHomeVenue();
+  const { user } = useAuth();
+  const [toolbarHeight, setToolbarHeight] = useState(0);
+  const [grouping, setGrouping] = useState<GroupingId>('all');
+
+  const { data: feed = [], isLoading } = useFollowedStepsFeed(user?.id ?? null);
+
+  const hasFeed = feed.length > 0;
+
+  return (
+    <View style={styles.container}>
+      <ScrollView
+        style={styles.body}
+        contentContainerStyle={{
+          paddingTop: toolbarHeight + IOS_SPACING.md,
+          paddingBottom: FLOATING_TAB_BAR_HEIGHT + insets.bottom + 24,
+        }}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.introCard}>
+          <Text style={styles.eyebrow}>People you follow</Text>
+          <Text style={styles.introTitle}>Watch</Text>
+          <Text style={styles.introCopy}>
+            See the steps your people are planning, doing, and reflecting on.
+            Adapt anything useful into your own practice.
+          </Text>
+        </View>
+
+        <View style={styles.filterRow}>
+          {GROUPING_CHIPS.map((chip) => {
+            const active = chip.id === grouping;
+            const disabled = !chip.ready;
+            return (
+              <Pressable
+                key={chip.id}
+                onPress={() => {
+                  if (!disabled) setGrouping(chip.id);
+                }}
+                style={[
+                  styles.filterChip,
+                  active && styles.filterChipActive,
+                  disabled && styles.filterChipDisabled,
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.filterChipText,
+                    active && styles.filterChipTextActive,
+                    disabled && styles.filterChipTextDisabled,
+                  ]}
+                >
+                  {chip.label}
+                </Text>
+                {disabled ? (
+                  <Text style={styles.filterChipSoon}>soon</Text>
+                ) : null}
+              </Pressable>
+            );
+          })}
+        </View>
+
+        {isLoading ? (
+          <Text style={styles.emptyCopy}>Loading…</Text>
+        ) : !hasFeed ? (
+          <View style={styles.emptyCard}>
+            <Ionicons name="people-outline" size={28} color={IOS_COLORS.tertiaryLabel} />
+            <Text style={styles.emptyTitle}>Nothing to watch yet</Text>
+            <Text style={styles.emptyCopy}>
+              Follow people from Discover and their step activity will appear
+              here.
+            </Text>
+            <Pressable
+              style={styles.emptyAction}
+              onPress={() => router.push('/(tabs)/discover' as never)}
+            >
+              <Text style={styles.emptyActionText}>Find people to follow</Text>
+            </Pressable>
+          </View>
+        ) : (
+          <View style={styles.feed}>
+            {feed.map((item) => (
+              <WatchCard key={item.id} item={item} />
+            ))}
+          </View>
+        )}
+      </ScrollView>
+
+      <TabScreenToolbar
+        subtitleContent={
+          homeVenue ? <LocationAnchor region={homeVenue.region} venue={homeVenue.venue} /> : undefined
+        }
+        topInset={insets.top}
+        backgroundColor="rgba(242, 242, 247, 0.94)"
+        onMeasuredHeight={setToolbarHeight}
+      />
+    </View>
+  );
+}
+
+function WatchCard({ item }: { item: FollowedStepItem }) {
+  const statusMeta = STATUS_META[item.status];
+  const subtitle = [
+    item.organizationName,
+    formatRelativeTime(item.updatedAt),
+  ]
+    .filter(Boolean)
+    .join(' · ');
+
+  return (
+    <Pressable
+      style={styles.card}
+      onPress={() => router.push(`/step/${item.id}` as never)}
+    >
+      <View style={styles.cardHeader}>
+        <Pressable
+          style={styles.personMark}
+          onPress={() => router.push(`/sailor/${item.personId}` as never)}
+          hitSlop={6}
+        >
+          {item.personAvatarUrl ? (
+            <Image source={{ uri: item.personAvatarUrl }} style={styles.personAvatar} />
+          ) : (
+            <Text style={styles.personInitial}>{item.personInitial}</Text>
+          )}
+        </Pressable>
+        <View style={styles.cardHeaderText}>
+          <Text style={styles.personName} numberOfLines={1}>
+            {item.personName}
+          </Text>
+          {subtitle ? (
+            <Text style={styles.personMeta} numberOfLines={1}>
+              {subtitle}
+            </Text>
+          ) : null}
+        </View>
+        <View style={[styles.statusPill, { backgroundColor: statusMeta.background }]}>
+          <Ionicons name={statusMeta.icon} size={13} color={statusMeta.color} />
+          <Text style={[styles.statusText, { color: statusMeta.color }]}>
+            {statusMeta.label}
+          </Text>
+        </View>
+      </View>
+
+      <Text style={styles.stepTitle} numberOfLines={2}>
+        {item.stepTitle}
+      </Text>
+
+      {item.locationName ? (
+        <View style={styles.metaWrap}>
+          <View style={styles.metaPill}>
+            <Ionicons name="location-outline" size={13} color={IOS_COLORS.secondaryLabel} />
+            <Text style={styles.metaPillText} numberOfLines={1}>
+              {item.locationName}
+            </Text>
+          </View>
+        </View>
+      ) : null}
+
+      {item.description ? (
+        <Text style={styles.bodyCopy} numberOfLines={3}>
+          {item.description}
+        </Text>
+      ) : null}
+    </Pressable>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: IOS_COLORS.systemGroupedBackground,
+  },
+  body: {
+    flex: 1,
+  },
+  introCard: {
+    marginHorizontal: IOS_SPACING.lg,
+    marginBottom: IOS_SPACING.md,
+    padding: 18,
+    borderRadius: 20,
+    backgroundColor: '#FFFFFF',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(60,60,67,0.12)',
+    gap: 8,
+  },
+  eyebrow: {
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 0.7,
+    textTransform: 'uppercase',
+    color: IOS_COLORS.systemBlue,
+  },
+  introTitle: {
+    fontSize: 24,
+    lineHeight: 28,
+    fontWeight: '800',
+    color: IOS_COLORS.label,
+  },
+  introCopy: {
+    fontSize: 14,
+    lineHeight: 20,
+    color: IOS_COLORS.secondaryLabel,
+  },
+  filterRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    paddingHorizontal: IOS_SPACING.lg,
+    marginBottom: IOS_SPACING.md,
+  },
+  filterChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    backgroundColor: IOS_COLORS.secondarySystemGroupedBackground,
+  },
+  filterChipActive: {
+    backgroundColor: '#DCEAFE',
+  },
+  filterChipDisabled: {
+    opacity: 0.55,
+  },
+  filterChipText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: IOS_COLORS.secondaryLabel,
+  },
+  filterChipTextActive: {
+    color: IOS_COLORS.systemBlue,
+  },
+  filterChipTextDisabled: {
+    color: IOS_COLORS.tertiaryLabel,
+  },
+  filterChipSoon: {
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 0.4,
+    color: IOS_COLORS.tertiaryLabel,
+    textTransform: 'uppercase',
+  },
+  feed: {
+    gap: 12,
+    paddingHorizontal: IOS_SPACING.lg,
+  },
+  card: {
+    padding: 16,
+    borderRadius: 20,
+    backgroundColor: '#FFFFFF',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(60,60,67,0.12)',
+    gap: 12,
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  personMark: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#E8EEF9',
+    overflow: 'hidden',
+  },
+  personAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+  },
+  personInitial: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: IOS_COLORS.systemBlue,
+  },
+  cardHeaderText: {
+    flex: 1,
+    gap: 2,
+  },
+  personName: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: IOS_COLORS.label,
+  },
+  personMeta: {
+    fontSize: 12,
+    color: IOS_COLORS.secondaryLabel,
+  },
+  statusPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    borderRadius: 999,
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+  },
+  statusText: {
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  stepTitle: {
+    fontSize: 18,
+    lineHeight: 24,
+    fontWeight: '700',
+    color: IOS_COLORS.label,
+  },
+  metaWrap: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  metaPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    backgroundColor: IOS_COLORS.secondarySystemGroupedBackground,
+  },
+  metaPillText: {
+    fontSize: 12,
+    color: IOS_COLORS.secondaryLabel,
+  },
+  bodyCopy: {
+    fontSize: 14,
+    lineHeight: 20,
+    color: IOS_COLORS.secondaryLabel,
+  },
+  emptyCard: {
+    marginHorizontal: IOS_SPACING.lg,
+    padding: 24,
+    borderRadius: 20,
+    backgroundColor: '#FFFFFF',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(60,60,67,0.12)',
+    gap: 8,
+    alignItems: 'center',
+  },
+  emptyTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: IOS_COLORS.label,
+  },
+  emptyCopy: {
+    fontSize: 13,
+    lineHeight: 18,
+    color: IOS_COLORS.secondaryLabel,
+    textAlign: 'center',
+    paddingHorizontal: 12,
+  },
+  emptyAction: {
+    marginTop: 8,
+    borderRadius: 999,
+    paddingHorizontal: 16,
+    paddingVertical: 9,
+    backgroundColor: IOS_COLORS.systemBlue,
+  },
+  emptyActionText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+});
