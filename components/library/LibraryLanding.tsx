@@ -4,16 +4,18 @@
  * Layout (post-redesign, 2026-05-28):
  *   • Compact white hero band: "Library" title + segmented pill +
  *     per-zone one-liner description.
- *   • Body renders the active zone (All / Plans / Concepts / Resources).
+ *   • Body renders the active zone (Librarian / Plans / Concepts / Resources).
  *   • Floating TabScreenToolbar overlays the top with search + add.
+ *
+ * Add (`+`) is context-aware by active zone:
+ *   • Librarian / Concepts → open ConceptEditor in create mode
+ *   • Resources           → open CaptureSheet
+ *   • Plans               → route to Discover Plans (where you subscribe)
  *
  * Drops the old lede paragraph, supporting copy, action buttons, and
  * the 8-card workshop-category grid that sat between the title and
  * the segmented control — those weren't navigating to anything new
  * (every target was already reachable via the tabs or the toolbar).
- * The descriptive language from those cards now lives as the per-zone
- * one-liner under the segmented pill, where it actually informs the
- * user about the current view.
  */
 
 import React, { useCallback, useState } from 'react';
@@ -30,9 +32,11 @@ import { PlansZone } from '@/components/library/zones/PlansZone';
 import { PeopleZone } from '@/components/library/zones/PeopleZone';
 import { ResourcesZone } from '@/components/library/zones/ResourcesZone';
 import { CaptureSheet } from '@/components/library/resources/CaptureSheet';
+import { ConceptEditor } from '@/components/playbook/concepts/ConceptEditor';
 import { mapCapturePayloadToLibraryItem } from '@/components/library/resources/capturePayloadMap';
 import { useCreateLibraryItem } from '@/hooks/useCreateLibraryItem';
 import { useLibraryCounts } from '@/hooks/useLibraryCounts';
+import { usePlaybook } from '@/hooks/usePlaybook';
 import { useInterest } from '@/providers/InterestProvider';
 import { showAlert } from '@/lib/utils/crossPlatformAlert';
 import type { LibraryZone } from '@/components/library/SegmentedZoneHeader';
@@ -79,9 +83,11 @@ export function LibraryLanding({ conceptsBody, librarianSlot }: Props) {
 
   const { currentInterest } = useInterest();
   const { data: counts } = useLibraryCounts(currentInterest?.id);
+  const { data: playbook } = usePlaybook(currentInterest?.id);
   const createLibraryItem = useCreateLibraryItem();
   const [toolbarHeight, setToolbarHeight] = useState(0);
   const [captureOpen, setCaptureOpen] = useState(false);
+  const [conceptEditorOpen, setConceptEditorOpen] = useState(false);
 
   const handleZoneChange = useCallback((next: LibraryZone) => {
     router.setParams({ zone: next === 'all' ? '' : next });
@@ -100,6 +106,44 @@ export function LibraryLanding({ conceptsBody, librarianSlot }: Props) {
   });
 
   const segmentedValue: LibraryZone = zone === 'people' ? 'all' : zone;
+
+  // `+` payload depends on the active zone. Librarian/Concepts both
+  // open the concept editor (concepts are the librarian's domain).
+  // Resources opens CaptureSheet. Plans routes to Discover (where
+  // subscribe lives — Library Plans is "your subscribed ones", and
+  // adding a new one means subscribing to a published blueprint).
+  const handleAdd = useCallback(() => {
+    if (zone === 'resources') {
+      setCaptureOpen(true);
+      return;
+    }
+    if (zone === 'plans') {
+      router.push('/(tabs)/discover?segment=plans' as never);
+      return;
+    }
+    if (zone === 'all' || zone === 'concepts') {
+      if (!playbook?.id || !currentInterest?.id) {
+        showAlert(
+          'Not ready',
+          "Concepts need a playbook + active interest to live in. Switch interests or try again in a moment.",
+        );
+        return;
+      }
+      setConceptEditorOpen(true);
+      return;
+    }
+    // Fallback for People (currently no add-affordance defined)
+    setCaptureOpen(true);
+  }, [zone, playbook?.id, currentInterest?.id]);
+
+  const addLabel =
+    zone === 'plans'
+      ? 'Find a plan to add'
+      : zone === 'resources'
+        ? 'Capture a resource'
+        : zone === 'concepts' || zone === 'all'
+          ? 'Capture a concept'
+          : 'Add to library';
 
   return (
     <View style={styles.container}>
@@ -162,8 +206,8 @@ export function LibraryLanding({ conceptsBody, librarianSlot }: Props) {
           {
             icon: 'add-outline',
             sfSymbol: 'plus',
-            label: 'Add to library',
-            onPress: () => setCaptureOpen(true),
+            label: addLabel,
+            onPress: handleAdd,
           },
         ]}
         onMeasuredHeight={setToolbarHeight}
@@ -188,6 +232,16 @@ export function LibraryLanding({ conceptsBody, librarianSlot }: Props) {
           });
         }}
       />
+
+      {conceptEditorOpen && playbook?.id && currentInterest?.id ? (
+        <ConceptEditor
+          mode="create"
+          playbookId={playbook.id}
+          interestId={currentInterest.id}
+          onClose={() => setConceptEditorOpen(false)}
+          onSaved={() => setConceptEditorOpen(false)}
+        />
+      ) : null}
     </View>
   );
 }
