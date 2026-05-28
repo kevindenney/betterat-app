@@ -42,14 +42,23 @@ import { DiscoverTodayContent } from '@/components/discover/DiscoverTodayContent
 import { DiscoverInterestsContent } from '@/components/discover/DiscoverInterestsContent';
 import { DiscoverOrgsContent } from '@/components/discover/DiscoverOrgsContent';
 import { DiscoverPeopleContent } from '@/components/discover/DiscoverPeopleContent';
+import { DiscoverNearbyContent } from '@/components/discover/DiscoverNearbyContent';
 import { useInterest } from '@/providers/InterestProvider';
 import { useSubscribedBlueprints } from '@/hooks/useBlueprint';
 
-type DiscoverSegment = 'all' | 'today' | 'interests' | 'orgs' | 'people' | 'plans';
+type DiscoverSegment =
+  | 'all'
+  | 'today'
+  | 'nearby'
+  | 'interests'
+  | 'orgs'
+  | 'people'
+  | 'plans';
 
 const VALID_SEGMENTS: DiscoverSegment[] = [
   'all',
   'today',
+  'nearby',
   'interests',
   'orgs',
   'people',
@@ -59,6 +68,7 @@ const VALID_SEGMENTS: DiscoverSegment[] = [
 const SEGMENTS: { value: DiscoverSegment; label: string }[] = [
   { value: 'all', label: 'All' },
   { value: 'today', label: 'Today' },
+  { value: 'nearby', label: 'Nearby' },
   { value: 'interests', label: 'Interests' },
   { value: 'orgs', label: 'Orgs' },
   { value: 'people', label: 'People' },
@@ -155,6 +165,9 @@ export default function DiscoverScreen() {
           onAddInterest={onAddInterest}
           followedIds={followedIds}
           onToggleFollow={onToggleFollow}
+          homeVenueLat={homeVenue?.lat ?? null}
+          homeVenueLng={homeVenue?.lng ?? null}
+          homeVenueLabel={homeVenue?.venue ?? homeVenue?.region ?? null}
         />
       )}
 
@@ -218,6 +231,9 @@ function SegmentContent({
   onAddInterest,
   followedIds,
   onToggleFollow,
+  homeVenueLat,
+  homeVenueLng,
+  homeVenueLabel,
 }: {
   segment: DiscoverSegment;
   toolbarOffset: number;
@@ -226,9 +242,21 @@ function SegmentContent({
   onAddInterest: (slug: string) => void;
   followedIds: Set<string>;
   onToggleFollow: (id: string) => void;
+  homeVenueLat: number | null;
+  homeVenueLng: number | null;
+  homeVenueLabel: string | null;
 }) {
   if (segment === 'today') {
     return <DiscoverTodayContent toolbarOffset={toolbarOffset} />;
+  }
+  if (segment === 'nearby') {
+    return (
+      <DiscoverNearbyContent
+        homeVenueLat={homeVenueLat}
+        homeVenueLng={homeVenueLng}
+        homeVenueLabel={homeVenueLabel}
+      />
+    );
   }
   if (segment === 'interests') {
     return (
