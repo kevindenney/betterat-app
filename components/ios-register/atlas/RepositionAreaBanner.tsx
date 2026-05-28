@@ -51,40 +51,44 @@ export function RepositionAreaBanner({
       </View>
 
       <View style={[styles.actionBar, { bottom: bottomOffset }]} pointerEvents="box-none">
-        <Pressable
-          onPress={onCancel}
-          disabled={saving}
-          style={({ pressed }) => [
-            styles.btn,
-            styles.btnCancel,
-            pressed && { opacity: 0.7 },
-            saving && { opacity: 0.5 },
-          ]}
-          accessibilityRole="button"
-          accessibilityLabel="Cancel reposition"
-        >
-          <Text style={styles.btnText}>Cancel</Text>
-        </Pressable>
-        <Pressable
-          onPress={onSave}
-          disabled={!hasMoved || saving}
-          style={({ pressed }) => [
-            styles.btn,
-            hasMoved ? styles.btnSave : styles.btnSaveDisabled,
-            pressed && hasMoved && !saving && { opacity: 0.85 },
-            saving && { opacity: 0.7 },
-          ]}
-          accessibilityRole="button"
-          accessibilityLabel="Save new position"
-        >
-          {saving ? (
-            <ActivityIndicator color="#FFFFFF" />
-          ) : (
-            <Text style={styles.btnText}>
-              {hasMoved ? 'Save position' : 'Tap the map…'}
-            </Text>
-          )}
-        </Pressable>
+        <View style={[styles.btnSlot, styles.btnSlotLeft]}>
+          <Pressable
+            onPress={onCancel}
+            disabled={saving}
+            style={({ pressed }) => [
+              styles.btn,
+              styles.btnCancel,
+              pressed && { opacity: 0.7 },
+              saving && { opacity: 0.5 },
+            ]}
+            accessibilityRole="button"
+            accessibilityLabel="Cancel reposition"
+          >
+            <Text style={styles.btnText}>Cancel</Text>
+          </Pressable>
+        </View>
+        <View style={styles.btnSlot}>
+          <Pressable
+            onPress={onSave}
+            disabled={!hasMoved || saving}
+            style={({ pressed }) => [
+              styles.btn,
+              hasMoved ? styles.btnSave : styles.btnSaveDisabled,
+              pressed && hasMoved && !saving && { opacity: 0.85 },
+              saving && { opacity: 0.7 },
+            ]}
+            accessibilityRole="button"
+            accessibilityLabel="Save new position"
+          >
+            {saving ? (
+              <ActivityIndicator color="#FFFFFF" />
+            ) : (
+              <Text style={styles.btnText}>
+                {hasMoved ? 'Save position' : 'Tap the map…'}
+              </Text>
+            )}
+          </Pressable>
+        </View>
       </View>
     </>
   );
@@ -125,7 +129,6 @@ const styles = StyleSheet.create({
     right: 12,
     zIndex: 1310,
     flexDirection: 'row',
-    gap: 10,
     backgroundColor: '#FFFFFF',
     padding: 10,
     borderRadius: 14,
@@ -134,12 +137,17 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     shadowOffset: { width: 0, height: 4 },
   },
-  // Each button takes 50% of the bar via flex:1. Solid-color fills with
-  // white text — no transparent alphas, no wrapper Views, no subtle
-  // borders. After several rounds of "white on white" reports, this is
-  // the simplest shape that's guaranteed to render two visible pills.
-  btn: {
+  // Wrapper Views with explicit flex sizing so each Pressable gets a
+  // concrete width to render its bg against. Direct Pressables with
+  // flex:1 inside the row weren't sizing on iOS — empty bar.
+  btnSlot: {
     flex: 1,
+  },
+  btnSlotLeft: {
+    marginRight: 10,
+  },
+  btn: {
+    width: '100%',
     height: 44,
     borderRadius: 10,
     alignItems: 'center',
