@@ -23,7 +23,6 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/services/supabase';
-import { nominatimService } from '@/services/location/NominatimService';
 import { IOS_REGISTER } from '@/lib/design-tokens-ios';
 
 /**
@@ -151,33 +150,60 @@ const KIND_TONE: Record<AtlasSearchResultKind, string> = {
 /**
  * Geocode the query via Nominatim so typing a city/neighborhood/address
  * ("Baltimore", "Aberdeen", "44 Wolfe St") returns a flyable map target.
- * Returns up to 5 places; falls back to an empty list on any error so
- * the rest of the search sheet keeps rendering.
+ * Returns up to 5 places; falls back to an empty list on any error.
+ *
+ * Bypasses NominatimService's request queue on purpose — that service
+ * is built for batch geocoding (1 req/sec with hold-and-wait). For
+ * typeahead we want each keystroke to *replace* the prior request, not
+ * queue behind it; React Query takes care of cancellation by key. The
+ * Nominatim server itself enforces rate-limit, so we'll just get 429s
+ * if a user types too fast, which we tolerate.
  */
 async function fetchGeocodedPlaces(query: string): Promise<AtlasSearchResult[]> {
   const trimmed = query.trim();
   if (trimmed.length < 3) return [];
+  const params = new URLSearchParams({
+    q: trimmed,
+    format: 'json',
+    addressdetails: '1',
+    limit: '5',
+  });
+  const url = `https://nominatim.openstreetmap.org/search?${params.toString()}`;
   try {
-    const hits = await nominatimService.search(trimmed, { limit: 5 });
+    const response = await fetch(url, {
+      headers: {
+        'User-Agent': 'BetterAt/1.0 (atlas search)',
+        Accept: 'application/json',
+      },
+    });
+    if (!response.ok) {
+      console.warn('[AtlasSearch] Nominatim non-2xx', response.status);
+      return [];
+    }
+    const raw = (await response.json()) as Record<string, unknown>[];
     const out: AtlasSearchResult[] = [];
-    for (const h of hits) {
-      if (!Number.isFinite(h.lat) || !Number.isFinite(h.lng)) continue;
-      // Nominatim's display_name is "City, County, State, Country" — the
-      // first segment is the place itself and the rest is the locator.
-      const parts = h.displayName.split(',').map((p) => p.trim()).filter(Boolean);
-      const name = parts[0] ?? h.displayName;
+    for (const r of raw) {
+      const lat = Number(r.lat);
+      const lng = Number(r.lon);
+      if (!Number.isFinite(lat) || !Number.isFinite(lng)) continue;
+      const display = String(r.display_name ?? '');
+      // display_name is "City, County, State, Country" — first segment
+      // is the place itself, the rest is the locator.
+      const parts = display.split(',').map((p) => p.trim()).filter(Boolean);
+      const name = parts[0] ?? display;
       const detail = parts.slice(1, 3).join(', ') || undefined;
       out.push({
-        id: `place:${h.osmType}:${h.osmId}`,
+        id: `place:${r.osm_type}:${r.osm_id}`,
         kind: 'place',
         name,
         detail,
-        lat: h.lat,
-        lng: h.lng,
+        lat,
+        lng,
       });
     }
     return out;
-  } catch {
+  } catch (error) {
+    console.warn('[AtlasSearch] Nominatim threw', error);
     return [];
   }
 }
