@@ -3605,12 +3605,6 @@ function FrameF4({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
               can pop the picker. F1 mounts its own headless; F4 needs
               one too or the chevron taps are no-ops. */}
           <InterestSwitcher headless />
-          <AtlasSearchSheet
-            visible={searchOpen}
-            onClose={() => setSearchOpen(false)}
-            onSelect={handleSearchSelect}
-            viewerId={authUser?.id ?? null}
-          />
           {/* Active-chip context pill — surfaces what the heatmap is
               showing right now ("Cohort heatmap · this week"). Only shown
               when the heatmap chip is selected. */}
@@ -3881,6 +3875,17 @@ function FrameF4({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
           bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
         />
       )}
+
+      {/* Search sheet sits at the frame's top level so its
+          position:absolute inset:0 covers the full screen. Mounted
+          inside floatingChrome it inherits a constrained stacking
+          context and on web the map renders over its body. */}
+      <AtlasSearchSheet
+        visible={searchOpen}
+        onClose={() => setSearchOpen(false)}
+        onSelect={handleSearchSelect}
+        viewerId={authUser?.id ?? null}
+      />
     </View>
   );
 }
