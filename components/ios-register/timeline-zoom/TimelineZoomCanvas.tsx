@@ -39,10 +39,7 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { IOS_REGISTER } from '@/lib/design-tokens-ios';
-import {
-  useHideTabBar,
-  useTabBarVisibility,
-} from '@/components/navigation/TabBarVisibilityContext';
+import { useHideTabBar } from '@/components/navigation/TabBarVisibilityContext';
 import { AppChromeRow } from '@/components/ui/AppChromeRow';
 import { LocationAnchor } from '@/components/ui/LocationAnchor';
 import { useUserHomeVenue } from '@/hooks/useUserHomeVenue';
@@ -178,7 +175,6 @@ export function TimelineZoomCanvas({
   const select = useSelectMode();
   const isFocusedStepSurface = level === 1;
   useHideTabBar(embedFullDetailAtL1 && isFocusedStepSurface);
-  const { hidden: tabBarHidden } = useTabBarVisibility();
 
   // Continuous scale value driven by pinch — used to gate level changes on
   // release and to animate the canvas scale during the gesture.
@@ -462,7 +458,6 @@ export function TimelineZoomCanvas({
             level={level}
             onChange={setLevel}
             onSnapToCurrent={handleSnapToCurrent}
-            bottomOffset={tabBarHidden ? 24 : 96}
           />
         )}
       </View>

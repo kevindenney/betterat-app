@@ -1,21 +1,26 @@
 /**
- * ZoomLevelPicker — the four-level zoom control for the timeline canvas.
+ * ZoomLevelPicker — vertical four-glyph rail on the right edge.
  *
- * Apple-Photos-style segmented pill floating above the tab bar. Each
- * segment carries a distinctive glyph (one dot, 2×2 grid, arc, stacked
- * bars) + a short label (ONE / NEAR / ARC / ALL). The current level
- * elevates to a white sub-pill so the active scope reads at a glance.
+ * Resolves the gesture-affordance conflict the bottom horizontal pill
+ * created: horizontal swipe already means "previous / next step", so a
+ * horizontal segmented control on the same axis reads as "swipe me to
+ * change zoom" — which it isn't. Zoom is a depth axis (pinch), so the
+ * picker belongs on the vertical axis. Stacking the four glyphs on the
+ * right edge frees the horizontal axis for the swipe-between-steps
+ * gesture (which the L1 peeks indicate).
  *
- * Pinch remains the primary gesture; this control is the tap-to-jump
- * affordance and the "where am I in the zoom ladder" indicator.
+ * Pinch remains the primary gesture; the rail is a tap-to-jump
+ * affordance plus a "where am I in the zoom ladder" indicator that's
+ * always visible. Tapping the ONE glyph while already at L1 calls
+ * onSnapToCurrent (return-to-NOW, mirrors the Apple Photos pattern of
+ * tap-current-period-to-snap).
  *
- * Tapping the L1 segment when already at L1 calls onSnapToCurrent — the
- * "back to NOW" gesture (matches Apple Photos' tap-current-day-to-snap
- * pattern).
+ * Order: most-zoomed-out at top (ALL), most-zoomed-in at bottom (ONE),
+ * so pinching out moves up the rail.
  */
 
 import React from 'react';
-import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, View } from 'react-native';
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
 
 import { IOS_REGISTER } from '@/lib/design-tokens-ios';
@@ -24,22 +29,16 @@ import { ZOOM_LEVEL_SCOPE_LABELS, type ZoomLevel } from './types';
 interface ZoomLevelPickerProps {
   level: ZoomLevel;
   onChange: (next: ZoomLevel) => void;
-  /** Called when the L1 segment is tapped while already at L1. */
+  /** Called when the L1 glyph is tapped while already at L1. */
   onSnapToCurrent?: () => void;
-  /** Distance from the bottom edge in pt (used to clear the tab bar). */
-  bottomOffset?: number;
+  /** Distance from the right edge in pt. */
+  rightOffset?: number;
 }
 
-const LEVELS: ZoomLevel[] = [1, 2, 3, 4];
-
-const SHORT_LABEL: Record<ZoomLevel, string> = {
-  1: 'ONE',
-  2: 'NEAR',
-  3: 'ARC',
-  4: 'ALL',
-};
+const RAIL_ORDER: ZoomLevel[] = [4, 3, 2, 1];
 
 const GLYPH_SIZE = 18;
+const SEGMENT_SIZE = 34;
 
 function LevelGlyph({ level, color }: { level: ZoomLevel; color: string }) {
   switch (level) {
@@ -85,7 +84,7 @@ export function ZoomLevelPicker({
   level,
   onChange,
   onSnapToCurrent,
-  bottomOffset = 28,
+  rightOffset = 8,
 }: ZoomLevelPickerProps) {
   const handlePress = (target: ZoomLevel) => {
     if (target === level) {
@@ -98,11 +97,11 @@ export function ZoomLevelPicker({
   return (
     <View
       pointerEvents="box-none"
-      style={[styles.host, { bottom: bottomOffset }]}
+      style={[styles.host, { right: rightOffset }]}
       accessibilityRole="tablist"
     >
-      <View style={styles.pill}>
-        {LEVELS.map((l) => {
+      <View style={styles.rail}>
+        {RAIL_ORDER.map((l) => {
           const active = l === level;
           const tint = active ? IOS_REGISTER.label : IOS_REGISTER.labelSecondary;
           return (
@@ -119,9 +118,6 @@ export function ZoomLevelPicker({
               ]}
             >
               <LevelGlyph level={l} color={tint} />
-              <Text style={[styles.label, active && styles.labelActive]}>
-                {SHORT_LABEL[l]}
-              </Text>
             </Pressable>
           );
         })}
@@ -133,66 +129,42 @@ export function ZoomLevelPicker({
 const styles = StyleSheet.create({
   host: {
     position: 'absolute',
-    left: 0,
-    right: 0,
-    alignItems: 'center',
+    top: 0,
+    bottom: 0,
+    justifyContent: 'center',
     zIndex: 50,
   },
-  pill: {
-    flexDirection: 'row',
-    borderRadius: 20,
+  rail: {
+    flexDirection: 'column',
     padding: 4,
-    gap: 2,
+    gap: 4,
     backgroundColor: '#FFFFFF',
+    borderRadius: 22,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: 'rgba(60, 60, 67, 0.22)',
     ...Platform.select({
       ios: {
         shadowColor: '#000',
-        shadowOpacity: 0.18,
-        shadowRadius: 16,
-        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.16,
+        shadowRadius: 14,
+        shadowOffset: { width: 0, height: 4 },
       },
-      android: {
-        elevation: 10,
-      },
+      android: { elevation: 8 },
       default: {},
     }),
   },
   segment: {
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    minWidth: 60,
-    borderRadius: 14,
+    width: SEGMENT_SIZE,
+    height: SEGMENT_SIZE,
+    borderRadius: SEGMENT_SIZE / 2,
     alignItems: 'center',
-    gap: 2,
+    justifyContent: 'center',
   },
   segmentActive: {
-    backgroundColor: '#FFFFFF',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOpacity: 0.08,
-        shadowRadius: 4,
-        shadowOffset: { width: 0, height: 1 },
-      },
-      android: {
-        elevation: 2,
-      },
-      default: {},
-    }),
+    backgroundColor: IOS_REGISTER.groundBg,
   },
   segmentPressed: {
     backgroundColor: 'rgba(118, 118, 128, 0.08)',
-  },
-  label: {
-    fontSize: 10,
-    fontWeight: '700',
-    letterSpacing: 0.5,
-    color: IOS_REGISTER.labelSecondary,
-  },
-  labelActive: {
-    color: IOS_REGISTER.label,
   },
 });
 
