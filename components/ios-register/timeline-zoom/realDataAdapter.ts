@@ -1417,16 +1417,35 @@ export function mapToTimelineDataset({
   // user has anchored their vision to specific competencies. Only
   // counts evidence rows that carry an org_competency_id (i.e. the
   // user tagged the evidence against a formal framework entry).
+  //
+  // We also accumulate a weekly trend (one slot per L4 bucket) so the
+  // VISION lane can render a per-competency sparkline alongside the
+  // running total. Bucket index = floor(sorted-position / 3), matching
+  // the L4 brick layout so the sparkline x-axis lines up with the rest
+  // of the canvas.
   const visionEvidenceByCompetency: Record<string, number> = {};
-  if (stepEvidenceMap && stepEvidenceMap.size > 0) {
+  const visionEvidenceTrendByCompetency: Record<string, number[]> = {};
+  const totalWeekBuckets = bucketGroups.length;
+  if (stepEvidenceMap && stepEvidenceMap.size > 0 && totalWeekBuckets > 0) {
+    const stepWeekIndex = new Map<string, number>();
+    sorted.forEach((rec, i) => {
+      stepWeekIndex.set(rec.id, Math.floor(i / 3));
+    });
     for (const rec of currentStepRecords) {
       const rows = stepEvidenceMap.get(rec.id);
       if (!rows) continue;
+      const wk = stepWeekIndex.get(rec.id) ?? 0;
       for (const row of rows) {
         const cid = row.orgCompetencyId;
         if (!cid) continue;
         visionEvidenceByCompetency[cid] =
           (visionEvidenceByCompetency[cid] ?? 0) + 1;
+        let trend = visionEvidenceTrendByCompetency[cid];
+        if (!trend) {
+          trend = new Array(totalWeekBuckets).fill(0);
+          visionEvidenceTrendByCompetency[cid] = trend;
+        }
+        trend[wk] = (trend[wk] ?? 0) + 1;
       }
     }
   }
@@ -1448,6 +1467,7 @@ export function mapToTimelineDataset({
     visionStatement: currentSeason?.vision_statement ?? null,
     visionCompetencyIds: currentSeason?.vision_competency_ids ?? [],
     visionEvidenceByCompetency,
+    visionEvidenceTrendByCompetency,
   };
 
   // Index moved-via-Section-E step records by their target season id so

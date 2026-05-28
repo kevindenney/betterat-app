@@ -9,8 +9,8 @@
  *      aggregate progress strip ("12 capability evidences logged · 3
  *      of 7 weeks elapsed")
  *   3. Vision set + competency anchors — italic-serif statement +
- *      per-competency mini-bars (placeholder count for v1; real
- *      evidence joins land in v2)
+ *      per-competency row: sparkline of weekly proven evidence +
+ *      season-to-date relative-fill bar + running total.
  *
  * Tap anywhere → edit sheet opens.
  */
@@ -37,8 +37,15 @@ interface Props {
   /** Proven evidence count keyed by org_competencies.id. Drives the
    *  per-competency mini-bars when the user has anchored their vision. */
   evidenceByCompetency: Record<string, number>;
+  /** Weekly proven-evidence trend keyed by org_competencies.id. Each
+   *  value is one number per L4 bucket, used to render the inline
+   *  sparkline next to each anchored competency. */
+  evidenceTrendByCompetency: Record<string, number[]>;
   onEdit: () => void;
 }
+
+const SPARK_HEIGHT = 14;
+const SPARK_MIN_BAR = 2;
 
 export function VisionBlock({
   statement,
@@ -48,6 +55,7 @@ export function VisionBlock({
   currentWeek,
   provenEvidenceCount,
   evidenceByCompetency,
+  evidenceTrendByCompetency,
   onEdit,
 }: Props) {
   const selectedCompetencies = useMemo(() => {
@@ -69,6 +77,19 @@ export function VisionBlock({
     }
     return max;
   }, [selectedCompetencies, evidenceByCompetency]);
+
+  // Max single-week count across all anchored sparklines — scales every
+  // row's sparkline against the same ceiling so a competency with 3
+  // evidences in one week reads visibly taller than one with 1.
+  const maxWeeklyAcrossAnchors = useMemo(() => {
+    let max = 0;
+    for (const c of selectedCompetencies) {
+      const trend = evidenceTrendByCompetency[c.id];
+      if (!trend) continue;
+      for (const n of trend) if (n > max) max = n;
+    }
+    return max;
+  }, [selectedCompetencies, evidenceTrendByCompetency]);
 
   const trimmed = statement?.trim() ?? '';
 
@@ -121,11 +142,32 @@ export function VisionBlock({
           {selectedCompetencies.map((c) => {
             const count = evidenceByCompetency[c.id] ?? 0;
             const pct = maxAnchorCount > 0 ? count / maxAnchorCount : 0;
+            const trend = evidenceTrendByCompetency[c.id] ?? [];
             return (
               <View key={c.id} style={styles.compRow}>
                 <Text style={styles.compLabel} numberOfLines={1}>
                   {c.shortLabel || c.fullLabel}
                 </Text>
+                <View style={styles.spark}>
+                  {trend.map((n, i) => {
+                    const h =
+                      maxWeeklyAcrossAnchors > 0
+                        ? Math.max(
+                            SPARK_MIN_BAR,
+                            (n / maxWeeklyAcrossAnchors) * SPARK_HEIGHT,
+                          )
+                        : SPARK_MIN_BAR;
+                    return (
+                      <View
+                        key={i}
+                        style={[
+                          styles.sparkBar,
+                          { height: h, opacity: n > 0 ? 1 : 0.22 },
+                        ]}
+                      />
+                    );
+                  })}
+                </View>
                 <View style={styles.compBarTrack}>
                   <View
                     style={[
@@ -164,10 +206,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    marginHorizontal: 16,
+    marginHorizontal: 20,
     marginTop: 4,
     marginBottom: 14,
-    paddingHorizontal: 14,
+    paddingHorizontal: 18,
     paddingVertical: 12,
     borderRadius: 12,
     borderWidth: StyleSheet.hairlineWidth,
@@ -181,10 +223,10 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
   },
   block: {
-    marginHorizontal: 16,
+    marginHorizontal: 20,
     marginTop: 4,
     marginBottom: 14,
-    paddingHorizontal: 14,
+    paddingHorizontal: 18,
     paddingVertical: 12,
     borderRadius: 12,
     backgroundColor: 'rgba(120, 120, 130, 0.06)',
@@ -238,9 +280,21 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   compLabel: {
-    width: 96,
+    width: 88,
     fontSize: 11.5,
     color: IOS_REGISTER.labelSecondary,
+  },
+  spark: {
+    width: 56,
+    height: SPARK_HEIGHT,
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    gap: 1.5,
+  },
+  sparkBar: {
+    flex: 1,
+    borderRadius: 1,
+    backgroundColor: IOS_REGISTER.accentUserAction,
   },
   compBarTrack: {
     flex: 1,
@@ -255,7 +309,7 @@ const styles = StyleSheet.create({
     backgroundColor: IOS_REGISTER.accentUserAction,
   },
   compCount: {
-    width: 24,
+    width: 22,
     textAlign: 'right',
     fontSize: 11,
     color: IOS_REGISTER.labelTertiary,

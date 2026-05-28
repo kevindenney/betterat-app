@@ -154,6 +154,11 @@ export interface TimelineSeason {
    *  steps in this season. Empty object when no evidence has been
    *  tagged to a framework competency. */
   visionEvidenceByCompetency?: Record<string, number>;
+  /** Weekly proven-evidence trend keyed by org_competencies.id. Each
+   *  value is an array of length = season bucket count (matches L4),
+   *  carrying the per-week evidence count. Drives the VISION lane's
+   *  per-competency sparkline. */
+  visionEvidenceTrendByCompetency?: Record<string, number[]>;
 }
 
 export interface SeasonAnalysis {
