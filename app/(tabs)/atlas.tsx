@@ -127,6 +127,13 @@ type OrgContext = {
   name: string;
   city: string | null;
   country: string | null;
+  /**
+   * Primary location coords from `organization_locations` (lowest
+   * sort_order). When present, the Atlas tab flies the camera here
+   * after navigating from /organizations/[slug]'s "Open map" button.
+   */
+  lat: number | null;
+  lng: number | null;
 };
 
 // Single-letter avatar from the signed-in user. Prefers user_metadata.
@@ -409,13 +416,19 @@ export default function AtlasTab() {
   // ?lat=…&lng=… — Plan-tab Where card links the viewer to Atlas focused
   // on the step's venue ("see what's nearby"). Parsed once from params;
   // F1 reads it via the AtlasScreen `initialFocus` prop.
+  const [orgContext, setOrgContext] = React.useState<OrgContext | null>(null);
   const initialFocus = React.useMemo(() => {
+    // Explicit lat/lng URL params win when present (e.g. coming from
+    // a step's "see what's nearby"). Otherwise fall back to the org's
+    // primary location resolved from organization_locations.
     const lat = parseFloat(String(params.lat ?? ''));
     const lng = parseFloat(String(params.lng ?? ''));
-    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
-    return { lat, lng };
-  }, [params.lat, params.lng]);
-  const [orgContext, setOrgContext] = React.useState<OrgContext | null>(null);
+    if (Number.isFinite(lat) && Number.isFinite(lng)) return { lat, lng };
+    if (orgContext?.lat != null && orgContext?.lng != null) {
+      return { lat: orgContext.lat, lng: orgContext.lng };
+    }
+    return null;
+  }, [params.lat, params.lng, orgContext]);
 
   React.useEffect(() => {
     let cancelled = false;
@@ -431,6 +444,8 @@ export default function AtlasTab() {
         name: YACHT_CLUB_DEMO_NAME,
         city: YACHT_CLUB_DEMO_CITY,
         country: YACHT_CLUB_DEMO_COUNTRY,
+        lat: null,
+        lng: null,
       });
       return () => {
         cancelled = true;
@@ -441,13 +456,13 @@ export default function AtlasTab() {
       try {
         let orgQuery = await supabase
           .from('organizations')
-          .select('name, slug, global_clubs(city, country)')
+          .select('id, name, slug, global_clubs(city, country)')
           .eq('slug', orgSlug)
           .maybeSingle();
         if (orgQuery.error || !orgQuery.data) {
           orgQuery = await supabase
             .from('organizations')
-            .select('name, slug')
+            .select('id, name, slug')
             .eq('slug', orgSlug)
             .maybeSingle();
         }
@@ -457,10 +472,37 @@ export default function AtlasTab() {
         const gc = Array.isArray(raw.global_clubs)
           ? raw.global_clubs[0] ?? null
           : raw.global_clubs ?? null;
+
+        // Primary location row from organization_locations (lowest
+        // sort_order). When found, the Atlas tab flies the camera
+        // here on next paint — same mechanism the search flow uses.
+        let lat: number | null = null;
+        let lng: number | null = null;
+        if (raw.id) {
+          const { data: locRow } = await supabase
+            .from('organization_locations')
+            .select('lat, lng')
+            .eq('organization_id', String(raw.id))
+            .order('sort_order', { ascending: true })
+            .limit(1)
+            .maybeSingle();
+          if (locRow) {
+            const la = Number((locRow as Record<string, unknown>).lat);
+            const ln = Number((locRow as Record<string, unknown>).lng);
+            if (Number.isFinite(la) && Number.isFinite(ln) && (la !== 0 || ln !== 0)) {
+              lat = la;
+              lng = ln;
+            }
+          }
+        }
+
+        if (cancelled) return;
         setOrgContext({
           name: String(raw.name || orgSlug),
           city: gc?.city ? String(gc.city) : null,
           country: gc?.country ? String(gc.country) : null,
+          lat,
+          lng,
         });
       } catch {
         if (!cancelled) setOrgContext(null);
