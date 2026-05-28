@@ -213,7 +213,7 @@ const NURSING_VOCAB: InterestVocab = {
       color: '#2F8FB0',
     },
     {
-      pattern: /head.?to.?toe|vital\s+signs?|assessment|evaluation|focused\s+exam|history\s+taking/i,
+      pattern: /head.?to.?toe|vital\s+signs?|assessment|evaluation|focused\s+exam|history\s+taking|clinical\s+(judgment|reasoning|skill|placement|practice|rotation|observation|decision)|^clinical$|^clinical\b(?!\s+communication)/i,
       canonicalLabel: 'Assessment',
       color: '#5BA46F',
     },
@@ -228,7 +228,7 @@ const NURSING_VOCAB: InterestVocab = {
       color: '#5BA4A6',
     },
     {
-      pattern: /patient\s+(education|teaching)|teach.?back|discharge\s+teach|health\s+literacy|capstone/i,
+      pattern: /patient[\s\/\-]+(family[\s\/\-]+)?(education|teaching)|family[\s\/\-]+education|teach.?back|discharge[\s\/\-]+teach|health[\s\/\-]+literacy|capstone|\breading\b|\blearning\b|study\s+(session|time)|skill[\s-]+lab|simulation\s+lab|simulation\b/i,
       canonicalLabel: 'Education',
       color: '#C99632',
     },

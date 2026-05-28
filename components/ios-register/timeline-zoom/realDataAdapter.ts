@@ -739,17 +739,30 @@ function computeSeasonAnalysis(
   for (const week of weeks) {
     for (const step of week.steps) stepById.set(step.id, step);
   }
-  // Derive the dominant in-palette capability color from a step's
-  // capability tags. Returns undefined when the step has no real
-  // capabilities (only "Practice" / "General" fallbacks) — in that
-  // case we leave the peer's color as their identity color so the
-  // dot doesn't lie about what was shaped.
+  // Derive the dominant in-palette capability color from a step.
+  // Tries explicit capability tags first, then falls back to matching
+  // the step's title against the palette — useful for demo / seed
+  // steps that don't carry capabilities[] but whose titles are
+  // descriptive ("Cohort seed · medication" → Pharmacology).
+  // Returns undefined when neither tags nor title match a palette
+  // family, so the peer dot stays at identity color (honest signal:
+  // "we don't know what they shaped").
+  const matchPaletteColor = (raw: string): string | undefined => {
+    for (const entry of interestVocab.palette ?? []) {
+      if (entry.pattern.test(raw)) return entry.color;
+    }
+    return undefined;
+  };
   const stepCapabilityColor = (step: TimelineStep | undefined): string | undefined => {
-    if (!step?.capabilities?.length) return undefined;
-    for (const cap of step.capabilities) {
+    if (!step) return undefined;
+    for (const cap of step.capabilities ?? []) {
       if (cap.label === 'Practice' || cap.label === 'General') continue;
-      const v = resolveCapabilityVisuals(cap.label, interestVocab);
-      return v.color;
+      const c = matchPaletteColor(cap.label);
+      if (c) return c;
+    }
+    if (step.title) {
+      const c = matchPaletteColor(step.title);
+      if (c) return c;
     }
     return undefined;
   };
