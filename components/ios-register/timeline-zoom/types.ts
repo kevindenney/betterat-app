@@ -150,6 +150,10 @@ export interface TimelineSeason {
   /** Optional org_competencies(id) anchors that drive per-competency
    *  progress bars on the VISION lane. */
   visionCompetencyIds?: string[];
+  /** Proven evidence count keyed by org_competencies.id, across all
+   *  steps in this season. Empty object when no evidence has been
+   *  tagged to a framework competency. */
+  visionEvidenceByCompetency?: Record<string, number>;
 }
 
 export interface SeasonAnalysis {

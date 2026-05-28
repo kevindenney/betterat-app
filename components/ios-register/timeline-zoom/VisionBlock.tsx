@@ -34,6 +34,9 @@ interface Props {
   currentWeek: number;
   /** Total proven evidence count across the arc. v1 aggregate denominator. */
   provenEvidenceCount: number;
+  /** Proven evidence count keyed by org_competencies.id. Drives the
+   *  per-competency mini-bars when the user has anchored their vision. */
+  evidenceByCompetency: Record<string, number>;
   onEdit: () => void;
 }
 
@@ -44,6 +47,7 @@ export function VisionBlock({
   totalWeeks,
   currentWeek,
   provenEvidenceCount,
+  evidenceByCompetency,
   onEdit,
 }: Props) {
   const selectedCompetencies = useMemo(() => {
@@ -53,6 +57,18 @@ export function VisionBlock({
       .map((id) => byId.get(id))
       .filter((c): c is OrgCompetencyOption => c !== undefined);
   }, [competencyIds, allCompetencies]);
+
+  // Max evidence count across the anchored set — drives bar fill ratio
+  // so the most-evidenced competency reads as "full". When every anchor
+  // is at 0, bars stay empty (no fake progress).
+  const maxAnchorCount = useMemo(() => {
+    let max = 0;
+    for (const c of selectedCompetencies) {
+      const n = evidenceByCompetency[c.id] ?? 0;
+      if (n > max) max = n;
+    }
+    return max;
+  }, [selectedCompetencies, evidenceByCompetency]);
 
   const trimmed = statement?.trim() ?? '';
 
@@ -102,18 +118,26 @@ export function VisionBlock({
 
       {selectedCompetencies.length > 0 ? (
         <View style={styles.compStack}>
-          {selectedCompetencies.map((c) => (
-            <View key={c.id} style={styles.compRow}>
-              <Text style={styles.compLabel} numberOfLines={1}>
-                {c.shortLabel || c.fullLabel}
-              </Text>
-              {/* v1 — empty progress bar; v2 joins to evidence */}
-              <View style={styles.compBarTrack}>
-                <View style={[styles.compBarFill, { width: '0%' }]} />
+          {selectedCompetencies.map((c) => {
+            const count = evidenceByCompetency[c.id] ?? 0;
+            const pct = maxAnchorCount > 0 ? count / maxAnchorCount : 0;
+            return (
+              <View key={c.id} style={styles.compRow}>
+                <Text style={styles.compLabel} numberOfLines={1}>
+                  {c.shortLabel || c.fullLabel}
+                </Text>
+                <View style={styles.compBarTrack}>
+                  <View
+                    style={[
+                      styles.compBarFill,
+                      { width: `${Math.round(pct * 100)}%` },
+                    ]}
+                  />
+                </View>
+                <Text style={styles.compCount}>{count}</Text>
               </View>
-              <Text style={styles.compCount}>—</Text>
-            </View>
-          ))}
+            );
+          })}
         </View>
       ) : (
         <View style={styles.aggregateRow}>

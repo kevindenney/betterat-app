@@ -14,12 +14,16 @@
 
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/services/supabase';
 
 export interface StepCapabilityEvidenceRow {
   stepId: string;
   capabilityId: string | null;
   capabilityName: string;
+  /** Nullable FK to org_competencies.id — set when the evidence row
+   *  was tagged against a formal institutional framework. Drives the
+   *  per-competency progress bars on the L3 VISION lane. */
+  orgCompetencyId: string | null;
   strength: number | null;
   pipLevel: string | null;
   evidenceCount: number | null;
@@ -41,7 +45,9 @@ export function useStepCapabilityEvidence(stepIds: string[]) {
       if (stepIds.length === 0) return new Map();
       const { data, error } = await supabase
         .from('step_capability_evidence')
-        .select('step_id, capability_id, capability_name, strength, pip_level, evidence_count')
+        .select(
+          'step_id, capability_id, capability_name, org_competency_id, strength, pip_level, evidence_count',
+        )
         .eq('confirmed', true)
         .in('step_id', stepIds);
       if (error) throw error;
@@ -52,6 +58,7 @@ export function useStepCapabilityEvidence(stepIds: string[]) {
           stepId,
           capabilityId: (row.capability_id as string | null) ?? null,
           capabilityName: String(row.capability_name ?? ''),
+          orgCompetencyId: (row.org_competency_id as string | null) ?? null,
           strength: (row.strength as number | null) ?? null,
           pipLevel: (row.pip_level as string | null) ?? null,
           evidenceCount: (row.evidence_count as number | null) ?? null,

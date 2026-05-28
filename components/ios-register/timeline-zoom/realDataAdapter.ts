@@ -566,7 +566,10 @@ function computeSeasonAnalysis(
   seasonName: string | null,
   currentWeekNumber: number,
   interestVocab: InterestVocab,
-  stepEvidenceMap?: Map<string, { capabilityName: string }[]>,
+  stepEvidenceMap?: Map<
+    string,
+    { capabilityName: string; orgCompetencyId?: string | null }[]
+  >,
   suggestionInputs?: SuggestionInputRow[],
   seasonStart?: string | null,
   seasonEnd?: string | null,
@@ -1263,7 +1266,10 @@ interface AdapterInput {
    * alongside `plannedVolume`, and the CapabilityMix chart renders
    * planned-as-ghost-outline + proven-as-solid-fill in each band.
    */
-  stepEvidenceMap?: Map<string, { capabilityName: string }[]>;
+  stepEvidenceMap?: Map<
+    string,
+    { capabilityName: string; orgCompetencyId?: string | null }[]
+  >;
   /**
    * Optional step_suggestions involving the viewer within the current
    * season's date range, with peer display info pre-resolved. When
@@ -1406,6 +1412,25 @@ export function mapToTimelineDataset({
       buildWeekPlanningHint(weeks, currentWeekIdx, seasonShortName);
   }
 
+  // Per-org-competency proven evidence counts across this season's
+  // steps. Drives the VISION lane's per-competency mini-bars when the
+  // user has anchored their vision to specific competencies. Only
+  // counts evidence rows that carry an org_competency_id (i.e. the
+  // user tagged the evidence against a formal framework entry).
+  const visionEvidenceByCompetency: Record<string, number> = {};
+  if (stepEvidenceMap && stepEvidenceMap.size > 0) {
+    for (const rec of currentStepRecords) {
+      const rows = stepEvidenceMap.get(rec.id);
+      if (!rows) continue;
+      for (const row of rows) {
+        const cid = row.orgCompetencyId;
+        if (!cid) continue;
+        visionEvidenceByCompetency[cid] =
+          (visionEvidenceByCompetency[cid] ?? 0) + 1;
+      }
+    }
+  }
+
   const currentSeasonNode: TimelineSeason = {
     id: seasonIdForSteps,
     title: currentSeason?.name ?? currentSeason?.short_name ?? 'Current arc',
@@ -1422,6 +1447,7 @@ export function mapToTimelineDataset({
     analysis: currentSeasonAnalysis,
     visionStatement: currentSeason?.vision_statement ?? null,
     visionCompetencyIds: currentSeason?.vision_competency_ids ?? [],
+    visionEvidenceByCompetency,
   };
 
   // Index moved-via-Section-E step records by their target season id so

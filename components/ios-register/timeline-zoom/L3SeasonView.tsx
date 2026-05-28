@@ -227,6 +227,7 @@ export function L3SeasonView({
             0,
           ) ?? 0
         }
+        evidenceByCompetency={season.visionEvidenceByCompetency ?? {}}
         onEdit={() => setVisionEditOpen(true)}
       />
 
