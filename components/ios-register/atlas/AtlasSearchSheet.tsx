@@ -23,6 +23,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/services/supabase';
+import { nominatimService } from '@/services/location/NominatimService';
 import { IOS_REGISTER } from '@/lib/design-tokens-ios';
 
 /**
@@ -42,7 +43,8 @@ export type AtlasSearchResultKind =
   | 'chandler'
   | 'rigging'
   | 'repair'
-  | 'racing_area';
+  | 'racing_area'
+  | 'place';
 
 export interface AtlasSearchResult {
   id: string;
@@ -127,6 +129,7 @@ const KIND_GLYPH: Record<AtlasSearchResultKind, keyof typeof Ionicons.glyphMap> 
   rigging: 'build-outline',
   repair: 'construct-outline',
   racing_area: 'flag-outline',
+  place: 'location-outline',
 };
 
 const KIND_TONE: Record<AtlasSearchResultKind, string> = {
@@ -142,7 +145,42 @@ const KIND_TONE: Record<AtlasSearchResultKind, string> = {
   rigging: 'rgba(204, 124, 36, 0.95)',
   repair: 'rgba(204, 124, 36, 0.95)',
   racing_area: 'rgba(231, 137, 60, 0.95)',
+  place: 'rgba(90, 90, 100, 0.85)',
 };
+
+/**
+ * Geocode the query via Nominatim so typing a city/neighborhood/address
+ * ("Baltimore", "Aberdeen", "44 Wolfe St") returns a flyable map target.
+ * Returns up to 5 places; falls back to an empty list on any error so
+ * the rest of the search sheet keeps rendering.
+ */
+async function fetchGeocodedPlaces(query: string): Promise<AtlasSearchResult[]> {
+  const trimmed = query.trim();
+  if (trimmed.length < 3) return [];
+  try {
+    const hits = await nominatimService.search(trimmed, { limit: 5 });
+    const out: AtlasSearchResult[] = [];
+    for (const h of hits) {
+      if (!Number.isFinite(h.lat) || !Number.isFinite(h.lng)) continue;
+      // Nominatim's display_name is "City, County, State, Country" — the
+      // first segment is the place itself and the rest is the locator.
+      const parts = h.displayName.split(',').map((p) => p.trim()).filter(Boolean);
+      const name = parts[0] ?? h.displayName;
+      const detail = parts.slice(1, 3).join(', ') || undefined;
+      out.push({
+        id: `place:${h.osmType}:${h.osmId}`,
+        kind: 'place',
+        name,
+        detail,
+        lat: h.lat,
+        lng: h.lng,
+      });
+    }
+    return out;
+  } catch {
+    return [];
+  }
+}
 
 async function fetchFollowingIds(viewerId: string | null): Promise<Set<string>> {
   if (!viewerId) return new Set();
@@ -507,7 +545,10 @@ async function fetchSearchResults(
     if (k === 'blueprint_step') return 2;
     if (k === 'organization') return 3;
     if (k === 'group') return 4;
-    return 5;
+    // Sailing-POI kinds (club/marina/sail_loft/etc.) and racing_area.
+    if (k !== 'place') return 5;
+    // Geocoded places (cities, addresses) are the broadest match — last.
+    return 6;
   };
   return out.sort((a, b) => {
     const section = sectionRank(a.kind) - sectionRank(b.kind);
@@ -564,12 +605,29 @@ export function AtlasSearchSheet({
   }, [visible]);
 
   const trimmed = query.trim();
-  const { data: results = [], isFetching } = useQuery({
+  const { data: dbResults = [], isFetching: isFetchingDb } = useQuery({
     queryKey: ['atlas-search', trimmed, countryCode ?? 'all', viewerId ?? 'guest'],
     queryFn: () => fetchSearchResults(trimmed, viewerId ?? null, countryCode),
     enabled: visible && trimmed.length >= 2,
     staleTime: 30 * 1000,
   });
+
+  // Geocoded place results stream in alongside DB matches. Kept on its
+  // own query so the (slow, rate-limited) Nominatim round-trip never
+  // blocks people/orgs/steps rendering. Long staleTime — a city's coord
+  // doesn't change.
+  const { data: placeResults = [], isFetching: isFetchingPlaces } = useQuery({
+    queryKey: ['atlas-search-geo', trimmed],
+    queryFn: () => fetchGeocodedPlaces(trimmed),
+    enabled: visible && trimmed.length >= 3,
+    staleTime: 60 * 60 * 1000,
+  });
+
+  const results = useMemo(
+    () => [...dbResults, ...placeResults],
+    [dbResults, placeResults],
+  );
+  const isFetching = isFetchingDb || isFetchingPlaces;
 
   const showEmptyHint = visible && trimmed.length < 2;
   const showNoMatches =
