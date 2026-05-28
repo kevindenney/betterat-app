@@ -1373,6 +1373,12 @@ export function mapToTimelineDataset({
 }: AdapterInput): TimelineDataset {
   // Sort steps by sort_order, then starts_at. Stable ordering matters for
   // week bucketing fallback and L4 brick layout.
+  // Resolve the persona vocab up-front so brick construction can tag
+  // each brick with the canonical persona-vocab label + a palette
+  // colour (instead of hashing the raw category to a 6-colour nursing
+  // palette). Phase D D1 — vocab pass.
+  const interestVocab = resolveInterestVocab(interestId, interestLabel, interestSlug);
+
   const sorted = [...steps].sort((a, b) => {
     if (a.sort_order !== b.sort_order) return a.sort_order - b.sort_order;
     const sa = a.starts_at ? Date.parse(a.starts_at) : 0;
@@ -1429,19 +1435,24 @@ export function mapToTimelineDataset({
   const currentStepRecords = sorted.filter(
     (rec) => !seasonIdOf(rec) || seasonIdOf(rec) === seasonIdForSteps,
   );
-  const currentBricks = currentStepRecords.map((rec) => ({
-    capabilityColor: hashCategoryToColor(rec.category),
-    capabilityLabel: categoryToLabel(rec.category),
-    stepId: rec.id,
-    status: STATUS_MAP[rec.status],
-    withOthers: (rec.collaborator_user_ids?.length ?? 0) > 0,
-  }));
+  const currentBricks = currentStepRecords.map((rec) => {
+    const fallbackLabel = categoryToLabel(rec.category);
+    const visuals = fallbackLabel
+      ? resolveCapabilityVisuals(fallbackLabel, interestVocab)
+      : null;
+    return {
+      capabilityColor: visuals?.color ?? hashCategoryToColor(rec.category),
+      capabilityLabel: visuals?.canonicalLabel ?? fallbackLabel,
+      stepId: rec.id,
+      status: STATUS_MAP[rec.status],
+      withOthers: (rec.collaborator_user_ids?.length ?? 0) > 0,
+    };
+  });
 
   const currentWeekIdx = Math.max(
     0,
     weeks.findIndex((w) => w.isCurrent),
   );
-  const interestVocab = resolveInterestVocab(interestId, interestLabel, interestSlug);
   const currentSeasonAnalysis = computeSeasonAnalysis(
     weeks,
     currentSeason?.name ?? currentSeason?.short_name ?? null,
@@ -1582,13 +1593,19 @@ export function mapToTimelineDataset({
       // when no moved steps exist (until the archive RPC ships).
       bricks:
         moved.length > 0
-          ? moved.map((rec) => ({
-              capabilityColor: hashCategoryToColor(rec.category),
-              capabilityLabel: categoryToLabel(rec.category),
-              stepId: rec.id,
-              status: STATUS_MAP[rec.status],
-              withOthers: (rec.collaborator_user_ids?.length ?? 0) > 0,
-            }))
+          ? moved.map((rec) => {
+              const fallbackLabel = categoryToLabel(rec.category);
+              const visuals = fallbackLabel
+                ? resolveCapabilityVisuals(fallbackLabel, interestVocab)
+                : null;
+              return {
+                capabilityColor: visuals?.color ?? hashCategoryToColor(rec.category),
+                capabilityLabel: visuals?.canonicalLabel ?? fallbackLabel,
+                stepId: rec.id,
+                status: STATUS_MAP[rec.status],
+                withOthers: (rec.collaborator_user_ids?.length ?? 0) > 0,
+              };
+            })
           : Array.from({ length: 8 }, () => ({
               capabilityColor: CAPABILITY_PALETTE.procedural.color,
             })),
