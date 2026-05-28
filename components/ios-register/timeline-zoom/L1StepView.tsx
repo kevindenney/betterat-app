@@ -73,7 +73,8 @@ const PHASES = ['Plan', 'Do', 'Reflect', 'Discuss'] as const;
 // Swipe threshold (Reanimated worklet uses these constants).
 const SWIPE_PX_THRESHOLD = 60;
 const SWIPE_VELOCITY_THRESHOLD = 600;
-const SWIPE_RUBBER_FACTOR = 0.5; // drag follows finger but dampened
+const SWIPE_RUBBER_FACTOR = 1; // drag follows finger 1:1 so the motion reads
+const SWIPE_OFF_SCREEN_PX = 500; // commit animates the card fully off-screen
 
 export function L1StepView({
   step,
@@ -140,7 +141,10 @@ export function L1StepView({
       // translateX=0 the next frame; we tween to 0 so the new card slides
       // in cleanly without a visible jump.
       const dir = e.translationX > 0 ? 1 : -1;
-      translateX.value = withTiming(dir * 80, { duration: 120 }, () => {
+      // Animate fully off-screen, then snap back to 0 so the next focused
+      // step's content (already swapped in by the JS-side fireSwipe) reads
+      // as a fresh card appearing at center.
+      translateX.value = withTiming(dir * SWIPE_OFF_SCREEN_PX, { duration: 220 }, () => {
         translateX.value = 0;
       });
       runOnJS(fireSwipe)(dir > 0 ? 'prev' : 'next');
@@ -436,6 +440,8 @@ const styles = StyleSheet.create({
   },
   // Adjacent-step silhouettes — edge + corner + shadow only, no content.
   // Sit behind the main card; the user reads them as "more here".
+  // Solid card-bg colour + hairline + shadow so they read against the
+  // gray canvas — opacity-blending against groundBg made them vanish.
   peekLeft: {
     position: 'absolute',
     left: 0,
@@ -445,8 +451,19 @@ const styles = StyleSheet.create({
     backgroundColor: IOS_REGISTER.cardBg,
     borderTopRightRadius: 14,
     borderBottomRightRadius: 14,
-    opacity: 0.55,
+    borderRightWidth: StyleSheet.hairlineWidth,
+    borderColor: IOS_REGISTER.separator,
     zIndex: 1,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOpacity: 0.06,
+        shadowRadius: 8,
+        shadowOffset: { width: 2, height: 2 },
+      },
+      android: { elevation: 2 },
+      default: {},
+    }),
   },
   peekRight: {
     position: 'absolute',
@@ -457,8 +474,19 @@ const styles = StyleSheet.create({
     backgroundColor: IOS_REGISTER.cardBg,
     borderTopLeftRadius: 14,
     borderBottomLeftRadius: 14,
-    opacity: 0.55,
+    borderLeftWidth: StyleSheet.hairlineWidth,
+    borderColor: IOS_REGISTER.separator,
     zIndex: 1,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOpacity: 0.06,
+        shadowRadius: 8,
+        shadowOffset: { width: -2, height: 2 },
+      },
+      android: { elevation: 2 },
+      default: {},
+    }),
   },
   slimHost: { flex: 1, position: 'relative' },
   scroll: { flex: 1 },

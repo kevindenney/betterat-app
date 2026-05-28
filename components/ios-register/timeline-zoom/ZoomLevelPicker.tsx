@@ -16,7 +16,6 @@
 
 import React from 'react';
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
-import { BlurView } from 'expo-blur';
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
 
 import { IOS_REGISTER } from '@/lib/design-tokens-ios';
@@ -102,11 +101,7 @@ export function ZoomLevelPicker({
       style={[styles.host, { bottom: bottomOffset }]}
       accessibilityRole="tablist"
     >
-      <BlurView
-        intensity={Platform.OS === 'ios' ? 60 : 0}
-        tint="light"
-        style={styles.pill}
-      >
+      <View style={styles.pill}>
         {LEVELS.map((l) => {
           const active = l === level;
           const tint = active ? IOS_REGISTER.label : IOS_REGISTER.labelSecondary;
@@ -130,7 +125,7 @@ export function ZoomLevelPicker({
             </Pressable>
           );
         })}
-      </BlurView>
+      </View>
     </View>
   );
 }
@@ -145,22 +140,21 @@ const styles = StyleSheet.create({
   },
   pill: {
     flexDirection: 'row',
-    borderRadius: 18,
+    borderRadius: 20,
     padding: 4,
     gap: 2,
-    overflow: 'hidden',
-    backgroundColor: Platform.OS === 'ios' ? 'rgba(248, 248, 250, 0.65)' : 'rgba(248, 248, 250, 0.94)',
+    backgroundColor: '#FFFFFF',
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(60, 60, 67, 0.18)',
+    borderColor: 'rgba(60, 60, 67, 0.22)',
     ...Platform.select({
       ios: {
         shadowColor: '#000',
-        shadowOpacity: 0.14,
-        shadowRadius: 14,
-        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.18,
+        shadowRadius: 16,
+        shadowOffset: { width: 0, height: 6 },
       },
       android: {
-        elevation: 8,
+        elevation: 10,
       },
       default: {},
     }),
