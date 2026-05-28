@@ -922,7 +922,6 @@ export default function LearnScreen() {
 
       {/* Toolbar rendered last — absolutely positioned over content */}
       <TabScreenToolbar
-        title="Learn"
         topInset={insets.top}
         actions={[
           {

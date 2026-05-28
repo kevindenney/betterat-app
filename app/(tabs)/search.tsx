@@ -6,7 +6,7 @@
  * - Clubs: Find and join clubs with filters
  */
 
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { IOSSegmentedControl } from '@/components/ui/ios/IOSSegmentedControl';
@@ -38,7 +38,6 @@ export default function SearchTab() {
   return (
     <View style={styles.container}>
       <TabScreenToolbar
-        title="Search"
         topInset={insets.top}
         actions={toolbarActions}
         onMeasuredHeight={setToolbarHeight}

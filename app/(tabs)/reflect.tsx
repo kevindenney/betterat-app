@@ -1029,7 +1029,6 @@ export default function ReflectScreen() {
 
       {/* Toolbar */}
       <TabScreenToolbar
-        title="Profile"
         topInset={insets.top}
         onMeasuredHeight={setToolbarHeight}
         hidden={toolbarHidden}
