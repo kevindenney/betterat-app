@@ -136,7 +136,16 @@ export interface TimelineSeason {
    * archived-season lanes (where we don't have per-step data yet) emit
    * placeholder bricks.
    */
-  bricks: { capabilityColor: string; stepId?: string }[];
+  bricks: {
+    capabilityColor: string;
+    stepId?: string;
+    /** Lifecycle state — drives the L4 done-check overlay + planned dimming. */
+    status?: StepStatus;
+    /** True when others (cohort / crew / invited) were on this step. Renders
+     *  a soft outline on the L4 brick so the "I did this with people" beats
+     *  show up at a glance across the whole timeline. */
+    withOthers?: boolean;
+  }[];
   /**
    * L3 analysis layer (Screen 09 · REFLECTING ON NOW). The capability
    * river chart + peer journey chart + inline reflections + librarian

@@ -1381,6 +1381,8 @@ export function mapToTimelineDataset({
   const currentBricks = currentStepRecords.map((rec) => ({
     capabilityColor: hashCategoryToColor(rec.category),
     stepId: rec.id,
+    status: STATUS_MAP[rec.status],
+    withOthers: (rec.collaborator_user_ids?.length ?? 0) > 0,
   }));
 
   const currentWeekIdx = Math.max(
@@ -1531,6 +1533,8 @@ export function mapToTimelineDataset({
           ? moved.map((rec) => ({
               capabilityColor: hashCategoryToColor(rec.category),
               stepId: rec.id,
+              status: STATUS_MAP[rec.status],
+              withOthers: (rec.collaborator_user_ids?.length ?? 0) > 0,
             }))
           : Array.from({ length: 8 }, () => ({
               capabilityColor: CAPABILITY_PALETTE.procedural.color,

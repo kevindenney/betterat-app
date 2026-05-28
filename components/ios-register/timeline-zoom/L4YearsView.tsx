@@ -400,14 +400,23 @@ function SeasonLane({
         style={styles.laneScroller}
       >
         {season.bricks.map((b, i) => {
-          const fill = season.archived
-            ? withAlpha(b.capabilityColor, 0.45)
-            : b.capabilityColor;
+          // Status-aware fill: planned bricks dim to ~45%, in-flight stay
+          // saturated, done/reflected stay solid + carry a check overlay.
+          // Archived seasons dim everything regardless.
+          const planned = b.status === 'plan';
+          const baseAlpha = season.archived ? 0.45 : planned ? 0.45 : 1;
+          const fill =
+            baseAlpha < 1 ? withAlpha(b.capabilityColor, baseAlpha) : b.capabilityColor;
+          const showDoneGlyph = b.status === 'done' || b.status === 'reflected';
           if (!b.stepId) {
             return (
               <View
                 key={`placeholder-${i}`}
-                style={[styles.brick, { backgroundColor: fill }]}
+                style={[
+                  styles.brick,
+                  { backgroundColor: fill },
+                  b.withOthers && styles.brickWithOthers,
+                ]}
               />
             );
           }
@@ -436,6 +445,8 @@ function SeasonLane({
               dragEnabled={Boolean(onReorderStep) && !selectEnabled}
               selectEnabled={selectEnabled}
               selected={selected}
+              withOthers={Boolean(b.withOthers)}
+              showDoneGlyph={showDoneGlyph}
             />
           );
         })}
@@ -457,6 +468,8 @@ interface DraggableBrickProps {
   dragEnabled: boolean;
   selectEnabled: boolean;
   selected: boolean;
+  withOthers: boolean;
+  showDoneGlyph: boolean;
 }
 
 function DraggableBrick({
@@ -472,6 +485,8 @@ function DraggableBrick({
   dragEnabled,
   selectEnabled,
   selected,
+  withOthers,
+  showDoneGlyph,
 }: DraggableBrickProps) {
   const gesture = useMemo(
     () => buildGesture(stepId, reorderableIndex),
@@ -507,6 +522,7 @@ function DraggableBrick({
         {
           backgroundColor: selectEnabled && selected ? IOS_REGISTER.accentUserAction : fill,
         },
+        withOthers && !(selectEnabled && selected) && styles.brickWithOthers,
         selectEnabled && selected && styles.brickSelected,
         liftStyle,
       ]}
@@ -518,6 +534,10 @@ function DraggableBrick({
       {selectEnabled && selected ? (
         <View style={styles.brickCheckCenter}>
           <Ionicons name="checkmark" size={14} color="#FFFFFF" />
+        </View>
+      ) : showDoneGlyph ? (
+        <View style={styles.brickCheckCenter}>
+          <Ionicons name="checkmark" size={10} color="rgba(255,255,255,0.92)" />
         </View>
       ) : null}
       {showDropBefore ? <View style={styles.brickDropIndicator} /> : null}
@@ -695,6 +715,12 @@ const styles = StyleSheet.create({
     width: BRICK_SIZE,
     height: BRICK_SIZE,
     borderRadius: 2.5,
+  },
+  // Soft outline on bricks where others were involved — reads as a
+  // "with people" beat at the all-time scale without needing a glyph.
+  brickWithOthers: {
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 255, 255, 0.85)',
   },
   brickSelected: {
     // Slight inner ring for crispness against the blue fill; not a
