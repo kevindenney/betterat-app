@@ -112,7 +112,7 @@ const SAILING_VOCAB: InterestVocab = {
   },
   librarianEyebrow: 'This arc · logbook noticed',
   riverHeader: 'PRACTICE LOG',
-  crewHeader: 'CREW',
+  crewHeader: 'FLEET',
   inputSubtitle: 'who shaped this arc',
   // Deliberate sailing palette — 8 capability families, perceptually
   // distinct, with the same family color across the app. Order matters:
