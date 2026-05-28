@@ -120,7 +120,7 @@ For HKDW: `valid_from` = sign-up open date, `valid_to` = event end date + grace 
 | `record_competency_evidence` RPC + migration for new evidence columns + `has_org_role_in` helper | 🟦 Codex | 3h | Foundation for the faculty form *and* sharpens the access model used by portfolio RPCs. |
 | `get_member_portfolio_org_scoped` + `get_member_portfolio_full` RPCs + `profiles.portfolio_public_opt_in` column + demo persona opt-in seed | 🟦 Codex | 3h | Two-RPC contract; org-admin vs full-public separation. |
 | `admin_competency_evidence_counts(p_org_id, p_cohort_id default null)` signature update + `useAdminCompetencyEvidence` call-site update | 🟦 Codex | 1h | Cohort filter for Insights heatmap. Call site at `hooks/useAdminCompetencyEvidence.ts:146`. |
-| `mint_demo_session` edge function + `demo_session_audit` table + `SUPABASE_DEMO_MODE` env flag + rate limit + 5-min magic-link expiry | 🟦 Codex | 3h | Acceptance criteria locked. Hard allowlist of persona keys in function config. |
+| `mint_demo_session` edge function + `demo_session_audit` table + `DEMO_MODE_ENABLED` env flag + rate limit + 5-min magic-link expiry | 🟦 Codex | 3h | Acceptance criteria locked. Hard allowlist of persona keys in function config. |
 | Demo persona seeds: Dean Sarah Szanton, PRADAN Field Officer (Savitri's mentor), HK Dragons racer #2 (cohort fan-out target) + `portfolio_public_opt_in=true` for all demo personas | 🟦 Codex (or seed SQL) | 1h | |
 | `/demo` page UI + persona registry config | 🟨 UX | 3h | Stubs the mint call; ships before edge function. Three vertical sections, persona cards, role-aware landing routes. |
 | Cross-interest portfolio member view `/p/[userId]` (UI + integration with portfolio RPCs) | 🟨 UX | 4h | The hero surface. Renders per-interest cards side-by-side with vision + recent activity + cohort thread peek. |
@@ -197,7 +197,7 @@ All demo personas get `profiles.profile_public = true` AND `profiles.portfolio_p
 
 | Decision | Resolution |
 | --- | --- |
-| Demo sign-in mechanism | Magic-link via edge function with `SUPABASE_DEMO_MODE` env gate, allowlist, rate limit, audit log |
+| Demo sign-in mechanism | Magic-link via edge function with `DEMO_MODE_ENABLED` env gate, allowlist, rate limit, audit log |
 | Hindi scope for v1 | Visible-only on Savitri-touched screens (Wave 3). Locale selection UX added separately. |
 | Voice transcription vendor | Whisper for v1 — best Hindi quality + simplest integration |
 | Dean persona — real or stand-in | Real seed account named "Dr. Sarah Szanton" (actual JHSON Dean, public info) |

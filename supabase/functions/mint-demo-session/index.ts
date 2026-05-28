@@ -51,7 +51,9 @@ const PERSONAS: Record<string, Persona> = {
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
 const SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-const DEMO_MODE = Deno.env.get('SUPABASE_DEMO_MODE');
+// Supabase reserves the SUPABASE_ secret prefix for system-managed values,
+// so the demo gate uses DEMO_MODE_ENABLED instead. Value 'true' enables.
+const DEMO_MODE = Deno.env.get('DEMO_MODE_ENABLED');
 const DEMO_REDIRECT_BASE_URL = Deno.env.get('DEMO_REDIRECT_BASE_URL') ?? 'https://betterat.app';
 const DEMO_FUNCTION_BASE_URL = Deno.env.get('DEMO_FUNCTION_BASE_URL');
 
