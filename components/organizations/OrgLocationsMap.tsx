@@ -99,13 +99,16 @@ export function OrgLocationsMap({ locations, height = 220 }: OrgLocationsMapProp
           // bounds = [west, south, east, north]; MLCamera fits all
           // markers into the visible frame. Padding keeps the edge
           // markers off the frame border so their labels aren't cut.
-          initialViewState={{ bounds: fitted.bounds, padding: 40 }}
+          initialViewState={{
+            bounds: fitted.bounds,
+            padding: { top: 40, right: 40, bottom: 40, left: 40 },
+          }}
         />
         {locations.map((loc) => (
           <MLMarker
             key={loc.id ?? `${loc.lat}:${loc.lng}`}
             id={`org-loc-${loc.id ?? `${loc.lat}-${loc.lng}`}`}
-            coordinate={[loc.lng, loc.lat]}
+            lngLat={[loc.lng, loc.lat]}
           >
             <View style={styles.marker}>
               <View style={styles.markerDot} />
