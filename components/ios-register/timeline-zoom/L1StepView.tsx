@@ -81,9 +81,11 @@ export function L1StepView({
   embedFullDetail,
   onSwipePrev,
   onSwipeNext,
-  prevStepTitle: _prevStepTitle,
-  nextStepTitle: _nextStepTitle,
+  prevStepTitle,
+  nextStepTitle,
 }: L1StepViewProps) {
+  const hasPrev = prevStepTitle != null;
+  const hasNext = nextStepTitle != null;
   const translateX = useSharedValue(0);
   const passedThreshold = useSharedValue(false);
 
@@ -151,13 +153,14 @@ export function L1StepView({
   if (embedFullDetail) {
     return (
       <View style={styles.embedHost}>
-        <View style={styles.embedNowBar} />
-        <View style={styles.embedNowPill}>
-          <Text style={styles.embedNowPillText}>NOW</Text>
-        </View>
-
+        {hasPrev ? <View style={styles.peekLeft} pointerEvents="none" /> : null}
+        {hasNext ? <View style={styles.peekRight} pointerEvents="none" /> : null}
         <GestureDetector gesture={swipeGesture}>
           <Animated.View style={[styles.embedContent, translateStyle]}>
+            <View style={styles.embedNowBar} />
+            <View style={styles.embedNowPill}>
+              <Text style={styles.embedNowPillText}>NOW</Text>
+            </View>
             <View style={styles.embedChrome}>
               <Text style={styles.verbEyebrow}>ZOOM · ONE STEP · DOING</Text>
               {step.peerQuote ? <PeerQuoteBlock quote={step.peerQuote} /> : null}
@@ -180,14 +183,17 @@ export function L1StepView({
     : undefined;
 
   return (
-    <GestureDetector gesture={swipeGesture}>
-    <ScrollView
-      style={styles.scroll}
-      contentContainerStyle={styles.scrollContent}
-      showsVerticalScrollIndicator={false}
-    >
-      <Pressable
-        style={styles.card}
+    <View style={styles.slimHost}>
+      {hasPrev ? <View style={styles.peekLeft} pointerEvents="none" /> : null}
+      {hasNext ? <View style={styles.peekRight} pointerEvents="none" /> : null}
+      <GestureDetector gesture={swipeGesture}>
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        <Pressable
+          style={styles.card}
         onPress={handleOpen}
         disabled={!handleOpen}
         accessibilityRole={handleOpen ? 'button' : undefined}
@@ -306,9 +312,10 @@ export function L1StepView({
             </View>
           </View>
         ) : null}
-      </Pressable>
-    </ScrollView>
-    </GestureDetector>
+        </Pressable>
+      </ScrollView>
+      </GestureDetector>
+    </View>
   );
 }
 
@@ -367,8 +374,15 @@ function darken(hex: string): string {
   return `rgb(${r}, ${g}, ${b})`;
 }
 
+const PEEK_WIDTH = 14;
+const CARD_INSET = 22;
+
 const styles = StyleSheet.create({
-  embedHost: { flex: 1, position: 'relative' },
+  embedHost: {
+    flex: 1,
+    position: 'relative',
+    backgroundColor: IOS_REGISTER.groundBg,
+  },
   embedNowBar: {
     position: 'absolute',
     left: 0,
@@ -403,14 +417,53 @@ const styles = StyleSheet.create({
   embedDetailHost: { flex: 1 },
   embedContent: {
     flex: 1,
-    // Most-zoomed L1 is a focused full-screen step detail. Adjacent-card
-    // peeks live one zoom level out, not here.
+    marginHorizontal: CARD_INSET,
+    marginVertical: 10,
     backgroundColor: IOS_REGISTER.cardBg,
+    borderRadius: 16,
+    overflow: 'hidden',
     zIndex: 2,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOpacity: 0.08,
+        shadowRadius: 14,
+        shadowOffset: { width: 0, height: 4 },
+      },
+      android: { elevation: 4 },
+      default: {},
+    }),
   },
+  // Adjacent-step silhouettes — edge + corner + shadow only, no content.
+  // Sit behind the main card; the user reads them as "more here".
+  peekLeft: {
+    position: 'absolute',
+    left: 0,
+    top: 20,
+    bottom: 20,
+    width: PEEK_WIDTH,
+    backgroundColor: IOS_REGISTER.cardBg,
+    borderTopRightRadius: 14,
+    borderBottomRightRadius: 14,
+    opacity: 0.55,
+    zIndex: 1,
+  },
+  peekRight: {
+    position: 'absolute',
+    right: 0,
+    top: 20,
+    bottom: 20,
+    width: PEEK_WIDTH,
+    backgroundColor: IOS_REGISTER.cardBg,
+    borderTopLeftRadius: 14,
+    borderBottomLeftRadius: 14,
+    opacity: 0.55,
+    zIndex: 1,
+  },
+  slimHost: { flex: 1, position: 'relative' },
   scroll: { flex: 1 },
   scrollContent: {
-    paddingHorizontal: 16,
+    paddingHorizontal: CARD_INSET,
     paddingBottom: 120,
   },
   card: {
