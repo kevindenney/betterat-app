@@ -181,7 +181,8 @@ export default function OrganizationPlaceholderPage() {
   }, [authUser?.id, org?.id]);
   // Fetch all organization_locations for the embedded map below the
   // hero. Ordered by sort_order so the primary site sits first in any
-  // future "Sites" list. Public read on org_locations; no RLS hurdle.
+  // future "Sites" list. RLS allows public SELECT (org-site geography
+  // is a discovery surface); writes stay owner/admin only.
   useEffect(() => {
     let cancelled = false;
     if (!org?.id) {
