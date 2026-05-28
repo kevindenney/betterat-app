@@ -222,11 +222,12 @@ export function L1StepView({
                 </View>
               </>
             ) : null}
-            <View style={styles.embedChrome}>
-              <Text style={styles.verbEyebrow}>ZOOM · ONE STEP · DOING</Text>
-              {step.peerQuote ? <PeerQuoteBlock quote={step.peerQuote} /> : null}
-              {step.subStep ? <SessionStrap step={step} /> : null}
-            </View>
+            {step.peerQuote || step.subStep ? (
+              <View style={styles.embedChrome}>
+                {step.peerQuote ? <PeerQuoteBlock quote={step.peerQuote} /> : null}
+                {step.subStep ? <SessionStrap step={step} /> : null}
+              </View>
+            ) : null}
             <View style={styles.embedDetailHost}>
               <StepDetailContent stepId={step.id} onScroll={onScroll} />
             </View>
@@ -272,8 +273,6 @@ export function L1StepView({
             />
           </View>
         ) : null}
-
-        <Text style={styles.verbEyebrow}>ZOOM · ONE STEP · DOING</Text>
 
         {step.peerQuote ? <PeerQuoteBlock quote={step.peerQuote} /> : null}
         {step.subStep ? <SessionStrap step={step} /> : null}
@@ -383,7 +382,6 @@ export function L1StepView({
 function GhostCard({ step }: { step: TimelineStep }) {
   return (
     <View style={styles.ghostInner}>
-      <Text style={styles.verbEyebrow}>ZOOM · ONE STEP</Text>
       {step.preTitle ? (
         <Text style={styles.eyebrow}>{step.preTitle}</Text>
       ) : null}
@@ -486,8 +484,8 @@ const styles = StyleSheet.create({
   },
   embedChrome: {
     paddingHorizontal: 22,
-    paddingTop: 8,
-    paddingBottom: 8,
+    paddingTop: 0,
+    paddingBottom: 4,
   },
   embedDetailHost: { flex: 1 },
   embedContent: {
@@ -538,7 +536,7 @@ const styles = StyleSheet.create({
   ghostInner: {
     flex: 1,
     paddingHorizontal: 22,
-    paddingTop: 16,
+    paddingTop: 8,
   },
   // Adjacent-step silhouettes — edge + corner + shadow only, no content.
   // Sit behind the main card; the user reads them as "more here".
