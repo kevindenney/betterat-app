@@ -26,7 +26,7 @@
  */
 
 import React, { useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -37,6 +37,7 @@ import { useAuth } from '@/providers/AuthProvider';
 import { getAtlasStepData, isAtlasRaceCourseStep } from '@/lib/atlasRaceStep';
 import { useStepLibraryBefore } from '@/hooks/useStepLibraryBefore';
 import { useStepWithPeople } from '@/hooks/useStepWithPeople';
+import { useAtlasPeerSteps } from '@/hooks/useAtlasPeerSteps';
 import { StepCombinatorsSheet } from './StepCombinatorsSheet';
 import { StepPeopleSheet } from './StepPeopleSheet';
 import type { TimelineStepRecord } from '@/types/timeline-steps';
@@ -132,6 +133,20 @@ export function StepCombinatorsRow({
   const { data: libraryBefore } = useStepLibraryBefore(step.id);
   const playbookCount = libraryBefore?.length ?? 0;
 
+  // NEAR — proximity-derived: peer steps within ~5km of this step's
+  // location. Distinct from WITH (explicit relationships). Hidden when
+  // the step has no location.
+  const { data: nearbyPeerSteps = [] } = useAtlasPeerSteps({
+    lat: step.location_lat,
+    lng: step.location_lng,
+    radiusKm: 5,
+    enabled: step.location_lat != null && step.location_lng != null,
+  });
+  const nearCount = useMemo(
+    () => nearbyPeerSteps.filter((s) => s.relationship !== 'self').length,
+    [nearbyPeerSteps],
+  );
+
   const [sheet, setSheet] = useState<null | 'related' | 'people'>(null);
 
   const hasCross = Boolean(crossInterest);
@@ -139,17 +154,14 @@ export function StepCombinatorsRow({
   // Only surface the WITH chip when others are involved — "1 with"
   // when the only person is the viewer themselves is noise.
   const hasWith = withCount >= 2;
+  const hasNear = nearCount > 0;
   const hasPlaybook = playbookCount > 0;
 
-  if (!hasCross && !hasRelated && !hasWith && !hasPlaybook) return null;
+  if (!hasCross && !hasRelated && !hasWith && !hasNear && !hasPlaybook) return null;
 
   return (
     <View>
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.row}
-      >
+      <View style={styles.row}>
         {hasCross && crossInterest ? (
           <Pressable
             style={styles.crossPill}
@@ -212,6 +224,16 @@ export function StepCombinatorsRow({
           </Pressable>
         ) : null}
 
+        {hasNear ? (
+          <View style={[styles.pill, styles.nearPill]}>
+            <Ionicons name="locate-outline" size={12} color="#0A84FF" />
+            <Text style={styles.pillText}>
+              <Text style={[styles.pillBold, styles.nearBold]}>{nearCount}</Text>
+              <Text style={styles.pillDim}> near</Text>
+            </Text>
+          </View>
+        ) : null}
+
         {hasRelated ? (
           <Pressable style={styles.pill} onPress={() => setSheet('related')}>
             <Ionicons
@@ -253,7 +275,7 @@ export function StepCombinatorsRow({
             </View>
           )
         ) : null}
-      </ScrollView>
+      </View>
 
       {sheet === 'related' ? (
         <StepCombinatorsSheet
@@ -283,6 +305,7 @@ function withAvatarFallback(seed: string): string {
 const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     paddingHorizontal: 16,
     paddingTop: 4,
     paddingBottom: 10,
@@ -327,6 +350,17 @@ const styles = StyleSheet.create({
   pillCrossEmphasis: {
     color: '#7B3FB0',
     fontWeight: '600',
+  },
+  // NEAR chip — distinct from WITH (which is explicit relationships).
+  // Blue accent says "geographic / proximity signal." Distinct enough
+  // from the lilac cross-interest pill so a sailor can tell them apart
+  // at a glance.
+  nearPill: {
+    backgroundColor: 'rgba(10, 132, 255, 0.08)',
+    borderColor: 'rgba(10, 132, 255, 0.30)',
+  },
+  nearBold: {
+    color: '#0A84FF',
   },
   // WITH chip with inline avatar stack so the people on this step read
   // at a glance — surfacing them only via the popup sheet hid the
