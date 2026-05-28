@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { ChevronRight, List } from 'lucide-react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { BlueprintTimeline } from '@/components/playbook/BlueprintTimeline';
 import { useBlueprint } from '@/hooks/useBlueprint';
 import { FEATURE_FLAGS } from '@/lib/featureFlags';
@@ -35,8 +36,22 @@ export default function BlueprintTimelineRoute() {
 
   return (
     <View style={styles.container}>
+      <Pressable
+        onPress={() =>
+          router.canGoBack()
+            ? router.back()
+            : router.replace('/(tabs)/library/blueprints' as any)
+        }
+        accessibilityRole="button"
+        accessibilityLabel="Back to Blueprints"
+        hitSlop={8}
+        style={[styles.backLink, { marginTop: insets.top + 8 }]}
+      >
+        <Ionicons name="chevron-back" size={18} color="#007AFF" />
+        <Text style={styles.backText}>Blueprints</Text>
+      </Pressable>
       {indexFlagOn ? (
-        <View style={[styles.ctaWrap, { marginTop: insets.top + 8 }]}>
+        <View style={styles.ctaWrap}>
           <View style={styles.ctaCard}>
             <View style={styles.ctaIcon}>
               <List size={14} color="#0040DD" />
@@ -61,6 +76,19 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F2F2F7',
+  },
+  backLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+    alignSelf: 'flex-start',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    marginBottom: 4,
+  },
+  backText: {
+    fontSize: 17,
+    color: '#007AFF',
   },
   ctaWrap: {
     marginHorizontal: 14,

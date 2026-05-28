@@ -42,6 +42,8 @@ import { DiscoverTodayContent } from '@/components/discover/DiscoverTodayContent
 import { DiscoverInterestsContent } from '@/components/discover/DiscoverInterestsContent';
 import { DiscoverOrgsContent } from '@/components/discover/DiscoverOrgsContent';
 import { DiscoverPeopleContent } from '@/components/discover/DiscoverPeopleContent';
+import { useInterest } from '@/providers/InterestProvider';
+import { useSubscribedBlueprints } from '@/hooks/useBlueprint';
 
 type DiscoverSegment = 'all' | 'today' | 'interests' | 'orgs' | 'people' | 'plans';
 
@@ -364,9 +366,14 @@ function PlansPlaceholder({
   toolbarOffset: number;
   onJumpToSegment: (segment: DiscoverSegment) => void;
 }) {
-  // Plans content is iterative — for now this is a routed-out shell
-  // so users can reach the Library blueprints surface. v2 will land
-  // a real catalog browser here (published blueprints with subscribe).
+  // Surface the user's subscribed blueprints right here so Discover →
+  // Plans isn't a dead-end shell. The full catalog browser (published
+  // blueprints with subscribe) lands later; for now this is the
+  // shortest path between "I have a subscribed plan" and "I can tap it
+  // and see what's inside it."
+  const { currentInterest } = useInterest();
+  const { data: blueprints = [] } = useSubscribedBlueprints(currentInterest?.id);
+
   return (
     <ScrollView
       style={styles.body}
@@ -377,14 +384,37 @@ function PlansPlaceholder({
         gap: 12,
       }}
     >
+      {blueprints.length > 0 ? (
+        <View style={styles.subscribedSection}>
+          <Text style={styles.subscribedHeader}>Your subscribed Blueprints</Text>
+          {blueprints.map((bp) => (
+            <Pressable
+              key={bp.blueprint_id}
+              style={styles.subscribedCard}
+              onPress={() =>
+                router.push(`/(tabs)/library/blueprints/${bp.blueprint_id}` as never)
+              }
+            >
+              <Text style={styles.subscribedCardTitle} numberOfLines={2}>
+                {bp.blueprint_title}
+              </Text>
+              <Text style={styles.subscribedCardMeta} numberOfLines={1}>
+                {bp.author_name ?? 'Author'} · subscribed{' '}
+                {new Date(bp.subscribed_at).toLocaleDateString()}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+      ) : null}
+
       <View style={styles.placeholderCard}>
         <Ionicons name="reader-outline" size={26} color={IOS_COLORS.systemBlue} />
-        <Text style={styles.placeholderTitle}>Plans</Text>
+        <Text style={styles.placeholderTitle}>Blueprints</Text>
         <Text style={styles.placeholderBody}>
-          Published plans you can subscribe to. The dedicated catalog browser
-          lands next — for now, the Library blueprints surface lists everything
-          you have already adopted, and the Studio is where authors publish new
-          ones.
+          Published Blueprints you can subscribe to. The dedicated catalog
+          browser lands next — for now, the Library Blueprints surface lists
+          everything you have already adopted, and the Studio is where authors
+          publish new ones.
         </Text>
         <View style={styles.placeholderRow}>
           <Pressable
@@ -392,7 +422,7 @@ function PlansPlaceholder({
             onPress={() => router.push('/(tabs)/library/blueprints' as never)}
           >
             <Text style={styles.placeholderActionPrimaryText}>
-              Your subscribed plans
+              All your Blueprints
             </Text>
           </Pressable>
           <Pressable
@@ -400,7 +430,7 @@ function PlansPlaceholder({
             onPress={() => onJumpToSegment('orgs')}
           >
             <Text style={styles.placeholderActionText}>
-              Orgs that publish plans
+              Orgs that publish Blueprints
             </Text>
           </Pressable>
         </View>
@@ -549,5 +579,33 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '700',
     color: '#FFFFFF',
+  },
+  subscribedSection: {
+    gap: 8,
+  },
+  subscribedHeader: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: IOS_COLORS.secondaryLabel,
+    letterSpacing: 0.4,
+    textTransform: 'uppercase',
+    marginBottom: 2,
+  },
+  subscribedCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(60,60,67,0.12)',
+    padding: 14,
+    gap: 4,
+  },
+  subscribedCardTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: IOS_COLORS.label,
+  },
+  subscribedCardMeta: {
+    fontSize: 12,
+    color: IOS_COLORS.tertiaryLabel,
   },
 });

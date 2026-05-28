@@ -671,7 +671,7 @@ export function PlanTab({
         {onNextTab && !readOnly && (
           <View style={styles.nextCtaContainer}>
             <Pressable style={styles.nextCtaButton} onPress={onNextTab}>
-              <Text style={styles.nextCtaText}>Next: Start Doing</Text>
+              <Text style={styles.nextCtaText}>Next: Do</Text>
               <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />
             </Pressable>
           </View>
@@ -726,6 +726,7 @@ export function PlanTab({
 
     return (
       <PlanTabInterior
+        stepId={stepId}
         planData={planData}
         onUpdate={onUpdate}
         readOnly={readOnly}
@@ -1187,7 +1188,7 @@ export function PlanTab({
       {onNextTab && !readOnly && (
         <View style={styles.nextCtaContainer}>
           <Pressable style={styles.nextCtaButton} onPress={onNextTab}>
-            <Text style={styles.nextCtaText}>Next: Start Doing</Text>
+            <Text style={styles.nextCtaText}>Next: Do</Text>
             <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />
           </Pressable>
         </View>

@@ -1,5 +1,15 @@
-import React, { useMemo, useState } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import {
+  Modal,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
 import { STEP_COLORS } from '@/lib/step-theme';
@@ -17,8 +27,15 @@ import {
   type BeforeShiftItem,
 } from '@/components/step/v2/plan/BeforeTheShiftCard';
 import { LibraryBeforePicker } from '@/components/library/picker/LibraryBeforePicker';
+import { StepPlanScrollMemory } from '@/services/StepPlanScrollMemory';
 
 interface PlanTabInteriorProps {
+  /**
+   * Step id — used to key scroll-position memory so an Atlas round-trip
+   * from "Pick on map" can restore the previous scroll on remount. Optional
+   * because new-step composers don't have a stepId yet.
+   */
+  stepId?: string;
   planData: StepPlanData;
   onUpdate: (data: Partial<StepPlanData>) => void;
   readOnly?: boolean;
@@ -58,6 +75,7 @@ interface PlanTabInteriorProps {
 }
 
 export function PlanTabInterior({
+  stepId,
   planData,
   onUpdate,
   readOnly,
@@ -99,8 +117,31 @@ export function PlanTabInterior({
     onUpdate({ how_sub_steps: subSteps });
   };
 
+  // Scroll-position memory: PlanWhereCard's "Pick on map" pushes to Atlas
+  // which unmounts this screen. Without this, router.back() lands the
+  // user at y=0 and they have to re-find the WHERE section to confirm
+  // the location saved. onScroll continuously updates the memory; the
+  // mount effect restores any saved y for this stepId.
+  const scrollRef = useRef<ScrollView>(null);
+  useEffect(() => {
+    if (!stepId) return;
+    const y = StepPlanScrollMemory.take(stepId);
+    if (y == null || y <= 0) return;
+    // Defer to next frame so the ScrollView's children have laid out.
+    requestAnimationFrame(() => {
+      scrollRef.current?.scrollTo({ y, animated: false });
+    });
+  }, [stepId]);
+  const handleScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    if (!stepId) return;
+    StepPlanScrollMemory.remember(stepId, e.nativeEvent.contentOffset.y);
+  };
+
   return (
     <ScrollView
+      ref={scrollRef}
+      onScroll={handleScroll}
+      scrollEventThrottle={120}
       style={styles.container}
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}

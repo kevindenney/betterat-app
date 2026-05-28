@@ -2435,7 +2435,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
           initialState="mid"
         />
       ) : stepPreview ? (
-        <BottomSheet
+        <StepPreviewCallout
           key={`step-preview:${stepPreview.stepId}`}
           eyebrow={
             stepPreview.ownership === 'yours'
@@ -2445,24 +2445,13 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
                 : 'STEP'
           }
           title={stepPreview.name}
-          body={stepPreview.detail ?? null}
-          primary={{
-            label: 'Open step',
-            icon: 'open-outline',
-            onPress: () => {
-              const id = stepPreview.stepId;
-              setStepPreview(null);
-              if (id) router.push(`/step/${id}` as never);
-            },
+          bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset ?? 0}
+          onOpen={() => {
+            const id = stepPreview.stepId;
+            setStepPreview(null);
+            if (id) router.push(`/step/${id}` as never);
           }}
-          secondary={{
-            label: 'Dismiss',
-            icon: 'close',
-            onPress: () => setStepPreview(null),
-          }}
-          showSecondaryInMid
-          bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
-          initialState="mid"
+          onDismiss={() => setStepPreview(null)}
         />
       ) : candidate ? (
         <BottomSheet
@@ -4637,6 +4626,126 @@ function Stat({ value, label }: StatItem) {
     </View>
   );
 }
+
+/**
+ * Compact callout for a step tapped on the map. Replaces the wider
+ * BottomSheet so the map remains the focus — the sheet was reading as a
+ * "big white box." This is a stopgap toward the Apple-Maps-style pin
+ * callout tracked in project_atlas_pin_popover_redesign.
+ */
+function StepPreviewCallout({
+  eyebrow,
+  title,
+  bottomOffset,
+  onOpen,
+  onDismiss,
+}: {
+  eyebrow: string;
+  title: string;
+  bottomOffset: number;
+  onOpen: () => void;
+  onDismiss: () => void;
+}) {
+  return (
+    <View
+      style={[
+        calloutStyles.wrap,
+        { bottom: bottomOffset + 12 },
+      ]}
+      pointerEvents="box-none"
+    >
+      <View style={calloutStyles.card}>
+        <View style={calloutStyles.textCol}>
+          <Text style={calloutStyles.eyebrow}>{eyebrow}</Text>
+          <Text style={calloutStyles.title} numberOfLines={2}>
+            {title}
+          </Text>
+        </View>
+        <Pressable
+          onPress={onOpen}
+          accessibilityRole="button"
+          accessibilityLabel={`Open ${title}`}
+          style={calloutStyles.openBtn}
+        >
+          <Ionicons name="open-outline" size={14} color="#FFFFFF" />
+          <Text style={calloutStyles.openBtnText}>Open</Text>
+        </Pressable>
+        <Pressable
+          onPress={onDismiss}
+          accessibilityRole="button"
+          accessibilityLabel="Dismiss"
+          hitSlop={10}
+          style={calloutStyles.closeBtn}
+        >
+          <Ionicons name="close" size={18} color={IOS_REGISTER.labelSecondary} />
+        </Pressable>
+      </View>
+    </View>
+  );
+}
+
+const calloutStyles = StyleSheet.create({
+  wrap: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+    zIndex: 12,
+  },
+  card: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 10,
+    paddingLeft: 14,
+    paddingRight: 8,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    maxWidth: 360,
+    minWidth: 280,
+    shadowColor: '#000',
+    shadowOpacity: 0.18,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 6,
+  },
+  textCol: {
+    flex: 1,
+    gap: 2,
+  },
+  eyebrow: {
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 0.6,
+    color: IOS_REGISTER.labelSecondary,
+  },
+  title: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: IOS_REGISTER.label,
+  },
+  openBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 999,
+    backgroundColor: '#007AFF',
+  },
+  openBtnText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  closeBtn: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+});
 
 // ---------------------------------------------------------------------------
 // Styles
