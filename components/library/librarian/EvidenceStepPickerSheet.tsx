@@ -114,6 +114,12 @@ export function EvidenceStepPickerSheet({
       queryClient.invalidateQueries({
         queryKey: PLAYBOOK_KEYS.stepConceptLinks(stepId),
       });
+      // useLifecycleConcepts is what the Concepts zone + the Librarian
+      // anchor pick read — its linked_step_count feeds the observation
+      // copy. Prefix-invalidate by user id (interestId may be absent).
+      queryClient.invalidateQueries({
+        queryKey: ['playbook-lifecycle-concepts'],
+      });
       onLinked?.(stepId);
       onClose();
     } catch (err) {

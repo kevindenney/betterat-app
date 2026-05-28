@@ -334,6 +334,15 @@ export function useCreatePlaybookConcept() {
         queryClient.invalidateQueries({ queryKey: KEYS.concepts(variables.playbook_id) });
         queryClient.invalidateQueries({ queryKey: KEYS.sectionCounts(variables.playbook_id) });
       }
+      // useLifecycleConcepts is the Concepts zone + Librarian anchor
+      // source — distinct from the per-playbook concepts cache.
+      // Without this invalidation a freshly-created concept doesn't
+      // appear until manual reload.
+      if (user?.id && variables.interest_id) {
+        queryClient.invalidateQueries({
+          queryKey: KEYS.lifecycleConcepts(user.id, variables.interest_id),
+        });
+      }
     },
   });
 }
@@ -353,6 +362,14 @@ export function useUpdatePlaybookConcept() {
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: KEYS.concepts(variables.playbookId) });
       queryClient.invalidateQueries({ queryKey: ['playbook-concept-by-slug'] });
+      // Lifecycle key isn't on variables (update input is partial).
+      // Invalidate by user prefix so any active interest's lifecycle
+      // refetches — safe over-invalidate (one extra query at most).
+      if (user?.id) {
+        queryClient.invalidateQueries({
+          queryKey: ['playbook-lifecycle-concepts', user.id],
+        });
+      }
     },
   });
 }
