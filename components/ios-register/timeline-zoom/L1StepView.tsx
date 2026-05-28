@@ -77,6 +77,7 @@ const SWIPE_RUBBER_FACTOR = 1; // drag follows finger 1:1 so the motion reads
 const SWIPE_OFF_SCREEN_PX = 500; // commit animates the card fully off-screen
 
 export function L1StepView({
+  dataset,
   step,
   onOpenStepDetail,
   embedFullDetail,
@@ -87,6 +88,9 @@ export function L1StepView({
 }: L1StepViewProps) {
   const hasPrev = prevStepTitle != null;
   const hasNext = nextStepTitle != null;
+  // NOW indicator only on the canonical "current" step. The user can
+  // swipe to past/future steps; those are not "now".
+  const isNowStep = step.id === dataset.focusStepId;
   const translateX = useSharedValue(0);
   const passedThreshold = useSharedValue(false);
 
@@ -161,10 +165,14 @@ export function L1StepView({
         {hasNext ? <View style={styles.peekRight} pointerEvents="none" /> : null}
         <GestureDetector gesture={swipeGesture}>
           <Animated.View style={[styles.embedContent, translateStyle]}>
-            <View style={styles.embedNowBar} />
-            <View style={styles.embedNowPill}>
-              <Text style={styles.embedNowPillText}>NOW</Text>
-            </View>
+            {isNowStep ? (
+              <>
+                <View style={styles.embedNowBar} />
+                <View style={styles.embedNowPill}>
+                  <Text style={styles.embedNowPillText}>NOW</Text>
+                </View>
+              </>
+            ) : null}
             <View style={styles.embedChrome}>
               <Text style={styles.verbEyebrow}>ZOOM · ONE STEP · DOING</Text>
               {step.peerQuote ? <PeerQuoteBlock quote={step.peerQuote} /> : null}
@@ -203,7 +211,7 @@ export function L1StepView({
         accessibilityRole={handleOpen ? 'button' : undefined}
         accessibilityLabel={handleOpen ? `Open ${step.title}` : undefined}
       >
-        <View style={styles.nowBar} />
+        {isNowStep ? <View style={styles.nowBar} /> : null}
 
         {handleOpen ? (
           <View style={styles.openHint}>
