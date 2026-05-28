@@ -1068,7 +1068,10 @@ function buildWeekPlanningHint(
  * yet. The librarian prompt is a baseline sentence keyed off the
  * first→latest capability drift so L4 has something to surface.
  */
-function computeLifetimeAnalysis(seasons: TimelineSeason[]): LifetimeAnalysis | undefined {
+function computeLifetimeAnalysis(
+  seasons: TimelineSeason[],
+  interestSlug: string | null,
+): LifetimeAnalysis | undefined {
   if (seasons.length === 0) return undefined;
 
   // Sessions oldest → newest. The dataset's `seasons` array lists the
@@ -1206,16 +1209,26 @@ function computeLifetimeAnalysis(seasons: TimelineSeason[]): LifetimeAnalysis | 
   // Baseline librarian sentence — drift from first session's dominant
   // capability to the latest. Honest about not knowing the user's
   // milestones yet.
+  //
+  // colorToCapabilityLabel reverse-maps off CAPABILITY_PALETTE, which is
+  // nursing-specific. On a non-nursing interest those labels lie ("you've
+  // drifted from procedural toward pharm" on a Sail Racing surface), so
+  // we fall back to a vocab-neutral sentence whenever the viewer isn't
+  // on the nursing rails.
   const firstCap = sessions[0]?.dominantCapabilityColor;
   const lastCap = sessions[sessions.length - 1]?.dominantCapabilityColor;
-  const firstLabel = firstCap ? colorToCapabilityLabel(firstCap) : null;
-  const lastLabel = lastCap ? colorToCapabilityLabel(lastCap) : null;
-  const drift =
-    firstLabel && lastLabel && firstLabel !== lastLabel
+  const useNursingLabels = interestSlug === 'nursing';
+  const firstLabel =
+    useNursingLabels && firstCap ? colorToCapabilityLabel(firstCap) : null;
+  const lastLabel =
+    useNursingLabels && lastCap ? colorToCapabilityLabel(lastCap) : null;
+  const drift = useNursingLabels
+    ? firstLabel && lastLabel && firstLabel !== lastLabel
       ? `Since ${sessions[0].label} you've drifted from ${firstLabel.toLowerCase()} toward ${lastLabel.toLowerCase()}.`
       : firstLabel
         ? `${firstLabel} has been the steady thread across your practice.`
-        : '';
+        : ''
+    : `Since ${sessions[0]?.label ?? 'you started'} the texture of your practice has shifted.`;
   const promptBody =
     sessions.length > 1
       ? `${drift} Worth a reflection on what you're becoming?`
@@ -1569,6 +1582,9 @@ export function mapToTimelineDataset({
     sinceTimestamp: allSeasons[allSeasons.length - 1]?.start_date ?? undefined,
     seasons: [currentSeasonNode, ...archivedSeasons],
     capabilityFilters: [{ id: 'all', label: 'All' }],
-    lifetime: computeLifetimeAnalysis([currentSeasonNode, ...archivedSeasons]),
+    lifetime: computeLifetimeAnalysis(
+      [currentSeasonNode, ...archivedSeasons],
+      interestSlug ?? null,
+    ),
   };
 }
