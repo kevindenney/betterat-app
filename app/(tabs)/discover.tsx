@@ -1,252 +1,553 @@
 /**
- * Discover Tab — the canonical Discover trio
+ * Discover tab — six-segment landing.
  *
- * Three sibling surfaces, one shared chrome — per
- * `docs/redesign/ios-register/discover-trio-canonical.html`:
+ * All · Today · Interests · Orgs · People · Plans.
  *
- *   - Orgs    — institution as the unit
- *   - People  — practitioner as the unit; current concept travels at a glance
- *   - Forums  — topic as the unit; ongoing spaces, not single threads
+ * Each non-All segment defers to a focused content component built in
+ * the Pass 11 work; this shell owns only the toolbar, segmented pill,
+ * and the cross-segment state (added interests + followed people) that
+ * the children write back to.
  *
- * The segmented control is the only switcher. Scroll position is preserved
- * per segment. Follow / join state is lifted here so it survives switches.
- * Works for authenticated and unauthenticated users (auth gate on actions).
+ * Orgs segment renders organizations and affinity_groups at the same
+ * level (per the user's "a student group is a kind of org" model —
+ * JHU, JHSON, and a JHU nursing students group all sit beside each
+ * other in the same list).
+ *
+ * Plans = published blueprints. The DB tables and code identifiers
+ * still say `blueprints`; copy uses "Plans" because that's how the
+ * user talks about them.
  */
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import {
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
+} from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { TabScreenToolbar } from '@/components/ui/TabScreenToolbar';
+import { LocationAnchor } from '@/components/ui/LocationAnchor';
+import { FLOATING_TAB_BAR_HEIGHT } from '@/components/navigation/FloatingTabBar';
+import { IOSSegmentedControl } from '@/components/ui/ios/IOSSegmentedControl';
+import { useUserHomeVenue } from '@/hooks/useUserHomeVenue';
+import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
+import { DiscoverTodayContent } from '@/components/discover/DiscoverTodayContent';
 import { DiscoverInterestsContent } from '@/components/discover/DiscoverInterestsContent';
 import { DiscoverOrgsContent } from '@/components/discover/DiscoverOrgsContent';
 import { DiscoverPeopleContent } from '@/components/discover/DiscoverPeopleContent';
-import { DiscoverTodayContent } from '@/components/discover/DiscoverTodayContent';
-import { useInterest } from '@/providers/InterestProvider';
-import { DiscussContent } from '@/components/connect/DiscussContent';
-import { IOSSegmentedControl } from '@/components/ui/ios/IOSSegmentedControl';
-import { TabScreenToolbar } from '@/components/ui/TabScreenToolbar';
-import { useScrollToolbarHide } from '@/hooks/useScrollToolbarHide';
-import { IOS_COLORS } from '@/lib/design-tokens-ios';
-import { useUniversalPlus } from '@/components/capture';
 
-// =============================================================================
-// TYPES & CONSTANTS
-// =============================================================================
+type DiscoverSegment = 'all' | 'today' | 'interests' | 'orgs' | 'people' | 'plans';
 
-type DiscoverSegment = 'today' | 'interests' | 'organizations' | 'people' | 'forums';
-
-const DISCOVER_SEGMENTS = [
-  { value: 'today' as const, label: 'Today' },
-  { value: 'interests' as const, label: 'Interests' },
-  { value: 'organizations' as const, label: 'Orgs' },
-  { value: 'people' as const, label: 'People' },
-  { value: 'forums' as const, label: 'Forums' },
+const VALID_SEGMENTS: DiscoverSegment[] = [
+  'all',
+  'today',
+  'interests',
+  'orgs',
+  'people',
+  'plans',
 ];
 
-const VALID_SEGMENTS: DiscoverSegment[] = ['today', 'interests', 'organizations', 'people', 'forums'];
+const SEGMENTS: { value: DiscoverSegment; label: string }[] = [
+  { value: 'all', label: 'All' },
+  { value: 'today', label: 'Today' },
+  { value: 'interests', label: 'Interests' },
+  { value: 'orgs', label: 'Orgs' },
+  { value: 'people', label: 'People' },
+  { value: 'plans', label: 'Plans' },
+];
 
-// Legacy alias from the previous segment shapes — deep links with old segment
-// names fall through to the canonical default rather than 404.
-const LEGACY_SEGMENT_ALIASES: Record<string, DiscoverSegment> = {
-  orgs: 'organizations',
-  cover: 'today',
-};
-
-const STORAGE_KEY = 'regattaflow_discover_segment';
-const FOLLOWED_IDS_KEY = 'regattaflow_connect_followed_ids';
-const JOINED_IDS_KEY = 'regattaflow_connect_joined_ids';
-
-function resolveSegmentParam(raw: string | string[] | undefined): DiscoverSegment | null {
-  if (typeof raw !== 'string') return null;
-  if (VALID_SEGMENTS.includes(raw as DiscoverSegment)) return raw as DiscoverSegment;
-  return LEGACY_SEGMENT_ALIASES[raw] ?? null;
-}
-
-// =============================================================================
-// MAIN COMPONENT
-// =============================================================================
-
-export default function DiscoverTab() {
-  const universalPlus = useUniversalPlus();
-  const params = useLocalSearchParams<{ segment?: string }>();
+export default function DiscoverScreen() {
   const insets = useSafeAreaInsets();
+  const homeVenue = useUserHomeVenue();
+  const params = useLocalSearchParams<{ segment?: string; category?: string }>();
   const [toolbarHeight, setToolbarHeight] = useState(0);
-  const { toolbarHidden, handleScroll } = useScrollToolbarHide();
-  const [activeSegment, setActiveSegment] = useState<DiscoverSegment>('today');
 
-  // User's currently-added interests, fed to DiscoverInterestsContent so
-  // already-added interests render with an "Added" badge instead of the
-  // plus button.
-  const { userInterests } = useInterest();
-  const addedInterestSlugs = useMemo(
-    () => new Set(userInterests.map((i) => i.slug)),
-    [userInterests],
-  );
+  // Legacy ?category=… deep links from earlier Discover surfaces map
+  // onto the new segment ids so existing links keep working.
+  const initialFromLegacy = useMemo<DiscoverSegment | null>(() => {
+    const raw = Array.isArray(params.category) ? params.category[0] : params.category;
+    if (!raw) return null;
+    if (raw === 'organizations') return 'orgs';
+    if (raw === 'blueprints') return 'plans';
+    if ((VALID_SEGMENTS as string[]).includes(raw)) return raw as DiscoverSegment;
+    return null;
+  }, [params.category]);
 
-  // Shared follow/join state (lifted so it survives segment switches)
+  const initialSegment: DiscoverSegment = useMemo(() => {
+    const raw = Array.isArray(params.segment) ? params.segment[0] : params.segment;
+    if (raw && (VALID_SEGMENTS as string[]).includes(raw)) {
+      return raw as DiscoverSegment;
+    }
+    return initialFromLegacy ?? 'all';
+  }, [params.segment, initialFromLegacy]);
+
+  const [segment, setSegment] = useState<DiscoverSegment>(initialSegment);
+  useEffect(() => {
+    setSegment(initialSegment);
+  }, [initialSegment]);
+
+  const handleSegmentChange = useCallback((next: DiscoverSegment) => {
+    setSegment(next);
+    router.setParams({
+      segment: next === 'all' ? '' : next,
+      category: '',
+    });
+  }, []);
+
+  // Cross-segment state — children read + write so the Add/Follow chips
+  // stay sticky as the user pivots between Interests and People.
+  const [addedInterestSlugs, setAddedInterestSlugs] = useState<Set<string>>(new Set());
+  const onAddInterest = useCallback((slug: string) => {
+    setAddedInterestSlugs((prev) => {
+      const next = new Set(prev);
+      next.add(slug);
+      return next;
+    });
+  }, []);
+
   const [followedIds, setFollowedIds] = useState<Set<string>>(new Set());
-  const [joinedIds, setJoinedIds] = useState<Set<string>>(new Set());
-
-  const toggleFollow = useCallback((id: string) => {
+  const onToggleFollow = useCallback((id: string) => {
     setFollowedIds((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
       else next.add(id);
-      AsyncStorage.setItem(FOLLOWED_IDS_KEY, JSON.stringify([...next])).catch(() => {});
       return next;
     });
   }, []);
 
-  const toggleJoin = useCallback((id: string) => {
-    setJoinedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      AsyncStorage.setItem(JOINED_IDS_KEY, JSON.stringify([...next])).catch(() => {});
-      return next;
-    });
-  }, []);
-
-  const routeSegment = resolveSegmentParam(params.segment);
-
-  // Load persisted state on mount
-  useEffect(() => {
-    AsyncStorage.getItem(STORAGE_KEY).then((stored) => {
-      const resolved = resolveSegmentParam(stored ?? undefined);
-      if (resolved) setActiveSegment(resolved);
-    }).catch(() => {});
-
-    AsyncStorage.getItem(FOLLOWED_IDS_KEY).then((stored) => {
-      if (stored) {
-        try { setFollowedIds(new Set(JSON.parse(stored))); } catch {}
-      }
-    }).catch(() => {});
-
-    AsyncStorage.getItem(JOINED_IDS_KEY).then((stored) => {
-      if (stored) {
-        try { setJoinedIds(new Set(JSON.parse(stored))); } catch {}
-      }
-    }).catch(() => {});
-  }, []);
-
-  // Allow deep links to force a starting segment
-  useEffect(() => {
-    if (routeSegment) {
-      setActiveSegment(routeSegment);
-      AsyncStorage.setItem(STORAGE_KEY, routeSegment).catch(() => {});
-    }
-  }, [routeSegment]);
-
-  const handleSegmentChange = (segment: DiscoverSegment) => {
-    setActiveSegment(segment);
-    AsyncStorage.setItem(STORAGE_KEY, segment).catch(() => {});
-  };
+  // Children that own their own ScrollView read `toolbarOffset` so the
+  // first card clears the floating chrome. All segment renders inside
+  // the shell's ScrollView; the others render full-bleed.
+  const toolbarOffset = toolbarHeight;
 
   return (
     <View style={styles.container}>
-      <View style={[styles.statusBarBackground, { height: insets.top }]} />
-
-      {activeSegment === 'today' && (
-        <DiscoverTodayContent
-          toolbarOffset={toolbarHeight}
-          onScroll={handleScroll}
-        />
-      )}
-      {activeSegment === 'interests' && (
-        <DiscoverInterestsContent
-          toolbarOffset={toolbarHeight}
-          onScroll={handleScroll}
-          addedInterestSlugs={addedInterestSlugs}
-          onAddInterest={() => {
-            /* component handles the supabase insert internally; this
-               hook is reserved for parent-level reactions (e.g. analytics). */
+      {segment === 'all' ? (
+        <ScrollView
+          style={styles.body}
+          contentContainerStyle={{
+            paddingTop: toolbarHeight + IOS_SPACING.md,
+            paddingBottom: FLOATING_TAB_BAR_HEIGHT + insets.bottom + 24,
           }}
-        />
-      )}
-      {activeSegment === 'organizations' && (
-        <DiscoverOrgsContent
-          toolbarOffset={toolbarHeight}
-          onScroll={handleScroll}
-        />
-      )}
-      {activeSegment === 'people' && (
-        <DiscoverPeopleContent
-          toolbarOffset={toolbarHeight}
-          onScroll={handleScroll}
+        >
+          <SegmentBar segment={segment} onSegmentChange={handleSegmentChange} />
+          <DiscoverAll
+            onJumpToSegment={handleSegmentChange}
+            addedInterestCount={addedInterestSlugs.size}
+            followedCount={followedIds.size}
+          />
+        </ScrollView>
+      ) : (
+        <SegmentContent
+          segment={segment}
+          toolbarOffset={toolbarOffset + 48}
+          onSegmentChange={handleSegmentChange}
+          addedInterestSlugs={addedInterestSlugs}
+          onAddInterest={onAddInterest}
           followedIds={followedIds}
-          onToggleFollow={toggleFollow}
-        />
-      )}
-      {activeSegment === 'forums' && (
-        <DiscussContent
-          toolbarOffset={toolbarHeight}
-          onScroll={handleScroll}
-          joinedIds={joinedIds}
-          onToggleJoin={toggleJoin}
+          onToggleFollow={onToggleFollow}
         />
       )}
 
       <TabScreenToolbar
-        title="Discover"
+        subtitleContent={
+          homeVenue ? (
+            <LocationAnchor region={homeVenue.region} venue={homeVenue.venue} />
+          ) : undefined
+        }
         topInset={insets.top}
+        backgroundColor="rgba(242, 242, 247, 0.94)"
+        onMeasuredHeight={setToolbarHeight}
         actions={[
           {
-            icon: 'notifications-outline',
-            sfSymbol: 'bell',
-            label: 'Notifications',
-            onPress: () => router.push('/social-notifications'),
-          },
-          ...(universalPlus.isAvailable
-            ? [
-                {
-                  icon: 'add-outline',
-                  sfSymbol: 'plus',
-                  label: 'Add',
-                  onPress: () => universalPlus.open(),
-                },
-              ]
-            : []),
-          {
-            icon: 'sparkles-outline',
-            sfSymbol: 'wand.and.stars',
-            label: 'Preview Discover Pass 11 iOS register',
-            onPress: () => router.push('/discover-ios' as any),
+            icon: 'search-outline',
+            sfSymbol: 'magnifyingglass',
+            label: 'Search Discover',
+            onPress: () => router.push('/search?context=discover' as never),
           },
         ]}
-        onMeasuredHeight={setToolbarHeight}
-        hidden={toolbarHidden}
-        backgroundColor="rgba(242, 242, 247, 0.94)"
-      >
-        <View style={styles.segmentContainer}>
-          <IOSSegmentedControl
-            segments={DISCOVER_SEGMENTS}
-            selectedValue={activeSegment}
-            onValueChange={handleSegmentChange}
-          />
+      />
+
+      {/* When a non-All segment owns its own scroll, the segment bar
+          sits as a floating pill below the toolbar so the user can
+          pivot without losing scroll position inside the content. */}
+      {segment !== 'all' ? (
+        <View
+          style={[styles.floatingSegmentBar, { top: toolbarHeight + 4 }]}
+          pointerEvents="box-none"
+        >
+          <SegmentBar segment={segment} onSegmentChange={handleSegmentChange} />
         </View>
-      </TabScreenToolbar>
+      ) : null}
     </View>
   );
 }
+
+function SegmentBar({
+  segment,
+  onSegmentChange,
+}: {
+  segment: DiscoverSegment;
+  onSegmentChange: (next: DiscoverSegment) => void;
+}) {
+  return (
+    <View style={styles.segmentBarWrap}>
+      <IOSSegmentedControl
+        segments={SEGMENTS}
+        selectedValue={segment}
+        onValueChange={(v) => onSegmentChange(v as DiscoverSegment)}
+      />
+    </View>
+  );
+}
+
+function SegmentContent({
+  segment,
+  toolbarOffset,
+  onSegmentChange,
+  addedInterestSlugs,
+  onAddInterest,
+  followedIds,
+  onToggleFollow,
+}: {
+  segment: DiscoverSegment;
+  toolbarOffset: number;
+  onSegmentChange: (next: DiscoverSegment) => void;
+  addedInterestSlugs: Set<string>;
+  onAddInterest: (slug: string) => void;
+  followedIds: Set<string>;
+  onToggleFollow: (id: string) => void;
+}) {
+  if (segment === 'today') {
+    return <DiscoverTodayContent toolbarOffset={toolbarOffset} />;
+  }
+  if (segment === 'interests') {
+    return (
+      <DiscoverInterestsContent
+        toolbarOffset={toolbarOffset}
+        addedInterestSlugs={addedInterestSlugs}
+        onAddInterest={onAddInterest}
+      />
+    );
+  }
+  if (segment === 'orgs') {
+    return <DiscoverOrgsContent toolbarOffset={toolbarOffset} />;
+  }
+  if (segment === 'people') {
+    return (
+      <DiscoverPeopleContent
+        toolbarOffset={toolbarOffset}
+        followedIds={followedIds}
+        onToggleFollow={onToggleFollow}
+      />
+    );
+  }
+  if (segment === 'plans') {
+    return (
+      <PlansPlaceholder
+        toolbarOffset={toolbarOffset}
+        onJumpToSegment={onSegmentChange}
+      />
+    );
+  }
+  return null;
+}
+
+/**
+ * Stitched "All" view — terse preview of each segment with jump
+ * affordances. Acts as a default landing that orients a brand-new
+ * user without forcing a category pick first.
+ */
+function DiscoverAll({
+  onJumpToSegment,
+  addedInterestCount,
+  followedCount,
+}: {
+  onJumpToSegment: (segment: DiscoverSegment) => void;
+  addedInterestCount: number;
+  followedCount: number;
+}) {
+  const cards: {
+    segment: DiscoverSegment;
+    title: string;
+    body: string;
+    icon: keyof typeof Ionicons.glyphMap;
+    badge?: string;
+  }[] = [
+    {
+      segment: 'today',
+      title: 'Today',
+      body: 'A curated front door — what is happening at your home org, this week\'s pick, and a few suggestions tuned to your current interest.',
+      icon: 'sparkles-outline',
+    },
+    {
+      segment: 'interests',
+      title: 'Interests',
+      body: 'Browse craft and discipline interests. Add the ones you are working on.',
+      icon: 'compass-outline',
+      badge: addedInterestCount > 0 ? `${addedInterestCount} added` : undefined,
+    },
+    {
+      segment: 'orgs',
+      title: 'Orgs',
+      body: 'Schools, clubs, programs, and groups — Johns Hopkins, JHSON, the JHU nursing student groups all sit at the same level. Join the ones that shape your practice.',
+      icon: 'business-outline',
+    },
+    {
+      segment: 'people',
+      title: 'People',
+      body: 'Coaches, peers, mentors. Follow the ones you want to learn from.',
+      icon: 'people-outline',
+      badge: followedCount > 0 ? `${followedCount} followed` : undefined,
+    },
+    {
+      segment: 'plans',
+      title: 'Plans',
+      body: 'Published plans you can subscribe to and pull into your timeline. (Plans = blueprints in the DB; the UI uses "plan" because that\'s how you talk about them.)',
+      icon: 'reader-outline',
+    },
+  ];
+
+  return (
+    <View style={styles.allWrap}>
+      <View style={styles.allHero}>
+        <Text style={styles.allEyebrow}>Discover</Text>
+        <Text style={styles.allTitle}>Before it is yours</Text>
+        <Text style={styles.allCopy}>
+          Find interests, orgs, people, and plans you do not yet practice with.
+          Pick a tab to drill in, or browse here.
+        </Text>
+      </View>
+
+      <View style={styles.allCardStack}>
+        {cards.map((c) => (
+          <Pressable
+            key={c.segment}
+            style={styles.allCard}
+            onPress={() => onJumpToSegment(c.segment)}
+          >
+            <View style={styles.allCardHead}>
+              <View style={styles.allCardIcon}>
+                <Ionicons name={c.icon} size={18} color={IOS_COLORS.systemBlue} />
+              </View>
+              <Text style={styles.allCardTitle}>{c.title}</Text>
+              {c.badge ? (
+                <View style={styles.allCardBadge}>
+                  <Text style={styles.allCardBadgeText}>{c.badge}</Text>
+                </View>
+              ) : null}
+              <Ionicons
+                name="chevron-forward"
+                size={16}
+                color={IOS_COLORS.tertiaryLabel}
+              />
+            </View>
+            <Text style={styles.allCardBody}>{c.body}</Text>
+          </Pressable>
+        ))}
+      </View>
+    </View>
+  );
+}
+
+function PlansPlaceholder({
+  toolbarOffset,
+  onJumpToSegment,
+}: {
+  toolbarOffset: number;
+  onJumpToSegment: (segment: DiscoverSegment) => void;
+}) {
+  // Plans content is iterative — for now this is a routed-out shell
+  // so users can reach the Library blueprints surface. v2 will land
+  // a real catalog browser here (published blueprints with subscribe).
+  return (
+    <ScrollView
+      style={styles.body}
+      contentContainerStyle={{
+        paddingTop: toolbarOffset + IOS_SPACING.md,
+        paddingBottom: FLOATING_TAB_BAR_HEIGHT + 80,
+        paddingHorizontal: IOS_SPACING.lg,
+        gap: 12,
+      }}
+    >
+      <View style={styles.placeholderCard}>
+        <Ionicons name="reader-outline" size={26} color={IOS_COLORS.systemBlue} />
+        <Text style={styles.placeholderTitle}>Plans</Text>
+        <Text style={styles.placeholderBody}>
+          Published plans you can subscribe to. The dedicated catalog browser
+          lands next — for now, the Library blueprints surface lists everything
+          you have already adopted, and the Studio is where authors publish new
+          ones.
+        </Text>
+        <View style={styles.placeholderRow}>
+          <Pressable
+            style={[styles.placeholderAction, styles.placeholderActionPrimary]}
+            onPress={() => router.push('/(tabs)/library/blueprints' as never)}
+          >
+            <Text style={styles.placeholderActionPrimaryText}>
+              Your subscribed plans
+            </Text>
+          </Pressable>
+          <Pressable
+            style={styles.placeholderAction}
+            onPress={() => onJumpToSegment('orgs')}
+          >
+            <Text style={styles.placeholderActionText}>
+              Orgs that publish plans
+            </Text>
+          </Pressable>
+        </View>
+      </View>
+    </ScrollView>
+  );
+}
+
+// Silence unused-import warnings if the underlying components stop
+// using these types in a future signature change.
+void ([] as NativeSyntheticEvent<NativeScrollEvent>[]);
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: IOS_COLORS.systemGroupedBackground,
   },
-  statusBarBackground: {
+  body: {
+    flex: 1,
+  },
+  segmentBarWrap: {
+    paddingHorizontal: IOS_SPACING.lg,
+    marginBottom: IOS_SPACING.md,
+  },
+  floatingSegmentBar: {
     position: 'absolute',
-    top: 0,
     left: 0,
     right: 0,
-    zIndex: 99,
-    backgroundColor: 'rgba(242, 242, 247, 0.94)',
   },
-  segmentContainer: {
-    paddingHorizontal: 16,
-    paddingTop: 4,
-    paddingBottom: 8,
+  allWrap: {
+    paddingHorizontal: IOS_SPACING.lg,
+    gap: IOS_SPACING.md,
+  },
+  allHero: {
+    padding: 18,
+    borderRadius: 20,
+    backgroundColor: '#FFFFFF',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(60,60,67,0.12)',
+    gap: 6,
+  },
+  allEyebrow: {
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 0.7,
+    textTransform: 'uppercase',
+    color: IOS_COLORS.systemBlue,
+  },
+  allTitle: {
+    fontSize: 24,
+    lineHeight: 28,
+    fontWeight: '800',
+    color: IOS_COLORS.label,
+  },
+  allCopy: {
+    fontSize: 14,
+    lineHeight: 20,
+    color: IOS_COLORS.secondaryLabel,
+  },
+  allCardStack: {
+    gap: 10,
+  },
+  allCard: {
+    padding: 14,
+    borderRadius: 16,
+    backgroundColor: '#FFFFFF',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(60,60,67,0.12)',
+    gap: 8,
+  },
+  allCardHead: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  allCardIcon: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(0, 122, 255, 0.12)',
+  },
+  allCardTitle: {
+    flex: 1,
+    fontSize: 16,
+    fontWeight: '700',
+    color: IOS_COLORS.label,
+  },
+  allCardBadge: {
+    borderRadius: 999,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    backgroundColor: '#DCEAFE',
+  },
+  allCardBadgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: IOS_COLORS.systemBlue,
+  },
+  allCardBody: {
+    fontSize: 13,
+    lineHeight: 18,
+    color: IOS_COLORS.secondaryLabel,
+  },
+  placeholderCard: {
+    padding: 18,
+    borderRadius: 20,
+    backgroundColor: '#FFFFFF',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(60,60,67,0.12)',
+    gap: 10,
+  },
+  placeholderTitle: {
+    fontSize: 22,
+    lineHeight: 26,
+    fontWeight: '800',
+    color: IOS_COLORS.label,
+  },
+  placeholderBody: {
+    fontSize: 14,
+    lineHeight: 20,
+    color: IOS_COLORS.secondaryLabel,
+  },
+  placeholderRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+    marginTop: 4,
+  },
+  placeholderAction: {
+    borderRadius: 999,
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+    backgroundColor: IOS_COLORS.secondarySystemGroupedBackground,
+  },
+  placeholderActionPrimary: {
+    backgroundColor: IOS_COLORS.systemBlue,
+  },
+  placeholderActionText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: IOS_COLORS.label,
+  },
+  placeholderActionPrimaryText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#FFFFFF',
   },
 });
