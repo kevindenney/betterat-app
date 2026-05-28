@@ -42,6 +42,7 @@ import { CapabilityMix } from './CapabilityMix';
 import { PeerJourneyChart } from './PeerJourneyChart';
 import { CrewSparseList } from './CrewSparseList';
 import { ReflectionSparkline } from './ReflectionSparkline';
+import { CapabilityFamilySheet } from './CapabilityFamilySheet';
 import { SeasonLibrarianPrompt } from './SeasonLibrarianPrompt';
 import { SeasonHeaderChips } from './SeasonHeaderChips';
 import { PickerListSheet } from './PickerListSheet';
@@ -107,6 +108,11 @@ export function L3SeasonView({
   const [chartWidth, setChartWidth] = useState(0);
   const [openPicker, setOpenPicker] = useState<
     'season' | 'step' | null
+  >(null);
+  // Open capability family for the drill-down sheet — set when the
+  // user taps a band on the CapabilityMix chart.
+  const [openFamily, setOpenFamily] = useState<
+    { id: string; label: string; color: string } | null
   >(null);
   const scrollRef = useRef<ScrollView>(null);
   const weekOffsetsRef = useRef<Record<string, number>>({});
@@ -217,6 +223,9 @@ export function L3SeasonView({
                 }))}
                 width={chartWidth}
                 height={188}
+                onCapabilityPress={(id, label, color) =>
+                  setOpenFamily({ id, label, color })
+                }
               />
             </>
           ) : (
@@ -420,6 +429,16 @@ export function L3SeasonView({
         }}
       />
 
+      <CapabilityFamilySheet
+        visible={openFamily !== null}
+        onClose={() => setOpenFamily(null)}
+        season={season}
+        capabilityId={openFamily?.id ?? null}
+        capabilityLabel={openFamily?.label ?? null}
+        capabilityColor={openFamily?.color ?? null}
+        interestVocab={interestVocab}
+        onOpenStep={onOpenStep}
+      />
     </>
   );
 }

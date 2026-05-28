@@ -199,6 +199,60 @@ const NURSING_VOCAB: InterestVocab = {
   riverHeader: 'CAPABILITY RIVER',
   crewHeader: 'COHORT',
   inputSubtitle: 'who shaped these shifts',
+  // Deliberate nursing palette — 9 capability families, perceptually
+  // distinct, with the same family color across the app. Order matters:
+  // first match wins, so more-specific patterns lead. Without this,
+  // every raw capability label ("Smooth catheter advancement",
+  // "Troubleshooting difficult catheter placement", "Correct needle
+  // angle") becomes its own band with its own colliding label —
+  // unreadable on the chart.
+  palette: [
+    {
+      pattern: /catheter|i\.?v\.?|iv\b|needle|vein|insertion|first.?stick|venipuncture|cannula/i,
+      canonicalLabel: 'Procedures',
+      color: '#2F8FB0',
+    },
+    {
+      pattern: /head.?to.?toe|vital\s+signs?|assessment|evaluation|focused\s+exam|history\s+taking/i,
+      canonicalLabel: 'Assessment',
+      color: '#5BA46F',
+    },
+    {
+      pattern: /medication|dosing|administration|pharmac|drug\s+calc|titrat/i,
+      canonicalLabel: 'Pharmacology',
+      color: '#7E6FC8',
+    },
+    {
+      pattern: /infection|sterile|aseptic|ppe\b|hand\s+hygiene|handwash|barrier/i,
+      canonicalLabel: 'Infection control',
+      color: '#5BA4A6',
+    },
+    {
+      pattern: /patient\s+(education|teaching)|teach.?back|discharge\s+teach|health\s+literacy|capstone/i,
+      canonicalLabel: 'Education',
+      color: '#C99632',
+    },
+    {
+      pattern: /patient\s+communication|clinical\s+communication|handoff|sbar|huddle|family\s+conference/i,
+      canonicalLabel: 'Communication',
+      color: '#C46E49',
+    },
+    {
+      pattern: /chart|documentation|electronic\s+(record|health)|ehr\b|nursing\s+notes?/i,
+      canonicalLabel: 'Documentation',
+      color: '#7BA0C4',
+    },
+    {
+      pattern: /discharge\s+planning|care\s+plan|care\s+coordination|transitions?\s+of\s+care/i,
+      canonicalLabel: 'Care planning',
+      color: '#B86EAA',
+    },
+    {
+      pattern: /fall\s+prevention|restraint|rapid\s+response|emergency|code\s+blue|safety/i,
+      canonicalLabel: 'Safety',
+      color: '#C4474A',
+    },
+  ],
   phasePatterns: [
     { pattern: /med.?surg/i, label: 'Med-Surg' },
     { pattern: /\bICU\b|intensive\s+care/i, label: 'ICU' },

@@ -47,7 +47,11 @@ interface CapabilityMixProps {
   reflections?: SeasonReflection[];
   markers?: CapabilityMixMarker[];
   /** Optional tap on a band — opens a deeper view for that capability. */
-  onCapabilityPress?: (capabilityId: string, capabilityLabel: string) => void;
+  onCapabilityPress?: (
+    capabilityId: string,
+    capabilityLabel: string,
+    capabilityColor: string,
+  ) => void;
   /**
    * Override the tick label for the x-axis. L3 defaults to "wk N";
    * L4 passes a function that returns the session label ("Winter '26",
@@ -441,7 +445,7 @@ export function CapabilityMix({
                 key={`tap-${band.id}`}
                 accessibilityRole="button"
                 accessibilityLabel={`Open ${band.label}`}
-                onPress={() => onCapabilityPress(band.id, band.label)}
+                onPress={() => onCapabilityPress(band.id, band.label, band.color)}
                 style={({ pressed }) => [
                   styles.tapTarget,
                   {
