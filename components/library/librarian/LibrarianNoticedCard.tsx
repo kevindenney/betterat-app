@@ -26,8 +26,12 @@ export interface LibrarianObservation {
   body: string;
   /** Italic phrases lifted from `body` and highlighted purple. */
   emphasise?: string[];
-  /** Cited concept anchor (the concept this observation is about). */
+  /** Cited concept anchor (the concept this observation is about).
+   *  `id` is present when the observation references a real concept
+   *  (so Add evidence can attach a step to it via step_concept_links);
+   *  absent for sample/demo observations. */
   concept: {
+    id?: string;
     title: string;
     state: 'forming' | 'forming-with-tension' | 'testing' | 'settled';
   };

@@ -91,7 +91,7 @@ import type {
 // Query keys
 // ---------------------------------------------------------------------------
 
-const KEYS = {
+export const KEYS = {
   playbook: (interestId: string, userId: string) =>
     ['playbook', userId, interestId] as const,
   resources: (playbookId: string) => ['playbook-resources', playbookId] as const,

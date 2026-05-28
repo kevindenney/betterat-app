@@ -11,36 +11,71 @@ import {
   LibrarianNoticedCard,
   type LibrarianObservation,
 } from '@/components/library/librarian/LibrarianNoticedCard';
+import { EvidenceStepPickerSheet } from '@/components/library/librarian/EvidenceStepPickerSheet';
 import { InspirationWizard } from '@/components/inspiration/InspirationWizard';
 import { FEATURE_FLAGS } from '@/lib/featureFlags';
 import { useInterest } from '@/providers/InterestProvider';
-import { usePlaybook, usePlaybookInsights, useLifecycleConcepts, useDiscardPlaybookInsight, useRefinePlaybookInsight } from '@/hooks/usePlaybook';
+import {
+  usePlaybook,
+  usePlaybookInsights,
+  useLifecycleConcepts,
+  useDiscardPlaybookInsight,
+  useRefinePlaybookInsight,
+} from '@/hooks/usePlaybook';
 import { useSubscribedBlueprints } from '@/hooks/useBlueprint';
+
+interface ObservationAnchor {
+  id: string;
+  title: string;
+  state: 'forming' | 'forming-with-tension' | 'testing' | 'settled';
+}
 
 export default function LibraryIndexScreen() {
   const [inspirationWizardOpen, setInspirationWizardOpen] = React.useState(false);
   const [observationDismissed, setObservationDismissed] = React.useState(false);
+  const [evidencePickerOpen, setEvidencePickerOpen] = React.useState(false);
   const toast = useToast();
+  const { currentInterest } = useInterest();
+  const { data: playbook } = usePlaybook(currentInterest?.id);
+  const { data: concepts = [] } = useLifecycleConcepts(currentInterest?.id);
 
-  // Librarian strip + noticed card live above the All zone (canonical
-  // §2 rev — Librarian was previously the top of Concepts; user moved
-  // it to All so it surfaces on the default landing).
+  // Pick a real concept to anchor the librarian observation on. Prefer
+  // a non-settled one (still under exercise); fall back to any. The
+  // sample observation only renders when the user has no concepts yet.
+  const observationAnchor = React.useMemo<ObservationAnchor | null>(() => {
+    const candidate =
+      concepts.find((c) => c.state !== 'settled') ?? concepts[0] ?? null;
+    if (!candidate) return null;
+    return {
+      id: candidate.id,
+      title: candidate.title ?? 'Untitled concept',
+      state: candidate.state ?? 'forming',
+    };
+  }, [concepts]);
+
+  const handleAddEvidence = React.useCallback(() => {
+    if (observationAnchor) {
+      setEvidencePickerOpen(true);
+    } else {
+      toast.show(
+        'No concepts yet — capture one first, then attach a step as evidence.',
+        'info',
+      );
+    }
+  }, [observationAnchor, toast]);
+
   const librarianSlot = (
     <LibrarianSlot
       observationDismissed={observationDismissed}
       onDismissObservation={() => setObservationDismissed(true)}
+      anchor={observationAnchor}
       onPromote={() =>
         toast.show(
-          'Promote needs corpus wiring · the librarian can\'t yet rewrite concepts',
+          "Promote needs corpus wiring · the librarian can't yet rewrite concepts",
           'info',
         )
       }
-      onAddEvidence={() =>
-        toast.show(
-          'Add evidence needs corpus wiring · attach drill coming with reflect-tab',
-          'info',
-        )
-      }
+      onAddEvidence={handleAddEvidence}
     />
   );
 
@@ -65,6 +100,17 @@ export default function LibraryIndexScreen() {
         visible={inspirationWizardOpen}
         onClose={() => setInspirationWizardOpen(false)}
       />
+      {observationAnchor ? (
+        <EvidenceStepPickerSheet
+          visible={evidencePickerOpen}
+          conceptId={observationAnchor.id}
+          conceptTitle={observationAnchor.title}
+          interestId={currentInterest?.id}
+          playbookId={playbook?.id}
+          onClose={() => setEvidencePickerOpen(false)}
+          onLinked={() => toast.show('Evidence attached', 'success')}
+        />
+      ) : null}
     </>
   );
 }
@@ -72,21 +118,30 @@ export default function LibraryIndexScreen() {
 function LibrarianSlot({
   observationDismissed,
   onDismissObservation,
+  anchor,
   onPromote,
   onAddEvidence,
 }: {
   observationDismissed: boolean;
   onDismissObservation: () => void;
+  anchor: ObservationAnchor | null;
   onPromote: () => void;
   onAddEvidence: () => void;
 }) {
   const observation: LibrarianObservation | null = observationDismissed
     ? null
-    : buildSampleObservation({
-        onDismiss: onDismissObservation,
-        onPromote,
-        onAddEvidence,
-      });
+    : anchor
+      ? buildObservationForConcept({
+          anchor,
+          onDismiss: onDismissObservation,
+          onPromote,
+          onAddEvidence,
+        })
+      : buildSampleObservation({
+          onDismiss: onDismissObservation,
+          onPromote,
+          onAddEvidence,
+        });
   return (
     <>
       <LibrarianStrip
@@ -170,9 +225,8 @@ function Phase6PlaybookLanding() {
 /**
  * Until the librarian has a corpus reader, the unprompted-observation
  * surface ships with a single canonical example so the design's voice
- * lands before retrieval does. Concept lifecycle hooks will replace
- * this with real "concept untouched for N weeks with contradicting
- * debrief" pattern detection.
+ * lands before retrieval does. Replaced by a real-concept observation
+ * as soon as the user has any concepts in their playbook.
  */
 function buildSampleObservation({
   onDismiss,
@@ -205,6 +259,55 @@ function buildSampleObservation({
     },
     onDismiss,
   };
+}
+
+function buildObservationForConcept({
+  anchor,
+  onDismiss,
+  onPromote,
+  onAddEvidence,
+}: {
+  anchor: ObservationAnchor;
+  onDismiss: () => void;
+  onPromote: () => void;
+  onAddEvidence: () => void;
+}): LibrarianObservation {
+  return {
+    id: `concept:${anchor.id}`,
+    body: `"${anchor.title}" is ${humanState(anchor.state)}. Attach a step that exercises or contradicts it to move it along.`,
+    emphasise: [anchor.title],
+    concept: {
+      id: anchor.id,
+      title: anchor.title,
+      state: anchor.state,
+    },
+    evidence: {
+      label: 'No evidence yet',
+      date: '',
+    },
+    primaryAction: {
+      label: 'Promote to forming-with-tension',
+      onPress: onPromote,
+    },
+    secondaryAction: {
+      label: 'Add evidence',
+      onPress: onAddEvidence,
+    },
+    onDismiss,
+  };
+}
+
+function humanState(state: ObservationAnchor['state']): string {
+  switch (state) {
+    case 'forming':
+      return 'still forming';
+    case 'forming-with-tension':
+      return 'forming with tension';
+    case 'testing':
+      return 'under test';
+    case 'settled':
+      return 'settled';
+  }
 }
 
 const styles = StyleSheet.create({
