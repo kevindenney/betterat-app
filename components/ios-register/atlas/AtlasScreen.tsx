@@ -3386,7 +3386,36 @@ function FrameF3({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
 // F4 — Emily · Baltimore cold
 // ---------------------------------------------------------------------------
 function FrameF4({ embedded, handlers }: { embedded: boolean; handlers: AtlasFrameHandlers }) {
+  const { user: authUser } = useAuth();
   const [layersOpen, setLayersOpen] = useState(false);
+  // Search + camera focus state — F4 inherited the shared TopChrome
+  // pattern (which only renders a search glyph when onSearchPress is
+  // wired) and had no headless InterestSwitcher mounted, so the
+  // capsule's chevron tap fired into the void on the nursing frame.
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchFocus, setSearchFocus] = useState<{
+    lat: number;
+    lng: number;
+    bounds?: [number, number, number, number];
+  } | null>(null);
+  const handleSearchSelect = useCallback((result: AtlasSearchResult) => {
+    setSearchOpen(false);
+    if (result.kind === 'person' && result.userId) {
+      router.push(`/sailor/${result.userId}` as never);
+      return;
+    }
+    if (result.kind === 'organization' && result.orgSlug) {
+      if (result.lat != null && result.lng != null) {
+        setSearchFocus({ lat: result.lat, lng: result.lng, bounds: result.bounds });
+        return;
+      }
+      router.push(`/organizations/${result.orgSlug}` as never);
+      return;
+    }
+    if (result.lat != null && result.lng != null) {
+      setSearchFocus({ lat: result.lat, lng: result.lng, bounds: result.bounds });
+    }
+  }, []);
   // The "FIRST STEP · ANCHOR WHERE" prompt dismisses to a smaller "Plan a
   // step" sheet when the user taps Skip — same pattern as F1's cold-start.
   // Local state for v1; per-user persistence ("don't show again") lands
@@ -3532,6 +3561,7 @@ function FrameF4({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
           <AtlasMapLibreCanvas
             frame="f4"
             pins={pins}
+            focusLocation={searchFocus}
             nextEvent={
               nextNursing.lat != null && nextNursing.lng != null
                 ? { ...nextNursing, lat: nextNursing.lat, lng: nextNursing.lng }
@@ -3557,6 +3587,7 @@ function FrameF4({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
             title="Atlas"
             subtitle={handlers.subtitleOverride ?? 'Nursing · JHSON · Baltimore'}
             avatarInitial={handlers.avatarInitial ?? 'E'}
+            onSearchPress={() => setSearchOpen(true)}
           />
           <FilterChipsRow
             chips={[
@@ -3568,6 +3599,17 @@ function FrameF4({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
               { id: 'cross-interest', label: 'All my interests', crossInterest: true, dim: true },
             ]}
             onActiveIdsChange={handleF4ChipsChange}
+          />
+          {/* Headless InterestSwitcher hosts the modal so TopChrome's
+              capsule pill (which calls openInterestSwitcher imperatively)
+              can pop the picker. F1 mounts its own headless; F4 needs
+              one too or the chevron taps are no-ops. */}
+          <InterestSwitcher headless />
+          <AtlasSearchSheet
+            visible={searchOpen}
+            onClose={() => setSearchOpen(false)}
+            onSelect={handleSearchSelect}
+            viewerId={authUser?.id ?? null}
           />
           {/* Active-chip context pill — surfaces what the heatmap is
               showing right now ("Cohort heatmap · this week"). Only shown
@@ -3732,6 +3774,29 @@ function FrameF4({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
               />
             );
           })()
+        ) : isUserStepPin(selectedPin) ? (
+          // Viewer's own step pin — open the step detail, don't offer a
+          // create-a-new-step CTA (that would silently duplicate the step
+          // at the same location). Mirrors FrameF1's YOUR STEP branch.
+          <BottomSheet
+            key="user-step"
+            eyebrow="YOUR STEP"
+            title={titleForUserStepPin(selectedPin)}
+            body={detailBodyForPin(selectedPin)}
+            primary={{
+              label: 'Open step',
+              icon: 'open-outline',
+              onPress: () => {
+                if (selectedPin.stepId) {
+                  handlers.onStepPress?.(selectedPin.stepId);
+                  clearF4SelectedPin();
+                }
+              },
+            }}
+            secondary={{ label: 'Close', onPress: clearF4SelectedPin }}
+            bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
+            initialState="mid"
+          />
         ) : (
           <BottomSheet
             eyebrow={eyebrowForPin(selectedPin)}
