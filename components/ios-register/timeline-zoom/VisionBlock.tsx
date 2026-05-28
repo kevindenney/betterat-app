@@ -6,11 +6,12 @@
  *   1. No vision set — quiet empty-state CTA: "Add a vision for this
  *      arc — what would 'done' look like?"
  *   2. Vision set, no competency anchors — italic-serif statement +
- *      aggregate progress strip ("12 capability evidences logged · 3
- *      of 7 weeks elapsed")
+ *      weekly proven-evidence sparkline + velocity footer
+ *      ("+N this week · M total · week X of Y")
  *   3. Vision set + competency anchors — italic-serif statement +
- *      per-competency row: sparkline of weekly proven evidence +
- *      season-to-date relative-fill bar + running total.
+ *      per-competency row (label · weekly sparkline · season-to-date
+ *      relative bar · running total) + same velocity footer
+ *      summarized across anchored competencies.
  *
  * Tap anywhere → edit sheet opens.
  */
@@ -29,23 +30,28 @@ interface Props {
    *  institutional framework. */
   allCompetencies: OrgCompetencyOption[];
   /** Total weeks in the arc and how far through (1-indexed). Drives the
-   *  aggregate progress strip. */
+   *  velocity footer ("week X of Y"). */
   totalWeeks: number;
   currentWeek: number;
   /** Total proven evidence count across the arc. v1 aggregate denominator. */
   provenEvidenceCount: number;
   /** Proven evidence count keyed by org_competencies.id. Drives the
-   *  per-competency mini-bars when the user has anchored their vision. */
+   *  per-competency season-to-date relative bar when anchored. */
   evidenceByCompetency: Record<string, number>;
   /** Weekly proven-evidence trend keyed by org_competencies.id. Each
    *  value is one number per L4 bucket, used to render the inline
    *  sparkline next to each anchored competency. */
   evidenceTrendByCompetency: Record<string, number[]>;
+  /** Aggregate weekly proven-evidence count across every current-season
+   *  step. Length = season bucket count. Drives the sparkline on the
+   *  no-anchor path and the "+N this week" velocity number. */
+  evidenceTrend: number[];
   onEdit: () => void;
 }
 
 const SPARK_HEIGHT = 14;
 const SPARK_MIN_BAR = 2;
+const AGGREGATE_SPARK_HEIGHT = 22;
 
 export function VisionBlock({
   statement,
@@ -56,6 +62,7 @@ export function VisionBlock({
   provenEvidenceCount,
   evidenceByCompetency,
   evidenceTrendByCompetency,
+  evidenceTrend,
   onEdit,
 }: Props) {
   const selectedCompetencies = useMemo(() => {
@@ -91,6 +98,19 @@ export function VisionBlock({
     return max;
   }, [selectedCompetencies, evidenceTrendByCompetency]);
 
+  // This week's count (1-indexed currentWeek → 0-indexed trend slot).
+  // Drives the velocity footer.
+  const thisWeekCount =
+    currentWeek > 0 && evidenceTrend.length >= currentWeek
+      ? evidenceTrend[currentWeek - 1] ?? 0
+      : 0;
+
+  const maxAggregateWeekly = useMemo(() => {
+    let max = 0;
+    for (const n of evidenceTrend) if (n > max) max = n;
+    return max;
+  }, [evidenceTrend]);
+
   const trimmed = statement?.trim() ?? '';
 
   if (!trimmed) {
@@ -118,7 +138,10 @@ export function VisionBlock({
     );
   }
 
-  const weekPct = totalWeeks > 0 ? Math.min(1, currentWeek / totalWeeks) : 0;
+  const footerLine =
+    provenEvidenceCount === 0
+      ? `week ${currentWeek} of ${totalWeeks} · log a reflection to start tracking`
+      : `+${thisWeekCount} this week · ${provenEvidenceCount} total · week ${currentWeek} of ${totalWeeks}`;
 
   return (
     <Pressable
@@ -181,22 +204,37 @@ export function VisionBlock({
             );
           })}
         </View>
-      ) : (
-        <View style={styles.aggregateRow}>
-          <View style={styles.aggregateBarTrack}>
-            <View
-              style={[
-                styles.aggregateBarFill,
-                { width: `${Math.round(weekPct * 100)}%` },
-              ]}
-            />
-          </View>
-          <Text style={styles.aggregateMeta} numberOfLines={1}>
-            week {currentWeek} of {totalWeeks} · {provenEvidenceCount}{' '}
-            {provenEvidenceCount === 1 ? 'evidence' : 'evidences'} logged
-          </Text>
+      ) : evidenceTrend.length > 0 ? (
+        <View style={styles.aggregateSpark}>
+          {evidenceTrend.map((n, i) => {
+            const h =
+              maxAggregateWeekly > 0
+                ? Math.max(
+                    SPARK_MIN_BAR,
+                    (n / maxAggregateWeekly) * AGGREGATE_SPARK_HEIGHT,
+                  )
+                : SPARK_MIN_BAR;
+            const isCurrent = i === currentWeek - 1;
+            return (
+              <View
+                key={i}
+                style={[
+                  styles.aggregateSparkBar,
+                  {
+                    height: h,
+                    opacity: n > 0 ? 1 : 0.22,
+                  },
+                  isCurrent && styles.aggregateSparkBarCurrent,
+                ]}
+              />
+            );
+          })}
         </View>
-      )}
+      ) : null}
+
+      <Text style={styles.footer} numberOfLines={1}>
+        {footerLine}
+      </Text>
     </Pressable>
   );
 }
@@ -253,27 +291,25 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
     letterSpacing: -0.2,
   },
-  aggregateRow: {
+  aggregateSpark: {
+    height: AGGREGATE_SPARK_HEIGHT,
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    marginTop: 4,
+    alignItems: 'flex-end',
+    gap: 3,
+    marginTop: 2,
   },
-  aggregateBarTrack: {
+  aggregateSparkBar: {
     flex: 1,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: 'rgba(60,60,67,0.18)',
-    overflow: 'hidden',
-  },
-  aggregateBarFill: {
-    height: 4,
     borderRadius: 2,
     backgroundColor: IOS_REGISTER.accentUserAction,
   },
-  aggregateMeta: {
+  aggregateSparkBarCurrent: {
+    backgroundColor: IOS_REGISTER.label,
+  },
+  footer: {
     fontSize: 11.5,
     color: IOS_REGISTER.labelSecondary,
+    marginTop: 2,
   },
   compStack: { gap: 6, marginTop: 4 },
   compRow: {

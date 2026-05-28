@@ -159,6 +159,11 @@ export interface TimelineSeason {
    *  carrying the per-week evidence count. Drives the VISION lane's
    *  per-competency sparkline. */
   visionEvidenceTrendByCompetency?: Record<string, number[]>;
+  /** Aggregate weekly proven-evidence count across every current-season
+   *  step, regardless of competency tagging. Length = season bucket
+   *  count. Drives the sparkline on the no-anchor path of the VISION
+   *  lane and the "+N this week" footer in both paths. */
+  visionEvidenceTrend?: number[];
 }
 
 export interface SeasonAnalysis {

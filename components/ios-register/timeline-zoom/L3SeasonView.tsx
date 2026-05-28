@@ -229,6 +229,7 @@ export function L3SeasonView({
         }
         evidenceByCompetency={season.visionEvidenceByCompetency ?? {}}
         evidenceTrendByCompetency={season.visionEvidenceTrendByCompetency ?? {}}
+        evidenceTrend={season.visionEvidenceTrend ?? []}
         onEdit={() => setVisionEditOpen(true)}
       />
 

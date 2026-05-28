@@ -1426,6 +1426,10 @@ export function mapToTimelineDataset({
   const visionEvidenceByCompetency: Record<string, number> = {};
   const visionEvidenceTrendByCompetency: Record<string, number[]> = {};
   const totalWeekBuckets = bucketGroups.length;
+  // Aggregate weekly proven-evidence count across ALL current-season
+  // steps — drives the sparkline on the no-competency-anchors path of
+  // the VISION lane, and the "+N this week" footer in both paths.
+  const visionEvidenceTrend: number[] = new Array(totalWeekBuckets).fill(0);
   if (stepEvidenceMap && stepEvidenceMap.size > 0 && totalWeekBuckets > 0) {
     const stepWeekIndex = new Map<string, number>();
     sorted.forEach((rec, i) => {
@@ -1436,6 +1440,7 @@ export function mapToTimelineDataset({
       if (!rows) continue;
       const wk = stepWeekIndex.get(rec.id) ?? 0;
       for (const row of rows) {
+        visionEvidenceTrend[wk] = (visionEvidenceTrend[wk] ?? 0) + 1;
         const cid = row.orgCompetencyId;
         if (!cid) continue;
         visionEvidenceByCompetency[cid] =
@@ -1468,6 +1473,7 @@ export function mapToTimelineDataset({
     visionCompetencyIds: currentSeason?.vision_competency_ids ?? [],
     visionEvidenceByCompetency,
     visionEvidenceTrendByCompetency,
+    visionEvidenceTrend,
   };
 
   // Index moved-via-Section-E step records by their target season id so
