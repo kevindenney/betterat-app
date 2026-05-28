@@ -7,7 +7,7 @@
  * own steps.
  */
 
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Modal,
@@ -175,6 +175,35 @@ export function StepDiscussionInline({ stepId, access = [] }: StepDiscussionInli
   const effectiveScope: DiscussionScope = hasCohort ? scope : 'private';
 
   const { data: cohortMates = [] } = useCohortMates(blueprintStepId);
+
+  // Realtime cohort subscription — when the user is viewing the
+  // Cohort tab on a blueprint-linked step, subscribe to inserts on
+  // step_discussions WHERE blueprint_step_id matches. New posts from
+  // anyone else trigger a refetch so the thread updates without the
+  // viewer having to reload.
+  useEffect(() => {
+    if (!blueprintStepId || effectiveScope !== 'cohort') return;
+    const channel = supabase
+      .channel(`cohort-discussion:${blueprintStepId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'step_discussions',
+          filter: `blueprint_step_id=eq.${blueprintStepId}`,
+        },
+        () => {
+          queryClient.invalidateQueries({
+            queryKey: ['phase10-blueprint-step-discussion', blueprintStepId],
+          });
+        },
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [blueprintStepId, effectiveScope, queryClient]);
   const [replyingTo, setReplyingTo] = useState<{
     noteId: string;
     authorName: string;

@@ -21,6 +21,7 @@ import {
   type FollowedStepItem,
   type FollowedStepStatus,
 } from '@/hooks/useFollowedStepsFeed';
+import { useCohortStream, type CohortStreamItem } from '@/hooks/useCohortStream';
 import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
 
 const STATUS_META: Record<
@@ -87,8 +88,10 @@ export default function WatchScreen() {
   const [grouping, setGrouping] = useState<GroupingId>('all');
 
   const { data: feed = [], isLoading } = useFollowedStepsFeed(user?.id ?? null);
+  const { data: cohortStream = [] } = useCohortStream();
 
   const hasFeed = feed.length > 0;
+  const hasCohort = cohortStream.length > 0;
 
   return (
     <View style={styles.container}>
@@ -142,6 +145,17 @@ export default function WatchScreen() {
           })}
         </View>
 
+        {hasCohort ? (
+          <View style={styles.section}>
+            <Text style={styles.sectionEyebrow}>From your cohorts</Text>
+            <View style={styles.feed}>
+              {cohortStream.map((item) => (
+                <CohortStreamCard key={item.id} item={item} />
+              ))}
+            </View>
+          </View>
+        ) : null}
+
         {isLoading ? (
           <Text style={styles.emptyCopy}>Loading…</Text>
         ) : !hasFeed ? (
@@ -177,6 +191,57 @@ export default function WatchScreen() {
         onMeasuredHeight={setToolbarHeight}
       />
     </View>
+  );
+}
+
+function CohortStreamCard({ item }: { item: CohortStreamItem }) {
+  const context = [item.blueprintTitle, item.stepTitle]
+    .filter((s): s is string => Boolean(s && s.trim()))
+    .join(' · ');
+  const handlePress = () => {
+    // Prefer routing to the viewer's own forked step (their Discuss
+    // tab will switch to Cohort on its own once they tap). When
+    // viewer has no forked copy, we'd ideally land on a blueprint
+    // preview; that surface doesn't exist yet, so this stays a no-op
+    // for the v1 stream.
+    if (item.viewerStepId) {
+      router.push(`/step/${item.viewerStepId}` as never);
+    }
+  };
+  return (
+    <Pressable style={styles.card} onPress={handlePress}>
+      <View style={styles.cardHeader}>
+        <View style={styles.personMark}>
+          {item.authorAvatarUrl ? (
+            <Image source={{ uri: item.authorAvatarUrl }} style={styles.personAvatar} />
+          ) : (
+            <Text style={styles.personInitial}>{item.authorInitial}</Text>
+          )}
+        </View>
+        <View style={styles.cardHeaderText}>
+          <Text style={styles.personName} numberOfLines={1}>
+            {item.authorName}
+          </Text>
+          <Text style={styles.personMeta} numberOfLines={1}>
+            {`${formatRelativeTime(item.createdAt)} · cohort thread`}
+          </Text>
+        </View>
+        <View style={[styles.statusPill, { backgroundColor: '#E5EDFF' }]}>
+          <Ionicons name="chatbubble-ellipses-outline" size={13} color="#3155B5" />
+          <Text style={[styles.statusText, { color: '#3155B5' }]}>Cohort</Text>
+        </View>
+      </View>
+
+      {context ? (
+        <Text style={styles.stepTitle} numberOfLines={2}>
+          {context}
+        </Text>
+      ) : null}
+
+      <Text style={styles.bodyCopy} numberOfLines={3}>
+        {item.bodyPreview}
+      </Text>
+    </Pressable>
   );
 }
 
@@ -327,6 +392,18 @@ const styles = StyleSheet.create({
   feed: {
     gap: 12,
     paddingHorizontal: IOS_SPACING.lg,
+  },
+  section: {
+    marginBottom: IOS_SPACING.lg,
+  },
+  sectionEyebrow: {
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 0.6,
+    textTransform: 'uppercase',
+    color: IOS_COLORS.secondaryLabel,
+    paddingHorizontal: IOS_SPACING.lg,
+    marginBottom: 8,
   },
   card: {
     padding: 16,
