@@ -1,5 +1,5 @@
 import React from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { InsightCard } from './InsightCard';
 import { ConceptCard } from './ConceptCard';
 import { SettledFoundationRow } from './SettledFoundationRow';
@@ -15,8 +15,6 @@ export interface PlaybookLandingProps {
   };
   insights: PlaybookInsightRecord[];
   concepts: Phase6ConceptRecord[];
-  subscribedBlueprintCount?: number;
-  onOpenBlueprints?: () => void;
   onRefineInsight: (insightId: string) => void;
   onDiscardInsight: (insightId: string) => void;
   onOpenConcept: (conceptId: string) => void;
@@ -45,8 +43,6 @@ export function PlaybookLanding({
   stats,
   insights,
   concepts,
-  subscribedBlueprintCount = 0,
-  onOpenBlueprints,
   onRefineInsight,
   onDiscardInsight,
   onOpenConcept,
@@ -73,23 +69,6 @@ export function PlaybookLanding({
       <OnDeckBanner />
 
       {librarianNoticed}
-
-      <Pressable
-        style={[styles.entryCard, !onOpenBlueprints && styles.entryCardDisabled]}
-        onPress={onOpenBlueprints}
-        disabled={!onOpenBlueprints}
-      >
-        <View style={styles.entryCopy}>
-          <Text style={styles.entryEyebrow}>Network browsing</Text>
-          <Text style={styles.entryTitle}>Blueprints you follow</Text>
-          <Text style={styles.entryBody}>
-            {subscribedBlueprintCount > 0
-              ? `${subscribedBlueprintCount} subscribed blueprint${subscribedBlueprintCount === 1 ? '' : 's'} ready to browse and add into your timeline.`
-              : 'Browse subscribed blueprints and pull their steps into your timeline.'}
-          </Text>
-        </View>
-        <Text style={styles.entryCta}>Open</Text>
-      </Pressable>
 
       <Section title="Recent insights" subtitle="Raw captures waiting to become concepts">
         {insights.length === 0 ? (
@@ -179,46 +158,6 @@ const styles = StyleSheet.create({
   },
   hero: {
     gap: 8,
-  },
-  entryCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: '#E5E5EA',
-    padding: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 16,
-  },
-  entryCardDisabled: {
-    opacity: 0.7,
-  },
-  entryCopy: {
-    flex: 1,
-    gap: 4,
-  },
-  entryEyebrow: {
-    fontSize: 11,
-    fontWeight: '700',
-    letterSpacing: 0.5,
-    textTransform: 'uppercase',
-    color: 'rgba(60,60,67,0.6)',
-  },
-  entryTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1C1C1E',
-  },
-  entryBody: {
-    fontSize: 13,
-    lineHeight: 18,
-    color: '#3C3C43',
-  },
-  entryCta: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#007AFF',
   },
   title: {
     fontSize: 40,

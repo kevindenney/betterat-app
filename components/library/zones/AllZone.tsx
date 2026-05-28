@@ -117,7 +117,7 @@ export function AllZone({ counts, onJumpToZone }: AllZoneProps) {
                 key={plan.blueprintId}
                 plan={plan}
                 onPress={() =>
-                  router.push(`/(tabs)/library/plans/${plan.blueprintId}` as never)
+                  router.push(`/(tabs)/library/blueprints/${plan.blueprintId}` as never)
                 }
               />
             ))}

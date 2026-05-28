@@ -3,7 +3,9 @@
  *
  * Provides:
  * - Algorithm-based suggestions
- * - Search filtering
+ * - Search filtering (client-side over suggestions list AND server-side
+ *   against profiles+users when the query is ≥ 2 chars, so emails or
+ *   names of people outside the suggestion list still surface)
  * - Follow/unfollow functionality
  * - Follow state tracking
  */
@@ -11,7 +13,7 @@
 import { useState, useCallback, useMemo, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/providers/AuthProvider';
-import { CrewFinderService, type SimilarSailor } from '@/services/CrewFinderService';
+import { CrewFinderService, type SimilarSailor, type SailorProfileSummary } from '@/services/CrewFinderService';
 import type { SailorSuggestion } from '@/components/search/SailorSuggestionCard';
 
 interface UseSailorSuggestionsOptions {
@@ -38,6 +40,19 @@ export function useSailorSuggestions(
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
+  // Server-side search fallback — fires whenever the query is ≥ 2 chars.
+  // Without this, emails and any name not in the local suggestion list
+  // return zero matches (the original bug: searching by an exact email
+  // surfaced nothing because suggestions never include that user).
+  const trimmedQuery = searchQuery.trim();
+  const { data: serverHits = [] } = useQuery({
+    queryKey: ['sailor-search', trimmedQuery],
+    queryFn: (): Promise<SailorProfileSummary[]> =>
+      CrewFinderService.searchUsers(trimmedQuery, limit),
+    enabled: trimmedQuery.length >= 2,
+    staleTime: 30_000,
+  });
+
   // Initialize followed IDs from the data
   useEffect(() => {
     if (data) {
@@ -50,22 +65,20 @@ export function useSailorSuggestions(
 
   // Transform to suggestions and filter by search
   const suggestions: SailorSuggestion[] = useMemo(() => {
-    if (!data) return [];
+    const base = data ?? [];
+    const query = trimmedQuery.toLowerCase();
 
-    let filtered = data;
+    // Local filter pass against the algorithm-derived suggestions.
+    const localFiltered =
+      query.length > 0
+        ? base.filter(
+            (s) =>
+              s.fullName.toLowerCase().includes(query) ||
+              s.similarityReasons.some((r) => r.toLowerCase().includes(query)),
+          )
+        : base;
 
-    // Apply search filter
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
-      filtered = data.filter(
-        (s) =>
-          s.fullName.toLowerCase().includes(query) ||
-          s.similarityReasons.some((r) => r.toLowerCase().includes(query))
-      );
-    }
-
-    // Transform to SailorSuggestion format
-    return filtered.map((sailor) => ({
+    const localTransformed: SailorSuggestion[] = localFiltered.map((sailor) => ({
       userId: sailor.userId,
       fullName: sailor.fullName,
       avatarEmoji: sailor.avatarEmoji,
@@ -73,7 +86,26 @@ export function useSailorSuggestions(
       similarityReason: sailor.similarityReasons[0],
       followerCount: sailor.similarityScore, // Use score as proxy
     }));
-  }, [data, searchQuery]);
+
+    if (query.length === 0) return localTransformed;
+
+    // Server-side hits — append any user not already in the local pass.
+    // Self-row is filtered so the search never surfaces the viewer to
+    // themselves (a common spam pattern when typing your own email).
+    const seen = new Set(localTransformed.map((s) => s.userId));
+    const serverTransformed: SailorSuggestion[] = serverHits
+      .filter((hit) => hit.userId !== user?.id && !seen.has(hit.userId))
+      .map((hit) => ({
+        userId: hit.userId,
+        fullName: hit.fullName,
+        avatarEmoji: hit.avatarEmoji,
+        avatarColor: hit.avatarColor,
+        similarityReason: hit.email && query.includes('@') ? hit.email : undefined,
+        followerCount: 0,
+      }));
+
+    return [...localTransformed, ...serverTransformed];
+  }, [data, serverHits, trimmedQuery, user?.id]);
 
   // Follow mutation
   const followMutation = useMutation({

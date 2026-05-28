@@ -47,7 +47,7 @@ const VALID_ZONES: LibraryZone[] = ['all', 'plans', 'people', 'concepts', 'resou
 // AI-curated cross-cutting surface, not a preview of the other tabs.
 const SEGMENT_ZONES: { value: LibraryZone; label: string }[] = [
   { value: 'all', label: 'Librarian' },
-  { value: 'plans', label: 'Plans' },
+  { value: 'plans', label: 'Blueprints' },
   { value: 'concepts', label: 'Concepts' },
   { value: 'resources', label: 'Resources' },
 ];
@@ -57,7 +57,7 @@ const SEGMENT_ZONES: { value: LibraryZone; label: string }[] = [
 // the current view, not abstract advertising.
 const ZONE_DESCRIPTION: Record<LibraryZone, string> = {
   all: 'Cross-cutting insights the librarian noticed across your library.',
-  plans: 'Subscribed structures you can pull into practice when needed.',
+  plans: 'Subscribed Blueprints you can pull into your own Plan.',
   concepts: "Mental models you're forming, refining, or have settled.",
   resources: 'Saved articles, docs, and references.',
   people: 'People shaping your practice.',
@@ -109,9 +109,9 @@ export function LibraryLanding({ conceptsBody, librarianSlot }: Props) {
 
   // `+` payload depends on the active zone. Librarian/Concepts both
   // open the concept editor (concepts are the librarian's domain).
-  // Resources opens CaptureSheet. Plans routes to Discover (where
-  // subscribe lives — Library Plans is "your subscribed ones", and
-  // adding a new one means subscribing to a published blueprint).
+  // Resources opens CaptureSheet. Blueprints routes to Discover (where
+  // subscribe lives — Library Blueprints is "your subscribed ones",
+  // and adding a new one means subscribing to a published Blueprint).
   const handleAdd = useCallback(() => {
     if (zone === 'resources') {
       setCaptureOpen(true);
@@ -138,7 +138,7 @@ export function LibraryLanding({ conceptsBody, librarianSlot }: Props) {
 
   const addLabel =
     zone === 'plans'
-      ? 'Find a plan to add'
+      ? 'Find a Blueprint to subscribe'
       : zone === 'resources'
         ? 'Capture a resource'
         : zone === 'concepts' || zone === 'all'

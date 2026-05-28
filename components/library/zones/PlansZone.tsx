@@ -2,7 +2,9 @@
  * <PlansZone> — Library Plans zone landing.
  *
  * Lists the user's subscribed plan blueprints with author chip, progress
- * bar, and subscriber count. Tap a row → push into /library/plans/[id].
+ * bar, and subscriber count. Tap a row → push into the Blueprint
+ * timeline at /library/blueprints/[id] (skipping the old cover page
+ * to cut a drill-down).
  *
  * Empty state surfaces a hint pointing at Discover, since plans are
  * subscribed-to (not created here). Loading state renders a single
@@ -34,10 +36,10 @@ export function PlansZone() {
     return (
       <View style={styles.empty}>
         <Ionicons name="map-outline" size={28} color={IOS_COLORS.tertiaryLabel} />
-        <Text style={styles.emptyTitle}>No plans yet</Text>
+        <Text style={styles.emptyTitle}>No Blueprints yet</Text>
         <Text style={styles.emptyBlurb}>
-          Subscribe to a coach-bundled path from Discover, and it'll land here with
-          subscribers and resources.
+          Subscribe to a coach-bundled Blueprint from Discover, and it'll
+          land here with subscribers and resources.
         </Text>
       </View>
     );
@@ -50,7 +52,7 @@ export function PlansZone() {
           key={plan.blueprintId}
           plan={plan}
           onPress={() =>
-            router.push(`/(tabs)/library/plans/${plan.blueprintId}` as never)
+            router.push(`/(tabs)/library/blueprints/${plan.blueprintId}` as never)
           }
         />
       ))}

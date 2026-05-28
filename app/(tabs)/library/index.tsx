@@ -22,7 +22,6 @@ import {
   useDiscardPlaybookInsight,
   useRefinePlaybookInsight,
 } from '@/hooks/usePlaybook';
-import { useSubscribedBlueprints } from '@/hooks/useBlueprint';
 
 interface ObservationAnchor {
   id: string;
@@ -188,7 +187,6 @@ function Phase6PlaybookLanding() {
   const toast = useToast();
   const { currentInterest } = useInterest();
   const { data: playbook } = usePlaybook(currentInterest?.id);
-  const { data: subscribedBlueprints = [] } = useSubscribedBlueprints(currentInterest?.id);
   const {
     data: insights = [],
     error: insightsError,
@@ -233,8 +231,6 @@ function Phase6PlaybookLanding() {
       }}
       insights={insights}
       concepts={concepts}
-      subscribedBlueprintCount={subscribedBlueprints.length}
-      onOpenBlueprints={() => router.push('/(tabs)/library/blueprints' as any)}
       onRefineInsight={async (insightId) => {
         const concept = await refineInsight.mutateAsync({ insightId });
         toast.show('Concept refined', 'success');
