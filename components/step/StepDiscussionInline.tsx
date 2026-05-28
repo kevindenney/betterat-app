@@ -27,6 +27,7 @@ import {
 } from 'lucide-react-native';
 import { useAuth } from '@/providers/AuthProvider';
 import { useMyTimeline } from '@/hooks/useTimelineSteps';
+import { useCohortMates, type CohortMate } from '@/hooks/useCohortMates';
 import { supabase } from '@/services/supabase';
 import {
   getBlueprintStepDiscussion,
@@ -172,6 +173,8 @@ export function StepDiscussionInline({ stepId, access = [] }: StepDiscussionInli
   // Snap back to Private if the user is somehow on Cohort but the
   // link goes away (rename, delete, etc.).
   const effectiveScope: DiscussionScope = hasCohort ? scope : 'private';
+
+  const { data: cohortMates = [] } = useCohortMates(blueprintStepId);
   const [replyingTo, setReplyingTo] = useState<{
     noteId: string;
     authorName: string;
@@ -312,42 +315,47 @@ export function StepDiscussionInline({ stepId, access = [] }: StepDiscussionInli
 
       {hasCohort ? (
         <View style={styles.scopeRow}>
-          <Pressable
-            onPress={() => setScope('private')}
-            style={[
-              styles.scopePill,
-              effectiveScope === 'private' && styles.scopePillActive,
-            ]}
-            accessibilityRole="button"
-            accessibilityState={{ selected: effectiveScope === 'private' }}
-          >
-            <Text
+          <View style={styles.scopePillGroup}>
+            <Pressable
+              onPress={() => setScope('private')}
               style={[
-                styles.scopePillText,
-                effectiveScope === 'private' && styles.scopePillTextActive,
+                styles.scopePill,
+                effectiveScope === 'private' && styles.scopePillActive,
               ]}
+              accessibilityRole="button"
+              accessibilityState={{ selected: effectiveScope === 'private' }}
             >
-              Mine
-            </Text>
-          </Pressable>
-          <Pressable
-            onPress={() => setScope('cohort')}
-            style={[
-              styles.scopePill,
-              effectiveScope === 'cohort' && styles.scopePillActive,
-            ]}
-            accessibilityRole="button"
-            accessibilityState={{ selected: effectiveScope === 'cohort' }}
-          >
-            <Text
+              <Text
+                style={[
+                  styles.scopePillText,
+                  effectiveScope === 'private' && styles.scopePillTextActive,
+                ]}
+              >
+                Mine
+              </Text>
+            </Pressable>
+            <Pressable
+              onPress={() => setScope('cohort')}
               style={[
-                styles.scopePillText,
-                effectiveScope === 'cohort' && styles.scopePillTextActive,
+                styles.scopePill,
+                effectiveScope === 'cohort' && styles.scopePillActive,
               ]}
+              accessibilityRole="button"
+              accessibilityState={{ selected: effectiveScope === 'cohort' }}
             >
-              Cohort
-            </Text>
-          </Pressable>
+              <Text
+                style={[
+                  styles.scopePillText,
+                  effectiveScope === 'cohort' && styles.scopePillTextActive,
+                ]}
+              >
+                Cohort
+              </Text>
+            </Pressable>
+          </View>
+          {cohortMates.length > 0 ? (
+            <CohortMatesIndicator mates={cohortMates} />
+          ) : null}
         </View>
       ) : (
         // No cohort thread for this step — surface a small hint so the
@@ -488,6 +496,54 @@ export function StepDiscussionInline({ stepId, access = [] }: StepDiscussionInli
 // ---------------------------------------------------------------------------
 // AccessCard
 // ---------------------------------------------------------------------------
+
+interface CohortMatesIndicatorProps {
+  mates: CohortMate[];
+}
+
+function CohortMatesIndicator({ mates }: CohortMatesIndicatorProps) {
+  // Viewer is always sorted to position 0 in the hook. For the
+  // avatar stack we want to show OTHERS first (you don't need to
+  // see yourself), so split + rebuild.
+  const others = mates.filter((m) => !m.isViewer);
+  const isAudienceOfOne = others.length === 0;
+  const visible = others.slice(0, 3);
+  const overflow = Math.max(0, others.length - visible.length);
+
+  const label = isAudienceOfOne
+    ? 'Just you on this plan'
+    : others.length === 1
+      ? `${others[0]!.displayName} is also on this plan`
+      : overflow === 0
+        ? `${others.length} sailors on this plan`
+        : `${visible.length}+${overflow} on this plan`;
+
+  return (
+    <View style={styles.cohortMates}>
+      {!isAudienceOfOne ? (
+        <View style={styles.cohortMatesStack}>
+          {visible.map((mate, idx) => (
+            <View
+              key={mate.userId}
+              style={[
+                styles.cohortMateAvatar,
+                idx > 0 && styles.cohortMateAvatarOverlap,
+                { backgroundColor: fallbackAvatarColor(mate.userId) },
+              ]}
+            >
+              <Text style={styles.cohortMateInitial}>
+                {initialsFrom(mate.displayName).slice(0, 1) || '?'}
+              </Text>
+            </View>
+          ))}
+        </View>
+      ) : null}
+      <Text style={styles.cohortMatesLabel} numberOfLines={1}>
+        {label}
+      </Text>
+    </View>
+  );
+}
 
 interface AccessCardProps {
   access: StepAccessPerson[];
@@ -858,11 +914,9 @@ const C = {
 const styles = StyleSheet.create({
   scopeRow: {
     flexDirection: 'row',
-    alignSelf: 'flex-start',
-    gap: 4,
-    padding: 3,
-    borderRadius: 999,
-    backgroundColor: 'rgba(120, 120, 130, 0.08)',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
     marginBottom: 12,
   },
   scopePill: {
@@ -893,6 +947,45 @@ const styles = StyleSheet.create({
     letterSpacing: 0.4,
     color: '#94A3B8',
     marginBottom: 10,
+  },
+  scopePillGroup: {
+    flexDirection: 'row',
+    gap: 4,
+    padding: 3,
+    borderRadius: 999,
+    backgroundColor: 'rgba(120, 120, 130, 0.08)',
+  },
+  cohortMates: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    flexShrink: 1,
+  },
+  cohortMatesStack: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  cohortMateAvatar: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1.5,
+    borderColor: '#FFFFFF',
+  },
+  cohortMateAvatarOverlap: {
+    marginLeft: -8,
+  },
+  cohortMateInitial: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  cohortMatesLabel: {
+    fontSize: 11.5,
+    color: '#64748B',
+    flexShrink: 1,
   },
   wrap: {
     paddingHorizontal: 14,
