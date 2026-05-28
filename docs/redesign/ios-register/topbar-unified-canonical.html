@@ -1,0 +1,992 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Top-bar unification — canonical</title>
+<style>
+  :root {
+    --bg: #f2f2f7;
+    --surface: #ffffff;
+    --surface-2: #f9f9fb;
+    --hairline: rgba(60, 60, 67, 0.18);
+    --label: #1c1c1e;
+    --secondary: rgba(60, 60, 67, 0.6);
+    --tertiary: rgba(60, 60, 67, 0.4);
+    --blue: #0a84ff;
+    --red: #ff453a;
+    --green: #34c759;
+    --orange: #ff9f0a;
+    --purple: #af52de;
+    --pill-bg: rgba(255, 255, 255, 0.94);
+    --capsule-bg: rgba(255, 255, 255, 0.78);
+    --shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 0 0 1px rgba(60, 60, 67, 0.05);
+    --shadow-lg: 0 4px 14px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(60, 60, 67, 0.06);
+    --good: #d1f6dc;
+    --warn: #fff0c2;
+    --bad: #ffd2cf;
+    --neutral: #e9eaef;
+  }
+
+  html { background: var(--bg); }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
+    color: var(--label);
+    font-size: 14px;
+    line-height: 1.45;
+    -webkit-font-smoothing: antialiased;
+    padding: 40px 24px 80px;
+  }
+
+  h1 {
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: -0.4px;
+    margin: 0 0 6px;
+  }
+  h1 + .deck {
+    color: var(--secondary);
+    font-size: 15px;
+    margin-bottom: 28px;
+    max-width: 720px;
+  }
+  h2 {
+    font-size: 19px;
+    font-weight: 700;
+    letter-spacing: -0.2px;
+    margin: 38px 0 4px;
+  }
+  h2 .num {
+    display: inline-block;
+    width: 22px;
+    height: 22px;
+    border-radius: 11px;
+    background: var(--label);
+    color: white;
+    font-size: 12px;
+    text-align: center;
+    line-height: 22px;
+    margin-right: 8px;
+    vertical-align: 2px;
+  }
+  .section-deck {
+    color: var(--secondary);
+    margin: 0 0 16px;
+    max-width: 720px;
+  }
+
+  /* Side-by-side comparison grid */
+  .compare {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 18px;
+    margin-bottom: 22px;
+  }
+  .panel {
+    background: var(--surface);
+    border-radius: 14px;
+    border: 1px solid var(--hairline);
+    padding: 0;
+    overflow: hidden;
+  }
+  .panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--hairline);
+    background: var(--surface-2);
+  }
+  .panel-header .label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.6px;
+    color: var(--secondary);
+    text-transform: uppercase;
+  }
+  .panel-header .tag {
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 99px;
+    font-weight: 600;
+  }
+  .tag.today { background: var(--neutral); color: var(--label); }
+  .tag.prop  { background: #e3f2ff; color: #0a64d6; }
+  .panel-body {
+    padding: 22px 20px 24px;
+    background: var(--bg);
+  }
+
+  /* === Top-bar primitives ============================================== */
+
+  .bar {
+    background: rgba(242, 242, 247, 0.92);
+    border-bottom: 1px solid var(--hairline);
+    padding: 10px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 36px;
+  }
+
+  /* Identity pill (interest switcher) */
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--pill-bg);
+    border: 1px solid var(--hairline);
+    padding: 5px 10px;
+    border-radius: 99px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--label);
+    box-shadow: var(--shadow);
+  }
+  .pill .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 4px;
+    background: var(--blue);
+  }
+  .pill .caret { color: var(--secondary); font-size: 10px; }
+  .pill.muted { color: var(--secondary); }
+
+  .spacer { flex: 1; }
+
+  /* Capsule of action icons */
+  .capsule {
+    display: inline-flex;
+    align-items: center;
+    background: var(--capsule-bg);
+    border: 1px solid var(--hairline);
+    border-radius: 99px;
+    box-shadow: var(--shadow);
+    overflow: hidden;
+  }
+  .capsule .ico {
+    width: 32px;
+    height: 32px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    color: var(--label);
+    position: relative;
+  }
+  .capsule .divider {
+    width: 1px;
+    height: 18px;
+    background: var(--hairline);
+  }
+  .badge {
+    position: absolute;
+    top: 3px;
+    right: 3px;
+    min-width: 14px;
+    height: 14px;
+    padding: 0 4px;
+    background: var(--red);
+    color: white;
+    font-size: 9px;
+    font-weight: 700;
+    border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1.5px solid var(--bg);
+  }
+
+  /* Avatar */
+  .avatar {
+    width: 28px;
+    height: 28px;
+    border-radius: 14px;
+    background: linear-gradient(135deg, #6ea8ff 0%, #b075ff 100%);
+    color: white;
+    font-size: 11px;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: var(--shadow);
+  }
+
+  /* Scope row */
+  .scope {
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
+  }
+  .crumb {
+    color: var(--secondary);
+    font-size: 13px;
+    font-weight: 500;
+  }
+  .crumb-sep {
+    color: var(--tertiary);
+    font-size: 11px;
+    margin: 0 2px;
+  }
+  .crumb a, .crumb-link {
+    color: var(--secondary);
+    text-decoration: none;
+    cursor: pointer;
+  }
+  .scope-title {
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.3px;
+    color: var(--label);
+  }
+  .scope-title .caret { color: var(--secondary); font-size: 14px; margin-left: 4px; }
+
+  /* Vitals chips */
+  .vitals {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 9px;
+    border-radius: 99px;
+    font-size: 12px;
+    font-weight: 600;
+    background: var(--neutral);
+    color: var(--label);
+  }
+  .chip .swatch {
+    width: 7px;
+    height: 7px;
+    border-radius: 4px;
+    background: var(--label);
+  }
+  .chip.good   .swatch { background: var(--green); }
+  .chip.warn   .swatch { background: var(--orange); }
+  .chip.bad    .swatch { background: #b8b8c2; }
+  .chip.muted { color: var(--secondary); }
+
+  /* Zoom rail */
+  .rail {
+    display: inline-flex;
+    align-items: center;
+    gap: 0;
+    background: var(--surface);
+    border: 1px solid var(--hairline);
+    border-radius: 99px;
+    padding: 4px 8px;
+    box-shadow: var(--shadow);
+  }
+  .rail .step {
+    width: 8px;
+    height: 8px;
+    border-radius: 4px;
+    background: var(--tertiary);
+    margin: 0 4px;
+  }
+  .rail .step.active {
+    background: var(--label);
+    transform: scale(1.4);
+  }
+  .rail .label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    color: var(--secondary);
+    text-transform: uppercase;
+    margin-left: 8px;
+    margin-right: 2px;
+  }
+
+  /* Floating Atlas capsule */
+  .map {
+    height: 240px;
+    border-radius: 14px;
+    background:
+      radial-gradient(circle at 20% 35%, rgba(180, 220, 255, 0.65), transparent 55%),
+      radial-gradient(circle at 70% 70%, rgba(195, 240, 195, 0.55), transparent 50%),
+      linear-gradient(150deg, #e9f0ff, #f4ffec 80%);
+    position: relative;
+    overflow: hidden;
+    border: 1px solid var(--hairline);
+  }
+  .map .floating {
+    position: absolute;
+    top: 14px;
+    left: 14px;
+    right: 14px;
+  }
+  .map .floating .bar {
+    background: var(--capsule-bg);
+    backdrop-filter: blur(12px);
+    border-radius: 99px;
+    border: 1px solid var(--hairline);
+    box-shadow: var(--shadow-lg);
+    padding: 6px 8px;
+  }
+  .map .pin {
+    position: absolute;
+    width: 12px; height: 12px;
+    border-radius: 6px;
+    background: var(--blue);
+    border: 2px solid white;
+    box-shadow: 0 0 0 1px rgba(0,0,0,.2);
+  }
+
+  /* Annotations */
+  .note {
+    display: flex;
+    gap: 8px;
+    margin: 10px 0 0;
+    padding: 10px 12px;
+    background: rgba(10, 132, 255, 0.07);
+    border-left: 3px solid var(--blue);
+    border-radius: 6px;
+    font-size: 12.5px;
+    color: #082e6f;
+  }
+  .note.warn { background: rgba(255, 159, 10, 0.09); border-left-color: var(--orange); color: #6e3d00; }
+  .note.bad  { background: rgba(255, 69, 58, 0.07); border-left-color: var(--red); color: #6a1612; }
+  .note strong { font-weight: 700; }
+
+  /* Step-detail tab strip mock (L1) */
+  .seg {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    margin-top: 8px;
+  }
+  .seg .item { font-size: 13px; color: var(--secondary); font-weight: 500; }
+  .seg .item.active { color: var(--green); font-weight: 700; }
+  .seg .dot { width: 6px; height: 6px; border-radius: 3px; background: currentColor; display: inline-block; margin-right: 4px; }
+
+  /* Status pill (L1 "Planned") */
+  .status {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 99px;
+    background: var(--neutral);
+    color: var(--label);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+  }
+
+  /* Big legend */
+  .legend {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-top: 12px;
+    padding: 14px;
+    background: var(--surface);
+    border-radius: 14px;
+    border: 1px solid var(--hairline);
+  }
+  .legend .slot {
+    border: 1px dashed var(--tertiary);
+    border-radius: 10px;
+    padding: 10px 12px;
+    background: var(--surface-2);
+  }
+  .legend .slot .name {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.6px;
+    color: var(--secondary);
+    text-transform: uppercase;
+  }
+  .legend .slot .body {
+    font-size: 13px;
+    color: var(--label);
+    margin-top: 4px;
+  }
+
+  /* Phone frame */
+  .phone {
+    width: 100%;
+    max-width: 360px;
+    border-radius: 28px;
+    background: var(--bg);
+    border: 1px solid var(--hairline);
+    overflow: hidden;
+    margin: 0 auto;
+    box-shadow: 0 12px 36px rgba(0,0,0,.08);
+  }
+  .phone .stage {
+    height: 280px;
+    background:
+      linear-gradient(180deg, var(--bg), #fafaff);
+    position: relative;
+  }
+  .phone .stage .placeholder {
+    padding: 16px;
+    color: var(--tertiary);
+    font-size: 12px;
+  }
+
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 18px; }
+  .grid-3 .panel { margin: 0; }
+
+  .footer {
+    color: var(--tertiary);
+    font-size: 12px;
+    margin-top: 50px;
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+
+<h1>Top-bar unification</h1>
+<p class="deck">
+  One <em>AppChromeRow</em> primitive, three skins (flat · scoped · floating). Identity always
+  on the left, global actions always on the right in the order <code>+ ✉ avatar</code>. Scope and
+  vitals live in their own row so each tab — and each Practice zoom level — composes from the same parts.
+</p>
+
+<!-- ====================================================================
+     SECTION 1 — The primitive
+     ==================================================================== -->
+
+<h2><span class="num">1</span>The primitive</h2>
+<p class="section-deck">Every top bar reads as the same three slot rows. Only the middle and bottom rows change between surfaces.</p>
+
+<div class="panel">
+  <div class="panel-header">
+    <span class="label">AppChromeRow · ScopeRow · LocalControlsRow</span>
+  </div>
+  <div class="panel-body">
+    <div class="bar" style="background: var(--surface);">
+      <div class="row">
+        <span class="pill"><span class="dot"></span>Sail Racing<span class="caret">▾</span></span>
+        <span class="spacer"></span>
+        <span class="capsule">
+          <span class="ico">+</span>
+          <span class="divider"></span>
+          <span class="ico">✉<span class="badge">2</span></span>
+        </span>
+        <span class="avatar">JH</span>
+      </div>
+      <div class="row scope">
+        <div>
+          <div class="crumb"><span class="crumb-link">Sail Racing</span><span class="crumb-sep">▸</span><span class="crumb-link">Winter 2025–26</span><span class="crumb-sep">▸</span></div>
+          <div class="scope-title">wk 1<span class="caret">▾</span></div>
+        </div>
+        <span class="spacer"></span>
+        <span class="rail">
+          <span class="label">Zoom</span>
+          <span class="step"></span>
+          <span class="step"></span>
+          <span class="step active"></span>
+          <span class="step"></span>
+        </span>
+      </div>
+      <div class="row">
+        <span class="vitals">
+          <span class="chip good"><span class="swatch"></span>3 done</span>
+          <span class="chip warn"><span class="swatch"></span>1 in play</span>
+          <span class="chip bad"><span class="swatch"></span>15 queued</span>
+        </span>
+      </div>
+    </div>
+
+    <div class="legend">
+      <div class="slot"><div class="name">Identity</div><div class="body">Interest switcher, far left. Same on every tab.</div></div>
+      <div class="slot"><div class="name">Global actions</div><div class="body"><code>+</code> capture · <code>✉</code> inbox · avatar. Far right, always this order.</div></div>
+      <div class="slot"><div class="name">Scope</div><div class="body">Breadcrumb + bold focus title + (optional) zoom rail.</div></div>
+      <div class="slot"><div class="name">Vitals</div><div class="body">Three chips for the current scope: <code>done · in play · queued</code>.</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ====================================================================
+     SECTION 2 — Practice zoom levels
+     ==================================================================== -->
+
+<h2><span class="num">2</span>Practice — L4 ▸ L3 ▸ L2 ▸ L1</h2>
+<p class="section-deck">The chrome row and global actions are pixel-identical across zoom levels. Only the scope row and the zoom rail's active dot change.</p>
+
+<!-- ----- L4 ALL ----- -->
+<div class="compare">
+  <div class="panel">
+    <div class="panel-header"><span class="label">L4 · All arcs</span><span class="tag today">Today</span></div>
+    <div class="panel-body">
+      <div class="bar" style="background: var(--surface);">
+        <div class="row">
+          <span class="pill"><span class="dot"></span>Sail Racing<span class="caret">▾</span></span>
+          <span class="spacer"></span>
+          <span class="capsule">
+            <span class="ico">+</span>
+            <span class="divider"></span>
+            <span class="ico">✉<span class="badge">2</span></span>
+          </span>
+          <span class="avatar">JH</span>
+        </div>
+        <div class="row" style="margin-top: 4px;">
+          <div class="scope-title" style="font-size: 28px;">Sail Racing<span class="caret">▾</span></div>
+          <span class="spacer"></span>
+          <span class="rail" style="background: white;">
+            <span class="step"></span><span class="step"></span><span class="step"></span><span class="step"></span>
+          </span>
+        </div>
+        <div class="row" style="color: var(--secondary); font-size: 13px; padding-left: 2px;">7 months · <span style="text-transform: uppercase; letter-spacing: 0.6px; font-size: 11px; font-weight: 700; margin-left: 4px;">PRACTICE LOG</span></div>
+      </div>
+      <div class="note bad"><strong>Issues.</strong> "PRACTICE LOG" eyebrow carries no info. Lone <code>ALL</code> button is both indicator and action. "7 months" is duration without the vitals shape used at L2.</div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-header"><span class="label">L4 · All arcs</span><span class="tag prop">Proposed</span></div>
+    <div class="panel-body">
+      <div class="bar" style="background: var(--surface);">
+        <div class="row">
+          <span class="pill"><span class="dot"></span>Sail Racing<span class="caret">▾</span></span>
+          <span class="spacer"></span>
+          <span class="capsule">
+            <span class="ico">+</span>
+            <span class="divider"></span>
+            <span class="ico">✉<span class="badge">2</span></span>
+          </span>
+          <span class="avatar">JH</span>
+        </div>
+        <div class="row scope">
+          <div class="scope-title">Sail Racing</div>
+          <span class="spacer"></span>
+          <span class="rail">
+            <span class="label">Zoom</span>
+            <span class="step active"></span><span class="step"></span><span class="step"></span><span class="step"></span>
+          </span>
+        </div>
+        <div class="row">
+          <span class="vitals">
+            <span class="chip good"><span class="swatch"></span>32 done</span>
+            <span class="chip warn"><span class="swatch"></span>4 in play</span>
+            <span class="chip bad"><span class="swatch"></span>61 queued</span>
+            <span class="chip muted">7 mo · 3 arcs</span>
+          </span>
+        </div>
+      </div>
+      <div class="note"><strong>Wins.</strong> Same vitals shape as every other zoom. Rail telegraphs "you can go deeper". Eyebrow gone.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ----- L3 ARC ----- -->
+<div class="compare">
+  <div class="panel">
+    <div class="panel-header"><span class="label">L3 · Arc (Winter 2025–26)</span><span class="tag today">Today</span></div>
+    <div class="panel-body">
+      <div class="bar" style="background: var(--surface);">
+        <div class="row">
+          <span class="pill"><span class="dot"></span>Sail Racing<span class="caret">▾</span></span>
+          <span class="spacer"></span>
+          <span class="capsule">
+            <span class="ico">+</span>
+            <span class="divider"></span>
+            <span class="ico">✉<span class="badge">2</span></span>
+          </span>
+          <span class="avatar">JH</span>
+        </div>
+        <div class="row">
+          <div class="scope-title">Winter 2025–2026<span class="caret">▾</span></div>
+          <span class="spacer"></span>
+          <span class="rail" style="background: white;"><span class="step"></span><span class="step"></span><span class="step"></span></span>
+        </div>
+        <div class="row" style="color: var(--blue); font-size: 13px;">Step 1 of 10 ▾</div>
+        <div class="row" style="color: var(--secondary); font-size: 11px; text-transform: uppercase; letter-spacing: 0.6px; font-weight: 700;">Practice log</div>
+      </div>
+      <div class="note bad"><strong>Issues.</strong> "Step 1 of 10" is shaped like progress, not vitals. Title doesn't tell you which interest. Eyebrow + ARC button stacked redundantly.</div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-header"><span class="label">L3 · Arc (Winter 2025–26)</span><span class="tag prop">Proposed</span></div>
+    <div class="panel-body">
+      <div class="bar" style="background: var(--surface);">
+        <div class="row">
+          <span class="pill"><span class="dot"></span>Sail Racing<span class="caret">▾</span></span>
+          <span class="spacer"></span>
+          <span class="capsule">
+            <span class="ico">+</span>
+            <span class="divider"></span>
+            <span class="ico">✉<span class="badge">2</span></span>
+          </span>
+          <span class="avatar">JH</span>
+        </div>
+        <div class="row scope">
+          <div>
+            <div class="crumb"><span class="crumb-link">Sail Racing</span><span class="crumb-sep">▸</span></div>
+            <div class="scope-title">Winter 2025–26<span class="caret">▾</span></div>
+          </div>
+          <span class="spacer"></span>
+          <span class="rail">
+            <span class="label">Zoom</span>
+            <span class="step"></span><span class="step active"></span><span class="step"></span><span class="step"></span>
+          </span>
+        </div>
+        <div class="row">
+          <span class="vitals">
+            <span class="chip good"><span class="swatch"></span>12 done</span>
+            <span class="chip warn"><span class="swatch"></span>3 in play</span>
+            <span class="chip bad"><span class="swatch"></span>22 queued</span>
+            <span class="chip muted">wk 1 / 7</span>
+          </span>
+        </div>
+      </div>
+      <div class="note"><strong>Wins.</strong> Breadcrumb makes <em>"Sail Racing"</em> tappable to zoom up. Vitals chips are the same three buckets used at L2. Single rail = single indicator.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ----- L2 WEEK ----- -->
+<div class="compare">
+  <div class="panel">
+    <div class="panel-header"><span class="label">L2 · Week</span><span class="tag today">Today</span></div>
+    <div class="panel-body">
+      <div class="bar" style="background: var(--surface);">
+        <div class="row">
+          <span class="pill"><span class="dot"></span>Sail Racing<span class="caret">▾</span></span>
+          <span class="spacer"></span>
+          <span class="capsule">
+            <span class="ico">+</span>
+            <span class="divider"></span>
+            <span class="ico">✉<span class="badge">2</span></span>
+          </span>
+          <span class="avatar">JH</span>
+        </div>
+        <div class="row" style="color: var(--secondary); font-style: italic; font-size: 14px;">
+          Winter 2025–26 has been <strong style="color: var(--label); font-style: normal;">practice-heavy</strong>.
+        </div>
+        <div class="row" style="font-size: 12px; color: var(--secondary);">
+          wk 1 / 7 · 3 done · 1 in play · 15 queued
+        </div>
+      </div>
+      <div class="note warn"><strong>Closer to right.</strong> The Librarian italic is great — but it's only here, and the vitals are plain text instead of chips.</div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-header"><span class="label">L2 · Week</span><span class="tag prop">Proposed</span></div>
+    <div class="panel-body">
+      <div class="bar" style="background: var(--surface);">
+        <div class="row">
+          <span class="pill"><span class="dot"></span>Sail Racing<span class="caret">▾</span></span>
+          <span class="spacer"></span>
+          <span class="capsule">
+            <span class="ico">+</span>
+            <span class="divider"></span>
+            <span class="ico">✉<span class="badge">2</span></span>
+          </span>
+          <span class="avatar">JH</span>
+        </div>
+        <div class="row scope">
+          <div>
+            <div class="crumb"><span class="crumb-link">Sail Racing</span><span class="crumb-sep">▸</span><span class="crumb-link">Winter 2025–26</span><span class="crumb-sep">▸</span></div>
+            <div class="scope-title">wk 1<span class="caret">▾</span></div>
+          </div>
+          <span class="spacer"></span>
+          <span class="rail">
+            <span class="label">Zoom</span>
+            <span class="step"></span><span class="step"></span><span class="step active"></span><span class="step"></span>
+          </span>
+        </div>
+        <div class="row">
+          <span class="vitals">
+            <span class="chip good"><span class="swatch"></span>3 done</span>
+            <span class="chip warn"><span class="swatch"></span>1 in play</span>
+            <span class="chip bad"><span class="swatch"></span>15 queued</span>
+            <span class="chip muted">Apr 25 – May 1</span>
+          </span>
+        </div>
+        <div class="row" style="color: var(--secondary); font-style: italic; font-size: 13px; padding-top: 2px;">
+          Winter 2025–26 has been <strong style="color: var(--label); font-style: normal;">practice-heavy</strong>.
+        </div>
+      </div>
+      <div class="note"><strong>Wins.</strong> Librarian narration is preserved but demoted below the chips so vitals lead. Date range joins as a fourth, muted chip.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ----- L1 STEP ----- -->
+<div class="compare">
+  <div class="panel">
+    <div class="panel-header"><span class="label">L1 · Step</span><span class="tag today">Today</span></div>
+    <div class="panel-body">
+      <div class="bar" style="background: var(--surface);">
+        <div class="row" style="font-size: 10px; color: var(--secondary); text-transform: uppercase; letter-spacing: 0.6px; font-weight: 700;">
+          Zoom · One step · Doing
+        </div>
+        <div class="row">
+          <span class="status">Planned</span>
+          <span class="spacer"></span>
+          <span class="rail" style="background: white;"><span class="step"></span></span>
+          <span class="ico" style="font-size: 18px; color: var(--secondary); padding: 0 6px;">⋯</span>
+        </div>
+        <div class="row" style="margin-top: 4px;">
+          <div class="scope-title">Figure out Bram's mast step</div>
+        </div>
+      </div>
+      <div class="note bad"><strong>Issues.</strong> No interest pill, no inbox, no <code>+</code>. Breaks the "I can always capture/check from anywhere" promise of the chrome.</div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-header"><span class="label">L1 · Step</span><span class="tag prop">Proposed</span></div>
+    <div class="panel-body">
+      <div class="bar" style="background: var(--surface);">
+        <div class="row">
+          <span class="pill"><span class="dot"></span>Sail Racing<span class="caret">▾</span></span>
+          <span class="spacer"></span>
+          <span class="capsule">
+            <span class="ico">+</span>
+            <span class="divider"></span>
+            <span class="ico">✉<span class="badge">2</span></span>
+          </span>
+          <span class="avatar">JH</span>
+        </div>
+        <div class="row scope">
+          <div>
+            <div class="crumb"><span class="crumb-link">Sail Racing</span><span class="crumb-sep">▸</span><span class="crumb-link">Winter 25–26</span><span class="crumb-sep">▸</span><span class="crumb-link">wk 1</span><span class="crumb-sep">▸</span></div>
+            <div class="scope-title">Figure out Bram's mast step</div>
+          </div>
+          <span class="spacer"></span>
+          <span class="rail">
+            <span class="label">Zoom</span>
+            <span class="step"></span><span class="step"></span><span class="step"></span><span class="step active"></span>
+          </span>
+        </div>
+        <div class="row">
+          <span class="vitals">
+            <span class="chip"><span class="swatch" style="background: var(--neutral); border: 1px solid var(--tertiary);"></span>Planned</span>
+            <span class="chip muted">Also relevant for Drawing</span>
+            <span class="chip muted">7 related</span>
+          </span>
+          <span class="spacer"></span>
+          <span class="ico" style="font-size: 18px; color: var(--secondary); padding: 0 6px;">⋯</span>
+        </div>
+      </div>
+      <div class="note"><strong>Wins.</strong> Chrome row restored — can capture/inbox-check from a step. Status moves into Vitals as a tappable advance-state chip. Three-dot stays at the right of the controls row.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ====================================================================
+     SECTION 3 — Cross-tab agreement
+     ==================================================================== -->
+
+<h2><span class="num">3</span>Cross-tab — Atlas, Discover, Practice</h2>
+<p class="section-deck">Same chrome row everywhere. Atlas wraps it in a floating capsule over the map; flat tabs render it on a translucent surface. No tab uses a different action ordering, and no tab moves the avatar.</p>
+
+<div class="grid-3">
+  <!-- Atlas -->
+  <div class="panel">
+    <div class="panel-header"><span class="label">Atlas · floating</span><span class="tag prop">Proposed</span></div>
+    <div class="panel-body" style="background: var(--bg);">
+      <div class="map">
+        <div class="pin" style="top: 95px; left: 65px;"></div>
+        <div class="pin" style="top: 140px; left: 180px; background: var(--purple);"></div>
+        <div class="pin" style="top: 180px; left: 270px; background: var(--orange);"></div>
+        <div class="floating">
+          <div class="bar" style="background: transparent; border: 0; padding: 0; gap: 0;">
+            <div class="row" style="background: var(--capsule-bg); backdrop-filter: blur(12px); border-radius: 99px; padding: 5px 7px; border: 1px solid var(--hairline); box-shadow: var(--shadow-lg);">
+              <span class="pill" style="box-shadow: none; border: 0; background: transparent; padding: 4px 8px;"><span class="dot"></span>Sail Racing<span class="caret">▾</span></span>
+              <span class="spacer"></span>
+              <span class="ico">⌕</span>
+              <span class="divider" style="height: 18px; width: 1px; background: var(--hairline);"></span>
+              <span class="ico">≡</span>
+              <span class="divider" style="height: 18px; width: 1px; background: var(--hairline);"></span>
+              <span class="ico">+</span>
+              <span class="divider" style="height: 18px; width: 1px; background: var(--hairline);"></span>
+              <span class="ico">✉<span class="badge">2</span></span>
+              <span class="avatar" style="margin-left: 4px;">JH</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="note"><strong>Changes vs today.</strong> Avatar moves to the right of the capsule (was left). <code>+</code> joins the cluster (was missing). Search/Layers stay as tab-local. Interest pill replaces the title text.</div>
+    </div>
+  </div>
+
+  <!-- Discover -->
+  <div class="panel">
+    <div class="panel-header"><span class="label">Discover · flat</span><span class="tag prop">Proposed</span></div>
+    <div class="panel-body">
+      <div class="bar" style="background: var(--surface);">
+        <div class="row">
+          <span class="pill"><span class="dot"></span>Sail Racing<span class="caret">▾</span></span>
+          <span class="spacer"></span>
+          <span class="capsule">
+            <span class="ico">⌕</span>
+            <span class="divider"></span>
+            <span class="ico">+</span>
+            <span class="divider"></span>
+            <span class="ico">✉<span class="badge">2</span></span>
+          </span>
+          <span class="avatar">JH</span>
+        </div>
+        <div class="row">
+          <div class="scope-title">Discover</div>
+        </div>
+        <div class="row" style="font-size: 12px; color: var(--secondary);">
+          Today · Cover
+        </div>
+      </div>
+      <div class="note"><strong>Changes vs today.</strong> Search joins as a tab-local action <em>inside</em> the capsule (was floating). Interest pill is hoisted to the left (default flipped).</div>
+    </div>
+  </div>
+
+  <!-- Practice L3 (compact, just for cross-ref) -->
+  <div class="panel">
+    <div class="panel-header"><span class="label">Practice · scoped</span><span class="tag prop">Proposed</span></div>
+    <div class="panel-body">
+      <div class="bar" style="background: var(--surface);">
+        <div class="row">
+          <span class="pill"><span class="dot"></span>Sail Racing<span class="caret">▾</span></span>
+          <span class="spacer"></span>
+          <span class="capsule">
+            <span class="ico">+</span>
+            <span class="divider"></span>
+            <span class="ico">✉<span class="badge">2</span></span>
+          </span>
+          <span class="avatar">JH</span>
+        </div>
+        <div class="row scope">
+          <div>
+            <div class="crumb"><span class="crumb-link">Sail Racing</span><span class="crumb-sep">▸</span></div>
+            <div class="scope-title">Winter 2025–26<span class="caret">▾</span></div>
+          </div>
+          <span class="spacer"></span>
+          <span class="rail">
+            <span class="step"></span><span class="step active"></span><span class="step"></span><span class="step"></span>
+          </span>
+        </div>
+        <div class="row">
+          <span class="vitals">
+            <span class="chip good"><span class="swatch"></span>12 done</span>
+            <span class="chip warn"><span class="swatch"></span>3 in play</span>
+            <span class="chip bad"><span class="swatch"></span>22 queued</span>
+          </span>
+        </div>
+      </div>
+      <div class="note"><strong>Identical chrome row to Discover.</strong> Only the rows below differ.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ====================================================================
+     SECTION 4 — Per-zoom task-bar functions
+     ==================================================================== -->
+
+<h2><span class="num">4</span>Per-zoom task-bar function reference</h2>
+<p class="section-deck">What each row <em>does</em> on each surface. Identity + global actions are constant; only the scope verb and tab-local controls change.</p>
+
+<div class="panel">
+  <div class="panel-body" style="padding: 0; background: var(--surface);">
+    <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+      <thead>
+        <tr style="background: var(--surface-2); text-align: left;">
+          <th style="padding: 12px 14px; font-weight: 700; border-bottom: 1px solid var(--hairline); width: 16%;">Surface</th>
+          <th style="padding: 12px 14px; font-weight: 700; border-bottom: 1px solid var(--hairline); width: 18%;">Scope verb</th>
+          <th style="padding: 12px 14px; font-weight: 700; border-bottom: 1px solid var(--hairline); width: 26%;">Vitals chips</th>
+          <th style="padding: 12px 14px; font-weight: 700; border-bottom: 1px solid var(--hairline); width: 22%;">Tab-local controls</th>
+          <th style="padding: 12px 14px; font-weight: 700; border-bottom: 1px solid var(--hairline); width: 18%;">Rail position</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td style="padding: 12px 14px; border-bottom: 1px solid var(--hairline);"><strong>Practice L4</strong></td>
+          <td style="padding: 12px 14px; border-bottom: 1px solid var(--hairline);">Time scrubber<br/><span style="color: var(--secondary);">12 mo / 5 yr / all</span></td>
+          <td style="padding: 12px 14px; border-bottom: 1px solid var(--hairline);">done · in play · queued · arc count</td>
+          <td style="padding: 12px 14px; border-bottom: 1px solid var(--hairline);">New arc · Sort · Capability filter</td>
+          <td style="padding: 12px 14px; border-bottom: 1px solid var(--hairline);"><code>◉ ○ ○ ○</code></td>
+        </tr>
+        <tr>
+          <td style="padding: 12px 14px; border-bottom: 1px solid var(--hairline);"><strong>Practice L3</strong></td>
+          <td style="padding: 12px 14px; border-bottom: 1px solid var(--hairline);">Arc switcher</td>
+          <td style="padding: 12px 14px; border-bottom: 1px solid var(--hairline);">done · in play · queued · wk N/M</td>
+          <td style="padding: 12px 14px; border-bottom: 1px solid var(--hairline);">Capability filter · Edit arc</td>
+          <td style="padding: 12px 14px; border-bottom: 1px solid var(--hairline);"><code>○ ◉ ○ ○</code></td>
+        </tr>
+        <tr>
+          <td style="padding: 12px 14px; border-bottom: 1px solid var(--hairline);"><strong>Practice L2</strong></td>
+          <td style="padding: 12px 14px; border-bottom: 1px solid var(--hairline);">Week prev/next + picker</td>
+          <td style="padding: 12px 14px; border-bottom: 1px solid var(--hairline);">done · in play · queued · date range</td>
+          <td style="padding: 12px 14px; border-bottom: 1px solid var(--hairline);">Day strip · Capability inherited</td>
+          <td style="padding: 12px 14px; border-bottom: 1px solid var(--hairline);"><code>○ ○ ◉ ○</code></td>
+        </tr>
+        <tr>
+          <td style="padding: 12px 14px; border-bottom: 1px solid var(--hairline);"><strong>Practice L1</strong></td>
+          <td style="padding: 12px 14px; border-bottom: 1px solid var(--hairline);">Status advance<br/><span style="color: var(--secondary);">Planned → In play → Done</span></td>
+          <td style="padding: 12px 14px; border-bottom: 1px solid var(--hairline);">Status · cross-interest · related count</td>
+          <td style="padding: 12px 14px; border-bottom: 1px solid var(--hairline);">3-dot · Pin · Share · Schedule</td>
+          <td style="padding: 12px 14px; border-bottom: 1px solid var(--hairline);"><code>○ ○ ○ ◉</code></td>
+        </tr>
+        <tr>
+          <td style="padding: 12px 14px; border-bottom: 1px solid var(--hairline);"><strong>Atlas</strong></td>
+          <td style="padding: 12px 14px; border-bottom: 1px solid var(--hairline);">Pan/zoom map (gesture)</td>
+          <td style="padding: 12px 14px; border-bottom: 1px solid var(--hairline);">— (vitals optional, scope = visible pin set)</td>
+          <td style="padding: 12px 14px; border-bottom: 1px solid var(--hairline);">Search · Layers</td>
+          <td style="padding: 12px 14px; border-bottom: 1px solid var(--hairline);">N/A (geographic)</td>
+        </tr>
+        <tr>
+          <td style="padding: 12px 14px; border-bottom: 1px solid var(--hairline);"><strong>Discover</strong></td>
+          <td style="padding: 12px 14px; border-bottom: 1px solid var(--hairline);">Tab title (large)</td>
+          <td style="padding: 12px 14px; border-bottom: 1px solid var(--hairline);">— (replaced by Today / Cover toggle)</td>
+          <td style="padding: 12px 14px; border-bottom: 1px solid var(--hairline);">Search · Filter</td>
+          <td style="padding: 12px 14px; border-bottom: 1px solid var(--hairline);">N/A</td>
+        </tr>
+        <tr>
+          <td style="padding: 12px 14px; border-bottom: 1px solid var(--hairline);"><strong>Watch</strong></td>
+          <td style="padding: 12px 14px; border-bottom: 1px solid var(--hairline);">Tab title (large)</td>
+          <td style="padding: 12px 14px; border-bottom: 1px solid var(--hairline);">— (segmented control)</td>
+          <td style="padding: 12px 14px; border-bottom: 1px solid var(--hairline);">Filter · Sort</td>
+          <td style="padding: 12px 14px; border-bottom: 1px solid var(--hairline);">N/A</td>
+        </tr>
+        <tr>
+          <td style="padding: 12px 14px;"><strong>Library</strong></td>
+          <td style="padding: 12px 14px;">Zone breadcrumb</td>
+          <td style="padding: 12px 14px;">Zone counts (resources · concepts · pins)</td>
+          <td style="padding: 12px 14px;">Search · Filter · Sort</td>
+          <td style="padding: 12px 14px;">N/A (depth via breadcrumb)</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ====================================================================
+     SECTION 5 — Migration order
+     ==================================================================== -->
+
+<h2><span class="num">5</span>Migration order</h2>
+<p class="section-deck">Cheap visual standardizations first; structural extraction once the visual contract is settled.</p>
+
+<ol style="font-size: 14px; line-height: 1.7; padding-left: 22px;">
+  <li><strong>Atlas: move avatar right, add <code>+</code>, swap title-text for an interest pill.</strong> Single PR, no other tabs touched.</li>
+  <li><strong>Flip <code>TabScreenToolbar</code>'s default to <code>interestSwitcherLeft=true</code></strong> so Discover/Watch/Library agree with Practice without per-call overrides.</li>
+  <li><strong>Unify inbox icon</strong> — every tab uses <code>NotificationBell size={20}</code>; remove the custom action-button variant from Discover/Watch.</li>
+  <li><strong>Extract <code>AppChromeRow</code></strong> — CanvasTopBar collapses into it; TabScreenToolbar's nav row delegates to it; Atlas TopChrome delegates to it.</li>
+  <li><strong>Build <code>ScopeRow</code></strong> with breadcrumb + zoom rail + vitals chips. Drop into Practice L2/L3/L4 and Library zone pages.</li>
+  <li><strong>L1 chrome restore</strong> — add the chrome row to the step view and migrate the status pill into Vitals.</li>
+  <li><strong>Retire <code>CanvasTopBar</code></strong> once steps 4–5 land.</li>
+</ol>
+
+<p class="footer">docs/redesign/ios-register/topbar-unified-canonical.html</p>
+
+</body>
+</html>
