@@ -1,15 +1,16 @@
 /**
  * StepDiscussionInline — Discussion tab body for the main step card.
  *
- * Compact version of the fullscreen Discussion view. No top-bar / hero /
- * tab bar — just the feed of notes (with reactions + Reply) and a composer.
- * Designed to be embedded as the 4th tab next to Plan/Do/Reflect, scrolling
- * with the parent step card.
+ * Renders the canonical Discuss surface: an access card naming everyone
+ * who can see the thread, the message feed (with optional cross-step
+ * quote pull-quotes), and a composer that can quote one of the viewer's
+ * own steps.
  */
 
 import React, { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
+  Modal,
   Pressable,
   StyleSheet,
   Text,
@@ -19,39 +20,57 @@ import {
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   CornerUpLeft,
-  Flame,
-  Lightbulb,
+  Link as LinkIcon,
   MessageCircle,
   Send,
+  X,
 } from 'lucide-react-native';
 import { useAuth } from '@/providers/AuthProvider';
+import { useMyTimeline } from '@/hooks/useTimelineSteps';
+import { supabase } from '@/services/supabase';
 import {
+  getBlueprintStepDiscussion,
   getStepDiscussion,
+  postBlueprintStepNote,
   postStepNote,
   toggleStepReaction,
   type StepDiscussionRow,
   type StepDiscussionReactionKind,
 } from '@/services/StepDiscussionService';
+import type { TimelineStepRecord } from '@/types/timeline-steps';
+
+export interface StepAccessPerson {
+  userId: string;
+  displayName: string;
+  initials: string;
+  avatarColor?: string | null;
+  /** Normalized role from step_collaborators.role. Null for the owner. */
+  role?: string | null;
+  isOwner?: boolean;
+}
 
 export interface StepDiscussionInlineProps {
   stepId: string;
+  /** Owner + collaborators with access to this step. */
+  access?: StepAccessPerson[];
 }
 
 function shortAgo(iso: string): string {
   const ts = new Date(iso).getTime();
   if (Number.isNaN(ts)) return '';
   const secs = Math.max(0, (Date.now() - ts) / 1000);
-  if (secs < 60) return `${Math.round(secs)}s`;
+  if (secs < 60) return 'just now';
   const mins = secs / 60;
-  if (mins < 60) return `${Math.round(mins)}m`;
+  if (mins < 60) return `${Math.round(mins)}m ago`;
   const hrs = mins / 60;
-  if (hrs < 24) return `${Math.round(hrs)}h`;
+  if (hrs < 24) return hrs < 2 ? 'this morning' : `${Math.round(hrs)}h ago`;
   const days = hrs / 24;
-  if (days < 7) return `${Math.round(days)}d`;
+  if (days < 2) return 'yesterday';
+  if (days < 7) return `${Math.round(days)} days ago`;
   return new Date(iso).toLocaleDateString();
 }
 
-function initialsFrom(name: string | null): string {
+function initialsFrom(name: string | null | undefined): string {
   if (!name) return '?';
   return (
     name
@@ -63,34 +82,154 @@ function initialsFrom(name: string | null): string {
   );
 }
 
-export function StepDiscussionInline({ stepId }: StepDiscussionInlineProps) {
+/**
+ * Map normalized role → uppercase pill label. Owners and unclassified
+ * collaborators get no pill — render the bare name.
+ */
+function roleLabel(role: string | null | undefined, isOwner?: boolean): string | null {
+  if (isOwner) return null;
+  if (!role) return null;
+  const r = role.toLowerCase();
+  if (r === 'collaborator' || r === 'other') return null;
+  if (r === 'helm' || r === 'foredeck') return `CREW · ${r.toUpperCase()}`;
+  return r.toUpperCase();
+}
+
+/**
+ * "Kevin Ho · plan coach · Bram & Steve · your crew · Phyl & Rohan · fellow subscribers"
+ * Today we only render real collaborators — the "fellow subscribers" group
+ * stays out until subscriber-on-step is modeled.
+ */
+function buildAccessSummary(access: StepAccessPerson[], viewerUserId: string | null): string {
+  if (access.length === 0) return '';
+  // Group by role bucket. Owner is its own group.
+  const owners: string[] = [];
+  const coaches: string[] = [];
+  const mentors: string[] = [];
+  const crew: string[] = [];
+  const others: string[] = [];
+  for (const p of access) {
+    const name = p.userId === viewerUserId ? 'You' : p.displayName;
+    if (p.isOwner) {
+      owners.push(name);
+      continue;
+    }
+    const r = (p.role ?? '').toLowerCase();
+    if (r === 'coach') coaches.push(name);
+    else if (r === 'mentor') mentors.push(name);
+    else if (r === 'helm' || r === 'crew' || r === 'foredeck') crew.push(name);
+    else others.push(name);
+  }
+  const parts: string[] = [];
+  if (owners.length) parts.push(`${owners.join(' & ')} · owner`);
+  if (coaches.length) parts.push(`${coaches.join(' & ')} · ${coaches.length > 1 ? 'coaches' : 'coach'}`);
+  if (mentors.length) parts.push(`${mentors.join(' & ')} · ${mentors.length > 1 ? 'mentors' : 'mentor'}`);
+  if (crew.length) parts.push(`${crew.join(' & ')} · crew`);
+  if (others.length) parts.push(`${others.join(' & ')}`);
+  return parts.join(' · ');
+}
+
+const AVATAR_COLORS = ['#1F6FEB', '#22A06B', '#F08C00', '#9333EA', '#DC2626'];
+function fallbackAvatarColor(seed: string): string {
+  let h = 0;
+  for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) | 0;
+  return AVATAR_COLORS[Math.abs(h) % AVATAR_COLORS.length] as string;
+}
+
+const REACTION_GLYPH: Record<StepDiscussionReactionKind, string> = {
+  fire: '👍',
+  insight: '💩',
+  question: '🙏',
+};
+
+type DiscussionScope = 'private' | 'cohort';
+
+export function StepDiscussionInline({ stepId, access = [] }: StepDiscussionInlineProps) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const [scope, setScope] = useState<DiscussionScope>('private');
   const [draft, setDraft] = useState('');
+
+  // Resolve the blueprint_step link so we know whether to surface the
+  // Cohort tab. Null = step isn't blueprint-derived (or its forked
+  // copy was never linked back to a canonical blueprint_step), so the
+  // shared thread has no home and we render only Private.
+  const { data: blueprintStepId = null } = useQuery({
+    queryKey: ['step-blueprint-step-link', stepId],
+    enabled: Boolean(stepId),
+    staleTime: 60 * 1000,
+    queryFn: async (): Promise<string | null> => {
+      const { data } = await supabase
+        .from('timeline_steps')
+        .select('source_blueprint_step_id')
+        .eq('id', stepId)
+        .maybeSingle();
+      return (data as { source_blueprint_step_id?: string | null } | null)
+        ?.source_blueprint_step_id ?? null;
+    },
+  });
+  const hasCohort = Boolean(blueprintStepId);
+  // Snap back to Private if the user is somehow on Cohort but the
+  // link goes away (rename, delete, etc.).
+  const effectiveScope: DiscussionScope = hasCohort ? scope : 'private';
   const [replyingTo, setReplyingTo] = useState<{
     noteId: string;
     authorName: string;
   } | null>(null);
+  const [pendingQuote, setPendingQuote] = useState<{
+    stepId: string;
+    stepTitle: string | null;
+    stepNumber: number | null;
+    body: string;
+  } | null>(null);
+  const [quotePickerOpen, setQuotePickerOpen] = useState(false);
 
   const { data: feedRows, isLoading } = useQuery({
-    queryKey: ['phase10-step-discussion', stepId, user?.id],
-    queryFn: () => getStepDiscussion(stepId, user?.id ?? null),
-    enabled: Boolean(stepId),
+    queryKey:
+      effectiveScope === 'cohort'
+        ? ['phase10-blueprint-step-discussion', blueprintStepId, user?.id]
+        : ['phase10-step-discussion', stepId, user?.id],
+    queryFn: () =>
+      effectiveScope === 'cohort' && blueprintStepId
+        ? getBlueprintStepDiscussion(blueprintStepId, user?.id ?? null)
+        : getStepDiscussion(stepId, user?.id ?? null),
+    enabled:
+      Boolean(stepId) && (effectiveScope === 'private' || Boolean(blueprintStepId)),
     staleTime: 30 * 1000,
   });
 
   const postMutation = useMutation({
-    mutationFn: async (input: { body: string; parentId?: string | null }) => {
+    mutationFn: async (input: {
+      body: string;
+      parentId?: string | null;
+      quotedStepId?: string | null;
+      quoteBody?: string | null;
+    }) => {
       if (!user?.id) throw new Error('Sign in to post.');
+      if (effectiveScope === 'cohort' && blueprintStepId) {
+        return postBlueprintStepNote({
+          blueprintStepId,
+          userId: user.id,
+          body: input.body,
+          parentId: input.parentId ?? null,
+          quotedStepId: input.quotedStepId ?? null,
+          quoteBody: input.quoteBody ?? null,
+        });
+      }
       return postStepNote({
         stepId,
         userId: user.id,
         body: input.body,
         parentId: input.parentId ?? null,
+        quotedStepId: input.quotedStepId ?? null,
+        quoteBody: input.quoteBody ?? null,
       });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['phase10-step-discussion', stepId] });
+      queryClient.invalidateQueries({
+        queryKey: ['phase10-blueprint-step-discussion', blueprintStepId],
+      });
       queryClient.invalidateQueries({ queryKey: ['step-discussion-peek', stepId] });
     },
   });
@@ -120,10 +259,13 @@ export function StepDiscussionInline({ stepId }: StepDiscussionInlineProps) {
     await postMutation.mutateAsync({
       body,
       parentId: replyingTo?.noteId ?? null,
+      quotedStepId: pendingQuote?.stepId ?? null,
+      quoteBody: pendingQuote?.body ?? null,
     });
     setDraft('');
     setReplyingTo(null);
-  }, [draft, replyingTo, postMutation]);
+    setPendingQuote(null);
+  }, [draft, replyingTo, pendingQuote, postMutation]);
 
   const handleReact = useCallback(
     (noteId: string, kind: StepDiscussionReactionKind, isOn: boolean) => {
@@ -144,6 +286,13 @@ export function StepDiscussionInline({ stepId }: StepDiscussionInlineProps) {
     return initialsFrom(name);
   }, [user?.user_metadata?.full_name]);
 
+  // Map author_user_id → role for per-message pill rendering.
+  const accessByUser = useMemo(() => {
+    const m = new Map<string, StepAccessPerson>();
+    for (const p of access) m.set(p.userId, p);
+    return m;
+  }, [access]);
+
   if (isLoading) {
     return (
       <View style={styles.loading}>
@@ -157,12 +306,63 @@ export function StepDiscussionInline({ stepId }: StepDiscussionInlineProps) {
 
   return (
     <View style={styles.wrap}>
+      {access.length > 0 ? (
+        <AccessCard access={access} viewerUserId={user?.id ?? null} />
+      ) : null}
+
+      {hasCohort ? (
+        <View style={styles.scopeRow}>
+          <Pressable
+            onPress={() => setScope('private')}
+            style={[
+              styles.scopePill,
+              effectiveScope === 'private' && styles.scopePillActive,
+            ]}
+            accessibilityRole="button"
+            accessibilityState={{ selected: effectiveScope === 'private' }}
+          >
+            <Text
+              style={[
+                styles.scopePillText,
+                effectiveScope === 'private' && styles.scopePillTextActive,
+              ]}
+            >
+              Private
+            </Text>
+          </Pressable>
+          <Pressable
+            onPress={() => setScope('cohort')}
+            style={[
+              styles.scopePill,
+              effectiveScope === 'cohort' && styles.scopePillActive,
+            ]}
+            accessibilityRole="button"
+            accessibilityState={{ selected: effectiveScope === 'cohort' }}
+          >
+            <Text
+              style={[
+                styles.scopePillText,
+                effectiveScope === 'cohort' && styles.scopePillTextActive,
+              ]}
+            >
+              Cohort
+            </Text>
+          </Pressable>
+        </View>
+      ) : null}
+
       {isEmpty ? (
         <View style={styles.empty}>
           <MessageCircle size={28} color={C.label3} strokeWidth={1.6} />
-          <Text style={styles.emptyTitle}>No notes yet</Text>
+          <Text style={styles.emptyTitle}>
+            {effectiveScope === 'cohort'
+              ? 'No cohort posts yet'
+              : 'No notes yet'}
+          </Text>
           <Text style={styles.emptyBody}>
-            Share a reflection below to start the discussion for this step.
+            {effectiveScope === 'cohort'
+              ? 'Be the first to share with everyone subscribed to this plan.'
+              : 'Share a reflection below to start the discussion for this step.'}
           </Text>
         </View>
       ) : (
@@ -172,12 +372,35 @@ export function StepDiscussionInline({ stepId }: StepDiscussionInlineProps) {
               key={note.id}
               note={note}
               viewerUserId={user?.id ?? null}
+              accessEntry={accessByUser.get(note.user_id) ?? null}
               onReact={(kind, isOn) => handleReact(note.id, kind, isOn)}
               onReply={() => handleReply(note)}
             />
           ))}
         </View>
       )}
+
+      {pendingQuote ? (
+        <View style={styles.quoteChip}>
+          <LinkIcon size={12} color={C.blue} />
+          <Text style={styles.quoteChipText} numberOfLines={2}>
+            <Text style={styles.quoteChipLabel}>
+              {pendingQuote.stepNumber != null
+                ? `From my Step ${pendingQuote.stepNumber}: `
+                : 'From my step: '}
+            </Text>
+            “{pendingQuote.body}”
+          </Text>
+          <Pressable
+            onPress={() => setPendingQuote(null)}
+            hitSlop={6}
+            accessibilityRole="button"
+            accessibilityLabel="Remove quote"
+          >
+            <X size={12} color={C.label3} />
+          </Pressable>
+        </View>
+      ) : null}
 
       {replyingTo ? (
         <View style={styles.replyHeader}>
@@ -215,6 +438,15 @@ export function StepDiscussionInline({ stepId }: StepDiscussionInlineProps) {
           maxLength={4000}
         />
         <Pressable
+          style={styles.quoteButton}
+          onPress={() => setQuotePickerOpen(true)}
+          hitSlop={6}
+          accessibilityRole="button"
+          accessibilityLabel="Quote a step"
+        >
+          <LinkIcon size={14} color={C.label2} />
+        </Pressable>
+        <Pressable
           style={[
             styles.sendButton,
             (!draft.trim() || postMutation.isPending) && styles.sendButtonDisabled,
@@ -232,22 +464,99 @@ export function StepDiscussionInline({ stepId }: StepDiscussionInlineProps) {
           )}
         </Pressable>
       </View>
+
+      <QuoteStepPicker
+        visible={quotePickerOpen}
+        onClose={() => setQuotePickerOpen(false)}
+        excludeStepId={stepId}
+        onPick={(picked) => {
+          setPendingQuote(picked);
+          setQuotePickerOpen(false);
+        }}
+      />
     </View>
   );
 }
 
+// ---------------------------------------------------------------------------
+// AccessCard
+// ---------------------------------------------------------------------------
+
+interface AccessCardProps {
+  access: StepAccessPerson[];
+  viewerUserId: string | null;
+}
+
+function AccessCard({ access, viewerUserId }: AccessCardProps) {
+  const summary = buildAccessSummary(access, viewerUserId);
+  const stack = access.slice(0, 3);
+  const remainder = Math.max(0, access.length - stack.length);
+
+  return (
+    <View style={styles.accessCard}>
+      <View style={styles.accessChat}>
+        <MessageCircle size={14} color={C.label2} strokeWidth={1.8} />
+      </View>
+      <View style={styles.accessText}>
+        <Text style={styles.accessTitle}>
+          {access.length} {access.length === 1 ? 'person has' : 'people have'} access
+        </Text>
+        <Text style={styles.accessSummary} numberOfLines={2}>
+          {summary}
+        </Text>
+      </View>
+      <View style={styles.avatarStack}>
+        {stack.map((p, idx) => (
+          <View
+            key={p.userId}
+            style={[
+              styles.stackAvatar,
+              {
+                backgroundColor: p.avatarColor ?? fallbackAvatarColor(p.userId),
+                marginLeft: idx === 0 ? 0 : -8,
+                zIndex: stack.length - idx,
+              },
+            ]}
+          >
+            <Text style={styles.stackAvatarText}>{p.initials}</Text>
+          </View>
+        ))}
+        {remainder > 0 ? (
+          <View
+            style={[
+              styles.stackAvatar,
+              styles.stackAvatarRemainder,
+              { marginLeft: -8, zIndex: 0 },
+            ]}
+          >
+            <Text style={styles.stackAvatarText}>+{remainder}</Text>
+          </View>
+        ) : null}
+      </View>
+    </View>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// NoteCard
+// ---------------------------------------------------------------------------
+
 interface NoteCardProps {
   note: StepDiscussionRow;
   viewerUserId: string | null;
+  accessEntry: StepAccessPerson | null;
   onReact: (kind: StepDiscussionReactionKind, isOn: boolean) => void;
   onReply: () => void;
 }
 
-function NoteCard({ note, viewerUserId, onReact, onReply }: NoteCardProps) {
+function NoteCard({ note, viewerUserId, accessEntry, onReact, onReply }: NoteCardProps) {
   const initials = note.author_initials ?? initialsFrom(note.author_name);
   const isMine = viewerUserId != null && note.user_id === viewerUserId;
   const isViewerReacted = (kind: StepDiscussionReactionKind) =>
     note.viewer_reactions.includes(kind);
+  const pill = roleLabel(accessEntry?.role, accessEntry?.isOwner);
+  const avatarColor =
+    accessEntry?.avatarColor ?? fallbackAvatarColor(note.user_id);
 
   return (
     <View style={styles.noteCard}>
@@ -255,18 +564,37 @@ function NoteCard({ note, viewerUserId, onReact, onReply }: NoteCardProps) {
         <View
           style={[
             styles.noteAvatar,
-            isMine ? styles.noteAvatarMine : styles.noteAvatarOther,
+            { backgroundColor: avatarColor },
           ]}
         >
           <Text style={styles.noteAvatarText}>{initials}</Text>
         </View>
         <View style={styles.noteHeaderText}>
-          <Text style={styles.noteAuthor} numberOfLines={1}>
-            {note.author_name ?? 'Sailor'}
-          </Text>
+          <View style={styles.noteAuthorRow}>
+            <Text style={styles.noteAuthor} numberOfLines={1}>
+              {note.author_name ?? 'Sailor'}
+            </Text>
+            {pill ? (
+              <View style={styles.rolePill}>
+                <View style={styles.rolePillDot} />
+                <Text style={styles.rolePillText}>{pill}</Text>
+              </View>
+            ) : null}
+          </View>
           <Text style={styles.noteWhen}>{shortAgo(note.created_at)}</Text>
         </View>
       </View>
+
+      {note.quote ? (
+        <View style={styles.quoteBlock}>
+          <Text style={styles.quoteIntro}>
+            {note.quote.step_number != null
+              ? `From ${isMine ? 'my' : 'their'} Step ${note.quote.step_number}: `
+              : `From ${isMine ? 'my' : 'their'} step: `}
+            <Text style={styles.quoteBody}>“{note.quote.body}”</Text>
+          </Text>
+        </View>
+      ) : null}
 
       <Text style={styles.noteBody}>{note.body}</Text>
 
@@ -277,7 +605,12 @@ function NoteCard({ note, viewerUserId, onReact, onReply }: NoteCardProps) {
               reply.author_initials ?? initialsFrom(reply.author_name);
             return (
               <View key={reply.id} style={styles.replyRow}>
-                <View style={styles.replyAvatar}>
+                <View
+                  style={[
+                    styles.replyAvatar,
+                    { backgroundColor: fallbackAvatarColor(reply.user_id) },
+                  ]}
+                >
                   <Text style={styles.replyAvatarText}>{replyInitials}</Text>
                 </View>
                 <View style={styles.replyBody}>
@@ -293,42 +626,15 @@ function NoteCard({ note, viewerUserId, onReact, onReply }: NoteCardProps) {
       ) : null}
 
       <View style={styles.reactionRow}>
-        <ReactionChip
-          icon={
-            <Flame
-              size={11}
-              color={isViewerReacted('fire') ? C.coral : C.label2}
-              fill={isViewerReacted('fire') ? C.coral : 'transparent'}
-            />
-          }
-          count={note.reaction_counts.fire}
-          on={isViewerReacted('fire')}
-          onPress={() => onReact('fire', isViewerReacted('fire'))}
-        />
-        <ReactionChip
-          icon={
-            <Lightbulb
-              size={11}
-              color={isViewerReacted('insight') ? C.coral : C.label2}
-              fill={isViewerReacted('insight') ? C.coral : 'transparent'}
-            />
-          }
-          count={note.reaction_counts.insight}
-          on={isViewerReacted('insight')}
-          onPress={() => onReact('insight', isViewerReacted('insight'))}
-        />
-        <ReactionChip
-          icon={
-            <MessageCircle
-              size={11}
-              color={isViewerReacted('question') ? C.coral : C.label2}
-              fill={isViewerReacted('question') ? C.coral : 'transparent'}
-            />
-          }
-          count={note.reaction_counts.question}
-          on={isViewerReacted('question')}
-          onPress={() => onReact('question', isViewerReacted('question'))}
-        />
+        {(['fire', 'insight', 'question'] as StepDiscussionReactionKind[]).map((kind) => (
+          <ReactionChip
+            key={kind}
+            glyph={REACTION_GLYPH[kind]}
+            count={note.reaction_counts[kind]}
+            on={isViewerReacted(kind)}
+            onPress={() => onReact(kind, isViewerReacted(kind))}
+          />
+        ))}
         <View style={{ flex: 1 }} />
         <Pressable
           style={styles.replyButton}
@@ -346,12 +652,12 @@ function NoteCard({ note, viewerUserId, onReact, onReply }: NoteCardProps) {
 }
 
 function ReactionChip({
-  icon,
+  glyph,
   count,
   on,
   onPress,
 }: {
-  icon: React.ReactNode;
+  glyph: string;
   count: number;
   on: boolean;
   onPress: () => void;
@@ -362,13 +668,170 @@ function ReactionChip({
       onPress={onPress}
       hitSlop={4}
     >
-      {icon}
-      <Text style={[styles.reactionCount, on && styles.reactionCountOn]}>
-        {count}
-      </Text>
+      <Text style={styles.reactionGlyph}>{glyph}</Text>
+      {count > 0 ? (
+        <Text style={[styles.reactionCount, on && styles.reactionCountOn]}>
+          {count}
+        </Text>
+      ) : null}
     </Pressable>
   );
 }
+
+// ---------------------------------------------------------------------------
+// QuoteStepPicker — modal listing viewer's recent steps so they can drop a
+// pull-quote into the composer.
+// ---------------------------------------------------------------------------
+
+interface QuoteStepPickerProps {
+  visible: boolean;
+  onClose: () => void;
+  excludeStepId: string;
+  onPick: (picked: {
+    stepId: string;
+    stepTitle: string | null;
+    stepNumber: number | null;
+    body: string;
+  }) => void;
+}
+
+function QuoteStepPicker({ visible, onClose, excludeStepId, onPick }: QuoteStepPickerProps) {
+  const { data: steps, isLoading } = useMyTimeline(null);
+  const [selectedStep, setSelectedStep] = useState<TimelineStepRecord | null>(null);
+  const [quoteText, setQuoteText] = useState('');
+
+  const candidates = useMemo(
+    () => (steps ?? []).filter((s) => s.id !== excludeStepId).slice(0, 30),
+    [steps, excludeStepId],
+  );
+
+  const reset = useCallback(() => {
+    setSelectedStep(null);
+    setQuoteText('');
+  }, []);
+
+  const handleConfirm = useCallback(() => {
+    if (!selectedStep) return;
+    const body = quoteText.trim();
+    if (!body) return;
+    onPick({
+      stepId: selectedStep.id,
+      stepTitle: selectedStep.title ?? null,
+      stepNumber: (selectedStep as any).sort_order ?? null,
+      body,
+    });
+    reset();
+  }, [selectedStep, quoteText, onPick, reset]);
+
+  const handleClose = useCallback(() => {
+    reset();
+    onClose();
+  }, [reset, onClose]);
+
+  return (
+    <Modal
+      visible={visible}
+      transparent
+      animationType="slide"
+      onRequestClose={handleClose}
+    >
+      <View style={styles.modalBackdrop}>
+        <View style={styles.modalSheet}>
+          <View style={styles.modalHandle} />
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>
+              {selectedStep ? 'Pick a quote' : 'Quote one of your steps'}
+            </Text>
+            <Pressable
+              onPress={handleClose}
+              hitSlop={8}
+              accessibilityRole="button"
+              accessibilityLabel="Close"
+            >
+              <X size={18} color={C.label2} />
+            </Pressable>
+          </View>
+
+          {!selectedStep ? (
+            <View style={styles.modalBody}>
+              {isLoading ? (
+                <ActivityIndicator color={C.label2} />
+              ) : candidates.length === 0 ? (
+                <Text style={styles.modalEmpty}>
+                  You don't have other steps yet. Add one to quote from it.
+                </Text>
+              ) : (
+                <View style={styles.pickerList}>
+                  {candidates.map((step) => (
+                    <Pressable
+                      key={step.id}
+                      style={styles.pickerRow}
+                      onPress={() => {
+                        setSelectedStep(step);
+                        const seed =
+                          (step as any).description ??
+                          (step as any).metadata?.plan?.what_will_you_do ??
+                          '';
+                        setQuoteText(typeof seed === 'string' ? seed.slice(0, 240) : '');
+                      }}
+                    >
+                      <Text style={styles.pickerRowTitle} numberOfLines={1}>
+                        {step.title || 'Untitled step'}
+                      </Text>
+                      {(step as any).starts_at ? (
+                        <Text style={styles.pickerRowMeta}>
+                          {new Date((step as any).starts_at).toLocaleDateString(undefined, {
+                            month: 'short',
+                            day: 'numeric',
+                          })}
+                        </Text>
+                      ) : null}
+                    </Pressable>
+                  ))}
+                </View>
+              )}
+            </View>
+          ) : (
+            <View style={styles.modalBody}>
+              <Text style={styles.pickerSubLabel} numberOfLines={1}>
+                Quoting: {selectedStep.title || 'Untitled step'}
+              </Text>
+              <TextInput
+                style={styles.pickerQuoteInput}
+                value={quoteText}
+                onChangeText={setQuoteText}
+                placeholder="Type or edit the line you want to quote…"
+                placeholderTextColor={C.label3}
+                multiline
+                maxLength={600}
+                autoFocus
+              />
+              <View style={styles.pickerActions}>
+                <Pressable style={styles.pickerSecondary} onPress={reset}>
+                  <Text style={styles.pickerSecondaryText}>Pick another step</Text>
+                </Pressable>
+                <Pressable
+                  style={[
+                    styles.pickerPrimary,
+                    !quoteText.trim() && styles.pickerPrimaryDisabled,
+                  ]}
+                  onPress={handleConfirm}
+                  disabled={!quoteText.trim()}
+                >
+                  <Text style={styles.pickerPrimaryText}>Use quote</Text>
+                </Pressable>
+              </View>
+            </View>
+          )}
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Styles
+// ---------------------------------------------------------------------------
 
 const C = {
   label: '#1C1C1E',
@@ -381,17 +844,47 @@ const C = {
   coral: '#FF3B30',
   coralSoft: '#FDDBDA',
   card: '#FFFFFF',
-  greenDeep: '#0A6B2A',
-  purpleSoft: '#D7D6F4',
-  purpleTint: '#EFEFFB',
+  quoteBg: '#F8F8FA',
+  quoteBorder: '#D9D9DF',
 };
 
 const styles = StyleSheet.create({
+  scopeRow: {
+    flexDirection: 'row',
+    alignSelf: 'flex-start',
+    gap: 4,
+    padding: 3,
+    borderRadius: 999,
+    backgroundColor: 'rgba(120, 120, 130, 0.08)',
+    marginBottom: 12,
+  },
+  scopePill: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 999,
+  },
+  scopePillActive: {
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOpacity: 0.06,
+    shadowOffset: { width: 0, height: 1 },
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  scopePillText: {
+    fontSize: 12,
+    fontWeight: '600',
+    letterSpacing: 0.2,
+    color: '#64748B',
+  },
+  scopePillTextActive: {
+    color: '#0F172A',
+  },
   wrap: {
     paddingHorizontal: 14,
     paddingTop: 8,
     paddingBottom: 8,
-    gap: 8,
+    gap: 10,
   },
   loading: {
     paddingVertical: 24,
@@ -399,7 +892,7 @@ const styles = StyleSheet.create({
   },
   empty: {
     alignItems: 'center',
-    paddingVertical: 32,
+    paddingVertical: 24,
     paddingHorizontal: 24,
     gap: 6,
   },
@@ -417,6 +910,61 @@ const styles = StyleSheet.create({
   feed: {
     gap: 10,
   },
+  // -------- Access card --------
+  accessCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: C.card,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: C.line,
+    borderRadius: 12,
+    padding: 12,
+  },
+  accessChat: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: C.gray6,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  accessText: {
+    flex: 1,
+    gap: 2,
+  },
+  accessTitle: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: C.label,
+  },
+  accessSummary: {
+    fontSize: 12,
+    color: C.label3,
+    lineHeight: 16,
+  },
+  avatarStack: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  stackAvatar: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1.5,
+    borderColor: C.card,
+  },
+  stackAvatarRemainder: {
+    backgroundColor: C.gray6,
+  },
+  stackAvatarText: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  // -------- Note card --------
   noteCard: {
     backgroundColor: C.card,
     borderWidth: StyleSheet.hairlineWidth,
@@ -428,39 +976,77 @@ const styles = StyleSheet.create({
   noteHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 10,
   },
   noteAvatar: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  noteAvatarMine: {
-    backgroundColor: C.blueTint,
-  },
-  noteAvatarOther: {
-    backgroundColor: C.gray6,
   },
   noteAvatarText: {
     fontSize: 11,
     fontWeight: '700',
-    color: C.label,
+    color: '#FFFFFF',
     letterSpacing: 0.2,
   },
   noteHeaderText: {
     flex: 1,
   },
+  noteAuthorRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
   noteAuthor: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '600',
     color: C.label,
+  },
+  rolePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    backgroundColor: C.blueTint,
+  },
+  rolePillDot: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: C.blue,
+  },
+  rolePillText: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: C.blue,
+    letterSpacing: 0.4,
   },
   noteWhen: {
     fontSize: 11,
     color: C.label3,
     marginTop: 1,
+  },
+  quoteBlock: {
+    backgroundColor: C.quoteBg,
+    borderLeftWidth: 3,
+    borderLeftColor: C.quoteBorder,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    borderRadius: 6,
+  },
+  quoteIntro: {
+    fontSize: 12,
+    color: C.label2,
+    fontStyle: 'italic',
+    lineHeight: 17,
+  },
+  quoteBody: {
+    color: C.label,
+    fontStyle: 'italic',
   },
   noteBody: {
     fontSize: 14,
@@ -484,12 +1070,11 @@ const styles = StyleSheet.create({
     borderRadius: 11,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: C.gray6,
   },
   replyAvatarText: {
     fontSize: 9,
     fontWeight: '700',
-    color: C.label,
+    color: '#FFFFFF',
   },
   replyBody: {
     flex: 1,
@@ -523,8 +1108,11 @@ const styles = StyleSheet.create({
     backgroundColor: C.card,
   },
   reactionChipOn: {
-    backgroundColor: C.coralSoft,
-    borderColor: C.coral,
+    backgroundColor: C.blueTint,
+    borderColor: C.blue,
+  },
+  reactionGlyph: {
+    fontSize: 13,
   },
   reactionCount: {
     fontSize: 11,
@@ -532,7 +1120,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   reactionCountOn: {
-    color: C.coral,
+    color: C.blue,
   },
   replyButton: {
     flexDirection: 'row',
@@ -546,6 +1134,7 @@ const styles = StyleSheet.create({
     color: C.blue,
     fontWeight: '500',
   },
+  // -------- Reply / quote chips above composer --------
   replyHeader: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -571,6 +1160,29 @@ const styles = StyleSheet.create({
     color: C.blue,
     fontWeight: '500',
   },
+  quoteChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    backgroundColor: C.quoteBg,
+    borderRadius: 10,
+    borderLeftWidth: 3,
+    borderLeftColor: C.quoteBorder,
+  },
+  quoteChipText: {
+    flex: 1,
+    fontSize: 12,
+    color: C.label2,
+    fontStyle: 'italic',
+    lineHeight: 16,
+  },
+  quoteChipLabel: {
+    fontStyle: 'italic',
+    color: C.label3,
+  },
+  // -------- Composer --------
   composer: {
     flexDirection: 'row',
     alignItems: 'flex-end',
@@ -603,6 +1215,14 @@ const styles = StyleSheet.create({
     backgroundColor: C.gray6,
     maxHeight: 120,
   },
+  quoteButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: C.gray6,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   sendButton: {
     width: 32,
     height: 32,
@@ -613,5 +1233,112 @@ const styles = StyleSheet.create({
   },
   sendButtonDisabled: {
     opacity: 0.4,
+  },
+  // -------- Quote step picker modal --------
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'flex-end',
+  },
+  modalSheet: {
+    backgroundColor: C.card,
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 24,
+    maxHeight: '80%',
+  },
+  modalHandle: {
+    alignSelf: 'center',
+    width: 36,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: C.line,
+    marginBottom: 8,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingBottom: 8,
+  },
+  modalTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: C.label,
+  },
+  modalBody: {
+    paddingTop: 8,
+    gap: 8,
+  },
+  modalEmpty: {
+    fontSize: 13,
+    color: C.label3,
+    textAlign: 'center',
+    paddingVertical: 24,
+  },
+  pickerList: {
+    gap: 4,
+  },
+  pickerRow: {
+    paddingVertical: 10,
+    paddingHorizontal: 4,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: C.line,
+  },
+  pickerRowTitle: {
+    fontSize: 14,
+    color: C.label,
+    fontWeight: '500',
+  },
+  pickerRowMeta: {
+    fontSize: 11,
+    color: C.label3,
+    marginTop: 2,
+  },
+  pickerSubLabel: {
+    fontSize: 12,
+    color: C.label3,
+  },
+  pickerQuoteInput: {
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: C.line,
+    borderRadius: 10,
+    backgroundColor: C.gray6,
+    padding: 10,
+    fontSize: 14,
+    color: C.label,
+    minHeight: 100,
+    textAlignVertical: 'top',
+  },
+  pickerActions: {
+    flexDirection: 'row',
+    gap: 8,
+    justifyContent: 'flex-end',
+    paddingTop: 8,
+  },
+  pickerSecondary: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  pickerSecondaryText: {
+    fontSize: 13,
+    color: C.label2,
+    fontWeight: '500',
+  },
+  pickerPrimary: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    backgroundColor: C.blue,
+    borderRadius: 10,
+  },
+  pickerPrimaryDisabled: {
+    opacity: 0.4,
+  },
+  pickerPrimaryText: {
+    fontSize: 13,
+    color: '#FFFFFF',
+    fontWeight: '600',
   },
 });
