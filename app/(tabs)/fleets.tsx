@@ -7,6 +7,7 @@ import { useRouter } from 'expo-router';
 import { FleetCard } from '@/components/fleets/FleetCard';
 import { FleetFeed } from '@/components/fleets/FleetFeed';
 import { MembersList } from '@/components/fleets/MembersList';
+import { FleetInviteSheet } from '@/components/fleets/FleetInviteSheet';
 import { TuningLibrary } from '@/components/fleets/TuningLibrary';
 import { Leaderboard } from '@/components/fleets/Leaderboard';
 import { FleetDiscoveryService, Fleet as DiscoveredFleet } from '@/services/FleetDiscoveryService';
@@ -32,6 +33,7 @@ export default function FleetsScreen() {
   const { user } = useAuth();
   const [selectedFleet, setSelectedFleet] = useState<Fleet | null>(null);
   const [activeTab, setActiveTab] = useState<TabType>('feed');
+  const [inviteSheetOpen, setInviteSheetOpen] = useState(false);
 
   // Join Fleet Modal state
   const [showJoinModal, setShowJoinModal] = useState(false);
@@ -271,7 +273,20 @@ export default function FleetsScreen() {
 
           <View style={styles.tabContent}>
             {activeTab === 'feed' && <FleetFeed fleetId={selectedFleet.id} />}
-            {activeTab === 'members' && <MembersList fleetId={selectedFleet.id} />}
+            {activeTab === 'members' && (
+              <>
+                <View style={styles.membersHeader}>
+                  <Pressable
+                    style={styles.inviteButton}
+                    onPress={() => setInviteSheetOpen(true)}
+                  >
+                    <Ionicons name="person-add-outline" size={16} color="#FFFFFF" />
+                    <Text style={styles.inviteButtonText}>Invite members</Text>
+                  </Pressable>
+                </View>
+                <MembersList fleetId={selectedFleet.id} />
+              </>
+            )}
             {activeTab === 'tuning' && <TuningLibrary fleetId={selectedFleet.id} />}
             {activeTab === 'events' && (
               <View style={styles.comingSoon}>
@@ -292,6 +307,12 @@ export default function FleetsScreen() {
             )}
             {activeTab === 'leaderboard' && <Leaderboard fleetId={selectedFleet.id} />}
           </View>
+          <FleetInviteSheet
+            visible={inviteSheetOpen}
+            onClose={() => setInviteSheetOpen(false)}
+            fleetId={selectedFleet.id}
+            fleetName={selectedFleet.name}
+          />
         </SafeAreaView>
       </Modal>
     );
@@ -459,6 +480,27 @@ export default function FleetsScreen() {
 }
 
 const styles = StyleSheet.create({
+  membersHeader: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 8,
+  },
+  inviteButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 999,
+    backgroundColor: '#2563EB',
+  },
+  inviteButtonText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
   container: {
     flex: 1,
     backgroundColor: '#F9FAFB',

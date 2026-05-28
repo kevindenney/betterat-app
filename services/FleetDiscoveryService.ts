@@ -37,6 +37,15 @@ export interface Fleet {
   member_count?: number;
 }
 
+export interface InviteCandidate {
+  id: string;
+  displayName: string;
+  avatarUrl: string | null;
+  /** "Dragon · RHKYC" — small context line under the name to help
+   *  the inviter disambiguate two sailors with the same name. */
+  context: string;
+}
+
 export interface FleetMembership {
   id: string;
   fleet_id: string;
@@ -333,6 +342,93 @@ export class FleetDiscoveryService {
       return newFleet;
     } catch (error) {
       logger.error('Error creating fleet:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Search profiles to invite to a fleet — typed query matches against
+   * full_name / first_name / last_name (case-insensitive). Restricted
+   * to profile_public=true so we don't leak private sailors into the
+   * picker; results that are already members (active or invited) are
+   * filtered out client-side so the inviter doesn't double-add.
+   */
+  static async searchInviteCandidates(
+    fleetId: string,
+    query: string,
+    limit: number = 20,
+  ): Promise<InviteCandidate[]> {
+    const q = query.trim();
+    if (q.length < 2) return [];
+    try {
+      // Existing members + invitees — exclude from results.
+      const { data: existing } = await supabase
+        .from('fleet_members')
+        .select('user_id')
+        .eq('fleet_id', fleetId);
+      const excludedIds = new Set(
+        ((existing ?? []) as { user_id: string }[]).map((r) => r.user_id),
+      );
+
+      const wildcard = `%${q.replace(/[%_]/g, '\\$&')}%`;
+      const { data, error } = await supabase
+        .from('profiles')
+        .select(
+          'id, full_name, first_name, last_name, avatar_url, sailing_class, sailing_club',
+        )
+        .eq('profile_public', true)
+        .or(
+          `full_name.ilike.${wildcard},first_name.ilike.${wildcard},last_name.ilike.${wildcard}`,
+        )
+        .limit(limit * 2);
+      if (error) throw error;
+      return ((data ?? []) as {
+        id: string;
+        full_name: string | null;
+        first_name: string | null;
+        last_name: string | null;
+        avatar_url: string | null;
+        sailing_class: string | null;
+        sailing_club: string | null;
+      }[])
+        .filter((row) => !excludedIds.has(row.id))
+        .slice(0, limit)
+        .map((row) => ({
+          id: row.id,
+          displayName:
+            row.full_name?.trim() ||
+            [row.first_name, row.last_name].filter(Boolean).join(' ').trim() ||
+            'Sailor',
+          avatarUrl: row.avatar_url,
+          context: [row.sailing_class, row.sailing_club]
+            .filter((s): s is string => Boolean(s && s.trim()))
+            .join(' · '),
+        }));
+    } catch (error) {
+      logger.error('Error searching invite candidates:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Invite a user to a fleet — calls the SECURITY DEFINER RPC that
+   * checks the caller is fleet owner/captain and inserts a row with
+   * status='invited'. Returns the fleet_members row id (existing or
+   * new) or null on error.
+   */
+  static async inviteMember(
+    fleetId: string,
+    inviteeUserId: string,
+  ): Promise<string | null> {
+    try {
+      const { data, error } = await supabase.rpc('invite_fleet_member', {
+        p_fleet_id: fleetId,
+        p_user_id: inviteeUserId,
+      });
+      if (error) throw error;
+      return (data as string | null) ?? null;
+    } catch (error) {
+      logger.error('Error inviting fleet member:', error);
       return null;
     }
   }
