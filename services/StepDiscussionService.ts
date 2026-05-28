@@ -18,6 +18,15 @@ export interface StepDiscussionEvidenceChip {
   label: string;
 }
 
+export interface StepDiscussionQuote {
+  step_id: string;
+  body: string;
+  /** Step title for header line ("From my Step 4: …"). null if unavailable. */
+  step_title: string | null;
+  /** Sequence number within parent blueprint if known. */
+  step_number: number | null;
+}
+
 export interface StepDiscussionRow {
   id: string;
   step_id: string;
@@ -36,6 +45,8 @@ export interface StepDiscussionRow {
   viewer_reactions: StepDiscussionReactionKind[];
   /** Pre-computed replies grouped under root notes. */
   replies?: StepDiscussionRow[];
+  /** Optional cross-step quote captured at compose time. */
+  quote: StepDiscussionQuote | null;
 }
 
 const ALL_KINDS: StepDiscussionReactionKind[] = ['fire', 'insight', 'question'];
@@ -63,7 +74,9 @@ export async function getStepDiscussion(
   try {
     const { data: rows, error } = await supabase
       .from('step_discussions')
-      .select('id, step_id, user_id, parent_id, body, evidence, is_coach_reply, created_at')
+      .select(
+        'id, step_id, user_id, parent_id, body, evidence, is_coach_reply, created_at, quoted_step_id, quote_body',
+      )
       .eq('step_id', stepId)
       .order('created_at', { ascending: false });
 
@@ -72,8 +85,15 @@ export async function getStepDiscussion(
 
     const userIds = [...new Set(rows.map((r: any) => r.user_id))];
     const ids = rows.map((r: any) => r.id);
+    const quotedStepIds = [
+      ...new Set(
+        rows
+          .map((r: any) => r.quoted_step_id)
+          .filter((v: unknown): v is string => typeof v === 'string' && v.length > 0),
+      ),
+    ];
 
-    const [{ data: profiles }, { data: reactions }] = await Promise.all([
+    const [{ data: profiles }, { data: reactions }, quotedStepsRes] = await Promise.all([
       supabase
         .from('profiles')
         .select('id, full_name, avatar_url')
@@ -82,9 +102,18 @@ export async function getStepDiscussion(
         .from('step_discussion_reactions')
         .select('discussion_id, user_id, kind')
         .in('discussion_id', ids),
+      quotedStepIds.length > 0
+        ? supabase
+            .from('timeline_steps')
+            .select('id, title, sort_order')
+            .in('id', quotedStepIds)
+        : Promise.resolve({ data: [] as { id: string; title: string | null; sort_order: number | null }[] }),
     ]);
 
     const profileMap = new Map((profiles ?? []).map((p: any) => [p.id, p]));
+    const quotedStepMap = new Map(
+      ((quotedStepsRes as any).data ?? []).map((s: any) => [s.id, s]),
+    );
     const countsByDiscussion = new Map<string, Record<StepDiscussionReactionKind, number>>();
     const viewerByDiscussion = new Map<string, StepDiscussionReactionKind[]>();
     for (const r of (reactions as any[]) ?? []) {
@@ -104,6 +133,15 @@ export async function getStepDiscussion(
     const enriched: StepDiscussionRow[] = (rows as any[]).map((r) => {
       const profile = profileMap.get(r.user_id);
       const name = (profile as any)?.full_name ?? null;
+      const quotedStep = r.quoted_step_id ? quotedStepMap.get(r.quoted_step_id) : null;
+      const quote: StepDiscussionQuote | null = r.quote_body && r.quoted_step_id
+        ? {
+            step_id: r.quoted_step_id,
+            body: r.quote_body,
+            step_title: (quotedStep as any)?.title ?? null,
+            step_number: (quotedStep as any)?.sort_order ?? null,
+          }
+        : null;
       return {
         id: r.id,
         step_id: r.step_id,
@@ -118,6 +156,7 @@ export async function getStepDiscussion(
         author_avatar_url: (profile as any)?.avatar_url ?? null,
         reaction_counts: countsByDiscussion.get(r.id) ?? emptyCounts(),
         viewer_reactions: viewerByDiscussion.get(r.id) ?? [],
+        quote,
       };
     });
 
@@ -139,6 +178,188 @@ export async function getStepDiscussion(
   }
 }
 
+/**
+ * Same shape as getStepDiscussion, but reads the SHARED cohort
+ * thread at the blueprint_step level. Anyone with an active plan
+ * (or legacy blueprint_subscription) for the underlying blueprint
+ * can see + post here. Returns [] when the viewer has no access.
+ *
+ * Note: a chunk of the enrichment logic mirrors getStepDiscussion.
+ * Consolidating both into a shared helper is a follow-up; for now
+ * the parallel implementation is the safer rev.
+ */
+export async function getBlueprintStepDiscussion(
+  blueprintStepId: string,
+  viewerUserId: string | null,
+): Promise<StepDiscussionRow[]> {
+  try {
+    const { data: rows, error } = await supabase
+      .from('step_discussions')
+      .select(
+        'id, step_id, blueprint_step_id, user_id, parent_id, body, evidence, is_coach_reply, created_at, quoted_step_id, quote_body',
+      )
+      .eq('blueprint_step_id', blueprintStepId)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    if (!rows || rows.length === 0) return [];
+
+    const userIds = [...new Set(rows.map((r: any) => r.user_id))];
+    const ids = rows.map((r: any) => r.id);
+    const quotedStepIds = [
+      ...new Set(
+        rows
+          .map((r: any) => r.quoted_step_id)
+          .filter((v: unknown): v is string => typeof v === 'string' && v.length > 0),
+      ),
+    ];
+
+    const [{ data: profiles }, { data: reactions }, quotedStepsRes] = await Promise.all([
+      supabase
+        .from('profiles')
+        .select('id, full_name, avatar_url')
+        .in('id', userIds),
+      supabase
+        .from('step_discussion_reactions')
+        .select('discussion_id, user_id, kind')
+        .in('discussion_id', ids),
+      quotedStepIds.length > 0
+        ? supabase
+            .from('timeline_steps')
+            .select('id, title, sort_order')
+            .in('id', quotedStepIds)
+        : Promise.resolve({ data: [] as { id: string; title: string | null; sort_order: number | null }[] }),
+    ]);
+
+    const profileMap = new Map((profiles ?? []).map((p: any) => [p.id, p]));
+    const quotedStepMap = new Map(
+      ((quotedStepsRes as any).data ?? []).map((s: any) => [s.id, s]),
+    );
+    const countsByDiscussion = new Map<string, Record<StepDiscussionReactionKind, number>>();
+    const viewerByDiscussion = new Map<string, StepDiscussionReactionKind[]>();
+    for (const r of (reactions as any[]) ?? []) {
+      const counts = countsByDiscussion.get(r.discussion_id) ?? emptyCounts();
+      const kind = r.kind as StepDiscussionReactionKind;
+      if (ALL_KINDS.includes(kind)) {
+        counts[kind] = (counts[kind] ?? 0) + 1;
+      }
+      countsByDiscussion.set(r.discussion_id, counts);
+      if (viewerUserId && r.user_id === viewerUserId) {
+        const list = viewerByDiscussion.get(r.discussion_id) ?? [];
+        list.push(kind);
+        viewerByDiscussion.set(r.discussion_id, list);
+      }
+    }
+
+    const enriched: StepDiscussionRow[] = (rows as any[]).map((r) => {
+      const profile = profileMap.get(r.user_id);
+      const name = (profile as any)?.full_name ?? null;
+      const quotedStep = r.quoted_step_id ? quotedStepMap.get(r.quoted_step_id) : null;
+      const quote: StepDiscussionQuote | null = r.quote_body && r.quoted_step_id
+        ? {
+            step_id: r.quoted_step_id,
+            body: r.quote_body,
+            step_title: (quotedStep as any)?.title ?? null,
+            step_number: (quotedStep as any)?.sort_order ?? null,
+          }
+        : null;
+      return {
+        id: r.id,
+        step_id: r.step_id,
+        user_id: r.user_id,
+        parent_id: r.parent_id ?? null,
+        body: r.body,
+        evidence: Array.isArray(r.evidence) ? (r.evidence as StepDiscussionEvidenceChip[]) : [],
+        is_coach_reply: Boolean(r.is_coach_reply),
+        created_at: r.created_at,
+        author_name: name,
+        author_initials: initialsFrom(name),
+        author_avatar_url: (profile as any)?.avatar_url ?? null,
+        reaction_counts: countsByDiscussion.get(r.id) ?? emptyCounts(),
+        viewer_reactions: viewerByDiscussion.get(r.id) ?? [],
+        quote,
+      };
+    });
+
+    const roots = enriched.filter((r) => !r.parent_id);
+    const repliesByParent = new Map<string, StepDiscussionRow[]>();
+    for (const r of enriched.filter((r) => r.parent_id)) {
+      const list = repliesByParent.get(r.parent_id as string) ?? [];
+      list.push(r);
+      repliesByParent.set(r.parent_id as string, list);
+    }
+    for (const root of roots) {
+      root.replies = (repliesByParent.get(root.id) ?? []).reverse();
+    }
+    return roots;
+  } catch (err) {
+    logger.error('Failed to load blueprint_step discussion', err);
+    return [];
+  }
+}
+
+/**
+ * Post to the SHARED cohort thread at a blueprint_step. RLS gates
+ * the insert through is_plan_member_for_blueprint_step — if the
+ * caller doesn't have an active plan / legacy subscription, the
+ * insert fails and we return null.
+ */
+export async function postBlueprintStepNote(input: {
+  blueprintStepId: string;
+  userId: string;
+  body: string;
+  parentId?: string | null;
+  evidence?: StepDiscussionEvidenceChip[];
+  isCoachReply?: boolean;
+  quotedStepId?: string | null;
+  quoteBody?: string | null;
+}): Promise<StepDiscussionRow | null> {
+  const { data, error } = await supabase
+    .from('step_discussions')
+    .insert({
+      blueprint_step_id: input.blueprintStepId,
+      step_id: null,
+      user_id: input.userId,
+      parent_id: input.parentId ?? null,
+      body: input.body,
+      evidence: input.evidence ?? [],
+      is_coach_reply: input.isCoachReply ?? false,
+      quoted_step_id: input.quotedStepId ?? null,
+      quote_body: input.quoteBody ?? null,
+    })
+    .select('*')
+    .single();
+
+  if (error) {
+    logger.error('Failed to post blueprint_step note', error);
+    throw error;
+  }
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('full_name, avatar_url')
+    .eq('id', input.userId)
+    .maybeSingle();
+  const name = (profile as any)?.full_name ?? null;
+
+  return {
+    id: (data as any).id,
+    step_id: (data as any).step_id,
+    user_id: (data as any).user_id,
+    parent_id: (data as any).parent_id ?? null,
+    body: (data as any).body,
+    evidence: ((data as any).evidence ?? []) as StepDiscussionEvidenceChip[],
+    is_coach_reply: Boolean((data as any).is_coach_reply),
+    created_at: (data as any).created_at,
+    author_name: name,
+    author_initials: initialsFrom(name),
+    author_avatar_url: (profile as any)?.avatar_url ?? null,
+    reaction_counts: emptyCounts(),
+    viewer_reactions: [],
+    quote: null,
+  };
+}
+
 export async function postStepNote(input: {
   stepId: string;
   userId: string;
@@ -146,6 +367,8 @@ export async function postStepNote(input: {
   parentId?: string | null;
   evidence?: StepDiscussionEvidenceChip[];
   isCoachReply?: boolean;
+  quotedStepId?: string | null;
+  quoteBody?: string | null;
 }): Promise<StepDiscussionRow | null> {
   const { data, error } = await supabase
     .from('step_discussions')
@@ -156,6 +379,8 @@ export async function postStepNote(input: {
       body: input.body,
       evidence: input.evidence ?? [],
       is_coach_reply: input.isCoachReply ?? false,
+      quoted_step_id: input.quotedStepId ?? null,
+      quote_body: input.quoteBody ?? null,
     })
     .select('*')
     .single();
@@ -172,6 +397,22 @@ export async function postStepNote(input: {
     .eq('id', input.userId)
     .maybeSingle();
   const name = (profile as any)?.full_name ?? null;
+
+  let quote: StepDiscussionQuote | null = null;
+  if ((data as any).quoted_step_id && (data as any).quote_body) {
+    const { data: quotedStep } = await supabase
+      .from('timeline_steps')
+      .select('id, title, sort_order')
+      .eq('id', (data as any).quoted_step_id)
+      .maybeSingle();
+    quote = {
+      step_id: (data as any).quoted_step_id,
+      body: (data as any).quote_body,
+      step_title: (quotedStep as any)?.title ?? null,
+      step_number: (quotedStep as any)?.sort_order ?? null,
+    };
+  }
+
   return {
     id: (data as any).id,
     step_id: (data as any).step_id,
@@ -186,6 +427,7 @@ export async function postStepNote(input: {
     author_avatar_url: (profile as any)?.avatar_url ?? null,
     reaction_counts: emptyCounts(),
     viewer_reactions: [],
+    quote,
   };
 }
 
