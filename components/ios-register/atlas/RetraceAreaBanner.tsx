@@ -177,7 +177,9 @@ const styles = StyleSheet.create({
   },
   btnSecondary: {
     flex: 1,
-    backgroundColor: '#E5E5EA',
+    backgroundColor: '#D1D1D6',
+    borderWidth: 1,
+    borderColor: 'rgba(60, 60, 67, 0.18)',
   },
   btnSecondaryText: {
     fontSize: 14,
@@ -193,12 +195,10 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#FFFFFF',
   },
-  // Disabled state needs to stay legible against the white card.
-  // rgba(blue, 0.4) over white reads as near-white with white text —
-  // user sees no button. Strong mid-gray fill + outline + dark text
-  // keeps the affordance visibly inactive.
+  // Strong mid-gray fill + outline + dark text so the disabled state
+  // reads as a clear inactive button against the white card.
   btnDisabled: {
-    backgroundColor: '#EDEDF0',
+    backgroundColor: '#D1D1D6',
     borderWidth: 1,
     borderColor: 'rgba(60, 60, 67, 0.18)',
   },

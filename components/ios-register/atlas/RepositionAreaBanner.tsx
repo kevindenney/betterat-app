@@ -163,7 +163,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   btnSecondary: {
-    backgroundColor: '#E5E5EA',
+    backgroundColor: '#D1D1D6',
+    borderWidth: 1,
+    borderColor: 'rgba(60, 60, 67, 0.18)',
   },
   btnSecondaryText: {
     fontSize: 14,
@@ -178,13 +180,12 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#FFFFFF',
   },
-  // Disabled state was previously rgba(blue, 0.4) with white text —
-  // over the white card that resolves to near-white with white text
-  // and the user reasonably reports "Save is missing." Use a strong
-  // mid-gray fill with a 1pt outline and dark gray text so the
-  // "Tap the map…" affordance is impossible to miss.
+  // Strong gray fill with outline so the disabled Save reads as a
+  // visibly-inactive button against the white action-bar card. Earlier
+  // attempts at #EDEDF0 + 0.16-alpha borders weren't visually distinct
+  // enough on-device — the user kept reading the bar as Cancel-only.
   btnDisabled: {
-    backgroundColor: '#EDEDF0',
+    backgroundColor: '#D1D1D6',
     borderWidth: 1,
     borderColor: 'rgba(60, 60, 67, 0.18)',
   },
