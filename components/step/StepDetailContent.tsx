@@ -1151,6 +1151,8 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, 
           blueprintTitle={blueprintChrome?.blueprintTitle ?? null}
           blueprintAuthorName={null}
           viewerSteps={viewerInterestSteps}
+          onShowPeers={() => setActiveTab('discussion')}
+          onShowPlaybook={() => setActiveTab('plan')}
         />
       </>
     ) : (

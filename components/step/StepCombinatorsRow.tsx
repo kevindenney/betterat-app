@@ -48,11 +48,24 @@ interface StepCombinatorsRowProps {
   blueprintAuthorName?: string | null;
   /** Viewer's own timeline steps — used to count related entries. */
   viewerSteps: TimelineStepRecord[];
+  /**
+   * Called when the "N peers" chip is tapped. Typically routes the
+   * parent to the Discuss tab where peer_reflections render in full.
+   * When omitted the chip stays informational (no tap target).
+   */
+  onShowPeers?: () => void;
+  /**
+   * Called when the "N playbook" chip is tapped. Typically routes the
+   * parent to the Plan tab where the step_library_before list lives.
+   */
+  onShowPlaybook?: () => void;
 }
 
 export function StepCombinatorsRow({
   step,
   viewerSteps,
+  onShowPeers,
+  onShowPlaybook,
 }: StepCombinatorsRowProps) {
   const { suggestions } = useCrossInterestSuggestions(
     step.id,
@@ -165,17 +178,31 @@ export function StepCombinatorsRow({
         ) : null}
 
         {hasPeers ? (
-          <View style={styles.pill}>
-            <Ionicons
-              name="people-outline"
-              size={12}
-              color={IOS_REGISTER.labelSecondary}
-            />
-            <Text style={styles.pillText}>
-              <Text style={styles.pillBold}>{peersCount}</Text>
-              <Text style={styles.pillDim}> peers</Text>
-            </Text>
-          </View>
+          onShowPeers ? (
+            <Pressable style={styles.pill} onPress={onShowPeers}>
+              <Ionicons
+                name="people-outline"
+                size={12}
+                color={IOS_REGISTER.labelSecondary}
+              />
+              <Text style={styles.pillText}>
+                <Text style={styles.pillBold}>{peersCount}</Text>
+                <Text style={styles.pillDim}> peers</Text>
+              </Text>
+            </Pressable>
+          ) : (
+            <View style={styles.pill}>
+              <Ionicons
+                name="people-outline"
+                size={12}
+                color={IOS_REGISTER.labelSecondary}
+              />
+              <Text style={styles.pillText}>
+                <Text style={styles.pillBold}>{peersCount}</Text>
+                <Text style={styles.pillDim}> peers</Text>
+              </Text>
+            </View>
+          )
         ) : null}
 
         {hasRelated ? (
@@ -193,17 +220,31 @@ export function StepCombinatorsRow({
         ) : null}
 
         {hasPlaybook ? (
-          <View style={styles.pill}>
-            <Ionicons
-              name="bookmark-outline"
-              size={12}
-              color={IOS_REGISTER.labelSecondary}
-            />
-            <Text style={styles.pillText}>
-              <Text style={styles.pillBold}>{playbookCount}</Text>
-              <Text style={styles.pillDim}> playbook</Text>
-            </Text>
-          </View>
+          onShowPlaybook ? (
+            <Pressable style={styles.pill} onPress={onShowPlaybook}>
+              <Ionicons
+                name="bookmark-outline"
+                size={12}
+                color={IOS_REGISTER.labelSecondary}
+              />
+              <Text style={styles.pillText}>
+                <Text style={styles.pillBold}>{playbookCount}</Text>
+                <Text style={styles.pillDim}> playbook</Text>
+              </Text>
+            </Pressable>
+          ) : (
+            <View style={styles.pill}>
+              <Ionicons
+                name="bookmark-outline"
+                size={12}
+                color={IOS_REGISTER.labelSecondary}
+              />
+              <Text style={styles.pillText}>
+                <Text style={styles.pillBold}>{playbookCount}</Text>
+                <Text style={styles.pillDim}> playbook</Text>
+              </Text>
+            </View>
+          )
         ) : null}
       </ScrollView>
 
