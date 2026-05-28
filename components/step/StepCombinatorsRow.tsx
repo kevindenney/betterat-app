@@ -97,15 +97,25 @@ export function StepCombinatorsRow({
         .filter(Boolean),
     );
     const stepCompetencies = new Set(stepMetadata.plan?.competency_ids ?? []);
+    // Categories like 'general', 'uncategorized', '' are too broad to
+    // produce a useful match — every uncategorized step would pile in.
+    // Only treat domain-specific categories as match signal.
+    const GENERIC_CATEGORIES = new Set(['', 'general', 'uncategorized', 'misc', 'other']);
+    const stepCategoryNorm = (step.category ?? '').trim().toLowerCase();
+    const categoryIsSpecific = Boolean(stepCategoryNorm) && !GENERIC_CATEGORIES.has(stepCategoryNorm);
 
-    return viewerSteps
+    const stepStartIso = step.starts_at ?? step.due_at ?? null;
+    const stepStartWeek = stepStartIso ? weekKey(stepStartIso) : null;
+
+    const matches = viewerSteps
       .filter((s) => s.id !== step.id)
       .map((s) => {
         const reasons: string[] = [];
         if (step.source_blueprint_id != null && s.source_blueprint_id === step.source_blueprint_id) {
           reasons.push('same blueprint');
         }
-        if (Boolean(step.category) && s.category === step.category) {
+        const otherCategoryNorm = (s.category ?? '').trim().toLowerCase();
+        if (categoryIsSpecific && otherCategoryNorm === stepCategoryNorm) {
           reasons.push(`same category: ${step.category}`);
         }
         const otherMetadata = (s.metadata ?? {}) as {
@@ -118,9 +128,30 @@ export function StepCombinatorsRow({
         const sharedCompetency = (otherMetadata.plan?.competency_ids ?? [])
           .find((id) => stepCompetencies.has(id));
         if (sharedCompetency) reasons.push('shared competency');
+        if (
+          step.location_place_id != null &&
+          s.location_place_id === step.location_place_id
+        ) {
+          reasons.push('same place');
+        }
+        if (stepStartWeek && (s.starts_at || s.due_at)) {
+          const otherWeek = weekKey((s.starts_at ?? s.due_at) as string);
+          if (otherWeek === stepStartWeek) reasons.push('same week');
+        }
         return { step: s, reasons };
       })
       .filter((item) => item.reasons.length > 0);
+
+    // Sort by relevance: more reasons = stronger match. Tiebreak by
+    // recency so the freshest stuff lands first.
+    matches.sort((a, b) => {
+      if (b.reasons.length !== a.reasons.length) return b.reasons.length - a.reasons.length;
+      const aDate = a.step.starts_at ?? a.step.due_at ?? a.step.created_at;
+      const bDate = b.step.starts_at ?? b.step.due_at ?? b.step.created_at;
+      return (bDate ?? '').localeCompare(aDate ?? '');
+    });
+
+    return matches.slice(0, 12);
   }, [viewerSteps, step]);
   const relatedCount = relatedSteps.length;
 
@@ -300,6 +331,18 @@ function withAvatarFallback(seed: string): string {
   let h = 0;
   for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) | 0;
   return WITH_AVATAR_COLORS[Math.abs(h) % WITH_AVATAR_COLORS.length] as string;
+}
+
+/** ISO week key (YYYY-Wnn) used to group steps by week for matching. */
+function weekKey(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  // ISO week calculation: Thursday of the same week determines the year.
+  const day = (d.getUTCDay() + 6) % 7;
+  const thursday = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() - day + 3));
+  const yearStart = new Date(Date.UTC(thursday.getUTCFullYear(), 0, 1));
+  const week = 1 + Math.round(((thursday.getTime() - yearStart.getTime()) / 86400000 - 3 + ((yearStart.getUTCDay() + 6) % 7)) / 7);
+  return `${thursday.getUTCFullYear()}-W${String(week).padStart(2, '0')}`;
 }
 
 const styles = StyleSheet.create({
