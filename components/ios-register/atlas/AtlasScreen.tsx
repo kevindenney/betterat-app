@@ -1423,6 +1423,17 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
   const [searchFocus, setSearchFocus] = useState<{ lat: number; lng: number } | null>(
     handlers.initialFocus ?? null,
   );
+  // Sync searchFocus when handlers.initialFocus arrives async (e.g.
+  // /(tabs)/atlas?orgSlug=... resolves the org's primary location
+  // after first render). useState honors the initial value once, so
+  // without this effect the camera never flew to a late-arriving
+  // initialFocus — "Open map" from the org page landed on the default
+  // HK overview instead of e.g. Baltimore for JHSON.
+  React.useEffect(() => {
+    if (handlers.initialFocus) {
+      setSearchFocus(handlers.initialFocus);
+    }
+  }, [handlers.initialFocus]);
   // Step preview state — set when a step picked from search has
   // coords, so the camera flies AND a BottomSheet shows the step
   // detail with an "Open step" CTA that drills into /step/[id].
