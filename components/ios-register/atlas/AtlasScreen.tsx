@@ -2013,6 +2013,11 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
       insetTop: Math.round(insets.top),
     });
   }, [embedded, insets.top]);
+  const repositionHasMoved = Boolean(
+    repositionTarget &&
+      (repositionTarget.newLat !== repositionTarget.centerLat ||
+        repositionTarget.newLng !== repositionTarget.centerLng),
+  );
   return (
     <View style={shellStyles.frame}>
       {!embedded && <StatusBar />}
@@ -2063,6 +2068,8 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
             candidate={
               areaSheetCenter
                 ? { lat: areaSheetCenter.lat, lng: areaSheetCenter.lng }
+                : repositionTarget
+                  ? { lat: repositionTarget.newLat, lng: repositionTarget.newLng }
                 : candidate
             }
             racingAreaPreviewPolygon={areaSheetPolygon}
@@ -2350,7 +2357,35 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
           first ever mount. That made initialState='handle' silently
           inherit a prior 'mid' state when myNextStepPin loaded after
           the ATLAS empty-state branch had already mounted the sheet. */}
-      {layersOpen || anchorStepTarget || repositionTarget || retraceTarget ? null : orgPreview ? (
+      {layersOpen || anchorStepTarget || retraceTarget ? null : repositionTarget ? (
+        <BottomSheet
+          key={`reposition:${repositionTarget.id}:${repositionHasMoved ? 'moved' : 'pending'}`}
+          eyebrow="MOVE RACING AREA"
+          title={repositionHasMoved ? 'Save the new position?' : 'Tap the map to choose a new center.'}
+          body={
+            repositionHasMoved
+              ? `${repositionTarget.name} will move to this selected location.`
+              : `${repositionTarget.name} is ready to move. Tap the map where the center should be.`
+          }
+          primary={
+            repositionHasMoved
+              ? {
+                  label: updateRacingAreaMutation.isPending ? 'Saving...' : 'Save position',
+                  icon: 'checkmark',
+                  onPress: updateRacingAreaMutation.isPending ? undefined : handleSaveReposition,
+                }
+              : undefined
+          }
+          secondary={{
+            label: 'Cancel',
+            icon: 'close',
+            onPress: updateRacingAreaMutation.isPending ? undefined : handleCancelReposition,
+          }}
+          showSecondaryInMid
+          bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
+          initialState="mid"
+        />
+      ) : orgPreview ? (
         <BottomSheet
           key={`org-preview:${orgPreview.orgId}`}
           eyebrow={orgPreview.isMember ? 'YOUR ORGANIZATION' : 'ORGANIZATION'}
@@ -2680,14 +2715,12 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
       {repositionTarget ? (
         <RepositionAreaBanner
           areaName={repositionTarget.name}
-          hasMoved={
-            repositionTarget.newLat !== repositionTarget.centerLat ||
-            repositionTarget.newLng !== repositionTarget.centerLng
-          }
+          hasMoved={repositionHasMoved}
           saving={updateRacingAreaMutation.isPending}
           onCancel={handleCancelReposition}
           onSave={handleSaveReposition}
           bottomOffset={((handlers as { bottomSheetOffset?: number }).bottomSheetOffset ?? 0) + 16}
+          showActionBar={false}
         />
       ) : null}
 

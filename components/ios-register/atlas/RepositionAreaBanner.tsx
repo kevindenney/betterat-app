@@ -20,6 +20,7 @@ interface RepositionAreaBannerProps {
   onCancel: () => void;
   onSave: () => void;
   bottomOffset?: number;
+  showActionBar?: boolean;
 }
 
 // The Atlas floating chrome (location anchor + layers/mail/profile
@@ -35,6 +36,7 @@ export function RepositionAreaBanner({
   onCancel,
   onSave,
   bottomOffset = 16,
+  showActionBar = true,
 }: RepositionAreaBannerProps) {
   const insets = useSafeAreaInsets();
   const top = Math.max(insets.top, 8) + CHROME_CLEAR_HEIGHT;
@@ -50,46 +52,48 @@ export function RepositionAreaBanner({
         </View>
       </View>
 
-      <View style={[styles.actionBar, { bottom: bottomOffset }]} pointerEvents="box-none">
-        <View style={[styles.btnSlot, styles.btnSlotLeft]}>
-          <Pressable
-            onPress={onCancel}
-            disabled={saving}
-            style={({ pressed }) => [
-              styles.btn,
-              styles.btnCancel,
-              pressed && { opacity: 0.7 },
-              saving && { opacity: 0.5 },
-            ]}
-            accessibilityRole="button"
-            accessibilityLabel="Cancel reposition"
-          >
-            <Text style={styles.btnText}>Cancel</Text>
-          </Pressable>
+      {showActionBar ? (
+        <View style={[styles.actionBar, { bottom: bottomOffset }]} pointerEvents="box-none">
+          <View style={[styles.btnSlot, styles.btnSlotLeft]}>
+            <Pressable
+              onPress={onCancel}
+              disabled={saving}
+              style={({ pressed }) => [
+                styles.btn,
+                styles.btnCancel,
+                pressed && { opacity: 0.7 },
+                saving && { opacity: 0.5 },
+              ]}
+              accessibilityRole="button"
+              accessibilityLabel="Cancel reposition"
+            >
+              <Text style={styles.btnText}>Cancel</Text>
+            </Pressable>
+          </View>
+          <View style={styles.btnSlot}>
+            <Pressable
+              onPress={onSave}
+              disabled={!hasMoved || saving}
+              style={({ pressed }) => [
+                styles.btn,
+                hasMoved ? styles.btnSave : styles.btnSaveDisabled,
+                pressed && hasMoved && !saving && { opacity: 0.85 },
+                saving && { opacity: 0.7 },
+              ]}
+              accessibilityRole="button"
+              accessibilityLabel="Save new position"
+            >
+              {saving ? (
+                <ActivityIndicator color="#FFFFFF" />
+              ) : (
+                <Text style={styles.btnText}>
+                  {hasMoved ? 'Save position' : 'Tap the map...'}
+                </Text>
+              )}
+            </Pressable>
+          </View>
         </View>
-        <View style={styles.btnSlot}>
-          <Pressable
-            onPress={onSave}
-            disabled={!hasMoved || saving}
-            style={({ pressed }) => [
-              styles.btn,
-              hasMoved ? styles.btnSave : styles.btnSaveDisabled,
-              pressed && hasMoved && !saving && { opacity: 0.85 },
-              saving && { opacity: 0.7 },
-            ]}
-            accessibilityRole="button"
-            accessibilityLabel="Save new position"
-          >
-            {saving ? (
-              <ActivityIndicator color="#FFFFFF" />
-            ) : (
-              <Text style={styles.btnText}>
-                {hasMoved ? 'Save position' : 'Tap the map…'}
-              </Text>
-            )}
-          </Pressable>
-        </View>
-      </View>
+      ) : null}
     </>
   );
 }
