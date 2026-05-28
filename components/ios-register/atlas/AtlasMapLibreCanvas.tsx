@@ -978,7 +978,11 @@ function WebAtlasMapLibreCanvas({
     const Marker = maplibreRef.current?.Marker;
     if (!Marker) return;
     areaLabelMarkersRef.current = getRacingAreaLabels(raceAreasCollection).map((label) =>
-      new Marker({ element: createWebAreaLabelElement(label.name) })
+      new Marker({
+        element: createWebAreaLabelElement(label.name, () => {
+          onMapPressRef.current?.({ lng: label.lng, lat: label.lat });
+        }),
+      })
         .setLngLat([label.lng, label.lat])
         .addTo(map),
     );
@@ -1131,9 +1135,10 @@ function getRacingAreaLabels(
   return out;
 }
 
-function createWebAreaLabelElement(name: string) {
-  const root = document.createElement('div');
+function createWebAreaLabelElement(name: string, onPress?: () => void) {
+  const root = document.createElement(onPress ? 'button' : 'div');
   root.textContent = name;
+  root.style.border = '0';
   root.style.maxWidth = '140px';
   root.style.padding = '2px 6px';
   root.style.borderRadius = '4px';
@@ -1145,7 +1150,13 @@ function createWebAreaLabelElement(name: string) {
   root.style.whiteSpace = 'nowrap';
   root.style.overflow = 'hidden';
   root.style.textOverflow = 'ellipsis';
-  root.style.pointerEvents = 'none';
+  root.style.cursor = onPress ? 'pointer' : 'default';
+  if (onPress) {
+    root.addEventListener('click', (event) => {
+      event.stopPropagation();
+      onPress();
+    });
+  }
   return root;
 }
 
