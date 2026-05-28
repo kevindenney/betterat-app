@@ -38,6 +38,8 @@ import { IOS_COLORS, IOS_REGISTER, IOS_SPACING } from '@/lib/design-tokens-ios';
 import { useInboxItems } from '@/hooks/useInboxItems';
 import { useNotifications } from '@/hooks/useNotifications';
 import type { SocialNotification } from '@/services/NotificationService';
+import { useAuth } from '@/providers/AuthProvider';
+import { supabase } from '@/services/supabase';
 import { useInboxDoneItems } from '@/hooks/useInboxDoneItems';
 import { useInboxActions } from '@/hooks/useInboxActions';
 import type { InboxItem } from '@/components/practice/types';
@@ -56,7 +58,34 @@ const LILAC = '#AF52DE'; // reflection / AI border-left
 
 export default function InboxTabScreen() {
   const insets = useSafeAreaInsets();
+  const { user } = useAuth();
   const [segment, setSegment] = useState<Segment>('act');
+
+  // Deep-link tap on a cohort_discussion_post notification — resolve
+  // the viewer's own forked timeline_step for the blueprint_step the
+  // post lives on, then route to /step/[id]?scope=cohort so the
+  // Discussion tab lands directly on the Cohort thread. Falls back to
+  // a no-op when the viewer has no forked copy (Cohort tab wouldn't
+  // render there anyway).
+  const handleCohortNotificationTap = useCallback(
+    async (notification: SocialNotification) => {
+      const viewerId = user?.id;
+      const blueprintStepId =
+        (notification.data?.blueprint_step_id as string | undefined) ?? null;
+      if (!viewerId || !blueprintStepId) return;
+      const { data } = await supabase
+        .from('timeline_steps')
+        .select('id')
+        .eq('user_id', viewerId)
+        .eq('source_blueprint_step_id', blueprintStepId)
+        .maybeSingle();
+      const viewerStepId = (data as { id?: string } | null)?.id;
+      if (viewerStepId) {
+        router.push(`/step/${viewerStepId}?scope=cohort` as never);
+      }
+    },
+    [user?.id],
+  );
   const { data: fetched, isLoading } = useInboxItems();
   const inboxActions = useInboxActions();
   const [dismissedIds, setDismissedIds] = useState<Set<string>>(new Set());
@@ -264,6 +293,7 @@ export default function InboxTabScreen() {
               notifUnreadCount={notifUnreadCount}
               onMarkNotificationRead={(id) => void markNotificationAsRead(id)}
               onMarkAllNotificationsRead={() => void markAllNotificationsAsRead()}
+              onCohortNotificationTap={handleCohortNotificationTap}
             />
           )}
           {segment === 'done' && (
@@ -547,6 +577,7 @@ function ReadPanel({
   notifUnreadCount,
   onMarkNotificationRead,
   onMarkAllNotificationsRead,
+  onCohortNotificationTap,
 }: {
   isLoading: boolean;
   items: InboxItem[];
@@ -556,6 +587,7 @@ function ReadPanel({
   notifUnreadCount: number;
   onMarkNotificationRead: (id: string) => void;
   onMarkAllNotificationsRead: () => void;
+  onCohortNotificationTap: (notification: SocialNotification) => void | Promise<void>;
 }) {
   if (isLoading && notifsLoading) {
     return (
@@ -628,6 +660,9 @@ function ReadPanel({
                 notification={n}
                 onPress={() => {
                   if (!n.isRead) onMarkNotificationRead(n.id);
+                  if (n.type === 'cohort_discussion_post') {
+                    void onCohortNotificationTap(n);
+                  }
                 }}
               />
             ))}

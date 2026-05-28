@@ -53,6 +53,11 @@ export interface StepDiscussionInlineProps {
   stepId: string;
   /** Owner + collaborators with access to this step. */
   access?: StepAccessPerson[];
+  /** Which scope to land on when the view first mounts. Used when
+   *  routing in from a cohort-scoped surface (Watch stream item or a
+   *  cohort_discussion_post notification). Ignored when the step
+   *  isn't blueprint-derived (Cohort tab won't render anyway). */
+  initialScope?: 'private' | 'cohort';
 }
 
 function shortAgo(iso: string): string {
@@ -110,10 +115,14 @@ const REACTION_GLYPH: Record<StepDiscussionReactionKind, string> = {
 
 type DiscussionScope = 'private' | 'cohort';
 
-export function StepDiscussionInline({ stepId, access = [] }: StepDiscussionInlineProps) {
+export function StepDiscussionInline({
+  stepId,
+  access = [],
+  initialScope = 'private',
+}: StepDiscussionInlineProps) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const [scope, setScope] = useState<DiscussionScope>('private');
+  const [scope, setScope] = useState<DiscussionScope>(initialScope);
   const [draft, setDraft] = useState('');
 
   // Resolve the blueprint_step link so we know whether to surface the

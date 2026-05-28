@@ -205,7 +205,7 @@ function CohortStreamCard({ item }: { item: CohortStreamItem }) {
     // preview; that surface doesn't exist yet, so this stays a no-op
     // for the v1 stream.
     if (item.viewerStepId) {
-      router.push(`/step/${item.viewerStepId}` as never);
+      router.push(`/step/${item.viewerStepId}?scope=cohort` as never);
     }
   };
   return (
