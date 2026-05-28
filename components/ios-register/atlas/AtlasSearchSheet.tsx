@@ -71,6 +71,13 @@ export interface AtlasSearchResult {
   groupId?: string;
   /** True when the viewer is a member of this org or group. */
   isMember?: boolean;
+  /**
+   * Optional bounding box [west, south, east, north]. Geocoded place
+   * results carry this so the camera can fit the whole place (city,
+   * neighborhood, address) instead of landing at a hardcoded street
+   * zoom centered on a single point.
+   */
+  bounds?: [number, number, number, number];
 }
 
 export interface AtlasSearchFilterChip {
@@ -192,6 +199,19 @@ async function fetchGeocodedPlaces(query: string): Promise<AtlasSearchResult[]> 
       const parts = display.split(',').map((p) => p.trim()).filter(Boolean);
       const name = parts[0] ?? display;
       const detail = parts.slice(1, 3).join(', ') || undefined;
+      // Nominatim's boundingbox is ["south","north","west","east"] as
+      // strings. Convert to MapLibre's [west, south, east, north] tuple.
+      let bounds: [number, number, number, number] | undefined;
+      const bb = r.boundingbox;
+      if (Array.isArray(bb) && bb.length === 4) {
+        const south = Number(bb[0]);
+        const north = Number(bb[1]);
+        const west = Number(bb[2]);
+        const east = Number(bb[3]);
+        if ([south, north, west, east].every(Number.isFinite)) {
+          bounds = [west, south, east, north];
+        }
+      }
       out.push({
         id: `place:${r.osm_type}:${r.osm_id}`,
         kind: 'place',
@@ -199,6 +219,7 @@ async function fetchGeocodedPlaces(query: string): Promise<AtlasSearchResult[]> 
         detail,
         lat,
         lng,
+        bounds,
       });
     }
     return out;

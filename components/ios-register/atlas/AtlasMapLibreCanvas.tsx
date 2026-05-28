@@ -308,8 +308,17 @@ interface AtlasMapLibreCanvasProps {
   frame: AtlasFrameId;
   /** Optional peer pin list — empty in cold-start. */
   pins?: AtlasPinSpec[];
-  /** Optional point to fly the map toward after mount. */
-  focusLocation?: { lng: number; lat: number } | null;
+  /**
+   * Optional point to fly the map toward after mount. When `bounds` is
+   * present (Nominatim place results), the camera fits the bounding
+   * box so cities/neighborhoods/addresses each land at the right zoom;
+   * otherwise the canvas flies to the point at street-level zoom.
+   */
+  focusLocation?: {
+    lng: number;
+    lat: number;
+    bounds?: [number, number, number, number];
+  } | null;
   /** When provided, an amber NEXT marker drops at the venue centroid. */
   nextEvent?: (AtlasNextEvent & { lng: number; lat: number }) | null;
   /**
@@ -577,6 +586,18 @@ export function AtlasMapLibreCanvas({
   );
   useEffect(() => {
     if (!focusLocation) return;
+    // If a bounding box is provided (geocoded place result), fit the
+    // camera to it so a city lands at city zoom, a neighborhood at
+    // neighborhood zoom, and an address at address zoom. Falls back to
+    // a hardcoded street-level fly when only a point is known.
+    if (focusLocation.bounds) {
+      void cameraRef.current?.setStop({
+        bounds: focusLocation.bounds,
+        padding: { top: 120, bottom: 380, left: 32, right: 32 },
+        duration: 600,
+      });
+      return;
+    }
     cameraRef.current?.flyTo({
       center: [focusLocation.lng, focusLocation.lat],
       zoomLevel: 14,
@@ -584,7 +605,7 @@ export function AtlasMapLibreCanvas({
       duration: 500,
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [focusLocation?.lat, focusLocation?.lng]);
+  }, [focusLocation?.lat, focusLocation?.lng, focusLocation?.bounds]);
   const walkLineCollection = useMemo<GeoJSON.FeatureCollection>(() => {
     const features: GeoJSON.Feature[] = pins
       .filter((pin) => pin.kind === 'walk-annotation' && pin.walkLine)
@@ -965,17 +986,35 @@ function WebAtlasMapLibreCanvas({
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !isLoaded || !focusLocation) return;
+    // Mirror the native side: fit the bounding box when present
+    // (city/neighborhood/address get the right zoom each), else fall
+    // back to a hardcoded street-level ease.
+    if (focusLocation.bounds) {
+      const [west, south, east, north] = focusLocation.bounds;
+      map.fitBounds(
+        [
+          [west, south],
+          [east, north],
+        ],
+        {
+          padding: { top: 120, bottom: 380, left: 32, right: 32 },
+          duration: 600,
+        },
+      );
+      return;
+    }
     map.easeTo({
       center: [focusLocation.lng, focusLocation.lat],
       zoom: 14,
       padding: { top: 120, bottom: 380 },
       duration: 500,
     });
-    // Depend only on the lat/lng values — including the focusLocation
-    // object itself causes easeTo to re-fire on every parent render
-    // (the parent recreates the object inline), which flies the camera
-    // back to its last focus on every state change unrelated to focus.
-  }, [focusLocation?.lat, focusLocation?.lng, isLoaded]); // eslint-disable-line react-hooks/exhaustive-deps
+    // Depend only on the lat/lng/bounds values — including the
+    // focusLocation object itself causes easeTo to re-fire on every
+    // parent render (the parent recreates the object inline), which
+    // flies the camera back to its last focus on every state change
+    // unrelated to focus.
+  }, [focusLocation?.lat, focusLocation?.lng, focusLocation?.bounds, isLoaded]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     const map = mapRef.current;

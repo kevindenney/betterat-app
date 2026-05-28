@@ -1425,9 +1425,14 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
     }
   }, [repositionTarget, updateRacingAreaMutation]);
   const [searchOpen, setSearchOpen] = useState(false);
-  const [searchFocus, setSearchFocus] = useState<{ lat: number; lng: number } | null>(
-    handlers.initialFocus ?? null,
-  );
+  // `bounds` is optional and only populated by geocoded place results;
+  // when present, the canvas fits the camera to the extent (right zoom
+  // for cities/neighborhoods/addresses) instead of hardcoded zoom 14.
+  const [searchFocus, setSearchFocus] = useState<{
+    lat: number;
+    lng: number;
+    bounds?: [number, number, number, number];
+  } | null>(handlers.initialFocus ?? null);
   // Sync searchFocus when handlers.initialFocus arrives async (e.g.
   // /(tabs)/atlas?orgSlug=... resolves the org's primary location
   // after first render). useState honors the initial value once, so
@@ -1495,7 +1500,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
       return;
     }
     if (result.lat != null && result.lng != null) {
-      setSearchFocus({ lat: result.lat, lng: result.lng });
+      setSearchFocus({ lat: result.lat, lng: result.lng, bounds: result.bounds });
     }
   }, []);
   // Compose-at-location: tap the + FAB to enter commit-mode, then any
@@ -3456,6 +3461,17 @@ function FrameF4({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
   // selectedPin so the sheet swap is one place. Mirror of FrameF1.
   const [selectedPin, setSelectedPin] = useState<AtlasPinSpec | null>(null);
   const [nextEventSheetOpen, setNextEventSheetOpen] = useState(false);
+  // Long-press → "PIN DROPPED · Plan a step here" sheet, mirroring F1.
+  const [candidate, setCandidate] = useState<{ lng: number; lat: number } | null>(null);
+  const { data: candidateNearest } = useNearestPlace({
+    lat: candidate?.lat ?? null,
+    lng: candidate?.lng ?? null,
+    enabled: candidate !== null,
+  });
+  const candidateBody = useMemo(
+    () => (candidate ? formatNearLabel(candidateNearest ?? null, candidate.lat, candidate.lng) : ''),
+    [candidate, candidateNearest],
+  );
   const handleF4PinPress = useCallback((pin: AtlasPinSpec) => {
     setLayersOpen(false);
     // Tapping a pin while the NEXT-clinical sheet is open should swap
@@ -3466,6 +3482,7 @@ function FrameF4({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
     setSelectedPin(pin);
   }, []);
   const clearF4SelectedPin = useCallback(() => setSelectedPin(null), []);
+  const clearCandidate = useCallback(() => setCandidate(null), []);
   const handleNextEventTap = useCallback(() => {
     setLayersOpen(false);
     setSelectedPin(null);
@@ -3520,8 +3537,15 @@ function FrameF4({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
                 ? { ...nextNursing, lat: nextNursing.lat, lng: nextNursing.lng }
                 : null
             }
+            candidate={candidate}
             onPinPress={handleF4PinPress}
             onNextEventPress={handleNextEventTap}
+            onMapLongPress={(coords) => {
+              setLayersOpen(false);
+              setSelectedPin(null);
+              setNextEventSheetOpen(false);
+              setCandidate(coords);
+            }}
           />
         ) : (
           <BaltimoreColdMap />
@@ -3608,7 +3632,28 @@ function FrameF4({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
         />
       </View>
 
-      {layersOpen ? null : nextEventSheetOpen ? (
+      {layersOpen ? null : candidate ? (
+        // Long-press → "PIN DROPPED" sheet. Mirrors F1: reverse-geocodes
+        // to "Near JHH" instead of raw coords, then routes through
+        // handlers.onPrimaryAction to /races?openAddStep=1&pinLat=… so
+        // the canonical add-step sheet picks up the location.
+        <BottomSheet
+          eyebrow="PIN DROPPED"
+          title="Anchor a step at this location."
+          body={candidateBody}
+          primary={{
+            label: 'Plan a step here',
+            icon: 'add',
+            onPress: () => {
+              const pin = { lat: candidate.lat, lng: candidate.lng };
+              clearCandidate();
+              handlers.onPrimaryAction?.(pin);
+            },
+          }}
+          secondary={{ label: 'Cancel', onPress: clearCandidate }}
+          bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
+        />
+      ) : nextEventSheetOpen ? (
         <BottomSheet
           eyebrow={`TOMORROW · ${nextNursing.label.toUpperCase()}${nextNursing.when ? ` · ${nextNursing.when.toUpperCase()}` : ''}`}
           title={nextNursing.where ?? 'Your next clinical'}
