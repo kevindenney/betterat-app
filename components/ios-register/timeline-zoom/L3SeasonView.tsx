@@ -47,6 +47,7 @@ import { VisionBlock } from './VisionBlock';
 import { VisionEditSheet } from './VisionEditSheet';
 import { useUpdateInterestVision } from '@/hooks/useInterestVision';
 import { useUserOrgCompetencies } from '@/hooks/useUserOrgCompetencies';
+import { useViewerFleetCohort } from '@/hooks/useViewerFleetCohort';
 import { SeasonLibrarianPrompt } from './SeasonLibrarianPrompt';
 import { SeasonHeaderChips } from './SeasonHeaderChips';
 import { PickerListSheet } from './PickerListSheet';
@@ -122,6 +123,9 @@ export function L3SeasonView({
   const [visionEditOpen, setVisionEditOpen] = useState(false);
   const updateInterestVision = useUpdateInterestVision();
   const { data: orgCompetencies = [] } = useUserOrgCompetencies(dataset.interest.slug);
+  // FLEET section grouping — falls back to flat render when the
+  // viewer has no fleets or no shared-fleet peers.
+  const { data: fleetCohort } = useViewerFleetCohort();
   const scrollRef = useRef<ScrollView>(null);
   const weekOffsetsRef = useRef<Record<string, number>>({});
 
@@ -304,6 +308,8 @@ export function L3SeasonView({
                   width={chartWidth}
                   compact={analysis.peers.length <= 3}
                   showRole
+                  peerSharedFleets={fleetCohort?.peerToFleets}
+                  viewerFleets={fleetCohort?.fleets}
                 />
               )}
             </>
