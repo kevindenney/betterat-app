@@ -121,11 +121,12 @@ export function StepDigestCard({
         <View style={[styles.originAccent, { backgroundColor: origin.color }]} />
       ) : null}
 
-      {isNearby && primaryCapability ? (
+      {(isNearby || compact) && primaryCapability ? (
         <View
           style={[
             styles.nearbyRail,
-            { backgroundColor: withAlpha(primaryCapability.color, highlighted ? 0.8 : 0.45) },
+            compact && !isNearby && styles.compactRail,
+            { backgroundColor: withAlpha(primaryCapability.color, highlighted ? 0.8 : 0.55) },
           ]}
         />
       ) : null}
@@ -190,9 +191,17 @@ export function StepDigestCard({
 
       <View style={styles.bottomBlock}>
         <View style={styles.statusRow}>
-          <View style={[styles.statusDot, { backgroundColor: status.dotColor }]} />
+          {step.status === 'done' || step.status === 'reflected' ? (
+            <Ionicons
+              name={step.status === 'reflected' ? 'sparkles' : 'checkmark-circle'}
+              size={12}
+              color={status.color}
+            />
+          ) : (
+            <View style={[styles.statusDot, { backgroundColor: status.dotColor }]} />
+          )}
           <Text style={[styles.statusLabel, { color: status.color }]}>{statusLabel}</Text>
-          {isNearby && step.cohortAvatars?.length ? (
+          {(isNearby || compact) && step.cohortAvatars?.length ? (
             <View style={styles.statusWithChip}>
               <AvatarStack avatars={step.cohortAvatars} max={2} compact />
               <Text style={styles.statusWithCount}>
@@ -402,6 +411,14 @@ const styles = StyleSheet.create({
     bottom: 16,
     width: 3,
     borderRadius: 999,
+  },
+  // Compact (L3) variant of the capability rail — slimmer and tighter
+  // to the card edge so it reads as a tint, not a chunk.
+  compactRail: {
+    left: 6,
+    top: 10,
+    bottom: 10,
+    width: 2,
   },
   originAccent: {
     position: 'absolute',
