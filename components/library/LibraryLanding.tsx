@@ -26,7 +26,6 @@ import { TabScreenToolbar } from '@/components/ui/TabScreenToolbar';
 import { useUserHomeVenue } from '@/hooks/useUserHomeVenue';
 import { IOSSegmentedControl } from '@/components/ui/ios/IOSSegmentedControl';
 import { FLOATING_TAB_BAR_HEIGHT } from '@/components/navigation/FloatingTabBar';
-import { AllZone } from '@/components/library/zones/AllZone';
 import { PlansZone } from '@/components/library/zones/PlansZone';
 import { PeopleZone } from '@/components/library/zones/PeopleZone';
 import { ResourcesZone } from '@/components/library/zones/ResourcesZone';
@@ -39,19 +38,21 @@ import { showAlert } from '@/lib/utils/crossPlatformAlert';
 import type { LibraryZone } from '@/components/library/SegmentedZoneHeader';
 
 const VALID_ZONES: LibraryZone[] = ['all', 'plans', 'people', 'concepts', 'resources'];
+// 'all' is the underlying zone id (deep links + URL param stay stable);
+// the visible label is "Librarian" — the first tab is now the
+// AI-curated cross-cutting surface, not a preview of the other tabs.
 const SEGMENT_ZONES: { value: LibraryZone; label: string }[] = [
-  { value: 'all', label: 'All' },
+  { value: 'all', label: 'Librarian' },
   { value: 'plans', label: 'Plans' },
   { value: 'concepts', label: 'Concepts' },
   { value: 'resources', label: 'Resources' },
 ];
 
-// One-liner shown beneath the segmented pill. Re-uses the language
-// from the old workshop-category cards (Plans → "Subscribed structures
-// you can pull into practice…"), now positioned where it's actually
-// useful — describing the current view, not advertising a card.
+// One-liner shown beneath the segmented pill. Reuses the language
+// from the retired workshop-category cards where useful; describes
+// the current view, not abstract advertising.
 const ZONE_DESCRIPTION: Record<LibraryZone, string> = {
-  all: "Everything you've saved — plans, concepts, resources, and your notes.",
+  all: 'Cross-cutting insights the librarian noticed across your library.',
   plans: 'Subscribed structures you can pull into practice when needed.',
   concepts: "Mental models you're forming, refining, or have settled.",
   resources: 'Saved articles, docs, and references.',
@@ -125,10 +126,18 @@ export function LibraryLanding({ conceptsBody, librarianSlot }: Props) {
         </View>
 
         {zone === 'all' ? (
-          <>
-            {librarianSlot}
-            <AllZone counts={counts} onJumpToZone={handleZoneChange} />
-          </>
+          librarianSlot ?? (
+            <View style={styles.librarianFallback}>
+              <Text style={styles.librarianFallbackTitle}>
+                The librarian is quiet right now.
+              </Text>
+              <Text style={styles.librarianFallbackBody}>
+                Cross-cutting observations show up here as soon as the
+                concept lifecycle has enough signal to surface a pattern.
+                In the meantime, tap a tab above to drill in.
+              </Text>
+            </View>
+          )
         ) : zone === 'plans' ? (
           <PlansZone />
         ) : zone === 'people' ? (
@@ -214,6 +223,26 @@ const styles = StyleSheet.create({
     color: IOS_COLORS.label,
   },
   zoneDescription: {
+    fontSize: 13,
+    lineHeight: 18,
+    color: IOS_COLORS.secondaryLabel,
+  },
+  librarianFallback: {
+    marginHorizontal: IOS_SPACING.lg,
+    marginTop: IOS_SPACING.md,
+    padding: 18,
+    borderRadius: 16,
+    backgroundColor: '#FFFFFF',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(60,60,67,0.12)',
+    gap: 6,
+  },
+  librarianFallbackTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: IOS_COLORS.label,
+  },
+  librarianFallbackBody: {
     fontSize: 13,
     lineHeight: 18,
     color: IOS_COLORS.secondaryLabel,
