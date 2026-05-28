@@ -225,6 +225,38 @@ function hashCategoryToColor(category: string): string {
   return CAPABILITY_COLORS[Math.abs(h) % CAPABILITY_COLORS.length];
 }
 
+// Generic categories that aren't useful as "drift" signal — every
+// uncategorised step lands here, so showing them as the dominant
+// capability for a season produces noise instead of information.
+const GENERIC_CATEGORIES = new Set([
+  '',
+  'general',
+  'uncategorized',
+  'uncategorised',
+  'misc',
+  'other',
+]);
+
+/**
+ * Display label for a step category in the persona's own vocabulary.
+ * Returns null for generic / placeholder categories so they don't leak
+ * into librarian sentences as "you've drifted from general toward general."
+ *
+ * Phase D direction: this becomes a vocab-table lookup keyed off the
+ * active interest. Today it's a tasteful titlecase pass over the raw
+ * category — already better than reverse-mapping from a 6-colour
+ * palette baked with nursing terms.
+ */
+function categoryToLabel(category: string | null | undefined): string | null {
+  const raw = (category ?? '').trim().toLowerCase();
+  if (!raw || GENERIC_CATEGORIES.has(raw)) return null;
+  return raw
+    .split(/[-_\s]+/)
+    .filter(Boolean)
+    .map((w) => w[0]!.toUpperCase() + w.slice(1))
+    .join(' ');
+}
+
 // Avatar-bubble palette for input contributors we don't already have a
 // stored color for (blueprint authors, suggestion senders). Picked to be
 // perceptually distinct from each other and from the capability palette.
@@ -940,13 +972,6 @@ function computeSeasonAnalysis(
   };
 }
 
-function colorToCapabilityLabel(color: string): string | null {
-  for (const cap of Object.values(CAPABILITY_PALETTE)) {
-    if (cap.color === color) return cap.label;
-  }
-  return null;
-}
-
 function shortenPromptAnchor(title: string | null | undefined): string | null {
   const raw = String(title ?? '').replace(/\s+/g, ' ').trim();
   if (!raw) return null;
@@ -1070,7 +1095,6 @@ function buildWeekPlanningHint(
  */
 function computeLifetimeAnalysis(
   seasons: TimelineSeason[],
-  interestSlug: string | null,
 ): LifetimeAnalysis | undefined {
   if (seasons.length === 0) return undefined;
 
@@ -1079,19 +1103,33 @@ function computeLifetimeAnalysis(
   // order so the river reads left-to-right as past → present.
   const chronoSeasons = [...seasons].reverse();
 
+  // Per-session dominant capability. Tracked by (label || color) so we
+  // keep the real persona-vocab label when it's available, and fall back
+  // to color-only dominance when the bricks are unlabelled. Phase D
+  // D3 — stop reverse-mapping from colour to a nursing-coded palette.
+  const sessionDominantLabels = new Map<number, string | null>();
   const sessions: LifetimeSession[] = chronoSeasons.map((season, idx) => {
-    const counts = new Map<string, number>();
+    type Bucket = { color: string; label: string | null; count: number };
+    const buckets = new Map<string, Bucket>();
     for (const brick of season.bricks) {
-      counts.set(brick.capabilityColor, (counts.get(brick.capabilityColor) ?? 0) + 1);
-    }
-    let dominantColor = CAPABILITY_PALETTE.procedural.color;
-    let dominantCount = 0;
-    for (const [color, count] of counts) {
-      if (count > dominantCount) {
-        dominantColor = color;
-        dominantCount = count;
+      const labelKey = brick.capabilityLabel?.trim() || `__color:${brick.capabilityColor}`;
+      const existing = buckets.get(labelKey);
+      if (existing) {
+        existing.count += 1;
+      } else {
+        buckets.set(labelKey, {
+          color: brick.capabilityColor,
+          label: brick.capabilityLabel ?? null,
+          count: 1,
+        });
       }
     }
+    let dominant: Bucket | null = null;
+    for (const bucket of buckets.values()) {
+      if (!dominant || bucket.count > dominant.count) dominant = bucket;
+    }
+    const dominantColor = dominant?.color ?? CAPABILITY_PALETTE.procedural.color;
+    sessionDominantLabels.set(idx + 1, dominant?.label ?? null);
     return {
       sessionIndex: idx + 1,
       seasonId: season.id,
@@ -1103,7 +1141,7 @@ function computeLifetimeAnalysis(
 
   const sessionCapabilityLabels = sessions.map((session) => ({
     sessionIndex: session.sessionIndex,
-    label: colorToCapabilityLabel(session.dominantCapabilityColor),
+    label: sessionDominantLabels.get(session.sessionIndex) ?? null,
   }));
 
   // Peer union — same input channels as L3 (see computeSeasonAnalysis):
@@ -1207,28 +1245,28 @@ function computeLifetimeAnalysis(
   }
 
   // Baseline librarian sentence — drift from first session's dominant
-  // capability to the latest. Honest about not knowing the user's
-  // milestones yet.
-  //
-  // colorToCapabilityLabel reverse-maps off CAPABILITY_PALETTE, which is
-  // nursing-specific. On a non-nursing interest those labels lie ("you've
-  // drifted from procedural toward pharm" on a Sail Racing surface), so
-  // we fall back to a vocab-neutral sentence whenever the viewer isn't
-  // on the nursing rails.
-  const firstCap = sessions[0]?.dominantCapabilityColor;
-  const lastCap = sessions[sessions.length - 1]?.dominantCapabilityColor;
-  const useNursingLabels = interestSlug === 'nursing';
-  const firstLabel =
-    useNursingLabels && firstCap ? colorToCapabilityLabel(firstCap) : null;
-  const lastLabel =
-    useNursingLabels && lastCap ? colorToCapabilityLabel(lastCap) : null;
-  const drift = useNursingLabels
-    ? firstLabel && lastLabel && firstLabel !== lastLabel
-      ? `Since ${sessions[0].label} you've drifted from ${firstLabel.toLowerCase()} toward ${lastLabel.toLowerCase()}.`
+  // capability to the latest. Reads the dominant *label* carried up
+  // from the brick layer, not reverse-mapped from a 6-colour palette,
+  // so the sentence speaks the persona's actual category vocabulary
+  // ("Race" / "Cardiac" / "Production") instead of leaking nursing
+  // terms onto sailing or entrepreneur surfaces. Falls back to a
+  // vocab-neutral sentence whenever the dominant labels are missing
+  // (generic categories, sparse data).
+  const firstSession = sessions[0];
+  const lastSession = sessions[sessions.length - 1];
+  const firstLabel = firstSession
+    ? sessionDominantLabels.get(firstSession.sessionIndex) ?? null
+    : null;
+  const lastLabel = lastSession
+    ? sessionDominantLabels.get(lastSession.sessionIndex) ?? null
+    : null;
+  const sinceLabel = firstSession?.label ?? 'you started';
+  const drift =
+    firstLabel && lastLabel && firstLabel !== lastLabel
+      ? `Since ${sinceLabel} you've drifted from ${firstLabel.toLowerCase()} toward ${lastLabel.toLowerCase()}.`
       : firstLabel
         ? `${firstLabel} has been the steady thread across your practice.`
-        : ''
-    : `Since ${sessions[0]?.label ?? 'you started'} the texture of your practice has shifted.`;
+        : `Since ${sinceLabel} the texture of your practice has shifted.`;
   const promptBody =
     sessions.length > 1
       ? `${drift} Worth a reflection on what you're becoming?`
@@ -1393,6 +1431,7 @@ export function mapToTimelineDataset({
   );
   const currentBricks = currentStepRecords.map((rec) => ({
     capabilityColor: hashCategoryToColor(rec.category),
+    capabilityLabel: categoryToLabel(rec.category),
     stepId: rec.id,
     status: STATUS_MAP[rec.status],
     withOthers: (rec.collaborator_user_ids?.length ?? 0) > 0,
@@ -1545,6 +1584,7 @@ export function mapToTimelineDataset({
         moved.length > 0
           ? moved.map((rec) => ({
               capabilityColor: hashCategoryToColor(rec.category),
+              capabilityLabel: categoryToLabel(rec.category),
               stepId: rec.id,
               status: STATUS_MAP[rec.status],
               withOthers: (rec.collaborator_user_ids?.length ?? 0) > 0,
@@ -1582,9 +1622,6 @@ export function mapToTimelineDataset({
     sinceTimestamp: allSeasons[allSeasons.length - 1]?.start_date ?? undefined,
     seasons: [currentSeasonNode, ...archivedSeasons],
     capabilityFilters: [{ id: 'all', label: 'All' }],
-    lifetime: computeLifetimeAnalysis(
-      [currentSeasonNode, ...archivedSeasons],
-      interestSlug ?? null,
-    ),
+    lifetime: computeLifetimeAnalysis([currentSeasonNode, ...archivedSeasons]),
   };
 }

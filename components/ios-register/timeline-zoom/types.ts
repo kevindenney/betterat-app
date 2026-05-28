@@ -138,6 +138,13 @@ export interface TimelineSeason {
    */
   bricks: {
     capabilityColor: string;
+    /** Display label for the brick's capability/category in the persona's
+     *  own vocabulary (e.g. "Race", "Cardiac", "Production"). Carried
+     *  through so L4 can read it directly instead of reverse-mapping
+     *  from colour through the nursing-coded palette. Null when the
+     *  category is generic ("general", "uncategorized") — we don't want
+     *  those bleeding into the librarian's "drift" sentence. */
+    capabilityLabel?: string | null;
     stepId?: string;
     /** Lifecycle state — drives the L4 done-check overlay + planned dimming. */
     status?: StepStatus;
