@@ -419,46 +419,58 @@ export function CapabilityMix({
         })}
       </Svg>
 
-      {/* Invisible press targets per band so the user can tap any
-          colored stretch to drill into that capability. Each target
-          spans the band's full season-width — it's intentional that
-          two streams of the same capability merge into one target. */}
+      {/* Invisible press targets per band. Each target is the band's
+          stacked-area bounding box (not the full chart height), so two
+          bands stacked at the same week have non-overlapping touch
+          areas and the user can tap whichever band their finger is on.
+          Previously every target was full innerHeight, so the last-
+          rendered band swallowed every tap. */}
       {onCapabilityPress
-        ? bands.map((band) => {
-            const hasVolume = band.perWeek.some((v) => v > 0);
-            if (!hasVolume) return null;
-            // Bounding rect for the band: from first to last non-zero
-            // week, full chart height for forgiving touch area.
-            let firstIdx = -1;
-            let lastIdx = -1;
-            for (let i = 0; i < band.perWeek.length; i++) {
-              if ((band.perWeek[i] ?? 0) > 0) {
-                if (firstIdx < 0) firstIdx = i;
-                lastIdx = i;
+        ? (() => {
+            const bounds = new Map<
+              string,
+              { xMin: number; xMax: number; yMin: number; yMax: number }
+            >();
+            for (const r of rects) {
+              const yTop = r.yBottom - r.cellHeight;
+              const b = bounds.get(r.bandId);
+              if (b) {
+                if (r.x < b.xMin) b.xMin = r.x;
+                if (r.x + r.w > b.xMax) b.xMax = r.x + r.w;
+                if (yTop < b.yMin) b.yMin = yTop;
+                if (r.yBottom > b.yMax) b.yMax = r.yBottom;
+              } else {
+                bounds.set(r.bandId, {
+                  xMin: r.x,
+                  xMax: r.x + r.w,
+                  yMin: yTop,
+                  yMax: r.yBottom,
+                });
               }
             }
-            if (firstIdx < 0) return null;
-            const left = padX + firstIdx * colWidth;
-            const targetWidth = (lastIdx - firstIdx + 1) * colWidth;
-            return (
-              <Pressable
-                key={`tap-${band.id}`}
-                accessibilityRole="button"
-                accessibilityLabel={`Open ${band.label}`}
-                onPress={() => onCapabilityPress(band.id, band.label, band.color)}
-                style={({ pressed }) => [
-                  styles.tapTarget,
-                  {
-                    left,
-                    top: padTop,
-                    width: targetWidth,
-                    height: innerHeight,
-                    opacity: pressed ? 0.7 : 1,
-                  },
-                ]}
-              />
-            );
-          })
+            return bands.map((band) => {
+              const b = bounds.get(band.id);
+              if (!b) return null;
+              return (
+                <Pressable
+                  key={`tap-${band.id}`}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Open ${band.label}`}
+                  onPress={() => onCapabilityPress(band.id, band.label, band.color)}
+                  style={({ pressed }) => [
+                    styles.tapTarget,
+                    {
+                      left: b.xMin,
+                      top: b.yMin,
+                      width: Math.max(8, b.xMax - b.xMin),
+                      height: Math.max(8, b.yMax - b.yMin),
+                      opacity: pressed ? 0.7 : 1,
+                    },
+                  ]}
+                />
+              );
+            });
+          })()
         : null}
     </View>
   );
