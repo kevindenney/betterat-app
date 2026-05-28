@@ -163,7 +163,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   btnSecondary: {
-    backgroundColor: 'rgba(120, 120, 130, 0.14)',
+    backgroundColor: '#E5E5EA',
   },
   btnSecondaryText: {
     fontSize: 14,

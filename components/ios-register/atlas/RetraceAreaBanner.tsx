@@ -177,7 +177,7 @@ const styles = StyleSheet.create({
   },
   btnSecondary: {
     flex: 1,
-    backgroundColor: 'rgba(120, 120, 130, 0.14)',
+    backgroundColor: '#E5E5EA',
   },
   btnSecondaryText: {
     fontSize: 14,
