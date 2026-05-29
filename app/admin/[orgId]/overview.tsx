@@ -21,6 +21,7 @@ import { StudioHeader, StudioButton } from '@/components/studio/StudioShell';
 import { useAdminCohorts } from '@/hooks/useAdminCohorts';
 import { useAdminPeople } from '@/hooks/useAdminPeople';
 import { useAdminCompetencyEvidence } from '@/hooks/useAdminCompetencyEvidence';
+import { useAdminOrgVocab } from '@/hooks/useAdminOrgVocab';
 import {
   useAdminOrgRecentPractice,
   OrgRecentPracticeStep,
@@ -29,6 +30,7 @@ import {
 export default function AdminOverviewPage() {
   const { orgId } = useLocalSearchParams<{ orgId: string }>();
   const router = useRouter();
+  const av = useAdminOrgVocab(orgId as string);
   const cohorts = useAdminCohorts(orgId as string);
   const people = useAdminPeople(orgId as string);
   const evidence = useAdminCompetencyEvidence(orgId as string);
@@ -92,13 +94,14 @@ export default function AdminOverviewPage() {
     <AdminShell activeKey="overview">
       <StudioHeader
         crumbs={['Admin', 'Overview']}
-        title="Program at a glance"
+        title={`${av.Program} at a glance`}
         subtitleParts={
           evidence.cohortName !== 'No cohort'
             ? [
                 <Text key="sub" style={s.sub}>
-                  {evidence.cohortName} · {evidence.cohortSize} students ·{' '}
-                  {evidence.competencies.length} competencies · {evidence.sites.length} sites
+                  {evidence.cohortName} · {evidence.cohortSize} {av.members} ·{' '}
+                  {evidence.competencies.length} competencies · {evidence.sites.length}{' '}
+                  {av.Sites.toLowerCase()}
                 </Text>,
               ]
             : undefined
@@ -125,7 +128,7 @@ export default function AdminOverviewPage() {
         {/* Stats row */}
         <View style={s.statsRow}>
           <StatCard
-            label="Students"
+            label={av.Members}
             value={people.loading ? '—' : String(people.counts.students)}
             sub={
               people.loading
@@ -135,15 +138,15 @@ export default function AdminOverviewPage() {
             tone="navy"
           />
           <StatCard
-            label="Cohorts"
+            label={av.Cohorts}
             value={cohorts.loading ? '—' : String(cohorts.cohorts.length)}
-            sub={cohorts.cohorts[0]?.name ?? 'no cohort yet'}
+            sub={cohorts.cohorts[0]?.name ?? `no ${av.Cohort.toLowerCase()} yet`}
             tone="navy"
           />
           <StatCard
             label="Competencies tracked"
             value={evidence.loading ? '—' : String(evidence.competencies.length)}
-            sub={`across ${evidence.sites.length} sites`}
+            sub={`across ${evidence.sites.length} ${av.Sites.toLowerCase()}`}
             tone="navy"
           />
           <StatCard
@@ -153,7 +156,7 @@ export default function AdminOverviewPage() {
               totalEvidenceCount > 0
                 ? `${Math.round(
                     totalEvidenceCount / Math.max(1, evidence.cohortSize),
-                  )} per student`
+                  )} per ${av.member}`
                 : 'none yet'
             }
             tone="green"
@@ -168,12 +171,12 @@ export default function AdminOverviewPage() {
             title={coverageHi?.label ?? '—'}
             statLine={
               coverageHi
-                ? `${coverageHi.count}/${evidence.cohortSize} students (${Math.round(
+                ? `${coverageHi.count}/${evidence.cohortSize} ${av.members} (${Math.round(
                     coverageHi.pct * 100,
                   )}%)`
                 : 'no coverage data yet'
             }
-            footer="The thing your students are getting reps on."
+            footer={`The thing your ${av.members} are getting reps on.`}
             actionLabel="View on heatmap"
             onAction={() => router.push(`/admin/${orgId}/insights`)}
           />
@@ -183,7 +186,7 @@ export default function AdminOverviewPage() {
             title={coverageLo?.label ?? '—'}
             statLine={
               coverageLo
-                ? `${coverageLo.count}/${evidence.cohortSize} students (${Math.round(
+                ? `${coverageLo.count}/${evidence.cohortSize} ${av.members} (${Math.round(
                     coverageLo.pct * 100,
                   )}%)`
                 : 'no coverage data yet'
@@ -197,16 +200,16 @@ export default function AdminOverviewPage() {
         <View style={s.spotlightRow}>
           <SpotlightCard
             tone="ok"
-            eyebrow="Busiest site"
+            eyebrow={`Busiest ${av.Site.toLowerCase()}`}
             title={siteHi?.label ?? '—'}
             statLine={siteHi ? `${siteHi.count} steps logged` : 'no site data yet'}
-            footer="Where the program is physically active."
+            footer={`Where the ${av.Program.toLowerCase()} is physically active.`}
             actionLabel="Open Sites"
             onAction={() => router.push(`/admin/${orgId}/sites`)}
           />
           <SpotlightCard
             tone="warn"
-            eyebrow="Thinnest site"
+            eyebrow={`Thinnest ${av.Site.toLowerCase()}`}
             title={siteLo?.label ?? '—'}
             statLine={siteLo ? `${siteLo.count} steps logged` : 'no site data yet'}
             footer="Either under-used or low-bandwidth — worth a look."
@@ -220,8 +223,8 @@ export default function AdminOverviewPage() {
           <View style={s.feedHead}>
             <Text style={s.sectionTitle}>Recent practice</Text>
             <Text style={s.sectionLede}>
-              The latest steps logged across the cohort. Click any row to open
-              that student's practice timeline.
+              The latest steps logged across the {av.Cohort.toLowerCase()}. Click
+              any row to open that {av.member}'s practice timeline.
             </Text>
           </View>
           {recent.loading ? (
@@ -230,8 +233,8 @@ export default function AdminOverviewPage() {
             <View style={s.emptyCard}>
               <Ionicons name="footsteps-outline" size={18} color="rgba(60, 60, 67, 0.4)" />
               <Text style={s.emptyText}>
-                No steps yet. Activity will appear here as cohort members log
-                practice and reflect on competency evidence.
+                No steps yet. Activity will appear here as {av.Cohort.toLowerCase()}{' '}
+                {av.members} log practice and reflect on competency evidence.
               </Text>
             </View>
           ) : (
