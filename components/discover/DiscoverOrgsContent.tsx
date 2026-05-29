@@ -34,6 +34,7 @@ import type { NativeSyntheticEvent, NativeScrollEvent } from 'react-native';
 
 import { useAuth } from '@/providers/AuthProvider';
 import { useInterest } from '@/providers/InterestProvider';
+import { useMyOrgs, isAdminRole, type MyOrg } from '@/hooks/useMyOrgs';
 import {
   organizationDiscoveryService,
   type OrganizationJoinMode,
@@ -104,6 +105,19 @@ function orgDescriptor(org: OrgRow): string {
   }
 }
 
+function roleLabel(role: string): string {
+  switch (role) {
+    case 'owner':
+      return 'Owner';
+    case 'admin':
+      return 'Admin';
+    case 'manager':
+      return 'Manager';
+    default:
+      return 'Member';
+  }
+}
+
 // =============================================================================
 // MAIN COMPONENT
 // =============================================================================
@@ -125,6 +139,14 @@ export function DiscoverOrgsContent({
   const [searching, setSearching] = useState(false);
   const [memberOrgIds, setMemberOrgIds] = useState<Set<string>>(new Set());
   const [createSheetOpen, setCreateSheetOpen] = useState(false);
+
+  // Orgs the user owns/admins — pinned at the top, cross-interest, so an org
+  // you run is reachable even while browsing a different interest's register.
+  const { data: myOrgs } = useMyOrgs();
+  const adminOrgs = useMemo<MyOrg[]>(
+    () => (myOrgs ?? []).filter((o) => isAdminRole(o.role) && !!o.slug),
+    [myOrgs],
+  );
 
   // Load orgs for current interest
   useEffect(() => {
@@ -328,6 +350,30 @@ export function DiscoverOrgsContent({
           </View>
         )}
 
+        {/* Yours — orgs you own/admin, pinned above the interest browse list
+            and hidden while searching so search results stand alone. */}
+        {!searchResults && adminOrgs.length > 0 && (
+          <View style={styles.yoursBlock}>
+            <CanonicalListEyebrow plain="Yours" />
+            <CanonicalList>
+              {adminOrgs.map((org, index) => (
+                <CanonicalOrgRow
+                  key={org.id}
+                  first={index === 0}
+                  initials={initialsForName(org.name)}
+                  markColor={pickSquareMarkColor(org.id || org.slug || org.name)}
+                  name={org.name}
+                  descriptor={`${roleLabel(org.role)} · manage`}
+                  joinedLabel={roleLabel(org.role)}
+                  onPress={() =>
+                    router.push(`/discover/org/${org.slug}?from=orgs-yours` as any)
+                  }
+                />
+              ))}
+            </CanonicalList>
+          </View>
+        )}
+
         {!loading && interestSlug && cells.length > 0 && (
           <>
             <CanonicalListEyebrow {...eyebrow} />
@@ -442,6 +488,8 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   scrollView: { flex: 1 },
   scrollContent: { paddingBottom: 120 },
+
+  yoursBlock: { marginBottom: 20 },
 
   demoPromo: {
     marginHorizontal: 16,

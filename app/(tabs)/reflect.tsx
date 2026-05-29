@@ -37,6 +37,8 @@ import {
 } from '@/components/ios-register';
 import { useReflectLog } from '@/hooks/useReflectLog';
 import { useReflectProfileScreenData } from '@/hooks/useReflectProfileScreenData';
+import { useMyOrgs, isAdminRole } from '@/hooks/useMyOrgs';
+import type { ProfileOrgRow } from '@/components/ios-register/ProfileScreen';
 import { useScrollToolbarHide } from '@/hooks/useScrollToolbarHide';
 import { useReflectData, type RaceLogEntry } from '@/hooks/useReflectData';
 import { useReflectProfile } from '@/hooks/useReflectProfile';
@@ -932,6 +934,28 @@ export default function ReflectScreen() {
   const reflectProfile = useReflectProfileScreenData();
   const refreshProfileRegister = reflectProfile.refresh;
 
+  const { data: myOrgs } = useMyOrgs();
+  const profileOrgs = useMemo<ProfileOrgRow[]>(
+    () =>
+      (myOrgs ?? [])
+        .filter((o) => !!o.slug)
+        .map((o) => ({
+          id: o.id,
+          name: o.name,
+          slug: o.slug as string,
+          roleLabel:
+            o.role === 'owner'
+              ? 'Owner'
+              : o.role === 'admin'
+                ? 'Admin'
+                : o.role === 'manager'
+                  ? 'Manager'
+                  : 'Member',
+          canManage: isAdminRole(o.role),
+        })),
+    [myOrgs],
+  );
+
   useEffect(() => {
     if (activeSegment === 'profile' && FEATURE_FLAGS.PROFILE_IOS_REGISTER) {
       refreshProfileRegister().catch(() => {});
@@ -988,6 +1012,10 @@ export default function ReflectScreen() {
           reflectProfile.props ? (
             <ProfileScreen
               {...reflectProfile.props}
+              organizations={profileOrgs}
+              onOrgPress={(slug) =>
+                router.push(`/discover/org/${slug}?from=profile` as never)
+              }
               topInset={toolbarHeight}
               onScroll={handleToolbarScroll}
               onWindUnitChange={reflectProfile.handlers.setWindUnit}

@@ -59,6 +59,16 @@ export interface ProfileInterest {
   kind?: ProfileInterestKind;
 }
 
+export interface ProfileOrgRow {
+  id: string;
+  name: string;
+  slug: string;
+  /** "Owner" / "Admin" / "Manager" / "Member" — shown as the right value. */
+  roleLabel: string;
+  /** True when the user owns/admins this org (drives the manage affordance). */
+  canManage: boolean;
+}
+
 export interface ProfileIdentityFields {
   name: string;
   handle: string;
@@ -109,6 +119,8 @@ interface Props {
     body: string;
   };
   interests: ProfileInterest[];
+  /** Orgs the signed-in user belongs to; rendered as the "Organizations" section. */
+  organizations?: ProfileOrgRow[];
   identity: ProfileIdentityFields;
   preferences: ProfilePreferencesFields;
   reflect: ProfileReflectFields;
@@ -117,6 +129,7 @@ interface Props {
   onEditAvatarPress?: () => void;
   onAddInterestPress?: () => void;
   onInterestPress?: (interest: ProfileInterest) => void;
+  onOrgPress?: (slug: string) => void;
   onIdentityFieldPress?: (field: keyof ProfileIdentityFields) => void;
   onNotificationsPress?: () => void;
   onAppearancePress?: () => void;
@@ -153,6 +166,7 @@ export function ProfileScreen({
   capabilityMap = [],
   capabilityEmptyState,
   interests,
+  organizations = [],
   identity,
   preferences,
   reflect,
@@ -160,6 +174,7 @@ export function ProfileScreen({
   onEditAvatarPress,
   onAddInterestPress,
   onInterestPress,
+  onOrgPress,
   onIdentityFieldPress,
   onNotificationsPress,
   onAppearancePress,
@@ -266,6 +281,31 @@ export function ProfileScreen({
           pursuit — the one Reflect, Race Prep and Discover are tuned for.
         </SectionFoot>
       ) : null}
+
+      {/* Organizations — clubs / schools / programs the user belongs to */}
+      {organizations.length > 0 && (
+        <>
+          <SectionHead label="Organizations" />
+          <View style={styles.group}>
+            {organizations.map((org, index) => (
+              <React.Fragment key={org.id}>
+                {index > 0 && <Hairline insetIcon />}
+                <DrillCell
+                  icon={org.canManage ? 'shield-checkmark' : 'people'}
+                  tone={org.canManage ? 'blue' : 'gray'}
+                  label={org.name}
+                  value={org.roleLabel}
+                  onPress={() => onOrgPress?.(org.slug)}
+                />
+              </React.Fragment>
+            ))}
+          </View>
+          <SectionFoot>
+            Clubs, schools and programs you belong to. Tap one you run to manage
+            members, blueprints and settings.
+          </SectionFoot>
+        </>
+      )}
 
       {/* Identity — inline-editable cells */}
       <SectionHead label="Identity" />
