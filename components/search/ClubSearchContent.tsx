@@ -157,13 +157,20 @@ export function ClubSearchContent({
 
   const keyExtractor = useCallback((item: any) => item.id, []);
 
-  const ListHeader = useCallback(
-    () => (
-      <View
-        style={[styles.headerContainer, { paddingTop: toolbarOffset + IOS_SPACING.md }]}
-      >
-        {/* Search Bar */}
-        <View style={styles.searchContainer}>
+  // Rendered as a SIBLING of the FlatList — not its ListHeaderComponent.
+  // When this was wired through ListHeaderComponent={ListHeader}, every
+  // keystroke recomputed the callback (searchQuery in deps), FlatList
+  // saw a new component reference, and remounted the entire header.
+  // That dropped focus on the TextInput, so the user could only type one
+  // letter at a time before having to tap back in. Hoisting the search
+  // bar out of the list keeps the TextInput out of FlatList's
+  // reconciliation tree entirely.
+  const StickyHeader = (
+    <View
+      style={[styles.headerContainer, { paddingTop: toolbarOffset + IOS_SPACING.md }]}
+    >
+      {/* Search Bar */}
+      <View style={styles.searchContainer}>
           <View style={styles.searchInputWrapper}>
             <Search
               size={16}
@@ -248,24 +255,14 @@ export function ClubSearchContent({
         </View>
 
         {/* Results Header */}
-        {clubs.length > 0 && (
-          <View style={styles.resultsHeader}>
-            <Text style={styles.resultsHeaderText}>
-              {clubs.length} CLUB{clubs.length !== 1 ? 'S' : ''}
-            </Text>
-          </View>
-        )}
-      </View>
-    ),
-    [
-      toolbarOffset,
-      searchQuery,
-      selectedBoatClass,
-      selectedLocation,
-      clubs.length,
-      handleClearSearch,
-      handleFilterPress,
-    ]
+      {clubs.length > 0 && (
+        <View style={styles.resultsHeader}>
+          <Text style={styles.resultsHeaderText}>
+            {clubs.length} CLUB{clubs.length !== 1 ? 'S' : ''}
+          </Text>
+        </View>
+      )}
+    </View>
   );
 
   const ListEmpty = useCallback(() => {
@@ -291,11 +288,11 @@ export function ClubSearchContent({
 
   return (
     <>
+      {StickyHeader}
       <FlatList
         data={clubs}
         renderItem={renderClub}
         keyExtractor={keyExtractor}
-        ListHeaderComponent={ListHeader}
         ListEmptyComponent={ListEmpty}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={true}
