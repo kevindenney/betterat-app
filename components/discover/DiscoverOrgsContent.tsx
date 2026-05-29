@@ -21,6 +21,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Platform,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -41,12 +42,17 @@ import { supabase } from '@/services/supabase';
 import { isMissingSupabaseColumn } from '@/lib/utils/supabaseSchemaFallback';
 import { IOS_COLORS, IOS_REGISTER } from '@/lib/design-tokens-ios';
 import {
+  YACHT_CLUB_DEMO_NAME,
+  YACHT_CLUB_DEMO_SLUG,
+} from '@/services/YachtClubDemoService';
+import {
   CanonicalList,
   CanonicalListEyebrow,
   CanonicalOrgRow,
   initialsForName,
   pickSquareMarkColor,
 } from '@/components/discover/canonical';
+import { CreateOrgSheet } from '@/components/discover/CreateOrgSheet';
 
 // =============================================================================
 // TYPES
@@ -118,6 +124,7 @@ export function DiscoverOrgsContent({
   const [searchResults, setSearchResults] = useState<OrgRow[] | null>(null);
   const [searching, setSearching] = useState(false);
   const [memberOrgIds, setMemberOrgIds] = useState<Set<string>>(new Set());
+  const [createSheetOpen, setCreateSheetOpen] = useState(false);
 
   // Load orgs for current interest
   useEffect(() => {
@@ -324,6 +331,22 @@ export function DiscoverOrgsContent({
         {!loading && interestSlug && cells.length > 0 && (
           <>
             <CanonicalListEyebrow {...eyebrow} />
+            <Pressable
+              style={styles.demoPromo}
+              onPress={() => router.push(`/organizations/${YACHT_CLUB_DEMO_SLUG}` as any)}
+            >
+              <View style={styles.demoPromoBadge}>
+                <Ionicons name="sparkles-outline" size={14} color="#0B63CE" />
+                <Text style={styles.demoPromoBadgeText}>Demo</Text>
+              </View>
+              <View style={styles.demoPromoBody}>
+                <Text style={styles.demoPromoTitle}>{YACHT_CLUB_DEMO_NAME}</Text>
+                <Text style={styles.demoPromoText}>
+                  See the synthetic club example with contacts, fleets, a free placeholder tier, and the full pricing ladder.
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color={IOS_REGISTER.labelSecondary} />
+            </Pressable>
             <CanonicalList>{cells.map(renderOrgRow)}</CanonicalList>
           </>
         )}
@@ -341,6 +364,37 @@ export function DiscoverOrgsContent({
                 : 'No orgs for this interest yet.'}
             </Text>
           </View>
+        )}
+
+        {/* Self-serve create — surfaced after a fruitless search or in a
+            generally empty list. Search context pre-fills the new org's
+            name so the user doesn't retype. */}
+        {!loading && interestSlug && (
+          <Pressable
+            style={styles.createCta}
+            onPress={() => setCreateSheetOpen(true)}
+          >
+            <Ionicons
+              name="add-circle-outline"
+              size={20}
+              color={IOS_COLORS.systemBlue}
+            />
+            <View style={styles.createCtaBody}>
+              <Text style={styles.createCtaTitle}>
+                {searchResults
+                  ? `Don't see “${searchQuery}”? Add it.`
+                  : "Don't see your org? Add it."}
+              </Text>
+              <Text style={styles.createCtaHint}>
+                Start it now — a verified parent can adopt it later.
+              </Text>
+            </View>
+            <Ionicons
+              name="chevron-forward"
+              size={18}
+              color={IOS_REGISTER.labelSecondary}
+            />
+          </Pressable>
         )}
 
         {/* Pass 11 — search moves to a quiet pill at the foot. */}
@@ -370,6 +424,12 @@ export function DiscoverOrgsContent({
           </View>
         )}
       </ScrollView>
+
+      <CreateOrgSheet
+        visible={createSheetOpen}
+        initialName={searchQuery.trim() || undefined}
+        onClose={() => setCreateSheetOpen(false)}
+      />
     </View>
   );
 }
@@ -382,6 +442,48 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   scrollView: { flex: 1 },
   scrollContent: { paddingBottom: 120 },
+
+  demoPromo: {
+    marginHorizontal: 16,
+    marginBottom: 12,
+    padding: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(11, 99, 206, 0.14)',
+    backgroundColor: '#F7FAFF',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  demoPromoBadge: {
+    minWidth: 54,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderRadius: 10,
+    backgroundColor: '#EAF2FF',
+    alignItems: 'center',
+    gap: 2,
+  },
+  demoPromoBadgeText: {
+    color: '#0B63CE',
+    fontSize: 11,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+  },
+  demoPromoBody: {
+    flex: 1,
+    gap: 3,
+  },
+  demoPromoTitle: {
+    color: IOS_REGISTER.label,
+    fontSize: 16,
+    fontWeight: '800',
+  },
+  demoPromoText: {
+    color: IOS_REGISTER.labelSecondary,
+    fontSize: 13,
+    lineHeight: 18,
+  },
 
   // Search — quiet pill at the foot per Pass 11 brief
   searchOuter: {
@@ -423,5 +525,29 @@ const styles = StyleSheet.create({
     color: IOS_REGISTER.labelSecondary,
     textAlign: 'center',
     lineHeight: 20,
+  },
+
+  // Self-serve create CTA — sits below the list and after empty states.
+  createCta: {
+    marginHorizontal: 16,
+    marginTop: 12,
+    padding: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(11,99,206,0.18)',
+    backgroundColor: '#F7FAFF',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  createCtaBody: { flex: 1, gap: 2 },
+  createCtaTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: IOS_REGISTER.label,
+  },
+  createCtaHint: {
+    fontSize: 12,
+    color: IOS_REGISTER.labelSecondary,
   },
 });
