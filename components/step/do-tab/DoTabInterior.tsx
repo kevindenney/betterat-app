@@ -12,6 +12,9 @@ import { DoPostActivityCard } from './DoPostActivityCard';
 import { StepOutcomeCard } from './StepOutcomeCard';
 import { BeatsList } from './BeatsList';
 import { useStepBeatsBinding } from '@/hooks/useStepBeats';
+import { useLibraryBeforeBinding } from '@/hooks/useStepLibraryBefore';
+import { BeforeTheShiftCard } from '@/components/step/v2/plan/BeforeTheShiftCard';
+import { LibraryBeforePicker } from '@/components/library/picker/LibraryBeforePicker';
 
 export interface DoTabInteriorProps {
   state: DoInteriorState;
@@ -111,6 +114,7 @@ export function DoTabInterior({
   embedded,
 }: DoTabInteriorProps) {
   const beats = useStepBeatsBinding(stepId);
+  const library = useLibraryBeforeBinding(stepId, interestId);
   const hasCaptures = captures.some((capture) => capture.kind !== 'time_marker');
   const beatsList = (
     <BeatsList
@@ -122,8 +126,30 @@ export function DoTabInterior({
       onAdd={beats.onAdd}
       onEdit={beats.onEdit}
       onDelete={beats.onDelete}
+      onToggleDone={beats.onToggleDone}
     />
   );
+  // Check-off read/watch list of library items attached to this step. Same
+  // binding the Plan tab uses; surfaced here so the Do surface leads with the
+  // prep checklist before the capture affordances.
+  const libraryCard =
+    stepId && !readOnly ? (
+      <>
+        <BeforeTheShiftCard
+          items={library.items}
+          totalEstimate={library.totalEstimate}
+          onToggle={library.onToggle}
+          onAddFromLibrary={library.onAddFromLibrary}
+        />
+        <LibraryBeforePicker
+          visible={library.picker.visible}
+          onClose={library.picker.onClose}
+          onSelect={library.picker.onSelect}
+          attachedItemIds={library.picker.attachedItemIds}
+          interestId={library.picker.interestId}
+        />
+      </>
+    ) : null;
   // Per-step business-outcome capture. StepOutcomeCard self-gates on the
   // entrepreneur persona (returns null otherwise), so it can render in every
   // Do state. It must: untimed steps (the entrepreneur default) never expose a
@@ -167,6 +193,7 @@ export function DoTabInterior({
         {hasCaptures && onMoveToReflect && !readOnly ? (
           <MoveToReviewCTA onPress={onMoveToReflect} />
         ) : null}
+        {libraryCard}
         {stepId ? beatsList : null}
         {footer}
       </>
@@ -207,6 +234,7 @@ export function DoTabInterior({
           onMarkAsEvidence={onMarkAsEvidence}
         />
         {outcomeCard}
+        {libraryCard}
         {stepId ? beatsList : null}
         {footer}
       </>
@@ -231,19 +259,20 @@ export function DoTabInterior({
       <View style={styles.contentEmbedded}>
         {state === 'pre_activity' && (
           <>
+            <PlanStartingFrameRow
+              planData={planData}
+              onPress={readOnly ? undefined : onAutoSummarizePlan}
+              disabled={readOnly}
+            />
+            {libraryCard}
+            {stepId ? beatsList : null}
+            {outcomeCard}
             <DoStartCard
               readOnly={readOnly}
               onVoiceNote={onVoiceNote}
               onPhotoOrVideo={onPhotoOrVideo}
               onQuickNoteSubmit={onQuickNoteSubmit}
             />
-            <PlanStartingFrameRow
-              planData={planData}
-              onPress={readOnly ? undefined : onAutoSummarizePlan}
-              disabled={readOnly}
-            />
-            {outcomeCard}
-            {stepId ? beatsList : null}
           </>
         )}
         {footer}
@@ -260,19 +289,20 @@ export function DoTabInterior({
     >
       {state === 'pre_activity' && (
         <>
+          <PlanStartingFrameRow
+            planData={planData}
+            onPress={readOnly ? undefined : onAutoSummarizePlan}
+            disabled={readOnly}
+          />
+          {libraryCard}
+          {stepId ? beatsList : null}
+          {outcomeCard}
           <DoStartCard
             readOnly={readOnly}
             onVoiceNote={onVoiceNote}
             onPhotoOrVideo={onPhotoOrVideo}
             onQuickNoteSubmit={onQuickNoteSubmit}
           />
-          <PlanStartingFrameRow
-            planData={planData}
-            onPress={readOnly ? undefined : onAutoSummarizePlan}
-            disabled={readOnly}
-          />
-          {outcomeCard}
-          {stepId ? beatsList : null}
         </>
       )}
 

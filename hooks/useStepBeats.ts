@@ -19,6 +19,7 @@ export interface StepBeat {
   time_label: string | null;
   title: string;
   body: string | null;
+  done: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -161,6 +162,36 @@ export function useDeleteStepBeat() {
   });
 }
 
+export function useToggleStepBeatDone() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, done }: { id: string; stepId: string; done: boolean }) => {
+      const { error } = await supabase
+        .from('step_beats')
+        .update({ done })
+        .eq('id', id);
+      if (error) throw error;
+    },
+    onMutate: async ({ id, stepId, done }) => {
+      const key = ['step-beats', stepId];
+      await qc.cancelQueries({ queryKey: key });
+      const prev = qc.getQueryData<StepBeat[]>(key);
+      qc.setQueryData<StepBeat[]>(key, (old) =>
+        (old ?? []).map((b) => (b.id === id ? { ...b, done } : b)),
+      );
+      return { prev };
+    },
+    onError: (_err, vars, ctx) => {
+      if (ctx?.prev !== undefined) {
+        qc.setQueryData(['step-beats', vars.stepId], ctx.prev);
+      }
+    },
+    onSettled: (_data, _err, vars) => {
+      qc.invalidateQueries({ queryKey: ['step-beats', vars.stepId] });
+    },
+  });
+}
+
 export function useReorderStepBeats() {
   const qc = useQueryClient();
   return useMutation({
@@ -218,6 +249,7 @@ export function useStepBeatsBinding(stepId: string | undefined) {
   const create = useCreateStepBeat();
   const update = useUpdateStepBeat();
   const del = useDeleteStepBeat();
+  const toggle = useToggleStepBeatDone();
   const reorder = useReorderStepBeats();
 
   const onAdd = useCallback(
@@ -252,5 +284,13 @@ export function useStepBeatsBinding(stepId: string | undefined) {
     [stepId, reorder],
   );
 
-  return { beats, onAdd, onEdit, onDelete, onReorder };
+  const onToggleDone = useCallback(
+    (id: string, done: boolean) => {
+      if (!stepId) return;
+      toggle.mutate({ id, stepId, done });
+    },
+    [stepId, toggle],
+  );
+
+  return { beats, onAdd, onEdit, onDelete, onReorder, onToggleDone };
 }

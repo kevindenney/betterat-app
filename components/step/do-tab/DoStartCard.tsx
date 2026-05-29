@@ -14,55 +14,6 @@ interface DoStartCardProps {
   onQuickNoteSubmit?: (text: string) => void;
 }
 
-interface CaptureButtonProps {
-  label: string;
-  icon: keyof typeof Ionicons.glyphMap;
-  accent: 'mic' | 'cam' | 'note';
-  emphasized?: boolean;
-  disabled?: boolean;
-  onPress?: () => void;
-  accessibilityLabel: string;
-}
-
-function CaptureButton({
-  label,
-  icon,
-  accent,
-  emphasized,
-  disabled,
-  onPress,
-  accessibilityLabel,
-}: CaptureButtonProps) {
-  const iconBg = ICON_BG[accent];
-  const iconSize = emphasized ? 26 : 22;
-
-  return (
-    <Pressable
-      style={({ pressed }) => [
-        styles.capBtn,
-        pressed && !disabled && styles.capBtnPressed,
-        disabled && styles.capBtnDisabled,
-      ]}
-      onPress={disabled ? undefined : onPress}
-      disabled={disabled}
-      accessibilityRole="button"
-      accessibilityLabel={accessibilityLabel}
-      accessibilityState={{ disabled: Boolean(disabled) }}
-    >
-      <View style={[styles.iconWrap, { backgroundColor: iconBg }]}>
-        <Ionicons name={icon} size={iconSize} color="#FFFFFF" />
-      </View>
-      <Text style={styles.capLabel}>{label}</Text>
-    </Pressable>
-  );
-}
-
-const ICON_BG: Record<'mic' | 'cam' | 'note', string> = {
-  mic: IOS_COLORS.systemBlue,
-  cam: IOS_COLORS.label,
-  note: IOS_COLORS.systemGray,
-};
-
 export function DoStartCard({
   readOnly,
   onVoiceNote,
@@ -81,31 +32,10 @@ export function DoStartCard({
 
   return (
     <View style={styles.card}>
-      <Text style={styles.eyebrow}>Live capture</Text>
-      <Text style={styles.title}>What is happening?</Text>
-      <Text style={styles.subtitle}>Voice, photo, or quick notes. Capture the moment first; organize it later.</Text>
+      <Text style={styles.eyebrow}>Capture evidence</Text>
+      <Text style={styles.title}>Jot what you notice.</Text>
 
-      <View style={styles.duo}>
-        <CaptureButton
-          label="Voice note"
-          icon="mic"
-          accent="mic"
-          emphasized
-          disabled={readOnly}
-          onPress={onVoiceNote}
-          accessibilityLabel="Start a voice note"
-        />
-        <CaptureButton
-          label="Photo or video"
-          icon="camera"
-          accent="cam"
-          disabled={readOnly}
-          onPress={onPhotoOrVideo}
-          accessibilityLabel="Capture photo or video"
-        />
-      </View>
-
-      {/* Inline quick-note composer — replaces the popup-modal flow. Type
+      {/* Inline quick-note composer — the primary capture affordance. Type
           and tap send (or hit Return) to add a note without opening a
           separate sheet. */}
       <View style={styles.composerRow}>
@@ -139,8 +69,57 @@ export function DoStartCard({
         </Pressable>
       </View>
 
-      <Text style={styles.emptyLine}>Captures will appear here as you go.</Text>
+      {/* Secondary media captures — demoted to a compact row so the note
+          composer leads. */}
+      <View style={styles.mediaRow}>
+        <CompactCaptureButton
+          label="Voice"
+          icon="mic"
+          disabled={readOnly}
+          onPress={onVoiceNote}
+          accessibilityLabel="Start a voice note"
+        />
+        <CompactCaptureButton
+          label="Photo or video"
+          icon="camera"
+          disabled={readOnly}
+          onPress={onPhotoOrVideo}
+          accessibilityLabel="Capture photo or video"
+        />
+      </View>
     </View>
+  );
+}
+
+function CompactCaptureButton({
+  label,
+  icon,
+  disabled,
+  onPress,
+  accessibilityLabel,
+}: {
+  label: string;
+  icon: keyof typeof Ionicons.glyphMap;
+  disabled?: boolean;
+  onPress?: () => void;
+  accessibilityLabel: string;
+}) {
+  return (
+    <Pressable
+      style={({ pressed }) => [
+        styles.mediaBtn,
+        pressed && !disabled && styles.capBtnPressed,
+        disabled && styles.capBtnDisabled,
+      ]}
+      onPress={disabled ? undefined : onPress}
+      disabled={disabled}
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
+      accessibilityState={{ disabled: Boolean(disabled) }}
+    >
+      <Ionicons name={icon} size={16} color={IOS_COLORS.secondaryLabel} />
+      <Text style={styles.mediaLabel}>{label}</Text>
+    </Pressable>
   );
 }
 
@@ -170,17 +149,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: IOS_COLORS.label,
     letterSpacing: -0.4,
-  },
-  subtitle: {
-    fontSize: 13.5,
-    lineHeight: 19,
-    color: IOS_COLORS.secondaryLabel,
-    marginBottom: IOS_SPACING.sm,
-  },
-  duo: {
-    flexDirection: 'row',
-    gap: IOS_SPACING.sm,
-    marginTop: 4,
   },
   composerRow: {
     flexDirection: 'row',
@@ -222,38 +190,30 @@ const styles = StyleSheet.create({
   sendBtnDisabled: {
     opacity: 0.35,
   },
-  capBtn: {
+  mediaRow: {
+    flexDirection: 'row',
+    gap: IOS_SPACING.sm,
+    marginTop: IOS_SPACING.sm,
+  },
+  mediaBtn: {
     flex: 1,
+    flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    paddingVertical: IOS_SPACING.md,
-    borderRadius: 14,
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 9,
+    borderRadius: 10,
     backgroundColor: IOS_COLORS.systemGray6,
+  },
+  mediaLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: IOS_COLORS.secondaryLabel,
   },
   capBtnPressed: {
     opacity: 0.7,
   },
   capBtnDisabled: {
     opacity: 0.4,
-  },
-  iconWrap: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  capLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: IOS_COLORS.label,
-    textAlign: 'center',
-  },
-  emptyLine: {
-    fontSize: 12,
-    fontStyle: 'italic',
-    color: IOS_COLORS.tertiaryLabel,
-    textAlign: 'center',
-    marginTop: IOS_SPACING.sm,
   },
 });

@@ -3,7 +3,7 @@
  *
  * Each beat is a {time_label, title, body} row. Inline-editable: tap a row
  * to expand the title/body inputs; the time-label sits to the right and
- * is also inline-editable. "+ Add a beat" footer appends a new row.
+ * is also inline-editable. The add footer appends a new timed beat row.
  *
  * Per-interest lexicon (sectionLabel, placeholders, empty hint) comes from
  * getInterestBeatsConfig — same pattern as INTEREST_DO_TAB_CONFIG.
@@ -38,6 +38,7 @@ interface Props {
     patch: { title?: string; time_label?: string | null; body?: string | null },
   ) => void;
   onDelete: (id: string) => void;
+  onToggleDone?: (id: string, done: boolean) => void;
 }
 
 export function BeatsList({
@@ -49,6 +50,7 @@ export function BeatsList({
   onAdd,
   onEdit,
   onDelete,
+  onToggleDone,
 }: Props) {
   const config = getInterestBeatsConfig({ interestSlug, interestName, interestId });
 
@@ -68,6 +70,7 @@ export function BeatsList({
               config={config}
               onEdit={onEdit}
               onDelete={onDelete}
+              onToggleDone={onToggleDone}
             />
           ))}
         </View>
@@ -87,9 +90,10 @@ interface BeatRowProps {
     patch: { title?: string; time_label?: string | null; body?: string | null },
   ) => void;
   onDelete: (id: string) => void;
+  onToggleDone?: (id: string, done: boolean) => void;
 }
 
-function BeatRow({ beat, readOnly, config, onEdit, onDelete }: BeatRowProps) {
+function BeatRow({ beat, readOnly, config, onEdit, onDelete, onToggleDone }: BeatRowProps) {
   const [expanded, setExpanded] = useState(false);
   const [title, setTitle] = useState(beat.title);
   const [time, setTime] = useState(beat.time_label ?? '');
@@ -115,13 +119,27 @@ function BeatRow({ beat, readOnly, config, onEdit, onDelete }: BeatRowProps) {
 
   return (
     <View style={styles.beat}>
-      <Pressable
-        style={styles.beatHead}
-        onPress={() => setExpanded((p) => !p)}
-        disabled={readOnly}
-      >
-        <View style={styles.beatHeadLeft}>
-          <Text style={styles.beatTitle} numberOfLines={expanded ? undefined : 1}>
+      <View style={styles.beatHead}>
+        <Pressable
+          hitSlop={6}
+          onPress={onToggleDone ? () => onToggleDone(beat.id, !beat.done) : undefined}
+          disabled={readOnly || !onToggleDone}
+          style={[styles.check, beat.done ? styles.checkDone : null]}
+          accessibilityRole="checkbox"
+          accessibilityState={{ checked: beat.done }}
+          accessibilityLabel={`Mark "${beat.title}" ${beat.done ? 'not done' : 'done'}`}
+        >
+          {beat.done ? <Ionicons name="checkmark" size={13} color="#FFFFFF" /> : null}
+        </Pressable>
+        <Pressable
+          style={styles.beatHeadLeft}
+          onPress={() => setExpanded((p) => !p)}
+          disabled={readOnly}
+        >
+          <Text
+            style={[styles.beatTitle, beat.done ? styles.beatTitleDone : null]}
+            numberOfLines={expanded ? undefined : 1}
+          >
             {beat.title}
           </Text>
           {beat.body && !expanded ? (
@@ -129,11 +147,11 @@ function BeatRow({ beat, readOnly, config, onEdit, onDelete }: BeatRowProps) {
               {beat.body}
             </Text>
           ) : null}
-        </View>
+        </Pressable>
         {beat.time_label ? (
           <Text style={styles.beatTime}>{beat.time_label}</Text>
         ) : null}
-      </Pressable>
+      </View>
 
       {expanded && !readOnly ? (
         <View style={styles.beatEdit}>
@@ -204,7 +222,7 @@ function AddBeatRow({
     return (
       <Pressable style={styles.addRow} onPress={() => setOpen(true)} hitSlop={6}>
         <Ionicons name="add" size={14} color="#007AFF" />
-        <Text style={styles.addText}>Add a beat</Text>
+        <Text style={styles.addText}>{config.addLabel}</Text>
       </Pressable>
     );
   }
@@ -293,6 +311,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 8,
   },
+  check: {
+    width: 18,
+    height: 18,
+    borderRadius: 999,
+    borderWidth: 1.5,
+    borderColor: 'rgba(60,60,67,0.3)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 1,
+  },
+  checkDone: {
+    backgroundColor: '#34C759',
+    borderColor: '#34C759',
+  },
   beatHeadLeft: {
     flex: 1,
     minWidth: 0,
@@ -302,6 +334,10 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: IOS_COLORS.label,
     letterSpacing: -0.2,
+  },
+  beatTitleDone: {
+    color: IOS_COLORS.secondaryLabel,
+    textDecorationLine: 'line-through',
   },
   beatBody: {
     fontSize: 12.5,
