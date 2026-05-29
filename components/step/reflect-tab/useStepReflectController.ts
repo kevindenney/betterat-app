@@ -23,6 +23,7 @@ import { dropInsight } from '@/services/QuickCaptureService';
 import { addConceptTrailQuote, getStepConceptLinks } from '@/services/PlaybookService';
 import { supabase } from '@/services/supabase';
 import { encodeHingeId } from '@/services/HingeBuildService';
+import { useToast } from '@/components/ui/AppToast';
 import { FEATURE_FLAGS } from '@/lib/featureFlags';
 import type {
   CapabilityEvidenceRow,
@@ -189,6 +190,7 @@ export function useStepReflectController({
   const updateMetadata = useUpdateStepMetadata(stepId);
   const updateStep = useUpdateStep();
   const queryClient = useQueryClient();
+  const toast = useToast();
   const { currentInterest } = useInterest();
   const [synthesisState, setSynthesisState] = useState<ReflectSynthesisState>('idle');
   const [activeFieldId, setActiveFieldId] = useState<ReflectFieldId | undefined>('what_worked');
@@ -503,7 +505,19 @@ export function useStepReflectController({
             .maybeSingle();
           const nextStepId = (nextRow as { id?: string } | null)?.id;
           if (nextStepId) {
-            router.push(`/practice/hinges/${encodeHingeId(stepId, nextStepId)}` as any);
+            // Skippable nudge, not a forced page: offer the hinge as a
+            // gentle "take a beat" toast that auto-dismisses. The user can
+            // tap through to the hinge surface or simply let it fade.
+            toast.show('Settled. Take a beat before the next step?', 'info', {
+              duration: 6000,
+              action: {
+                label: 'Take a beat',
+                onPress: () =>
+                  router.push(
+                    `/practice/hinges/${encodeHingeId(stepId, nextStepId)}` as any,
+                  ),
+              },
+            });
           }
         } catch {
           // Best-effort: if the next-step lookup fails, leave the user on Reflect.
@@ -512,7 +526,7 @@ export function useStepReflectController({
     } finally {
       setSettling(false);
     }
-  }, [step, readOnly, fields, flushField, stepId, capabilities, updateStep, queryClient, actData.observations, actData.media_uploads, conceptPrompts]);
+  }, [step, readOnly, fields, flushField, stepId, capabilities, updateStep, queryClient, actData.observations, actData.media_uploads, conceptPrompts, toast]);
 
   return {
     loading: isLoading,
