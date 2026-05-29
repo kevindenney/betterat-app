@@ -173,10 +173,12 @@ export function useAdminCompetencyEvidence(
   const hasRealEvidence = realCells.length > 0;
 
   // Filter to "real" practice sites (skip sim_lab in evidence grid since
-  // sim doesn't count as field evidence)
+  // sim doesn't count as field evidence). Denylist — not an allowlist — so
+  // the grid generalizes to any interest's site kinds (lac-craft markets,
+  // SHG centers, …), not just nursing hospitals and sailing courses.
   const evidenceSites: SiteSummary[] = useMemo(() => {
     return sites.sites
-      .filter((s) => s.kind === 'hospital' || s.kind === 'racing_area' || s.kind === 'course')
+      .filter((s) => s.kind !== 'sim_lab')
       .map((s) => ({
         id: s.id,
         name: s.name,
