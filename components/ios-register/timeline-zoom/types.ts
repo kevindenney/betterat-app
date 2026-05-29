@@ -8,6 +8,8 @@
  * Per the May 2026 Timeline Zoom & Admin handoff (Sections A–H).
  */
 
+import type { HeadlineMetricValue } from './interestHeadline';
+
 export type ZoomLevel = 1 | 2 | 3 | 4;
 
 export const ZOOM_LEVEL_LABELS: Record<ZoomLevel, string> = {
@@ -209,6 +211,16 @@ export interface TimelineSeason {
    * once the D7 schema half lands.
    */
   finance?: SeasonFinance;
+  /**
+   * D11 headline metric (per-persona North Star) for the season scope.
+   * Pass-through value the L3 chrome renders above the capability mix —
+   * a sailor's series finish, a nurse's signed competencies. Authored
+   * inline in sample personas today; populated by the adapter from
+   * finishes / attestations / scores in a follow-up. Absent for real
+   * accounts without the data → slot hidden. The entrepreneur does NOT
+   * use this field — EARNINGS is computed live from `finance`.
+   */
+  headline?: HeadlineMetricValue;
 }
 
 export interface SeasonFinance {
@@ -416,6 +428,14 @@ export interface TimelineDataset {
    * money-on interests; absent leaves L4 without a money readout.
    */
   lifetimeFinance?: LifetimeFinance;
+  /**
+   * D11 headline metric for the lifetime scope (L4). Pass-through value
+   * the chrome renders above the capability mix — the career-trajectory
+   * figure (qualification record, % through program, handicap arc).
+   * Same data contract as `TimelineSeason.headline`; the entrepreneur
+   * computes EARNINGS from `lifetimeFinance` instead of using this.
+   */
+  lifetimeHeadline?: HeadlineMetricValue;
 }
 
 export interface LifetimeFinance {

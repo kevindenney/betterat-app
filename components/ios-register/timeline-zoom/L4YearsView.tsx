@@ -40,6 +40,8 @@ import {
   resolveMoneyConfig,
   type MoneyConfig,
 } from './interestMoney';
+import { HeadlineMetric } from './HeadlineMetric';
+import { hasHeadlineMetric, resolveHeadlineMetric } from './interestHeadline';
 import { LifetimeVisionEditSheet } from './LifetimeVisionEditSheet';
 import { useUpdateLifetimeVision } from '@/hooks/useInterestVision';
 import type {
@@ -308,6 +310,14 @@ export function L4YearsView({
           />
         </View>
       ) : null}
+
+      {hasHeadlineMetric(interestVocab.id)
+        ? (() => {
+            const cfg = resolveHeadlineMetric(interestVocab.id)!;
+            const v = cfg.resolveLifetime(dataset);
+            return v ? <HeadlineMetric label={cfg.label} value={v} /> : null;
+          })()
+        : null}
 
       {hasMoneyLane(interestVocab.id) && dataset.lifetimeFinance ? (
         <MoneyReadout

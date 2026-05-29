@@ -284,6 +284,12 @@ const SPRING_26: TimelineSeason = {
     PALETTE.cardio.color, PALETTE.assess.color,  PALETTE.cardio.color,  PALETTE.pharm.color,
     PALETTE.comm.color,   PALETTE.cardio.color,  PALETTE.assess.color,
   ]),
+  headline: {
+    value: '6 of 8 signed',
+    caption: 'rotation competencies attested by preceptor',
+    delta: { direction: 'up', text: '+2 this rotation' },
+    tone: 'positive',
+  },
 };
 
 const FALL_25: TimelineSeason = {
@@ -467,4 +473,9 @@ export const SAMPLE_DATASET: TimelineDataset = {
     { id: 'assess', label: 'Assess', icon: 'pulse-outline',     color: PALETTE.assess.color },
   ],
   lifetime: LIFETIME_SAMPLE,
+  lifetimeHeadline: {
+    value: '32% through MSN',
+    caption: '14 months to NCLEX · 28 of 86 competencies attested',
+    tone: 'neutral',
+  },
 };

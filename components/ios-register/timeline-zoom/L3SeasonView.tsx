@@ -65,6 +65,8 @@ import {
   resolveMoneyConfig,
   type MoneyConfig,
 } from './interestMoney';
+import { HeadlineMetric } from './HeadlineMetric';
+import { hasHeadlineMetric, resolveHeadlineMetric } from './interestHeadline';
 import type {
   SeasonFinance,
   TimelineDataset,
@@ -263,6 +265,14 @@ export function L3SeasonView({
           season.endDateISO,
         )}
       />
+
+      {hasHeadlineMetric(interestVocab.id)
+        ? (() => {
+            const cfg = resolveHeadlineMetric(interestVocab.id)!;
+            const v = cfg.resolveSeason(season);
+            return v ? <HeadlineMetric label={cfg.label} value={v} /> : null;
+          })()
+        : null}
 
       {hasMoneyLane(interestVocab.id) && season.finance ? (
         <MoneyLane
