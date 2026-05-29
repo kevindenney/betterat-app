@@ -51,6 +51,14 @@ interface PersonResult {
   avatarColor?: string;
 }
 
+interface PendingInvite {
+  id: string;
+  name: string;
+  email: string | null;
+  isLink: boolean;
+  statusLabel: string;
+}
+
 const WEB_BASE = process.env.EXPO_PUBLIC_WEB_BASE_URL || 'https://better.at';
 
 function buildInviteUrl(token: string): string {
@@ -87,12 +95,42 @@ export function InvitePeopleSheet({
   const [results, setResults] = useState<PersonResult[]>([]);
   const [invitingId, setInvitingId] = useState<string | null>(null);
   const [invitedIds, setInvitedIds] = useState<Set<string>>(new Set());
+  const [pendingInvites, setPendingInvites] = useState<PendingInvite[]>([]);
   const memberIdsRef = useRef<Set<string>>(new Set());
   const searchSeq = useRef(0);
 
   // ── Link generation ───────────────────────────────────────────────
   const [generating, setGenerating] = useState(false);
   const [latestUrl, setLatestUrl] = useState<string | null>(null);
+  const [linkName, setLinkName] = useState('');
+  const [linkEmail, setLinkEmail] = useState('');
+
+  // Load existing invites so already-invited people keep their status across
+  // sessions, and the owner can see everyone they've invited.
+  const refreshInvites = useCallback(async () => {
+    const invites =
+      await organizationInviteService.listPendingOrganizationInvites(orgId);
+
+    const invitedSet = new Set<string>();
+    const rows: PendingInvite[] = invites.map((inv) => {
+      const targetId =
+        typeof inv.metadata?.target_user_id === 'string'
+          ? (inv.metadata.target_user_id as string)
+          : null;
+      if (targetId) invitedSet.add(targetId);
+      const isLink = !inv.invitee_name && !inv.invitee_email;
+      return {
+        id: inv.id,
+        name: inv.invitee_name?.trim() || (isLink ? 'Shareable link' : 'Invited person'),
+        email: inv.invitee_email ?? null,
+        isLink,
+        statusLabel: inv.status === 'opened' ? 'Opened' : 'Invited',
+      };
+    });
+
+    setInvitedIds(invitedSet);
+    setPendingInvites(rows);
+  }, [orgId]);
 
   // Reset on open so a previous session's state doesn't linger.
   useEffect(() => {
@@ -101,8 +139,11 @@ export function InvitePeopleSheet({
     setResults([]);
     setInvitingId(null);
     setInvitedIds(new Set());
+    setPendingInvites([]);
     setLatestUrl(null);
     setGenerating(false);
+    setLinkName('');
+    setLinkEmail('');
 
     // Load existing member ids so we don't offer to invite them again.
     let cancelled = false;
@@ -115,11 +156,13 @@ export function InvitePeopleSheet({
       memberIdsRef.current = new Set(
         (data ?? []).map((r: { user_id: string }) => r.user_id).filter(Boolean),
       );
+      if (cancelled) return;
+      await refreshInvites();
     })();
     return () => {
       cancelled = true;
     };
-  }, [visible, orgId]);
+  }, [visible, orgId, refreshInvites]);
 
   // Debounced people search.
   useEffect(() => {
@@ -206,6 +249,7 @@ export function InvitePeopleSheet({
         });
 
         setInvitedIds((prev) => new Set(prev).add(person.id));
+        await refreshInvites();
       } catch (err) {
         const message =
           err instanceof Error ? err.message : 'Could not send invite.';
@@ -214,15 +258,19 @@ export function InvitePeopleSheet({
         setInvitingId(null);
       }
     },
-    [invitingId, invitedIds, orgId, orgName, user],
+    [invitingId, invitedIds, orgId, orgName, user, refreshInvites],
   );
 
   const handleGenerate = useCallback(async () => {
     setGenerating(true);
     try {
       const token = generateToken();
+      const name = linkName.trim();
+      const email = linkEmail.trim();
       await organizationInviteService.createInvite({
         organization_id: orgId,
+        invitee_name: name || null,
+        invitee_email: email || null,
         role_label: 'Member',
         role_key: 'member',
         invite_token: token,
@@ -231,6 +279,9 @@ export function InvitePeopleSheet({
         metadata: { source: 'invite_people_sheet' },
       });
       setLatestUrl(buildInviteUrl(token));
+      setLinkName('');
+      setLinkEmail('');
+      await refreshInvites();
     } catch (err) {
       const message =
         err instanceof Error ? err.message : 'Could not generate invite.';
@@ -238,7 +289,7 @@ export function InvitePeopleSheet({
     } finally {
       setGenerating(false);
     }
-  }, [orgId]);
+  }, [orgId, linkName, linkEmail, refreshInvites]);
 
   const handleCopy = useCallback(async () => {
     if (!latestUrl) return;
@@ -375,13 +426,82 @@ export function InvitePeopleSheet({
               </Text>
             )}
 
+            {pendingInvites.length > 0 ? (
+              <View style={styles.pendingBlock}>
+                <Text style={styles.sectionLabel}>PENDING INVITES</Text>
+                {pendingInvites.map((inv) => (
+                  <View key={inv.id} style={styles.personRow}>
+                    <View
+                      style={[
+                        styles.avatar,
+                        { backgroundColor: inv.isLink ? '#EAF1FB' : '#E3ECF7' },
+                      ]}
+                    >
+                      {inv.isLink ? (
+                        <Ionicons
+                          name="link-outline"
+                          size={18}
+                          color={IOS_COLORS.systemBlue}
+                        />
+                      ) : (
+                        <Text style={styles.avatarText}>{initialsFor(inv.name)}</Text>
+                      )}
+                    </View>
+                    <View style={styles.personMeta}>
+                      <Text style={styles.personName} numberOfLines={1}>
+                        {inv.name}
+                      </Text>
+                      {inv.email ? (
+                        <Text style={styles.personEmail} numberOfLines={1}>
+                          {inv.email}
+                        </Text>
+                      ) : null}
+                    </View>
+                    <View style={styles.invitedPill}>
+                      <Ionicons
+                        name="checkmark"
+                        size={14}
+                        color={IOS_COLORS.systemGreen}
+                      />
+                      <Text style={styles.invitedText}>{inv.statusLabel}</Text>
+                    </View>
+                  </View>
+                ))}
+              </View>
+            ) : null}
+
             <View style={styles.divider} />
 
             {/* ── Not on BetterAt ── */}
             <Text style={styles.sectionLabel}>NOT ON BETTERAT</Text>
             <Text style={styles.intro}>
-              Share a link to {orgName}. Anyone who taps it can request to join.
+              Invite someone by name so you can track them, or share an open link
+              to {orgName} that anyone can use.
             </Text>
+
+            {!latestUrl ? (
+              <View style={styles.linkFields}>
+                <TextInput
+                  style={styles.linkField}
+                  placeholder="Name (optional)"
+                  placeholderTextColor={IOS_REGISTER.labelTertiary}
+                  value={linkName}
+                  onChangeText={setLinkName}
+                  autoCapitalize="words"
+                  autoCorrect={false}
+                />
+                <TextInput
+                  style={styles.linkField}
+                  placeholder="Email (optional)"
+                  placeholderTextColor={IOS_REGISTER.labelTertiary}
+                  value={linkEmail}
+                  onChangeText={setLinkEmail}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  keyboardType="email-address"
+                />
+              </View>
+            ) : null}
 
             {latestUrl ? (
               <View style={styles.linkCard}>
@@ -428,7 +548,11 @@ export function InvitePeopleSheet({
                       size={18}
                       color={IOS_COLORS.systemBlue}
                     />
-                    <Text style={styles.secondaryText}>Generate invite link</Text>
+                    <Text style={styles.secondaryText}>
+                      {linkName.trim()
+                        ? `Create invite for ${linkName.trim()}`
+                        : 'Generate invite link'}
+                    </Text>
                   </>
                 )}
               </Pressable>
@@ -543,6 +667,16 @@ const styles = StyleSheet.create({
     color: IOS_REGISTER.labelSecondary,
     lineHeight: 18,
     paddingVertical: 6,
+  },
+  pendingBlock: { gap: 4, marginTop: 4 },
+  linkFields: { gap: 8 },
+  linkField: {
+    fontSize: 15,
+    color: IOS_REGISTER.label,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    borderRadius: 10,
+    backgroundColor: '#F2F4F7',
   },
   divider: {
     height: StyleSheet.hairlineWidth,

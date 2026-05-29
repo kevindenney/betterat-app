@@ -27,7 +27,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 
 import { useInterest } from '@/providers/InterestProvider';
+import { useAuth } from '@/providers/AuthProvider';
 import { useCreateOrg } from '@/hooks/useCreateOrg';
+import { supabase } from '@/services/supabase';
 import { showAlert } from '@/lib/utils/crossPlatformAlert';
 import { IOS_COLORS, IOS_REGISTER } from '@/lib/design-tokens-ios';
 import {
@@ -68,7 +70,10 @@ const JOIN_MODE_OPTIONS: {
 export function CreateOrgSheet({ visible, initialName, onClose }: CreateOrgSheetProps) {
   const router = useRouter();
   const { currentInterest } = useInterest();
+  const { user } = useAuth();
   const createOrg = useCreateOrg();
+
+  const [memberOrgIds, setMemberOrgIds] = useState<Set<string>>(new Set());
 
   const [name, setName] = useState(initialName || '');
   const [kind, setKind] = useState<SelfServeOrgKind>('fleet');
@@ -95,6 +100,34 @@ export function CreateOrgSheet({ visible, initialName, onClose }: CreateOrgSheet
       setSimilar([]);
     }
   }, [visible]);
+
+  // Load the orgs the current user already belongs to, so a dedup suggestion
+  // they're already a member of reads "You're already a member → Open" rather
+  // than a generic chevron that looks like a dead end.
+  React.useEffect(() => {
+    if (!visible || !user?.id) {
+      setMemberOrgIds(new Set());
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from('organization_memberships')
+        .select('organization_id')
+        .eq('user_id', user.id);
+      if (cancelled) return;
+      setMemberOrgIds(
+        new Set(
+          (data ?? [])
+            .map((r: { organization_id: string }) => r.organization_id)
+            .filter(Boolean),
+        ),
+      );
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [visible, user?.id]);
 
   // Debounced fuzzy match — surfaces existing orgs that look like what the
   // user is typing so we don't pile up duplicates. ilike is enough; pg_trgm
@@ -229,28 +262,48 @@ export function CreateOrgSheet({ visible, initialName, onClose }: CreateOrgSheet
                     />
                   ) : null}
                 </View>
-                {similar.map((match) => (
-                  <Pressable
-                    key={match.id}
-                    onPress={() => handlePickExisting(match)}
-                    style={styles.dedupRow}
-                  >
-                    <View style={styles.dedupRowBody}>
-                      <Text style={styles.dedupRowName}>{match.name}</Text>
-                      <Text style={styles.dedupRowMeta}>
-                        {match.official ? 'Verified' : 'User-started'}
-                        {match.organization_type
-                          ? ` · ${match.organization_type.replace(/_/g, ' ')}`
-                          : ''}
-                      </Text>
-                    </View>
-                    <Ionicons
-                      name="chevron-forward"
-                      size={16}
-                      color={IOS_REGISTER.labelTertiary}
-                    />
-                  </Pressable>
-                ))}
+                {similar.map((match) => {
+                  const alreadyMember = memberOrgIds.has(match.id);
+                  return (
+                    <Pressable
+                      key={match.id}
+                      onPress={() => handlePickExisting(match)}
+                      style={styles.dedupRow}
+                    >
+                      <View style={styles.dedupRowBody}>
+                        <Text style={styles.dedupRowName}>{match.name}</Text>
+                        {alreadyMember ? (
+                          <Text style={styles.dedupRowMember}>
+                            You’re already a member
+                          </Text>
+                        ) : (
+                          <Text style={styles.dedupRowMeta}>
+                            {match.official ? 'Verified' : 'User-started'}
+                            {match.organization_type
+                              ? ` · ${match.organization_type.replace(/_/g, ' ')}`
+                              : ''}
+                          </Text>
+                        )}
+                      </View>
+                      {alreadyMember ? (
+                        <View style={styles.dedupOpenPill}>
+                          <Text style={styles.dedupOpenText}>Open</Text>
+                          <Ionicons
+                            name="arrow-forward"
+                            size={14}
+                            color={IOS_COLORS.systemBlue}
+                          />
+                        </View>
+                      ) : (
+                        <Ionicons
+                          name="chevron-forward"
+                          size={16}
+                          color={IOS_REGISTER.labelTertiary}
+                        />
+                      )}
+                    </Pressable>
+                  );
+                })}
               </View>
             ) : null}
 
@@ -533,5 +586,20 @@ const styles = StyleSheet.create({
   dedupRowMeta: {
     fontSize: 12,
     color: IOS_REGISTER.labelSecondary,
+  },
+  dedupRowMember: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: IOS_COLORS.systemGreen,
+  },
+  dedupOpenPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  dedupOpenText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: IOS_COLORS.systemBlue,
   },
 });
