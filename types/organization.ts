@@ -115,3 +115,23 @@ export interface OrgVerificationRequest {
   created_at: string;
   decided_at: string | null;
 }
+
+/**
+ * Adoption request — a verified parent org proposes to adopt a user-created
+ * org. Target admin consents or declines. See spec section "Adoption handoff".
+ */
+export type OrgAdoptionStatus = 'pending' | 'accepted' | 'declined' | 'withdrawn';
+
+export interface OrgAdoptionRequest {
+  id: string;
+  proposed_parent_org_id: string;
+  target_org_id: string;
+  proposed_by: string;
+  target_admin_user_id: string | null;
+  status: OrgAdoptionStatus;
+  message: string | null;
+  decision_notes: string | null;
+  created_at: string;
+  decided_at: string | null;
+  decided_by: string | null;
+}
