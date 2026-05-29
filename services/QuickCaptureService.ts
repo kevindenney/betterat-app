@@ -15,16 +15,81 @@ import { supabase } from './supabase';
 import { logger } from '@/lib/logger';
 import { createStep } from './TimelineStepService';
 import type { TimelineStepRecord } from '@/types/timeline-steps';
-import type { StepLocation } from '@/types/step-detail';
+import type { StepLocation, StepPlanData, SubStep } from '@/types/step-detail';
 
 export type QuickCaptureKind = 'text' | 'voice';
 
 export interface QuickCapturePayload {
   kind: QuickCaptureKind;
+  /** The WHAT — becomes the step title. Optional fields below are separate. */
   content: string;
   audioUri?: string;
   /** Structured place from the composer's WHERE picker, when set. */
   location?: StepLocation;
+  /** Optional WHY — maps to plan.why_reasoning. */
+  why?: string;
+  /** Optional HOW — newline-split into plan.how_sub_steps. */
+  how?: string;
+  /** Optional WHEN — free text, stored as the step description. */
+  when?: string;
+}
+
+/**
+ * Maps a QuickCapturePayload to the structured columns + plan schema a step
+ * expects. Shared by createDraftStep and the optimistic step in
+ * UniversalPlusProvider so the two never drift on field placement.
+ *
+ * Title = WHAT only. Why/How/Where land in metadata.plan; When in description.
+ */
+export interface QuickCaptureStepFields {
+  title: string;
+  description: string | null;
+  locationName: string | null;
+  locationLat: number | null;
+  locationLng: number | null;
+  plan: StepPlanData | null;
+}
+
+function splitSubSteps(how: string): SubStep[] {
+  const base = Date.now();
+  return how
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((text, index) => ({
+      id: `sub-${base}-${index}`,
+      text,
+      sort_order: index,
+      completed: false,
+    }));
+}
+
+export function buildQuickCaptureStepFields(
+  payload: QuickCapturePayload,
+): QuickCaptureStepFields {
+  const title = payload.content.trim();
+  const why = payload.why?.trim();
+  const how = payload.how?.trim();
+  const when = payload.when?.trim();
+  const location = payload.location;
+  const hasLocationName = Boolean(location?.name?.trim());
+
+  const plan: StepPlanData = {};
+  if (title) plan.what_will_you_do = title;
+  if (why) plan.why_reasoning = why;
+  if (how) plan.how_sub_steps = splitSubSteps(how);
+  if (hasLocationName) {
+    plan.where_location = { ...location!, name: location!.name.trim() };
+  }
+
+  return {
+    title,
+    description: when || null,
+    locationName: hasLocationName ? location!.name.trim() : null,
+    locationLat: location?.lat ?? null,
+    locationLng: location?.lng ?? null,
+    plan: Object.keys(plan).length > 0 ? plan : null,
+  };
 }
 
 export interface CreateDraftStepArgs {
@@ -54,53 +119,15 @@ async function getOrderedTimelineSteps(
   return (data ?? []) as TimelineStepRecord[];
 }
 
-async function shiftTimelineSortOrdersAfter(
-  userId: string,
-  interestId: string,
-  afterSortOrder: number,
-): Promise<void> {
-  const { data, error } = await supabase
-    .from('timeline_steps')
-    .select('id, sort_order')
-    .eq('user_id', userId)
-    .eq('interest_id', interestId)
-    .gt('sort_order', afterSortOrder)
-    .order('sort_order', { ascending: false });
-
-  if (error) {
-    logger.error('Failed shifting quick-capture sort orders', error);
-    throw error;
-  }
-
-  for (const row of (data ?? []) as Pick<TimelineStepRecord, 'id' | 'sort_order'>[]) {
-    const { error: updateError } = await supabase
-      .from('timeline_steps')
-      .update({ sort_order: row.sort_order + 1 })
-      .eq('id', row.id);
-    if (updateError) {
-      logger.error('Failed updating quick-capture sort order row', updateError);
-      throw updateError;
-    }
-  }
-}
-
+// New captures append to the end of the sequence. Inserting them right
+// after the current step (the old behavior) wedged fresh steps into the
+// middle of the timeline, which read as misplacement on this
+// sequence-first surface. "Unscheduled" (starts_at null) keeps the step
+// ordered purely by sort_order rather than pinned to today's date bucket.
 async function resolveQuickCapturePlacement(userId: string, interestId: string) {
   const steps = await getOrderedTimelineSteps(userId, interestId);
-  const currentStep =
-    steps.find((step) => step.status === 'in_progress') ??
-    steps.find((step) => step.status === 'pending') ??
-    null;
-
-  if (!currentStep) {
-    return {
-      sortOrder: (steps.at(-1)?.sort_order ?? 0) + 1,
-      startsAt: null as string | null,
-    };
-  }
-
-  await shiftTimelineSortOrdersAfter(userId, interestId, currentStep.sort_order);
   return {
-    sortOrder: currentStep.sort_order + 1,
+    sortOrder: (steps.at(-1)?.sort_order ?? 0) + 1,
     startsAt: null as string | null,
   };
 }
@@ -110,36 +137,34 @@ export async function createDraftStep({
   interestId,
   payload,
 }: CreateDraftStepArgs): Promise<TimelineStepRecord> {
-  const trimmed = payload.content.trim();
-  if (!trimmed) {
+  const fields = buildQuickCaptureStepFields(payload);
+  if (!fields.title) {
     throw new Error('Quick-capture content is empty.');
   }
 
   const placement = await resolveQuickCapturePlacement(userId, interestId);
 
-  const location = payload.location;
-  const hasLocationName = Boolean(location?.name?.trim());
-
   return createStep({
     user_id: userId,
     interest_id: interestId,
-    title: trimmed,
+    title: fields.title,
+    description: fields.description,
     status: 'pending',
     starts_at: placement.startsAt,
     sort_order: placement.sortOrder,
     visibility: 'private',
     // Denormalized columns power Atlas pins + map feeds; the RPC reads
     // these straight off p_input.
-    location_name: hasLocationName ? location!.name.trim() : null,
-    location_lat: location?.lat ?? null,
-    location_lng: location?.lng ?? null,
+    location_name: fields.locationName,
+    location_lat: fields.locationLat,
+    location_lng: fields.locationLng,
     metadata: {
       draft: true,
       capture_source: 'universal_plus_sheet',
       capture_kind: payload.kind,
       audio_uri: payload.audioUri ?? null,
-      // Canonical source the Plan tab + timeline adapter read for WHERE.
-      ...(hasLocationName ? { plan: { where_location: location } } : {}),
+      // Canonical source the Plan tab + timeline adapter read for WHAT/WHY/HOW/WHERE.
+      ...(fields.plan ? { plan: fields.plan } : {}),
     },
   });
 }
