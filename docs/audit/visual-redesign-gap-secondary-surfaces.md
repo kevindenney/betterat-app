@@ -109,6 +109,21 @@ The first tab — timeline list of steps. Step content inside each card is redes
 
 ## 2. Target state (from redesign spec + step-detail audit token system)
 
+> ⚠️ **SUPERSEDED 2026-05-15 → execution 2026-05-29.** This section's prose
+> describes the *editorial* register (warm cream `#FAFAF7`, charcoal `#2A2824`,
+> lavender `bgInfo`, violet `textInfo`, serif-heavy, "no blue/green"). One day
+> after this audit, the project pivoted to the **iOS register** as canonical on
+> native (`IOS_MIGRATION_PLAN.md` / `PRACTICE_TIMELINE_CANONICAL.md`), and
+> `STEP_PALETTE` was redefined *under the same token names*: `bgPrimary`=gray-6
+> `#F2F2F7`, `textPrimary`=black, `ctaBg`=**iOS blue `#007AFF`**, `bgInfo`/
+> `textInfo`=coral. Editorial survives only for web/marketing.
+>
+> **Execution target = current iOS register** (what the rest of the native app
+> already uses), confirmed by user 2026-05-29. The §5 decisions still apply; the
+> still-valid goal is killing legacy forest-green `#3D8A5A` + Ocean-Blue
+> `#2563EB` and bringing these surfaces onto the iOS register. Read the palette
+> table below as *intent* (neutralize chrome, remove green), not literal hex.
+
 ### 2.1 Universal palette (recap from step-detail audit §2.4)
 
 | Token                  | Value      | Use across these surfaces                                        |
@@ -269,17 +284,28 @@ Memory note: the depersonification campaign closed most of the in-product AI-per
 
 ---
 
-## 5. Open decisions (need user)
+## 5. Open decisions — RESOLVED 2026-05-29
 
-1. **Notification type icon palette**. The `social-notifications.tsx:42-51` per-type colors (heart=red, comment=blue, race-result=green, etc.) are a culturally conventional palette — users expect "heart = like = red." Strict redesign §11.6 ("no bright accents") would push these to neutral charcoal. Three options: (a) keep the expressive palette as the *only* place chromatic color is allowed, (b) recolor everything to charcoal glyphs and let the icon shape communicate type, (c) compromise — keep red+green for emotionally-loaded notification types (likes, race results) and neutralise the rest. **Recommendation: (c)**, but it's a design call.
+1. **Notification type icon palette** → **(c)**. Keep red/green for emotionally-loaded types (likes, race results); neutralise the rest to charcoal glyphs.
 
-2. **Reflect sub-tab control**. The three-tab "Progress / Session Log / Profile" can either use a custom plain-text+underline picker (matches mockup 01/02 step-detail tab pattern, but requires writing a new component) or accept `IOSSegmentedControl` with `tintColor={textPrimary}` (ships fast, residual pill shape doesn't fully match the mockup aesthetic). **Recommendation**: ship the segmented variant first; a dedicated `RedesignTabUnderline` component can replace it later as part of a design-system PR.
+2. **Reflect sub-tab control** → **(b)**. Ship `IOSSegmentedControl` with `tintColor={textPrimary}` now; a dedicated `RedesignTabUnderline` component can replace it later as part of a design-system PR.
 
-3. **Interest selector dot color**. Today each interest has a color (Drawing=red, Sailing=blue, etc.) shown as a 6px dot next to the interest name. The redesign §11.6 wants the only non-neutral accent to be `textInfo` violet. Options: (a) recolor all interest dots to violet (loses interest distinction), (b) drop dots, just show the name in eyebrow style, (c) keep current interest-color dots as the one expressive-color exception. **Recommendation: (b)** — drop the dot; the interest name + dropdown caret is enough chrome.
+3. **Interest selector dot color** → **(b)**. Drop the dot entirely; interest name + dropdown caret is enough chrome.
 
-4. **"Mark All Read" affordance**. Currently a blue link in the top-right. Three styling options: (a) `ctaBg` charcoal pill (heavyweight for a secondary action), (b) `textPrimary` plain text with hover/press feedback (lightweight, matches mockup chrome density), (c) icon-only (envelope-check glyph). **Recommendation: (b)**.
+4. **"Mark All Read" affordance** → **(b)**. `textPrimary` plain text with press feedback.
 
-5. **Status pill removal**. The redesign instinct from mockup 02/15 is that status is rendered as text inline ("Done · 3d ago", "Up next · today") rather than as a colored chip. Confirm the user wants the green/red/orange chips removed entirely vs. just recolored to neutral fills. **Recommendation**: remove the chips, surface status as inline text — chips encode information already conveyed by position in the timeline (above the TODAY band = past = done; below = upcoming).
+5. **Status pill removal** → **(a)**. Remove the chips entirely; surface status as inline text. Timeline position already encodes past/upcoming.
+
+**Upgrade banner**: leave as-is (Ocean Blue) for now — recoloring to lavender is a growth/conversion call, deferred per user.
+
+<details><summary>Original options (for reference)</summary>
+
+1. (a) keep full expressive palette, (b) all neutral charcoal, (c) compromise red+green for loaded types.
+2. (a) custom plain-text+underline component, (b) segmented control with tintColor.
+3. (a) all dots violet, (b) drop dots, (c) keep interest-colors as exception.
+4. (a) ctaBg charcoal pill, (b) textPrimary plain text, (c) icon-only.
+5. (a) remove chips → inline text, (b) recolor chips to neutral fills.
+</details>
 
 ---
 

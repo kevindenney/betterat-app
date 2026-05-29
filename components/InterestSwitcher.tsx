@@ -172,9 +172,6 @@ export function InterestSwitcher({ headless = false }: { headless?: boolean } = 
           accessibilityRole="button"
           accessibilityLabel={`Current interest: ${currentInterest?.name ?? 'None'}. Tap to switch.`}
         >
-          {currentInterest && (
-            <View style={[styles.dot, { backgroundColor: currentInterest.accent_color }]} />
-          )}
           <Text style={styles.pillText} numberOfLines={1}>
             {currentInterest?.name ?? 'Interest'}
           </Text>
@@ -313,11 +310,6 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 20,
     backgroundColor: '#F3F4F6',
-  },
-  dot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
   },
   pillText: {
     fontSize: 13,
@@ -484,7 +476,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 6,
-    backgroundColor: '#2563EB',
+    backgroundColor: '#007AFF',
   },
   guestCurrentBadgeText: {
     fontSize: 11,
@@ -510,7 +502,7 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     paddingHorizontal: 20,
     borderRadius: 12,
-    backgroundColor: '#2563EB',
+    backgroundColor: '#007AFF',
     ...Platform.select({ web: { cursor: 'pointer' } }),
   },
   signUpBtnText: {

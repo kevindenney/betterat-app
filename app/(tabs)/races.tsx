@@ -4482,7 +4482,7 @@ function LegacyRacesScreen() {
                         backgroundColor: '#DBEAFE',
                         alignItems: 'center', justifyContent: 'center',
                       }}>
-                        <Ionicons name="megaphone-outline" size={18} color="#2563EB" />
+                        <Ionicons name="megaphone-outline" size={18} color="#007AFF" />
                       </View>
                       <View style={{ flex: 1 }}>
                         <Text style={{ fontSize: 14, fontWeight: '600', color: '#1E40AF', marginBottom: 2 }}>
@@ -4522,7 +4522,7 @@ function LegacyRacesScreen() {
                         backgroundColor: 'rgba(37, 99, 235, 0.12)',
                         alignItems: 'center', justifyContent: 'center',
                       }}>
-                        <Ionicons name="sparkles-outline" size={15} color="#2563EB" />
+                        <Ionicons name="sparkles-outline" size={15} color="#007AFF" />
                       </View>
                       <View style={{ flex: 1 }}>
                         <Text style={{ fontSize: 13.5, fontWeight: '600', color: '#0B1A33', marginBottom: 1 }}>
@@ -4548,7 +4548,7 @@ function LegacyRacesScreen() {
                             accessibilityRole="button"
                             accessibilityLabel="Pick a different interest"
                           >
-                            <Text style={{ fontSize: 12, color: '#2563EB', fontWeight: '600' }}>
+                            <Text style={{ fontSize: 12, color: '#007AFF', fontWeight: '600' }}>
                               Wrong interest?{' '}
                               <Text style={{ textDecorationLine: 'underline' }}>
                                 Pick a different one
@@ -4580,8 +4580,8 @@ function LegacyRacesScreen() {
                         accessibilityRole="button"
                         accessibilityLabel={`Add your first ${vocab('Learning Event').toLowerCase()}`}
                       >
-                        <Ionicons name="add" size={16} color="#2563EB" />
-                        <Text style={{ fontSize: 12.5, fontWeight: '700', color: '#2563EB', letterSpacing: 0.1 }}>
+                        <Ionicons name="add" size={16} color="#007AFF" />
+                        <Text style={{ fontSize: 12.5, fontWeight: '700', color: '#007AFF', letterSpacing: 0.1 }}>
                           Add yours
                         </Text>
                       </Pressable>
@@ -4783,7 +4783,7 @@ function LegacyRacesScreen() {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={onRefresh}
-              tintColor="#2563EB"
+              tintColor="#007AFF"
             />
           }
           showsVerticalScrollIndicator={false}
@@ -4862,7 +4862,7 @@ function LegacyRacesScreen() {
               {/* Inline Comprehensive Race Detail Section */}
               {loadingRaceDetail && !selectedRaceData && (
                 <View className="items-center justify-center py-8">
-                  <ActivityIndicator size="large" color="#2563EB" />
+                  <ActivityIndicator size="large" color="#007AFF" />
                   <Text className="text-gray-500 mt-2">Loading race details...</Text>
                 </View>
               )}
@@ -5448,7 +5448,7 @@ function LegacyRacesScreen() {
                 const itemDate = item.date || item.start_date;
                 const itemTitle = item.name && item.name !== String(i + 1) ? item.name : (isStep ? `Step ${i + 1}` : `Race ${i + 1}`);
                 const statusLabel = isCompleted ? 'Done' : isSelected ? 'Viewing' : isNext ? 'Up Next' : 'Planned';
-                const statusColor = isCompleted ? '#16A34A' : isSelected ? '#2563EB' : '#9CA3AF';
+                const statusColor = isCompleted ? '#34C759' : isSelected ? '#007AFF' : '#9CA3AF';
                 return (
                   <Pressable
                     key={item.id}
@@ -5472,7 +5472,7 @@ function LegacyRacesScreen() {
                     {/* Item indicator: numbered circle for steps, flag icon for regattas */}
                     <View style={{
                       width: 28, height: 28, borderRadius: 14, marginRight: 12,
-                      backgroundColor: isCompleted ? '#16A34A' : isSelected ? '#2563EB' : '#F3F4F6',
+                      backgroundColor: isCompleted ? '#34C759' : isSelected ? '#007AFF' : '#F3F4F6',
                       borderWidth: !isCompleted && !isSelected ? 1.5 : 0,
                       borderColor: '#D1D5DB',
                       alignItems: 'center', justifyContent: 'center',
@@ -5503,7 +5503,7 @@ function LegacyRacesScreen() {
                     </View>
                     {/* Selection indicator */}
                     {isSelected && (
-                      <Ionicons name="radio-button-on" size={18} color="#2563EB" />
+                      <Ionicons name="radio-button-on" size={18} color="#007AFF" />
                     )}
                   </Pressable>
                 );

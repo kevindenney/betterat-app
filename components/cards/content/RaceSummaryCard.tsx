@@ -2608,7 +2608,7 @@ function RaceSummaryCardImpl({
         {race.isDemo && isGuest ? (
           <View style={styles.sampleGuestBanner}>
             <View style={styles.sampleGuestIcon}>
-              <Ionicons name="sparkles-outline" size={15} color="#2563EB" />
+              <Ionicons name="sparkles-outline" size={15} color={IOS_COLORS.blue} />
             </View>
             <View style={{ flex: 1 }}>
               <Text style={styles.sampleGuestTitle}>This is a sample</Text>
@@ -4445,7 +4445,7 @@ const styles = StyleSheet.create({
   sampleGuestCtaText: {
     fontSize: 12,
     fontWeight: '700' as const,
-    color: '#2563EB',
+    color: IOS_COLORS.blue,
     letterSpacing: 0.1,
   },
 
