@@ -13,6 +13,7 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useAuth } from '@/providers/AuthProvider';
 import { getDashboardRoute } from '@/lib/utils/userTypeRouting';
 import { isOrgAdminRole } from '@/lib/organizations/roleLabels';
+import { showConfirm } from '@/lib/utils/crossPlatformAlert';
 import { useProfileMenuData } from '@/hooks/useProfileMenuData';
 import { useAdminPeople } from '@/hooks/useAdminPeople';
 import { useAdminOrgSites } from '@/hooks/useAdminOrgSites';
@@ -51,7 +52,7 @@ export interface AdminShellProps {
 export function AdminShell({ activeKey, accent = 'navy', children }: AdminShellProps) {
   const { orgId } = useLocalSearchParams<{ orgId: string }>();
   const router = useRouter();
-  const { user, userProfile } = useAuth();
+  const { user, userProfile, signOut } = useAuth();
   const menu = useProfileMenuData();
   const people = useAdminPeople(orgId as string);
   const sites = useAdminOrgSites(orgId as string);
@@ -245,6 +246,11 @@ export function AdminShell({ activeKey, accent = 'navy', children }: AdminShellP
           initials,
           statusLine: 'Administrator',
         }}
+        onUserCardPress={() =>
+          showConfirm('Sign out', `Sign out of ${displayName}?`, () => {
+            void signOut();
+          })
+        }
       >
         {children}
       </StudioShell>
