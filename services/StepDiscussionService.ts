@@ -431,6 +431,46 @@ export async function postStepNote(input: {
   };
 }
 
+/**
+ * Edit the body of a note the viewer authored. RLS
+ * (step_discussions_author_update) enforces ownership; the explicit
+ * user_id filter keeps a non-owner from even attempting the write.
+ */
+export async function editStepNote(input: {
+  discussionId: string;
+  userId: string;
+  body: string;
+}): Promise<void> {
+  const { error } = await supabase
+    .from('step_discussions')
+    .update({ body: input.body })
+    .eq('id', input.discussionId)
+    .eq('user_id', input.userId);
+  if (error) {
+    logger.error('Failed to edit step note', error);
+    throw error;
+  }
+}
+
+/**
+ * Delete a note the viewer authored. Replies (parent_id) cascade via the
+ * FK ON DELETE CASCADE, so deleting a root note removes its thread.
+ */
+export async function deleteStepNote(input: {
+  discussionId: string;
+  userId: string;
+}): Promise<void> {
+  const { error } = await supabase
+    .from('step_discussions')
+    .delete()
+    .eq('id', input.discussionId)
+    .eq('user_id', input.userId);
+  if (error) {
+    logger.error('Failed to delete step note', error);
+    throw error;
+  }
+}
+
 export async function toggleStepReaction(input: {
   discussionId: string;
   userId: string;

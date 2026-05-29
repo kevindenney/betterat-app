@@ -19,16 +19,23 @@ import {
 } from 'react-native';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
+  Check,
   CornerUpLeft,
   Link as LinkIcon,
   MessageCircle,
+  MoreHorizontal,
+  Pencil,
   Send,
+  Trash2,
   X,
 } from 'lucide-react-native';
 import { useAuth } from '@/providers/AuthProvider';
 import { useMyTimeline } from '@/hooks/useTimelineSteps';
 import { supabase } from '@/services/supabase';
+import { showConfirm } from '@/lib/utils/crossPlatformAlert';
 import {
+  deleteStepNote,
+  editStepNote,
   getBlueprintStepDiscussion,
   getStepDiscussion,
   postBlueprintStepNote,
@@ -257,6 +264,69 @@ export function StepDiscussionInline({
     },
   });
 
+  const invalidateThreads = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: ['phase10-step-discussion', stepId] });
+    queryClient.invalidateQueries({
+      queryKey: ['phase10-blueprint-step-discussion', blueprintStepId],
+    });
+    queryClient.invalidateQueries({ queryKey: ['step-discussion-peek', stepId] });
+  }, [queryClient, stepId, blueprintStepId]);
+
+  const editMutation = useMutation({
+    mutationFn: async (input: { discussionId: string; body: string }) => {
+      if (!user?.id) throw new Error('Sign in to edit.');
+      await editStepNote({ discussionId: input.discussionId, userId: user.id, body: input.body });
+    },
+    onSuccess: invalidateThreads,
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (input: { discussionId: string }) => {
+      if (!user?.id) throw new Error('Sign in to delete.');
+      await deleteStepNote({ discussionId: input.discussionId, userId: user.id });
+    },
+    onSuccess: invalidateThreads,
+  });
+
+  const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
+  const [editDraft, setEditDraft] = useState('');
+
+  const handleStartEdit = useCallback((note: StepDiscussionRow) => {
+    setEditingNoteId(note.id);
+    setEditDraft(note.body);
+  }, []);
+
+  const handleCancelEdit = useCallback(() => {
+    setEditingNoteId(null);
+    setEditDraft('');
+  }, []);
+
+  const handleSaveEdit = useCallback(
+    async (noteId: string) => {
+      const body = editDraft.trim();
+      if (!body) return;
+      await editMutation.mutateAsync({ discussionId: noteId, body });
+      setEditingNoteId(null);
+      setEditDraft('');
+    },
+    [editDraft, editMutation],
+  );
+
+  const handleDelete = useCallback(
+    (note: StepDiscussionRow) => {
+      const hasReplies = (note.replies?.length ?? 0) > 0;
+      showConfirm(
+        'Delete comment?',
+        hasReplies
+          ? 'This will also remove the replies under it. This cannot be undone.'
+          : 'This cannot be undone.',
+        () => deleteMutation.mutate({ discussionId: note.id }),
+        { destructive: true, confirmText: 'Delete' },
+      );
+    },
+    [deleteMutation],
+  );
+
   const handleSubmit = useCallback(async () => {
     const body = draft.trim();
     if (!body) return;
@@ -384,6 +454,14 @@ export function StepDiscussionInline({
               accessEntry={accessByUser.get(note.user_id) ?? null}
               onReact={(kind, isOn) => handleReact(note.id, kind, isOn)}
               onReply={() => handleReply(note)}
+              isEditing={editingNoteId === note.id}
+              editValue={editDraft}
+              savingEdit={editMutation.isPending}
+              onChangeEdit={setEditDraft}
+              onStartEdit={() => handleStartEdit(note)}
+              onSaveEdit={() => handleSaveEdit(note.id)}
+              onCancelEdit={handleCancelEdit}
+              onDelete={() => handleDelete(note)}
             />
           ))}
         </View>
@@ -497,11 +575,34 @@ interface NoteCardProps {
   accessEntry: StepAccessPerson | null;
   onReact: (kind: StepDiscussionReactionKind, isOn: boolean) => void;
   onReply: () => void;
+  isEditing: boolean;
+  editValue: string;
+  savingEdit: boolean;
+  onChangeEdit: (value: string) => void;
+  onStartEdit: () => void;
+  onSaveEdit: () => void;
+  onCancelEdit: () => void;
+  onDelete: () => void;
 }
 
-function NoteCard({ note, viewerUserId, accessEntry, onReact, onReply }: NoteCardProps) {
+function NoteCard({
+  note,
+  viewerUserId,
+  accessEntry,
+  onReact,
+  onReply,
+  isEditing,
+  editValue,
+  savingEdit,
+  onChangeEdit,
+  onStartEdit,
+  onSaveEdit,
+  onCancelEdit,
+  onDelete,
+}: NoteCardProps) {
   const initials = note.author_initials ?? initialsFrom(note.author_name);
   const isMine = viewerUserId != null && note.user_id === viewerUserId;
+  const [menuOpen, setMenuOpen] = useState(false);
   const isViewerReacted = (kind: StepDiscussionReactionKind) =>
     note.viewer_reactions.includes(kind);
   const pill = roleLabel(accessEntry?.role, accessEntry?.isOwner);
@@ -533,6 +634,43 @@ function NoteCard({ note, viewerUserId, accessEntry, onReact, onReply }: NoteCar
           </View>
           <Text style={styles.noteWhen}>{shortAgo(note.created_at)}</Text>
         </View>
+        {isMine && !isEditing ? (
+          <View>
+            <Pressable
+              style={styles.noteMenuButton}
+              onPress={() => setMenuOpen((v) => !v)}
+              hitSlop={8}
+              accessibilityRole="button"
+              accessibilityLabel="Comment options"
+            >
+              <MoreHorizontal size={16} color={C.label3} />
+            </Pressable>
+            {menuOpen ? (
+              <View style={styles.noteMenu}>
+                <Pressable
+                  style={styles.noteMenuItem}
+                  onPress={() => {
+                    setMenuOpen(false);
+                    onStartEdit();
+                  }}
+                >
+                  <Pencil size={14} color={C.label2} />
+                  <Text style={styles.noteMenuItemText}>Edit</Text>
+                </Pressable>
+                <Pressable
+                  style={styles.noteMenuItem}
+                  onPress={() => {
+                    setMenuOpen(false);
+                    onDelete();
+                  }}
+                >
+                  <Trash2 size={14} color={C.coral} />
+                  <Text style={[styles.noteMenuItemText, { color: C.coral }]}>Delete</Text>
+                </Pressable>
+              </View>
+            ) : null}
+          </View>
+        ) : null}
       </View>
 
       {note.quote ? (
@@ -546,7 +684,38 @@ function NoteCard({ note, viewerUserId, accessEntry, onReact, onReply }: NoteCar
         </View>
       ) : null}
 
-      <Text style={styles.noteBody}>{note.body}</Text>
+      {isEditing ? (
+        <View style={styles.editWrap}>
+          <TextInput
+            style={styles.editInput}
+            value={editValue}
+            onChangeText={onChangeEdit}
+            multiline
+            maxLength={4000}
+            autoFocus
+            editable={!savingEdit}
+          />
+          <View style={styles.editActions}>
+            <Pressable style={styles.editCancel} onPress={onCancelEdit} disabled={savingEdit}>
+              <Text style={styles.editCancelText}>Cancel</Text>
+            </Pressable>
+            <Pressable
+              style={[styles.editSave, (!editValue.trim() || savingEdit) && styles.editSaveDisabled]}
+              onPress={onSaveEdit}
+              disabled={!editValue.trim() || savingEdit}
+            >
+              {savingEdit ? (
+                <ActivityIndicator size="small" color="#FFFFFF" />
+              ) : (
+                <Check size={14} color="#FFFFFF" strokeWidth={2.4} />
+              )}
+              <Text style={styles.editSaveText}>Save</Text>
+            </Pressable>
+          </View>
+        </View>
+      ) : (
+        <Text style={styles.noteBody}>{note.body}</Text>
+      )}
 
       {note.replies && note.replies.length > 0 ? (
         <View style={styles.replies}>
@@ -1023,6 +1192,89 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: C.label3,
     marginTop: 1,
+  },
+  noteMenuButton: {
+    padding: 4,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  noteMenu: {
+    position: 'absolute',
+    top: 26,
+    right: 0,
+    minWidth: 132,
+    backgroundColor: C.card,
+    borderRadius: 10,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: C.line,
+    paddingVertical: 4,
+    shadowColor: '#000',
+    shadowOpacity: 0.12,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 8,
+    elevation: 4,
+    zIndex: 10,
+  },
+  noteMenuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+  },
+  noteMenuItemText: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: C.label,
+  },
+  editWrap: {
+    gap: 8,
+  },
+  editInput: {
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: C.line,
+    borderRadius: 10,
+    backgroundColor: C.gray6,
+    paddingHorizontal: 10,
+    paddingTop: 8,
+    paddingBottom: 8,
+    fontSize: 14,
+    lineHeight: 20,
+    color: C.label,
+    minHeight: 60,
+    textAlignVertical: 'top',
+  },
+  editActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    gap: 8,
+  },
+  editCancel: {
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+  },
+  editCancelText: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: C.label2,
+  },
+  editSave: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 10,
+    backgroundColor: C.blue,
+  },
+  editSaveDisabled: {
+    opacity: 0.4,
+  },
+  editSaveText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#FFFFFF',
   },
   quoteBlock: {
     backgroundColor: C.quoteBg,
