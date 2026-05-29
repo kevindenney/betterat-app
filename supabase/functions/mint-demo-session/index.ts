@@ -198,6 +198,12 @@ async function consumeDemoToken(req: Request, sb: ReturnType<typeof createClient
   try {
     const landingPath = row.redirect_to ?? persona.landingRoute;
     const absoluteRedirectTo = absoluteRedirect(landingPath);
+    // GoTrue ignores generate_link's `options.data` for users that already
+    // exist, so the landing route never reaches the JWT for our pre-seeded
+    // personas. Write it onto the user's metadata directly first; the magic
+    // link is verified afterward, so the minted JWT picks up fresh metadata
+    // and app/(auth)/callback can route to demo_persona_landing.
+    await writePersonaLandingMetadata(sb, persona.email, row.persona_key, landingPath);
     const actionLink = await generateMagicLink(
       persona.email,
       absoluteRedirectTo,
@@ -216,6 +222,57 @@ async function consumeDemoToken(req: Request, sb: ReturnType<typeof createClient
       .update({ status: 'failed', error_message: message })
       .eq('id', row.id);
     return jsonError(message, 500);
+  }
+}
+
+/**
+ * Persists the persona's landing route onto the auth user's metadata so the
+ * minted magic-link JWT carries demo_persona_landing. generate_link's
+ * `options.data` is silently dropped for existing users, so this is the only
+ * reliable path. Non-fatal: a metadata failure still lets sign-in proceed
+ * (the user just lands on the default route).
+ */
+async function writePersonaLandingMetadata(
+  sb: ReturnType<typeof createClient>,
+  email: string,
+  personaKey: string,
+  landingPath: string,
+): Promise<void> {
+  const { data: userId, error: lookupErr } = await sb.rpc(
+    'find_auth_user_id_by_email',
+    { p_email: email },
+  );
+  if (lookupErr || typeof userId !== 'string' || !userId) {
+    console.warn(
+      '[mint-demo-session] could not resolve user id for metadata write',
+      email,
+      lookupErr?.message,
+    );
+    return;
+  }
+
+  const adminAuth = (sb.auth as unknown as {
+    admin: {
+      updateUserById: (
+        id: string,
+        attrs: { user_metadata: Record<string, unknown> },
+      ) => Promise<{ error: { message?: string } | null }>;
+    };
+  }).admin;
+
+  const { error: updErr } = await adminAuth.updateUserById(userId, {
+    user_metadata: {
+      demo_persona: true,
+      demo_persona_key: personaKey,
+      demo_persona_landing: landingPath,
+    },
+  });
+  if (updErr) {
+    console.warn(
+      '[mint-demo-session] updateUserById metadata write failed',
+      email,
+      updErr.message,
+    );
   }
 }
 
