@@ -491,6 +491,15 @@ export function L2WeekView({
           )}
         </View>
 
+        {firstRun && steps.length > 0 ? (
+          <View style={styles.capabilityTeaser}>
+            <Text style={styles.capabilityTeaserEyebrow}>{vocab.capabilityHeader}</Text>
+            <Text style={styles.capabilityTeaserText}>
+              Add a few more steps to see how your work spreads across capabilities.
+            </Text>
+          </View>
+        ) : null}
+
         <L2SuggestedSteps
           focusStepId={activeStepId}
           currentInterestId={resolvedInterestId}
@@ -1244,6 +1253,28 @@ const styles = StyleSheet.create({
     marginBottom: 6,
     marginTop: -6,
     paddingTop: 66,
+  },
+  capabilityTeaser: {
+    marginHorizontal: 16,
+    marginTop: 8,
+    paddingVertical: 14,
+    paddingHorizontal: 14,
+    borderRadius: 10,
+    backgroundColor: 'rgba(120, 120, 130, 0.06)',
+    borderWidth: 1,
+    borderColor: 'rgba(120, 120, 130, 0.14)',
+  },
+  capabilityTeaserEyebrow: {
+    fontSize: 10.5,
+    fontWeight: '700',
+    letterSpacing: 0.6,
+    color: IOS_REGISTER.labelTertiary,
+    marginBottom: 6,
+  },
+  capabilityTeaserText: {
+    fontSize: 12,
+    color: IOS_REGISTER.labelSecondary,
+    lineHeight: 17,
   },
   contextCard: {
     position: 'absolute',
