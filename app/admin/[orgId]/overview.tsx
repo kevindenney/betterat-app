@@ -98,7 +98,7 @@ export default function AdminOverviewPage() {
             ? [
                 <Text key="sub" style={s.sub}>
                   {evidence.cohortName} · {evidence.cohortSize} students ·{' '}
-                  {evidence.competencies.length} competencies · {evidence.sites.length} clinical sites
+                  {evidence.competencies.length} competencies · {evidence.sites.length} sites
                 </Text>,
               ]
             : undefined
@@ -188,7 +188,7 @@ export default function AdminOverviewPage() {
                   )}%)`
                 : 'no coverage data yet'
             }
-            footer="Where to send more rotations next semester."
+            footer="Where coverage is thin — worth focusing next."
             actionLabel="See gap"
             onAction={() => router.push(`/admin/${orgId}/insights`)}
           />
@@ -230,8 +230,8 @@ export default function AdminOverviewPage() {
             <View style={s.emptyCard}>
               <Ionicons name="footsteps-outline" size={18} color="rgba(60, 60, 67, 0.4)" />
               <Text style={s.emptyText}>
-                No steps yet. Activity will appear here as cohort members complete
-                clinical rotations and reflect on competency evidence.
+                No steps yet. Activity will appear here as cohort members log
+                practice and reflect on competency evidence.
               </Text>
             </View>
           ) : (
