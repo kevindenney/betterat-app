@@ -43,6 +43,10 @@ import { TagBulkSheet } from './TagBulkSheet';
 import { ScheduleBulkSheet } from './ScheduleBulkSheet';
 import { useStarterStepSeed } from '@/hooks/useStarterStepSeed';
 
+// Below this many steps a user hasn't built up enough of an arc for the L3
+// summary view to be meaningful, so we land them at L2 (week timeline).
+const ARC_LANDING_MIN_STEPS = 5;
+
 export function TimelineZoomPracticeScreen() {
   const { user } = useAuth();
   const { currentInterest } = useInterest();
@@ -52,11 +56,11 @@ export function TimelineZoomPracticeScreen() {
   }>();
   // Route may carry ?level=2|3|4 from a deep-link (Step detail's zoom rail
   // pushes here to "zoom out" from a step). Bound to the canvas's
-  // initialLevel; falls back to L3 (ARC) which is the default landing depth.
-  const initialLevelFromRoute = useMemo<ZoomLevel>(() => {
+  // initialLevel.
+  const routeLevel = useMemo<ZoomLevel | null>(() => {
     const raw = Array.isArray(searchParams?.level) ? searchParams.level[0] : searchParams?.level;
     const n = raw ? Number(raw) : NaN;
-    return n === 1 || n === 2 || n === 3 || n === 4 ? (n as ZoomLevel) : 3;
+    return n === 1 || n === 2 || n === 3 || n === 4 ? (n as ZoomLevel) : null;
   }, [searchParams?.level]);
 
   const interestId = currentInterest?.id ?? null;
@@ -71,6 +75,15 @@ export function TimelineZoomPracticeScreen() {
     return undefined;
   }, [searchParams.selected]);
   const { data: steps = [], isLoading: stepsLoading } = useMyTimeline(interestId);
+  // Default landing depth is L3 (ARC summary), but that view's scaffolding —
+  // vision, reflections, capability spread — reads as empty filler before a
+  // user has built up an arc. Newcomers with only a handful of steps land at
+  // L2 (week timeline) instead: just their cards laid out in time, where the
+  // structure is self-evident. An explicit ?level= deep-link always wins.
+  const initialLevelFromRoute = useMemo<ZoomLevel>(() => {
+    if (routeLevel) return routeLevel;
+    return steps.length < ARC_LANDING_MIN_STEPS ? 2 : 3;
+  }, [routeLevel, steps.length]);
   const { data: currentSeason = null } = useCurrentSeason();
   const { data: allSeasons = [] } = useUserSeasons();
   const { data: subscribedBlueprints = [] } = useSubscribedBlueprints(interestId);
