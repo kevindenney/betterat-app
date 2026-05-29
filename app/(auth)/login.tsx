@@ -433,7 +433,19 @@ export default function Login() {
             </TouchableOpacity>
           </View>
 
-          {/* Sign-up link hidden — signup route still works for direct access */}
+          {/* Sign-up link */}
+          <View style={styles.footerRow}>
+            <Text style={styles.footerText}>New to BetterAt?</Text>
+            <TouchableOpacity
+              testID="login-signup-link"
+              accessibilityRole="button"
+              accessibilityLabel="create-account"
+              onPress={() => router.push('/(auth)/signup' as any)}
+              disabled={loading}
+            >
+              <Text style={styles.linkText}>Create an account</Text>
+            </TouchableOpacity>
+          </View>
 
           {/* Marketing blurb */}
           <Text style={styles.marketingText}>
