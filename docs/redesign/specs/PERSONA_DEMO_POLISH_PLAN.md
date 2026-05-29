@@ -27,12 +27,13 @@
 - [x] `components/capture/PlusComposerV3Sheet.tsx` — placeholder "Sunita's spinnaker tip…" → neutral "What do you want to work on?" *(left in working tree, not committed — file carries unrelated WIP)*
 - [ ] Sweep for remaining sailing literals across non-Library surfaces (grep `sailor|spinnaker|downwind|regatta|club\b|leeward|windward|tack|leg\b` in `components/` + `app/`, excluding `sailing/` dirs and route names like `/sailor/[id]`)
 
-### Seed data: persona-incorrect rows (data pass, not code)
-- [ ] Inbox suggestion "Scrub bottom" appears under Nursing — re-scope demo inbox suggestions per persona
-- [ ] Junk substeps "Test", "Test 2", "Test 3" on a seeded step — remove from demo seed
-- [ ] Blueprint author shows raw seed email `jhu2+denneyke@gmail.com` — set a real display name on the seed author profile
-- [ ] Profile/account sheet shows `demo-sailor@regattaflow.app` under the Nursing persona — point nursing demo user at a nursing-appropriate identity
+### Seed data: persona-incorrect rows (data pass, not code) — applied on BetterAt-dev 2026-05-29
+- [x] Inbox suggestion "Scrub bottom" appears under Nursing — dismissed; also dismissed 3 other junk pending suggestions ("Diagnostic accept #3", "with bruwh", "Test suggest")
+- [x] Junk substeps "Test", "Test 2", "Test 3" on a seeded step — cleared `how_sub_steps` to `[]` on "Learn Basic First Aid & Rescue" (026ea784) + empty placeholders on "Fundamentals & Patient Safety" (2c0e5c35)
+- [x] Blueprint/author chip shows raw seed email — set human `full_name` on 10 demo profiles (and matching `public.users` rows): jhu2 → Dr. Evelyn Reyes, szanton → Dr. Sarah Szanton, pradan.field → Suman Tirkey, sailing cast → Markus Tham / Ricardo Costa / Tomás Renart / Yvonne Leung / Demo Sailor / Sailor One
+- [x] Profile/account sheet showed `demo-sailor@regattaflow.app` — `full_name` now "Demo Sailor" in both `profiles` and `users`
 - [ ] Audit all three demo personas' seed for cross-persona bleed before each pitch
+- [ ] Note: profile fixes are DB-only on dev; if the demo DB is reseeded, ensure `scripts/seed-multi-audience-demo-personas.mjs` / signup trigger writes `full_name` (not the email) so this doesn't regress
 
 ---
 
