@@ -36,6 +36,15 @@ export interface InterestVocab {
    */
   verb: Record<ArcVerbTier, string>;
   /**
+   * Lifetime-vision placeholder shown on L4 — the question that prompts
+   * the user to name what they're building toward. Phrased natively per
+   * persona. NOT derived from `verb.mid`: the eyebrow verb ("SHIPPING",
+   * "ROTATING") reads as a standalone activity label but breaks when
+   * slotted into a sentence ("What are you rotating toward?"). Falls back
+   * to the default prompt when a persona omits it.
+   */
+  visionPrompt?: string;
+  /**
    * Eyebrow shown above the lilac librarian card. Spoken in the
    * persona's native voice — academic "the librarian noticed" works
    * for nursing; sailors think of it as a "logbook", entrepreneurs
@@ -112,6 +121,7 @@ const DEFAULT_VOCAB: InterestVocab = {
     mid: 'IN MOTION',
     late: 'REFLECTING',
   },
+  visionPrompt: 'What are you building toward, long-term?',
   librarianEyebrow: 'This arc · the librarian noticed',
   capabilityHeader: 'CAPABILITY MIX',
   crewHeader: 'TEAM',
@@ -125,6 +135,7 @@ const SAILING_VOCAB: InterestVocab = {
     mid: 'RACING',
     late: 'DEBRIEFING',
   },
+  visionPrompt: 'What are you racing toward, long-term?',
   librarianEyebrow: 'This arc · logbook noticed',
   capabilityHeader: 'PRACTICE LOG',
   crewHeader: 'FLEET',
@@ -222,6 +233,7 @@ const NURSING_VOCAB: InterestVocab = {
     mid: 'ROTATING',
     late: 'DEBRIEFING',
   },
+  visionPrompt: 'What kind of nurse are you becoming?',
   librarianEyebrow: "This rotation · preceptor's debrief",
   capabilityHeader: 'CAPABILITY MIX',
   crewHeader: 'COHORT',
@@ -315,6 +327,7 @@ const ENTREPRENEUR_VOCAB: InterestVocab = {
     mid: 'SHIPPING',
     late: 'TALLYING',
   },
+  visionPrompt: 'What are you building toward, long-term?',
   librarianEyebrow: 'This season · what your books noticed',
   capabilityHeader: 'BUSINESS MIX',
   crewHeader: 'TEAM',
@@ -352,6 +365,7 @@ const GOLF_VOCAB: InterestVocab = {
     mid: 'PLAYING',
     late: 'SCORING',
   },
+  visionPrompt: "What's the game you're building toward?",
   librarianEyebrow: "This season · coach's notebook",
   capabilityHeader: 'ROUND MIX',
   crewHeader: 'FOURSOME',
@@ -376,6 +390,7 @@ const DRAWING_VOCAB: InterestVocab = {
     mid: 'DRAWING',
     late: 'REVIEWING',
   },
+  visionPrompt: 'What are you working toward as an artist?',
   librarianEyebrow: 'This sketchbook · studio notes',
   capabilityHeader: 'STUDIO LOG',
   crewHeader: 'STUDIO',
@@ -402,6 +417,7 @@ const KNITTING_VOCAB: InterestVocab = {
     mid: 'KNITTING',
     late: 'BINDING OFF',
   },
+  visionPrompt: 'What do you want to be able to make?',
   librarianEyebrow: 'This project · pattern notes',
   capabilityHeader: 'PROJECT LOG',
   crewHeader: 'CIRCLE',

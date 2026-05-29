@@ -330,9 +330,7 @@ export function L4YearsView({
         visible={lifetimeVisionEditOpen}
         initialStatement={lifetimeVisionStatement}
         placeholder={
-          interestVocab.id === 'default'
-            ? "What are you building toward, long-term?"
-            : `What are you ${interestVocab.verb.mid.toLowerCase()} toward, long-term?`
+          interestVocab.visionPrompt ?? 'What are you building toward, long-term?'
         }
         onClose={() => setLifetimeVisionEditOpen(false)}
         onSave={async (next) => {
