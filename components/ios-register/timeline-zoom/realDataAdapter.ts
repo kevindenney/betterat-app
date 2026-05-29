@@ -207,10 +207,10 @@ const STATUS_MAP: Record<TimelineStepStatus, StepStatus> = {
 };
 
 // First-run suppression: don't surface "the librarian noticed" / "-heavy"
-// analysis until there's enough practice to actually have a pattern. Below
-// this threshold a brand-new user just sees their steps, not premature
-// coaching about trends that don't exist yet.
-const ANALYSIS_MIN_STEPS = 4;
+// analysis (or cross-interest AI suggestions) until there's enough practice
+// to actually have a pattern. Below this threshold a brand-new user just
+// sees their steps, not premature coaching about trends that don't exist yet.
+export const ANALYSIS_MIN_STEPS = 4;
 
 // Stable color palette — first chip uses purple (cardio), then cycles. The
 // design's coral-system semantics aren't yet on the database side so we cycle

@@ -33,6 +33,7 @@ import { showAlert } from '@/lib/utils/crossPlatformAlert';
 import { createStep, shiftTimelineSortOrdersAtOrAfter } from '@/services/TimelineStepService';
 import { useInboxItems } from '@/hooks/useInboxItems';
 import { useCrossInterestSuggestions } from '@/hooks/useCrossInterestSuggestions';
+import { ANALYSIS_MIN_STEPS } from './realDataAdapter';
 import {
   useAdoptBlueprintStep,
   useSuggestedNextSteps,
@@ -154,9 +155,18 @@ export function L2WeekView({
   const resolvedInterestId = dataset.interest.id === 'live' ? undefined : dataset.interest.id;
   const activeStepId = centeredStep?.id ?? focusStepId;
   const activeStepTitle = centeredStep?.title;
+  // First-run: a brand-new user with only a handful of steps shouldn't get
+  // cross-interest AI suggestions ("apply X from golf") — they read as
+  // premature coaching and each fires a vendor AI call. Hold them until
+  // there's enough practice for a connection to be meaningful.
+  const firstRun = dataset.totalSteps < ANALYSIS_MIN_STEPS;
   const { data: blueprintSuggestions = [] } = useSuggestedNextSteps(resolvedInterestId);
   const { suggestions: crossInterestSuggestions, isLoading: suggestionsLoading } =
-    useCrossInterestSuggestions(activeStepId, resolvedInterestId, activeStepTitle);
+    useCrossInterestSuggestions(
+      firstRun ? undefined : activeStepId,
+      resolvedInterestId,
+      activeStepTitle,
+    );
   const visibleBlueprints = useMemo(
     () => blueprintSuggestions.slice(0, 2),
     [blueprintSuggestions],
