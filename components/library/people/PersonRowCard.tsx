@@ -37,16 +37,14 @@ export function PersonRowCard({ person, onPress }: Props) {
       </View>
 
       <View style={styles.body}>
-        <View style={styles.headRow}>
-          <Text style={styles.name} numberOfLines={1}>
-            {person.displayName}
+        <Text style={styles.name} numberOfLines={1}>
+          {person.displayName}
+        </Text>
+        {person.role ? (
+          <Text style={styles.role} numberOfLines={1}>
+            {person.role}
           </Text>
-          {person.role ? (
-            <Text style={styles.role} numberOfLines={1}>
-              {person.role}
-            </Text>
-          ) : null}
-        </View>
+        ) : null}
         {person.lastActivity ? (
           <Text style={styles.activity} numberOfLines={1}>
             {person.lastActivity}
@@ -115,22 +113,14 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: 2,
   },
-  headRow: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    gap: 6,
-  },
   name: {
     fontSize: 15,
     fontWeight: '600',
     color: IOS_COLORS.label,
-    flexShrink: 0,
   },
   role: {
     fontSize: 12,
     color: IOS_COLORS.secondaryLabel,
-    flex: 1,
-    flexShrink: 1,
   },
   activity: {
     fontSize: 12,

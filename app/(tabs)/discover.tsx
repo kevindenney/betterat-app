@@ -252,6 +252,7 @@ function SegmentContent({
   if (segment === 'nearby') {
     return (
       <DiscoverNearbyContent
+        toolbarOffset={toolbarOffset}
         homeVenueLat={homeVenueLat}
         homeVenueLng={homeVenueLng}
         homeVenueLabel={homeVenueLabel}

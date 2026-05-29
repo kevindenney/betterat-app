@@ -712,7 +712,11 @@ type SeasonPeerLike = { weeklyAppearances: { weekNumber: number; count: number }
  * they'd have to do arithmetic on.
  */
 function AnchorStrip({ anchors }: { anchors: ResolvedAnchor[] }) {
-  if (anchors.length === 0) return null;
+  // "COMING UP" only makes sense for anchors that haven't passed. The
+  // season range spans past→future, so drop anchors already behind us
+  // rather than pairing the header with a "Xmo ago" proximity.
+  const upcoming = anchors.filter((a) => a.daysAway >= 0);
+  if (upcoming.length === 0) return null;
   return (
     <View style={styles.anchorStrip}>
       <Text style={styles.anchorEyebrow}>COMING UP</Text>
@@ -721,7 +725,7 @@ function AnchorStrip({ anchors }: { anchors: ResolvedAnchor[] }) {
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.anchorRow}
       >
-        {anchors.slice(0, 6).map((anchor) => {
+        {upcoming.slice(0, 6).map((anchor) => {
           const iconName = anchorIconName(anchor.kind) as keyof typeof Ionicons.glyphMap;
           const proximity = formatAnchorProximity(anchor.daysAway);
           return (

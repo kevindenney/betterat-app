@@ -27,6 +27,9 @@ export function SynthesisPrompt({
   const [busy, setBusy] = useState(false);
 
   if (state === 'dismissed') return null;
+  // Nothing to synthesize from yet — the "draft from your 0 captures" copy
+  // reads broken, so suppress the prompt until at least one capture exists.
+  if (capturesCount === 0) return null;
 
   const handleDraft = async () => {
     if (busy || state === 'drafting') return;

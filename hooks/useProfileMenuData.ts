@@ -165,7 +165,9 @@ export function useProfileMenuData(): ProfileMenuData {
     },
   });
 
-  // Active plan subscriptions = "Subscribed blueprints" count
+  // "Subscribed blueprints" count — must source from the same table the
+  // Library Plans zone renders (blueprint_subscriptions), else the badge
+  // reads 0 while the list below shows N. See useSubscribedPlansForLibrary.
   const { data: subscribedBlueprintsCount = 0 } = useQuery({
     queryKey: ['profile-menu-subs', userId],
     enabled: !!userId,
@@ -173,10 +175,9 @@ export function useProfileMenuData(): ProfileMenuData {
     queryFn: async (): Promise<number> => {
       if (!userId) return 0;
       const { count, error } = await supabase
-        .from('plan_subscriptions')
-        .select('id', { count: 'exact', head: true })
-        .eq('user_id', userId)
-        .eq('status', 'active');
+        .from('blueprint_subscriptions')
+        .select('blueprint_id', { count: 'exact', head: true })
+        .eq('subscriber_id', userId);
       if (error) {
         console.warn('[useProfileMenuData] subscribed-blueprints count failed', error);
         return 0;

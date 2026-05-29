@@ -540,7 +540,7 @@ export function DiscoverTodayContent({
             <Text style={styles.pickEyebrow}>FOR YOU, {todayLabel.toUpperCase()}</Text>
             <Text style={styles.pickTitle}>{thisWeeksPick.title}</Text>
             <Text style={styles.pickSource}>
-              {thisWeeksPick.authorName ?? 'Path'}
+              {thisWeeksPick.authorName ? `From ${thisWeeksPick.authorName}` : 'Blueprint'}
               {thisWeeksPick.stepCount > 0 ? (
                 <>
                   <Text style={styles.cardSourceSep}> · </Text>
@@ -548,8 +548,6 @@ export function DiscoverTodayContent({
                   {thisWeeksPick.stepCount === 1 ? 'step' : 'steps'}
                 </>
               ) : null}
-              <Text style={styles.cardSourceSep}> · </Text>
-              Path
             </Text>
             {thisWeeksPick.description ? (
               <Text style={styles.pickQuote}>{thisWeeksPick.description}</Text>

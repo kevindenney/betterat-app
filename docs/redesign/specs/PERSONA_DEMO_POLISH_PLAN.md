@@ -40,15 +40,15 @@
 ## P1 — Polish (states, copy, layout)
 
 ### Empty / loading / contradictory states
-- [ ] **Discover → Nearby**: renders blank with no empty-state — add the same "set a home venue / nothing nearby yet" treatment Library Nearby has
-- [ ] **Discover → Orgs**: stuck spinner (never resolves) — check the query; add error + empty fallbacks so it can't hang
-- [ ] **Account sheet**: "Subscribed blueprints 0" while 3 blueprints are shown below — reconcile the count source with the rendered list
-- [ ] **Step Review copy**: "from your 0 observations / 0 captures" reads awkwardly at zero — suppress or reword the zero case ("No observations logged yet")
+- [x] **Discover → Nearby**: rendered blank — root cause: the `nearby` segment was the only one not passed `toolbarOffset`, so the empty card drew at y=0 *behind* the floating toolbar. Added `toolbarOffset` prop + applied as top inset on every branch; also fixed `isLoading` AND→OR (was hiding the loader prematurely) and replaced sailing copy ("clubs/sailors/where you sail from") with `organizations` + `vocab('Peers')`. Verified on-sim under Nursing.
+- [x] **Discover → Orgs**: not reproducible — `DiscoverOrgsContent` already has try/catch → `setOrgs([])`, a `finally` that always flips `loading=false`, and a `cells.length === 0` empty state. DB query is 2.7ms with trivial SELECT RLS (`is_active = true`). Renders the full club list on-sim. The original observation was a transient mid-load frame, not a hang. No code change.
+- [x] **Account sheet**: count read `plan_subscriptions` (status=active) while the Library list it links to reads `blueprint_subscriptions`. Demo personas had 0/0/4 across the two — hence "0" over a populated list. Pointed the count at `blueprint_subscriptions` (subscriber_id). Confirmed row counts on dev.
+- [x] **Step Review copy**: `SynthesisPrompt` now returns null when `capturesCount === 0` — nothing to synthesize from, so the "from your 0 observations" copy can't render for any persona.
 
 ### Copy / label bugs
-- [ ] **Discover Today pick**: "Path · 4 steps · Path" — duplicate "Path" segment; dedupe the meta line
-- [ ] **People subtitles truncate mid-word** ("12 stude…") — give the subtitle more width or `numberOfLines`/ellipsize at a word boundary
-- [ ] **"COMING UP … 7mo ago"**: a future-tense header paired with a past relative time — shared timeline logic picking the wrong tense; fix is cross-platform (web + native)
+- [x] **Discover Today pick**: deduped the meta line — `From {author}` (or `Blueprint`) · `{n} steps`, dropped the trailing duplicate "Path".
+- [x] **People subtitles truncate mid-word** ("12 stude…"): in `PersonRowCard` the role was inline next to the name competing for one row; moved it to its own line so it ellipsizes at the row width instead of mid-word. (Discover's `CanonicalPersonRow` already wraps to 2 lines — fine.)
+- [x] **"COMING UP … 7mo ago"**: `L3SeasonView` AnchorStrip now filters to `daysAway >= 0` (and hides the strip if none remain), so a future-tense header can't pair with a past anchor.
 
 ---
 

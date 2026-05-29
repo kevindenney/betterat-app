@@ -18,19 +18,23 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { useNearbyOrganizations } from '@/hooks/useNearbyOrganizations';
 import { useAtlasPeerSteps } from '@/hooks/useAtlasPeerSteps';
+import { useVocabulary } from '@/hooks/useVocabulary';
 import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
 
 interface DiscoverNearbyContentProps {
   homeVenueLat: number | null;
   homeVenueLng: number | null;
   homeVenueLabel: string | null;
+  toolbarOffset?: number;
 }
 
 export function DiscoverNearbyContent({
   homeVenueLat,
   homeVenueLng,
   homeVenueLabel,
+  toolbarOffset = 0,
 }: DiscoverNearbyContentProps) {
+  const { vocab } = useVocabulary();
   const hasVenue = homeVenueLat != null && homeVenueLng != null;
 
   const { data: orgs = [], isLoading: orgsLoading } = useNearbyOrganizations({
@@ -50,39 +54,47 @@ export function DiscoverNearbyContent({
 
   if (!hasVenue) {
     return (
-      <View style={styles.emptyCard}>
+      <View style={[styles.emptyCard, { marginTop: toolbarOffset + IOS_SPACING.md }]}>
         <Ionicons name="location-outline" size={28} color={IOS_COLORS.tertiaryLabel} />
         <Text style={styles.emptyTitle}>Set a home venue</Text>
         <Text style={styles.emptyCopy}>
-          Nearby shows clubs, people, and activity around where you sail
-          from. Add a home venue in settings to light up this segment.
+          Nearby shows organizations, {vocab('Peers').toLowerCase()}, and
+          activity around your home base. Add a home venue in settings to
+          light up this segment.
         </Text>
       </View>
     );
   }
 
-  const isLoading = orgsLoading && peersLoading;
+  const isLoading = orgsLoading || peersLoading;
   const hasNothing = orgs.length === 0 && visiblePeerSteps.length === 0;
 
   if (isLoading) {
-    return <Text style={styles.loading}>Looking around {homeVenueLabel ?? 'you'}…</Text>;
+    return (
+      <Text style={[styles.loading, { marginTop: toolbarOffset + IOS_SPACING.md }]}>
+        Looking around {homeVenueLabel ?? 'you'}…
+      </Text>
+    );
   }
 
   if (hasNothing) {
     return (
-      <View style={styles.emptyCard}>
+      <View style={[styles.emptyCard, { marginTop: toolbarOffset + IOS_SPACING.md }]}>
         <Ionicons name="locate-outline" size={28} color={IOS_COLORS.tertiaryLabel} />
         <Text style={styles.emptyTitle}>Quiet around {homeVenueLabel ?? 'you'}</Text>
         <Text style={styles.emptyCopy}>
-          No clubs or sailors registered nearby yet. As more sailors and
-          clubs join, this segment will fill in.
+          No organizations or {vocab('Peers').toLowerCase()} registered
+          nearby yet. As more join, this segment will fill in.
         </Text>
       </View>
     );
   }
 
   return (
-    <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+    <ScrollView
+      contentContainerStyle={[styles.scrollContent, { paddingTop: toolbarOffset + IOS_SPACING.sm }]}
+      showsVerticalScrollIndicator={false}
+    >
       <Text style={styles.sectionHeader}>
         Within 25km · {homeVenueLabel ?? 'your area'}
       </Text>
@@ -90,7 +102,9 @@ export function DiscoverNearbyContent({
       {orgs.length > 0 ? (
         <View style={styles.section}>
           <Text style={styles.sectionEyebrow}>
-            {orgs.length === 1 ? '1 club nearby' : `${orgs.length} clubs nearby`}
+            {orgs.length === 1
+              ? '1 organization nearby'
+              : `${orgs.length} organizations nearby`}
           </Text>
           <View style={styles.list}>
             {orgs.map((org) => (
@@ -125,8 +139,8 @@ export function DiscoverNearbyContent({
         <View style={styles.section}>
           <Text style={styles.sectionEyebrow}>
             {visiblePeerSteps.length === 1
-              ? '1 sailor working a step nearby'
-              : `${visiblePeerSteps.length} sailors working a step nearby`}
+              ? `1 ${vocab('Peer').toLowerCase()} working a step nearby`
+              : `${visiblePeerSteps.length} ${vocab('Peers').toLowerCase()} working a step nearby`}
           </Text>
           <View style={styles.list}>
             {visiblePeerSteps.slice(0, 12).map((step) => (
@@ -142,7 +156,7 @@ export function DiscoverNearbyContent({
                 </View>
                 <View style={styles.rowBody}>
                   <Text style={styles.rowTitle} numberOfLines={1}>
-                    {step.preview_name ?? 'A sailor nearby'}
+                    {step.preview_name ?? `A ${vocab('Peer').toLowerCase()} nearby`}
                   </Text>
                   <Text style={styles.rowMeta} numberOfLines={1}>
                     {step.loc_precision ?? 'Nearby'} · {step.relationship}
