@@ -42,11 +42,15 @@ export default function OrgDiscoveryScreen() {
   const [orgs, setOrgs] = useState<OrgRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [joinStates, setJoinStates] = useState<Record<string, OrgJoinState>>({});
+  // Org ids that have an active owner/admin/manager able to approve a join.
+  const [approverOrgIds, setApproverOrgIds] = useState<Set<string>>(new Set());
 
   const ctx = getOnboardingContext(interestSlug || undefined);
 
   useEffect(() => {
     loadOrgs();
+    // Mount-once: org list is loaded a single time for this onboarding step.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const loadOrgs = async () => {
@@ -78,10 +82,25 @@ export default function OrgDiscoveryScreen() {
         return;
       }
 
-      setOrgs(data.map((o) => ({
+      const loadedOrgs: OrgRow[] = data.map((o) => ({
         ...o,
         join_mode: o.join_mode || 'invite_only',
-      })));
+      }));
+      setOrgs(loadedOrgs);
+
+      // Resolve which orgs have an active approver. Seeded directory clubs
+      // typically have none, so their join requests would go nowhere — we
+      // surface those as passive ("Not on BetterAt yet") rather than offering
+      // a Request button that can never be actioned.
+      const { data: approverRows, error: approverError } = await supabase.rpc(
+        'orgs_with_approver',
+        { p_org_ids: loadedOrgs.map((o) => o.id) },
+      );
+      if (!approverError && approverRows) {
+        setApproverOrgIds(
+          new Set((approverRows as { organization_id: string }[]).map((r) => r.organization_id)),
+        );
+      }
     } catch (err) {
       console.error('[OrgDiscovery] Error loading orgs:', err);
       // On error, don't block — go to app
@@ -152,6 +171,10 @@ export default function OrgDiscoveryScreen() {
             {orgs.map((org) => {
               const state = joinStates[org.id] || 'idle';
               const isInviteOnly = org.join_mode === 'invite_only';
+              // A request_to_join org with no active approver can't action a
+              // request — show it as a passive directory listing instead.
+              const isUnclaimedRequest =
+                org.join_mode === 'request_to_join' && !approverOrgIds.has(org.id);
 
               return (
                 <View key={org.id} style={styles.orgCard}>
@@ -164,15 +187,21 @@ export default function OrgDiscoveryScreen() {
                       {isInviteOnly && (
                         <Text style={styles.orgMeta}>Invite only</Text>
                       )}
-                      {org.join_mode === 'request_to_join' && (
+                      {isUnclaimedRequest ? (
+                        <Text style={styles.orgMeta}>Not on BetterAt yet</Text>
+                      ) : org.join_mode === 'request_to_join' ? (
                         <Text style={styles.orgMeta}>Requires approval</Text>
-                      )}
+                      ) : null}
                     </View>
                   </View>
 
                   {isInviteOnly ? (
                     <View style={styles.inviteOnlyBadge}>
                       <Ionicons name="lock-closed-outline" size={14} color="#94A3B8" />
+                    </View>
+                  ) : isUnclaimedRequest ? (
+                    <View style={styles.inviteOnlyBadge}>
+                      <Ionicons name="ellipse-outline" size={14} color="#CBD5E1" />
                     </View>
                   ) : state === 'joined' ? (
                     <View style={[styles.statusBadge, { backgroundColor: '#16A34A' }]}>
