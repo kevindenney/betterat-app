@@ -19,7 +19,7 @@ import {
   IOS_RADIUS,
   IOS_SHADOWS,
 } from '@/lib/design-tokens-ios';
-import { useAuth } from '@/providers/AuthProvider';
+import { useVocabulary } from '@/hooks/useVocabulary';
 import { triggerHaptic } from '@/lib/haptics';
 
 interface ProfileQRCodeSectionProps {
@@ -27,7 +27,7 @@ interface ProfileQRCodeSectionProps {
 }
 
 export function ProfileQRCodeSection({ userId }: ProfileQRCodeSectionProps) {
-  const { user } = useAuth();
+  const { vocab } = useVocabulary();
   const profileUrl = useMemo(
     () => `https://regattaflow.app/sailor/${userId}`,
     [userId]
@@ -37,9 +37,9 @@ export function ProfileQRCodeSection({ userId }: ProfileQRCodeSectionProps) {
     try {
       triggerHaptic('selection');
       await Share.share({
-        message: `Follow me on RegattaFlow! ${profileUrl}`,
+        message: `Follow me on BetterAt! ${profileUrl}`,
         url: profileUrl,
-        title: 'My RegattaFlow Profile',
+        title: 'My BetterAt Profile',
       });
     } catch (error) {
       if ((error as Error).message !== 'User did not share') {
@@ -85,9 +85,9 @@ export function ProfileQRCodeSection({ userId }: ProfileQRCodeSectionProps) {
       <View style={styles.instructionsContainer}>
         <Text style={styles.instructionsTitle}>How it works</Text>
         <Text style={styles.instructionsText}>
-          Let other sailors scan your QR code to quickly follow you on
-          RegattaFlow. They'll see your races and preparation in their
-          discovery feed.
+          Let other {vocab('Peers').toLowerCase()} scan your QR code to
+          quickly follow you on BetterAt. They'll see your activity and
+          progress in their discovery feed.
         </Text>
       </View>
 

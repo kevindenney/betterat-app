@@ -1,7 +1,7 @@
 /**
  * InviteFriendsBanner - Strava-style invite friends CTA
  *
- * Shows a banner encouraging users to invite friends to RegattaFlow.
+ * Shows a banner encouraging users to invite people to BetterAt.
  * Uses the native Share API with app store links.
  */
 
@@ -23,6 +23,7 @@ import {
   IOS_RADIUS,
 } from '@/lib/design-tokens-ios';
 import { triggerHaptic } from '@/lib/haptics';
+import { useVocabulary } from '@/hooks/useVocabulary';
 
 interface InviteFriendsBannerProps {
   /** Custom title text */
@@ -36,18 +37,24 @@ interface InviteFriendsBannerProps {
 }
 
 export function InviteFriendsBanner({
-  title = 'Invite friends to RegattaFlow',
-  description = 'Know sailors who should join? Share the app with them!',
+  title,
+  description,
   buttonText = 'Invite',
   onShare,
 }: InviteFriendsBannerProps) {
+  const { vocab } = useVocabulary();
+  const resolvedTitle = title ?? 'Invite people to BetterAt';
+  const resolvedDescription =
+    description ??
+    `Know ${vocab('Peers').toLowerCase()} who should join? Share the app with them!`;
+
   const handleInvite = useCallback(async () => {
     triggerHaptic('selection');
 
     // App store URLs - would be configured from env in production
-    const iosUrl = process.env.EXPO_PUBLIC_IOS_APP_STORE_URL || 'https://apps.apple.com/app/regattaflow';
-    const androidUrl = process.env.EXPO_PUBLIC_ANDROID_PLAY_STORE_URL || 'https://play.google.com/store/apps/details?id=com.regattaflow';
-    const webUrl = process.env.EXPO_PUBLIC_WEB_BASE_URL || 'https://regattaflow.app';
+    const iosUrl = process.env.EXPO_PUBLIC_IOS_APP_STORE_URL || 'https://apps.apple.com/app/betterat';
+    const androidUrl = process.env.EXPO_PUBLIC_ANDROID_PLAY_STORE_URL || 'https://play.google.com/store/apps/details?id=at.better.app';
+    const webUrl = process.env.EXPO_PUBLIC_WEB_BASE_URL || 'https://better.at';
 
     // Build share message
     const appLink = Platform.select({
@@ -56,12 +63,12 @@ export function InviteFriendsBanner({
       default: webUrl,
     });
 
-    const message = `Join me on RegattaFlow - the all-in-one sailing race companion! Track races, prepare for regattas, and connect with the sailing community. ${appLink}`;
+    const message = `Join me on BetterAt — the app for getting better at what you're working on. ${appLink}`;
 
     try {
       const result = await Share.share({
         message,
-        title: 'Join RegattaFlow',
+        title: 'Join BetterAt',
         url: Platform.OS === 'ios' ? appLink : undefined,
       });
 
@@ -83,8 +90,8 @@ export function InviteFriendsBanner({
           <Users size={24} color={IOS_COLORS.systemBlue} />
         </View>
         <View style={styles.textContainer}>
-          <Text style={styles.title}>{title}</Text>
-          <Text style={styles.description}>{description}</Text>
+          <Text style={styles.title}>{resolvedTitle}</Text>
+          <Text style={styles.description}>{resolvedDescription}</Text>
         </View>
       </View>
 
