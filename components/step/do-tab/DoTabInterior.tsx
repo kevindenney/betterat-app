@@ -130,6 +130,7 @@ export function DoTabInterior({
       onEdit={beats.onEdit}
       onDelete={beats.onDelete}
       onToggleDone={beats.onToggleDone}
+      onReorder={beats.onReorder}
     />
   );
   // Check-off read/watch list of library items attached to this step. Same

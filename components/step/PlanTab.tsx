@@ -1567,6 +1567,8 @@ function PlanBeatsSection({
       onAdd={beats.onAdd}
       onEdit={beats.onEdit}
       onDelete={beats.onDelete}
+      onToggleDone={beats.onToggleDone}
+      onReorder={beats.onReorder}
     />
   );
 }

@@ -9,7 +9,7 @@
  * getInterestBeatsConfig — same pattern as INTEREST_DO_TAB_CONFIG.
  */
 
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   Pressable,
   StyleSheet,
@@ -18,12 +18,15 @@ import {
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { GestureDetector } from 'react-native-gesture-handler';
+import Animated, { useAnimatedStyle } from 'react-native-reanimated';
 import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
 import {
   getInterestBeatsConfig,
   type InterestBeatsConfig,
 } from '@/lib/interest-config';
 import { showConfirm } from '@/lib/utils/crossPlatformAlert';
+import { useDragReorder } from '@/components/ios-register/timeline-zoom/useDragReorder';
 import type { StepBeat } from '@/hooks/useStepBeats';
 
 interface Props {
@@ -39,6 +42,8 @@ interface Props {
   ) => void;
   onDelete: (id: string) => void;
   onToggleDone?: (id: string, done: boolean) => void;
+  /** When provided, beats can be long-press-dragged to reorder. */
+  onReorder?: (orderedIds: string[]) => void;
 }
 
 export function BeatsList({
@@ -51,8 +56,23 @@ export function BeatsList({
   onEdit,
   onDelete,
   onToggleDone,
+  onReorder,
 }: Props) {
   const config = getInterestBeatsConfig({ interestSlug, interestName, interestId });
+  const dragEnabled = !readOnly && !!onReorder && beats.length > 1;
+
+  const drag = useDragReorder<StepBeat>({
+    items: beats,
+    enabled: dragEnabled,
+    axis: 'vertical',
+    onReorder: (_itemId, from, to) => {
+      if (!onReorder) return;
+      const ids = beats.map((b) => b.id);
+      const [moved] = ids.splice(from, 1);
+      ids.splice(to, 0, moved);
+      onReorder(ids);
+    },
+  });
 
   return (
     <View style={styles.section}>
@@ -62,10 +82,17 @@ export function BeatsList({
         <Text style={styles.emptyHint}>{config.emptyHint}</Text>
       ) : (
         <View style={styles.list}>
-          {beats.map((beat) => (
-            <BeatRow
+          {beats.map((beat, index) => (
+            <DraggableBeat
               key={beat.id}
               beat={beat}
+              index={index}
+              dragEnabled={dragEnabled}
+              isLifted={drag.liftedId === beat.id}
+              showDropBefore={drag.dropTargetIndex === index && drag.liftedId !== beat.id}
+              liftedTranslateY={drag.liftedTranslate}
+              buildGesture={drag.buildItemGesture}
+              registerRowLayout={drag.registerRowLayout}
               readOnly={readOnly}
               config={config}
               onEdit={onEdit}
@@ -81,6 +108,64 @@ export function BeatsList({
   );
 }
 
+interface DraggableBeatProps extends BeatRowProps {
+  index: number;
+  dragEnabled: boolean;
+  isLifted: boolean;
+  showDropBefore: boolean;
+  liftedTranslateY: number;
+  buildGesture: ReturnType<typeof useDragReorder>['buildItemGesture'];
+  registerRowLayout: ReturnType<typeof useDragReorder>['registerRowLayout'];
+}
+
+function DraggableBeat({
+  index,
+  dragEnabled,
+  isLifted,
+  showDropBefore,
+  liftedTranslateY,
+  buildGesture,
+  registerRowLayout,
+  ...rowProps
+}: DraggableBeatProps) {
+  const gesture = useMemo(
+    () => buildGesture(rowProps.beat.id, index),
+    [buildGesture, rowProps.beat.id, index],
+  );
+
+  const liftStyle = useAnimatedStyle(() => {
+    if (!isLifted) return { transform: [] as never[] };
+    return {
+      transform: [{ translateY: liftedTranslateY }, { scale: 1.02 }],
+      zIndex: 10,
+      shadowColor: '#000',
+      shadowOpacity: 0.18,
+      shadowRadius: 10,
+      shadowOffset: { width: 0, height: 6 },
+      elevation: 10,
+    };
+  }, [isLifted, liftedTranslateY]);
+
+  const body = (
+    <Animated.View
+      style={liftStyle}
+      onLayout={(e) => {
+        const { y, height } = e.nativeEvent.layout;
+        registerRowLayout(rowProps.beat.id, { start: y, length: height });
+      }}
+    >
+      <BeatRow {...rowProps} dragHandle={dragEnabled} />
+    </Animated.View>
+  );
+
+  return (
+    <View>
+      {showDropBefore ? <View style={styles.dropIndicator} /> : null}
+      {dragEnabled ? <GestureDetector gesture={gesture}>{body}</GestureDetector> : body}
+    </View>
+  );
+}
+
 interface BeatRowProps {
   beat: StepBeat;
   readOnly?: boolean;
@@ -91,9 +176,11 @@ interface BeatRowProps {
   ) => void;
   onDelete: (id: string) => void;
   onToggleDone?: (id: string, done: boolean) => void;
+  /** Show a grip glyph hinting the row is long-press-draggable. */
+  dragHandle?: boolean;
 }
 
-function BeatRow({ beat, readOnly, config, onEdit, onDelete, onToggleDone }: BeatRowProps) {
+function BeatRow({ beat, readOnly, config, onEdit, onDelete, onToggleDone, dragHandle }: BeatRowProps) {
   const [expanded, setExpanded] = useState(false);
   const [title, setTitle] = useState(beat.title);
   const [time, setTime] = useState(beat.time_label ?? '');
@@ -120,6 +207,14 @@ function BeatRow({ beat, readOnly, config, onEdit, onDelete, onToggleDone }: Bea
   return (
     <View style={styles.beat}>
       <View style={styles.beatHead}>
+        {dragHandle ? (
+          <Ionicons
+            name="reorder-three-outline"
+            size={16}
+            color={IOS_COLORS.tertiaryLabel}
+            style={styles.grip}
+          />
+        ) : null}
         <Pressable
           hitSlop={6}
           onPress={onToggleDone ? () => onToggleDone(beat.id, !beat.done) : undefined}
@@ -298,6 +393,15 @@ const styles = StyleSheet.create({
   },
   list: {
     gap: 6,
+  },
+  dropIndicator: {
+    height: 2,
+    borderRadius: 1,
+    backgroundColor: '#007AFF',
+    marginVertical: 2,
+  },
+  grip: {
+    marginTop: 1,
   },
   beat: {
     backgroundColor: IOS_COLORS.tertiarySystemGroupedBackground,
