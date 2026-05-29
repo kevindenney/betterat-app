@@ -118,7 +118,10 @@ class OrgCreationService {
         status: 'active',
         membership_status: 'active',
         is_verified: true,
-        verification_source: 'creator',
+        // Allowed values: invite | email_domain | sso | admin | self_join.
+        // Self-serve creator is semantically a self_join — they're not
+        // invited or domain-matched, they created the org and joined it.
+        verification_source: 'self_join',
         verified_at: nowIso,
         joined_at: nowIso,
       });
