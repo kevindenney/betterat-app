@@ -95,8 +95,8 @@ const styles = StyleSheet.create({
     borderColor: LILAC_BORDER,
     borderRadius: 13,
     paddingHorizontal: 12,
-    paddingTop: 11,
-    paddingBottom: 10,
+    paddingTop: 9,
+    paddingBottom: 8,
     shadowColor: '#7B3FB0',
     shadowOpacity: 0.08,
     shadowRadius: 10,
@@ -108,7 +108,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     letterSpacing: 0.6,
     color: LILAC,
-    marginBottom: 6,
+    marginBottom: 4,
   },
   body: {
     fontSize: 12.5,
@@ -134,12 +134,12 @@ const styles = StyleSheet.create({
   actions: {
     flexDirection: 'row',
     gap: 7,
-    marginTop: 10,
+    marginTop: 7,
     justifyContent: 'flex-end',
   },
   secondaryBtn: {
     paddingHorizontal: 12,
-    paddingVertical: 7,
+    paddingVertical: 5,
     borderRadius: 999,
     backgroundColor: 'rgba(255, 255, 255, 0.6)',
     borderWidth: StyleSheet.hairlineWidth,
@@ -152,7 +152,7 @@ const styles = StyleSheet.create({
   },
   primaryBtn: {
     paddingHorizontal: 14,
-    paddingVertical: 7,
+    paddingVertical: 5,
     borderRadius: 999,
     backgroundColor: LILAC,
   },
