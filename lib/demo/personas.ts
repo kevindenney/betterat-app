@@ -107,7 +107,9 @@ export const DEMO_PERSONAS: DemoPersona[] = [
     vertical: 'nursing',
     initial: 'S',
     avatarColor: '#3155B5',
-    landingRoute: '/admin/johns-hopkins-school-of-nursing/overview',
+    // Admin hooks query by org UUID; the [orgId] route param is passed
+    // straight through with no slug→UUID resolution, so land on the UUID.
+    landingRoute: '/admin/678e149e-2abb-422c-ac61-b76756a2150e/overview',
     available: true,
   },
   {
@@ -142,7 +144,8 @@ export const DEMO_PERSONAS: DemoPersona[] = [
     vertical: 'india-shg',
     initial: 'F',
     avatarColor: '#A05A2C',
-    landingRoute: '/admin/pradan-khunti/overview',
+    // See note on the Dean persona: admin route param is an org UUID.
+    landingRoute: '/admin/87195fe7-b9d7-4308-968f-532300a8d813/overview',
     available: true,
   },
   {
