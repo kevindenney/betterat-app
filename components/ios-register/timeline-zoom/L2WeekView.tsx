@@ -15,7 +15,7 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
-import { GestureDetector } from 'react-native-gesture-handler';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, { useAnimatedStyle } from 'react-native-reanimated';
 import { router } from 'expo-router';
 import { useQueryClient } from '@tanstack/react-query';
@@ -849,10 +849,20 @@ function DraggableCarouselSlot({
   buildGesture,
   registerRowLayout,
 }: DraggableCarouselSlotProps) {
-  const gesture = useMemo(
-    () => buildGesture(step.id, index),
-    [buildGesture, step.id, index],
-  );
+  // Compose the long-press-to-lift Pan with a Tap so tap-to-open and
+  // drag-to-reorder don't fight (the old card-level Pressable couldn't
+  // coordinate with the RNGH pan, so a short drag registered as a tap and
+  // opened the step). Exclusive gives the pan priority: a held lift wins,
+  // and the tap only fires when the pan fails (a quick, stationary press).
+  // A moving finger satisfies neither, so it falls through to the carousel
+  // ScrollView and scrolls.
+  const gesture = useMemo(() => {
+    const pan = buildGesture(step.id, index);
+    const tap = Gesture.Tap().onEnd((_event, success) => {
+      if (success) onOpen();
+    });
+    return Gesture.Exclusive(pan, tap);
+  }, [buildGesture, step.id, index, onOpen]);
 
   const liftStyle = useAnimatedStyle(() => {
     if (!isLifted) return { transform: [] as never[] };
@@ -887,7 +897,6 @@ function DraggableCarouselSlot({
             variant="nearby"
             highlighted={highlighted}
             showRelevantSnippet={highlighted}
-            onPress={onOpen}
           />
         </Animated.View>
       </GestureDetector>

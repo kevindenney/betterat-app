@@ -104,9 +104,15 @@ export function StepDigestCard({
   const primaryCapability = visibleCapabilities[0];
   const statusLabel = isNearby ? NEARBY_STATUS_LABEL[step.status] : status.label;
 
+  // When no onPress is supplied the card is non-interactive (e.g. L2's
+  // carousel, where a wrapping RNGH gesture owns tap-to-open + drag). Render
+  // a plain View so it doesn't claim the touch responder from that gesture.
+  const Container: React.ComponentType<any> = onPress ? Pressable : View;
+  const containerProps = onPress ? { onPress } : {};
+
   return (
-    <Pressable
-      onPress={onPress}
+    <Container
+      {...containerProps}
       style={[
         styles.card,
         compact && styles.cardCompact,
@@ -246,7 +252,7 @@ export function StepDigestCard({
           </View>
         ) : null}
       </View>
-    </Pressable>
+    </Container>
   );
 }
 
