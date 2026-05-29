@@ -88,6 +88,20 @@ export interface InterestVocab {
    * pattern.
    */
   phasePatterns?: { pattern: RegExp; label: string }[];
+  /**
+   * Title patterns that mark a step as a *milestone* — a single moment
+   * of achievement worth surfacing on the L4 arc lane ("Won FFG
+   * Spring", "Passed NCLEX", "First ₹1000"). Unlike phasePatterns
+   * which classify a period of work, these classify discrete events.
+   *
+   * A match qualifies the step; the milestone strip renders the
+   * step's *actual title* (not a canonical label), so the user sees
+   * their own words back. Match is on title text only, case-insensitive.
+   *
+   * Persona-tuned: sailors win/qualify; nurses pass/certify;
+   * entrepreneurs launch/register/sell-first.
+   */
+  milestonePatterns?: RegExp[];
 }
 
 const DEFAULT_VOCAB: InterestVocab = {
@@ -186,6 +200,18 @@ const SAILING_VOCAB: InterestVocab = {
     { pattern: /\brace\b/i, label: 'Racing' },
     { pattern: /\bdebrief\b/i, label: 'Debrief' },
   ],
+  milestonePatterns: [
+    /\b(won|win|winning)\b/i,
+    /\bpodium(ed|ing)?\b/i,
+    /\bfirst\s+(place|race|win|regatta|series)\b/i,
+    /\bqualif(?:ied|ying)\s+for\b/i,
+    /\bcompleted\s+(?:the\s+)?(?:worlds?|championship|regatta|series)\b/i,
+    /\bnew\s+boat\b/i,
+    /\bbought\s+(?:a\s+)?boat\b/i,
+    /\b(top\s+\d+|top-\d+)\b/i,
+    /\bcrew(?:ed)?\s+for\s+the\s+first\s+time\b/i,
+    /\byacht\s*master\b/i,
+  ],
 };
 
 const NURSING_VOCAB: InterestVocab = {
@@ -266,6 +292,19 @@ const NURSING_VOCAB: InterestVocab = {
     { pattern: /community\s+health|public\s+health/i, label: 'Community health' },
     { pattern: /mental\s+health|psych/i, label: 'Mental health' },
   ],
+  milestonePatterns: [
+    /\bpassed\b/i,
+    /\bcertified\b/i,
+    /\blicensed\b/i,
+    /\bgraduated\b/i,
+    /\bNCLEX\b/i,
+    /\bboard\s+exam\b/i,
+    /\bfirst\s+(IV|catheter|patient|code|stick|shift)\b/i,
+    /\bcapstone\s+(complete|defense|defended)\b/i,
+    /\bclinical\s+(start|ended)\b/i,
+    /\bstarted\s+(?:the\s+)?(?:rotation|preceptorship)\b/i,
+    /\bRN\b/i,
+  ],
 };
 
 const ENTREPRENEUR_VOCAB: InterestVocab = {
@@ -292,6 +331,16 @@ const ENTREPRENEUR_VOCAB: InterestVocab = {
     { pattern: /new\s+collection|drop\b/i, label: 'New collection' },
     { pattern: /\bGST\b|filing|return/i, label: 'GST / filing' },
     { pattern: /pop.?up|exhibition\b|fair\b/i, label: 'Pop-up / fair' },
+  ],
+  milestonePatterns: [
+    /\bfirst\s+(sale|customer|order|₹\d|\$\d|rupee)/i,
+    /\blaunched?\b/i,
+    /\bregistered\s+(?:the\s+)?(?:business|company|brand)\b/i,
+    /\bGST\s+(?:filed|number|registration)\b/i,
+    /\bincorporat(ed|ion)\b/i,
+    /\bfirst\s+1000\b/i,
+    /\bonline\s+now\b/i,
+    /\bnew\s+brand\b/i,
   ],
 };
 
@@ -499,4 +548,40 @@ export function detectPhaseLabelFromTitles(
     }
   }
   return bestLabel;
+}
+
+/**
+ * Scan step titles for milestone-pattern matches and return the
+ * matching step titles in input order, deduplicated. Used by the L4
+ * arc lane to surface a small "moments worth marking" annotation row
+ * beneath each season's bricks ("✓ Won FFG Spring · 🎓 Passed NCLEX
+ * · 🚀 First customer").
+ *
+ * Each pattern is treated as a single qualifier — there is no scoring
+ * or label normalization. The user sees their own step title back, in
+ * the same words they wrote, so the surface stays honest to *their*
+ * voice rather than the librarian's.
+ */
+export function detectMilestoneTitles(
+  titles: string[],
+  vocab: InterestVocab,
+  maxResults = 3,
+): string[] {
+  const patterns = vocab.milestonePatterns;
+  if (!patterns || patterns.length === 0 || titles.length === 0) return [];
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const title of titles) {
+    const trimmed = title.trim();
+    if (!trimmed || seen.has(trimmed.toLowerCase())) continue;
+    for (const pattern of patterns) {
+      if (pattern.test(trimmed)) {
+        seen.add(trimmed.toLowerCase());
+        out.push(trimmed);
+        if (out.length >= maxResults) return out;
+        break;
+      }
+    }
+  }
+  return out;
 }

@@ -28,6 +28,7 @@ import type { CapabilityMixMarker } from './CapabilityMix';
 import { PeerJourneyChart } from './PeerJourneyChart';
 import { SeasonLibrarianPrompt } from './SeasonLibrarianPrompt';
 import {
+  detectMilestoneTitles,
   detectPhaseLabelFromTitles,
   resolveInterestVocab,
   type InterestVocab,
@@ -530,12 +531,19 @@ function SeasonLane({
     // title-pattern hit like "Tactics" / "Starts" / "Rig tuning"
     // describes the *specific work* the season pushed.
     const titleBasedLabel = detectPhaseLabelFromTitles(titles, vocab);
+    // Phase D D5 — milestone strip. Detect "moments worth marking"
+    // from step titles using the persona's milestonePatterns
+    // (sailors win/qualify; nurses pass/certify; entrepreneurs
+    // launch/register). We surface the *user's own title text* back
+    // verbatim so they see their words, not a synthesized label.
+    const milestoneTitles = detectMilestoneTitles(titles, vocab, 3);
     return {
       dominantLabel: titleBasedLabel ?? categoryDominant?.label ?? null,
       dominantColor: categoryDominant?.color ?? null,
       withOthersCount,
       doneCount,
       totalCount: season.bricks.length,
+      milestoneTitles,
     };
   }, [season.bricks, vocab]);
 
@@ -637,6 +645,23 @@ function SeasonLane({
               </Text>
             </View>
           ) : null}
+        </View>
+      ) : null}
+
+      {chapterSummary && chapterSummary.milestoneTitles.length > 0 ? (
+        <View style={styles.milestoneStrip}>
+          {chapterSummary.milestoneTitles.map((title) => (
+            <View key={title} style={styles.milestoneItem}>
+              <Ionicons
+                name="trophy"
+                size={11}
+                color={chapterSummary.dominantColor ?? IOS_REGISTER.accentUserAction}
+              />
+              <Text style={styles.milestoneText} numberOfLines={1}>
+                {title}
+              </Text>
+            </View>
+          ))}
         </View>
       ) : null}
 
@@ -1068,6 +1093,31 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: IOS_REGISTER.labelSecondary,
     letterSpacing: 0.1,
+  },
+  // Milestone strip — D5 third cut. Under the chapter chips, surface
+  // up to three "moments worth marking" detected from step titles
+  // ("Won FFG Spring", "Passed NCLEX", "First customer"). Same arc
+  // accent color as the chapter chip dot so the eye links them.
+  milestoneStrip: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+    marginTop: 2,
+    marginBottom: 6,
+    marginHorizontal: 16,
+  },
+  milestoneItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    maxWidth: '100%',
+  },
+  milestoneText: {
+    fontSize: 11.5,
+    fontWeight: '500',
+    color: IOS_REGISTER.label,
+    letterSpacing: -0.1,
+    flexShrink: 1,
   },
   laneEditBtn: {
     padding: 4,
