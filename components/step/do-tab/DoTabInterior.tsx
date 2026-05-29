@@ -10,6 +10,7 @@ import { PlanStartingFrameRow } from './PlanStartingFrameRow';
 import { DoLiveCard } from './DoLiveCard';
 import { DoPostActivityCard } from './DoPostActivityCard';
 import { StepOutcomeCard } from './StepOutcomeCard';
+import { RaceStartGpsCard } from './RaceStartGpsCard';
 import { BeatsList } from './BeatsList';
 import { useStepBeatsBinding } from '@/hooks/useStepBeats';
 import { useLibraryBeforeBinding } from '@/hooks/useStepLibraryBefore';
@@ -168,6 +169,18 @@ export function DoTabInterior({
         interestSlug={interestSlug}
       />
     ) : null;
+  // Sailing-only race start sequence + GPS track capture. Self-gates to the
+  // sailing persona (returns null otherwise), so it can render in pre_activity
+  // for every interest without leaking into non-sailing surfaces.
+  const raceStartCard =
+    stepId && !readOnly ? (
+      <RaceStartGpsCard
+        stepId={stepId}
+        interestId={interestId}
+        interestName={interestName}
+        interestSlug={interestSlug}
+      />
+    ) : null;
 
   if (state === 'live') {
     const liveBody = (
@@ -270,6 +283,7 @@ export function DoTabInterior({
               readOnly={readOnly}
               onToggleSubStep={onToggleSubStep}
             />
+            {raceStartCard}
             {libraryCard}
             {stepId ? beatsList : null}
             {outcomeCard}
@@ -300,6 +314,7 @@ export function DoTabInterior({
             onPress={readOnly ? undefined : onAutoSummarizePlan}
             disabled={readOnly}
           />
+          {raceStartCard}
           {libraryCard}
           {stepId ? beatsList : null}
           {outcomeCard}
