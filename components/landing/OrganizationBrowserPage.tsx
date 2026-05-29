@@ -33,6 +33,8 @@ export function OrganizationBrowserPage({ interestSlug, orgSlug }: OrganizationB
   const isLoggedIn = !!user && !isGuest;
   const [joinState, setJoinState] = useState<'idle' | 'joined' | 'pending' | 'blocked'>('idle');
   const [joinMode, setJoinMode] = useState<OrganizationJoinMode | null>(null);
+  // Fail-open: only flips false once we confirm there's no active approver.
+  const [hasApprover, setHasApprover] = useState(true);
   const [dbOrgId, setDbOrgId] = useState<string | null>(null);
   const [interestDbId, setInterestDbId] = useState<string | null>(null);
   const [blueprintCount, setBlueprintCount] = useState<number>(0);
@@ -104,6 +106,15 @@ export function OrganizationBrowserPage({ interestSlug, orgSlug }: OrganizationB
         if (match) {
           setDbOrgId(match.id);
           setJoinMode(match.join_mode);
+
+          // A request_to_join org with no active approver can't action a
+          // request — gate the Join CTA so it reads as a passive listing.
+          try {
+            const approverIds = await organizationDiscoveryService.getOrgsWithApprover([match.id]);
+            setHasApprover(approverIds.has(match.id));
+          } catch (approverErr) {
+            console.warn('[OrgBrowserPage] approver check failed:', approverErr);
+          }
 
           // Fetch blueprint count (bypasses RLS for non-members)
           const { data: countData, error: countErr } = await supabase.rpc('get_org_blueprint_count', {
@@ -220,6 +231,11 @@ export function OrganizationBrowserPage({ interestSlug, orgSlug }: OrganizationB
       return;
     }
 
+    if (isUnclaimedRequest) {
+      showAlert('Not Available', `${displayOrg?.name ?? 'This organization'} is not on BetterAt yet. There's no one to approve a request to join.`);
+      return;
+    }
+
     if (joinMode === 'invite_only') {
       showAlert('Invite Only', `${org!.name} requires an invitation. Contact the organization directly.`);
       return;
@@ -249,9 +265,14 @@ export function OrganizationBrowserPage({ interestSlug, orgSlug }: OrganizationB
     }
   };
 
+  // request_to_join org with no active approver — the request can't be
+  // actioned, so present it as a passive listing rather than a Join CTA.
+  const isUnclaimedRequest = joinMode === 'request_to_join' && !hasApprover;
+
   const getJoinButtonLabel = () => {
     if (joinState === 'joined') return 'Member';
     if (joinState === 'pending') return 'Request Pending';
+    if (isUnclaimedRequest) return 'Not on BetterAt yet';
     if (!isLoggedIn) return 'Sign Up to Join';
     if (joinMode === 'invite_only') return 'Invite Only';
     if (joinMode === 'request_to_join') return 'Request to Join';
@@ -260,7 +281,7 @@ export function OrganizationBrowserPage({ interestSlug, orgSlug }: OrganizationB
     return `Join ${displayOrg?.name ?? 'Organization'}`;
   };
 
-  const isJoinDisabled = joinState === 'joined' || joinState === 'pending';
+  const isJoinDisabled = joinState === 'joined' || joinState === 'pending' || isUnclaimedRequest;
 
   if (!interest || !displayOrg) {
     return (
@@ -313,9 +334,11 @@ export function OrganizationBrowserPage({ interestSlug, orgSlug }: OrganizationB
                     ? 'checkmark-circle'
                     : joinState === 'pending'
                       ? 'time-outline'
-                      : joinMode === 'invite_only'
-                        ? 'lock-closed-outline'
-                        : 'add-circle-outline'
+                      : isUnclaimedRequest
+                        ? 'ellipse-outline'
+                        : joinMode === 'invite_only'
+                          ? 'lock-closed-outline'
+                          : 'add-circle-outline'
                 }
                 size={16}
                 color={isJoinDisabled ? interest.color : '#FFFFFF'}
@@ -510,7 +533,7 @@ export function OrganizationBrowserPage({ interestSlug, orgSlug }: OrganizationB
             <Text style={styles.pathwayTeaserSubtitle}>
               Join {displayOrg.name} to browse and subscribe to curated learning pathways
             </Text>
-            {joinState === 'idle' && (
+            {joinState === 'idle' && !isUnclaimedRequest && (
               <TouchableOpacity
                 style={[styles.pathwayTeaserBtn, { backgroundColor: interest.color }]}
                 onPress={handleJoinOrg}
