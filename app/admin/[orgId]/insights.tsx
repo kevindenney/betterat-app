@@ -27,6 +27,8 @@ import {
 import { InsightsMapView } from '@/components/admin/InsightsMapView';
 import { ManageCompetenciesSheet } from '@/components/admin/ManageCompetenciesSheet';
 import { useProfileMenuData } from '@/hooks/useProfileMenuData';
+import { useAdminCohorts } from '@/hooks/useAdminCohorts';
+import { useAdminOrgVocab } from '@/hooks/useAdminOrgVocab';
 import { StudioHeader, StudioButton } from '@/components/studio/StudioShell';
 
 type InsightsView = 'grid' | 'map';
@@ -34,7 +36,10 @@ type InsightsView = 'grid' | 'map';
 export default function AdminInsightsPage() {
   const { orgId } = useLocalSearchParams<{ orgId: string }>();
   const router = useRouter();
-  const data = useAdminCompetencyEvidence(orgId as string);
+  const [selectedCohortId, setSelectedCohortId] = useState<string | null>(null);
+  const data = useAdminCompetencyEvidence(orgId as string, selectedCohortId);
+  const cohorts = useAdminCohorts(orgId as string);
+  const av = useAdminOrgVocab(orgId as string);
   const menu = useProfileMenuData();
   const [view, setView] = useState<InsightsView>('grid');
   const [manageOpen, setManageOpen] = useState(false);
@@ -53,8 +58,8 @@ export default function AdminInsightsPage() {
             </View>
           </View>,
           <Text key="meta" style={s.subText}>
-            {data.cohortSize} students · {data.competencies.length} competencies ·{' '}
-            {data.sites.length} clinical sites
+            {data.cohortSize} {av.members} · {data.competencies.length} competencies ·{' '}
+            {data.sites.length} {av.Sites.toLowerCase()}
           </Text>,
         ]}
         actions={
@@ -125,6 +130,29 @@ export default function AdminInsightsPage() {
         </Text>
       </View>
 
+      {cohorts.cohorts.length > 0 ? (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={s.cohortFilter}
+          contentContainerStyle={s.cohortFilterInner}
+        >
+          <CohortChip
+            label={`All ${av.Cohorts.toLowerCase()}`}
+            active={selectedCohortId === null}
+            onPress={() => setSelectedCohortId(null)}
+          />
+          {cohorts.cohorts.map((c) => (
+            <CohortChip
+              key={c.id}
+              label={c.name}
+              active={selectedCohortId === c.id}
+              onPress={() => setSelectedCohortId(c.id)}
+            />
+          ))}
+        </ScrollView>
+      ) : null}
+
       {data.loading ? (
         <Text style={s.loading}>Loading evidence…</Text>
       ) : data.sites.length === 0 || data.competencies.length === 0 ? (
@@ -179,6 +207,24 @@ export default function AdminInsightsPage() {
         onClose={() => setManageOpen(false)}
       />
     </AdminShell>
+  );
+}
+
+function CohortChip({
+  label,
+  active,
+  onPress,
+}: {
+  label: string;
+  active: boolean;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable style={[s.chip, active && s.chipActive]} onPress={onPress}>
+      <Text style={[s.chipText, active && s.chipTextActive]} numberOfLines={1}>
+        {label}
+      </Text>
+    </Pressable>
   );
 }
 
@@ -373,6 +419,21 @@ const s = StyleSheet.create({
   },
   ledeText: { flex: 1, fontSize: 13, color: 'rgba(60, 60, 67, 0.85)', lineHeight: 19 },
   ledeStrong: { color: '#1C1C1E', fontWeight: '600' },
+
+  cohortFilter: { flexGrow: 0, marginBottom: 14 },
+  cohortFilterInner: { gap: 8, paddingRight: 8 },
+  chip: {
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 999,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 0.5,
+    borderColor: '#D1D1D6',
+    maxWidth: 240,
+  },
+  chipActive: { backgroundColor: '#28406B', borderColor: '#28406B' },
+  chipText: { fontSize: 12.5, fontWeight: '600', color: 'rgba(60, 60, 67, 0.85)' },
+  chipTextActive: { color: '#FFFFFF' },
 
   scroll: { flex: 1 },
   loading: { textAlign: 'center', paddingVertical: 32, color: 'rgba(60, 60, 67, 0.6)' },

@@ -92,7 +92,10 @@ export function useAdminCompetencyEvidence(
   const sites = useAdminOrgSites(orgId);
   const cohorts = useAdminCohorts(orgId);
 
-  const cohort = cohorts.cohorts[0] ?? null;
+  const cohort =
+    (cohortId ? cohorts.cohorts.find((c) => c.id === cohortId) : null) ??
+    cohorts.cohorts[0] ??
+    null;
   const cohortSize = cohort?.memberCount ?? 0;
   const cohortName = cohort?.name ?? 'No cohort';
   const slug = cohort?.interestSlug ?? 'nursing';
