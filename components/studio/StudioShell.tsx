@@ -558,7 +558,7 @@ const h = StyleSheet.create({
     justifyContent: 'space-between',
     gap: 16,
   },
-  titleCol: { flex: 1, minWidth: 0 },
+  titleCol: { flex: 1, minWidth: 200 },
   title: {
     fontSize: 28,
     fontWeight: '600',
@@ -596,7 +596,13 @@ const h = StyleSheet.create({
   pillTextNavy: { color: '#28406B' },
   pillTextAmber: { color: '#C99632' },
   pillTextGreen: { color: '#1E8F47' },
-  actions: { flexDirection: 'row', gap: 8 },
+  actions: {
+    flexDirection: 'row',
+    gap: 8,
+    flexShrink: 1,
+    flexWrap: 'wrap',
+    justifyContent: 'flex-end',
+  },
 });
 
 const p = StyleSheet.create({

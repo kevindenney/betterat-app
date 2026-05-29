@@ -204,7 +204,7 @@ export default function AdminOverviewPage() {
             title={siteHi?.label ?? '—'}
             statLine={siteHi ? `${siteHi.count} steps logged` : 'no site data yet'}
             footer={`Where the ${av.Program.toLowerCase()} is physically active.`}
-            actionLabel="Open Sites"
+            actionLabel={`Open ${av.Sites}`}
             onAction={() => router.push(`/admin/${orgId}/sites`)}
           />
           <SpotlightCard
@@ -213,7 +213,7 @@ export default function AdminOverviewPage() {
             title={siteLo?.label ?? '—'}
             statLine={siteLo ? `${siteLo.count} steps logged` : 'no site data yet'}
             footer="Either under-used or low-bandwidth — worth a look."
-            actionLabel="Open Sites"
+            actionLabel={`Open ${av.Sites}`}
             onAction={() => router.push(`/admin/${orgId}/sites`)}
           />
         </View>

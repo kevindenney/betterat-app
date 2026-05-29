@@ -115,15 +115,16 @@ export default function AdminInsightsPage() {
         <Text style={s.ledeText}>
           {view === 'grid' ? (
             <>
-              The constellation across sites. Each cell shows{' '}
-              <Text style={s.ledeStrong}>how many cohort members</Text> have
-              evidenced this competency at this site. Click a cell to see the
-              underlying steps + reflections.
+              The constellation across {av.Sites.toLowerCase()}. Each cell shows{' '}
+              <Text style={s.ledeStrong}>how many {av.members}</Text> have
+              evidenced this competency at this {av.Site.toLowerCase()}. Click a
+              cell to see the underlying steps + reflections.
             </>
           ) : (
             <>
               Geographic view of the same data. Marker size + intensity reflect
-              evidence density at the site. Filter by a single competency to ask{' '}
+              evidence density at the {av.Site.toLowerCase()}. Filter by a single
+              competency to ask{' '}
               <Text style={s.ledeStrong}>where</Text> the program is doing best.
             </>
           )}
@@ -160,9 +161,10 @@ export default function AdminInsightsPage() {
           <Ionicons name="pie-chart-outline" size={32} color="rgba(60, 60, 67, 0.4)" />
           <Text style={s.emptyTitle}>Not enough data to plot</Text>
           <Text style={s.emptyBody}>
-            Insights needs at least one curated site + one cohort. Visit{' '}
-            <Text style={s.emptyMono}>Sites</Text> and{' '}
-            <Text style={s.emptyMono}>Cohorts</Text> to seed those first.
+            Insights needs at least one curated {av.Site.toLowerCase()} + one{' '}
+            {av.Cohort.toLowerCase()}. Visit{' '}
+            <Text style={s.emptyMono}>{av.Sites}</Text> and{' '}
+            <Text style={s.emptyMono}>{av.Cohorts}</Text> to seed those first.
           </Text>
         </View>
       ) : view === 'map' ? (
@@ -177,7 +179,7 @@ export default function AdminInsightsPage() {
       ) : (
         <ScrollView style={s.scroll} horizontal>
           <View>
-            <EvidenceGrid data={data} />
+            <EvidenceGrid data={data} siteNoun={av.Site} />
           </View>
         </ScrollView>
       )}
@@ -244,7 +246,13 @@ const ROW_HEIGHT = 44;
 const ROW_LABEL_WIDTH = 220;
 const TOTAL_COL_WIDTH = 84;
 
-function EvidenceGrid({ data }: { data: ReturnType<typeof useAdminCompetencyEvidence> }) {
+function EvidenceGrid({
+  data,
+  siteNoun,
+}: {
+  data: ReturnType<typeof useAdminCompetencyEvidence>;
+  siteNoun: string;
+}) {
   return (
     <View style={g.wrap}>
       {/* Column headers (site names) */}
@@ -278,7 +286,7 @@ function EvidenceGrid({ data }: { data: ReturnType<typeof useAdminCompetencyEvid
       {/* Column totals (site activity density) */}
       <View style={g.totalsRow}>
         <View style={[g.cell, { width: ROW_LABEL_WIDTH }]}>
-          <Text style={g.totalsLabel}>Site activity</Text>
+          <Text style={g.totalsLabel}>{siteNoun} activity</Text>
         </View>
         {data.sites.map((site) => {
           const t = data.colTotals.get(site.id) ?? { count: 0, pct: 0 };

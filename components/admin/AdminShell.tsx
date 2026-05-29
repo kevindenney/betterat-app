@@ -11,11 +11,14 @@ import React from 'react';
 import { View, Text, StyleSheet, Platform } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useAuth } from '@/providers/AuthProvider';
+import { getDashboardRoute } from '@/lib/utils/userTypeRouting';
+import { isOrgAdminRole } from '@/lib/organizations/roleLabels';
 import { useProfileMenuData } from '@/hooks/useProfileMenuData';
 import { useAdminPeople } from '@/hooks/useAdminPeople';
 import { useAdminOrgSites } from '@/hooks/useAdminOrgSites';
 import { useAdminCohorts } from '@/hooks/useAdminCohorts';
 import { useAdminPrograms } from '@/hooks/useAdminPrograms';
+import { useAdminOrgBlueprints } from '@/hooks/useAdminOrgBlueprints';
 import {
   StudioShell,
   StudioNavSection,
@@ -54,8 +57,23 @@ export function AdminShell({ activeKey, accent = 'navy', children }: AdminShellP
   const sites = useAdminOrgSites(orgId as string);
   const cohorts = useAdminCohorts(orgId as string);
   const programs = useAdminPrograms(orgId as string);
+  const blueprints = useAdminOrgBlueprints(orgId as string);
 
-  if (!user || menu.loading) {
+  // Only admins of *this* org may see the Studio chrome. Without this gate
+  // any signed-in account that lands on a stale /admin/<orgId> URL (e.g. a
+  // browser tab left over from a demo admin session) renders the full org
+  // dashboard. menu.memberships only contains active rows; match the server
+  // gate is_org_admin_member (owner/admin/manager) via isOrgAdminRole.
+  const isOrgAdmin = menu.memberships.some(
+    (m) => m.org_id === orgId && isOrgAdminRole(m.role),
+  );
+
+  React.useEffect(() => {
+    if (!user || menu.loading || isOrgAdmin) return;
+    router.replace(getDashboardRoute(userProfile?.user_type ?? null));
+  }, [user, menu.loading, isOrgAdmin, userProfile?.user_type, router]);
+
+  if (!user || menu.loading || !isOrgAdmin) {
     return <StudioLoading />;
   }
 
@@ -112,7 +130,7 @@ export function AdminShell({ activeKey, accent = 'navy', children }: AdminShellP
           key: 'blueprints',
           icon: 'git-branch-outline',
           label: 'Blueprints',
-          count: 7,
+          count: blueprints.blueprints.length || undefined,
           active: activeKey === 'blueprints',
           onPress: () => goto('blueprints'),
         },
