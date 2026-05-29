@@ -285,6 +285,30 @@ export function TimelineZoomPracticeScreen() {
     [steps, updateStep],
   );
 
+  // L2 in-play checklist: toggle a how_sub_step's completed flag straight
+  // from the step cover. Deep-merges the updated sub-step list back into
+  // metadata.plan so the rest of the plan blob is preserved.
+  const handleToggleHowItem = useCallback(
+    (stepId: string, subStepId: string, completed: boolean) => {
+      const step = steps.find((s) => s.id === stepId);
+      if (!step) return;
+      const meta = (step.metadata as Record<string, unknown> | null) ?? {};
+      const plan = (meta.plan as Record<string, unknown> | null) ?? {};
+      const subs = Array.isArray(plan.how_sub_steps)
+        ? (plan.how_sub_steps as { id: string }[])
+        : [];
+      const nextSubs = subs.map((s) =>
+        s.id === subStepId ? { ...s, completed } : s,
+      );
+      const nextMeta = {
+        ...meta,
+        plan: { ...plan, how_sub_steps: nextSubs },
+      };
+      updateStep.mutate({ stepId, input: { metadata: nextMeta } });
+    },
+    [steps, updateStep],
+  );
+
   // Frame 12 bulk actions. Archive flips status to 'skipped' (the
   // schema's closest "off the active list" terminal state); delete is
   // the real destroy mutation behind a confirm. Move/Tag/Reschedule
@@ -503,6 +527,7 @@ export function TimelineZoomPracticeScreen() {
         embedFullDetailAtL1
         onReorderStep={handleReorderStep}
         onMarkStepDone={handleMarkStepDone}
+        onToggleHowItem={handleToggleHowItem}
         onBulkArchive={handleBulkArchive}
         onBulkDelete={handleBulkDelete}
         onBulkMove={handleBulkMove}

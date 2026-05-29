@@ -10,10 +10,11 @@
 
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { Ionicons } from '@expo/vector-icons';
 
 import { IOS_REGISTER } from '@/lib/design-tokens-ios';
-import type { Capability, CohortAvatar, StepOriginKind, StepStatus, TimelineStep } from './types';
+import type { Capability, CohortAvatar, StepHowItem, StepOriginKind, StepStatus, TimelineStep } from './types';
 
 const STATUS_VISUAL: Record<
   StepStatus,
@@ -71,6 +72,11 @@ interface StepDigestCardProps {
   variant?: 'default' | 'nearby';
   /** When true, surface one high-signal snippet for the centered nearby card. */
   showRelevantSnippet?: boolean;
+  /**
+   * When provided and the step is in-play ('do'), the nearby card renders
+   * the how-sub-steps as a checkable checklist; tapping a row toggles it.
+   */
+  onToggleHowItem?: (subStepId: string, completed: boolean) => void;
   onPress?: () => void;
 }
 
@@ -80,13 +86,33 @@ export function StepDigestCard({
   compact,
   variant = 'default',
   showRelevantSnippet = false,
+  onToggleHowItem,
   onPress,
 }: StepDigestCardProps) {
   const status = STATUS_VISUAL[step.status];
   const isToday = step.preTitle?.startsWith('TODAY');
   const isNearby = variant === 'nearby';
   const origin = ORIGIN_VISUAL[step.originKind ?? 'mine'];
-  const relevantBlock = showRelevantSnippet ? getRelevantBlock(step) : null;
+  // In-play cards expose an interactive checklist instead of the static
+  // "next beats" snippet so the user can tick items off straight from L2.
+  const inPlayChecklist =
+    isNearby &&
+    step.status === 'do' &&
+    !!onToggleHowItem &&
+    (step.howItems?.length ?? 0) > 0;
+  // Done/reflected centered cards lead with the reflection digest (key
+  // takeaway + lead reflection + evidence) instead of the "next beats"
+  // planning snippet. Falls back to the planning snippet when the step
+  // was completed without a reflection.
+  const isReflectedDone = step.status === 'done' || step.status === 'reflected';
+  const reflectedBlock =
+    showRelevantSnippet && isReflectedDone && !inPlayChecklist
+      ? getReflectedBlock(step)
+      : null;
+  const relevantBlock =
+    showRelevantSnippet && !inPlayChecklist && !reflectedBlock
+      ? getRelevantBlock(step)
+      : null;
   const visibleCapabilities = (step.capabilities ?? []).filter((cap) => {
     const normalized = cap.label.trim().toLowerCase();
     return ![
@@ -169,6 +195,18 @@ export function StepDigestCard({
       >
         {step.title}
       </Text>
+
+      {inPlayChecklist ? (
+        <View style={styles.checklistWrap}>
+          {(step.howItems ?? []).map((item) => (
+            <ChecklistRow
+              key={item.id}
+              item={item}
+              onToggle={() => onToggleHowItem?.(item.id, !item.checked)}
+            />
+          ))}
+        </View>
+      ) : null}
 
       {isNearby && relevantBlock ? (
         <View style={styles.relevantWrap}>
@@ -316,6 +354,52 @@ function getRelevantBlock(
 
   if (!context && uncheckedBeats.length === 0 && !why) return null;
   return { context, beats: uncheckedBeats, why };
+}
+
+// Single checklist row on an in-play L2 card. Uses an RNGH Tap so it nests
+// inside the carousel slot's drag/tap gesture and wins the touch (a bare
+// Pressable would race with the card-level tap-to-open).
+function ChecklistRow({
+  item,
+  onToggle,
+}: {
+  item: StepHowItem;
+  onToggle: () => void;
+}) {
+  const tap = React.useMemo(
+    () =>
+      Gesture.Tap()
+        .runOnJS(true)
+        .onEnd((_e, success) => {
+          if (success) onToggle();
+        }),
+    [onToggle],
+  );
+  return (
+    <GestureDetector gesture={tap}>
+      <View style={styles.checklistRow}>
+        <View
+          style={[
+            styles.checkbox,
+            item.checked ? styles.checkboxChecked : null,
+          ]}
+        >
+          {item.checked ? (
+            <Ionicons name="checkmark" size={11} color="#FFFFFF" />
+          ) : null}
+        </View>
+        <Text
+          style={[
+            styles.checklistLabel,
+            item.checked ? styles.checklistLabelDone : null,
+          ]}
+          numberOfLines={2}
+        >
+          {item.label}
+        </Text>
+      </View>
+    </GestureDetector>
+  );
 }
 
 function CapabilityChip({ cap }: { cap: Capability }) {
@@ -503,6 +587,45 @@ const styles = StyleSheet.create({
     letterSpacing: 0.4,
     color: '#B45F06',
     textTransform: 'uppercase',
+  },
+  checklistWrap: {
+    marginBottom: 8,
+    marginLeft: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255, 149, 0, 0.08)',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(255, 149, 0, 0.2)',
+    gap: 6,
+  },
+  checklistRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  checkbox: {
+    width: 17,
+    height: 17,
+    borderRadius: 999,
+    borderWidth: 1.5,
+    borderColor: 'rgba(60,60,67,0.3)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  checkboxChecked: {
+    backgroundColor: '#34C759',
+    borderColor: '#34C759',
+  },
+  checklistLabel: {
+    flex: 1,
+    fontSize: 12,
+    lineHeight: 16,
+    color: IOS_REGISTER.label,
+  },
+  checklistLabelDone: {
+    color: IOS_REGISTER.labelSecondary,
+    textDecorationLine: 'line-through',
   },
   beatsList: {
     gap: 3,

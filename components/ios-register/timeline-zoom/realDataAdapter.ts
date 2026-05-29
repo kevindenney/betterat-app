@@ -21,7 +21,7 @@
  * archived season real brick counts (needs RPC).
  */
 
-import type { StepPlanData, StepCollaborator } from '@/types/step-detail';
+import type { StepPlanData, StepCollaborator, StepReviewData, StepActData } from '@/types/step-detail';
 import type { Season } from '@/types/season';
 import type { TimelineStepRecord, TimelineStepStatus } from '@/types/timeline-steps';
 import { CAPABILITY_PALETTE } from './sampleData';
@@ -402,6 +402,44 @@ function getPlanData(metadata: Record<string, unknown> | null | undefined): Step
   return null;
 }
 
+/**
+ * Done-card digest — distills the Reflect tab's output into the three
+ * strands the L2 nearby cover surfaces for steps left of NOW: the key
+ * takeaway headline, a lead reflection line, and how many evidence
+ * artifacts were captured. Returns empty strands for unreflected steps.
+ */
+function getReviewDigest(metadata: Record<string, unknown> | null | undefined): {
+  keyTakeaway?: string;
+  reflectionSummary?: string;
+  evidenceCount?: number;
+} {
+  if (!metadata) return {};
+  const review = (metadata as { review?: unknown }).review as StepReviewData | undefined;
+  const act = (metadata as { act?: unknown }).act as StepActData | undefined;
+
+  const keyTakeaway = review?.key_takeaway?.trim() || undefined;
+
+  // Lead reflection line — prefer the "what did you learn" section, then
+  // "what worked", then the legacy flat learning field.
+  const sections = Array.isArray(review?.sections) ? review!.sections : [];
+  const sectionContent = (prompt: string) =>
+    sections.find((s) => s.prompt === prompt)?.content?.trim() || undefined;
+  const reflectionSummary =
+    sectionContent('what_did_you_learn') ??
+    sectionContent('what_worked') ??
+    review?.what_learned?.trim() ??
+    undefined;
+
+  const evidenceCount =
+    (act?.media_uploads?.length ?? 0) + (act?.media_links?.length ?? 0);
+
+  return {
+    keyTakeaway,
+    reflectionSummary,
+    evidenceCount: evidenceCount > 0 ? evidenceCount : undefined,
+  };
+}
+
 function initialsFromName(name: string): string {
   const parts = name.replace(/[^\w\s]/g, '').split(/\s+/).filter(Boolean);
   if (parts.length === 0) return '··';
@@ -495,9 +533,10 @@ function recordToStep(
   const howItems: StepHowItem[] | undefined = plan?.how_sub_steps
     ?.slice()
     .sort((a, b) => a.sort_order - b.sort_order)
-    .map((sub) => ({ label: sub.text, checked: sub.completed }));
+    .map((sub) => ({ id: sub.id, label: sub.text, checked: sub.completed }));
   const whyReasoning = plan?.why_reasoning?.trim() || undefined;
   const whenLabel = formatWhenLabel(scheduleAnchor);
+  const reviewDigest = getReviewDigest(rec.metadata);
 
   // Meta row — "Wed · <location>" left, "Preceptor: <name>" right
   const locName = plan?.where_location?.name ?? rec.location_name ?? null;
@@ -564,6 +603,9 @@ function recordToStep(
     whyReasoning,
     whenLabel,
     howItems,
+    keyTakeaway: reviewDigest.keyTakeaway,
+    reflectionSummary: reviewDigest.reflectionSummary,
+    evidenceCount: reviewDigest.evidenceCount,
     capabilities: stepCapabilities,
     from,
     cohortAvatars,

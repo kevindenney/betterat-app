@@ -108,6 +108,15 @@ interface TimelineZoomCanvasProps {
    */
   onMarkStepDone?: (stepId: string) => void;
   /**
+   * L2 in-play checklist toggle. Fires when the user checks/unchecks a
+   * how-sub-step on an in-play (status 'do') step's L2 cover card.
+   */
+  onToggleHowItem?: (
+    stepId: string,
+    subStepId: string,
+    completed: boolean,
+  ) => void;
+  /**
    * Frame 12 bulk-edit hooks. The canvas owns select-mode state and the
    * bottom action bar; the parent wires the actual mutations. Archive
    * fires for every selected id with status='skipped'; Delete fires
@@ -158,6 +167,7 @@ export function TimelineZoomCanvas({
   embedFullDetailAtL1 = false,
   onReorderStep,
   onMarkStepDone,
+  onToggleHowItem,
   onBulkArchive,
   onBulkDelete,
   onBulkMove,
@@ -382,6 +392,7 @@ export function TimelineZoomCanvas({
                     onOpenStep={handleOpenStep}
                     onReorderStep={onReorderStep}
                     onMarkStepDone={onMarkStepDone}
+                    onToggleHowItem={onToggleHowItem}
                   />
                 ) : null}
                 {level === 3 ? (

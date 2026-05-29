@@ -71,10 +71,10 @@ const spring26Steps: TimelineStep[] = [
     whatBody:
       'Take handoff on three HF patients and run the SBAR back, naming volume status changes and the specific telemetry I’d flag.',
     howItems: [
-      { label: 'Pre-chart all three in Epic before 6:55', checked: true },
-      { label: 'Skim AACN HF pocket card on the train', checked: true },
-      { label: 'Use ISBAR template — no improvising', checked: false },
-      { label: 'Flag the new lasix order on bed 12 explicitly', checked: false },
+      { id: 'how-1', label: 'Pre-chart all three in Epic before 6:55', checked: true },
+      { id: 'how-2', label: 'Skim AACN HF pocket card on the train', checked: true },
+      { id: 'how-3', label: 'Use ISBAR template — no improvising', checked: false },
+      { id: 'how-4', label: 'Flag the new lasix order on bed 12 explicitly', checked: false },
     ],
     capabilities: [
       { id: 'cardio-a', label: 'Cardio assessment', color: '#A04CC4' },

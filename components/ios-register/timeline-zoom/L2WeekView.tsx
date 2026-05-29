@@ -81,6 +81,15 @@ interface L2WeekViewProps {
    */
   onMarkStepDone?: (stepId: string) => void;
   /**
+   * Toggle a how-sub-step on an in-play step's cover card. L2 shows the
+   * checklist on cards whose status is 'do'.
+   */
+  onToggleHowItem?: (
+    stepId: string,
+    subStepId: string,
+    completed: boolean,
+  ) => void;
+  /**
    * Layout density. Defaults to the interest vocab's preference (dense
    * personas get `compact`, sparse personas get `peek`). Pass explicitly
    * to override.
@@ -94,6 +103,7 @@ export function L2WeekView({
   onOpenStep,
   onReorderStep,
   onMarkStepDone,
+  onToggleHowItem,
   density,
 }: L2WeekViewProps) {
   const { width: viewportWidth } = useWindowDimensions();
@@ -528,6 +538,12 @@ export function L2WeekView({
                       onInsertAfter={() => handleOpenInsertSheet(step.id, steps[index + 1]?.id ?? null)}
                       buildGesture={drag.buildItemGesture}
                       registerRowLayout={drag.registerRowLayout}
+                      onToggleHowItem={
+                        onToggleHowItem
+                          ? (subStepId, completed) =>
+                              onToggleHowItem(step.id, subStepId, completed)
+                          : undefined
+                      }
                     />
                   );
                 })}
@@ -896,6 +912,7 @@ interface DraggableCarouselSlotProps {
   onInsertAfter?: () => void;
   buildGesture: ReturnType<typeof useDragReorder>['buildItemGesture'];
   registerRowLayout: ReturnType<typeof useDragReorder>['registerRowLayout'];
+  onToggleHowItem?: (subStepId: string, completed: boolean) => void;
 }
 
 function DraggableCarouselSlot({
@@ -914,6 +931,7 @@ function DraggableCarouselSlot({
   onInsertAfter,
   buildGesture,
   registerRowLayout,
+  onToggleHowItem,
 }: DraggableCarouselSlotProps) {
   // Compose the long-press-to-lift Pan with a Tap so tap-to-open and
   // drag-to-reorder don't fight (the old card-level Pressable couldn't
@@ -969,6 +987,7 @@ function DraggableCarouselSlot({
             variant="nearby"
             highlighted={highlighted}
             showRelevantSnippet={highlighted}
+            onToggleHowItem={onToggleHowItem}
           />
           {willComplete ? (
             <View style={styles.completeOverlay} pointerEvents="none">

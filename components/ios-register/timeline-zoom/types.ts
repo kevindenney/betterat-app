@@ -56,6 +56,8 @@ export interface BlueprintProvenance {
 }
 
 export interface StepHowItem {
+  /** Underlying how_sub_steps id — needed to toggle the item from L2. */
+  id: string;
   label: string;
   checked: boolean;
 }
@@ -78,6 +80,12 @@ export interface TimelineStep {
   whyReasoning?: string;
   whenLabel?: string;
   howItems?: StepHowItem[];
+  /** L2 done-card digest — the reflection's distilled headline (review.key_takeaway). */
+  keyTakeaway?: string;
+  /** L2 done-card digest — lead reflection line (what you learned / what worked). */
+  reflectionSummary?: string;
+  /** L2 done-card digest — count of evidence artifacts captured (photos/videos/links). */
+  evidenceCount?: number;
   capabilities?: Capability[];
   from?: BlueprintProvenance;
   /** Per-step Discuss tab unread count (Frame 21). */
