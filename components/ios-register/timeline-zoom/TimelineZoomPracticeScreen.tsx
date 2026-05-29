@@ -16,6 +16,9 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useQuery } from '@tanstack/react-query';
+
+import { supabase } from '@/services/supabase';
 
 import { IOS_REGISTER } from '@/lib/design-tokens-ios';
 import { useAuth } from '@/providers/AuthProvider';
@@ -34,7 +37,8 @@ import type { CreateSeasonInput, UpdateSeasonInput, Season } from '@/types/seaso
 
 import { TimelineZoomCanvas } from './TimelineZoomCanvas';
 import type { ZoomLevel } from './types';
-import { mapToTimelineDataset, type BlueprintLookup } from './realDataAdapter';
+import { mapToTimelineDataset, type BlueprintLookup, type BusinessOutcomeInput } from './realDataAdapter';
+import { resolveInterestVocab } from './interestVocab';
 import { MoveToSeasonSheet, buildMoveTargets } from './MoveToSeasonSheet';
 import { TagBulkSheet } from './TagBulkSheet';
 import { ScheduleBulkSheet } from './ScheduleBulkSheet';
@@ -111,6 +115,35 @@ export function TimelineZoomPracticeScreen() {
   // most accounts the activePlan branch wins.
   const { data: interestVision } = useInterestVision(interestId);
   const { data: activePlan } = useActivePlan(interestId);
+
+  // D11 headline (entrepreneur only) — weekly turnover from
+  // business_outcomes. Decoupled self-contained query so the adapter
+  // can author the EARNINGS headline from real revenue. Gated on the
+  // resolved vocab so sailors / nurses never issue this read.
+  const isEntrepreneur = useMemo(
+    () =>
+      resolveInterestVocab(interestId, currentInterest?.name ?? null, currentInterest?.slug ?? null)
+        .id === 'entrepreneur',
+    [interestId, currentInterest?.name, currentInterest?.slug],
+  );
+  const { data: businessOutcomes = [] } = useQuery<BusinessOutcomeInput[]>({
+    queryKey: ['business-outcomes-headline', user?.id ?? 'none'],
+    enabled: Boolean(user?.id) && isEntrepreneur,
+    staleTime: 60_000,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('business_outcomes')
+        .select('week_start, revenue_minor, currency')
+        .eq('user_id', user!.id)
+        .order('week_start', { ascending: true });
+      if (error) throw error;
+      return (data ?? []).map((row) => ({
+        weekStart: row.week_start,
+        revenueMinor: row.revenue_minor,
+        currency: row.currency,
+      }));
+    },
+  });
   const effectiveVision = useMemo(() => {
     if (activePlan) {
       return {
@@ -193,6 +226,7 @@ export function TimelineZoomPracticeScreen() {
         stepReflectionsMap,
         interestVision: effectiveVision,
         activePlanId: activePlan?.id ?? null,
+        businessOutcomes,
       }),
     [
       interestId,
@@ -209,6 +243,7 @@ export function TimelineZoomPracticeScreen() {
       stepReflectionsMap,
       effectiveVision,
       activePlan?.id,
+      businessOutcomes,
     ],
   );
 

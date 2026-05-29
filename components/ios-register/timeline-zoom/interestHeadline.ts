@@ -53,18 +53,24 @@ export interface HeadlineMetricConfig {
 }
 
 /**
- * Entrepreneur EARNINGS — the only persona whose headline is fully real
- * today. Reads the D7 finance already on the season / dataset; the
- * money lane below stays as the weekly in/out breakdown (no
- * double-counting — headline is the single net figure + loan tier).
+ * Entrepreneur EARNINGS. Two data sources, in priority order:
+ *   1. Sample personas carry full D7 finance (in/out per week) on the
+ *      season / dataset → headline is the single net figure + loan tier,
+ *      with the money lane below as the weekly breakdown (no
+ *      double-counting).
+ *   2. Real accounts have no synthesised finance — the adapter authors a
+ *      turnover headline straight from the `business_outcomes` table onto
+ *      `season.headline` / `dataset.lifetimeHeadline`. We pass that
+ *      through. (Turnover, not net: the table has revenue only, no cost.)
+ * Either way the slot stays hidden when neither source exists.
  */
 const ENTREPRENEUR_HEADLINE: HeadlineMetricConfig = {
   label: 'EARNINGS',
   resolveSeason: (season) => {
     const finance = season.finance;
-    if (!finance || finance.weekly.length === 0) return null;
+    if (!finance || finance.weekly.length === 0) return season.headline ?? null;
     const config = resolveMoneyConfig('entrepreneur');
-    if (!config) return null;
+    if (!config) return season.headline ?? null;
     const net = finance.weekly.reduce((sum, w) => sum + (w.in - w.out), 0);
     return {
       value: `${formatMoney(net, config)} net`,
@@ -74,9 +80,9 @@ const ENTREPRENEUR_HEADLINE: HeadlineMetricConfig = {
   },
   resolveLifetime: (dataset) => {
     const finance = dataset.lifetimeFinance;
-    if (!finance) return null;
+    if (!finance) return dataset.lifetimeHeadline ?? null;
     const config = resolveMoneyConfig('entrepreneur');
-    if (!config) return null;
+    if (!config) return dataset.lifetimeHeadline ?? null;
     const tier = resolveLoanTier(finance.totalEarned, config);
     const caption = tier
       ? tier.next

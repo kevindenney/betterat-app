@@ -30,6 +30,8 @@ import {
   resolveInterestVocab,
   type InterestVocab,
 } from './interestVocab';
+import { formatMoney, resolveLoanTier, resolveMoneyConfig } from './interestMoney';
+import type { HeadlineMetricValue } from './interestHeadline';
 import type {
   Capability,
   CohortAvatar,
@@ -1374,6 +1376,20 @@ interface AdapterInput {
    * when null, it creates a new plan + writes vision to it.
    */
   activePlanId?: string | null;
+  /**
+   * Optional weekly business outcomes (entrepreneur interest only).
+   * When supplied for an entrepreneurial persona, drives the D11
+   * headline metric: current-season turnover ("₹X earned") on L3
+   * and lifetime turnover + Mudra loan tier on L4. revenueMinor is
+   * the smallest currency unit (paise for INR) — turnover, not net.
+   */
+  businessOutcomes?: BusinessOutcomeInput[];
+}
+
+export interface BusinessOutcomeInput {
+  weekStart: string;
+  revenueMinor: number;
+  currency: string;
 }
 
 export function mapToTimelineDataset({
@@ -1391,6 +1407,7 @@ export function mapToTimelineDataset({
   stepReflectionsMap,
   interestVision,
   activePlanId,
+  businessOutcomes,
 }: AdapterInput): TimelineDataset {
   // Sort steps by sort_order, then starts_at. Stable ordering matters for
   // week bucketing fallback and L4 brick layout.
@@ -1559,6 +1576,58 @@ export function mapToTimelineDataset({
     }
   }
 
+  // D11 headline (entrepreneur only) — turnover from the real
+  // business_outcomes table. revenueMinor is paise; ÷100 → rupees.
+  // Turnover (gross), NOT net: the table has revenue only, no cost
+  // column, so the wording is "earned" / "/wk" — never "net".
+  let seasonHeadline: HeadlineMetricValue | undefined;
+  let lifetimeHeadline: HeadlineMetricValue | undefined;
+  if (interestVocab.id === 'entrepreneur' && businessOutcomes && businessOutcomes.length > 0) {
+    const moneyConfig = resolveMoneyConfig('entrepreneur');
+    if (moneyConfig) {
+      const toMajor = (rows: BusinessOutcomeInput[]) =>
+        rows.reduce((sum, r) => sum + r.revenueMinor / 100, 0);
+
+      const lifetimeTurnover = toMajor(businessOutcomes);
+      const tier = resolveLoanTier(lifetimeTurnover, moneyConfig);
+      const lifetimeCaption = tier
+        ? tier.next
+          ? `${tier.current.label} active · ${Math.round(tier.fraction * 100)}% to ${tier.next.label}`
+          : `${tier.current.label} — top tier reached`
+        : `${businessOutcomes.length} weeks tracked`;
+      lifetimeHeadline = {
+        value: formatMoney(lifetimeTurnover, moneyConfig),
+        caption: lifetimeCaption,
+        tone: 'positive',
+      };
+
+      // Season scope: weeks whose week_start falls inside the current
+      // season window. Fall back to all rows when the season has no
+      // dates (single-block accounts) so the figure is never empty.
+      const seasonStart = currentSeason?.start_date
+        ? Date.parse(currentSeason.start_date)
+        : null;
+      const seasonEnd = currentSeason?.end_date
+        ? Date.parse(currentSeason.end_date)
+        : null;
+      const inWindow =
+        seasonStart != null && seasonEnd != null
+          ? businessOutcomes.filter((r) => {
+              const t = Date.parse(r.weekStart);
+              return !Number.isNaN(t) && t >= seasonStart && t <= seasonEnd;
+            })
+          : businessOutcomes;
+      const seasonRows = inWindow.length > 0 ? inWindow : businessOutcomes;
+      const seasonTurnover = toMajor(seasonRows);
+      const weeklyAvg = seasonTurnover / seasonRows.length;
+      seasonHeadline = {
+        value: `${formatMoney(seasonTurnover, moneyConfig)} earned`,
+        caption: `${seasonRows.length} ${seasonRows.length === 1 ? 'week' : 'weeks'} · ${formatMoney(weeklyAvg, moneyConfig)}/wk avg`,
+        tone: 'positive',
+      };
+    }
+  }
+
   const currentSeasonNode: TimelineSeason = {
     id: seasonIdForSteps,
     title: currentSeason?.name ?? currentSeason?.short_name ?? 'Current arc',
@@ -1581,6 +1650,7 @@ export function mapToTimelineDataset({
     visionEvidenceTrendByCompetency,
     visionEvidenceTrend,
     activePlanId: activePlanId ?? null,
+    headline: seasonHeadline,
   };
 
   // Index moved-via-Section-E step records by their target season id so
@@ -1665,6 +1735,7 @@ export function mapToTimelineDataset({
       : '',
     sinceTimestamp: allSeasons[allSeasons.length - 1]?.start_date ?? undefined,
     lifetimeVisionStatement: interestVision?.lifetimeStatement ?? null,
+    lifetimeHeadline,
     seasons: [currentSeasonNode, ...archivedSeasons],
     capabilityFilters: [{ id: 'all', label: 'All' }],
     lifetime: computeLifetimeAnalysis([currentSeasonNode, ...archivedSeasons]),
