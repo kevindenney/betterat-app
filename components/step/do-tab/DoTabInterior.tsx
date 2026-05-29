@@ -124,6 +124,20 @@ export function DoTabInterior({
       onDelete={beats.onDelete}
     />
   );
+  // Per-step business-outcome capture. StepOutcomeCard self-gates on the
+  // entrepreneur persona (returns null otherwise), so it can render in every
+  // Do state. It must: untimed steps (the entrepreneur default) never expose a
+  // Stop-capturing CTA, so they never reach post_activity — scoping the card to
+  // that state alone left "This sale" unreachable for the persona it's built for.
+  const outcomeCard =
+    stepId && !readOnly ? (
+      <StepOutcomeCard
+        stepId={stepId}
+        interestId={interestId}
+        interestName={interestName}
+        interestSlug={interestSlug}
+      />
+    ) : null;
 
   if (state === 'live') {
     const liveBody = (
@@ -149,6 +163,7 @@ export function DoTabInterior({
           onDeleteCapture={onDeleteCapture}
           onTagCapture={onTagCapture}
         />
+        {outcomeCard}
         {hasCaptures && onMoveToReflect && !readOnly ? (
           <MoveToReviewCTA onPress={onMoveToReflect} />
         ) : null}
@@ -191,14 +206,7 @@ export function DoTabInterior({
           onDiscardActivity={onDiscardActivity}
           onMarkAsEvidence={onMarkAsEvidence}
         />
-        {stepId && !readOnly ? (
-          <StepOutcomeCard
-            stepId={stepId}
-            interestId={interestId}
-            interestName={interestName}
-            interestSlug={interestSlug}
-          />
-        ) : null}
+        {outcomeCard}
         {stepId ? beatsList : null}
         {footer}
       </>
@@ -234,6 +242,7 @@ export function DoTabInterior({
               onPress={readOnly ? undefined : onAutoSummarizePlan}
               disabled={readOnly}
             />
+            {outcomeCard}
             {stepId ? beatsList : null}
           </>
         )}
@@ -262,6 +271,7 @@ export function DoTabInterior({
             onPress={readOnly ? undefined : onAutoSummarizePlan}
             disabled={readOnly}
           />
+          {outcomeCard}
           {stepId ? beatsList : null}
         </>
       )}
