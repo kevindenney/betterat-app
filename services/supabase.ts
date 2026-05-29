@@ -229,6 +229,47 @@ export interface Database {
           created_at?: string
         }
       }
+      business_outcomes: {
+        Row: {
+          id: string
+          user_id: string
+          plan_id: string
+          week_start: string
+          units_sold: number
+          revenue_minor: number
+          currency: string
+          customer_count: number
+          repeat_count: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          plan_id: string
+          week_start: string
+          units_sold?: number
+          revenue_minor?: number
+          currency?: string
+          customer_count?: number
+          repeat_count?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          plan_id?: string
+          week_start?: string
+          units_sold?: number
+          revenue_minor?: number
+          currency?: string
+          customer_count?: number
+          repeat_count?: number
+          created_at?: string
+          updated_at?: string
+        }
+      }
       club_profiles: {
         Row: {
           id: string

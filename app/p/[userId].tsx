@@ -30,6 +30,7 @@ import { Stack, useLocalSearchParams, router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useMemberPortfolio } from '@/hooks/useMemberPortfolio';
+import { useBusinessOutcomes } from '@/hooks/useBusinessOutcomes';
 import {
   PortfolioAccessDeniedError,
   PortfolioRpcUnavailableError,
@@ -157,6 +158,8 @@ function PortfolioContent({ portfolio }: { portfolio: MemberPortfolio }) {
         <StatPill label="Steps" value={totalSteps} />
       </View>
 
+      <EarningsBanner userId={portfolio.user.id} />
+
       {interestCount === 0 ? (
         <View style={styles.emptyInterests}>
           <Text style={styles.emptyInterestsTitle}>
@@ -184,6 +187,35 @@ function StatPill({ label, value }: { label: string; value: number }) {
       <Text style={styles.statValue}>{value}</Text>
       <Text style={styles.statLabel}>{label}</Text>
     </View>
+  );
+}
+
+function EarningsBanner({ userId }: { userId: string }) {
+  const { data } = useBusinessOutcomes(userId);
+  if (!data || data.length === 0) return null;
+
+  const currency = data[data.length - 1]?.currency ?? 'INR';
+  const monthlyMinor = data.slice(-4).reduce((sum, o) => sum + o.revenueMinor, 0);
+  const symbol = currency === 'INR' ? '₹' : currency === 'USD' ? '$' : '';
+
+  return (
+    <Pressable
+      onPress={() => router.push(`/outcomes?userId=${userId}`)}
+      style={styles.earningsBanner}
+      accessibilityRole="button"
+      accessibilityLabel="View business outcomes"
+    >
+      <View style={styles.earningsIcon}>
+        <Ionicons name="trending-up" size={18} color="#BE185D" />
+      </View>
+      <View style={styles.earningsText}>
+        <Text style={styles.earningsLabel}>Earnings this month</Text>
+        <Text style={styles.earningsValue}>
+          {`${symbol}${Math.round(monthlyMinor / 100).toLocaleString()}`}
+        </Text>
+      </View>
+      <Ionicons name="chevron-forward" size={18} color="#94A3B8" />
+    </Pressable>
   );
 }
 
@@ -382,6 +414,34 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     color: '#64748B',
   },
+  earningsBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: 14,
+    backgroundColor: '#FFFFFF',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: '#F1E4EC',
+  },
+  earningsIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FCE7F0',
+  },
+  earningsText: { flex: 1 },
+  earningsLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    letterSpacing: 0.4,
+    textTransform: 'uppercase',
+    color: '#BE185D',
+  },
+  earningsValue: { fontSize: 18, fontWeight: '800', color: '#0F172A', marginTop: 1 },
   emptyInterests: {
     padding: 22,
     borderRadius: 14,
