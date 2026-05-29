@@ -14,7 +14,7 @@
     "chrome:console": "node scripts/capture-chrome-console.mjs | tee logs/chrome-console.log",
     "chrome:debug": "npm run chrome:open && npm run chrome:console",
     "build:web": "NODE_OPTIONS='--max-old-space-size=12288' npx expo export --platform web && node scripts/copy-static.js",
-    "deploy:web": "npm run build:web && vercel deploy --prebuilt --prod",
+    "deploy:web": "vercel build --prod && vercel deploy --prebuilt --prod",
     "validate:integration": "node scripts/run-integration-validation.mjs",
     "validate:integration:strict:smoke": "node scripts/run-integration-validation.mjs --strict-api-smoke",
     "validate:integration:report:schema": "node scripts/validate-integration-report-schema.mjs --report docs/integration-validation-latest.md",
