@@ -24,6 +24,7 @@ import { Search, X, MapPin, Sailboat, Check } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { ClubSearchRow } from './ClubSearchRow';
 import { useClubSearch } from '@/hooks/useClubSearch';
+import { CreateOrgSheet } from '@/components/discover/CreateOrgSheet';
 import {
   IOS_COLORS,
   IOS_TYPOGRAPHY,
@@ -101,6 +102,7 @@ export function ClubSearchContent({
   const [selectedLocation, setSelectedLocation] = useState<string | null>(null);
   const [showBoatClassModal, setShowBoatClassModal] = useState(false);
   const [showLocationModal, setShowLocationModal] = useState(false);
+  const [createSheetOpen, setCreateSheetOpen] = useState(false);
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedQuery(searchQuery), 250);
@@ -293,9 +295,43 @@ export function ClubSearchContent({
             ? `No clubs matching "${searchQuery}"`
             : 'Try adjusting your filters or search query'}
         </Text>
+        <Pressable
+          style={styles.createCta}
+          onPress={() => setCreateSheetOpen(true)}
+        >
+          <Text style={styles.createCtaTitle}>
+            {searchQuery
+              ? `Don't see "${searchQuery}"? Add it.`
+              : "Don't see your club? Add it."}
+          </Text>
+          <Text style={styles.createCtaHint}>
+            Start it now — a verified parent can adopt it later.
+          </Text>
+        </Pressable>
       </View>
     );
   }, [isLoading, searchQuery]);
+
+  // Footer CTA — also visible when there ARE results, so users with
+  // near-misses can still create their own.
+  const ListFooter = useCallback(() => {
+    if (isLoading || clubs.length === 0) return null;
+    return (
+      <Pressable
+        style={[styles.createCta, styles.createCtaFooter]}
+        onPress={() => setCreateSheetOpen(true)}
+      >
+        <Text style={styles.createCtaTitle}>
+          {searchQuery
+            ? `Don't see "${searchQuery}"? Add it.`
+            : "Don't see your club? Add it."}
+        </Text>
+        <Text style={styles.createCtaHint}>
+          Start it now — a verified parent can adopt it later.
+        </Text>
+      </Pressable>
+    );
+  }, [isLoading, clubs.length, searchQuery]);
 
   return (
     <>
@@ -305,11 +341,18 @@ export function ClubSearchContent({
         renderItem={renderClub}
         keyExtractor={keyExtractor}
         ListEmptyComponent={ListEmpty}
+        ListFooterComponent={ListFooter}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={true}
         keyboardDismissMode="on-drag"
         onScroll={onScroll}
         scrollEventThrottle={16}
+      />
+
+      <CreateOrgSheet
+        visible={createSheetOpen}
+        initialName={searchQuery.trim() || undefined}
+        onClose={() => setCreateSheetOpen(false)}
       />
 
       {/* Boat Class Filter Modal */}
@@ -523,5 +566,34 @@ const styles = StyleSheet.create({
   boatClassOptionText: {
     ...IOS_TYPOGRAPHY.body,
     color: IOS_COLORS.label,
+  },
+
+  // Self-serve create CTA — appears in empty state AND as a footer when
+  // there are results (near-miss case).
+  createCta: {
+    marginTop: 18,
+    marginHorizontal: IOS_SPACING.lg,
+    padding: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(11,99,206,0.18)',
+    backgroundColor: '#F7FAFF',
+    alignItems: 'center',
+    gap: 4,
+  },
+  createCtaFooter: {
+    marginTop: 12,
+    marginBottom: 24,
+  },
+  createCtaTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: IOS_COLORS.label,
+    textAlign: 'center',
+  },
+  createCtaHint: {
+    fontSize: 12,
+    color: IOS_COLORS.secondaryLabel,
+    textAlign: 'center',
   },
 });
