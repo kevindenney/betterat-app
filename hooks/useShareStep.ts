@@ -88,7 +88,7 @@ async function loadDefaultGroup(userId: string): Promise<ShareStepSheetGroup | n
   const { data, error } = await supabase
     .from('fleet_followers')
     .select('fleet_id')
-    .eq('user_id', userId)
+    .eq('follower_id', userId)
     .limit(1)
     .maybeSingle();
   if (error || !data) return null;
