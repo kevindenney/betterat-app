@@ -100,6 +100,10 @@ export interface StepActCaptureControllerView {
   closeQuickNoteModal: () => void;
   /** Submit a quick-note string — writes through to metadata.act.observations[]. */
   submitQuickNote: (text: string) => void;
+  /** Pre-fill text for the quick-note modal — populated when editing a note. */
+  quickNoteInitialText: string;
+  /** Title override for the quick-note modal — "Edit note" while editing. */
+  quickNoteTitle: string | undefined;
 }
 
 /**
@@ -136,6 +140,8 @@ export function useStepActCaptureController({
   const [activityEndedAt, setActivityEndedAt] = useState<string | null>(null);
   const [markingCaptureId, setMarkingCaptureId] = useState<string | null>(null);
   const [quickNoteVisible, setQuickNoteVisible] = useState(false);
+  // When set, the quick-note modal is in edit mode for this capture id.
+  const [editingCaptureId, setEditingCaptureId] = useState<string | null>(null);
 
   // Per-step timing gate: when the flag is on AND this step is not flagged
   // is_timed, the Do tab is a passive capture surface — no auto-stamp, no
@@ -225,6 +231,22 @@ export function useStepActCaptureController({
       const formatted = `[${stamp}] ${obs.text}`;
       const updatedNotes = existingNotes ? `${existingNotes}\n${formatted}` : formatted;
       saveAct({ observations: [...currentObs, obs], notes: updatedNotes });
+    },
+    [saveAct],
+  );
+
+  const editObservation = useCallback(
+    (captureId: string, text: string) => {
+      const trimmed = text.trim();
+      if (!trimmed) return;
+      const [prefix, rawId] = captureId.split(':', 2);
+      if (prefix !== 'obs' || !rawId) return;
+      const currentObs = metadataRef.current.act?.observations ?? [];
+      saveAct({
+        observations: currentObs.map((o) =>
+          o.id === rawId ? { ...o, text: trimmed } : o,
+        ),
+      });
     },
     [saveAct],
   );
@@ -409,15 +431,50 @@ export function useStepActCaptureController({
     onMoveToReflect?.();
   }, [readOnly, onMoveToReflect]);
 
+  const handleToggleSubStep = useCallback(
+    (subStepId: string, completed: boolean) => {
+      if (readOnly) return;
+      const currentPlan = (metadataRef.current.plan ?? {}) as StepPlanData;
+      const subs = currentPlan.how_sub_steps ?? [];
+      const next = subs.map((s) => (s.id === subStepId ? { ...s, completed } : s));
+      updateMetadata.mutate({ plan: { ...currentPlan, how_sub_steps: next } });
+    },
+    [readOnly, updateMetadata],
+  );
+
+  const handleEditCapture = useCallback(
+    (captureId: string) => {
+      if (readOnly) return;
+      // Only obs-backed text notes are editable through the quick-note modal.
+      if (!captureId.startsWith('obs:')) return;
+      setEditingCaptureId(captureId);
+      setQuickNoteVisible(true);
+    },
+    [readOnly],
+  );
+
   const closeMarkAsEvidence = useCallback(() => setMarkingCaptureId(null), []);
-  const closeQuickNoteModal = useCallback(() => setQuickNoteVisible(false), []);
+  const closeQuickNoteModal = useCallback(() => {
+    setQuickNoteVisible(false);
+    setEditingCaptureId(null);
+  }, []);
   const submitQuickNote = useCallback(
     (text: string) => {
-      addObservation(text);
+      if (editingCaptureId) {
+        editObservation(editingCaptureId, text);
+      } else {
+        addObservation(text);
+      }
       setQuickNoteVisible(false);
+      setEditingCaptureId(null);
     },
-    [addObservation],
+    [editingCaptureId, editObservation, addObservation],
   );
+
+  const quickNoteInitialText = useMemo(() => {
+    if (!editingCaptureId) return '';
+    return captures.find((c) => c.id === editingCaptureId)?.body ?? '';
+  }, [editingCaptureId, captures]);
 
   // Local-only summary text — short deterministic synthesis, no AI.
   const summaryText = useMemo(() => {
@@ -454,8 +511,10 @@ export function useStepActCaptureController({
     onAddAnotherCapture: handleAddAnotherCapture,
     onDiscardActivity: handleDiscardActivity,
     onDeleteCapture: handleDeleteCapture,
+    onEditCapture: handleEditCapture,
     onTagCapture: handleMarkAsConceptSeed,
     onMarkAsEvidence: handleMarkAsEvidence,
+    onToggleSubStep: handleToggleSubStep,
   };
 
   return {
@@ -471,5 +530,7 @@ export function useStepActCaptureController({
     closeMarkAsEvidence,
     closeQuickNoteModal,
     submitQuickNote,
+    quickNoteInitialText,
+    quickNoteTitle: editingCaptureId ? 'Edit note' : undefined,
   };
 }

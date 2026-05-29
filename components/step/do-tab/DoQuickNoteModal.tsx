@@ -33,6 +33,8 @@ export interface DoQuickNoteModalProps {
   subtitle?: string;
   /** Placeholder rendered inside the TextInput. */
   placeholder?: string;
+  /** Pre-fills the input when editing an existing note; empty for new captures. */
+  initialText?: string;
 }
 
 /**
@@ -52,12 +54,14 @@ export function DoQuickNoteModal({
   title = 'Add a quick note',
   subtitle,
   placeholder = 'What did you notice?',
+  initialText = '',
 }: DoQuickNoteModalProps) {
-  const [text, setText] = useState('');
+  const [text, setText] = useState(initialText);
 
   useEffect(() => {
-    if (!visible) setText('');
-  }, [visible]);
+    if (visible) setText(initialText);
+    else setText('');
+  }, [visible, initialText]);
 
   const trimmed = text.trim();
   const canSave = trimmed.length > 0;

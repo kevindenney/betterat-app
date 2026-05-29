@@ -82,6 +82,8 @@ export function DoTabIOSRegisterShell({
         visible={controller.quickNoteVisible}
         onClose={controller.closeQuickNoteModal}
         onSubmit={controller.submitQuickNote}
+        initialText={controller.quickNoteInitialText}
+        title={controller.quickNoteTitle}
       />
     </View>
   );

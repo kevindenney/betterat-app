@@ -107,7 +107,9 @@ export function DoCaptureRow({
   const showFresh = fresh && !frozen;
   const markEvidenceEnabled = Boolean(frozen && onMarkAsEvidence);
   const liveLongPressEnabled = Boolean(!frozen && onLongPress);
-  const showInlineActions = !markEvidenceEnabled && !liveLongPressEnabled;
+  // Inline Edit/Delete coexist with the live long-press (tag-as-concept) gesture;
+  // only the frozen mark-as-evidence row swaps them out for its own tap target.
+  const showInlineActions = !markEvidenceEnabled;
 
   const accent = ACCENT_BY_KIND[capture.kind] ?? GRAY_3;
   const meta = TYPE_META[capture.kind] ?? TYPE_META.note;
@@ -125,7 +127,10 @@ export function DoCaptureRow({
       </View>
 
       <View style={styles.bodyCol}>
-        {capture.body ? (
+        {/* Note bodies are owned by QuickNoteCapturePreview below; rendering
+            here too would double the text. Other kinds (voice transcript,
+            link, flag) still use this generic body slot. */}
+        {capture.body && capture.kind !== 'note' ? (
           <Text style={[styles.body, isVoice && styles.bodyVoice]}>{capture.body}</Text>
         ) : null}
 
@@ -155,7 +160,7 @@ export function DoCaptureRow({
               <Text style={styles.metaText}>{capture.metaSubtitle}</Text>
             </>
           ) : null}
-          {showInlineActions && onEdit ? (
+          {showInlineActions && onEdit && capture.kind === 'note' ? (
             <>
               <Text style={styles.sep}>·</Text>
               <Pressable
