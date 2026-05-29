@@ -731,6 +731,7 @@ function L2SuggestedSteps({
   const { user } = useAuth();
   const { currentInterest, userInterests, switchInterest } = useInterest();
   const resolvedInterestId = currentInterestId ?? currentInterest?.id;
+  const queryClient = useQueryClient();
   const adoptBlueprintStep = useAdoptBlueprintStep();
   const [creatingId, setCreatingId] = useState<string | null>(null);
   const [adoptingId, setAdoptingId] = useState<string | null>(null);
@@ -779,6 +780,14 @@ function L2SuggestedSteps({
           },
         },
       });
+      // Drop the acted-on suggestion from its cache so it doesn't reappear
+      // when the user navigates back. The cross-interest list is ephemeral
+      // AI output (no server-side dismissal); the React Query cache is
+      // global, so this removal survives this component unmounting on push.
+      queryClient.setQueryData<CrossInterestSuggestion[]>(
+        ['cross-interest-suggestions', focusStepId, resolvedInterestId],
+        (old) => (old ?? []).filter((s) => s.id !== suggestion.id),
+      );
       if (targetMode === 'source') {
         await switchInterest(suggestion.sourceInterestSlug);
       }
