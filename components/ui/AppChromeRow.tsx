@@ -160,10 +160,10 @@ const styles = StyleSheet.create({
   rightCluster: {
     flexDirection: 'row',
     alignItems: 'center',
-    // 8px (not 4) so the inbox bell's unread badge — which overflows its
-    // iconBtn by ~4px via `right: -10` — has clearance to the avatar.
-    // Otherwise the red bubble lands flush against the avatar's left edge.
-    gap: 8,
+    // 10px so the inbox bell's unread badge (a corner badge hugging the
+    // mail glyph) keeps clear air to the avatar even at 2-digit counts.
+    // Otherwise the red bubble crowds the avatar's left edge.
+    gap: 10,
     marginLeft: 'auto',
     zIndex: 1001,
     elevation: 21,
