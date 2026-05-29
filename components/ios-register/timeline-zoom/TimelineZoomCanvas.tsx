@@ -101,6 +101,13 @@ interface TimelineZoomCanvasProps {
     afterStepId: string | null,
   ) => void;
   /**
+   * L2 drag-to-complete. When a pending card is dragged left of the NOW
+   * bar and released, the view fires this with the step id; the parent
+   * marks it completed. Gated the same way as onReorderStep (owner-mode,
+   * not select-mode).
+   */
+  onMarkStepDone?: (stepId: string) => void;
+  /**
    * Frame 12 bulk-edit hooks. The canvas owns select-mode state and the
    * bottom action bar; the parent wires the actual mutations. Archive
    * fires for every selected id with status='skipped'; Delete fires
@@ -150,6 +157,7 @@ export function TimelineZoomCanvas({
   hideInterestHeader = false,
   embedFullDetailAtL1 = false,
   onReorderStep,
+  onMarkStepDone,
   onBulkArchive,
   onBulkDelete,
   onBulkMove,
@@ -361,6 +369,7 @@ export function TimelineZoomCanvas({
                       prevStep={prevStep}
                       nextStep={nextStep}
                       onScroll={onInnerScroll}
+                      onStepDeleted={() => setLevel(2)}
                     />
                   ) : (
                     <ZoomEmptyState level={1} interestLabel={dataset.interest.label} />
@@ -372,6 +381,7 @@ export function TimelineZoomCanvas({
                     focusStepId={focusStepId}
                     onOpenStep={handleOpenStep}
                     onReorderStep={onReorderStep}
+                    onMarkStepDone={onMarkStepDone}
                   />
                 ) : null}
                 {level === 3 ? (

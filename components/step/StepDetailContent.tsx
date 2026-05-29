@@ -130,9 +130,17 @@ interface StepDetailContentProps {
    * indicator and the pill is redundant chrome.
    */
   hideStatePill?: boolean;
+  /**
+   * Post-delete handler. When this content is embedded (e.g. the L1
+   * timeline canvas), there is no own route to pop, so router.back()
+   * would exit the host screen entirely and re-land it at its default
+   * zoom level. Embedding hosts pass this to take over post-delete UI
+   * (e.g. zoom out one level) instead of navigating away.
+   */
+  onDeleted?: () => void;
 }
 
-export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, onScroll, hideStatePill }: StepDetailContentProps) {
+export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, onScroll, hideStatePill, onDeleted }: StepDetailContentProps) {
   const universalPlus = useUniversalPlus();
   const shareStep = useShareStep();
   const { user } = useAuth();
@@ -787,7 +795,9 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, 
       () => {
         deleteStep.mutate(stepId, {
           onSuccess: () => {
-            if (router.canGoBack()) {
+            if (onDeleted) {
+              onDeleted();
+            } else if (router.canGoBack()) {
               router.back();
             } else {
               router.replace('/(tabs)/practice' as never);
@@ -802,7 +812,7 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, 
       },
       { destructive: true, confirmText: 'Delete' },
     );
-  }, [deleteStep, isOwner, step, stepId]);
+  }, [deleteStep, isOwner, step, stepId, onDeleted]);
   const _prevSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Stable refs so debounced timeouts and unmount cleanup always see latest values

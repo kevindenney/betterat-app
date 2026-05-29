@@ -83,6 +83,13 @@ interface L1StepViewProps {
    * row can animate hide/show on scroll.
    */
   onScroll?: React.ComponentProps<typeof StepDetailContent>['onScroll'];
+  /**
+   * Called after the embedded step detail deletes its step. The embedded
+   * detail has no own route to pop, so without this the inner router.back()
+   * would exit the canvas entirely (re-landing at its default zoom level).
+   * The canvas passes a handler that zooms out one level instead.
+   */
+  onStepDeleted?: () => void;
 }
 
 const PHASES = ['Plan', 'Do', 'Reflect', 'Discuss'] as const;
@@ -107,6 +114,7 @@ export function L1StepView({
   prevStep,
   nextStep,
   onScroll,
+  onStepDeleted,
 }: L1StepViewProps) {
   const hasPrev = prevStep != null;
   const hasNext = nextStep != null;
@@ -229,7 +237,12 @@ export function L1StepView({
               </View>
             ) : null}
             <View style={styles.embedDetailHost}>
-              <StepDetailContent stepId={step.id} onScroll={onScroll} hideStatePill />
+              <StepDetailContent
+                stepId={step.id}
+                onScroll={onScroll}
+                hideStatePill
+                onDeleted={onStepDeleted}
+              />
             </View>
           </Animated.View>
         </GestureDetector>

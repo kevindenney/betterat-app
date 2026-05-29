@@ -14,7 +14,7 @@
  */
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
+import { Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, { useAnimatedStyle } from 'react-native-reanimated';
 import { router } from 'expo-router';
@@ -75,6 +75,12 @@ interface L2WeekViewProps {
     afterStepId: string | null,
   ) => void;
   /**
+   * Mark a step done. Wired to the drag gesture: dropping a pending card to
+   * the left of the NOW bar (into the "past") completes it instead of
+   * reordering.
+   */
+  onMarkStepDone?: (stepId: string) => void;
+  /**
    * Layout density. Defaults to the interest vocab's preference (dense
    * personas get `compact`, sparse personas get `peek`). Pass explicitly
    * to override.
@@ -87,6 +93,7 @@ export function L2WeekView({
   focusStepId,
   onOpenStep,
   onReorderStep,
+  onMarkStepDone,
   density,
 }: L2WeekViewProps) {
   const { width: viewportWidth } = useWindowDimensions();
@@ -221,10 +228,15 @@ export function L2WeekView({
   // focused step changes from the parent canvas.
   const scrollRef = useRef<ScrollView>(null);
 
+  // Live snapshot of "is the lifted card currently in the complete zone (left
+  // of NOW)?". The drag hook's onDrop reads this at release time to decide
+  // between reorder and mark-done.
+  const willCompleteRef = useRef(false);
+
   const drag = useDragReorder<TimelineStep>({
     items: steps,
     axis: 'horizontal',
-    enabled: Boolean(onReorderStep),
+    enabled: Boolean(onReorderStep) || Boolean(onMarkStepDone),
     onReorder: useCallback(
       (id, from, to) => {
         const without = steps.filter((s) => s.id !== id);
@@ -236,7 +248,39 @@ export function L2WeekView({
       },
       [steps, onReorderStep],
     ),
+    onDrop: useCallback(
+      (id: string) => {
+        if (willCompleteRef.current) {
+          onMarkStepDone?.(id);
+          return true;
+        }
+        return false;
+      },
+      [onMarkStepDone],
+    ),
   });
+
+  // Mark-done affordance: while a pending card is lifted, decide whether its
+  // current center has crossed left of the NOW bar. Card x is deterministic
+  // from index (uniform stride = cardWidth + CARD_GAP, leading inset =
+  // sideInset), so we don't need a measured rect — we reuse the same geometry
+  // that positions the NOW bar. Done/reflected cards never complete (no-op).
+  const liftedIndex = drag.liftedId
+    ? steps.findIndex((s) => s.id === drag.liftedId)
+    : -1;
+  const liftedStep = liftedIndex >= 0 ? steps[liftedIndex] : null;
+  const liftedIsPending =
+    !!liftedStep && liftedStep.status !== 'done' && liftedStep.status !== 'reflected';
+  const liftedCenterViewport =
+    sideInset +
+    liftedIndex * (cardWidth + CARD_GAP) +
+    cardWidth / 2 +
+    drag.liftedTranslate -
+    scrollX;
+  const nowBarCenter = nowBarLeft + NOW_BAR_WIDTH / 2;
+  const willCompleteLifted =
+    drag.isDragging && liftedIsPending && liftedCenterViewport < nowBarCenter;
+  willCompleteRef.current = willCompleteLifted;
 
   // Auto-scroll on mount + when focus changes (e.g. pinch-in/out preserves
   // focusStepId; the carousel should open with that card visible).
@@ -265,6 +309,24 @@ export function L2WeekView({
       });
     });
   }, [defaultFocusIndex, focusStepId, nowSplitIndex, steps, cardWidth]);
+
+  // Web: a horizontal ScrollView ignores the vertical mouse wheel, so the
+  // carousel reads as frozen on desktop. Translate a predominantly-vertical
+  // wheel into horizontal scroll on the underlying DOM node.
+  useEffect(() => {
+    if (Platform.OS !== 'web') return undefined;
+    const node = (scrollRef.current as unknown as {
+      getScrollableNode?: () => HTMLElement | null;
+    })?.getScrollableNode?.();
+    if (!node) return undefined;
+    const onWheel = (event: WheelEvent) => {
+      if (Math.abs(event.deltaY) <= Math.abs(event.deltaX)) return;
+      node.scrollLeft += event.deltaY;
+      event.preventDefault();
+    };
+    node.addEventListener('wheel', onWheel, { passive: false });
+    return () => node.removeEventListener('wheel', onWheel);
+  }, [steps.length]);
 
   const handlePlanningHintPrimary = useCallback(() => {
     const intent = planningHint?.primaryCta.intent;
@@ -457,6 +519,7 @@ export function L2WeekView({
                       isLast={index === steps.length - 1}
                       showInsertAfter={index !== steps.length - 1 && index !== nowGapIndex}
                       isLifted={isLifted}
+                      willComplete={isLifted && willCompleteLifted}
                       showDropIndicatorBefore={showDropIndicator}
                       liftedTranslateX={drag.liftedTranslate}
                       highlighted={index === centerIndex}
@@ -822,6 +885,8 @@ interface DraggableCarouselSlotProps {
   isLast: boolean;
   showInsertAfter: boolean;
   isLifted: boolean;
+  /** True while this lifted card sits left of NOW — it will be marked done on drop. */
+  willComplete: boolean;
   showDropIndicatorBefore: boolean;
   liftedTranslateX: number;
   highlighted: boolean;
@@ -840,6 +905,7 @@ function DraggableCarouselSlot({
   isLast,
   showInsertAfter,
   isLifted,
+  willComplete,
   showDropIndicatorBefore,
   liftedTranslateX,
   highlighted,
@@ -858,9 +924,15 @@ function DraggableCarouselSlot({
   // ScrollView and scrolls.
   const gesture = useMemo(() => {
     const pan = buildGesture(step.id, index);
-    const tap = Gesture.Tap().onEnd((_event, success) => {
-      if (success) onOpen();
-    });
+    // runOnJS(true): the tap handler calls onOpen (a plain JS function), so the
+    // callback must run on the JS thread. Without this it executes as a worklet
+    // on the UI thread and crashes ("Tried to synchronously call a non-worklet
+    // function on the UI thread").
+    const tap = Gesture.Tap()
+      .runOnJS(true)
+      .onEnd((_event, success) => {
+        if (success) onOpen();
+      });
     return Gesture.Exclusive(pan, tap);
   }, [buildGesture, step.id, index, onOpen]);
 
@@ -898,6 +970,14 @@ function DraggableCarouselSlot({
             highlighted={highlighted}
             showRelevantSnippet={highlighted}
           />
+          {willComplete ? (
+            <View style={styles.completeOverlay} pointerEvents="none">
+              <View style={styles.completeBadge}>
+                <Ionicons name="checkmark-circle" size={18} color="#FFFFFF" />
+                <Text style={styles.completeBadgeText}>Mark done</Text>
+              </View>
+            </View>
+          ) : null}
         </Animated.View>
       </GestureDetector>
       {!isLast && showInsertAfter ? (
@@ -1438,6 +1518,30 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   slotFlex: { flex: 1 },
+  completeOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 14,
+    borderWidth: 2,
+    borderColor: '#22C55E',
+    backgroundColor: 'rgba(34, 197, 94, 0.12)',
+    zIndex: 11,
+  },
+  completeBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingVertical: 6,
+    paddingHorizontal: 11,
+    borderRadius: 999,
+    backgroundColor: '#22C55E',
+  },
+  completeBadgeText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
   insertButton: {
     position: 'absolute',
     right: -CARD_GAP / 2 - 14,
