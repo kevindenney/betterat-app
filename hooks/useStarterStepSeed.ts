@@ -77,13 +77,21 @@ export function useStarterStepSeed({
         }
 
         const starter = getStarterStepForInterest(interestSlug);
+        // Write the canonical StepPlanData schema (what_will_you_do /
+        // why_reasoning / how_sub_steps) — the timeline adapter and Plan tab
+        // read these keys. Earlier shorthand (what/why/when/how) silently
+        // rendered nothing, so the step showed empty sub-step rows instead.
         const metadata = {
           is_starter_sample: true,
           plan: {
-            what: starter.what_body,
-            why: starter.why_reasoning,
-            when: starter.when_label,
-            how: starter.how_items,
+            what_will_you_do: starter.what_body,
+            why_reasoning: starter.why_reasoning,
+            how_sub_steps: (starter.how_items ?? []).map((text, i) => ({
+              id: `ss_starter_${i}`,
+              text,
+              sort_order: i,
+              completed: false,
+            })),
           },
         };
         const { error: insertErr } = await supabase.from('timeline_steps').insert({
