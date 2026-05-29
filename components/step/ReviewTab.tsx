@@ -11,7 +11,7 @@ import React from 'react';
 import { ScrollView, StyleSheet, View, Text } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { IOS_SPACING } from '@/lib/design-tokens-ios';
-import { useStepDetail } from '@/hooks/useTimelineSteps';
+import { useStepDetail } from '@/hooks/useStepDetail';
 import { FEATURE_FLAGS } from '@/lib/featureFlags';
 import { StepCritiqueContent } from './StepCritiqueContent';
 import { StepFocusConcepts } from './StepFocusConcepts';
