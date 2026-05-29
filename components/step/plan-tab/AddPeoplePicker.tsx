@@ -33,6 +33,7 @@ import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
 import { useAuth } from '@/providers/AuthProvider';
 import { SailorProfileService } from '@/services/SailorProfileService';
 import { CrewFinderService } from '@/services/CrewFinderService';
+import type { FleetWithMembers } from '@/services/CrewFinderService';
 import { supabase } from '@/services/supabase';
 import type { StepCollaborator } from '@/types/step-detail';
 import { DEFAULT_ROLE_OPTIONS } from './CollaboratorRolePicker';
@@ -121,13 +122,23 @@ function lastPrefixed(iso: string): string {
   return `last ${rel}`;
 }
 
+function isLikelyEmail(value: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
+}
+
+function normalizeExternalLabel(value: string): string {
+  return value.trim().replace(/\s+/g, ' ');
+}
+
 interface SelectedRow {
   userId: string;
+  type?: StepCollaborator['type'];
   displayName: string;
   avatarEmoji?: string;
   avatarColor?: string;
   email?: string;
   role?: string;
+  connectionSpace?: string;
 }
 
 interface AddPeoplePickerProps {
@@ -164,6 +175,7 @@ export function AddPeoplePicker({
   const [searching, setSearching] = useState(false);
   const [selected, setSelected] = useState<SelectedRow[]>([]);
   const [roleEditingId, setRoleEditingId] = useState<string | null>(null);
+  const [fleets, setFleets] = useState<FleetWithMembers[]>([]);
 
   // Seed selected state when the picker opens. Dep is `visible` only —
   // existingUserIds / existingRoles are new array/object identities on every
@@ -174,6 +186,7 @@ export function AddPeoplePicker({
     setSelected(
       existingUserIds.map((uid) => ({
         userId: uid,
+        type: 'platform' as const,
         displayName: 'Loading…',
         role: existingRoles?.[uid],
       })),
@@ -371,6 +384,16 @@ export function AddPeoplePicker({
 
       setPeople(aggregated);
 
+      // Fleets the user belongs to — surfaced as "add everyone" rows so a whole
+      // crew can be attached in one tap. Drop empty fleets (only the current
+      // user) since there's nothing to add.
+      try {
+        const fleetData = await CrewFinderService.getFleetMatesForUser(user.id);
+        setFleets(fleetData.filter((f) => f.members.length > 0));
+      } catch {
+        setFleets([]);
+      }
+
       // Hydrate the placeholder display names for any pre-selected rows we now
       // have full data for.
       setSelected((prev) =>
@@ -436,6 +459,7 @@ export function AddPeoplePicker({
         ...prev,
         {
           userId: row.userId,
+          type: 'platform',
           displayName: row.displayName,
           email: row.email,
           avatarEmoji: row.avatarEmoji,
@@ -446,22 +470,78 @@ export function AddPeoplePicker({
     });
   };
 
+  // Add or remove every member of a fleet in one tap. If all members are
+  // already selected, the row acts as a "remove all" toggle.
+  const toggleFleet = (fleet: FleetWithMembers) => {
+    const memberIds = new Set(fleet.members.map((m) => m.userId));
+    const allIn = fleet.members.every((m) => selectedIds.has(m.userId));
+    setSelected((prev) => {
+      if (allIn) {
+        return prev.filter((s) => !memberIds.has(s.userId));
+      }
+      const have = new Set(prev.map((s) => s.userId));
+      const additions = fleet.members
+        .filter((m) => !have.has(m.userId))
+        .map((m) => ({
+          userId: m.userId,
+          type: 'platform' as const,
+          displayName: m.fullName,
+          email: m.email,
+          avatarEmoji: m.avatarEmoji,
+          avatarColor: m.avatarColor,
+          role: undefined,
+        }));
+      return [...prev, ...additions];
+    });
+  };
+
   const setRole = (userId: string, role: string | undefined) => {
     setSelected((prev) =>
       prev.map((s) => (s.userId === userId ? { ...s, role: role || undefined } : s)),
     );
   };
 
+  const addExternal = (rawLabel: string, connectionSpace?: string) => {
+    const displayName = normalizeExternalLabel(rawLabel);
+    if (!displayName) return;
+    const key = `external:${displayName.toLowerCase()}:${connectionSpace ?? 'name'}`;
+    setSelected((prev) => {
+      if (prev.some((s) => s.userId === key)) return prev;
+      return [
+        ...prev,
+        {
+          userId: key,
+          type: 'external',
+          displayName,
+          email: isLikelyEmail(displayName) ? displayName : undefined,
+          connectionSpace,
+        },
+      ];
+    });
+    setQuery('');
+  };
+
   const handleDone = () => {
-    const out: StepCollaborator[] = selected.map((s) => ({
-      id: s.userId,
-      type: 'platform',
-      user_id: s.userId,
-      display_name: s.displayName,
-      avatar_emoji: s.avatarEmoji,
-      avatar_color: s.avatarColor,
-      role: s.role,
-    }));
+    const out: StepCollaborator[] = selected.map((s) => {
+      if (s.type === 'external') {
+        return {
+          id: s.userId,
+          type: 'external',
+          display_name: s.displayName,
+          connection_space: s.connectionSpace,
+          role: s.role,
+        };
+      }
+      return {
+        id: s.userId,
+        type: 'platform',
+        user_id: s.userId,
+        display_name: s.displayName,
+        avatar_emoji: s.avatarEmoji,
+        avatar_color: s.avatarColor,
+        role: s.role,
+      };
+    });
     onConfirm(out);
     onClose();
   };
@@ -475,6 +555,11 @@ export function AddPeoplePicker({
       fleet: list.filter((p) => p.source === 'fleet'),
     };
   }, [people, searchResults, query]);
+  const externalQuery = normalizeExternalLabel(query);
+  const canAddExternal = externalQuery.length >= 2;
+  const externalAlreadySelected = selected.some(
+    (s) => s.type === 'external' && s.displayName.toLowerCase() === externalQuery.toLowerCase(),
+  );
 
   const renderRow = (row: PersonRow) => {
     const isSelected = selectedIds.has(row.userId);
@@ -702,24 +787,116 @@ export function AddPeoplePicker({
                 </>
               ) : null}
 
+              {!query.trim() && fleets.length > 0 ? (
+                <>
+                  <View style={styles.groupHead}>
+                    <Text style={styles.groupHeadText}>Fleets & groups</Text>
+                    <Text style={styles.groupCount}>Tap to add everyone</Text>
+                  </View>
+                  {fleets.map((fleet) => {
+                    const allIn =
+                      fleet.members.length > 0 &&
+                      fleet.members.every((m) => selectedIds.has(m.userId));
+                    const inCount = fleet.members.filter((m) =>
+                      selectedIds.has(m.userId),
+                    ).length;
+                    return (
+                      <Pressable
+                        key={fleet.id}
+                        style={[styles.pkRow, allIn && styles.pkRowOn]}
+                        onPress={() => toggleFleet(fleet)}
+                        accessibilityRole="button"
+                        accessibilityState={{ selected: allIn }}
+                        accessibilityLabel={`${allIn ? 'Remove' : 'Add'} all ${fleet.members.length} members of ${fleet.name}`}
+                      >
+                        <View style={[styles.avatar, styles.fleetGlyph]}>
+                          <Ionicons name="people" size={16} color={IOS_COLORS.systemBlue} />
+                        </View>
+                        <View style={styles.pkRowText}>
+                          <Text style={styles.pkRowName} numberOfLines={1}>
+                            {fleet.name}
+                          </Text>
+                          <Text style={styles.pkRowSub} numberOfLines={1}>
+                            {fleet.members.length} sailor{fleet.members.length === 1 ? '' : 's'}
+                            {inCount > 0 && !allIn ? ` · ${inCount} added` : ''}
+                          </Text>
+                        </View>
+                        <View style={[styles.addAllPill, allIn && styles.removeAllPill]}>
+                          <Text style={[styles.addAllPillText, allIn && styles.removeAllPillText]}>
+                            {allIn ? 'Remove all' : 'Add all'}
+                          </Text>
+                        </View>
+                      </Pressable>
+                    );
+                  })}
+                </>
+              ) : null}
+
+              {query && canAddExternal && !externalAlreadySelected ? (
+                <>
+                  <View style={styles.groupHead}>
+                    <Text style={styles.groupHeadText}>Add outside BetterAt</Text>
+                  </View>
+                  <Pressable
+                    style={styles.inviteRow}
+                    onPress={() => addExternal(externalQuery)}
+                  >
+                    <View style={styles.inviteIcon}>
+                      <Ionicons name="person-add-outline" size={18} color={IOS_COLORS.systemBlue} />
+                    </View>
+                    <View style={styles.pkRowText}>
+                      <Text style={styles.pkRowName}>Add "{externalQuery}"</Text>
+                      <Text style={styles.pkRowSub}>Add a collaborator who is not in BetterAt</Text>
+                    </View>
+                  </Pressable>
+                  <Pressable
+                    style={styles.inviteRow}
+                    onPress={() => addExternal(externalQuery, isLikelyEmail(externalQuery) ? 'email' : 'share link')}
+                  >
+                    <View style={styles.inviteIcon}>
+                      <Ionicons name="mail-outline" size={18} color={IOS_COLORS.systemBlue} />
+                    </View>
+                    <View style={styles.pkRowText}>
+                      <Text style={styles.pkRowName}>Invite by email or link</Text>
+                      <Text style={styles.pkRowSub}>
+                        {isLikelyEmail(externalQuery) ? externalQuery : 'Use the step share link'}
+                      </Text>
+                    </View>
+                  </Pressable>
+                  <Pressable
+                    style={styles.inviteRow}
+                    onPress={() => addExternal(externalQuery, 'WhatsApp / SMS')}
+                  >
+                    <View style={styles.inviteIcon}>
+                      <Ionicons name="chatbubble-ellipses-outline" size={18} color={IOS_COLORS.systemGreen} />
+                    </View>
+                    <View style={styles.pkRowText}>
+                      <Text style={styles.pkRowName}>Invite by WhatsApp or SMS</Text>
+                      <Text style={styles.pkRowSub}>Save them here, then share from the collaborator chip</Text>
+                    </View>
+                  </Pressable>
+                </>
+              ) : null}
+
               {!loading &&
               grouped.recent.length === 0 &&
               grouped.follow.length === 0 &&
-              grouped.fleet.length === 0 ? (
+              grouped.fleet.length === 0 &&
+              (query.trim() || fleets.length === 0) ? (
                 <Text style={styles.empty}>
-                  {query ? 'No matches.' : 'Follow some sailors to see them here.'}
+                  {query ? 'No BetterAt matches.' : 'Follow some sailors to see them here.'}
                 </Text>
               ) : null}
 
-              <View style={styles.inviteRow}>
+              <Pressable style={styles.inviteRow} onPress={() => addExternal(query || 'Shared by link', 'share link')}>
                 <View style={styles.inviteIcon}>
-                  <Ionicons name="mail-outline" size={18} color={IOS_COLORS.tertiaryLabel} />
+                  <Ionicons name="link-outline" size={18} color={IOS_COLORS.tertiaryLabel} />
                 </View>
                 <View style={styles.pkRowText}>
-                  <Text style={styles.pkRowName}>Invite by email or link</Text>
-                  <Text style={styles.pkRowSub}>Coming soon · v1.5</Text>
+                  <Text style={styles.pkRowName}>Add invite by link</Text>
+                  <Text style={styles.pkRowSub}>Creates an external collaborator chip you can share with</Text>
                 </View>
-              </View>
+              </Pressable>
             </>
           )}
         </ScrollView>
@@ -874,6 +1051,28 @@ const styles = StyleSheet.create({
   },
   avatarEmoji: {
     fontSize: 16,
+  },
+  fleetGlyph: {
+    backgroundColor: 'rgba(0,122,255,0.12)',
+  },
+  addAllPill: {
+    paddingVertical: 5,
+    paddingHorizontal: 11,
+    borderRadius: 999,
+    backgroundColor: IOS_COLORS.systemBlue,
+  },
+  addAllPillText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  removeAllPill: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: IOS_COLORS.systemGray3,
+  },
+  removeAllPillText: {
+    color: IOS_COLORS.secondaryLabel,
   },
   pkRowText: {
     flex: 1,
