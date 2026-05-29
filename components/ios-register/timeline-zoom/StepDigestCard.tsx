@@ -208,6 +208,35 @@ export function StepDigestCard({
         </View>
       ) : null}
 
+      {isNearby && reflectedBlock ? (
+        <View style={styles.reflectedWrap}>
+          {reflectedBlock.keyTakeaway ? (
+            <>
+              <Text style={styles.reflectedLabel} numberOfLines={1}>
+                Key takeaway
+              </Text>
+              <Text style={styles.reflectedTakeaway} numberOfLines={3}>
+                {reflectedBlock.keyTakeaway}
+              </Text>
+            </>
+          ) : null}
+          {reflectedBlock.reflection ? (
+            <Text style={styles.reflectedReflection} numberOfLines={2}>
+              {reflectedBlock.reflection}
+            </Text>
+          ) : null}
+          {reflectedBlock.evidenceCount ? (
+            <View style={styles.reflectedEvidenceRow}>
+              <Ionicons name="document-attach-outline" size={11} color="#2D8B6A" />
+              <Text style={styles.reflectedEvidenceText}>
+                {reflectedBlock.evidenceCount}{' '}
+                {reflectedBlock.evidenceCount === 1 ? 'evidence' : 'evidence items'}
+              </Text>
+            </View>
+          ) : null}
+        </View>
+      ) : null}
+
       {isNearby && relevantBlock ? (
         <View style={styles.relevantWrap}>
           {relevantBlock.context ? (
@@ -400,6 +429,22 @@ function ChecklistRow({
       </View>
     </GestureDetector>
   );
+}
+
+/**
+ * Build the reflection digest shown under the title on a done/reflected
+ * centered card: the key-takeaway headline, a lead reflection line, and
+ * an evidence-count badge. Returns null when the step carries none of
+ * these, so the card falls back to the planning snippet.
+ */
+function getReflectedBlock(
+  step: TimelineStep,
+): { keyTakeaway?: string; reflection?: string; evidenceCount?: number } | null {
+  const keyTakeaway = step.keyTakeaway?.trim() || undefined;
+  const reflection = step.reflectionSummary?.trim() || undefined;
+  const evidenceCount = step.evidenceCount && step.evidenceCount > 0 ? step.evidenceCount : undefined;
+  if (!keyTakeaway && !reflection && !evidenceCount) return null;
+  return { keyTakeaway, reflection, evidenceCount };
 }
 
 function CapabilityChip({ cap }: { cap: Capability }) {
@@ -652,6 +697,47 @@ const styles = StyleSheet.create({
     lineHeight: 15,
     fontStyle: 'italic',
     color: IOS_REGISTER.labelSecondary,
+  },
+  reflectedWrap: {
+    marginBottom: 8,
+    marginLeft: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: 12,
+    backgroundColor: 'rgba(45, 139, 106, 0.08)',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(45, 139, 106, 0.20)',
+    gap: 5,
+  },
+  reflectedLabel: {
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+    color: '#2D8B6A',
+    textTransform: 'uppercase',
+  },
+  reflectedTakeaway: {
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: '600',
+    color: IOS_REGISTER.label,
+  },
+  reflectedReflection: {
+    fontSize: 11.5,
+    lineHeight: 16,
+    fontStyle: 'italic',
+    color: IOS_REGISTER.labelSecondary,
+  },
+  reflectedEvidenceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 1,
+  },
+  reflectedEvidenceText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#2D8B6A',
   },
   bottomBlock: {
     gap: 8,
