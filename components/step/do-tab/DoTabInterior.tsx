@@ -199,6 +199,7 @@ export function DoTabInterior({
       <>
         {raceStartCard}
         {howChecklist}
+        {stepId ? beatsList : null}
         <DoLiveCard
           stepId={stepId}
           captures={captures}
@@ -225,7 +226,6 @@ export function DoTabInterior({
           <MoveToReviewCTA onPress={onMoveToReflect} />
         ) : null}
         {libraryCard}
-        {stepId ? beatsList : null}
         {footer}
       </>
     );
@@ -249,6 +249,7 @@ export function DoTabInterior({
       <>
         {raceStartCard}
         {howChecklist}
+        {stepId ? beatsList : null}
         <DoPostActivityCard
           captures={captures}
           stepTitle={stepTitle ?? ''}
@@ -268,7 +269,6 @@ export function DoTabInterior({
         />
         {outcomeCard}
         {libraryCard}
-        {stepId ? beatsList : null}
         {footer}
       </>
     );
@@ -293,9 +293,9 @@ export function DoTabInterior({
         {state === 'pre_activity' && (
           <>
             {howChecklist}
+            {stepId ? beatsList : null}
             {raceStartCard}
             {libraryCard}
-            {stepId ? beatsList : null}
             {outcomeCard}
             <DoStartCard
               readOnly={readOnly}
@@ -320,9 +320,9 @@ export function DoTabInterior({
       {state === 'pre_activity' && (
         <>
           {howChecklist}
+          {stepId ? beatsList : null}
           {raceStartCard}
           {libraryCard}
-          {stepId ? beatsList : null}
           {outcomeCard}
           <DoStartCard
             readOnly={readOnly}
