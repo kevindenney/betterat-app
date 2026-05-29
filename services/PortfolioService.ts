@@ -182,6 +182,9 @@ const INTEREST_ACCENTS: Record<string, string> = {
   'golf': '#0A6A56',
   'drawing': '#9333EA',
   'running': '#DC2626',
+  'painting': '#C2410C',
+  'reading': '#7C3AED',
+  'gardening': '#15803D',
 };
 
 const STATUS_LABEL: Record<string, string> = {
