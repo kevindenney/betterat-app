@@ -706,7 +706,10 @@ function OrgDetailScreenInner() {
         {/* Cross-ref → People — actual members from this org.
             One suggestion still earns its place in discovery; absent only
             when the RPC returns zero rows. */}
-        {members.length >= 1 ? (
+        {members.length >= 1 &&
+        (isMember ||
+          isOwner ||
+          (effectiveMemberCount ?? 0) >= MIN_PUBLIC_MEMBER_COUNT) ? (
           <IOSDetailSection
             header="Members you may know"
             seeAll={
