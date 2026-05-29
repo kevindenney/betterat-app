@@ -189,16 +189,17 @@ export function L4YearsView({
       showsVerticalScrollIndicator={false}
     >
       <View style={styles.headerBlock}>
+        {/* The view-title used to repeat the interest name with a
+            dropdown chevron — but the AppChromeRow above already shows
+            the InterestSwitcher pill for the same interest. Two copies
+            of the same picker on one screen reads as a bug. At L4
+            there's nothing to switch *to* below the interest level
+            anyway, so we name the *view* ("All time") here and let the
+            chrome row own the interest pill. */}
         <View style={styles.titleRow}>
           <Text style={styles.title} numberOfLines={1}>
-            {dataset.interest.label}
+            All time
           </Text>
-          <Ionicons
-            name="chevron-down"
-            size={16}
-            color={IOS_REGISTER.labelTertiary}
-            style={styles.titleChevron}
-          />
         </View>
         <Text style={styles.subtitle}>
           {formatLifetimeDuration(dataset.sinceTimestamp) ??
