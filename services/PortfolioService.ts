@@ -183,7 +183,7 @@ const INTEREST_ACCENTS: Record<string, string> = {
   'drawing': '#9333EA',
   'running': '#DC2626',
   'painting': '#C2410C',
-  'reading': '#7C3AED',
+  'tailoring': '#BE185D',
   'gardening': '#15803D',
 };
 
