@@ -41,6 +41,11 @@ export interface CohortAvatar {
   initials: string;
   /** Background color for the avatar bubble. */
   color: string;
+  /** Full display name when known — fed forward into the LifetimePeer
+   *  constancy readout on L4 ("Markus has crewed 18 steps across 4
+   *  arcs"). Optional because some peer sources (blueprint authors
+   *  surfaced as bp:foo) only carry initials. */
+  name?: string;
 }
 
 export interface BlueprintProvenance {
@@ -420,6 +425,10 @@ export interface LifetimePeer {
   id: string;
   initials: string;
   color: string;
+  /** Full name when available — drives the constancy list readout
+   *  ("Markus · crew · 18 steps · 4 arcs"). Falls back to initials when
+   *  null. */
+  name?: string;
   /** Italic role line — "coach", "bow crew", "faculty". */
   role?: string;
   /** Session this peer first appeared in. */

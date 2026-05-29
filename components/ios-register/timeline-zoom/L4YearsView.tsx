@@ -36,6 +36,8 @@ import { LifetimeVisionEditSheet } from './LifetimeVisionEditSheet';
 import { useUpdateLifetimeVision } from '@/hooks/useInterestVision';
 import type {
   LifetimeAnalysis,
+  LifetimePeer,
+  LifetimeSession,
   SeasonPeer,
   SeasonReflection,
   TimelineDataset,
@@ -302,6 +304,11 @@ export function L4YearsView({
                 compact
                 showRole={false}
               />
+              <PeerConstancyList
+                peers={lifetime.peers}
+                sessions={lifetime.sessions}
+                vocab={interestVocab}
+              />
             </>
           ) : null}
 
@@ -368,6 +375,79 @@ export function L4YearsView({
         />
       ))}
     </ScrollView>
+  );
+}
+
+/**
+ * People constancy list — the emotional payoff for L4 ("Markus has
+ * crewed 18 races across 4 campaigns"). Sibling to PeerJourneyChart:
+ * the chart shows *when* people showed up; this list says it in
+ * sentences so the reader feels the constancy in words.
+ *
+ * Only renders peers who appear in 2+ arcs. Single-arc peers belong
+ * on L3 (the per-arc COHORT lane), not L4 (cross-arc relationships).
+ */
+interface PeerConstancyListProps {
+  peers: LifetimePeer[];
+  sessions: LifetimeSession[];
+  vocab: InterestVocab;
+}
+
+function PeerConstancyList({ peers, sessions, vocab }: PeerConstancyListProps) {
+  const rows = useMemo(() => {
+    const sessionLabelByIndex = new Map(
+      sessions.map((s) => [s.sessionIndex, s.label] as const),
+    );
+    // Persona vocab for "arc"-noun. The L4 surface already uses
+    // "ARCS" as the universal noun (BROWSE ARCS), so default to that;
+    // override per-persona where the native word is sharper.
+    const arcNoun = vocab.id === 'nursing' ? 'rotations' : 'arcs';
+    const arcNounSingular = vocab.id === 'nursing' ? 'rotation' : 'arc';
+    return peers
+      .filter((p) => p.sessionAppearances.length >= 2)
+      .slice(0, 6)
+      .map((p) => {
+        const arcs = p.sessionAppearances.length;
+        const steps = p.sessionAppearances.reduce((n, s) => n + s.count, 0);
+        const firstLabel = sessionLabelByIndex.get(p.firstSessionIndex);
+        return {
+          id: p.id,
+          name: p.name?.trim() || p.initials,
+          initials: p.initials,
+          color: p.color,
+          role: p.role,
+          summary: `${steps} step${steps === 1 ? '' : 's'} · ${arcs} ${arcs === 1 ? arcNounSingular : arcNoun}${firstLabel ? ` · since ${firstLabel}` : ''}`,
+        };
+      });
+  }, [peers, sessions, vocab.id]);
+
+  if (rows.length === 0) return null;
+
+  return (
+    <View style={styles.constancyList}>
+      {rows.map((row) => (
+        <View key={row.id} style={styles.constancyRow}>
+          <View style={[styles.constancyAvatar, { backgroundColor: row.color }]}>
+            <Text style={styles.constancyAvatarLabel}>{row.initials}</Text>
+          </View>
+          <View style={styles.constancyText}>
+            <View style={styles.constancyNameRow}>
+              <Text style={styles.constancyName} numberOfLines={1}>
+                {row.name}
+              </Text>
+              {row.role ? (
+                <Text style={styles.constancyRole} numberOfLines={1}>
+                  · {row.role}
+                </Text>
+              ) : null}
+            </View>
+            <Text style={styles.constancySummary} numberOfLines={1}>
+              {row.summary}
+            </Text>
+          </View>
+        </View>
+      ))}
+    </View>
   );
 }
 
@@ -900,6 +980,60 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 20,
     color: IOS_REGISTER.labelTertiary,
+  },
+  // People-constancy list — sibling readout to PeerJourneyChart that
+  // names the relationships in sentences instead of lines. Sits
+  // directly below the chart so the eye can match a line to a row.
+  constancyList: {
+    marginTop: 10,
+    marginHorizontal: 16,
+    gap: 8,
+  },
+  constancyRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  constancyAvatar: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  constancyAvatarLabel: {
+    fontSize: 10.5,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    letterSpacing: 0.2,
+  },
+  constancyText: {
+    flex: 1,
+    minWidth: 0,
+  },
+  constancyNameRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: 4,
+  },
+  constancyName: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: IOS_REGISTER.label,
+    letterSpacing: -0.2,
+    flexShrink: 1,
+  },
+  constancyRole: {
+    fontSize: 12,
+    fontStyle: 'italic',
+    color: IOS_REGISTER.labelTertiary,
+    flexShrink: 1,
+  },
+  constancySummary: {
+    fontSize: 11.5,
+    color: IOS_REGISTER.labelSecondary,
+    marginTop: 1,
+    letterSpacing: 0.05,
   },
   // Chapter summary chips on each season lane — D5 first cut. Surface
   // dominant capability + people-constancy + done progress so the L4

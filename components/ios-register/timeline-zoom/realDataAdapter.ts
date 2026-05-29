@@ -406,6 +406,7 @@ function collabToAvatar(c: StepCollaborator): CohortAvatar {
     id: c.id,
     initials: initialsFromName(c.display_name || ''),
     color: c.avatar_color || '#8E8E93',
+    name: c.display_name?.trim() || undefined,
   };
 }
 
@@ -1152,6 +1153,7 @@ function computeLifetimeAnalysis(
     {
       initials: string;
       color: string;
+      name?: string;
       firstSessionIndex: number;
       perSession: Map<number, number>;
     }
@@ -1159,15 +1161,20 @@ function computeLifetimeAnalysis(
   const bumpLifetimePeer = (
     id: string,
     sessionIndex: number,
-    seed: { initials: string; color: string },
+    seed: { initials: string; color: string; name?: string },
   ) => {
     const entry = peerMap.get(id);
     if (entry) {
       entry.perSession.set(sessionIndex, (entry.perSession.get(sessionIndex) ?? 0) + 1);
+      // First-seen name wins, but fill if we didn't have one before
+      // (cohort avatars carry display_name; blueprint authors carry it
+      // via the bp:slug branch).
+      if (!entry.name && seed.name) entry.name = seed.name;
     } else {
       peerMap.set(id, {
         initials: seed.initials,
         color: seed.color,
+        name: seed.name,
         firstSessionIndex: sessionIndex,
         perSession: new Map([[sessionIndex, 1]]),
       });
@@ -1181,6 +1188,7 @@ function computeLifetimeAnalysis(
           bumpLifetimePeer(avatar.id, sessionIndex, {
             initials: avatar.initials,
             color: avatar.color,
+            name: avatar.name,
           });
         }
         const author = step.from?.suggestedBy?.trim();
@@ -1188,6 +1196,7 @@ function computeLifetimeAnalysis(
           bumpLifetimePeer(`bp:${author.toLowerCase()}`, sessionIndex, {
             initials: initialsFromName(author),
             color: deterministicPeerColor(author),
+            name: author,
           });
         }
       }
@@ -1199,17 +1208,25 @@ function computeLifetimeAnalysis(
       id,
       initials: p.initials,
       color: p.color,
+      name: p.name,
       firstSessionIndex: p.firstSessionIndex,
       sessionAppearances: Array.from(p.perSession.entries())
         .map(([sessionIndex, count]) => ({ sessionIndex, count }))
         .sort((a, b) => a.sessionIndex - b.sessionIndex),
     }))
-    .sort(
-      (a, b) =>
-        b.sessionAppearances.reduce((n, s) => n + s.count, 0) -
-        a.sessionAppearances.reduce((n, s) => n + s.count, 0),
-    )
-    .slice(0, 6);
+    // Sort by arcs-spanned first (constancy is the L4 story), then by
+    // raw step volume as a tiebreak. The journey chart used to sort by
+    // volume only; with the constancy list landing alongside it, arcs-
+    // spanned is the more honest primary signal.
+    .sort((a, b) => {
+      const arcsA = a.sessionAppearances.length;
+      const arcsB = b.sessionAppearances.length;
+      if (arcsA !== arcsB) return arcsB - arcsA;
+      const volA = a.sessionAppearances.reduce((n, s) => n + s.count, 0);
+      const volB = b.sessionAppearances.reduce((n, s) => n + s.count, 0);
+      return volB - volA;
+    })
+    .slice(0, 12);
 
   const reflections: LifetimeReflection[] = [];
   for (let idx = 1; idx < sessionCapabilityLabels.length; idx += 1) {

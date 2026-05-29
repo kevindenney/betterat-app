@@ -77,16 +77,24 @@ export function CreateOrgSheet({ visible, initialName, onClose }: CreateOrgSheet
   const [similar, setSimilar] = useState<SimilarOrgMatch[]>([]);
   const [similarLoading, setSimilarLoading] = useState(false);
 
-  // Reset state when the sheet is opened with a new initial name.
+  // Reset state ONLY when the sheet transitions from closed → open. Earlier
+  // version had `initialName` in deps, which caused the effect to re-fire
+  // (and clobber the user's typed name) every time the parent re-rendered
+  // with a fresh `searchQuery.trim() || undefined` reference. See
+  // feedback_useeffect_array_prop_deps memory — caller-passed values in
+  // deps will silently wipe in-progress input. Snapshot initialName via
+  // ref so we still pick up the latest value at open time.
+  const initialNameRef = React.useRef(initialName);
+  initialNameRef.current = initialName;
   React.useEffect(() => {
     if (visible) {
-      setName(initialName || '');
+      setName(initialNameRef.current || '');
       setKind('fleet');
       setJoinMode('request_to_join');
       setDescription('');
       setSimilar([]);
     }
-  }, [visible, initialName]);
+  }, [visible]);
 
   // Debounced fuzzy match — surfaces existing orgs that look like what the
   // user is typing so we don't pile up duplicates. ilike is enough; pg_trgm
