@@ -273,6 +273,18 @@ export function TimelineZoomPracticeScreen() {
     [steps, updateStep],
   );
 
+  // Drag a pending card left of the NOW bar to complete it (L2). 'completed'
+  // is the schema's done state; the adapter maps it to 'done' and reflows the
+  // step to the left of NOW on the next render.
+  const handleMarkStepDone = useCallback(
+    (stepId: string) => {
+      const step = steps.find((s) => s.id === stepId);
+      if (!step || step.status === 'completed' || step.status === 'settled') return;
+      updateStep.mutate({ stepId, input: { status: 'completed' } });
+    },
+    [steps, updateStep],
+  );
+
   // Frame 12 bulk actions. Archive flips status to 'skipped' (the
   // schema's closest "off the active list" terminal state); delete is
   // the real destroy mutation behind a confirm. Move/Tag/Reschedule
@@ -490,6 +502,7 @@ export function TimelineZoomPracticeScreen() {
         onOpenStepDetail={handleOpenStepDetail}
         embedFullDetailAtL1
         onReorderStep={handleReorderStep}
+        onMarkStepDone={handleMarkStepDone}
         onBulkArchive={handleBulkArchive}
         onBulkDelete={handleBulkDelete}
         onBulkMove={handleBulkMove}

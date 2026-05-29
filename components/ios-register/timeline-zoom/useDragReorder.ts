@@ -42,6 +42,13 @@ export interface UseDragReorderArgs<T extends { id: string }> {
   /** Disabled in non-owner mode (e.g. blueprint preview surfaces). */
   enabled?: boolean;
   /**
+   * Optional drop interceptor. Called at the start of every drop with the
+   * dropped item id. Return true to "consume" the drop — the hook then skips
+   * the reorder (onReorder is not called). Lets a caller repurpose a drop into
+   * a different action (e.g. L2 marks a step done when dropped left of NOW).
+   */
+  onDrop?: (itemId: string) => boolean;
+  /**
    * Axis the items are arranged along — 'vertical' for L3's two-up
    * weeks (default), 'horizontal' for L2's swiping carousel. Hit
    * testing uses Y or X accordingly, and the translate that the
@@ -72,6 +79,7 @@ export function useDragReorder<T extends { id: string }>({
   onReorder,
   enabled = true,
   axis = 'vertical',
+  onDrop,
 }: UseDragReorderArgs<T>): UseDragReorderApi {
   const [liftedId, setLiftedId] = useState<string | null>(null);
   const [dropTargetIndex, setDropTargetIndex] = useState<number | null>(null);
@@ -131,9 +139,10 @@ export function useDragReorder<T extends { id: string }>({
 
   const handleDrop = useCallback(() => {
     const from = startIndexRef.current;
+    const consumed = liftedId ? onDrop?.(liftedId) === true : false;
     setDropTargetIndex((to) => {
       const target = to ?? from;
-      if (liftedId && from !== target && from >= 0 && target >= 0) {
+      if (!consumed && liftedId && from !== target && from >= 0 && target >= 0) {
         Haptics.notificationAsync(
           Haptics.NotificationFeedbackType.Success,
         ).catch(() => {});
@@ -144,7 +153,7 @@ export function useDragReorder<T extends { id: string }>({
     setLiftedId(null);
     setLiftedTranslate(0);
     startIndexRef.current = -1;
-  }, [liftedId, onReorder]);
+  }, [liftedId, onReorder, onDrop]);
 
   const buildItemGesture = useCallback(
     (itemId: string, index: number) =>
