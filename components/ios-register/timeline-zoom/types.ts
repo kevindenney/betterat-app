@@ -370,6 +370,9 @@ export interface TimelineDataset {
       L4 duration subtitle ("2 years", "8 months"). Optional because
       sparse / brand-new accounts won't have any historical anchor. */
   sinceTimestamp?: string;
+  /** L4 lifetime banner — separate from the season vision that anchors
+   *  L3 so the two surfaces can carry honest, distinct statements. */
+  lifetimeVisionStatement?: string | null;
   /** L4 capability filter chips. Always begins with "All". */
   capabilityFilters: { id: string; label: string; icon?: string; color?: string }[];
   /**

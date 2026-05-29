@@ -1345,6 +1345,9 @@ interface AdapterInput {
    */
   interestVision?: {
     statement: string | null;
+    /** Distinct from the season-bound statement — drives the L4
+     *  lifetime banner. Null when the user hasn't set one. */
+    lifetimeStatement?: string | null;
     competencyIds: string[];
   };
   /**
@@ -1639,6 +1642,7 @@ export function mapToTimelineDataset({
         })
       : '',
     sinceTimestamp: allSeasons[allSeasons.length - 1]?.start_date ?? undefined,
+    lifetimeVisionStatement: interestVision?.lifetimeStatement ?? null,
     seasons: [currentSeasonNode, ...archivedSeasons],
     capabilityFilters: [{ id: 'all', label: 'All' }],
     lifetime: computeLifetimeAnalysis([currentSeasonNode, ...archivedSeasons]),

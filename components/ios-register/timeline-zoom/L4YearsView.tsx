@@ -173,17 +173,13 @@ export function L4YearsView({
 
   const lifetime = dataset.lifetime;
 
-  // Lifetime vision banner — D5 second cut. interest_vision is per
-  // (user, interest), not per season, so the same statement that
-  // anchors the L3 season VisionBlock is what we promise the user is
-  // their lifetime north star here. The L4 banner reframes it as the
-  // lifetime arc by treating it as the trajectory the chapters ladder
-  // toward. (Phase D bet D5b in the spec will split this into a
-  // separately editable lifetime field with revision history; today
-  // we surface the closest signal we have.)
-  const currentSeasonForVision = dataset.seasons[0];
+  // Lifetime vision banner — now reads its own dedicated field on
+  // user_interests (D5 follow-up). Distinct from the season-bound
+  // vision_statement that anchors L3, so a sailor's L3 ("Finish top
+  // of HK worlds 2026") and L4 ("Race the Dragon Worlds every year
+  // through age 60") can each be honest.
   const lifetimeVisionStatement =
-    currentSeasonForVision?.visionStatement?.trim() || null;
+    dataset.lifetimeVisionStatement?.trim() || null;
 
   // Convert lifetime data into the existing chart shapes (the charts
   // don't know about lifetime semantics — they operate on the generic

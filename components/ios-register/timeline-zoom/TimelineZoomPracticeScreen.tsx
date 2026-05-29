@@ -33,6 +33,7 @@ import { SeasonEditSheet } from './SeasonEditSheet';
 import type { CreateSeasonInput, UpdateSeasonInput, Season } from '@/types/season';
 
 import { TimelineZoomCanvas } from './TimelineZoomCanvas';
+import type { ZoomLevel } from './types';
 import { mapToTimelineDataset, type BlueprintLookup } from './realDataAdapter';
 import { MoveToSeasonSheet, buildMoveTargets } from './MoveToSeasonSheet';
 import { TagBulkSheet } from './TagBulkSheet';
@@ -43,7 +44,15 @@ import { useStarterStepSeed } from '@/hooks/useStarterStepSeed';
 export function TimelineZoomPracticeScreen() {
   const { user } = useAuth();
   const { currentInterest } = useInterest();
-  const searchParams = useLocalSearchParams<{ selected?: string | string[] }>();
+  const searchParams = useLocalSearchParams<{ selected?: string | string[]; level?: string | string[] }>();
+  // Route may carry ?level=2|3|4 from a deep-link (Step detail's zoom rail
+  // pushes here to "zoom out" from a step). Bound to the canvas's
+  // initialLevel; falls back to L3 (ARC) which is the default landing depth.
+  const initialLevelFromRoute = useMemo<ZoomLevel>(() => {
+    const raw = Array.isArray(searchParams?.level) ? searchParams.level[0] : searchParams?.level;
+    const n = raw ? Number(raw) : NaN;
+    return n === 1 || n === 2 || n === 3 || n === 4 ? (n as ZoomLevel) : 3;
+  }, [searchParams?.level]);
   // When the signed-in user has no steps, an opt-in lets you preview all
   // the new zoom-canvas features against the canonical sample dataset
   // (Emily Shaw's nursing year). Doesn't affect any real data — just
@@ -90,12 +99,16 @@ export function TimelineZoomPracticeScreen() {
     if (activePlan) {
       return {
         statement: activePlan.vision_statement,
+        // Lifetime vision lives on user_interests, not on a plan, so
+        // the plan path still reads it from the interest-level row.
+        lifetimeStatement: interestVision?.lifetime_vision_statement ?? null,
         competencyIds: activePlan.vision_competency_ids,
       };
     }
     if (interestVision) {
       return {
         statement: interestVision.vision_statement,
+        lifetimeStatement: interestVision.lifetime_vision_statement ?? null,
         competencyIds: interestVision.vision_competency_ids,
       };
     }
@@ -454,7 +467,7 @@ export function TimelineZoomPracticeScreen() {
       ) : null}
       <TimelineZoomCanvas
         dataset={activeDataset}
-        initialLevel={3}
+        initialLevel={initialLevelFromRoute}
         onOpenStepDetail={showSample ? undefined : handleOpenStepDetail}
         embedFullDetailAtL1={!showSample}
         onReorderStep={showSample ? undefined : handleReorderStep}
