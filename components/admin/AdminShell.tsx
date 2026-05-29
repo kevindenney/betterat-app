@@ -22,6 +22,7 @@ import {
   StudioAccent,
 } from '@/components/studio/StudioShell';
 import { StudioLoading } from '@/components/studio/StudioLoading';
+import { getAdminVocabulary } from '@/lib/vocabulary';
 
 export type AdminNavKey =
   | 'overview'
@@ -65,6 +66,7 @@ export function AdminShell({ activeKey, accent = 'navy', children }: AdminShellP
   const orgName = activeOrg?.org_name ?? 'Organization';
   const orgMono = activeOrg?.org_short_name ?? '·';
   const orgShortLabel = shortNameLabel(orgName);
+  const av = getAdminVocabulary(activeOrg?.interest_slug);
 
   const seatsAvailable = people.seats.total - people.seats.used;
   const seatsPct = Math.round((people.seats.used / people.seats.total) * 100);
@@ -93,7 +95,7 @@ export function AdminShell({ activeKey, accent = 'navy', children }: AdminShellP
         {
           key: 'cohorts',
           icon: 'school-outline',
-          label: 'Cohorts',
+          label: av.Cohorts,
           count: cohorts.totalCount || undefined,
           active: activeKey === 'cohorts',
           onPress: () => goto('cohorts'),
@@ -101,7 +103,7 @@ export function AdminShell({ activeKey, accent = 'navy', children }: AdminShellP
         {
           key: 'programs',
           icon: 'layers-outline',
-          label: 'Programs',
+          label: av.Programs,
           count: programs.totalCount || undefined,
           active: activeKey === 'programs',
           onPress: () => goto('programs'),
@@ -117,7 +119,7 @@ export function AdminShell({ activeKey, accent = 'navy', children }: AdminShellP
         {
           key: 'sites',
           icon: 'map-outline',
-          label: 'Sites',
+          label: av.Sites,
           count: sites.total || undefined,
           active: activeKey === 'sites',
           onPress: () => goto('sites'),

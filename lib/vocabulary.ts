@@ -300,6 +300,85 @@ export function getFallbackVocabulary(interestSlug?: string | null): VocabularyM
 }
 
 // ---------------------------------------------------------------------------
+// Admin-domain vocabulary (org-admin chrome)
+// ---------------------------------------------------------------------------
+
+// The admin surfaces (/admin/[orgId]/*) describe org-level structure —
+// cohorts, programs, sites, members — not the personal learning loop the
+// fallback maps above cover. These read off the *org's* interest_slug rather
+// than the viewer's active interest, so they're resolved synchronously from a
+// dedicated slug-keyed table instead of the runtime useVocabulary fetch.
+
+const ADMIN_GENERIC_VOCABULARY: VocabularyMap = {
+  Cohort: 'Cohort',
+  Cohorts: 'Cohorts',
+  Program: 'Program',
+  Programs: 'Programs',
+  Site: 'Site',
+  Sites: 'Sites',
+  Member: 'Member',
+  Members: 'Members',
+  member: 'member',
+  members: 'members',
+};
+
+const SHG_ADMIN_VOCABULARY: VocabularyMap = {
+  Cohort: 'SHG Section',
+  Cohorts: 'SHG Sections',
+  Program: 'Livelihood Program',
+  Programs: 'Livelihood Programs',
+  Site: 'Village',
+  Sites: 'Villages',
+  Member: 'Member',
+  Members: 'Members',
+  member: 'member',
+  members: 'members',
+};
+
+const ADMIN_VOCABULARY_BY_SLUG: Record<string, VocabularyMap> = {
+  nursing: {
+    Cohort: 'Cohort',
+    Cohorts: 'Cohorts',
+    Program: 'Program',
+    Programs: 'Programs',
+    Site: 'Clinical Site',
+    Sites: 'Clinical Sites',
+    Member: 'Student',
+    Members: 'Students',
+    member: 'student',
+    members: 'students',
+  },
+  'sail-racing': {
+    Cohort: 'Fleet',
+    Cohorts: 'Fleets',
+    Program: 'Program',
+    Programs: 'Programs',
+    Site: 'Venue',
+    Sites: 'Venues',
+    Member: 'Racer',
+    Members: 'Racers',
+    member: 'racer',
+    members: 'racers',
+  },
+  // SHG verticals (PRADAN units) share the self-help-group shape: a section
+  // of women in a village moving through a livelihood program together.
+  'lac-craft-business': SHG_ADMIN_VOCABULARY,
+  'textile-weaving': SHG_ADMIN_VOCABULARY,
+  'food-processing': SHG_ADMIN_VOCABULARY,
+};
+
+/**
+ * Admin-domain vocabulary for an org, keyed by the org's interest slug.
+ * Returns a synchronous map (no DB fetch) since the admin chrome renders
+ * before any per-interest vocabulary query would resolve. Falls back to
+ * generic org nouns for interests without a specific admin lexicon.
+ */
+export function getAdminVocabulary(interestSlug?: string | null): VocabularyMap {
+  if (!interestSlug) return ADMIN_GENERIC_VOCABULARY;
+  return ADMIN_VOCABULARY_BY_SLUG[interestSlug] ?? ADMIN_GENERIC_VOCABULARY;
+}
+
+// ---------------------------------------------------------------------------
 // Data fetching
 // ---------------------------------------------------------------------------
 

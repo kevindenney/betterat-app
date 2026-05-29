@@ -13,6 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { AdminShell } from '@/components/admin/AdminShell';
 import { useAdminPrograms, AdminProgram } from '@/hooks/useAdminPrograms';
+import { useAdminOrgVocab } from '@/hooks/useAdminOrgVocab';
 import { StudioHeader } from '@/components/studio/StudioShell';
 
 const STATUS_TONE: Record<string, { bg: string; fg: string }> = {
@@ -28,6 +29,7 @@ export default function AdminProgramsListPage() {
   const { orgId } = useLocalSearchParams<{ orgId: string }>();
   const router = useRouter();
   const data = useAdminPrograms(orgId as string);
+  const av = useAdminOrgVocab(orgId as string);
   const [search, setSearch] = useState('');
 
   const filtered = search
@@ -43,18 +45,19 @@ export default function AdminProgramsListPage() {
   return (
     <AdminShell activeKey="programs">
       <StudioHeader
-        crumbs={['Admin', 'Programs']}
-        title="Programs"
+        crumbs={['Admin', av.Programs]}
+        title={av.Programs}
         subtitleParts={[
           <View key="count" style={s.pillWrap}>
             <View style={s.pill}>
               <Text style={s.pillText}>
-                {data.totalCount} {data.totalCount === 1 ? 'program' : 'programs'}
+                {data.totalCount} {data.totalCount === 1 ? av.Program : av.Programs}
               </Text>
             </View>
           </View>,
           <Text key="meta" style={s.subText}>
-            {totalEnrolled} learners enrolled · enroll a cohort from any program
+            {totalEnrolled} {av.members} enrolled · enroll a {av.Cohort.toLowerCase()} from any{' '}
+            {av.Program.toLowerCase()}
           </Text>,
         ]}
       />
@@ -78,11 +81,13 @@ export default function AdminProgramsListPage() {
         ) : filtered.length === 0 ? (
           <View style={s.empty}>
             <Ionicons name="layers-outline" size={32} color="rgba(60, 60, 67, 0.4)" />
-            <Text style={s.emptyTitle}>{search ? 'No matches' : 'No programs yet'}</Text>
+            <Text style={s.emptyTitle}>
+              {search ? 'No matches' : `No ${av.Programs.toLowerCase()} yet`}
+            </Text>
             <Text style={s.emptyBody}>
               {search
                 ? `Nothing matches "${search}".`
-                : 'Programs are the curricula your members move through. Each can enroll a whole cohort at once.'}
+                : `${av.Programs} are the curricula your ${av.members} move through. Each can enroll a whole ${av.Cohort.toLowerCase()} at once.`}
             </Text>
           </View>
         ) : (

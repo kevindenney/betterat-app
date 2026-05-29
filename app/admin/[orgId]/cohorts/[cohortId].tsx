@@ -14,6 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { AdminShell } from '@/components/admin/AdminShell';
 import { useAdminCohortDetail, CohortMember } from '@/hooks/useAdminCohortDetail';
+import { useAdminOrgVocab } from '@/hooks/useAdminOrgVocab';
 import { StudioHeader, StudioButton } from '@/components/studio/StudioShell';
 import { CohortEditSheet } from '@/components/admin/CohortEditSheet';
 
@@ -21,6 +22,7 @@ export default function AdminCohortDetailPage() {
   const { orgId, cohortId } = useLocalSearchParams<{ orgId: string; cohortId: string }>();
   const router = useRouter();
   const { cohort, loading } = useAdminCohortDetail(cohortId as string);
+  const av = useAdminOrgVocab(orgId as string);
   const [search, setSearch] = useState('');
   const [editOpen, setEditOpen] = useState(false);
 
@@ -37,20 +39,21 @@ export default function AdminCohortDetailPage() {
   return (
     <AdminShell activeKey="cohorts">
       <StudioHeader
-        crumbs={['Admin', 'Cohorts', cohort?.name ?? 'Cohort']}
-        title={cohort?.name ?? (loading ? 'Loading…' : 'Cohort not found')}
+        crumbs={['Admin', av.Cohorts, cohort?.name ?? av.Cohort]}
+        title={cohort?.name ?? (loading ? 'Loading…' : `${av.Cohort} not found`)}
         subtitleParts={
           cohort
             ? [
                 <View key="counts" style={s.pillWrap}>
                   <View style={s.pill}>
                     <Text style={s.pillText}>
-                      {cohort.members.length} {cohort.members.length === 1 ? 'member' : 'members'}
+                      {cohort.members.length}{' '}
+                      {cohort.members.length === 1 ? av.member : av.members}
                     </Text>
                   </View>
                 </View>,
                 <Text key="split" style={s.subText}>
-                  {cohort.studentCount} students · {cohort.mentorCount} mentors · created{' '}
+                  {cohort.studentCount} {av.members} · {cohort.mentorCount} mentors · created{' '}
                   {cohort.createdAtLabel}
                 </Text>,
               ]
@@ -69,7 +72,7 @@ export default function AdminCohortDetailPage() {
               variant="primary"
               accent="navy"
               icon="add"
-              label="Assign students"
+              label={`Assign ${av.Members.toLowerCase()}`}
             />
           </>
         }
@@ -122,7 +125,7 @@ export default function AdminCohortDetailPage() {
           <TextInput
             value={search}
             onChangeText={setSearch}
-            placeholder="Search members by name or email…"
+            placeholder={`Search ${av.members} by name or email…`}
             placeholderTextColor="rgba(60, 60, 67, 0.4)"
             style={s.searchField}
           />
@@ -138,7 +141,7 @@ export default function AdminCohortDetailPage() {
         ) : !cohort ? (
           <View style={s.empty}>
             <Ionicons name="alert-circle-outline" size={32} color="rgba(60, 60, 67, 0.4)" />
-            <Text style={s.emptyTitle}>Cohort not found</Text>
+            <Text style={s.emptyTitle}>{av.Cohort} not found</Text>
             <Text style={s.emptyBody}>
               It may have been removed, or you don't have permission to view it.
             </Text>
@@ -148,7 +151,7 @@ export default function AdminCohortDetailPage() {
             <Ionicons name="search-outline" size={32} color="rgba(60, 60, 67, 0.4)" />
             <Text style={s.emptyTitle}>No matches</Text>
             <Text style={s.emptyBody}>
-              Nothing matches "{search}" in this cohort.
+              Nothing matches "{search}" in this {av.Cohort.toLowerCase()}.
             </Text>
           </View>
         ) : (

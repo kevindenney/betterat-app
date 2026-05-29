@@ -20,6 +20,7 @@ import {
   adminProgramDetailKey,
 } from '@/hooks/useAdminProgramDetail';
 import { useAdminCohorts, AdminCohort } from '@/hooks/useAdminCohorts';
+import { useAdminOrgVocab } from '@/hooks/useAdminOrgVocab';
 import { adminProgramsKey } from '@/hooks/useAdminPrograms';
 import { programService } from '@/services/ProgramService';
 import { showAlert } from '@/lib/utils/crossPlatformAlert';
@@ -37,6 +38,7 @@ export default function AdminProgramDetailPage() {
   const qc = useQueryClient();
   const { program, participants, loading } = useAdminProgramDetail(programId as string);
   const cohorts = useAdminCohorts(orgId as string);
+  const av = useAdminOrgVocab(orgId as string);
   const [search, setSearch] = useState('');
   const [enrollOpen, setEnrollOpen] = useState(false);
 
@@ -53,14 +55,17 @@ export default function AdminProgramDetailPage() {
       qc.invalidateQueries({ queryKey: adminProgramsKey(orgId as string) });
       setEnrollOpen(false);
       showAlert(
-        'Cohort enrolled',
+        `${av.Cohort} enrolled`,
         count === 0
-          ? `${cohort?.name ?? 'That cohort'} has no members to enroll.`
-          : `Enrolled ${count} ${count === 1 ? 'member' : 'members'} from ${cohort?.name ?? 'the cohort'}.`,
+          ? `${cohort?.name ?? `That ${av.Cohort.toLowerCase()}`} has no ${av.members} to enroll.`
+          : `Enrolled ${count} ${count === 1 ? av.member : av.members} from ${cohort?.name ?? `the ${av.Cohort.toLowerCase()}`}.`,
       );
     },
     onError: (err) => {
-      showAlert('Could not enroll cohort', err instanceof Error ? err.message : 'Please try again.');
+      showAlert(
+        `Could not enroll ${av.Cohort.toLowerCase()}`,
+        err instanceof Error ? err.message : 'Please try again.',
+      );
     },
   });
 
@@ -75,8 +80,8 @@ export default function AdminProgramDetailPage() {
   return (
     <AdminShell activeKey="programs">
       <StudioHeader
-        crumbs={['Admin', 'Programs', program?.title ?? 'Program']}
-        title={program?.title ?? (loading ? 'Loading…' : 'Program not found')}
+        crumbs={['Admin', av.Programs, program?.title ?? av.Program]}
+        title={program?.title ?? (loading ? 'Loading…' : `${av.Program} not found`)}
         subtitleParts={
           program
             ? [
@@ -88,7 +93,8 @@ export default function AdminProgramDetailPage() {
                   </View>
                 </View>,
                 <Text key="meta" style={s.subText}>
-                  {program.status.toUpperCase()} · enroll a cohort to add a whole class at once
+                  {program.status.toUpperCase()} · enroll a {av.Cohort.toLowerCase()} to add a whole
+                  group at once
                 </Text>,
               ]
             : undefined
@@ -108,9 +114,10 @@ export default function AdminProgramDetailPage() {
             <Ionicons name="people" size={18} color="#28406B" />
           </View>
           <View style={s.enrollCol}>
-            <Text style={s.enrollTitle}>Enroll a cohort</Text>
+            <Text style={s.enrollTitle}>Enroll a {av.Cohort.toLowerCase()}</Text>
             <Text style={s.enrollBody}>
-              Add every member of a cohort to this program in one tap.
+              Add every member of a {av.Cohort.toLowerCase()} to this{' '}
+              {av.Program.toLowerCase()} in one tap.
             </Text>
           </View>
           <Ionicons
@@ -123,14 +130,16 @@ export default function AdminProgramDetailPage() {
         {enrollOpen ? (
           <View style={s.cohortList}>
             {cohorts.loading ? (
-              <Text style={s.cohortLoading}>Loading cohorts…</Text>
+              <Text style={s.cohortLoading}>Loading {av.Cohorts.toLowerCase()}…</Text>
             ) : cohorts.cohorts.length === 0 ? (
-              <Text style={s.cohortLoading}>No cohorts at this org yet.</Text>
+              <Text style={s.cohortLoading}>No {av.Cohorts.toLowerCase()} at this org yet.</Text>
             ) : (
               cohorts.cohorts.map((c) => (
                 <CohortPickRow
                   key={c.id}
                   cohort={c}
+                  memberNoun={av.member}
+                  membersNoun={av.members}
                   busy={enroll.isPending && enroll.variables === c.id}
                   disabled={enroll.isPending}
                   onPress={() => enroll.mutate(c.id)}
@@ -163,7 +172,7 @@ export default function AdminProgramDetailPage() {
         ) : !program ? (
           <View style={s.empty}>
             <Ionicons name="alert-circle-outline" size={32} color="rgba(60, 60, 67, 0.4)" />
-            <Text style={s.emptyTitle}>Program not found</Text>
+            <Text style={s.emptyTitle}>{av.Program} not found</Text>
             <Text style={s.emptyBody}>
               It may have been removed, or you don't have permission to view it.
             </Text>
@@ -175,7 +184,7 @@ export default function AdminProgramDetailPage() {
             <Text style={s.emptyBody}>
               {search
                 ? `Nothing matches "${search}".`
-                : 'Use "Enroll a cohort" above to add a whole class at once.'}
+                : `Use "Enroll a ${av.Cohort.toLowerCase()}" above to add a whole group at once.`}
             </Text>
           </View>
         ) : (
@@ -188,11 +197,15 @@ export default function AdminProgramDetailPage() {
 
 function CohortPickRow({
   cohort,
+  memberNoun,
+  membersNoun,
   busy,
   disabled,
   onPress,
 }: {
   cohort: AdminCohort;
+  memberNoun: string;
+  membersNoun: string;
   busy: boolean;
   disabled: boolean;
   onPress: () => void;
@@ -202,7 +215,7 @@ function CohortPickRow({
       <View style={s.cohortRowCol}>
         <Text style={s.cohortName}>{cohort.name}</Text>
         <Text style={s.cohortMeta}>
-          {cohort.memberCount} {cohort.memberCount === 1 ? 'member' : 'members'}
+          {cohort.memberCount} {cohort.memberCount === 1 ? memberNoun : membersNoun}
         </Text>
       </View>
       <Pressable

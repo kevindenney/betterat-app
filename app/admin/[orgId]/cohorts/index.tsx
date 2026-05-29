@@ -12,12 +12,14 @@ import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { AdminShell } from '@/components/admin/AdminShell';
 import { useAdminCohorts, AdminCohort } from '@/hooks/useAdminCohorts';
+import { useAdminOrgVocab } from '@/hooks/useAdminOrgVocab';
 import { StudioHeader, StudioButton } from '@/components/studio/StudioShell';
 
 export default function AdminCohortsListPage() {
   const { orgId } = useLocalSearchParams<{ orgId: string }>();
   const router = useRouter();
   const data = useAdminCohorts(orgId as string);
+  const av = useAdminOrgVocab(orgId as string);
   const [search, setSearch] = useState('');
 
   const filtered = search
@@ -31,25 +33,30 @@ export default function AdminCohortsListPage() {
   return (
     <AdminShell activeKey="cohorts">
       <StudioHeader
-        crumbs={['Admin', 'Cohorts']}
-        title="Cohorts"
+        crumbs={['Admin', av.Cohorts]}
+        title={av.Cohorts}
         subtitleParts={[
           <View key="count" style={s.pillWrap}>
             <View style={s.pill}>
               <Text style={s.pillText}>
-                {data.totalCount} {data.totalCount === 1 ? 'cohort' : 'cohorts'}
+                {data.totalCount} {data.totalCount === 1 ? av.Cohort : av.Cohorts}
               </Text>
             </View>
           </View>,
           <Text key="meta" style={s.subText}>
-            {data.cohorts.reduce((sum, c) => sum + c.memberCount, 0)} students assigned ·
-            placements set per cohort
+            {data.cohorts.reduce((sum, c) => sum + c.memberCount, 0)} {av.members} assigned ·
+            placements set per {av.Cohort.toLowerCase()}
           </Text>,
         ]}
         actions={
           <>
             <StudioButton variant="ghost" icon="download-outline" label="Export · CSV" />
-            <StudioButton variant="primary" accent="navy" icon="add" label="New cohort" />
+            <StudioButton
+              variant="primary"
+              accent="navy"
+              icon="add"
+              label={`New ${av.Cohort.toLowerCase()}`}
+            />
           </>
         }
       />
@@ -60,7 +67,7 @@ export default function AdminCohortsListPage() {
           <TextInput
             value={search}
             onChangeText={setSearch}
-            placeholder="Search cohorts by name or description…"
+            placeholder={`Search ${av.Cohorts.toLowerCase()} by name or description…`}
             placeholderTextColor="rgba(60, 60, 67, 0.4)"
             style={s.searchField}
           />
@@ -69,17 +76,17 @@ export default function AdminCohortsListPage() {
 
       <ScrollView style={s.scroll} contentContainerStyle={s.scrollInner}>
         {data.loading ? (
-          <Text style={s.loading}>Loading cohorts…</Text>
+          <Text style={s.loading}>Loading {av.Cohorts.toLowerCase()}…</Text>
         ) : filtered.length === 0 ? (
           <View style={s.empty}>
             <Ionicons name="school-outline" size={32} color="rgba(60, 60, 67, 0.4)" />
             <Text style={s.emptyTitle}>
-              {search ? 'No matches' : 'No cohorts yet'}
+              {search ? 'No matches' : `No ${av.Cohorts.toLowerCase()} yet`}
             </Text>
             <Text style={s.emptyBody}>
               {search
                 ? `Nothing matches "${search}".`
-                : 'Cohorts group a class of students who move through the program together. Add your first to gate enrollment by class or rotation.'}
+                : `${av.Cohorts} group the ${av.members} who move through a ${av.Program.toLowerCase()} together. Add your first to gate enrollment by ${av.Cohort.toLowerCase()}.`}
             </Text>
           </View>
         ) : (
@@ -87,6 +94,8 @@ export default function AdminCohortsListPage() {
             <CohortRow
               key={c.id}
               cohort={c}
+              memberNoun={av.member}
+              membersNoun={av.members}
               onPress={() => router.push(`/admin/${orgId}/cohorts/${c.id}` as any)}
             />
           ))
@@ -96,7 +105,17 @@ export default function AdminCohortsListPage() {
   );
 }
 
-function CohortRow({ cohort, onPress }: { cohort: AdminCohort; onPress: () => void }) {
+function CohortRow({
+  cohort,
+  memberNoun,
+  membersNoun,
+  onPress,
+}: {
+  cohort: AdminCohort;
+  memberNoun: string;
+  membersNoun: string;
+  onPress: () => void;
+}) {
   return (
     <Pressable style={s.row} onPress={onPress}>
       <View style={s.rowIcon}>
@@ -112,7 +131,7 @@ function CohortRow({ cohort, onPress }: { cohort: AdminCohort; onPress: () => vo
         <View style={s.rowMetaRow}>
           <Text style={s.rowMeta}>
             <Text style={s.rowMetaStrong}>{cohort.memberCount}</Text>{' '}
-            {cohort.memberCount === 1 ? 'student' : 'students'}
+            {cohort.memberCount === 1 ? memberNoun : membersNoun}
           </Text>
           {cohort.interestSlug ? (
             <>
