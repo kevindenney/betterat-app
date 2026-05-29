@@ -32,6 +32,7 @@ import { useInterest } from '@/providers/InterestProvider';
 import { showAlert } from '@/lib/utils/crossPlatformAlert';
 import { createStep, shiftTimelineSortOrdersAtOrAfter } from '@/services/TimelineStepService';
 import { useInboxItems } from '@/hooks/useInboxItems';
+import { useInboxActions } from '@/hooks/useInboxActions';
 import { useCrossInterestSuggestions } from '@/hooks/useCrossInterestSuggestions';
 import { ANALYSIS_MIN_STEPS } from './realDataAdapter';
 import {
@@ -192,13 +193,24 @@ export function L2WeekView({
       resolvedInterestId,
       activeStepTitle,
     );
+  // Direct suggestions from the user's network (teammates, coaches) normally
+  // only land in the Inbox. Surface the most relevant one or two here so a
+  // human nudge shapes the plan alongside blueprint + cross-interest cards.
+  const visibleInbox = useMemo(
+    () => pickInboxSuggestions(inboxItems, activeStepId, resolvedInterestId, 2),
+    [inboxItems, activeStepId, resolvedInterestId],
+  );
   const visibleBlueprints = useMemo(
     () => blueprintSuggestions.slice(0, 2),
     [blueprintSuggestions],
   );
   const visibleCrossInterest = useMemo(
-    () => crossInterestSuggestions.slice(0, Math.max(0, 3 - visibleBlueprints.length)),
-    [crossInterestSuggestions, visibleBlueprints.length],
+    () =>
+      crossInterestSuggestions.slice(
+        0,
+        Math.max(0, 4 - visibleInbox.length - visibleBlueprints.length),
+      ),
+    [crossInterestSuggestions, visibleInbox.length, visibleBlueprints.length],
   );
   const promptSupportingLine = useMemo(
     () =>
@@ -582,6 +594,7 @@ export function L2WeekView({
         <L2SuggestedSteps
           focusStepId={activeStepId}
           currentInterestId={resolvedInterestId}
+          visibleInbox={visibleInbox}
           visibleBlueprints={visibleBlueprints}
           visibleCrossInterest={visibleCrossInterest}
           isLoading={suggestionsLoading}
@@ -632,6 +645,29 @@ function trimSuggestionText(value: string | undefined, maxLength = 68) {
 
 function possessiveLabel(name: string) {
   return name.endsWith('s') ? `${name}'` : `${name}'s`;
+}
+
+function pickInboxSuggestions(
+  inboxItems: InboxItem[],
+  focusStepId: string,
+  interestId: string | undefined,
+  limit: number,
+): InboxItem[] {
+  const suggestions = inboxItems.filter((item) => item.kind === 'suggestion');
+  if (suggestions.length === 0) return [];
+  // Only show direct suggestions belonging to the interest the user is
+  // currently looking at (when known) — a sail-racing rail shouldn't surface a
+  // golf suggestion. Within those, prefer ones tied to the focused step.
+  const relevant = interestId
+    ? suggestions.filter((item) => item.raw.interestId === interestId)
+    : suggestions;
+  return [...relevant]
+    .sort((a, b) => {
+      const aMatch = a.raw.sourceStepId === focusStepId ? 1 : 0;
+      const bMatch = b.raw.sourceStepId === focusStepId ? 1 : 0;
+      return bMatch - aMatch;
+    })
+    .slice(0, limit);
 }
 
 function pickPendingInboxSuggestion(
@@ -718,12 +754,14 @@ function renderContextStrip(contextStrip: string) {
 function L2SuggestedSteps({
   focusStepId,
   currentInterestId,
+  visibleInbox,
   visibleBlueprints,
   visibleCrossInterest,
   isLoading,
 }: {
   focusStepId: string;
   currentInterestId?: string;
+  visibleInbox: InboxItem[];
   visibleBlueprints: BlueprintSuggestedNextStep[];
   visibleCrossInterest: CrossInterestSuggestion[];
   isLoading: boolean;
@@ -733,13 +771,35 @@ function L2SuggestedSteps({
   const resolvedInterestId = currentInterestId ?? currentInterest?.id;
   const queryClient = useQueryClient();
   const adoptBlueprintStep = useAdoptBlueprintStep();
+  const { accept: acceptInboxItem } = useInboxActions();
   const [creatingId, setCreatingId] = useState<string | null>(null);
   const [adoptingId, setAdoptingId] = useState<string | null>(null);
+  const [acceptingInboxId, setAcceptingInboxId] = useState<string | null>(null);
+  // Optimistically hide a network suggestion the instant it's accepted —
+  // the inbox refetch (invalidated inside accept) lags behind the tap.
+  const [acceptedInboxIds, setAcceptedInboxIds] = useState<string[]>([]);
   const [selectedSuggestion, setSelectedSuggestion] = useState<SuggestionDetailState | null>(null);
 
-  const hasAny = visibleBlueprints.length > 0 || visibleCrossInterest.length > 0;
+  const inboxCards = visibleInbox.filter((item) => !acceptedInboxIds.includes(item.id));
+
+  const hasAny =
+    inboxCards.length > 0 ||
+    visibleBlueprints.length > 0 ||
+    visibleCrossInterest.length > 0;
 
   if (isLoading || !hasAny) return null;
+
+  const acceptSuggestedInboxItem = async (item: InboxItem) => {
+    setAcceptingInboxId(item.id);
+    try {
+      await acceptInboxItem(item);
+      setAcceptedInboxIds((prev) => [...prev, item.id]);
+    } catch {
+      // accept() surfaces its own error toast; leave the card in place to retry.
+    } finally {
+      setAcceptingInboxId(null);
+    }
+  };
 
   const createSuggestedStep = async (
     suggestion: CrossInterestSuggestion,
@@ -825,6 +885,38 @@ function L2SuggestedSteps({
         <Ionicons name="sparkles-outline" size={12} color="#AF52DE" />
         <Text style={styles.suggestedEye}>Suggestions shaping this plan</Text>
       </View>
+      {inboxCards.map((item) => (
+        <Pressable
+          key={`inbox-${item.id}`}
+          style={styles.suggestedCard}
+          onPress={() => router.push('/practice/inbox' as never)}
+        >
+          <View style={[styles.suggestedIcon, styles.suggestedIconInbox]}>
+            <Ionicons name="person" size={13} color="#0A7E3E" />
+          </View>
+          <View style={styles.suggestedCopy}>
+            <Text style={styles.suggestedTitle} numberOfLines={1}>
+              {item.title}
+            </Text>
+            <Text style={styles.suggestedSource} numberOfLines={1}>
+              Direct suggestion
+            </Text>
+            <Text style={styles.suggestedMeta} numberOfLines={1}>
+              From {item.fromContext}
+            </Text>
+          </View>
+          <Pressable
+            hitSlop={8}
+            onPress={(event) => {
+              event.stopPropagation();
+              void acceptSuggestedInboxItem(item);
+            }}
+            disabled={acceptingInboxId === item.id}
+          >
+            <Ionicons name="add-circle-outline" size={17} color={IOS_REGISTER.accentUserAction} />
+          </Pressable>
+        </Pressable>
+      ))}
       {visibleBlueprints.map((suggestion) => (
         <Pressable
           key={`bp-${suggestion.next_step_id}`}
@@ -1312,6 +1404,9 @@ const styles = StyleSheet.create({
   },
   suggestedIconBlueprint: {
     backgroundColor: 'rgba(35, 103, 209, 0.12)',
+  },
+  suggestedIconInbox: {
+    backgroundColor: 'rgba(10, 126, 62, 0.12)',
   },
   suggestedCopy: {
     flex: 1,
