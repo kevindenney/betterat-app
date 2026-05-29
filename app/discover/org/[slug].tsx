@@ -111,6 +111,11 @@ type MemberXRow = {
   tail?: string;
 };
 
+// Below this many members, a public count just advertises "barely anyone here"
+// — unflattering for a young org and adds no discovery value. We still show the
+// count once the org has real scale (or a canonical estimate clears the bar).
+const MIN_PUBLIC_MEMBER_COUNT = 5;
+
 type ForumXRow = {
   id: string;
   slug: string;
@@ -488,7 +493,7 @@ function OrgDetailScreenInner() {
         text: `Founded ${org.global_clubs.established_year}`,
       });
     }
-    if (effectiveMemberCount && effectiveMemberCount > 0) {
+    if (effectiveMemberCount && effectiveMemberCount >= MIN_PUBLIC_MEMBER_COUNT) {
       facts.push({
         icon: 'people-outline',
         text: `${effectiveMemberCount.toLocaleString()} ${effectiveMemberCount === 1 ? 'sailor' : 'sailors'}`,
