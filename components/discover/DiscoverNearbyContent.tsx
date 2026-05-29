@@ -11,7 +11,7 @@
  * ones Atlas uses, just rendered as lists instead of map pins.
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -20,6 +20,7 @@ import { useNearbyOrganizations } from '@/hooks/useNearbyOrganizations';
 import { useAtlasPeerSteps } from '@/hooks/useAtlasPeerSteps';
 import { useVocabulary } from '@/hooks/useVocabulary';
 import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
+import { HomeVenuePickerSheet } from '@/components/discover/HomeVenuePickerSheet';
 
 interface DiscoverNearbyContentProps {
   homeVenueLat: number | null;
@@ -35,6 +36,7 @@ export function DiscoverNearbyContent({
   toolbarOffset = 0,
 }: DiscoverNearbyContentProps) {
   const { vocab } = useVocabulary();
+  const [pickerOpen, setPickerOpen] = useState(false);
   const hasVenue = homeVenueLat != null && homeVenueLng != null;
 
   const { data: orgs = [], isLoading: orgsLoading } = useNearbyOrganizations({
@@ -54,15 +56,22 @@ export function DiscoverNearbyContent({
 
   if (!hasVenue) {
     return (
-      <View style={[styles.emptyCard, { marginTop: toolbarOffset + IOS_SPACING.md }]}>
-        <Ionicons name="location-outline" size={28} color={IOS_COLORS.tertiaryLabel} />
-        <Text style={styles.emptyTitle}>Set a home venue</Text>
-        <Text style={styles.emptyCopy}>
-          Nearby shows organizations, {vocab('Peers').toLowerCase()}, and
-          activity around your home base. Add a home venue in settings to
-          light up this segment.
-        </Text>
-      </View>
+      <>
+        <View style={[styles.emptyCard, { marginTop: toolbarOffset + IOS_SPACING.md }]}>
+          <Ionicons name="location-outline" size={28} color={IOS_COLORS.tertiaryLabel} />
+          <Text style={styles.emptyTitle}>Set a home venue</Text>
+          <Text style={styles.emptyCopy}>
+            Nearby shows organizations, {vocab('Peers').toLowerCase()}, and
+            activity around your home base. Set a home venue to light up this
+            segment.
+          </Text>
+          <Pressable style={styles.setVenueBtn} onPress={() => setPickerOpen(true)}>
+            <Ionicons name="add" size={16} color="#FFFFFF" />
+            <Text style={styles.setVenueBtnText}>Set home venue</Text>
+          </Pressable>
+        </View>
+        <HomeVenuePickerSheet visible={pickerOpen} onDismiss={() => setPickerOpen(false)} />
+      </>
     );
   }
 
@@ -266,6 +275,22 @@ const styles = StyleSheet.create({
     color: IOS_COLORS.secondaryLabel,
     textAlign: 'center',
     lineHeight: 18,
+  },
+  setVenueBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: IOS_SPACING.sm,
+    paddingVertical: 9,
+    paddingHorizontal: 16,
+    borderRadius: 10,
+    backgroundColor: '#0A84FF',
+  },
+  setVenueBtnText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
+    letterSpacing: -0.2,
   },
   loading: {
     color: IOS_COLORS.secondaryLabel,

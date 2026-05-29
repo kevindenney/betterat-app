@@ -1,12 +1,17 @@
 /**
- * StepCombinatorsSheet — bottom sheet behind StepCombinatorsRow's two
- * count pills (peers / related). Renders a flat list of rows; row
- * shape and the on-tap handler differ per `mode`.
+ * StepCombinatorsSheet — bottom sheet behind StepCombinatorsRow's count
+ * pills. Renders a flat list of rows; row shape and the on-tap handler
+ * differ per `mode`.
  *
  *   - peers: list of platform users on the same blueprint. Tap →
  *     /discover/person/[userId].
  *   - related: list of the viewer's other steps that share blueprint
  *     or category with this step. Tap → /step/[stepId].
+ *   - near: proximity-derived peer steps within ~5km. Tap → Atlas
+ *     focused on that step's location ("see what's nearby").
+ *   - cross: a single AI cross-interest suggestion. Shows the "why this
+ *     connects" reasoning so the chip isn't an opaque claim, plus an
+ *     action to open the other interest's timeline.
  */
 
 import React from 'react';
@@ -26,6 +31,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { IOS_REGISTER } from '@/lib/design-tokens-ios';
 import type { FellowSubscriber } from '@/hooks/useStepFellowSubscribers';
 import type { TimelineStepRecord } from '@/types/timeline-steps';
+import type { AtlasPeerStep, AtlasPeerRelationship } from '@/hooks/useAtlasPeerSteps';
+import type { CrossInterestSuggestion } from '@/types/step-detail';
 
 interface PeersMode {
   mode: 'peers';
@@ -34,28 +41,63 @@ interface PeersMode {
 
 interface RelatedMode {
   mode: 'related';
-  relatedSteps: TimelineStepRecord[];
+  relatedSteps: {
+    step: TimelineStepRecord;
+    reasons: string[];
+  }[];
 }
 
-type StepCombinatorsSheetProps = (PeersMode | RelatedMode) & {
+interface NearMode {
+  mode: 'near';
+  nearbySteps: AtlasPeerStep[];
+}
+
+interface CrossMode {
+  mode: 'cross';
+  cross: CrossInterestSuggestion;
+  onOpenInterest: () => void;
+}
+
+type StepCombinatorsSheetProps = (PeersMode | RelatedMode | NearMode | CrossMode) & {
   visible: boolean;
   onDismiss: () => void;
 };
 
+const NEAR_RELATIONSHIP_LABEL: Record<AtlasPeerRelationship, string> = {
+  self: 'You',
+  crew: 'Crew',
+  cohort: 'Cohort',
+  fleet: 'Fleet',
+  following: 'Following',
+  public: 'Nearby',
+};
+
 export function StepCombinatorsSheet(props: StepCombinatorsSheetProps) {
   const { visible, onDismiss } = props;
-  const isPeers = props.mode === 'peers';
-  const count = isPeers ? props.peers.length : props.relatedSteps.length;
-  const title = isPeers
-    ? count === 1
-      ? '1 peer'
-      : `${count} peers`
-    : count === 1
-      ? '1 related step'
-      : `${count} related steps`;
-  const subtitle = isPeers
-    ? 'Others on the same blueprint'
-    : 'In your timeline — same blueprint or capability';
+
+  let title: string;
+  let subtitle: string;
+  switch (props.mode) {
+    case 'peers':
+      title = props.peers.length === 1 ? '1 peer' : `${props.peers.length} peers`;
+      subtitle = 'Others on the same blueprint';
+      break;
+    case 'related':
+      title =
+        props.relatedSteps.length === 1
+          ? '1 related step'
+          : `${props.relatedSteps.length} related steps`;
+      subtitle = 'In your timeline — same blueprint, category, or capability';
+      break;
+    case 'near':
+      title = props.nearbySteps.length === 1 ? '1 nearby' : `${props.nearbySteps.length} nearby`;
+      subtitle = 'Peers working within ~5km — tap to see on Atlas';
+      break;
+    case 'cross':
+      title = `Also relevant for ${props.cross.sourceInterestName}`;
+      subtitle = 'Why this connects';
+      break;
+  }
 
   return (
     <Modal
@@ -80,7 +122,7 @@ export function StepCombinatorsSheet(props: StepCombinatorsSheetProps) {
             </View>
 
             <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
-              {isPeers ? (
+              {props.mode === 'peers' ? (
                 props.peers.length === 0 ? (
                   <Text style={styles.emptyText}>No peers yet.</Text>
                 ) : (
@@ -107,40 +149,99 @@ export function StepCombinatorsSheet(props: StepCombinatorsSheetProps) {
                     </Pressable>
                   ))
                 )
-              ) : props.relatedSteps.length === 0 ? (
-                <Text style={styles.emptyText}>No related steps.</Text>
+              ) : props.mode === 'related' ? (
+                props.relatedSteps.length === 0 ? (
+                  <Text style={styles.emptyText}>No related steps.</Text>
+                ) : (
+                  props.relatedSteps.map(({ step: s, reasons }) => (
+                    <Pressable
+                      key={s.id}
+                      style={styles.row}
+                      onPress={() => {
+                        onDismiss();
+                        router.push(`/step/${s.id}` as never);
+                      }}
+                    >
+                      <View style={styles.stepIcon}>
+                        <Ionicons
+                          name="layers-outline"
+                          size={16}
+                          color={IOS_REGISTER.labelSecondary}
+                        />
+                      </View>
+                      <View style={styles.rowTextBlock}>
+                        <Text style={styles.rowName} numberOfLines={1}>
+                          {s.title || 'Untitled step'}
+                        </Text>
+                        {(reasons.length > 0 || s.category) ? (
+                          <Text style={styles.rowMeta}>
+                            {reasons.length > 0 ? reasons.join(' · ') : s.category}
+                          </Text>
+                        ) : null}
+                      </View>
+                      <Ionicons
+                        name="chevron-forward"
+                        size={14}
+                        color={IOS_REGISTER.labelTertiary}
+                      />
+                    </Pressable>
+                  ))
+                )
+              ) : props.mode === 'near' ? (
+                props.nearbySteps.length === 0 ? (
+                  <Text style={styles.emptyText}>Nobody nearby right now.</Text>
+                ) : (
+                  props.nearbySteps.map((n) => (
+                    <Pressable
+                      key={n.step_id}
+                      style={styles.row}
+                      onPress={() => {
+                        onDismiss();
+                        router.push(
+                          `/(tabs)/atlas?lat=${n.lat}&lng=${n.lng}` as never,
+                        );
+                      }}
+                    >
+                      <View style={styles.stepIcon}>
+                        <Ionicons name="location-outline" size={16} color="#0A84FF" />
+                      </View>
+                      <View style={styles.rowTextBlock}>
+                        <Text style={styles.rowName} numberOfLines={1}>
+                          {n.preview_name || 'A peer nearby'}
+                        </Text>
+                        <Text style={styles.rowMeta}>
+                          {NEAR_RELATIONSHIP_LABEL[n.relationship]}
+                        </Text>
+                      </View>
+                      <Ionicons
+                        name="chevron-forward"
+                        size={14}
+                        color={IOS_REGISTER.labelTertiary}
+                      />
+                    </Pressable>
+                  ))
+                )
               ) : (
-                props.relatedSteps.map((s) => (
+                <View style={styles.crossBlock}>
+                  {props.cross.relevance ? (
+                    <Text style={styles.crossReason}>{props.cross.relevance}</Text>
+                  ) : null}
+                  {props.cross.suggestion ? (
+                    <Text style={styles.crossSuggestion}>{props.cross.suggestion}</Text>
+                  ) : null}
                   <Pressable
-                    key={s.id}
-                    style={styles.row}
+                    style={styles.crossCta}
                     onPress={() => {
                       onDismiss();
-                      router.push(`/step/${s.id}` as never);
+                      props.onOpenInterest();
                     }}
                   >
-                    <View style={styles.stepIcon}>
-                      <Ionicons
-                        name="layers-outline"
-                        size={16}
-                        color={IOS_REGISTER.labelSecondary}
-                      />
-                    </View>
-                    <View style={styles.rowTextBlock}>
-                      <Text style={styles.rowName} numberOfLines={1}>
-                        {s.title || 'Untitled step'}
-                      </Text>
-                      {s.category ? (
-                        <Text style={styles.rowMeta}>{s.category}</Text>
-                      ) : null}
-                    </View>
-                    <Ionicons
-                      name="chevron-forward"
-                      size={14}
-                      color={IOS_REGISTER.labelTertiary}
-                    />
+                    <Ionicons name="swap-horizontal" size={15} color="#FFFFFF" />
+                    <Text style={styles.crossCtaText}>
+                      Open {props.cross.sourceInterestName}
+                    </Text>
                   </Pressable>
-                ))
+                </View>
               )}
             </ScrollView>
           </View>
@@ -256,5 +357,38 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: IOS_REGISTER.labelSecondary,
     marginTop: 2,
+  },
+  crossBlock: {
+    paddingHorizontal: 18,
+    paddingTop: 14,
+    gap: 12,
+  },
+  crossReason: {
+    fontSize: 15,
+    lineHeight: 21,
+    color: IOS_REGISTER.label,
+    letterSpacing: -0.2,
+  },
+  crossSuggestion: {
+    fontSize: 14,
+    lineHeight: 20,
+    color: IOS_REGISTER.labelSecondary,
+    letterSpacing: -0.1,
+  },
+  crossCta: {
+    marginTop: 4,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 7,
+    height: 46,
+    borderRadius: 14,
+    backgroundColor: '#7B3FB0',
+  },
+  crossCtaText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    letterSpacing: -0.2,
   },
 });

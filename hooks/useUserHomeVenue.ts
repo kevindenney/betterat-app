@@ -1,69 +1,55 @@
 /**
- * useUserHomeVenue — resolve the current user's home venue + region for the
- * cross-tab LocationAnchor pill.
+ * useUserHomeVenue — resolve the current user's home venue + coords for the
+ * cross-tab LocationAnchor pill and the Nearby surfaces.
  *
- * Pulls `sailor_profiles.home_club_id`, joins `clubs` to get name + city +
- * country, and returns the LocationAnchor-shaped `{ region, venue }` tuple.
+ * Reads the `home_venue_*` snapshot columns on `sailor_profiles`. The home
+ * venue is a `sailing_venues` row (clubs carry no coordinates), and its id +
+ * name + lat/lng are snapshotted on the profile so this is a single-table
+ * read with no join.
  *
  * Behavior:
  *   - Returns `null` until the auth user is known.
- *   - Returns `{ region: null, venue: null }` when the user has no home club
- *     set. Callers should hide the pill in that case.
- *   - `region` prefers `city`; falls back to `country`.
- *   - `venue` prefers `short_name`; falls back to `name`.
+ *   - Returns all-null fields when the user has no home venue set. Callers
+ *     should hide the pill / show the empty state in that case.
  */
 
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/services/supabase';
 import { useAuth } from '@/providers/AuthProvider';
 
+export const USER_HOME_VENUE_KEY = 'user-home-venue';
+
 export interface UserHomeVenue {
   region: string | null;
   venue: string | null;
-  /** Home club coords — populated when the club row has lat/lng. */
+  /** Home venue coords — drive the Nearby bbox queries. */
   lat: number | null;
   lng: number | null;
 }
 
 interface SailorProfileRow {
-  home_club_id: string | null;
-}
-
-interface ClubRow {
-  name: string | null;
-  short_name: string | null;
-  city: string | null;
-  country: string | null;
-  latitude: number | null;
-  longitude: number | null;
+  home_venue_id: string | null;
+  home_venue_name: string | null;
+  home_venue_lat: number | null;
+  home_venue_lng: number | null;
 }
 
 async function fetchHomeVenue(userId: string): Promise<UserHomeVenue> {
-  const { data: sailor, error: sailorError } = await supabase
+  const { data: sailor } = await supabase
     .from('sailor_profiles')
-    .select('home_club_id')
+    .select('home_venue_id, home_venue_name, home_venue_lat, home_venue_lng')
     .eq('user_id', userId)
     .maybeSingle<SailorProfileRow>();
 
-  if (sailorError || !sailor?.home_club_id) {
+  if (!sailor?.home_venue_id) {
     return { region: null, venue: null, lat: null, lng: null };
   }
 
-  const { data: club } = await supabase
-    .from('clubs')
-    .select('name, short_name, city, country, latitude, longitude')
-    .eq('id', sailor.home_club_id)
-    .maybeSingle<ClubRow>();
-
-  if (!club) {
-    return { region: null, venue: null, lat: null, lng: null };
-  }
-
-  const lat = Number.isFinite(club.latitude) ? (club.latitude as number) : null;
-  const lng = Number.isFinite(club.longitude) ? (club.longitude as number) : null;
+  const lat = Number.isFinite(sailor.home_venue_lat) ? (sailor.home_venue_lat as number) : null;
+  const lng = Number.isFinite(sailor.home_venue_lng) ? (sailor.home_venue_lng as number) : null;
   return {
-    region: club.city ?? club.country ?? null,
-    venue: club.short_name ?? club.name ?? null,
+    region: null,
+    venue: sailor.home_venue_name ?? null,
     lat,
     lng,
   };
@@ -74,7 +60,7 @@ export function useUserHomeVenue(): UserHomeVenue | null {
   const userId = user?.id as string | undefined;
 
   const { data } = useQuery({
-    queryKey: ['user-home-venue', userId],
+    queryKey: [USER_HOME_VENUE_KEY, userId],
     queryFn: () => fetchHomeVenue(userId!),
     enabled: Boolean(userId),
     staleTime: 5 * 60 * 1000,

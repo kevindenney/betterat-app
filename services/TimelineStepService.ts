@@ -416,12 +416,24 @@ export async function deleteStep(stepId: string): Promise<void> {
     // A server-side AFTER DELETE trigger (cleanup_blueprint_step_action_on_delete)
     // handles the blueprint_step_actions cleanup when the deleted step was
     // adopted from a blueprint, so this is a single round-trip.
-    const { error } = await supabase
+    //
+    // .select() returns the rows actually removed. Under RLS, deleting a
+    // step the viewer doesn't own matches zero rows and returns no error —
+    // which the UI would otherwise read as success and navigate away,
+    // leaving the step in place. Treat a 0-row delete as an explicit
+    // ownership failure so the caller can surface it.
+    const { data, error } = await supabase
       .from('timeline_steps')
       .delete()
-      .eq('id', stepId);
+      .eq('id', stepId)
+      .select('id');
 
     if (error) throw error;
+    if (!data || data.length === 0) {
+      throw new Error(
+        "This step couldn't be deleted. You can only delete steps you created.",
+      );
+    }
   } catch (err) {
     logger.error('Failed to delete timeline step', err);
     throw err;

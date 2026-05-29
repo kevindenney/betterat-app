@@ -42,7 +42,6 @@ import { StepCombinatorsSheet } from './StepCombinatorsSheet';
 import { StepPeopleSheet } from './StepPeopleSheet';
 import type { TimelineStepRecord } from '@/types/timeline-steps';
 import type { StepAccessPerson } from './StepDiscussionInline';
-import { showAlertWithButtons } from '@/lib/utils/crossPlatformAlert';
 
 interface StepCombinatorsRowProps {
   step: TimelineStepRecord;
@@ -178,7 +177,11 @@ export function StepCombinatorsRow({
     [nearbyPeerSteps],
   );
 
-  const [sheet, setSheet] = useState<null | 'related' | 'people'>(null);
+  const [sheet, setSheet] = useState<null | 'related' | 'people' | 'near' | 'cross'>(null);
+  const nearbyPeerStepsForSheet = useMemo(
+    () => nearbyPeerSteps.filter((s) => s.relationship !== 'self'),
+    [nearbyPeerSteps],
+  );
 
   const hasCross = Boolean(crossInterest);
   const hasRelated = relatedCount > 0;
@@ -196,22 +199,7 @@ export function StepCombinatorsRow({
         {hasCross && crossInterest ? (
           <Pressable
             style={styles.crossPill}
-            onPress={async () => {
-              showAlertWithButtons(
-                `Relevant for ${crossInterest.sourceInterestName}`,
-                [crossInterest.relevance, crossInterest.suggestion].filter(Boolean).join('\n\n'),
-                [
-                  {
-                    text: `Open ${crossInterest.sourceInterestName}`,
-                    onPress: async () => {
-                      await switchInterest(crossInterest.sourceInterestSlug);
-                      router.replace('/(tabs)/practice' as never);
-                    },
-                  },
-                  { text: 'Cancel', style: 'cancel' },
-                ],
-              );
-            }}
+            onPress={() => setSheet('cross')}
           >
             <Ionicons
               name="swap-horizontal-outline"
@@ -256,13 +244,13 @@ export function StepCombinatorsRow({
         ) : null}
 
         {hasNear ? (
-          <View style={[styles.pill, styles.nearPill]}>
+          <Pressable style={[styles.pill, styles.nearPill]} onPress={() => setSheet('near')}>
             <Ionicons name="locate-outline" size={12} color="#0A84FF" />
             <Text style={styles.pillText}>
               <Text style={[styles.pillBold, styles.nearBold]}>{nearCount}</Text>
               <Text style={styles.pillDim}> near</Text>
             </Text>
-          </View>
+          </Pressable>
         ) : null}
 
         {hasRelated ? (
@@ -313,6 +301,28 @@ export function StepCombinatorsRow({
           visible
           mode="related"
           relatedSteps={relatedSteps}
+          onDismiss={() => setSheet(null)}
+        />
+      ) : null}
+
+      {sheet === 'near' ? (
+        <StepCombinatorsSheet
+          visible
+          mode="near"
+          nearbySteps={nearbyPeerStepsForSheet}
+          onDismiss={() => setSheet(null)}
+        />
+      ) : null}
+
+      {sheet === 'cross' && crossInterest ? (
+        <StepCombinatorsSheet
+          visible
+          mode="cross"
+          cross={crossInterest}
+          onOpenInterest={async () => {
+            await switchInterest(crossInterest.sourceInterestSlug);
+            router.replace('/(tabs)/practice' as never);
+          }}
           onDismiss={() => setSheet(null)}
         />
       ) : null}
