@@ -49,6 +49,7 @@ import {
   pickAvatarMarkColor,
   type PersonTag,
 } from '@/components/discover/canonical';
+import { DiscoverEmptyState } from '@/components/discover/DiscoverEmptyState';
 
 // =============================================================================
 // PROPS
@@ -81,7 +82,20 @@ export function DiscoverPeopleContent({
   const [searchQuery, setSearchQuery] = useState('');
   const searchInputRef = useRef<TextInput>(null);
 
-  if (!isSailingInterest && demoData) {
+  if (isSailingInterest) {
+    return (
+      <LivePath
+        toolbarOffset={toolbarOffset}
+        onScroll={onScroll}
+        interestName={interestName}
+        searchQuery={searchQuery}
+        setSearchQuery={setSearchQuery}
+        searchInputRef={searchInputRef}
+      />
+    );
+  }
+
+  if (demoData) {
     return (
       <DemoPath
         toolbarOffset={toolbarOffset}
@@ -97,15 +111,25 @@ export function DiscoverPeopleContent({
     );
   }
 
+  // Non-sailing interest with no seeded demo community — show the honest
+  // "you're early" state rather than leaking sailing's live suggestions
+  // (which carry race counts and "Sailor in your community" descriptors).
   return (
-    <LivePath
-      toolbarOffset={toolbarOffset}
-      onScroll={onScroll}
-      interestName={interestName}
-      searchQuery={searchQuery}
-      setSearchQuery={setSearchQuery}
-      searchInputRef={searchInputRef}
-    />
+    <View style={styles.container}>
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={[styles.scrollContent, { paddingTop: toolbarOffset }]}
+        showsVerticalScrollIndicator={false}
+        onScroll={onScroll}
+        scrollEventThrottle={16}
+      >
+        <DiscoverEmptyState
+          icon="people-outline"
+          title="Nobody here yet"
+          body={`You're early in ${interestName ?? 'this register'}. Join an org or invite peers to start building your network.`}
+        />
+      </ScrollView>
+    </View>
   );
 }
 

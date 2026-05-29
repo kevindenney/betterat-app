@@ -33,6 +33,7 @@ import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
 import { useInterest } from '@/providers/InterestProvider';
 import { useDiscoverBlueprints } from '@/hooks/useBlueprint';
 import { useSailorSuggestions } from '@/hooks/useSailorSuggestions';
+import { getConnectDemoData } from '@/configs/connectDemoData';
 import {
   useHomeOrg,
   useThisWeeksPick,
@@ -46,6 +47,12 @@ import type { DiscoveredBlueprint } from '@/services/BlueprintService';
 
 type FeedSegment = 'today' | 'plans' | 'people' | 'orgs' | 'interests' | 'nearby';
 
+interface FeedPerson {
+  id: string;
+  name: string;
+  meta: string;
+}
+
 interface DiscoverFeedProps {
   toolbarOffset: number;
   onSeeAll: (segment: FeedSegment) => void;
@@ -54,16 +61,41 @@ interface DiscoverFeedProps {
 export function DiscoverFeed({ toolbarOffset, onSeeAll }: DiscoverFeedProps) {
   const { currentInterest } = useInterest();
   const interestId = currentInterest?.id;
+  const interestSlug = currentInterest?.slug ?? '';
   const interestName = currentInterest?.name ?? 'your craft';
+  const isSailing = interestSlug === 'sail-racing';
 
   const homeOrg = useHomeOrg();
   const thisWeeksPick = useThisWeeksPick();
   const { data: catalog = [], isLoading: plansLoading } =
     useDiscoverBlueprints(interestId);
   const { suggestions } = useSailorSuggestions();
+  const demoData = React.useMemo(
+    () => getConnectDemoData(interestSlug),
+    [interestSlug],
+  );
 
   const topPlans = catalog.slice(0, 2);
-  const topPeople = (suggestions ?? []).slice(0, 3);
+  // People are interest-scoped: sailing uses live suggestions; other seeded
+  // interests use their demo community; everything else shows no people row
+  // (rather than leaking sailing's "X races" peers into a Running register).
+  const topPeople: FeedPerson[] = React.useMemo(() => {
+    if (isSailing) {
+      return (suggestions ?? []).slice(0, 3).map((p) => ({
+        id: p.userId,
+        name: p.fullName,
+        meta: p.similarityReason?.trim() || 'Worth knowing',
+      }));
+    }
+    if (demoData) {
+      return demoData.peers.slice(0, 3).map((p) => ({
+        id: p.id,
+        name: p.name,
+        meta: p.stat ? `${p.subtitle} · ${p.stat}` : p.subtitle,
+      }));
+    }
+    return [];
+  }, [isSailing, suggestions, demoData]);
   const hasThisWeek = !!homeOrg || !!thisWeeksPick;
 
   return (
@@ -185,28 +217,28 @@ export function DiscoverFeed({ toolbarOffset, onSeeAll }: DiscoverFeedProps) {
           />
           {topPeople.map((p) => (
             <Pressable
-              key={p.userId}
+              key={p.id}
               style={styles.rowCard}
               onPress={() =>
                 router.push(
-                  `/discover/person/${p.userId}?from=feed&name=${encodeURIComponent(p.fullName)}` as never,
+                  `/discover/person/${p.id}?from=feed&name=${encodeURIComponent(p.name)}` as never,
                 )
               }
             >
               <View
                 style={[
                   styles.roundMark,
-                  { backgroundColor: pickAvatarMarkColor(p.userId) },
+                  { backgroundColor: pickAvatarMarkColor(p.id) },
                 ]}
               >
-                <Text style={styles.markText}>{initialsForName(p.fullName)}</Text>
+                <Text style={styles.markText}>{initialsForName(p.name)}</Text>
               </View>
               <View style={styles.rowText}>
                 <Text style={styles.rowTitle} numberOfLines={1}>
-                  {p.fullName}
+                  {p.name}
                 </Text>
                 <Text style={styles.rowMeta} numberOfLines={1}>
-                  {p.similarityReason?.trim() || 'Worth knowing'}
+                  {p.meta}
                 </Text>
               </View>
               <Ionicons
