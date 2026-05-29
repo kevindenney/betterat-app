@@ -43,11 +43,12 @@ export interface InterestVocab {
    */
   librarianEyebrow: string;
   /**
-   * Section eyebrow above the capability river chart. "CAPABILITY"
+   * Section eyebrow above the capability-mix chart (CapabilityMix —
+   * the stacked-area "what mix did you practice" surface). "CAPABILITY"
    * is nursing-native; other personas read it as generic-tracker
    * vocab. Each interest provides its own framing.
    */
-  riverHeader: string;
+  capabilityHeader: string;
   /**
    * Section eyebrow above the peer row. Sailing "CREW" reads naturally;
    * for nursing students "COHORT" is the native term, for knitters
@@ -112,7 +113,7 @@ const DEFAULT_VOCAB: InterestVocab = {
     late: 'REFLECTING',
   },
   librarianEyebrow: 'This arc · the librarian noticed',
-  riverHeader: 'CAPABILITY RIVER',
+  capabilityHeader: 'CAPABILITY MIX',
   crewHeader: 'TEAM',
   inputSubtitle: 'who shaped this arc',
 };
@@ -125,7 +126,7 @@ const SAILING_VOCAB: InterestVocab = {
     late: 'DEBRIEFING',
   },
   librarianEyebrow: 'This arc · logbook noticed',
-  riverHeader: 'PRACTICE LOG',
+  capabilityHeader: 'PRACTICE LOG',
   crewHeader: 'FLEET',
   inputSubtitle: 'who shaped this arc',
   // Deliberate sailing palette — 8 capability families, perceptually
@@ -222,7 +223,7 @@ const NURSING_VOCAB: InterestVocab = {
     late: 'DEBRIEFING',
   },
   librarianEyebrow: "This rotation · preceptor's debrief",
-  riverHeader: 'CAPABILITY RIVER',
+  capabilityHeader: 'CAPABILITY MIX',
   crewHeader: 'COHORT',
   inputSubtitle: 'who shaped these shifts',
   // Deliberate nursing palette — 9 capability families, perceptually
@@ -315,7 +316,7 @@ const ENTREPRENEUR_VOCAB: InterestVocab = {
     late: 'TALLYING',
   },
   librarianEyebrow: 'This season · what your books noticed',
-  riverHeader: 'BUSINESS MIX',
+  capabilityHeader: 'BUSINESS MIX',
   crewHeader: 'TEAM',
   inputSubtitle: 'who shaped this season',
   phasePatterns: [
@@ -352,7 +353,7 @@ const GOLF_VOCAB: InterestVocab = {
     late: 'SCORING',
   },
   librarianEyebrow: "This season · coach's notebook",
-  riverHeader: 'ROUND MIX',
+  capabilityHeader: 'ROUND MIX',
   crewHeader: 'FOURSOME',
   inputSubtitle: 'who shaped your game',
   phasePatterns: [
@@ -376,7 +377,7 @@ const DRAWING_VOCAB: InterestVocab = {
     late: 'REVIEWING',
   },
   librarianEyebrow: 'This sketchbook · studio notes',
-  riverHeader: 'STUDIO LOG',
+  capabilityHeader: 'STUDIO LOG',
   crewHeader: 'STUDIO',
   inputSubtitle: 'who shaped your work',
   phasePatterns: [
@@ -402,7 +403,7 @@ const KNITTING_VOCAB: InterestVocab = {
     late: 'BINDING OFF',
   },
   librarianEyebrow: 'This project · pattern notes',
-  riverHeader: 'PROJECT LOG',
+  capabilityHeader: 'PROJECT LOG',
   crewHeader: 'CIRCLE',
   inputSubtitle: 'who shaped this project',
   phasePatterns: [

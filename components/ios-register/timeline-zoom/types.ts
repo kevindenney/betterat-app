@@ -276,7 +276,7 @@ export interface SeasonPhase {
 
 /**
  * Trophy / milestone marker pinned to a specific week of the season.
- * Mirrors RiverChartMarker but lives in the data layer so the adapter
+ * Mirrors CapabilityMixMarker but lives in the data layer so the adapter
  * + sample data can author them without depending on the chart module.
  */
 export interface SeasonMarker {

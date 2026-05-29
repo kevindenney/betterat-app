@@ -2,9 +2,9 @@
  * Peer journey chart (v3 — same-axis-with-river).
  *
  * Per-peer row of letter-coded dots pinned to the same time axis as
- * the CapabilityRiverChart above. The eye reads "river above ↔ fleet
- * below" on a shared x-axis: "this week" is one vertical line through
- * both charts.
+ * the CapabilityMix chart above. The eye reads "capabilities above ↔
+ * fleet below" on a shared x-axis: "this week" is one vertical line
+ * through both charts.
  *
  * Each row is one peer:
  *   - Letter-coded circles (peer.initials char 0) at every week they
@@ -189,7 +189,7 @@ function PeerJourneyChartBlock({
   showRole,
   maxAppearanceCount,
 }: BlockProps) {
-  // padX must match CapabilityRiverChart so the time axis lines up.
+  // padX must match CapabilityMix so the time axis lines up.
   const padX = 12;
   const rowHeight = compact ? 16 : 22;
   const rowGap = compact ? 2 : 4;

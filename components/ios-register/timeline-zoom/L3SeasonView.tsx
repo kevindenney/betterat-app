@@ -9,8 +9,8 @@
  *
  * Composition:
  *   - Header block — title, org chip, "wk N of M"
- *   - Capability river chart (CapabilityRiverChart) — stacked area per
- *     week, NOW bar, inline reflection quotes
+ *   - Capability-mix chart (CapabilityMix) — stacked-area per week with
+ *     planned-vs-proven dual encoding, NOW rule, in-band labels
  *   - Peer journey chart (PeerJourneyChart) — crew arrival timeline
  *   - Season librarian prompt (SeasonLibrarianPrompt) — lilac mid-season
  *     "what do you want this season to add up to?" CTA
@@ -275,7 +275,7 @@ export function L3SeasonView({
         <View style={styles.analysisBlock} onLayout={onAnalysisLayout}>
           {flatSteps.length >= 5 ? (
             <>
-              <Text style={styles.sectionEyebrow}>{interestVocab.riverHeader}</Text>
+              <Text style={styles.sectionEyebrow}>{interestVocab.capabilityHeader}</Text>
               <CapabilityMix
                 weeklyCapabilities={analysis.weeklyCapabilities}
                 totalWeeks={totalWeeks}

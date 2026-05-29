@@ -119,7 +119,7 @@ function adaptLifetimeForCharts(lifetime: LifetimeAnalysis | undefined): {
   weeklyCapabilities: WeeklyCapabilityMix[];
   peers: SeasonPeer[];
   reflections: SeasonReflection[];
-  markers: RiverChartMarker[];
+  markers: CapabilityMixMarker[];
   totalUnits: number;
   currentUnit: number;
 } | null {
@@ -341,7 +341,7 @@ export function L4YearsView({
 
       {adapted && lifetime ? (
         <View style={styles.analysisBlock} onLayout={onAnalysisLayout}>
-          <Text style={styles.sectionEyebrow}>{interestVocab.riverHeader}</Text>
+          <Text style={styles.sectionEyebrow}>{interestVocab.capabilityHeader}</Text>
           <CapabilityMix
             weeklyCapabilities={adapted.weeklyCapabilities}
             totalWeeks={adapted.totalUnits}
