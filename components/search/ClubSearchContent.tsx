@@ -7,7 +7,7 @@
  * - Club list with join/leave
  */
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   View,
   Text,
@@ -91,13 +91,24 @@ export function ClubSearchContent({
 }: ClubSearchContentProps) {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
+  // Debounced query — `searchQuery` updates immediately on every keystroke
+  // so the TextInput stays responsive, but `debouncedQuery` only changes
+  // after 250ms of no input. That keeps useClubSearch from refetching on
+  // every letter, which was causing the FlatList to re-render mid-stroke
+  // and (combined with the iOS keyboard) felt like focus drops.
+  const [debouncedQuery, setDebouncedQuery] = useState('');
   const [selectedBoatClass, setSelectedBoatClass] = useState<string | null>(null);
   const [selectedLocation, setSelectedLocation] = useState<string | null>(null);
   const [showBoatClassModal, setShowBoatClassModal] = useState(false);
   const [showLocationModal, setShowLocationModal] = useState(false);
 
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedQuery(searchQuery), 250);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
   const { clubs, isLoading, toggleJoin } = useClubSearch({
-    query: searchQuery,
+    query: debouncedQuery,
     boatClassId: selectedBoatClass || undefined,
     countryCode: selectedLocation || undefined,
   });
