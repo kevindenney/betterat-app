@@ -58,7 +58,10 @@ import {
   type SignalCellData,
 } from '@/components/discover/detail';
 import { ProposeAdoptionSheet } from '@/components/discover/ProposeAdoptionSheet';
+import { EditOrgSheet } from '@/components/discover/EditOrgSheet';
 import { useMyVerifiedAdminOrgs } from '@/hooks/useMyVerifiedAdminOrgs';
+import { useArchiveOrg } from '@/hooks/useOrgManagement';
+import { showConfirm } from '@/lib/utils/crossPlatformAlert';
 import { useAuth } from '@/providers/AuthProvider';
 
 type IconName = keyof typeof Ionicons.glyphMap;
@@ -160,12 +163,16 @@ function OrgDetailScreenInner() {
   const [docked, setDocked] = useState(false);
   const [joinState, setJoinState] = useState<'idle' | 'busy' | 'pending'>('idle');
   const [proposeOpen, setProposeOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+  const [userRole, setUserRole] = useState<string | null>(null);
+  const archiveOrg = useArchiveOrg();
   const { data: verifiedAdminOrgs } = useMyVerifiedAdminOrgs();
   const canProposeAdoption =
     !!org &&
     org.creation_source === 'user' &&
     !org.parent_org_id &&
     (verifiedAdminOrgs?.length ?? 0) > 0;
+  const isOwner = userRole === 'owner' || userRole === 'admin';
 
   useEffect(() => {
     let cancelled = false;
@@ -214,13 +221,16 @@ function OrgDetailScreenInner() {
         try {
           const { data: my } = await supabase
             .from('organization_memberships')
-            .select('joined_at, status, membership_status, created_at')
+            .select('joined_at, status, membership_status, created_at, role')
             .eq('user_id', user.id)
             .eq('organization_id', org.id)
             .maybeSingle();
           if (cancelled || !my) return;
           const active = my.status === 'active' || my.membership_status === 'active';
           setIsMember(active);
+          if (active) {
+            setUserRole((my as any).role || null);
+          }
           const joined = (my as any).joined_at || (my as any).created_at;
           if (active && joined) {
             try {
@@ -590,6 +600,64 @@ function OrgDetailScreenInner() {
           </IOSDetailSection>
         ) : null}
 
+        {/* Owner-only admin actions — edit + archive. RLS gates the actual
+            mutations via organizations_manage_by_owner_or_admin. */}
+        {isOwner && org ? (
+          <IOSDetailSection header="Manage org">
+            <Pressable
+              style={proposeStyles.cta}
+              onPress={() => setEditOpen(true)}
+            >
+              <Ionicons name="create-outline" size={20} color="#0B63CE" />
+              <View style={proposeStyles.body}>
+                <Text style={proposeStyles.title}>Edit org details</Text>
+                <Text style={proposeStyles.hint}>
+                  Change name, kind, who can join, or description.
+                </Text>
+              </View>
+              <Ionicons
+                name="chevron-forward"
+                size={18}
+                color={IOS_REGISTER.labelSecondary}
+              />
+            </Pressable>
+            <Pressable
+              style={proposeStyles.cta}
+              onPress={() => {
+                showConfirm(
+                  'Archive this org?',
+                  `${org.name} will be hidden from Discover. You can recover it later; nothing is hard-deleted.`,
+                  async () => {
+                    try {
+                      await archiveOrg.mutateAsync(org.id);
+                      router.replace('/(tabs)/discover' as any);
+                    } catch (err) {
+                      // eslint-disable-next-line no-console
+                      console.warn('archive failed', err);
+                    }
+                  },
+                  { destructive: true, confirmText: 'Archive' },
+                );
+              }}
+            >
+              <Ionicons name="archive-outline" size={20} color="#B42318" />
+              <View style={proposeStyles.body}>
+                <Text style={[proposeStyles.title, { color: '#B42318' }]}>
+                  Archive org
+                </Text>
+                <Text style={proposeStyles.hint}>
+                  Soft-archive — hidden from Discover, recoverable later.
+                </Text>
+              </View>
+              <Ionicons
+                name="chevron-forward"
+                size={18}
+                color={IOS_REGISTER.labelSecondary}
+              />
+            </Pressable>
+          </IOSDetailSection>
+        ) : null}
+
         {/* "Up next at the club" — institutional activity signal.
             Three-pellet signal-row + the next two events. Pulled from
             organizations.metadata.up_next so each org carries its own
@@ -711,6 +779,41 @@ function OrgDetailScreenInner() {
           targetOrgId={org.id}
           targetOrgName={org.name}
           onClose={() => setProposeOpen(false)}
+        />
+      ) : null}
+
+      {org && isOwner ? (
+        <EditOrgSheet
+          visible={editOpen}
+          orgId={org.id}
+          initial={{
+            name: org.name,
+            kind: org.organization_type || 'fleet',
+            joinMode: (org.join_mode as any) || 'request_to_join',
+            description:
+              (org.metadata as any)?.description ?? null,
+          }}
+          onClose={() => setEditOpen(false)}
+          onSaved={() => {
+            // Reload the org so the hero reflects the new name.
+            void supabase
+              .from('organizations')
+              .select(
+                'id, name, slug, join_mode, interest_slug, global_club_id, metadata, creation_source, parent_org_id, official, global_clubs(city, country, established_year, member_count_estimate, website)'
+              )
+              .eq('id', org.id)
+              .maybeSingle()
+              .then(({ data }) => {
+                if (!data) return;
+                const raw = data as unknown as OrgRow & {
+                  global_clubs?: OrgRow['global_clubs'] | OrgRow['global_clubs'][];
+                };
+                const gc = Array.isArray(raw.global_clubs)
+                  ? raw.global_clubs[0] ?? null
+                  : raw.global_clubs ?? null;
+                setOrg({ ...raw, global_clubs: gc });
+              });
+          }}
         />
       ) : null}
     </SafeAreaView>
