@@ -60,6 +60,83 @@ export interface StepLocation {
   lat?: number;
   lng?: number;
   venue_id?: string;
+  /**
+   * Optional indoor / campus hierarchy for domains like hospitals where
+   * the primary place needs more structure than one lat/lng pair.
+   */
+  hierarchy?: StepLocationHierarchy;
+  level_label?: string;
+  level_index?: number;
+}
+
+export interface StepLocationHierarchy {
+  campus?: string;
+  building?: string;
+  floor?: string;
+  zone?: string;
+  room?: string;
+  bed?: string;
+}
+
+export type StepSpatialAnchorKind =
+  | 'pin'
+  | 'line-end'
+  | 'race-mark'
+  | 'gate-mark'
+  | 'start-line'
+  | 'route-leg'
+  | 'local-note'
+  | 'building'
+  | 'floor'
+  | 'ward'
+  | 'room'
+  | 'bed'
+  | 'station'
+  | 'supply-room'
+  | 'handoff-point'
+  | 'observation-point';
+
+export type StepSpatialAnchorSource =
+  | 'manual'
+  | 'official'
+  | 'crew'
+  | 'fleet'
+  | 'followers'
+  | 'following'
+  | 'public'
+  | 'sensor';
+
+export type StepSpatialVisibility =
+  | 'private'
+  | 'crew'
+  | 'fleet'
+  | 'followers'
+  | 'following'
+  | 'public';
+
+export interface StepSpatialGeometry {
+  type: 'point' | 'line';
+  /**
+   * Map-native geometry in [lng, lat] pairs so one step can carry many
+   * meaningful places without turning `where_location` into a competing
+   * array of root locations.
+   */
+  coordinates: [number, number][];
+}
+
+export interface StepSpatialAnchor {
+  id: string;
+  label: string;
+  kind: StepSpatialAnchorKind;
+  lat?: number;
+  lng?: number;
+  geometry?: StepSpatialGeometry;
+  note?: string;
+  source?: StepSpatialAnchorSource;
+  visibility?: StepSpatialVisibility;
+  hierarchy?: StepLocationHierarchy;
+  level_label?: string;
+  level_index?: number;
 }
 
 export interface StepPlanData {
@@ -71,7 +148,8 @@ export interface StepPlanData {
   collaborators?: StepCollaborator[];     // structured collaborators
   connection_space?: string;              // where they connect (Discord, Zoom, etc.)
   capability_goals?: string[];
-  where_location?: StepLocation;          // structured location with optional coordinates
+  where_location?: StepLocation;          // primary place for the step
+  spatial_anchors?: StepSpatialAnchor[];  // attached marks / lines / rooms / route notes
   competency_ids?: string[];              // structured competency references
   linked_resource_ids?: string[];
   equipment_context?: AnyExtractedEntity[];
@@ -94,6 +172,96 @@ export interface StepPlanData {
     | 'competition'
     | null;
   target_event_id?: string | null;
+}
+
+export type AtlasLiveTrackingStatus =
+  | 'idle'
+  | 'planned'
+  | 'tracking'
+  | 'completed';
+
+export type AtlasLiveTrackingProvider =
+  | 'betterat_phone_gps'
+  | 'tractrac'
+  | 'vakaros'
+  | 'imported_gpx';
+
+export type AtlasRaceNotePhase = 'live' | 'review';
+
+export type AtlasRaceNoteKind =
+  | 'favoured_pin'
+  | 'bad_air'
+  | 'left_paid'
+  | 'gate_crowded'
+  | 'general';
+
+export interface AtlasRaceCourseContext {
+  scrub_label?: string;
+  scrub_title?: string;
+  plan_focus?: string;
+  wind_chip?: string;
+  tide_chip?: string;
+  slack?: string;
+}
+
+export type AtlasCourseSource =
+  | 'official'
+  | 'community'
+  | 'draft';
+
+export type AtlasKnowledgeAudience =
+  | 'crew'
+  | 'fleet'
+  | 'followers'
+  | 'following'
+  | 'public';
+
+export interface AtlasLocalKnowledgeSharing {
+  audiences?: AtlasKnowledgeAudience[];
+  share_marks?: boolean;
+  share_notes?: boolean;
+  share_track?: boolean;
+}
+
+export interface AtlasStepEventLink {
+  label?: string;
+  when?: string;
+  where?: string;
+  event_kind?: StepPlanData['target_event_kind'];
+  event_id?: string | null;
+}
+
+export interface AtlasRaceNote {
+  id: string;
+  text: string;
+  created_at: string;
+  phase: AtlasRaceNotePhase;
+  kind: AtlasRaceNoteKind;
+  source: 'atlas_map' | 'water_preview' | 'debrief_preview' | 'manual';
+  lat?: number;
+  lng?: number;
+  focus_label?: string;
+}
+
+export interface AtlasLiveTrackingData {
+  status: AtlasLiveTrackingStatus;
+  provider?: AtlasLiveTrackingProvider;
+  planned_at?: string;
+  started_at?: string;
+  stopped_at?: string;
+  session_id?: string | null;
+}
+
+export interface AtlasStepData {
+  origin?: string;
+  frame?: string;
+  interest_slug?: string;
+  next_event?: AtlasStepEventLink | null;
+  course_source?: AtlasCourseSource;
+  race_course_context?: AtlasRaceCourseContext;
+  live_tracking?: AtlasLiveTrackingData;
+  local_knowledge_notes?: AtlasRaceNote[];
+  local_knowledge_sharing?: AtlasLocalKnowledgeSharing;
 }
 
 export interface Observation {
@@ -288,10 +456,30 @@ export interface BrainDumpData {
   ai_structured_at?: string;
 }
 
+/**
+ * Per-step business outcome (entrepreneur vocab). The single sale/work
+ * a step produced: units made or sold, turnover earned, customers
+ * served. The step is the source of truth; a weekly rollup sums all of
+ * an interest's step outcomes into the `business_outcomes` table that
+ * the money lane + EARNINGS headline read. revenue_minor is the
+ * smallest currency unit (paise for INR) — turnover, not net.
+ */
+export interface BusinessOutcomeData {
+  units_sold?: number;
+  revenue_minor?: number;
+  currency?: string;
+  customer_count?: number;
+  repeat_count?: number;
+  /** ISO timestamp of the most recent capture/edit. */
+  captured_at?: string;
+}
+
 export interface StepMetadata {
   plan?: StepPlanData;
   act?: StepActData;
   review?: StepReviewData;
   brain_dump?: BrainDumpData;
+  /** Entrepreneur vocab — the money/sales this step produced. */
+  outcome?: BusinessOutcomeData;
   [key: string]: unknown;
 }

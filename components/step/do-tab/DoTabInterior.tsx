@@ -9,6 +9,7 @@ import { DoStartCard } from './DoStartCard';
 import { PlanStartingFrameRow } from './PlanStartingFrameRow';
 import { DoLiveCard } from './DoLiveCard';
 import { DoPostActivityCard } from './DoPostActivityCard';
+import { StepOutcomeCard } from './StepOutcomeCard';
 import { BeatsList } from './BeatsList';
 import { useStepBeatsBinding } from '@/hooks/useStepBeats';
 
@@ -190,6 +191,14 @@ export function DoTabInterior({
           onDiscardActivity={onDiscardActivity}
           onMarkAsEvidence={onMarkAsEvidence}
         />
+        {stepId && !readOnly ? (
+          <StepOutcomeCard
+            stepId={stepId}
+            interestId={interestId}
+            interestName={interestName}
+            interestSlug={interestSlug}
+          />
+        ) : null}
         {stepId ? beatsList : null}
         {footer}
       </>
