@@ -435,11 +435,14 @@ export function TimelineZoomPracticeScreen() {
 
   // Auto-exit the legacy "Preview with sample data" if it's still on.
   // Kept for users who had it toggled on before the auto-seed shipped.
+  // Skip when the sample was explicitly requested via `?sample=` — an
+  // intentional deep-link preview must survive even on a populated
+  // account (otherwise sample-only chrome like D7/D11 is unreachable).
   useEffect(() => {
-    if (showSample && hasContent) {
+    if (showSample && hasContent && !sampleFromRoute) {
       setSamplePersona(null);
     }
-  }, [showSample, hasContent]);
+  }, [showSample, hasContent, sampleFromRoute]);
 
   // Brief loading shim while the seeder runs OR while step query is in
   // flight. The auto-seed replaces the old empty-state CTA entirely.
