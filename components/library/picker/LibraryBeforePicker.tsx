@@ -22,8 +22,36 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { IOS_COLORS } from '@/lib/design-tokens-ios';
 import { useLibraryItemsForBeforePicker } from '@/hooks/useLibraryItemsForBeforePicker';
+import { useCreateLibraryItem } from '@/hooks/useCreateLibraryItem';
 import { FORMAT_ICON, FORMAT_TINT } from '@/components/library/resources/formatStyles';
+import type { LibraryFormat } from '@/components/library/resources/types';
 import type { PickerLibraryItem } from '@/hooks/useLibraryItemsForBeforePicker';
+
+/**
+ * Classify free-typed picker text as a link (when it looks like a URL) or a
+ * plain note, so "add to library" can create the right kind inline.
+ */
+function detectKind(text: string): {
+  kind: LibraryFormat;
+  url: string | null;
+  title: string;
+  source_label: string | null;
+} {
+  const t = text.trim();
+  const hasScheme = /^https?:\/\//i.test(t);
+  const looksUrl = hasScheme || /^(www\.)?[^\s]+\.[^\s]{2,}(\/\S*)?$/i.test(t);
+  if (looksUrl) {
+    const url = hasScheme ? t : `https://${t}`;
+    let host = t;
+    try {
+      host = new URL(url).hostname.replace(/^www\./, '');
+    } catch {
+      // Malformed despite the regex — fall back to the raw text as the host.
+    }
+    return { kind: 'link', url, title: host, source_label: host };
+  }
+  return { kind: 'note', url: null, title: t, source_label: null };
+}
 
 export interface LibraryBeforePickerProps {
   visible: boolean;
@@ -46,6 +74,7 @@ export function LibraryBeforePicker({
   const [query, setQuery] = useState('');
   const { data: allItems = [], isLoading } =
     useLibraryItemsForBeforePicker(interestId);
+  const createItem = useCreateLibraryItem();
 
   const excludeSet = useMemo(() => new Set(attachedItemIds), [attachedItemIds]);
 
@@ -61,6 +90,12 @@ export function LibraryBeforePicker({
     });
   }, [allItems, query, excludeSet]);
 
+  const trimmedQuery = query.trim();
+  const detected = useMemo(
+    () => (trimmedQuery ? detectKind(trimmedQuery) : null),
+    [trimmedQuery],
+  );
+
   const handleClose = () => {
     setQuery('');
     onClose();
@@ -68,6 +103,19 @@ export function LibraryBeforePicker({
 
   const handlePick = (item: PickerLibraryItem) => {
     onSelect(item.id);
+    setQuery('');
+  };
+
+  const handleCreate = async () => {
+    if (!detected || createItem.isPending) return;
+    const { id } = await createItem.mutateAsync({
+      kind: detected.kind,
+      title: detected.title,
+      url_or_blob_id: detected.url,
+      source_label: detected.source_label,
+      interest_id: interestId ?? null,
+    });
+    onSelect(id);
     setQuery('');
   };
 
@@ -114,6 +162,32 @@ export function LibraryBeforePicker({
             contentContainerStyle={styles.bodyContent}
             keyboardShouldPersistTaps="handled"
           >
+            {detected ? (
+              <Pressable
+                style={styles.createRow}
+                onPress={handleCreate}
+                disabled={createItem.isPending}
+                accessibilityRole="button"
+                accessibilityLabel={`Add "${detected.title}" to your library`}
+                accessibilityState={{ disabled: createItem.isPending }}
+              >
+                <View style={styles.createGlyph}>
+                  {createItem.isPending ? (
+                    <ActivityIndicator size="small" color={IOS_COLORS.systemBlue} />
+                  ) : (
+                    <Ionicons name="add" size={20} color={IOS_COLORS.systemBlue} />
+                  )}
+                </View>
+                <View style={styles.rowBody}>
+                  <Text style={styles.createTitle} numberOfLines={2}>
+                    Add “{detected.title}” to library
+                  </Text>
+                  <Text style={styles.createMeta}>
+                    {detected.kind === 'link' ? 'New link' : 'New note'}
+                  </Text>
+                </View>
+              </Pressable>
+            ) : null}
             {isLoading ? (
               <View style={styles.loading}>
                 <ActivityIndicator color={IOS_COLORS.systemBlue} />
@@ -278,6 +352,39 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
     overflow: 'hidden',
+  },
+  createRow: {
+    marginHorizontal: 16,
+    marginBottom: 12,
+    paddingVertical: 11,
+    paddingHorizontal: 12,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: IOS_COLORS.systemBlue,
+  },
+  createGlyph: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: `${IOS_COLORS.systemBlue}1F`,
+  },
+  createTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: IOS_COLORS.systemBlue,
+    letterSpacing: -0.2,
+    lineHeight: 17,
+  },
+  createMeta: {
+    fontSize: 11,
+    color: IOS_COLORS.secondaryLabel,
+    marginTop: 2,
   },
   row: {
     paddingVertical: 11,
