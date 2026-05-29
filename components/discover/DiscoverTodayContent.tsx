@@ -483,7 +483,17 @@ export function DiscoverTodayContent({
           <View style={styles.sectionEyebrowRow}>
             <Text style={styles.sectionEyebrow}>{nowHappeningEyebrow}</Text>
           </View>
-          <View style={styles.homeClubCard}>
+          <Pressable
+            style={styles.homeClubCard}
+            disabled={!homeOrg.slug}
+            onPress={() => {
+              if (homeOrg.slug) {
+                router.push(
+                  `/discover/org/${homeOrg.slug}?from=today` as any,
+                );
+              }
+            }}
+          >
             <View
               style={[
                 styles.avatar44,
@@ -500,7 +510,14 @@ export function DiscoverTodayContent({
                 {homeOrg.role ? capitalize(homeOrg.role) : 'Member'}
               </Text>
             </View>
-          </View>
+            {homeOrg.slug ? (
+              <Ionicons
+                name="chevron-forward"
+                size={16}
+                color={IOS_REGISTER.labelTertiary}
+              />
+            ) : null}
+          </Pressable>
         </>
       ) : null}
 
