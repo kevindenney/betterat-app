@@ -5,33 +5,27 @@
 # Exit 0 = skip build, Exit 1 = proceed with build
 #
 # ┌─────────────────────────────────────────────────────────────────────┐
-# │ PAUSED-MODE ALLOWLIST                                               │
+# │ POST-PAUSE: DENY-LIST MODE                                          │
 # │                                                                     │
-# │ The betterat-app production domain is currently paused (503 on      │
-# │ every public route). The SPA bundle in dist/ serves no real         │
-# │ traffic. The only deploys that matter are ones that affect the      │
-# │ Vercel-side serverless config (crons + their handlers).             │
+# │ The betterat-app SPA is serving traffic again — production builds   │
+# │ must run for any commit that touches the bundle. To keep avoidable  │
+# │ build minutes off the bill, we still SKIP builds for commits that   │
+# │ only touch paths Vercel doesn't ship (docs, supabase/, markdown,    │
+# │ pencil files, tests, claude-side tooling).                          │
 # │                                                                     │
-# │ While paused, we ONLY build when one of these changes:              │
-# │   - vercel.json                  (crons / rewrites / headers)       │
-# │   - api/cron/**                  (cron handlers themselves)         │
-# │   - package*.json                (cron handler dependencies)        │
-# │   - scripts/ignore-build-step.sh (this script, for self-test)       │
+# │ If a commit touches ANY non-skipped path → build.                   │
+# │ If a commit touches ONLY skipped paths → skip.                      │
 # │                                                                     │
-# │ TO RESTORE NORMAL BUILDS WHEN THE DOMAIN IS UNPAUSED:               │
-# │   1. Revert this script to the previous deny-list version, OR       │
-# │   2. Broaden BUILD_PATTERNS below to include the SPA surface        │
-# │      (app/, components/, services/, hooks/, lib/, providers/,       │
-# │      types/, public/, etc.).                                        │
+# │ Preview branches still skip — production-only deploys for now.      │
 # └─────────────────────────────────────────────────────────────────────┘
 
 set -u
 
-echo "🔍 Vercel Ignored Build Step (paused-mode allowlist)"
+echo "🔍 Vercel Ignored Build Step (deny-list mode)"
 
-# Preview branches: never build while paused.
+# Preview branches: skip — production-only.
 if [ "${VERCEL_ENV:-}" = "preview" ]; then
-  echo "⏭️  Skipping preview deployment (paused-mode)"
+  echo "⏭️  Skipping preview deployment"
   exit 0
 fi
 
@@ -50,24 +44,24 @@ else
 fi
 
 if [ -z "$CHANGED" ]; then
-  # Genuinely can't determine diff (first deploy, or fetch failed). Skip
-  # rather than fall through to a build — the explicit allowlist will catch
-  # the next commit that actually needs to build.
-  echo "⏭️  Cannot determine changes — skipping build (paused-mode default)"
-  exit 0
-fi
-
-# Paths that DO require a Vercel rebuild while the SPA is paused.
-BUILD_PATTERNS='^(vercel\.json$|api/cron/|package(-lock)?\.json$|scripts/ignore-build-step\.sh$)'
-
-BUILD_HITS=$(echo "$CHANGED" | grep -E "$BUILD_PATTERNS" || true)
-
-if [ -n "$BUILD_HITS" ]; then
-  echo "✅ Build-relevant files changed — proceeding with build:"
-  echo "$BUILD_HITS"
+  # Genuinely can't determine diff — build to be safe (we don't want to
+  # silently miss SPA changes after unpausing).
+  echo "✅ Cannot determine changes — building (default after unpause)"
   exit 1
 fi
 
-echo "⏭️  No cron/config changes — skipping build (paused-mode):"
-echo "$CHANGED" | head -20
-exit 0
+# Paths that NEVER require a Vercel rebuild (Vercel doesn't serve them).
+# If every changed file matches one of these, skip the build.
+SKIP_PATTERNS='^(docs/|supabase/|memory/|\.claude/|.*\.md$|.*\.pen$|.*\.png$|.*\.jpg$|.*\.jpeg$|.*\.gif$|.*\.mov$|__tests__/|tests/|.*\.test\.(t|j)sx?$)'
+
+NON_SKIPPED=$(echo "$CHANGED" | grep -vE "$SKIP_PATTERNS" || true)
+
+if [ -z "$NON_SKIPPED" ]; then
+  echo "⏭️  Only skip-listed paths changed — skipping build:"
+  echo "$CHANGED" | head -20
+  exit 0
+fi
+
+echo "✅ Build-relevant files changed — proceeding with build:"
+echo "$NON_SKIPPED" | head -20
+exit 1
