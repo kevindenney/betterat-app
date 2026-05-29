@@ -20,6 +20,19 @@ import type {
 
 const logger = createLogger('OrgCreationService');
 
+export interface SimilarOrgMatch {
+  id: string;
+  name: string;
+  slug: string | null;
+  organization_type: string | null;
+  creation_source: string | null;
+  official: boolean | null;
+}
+
+function escapeLike(value: string): string {
+  return value.replace(/[%_]/g, '');
+}
+
 function slugify(text: string): string {
   return text
     .toLowerCase()
@@ -118,6 +131,37 @@ class OrgCreationService {
     }
 
     return orgRow as CreatedOrganization;
+  }
+
+  /**
+   * Fuzzy name match for the *"Did you mean…?"* dedup prompt in the create
+   * sheet. Plain ilike against name + slug; pg_trgm isn't installed so this
+   * stays cheap and predictable. Returns up to 5 candidates.
+   */
+  async findSimilarOrgs(name: string): Promise<SimilarOrgMatch[]> {
+    const trimmed = name.trim();
+    if (trimmed.length < 3) {
+      return [];
+    }
+    const q = escapeLike(trimmed);
+    if (!q) {
+      return [];
+    }
+
+    const { data, error } = await supabase
+      .from('organizations')
+      .select('id, name, slug, organization_type, creation_source, official')
+      .or(`name.ilike.%${q}%,slug.ilike.%${q}%`)
+      .eq('is_active', true)
+      .order('official', { ascending: false })
+      .order('name', { ascending: true })
+      .limit(5);
+
+    if (error) {
+      logger.warn('findSimilarOrgs failed', error);
+      return [];
+    }
+    return (data || []) as SimilarOrgMatch[];
   }
 }
 

@@ -11,6 +11,7 @@ import {
   OrgAdoptionService,
   type AdoptionRequestRowWithOrgs,
   type OrgAdoptionDecision,
+  type ProposeAdoptionInput,
 } from '@/services/OrgAdoptionService';
 
 const ADOPTION_PENDING_KEY = ['org-adoption-requests', 'pending'] as const;
@@ -48,6 +49,18 @@ export function useDecideAdoption() {
         queryClient.invalidateQueries({ queryKey: ['my-orgs'] });
         queryClient.invalidateQueries({ queryKey: ['blueprints'] });
       }
+    },
+  });
+}
+
+export function useProposeAdoption() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (input: ProposeAdoptionInput) =>
+      OrgAdoptionService.proposeAdoption(input),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ADOPTION_PENDING_KEY });
     },
   });
 }

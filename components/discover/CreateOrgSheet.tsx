@@ -31,6 +31,10 @@ import { useCreateOrg } from '@/hooks/useCreateOrg';
 import { showAlert } from '@/lib/utils/crossPlatformAlert';
 import { IOS_COLORS, IOS_REGISTER } from '@/lib/design-tokens-ios';
 import {
+  orgCreationService,
+  type SimilarOrgMatch,
+} from '@/services/OrgCreationService';
+import {
   SELF_SERVE_ORG_KINDS,
   SELF_SERVE_ORG_KIND_LABELS,
   type OrganizationJoinMode,
@@ -70,6 +74,8 @@ export function CreateOrgSheet({ visible, initialName, onClose }: CreateOrgSheet
   const [kind, setKind] = useState<SelfServeOrgKind>('fleet');
   const [joinMode, setJoinMode] = useState<OrganizationJoinMode>('request_to_join');
   const [description, setDescription] = useState('');
+  const [similar, setSimilar] = useState<SimilarOrgMatch[]>([]);
+  const [similarLoading, setSimilarLoading] = useState(false);
 
   // Reset state when the sheet is opened with a new initial name.
   React.useEffect(() => {
@@ -78,12 +84,45 @@ export function CreateOrgSheet({ visible, initialName, onClose }: CreateOrgSheet
       setKind('fleet');
       setJoinMode('request_to_join');
       setDescription('');
+      setSimilar([]);
     }
   }, [visible, initialName]);
+
+  // Debounced fuzzy match — surfaces existing orgs that look like what the
+  // user is typing so we don't pile up duplicates. ilike is enough; pg_trgm
+  // isn't installed.
+  React.useEffect(() => {
+    if (!visible) return;
+    const trimmed = name.trim();
+    if (trimmed.length < 3) {
+      setSimilar([]);
+      return;
+    }
+    let cancelled = false;
+    setSimilarLoading(true);
+    const timer = setTimeout(async () => {
+      try {
+        const matches = await orgCreationService.findSimilarOrgs(trimmed);
+        if (!cancelled) setSimilar(matches);
+      } finally {
+        if (!cancelled) setSimilarLoading(false);
+      }
+    }, 300);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [name, visible]);
 
   const canSubmit = useMemo(() => {
     return name.trim().length >= 2 && !createOrg.isPending;
   }, [name, createOrg.isPending]);
+
+  const handlePickExisting = (match: SimilarOrgMatch) => {
+    if (!match.slug) return;
+    onClose();
+    router.push(`/discover/org/${match.slug}?from=create-dedup` as any);
+  };
 
   const handleSubmit = async () => {
     const trimmedName = name.trim();
@@ -162,6 +201,50 @@ export function CreateOrgSheet({ visible, initialName, onClose }: CreateOrgSheet
               autoFocus
               returnKeyType="next"
             />
+
+            {/* Fuzzy-match dedup — if an org looks similar, surface it so the
+                user can pick the existing one instead of creating a duplicate.
+                They can still proceed with Create if it really is different. */}
+            {similar.length > 0 ? (
+              <View style={styles.dedupPanel}>
+                <View style={styles.dedupHeader}>
+                  <Ionicons
+                    name="bulb-outline"
+                    size={14}
+                    color={IOS_REGISTER.labelSecondary}
+                  />
+                  <Text style={styles.dedupTitle}>Looks like one of these?</Text>
+                  {similarLoading ? (
+                    <ActivityIndicator
+                      size="small"
+                      color={IOS_REGISTER.labelSecondary}
+                    />
+                  ) : null}
+                </View>
+                {similar.map((match) => (
+                  <Pressable
+                    key={match.id}
+                    onPress={() => handlePickExisting(match)}
+                    style={styles.dedupRow}
+                  >
+                    <View style={styles.dedupRowBody}>
+                      <Text style={styles.dedupRowName}>{match.name}</Text>
+                      <Text style={styles.dedupRowMeta}>
+                        {match.official ? 'Verified' : 'User-started'}
+                        {match.organization_type
+                          ? ` · ${match.organization_type.replace(/_/g, ' ')}`
+                          : ''}
+                      </Text>
+                    </View>
+                    <Ionicons
+                      name="chevron-forward"
+                      size={16}
+                      color={IOS_REGISTER.labelTertiary}
+                    />
+                  </Pressable>
+                ))}
+              </View>
+            ) : null}
 
             <Text style={[styles.label, styles.sectionGap]}>What kind?</Text>
             <View style={styles.chipsRow}>
@@ -399,5 +482,48 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: IOS_REGISTER.labelSecondary,
     lineHeight: 16,
+  },
+  dedupPanel: {
+    marginTop: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(11,99,206,0.18)',
+    backgroundColor: '#F7FAFF',
+    borderRadius: 10,
+    overflow: 'hidden',
+  },
+  dedupHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingTop: 10,
+    paddingBottom: 6,
+  },
+  dedupTitle: {
+    flex: 1,
+    fontSize: 12,
+    fontWeight: '700',
+    color: IOS_REGISTER.labelSecondary,
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
+  },
+  dedupRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: 'rgba(11,99,206,0.18)',
+    gap: 10,
+  },
+  dedupRowBody: { flex: 1, gap: 2 },
+  dedupRowName: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: IOS_REGISTER.label,
+  },
+  dedupRowMeta: {
+    fontSize: 12,
+    color: IOS_REGISTER.labelSecondary,
   },
 });

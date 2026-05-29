@@ -21,6 +21,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Linking,
   Platform,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -56,6 +57,8 @@ import {
   pickAvatarMarkColor,
   type SignalCellData,
 } from '@/components/discover/detail';
+import { ProposeAdoptionSheet } from '@/components/discover/ProposeAdoptionSheet';
+import { useMyVerifiedAdminOrgs } from '@/hooks/useMyVerifiedAdminOrgs';
 import { useAuth } from '@/providers/AuthProvider';
 
 type IconName = keyof typeof Ionicons.glyphMap;
@@ -84,6 +87,9 @@ type OrgRow = {
   interest_slug: string | null;
   global_club_id: string | null;
   metadata: { up_next?: UpNextData } | null;
+  creation_source: string | null;
+  parent_org_id: string | null;
+  official: boolean | null;
   global_clubs: {
     city: string | null;
     country: string | null;
@@ -153,6 +159,13 @@ function OrgDetailScreenInner() {
   const [forums, setForums] = useState<ForumXRow[]>([]);
   const [docked, setDocked] = useState(false);
   const [joinState, setJoinState] = useState<'idle' | 'busy' | 'pending'>('idle');
+  const [proposeOpen, setProposeOpen] = useState(false);
+  const { data: verifiedAdminOrgs } = useMyVerifiedAdminOrgs();
+  const canProposeAdoption =
+    !!org &&
+    org.creation_source === 'user' &&
+    !org.parent_org_id &&
+    (verifiedAdminOrgs?.length ?? 0) > 0;
 
   useEffect(() => {
     let cancelled = false;
@@ -161,7 +174,7 @@ function OrgDetailScreenInner() {
       const { data } = await supabase
         .from('organizations')
         .select(
-          'id, name, slug, join_mode, interest_slug, global_club_id, metadata, global_clubs(city, country, established_year, member_count_estimate, website)'
+          'id, name, slug, join_mode, interest_slug, global_club_id, metadata, creation_source, parent_org_id, official, global_clubs(city, country, established_year, member_count_estimate, website)'
         )
         .eq('slug', slug)
         .maybeSingle();
@@ -544,6 +557,39 @@ function OrgDetailScreenInner() {
           />
         </IOSDetailHero>
 
+        {/* Slice 5A — Verified-parent admin can propose adoption of this
+            user-started org. Section absent unless the org is user-created,
+            has no parent yet, and the viewer admins at least one verified
+            org. See docs/redesign/specs/CREATE_ORG_FLOW_SPEC.md. */}
+        {canProposeAdoption ? (
+          <IOSDetailSection header="Adopt this org">
+            <Pressable
+              style={proposeStyles.cta}
+              onPress={() => setProposeOpen(true)}
+            >
+              <Ionicons
+                name="git-branch-outline"
+                size={20}
+                color="#0B63CE"
+              />
+              <View style={proposeStyles.body}>
+                <Text style={proposeStyles.title}>
+                  Propose adoption under your verified org
+                </Text>
+                <Text style={proposeStyles.hint}>
+                  This is a user-started org. If one of your verified orgs
+                  should adopt it, send a proposal — their admin decides.
+                </Text>
+              </View>
+              <Ionicons
+                name="chevron-forward"
+                size={18}
+                color={IOS_REGISTER.labelSecondary}
+              />
+            </Pressable>
+          </IOSDetailSection>
+        ) : null}
+
         {/* "Up next at the club" — institutional activity signal.
             Three-pellet signal-row + the next two events. Pulled from
             organizations.metadata.up_next so each org carries its own
@@ -658,6 +704,15 @@ function OrgDetailScreenInner() {
 
         <View style={styles.bottomPad} />
       </ScrollView>
+
+      {org ? (
+        <ProposeAdoptionSheet
+          visible={proposeOpen}
+          targetOrgId={org.id}
+          targetOrgName={org.name}
+          onClose={() => setProposeOpen(false)}
+        />
+      ) : null}
     </SafeAreaView>
   );
 }
@@ -811,5 +866,26 @@ const styles = StyleSheet.create({
     fontSize: 12,
     letterSpacing: -0.05,
     color: IOS_REGISTER.labelTertiary,
+  },
+});
+
+const proposeStyles = StyleSheet.create({
+  cta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 4,
+  },
+  body: { flex: 1, gap: 2 },
+  title: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: IOS_REGISTER.label,
+  },
+  hint: {
+    fontSize: 12,
+    color: IOS_REGISTER.labelSecondary,
+    lineHeight: 16,
   },
 });
