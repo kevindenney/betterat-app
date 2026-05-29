@@ -206,6 +206,12 @@ const STATUS_MAP: Record<TimelineStepStatus, StepStatus> = {
   skipped: 'done',
 };
 
+// First-run suppression: don't surface "the librarian noticed" / "-heavy"
+// analysis until there's enough practice to actually have a pattern. Below
+// this threshold a brand-new user just sees their steps, not premature
+// coaching about trends that don't exist yet.
+const ANALYSIS_MIN_STEPS = 4;
+
 // Stable color palette — first chip uses purple (cardio), then cycles. The
 // design's coral-system semantics aren't yet on the database side so we cycle
 // a category → color map keyed by category string.
@@ -1424,6 +1430,10 @@ export function mapToTimelineDataset({
     return sa - sb;
   });
 
+  // Suppress trend/coaching analysis until there's enough practice to have a
+  // real pattern (first-run mode). See ANALYSIS_MIN_STEPS.
+  const showAnalysis = sorted.length >= ANALYSIS_MIN_STEPS;
+
   // Group steps into rotation-relative buckets of 3, ordered by sort_order.
   const seasonIdForSteps = currentSeason?.id ?? 'current';
   const actualFocusId =
@@ -1504,11 +1514,18 @@ export function mapToTimelineDataset({
     stepReflectionsMap,
   );
 
+  // First-run: below the maturity threshold there's no real trend to report,
+  // so drop the "the librarian noticed" prompt rather than coach a newcomer
+  // about patterns that don't exist yet.
+  if (!showAnalysis && currentSeasonAnalysis) {
+    currentSeasonAnalysis.librarianPrompt = undefined;
+  }
+
   // L2 context strip — "{Season} has been {capability}-heavy." Drives
   // the italic-serif sentence above the L2 carousel title. Same
   // dominant-capability derivation as the librarian prompt; computed
   // once and stamped on the current week.
-  if (currentSeasonAnalysis && weeks[currentWeekIdx]) {
+  if (showAnalysis && currentSeasonAnalysis && weeks[currentWeekIdx]) {
     const dominant = weeks
       .slice(0, currentWeekIdx + 1)
       .flatMap((week) => week.steps)
@@ -1524,13 +1541,16 @@ export function mapToTimelineDataset({
       }, [])
       .sort((a, b) => b.count - a.count)[0];
     const dominantLabel = dominant?.label ?? null;
-    const seasonShortName =
-      currentSeason?.short_name ?? currentSeason?.name ?? 'This arc';
+    const realSeasonName = currentSeason?.short_name ?? currentSeason?.name ?? null;
     if (dominantLabel) {
-      weeks[currentWeekIdx].contextStrip = `${seasonShortName} has been ${dominantLabel.toLowerCase()}-heavy.`;
+      // Sentence-initial: capitalized fallback is correct here.
+      weeks[currentWeekIdx].contextStrip = `${realSeasonName ?? 'This arc'} has been ${dominantLabel.toLowerCase()}-heavy.`;
     }
+    // Mid-sentence inside the hint: pass the real name (or null) so the
+    // builder's own lowercase 'this arc' fallback applies — never the
+    // capitalized "This arc" mid-sentence.
     weeks[currentWeekIdx].planningHint =
-      buildWeekPlanningHint(weeks, currentWeekIdx, seasonShortName);
+      buildWeekPlanningHint(weeks, currentWeekIdx, realSeasonName);
   }
 
   // Per-org-competency proven evidence counts across this season's
@@ -1709,6 +1729,13 @@ export function mapToTimelineDataset({
     });
   }
 
+  const lifetime = computeLifetimeAnalysis([currentSeasonNode, ...archivedSeasons]);
+  // First-run: suppress the lifetime "worth a reflection?" / "you're early in
+  // your practice" prompt until there's enough history to mean something.
+  if (!showAnalysis && lifetime) {
+    lifetime.librarianPrompt = undefined;
+  }
+
   return {
     interest: { id: interestId ?? 'live', label: interestLabel, slug: interestSlug },
     user,
@@ -1738,6 +1765,6 @@ export function mapToTimelineDataset({
     lifetimeHeadline,
     seasons: [currentSeasonNode, ...archivedSeasons],
     capabilityFilters: [{ id: 'all', label: 'All' }],
-    lifetime: computeLifetimeAnalysis([currentSeasonNode, ...archivedSeasons]),
+    lifetime,
   };
 }

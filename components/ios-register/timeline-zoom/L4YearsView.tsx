@@ -256,7 +256,7 @@ export function L4YearsView({
         </View>
         <Text style={styles.subtitle}>
           {formatLifetimeDuration(dataset.sinceTimestamp) ??
-            `${dataset.totalSeasons} arcs · ${dataset.totalSteps} steps · since ${dataset.sinceDate}`}
+            `${dataset.totalSeasons} arc${dataset.totalSeasons === 1 ? '' : 's'} · ${dataset.totalSteps} step${dataset.totalSteps === 1 ? '' : 's'}${dataset.sinceDate ? ` · since ${dataset.sinceDate}` : ''}`}
         </Text>
       </View>
 
