@@ -1136,6 +1136,7 @@ function computeLifetimeAnalysis(
       seasonId: season.id,
       label: shortenSeasonLabel(season.title),
       dominantCapabilityColor: dominantColor,
+      dominantCapabilityLabel: dominant?.label ?? null,
       volume: Math.max(1, season.bricks.length),
     };
   });

@@ -201,6 +201,30 @@ export function L4YearsView({
     dataset.interest.label,
   );
 
+  // Trajectory arrow — D5 closer. Names the *change* the lifetime
+  // ladder produced ("Started Spring '24 with Tactics → now in Race
+  // execution"). Renders between the aspirational vision (where
+  // you're going) and the historical arcs (where you've been), so the
+  // eye can hand off from one to the other without losing the thread.
+  // Only meaningful with 2+ sessions and labeled dominant capabilities
+  // on both ends — otherwise the sentence reads as a stub.
+  const trajectory = useMemo(() => {
+    if (!lifetime || lifetime.sessions.length < 2) return null;
+    const first = lifetime.sessions[0];
+    const last = lifetime.sessions[lifetime.sessions.length - 1];
+    if (!first || !last) return null;
+    const firstLabel = first.dominantCapabilityLabel?.trim() || null;
+    const lastLabel = last.dominantCapabilityLabel?.trim() || null;
+    if (!firstLabel || !lastLabel || firstLabel === lastLabel) return null;
+    return {
+      fromLabel: firstLabel,
+      fromColor: first.dominantCapabilityColor,
+      toLabel: lastLabel,
+      toColor: last.dominantCapabilityColor,
+      fromSession: first.label,
+    };
+  }, [lifetime]);
+
   return (
     <ScrollView
       style={styles.scroll}
@@ -249,6 +273,33 @@ export function L4YearsView({
           </Text>
         )}
       </Pressable>
+
+      {trajectory ? (
+        <View style={styles.trajectoryRow}>
+          <View
+            style={[styles.trajectoryDot, { backgroundColor: trajectory.fromColor }]}
+          />
+          <Text style={styles.trajectoryText} numberOfLines={1}>
+            Started{' '}
+            <Text style={styles.trajectoryWhen}>{trajectory.fromSession}</Text>{' '}
+            with{' '}
+            <Text style={styles.trajectoryLabel}>{trajectory.fromLabel}</Text>
+          </Text>
+          <Ionicons
+            name="arrow-forward"
+            size={11}
+            color={IOS_REGISTER.labelTertiary}
+            style={styles.trajectoryArrow}
+          />
+          <Text style={styles.trajectoryText} numberOfLines={1}>
+            now in{' '}
+            <Text style={styles.trajectoryLabel}>{trajectory.toLabel}</Text>
+          </Text>
+          <View
+            style={[styles.trajectoryDot, { backgroundColor: trajectory.toColor }]}
+          />
+        </View>
+      ) : null}
 
       <LifetimeVisionEditSheet
         visible={lifetimeVisionEditOpen}
@@ -1005,6 +1056,40 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 20,
     color: IOS_REGISTER.labelTertiary,
+  },
+  // Trajectory arrow — D5 closer. Single horizontal line between the
+  // aspirational vision and the historical arcs, naming where you
+  // started → where you are now in the persona's own capability
+  // vocabulary.
+  trajectoryRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    marginHorizontal: 16,
+    marginBottom: 12,
+    marginTop: -2,
+  },
+  trajectoryDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
+  },
+  trajectoryText: {
+    fontSize: 12,
+    color: IOS_REGISTER.labelSecondary,
+    letterSpacing: -0.05,
+    flexShrink: 1,
+  },
+  trajectoryWhen: {
+    fontWeight: '600',
+    color: IOS_REGISTER.label,
+  },
+  trajectoryLabel: {
+    fontWeight: '600',
+    color: IOS_REGISTER.label,
+  },
+  trajectoryArrow: {
+    marginHorizontal: 1,
   },
   // People-constancy list — sibling readout to PeerJourneyChart that
   // names the relationships in sentences instead of lines. Sits

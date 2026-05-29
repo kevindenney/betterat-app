@@ -415,6 +415,12 @@ export interface LifetimeSession {
   label: string;
   /** The capability that defines this session's color band. */
   dominantCapabilityColor: string;
+  /** Persona-vernacular capability label for this session ("Tactics",
+   *  "Patient communication", "Diwali rush"). Optional — falls back to
+   *  capability-color when missing. Drives the L4 trajectory arrow
+   *  ("Started Spring '24 with Tactics → now in Race execution") so
+   *  the surface can name the change in words, not just colors. */
+  dominantCapabilityLabel?: string | null;
   /** Total step count this session — scales the band height. */
   volume: number;
   /** True for race/showcase sessions (canonical's "race vs prep rhythm"). */
