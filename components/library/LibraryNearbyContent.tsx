@@ -18,6 +18,7 @@ import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
 import { useNearbyBlueprints } from '@/hooks/useNearbyBlueprints';
+import { useVocabulary } from '@/hooks/useVocabulary';
 import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
 
 interface LibraryNearbyContentProps {
@@ -31,6 +32,7 @@ export function LibraryNearbyContent({
   homeVenueLng,
   homeVenueLabel,
 }: LibraryNearbyContentProps) {
+  const { vocab } = useVocabulary();
   const hasVenue = homeVenueLat != null && homeVenueLng != null;
 
   const { data: blueprints = [], isLoading } = useNearbyBlueprints({
@@ -46,9 +48,9 @@ export function LibraryNearbyContent({
         <Ionicons name="location-outline" size={28} color={IOS_COLORS.tertiaryLabel} />
         <Text style={styles.emptyTitle}>Set a home venue</Text>
         <Text style={styles.emptyCopy}>
-          Nearby surfaces what your local clubs publish and what nearby
-          sailors save. Add a home venue in settings to light up this
-          segment.
+          Nearby surfaces what your local organizations publish and what
+          nearby {vocab('Peers')} save. Add a home venue in settings to
+          light up this segment.
         </Text>
       </View>
     );
@@ -66,9 +68,8 @@ export function LibraryNearbyContent({
           Nothing published near {homeVenueLabel ?? 'you'} yet
         </Text>
         <Text style={styles.emptyCopy}>
-          As clubs and coaches around you publish blueprints, they’ll
-          appear here so you can subscribe and pull them into your own
-          plan.
+          As organizations around you publish blueprints, they’ll appear
+          here so you can subscribe and pull them into your own plan.
         </Text>
       </View>
     );
@@ -83,8 +84,8 @@ export function LibraryNearbyContent({
       <View style={styles.section}>
         <Text style={styles.sectionEyebrow}>
           {blueprints.length === 1
-            ? '1 blueprint from nearby clubs'
-            : `${blueprints.length} blueprints from nearby clubs`}
+            ? '1 blueprint from nearby organizations'
+            : `${blueprints.length} blueprints from nearby organizations`}
         </Text>
         <View style={styles.list}>
           {blueprints.map((bp) => (

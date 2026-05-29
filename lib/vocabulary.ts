@@ -48,6 +48,10 @@ export const FALLBACK_VOCABULARY: VocabularyMap = {
   // Harbour reads as "12 things other sailors did here", whereas
   // the platform's "+12 steps" is jargon to a Dragon sailor.
   'Step': 'session',
+  // The person practising this craft — used wherever the UI counts or
+  // refers to other practitioners (blueprint subscribers, nearby people).
+  'Peer': 'sailor',
+  'Peers': 'sailors',
 };
 
 // ---------------------------------------------------------------------------
@@ -72,6 +76,8 @@ const NURSING_VOCABULARY: VocabularyMap = {
   'Competency': 'Competency',
   'Supervision': 'Requires Supervision',
   'Step': 'shift',
+  'Peer': 'practitioner',
+  'Peers': 'practitioners',
 };
 
 const DRAWING_VOCABULARY: VocabularyMap = {
@@ -90,6 +96,8 @@ const DRAWING_VOCABULARY: VocabularyMap = {
   'Equipment': 'Medium & Tools',
   'Competency': 'Technique',
   'Supervision': '',
+  'Peer': 'artist',
+  'Peers': 'artists',
 };
 
 const DESIGN_VOCABULARY: VocabularyMap = {
@@ -106,6 +114,8 @@ const DESIGN_VOCABULARY: VocabularyMap = {
   'Skill': 'Technique',
   'Community': 'Design Community',
   'Equipment': 'Tools & Media',
+  'Peer': 'designer',
+  'Peers': 'designers',
 };
 
 const FITNESS_VOCABULARY: VocabularyMap = {
@@ -122,6 +132,8 @@ const FITNESS_VOCABULARY: VocabularyMap = {
   'Skill': 'Movement',
   'Community': 'Training Group',
   'Equipment': 'Gym Equipment',
+  'Peer': 'athlete',
+  'Peers': 'athletes',
 };
 
 const KNITTING_VOCABULARY: VocabularyMap = {
@@ -138,6 +150,8 @@ const KNITTING_VOCABULARY: VocabularyMap = {
   'Skill': 'Technique',
   'Community': 'Knitting Group',
   'Equipment': 'Yarn & Needles',
+  'Peer': 'knitter',
+  'Peers': 'knitters',
 };
 
 const FIBER_ARTS_VOCABULARY: VocabularyMap = {
@@ -154,6 +168,8 @@ const FIBER_ARTS_VOCABULARY: VocabularyMap = {
   'Skill': 'Technique',
   'Community': 'Fiber Arts Group',
   'Equipment': 'Fiber & Tools',
+  'Peer': 'maker',
+  'Peers': 'makers',
 };
 
 const GLOBAL_HEALTH_VOCABULARY: VocabularyMap = {
@@ -170,6 +186,8 @@ const GLOBAL_HEALTH_VOCABULARY: VocabularyMap = {
   'Skill': 'Clinical Skill',
   'Community': 'Program Forum',
   'Equipment': 'Field Kit',
+  'Peer': 'practitioner',
+  'Peers': 'practitioners',
 };
 
 const PAINTING_VOCABULARY: VocabularyMap = {
@@ -186,6 +204,8 @@ const PAINTING_VOCABULARY: VocabularyMap = {
   'Skill': 'Technique',
   'Community': 'Art Community',
   'Equipment': 'Paints & Tools',
+  'Peer': 'artist',
+  'Peers': 'artists',
 };
 
 const LIFELONG_LEARNING_VOCABULARY: VocabularyMap = {
@@ -202,6 +222,8 @@ const LIFELONG_LEARNING_VOCABULARY: VocabularyMap = {
   'Skill': 'Skill',
   'Community': 'Study Group',
   'Equipment': 'Resources',
+  'Peer': 'learner',
+  'Peers': 'learners',
 };
 
 const REGEN_AG_VOCABULARY: VocabularyMap = {
@@ -218,6 +240,8 @@ const REGEN_AG_VOCABULARY: VocabularyMap = {
   'Skill': 'Practice',
   'Community': 'Farm Network',
   'Equipment': 'Tools & Inputs',
+  'Peer': 'grower',
+  'Peers': 'growers',
 };
 
 const LAC_CRAFT_VOCABULARY: VocabularyMap = {
@@ -236,6 +260,8 @@ const LAC_CRAFT_VOCABULARY: VocabularyMap = {
   'Equipment': 'Tools & Materials',
   'Competency': 'Skill',
   'Supervision': '',
+  'Peer': 'member',
+  'Peers': 'members',
 };
 
 const SELF_MASTERY_VOCABULARY: VocabularyMap = {
@@ -252,6 +278,8 @@ const SELF_MASTERY_VOCABULARY: VocabularyMap = {
   'Skill': 'Skill',
   'Community': 'Community',
   'Equipment': 'Tools',
+  'Peer': 'practitioner',
+  'Peers': 'practitioners',
 };
 
 /** Map of interest slug → client-side fallback vocabulary */
@@ -288,6 +316,8 @@ const GENERIC_VOCABULARY: VocabularyMap = {
   'Community': 'Community',
   'Equipment': 'Equipment',
   'Step': 'log',
+  'Peer': 'member',
+  'Peers': 'members',
 };
 
 /**

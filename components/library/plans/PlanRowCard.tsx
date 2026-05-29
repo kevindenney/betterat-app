@@ -12,6 +12,7 @@ import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
+import { useVocabulary } from '@/hooks/useVocabulary';
 import type { SubscribedPlanRow } from '@/hooks/useSubscribedPlansForLibrary';
 
 interface Props {
@@ -83,6 +84,7 @@ const STATUS_PILL: Record<
 };
 
 export function PlanRowCard({ plan, onPress }: Props) {
+  const { vocab } = useVocabulary();
   const pill = STATUS_PILL[plan.status];
   const progressPct = plan.stepCount > 0 ? Math.min(100, (plan.doneCount / plan.stepCount) * 100) : 0;
 
@@ -161,7 +163,7 @@ export function PlanRowCard({ plan, onPress }: Props) {
           )}
           <Text style={styles.footText}>
             <Text style={styles.footEm}>{plan.subscriberCount}</Text>{' '}
-            {plan.subscriberCount === 1 ? 'sailor' : 'sailors'}
+            {plan.subscriberCount === 1 ? vocab('Peer') : vocab('Peers')}
           </Text>
         </View>
         {plan.resourceCount > 0 ? (

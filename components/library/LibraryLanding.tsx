@@ -39,6 +39,7 @@ import { useCreateLibraryItem } from '@/hooks/useCreateLibraryItem';
 import { useLibraryCounts } from '@/hooks/useLibraryCounts';
 import { usePlaybook } from '@/hooks/usePlaybook';
 import { useInterest } from '@/providers/InterestProvider';
+import { useVocabulary } from '@/hooks/useVocabulary';
 import { showAlert } from '@/lib/utils/crossPlatformAlert';
 import type { LibraryZone } from '@/components/library/SegmentedZoneHeader';
 
@@ -66,7 +67,7 @@ const SEGMENT_ZONES: { value: LibraryZone; label: string }[] = [
 // the current view, not abstract advertising.
 const ZONE_DESCRIPTION: Record<LibraryZone, string> = {
   all: 'Cross-cutting insights the librarian noticed across your library.',
-  nearby: 'Curriculum and content from clubs and sailors around you.',
+  nearby: 'Curriculum and content from organizations and people around you.',
   plans: 'Subscribed Blueprints you can pull into your own Plan.',
   concepts: "Mental models you're forming, refining, or have settled.",
   resources: 'Saved articles, docs, and references.',
@@ -92,6 +93,7 @@ export function LibraryLanding({ conceptsBody, librarianSlot }: Props) {
       : 'all';
 
   const { currentInterest } = useInterest();
+  const { vocab } = useVocabulary();
   const { data: counts } = useLibraryCounts(currentInterest?.id);
   const { data: playbook } = usePlaybook(currentInterest?.id);
   const createLibraryItem = useCreateLibraryItem();
@@ -175,7 +177,9 @@ export function LibraryLanding({ conceptsBody, librarianSlot }: Props) {
             onValueChange={(v) => handleZoneChange(v as LibraryZone)}
           />
           <Text style={styles.zoneDescription}>
-            {ZONE_DESCRIPTION[segmentedValue]}
+            {segmentedValue === 'nearby'
+              ? `Curriculum and content from organizations and ${vocab('Peers')} around you.`
+              : ZONE_DESCRIPTION[segmentedValue]}
           </Text>
         </View>
 

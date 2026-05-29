@@ -14,9 +14,11 @@ import { Ionicons } from '@expo/vector-icons';
 import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
 import { useFollowedPeopleForLibrary } from '@/hooks/useFollowedPeopleForLibrary';
 import { PersonRowCard } from '@/components/library/people/PersonRowCard';
+import { useVocabulary } from '@/hooks/useVocabulary';
 
 export function PeopleZone() {
   const { data: people, isLoading } = useFollowedPeopleForLibrary();
+  const { vocab } = useVocabulary();
 
   if (isLoading) {
     return (
@@ -32,8 +34,8 @@ export function PeopleZone() {
         <Ionicons name="people-outline" size={28} color={IOS_COLORS.tertiaryLabel} />
         <Text style={styles.emptyTitle}>Not following anyone yet</Text>
         <Text style={styles.emptyBlurb}>
-          Follow sailors and coaches from Discover, and their timelines will surface
-          here with the latest thing they've done.
+          Follow {vocab('Peers')} and {vocab('Coaches').toLowerCase()} from Discover, and
+          their timelines will surface here with the latest thing they've done.
         </Text>
       </View>
     );
