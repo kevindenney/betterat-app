@@ -65,14 +65,14 @@ interface DiscoverTodayContentProps {
 // HOME-ORG QUERY — Pass 11 "Now happening" wiring
 // =============================================================================
 
-interface HomeOrg {
+export interface HomeOrg {
   orgId: string;
   name: string;
   slug: string | null;
   role: string | null;
 }
 
-function useHomeOrg(): HomeOrg | null {
+export function useHomeOrg(): HomeOrg | null {
   const { user } = useAuth();
   const { currentInterest } = useInterest();
   const [club, setClub] = useState<HomeOrg | null>(null);
@@ -292,7 +292,7 @@ function useAlsoRoom(): AlsoRoomPick | null {
 // score against current concepts).
 // =============================================================================
 
-interface ThisWeeksPick {
+export interface ThisWeeksPick {
   id: string;
   slug: string;
   title: string;
@@ -301,7 +301,7 @@ interface ThisWeeksPick {
   stepCount: number;
 }
 
-function useThisWeeksPick(): ThisWeeksPick | null {
+export function useThisWeeksPick(): ThisWeeksPick | null {
   const { user } = useAuth();
   const { currentInterest } = useInterest();
   const [pick, setPick] = useState<ThisWeeksPick | null>(null);

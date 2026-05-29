@@ -21,7 +21,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -34,10 +33,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { TabScreenToolbar } from '@/components/ui/TabScreenToolbar';
 import { LocationAnchor } from '@/components/ui/LocationAnchor';
-import { FLOATING_TAB_BAR_HEIGHT } from '@/components/navigation/FloatingTabBar';
-import { IOSSegmentedControl } from '@/components/ui/ios/IOSSegmentedControl';
 import { useUserHomeVenue } from '@/hooks/useUserHomeVenue';
-import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
+import { IOS_COLORS } from '@/lib/design-tokens-ios';
+import { DiscoverFeed } from '@/components/discover/DiscoverFeed';
 import { DiscoverTodayContent } from '@/components/discover/DiscoverTodayContent';
 import { DiscoverInterestsContent } from '@/components/discover/DiscoverInterestsContent';
 import { DiscoverOrgsContent } from '@/components/discover/DiscoverOrgsContent';
@@ -64,15 +62,15 @@ const VALID_SEGMENTS: DiscoverSegment[] = [
   'plans',
 ];
 
-const SEGMENTS: { value: DiscoverSegment; label: string }[] = [
-  { value: 'all', label: 'All' },
-  { value: 'today', label: 'Today' },
-  { value: 'nearby', label: 'Nearby' },
-  { value: 'interests', label: 'Interests' },
-  { value: 'orgs', label: 'Orgs' },
-  { value: 'people', label: 'People' },
-  { value: 'plans', label: 'Plans' },
-];
+const SEGMENT_LABELS: Record<DiscoverSegment, string> = {
+  all: 'Discover',
+  today: 'This week',
+  nearby: 'Nearby',
+  interests: 'Interests',
+  orgs: 'Orgs',
+  people: 'People',
+  plans: 'Plans',
+};
 
 export default function DiscoverScreen() {
   const insets = useSafeAreaInsets();
@@ -141,25 +139,11 @@ export default function DiscoverScreen() {
   return (
     <View style={styles.container}>
       {segment === 'all' ? (
-        <ScrollView
-          style={styles.body}
-          contentContainerStyle={{
-            paddingTop: toolbarHeight + IOS_SPACING.md,
-            paddingBottom: FLOATING_TAB_BAR_HEIGHT + insets.bottom + 24,
-          }}
-        >
-          <SegmentBar segment={segment} onSegmentChange={handleSegmentChange} />
-          <DiscoverAll
-            onJumpToSegment={handleSegmentChange}
-            addedInterestCount={addedInterestSlugs.size}
-            followedCount={followedIds.size}
-          />
-        </ScrollView>
+        <DiscoverFeed toolbarOffset={toolbarOffset} onSeeAll={handleSegmentChange} />
       ) : (
         <SegmentContent
           segment={segment}
           toolbarOffset={toolbarOffset + 48}
-          onSegmentChange={handleSegmentChange}
           addedInterestSlugs={addedInterestSlugs}
           onAddInterest={onAddInterest}
           followedIds={followedIds}
@@ -189,35 +173,24 @@ export default function DiscoverScreen() {
         ]}
       />
 
-      {/* When a non-All segment owns its own scroll, the segment bar
-          sits as a floating pill below the toolbar so the user can
-          pivot without losing scroll position inside the content. */}
+      {/* Focused segment views own their own scroll; a lightweight back
+          pill sits below the toolbar so the user can return to the feed
+          without a segmented control eating the top chrome. */}
       {segment !== 'all' ? (
         <View
-          style={[styles.floatingSegmentBar, { top: toolbarHeight + 4 }]}
+          style={[styles.backHeader, { top: toolbarHeight + 4 }]}
           pointerEvents="box-none"
         >
-          <SegmentBar segment={segment} onSegmentChange={handleSegmentChange} />
+          <Pressable
+            style={styles.backPill}
+            onPress={() => handleSegmentChange('all')}
+            hitSlop={8}
+          >
+            <Ionicons name="chevron-back" size={16} color={IOS_COLORS.systemBlue} />
+            <Text style={styles.backPillText}>{SEGMENT_LABELS[segment]}</Text>
+          </Pressable>
         </View>
       ) : null}
-    </View>
-  );
-}
-
-function SegmentBar({
-  segment,
-  onSegmentChange,
-}: {
-  segment: DiscoverSegment;
-  onSegmentChange: (next: DiscoverSegment) => void;
-}) {
-  return (
-    <View style={styles.segmentBarWrap}>
-      <IOSSegmentedControl
-        segments={SEGMENTS}
-        selectedValue={segment}
-        onValueChange={(v) => onSegmentChange(v as DiscoverSegment)}
-      />
     </View>
   );
 }
@@ -283,103 +256,6 @@ function SegmentContent({
   return null;
 }
 
-/**
- * Stitched "All" view — terse preview of each segment with jump
- * affordances. Acts as a default landing that orients a brand-new
- * user without forcing a category pick first.
- */
-function DiscoverAll({
-  onJumpToSegment,
-  addedInterestCount,
-  followedCount,
-}: {
-  onJumpToSegment: (segment: DiscoverSegment) => void;
-  addedInterestCount: number;
-  followedCount: number;
-}) {
-  const cards: {
-    segment: DiscoverSegment;
-    title: string;
-    body: string;
-    icon: keyof typeof Ionicons.glyphMap;
-    badge?: string;
-  }[] = [
-    {
-      segment: 'today',
-      title: 'Today',
-      body: 'A curated front door — what is happening at your home org, this week\'s pick, and a few suggestions tuned to your current interest.',
-      icon: 'sparkles-outline',
-    },
-    {
-      segment: 'interests',
-      title: 'Interests',
-      body: 'Browse craft and discipline interests. Add the ones you are working on.',
-      icon: 'compass-outline',
-      badge: addedInterestCount > 0 ? `${addedInterestCount} added` : undefined,
-    },
-    {
-      segment: 'orgs',
-      title: 'Orgs',
-      body: 'Schools, clubs, programs, and groups — Johns Hopkins, JHSON, the JHU nursing student groups all sit at the same level. Join the ones that shape your practice.',
-      icon: 'business-outline',
-    },
-    {
-      segment: 'people',
-      title: 'People',
-      body: 'Coaches, peers, mentors. Follow the ones you want to learn from.',
-      icon: 'people-outline',
-      badge: followedCount > 0 ? `${followedCount} followed` : undefined,
-    },
-    {
-      segment: 'plans',
-      title: 'Plans',
-      body: 'Published plans you can subscribe to and pull into your timeline. (Plans = blueprints in the DB; the UI uses "plan" because that\'s how you talk about them.)',
-      icon: 'reader-outline',
-    },
-  ];
-
-  return (
-    <View style={styles.allWrap}>
-      <View style={styles.allHero}>
-        <Text style={styles.allEyebrow}>Discover</Text>
-        <Text style={styles.allTitle}>Before it is yours</Text>
-        <Text style={styles.allCopy}>
-          Find interests, orgs, people, and plans you do not yet practice with.
-          Pick a tab to drill in, or browse here.
-        </Text>
-      </View>
-
-      <View style={styles.allCardStack}>
-        {cards.map((c) => (
-          <Pressable
-            key={c.segment}
-            style={styles.allCard}
-            onPress={() => onJumpToSegment(c.segment)}
-          >
-            <View style={styles.allCardHead}>
-              <View style={styles.allCardIcon}>
-                <Ionicons name={c.icon} size={18} color={IOS_COLORS.systemBlue} />
-              </View>
-              <Text style={styles.allCardTitle}>{c.title}</Text>
-              {c.badge ? (
-                <View style={styles.allCardBadge}>
-                  <Text style={styles.allCardBadgeText}>{c.badge}</Text>
-                </View>
-              ) : null}
-              <Ionicons
-                name="chevron-forward"
-                size={16}
-                color={IOS_COLORS.tertiaryLabel}
-              />
-            </View>
-            <Text style={styles.allCardBody}>{c.body}</Text>
-          </Pressable>
-        ))}
-      </View>
-    </View>
-  );
-}
-
 // Silence unused-import warnings if the underlying components stop
 // using these types in a future signature change.
 void ([] as NativeSyntheticEvent<NativeScrollEvent>[]);
@@ -389,92 +265,26 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: IOS_COLORS.systemGroupedBackground,
   },
-  body: {
-    flex: 1,
-  },
-  segmentBarWrap: {
-    paddingHorizontal: IOS_SPACING.lg,
-    marginBottom: IOS_SPACING.md,
-  },
-  floatingSegmentBar: {
+  backHeader: {
     position: 'absolute',
     left: 0,
     right: 0,
+    alignItems: 'flex-start',
+    paddingHorizontal: 16,
   },
-  allWrap: {
-    paddingHorizontal: IOS_SPACING.lg,
-    gap: IOS_SPACING.md,
-  },
-  allHero: {
-    padding: 18,
-    borderRadius: 20,
-    backgroundColor: '#FFFFFF',
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(60,60,67,0.12)',
-    gap: 6,
-  },
-  allEyebrow: {
-    fontSize: 12,
-    fontWeight: '700',
-    letterSpacing: 0.7,
-    textTransform: 'uppercase',
-    color: IOS_COLORS.systemBlue,
-  },
-  allTitle: {
-    fontSize: 24,
-    lineHeight: 28,
-    fontWeight: '800',
-    color: IOS_COLORS.label,
-  },
-  allCopy: {
-    fontSize: 14,
-    lineHeight: 20,
-    color: IOS_COLORS.secondaryLabel,
-  },
-  allCardStack: {
-    gap: 10,
-  },
-  allCard: {
-    padding: 14,
-    borderRadius: 16,
-    backgroundColor: '#FFFFFF',
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(60,60,67,0.12)',
-    gap: 8,
-  },
-  allCardHead: {
+  backPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-  },
-  allCardIcon: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(0, 122, 255, 0.12)',
-  },
-  allCardTitle: {
-    flex: 1,
-    fontSize: 16,
-    fontWeight: '700',
-    color: IOS_COLORS.label,
-  },
-  allCardBadge: {
+    gap: 2,
+    paddingVertical: 6,
+    paddingLeft: 6,
+    paddingRight: 12,
     borderRadius: 999,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    backgroundColor: '#DCEAFE',
+    backgroundColor: 'rgba(242, 242, 247, 0.94)',
   },
-  allCardBadgeText: {
-    fontSize: 11,
-    fontWeight: '700',
+  backPillText: {
+    fontSize: 15,
+    fontWeight: '600',
     color: IOS_COLORS.systemBlue,
-  },
-  allCardBody: {
-    fontSize: 13,
-    lineHeight: 18,
-    color: IOS_COLORS.secondaryLabel,
   },
 });
