@@ -344,6 +344,47 @@ function SeasonLane({
     [season.bricks],
   );
 
+  // Phase D D5 — chapter signal. Surface the dominant capability,
+  // people-constancy hint, and done progress as inline chips on each
+  // season lane so the L4 view starts reading as a flip-through-the-
+  // logbook ledger instead of an undifferentiated brick wall. Each
+  // chip is information-dense and uses signal the bricks already
+  // carry (capabilityLabel from D3, withOthers from earlier, status).
+  const chapterSummary = useMemo(() => {
+    if (season.bricks.length === 0) return null;
+    const labelCounts = new Map<
+      string,
+      { label: string; color: string; count: number }
+    >();
+    let withOthersCount = 0;
+    let doneCount = 0;
+    for (const brick of season.bricks) {
+      if (brick.capabilityLabel) {
+        const existing = labelCounts.get(brick.capabilityLabel);
+        if (existing) existing.count += 1;
+        else
+          labelCounts.set(brick.capabilityLabel, {
+            label: brick.capabilityLabel,
+            color: brick.capabilityColor,
+            count: 1,
+          });
+      }
+      if (brick.withOthers) withOthersCount += 1;
+      if (brick.status === 'done' || brick.status === 'reflected') doneCount += 1;
+    }
+    let dominant: { label: string; color: string; count: number } | null = null;
+    for (const bucket of labelCounts.values()) {
+      if (!dominant || bucket.count > dominant.count) dominant = bucket;
+    }
+    return {
+      dominantLabel: dominant?.label ?? null,
+      dominantColor: dominant?.color ?? null,
+      withOthersCount,
+      doneCount,
+      totalCount: season.bricks.length,
+    };
+  }, [season.bricks]);
+
   const drag = useDragReorder<{ id: string; hasStepId: boolean }>({
     items: reorderableItems,
     axis: 'horizontal',
@@ -393,6 +434,57 @@ function SeasonLane({
           <Text style={styles.laneCount}>{season.bricks.length}</Text>
         </View>
       </View>
+
+      {chapterSummary ? (
+        <View style={styles.chapterChips}>
+          {chapterSummary.dominantLabel ? (
+            <View
+              style={[
+                styles.chapterChip,
+                chapterSummary.dominantColor
+                  ? { backgroundColor: withAlpha(chapterSummary.dominantColor, 0.14) }
+                  : null,
+              ]}
+            >
+              {chapterSummary.dominantColor ? (
+                <View
+                  style={[
+                    styles.chapterChipDot,
+                    { backgroundColor: chapterSummary.dominantColor },
+                  ]}
+                />
+              ) : null}
+              <Text style={styles.chapterChipText} numberOfLines={1}>
+                {chapterSummary.dominantLabel}
+              </Text>
+            </View>
+          ) : null}
+          {chapterSummary.withOthersCount > 0 ? (
+            <View style={styles.chapterChip}>
+              <Ionicons
+                name="people-outline"
+                size={11}
+                color={IOS_REGISTER.labelSecondary}
+              />
+              <Text style={styles.chapterChipText}>
+                {chapterSummary.withOthersCount} with people
+              </Text>
+            </View>
+          ) : null}
+          {chapterSummary.doneCount > 0 ? (
+            <View style={styles.chapterChip}>
+              <Ionicons
+                name="checkmark-circle-outline"
+                size={11}
+                color={IOS_REGISTER.labelSecondary}
+              />
+              <Text style={styles.chapterChipText}>
+                {chapterSummary.doneCount}/{chapterSummary.totalCount} done
+              </Text>
+            </View>
+          ) : null}
+        </View>
+      ) : null}
 
       <ScrollView
         horizontal
@@ -690,6 +782,40 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+  },
+  // Chapter summary chips on each season lane — D5 first cut. Surface
+  // dominant capability + people-constancy + done progress so the L4
+  // surface starts reading as a logbook of chapters, not a wall of
+  // identical bricks.
+  chapterChips: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 4,
+    marginTop: 2,
+    marginBottom: 6,
+    marginHorizontal: 16,
+  },
+  chapterChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 8,
+    backgroundColor: IOS_REGISTER.fillPill,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: IOS_REGISTER.separator,
+  },
+  chapterChipDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  chapterChipText: {
+    fontSize: 10.5,
+    fontWeight: '500',
+    color: IOS_REGISTER.labelSecondary,
+    letterSpacing: 0.1,
   },
   laneEditBtn: {
     padding: 4,
