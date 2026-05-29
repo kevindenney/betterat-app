@@ -63,7 +63,7 @@ export function useStarterStepSeed({
           .eq('user_id', userId)
           .eq('interest_id', interestId)
           .is('starter_seeded_at', null)
-          .select('id')
+          .select('interest_id')
           .maybeSingle();
         if (cancelled) return;
         if (claimErr) {
