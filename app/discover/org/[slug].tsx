@@ -168,6 +168,9 @@ function OrgDetailScreenInner() {
   const [forums, setForums] = useState<ForumXRow[]>([]);
   const [docked, setDocked] = useState(false);
   const [joinState, setJoinState] = useState<'idle' | 'busy' | 'pending'>('idle');
+  // Defaults to true (fail-open): only flips false once we confirm there's no
+  // active approver, so a transient RPC failure never hides a real Join CTA.
+  const [hasApprover, setHasApprover] = useState(true);
   const [proposeOpen, setProposeOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [inviteOpen, setInviteOpen] = useState(false);
@@ -222,6 +225,13 @@ function OrgDetailScreenInner() {
         if (!cancelled && !error) setMemberCount(count ?? null);
       } catch (err) {
         console.warn('[OrgDetail] member-count query failed:', err);
+      }
+
+      try {
+        const approverIds = await organizationDiscoveryService.getOrgsWithApprover([org.id]);
+        if (!cancelled) setHasApprover(approverIds.has(org.id));
+      } catch (err) {
+        console.warn('[OrgDetail] approver check failed:', err);
       }
 
       if (user?.id) {
@@ -557,6 +567,8 @@ function OrgDetailScreenInner() {
             </>
           ) : joinState === 'pending' ? (
             <RelationshipMinePill label="Pending approval" />
+          ) : (org.join_mode || 'invite_only') === 'request_to_join' && !hasApprover ? (
+            <RelationshipMinePill label="Not on BetterAt yet" />
           ) : (
             <RelationshipButton
               label={joinLabel}

@@ -1,6 +1,6 @@
 import { supabase } from '@/services/supabase';
 import { isUuid } from '@/utils/uuid';
-import { isMissingSupabaseColumn } from '@/lib/utils/supabaseSchemaFallback';
+import { isMissingRelationError, isMissingSupabaseColumn } from '@/lib/utils/supabaseSchemaFallback';
 
 export type OrganizationJoinMode = 'invite_only' | 'request_to_join' | 'open_join';
 
@@ -10,6 +10,15 @@ export type DiscoverableOrganization = {
   slug: string | null;
   join_mode: OrganizationJoinMode;
   allowed_email_domains: string[];
+  organization_type?: string | null;
+  status?: string | null;
+  official?: boolean | null;
+  claim_status?: string | null;
+  source?: string | null;
+  // True when the org has an active owner/admin/manager who can action a
+  // join request. request_to_join orgs without one (e.g. seeded directory
+  // clubs) are not actually joinable and should render as passive listings.
+  has_approver?: boolean;
 };
 
 type SearchOrganizationsInput = {
@@ -92,20 +101,36 @@ class OrganizationDiscoveryService {
     };
 
     const nameQuery = applyCommonFilters(
-      supabase.from('organizations').select('id,name,slug,join_mode,allowed_email_domains').ilike('name', `%${q}%`)
+      supabase.from('organizations').select('id,name,slug,join_mode,allowed_email_domains,organization_type,status,official,claim_status,source').ilike('name', `%${q}%`)
     );
     const slugQuery = applyCommonFilters(
-      supabase.from('organizations').select('id,name,slug,join_mode,allowed_email_domains').ilike('slug', `%${q}%`)
+      supabase.from('organizations').select('id,name,slug,join_mode,allowed_email_domains,organization_type,status,official,claim_status,source').ilike('slug', `%${q}%`)
     );
-    let [nameResult, slugResult] = await Promise.all([nameQuery, slugQuery]);
-    let data = [...(nameResult.data || []), ...(slugResult.data || [])];
-    let error = nameResult.error || slugResult.error;
+    const aliasQuery = supabase
+      .from('organization_aliases')
+      .select('organizations(id,name,slug,join_mode,allowed_email_domains,organization_type,status,official,claim_status,source)')
+      .ilike('alias', `%${q}%`)
+      .limit(limit);
+    let [nameResult, slugResult, aliasResult] = await Promise.all([nameQuery, slugQuery, aliasQuery]);
+    let aliasRows = (aliasResult.data || [])
+      .map((row: any) => (Array.isArray(row.organizations) ? row.organizations[0] : row.organizations))
+      .filter(Boolean);
+    let data = [...(nameResult.data || []), ...(slugResult.data || []), ...aliasRows];
+    let error = nameResult.error || slugResult.error || aliasResult.error;
+    if (aliasResult.error && isMissingRelationError(aliasResult.error)) {
+      data = [...(nameResult.data || []), ...(slugResult.data || [])];
+      error = nameResult.error || slugResult.error;
+    }
 
     if (
       error
       && (
         isMissingSupabaseColumn(error, 'organizations.join_mode')
         || isMissingSupabaseColumn(error, 'organizations.allowed_email_domains')
+        || isMissingSupabaseColumn(error, 'organizations.status')
+        || isMissingSupabaseColumn(error, 'organizations.official')
+        || isMissingSupabaseColumn(error, 'organizations.claim_status')
+        || isMissingSupabaseColumn(error, 'organizations.source')
       )
     ) {
       const fallbackNameWithJoinModeQuery = applyCommonFilters(
@@ -145,6 +170,11 @@ class OrganizationDiscoveryService {
         slug: row.slug || null,
         join_mode: normalizeJoinMode(row.join_mode),
         allowed_email_domains: normalizeAllowedEmailDomains(row.allowed_email_domains),
+        organization_type: row.organization_type ? String(row.organization_type) : null,
+        status: row.status ? String(row.status) : null,
+        official: typeof row.official === 'boolean' ? row.official : null,
+        claim_status: row.claim_status ? String(row.claim_status) : null,
+        source: row.source ? String(row.source) : null,
       };
       if (!mapped.name) continue;
       if (!deduped.has(mapped.id)) {
@@ -152,7 +182,32 @@ class OrganizationDiscoveryService {
       }
     }
 
-    return Array.from(deduped.values()).slice(0, limit);
+    const results = Array.from(deduped.values()).slice(0, limit);
+
+    const approverIds = await this.getOrgsWithApprover(results.map((o) => o.id));
+    for (const org of results) {
+      org.has_approver = approverIds.has(org.id);
+    }
+
+    return results;
+  }
+
+  /**
+   * Returns the subset of the given org ids that have at least one active
+   * owner/admin/manager able to approve a join request. Backed by the
+   * orgs_with_approver SECURITY DEFINER RPC because organization_memberships
+   * RLS is owner-only (a prospective joiner can't count approvers directly).
+   * Fails open (treats orgs as having an approver) if the RPC errors, so a
+   * transient failure never hides a genuinely joinable org.
+   */
+  async getOrgsWithApprover(orgIds: string[]): Promise<Set<string>> {
+    const ids = orgIds.filter((id) => isUuid(id));
+    if (ids.length === 0) return new Set();
+    const {data, error} = await supabase.rpc('orgs_with_approver', {p_org_ids: ids});
+    if (error || !data) {
+      return new Set(ids);
+    }
+    return new Set((data as {organization_id: string}[]).map((r) => r.organization_id));
   }
 
   async requestJoin(input: RequestJoinInput): Promise<RequestJoinResult> {

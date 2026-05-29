@@ -670,6 +670,9 @@ export default function LearnScreen() {
                         const isInviteOnly = org.join_mode === 'invite_only';
                         const isRequestMode = org.join_mode === 'request_to_join';
                         const isOpenJoinMode = org.join_mode === 'open_join';
+                        // request_to_join org with no active approver — the
+                        // request can't be actioned, so show it as passive.
+                        const isUnclaimedRequest = isRequestMode && org.has_approver === false;
                         const isBusy = joinBusyOrgId === org.id;
                         const hasDomainRestriction = Array.isArray(org.allowed_email_domains) && org.allowed_email_domains.length > 0;
                         const existingMembership = membershipsByOrgId.get(org.id);
@@ -682,7 +685,9 @@ export default function LearnScreen() {
                           <View key={org.id} style={styles.orgRow}>
                             <View style={styles.orgRowBody}>
                               <Text style={styles.orgName}>{org.name}</Text>
-                              <Text style={styles.orgJoinModeLabel}>{getJoinModeLabel(org.join_mode)}</Text>
+                              <Text style={styles.orgJoinModeLabel}>
+                                {isUnclaimedRequest ? 'Not on BetterAt yet' : getJoinModeLabel(org.join_mode)}
+                              </Text>
                             </View>
                             {hasMembership && membershipStatus === 'active' ? (
                               <View style={[styles.orgActionButton, styles.orgActionButtonDisabled]}>
@@ -707,6 +712,10 @@ export default function LearnScreen() {
                                 >
                                   <Text style={styles.orgActionText}>Use invite token</Text>
                                 </TouchableOpacity>
+                              </View>
+                            ) : isUnclaimedRequest ? (
+                              <View style={[styles.orgActionButton, styles.orgActionButtonDisabled]}>
+                                <Text style={[styles.orgActionText, styles.orgActionTextDisabled]}>Not yet joinable</Text>
                               </View>
                             ) : isOpenJoinRestricted ? (
                               <View style={styles.orgActionsColumn}>

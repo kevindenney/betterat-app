@@ -129,6 +129,12 @@ export function OrganizationSearchContent({
         onPress = () => {
           void handleJoin(item);
         };
+      } else if (item.join_mode === 'request_to_join' && item.has_approver === false) {
+        // No active approver — the request would go nowhere, so show it as
+        // a passive directory listing instead of an actionable button.
+        buttonLabel = 'Not yet joinable';
+        buttonDisabled = true;
+        subtitle = 'Not on BetterAt yet';
       } else if (item.join_mode === 'request_to_join') {
         buttonLabel = joining ? 'Sending...' : 'Request access';
         buttonDisabled = joining;
