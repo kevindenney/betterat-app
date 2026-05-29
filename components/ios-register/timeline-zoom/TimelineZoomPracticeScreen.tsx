@@ -11,11 +11,10 @@
  * (RacesScreen in app/(tabs)/races.tsx).
  */
 
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import React, { useCallback, useMemo, useState } from 'react';
+import { StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
 import { useQuery } from '@tanstack/react-query';
 
 import { supabase } from '@/services/supabase';
@@ -42,11 +41,7 @@ import { resolveInterestVocab } from './interestVocab';
 import { MoveToSeasonSheet, buildMoveTargets } from './MoveToSeasonSheet';
 import { TagBulkSheet } from './TagBulkSheet';
 import { ScheduleBulkSheet } from './ScheduleBulkSheet';
-import { SAMPLE_DATASET } from './sampleData';
-import { SAMPLE_DATASET_ENTREPRENEUR } from './sampleDataEntrepreneur';
 import { useStarterStepSeed } from '@/hooks/useStarterStepSeed';
-
-type SamplePersona = 'nursing' | 'entrepreneur';
 
 export function TimelineZoomPracticeScreen() {
   const { user } = useAuth();
@@ -54,7 +49,6 @@ export function TimelineZoomPracticeScreen() {
   const searchParams = useLocalSearchParams<{
     selected?: string | string[];
     level?: string | string[];
-    sample?: string | string[];
   }>();
   // Route may carry ?level=2|3|4 from a deep-link (Step detail's zoom rail
   // pushes here to "zoom out" from a step). Bound to the canvas's
@@ -64,20 +58,6 @@ export function TimelineZoomPracticeScreen() {
     const n = raw ? Number(raw) : NaN;
     return n === 1 || n === 2 || n === 3 || n === 4 ? (n as ZoomLevel) : 3;
   }, [searchParams?.level]);
-  // A `?sample=nursing|entrepreneur` deep-link lets you preview all the
-  // zoom-canvas features against a self-contained sample persona — Emily
-  // Shaw's nursing year or Savitri's lac-craft enterprise (the latter
-  // carries the D7 money lane). Doesn't touch any real data; just swaps
-  // what the canvas reads from in-memory.
-  const sampleFromRoute = useMemo<SamplePersona | null>(() => {
-    const raw = Array.isArray(searchParams?.sample) ? searchParams.sample[0] : searchParams?.sample;
-    return raw === 'entrepreneur' ? 'entrepreneur' : raw === 'nursing' ? 'nursing' : null;
-  }, [searchParams?.sample]);
-  const [samplePersona, setSamplePersona] = useState<SamplePersona | null>(sampleFromRoute);
-  useEffect(() => {
-    setSamplePersona(sampleFromRoute);
-  }, [sampleFromRoute]);
-  const showSample = samplePersona !== null;
 
   const interestId = currentInterest?.id ?? null;
   const selectedStepId = useMemo(() => {
@@ -468,20 +448,9 @@ export function TimelineZoomPracticeScreen() {
     stepsLoading,
   });
 
-  // Auto-exit the legacy "Preview with sample data" if it's still on.
-  // Kept for users who had it toggled on before the auto-seed shipped.
-  // Skip when the sample was explicitly requested via `?sample=` — an
-  // intentional deep-link preview must survive even on a populated
-  // account (otherwise sample-only chrome like D7/D11 is unreachable).
-  useEffect(() => {
-    if (showSample && hasContent && !sampleFromRoute) {
-      setSamplePersona(null);
-    }
-  }, [showSample, hasContent, sampleFromRoute]);
-
   // Brief loading shim while the seeder runs OR while step query is in
   // flight. The auto-seed replaces the old empty-state CTA entirely.
-  if (!hasContent && !showSample) {
+  if (!hasContent) {
     return (
       <SafeAreaView style={styles.surface} edges={['top']}>
         <View style={styles.emptyWrap}>
@@ -500,85 +469,55 @@ export function TimelineZoomPracticeScreen() {
     );
   }
 
-  const activeDataset =
-    samplePersona === 'entrepreneur'
-      ? SAMPLE_DATASET_ENTREPRENEUR
-      : samplePersona === 'nursing'
-        ? SAMPLE_DATASET
-        : dataset;
-  const sampleBannerLabel =
-    samplePersona === 'entrepreneur'
-      ? 'Enterprise sample · Savitri Devi, lac-craft SHG'
-      : 'Nursing sample · Emily Shaw, MSN student';
-
   return (
     <SafeAreaView style={styles.surface} edges={['top']}>
-      {showSample ? (
-        <View style={styles.sampleBanner}>
-          <Ionicons name="sparkles" size={12} color="#FFFFFF" />
-          <Text style={styles.sampleBannerText}>
-            {sampleBannerLabel}
-          </Text>
-          <Pressable
-            hitSlop={8}
-            onPress={() => setSamplePersona(null)}
-            style={styles.sampleBannerExit}
-          >
-            <Text style={styles.sampleBannerExitText}>Exit</Text>
-          </Pressable>
-        </View>
-      ) : null}
       <TimelineZoomCanvas
-        dataset={activeDataset}
+        dataset={dataset}
         initialLevel={initialLevelFromRoute}
-        onOpenStepDetail={showSample ? undefined : handleOpenStepDetail}
-        embedFullDetailAtL1={!showSample}
-        onReorderStep={showSample ? undefined : handleReorderStep}
-        onBulkArchive={showSample ? undefined : handleBulkArchive}
-        onBulkDelete={showSample ? undefined : handleBulkDelete}
-        onBulkMove={showSample ? undefined : handleBulkMove}
-        onBulkTag={showSample ? undefined : handleBulkTag}
-        onBulkSchedule={showSample ? undefined : handleBulkSchedule}
-        onUnsupportedBulkAction={showSample ? undefined : handleUnsupportedBulkAction}
-        onAddArc={showSample ? undefined : handleAddArc}
-        onEditArc={showSample ? undefined : handleEditArc}
+        onOpenStepDetail={handleOpenStepDetail}
+        embedFullDetailAtL1
+        onReorderStep={handleReorderStep}
+        onBulkArchive={handleBulkArchive}
+        onBulkDelete={handleBulkDelete}
+        onBulkMove={handleBulkMove}
+        onBulkTag={handleBulkTag}
+        onBulkSchedule={handleBulkSchedule}
+        onUnsupportedBulkAction={handleUnsupportedBulkAction}
+        onAddArc={handleAddArc}
+        onEditArc={handleEditArc}
         hideInterestHeader
       />
-      {!showSample ? (
-        <>
-          <SeasonEditSheet
-            visible={seasonSheetState !== null}
-            mode={seasonSheetState?.mode ?? 'add'}
-            season={seasonSheetState?.mode === 'edit' ? seasonSheetState.season : null}
-            onClose={() => setSeasonSheetState(null)}
-            onCreate={handleSeasonCreate}
-            onUpdate={handleSeasonUpdate}
-            onArchive={handleSeasonArchive}
-          />
-          <MoveToSeasonSheet
-            visible={moveTargetIds !== null}
-            stepIds={moveTargetIds ?? []}
-            seasons={moveTargets}
-            onPickSeason={handlePickSeason}
-            onCreateSeason={handleCreateSeason}
-            onDismiss={() => setMoveTargetIds(null)}
-          />
-          <TagBulkSheet
-            visible={tagTargetIds !== null}
-            stepIds={tagTargetIds ?? []}
-            existingTags={existingTags}
-            onPickTag={handlePickTag}
-            onDismiss={() => setTagTargetIds(null)}
-          />
-          <ScheduleBulkSheet
-            visible={scheduleTargetIds !== null}
-            stepIds={scheduleTargetIds ?? []}
-            onApplyShift={handleApplyShift}
-            onApplyAbsolute={handleApplyAbsolute}
-            onDismiss={() => setScheduleTargetIds(null)}
-          />
-        </>
-      ) : null}
+      <SeasonEditSheet
+        visible={seasonSheetState !== null}
+        mode={seasonSheetState?.mode ?? 'add'}
+        season={seasonSheetState?.mode === 'edit' ? seasonSheetState.season : null}
+        onClose={() => setSeasonSheetState(null)}
+        onCreate={handleSeasonCreate}
+        onUpdate={handleSeasonUpdate}
+        onArchive={handleSeasonArchive}
+      />
+      <MoveToSeasonSheet
+        visible={moveTargetIds !== null}
+        stepIds={moveTargetIds ?? []}
+        seasons={moveTargets}
+        onPickSeason={handlePickSeason}
+        onCreateSeason={handleCreateSeason}
+        onDismiss={() => setMoveTargetIds(null)}
+      />
+      <TagBulkSheet
+        visible={tagTargetIds !== null}
+        stepIds={tagTargetIds ?? []}
+        existingTags={existingTags}
+        onPickTag={handlePickTag}
+        onDismiss={() => setTagTargetIds(null)}
+      />
+      <ScheduleBulkSheet
+        visible={scheduleTargetIds !== null}
+        stepIds={scheduleTargetIds ?? []}
+        onApplyShift={handleApplyShift}
+        onApplyAbsolute={handleApplyAbsolute}
+        onDismiss={() => setScheduleTargetIds(null)}
+      />
     </SafeAreaView>
   );
 }
@@ -615,30 +554,5 @@ const styles = StyleSheet.create({
   signedInEmail: {
     fontWeight: '600',
     color: IOS_REGISTER.labelSecondary,
-  },
-  sampleBanner: {
-    backgroundColor: '#1F1F1F',
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  sampleBannerText: {
-    flex: 1,
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '500',
-    letterSpacing: -0.1,
-  },
-  sampleBannerExit: {
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-  },
-  sampleBannerExitText: {
-    color: 'rgba(255, 255, 255, 0.7)',
-    fontSize: 12,
-    fontWeight: '600',
-    letterSpacing: 0.2,
   },
 });
