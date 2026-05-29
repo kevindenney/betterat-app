@@ -59,6 +59,7 @@ import {
 } from '@/components/discover/detail';
 import { ProposeAdoptionSheet } from '@/components/discover/ProposeAdoptionSheet';
 import { EditOrgSheet } from '@/components/discover/EditOrgSheet';
+import { InvitePeopleSheet } from '@/components/discover/InvitePeopleSheet';
 import { useMyVerifiedAdminOrgs } from '@/hooks/useMyVerifiedAdminOrgs';
 import { useArchiveOrg } from '@/hooks/useOrgManagement';
 import { showConfirm } from '@/lib/utils/crossPlatformAlert';
@@ -164,6 +165,7 @@ function OrgDetailScreenInner() {
   const [joinState, setJoinState] = useState<'idle' | 'busy' | 'pending'>('idle');
   const [proposeOpen, setProposeOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
+  const [inviteOpen, setInviteOpen] = useState(false);
   const [userRole, setUserRole] = useState<string | null>(null);
   const archiveOrg = useArchiveOrg();
   const { data: verifiedAdminOrgs } = useMyVerifiedAdminOrgs();
@@ -600,8 +602,8 @@ function OrgDetailScreenInner() {
           </IOSDetailSection>
         ) : null}
 
-        {/* Owner-only admin actions — edit + archive. RLS gates the actual
-            mutations via organizations_manage_by_owner_or_admin. */}
+        {/* Owner-only admin actions — edit, invite, archive. RLS gates
+            the actual mutations via organizations_manage_by_owner_or_admin. */}
         {isOwner && org ? (
           <IOSDetailSection header="Manage org">
             <Pressable
@@ -613,6 +615,24 @@ function OrgDetailScreenInner() {
                 <Text style={proposeStyles.title}>Edit org details</Text>
                 <Text style={proposeStyles.hint}>
                   Change name, kind, who can join, or description.
+                </Text>
+              </View>
+              <Ionicons
+                name="chevron-forward"
+                size={18}
+                color={IOS_REGISTER.labelSecondary}
+              />
+            </Pressable>
+            <Pressable
+              style={proposeStyles.cta}
+              onPress={() => setInviteOpen(true)}
+            >
+              <Ionicons name="person-add-outline" size={20} color="#0B63CE" />
+              <View style={proposeStyles.body}>
+                <Text style={proposeStyles.title}>Invite people</Text>
+                <Text style={proposeStyles.hint}>
+                  Generate a shareable link — send via Messages, WhatsApp,
+                  anywhere.
                 </Text>
               </View>
               <Ionicons
@@ -779,6 +799,15 @@ function OrgDetailScreenInner() {
           targetOrgId={org.id}
           targetOrgName={org.name}
           onClose={() => setProposeOpen(false)}
+        />
+      ) : null}
+
+      {org && isOwner ? (
+        <InvitePeopleSheet
+          visible={inviteOpen}
+          orgId={org.id}
+          orgName={org.name}
+          onClose={() => setInviteOpen(false)}
         />
       ) : null}
 
