@@ -43,8 +43,7 @@ import { DiscoverInterestsContent } from '@/components/discover/DiscoverInterest
 import { DiscoverOrgsContent } from '@/components/discover/DiscoverOrgsContent';
 import { DiscoverPeopleContent } from '@/components/discover/DiscoverPeopleContent';
 import { DiscoverNearbyContent } from '@/components/discover/DiscoverNearbyContent';
-import { useInterest } from '@/providers/InterestProvider';
-import { useSubscribedBlueprints } from '@/hooks/useBlueprint';
+import { DiscoverPlansContent } from '@/components/discover/DiscoverPlansContent';
 
 type DiscoverSegment =
   | 'all'
@@ -226,7 +225,6 @@ function SegmentBar({
 function SegmentContent({
   segment,
   toolbarOffset,
-  onSegmentChange,
   addedInterestSlugs,
   onAddInterest,
   followedIds,
@@ -237,7 +235,6 @@ function SegmentContent({
 }: {
   segment: DiscoverSegment;
   toolbarOffset: number;
-  onSegmentChange: (next: DiscoverSegment) => void;
   addedInterestSlugs: Set<string>;
   onAddInterest: (slug: string) => void;
   followedIds: Set<string>;
@@ -281,12 +278,7 @@ function SegmentContent({
     );
   }
   if (segment === 'plans') {
-    return (
-      <PlansPlaceholder
-        toolbarOffset={toolbarOffset}
-        onJumpToSegment={onSegmentChange}
-      />
-    );
+    return <DiscoverPlansContent toolbarOffset={toolbarOffset} />;
   }
   return null;
 }
@@ -388,86 +380,6 @@ function DiscoverAll({
   );
 }
 
-function PlansPlaceholder({
-  toolbarOffset,
-  onJumpToSegment,
-}: {
-  toolbarOffset: number;
-  onJumpToSegment: (segment: DiscoverSegment) => void;
-}) {
-  // Surface the user's subscribed blueprints right here so Discover →
-  // Plans isn't a dead-end shell. The full catalog browser (published
-  // blueprints with subscribe) lands later; for now this is the
-  // shortest path between "I have a subscribed plan" and "I can tap it
-  // and see what's inside it."
-  const { currentInterest } = useInterest();
-  const { data: blueprints = [] } = useSubscribedBlueprints(currentInterest?.id);
-
-  return (
-    <ScrollView
-      style={styles.body}
-      contentContainerStyle={{
-        paddingTop: toolbarOffset + IOS_SPACING.md,
-        paddingBottom: FLOATING_TAB_BAR_HEIGHT + 80,
-        paddingHorizontal: IOS_SPACING.lg,
-        gap: 12,
-      }}
-    >
-      {blueprints.length > 0 ? (
-        <View style={styles.subscribedSection}>
-          <Text style={styles.subscribedHeader}>Your subscribed Blueprints</Text>
-          {blueprints.map((bp) => (
-            <Pressable
-              key={bp.blueprint_id}
-              style={styles.subscribedCard}
-              onPress={() =>
-                router.push(`/(tabs)/library/blueprints/${bp.blueprint_id}` as never)
-              }
-            >
-              <Text style={styles.subscribedCardTitle} numberOfLines={2}>
-                {bp.blueprint_title}
-              </Text>
-              <Text style={styles.subscribedCardMeta} numberOfLines={1}>
-                {bp.author_name ?? 'Author'} · subscribed{' '}
-                {new Date(bp.subscribed_at).toLocaleDateString()}
-              </Text>
-            </Pressable>
-          ))}
-        </View>
-      ) : null}
-
-      <View style={styles.placeholderCard}>
-        <Ionicons name="reader-outline" size={26} color={IOS_COLORS.systemBlue} />
-        <Text style={styles.placeholderTitle}>Blueprints</Text>
-        <Text style={styles.placeholderBody}>
-          Published Blueprints you can subscribe to. The dedicated catalog
-          browser lands next — for now, the Library Blueprints surface lists
-          everything you have already adopted, and the Studio is where authors
-          publish new ones.
-        </Text>
-        <View style={styles.placeholderRow}>
-          <Pressable
-            style={[styles.placeholderAction, styles.placeholderActionPrimary]}
-            onPress={() => router.push('/(tabs)/library/blueprints' as never)}
-          >
-            <Text style={styles.placeholderActionPrimaryText}>
-              All your Blueprints
-            </Text>
-          </Pressable>
-          <Pressable
-            style={styles.placeholderAction}
-            onPress={() => onJumpToSegment('orgs')}
-          >
-            <Text style={styles.placeholderActionText}>
-              Orgs that publish Blueprints
-            </Text>
-          </Pressable>
-        </View>
-      </View>
-    </ScrollView>
-  );
-}
-
 // Silence unused-import warnings if the underlying components stop
 // using these types in a future signature change.
 void ([] as NativeSyntheticEvent<NativeScrollEvent>[]);
@@ -564,77 +476,5 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 18,
     color: IOS_COLORS.secondaryLabel,
-  },
-  placeholderCard: {
-    padding: 18,
-    borderRadius: 20,
-    backgroundColor: '#FFFFFF',
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(60,60,67,0.12)',
-    gap: 10,
-  },
-  placeholderTitle: {
-    fontSize: 22,
-    lineHeight: 26,
-    fontWeight: '800',
-    color: IOS_COLORS.label,
-  },
-  placeholderBody: {
-    fontSize: 14,
-    lineHeight: 20,
-    color: IOS_COLORS.secondaryLabel,
-  },
-  placeholderRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
-    marginTop: 4,
-  },
-  placeholderAction: {
-    borderRadius: 999,
-    paddingHorizontal: 14,
-    paddingVertical: 9,
-    backgroundColor: IOS_COLORS.secondarySystemGroupedBackground,
-  },
-  placeholderActionPrimary: {
-    backgroundColor: IOS_COLORS.systemBlue,
-  },
-  placeholderActionText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: IOS_COLORS.label,
-  },
-  placeholderActionPrimaryText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#FFFFFF',
-  },
-  subscribedSection: {
-    gap: 8,
-  },
-  subscribedHeader: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: IOS_COLORS.secondaryLabel,
-    letterSpacing: 0.4,
-    textTransform: 'uppercase',
-    marginBottom: 2,
-  },
-  subscribedCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 14,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(60,60,67,0.12)',
-    padding: 14,
-    gap: 4,
-  },
-  subscribedCardTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: IOS_COLORS.label,
-  },
-  subscribedCardMeta: {
-    fontSize: 12,
-    color: IOS_COLORS.tertiaryLabel,
   },
 });

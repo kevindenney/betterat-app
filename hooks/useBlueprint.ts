@@ -35,8 +35,9 @@ import {
   migrateBlueprint,
   getSubscriberAdoptedSteps,
   getBlueprintWithAuthorById,
+  discoverBlueprints,
 } from '@/services/BlueprintService';
-import type { SubscriberAdoptedStep } from '@/services/BlueprintService';
+import type { SubscriberAdoptedStep, DiscoveredBlueprint } from '@/services/BlueprintService';
 import { adoptStep } from '@/services/TimelineStepService';
 import { NotificationService } from '@/services/NotificationService';
 import type {
@@ -181,6 +182,25 @@ export function useSubscribedBlueprints(interestId?: string | null) {
     queryKey: keys.subscribedBlueprints(user?.id ?? '', interestId),
     queryFn: () => getSubscribedBlueprints(user!.id, interestId),
     enabled: !!user?.id,
+  });
+}
+
+/**
+ * Catalog of published, subscribable blueprints for an interest — ranked by
+ * subscriber_count, gated by is_published + RLS access_level. Excludes the
+ * user's own authored blueprints; subscribed ones are filtered at the call
+ * site so they can still be shown in a "Your plans" section.
+ */
+export function useDiscoverBlueprints(interestId?: string | null) {
+  const { user } = useAuth();
+  return useQuery<DiscoveredBlueprint[]>({
+    queryKey: ['blueprint-discover', user?.id ?? '', interestId ?? ''],
+    queryFn: async () => {
+      const all = await discoverBlueprints(interestId!);
+      return all.filter((bp) => bp.user_id !== user?.id);
+    },
+    enabled: !!user?.id && !!interestId,
+    staleTime: 60_000,
   });
 }
 
