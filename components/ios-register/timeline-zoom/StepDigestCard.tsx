@@ -210,17 +210,18 @@ export function StepDigestCard({
 
       {isNearby && reflectedBlock ? (
         <View style={styles.reflectedWrap}>
-          {reflectedBlock.keyTakeaway ? (
-            <>
-              <Text style={styles.reflectedLabel} numberOfLines={1}>
-                Key takeaway
-              </Text>
-              <Text style={styles.reflectedTakeaway} numberOfLines={3}>
-                {reflectedBlock.keyTakeaway}
-              </Text>
-            </>
+          <View style={styles.reflectedHeader}>
+            <Ionicons name="sparkles" size={11} color="#2D8B6A" />
+            <Text style={styles.reflectedLabel} numberOfLines={1}>
+              {reflectedBlock.keyTakeaway ? 'Key takeaway' : 'Reflected'}
+            </Text>
+          </View>
+          {reflectedBlock.lead ? (
+            <Text style={styles.reflectedLead} numberOfLines={3}>
+              {reflectedBlock.lead}
+            </Text>
           ) : null}
-          {reflectedBlock.reflection ? (
+          {reflectedBlock.keyTakeaway && reflectedBlock.reflection ? (
             <Text style={styles.reflectedReflection} numberOfLines={2}>
               {reflectedBlock.reflection}
             </Text>
@@ -433,18 +434,22 @@ function ChecklistRow({
 
 /**
  * Build the reflection digest shown under the title on a done/reflected
- * centered card: the key-takeaway headline, a lead reflection line, and
- * an evidence-count badge. Returns null when the step carries none of
- * these, so the card falls back to the planning snippet.
+ * centered card. `lead` is the prominent line — the key takeaway when one was
+ * written, otherwise the reflection summary, so the block always has a strong
+ * anchor instead of a lone faint line. Returns null when the step carries no
+ * reflection signal, so the card falls back to the planning snippet.
  */
-function getReflectedBlock(
-  step: TimelineStep,
-): { keyTakeaway?: string; reflection?: string; evidenceCount?: number } | null {
+function getReflectedBlock(step: TimelineStep): {
+  keyTakeaway?: string;
+  reflection?: string;
+  lead?: string;
+  evidenceCount?: number;
+} | null {
   const keyTakeaway = step.keyTakeaway?.trim() || undefined;
   const reflection = step.reflectionSummary?.trim() || undefined;
   const evidenceCount = step.evidenceCount && step.evidenceCount > 0 ? step.evidenceCount : undefined;
   if (!keyTakeaway && !reflection && !evidenceCount) return null;
-  return { keyTakeaway, reflection, evidenceCount };
+  return { keyTakeaway, reflection, lead: keyTakeaway ?? reflection, evidenceCount };
 }
 
 function CapabilityChip({ cap }: { cap: Capability }) {
@@ -701,24 +706,29 @@ const styles = StyleSheet.create({
   reflectedWrap: {
     marginBottom: 8,
     marginLeft: 10,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
+    paddingHorizontal: 11,
+    paddingVertical: 9,
     borderRadius: 12,
-    backgroundColor: 'rgba(45, 139, 106, 0.08)',
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(45, 139, 106, 0.20)',
+    backgroundColor: 'rgba(45, 139, 106, 0.11)',
+    borderLeftWidth: 2.5,
+    borderLeftColor: '#2D8B6A',
     gap: 5,
+  },
+  reflectedHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
   },
   reflectedLabel: {
     fontSize: 10,
-    fontWeight: '700',
-    letterSpacing: 0.5,
+    fontWeight: '800',
+    letterSpacing: 0.6,
     color: '#2D8B6A',
     textTransform: 'uppercase',
   },
-  reflectedTakeaway: {
-    fontSize: 13,
-    lineHeight: 18,
+  reflectedLead: {
+    fontSize: 13.5,
+    lineHeight: 19,
     fontWeight: '600',
     color: IOS_REGISTER.label,
   },
@@ -732,11 +742,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    marginTop: 1,
+    marginTop: 2,
+    alignSelf: 'flex-start',
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: 999,
+    backgroundColor: 'rgba(45, 139, 106, 0.14)',
   },
   reflectedEvidenceText: {
-    fontSize: 11,
-    fontWeight: '600',
+    fontSize: 10.5,
+    fontWeight: '700',
     color: '#2D8B6A',
   },
   bottomBlock: {

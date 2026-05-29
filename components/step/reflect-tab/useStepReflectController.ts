@@ -235,12 +235,6 @@ export function useStepReflectController({
   const fields: ReflectQuestionField[] = useMemo(() => {
     const nextFields: ReflectQuestionField[] = [
       {
-        id: 'key_takeaway',
-        prompt: 'Key takeaway — the one thing to remember',
-        value: localFields.key_takeaway ?? serverKeyTakeaway,
-        isDrafted: draftedFieldIds.has('key_takeaway'),
-      },
-      {
         id: 'what_worked',
         prompt: config.questionPair[0],
         value: localFields.what_worked ?? serverWorked,
@@ -262,6 +256,14 @@ export function useStepReflectController({
         isDrafted: draftedFieldIds.has('anything_else'),
       });
     }
+    // Key takeaway sits second-to-last — it distills everything above it —
+    // then the teaching-transfer prompt closes the reflection.
+    nextFields.push({
+      id: 'key_takeaway',
+      prompt: 'Key takeaway — the one thing to remember',
+      value: localFields.key_takeaway ?? serverKeyTakeaway,
+      isDrafted: draftedFieldIds.has('key_takeaway'),
+    });
     nextFields.push({
       id: 'teaching',
       prompt: TEACHING_PROMPT,

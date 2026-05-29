@@ -181,10 +181,24 @@ export function DoTabInterior({
         interestSlug={interestSlug}
       />
     ) : null;
+  // The plan's How list rendered as a tap-to-check checklist. Persisted across
+  // every Do state (not just pre_activity) so the user keeps their plan and can
+  // tick off sub-steps while capturing in-play and after the activity.
+  const howChecklist = (
+    <PlanStartingFrameRow
+      planData={planData}
+      onPress={readOnly ? undefined : onAutoSummarizePlan}
+      disabled={readOnly}
+      readOnly={readOnly}
+      onToggleSubStep={onToggleSubStep}
+    />
+  );
 
   if (state === 'live') {
     const liveBody = (
       <>
+        {raceStartCard}
+        {howChecklist}
         <DoLiveCard
           stepId={stepId}
           captures={captures}
@@ -233,6 +247,8 @@ export function DoTabInterior({
   if (state === 'post_activity') {
     const postBody = (
       <>
+        {raceStartCard}
+        {howChecklist}
         <DoPostActivityCard
           captures={captures}
           stepTitle={stepTitle ?? ''}
@@ -276,13 +292,7 @@ export function DoTabInterior({
       <View style={styles.contentEmbedded}>
         {state === 'pre_activity' && (
           <>
-            <PlanStartingFrameRow
-              planData={planData}
-              onPress={readOnly ? undefined : onAutoSummarizePlan}
-              disabled={readOnly}
-              readOnly={readOnly}
-              onToggleSubStep={onToggleSubStep}
-            />
+            {howChecklist}
             {raceStartCard}
             {libraryCard}
             {stepId ? beatsList : null}
@@ -309,11 +319,7 @@ export function DoTabInterior({
     >
       {state === 'pre_activity' && (
         <>
-          <PlanStartingFrameRow
-            planData={planData}
-            onPress={readOnly ? undefined : onAutoSummarizePlan}
-            disabled={readOnly}
-          />
+          {howChecklist}
           {raceStartCard}
           {libraryCard}
           {stepId ? beatsList : null}
