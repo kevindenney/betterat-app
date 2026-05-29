@@ -30,7 +30,7 @@ export function CustomTimelineSlider({
 }: CustomTimelineSliderProps) {
   const sliderRef = useRef<View>(null);
   const [sliderWidth, setSliderWidth] = useState(0);
-  const [isDragging, setIsDragging] = useState(false);
+  const [, setIsDragging] = useState(false);
   const totalRange = max - min;
 
   const getPercentage = (val: number) => ((val - min) / totalRange) * 100;
@@ -162,7 +162,7 @@ export function CustomTimelineSlider({
         style={styles.track}
         onLayout={handleLayout}
         onPress={handlePress}
-        {...panResponder.panHandlers}
+        {...(Platform.OS !== 'web' ? panResponder.panHandlers : {})}
       >
         {/* Colored segments */}
         <View style={styles.segmentsContainer}>

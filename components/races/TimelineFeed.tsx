@@ -23,20 +23,19 @@ import {
   StyleSheet,
   Dimensions,
   Platform,
-  TouchableOpacity,
   Animated,
   PanResponder,
   GestureResponderEvent,
   PanResponderGestureState,
 } from 'react-native';
-import { ChevronUp, ChevronDown, Users } from 'lucide-react-native';
+import { Users } from 'lucide-react-native';
 import { TimelineScreen } from './TimelineScreen';
 import { TimelineAvatarStrip } from './TimelineAvatarStrip';
 import { Timeline } from '@/hooks/useFollowedTimelines';
 import { TUFTE_BACKGROUND } from '@/components/cards';
 import * as Haptics from 'expo-haptics';
 
-const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 // Swipe thresholds
 const SWIPE_THRESHOLD = 50; // Minimum distance to trigger timeline change
@@ -71,7 +70,7 @@ interface TimelineFeedProps {
 
 export function TimelineFeed({
   timelines,
-  isLoading,
+  isLoading: _isLoading,
   onTimelineChange,
   onSelectRace,
   selectedRaceId,
@@ -80,7 +79,7 @@ export function TimelineFeed({
   onDeleteRace,
   onRaceCopied,
   cardHeight = 480,
-  indicatorHeight = 60,
+  indicatorHeight: _indicatorHeight = 60,
   enableHaptics = true,
 }: TimelineFeedProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -270,7 +269,7 @@ export function TimelineFeed({
             transform: [{ translateY }],
           },
         ]}
-        {...panResponder.panHandlers}
+        {...(Platform.OS !== 'web' ? panResponder.panHandlers : {})}
       >
         {currentTimeline && (
           <TimelineScreen
