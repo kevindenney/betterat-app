@@ -38,7 +38,21 @@ import type {
 
 const SAVE_DEBOUNCE_MS = 500;
 
-export type ReflectFieldId = 'what_worked' | 'what_didnt' | 'anything_else';
+export type ReflectFieldId =
+  | 'what_worked'
+  | 'what_didnt'
+  | 'anything_else'
+  | 'key_takeaway'
+  | 'teaching';
+
+// Fields that live as flat columns on review (not prompt-keyed sections[]).
+const FLAT_REVIEW_FIELDS: ReadonlySet<ReflectFieldId> = new Set<ReflectFieldId>([
+  'key_takeaway',
+  'teaching',
+]);
+
+const TEACHING_PROMPT =
+  'If you taught this to someone else, how would you do it — and what evidence would you ask them to show?';
 export type ReflectSynthesisState = 'idle' | 'drafting' | 'drafted' | 'dismissed';
 export type ReflectPhase4State = 'ready' | 'settling' | 'settled';
 
@@ -147,6 +161,18 @@ function buildReviewWithSection(
   return nextReview;
 }
 
+function buildReviewWithFlatField(
+  current: StepMetadata,
+  id: 'key_takeaway' | 'teaching',
+  content: string,
+): StepReviewData {
+  const review = (current.review ?? {}) as StepReviewData;
+  const trimmed = content.trim();
+  const value = trimmed.length > 0 ? content : undefined;
+  if (id === 'key_takeaway') return { ...review, key_takeaway: value };
+  return { ...review, teaching_reflection: value };
+}
+
 function getCaptureCount(act: StepActData): number {
   return (
     (act.observations?.length ?? 0) +
@@ -201,9 +227,17 @@ export function useStepReflectController({
   const serverAnything = getReviewSectionContent(normalized.sections, 'anything_else')
     ?? reviewData.next_step_notes
     ?? '';
+  const serverKeyTakeaway = reviewData.key_takeaway ?? '';
+  const serverTeaching = reviewData.teaching_reflection ?? '';
 
   const fields: ReflectQuestionField[] = useMemo(() => {
     const nextFields: ReflectQuestionField[] = [
+      {
+        id: 'key_takeaway',
+        prompt: 'Key takeaway — the one thing to remember',
+        value: localFields.key_takeaway ?? serverKeyTakeaway,
+        isDrafted: draftedFieldIds.has('key_takeaway'),
+      },
       {
         id: 'what_worked',
         prompt: config.questionPair[0],
@@ -226,6 +260,12 @@ export function useStepReflectController({
         isDrafted: draftedFieldIds.has('anything_else'),
       });
     }
+    nextFields.push({
+      id: 'teaching',
+      prompt: TEACHING_PROMPT,
+      value: localFields.teaching ?? serverTeaching,
+      isDrafted: draftedFieldIds.has('teaching'),
+    });
     return nextFields;
   }, [
     config.questionPair,
@@ -234,6 +274,8 @@ export function useStepReflectController({
     serverAnything,
     serverDidnt,
     serverWorked,
+    serverKeyTakeaway,
+    serverTeaching,
     showAnythingElse,
   ]);
 
@@ -253,7 +295,9 @@ export function useStepReflectController({
     (id: ReflectFieldId, value: string) => {
       if (readOnly) return;
       const current = metadataRef.current;
-      const nextReview = buildReviewWithSection(current, id, value);
+      const nextReview = FLAT_REVIEW_FIELDS.has(id)
+        ? buildReviewWithFlatField(current, id as 'key_takeaway' | 'teaching', value)
+        : buildReviewWithSection(current, id, value);
       updateMetadata.mutate({ review: nextReview });
     },
     [readOnly, updateMetadata],

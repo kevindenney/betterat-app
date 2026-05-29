@@ -352,6 +352,10 @@ export interface StepReviewData {
   instructor_review_note?: string;     // reason for approval/revision request
   instructor_review_at?: string;       // ISO timestamp
   competency_assessment?: StepCompetencyAssessment;
+  /** Single distilled takeaway — the headline of the reflection. Surfaced on L2 done-step covers. */
+  key_takeaway?: string;
+  /** Teaching-transfer reflection: how you'd teach this to someone else + the evidence you'd ask them to demonstrate. */
+  teaching_reflection?: string;
   /** v2 sections — prompt-keyed review entries. Source of truth post-Step-E. */
   sections?: StepReviewSection[];
   /** Source of the most recent write into sections[]. */
