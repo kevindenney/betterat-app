@@ -32,6 +32,8 @@ import {
   resolveInterestVocab,
   type InterestVocab,
 } from './interestVocab';
+import { LifetimeVisionEditSheet } from './LifetimeVisionEditSheet';
+import { useUpdateLifetimeVision } from '@/hooks/useInterestVision';
 import type {
   LifetimeAnalysis,
   SeasonPeer,
@@ -180,6 +182,8 @@ export function L4YearsView({
   // through age 60") can each be honest.
   const lifetimeVisionStatement =
     dataset.lifetimeVisionStatement?.trim() || null;
+  const [lifetimeVisionEditOpen, setLifetimeVisionEditOpen] = useState(false);
+  const updateLifetimeVision = useUpdateLifetimeVision();
 
   // Convert lifetime data into the existing chart shapes (the charts
   // don't know about lifetime semantics — they operate on the generic
@@ -219,7 +223,18 @@ export function L4YearsView({
         </Text>
       </View>
 
-      <View style={styles.lifetimeVisionBanner}>
+      <Pressable
+        style={styles.lifetimeVisionBanner}
+        onPress={
+          dataset.interest.id !== 'live' && dataset.interest.id !== 'sample'
+            ? () => setLifetimeVisionEditOpen(true)
+            : undefined
+        }
+        accessibilityRole="button"
+        accessibilityLabel={
+          lifetimeVisionStatement ? 'Edit lifetime vision' : 'Set lifetime vision'
+        }
+      >
         <Text style={styles.lifetimeVisionEyebrow}>Lifetime vision</Text>
         {lifetimeVisionStatement ? (
           <Text style={styles.lifetimeVisionStatement}>
@@ -230,7 +245,30 @@ export function L4YearsView({
             What are you {interestVocab.id === 'default' ? 'building' : interestVocab.verb.mid.toLowerCase()} toward, long-term?
           </Text>
         )}
-      </View>
+      </Pressable>
+
+      <LifetimeVisionEditSheet
+        visible={lifetimeVisionEditOpen}
+        initialStatement={lifetimeVisionStatement}
+        placeholder={
+          interestVocab.id === 'default'
+            ? "What are you building toward, long-term?"
+            : `What are you ${interestVocab.verb.mid.toLowerCase()} toward, long-term?`
+        }
+        onClose={() => setLifetimeVisionEditOpen(false)}
+        onSave={async (next) => {
+          if (
+            dataset.interest.id === 'live' ||
+            dataset.interest.id === 'sample'
+          ) {
+            return;
+          }
+          await updateLifetimeVision.mutateAsync({
+            interestId: dataset.interest.id,
+            lifetime_vision_statement: next,
+          });
+        }}
+      />
 
       {adapted && lifetime ? (
         <View style={styles.analysisBlock} onLayout={onAnalysisLayout}>
