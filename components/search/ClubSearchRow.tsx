@@ -10,7 +10,7 @@
 
 import React from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
-import { Users, Check } from 'lucide-react-native';
+import { Users, Check, ChevronRight } from 'lucide-react-native';
 import {
   IOS_COLORS,
   IOS_TYPOGRAPHY,
@@ -45,13 +45,15 @@ function getClubInitials(name: string): string {
 export interface ClubSearchResult {
   id: string;
   name: string;
+  slug?: string;
   description?: string;
   location?: string;
   logoUrl?: string;
   memberCount: number;
   boatClassName?: string;
   isJoined: boolean;
-  source?: 'platform' | 'directory';
+  source?: 'platform' | 'directory' | 'org';
+  official?: boolean;
 }
 
 interface ClubSearchRowProps {
@@ -69,6 +71,7 @@ export function ClubSearchRow({
 }: ClubSearchRowProps) {
   const clubColor = getClubColor(club.id);
   const initials = getClubInitials(club.name);
+  const isOrg = club.source === 'org';
 
   // Build subtitle
   const subtitleParts: string[] = [];
@@ -98,44 +101,61 @@ export function ClubSearchRow({
 
         {/* Content */}
         <View style={styles.content}>
-          <Text style={styles.name} numberOfLines={1}>
-            {club.name}
-          </Text>
+          <View style={styles.nameRow}>
+            <Text style={styles.name} numberOfLines={1}>
+              {club.name}
+            </Text>
+            {isOrg && (
+              <View style={[styles.badge, club.official && styles.badgeVerified]}>
+                <Text
+                  style={[styles.badgeText, club.official && styles.badgeTextVerified]}
+                >
+                  {club.official ? 'Verified' : 'Org'}
+                </Text>
+              </View>
+            )}
+          </View>
           {subtitle && (
             <Text style={styles.subtitle} numberOfLines={1}>
               {subtitle}
             </Text>
           )}
-          <View style={styles.memberInfo}>
-            <Users size={12} color={IOS_COLORS.tertiaryLabel} />
-            <Text style={styles.memberCount}>
-              {club.memberCount} member{club.memberCount !== 1 ? 's' : ''}
-            </Text>
-          </View>
+          {!isOrg && (
+            <View style={styles.memberInfo}>
+              <Users size={12} color={IOS_COLORS.tertiaryLabel} />
+              <Text style={styles.memberCount}>
+                {club.memberCount} member{club.memberCount !== 1 ? 's' : ''}
+              </Text>
+            </View>
+          )}
         </View>
 
-        {/* Join Button */}
-        <Pressable
-          style={({ pressed }) => [
-            styles.joinButton,
-            club.isJoined ? styles.joinedButton : styles.notJoinedButton,
-            pressed && styles.joinButtonPressed,
-          ]}
-          onPress={(e) => {
-            e.stopPropagation();
-            onToggleJoin();
-          }}
-          hitSlop={8}
-        >
-          {club.isJoined ? (
-            <>
-              <Check size={14} color={IOS_COLORS.secondaryLabel} />
-              <Text style={styles.joinedText}>Joined</Text>
-            </>
-          ) : (
-            <Text style={styles.joinText}>Join</Text>
-          )}
-        </Pressable>
+        {/* Join Button (clubs) — orgs route to their page instead */}
+        {isOrg ? (
+          <ChevronRight size={20} color={IOS_COLORS.tertiaryLabel} />
+        ) : (
+          <Pressable
+            style={({ pressed }) => [
+              styles.joinButton,
+              club.isJoined ? styles.joinedButton : styles.notJoinedButton,
+              pressed && styles.joinButtonPressed,
+            ]}
+            onPress={(e) => {
+              e.stopPropagation();
+              onToggleJoin();
+            }}
+            hitSlop={8}
+          >
+            {club.isJoined ? (
+              <>
+                <Check size={14} color={IOS_COLORS.secondaryLabel} />
+                <Text style={styles.joinedText}>Joined</Text>
+              </>
+            ) : (
+              <Text style={styles.joinText}>Join</Text>
+            )}
+          </Pressable>
+        )}
 
         {/* Separator */}
         {showSeparator && <View style={styles.separator} />}
@@ -176,10 +196,34 @@ const styles = StyleSheet.create({
     flex: 1,
     marginRight: IOS_SPACING.md,
   },
+  nameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
   name: {
     ...IOS_TYPOGRAPHY.body,
     fontWeight: '600',
     color: IOS_COLORS.label,
+    flexShrink: 1,
+  },
+  badge: {
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    borderRadius: 4,
+    backgroundColor: IOS_COLORS.tertiarySystemFill,
+  },
+  badgeVerified: {
+    backgroundColor: IOS_COLORS.systemBlue + '1A',
+  },
+  badgeText: {
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 0.3,
+    color: IOS_COLORS.secondaryLabel,
+  },
+  badgeTextVerified: {
+    color: IOS_COLORS.systemBlue,
   },
   subtitle: {
     ...IOS_TYPOGRAPHY.footnote,

@@ -11,7 +11,11 @@ import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/providers/AuthProvider';
 import { ClubDiscoveryService } from '@/services/ClubDiscoveryService';
+import { organizationDiscoveryService } from '@/services/OrganizationDiscoveryService';
 import type { ClubSearchResult } from '@/components/search/ClubSearchRow';
+
+const normalizeName = (value: string): string =>
+  value.trim().toLowerCase().replace(/\s+/g, ' ');
 
 interface UseClubSearchOptions {
   query?: string;
@@ -47,7 +51,7 @@ export function useClubSearch(options: UseClubSearchOptions = {}) {
   } = useQuery({
     queryKey: ['club-search', query, filter, location, countryCode, boatClassId],
     queryFn: async () => {
-      // Use ClubDiscoveryService to search clubs
+      // Use ClubDiscoveryService to search the sailing club directory.
       const clubs = await ClubDiscoveryService.searchClubs({
         query: query || undefined,
         region: location,
@@ -55,7 +59,34 @@ export function useClubSearch(options: UseClubSearchOptions = {}) {
         boatClassId,
         limit,
       });
-      return clubs;
+
+      // Merge in platform organizations (incl. user-started orgs) so a club
+      // someone created shows up where they look for it. searchOrganizations
+      // returns [] for an empty query, so browse mode stays directory-only.
+      const orgs = query.trim()
+        ? await organizationDiscoveryService.searchOrganizations({
+            query: query.trim(),
+            limit,
+          })
+        : [];
+
+      const clubNames = new Set(clubs.map((c: any) => normalizeName(c.name || '')));
+      const orgRows = orgs
+        .filter((o) => o.slug && !clubNames.has(normalizeName(o.name)))
+        .map((o) => ({
+          id: o.id,
+          name: o.name,
+          slug: o.slug,
+          description: null,
+          region: o.organization_type
+            ? o.organization_type.replace(/_/g, ' ')
+            : null,
+          memberCount: 0,
+          source: 'org' as const,
+          official: o.official ?? false,
+        }));
+
+      return [...clubs, ...orgRows];
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
@@ -87,13 +118,15 @@ export function useClubSearch(options: UseClubSearchOptions = {}) {
     return data.map((club: any) => ({
       id: club.id,
       name: club.name,
+      slug: club.slug,
       description: club.description,
       location: club.region || club.location,
       logoUrl: club.logoUrl,
       memberCount: club.memberCount || 0,
       boatClassName: club.boatClassName,
       isJoined: joinedIds.has(club.id),
-      source: club.source as 'platform' | 'directory' | undefined,
+      source: club.source as 'platform' | 'directory' | 'org' | undefined,
+      official: club.official,
     }));
   }, [data, joinedIds]);
 

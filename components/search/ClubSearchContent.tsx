@@ -138,9 +138,11 @@ export function ClubSearchContent({
   }, []);
 
   const handleClubPress = useCallback(
-    (clubId: string, source?: 'platform' | 'directory') => {
-      // Route to the appropriate page based on club source
-      if (source === 'directory') {
+    (clubId: string, source?: 'platform' | 'directory' | 'org', slug?: string) => {
+      // Route to the appropriate page based on result source.
+      if (source === 'org') {
+        if (slug) router.push(`/discover/org/${slug}?from=clubs` as any);
+      } else if (source === 'directory') {
         router.push(`/club/directory/${clubId}`);
       } else {
         router.push(`/club/${clubId}`);
@@ -160,7 +162,7 @@ export function ClubSearchContent({
     ({ item, index }: { item: any; index: number }) => (
       <ClubSearchRow
         club={item}
-        onPress={() => handleClubPress(item.id, item.source)}
+        onPress={() => handleClubPress(item.id, item.source, item.slug)}
         onToggleJoin={() => handleToggleJoin(item.id)}
         showSeparator={index < clubs.length - 1}
       />
