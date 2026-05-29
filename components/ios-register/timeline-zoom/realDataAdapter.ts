@@ -1443,6 +1443,7 @@ export function mapToTimelineDataset({
     return {
       capabilityColor: visuals?.color ?? hashCategoryToColor(rec.category),
       capabilityLabel: visuals?.canonicalLabel ?? fallbackLabel,
+      title: rec.title ?? null,
       stepId: rec.id,
       status: STATUS_MAP[rec.status],
       withOthers: (rec.collaborator_user_ids?.length ?? 0) > 0,
@@ -1601,6 +1602,7 @@ export function mapToTimelineDataset({
               return {
                 capabilityColor: visuals?.color ?? hashCategoryToColor(rec.category),
                 capabilityLabel: visuals?.canonicalLabel ?? fallbackLabel,
+                title: rec.title ?? null,
                 stepId: rec.id,
                 status: STATUS_MAP[rec.status],
                 withOthers: (rec.collaborator_user_ids?.length ?? 0) > 0,

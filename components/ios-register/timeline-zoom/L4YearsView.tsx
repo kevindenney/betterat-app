@@ -27,7 +27,11 @@ import { CapabilityMix } from './CapabilityMix';
 import type { CapabilityMixMarker } from './CapabilityMix';
 import { PeerJourneyChart } from './PeerJourneyChart';
 import { SeasonLibrarianPrompt } from './SeasonLibrarianPrompt';
-import { resolveInterestVocab } from './interestVocab';
+import {
+  detectPhaseLabelFromTitles,
+  resolveInterestVocab,
+  type InterestVocab,
+} from './interestVocab';
 import type {
   LifetimeAnalysis,
   SeasonPeer,
@@ -320,6 +324,7 @@ export function L4YearsView({
           key={season.id}
           season={season}
           isCurrent={idx === 0}
+          vocab={interestVocab}
           onOpenStep={onOpenStep}
           onReorderStep={idx === 0 ? onReorderStep : undefined}
           selectEnabled={selectEnabled}
@@ -335,6 +340,7 @@ export function L4YearsView({
 interface SeasonLaneProps {
   season: TimelineSeason;
   isCurrent: boolean;
+  vocab: InterestVocab;
   onOpenStep: (stepId: string) => void;
   onReorderStep?: (
     stepId: string,
@@ -350,6 +356,7 @@ interface SeasonLaneProps {
 function SeasonLane({
   season,
   isCurrent,
+  vocab,
   onOpenStep,
   onReorderStep,
   selectEnabled = false,
@@ -381,6 +388,7 @@ function SeasonLane({
       string,
       { label: string; color: string; count: number }
     >();
+    const titles: string[] = [];
     let withOthersCount = 0;
     let doneCount = 0;
     for (const brick of season.bricks) {
@@ -394,21 +402,28 @@ function SeasonLane({
             count: 1,
           });
       }
+      if (brick.title) titles.push(brick.title);
       if (brick.withOthers) withOthersCount += 1;
       if (brick.status === 'done' || brick.status === 'reflected') doneCount += 1;
     }
-    let dominant: { label: string; color: string; count: number } | null = null;
+    let categoryDominant: { label: string; color: string; count: number } | null = null;
     for (const bucket of labelCounts.values()) {
-      if (!dominant || bucket.count > dominant.count) dominant = bucket;
+      if (!categoryDominant || bucket.count > categoryDominant.count) categoryDominant = bucket;
     }
+    // Prefer title-pattern detection over category dominance — the
+    // category is often the generic interest name ("Sailing",
+    // "Nursing") which carries no signal at the chapter level. A
+    // title-pattern hit like "Tactics" / "Starts" / "Rig tuning"
+    // describes the *specific work* the season pushed.
+    const titleBasedLabel = detectPhaseLabelFromTitles(titles, vocab);
     return {
-      dominantLabel: dominant?.label ?? null,
-      dominantColor: dominant?.color ?? null,
+      dominantLabel: titleBasedLabel ?? categoryDominant?.label ?? null,
+      dominantColor: categoryDominant?.color ?? null,
       withOthersCount,
       doneCount,
       totalCount: season.bricks.length,
     };
-  }, [season.bricks]);
+  }, [season.bricks, vocab]);
 
   const drag = useDragReorder<{ id: string; hasStepId: boolean }>({
     items: reorderableItems,

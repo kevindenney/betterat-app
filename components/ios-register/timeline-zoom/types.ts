@@ -145,6 +145,11 @@ export interface TimelineSeason {
      *  category is generic ("general", "uncategorized") — we don't want
      *  those bleeding into the librarian's "drift" sentence. */
     capabilityLabel?: string | null;
+    /** Step title carried through so L4's per-chapter summary can run
+     *  the persona's phase-pattern detection on the actual step text
+     *  ("Race 4 start drill" → Starts) rather than reading the often-
+     *  generic category. */
+    title?: string | null;
     stepId?: string;
     /** Lifecycle state — drives the L4 done-check overlay + planned dimming. */
     status?: StepStatus;
