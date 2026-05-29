@@ -20,7 +20,7 @@
  */
 
 import React, { useCallback, useMemo, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Platform, StyleSheet, Text, View } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import {
   Gesture,
@@ -313,7 +313,7 @@ export function TimelineZoomCanvas({
       <View style={styles.surface}>
         {hideInterestHeader ? (
           !select.enabled ? (
-            <Animated.View style={chromeAnimStyle}>
+            <Animated.View style={[styles.chromeLayer, chromeAnimStyle]}>
               <AppChromeRow
                 leftExtras={
                   <LocationAnchor region={homeVenue?.region} venue={homeVenue?.venue} />
@@ -507,6 +507,14 @@ const styles = StyleSheet.create({
   surface: {
     flex: 1,
     backgroundColor: IOS_REGISTER.groundBg,
+  },
+  // Keep the chrome row (and its descending ProfileDropdown / interest
+  // popover) above the canvas. chromeAnimStyle applies a transform, which
+  // opens a stacking context; without this the later canvas sibling paints
+  // over the open dropdown and swallows its taps.
+  chromeLayer: {
+    zIndex: 100,
+    ...Platform.select({ android: { elevation: 30 } }),
   },
   canvas: {
     flex: 1,
