@@ -431,6 +431,25 @@ export function InterestProvider({ children }: PropsWithChildren) {
               },
               { onConflict: 'user_id' },
             )
+          } else if (!cancelled && userInterests.length > 0) {
+            // The user has explicitly added interests but has no stored
+            // preference yet (e.g. just finished signup). Adding an interest
+            // is a stronger signal than the profile-age heuristic below, so
+            // activate the first added interest. Without this the app lands on
+            // an interest-less Practice tab that spins forever on the
+            // starter-step shim (currentInterest null → seeder bails).
+            const defaultInterest = userInterests[0]
+            setActiveSlug(defaultInterest.slug)
+            chosenRoute = 'added-interest-default'
+            await AsyncStorage.setItem(ASYNC_STORAGE_KEY, defaultInterest.slug)
+            await supabase.from('user_preferences').upsert(
+              {
+                user_id: user.id,
+                preferred_interest_id: defaultInterest.id,
+                updated_at: new Date().toISOString(),
+              },
+              { onConflict: 'user_id' },
+            )
           } else if (!cancelled && hasExistingProfileSignal(currentProfile)) {
             // Existing user with no preference — pick first added interest or fall back
             const defaultInterest =
@@ -487,6 +506,9 @@ export function InterestProvider({ children }: PropsWithChildren) {
     return () => {
       cancelled = true
     }
+    // Intentionally excludes profile-fetch deps: re-running on profile
+    // changes would loop the interest resolution.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [interestsLoading, userInterestsLoading, interests, userInterests, signedIn, user?.id])
 
   // Re-resolve when the user signs in / out
@@ -597,7 +619,7 @@ export function InterestProvider({ children }: PropsWithChildren) {
         }
       }
     },
-    [interests, userInterests, signedIn, user?.id],
+    [activeSlug, interests, userInterests, signedIn, user?.id],
   )
 
   // ---------- addInterest (writes to user_interests table) ----------
