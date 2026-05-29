@@ -54,6 +54,11 @@ import { SeasonHeaderChips } from './SeasonHeaderChips';
 import { PickerListSheet } from './PickerListSheet';
 import { useDragReorder } from './useDragReorder';
 import { resolveInterestVocab } from './interestVocab';
+import {
+  anchorIconName,
+  getAnchorsForRange,
+  type ResolvedAnchor,
+} from './interestAnchors';
 import type { TimelineDataset, TimelineSeason, TimelineStep } from './types';
 
 interface L3SeasonViewProps {
@@ -238,6 +243,14 @@ export function L3SeasonView({
         evidenceTrendByCompetency={season.visionEvidenceTrendByCompetency ?? {}}
         evidenceTrend={season.visionEvidenceTrend ?? []}
         onEdit={() => setVisionEditOpen(true)}
+      />
+
+      <AnchorStrip
+        anchors={getAnchorsForRange(
+          interestVocab.id,
+          season.startDateISO,
+          season.endDateISO,
+        )}
       />
 
       {hasAnalysis && analysis ? (
@@ -655,6 +668,75 @@ function isSparseCrew(peers: SeasonPeerLike[]): boolean {
 }
 type SeasonPeerLike = { weeklyAppearances: { weekNumber: number; count: number }[] };
 
+/**
+ * D6 first cut — external anchor strip. Sits below VISION and above
+ * the capability river, surfacing persona-tuned time pegs that fall
+ * inside the current season (race weeks, exam windows, festival days,
+ * fiscal deadlines). The user doesn't add these; the persona vocab
+ * knows them.
+ *
+ * Hides silently when no anchors match — keeps the surface from
+ * leading with a stub on personas (default, golf, knitting) we
+ * haven't tuned yet.
+ *
+ * Days-away labelling uses "today" / "in N weeks" / "passed N weeks
+ * ago" so the user sees what's *near* rather than reading a date
+ * they'd have to do arithmetic on.
+ */
+function AnchorStrip({ anchors }: { anchors: ResolvedAnchor[] }) {
+  if (anchors.length === 0) return null;
+  return (
+    <View style={styles.anchorStrip}>
+      <Text style={styles.anchorEyebrow}>COMING UP</Text>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.anchorRow}
+      >
+        {anchors.slice(0, 6).map((anchor) => {
+          const iconName = anchorIconName(anchor.kind) as keyof typeof Ionicons.glyphMap;
+          const proximity = formatAnchorProximity(anchor.daysAway);
+          return (
+            <View key={anchor.id} style={styles.anchorChip}>
+              <Ionicons
+                name={iconName}
+                size={12}
+                color={IOS_REGISTER.labelSecondary}
+              />
+              <View style={styles.anchorTextWrap}>
+                <Text style={styles.anchorLabel} numberOfLines={1}>
+                  {anchor.label}
+                </Text>
+                <Text style={styles.anchorProximity} numberOfLines={1}>
+                  {proximity}
+                </Text>
+              </View>
+            </View>
+          );
+        })}
+      </ScrollView>
+    </View>
+  );
+}
+
+function formatAnchorProximity(daysAway: number): string {
+  if (daysAway === 0) return 'today';
+  if (daysAway > 0 && daysAway < 7) return `in ${daysAway}d`;
+  if (daysAway >= 7 && daysAway < 60) {
+    const weeks = Math.round(daysAway / 7);
+    return `in ${weeks}w`;
+  }
+  if (daysAway >= 60) {
+    const months = Math.round(daysAway / 30);
+    return `in ${months}mo`;
+  }
+  // Past
+  const abs = Math.abs(daysAway);
+  if (abs < 7) return `${abs}d ago`;
+  if (abs < 60) return `${Math.round(abs / 7)}w ago`;
+  return `${Math.round(abs / 30)}mo ago`;
+}
+
 const styles = StyleSheet.create({
   scroll: { flex: 1 },
   scrollContent: { paddingBottom: 120 },
@@ -870,5 +952,53 @@ const styles = StyleSheet.create({
   selectBadgeOn: {
     backgroundColor: IOS_REGISTER.accentUserAction,
     borderColor: IOS_REGISTER.accentUserAction,
+  },
+  // D6 anchor strip — horizontal scrolling row of persona-tuned time
+  // pegs falling inside the season. Sits below VISION and above the
+  // capability river so the user sees "what's coming" before "how
+  // the work has spread."
+  anchorStrip: {
+    marginTop: 6,
+    marginBottom: 10,
+  },
+  anchorEyebrow: {
+    fontSize: 10.5,
+    fontWeight: '700',
+    letterSpacing: 0.6,
+    color: IOS_REGISTER.labelSecondary,
+    marginLeft: 16,
+    marginBottom: 6,
+  },
+  anchorRow: {
+    paddingHorizontal: 16,
+    gap: 8,
+    flexDirection: 'row',
+  },
+  anchorChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 9,
+    backgroundColor: IOS_REGISTER.fillPill,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: IOS_REGISTER.separator,
+    maxWidth: 200,
+  },
+  anchorTextWrap: {
+    flexShrink: 1,
+  },
+  anchorLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: IOS_REGISTER.label,
+    letterSpacing: -0.1,
+  },
+  anchorProximity: {
+    fontSize: 10.5,
+    color: IOS_REGISTER.labelSecondary,
+    marginTop: 1,
+    letterSpacing: 0.05,
   },
 });

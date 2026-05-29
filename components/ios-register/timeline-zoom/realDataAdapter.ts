@@ -1566,6 +1566,8 @@ export function mapToTimelineDataset({
       currentSeason && currentSeason.start_date && currentSeason.end_date
         ? formatDateRange(currentSeason.start_date, currentSeason.end_date)
         : '',
+    startDateISO: currentSeason?.start_date ?? undefined,
+    endDateISO: currentSeason?.end_date ?? undefined,
     weekOfTotal:
       weeks.length > 1
         ? { current: currentWeekIdx + 1, total: weeks.length }
@@ -1609,6 +1611,8 @@ export function mapToTimelineDataset({
       title: name,
       dateRange:
         s.start_date && s.end_date ? formatDateRange(s.start_date, s.end_date) : '',
+      startDateISO: s.start_date ?? undefined,
+      endDateISO: s.end_date ?? undefined,
       archived: true,
       weeks: [],
       // Real bricks for steps the user has moved here; placeholders only

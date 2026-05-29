@@ -131,6 +131,12 @@ export interface TimelineSeason {
     label: string;
   };
   dateRange: string;          // "Jan 14 — May 8"
+  /** ISO start/end dates (YYYY-MM-DD) when known. The formatted
+   *  dateRange above is for display; these power the L3 external-anchor
+   *  overlay (D6) — filtering persona-tuned anchors (race weeks, exam
+   *  windows, festival days) to those that fall inside the season. */
+  startDateISO?: string;
+  endDateISO?: string;
   weekOfTotal?: { current: number; total: number }; // "Week 7 of 14"
   archived?: boolean;
   weeks: TimelineWeek[];
