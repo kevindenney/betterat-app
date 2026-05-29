@@ -32,6 +32,37 @@ import {
 import type { TimelineStepRecord } from '@/types/timeline-steps';
 import { UniversalPlusSheet } from './UniversalPlusSheet';
 import { PlusComposerV3Sheet } from './PlusComposerV3Sheet';
+import { InspirationWizard } from '@/components/inspiration/InspirationWizard';
+
+function insertOptimisticNextUpStep(
+  steps: TimelineStepRecord[] | undefined,
+  optimisticStep: TimelineStepRecord,
+): TimelineStepRecord[] {
+  if (!steps || steps.length === 0) return [optimisticStep];
+  if (steps.some((step) => step.id === optimisticStep.id)) return steps;
+
+  const currentStep =
+    steps.find((step) => step.status === 'in_progress') ??
+    steps.find((step) => step.status === 'pending') ??
+    null;
+
+  if (!currentStep) {
+    const nextSort = (steps.at(-1)?.sort_order ?? 0) + 1;
+    return [...steps, { ...optimisticStep, sort_order: nextSort }];
+  }
+
+  const insertedSort = currentStep.sort_order + 1;
+  const shifted = steps.map((step) =>
+    step.sort_order > currentStep.sort_order
+      ? { ...step, sort_order: step.sort_order + 1 }
+      : step,
+  );
+
+  return [...shifted, { ...optimisticStep, sort_order: insertedSort }].sort((a, b) => {
+    if (a.sort_order !== b.sort_order) return a.sort_order - b.sort_order;
+    return String(a.created_at).localeCompare(String(b.created_at));
+  });
+}
 
 export interface UniversalPlusContextValue {
   open: () => void;
@@ -52,6 +83,7 @@ export function useUniversalPlus() {
 export function UniversalPlusProvider({ children }: { children: React.ReactNode }) {
   const enabled = FEATURE_FLAGS.PRACTICE_STEP_LOOP_IOS_REGISTER;
   const [visible, setVisible] = useState(false);
+  const [inspirationVisible, setInspirationVisible] = useState(false);
   const toast = useToast();
   const { user } = useAuth();
   const { currentInterest } = useInterest();
@@ -63,6 +95,11 @@ export function UniversalPlusProvider({ children }: { children: React.ReactNode 
   }, [enabled]);
 
   const close = useCallback(() => setVisible(false), []);
+
+  const handleStartFromLink = useCallback(() => {
+    setVisible(false);
+    setInspirationVisible(true);
+  }, []);
 
   const handleQuickCapture = useCallback(
     async (payload: QuickCapturePayload) => {
@@ -84,6 +121,8 @@ export function UniversalPlusProvider({ children }: { children: React.ReactNode 
       const interestId = currentInterest.id;
       const tempId = `temp-quick-${Date.now()}`;
       const nowIso = new Date().toISOString();
+      const location = payload.location;
+      const hasLocationName = Boolean(location?.name?.trim());
       const optimisticStep: TimelineStepRecord = {
         id: tempId,
         user_id: user.id,
@@ -98,9 +137,9 @@ export function UniversalPlusProvider({ children }: { children: React.ReactNode 
         status: 'pending',
         starts_at: null,
         ends_at: null,
-        location_name: null,
-        location_lat: null,
-        location_lng: null,
+        location_name: hasLocationName ? location!.name.trim() : null,
+        location_lat: location?.lat ?? null,
+        location_lng: location?.lng ?? null,
         location_place_id: null,
         visibility: 'private',
         share_approximate_location: false,
@@ -112,6 +151,7 @@ export function UniversalPlusProvider({ children }: { children: React.ReactNode 
           capture_source: 'universal_plus_sheet',
           capture_kind: payload.kind,
           audio_uri: payload.audioUri ?? null,
+          ...(hasLocationName ? { plan: { where_location: location } } : {}),
         },
         collaborator_user_ids: [],
         completed_at: null,
@@ -136,19 +176,11 @@ export function UniversalPlusProvider({ children }: { children: React.ReactNode 
 
       queryClient.setQueriesData<TimelineStepRecord[]>(
         { predicate: matchesMineQuery },
-        (old) => {
-          if (!old) return old;
-          if (old.some((step) => step.id === tempId)) return old;
-          return [...old, optimisticStep];
-        },
+        (old) => insertOptimisticNextUpStep(old, optimisticStep),
       );
       queryClient.setQueryData<TimelineStepRecord[]>(
         currentTimelineKey,
-        (old) => {
-          if (!old) return [optimisticStep];
-          if (old.some((step) => step.id === tempId)) return old;
-          return [...old, optimisticStep];
-        },
+        (old) => insertOptimisticNextUpStep(old, optimisticStep),
       );
       queryClient.setQueryData(['timeline-steps', 'detail', tempId], optimisticStep);
       close();
@@ -266,6 +298,7 @@ export function UniversalPlusProvider({ children }: { children: React.ReactNode 
             visible={visible}
             onDismiss={close}
             onSave={handleQuickCapture}
+            onStartFromLink={handleStartFromLink}
             interestLabel={currentInterest?.name ?? null}
             sessionLabel={null}
           />
@@ -274,6 +307,7 @@ export function UniversalPlusProvider({ children }: { children: React.ReactNode 
             visible={visible}
             onDismiss={close}
             onQuickCapture={handleQuickCapture}
+            onStartFromLink={handleStartFromLink}
             onAddFromBlueprint={() => handleNavigate('/library/blueprints')}
             onAddFromFollow={() => handleNavigate('/discover/following')}
             onDropConcept={handleDropConcept}
@@ -281,6 +315,10 @@ export function UniversalPlusProvider({ children }: { children: React.ReactNode 
           />
         )
       ) : null}
+      <InspirationWizard
+        visible={inspirationVisible}
+        onClose={() => setInspirationVisible(false)}
+      />
     </UniversalPlusContext.Provider>
   );
 }

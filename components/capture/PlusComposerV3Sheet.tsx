@@ -22,7 +22,7 @@
  * UniversalPlusSheet still renders.
  */
 
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import {
   KeyboardAvoidingView,
   Modal,
@@ -39,7 +39,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { IOS_COLORS, IOS_REGISTER, IOS_SPACING } from '@/lib/design-tokens-ios';
 import { FEATURE_FLAGS } from '@/lib/featureFlags';
 import type { QuickCapturePayload } from '@/services/QuickCaptureService';
+import type { StepLocation } from '@/types/step-detail';
 import { VoiceComposerV3Sheet } from './VoiceComposerV3Sheet';
+import { ComposerWhereField } from './ComposerWhereField';
 
 const SERIF_FAMILY = Platform.select({
   ios: 'Georgia',
@@ -56,12 +58,14 @@ interface PlusComposerV3SheetProps {
   visible: boolean;
   onDismiss: () => void;
   onSave: (payload: QuickCapturePayload) => void;
+  /** Rare secondary path: build a first plan from an external URL/text source. */
+  onStartFromLink?: () => void;
   /** Pre-filled interest label for the lane chip, e.g. "Sailing". */
   interestLabel?: string | null;
   /** Pre-filled session/season label for the lane chip, e.g. "Spring Series '26". */
   sessionLabel?: string | null;
-  /** Suggested tag chips. v1 = hand-authored. v2 = AI-suggested from context. */
-  suggestedTags?: string[];
+  /** Suggested field chips. v1 = hand-authored. v2 = AI-suggested from context. */
+  suggestedFields?: string[];
   /**
    * AI librarian hint surfaced when the typed input looks like it belongs
    * under an existing step. v1 = absent; v2 = real AI routing. When passed,
@@ -73,49 +77,135 @@ interface PlusComposerV3SheetProps {
   };
 }
 
-const DEFAULT_SUGGESTED: string[] = ['+ tactics', '+ Sam', '+ Saturday', '+ Causeway Bay'];
+type ComposerFieldKey = 'why' | 'how' | 'when' | 'where';
+
+const DEFAULT_SUGGESTED_FIELDS: ComposerFieldKey[] = ['why', 'how', 'when', 'where'];
+
+const OPTIONAL_FIELDS: {
+  key: ComposerFieldKey;
+  label: string;
+  placeholder: string;
+  multiline?: boolean;
+}[] = [
+  { key: 'why', label: 'Why', placeholder: 'Why does this matter right now?', multiline: true },
+  { key: 'how', label: 'How', placeholder: 'How will you do it?', multiline: true },
+  { key: 'when', label: 'When', placeholder: 'When will you do this?' },
+  { key: 'where', label: 'Where', placeholder: 'Where will this happen?' },
+];
+
+const FIELD_ORDER = OPTIONAL_FIELDS.map((field) => field.key);
+
+function emptyFieldValues(): Record<ComposerFieldKey, string> {
+  return {
+    why: '',
+    how: '',
+    when: '',
+    where: '',
+  };
+}
+
+function buildComposerPayload({
+  what,
+  activeFields,
+  fieldValues,
+}: {
+  what: string;
+  activeFields: ComposerFieldKey[];
+  fieldValues: Record<ComposerFieldKey, string>;
+}) {
+  const sections: string[] = [];
+  const trimmedWhat = what.trim();
+  if (trimmedWhat) sections.push(trimmedWhat);
+
+  OPTIONAL_FIELDS.forEach(({ key, label }) => {
+    const trimmedValue = fieldValues[key].trim();
+    if (!activeFields.includes(key) && !trimmedValue) return;
+    sections.push(trimmedValue ? `${label}: ${trimmedValue}` : `${label}:`);
+  });
+
+  return sections.join('\n');
+}
 
 export function PlusComposerV3Sheet({
   visible,
   onDismiss,
   onSave,
+  onStartFromLink,
   interestLabel,
   sessionLabel,
-  suggestedTags = DEFAULT_SUGGESTED,
+  suggestedFields = DEFAULT_SUGGESTED_FIELDS,
   librarianHint,
 }: PlusComposerV3SheetProps) {
-  const [text, setText] = useState('');
-  const [activeTags, setActiveTags] = useState<string[]>([]);
+  const [whatText, setWhatText] = useState('');
+  const [activeFields, setActiveFields] = useState<ComposerFieldKey[]>([]);
+  const [fieldValues, setFieldValues] = useState<Record<ComposerFieldKey, string>>(emptyFieldValues);
+  const [whereLocation, setWhereLocation] = useState<StepLocation | undefined>(undefined);
   const [voiceVisible, setVoiceVisible] = useState(false);
   const voiceEnabled = FEATURE_FLAGS.VOICE_COMPOSER_V3;
+  const whatInputRef = useRef<TextInput | null>(null);
+  const optionalFieldRefs = useRef<Partial<Record<ComposerFieldKey, TextInput | null>>>({});
+
+  const resetComposer = useCallback(() => {
+    setWhatText('');
+    setActiveFields([]);
+    setFieldValues(emptyFieldValues());
+    setWhereLocation(undefined);
+  }, []);
+
+  const composedPayload = useMemo(
+    () =>
+      buildComposerPayload({
+        what: whatText,
+        activeFields,
+        fieldValues,
+      }),
+    [activeFields, fieldValues, whatText],
+  );
 
   const handleSave = useCallback(() => {
-    const trimmed = text.trim();
+    const trimmed = composedPayload.trim();
     if (!trimmed) {
       onDismiss();
       return;
     }
-    const body = activeTags.length > 0
-      ? `${trimmed}\n\n${activeTags.map((t) => `#${t.replace(/^[+\s]+/, '')}`).join(' ')}`
-      : trimmed;
-    onSave({ kind: 'text', content: body });
-    setText('');
-    setActiveTags([]);
-  }, [text, activeTags, onSave, onDismiss]);
+    onSave({ kind: 'text', content: trimmed, location: whereLocation });
+    resetComposer();
+  }, [composedPayload, whereLocation, onSave, onDismiss, resetComposer]);
 
   const handleCancel = useCallback(() => {
-    setText('');
-    setActiveTags([]);
+    resetComposer();
     onDismiss();
-  }, [onDismiss]);
+  }, [onDismiss, resetComposer]);
 
-  const toggleTag = useCallback((tag: string) => {
-    setActiveTags((prev) =>
-      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag],
-    );
+  const insertField = useCallback((fieldKey: ComposerFieldKey) => {
+    setActiveFields((prev) => {
+      if (prev.includes(fieldKey)) return prev;
+      return [...prev, fieldKey].sort(
+        (a, b) => FIELD_ORDER.indexOf(a) - FIELD_ORDER.indexOf(b),
+      );
+    });
+    requestAnimationFrame(() => {
+      optionalFieldRefs.current[fieldKey]?.focus();
+    });
   }, []);
 
-  const trimmedLength = text.trim().length;
+  const removeField = useCallback((fieldKey: ComposerFieldKey) => {
+    setActiveFields((prev) => prev.filter((key) => key !== fieldKey));
+    setFieldValues((prev) => ({ ...prev, [fieldKey]: '' }));
+    if (fieldKey === 'where') setWhereLocation(undefined);
+    requestAnimationFrame(() => {
+      whatInputRef.current?.focus();
+    });
+  }, []);
+
+  const handleWhereChange = useCallback((next: StepLocation | undefined) => {
+    setWhereLocation(next);
+    // Keep the text payload in sync so the saved title still reads
+    // "Where: <name>" even though the structured location is the source of truth.
+    setFieldValues((prev) => ({ ...prev, where: next?.name ?? '' }));
+  }, []);
+
+  const trimmedLength = composedPayload.trim().length;
 
   return (
     <Modal
@@ -165,8 +255,9 @@ export function PlusComposerV3Sheet({
             <Text style={styles.eyebrow}>WHAT</Text>
             <TextInput
               style={styles.input}
-              value={text}
-              onChangeText={setText}
+              ref={whatInputRef}
+              value={whatText}
+              onChangeText={setWhatText}
               placeholder="Try Sunita's spinnaker tip on Saturday's downwind leg"
               placeholderTextColor={IOS_REGISTER.labelTertiary}
               multiline
@@ -174,20 +265,75 @@ export function PlusComposerV3Sheet({
               accessibilityLabel="Step description"
             />
 
-            {suggestedTags.length > 0 ? (
-              <View style={styles.tagRow}>
-                {suggestedTags.map((tag) => {
-                  const active = activeTags.includes(tag);
+            {suggestedFields.length > 0 ? (
+              <>
+                <Text style={styles.contextEyebrow}>OPTIONAL FIELDS</Text>
+                <View style={styles.tagRow}>
+                  {suggestedFields.map((field) => {
+                    const config = OPTIONAL_FIELDS.find((item) => item.key === field);
+                    if (!config) return null;
+                    const active = activeFields.includes(field);
+                    return (
+                      <Pressable
+                        key={field}
+                        style={[styles.tagChip, active && styles.tagChipActive]}
+                        onPress={() => insertField(field)}
+                      >
+                        <Text style={[styles.tagChipText, active && styles.tagChipTextActive]}>
+                          {config.label}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              </>
+            ) : null}
+
+            {activeFields.length > 0 ? (
+              <View style={styles.optionalFieldStack}>
+                {activeFields.map((fieldKey) => {
+                  const config = OPTIONAL_FIELDS.find((item) => item.key === fieldKey);
+                  if (!config) return null;
                   return (
-                    <Pressable
-                      key={tag}
-                      style={[styles.tagChip, active && styles.tagChipActive]}
-                      onPress={() => toggleTag(tag)}
-                    >
-                      <Text style={[styles.tagChipText, active && styles.tagChipTextActive]}>
-                        {tag}
-                      </Text>
-                    </Pressable>
+                    <View key={fieldKey} style={styles.optionalFieldCard}>
+                      <View style={styles.optionalFieldHeader}>
+                        <Text style={styles.optionalFieldLabel}>{config.label}</Text>
+                        <Pressable
+                          style={styles.optionalFieldRemove}
+                          onPress={() => removeField(fieldKey)}
+                          accessibilityLabel={`Remove ${config.label} field`}
+                        >
+                          <Ionicons name="close" size={14} color={IOS_REGISTER.labelSecondary} />
+                        </Pressable>
+                      </View>
+                      {fieldKey === 'where' ? (
+                        <ComposerWhereField
+                          value={whereLocation}
+                          onChange={handleWhereChange}
+                          inputRef={(node) => {
+                            optionalFieldRefs.current.where = node;
+                          }}
+                        />
+                      ) : (
+                        <TextInput
+                          ref={(node) => {
+                            optionalFieldRefs.current[fieldKey] = node;
+                          }}
+                          style={[
+                            styles.optionalFieldInput,
+                            config.multiline && styles.optionalFieldInputMultiline,
+                          ]}
+                          value={fieldValues[fieldKey]}
+                          onChangeText={(value) => {
+                            setFieldValues((prev) => ({ ...prev, [fieldKey]: value }));
+                          }}
+                          placeholder={config.placeholder}
+                          placeholderTextColor={IOS_REGISTER.labelTertiary}
+                          multiline={Boolean(config.multiline)}
+                          accessibilityLabel={config.label}
+                        />
+                      )}
+                    </View>
                   );
                 })}
               </View>
@@ -215,24 +361,38 @@ export function PlusComposerV3Sheet({
           {/* Voice-first affordance row. v1 is a visual placeholder — the
               full Screen-13 voice-first composer ships in a follow-up. */}
           <View style={styles.footerRow}>
-            <Pressable style={styles.footerIcon} accessibilityLabel="Add photo">
-              <Ionicons name="image-outline" size={20} color={IOS_REGISTER.labelSecondary} />
-            </Pressable>
-            <View style={styles.micWrap}>
-              <Pressable
-                style={styles.mic}
-                accessibilityLabel={
-                  voiceEnabled
-                    ? 'Open voice composer'
-                    : 'Voice input — coming soon'
-                }
-                onPress={voiceEnabled ? () => setVoiceVisible(true) : undefined}
-              >
-                <Ionicons name="mic" size={22} color="#FFFFFF" />
-              </Pressable>
+            <View style={[styles.footerAffordance, styles.footerAffordanceDisabled]}>
+              <View style={styles.footerIcon}>
+                <Ionicons name="image-outline" size={20} color={IOS_REGISTER.labelSecondary} />
+              </View>
+              <Text style={styles.footerLabel}>Photo</Text>
             </View>
-            <Pressable style={styles.footerIcon} accessibilityLabel="Attach link">
-              <Ionicons name="link-outline" size={20} color={IOS_REGISTER.labelSecondary} />
+            <View style={styles.micWrap}>
+              <View style={styles.footerAffordance}>
+                <Pressable
+                  style={styles.mic}
+                  accessibilityLabel={
+                    voiceEnabled
+                      ? 'Open voice composer'
+                      : 'Voice input — coming soon'
+                  }
+                  onPress={voiceEnabled ? () => setVoiceVisible(true) : undefined}
+                >
+                  <Ionicons name="mic" size={22} color="#FFFFFF" />
+                </Pressable>
+                <Text style={styles.footerLabel}>Voice</Text>
+              </View>
+            </View>
+            <Pressable
+              style={styles.footerAffordance}
+              accessibilityLabel="Start from a link"
+              onPress={onStartFromLink}
+              disabled={!onStartFromLink}
+            >
+              <View style={styles.footerIcon}>
+                <Ionicons name="link-outline" size={20} color={IOS_REGISTER.labelSecondary} />
+              </View>
+              <Text style={styles.footerLabel}>Link</Text>
             </Pressable>
           </View>
         </KeyboardAvoidingView>
@@ -331,14 +491,22 @@ const styles = StyleSheet.create({
     lineHeight: 24,
     color: IOS_REGISTER.label,
     fontFamily: SERIF_FAMILY,
-    minHeight: 80,
+    minHeight: 72,
     paddingVertical: 4,
   },
   tagRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 6,
+    marginTop: 8,
+  },
+  contextEyebrow: {
+    fontSize: 10.5,
+    fontWeight: '700',
+    letterSpacing: 0.6,
+    color: IOS_REGISTER.labelSecondary,
     marginTop: 18,
+    marginBottom: 2,
   },
   tagChip: {
     paddingHorizontal: 10,
@@ -359,6 +527,51 @@ const styles = StyleSheet.create({
   },
   tagChipTextActive: {
     color: '#FFFFFF',
+  },
+  optionalFieldStack: {
+    marginTop: 14,
+    gap: 10,
+  },
+  optionalFieldCard: {
+    borderRadius: 16,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: IOS_REGISTER.separator,
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 14,
+    paddingTop: 12,
+    paddingBottom: 10,
+  },
+  optionalFieldHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 6,
+  },
+  optionalFieldLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 0.6,
+    color: IOS_REGISTER.labelSecondary,
+    textTransform: 'uppercase',
+  },
+  optionalFieldRemove: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: IOS_REGISTER.fillPill,
+  },
+  optionalFieldInput: {
+    fontSize: 16,
+    lineHeight: 22,
+    color: IOS_REGISTER.label,
+    minHeight: 26,
+    paddingVertical: 0,
+  },
+  optionalFieldInputMultiline: {
+    minHeight: 64,
+    textAlignVertical: 'top',
   },
   librarianCard: {
     marginTop: 22,
@@ -414,15 +627,27 @@ const styles = StyleSheet.create({
   },
   footerRow: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-end',
     justifyContent: 'space-around',
     paddingHorizontal: IOS_SPACING.lg,
     paddingVertical: 12,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: IOS_REGISTER.separator,
   },
+  footerAffordance: {
+    alignItems: 'center',
+    gap: 4,
+  },
+  footerAffordanceDisabled: {
+    opacity: 0.45,
+  },
   footerIcon: {
     padding: 10,
+  },
+  footerLabel: {
+    fontSize: 11,
+    fontWeight: '500',
+    color: IOS_REGISTER.labelSecondary,
   },
   micWrap: {
     flex: 1,
