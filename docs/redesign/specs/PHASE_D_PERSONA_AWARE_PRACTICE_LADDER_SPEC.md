@@ -344,6 +344,22 @@ shipped per `reference_telegram_bot_handle.md`).
 Acceptance: Savitri uses the app at home offline; SHG decisions
 flow into the app from WhatsApp.
 
+### Bet D11 — Headline metric (per-persona North Star)
+
+Per-interest `headline metric` slot above the capability mix on L3/L4:
+one strong figure + caption + optional trend delta, in the persona's
+native currency (sailor FORM, nurse PROGRAM, entrepreneur EARNINGS,
+golfer HANDICAP). Code-level `interestHeadline.ts` registry keyed off
+vocab id, mirroring D7's `interestMoney.ts`. Promotes D5's trajectory
+readout to always-on + adds a season scope; reuses D7 finance as the
+entrepreneur's source. Chrome-first: entrepreneur is real today,
+others authored in sample personas; `realDataAdapter` untouched.
+
+Full spec: [PHASE_D11_HEADLINE_METRIC_SPEC.md](./PHASE_D11_HEADLINE_METRIC_SPEC.md)
+
+Acceptance: every persona with a registered config sees its North-Star
+figure first; capability mix demoted to "the why behind the number".
+
 ## Schema Sketches
 
 Per-interest tables the chrome reads from. All keyed off
