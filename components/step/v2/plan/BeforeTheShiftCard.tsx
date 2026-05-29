@@ -6,6 +6,7 @@
 
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { IOS_COLORS } from '@/lib/design-tokens-ios';
 import { FORMAT_ICON, FORMAT_TINT } from '@/components/library/resources/formatStyles';
@@ -17,6 +18,12 @@ export interface BeforeShiftItem {
   title: string;
   meta: string;
   read: boolean;
+  /**
+   * Underlying library_items id. Present for real attached items; tapping
+   * the row opens the canonical resource viewer (PDF, link, video) at
+   * /(tabs)/library/items/[id]. Absent for demo/placeholder rows.
+   */
+  libraryItemId?: string;
 }
 
 interface Props {
@@ -59,6 +66,12 @@ export function BeforeTheShiftCard({
 
       {items.map((item) => {
         const tint = FORMAT_TINT[item.format];
+        const openable = !!item.libraryItemId;
+        const open = () => {
+          if (item.libraryItemId) {
+            router.push(`/(tabs)/library/items/${item.libraryItemId}` as never);
+          }
+        };
         return (
           <View
             key={item.id}
@@ -76,20 +89,34 @@ export function BeforeTheShiftCard({
                 <Ionicons name="checkmark" size={13} color="#FFFFFF" />
               ) : null}
             </TouchableOpacity>
-            <View style={[styles.glyph, { backgroundColor: `${tint}1F` }]}>
-              <Ionicons name={FORMAT_ICON[item.format]} size={15} color={tint} />
-            </View>
-            <View style={styles.body}>
-              <Text
-                style={[styles.title, item.read ? styles.titleRead : null]}
-                numberOfLines={2}
-              >
-                {item.title}
-              </Text>
-              <Text style={styles.meta} numberOfLines={1}>
-                {item.meta}
-              </Text>
-            </View>
+            <TouchableOpacity
+              style={styles.openTarget}
+              activeOpacity={openable ? 0.6 : 1}
+              disabled={!openable}
+              onPress={open}
+            >
+              <View style={[styles.glyph, { backgroundColor: `${tint}1F` }]}>
+                <Ionicons name={FORMAT_ICON[item.format]} size={15} color={tint} />
+              </View>
+              <View style={styles.body}>
+                <Text
+                  style={[styles.title, item.read ? styles.titleRead : null]}
+                  numberOfLines={2}
+                >
+                  {item.title}
+                </Text>
+                <Text style={styles.meta} numberOfLines={1}>
+                  {item.meta}
+                </Text>
+              </View>
+              {openable ? (
+                <Ionicons
+                  name="chevron-forward"
+                  size={15}
+                  color={IOS_COLORS.tertiaryLabel}
+                />
+              ) : null}
+            </TouchableOpacity>
           </View>
         );
       })}
@@ -158,6 +185,12 @@ const styles = StyleSheet.create({
   },
   rowDone: {
     opacity: 0.85,
+  },
+  openTarget: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   check: {
     width: 18,

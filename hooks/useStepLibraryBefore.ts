@@ -186,12 +186,12 @@ export function useLibraryBeforeBinding(
   );
   const totalEstimate = computeTotalEstimate(items);
 
-  // The card consumes BeforeShiftItem (no libraryItemId). Strip it here so
-  // callers don't have to know about the internal join shape.
+  // Carry libraryItemId through so the card can open the resource viewer.
   const cardItems: BeforeShiftItem[] = useMemo(
     () =>
-      items.map(({ id, format, title, meta, read }) => ({
+      items.map(({ id, libraryItemId, format, title, meta, read }) => ({
         id,
+        libraryItemId,
         format,
         title,
         meta,
