@@ -16,7 +16,7 @@
 
 import React, { useCallback, useMemo, useState } from 'react';
 import type { LayoutChangeEvent } from 'react-native';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { GestureDetector } from 'react-native-gesture-handler';
 import Animated, { useAnimatedStyle } from 'react-native-reanimated';
@@ -169,6 +169,18 @@ export function L4YearsView({
 
   const lifetime = dataset.lifetime;
 
+  // Lifetime vision banner — D5 second cut. interest_vision is per
+  // (user, interest), not per season, so the same statement that
+  // anchors the L3 season VisionBlock is what we promise the user is
+  // their lifetime north star here. The L4 banner reframes it as the
+  // lifetime arc by treating it as the trajectory the chapters ladder
+  // toward. (Phase D bet D5b in the spec will split this into a
+  // separately editable lifetime field with revision history; today
+  // we surface the closest signal we have.)
+  const currentSeasonForVision = dataset.seasons[0];
+  const lifetimeVisionStatement =
+    currentSeasonForVision?.visionStatement?.trim() || null;
+
   // Convert lifetime data into the existing chart shapes (the charts
   // don't know about lifetime semantics — they operate on the generic
   // "unit" axis whether that's weeks or sessions).
@@ -205,6 +217,19 @@ export function L4YearsView({
           {formatLifetimeDuration(dataset.sinceTimestamp) ??
             `${dataset.totalSeasons} arcs · ${dataset.totalSteps} steps · since ${dataset.sinceDate}`}
         </Text>
+      </View>
+
+      <View style={styles.lifetimeVisionBanner}>
+        <Text style={styles.lifetimeVisionEyebrow}>Lifetime vision</Text>
+        {lifetimeVisionStatement ? (
+          <Text style={styles.lifetimeVisionStatement}>
+            {lifetimeVisionStatement}
+          </Text>
+        ) : (
+          <Text style={styles.lifetimeVisionPrompt}>
+            What are you {interestVocab.id === 'default' ? 'building' : interestVocab.verb.mid.toLowerCase()} toward, long-term?
+          </Text>
+        )}
       </View>
 
       {adapted && lifetime ? (
@@ -782,6 +807,50 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+  },
+  // Lifetime vision banner — D5 second cut. Italic-serif statement at
+  // the top of L4 anchoring the chapter ledger beneath it. Quiet
+  // prompt when unset so it doesn't feel like a stub.
+  lifetimeVisionBanner: {
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    marginBottom: 8,
+    backgroundColor: 'rgba(123, 63, 176, 0.06)',
+    borderRadius: 12,
+    marginHorizontal: 16,
+  },
+  lifetimeVisionEyebrow: {
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 0.6,
+    textTransform: 'uppercase',
+    color: '#7B3FB0',
+    marginBottom: 6,
+  },
+  lifetimeVisionStatement: {
+    fontFamily: Platform.select({
+      ios: 'Georgia',
+      android: 'serif',
+      web: 'Georgia, "Times New Roman", serif',
+      default: 'Georgia',
+    }) as string,
+    fontStyle: 'italic',
+    fontSize: 17,
+    lineHeight: 24,
+    color: IOS_REGISTER.label,
+    letterSpacing: -0.2,
+  },
+  lifetimeVisionPrompt: {
+    fontFamily: Platform.select({
+      ios: 'Georgia',
+      android: 'serif',
+      web: 'Georgia, "Times New Roman", serif',
+      default: 'Georgia',
+    }) as string,
+    fontStyle: 'italic',
+    fontSize: 14,
+    lineHeight: 20,
+    color: IOS_REGISTER.labelTertiary,
   },
   // Chapter summary chips on each season lane — D5 first cut. Surface
   // dominant capability + people-constancy + done progress so the L4
