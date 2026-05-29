@@ -1,23 +1,19 @@
 /**
- * InvitePeopleSheet — owner generates a shareable invite link.
+ * InvitePeopleSheet — owner invites people to their org.
  *
- * Minimal v1: tap "Generate invite link" → server creates an invite row
- * with channel='link' and a fresh token → we surface the resulting URL
- * with Copy + Share buttons so the owner can hand it to Rita, Eric, etc.
- * via WhatsApp / iMessage / whatever they already use.
+ * Two paths:
+ *  1. On BetterAt — search people by name/email and invite them directly.
+ *     The invite lands in their in-app inbox (social notification) so they
+ *     can accept without leaving the app.
+ *  2. Not on BetterAt — generate a shareable link to hand out via Messages /
+ *     WhatsApp / email. Anyone who taps it routes through `/invite/<token>`.
  *
- * Reuses the existing organizationInviteService.createInvite and the
- * established `/invite/<token>` URL convention (see app/social-
- * notifications.tsx for the route handler).
- *
- * Future work (not in v1):
- *  - Email channel: type email → invite + magic-link email
- *  - Search-and-invite from people you follow (matches the demo where
- *    Kevin follows Rita / Eric / Joseph)
- *  - Revoke / resend pending invites
+ * Both paths reuse organizationInviteService.createInvite and the
+ * `/invite/<token>` route. Tokens are generated client-side because the
+ * organization_invites table has no invite_token default.
  */
 
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Modal,
@@ -27,12 +23,16 @@ import {
   Share,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { Ionicons } from '@expo/vector-icons';
 
 import { organizationInviteService } from '@/services/OrganizationInviteService';
+import { NotificationService } from '@/services/NotificationService';
+import { supabase } from '@/services/supabase';
+import { useAuth } from '@/providers/AuthProvider';
 import { showAlert } from '@/lib/utils/crossPlatformAlert';
 import { IOS_COLORS, IOS_REGISTER } from '@/lib/design-tokens-ios';
 
@@ -43,11 +43,34 @@ interface InvitePeopleSheetProps {
   onClose: () => void;
 }
 
-const WEB_BASE =
-  process.env.EXPO_PUBLIC_WEB_BASE_URL || 'https://better.at';
+interface PersonResult {
+  id: string;
+  name: string;
+  email: string | null;
+  avatarEmoji?: string;
+  avatarColor?: string;
+}
+
+const WEB_BASE = process.env.EXPO_PUBLIC_WEB_BASE_URL || 'https://better.at';
 
 function buildInviteUrl(token: string): string {
   return `${WEB_BASE.replace(/\/$/, '')}/invite/${encodeURIComponent(token)}`;
+}
+
+function generateToken(): string {
+  const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+  let result = '';
+  for (let i = 0; i < 24; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return result;
+}
+
+function initialsFor(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return '?';
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 }
 
 export function InvitePeopleSheet({
@@ -56,34 +79,157 @@ export function InvitePeopleSheet({
   orgName,
   onClose,
 }: InvitePeopleSheetProps) {
+  const { user } = useAuth();
+
+  // ── Member search ─────────────────────────────────────────────────
+  const [query, setQuery] = useState('');
+  const [searching, setSearching] = useState(false);
+  const [results, setResults] = useState<PersonResult[]>([]);
+  const [invitingId, setInvitingId] = useState<string | null>(null);
+  const [invitedIds, setInvitedIds] = useState<Set<string>>(new Set());
+  const memberIdsRef = useRef<Set<string>>(new Set());
+  const searchSeq = useRef(0);
+
+  // ── Link generation ───────────────────────────────────────────────
   const [generating, setGenerating] = useState(false);
   const [latestUrl, setLatestUrl] = useState<string | null>(null);
-  const [latestToken, setLatestToken] = useState<string | null>(null);
 
-  // Reset on open so a previous session's link doesn't linger.
+  // Reset on open so a previous session's state doesn't linger.
   useEffect(() => {
-    if (visible) {
-      setLatestUrl(null);
-      setLatestToken(null);
+    if (!visible) return;
+    setQuery('');
+    setResults([]);
+    setInvitingId(null);
+    setInvitedIds(new Set());
+    setLatestUrl(null);
+    setGenerating(false);
+
+    // Load existing member ids so we don't offer to invite them again.
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from('organization_memberships')
+        .select('user_id')
+        .eq('organization_id', orgId);
+      if (cancelled) return;
+      memberIdsRef.current = new Set(
+        (data ?? []).map((r: { user_id: string }) => r.user_id).filter(Boolean),
+      );
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [visible, orgId]);
+
+  // Debounced people search.
+  useEffect(() => {
+    const trimmed = query.trim();
+    if (trimmed.length < 2) {
+      setResults([]);
+      setSearching(false);
+      return;
     }
-  }, [visible]);
+    setSearching(true);
+    const seq = ++searchSeq.current;
+    const handle = setTimeout(async () => {
+      try {
+        const pattern = `%${trimmed}%`;
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('id, full_name, email')
+          .or(`full_name.ilike.${pattern},email.ilike.${pattern}`)
+          .limit(12);
+
+        if (seq !== searchSeq.current) return;
+
+        const rows = (profiles ?? []).filter(
+          (p: { id: string }) => p.id !== user?.id && !memberIdsRef.current.has(p.id),
+        );
+
+        // Enrich avatars from sailor_profiles (matches GlobalSearchService).
+        let avatarMap: Record<string, { avatar_emoji?: string; avatar_color?: string }> = {};
+        if (rows.length > 0) {
+          const { data: sailorProfiles } = await supabase
+            .from('sailor_profiles')
+            .select('user_id, avatar_emoji, avatar_color')
+            .in('user_id', rows.map((r: { id: string }) => r.id));
+          (sailorProfiles ?? []).forEach((sp: any) => {
+            avatarMap[sp.user_id] = sp;
+          });
+        }
+
+        if (seq !== searchSeq.current) return;
+        setResults(
+          rows.map((p: { id: string; full_name: string | null; email: string | null }) => ({
+            id: p.id,
+            name: p.full_name?.trim() || p.email || 'BetterAt member',
+            email: p.email ?? null,
+            avatarEmoji: avatarMap[p.id]?.avatar_emoji,
+            avatarColor: avatarMap[p.id]?.avatar_color,
+          })),
+        );
+      } catch {
+        if (seq === searchSeq.current) setResults([]);
+      } finally {
+        if (seq === searchSeq.current) setSearching(false);
+      }
+    }, 300);
+    return () => clearTimeout(handle);
+  }, [query, user?.id]);
+
+  const handleInvitePerson = useCallback(
+    async (person: PersonResult) => {
+      if (invitingId || invitedIds.has(person.id)) return;
+      setInvitingId(person.id);
+      try {
+        const token = generateToken();
+        await organizationInviteService.createInvite({
+          organization_id: orgId,
+          invitee_name: person.name,
+          invitee_email: person.email,
+          invite_token: token,
+          role_label: 'Member',
+          role_key: 'member',
+          channel: 'link',
+          status: 'sent',
+          metadata: { source: 'invite_people_sheet', target_user_id: person.id },
+        });
+
+        await NotificationService.notifyOrgInviteReceived({
+          targetUserId: person.id,
+          inviterName: user?.user_metadata?.full_name || user?.email || 'Someone',
+          inviterId: user?.id || '',
+          organizationId: orgId,
+          organizationName: orgName,
+          roleLabel: 'Member',
+          inviteToken: token,
+        });
+
+        setInvitedIds((prev) => new Set(prev).add(person.id));
+      } catch (err) {
+        const message =
+          err instanceof Error ? err.message : 'Could not send invite.';
+        showAlert('Could not send invite', message);
+      } finally {
+        setInvitingId(null);
+      }
+    },
+    [invitingId, invitedIds, orgId, orgName, user],
+  );
 
   const handleGenerate = useCallback(async () => {
     setGenerating(true);
     try {
-      const created = await organizationInviteService.createInvite({
+      const token = generateToken();
+      await organizationInviteService.createInvite({
         organization_id: orgId,
         role_label: 'Member',
         role_key: 'member',
+        invite_token: token,
         channel: 'link',
         status: 'sent',
         metadata: { source: 'invite_people_sheet' },
       });
-      const token = created.invite_token || null;
-      if (!token) {
-        throw new Error('Invite created but no token returned.');
-      }
-      setLatestToken(token);
       setLatestUrl(buildInviteUrl(token));
     } catch (err) {
       const message =
@@ -96,13 +242,8 @@ export function InvitePeopleSheet({
 
   const handleCopy = useCallback(async () => {
     if (!latestUrl) return;
-    try {
-      await Clipboard.setStringAsync(latestUrl);
-      showAlert('Copied', 'Invite link copied to clipboard.');
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Could not copy.';
-      showAlert('Could not copy', message);
-    }
+    await Clipboard.setStringAsync(latestUrl);
+    showAlert('Copied', 'Invite link copied to clipboard.');
   }, [latestUrl]);
 
   const handleShare = useCallback(async () => {
@@ -117,6 +258,9 @@ export function InvitePeopleSheet({
       showAlert('Could not share', message);
     }
   }, [latestUrl, orgName]);
+
+  const showResults = query.trim().length >= 2;
+  const emptyMatch = showResults && !searching && results.length === 0;
 
   return (
     <Modal
@@ -141,15 +285,112 @@ export function InvitePeopleSheet({
             contentContainerStyle={styles.scrollContent}
             keyboardShouldPersistTaps="handled"
           >
+            {/* ── On BetterAt ── */}
+            <Text style={styles.sectionLabel}>ON BETTERAT</Text>
+            <View style={styles.searchBox}>
+              <Ionicons
+                name="search"
+                size={16}
+                color={IOS_REGISTER.labelSecondary}
+              />
+              <TextInput
+                style={styles.searchInput}
+                placeholder="Search by name or email"
+                placeholderTextColor={IOS_REGISTER.labelTertiary}
+                value={query}
+                onChangeText={setQuery}
+                autoCapitalize="none"
+                autoCorrect={false}
+                returnKeyType="search"
+              />
+              {searching ? <ActivityIndicator size="small" /> : null}
+            </View>
+
+            {showResults ? (
+              <View style={styles.results}>
+                {results.map((person) => {
+                  const invited = invitedIds.has(person.id);
+                  const isInviting = invitingId === person.id;
+                  return (
+                    <View key={person.id} style={styles.personRow}>
+                      <View
+                        style={[
+                          styles.avatar,
+                          { backgroundColor: person.avatarColor || '#E3ECF7' },
+                        ]}
+                      >
+                        <Text style={styles.avatarText}>
+                          {person.avatarEmoji || initialsFor(person.name)}
+                        </Text>
+                      </View>
+                      <View style={styles.personMeta}>
+                        <Text style={styles.personName} numberOfLines={1}>
+                          {person.name}
+                        </Text>
+                        {person.email ? (
+                          <Text style={styles.personEmail} numberOfLines={1}>
+                            {person.email}
+                          </Text>
+                        ) : null}
+                      </View>
+                      {invited ? (
+                        <View style={styles.invitedPill}>
+                          <Ionicons
+                            name="checkmark"
+                            size={14}
+                            color={IOS_COLORS.systemGreen}
+                          />
+                          <Text style={styles.invitedText}>Invited</Text>
+                        </View>
+                      ) : (
+                        <Pressable
+                          style={[styles.inviteBtn, isInviting && styles.inviteBtnBusy]}
+                          disabled={isInviting}
+                          onPress={() => handleInvitePerson(person)}
+                        >
+                          {isInviting ? (
+                            <ActivityIndicator
+                              size="small"
+                              color={IOS_COLORS.systemBlue}
+                            />
+                          ) : (
+                            <Text style={styles.inviteBtnText}>Invite</Text>
+                          )}
+                        </Pressable>
+                      )}
+                    </View>
+                  );
+                })}
+                {emptyMatch ? (
+                  <Text style={styles.emptyMatch}>
+                    No one on BetterAt matches “{query.trim()}”. Use a link below
+                    to invite them.
+                  </Text>
+                ) : null}
+              </View>
+            ) : (
+              <Text style={styles.searchHint}>
+                Find coaches, peers, or members already on BetterAt — they’ll get
+                the invite in their inbox.
+              </Text>
+            )}
+
+            <View style={styles.divider} />
+
+            {/* ── Not on BetterAt ── */}
+            <Text style={styles.sectionLabel}>NOT ON BETTERAT</Text>
             <Text style={styles.intro}>
-              Share a link to {orgName}. Anyone who taps it can request to
-              join.
+              Share a link to {orgName}. Anyone who taps it can request to join.
             </Text>
 
             {latestUrl ? (
               <View style={styles.linkCard}>
                 <Text style={styles.linkLabel}>INVITE LINK</Text>
-                <Text style={styles.linkUrl} numberOfLines={2} ellipsizeMode="middle">
+                <Text
+                  style={styles.linkUrl}
+                  numberOfLines={2}
+                  ellipsizeMode="middle"
+                >
                   {latestUrl}
                 </Text>
                 <View style={styles.linkActions}>
@@ -165,49 +406,39 @@ export function InvitePeopleSheet({
                     style={[styles.linkBtn, styles.linkBtnPrimary]}
                     onPress={handleShare}
                   >
-                    <Ionicons
-                      name="share-outline"
-                      size={16}
-                      color="#FFFFFF"
-                    />
+                    <Ionicons name="share-outline" size={16} color="#FFFFFF" />
                     <Text style={[styles.linkBtnText, styles.linkBtnTextPrimary]}>
                       Share
                     </Text>
                   </Pressable>
                 </View>
-                {latestToken ? (
-                  <Text style={styles.linkToken}>Token: {latestToken}</Text>
-                ) : null}
               </View>
             ) : (
               <Pressable
-                style={[styles.primary, generating && styles.primaryDisabled]}
+                style={[styles.secondary, generating && styles.primaryDisabled]}
                 disabled={generating}
                 onPress={handleGenerate}
               >
                 {generating ? (
-                  <ActivityIndicator color="#FFFFFF" />
+                  <ActivityIndicator color={IOS_COLORS.systemBlue} />
                 ) : (
                   <>
-                    <Ionicons name="link-outline" size={18} color="#FFFFFF" />
-                    <Text style={styles.primaryText}>Generate invite link</Text>
+                    <Ionicons
+                      name="link-outline"
+                      size={18}
+                      color={IOS_COLORS.systemBlue}
+                    />
+                    <Text style={styles.secondaryText}>Generate invite link</Text>
                   </>
                 )}
               </Pressable>
             )}
 
-            <View style={styles.footnote}>
-              <Ionicons
-                name="information-circle-outline"
-                size={14}
-                color={IOS_REGISTER.labelSecondary}
-              />
-              <Text style={styles.footnoteText}>
-                {latestUrl
-                  ? 'Generate a fresh link any time. The previous one keeps working until you revoke it.'
-                  : 'A unique link is created when you tap Generate. You can share it via Messages, WhatsApp, email, or anything else.'}
-              </Text>
-            </View>
+            {latestUrl ? (
+              <Pressable style={styles.regenerate} onPress={handleGenerate}>
+                <Text style={styles.regenerateText}>Generate a fresh link</Text>
+              </Pressable>
+            ) : null}
           </ScrollView>
         </View>
       </View>
@@ -225,8 +456,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
-    maxHeight: '80%',
-    minHeight: '50%',
+    maxHeight: '88%',
+    minHeight: '55%',
     paddingBottom: Platform.OS === 'ios' ? 28 : 16,
   },
   header: {
@@ -242,19 +473,96 @@ const styles = StyleSheet.create({
   headerBtn: { minWidth: 56, paddingVertical: 4 },
   headerBtnText: { fontSize: 16, color: IOS_COLORS.systemBlue },
   scroll: { flex: 1 },
-  scrollContent: { padding: 16, paddingBottom: 32, gap: 18 },
+  scrollContent: { padding: 16, paddingBottom: 32, gap: 12 },
+  sectionLabel: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: IOS_REGISTER.labelSecondary,
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
+  },
+  searchBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 10,
+    backgroundColor: '#F2F4F7',
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 15,
+    color: IOS_REGISTER.label,
+    padding: 0,
+  },
+  searchHint: {
+    fontSize: 13,
+    color: IOS_REGISTER.labelSecondary,
+    lineHeight: 18,
+  },
+  results: { gap: 4 },
+  personRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 8,
+  },
+  avatar: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarText: { fontSize: 16, fontWeight: '700', color: IOS_REGISTER.label },
+  personMeta: { flex: 1 },
+  personName: { fontSize: 15, fontWeight: '600', color: IOS_REGISTER.label },
+  personEmail: { fontSize: 12, color: IOS_REGISTER.labelSecondary },
+  inviteBtn: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(11,99,206,0.4)',
+    minWidth: 72,
+    alignItems: 'center',
+  },
+  inviteBtnBusy: { opacity: 0.6 },
+  inviteBtnText: { fontSize: 14, fontWeight: '600', color: IOS_COLORS.systemBlue },
+  invitedPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  invitedText: { fontSize: 14, fontWeight: '600', color: IOS_COLORS.systemGreen },
+  emptyMatch: {
+    fontSize: 13,
+    color: IOS_REGISTER.labelSecondary,
+    lineHeight: 18,
+    paddingVertical: 6,
+  },
+  divider: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: 'rgba(60,60,67,0.16)',
+    marginVertical: 6,
+  },
   intro: { fontSize: 14, color: IOS_REGISTER.label, lineHeight: 20 },
-  primary: {
+  secondary: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
     paddingVertical: 14,
     borderRadius: 10,
-    backgroundColor: IOS_COLORS.systemBlue,
+    borderWidth: 1,
+    borderColor: 'rgba(11,99,206,0.4)',
+    backgroundColor: '#F7FAFF',
   },
+  secondaryText: { color: IOS_COLORS.systemBlue, fontSize: 16, fontWeight: '700' },
   primaryDisabled: { opacity: 0.6 },
-  primaryText: { color: '#FFFFFF', fontSize: 16, fontWeight: '700' },
   linkCard: {
     padding: 14,
     borderRadius: 12,
@@ -291,22 +599,8 @@ const styles = StyleSheet.create({
     backgroundColor: IOS_COLORS.systemBlue,
     borderColor: IOS_COLORS.systemBlue,
   },
-  linkBtnText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: IOS_COLORS.systemBlue,
-  },
+  linkBtnText: { fontSize: 14, fontWeight: '600', color: IOS_COLORS.systemBlue },
   linkBtnTextPrimary: { color: '#FFFFFF' },
-  linkToken: {
-    fontSize: 11,
-    color: IOS_REGISTER.labelTertiary,
-    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
-  },
-  footnote: { flexDirection: 'row', gap: 6, paddingHorizontal: 4 },
-  footnoteText: {
-    flex: 1,
-    fontSize: 12,
-    color: IOS_REGISTER.labelSecondary,
-    lineHeight: 16,
-  },
+  regenerate: { alignItems: 'center', paddingVertical: 6 },
+  regenerateText: { fontSize: 13, color: IOS_COLORS.systemBlue, fontWeight: '600' },
 });
