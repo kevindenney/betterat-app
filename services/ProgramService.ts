@@ -1490,6 +1490,51 @@ class ProgramService {
   }
 
   /**
+   * Bulk-enroll every member of a cohort into a program as learners.
+   * Idempotent: upserts on (program_id, user_id, role) so re-running won't
+   * duplicate rows. Returns the number of members processed.
+   */
+  async enrollCohortIntoProgram(params: {
+    organizationId: string;
+    programId: string;
+    cohortId: string;
+    role?: string;
+  }): Promise<number> {
+    const role = params.role ?? 'learner';
+
+    const { data: members, error: membersError } = await supabase
+      .from('betterat_org_cohort_members')
+      .select('user_id')
+      .eq('cohort_id', params.cohortId);
+    if (membersError) throw membersError;
+
+    const userIds = Array.from(
+      new Set(
+        (members ?? [])
+          .map((m) => (m as { user_id?: string | null }).user_id)
+          .filter((id): id is string => Boolean(id)),
+      ),
+    );
+    if (userIds.length === 0) return 0;
+
+    const rows = userIds.map((userId) => ({
+      organization_id: params.organizationId,
+      program_id: params.programId,
+      user_id: userId,
+      role,
+      status: 'active' as ParticipantStatus,
+      metadata: { enrolled_via_cohort: params.cohortId },
+    }));
+
+    const { error: upsertError } = await supabase
+      .from('program_participants')
+      .upsert(rows, { onConflict: 'program_id,user_id,role' });
+    if (upsertError) throw upsertError;
+
+    return userIds.length;
+  }
+
+  /**
    * Check if a user is subscribed to (enrolled in) a specific program.
    */
   async isSubscribedToProgram(

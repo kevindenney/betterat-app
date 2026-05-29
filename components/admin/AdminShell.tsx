@@ -15,6 +15,7 @@ import { useProfileMenuData } from '@/hooks/useProfileMenuData';
 import { useAdminPeople } from '@/hooks/useAdminPeople';
 import { useAdminOrgSites } from '@/hooks/useAdminOrgSites';
 import { useAdminCohorts } from '@/hooks/useAdminCohorts';
+import { useAdminPrograms } from '@/hooks/useAdminPrograms';
 import {
   StudioShell,
   StudioNavSection,
@@ -26,6 +27,7 @@ export type AdminNavKey =
   | 'overview'
   | 'people'
   | 'cohorts'
+  | 'programs'
   | 'blueprints'
   | 'sites'
   | 'insights'
@@ -50,6 +52,7 @@ export function AdminShell({ activeKey, accent = 'navy', children }: AdminShellP
   const people = useAdminPeople(orgId as string);
   const sites = useAdminOrgSites(orgId as string);
   const cohorts = useAdminCohorts(orgId as string);
+  const programs = useAdminPrograms(orgId as string);
 
   if (!user || menu.loading) {
     return <StudioLoading />;
@@ -94,6 +97,14 @@ export function AdminShell({ activeKey, accent = 'navy', children }: AdminShellP
           count: cohorts.totalCount || undefined,
           active: activeKey === 'cohorts',
           onPress: () => goto('cohorts'),
+        },
+        {
+          key: 'programs',
+          icon: 'layers-outline',
+          label: 'Programs',
+          count: programs.totalCount || undefined,
+          active: activeKey === 'programs',
+          onPress: () => goto('programs'),
         },
         {
           key: 'blueprints',
