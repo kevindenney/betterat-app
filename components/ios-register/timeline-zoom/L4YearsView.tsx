@@ -33,10 +33,18 @@ import {
   resolveInterestVocab,
   type InterestVocab,
 } from './interestVocab';
+import {
+  formatMoney,
+  hasMoneyLane,
+  resolveLoanTier,
+  resolveMoneyConfig,
+  type MoneyConfig,
+} from './interestMoney';
 import { LifetimeVisionEditSheet } from './LifetimeVisionEditSheet';
 import { useUpdateLifetimeVision } from '@/hooks/useInterestVision';
 import type {
   LifetimeAnalysis,
+  LifetimeFinance,
   LifetimePeer,
   LifetimeSession,
   SeasonPeer,
@@ -301,6 +309,13 @@ export function L4YearsView({
         </View>
       ) : null}
 
+      {hasMoneyLane(interestVocab.id) && dataset.lifetimeFinance ? (
+        <MoneyReadout
+          finance={dataset.lifetimeFinance}
+          config={resolveMoneyConfig(interestVocab.id)!}
+        />
+      ) : null}
+
       <LifetimeVisionEditSheet
         visible={lifetimeVisionEditOpen}
         initialStatement={lifetimeVisionStatement}
@@ -499,6 +514,84 @@ function PeerConstancyList({ peers, sessions, vocab }: PeerConstancyListProps) {
           </View>
         </View>
       ))}
+    </View>
+  );
+}
+
+/**
+ * D7 lifetime money readout — the L4 dignity surface for a money-on
+ * persona. Two beats: ₹ earned per season (a compact bar row that
+ * shows the business growing season over season) and the loan-tier
+ * progression ("Shishu repaid · 60% toward Kishore") with a thin
+ * progress bar. For Savitri her trajectory *is* her case for the next
+ * loan — this is the readout a stakeholder cut (D8) will later share.
+ *
+ * Renders nothing on personas without a money lane; the caller already
+ * gates on hasMoneyLane, so this is purely a defensive empty-finance
+ * guard.
+ */
+function MoneyReadout({
+  finance,
+  config,
+}: {
+  finance: LifetimeFinance;
+  config: MoneyConfig;
+}) {
+  const perSeason = finance.perSeason;
+  if (perSeason.length === 0) return null;
+  const maxNet = Math.max(1, ...perSeason.map((s) => s.net));
+  const tier = resolveLoanTier(finance.totalEarned, config);
+  const BAR_MAX = 44;
+
+  return (
+    <View style={styles.moneyReadout}>
+      <View style={styles.moneyReadoutHeader}>
+        <Text style={styles.moneyReadoutEyebrow}>MONEY OVER TIME</Text>
+        <Text style={styles.moneyReadoutTotal}>
+          {formatMoney(finance.totalEarned, config, { compact: true })} earned
+        </Text>
+      </View>
+
+      <View style={styles.moneySeasonRow}>
+        {perSeason.map((s) => {
+          const h = Math.max(3, (s.net / maxNet) * BAR_MAX);
+          return (
+            <View key={s.seasonId ?? s.label} style={styles.moneySeasonCol}>
+              <Text style={styles.moneySeasonAmount} numberOfLines={1}>
+                {formatMoney(s.net, config, { compact: true })}
+              </Text>
+              <View style={[styles.moneySeasonBar, { height: h }]} />
+              <Text style={styles.moneySeasonLabel} numberOfLines={1}>
+                {s.label}
+              </Text>
+            </View>
+          );
+        })}
+      </View>
+
+      {tier ? (
+        <View style={styles.loanTierBlock}>
+          <Text style={styles.loanTierLine} numberOfLines={1}>
+            <Text style={styles.loanTierCurrent}>{tier.current.label}</Text>
+            {tier.next
+              ? ` reached · ${Math.round(tier.fraction * 100)}% toward `
+              : ' — top tier reached'}
+            {tier.next ? (
+              <Text style={styles.loanTierNext}>{tier.next.label}</Text>
+            ) : null}
+          </Text>
+          {tier.next ? (
+            <View style={styles.loanTierTrack}>
+              <View
+                style={[
+                  styles.loanTierFill,
+                  { width: `${Math.round(tier.fraction * 100)}%` },
+                ]}
+              />
+            </View>
+          ) : null}
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -1203,6 +1296,86 @@ const styles = StyleSheet.create({
     color: IOS_REGISTER.label,
     letterSpacing: -0.1,
     flexShrink: 1,
+  },
+  // D7 lifetime money readout — ₹ per season bars + loan-tier
+  // progression. Sits between the trajectory arrow and the analysis
+  // block so the money story reads alongside the capability story.
+  moneyReadout: {
+    marginHorizontal: 16,
+    marginBottom: 14,
+    paddingTop: 2,
+  },
+  moneyReadoutHeader: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  moneyReadoutEyebrow: {
+    fontSize: 10.5,
+    fontWeight: '700',
+    letterSpacing: 0.6,
+    color: IOS_REGISTER.labelSecondary,
+  },
+  moneyReadoutTotal: {
+    fontSize: 12.5,
+    fontWeight: '700',
+    color: '#3F8F5E',
+    letterSpacing: -0.2,
+  },
+  moneySeasonRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
+    gap: 8,
+    marginBottom: 12,
+  },
+  moneySeasonCol: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  moneySeasonAmount: {
+    fontSize: 9.5,
+    fontWeight: '600',
+    color: IOS_REGISTER.labelSecondary,
+    marginBottom: 3,
+  },
+  moneySeasonBar: {
+    width: '70%',
+    borderRadius: 2,
+    backgroundColor: '#5BA46F',
+  },
+  moneySeasonLabel: {
+    fontSize: 9,
+    color: IOS_REGISTER.labelTertiary,
+    marginTop: 4,
+  },
+  loanTierBlock: {
+    gap: 5,
+  },
+  loanTierLine: {
+    fontSize: 12,
+    color: IOS_REGISTER.labelSecondary,
+    letterSpacing: -0.1,
+  },
+  loanTierCurrent: {
+    fontWeight: '700',
+    color: IOS_REGISTER.label,
+  },
+  loanTierNext: {
+    fontWeight: '600',
+    color: IOS_REGISTER.label,
+  },
+  loanTierTrack: {
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: IOS_REGISTER.fillPill,
+    overflow: 'hidden',
+  },
+  loanTierFill: {
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#5BA46F',
   },
   laneEditBtn: {
     padding: 4,

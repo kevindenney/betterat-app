@@ -39,12 +39,19 @@ import { MoveToSeasonSheet, buildMoveTargets } from './MoveToSeasonSheet';
 import { TagBulkSheet } from './TagBulkSheet';
 import { ScheduleBulkSheet } from './ScheduleBulkSheet';
 import { SAMPLE_DATASET } from './sampleData';
+import { SAMPLE_DATASET_ENTREPRENEUR } from './sampleDataEntrepreneur';
 import { useStarterStepSeed } from '@/hooks/useStarterStepSeed';
+
+type SamplePersona = 'nursing' | 'entrepreneur';
 
 export function TimelineZoomPracticeScreen() {
   const { user } = useAuth();
   const { currentInterest } = useInterest();
-  const searchParams = useLocalSearchParams<{ selected?: string | string[]; level?: string | string[] }>();
+  const searchParams = useLocalSearchParams<{
+    selected?: string | string[];
+    level?: string | string[];
+    sample?: string | string[];
+  }>();
   // Route may carry ?level=2|3|4 from a deep-link (Step detail's zoom rail
   // pushes here to "zoom out" from a step). Bound to the canvas's
   // initialLevel; falls back to L3 (ARC) which is the default landing depth.
@@ -53,11 +60,20 @@ export function TimelineZoomPracticeScreen() {
     const n = raw ? Number(raw) : NaN;
     return n === 1 || n === 2 || n === 3 || n === 4 ? (n as ZoomLevel) : 3;
   }, [searchParams?.level]);
-  // When the signed-in user has no steps, an opt-in lets you preview all
-  // the new zoom-canvas features against the canonical sample dataset
-  // (Emily Shaw's nursing year). Doesn't affect any real data — just
-  // swaps what the canvas reads from in-memory.
-  const [showSample, setShowSample] = useState(false);
+  // A `?sample=nursing|entrepreneur` deep-link lets you preview all the
+  // zoom-canvas features against a self-contained sample persona — Emily
+  // Shaw's nursing year or Savitri's lac-craft enterprise (the latter
+  // carries the D7 money lane). Doesn't touch any real data; just swaps
+  // what the canvas reads from in-memory.
+  const sampleFromRoute = useMemo<SamplePersona | null>(() => {
+    const raw = Array.isArray(searchParams?.sample) ? searchParams.sample[0] : searchParams?.sample;
+    return raw === 'entrepreneur' ? 'entrepreneur' : raw === 'nursing' ? 'nursing' : null;
+  }, [searchParams?.sample]);
+  const [samplePersona, setSamplePersona] = useState<SamplePersona | null>(sampleFromRoute);
+  useEffect(() => {
+    setSamplePersona(sampleFromRoute);
+  }, [sampleFromRoute]);
+  const showSample = samplePersona !== null;
 
   const interestId = currentInterest?.id ?? null;
   const selectedStepId = useMemo(() => {
@@ -421,7 +437,7 @@ export function TimelineZoomPracticeScreen() {
   // Kept for users who had it toggled on before the auto-seed shipped.
   useEffect(() => {
     if (showSample && hasContent) {
-      setShowSample(false);
+      setSamplePersona(null);
     }
   }, [showSample, hasContent]);
 
@@ -446,7 +462,16 @@ export function TimelineZoomPracticeScreen() {
     );
   }
 
-  const activeDataset = showSample ? SAMPLE_DATASET : dataset;
+  const activeDataset =
+    samplePersona === 'entrepreneur'
+      ? SAMPLE_DATASET_ENTREPRENEUR
+      : samplePersona === 'nursing'
+        ? SAMPLE_DATASET
+        : dataset;
+  const sampleBannerLabel =
+    samplePersona === 'entrepreneur'
+      ? 'Enterprise sample · Savitri Devi, lac-craft SHG'
+      : 'Nursing sample · Emily Shaw, MSN student';
 
   return (
     <SafeAreaView style={styles.surface} edges={['top']}>
@@ -454,11 +479,11 @@ export function TimelineZoomPracticeScreen() {
         <View style={styles.sampleBanner}>
           <Ionicons name="sparkles" size={12} color="#FFFFFF" />
           <Text style={styles.sampleBannerText}>
-            Nursing sample · Emily Shaw, MSN student
+            {sampleBannerLabel}
           </Text>
           <Pressable
             hitSlop={8}
-            onPress={() => setShowSample(false)}
+            onPress={() => setSamplePersona(null)}
             style={styles.sampleBannerExit}
           >
             <Text style={styles.sampleBannerExitText}>Exit</Text>

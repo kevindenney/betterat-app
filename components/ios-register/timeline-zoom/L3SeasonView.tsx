@@ -59,7 +59,18 @@ import {
   getAnchorsForRange,
   type ResolvedAnchor,
 } from './interestAnchors';
-import type { TimelineDataset, TimelineSeason, TimelineStep } from './types';
+import {
+  formatMoney,
+  hasMoneyLane,
+  resolveMoneyConfig,
+  type MoneyConfig,
+} from './interestMoney';
+import type {
+  SeasonFinance,
+  TimelineDataset,
+  TimelineSeason,
+  TimelineStep,
+} from './types';
 
 interface L3SeasonViewProps {
   dataset: TimelineDataset;
@@ -252,6 +263,13 @@ export function L3SeasonView({
           season.endDateISO,
         )}
       />
+
+      {hasMoneyLane(interestVocab.id) && season.finance ? (
+        <MoneyLane
+          finance={season.finance}
+          config={resolveMoneyConfig(interestVocab.id)!}
+        />
+      ) : null}
 
       {hasAnalysis && analysis ? (
         <View style={styles.analysisBlock} onLayout={onAnalysisLayout}>
@@ -719,6 +737,95 @@ function AnchorStrip({ anchors }: { anchors: ResolvedAnchor[] }) {
   );
 }
 
+/**
+ * D7 money lane — for money-on personas (entrepreneur), the season's
+ * ₹ in / ₹ out is the practice, not a footnote. Renders a per-week
+ * net-flow bar chart (green above the baseline for a positive week,
+ * red below for a negative one), a season net total, and the working
+ * capital on hand. Hidden entirely when the interest hasn't opted into
+ * money — a sailor or nurse never sees it.
+ *
+ * The bars encode net per week (in − out); the eye reads the shape of
+ * the season's cash rhythm — a Diwali run-up spike, a lean monsoon
+ * trough — without parsing numbers. Tapping isn't wired in this first
+ * cut; the lane is a read surface.
+ */
+function MoneyLane({
+  finance,
+  config,
+}: {
+  finance: SeasonFinance;
+  config: MoneyConfig;
+}) {
+  const weekly = finance.weekly;
+  if (weekly.length === 0) return null;
+  const nets = weekly.map((w) => w.in - w.out);
+  const seasonNet = nets.reduce((a, b) => a + b, 0);
+  const maxAbs = Math.max(1, ...nets.map((n) => Math.abs(n)));
+  const BAR_AREA = 36; // px of half-height above/below the baseline
+
+  return (
+    <View style={styles.moneyLane}>
+      <View style={styles.moneyHeaderRow}>
+        <Text style={styles.anchorEyebrow}>MONEY THIS SEASON</Text>
+        <View style={styles.moneyTotals}>
+          <Text
+            style={[
+              styles.moneyNet,
+              { color: seasonNet >= 0 ? MONEY_IN : MONEY_OUT },
+            ]}
+          >
+            {formatMoney(seasonNet, config)} net
+          </Text>
+          <Text style={styles.moneyCapital}>
+            {formatMoney(finance.workingCapital, config)} on hand
+          </Text>
+        </View>
+      </View>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.moneyBarsRow}
+      >
+        {weekly.map((w) => {
+          const net = w.in - w.out;
+          const positive = net >= 0;
+          const h = Math.max(2, (Math.abs(net) / maxAbs) * BAR_AREA);
+          return (
+            <View key={w.weekNumber} style={styles.moneyBarCol}>
+              <View style={styles.moneyBarTop}>
+                {positive ? (
+                  <View
+                    style={[
+                      styles.moneyBar,
+                      { height: h, backgroundColor: MONEY_IN },
+                    ]}
+                  />
+                ) : null}
+              </View>
+              <View style={styles.moneyBaseline} />
+              <View style={styles.moneyBarBottom}>
+                {!positive ? (
+                  <View
+                    style={[
+                      styles.moneyBar,
+                      { height: h, backgroundColor: MONEY_OUT },
+                    ]}
+                  />
+                ) : null}
+              </View>
+              <Text style={styles.moneyWeekLabel}>{w.weekNumber}</Text>
+            </View>
+          );
+        })}
+      </ScrollView>
+    </View>
+  );
+}
+
+const MONEY_IN = '#5BA46F';
+const MONEY_OUT = '#C4474A';
+
 function formatAnchorProximity(daysAway: number): string {
   if (daysAway === 0) return 'today';
   if (daysAway > 0 && daysAway < 7) return `in ${daysAway}d`;
@@ -1000,5 +1107,67 @@ const styles = StyleSheet.create({
     color: IOS_REGISTER.labelSecondary,
     marginTop: 1,
     letterSpacing: 0.05,
+  },
+  // D7 money lane — per-week net cash-flow bars + season totals. Sits
+  // below the anchor strip and above the capability river so a
+  // money-on persona reads "what's coming · what came in · how the
+  // work spread" top to bottom.
+  moneyLane: {
+    marginTop: 6,
+    marginBottom: 12,
+  },
+  moneyHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    justifyContent: 'space-between',
+    paddingRight: 16,
+    marginBottom: 8,
+  },
+  moneyTotals: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: 10,
+  },
+  moneyNet: {
+    fontSize: 12.5,
+    fontWeight: '700',
+    letterSpacing: -0.2,
+  },
+  moneyCapital: {
+    fontSize: 11,
+    color: IOS_REGISTER.labelSecondary,
+    letterSpacing: -0.1,
+  },
+  moneyBarsRow: {
+    paddingHorizontal: 16,
+    gap: 6,
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+  },
+  moneyBarCol: {
+    alignItems: 'center',
+    width: 16,
+  },
+  moneyBarTop: {
+    height: 36,
+    justifyContent: 'flex-end',
+  },
+  moneyBarBottom: {
+    height: 36,
+    justifyContent: 'flex-start',
+  },
+  moneyBar: {
+    width: 10,
+    borderRadius: 2,
+  },
+  moneyBaseline: {
+    width: 14,
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: IOS_REGISTER.separatorStrong,
+  },
+  moneyWeekLabel: {
+    fontSize: 9,
+    color: IOS_REGISTER.labelTertiary,
+    marginTop: 3,
   },
 });

@@ -200,6 +200,23 @@ export interface TimelineSeason {
    *  Drives the VISION edit write path on L3 — vision updates land
    *  on this plan (or create one when null). */
   activePlanId?: string | null;
+  /**
+   * D7 money lane (Savitri-class). Per-week ₹ in/out across the season
+   * plus the working capital on hand. Present only for interests that
+   * opted into money (`interestMoney.hasMoneyLane`); absent otherwise,
+   * which keeps the lane hidden on personas where money isn't the
+   * practice. Sourced from sample data today; from `step_finance` rows
+   * once the D7 schema half lands.
+   */
+  finance?: SeasonFinance;
+}
+
+export interface SeasonFinance {
+  /** Per-week cash flow in major currency units. weekNumber matches the
+   *  season's week bucketing (1..weekOfTotal.total). */
+  weekly: { weekNumber: number; in: number; out: number }[];
+  /** Working capital on hand at the end of the season (major units). */
+  workingCapital: number;
 }
 
 export interface SeasonAnalysis {
@@ -393,6 +410,20 @@ export interface TimelineDataset {
    * when absent L4 falls back to just the season-lane brick view.
    */
   lifetime?: LifetimeAnalysis;
+  /**
+   * D7 lifetime money readout. ₹ earned per season + lifetime total
+   * driving the L4 loan-tier progression line. Present only for
+   * money-on interests; absent leaves L4 without a money readout.
+   */
+  lifetimeFinance?: LifetimeFinance;
+}
+
+export interface LifetimeFinance {
+  /** Net ₹ earned per season, oldest → newest. seasonId points back to
+   *  the TimelineSeason when known so a tap could navigate to its lane. */
+  perSeason: { seasonId?: string; label: string; net: number }[];
+  /** Lifetime ₹ earned — drives the loan-tier ladder lookup. */
+  totalEarned: number;
 }
 
 export interface LifetimeAnalysis {
