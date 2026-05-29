@@ -242,7 +242,6 @@ export function useStepReflectController({
     [planData, actData, reviewData],
   );
   const capabilities = localCapabilities ?? seededCapabilities;
-  const hasText = fields.some((field) => field.value.trim().length > 0);
   const state: ReflectPhase4State =
     step?.status === 'settled' || step?.status === 'completed'
       ? 'settled'
@@ -288,7 +287,7 @@ export function useStepReflectController({
     setSynthesisState('drafting');
     setActiveFieldId('what_worked');
     const draft = await draftReflectSynthesis({
-      stepTitle: step.title,
+      stepTitle: step.title ?? 'Untitled step',
       interestName: currentInterest?.name,
       plan: planData,
       act: actData,
@@ -414,7 +413,7 @@ export function useStepReflectController({
   }, [stepId]);
 
   const onSettle = useCallback(async () => {
-    if (!step || readOnly || !hasText) return;
+    if (!step || readOnly) return;
     setSettling(true);
     try {
       for (const field of fields) {
@@ -430,7 +429,7 @@ export function useStepReflectController({
       const uploads = actData.media_uploads ?? [];
       const firstObservation = observations[0]?.text?.trim();
       const firstUploadCaption = uploads[0]?.caption?.trim();
-      const fallbackQuote = firstObservation || firstUploadCaption || step.title;
+      const fallbackQuote = firstObservation || firstUploadCaption || step.title || 'Untitled step';
       await Promise.all(
         conceptPrompts
           .filter((prompt) => prompt.answer)
@@ -469,7 +468,7 @@ export function useStepReflectController({
     } finally {
       setSettling(false);
     }
-  }, [step, readOnly, hasText, fields, flushField, stepId, capabilities, updateStep, queryClient, actData.observations, actData.media_uploads, conceptPrompts]);
+  }, [step, readOnly, fields, flushField, stepId, capabilities, updateStep, queryClient, actData.observations, actData.media_uploads, conceptPrompts]);
 
   return {
     loading: isLoading,
@@ -483,7 +482,7 @@ export function useStepReflectController({
       synthesisState,
       capabilities,
       conceptPrompts,
-      saveEnabled: hasText && !readOnly && state !== 'settled',
+      saveEnabled: !readOnly && state !== 'settled',
       disabledHint: 'Write a line or hold to speak',
       readOnly,
       onDismissSynthesis: () => setSynthesisState('dismissed'),
