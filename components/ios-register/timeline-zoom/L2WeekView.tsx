@@ -147,9 +147,17 @@ export function L2WeekView({
         scrollX,
     ),
   );
-  const doneCount = nowSplitIndex;
-  const inCount = steps.length > nowSplitIndex ? 1 : 0;
-  const queuedCount = Math.max(0, steps.length - nowSplitIndex - inCount);
+  // Count by real status, not NOW-bar position — a pending step sitting at
+  // the NOW marker is "queued", not "in play". Position drives the timeline
+  // layout (nowSplitIndex); these pills describe what the steps actually are,
+  // matching each card's own status label.
+  const doneCount = steps.filter(
+    (s) => s.status === 'done' || s.status === 'reflected',
+  ).length;
+  const inCount = steps.filter(
+    (s) => s.status === 'do' || s.status === 'reflect',
+  ).length;
+  const queuedCount = steps.filter((s) => s.status === 'plan').length;
   const nowGapIndex = Math.max(-1, nowSplitIndex - 1);
   const planningHint = currentWeek?.planningHint;
   const resolvedInterestId = dataset.interest.id === 'live' ? undefined : dataset.interest.id;
