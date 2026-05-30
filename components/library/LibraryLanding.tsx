@@ -32,7 +32,6 @@ import { AllZone } from '@/components/library/zones/AllZone';
 import { PlansZone } from '@/components/library/zones/PlansZone';
 import { PeopleZone } from '@/components/library/zones/PeopleZone';
 import { ResourcesZone } from '@/components/library/zones/ResourcesZone';
-import { LibraryNearbyContent } from '@/components/library/LibraryNearbyContent';
 import { DiscoverPlansContent } from '@/components/discover/DiscoverPlansContent';
 import { DiscoverOrgsContent } from '@/components/discover/DiscoverOrgsContent';
 import { DiscoverInterestsContent } from '@/components/discover/DiscoverInterestsContent';
@@ -43,13 +42,11 @@ import { useCreateLibraryItem } from '@/hooks/useCreateLibraryItem';
 import { useLibraryCounts } from '@/hooks/useLibraryCounts';
 import { usePlaybook } from '@/hooks/usePlaybook';
 import { useInterest } from '@/providers/InterestProvider';
-import { useVocabulary } from '@/hooks/useVocabulary';
 import { showAlert } from '@/lib/utils/crossPlatformAlert';
 import type { LibraryZone } from '@/components/library/SegmentedZoneHeader';
 
 const VALID_ZONES: LibraryZone[] = [
   'all',
-  'nearby',
   'plans',
   'people',
   'concepts',
@@ -68,7 +65,6 @@ const FULL_BLEED_ZONES: LibraryZone[] = ['follow', 'orgs', 'interests'];
 // 'all' is the curated feed itself, so it has no focused title.
 const ZONE_TITLE: Record<LibraryZone, string> = {
   all: 'Library',
-  nearby: 'Nearby',
   plans: 'Plans',
   concepts: 'Concepts',
   resources: 'Resources',
@@ -82,7 +78,6 @@ const ZONE_TITLE: Record<LibraryZone, string> = {
 // current view, not abstract advertising.
 const ZONE_DESCRIPTION: Record<LibraryZone, string> = {
   all: 'Cross-cutting insights the librarian noticed across your library.',
-  nearby: 'Curriculum and content from organizations and people around you.',
   plans: 'Subscribed Blueprints you can pull into your own Plan.',
   concepts: "Mental models you're forming, refining, or have settled.",
   resources: 'Saved articles, docs, and references.',
@@ -111,7 +106,6 @@ export function LibraryLanding({ conceptsBody, librarianSlot }: Props) {
       : 'all';
 
   const { currentInterest } = useInterest();
-  const { vocab } = useVocabulary();
   const { data: counts } = useLibraryCounts(currentInterest?.id);
   const { data: playbook } = usePlaybook(currentInterest?.id);
   const createLibraryItem = useCreateLibraryItem();
@@ -218,11 +212,7 @@ export function LibraryLanding({ conceptsBody, librarianSlot }: Props) {
               <Text style={styles.backPillText}>Library</Text>
             </Pressable>
             <Text style={styles.focusedTitle}>{ZONE_TITLE[zone]}</Text>
-            <Text style={styles.zoneDescription}>
-              {zone === 'nearby'
-                ? `Curriculum and content from organizations and ${vocab('Peers')} around you.`
-                : ZONE_DESCRIPTION[zone]}
-            </Text>
+            <Text style={styles.zoneDescription}>{ZONE_DESCRIPTION[zone]}</Text>
           </View>
         )}
 
@@ -231,12 +221,6 @@ export function LibraryLanding({ conceptsBody, librarianSlot }: Props) {
             counts={counts}
             onJumpToZone={handleZoneChange}
             librarianSlot={librarianSlot}
-          />
-        ) : zone === 'nearby' ? (
-          <LibraryNearbyContent
-            homeVenueLat={homeVenue?.lat ?? null}
-            homeVenueLng={homeVenue?.lng ?? null}
-            homeVenueLabel={homeVenue?.venue ?? homeVenue?.region ?? null}
           />
         ) : zone === 'plans' ? (
           <PlansZone />
