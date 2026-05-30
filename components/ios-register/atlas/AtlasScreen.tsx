@@ -2830,6 +2830,7 @@ function FrameF2({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
   const [showRaceMarks, setShowRaceMarks] = useState(true);
   const [showWind, setShowWind] = useState(true);
   const [showTide, setShowTide] = useState(true);
+  const [showWaves, setShowWaves] = useState(false);
   const [showCrew, setShowCrew] = useState(true);
   const [showFleet, setShowFleet] = useState(true);
   const [scrubIndex, setScrubIndex] = useState(3);
@@ -2850,6 +2851,8 @@ function FrameF2({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
         windChip: '10.5 kn ESE',
         tideOverlayLabel: '246|0.1',
         tideChip: 'Flood 0.1 kn',
+        waveOverlayLabel: '285|0.4',
+        waveChip: '0.4 m swell',
         slack: '11:22',
         ctaLabel: 'Plan start setup',
       },
@@ -2862,6 +2865,8 @@ function FrameF2({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
         windChip: '11.3 kn ESE',
         tideOverlayLabel: '255|0.2',
         tideChip: 'Flood 0.2 kn',
+        waveOverlayLabel: '288|0.5',
+        waveChip: '0.5 m swell',
         slack: '10:54',
         ctaLabel: 'Plan line approach',
       },
@@ -2874,6 +2879,8 @@ function FrameF2({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
         windChip: '11.8 kn ESE',
         tideOverlayLabel: '264|0.3',
         tideChip: 'Flood 0.3 kn',
+        waveOverlayLabel: '290|0.5',
+        waveChip: '0.5 m swell',
         slack: '10:21',
         ctaLabel: 'Plan first beat',
       },
@@ -2886,6 +2893,8 @@ function FrameF2({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
         windChip: '12 kn ESE',
         tideOverlayLabel: '270|0.4',
         tideChip: 'Ebb 0.4 kn',
+        waveOverlayLabel: '292|0.6',
+        waveChip: '0.6 m swell',
         slack: '09:48',
         ctaLabel: 'Plan first beat',
       },
@@ -2898,6 +2907,8 @@ function FrameF2({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
         windChip: '12.6 kn ESE',
         tideOverlayLabel: '278|0.6',
         tideChip: 'Ebb 0.6 kn',
+        waveOverlayLabel: '296|0.8',
+        waveChip: '0.8 m swell',
         slack: '09:12',
         ctaLabel: 'Plan gate exit',
       },
@@ -2910,6 +2921,8 @@ function FrameF2({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
         windChip: '13.2 kn ESE',
         tideOverlayLabel: '284|0.7',
         tideChip: 'Ebb 0.7 kn',
+        waveOverlayLabel: '300|0.9',
+        waveChip: '0.9 m swell',
         slack: '08:41',
         ctaLabel: 'Plan final run',
       },
@@ -3032,9 +3045,22 @@ function FrameF2({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
     ],
     [scrubWindow.windChip, scrubWindow.windOverlayLabel],
   );
+  // Wave / swell field — a sparse grid offset from the wind grid so the
+  // three marine fields interleave rather than stack on the same coords.
+  const waveFieldPins = useMemo<AtlasPinSpec[]>(
+    () => [
+      { id: 'f2-wave-field-1', lat: 22.2870, lng: 114.1791, kind: 'wave-arrow', label: `${scrubWindow.waveOverlayLabel}|field` },
+      { id: 'f2-wave-field-2', lat: 22.2870, lng: 114.1818, kind: 'wave-arrow', label: `${scrubWindow.waveOverlayLabel}|field` },
+      { id: 'f2-wave-field-3', lat: 22.2851, lng: 114.1791, kind: 'wave-arrow', label: `${scrubWindow.waveOverlayLabel}|field` },
+      { id: 'f2-wave-field-4', lat: 22.2851, lng: 114.1818, kind: 'wave-arrow', label: `${scrubWindow.waveOverlayLabel}|field` },
+      { id: 'f2-wave-primary', lat: 22.2873, lng: 114.1832, kind: 'wave-arrow', label: scrubWindow.waveOverlayLabel, subtitle: scrubWindow.waveChip },
+    ],
+    [scrubWindow.waveChip, scrubWindow.waveOverlayLabel],
+  );
   const coursePins = useMemo<AtlasPinSpec[]>(
     () => [
       ...windFieldPins,
+      ...waveFieldPins,
       {
         id: 'f2-tide-ebb',
         lat: 22.2863,
@@ -3088,7 +3114,7 @@ function FrameF2({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
         provenance: 'Nearby competitor track.',
       },
     ],
-    [raceMarkPins, scrubWindow.tideChip, scrubWindow.tideOverlayLabel, windFieldPins],
+    [raceMarkPins, scrubWindow.tideChip, scrubWindow.tideOverlayLabel, windFieldPins, waveFieldPins],
   );
   const visiblePins = useMemo(
     () =>
@@ -3097,11 +3123,12 @@ function FrameF2({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
         if (pin.kind === 'walk-annotation') return showRaceMarks;
         if (pin.kind === 'wind-arrow') return showWind;
         if (pin.kind === 'tide-arrow') return showTide;
+        if (pin.kind === 'wave-arrow') return showWaves;
         if (pin.kind === 'you' || pin.kind === 'crew') return showCrew;
         if (pin.kind === 'fleet') return showFleet;
         return true;
       }),
-    [coursePins, showCrew, showFleet, showRaceMarks, showTide, showWind],
+    [coursePins, showCrew, showFleet, showRaceMarks, showTide, showWind, showWaves],
   );
   const controlledLayerKeys = useMemo(() => {
     const out = new Set<string>();
@@ -3119,6 +3146,7 @@ function FrameF2({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
     setShowRaceMarks(activeIds.includes('race-marks'));
     setShowWind(activeIds.includes('wind'));
     setShowTide(activeIds.includes('tide'));
+    setShowWaves(activeIds.includes('waves'));
     setShowCrew(activeIds.includes('crew'));
     setShowFleet(activeIds.includes('fleet'));
   }, []);
@@ -3148,6 +3176,7 @@ function FrameF2({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
               { id: 'race-marks', label: 'Race marks', icon: 'triangle-outline', active: true },
               { id: 'wind', label: 'Wind', icon: 'flag-outline', active: true },
               { id: 'tide', label: 'Tide', icon: 'water-outline', active: true },
+              { id: 'waves', label: 'Waves', icon: 'pulse-outline', active: false },
               { id: 'crew', label: 'Crew', tone: 'crew', active: true },
               { id: 'fleet', label: 'Fleet', tone: 'fleet', active: true },
             ]}

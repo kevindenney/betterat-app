@@ -229,6 +229,7 @@ export interface AtlasPinSpec {
     | 'walk-annotation'
     | 'wind-arrow'
     | 'tide-arrow'
+    | 'wave-arrow'
     | 'cohort-cell'
     // Phase A — viewer's own steps, status-encoded:
     // next            → large blue dot + amber halo, "NEXT" badge — the
@@ -1274,7 +1275,7 @@ function createWebPinElement({
   // otherwise render them as blue dots (which is what reached web
   // before this branch). Native uses LabeledPin's wind-arrow /
   // tide-arrow blocks; this mirrors them in plain DOM for web parity.
-  if (pin.kind === 'wind-arrow' || pin.kind === 'tide-arrow') {
+  if (pin.kind === 'wind-arrow' || pin.kind === 'tide-arrow' || pin.kind === 'wave-arrow') {
     return createWebArrowElement(pin);
   }
   const tone = PIN_TONE[pin.kind];
@@ -1368,8 +1369,10 @@ function createWebArrowElement(pin: AtlasPinSpec) {
   const labelParts = (pin.label ?? '0|0').split('|');
   const [degStr, knotsStr, variant, waveStr, sourceStr] = labelParts;
   const isWind = pin.kind === 'wind-arrow';
+  const isWave = pin.kind === 'wave-arrow';
   const isField = variant === 'field';
   const deg = Number(degStr) || 0;
+  // For waves this second value is significant height in metres, not knots.
   const knots = Number(knotsStr) || 0;
   const waveM = isWind && waveStr ? Number(waveStr) : null;
   const source = isWind && sourceStr && sourceStr.length > 0 ? sourceStr : null;
@@ -1386,10 +1389,14 @@ function createWebArrowElement(pin: AtlasPinSpec) {
   glyph.style.color = isField
     ? isWind
       ? 'rgba(113, 143, 168, 0.78)'
-      : 'rgba(96, 130, 138, 0.78)'
+      : isWave
+        ? 'rgba(110, 108, 200, 0.78)'
+        : 'rgba(96, 130, 138, 0.78)'
     : isWind
       ? windColorForKnots(knots, 0.95)
-      : 'rgba(0, 168, 168, 0.95)';
+      : isWave
+        ? 'rgba(94, 92, 230, 0.95)'
+        : 'rgba(0, 168, 168, 0.95)';
   // Up-arrow (wind) / chevron-up (tide), both natively point north so
   // rotation maps cleanly to compass bearings.
   glyph.textContent = isWind ? '↑' : '⌃';
@@ -1402,7 +1409,9 @@ function createWebArrowElement(pin: AtlasPinSpec) {
     const knotsLabel = isWind ? Math.round(knots) : knots.toFixed(1);
     const waveSuffix =
       waveM != null && Number.isFinite(waveM) ? ` · ${waveM.toFixed(1)}m` : '';
-    chip.textContent = `${padStr}° · ${knotsLabel} kn${waveSuffix}`;
+    chip.textContent = isWave
+      ? `${padStr}° · ${knots.toFixed(1)}m`
+      : `${padStr}° · ${knotsLabel} kn${waveSuffix}`;
     chip.style.padding = '2px 6px';
     chip.style.borderRadius = '999px';
     chip.style.background = 'rgba(255,255,255,0.92)';
@@ -1632,6 +1641,10 @@ const PIN_TONE: Record<
   // direction water FLOWS (set), not where it comes from. Slightly
   // smaller to read as the secondary field.
   'tide-arrow': { size: 12, color: 'rgba(0, 168, 168, 0.75)', shape: 'circle' },
+  // Wave / swell arrow — muted indigo, the tertiary marine field. Arrow
+  // points the direction waves TRAVEL (set convention, like tide — not
+  // where they come from). Smallest of the three so it reads last.
+  'wave-arrow': { size: 12, color: 'rgba(94, 92, 230, 0.7)', shape: 'circle' },
   // Cohort heatmap cell — semi-transparent disc rendered with a count
   // label. Color encodes the dominant competency cluster; the renderer
   // overrides the PIN_TONE color with a per-cluster shade. Size scales
@@ -1838,6 +1851,36 @@ function LabeledPin({
         </View>
         {!isField && knots > 0 ? (
           <Text style={styles.arrowChip}>{`${padDeg(setDeg)}° · ${knots.toFixed(1)} kn`}</Text>
+        ) : null}
+      </View>
+    );
+  }
+  if (kind === 'wave-arrow') {
+    // Wave convention: "set" — arrow points where swell TRAVELS, no flip
+    // (same as tide). Label is "deg|heightM[|field]"; the chip shows
+    // significant wave height in metres rather than knots. Mirror of
+    // tide-arrow with an indigo treatment so the three marine fields stay
+    // visually distinct.
+    const [degStr, heightStr, variant] = (label ?? '0|0').split('|');
+    const setDeg = Number(degStr) || 0;
+    const heightM = Number(heightStr) || 0;
+    const isField = variant === 'field';
+    return (
+      <View style={isField ? styles.windFieldWrap : styles.tideArrowWrap}>
+        <View
+          style={[
+            isField ? styles.fieldArrowDisc : styles.arrowDisc,
+            { transform: [{ rotate: `${setDeg}deg` }] },
+          ]}
+        >
+          <Ionicons
+            name="chevron-up"
+            size={isField ? 18 : 32}
+            color={isField ? 'rgba(110, 108, 200, 0.78)' : 'rgba(94, 92, 230, 0.95)'}
+          />
+        </View>
+        {!isField && heightM > 0 ? (
+          <Text style={styles.arrowChip}>{`${padDeg(setDeg)}° · ${heightM.toFixed(1)}m`}</Text>
         ) : null}
       </View>
     );
