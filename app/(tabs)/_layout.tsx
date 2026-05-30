@@ -43,15 +43,15 @@ const WebSidebarNav = Platform.OS === 'web'
 // Web sidebar should be desktop-only; phones/tablets use tab UX.
 const WEB_SIDEBAR_MIN_WIDTH = 1024;
 
-const TAB_SWEEP_REQUIRED_TABS = ['discover', 'reflect'] as const;
+const TAB_SWEEP_REQUIRED_TABS = ['library', 'reflect'] as const;
 const isTabSweepRequiredTab = (tabName: string) =>
   TAB_SWEEP_REQUIRED_TABS.some((requiredTab) => requiredTab === tabName);
 const TAB_SWEEP_ROUTE_MAP: Record<(typeof TAB_SWEEP_REQUIRED_TABS)[number], string> = {
-  discover: '/discover',
+  library: '/library',
   reflect: '/reflect',
 };
 const TAB_SWEEP_META: Record<(typeof TAB_SWEEP_REQUIRED_TABS)[number], { label: string; icon: keyof typeof Ionicons.glyphMap }> = {
-  discover: { label: 'Discover', icon: 'compass-outline' },
+  library: { label: 'Library', icon: 'library-outline' },
   reflect: { label: 'Profile', icon: 'person-circle-outline' },
 };
 const ROUTES_WITH_CUSTOM_TOOLBAR = [
@@ -71,8 +71,8 @@ const TAB_SWEEP_CONTEXT_COPY: Record<
   (typeof TAB_SWEEP_REQUIRED_TABS)[number],
   { description: string; emptyHint: string }
 > = {
-  discover: {
-    description: 'Browse interests, organizations, people, plans, resources, and places.',
+  library: {
+    description: 'Browse your plans, concepts, and resources — plus the stacks you can pull from.',
     emptyHint: 'Start by exploring something you can pull into your library.',
   },
   reflect: {
@@ -384,7 +384,6 @@ function TabLayoutInner() {
   const reflectTab = findTab('reflect');
   const coursesTab = findTab('courses');
   const _connectTab = findTab('connect');
-  const discoverTab = findTab('discover');
   const watchTab = findTab('watch');
   const searchTab = findTab('search');
   const libraryTab = findTab('library');
@@ -562,26 +561,16 @@ function TabLayoutInner() {
                 : undefined,
           }}
         />
-        {/* Tab 4: Discover */}
+        {/* Hidden: Discover folded into Library (5→4 tabs). Route stays
+            addressable as a redirect shim (app/(tabs)/discover.tsx) so old
+            /discover?segment=… deep links bounce to their new homes. */}
         <Tabs.Screen
           name="discover"
           options={{
-            title: discoverTab?.title ?? 'Discover',
-            tabBarIcon: isSailorUser ? () => null : ({ color, size, focused }) => (
-              <Ionicons
-                name={getIconName(discoverTab, focused, discoverTab?.iconFocused ?? 'compass', discoverTab?.icon ?? 'compass-outline') as any}
-                size={size}
-                color={color}
-              />
-            ),
-            tabBarButton: !isTabVisible('discover')
-              ? () => null
-              : isSailorUser
-                ? renderSailorTabButton('discover', discoverTab?.title ?? 'Discover', discoverTab)
-                : undefined,
+            href: null,
           }}
         />
-        {/* Tab 5: Atlas */}
+        {/* Tab 4: Atlas */}
         <Tabs.Screen
           name="atlas"
           options={{
