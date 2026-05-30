@@ -8,7 +8,12 @@ export type LibraryZone =
   | 'plans'
   | 'people'
   | 'concepts'
-  | 'resources';
+  | 'resources'
+  // "Stacks" zones — reached from the curated feed's See-all links.
+  // These fold what used to be separate Discover segments into Library.
+  | 'follow'
+  | 'orgs'
+  | 'interests';
 
 // Canonical §2 keeps the segmented strip to four pills (no People).
 // The People zone route still exists — it's reachable from Profile and

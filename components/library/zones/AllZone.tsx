@@ -268,7 +268,7 @@ export function AllZone({ counts, onJumpToZone, librarianSlot }: AllZoneProps) {
         <SectionHeader
           title="PLANS TO FOLLOW"
           dotColor="#0EA5E9"
-          onSeeAll={() => router.push('/(tabs)/discover?segment=plans' as never)}
+          onSeeAll={() => onJumpToZone('follow')}
         />
         {catalogLoading && !catalog ? (
           <LoadingRow />
@@ -290,7 +290,7 @@ export function AllZone({ counts, onJumpToZone, librarianSlot }: AllZoneProps) {
         <SectionHeader
           title="ORGS"
           dotColor="#10B981"
-          onSeeAll={() => router.push('/(tabs)/discover?segment=orgs' as never)}
+          onSeeAll={() => onJumpToZone('orgs')}
         />
         {orgsLoading && !topOrgs ? (
           <LoadingRow />
@@ -322,7 +322,7 @@ export function AllZone({ counts, onJumpToZone, librarianSlot }: AllZoneProps) {
         <SectionHeader
           title="INTERESTS"
           dotColor="#F472B6"
-          onSeeAll={() => router.push('/(tabs)/discover?segment=interests' as never)}
+          onSeeAll={() => onJumpToZone('interests')}
         />
         {suggestedInterests.length === 0 ? (
           <EmptyHint>You've added every interest we know about — nice.</EmptyHint>
@@ -335,7 +335,7 @@ export function AllZone({ counts, onJumpToZone, librarianSlot }: AllZoneProps) {
                   styles.interestChip,
                   { borderColor: (interest.accent_color ?? IOS_COLORS.systemBlue) + '55' },
                 ]}
-                onPress={() => router.push('/(tabs)/discover?segment=interests' as never)}
+                onPress={() => onJumpToZone('interests')}
               >
                 <View
                   style={[

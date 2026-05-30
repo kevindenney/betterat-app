@@ -33,6 +33,9 @@ import { PlansZone } from '@/components/library/zones/PlansZone';
 import { PeopleZone } from '@/components/library/zones/PeopleZone';
 import { ResourcesZone } from '@/components/library/zones/ResourcesZone';
 import { LibraryNearbyContent } from '@/components/library/LibraryNearbyContent';
+import { DiscoverPlansContent } from '@/components/discover/DiscoverPlansContent';
+import { DiscoverOrgsContent } from '@/components/discover/DiscoverOrgsContent';
+import { DiscoverInterestsContent } from '@/components/discover/DiscoverInterestsContent';
 import { CaptureSheet } from '@/components/library/resources/CaptureSheet';
 import { ConceptEditor } from '@/components/playbook/concepts/ConceptEditor';
 import { mapCapturePayloadToLibraryItem } from '@/components/library/resources/capturePayloadMap';
@@ -51,7 +54,16 @@ const VALID_ZONES: LibraryZone[] = [
   'people',
   'concepts',
   'resources',
+  'follow',
+  'orgs',
+  'interests',
 ];
+// Zones that render full-bleed (they own their own ScrollView) instead
+// of inside LibraryLanding's shared ScrollView. These are the Discover
+// "stacks" content components folded into Library — nesting a same-axis
+// ScrollView inside ours clips their content, so they sit on top with a
+// floating back pill (mirrors the discover.tsx focused-segment pattern).
+const FULL_BLEED_ZONES: LibraryZone[] = ['follow', 'orgs', 'interests'];
 // Title shown atop a focused zone view (reached via a feed See-all).
 // 'all' is the curated feed itself, so it has no focused title.
 const ZONE_TITLE: Record<LibraryZone, string> = {
@@ -61,6 +73,9 @@ const ZONE_TITLE: Record<LibraryZone, string> = {
   concepts: 'Concepts',
   resources: 'Resources',
   people: 'People',
+  follow: 'Plans to follow',
+  orgs: 'Orgs',
+  interests: 'Interests',
 };
 
 // One-liner shown beneath the focused-zone title. Describes the
@@ -72,6 +87,9 @@ const ZONE_DESCRIPTION: Record<LibraryZone, string> = {
   concepts: "Mental models you're forming, refining, or have settled.",
   resources: 'Saved articles, docs, and references.',
   people: 'People shaping your practice.',
+  follow: 'Published Plans you can follow and pull into your own.',
+  orgs: 'Clubs, schools, and programs you can join.',
+  interests: 'Adjacent crafts you could add.',
 };
 
 interface Props {
@@ -100,10 +118,22 @@ export function LibraryLanding({ conceptsBody, librarianSlot }: Props) {
   const [toolbarHeight, setToolbarHeight] = useState(0);
   const [captureOpen, setCaptureOpen] = useState(false);
   const [conceptEditorOpen, setConceptEditorOpen] = useState(false);
+  // Sticky "added" set for the Interests stack so its Add chips stay
+  // marked while the user is in the focused zone (mirrors discover.tsx).
+  const [addedInterestSlugs, setAddedInterestSlugs] = useState<Set<string>>(new Set());
+  const onAddInterest = useCallback((slug: string) => {
+    setAddedInterestSlugs((prev) => {
+      const next = new Set(prev);
+      next.add(slug);
+      return next;
+    });
+  }, []);
 
   const handleZoneChange = useCallback((next: LibraryZone) => {
     router.setParams({ zone: next === 'all' ? '' : next });
   }, []);
+
+  const isFullBleed = (FULL_BLEED_ZONES as string[]).includes(zone);
 
   // `+` payload depends on the active zone. Librarian/Concepts both
   // open the concept editor (concepts are the librarian's domain).
@@ -145,17 +175,30 @@ export function LibraryLanding({ conceptsBody, librarianSlot }: Props) {
 
   return (
     <View style={styles.container}>
-      <ScrollView
-        style={styles.body}
-        contentContainerStyle={[
-          styles.bodyContent,
-          {
-            paddingTop: toolbarHeight + IOS_SPACING.md,
-            paddingBottom: FLOATING_TAB_BAR_HEIGHT + insets.bottom + IOS_SPACING.lg,
-          },
-        ]}
-      >
-        {zone === 'all' ? (
+      {isFullBleed ? (
+        zone === 'follow' ? (
+          <DiscoverPlansContent toolbarOffset={toolbarHeight + 48} />
+        ) : zone === 'orgs' ? (
+          <DiscoverOrgsContent toolbarOffset={toolbarHeight + 48} />
+        ) : (
+          <DiscoverInterestsContent
+            toolbarOffset={toolbarHeight + 48}
+            addedInterestSlugs={addedInterestSlugs}
+            onAddInterest={onAddInterest}
+          />
+        )
+      ) : (
+        <ScrollView
+          style={styles.body}
+          contentContainerStyle={[
+            styles.bodyContent,
+            {
+              paddingTop: toolbarHeight + IOS_SPACING.md,
+              paddingBottom: FLOATING_TAB_BAR_HEIGHT + insets.bottom + IOS_SPACING.lg,
+            },
+          ]}
+        >
+          {zone === 'all' ? (
           <View style={styles.feedHero}>
             <Text style={styles.feedEyebrow}>LIBRARY</Text>
             <Text style={styles.feedTitle}>What's in your library</Text>
@@ -201,10 +244,11 @@ export function LibraryLanding({ conceptsBody, librarianSlot }: Props) {
           <PeopleZone />
         ) : zone === 'resources' ? (
           <ResourcesZone onOpenCapture={() => setCaptureOpen(true)} />
-        ) : (
-          conceptsBody
-        )}
-      </ScrollView>
+          ) : (
+            conceptsBody
+          )}
+        </ScrollView>
+      )}
 
       <TabScreenToolbar
         subtitleContent={<LocationAnchor region={homeVenue?.region} venue={homeVenue?.venue} />}
@@ -226,6 +270,25 @@ export function LibraryLanding({ conceptsBody, librarianSlot }: Props) {
         onMeasuredHeight={setToolbarHeight}
         backgroundColor="rgba(242, 242, 247, 0.94)"
       />
+
+      {/* Full-bleed stack zones own their scroll, so the back-to-feed
+          affordance floats below the toolbar instead of scrolling with
+          a header (mirrors the discover.tsx focused-segment pattern). */}
+      {isFullBleed ? (
+        <View
+          style={[styles.floatingBackHeader, { top: toolbarHeight + 4 }]}
+          pointerEvents="box-none"
+        >
+          <Pressable
+            style={styles.floatingBackPill}
+            onPress={() => handleZoneChange('all')}
+            hitSlop={8}
+          >
+            <Ionicons name="chevron-back" size={16} color={IOS_COLORS.systemBlue} />
+            <Text style={styles.backPillText}>Library</Text>
+          </Pressable>
+        </View>
+      ) : null}
 
       <CaptureSheet
         visible={captureOpen}
@@ -323,5 +386,24 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 18,
     color: IOS_COLORS.secondaryLabel,
+  },
+  // Floating back pill for full-bleed stack zones (follow/orgs/interests)
+  // whose content owns its own scroll view.
+  floatingBackHeader: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    alignItems: 'flex-start',
+    paddingHorizontal: 16,
+  },
+  floatingBackPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+    paddingVertical: 6,
+    paddingLeft: 6,
+    paddingRight: 12,
+    borderRadius: 999,
+    backgroundColor: 'rgba(242, 242, 247, 0.94)',
   },
 });
