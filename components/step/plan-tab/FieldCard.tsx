@@ -35,7 +35,7 @@ import {
 export type FieldCardIcon = 'bulb' | 'list' | 'help';
 
 const LINE_HEIGHT = 19;
-const MIN_LINES = 1;
+const MIN_LINES = 3;
 const MAX_LINES = 8;
 const MIN_HEIGHT = LINE_HEIGHT * MIN_LINES;
 const MAX_HEIGHT = LINE_HEIGHT * MAX_LINES;

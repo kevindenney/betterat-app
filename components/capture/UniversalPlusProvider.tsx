@@ -25,6 +25,7 @@ import { useInterest } from '@/providers/InterestProvider';
 import { FEATURE_FLAGS } from '@/lib/featureFlags';
 import { logger } from '@/lib/logger';
 import {
+  buildQuickCaptureStepFields,
   createDraftStep,
   dropInsight,
   type QuickCapturePayload,
@@ -121,8 +122,7 @@ export function UniversalPlusProvider({ children }: { children: React.ReactNode 
       const interestId = currentInterest.id;
       const tempId = `temp-quick-${Date.now()}`;
       const nowIso = new Date().toISOString();
-      const location = payload.location;
-      const hasLocationName = Boolean(location?.name?.trim());
+      const fields = buildQuickCaptureStepFields(payload);
       const optimisticStep: TimelineStepRecord = {
         id: tempId,
         user_id: user.id,
@@ -131,15 +131,15 @@ export function UniversalPlusProvider({ children }: { children: React.ReactNode 
         program_session_id: null,
         source_type: 'manual',
         source_id: null,
-        title: trimmed,
-        description: null,
+        title: fields.title,
+        description: fields.description,
         category: 'general',
         status: 'pending',
         starts_at: null,
         ends_at: null,
-        location_name: hasLocationName ? location!.name.trim() : null,
-        location_lat: location?.lat ?? null,
-        location_lng: location?.lng ?? null,
+        location_name: fields.locationName,
+        location_lat: fields.locationLat,
+        location_lng: fields.locationLng,
         location_place_id: null,
         visibility: 'private',
         share_approximate_location: false,
@@ -151,7 +151,7 @@ export function UniversalPlusProvider({ children }: { children: React.ReactNode 
           capture_source: 'universal_plus_sheet',
           capture_kind: payload.kind,
           audio_uri: payload.audioUri ?? null,
-          ...(hasLocationName ? { plan: { where_location: location } } : {}),
+          ...(fields.plan ? { plan: fields.plan } : {}),
         },
         collaborator_user_ids: [],
         completed_at: null,

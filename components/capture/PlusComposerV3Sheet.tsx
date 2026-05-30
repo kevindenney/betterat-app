@@ -22,7 +22,7 @@
  * UniversalPlusSheet still renders.
  */
 
-import React, { useCallback, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import {
   KeyboardAvoidingView,
   Modal,
@@ -104,28 +104,6 @@ function emptyFieldValues(): Record<ComposerFieldKey, string> {
   };
 }
 
-function buildComposerPayload({
-  what,
-  activeFields,
-  fieldValues,
-}: {
-  what: string;
-  activeFields: ComposerFieldKey[];
-  fieldValues: Record<ComposerFieldKey, string>;
-}) {
-  const sections: string[] = [];
-  const trimmedWhat = what.trim();
-  if (trimmedWhat) sections.push(trimmedWhat);
-
-  OPTIONAL_FIELDS.forEach(({ key, label }) => {
-    const trimmedValue = fieldValues[key].trim();
-    if (!activeFields.includes(key) && !trimmedValue) return;
-    sections.push(trimmedValue ? `${label}: ${trimmedValue}` : `${label}:`);
-  });
-
-  return sections.join('\n');
-}
-
 export function PlusComposerV3Sheet({
   visible,
   onDismiss,
@@ -152,25 +130,25 @@ export function PlusComposerV3Sheet({
     setWhereLocation(undefined);
   }, []);
 
-  const composedPayload = useMemo(
-    () =>
-      buildComposerPayload({
-        what: whatText,
-        activeFields,
-        fieldValues,
-      }),
-    [activeFields, fieldValues, whatText],
-  );
-
   const handleSave = useCallback(() => {
-    const trimmed = composedPayload.trim();
-    if (!trimmed) {
+    const trimmedWhat = whatText.trim();
+    if (!trimmedWhat) {
       onDismiss();
       return;
     }
-    onSave({ kind: 'text', content: trimmed, location: whereLocation });
+    // Title = WHAT only. Why/How/When ride along as structured fields so the
+    // save path maps them to plan + description instead of jamming everything
+    // into the title.
+    onSave({
+      kind: 'text',
+      content: trimmedWhat,
+      location: whereLocation,
+      why: fieldValues.why.trim() || undefined,
+      how: fieldValues.how.trim() || undefined,
+      when: fieldValues.when.trim() || undefined,
+    });
     resetComposer();
-  }, [composedPayload, whereLocation, onSave, onDismiss, resetComposer]);
+  }, [whatText, fieldValues, whereLocation, onSave, onDismiss, resetComposer]);
 
   const handleCancel = useCallback(() => {
     resetComposer();
@@ -205,7 +183,7 @@ export function PlusComposerV3Sheet({
     setFieldValues((prev) => ({ ...prev, where: next?.name ?? '' }));
   }, []);
 
-  const trimmedLength = composedPayload.trim().length;
+  const trimmedLength = whatText.trim().length;
 
   return (
     <Modal
@@ -258,7 +236,7 @@ export function PlusComposerV3Sheet({
               ref={whatInputRef}
               value={whatText}
               onChangeText={setWhatText}
-              placeholder="Try Sunita's spinnaker tip on Saturday's downwind leg"
+              placeholder="What do you want to work on?"
               placeholderTextColor={IOS_REGISTER.labelTertiary}
               multiline
               autoFocus

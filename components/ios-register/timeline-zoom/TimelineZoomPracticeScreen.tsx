@@ -82,8 +82,9 @@ export function TimelineZoomPracticeScreen() {
   // structure is self-evident. An explicit ?level= deep-link always wins.
   const initialLevelFromRoute = useMemo<ZoomLevel>(() => {
     if (routeLevel) return routeLevel;
+    if (selectedStepId) return 1;
     return steps.length < ARC_LANDING_MIN_STEPS ? 2 : 3;
-  }, [routeLevel, steps.length]);
+  }, [routeLevel, selectedStepId, steps.length]);
   const { data: currentSeason = null } = useCurrentSeason();
   const { data: allSeasons = [] } = useUserSeasons();
   const { data: subscribedBlueprints = [] } = useSubscribedBlueprints(interestId);

@@ -4,7 +4,7 @@
  * current progress status badges.
  */
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import {
   Modal,
   View,
@@ -98,6 +98,19 @@ export function CompetencyPickerModal({
       );
     });
   }, [search, suggestedCapabilities]);
+  const typedCapability = search.trim().replace(/\s+/g, ' ');
+  const typedCapabilityKey = normalizeLabel(typedCapability);
+  const canAddTypedCapability =
+    typedCapability.length >= 2 &&
+    Boolean(onToggleSuggested) &&
+    !selectedSuggestedSet.has(typedCapabilityKey) &&
+    !filteredSuggestions.some((sug) => normalizeLabel(sug.label) === typedCapabilityKey) &&
+    !competencies.some((comp) => normalizeLabel(comp.title) === typedCapabilityKey);
+  const handleAddTypedCapability = useCallback(() => {
+    if (!canAddTypedCapability) return;
+    onToggleSuggested?.(typedCapability);
+    setSearch('');
+  }, [canAddTypedCapability, onToggleSuggested, typedCapability]);
 
   if (!visible) return null;
 
@@ -134,6 +147,8 @@ export function CompetencyPickerModal({
               onChangeText={setSearch}
               autoCapitalize="none"
               autoCorrect={false}
+              returnKeyType={canAddTypedCapability ? 'done' : 'search'}
+              onSubmitEditing={handleAddTypedCapability}
             />
             {search.length > 0 && (
               <Pressable onPress={() => setSearch('')} hitSlop={6}>
@@ -141,6 +156,23 @@ export function CompetencyPickerModal({
               </Pressable>
             )}
           </View>
+
+          {canAddTypedCapability && (
+            <Pressable
+              style={s.addTypedRow}
+              onPress={handleAddTypedCapability}
+            >
+              <Ionicons name="add-circle-outline" size={20} color="#0097A7" />
+              <View style={s.compInfo}>
+                <Text style={s.compTitle} numberOfLines={1}>
+                  Add "{typedCapability}"
+                </Text>
+                <Text style={s.compDesc} numberOfLines={1}>
+                  Track this as a capability for this step
+                </Text>
+              </View>
+            </Pressable>
+          )}
 
           {/* Selected count */}
           {selectedIds.length + selectedSuggestedLabels.length > 0 && (
@@ -327,6 +359,19 @@ const s = StyleSheet.create({
     fontWeight: '600',
     paddingHorizontal: 20,
     paddingBottom: 8,
+  },
+  addTypedRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginHorizontal: 20,
+    marginBottom: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 11,
+    borderRadius: 12,
+    backgroundColor: '#F0FDFA',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(0, 151, 167, 0.28)',
+    gap: 10,
   },
   list: {
     flex: 1,

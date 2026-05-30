@@ -1,15 +1,14 @@
 /**
  * NotificationBell - Header bell icon with combined unread badge
  *
- * Shows combined unread count from notifications and crew messages.
+ * Shows the global Inbox count and opens the Inbox route.
  */
 
 import React from 'react';
 import { View, Pressable, Text, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Bell } from 'lucide-react-native';
-import { useUnreadNotificationCount } from '@/hooks/useNotifications';
-import { useCrewThreadsUnreadCount } from '@/hooks/useCrewThreads';
+import { Ionicons } from '@expo/vector-icons';
+import { useInboxCount } from '@/hooks/useInboxCount';
 import {
   IOS_COLORS,
   IOS_TYPOGRAPHY,
@@ -27,14 +26,10 @@ export function NotificationBell({
   color = IOS_COLORS.label,
 }: NotificationBellProps) {
   const router = useRouter();
-  const { unreadCount: notificationCount } = useUnreadNotificationCount();
-  const { unreadCount: messagesCount } = useCrewThreadsUnreadCount();
-
-  // Combined unread count
-  const unreadCount = notificationCount + messagesCount;
+  const { data: unreadCount = 0 } = useInboxCount();
 
   const handlePress = () => {
-    router.push('/social-notifications');
+    router.push('/(tabs)/inbox' as any);
   };
 
   const formatBadge = (count: number): string => {
@@ -46,10 +41,10 @@ export function NotificationBell({
   // Without this, the red bubble looks like any generic number (users were
   // confused whether it was notifications, upcoming races, or something else).
   const tooltip = unreadCount === 0
-    ? 'Notifications'
+    ? 'Inbox'
     : unreadCount === 1
-      ? '1 unread notification'
-      : `${formatBadge(unreadCount)} unread notifications`;
+      ? '1 inbox item waiting'
+      : `${formatBadge(unreadCount)} inbox items waiting`;
 
   return (
     <Pressable
@@ -60,16 +55,18 @@ export function NotificationBell({
       onPress={handlePress}
       accessibilityRole="button"
       accessibilityLabel={tooltip}
-      accessibilityHint="Opens notifications and messages"
+      accessibilityHint="Opens suggested steps, comments, invites, and updates"
       // @ts-expect-error — RN Web passes unknown DOM props through as attributes
       title={tooltip}
     >
-      <Bell size={size} color={color} />
-      {unreadCount > 0 && (
-        <View style={styles.badge}>
-          <Text style={styles.badgeText}>{formatBadge(unreadCount)}</Text>
-        </View>
-      )}
+      <View style={styles.iconWrap}>
+        <Ionicons name="mail" size={size} color={color} />
+        {unreadCount > 0 && (
+          <View style={styles.badge}>
+            <Text style={styles.badgeText}>{formatBadge(unreadCount)}</Text>
+          </View>
+        )}
+      </View>
     </Pressable>
   );
 }
@@ -82,22 +79,32 @@ const styles = StyleSheet.create({
   containerPressed: {
     opacity: 0.7,
   },
+  // Wrap the glyph so the absolutely-positioned badge anchors to the
+  // icon's bounding box, not the touch-target. Without the wrap the
+  // badge sat on top of the icon and at higher unread counts the
+  // count digits eclipsed the envelope entirely.
+  iconWrap: {
+    position: 'relative',
+  },
   badge: {
     position: 'absolute',
-    top: 0,
-    right: 0,
+    top: -5,
+    right: -5,
     backgroundColor: IOS_COLORS.systemRed,
     borderRadius: IOS_RADIUS.full,
-    minWidth: 18,
-    height: 18,
+    minWidth: 16,
+    height: 16,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 4,
+    borderWidth: 1.5,
+    borderColor: '#FFFFFF',
   },
   badgeText: {
     ...IOS_TYPOGRAPHY.caption2,
     color: IOS_COLORS.white,
     fontWeight: '700',
-    fontSize: 11,
+    fontSize: 10,
+    lineHeight: 12,
   },
 });

@@ -534,6 +534,7 @@ function recordToStep(
     ?.slice()
     .sort((a, b) => a.sort_order - b.sort_order)
     .map((sub) => ({ id: sub.id, label: sub.text, checked: sub.completed }));
+  const linkedResourceCount = plan?.linked_resource_ids?.length ?? 0;
   const whyReasoning = plan?.why_reasoning?.trim() || undefined;
   const whenLabel = formatWhenLabel(scheduleAnchor);
   const reviewDigest = getReviewDigest(rec.metadata);
@@ -603,6 +604,7 @@ function recordToStep(
     whyReasoning,
     whenLabel,
     howItems,
+    linkedResourceCount,
     keyTakeaway: reviewDigest.keyTakeaway,
     reflectionSummary: reviewDigest.reflectionSummary,
     evidenceCount: reviewDigest.evidenceCount,
@@ -1000,11 +1002,12 @@ function computeSeasonAnalysis(
     .sort((a, b) => b.count - a.count)
     .map((entry) => (entry.label === 'Practice' || entry.label === 'General' ? null : entry.label))
     .find(Boolean) ?? null;
+  const period = interestVocab.periodNoun;
   const promptBody = seasonName
     ? `You're at week ${currentWeekNumber} of ${weeks.length} in ${seasonName}.${
         dominantLabel ? ` ${dominantLabel} has been the dominant thread so far.` : ''
-      } What do you want this arc to add up to?`
-    : `You're at week ${currentWeekNumber} of ${weeks.length}. What do you want this arc to add up to?`;
+      } What do you want this ${period} to add up to?`
+    : `You're at week ${currentWeekNumber} of ${weeks.length}. What do you want this ${period} to add up to?`;
 
   const phases = computeSeasonPhases(weeks, interestVocab);
 
@@ -1015,9 +1018,9 @@ function computeSeasonAnalysis(
     reflections: [],
     reflectionDensity,
     librarianPrompt: {
-      eyebrow: 'This rotation · the librarian noticed',
+      eyebrow: interestVocab.librarianEyebrow,
       body: promptBody,
-      primaryCta: { label: 'Review this arc', intent: 'open-season-check-in' },
+      primaryCta: { label: `Review this ${period}`, intent: 'open-season-check-in' },
       secondaryCta: { label: 'Not now' },
     },
   };
@@ -1049,7 +1052,9 @@ function buildWeekPlanningHint(
   weeks: TimelineWeek[],
   currentWeekIdx: number,
   seasonName: string | null,
+  interestVocab: InterestVocab,
 ): SeasonLibrarianPrompt | undefined {
+  const period = interestVocab.periodNoun;
   const currentWeek = weeks[currentWeekIdx];
   if (!currentWeek) return undefined;
 
@@ -1104,8 +1109,8 @@ function buildWeekPlanningHint(
         ? `Slot a session before ${anchorLabel}?`
         : 'Slot a session into the next move?',
       supportingLine: weeksSinceSeen && weeksSinceSeen > 1
-        ? `This gap has been open for ${weeksSinceSeen} weeks. Use the next slot to rebalance the arc before the pattern hardens.`
-        : 'Use the next slot to rebalance the arc before the pattern hardens.',
+        ? `This gap has been open for ${weeksSinceSeen} weeks. Use the next slot to rebalance the ${period} before the pattern hardens.`
+        : `Use the next slot to rebalance the ${period} before the pattern hardens.`,
       primaryCta: { label: missingLabel ? `Add ${missingLabel}` : 'Add a step', intent: 'add-step' },
       secondaryCta: { label: 'Not now' },
     };
@@ -1115,7 +1120,7 @@ function buildWeekPlanningHint(
     .sort((a, b) => b.count - a.count)
     .map((entry) => (entry.label === 'Practice' || entry.label === 'General' ? null : entry.label))
     .find(Boolean) ?? null;
-  const seasonCopy = seasonName ?? 'this arc';
+  const seasonCopy = seasonName ?? `this ${period}`;
   return {
     eyebrow: 'The librarian noticed',
     body: dominantLabel
@@ -1123,7 +1128,7 @@ function buildWeekPlanningHint(
       : `This nearby run is clustering around one thread in ${seasonCopy}.`,
     emphasisLine: 'What should the next move add?',
     supportingLine: 'Use the next slot to add contrast, not more of the same.',
-    primaryCta: { label: 'Review this arc', intent: 'open-season-check-in' },
+    primaryCta: { label: `Review this ${period}`, intent: 'open-season-check-in' },
     secondaryCta: { label: 'Not now' },
   };
 }
@@ -1586,13 +1591,16 @@ export function mapToTimelineDataset({
     const realSeasonName = currentSeason?.short_name ?? currentSeason?.name ?? null;
     if (dominantLabel) {
       // Sentence-initial: capitalized fallback is correct here.
-      weeks[currentWeekIdx].contextStrip = `${realSeasonName ?? 'This arc'} has been ${dominantLabel.toLowerCase()}-heavy.`;
+      const capPeriod =
+        interestVocab.periodNoun.charAt(0).toUpperCase() +
+        interestVocab.periodNoun.slice(1);
+      weeks[currentWeekIdx].contextStrip = `${realSeasonName ?? `This ${capPeriod}`} has been ${dominantLabel.toLowerCase()}-heavy.`;
     }
     // Mid-sentence inside the hint: pass the real name (or null) so the
-    // builder's own lowercase 'this arc' fallback applies — never the
-    // capitalized "This arc" mid-sentence.
+    // builder's own lowercase 'this <period>' fallback applies — never the
+    // capitalized form mid-sentence.
     weeks[currentWeekIdx].planningHint =
-      buildWeekPlanningHint(weeks, currentWeekIdx, realSeasonName);
+      buildWeekPlanningHint(weeks, currentWeekIdx, realSeasonName, interestVocab);
   }
 
   // Per-org-competency proven evidence counts across this season's
@@ -1692,7 +1700,10 @@ export function mapToTimelineDataset({
 
   const currentSeasonNode: TimelineSeason = {
     id: seasonIdForSteps,
-    title: currentSeason?.name ?? currentSeason?.short_name ?? 'Current arc',
+    title:
+      currentSeason?.name ??
+      currentSeason?.short_name ??
+      `Current ${interestVocab.periodNoun}`,
     dateRange:
       currentSeason && currentSeason.start_date && currentSeason.end_date
         ? formatDateRange(currentSeason.start_date, currentSeason.end_date)

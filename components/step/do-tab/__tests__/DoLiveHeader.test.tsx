@@ -80,7 +80,7 @@ describe('DoLiveHeader — Frame 2 · A + B', () => {
   it('renders the live indicator label and a pulsing dot ring (Animated.View)', () => {
     const tree = render({ captureCount: 6, elapsedMs: 0 });
     const text = collectText(tree.root);
-    expect(text).toContain('Live · capturing');
+    expect(text).toContain('Doing');
     expect(tree.root.findAllByType('AnimatedView' as unknown as ComponentType)).toHaveLength(1);
   });
 

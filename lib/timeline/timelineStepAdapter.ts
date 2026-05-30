@@ -12,7 +12,7 @@ const STATUS_MAP: Record<TimelineStepStatus, string> = {
 export function timelineStepToCardRaceData(step: TimelineStepRecord): CardRaceData {
   return {
     id: step.id,
-    name: step.title,
+    name: step.title ?? 'Untitled step',
     interest_id: step.interest_id,
     venue: step.location_name ?? '',
     // Surface the due date as `date` so cards can display it. Dates are

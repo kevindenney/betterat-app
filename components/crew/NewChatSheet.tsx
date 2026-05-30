@@ -36,6 +36,8 @@ interface NewChatSheetProps {
   isOpen: boolean;
   onClose: () => void;
   onThreadCreated: (threadId: string) => void;
+  initialGroupName?: string;
+  initialGroupEmoji?: string;
 }
 
 type SheetMode = 'menu' | 'direct' | 'group';
@@ -80,7 +82,13 @@ function MenuOption({ icon, label, description, onPress, disabled }: MenuOptionP
 // MAIN COMPONENT
 // =============================================================================
 
-export function NewChatSheet({ isOpen, onClose, onThreadCreated }: NewChatSheetProps) {
+export function NewChatSheet({
+  isOpen,
+  onClose,
+  onThreadCreated,
+  initialGroupName,
+  initialGroupEmoji,
+}: NewChatSheetProps) {
   const insets = useSafeAreaInsets();
   const [mode, setMode] = useState<SheetMode>('menu');
 
@@ -159,6 +167,8 @@ export function NewChatSheet({ isOpen, onClose, onThreadCreated }: NewChatSheetP
             onCreated={handleGroupCreated}
             onBack={handleBack}
             onClose={handleClose}
+            initialName={initialGroupName}
+            initialEmoji={initialGroupEmoji}
           />
         );
       default:

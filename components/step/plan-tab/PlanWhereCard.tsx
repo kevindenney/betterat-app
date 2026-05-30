@@ -21,6 +21,10 @@ import { STEP_COLORS } from '@/lib/step-theme';
 import type { StepLocation } from '@/types/step-detail';
 import { LocationMapPicker as LocationMapPickerModal } from '@/components/races/LocationMapPicker';
 import { useStepLocationNeighbors } from '@/hooks/useStepLocationNeighbors';
+import {
+  useNearestNamedPlace,
+  isCoordOnlyLabel,
+} from '@/hooks/useNearestNamedPlace';
 import { FEATURE_FLAGS } from '@/lib/featureFlags';
 import { AtlasPickerBus, type AtlasPickerResult } from '@/services/AtlasPickerBus';
 
@@ -46,6 +50,23 @@ export function PlanWhereCard({ location, readOnly, onChange, quickPicks }: Plan
   const { data: neighbors } = useStepLocationNeighbors(location?.lat, location?.lng, 5);
   // Subtract the current user's own pin if applicable — we want "OTHER sailors".
   const otherSailors = Math.max(0, (neighbors?.sailors ?? 0) - 1);
+  // Resolve raw "Dropped pin (lat, lng)" stamps to a nearby venue name
+  // when one's in range. Skips the query when the stored name is already
+  // a real venue (most cases). Tight 0.5 km radius — we want "this IS
+  // the venue", not "this is near the venue".
+  const needsResolve = isCoordOnlyLabel(location?.name);
+  const resolved = useNearestNamedPlace({
+    lat: needsResolve ? location?.lat : null,
+    lng: needsResolve ? location?.lng : null,
+    // 1km radius — wide enough to catch "I dropped a pin near Hebe
+    // Haven from the parking lot" but tight enough that we don't claim
+    // a venue when the pin is actually out on the racecourse.
+    maxKm: 1.0,
+  });
+  const displayName =
+    needsResolve && resolved
+      ? resolved.short_name ?? resolved.name
+      : location?.name;
 
   const handlePicked = useCallback(
     (picked: { name: string; lat: number; lng: number }) => {
@@ -90,6 +111,18 @@ export function PlanWhereCard({ location, readOnly, onChange, quickPicks }: Plan
   const hasName = Boolean(location?.name?.trim());
   const hasCoords = location?.lat != null && location?.lng != null;
 
+  // Tap-to-explore: tapping the venue name OR the "X sailors set steps"
+  // subtitle pushes the user to Atlas focused on this lat/lng so they can
+  // scout the venue + see peer activity in context. Falls back to a no-op
+  // when no coords are stored.
+  const handleOpenOnAtlas = useCallback(() => {
+    if (!hasCoords) return;
+    router.push({
+      pathname: '/(tabs)/atlas',
+      params: { lat: String(location!.lat), lng: String(location!.lng) },
+    });
+  }, [router, hasCoords, location]);
+
   return (
     <View style={styles.card}>
       <View style={styles.head}>
@@ -101,13 +134,20 @@ export function PlanWhereCard({ location, readOnly, onChange, quickPicks }: Plan
         <View style={styles.venueRow}>
           <Ionicons name="sparkles" size={14} color={STEP_COLORS.accent} />
           <View style={styles.venueText}>
-            <Text style={styles.venueName} numberOfLines={1}>
-              {location!.name}
-            </Text>
-            {hasCoords && otherSailors > 0 ? (
-              <Text style={styles.venueSub} numberOfLines={1}>
-                {otherSailors} {otherSailors === 1 ? 'sailor' : 'sailors'} set steps within 5 km
+            <Pressable onPress={handleOpenOnAtlas} disabled={!hasCoords} hitSlop={6}>
+              <Text
+                style={[styles.venueName, hasCoords && styles.venueNameLink]}
+                numberOfLines={1}
+              >
+                {displayName}
               </Text>
+            </Pressable>
+            {hasCoords && otherSailors > 0 ? (
+              <Pressable onPress={handleOpenOnAtlas} hitSlop={6}>
+                <Text style={[styles.venueSub, styles.venueSubLink]} numberOfLines={1}>
+                  {otherSailors} {otherSailors === 1 ? 'sailor' : 'sailors'} set steps within 5 km →
+                </Text>
+              </Pressable>
             ) : hasCoords ? (
               <Text style={styles.venueSub} numberOfLines={1}>
                 {location!.lat!.toFixed(4)}, {location!.lng!.toFixed(4)}
@@ -222,10 +262,16 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: IOS_COLORS.label,
   },
+  venueNameLink: {
+    color: '#007AFF',
+  },
   venueSub: {
     fontSize: 11,
     color: IOS_COLORS.tertiaryLabel,
     marginTop: 1,
+  },
+  venueSubLink: {
+    color: '#007AFF',
   },
   quickPickRow: {
     flexDirection: 'row',

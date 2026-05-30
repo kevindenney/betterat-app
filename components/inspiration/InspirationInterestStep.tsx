@@ -16,12 +16,19 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
 import { resolveIonicon } from './resolveIonicon';
-import type { InspirationExtraction, ProposedInterest } from '@/types/inspiration';
+import type {
+  InspirationExtraction,
+  InspirationInterestReview,
+  ProposedInterest,
+} from '@/types/inspiration';
+import type { Interest } from '@/providers/InterestProvider';
 
 interface InspirationInterestStepProps {
   extraction: InspirationExtraction;
+  userInterests: Interest[];
   initialEdits: Partial<ProposedInterest>;
-  onComplete: (edits: Partial<ProposedInterest>) => void;
+  initialSelectedExistingInterestId?: string | null;
+  onComplete: (review: InspirationInterestReview) => void;
 }
 
 const COLOR_OPTIONS = [
@@ -32,7 +39,9 @@ const COLOR_OPTIONS = [
 
 export function InspirationInterestStep({
   extraction,
+  userInterests,
   initialEdits,
+  initialSelectedExistingInterestId = null,
   onComplete,
 }: InspirationInterestStepProps) {
   const proposed = extraction.proposed_interest;
@@ -44,12 +53,48 @@ export function InspirationInterestStep({
   const [accentColor, setAccentColor] = useState(
     initialEdits.accent_color ?? proposed.accent_color,
   );
+  const [selectedExistingInterestId, setSelectedExistingInterestId] = useState<string | null>(
+    initialSelectedExistingInterestId,
+  );
   const [editingName, setEditingName] = useState(false);
   const [editingDescription, setEditingDescription] = useState(false);
 
   const aiSuggestedColor = proposed.accent_color;
+  const overlaps = extraction.existing_interest_overlaps ?? [];
+  const overlapMap = new Map(overlaps.map((overlap) => [overlap.slug, overlap]));
+  const rankedExistingInterests = [...userInterests].sort((a, b) => {
+    const aScore = overlapMap.has(a.slug) ? 1 : 0;
+    const bScore = overlapMap.has(b.slug) ? 1 : 0;
+    return bScore - aScore || a.name.localeCompare(b.name);
+  });
+  const selectedExistingInterest = rankedExistingInterests.find(
+    (interest) => interest.id === selectedExistingInterestId,
+  ) ?? null;
+  const usingExistingInterest = !!selectedExistingInterest;
+  const activeAccentColor = usingExistingInterest
+    ? selectedExistingInterest.accent_color
+    : accentColor;
+  const activeName = usingExistingInterest
+    ? selectedExistingInterest.name
+    : name;
+  const activeDescription = usingExistingInterest
+    ? selectedExistingInterest.description?.trim() || 'We’ll add this generated plan to your existing interest.'
+    : description;
+  const activeIconName = resolveIonicon(
+    usingExistingInterest
+      ? selectedExistingInterest.icon_name ?? proposed.icon_name
+      : initialEdits.icon_name ?? proposed.icon_name,
+  );
 
   const handleContinue = () => {
+    if (selectedExistingInterest) {
+      onComplete({
+        interestEdits: {},
+        selectedExistingInterestId: selectedExistingInterest.id,
+      });
+      return;
+    }
+
     const edits: Partial<ProposedInterest> = {};
     if (name !== proposed.name) edits.name = name;
     if (description !== proposed.description) edits.description = description;
@@ -60,11 +105,11 @@ export function InspirationInterestStep({
         .replace(/[^a-z0-9]+/g, '-')
         .replace(/^-|-$/g, '');
     }
-    onComplete(edits);
+    onComplete({
+      interestEdits: edits,
+      selectedExistingInterestId: null,
+    });
   };
-
-  const iconName = resolveIonicon(initialEdits.icon_name ?? proposed.icon_name);
-  const overlaps = extraction.existing_interest_overlaps ?? [];
 
   return (
     <View style={styles.outer}>
@@ -75,13 +120,13 @@ export function InspirationInterestStep({
       >
         {/* ── Hero ── */}
         <View style={styles.hero}>
-          <View style={[styles.iconBox, { backgroundColor: accentColor }]}>
-            <Ionicons name={iconName} size={32} color="#fff" />
+          <View style={[styles.iconBox, { backgroundColor: activeAccentColor }]}>
+            <Ionicons name={activeIconName} size={32} color="#fff" />
           </View>
 
-          {editingName ? (
+          {!usingExistingInterest && editingName ? (
             <TextInput
-              style={[styles.heroTitle, styles.heroTitleEditing, { color: accentColor }]}
+              style={[styles.heroTitle, styles.heroTitleEditing, { color: activeAccentColor }]}
               value={name}
               onChangeText={setName}
               onBlur={() => setEditingName(false)}
@@ -90,16 +135,22 @@ export function InspirationInterestStep({
               onSubmitEditing={() => setEditingName(false)}
             />
           ) : (
-            <Pressable onPress={() => setEditingName(true)} style={styles.editableRow}>
-              <Text style={[styles.heroTitle, { color: accentColor }]}>{name}</Text>
-              <Ionicons name="pencil" size={13} color={IOS_COLORS.tertiaryLabel} style={styles.pencilIcon} />
-            </Pressable>
+            usingExistingInterest ? (
+              <View style={styles.editableRow}>
+                <Text style={[styles.heroTitle, { color: activeAccentColor }]}>{activeName}</Text>
+              </View>
+            ) : (
+              <Pressable onPress={() => setEditingName(true)} style={styles.editableRow}>
+                <Text style={[styles.heroTitle, { color: activeAccentColor }]}>{activeName}</Text>
+                <Ionicons name="pencil" size={13} color={IOS_COLORS.tertiaryLabel} style={styles.pencilIcon} />
+              </Pressable>
+            )
           )}
 
           {/* Mini switcher preview */}
           <View style={styles.switcher}>
-            <View style={[styles.switcherDot, { backgroundColor: accentColor }]} />
-            <Text style={styles.switcherText} numberOfLines={1}>{name}</Text>
+            <View style={[styles.switcherDot, { backgroundColor: activeAccentColor }]} />
+            <Text style={styles.switcherText} numberOfLines={1}>{activeName}</Text>
             <Ionicons name="checkmark" size={13} color={IOS_COLORS.tertiaryLabel} />
           </View>
         </View>
@@ -114,10 +165,71 @@ export function InspirationInterestStep({
           </View>
         ) : null}
 
+        <View style={styles.section}>
+          <Text style={styles.label}>ADD THIS PLAN TO</Text>
+          <View style={styles.destinationList}>
+            <Pressable
+              onPress={() => setSelectedExistingInterestId(null)}
+              style={[
+                styles.destinationCard,
+                !usingExistingInterest && styles.destinationCardActive,
+              ]}
+            >
+              <View style={styles.destinationCopy}>
+                <Text style={styles.destinationTitle}>Create a new interest</Text>
+                <Text style={styles.destinationSubtitle} numberOfLines={2}>
+                  {proposed.name}
+                </Text>
+              </View>
+              <View style={[
+                styles.destinationRadio,
+                !usingExistingInterest && styles.destinationRadioActive,
+              ]}>
+                {!usingExistingInterest ? (
+                  <Ionicons name="checkmark" size={12} color="#fff" />
+                ) : null}
+              </View>
+            </Pressable>
+
+            {rankedExistingInterests.map((interest) => {
+              const overlap = overlapMap.get(interest.slug);
+              const selected = selectedExistingInterestId === interest.id;
+              return (
+                <Pressable
+                  key={interest.id}
+                  onPress={() => setSelectedExistingInterestId(interest.id)}
+                  style={[
+                    styles.destinationCard,
+                    selected && styles.destinationCardActive,
+                  ]}
+                >
+                  <View style={styles.destinationLeading}>
+                    <View style={[styles.destinationDot, { backgroundColor: interest.accent_color }]} />
+                  </View>
+                  <View style={styles.destinationCopy}>
+                    <Text style={styles.destinationTitle}>{interest.name}</Text>
+                    <Text style={styles.destinationSubtitle} numberOfLines={2}>
+                      {overlap?.relevance || interest.description || 'Add this generated plan to your existing interest.'}
+                    </Text>
+                  </View>
+                  <View style={[
+                    styles.destinationRadio,
+                    selected && styles.destinationRadioActive,
+                  ]}>
+                    {selected ? (
+                      <Ionicons name="checkmark" size={12} color="#fff" />
+                    ) : null}
+                  </View>
+                </Pressable>
+              );
+            })}
+          </View>
+        </View>
+
         {/* ── Description ── */}
         <View style={styles.section}>
-          <Text style={styles.label}>ABOUT</Text>
-          {editingDescription ? (
+          <Text style={styles.label}>{usingExistingInterest ? 'CURRENT INTEREST' : 'ABOUT'}</Text>
+          {!usingExistingInterest && editingDescription ? (
             <TextInput
               style={styles.descInput}
               value={description}
@@ -128,53 +240,61 @@ export function InspirationInterestStep({
               textAlignVertical="top"
             />
           ) : (
-            <Pressable onPress={() => setEditingDescription(true)} style={styles.editableRow}>
-              <Text style={styles.descText}>{description}</Text>
-              <Ionicons name="pencil" size={12} color={IOS_COLORS.tertiaryLabel} style={styles.pencilIcon} />
-            </Pressable>
+            usingExistingInterest ? (
+              <View style={styles.selectedInterestCard}>
+                <Text style={styles.descText}>{activeDescription}</Text>
+              </View>
+            ) : (
+              <Pressable onPress={() => setEditingDescription(true)} style={styles.editableRow}>
+                <Text style={styles.descText}>{activeDescription}</Text>
+                <Ionicons name="pencil" size={12} color={IOS_COLORS.tertiaryLabel} style={styles.pencilIcon} />
+              </Pressable>
+            )
           )}
         </View>
 
         {/* ── Color ── */}
-        <View style={styles.section}>
-          <Text style={styles.label}>COLOR</Text>
-          <View style={styles.colorGrid}>
-            {!COLOR_OPTIONS.includes(aiSuggestedColor) && (
-              <Pressable
-                onPress={() => setAccentColor(aiSuggestedColor)}
-                style={[
-                  styles.swatch,
-                  { backgroundColor: aiSuggestedColor },
-                  accentColor === aiSuggestedColor && styles.swatchActive,
-                ]}
-              >
-                {accentColor === aiSuggestedColor ? (
-                  <Ionicons name="checkmark" size={14} color="#fff" />
-                ) : (
-                  <Ionicons name="sparkles" size={10} color="#fff" />
-                )}
-              </Pressable>
-            )}
-            {COLOR_OPTIONS.map((color) => (
-              <Pressable
-                key={color}
-                onPress={() => setAccentColor(color)}
-                style={[
-                  styles.swatch,
-                  { backgroundColor: color },
-                  accentColor === color && styles.swatchActive,
-                ]}
-              >
-                {accentColor === color && (
-                  <Ionicons name="checkmark" size={14} color="#fff" />
-                )}
-                {color === aiSuggestedColor && accentColor !== color && (
-                  <Ionicons name="sparkles" size={10} color="rgba(255,255,255,0.8)" />
-                )}
-              </Pressable>
-            ))}
+        {!usingExistingInterest && (
+          <View style={styles.section}>
+            <Text style={styles.label}>COLOR</Text>
+            <View style={styles.colorGrid}>
+              {!COLOR_OPTIONS.includes(aiSuggestedColor) && (
+                <Pressable
+                  onPress={() => setAccentColor(aiSuggestedColor)}
+                  style={[
+                    styles.swatch,
+                    { backgroundColor: aiSuggestedColor },
+                    accentColor === aiSuggestedColor && styles.swatchActive,
+                  ]}
+                >
+                  {accentColor === aiSuggestedColor ? (
+                    <Ionicons name="checkmark" size={14} color="#fff" />
+                  ) : (
+                    <Ionicons name="sparkles" size={10} color="#fff" />
+                  )}
+                </Pressable>
+              )}
+              {COLOR_OPTIONS.map((color) => (
+                <Pressable
+                  key={color}
+                  onPress={() => setAccentColor(color)}
+                  style={[
+                    styles.swatch,
+                    { backgroundColor: color },
+                    accentColor === color && styles.swatchActive,
+                  ]}
+                >
+                  {accentColor === color && (
+                    <Ionicons name="checkmark" size={14} color="#fff" />
+                  )}
+                  {color === aiSuggestedColor && accentColor !== color && (
+                    <Ionicons name="sparkles" size={10} color="rgba(255,255,255,0.8)" />
+                  )}
+                </Pressable>
+              ))}
+            </View>
           </View>
-        </View>
+        )}
 
         {/* ── Overlaps ── */}
         {overlaps.length > 0 && (
@@ -221,12 +341,14 @@ export function InspirationInterestStep({
       </ScrollView>
 
       {/* ── Footer ── */}
-      <View style={styles.footer}>
+        <View style={styles.footer}>
         <Pressable
           onPress={handleContinue}
-          style={[styles.cta, { backgroundColor: accentColor }]}
+          style={[styles.cta, { backgroundColor: activeAccentColor }]}
         >
-          <Text style={styles.ctaText}>Looks Good</Text>
+          <Text style={styles.ctaText}>
+            {usingExistingInterest ? 'Use This Interest' : 'Looks Good'}
+          </Text>
           <Ionicons name="arrow-forward" size={18} color="#fff" />
         </Pressable>
       </View>
@@ -327,6 +449,62 @@ const styles = StyleSheet.create({
   section: {
     marginBottom: 24,
   },
+  destinationList: {
+    gap: 10,
+  },
+  destinationCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: IOS_COLORS.separator,
+    backgroundColor: IOS_COLORS.secondarySystemGroupedBackground,
+  },
+  destinationCardActive: {
+    borderColor: IOS_COLORS.systemBlue,
+    backgroundColor: `${IOS_COLORS.systemBlue}0D`,
+  },
+  destinationLeading: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  destinationDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+  },
+  destinationCopy: {
+    flex: 1,
+    minWidth: 0,
+  },
+  destinationTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: IOS_COLORS.label,
+  },
+  destinationSubtitle: {
+    marginTop: 2,
+    fontSize: 13,
+    lineHeight: 18,
+    color: IOS_COLORS.secondaryLabel,
+  },
+  destinationRadio: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 1.5,
+    borderColor: IOS_COLORS.separator,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: IOS_COLORS.systemBackground,
+  },
+  destinationRadioActive: {
+    backgroundColor: IOS_COLORS.systemBlue,
+    borderColor: IOS_COLORS.systemBlue,
+  },
   label: {
     fontSize: 11,
     fontWeight: '700',
@@ -351,6 +529,13 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: IOS_COLORS.systemBlue,
     minHeight: 64,
+  },
+  selectedInterestCard: {
+    padding: 12,
+    borderRadius: 12,
+    backgroundColor: IOS_COLORS.secondarySystemGroupedBackground,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: IOS_COLORS.separator,
   },
 
   // ── Color ──

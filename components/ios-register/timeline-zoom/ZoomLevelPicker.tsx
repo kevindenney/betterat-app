@@ -39,6 +39,10 @@ interface ZoomLevelPickerProps {
   onSnapToCurrent?: () => void;
   /** Distance from the right edge in pt. */
   rightOffset?: number;
+  /** Persona-native noun for the L3 scope ("arc", "rotation", "season")
+   *  — substituted into the L3 screen-reader label so it matches the
+   *  visible header vocab. */
+  periodNoun?: string;
 }
 
 const RAIL_ORDER: ZoomLevel[] = [4, 3, 2, 1];
@@ -90,10 +94,12 @@ function RailSegment({
   level,
   active,
   onPress,
+  scopeLabel,
 }: {
   level: ZoomLevel;
   active: boolean;
   onPress: () => void;
+  scopeLabel: string;
 }) {
   const scale = useSharedValue(active ? 1 : 0.88);
 
@@ -115,7 +121,7 @@ function RailSegment({
       onPress={onPress}
       accessibilityRole="tab"
       accessibilityState={{ selected: active }}
-      accessibilityLabel={ZOOM_LEVEL_SCOPE_LABELS[level]}
+      accessibilityLabel={scopeLabel}
       style={({ pressed }) => [
         styles.segment,
         active && styles.segmentActive,
@@ -134,7 +140,10 @@ export function ZoomLevelPicker({
   onChange,
   onSnapToCurrent,
   rightOffset = 10,
+  periodNoun = 'arc',
 }: ZoomLevelPickerProps) {
+  const scopeLabelFor = (l: ZoomLevel) =>
+    l === 3 ? `Current ${periodNoun}` : ZOOM_LEVEL_SCOPE_LABELS[l];
   const handlePress = (target: ZoomLevel) => {
     if (target === level) {
       if (target === 1 && onSnapToCurrent) {
@@ -160,6 +169,7 @@ export function ZoomLevelPicker({
             level={l}
             active={l === level}
             onPress={() => handlePress(l)}
+            scopeLabel={scopeLabelFor(l)}
           />
         ))}
       </View>

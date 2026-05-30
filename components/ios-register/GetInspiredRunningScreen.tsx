@@ -115,46 +115,50 @@ export function GetInspiredRunningScreen({
           contentContainerStyle={styles.body}
           showsVerticalScrollIndicator={false}
         >
-          <View style={styles.header}>
-            <View style={styles.sparkleWrap}>
-              <View style={styles.sparkleHalo} />
-              <View style={styles.sparkle}>
-                <Ionicons
-                  name="sparkles"
-                  size={24}
-                  color={IOS_REGISTER.accentMarkedContent}
-                />
+          <View style={styles.topStack}>
+            <View style={styles.header}>
+              <View style={styles.sparkleWrap}>
+                <View style={styles.sparkleHalo} />
+                <View style={styles.sparkle}>
+                  <Ionicons
+                    name="sparkles"
+                    size={24}
+                    color={IOS_REGISTER.accentMarkedContent}
+                  />
+                </View>
               </View>
-            </View>
-            <Text style={styles.title}>Building your plan</Text>
-            <Text style={styles.subtitle}>
-              Reading what you sent and turning it into something you can
-              practice.
-            </Text>
-          </View>
-
-          <View style={styles.submitted}>
-            <View style={styles.submittedIco}>
-              <Ionicons
-                name="document-text-outline"
-                size={16}
-                color={IOS_REGISTER.labelSecondary}
-              />
-            </View>
-            <View style={styles.submittedMeta}>
-              <Text style={styles.submittedTop}>From your link</Text>
-              <Text style={styles.submittedUrl} numberOfLines={1}>
-                {submittedUrl}
+              <Text style={styles.title}>Building your plan</Text>
+              <Text style={styles.subtitle}>
+                Reading what you sent and turning it into something you can
+                practice.
               </Text>
             </View>
+
+            <View style={styles.submitted}>
+              <View style={styles.submittedIco}>
+                <Ionicons
+                  name="document-text-outline"
+                  size={16}
+                  color={IOS_REGISTER.labelSecondary}
+                />
+              </View>
+              <View style={styles.submittedMeta}>
+                <Text style={styles.submittedTop}>From your link</Text>
+                <Text style={styles.submittedUrl} numberOfLines={1}>
+                  {submittedUrl}
+                </Text>
+              </View>
+            </View>
           </View>
 
-          <LoadingNarration
-            microLabel="Working on this"
-            lines={[...GET_INSPIRED_NARRATION_LINES]}
-            activeIndex={resolvedIndex}
-            stepMeta={`Step ${resolvedIndex + 1} of ${GET_INSPIRED_NARRATION_LINES.length}`}
-          />
+          <View style={styles.progressCard}>
+            <LoadingNarration
+              microLabel="Working on this"
+              lines={[...GET_INSPIRED_NARRATION_LINES]}
+              activeIndex={resolvedIndex}
+              stepMeta={`Step ${resolvedIndex + 1} of ${GET_INSPIRED_NARRATION_LINES.length}`}
+            />
+          </View>
         </ScrollView>
 
         <View style={styles.footer}>
@@ -217,22 +221,27 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(60, 60, 67, 0.30)',
   },
   sheetChrome: {
-    height: 24,
+    height: 12,
   },
   body: {
+    flexGrow: 1,
     paddingHorizontal: 20,
-    paddingTop: 12,
+    paddingTop: 10,
     paddingBottom: 24,
+    gap: 16,
+  },
+  topStack: {
+    gap: 16,
   },
   // ----- header -----
   header: {
-    paddingHorizontal: 4,
-    paddingBottom: 24,
+    paddingHorizontal: 6,
+    paddingBottom: 2,
   },
   sparkleWrap: {
     width: 44,
     height: 44,
-    marginBottom: 18,
+    marginBottom: 14,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -253,23 +262,22 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   title: {
-    fontSize: 28,
+    fontSize: 26,
     fontWeight: '400',
-    lineHeight: 33,
-    letterSpacing: -0.42,
+    lineHeight: 31,
+    letterSpacing: -0.5,
     color: IOS_REGISTER.label,
-    marginBottom: 10,
+    marginBottom: 8,
   },
   subtitle: {
-    fontSize: 17,
-    lineHeight: 24,
+    fontSize: 16,
+    lineHeight: 23,
     letterSpacing: -0.34,
     color: IOS_REGISTER.labelSecondary,
   },
   // ----- submitted link card -----
   submitted: {
     marginTop: 4,
-    marginBottom: 24,
     paddingVertical: 12,
     paddingHorizontal: 14,
     backgroundColor: IOS_REGISTER.cardBg,
@@ -293,6 +301,16 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: 0,
   },
+  progressCard: {
+    marginTop: 6,
+    backgroundColor: 'rgba(255, 255, 255, 0.88)',
+    borderRadius: 22,
+    paddingHorizontal: 18,
+    paddingTop: 18,
+    paddingBottom: 14,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(60, 60, 67, 0.10)',
+  },
   submittedTop: {
     fontSize: 10.5,
     fontWeight: '600',
@@ -309,8 +327,11 @@ const styles = StyleSheet.create({
   // ----- footer -----
   footer: {
     paddingHorizontal: 20,
-    paddingTop: 18,
-    paddingBottom: 28,
+    paddingTop: 12,
+    paddingBottom: 20,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: IOS_REGISTER.separator,
+    backgroundColor: 'rgba(248, 248, 250, 0.92)',
   },
   runningFoot: {
     paddingHorizontal: 4,

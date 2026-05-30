@@ -23,15 +23,35 @@ import {
 import { showAlert } from '@/lib/utils/crossPlatformAlert';
 import type { PlaybookConceptRecord } from '@/types/playbook';
 
+type EditorBaseProps = {
+  onClose: () => void;
+  onSaved?: (concept: PlaybookConceptRecord) => void;
+};
+
 type EditorMode =
-  | { mode: 'create'; playbookId: string; interestId: string; onClose: () => void }
-  | { mode: 'edit'; concept: PlaybookConceptRecord; playbookId: string; onClose: () => void };
+  | {
+      mode: 'create';
+      playbookId: string;
+      interestId: string;
+      initialTitle?: string;
+      initialBodyMd?: string;
+      saveLabel?: string;
+    } & EditorBaseProps
+  | {
+      mode: 'edit';
+      concept: PlaybookConceptRecord;
+      playbookId: string;
+    } & EditorBaseProps;
 
 export function ConceptEditor(props: EditorMode) {
   const { onClose } = props;
   const existing = props.mode === 'edit' ? props.concept : null;
-  const [title, setTitle] = useState(existing?.title ?? '');
-  const [bodyMd, setBodyMd] = useState(existing?.body_md ?? '');
+  const [title, setTitle] = useState(
+    props.mode === 'create' ? props.initialTitle ?? '' : existing?.title ?? '',
+  );
+  const [bodyMd, setBodyMd] = useState(
+    props.mode === 'create' ? props.initialBodyMd ?? '' : existing?.body_md ?? '',
+  );
   const create = useCreatePlaybookConcept();
   const update = useUpdatePlaybookConcept();
   const saving = create.isPending || update.isPending;
@@ -44,13 +64,14 @@ export function ConceptEditor(props: EditorMode) {
     }
     try {
       if (props.mode === 'edit') {
-        await update.mutateAsync({
+        const saved = await update.mutateAsync({
           conceptId: existing!.id,
           playbookId: props.playbookId,
           input: { title: trimmedTitle, body_md: bodyMd },
         });
+        props.onSaved?.(saved);
       } else {
-        await create.mutateAsync({
+        const saved = await create.mutateAsync({
           playbook_id: props.playbookId,
           origin: 'personal',
           interest_id: props.interestId,
@@ -58,6 +79,7 @@ export function ConceptEditor(props: EditorMode) {
           title: trimmedTitle,
           body_md: bodyMd,
         });
+        props.onSaved?.(saved);
       }
       onClose();
     } catch (err) {
@@ -114,7 +136,9 @@ export function ConceptEditor(props: EditorMode) {
                 pressed && !saving && styles.pressed,
               ]}
             >
-              <Text style={styles.saveText}>{saving ? 'Saving…' : 'Save'}</Text>
+              <Text style={styles.saveText}>
+                {saving ? 'Saving…' : props.mode === 'create' ? props.saveLabel ?? 'Save' : 'Save'}
+              </Text>
             </Pressable>
           </View>
         </View>

@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   Image,
   Linking,
+  Platform,
   ScrollView,
   Share,
   StyleSheet,
@@ -25,6 +26,9 @@ import {
 import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
 import { showAlert } from '@/lib/utils/crossPlatformAlert';
 import { FLOATING_TAB_BAR_HEIGHT } from '@/components/navigation/FloatingTabBar';
+import { ConceptEditor } from '@/components/playbook/concepts/ConceptEditor';
+import { useInterest } from '@/providers/InterestProvider';
+import { usePlaybook } from '@/hooks/usePlaybook';
 import { FORMAT_ICON, FORMAT_TINT } from './formatStyles';
 import { DEMO_LIBRARY_ITEMS } from './demoItems';
 import { InterestTagRow } from './InterestTagRow';
@@ -69,6 +73,78 @@ function handleBackRefPress(ref: BackRefRow) {
   );
 }
 
+function truncateDraftTitle(text: string): string {
+  const compact = text.replace(/\s+/g, ' ').trim();
+  if (compact.length <= 72) return compact;
+  return `${compact.slice(0, 69).trimEnd()}...`;
+}
+
+function buildConceptDraft(item: ResourceItemFull) {
+  const firstMark = item.marks[0];
+  const title = firstMark?.quote
+    ? truncateDraftTitle(firstMark.quote)
+    : truncateDraftTitle(item.title);
+  const lines = [
+    firstMark?.quote ? `> ${firstMark.quote}` : null,
+    '',
+    '## Source',
+    `- ${item.title}`,
+    item.sourceLine ? `- ${item.sourceLine}` : null,
+    item.url ? `- ${item.url}` : null,
+    firstMark?.prov ? `- Mark: ${firstMark.prov}` : null,
+    '',
+    '## Working note',
+    'What this changes in my practice:',
+  ].filter((line): line is string => line !== null);
+
+  return {
+    title,
+    bodyMd: lines.join('\n'),
+  };
+}
+
+function getYouTubeVideoId(url: string | null): string | null {
+  if (!url) return null;
+  try {
+    const parsed = new URL(url);
+    const host = parsed.hostname.replace(/^www\./, '').toLowerCase();
+    if (host === 'youtu.be') {
+      return parsed.pathname.split('/').filter(Boolean)[0] ?? null;
+    }
+    if (host.endsWith('youtube.com')) {
+      if (parsed.pathname === '/watch') return parsed.searchParams.get('v');
+      const parts = parsed.pathname.split('/').filter(Boolean);
+      if (parts[0] === 'embed' || parts[0] === 'shorts' || parts[0] === 'v') {
+        return parts[1] ?? null;
+      }
+    }
+  } catch {
+    return null;
+  }
+  return null;
+}
+
+function YouTubeEmbed({ videoId, title }: { videoId: string; title: string }) {
+  const src = `https://www.youtube.com/embed/${videoId}?rel=0&modestbranding=1`;
+  return (
+    <View style={styles.youtubeEmbed}>
+      {React.createElement('iframe' as any, {
+        src,
+        title,
+        allow:
+          'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share',
+        allowFullScreen: true,
+        style: {
+          width: '100%',
+          height: '100%',
+          border: 0,
+          display: 'block',
+        },
+      })}
+    </View>
+  );
+}
+
 interface Props {
   item: ResourceItemFull;
 }
@@ -77,8 +153,14 @@ export function ResourceItemDetail({ item }: Props) {
   const insets = useSafeAreaInsets();
   const tint = FORMAT_TINT[item.format];
   const isDemoItem = item.id in DEMO_LIBRARY_ITEMS;
+  const { currentInterest } = useInterest();
+  const { data: playbook } = usePlaybook(currentInterest?.id);
   const updateItem = useUpdateLibraryItem(item.id);
   const deleteItem = useDeleteLibraryItem();
+  const [conceptEditorOpen, setConceptEditorOpen] = useState(false);
+  const conceptDraft = useMemo(() => buildConceptDraft(item), [item]);
+  const youtubeVideoId = useMemo(() => getYouTubeVideoId(item.url), [item.url]);
+  const showEmbeddedYouTube = Platform.OS === 'web' && item.format === 'video' && !!youtubeVideoId;
 
   const handleRead = async () => {
     if (!item.url) {
@@ -194,6 +276,17 @@ export function ResourceItemDetail({ item }: Props) {
     ]);
   };
 
+  const handleCiteAsOrigin = () => {
+    if (!currentInterest?.id || !playbook?.id) {
+      showAlert(
+        'Concept developer unavailable',
+        'Your playbook is still loading. Try again in a moment.',
+      );
+      return;
+    }
+    setConceptEditorOpen(true);
+  };
+
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <View style={styles.topbar}>
@@ -242,39 +335,45 @@ export function ResourceItemDetail({ item }: Props) {
           <Text style={styles.sourceLine}>{item.sourceLine}</Text>
         </View>
 
-        <View style={styles.preview}>
-          {item.thumbUrl ? (
+        <View style={[styles.preview, showEmbeddedYouTube && styles.videoPreview]}>
+          {showEmbeddedYouTube ? (
+            <YouTubeEmbed videoId={youtubeVideoId!} title={item.title} />
+          ) : item.thumbUrl ? (
             <Image
               source={{ uri: item.thumbUrl }}
               style={styles.previewImage}
-              resizeMode="cover"
+              resizeMode={item.format === 'video' ? 'contain' : 'cover'}
             />
           ) : null}
-          <View style={[styles.previewSpine, { backgroundColor: tint }]} />
-          <View
-            style={[
-              styles.previewStampPill,
-              item.thumbUrl ? styles.previewStampOverImage : null,
-            ]}
-          >
-            <Text
-              style={[
-                styles.previewStamp,
-                item.thumbUrl ? styles.previewStampOnImage : null,
-              ]}
-            >
-              {item.formatLabel.toUpperCase()}
-            </Text>
-          </View>
-          {item.meta ? (
-            <Text
-              style={[
-                styles.previewPage,
-                item.thumbUrl ? styles.previewPageOnImage : null,
-              ]}
-            >
-              {item.meta}
-            </Text>
+          {!showEmbeddedYouTube ? (
+            <>
+              <View style={[styles.previewSpine, { backgroundColor: tint }]} />
+              <View
+                style={[
+                  styles.previewStampPill,
+                  item.thumbUrl ? styles.previewStampOverImage : null,
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.previewStamp,
+                    item.thumbUrl ? styles.previewStampOnImage : null,
+                  ]}
+                >
+                  {item.formatLabel.toUpperCase()}
+                </Text>
+              </View>
+              {item.meta ? (
+                <Text
+                  style={[
+                    styles.previewPage,
+                    item.thumbUrl ? styles.previewPageOnImage : null,
+                  ]}
+                >
+                  {item.meta}
+                </Text>
+              ) : null}
+            </>
           ) : null}
         </View>
 
@@ -335,7 +434,7 @@ export function ResourceItemDetail({ item }: Props) {
         <TouchableOpacity
           activeOpacity={0.7}
           style={styles.citeRow}
-          onPress={() => comingSoon('Cite as origin')}
+          onPress={handleCiteAsOrigin}
         >
           <View style={styles.citeIc}>
             <Ionicons name="sparkles" size={16} color="#5C2DAA" />
@@ -354,6 +453,20 @@ export function ResourceItemDetail({ item }: Props) {
         </TouchableOpacity>
 
       </ScrollView>
+      {conceptEditorOpen && currentInterest?.id && playbook?.id ? (
+        <ConceptEditor
+          mode="create"
+          playbookId={playbook.id}
+          interestId={currentInterest.id}
+          initialTitle={conceptDraft.title}
+          initialBodyMd={conceptDraft.bodyMd}
+          saveLabel="Create concept"
+          onClose={() => setConceptEditorOpen(false)}
+          onSaved={(concept) => {
+            router.push(`/(tabs)/library/concept/${concept.id}` as never);
+          }}
+        />
+      ) : null}
     </View>
   );
 }
@@ -478,13 +591,21 @@ const styles = StyleSheet.create({
   preview: {
     marginHorizontal: IOS_SPACING.lg,
     marginTop: IOS_SPACING.md,
-    height: 160,
+    aspectRatio: 16 / 9,
     backgroundColor: '#FAFAF7',
     borderRadius: 14,
     borderWidth: 0.5,
     borderColor: 'rgba(60,60,67,0.18)',
     padding: 18,
     overflow: 'hidden',
+  },
+  videoPreview: {
+    padding: 0,
+    backgroundColor: '#000000',
+  },
+  youtubeEmbed: {
+    flex: 1,
+    backgroundColor: '#000000',
   },
   previewSpine: {
     position: 'absolute',

@@ -40,7 +40,7 @@ function demoPersonaRedirect(meta: Record<string, unknown> | null | undefined): 
 // so the hash will sit unprocessed on the marketing landing forever. Forward
 // it to the manual hash-parser at /(auth)/callback.
 function forwardImplicitTokenHash(): boolean {
-  if (typeof window === 'undefined') return false;
+  if (Platform.OS !== 'web' || typeof window === 'undefined' || !window.location) return false;
   const hash = window.location.hash || '';
   if (!hash.startsWith('#') || !hash.includes('access_token=')) return false;
   window.location.replace(`/callback${hash}`);

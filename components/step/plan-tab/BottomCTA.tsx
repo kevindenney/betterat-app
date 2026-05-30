@@ -2,7 +2,7 @@
  * <BottomCTA> — reusable footer CTA wrapper for StepCard's footer slot.
  *
  * Phase 1 · iOS register · D3. Active state ships the user to the next
- * phase ("Next: Start Doing →"); disabled state shows a centered hint line
+ * phase ("Next: Do →"); disabled state shows a centered hint line
  * underneath ("Add a what to enable").
  *
  * Canonical: docs/redesign/ios-register/step-loop-integration-canonical.html

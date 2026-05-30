@@ -20,6 +20,7 @@ import { showAlert } from '@/lib/utils/crossPlatformAlert';
 import type {
   InspirationExtraction,
   InspirationBlueprintStep,
+  InspirationInterestReview,
   ProposedInterest,
   InspirationContentType,
 } from '@/types/inspiration';
@@ -43,6 +44,7 @@ export function InspirationWizard({ visible, onClose }: InspirationWizardProps) 
   const [step, setStep] = useState<WizardStep>('capture');
   const [extraction, setExtraction] = useState<InspirationExtraction | null>(null);
   const [interestEdits, setInterestEdits] = useState<Partial<ProposedInterest>>({});
+  const [selectedExistingInterestId, setSelectedExistingInterestId] = useState<string | null>(null);
   const [sourceContent, setSourceContent] = useState('');
   const [sourceContentType, setSourceContentType] = useState<InspirationContentType>('url');
   const [activating, setActivating] = useState(false);
@@ -70,6 +72,7 @@ export function InspirationWizard({ visible, onClose }: InspirationWizardProps) 
     setStep('capture');
     setExtraction(null);
     setInterestEdits({});
+    setSelectedExistingInterestId(null);
     setSourceContent('');
     setSourceContentType('url');
     setActivating(false);
@@ -89,8 +92,9 @@ export function InspirationWizard({ visible, onClose }: InspirationWizardProps) 
   );
 
   // Step 2 → Step 3: Interest reviewed
-  const handleInterestReviewed = useCallback((edits: Partial<ProposedInterest>) => {
-    setInterestEdits(edits);
+  const handleInterestReviewed = useCallback((review: InspirationInterestReview) => {
+    setInterestEdits(review.interestEdits);
+    setSelectedExistingInterestId(review.selectedExistingInterestId);
     setStep('review-blueprint');
   }, []);
 
@@ -107,6 +111,7 @@ export function InspirationWizard({ visible, onClose }: InspirationWizardProps) 
             userId: user.id,
             extraction,
             interestEdits,
+            selectedExistingInterestId,
             editedSteps: steps,
             sourceContent,
             sourceContentType,
@@ -129,7 +134,7 @@ export function InspirationWizard({ visible, onClose }: InspirationWizardProps) 
         setActivating(false);
       }
     },
-    [extraction, user?.id, interestEdits, sourceContent, sourceContentType, proposeInterest],
+    [extraction, user?.id, interestEdits, selectedExistingInterestId, sourceContent, sourceContentType, proposeInterest],
   );
 
   const handleBack = useCallback(() => {
@@ -151,7 +156,16 @@ export function InspirationWizard({ visible, onClose }: InspirationWizardProps) 
       <View style={styles.container}>
         {/* Header — paddingTop respects the top safe-area inset so Cancel
             stays tappable below the status bar / notch on Android. */}
-        <View style={[styles.header, { paddingTop: insets.top + IOS_SPACING.m }]}>
+        <View
+          style={[
+            styles.header,
+            {
+              paddingTop: Math.max(insets.top, IOS_SPACING.s) + IOS_SPACING.s,
+              paddingLeft: IOS_SPACING.m + insets.left,
+              paddingRight: IOS_SPACING.m + insets.right,
+            },
+          ]}
+        >
           {canGoBack ? (
             <Pressable onPress={handleBack} style={styles.headerButton}>
               <Ionicons name="chevron-back" size={20} color={IOS_COLORS.systemBlue} />
@@ -184,7 +198,9 @@ export function InspirationWizard({ visible, onClose }: InspirationWizardProps) 
         {step === 'review-interest' && extraction && (
           <InspirationInterestStep
             extraction={extraction}
+            userInterests={userInterests}
             initialEdits={interestEdits}
+            initialSelectedExistingInterestId={selectedExistingInterestId}
             onComplete={handleInterestReviewed}
           />
         )}
@@ -219,7 +235,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: IOS_SPACING.m,
     paddingTop: IOS_SPACING.m,
-    paddingBottom: IOS_SPACING.s,
+    paddingBottom: IOS_SPACING.m,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: IOS_COLORS.separator,
   },
@@ -227,11 +243,14 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontWeight: '600',
     color: IOS_COLORS.label,
+    flex: 1,
+    textAlign: 'center',
   },
   headerButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    minWidth: 60,
+    minWidth: 72,
+    minHeight: 32,
   },
   headerButtonText: {
     fontSize: 17,

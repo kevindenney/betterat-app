@@ -80,6 +80,8 @@ export interface TimelineStep {
   whyReasoning?: string;
   whenLabel?: string;
   howItems?: StepHowItem[];
+  /** Number of library resources already linked to this step plan. */
+  linkedResourceCount?: number;
   /** L2 done-card digest — the reflection's distilled headline (review.key_takeaway). */
   keyTakeaway?: string;
   /** L2 done-card digest — lead reflection line (what you learned / what worked). */

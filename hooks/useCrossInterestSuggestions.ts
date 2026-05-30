@@ -52,7 +52,7 @@ export function useCrossInterestSuggestions(
 
       return generateCrossInterestSuggestions({
         currentInterestName: currentInterest?.name || 'this interest',
-        stepTitle: step.title,
+        stepTitle: step.title ?? 'Untitled step',
         currentWhat: planData.what_will_you_do?.trim() || undefined,
         capabilityGoals: planData.capability_goals ?? [],
         crossContext,

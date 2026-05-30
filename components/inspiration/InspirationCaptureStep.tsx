@@ -64,6 +64,7 @@ interface GetInspiredErrorViewState {
 }
 
 type CaptureMode = 'url' | 'text' | 'description';
+type DescriptionPromptField = 'Why' | 'How' | 'When' | 'Where';
 
 const MODES: { key: CaptureMode; label: string; icon: React.ComponentProps<typeof Ionicons>['name'] }[] = [
   { key: 'url', label: 'Link', icon: 'link' },
@@ -88,6 +89,14 @@ const HERO: Record<CaptureMode, { icon: React.ComponentProps<typeof Ionicons>['n
     subtitle: 'Tell us about the activity, competition, or skill you want to pursue.',
   },
 };
+
+const URL_EXAMPLES = [
+  { label: 'Example article', value: 'https://sailingworld.com/leeward-mark-approaches' },
+  { label: 'Example YouTube', value: 'https://youtube.com/watch?v=heavy-air-starts' },
+  { label: 'Example Instagram', value: 'https://instagram.com/p/northsails-main-trim' },
+] as const;
+
+const DESCRIPTION_FIELDS: readonly DescriptionPromptField[] = ['Why', 'How', 'When', 'Where'] as const;
 
 // Canonical error-variant copy per GET_INSPIRED_COMMIT_3_ABORT_SEMANTICS.md.
 // Mirrors the three variants in app/error-state-ios.tsx; the only Get-
@@ -285,6 +294,15 @@ export function InspirationCaptureStep({
     setErrorState(null);
   }, []);
 
+  const insertDescriptionField = useCallback((field: DescriptionPromptField) => {
+    const template = `${field}: `;
+    setInputValue((prev) => {
+      if (!prev.trim()) return template;
+      if (prev.includes(template)) return prev;
+      return `${prev.trimEnd()}\n${template}`;
+    });
+  }, []);
+
   // Error-state early return (highest priority). Flag-on only — flag-off
   // errors still surface via showAlert in the catch arm above.
   if (errorState && FEATURE_FLAGS.GET_INSPIRED_IOS_REGISTER) {
@@ -354,107 +372,155 @@ export function InspirationCaptureStep({
       contentContainerStyle={styles.content}
       keyboardShouldPersistTaps="handled"
     >
-      {/* Hero */}
-      <View style={styles.hero}>
-        <Ionicons
-          name={hero.icon}
-          size={36}
-          color={IOS_COLORS.systemBlue}
-        />
+      <View style={styles.heroCard}>
+        <View style={styles.heroBadge}>
+          <Ionicons
+            name={hero.icon}
+            size={26}
+            color={IOS_COLORS.systemBlue}
+          />
+        </View>
         <Text style={styles.heroTitle}>{hero.title}</Text>
         <Text style={styles.heroSubtitle}>{hero.subtitle}</Text>
       </View>
 
-      {/* Mode selector */}
-      <View style={styles.modeRow}>
-        {MODES.map((m) => (
-          <Pressable
-            key={m.key}
-            onPress={() => { setMode(m.key); setInputValue(''); }}
-            style={[styles.modePill, mode === m.key && styles.modePillActive]}
-          >
-            <Ionicons
-              name={m.icon}
-              size={14}
-              color={mode === m.key ? IOS_COLORS.systemBlue : IOS_COLORS.secondaryLabel}
-            />
-            <Text
-              style={[styles.modePillText, mode === m.key && styles.modePillTextActive]}
-            >
-              {m.label}
-            </Text>
-          </Pressable>
-        ))}
-      </View>
-
-      {/* Input */}
-      {mode === 'url' && (
-        <>
-          <Text style={styles.label}>URL</Text>
-          <TextInput
-            style={styles.input}
-            value={inputValue}
-            onChangeText={setInputValue}
-            placeholder="https://example.com/inspiring-article"
-            placeholderTextColor={IOS_COLORS.tertiaryLabel}
-            autoCapitalize="none"
-            autoCorrect={false}
-            keyboardType="url"
-            editable={!loading}
-          />
-        </>
-      )}
-
-      {mode === 'text' && (
-        <>
-          <Text style={styles.label}>PASTED CONTENT</Text>
-          <TextInput
-            style={[styles.input, styles.textArea]}
-            value={inputValue}
-            onChangeText={setInputValue}
-            placeholder="Paste the article, newsletter excerpt, or social post here..."
-            placeholderTextColor={IOS_COLORS.tertiaryLabel}
-            multiline
-            textAlignVertical="top"
-            editable={!loading}
-          />
-        </>
-      )}
-
-      {mode === 'description' && (
-        <>
-          <Text style={styles.label}>WHAT INSPIRES YOU?</Text>
-          <TextInput
-            style={[styles.input, styles.textArea]}
-            value={inputValue}
-            onChangeText={setInputValue}
-            placeholder="I want to compete in an outdoor adventure competition that involves compass navigation, knot tying, off-road driving, and fitness challenges..."
-            placeholderTextColor={IOS_COLORS.tertiaryLabel}
-            multiline
-            textAlignVertical="top"
-            editable={!loading}
-          />
-        </>
-      )}
-
-      {/* Analyze button */}
-      <Pressable
-        onPress={handleAnalyze}
-        disabled={isDisabled}
-        style={[styles.analyzeButton, isDisabled && styles.analyzeButtonDisabled]}
-      >
-        {loading ? (
-          <View style={styles.loadingRow}>
-            <ActivityIndicator size="small" color="#fff" />
-            <Text style={styles.analyzeButtonText}>{loadingMessage}</Text>
+      <View style={styles.captureCard}>
+        <View style={styles.captureTop}>
+          <View style={styles.modeCard}>
+            <View style={styles.modeRow}>
+              {MODES.map((m) => (
+                <Pressable
+                  key={m.key}
+                  onPress={() => { setMode(m.key); setInputValue(''); }}
+                  style={[styles.modePill, mode === m.key && styles.modePillActive]}
+                >
+                  <Ionicons
+                    name={m.icon}
+                    size={14}
+                    color={mode === m.key ? IOS_COLORS.systemBlue : IOS_COLORS.secondaryLabel}
+                  />
+                  <Text
+                    style={[styles.modePillText, mode === m.key && styles.modePillTextActive]}
+                  >
+                    {m.label}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
           </View>
-        ) : (
-          <>
-            <Ionicons name="sparkles" size={18} color="#fff" />
-            <Text style={styles.analyzeButtonText}>Analyze &amp; Build Plan</Text>
-          </>
-        )}
-      </Pressable>
+
+          {mode === 'url' && (
+            <>
+              <Text style={styles.label}>LINK</Text>
+              <Text style={styles.helperText}>
+                Best for an article, video, or post with concrete material to learn from.
+              </Text>
+              <TextInput
+                style={styles.input}
+                value={inputValue}
+                onChangeText={setInputValue}
+                placeholder="https://example.com/inspiring-article"
+                placeholderTextColor={IOS_COLORS.tertiaryLabel}
+                autoCapitalize="none"
+                autoCorrect={false}
+                keyboardType="url"
+                editable={!loading}
+              />
+              <Text style={styles.examplesLabel}>QUICK EXAMPLES</Text>
+              <Text style={styles.examplesHelperText}>
+                These just fill the field with sample links so you can test the flow or see what kind of source works best.
+              </Text>
+              <View style={styles.exampleRow}>
+                {URL_EXAMPLES.map((example) => (
+                  <Pressable
+                    key={example.label}
+                    onPress={() => setInputValue(example.value)}
+                    style={styles.exampleChip}
+                  >
+                    <Text style={styles.exampleChipText}>{example.label}</Text>
+                  </Pressable>
+                ))}
+              </View>
+            </>
+          )}
+
+          {mode === 'text' && (
+            <>
+              <Text style={styles.label}>PASTED CONTENT</Text>
+              <Text style={styles.helperText}>
+                Paste the exact excerpt you want BetterAt to unpack into a plan.
+              </Text>
+              <TextInput
+                style={[styles.input, styles.textArea]}
+                value={inputValue}
+                onChangeText={setInputValue}
+                placeholder="Paste the article, newsletter excerpt, or social post here..."
+                placeholderTextColor={IOS_COLORS.tertiaryLabel}
+                multiline
+                textAlignVertical="top"
+                editable={!loading}
+              />
+            </>
+          )}
+
+          {mode === 'description' && (
+            <>
+              <Text style={styles.label}>DESCRIBE IT</Text>
+              <Text style={styles.helperText}>
+                If you do not have a source yet, describe it using the same fields your steps already use.
+              </Text>
+              <View style={styles.exampleRow}>
+                {DESCRIPTION_FIELDS.map((field) => (
+                  <Pressable
+                    key={field}
+                    onPress={() => insertDescriptionField(field)}
+                    style={styles.exampleChip}
+                  >
+                    <Text style={styles.exampleChipText}>{field}</Text>
+                  </Pressable>
+                ))}
+              </View>
+              <TextInput
+                style={[styles.input, styles.textArea]}
+                value={inputValue}
+                onChangeText={setInputValue}
+                placeholder="Why: \nHow: \nWhen: \nWhere: "
+                placeholderTextColor={IOS_COLORS.tertiaryLabel}
+                multiline
+                textAlignVertical="top"
+                editable={!loading}
+              />
+            </>
+          )}
+        </View>
+
+        <View style={styles.captureBottom}>
+          <View style={styles.promiseCard}>
+            <Ionicons name="sparkles-outline" size={16} color={IOS_COLORS.systemBlue} />
+            <Text style={styles.promiseText}>
+              BetterAt will propose an interest, outline the first steps, and turn the source into a usable plan.
+            </Text>
+          </View>
+
+          <Pressable
+            onPress={handleAnalyze}
+            disabled={isDisabled}
+            style={[styles.analyzeButton, isDisabled && styles.analyzeButtonDisabled]}
+          >
+            {loading ? (
+              <View style={styles.loadingRow}>
+                <ActivityIndicator size="small" color="#fff" />
+                <Text style={styles.analyzeButtonText}>{loadingMessage}</Text>
+              </View>
+            ) : (
+              <>
+                <Ionicons name="sparkles" size={18} color="#fff" />
+                <Text style={styles.analyzeButtonText}>Analyze &amp; Build Plan</Text>
+              </>
+            )}
+          </Pressable>
+        </View>
+      </View>
     </ScrollView>
   );
 }
@@ -462,40 +528,64 @@ export function InspirationCaptureStep({
 const styles = StyleSheet.create({
   container: { flex: 1 },
   content: {
-    padding: IOS_SPACING.m,
+    paddingHorizontal: IOS_SPACING.m + 2,
+    paddingTop: IOS_SPACING.m,
     paddingBottom: IOS_SPACING.xl,
+    gap: IOS_SPACING.m,
   },
-  hero: {
+  heroCard: {
     alignItems: 'center',
-    marginBottom: IOS_SPACING.l,
+    paddingHorizontal: IOS_SPACING.l,
     paddingTop: IOS_SPACING.l,
+    paddingBottom: IOS_SPACING.m,
+    backgroundColor: `${IOS_COLORS.systemBlue}08`,
+    borderRadius: 18,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: `${IOS_COLORS.systemBlue}20`,
+  },
+  heroBadge: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: `${IOS_COLORS.systemBlue}12`,
+    marginBottom: 10,
   },
   heroTitle: {
-    fontSize: 20,
-    fontWeight: '600',
+    fontSize: 17,
+    fontWeight: '700',
     color: IOS_COLORS.label,
-    marginTop: IOS_SPACING.s,
     textAlign: 'center',
+    letterSpacing: -0.3,
   },
   heroSubtitle: {
-    fontSize: 15,
+    fontSize: 14,
     color: IOS_COLORS.secondaryLabel,
-    marginTop: IOS_SPACING.xs,
+    marginTop: 6,
     textAlign: 'center',
-    lineHeight: 20,
+    lineHeight: 19,
+    maxWidth: 420,
   },
   modeRow: {
     flexDirection: 'row',
     gap: IOS_SPACING.xs,
+  },
+  modeCard: {
     marginBottom: IOS_SPACING.m,
+    backgroundColor: IOS_COLORS.systemGray6,
+    borderRadius: 16,
+    padding: 5,
   },
   modePill: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    flex: 1,
     gap: 4,
     paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
+    paddingVertical: 10,
+    borderRadius: 14,
     backgroundColor: IOS_COLORS.systemGray6,
   },
   modePillActive: {
@@ -511,6 +601,22 @@ const styles = StyleSheet.create({
     color: IOS_COLORS.systemBlue,
     fontWeight: '500',
   },
+  captureCard: {
+    backgroundColor: IOS_REGISTER.cardBg,
+    borderRadius: 20,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: IOS_REGISTER.separator,
+    paddingHorizontal: IOS_SPACING.l,
+    paddingTop: IOS_SPACING.l,
+    paddingBottom: IOS_SPACING.m,
+  },
+  captureTop: {
+    gap: IOS_SPACING.xs,
+  },
+  captureBottom: {
+    marginTop: IOS_SPACING.m,
+    gap: IOS_SPACING.s,
+  },
   label: {
     fontSize: 12,
     fontWeight: '600',
@@ -518,20 +624,77 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
     marginBottom: 6,
   },
+  helperText: {
+    fontSize: 13,
+    lineHeight: 18,
+    color: IOS_COLORS.secondaryLabel,
+    marginBottom: IOS_SPACING.s,
+    paddingRight: IOS_SPACING.xs,
+  },
+  examplesLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: IOS_COLORS.tertiaryLabel,
+    letterSpacing: 0.5,
+    marginTop: IOS_SPACING.s,
+    marginBottom: 4,
+  },
+  examplesHelperText: {
+    fontSize: 12.5,
+    lineHeight: 17,
+    color: IOS_COLORS.tertiaryLabel,
+    marginBottom: IOS_SPACING.s,
+    paddingRight: IOS_SPACING.s,
+  },
   input: {
     backgroundColor: IOS_COLORS.secondarySystemGroupedBackground,
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    borderRadius: 14,
+    paddingHorizontal: 16,
+    paddingVertical: 13,
     fontSize: 15,
     color: IOS_COLORS.label,
     borderWidth: 1,
     borderColor: IOS_COLORS.systemGray5,
-    marginBottom: IOS_SPACING.m,
   },
   textArea: {
-    minHeight: 120,
+    minHeight: 164,
     paddingTop: 12,
+  },
+  exampleRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: IOS_SPACING.xs,
+    marginBottom: IOS_SPACING.s,
+  },
+  exampleChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 999,
+    backgroundColor: `${IOS_COLORS.systemBlue}10`,
+    borderWidth: 1,
+    borderColor: `${IOS_COLORS.systemBlue}1F`,
+  },
+  exampleChipText: {
+    fontSize: 12.5,
+    fontWeight: '600',
+    color: IOS_COLORS.systemBlue,
+  },
+  promiseCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    backgroundColor: `${IOS_COLORS.systemBlue}0B`,
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: `${IOS_COLORS.systemBlue}18`,
+  },
+  promiseText: {
+    flex: 1,
+    fontSize: 12.5,
+    lineHeight: 17,
+    color: IOS_COLORS.secondaryLabel,
   },
   analyzeButton: {
     flexDirection: 'row',
@@ -539,9 +702,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 8,
     backgroundColor: IOS_COLORS.systemBlue,
-    paddingVertical: 14,
-    borderRadius: 12,
-    marginTop: IOS_SPACING.s,
+    paddingVertical: 15,
+    borderRadius: 14,
   },
   analyzeButtonDisabled: {
     opacity: 0.5,

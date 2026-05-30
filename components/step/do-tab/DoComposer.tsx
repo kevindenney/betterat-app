@@ -1,5 +1,5 @@
-import React, { useEffect, useRef } from 'react';
-import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
+import React from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 const IOS_BLUE = '#007AFF';
@@ -9,8 +9,6 @@ const GRAY_4 = '#D1D1D6';
 const GRAY_6 = '#F2F2F7';
 const LABEL = '#1C1C1E';
 const LABEL_3 = 'rgba(60, 60, 67, 0.60)';
-
-const PULSE_DURATION_MS = 1800;
 
 export interface DoComposerProps {
   /** Placeholder text inside the composer field. */
@@ -25,7 +23,8 @@ export interface DoComposerProps {
 /**
  * Frame 2 · F — Composer.
  * Three first-class affordances: typed note, photo, voice. Mic is the largest
- * target (44 — Apple's min hit) and the only animated control on the surface.
+ * target (44 — Apple's min hit). It is static — the pulsing coral ring was
+ * removed because it read as a live "recording" indicator on a passive surface.
  */
 export function DoComposer({
   placeholder = 'Add a capture…',
@@ -35,30 +34,19 @@ export function DoComposer({
   onAddPhoto,
   onAddVoiceNote,
 }: DoComposerProps) {
-  const pulse = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    if (readOnly) return undefined;
-    const loop = Animated.loop(
-      Animated.timing(pulse, {
-        toValue: 1,
-        duration: PULSE_DURATION_MS,
-        useNativeDriver: true,
-      }),
-    );
-    loop.start();
-    return () => loop.stop();
-  }, [pulse, readOnly]);
-
-  const ringScale = pulse.interpolate({ inputRange: [0, 1], outputRange: [1, 1.55] });
-  const ringOpacity = pulse.interpolate({ inputRange: [0, 0.7, 1], outputRange: [0.45, 0, 0] });
-
   return (
     <View
       style={[styles.composer, readOnly && styles.composerDisabled]}
       accessibilityLabel="Capture composer"
     >
-      <View style={styles.field}>
+      <Pressable
+        onPress={readOnly ? undefined : onAddQuickNote}
+        disabled={readOnly}
+        accessibilityRole="button"
+        accessibilityLabel="Add a note"
+        accessibilityState={{ disabled: Boolean(readOnly) }}
+        style={styles.field}
+      >
         <Pressable
           onPress={readOnly ? undefined : onAddMore}
           disabled={readOnly}
@@ -73,7 +61,7 @@ export function DoComposer({
         <Text style={styles.fieldText} numberOfLines={1}>
           {placeholder}
         </Text>
-      </View>
+      </Pressable>
 
       <View style={styles.actions}>
         <CircleButton
@@ -97,15 +85,6 @@ export function DoComposer({
           style={({ pressed }) => [styles.mic, pressed && !readOnly && styles.micPressed]}
           hitSlop={4}
         >
-          {!readOnly ? (
-            <Animated.View
-              pointerEvents="none"
-              style={[
-                styles.micRing,
-                { transform: [{ scale: ringScale }], opacity: ringOpacity },
-              ]}
-            />
-          ) : null}
           <Ionicons name="mic" size={19} color="#FFFFFF" />
         </Pressable>
       </View>
@@ -219,12 +198,5 @@ const styles = StyleSheet.create({
   },
   micPressed: {
     opacity: 0.86,
-  },
-  micRing: {
-    position: 'absolute',
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: CORAL,
   },
 });

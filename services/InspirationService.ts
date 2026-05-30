@@ -7,7 +7,7 @@
  */
 
 import { supabase } from '@/services/supabase';
-import { createLogger } from '@/lib/utils/logger';
+import { createLogger, serializeError } from '@/lib/utils/logger';
 import { createBlueprintFromCurriculum, subscribe as subscribeToBlueprint } from '@/services/BlueprintService';
 import { getOrCreatePlaybook, addInboxItem } from '@/services/PlaybookService';
 import { bulkPinStepToInterests } from '@/services/TimelineStepService';
@@ -45,7 +45,12 @@ export async function extractInspiration(
   } as any);
 
   if (error) {
-    logger.error('Inspiration extraction failed', error);
+    // This failure is surfaced to the user in the wizard's error state.
+    // Logging at error-level in React Native dev triggers the console overlay,
+    // which hijacks the modal and makes a handled network/input failure feel
+    // like a crash. Keep it available for debugging without promoting it to a
+    // red-screen style developer error.
+    logger.info('Inspiration extraction failed', serializeError(error));
     throw new Error(error.message ?? 'Failed to extract inspiration');
   }
 
@@ -68,7 +73,15 @@ export async function activateInspiration(
     icon_name: string;
   }) => Promise<{ id: string; slug: string }>,
 ): Promise<ActivateInspirationResult> {
-  const { userId, extraction, interestEdits, editedSteps, sourceContent, sourceContentType } = input;
+  const {
+    userId,
+    extraction,
+    interestEdits,
+    selectedExistingInterestId,
+    editedSteps,
+    sourceContent,
+    sourceContentType,
+  } = input;
 
   // Merge user edits into the proposed interest
   const proposedInterest = {
@@ -80,28 +93,54 @@ export async function activateInspiration(
   const blueprintSteps = editedSteps ?? extraction.blueprint.steps;
 
   // 1. Create or reuse the interest (avoid duplicates from re-runs)
-  logger.debug('Creating interest:', proposedInterest.slug);
   let interest: { id: string; slug: string };
-  const { data: existing } = await supabase
-    .from('interests')
-    .select('id, slug')
-    .eq('created_by_user_id', userId)
-    .ilike('name', proposedInterest.name)
-    .limit(1)
-    .maybeSingle();
 
-  if (existing) {
-    interest = { id: existing.id, slug: existing.slug };
-    logger.debug('Reusing existing interest:', interest.slug);
+  if (selectedExistingInterestId) {
+    const { data: membership, error: membershipError } = await supabase
+      .from('user_interests')
+      .select('interest_id')
+      .eq('user_id', userId)
+      .eq('interest_id', selectedExistingInterestId)
+      .maybeSingle();
+
+    if (membershipError) throw membershipError;
+    if (!membership) {
+      throw new Error('That interest is no longer available in your library.');
+    }
+
+    const { data: existingInterest, error: interestError } = await supabase
+      .from('interests')
+      .select('id, slug')
+      .eq('id', selectedExistingInterestId)
+      .single();
+
+    if (interestError) throw interestError;
+
+    interest = { id: existingInterest.id, slug: existingInterest.slug };
+    logger.debug('Using existing interest:', interest.slug);
   } else {
-    interest = await proposeInterestFn({
-      name: proposedInterest.name,
-      slug: proposedInterest.slug,
-      description: proposedInterest.description,
-      accent_color: proposedInterest.accent_color,
-      icon_name: proposedInterest.icon_name,
-    });
-    logger.debug('Interest created:', interest.slug);
+    logger.debug('Creating interest:', proposedInterest.slug);
+    const { data: existing } = await supabase
+      .from('interests')
+      .select('id, slug')
+      .eq('created_by_user_id', userId)
+      .ilike('name', proposedInterest.name)
+      .limit(1)
+      .maybeSingle();
+
+    if (existing) {
+      interest = { id: existing.id, slug: existing.slug };
+      logger.debug('Reusing existing interest:', interest.slug);
+    } else {
+      interest = await proposeInterestFn({
+        name: proposedInterest.name,
+        slug: proposedInterest.slug,
+        description: proposedInterest.description,
+        accent_color: proposedInterest.accent_color,
+        icon_name: proposedInterest.icon_name,
+      });
+      logger.debug('Interest created:', interest.slug);
+    }
   }
 
   // 2. Create the blueprint with steps

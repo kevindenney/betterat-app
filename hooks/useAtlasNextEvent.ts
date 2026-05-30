@@ -35,11 +35,11 @@ import {
 
 const NEXT_EVENT_KEY = 'atlas-next-event';
 
-export function useAtlasNextEvent(): AtlasNextEvent | null {
+export function useAtlasNextEvent(interestSlugOverride?: string | null): AtlasNextEvent | null {
   const { user } = useAuth();
   const { currentInterest } = useInterest();
 
-  const interestSlug = (currentInterest?.slug ?? '').toLowerCase();
+  const interestSlug = (interestSlugOverride ?? currentInterest?.slug ?? '').toLowerCase();
   const isSailing =
     interestSlug === 'sailing' ||
     interestSlug === 'sail-racing' ||

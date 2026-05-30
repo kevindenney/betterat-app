@@ -1,4 +1,8 @@
 import { supabase } from '@/services/supabase';
+import {
+  getYachtClubDemoOrganization,
+  isYachtClubDemoSlug,
+} from '@/services/YachtClubDemoService';
 
 export type YachtClubClaimStatus = 'unclaimed' | 'claim_pending' | 'claimed' | 'rejected';
 export type YachtClubPricingTier = 'club_free' | 'club_plus' | 'club_pro' | 'enterprise';
@@ -123,6 +127,9 @@ export class YachtClubClaimService {
   static async getOrganizationBySlug(slug: string): Promise<YachtClubOrganization | null> {
     const cleanSlug = String(slug || '').trim();
     if (!cleanSlug) return null;
+    if (isYachtClubDemoSlug(cleanSlug)) {
+      return getYachtClubDemoOrganization();
+    }
 
     const { data, error } = await supabase
       .from('organizations')

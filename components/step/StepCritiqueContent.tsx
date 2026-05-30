@@ -21,6 +21,7 @@ import {
   StyleSheet,
   Platform,
   ActivityIndicator,
+  Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useStepDetail, useUpdateStepMetadata } from '@/hooks/useStepDetail';
@@ -585,7 +586,7 @@ export function StepCritiqueContent({ stepId, onNextStepCreated, readOnly }: Ste
                 competency_id: comp.id,
                 self_rating: selfRating as any,
                 self_notes: localWentWell || undefined,
-                clinical_context: step?.title,
+                clinical_context: step?.title ?? undefined,
               }).catch((err) => console.warn('[StepCritique] Failed to log competency attempt:', err));
             }
           }
@@ -634,7 +635,7 @@ export function StepCritiqueContent({ stepId, onNextStepCreated, readOnly }: Ste
 
       const text = await generateCritiqueInsight({
         interestName: currentInterest?.name || 'this interest',
-        stepTitle: step.title,
+        stepTitle: step.title ?? 'Untitled step',
         planWhat: planData.what_will_you_do ?? '',
         actNotes: actData.notes ?? '',
         subStepsCompleted: completedCount,
@@ -730,8 +731,8 @@ export function StepCritiqueContent({ stepId, onNextStepCreated, readOnly }: Ste
     }
   }, [user?.id, step, createdNextId, creatingNext, planData, subStepProgress, reviewData, normalizedReview.sections, queryClient, onNextStepCreated]);
 
-  // Media from act phase
-  const actMedia: string[] = (actData as any).media_urls ?? [];
+  // Photo/video captures recorded during the Do phase.
+  const actMedia = actData.media_uploads ?? [];
 
   if (!step) return null;
 
@@ -793,15 +794,16 @@ export function StepCritiqueContent({ stepId, onNextStepCreated, readOnly }: Ste
         <View style={s.sectionWrap}>
           <SectionLabel>YOUR WORK</SectionLabel>
           <View style={s.thumbRow}>
-            {actMedia.slice(0, 2).map((url, i) => (
-              <View key={url} style={s.thumb}>
-                <Text style={s.thumbLabel}>Step {i + 1}</Text>
+            {actMedia.slice(0, 3).map((media) => (
+              <View key={media.id} style={s.thumb}>
+                <Image source={{ uri: media.uri }} style={s.thumbImage} resizeMode="cover" />
+                {media.type === 'video' ? (
+                  <View style={s.thumbPlayBadge}>
+                    <Ionicons name="play" size={14} color="#FFFFFF" />
+                  </View>
+                ) : null}
               </View>
             ))}
-            <View style={[s.thumb, s.thumbAdd]}>
-              <Ionicons name="add" size={24} color={C.accent} />
-              <Text style={s.thumbAddLabel}>Add</Text>
-            </View>
           </View>
         </View>
       )}
@@ -1118,7 +1120,7 @@ export function StepCritiqueContent({ stepId, onNextStepCreated, readOnly }: Ste
         isOpen={shareSheetOpen}
         onClose={() => setShareSheetOpen(false)}
         stepId={stepId}
-        stepTitle={step.title}
+        stepTitle={step.title ?? 'Untitled step'}
         planData={planData}
         actData={actData}
         reviewData={reviewData}
@@ -1250,24 +1252,24 @@ const s = StyleSheet.create({
     borderRadius: C.radius,
     borderWidth: 1,
     borderColor: C.cardBorder,
+    overflow: 'hidden',
+  },
+  thumbImage: {
+    width: '100%',
+    height: '100%',
+  },
+  thumbPlayBadge: {
+    position: 'absolute',
+    top: '50%',
+    left: '50%',
+    width: 32,
+    height: 32,
+    marginTop: -16,
+    marginLeft: -16,
+    borderRadius: 16,
+    backgroundColor: 'rgba(0,0,0,0.55)',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
-  },
-  thumbLabel: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: C.labelMid,
-  },
-  thumbAdd: {
-    borderColor: C.accent,
-    borderWidth: 1.5,
-    borderStyle: 'dashed' as any,
-  },
-  thumbAddLabel: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: C.accent,
   },
 
   // Prompt sections (went well / improve)

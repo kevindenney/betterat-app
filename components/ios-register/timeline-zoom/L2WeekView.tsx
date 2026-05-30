@@ -566,26 +566,12 @@ export function L2WeekView({
                 })}
               </ScrollView>
 
-              {resolvedPlanningHint && !hidePlanningHint ? (
-                <View style={styles.bottomPromptOverlay}>
-                  <SeasonLibrarianPrompt
-                    prompt={resolvedPlanningHint}
-                    onPrimary={handlePlanningHintPrimary}
-                    onSecondary={handlePlanningHintSecondary}
-                  />
-                </View>
-              ) : null}
-
               <View
                 style={[
                   styles.nowBarWrap,
                   {
                     left: nowBarLeft,
-                    // When the librarian card is in flow below the carousel it
-                    // adds ~its own height to sequenceWrap; reach the bar down
-                    // far enough that the line + dot sit over the librarian's
-                    // top. With no prompt the bar just covers the card region.
-                    bottom: resolvedPlanningHint && !hidePlanningHint ? 230 : 16,
+                    bottom: 16,
                   },
                 ]}
               >
@@ -598,6 +584,16 @@ export function L2WeekView({
             </>
           )}
         </View>
+
+        {resolvedPlanningHint && !hidePlanningHint ? (
+          <View style={styles.bottomPromptOverlay}>
+            <SeasonLibrarianPrompt
+              prompt={resolvedPlanningHint}
+              onPrimary={handlePlanningHintPrimary}
+              onSecondary={handlePlanningHintSecondary}
+            />
+          </View>
+        ) : null}
 
         {firstRun && steps.length > 0 ? (
           <View style={styles.capabilityTeaser}>
@@ -1479,9 +1475,9 @@ const styles = StyleSheet.create({
   sequenceWrap: {
     position: 'relative',
     minHeight: 200,
-    marginBottom: 6,
-    marginTop: -6,
-    paddingTop: 60,
+    marginBottom: 10,
+    marginTop: 0,
+    paddingTop: 96,
   },
   capabilityTeaser: {
     marginHorizontal: 16,
@@ -1560,12 +1556,10 @@ const styles = StyleSheet.create({
     paddingBottom: 8,
     gap: CARD_GAP,
   },
-  // In-flow (not absolute) so it tracks the carousel's real bottom; the
-  // negative margin pulls it up to overlap the bottom of the step cards by a
-  // consistent amount regardless of how tall the tallest card is.
   bottomPromptOverlay: {
-    marginTop: -32,
-    zIndex: 16,
+    marginTop: 2,
+    marginHorizontal: 16,
+    zIndex: 1,
   },
   nowBarWrap: {
     position: 'absolute',

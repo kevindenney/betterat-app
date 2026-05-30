@@ -810,7 +810,7 @@ export default function AtlasTab() {
         // in context (week / arc), and they can tap into detail from there.
         router.push({
           pathname: '/(tabs)/races',
-          params: { selected: created.id },
+          params: { selected: created.id, level: '1' },
         } as any);
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Could not create a step from this pin.';

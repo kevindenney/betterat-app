@@ -14,6 +14,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import {
   ChevronRight,
   Lightbulb,
+  Link2,
   type LucideIcon,
   Share2,
   Sparkles,
@@ -31,7 +32,7 @@ import {
   LABEL_3,
 } from '@/lib/design-tokens-step-loop-ios';
 
-export type MenuRowIcon = 'template' | 'users' | 'bulb' | 'share-3';
+export type MenuRowIcon = 'template' | 'users' | 'bulb' | 'share-3' | 'link';
 export type MenuRowTint = 'blue' | 'gray' | 'purple' | 'green';
 
 export interface MenuRowProps {
@@ -48,6 +49,7 @@ const ICON_MAP: Record<MenuRowIcon, LucideIcon> = {
   users: Users,
   bulb: Lightbulb,
   'share-3': Share2,
+  link: Link2,
 };
 
 const GRAY_TINT_BG = 'rgba(120, 120, 128, 0.12)' as const;

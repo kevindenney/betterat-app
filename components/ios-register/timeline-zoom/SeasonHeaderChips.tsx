@@ -1,19 +1,17 @@
 /**
- * SeasonHeaderChips — L3 season header. Tufte-quiet treatment:
- *   1. Large title + inline chevron — reads as a single dropdown
- *      button, opens the season picker on tap. The chevron lives
- *      next to the text (not below it) so the affordance is
- *      obvious.
- *   2. Single dim metadata line below the title: date range · step
- *      counter, as plain tappable text linked by middle dots. No
- *      chips, no pill chrome — the data IS the affordance.
+ * SeasonHeaderChips — L3 season header.
  *
- * The "ZOOM · CURRENT ARC · <VERB>" eyebrow is gone. The chart's
- * scope is already clear from the title + zoom indicator on the
- * right; the verb wasn't earning its space.
+ * The title (e.g. "Winter 2025-2026", "Fall Semester 2025") already
+ * encodes the calendar block in the persona's native vocab. The
+ * literal date range is redundant on the surface; it lives inside the
+ * season picker rows (tap the title to see all arcs with their dates).
  *
- * Pattern mirrors L4's title-row + duration-subtitle, so both zoom
- * levels share the same visual rhythm.
+ *   - Title row: persona-native instance name + chevron — primary
+ *     anchor, opens the season picker on tap.
+ *   - Step counter: accent pill — orthogonal info (your position in
+ *     the arc), not redundant with the title.
+ *
+ * See memory: project_season_is_persona_vocab.
  */
 
 import React from 'react';
@@ -23,30 +21,32 @@ import { IOS_REGISTER } from '@/lib/design-tokens-ios';
 
 interface Props {
   seasonTitle: string;
-  dateRange: string;
+  /** Persona-native noun for the calendar block ("arc", "rotation",
+   *  "season") — used in the screen-reader label so it matches the
+   *  visible vocab. */
+  periodNoun?: string;
   weekOfTotal?: { current: number; total: number };
   stepOfTotal?: { current: number; total: number };
   onPressSeason: () => void;
-  onPressDate: () => void;
   onPressStep: () => void;
 }
 
 export function SeasonHeaderChips({
   seasonTitle,
-  dateRange,
+  periodNoun = 'arc',
   weekOfTotal,
   stepOfTotal,
   onPressSeason,
-  onPressDate,
   onPressStep,
 }: Props) {
+  const showCounter = Boolean(stepOfTotal || weekOfTotal);
   return (
     <View style={styles.block}>
       <Pressable
         onPress={onPressSeason}
         style={styles.titleRow}
         accessibilityRole="button"
-        accessibilityLabel={`Arc: ${seasonTitle}. Tap to switch arc or create a new one.`}
+        accessibilityLabel={`${periodNoun.charAt(0).toUpperCase()}${periodNoun.slice(1)}: ${seasonTitle}. Tap to switch ${periodNoun} or create a new one.`}
         hitSlop={4}
       >
         <Text style={styles.title} numberOfLines={1}>
@@ -60,23 +60,8 @@ export function SeasonHeaderChips({
         />
       </Pressable>
 
-      <View style={styles.metaRow}>
-        <Pressable
-          onPress={onPressDate}
-          accessibilityRole="button"
-          accessibilityLabel={`Date range: ${dateRange}. Tap for calendar.`}
-          style={styles.metaPill}
-          hitSlop={6}
-        >
-          <Text style={styles.metaLink}>{dateRange}</Text>
-          <Ionicons
-            name="chevron-down"
-            size={11}
-            color={IOS_REGISTER.accentUserAction}
-            style={styles.metaCaret}
-          />
-        </Pressable>
-        {stepOfTotal || weekOfTotal ? (
+      {showCounter ? (
+        <View style={styles.metaRow}>
           <Pressable
             onPress={onPressStep}
             accessibilityRole="button"
@@ -100,8 +85,8 @@ export function SeasonHeaderChips({
               style={styles.metaCaret}
             />
           </Pressable>
-        ) : null}
-      </View>
+        </View>
+      ) : null}
     </View>
   );
 }

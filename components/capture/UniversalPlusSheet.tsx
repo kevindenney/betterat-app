@@ -41,6 +41,7 @@ export interface UniversalPlusSheetProps {
   visible: boolean;
   onDismiss: () => void;
   onQuickCapture: (payload: QuickCaptureSubmitPayload) => void;
+  onStartFromLink?: () => void;
   onAddFromBlueprint: () => void;
   onAddFromFollow: () => void;
   onDropConcept: (payload: QuickCaptureSubmitPayload) => void;
@@ -52,6 +53,7 @@ export function UniversalPlusSheet({
   visible,
   onDismiss,
   onQuickCapture,
+  onStartFromLink,
   onAddFromBlueprint,
   onAddFromFollow,
   onDropConcept,
@@ -120,6 +122,15 @@ export function UniversalPlusSheet({
 
               <Text style={styles.eyebrow}>Add a step from…</Text>
               <View style={styles.group}>
+                {onStartFromLink ? (
+                  <MenuRow
+                    icon="link"
+                    tint="blue"
+                    title="A link, article, or video"
+                    subtitle="Paste a source and build a plan from it"
+                    onPress={onStartFromLink}
+                  />
+                ) : null}
                 <MenuRow
                   icon="template"
                   tint="blue"

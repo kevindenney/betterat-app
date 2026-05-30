@@ -154,16 +154,16 @@ function LibrarianSlot({
   onPromote: () => void;
   onAddEvidence: () => void;
 }) {
-  const observation: LibrarianObservation | null = observationDismissed
-    ? null
-    : anchor
-      ? buildObservationForConcept({
+  // No fabricated observation for users without concepts. The card cites a
+  // real concept + evidence; a canned sample fabricated sailing history
+  // ("held 'Pick a side and commit' for 8 weeks… Race 3") that leaked to
+  // every persona. Until there's a real concept to anchor on, the "Ask the
+  // librarian" strip carries the librarian's voice on its own.
+  const observation: LibrarianObservation | null =
+    observationDismissed || !anchor
+      ? null
+      : buildObservationForConcept({
           anchor,
-          onDismiss: onDismissObservation,
-          onPromote,
-          onAddEvidence,
-        })
-      : buildSampleObservation({
           onDismiss: onDismissObservation,
           onPromote,
           onAddEvidence,
@@ -243,45 +243,6 @@ function Phase6PlaybookLanding() {
       onOpenConcept={(conceptId) => router.push(`/(tabs)/library/concept/${conceptId}` as any)}
     />
   );
-}
-
-/**
- * Until the librarian has a corpus reader, the unprompted-observation
- * surface ships with a single canonical example so the design's voice
- * lands before retrieval does. Replaced by a real-concept observation
- * as soon as the user has any concepts in their playbook.
- */
-function buildSampleObservation({
-  onDismiss,
-  onPromote,
-  onAddEvidence,
-}: {
-  onDismiss: () => void;
-  onPromote: () => void;
-  onAddEvidence: () => void;
-}): LibrarianObservation {
-  return {
-    id: 'sample-pick-a-side',
-    body: 'You\'ve held "Pick a side and commit" for 8 weeks without testing it. The most recent debrief contradicts it — Race 3, where you held the left and lost the leg to the shift.',
-    emphasise: ['Pick a side and commit'],
-    concept: {
-      title: 'Pick a side and commit',
-      state: 'forming',
-    },
-    evidence: {
-      label: 'Race 3 debrief',
-      date: 'Apr 19',
-    },
-    primaryAction: {
-      label: 'Promote to forming-with-tension',
-      onPress: onPromote,
-    },
-    secondaryAction: {
-      label: 'Add evidence',
-      onPress: onAddEvidence,
-    },
-    onDismiss,
-  };
 }
 
 function buildObservationForConcept({

@@ -17,8 +17,8 @@ export interface InterestReflectTabConfig {
 
 export const INTEREST_DO_TAB_CONFIG: Record<DoTabInterestKind, InterestDoTabConfig> = {
   sailing: {
-    statePillLabel: 'Live · capturing',
-    stopCtaLabel: 'Stop capturing',
+    statePillLabel: 'On water',
+    stopCtaLabel: 'Finish capture',
     showElapsedByDefault: true,
     captureEmptyMessage: 'Captures will appear here as you record them.',
   },
@@ -36,7 +36,7 @@ export const INTEREST_DO_TAB_CONFIG: Record<DoTabInterestKind, InterestDoTabConf
   },
   generic: {
     statePillLabel: 'Practicing',
-    stopCtaLabel: 'Done capturing',
+    stopCtaLabel: 'Finish capture',
     showElapsedByDefault: false,
     captureEmptyMessage: 'Your captures appear here as you record them.',
   },
@@ -120,6 +120,7 @@ export function getInterestReflectTabConfig(input?: {
 
 export interface InterestBeatsConfig {
   sectionLabel: string;
+  addLabel: string;
   /** Placeholder shown in the "time / marker" input — sailing uses pre-start
    *  countdowns like "-30", nursing uses clock times like "7:30a", drawing
    *  uses phase markers like "Warmup". */
@@ -131,28 +132,32 @@ export interface InterestBeatsConfig {
 
 export const INTEREST_BEATS_CONFIG: Record<DoTabInterestKind, InterestBeatsConfig> = {
   sailing: {
-    sectionLabel: 'RACE BEATS',
+    sectionLabel: 'RACE RUN-THROUGH',
+    addLabel: 'Add timing beat',
     timePlaceholder: '-30 / 9:55 / start',
     titlePlaceholder: 'Skipper meeting / Off dock / Start sequence',
-    emptyHint: 'Map the run-through — pre-start, start, legs, post-race.',
+    emptyHint: 'A beat is a timed moment in the run-through — pre-start, start, legs, post-race.',
   },
   nursing: {
     sectionLabel: 'SHIFT BEATS',
+    addLabel: 'Add shift beat',
     timePlaceholder: '7:30a / 1100',
     titlePlaceholder: 'Handoff / Assessment round / Med pass',
-    emptyHint: 'Sketch the shift — handoff, rounds, key checkpoints.',
+    emptyHint: 'A beat is a timed checkpoint in the shift — handoff, rounds, key moments.',
   },
   drawing: {
     sectionLabel: 'SESSION BEATS',
+    addLabel: 'Add session beat',
     timePlaceholder: 'Warmup / 0:10 / 0:30',
     titlePlaceholder: 'Gesture sketches / Focused study / Free practice',
-    emptyHint: 'Break the session into a few phases.',
+    emptyHint: 'A beat is a timed phase of the session.',
   },
   generic: {
-    sectionLabel: 'BEATS',
+    sectionLabel: 'RUN-THROUGH',
+    addLabel: 'Add timing beat',
     timePlaceholder: 'Time or marker',
     titlePlaceholder: 'What happens here',
-    emptyHint: 'Break the run-through into a few timed moments.',
+    emptyHint: 'A beat is a timed moment in the run-through.',
   },
 };
 

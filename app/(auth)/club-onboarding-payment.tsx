@@ -24,7 +24,9 @@ const ClubOnboardingPayment = () => {
   const [userId, setUserId] = useState<string>('');
   const [userEmail, setUserEmail] = useState<string>('');
 
-  const plans = CLUB_SUBSCRIPTION_PLANS;
+  const plans = CLUB_SUBSCRIPTION_PLANS.filter((plan) =>
+    plan.id === 'starter' || plan.id === 'professional' || plan.id === 'enterprise'
+  );
 
   useEffect(() => {
     // Get current user
@@ -172,7 +174,7 @@ const ClubOnboardingPayment = () => {
                     ? 'border-blue-500 bg-blue-50'
                     : 'border-gray-200'
                 } ${plan.popular ? 'relative' : ''}`}
-                onPress={() => setSelectedPlan(plan.id)}
+                onPress={() => setSelectedPlan(plan.id as typeof selectedPlan)}
               >
                 {plan.popular && (
                   <View className="absolute -top-2 -right-2 bg-blue-500 rounded-full px-2 py-1">

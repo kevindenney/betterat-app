@@ -12,7 +12,7 @@ export interface StopCapturingCTAProps {
 
 export function StopCapturingCTA({
   state,
-  label = 'Stop capturing',
+  label = 'Finish capture',
   readOnly,
   onStop,
   onMoveToReflect,

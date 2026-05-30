@@ -50,6 +50,7 @@ import { ZoomEmptyState } from './EmptyStates';
 import { SelectActionBar } from './SelectActionBar';
 import { useSelectMode } from './useSelectMode';
 import { ZoomLevelPicker } from './ZoomLevelPicker';
+import { resolveInterestVocab } from './interestVocab';
 import {
   ZOOM_LEVEL_SCOPE_LABELS,
   type TimelineDataset,
@@ -152,9 +153,9 @@ const LEVELS: ZoomLevel[] = [1, 2, 3, 4];
 // thresholds are lower (mid-gesture intent) so the hint pill appears
 // before the user commits.
 const HINT_IN = 1.12;
-const HINT_OUT = 0.88;
+const HINT_OUT = 0.93;
 const ZOOM_IN_SNAP = 1.6;
-const ZOOM_OUT_SNAP = 0.6;
+const ZOOM_OUT_SNAP = 0.78;
 
 // Directional level-transition entering animation. Zooming in (to a more
 // detailed level) brings the new content rushing toward the viewer — it
@@ -214,8 +215,15 @@ export function TimelineZoomCanvas({
   React.useEffect(() => {
     setSelectedSeasonId(dataset.currentSeasonId);
   }, [dataset.currentSeasonId]);
+  React.useEffect(() => {
+    if (!dataset.focusStepId) return;
+    setFocusStepId((current) =>
+      current === dataset.focusStepId ? current : dataset.focusStepId,
+    );
+  }, [dataset.focusStepId]);
   const select = useSelectMode();
   const isFocusedStepSurface = level === 1;
+  const periodNoun = resolveInterestVocab(dataset.interest.label).periodNoun;
   useHideTabBar(embedFullDetailAtL1 && isFocusedStepSurface);
   const { onScroll: onInnerScroll, chromeAnimStyle } = useScrollHideChrome();
 
@@ -454,6 +462,7 @@ export function TimelineZoomCanvas({
             from={level}
             to={targetLevel}
             direction={gestureDirection}
+            periodNoun={periodNoun}
           />
         ) : null}
 
@@ -503,6 +512,7 @@ export function TimelineZoomCanvas({
             level={level}
             onChange={setLevel}
             onSnapToCurrent={handleSnapToCurrent}
+            periodNoun={periodNoun}
           />
         )}
       </View>
@@ -514,9 +524,12 @@ interface PinchHintPillProps {
   from: ZoomLevel;
   to: ZoomLevel;
   direction: 'in' | 'out';
+  periodNoun: string;
 }
 
-function PinchHintPill({ from, to, direction }: PinchHintPillProps) {
+function PinchHintPill({ from, to, direction, periodNoun }: PinchHintPillProps) {
+  const scopeLabel = (l: ZoomLevel) =>
+    l === 3 ? `Current ${periodNoun}` : ZOOM_LEVEL_SCOPE_LABELS[l];
   const opacity = useSharedValue(0);
 
   React.useEffect(() => {
@@ -532,7 +545,7 @@ function PinchHintPill({ from, to, direction }: PinchHintPillProps) {
     <Animated.View pointerEvents="none" style={[styles.hintPillWrap, animStyle]}>
       <View style={styles.hintPill}>
         <Text style={styles.hintTitle}>
-          {ZOOM_LEVEL_SCOPE_LABELS[from]} → {ZOOM_LEVEL_SCOPE_LABELS[to]}
+          {scopeLabel(from)} → {scopeLabel(to)}
         </Text>
         <Text style={styles.hintSub}>
           {direction === 'in' ? 'PINCH TO ZOOM IN' : 'PINCH TO ZOOM OUT'}

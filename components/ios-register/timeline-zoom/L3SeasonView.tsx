@@ -225,13 +225,17 @@ export function L3SeasonView({
     <ScrollView
       ref={scrollRef}
       style={styles.scroll}
-      contentContainerStyle={styles.scrollContent}
+      contentContainerStyle={[
+        styles.scrollContent,
+        selectEnabled && styles.scrollContentSelecting,
+      ]}
       showsVerticalScrollIndicator={false}
       scrollEnabled={!drag.isDragging}
       stickyHeaderIndices={stickyHeaderIndices}
     >
       <SeasonHeaderChips
         seasonTitle={season.title}
+        periodNoun={interestVocab.periodNoun}
         weekOfTotal={season.weekOfTotal}
         stepOfTotal={stepOfTotal}
         onPressSeason={() => setOpenPicker('season')}
@@ -861,6 +865,7 @@ function formatAnchorProximity(daysAway: number): string {
 const styles = StyleSheet.create({
   scroll: { flex: 1 },
   scrollContent: { paddingBottom: 120 },
+  scrollContentSelecting: { paddingBottom: 260 },
   pickerPrimary: {
     flexShrink: 1,
     fontSize: 15,

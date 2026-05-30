@@ -38,8 +38,8 @@ import { IOS_REGISTER } from '@/lib/design-tokens-ios';
  * for a tap.
  */
 const NARRATION_INK = '#4A6280';
-const NARRATION_PAST = 'rgba(74, 98, 128, 0.32)';
-const NARRATION_FUTURE = 'rgba(60, 60, 67, 0.18)';
+const NARRATION_PAST = 'rgba(74, 98, 128, 0.24)';
+const NARRATION_FUTURE = 'rgba(60, 60, 67, 0.14)';
 
 interface Props {
   /** ALL-CAPS coral eyebrow label, e.g. "Working on this". */
@@ -202,14 +202,14 @@ function ActiveDot() {
 
 const styles = StyleSheet.create({
   narration: {
-    paddingTop: 4,
-    paddingBottom: 16,
+    paddingTop: 2,
+    paddingBottom: 8,
   },
   micro: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    marginBottom: 22,
+    marginBottom: 16,
   },
   microText: {
     fontSize: 11,
@@ -219,25 +219,26 @@ const styles = StyleSheet.create({
     color: IOS_REGISTER.accentMarkedContent,
   },
   lines: {
-    minHeight: 132,
+    minHeight: 104,
     justifyContent: 'center',
   },
   line: {
-    fontSize: 24,
-    lineHeight: 29,
-    letterSpacing: -0.3,
+    fontSize: 26,
+    lineHeight: 32,
+    letterSpacing: -0.45,
     fontWeight: '400',
     color: NARRATION_INK,
   },
   linePast: {
     color: NARRATION_PAST,
-    fontSize: 17,
-    lineHeight: 22,
-    letterSpacing: -0.2,
-    marginBottom: 10,
+    fontSize: 15,
+    lineHeight: 20,
+    letterSpacing: -0.12,
+    marginBottom: 6,
   },
   lineActive: {
     color: NARRATION_INK,
+    fontWeight: '500',
   },
   lineActiveCaret: {
     color: IOS_REGISTER.accentMarkedContent,
@@ -245,13 +246,13 @@ const styles = StyleSheet.create({
   },
   lineNext: {
     color: NARRATION_FUTURE,
-    fontSize: 17,
-    lineHeight: 22,
-    letterSpacing: -0.2,
-    marginTop: 12,
+    fontSize: 15,
+    lineHeight: 20,
+    letterSpacing: -0.12,
+    marginTop: 8,
   },
   dots: {
-    marginTop: 28,
+    marginTop: 18,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,

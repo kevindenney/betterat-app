@@ -19,9 +19,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
-import { HorizontalTimeline } from '@/components/timeline/HorizontalTimeline';
 import type { StepCardH } from '@/components/timeline/types';
 import { PlanHero } from '@/components/library/plans/PlanHero';
+import { PlanStepList } from '@/components/library/plans/PlanStepList';
 import { PlanTabsBar, type PlanTabKey } from '@/components/library/plans/PlanTabsBar';
 import { SubscriberRow } from '@/components/library/plans/SubscriberRow';
 import { PlanResourceCard } from '@/components/library/plans/PlanResourceCard';
@@ -346,9 +346,9 @@ export default function PlanDetailScreen() {
             onPress={() => (router.canGoBack() ? router.back() : router.replace('/library'))}
             hitSlop={8}
             style={styles.backBtn}
+            accessibilityLabel="Back"
           >
-            <Ionicons name="chevron-back" size={20} color="#007AFF" />
-            <Text style={styles.backText}>Library</Text>
+            <Ionicons name="chevron-back" size={24} color="#007AFF" />
           </Pressable>
           <View style={styles.topbarRight}>
             <Ionicons name="share-outline" size={20} color="#007AFF" />
@@ -366,21 +366,16 @@ export default function PlanDetailScreen() {
           </View>
         ) : activeTab === 'steps' ? (
           <ScrollView style={styles.body}>
-            <View style={styles.stepsHint}>
-              <Text style={styles.stepsHintText}>
-                Tap a step to view {plan.authorName ? `${plan.authorName}'s` : "the author's"} plan/do/reflect notes, or + Add to your timeline.
-              </Text>
-            </View>
-            <HorizontalTimeline
-              cards={steps}
+            <PlanStepList
+              steps={steps}
               showAdopt
+              onPressStep={(stepId) => {
+                router.push(`/step/${stepId}` as never);
+              }}
               onAdopt={(stepId) => {
                 // TODO: wire blueprint-step adopt action; placeholder routes
                 // to the source step so the user can read it for now.
                 router.push(`/step/${stepId}` as never);
-              }}
-              onCardPress={(card) => {
-                router.push(`/step/${card.id}` as never);
               }}
             />
           </ScrollView>
@@ -440,11 +435,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 2,
   },
-  backText: {
-    fontSize: 17,
-    fontWeight: '500',
-    color: '#007AFF',
-  },
   topbarRight: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -457,16 +447,6 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  stepsHint: {
-    paddingHorizontal: IOS_SPACING.lg,
-    paddingTop: IOS_SPACING.sm,
-    paddingBottom: IOS_SPACING.xs,
-    gap: 2,
-  },
-  stepsHintText: {
-    fontSize: 12,
-    color: IOS_COLORS.secondaryLabel,
   },
   emptyText: {
     fontSize: 14,

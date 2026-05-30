@@ -16,12 +16,13 @@
  * was collapsing children into a vertical stack on the previous pass.
  */
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { IOS_COLORS } from '@/lib/design-tokens-ios';
+import { useVocabulary } from '@/hooks/useVocabulary';
 import {
-  LIBRARIAN_EXAMPLE_QUERIES,
+  buildLibrarianExampleQueries,
   LIBRARIAN_PURPLE,
   LIBRARIAN_PURPLE_INK,
   LIBRARIAN_PURPLE_TINT_18,
@@ -35,17 +36,22 @@ interface Props {
 }
 
 export function LibrarianStrip({ onAsk }: Props) {
+  const { vocab } = useVocabulary();
+  const examples = useMemo(
+    () => buildLibrarianExampleQueries(vocab('Coach')),
+    [vocab],
+  );
   const [index, setIndex] = useState(0);
 
   useEffect(() => {
     const t = setInterval(
-      () => setIndex((i) => (i + 1) % LIBRARIAN_EXAMPLE_QUERIES.length),
+      () => setIndex((i) => (i + 1) % examples.length),
       ROTATION_MS,
     );
     return () => clearInterval(t);
-  }, []);
+  }, [examples.length]);
 
-  const example = LIBRARIAN_EXAMPLE_QUERIES[index];
+  const example = examples[index % examples.length];
 
   return (
     <Pressable

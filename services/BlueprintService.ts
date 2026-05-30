@@ -11,7 +11,7 @@
  */
 
 import { supabase } from '@/services/supabase';
-import { createLogger } from '@/lib/utils/logger';
+import { createLogger, serializeError } from '@/lib/utils/logger';
 import type {
   BlueprintRecord,
   CreateBlueprintInput,
@@ -476,11 +476,12 @@ export async function subscribe(
   subscriberId: string,
   blueprintId: string,
 ): Promise<BlueprintSubscriptionRecord> {
+  let blueprint: BlueprintRecord | null = null;
   try {
     logger.debug('Subscribing to blueprint', { subscriberId, blueprintId });
 
     // Fetch blueprint and check access
-    const blueprint = await getBlueprintById(blueprintId);
+    blueprint = await getBlueprintById(blueprintId);
     if (!blueprint) throw new Error('Blueprint not found');
 
     const access = await checkBlueprintAccess(subscriberId, blueprint);
@@ -543,7 +544,20 @@ export async function subscribe(
 
     return data as BlueprintSubscriptionRecord;
   } catch (err) {
-    logger.error('Failed to subscribe to blueprint', err);
+    const isCreatorDraftAutoSubscribeFailure =
+      !!blueprint &&
+      blueprint.user_id === subscriberId &&
+      blueprint.is_published === false;
+
+    if (isCreatorDraftAutoSubscribeFailure) {
+      logger.info('Creator auto-subscribe failed for draft blueprint', {
+        blueprintId,
+        subscriberId,
+        error: serializeError(err),
+      });
+    } else {
+      logger.error('Failed to subscribe to blueprint', err);
+    }
     throw err;
   }
 }

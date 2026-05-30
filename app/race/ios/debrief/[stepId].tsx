@@ -44,7 +44,7 @@
  * Open at /race/ios/debrief/{stepId}.
  */
 
-import React, { useMemo } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import {
   ScrollView,
   View,
@@ -69,7 +69,15 @@ import {
   IOS_REGISTER_TEXT,
 } from '@/lib/design-tokens-ios';
 import { useStepDetail } from '@/hooks/useStepDetail';
+import { useUpdateStepMetadata } from '@/hooks/useStepDetail';
+import {
+  LOCAL_KNOWLEDGE_TEMPLATES,
+  appendAtlasRaceNote,
+  appendReviewAnythingElseNote,
+  getAtlasStepData,
+} from '@/lib/atlasRaceStep';
 import type {
+  StepMetadata,
   StepActData,
   Observation,
   MediaUpload,
@@ -104,21 +112,29 @@ export default function DebriefIosPreview() {
     );
   }
 
-  const act = ((step.metadata?.act_data ?? {}) as StepActData) ?? {};
+  const metadata = (step.metadata ?? {}) as StepMetadata;
+  const act = ((metadata.act ?? (step.metadata as any)?.act_data ?? {}) as StepActData) ?? {};
 
   return (
-    <DebriefBody step={step} act={act} />
+    <DebriefBody step={step} act={act} metadata={metadata} />
   );
 }
 
 function DebriefBody({
   step,
   act,
+  metadata,
 }: {
   step: NonNullable<ReturnType<typeof useStepDetail>['data']>;
   act: StepActData;
+  metadata: StepMetadata;
 }) {
+  const updateMetadata = useUpdateStepMetadata(step.id);
   const captures = useMemo(() => buildCaptures(act), [act]);
+  const atlasData = useMemo(() => getAtlasStepData(metadata), [metadata]);
+  const reviewNotes = (atlasData?.local_knowledge_notes ?? []).filter(
+    (note) => note.phase === 'review',
+  );
   const captureCount = captures.length;
   const flaggedCount = captures.filter((c) => c.flagged).length;
 
@@ -126,6 +142,26 @@ function DebriefBody({
   const completedDate = step.completed_at
     ? format(parseISO(step.completed_at), 'EEEE')
     : null;
+
+  const handleAddReviewNote = useCallback(
+    (text: string) => {
+      const nextAtlas = appendAtlasRaceNote(atlasData, {
+        text,
+        phase: 'review',
+        kind: 'general',
+        source: 'debrief_preview',
+        lat: step.location_lat ?? undefined,
+        lng: step.location_lng ?? undefined,
+        focus_label: atlasData?.next_event?.label ?? step.location_name ?? step.title,
+      });
+      const nextReview = appendReviewAnythingElseNote(metadata.review, text);
+      updateMetadata.mutate({
+        atlas: nextAtlas,
+        review: nextReview,
+      });
+    },
+    [atlasData, metadata.review, step.location_lat, step.location_lng, step.location_name, step.title, updateMetadata],
+  );
 
   return (
     <SafeAreaView style={styles.page} edges={['top', 'bottom']}>
@@ -189,6 +225,33 @@ function DebriefBody({
               </>
             )}
           </View>
+        </View>
+
+        <View style={styles.localKnowledgeCard}>
+          <Text style={styles.localKnowledgeEyebrow}>LOCAL KNOWLEDGE LAYER</Text>
+          <Text style={styles.localKnowledgeBody}>
+            Add the course reads you want to carry forward. These save into Review and stay attached to this race context as a separate map-note layer.
+          </Text>
+          <View style={styles.localKnowledgeChipRow}>
+            {LOCAL_KNOWLEDGE_TEMPLATES.map((template) => (
+              <Pressable
+                key={template.kind}
+                style={styles.localKnowledgeChip}
+                onPress={() => handleAddReviewNote(template.text)}
+              >
+                <Text style={styles.localKnowledgeChipText}>{template.label}</Text>
+              </Pressable>
+            ))}
+          </View>
+          {reviewNotes.length > 0 ? (
+            <View style={styles.localKnowledgeList}>
+              {reviewNotes.slice(-4).map((note) => (
+                <Text key={note.id} style={styles.localKnowledgeListItem}>
+                  • {note.text}
+                </Text>
+              ))}
+            </View>
+          ) : null}
         </View>
 
         {/* Capture stack — chronological */}
@@ -435,6 +498,49 @@ const styles = StyleSheet.create({
     height: 3,
     borderRadius: 1.5,
     backgroundColor: IOS_REGISTER.labelTertiary,
+  },
+  localKnowledgeCard: {
+    marginHorizontal: 16,
+    marginBottom: 18,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    backgroundColor: '#FFF8EE',
+    borderRadius: 12,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(190, 144, 72, 0.28)',
+    gap: 10,
+  },
+  localKnowledgeEyebrow: {
+    ...IOS_REGISTER_TEXT.titleEyebrow,
+    color: '#9A6C20',
+    marginBottom: 0,
+  },
+  localKnowledgeBody: {
+    ...IOS_REGISTER_TEXT.body,
+    color: IOS_REGISTER.labelSecondary,
+  },
+  localKnowledgeChipRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  localKnowledgeChip: {
+    backgroundColor: 'rgba(190, 144, 72, 0.12)',
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+  },
+  localKnowledgeChipText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#9A6C20',
+  },
+  localKnowledgeList: {
+    gap: 4,
+  },
+  localKnowledgeListItem: {
+    ...IOS_REGISTER_TEXT.caption,
+    color: IOS_REGISTER.labelSecondary,
   },
   stack: {
     paddingHorizontal: 16,

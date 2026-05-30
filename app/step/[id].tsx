@@ -12,14 +12,17 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, Stack, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { StepDetailContent } from '@/components/step/StepDetailContent';
+import { ZoomLevelPicker } from '@/components/ios-register/timeline-zoom/ZoomLevelPicker';
+import type { ZoomLevel } from '@/components/ios-register/timeline-zoom/types';
 import { useVocabulary } from '@/hooks/useVocabulary';
 import { useStepBlueprintChrome } from '@/hooks/useStepBlueprintChrome';
 import { getEventTabRoute } from '@/lib/navigation-config';
 
 export default function StepDetailScreen() {
-  const { id, readOnly, tab } = useLocalSearchParams<{ id: string; readOnly?: string; tab?: string }>();
+  const { id, readOnly, tab, origin } = useLocalSearchParams<{ id: string; readOnly?: string; tab?: string; origin?: string }>();
   const actualId = Array.isArray(id) ? id[0] : id;
   const isReadOnly = readOnly === 'true';
+  const sourceOrigin = Array.isArray(origin) ? origin[0] : origin;
   const initialTab = (Array.isArray(tab) ? tab[0] : tab) as
     | 'plan'
     | 'act'
@@ -28,7 +31,7 @@ export default function StepDetailScreen() {
     | undefined;
   const { vocab } = useVocabulary();
   const { data: blueprintChrome } = useStepBlueprintChrome(actualId);
-  const backLabel = 'Practice';
+  const backLabel = sourceOrigin === 'atlas' ? 'Atlas' : 'Practice';
 
   if (!actualId) {
     return (
@@ -87,19 +90,35 @@ export default function StepDetailScreen() {
               </Pressable>
             ),
           headerRight: () => (
-            <Pressable
-              onPress={() => router.push(`/race/ios/${actualId}` as any)}
-              style={styles.iosPreviewBtn}
-              accessibilityLabel="Preview in iOS register"
-              hitSlop={8}
-            >
-              <Ionicons name="sparkles-outline" size={18} color="#007AFF" />
-              <Text style={styles.iosPreviewLabel}>iOS</Text>
-            </Pressable>
+            sourceOrigin === 'atlas' ? null : (
+              <Pressable
+                onPress={() => router.push(`/race/ios/${actualId}` as any)}
+                style={styles.iosPreviewBtn}
+                accessibilityLabel="Preview in iOS register"
+                hitSlop={8}
+              >
+                <Ionicons name="sparkles-outline" size={18} color="#007AFF" />
+                <Text style={styles.iosPreviewLabel}>iOS</Text>
+              </Pressable>
+            )
           ),
         }}
       />
       <StepDetailContent stepId={actualId} readOnly={isReadOnly} initialTab={initialTab} />
+      {/* Zoom rail: step detail = L1. Tap L2/L3/L4 to navigate up to the
+          practice timeline at that zoom, keeping the current step selected
+          so the user lands in context (not at the top of an arc they
+          didn't open). L1-on-L1 is a no-op — we're already here. */}
+      <ZoomLevelPicker
+        level={1}
+        onChange={(next: ZoomLevel) => {
+          if (next === 1) return;
+          router.push({
+            pathname: '/(tabs)/races',
+            params: { level: String(next), selected: actualId },
+          } as never);
+        }}
+      />
     </SafeAreaView>
   );
 }

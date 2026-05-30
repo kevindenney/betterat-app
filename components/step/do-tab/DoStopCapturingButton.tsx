@@ -11,14 +11,14 @@ export interface DoStopCapturingButtonProps {
 }
 
 /**
- * Frame 2 · G — Stop capturing.
+ * Frame 2 · G — finish capture.
  * Reverse polarity (white fill, coral border) so the action reads serious
  * without competing with the LIVE pill or feeling like an alarm.
  */
 export function DoStopCapturingButton({
   onPress,
   disabled,
-  label = 'Stop capturing',
+  label = 'Finish capture',
 }: DoStopCapturingButtonProps) {
   return (
     <Pressable

@@ -315,7 +315,7 @@ export function PlanTabIOSRegisterInterior({
       {onNextPhase ? (
         <View style={styles.ctaWrap}>
           <BottomCTA
-            label="Next: Start Doing"
+            label="Next: Do"
             hint={ctaHint}
             disabled={ctaDisabled}
             onPress={() => onNextPhase?.()}

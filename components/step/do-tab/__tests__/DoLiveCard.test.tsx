@@ -113,7 +113,7 @@ const allText = (root: ReactTestInstance): string =>
     .join(' | ');
 
 describe('DoLiveCard — Frame 2 surface', () => {
-  it('renders the live header (mm:ss elapsed) and the context strip with step title', () => {
+  it('renders the context strip with step title and no live-recording header', () => {
     const tree = renderCard({
       captures: [
         baseCapture({ id: 'a', body: 'one' }),
@@ -121,11 +121,12 @@ describe('DoLiveCard — Frame 2 surface', () => {
       ],
     });
     const names = componentNames(tree.root);
-    expect(names).toContain('DoLiveHeader');
+    // Live-recording chrome (pulsing dot header) is intentionally gone.
+    expect(names).not.toContain('DoLiveHeader');
     expect(names).toContain('DoStepContextStrip');
     const text = allText(tree.root);
-    expect(text).toContain('Live · capturing');
-    expect(text).toContain('14:52');
+    expect(text).not.toContain('On water');
+    expect(text).not.toContain('14:52');
     expect(text).toContain('Light-air starts in shifty breeze');
   });
 
@@ -164,11 +165,11 @@ describe('DoLiveCard — Frame 2 surface', () => {
     expect((rows[1].props as { fresh?: boolean }).fresh).toBe(false);
   });
 
-  it('renders the composer and stop-capturing button', () => {
+  it('renders the composer and no stop-capturing button', () => {
     const tree = renderCard();
     const names = componentNames(tree.root);
     expect(names).toContain('StreamComposer');
-    expect(names).toContain('StopCapturingCTA');
+    expect(names).not.toContain('StopCapturingCTA');
   });
 
   it('forwards composer callbacks for all three first-class affordances', () => {
@@ -185,18 +186,6 @@ describe('DoLiveCard — Frame 2 surface', () => {
     expect(composer.props.onAddQuickNote).toBe(onAddQuickNote);
     expect(composer.props.onAddPhoto).toBe(onAddPhoto);
     expect(composer.props.onAddVoiceNote).toBe(onAddVoiceNote);
-  });
-
-  it('forwards the stop-capturing callback to DoStopCapturingButton', () => {
-    const onStopCapturing = jest.fn();
-    const tree = renderCard({ onStopCapturing });
-    const btn = tree.root.find(
-      (n: ReactTestInstance) =>
-        typeof n.type !== 'string' &&
-        ((n.type as { name?: string }).name === 'StopCapturingCTA' ||
-          (n.type as { displayName?: string }).displayName === 'StopCapturingCTA'),
-    );
-    expect(btn.props.onStop).toBe(onStopCapturing);
   });
 
   it('shows the empty-stream message when there are no captures and hides the freshest indicator', () => {
@@ -241,39 +230,17 @@ describe('DoLiveCard — Frame 2 surface', () => {
     expect(row.props.onDelete).toBe(onDeleteCapture);
   });
 
-  it('excludes time_marker rows from the live header capture count', () => {
-    const captures: DoCaptureItem[] = [
-      baseCapture({ id: 'a', body: 'one' }),
-      baseCapture({
-        id: 'marker',
-        kind: 'time_marker',
-        capturedAt: '2026-05-16T14:08:00Z',
-        body: 'Beat 2 begins',
-        markerLabel: 'Beat 2 begins',
-        source: 'time_marker',
-      }),
-      baseCapture({ id: 'b', body: 'two', capturedAt: '2026-05-16T14:22:00Z' }),
-    ];
-    const tree = renderCard({ captures });
-    const header = tree.root.find(
-      (n: ReactTestInstance) =>
-        typeof n.type !== 'string' &&
-        ((n.type as { name?: string }).name === 'DoLiveHeader' ||
-          (n.type as { displayName?: string }).displayName === 'DoLiveHeader'),
-    );
-    expect(header.props.captureCount).toBe(2);
-  });
-
-  it('uses nursing-specific state, stop copy, and count-only timer default', () => {
+  it('uses the nursing-specific empty-stream copy and shows no live timer', () => {
     const tree = renderCard({
       interestSlug: 'nursing',
       captures: [],
       elapsedMs: 90_000,
     });
     const text = allText(tree.root);
-    expect(text).toContain('On shift · capturing');
-    expect(text).toContain('End shift');
-    expect(text).toContain('Observations will appear here as you capture them.');
+    // Live-recording chrome is gone — no state pill, stop copy, or elapsed timer.
+    expect(text).not.toContain('On shift · capturing');
+    expect(text).not.toContain('End shift');
     expect(text).not.toContain('1:30');
+    expect(text).toContain('Observations will appear here as you capture them.');
   });
 });

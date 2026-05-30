@@ -31,8 +31,14 @@ const GLYPHS = 'https://tiles.openfreemap.org/fonts/{fontstack}/{range}.pbf';
 const SOURCE_URL = 'https://tiles.openfreemap.org/planet';
 
 /**
- * Sailing — cream land, soft blue water, no labels. Race-marks + wind
- * arrows + tide arrows + POI pins read clearly against this base.
+ * Sailing — cream land, soft blue water. Adds land detail (major roads
+ * always, secondary roads z12+, building footprints z13+, place labels
+ * z9+) because many sailing steps happen on land: boat prep at marinas,
+ * sail-loft visits, coaching debriefs at the club, gym work, meeting
+ * rooms. The earlier pure-water style read as abstract; sailors couldn't
+ * orient between the marina, parking, club entrance, or the road to it.
+ * Palette stays brand-aligned so race-marks + wind/tide arrows + POI
+ * pins still dominate.
  */
 export const SAILING_MAP_STYLE = {
   version: 8 as const,
@@ -60,6 +66,13 @@ export const SAILING_MAP_STYLE = {
       paint: { 'fill-color': PALETTE.grass, 'fill-opacity': 0.4 },
     },
     {
+      id: 'landuse-park',
+      type: 'fill' as const,
+      source: 'openmaptiles',
+      'source-layer': 'park',
+      paint: { 'fill-color': PALETTE.park, 'fill-opacity': 0.4 },
+    },
+    {
       id: 'water',
       type: 'fill' as const,
       source: 'openmaptiles',
@@ -72,6 +85,79 @@ export const SAILING_MAP_STYLE = {
       source: 'openmaptiles',
       'source-layer': 'waterway',
       paint: { 'line-color': PALETTE.waterway, 'line-width': 1 },
+    },
+    {
+      id: 'building',
+      type: 'fill' as const,
+      source: 'openmaptiles',
+      'source-layer': 'building',
+      minzoom: 13,
+      paint: { 'fill-color': PALETTE.building, 'fill-opacity': 0.5 },
+    },
+    {
+      id: 'transportation-major',
+      type: 'line' as const,
+      source: 'openmaptiles',
+      'source-layer': 'transportation',
+      filter: ['in', ['get', 'class'], ['literal', ['motorway', 'trunk', 'primary']]],
+      paint: { 'line-color': PALETTE.road, 'line-width': 1.4, 'line-opacity': 0.7 },
+    },
+    {
+      id: 'transportation-secondary',
+      type: 'line' as const,
+      source: 'openmaptiles',
+      'source-layer': 'transportation',
+      minzoom: 12,
+      filter: ['==', ['get', 'class'], 'secondary'],
+      paint: { 'line-color': PALETTE.road, 'line-width': 0.9, 'line-opacity': 0.55 },
+    },
+    {
+      id: 'transportation-minor',
+      type: 'line' as const,
+      source: 'openmaptiles',
+      'source-layer': 'transportation',
+      minzoom: 14,
+      filter: ['in', ['get', 'class'], ['literal', ['tertiary', 'residential', 'service']]],
+      paint: { 'line-color': PALETTE.road, 'line-width': 0.6, 'line-opacity': 0.4 },
+    },
+    {
+      id: 'place-major',
+      type: 'symbol' as const,
+      source: 'openmaptiles',
+      'source-layer': 'place',
+      minzoom: 9,
+      filter: ['in', ['get', 'class'], ['literal', ['city', 'town']]],
+      layout: {
+        'text-field': ['get', 'name'],
+        'text-font': ['Noto Sans Regular'],
+        'text-size': 12,
+        'text-letter-spacing': 0.05,
+        'text-transform': 'uppercase' as const,
+      },
+      paint: {
+        'text-color': 'rgba(60, 60, 67, 0.72)',
+        'text-halo-color': 'rgba(241, 233, 216, 0.9)',
+        'text-halo-width': 1.2,
+      },
+    },
+    {
+      id: 'place-neighborhood',
+      type: 'symbol' as const,
+      source: 'openmaptiles',
+      'source-layer': 'place',
+      minzoom: 13,
+      filter: ['in', ['get', 'class'], ['literal', ['suburb', 'neighbourhood', 'village']]],
+      layout: {
+        'text-field': ['get', 'name'],
+        'text-font': ['Noto Sans Italic'],
+        'text-size': 10,
+        'text-letter-spacing': 0.05,
+      },
+      paint: {
+        'text-color': 'rgba(60, 60, 67, 0.6)',
+        'text-halo-color': 'rgba(241, 233, 216, 0.85)',
+        'text-halo-width': 1,
+      },
     },
   ],
 };

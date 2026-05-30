@@ -36,6 +36,14 @@ export interface InterestVocab {
    */
   verb: Record<ArcVerbTier, string>;
   /**
+   * Persona-native noun for the calendar block the L3/L4 timeline shows
+   * — what a sailor calls an "arc", a nurse calls a "rotation", an
+   * entrepreneur a "season". Lower-case; callers capitalize as needed
+   * ("Current rotation", "this season"). Replaces hardcoded "arc"
+   * literals that leaked the sailing word to every persona.
+   */
+  periodNoun: string;
+  /**
    * Lifetime-vision placeholder shown on L4 — the question that prompts
    * the user to name what they're building toward. Phrased natively per
    * persona. NOT derived from `verb.mid`: the eyebrow verb ("SHIPPING",
@@ -121,6 +129,7 @@ const DEFAULT_VOCAB: InterestVocab = {
     mid: 'IN MOTION',
     late: 'REFLECTING',
   },
+  periodNoun: 'arc',
   visionPrompt: 'What are you building toward, long-term?',
   librarianEyebrow: 'This arc · the librarian noticed',
   capabilityHeader: 'CAPABILITY MIX',
@@ -135,6 +144,7 @@ const SAILING_VOCAB: InterestVocab = {
     mid: 'RACING',
     late: 'DEBRIEFING',
   },
+  periodNoun: 'arc',
   visionPrompt: 'What are you racing toward, long-term?',
   librarianEyebrow: 'This arc · logbook noticed',
   capabilityHeader: 'PRACTICE LOG',
@@ -233,6 +243,7 @@ const NURSING_VOCAB: InterestVocab = {
     mid: 'ROTATING',
     late: 'DEBRIEFING',
   },
+  periodNoun: 'rotation',
   visionPrompt: 'What kind of nurse are you becoming?',
   librarianEyebrow: "This rotation · preceptor's debrief",
   capabilityHeader: 'CAPABILITY MIX',
@@ -327,6 +338,7 @@ const ENTREPRENEUR_VOCAB: InterestVocab = {
     mid: 'SHIPPING',
     late: 'TALLYING',
   },
+  periodNoun: 'season',
   visionPrompt: 'What are you building toward, long-term?',
   librarianEyebrow: 'This season · what your books noticed',
   capabilityHeader: 'BUSINESS MIX',
@@ -365,6 +377,7 @@ const GOLF_VOCAB: InterestVocab = {
     mid: 'PLAYING',
     late: 'SCORING',
   },
+  periodNoun: 'season',
   visionPrompt: "What's the game you're building toward?",
   librarianEyebrow: "This season · coach's notebook",
   capabilityHeader: 'ROUND MIX',
@@ -390,6 +403,7 @@ const DRAWING_VOCAB: InterestVocab = {
     mid: 'DRAWING',
     late: 'REVIEWING',
   },
+  periodNoun: 'sketchbook',
   visionPrompt: 'What are you working toward as an artist?',
   librarianEyebrow: 'This sketchbook · studio notes',
   capabilityHeader: 'STUDIO LOG',
@@ -417,6 +431,7 @@ const KNITTING_VOCAB: InterestVocab = {
     mid: 'KNITTING',
     late: 'BINDING OFF',
   },
+  periodNoun: 'project',
   visionPrompt: 'What do you want to be able to make?',
   librarianEyebrow: 'This project · pattern notes',
   capabilityHeader: 'PROJECT LOG',
@@ -517,7 +532,7 @@ export function resolveCapabilityVisuals(
 export function composeArcEyebrow(
   vocab: InterestVocab,
   tier: ArcVerbTier,
-  scopeLabel = 'CURRENT ARC',
+  scopeLabel = `CURRENT ${vocab.periodNoun.toUpperCase()}`,
 ): string {
   return `ZOOM · ${scopeLabel} · ${vocab.verb[tier]}`;
 }

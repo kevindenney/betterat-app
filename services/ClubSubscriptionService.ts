@@ -9,7 +9,7 @@ import { createLogger } from '@/lib/utils/logger';
 const logger = createLogger('ClubSubscriptionService');
 
 export interface SubscriptionPlan {
-  id: 'starter' | 'professional' | 'enterprise';
+  id: 'club_free' | 'club_plus' | 'club_pro' | 'starter' | 'professional' | 'enterprise';
   name: string;
   monthlyPrice: number; // in cents
   annualPrice: number; // in cents
@@ -43,6 +43,64 @@ export const CLUB_STRIPE_PRICE_IDS = {
 };
 
 export const CLUB_SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
+  {
+    id: 'club_free',
+    name: 'Free Club Claim',
+    monthlyPrice: 0,
+    annualPrice: 0,
+    monthlyPriceFormatted: '$0',
+    annualPriceFormatted: '$0',
+    annualSavings: '',
+    description: 'Claim and correct an official yacht-club presence',
+    features: [
+      'Official claimed club page',
+      'Logo, website, location, and contact details',
+      'One admin',
+      'Public event affiliation references',
+      'Pinned links',
+      'BetterAt official badge after verification',
+    ],
+    popular: true,
+  },
+  {
+    id: 'club_plus',
+    name: 'Club Plus',
+    monthlyPrice: 0,
+    annualPrice: 19900,
+    monthlyPriceFormatted: 'Annual only',
+    annualPriceFormatted: '$199',
+    annualSavings: '',
+    description: 'Lightweight visibility for volunteer-led clubs',
+    features: [
+      'Three to five admins',
+      'Member and sailor invite links',
+      'Club posts and news',
+      'Sponsor and partner links',
+      'Basic analytics',
+      'Export interested sailors or followers',
+    ],
+    popular: false,
+  },
+  {
+    id: 'club_pro',
+    name: 'Regatta / Club Pro',
+    monthlyPrice: 14900,
+    annualPrice: 149900,
+    monthlyPriceFormatted: '$149',
+    annualPriceFormatted: '$1,499',
+    annualSavings: 'Save $289',
+    description: 'Operational tools for clubs and class associations running events',
+    features: [
+      'Multi-event pages',
+      'Segmented announcements',
+      'Sponsor surfaces',
+      'Crew and community tools',
+      'Moderation tools',
+      'Event analytics',
+      'BetterAt setup support',
+    ],
+    popular: false,
+  },
   {
     id: 'starter',
     name: 'Club Starter',
@@ -109,7 +167,7 @@ export const CLUB_SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
 
 export interface CreateSubscriptionParams {
   userId: string;
-  planId: 'starter' | 'professional' | 'enterprise';
+  planId: SubscriptionPlan['id'];
   billingPeriod: 'monthly' | 'annual';
   paymentMethodId: string; // Stripe payment method ID
   billingDetails?: {

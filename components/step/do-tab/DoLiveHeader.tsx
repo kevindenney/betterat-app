@@ -26,7 +26,7 @@ export interface DoLiveHeaderProps {
 export function DoLiveHeader({
   captureCount,
   elapsedMs,
-  liveLabel = 'Live · capturing',
+  liveLabel = 'Doing',
   timerVisible = true,
   onToggleTimer,
 }: DoLiveHeaderProps) {

@@ -33,6 +33,8 @@ interface GroupCreationFlowProps {
   onCreated: (threadId: string) => void;
   onBack: () => void;
   onClose: () => void;
+  initialName?: string;
+  initialEmoji?: string;
 }
 
 type Step = 'members' | 'details';
@@ -78,15 +80,19 @@ function GroupDetailsStep({
   onClose,
   onCreate,
   isCreating,
+  initialName = '',
+  initialEmoji = '⛵',
 }: {
   memberCount: number;
   onBack: () => void;
   onClose: () => void;
   onCreate: (name: string, emoji: string) => void;
   isCreating: boolean;
+  initialName?: string;
+  initialEmoji?: string;
 }) {
-  const [groupName, setGroupName] = useState('');
-  const [selectedEmoji, setSelectedEmoji] = useState('⛵');
+  const [groupName, setGroupName] = useState(initialName);
+  const [selectedEmoji, setSelectedEmoji] = useState(initialEmoji);
 
   const handleCreate = useCallback(() => {
     if (!groupName.trim()) {
@@ -187,6 +193,8 @@ export function GroupCreationFlow({
   onCreated,
   onBack,
   onClose,
+  initialName,
+  initialEmoji,
 }: GroupCreationFlowProps) {
   const [step, setStep] = useState<Step>('members');
   const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
@@ -229,6 +237,8 @@ export function GroupCreationFlow({
         onClose={onClose}
         onCreate={handleCreate}
         isCreating={isCreating}
+        initialName={initialName}
+        initialEmoji={initialEmoji}
       />
     );
   }

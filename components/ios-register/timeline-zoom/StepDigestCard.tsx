@@ -205,6 +205,23 @@ export function StepDigestCard({
               onToggle={() => onToggleHowItem?.(item.id, !item.checked)}
             />
           ))}
+          <View style={styles.libraryHintRow}>
+            <Ionicons
+              name="library-outline"
+              size={11}
+              color={IOS_REGISTER.labelSecondary}
+            />
+            <Text style={styles.libraryHintText} numberOfLines={1}>
+              {step.linkedResourceCount
+                ? `${step.linkedResourceCount} resource${step.linkedResourceCount === 1 ? '' : 's'}`
+                : 'Add library'}
+            </Text>
+            <Ionicons
+              name="add-circle-outline"
+              size={12}
+              color={IOS_REGISTER.accentUserAction}
+            />
+          </View>
         </View>
       ) : null}
 
@@ -676,6 +693,23 @@ const styles = StyleSheet.create({
   checklistLabelDone: {
     color: IOS_REGISTER.labelSecondary,
     textDecorationLine: 'line-through',
+  },
+  libraryHintRow: {
+    marginTop: 6,
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 7,
+    paddingVertical: 4,
+    borderRadius: 999,
+    backgroundColor: IOS_REGISTER.fillPill,
+  },
+  libraryHintText: {
+    fontSize: 10.5,
+    fontWeight: '500',
+    color: IOS_REGISTER.labelSecondary,
+    maxWidth: 92,
   },
   beatsList: {
     gap: 3,

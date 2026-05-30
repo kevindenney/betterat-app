@@ -53,7 +53,13 @@ import { PlanTabInterior, PlanTabIOSRegisterInterior } from './plan-tab';
 import { buildSuggestions, crossInterestToMentorInput } from '@/services/SuggestionsService';
 import { useCrossInterestSuggestions } from '@/hooks/useCrossInterestSuggestions';
 import { useLibraryBeforeBinding } from '@/hooks/useStepLibraryBefore';
+import { useStepLocationSuggestions } from '@/hooks/useStepLocationSuggestions';
 import { showAlert, showAlertWithButtons } from '@/lib/utils/crossPlatformAlert';
+import { getAtlasStepData, isAtlasRaceCourseStep } from '@/lib/atlasRaceStep';
+
+function normalizeCapabilityLabel(label: string): string {
+  return label.trim().replace(/\s+/g, ' ').toLowerCase();
+}
 
 interface StepPlanQuestionsProps {
   stepId: string;
@@ -128,8 +134,36 @@ export function StepPlanQuestions({
   const [orgLocations, setOrgLocations] = useState<{ id: string; name: string; description?: string; lat?: number; lng?: number }[]>([]);
   const initializedRef = useRef(false);
 
-  const metadata = (step?.metadata ?? {}) as StepMetadata;
+  const metadata = useMemo(
+    () => (step?.metadata ?? {}) as StepMetadata,
+    [step?.metadata],
+  );
   const planData: StepPlanData = metadata.plan ?? {};
+  const atlasData = useMemo(() => getAtlasStepData(metadata), [metadata]);
+  const isAtlasRaceStep = useMemo(() => isAtlasRaceCourseStep(metadata), [metadata]);
+  const locationSuggestions = useStepLocationSuggestions({
+    interestSlug: String(interestSlug || currentInterest?.slug || '').toLowerCase() || null,
+    stepTitle: step?.title ?? localWhat,
+  });
+  const atlasSpatialSummary = useMemo(() => {
+    const anchors = planData.spatial_anchors ?? [];
+    if (anchors.length === 0) return null;
+    const markCount = anchors.filter((anchor) =>
+      anchor.kind === 'race-mark' || anchor.kind === 'gate-mark' || anchor.kind === 'line-end',
+    ).length;
+    const lineCount = anchors.filter((anchor) =>
+      anchor.kind === 'start-line' || anchor.kind === 'route-leg',
+    ).length;
+    const noteCount = anchors.filter((anchor) => anchor.kind === 'local-note').length;
+    return {
+      anchorCount: anchors.length,
+      markCount,
+      lineCount,
+      noteCount,
+    };
+  }, [planData.spatial_anchors]);
+  const metadataRef = useRef(metadata);
+  metadataRef.current = metadata;
 
   // Seed local state from server data on first load AND when plan changes externally
   // (e.g. ConversationalCapture populates fields, AI structuring fills plan)
@@ -382,7 +416,7 @@ export function StepPlanQuestions({
           actorId: user.id,
           actorName: userName,
           stepId: step.id,
-          stepTitle: step.title,
+          stepTitle: step.title ?? 'Untitled step',
         }).catch(() => {});
       }
       return updated;
@@ -415,12 +449,13 @@ export function StepPlanQuestions({
 
   const handleConfirmCollaborators = useCallback(
     (next: StepCollaborator[]) => {
-      // AddPeoplePicker returns the full intended set. Preserve any existing
-      // external (off-platform) collaborators that the picker doesn't know
-      // about, since it only deals with platform users.
+      // AddPeoplePicker returns the full intended set for platform users and
+      // any external collaborators added in the sheet. Preserve older external
+      // chips that were not visible to the picker, without duplicating new ones.
       setLocalCollaborators((prev) => {
-        const externals = prev.filter((c) => c.type === 'external');
-        const merged = [...next, ...externals];
+        const seen = new Set(next.map((c) => c.id));
+        const preservedExternals = prev.filter((c) => c.type === 'external' && !seen.has(c.id));
+        const merged = [...next, ...preservedExternals];
         debouncedSave({
           collaborators: merged,
           who_collaborators: merged.map((c) => c.display_name),
@@ -438,7 +473,7 @@ export function StepPlanQuestions({
       const message = `Hey ${collaboratorName}, here's our plan for "${step.title}": ${url}`;
       if (Platform.OS === 'web') {
         if (navigator.share) {
-          await navigator.share({ title: step.title, text: message, url });
+          await navigator.share({ title: step.title ?? 'Untitled step', text: message, url });
         } else {
           await navigator.clipboard.writeText(url);
         }
@@ -469,6 +504,32 @@ export function StepPlanQuestions({
     },
     [debouncedSave],
   );
+
+  const handleOpenRaceMap = useCallback(() => {
+    router.push({ pathname: '/(tabs)/atlas', params: { frame: 'f2' } } as any);
+  }, []);
+
+  const handlePlanLiveTracking = useCallback(() => {
+    const currentAtlas = getAtlasStepData(metadataRef.current);
+    updateMetadata.mutate({
+      atlas: {
+        ...(currentAtlas ?? {}),
+        live_tracking: {
+          ...(currentAtlas?.live_tracking ?? {}),
+          status:
+            currentAtlas?.live_tracking?.status === 'completed'
+              ? 'completed'
+              : 'planned',
+          provider:
+            currentAtlas?.live_tracking?.provider ?? 'betterat_phone_gps',
+          planned_at:
+            currentAtlas?.live_tracking?.planned_at ??
+            new Date().toISOString(),
+        },
+      },
+    });
+    router.push(`/race/ios/water/${stepId}` as any);
+  }, [stepId, updateMetadata]);
 
   const handleSelectPlaybookItems = useCallback(async (selections: PlaybookPickerSelection[]) => {
     // Write typed step_playbook_links for every selection (await so other tabs see them)
@@ -609,6 +670,33 @@ export function StepPlanQuestions({
     });
   }, [debouncedSave]);
 
+  const handleToggleCompetency = useCallback((compId: string, compTitle: string) => {
+    const existingIds = planDataRef.current.competency_ids ?? [];
+    if (existingIds.includes(compId)) {
+      handleRemoveGoal(compTitle);
+      return;
+    }
+    competencyMapRef.current.set(compTitle, compId);
+    setLocalGoals((prev) => {
+      const updated = prev.includes(compTitle) ? prev : [...prev, compTitle];
+      debouncedSave({
+        capability_goals: updated,
+        competency_ids: [...existingIds, compId],
+      });
+      return updated;
+    });
+  }, [debouncedSave, handleRemoveGoal]);
+
+  const handleToggleSuggestedCapability = useCallback((label: string) => {
+    const trimmed = label.trim().replace(/\s+/g, ' ');
+    if (!trimmed) return;
+    if (localGoals.some((goal) => normalizeCapabilityLabel(goal) === normalizeCapabilityLabel(trimmed))) {
+      handleRemoveGoal(trimmed);
+      return;
+    }
+    handleAddGoal(trimmed);
+  }, [handleAddGoal, handleRemoveGoal, localGoals]);
+
   // Build enriched context for AI — reused by both initial suggest and refinement
   const buildEnrichedCtx = useCallback(async () => {
     if (!user?.id || !step) return null;
@@ -619,7 +707,7 @@ export function StepPlanQuestions({
     return {
       interestName: currentInterest?.name || 'this interest',
       interestId: resolvedInterestId,
-      stepTitle: step.title,
+      stepTitle: step.title ?? 'Untitled step',
       currentWhat: localWhat || undefined,
       linkedResources,
       capabilityGoals: localGoals,
@@ -829,6 +917,20 @@ RULES:
   // Filter suggestions to only show ones not already added
   const availableOrgSuggestions = suggestedCompetencies.filter((s) => !localGoals.includes(s));
   const availableSkillSuggestions = suggestedUserSkills.filter((s) => !localGoals.includes(s) && !suggestedCompetencies.includes(s));
+  const competencyPickerSuggestions = useMemo(() => {
+    const seen = new Set<string>();
+    const suggestions: { id: string; label: string; source?: string }[] = [];
+    const addSuggestion = (label: string, source: string) => {
+      const clean = label.trim().replace(/\s+/g, ' ');
+      const key = normalizeCapabilityLabel(clean);
+      if (!clean || seen.has(key)) return;
+      seen.add(key);
+      suggestions.push({ id: `capability:${source}:${key}`, label: clean, source });
+    };
+    suggestedUserSkills.forEach((label) => addSuggestion(label, 'Your skills'));
+    suggestedCompetencies.forEach((label) => addSuggestion(label, 'Organization framework'));
+    return suggestions;
+  }, [suggestedCompetencies, suggestedUserSkills]);
 
   // Brain dump section — use prop data or fall back to step metadata
   const brainDumpData = brainDumpProp ?? (metadata?.brain_dump as BrainDumpData | undefined);
@@ -866,10 +968,15 @@ RULES:
         return title ? { id: `comp:${id}`, label: title } : null;
       })
       .filter((x): x is { id: string; label: string } => x !== null);
-    const goalChips = (localGoals ?? []).map((goal) => ({
-      id: `goal:${goal}`,
-      label: goal,
-    }));
+    const selectedCompetencyLabels = new Set(
+      competencyChips.map((chip) => normalizeCapabilityLabel(chip.label)),
+    );
+    const goalChips = (localGoals ?? [])
+      .filter((goal) => !selectedCompetencyLabels.has(normalizeCapabilityLabel(goal)))
+      .map((goal) => ({
+        id: `goal:${goal}`,
+        label: goal,
+      }));
     const capabilityChips = [...goalChips, ...competencyChips];
 
     const handleStepLoopUpdate = (partial: Partial<StepPlanData>) => {
@@ -988,7 +1095,7 @@ RULES:
           readOnly={readOnly}
           interestId={interestId}
           interestName={currentInterest?.name}
-          stepTitle={step.title}
+          stepTitle={step.title ?? undefined}
           stepCategory={step.category}
           onConversationalCreate={useConversationalCapture ? handleStepLoopConversationalCreate : undefined}
           capabilities={capabilityChips}
@@ -998,6 +1105,11 @@ RULES:
               return;
             }
             const rawId = id.startsWith('comp:') ? id.slice(5) : id;
+            const title = competencyChips.find((chip) => chip.id === `comp:${rawId}`)?.label;
+            if (title) {
+              handleRemoveGoal(title);
+              return;
+            }
             const updated = (planData.competency_ids ?? []).filter((c) => c !== rawId);
             debouncedSave({ competency_ids: updated });
           }}
@@ -1005,6 +1117,84 @@ RULES:
           suggestions={suggestions}
           contextRows={
             <>
+              {isAtlasRaceStep ? (
+                <View style={styles.atlasRaceCard}>
+                  <View style={styles.phase1ContextHead}>
+                    <Ionicons name="map-outline" size={12} color={STEP_COLORS.secondaryLabel} />
+                    <Text style={styles.phase1ContextEye}>Atlas race context</Text>
+                  </View>
+
+                  <Text style={styles.atlasRaceTitle}>
+                    {atlasData?.next_event?.label ?? step.title}
+                  </Text>
+                  <Text style={styles.atlasRaceBody}>
+                    {atlasData?.race_course_context?.scrub_title ??
+                      'This step came from the race-course map. Start tracking on the water, then save local knowledge back onto the course as its own note layer.'}
+                  </Text>
+
+                  <View style={styles.atlasRaceMetaRow}>
+                    {atlasData?.race_course_context?.scrub_label ? (
+                      <View style={styles.atlasRaceMetaPill}>
+                        <Text style={styles.atlasRaceMetaText}>
+                          {atlasData.race_course_context.scrub_label.toUpperCase()}
+                        </Text>
+                      </View>
+                    ) : null}
+                    {atlasData?.race_course_context?.wind_chip ? (
+                      <View style={styles.atlasRaceMetaPill}>
+                        <Text style={styles.atlasRaceMetaText}>
+                          {atlasData.race_course_context.wind_chip}
+                        </Text>
+                      </View>
+                    ) : null}
+                    {atlasData?.race_course_context?.tide_chip ? (
+                      <View style={styles.atlasRaceMetaPill}>
+                        <Text style={styles.atlasRaceMetaText}>
+                          {atlasData.race_course_context.tide_chip}
+                        </Text>
+                      </View>
+                    ) : null}
+                  </View>
+
+                  <Text style={styles.atlasRaceHint}>
+                    {atlasSpatialSummary
+                      ? `${atlasSpatialSummary.markCount} marks · ${atlasSpatialSummary.lineCount} course lines${atlasSpatialSummary.noteCount > 0 ? ` · ${atlasSpatialSummary.noteCount} local notes` : ''} attached to this step’s map plan.`
+                      : (atlasData?.local_knowledge_notes?.length ?? 0) > 0
+                        ? `${atlasData?.local_knowledge_notes?.length ?? 0} local note${(atlasData?.local_knowledge_notes?.length ?? 0) === 1 ? '' : 's'} saved to this step`
+                        : 'GPS tracking, live notes, and post-race notes stay attached to this race-course context as evidence.'}
+                  </Text>
+
+                  {!readOnly ? (
+                    <View style={styles.atlasRaceActions}>
+                      <Pressable
+                        style={styles.atlasRacePrimaryButton}
+                        onPress={handlePlanLiveTracking}
+                      >
+                        <Ionicons name="radio-outline" size={15} color="#FFFFFF" />
+                        <Text style={styles.atlasRacePrimaryButtonText}>
+                          {atlasData?.live_tracking?.status === 'tracking'
+                            ? 'Resume GPS track'
+                            : 'Track GPS on the water'}
+                        </Text>
+                      </Pressable>
+                      <Pressable
+                        style={styles.atlasRaceSecondaryButton}
+                        onPress={handleOpenRaceMap}
+                      >
+                        <Ionicons
+                          name="navigate-outline"
+                          size={15}
+                          color={STEP_COLORS.accent}
+                        />
+                        <Text style={styles.atlasRaceSecondaryButtonText}>
+                          Open course map
+                        </Text>
+                      </Pressable>
+                    </View>
+                  ) : null}
+                </View>
+              ) : null}
+
               <View style={styles.phase1ContextCard}>
                 <View style={styles.phase1ContextHead}>
                   <Ionicons name="people-outline" size={12} color={STEP_COLORS.secondaryLabel} />
@@ -1087,12 +1277,20 @@ RULES:
                 location={localWhereLocation}
                 readOnly={readOnly}
                 onChange={handleLocationChange}
-                quickPicks={orgLocations.map((loc) => ({
-                  id: loc.id,
-                  name: loc.name,
-                  lat: loc.lat ?? undefined,
-                  lng: loc.lng ?? undefined,
-                }))}
+                quickPicks={[
+                  ...orgLocations.map((loc) => ({
+                    id: loc.id,
+                    name: loc.name,
+                    lat: loc.lat ?? undefined,
+                    lng: loc.lng ?? undefined,
+                  })),
+                  ...locationSuggestions.map((s) => ({
+                    id: s.id,
+                    name: s.name,
+                    lat: s.lat,
+                    lng: s.lng,
+                  })),
+                ]}
               />
 
               <PlanInServiceOfCard
@@ -1168,16 +1366,11 @@ RULES:
               visible={showCompetencyPicker}
               onClose={() => setShowCompetencyPicker(false)}
               selectedIds={planData.competency_ids ?? []}
-              onToggle={(compId, compTitle) => {
-                const existingIds = planDataRef.current.competency_ids ?? [];
-                if (existingIds.includes(compId)) {
-                  handleRemoveGoal(compTitle);
-                } else {
-                  handleAddGoal(compTitle);
-                  competencyMapRef.current.set(compTitle, compId);
-                }
-              }}
+              onToggle={handleToggleCompetency}
               interestId={interestId ?? ''}
+              suggestedCapabilities={competencyPickerSuggestions}
+              selectedSuggestedLabels={localGoals}
+              onToggleSuggested={handleToggleSuggestedCapability}
             />
             <LocationMapPickerModal
               visible={showLocationPicker}
@@ -1598,16 +1791,11 @@ RULES:
               visible={showCompetencyPicker}
               onClose={() => setShowCompetencyPicker(false)}
               selectedIds={planData.competency_ids ?? []}
-              onToggle={(compId, compTitle) => {
-                const existingIds = planDataRef.current.competency_ids ?? [];
-                if (existingIds.includes(compId)) {
-                  handleRemoveGoal(compTitle);
-                } else {
-                  handleAddGoal(compTitle);
-                  competencyMapRef.current.set(compTitle, compId);
-                }
-              }}
+              onToggle={handleToggleCompetency}
               interestId={interestId ?? ''}
+              suggestedCapabilities={competencyPickerSuggestions}
+              selectedSuggestedLabels={localGoals}
+              onToggleSuggested={handleToggleSuggestedCapability}
             />
           </>
         )}
@@ -1656,7 +1844,7 @@ RULES:
         readOnly={readOnly}
         interestId={interestId}
         interestName={currentInterest?.name}
-        stepTitle={step.title}
+        stepTitle={step.title ?? undefined}
         stepCategory={step.category}
         onConversationalCreate={useConversationalCapture ? handleCanonicalConversationalCreate : undefined}
         optionalAddOns={optionalAddOns}
@@ -2303,19 +2491,11 @@ RULES:
               visible={showCompetencyPicker}
               onClose={() => setShowCompetencyPicker(false)}
               selectedIds={planData.competency_ids ?? []}
-              onToggle={(compId, compTitle) => {
-                const existingIds = planDataRef.current.competency_ids ?? [];
-                if (existingIds.includes(compId)) {
-                  // Remove
-                  handleRemoveGoal(compTitle);
-                } else {
-                  // Add
-                  handleAddGoal(compTitle);
-                  // Ensure competencyMapRef has the mapping
-                  competencyMapRef.current.set(compTitle, compId);
-                }
-              }}
+              onToggle={handleToggleCompetency}
               interestId={interestId ?? ''}
+              suggestedCapabilities={competencyPickerSuggestions}
+              selectedSuggestedLabels={localGoals}
+              onToggleSuggested={handleToggleSuggestedCapability}
             />
           </>
         )}
@@ -2896,6 +3076,84 @@ const styles = StyleSheet.create({
     paddingVertical: 11,
     paddingHorizontal: 14,
     gap: 10,
+  },
+  atlasRaceCard: {
+    backgroundColor: '#FFF8EE',
+    borderRadius: 12,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(190, 144, 72, 0.34)',
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    gap: 10,
+  },
+  atlasRaceTitle: {
+    fontSize: 17,
+    lineHeight: 21,
+    fontWeight: '700',
+    color: STEP_COLORS.label,
+    letterSpacing: -0.2,
+  },
+  atlasRaceBody: {
+    fontSize: 13,
+    lineHeight: 19,
+    color: IOS_COLORS.secondaryLabel,
+  },
+  atlasRaceMetaRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  atlasRaceMetaPill: {
+    backgroundColor: 'rgba(190, 144, 72, 0.14)',
+    borderRadius: 999,
+    paddingHorizontal: 9,
+    paddingVertical: 5,
+  },
+  atlasRaceMetaText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#9A6C20',
+    letterSpacing: 0.2,
+  },
+  atlasRaceHint: {
+    fontSize: 12.5,
+    lineHeight: 18,
+    color: IOS_COLORS.secondaryLabel,
+  },
+  atlasRaceActions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  atlasRacePrimaryButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: STEP_COLORS.accent,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  atlasRacePrimaryButtonText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  atlasRaceSecondaryButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 10,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: STEP_COLORS.accent,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  atlasRaceSecondaryButtonText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: STEP_COLORS.accent,
   },
   phase1ContextHead: {
     flexDirection: 'row',

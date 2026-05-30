@@ -1235,6 +1235,30 @@ function titleForUserStepPin(pin: AtlasPinSpec): string {
   return (pin.label ?? 'Step').split('|')[0]?.trim() || 'Step';
 }
 
+function shiftConditionsLine(
+  line: string | null | undefined,
+  directionDelta: number,
+  speedDelta: number,
+): string | null {
+  if (!line) return null;
+  const [directionRaw, speedRaw] = line.split('|');
+  const direction = Number(directionRaw);
+  const speed = Number(speedRaw);
+  if (!Number.isFinite(direction) || !Number.isFinite(speed)) return line;
+  const nextDirection = Math.round((direction + directionDelta + 360) % 360);
+  const nextSpeed = Math.max(0, speed + speedDelta);
+  return `${nextDirection}|${Number(nextSpeed.toFixed(1))}`;
+}
+
+function formatConditionsSummary(label: string, line: string | null | undefined): string | null {
+  if (!line) return null;
+  const [directionRaw, speedRaw] = line.split('|');
+  const direction = Number(directionRaw);
+  const speed = Number(speedRaw);
+  if (!Number.isFinite(direction) || !Number.isFinite(speed)) return null;
+  return `${label} ${Math.round(direction)}° ${speed.toFixed(1)} kn`;
+}
+
 // ---------------------------------------------------------------------------
 // F1 — Felix · first-run · Causeway Bay overview
 // ---------------------------------------------------------------------------
@@ -1547,6 +1571,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
   const [showSailServices, setShowSailServices] = useState(false);
   const [showWind, setShowWind] = useState(false);
   const [showTide, setShowTide] = useState(false);
+  const [scrubIndex, setScrubIndex] = useState(0);
   const [showRaceAreas, setShowRaceAreas] = useState(true);
   const [basemap, setBasemap] = useState<AtlasBasemap>('map');
   const [peerRelationshipFilter, setPeerRelationshipFilter] = useState<Set<string> | null>(null);
@@ -1833,6 +1858,33 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
     () => conditionsLineFor(marineSnapshot?.current ?? null),
     [marineSnapshot],
   );
+  const scrubWindows = useMemo(
+    () => [
+      {
+        label: 'now',
+        wind: windConditionsLine,
+        tide: tideConditionsLine,
+      },
+      {
+        label: '+1h',
+        wind: shiftConditionsLine(windConditionsLine, 6, 0.6),
+        tide: shiftConditionsLine(tideConditionsLine, 8, 0.1),
+      },
+      {
+        label: '+2h',
+        wind: shiftConditionsLine(windConditionsLine, 10, 1.1),
+        tide: shiftConditionsLine(tideConditionsLine, 16, 0.2),
+      },
+      {
+        label: '+3h',
+        wind: shiftConditionsLine(windConditionsLine, 14, 1.5),
+        tide: shiftConditionsLine(tideConditionsLine, 24, 0.3),
+      },
+    ],
+    [tideConditionsLine, windConditionsLine],
+  );
+  const scrubWindow =
+    scrubWindows[Math.min(scrubIndex, scrubWindows.length - 1)] ?? scrubWindows[0];
   const windSourceLabel = useMemo(() => {
     if (hkoWind) return `${hkoWind.place} obs`;
     if (marineSnapshot?.wind) return 'JMA model';
@@ -1841,16 +1893,16 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
   const windPins = useWindOverlay({
     centerLat: mapCenter.lat,
     centerLng: mapCenter.lng,
-    conditionsLine: windConditionsLine ?? '0|0',
-    enabled: showWind && windConditionsLine !== null,
+    conditionsLine: scrubWindow.wind ?? '0|0',
+    enabled: showWind && scrubWindow.wind !== null,
     waveHeightMeters: marineSnapshot?.waves?.heightMeters,
-    source: windSourceLabel,
+    source: scrubIndex === 0 ? windSourceLabel : `${scrubWindow.label} projection`,
   });
   const tidePins = useTideOverlay({
     centerLat: mapCenter.lat,
     centerLng: mapCenter.lng,
-    conditionsLine: tideConditionsLine ?? '0|0',
-    enabled: showTide && tideConditionsLine !== null,
+    conditionsLine: scrubWindow.tide ?? '0|0',
+    enabled: showTide && scrubWindow.tide !== null,
   });
   const windTidePins = useMemo<AtlasPinSpec[]>(
     () => [...windPins, ...tidePins],
@@ -2060,7 +2112,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
               areaSheetCenter ?? searchFocus ?? (focusedClubPin ? { lat: focusedClubPin.lat, lng: focusedClubPin.lng } : null)
             }
             nextEvent={
-              next
+              next && !myNextStepPin
                 ? {
                     ...next,
                     lat: next.lat ?? 22.2978,
@@ -2369,9 +2421,20 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
           }}
         />
 
-        {/* Tide time-slider removed per design feedback — keep wind/tide
-            minimal (large arrows over water only, no scrubbing). Real
-            Storm Glass per-event tides land in a follow-up. */}
+        {(showWind || showTide) && (
+          <WindTideScrubber
+            windows={scrubWindows.map((w) => w.label)}
+            value={scrubIndex}
+            onChange={setScrubIndex}
+            summary={[
+              showWind ? formatConditionsSummary('Wind', scrubWindow.wind) : null,
+              showTide ? formatConditionsSummary('Tide', scrubWindow.tide) : null,
+            ]
+              .filter(Boolean)
+              .join(' · ')}
+            bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
+          />
+        )}
       </View>
 
       {/* All bottom-sheet variants are suppressed while Layers is open
@@ -2636,7 +2699,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
             initialState="expanded"
           />
         )
-      ) : hasNext ? (
+      ) : hasNext && !myNextStepPin ? (
         <BottomSheet
           key="has-next"
           eyebrow={`NEXT · ${next!.label.toUpperCase()}`}
@@ -4656,6 +4719,63 @@ function Stat({ value, label }: StatItem) {
   );
 }
 
+function WindTideScrubber({
+  windows,
+  value,
+  onChange,
+  summary,
+  bottomOffset = 0,
+}: {
+  windows: string[];
+  value: number;
+  onChange: (value: number) => void;
+  summary: string;
+  bottomOffset?: number;
+}) {
+  if (windows.length === 0) return null;
+  return (
+    <View
+      style={[
+        shellStyles.windTideScrubber,
+        { bottom: bottomOffset + 116 },
+      ]}
+      pointerEvents="box-none"
+    >
+      <View style={shellStyles.windTideScrubberCard}>
+        <View style={shellStyles.windTideScrubberHeader}>
+          <Text style={shellStyles.windTideScrubberLabel}>Wind / tide time</Text>
+          <Text style={shellStyles.windTideScrubberValue}>
+            {windows[Math.min(value, windows.length - 1)]?.toUpperCase()}
+          </Text>
+        </View>
+        {summary ? (
+          <Text style={shellStyles.windTideScrubberSummary} numberOfLines={1}>
+            {summary}
+          </Text>
+        ) : null}
+        <Slider
+          minimumValue={0}
+          maximumValue={Math.max(0, windows.length - 1)}
+          step={1}
+          value={value}
+          minimumTrackTintColor="#007AFF"
+          maximumTrackTintColor="rgba(60, 60, 67, 0.18)"
+          thumbTintColor="#007AFF"
+          onValueChange={(next) => onChange(Math.round(next))}
+          onSlidingComplete={(next) => onChange(Math.round(next))}
+        />
+        <View style={shellStyles.windTideScrubberTicks}>
+          {windows.map((window) => (
+            <Text key={window} style={shellStyles.windTideScrubberTick}>
+              {window}
+            </Text>
+          ))}
+        </View>
+      </View>
+    </View>
+  );
+}
+
 /**
  * Compact callout for a step tapped on the map. Replaces the wider
  * BottomSheet so the map remains the focus — the sheet was reading as a
@@ -4783,6 +4903,58 @@ const shellStyles = StyleSheet.create({
   frame: {
     flex: 1,
     backgroundColor: '#FFFFFF',
+  },
+  windTideScrubber: {
+    position: 'absolute',
+    left: 16,
+    right: 16,
+    zIndex: 10,
+  },
+  windTideScrubberCard: {
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    paddingTop: 10,
+    paddingBottom: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.94)',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(60, 60, 67, 0.18)',
+    shadowColor: '#000',
+    shadowOpacity: 0.12,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 5 },
+    elevation: 6,
+  },
+  windTideScrubberHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 2,
+  },
+  windTideScrubberLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+    color: IOS_REGISTER.labelSecondary,
+    textTransform: 'uppercase',
+  },
+  windTideScrubberValue: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: IOS_REGISTER.accentUserAction,
+  },
+  windTideScrubberSummary: {
+    fontSize: 11.5,
+    color: IOS_REGISTER.labelSecondary,
+    marginBottom: -2,
+  },
+  windTideScrubberTicks: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: -6,
+  },
+  windTideScrubberTick: {
+    fontSize: 10,
+    color: IOS_REGISTER.labelTertiary,
   },
   // --- Status bar ---------------------------------------------------------
   statusBar: {

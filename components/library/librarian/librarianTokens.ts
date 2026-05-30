@@ -15,9 +15,21 @@ export const LIBRARIAN_PURPLE_TINT_18 = 'rgba(124,77,255,0.18)';
 
 export const LIBRARIAN_SERIF = 'Georgia';
 
-export const LIBRARIAN_EXAMPLE_QUERIES = [
-  'Have I written about light-air starts before?',
-  'What did Sam say about pre-start lanes?',
-  'Where did I last touch on shift-vs-side?',
-  'Have I tested "boat speed is permission to think"?',
-] as const;
+/**
+ * Rotating "Ask the librarian" example prompts. Craft-neutral so they read
+ * honestly for any interest — the only interest-specific word is the coach
+ * noun, which comes from the vocabulary map. (Earlier these were hardcoded
+ * sailing prompts — "light-air starts", "pre-start lanes" — and leaked to
+ * nursing/entrepreneur personas.)
+ */
+export function buildLibrarianExampleQueries(
+  coachTerm: string,
+): readonly string[] {
+  const coach = coachTerm.toLowerCase();
+  return [
+    'What have I been circling lately?',
+    'Which idea haven’t I tested yet?',
+    `What did my ${coach} flag last time?`,
+    'What keeps coming up in my notes?',
+  ];
+}

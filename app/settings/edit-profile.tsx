@@ -273,6 +273,7 @@ export default function EditProfileScreen() {
               {bio.length}/400 · shown on your marketplace listings
             </Text>
           </View>
+
         </View>
 
       </ScrollView>

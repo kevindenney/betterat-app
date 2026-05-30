@@ -75,6 +75,24 @@ interface Props {
   }) => void;
 }
 
+function fileNameFromUrl(url: string): string {
+  try {
+    const path = new URL(url).pathname;
+    return decodeURIComponent(path.split('/').filter(Boolean).pop() ?? '');
+  } catch {
+    return '';
+  }
+}
+
+function filenameToTitle(name: string): string {
+  return name
+    .replace(/\.[a-z0-9]+$/i, '')
+    .replace(/[-_]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
 export function CaptureSheet({ visible, onClose, onSave }: Props) {
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
@@ -86,6 +104,8 @@ export function CaptureSheet({ visible, onClose, onSave }: Props) {
   const [attachTo, setAttachTo] = useState<AttachTo>('standalone');
   const [pastedText, setPastedText] = useState('');
   const [linkUrl, setLinkUrl] = useState('');
+  const [title, setTitle] = useState('');
+  const [autoFillingTitle, setAutoFillingTitle] = useState(false);
   const [interestIds, setInterestIds] = useState<Set<string>>(() =>
     currentInterest ? new Set([currentInterest.id]) : new Set(),
   );
@@ -95,6 +115,7 @@ export function CaptureSheet({ visible, onClose, onSave }: Props) {
   // user's mid-capture chip toggles aren't reset on re-render.
   React.useEffect(() => {
     if (!visible) return;
+    setTitle('');
     setInterestIds(currentInterest ? new Set([currentInterest.id]) : new Set());
     // intentionally omit currentInterest to avoid wiping toggles mid-sheet
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -126,9 +147,33 @@ export function CaptureSheet({ visible, onClose, onSave }: Props) {
         kind === 'file'
           ? await pickFile()
           : await pickImage({ fromCamera: kind === 'camera' });
-      if (result) setPicked(result);
+      if (result) {
+        setPicked(result);
+        if (!title.trim()) setTitle(filenameToTitle(result.name));
+      }
     } catch (err) {
       setPickError(err instanceof Error ? err.message : String(err));
+    }
+  };
+
+  // Auto-name a link from its oEmbed title, or — for file-like URLs that don't
+  // oEmbed (PDFs, CSVs, spreadsheets) — from the cleaned-up filename. Never
+  // clobbers a name the user already typed.
+  const handleAutoFillTitle = async () => {
+    const url = linkUrl.trim();
+    if (!url || title.trim()) return;
+    const fileName = fileNameFromUrl(url);
+    if (fileName && /\.(pdf|csv|xlsx?|docx?|pptx?|txt)$/i.test(fileName)) {
+      setTitle(filenameToTitle(fileName));
+      return;
+    }
+    setAutoFillingTitle(true);
+    try {
+      const meta = await fetchOEmbedMetadata(url);
+      if (meta?.title && !title.trim()) setTitle(meta.title);
+      else if (fileName && !title.trim()) setTitle(filenameToTitle(fileName));
+    } finally {
+      setAutoFillingTitle(false);
     }
   };
 
@@ -189,7 +234,7 @@ export function CaptureSheet({ visible, onClose, onSave }: Props) {
       mode,
       attachTo,
       tags: [],
-      title: titleFromUpload,
+      title: title.trim() || titleFromUpload || oEmbed?.title,
       url: mode === 'link' ? linkUrl.trim() : undefined,
       pastedText: mode === 'paste' ? pastedText.trim() : undefined,
       upload,
@@ -283,6 +328,7 @@ export function CaptureSheet({ visible, onClose, onSave }: Props) {
               <TextInput
                 value={linkUrl}
                 onChangeText={setLinkUrl}
+                onBlur={handleAutoFillTitle}
                 placeholder="Paste a URL — youtube.com, nejm.org, …"
                 placeholderTextColor={IOS_COLORS.tertiaryLabel}
                 style={styles.input}
@@ -349,9 +395,21 @@ export function CaptureSheet({ visible, onClose, onSave }: Props) {
             </View>
           )}
 
-          {/* Auto-detected source/year/tags chip card was Wave 2e demo
-              content tied to the hardcoded AACN payload — hide until a real
-              detection pass exists. */}
+          <View style={styles.titleBlock}>
+            <View style={styles.titleLblRow}>
+              <Text style={styles.titleLbl}>Name</Text>
+              {autoFillingTitle ? (
+                <ActivityIndicator size="small" color={IOS_COLORS.tertiaryLabel} />
+              ) : null}
+            </View>
+            <TextInput
+              value={title}
+              onChangeText={setTitle}
+              placeholder="We'll fill this in — or name it yourself"
+              placeholderTextColor={IOS_COLORS.tertiaryLabel}
+              style={styles.input}
+            />
+          </View>
 
           {userInterests.length > 0 ? (
             <View style={styles.relevantFor}>
@@ -425,13 +483,6 @@ export function CaptureSheet({ visible, onClose, onSave }: Props) {
             </Text>
           </View>
 
-          <View style={styles.collPick}>
-            <Text style={styles.collLbl}>Collection</Text>
-            <TouchableOpacity activeOpacity={0.7} style={styles.collPickBtn}>
-              <Text style={styles.collPickText}>Sepsis & rapid response · 12</Text>
-              <Ionicons name="chevron-down" size={14} color={IOS_COLORS.tertiaryLabel} />
-            </TouchableOpacity>
-          </View>
         </ScrollView>
 
         <View style={styles.footer}>
@@ -746,6 +797,21 @@ const styles = StyleSheet.create({
     borderWidth: 0.5,
     borderColor: 'rgba(60,60,67,0.18)',
   },
+  titleBlock: {
+    gap: 6,
+  },
+  titleLblRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  titleLbl: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: IOS_COLORS.secondaryLabel,
+    letterSpacing: 0.3,
+    textTransform: 'uppercase',
+  },
   relevantFor: {
     backgroundColor: IOS_COLORS.systemBackground,
     borderRadius: 12,
@@ -828,32 +894,6 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: IOS_COLORS.tertiaryLabel,
     lineHeight: 15,
-  },
-  collPick: {
-    backgroundColor: IOS_COLORS.systemBackground,
-    borderRadius: 12,
-    padding: 12,
-    gap: 6,
-    borderWidth: 0.5,
-    borderColor: 'rgba(60,60,67,0.18)',
-  },
-  collLbl: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: IOS_COLORS.secondaryLabel,
-    letterSpacing: 0.3,
-    textTransform: 'uppercase',
-  },
-  collPickBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 4,
-  },
-  collPickText: {
-    fontSize: 14,
-    color: IOS_COLORS.label,
-    fontWeight: '500',
   },
   footer: {
     paddingHorizontal: IOS_SPACING.lg,

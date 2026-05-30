@@ -12,7 +12,7 @@
  */
 
 import React from 'react';
-import { Platform, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import {
   GRAY_5,
   IOS_CORAL,
@@ -36,6 +36,8 @@ export type IdentityDeckStateVariant = 'live' | 'planned' | 'complete';
 export interface IdentityDeckProps {
   /** Required step title rendered large and serif. */
   title: string;
+  /** Optional editable/custom title surface. Falls back to read-only title text. */
+  titleSlot?: React.ReactNode;
   /** Eyebrow above the title — e.g. "SUB-STEP 3 OF 5" or "STEP 4 OF 12". */
   counter?: string;
   /** Phase grammar pill rendered top-right of the deck. */
@@ -55,6 +57,8 @@ export interface IdentityDeckProps {
    * working this step" pattern.
    */
   peerAvatars?: { id: string; initials: string; color: string }[];
+  /** Optional tap handler for avatar chips, e.g. open the person's profile. */
+  onPeerAvatarPress?: (userId: string) => void;
   /** Pre-rendered cross-interest chip slot (e.g. StepCombinatorsRow output). */
   crossInterestSlot?: React.ReactNode;
   testID?: string;
@@ -68,6 +72,7 @@ const stateColors: Record<IdentityDeckStateVariant, { bg: string; fg: string; do
 
 export function IdentityDeck({
   title,
+  titleSlot,
   counter,
   stateLabel,
   stateVariant = 'planned',
@@ -76,6 +81,7 @@ export function IdentityDeck({
   peersCount,
   peersLabel = 'people',
   peerAvatars,
+  onPeerAvatarPress,
   crossInterestSlot,
   testID,
 }: IdentityDeckProps) {
@@ -98,7 +104,7 @@ export function IdentityDeck({
         </View>
       )}
 
-      <Text style={styles.title}>{title}</Text>
+      {titleSlot ? titleSlot : <Text style={styles.title}>{title}</Text>}
 
       {showBlueprint ? (
         <Text style={styles.blueprintLine}>
@@ -117,8 +123,12 @@ export function IdentityDeck({
           {peerAvatars && peerAvatars.length > 0 ? (
             <View style={styles.avatarStack}>
               {peerAvatars.slice(0, 4).map((a, idx) => (
-                <View
+                <Pressable
                   key={a.id}
+                  onPress={onPeerAvatarPress ? () => onPeerAvatarPress(a.id) : undefined}
+                  disabled={!onPeerAvatarPress}
+                  accessibilityRole={onPeerAvatarPress ? 'button' : undefined}
+                  accessibilityLabel={`Open ${a.initials}`}
                   style={[
                     styles.avatarChip,
                     { backgroundColor: a.color },
@@ -126,7 +136,7 @@ export function IdentityDeck({
                   ]}
                 >
                   <Text style={styles.avatarChipText}>{a.initials}</Text>
-                </View>
+                </Pressable>
               ))}
               {peerAvatars.length > 4 ? (
                 <View

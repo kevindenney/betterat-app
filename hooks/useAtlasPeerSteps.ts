@@ -41,6 +41,13 @@ interface UseAtlasPeerStepsArgs {
   radiusKm?: number;
   /** Optional interest filter ('sail-racing', 'nursing', ...). Null = all. */
   interestSlug?: string | null;
+  /**
+   * Optional roster filter. When set, the RPC scopes peer steps to these
+   * user_ids only. Used by Atlas chip-row contextual groups (Dragon HK,
+   * 2026 Anesthesia, etc.) so the SQL narrows at the bbox query stage
+   * rather than relying on client-side filtering.
+   */
+  restrictUserIds?: string[] | null;
   /** Skip the query entirely when false (e.g. no auth yet). */
   enabled?: boolean;
 }
@@ -50,6 +57,7 @@ export function useAtlasPeerSteps({
   lng,
   radiusKm = 5,
   interestSlug = null,
+  restrictUserIds = null,
   enabled = true,
 }: UseAtlasPeerStepsArgs) {
   // atlas_peer_steps_near uses auth.uid() inside the RPC. If this query
@@ -59,8 +67,13 @@ export function useAtlasPeerSteps({
   const { user } = useAuth();
   const userId = user?.id ?? null;
   const queryEnabled = enabled && !!userId && lat != null && lng != null;
+  // Stable cache key for restrictUserIds — sort + join so the same set
+  // hits cache regardless of insertion order.
+  const restrictKey = restrictUserIds && restrictUserIds.length > 0
+    ? [...restrictUserIds].sort().join(',')
+    : null;
   return useQuery({
-    queryKey: ['atlas-peer-steps', userId, lat, lng, radiusKm, interestSlug],
+    queryKey: ['atlas-peer-steps', userId, lat, lng, radiusKm, interestSlug, restrictKey],
     enabled: queryEnabled,
     staleTime: 30_000,
     queryFn: async (): Promise<AtlasPeerStep[]> => {
@@ -69,6 +82,7 @@ export function useAtlasPeerSteps({
         target_lng: lng,
         radius_km: radiusKm,
         interest_filter: interestSlug,
+        restrict_user_ids: restrictUserIds && restrictUserIds.length > 0 ? restrictUserIds : null,
       });
       if (error) {
         // Surface RPC failures — silently swallowing them once already

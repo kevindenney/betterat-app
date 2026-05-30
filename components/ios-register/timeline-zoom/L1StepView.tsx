@@ -237,6 +237,18 @@ export function L1StepView({
               </View>
             ) : null}
             <View style={styles.embedDetailHost}>
+              <Pressable
+                style={styles.embedMoreButton}
+                hitSlop={10}
+                accessibilityRole="button"
+                accessibilityLabel="Step actions"
+              >
+                <Ionicons
+                  name="ellipsis-horizontal"
+                  size={18}
+                  color={IOS_REGISTER.labelSecondary}
+                />
+              </Pressable>
               <StepDetailContent
                 stepId={step.id}
                 onScroll={onScroll}
@@ -350,6 +362,23 @@ export function L1StepView({
                 </Text>
               </View>
             ))}
+            <View style={styles.libraryUnderChecklist}>
+              <Ionicons
+                name="library-outline"
+                size={13}
+                color={IOS_REGISTER.labelSecondary}
+              />
+              <Text style={styles.libraryUnderChecklistText}>
+                {step.linkedResourceCount
+                  ? `${step.linkedResourceCount} library resource${step.linkedResourceCount === 1 ? '' : 's'} linked`
+                  : 'Add from library'}
+              </Text>
+              <Ionicons
+                name="add-circle-outline"
+                size={14}
+                color={IOS_REGISTER.accentUserAction}
+              />
+            </View>
           </View>
         ) : null}
 
@@ -500,7 +529,21 @@ const styles = StyleSheet.create({
     paddingTop: 0,
     paddingBottom: 4,
   },
-  embedDetailHost: { flex: 1 },
+  embedDetailHost: { flex: 1, position: 'relative' },
+  embedMoreButton: {
+    position: 'absolute',
+    top: 8,
+    right: 10,
+    zIndex: 20,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.92)',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: IOS_REGISTER.separator,
+  },
   embedContent: {
     flex: 1,
     marginHorizontal: CARD_INSET,
@@ -819,6 +862,23 @@ const styles = StyleSheet.create({
     letterSpacing: -0.2,
   },
   howLabelChecked: {
+    color: IOS_REGISTER.labelSecondary,
+  },
+  libraryUnderChecklist: {
+    marginTop: 10,
+    marginLeft: 30,
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    borderRadius: 999,
+    backgroundColor: IOS_REGISTER.fillPill,
+  },
+  libraryUnderChecklistText: {
+    fontSize: 12,
+    fontWeight: '500',
     color: IOS_REGISTER.labelSecondary,
   },
   capabilityRow: {

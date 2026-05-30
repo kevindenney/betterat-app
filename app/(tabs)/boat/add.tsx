@@ -23,7 +23,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { showAlert, showConfirm } from '@/lib/utils/crossPlatformAlert';
 import { createLogger } from '@/lib/utils/logger';
 
@@ -61,6 +61,7 @@ export default function AddBoatScreen() {
 
   useEffect(() => {
     loadBoatClasses();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Fallback mock data for common boat classes
@@ -214,6 +215,18 @@ export default function AddBoatScreen() {
 
       // TODO: Upload photo to Supabase storage if photoUri exists
       // For now, we'll skip photo upload as it requires storage bucket setup
+
+      // Auto-join the worldwide class fleet for this boat's class so
+      // the user shows up as fleet-mates to other declared sailors of
+      // the same class on Atlas. Idempotent + best-effort — never block
+      // the success message on the membership write.
+      try {
+        await supabase.rpc('ensure_class_fleet_membership_by_id', {
+          class_id: selectedClassId,
+        });
+      } catch {
+        // Best-effort; the boat is already saved.
+      }
 
       showAlert('Success', 'Boat added successfully');
       router.push(`/boat/${boat.id}`);

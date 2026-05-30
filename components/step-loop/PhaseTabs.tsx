@@ -51,6 +51,8 @@ export interface PhaseTabsProps {
   onTabPress: (tab: PhaseId) => void;
   /** Optional override labels (defaults to "Plan" / "Do" / "Reflect" / "Discussion"). */
   labels?: Partial<Record<PhaseId, string>>;
+  /** Optional unread-count badge rendered next to the Discussion tab label. */
+  discussionCount?: number;
   testID?: string;
 }
 
@@ -58,6 +60,7 @@ interface TabSpec {
   id: PhaseId;
   defaultLabel: string;
   state: PhaseState;
+  badge?: number;
 }
 
 function Pip({ state }: { state: PhaseState }) {
@@ -90,6 +93,7 @@ export function PhaseTabs({
   active,
   onTabPress,
   labels,
+  discussionCount,
   testID,
 }: PhaseTabsProps) {
   const specs: TabSpec[] = [
@@ -100,8 +104,9 @@ export function PhaseTabs({
   if (discussion !== undefined) {
     specs.push({
       id: 'discussion',
-      defaultLabel: labels?.discussion ?? 'Discussion',
+      defaultLabel: labels?.discussion ?? 'Discuss',
       state: discussion,
+      badge: discussionCount && discussionCount > 0 ? discussionCount : undefined,
     });
   }
 
@@ -129,6 +134,11 @@ export function PhaseTabs({
             >
               {tab.defaultLabel}
             </Text>
+            {tab.badge ? (
+              <View style={styles.badge}>
+                <Text style={styles.badgeText}>{tab.badge > 99 ? '99+' : tab.badge}</Text>
+              </View>
+            ) : null}
             {isActive ? (
               <View
                 style={[
@@ -193,5 +203,19 @@ const styles = StyleSheet.create({
     bottom: 0,
     height: 1.5,
     borderRadius: 1.5,
+  },
+  badge: {
+    minWidth: 18,
+    height: 18,
+    paddingHorizontal: 5,
+    borderRadius: 9,
+    backgroundColor: IOS_CORAL,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  badgeText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#FFFFFF',
   },
 });

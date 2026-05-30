@@ -62,12 +62,20 @@ export interface InspirationExtraction {
   confidence: number;
 }
 
+/** User's choice in the interest review step */
+export interface InspirationInterestReview {
+  interestEdits: Partial<ProposedInterest>;
+  selectedExistingInterestId: string | null;
+}
+
 /** Input to InspirationService.activate() */
 export interface ActivateInspirationInput {
   userId: string;
   extraction: InspirationExtraction;
   /** User overrides to the proposed interest */
   interestEdits?: Partial<ProposedInterest>;
+  /** If set, attach the generated plan to this existing user interest instead */
+  selectedExistingInterestId?: string | null;
   /** User edits to individual steps (removals, title changes, etc.) */
   editedSteps?: InspirationBlueprintStep[];
   /** Original content for saving to playbook inbox */
