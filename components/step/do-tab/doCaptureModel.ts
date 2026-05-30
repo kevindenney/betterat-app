@@ -27,6 +27,8 @@ export interface DoCaptureItem {
   capabilityLabels: string[];
   flaggedForDebrief: boolean;
   source: DoCaptureSource;
+  /** How sub-step this capture was anchored to, when captured from a checklist row. */
+  subStepId?: string;
   /** Pill chip rendered top-right of a capture (e.g. "Weather", "Boat tune"). */
   chipLabel?: string;
   /** When true the chip renders coral-filled with a pulsing white dot. */
@@ -63,6 +65,7 @@ function observationToCapture(obs: Observation): DoCaptureItem {
     capabilityLabels: [],
     flaggedForDebrief: false,
     source: 'act_observation',
+    subStepId: obs.sub_step_id,
   };
 }
 
@@ -77,6 +80,7 @@ function mediaUploadToCapture(media: MediaUpload): DoCaptureItem {
     capabilityLabels: [],
     flaggedForDebrief: false,
     source: 'media_upload',
+    subStepId: media.sub_step_id,
   };
 }
 
@@ -91,6 +95,7 @@ function mediaLinkToCapture(link: MediaLink): DoCaptureItem {
     capabilityLabels: [],
     flaggedForDebrief: false,
     source: 'media_link',
+    subStepId: link.sub_step_id,
   };
 }
 

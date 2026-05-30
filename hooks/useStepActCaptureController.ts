@@ -516,19 +516,16 @@ export function useStepActCaptureController({
 
   const summaryStepChipLabel = stepTitle || undefined;
 
-  // Count captures anchored to each How sub-step (sub_step_id) so the row can
-  // show a "N logged" badge. Spans observations, uploads, and links.
-  const subStepCaptureCount = useMemo(() => {
-    const counts: Record<string, number> = {};
-    const bump = (id?: string | null) => {
-      if (!id) return;
-      counts[id] = (counts[id] ?? 0) + 1;
-    };
-    (actData.observations ?? []).forEach((o) => bump(o.sub_step_id));
-    (actData.media_uploads ?? []).forEach((m) => bump(m.sub_step_id));
-    (actData.media_links ?? []).forEach((l) => bump(l.sub_step_id));
-    return counts;
-  }, [actData]);
+  // Group captures anchored to each How sub-step (sub_step_id), newest-first, so
+  // the row can render its saved annotations inline. Spans obs, uploads, links.
+  const subStepCaptures = useMemo(() => {
+    const grouped: Record<string, DoCaptureItem[]> = {};
+    for (const c of captures) {
+      if (!c.subStepId) continue;
+      (grouped[c.subStepId] ??= []).push(c);
+    }
+    return grouped;
+  }, [captures]);
 
   const doTabInteriorProps: Omit<DoTabInteriorProps, 'footer'> = {
     state,
@@ -559,7 +556,7 @@ export function useStepActCaptureController({
     onMarkAsEvidence: handleMarkAsEvidence,
     onToggleSubStep: handleToggleSubStep,
     onSubStepCapture: handleSubStepCapture,
-    subStepCaptureCount,
+    subStepCaptures,
   };
 
   return {

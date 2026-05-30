@@ -256,7 +256,8 @@ export function RaceStartGpsCard({
       ) : (
         <>
           <Text style={styles.body}>
-            Run the 5-minute start sequence. GPS track capture begins automatically at the gun.
+            Start the 5:00 sequence and GPS tracking begins automatically at the gun. To track
+            without the timer, tap Track now to start recording right away.
           </Text>
           {isTracking ? (
             <View style={styles.trackPointRow}>

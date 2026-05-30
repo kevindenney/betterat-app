@@ -156,6 +156,36 @@ export function useAttachLibraryItemToStepBefore(stepId: string | undefined) {
   });
 }
 
+export function useDetachLibraryItemFromStepBefore(stepId: string | undefined) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ rowId }: { rowId: string }) => {
+      const { error } = await supabase
+        .from('step_library_before')
+        .delete()
+        .eq('id', rowId);
+      if (error) throw error;
+    },
+    onMutate: async ({ rowId }) => {
+      const key = ['step-library-before', stepId];
+      await qc.cancelQueries({ queryKey: key });
+      const prev = qc.getQueryData<BeforeRowWithItemId[]>(key);
+      qc.setQueryData<BeforeRowWithItemId[]>(key, (old) =>
+        (old ?? []).filter((it) => it.id !== rowId)
+      );
+      return { prev };
+    },
+    onError: (_err, _vars, ctx) => {
+      if (ctx?.prev !== undefined) {
+        qc.setQueryData(['step-library-before', stepId], ctx.prev);
+      }
+    },
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: ['step-library-before', stepId] });
+    },
+  });
+}
+
 export function useLibraryBeforeBinding(
   stepId: string | undefined,
   interestId?: string | undefined,
@@ -163,6 +193,7 @@ export function useLibraryBeforeBinding(
   const { data: items = [] } = useStepLibraryBefore(stepId);
   const toggle = useToggleStepLibraryRead(stepId);
   const attach = useAttachLibraryItemToStepBefore(stepId);
+  const detach = useDetachLibraryItemFromStepBefore(stepId);
   const [pickerOpen, setPickerOpen] = useState(false);
   // When the picker was opened from a specific How row, attach the pick to
   // that sub-step; null means a step-level "Before the shift" pin.
@@ -175,6 +206,13 @@ export function useLibraryBeforeBinding(
       toggle.mutate({ rowId, read: !row.read });
     },
     [items, toggle]
+  );
+
+  const onRemove = useCallback(
+    (rowId: string) => {
+      detach.mutate({ rowId });
+    },
+    [detach]
   );
 
   const onAddFromLibrary = useCallback(() => {
@@ -246,6 +284,7 @@ export function useLibraryBeforeBinding(
     items: cardItems,
     itemsBySubStep,
     onToggle,
+    onRemove,
     onAddFromLibrary,
     onAddToSubStep,
     totalEstimate,

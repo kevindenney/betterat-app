@@ -1,12 +1,23 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
 import { FORMAT_ICON, FORMAT_TINT } from '@/components/library/resources/formatStyles';
 import type { BeforeShiftItem } from '@/components/step/v2/plan/BeforeTheShiftCard';
 import type { StepPlanData, SubStep } from '@/types/step-detail';
+import type { DoCaptureItem, DoCaptureKind } from './doCaptureModel';
 
 export type SubStepCaptureKind = 'note' | 'photo' | 'voice';
+
+const CAPTURE_GLYPH: Record<DoCaptureKind, React.ComponentProps<typeof Ionicons>['name']> = {
+  voice: 'mic',
+  note: 'chatbubble-ellipses-outline',
+  photo: 'image',
+  video: 'videocam',
+  media_link: 'link',
+  flag: 'flag',
+  time_marker: 'time',
+};
 
 interface PlanStartingFrameRowProps {
   planData: StepPlanData;
@@ -21,10 +32,14 @@ interface PlanStartingFrameRowProps {
   onOpenLibraryRef?: (libraryItemId: string) => void;
   /** Pin a library item to a specific How sub-step (opens the picker). */
   onAttachLibrary?: (subStepId: string) => void;
+  /** Unpin a library item from a How sub-step (step_library_before row id). */
+  onRemoveLibraryRef?: (rowId: string) => void;
   /** Capture an observation / photo / voice note against a How sub-step. */
   onSubStepCapture?: (subStepId: string, kind: SubStepCaptureKind) => void;
-  /** Count of captures already logged against each sub-step, keyed by id. */
-  subStepCaptureCount?: Record<string, number>;
+  /** Captures already logged against each sub-step, newest-first, keyed by id. */
+  subStepCaptures?: Record<string, DoCaptureItem[]>;
+  /** Show the Who + Why sections. Off on the Do tab (How is the focus there). */
+  showWhoWhy?: boolean;
 }
 
 export function hasPlanStartingFrameContent(planData: StepPlanData): boolean {
@@ -48,8 +63,10 @@ export function PlanStartingFrameRow({
   subStepRefs,
   onOpenLibraryRef,
   onAttachLibrary,
+  onRemoveLibraryRef,
   onSubStepCapture,
-  subStepCaptureCount,
+  subStepCaptures,
+  showWhoWhy = true,
 }: PlanStartingFrameRowProps) {
   const hasContent = hasPlanStartingFrameContent(planData);
   const isDisabled = disabled || !hasContent;
@@ -80,7 +97,11 @@ export function PlanStartingFrameRow({
         </View>
         <View style={styles.text}>
           <Text style={styles.title}>Plan for this attempt</Text>
-          <Text style={styles.sub}>What, how, who, and why before you capture evidence.</Text>
+          <Text style={styles.sub}>
+            {showWhoWhy
+              ? 'What, how, who, and why before you capture evidence.'
+              : 'Work through each step — pin references or capture evidence as you go.'}
+          </Text>
         </View>
       </View>
 
@@ -99,9 +120,10 @@ export function PlanStartingFrameRow({
                 step={step}
                 readOnly={readOnly}
                 refs={subStepRefs?.[step.id] ?? []}
-                captureCount={subStepCaptureCount?.[step.id] ?? 0}
+                captures={subStepCaptures?.[step.id] ?? []}
                 onToggle={() => onToggleSubStep?.(step.id, !step.completed)}
                 onOpenLibraryRef={onOpenLibraryRef}
+                onRemoveLibraryRef={onRemoveLibraryRef}
                 onAttachLibrary={onAttachLibrary ? () => onAttachLibrary(step.id) : undefined}
                 onCapture={
                   onSubStepCapture ? (kind) => onSubStepCapture(step.id, kind) : undefined
@@ -109,14 +131,16 @@ export function PlanStartingFrameRow({
               />
             ))}
           </View>
-          <View style={styles.section}>
-            <Text style={styles.label}>Who</Text>
-            {collaborators.map((person, index) => (
-              <Text key={`${person}-${index}`} style={styles.bullet} numberOfLines={2}>
-                {person}
-              </Text>
-            ))}
-          </View>
+          {showWhoWhy ? (
+            <View style={styles.section}>
+              <Text style={styles.label}>Who</Text>
+              {collaborators.map((person, index) => (
+                <Text key={`${person}-${index}`} style={styles.bullet} numberOfLines={2}>
+                  {person}
+                </Text>
+              ))}
+            </View>
+          ) : null}
         </>
       ) : (
         <View style={styles.grid}>
@@ -156,21 +180,25 @@ export function PlanStartingFrameRow({
                   </Text>
                 ))}
           </View>
-          <View style={styles.sectionHalf}>
-            <Text style={styles.label}>Who</Text>
-            {collaborators.map((person, index) => (
-              <Text key={`${person}-${index}`} style={styles.bullet} numberOfLines={2}>
-                {person}
-              </Text>
-            ))}
-          </View>
+          {showWhoWhy ? (
+            <View style={styles.sectionHalf}>
+              <Text style={styles.label}>Who</Text>
+              {collaborators.map((person, index) => (
+                <Text key={`${person}-${index}`} style={styles.bullet} numberOfLines={2}>
+                  {person}
+                </Text>
+              ))}
+            </View>
+          ) : null}
         </View>
       )}
 
-      <View style={styles.section}>
-        <Text style={styles.label}>Why</Text>
-        <Text style={styles.body}>{why}</Text>
-      </View>
+      {showWhoWhy ? (
+        <View style={styles.section}>
+          <Text style={styles.label}>Why</Text>
+          <Text style={styles.body}>{why}</Text>
+        </View>
+      ) : null}
 
       <Pressable
         style={({ pressed }) => [
@@ -196,9 +224,10 @@ interface RichHowRowProps {
   step: SubStep;
   readOnly?: boolean;
   refs: BeforeShiftItem[];
-  captureCount: number;
+  captures: DoCaptureItem[];
   onToggle: () => void;
   onOpenLibraryRef?: (libraryItemId: string) => void;
+  onRemoveLibraryRef?: (rowId: string) => void;
   onAttachLibrary?: () => void;
   onCapture?: (kind: SubStepCaptureKind) => void;
 }
@@ -207,115 +236,187 @@ function RichHowRow({
   step,
   readOnly,
   refs,
-  captureCount,
+  captures,
   onToggle,
   onOpenLibraryRef,
+  onRemoveLibraryRef,
   onAttachLibrary,
   onCapture,
 }: RichHowRowProps) {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const hasMenu = !readOnly && Boolean(onAttachLibrary || onCapture);
+
+  const pick = (fn?: () => void) => {
+    setMenuOpen(false);
+    fn?.();
+  };
+
   return (
     <View style={styles.richRow}>
-      <Pressable
-        style={styles.checkRow}
-        onPress={readOnly ? undefined : onToggle}
-        disabled={readOnly}
-        accessibilityRole="checkbox"
-        accessibilityState={{ checked: step.completed }}
-        accessibilityLabel={`Mark "${step.text}" ${step.completed ? 'not done' : 'done'}`}
-      >
-        <View style={[styles.check, step.completed ? styles.checkDone : null]}>
-          {step.completed ? <Ionicons name="checkmark" size={11} color="#FFFFFF" /> : null}
-        </View>
-        <Text
-          style={[styles.bullet, step.completed ? styles.bulletDone : null]}
-          numberOfLines={2}
+      <View style={styles.richHead}>
+        <Pressable
+          style={styles.checkRow}
+          onPress={readOnly ? undefined : onToggle}
+          disabled={readOnly}
+          accessibilityRole="checkbox"
+          accessibilityState={{ checked: step.completed }}
+          accessibilityLabel={`Mark "${step.text}" ${step.completed ? 'not done' : 'done'}`}
         >
-          {step.text}
-        </Text>
-      </Pressable>
+          <View style={[styles.check, step.completed ? styles.checkDone : null]}>
+            {step.completed ? <Ionicons name="checkmark" size={11} color="#FFFFFF" /> : null}
+          </View>
+          <Text
+            style={[styles.bullet, step.completed ? styles.bulletDone : null]}
+            numberOfLines={2}
+          >
+            {step.text}
+          </Text>
+        </Pressable>
+
+        {hasMenu ? (
+          <Pressable
+            style={[styles.plusBtn, menuOpen ? styles.plusBtnOpen : null]}
+            onPress={() => setMenuOpen((v) => !v)}
+            hitSlop={6}
+            accessibilityRole="button"
+            accessibilityLabel="Add a reference or capture to this step"
+          >
+            <Ionicons
+              name={menuOpen ? 'close' : 'add'}
+              size={15}
+              color={menuOpen ? IOS_COLORS.secondaryLabel : IOS_COLORS.systemBlue}
+            />
+          </Pressable>
+        ) : null}
+      </View>
+
+      {hasMenu && menuOpen ? (
+        <View style={styles.menu}>
+          {onAttachLibrary ? (
+            <MenuItem
+              icon="link"
+              label="Pin from library"
+              onPress={() => pick(onAttachLibrary)}
+            />
+          ) : null}
+          {onCapture ? (
+            <>
+              <MenuItem
+                icon="chatbubble-ellipses-outline"
+                label="Add note"
+                onPress={() => pick(() => onCapture('note'))}
+              />
+              <MenuItem
+                icon="camera-outline"
+                label="Add photo"
+                onPress={() => pick(() => onCapture('photo'))}
+              />
+              <MenuItem
+                icon="mic-outline"
+                label="Add voice note"
+                onPress={() => pick(() => onCapture('voice'))}
+              />
+            </>
+          ) : null}
+        </View>
+      ) : null}
 
       {refs.length > 0 ? (
         <View style={styles.refChips}>
           {refs.map((ref) => {
             const tint = FORMAT_TINT[ref.format];
             return (
-              <Pressable
-                key={ref.id}
-                style={styles.refChip}
-                onPress={
-                  onOpenLibraryRef && ref.libraryItemId
-                    ? () => onOpenLibraryRef(ref.libraryItemId!)
-                    : undefined
-                }
-                disabled={!onOpenLibraryRef || !ref.libraryItemId}
-                accessibilityRole="button"
-                accessibilityLabel={`Open ${ref.title}`}
-              >
-                <View style={[styles.refGlyph, { backgroundColor: `${tint}22` }]}>
-                  <Ionicons name={FORMAT_ICON[ref.format]} size={11} color={tint} />
-                </View>
-                <Text style={styles.refTitle} numberOfLines={1}>
-                  {ref.title}
-                </Text>
-                {ref.read ? (
-                  <Ionicons name="checkmark-circle" size={12} color="#34C759" />
+              <View key={ref.id} style={styles.refChip}>
+                <Pressable
+                  style={styles.refChipBody}
+                  onPress={
+                    onOpenLibraryRef && ref.libraryItemId
+                      ? () => onOpenLibraryRef(ref.libraryItemId!)
+                      : undefined
+                  }
+                  disabled={!onOpenLibraryRef || !ref.libraryItemId}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Open ${ref.title}`}
+                >
+                  <View style={[styles.refGlyph, { backgroundColor: `${tint}22` }]}>
+                    <Ionicons name={FORMAT_ICON[ref.format]} size={11} color={tint} />
+                  </View>
+                  <Text style={styles.refTitle} numberOfLines={1}>
+                    {ref.title}
+                  </Text>
+                  {ref.read ? (
+                    <Ionicons name="checkmark-circle" size={12} color="#34C759" />
+                  ) : null}
+                </Pressable>
+                {!readOnly && onRemoveLibraryRef ? (
+                  <Pressable
+                    style={styles.refRemove}
+                    onPress={() => onRemoveLibraryRef(ref.id)}
+                    hitSlop={6}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Remove ${ref.title} from this step`}
+                  >
+                    <Ionicons name="close" size={13} color={IOS_COLORS.tertiaryLabel} />
+                  </Pressable>
                 ) : null}
-              </Pressable>
+              </View>
             );
           })}
         </View>
       ) : null}
 
-      {!readOnly && (onAttachLibrary || onCapture) ? (
-        <View style={styles.actionBar}>
-          {onAttachLibrary ? (
-            <Pressable
-              style={styles.iconBtn}
-              onPress={onAttachLibrary}
-              accessibilityRole="button"
-              accessibilityLabel="Attach a library item to this step"
-            >
-              <Ionicons name="link" size={15} color={IOS_COLORS.systemBlue} />
-            </Pressable>
-          ) : null}
-          {onCapture ? (
-            <>
-              <Pressable
-                style={styles.iconBtn}
-                onPress={() => onCapture('note')}
-                accessibilityRole="button"
-                accessibilityLabel="Log an observation for this step"
-              >
-                <Ionicons name="create-outline" size={15} color={IOS_COLORS.systemBlue} />
-              </Pressable>
-              <Pressable
-                style={styles.iconBtn}
-                onPress={() => onCapture('photo')}
-                accessibilityRole="button"
-                accessibilityLabel="Capture a photo for this step"
-              >
-                <Ionicons name="camera-outline" size={15} color={IOS_COLORS.systemBlue} />
-              </Pressable>
-              <Pressable
-                style={styles.iconBtn}
-                onPress={() => onCapture('voice')}
-                accessibilityRole="button"
-                accessibilityLabel="Capture a voice note for this step"
-              >
-                <Ionicons name="mic-outline" size={15} color={IOS_COLORS.systemBlue} />
-              </Pressable>
-            </>
-          ) : null}
-          {captureCount > 0 ? (
-            <View style={styles.countBadge}>
-              <Ionicons name="checkmark" size={10} color="#FFFFFF" />
-              <Text style={styles.countText}>{captureCount}</Text>
+      {captures.length > 0 ? (
+        <View style={styles.captureList}>
+          {captures.map((c) => (
+            <View key={c.id} style={styles.captureRow}>
+              <Ionicons
+                name={CAPTURE_GLYPH[c.kind] ?? 'ellipse-outline'}
+                size={12}
+                color={IOS_COLORS.secondaryLabel}
+              />
+              <Text style={styles.captureText} numberOfLines={2}>
+                {c.body?.trim() || captureKindLabel(c.kind)}
+              </Text>
             </View>
-          ) : null}
+          ))}
         </View>
       ) : null}
     </View>
   );
+}
+
+interface MenuItemProps {
+  icon: React.ComponentProps<typeof Ionicons>['name'];
+  label: string;
+  onPress: () => void;
+}
+
+function MenuItem({ icon, label, onPress }: MenuItemProps) {
+  return (
+    <Pressable style={styles.menuItem} onPress={onPress} accessibilityRole="button">
+      <Ionicons name={icon} size={15} color={IOS_COLORS.systemBlue} />
+      <Text style={styles.menuItemText}>{label}</Text>
+    </Pressable>
+  );
+}
+
+function captureKindLabel(kind: DoCaptureKind): string {
+  switch (kind) {
+    case 'voice':
+      return 'Voice note';
+    case 'photo':
+      return 'Photo';
+    case 'video':
+      return 'Video';
+    case 'media_link':
+      return 'Link';
+    case 'flag':
+      return 'Flagged';
+    case 'time_marker':
+      return 'Marker';
+    default:
+      return 'Note';
+  }
 }
 
 const styles = StyleSheet.create({
@@ -420,6 +521,41 @@ const styles = StyleSheet.create({
     gap: 6,
     paddingVertical: 4,
   },
+  richHead: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 6,
+  },
+  plusBtn: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: IOS_COLORS.secondarySystemBackground,
+  },
+  plusBtnOpen: {
+    backgroundColor: 'rgba(60,60,67,0.12)',
+  },
+  menu: {
+    marginLeft: 22,
+    borderRadius: 10,
+    paddingVertical: 2,
+    backgroundColor: IOS_COLORS.secondarySystemBackground,
+    overflow: 'hidden',
+  },
+  menuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+  },
+  menuItemText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: IOS_COLORS.label,
+  },
   refChips: {
     gap: 4,
     marginLeft: 22,
@@ -427,11 +563,24 @@ const styles = StyleSheet.create({
   refChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 4,
     paddingVertical: 4,
     paddingHorizontal: 8,
     borderRadius: 8,
     backgroundColor: IOS_COLORS.secondarySystemBackground,
+  },
+  refChipBody: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  refRemove: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   refGlyph: {
     width: 20,
@@ -446,34 +595,21 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: IOS_COLORS.label,
   },
-  actionBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  captureList: {
     gap: 4,
     marginLeft: 22,
   },
-  iconBtn: {
-    width: 28,
-    height: 28,
-    borderRadius: 7,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: IOS_COLORS.secondarySystemBackground,
-  },
-  countBadge: {
+  captureRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: 2,
-    marginLeft: 'auto',
+    alignItems: 'flex-start',
+    gap: 6,
     paddingVertical: 2,
-    paddingHorizontal: 7,
-    borderRadius: 999,
-    backgroundColor: '#34C759',
   },
-  countText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#FFFFFF',
+  captureText: {
+    flex: 1,
+    fontSize: 12,
+    lineHeight: 16,
+    color: IOS_COLORS.secondaryLabel,
   },
   action: {
     flexDirection: 'row',

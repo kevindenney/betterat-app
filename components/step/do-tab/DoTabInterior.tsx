@@ -58,8 +58,8 @@ export interface DoTabInteriorProps {
   onToggleSubStep?: (subStepId: string, completed: boolean) => void;
   /** Log an observation / photo / voice note against a specific How sub-step. */
   onSubStepCapture?: (subStepId: string, kind: SubStepCaptureKind) => void;
-  /** Count of captures already anchored to each How sub-step, keyed by id. */
-  subStepCaptureCount?: Record<string, number>;
+  /** Captures already anchored to each How sub-step, newest-first, keyed by id. */
+  subStepCaptures?: Record<string, DoCaptureItem[]>;
   onTagCapture?: (captureId: string) => void;
   onMoveToReflect?: () => void;
   onRefineSummary?: () => void;
@@ -110,7 +110,7 @@ export function DoTabInterior({
   onAutoSummarizePlan,
   onToggleSubStep,
   onSubStepCapture,
-  subStepCaptureCount,
+  subStepCaptures,
   onStopCapturing,
   onPressPlayVoice,
   onEditCapture,
@@ -203,8 +203,10 @@ export function DoTabInterior({
         router.push(`/(tabs)/library/items/${libraryItemId}` as any)
       }
       onAttachLibrary={readOnly ? undefined : library.onAddToSubStep}
+      onRemoveLibraryRef={readOnly ? undefined : library.onRemove}
       onSubStepCapture={onSubStepCapture}
-      subStepCaptureCount={subStepCaptureCount}
+      subStepCaptures={subStepCaptures}
+      showWhoWhy={false}
     />
   );
 
