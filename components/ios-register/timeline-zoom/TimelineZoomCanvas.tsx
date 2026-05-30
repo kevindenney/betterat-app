@@ -19,7 +19,7 @@
  *     changes (release at the threshold without crossing it = no haptic).
  */
 
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import { Platform, StyleSheet, Text, View } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import {
@@ -29,7 +29,6 @@ import {
 } from 'react-native-gesture-handler';
 import Animated, {
   Extrapolation,
-  FadeIn,
   interpolate,
   runOnJS,
   useAnimatedReaction,
@@ -157,6 +156,25 @@ const HINT_OUT = 0.88;
 const ZOOM_IN_SNAP = 1.6;
 const ZOOM_OUT_SNAP = 0.6;
 
+// Directional level-transition entering animation. Zooming in (to a more
+// detailed level) brings the new content rushing toward the viewer — it
+// starts smaller and grows into place. Zooming out pulls back — the new
+// broader view starts larger and settles down. This makes the discrete
+// level swap read as a continuous zoom rather than a flat cross-fade.
+function makeZoomEntering(direction: 'in' | 'out') {
+  const fromScale = direction === 'in' ? 0.88 : 1.1;
+  return () => {
+    'worklet';
+    return {
+      initialValues: { opacity: 0, transform: [{ scale: fromScale }] },
+      animations: {
+        opacity: withTiming(1, { duration: 200 }),
+        transform: [{ scale: withTiming(1, { duration: 260 }) }],
+      },
+    };
+  };
+}
+
 export function TimelineZoomCanvas({
   dataset,
   initialLevel = 1,
@@ -176,6 +194,14 @@ export function TimelineZoomCanvas({
   onEditArc,
 }: TimelineZoomCanvasProps) {
   const [level, setLevel] = useState<ZoomLevel>(initialLevel);
+  // Track the previous level so the keyed level stage knows whether this
+  // mount is a zoom-in (lower level number) or zoom-out for its entering
+  // animation. Read during render, committed after paint.
+  const prevLevelRef = useRef<ZoomLevel>(initialLevel);
+  const zoomDirection: 'in' | 'out' = level <= prevLevelRef.current ? 'in' : 'out';
+  React.useEffect(() => {
+    prevLevelRef.current = level;
+  }, [level]);
   const [focusStepId, setFocusStepId] = useState<string>(dataset.focusStepId);
   const [gestureDirection, setGestureDirection] = useState<'in' | 'out' | null>(null);
   // Canvas-wide season selection — survives zoom-level changes so the
@@ -354,10 +380,10 @@ export function TimelineZoomCanvas({
           <View style={styles.canvas}>
             <Animated.View style={[styles.canvasInner, canvasAnimStyle]}>
               {/* keyed wrapper so React unmounts/mounts on level change,
-                  triggering the FadeIn entering animation each time */}
+                  triggering the directional zoom entering animation each time */}
               <Animated.View
                 key={`lvl-${level}`}
-                entering={FadeIn.duration(180)}
+                entering={makeZoomEntering(zoomDirection)}
                 style={styles.levelStage}
               >
                 {level === 1 ? (

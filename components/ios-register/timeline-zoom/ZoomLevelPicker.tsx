@@ -19,11 +19,17 @@
  * so pinching out moves up the rail.
  */
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Platform, Pressable, StyleSheet, View } from 'react-native';
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+} from 'react-native-reanimated';
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
 
 import { IOS_COLORS, IOS_REGISTER } from '@/lib/design-tokens-ios';
+import { triggerHaptic } from '@/lib/haptics';
 import { ZOOM_LEVEL_SCOPE_LABELS, type ZoomLevel } from './types';
 
 interface ZoomLevelPickerProps {
@@ -37,8 +43,8 @@ interface ZoomLevelPickerProps {
 
 const RAIL_ORDER: ZoomLevel[] = [4, 3, 2, 1];
 
-const GLYPH_SIZE = 18;
-const SEGMENT_SIZE = 34;
+const GLYPH_SIZE = 26;
+const SEGMENT_SIZE = 52;
 
 function LevelGlyph({ level, color }: { level: ZoomLevel; color: string }) {
   switch (level) {
@@ -80,17 +86,64 @@ function LevelGlyph({ level, color }: { level: ZoomLevel; color: string }) {
   }
 }
 
+function RailSegment({
+  level,
+  active,
+  onPress,
+}: {
+  level: ZoomLevel;
+  active: boolean;
+  onPress: () => void;
+}) {
+  const scale = useSharedValue(active ? 1 : 0.88);
+
+  useEffect(() => {
+    scale.value = withSpring(active ? 1.12 : 0.88, {
+      damping: 14,
+      stiffness: 220,
+    });
+  }, [active, scale]);
+
+  const glyphStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
+
+  const tint = active ? IOS_COLORS.systemBlue : IOS_REGISTER.labelSecondary;
+
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="tab"
+      accessibilityState={{ selected: active }}
+      accessibilityLabel={ZOOM_LEVEL_SCOPE_LABELS[level]}
+      style={({ pressed }) => [
+        styles.segment,
+        active && styles.segmentActive,
+        pressed && !active && styles.segmentPressed,
+      ]}
+    >
+      <Animated.View style={glyphStyle}>
+        <LevelGlyph level={level} color={tint} />
+      </Animated.View>
+    </Pressable>
+  );
+}
+
 export function ZoomLevelPicker({
   level,
   onChange,
   onSnapToCurrent,
-  rightOffset = 8,
+  rightOffset = 10,
 }: ZoomLevelPickerProps) {
   const handlePress = (target: ZoomLevel) => {
     if (target === level) {
-      if (target === 1 && onSnapToCurrent) onSnapToCurrent();
+      if (target === 1 && onSnapToCurrent) {
+        triggerHaptic('selection');
+        onSnapToCurrent();
+      }
       return;
     }
+    triggerHaptic('impactLight');
     onChange(target);
   };
 
@@ -101,26 +154,14 @@ export function ZoomLevelPicker({
       accessibilityRole="tablist"
     >
       <View style={styles.rail}>
-        {RAIL_ORDER.map((l) => {
-          const active = l === level;
-          const tint = active ? IOS_COLORS.systemBlue : IOS_REGISTER.labelSecondary;
-          return (
-            <Pressable
-              key={l}
-              onPress={() => handlePress(l)}
-              accessibilityRole="tab"
-              accessibilityState={{ selected: active }}
-              accessibilityLabel={ZOOM_LEVEL_SCOPE_LABELS[l]}
-              style={({ pressed }) => [
-                styles.segment,
-                active && styles.segmentActive,
-                pressed && !active && styles.segmentPressed,
-              ]}
-            >
-              <LevelGlyph level={l} color={tint} />
-            </Pressable>
-          );
-        })}
+        {RAIL_ORDER.map((l) => (
+          <RailSegment
+            key={l}
+            level={l}
+            active={l === level}
+            onPress={() => handlePress(l)}
+          />
+        ))}
       </View>
     </View>
   );
@@ -136,10 +177,10 @@ const styles = StyleSheet.create({
   },
   rail: {
     flexDirection: 'column',
-    padding: 4,
-    gap: 4,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 22,
+    padding: 7,
+    gap: 10,
+    backgroundColor: 'rgba(255, 255, 255, 0.98)',
+    borderRadius: 34,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: 'rgba(60, 60, 67, 0.22)',
     ...Platform.select({
