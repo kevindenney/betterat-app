@@ -1,19 +1,24 @@
 /**
- * <AllZone> — Library "All" zone landing.
+ * <AllZone> — the unified Library feed (the "Librarian" / all landing).
  *
- * Per canonical §2/§6 the "All" view shows three sections top-down:
- *   1. Plans     (paths you're walking)
- *   2. Concepts  (what you've come to understand)
- *   3. Resources (what you've kept)
+ * This is the curated front door of the consolidated Library tab. It is
+ * organized on a single "yours ↔ the stacks" axis, and — crucially —
+ * every section previews REAL top items as cards, never a bare "browse"
+ * nav row:
  *
- * People is not in the canonical "All" — it exists as its own zone tab
- * for sailors who want a dedicated followee view, but the canonical
- * landing keeps the focus on path/insight/material so this surface
- * stays calm.
+ *   Librarian      — the cross-cutting noticed card (passed in).
+ *   YOURS
+ *     Plans        — your subscribed Plans            → Blueprints zone
+ *     Concepts     — mental models you're forming     → Concepts zone
+ *     Resources    — things you've saved              → Resources zone
+ *   THE STACKS
+ *     Plans to follow — published, subscribable Plans → Discover · plans
+ *     Orgs            — orgs to join in this craft    → Discover · orgs
+ *     Interests       — adjacent interests to add     → Discover · interests
  *
- * Each section uses a small uppercase eyebrow ("PLANS") with a colored
- * dot and a See-all jump. Empty sections collapse to a muted hint so
- * the See-all link is still reachable.
+ * Each section self-collapses to a muted hint when it has no real data,
+ * so the See-all link stays reachable without padding the feed with
+ * empty cards. Copy says "Plans"; DB/code identifiers stay `blueprint_*`.
  */
 
 import React from 'react';
@@ -25,16 +30,27 @@ import type { LibraryZone } from '@/components/library/SegmentedZoneHeader';
 import { useSubscribedPlansForLibrary } from '@/hooks/useSubscribedPlansForLibrary';
 import { useLifecycleConcepts } from '@/hooks/usePlaybook';
 import { useLibraryResourcesPreview } from '@/hooks/useLibraryResourcesPreview';
+import { useDiscoverBlueprints } from '@/hooks/useBlueprint';
+import { useTopOrgsForInterest } from '@/hooks/useTopOrgsForInterest';
 import { useInterest } from '@/providers/InterestProvider';
 import { PlanRowCard } from '@/components/library/plans/PlanRowCard';
 import { ConceptCard } from '@/components/playbook/ConceptCard';
 import { RecentItemRow } from '@/components/library/resources/RecentItemRow';
+import {
+  CanonicalList,
+  CanonicalOrgRow,
+  initialsForName,
+  pickSquareMarkColor,
+} from '@/components/discover/canonical';
+import type { DiscoveredBlueprint } from '@/services/BlueprintService';
 
 const PREVIEW_LIMIT = 3;
 
 interface AllZoneProps {
   counts?: Partial<Record<LibraryZone, number>>;
   onJumpToZone: (zone: LibraryZone) => void;
+  /** Librarian ask-strip + noticed card, rendered above the feed. */
+  librarianSlot?: React.ReactNode;
 }
 
 interface SectionHeaderProps {
@@ -67,6 +83,10 @@ function SectionHeader({ title, dotColor, count, onSeeAll }: SectionHeaderProps)
   );
 }
 
+function GroupDivider({ label }: { label: string }) {
+  return <Text style={styles.groupLabel}>{label}</Text>;
+}
+
 function EmptyHint({ children }: { children: React.ReactNode }) {
   return <Text style={styles.emptyHint}>{children}</Text>;
 }
@@ -79,24 +99,83 @@ function LoadingRow() {
   );
 }
 
-export function AllZone({ counts, onJumpToZone }: AllZoneProps) {
-  const { currentInterest } = useInterest();
-  const { data: plans, isLoading: plansLoading } = useSubscribedPlansForLibrary(
-    currentInterest?.id,
+/** Catalog plan row (a Plan you could follow), distinct from PlanRowCard
+ *  which renders a Plan you've already subscribed to. */
+function FollowPlanRow({ bp }: { bp: DiscoveredBlueprint }) {
+  const author = bp.organization_name ?? bp.author_name ?? 'Author';
+  const badge =
+    bp.access_level === 'paid'
+      ? bp.price_cents && bp.price_cents > 0
+        ? `${bp.currency?.toUpperCase() === 'USD' ? '$' : ''}${(bp.price_cents / 100).toFixed(0)}`
+        : 'Paid'
+      : bp.access_level === 'org_members'
+        ? 'Members'
+        : null;
+
+  return (
+    <Pressable
+      style={styles.followPlanRow}
+      onPress={() => router.push(`/(tabs)/library/blueprints/${bp.id}` as never)}
+    >
+      <View style={styles.followPlanText}>
+        <Text style={styles.followPlanTitle} numberOfLines={2}>
+          {bp.title}
+        </Text>
+        <Text style={styles.followPlanMeta} numberOfLines={1}>
+          {author}
+          {bp.subscriber_count > 0
+            ? ` · ${bp.subscriber_count} follower${bp.subscriber_count !== 1 ? 's' : ''}`
+            : ''}
+        </Text>
+      </View>
+      {badge ? (
+        <View style={styles.planBadge}>
+          <Text style={styles.planBadgeText}>{badge}</Text>
+        </View>
+      ) : (
+        <Ionicons name="chevron-forward" size={16} color={IOS_COLORS.tertiaryLabel} />
+      )}
+    </Pressable>
   );
-  const { data: concepts, isLoading: conceptsLoading } = useLifecycleConcepts(
-    currentInterest?.id,
-  );
+}
+
+export function AllZone({ counts, onJumpToZone, librarianSlot }: AllZoneProps) {
+  const { currentInterest, allInterests, userInterests } = useInterest();
+  const interestId = currentInterest?.id;
+  const interestSlug = currentInterest?.slug;
+
+  const { data: plans, isLoading: plansLoading } =
+    useSubscribedPlansForLibrary(interestId);
+  const { data: concepts, isLoading: conceptsLoading } =
+    useLifecycleConcepts(interestId);
   const { data: resources, isLoading: resourcesLoading } =
     useLibraryResourcesPreview(PREVIEW_LIMIT);
+  const { data: catalog, isLoading: catalogLoading } =
+    useDiscoverBlueprints(interestId);
+  const { data: topOrgs, isLoading: orgsLoading } =
+    useTopOrgsForInterest(interestSlug, PREVIEW_LIMIT);
 
   const planPreview = (plans ?? []).slice(0, PREVIEW_LIMIT);
   const conceptPreview = (concepts ?? []).slice(0, PREVIEW_LIMIT);
   const resourcePreview = resources ?? [];
+  const followPreview = (catalog ?? []).slice(0, PREVIEW_LIMIT);
+  const orgPreview = topOrgs ?? [];
+
+  // Adjacent interests = the catalog minus what the user already practices.
+  const suggestedInterests = React.useMemo(() => {
+    const owned = new Set(userInterests.map((i) => i.slug));
+    return allInterests.filter((i) => !owned.has(i.slug)).slice(0, 6);
+  }, [allInterests, userInterests]);
 
   return (
     <View style={styles.container}>
-      {/* Plans */}
+      {librarianSlot ? <View style={styles.librarian}>{librarianSlot}</View> : null}
+
+      {/* ---------------------------------------------------------------- */}
+      {/* YOURS                                                            */}
+      {/* ---------------------------------------------------------------- */}
+      <GroupDivider label="YOURS" />
+
       <View style={styles.section}>
         <SectionHeader
           title="PLANS"
@@ -108,7 +187,7 @@ export function AllZone({ counts, onJumpToZone }: AllZoneProps) {
           <LoadingRow />
         ) : planPreview.length === 0 ? (
           <EmptyHint>
-            Subscribe to a coach-bundled path from Discover to see it here.
+            Follow a coach-bundled Plan from the stacks below to see it here.
           </EmptyHint>
         ) : (
           <View style={styles.cardList}>
@@ -125,7 +204,6 @@ export function AllZone({ counts, onJumpToZone }: AllZoneProps) {
         )}
       </View>
 
-      {/* Concepts */}
       <View style={styles.section}>
         <SectionHeader
           title="CONCEPTS"
@@ -136,9 +214,7 @@ export function AllZone({ counts, onJumpToZone }: AllZoneProps) {
         {conceptsLoading && !concepts ? (
           <LoadingRow />
         ) : conceptPreview.length === 0 ? (
-          <EmptyHint>
-            Capture an insight from the universal + to start a concept.
-          </EmptyHint>
+          <EmptyHint>Capture an insight from the universal + to start a concept.</EmptyHint>
         ) : (
           <View style={styles.conceptList}>
             {conceptPreview.map((concept) => (
@@ -159,7 +235,6 @@ export function AllZone({ counts, onJumpToZone }: AllZoneProps) {
         )}
       </View>
 
-      {/* Resources */}
       <View style={styles.section}>
         <SectionHeader
           title="RESOURCES"
@@ -170,9 +245,7 @@ export function AllZone({ counts, onJumpToZone }: AllZoneProps) {
         {resourcesLoading && !resources ? (
           <LoadingRow />
         ) : resourcePreview.length === 0 ? (
-          <EmptyHint>
-            Articles, videos, drills you've saved to come back to.
-          </EmptyHint>
+          <EmptyHint>Articles, videos, drills you've saved to come back to.</EmptyHint>
         ) : (
           <View style={styles.resourceList}>
             {resourcePreview.map((item) => (
@@ -185,14 +258,133 @@ export function AllZone({ counts, onJumpToZone }: AllZoneProps) {
           </View>
         )}
       </View>
+
+      {/* ---------------------------------------------------------------- */}
+      {/* THE STACKS                                                       */}
+      {/* ---------------------------------------------------------------- */}
+      <GroupDivider label="THE STACKS" />
+
+      <View style={styles.section}>
+        <SectionHeader
+          title="PLANS TO FOLLOW"
+          dotColor="#0EA5E9"
+          onSeeAll={() => router.push('/(tabs)/discover?segment=plans' as never)}
+        />
+        {catalogLoading && !catalog ? (
+          <LoadingRow />
+        ) : followPreview.length === 0 ? (
+          <EmptyHint>
+            No published {currentInterest?.name ?? ''} Plans yet — you'll be among the
+            first to follow one when they land.
+          </EmptyHint>
+        ) : (
+          <View style={styles.followList}>
+            {followPreview.map((bp) => (
+              <FollowPlanRow key={bp.id} bp={bp} />
+            ))}
+          </View>
+        )}
+      </View>
+
+      <View style={styles.section}>
+        <SectionHeader
+          title="ORGS"
+          dotColor="#10B981"
+          onSeeAll={() => router.push('/(tabs)/discover?segment=orgs' as never)}
+        />
+        {orgsLoading && !topOrgs ? (
+          <LoadingRow />
+        ) : orgPreview.length === 0 ? (
+          <EmptyHint>
+            Clubs, schools, and programs in {currentInterest?.name ?? 'this craft'} will
+            show up here as they come online.
+          </EmptyHint>
+        ) : (
+          <CanonicalList>
+            {orgPreview.map((org, idx) => (
+              <CanonicalOrgRow
+                key={org.id}
+                first={idx === 0}
+                initials={initialsForName(org.name)}
+                markColor={pickSquareMarkColor(org.id)}
+                name={org.name}
+                descriptor={describeOrgJoinMode(org.join_mode)}
+                onPress={() =>
+                  router.push(`/discover/org/${org.slug}?from=library` as never)
+                }
+              />
+            ))}
+          </CanonicalList>
+        )}
+      </View>
+
+      <View style={styles.section}>
+        <SectionHeader
+          title="INTERESTS"
+          dotColor="#F472B6"
+          onSeeAll={() => router.push('/(tabs)/discover?segment=interests' as never)}
+        />
+        {suggestedInterests.length === 0 ? (
+          <EmptyHint>You've added every interest we know about — nice.</EmptyHint>
+        ) : (
+          <View style={styles.interestWrap}>
+            {suggestedInterests.map((interest) => (
+              <Pressable
+                key={interest.slug}
+                style={[
+                  styles.interestChip,
+                  { borderColor: (interest.accent_color ?? IOS_COLORS.systemBlue) + '55' },
+                ]}
+                onPress={() => router.push('/(tabs)/discover?segment=interests' as never)}
+              >
+                <View
+                  style={[
+                    styles.interestDot,
+                    { backgroundColor: interest.accent_color ?? IOS_COLORS.systemBlue },
+                  ]}
+                />
+                <Text style={styles.interestChipText} numberOfLines={1}>
+                  {interest.name}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+        )}
+      </View>
     </View>
   );
+}
+
+function describeOrgJoinMode(mode: string): string {
+  switch (mode) {
+    case 'open':
+    case 'public':
+      return 'Open to join';
+    case 'request':
+    case 'request_to_join':
+      return 'Request to join';
+    case 'invite_only':
+      return 'Invite only';
+    default:
+      return 'Organization';
+  }
 }
 
 const styles = StyleSheet.create({
   container: {
     paddingVertical: IOS_SPACING.md,
     gap: IOS_SPACING.xl,
+  },
+  librarian: {
+    gap: IOS_SPACING.md,
+  },
+  groupLabel: {
+    fontSize: 13,
+    fontWeight: '800',
+    letterSpacing: 1,
+    color: IOS_COLORS.tertiaryLabel,
+    paddingHorizontal: IOS_SPACING.lg,
+    marginBottom: -IOS_SPACING.sm,
   },
   section: {
     gap: IOS_SPACING.md,
@@ -259,5 +451,70 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 2,
     overflow: 'hidden',
+  },
+  followList: {
+    marginHorizontal: IOS_SPACING.lg,
+    gap: IOS_SPACING.sm,
+  },
+  followPlanRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(60,60,67,0.12)',
+    padding: 14,
+  },
+  followPlanText: {
+    flex: 1,
+    gap: 3,
+  },
+  followPlanTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: IOS_COLORS.label,
+  },
+  followPlanMeta: {
+    fontSize: 13,
+    color: IOS_COLORS.secondaryLabel,
+  },
+  planBadge: {
+    borderRadius: 999,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    backgroundColor: IOS_COLORS.secondarySystemGroupedBackground,
+  },
+  planBadgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: IOS_COLORS.secondaryLabel,
+  },
+  interestWrap: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    paddingHorizontal: IOS_SPACING.lg,
+  },
+  interestChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 999,
+    borderWidth: 1,
+    backgroundColor: '#FFFFFF',
+  },
+  interestDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  interestChipText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: IOS_COLORS.label,
+    maxWidth: 160,
   },
 });

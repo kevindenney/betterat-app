@@ -28,6 +28,7 @@ import { TabScreenToolbar } from '@/components/ui/TabScreenToolbar';
 import { useUserHomeVenue } from '@/hooks/useUserHomeVenue';
 import { IOSSegmentedControl } from '@/components/ui/ios/IOSSegmentedControl';
 import { FLOATING_TAB_BAR_HEIGHT } from '@/components/navigation/FloatingTabBar';
+import { AllZone } from '@/components/library/zones/AllZone';
 import { PlansZone } from '@/components/library/zones/PlansZone';
 import { PeopleZone } from '@/components/library/zones/PeopleZone';
 import { ResourcesZone } from '@/components/library/zones/ResourcesZone';
@@ -184,18 +185,11 @@ export function LibraryLanding({ conceptsBody, librarianSlot }: Props) {
         </View>
 
         {zone === 'all' ? (
-          librarianSlot ?? (
-            <View style={styles.librarianFallback}>
-              <Text style={styles.librarianFallbackTitle}>
-                The librarian is quiet right now.
-              </Text>
-              <Text style={styles.librarianFallbackBody}>
-                Cross-cutting observations show up here as soon as the
-                concept lifecycle has enough signal to surface a pattern.
-                In the meantime, tap a tab above to drill in.
-              </Text>
-            </View>
-          )
+          <AllZone
+            counts={counts}
+            onJumpToZone={handleZoneChange}
+            librarianSlot={librarianSlot}
+          />
         ) : zone === 'nearby' ? (
           <LibraryNearbyContent
             homeVenueLat={homeVenue?.lat ?? null}
@@ -297,26 +291,6 @@ const styles = StyleSheet.create({
     color: IOS_COLORS.label,
   },
   zoneDescription: {
-    fontSize: 13,
-    lineHeight: 18,
-    color: IOS_COLORS.secondaryLabel,
-  },
-  librarianFallback: {
-    marginHorizontal: IOS_SPACING.lg,
-    marginTop: IOS_SPACING.md,
-    padding: 18,
-    borderRadius: 16,
-    backgroundColor: '#FFFFFF',
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(60,60,67,0.12)',
-    gap: 6,
-  },
-  librarianFallbackTitle: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: IOS_COLORS.label,
-  },
-  librarianFallbackBody: {
     fontSize: 13,
     lineHeight: 18,
     color: IOS_COLORS.secondaryLabel,
