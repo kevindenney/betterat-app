@@ -10,7 +10,6 @@
 import type { Ionicons } from '@expo/vector-icons';
 import type { UserCapabilities } from '@/providers/AuthProvider';
 import type { VocabularyMap } from '@/lib/vocabulary';
-import { FEATURE_FLAGS } from '@/lib/featureFlags';
 
 // =============================================================================
 // TYPES
@@ -74,24 +73,6 @@ export const getEventTabRoute = (workspaceContext?: WorkspaceNavContext): string
 // =============================================================================
 
 /**
- * Get the vocabulary-aware event tab title.
- * Maps "Learning Event" vocabulary term to a short tab label.
- */
-const getEventTabTitle = (
-  vocabulary?: VocabularyMap,
-  activeDomain?: string | null
-): string => {
-  const domain = String(activeDomain || '').toLowerCase().trim();
-  const defaultLabel = domain === 'sailing' ? 'Race' : 'Practice';
-  if (!vocabulary) return defaultLabel;
-  const term = vocabulary['Learning Event'];
-  if (!term) return defaultLabel;
-  // Use the first word for short tab labels (e.g., "Clinical Shift" → "Shift")
-  const words = term.split(' ');
-  return words.length > 1 ? words[words.length - 1] : term;
-};
-
-/**
  * Get tabs for a user based on their type, capabilities, and vocabulary.
  * For sailors with coaching capability, adds coach tabs to sailor tabs.
  * The vocabulary parameter adapts tab labels to the current interest.
@@ -99,27 +80,18 @@ const getEventTabTitle = (
 export const getTabsForUserType = (
   userType: string | null,
   isGuest: boolean = false,
-  capabilities?: UserCapabilities,
-  vocabulary?: VocabularyMap,
+  _capabilities?: UserCapabilities,
+  _vocabulary?: VocabularyMap,
   workspaceContext?: WorkspaceNavContext
 ): TabConfig[] => {
-  const eventTitle = getEventTabTitle(vocabulary, workspaceContext?.activeDomain);
-
   // Guests get full learner-style tabs (same as logged-in learners)
   if (isGuest) {
     const tabs: TabConfig[] = [
-      { name: 'races', title: eventTitle, icon: 'flag-outline', iconFocused: 'flag' },
+      { name: 'races', title: 'Practice', icon: 'checkmark-circle-outline', iconFocused: 'checkmark-circle' },
       { name: 'library', title: 'Library', icon: 'library-outline', iconFocused: 'library' },
+      { name: 'watch', title: 'Watch', icon: 'eye-outline', iconFocused: 'eye' },
+      { name: 'atlas', title: 'Atlas', icon: 'map-outline', iconFocused: 'map' },
     ];
-    if (FEATURE_FLAGS.ATLAS_IOS_REGISTER) {
-      tabs.push({ name: 'atlas', title: 'Atlas', icon: 'compass-outline', iconFocused: 'compass' });
-    }
-    tabs.push({ name: 'discover', title: 'Discover', icon: 'people-outline', iconFocused: 'people' });
-    if (FEATURE_FLAGS.INBOX_TAB_V3) {
-      tabs.push({ name: 'inbox', title: 'Inbox', icon: 'mail-outline', iconFocused: 'mail' });
-    } else {
-      tabs.push({ name: 'reflect', title: 'Profile', icon: 'person-circle-outline', iconFocused: 'person-circle' });
-    }
     return tabs;
   }
 
@@ -149,34 +121,12 @@ export const getTabsForUserType = (
 
   // Learners (sailors, nurses, artists, athletes — including those with coaching capability)
   if (userType === 'sailor' || userType === 'coach') {
-    // Phase 11: Atlas — the fifth lens ("where"), centered between Library
-    // and Discover. Gated on ATLAS_IOS_REGISTER. Per
-    // docs/redesign/ios-register/atlas-tab-brief.md decision A1.
     const tabs: TabConfig[] = [
-      { name: 'races', title: eventTitle, icon: 'flag-outline', iconFocused: 'flag' },
+      { name: 'races', title: 'Practice', icon: 'checkmark-circle-outline', iconFocused: 'checkmark-circle' },
       { name: 'library', title: 'Library', icon: 'library-outline', iconFocused: 'library' },
+      { name: 'watch', title: 'Watch', icon: 'eye-outline', iconFocused: 'eye' },
+      { name: 'atlas', title: 'Atlas', icon: 'map-outline', iconFocused: 'map' },
     ];
-    if (FEATURE_FLAGS.ATLAS_IOS_REGISTER) {
-      tabs.push({ name: 'atlas', title: 'Atlas', icon: 'compass-outline', iconFocused: 'compass' });
-    }
-    tabs.push({ name: 'discover', title: 'Discover', icon: 'people-outline', iconFocused: 'people' });
-    if (FEATURE_FLAGS.INBOX_TAB_V3) {
-      // v3 screen-designs: Profile-as-tab is gone; Inbox earns its tab.
-      // Profile remains reachable via /reflect deep link and (Phase B) the
-      // avatar tap from any top header.
-      tabs.push({ name: 'inbox', title: 'Inbox', icon: 'mail-outline', iconFocused: 'mail' });
-    } else {
-      tabs.push({ name: 'reflect', title: 'Profile', icon: 'person-circle-outline', iconFocused: 'person-circle' });
-    }
-
-    // Add coaching tabs if user has coaching capability
-    if (capabilities?.hasCoaching) {
-      tabs.push(
-        { name: 'clients', title: 'Clients', icon: 'people-outline', iconFocused: 'people' },
-        { name: 'schedule', title: 'Schedule', icon: 'calendar-outline', iconFocused: 'calendar' },
-        { name: 'earnings', title: 'Earnings', icon: 'cash-outline', iconFocused: 'cash' },
-      );
-    }
 
     return tabs;
   }
@@ -190,22 +140,13 @@ export const getTabsForUserType = (
 // =============================================================================
 
 // Navigation items by persona (used by NavigationDrawer and WebSidebarNav)
-// Phase 11: Atlas inserted between Library and Discover when
-// ATLAS_IOS_REGISTER is on. Compass icon belongs to Atlas; Discover
-// moves to people-outline.
+// Discover was folded into Library (5→4 tabs); its surfaces now live as
+// Library zones, plus People→Watch and Nearby→Atlas.
 export const SAILOR_NAV_ITEMS: NavItem[] = [
-  { key: 'races', label: 'Race', route: '/(tabs)/practice', icon: 'flag-outline' },
+  { key: 'races', label: 'Practice', route: '/(tabs)/practice', icon: 'checkmark-circle-outline' },
   { key: 'library', label: 'Library', route: '/(tabs)/library', icon: 'library-outline' },
-  ...(FEATURE_FLAGS.ATLAS_IOS_REGISTER
-    ? ([{ key: 'atlas', label: 'Atlas', route: '/(tabs)/atlas', icon: 'compass-outline' }] as NavItem[])
-    : []),
-  {
-    key: 'discover',
-    label: 'Discover',
-    route: '/(tabs)/discover',
-    icon: FEATURE_FLAGS.ATLAS_IOS_REGISTER ? 'people-outline' : 'compass-outline',
-  },
-  { key: 'reflect', label: 'Profile', route: '/(tabs)/reflect', icon: 'person-circle-outline' },
+  { key: 'watch', label: 'Watch', route: '/(tabs)/watch', icon: 'eye-outline' },
+  { key: 'atlas', label: 'Atlas', route: '/(tabs)/atlas', icon: 'map-outline' },
 ];
 
 export const SAILOR_SECONDARY_ITEMS: NavItem[] = [
@@ -248,7 +189,7 @@ export const INSTITUTION_FOOTER_ITEMS: NavItem[] = [
  */
 export function getNavItemsForUserType(
   userType: string | null,
-  vocabulary?: VocabularyMap,
+  _vocabulary?: VocabularyMap,
   workspaceContext?: WorkspaceNavContext
 ): {
   primary: NavItem[];
@@ -274,10 +215,9 @@ export function getNavItemsForUserType(
       return { primary: CLUB_NAV_ITEMS, secondary: COMMON_FOOTER_ITEMS };
     case 'sailor':
     default: {
-      const eventTitle = getEventTabTitle(vocabulary, workspaceContext?.activeDomain);
       const primary = SAILOR_NAV_ITEMS.map((item) =>
         item.key === 'races'
-          ? { ...item, label: eventTitle }
+          ? { ...item, label: 'Practice' }
           : item
       );
       const secondary = [...SAILOR_SECONDARY_ITEMS, ...LEARNER_FOOTER_ITEMS];
