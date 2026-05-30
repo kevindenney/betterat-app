@@ -30,7 +30,7 @@ import { useUniversalPlus } from '@/components/capture/UniversalPlusProvider';
 import { useAuth } from '@/providers/AuthProvider';
 import { useInterest } from '@/providers/InterestProvider';
 import { showAlert } from '@/lib/utils/crossPlatformAlert';
-import { createStep, shiftTimelineSortOrdersAtOrAfter } from '@/services/TimelineStepService';
+import { createStep, resequenceTimelineSortOrders } from '@/services/TimelineStepService';
 import { useInboxItems } from '@/hooks/useInboxItems';
 import { useInboxActions } from '@/hooks/useInboxActions';
 import { useCrossInterestSuggestions } from '@/hooks/useCrossInterestSuggestions';
@@ -402,11 +402,8 @@ export function L2WeekView({
       return;
     }
 
-    let nextSort = after.sort_order + 1;
-    if (before) {
-      await shiftTimelineSortOrdersAtOrAfter(user.id, currentInterest.id, before.sort_order);
-      nextSort = before.sort_order;
-    }
+    const afterIdx = steps.findIndex((step) => step.id === after.id);
+    const insertionIndex = Math.max(0, afterIdx + 1);
 
     setInserting(true);
     try {
@@ -417,7 +414,7 @@ export function L2WeekView({
         status: 'pending',
         visibility: 'private',
         source_type: 'manual',
-        sort_order: nextSort,
+        sort_order: insertionIndex,
         metadata: {
           draft: true,
           insertion_context: {
@@ -427,6 +424,16 @@ export function L2WeekView({
           },
         },
       });
+
+      // Seeded steps frequently share an identical sort_order (every row 0), so
+      // a value-based shift can't place the new step between two tied
+      // neighbours. Resequence the interest by current display order with the
+      // new step spliced into the chosen gap.
+      const orderedIds = steps.map((step) => step.id);
+      orderedIds.splice(insertionIndex, 0, created.id);
+      await resequenceTimelineSortOrders(orderedIds);
+      const orderIndex = new Map(orderedIds.map((id, idx) => [id, idx]));
+      const createdRow = { ...created, sort_order: insertionIndex };
 
       queryClient.setQueriesData<any[]>(
         {
@@ -444,23 +451,21 @@ export function L2WeekView({
         },
         (old) => {
           if (!Array.isArray(old)) return old;
-          const shifted = before
-            ? old.map((row) => (
-                row.interest_id === currentInterest.id && row.sort_order >= before.sort_order
-                  ? { ...row, sort_order: row.sort_order + 1 }
-                  : row
-              ))
-            : old;
-          if (shifted.some((row) => row.id === created.id)) return shifted;
-          return [...shifted, created].sort((a, b) => {
-            if (a.sort_order !== b.sort_order) return a.sort_order - b.sort_order;
-            return String(a.created_at).localeCompare(String(b.created_at));
-          });
+          const withCreated = old.some((row) => row.id === created.id)
+            ? old
+            : [...old, createdRow];
+          return withCreated
+            .map((row) =>
+              orderIndex.has(row.id) ? { ...row, sort_order: orderIndex.get(row.id) } : row,
+            )
+            .sort((a, b) => {
+              if (a.sort_order !== b.sort_order) return a.sort_order - b.sort_order;
+              return String(a.created_at).localeCompare(String(b.created_at));
+            });
         },
       );
-      queryClient.setQueryData(['timeline-steps', 'detail', created.id], created);
+      queryClient.setQueryData(['timeline-steps', 'detail', created.id], createdRow);
       void queryClient.invalidateQueries({ queryKey: ['timeline-steps'] });
-      const insertionIndex = Math.max(0, steps.findIndex((step) => step.id === after.id) + 1);
       setCenterIndex(insertionIndex);
       requestAnimationFrame(() => {
         scrollRef.current?.scrollTo({

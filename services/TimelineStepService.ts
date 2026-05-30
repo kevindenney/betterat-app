@@ -370,6 +370,28 @@ export async function shiftTimelineSortOrdersAtOrAfter(
   }
 }
 
+/**
+ * Reassign sort_order = index for the given step ids, in order. Use this to
+ * place a step at a precise position when stored sort_orders are degenerate
+ * (e.g. seeded demo data where every step shares sort_order 0, so value-based
+ * shifting can't create a gap between two tied neighbours). Only rows whose
+ * sort_order actually changes are written.
+ */
+export async function resequenceTimelineSortOrders(orderedStepIds: string[]): Promise<void> {
+  try {
+    for (let index = 0; index < orderedStepIds.length; index += 1) {
+      const { error } = await supabase
+        .from('timeline_steps')
+        .update({ sort_order: index })
+        .eq('id', orderedStepIds[index]);
+      if (error) throw error;
+    }
+  } catch (err) {
+    logger.error('Failed to resequence timeline sort orders', err);
+    throw err;
+  }
+}
+
 // ---------------------------------------------------------------------------
 // 4. Update a timeline step
 // ---------------------------------------------------------------------------
