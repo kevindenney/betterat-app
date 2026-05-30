@@ -130,7 +130,7 @@ function PersonDetailScreenInner() {
 
   const onBack = useCallback(() => {
     if (router.canGoBack()) router.back();
-    else router.replace('/(tabs)/discover' as any);
+    else router.replace('/(tabs)/watch' as any);
   }, []);
 
   const handleFollow = useCallback(async () => {

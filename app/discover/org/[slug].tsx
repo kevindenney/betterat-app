@@ -406,7 +406,7 @@ function OrgDetailScreenInner() {
 
   const onBack = useCallback(() => {
     if (router.canGoBack()) router.back();
-    else router.replace('/(tabs)/discover' as any);
+    else router.replace('/(tabs)/library?zone=orgs' as any);
   }, []);
 
   const handleOpenCalendar = useCallback(() => {
@@ -663,11 +663,11 @@ function OrgDetailScreenInner() {
               onPress={() => {
                 showConfirm(
                   'Archive this org?',
-                  `${org.name} will be hidden from Discover. You can recover it later; nothing is hard-deleted.`,
+                  `${org.name} will be hidden from your library. You can recover it later; nothing is hard-deleted.`,
                   async () => {
                     try {
                       await archiveOrg.mutateAsync(org.id);
-                      router.replace('/(tabs)/discover' as any);
+                      router.replace('/(tabs)/library?zone=orgs' as any);
                     } catch (err) {
                       // eslint-disable-next-line no-console
                       console.warn('archive failed', err);

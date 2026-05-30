@@ -136,7 +136,7 @@ function TopicDetailScreenInner() {
 
   const onBack = useCallback(() => {
     if (router.canGoBack()) router.back();
-    else router.replace('/(tabs)/discover' as any);
+    else router.replace('/(tabs)/library' as any);
   }, []);
 
   const handleSubscribe = useCallback(() => {
