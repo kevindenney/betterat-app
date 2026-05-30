@@ -3,6 +3,7 @@ import { supabase } from '@/services/supabase';
 export type YachtClubClaimStatus = 'unclaimed' | 'claim_pending' | 'claimed' | 'rejected';
 export type YachtClubPricingTier = 'club_free' | 'club_plus' | 'club_pro' | 'enterprise';
 export type YachtClubClaimDecision = 'approved' | 'rejected' | 'needs_more_info';
+export type OrgJoinMode = 'invite_only' | 'request_to_join' | 'open_join';
 
 export type YachtClubOrganization = {
   id: string;
@@ -22,6 +23,7 @@ export type YachtClubOrganization = {
   clubspot_worlds_entry_refs: number;
   total_entry_refs: number;
   pricing_tier: YachtClubPricingTier | null;
+  join_mode?: OrgJoinMode | null;
 };
 
 export type OrganizationEvidenceRow = {
@@ -85,6 +87,7 @@ const ORG_SELECT = [
   'clubspot_worlds_entry_refs',
   'total_entry_refs',
   'pricing_tier',
+  'join_mode',
 ].join(',');
 
 function normalizeArray(value: unknown): string[] {
@@ -112,6 +115,7 @@ function mapOrganization(row: any): YachtClubOrganization {
     clubspot_worlds_entry_refs: Number(row.clubspot_worlds_entry_refs || 0),
     total_entry_refs: Number(row.total_entry_refs || 0),
     pricing_tier: row.pricing_tier || null,
+    join_mode: (row.join_mode as OrgJoinMode) || null,
   };
 }
 

@@ -7,9 +7,14 @@ import { RelationshipButton } from '@/components/discover/detail';
 import { IOSDetailNavBar } from '@/components/discover/detail';
 import { supabase } from '@/services/supabase';
 import { useAuth } from '@/providers/AuthProvider';
+import { useToast } from '@/components/ui/AppToast';
+import { showConfirm, showAlert } from '@/lib/utils/crossPlatformAlert';
 import { OrgLocationsMap, type OrgLocation } from '@/components/organizations/OrgLocationsMap';
+import { useOrgViewerMembership } from '@/hooks/useOrgViewerMembership';
+import { OrgJoinService } from '@/services/OrgJoinService';
 import {
   YachtClubClaimService,
+  type OrgJoinMode,
   type YachtClubOrganization,
 } from '@/services/YachtClubClaimService';
 import {
@@ -116,12 +121,6 @@ function tierLabel(tier: string | null): string {
   }
 }
 
-interface ViewerMembership {
-  role: string | null;
-  status: string;
-  isAdmin: boolean;
-}
-
 export default function OrganizationPlaceholderPage() {
   const params = useLocalSearchParams<{ slug?: string }>();
   const slug = typeof params.slug === 'string' ? params.slug.trim() : '';
@@ -129,12 +128,14 @@ export default function OrganizationPlaceholderPage() {
   const [loading, setLoading] = useState(true);
   const [org, setOrg] = useState<YachtClubOrganization | null>(null);
   const [errorText, setErrorText] = useState<string | null>(null);
-  // Viewer's membership in this org, resolved alongside the org row.
-  // `null` once loaded means non-member; non-null with status='active'
-  // means full member; pending/rejected statuses are shown distinctly.
-  const [membership, setMembership] = useState<ViewerMembership | null>(null);
   const [orgLocations, setOrgLocations] = useState<OrgLocation[]>([]);
+  const [joining, setJoining] = useState(false);
   const { user: authUser } = useAuth();
+  const toast = useToast();
+  // Viewer's membership in this org. `null` once resolved means
+  // non-member; status='active' is a full member; pending/rejected are
+  // shown distinctly so the join CTA can adapt.
+  const { membership, refetch: refetchMembership } = useOrgViewerMembership(org?.id);
   const handleBack = React.useCallback(() => {
     if (router.canGoBack()) router.back();
     else router.replace('/(tabs)/discover' as never);
@@ -143,42 +144,57 @@ export default function OrganizationPlaceholderPage() {
     if (!slug) return;
     router.push({ pathname: '/(tabs)/atlas', params: { orgSlug: slug } } as any);
   }, [slug]);
-  // Resolve viewer membership when the org id is known. Runs in
-  // parallel with the org fetch above; harmless to refetch on slug
-  // change. Membership reads are RLS-gated to the viewer's own row.
-  useEffect(() => {
-    let cancelled = false;
-    if (!authUser?.id || !org?.id) {
-      setMembership(null);
-      return () => {
-        cancelled = true;
-      };
-    }
-    void (async () => {
-      const { data } = await supabase
-        .from('organization_memberships')
-        .select('role, membership_status, status')
-        .eq('user_id', authUser.id)
-        .eq('organization_id', org.id)
-        .maybeSingle();
-      if (cancelled) return;
-      if (!data) {
-        setMembership(null);
-        return;
+  // Self-serve join, branched by the org's join_mode. open_join lands
+  // the viewer as an active member; request_to_join files a pending
+  // request an admin approves later. invite_only never reaches here.
+  const runJoin = React.useCallback(
+    async (joinMode: OrgJoinMode) => {
+      if (!authUser?.id || !org?.id || joining) return;
+      setJoining(true);
+      try {
+        const result = await OrgJoinService.join({
+          orgId: org.id,
+          userId: authUser.id,
+          joinMode,
+        });
+        refetchMembership();
+        toast.show(
+          result === 'active' ? 'You’re in — welcome!' : 'Request submitted',
+          'success',
+        );
+      } catch (err) {
+        toast.show((err as Error)?.message || 'Could not join this organization', 'error');
+      } finally {
+        setJoining(false);
       }
-      const row = data as { role: string | null; membership_status: string; status: string };
-      const effectiveStatus = row.membership_status || row.status || 'pending';
-      const role = row.role ?? null;
-      setMembership({
-        role,
-        status: effectiveStatus,
-        isAdmin: role === 'admin' || role === 'owner',
-      });
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [authUser?.id, org?.id]);
+    },
+    [authUser?.id, org?.id, joining, refetchMembership, toast],
+  );
+  const handleJoinPress = React.useCallback(() => {
+    const joinMode: OrgJoinMode = org?.join_mode ?? 'invite_only';
+    if (joinMode === 'invite_only') {
+      showAlert(
+        'Membership is by invitation',
+        'This organization adds members by invitation. Reach out to an organizer to be added.',
+      );
+      return;
+    }
+    if (joinMode === 'open_join') {
+      showConfirm(
+        `Join ${org?.name ?? 'this organization'}?`,
+        'You’ll get access to this organization right away.',
+        () => void runJoin('open_join'),
+        { confirmText: 'Join' },
+      );
+      return;
+    }
+    showConfirm(
+      `Request to join ${org?.name ?? 'this organization'}?`,
+      'An organizer will review your request before you’re added.',
+      () => void runJoin('request_to_join'),
+      { confirmText: 'Request' },
+    );
+  }, [org?.join_mode, org?.name, runJoin]);
   // Fetch all organization_locations for the embedded map below the
   // hero. Ordered by sort_order so the primary site sits first in any
   // future "Sites" list. RLS allows public SELECT (org-site geography
@@ -376,34 +392,46 @@ export default function OrganizationPlaceholderPage() {
                 fullWidth={false}
                 onPress={handleOpenAtlas}
               />
-              {/* Member-vs-non-member CTA. Members get straight access
-                  to their org surfaces; non-members see a join CTA.
-                  Admins additionally get a Manage shortcut. */}
+              {/* Member-vs-non-member CTA. Active members (admins) get a
+                  Manage shortcut; everyone else gets a join CTA whose
+                  shape follows the org's join_mode and the viewer's
+                  pending/rejected state. */}
               {!isDemo && membership?.status === 'active' ? (
-                <>
-                  {membership.isAdmin ? (
-                    <RelationshipButton
-                      label="Manage"
-                      icon="settings-outline"
-                      secondary
-                      fullWidth={false}
-                      onPress={() =>
-                        router.push(`/admin/organizations/${slug}` as never)
-                      }
-                    />
-                  ) : null}
-                </>
-              ) : !isDemo && org && !membership ? (
+                membership.isAdmin ? (
+                  <RelationshipButton
+                    label="Manage"
+                    icon="settings-outline"
+                    secondary
+                    fullWidth={false}
+                    onPress={() => router.push(`/admin/organizations/${slug}` as never)}
+                  />
+                ) : null
+              ) : !isDemo && org && membership?.status === 'pending' ? (
                 <RelationshipButton
-                  label="Join organization"
-                  icon="add-circle-outline"
+                  label="Request pending"
+                  icon="hourglass-outline"
+                  secondary
                   fullWidth={false}
-                  onPress={() => {
-                    // Placeholder — actual join flow needs join_mode
-                    // resolution (open vs request) and a confirmation
-                    // sheet. Tracked in project_atlas_backlog.md.
-                    router.push(`/organizations/${slug}/claim` as never);
-                  }}
+                  onPress={() => {}}
+                />
+              ) : !isDemo && org ? (
+                <RelationshipButton
+                  label={
+                    (org.join_mode ?? 'invite_only') === 'invite_only'
+                      ? 'By invitation'
+                      : (org.join_mode === 'request_to_join'
+                          ? (membership?.status === 'rejected' ? 'Request again' : 'Request to join')
+                          : 'Join organization')
+                  }
+                  icon={
+                    (org.join_mode ?? 'invite_only') === 'invite_only'
+                      ? 'mail-outline'
+                      : 'add-circle-outline'
+                  }
+                  secondary={(org.join_mode ?? 'invite_only') === 'invite_only'}
+                  fullWidth={false}
+                  loading={joining}
+                  onPress={handleJoinPress}
                 />
               ) : null}
             </View>
