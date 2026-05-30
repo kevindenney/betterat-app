@@ -37,6 +37,8 @@ import { useProfileMenuData, OrgMembership } from '@/hooks/useProfileMenuData';
 import { IOS_COLORS, IOS_ANIMATIONS } from '@/lib/design-tokens-ios';
 import { triggerHaptic } from '@/lib/haptics';
 import { FEATURE_FLAGS } from '@/lib/featureFlags';
+import { useUserHomeVenue } from '@/hooks/useUserHomeVenue';
+import { HomeVenuePickerSheet } from '@/components/discover/HomeVenuePickerSheet';
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
@@ -45,6 +47,8 @@ interface ProfileDropdownProps {
   variant?: 'light' | 'dark';
   /** Avatar size in pixels (default: 30) */
   size?: number;
+  /** Horizontal dropdown anchor. Use 'left' when the avatar sits near the leading screen edge. */
+  menuAlign?: 'left' | 'right';
   /** Current interest slug for signup routing */
   currentInterestSlug?: string;
 }
@@ -59,14 +63,17 @@ function getInitials(name?: string | null): string {
 export function ProfileDropdown({
   variant = 'light',
   size = 30,
+  menuAlign = 'right',
   currentInterestSlug,
 }: ProfileDropdownProps) {
   const { user, userProfile, isGuest, signOut } = useAuth();
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const [venuePickerOpen, setVenuePickerOpen] = useState(false);
   const [imageFailed, setImageFailed] = useState(false);
   const scale = useSharedValue(1);
   const menu = useProfileMenuData();
+  const homeVenue = useUserHomeVenue();
 
   const isLoggedIn = !!user && !isGuest;
 
@@ -97,6 +104,10 @@ export function ProfileDropdown({
   const navigate = (path: string) => {
     setOpen(false);
     router.push(path as any);
+  };
+  const openVenuePicker = () => {
+    setOpen(false);
+    setVenuePickerOpen(true);
   };
   const handleSignOut = async () => {
     setOpen(false);
@@ -168,7 +179,12 @@ export function ProfileDropdown({
       {open && (
         <Pressable style={s.backdrop} onPress={handleClose}>
           <Pressable
-            style={[s.dropdown, { top: size + 8 }, !isLoggedIn && s.dropdownGuest]}
+            style={[
+              s.dropdown,
+              menuAlign === 'left' ? s.dropdownLeft : s.dropdownRight,
+              { top: size + 8 },
+              !isLoggedIn && s.dropdownGuest,
+            ]}
             onPress={(e) => e.stopPropagation?.()}
           >
             {isLoggedIn ? (
@@ -179,7 +195,9 @@ export function ProfileDropdown({
                 showAvatarImage={showAvatarImage}
                 safeAvatarUrl={safeAvatarUrl}
                 menu={menu}
+                homeVenueName={homeVenue?.venue ?? null}
                 onNavigate={navigate}
+                onOpenVenuePicker={openVenuePicker}
                 onSignOut={handleSignOut}
               />
             ) : (
@@ -218,6 +236,12 @@ export function ProfileDropdown({
           </Pressable>
         </Pressable>
       )}
+
+      <HomeVenuePickerSheet
+        visible={venuePickerOpen}
+        onDismiss={() => setVenuePickerOpen(false)}
+        onSaved={() => setVenuePickerOpen(false)}
+      />
     </View>
   );
 }
@@ -233,7 +257,9 @@ function LoggedInMenu({
   showAvatarImage,
   safeAvatarUrl,
   menu,
+  homeVenueName,
   onNavigate,
+  onOpenVenuePicker,
   onSignOut,
 }: {
   displayName: string;
@@ -242,7 +268,9 @@ function LoggedInMenu({
   showAvatarImage: boolean;
   safeAvatarUrl: string | null;
   menu: ReturnType<typeof useProfileMenuData>;
+  homeVenueName: string | null;
   onNavigate: (path: string) => void;
+  onOpenVenuePicker: () => void;
   onSignOut: () => void;
 }) {
   const signOutLabel = menu.activeOrg
@@ -257,6 +285,7 @@ function LoggedInMenu({
         initials={initials}
         showAvatarImage={showAvatarImage}
         safeAvatarUrl={safeAvatarUrl}
+        onEditProfile={() => onNavigate('/settings/edit-profile')}
       />
 
       {menu.hasActiveOrg ? (
@@ -276,6 +305,17 @@ function LoggedInMenu({
           onPress={() => onNavigate('/account')}
           trailing="chevron"
         />
+        {homeVenueName ? (
+          <>
+            <ItemDivider />
+            <DropdownItem
+              icon="location-outline"
+              label={homeVenueName}
+              onPress={onOpenVenuePicker}
+              trailing="chevron"
+            />
+          </>
+        ) : null}
         <ItemDivider />
         <DropdownItem
           icon="notifications-outline"
@@ -346,12 +386,14 @@ function IdentityRow({
   initials,
   showAvatarImage,
   safeAvatarUrl,
+  onEditProfile,
 }: {
   displayName: string;
   email: string | null;
   initials: string;
   showAvatarImage: boolean;
   safeAvatarUrl: string | null;
+  onEditProfile: () => void;
 }) {
   return (
     <View style={s.who}>
@@ -372,7 +414,18 @@ function IdentityRow({
           </Text>
         )}
       </View>
-      <Ionicons name="pencil-outline" size={16} color={IOS_COLORS.tertiaryLabel} />
+      <Pressable
+        onPress={onEditProfile}
+        accessibilityLabel="Edit profile"
+        accessibilityRole="button"
+        hitSlop={8}
+        style={({ hovered, pressed }: any) => [
+          s.whoEditButton,
+          (hovered || pressed) && s.whoEditButtonActive,
+        ]}
+      >
+        <Ionicons name="pencil-outline" size={16} color={IOS_COLORS.tertiaryLabel} />
+      </Pressable>
     </View>
   );
 }
@@ -733,7 +786,6 @@ const s = StyleSheet.create({
   },
   dropdown: {
     position: 'absolute',
-    right: 0,
     backgroundColor: '#FFFFFF',
     borderRadius: 16,
     paddingVertical: 0,
@@ -753,6 +805,8 @@ const s = StyleSheet.create({
       android: { elevation: 12 },
     }),
   },
+  dropdownLeft: { left: 0 },
+  dropdownRight: { right: 0 },
   dropdownGuest: { width: 260 },
 
   popInner: { paddingVertical: 8 },
@@ -779,6 +833,15 @@ const s = StyleSheet.create({
   whoText: { flex: 1, minWidth: 0 },
   whoName: { fontSize: 15, fontWeight: '600', color: IOS_COLORS.label },
   whoEmail: { fontSize: 12, color: IOS_COLORS.secondaryLabel, marginTop: 2 },
+  whoEditButton: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...Platform.select({ web: { cursor: 'pointer' } as any }),
+  },
+  whoEditButtonActive: { backgroundColor: IOS_COLORS.tertiarySystemFill },
 
   // Plan card mini (solo subscriber)
   planCardMini: {

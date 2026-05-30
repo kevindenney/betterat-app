@@ -41,9 +41,7 @@ import Animated, {
 import { IOS_REGISTER } from '@/lib/design-tokens-ios';
 import { useHideTabBar } from '@/components/navigation/TabBarVisibilityContext';
 import { AppChromeRow } from '@/components/ui/AppChromeRow';
-import { LocationAnchor } from '@/components/ui/LocationAnchor';
 import { useScrollHideChrome } from '@/hooks/useScrollHideChrome';
-import { useUserHomeVenue } from '@/hooks/useUserHomeVenue';
 import { InterestHeader } from './InterestHeader';
 import { L1StepView } from './L1StepView';
 import { L2WeekView } from './L2WeekView';
@@ -177,7 +175,6 @@ export function TimelineZoomCanvas({
   onAddArc,
   onEditArc,
 }: TimelineZoomCanvasProps) {
-  const homeVenue = useUserHomeVenue();
   const [level, setLevel] = useState<ZoomLevel>(initialLevel);
   const [focusStepId, setFocusStepId] = useState<string>(dataset.focusStepId);
   const [gestureDirection, setGestureDirection] = useState<'in' | 'out' | null>(null);
@@ -332,11 +329,7 @@ export function TimelineZoomCanvas({
         {hideInterestHeader ? (
           !select.enabled ? (
             <Animated.View style={[styles.chromeLayer, chromeAnimStyle]}>
-              <AppChromeRow
-                leftExtras={
-                  <LocationAnchor region={homeVenue?.region} venue={homeVenue?.venue} />
-                }
-              />
+              <AppChromeRow />
             </Animated.View>
           ) : null
         ) : (
