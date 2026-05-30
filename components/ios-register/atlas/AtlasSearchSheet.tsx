@@ -291,7 +291,7 @@ async function fetchSearchResults(
   ] = await Promise.all([
     supabase
       .from('profiles')
-      .select('id, full_name, first_name, last_name')
+      .select('id, full_name, first_name, last_name, account_type')
       .or(`full_name.ilike.${like},first_name.ilike.${like},last_name.ilike.${like}`)
       .limit(15),
     viewerId
@@ -352,9 +352,12 @@ async function fetchSearchResults(
       const name = String(p.full_name ?? (composed.length > 0 ? composed : 'Sailor'));
       // Filter out institutional profiles that got created with org
       // names in full_name (e.g. "Johns Hopkins School of Nursing").
-      // These belong in the ORGANIZATIONS section, not People. Until
-      // there's a proper account_type=institution flag, name heuristic
-      // catches the common cases.
+      // These belong in the ORGANIZATIONS section, not People. The
+      // authoritative signal is account_type='organization'; the name
+      // heuristic stays as a fallback for rows that predate the flag.
+      if (String(p.account_type ?? '') === 'organization') {
+        continue;
+      }
       if (/\b(school|university|college|institute|yacht club|marina|foundation|sailing club|regatta|verein|squadron|association|society|federation|department|hospital|hospitals)\b/i.test(name)) {
         continue;
       }
