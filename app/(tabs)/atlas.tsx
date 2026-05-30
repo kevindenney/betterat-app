@@ -740,15 +740,11 @@ export default function AtlasTab() {
           return;
         }
 
-        const defaultTitle =
-          pin?.suggestedTitle ??
-          (
-            pin.place
-                ? `Step at ${pin.place.split('·')[0].trim()}`
-                : isSailingAtlas
-                  ? 'Sailing step'
-                  : 'Untitled'
-          );
+        // Atlas long-press creates a *draft*: no placeholder title and no
+        // implicit creation-time `starts_at`. The user types a title and
+        // picks a date on /step/[id]; if the source already supplied a
+        // suggestion (e.g. a course-context pin), keep it.
+        const defaultTitle = pin?.suggestedTitle ?? null;
         const defaultCategory =
           pin?.suggestedCategory ??
           (isSailingAtlas ? 'sailing' : 'general');
@@ -760,6 +756,7 @@ export default function AtlasTab() {
           status: 'pending',
           visibility: 'private',
           source_type: 'manual',
+          starts_at: null,
           location_name: locationName,
           location_lat: pin.lat,
           location_lng: pin.lng,
@@ -799,7 +796,14 @@ export default function AtlasTab() {
         if (targetInterest.slug !== currentInterest?.slug) {
           await switchInterest(targetInterest.slug);
         }
-        router.push({ pathname: '/step/[id]', params: { id: created.id, origin: 'atlas' } } as any);
+        // Land the user in the timeline with the new step selected — not on
+        // /step/[id]. The long-press gesture is "add this to my timeline,"
+        // not "open a deep editor"; the timeline lets them place the step
+        // in context (week / arc), and they can tap into detail from there.
+        router.push({
+          pathname: '/(tabs)/races',
+          params: { selected: created.id },
+        } as any);
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Could not create a step from this pin.';
         showAlert('Step creation failed', message);
