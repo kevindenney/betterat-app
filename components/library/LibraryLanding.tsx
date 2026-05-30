@@ -35,6 +35,7 @@ import { ResourcesZone } from '@/components/library/zones/ResourcesZone';
 import { DiscoverPlansContent } from '@/components/discover/DiscoverPlansContent';
 import { DiscoverOrgsContent } from '@/components/discover/DiscoverOrgsContent';
 import { DiscoverInterestsContent } from '@/components/discover/DiscoverInterestsContent';
+import { DiscoverTodayContent } from '@/components/discover/DiscoverTodayContent';
 import { CaptureSheet } from '@/components/library/resources/CaptureSheet';
 import { ConceptEditor } from '@/components/playbook/concepts/ConceptEditor';
 import { mapCapturePayloadToLibraryItem } from '@/components/library/resources/capturePayloadMap';
@@ -47,6 +48,7 @@ import type { LibraryZone } from '@/components/library/SegmentedZoneHeader';
 
 const VALID_ZONES: LibraryZone[] = [
   'all',
+  'today',
   'plans',
   'people',
   'concepts',
@@ -60,11 +62,12 @@ const VALID_ZONES: LibraryZone[] = [
 // "stacks" content components folded into Library — nesting a same-axis
 // ScrollView inside ours clips their content, so they sit on top with a
 // floating back pill (mirrors the discover.tsx focused-segment pattern).
-const FULL_BLEED_ZONES: LibraryZone[] = ['follow', 'orgs', 'interests'];
+const FULL_BLEED_ZONES: LibraryZone[] = ['today', 'follow', 'orgs', 'interests'];
 // Title shown atop a focused zone view (reached via a feed See-all).
 // 'all' is the curated feed itself, so it has no focused title.
 const ZONE_TITLE: Record<LibraryZone, string> = {
   all: 'Library',
+  today: 'This week',
   plans: 'Plans',
   concepts: 'Concepts',
   resources: 'Resources',
@@ -78,6 +81,7 @@ const ZONE_TITLE: Record<LibraryZone, string> = {
 // current view, not abstract advertising.
 const ZONE_DESCRIPTION: Record<LibraryZone, string> = {
   all: 'Cross-cutting insights the librarian noticed across your library.',
+  today: "What's worth your attention this week across your crafts.",
   plans: 'Subscribed Blueprints you can pull into your own Plan.',
   concepts: "Mental models you're forming, refining, or have settled.",
   resources: 'Saved articles, docs, and references.',
@@ -131,16 +135,16 @@ export function LibraryLanding({ conceptsBody, librarianSlot }: Props) {
 
   // `+` payload depends on the active zone. Librarian/Concepts both
   // open the concept editor (concepts are the librarian's domain).
-  // Resources opens CaptureSheet. Blueprints routes to Discover (where
-  // subscribe lives — Library Blueprints is "your subscribed ones",
-  // and adding a new one means subscribing to a published Blueprint).
+  // Resources opens CaptureSheet. Plans jumps to the "Plans to follow"
+  // stack (Library's subscribe surface — Library Plans is "your
+  // subscribed ones", and adding one means following a published Plan).
   const handleAdd = useCallback(() => {
     if (zone === 'resources') {
       setCaptureOpen(true);
       return;
     }
     if (zone === 'plans') {
-      router.push('/(tabs)/discover?segment=plans' as never);
+      handleZoneChange('follow');
       return;
     }
     if (zone === 'all' || zone === 'concepts') {
@@ -156,7 +160,7 @@ export function LibraryLanding({ conceptsBody, librarianSlot }: Props) {
     }
     // Fallback for People (currently no add-affordance defined)
     setCaptureOpen(true);
-  }, [zone, playbook?.id, currentInterest?.id]);
+  }, [zone, playbook?.id, currentInterest?.id, handleZoneChange]);
 
   const addLabel =
     zone === 'plans'
@@ -170,7 +174,9 @@ export function LibraryLanding({ conceptsBody, librarianSlot }: Props) {
   return (
     <View style={styles.container}>
       {isFullBleed ? (
-        zone === 'follow' ? (
+        zone === 'today' ? (
+          <DiscoverTodayContent toolbarOffset={toolbarHeight + 48} />
+        ) : zone === 'follow' ? (
           <DiscoverPlansContent toolbarOffset={toolbarHeight + 48} />
         ) : zone === 'orgs' ? (
           <DiscoverOrgsContent toolbarOffset={toolbarHeight + 48} />

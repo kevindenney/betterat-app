@@ -4,6 +4,7 @@ import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
 
 export type LibraryZone =
   | 'all'
+  | 'today'
   | 'plans'
   | 'people'
   | 'concepts'

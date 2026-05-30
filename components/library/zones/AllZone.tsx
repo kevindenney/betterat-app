@@ -171,6 +171,26 @@ export function AllZone({ counts, onJumpToZone, librarianSlot }: AllZoneProps) {
     <View style={styles.container}>
       {librarianSlot ? <View style={styles.librarian}>{librarianSlot}</View> : null}
 
+      {/* This week — the timely editorial surface folded in from the old
+          Discover "Today". One tap into the full-bleed zone. */}
+      <Pressable
+        style={styles.thisWeek}
+        onPress={() => onJumpToZone('today')}
+        accessibilityRole="button"
+        accessibilityLabel="See what's worth your attention this week"
+      >
+        <View style={styles.thisWeekIcon}>
+          <Ionicons name="sparkles" size={18} color="#FFFFFF" />
+        </View>
+        <View style={styles.thisWeekText}>
+          <Text style={styles.thisWeekTitle}>This week</Text>
+          <Text style={styles.thisWeekSubtitle} numberOfLines={1}>
+            What's worth your attention across your crafts
+          </Text>
+        </View>
+        <Ionicons name="chevron-forward" size={16} color={IOS_COLORS.tertiaryLabel} />
+      </Pressable>
+
       {/* ---------------------------------------------------------------- */}
       {/* YOURS                                                            */}
       {/* ---------------------------------------------------------------- */}
@@ -377,6 +397,40 @@ const styles = StyleSheet.create({
   },
   librarian: {
     gap: IOS_SPACING.md,
+  },
+  thisWeek: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginHorizontal: IOS_SPACING.lg,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    borderRadius: 14,
+    backgroundColor: '#FFFFFF',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(60,60,67,0.12)',
+  },
+  thisWeekIcon: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#0A84FF',
+  },
+  thisWeekText: {
+    flex: 1,
+    gap: 2,
+  },
+  thisWeekTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: IOS_COLORS.label,
+    letterSpacing: -0.2,
+  },
+  thisWeekSubtitle: {
+    fontSize: 13,
+    color: IOS_COLORS.secondaryLabel,
   },
   groupLabel: {
     fontSize: 13,
