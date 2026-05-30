@@ -65,14 +65,15 @@ const ROUTES_WITH_CUSTOM_TOOLBAR = [
   '/races',
   '/reflect',
   '/search',
+  '/watch',
 ] as const;
 const TAB_SWEEP_CONTEXT_COPY: Record<
   (typeof TAB_SWEEP_REQUIRED_TABS)[number],
   { description: string; emptyHint: string }
 > = {
   discover: {
-    description: 'Browse interests, organizations, people, and community forums.',
-    emptyHint: 'Start by exploring interests or finding people to follow.',
+    description: 'Browse interests, organizations, people, plans, resources, and places.',
+    emptyHint: 'Start by exploring something you can pull into your library.',
   },
   reflect: {
     description: 'View your capability map, evidence, and shareable record.',
@@ -384,6 +385,7 @@ function TabLayoutInner() {
   const coursesTab = findTab('courses');
   const _connectTab = findTab('connect');
   const discoverTab = findTab('discover');
+  const watchTab = findTab('watch');
   const searchTab = findTab('search');
   const libraryTab = findTab('library');
   const _followTab = findTab('follow');
@@ -495,14 +497,14 @@ function TabLayoutInner() {
       tabBar={tabBarConfig.tabBar}
       screenOptions={screenOptions}
     >
-        {/* Tab 1: Race */}
+        {/* Tab 1: Practice */}
         <Tabs.Screen
           name="races"
           options={{
-            title: racesTab?.title ?? 'Race',
+            title: racesTab?.title ?? 'Practice',
             tabBarIcon: isSailorUser ? () => null : ({ color, size, focused }) => (
               <Ionicons
-                name={getIconName(racesTab, focused, racesTab?.iconFocused ?? 'flag', racesTab?.icon ?? 'flag-outline') as any}
+                name={getIconName(racesTab, focused, racesTab?.iconFocused ?? 'checkmark-circle', racesTab?.icon ?? 'checkmark-circle-outline') as any}
                 size={isClubUser ? 26 : size}
                 color={color}
               />
@@ -510,7 +512,7 @@ function TabLayoutInner() {
             tabBarButton: !isTabVisible('races')
               ? () => null
               : isSailorUser
-                ? renderSailorTabButton('races', racesTab?.title ?? 'Race', racesTab)
+                ? renderSailorTabButton('races', racesTab?.title ?? 'Practice', racesTab)
                 : undefined,
           }}
         />
@@ -542,32 +544,25 @@ function TabLayoutInner() {
                 : undefined,
           }}
         />
-        {/* Tab 3: Atlas (Phase 11 — "where" lens). Centered between Library
-            and Discover when ATLAS_IOS_REGISTER is on. Gated via the tab
-            visibility from getTabsForUserType. */}
         <Tabs.Screen
-          name="atlas"
+          name="watch"
           options={{
-            title: atlasTab?.title ?? 'Atlas',
-            // Edge-to-edge: hide the screen header so the map fills
-            // from the top safe-area down. The Atlas surface owns its
-            // own floating chrome.
-            headerShown: false,
+            title: watchTab?.title ?? 'Watch',
             tabBarIcon: isSailorUser ? () => null : ({ color, size, focused }) => (
               <Ionicons
-                name={getIconName(atlasTab, focused, atlasTab?.iconFocused ?? 'compass', atlasTab?.icon ?? 'compass-outline') as any}
+                name={getIconName(watchTab, focused, watchTab?.iconFocused ?? 'eye', watchTab?.icon ?? 'eye-outline') as any}
                 size={size}
                 color={color}
               />
             ),
-            tabBarButton: !isTabVisible('atlas')
+            tabBarButton: !isTabVisible('watch')
               ? () => null
               : isSailorUser
-                ? renderSailorTabButton('atlas', atlasTab?.title ?? 'Atlas', atlasTab)
+                ? renderSailorTabButton('watch', watchTab?.title ?? 'Watch', watchTab)
                 : undefined,
           }}
         />
-        {/* Tab 4: Discover (replaces Connect) */}
+        {/* Tab 4: Discover */}
         <Tabs.Screen
           name="discover"
           options={{
@@ -583,6 +578,26 @@ function TabLayoutInner() {
               ? () => null
               : isSailorUser
                 ? renderSailorTabButton('discover', discoverTab?.title ?? 'Discover', discoverTab)
+                : undefined,
+          }}
+        />
+        {/* Tab 5: Atlas */}
+        <Tabs.Screen
+          name="atlas"
+          options={{
+            title: atlasTab?.title ?? 'Atlas',
+            headerShown: false,
+            tabBarIcon: isSailorUser ? () => null : ({ color, size, focused }) => (
+              <Ionicons
+                name={getIconName(atlasTab, focused, atlasTab?.iconFocused ?? 'map', atlasTab?.icon ?? 'map-outline') as any}
+                size={size}
+                color={color}
+              />
+            ),
+            tabBarButton: !isTabVisible('atlas')
+              ? () => null
+              : isSailorUser
+                ? renderSailorTabButton('atlas', atlasTab?.title ?? 'Atlas', atlasTab)
                 : undefined,
           }}
         />
@@ -623,7 +638,7 @@ function TabLayoutInner() {
             href: null,
           }}
         />
-        {/* Tab 5: Profile (capability record) — route name stays `reflect`
+        {/* Hidden: Profile (capability record) — route name stays `reflect`
             to avoid breaking deep links; only the bottom-tab label and
             icon change in Phase A. See docs/redesign/PRACTICE_TIMELINE_CANONICAL.md. */}
         <Tabs.Screen
