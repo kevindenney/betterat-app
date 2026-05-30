@@ -17,6 +17,7 @@ export function FilterStrip({ options, selectedKey, onSelect }: FilterStripProps
     <ScrollView
       horizontal
       showsHorizontalScrollIndicator={false}
+      style={styles.strip}
       contentContainerStyle={styles.content}
     >
       {options.map((option) => {
@@ -36,10 +37,18 @@ export function FilterStrip({ options, selectedKey, onSelect }: FilterStripProps
 }
 
 const styles = StyleSheet.create({
+  // A horizontal ScrollView in a flex-column parent stretches to fill the
+  // cross axis on react-native-web, ballooning the chips into tall empty
+  // columns. Pin it to its content height.
+  strip: {
+    flexGrow: 0,
+    flexShrink: 0,
+  },
   content: {
     gap: 8,
     paddingHorizontal: 16,
     paddingVertical: 8,
+    alignItems: 'center',
   },
   chip: {
     paddingHorizontal: 12,
