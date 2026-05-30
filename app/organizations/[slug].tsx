@@ -11,6 +11,7 @@ import { useToast } from '@/components/ui/AppToast';
 import { showConfirm, showAlert } from '@/lib/utils/crossPlatformAlert';
 import { OrgLocationsMap, type OrgLocation } from '@/components/organizations/OrgLocationsMap';
 import { useOrgViewerMembership } from '@/hooks/useOrgViewerMembership';
+import { useOrganization } from '@/providers/OrganizationProvider';
 import { OrgJoinService } from '@/services/OrgJoinService';
 import {
   YachtClubClaimService,
@@ -131,6 +132,7 @@ export default function OrganizationPlaceholderPage() {
   const [orgLocations, setOrgLocations] = useState<OrgLocation[]>([]);
   const [joining, setJoining] = useState(false);
   const { user: authUser } = useAuth();
+  const { setActiveOrganizationId } = useOrganization();
   const toast = useToast();
   // Viewer's membership in this org. `null` once resolved means
   // non-member; status='active' is a full member; pending/rejected are
@@ -169,6 +171,18 @@ export default function OrganizationPlaceholderPage() {
       }
     },
     [authUser?.id, org?.id, joining, refetchMembership, toast],
+  );
+  // Member-surface link-hub. The /organization/* surfaces resolve which
+  // org to show from the global active-org context (OrganizationProvider),
+  // not a route param — so switch the active org to this one before
+  // navigating. The setter is a no-op unless the viewer is an active
+  // member here, which is exactly when these links render.
+  const goToMemberSurface = React.useCallback(
+    async (route: string) => {
+      if (org?.id) await setActiveOrganizationId(org.id);
+      router.push(route as never);
+    },
+    [org?.id, setActiveOrganizationId],
   );
   const handleJoinPress = React.useCallback(() => {
     const joinMode: OrgJoinMode = org?.join_mode ?? 'invite_only';
@@ -267,6 +281,23 @@ export default function OrganizationPlaceholderPage() {
   const visibleAliases = Array.from(new Set(org?.aliases ?? []));
   const demoTierCards = YACHT_CLUB_DEMO_TIERS;
   const typeLabels = orgTypeLabels(org?.organization_type);
+  // ClubSpot-imported clubs (source='dragon_worlds_clubspot') are the
+  // only orgs with import-evidence stats and ClubSpot aliases; every
+  // other org type has source=null and should get a generic body.
+  const isClubspotImport = !!org?.source && org.source.includes('clubspot');
+  const isActiveMember = !isDemo && membership?.status === 'active';
+  // Member surfaces, all admin-gated server-side via RLS regardless of
+  // what we show. Billing is admin-only in the UI (manage subscription).
+  const memberLinks = React.useMemo(
+    () => [
+      { key: 'programs', label: 'Programs', detail: 'Templates and blueprints this org publishes', route: '/organization/templates', icon: 'albums-outline' as const, adminOnly: false },
+      { key: 'cohorts', label: 'Cohorts', detail: 'Groups moving through a blueprint together', route: '/organization/cohorts', icon: 'people-outline' as const, adminOnly: false },
+      { key: 'members', label: 'Members', detail: 'Roster, roles, and join requests', route: '/organization/members', icon: 'person-add-outline' as const, adminOnly: false },
+      { key: 'competencies', label: 'Competencies', detail: 'The capability framework and evidence', route: '/organization/competencies', icon: 'ribbon-outline' as const, adminOnly: false },
+      { key: 'billing', label: 'Manage subscription', detail: 'Plan, seats, and billing', route: '/organization/billing', icon: 'card-outline' as const, adminOnly: true },
+    ],
+    [],
+  );
 
   return (
     <SafeAreaView style={styles.screen} edges={['top']}>
@@ -435,6 +466,34 @@ export default function OrganizationPlaceholderPage() {
                 />
               ) : null}
             </View>
+
+            {/* Member link-hub. Active members get one-tap access to the
+                org's working surfaces; admin-only rows (billing) are
+                hidden for non-admins. Each tap switches the active-org
+                context to this org first (see goToMemberSurface). */}
+            {isActiveMember ? (
+              <View style={styles.card}>
+                <Text style={styles.sectionTitle}>Your organization</Text>
+                <View style={styles.surfaceList}>
+                  {memberLinks
+                    .filter((link) => !link.adminOnly || membership?.isAdmin)
+                    .map((link) => (
+                      <Pressable
+                        key={link.key}
+                        style={styles.surfaceRow}
+                        onPress={() => void goToMemberSurface(link.route)}
+                      >
+                        <Ionicons name={link.icon} size={20} color={C.blue} />
+                        <View style={styles.surfaceCopy}>
+                          <Text style={styles.surfaceLabel}>{link.label}</Text>
+                          <Text style={styles.surfaceDetail}>{link.detail}</Text>
+                        </View>
+                        <Ionicons name="chevron-forward" size={18} color={C.muted} />
+                      </Pressable>
+                    ))}
+                </View>
+              </View>
+            ) : null}
 
             {isDemo ? (
               <>
@@ -657,10 +716,13 @@ export default function OrganizationPlaceholderPage() {
               <>
                 {isPlaceholder ? (
                   <View style={styles.notice}>
-                    <Text style={styles.noticeTitle}>This is not an official club account yet.</Text>
+                    <Text style={styles.noticeTitle}>
+                      This is not an official {typeLabels.contextLabel.toLowerCase()} account yet.
+                    </Text>
                     <Text style={styles.noticeBody}>
-                      BetterAt created this placeholder from public Dragon Worlds ClubSpot entrant club strings.
-                      No sailors or entrants have been attached to this club automatically.
+                      {isClubspotImport
+                        ? 'BetterAt created this placeholder from public Dragon Worlds ClubSpot entrant club strings. No sailors or entrants have been attached to this club automatically.'
+                        : `BetterAt created this placeholder so ${org.name} can be discovered. Claim it to manage members, publish programs, and turn on official status.`}
                     </Text>
                     <Pressable
                       style={styles.primaryButton}
@@ -672,22 +734,38 @@ export default function OrganizationPlaceholderPage() {
                   </View>
                 ) : null}
 
+                {!isClubspotImport && org.source_summary ? (
+                  <View style={styles.card}>
+                    <Text style={styles.sectionTitle}>About</Text>
+                    <Text style={styles.body}>{org.source_summary}</Text>
+                  </View>
+                ) : null}
+
                 <View style={styles.grid}>
-                  <View style={styles.stat}>
-                    <Text style={styles.statValue}>{org.total_entry_refs}</Text>
-                    <Text style={styles.statLabel}>Import evidence</Text>
-                  </View>
-                  <View style={styles.stat}>
-                    <Text style={styles.statValue}>{org.confidence || 'review'}</Text>
-                    <Text style={styles.statLabel}>Import confidence</Text>
-                  </View>
+                  {isClubspotImport ? (
+                    <>
+                      <View style={styles.stat}>
+                        <Text style={styles.statValue}>{org.total_entry_refs}</Text>
+                        <Text style={styles.statLabel}>Import evidence</Text>
+                      </View>
+                      <View style={styles.stat}>
+                        <Text style={styles.statValue}>{org.confidence || 'review'}</Text>
+                        <Text style={styles.statLabel}>Import confidence</Text>
+                      </View>
+                    </>
+                  ) : (
+                    <View style={styles.stat}>
+                      <Text style={styles.statValue}>{typeLabels.contextLabel}</Text>
+                      <Text style={styles.statLabel}>Organization type</Text>
+                    </View>
+                  )}
                   <View style={styles.stat}>
                     <Text style={styles.statValue}>{tierLabel(org.pricing_tier)}</Text>
                     <Text style={styles.statLabel}>{typeLabels.pricingLabel}</Text>
                   </View>
                 </View>
 
-                {visibleAliases.length > 0 ? (
+                {isClubspotImport && visibleAliases.length > 0 ? (
                   <View style={styles.card}>
                     <Text style={styles.sectionTitle}>Known ClubSpot Aliases</Text>
                     <View style={styles.chips}>
