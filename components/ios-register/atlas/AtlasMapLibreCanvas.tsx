@@ -24,6 +24,7 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
+  ActivityIndicator,
   Platform,
   Pressable,
   StyleSheet,
@@ -1130,6 +1131,16 @@ function WebAtlasMapLibreCanvas({
   return (
     <View style={styles.fill}>
       <View ref={containerRef} style={styles.fill} />
+      {/* Loading veil — the MapLibre tiles/style take a beat to fetch on
+          a cold load, during which the container is blank. Cover it with
+          a land-toned panel + spinner so the first paint reads as
+          "map is coming" rather than a broken white screen. */}
+      {!isLoaded ? (
+        <View pointerEvents="none" style={styles.mapLoadingVeil}>
+          <ActivityIndicator size="small" color="#8E8E93" />
+          <Text style={styles.mapLoadingText}>Loading map…</Text>
+        </View>
+      ) : null}
       {/* Compass — appears only when the user has rotated the map off
           north. Tap to snap back to north. Mirror of the native
           compass overlay above. */}
@@ -2176,6 +2187,21 @@ function NextEventMarker({
 const styles = StyleSheet.create({
   fill: {
     flex: 1,
+  },
+  mapLoadingVeil: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    // Positron land tone — blends into the tiles as they fade in so the
+    // hand-off from veil to map is near-seamless.
+    backgroundColor: '#E9E9EC',
+  },
+  mapLoadingText: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: '#8E8E93',
+    letterSpacing: 0.2,
   },
   compassButton: {
     position: 'absolute',

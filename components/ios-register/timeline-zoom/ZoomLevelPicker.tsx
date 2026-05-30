@@ -49,6 +49,15 @@ const RAIL_ORDER: ZoomLevel[] = [4, 3, 2, 1];
 
 const GLYPH_SIZE = 26;
 const SEGMENT_SIZE = 52;
+const RAIL_PADDING = 7;
+const DEFAULT_RIGHT_OFFSET = 10;
+
+/** Horizontal lane the floating rail occupies, measured from the right
+ *  edge: rail box (segment + padding both sides) + right offset + a small
+ *  breathing gap. Full-bleed level content (charts/sparklines) should
+ *  subtract this from its width so data never renders under the rail. */
+export const ZOOM_RAIL_RESERVED_WIDTH =
+  SEGMENT_SIZE + RAIL_PADDING * 2 + DEFAULT_RIGHT_OFFSET + 8;
 
 function LevelGlyph({ level, color }: { level: ZoomLevel; color: string }) {
   switch (level) {
@@ -139,7 +148,7 @@ export function ZoomLevelPicker({
   level,
   onChange,
   onSnapToCurrent,
-  rightOffset = 10,
+  rightOffset = DEFAULT_RIGHT_OFFSET,
   periodNoun = 'arc',
 }: ZoomLevelPickerProps) {
   const scopeLabelFor = (l: ZoomLevel) =>
@@ -187,7 +196,7 @@ const styles = StyleSheet.create({
   },
   rail: {
     flexDirection: 'column',
-    padding: 7,
+    padding: RAIL_PADDING,
     gap: 10,
     backgroundColor: 'rgba(255, 255, 255, 0.98)',
     borderRadius: 34,
