@@ -139,6 +139,14 @@ export function DoTabInterior({
       onDelete={beats.onDelete}
       onToggleDone={beats.onToggleDone}
       onReorder={beats.onReorder}
+      refsByBeat={library.itemsByBeat}
+      capturesByBeat={subStepCaptures}
+      onOpenLibraryRef={(libraryItemId) =>
+        router.push(`/(tabs)/library/items/${libraryItemId}` as any)
+      }
+      onRemoveLibraryRef={readOnly ? undefined : library.onRemove}
+      onAttachLibrary={readOnly ? undefined : library.onAddToBeat}
+      onBeatCapture={onSubStepCapture}
     />
   );
   // Check-off read/watch list of library items attached to this step. Same

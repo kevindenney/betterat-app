@@ -18,6 +18,7 @@ interface JoinedRow {
   position: number;
   read_at: string | null;
   how_sub_step_id: string | null;
+  beat_id: string | null;
   library_items: {
     id: string;
     kind: string;
@@ -31,6 +32,7 @@ interface JoinedRow {
 interface BeforeRowWithItemId extends BeforeShiftItem {
   libraryItemId: string;
   howSubStepId: string | null;
+  beatId: string | null;
 }
 
 const VALID_FORMATS: LibraryFormat[] = [
@@ -63,6 +65,7 @@ function toBeforeShiftItem(row: JoinedRow): BeforeRowWithItemId | null {
     id: row.id,
     libraryItemId: row.library_items.id,
     howSubStepId: row.how_sub_step_id,
+    beatId: row.beat_id,
     format,
     title: row.library_items.title,
     meta: metaParts.join(' · '),
@@ -79,7 +82,7 @@ export function useStepLibraryBefore(stepId: string | undefined) {
       const { data, error } = await supabase
         .from('step_library_before')
         .select(
-          'id, step_id, library_item_id, position, read_at, how_sub_step_id, library_items(id, kind, title, source_label, page_count, duration_min)'
+          'id, step_id, library_item_id, position, read_at, how_sub_step_id, beat_id, library_items(id, kind, title, source_label, page_count, duration_min)'
         )
         .eq('step_id', stepId)
         .order('position', { ascending: true });
@@ -128,9 +131,11 @@ export function useAttachLibraryItemToStepBefore(stepId: string | undefined) {
     mutationFn: async ({
       libraryItemId,
       howSubStepId,
+      beatId,
     }: {
       libraryItemId: string;
       howSubStepId?: string | null;
+      beatId?: string | null;
     }) => {
       if (!stepId) throw new Error('stepId required');
       if (!user?.id) throw new Error('not authenticated');
@@ -147,6 +152,7 @@ export function useAttachLibraryItemToStepBefore(stepId: string | undefined) {
         position: nextPosition,
         added_by: user.id,
         how_sub_step_id: howSubStepId ?? null,
+        beat_id: beatId ?? null,
       });
       if (error) throw error;
     },
@@ -196,8 +202,9 @@ export function useLibraryBeforeBinding(
   const detach = useDetachLibraryItemFromStepBefore(stepId);
   const [pickerOpen, setPickerOpen] = useState(false);
   // When the picker was opened from a specific How row, attach the pick to
-  // that sub-step; null means a step-level "Before the shift" pin.
+  // that sub-step; from a beat, to that beat; both null = step-level pin.
   const [pickerSubStepId, setPickerSubStepId] = useState<string | null>(null);
+  const [pickerBeatId, setPickerBeatId] = useState<string | null>(null);
 
   const onToggle = useCallback(
     (rowId: string) => {
@@ -217,41 +224,58 @@ export function useLibraryBeforeBinding(
 
   const onAddFromLibrary = useCallback(() => {
     setPickerSubStepId(null);
+    setPickerBeatId(null);
     setPickerOpen(true);
   }, []);
 
   // Open the picker targeted at a How sub-step — the pick is pinned beneath it.
   const onAddToSubStep = useCallback((subStepId: string) => {
     setPickerSubStepId(subStepId);
+    setPickerBeatId(null);
+    setPickerOpen(true);
+  }, []);
+
+  // Open the picker targeted at a beat — the pick is pinned beneath it.
+  const onAddToBeat = useCallback((beatId: string) => {
+    setPickerBeatId(beatId);
+    setPickerSubStepId(null);
     setPickerOpen(true);
   }, []);
 
   const onPickerClose = useCallback(() => {
     setPickerOpen(false);
     setPickerSubStepId(null);
+    setPickerBeatId(null);
   }, []);
 
   const onPickerSelect = useCallback(
     (libraryItemId: string) => {
-      attach.mutate({ libraryItemId, howSubStepId: pickerSubStepId });
+      attach.mutate({
+        libraryItemId,
+        howSubStepId: pickerSubStepId,
+        beatId: pickerBeatId,
+      });
       setPickerOpen(false);
       setPickerSubStepId(null);
+      setPickerBeatId(null);
     },
-    [attach, pickerSubStepId]
+    [attach, pickerSubStepId, pickerBeatId]
   );
 
   const attachedItemIds = useMemo(
     () => items.map((it) => it.libraryItemId),
     [items]
   );
-  const totalEstimate = computeTotalEstimate(items.filter((it) => !it.howSubStepId));
+  const totalEstimate = computeTotalEstimate(
+    items.filter((it) => !it.howSubStepId && !it.beatId)
+  );
 
   // Step-level pins (the "Before the shift" card) — exclude anchored items so
-  // they're not double-shown; anchored items render under their How row.
+  // they're not double-shown; anchored items render under their How row / beat.
   const cardItems: BeforeShiftItem[] = useMemo(
     () =>
       items
-        .filter((it) => !it.howSubStepId)
+        .filter((it) => !it.howSubStepId && !it.beatId)
         .map(({ id, libraryItemId, format, title, meta, read }) => ({
           id,
           libraryItemId,
@@ -280,13 +304,32 @@ export function useLibraryBeforeBinding(
     return map;
   }, [items]);
 
+  // Anchored pins grouped by beat id, for inline rendering on each beat row.
+  const itemsByBeat: Record<string, BeforeShiftItem[]> = useMemo(() => {
+    const map: Record<string, BeforeShiftItem[]> = {};
+    for (const it of items) {
+      if (!it.beatId) continue;
+      (map[it.beatId] ??= []).push({
+        id: it.id,
+        libraryItemId: it.libraryItemId,
+        format: it.format,
+        title: it.title,
+        meta: it.meta,
+        read: it.read,
+      });
+    }
+    return map;
+  }, [items]);
+
   return {
     items: cardItems,
     itemsBySubStep,
+    itemsByBeat,
     onToggle,
     onRemove,
     onAddFromLibrary,
     onAddToSubStep,
+    onAddToBeat,
     totalEstimate,
     picker: {
       visible: pickerOpen,

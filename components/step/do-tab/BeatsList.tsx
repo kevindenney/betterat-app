@@ -28,6 +28,9 @@ import {
 import { showConfirm } from '@/lib/utils/crossPlatformAlert';
 import { useDragReorder } from '@/components/ios-register/timeline-zoom/useDragReorder';
 import type { StepBeat } from '@/hooks/useStepBeats';
+import { RowAnnotations, RowPlusButton, type SubStepCaptureKind } from './RowAnnotations';
+import type { BeforeShiftItem } from '@/components/step/v2/plan/BeforeTheShiftCard';
+import type { DoCaptureItem } from './doCaptureModel';
 
 interface Props {
   beats: StepBeat[];
@@ -44,6 +47,14 @@ interface Props {
   onToggleDone?: (id: string, done: boolean) => void;
   /** When provided, beats can be long-press-dragged to reorder. */
   onReorder?: (orderedIds: string[]) => void;
+  /** Library pins anchored to each beat, keyed by beat id. */
+  refsByBeat?: Record<string, BeforeShiftItem[]>;
+  /** Saved captures anchored to each beat, keyed by beat id. */
+  capturesByBeat?: Record<string, DoCaptureItem[]>;
+  onOpenLibraryRef?: (libraryItemId: string) => void;
+  onRemoveLibraryRef?: (rowId: string) => void;
+  onAttachLibrary?: (beatId: string) => void;
+  onBeatCapture?: (beatId: string, kind: SubStepCaptureKind) => void;
 }
 
 export function BeatsList({
@@ -57,6 +68,12 @@ export function BeatsList({
   onDelete,
   onToggleDone,
   onReorder,
+  refsByBeat,
+  capturesByBeat,
+  onOpenLibraryRef,
+  onRemoveLibraryRef,
+  onAttachLibrary,
+  onBeatCapture,
 }: Props) {
   const config = getInterestBeatsConfig({ interestSlug, interestName, interestId });
   const dragEnabled = !readOnly && !!onReorder && beats.length > 1;
@@ -98,6 +115,12 @@ export function BeatsList({
               onEdit={onEdit}
               onDelete={onDelete}
               onToggleDone={onToggleDone}
+              refs={refsByBeat?.[beat.id]}
+              captures={capturesByBeat?.[beat.id]}
+              onOpenLibraryRef={onOpenLibraryRef}
+              onRemoveLibraryRef={onRemoveLibraryRef}
+              onAttachLibrary={onAttachLibrary}
+              onBeatCapture={onBeatCapture}
             />
           ))}
         </View>
@@ -178,13 +201,35 @@ interface BeatRowProps {
   onToggleDone?: (id: string, done: boolean) => void;
   /** Show a grip glyph hinting the row is long-press-draggable. */
   dragHandle?: boolean;
+  refs?: BeforeShiftItem[];
+  captures?: DoCaptureItem[];
+  onOpenLibraryRef?: (libraryItemId: string) => void;
+  onRemoveLibraryRef?: (rowId: string) => void;
+  onAttachLibrary?: (beatId: string) => void;
+  onBeatCapture?: (beatId: string, kind: SubStepCaptureKind) => void;
 }
 
-function BeatRow({ beat, readOnly, config, onEdit, onDelete, onToggleDone, dragHandle }: BeatRowProps) {
+function BeatRow({
+  beat,
+  readOnly,
+  config,
+  onEdit,
+  onDelete,
+  onToggleDone,
+  dragHandle,
+  refs,
+  captures,
+  onOpenLibraryRef,
+  onRemoveLibraryRef,
+  onAttachLibrary,
+  onBeatCapture,
+}: BeatRowProps) {
   const [expanded, setExpanded] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const [title, setTitle] = useState(beat.title);
   const [time, setTime] = useState(beat.time_label ?? '');
   const [body, setBody] = useState(beat.body ?? '');
+  const hasMenu = !readOnly && Boolean(onAttachLibrary || onBeatCapture);
 
   const commit = () => {
     if (readOnly) return;
@@ -246,7 +291,22 @@ function BeatRow({ beat, readOnly, config, onEdit, onDelete, onToggleDone, dragH
         {beat.time_label ? (
           <Text style={styles.beatTime}>{beat.time_label}</Text>
         ) : null}
+        {hasMenu ? (
+          <RowPlusButton open={menuOpen} onPress={() => setMenuOpen((v) => !v)} />
+        ) : null}
       </View>
+
+      <RowAnnotations
+        readOnly={readOnly}
+        menuOpen={menuOpen}
+        onCloseMenu={() => setMenuOpen(false)}
+        refs={refs ?? []}
+        captures={captures ?? []}
+        onOpenLibraryRef={onOpenLibraryRef}
+        onRemoveLibraryRef={onRemoveLibraryRef}
+        onAttachLibrary={onAttachLibrary ? () => onAttachLibrary(beat.id) : undefined}
+        onCapture={onBeatCapture ? (kind) => onBeatCapture(beat.id, kind) : undefined}
+      />
 
       {expanded && !readOnly ? (
         <View style={styles.beatEdit}>
