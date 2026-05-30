@@ -299,7 +299,7 @@ async function fetchSearchResults(
           .from('timeline_steps')
           .select('id, title, description, user_id')
           .eq('user_id', viewerId)
-          .ilike('title', like)
+          .or(`title.ilike.${like},description.ilike.${like}`)
           .limit(10)
       : Promise.resolve({ data: null, error: null } as { data: null; error: null }),
     followingIds.size > 0
@@ -307,14 +307,14 @@ async function fetchSearchResults(
           .from('timeline_steps')
           .select('id, title, description, user_id')
           .in('user_id', Array.from(followingIds))
-          .ilike('title', like)
+          .or(`title.ilike.${like},description.ilike.${like}`)
           .neq('visibility', 'private')
           .limit(10)
       : Promise.resolve({ data: null, error: null } as { data: null; error: null }),
     supabase
       .from('blueprint_steps')
       .select('id, blueprint_id, title, description')
-      .ilike('title', like)
+      .or(`title.ilike.${like},description.ilike.${like}`)
       .limit(10),
     supabase
       .from('organizations')
