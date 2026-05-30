@@ -145,7 +145,7 @@ export function LibraryBeforePicker({
             <TextInput
               value={query}
               onChangeText={setQuery}
-              placeholder="Search your library"
+              placeholder="Search, or paste a link / type a note to add"
               placeholderTextColor={IOS_COLORS.tertiaryLabel}
               style={styles.searchInput}
               autoCorrect={false}
