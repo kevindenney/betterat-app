@@ -2,7 +2,11 @@ import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
-import type { StepPlanData } from '@/types/step-detail';
+import { FORMAT_ICON, FORMAT_TINT } from '@/components/library/resources/formatStyles';
+import type { BeforeShiftItem } from '@/components/step/v2/plan/BeforeTheShiftCard';
+import type { StepPlanData, SubStep } from '@/types/step-detail';
+
+export type SubStepCaptureKind = 'note' | 'photo' | 'voice';
 
 interface PlanStartingFrameRowProps {
   planData: StepPlanData;
@@ -11,6 +15,16 @@ interface PlanStartingFrameRowProps {
   readOnly?: boolean;
   /** When provided, the How list renders as a tap-to-check checklist. */
   onToggleSubStep?: (subStepId: string, completed: boolean) => void;
+  /** Library items pinned to each How sub-step, keyed by sub-step id. */
+  subStepRefs?: Record<string, BeforeShiftItem[]>;
+  /** Open a pinned library item's resource viewer. */
+  onOpenLibraryRef?: (libraryItemId: string) => void;
+  /** Pin a library item to a specific How sub-step (opens the picker). */
+  onAttachLibrary?: (subStepId: string) => void;
+  /** Capture an observation / photo / voice note against a How sub-step. */
+  onSubStepCapture?: (subStepId: string, kind: SubStepCaptureKind) => void;
+  /** Count of captures already logged against each sub-step, keyed by id. */
+  subStepCaptureCount?: Record<string, number>;
 }
 
 export function hasPlanStartingFrameContent(planData: StepPlanData): boolean {
@@ -31,11 +45,20 @@ export function PlanStartingFrameRow({
   disabled,
   readOnly,
   onToggleSubStep,
+  subStepRefs,
+  onOpenLibraryRef,
+  onAttachLibrary,
+  onSubStepCapture,
+  subStepCaptureCount,
 }: PlanStartingFrameRowProps) {
   const hasContent = hasPlanStartingFrameContent(planData);
   const isDisabled = disabled || !hasContent;
   const realSubSteps = (planData.how_sub_steps ?? []).filter((s) => s.text?.trim());
   const asChecklist = Boolean(onToggleSubStep) && realSubSteps.length > 0;
+  // Rich mode: each How row carries pinned library items + per-row capture
+  // affordances. Renders full-width (the compact How|Who grid can't hold the
+  // chips + action bar). Falls back to the simple checklist/list otherwise.
+  const richHow = asChecklist && Boolean(onAttachLibrary || onSubStepCapture);
   const plannedSteps = compactList(
     (planData.how_sub_steps ?? []).map((step) => step.text),
     'No planned steps yet',
@@ -66,52 +89,83 @@ export function PlanStartingFrameRow({
         <Text style={styles.body}>{what}</Text>
       </View>
 
-      <View style={styles.grid}>
-        <View style={styles.sectionHalf}>
-          <Text style={styles.label}>How</Text>
-          {asChecklist
-            ? realSubSteps.map((step) => (
-                <Pressable
-                  key={step.id}
-                  style={styles.checkRow}
-                  onPress={
-                    readOnly
-                      ? undefined
-                      : () => onToggleSubStep?.(step.id, !step.completed)
-                  }
-                  disabled={readOnly}
-                  accessibilityRole="checkbox"
-                  accessibilityState={{ checked: step.completed }}
-                  accessibilityLabel={`Mark "${step.text}" ${step.completed ? 'not done' : 'done'}`}
-                >
-                  <View style={[styles.check, step.completed ? styles.checkDone : null]}>
-                    {step.completed ? (
-                      <Ionicons name="checkmark" size={11} color="#FFFFFF" />
-                    ) : null}
-                  </View>
-                  <Text
-                    style={[styles.bullet, step.completed ? styles.bulletDone : null]}
-                    numberOfLines={2}
+      {richHow ? (
+        <>
+          <View style={styles.section}>
+            <Text style={styles.label}>How</Text>
+            {realSubSteps.map((step) => (
+              <RichHowRow
+                key={step.id}
+                step={step}
+                readOnly={readOnly}
+                refs={subStepRefs?.[step.id] ?? []}
+                captureCount={subStepCaptureCount?.[step.id] ?? 0}
+                onToggle={() => onToggleSubStep?.(step.id, !step.completed)}
+                onOpenLibraryRef={onOpenLibraryRef}
+                onAttachLibrary={onAttachLibrary ? () => onAttachLibrary(step.id) : undefined}
+                onCapture={
+                  onSubStepCapture ? (kind) => onSubStepCapture(step.id, kind) : undefined
+                }
+              />
+            ))}
+          </View>
+          <View style={styles.section}>
+            <Text style={styles.label}>Who</Text>
+            {collaborators.map((person, index) => (
+              <Text key={`${person}-${index}`} style={styles.bullet} numberOfLines={2}>
+                {person}
+              </Text>
+            ))}
+          </View>
+        </>
+      ) : (
+        <View style={styles.grid}>
+          <View style={styles.sectionHalf}>
+            <Text style={styles.label}>How</Text>
+            {asChecklist
+              ? realSubSteps.map((step) => (
+                  <Pressable
+                    key={step.id}
+                    style={styles.checkRow}
+                    onPress={
+                      readOnly
+                        ? undefined
+                        : () => onToggleSubStep?.(step.id, !step.completed)
+                    }
+                    disabled={readOnly}
+                    accessibilityRole="checkbox"
+                    accessibilityState={{ checked: step.completed }}
+                    accessibilityLabel={`Mark "${step.text}" ${step.completed ? 'not done' : 'done'}`}
                   >
-                    {step.text}
+                    <View style={[styles.check, step.completed ? styles.checkDone : null]}>
+                      {step.completed ? (
+                        <Ionicons name="checkmark" size={11} color="#FFFFFF" />
+                      ) : null}
+                    </View>
+                    <Text
+                      style={[styles.bullet, step.completed ? styles.bulletDone : null]}
+                      numberOfLines={2}
+                    >
+                      {step.text}
+                    </Text>
+                  </Pressable>
+                ))
+              : plannedSteps.map((step, index) => (
+                  <Text key={`${step}-${index}`} style={styles.bullet} numberOfLines={2}>
+                    {index + 1}. {step}
                   </Text>
-                </Pressable>
-              ))
-            : plannedSteps.map((step, index) => (
-                <Text key={`${step}-${index}`} style={styles.bullet} numberOfLines={2}>
-                  {index + 1}. {step}
-                </Text>
-              ))}
+                ))}
+          </View>
+          <View style={styles.sectionHalf}>
+            <Text style={styles.label}>Who</Text>
+            {collaborators.map((person, index) => (
+              <Text key={`${person}-${index}`} style={styles.bullet} numberOfLines={2}>
+                {person}
+              </Text>
+            ))}
+          </View>
         </View>
-        <View style={styles.sectionHalf}>
-          <Text style={styles.label}>Who</Text>
-          {collaborators.map((person, index) => (
-            <Text key={`${person}-${index}`} style={styles.bullet} numberOfLines={2}>
-              {person}
-            </Text>
-          ))}
-        </View>
-      </View>
+      )}
 
       <View style={styles.section}>
         <Text style={styles.label}>Why</Text>
@@ -134,6 +188,132 @@ export function PlanStartingFrameRow({
         <Text style={styles.actionText}>Summarize as starting note</Text>
         <Ionicons name="chevron-forward" size={14} color={IOS_COLORS.tertiaryLabel} />
       </Pressable>
+    </View>
+  );
+}
+
+interface RichHowRowProps {
+  step: SubStep;
+  readOnly?: boolean;
+  refs: BeforeShiftItem[];
+  captureCount: number;
+  onToggle: () => void;
+  onOpenLibraryRef?: (libraryItemId: string) => void;
+  onAttachLibrary?: () => void;
+  onCapture?: (kind: SubStepCaptureKind) => void;
+}
+
+function RichHowRow({
+  step,
+  readOnly,
+  refs,
+  captureCount,
+  onToggle,
+  onOpenLibraryRef,
+  onAttachLibrary,
+  onCapture,
+}: RichHowRowProps) {
+  return (
+    <View style={styles.richRow}>
+      <Pressable
+        style={styles.checkRow}
+        onPress={readOnly ? undefined : onToggle}
+        disabled={readOnly}
+        accessibilityRole="checkbox"
+        accessibilityState={{ checked: step.completed }}
+        accessibilityLabel={`Mark "${step.text}" ${step.completed ? 'not done' : 'done'}`}
+      >
+        <View style={[styles.check, step.completed ? styles.checkDone : null]}>
+          {step.completed ? <Ionicons name="checkmark" size={11} color="#FFFFFF" /> : null}
+        </View>
+        <Text
+          style={[styles.bullet, step.completed ? styles.bulletDone : null]}
+          numberOfLines={2}
+        >
+          {step.text}
+        </Text>
+      </Pressable>
+
+      {refs.length > 0 ? (
+        <View style={styles.refChips}>
+          {refs.map((ref) => {
+            const tint = FORMAT_TINT[ref.format];
+            return (
+              <Pressable
+                key={ref.id}
+                style={styles.refChip}
+                onPress={
+                  onOpenLibraryRef && ref.libraryItemId
+                    ? () => onOpenLibraryRef(ref.libraryItemId!)
+                    : undefined
+                }
+                disabled={!onOpenLibraryRef || !ref.libraryItemId}
+                accessibilityRole="button"
+                accessibilityLabel={`Open ${ref.title}`}
+              >
+                <View style={[styles.refGlyph, { backgroundColor: `${tint}22` }]}>
+                  <Ionicons name={FORMAT_ICON[ref.format]} size={11} color={tint} />
+                </View>
+                <Text style={styles.refTitle} numberOfLines={1}>
+                  {ref.title}
+                </Text>
+                {ref.read ? (
+                  <Ionicons name="checkmark-circle" size={12} color="#34C759" />
+                ) : null}
+              </Pressable>
+            );
+          })}
+        </View>
+      ) : null}
+
+      {!readOnly && (onAttachLibrary || onCapture) ? (
+        <View style={styles.actionBar}>
+          {onAttachLibrary ? (
+            <Pressable
+              style={styles.iconBtn}
+              onPress={onAttachLibrary}
+              accessibilityRole="button"
+              accessibilityLabel="Attach a library item to this step"
+            >
+              <Ionicons name="link" size={15} color={IOS_COLORS.systemBlue} />
+            </Pressable>
+          ) : null}
+          {onCapture ? (
+            <>
+              <Pressable
+                style={styles.iconBtn}
+                onPress={() => onCapture('note')}
+                accessibilityRole="button"
+                accessibilityLabel="Log an observation for this step"
+              >
+                <Ionicons name="create-outline" size={15} color={IOS_COLORS.systemBlue} />
+              </Pressable>
+              <Pressable
+                style={styles.iconBtn}
+                onPress={() => onCapture('photo')}
+                accessibilityRole="button"
+                accessibilityLabel="Capture a photo for this step"
+              >
+                <Ionicons name="camera-outline" size={15} color={IOS_COLORS.systemBlue} />
+              </Pressable>
+              <Pressable
+                style={styles.iconBtn}
+                onPress={() => onCapture('voice')}
+                accessibilityRole="button"
+                accessibilityLabel="Capture a voice note for this step"
+              >
+                <Ionicons name="mic-outline" size={15} color={IOS_COLORS.systemBlue} />
+              </Pressable>
+            </>
+          ) : null}
+          {captureCount > 0 ? (
+            <View style={styles.countBadge}>
+              <Ionicons name="checkmark" size={10} color="#FFFFFF" />
+              <Text style={styles.countText}>{captureCount}</Text>
+            </View>
+          ) : null}
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -235,6 +415,65 @@ const styles = StyleSheet.create({
   checkDone: {
     backgroundColor: '#34C759',
     borderColor: '#34C759',
+  },
+  richRow: {
+    gap: 6,
+    paddingVertical: 4,
+  },
+  refChips: {
+    gap: 4,
+    marginLeft: 22,
+  },
+  refChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: 8,
+    backgroundColor: IOS_COLORS.secondarySystemBackground,
+  },
+  refGlyph: {
+    width: 20,
+    height: 20,
+    borderRadius: 5,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  refTitle: {
+    flex: 1,
+    fontSize: 12.5,
+    fontWeight: '600',
+    color: IOS_COLORS.label,
+  },
+  actionBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginLeft: 22,
+  },
+  iconBtn: {
+    width: 28,
+    height: 28,
+    borderRadius: 7,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: IOS_COLORS.secondarySystemBackground,
+  },
+  countBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+    marginLeft: 'auto',
+    paddingVertical: 2,
+    paddingHorizontal: 7,
+    borderRadius: 999,
+    backgroundColor: '#34C759',
+  },
+  countText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#FFFFFF',
   },
   action: {
     flexDirection: 'row',

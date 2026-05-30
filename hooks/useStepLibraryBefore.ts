@@ -17,6 +17,7 @@ interface JoinedRow {
   library_item_id: string;
   position: number;
   read_at: string | null;
+  how_sub_step_id: string | null;
   library_items: {
     id: string;
     kind: string;
@@ -29,6 +30,7 @@ interface JoinedRow {
 
 interface BeforeRowWithItemId extends BeforeShiftItem {
   libraryItemId: string;
+  howSubStepId: string | null;
 }
 
 const VALID_FORMATS: LibraryFormat[] = [
@@ -60,6 +62,7 @@ function toBeforeShiftItem(row: JoinedRow): BeforeRowWithItemId | null {
   return {
     id: row.id,
     libraryItemId: row.library_items.id,
+    howSubStepId: row.how_sub_step_id,
     format,
     title: row.library_items.title,
     meta: metaParts.join(' · '),
@@ -76,7 +79,7 @@ export function useStepLibraryBefore(stepId: string | undefined) {
       const { data, error } = await supabase
         .from('step_library_before')
         .select(
-          'id, step_id, library_item_id, position, read_at, library_items(id, kind, title, source_label, page_count, duration_min)'
+          'id, step_id, library_item_id, position, read_at, how_sub_step_id, library_items(id, kind, title, source_label, page_count, duration_min)'
         )
         .eq('step_id', stepId)
         .order('position', { ascending: true });
@@ -122,7 +125,13 @@ export function useAttachLibraryItemToStepBefore(stepId: string | undefined) {
   const qc = useQueryClient();
   const { user } = useAuth();
   return useMutation({
-    mutationFn: async ({ libraryItemId }: { libraryItemId: string }) => {
+    mutationFn: async ({
+      libraryItemId,
+      howSubStepId,
+    }: {
+      libraryItemId: string;
+      howSubStepId?: string | null;
+    }) => {
       if (!stepId) throw new Error('stepId required');
       if (!user?.id) throw new Error('not authenticated');
       // Pick next position: count existing + 1, server-side via head:true.
@@ -137,6 +146,7 @@ export function useAttachLibraryItemToStepBefore(stepId: string | undefined) {
         library_item_id: libraryItemId,
         position: nextPosition,
         added_by: user.id,
+        how_sub_step_id: howSubStepId ?? null,
       });
       if (error) throw error;
     },
@@ -154,6 +164,9 @@ export function useLibraryBeforeBinding(
   const toggle = useToggleStepLibraryRead(stepId);
   const attach = useAttachLibraryItemToStepBefore(stepId);
   const [pickerOpen, setPickerOpen] = useState(false);
+  // When the picker was opened from a specific How row, attach the pick to
+  // that sub-step; null means a step-level "Before the shift" pin.
+  const [pickerSubStepId, setPickerSubStepId] = useState<string | null>(null);
 
   const onToggle = useCallback(
     (rowId: string) => {
@@ -165,45 +178,76 @@ export function useLibraryBeforeBinding(
   );
 
   const onAddFromLibrary = useCallback(() => {
+    setPickerSubStepId(null);
+    setPickerOpen(true);
+  }, []);
+
+  // Open the picker targeted at a How sub-step — the pick is pinned beneath it.
+  const onAddToSubStep = useCallback((subStepId: string) => {
+    setPickerSubStepId(subStepId);
     setPickerOpen(true);
   }, []);
 
   const onPickerClose = useCallback(() => {
     setPickerOpen(false);
+    setPickerSubStepId(null);
   }, []);
 
   const onPickerSelect = useCallback(
     (libraryItemId: string) => {
-      attach.mutate({ libraryItemId });
+      attach.mutate({ libraryItemId, howSubStepId: pickerSubStepId });
       setPickerOpen(false);
+      setPickerSubStepId(null);
     },
-    [attach]
+    [attach, pickerSubStepId]
   );
 
   const attachedItemIds = useMemo(
     () => items.map((it) => it.libraryItemId),
     [items]
   );
-  const totalEstimate = computeTotalEstimate(items);
+  const totalEstimate = computeTotalEstimate(items.filter((it) => !it.howSubStepId));
 
-  // Carry libraryItemId through so the card can open the resource viewer.
+  // Step-level pins (the "Before the shift" card) — exclude anchored items so
+  // they're not double-shown; anchored items render under their How row.
   const cardItems: BeforeShiftItem[] = useMemo(
     () =>
-      items.map(({ id, libraryItemId, format, title, meta, read }) => ({
-        id,
-        libraryItemId,
-        format,
-        title,
-        meta,
-        read,
-      })),
+      items
+        .filter((it) => !it.howSubStepId)
+        .map(({ id, libraryItemId, format, title, meta, read }) => ({
+          id,
+          libraryItemId,
+          format,
+          title,
+          meta,
+          read,
+        })),
     [items]
   );
 
+  // Anchored pins grouped by How sub-step id, for inline rendering on each row.
+  const itemsBySubStep: Record<string, BeforeShiftItem[]> = useMemo(() => {
+    const map: Record<string, BeforeShiftItem[]> = {};
+    for (const it of items) {
+      if (!it.howSubStepId) continue;
+      (map[it.howSubStepId] ??= []).push({
+        id: it.id,
+        libraryItemId: it.libraryItemId,
+        format: it.format,
+        title: it.title,
+        meta: it.meta,
+        read: it.read,
+      });
+    }
+    return map;
+  }, [items]);
+
   return {
     items: cardItems,
+    itemsBySubStep,
     onToggle,
     onAddFromLibrary,
+    onAddToSubStep,
     totalEstimate,
     picker: {
       visible: pickerOpen,

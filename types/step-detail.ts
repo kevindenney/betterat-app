@@ -18,6 +18,7 @@ export interface MediaUpload {
   type: 'photo' | 'video';
   caption?: string;
   created_at?: string; // ISO timestamp; optional for backwards compat with rows created before the unified timeline
+  sub_step_id?: string; // when captured against a specific How sub-step (plan.how_sub_steps[].id)
 }
 
 export type MediaLinkPlatform =
@@ -34,6 +35,7 @@ export interface MediaLink {
   caption?: string;
   platform: MediaLinkPlatform;
   added_at: string;
+  sub_step_id?: string; // when captured against a specific How sub-step (plan.how_sub_steps[].id)
 }
 
 export interface ChatMessage {
@@ -269,6 +271,7 @@ export interface Observation {
   text: string;
   timestamp: string;
   source?: 'voice' | 'note'; // voice = captured via bot (Telegram/WhatsApp/Coach), note = typed in-app. Optional for backwards compat with rows created before this field existed.
+  sub_step_id?: string; // when captured against a specific How sub-step (plan.how_sub_steps[].id)
 }
 
 export interface StepActData {

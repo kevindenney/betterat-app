@@ -43,6 +43,7 @@ import {
 } from '@/components/step/do-tab/doCaptureModel';
 import { deriveDoInteriorState, type DoInteriorState } from '@/components/step/do-tab/doState';
 import type { DoTabInteriorProps } from '@/components/step/do-tab/DoTabInterior';
+import type { SubStepCaptureKind } from '@/components/step/do-tab/PlanStartingFrameRow';
 import type {
   MediaUpload,
   Observation,
@@ -142,6 +143,9 @@ export function useStepActCaptureController({
   const [quickNoteVisible, setQuickNoteVisible] = useState(false);
   // When set, the quick-note modal is in edit mode for this capture id.
   const [editingCaptureId, setEditingCaptureId] = useState<string | null>(null);
+  // When the quick-note modal was opened from a specific How sub-step, the new
+  // observation is anchored to it (sub_step_id). Transient — cleared on submit.
+  const captureSubStepIdRef = useRef<string | null>(null);
 
   // Per-step timing gate: when the flag is on AND this step is not flagged
   // is_timed, the Do tab is a passive capture surface — no auto-stamp, no
@@ -213,7 +217,7 @@ export function useStepActCaptureController({
   );
 
   const addObservation = useCallback(
-    (text: string) => {
+    (text: string, subStepId?: string | null) => {
       const trimmed = text.trim();
       if (!trimmed) return;
       const obs: Observation = {
@@ -221,6 +225,7 @@ export function useStepActCaptureController({
         text: trimmed,
         timestamp: new Date().toISOString(),
         source: 'note',
+        ...(subStepId ? { sub_step_id: subStepId } : {}),
       };
       const currentObs = metadataRef.current.act?.observations ?? [];
       const existingNotes = metadataRef.current.act?.notes ?? '';
@@ -251,7 +256,7 @@ export function useStepActCaptureController({
     [saveAct],
   );
 
-  const pickPhotoOrVideoNative = useCallback(async () => {
+  const pickPhotoOrVideoNative = useCallback(async (subStepId?: string | null) => {
     if (!user?.id) return;
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.All,
@@ -286,6 +291,7 @@ export function useStepActCaptureController({
         type: isVideo ? 'video' : 'photo',
         caption: undefined,
         created_at: new Date().toISOString(),
+        ...(subStepId ? { sub_step_id: subStepId } : {}),
       };
       const currentUploads = metadataRef.current.act?.media_uploads ?? [];
       saveAct({ media_uploads: [...currentUploads, newUpload] });
@@ -333,15 +339,37 @@ export function useStepActCaptureController({
 
   const handleQuickNote = useCallback(() => {
     if (readOnly) return;
+    captureSubStepIdRef.current = null;
     setQuickNoteVisible(true);
   }, [readOnly]);
 
   const handleVoiceNote = useCallback(() => {
     if (readOnly) return;
+    captureSubStepIdRef.current = null;
     // v1 — no native voice; route through the quick-note modal so the
     // composer's mic affordance still produces a saved capture.
     setQuickNoteVisible(true);
   }, [readOnly]);
+
+  // Per-How-row capture: anchors the new observation/photo to a sub-step id.
+  // Note/voice route through the quick-note modal (no native voice in v1);
+  // photo goes straight to the native picker. Web photo is a no-op alert.
+  const handleSubStepCapture = useCallback(
+    (subStepId: string, kind: SubStepCaptureKind) => {
+      if (readOnly) return;
+      if (kind === 'photo') {
+        if (!IS_NATIVE) {
+          showAlert('Photo upload', 'Photo capture is available on iOS and Android.');
+          return;
+        }
+        void pickPhotoOrVideoNative(subStepId);
+        return;
+      }
+      captureSubStepIdRef.current = subStepId;
+      setQuickNoteVisible(true);
+    },
+    [readOnly, pickPhotoOrVideoNative],
+  );
 
   const handlePhotoOrVideo = useCallback(() => {
     if (readOnly) return;
@@ -463,8 +491,9 @@ export function useStepActCaptureController({
       if (editingCaptureId) {
         editObservation(editingCaptureId, text);
       } else {
-        addObservation(text);
+        addObservation(text, captureSubStepIdRef.current);
       }
+      captureSubStepIdRef.current = null;
       setQuickNoteVisible(false);
       setEditingCaptureId(null);
     },
@@ -486,6 +515,20 @@ export function useStepActCaptureController({
   }, [state, captures]);
 
   const summaryStepChipLabel = stepTitle || undefined;
+
+  // Count captures anchored to each How sub-step (sub_step_id) so the row can
+  // show a "N logged" badge. Spans observations, uploads, and links.
+  const subStepCaptureCount = useMemo(() => {
+    const counts: Record<string, number> = {};
+    const bump = (id?: string | null) => {
+      if (!id) return;
+      counts[id] = (counts[id] ?? 0) + 1;
+    };
+    (actData.observations ?? []).forEach((o) => bump(o.sub_step_id));
+    (actData.media_uploads ?? []).forEach((m) => bump(m.sub_step_id));
+    (actData.media_links ?? []).forEach((l) => bump(l.sub_step_id));
+    return counts;
+  }, [actData]);
 
   const doTabInteriorProps: Omit<DoTabInteriorProps, 'footer'> = {
     state,
@@ -515,6 +558,8 @@ export function useStepActCaptureController({
     onTagCapture: handleMarkAsConceptSeed,
     onMarkAsEvidence: handleMarkAsEvidence,
     onToggleSubStep: handleToggleSubStep,
+    onSubStepCapture: handleSubStepCapture,
+    subStepCaptureCount,
   };
 
   return {

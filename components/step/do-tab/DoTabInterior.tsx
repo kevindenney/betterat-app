@@ -1,12 +1,13 @@
 import React from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
 import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
 import type { StepPlanData } from '@/types/step-detail';
 import type { DoCaptureItem } from './doCaptureModel';
 import type { DoInteriorState } from './doState';
 import { DoStartCard } from './DoStartCard';
-import { PlanStartingFrameRow } from './PlanStartingFrameRow';
+import { PlanStartingFrameRow, type SubStepCaptureKind } from './PlanStartingFrameRow';
 import { DoLiveCard } from './DoLiveCard';
 import { DoPostActivityCard } from './DoPostActivityCard';
 import { StepOutcomeCard } from './StepOutcomeCard';
@@ -55,6 +56,10 @@ export interface DoTabInteriorProps {
   onAutoSummarizePlan?: () => void;
   /** Toggle a "how" sub-step's completed flag — renders the plan's How list as a checklist. */
   onToggleSubStep?: (subStepId: string, completed: boolean) => void;
+  /** Log an observation / photo / voice note against a specific How sub-step. */
+  onSubStepCapture?: (subStepId: string, kind: SubStepCaptureKind) => void;
+  /** Count of captures already anchored to each How sub-step, keyed by id. */
+  subStepCaptureCount?: Record<string, number>;
   onTagCapture?: (captureId: string) => void;
   onMoveToReflect?: () => void;
   onRefineSummary?: () => void;
@@ -104,6 +109,8 @@ export function DoTabInterior({
   onQuickNoteSubmit,
   onAutoSummarizePlan,
   onToggleSubStep,
+  onSubStepCapture,
+  subStepCaptureCount,
   onStopCapturing,
   onPressPlayVoice,
   onEditCapture,
@@ -191,6 +198,13 @@ export function DoTabInterior({
       disabled={readOnly}
       readOnly={readOnly}
       onToggleSubStep={onToggleSubStep}
+      subStepRefs={library.itemsBySubStep}
+      onOpenLibraryRef={(libraryItemId) =>
+        router.push(`/(tabs)/library/items/${libraryItemId}` as any)
+      }
+      onAttachLibrary={readOnly ? undefined : library.onAddToSubStep}
+      onSubStepCapture={onSubStepCapture}
+      subStepCaptureCount={subStepCaptureCount}
     />
   );
 
