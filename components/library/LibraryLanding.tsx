@@ -19,14 +19,14 @@
  */
 
 import React, { useCallback, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
 import { LocationAnchor } from '@/components/ui/LocationAnchor';
 import { TabScreenToolbar } from '@/components/ui/TabScreenToolbar';
 import { useUserHomeVenue } from '@/hooks/useUserHomeVenue';
-import { IOSSegmentedControl } from '@/components/ui/ios/IOSSegmentedControl';
 import { FLOATING_TAB_BAR_HEIGHT } from '@/components/navigation/FloatingTabBar';
 import { AllZone } from '@/components/library/zones/AllZone';
 import { PlansZone } from '@/components/library/zones/PlansZone';
@@ -52,20 +52,19 @@ const VALID_ZONES: LibraryZone[] = [
   'concepts',
   'resources',
 ];
-// 'all' is the underlying zone id (deep links + URL param stay stable);
-// the visible label is "Librarian" — the first tab is now the
-// AI-curated cross-cutting surface, not a preview of the other tabs.
-const SEGMENT_ZONES: { value: LibraryZone; label: string }[] = [
-  { value: 'all', label: 'Librarian' },
-  { value: 'nearby', label: 'Nearby' },
-  { value: 'plans', label: 'Blueprints' },
-  { value: 'concepts', label: 'Concepts' },
-  { value: 'resources', label: 'Resources' },
-];
+// Title shown atop a focused zone view (reached via a feed See-all).
+// 'all' is the curated feed itself, so it has no focused title.
+const ZONE_TITLE: Record<LibraryZone, string> = {
+  all: 'Library',
+  nearby: 'Nearby',
+  plans: 'Plans',
+  concepts: 'Concepts',
+  resources: 'Resources',
+  people: 'People',
+};
 
-// One-liner shown beneath the segmented pill. Reuses the language
-// from the retired workshop-category cards where useful; describes
-// the current view, not abstract advertising.
+// One-liner shown beneath the focused-zone title. Describes the
+// current view, not abstract advertising.
 const ZONE_DESCRIPTION: Record<LibraryZone, string> = {
   all: 'Cross-cutting insights the librarian noticed across your library.',
   nearby: 'Curriculum and content from organizations and people around you.',
@@ -105,20 +104,6 @@ export function LibraryLanding({ conceptsBody, librarianSlot }: Props) {
   const handleZoneChange = useCallback((next: LibraryZone) => {
     router.setParams({ zone: next === 'all' ? '' : next });
   }, []);
-
-  // Per canonical the count renders inline with the label as a quiet
-  // suffix ("Plans 3"), not the coral notification badge IOSSegmentedControl
-  // exposes via `badge` (which is reserved for marked-content counts).
-  const segments = SEGMENT_ZONES.map((s) => {
-    const count = s.value !== 'all' ? counts?.[s.value] : undefined;
-    return {
-      value: s.value,
-      label: s.label,
-      count,
-    };
-  });
-
-  const segmentedValue: LibraryZone = zone === 'people' ? 'all' : zone;
 
   // `+` payload depends on the active zone. Librarian/Concepts both
   // open the concept editor (concepts are the librarian's domain).
@@ -170,19 +155,33 @@ export function LibraryLanding({ conceptsBody, librarianSlot }: Props) {
           },
         ]}
       >
-        <View style={styles.heroCard}>
-          <Text style={styles.heroTitle}>Library</Text>
-          <IOSSegmentedControl
-            segments={segments}
-            selectedValue={segmentedValue}
-            onValueChange={(v) => handleZoneChange(v as LibraryZone)}
-          />
-          <Text style={styles.zoneDescription}>
-            {segmentedValue === 'nearby'
-              ? `Curriculum and content from organizations and ${vocab('Peers')} around you.`
-              : ZONE_DESCRIPTION[segmentedValue]}
-          </Text>
-        </View>
+        {zone === 'all' ? (
+          <View style={styles.feedHero}>
+            <Text style={styles.feedEyebrow}>LIBRARY</Text>
+            <Text style={styles.feedTitle}>What's in your library</Text>
+            <Text style={styles.feedSubtitle}>
+              Your plans, concepts, and saved material — plus the stacks you
+              can pull from.
+            </Text>
+          </View>
+        ) : (
+          <View style={styles.focusedHeader}>
+            <Pressable
+              style={styles.backPill}
+              onPress={() => handleZoneChange('all')}
+              hitSlop={8}
+            >
+              <Ionicons name="chevron-back" size={16} color={IOS_COLORS.systemBlue} />
+              <Text style={styles.backPillText}>Library</Text>
+            </Pressable>
+            <Text style={styles.focusedTitle}>{ZONE_TITLE[zone]}</Text>
+            <Text style={styles.zoneDescription}>
+              {zone === 'nearby'
+                ? `Curriculum and content from organizations and ${vocab('Peers')} around you.`
+                : ZONE_DESCRIPTION[zone]}
+            </Text>
+          </View>
+        )}
 
         {zone === 'all' ? (
           <AllZone
@@ -271,19 +270,49 @@ const styles = StyleSheet.create({
   bodyContent: {
     // paddingBottom set inline so it can incorporate safe-area + tab bar
   },
-  // Full-width white hero band — title + segmented tabs + per-zone
-  // description. Edge-to-edge with a hairline bottom so chrome (gray)
-  // → hero (white) → body (gray) reads as three horizontal bands.
-  heroCard: {
-    paddingHorizontal: 18,
-    paddingTop: 10,
-    paddingBottom: 12,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: 'rgba(60,60,67,0.15)',
-    gap: 10,
+  // Curated-feed hero — plain text block in the scroll, matching the
+  // Discover front door (no segmented control, no white band).
+  feedHero: {
+    paddingHorizontal: IOS_SPACING.lg,
+    gap: 6,
   },
-  heroTitle: {
+  feedEyebrow: {
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 0.7,
+    color: IOS_COLORS.systemBlue,
+  },
+  feedTitle: {
+    fontSize: 26,
+    lineHeight: 30,
+    fontWeight: '800',
+    color: IOS_COLORS.label,
+  },
+  feedSubtitle: {
+    fontSize: 14,
+    lineHeight: 20,
+    color: IOS_COLORS.secondaryLabel,
+  },
+  // Focused-zone header — back pill + title + description, reached
+  // when a feed See-all drills into a single zone.
+  focusedHeader: {
+    paddingHorizontal: IOS_SPACING.lg,
+    gap: 6,
+  },
+  backPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+    alignSelf: 'flex-start',
+    marginLeft: -4,
+    marginBottom: 2,
+  },
+  backPillText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: IOS_COLORS.systemBlue,
+  },
+  focusedTitle: {
     fontSize: 26,
     fontWeight: '700',
     letterSpacing: -0.6,
