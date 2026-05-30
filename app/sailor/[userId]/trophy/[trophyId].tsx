@@ -51,7 +51,7 @@ function TrophyDetailInner() {
 
   const onBack = useCallback(() => {
     if (router.canGoBack()) router.back();
-    else router.replace('/(tabs)/discover' as any);
+    else router.replace('/(tabs)/library' as any);
   }, []);
 
   if (!userId || !trophyId) return null;

@@ -31,7 +31,7 @@ export function IOSOnlyNotice({ surface }: { surface: 'Org' | 'Person' | 'Topic'
         <Pressable
           onPress={() => {
             if (router.canGoBack()) router.back();
-            else router.replace('/(tabs)/discover' as any);
+            else router.replace('/(tabs)/library' as any);
           }}
           style={({ pressed }) => [styles.btnWrap, pressed && { opacity: 0.85 }]}
         >

@@ -1,17 +1,14 @@
 /**
- * Connect Tab — Redirects to Discover tab (People segment)
+ * Connect Tab — legacy redirect.
  *
- * Kept for backwards compatibility with deep links.
- * The Connect tab has been replaced by the unified Discover tab.
+ * Kept for backwards compatibility with old deep links. Connect was
+ * replaced by Discover, which has since been folded into Library/Watch
+ * (5→4 tabs). People discovery now lives in Watch, so connect bounces
+ * straight there.
  */
 
-import { Redirect, useLocalSearchParams } from 'expo-router';
+import { Redirect } from 'expo-router';
 
 export default function ConnectRedirect() {
-  const params = useLocalSearchParams<{ segment?: string }>();
-
-  // Map old connect segments to discover segments
-  const segment = params.segment === 'discuss' ? 'forums' : 'people';
-
-  return <Redirect href={`/(tabs)/discover?segment=${segment}`} />;
+  return <Redirect href={'/(tabs)/watch' as never} />;
 }

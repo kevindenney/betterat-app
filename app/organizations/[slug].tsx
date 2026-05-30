@@ -140,7 +140,7 @@ export default function OrganizationPlaceholderPage() {
   const { membership, refetch: refetchMembership } = useOrgViewerMembership(org?.id);
   const handleBack = React.useCallback(() => {
     if (router.canGoBack()) router.back();
-    else router.replace('/(tabs)/discover' as never);
+    else router.replace('/(tabs)/library' as never);
   }, []);
   const handleOpenAtlas = React.useCallback(() => {
     if (!slug) return;

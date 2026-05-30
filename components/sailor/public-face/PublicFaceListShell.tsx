@@ -47,7 +47,7 @@ function PublicFaceListShellInner({
 }: PublicFaceListShellProps) {
   const onBack = useCallback(() => {
     if (router.canGoBack()) router.back();
-    else router.replace('/(tabs)/discover' as any);
+    else router.replace('/(tabs)/library' as any);
   }, []);
 
   const hasChildren = React.Children.count(children) > 0;

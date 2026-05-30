@@ -161,7 +161,7 @@ export function FollowedPersonTimeline({ handle }: { handle: string }) {
           onPress={() =>
             router.canGoBack()
               ? router.back()
-              : router.replace('/(tabs)/discover?segment=people' as never)
+              : router.replace('/(tabs)/watch' as never)
           }
           accessibilityRole="button"
           accessibilityLabel="Back"

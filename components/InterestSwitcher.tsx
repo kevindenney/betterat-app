@@ -276,7 +276,7 @@ export function InterestSwitcher({ headless = false }: { headless?: boolean } = 
                     style={styles.exploreAllBtn}
                     onPress={() => {
                       setOpen(false)
-                      router.push({ pathname: '/(tabs)/discover', params: { segment: 'interests' } })
+                      router.push({ pathname: '/(tabs)/library', params: { zone: 'interests' } })
                     }}
                   >
                     <Ionicons name="add-circle-outline" size={18} color="#4338CA" />

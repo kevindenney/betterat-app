@@ -44,13 +44,13 @@ const SAILING_ACTIONS: QuickAction[] = [
     icon: 'compass-outline',
     title: 'Browse programs',
     description: 'Discover training plans and blueprints',
-    route: '/(tabs)/discover',
+    route: '/(tabs)/library?zone=follow',
   },
   {
     icon: 'people-outline',
     title: 'Find people',
     description: 'Connect with coaches and fellow sailors',
-    route: '/(tabs)/discover',
+    route: '/(tabs)/watch',
   },
 ];
 
@@ -65,13 +65,13 @@ const GENERIC_ACTIONS: QuickAction[] = [
     icon: 'compass-outline',
     title: 'Browse programs',
     description: 'Discover pathways and blueprints',
-    route: '/(tabs)/discover',
+    route: '/(tabs)/library?zone=follow',
   },
   {
     icon: 'people-outline',
     title: 'Find people',
     description: 'Connect with peers and mentors',
-    route: '/(tabs)/discover',
+    route: '/(tabs)/watch',
   },
 ];
 
@@ -87,7 +87,7 @@ function getFirstName(fullName?: string | null): string {
   return fullName.split(/\s+/)[0];
 }
 
-export function WelcomeCard({ visible, onStartTour, onSkip, onNavigate, interestSlug, userName }: WelcomeCardProps) {
+export function WelcomeCard({ visible, onStartTour: _onStartTour, onSkip, onNavigate, interestSlug, userName }: WelcomeCardProps) {
   const { width } = useWindowDimensions();
 
   if (!visible) return null;
