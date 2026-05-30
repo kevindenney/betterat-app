@@ -23,6 +23,7 @@ import {
 } from '@/hooks/useFollowedStepsFeed';
 import { useCohortStream, type CohortStreamItem } from '@/hooks/useCohortStream';
 import { WatchNearbySection } from '@/components/watch/WatchNearbySection';
+import { DiscoverPeopleContent } from '@/components/discover/DiscoverPeopleContent';
 import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
 
 const STATUS_META: Record<
@@ -87,6 +88,19 @@ export default function WatchScreen() {
   const { user } = useAuth();
   const [toolbarHeight, setToolbarHeight] = useState(0);
   const [grouping, setGrouping] = useState<GroupingId>('all');
+  // People discovery (find new people to follow) was folded out of the
+  // Discover tab into Watch — it opens as a focused full-bleed surface
+  // over the feed, with a floating back pill (mirrors the Library zones).
+  const [findPeopleOpen, setFindPeopleOpen] = useState(false);
+  const [followedIds, setFollowedIds] = useState<Set<string>>(new Set());
+  const onToggleFollow = (id: string) => {
+    setFollowedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
 
   const { data: feed = [], isLoading } = useFollowedStepsFeed(user?.id ?? null);
   const { data: cohortStream = [] } = useCohortStream();
@@ -96,6 +110,13 @@ export default function WatchScreen() {
 
   return (
     <View style={styles.container}>
+      {findPeopleOpen ? (
+        <DiscoverPeopleContent
+          toolbarOffset={toolbarHeight + 48}
+          followedIds={followedIds}
+          onToggleFollow={onToggleFollow}
+        />
+      ) : (
       <ScrollView
         style={styles.body}
         contentContainerStyle={{
@@ -175,7 +196,7 @@ export default function WatchScreen() {
             </Text>
             <Pressable
               style={styles.emptyAction}
-              onPress={() => router.push('/(tabs)/discover' as never)}
+              onPress={() => setFindPeopleOpen(true)}
             >
               <Text style={styles.emptyActionText}>Find people to follow</Text>
             </Pressable>
@@ -188,6 +209,7 @@ export default function WatchScreen() {
           </View>
         )}
       </ScrollView>
+      )}
 
       <TabScreenToolbar
         subtitleContent={
@@ -196,7 +218,38 @@ export default function WatchScreen() {
         topInset={insets.top}
         backgroundColor="rgba(242, 242, 247, 0.94)"
         onMeasuredHeight={setToolbarHeight}
+        actions={
+          findPeopleOpen
+            ? undefined
+            : [
+                {
+                  icon: 'person-add-outline',
+                  sfSymbol: 'person.badge.plus',
+                  label: 'Find people to follow',
+                  onPress: () => setFindPeopleOpen(true),
+                },
+              ]
+        }
       />
+
+      {/* Focused people-discovery surface owns its own scroll, so the
+          back-to-feed affordance floats below the toolbar (mirrors the
+          Library full-bleed zones). */}
+      {findPeopleOpen ? (
+        <View
+          style={[styles.floatingBackHeader, { top: toolbarHeight + 4 }]}
+          pointerEvents="box-none"
+        >
+          <Pressable
+            style={styles.floatingBackPill}
+            onPress={() => setFindPeopleOpen(false)}
+            hitSlop={8}
+          >
+            <Ionicons name="chevron-back" size={16} color={IOS_COLORS.systemBlue} />
+            <Text style={styles.floatingBackPillText}>Watch</Text>
+          </Pressable>
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -531,5 +584,27 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '700',
     color: '#FFFFFF',
+  },
+  floatingBackHeader: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    alignItems: 'flex-start',
+    paddingHorizontal: 16,
+  },
+  floatingBackPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+    paddingVertical: 6,
+    paddingLeft: 6,
+    paddingRight: 12,
+    borderRadius: 999,
+    backgroundColor: 'rgba(242, 242, 247, 0.94)',
+  },
+  floatingBackPillText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: IOS_COLORS.systemBlue,
   },
 });
