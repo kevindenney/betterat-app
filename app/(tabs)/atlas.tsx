@@ -16,18 +16,21 @@
  * docs/redesign/ios-register/atlas-tab-brief.md.
  */
 
-import React, { useCallback, useMemo } from 'react';
-import { StyleSheet, View } from 'react-native';
+import React, { useCallback, useMemo, useState } from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 
 import {
   AtlasScreen,
   type AtlasFrameId,
 } from '@/components/ios-register/atlas/AtlasScreen';
+import { DiscoverNearbyContent } from '@/components/discover/DiscoverNearbyContent';
 import { FLOATING_TAB_BAR_HEIGHT } from '@/components/navigation/FloatingTabBar';
-import { IOS_REGISTER } from '@/lib/design-tokens-ios';
+import { IOS_COLORS, IOS_REGISTER, IOS_SPACING } from '@/lib/design-tokens-ios';
 import { FEATURE_FLAGS } from '@/lib/featureFlags';
+import { useUserHomeVenue } from '@/hooks/useUserHomeVenue';
 import { getAtlasStepData } from '@/lib/atlasRaceStep';
 import { showAlert } from '@/lib/utils/crossPlatformAlert';
 import { useAuth } from '@/providers/AuthProvider';
@@ -396,7 +399,12 @@ export default function AtlasTab() {
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
   const { currentInterest, userInterests, switchInterest } = useInterest();
+  const homeVenue = useUserHomeVenue();
   const avatarInitial = deriveAvatarInitial(user as any);
+  // Nearby list-sheet — the optional list affordance over Atlas's pins.
+  // Atlas already plots nearby orgs + peer-steps as map pins; this opens
+  // the same data as a scannable list (Apple-Maps "nearby" pattern).
+  const [nearbyOpen, setNearbyOpen] = useState(false);
   // ?fromPlan=1 — PlanWhereCard pushed us here expecting a location result.
   // The commit-mode "Use this location" CTA emits to AtlasPickerBus and
   // router.back()s instead of starting an add-step flow.
@@ -850,6 +858,13 @@ export default function AtlasTab() {
     [router],
   );
 
+  // Nearby list anchors on whatever the map is centered on (an explicit
+  // lat/lng focus or an org context), falling back to the user's home
+  // venue. DiscoverNearbyContent owns the no-venue empty state.
+  const nearbyLat = initialFocus?.lat ?? homeVenue?.lat ?? null;
+  const nearbyLng = initialFocus?.lng ?? homeVenue?.lng ?? null;
+  const nearbyLabel = orgContext?.name ?? homeVenue?.venue ?? null;
+
   return (
     <SafeAreaView style={styles.page} edges={[]}>
       <View style={styles.surface}>
@@ -871,6 +886,43 @@ export default function AtlasTab() {
           initialFocus={initialFocus}
           bottomSheetOffset={tabBarSpace}
         />
+
+        {/* Nearby list entry — a right-edge pill below the Atlas top chrome
+            (aligns with the top-chrome-consolidation direction rather than
+            competing with the bottom sheet). Hidden while open. */}
+        {!nearbyOpen && !isFromPlan ? (
+          <Pressable
+            style={[styles.nearbyPill, { top: insets.top + 96 }]}
+            onPress={() => setNearbyOpen(true)}
+            accessibilityRole="button"
+            accessibilityLabel="Show what's nearby as a list"
+          >
+            <Ionicons name="list" size={16} color={IOS_COLORS.label} />
+            <Text style={styles.nearbyPillText}>Nearby</Text>
+          </Pressable>
+        ) : null}
+
+        {/* Full-bleed nearby list over the map, with a floating back pill —
+            mirrors the consolidation's Library/Watch full-bleed zones. */}
+        {nearbyOpen ? (
+          <View style={styles.nearbyOverlay}>
+            <DiscoverNearbyContent
+              homeVenueLat={nearbyLat}
+              homeVenueLng={nearbyLng}
+              homeVenueLabel={nearbyLabel}
+              toolbarOffset={insets.top + 44}
+            />
+            <Pressable
+              style={[styles.backPill, { top: insets.top + 4 }]}
+              onPress={() => setNearbyOpen(false)}
+              accessibilityRole="button"
+              accessibilityLabel="Back to the map"
+            >
+              <Ionicons name="chevron-back" size={18} color={IOS_COLORS.label} />
+              <Text style={styles.backPillText}>Atlas</Text>
+            </Pressable>
+          </View>
+        ) : null}
       </View>
     </SafeAreaView>
   );
@@ -883,5 +935,58 @@ const styles = StyleSheet.create({
   },
   surface: {
     flex: 1,
+  },
+  nearbyPill: {
+    position: 'absolute',
+    right: IOS_SPACING.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.94)',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: IOS_COLORS.separator,
+    shadowColor: '#000',
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 3,
+  },
+  nearbyPillText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: IOS_COLORS.label,
+    letterSpacing: -0.2,
+  },
+  nearbyOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: IOS_REGISTER.groundBg,
+  },
+  backPill: {
+    position: 'absolute',
+    left: IOS_SPACING.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+    paddingVertical: 8,
+    paddingLeft: 8,
+    paddingRight: 14,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.94)',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: IOS_COLORS.separator,
+    shadowColor: '#000',
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 3,
+  },
+  backPillText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: IOS_COLORS.label,
+    letterSpacing: -0.2,
   },
 });
