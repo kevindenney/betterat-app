@@ -460,20 +460,23 @@ export default function AccountModalContent() {
               )}
             />
           )}
-          <IOSListItem
-            title="Plans & Pricing"
-            leadingIcon="pricetags-outline"
-            leadingIconBackgroundColor={ICON_BACKGROUNDS.blue}
-            trailingAccessory="chevron"
-            onPress={() => setPricingVisible(true)}
-          />
-          <IOSListItem
-            title={userProfile?.subscription_tier === 'free' ? 'Upgrade Plan' : 'Manage Subscription'}
-            leadingIcon="arrow-up-circle-outline"
-            leadingIconBackgroundColor={ICON_BACKGROUNDS.purple}
-            trailingAccessory="chevron"
-            onPress={() => router.push('/subscription')}
-          />
+          {userProfile?.subscription_tier === 'free' ? (
+            <IOSListItem
+              title="Plans & Pricing"
+              leadingIcon="pricetags-outline"
+              leadingIconBackgroundColor={ICON_BACKGROUNDS.blue}
+              trailingAccessory="chevron"
+              onPress={() => setPricingVisible(true)}
+            />
+          ) : (
+            <IOSListItem
+              title="Manage Subscription"
+              leadingIcon="arrow-up-circle-outline"
+              leadingIconBackgroundColor={ICON_BACKGROUNDS.purple}
+              trailingAccessory="chevron"
+              onPress={() => router.push('/subscription')}
+            />
+          )}
         </IOSListSection>
 
         {/* ── General ──────────────────────────────────────────── */}
@@ -515,7 +518,15 @@ export default function AccountModalContent() {
               title="Username"
               leadingIcon="at-outline"
               leadingIconBackgroundColor={ICON_BACKGROUNDS.purple}
-              trailingComponent={trailingValue(username ? `@${username}` : 'Set username')}
+              trailingAccessory="none"
+              trailingComponent={
+                <View style={styles.usernameTrailing}>
+                  <Text style={accountStyles.trailingValueText}>
+                    {username ? `@${username}` : 'Set username'}
+                  </Text>
+                  <Ionicons name="pencil" size={15} color={IOS_COLORS.systemBlue} />
+                </View>
+              }
               onPress={() => {
                 setUsernameDraft(username);
                 setUsernameEditing(true);
@@ -533,7 +544,7 @@ export default function AccountModalContent() {
             onPress={() => router.push('/settings/units')}
           />
           <IOSListItem
-            title="Notifications"
+            title="Notification Preferences"
             leadingIcon="notifications-outline"
             leadingIconBackgroundColor={ICON_BACKGROUNDS.red}
             trailingAccessory="chevron"
@@ -693,7 +704,7 @@ export default function AccountModalContent() {
             leadingIcon="help-circle-outline"
             leadingIconBackgroundColor={ICON_BACKGROUNDS.teal}
             trailingAccessory="chevron"
-            onPress={() => showAlert('Support', 'Email us at support@regattaflow.com')}
+            onPress={() => showAlert('Support', 'Email us at info@better.at')}
           />
           <IOSListItem
             title="Privacy Policy"
@@ -884,6 +895,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 10,
     gap: 8,
+  },
+  usernameTrailing: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
   usernameInputWrap: {
     flex: 1,
