@@ -1575,13 +1575,15 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
   const [showRaceAreas, setShowRaceAreas] = useState(true);
   const [basemap, setBasemap] = useState<AtlasBasemap>('map');
   const [peerRelationshipFilter, setPeerRelationshipFilter] = useState<Set<string> | null>(null);
-  // Real institution POIs + peer step pins for the Causeway Bay bbox.
-  // 22.295, 114.18 is the F1 camera centroid — see AtlasMapLibreCanvas.FRAME_CAMERA.
+  // Institution POIs + peer step pins for the "near me" bbox. Center on the
+  // user's home venue and query their active interest; fall back to the
+  // Causeway Bay demo centroid (22.295, 114.18 = F1 camera preset, see
+  // AtlasMapLibreCanvas.FRAME_CAMERA) only when no home venue is set.
   const restrictPeersToUserIds = useAffinityGroupMembers(activeGroupIds);
   const { pins: framePins, pickerSteps } = useAtlasFramePins({
-    lat: 22.295,
-    lng: 114.18,
-    interestSlug: 'sail-racing',
+    lat: homeVenue?.lat ?? 22.295,
+    lng: homeVenue?.lng ?? 114.18,
+    interestSlug: currentInterest?.slug ?? 'sail-racing',
     radiusKm: 20,
     showMarinas,
     showSailServices,
@@ -1622,6 +1624,18 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
     autoCenteredNextStepIdRef.current = id;
     setSearchFocus({ lat: myNextStepPin.lat, lng: myNextStepPin.lng });
   }, [myNextStepPin]);
+  // No upcoming step to anchor on? Center on the viewer's home venue once
+  // so Atlas opens where they actually are, not the Causeway Bay demo
+  // centroid baked into the F1 camera preset. One-shot so panning away
+  // doesn't snap back; the next-step effect above takes precedence.
+  const autoCenteredHomeRef = React.useRef(false);
+  React.useEffect(() => {
+    if (autoCenteredHomeRef.current) return;
+    if (myNextStepPin) return;
+    if (homeVenue?.lat == null || homeVenue?.lng == null) return;
+    autoCenteredHomeRef.current = true;
+    setSearchFocus({ lat: homeVenue.lat, lng: homeVenue.lng });
+  }, [myNextStepPin, homeVenue]);
   const focusedClubPin = useMemo(
     () =>
       handlers.focusOrgSlug
