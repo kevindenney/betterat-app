@@ -7,16 +7,30 @@ import {
   TextInput,
   ActivityIndicator,
   KeyboardAvoidingView,
-  Platform
+  Platform,
+  StyleSheet,
 } from 'react-native';
 import { showAlert, showAlertWithButtons, showConfirm } from '@/lib/utils/crossPlatformAlert';
 import { useRouter, type Href } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ArrowLeft, AlertTriangle, Trash2 } from 'lucide-react-native';
 import { useAuth } from '@/providers/AuthProvider';
 import { supabase } from '@/services/supabase';
+import { IOS_COLORS } from '@/lib/design-tokens-ios';
+
+const DELETABLE_ITEMS = [
+  'Your profile and personal information',
+  'All your steps, history, and progress data',
+  'Saved places, documents, and resources',
+  'Connections, groups, and organization memberships',
+  'Coaching sessions and saved plans',
+  'All AI-generated insights and analysis',
+  'Any active subscriptions (will be cancelled)',
+];
 
 export default function DeleteAccountScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { user, signOut } = useAuth();
   const [loading, setLoading] = React.useState(false);
   const [confirmText, setConfirmText] = React.useState('');
@@ -39,10 +53,9 @@ export default function DeleteAccountScreen() {
       async () => {
         setLoading(true);
         try {
-          // Verify password
           const { error: signInError } = await supabase.auth.signInWithPassword({
             email: user?.email || '',
-            password: password
+            password: password,
           });
 
           if (signInError) {
@@ -51,39 +64,30 @@ export default function DeleteAccountScreen() {
             return;
           }
 
-          // Delete user data (soft delete - mark as deleted)
-          // In production, you'd want to handle this via a database function
-          // that properly cascades the deletion or anonymizes the data
+          // Soft-delete: mark the account for deletion and anonymize the row.
+          // Auth-user removal and full cascade run server-side within 30 days
+          // (the client has no service role to call auth.admin.deleteUser).
           const { error: updateError } = await supabase
             .from('users')
             .update({
               deleted_at: new Date().toISOString(),
               email: `deleted_${Date.now()}@deleted.com`,
-              name: 'Deleted User'
+              name: 'Deleted User',
             })
             .eq('id', user?.id);
 
           if (updateError) throw updateError;
 
-          // Delete auth user
-          const { error: deleteError } = await supabase.auth.admin.deleteUser(user?.id || '');
-
-          if (deleteError) {
-            // If we can't delete the auth user, try signing out anyway
-            console.error('Error deleting auth user:', deleteError);
-          }
-
-          // Sign out
           await signOut();
 
           showAlertWithButtons(
-            'Account Deleted',
-            'Your account has been permanently deleted. We\'re sorry to see you go.',
+            'Account Scheduled for Deletion',
+            "Your account has been deactivated and you've been signed out. Your data will be permanently removed within 30 days. We're sorry to see you go.",
             [
               {
                 text: 'OK',
-                onPress: () => router.replace('/(auth)/login' as Href)
-              }
+                onPress: () => router.replace('/(auth)/login' as Href),
+              },
             ]
           );
         } catch (error: any) {
@@ -93,175 +97,274 @@ export default function DeleteAccountScreen() {
           setLoading(false);
         }
       },
-      { destructive: true },
+      { destructive: true }
     );
   };
+
+  const submitDisabled = loading || confirmText !== 'DELETE' || !password;
 
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      className="flex-1 bg-gray-50"
+      style={styles.container}
     >
-      {/* Header */}
-      <View className="bg-white px-4 pt-12 pb-4 border-b border-gray-200">
-        <View className="flex-row items-center">
-          <TouchableOpacity onPress={() => router.back()} className="mr-4">
-            <ArrowLeft size={24} color="#1F2937" />
-          </TouchableOpacity>
-          <Text className="text-xl font-bold text-gray-800">Delete Account</Text>
-        </View>
+      <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+          <ArrowLeft size={24} color={IOS_COLORS.label} />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Delete Account</Text>
       </View>
 
-      <ScrollView className="flex-1" contentContainerStyle={{ paddingBottom: 100 }}>
-        {/* Warning */}
-        <View className="bg-red-50 mx-4 mt-4 p-4 rounded-lg border border-red-200">
-          <View className="flex-row items-start">
-            <AlertTriangle size={24} color="#EF4444" />
-            <View className="flex-1 ml-3">
-              <Text className="text-red-900 font-bold text-lg mb-2">
-                Warning: This Cannot Be Undone
-              </Text>
-              <Text className="text-red-700 text-sm">
-                Deleting your account will permanently remove all your data, including:
-              </Text>
-            </View>
-          </View>
-        </View>
-
-        {/* Data Loss Warning */}
-        <View className="bg-white mt-4 px-4 py-4">
-          <Text className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">
-            What Will Be Deleted
-          </Text>
-
-          <View className="space-y-3">
-            <View className="flex-row items-start mb-3">
-              <Text className="text-red-500 mr-2">•</Text>
-              <Text className="text-gray-700 flex-1">
-                Your profile and personal information
-              </Text>
-            </View>
-            <View className="flex-row items-start mb-3">
-              <Text className="text-red-500 mr-2">•</Text>
-              <Text className="text-gray-700 flex-1">
-                All your steps, history, and progress data
-              </Text>
-            </View>
-            <View className="flex-row items-start mb-3">
-              <Text className="text-red-500 mr-2">•</Text>
-              <Text className="text-gray-700 flex-1">
-                Saved places, documents, and resources
-              </Text>
-            </View>
-            <View className="flex-row items-start mb-3">
-              <Text className="text-red-500 mr-2">•</Text>
-              <Text className="text-gray-700 flex-1">
-                Connections, groups, and organization memberships
-              </Text>
-            </View>
-            <View className="flex-row items-start mb-3">
-              <Text className="text-red-500 mr-2">•</Text>
-              <Text className="text-gray-700 flex-1">
-                Coaching sessions and saved plans
-              </Text>
-            </View>
-            <View className="flex-row items-start mb-3">
-              <Text className="text-red-500 mr-2">•</Text>
-              <Text className="text-gray-700 flex-1">
-                All AI-generated insights and analysis
-              </Text>
-            </View>
-            <View className="flex-row items-start">
-              <Text className="text-red-500 mr-2">•</Text>
-              <Text className="text-gray-700 flex-1">
-                Any active subscriptions (will be cancelled)
-              </Text>
-            </View>
-          </View>
-        </View>
-
-        {/* Alternative Options */}
-        <View className="bg-blue-50 mx-4 mt-4 p-4 rounded-lg border border-blue-200">
-          <Text className="text-blue-900 font-semibold mb-2">
-            Consider These Alternatives
-          </Text>
-          <Text className="text-blue-700 text-sm mb-2">
-            Instead of deleting your account, you could:
-          </Text>
-          <View className="ml-2">
-            <Text className="text-blue-700 text-sm mb-1">
-              • Downgrade to a free plan to pause your subscription
-            </Text>
-            <Text className="text-blue-700 text-sm mb-1">
-              • Adjust your privacy settings to limit data collection
-            </Text>
-            <Text className="text-blue-700 text-sm">
-              • Export your data for safekeeping before deleting
+      <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
+        <View style={styles.warningCard}>
+          <AlertTriangle size={24} color={IOS_COLORS.systemRed} />
+          <View style={styles.warningBody}>
+            <Text style={styles.warningTitle}>Warning: This Cannot Be Undone</Text>
+            <Text style={styles.warningText}>
+              Deleting your account will permanently remove all your data, including:
             </Text>
           </View>
         </View>
 
-        {/* Confirmation Form */}
-        <View className="bg-white mt-4 px-4 py-4">
-          <Text className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-4">
-            Confirm Deletion
-          </Text>
+        <View style={styles.sectionCard}>
+          <Text style={styles.sectionLabel}>What Will Be Deleted</Text>
+          {DELETABLE_ITEMS.map((item) => (
+            <View key={item} style={styles.bulletRow}>
+              <Text style={styles.bulletMark}>•</Text>
+              <Text style={styles.bulletText}>{item}</Text>
+            </View>
+          ))}
+        </View>
 
-          <View className="mb-4">
-            <Text className="text-gray-700 font-medium mb-2">
-              Type <Text className="font-bold text-red-500">DELETE</Text> to confirm
+        <View style={styles.altCard}>
+          <Text style={styles.altTitle}>Consider These Alternatives</Text>
+          <Text style={styles.altText}>Instead of deleting your account, you could:</Text>
+          <View style={styles.altList}>
+            <Text style={styles.altItem}>• Downgrade to a free plan to pause your subscription</Text>
+            <Text style={styles.altItem}>• Adjust your privacy settings to limit data collection</Text>
+            <Text style={styles.altItem}>• Export your data for safekeeping before deleting</Text>
+          </View>
+        </View>
+
+        <View style={styles.sectionCard}>
+          <Text style={styles.sectionLabel}>Confirm Deletion</Text>
+
+          <View style={styles.field}>
+            <Text style={styles.fieldLabel}>
+              Type <Text style={styles.fieldLabelEmphasis}>DELETE</Text> to confirm
             </Text>
             <TextInput
               value={confirmText}
               onChangeText={setConfirmText}
               placeholder="Type DELETE"
-              className="bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 text-gray-800"
+              placeholderTextColor={IOS_COLORS.systemGray}
+              style={styles.input}
               autoCapitalize="characters"
             />
           </View>
 
-          <View className="mb-4">
-            <Text className="text-gray-700 font-medium mb-2">Enter your password</Text>
+          <View style={styles.field}>
+            <Text style={styles.fieldLabel}>Enter your password</Text>
             <TextInput
               value={password}
               onChangeText={setPassword}
               placeholder="Enter your password"
+              placeholderTextColor={IOS_COLORS.systemGray}
               secureTextEntry
-              className="bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 text-gray-800"
+              style={styles.input}
               autoCapitalize="none"
             />
           </View>
 
           <TouchableOpacity
             onPress={handleDeleteAccount}
-            disabled={loading || confirmText !== 'DELETE' || !password}
-            className={`rounded-lg py-4 items-center flex-row justify-center ${
-              loading || confirmText !== 'DELETE' || !password
-                ? 'bg-gray-300'
-                : 'bg-red-500'
-            }`}
+            disabled={submitDisabled}
+            style={[styles.deleteButton, submitDisabled && styles.deleteButtonDisabled]}
           >
             {loading ? (
               <ActivityIndicator size="small" color="#FFFFFF" />
             ) : (
               <>
                 <Trash2 size={20} color="#FFFFFF" />
-                <Text className="text-white font-semibold text-base ml-2">
-                  Delete My Account Forever
-                </Text>
+                <Text style={styles.deleteText}>Delete My Account</Text>
               </>
             )}
           </TouchableOpacity>
         </View>
 
-        {/* Support Contact */}
-        <View className="mx-4 mt-4">
-          <Text className="text-center text-gray-500 text-sm">
-            Having issues? Contact{' '}
-            <Text className="text-blue-500 font-medium">support@regattaflow.com</Text>
+        <View style={styles.supportWrap}>
+          <Text style={styles.supportText}>
+            Having issues? Contact <Text style={styles.supportEmail}>info@better.at</Text>
           </Text>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: IOS_COLORS.systemGroupedBackground,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: IOS_COLORS.systemBackground,
+    paddingHorizontal: 16,
+    paddingBottom: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: IOS_COLORS.separator,
+  },
+  backButton: {
+    marginRight: 16,
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: IOS_COLORS.label,
+  },
+  scroll: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingBottom: 100,
+  },
+  warningCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: '#FEF2F2',
+    marginHorizontal: 16,
+    marginTop: 16,
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: '#FECACA',
+  },
+  warningBody: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  warningTitle: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: '#7F1D1D',
+    marginBottom: 8,
+  },
+  warningText: {
+    fontSize: 13,
+    lineHeight: 20,
+    color: '#B91C1C',
+  },
+  sectionCard: {
+    backgroundColor: IOS_COLORS.systemBackground,
+    marginTop: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+  },
+  sectionLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: IOS_COLORS.secondaryLabel,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 12,
+  },
+  bulletRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 10,
+  },
+  bulletMark: {
+    color: IOS_COLORS.systemRed,
+    marginRight: 8,
+    fontSize: 15,
+  },
+  bulletText: {
+    flex: 1,
+    fontSize: 15,
+    color: IOS_COLORS.label,
+  },
+  altCard: {
+    backgroundColor: '#EFF6FF',
+    marginHorizontal: 16,
+    marginTop: 16,
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: '#BFDBFE',
+  },
+  altTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#1E3A8A',
+    marginBottom: 8,
+  },
+  altText: {
+    fontSize: 13,
+    color: '#1D4ED8',
+    marginBottom: 8,
+  },
+  altList: {
+    marginLeft: 8,
+  },
+  altItem: {
+    fontSize: 13,
+    lineHeight: 20,
+    color: '#1D4ED8',
+    marginBottom: 4,
+  },
+  field: {
+    marginBottom: 16,
+  },
+  fieldLabel: {
+    fontSize: 15,
+    fontWeight: '500',
+    color: IOS_COLORS.label,
+    marginBottom: 8,
+  },
+  fieldLabelEmphasis: {
+    fontWeight: '700',
+    color: IOS_COLORS.systemRed,
+  },
+  input: {
+    backgroundColor: IOS_COLORS.systemGray6,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: IOS_COLORS.separator,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 16,
+    color: IOS_COLORS.label,
+  },
+  deleteButton: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: IOS_COLORS.systemRed,
+    borderRadius: 10,
+    paddingVertical: 14,
+  },
+  deleteButtonDisabled: {
+    backgroundColor: IOS_COLORS.systemGray3,
+  },
+  deleteText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+    marginLeft: 8,
+  },
+  supportWrap: {
+    marginHorizontal: 16,
+    marginTop: 16,
+  },
+  supportText: {
+    textAlign: 'center',
+    fontSize: 13,
+    color: IOS_COLORS.secondaryLabel,
+  },
+  supportEmail: {
+    color: IOS_COLORS.systemBlue,
+    fontWeight: '500',
+  },
+});
