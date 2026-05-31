@@ -481,7 +481,11 @@ function AuthGate() {
     // also need to round-trip through login so the post detail opens after
     // sign-in. The community screen redirects signed-out visitors to
     // `/(auth)/login?returnTo=...` itself.
-    const publicSegments = ['index', '(auth)', 'privacy', 'welcome', 'callback', 'blueprint', 'community', 'pricing', 'institutions', 'how-it-works', 'share', 'dev', 'debug', 'auth-welcome-ios', 'redeem', 'r', 'officiating', 'sports-photography', 'org', 'schools', 'marketplace', 'demo'];
+    const publicSegments = ['index', '(auth)', 'privacy', 'welcome', 'callback', 'blueprint', 'community', 'pricing', 'institutions', 'how-it-works', 'share', 'auth-welcome-ios', 'redeem', 'r', 'officiating', 'sports-photography', 'org', 'schools', 'marketplace', 'demo'];
+    // `dev`/`debug` are internal preview surfaces — public only in dev builds.
+    // In production they must require auth so unauthenticated visitors can't
+    // reach them via deep-link or the web sitemap.
+    if (__DEV__) publicSegments.push('dev', 'debug');
     // /venue/post/<id> is a publicly shareable permalink — sailors arriving
     // from HKDW Discuss "Open in browser" (Android) or iOS in-app linking
     // both land here without auth. Other /venue/* routes stay protected.
