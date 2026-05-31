@@ -15,6 +15,7 @@ import { text } from '@/lib/design-tokens';
 import { getStepCategoryLabels } from '@/lib/step-category-config';
 import { IOSPillTabs, usePillTabs } from '@/components/ui/ios/IOSPillTabs';
 import { useVocabulary } from '@/hooks/useVocabulary';
+import { getVisibilityLabels } from '@/lib/vocabulary';
 import { useStepDetail, useUpdateStepMetadata } from '@/hooks/useStepDetail';
 import { useUpdateStep, useDeleteStep, useMyTimeline } from '@/hooks/useTimelineSteps';
 import { StepCombinatorsRow } from './StepCombinatorsRow';
@@ -1086,6 +1087,7 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, 
       isLoadingNext={celebrationLoading || !stepSourceId}
       onContinue={continueNext.handleContinue}
       isContinuing={continueNext.isContinuing}
+      groupLabel={getVisibilityLabels(currentInterest?.slug).fleet.toLowerCase()}
     />
   ) : (
     <>

@@ -351,7 +351,7 @@ export function StepDiscussionInline({
   const handleReply = useCallback((note: StepDiscussionRow) => {
     setReplyingTo({
       noteId: note.id,
-      authorName: note.author_name ?? 'Sailor',
+      authorName: note.author_name ?? 'Member',
     });
   }, []);
 
@@ -623,7 +623,7 @@ function NoteCard({
         <View style={styles.noteHeaderText}>
           <View style={styles.noteAuthorRow}>
             <Text style={styles.noteAuthor} numberOfLines={1}>
-              {note.author_name ?? 'Sailor'}
+              {note.author_name ?? 'Member'}
             </Text>
             {pill ? (
               <View style={styles.rolePill}>
@@ -734,7 +734,7 @@ function NoteCard({
                 </View>
                 <View style={styles.replyBody}>
                   <Text style={styles.replyAuthor}>
-                    {reply.author_name ?? 'Sailor'}
+                    {reply.author_name ?? 'Member'}
                   </Text>
                   <Text style={styles.replyText}>{reply.body}</Text>
                 </View>

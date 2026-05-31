@@ -1936,6 +1936,7 @@ function RaceSummaryCardImpl({
           isLoadingNext={celebrationLoading || !celebrationSourceStepId}
           onContinue={continueNext.handleContinue}
           isContinuing={continueNext.isContinuing}
+          groupLabel={getVisibilityLabels(interestSlug).fleet.toLowerCase()}
         />
       );
     }

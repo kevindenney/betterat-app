@@ -52,6 +52,12 @@ export interface StepCompleteCelebrationProps {
   isLoadingNext?: boolean;
   onContinue?: () => void;
   isContinuing?: boolean;
+  /**
+   * Interest-native word for the cohort moving through the blueprint together
+   * ("fleet" for sailing, "group"/"cohort" elsewhere). Rendered as
+   * "In the {groupLabel}". Defaults to "group".
+   */
+  groupLabel?: string;
 }
 
 export function StepCompleteCelebration({
@@ -64,6 +70,7 @@ export function StepCompleteCelebration({
   isLoadingNext,
   onContinue,
   isContinuing,
+  groupLabel = 'group',
 }: StepCompleteCelebrationProps) {
   const positionLabel =
     stepNumber != null && totalSteps != null
@@ -100,7 +107,7 @@ export function StepCompleteCelebration({
       <View style={styles.statsCard}>
         <View style={styles.statsRow}>
           <Users size={14} color={C.label2} />
-          <Text style={styles.statsLabel}>In the fleet</Text>
+          <Text style={styles.statsLabel}>In the {groupLabel}</Text>
         </View>
         <View style={styles.fleetGrid}>
           <FleetStat num={fleet.ahead} label="ahead" tone="muted" />
