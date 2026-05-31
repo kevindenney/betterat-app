@@ -26,12 +26,14 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useInterest, type Interest } from '@/providers/InterestProvider';
 import { useAuth } from '@/providers/AuthProvider';
 import { getOrCreateManifesto, updateManifesto, parseManifestoWithAI } from '@/services/ManifestoService';
+import { useUpdateLifetimeVision } from '@/hooks/useInterestVision';
 import { OnboardingStateService } from '@/services/onboarding/OnboardingStateService';
 
 export default function ManifestoOnboardingScreen() {
   const router = useRouter();
   const { user } = useAuth();
   const { allInterests, switchInterest } = useInterest();
+  const updateLifetimeVision = useUpdateLifetimeVision();
 
   const [orderedInterests, setOrderedInterests] = useState<Interest[]>([]);
   const orderedSetRef = useRef(false);
@@ -175,6 +177,16 @@ export default function ManifestoOnboardingScreen() {
           role_models: roleModels,
           weekly_cadence: cadence,
         });
+        // The "What's your vision?" prompt is the user's lifetime
+        // trajectory for this interest — surface it as the L4 banner.
+        // (Onboarding intentionally doesn't capture a season goal, so
+        // the L3 season vision stays as its own "add a vision" CTA.)
+        if (activeInterest?.id) {
+          await updateLifetimeVision.mutateAsync({
+            interestId: activeInterest.id,
+            lifetime_vision_statement: text.trim(),
+          });
+        }
       } catch {}
       setIsSaving(false);
     }
@@ -185,7 +197,7 @@ export default function ManifestoOnboardingScreen() {
     } else {
       await finalizeOnboarding();
     }
-  }, [finalizeOnboarding, manifestoId, text, philosophies, roleModels, cadence, interestIndex, totalInterests]);
+  }, [finalizeOnboarding, manifestoId, text, philosophies, roleModels, cadence, interestIndex, totalInterests, activeInterest?.id, updateLifetimeVision]);
 
   const handleSkip = useCallback(async () => {
     // Skip this interest's manifesto — advance to next or finalize
