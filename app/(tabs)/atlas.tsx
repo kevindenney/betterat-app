@@ -804,14 +804,14 @@ export default function AtlasTab() {
         if (targetInterest.slug !== currentInterest?.slug) {
           await switchInterest(targetInterest.slug);
         }
-        // Land the user in the timeline with the new step selected — not on
-        // /step/[id]. The long-press gesture is "add this to my timeline,"
-        // not "open a deep editor"; the timeline lets them place the step
-        // in context (week / arc), and they can tap into detail from there.
-        router.push({
-          pathname: '/(tabs)/races',
-          params: { selected: created.id, level: '1' },
-        } as any);
+        // Open the freshly-created step's Plan surface directly. Routing
+        // through the timeline (?selected=&level=1) was unreliable: the new
+        // step isn't in the timeline query cache when the canvas captures
+        // its mount-only initialLevel, so it stranded the user at L2 instead
+        // of the step. /step/[id] loads by id with no timeline-cache race —
+        // and it's the natural "plan this" destination. Mirrors the F2
+        // race-course path above.
+        router.push({ pathname: '/step/[id]', params: { id: created.id, origin: 'atlas' } } as any);
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Could not create a step from this pin.';
         showAlert('Step creation failed', message);
