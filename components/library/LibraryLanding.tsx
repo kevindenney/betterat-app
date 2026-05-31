@@ -26,7 +26,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
 import { LocationAnchor } from '@/components/ui/LocationAnchor';
 import { TabScreenToolbar } from '@/components/ui/TabScreenToolbar';
-import { useUserHomeVenue } from '@/hooks/useUserHomeVenue';
+import { useUserHomeVenue, isSailingInterest } from '@/hooks/useUserHomeVenue';
 import { FLOATING_TAB_BAR_HEIGHT } from '@/components/navigation/FloatingTabBar';
 import { AllZone } from '@/components/library/zones/AllZone';
 import { PlansZone } from '@/components/library/zones/PlansZone';
@@ -241,7 +241,11 @@ export function LibraryLanding({ conceptsBody, librarianSlot }: Props) {
       )}
 
       <TabScreenToolbar
-        subtitleContent={<LocationAnchor region={homeVenue?.region} venue={homeVenue?.venue} />}
+        subtitleContent={
+          isSailingInterest(currentInterest?.slug) ? (
+            <LocationAnchor region={homeVenue?.region} venue={homeVenue?.venue} />
+          ) : undefined
+        }
         topInset={insets.top}
         actions={[
           {

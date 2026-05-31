@@ -14,7 +14,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { TabScreenToolbar } from '@/components/ui/TabScreenToolbar';
 import { LocationAnchor } from '@/components/ui/LocationAnchor';
 import { FLOATING_TAB_BAR_HEIGHT } from '@/components/navigation/FloatingTabBar';
-import { useUserHomeVenue } from '@/hooks/useUserHomeVenue';
+import { useUserHomeVenue, isSailingInterest } from '@/hooks/useUserHomeVenue';
+import { useInterest } from '@/providers/InterestProvider';
 import { useAuth } from '@/providers/AuthProvider';
 import {
   useFollowedStepsFeed,
@@ -85,6 +86,7 @@ function formatRelativeTime(iso: string): string {
 export default function WatchScreen() {
   const insets = useSafeAreaInsets();
   const homeVenue = useUserHomeVenue();
+  const { currentInterest } = useInterest();
   const { user } = useAuth();
   const [toolbarHeight, setToolbarHeight] = useState(0);
   const [grouping, setGrouping] = useState<GroupingId>('all');
@@ -212,7 +214,9 @@ export default function WatchScreen() {
 
       <TabScreenToolbar
         subtitleContent={
-          homeVenue ? <LocationAnchor region={homeVenue.region} venue={homeVenue.venue} /> : undefined
+          homeVenue && isSailingInterest(currentInterest?.slug) ? (
+            <LocationAnchor region={homeVenue.region} venue={homeVenue.venue} />
+          ) : undefined
         }
         topInset={insets.top}
         backgroundColor="rgba(242, 242, 247, 0.94)"

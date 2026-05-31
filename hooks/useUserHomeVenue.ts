@@ -19,6 +19,23 @@ import { useAuth } from '@/providers/AuthProvider';
 
 export const USER_HOME_VENUE_KEY = 'user-home-venue';
 
+/** Interest slugs for which a home venue is a meaningful anchor. */
+const SAILING_INTEREST_SLUGS = new Set([
+  'sail-racing',
+  'offshore-yacht-racing',
+  'team-racing',
+]);
+
+/**
+ * The cross-tab LocationAnchor pill resolves a `sailing_venues` row, so it
+ * only reads correctly on sailing interests. On any other interest the venue
+ * is irrelevant and surfaces as a leak (e.g. "Hong Kong - Victoria Harbor"
+ * sitting atop a Lac Craft Business surface). Gate header anchors with this.
+ */
+export function isSailingInterest(slug?: string | null): boolean {
+  return slug != null && SAILING_INTEREST_SLUGS.has(slug);
+}
+
 export interface UserHomeVenue {
   region: string | null;
   venue: string | null;

@@ -48,7 +48,8 @@ import { InterestSwitcher } from '@/components/InterestSwitcher';
 import { useUniversalPlus } from '@/components/capture/UniversalPlusProvider';
 import { LocationAnchor } from '@/components/ui/LocationAnchor';
 import { ProfileDropdown } from '@/components/ui/ProfileDropdown';
-import { useUserHomeVenue } from '@/hooks/useUserHomeVenue';
+import { useUserHomeVenue, isSailingInterest } from '@/hooks/useUserHomeVenue';
+import { useInterest } from '@/providers/InterestProvider';
 import { Ionicons } from '@expo/vector-icons';
 
 type Segment = 'act' | 'read' | 'done';
@@ -316,6 +317,7 @@ export default function InboxTabScreen() {
 function InboxTopRow() {
   const universalPlus = useUniversalPlus();
   const homeVenue = useUserHomeVenue();
+  const { currentInterest } = useInterest();
   // canGoBack() is true when the user arrived via router.push (e.g. tapped
   // the mail icon from Practice / Atlas). In that case, render a "Done"
   // affordance that returns them to the tab they came from. When they
@@ -337,7 +339,9 @@ function InboxTopRow() {
         ) : (
           <>
             <InterestSwitcher />
-            <LocationAnchor region={homeVenue?.region} venue={homeVenue?.venue} />
+            {isSailingInterest(currentInterest?.slug) ? (
+              <LocationAnchor region={homeVenue?.region} venue={homeVenue?.venue} />
+            ) : null}
           </>
         )}
       </View>
