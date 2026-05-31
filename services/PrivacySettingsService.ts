@@ -10,6 +10,7 @@
 import { supabase } from '@/services/supabase';
 import { createLogger } from '@/lib/utils/logger';
 import type { TimelineStepVisibility } from '@/types/timeline-steps';
+import type { StepLocationPrecision } from '@/types/step-detail';
 
 const logger = createLogger('PrivacySettingsService');
 
@@ -22,6 +23,9 @@ export interface ProfilePrivacySettings {
   default_step_visibility: TimelineStepVisibility;
   allow_peer_visibility: boolean;
   allow_follower_sharing: boolean;
+  // NULL means "use exact" via the RPC's COALESCE; stored explicitly only
+  // when the user coarsens their default in privacy settings.
+  default_location_precision: StepLocationPrecision | null;
 }
 
 export interface PrivacySettings extends ProfilePrivacySettings {
@@ -34,6 +38,7 @@ export const DEFAULT_SETTINGS: PrivacySettings = {
   default_step_visibility: 'private',
   allow_peer_visibility: true,
   allow_follower_sharing: true,
+  default_location_precision: null,
   interest_visibility_defaults: {},
 };
 
@@ -49,7 +54,7 @@ export async function getPrivacySettings(
       supabase
         .from('profiles')
         .select(
-          'profile_public, default_step_visibility, allow_peer_visibility, allow_follower_sharing',
+          'profile_public, default_step_visibility, allow_peer_visibility, allow_follower_sharing, default_location_precision',
         )
         .eq('id', userId)
         .maybeSingle(),
@@ -76,6 +81,9 @@ export async function getPrivacySettings(
         profile?.allow_peer_visibility ?? DEFAULT_SETTINGS.allow_peer_visibility,
       allow_follower_sharing:
         profile?.allow_follower_sharing ?? DEFAULT_SETTINGS.allow_follower_sharing,
+      default_location_precision:
+        (profile?.default_location_precision as StepLocationPrecision | null) ??
+        DEFAULT_SETTINGS.default_location_precision,
       interest_visibility_defaults:
         (prefs?.interest_visibility_defaults as Record<string, TimelineStepVisibility>) ??
         DEFAULT_SETTINGS.interest_visibility_defaults,

@@ -16,6 +16,7 @@ import { IOS_COLORS } from '@/lib/design-tokens-ios';
 import { showAlert } from '@/lib/utils/crossPlatformAlert';
 import { createLogger } from '@/lib/utils/logger';
 import type { TimelineStepVisibility } from '@/types/timeline-steps';
+import type { StepLocationPrecision } from '@/types/step-detail';
 import { getVisibilityLabels } from '@/lib/vocabulary';
 import {
   getPrivacySettings,
@@ -66,6 +67,20 @@ function buildInterestVisibilityOptions(
 
 function visibilityLabel(value: TimelineStepVisibility, interestSlug?: string | null): string {
   return buildVisibilityOptions(interestSlug).find((o) => o.value === value)?.label ?? 'Private';
+}
+
+// Default coordinate precision for new step locations. Mirrors the per-step
+// picker in PlanWhereCard. 'site' is intentionally omitted (needs a poi_id the
+// app never sets, so it would silently behave as exact). `null` = Exact via the
+// create RPC's COALESCE.
+const PRECISION_OPTIONS: { value: StepLocationPrecision; label: string }[] = [
+  { value: 'exact', label: 'Exact' },
+  { value: 'neighborhood', label: 'Approximate' },
+  { value: 'hidden', label: 'Hidden' },
+];
+
+function precisionLabel(value: StepLocationPrecision | null): string {
+  return PRECISION_OPTIONS.find((o) => o.value === (value ?? 'exact'))?.label ?? 'Exact';
 }
 
 // =============================================================================
@@ -199,6 +214,36 @@ export default function PrivacyScreen(): React.ReactElement {
     }
   }, [settings, updateSetting]);
 
+  const showPrecisionPicker = useCallback(() => {
+    if (!settings) return;
+
+    const labels = PRECISION_OPTIONS.map((o) => o.label);
+    const current = settings.default_location_precision ?? 'exact';
+
+    if (Platform.OS === 'ios') {
+      ActionSheetIOS.showActionSheetWithOptions(
+        {
+          options: [...labels, 'Cancel'],
+          cancelButtonIndex: labels.length,
+          title: 'Default Location Sharing',
+        },
+        (index) => {
+          if (index < PRECISION_OPTIONS.length) {
+            const value = PRECISION_OPTIONS[index].value;
+            // Store NULL for 'exact' so the create RPC's COALESCE keeps the
+            // out-of-box behavior and we don't pin a literal default.
+            updateSetting('default_location_precision', value === 'exact' ? null : value);
+          }
+        },
+      );
+    } else {
+      const currentIdx = PRECISION_OPTIONS.findIndex((o) => o.value === current);
+      const nextIdx = (currentIdx + 1) % PRECISION_OPTIONS.length;
+      const value = PRECISION_OPTIONS[nextIdx].value;
+      updateSetting('default_location_precision', value === 'exact' ? null : value);
+    }
+  }, [settings, updateSetting]);
+
   const showInterestPicker = useCallback(
     (interest: Interest) => {
       if (!settings) return;
@@ -309,7 +354,7 @@ export default function PrivacyScreen(): React.ReactElement {
         {/* ── DEFAULTS ── */}
         <IOSListSection
           header="DEFAULTS"
-          footer="Choose who can see new steps by default. You can always change visibility on individual steps."
+          footer="Choose who can see new steps by default, and how precisely their location is shown on the map. You can always change either on an individual step."
         >
           <IOSListItem
             title="Default Step Visibility"
@@ -318,6 +363,14 @@ export default function PrivacyScreen(): React.ReactElement {
             leadingIconBackgroundColor={ICON_BACKGROUNDS.orange}
             trailingAccessory="chevron"
             onPress={showVisibilityPicker}
+          />
+          <IOSListItem
+            title="Default Location Sharing"
+            subtitle={precisionLabel(settings.default_location_precision)}
+            leadingIcon="location-outline"
+            leadingIconBackgroundColor={ICON_BACKGROUNDS.blue}
+            trailingAccessory="chevron"
+            onPress={showPrecisionPicker}
           />
         </IOSListSection>
 
