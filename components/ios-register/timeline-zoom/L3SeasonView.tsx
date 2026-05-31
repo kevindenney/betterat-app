@@ -408,7 +408,6 @@ export function L3SeasonView({
               WEEK {week.number}
               {week.isCurrent ? '  ·  THIS WEEK' : ''}
             </Text>
-            <Text style={styles.weekRange}>{week.dateRange}</Text>
           </View>
         </View>,
         <View key={`body-${week.id}`} style={styles.weekBody}>
@@ -1035,7 +1034,6 @@ const styles = StyleSheet.create({
   },
   weekHeadRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'baseline',
     marginBottom: 10,
   },
@@ -1044,10 +1042,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     letterSpacing: 0.6,
     color: IOS_REGISTER.labelSecondary,
-  },
-  weekRange: {
-    fontSize: 12,
-    color: IOS_REGISTER.labelTertiary,
   },
   cardPair: {
     flexDirection: 'row',
