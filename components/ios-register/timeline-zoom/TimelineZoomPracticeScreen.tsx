@@ -75,16 +75,27 @@ export function TimelineZoomPracticeScreen() {
     return undefined;
   }, [searchParams.selected]);
   const { data: steps = [], isLoading: stepsLoading } = useMyTimeline(interestId);
+  // A ?selected= id from the route only lands the user at the step-detail
+  // level if it still resolves to a loaded step. A stale selection (the step
+  // was deleted, or the starter step was reseeded with a new id) would
+  // otherwise strand them on a dead-end "Step not found" at level 1 whose
+  // only escape is the zoom rail. The canvas mounts only once steps are
+  // loaded, so this resolves correctly on first paint.
+  const resolvedSelectedStepId = useMemo(() => {
+    if (!selectedStepId) return undefined;
+    return steps.some((s) => s.id === selectedStepId) ? selectedStepId : undefined;
+  }, [selectedStepId, steps]);
   // Default landing depth is L3 (ARC summary), but that view's scaffolding —
   // vision, reflections, capability spread — reads as empty filler before a
   // user has built up an arc. Newcomers with only a handful of steps land at
   // L2 (week timeline) instead: just their cards laid out in time, where the
-  // structure is self-evident. An explicit ?level= deep-link always wins.
+  // structure is self-evident. An explicit ?level= deep-link always wins —
+  // except a stale level=1 with no resolvable step, which falls through.
   const initialLevelFromRoute = useMemo<ZoomLevel>(() => {
-    if (routeLevel) return routeLevel;
-    if (selectedStepId) return 1;
+    if (routeLevel && routeLevel !== 1) return routeLevel;
+    if (resolvedSelectedStepId) return 1;
     return steps.length < ARC_LANDING_MIN_STEPS ? 2 : 3;
-  }, [routeLevel, selectedStepId, steps.length]);
+  }, [routeLevel, resolvedSelectedStepId, steps.length]);
   const { data: currentSeason = null } = useCurrentSeason();
   const { data: allSeasons = [] } = useUserSeasons();
   const { data: subscribedBlueprints = [] } = useSubscribedBlueprints(interestId);
@@ -213,7 +224,7 @@ export function TimelineZoomPracticeScreen() {
         currentSeason,
         allSeasons,
         steps,
-        focusStepId: selectedStepId,
+        focusStepId: resolvedSelectedStepId,
         blueprintsById,
         stepEvidenceMap,
         suggestionInputs,
@@ -230,7 +241,7 @@ export function TimelineZoomPracticeScreen() {
       currentSeason,
       allSeasons,
       steps,
-      selectedStepId,
+      resolvedSelectedStepId,
       blueprintsById,
       stepEvidenceMap,
       suggestionInputs,
