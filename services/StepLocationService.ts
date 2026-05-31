@@ -51,6 +51,12 @@ export async function syncStepLocation(
     lng: location!.lng ?? null,
   };
 
+  // Only write precision when the caller specified one — omitting it leaves
+  // any prior choice intact (and a NULL column is treated as 'exact').
+  if (location!.location_precision) {
+    row.location_precision = location!.location_precision;
+  }
+
   const { error: upErr } = await supabase
     .from('step_location')
     .upsert(row, { onConflict: 'step_id' });

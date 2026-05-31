@@ -57,11 +57,24 @@ export interface StepCollaborator {
   role?: string;
 }
 
+/**
+ * How precisely a step's location is shown to the audience that can see it
+ * on the Nearby/Atlas map. Audience controls *who*; this controls *how
+ * precisely*. 'site' (snap to a named POI) is reserved for when poi_id is
+ * wired — until then the app only offers exact/neighborhood/hidden.
+ */
+export type StepLocationPrecision = 'exact' | 'site' | 'neighborhood' | 'hidden';
+
 export interface StepLocation {
   name: string;
   lat?: number;
   lng?: number;
   venue_id?: string;
+  /**
+   * Coordinate-sharing precision for peer-visible map surfaces. Undefined
+   * is treated as 'exact' server-side.
+   */
+  location_precision?: StepLocationPrecision;
   /**
    * Optional indoor / campus hierarchy for domains like hospitals where
    * the primary place needs more structure than one lat/lng pair.

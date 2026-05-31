@@ -18,7 +18,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
 import { STEP_COLORS } from '@/lib/step-theme';
-import type { StepLocation } from '@/types/step-detail';
+import type { StepLocation, StepLocationPrecision } from '@/types/step-detail';
 import { LocationMapPicker as LocationMapPickerModal } from '@/components/races/LocationMapPicker';
 import { useStepLocationNeighbors } from '@/hooks/useStepLocationNeighbors';
 import {
@@ -36,6 +36,28 @@ export interface PlanWhereQuickPick {
   lat?: number;
   lng?: number;
 }
+
+/**
+ * Precision levels surfaced in the picker. 'site' is intentionally omitted
+ * until poi_id is wired (it would silently behave as 'exact'). Default is
+ * 'exact' — we never coarsen a location the user already set without asking,
+ * since legitimate venue pins (a marina, a course mark) want exact coords.
+ */
+const PRECISION_OPTIONS: {
+  value: StepLocationPrecision;
+  label: string;
+  hint: string;
+  icon: keyof typeof Ionicons.glyphMap;
+}[] = [
+  { value: 'exact', label: 'Exact', hint: 'Your precise spot', icon: 'locate' },
+  {
+    value: 'neighborhood',
+    label: 'Approximate',
+    hint: 'Fuzzed ~500m',
+    icon: 'shapes-outline',
+  },
+  { value: 'hidden', label: 'Hidden', hint: 'Off the map', icon: 'eye-off-outline' },
+];
 
 interface PlanWhereCardProps {
   location?: StepLocation;
@@ -79,10 +101,11 @@ export function PlanWhereCard({ location, readOnly, onChange, quickPicks }: Plan
         lat: picked.lat,
         lng: picked.lng,
         venue_id: location?.venue_id,
+        location_precision: location?.location_precision,
       });
       setPickerVisible(false);
     },
-    [onChange, location?.venue_id],
+    [onChange, location?.venue_id, location?.location_precision],
   );
 
   /**
@@ -103,14 +126,23 @@ export function PlanWhereCard({ location, readOnly, onChange, quickPicks }: Plan
         lat: result.lat,
         lng: result.lng,
         venue_id: location?.venue_id,
+        location_precision: location?.location_precision,
       });
     });
     router.push({ pathname: '/(tabs)/atlas', params: { fromPlan: '1' } });
-  }, [router, onChange, location?.venue_id]);
+  }, [router, onChange, location?.venue_id, location?.location_precision]);
 
   const handleClear = useCallback(() => {
     onChange(undefined);
   }, [onChange]);
+
+  const handlePrecision = useCallback(
+    (next: StepLocationPrecision) => {
+      if (!location) return;
+      onChange({ ...location, location_precision: next });
+    },
+    [onChange, location],
+  );
 
   const hasName = Boolean(location?.name?.trim());
   const hasCoords = location?.lat != null && location?.lng != null;
@@ -166,6 +198,42 @@ export function PlanWhereCard({ location, readOnly, onChange, quickPicks }: Plan
         </View>
       ) : null}
 
+      {hasName && hasCoords && !readOnly ? (
+        <View style={styles.precisionBlock}>
+          <Text style={styles.precisionEyebrow}>Who sees the exact spot?</Text>
+          <View style={styles.precisionRow}>
+            {PRECISION_OPTIONS.map((opt) => {
+              const active = (location?.location_precision ?? 'exact') === opt.value;
+              return (
+                <Pressable
+                  key={opt.value}
+                  style={[styles.precisionChip, active && styles.precisionChipActive]}
+                  onPress={() => handlePrecision(opt.value)}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: active }}
+                  accessibilityLabel={`${opt.label} — ${opt.hint}`}
+                >
+                  <Ionicons
+                    name={opt.icon}
+                    size={13}
+                    color={active ? STEP_COLORS.accent : IOS_COLORS.secondaryLabel}
+                  />
+                  <Text
+                    style={[
+                      styles.precisionLabel,
+                      active && styles.precisionLabelActive,
+                    ]}
+                    numberOfLines={1}
+                  >
+                    {opt.label}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        </View>
+      ) : null}
+
       {!readOnly && quickPicks && quickPicks.length > 0 && (
         <View style={styles.quickPickRow}>
           {quickPicks.map((qp) => {
@@ -180,6 +248,7 @@ export function PlanWhereCard({ location, readOnly, onChange, quickPicks }: Plan
                     lat: qp.lat,
                     lng: qp.lng,
                     venue_id: location?.venue_id,
+                    location_precision: location?.location_precision,
                   })
                 }
               >
@@ -303,6 +372,46 @@ const styles = StyleSheet.create({
     maxWidth: 180,
   },
   quickPickTextActive: {
+    color: STEP_COLORS.accent,
+    fontWeight: '600',
+  },
+  precisionBlock: {
+    gap: 6,
+  },
+  precisionEyebrow: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: STEP_COLORS.secondaryLabel,
+    letterSpacing: 0.6,
+    textTransform: 'uppercase',
+  },
+  precisionRow: {
+    flexDirection: 'row',
+    gap: 6,
+  },
+  precisionChip: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+    backgroundColor: IOS_COLORS.systemGray6,
+    borderRadius: 14,
+    paddingVertical: 7,
+    paddingHorizontal: 8,
+    borderWidth: 1,
+    borderColor: 'transparent',
+  },
+  precisionChipActive: {
+    backgroundColor: STEP_COLORS.accentLight,
+    borderColor: STEP_COLORS.accent,
+  },
+  precisionLabel: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: IOS_COLORS.secondaryLabel,
+  },
+  precisionLabelActive: {
     color: STEP_COLORS.accent,
     fontWeight: '600',
   },
