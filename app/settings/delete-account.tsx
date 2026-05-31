@@ -144,25 +144,25 @@ export default function DeleteAccountScreen() {
             <View className="flex-row items-start mb-3">
               <Text className="text-red-500 mr-2">•</Text>
               <Text className="text-gray-700 flex-1">
-                All race history, results, and performance data
+                All your steps, history, and progress data
               </Text>
             </View>
             <View className="flex-row items-start mb-3">
               <Text className="text-red-500 mr-2">•</Text>
               <Text className="text-gray-700 flex-1">
-                Saved venues, documents, and tuning guides
+                Saved places, documents, and resources
               </Text>
             </View>
             <View className="flex-row items-start mb-3">
               <Text className="text-red-500 mr-2">•</Text>
               <Text className="text-gray-700 flex-1">
-                Crew associations and fleet memberships
+                Connections, groups, and organization memberships
               </Text>
             </View>
             <View className="flex-row items-start mb-3">
               <Text className="text-red-500 mr-2">•</Text>
               <Text className="text-gray-700 flex-1">
-                Coaching sessions and strategies
+                Coaching sessions and saved plans
               </Text>
             </View>
             <View className="flex-row items-start mb-3">
