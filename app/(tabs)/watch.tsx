@@ -63,7 +63,7 @@ type GroupingId = 'all' | 'fleet' | 'blueprint' | 'location';
 const GROUPING_CHIPS: { id: GroupingId; label: string; ready: boolean }[] = [
   { id: 'all', label: 'Following', ready: true },
   { id: 'location', label: 'Nearby', ready: true },
-  { id: 'fleet', label: 'By fleet', ready: false },
+  { id: 'fleet', label: 'By group', ready: false },
   { id: 'blueprint', label: 'By blueprint', ready: false },
 ];
 
