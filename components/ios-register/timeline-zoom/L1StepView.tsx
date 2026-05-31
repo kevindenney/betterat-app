@@ -236,7 +236,7 @@ export function L1StepView({
                 {step.subStep ? <SessionStrap step={step} /> : null}
               </View>
             ) : null}
-            <View style={styles.embedDetailHost}>
+            <View style={[styles.embedDetailHost, isNowStep && styles.embedDetailHostNow]}>
               <Pressable
                 style={styles.embedMoreButton}
                 hitSlop={10}
@@ -530,6 +530,10 @@ const styles = StyleSheet.create({
     paddingBottom: 4,
   },
   embedDetailHost: { flex: 1, position: 'relative' },
+  // On the current ("NOW") step the orange NOW pill is pinned to the card's
+  // top-left corner; without this the step title's first glyph renders behind
+  // it. Drop the detail body down enough to clear the pill.
+  embedDetailHostNow: { paddingTop: 16 },
   embedMoreButton: {
     position: 'absolute',
     top: 8,

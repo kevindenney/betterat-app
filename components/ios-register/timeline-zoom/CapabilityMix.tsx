@@ -397,17 +397,22 @@ export function CapabilityMix({
         {markers.map((m) => {
           const x = padX + (m.weekNumber - 0.5) * colWidth;
           const stroke = m.color ?? '#C99632';
+          // A marker on the current column would print its glyph + label on
+          // top of the centered "NOW" label. Drop it to a second row so both
+          // stay legible (common on sparse timelines where the only event is
+          // "now"). Dense charts rarely land a marker exactly on NOW.
+          const dy = Math.abs(x - nowX) < 18 ? 20 : 0;
           return (
             <React.Fragment key={`marker-${m.id}`}>
               <Path
-                d={`M ${x - 4} ${padTop - 14} L ${x + 4} ${padTop - 14} L ${x + 4} ${padTop - 6} L ${x - 4} ${padTop - 6} Z`}
+                d={`M ${x - 4} ${padTop - 14 + dy} L ${x + 4} ${padTop - 14 + dy} L ${x + 4} ${padTop - 6 + dy} L ${x - 4} ${padTop - 6 + dy} Z`}
                 fill={withAlpha(stroke, 0.2)}
                 stroke={stroke}
                 strokeWidth={0.8}
               />
               <SvgText
                 x={x + 7}
-                y={padTop - 7}
+                y={padTop - 7 + dy}
                 fontSize={9}
                 fontWeight="600"
                 fill={stroke}
