@@ -158,11 +158,11 @@ export default function AuthChoiceNewScreen() {
             style={styles.heroSection}
           >
             <View style={styles.logoContainer}>
-              <Ionicons name="boat" size={48} color="#3B82F6" />
+              <Ionicons name="sparkles" size={48} color="#3B82F6" />
             </View>
             <Text style={styles.title}>Create Your Account</Text>
             <Text style={styles.subtitle}>
-              Join thousands of sailors tracking their racing journey
+              Join thousands tracking their progress and getting better
             </Text>
           </Animated.View>
 
