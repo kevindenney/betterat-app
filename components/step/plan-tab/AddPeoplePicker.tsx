@@ -31,6 +31,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
 import { useAuth } from '@/providers/AuthProvider';
+import { useVocabulary } from '@/hooks/useVocabulary';
 import { SailorProfileService } from '@/services/SailorProfileService';
 import { CrewFinderService } from '@/services/CrewFinderService';
 import type { FleetWithMembers } from '@/services/CrewFinderService';
@@ -167,6 +168,7 @@ export function AddPeoplePicker({
   roleOptions = DEFAULT_ROLE_OPTIONS,
 }: AddPeoplePickerProps) {
   const { user } = useAuth();
+  const { vocab } = useVocabulary();
   const insets = useSafeAreaInsets();
   const [query, setQuery] = useState('');
   const [people, setPeople] = useState<PersonRow[]>([]);
@@ -884,7 +886,7 @@ export function AddPeoplePicker({
               grouped.fleet.length === 0 &&
               (query.trim() || fleets.length === 0) ? (
                 <Text style={styles.empty}>
-                  {query ? 'No BetterAt matches.' : 'Follow some sailors to see them here.'}
+                  {query ? 'No BetterAt matches.' : `Follow some ${vocab('Peers')} to see them here.`}
                 </Text>
               ) : null}
 

@@ -27,6 +27,7 @@ import {
 } from '@/hooks/useNearestNamedPlace';
 import { FEATURE_FLAGS } from '@/lib/featureFlags';
 import { AtlasPickerBus, type AtlasPickerResult } from '@/services/AtlasPickerBus';
+import { useVocabulary } from '@/hooks/useVocabulary';
 
 /** Quick-pick chip (e.g. an org's known venues like "RHKYC Clubhouse"). */
 export interface PlanWhereQuickPick {
@@ -46,10 +47,13 @@ interface PlanWhereCardProps {
 
 export function PlanWhereCard({ location, readOnly, onChange, quickPicks }: PlanWhereCardProps) {
   const router = useRouter();
+  const { vocab } = useVocabulary();
   const [pickerVisible, setPickerVisible] = useState(false);
   const { data: neighbors } = useStepLocationNeighbors(location?.lat, location?.lng, 5);
-  // Subtract the current user's own pin if applicable — we want "OTHER sailors".
+  // Subtract the current user's own pin if applicable — we want "OTHER peers".
   const otherSailors = Math.max(0, (neighbors?.sailors ?? 0) - 1);
+  const peersPlural = vocab('Peers');
+  const peersSingular = peersPlural.replace(/s$/, '');
   // Resolve raw "Dropped pin (lat, lng)" stamps to a nearby venue name
   // when one's in range. Skips the query when the stored name is already
   // a real venue (most cases). Tight 0.5 km radius — we want "this IS
@@ -145,7 +149,7 @@ export function PlanWhereCard({ location, readOnly, onChange, quickPicks }: Plan
             {hasCoords && otherSailors > 0 ? (
               <Pressable onPress={handleOpenOnAtlas} hitSlop={6}>
                 <Text style={[styles.venueSub, styles.venueSubLink]} numberOfLines={1}>
-                  {otherSailors} {otherSailors === 1 ? 'sailor' : 'sailors'} set steps within 5 km →
+                  {otherSailors} {otherSailors === 1 ? peersSingular : peersPlural} set steps within 5 km →
                 </Text>
               </Pressable>
             ) : hasCoords ? (

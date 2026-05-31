@@ -522,7 +522,7 @@ function RaceSummaryCardImpl({
   const isSailing = interestSlug === 'sail-racing';
   // Vocab follows the step's interest when present (e.g. viewing another user's
   // step from a different interest), otherwise the viewer's active interest.
-  const { vocab: _vocab } = useVocabulary(race.interest_id ?? currentInterest?.id);
+  const { vocab } = useVocabulary(race.interest_id ?? currentInterest?.id);
 
   // Temporal phase state — for timeline steps, map status to the right tab
   const isTimelineStep = Boolean(race.isTimelineStep);
@@ -2415,6 +2415,11 @@ function RaceSummaryCardImpl({
                 blueprintTitle={blueprintChrome.blueprintTitle}
                 authorName={blueprintChrome.authorName}
                 fleetCount={blueprintChrome.subscriberCount}
+                fleetLabel={
+                  isSailing || blueprintChrome.subscriberCount == null
+                    ? undefined
+                    : `${blueprintChrome.subscriberCount} ${vocab('Peers')} subscribed`
+                }
                 onTapBlueprintStrip={goBlueprintIndex}
                 onTapFleetChip={goFleetView}
               />
