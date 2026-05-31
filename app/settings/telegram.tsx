@@ -30,7 +30,7 @@ interface TelegramLink {
 // =============================================================================
 
 export default function TelegramSettingsScreen(): React.ReactElement {
-  const { user, session } = useAuth();
+  const { user, session, ready } = useAuth();
   const { code } = useLocalSearchParams<{ code?: string }>();
   const router = useRouter();
 
@@ -44,7 +44,13 @@ export default function TelegramSettingsScreen(): React.ReactElement {
   // ---------------------------------------------------------------------------
 
   const loadLink = useCallback(async () => {
-    if (!user) return;
+    // Spinner only while auth hydrates; effect re-runs on ready/user change.
+    // Once ready with no user, stop loading instead of hanging.
+    if (!ready) return;
+    if (!user) {
+      setLoading(false);
+      return;
+    }
     try {
       const { data } = await supabase
         .from('telegram_links')
@@ -58,7 +64,7 @@ export default function TelegramSettingsScreen(): React.ReactElement {
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, [user, ready]);
 
   useEffect(() => {
     loadLink();

@@ -88,7 +88,7 @@ function precisionLabel(value: StepLocationPrecision | null): string {
 // =============================================================================
 
 export default function PrivacyScreen(): React.ReactElement {
-  const { user } = useAuth();
+  const { user, ready } = useAuth();
   const { userInterests } = useInterest();
 
   const [settings, setSettings] = useState<PrivacySettings | null>(null);
@@ -100,7 +100,19 @@ export default function PrivacyScreen(): React.ReactElement {
   // ---------------------------------------------------------------------------
 
   const loadSettings = useCallback(async () => {
-    if (!user) return;
+    // Wait until auth has finished hydrating before deciding there's no user.
+    // The effect re-runs when `ready`/`user` change, so we keep the spinner
+    // only while the session is genuinely still resolving.
+    if (!ready) return;
+    // Ready but no session (signed-out, or a transient hot-reload null where
+    // Supabase didn't re-emit the session). AuthGate normally bounces signed-
+    // out users off this route, so this is a safety net: render defaults
+    // instead of spinning forever.
+    if (!user) {
+      setSettings({ ...DEFAULT_SETTINGS });
+      setLoading(false);
+      return;
+    }
     try {
       // Race the fetch against a timeout: a hung Supabase request (the query
       // is healthy server-side, so this is a network/connection stall) would
@@ -123,7 +135,7 @@ export default function PrivacyScreen(): React.ReactElement {
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, [user, ready]);
 
   useEffect(() => {
     loadSettings();

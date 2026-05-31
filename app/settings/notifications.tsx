@@ -181,7 +181,7 @@ function dateToTimeString(date: Date): string {
 // =============================================================================
 
 export default function NotificationsScreen(): React.ReactElement {
-  const { user, userType } = useAuth();
+  const { user, userType, ready } = useAuth();
   const { isSailingPresentationDomain } = useWorkspaceDomain();
   const isSailingCopy = isSailingPresentationDomain;
   const isClubPersona = userType === 'club';
@@ -207,7 +207,14 @@ export default function NotificationsScreen(): React.ReactElement {
   // ---------------------------------------------------------------------------
 
   const loadData = useCallback(async () => {
-    if (!user) return;
+    // Keep the spinner only while auth is still hydrating; the effect re-runs
+    // when `ready`/`user` change. Once ready with no user, stop loading instead
+    // of spinning forever (guards against a transient hot-reload null session).
+    if (!ready) return;
+    if (!user) {
+      setLoading(false);
+      return;
+    }
 
     try {
       const [userPrefResult, notifPrefResult] = await Promise.all([
@@ -237,7 +244,7 @@ export default function NotificationsScreen(): React.ReactElement {
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, [user, ready]);
 
   useEffect(() => {
     loadData();
