@@ -100,6 +100,8 @@ export default function AccountModalContent() {
 
   // Check if user has a team subscription
   const isTeamSubscriber = userProfile?.subscription_tier === 'team';
+  const interestSlug = String(currentInterest?.slug || '').toLowerCase();
+  const isSailingInterest = interestSlug === 'sail-racing' || interestSlug.includes('sail');
   const showOrganizationAccessSetting =
     activeDomain === 'nursing' || String(currentInterest?.slug || '').toLowerCase() === 'nursing';
 

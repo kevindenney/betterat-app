@@ -546,7 +546,7 @@ function RoleCard({
     : 'Member';
   return (
     <Pressable
-      style={({ pressed }: any) => [s.roleCard, current && s.roleCardOn, pressed && s.roleCardPressed]}
+      style={[s.roleCard, current && s.roleCardOn]}
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={`Switch to ${membership.org_name}`}
@@ -579,7 +579,7 @@ function RoleCard({
 function PersonalRoleCard({ active, onPress }: { active: boolean; onPress: () => void }) {
   return (
     <Pressable
-      style={({ pressed }: any) => [s.roleCard, active && s.roleCardOn, pressed && s.roleCardPressed]}
+      style={[s.roleCard, active && s.roleCardOn]}
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel="Switch to personal practice"
@@ -962,7 +962,6 @@ const s = StyleSheet.create({
     backgroundColor: 'rgba(0, 122, 255, 0.06)',
     borderColor: 'rgba(0, 122, 255, 0.30)',
   },
-  roleCardPressed: { opacity: 0.6 },
   roleMono: {
     width: 28,
     height: 28,
