@@ -23,6 +23,7 @@ import {
   type FollowedStepStatus,
 } from '@/hooks/useFollowedStepsFeed';
 import { useCohortStream, type CohortStreamItem } from '@/hooks/useCohortStream';
+import { useFollowedPeopleForLibrary } from '@/hooks/useFollowedPeopleForLibrary';
 import { WatchNearbySection } from '@/components/watch/WatchNearbySection';
 import { DiscoverPeopleContent } from '@/components/discover/DiscoverPeopleContent';
 import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
@@ -109,6 +110,8 @@ export default function WatchScreen() {
     currentInterest?.id,
   );
   const { data: cohortStream = [] } = useCohortStream(currentInterest?.id);
+  const { data: followedPeople = [] } = useFollowedPeopleForLibrary();
+  const followingCount = followedPeople.length;
 
   const hasFeed = feed.length > 0;
   const hasCohort = cohortStream.length > 0;
@@ -137,6 +140,17 @@ export default function WatchScreen() {
             See the steps your people are planning, doing, and reflecting on.
             Adapt anything useful into your own practice.
           </Text>
+          <Pressable
+            style={styles.followingLink}
+            onPress={() => router.push('/discover/following' as never)}
+            accessibilityRole="button"
+            accessibilityLabel={`View who you follow, ${followingCount} ${followingCount === 1 ? 'person' : 'people'}`}
+          >
+            <Ionicons name="people-outline" size={16} color={IOS_COLORS.systemBlue} />
+            <Text style={styles.followingLinkText}>Following</Text>
+            <Text style={styles.followingCount}>{followingCount}</Text>
+            <Ionicons name="chevron-forward" size={15} color={IOS_COLORS.tertiaryLabel} />
+          </Pressable>
         </View>
 
         <View style={styles.filterRow}>
@@ -413,6 +427,26 @@ const styles = StyleSheet.create({
   introCopy: {
     fontSize: 14,
     lineHeight: 20,
+    color: IOS_COLORS.secondaryLabel,
+  },
+  followingLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 4,
+    paddingTop: 12,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: 'rgba(60,60,67,0.12)',
+  },
+  followingLinkText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: IOS_COLORS.label,
+  },
+  followingCount: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: '600',
     color: IOS_COLORS.secondaryLabel,
   },
   filterRow: {
