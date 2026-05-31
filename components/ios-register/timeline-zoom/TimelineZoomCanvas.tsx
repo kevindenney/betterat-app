@@ -409,7 +409,11 @@ export function TimelineZoomCanvas({
                       onStepDeleted={() => setLevel(2)}
                     />
                   ) : (
-                    <ZoomEmptyState level={1} interestLabel={dataset.interest.label} />
+                    <ZoomEmptyState
+                      level={1}
+                      interestLabel={dataset.interest.label}
+                      periodNoun={periodNoun}
+                    />
                   )
                 ) : null}
                 {level === 2 ? (

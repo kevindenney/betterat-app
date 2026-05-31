@@ -125,12 +125,16 @@ export function TimelineZoomPracticeScreen() {
   // business_outcomes. Decoupled self-contained query so the adapter
   // can author the EARNINGS headline from real revenue. Gated on the
   // resolved vocab so sailors / nurses never issue this read.
-  const isEntrepreneur = useMemo(
+  const interestVocab = useMemo(
     () =>
-      resolveInterestVocab(interestId, currentInterest?.name ?? null, currentInterest?.slug ?? null)
-        .id === 'entrepreneur',
+      resolveInterestVocab(
+        interestId,
+        currentInterest?.name ?? null,
+        currentInterest?.slug ?? null,
+      ),
     [interestId, currentInterest?.name, currentInterest?.slug],
   );
+  const isEntrepreneur = interestVocab.id === 'entrepreneur';
   const { data: businessOutcomes = [] } = useQuery<BusinessOutcomeInput[]>({
     queryKey: ['business-outcomes-headline', user?.id ?? 'none'],
     enabled: Boolean(user?.id) && isEntrepreneur,
@@ -552,6 +556,7 @@ export function TimelineZoomPracticeScreen() {
       />
       <SeasonEditSheet
         visible={seasonSheetState !== null}
+        periodNoun={interestVocab.periodNoun}
         mode={seasonSheetState?.mode ?? 'add'}
         season={seasonSheetState?.mode === 'edit' ? seasonSheetState.season : null}
         onClose={() => setSeasonSheetState(null)}

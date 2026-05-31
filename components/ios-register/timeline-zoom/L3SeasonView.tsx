@@ -247,6 +247,7 @@ export function L3SeasonView({
 
       <VisionBlock
         statement={season.visionStatement}
+        periodNoun={interestVocab.periodNoun}
         competencyIds={season.visionCompetencyIds ?? []}
         allCompetencies={orgCompetencies}
         totalWeeks={totalWeeks}
@@ -380,7 +381,9 @@ export function L3SeasonView({
         </View>
       ) : null}
 
-      {season.weeks.length === 0 ? <EmptySeasonInline /> : null}
+      {season.weeks.length === 0 ? (
+        <EmptySeasonInline periodNoun={interestVocab.periodNoun} />
+      ) : null}
 
       <Text style={styles.browseEyebrow}>BROWSE WEEKS</Text>
 
@@ -650,16 +653,16 @@ function DraggableCardSlot({
   );
 }
 
-function EmptySeasonInline() {
+function EmptySeasonInline({ periodNoun }: { periodNoun: string }) {
   const universalPlus = useUniversalPlus();
   return (
     <View style={styles.emptyInline}>
       <View style={styles.emptyIconWrap}>
         <Ionicons name="leaf-outline" size={22} color={IOS_REGISTER.labelTertiary} />
       </View>
-      <Text style={styles.emptyTitle}>This rotation is just starting</Text>
+      <Text style={styles.emptyTitle}>This {periodNoun} is just starting</Text>
       <Text style={styles.emptyBody}>
-        Add a step to begin the season arc. The capability river will fill in as you practice.
+        Add a step to begin the {periodNoun}. The capability river will fill in as you practice.
       </Text>
       {universalPlus.isAvailable ? (
         <Pressable style={styles.emptyCta} onPress={universalPlus.open}>

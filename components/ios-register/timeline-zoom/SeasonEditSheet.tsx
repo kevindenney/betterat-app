@@ -30,6 +30,10 @@ type Mode = 'add' | 'edit';
 
 interface Props {
   visible: boolean;
+  /** Persona-native noun for the calendar block (arc / rotation /
+   *  season / sketchbook / project) — keeps error + placeholder copy in
+   *  the interest's voice rather than the sailing default. */
+  periodNoun: string;
   mode: Mode;
   /** Existing season to populate the form in edit mode. */
   season?: Season | null;
@@ -63,6 +67,7 @@ function looksLikeIsoDate(value: string): boolean {
 
 export function SeasonEditSheet({
   visible,
+  periodNoun,
   mode,
   season,
   onClose,
@@ -150,7 +155,7 @@ export function SeasonEditSheet({
       }
       onClose();
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Couldn’t save the arc.');
+      setError(e instanceof Error ? e.message : `Couldn’t save the ${periodNoun}.`);
       setSubmitting(false);
     }
   };
@@ -163,7 +168,7 @@ export function SeasonEditSheet({
       await onArchive(season.id);
       onClose();
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Couldn’t archive the arc.');
+      setError(e instanceof Error ? e.message : `Couldn’t archive the ${periodNoun}.`);
       setSubmitting(false);
     }
   };
@@ -279,7 +284,7 @@ export function SeasonEditSheet({
               <TextInput
                 value={description}
                 onChangeText={setDescription}
-                placeholder="What this arc is about"
+                placeholder={`What this ${periodNoun} is about`}
                 placeholderTextColor={IOS_REGISTER.labelTertiary}
                 style={[styles.input, styles.inputMultiline]}
                 multiline

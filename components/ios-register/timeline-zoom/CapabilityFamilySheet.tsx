@@ -108,7 +108,7 @@ export function CapabilityFamilySheet({
               </Text>
               <Text style={styles.subtitle}>
                 {matches.length} {matches.length === 1 ? 'step' : 'steps'} in
-                this arc
+                this {interestVocab.periodNoun}
               </Text>
             </View>
             <Pressable onPress={onClose} hitSlop={8}>
@@ -142,7 +142,8 @@ export function CapabilityFamilySheet({
           >
             {matches.length === 0 ? (
               <Text style={styles.empty}>
-                No steps in this arc touched this family yet.
+                No steps in this {interestVocab.periodNoun} touched this family
+                yet.
               </Text>
             ) : (
               matches.map(({ step, weekNumber, rawLabels: srl }) => (

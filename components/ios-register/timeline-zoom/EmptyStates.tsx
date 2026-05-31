@@ -22,29 +22,41 @@ import { useUniversalPlus } from '@/components/capture/UniversalPlusProvider';
 interface ZoomEmptyStateProps {
   level: 1 | 2 | 3;
   interestLabel: string;
+  /** Persona-native noun for the calendar block (arc / rotation /
+   *  season / sketchbook / project) — used by the L3 card so it speaks
+   *  the interest's voice instead of the sailing "arc". */
+  periodNoun: string;
 }
 
-const COPY: Record<1 | 2 | 3, { verb: string; title: string; body: string }> = {
-  1: {
-    verb: 'ZOOM · ONE STEP · DOING',
-    title: 'No step in focus yet',
-    body: 'Add your first step in this interest to start practicing.',
-  },
-  2: {
-    verb: 'ZOOM · NEARBY · PLANNING',
-    title: 'No nearby steps',
-    body: 'Add a step to start building nearby practice context.',
-  },
-  3: {
-    verb: 'ZOOM · CURRENT ARC · REFLECTING',
-    title: 'This arc is just starting',
-    body: 'Add a step to begin the arc. The capability river will fill in as you practice.',
-  },
-};
+function copyFor(
+  level: 1 | 2 | 3,
+  periodNoun: string,
+): { verb: string; title: string; body: string } {
+  switch (level) {
+    case 1:
+      return {
+        verb: 'ZOOM · ONE STEP · DOING',
+        title: 'No step in focus yet',
+        body: 'Add your first step in this interest to start practicing.',
+      };
+    case 2:
+      return {
+        verb: 'ZOOM · NEARBY · PLANNING',
+        title: 'No nearby steps',
+        body: 'Add a step to start building nearby practice context.',
+      };
+    case 3:
+      return {
+        verb: `ZOOM · CURRENT ${periodNoun.toUpperCase()} · REFLECTING`,
+        title: `This ${periodNoun} is just starting`,
+        body: `Add a step to begin the ${periodNoun}. The capability river will fill in as you practice.`,
+      };
+  }
+}
 
-export function ZoomEmptyState({ level, interestLabel }: ZoomEmptyStateProps) {
+export function ZoomEmptyState({ level, interestLabel, periodNoun }: ZoomEmptyStateProps) {
   const universalPlus = useUniversalPlus();
-  const copy = COPY[level];
+  const copy = copyFor(level, periodNoun);
 
   return (
     <View style={styles.host}>

@@ -67,6 +67,10 @@ const PACE_A11Y: Record<Exclude<Pace, 'none'>, string> = {
 
 interface Props {
   statement: string | null | undefined;
+  /** Persona-native noun for the calendar block (arc / rotation /
+   *  season / sketchbook / project). Keeps the empty-state CTA and edit
+   *  labels in the interest's voice instead of the sailing default. */
+  periodNoun: string;
   competencyIds: string[];
   /** All competencies the user could anchor to — used to resolve the
    *  selected ids to their display labels. Empty when the user has no
@@ -110,6 +114,7 @@ function PaceIcon({ pace, size = 12 }: { pace: Pace; size?: number }) {
 
 export function VisionBlock({
   statement,
+  periodNoun,
   competencyIds,
   allCompetencies,
   totalWeeks,
@@ -179,7 +184,7 @@ export function VisionBlock({
         onPress={onEdit}
         style={({ pressed }) => [styles.empty, pressed && styles.pressed]}
         accessibilityRole="button"
-        accessibilityLabel="Add a vision for this arc"
+        accessibilityLabel={`Add a vision for this ${periodNoun}`}
       >
         <Ionicons
           name="flag-outline"
@@ -187,7 +192,8 @@ export function VisionBlock({
           color={IOS_REGISTER.labelSecondary}
         />
         <Text style={styles.emptyText}>
-          Add a vision for this arc — what would &ldquo;done&rdquo; look like?
+          Add a vision for this {periodNoun} — what would &ldquo;done&rdquo; look
+          like?
         </Text>
         <Ionicons
           name="chevron-forward"
@@ -203,7 +209,7 @@ export function VisionBlock({
       onPress={onEdit}
       style={({ pressed }) => [styles.block, pressed && styles.pressed]}
       accessibilityRole="button"
-      accessibilityLabel="Edit arc vision"
+      accessibilityLabel={`Edit ${periodNoun} vision`}
     >
       <View style={styles.headRow}>
         <Text style={styles.eyebrow}>VISION</Text>
