@@ -149,7 +149,7 @@ export function AllZone({ counts, onJumpToZone, librarianSlot }: AllZoneProps) {
   const { data: concepts, isLoading: conceptsLoading } =
     useLifecycleConcepts(interestId);
   const { data: resources, isLoading: resourcesLoading } =
-    useLibraryResourcesPreview(PREVIEW_LIMIT);
+    useLibraryResourcesPreview(interestId, PREVIEW_LIMIT);
   const { data: catalog, isLoading: catalogLoading } =
     useDiscoverBlueprints(interestId);
   const { data: topOrgs, isLoading: orgsLoading } =

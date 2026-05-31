@@ -5,7 +5,8 @@
  * - plans     · plan_subscriptions where user owns subscription
  * - people    · user_follows where user follows N people
  * - concepts  · playbook_concepts visible to user (zero for null interest)
- * - resources · library_items the user owns
+ * - resources · library_items scoped to the active interest (tagged for it
+ *               OR untagged) so the count matches the "See all" zone
  *
  * All four queries run in parallel with a short stale window. Counts
  * undefined while loading — callers render the chip without a number.
@@ -53,17 +54,18 @@ export function useLibraryCounts(interestId?: string | null) {
               .eq('user_id', userId)
               .eq('interest_id', interestId)
           : Promise.resolve({ count: 0 }),
-        supabase
-          .from('library_items')
-          .select('id', { count: 'exact', head: true })
-          .eq('user_id', userId),
+        // Same RPC the preview + "See all" zone use, so the chip count
+        // agrees with the list ("tagged for this interest OR untagged").
+        supabase.rpc('library_items_for_interest', {
+          p_interest_id: interestId ?? null,
+        }),
       ]);
 
       return {
         plans: plansRes.count ?? 0,
         people: peopleRes.count ?? 0,
         concepts: conceptsRes.count ?? 0,
-        resources: resourcesRes.count ?? 0,
+        resources: ((resourcesRes.data ?? []) as unknown[]).length,
       };
     },
   });

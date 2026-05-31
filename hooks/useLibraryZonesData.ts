@@ -10,7 +10,7 @@
  *   - collections · library_collections rows with item count + format strip
  *
  * Scope: items where library_item_interests has a row for the active
- * interest OR no rows at all (matches the picker RPC semantics).
+ * interest OR no rows at all (via the library_items_for_interest RPC).
  */
 
 import { useQuery } from '@tanstack/react-query';
@@ -106,10 +106,10 @@ export function useLibraryZonesData(interestId: string | undefined) {
       };
       if (!userId) return empty;
 
-      // Picker RPC encodes the scoping rule we want everywhere else too:
+      // Filters to the scoping rule we want everywhere in Library:
       // "tagged for this interest OR completely untagged."
       const { data: items, error: itemsErr } = await supabase.rpc(
-        'library_items_for_picker',
+        'library_items_for_interest',
         { p_interest_id: interestId ?? null },
       );
       if (itemsErr) throw itemsErr;

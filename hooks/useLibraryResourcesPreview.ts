@@ -4,8 +4,9 @@
  *
  * Returns the user's saved resources sorted by most-recently-added,
  * mapped into the LibraryItemRow shape the Resources surface renders.
- * library_items has no interest scoping today, so this is user-scoped
- * only — that matches what the counts pill counts.
+ * Scoped through `library_items_for_interest` so the preview only shows
+ * items tagged for this interest OR completely untagged — otherwise a
+ * nursing resource would surface atop a Lac Craft Business library.
  */
 
 import { useQuery } from '@tanstack/react-query';
@@ -47,22 +48,21 @@ function formatRelative(iso: string | null): string | undefined {
   return new Date(iso).toLocaleDateString();
 }
 
-export function useLibraryResourcesPreview(limit = 3) {
+export function useLibraryResourcesPreview(interestId?: string | null, limit = 3) {
   const { user } = useAuth();
   const userId = user?.id;
 
   return useQuery<LibraryItemRow[]>({
-    queryKey: ['library-resources-preview', userId, limit],
+    queryKey: ['library-resources-preview', userId, interestId ?? null, limit],
     enabled: Boolean(userId),
     staleTime: 30_000,
     queryFn: async () => {
       if (!userId) return [];
-      const { data, error } = await supabase
-        .from('library_items')
-        .select('id, kind, title, source_label, captured_at')
-        .eq('user_id', userId)
-        .order('captured_at', { ascending: false })
-        .limit(limit);
+      // Same RPC the "See all" zone uses: filters to "tagged for this
+      // interest OR completely untagged", ordered by captured_at desc.
+      const { data, error } = await supabase.rpc('library_items_for_interest', {
+        p_interest_id: interestId ?? null,
+      });
       if (error) throw error;
       return ((data ?? []) as {
         id: string;
@@ -70,7 +70,9 @@ export function useLibraryResourcesPreview(limit = 3) {
         title: string;
         source_label: string | null;
         captured_at: string | null;
-      }[]).map<LibraryItemRow>((r) => ({
+      }[])
+        .slice(0, limit)
+        .map<LibraryItemRow>((r) => ({
         id: r.id,
         format: toFormat(r.kind),
         source: r.source_label ?? '',
