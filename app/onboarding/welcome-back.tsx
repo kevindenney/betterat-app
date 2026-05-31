@@ -56,6 +56,7 @@ function LogoAnimation() {
       -1,
       true
     );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const logoStyle = useAnimatedStyle(() => ({
@@ -112,7 +113,7 @@ export default function WelcomeBackScreen() {
   // Personalized greeting
   const greeting = cachedName
     ? `Welcome back, ${cachedName.split(' ')[0]}`
-    : 'Welcome back, sailor';
+    : 'Welcome back';
 
   return (
     <View style={styles.container}>
