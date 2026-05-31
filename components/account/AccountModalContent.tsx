@@ -7,11 +7,10 @@
  */
 
 import { Ionicons } from '@expo/vector-icons';
-import { router, useLocalSearchParams } from 'expo-router';
+import { router } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
-  LayoutChangeEvent,
   Linking,
   Modal,
   Platform,
@@ -59,11 +58,10 @@ interface ProfileUpdates {
 }
 
 export default function AccountModalContent() {
-  const { user, userProfile, signOut, updateUserProfile, isDemoSession, capabilities, coachProfile, addCapability, removeCapability } = useAuth();
+  const { user, userProfile, signOut, updateUserProfile, isDemoSession, capabilities, coachProfile, removeCapability } = useAuth();
   const { currentInterest } = useInterest();
   const { activeDomain } = useOrganization();
   const { vocab } = useVocabulary();
-  const params = useLocalSearchParams<{ section?: string }>();
   // User settings (tips, learning links, units)
   const { settings: userSettings } = useUserSettings(currentInterest?.slug);
   const insets = useSafeAreaInsets();
@@ -88,8 +86,6 @@ export default function AccountModalContent() {
   const [teamManagerVisible, setTeamManagerVisible] = useState(false);
   const [telegramLinked, setTelegramLinked] = useState<boolean | null>(null);
   const [telegramUsername, setTelegramUsername] = useState<string | null>(null);
-const [interestSectionY, setInterestSectionY] = useState<number>(0);
-  const [didAutoScrollInterest, setDidAutoScrollInterest] = useState(false);
 
   // Derived state
   const isDemoProfile = useMemo(
@@ -104,13 +100,6 @@ const [interestSectionY, setInterestSectionY] = useState<number>(0);
 
   // Check if user has a team subscription
   const isTeamSubscriber = userProfile?.subscription_tier === 'team';
-  const interestSlug = String(currentInterest?.slug || '').toLowerCase();
-  const isSailingInterest = interestSlug === 'sail-racing' || interestSlug.includes('sail');
-  const learningInsightsLabel = isSailingInterest
-    ? 'Race Learning Insights'
-    : `${vocab('Learning') || 'Learning'} Insights`;
-  const scrollToInterestRequested = String(params.section || '').toLowerCase() === 'interest';
-  const showInterestSettingsSection = Boolean(currentInterest);
   const showOrganizationAccessSetting =
     activeDomain === 'nursing' || String(currentInterest?.slug || '').toLowerCase() === 'nursing';
 
@@ -142,12 +131,6 @@ const [interestSectionY, setInterestSectionY] = useState<number>(0);
       void loadBoats();
     }
   }, [user?.id, loadBoats]);
-
-  useEffect(() => {
-    if (!scrollToInterestRequested || !showInterestSettingsSection || didAutoScrollInterest) return;
-    if (!interestSectionY) return;
-    setDidAutoScrollInterest(true);
-  }, [didAutoScrollInterest, interestSectionY, scrollToInterestRequested, showInterestSettingsSection]);
 
   // Load username from users table
   useEffect(() => {
@@ -404,13 +387,6 @@ const [interestSectionY, setInterestSectionY] = useState<number>(0);
       <ScrollView
         style={{ flex: 1 }}
         contentContainerStyle={accountStyles.scrollContent}
-        ref={(ref) => {
-          if (!ref || !scrollToInterestRequested || !showInterestSettingsSection || !interestSectionY || didAutoScrollInterest) return;
-          requestAnimationFrame(() => {
-            ref.scrollTo({ y: Math.max(interestSectionY - 16, 0), animated: true });
-            setDidAutoScrollInterest(true);
-          });
-        }}
       >
         {/* ── Profile Card ─────────────────────────────────────── */}
         <TufteProfileHeader
@@ -584,65 +560,15 @@ const [interestSectionY, setInterestSectionY] = useState<number>(0);
           />
         </IOSListSection>
 
-        {/* ── Interests ────────────────────────────────────────── */}
-        {showInterestSettingsSection && (
-          <View
-            onLayout={(event: LayoutChangeEvent) => setInterestSectionY(event.nativeEvent.layout.y)}
-          >
-            <IOSListSection header="Interests">
-              <IOSListItem
-                title="Current Interest"
-                leadingIcon="compass-outline"
-                leadingIconBackgroundColor={ICON_BACKGROUNDS.teal}
-                trailingAccessory="none"
-                trailingComponent={
-                  <View style={styles.interestValueWrap}>
-                    <View
-                      style={[
-                        styles.interestDot,
-                        { backgroundColor: currentInterest?.accent_color || IOS_COLORS.systemBlue },
-                      ]}
-                    />
-                    <Text style={accountStyles.trailingValueText}>{currentInterest?.name || 'Interest'}</Text>
-                  </View>
-                }
-              />
-              <IOSListItem
-                title="Manage Interests & Catalog"
-                leadingIcon="library-outline"
-                leadingIconBackgroundColor={ICON_BACKGROUNDS.blue}
-                trailingAccessory="chevron"
-                onPress={() => router.push('/catalog')}
-              />
-              {showOrganizationAccessSetting && (
-                <IOSListItem
-                  title="Organization Access"
-                  leadingIcon="business-outline"
-                  leadingIconBackgroundColor={ICON_BACKGROUNDS.purple}
-                  trailingAccessory="chevron"
-                  onPress={() => router.push('/settings/organization-access')}
-                />
-              )}
-            </IOSListSection>
-          </View>
-        )}
-
-        {/* ── My Learning (sailors only) ─────────────────────── */}
-        {userProfile?.user_type === 'sailor' && (
-          <IOSListSection header="My Learning">
+        {/* ── Organization Access (institutional orgs only) ────── */}
+        {showOrganizationAccessSetting && (
+          <IOSListSection header="Interests">
             <IOSListItem
-              title={learningInsightsLabel}
-              leadingIcon="analytics-outline"
-              leadingIconBackgroundColor={ICON_BACKGROUNDS.green}
+              title="Organization Access"
+              leadingIcon="business-outline"
+              leadingIconBackgroundColor={ICON_BACKGROUNDS.purple}
               trailingAccessory="chevron"
-              onPress={() => router.push('/my-learning')}
-            />
-            <IOSListItem
-              title="Connected Devices"
-              leadingIcon="bluetooth-outline"
-              leadingIconBackgroundColor={ICON_BACKGROUNDS.blue}
-              trailingAccessory="chevron"
-              onPress={() => router.push('/settings/connected-devices')}
+              onPress={() => router.push('/settings/organization-access')}
             />
           </IOSListSection>
         )}
@@ -696,55 +622,45 @@ const [interestSectionY, setInterestSectionY] = useState<number>(0);
           )}
         </IOSListSection>
 
-        {/* ── Coaching ─────────────────────────────────────────── */}
-        <IOSListSection header="Coaching">
-          {(capabilities?.hasCoaching || coachProfile?.profile_published) ? (
-            <>
+        {/* ── Coaching (only for users who already coach) ──────── */}
+        {(capabilities?.hasCoaching || coachProfile) && (
+          <IOSListSection header="Coaching">
+            {(capabilities?.hasCoaching || coachProfile?.profile_published) ? (
+              <>
+                <IOSListItem
+                  title="Coach Dashboard"
+                  leadingIcon="easel-outline"
+                  leadingIconBackgroundColor={ICON_BACKGROUNDS.purple}
+                  trailingAccessory="chevron"
+                  onPress={() => router.push('/(tabs)/coaching')}
+                />
+                <IOSListItem
+                  title="Edit Coach Profile"
+                  leadingIcon="person-circle-outline"
+                  leadingIconBackgroundColor={ICON_BACKGROUNDS.blue}
+                  trailingAccessory="chevron"
+                  onPress={() => router.push('/coach/profile-edit')}
+                />
+              </>
+            ) : (
+              // Has coach profile but not published - show resume onboarding
               <IOSListItem
-                title="Coach Dashboard"
-                leadingIcon="easel-outline"
-                leadingIconBackgroundColor={ICON_BACKGROUNDS.purple}
+                title="Complete Coach Setup"
+                leadingIcon="school-outline"
+                leadingIconBackgroundColor={ICON_BACKGROUNDS.orange}
                 trailingAccessory="chevron"
-                onPress={() => router.push('/(tabs)/coaching')}
+                onPress={() => router.push('/(auth)/coach-onboarding-profile-preview')}
               />
-              <IOSListItem
-                title="Edit Coach Profile"
-                leadingIcon="person-circle-outline"
-                leadingIconBackgroundColor={ICON_BACKGROUNDS.blue}
-                trailingAccessory="chevron"
-                onPress={() => router.push('/coach/profile-edit')}
-              />
-            </>
-          ) : coachProfile ? (
-            // Has coach profile but not published - show resume onboarding
-            <IOSListItem
-              title="Complete Coach Setup"
-              leadingIcon="school-outline"
-              leadingIconBackgroundColor={ICON_BACKGROUNDS.orange}
-              trailingAccessory="chevron"
-              onPress={() => router.push('/(auth)/coach-onboarding-profile-preview')}
-            />
-          ) : (
-            <IOSListItem
-              title="Become a Coach"
-              leadingIcon="school-outline"
-              leadingIconBackgroundColor={ICON_BACKGROUNDS.purple}
-              trailingAccessory="chevron"
-              onPress={() => router.push('/(auth)/coach-onboarding-welcome')}
-            />
-          )}
-        </IOSListSection>
+            )}
+          </IOSListSection>
+        )}
 
-        {/* ── Mentoring ────────────────────────────────────────── */}
-        <IOSListSection
-          header="Mentoring"
-          footer={
-            capabilities?.hasMentoring
-              ? `Other ${vocab('Peers')} see a MENTOR badge next to your name when they add people to a step.`
-              : `Offer to mentor other ${vocab('Peers')}. Adds a public MENTOR badge to your profile.`
-          }
-        >
-          {capabilities?.hasMentoring ? (
+        {/* ── Mentoring (only for users who already mentor) ────── */}
+        {capabilities?.hasMentoring && (
+          <IOSListSection
+            header="Mentoring"
+            footer={`Other ${vocab('Peers')} see a MENTOR badge next to your name when they add people to a step.`}
+          >
             <IOSListItem
               title="Stop offering mentoring"
               leadingIcon="people-outline"
@@ -765,22 +681,8 @@ const [interestSectionY, setInterestSectionY] = useState<number>(0);
                 );
               }}
             />
-          ) : (
-            <IOSListItem
-              title="Offer mentoring"
-              leadingIcon="people-outline"
-              leadingIconBackgroundColor={ICON_BACKGROUNDS.purple}
-              trailingAccessory="none"
-              onPress={async () => {
-                try {
-                  await addCapability('mentoring');
-                } catch {
-                  showAlert('Error', 'Could not update mentoring status. Please try again.');
-                }
-              }}
-            />
-          )}
-        </IOSListSection>
+          </IOSListSection>
+        )}
 
         {/* ── Support ─────────────────────────────────────────── */}
         <IOSListSection header="Support">
@@ -973,16 +875,6 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontWeight: '600',
     color: IOS_COLORS.systemBlue,
-  },
-  interestValueWrap: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  interestDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    marginRight: 8,
   },
   usernameEditRow: {
     flexDirection: 'row',

@@ -34,6 +34,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { router, usePathname } from 'expo-router';
 import { useAuth } from '@/providers/AuthProvider';
 import { useProfileMenuData, OrgMembership } from '@/hooks/useProfileMenuData';
+import { useInterest } from '@/providers/InterestProvider';
 import { IOS_COLORS, IOS_ANIMATIONS } from '@/lib/design-tokens-ios';
 import { triggerHaptic } from '@/lib/haptics';
 import { FEATURE_FLAGS } from '@/lib/featureFlags';
@@ -74,6 +75,7 @@ export function ProfileDropdown({
   const scale = useSharedValue(1);
   const menu = useProfileMenuData();
   const homeVenue = useUserHomeVenue();
+  const { switchInterest, userInterests } = useInterest();
 
   const isLoggedIn = !!user && !isGuest;
 
@@ -112,6 +114,38 @@ export function ProfileDropdown({
   const handleSignOut = async () => {
     setOpen(false);
     await signOut();
+  };
+  // Switch the active context to an org by switching to that org's interest
+  // (active-org is derived from the active interest; see useProfileMenuData).
+  // An org with no interest mapping can't be switched-to, so fall back to
+  // opening its page instead.
+  const handleSwitchToOrg = async (org: OrgMembership) => {
+    setOpen(false);
+    if (!org.interest_slug) {
+      if (org.org_slug) router.push(`/org/${org.org_slug}` as any);
+      return;
+    }
+    try {
+      await switchInterest(org.interest_slug);
+    } catch {
+      /* switch failures are non-fatal; menu just stays put */
+    }
+  };
+  // "Personal" isn't its own interest — it's the absence of an org mapping.
+  // Switching to it means jumping to the user's first interest not covered
+  // by any org membership.
+  const handleSwitchToPersonal = async () => {
+    setOpen(false);
+    const orgSlugs = new Set(
+      menu.memberships.map((m) => m.interest_slug).filter(Boolean) as string[],
+    );
+    const personal = userInterests.find((i) => !orgSlugs.has(i.slug));
+    if (!personal) return;
+    try {
+      await switchInterest(personal.slug);
+    } catch {
+      /* non-fatal */
+    }
   };
 
   return (
@@ -199,6 +233,8 @@ export function ProfileDropdown({
                 onNavigate={navigate}
                 onOpenVenuePicker={openVenuePicker}
                 onSignOut={handleSignOut}
+                onSwitchToOrg={handleSwitchToOrg}
+                onSwitchToPersonal={handleSwitchToPersonal}
               />
             ) : (
               <View style={s.guestMenu}>
@@ -261,6 +297,8 @@ function LoggedInMenu({
   onNavigate,
   onOpenVenuePicker,
   onSignOut,
+  onSwitchToOrg,
+  onSwitchToPersonal,
 }: {
   displayName: string;
   email: string | null;
@@ -272,6 +310,8 @@ function LoggedInMenu({
   onNavigate: (path: string) => void;
   onOpenVenuePicker: () => void;
   onSignOut: () => void;
+  onSwitchToOrg: (org: OrgMembership) => void;
+  onSwitchToPersonal: () => void;
 }) {
   const signOutLabel = menu.activeOrg
     ? `Sign out of ${menu.activeOrg.org_name.split(' ').slice(0, 2).join(' ')}`
@@ -289,7 +329,13 @@ function LoggedInMenu({
       />
 
       {menu.hasActiveOrg ? (
-        <RolesSection memberships={menu.memberships} activeOrg={menu.activeOrg} />
+        <RolesSection
+          memberships={menu.memberships}
+          activeOrg={menu.activeOrg}
+          onSwitchToOrg={onSwitchToOrg}
+          onSwitchToPersonal={onSwitchToPersonal}
+          onJoinOrg={() => onNavigate('/(tabs)/library?zone=orgs')}
+        />
       ) : (
         <PlanCardMini plan={menu.plan} />
       )}
@@ -316,15 +362,6 @@ function LoggedInMenu({
             />
           </>
         ) : null}
-        <ItemDivider />
-        <DropdownItem
-          icon="notifications-outline"
-          label="Notifications"
-          onPress={() => onNavigate('/notifications')}
-          trailing="count"
-          count={menu.counts.notifications}
-          countTone={menu.counts.notifications > 0 ? 'coral' : 'neutral'}
-        />
         {!menu.isAuthor && !menu.isAdmin && (
           <>
             <ItemDivider />
@@ -458,18 +495,29 @@ function PlanCardMini({
 function RolesSection({
   memberships,
   activeOrg,
+  onSwitchToOrg,
+  onSwitchToPersonal,
+  onJoinOrg,
 }: {
   memberships: OrgMembership[];
   activeOrg: OrgMembership | null;
+  onSwitchToOrg: (org: OrgMembership) => void;
+  onSwitchToPersonal: () => void;
+  onJoinOrg: () => void;
 }) {
   return (
     <View style={s.roles}>
       <Text style={s.rolesKey}>Signed in at</Text>
       {memberships.map((m) => (
-        <RoleCard key={m.org_id} membership={m} current={activeOrg?.org_id === m.org_id} />
+        <RoleCard
+          key={m.org_id}
+          membership={m}
+          current={activeOrg?.org_id === m.org_id}
+          onPress={() => onSwitchToOrg(m)}
+        />
       ))}
-      <PersonalRoleCard active={!activeOrg} />
-      <Pressable style={s.joinRow}>
+      <PersonalRoleCard active={!activeOrg} onPress={onSwitchToPersonal} />
+      <Pressable style={s.joinRow} onPress={onJoinOrg}>
         <Ionicons name="add" size={14} color={IOS_COLORS.systemBlue} />
         <Text style={s.joinText}>Join another organization</Text>
       </Pressable>
@@ -477,7 +525,15 @@ function RolesSection({
   );
 }
 
-function RoleCard({ membership, current }: { membership: OrgMembership; current: boolean }) {
+function RoleCard({
+  membership,
+  current,
+  onPress,
+}: {
+  membership: OrgMembership;
+  current: boolean;
+  onPress: () => void;
+}) {
   const pillTone = membership.is_admin
     ? 'admin'
     : membership.is_faculty
@@ -489,7 +545,12 @@ function RoleCard({ membership, current }: { membership: OrgMembership; current:
     ? 'Faculty'
     : 'Member';
   return (
-    <Pressable style={[s.roleCard, current && s.roleCardOn]}>
+    <Pressable
+      style={({ pressed }: any) => [s.roleCard, current && s.roleCardOn, pressed && s.roleCardPressed]}
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={`Switch to ${membership.org_name}`}
+    >
       <View style={s.roleMono}>
         <Text style={s.roleMonoText}>{membership.org_short_name}</Text>
       </View>
@@ -515,9 +576,14 @@ function RoleCard({ membership, current }: { membership: OrgMembership; current:
   );
 }
 
-function PersonalRoleCard({ active }: { active: boolean }) {
+function PersonalRoleCard({ active, onPress }: { active: boolean; onPress: () => void }) {
   return (
-    <Pressable style={[s.roleCard, active && s.roleCardOn]}>
+    <Pressable
+      style={({ pressed }: any) => [s.roleCard, active && s.roleCardOn, pressed && s.roleCardPressed]}
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel="Switch to personal practice"
+    >
       <View style={[s.roleMono, s.roleMonoSolo]}>
         <Text style={s.roleMonoTextSolo}>·</Text>
       </View>
@@ -896,6 +962,7 @@ const s = StyleSheet.create({
     backgroundColor: 'rgba(0, 122, 255, 0.06)',
     borderColor: 'rgba(0, 122, 255, 0.30)',
   },
+  roleCardPressed: { opacity: 0.6 },
   roleMono: {
     width: 28,
     height: 28,

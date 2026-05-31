@@ -17,6 +17,7 @@ import { useInterest } from '@/providers/InterestProvider';
 
 export interface OrgMembership {
   org_id: string;
+  org_slug: string | null;
   org_name: string;
   org_short_name: string;     // 2-letter mono badge (e.g. "JH")
   interest_slug: string | null;
@@ -36,7 +37,6 @@ export interface ProfileMenuData {
   isAuthor: boolean;
   isSolo: boolean;
   counts: {
-    notifications: number;
     subscribedBlueprints: number;
     authoredBlueprints: number;
     cohortsMentored: number;
@@ -91,7 +91,7 @@ export function useProfileMenuData(): ProfileMenuData {
       const { data, error } = await supabase
         .from('organization_memberships')
         .select(
-          'organization_id, role, status, membership_status, organizations!inner(id, name, interest_slug)',
+          'organization_id, role, status, membership_status, organizations!inner(id, name, slug, interest_slug)',
         )
         .eq('user_id', userId);
 
@@ -108,7 +108,7 @@ export function useProfileMenuData(): ProfileMenuData {
         role: string | null;
         status: string | null;
         membership_status: string | null;
-        organizations: { id: string; name: string; interest_slug: string | null } | null;
+        organizations: { id: string; name: string; slug: string | null; interest_slug: string | null } | null;
       }[];
 
       return rows
@@ -122,6 +122,7 @@ export function useProfileMenuData(): ProfileMenuData {
           const orgName = r.organizations?.name ?? 'Organization';
           return {
             org_id: r.organization_id,
+            org_slug: r.organizations?.slug ?? null,
             org_name: orgName,
             org_short_name: shortNameFor(orgName),
             interest_slug: r.organizations?.interest_slug ?? null,
@@ -152,26 +153,6 @@ export function useProfileMenuData(): ProfileMenuData {
   // of this design (Frame 2 caption: "Faculty · author · mentor").
   const isAuthor = !!activeOrg?.is_author || isFaculty;
   const isSolo = memberships.length === 0;
-
-  // Unread social_notifications for the signed-in user
-  const { data: notificationsCount = 0 } = useQuery({
-    queryKey: ['profile-menu-notifications', userId],
-    enabled: !!userId,
-    staleTime: 30_000,
-    queryFn: async (): Promise<number> => {
-      if (!userId) return 0;
-      const { count, error } = await supabase
-        .from('social_notifications')
-        .select('id', { count: 'exact', head: true })
-        .eq('user_id', userId)
-        .eq('is_read', false);
-      if (error) {
-        console.warn('[useProfileMenuData] notifications count failed', error);
-        return 0;
-      }
-      return count ?? 0;
-    },
-  });
 
   // "Subscribed blueprints" count — must source from the same table the
   // Library Plans zone renders (blueprint_subscriptions), else the badge
@@ -262,7 +243,6 @@ export function useProfileMenuData(): ProfileMenuData {
   // authoredBlueprints stays 0 — no blueprints table in the schema yet. Wire
   // when the table lands.
   const counts = {
-    notifications: notificationsCount,
     subscribedBlueprints: subscribedBlueprintsCount,
     authoredBlueprints: 0,
     cohortsMentored: cohortsMentoredCount,
