@@ -7,6 +7,8 @@ import { useAuth } from '@/providers/AuthProvider';
 import { useBlueprintSubscribers, useBlueprintCoSubscriberProgress, useBlueprintWithAuthor } from '@/hooks/useBlueprint';
 import { CrewFinderService } from '@/services/CrewFinderService';
 import { FilterStrip } from '@/components/timelines';
+import { useInterest } from '@/providers/InterestProvider';
+import { getVisibilityLabels } from '@/lib/vocabulary';
 
 type FleetFilter = 'all' | 'fleet' | 'in-progress' | 'settled';
 
@@ -68,7 +70,12 @@ function peerActivityLine({
 
 export function CoPractitionerList({ blueprintId }: { blueprintId: string }) {
   const { user } = useAuth();
+  const { allInterests, currentInterest } = useInterest();
   const { data: blueprint } = useBlueprintWithAuthor(blueprintId);
+  const fleetLabel = getVisibilityLabels(
+    allInterests.find((i) => i.id === (blueprint as { interest_id?: string } | null)?.interest_id)
+      ?.slug ?? currentInterest?.slug,
+  ).fleet.toLowerCase();
   const { data: subscribers = [], isLoading: loadingSubscribers } = useBlueprintSubscribers(blueprintId);
   const { data: progress = [], isLoading: loadingProgress } = useBlueprintCoSubscriberProgress(blueprintId);
   const { data: fleetMateIds = [] } = useQuery({
@@ -161,7 +168,7 @@ export function CoPractitionerList({ blueprintId }: { blueprintId: string }) {
       <FilterStrip
         options={[
           { key: 'all', label: `All ${counts.all}` },
-          { key: 'fleet', label: `In your fleet ${counts.fleet}` },
+          { key: 'fleet', label: `In your ${fleetLabel} ${counts.fleet}` },
           { key: 'in-progress', label: `In progress ${counts.inProgress}` },
           { key: 'settled', label: `Settled ${counts.settled}` },
         ]}
@@ -173,7 +180,7 @@ export function CoPractitionerList({ blueprintId }: { blueprintId: string }) {
         {visiblePeers.length === 0 ? (
           <Text style={styles.empty}>
             {filter === 'fleet'
-              ? 'No co-practitioners from your fleet yet.'
+              ? `No co-practitioners from your ${fleetLabel} yet.`
               : filter === 'in-progress'
                 ? "Nobody's actively working through this right now."
                 : filter === 'settled'

@@ -34,6 +34,8 @@ import {
   QuickCaptureComposer,
   type QuickCaptureSubmitPayload,
 } from './QuickCaptureComposer';
+import { useInterest } from '@/providers/InterestProvider';
+import { getVisibilityLabels } from '@/lib/vocabulary';
 
 const VOICE_SUPPORTED = Platform.OS !== 'web';
 
@@ -60,6 +62,8 @@ export function UniversalPlusSheet({
   onShareIdea,
   testID,
 }: UniversalPlusSheetProps) {
+  const { currentInterest } = useInterest();
+  const crewLabel = getVisibilityLabels(currentInterest?.slug).crew.toLowerCase();
   const [draftText, setDraftText] = React.useState('');
 
   React.useEffect(() => {
@@ -114,7 +118,7 @@ export function UniversalPlusSheet({
                 <MenuRow
                   icon="share-3"
                   tint="green"
-                  title="An idea, publicly or with crew"
+                  title={`An idea, publicly or with ${crewLabel}`}
                   subtitle="Opens the share composer"
                   onPress={onShareIdea}
                 />
