@@ -191,8 +191,7 @@ export default function WatchScreen() {
             <Ionicons name="people-outline" size={28} color={IOS_COLORS.tertiaryLabel} />
             <Text style={styles.emptyTitle}>Nothing to watch yet</Text>
             <Text style={styles.emptyCopy}>
-              Follow people from Discover and their step activity will appear
-              here.
+              Follow people and their step activity will appear here.
             </Text>
             <Pressable
               style={styles.emptyAction}

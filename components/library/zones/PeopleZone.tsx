@@ -34,7 +34,7 @@ export function PeopleZone() {
         <Ionicons name="people-outline" size={28} color={IOS_COLORS.tertiaryLabel} />
         <Text style={styles.emptyTitle}>Not following anyone yet</Text>
         <Text style={styles.emptyBlurb}>
-          Follow {vocab('Peers')} and {vocab('Coaches').toLowerCase()} from Discover, and
+          Follow {vocab('Peers')} and {vocab('Coaches').toLowerCase()} from Watch, and
           their timelines will surface here with the latest thing they've done.
         </Text>
       </View>

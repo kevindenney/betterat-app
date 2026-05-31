@@ -38,7 +38,7 @@ export function PlansZone() {
         <Ionicons name="map-outline" size={28} color={IOS_COLORS.tertiaryLabel} />
         <Text style={styles.emptyTitle}>No Blueprints yet</Text>
         <Text style={styles.emptyBlurb}>
-          Subscribe to a coach-bundled Blueprint from Discover, and it'll
+          Subscribe to a coach-bundled Blueprint from the stacks, and it'll
           land here with subscribers and resources.
         </Text>
       </View>
