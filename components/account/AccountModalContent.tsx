@@ -740,8 +740,8 @@ const [interestSectionY, setInterestSectionY] = useState<number>(0);
           header="Mentoring"
           footer={
             capabilities?.hasMentoring
-              ? 'Other sailors see a MENTOR badge next to your name when they add people to a step.'
-              : 'Offer to mentor other sailors. Adds a public MENTOR badge to your profile.'
+              ? `Other ${vocab('Peers')} see a MENTOR badge next to your name when they add people to a step.`
+              : `Offer to mentor other ${vocab('Peers')}. Adds a public MENTOR badge to your profile.`
           }
         >
           {capabilities?.hasMentoring ? (
@@ -829,7 +829,7 @@ const [interestSectionY, setInterestSectionY] = useState<number>(0);
         {/* ── App Info Footer ──────────────────────────────────── */}
         <View style={accountStyles.appInfo}>
           <Text style={accountStyles.appInfoText}>BetterAt v1.0.0</Text>
-          <Text style={accountStyles.appInfoText}>2024 BetterAt Inc.</Text>
+          <Text style={accountStyles.appInfoText}>© {new Date().getFullYear()} BetterAt Inc.</Text>
         </View>
       </ScrollView>
 
