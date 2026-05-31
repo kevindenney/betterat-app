@@ -13,6 +13,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/services/supabase';
 import { useAuth } from '@/providers/AuthProvider';
+import { useInterest } from '@/providers/InterestProvider';
 
 export interface OrgMembership {
   org_id: string;
@@ -133,10 +134,17 @@ export function useProfileMenuData(): ProfileMenuData {
     },
   });
 
-  // The "active" org is currently the first active membership. Once the
-  // role-switcher (Frame 2 "role-card on") is wired to local state, this
-  // resolves from a stored preference per session.
-  const activeOrg = memberships[0] ?? null;
+  // The active org follows the active interest: an org is "current" only
+  // when its interest_slug matches the interest the user is viewing (e.g.
+  // viewing Sail Racing → HKDA, not Johns Hopkins). When no org covers the
+  // active interest, the user is in their Personal context (activeOrg null),
+  // so the menu never shows a mismatched org banner / sign-out target.
+  const { currentInterest } = useInterest();
+  const activeInterestSlug = currentInterest?.slug ?? null;
+  const activeOrg =
+    (activeInterestSlug
+      ? memberships.find((m) => m.interest_slug === activeInterestSlug)
+      : undefined) ?? null;
 
   const isAdmin = !!activeOrg?.is_admin;
   const isFaculty = !!activeOrg?.is_faculty;
