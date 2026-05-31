@@ -51,10 +51,10 @@ function trimmedPreview(body: string): string {
   return compact.slice(0, PREVIEW_CHARS - 1).trimEnd() + '…';
 }
 
-export function useCohortStream() {
+export function useCohortStream(interestId?: string | null) {
   const { user } = useAuth();
   return useQuery({
-    queryKey: ['cohort-stream', user?.id ?? 'anon'],
+    queryKey: ['cohort-stream', user?.id ?? 'anon', interestId ?? null],
     enabled: Boolean(user?.id),
     staleTime: STALE_MS,
     queryFn: async (): Promise<CohortStreamItem[]> => {
@@ -101,6 +101,34 @@ export function useCohortStream() {
         blueprintStepIds.map((r) => [r.id, r.step_id]),
       );
 
+      // 2b. Scope to the active interest via the canonical step's interest.
+      //     The viewer's subscriptions span every interest they're on, so
+      //     without this the feed pools (e.g.) nursing cohort posts atop a
+      //     Lac Craft Business surface. Blueprints carry no interest_id, but
+      //     blueprint_steps.step_id → timeline_steps.interest_id does.
+      let scopedBlueprintStepIds = idsOnly;
+      if (interestId) {
+        const canonicalIds = Array.from(
+          new Set(blueprintStepIds.map((r) => r.step_id).filter(Boolean)),
+        );
+        const { data: stepInterests } = canonicalIds.length
+          ? await supabase
+              .from('timeline_steps')
+              .select('id, interest_id')
+              .in('id', canonicalIds)
+          : { data: [] as { id: string; interest_id: string | null }[] };
+        const interestByStepId = new Map(
+          ((stepInterests ?? []) as { id: string; interest_id: string | null }[]).map(
+            (r) => [r.id, r.interest_id],
+          ),
+        );
+        scopedBlueprintStepIds = idsOnly.filter((bsId) => {
+          const stepId = canonicalStepIdByBlueprintStepId.get(bsId);
+          return stepId != null && interestByStepId.get(stepId) === interestId;
+        });
+        if (scopedBlueprintStepIds.length === 0) return [];
+      }
+
       // 3. Recent cohort posts on those blueprint_steps, excluding
       //    the viewer's own posts.
       const { data: discussions } = await supabase
@@ -108,7 +136,7 @@ export function useCohortStream() {
         .select(
           'id, blueprint_step_id, user_id, body, created_at',
         )
-        .in('blueprint_step_id', idsOnly)
+        .in('blueprint_step_id', scopedBlueprintStepIds)
         .not('blueprint_step_id', 'is', null)
         .neq('user_id', viewerId)
         .order('created_at', { ascending: false })

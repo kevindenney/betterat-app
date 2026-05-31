@@ -105,7 +105,7 @@ export default function WatchScreen() {
   };
 
   const { data: feed = [], isLoading } = useFollowedStepsFeed(user?.id ?? null);
-  const { data: cohortStream = [] } = useCohortStream();
+  const { data: cohortStream = [] } = useCohortStream(currentInterest?.id);
 
   const hasFeed = feed.length > 0;
   const hasCohort = cohortStream.length > 0;
