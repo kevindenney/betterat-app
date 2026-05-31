@@ -9,7 +9,8 @@ import {
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useUserSettings, UnitSystem, UNIT_LABELS } from '@/hooks/useUserSettings';
+import { useUserSettings, UnitSystem } from '@/hooks/useUserSettings';
+import { useInterest } from '@/providers/InterestProvider';
 
 interface UnitOptionProps {
   value: UnitSystem;
@@ -41,12 +42,13 @@ const UnitOption: React.FC<UnitOptionProps> = ({
   </TouchableOpacity>
 );
 
-const UNIT_OPTIONS: { value: UnitSystem; label: string; description: string }[] = [
-  {
-    value: 'nautical',
-    label: 'Nautical',
-    description: 'Distance in nautical miles (nm), speed in knots (kts). Standard for sailing.',
-  },
+const NAUTICAL_OPTION = {
+  value: 'nautical' as UnitSystem,
+  label: 'Nautical',
+  description: 'Distance in nautical miles (nm), speed in knots (kts). Used in sailing and aviation.',
+};
+
+const BASE_UNIT_OPTIONS: { value: UnitSystem; label: string; description: string }[] = [
   {
     value: 'metric',
     label: 'Metric',
@@ -62,6 +64,18 @@ const UNIT_OPTIONS: { value: UnitSystem; label: string; description: string }[] 
 export default function UnitsScreen() {
   const router = useRouter();
   const { settings, updateSetting } = useUserSettings();
+  const { currentInterest } = useInterest();
+
+  // Nautical units are only meaningful for sailing/maritime interests. Show the
+  // option when the active interest is sailing, or when it's the user's current
+  // selection (so a prior choice stays visible/changeable from any interest).
+  const interestSlug = String(currentInterest?.slug || '').toLowerCase();
+  const isSailingInterest = interestSlug.includes('sail');
+  const showNautical = isSailingInterest || settings.units === 'nautical';
+
+  const unitOptions = showNautical
+    ? [NAUTICAL_OPTION, ...BASE_UNIT_OPTIONS]
+    : BASE_UNIT_OPTIONS;
 
   const handleSelect = async (value: UnitSystem) => {
     await updateSetting('units', value);
@@ -87,7 +101,7 @@ export default function UnitsScreen() {
 
         {/* Options */}
         <View style={styles.optionsContainer}>
-          {UNIT_OPTIONS.map((option) => (
+          {unitOptions.map((option) => (
             <UnitOption
               key={option.value}
               value={option.value}
