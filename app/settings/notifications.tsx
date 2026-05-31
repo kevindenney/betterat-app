@@ -438,7 +438,7 @@ export default function NotificationsScreen(): React.ReactElement {
   if (loading || !notifPrefs) {
     return (
       <>
-        <Stack.Screen options={{ title: 'Notifications', headerBackTitle: 'Settings' }} />
+        <Stack.Screen options={{ title: 'Notifications', headerBackTitle: 'Settings', headerShown: true }} />
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={IOS_COLORS.systemBlue} />
         </View>
@@ -448,7 +448,7 @@ export default function NotificationsScreen(): React.ReactElement {
 
   return (
     <>
-      <Stack.Screen options={{ title: 'Notifications', headerBackTitle: 'Settings' }} />
+      <Stack.Screen options={{ title: 'Notifications', headerBackTitle: 'Settings', headerShown: true }} />
 
       <ScrollView
         style={styles.container}
