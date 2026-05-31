@@ -126,7 +126,6 @@ export function DoTabInterior({
 }: DoTabInteriorProps) {
   const beats = useStepBeatsBinding(stepId);
   const library = useLibraryBeforeBinding(stepId, interestId);
-  const hasCaptures = captures.some((capture) => capture.kind !== 'time_marker');
   const beatsList = (
     <BeatsList
       beats={beats.beats}
@@ -246,7 +245,7 @@ export function DoTabInterior({
           onTagCapture={onTagCapture}
         />
         {outcomeCard}
-        {hasCaptures && onMoveToReflect && !readOnly ? (
+        {onMoveToReflect && !readOnly ? (
           <MoveToReviewCTA onPress={onMoveToReflect} />
         ) : null}
         {libraryCard}

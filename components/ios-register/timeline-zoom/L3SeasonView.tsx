@@ -636,7 +636,15 @@ function DraggableCardSlot({
             <Ionicons name="checkmark" size={14} color="#FFFFFF" />
           ) : null}
         </View>
-      ) : null}
+      ) : (
+        <View style={styles.dragHandle} pointerEvents="none">
+          <Ionicons
+            name="reorder-three-outline"
+            size={16}
+            color={IOS_REGISTER.labelTertiary}
+          />
+        </View>
+      )}
     </Animated.View>
   );
 
@@ -1078,6 +1086,12 @@ const styles = StyleSheet.create({
   selectBadgeOn: {
     backgroundColor: IOS_REGISTER.accentUserAction,
     borderColor: IOS_REGISTER.accentUserAction,
+  },
+  dragHandle: {
+    position: 'absolute',
+    top: 6,
+    right: 8,
+    opacity: 0.5,
   },
   // D6 anchor strip — horizontal scrolling row of persona-tuned time
   // pegs falling inside the season. Sits below VISION and above the

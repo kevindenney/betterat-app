@@ -20,7 +20,7 @@
  */
 
 import React, { useEffect } from 'react';
-import { Platform, Pressable, StyleSheet, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -30,7 +30,11 @@ import Svg, { Circle, Path, Rect } from 'react-native-svg';
 
 import { IOS_COLORS, IOS_REGISTER } from '@/lib/design-tokens-ios';
 import { triggerHaptic } from '@/lib/haptics';
-import { ZOOM_LEVEL_SCOPE_LABELS, type ZoomLevel } from './types';
+import {
+  ZOOM_LEVEL_LABELS,
+  ZOOM_LEVEL_SCOPE_LABELS,
+  type ZoomLevel,
+} from './types';
 
 interface ZoomLevelPickerProps {
   level: ZoomLevel;
@@ -104,11 +108,13 @@ function RailSegment({
   active,
   onPress,
   scopeLabel,
+  label,
 }: {
   level: ZoomLevel;
   active: boolean;
   onPress: () => void;
   scopeLabel: string;
+  label: string;
 }) {
   const scale = useSharedValue(active ? 1 : 0.88);
 
@@ -140,6 +146,13 @@ function RailSegment({
       <Animated.View style={glyphStyle}>
         <LevelGlyph level={level} color={tint} />
       </Animated.View>
+      <Text
+        style={[styles.segmentLabel, active && styles.segmentLabelActive]}
+        numberOfLines={1}
+        allowFontScaling={false}
+      >
+        {label}
+      </Text>
     </Pressable>
   );
 }
@@ -153,6 +166,8 @@ export function ZoomLevelPicker({
 }: ZoomLevelPickerProps) {
   const scopeLabelFor = (l: ZoomLevel) =>
     l === 3 ? `Current ${periodNoun}` : ZOOM_LEVEL_SCOPE_LABELS[l];
+  const labelFor = (l: ZoomLevel) =>
+    l === 3 && periodNoun ? periodNoun.toUpperCase() : ZOOM_LEVEL_LABELS[l];
   const handlePress = (target: ZoomLevel) => {
     if (target === level) {
       if (target === 1 && onSnapToCurrent) {
@@ -179,6 +194,7 @@ export function ZoomLevelPicker({
             active={l === level}
             onPress={() => handlePress(l)}
             scopeLabel={scopeLabelFor(l)}
+            label={labelFor(l)}
           />
         ))}
       </View>
@@ -219,6 +235,16 @@ const styles = StyleSheet.create({
     borderRadius: SEGMENT_SIZE / 2,
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 1,
+  },
+  segmentLabel: {
+    fontSize: 8.5,
+    fontWeight: '700',
+    letterSpacing: 0.6,
+    color: IOS_REGISTER.labelSecondary,
+  },
+  segmentLabelActive: {
+    color: IOS_COLORS.systemBlue,
   },
   segmentActive: {
     backgroundColor: 'rgba(0, 122, 255, 0.14)',
