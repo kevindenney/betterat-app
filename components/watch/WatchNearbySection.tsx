@@ -28,6 +28,9 @@ interface WatchNearbySectionProps {
   homeVenueLat: number | null;
   homeVenueLng: number | null;
   homeVenueLabel: string | null;
+  /** Active interest slug — scopes the feed so a Golf user doesn't see
+   *  sailing pins. Null = no interest filter (all visible peers). */
+  interestSlug: string | null;
 }
 
 const RELATIONSHIP_META: Record<
@@ -61,6 +64,7 @@ export function WatchNearbySection({
   homeVenueLat,
   homeVenueLng,
   homeVenueLabel,
+  interestSlug,
 }: WatchNearbySectionProps) {
   const hasVenue = homeVenueLat != null && homeVenueLng != null;
 
@@ -68,6 +72,7 @@ export function WatchNearbySection({
     lat: homeVenueLat,
     lng: homeVenueLng,
     radiusKm: 25,
+    interestSlug,
     enabled: hasVenue,
   });
 
@@ -85,7 +90,7 @@ export function WatchNearbySection({
         <Ionicons name="location-outline" size={28} color={IOS_COLORS.tertiaryLabel} />
         <Text style={styles.emptyTitle}>Set a home venue</Text>
         <Text style={styles.emptyCopy}>
-          Nearby surfaces sailors working steps around your home venue. Add
+          Nearby surfaces people working steps around your home base. Add
           one in settings to light up this feed.
         </Text>
       </View>
@@ -102,8 +107,7 @@ export function WatchNearbySection({
         <Ionicons name="locate-outline" size={28} color={IOS_COLORS.tertiaryLabel} />
         <Text style={styles.emptyTitle}>Quiet around {homeVenueLabel ?? 'you'}</Text>
         <Text style={styles.emptyCopy}>
-          Nobody nearby is working a step right now. Check back as the next
-          race weekend approaches.
+          Nobody nearby is working a step right now. Check back soon.
         </Text>
       </View>
     );
@@ -128,7 +132,7 @@ function NearbyStepCard({ step }: { step: AtlasPeerStep }) {
   const handlePress = () => {
     router.push(`/step/${step.step_id}` as never);
   };
-  const previewName = step.preview_name ?? 'A sailor nearby';
+  const previewName = step.preview_name ?? 'Someone nearby';
   return (
     <Pressable style={styles.card} onPress={handlePress}>
       <View style={styles.cardHeader}>

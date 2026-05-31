@@ -202,6 +202,7 @@ export default function WatchScreen() {
             homeVenueLat={homeVenue?.lat ?? null}
             homeVenueLng={homeVenue?.lng ?? null}
             homeVenueLabel={homeVenue?.venue ?? homeVenue?.region ?? null}
+            interestSlug={currentInterest?.slug ?? null}
           />
         ) : isLoading ? (
           <Text style={styles.emptyCopy}>Loading…</Text>
