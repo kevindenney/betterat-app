@@ -104,7 +104,10 @@ export default function WatchScreen() {
     });
   };
 
-  const { data: feed = [], isLoading } = useFollowedStepsFeed(user?.id ?? null);
+  const { data: feed = [], isLoading } = useFollowedStepsFeed(
+    user?.id ?? null,
+    currentInterest?.id,
+  );
   const { data: cohortStream = [] } = useCohortStream(currentInterest?.id);
 
   const hasFeed = feed.length > 0;

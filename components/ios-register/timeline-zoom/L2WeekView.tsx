@@ -493,7 +493,7 @@ export function L2WeekView({
       >
         <View style={styles.sequenceWrap}>
           {steps.length === 0 ? (
-            <EmptyWeekInline />
+            <EmptyWeekInline periodNoun={vocab.periodNoun} />
           ) : (
             <>
               <View style={styles.contextCard}>
@@ -1313,7 +1313,7 @@ function InsertBetweenStepsSheet({
   );
 }
 
-function EmptyWeekInline() {
+function EmptyWeekInline({ periodNoun }: { periodNoun: string }) {
   const universalPlus = useUniversalPlus();
   return (
     <View style={styles.emptyInline}>
@@ -1322,7 +1322,7 @@ function EmptyWeekInline() {
       </View>
       <Text style={styles.emptyTitle}>No nearby steps</Text>
       <Text style={styles.emptyBody}>
-        Add a step to start building your season run.
+        Add a step to start building your {periodNoun}.
       </Text>
       {universalPlus.isAvailable ? (
         <Pressable style={styles.emptyCta} onPress={universalPlus.open}>

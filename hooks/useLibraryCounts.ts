@@ -23,6 +23,33 @@ interface LibraryCounts {
   resources: number;
 }
 
+// Counts subscriptions whose published blueprint matches the active
+// interest — the same scope useSubscribedPlansForLibrary applies to its
+// list, so the chip count and the list never disagree. With no interest,
+// counts every published subscribed blueprint (the list does the same).
+async function countSubscribedPlans(
+  userId: string,
+  interestId: string | null,
+): Promise<number> {
+  const { data: subs } = await supabase
+    .from('blueprint_subscriptions')
+    .select('blueprint_id')
+    .eq('subscriber_id', userId);
+  const blueprintIds = ((subs ?? []) as { blueprint_id: string }[]).map(
+    (s) => s.blueprint_id,
+  );
+  if (blueprintIds.length === 0) return 0;
+
+  let bpQuery = supabase
+    .from('timeline_blueprints')
+    .select('id', { count: 'exact', head: true })
+    .in('id', blueprintIds)
+    .eq('is_published', true);
+  if (interestId) bpQuery = bpQuery.eq('interest_id', interestId);
+  const { count } = await bpQuery;
+  return count ?? 0;
+}
+
 export function useLibraryCounts(interestId?: string | null) {
   const { user } = useAuth();
   const userId = user?.id;
@@ -34,13 +61,12 @@ export function useLibraryCounts(interestId?: string | null) {
     queryFn: async () => {
       if (!userId) return { plans: 0, people: 0, concepts: 0, resources: 0 };
 
-      const [plansRes, peopleRes, conceptsRes, resourcesRes] = await Promise.all([
-        // Real data still flows through blueprint_subscriptions; plan_subscriptions
-        // is the Wave 1 schema for future migration.
-        supabase
-          .from('blueprint_subscriptions')
-          .select('id', { count: 'exact', head: true })
-          .eq('subscriber_id', userId),
+      const [plansCount, peopleRes, conceptsRes, resourcesRes] = await Promise.all([
+        // Mirror useSubscribedPlansForLibrary so the chip count agrees with
+        // the Plans list: subscriptions whose published blueprint matches the
+        // active interest. A bare blueprint_subscriptions count ignores the
+        // interest scope and overstates the chip ("See all 4" over a 2-row list).
+        countSubscribedPlans(userId, interestId ?? null),
         supabase
           .from('user_follows')
           .select('id', { count: 'exact', head: true })
@@ -62,7 +88,7 @@ export function useLibraryCounts(interestId?: string | null) {
       ]);
 
       return {
-        plans: plansRes.count ?? 0,
+        plans: plansCount,
         people: peopleRes.count ?? 0,
         concepts: conceptsRes.count ?? 0,
         resources: ((resourcesRes.data ?? []) as unknown[]).length,
