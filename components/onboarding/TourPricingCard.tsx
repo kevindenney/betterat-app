@@ -55,6 +55,12 @@ export interface TourPricingCardProps {
   onContinueFree: () => void;
   /** If true, hide the backdrop (for standalone use outside the tour) */
   standalone?: boolean;
+  /**
+   * When provided, renders a dismiss (X) button so the sheet can be closed
+   * without choosing a plan — used when opened from Settings, where this is a
+   * browse-only view, not a required onboarding gate.
+   */
+  onClose?: () => void;
 }
 
 export function TourPricingCard({
@@ -62,6 +68,7 @@ export function TourPricingCard({
   onStartTrial,
   onContinueFree,
   standalone = false,
+  onClose,
 }: TourPricingCardProps) {
   const { width, height } = useWindowDimensions();
 
@@ -71,6 +78,17 @@ export function TourPricingCard({
 
   const content = (
     <View style={[styles.card, { width: cardWidth, maxHeight: height * 0.85 }]}>
+      {onClose && (
+        <TouchableOpacity
+          style={styles.closeButton}
+          onPress={onClose}
+          accessibilityRole="button"
+          accessibilityLabel="Close"
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <Ionicons name="close" size={22} color="#64748B" />
+        </TouchableOpacity>
+      )}
       <Text style={styles.title}>Choose your plan</Text>
       <Text style={styles.subtitle}>
         Start with a 14-day free trial of all features.
@@ -278,13 +296,25 @@ const styles = StyleSheet.create({
   },
   freeButton: {
     paddingHorizontal: 20,
-    paddingVertical: 10,
+    paddingVertical: 12,
     marginBottom: 4,
+    width: '100%',
+    alignItems: 'center',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
   },
   freeButtonText: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '600',
-    color: '#64748B',
+    color: '#475569',
+  },
+  closeButton: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    zIndex: 2,
+    padding: 4,
   },
   trustLine: {
     fontSize: 12,

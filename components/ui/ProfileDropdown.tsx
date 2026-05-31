@@ -16,7 +16,7 @@
  * useProfileMenuData().
  */
 
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -24,6 +24,8 @@ import {
   Image,
   StyleSheet,
   Platform,
+  Modal,
+  useWindowDimensions,
 } from 'react-native';
 import Animated, {
   useSharedValue,
@@ -73,6 +75,30 @@ export function ProfileDropdown({
   const [venuePickerOpen, setVenuePickerOpen] = useState(false);
   const [imageFailed, setImageFailed] = useState(false);
   const scale = useSharedValue(1);
+  const { width: windowWidth } = useWindowDimensions();
+  // On native the inline-absolute menu is trapped in the chrome's stacking
+  // context, so later sibling overlays (e.g. Atlas's "Nearby" pill) paint on
+  // top of it. Rendering the open menu in a Modal lets it escape that context
+  // and overlay everything; we measure the avatar to re-anchor it. Web already
+  // escapes via position:fixed, so it keeps the inline path.
+  const containerRef = useRef<View>(null);
+  const [anchor, setAnchor] = useState<{ top: number; left: number; right: number } | null>(null);
+
+  const openMenu = () => {
+    if (Platform.OS === 'web') {
+      setOpen(true);
+      return;
+    }
+    const node = containerRef.current;
+    if (!node) {
+      setOpen(true);
+      return;
+    }
+    node.measureInWindow((x, y, w, h) => {
+      setAnchor({ top: y + h + 8, left: x, right: windowWidth - (x + w) });
+      setOpen(true);
+    });
+  };
   const menu = useProfileMenuData();
   const homeVenue = useUserHomeVenue();
   const { switchInterest, userInterests } = useInterest();
@@ -148,8 +174,53 @@ export function ProfileDropdown({
     }
   };
 
+  const menuBody = isLoggedIn ? (
+    <LoggedInMenu
+      displayName={displayName}
+      email={user?.email ?? null}
+      initials={initials}
+      showAvatarImage={showAvatarImage}
+      safeAvatarUrl={safeAvatarUrl}
+      menu={menu}
+      homeVenueName={homeVenue?.venue ?? null}
+      onNavigate={navigate}
+      onOpenVenuePicker={openVenuePicker}
+      onSignOut={handleSignOut}
+      onSwitchToOrg={handleSwitchToOrg}
+      onSwitchToPersonal={handleSwitchToPersonal}
+    />
+  ) : (
+    <View style={s.guestMenu}>
+      <Text style={s.guestHeading}>Save your progress</Text>
+      <Text style={s.guestSubtext}>
+        Create a free account to keep your work safe and pick up where you left off on any device.
+      </Text>
+      <Pressable
+        style={s.guestPrimaryBtn}
+        onPress={() =>
+          navigate(
+            currentInterestSlug
+              ? `/(auth)/signup?interest=${currentInterestSlug}`
+              : '/(auth)/signup',
+          )
+        }
+      >
+        <Ionicons name="person-add-outline" size={16} color="#FFFFFF" />
+        <Text style={s.guestPrimaryBtnText}>Create Account</Text>
+      </Pressable>
+      <Pressable
+        style={s.guestSecondaryBtn}
+        onPress={() => navigate(`/(auth)/login?returnTo=${encodeURIComponent(pathname)}`)}
+      >
+        <Text style={s.guestSecondaryBtnText}>
+          Already have an account? <Text style={s.guestSecondaryBtnLink}>Log In</Text>
+        </Text>
+      </Pressable>
+    </View>
+  );
+
   return (
-    <View style={s.container}>
+    <View ref={containerRef} style={s.container}>
       <AnimatedPressable
         style={[
           !isLoggedIn ? (Platform.OS !== 'web' ? s.avatar : s.signUpBtn) : s.avatar,
@@ -168,7 +239,11 @@ export function ProfileDropdown({
         accessibilityRole="button"
         onPress={() => {
           triggerHaptic('selection');
-          setOpen((v) => !v);
+          if (open) {
+            setOpen(false);
+          } else {
+            openMenu();
+          }
         }}
         onPressIn={() => {
           scale.value = withSpring(0.9, IOS_ANIMATIONS.spring.stiff);
@@ -210,68 +285,47 @@ export function ProfileDropdown({
         )}
       </AnimatedPressable>
 
-      {open && (
-        <Pressable style={s.backdrop} onPress={handleClose}>
-          <Pressable
-            style={[
-              s.dropdown,
-              menuAlign === 'left' ? s.dropdownLeft : s.dropdownRight,
-              { top: size + 8 },
-              !isLoggedIn && s.dropdownGuest,
-            ]}
-            onPress={(e) => e.stopPropagation?.()}
-          >
-            {isLoggedIn ? (
-              <LoggedInMenu
-                displayName={displayName}
-                email={user?.email ?? null}
-                initials={initials}
-                showAvatarImage={showAvatarImage}
-                safeAvatarUrl={safeAvatarUrl}
-                menu={menu}
-                homeVenueName={homeVenue?.venue ?? null}
-                onNavigate={navigate}
-                onOpenVenuePicker={openVenuePicker}
-                onSignOut={handleSignOut}
-                onSwitchToOrg={handleSwitchToOrg}
-                onSwitchToPersonal={handleSwitchToPersonal}
-              />
-            ) : (
-              <View style={s.guestMenu}>
-                <Text style={s.guestHeading}>Save your progress</Text>
-                <Text style={s.guestSubtext}>
-                  Create a free account to keep your work safe and pick up where you left off on
-                  any device.
-                </Text>
-                <Pressable
-                  style={s.guestPrimaryBtn}
-                  onPress={() =>
-                    navigate(
-                      currentInterestSlug
-                        ? `/(auth)/signup?interest=${currentInterestSlug}`
-                        : '/(auth)/signup',
-                    )
-                  }
-                >
-                  <Ionicons name="person-add-outline" size={16} color="#FFFFFF" />
-                  <Text style={s.guestPrimaryBtnText}>Create Account</Text>
-                </Pressable>
-                <Pressable
-                  style={s.guestSecondaryBtn}
-                  onPress={() =>
-                    navigate(`/(auth)/login?returnTo=${encodeURIComponent(pathname)}`)
-                  }
-                >
-                  <Text style={s.guestSecondaryBtnText}>
-                    Already have an account?{' '}
-                    <Text style={s.guestSecondaryBtnLink}>Log In</Text>
-                  </Text>
-                </Pressable>
-              </View>
-            )}
+      {open &&
+        (Platform.OS === 'web' ? (
+          <Pressable style={s.backdrop} onPress={handleClose}>
+            <Pressable
+              style={[
+                s.dropdown,
+                menuAlign === 'left' ? s.dropdownLeft : s.dropdownRight,
+                { top: size + 8 },
+                !isLoggedIn && s.dropdownGuest,
+              ]}
+              onPress={(e) => e.stopPropagation?.()}
+            >
+              {menuBody}
+            </Pressable>
           </Pressable>
-        </Pressable>
-      )}
+        ) : (
+          <Modal
+            transparent
+            visible
+            animationType="fade"
+            onRequestClose={handleClose}
+            statusBarTranslucent
+          >
+            <Pressable style={s.modalBackdrop} onPress={handleClose}>
+              <Pressable
+                style={[
+                  s.dropdown,
+                  s.dropdownModal,
+                  { top: anchor?.top ?? size + 8 },
+                  menuAlign === 'left'
+                    ? { left: anchor?.left ?? 8 }
+                    : { right: anchor?.right ?? 8 },
+                  !isLoggedIn && s.dropdownGuest,
+                ]}
+                onPress={(e) => e.stopPropagation?.()}
+              >
+                {menuBody}
+              </Pressable>
+            </Pressable>
+          </Modal>
+        ))}
 
       <HomeVenuePickerSheet
         visible={venuePickerOpen}
@@ -874,6 +928,15 @@ const s = StyleSheet.create({
   dropdownLeft: { left: 0 },
   dropdownRight: { right: 0 },
   dropdownGuest: { width: 260 },
+
+  // Native Modal path: full-screen backdrop so a tap outside closes the menu,
+  // and the dropdown re-anchored to the measured avatar window position.
+  modalBackdrop: {
+    flex: 1,
+  },
+  dropdownModal: {
+    position: 'absolute',
+  },
 
   popInner: { paddingVertical: 8 },
 

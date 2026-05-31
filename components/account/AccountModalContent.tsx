@@ -763,6 +763,7 @@ export default function AccountModalContent() {
             router.push('/subscription');
           }}
           onContinueFree={() => setPricingVisible(false)}
+          onClose={() => setPricingVisible(false)}
         />
       </Modal>
 

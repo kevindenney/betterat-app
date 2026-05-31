@@ -28,7 +28,7 @@ export interface PrivacySettings extends ProfilePrivacySettings {
   interest_visibility_defaults: Record<string, TimelineStepVisibility>;
 }
 
-const DEFAULT_SETTINGS: PrivacySettings = {
+export const DEFAULT_SETTINGS: PrivacySettings = {
   // Public profile visibility is explicit opt-in; missing settings default private.
   profile_public: false,
   default_step_visibility: 'private',

@@ -21,6 +21,7 @@ import {
   getPrivacySettings,
   updateProfilePrivacy,
   setInterestDefault as setInterestDefaultApi,
+  DEFAULT_SETTINGS,
   type PrivacySettings,
   type ProfilePrivacySettings,
 } from '@/services/PrivacySettingsService';
@@ -86,11 +87,24 @@ export default function PrivacyScreen(): React.ReactElement {
   const loadSettings = useCallback(async () => {
     if (!user) return;
     try {
-      const data = await getPrivacySettings(user.id);
+      // Race the fetch against a timeout: a hung Supabase request (the query
+      // is healthy server-side, so this is a network/connection stall) would
+      // otherwise leave the screen on its spinner forever. Falling back to
+      // DEFAULT_SETTINGS lets the screen render so the user isn't stuck.
+      const data = await Promise.race([
+        getPrivacySettings(user.id),
+        new Promise<PrivacySettings>((resolve) =>
+          setTimeout(() => {
+            logger.warn('Privacy settings load timed out — using defaults');
+            resolve({ ...DEFAULT_SETTINGS });
+          }, 8000),
+        ),
+      ]);
       setSettings(data);
       prevSettings.current = data;
     } catch (err) {
       logger.error('Failed to load privacy settings', err);
+      setSettings({ ...DEFAULT_SETTINGS });
     } finally {
       setLoading(false);
     }
