@@ -261,7 +261,7 @@ export default function EditProfileScreen() {
             <TextInput
               value={bio}
               onChangeText={setBio}
-              placeholder="A couple sentences about your practice, where you teach, what you've built. Shown on marketplace listings."
+              placeholder="A couple of sentences about yourself — what you're working on and what you're into."
               placeholderTextColor={IOS_COLORS.tertiaryLabel}
               style={[styles.input, styles.inputMultiline]}
               multiline
@@ -270,7 +270,7 @@ export default function EditProfileScreen() {
               textAlignVertical="top"
             />
             <Text style={styles.fieldHint}>
-              {bio.length}/400 · shown on your marketplace listings
+              {bio.length}/400 · shown on your public profile
             </Text>
           </View>
 
