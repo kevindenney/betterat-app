@@ -32,6 +32,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
 import { useAuth } from '@/providers/AuthProvider';
 import { useVocabulary } from '@/hooks/useVocabulary';
+import { useInterest } from '@/providers/InterestProvider';
+import { getVisibilityLabels } from '@/lib/vocabulary';
 import { SailorProfileService } from '@/services/SailorProfileService';
 import { CrewFinderService } from '@/services/CrewFinderService';
 import type { FleetWithMembers } from '@/services/CrewFinderService';
@@ -169,6 +171,10 @@ export function AddPeoplePicker({
 }: AddPeoplePickerProps) {
   const { user } = useAuth();
   const { vocab } = useVocabulary();
+  const { currentInterest } = useInterest();
+  const visLabels = getVisibilityLabels(currentInterest?.slug);
+  const crewLower = visLabels.crew.toLowerCase();
+  const fleetLower = visLabels.fleet.toLowerCase();
   const insets = useSafeAreaInsets();
   const [query, setQuery] = useState('');
   const [people, setPeople] = useState<PersonRow[]>([]);
@@ -686,7 +692,7 @@ export function AddPeoplePicker({
             style={styles.searchInput}
             value={query}
             onChangeText={setQuery}
-            placeholder="Search crew, followees, fleet…"
+            placeholder={`Search ${crewLower}, followees, ${fleetLower}…`}
             placeholderTextColor={IOS_COLORS.tertiaryLabel}
             autoCorrect={false}
             autoCapitalize="none"
@@ -761,7 +767,7 @@ export function AddPeoplePicker({
               {grouped.recent.length > 0 ? (
                 <>
                   <View style={styles.groupHead}>
-                    <Text style={styles.groupHeadText}>Recent crew</Text>
+                    <Text style={styles.groupHeadText}>Recent {crewLower}</Text>
                     <Text style={styles.groupCount}>Last 30 days</Text>
                   </View>
                   {grouped.recent.map(renderRow)}
@@ -783,7 +789,7 @@ export function AddPeoplePicker({
               {grouped.fleet.length > 0 ? (
                 <>
                   <View style={styles.groupHead}>
-                    <Text style={styles.groupHeadText}>Fleet</Text>
+                    <Text style={styles.groupHeadText}>{visLabels.fleet}</Text>
                   </View>
                   {grouped.fleet.map(renderRow)}
                 </>
