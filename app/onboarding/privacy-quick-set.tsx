@@ -25,6 +25,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '@/providers/AuthProvider';
 import { updateProfilePrivacy } from '@/services/PrivacySettingsService';
 import { getOnboardingContext } from '@/lib/onboarding/interestContext';
+import { getVisibilityLabels } from '@/lib/vocabulary';
 import type { TimelineStepVisibility } from '@/types/timeline-steps';
 import { createLogger } from '@/lib/utils/logger';
 
@@ -32,8 +33,8 @@ const logger = createLogger('PrivacyQuickSet');
 
 const VISIBILITY_OPTIONS: { value: TimelineStepVisibility; label: string; description: string }[] = [
   { value: 'private', label: 'Private', description: 'Only you' },
-  { value: 'crew', label: 'Crew', description: 'People you practice with' },
-  { value: 'fleet', label: 'Fleet', description: 'Your active group or cohort' },
+  { value: 'crew', label: 'Collaborators', description: 'People you practice with' },
+  { value: 'fleet', label: 'Group', description: 'Your active group or cohort' },
   { value: 'public', label: 'Public', description: 'Anyone who can view your public steps' },
 ];
 
@@ -113,6 +114,13 @@ export default function PrivacyQuickSetScreen() {
   }, [stepVisibility]);
 
   const currentVisibilityOption = VISIBILITY_OPTIONS.find((o) => o.value === stepVisibility);
+  const visLabels = getVisibilityLabels(interestSlug);
+  const currentVisibilityLabel =
+    stepVisibility === 'crew'
+      ? visLabels.crew
+      : stepVisibility === 'fleet'
+        ? visLabels.fleet
+        : currentVisibilityOption?.label;
 
   return (
     <View style={styles.container}>
@@ -203,7 +211,7 @@ export default function PrivacyQuickSetScreen() {
               </View>
               <View style={styles.visibilityPill}>
                 <Text style={[styles.visibilityPillText, { color: accentColor }]}>
-                  {currentVisibilityOption?.label}
+                  {currentVisibilityLabel}
                 </Text>
                 <Ionicons name="chevron-forward" size={14} color={accentColor} />
               </View>

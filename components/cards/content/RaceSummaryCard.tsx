@@ -68,6 +68,7 @@ import {
 import { useInterestEventConfig } from '@/hooks/useInterestEventConfig';
 import { useInterest } from '@/providers/InterestProvider';
 import { useVocabulary } from '@/hooks/useVocabulary';
+import { getVisibilityLabels } from '@/lib/vocabulary';
 import { CoachNudgeBanner } from '@/components/interest/CoachNudgeBanner';
 import { useProactiveNudge } from '@/hooks/useProactiveNudge';
 import { supabase } from '@/services/supabase';
@@ -466,12 +467,19 @@ function calculateArrivalTime(raceDate: string, startTime: string | undefined, m
 // VISIBILITY OPTIONS
 // =============================================================================
 
-const VISIBILITY_OPTIONS: { value: TimelineStepVisibility; label: string; icon: string }[] = [
-  { value: 'private', label: 'Private (only you)', icon: 'lock-closed-outline' },
-  { value: 'crew', label: 'Crew', icon: 'people-outline' },
-  { value: 'fleet', label: 'Fleet', icon: 'business-outline' },
-  { value: 'public', label: 'Public', icon: 'globe-outline' },
-];
+// "Crew" / "Fleet" are sailing words; resolve per the step's interest so
+// non-sailing steps read neutral labels (Collaborators / Group).
+function buildVisibilityOptions(
+  interestSlug?: string | null,
+): { value: TimelineStepVisibility; label: string; icon: string }[] {
+  const labels = getVisibilityLabels(interestSlug);
+  return [
+    { value: 'private', label: 'Private (only you)', icon: 'lock-closed-outline' },
+    { value: 'crew', label: labels.crew, icon: 'people-outline' },
+    { value: 'fleet', label: labels.fleet, icon: 'business-outline' },
+    { value: 'public', label: 'Public', icon: 'globe-outline' },
+  ];
+}
 
 // =============================================================================
 // COMPONENT
@@ -710,10 +718,11 @@ function RaceSummaryCardImpl({
   // Visibility change handler for timeline steps
   const currentVisibility = (race?.visibility as TimelineStepVisibility) ?? 'private';
   const [showVisibilityPicker, setShowVisibilityPicker] = useState(false);
+  const visibilityOptions = useMemo(() => buildVisibilityOptions(interestSlug), [interestSlug]);
 
   const handleChangeVisibility = useCallback(() => {
     if (Platform.OS === 'ios') {
-      const options = VISIBILITY_OPTIONS.map((o) =>
+      const options = visibilityOptions.map((o) =>
         o.value === currentVisibility ? `${o.label} ✓` : o.label
       );
       options.push('Cancel');
@@ -724,8 +733,8 @@ function RaceSummaryCardImpl({
           cancelButtonIndex: options.length - 1,
         },
         (buttonIndex) => {
-          if (buttonIndex < VISIBILITY_OPTIONS.length) {
-            const selected = VISIBILITY_OPTIONS[buttonIndex].value;
+          if (buttonIndex < visibilityOptions.length) {
+            const selected = visibilityOptions[buttonIndex].value;
             if (selected !== currentVisibility) {
               updateStepMutation.mutate({ stepId: race.id, input: { visibility: selected } });
             }
@@ -736,7 +745,7 @@ function RaceSummaryCardImpl({
       // Android / web — show inline picker
       setShowVisibilityPicker(true);
     }
-  }, [currentVisibility, race.id, updateStepMutation]);
+  }, [currentVisibility, race.id, updateStepMutation, visibilityOptions]);
 
   const handleSelectVisibility = useCallback((value: TimelineStepVisibility) => {
     setShowVisibilityPicker(false);
@@ -3160,7 +3169,7 @@ function RaceSummaryCardImpl({
         >
           <Pressable style={visPickerStyles.sheet} onPress={(e) => e.stopPropagation()}>
             <Text style={visPickerStyles.title}>Who can see this step?</Text>
-            {VISIBILITY_OPTIONS.map((o) => (
+            {visibilityOptions.map((o) => (
               <Pressable
                 key={o.value}
                 style={[

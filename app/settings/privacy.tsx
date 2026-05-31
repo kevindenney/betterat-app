@@ -16,6 +16,7 @@ import { IOS_COLORS } from '@/lib/design-tokens-ios';
 import { showAlert } from '@/lib/utils/crossPlatformAlert';
 import { createLogger } from '@/lib/utils/logger';
 import type { TimelineStepVisibility } from '@/types/timeline-steps';
+import { getVisibilityLabels } from '@/lib/vocabulary';
 import {
   getPrivacySettings,
   updateProfilePrivacy,
@@ -38,20 +39,32 @@ const ICON_BACKGROUNDS = {
   gray: IOS_COLORS.systemGray,
 } as const;
 
-const VISIBILITY_OPTIONS: { value: TimelineStepVisibility; label: string }[] = [
-  { value: 'private', label: 'Private' },
-  { value: 'crew', label: 'Crew' },
-  { value: 'fleet', label: 'Fleet' },
-  { value: 'public', label: 'Public' },
-];
+// "Crew" / "Fleet" are sailing vernacular; resolve per interest so other
+// interests read neutral words (Collaborators / Group). Pass no slug for the
+// profile-wide default, which spans every interest.
+function buildVisibilityOptions(
+  interestSlug?: string | null,
+): { value: TimelineStepVisibility; label: string }[] {
+  const labels = getVisibilityLabels(interestSlug);
+  return [
+    { value: 'private', label: 'Private' },
+    { value: 'crew', label: labels.crew },
+    { value: 'fleet', label: labels.fleet },
+    { value: 'public', label: 'Public' },
+  ];
+}
 
-const INTEREST_VISIBILITY_OPTIONS: { value: TimelineStepVisibility | 'default'; label: string }[] = [
-  { value: 'default', label: 'Use Profile Default' },
-  ...VISIBILITY_OPTIONS,
-];
+function buildInterestVisibilityOptions(
+  interestSlug?: string | null,
+): { value: TimelineStepVisibility | 'default'; label: string }[] {
+  return [
+    { value: 'default', label: 'Use Profile Default' },
+    ...buildVisibilityOptions(interestSlug),
+  ];
+}
 
-function visibilityLabel(value: TimelineStepVisibility): string {
-  return VISIBILITY_OPTIONS.find((o) => o.value === value)?.label ?? 'Private';
+function visibilityLabel(value: TimelineStepVisibility, interestSlug?: string | null): string {
+  return buildVisibilityOptions(interestSlug).find((o) => o.value === value)?.label ?? 'Private';
 }
 
 // =============================================================================
@@ -145,7 +158,9 @@ export default function PrivacyScreen(): React.ReactElement {
   const showVisibilityPicker = useCallback(() => {
     if (!settings) return;
 
-    const labels = VISIBILITY_OPTIONS.map((o) => o.label);
+    // Profile-wide default spans every interest → neutral labels (no slug).
+    const options = buildVisibilityOptions();
+    const labels = options.map((o) => o.label);
 
     if (Platform.OS === 'ios') {
       ActionSheetIOS.showActionSheetWithOptions(
@@ -155,18 +170,18 @@ export default function PrivacyScreen(): React.ReactElement {
           title: 'Default Step Visibility',
         },
         (index) => {
-          if (index < VISIBILITY_OPTIONS.length) {
-            updateSetting('default_step_visibility', VISIBILITY_OPTIONS[index].value);
+          if (index < options.length) {
+            updateSetting('default_step_visibility', options[index].value);
           }
         },
       );
     } else {
       // Web/Android: cycle through options
-      const currentIdx = VISIBILITY_OPTIONS.findIndex(
+      const currentIdx = options.findIndex(
         (o) => o.value === settings.default_step_visibility,
       );
-      const nextIdx = (currentIdx + 1) % VISIBILITY_OPTIONS.length;
-      updateSetting('default_step_visibility', VISIBILITY_OPTIONS[nextIdx].value);
+      const nextIdx = (currentIdx + 1) % options.length;
+      updateSetting('default_step_visibility', options[nextIdx].value);
     }
   }, [settings, updateSetting]);
 
@@ -174,7 +189,8 @@ export default function PrivacyScreen(): React.ReactElement {
     (interest: Interest) => {
       if (!settings) return;
 
-      const labels = INTEREST_VISIBILITY_OPTIONS.map((o) => o.label);
+      const options = buildInterestVisibilityOptions(interest.slug);
+      const labels = options.map((o) => o.label);
       const currentValue = settings.interest_visibility_defaults[interest.id] ?? 'default';
 
       if (Platform.OS === 'ios') {
@@ -185,8 +201,8 @@ export default function PrivacyScreen(): React.ReactElement {
             title: `Default for ${interest.name}`,
           },
           (index) => {
-            if (index < INTEREST_VISIBILITY_OPTIONS.length) {
-              const selected = INTEREST_VISIBILITY_OPTIONS[index].value;
+            if (index < options.length) {
+              const selected = options[index].value;
               updateInterestDefault(
                 interest.id,
                 selected === 'default' ? null : (selected as TimelineStepVisibility),
@@ -196,11 +212,11 @@ export default function PrivacyScreen(): React.ReactElement {
         );
       } else {
         // Web/Android: cycle through options
-        const currentIdx = INTEREST_VISIBILITY_OPTIONS.findIndex(
+        const currentIdx = options.findIndex(
           (o) => o.value === currentValue,
         );
-        const nextIdx = (currentIdx + 1) % INTEREST_VISIBILITY_OPTIONS.length;
-        const selected = INTEREST_VISIBILITY_OPTIONS[nextIdx].value;
+        const nextIdx = (currentIdx + 1) % options.length;
+        const selected = options[nextIdx].value;
         updateInterestDefault(
           interest.id,
           selected === 'default' ? null : (selected as TimelineStepVisibility),
@@ -300,7 +316,7 @@ export default function PrivacyScreen(): React.ReactElement {
             {userInterests.map((interest) => {
               const override = settings.interest_visibility_defaults[interest.id];
               const displayValue = override
-                ? visibilityLabel(override)
+                ? visibilityLabel(override, interest.slug)
                 : 'Profile Default';
 
               return (

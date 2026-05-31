@@ -409,6 +409,41 @@ export function getAdminVocabulary(interestSlug?: string | null): VocabularyMap 
 }
 
 // ---------------------------------------------------------------------------
+// Step-visibility tier labels
+// ---------------------------------------------------------------------------
+
+// The visibility enum is `private | crew | fleet | public`. "Crew" and
+// "Fleet" are sailing vernacular but the picker shows on every interest's
+// steps + onboarding, so non-sailing users get neutral words. Kept as a
+// slug-keyed helper (like getAdminVocabulary) rather than folded into the
+// runtime maps so the four tiers stay together and easy to extend per
+// interest later.
+export interface VisibilityLabels {
+  crew: string;
+  fleet: string;
+}
+
+const DEFAULT_VISIBILITY_LABELS: VisibilityLabels = {
+  crew: 'Collaborators',
+  fleet: 'Group',
+};
+
+const VISIBILITY_LABELS_BY_SLUG: Record<string, VisibilityLabels> = {
+  'sail-racing': { crew: 'Crew', fleet: 'Fleet' },
+};
+
+/**
+ * Labels for the `crew` and `fleet` step-visibility tiers, resolved for an
+ * interest. Pass the step's / active interest's slug; omit it (or pass an
+ * unmapped slug) for the neutral defaults. `private` and `public` are
+ * universal and don't need translation.
+ */
+export function getVisibilityLabels(interestSlug?: string | null): VisibilityLabels {
+  if (!interestSlug) return DEFAULT_VISIBILITY_LABELS;
+  return VISIBILITY_LABELS_BY_SLUG[interestSlug] ?? DEFAULT_VISIBILITY_LABELS;
+}
+
+// ---------------------------------------------------------------------------
 // Data fetching
 // ---------------------------------------------------------------------------
 
