@@ -31,8 +31,10 @@ export interface WithRowProps {
   /** "Fleet · 14 boats" or "Cohort · 23 peers" */
   fleetLabel?: string;
   fleetIcon?: 'anchor' | 'users';
-  /** When true and no crew/fleet, render "+ add crew" affordance instead. */
+  /** When true and no crew/fleet, render "+ add {crewLabel}" affordance instead. */
   empty?: boolean;
+  /** Interest-native word for collaborators ("crew", "collaborators", "cohort"). */
+  crewLabel?: string;
   onCrewPress?: () => void;
   onFleetPress?: () => void;
   onAddCrewPress?: () => void;
@@ -59,6 +61,7 @@ export function WithRow({
   fleetLabel,
   fleetIcon = 'anchor',
   empty,
+  crewLabel = 'crew',
   onCrewPress,
   onFleetPress,
   onAddCrewPress,
@@ -75,12 +78,12 @@ export function WithRow({
         <Pressable
           onPress={onAddCrewPress}
           accessibilityRole="button"
-          accessibilityLabel="Add crew"
+          accessibilityLabel={`Add ${crewLabel}`}
           hitSlop={6}
           style={styles.addCrew}
         >
           <Plus size={12} color={IOS_BLUE} />
-          <Text style={styles.addCrewText}>add crew</Text>
+          <Text style={styles.addCrewText}>add {crewLabel}</Text>
         </Pressable>
       </View>
     );
