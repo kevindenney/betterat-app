@@ -11,7 +11,7 @@ BEGIN
   -- Get demo-sailor user ID
   SELECT id INTO demo_sailor_id
   FROM auth.users
-  WHERE email = 'demo-sailor@regattaflow.app'
+  WHERE email = 'demo-sailor@better.at'
   LIMIT 1;
 
   -- Try alternative email if not found

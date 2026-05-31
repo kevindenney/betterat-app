@@ -41,7 +41,7 @@ const formatRace = (race: MockRace) => ({
 const SAILOR_WORKSPACE: DemoWorkspace = {
   profile: {
     full_name: 'Demo Skipper',
-    email: 'demo-sailor@regattaflow.app',
+    email: 'demo-sailor@better.at',
     user_type: 'sailor',
     onboarding_step: 'demo_sailor',
     onboarding_completed: true,
