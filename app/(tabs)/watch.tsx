@@ -22,6 +22,8 @@ import {
   type FollowedStepItem,
   type FollowedStepStatus,
 } from '@/hooks/useFollowedStepsFeed';
+import { useFleetStepFeed } from '@/hooks/useFleetStepFeed';
+import { useUserFleets } from '@/hooks/useFleetData';
 import { useCohortStream, type CohortStreamItem } from '@/hooks/useCohortStream';
 import { useFollowedPeopleForLibrary } from '@/hooks/useFollowedPeopleForLibrary';
 import { WatchNearbySection } from '@/components/watch/WatchNearbySection';
@@ -65,7 +67,7 @@ type GroupingId = 'all' | 'fleet' | 'blueprint' | 'location';
 const GROUPING_CHIPS: { id: GroupingId; label: string; ready: boolean }[] = [
   { id: 'all', label: 'Following', ready: true },
   { id: 'location', label: 'Nearby', ready: true },
-  { id: 'fleet', label: 'By group', ready: false },
+  { id: 'fleet', label: 'By group', ready: true },
   { id: 'blueprint', label: 'By blueprint', ready: false },
 ];
 
@@ -91,6 +93,7 @@ export default function WatchScreen() {
   const { user } = useAuth();
   const [toolbarHeight, setToolbarHeight] = useState(0);
   const [grouping, setGrouping] = useState<GroupingId>('all');
+  const [selectedFleetId, setSelectedFleetId] = useState<string | null>(null);
   // People discovery (find new people to follow) was folded out of the
   // Discover tab into Watch — it opens as a focused full-bleed surface
   // over the feed, with a floating back pill (mirrors the Library zones).
@@ -109,6 +112,21 @@ export default function WatchScreen() {
     user?.id ?? null,
     currentInterest?.id,
   );
+
+  // "By group" feed — fleetmates' steps, scoped to the active fleet. Fleets
+  // aren't org_memberships (separate fleet_members table), so resolve them
+  // here rather than from the org switcher.
+  const { fleets } = useUserFleets(user?.id ?? null);
+  const activeFleets = fleets.filter((f) => f.status === 'active');
+  const resolvedFleetId =
+    selectedFleetId && activeFleets.some((f) => f.fleet.id === selectedFleetId)
+      ? selectedFleetId
+      : activeFleets[0]?.fleet.id ?? null;
+  const { data: fleetFeed = [], isLoading: fleetLoading } = useFleetStepFeed(
+    grouping === 'fleet' ? resolvedFleetId : null,
+    currentInterest?.id,
+  );
+
   const { data: cohortStream = [] } = useCohortStream(currentInterest?.id);
   const { data: followedPeople = [] } = useFollowedPeopleForLibrary();
   const followingCount = followedPeople.length;
@@ -204,6 +222,68 @@ export default function WatchScreen() {
             homeVenueLabel={homeVenue?.venue ?? homeVenue?.region ?? null}
             interestSlug={currentInterest?.slug ?? null}
           />
+        ) : grouping === 'fleet' ? (
+          activeFleets.length === 0 ? (
+            <View style={styles.emptyCard}>
+              <Ionicons name="boat-outline" size={28} color={IOS_COLORS.tertiaryLabel} />
+              <Text style={styles.emptyTitle}>You&apos;re not in a group yet</Text>
+              <Text style={styles.emptyCopy}>
+                Join or create a group and your groupmates&apos; step activity will appear
+                here.
+              </Text>
+              <Pressable
+                style={styles.emptyAction}
+                onPress={() => router.push('/(tabs)/fleet' as never)}
+              >
+                <Text style={styles.emptyActionText}>Go to groups</Text>
+              </Pressable>
+            </View>
+          ) : (
+            <>
+              {activeFleets.length > 1 ? (
+                <View style={styles.fleetSelectorRow}>
+                  {activeFleets.map((f) => {
+                    const active = f.fleet.id === resolvedFleetId;
+                    return (
+                      <Pressable
+                        key={f.fleet.id}
+                        onPress={() => setSelectedFleetId(f.fleet.id)}
+                        style={[styles.fleetChip, active && styles.fleetChipActive]}
+                      >
+                        <Text
+                          style={[
+                            styles.fleetChipText,
+                            active && styles.fleetChipTextActive,
+                          ]}
+                          numberOfLines={1}
+                        >
+                          {f.fleet.name}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              ) : null}
+              {fleetLoading ? (
+                <Text style={styles.emptyCopy}>Loading…</Text>
+              ) : fleetFeed.length === 0 ? (
+                <View style={styles.emptyCard}>
+                  <Ionicons name="people-outline" size={28} color={IOS_COLORS.tertiaryLabel} />
+                  <Text style={styles.emptyTitle}>No group activity yet</Text>
+                  <Text style={styles.emptyCopy}>
+                    When your groupmates plan, do, and reflect on steps, you&apos;ll see them
+                    here.
+                  </Text>
+                </View>
+              ) : (
+                <View style={styles.feed}>
+                  {fleetFeed.map((item) => (
+                    <WatchCard key={item.id} item={item} />
+                  ))}
+                </View>
+              )}
+            </>
+          )
         ) : isLoading ? (
           <Text style={styles.emptyCopy}>Loading…</Text>
         ) : !hasFeed ? (
@@ -489,6 +569,30 @@ const styles = StyleSheet.create({
     letterSpacing: 0.4,
     color: IOS_COLORS.tertiaryLabel,
     textTransform: 'uppercase',
+  },
+  fleetSelectorRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    paddingHorizontal: IOS_SPACING.lg,
+    marginBottom: IOS_SPACING.md,
+  },
+  fleetChip: {
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    backgroundColor: IOS_COLORS.secondarySystemGroupedBackground,
+  },
+  fleetChipActive: {
+    backgroundColor: '#DCEAFE',
+  },
+  fleetChipText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: IOS_COLORS.secondaryLabel,
+  },
+  fleetChipTextActive: {
+    color: IOS_COLORS.systemBlue,
   },
   feed: {
     gap: 12,
