@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, ScrollView, ActivityIndicator, Pressable } from 'react-native';
+import { View, ScrollView, ActivityIndicator, Pressable, Text } from 'react-native';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@/providers/AuthProvider';
 import { supabase } from '@/services/supabase';
 import { IOSListSection } from '@/components/ui/ios/IOSListSection';
@@ -33,6 +34,24 @@ export default function TelegramSettingsScreen(): React.ReactElement {
   const { user, session, ready } = useAuth();
   const { code } = useLocalSearchParams<{ code?: string }>();
   const router = useRouter();
+
+  // Settings screens are pushed onto the root stack (headerShown:false), and
+  // the native back button is unreliable when arriving via the Account modal
+  // or a direct deep-link. Always render an explicit back affordance that
+  // falls back to /settings so the user is never trapped.
+  const headerLeft = useCallback(
+    () => (
+      <Pressable
+        onPress={() => (router.canGoBack() ? router.back() : router.replace('/settings'))}
+        hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+        style={{ flexDirection: 'row', alignItems: 'center' }}
+      >
+        <Ionicons name="chevron-back" size={26} color={IOS_COLORS.systemBlue} />
+        <Text style={{ color: IOS_COLORS.systemBlue, fontSize: 17 }}>Settings</Text>
+      </Pressable>
+    ),
+    [router],
+  );
 
   const [link, setLink] = useState<TelegramLink | null>(null);
   const [loading, setLoading] = useState(true);
@@ -147,7 +166,7 @@ export default function TelegramSettingsScreen(): React.ReactElement {
   if (loading) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: IOS_COLORS.systemGroupedBackground }}>
-        <Stack.Screen options={{ title: 'Telegram', headerShown: true }} />
+        <Stack.Screen options={{ title: 'Telegram', headerShown: true, headerLeft }} />
         <ActivityIndicator size="large" />
       </View>
     );
@@ -157,7 +176,7 @@ export default function TelegramSettingsScreen(): React.ReactElement {
   if (linkSuccess && link) {
     return (
       <View style={{ flex: 1, backgroundColor: IOS_COLORS.systemGroupedBackground }}>
-        <Stack.Screen options={{ title: 'Telegram', headerShown: true }} />
+        <Stack.Screen options={{ title: 'Telegram', headerShown: true, headerLeft }} />
         <ScrollView contentContainerStyle={{ paddingTop: 32 }}>
           <IOSListSection header="" footer="Your Telegram account is now connected. Go back to Telegram and send a message to start chatting.">
             <IOSListItem
@@ -192,7 +211,7 @@ export default function TelegramSettingsScreen(): React.ReactElement {
   if (link?.linked_at) {
     return (
       <View style={{ flex: 1, backgroundColor: IOS_COLORS.systemGroupedBackground }}>
-        <Stack.Screen options={{ title: 'Telegram', headerShown: true }} />
+        <Stack.Screen options={{ title: 'Telegram', headerShown: true, headerLeft }} />
         <ScrollView contentContainerStyle={{ paddingTop: 32 }}>
           <IOSListSection header="CONNECTED ACCOUNT" footer="Messages you send to the BetterAt bot on Telegram are logged to your timeline and replied to automatically.">
             <IOSListItem
@@ -219,7 +238,7 @@ export default function TelegramSettingsScreen(): React.ReactElement {
   if (code) {
     return (
       <View style={{ flex: 1, backgroundColor: IOS_COLORS.systemGroupedBackground }}>
-        <Stack.Screen options={{ title: 'Link Telegram', headerShown: true }} />
+        <Stack.Screen options={{ title: 'Link Telegram', headerShown: true, headerLeft }} />
         <ScrollView contentContainerStyle={{ paddingTop: 32 }}>
           <IOSListSection header="LINK YOUR ACCOUNT" footer={`Code: ${code}\n\nThis will connect your Telegram account to BetterAt so you can manage your timeline via chat.`}>
             <IOSListItem
@@ -237,7 +256,7 @@ export default function TelegramSettingsScreen(): React.ReactElement {
   // State: not linked, no code — show instructions
   return (
     <View style={{ flex: 1, backgroundColor: IOS_COLORS.systemGroupedBackground }}>
-      <Stack.Screen options={{ title: 'Telegram', headerShown: true }} />
+      <Stack.Screen options={{ title: 'Telegram', headerShown: true, headerLeft }} />
       <ScrollView contentContainerStyle={{ paddingTop: 32 }}>
         <IOSListSection
           header="CONNECT TELEGRAM"

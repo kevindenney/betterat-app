@@ -10,7 +10,8 @@ import {
   TouchableOpacity,
   TextInput,
 } from 'react-native';
-import { Stack } from 'expo-router';
+import { Stack, useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@/providers/AuthProvider';
 import { useWorkspaceDomain } from '@/hooks/useWorkspaceDomain';
 import { supabase } from '@/services/supabase';
@@ -181,8 +182,29 @@ function dateToTimeString(date: Date): string {
 // =============================================================================
 
 export default function NotificationsScreen(): React.ReactElement {
+  const router = useRouter();
   const { user, userType, ready } = useAuth();
   const { isSailingPresentationDomain } = useWorkspaceDomain();
+
+  // Settings screens are pushed onto the root stack (headerShown:false), and
+  // the native back button is unreliable when arriving via the Account modal
+  // or a direct deep-link. Always render an explicit back affordance that
+  // falls back to /settings so the user is never trapped.
+  const headerOptions = {
+    title: 'Notifications',
+    headerBackTitle: 'Settings',
+    headerShown: true,
+    headerLeft: () => (
+      <TouchableOpacity
+        onPress={() => (router.canGoBack() ? router.back() : router.replace('/settings'))}
+        hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+        style={{ flexDirection: 'row', alignItems: 'center' }}
+      >
+        <Ionicons name="chevron-back" size={26} color={IOS_COLORS.systemBlue} />
+        <Text style={{ color: IOS_COLORS.systemBlue, fontSize: 17 }}>Settings</Text>
+      </TouchableOpacity>
+    ),
+  } as const;
   const isSailingCopy = isSailingPresentationDomain;
   const isClubPersona = userType === 'club';
 
@@ -438,7 +460,7 @@ export default function NotificationsScreen(): React.ReactElement {
   if (loading || !notifPrefs) {
     return (
       <>
-        <Stack.Screen options={{ title: 'Notifications', headerBackTitle: 'Settings', headerShown: true }} />
+        <Stack.Screen options={headerOptions} />
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={IOS_COLORS.systemBlue} />
         </View>
@@ -448,7 +470,7 @@ export default function NotificationsScreen(): React.ReactElement {
 
   return (
     <>
-      <Stack.Screen options={{ title: 'Notifications', headerBackTitle: 'Settings', headerShown: true }} />
+      <Stack.Screen options={headerOptions} />
 
       <ScrollView
         style={styles.container}
