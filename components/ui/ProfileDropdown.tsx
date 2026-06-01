@@ -37,7 +37,7 @@ import { router, usePathname } from 'expo-router';
 import { useAuth } from '@/providers/AuthProvider';
 import { useProfileMenuData, OrgMembership } from '@/hooks/useProfileMenuData';
 import { useInterest } from '@/providers/InterestProvider';
-import { IOS_COLORS, IOS_ANIMATIONS } from '@/lib/design-tokens-ios';
+import { IOS_COLORS, IOS_ANIMATIONS, IOS_TOUCH } from '@/lib/design-tokens-ios';
 import { triggerHaptic } from '@/lib/haptics';
 import { FEATURE_FLAGS } from '@/lib/featureFlags';
 import { useUserHomeVenue } from '@/hooks/useUserHomeVenue';
@@ -1036,7 +1036,7 @@ const s = StyleSheet.create({
     marginHorizontal: 12,
     marginBottom: 6,
     paddingHorizontal: 10,
-    paddingVertical: 9,
+    paddingVertical: 8,
     borderRadius: 10,
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
@@ -1076,6 +1076,7 @@ const s = StyleSheet.create({
   joinRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    minHeight: IOS_TOUCH.minHeight,
     gap: 4,
     marginTop: 2,
     marginLeft: 16,
@@ -1088,7 +1089,8 @@ const s = StyleSheet.create({
   menuItemRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 11,
+    minHeight: IOS_TOUCH.minHeight,
+    paddingVertical: 12,
     paddingHorizontal: 16,
   },
   menuItemHover: { backgroundColor: IOS_COLORS.tertiarySystemFill },
@@ -1103,7 +1105,7 @@ const s = StyleSheet.create({
   },
   countPillCoral: { backgroundColor: 'rgba(255, 107, 107, 0.15)' },
   countPillText: { fontSize: 11, fontWeight: '600', color: IOS_COLORS.secondaryLabel },
-  countPillTextCoral: { color: '#C84747' },
+  countPillTextCoral: { color: '#FF6B6B' },
 
   // Dividers
   itemDivider: {
