@@ -276,7 +276,7 @@ export function RaceStartGpsCard({
               accessibilityLabel="Start 5 minute sequence"
             >
               <Timer size={15} color="#FFFFFF" />
-              <Text style={styles.buttonText}>Start 5:00 sequence</Text>
+              <Text style={styles.buttonText} numberOfLines={1}>Start 5:00</Text>
             </Pressable>
             <Pressable
               style={[styles.button, styles.buttonSecondary, isTracking && styles.buttonStop]}
@@ -294,7 +294,10 @@ export function RaceStartGpsCard({
                   ) : (
                     <Radio size={15} color={ACCENT} />
                   )}
-                  <Text style={[styles.buttonText, !isTracking && styles.buttonTextSecondary]}>
+                  <Text
+                    style={[styles.buttonText, !isTracking && styles.buttonTextSecondary]}
+                    numberOfLines={1}
+                  >
                     {isTracking ? 'Stop tracking' : 'Track now'}
                   </Text>
                 </>
