@@ -143,4 +143,88 @@ old scale, normalize off-grid values to the 8pt grid. (memory:
 > - **P-6 + conflicting spec files (SHARED, structural)** — filed as its own
 >   spacing-token consolidation work item; not mid-sweep work.
 >
-> Next tab not started.
+> Next tab: Library (below).
+
+---
+
+## Library tab
+
+Route: `app/(tabs)/library/index.tsx` → `LibraryLanding`
+(`components/library/LibraryLanding.tsx`). A scroll shell with a floating
+`TabScreenToolbar` (which composes `AppChromeRow`) + `LocationAnchor` subtitle,
+a curated "all" feed, and zone views (Plans / Concepts / Resources / People +
+full-bleed stack zones folded in from Discover: Today / Follow / Orgs /
+Interests). No floating side rail; no embedded canvas.
+
+### Screens visited
+- `all` feed — top (hero + Ask-librarian + Librarian-noticed + This-week) —
+  `/tmp/lib1.png`
+- `all` feed — bottom (THE STACKS → Plans-to-follow / Orgs / Interests) —
+  `/tmp/lib3.png`
+- Zone views + full-bleed stacks reached via See-all: not individually driven
+  (sparse RHKYC data), but they share the same shell + token edges; spot-checked
+  in code (`zones/*.tsx`).
+
+### Findings
+
+**L-1 — `AppChromeRow` 16pt reads clean here. (confirmation, not a finding)**
+Per the calibration: Library composes the chrome via `TabScreenToolbar` →
+`AppChromeRow`, and the body uses `IOS_SPACING.lg` (16). In the sim the interest
+pill, the LIBRARY eyebrow, the title, every section header (THE STACKS / PLANS /
+ORGS / INTERESTS), the cards, and the right-hand action cluster (search / + /
+mail / avatar) and the "See all" links all line up on the 16pt edge. The P-2 fix
+landed; nothing to re-report. No surface looked off at the chrome edge (i.e. no
+surface here bypasses `AppChromeRow`).
+
+**L-2 — Off-grid spacing recurs, concentrated in the feed-card renderer. (SHARED → P-6)**
+The *shell* (`LibraryLanding`) is disciplined: structural edges use
+`IOS_SPACING.lg/.md`, so the 16pt screen-edge margin is correct. The drift is
+**inside the cards**. `components/library/zones/AllZone.tsx` (the curated-feed
+renderer) hardcodes off-grid values pervasively: card `paddingHorizontal:14`,
+`borderRadius:14/17`, `gap:2/3/7/10`, `paddingVertical:3/4`, `fontSize:11`.
+`PlansZone`/`PeopleZone` are milder (`borderRadius:16`, `fontSize:17/14`);
+`ResourcesZone` carries no inline numeric spacing. This is the **same P-6 class
+as Practice's timeline** — same root cause (components hardcode instead of
+importing `IOS_SPACING`), here landing on card internals rather than the layout
+grid. No visible misalignment results because the shell holds the edges, so this
+is informational, not a per-screen bug.
+
+**L-3 — Landing micro-gaps off-grid. (per-screen, low — same root cause as L-2)**
+`feedHero`/`focusedHeader` `gap:6`; `backPill` `gap:2`/`marginLeft:-4`;
+`floatingBackPill` `paddingVertical:6`/`paddingLeft:6`/`paddingRight:12`. Purely
+cosmetic micro-spacing; rolls into the same token consolidation.
+
+> **No high-severity (functional) findings on Library.** Unlike Practice's P-1
+> (floating rail over tappable controls), nothing here is clipped or
+> untappable — the floating toolbar overlays empty top space, and all content is
+> correctly inset. Library is materially cleaner than Practice.
+
+### Calibration verdict — is P-6 pervasive here too? **Yes.**
+Off-grid hardcoded spacing recurs on Library exactly as on Practice (AllZone is
+the dense offender). Two tabs, same root cause. Per the sweep discipline
+(`project_ios_layout_sweep.md`), this is the signal that the token consolidation
+(`project_spacing_token_consolidation.md`) is worth **pulling forward** — likely
+before finishing the remaining tabs — because once `design-tokens-ios.ts` is
+canonical and off-grid values are normalized, this entire class of finding
+evaporates and the remaining sweeps get shorter. Recommend: one more tab at most
+to confirm the trend, then do the consolidation rather than a 4th catalogue of
+the same cause.
+
+### Suspected shared-cause list (running)
+- **Floating `ZoomLevelPicker` over un-inset content** → Practice P-1. *(fixed)*
+- **`AppChromeRow` 14pt vs content 16pt** → Practice P-2. *(fixed app-wide;
+  confirmed clean on Library — L-1.)*
+- **No shared spacing primitive** (components hardcode instead of `IOS_SPACING`)
+  → Practice P-4/P-6 **and** Library L-2/L-3. **Now seen on 2 tabs** — promoted
+  from "drift" to "the dominant recurring cause; consolidate."
+
+---
+
+> **STOP — Library reviewed (report-only, no fixes). Next tab not started.**
+>
+> Headline: Library is clean at the structural level — the app-wide
+> `AppChromeRow` 16pt fix reads correctly and there are no functional
+> (clipped/untappable) findings. The only recurring issue is off-grid card-
+> internal spacing (P-6 class), which now appears on both swept tabs. That
+> recurrence is the decision point: strong case to pull the token consolidation
+> forward rather than keep cataloguing the same cause.
