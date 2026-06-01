@@ -42,7 +42,7 @@ import { triggerHaptic } from '@/lib/haptics';
 import { FEATURE_FLAGS } from '@/lib/featureFlags';
 import { useUserHomeVenue } from '@/hooks/useUserHomeVenue';
 import { HomeVenuePickerSheet } from '@/components/discover/HomeVenuePickerSheet';
-import { showAlert } from '@/lib/utils/crossPlatformAlert';
+import { showAlert, showConfirm } from '@/lib/utils/crossPlatformAlert';
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
@@ -138,9 +138,21 @@ export function ProfileDropdown({
     setOpen(false);
     setVenuePickerOpen(true);
   };
-  const handleSignOut = async () => {
+  const handleSignOut = () => {
     setOpen(false);
-    await signOut();
+    showConfirm(
+      'Sign Out',
+      'Are you sure you want to sign out?',
+      async () => {
+        try {
+          await signOut();
+        } catch (error) {
+          console.error('[ProfileDropdown] Sign out error:', error);
+          showAlert('Error', 'Failed to sign out. Please try again.');
+        }
+      },
+      { destructive: true, confirmText: 'Sign Out' },
+    );
   };
   const handleHelp = () => {
     setOpen(false);
@@ -375,9 +387,10 @@ function LoggedInMenu({
   onSwitchToOrg: (org: OrgMembership) => void;
   onSwitchToPersonal: () => void;
 }) {
-  const signOutLabel = menu.activeOrg
-    ? `Sign out of ${menu.activeOrg.org_name.split(' ').slice(0, 2).join(' ')}`
-    : 'Sign out';
+  // Always a full session sign-out (see handleSignOut → signOut()), so the
+  // label must not name an org — "Sign out of {org}" wrongly read as
+  // org-scoped (it's not; switching context is the roles section above).
+  const signOutLabel = 'Sign out';
 
   return (
     <View style={s.popInner}>
