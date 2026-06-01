@@ -9,9 +9,18 @@
  */
 
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, TextInput } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  Pressable,
+  TextInput,
+  useWindowDimensions,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useOrgSecurity, AttributeMapping } from '@/hooks/useOrgSecurity';
+import { STUDIO_COMPACT_BREAKPOINT } from '@/components/studio/StudioShell';
 
 function formatRelative(iso: string | null): string | null {
   if (!iso) return null;
@@ -33,6 +42,9 @@ export function AdminSecuritySurface({ orgId }: { orgId: string }) {
   const { config, domains, loading, updateConfig, addDomain, removeDomain } = useOrgSecurity(orgId);
   const [newDomain, setNewDomain] = useState('');
   const [addError, setAddError] = useState<string | null>(null);
+
+  const { width } = useWindowDimensions();
+  const compact = width < STUDIO_COMPACT_BREAKPOINT;
 
   const autoAdd = config?.autoAddVerifiedDomain ?? true;
   const requireSso = config?.requireSsoForVerifiedDomain ?? true;
@@ -63,7 +75,7 @@ export function AdminSecuritySurface({ orgId }: { orgId: string }) {
 
   return (
     <ScrollView style={s.body} contentContainerStyle={s.bodyInner}>
-      <View style={s.twoCol}>
+      <View style={[s.twoCol, compact && s.twoColStacked]}>
         {/* Left column · SSO config */}
         <View style={s.col}>
           <View style={s.card}>
@@ -83,29 +95,33 @@ export function AdminSecuritySurface({ orgId }: { orgId: string }) {
             </View>
             <View style={s.cardBody}>
               <View style={s.fileDrop}>
-                <View style={s.fileDropIco}>
-                  <Ionicons name="document-text-outline" size={22} color="#28406B" />
+                <View style={s.fileDropMain}>
+                  <View style={s.fileDropIco}>
+                    <Ionicons name="document-text-outline" size={22} color="#28406B" />
+                  </View>
+                  <View style={{ flex: 1, minWidth: 0 }}>
+                    <Text style={s.fileDropTitle}>
+                      {loading ? 'Loading…' : filename ?? 'No metadata uploaded yet'}
+                    </Text>
+                    <Text style={s.fileDropSub}>
+                      {filename
+                        ? `Uploaded by ${uploadedBy ?? 'unknown'} · ${sizeLabel}${
+                            uploadedRel ? ` · ${uploadedRel}` : ''
+                          } — drop a new file to re-key.`
+                        : 'Drop your Okta / Azure AD metadata XML here.'}
+                    </Text>
+                  </View>
                 </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={s.fileDropTitle}>
-                    {loading ? 'Loading…' : filename ?? 'No metadata uploaded yet'}
-                  </Text>
-                  <Text style={s.fileDropSub}>
-                    {filename
-                      ? `Uploaded by ${uploadedBy ?? 'unknown'} · ${sizeLabel}${
-                          uploadedRel ? ` · ${uploadedRel}` : ''
-                        } — drop a new file to re-key.`
-                      : 'Drop your Okta / Azure AD metadata XML here.'}
-                  </Text>
+                <View style={s.fileDropActions}>
+                  <Pressable style={s.btnSm}>
+                    <Ionicons name="refresh-outline" size={12} color="#28406B" />
+                    <Text style={s.btnSmText}>Replace</Text>
+                  </Pressable>
+                  <Pressable style={s.btnSmGhost}>
+                    <Ionicons name="download-outline" size={12} color="rgba(60, 60, 67, 0.6)" />
+                    <Text style={s.btnSmGhostText}>Download</Text>
+                  </Pressable>
                 </View>
-                <Pressable style={s.btnSm}>
-                  <Ionicons name="refresh-outline" size={12} color="#28406B" />
-                  <Text style={s.btnSmText}>Replace</Text>
-                </Pressable>
-                <Pressable style={s.btnSmGhost}>
-                  <Ionicons name="download-outline" size={12} color="rgba(60, 60, 67, 0.6)" />
-                  <Text style={s.btnSmGhostText}>Download</Text>
-                </Pressable>
               </View>
 
               <View style={{ gap: 8, marginTop: 14 }}>
@@ -342,6 +358,7 @@ const s = StyleSheet.create({
   bodyInner: { paddingHorizontal: 32, paddingTop: 18, paddingBottom: 40 },
 
   twoCol: { flexDirection: 'row', gap: 18, alignItems: 'flex-start' },
+  twoColStacked: { flexDirection: 'column' },
   col: { flex: 1, gap: 18 },
 
   card: {
@@ -374,6 +391,7 @@ const s = StyleSheet.create({
   // File drop
   fileDrop: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     alignItems: 'center',
     gap: 14,
     padding: 18,
@@ -383,6 +401,17 @@ const s = StyleSheet.create({
     borderColor: 'rgba(0,0,0,0.10)',
     backgroundColor: '#F5F4EE',
   },
+  // Buttons drop below the text whenever the row is narrower than basis+actions
+  // (phone, and the iPad two-column half-width), so the title never per-word wraps.
+  fileDropMain: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    flexGrow: 1,
+    flexBasis: 240,
+    minWidth: 0,
+  },
+  fileDropActions: { flexDirection: 'row', gap: 8 },
   fileDropIco: {
     width: 44,
     height: 44,

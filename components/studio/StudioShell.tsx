@@ -161,6 +161,15 @@ function StudioShellCompact({
   return (
     <View style={c.shell}>
       <View style={[c.topBar, { paddingTop: insets.top + 8 }]}>
+        <Pressable
+          onPress={() => setDrawerOpen(true)}
+          style={c.menuBtn}
+          hitSlop={8}
+          accessibilityRole="button"
+          accessibilityLabel="Open menu"
+        >
+          <Ionicons name="menu" size={24} color={IOS_REGISTER.label} />
+        </Pressable>
         <View style={[c.topMono, { backgroundColor: MONO_BG[org.monoColor] }]}>
           <Text style={c.topMonoText}>{org.mono}</Text>
         </View>
@@ -172,15 +181,6 @@ function StudioShellCompact({
             {org.name}
           </Text>
         </View>
-        <Pressable
-          onPress={() => setDrawerOpen(true)}
-          style={c.menuBtn}
-          hitSlop={8}
-          accessibilityRole="button"
-          accessibilityLabel="Open menu"
-        >
-          <Ionicons name="menu" size={24} color={IOS_REGISTER.label} />
-        </Pressable>
       </View>
 
       <View style={c.main}>{children}</View>

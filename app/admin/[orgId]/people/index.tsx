@@ -20,6 +20,7 @@ import {
   ScrollView,
   TextInput,
   Platform,
+  useWindowDimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -35,6 +36,7 @@ import {
   StudioHeader,
   StudioButton,
   StudioTabs,
+  STUDIO_COMPACT_BREAKPOINT,
 } from '@/components/studio/StudioShell';
 import { AdminShell } from '@/components/admin/AdminShell';
 import { AddPersonSheet } from '@/components/admin/AddPersonSheet';
@@ -57,6 +59,8 @@ function AdminPeopleBody() {
   const { user } = useAuth();
   const menu = useProfileMenuData();
   const data = useAdminPeople(orgId);
+  const { width } = useWindowDimensions();
+  const compact = width < STUDIO_COMPACT_BREAKPOINT;
 
   const [tab, setTab] = useState<PeopleTab>('all');
   const [search, setSearch] = useState('');
@@ -141,8 +145,8 @@ function AdminPeopleBody() {
           onChange={(k) => setTab(k as PeopleTab)}
         />
 
-        <View style={styles.filterRow}>
-          <View style={styles.searchInput}>
+        <View style={[styles.filterRow, compact && styles.filterRowStacked]}>
+          <View style={[styles.searchInput, compact && styles.searchInputCompact]}>
             <Ionicons name="search" size={14} color="rgba(60, 60, 67, 0.6)" />
             <TextInput
               value={search}
@@ -152,9 +156,23 @@ function AdminPeopleBody() {
               style={styles.searchInputField}
             />
           </View>
-          <StudioButton variant="ghost" icon="funnel-outline" label="Cohort · all" />
-          <StudioButton variant="ghost" icon="funnel-outline" label="Status · active" />
-          <StudioButton variant="ghost" icon="swap-vertical-outline" label="Last active" />
+          {compact ? (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.filterChipScroll}
+            >
+              <StudioButton variant="ghost" icon="funnel-outline" label="Cohort · all" />
+              <StudioButton variant="ghost" icon="funnel-outline" label="Status · active" />
+              <StudioButton variant="ghost" icon="swap-vertical-outline" label="Last active" />
+            </ScrollView>
+          ) : (
+            <>
+              <StudioButton variant="ghost" icon="funnel-outline" label="Cohort · all" />
+              <StudioButton variant="ghost" icon="funnel-outline" label="Status · active" />
+              <StudioButton variant="ghost" icon="swap-vertical-outline" label="Last active" />
+            </>
+          )}
         </View>
 
         <View style={styles.tableCard}>
@@ -397,6 +415,9 @@ const styles = StyleSheet.create({
 
   // Filter row
   filterRow: { flexDirection: 'row', gap: 8, marginBottom: 12, alignItems: 'center' },
+  filterRowStacked: { flexDirection: 'column', alignItems: 'stretch' },
+  filterChipScroll: { flexDirection: 'row', gap: 8 },
+  searchInputCompact: { maxWidth: undefined },
   searchInput: {
     flex: 1,
     maxWidth: 320,

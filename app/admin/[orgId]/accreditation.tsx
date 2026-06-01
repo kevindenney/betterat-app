@@ -14,6 +14,7 @@ import { View, Text, Pressable, StyleSheet, ScrollView, Platform } from 'react-n
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAdminCompetencyEvidence } from '@/hooks/useAdminCompetencyEvidence';
 
 const SERIF: any =
@@ -95,6 +96,7 @@ function cellTint(value: number, max: number): string {
 export default function AccreditationReportPage() {
   const { orgId } = useLocalSearchParams<{ orgId: string }>();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const evidence = useAdminCompetencyEvidence(orgId as string);
 
   const maxCell = useMemo(() => {
@@ -107,7 +109,7 @@ export default function AccreditationReportPage() {
 
   return (
     <View style={s.page}>
-      <View style={s.toolbar}>
+      <View style={[s.toolbar, { paddingTop: insets.top + 10 }]}>
         <View style={s.crumb}>
           <Pressable onPress={() => router.push(`/admin/${orgId}/insights`)}>
             <Text style={s.crumbLink}>Org admin</Text>

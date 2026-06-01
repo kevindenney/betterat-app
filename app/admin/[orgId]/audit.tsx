@@ -10,11 +10,24 @@
  */
 
 import React, { useMemo, useState } from 'react';
-import { View, Text, Pressable, StyleSheet, ScrollView, TextInput, Platform } from 'react-native';
+import {
+  View,
+  Text,
+  Pressable,
+  StyleSheet,
+  ScrollView,
+  TextInput,
+  Platform,
+  useWindowDimensions,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams } from 'expo-router';
 import { AdminShell } from '@/components/admin/AdminShell';
-import { StudioHeader, StudioButton } from '@/components/studio/StudioShell';
+import {
+  StudioHeader,
+  StudioButton,
+  STUDIO_COMPACT_BREAKPOINT,
+} from '@/components/studio/StudioShell';
 import {
   useAdminAuditFeed,
   AuditEvent,
@@ -140,6 +153,8 @@ export default function AdminAuditPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [stripeOnly, setStripeOnly] = useState(false);
+  const { width } = useWindowDimensions();
+  const compact = width < STUDIO_COMPACT_BREAKPOINT;
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -190,6 +205,45 @@ export default function AdminAuditPage() {
     [filtered, selectedId],
   );
 
+  const filterChips = (
+    <>
+      <Pressable
+        style={[s.filterChip, !stripeOnly && s.filterChipOn]}
+        onPress={() => setStripeOnly(false)}
+      >
+        <Ionicons
+          name="pricetag-outline"
+          size={13}
+          color={!stripeOnly ? '#28406B' : 'rgba(60, 60, 67, 0.6)'}
+        />
+        <Text style={!stripeOnly ? s.filterChipTextOn : s.filterChipText}>All events</Text>
+      </Pressable>
+      <Pressable
+        style={[s.filterChip, stripeOnly && s.filterChipOn]}
+        onPress={() => setStripeOnly(true)}
+      >
+        <Ionicons
+          name="card-outline"
+          size={13}
+          color={stripeOnly ? '#28406B' : 'rgba(60, 60, 67, 0.6)'}
+        />
+        <Text style={stripeOnly ? s.filterChipTextOn : s.filterChipText}>
+          Stripe · {stripeEventCount}
+        </Text>
+      </Pressable>
+      <View style={s.filterChip}>
+        <Ionicons name="person-outline" size={13} color="rgba(60, 60, 67, 0.6)" />
+        <Text style={s.filterChipText}>Any actor</Text>
+        <Ionicons name="chevron-down" size={13} color="rgba(60, 60, 67, 0.6)" />
+      </View>
+      <View style={s.filterChip}>
+        <Ionicons name="calendar-outline" size={13} color="rgba(60, 60, 67, 0.6)" />
+        <Text style={s.filterChipText}>Last 90 days</Text>
+        <Ionicons name="chevron-down" size={13} color="rgba(60, 60, 67, 0.6)" />
+      </View>
+    </>
+  );
+
   return (
     <AdminShell activeKey="audit">
       <StudioHeader
@@ -213,7 +267,7 @@ export default function AdminAuditPage() {
 
       <ScrollView style={s.body} contentContainerStyle={s.bodyInner}>
         {/* Filter row */}
-        <View style={s.filterRow}>
+        <View style={[s.filterRow, compact && s.filterRowStacked]}>
           <View style={s.searchBox}>
             <Ionicons name="search" size={14} color="rgba(60, 60, 67, 0.6)" />
             <TextInput
@@ -224,42 +278,17 @@ export default function AdminAuditPage() {
               style={s.searchInput}
             />
           </View>
-          <Pressable
-            style={[s.filterChip, !stripeOnly && s.filterChipOn]}
-            onPress={() => setStripeOnly(false)}
-          >
-            <Ionicons
-              name="pricetag-outline"
-              size={13}
-              color={!stripeOnly ? '#28406B' : 'rgba(60, 60, 67, 0.6)'}
-            />
-            <Text style={!stripeOnly ? s.filterChipTextOn : s.filterChipText}>
-              All events
-            </Text>
-          </Pressable>
-          <Pressable
-            style={[s.filterChip, stripeOnly && s.filterChipOn]}
-            onPress={() => setStripeOnly(true)}
-          >
-            <Ionicons
-              name="card-outline"
-              size={13}
-              color={stripeOnly ? '#28406B' : 'rgba(60, 60, 67, 0.6)'}
-            />
-            <Text style={stripeOnly ? s.filterChipTextOn : s.filterChipText}>
-              Stripe · {stripeEventCount}
-            </Text>
-          </Pressable>
-          <View style={s.filterChip}>
-            <Ionicons name="person-outline" size={13} color="rgba(60, 60, 67, 0.6)" />
-            <Text style={s.filterChipText}>Any actor</Text>
-            <Ionicons name="chevron-down" size={13} color="rgba(60, 60, 67, 0.6)" />
-          </View>
-          <View style={s.filterChip}>
-            <Ionicons name="calendar-outline" size={13} color="rgba(60, 60, 67, 0.6)" />
-            <Text style={s.filterChipText}>Last 90 days</Text>
-            <Ionicons name="chevron-down" size={13} color="rgba(60, 60, 67, 0.6)" />
-          </View>
+          {compact ? (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={s.filterChipScroll}
+            >
+              {filterChips}
+            </ScrollView>
+          ) : (
+            filterChips
+          )}
         </View>
 
         {/* Feed + Detail */}
@@ -401,6 +430,8 @@ const s = StyleSheet.create({
     borderColor: 'rgba(0,0,0,0.06)',
     borderRadius: 12,
   },
+  filterRowStacked: { flexDirection: 'column', alignItems: 'stretch' },
+  filterChipScroll: { flexDirection: 'row', gap: 8 },
   searchBox: {
     flex: 1,
     flexDirection: 'row',
