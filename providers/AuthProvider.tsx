@@ -496,15 +496,22 @@ export function AuthProvider({children}:{children: React.ReactNode}) {
       setUserProfile(result.data)
       setUserType(result.data?.user_type as UserType)
 
-      // Sync name to profiles table (belt + suspenders with DB trigger)
       if (updates.full_name) {
-        supabase
+        // Write the name into auth.users metadata. The auth.users AFTER-UPDATE
+        // trigger (trg_auth_users_profile_sync) re-runs on every session refresh
+        // and resets profiles.full_name to COALESCE(meta->>'full_name', email);
+        // without seeding the metadata, the name silently reverts to the email.
+        const { error: authErr } = await supabase.auth.updateUser({
+          data: { full_name: updates.full_name },
+        })
+        if (authErr) console.warn('Failed to sync name to auth metadata:', authErr.message)
+
+        // Sync name to profiles table (belt + suspenders with DB trigger).
+        const { error: profileErr } = await supabase
           .from('profiles')
           .update({ full_name: updates.full_name })
           .eq('id', uid)
-          .then(({ error: profileErr }) => {
-            if (profileErr) console.warn('Failed to sync name to profiles:', profileErr.message)
-          })
+        if (profileErr) console.warn('Failed to sync name to profiles:', profileErr.message)
       }
 
       return result.data
