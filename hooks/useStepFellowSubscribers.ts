@@ -47,19 +47,19 @@ export function useStepFellowSubscribers({
 
       if (ids.length === 0) return { totalPeers: 0, peers: [] };
 
-      // Resolve names via the public profiles table — never reach into
-      // auth.users directly. profile_public is the discovery surface so
-      // RLS already permits cross-user reads here.
+      // Resolve names via the `profiles` table — never reach into auth.users
+      // directly. The `profile_public` column drives an RLS discovery policy
+      // that already permits cross-user reads of public/followed/org peers.
       const { data: profiles } = await supabase
-        .from('profile_public')
-        .select('user_id, display_name')
-        .in('user_id', ids);
+        .from('profiles')
+        .select('id, full_name')
+        .in('id', ids);
 
       const profilesById = new Map<string, string>();
-      for (const row of (profiles as { user_id: string; display_name: string | null }[] | null) ??
+      for (const row of (profiles as { id: string; full_name: string | null }[] | null) ??
         []) {
-        if (row.user_id && row.display_name) {
-          profilesById.set(row.user_id, row.display_name);
+        if (row.id && row.full_name) {
+          profilesById.set(row.id, row.full_name);
         }
       }
       const peers: FellowSubscriber[] = ids.map((id) => ({

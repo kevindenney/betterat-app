@@ -93,11 +93,11 @@ async function fetchStepFromSupabase(shareToken: string): Promise<StepData | nul
   if (step.user_id) {
     const { data: profile } = await supabase
       .from('profiles')
-      .select('full_name, display_name')
+      .select('full_name')
       .eq('id', step.user_id)
       .single();
     if (profile) {
-      creator = { display_name: profile.display_name || profile.full_name || 'Anonymous' };
+      creator = { display_name: profile.full_name || 'Anonymous' };
     }
   }
 
