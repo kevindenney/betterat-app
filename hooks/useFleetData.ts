@@ -4,6 +4,7 @@ import {
   FleetActivityEntry,
   FleetMembership,
   FleetOverview,
+  FleetRosterEntry,
   fleetService,
 } from '../services/fleetService';
 
@@ -224,6 +225,66 @@ export function useFleetActivity(fleetId?: string | null, options?: { limit?: nu
 
   return useMemo(() => ({
     activity: state.data ?? [],
+    loading: state.loading,
+    error: state.error,
+    refresh,
+  }), [state, refresh]);
+}
+
+export function useFleetRoster(fleetId?: string | null) {
+  const [state, setState] = useState<AsyncState<FleetRosterEntry[]>>({
+    data: null,
+    loading: Boolean(fleetId),
+    error: null,
+  });
+  const isMountedRef = useRef(true);
+  const fetchRunIdRef = useRef(0);
+  const activeFleetIdRef = useRef<string | null | undefined>(fleetId);
+
+  useEffect(() => {
+    activeFleetIdRef.current = fleetId;
+  }, [fleetId]);
+
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+      fetchRunIdRef.current += 1;
+    };
+  }, []);
+
+  const refresh = useCallback(async () => {
+    const runId = ++fetchRunIdRef.current;
+    const targetFleetId = fleetId;
+    const canCommit = () =>
+      isMountedRef.current &&
+      runId === fetchRunIdRef.current &&
+      activeFleetIdRef.current === targetFleetId;
+
+    if (!targetFleetId) {
+      if (!canCommit()) return;
+      setState(prev => ({ ...prev, loading: false }));
+      return;
+    }
+
+    if (!canCommit()) return;
+    setState(prev => ({ ...prev, loading: true, error: null }));
+
+    try {
+      const roster = await fleetService.getFleetRoster(targetFleetId);
+      if (!canCommit()) return;
+      setState({ data: roster, loading: false, error: null });
+    } catch (error) {
+      if (!canCommit()) return;
+      setState({ data: null, loading: false, error: error as Error });
+    }
+  }, [fleetId]);
+
+  useEffect(() => {
+    void refresh();
+  }, [refresh]);
+
+  return useMemo(() => ({
+    roster: state.data ?? [],
     loading: state.loading,
     error: state.error,
     refresh,

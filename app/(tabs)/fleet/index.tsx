@@ -9,7 +9,7 @@
  */
 
 import React, { useState, useCallback, useEffect } from 'react';
-import { Link, useFocusEffect, useRouter } from 'expo-router';
+import { Link, useFocusEffect } from 'expo-router';
 import {
   ActivityIndicator,
   Linking,
@@ -24,7 +24,6 @@ import { useAuth } from '@/providers/AuthProvider';
 import { useFleetOverview, useUserFleets } from '@/hooks/useFleetData';
 import { useFleetPosts } from '@/hooks/useFleetSocial';
 import { fleetService, type FleetMembership } from '@/services/fleetService';
-import type { FleetPost } from '@/services/FleetSocialService';
 import { TUFTE_BACKGROUND } from '@/components/cards/constants';
 
 // Tufte color palette
@@ -42,7 +41,6 @@ const COLORS = {
 
 export default function FleetOverviewScreen() {
   const { user } = useAuth();
-  const router = useRouter();
   const [selectedFleetIndex, setSelectedFleetIndex] = useState(0);
   const [leavingFleetId, setLeavingFleetId] = useState<string | null>(null);
 
@@ -63,7 +61,7 @@ export default function FleetOverviewScreen() {
   const activeFleetMembership = fleets[selectedFleetIndex];
   const activeFleet = activeFleetMembership?.fleet;
 
-  const { overview, loading: overviewLoading } = useFleetOverview(activeFleet?.id);
+  const { overview } = useFleetOverview(activeFleet?.id);
   const { posts, loading: postsLoading } = useFleetPosts(activeFleet?.id, { limit: 10 });
 
   const handleLeaveFleet = useCallback(async (fleetId: string, fleetName?: string) => {
@@ -119,6 +117,11 @@ export default function FleetOverviewScreen() {
           <Text style={styles.emptySubtitle}>
             Join a fleet to connect with sailors, share documents, and coordinate race days.
           </Text>
+          <Link href="/(tabs)/fleet/create" asChild>
+            <TouchableOpacity style={styles.primaryButton}>
+              <Text style={styles.primaryButtonText}>Create a fleet</Text>
+            </TouchableOpacity>
+          </Link>
           <Link href="/(tabs)/fleet/select" asChild>
             <TouchableOpacity>
               <Text style={styles.linkText}>Find fleets to join →</Text>
@@ -165,11 +168,18 @@ export default function FleetOverviewScreen() {
             </Text>
           </TouchableOpacity>
         ))}
-        <Link href="/(tabs)/fleet/select" asChild>
-          <TouchableOpacity style={styles.joinRow}>
-            <Text style={styles.linkText}>+ Join fleet</Text>
-          </TouchableOpacity>
-        </Link>
+        <View style={styles.fleetListActions}>
+          <Link href="/(tabs)/fleet/select" asChild>
+            <TouchableOpacity style={styles.joinRow}>
+              <Text style={styles.linkText}>+ Join fleet</Text>
+            </TouchableOpacity>
+          </Link>
+          <Link href="/(tabs)/fleet/create" asChild>
+            <TouchableOpacity style={styles.joinRow}>
+              <Text style={styles.linkText}>+ New fleet</Text>
+            </TouchableOpacity>
+          </Link>
+        </View>
       </View>
 
       {/* Active Fleet Header */}
@@ -330,9 +340,25 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: COLORS.tertiaryText,
   },
+  fleetListActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 20,
+  },
   joinRow: {
     paddingVertical: 12,
     paddingHorizontal: 14,
+  },
+  primaryButton: {
+    backgroundColor: COLORS.activeBlue,
+    paddingHorizontal: 22,
+    paddingVertical: 11,
+    borderRadius: 999,
+  },
+  primaryButtonText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#FFFFFF',
   },
 
   // Divider

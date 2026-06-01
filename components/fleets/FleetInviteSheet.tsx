@@ -36,6 +36,9 @@ import {
   FleetDiscoveryService,
   type InviteCandidate,
 } from '@/services/FleetDiscoveryService';
+import { fleetService } from '@/services/fleetService';
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 interface Props {
   visible: boolean;
@@ -55,6 +58,10 @@ export function FleetInviteSheet({ visible, onClose, fleetId, fleetName }: Props
   const [invitedState, setInvitedState] = useState<
     Record<string, 'pending' | 'sent' | 'error'>
   >({});
+  // Email-invite state keyed by the lowercased email being invited.
+  const [emailState, setEmailState] = useState<
+    Record<string, 'pending' | 'sent' | 'error'>
+  >({});
 
   // Reset internal state when the sheet opens (so opening the
   // sheet on a different fleet doesn't show stale results from a
@@ -65,6 +72,7 @@ export function FleetInviteSheet({ visible, onClose, fleetId, fleetName }: Props
       setDebouncedQuery('');
       setResults([]);
       setInvitedState({});
+      setEmailState({});
     }
   }, [visible]);
 
@@ -108,16 +116,37 @@ export function FleetInviteSheet({ visible, onClose, fleetId, fleetName }: Props
     [fleetId],
   );
 
+  const emailInput = debouncedQuery.toLowerCase();
+  const looksLikeEmail = EMAIL_RE.test(emailInput);
+
+  const handleEmailInvite = useCallback(
+    async (email: string) => {
+      setEmailState((prev) => ({ ...prev, [email]: 'pending' }));
+      try {
+        const result = await fleetService.inviteMemberByEmail(fleetId, email);
+        setEmailState((prev) => ({ ...prev, [email]: 'sent' }));
+        if (result === 'already_member') {
+          showAlert('Already invited', 'That sailor is already in this fleet.');
+        }
+      } catch {
+        setEmailState((prev) => ({ ...prev, [email]: 'error' }));
+        showAlert('Invite failed', 'Could not send the invite. Please try again.');
+      }
+    },
+    [fleetId],
+  );
+
   const emptyMessage = useMemo(() => {
     if (loading) return null;
+    if (looksLikeEmail) return null;
     if (debouncedQuery.length < 2) {
-      return 'Type at least 2 letters to find sailors to invite.';
+      return 'Type a name to find sailors, or enter an email to invite someone new.';
     }
     if (results.length === 0) {
-      return `No sailors match "${debouncedQuery}". They may need a public profile to appear here.`;
+      return `No sailors match "${debouncedQuery}". Enter their email to invite them to BetterAt.`;
     }
     return null;
-  }, [loading, debouncedQuery, results.length]);
+  }, [loading, looksLikeEmail, debouncedQuery, results.length]);
 
   return (
     <Modal
@@ -172,6 +201,23 @@ export function FleetInviteSheet({ visible, onClose, fleetId, fleetName }: Props
               <ActivityIndicator size="small" color="#64748B" />
               <Text style={styles.loadingText}>Searching…</Text>
             </View>
+          ) : null}
+
+          {looksLikeEmail ? (
+            <Pressable
+              style={styles.emailRow}
+              onPress={() => handleEmailInvite(emailInput)}
+              disabled={emailState[emailInput] === 'pending'}
+            >
+              <View style={styles.emailIcon}>
+                <Ionicons name="mail-outline" size={18} color="#2563EB" />
+              </View>
+              <View style={styles.rowText}>
+                <Text style={styles.rowName} numberOfLines={1}>{emailInput}</Text>
+                <Text style={styles.rowMeta}>Invite by email</Text>
+              </View>
+              <EmailCta state={emailState[emailInput]} />
+            </Pressable>
           ) : null}
 
           {emptyMessage ? <Text style={styles.empty}>{emptyMessage}</Text> : null}
@@ -245,6 +291,29 @@ function InviteCta({ state, onPress }: CtaProps) {
   );
 }
 
+function EmailCta({ state }: { state: 'pending' | 'sent' | 'error' | undefined }) {
+  if (state === 'pending') {
+    return (
+      <View style={[styles.cta, styles.ctaPending]}>
+        <ActivityIndicator size="small" color="#64748B" />
+      </View>
+    );
+  }
+  if (state === 'sent') {
+    return (
+      <View style={[styles.cta, styles.ctaSent]}>
+        <Ionicons name="checkmark" size={14} color="#15803D" />
+        <Text style={styles.ctaSentText}>Invited</Text>
+      </View>
+    );
+  }
+  return (
+    <View style={[styles.cta, styles.ctaIdle]}>
+      <Text style={styles.ctaIdleText}>{state === 'error' ? 'Retry' : 'Invite'}</Text>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   flex: { flex: 1, backgroundColor: '#FFFFFF' },
   header: {
@@ -299,6 +368,24 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: '#E2E8F0',
+  },
+  emailRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    marginBottom: 4,
+    borderRadius: 12,
+    backgroundColor: '#EFF6FF',
+  },
+  emailIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#DBEAFE',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   avatar: {
     width: 36,

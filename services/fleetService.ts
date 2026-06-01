@@ -104,6 +104,25 @@ export interface FleetMember {
   metadata?: Record<string, unknown> | null;
 }
 
+/** Hydrated roster row: a fleet member OR a pending email invite. */
+export interface FleetRosterEntry {
+  rowId: string;
+  userId: string | null;
+  email: string | null;
+  displayName: string;
+  avatarUrl: string | null;
+  role: FleetMembership['role'];
+  status: FleetMembership['status'] | 'pending';
+  joinedAt?: string | null;
+  invitedBy?: string | null;
+  isEmailInvite: boolean;
+}
+
+export type EmailInviteResult =
+  | 'invited_user'
+  | 'invited_email'
+  | 'already_member';
+
 class FleetService {
   private boatClassNameCache = new Map<string, string | null>();
 
@@ -286,6 +305,108 @@ class FleetService {
       invitedBy: member.invited_by,
       metadata: member.metadata,
     }));
+  }
+
+  /**
+   * Full roster (active + invited members and pending email invites),
+   * hydrated with profile name/avatar. Goes through a SECURITY DEFINER
+   * RPC because fleet_members.user_id → auth.users (not public) blocks a
+   * direct profile embed, and member-of gating lives server-side.
+   */
+  async getFleetRoster(fleetId: string): Promise<FleetRosterEntry[]> {
+    const { data, error } = await supabase.rpc('get_fleet_roster', {
+      p_fleet_id: fleetId,
+    });
+
+    if (error) {
+      logger.error('Error fetching fleet roster:', error);
+      throw error;
+    }
+
+    return ((data ?? []) as any[]).map(row => ({
+      rowId: row.row_id,
+      userId: row.member_user_id ?? null,
+      email: row.member_email ?? null,
+      displayName: row.display_name ?? 'Sailor',
+      avatarUrl: row.avatar_url ?? null,
+      role: (row.member_role ?? 'member') as FleetMembership['role'],
+      status: (row.member_status ?? 'active') as FleetRosterEntry['status'],
+      joinedAt: row.joined_at,
+      invitedBy: row.invited_by,
+      isEmailInvite: !!row.is_email_invite,
+    }));
+  }
+
+  /** Owner-only: change a member's role (e.g. promote to captain). */
+  async setFleetMemberRole(
+    fleetId: string,
+    userId: string,
+    role: FleetMembership['role'],
+  ): Promise<void> {
+    const { error } = await supabase.rpc('set_fleet_member_role', {
+      p_fleet_id: fleetId,
+      p_user_id: userId,
+      p_role: role,
+    });
+    if (error) {
+      logger.error('Error setting fleet member role:', error);
+      throw error;
+    }
+  }
+
+  /** Owner/captain: remove a member from the fleet. */
+  async removeFleetMember(fleetId: string, userId: string): Promise<void> {
+    const { error } = await supabase.rpc('remove_fleet_member', {
+      p_fleet_id: fleetId,
+      p_user_id: userId,
+    });
+    if (error) {
+      logger.error('Error removing fleet member:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Invite by email. If the address already has an account they get an
+   * 'invited' membership immediately; otherwise a pending fleet_invite is
+   * stored and claimed when they sign up.
+   */
+  async inviteMemberByEmail(
+    fleetId: string,
+    email: string,
+    role: FleetMembership['role'] = 'member',
+  ): Promise<EmailInviteResult> {
+    const { data, error } = await supabase.rpc('invite_fleet_member_by_email', {
+      p_fleet_id: fleetId,
+      p_email: email,
+      p_role: role,
+    });
+    if (error) {
+      logger.error('Error inviting fleet member by email:', error);
+      throw error;
+    }
+    return data as EmailInviteResult;
+  }
+
+  /** Owner/captain: cancel a pending email invite. */
+  async revokeFleetInvite(inviteId: string): Promise<void> {
+    const { error } = await supabase.rpc('revoke_fleet_invite', {
+      p_invite_id: inviteId,
+    });
+    if (error) {
+      logger.error('Error revoking fleet invite:', error);
+      throw error;
+    }
+  }
+
+  /** Convert any pending email invites matching the caller's email. */
+  async claimFleetInvites(): Promise<number> {
+    const { data, error } = await supabase.rpc('claim_fleet_invites');
+    if (error) {
+      logger.error('Error claiming fleet invites:', error);
+      throw error;
+    }
+    return (data as number) ?? 0;
   }
 
   async followFleet(userId: string, fleetId: string, preferences?: {
