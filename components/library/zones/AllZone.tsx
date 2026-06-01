@@ -124,7 +124,7 @@ function FollowPlanRow({ bp }: { bp: DiscoveredBlueprint }) {
         <Text style={styles.followPlanMeta} numberOfLines={1}>
           {author}
           {bp.subscriber_count > 0
-            ? ` · ${bp.subscriber_count} follower${bp.subscriber_count !== 1 ? 's' : ''}`
+            ? ` · ${bp.subscriber_count} subscriber${bp.subscriber_count !== 1 ? 's' : ''}`
             : ''}
         </Text>
       </View>
