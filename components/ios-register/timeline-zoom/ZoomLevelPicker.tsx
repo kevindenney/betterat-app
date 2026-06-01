@@ -19,7 +19,7 @@
  * so pinching out moves up the rail.
  */
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, {
   useAnimatedStyle,
@@ -181,6 +181,18 @@ export function ZoomLevelPicker({
     transform: [{ translateX: hideProgress.value * 24 }],
   }));
 
+  // At L1 (focused single step) the full ladder is redundant — you're
+  // already at the bottom of the zoom stack — and a centered four-segment
+  // rail reaches down into the bottom composer/send button. So L1 shows
+  // only the current-level glyph (a single pill that clears the composer
+  // band); tapping it expands the full ladder to jump levels. Mirrors the
+  // Apple Photos model where the zoom scrubber is an overview affordance.
+  const [expanded, setExpanded] = useState(false);
+  useEffect(() => {
+    if (level !== 1) setExpanded(false);
+  }, [level]);
+  const collapsed = level === 1 && !expanded;
+
   const scopeLabelFor = (l: ZoomLevel) =>
     l === 3 ? `Current ${periodNoun}` : ZOOM_LEVEL_SCOPE_LABELS[l];
   const labelFor = (l: ZoomLevel) =>
@@ -191,10 +203,16 @@ export function ZoomLevelPicker({
         triggerHaptic('selection');
         onSnapToCurrent();
       }
+      setExpanded(false);
       return;
     }
     triggerHaptic('impactLight');
     onChange(target);
+    setExpanded(false);
+  };
+  const expand = () => {
+    triggerHaptic('selection');
+    setExpanded(true);
   };
 
   return (
@@ -206,16 +224,26 @@ export function ZoomLevelPicker({
       importantForAccessibility={hidden ? 'no-hide-descendants' : 'auto'}
     >
       <View style={styles.rail}>
-        {RAIL_ORDER.map((l) => (
+        {collapsed ? (
           <RailSegment
-            key={l}
-            level={l}
-            active={l === level}
-            onPress={() => handlePress(l)}
-            scopeLabel={scopeLabelFor(l)}
-            label={labelFor(l)}
+            level={1}
+            active
+            onPress={expand}
+            scopeLabel="Zoom levels — tap to expand"
+            label={labelFor(1)}
           />
-        ))}
+        ) : (
+          RAIL_ORDER.map((l) => (
+            <RailSegment
+              key={l}
+              level={l}
+              active={l === level}
+              onPress={() => handlePress(l)}
+              scopeLabel={scopeLabelFor(l)}
+              label={labelFor(l)}
+            />
+          ))
+        )}
       </View>
     </Animated.View>
   );
