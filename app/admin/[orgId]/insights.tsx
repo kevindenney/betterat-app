@@ -14,7 +14,15 @@
  */
 
 import React, { useState } from 'react';
-import { View, Text, Pressable, StyleSheet, ScrollView, Platform } from 'react-native';
+import {
+  View,
+  Text,
+  Pressable,
+  StyleSheet,
+  ScrollView,
+  Platform,
+  useWindowDimensions,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { AdminShell } from '@/components/admin/AdminShell';
@@ -29,7 +37,11 @@ import { ManageCompetenciesSheet } from '@/components/admin/ManageCompetenciesSh
 import { useProfileMenuData } from '@/hooks/useProfileMenuData';
 import { useAdminCohorts } from '@/hooks/useAdminCohorts';
 import { useAdminOrgVocab } from '@/hooks/useAdminOrgVocab';
-import { StudioHeader, StudioButton } from '@/components/studio/StudioShell';
+import {
+  StudioHeader,
+  StudioButton,
+  STUDIO_COMPACT_BREAKPOINT,
+} from '@/components/studio/StudioShell';
 
 type InsightsView = 'grid' | 'map';
 
@@ -43,6 +55,8 @@ export default function AdminInsightsPage() {
   const menu = useProfileMenuData();
   const [view, setView] = useState<InsightsView>('grid');
   const [manageOpen, setManageOpen] = useState(false);
+  const { width } = useWindowDimensions();
+  const compact = width < STUDIO_COMPACT_BREAKPOINT;
   const activeOrg = menu.memberships.find((m) => m.org_id === orgId) ?? menu.activeOrg;
   const orgShortName = activeOrg ? shortNameFor(activeOrg.org_name) : 'Your org';
 
@@ -176,6 +190,8 @@ export default function AdminInsightsPage() {
           colTotals={data.colTotals}
           sitesGeo={data.sitesGeo}
         />
+      ) : compact ? (
+        <EvidenceList data={data} cohortNoun={av.members} />
       ) : (
         <ScrollView style={s.scroll} horizontal>
           <View>
@@ -359,6 +375,121 @@ function CompetencyRow({
         </Text>
         <Text style={g.rowTotalPct}>{Math.round(rowTotal.pct * 100)}%</Text>
       </View>
+    </View>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Compact list (phone) — competency rows with an inline coverage-breadth bar.
+// The bar encodes rowTotal.pct = students-covered / cohort-size, the same
+// "coverage breadth" figure the accreditation report shows. Tap a row to
+// expand the per-site breakdown, which keeps the heatmap's intensity colors.
+// ---------------------------------------------------------------------------
+
+function EvidenceList({
+  data,
+  cohortNoun,
+}: {
+  data: ReturnType<typeof useAdminCompetencyEvidence>;
+  cohortNoun: string;
+}) {
+  return (
+    <ScrollView style={s.scroll}>
+      <View style={l.wrap}>
+        {data.competencies.map((c) => (
+          <CompetencyListRow
+            key={c.id}
+            competency={c}
+            sites={data.sites}
+            evidence={data.evidence}
+            rowTotal={data.rowTotals.get(c.id) ?? { count: 0, pct: 0 }}
+            cohortSize={data.cohortSize}
+            cohortNoun={cohortNoun}
+          />
+        ))}
+      </View>
+    </ScrollView>
+  );
+}
+
+function CompetencyListRow({
+  competency,
+  sites,
+  evidence,
+  rowTotal,
+  cohortSize,
+  cohortNoun,
+}: {
+  competency: Competency;
+  sites: SiteSummary[];
+  evidence: Map<string, EvidenceCell>;
+  rowTotal: { count: number; pct: number };
+  cohortSize: number;
+  cohortNoun: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const pct = Math.round(rowTotal.pct * 100);
+  return (
+    <View style={l.row}>
+      <Pressable
+        style={l.header}
+        onPress={() => setOpen((o) => !o)}
+        accessibilityRole="button"
+        accessibilityLabel={`${competency.label}, ${pct}% coverage. Tap for per-site breakdown.`}
+      >
+        <View style={l.headTop}>
+          <View style={l.headText}>
+            <Text style={l.cat}>{competency.category.toUpperCase()}</Text>
+            <Text style={l.label} numberOfLines={2}>
+              {competency.label}
+            </Text>
+          </View>
+          <Ionicons
+            name={open ? 'chevron-up' : 'chevron-down'}
+            size={16}
+            color="rgba(60, 60, 67, 0.4)"
+          />
+        </View>
+        <View style={l.barRow}>
+          <View style={l.barTrack}>
+            <View
+              style={[
+                l.barFill,
+                { width: `${pct}%`, backgroundColor: intensityToColor(rowTotal.pct) },
+              ]}
+            />
+          </View>
+          <Text style={l.barLabel}>
+            {rowTotal.count} / {cohortSize} {cohortNoun} ·{' '}
+            {cohortSize > 0 ? `${pct}%` : '—'}
+          </Text>
+        </View>
+      </Pressable>
+      {open ? (
+        <View style={l.sites}>
+          {sites.map((site) => {
+            const cell = evidence.get(`${competency.id}::${site.id}`);
+            const count = cell?.count ?? 0;
+            const intensity = cell?.intensity ?? 0;
+            return (
+              <View key={site.id} style={l.siteRow}>
+                <View
+                  style={[l.swatch, { backgroundColor: intensityToColor(intensity) }]}
+                />
+                <View style={l.siteText}>
+                  <Text style={l.siteName} numberOfLines={1}>
+                    {site.short}
+                  </Text>
+                  <Text style={l.siteKind}>{prettyKind(site.kind)}</Text>
+                </View>
+                <Text style={l.siteStat}>
+                  {count} · {cohortSize > 0 ? `${Math.round(intensity * 100)}%` : '—'}
+                </Text>
+              </View>
+            );
+          })}
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -631,5 +762,112 @@ const g = StyleSheet.create({
     color: '#1C1C1E',
     textAlign: 'center',
     zIndex: 1,
+  },
+});
+
+// Phone (compact) competency list: one card per competency with an inline
+// coverage-breadth bar, tap to expand the per-site breakdown.
+const l = StyleSheet.create({
+  wrap: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    borderWidth: 0.5,
+    borderColor: 'rgba(0,0,0,0.06)',
+    overflow: 'hidden',
+  },
+  row: {
+    borderBottomWidth: 0.5,
+    borderBottomColor: '#E5E5EA',
+  },
+  header: {
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    gap: 10,
+  },
+  headTop: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+  },
+  headText: {
+    flex: 1,
+    minWidth: 0,
+  },
+  cat: {
+    fontSize: 9.5,
+    color: 'rgba(60, 60, 67, 0.6)',
+    fontWeight: '700',
+    letterSpacing: 0.4,
+  },
+  label: {
+    marginTop: 2,
+    fontSize: 13.5,
+    fontWeight: '600',
+    color: '#1C1C1E',
+    letterSpacing: -0.1,
+  },
+  barRow: {
+    gap: 5,
+  },
+  barTrack: {
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#F2F2F0',
+    overflow: 'hidden',
+  },
+  barFill: {
+    height: 8,
+    borderRadius: 4,
+  },
+  barLabel: {
+    fontSize: 11.5,
+    color: 'rgba(60, 60, 67, 0.7)',
+    fontWeight: '500',
+    fontVariant: ['tabular-nums'],
+  },
+  sites: {
+    borderTopWidth: 0.5,
+    borderTopColor: '#E5E5EA',
+    backgroundColor: '#FAFAF7',
+    paddingHorizontal: 14,
+    paddingVertical: 4,
+  },
+  siteRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 8,
+    borderBottomWidth: 0.5,
+    borderBottomColor: 'rgba(0,0,0,0.04)',
+  },
+  swatch: {
+    width: 14,
+    height: 14,
+    borderRadius: 3,
+    borderWidth: 0.5,
+    borderColor: 'rgba(0,0,0,0.08)',
+  },
+  siteText: {
+    flex: 1,
+    minWidth: 0,
+  },
+  siteName: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: '#1C1C1E',
+  },
+  siteKind: {
+    marginTop: 1,
+    fontSize: 10.5,
+    color: 'rgba(60, 60, 67, 0.6)',
+    fontWeight: '600',
+    letterSpacing: 0.2,
+    textTransform: 'uppercase',
+  },
+  siteStat: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: 'rgba(60, 60, 67, 0.8)',
+    fontVariant: ['tabular-nums'],
   },
 });
