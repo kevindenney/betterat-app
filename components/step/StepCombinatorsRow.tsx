@@ -79,15 +79,22 @@ export function StepCombinatorsRow({
   const { switchInterest, userInterests } = useInterest();
   const { user } = useAuth();
   const atlasData = getAtlasStepData(step.metadata);
-  // Resolve the step's real interest from its interest_id rather than the
-  // free-text `category` — a "Hong Kong Impala fleet race" is sailing even
-  // when its category isn't literally 'sailing', and the brittle category
-  // check let those races leak a bogus "Also relevant for <X>" chip.
+  // Resolve the step's real interest from its interest_id (falling back to
+  // atlas metadata) rather than the free-text `category` — a "Hong Kong
+  // Impala fleet race" is sailing even when its category isn't literally
+  // 'sailing', and the brittle category check let those races leak a bogus
+  // "Also relevant for <X>" chip.
   const stepInterestSlug =
-    userInterests.find((i) => i.id === step.interest_id)?.slug ?? null;
+    userInterests.find((i) => i.id === step.interest_id)?.slug ??
+    atlasData?.interest_slug ??
+    null;
+  // Only surface the cross-interest chip when we positively know the step's
+  // own interest and it isn't sailing. With an unresolved interest the
+  // suggestion is generated against the viewer's *active* interest, not the
+  // step's — meaningless, and the source of orphaned-step leaks.
   const suppressCrossInterest =
+    stepInterestSlug == null ||
     stepInterestSlug === 'sail-racing' ||
-    atlasData?.interest_slug === 'sail-racing' ||
     isAtlasRaceCourseStep(step.metadata) ||
     Boolean(atlasData?.origin);
   const crossInterest = suppressCrossInterest ? null : suggestions[0] ?? null;
