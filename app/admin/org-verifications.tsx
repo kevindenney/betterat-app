@@ -95,7 +95,7 @@ export default function OrgVerificationsAdminScreen() {
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
-      <Stack.Screen options={{ title: 'Org verification queue' }} />
+      <Stack.Screen options={{ headerShown: true, title: 'Org verification queue' }} />
       <View style={styles.header}>
         <View>
           <Text style={styles.eyebrow}>Admin Review</Text>

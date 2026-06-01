@@ -73,7 +73,7 @@ export default function YachtClubClaimsAdminScreen() {
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
-      <Stack.Screen options={{ title: 'Yacht club claims' }} />
+      <Stack.Screen options={{ headerShown: true, title: 'Yacht club claims' }} />
       <View style={styles.header}>
         <View>
           <Text style={styles.eyebrow}>Admin Review</Text>
