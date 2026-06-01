@@ -73,8 +73,11 @@ export function useAtlasNextEvent(interestSlugOverride?: string | null): AtlasNe
           .neq('status', 'withdrawn')
           .limit(50),
         supabase
+          // race_events has no `metadata` column (unlike regattas); selecting
+          // it 42703s → PostgREST 400. Conditions/venue-from-metadata only
+          // ever applied to regattas anyway.
           .from('race_events')
-          .select('id, name, start_time, location, metadata, latitude, longitude')
+          .select('id, name, start_time, location, latitude, longitude')
           .eq('user_id', user!.id)
           .gte('start_time', nowIso)
           .order('start_time', { ascending: true })
