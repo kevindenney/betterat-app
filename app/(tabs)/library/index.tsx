@@ -263,7 +263,10 @@ function buildObservationForConcept({
       : `${anchor.evidenceCount} step${anchor.evidenceCount === 1 ? '' : 's'} tested it so far.`;
   return {
     id: `concept:${anchor.id}`,
-    body: `"${anchor.title}" is ${stateClause}. ${evidenceClause} Attach another step that exercises or contradicts it to move it along.`,
+    // No quotes here — renderWithEmphasis wraps the emphasised title in
+    // curly quotes. Adding straight quotes too double-quoted it (the
+    // butted "/" pair rendered as a ™-looking glyph).
+    body: `${anchor.title} is ${stateClause}. ${evidenceClause} Attach another step that exercises or contradicts it to move it along.`,
     emphasise: [anchor.title],
     concept: {
       id: anchor.id,
