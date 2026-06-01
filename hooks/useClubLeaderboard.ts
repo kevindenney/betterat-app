@@ -7,7 +7,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/services/supabase';
-import { startOfMonth, subMonths, format } from 'date-fns';
+import { startOfMonth, format } from 'date-fns';
 
 export interface ClubMemberRanking {
   userId: string;
@@ -142,7 +142,7 @@ async function fetchClubLeaderboard(
 
   const { data: sailorProfiles } = await supabase
     .from('sailor_profiles')
-    .select('user_id, display_name, avatar_emoji, avatar_color')
+    .select('user_id, avatar_emoji, avatar_color')
     .in('user_id', memberIds);
 
   const profilesMap = new Map((profiles || []).map((p: any) => [p.id, p]));
@@ -158,7 +158,7 @@ async function fetchClubLeaderboard(
 
     return {
       userId,
-      displayName: sailorProfile?.display_name || profile?.full_name || 'Sailor',
+      displayName: profile?.full_name || 'Sailor',
       avatarEmoji: sailorProfile?.avatar_emoji,
       avatarColor: sailorProfile?.avatar_color,
       rank: 0, // Will be set after sorting

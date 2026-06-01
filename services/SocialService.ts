@@ -206,7 +206,7 @@ class SocialServiceClass {
 
       const { data: sailorProfiles } = await supabase
         .from('sailor_profiles')
-        .select('user_id, display_name, avatar_emoji')
+        .select('user_id, avatar_emoji')
         .in('user_id', userIds);
 
       const profilesMap = new Map((profiles || []).map((p: any) => [p.id, p]));
@@ -217,7 +217,6 @@ class SocialServiceClass {
       recentLikers = userIds.map((id: string) => ({
         userId: id,
         displayName:
-          sailorProfilesMap.get(id)?.display_name ||
           profilesMap.get(id)?.full_name ||
           'Sailor',
         avatarEmoji: sailorProfilesMap.get(id)?.avatar_emoji,
@@ -263,7 +262,7 @@ class SocialServiceClass {
 
     const { data: sailorProfiles } = await supabase
       .from('sailor_profiles')
-      .select('user_id, display_name, avatar_emoji')
+      .select('user_id, avatar_emoji')
       .in('user_id', userIds);
 
     const profilesMap = new Map((profiles || []).map((p: any) => [p.id, p]));
@@ -274,7 +273,6 @@ class SocialServiceClass {
     return userIds.map((id: string) => ({
       userId: id,
       displayName:
-        sailorProfilesMap.get(id)?.display_name ||
         profilesMap.get(id)?.full_name ||
         'Sailor',
       avatarEmoji: sailorProfilesMap.get(id)?.avatar_emoji,
@@ -395,12 +393,12 @@ class SocialServiceClass {
     const userIds = [...new Set(data.map((c: any) => c.user_id))];
     const { data: profiles } = await supabase
       .from('profiles')
-      .select('id, full_name')
+      .select('id, full_name, avatar_url')
       .in('id', userIds);
 
     const { data: sailorProfiles } = await supabase
       .from('sailor_profiles')
-      .select('user_id, display_name, avatar_url, avatar_emoji, avatar_color')
+      .select('user_id, avatar_emoji, avatar_color')
       .in('user_id', userIds);
 
     const profilesMap = new Map((profiles || []).map((p: any) => [p.id, p]));
@@ -424,8 +422,8 @@ class SocialServiceClass {
         content: c.content,
         createdAt: c.created_at,
         updatedAt: c.updated_at,
-        userName: sailorProfile?.display_name || profile?.full_name || 'Sailor',
-        userAvatarUrl: sailorProfile?.avatar_url,
+        userName: profile?.full_name || 'Sailor',
+        userAvatarUrl: profile?.avatar_url,
         userAvatarEmoji: sailorProfile?.avatar_emoji,
         userAvatarColor: sailorProfile?.avatar_color,
         replyCount: 0,

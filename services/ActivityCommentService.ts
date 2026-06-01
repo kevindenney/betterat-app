@@ -67,52 +67,45 @@ export class ActivityCommentService {
       const profileMap = new Map<string, { name: string | null; emoji: string | null; color: string | null }>();
 
       if (userIds.length > 0) {
-        // Try to get from sailor_profiles first (has avatar info)
-        const { data: sailorProfiles } = await supabase
-          .from('sailor_profiles')
-          .select('user_id, display_name, avatar_emoji, avatar_color')
-          .in('user_id', userIds);
+        // Names live on `profiles`; emoji-avatar styling lives on
+        // `sailor_profiles` (keyed by user_id) — read both and merge by id.
+        const [{ data: profiles }, { data: sailorProfiles }] = await Promise.all([
+          supabase.from('profiles').select('id, full_name').in('id', userIds),
+          supabase
+            .from('sailor_profiles')
+            .select('user_id, avatar_emoji, avatar_color')
+            .in('user_id', userIds),
+        ]);
 
-        (sailorProfiles || []).forEach((sp: any) => {
-          profileMap.set(sp.user_id, {
-            name: sp.display_name,
-            emoji: sp.avatar_emoji,
-            color: sp.avatar_color,
+        const sailorMap = new Map(
+          (sailorProfiles || []).map((sp: any) => [sp.user_id, sp])
+        );
+
+        (profiles || []).forEach((p: any) => {
+          const sp = sailorMap.get(p.id);
+          profileMap.set(p.id, {
+            name: p.full_name,
+            emoji: sp?.avatar_emoji ?? null,
+            color: sp?.avatar_color ?? null,
           });
         });
 
-        // Fallback to profiles table for any missing users
+        // Last resort: users table for any still missing
         const missingIds = userIds.filter((id) => !profileMap.has(id));
         if (missingIds.length > 0) {
-          const { data: profiles } = await supabase
-            .from('profiles')
+          const { data: users } = await supabase
+            .from('users')
             .select('id, full_name')
             .in('id', missingIds);
 
-          (profiles || []).forEach((p: any) => {
-            profileMap.set(p.id, {
-              name: p.full_name,
-              emoji: null,
-              color: null,
+          (users || []).forEach((u: any) => {
+            const sp = sailorMap.get(u.id);
+            profileMap.set(u.id, {
+              name: u.full_name,
+              emoji: sp?.avatar_emoji ?? null,
+              color: sp?.avatar_color ?? null,
             });
           });
-
-          // Last resort: users table for any still missing
-          const stillMissing = missingIds.filter((id) => !profileMap.has(id));
-          if (stillMissing.length > 0) {
-            const { data: users } = await supabase
-              .from('users')
-              .select('id, full_name')
-              .in('id', stillMissing);
-
-            (users || []).forEach((u: any) => {
-              profileMap.set(u.id, {
-                name: u.full_name,
-                emoji: null,
-                color: null,
-              });
-            });
-          }
         }
       }
 
@@ -168,15 +161,10 @@ export class ActivityCommentService {
    * Get comment counts for multiple activities (batch)
    */
   static async getCommentCounts(
-    activities: Array<{ activityType: ActivityType; activityId: string }>
+    activities: { activityType: ActivityType; activityId: string }[]
   ): Promise<Map<string, number>> {
     try {
       if (activities.length === 0) return new Map();
-
-      // Build OR conditions for each activity
-      const conditions = activities.map(
-        (a) => `(activity_type.eq.${a.activityType},activity_id.eq.${a.activityId})`
-      );
 
       const { data, error } = await supabase
         .from('activity_comments')
@@ -223,23 +211,17 @@ export class ActivityCommentService {
 
       if (error) throw error;
 
-      // Get profile for return — sailor_profiles has avatar info and display_name
-      const { data: sailorProfile } = await supabase
-        .from('sailor_profiles')
-        .select('display_name, avatar_emoji, avatar_color')
-        .eq('user_id', user.id)
-        .maybeSingle();
+      // Name lives on `profiles`; emoji-avatar styling on `sailor_profiles`.
+      const [{ data: profile }, { data: sailorProfile }] = await Promise.all([
+        supabase.from('profiles').select('full_name').eq('id', user.id).maybeSingle(),
+        supabase
+          .from('sailor_profiles')
+          .select('avatar_emoji, avatar_color')
+          .eq('user_id', user.id)
+          .maybeSingle(),
+      ]);
 
-      // Fallback to profiles table for name if sailor_profiles missing
-      let authorName = sailorProfile?.display_name || null;
-      if (!authorName) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('full_name')
-          .eq('id', user.id)
-          .maybeSingle();
-        authorName = profile?.full_name || null;
-      }
+      let authorName = profile?.full_name || null;
 
       // Last resort: use email prefix from auth user
       if (!authorName) {
@@ -330,34 +312,27 @@ export class ActivityCommentService {
       const profileMap = new Map<string, { name: string | null; emoji: string | null; color: string | null }>();
 
       if (userIds.length > 0) {
-        const { data: sailorProfiles } = await supabase
-          .from('sailor_profiles')
-          .select('user_id, display_name, avatar_emoji, avatar_color')
-          .in('user_id', userIds);
+        // Names from `profiles`; emoji-avatar styling from `sailor_profiles`.
+        const [{ data: profiles }, { data: sailorProfiles }] = await Promise.all([
+          supabase.from('profiles').select('id, full_name').in('id', userIds),
+          supabase
+            .from('sailor_profiles')
+            .select('user_id, avatar_emoji, avatar_color')
+            .in('user_id', userIds),
+        ]);
 
-        (sailorProfiles || []).forEach((sp: any) => {
-          profileMap.set(sp.user_id, {
-            name: sp.display_name,
-            emoji: sp.avatar_emoji,
-            color: sp.avatar_color,
+        const sailorMap = new Map(
+          (sailorProfiles || []).map((sp: any) => [sp.user_id, sp])
+        );
+
+        (profiles || []).forEach((p: any) => {
+          const sp = sailorMap.get(p.id);
+          profileMap.set(p.id, {
+            name: p.full_name,
+            emoji: sp?.avatar_emoji ?? null,
+            color: sp?.avatar_color ?? null,
           });
         });
-
-        const missingIds = userIds.filter((id) => !profileMap.has(id));
-        if (missingIds.length > 0) {
-          const { data: profiles } = await supabase
-            .from('profiles')
-            .select('id, full_name')
-            .in('id', missingIds);
-
-          (profiles || []).forEach((p: any) => {
-            profileMap.set(p.id, {
-              name: p.full_name,
-              emoji: null,
-              color: null,
-            });
-          });
-        }
       }
 
       return (data || []).map((row: any) => {

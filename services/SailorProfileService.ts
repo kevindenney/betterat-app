@@ -251,7 +251,6 @@ class SailorProfileServiceClass {
         .select(
           `
           user_id,
-          display_name,
           avatar_emoji,
           avatar_color,
           bio,
@@ -274,7 +273,7 @@ class SailorProfileServiceClass {
         });
         sailorProfileQuery = await supabase
           .from('sailor_profiles')
-          .select('user_id,display_name,is_profile_public')
+          .select('user_id,is_profile_public')
           .eq('user_id', userId)
           .maybeSingle();
       }
@@ -316,8 +315,7 @@ class SailorProfileServiceClass {
 
     return {
       userId: profile.id,
-      displayName:
-        sailorProfile?.display_name || profileExtra?.full_name || usersName || 'Sailor',
+      displayName: profileExtra?.full_name || usersName || 'Sailor',
       avatarUrl: profile.avatar_url || profileExtra?.avatar_url || undefined,
       avatarEmoji: sailorProfile?.avatar_emoji,
       avatarColor: sailorProfile?.avatar_color,
@@ -725,7 +723,7 @@ class SailorProfileServiceClass {
 
     const { data: sailorProfiles } = await supabase
       .from('sailor_profiles')
-      .select('user_id, display_name, avatar_emoji, avatar_color')
+      .select('user_id, avatar_emoji, avatar_color')
       .in('user_id', followerIds);
 
     const profilesMap = new Map((profiles || []).map((p: any) => [p.id, p]));
@@ -739,8 +737,7 @@ class SailorProfileServiceClass {
 
       return {
         userId: id,
-        displayName:
-          sailorProfile?.display_name || profile?.full_name || 'Sailor',
+        displayName: profile?.full_name || 'Sailor',
         avatarUrl: profile?.avatar_url,
         avatarEmoji: sailorProfile?.avatar_emoji,
         avatarColor: sailorProfile?.avatar_color,
@@ -859,8 +856,16 @@ class SailorProfileServiceClass {
   ): Promise<void> {
     const sailorProfileUpdates: Record<string, any> = {};
 
+    // Name lives on `profiles`, not `sailor_profiles` (no display_name column).
     if (updates.displayName !== undefined) {
-      sailorProfileUpdates.display_name = updates.displayName;
+      const { error: nameError } = await supabase
+        .from('profiles')
+        .update({ full_name: updates.displayName })
+        .eq('id', userId);
+      if (nameError) {
+        logger.error('Error updating profile name', { userId, error: nameError });
+        throw nameError;
+      }
     }
     if (updates.bio !== undefined) {
       sailorProfileUpdates.bio = updates.bio;
