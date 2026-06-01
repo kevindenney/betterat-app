@@ -65,6 +65,11 @@ export interface StepDiscussionInlineProps {
    *  cohort_discussion_post notification). Ignored when the step
    *  isn't blueprint-derived (Cohort tab won't render anyway). */
   initialScope?: 'private' | 'cohort';
+  /** Extra right padding on the composer row so the quote/send buttons
+   *  clear an overlay that occupies the right edge (the L1–L4 zoom rail
+   *  on card-rail surfaces). 0 on the dedicated discussion route, which
+   *  has no rail. */
+  composerRightInset?: number;
 }
 
 function shortAgo(iso: string): string {
@@ -126,6 +131,7 @@ export function StepDiscussionInline({
   stepId,
   access = [],
   initialScope = 'private',
+  composerRightInset = 0,
 }: StepDiscussionInlineProps) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -506,7 +512,13 @@ export function StepDiscussionInline({
         </View>
       ) : null}
 
-      <View style={styles.composer}>
+      <View
+        style={
+          composerRightInset > 0
+            ? [styles.composer, { paddingRight: composerRightInset }]
+            : styles.composer
+        }
+      >
         <View style={styles.composerAvatar}>
           <Text style={styles.composerAvatarText}>{viewerInitials}</Text>
         </View>

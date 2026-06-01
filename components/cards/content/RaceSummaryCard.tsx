@@ -88,6 +88,7 @@ import { StepBlueprintChrome } from '@/components/step/StepBlueprintChrome';
 import { StepHeaderSubtitle } from '@/components/step/StepHeaderMeta';
 import { StepDiscussionPeek } from '@/components/step/StepDiscussionPeek';
 import { StepDiscussionInline } from '@/components/step/StepDiscussionInline';
+import { ZOOM_RAIL_RESERVED_WIDTH } from '@/components/ios-register/timeline-zoom/ZoomLevelPicker';
 import { StepCompleteCelebration } from '@/components/step/StepCompleteCelebration';
 import { SinceLastVisitStrip } from '@/components/step/SinceLastVisitStrip';
 import { useStepBlueprintChrome } from '@/hooks/useStepBlueprintChrome';
@@ -1970,7 +1971,13 @@ function RaceSummaryCardImpl({
             role: c.role ?? null,
           })),
       ];
-      return <StepDiscussionInline stepId={race.id} access={accessList} />;
+      return (
+        <StepDiscussionInline
+          stepId={race.id}
+          access={accessList}
+          composerRightInset={ZOOM_RAIL_RESERVED_WIDTH}
+        />
+      );
     }
 
     // Demo timeline steps: show phase-specific read-only content

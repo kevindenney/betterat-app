@@ -70,6 +70,7 @@ import { useLatestPeerReflection } from '@/hooks/useLatestPeerReflection';
 import { useStepCompleteCelebration } from '@/hooks/useStepCompleteCelebration';
 import { useContinueToNextBlueprintStep } from '@/hooks/useContinueToNextBlueprintStep';
 import { StepDiscussionInline } from './StepDiscussionInline';
+import { ZOOM_RAIL_RESERVED_WIDTH } from '@/components/ios-register/timeline-zoom/ZoomLevelPicker';
 import { FacultyAttestSheet } from '@/components/competency/FacultyAttestSheet';
 import { StepCompleteCelebration } from './StepCompleteCelebration';
 
@@ -1140,6 +1141,7 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, 
           stepId={stepId}
           access={discussionAccess}
           initialScope={initialDiscussionScope}
+          composerRightInset={ZOOM_RAIL_RESERVED_WIDTH}
         />
       )}
     </>
