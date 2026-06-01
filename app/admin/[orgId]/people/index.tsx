@@ -176,22 +176,29 @@ function AdminPeopleBody() {
         </View>
 
         <View style={styles.tableCard}>
-          <View style={styles.tableHead}>
-            <View style={styles.colCheck} />
-            <Text style={styles.colHeadText}>Person</Text>
-            <Text style={[styles.colHeadText, { width: 130 }]}>Role</Text>
-            <Text style={[styles.colHeadText, { width: 180 }]}>Cohort · placement</Text>
-            <Text style={[styles.colHeadText, { width: 130 }]}>Last active</Text>
-            <Text style={[styles.colHeadText, { width: 120 }]}>Status</Text>
-            <View style={{ width: 32 }} />
-          </View>
+          {compact ? null : (
+            <View style={styles.tableHead}>
+              <View style={styles.colCheck} />
+              <Text style={styles.colHeadText}>Person</Text>
+              <Text style={[styles.colHeadText, { width: 130 }]}>Role</Text>
+              <Text style={[styles.colHeadText, { width: 180 }]}>Cohort · placement</Text>
+              <Text style={[styles.colHeadText, { width: 130 }]}>Last active</Text>
+              <Text style={[styles.colHeadText, { width: 120 }]}>Status</Text>
+              <View style={{ width: 32 }} />
+            </View>
+          )}
           <ScrollView style={styles.tableBody}>
             {filteredRows.length === 0 ? (
               <EmptyPeopleState search={search} />
             ) : (
               <>
                 {filteredRows.map((row) => (
-                  <PersonRow key={row.id} row={row} onPress={() => setOpenPersonId(row.id)} />
+                  <PersonRow
+                    key={row.id}
+                    row={row}
+                    compact={compact}
+                    onPress={() => setOpenPersonId(row.id)}
+                  />
                 ))}
                 <Text style={styles.tableFooter}>
                   Showing {filteredRows.length} of {data.totalRows} ·{' '}
@@ -235,10 +242,70 @@ function AdminPeopleBody() {
 // Person row + helpers
 // ---------------------------------------------------------------------------
 
-function PersonRow({ row, onPress }: { row: AdminPersonRow; onPress?: () => void }) {
+function PersonRow({
+  row,
+  onPress,
+  compact,
+}: {
+  row: AdminPersonRow;
+  onPress?: () => void;
+  compact?: boolean;
+}) {
   const isPending = row.status === 'pending';
   const isOffboarded = row.status === 'off-boarded';
   const isSso = row.source === 'sso';
+
+  if (compact) {
+    return (
+      <Pressable
+        onPress={onPress}
+        style={[
+          styles.cardRow,
+          row.isYou && styles.tableRowYou,
+          isPending && styles.tableRowPending,
+          isOffboarded && styles.tableRowOffboarded,
+        ]}
+      >
+        <View style={[styles.avi, { backgroundColor: row.gradient[0] }]}>
+          {isPending ? (
+            <Ionicons name="mail" size={14} color="rgba(60, 60, 67, 0.6)" />
+          ) : (
+            <Text style={styles.aviText}>{row.initials}</Text>
+          )}
+        </View>
+        <View style={styles.cardBody}>
+          <View style={styles.cardTitleRow}>
+            <Text
+              style={[
+                styles.personName,
+                styles.cardName,
+                isPending && styles.personNamePending,
+                isOffboarded && styles.personNameOffboarded,
+              ]}
+              numberOfLines={1}
+            >
+              {row.name}
+            </Text>
+            {row.isYou ? <Text style={styles.youTag}>(you)</Text> : null}
+            {isSso ? (
+              <View style={styles.ssoTag}>
+                <Text style={styles.ssoTagText}>SSO</Text>
+              </View>
+            ) : null}
+            <View style={styles.cardRoles}>
+              {row.roles.map((role) => (
+                <RoleBadge key={role} role={role} />
+              ))}
+            </View>
+          </View>
+          <Text style={styles.cardLastActive} numberOfLines={1}>
+            Last active · {row.lastActiveLabel}
+          </Text>
+        </View>
+        <StatusPill status={row.status} />
+      </Pressable>
+    );
+  }
 
   return (
     <Pressable
@@ -480,6 +547,22 @@ const styles = StyleSheet.create({
   tableRowYou: { backgroundColor: 'rgba(40, 64, 107, 0.025)' },
   tableRowPending: { backgroundColor: 'rgba(201, 150, 50, 0.04)' },
   tableRowOffboarded: { opacity: 0.6 },
+
+  // Compact (phone) card layout
+  cardRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderBottomWidth: 0.5,
+    borderBottomColor: '#E5E5EA',
+  },
+  cardBody: { flex: 1, minWidth: 0, gap: 4 },
+  cardTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' },
+  cardName: { flexShrink: 1 },
+  cardRoles: { flexDirection: 'row', alignItems: 'center', gap: 4, flexWrap: 'wrap' },
+  cardLastActive: { fontSize: 11.5, color: 'rgba(60, 60, 67, 0.6)' },
 
   colPerson: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10, minWidth: 0 },
   avi: {
