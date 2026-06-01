@@ -38,7 +38,8 @@ export type SocialNotificationType =
   | 'blueprint_subscribed'
   | 'step_suggested'
   | 'step_reviewed'
-  | 'cohort_discussion_post';
+  | 'cohort_discussion_post'
+  | 'step_discussion_post';
 
 export interface SocialNotification {
   id: string;
@@ -99,6 +100,7 @@ const CANONICAL_NOTIFICATION_TYPES: ReadonlySet<SocialNotificationType> = new Se
   'step_suggested',
   'step_reviewed',
   'cohort_discussion_post',
+  'step_discussion_post',
 ]);
 
 function normalizeMembershipDecisionType(

@@ -666,6 +666,14 @@ function ReadPanel({
                   if (!n.isRead) onMarkNotificationRead(n.id);
                   if (n.type === 'cohort_discussion_post') {
                     void onCohortNotificationTap(n);
+                  } else if (n.type === 'step_discussion_post') {
+                    // Personal-step posts live on the same timeline_step
+                    // for owner + collaborators, so route straight to it
+                    // and land on the Discuss tab.
+                    const stepId = n.data?.step_id as string | undefined;
+                    if (stepId) {
+                      router.push(`/step/${stepId}?tab=discussion` as never);
+                    }
                   }
                 }}
               />
