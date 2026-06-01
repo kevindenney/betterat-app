@@ -76,14 +76,20 @@ export function StepCombinatorsRow({
     step.id,
     step.interest_id ?? undefined,
   );
-  const { switchInterest } = useInterest();
+  const { switchInterest, userInterests } = useInterest();
   const { user } = useAuth();
   const atlasData = getAtlasStepData(step.metadata);
+  // Resolve the step's real interest from its interest_id rather than the
+  // free-text `category` — a "Hong Kong Impala fleet race" is sailing even
+  // when its category isn't literally 'sailing', and the brittle category
+  // check let those races leak a bogus "Also relevant for <X>" chip.
+  const stepInterestSlug =
+    userInterests.find((i) => i.id === step.interest_id)?.slug ?? null;
   const suppressCrossInterest =
-    isAtlasRaceCourseStep(step.metadata) ||
-    Boolean(atlasData?.origin) ||
+    stepInterestSlug === 'sail-racing' ||
     atlasData?.interest_slug === 'sail-racing' ||
-    step.category === 'sailing';
+    isAtlasRaceCourseStep(step.metadata) ||
+    Boolean(atlasData?.origin);
   const crossInterest = suppressCrossInterest ? null : suggestions[0] ?? null;
 
   const relatedSteps = useMemo(() => {
