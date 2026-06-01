@@ -19,7 +19,6 @@ import {
   StyleSheet,
   ScrollView,
   TextInput,
-  useWindowDimensions,
   Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -42,23 +41,12 @@ import {
 import { StudioLoading } from '@/components/studio/StudioLoading';
 import { AddPersonSheet } from '@/components/admin/AddPersonSheet';
 import { PersonDetailDrawer } from '@/components/admin/PersonDetailDrawer';
-import { FEATURE_FLAGS } from '@/lib/featureFlags';
-import { DesktopOnlyGate, DESKTOP_GATE_MIN_WIDTH } from '@/components/ui/DesktopOnlyGate';
 
 type PeopleTab = 'all' | 'students' | 'authors' | 'mentors' | 'admins' | 'pending';
 
 export default function AdminPeoplePage() {
-  const { orgId } = useLocalSearchParams<{ orgId: string }>();
-  const { width } = useWindowDimensions();
-  // Gate BEFORE the data hooks mount: on a phone the admin people queries
-  // never reach a rendered surface, so render the gate instead of fetching.
-  if (FEATURE_FLAGS.DESKTOP_GATE_ON_REGISTER && width < DESKTOP_GATE_MIN_WIDTH) {
-    return <DesktopOnlyGate />;
-  }
-  return <AdminPeopleInner orgId={orgId as string} />;
-}
-
-function AdminPeopleInner({ orgId }: { orgId: string }) {
+  const { orgId: orgIdParam } = useLocalSearchParams<{ orgId: string }>();
+  const orgId = orgIdParam as string;
   const router = useRouter();
   const { user, userProfile } = useAuth();
   const menu = useProfileMenuData();

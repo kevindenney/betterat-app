@@ -670,21 +670,20 @@ export const FEATURE_FLAGS = {
   INBOX_TAB_V3: readBooleanEnv('EXPO_PUBLIC_FF_INBOX_TAB_V3', true),
 
   /**
-   * On-register desktop gate for admin/studio management surfaces.
+   * Phone parity for admin/studio management surfaces.
    *
-   * When on: management-class surfaces that are not phone-screen jobs
-   * (Org admin / People, Creator Studio, Cohorts) render a single
-   * on-register gate card on narrow (phone) viewports BEFORE attempting
-   * any data fetch, and the real desktop surface only on iPad/desktop.
-   * Gating before the data hooks mount is what fixes the Cohorts
-   * infinite-spinner trap (it spun fetching cohort data on a viewport
-   * that never rendered it). Billing & seats is intentionally NOT gated —
-   * it's a quick transactional task.
+   * When on: StudioShell (and the AdminShell that wraps it) render a
+   * responsive compact layout below 600pt — the fixed 248px sidebar
+   * collapses into a top bar + slide-over drawer and the main pane goes
+   * full-width single-column — so Org admin / People, Creator Studio,
+   * Cohorts, Billing, etc. are usable on phone. iPad portrait (≥600pt)
+   * keeps the two-pane layout. Replaces the old on-register desktop gate
+   * (DESKTOP_GATE_ON_REGISTER); the gate components have been removed.
    *
-   * On by default. Flip EXPO_PUBLIC_FF_DESKTOP_GATE_ON_REGISTER=false to
-   * fall back to rendering the surfaces on phone (pre-gate behavior).
+   * On by default. Flip EXPO_PUBLIC_FF_ADMIN_PHONE_PARITY=false to fall
+   * back to the un-reflowed desktop layout (cramped on phone).
    */
-  DESKTOP_GATE_ON_REGISTER: readBooleanEnv('EXPO_PUBLIC_FF_DESKTOP_GATE_ON_REGISTER', true),
+  ADMIN_PHONE_PARITY: readBooleanEnv('EXPO_PUBLIC_FF_ADMIN_PHONE_PARITY', true),
 } as const;
 
 // =============================================================================

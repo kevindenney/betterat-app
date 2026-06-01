@@ -25,7 +25,6 @@ import {
   Pressable,
   StyleSheet,
   ScrollView,
-  useWindowDimensions,
   Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -46,25 +45,8 @@ import {
 } from '@/components/studio/StudioShell';
 import { StudioLoading } from '@/components/studio/StudioLoading';
 import { Gradient } from '@/components/studio/Gradient';
-import { FEATURE_FLAGS } from '@/lib/featureFlags';
-import { DesktopOnlyGate, DESKTOP_GATE_MIN_WIDTH } from '@/components/ui/DesktopOnlyGate';
 
 export default function StudioHomePage() {
-  const { width } = useWindowDimensions();
-  // Gate BEFORE the data-fetching inner mounts (useStudioHomeData /
-  // useProfileMenuData) so a phone never kicks off the desktop queries.
-  if (FEATURE_FLAGS.DESKTOP_GATE_ON_REGISTER && width < DESKTOP_GATE_MIN_WIDTH) {
-    return (
-      <DesktopOnlyGate
-        title="Better on a bigger screen"
-        body="Authoring blueprints, mentoring cohorts, and managing pricing need more room than a phone gives — open Creator Studio on iPad or desktop."
-      />
-    );
-  }
-  return <StudioHomeInner />;
-}
-
-function StudioHomeInner() {
   const router = useRouter();
   const { user, userProfile } = useAuth();
   const menu = useProfileMenuData();

@@ -22,8 +22,21 @@ import {
   Pressable,
   StyleSheet,
   ScrollView,
+  Modal,
+  useWindowDimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+import { FEATURE_FLAGS } from '@/lib/featureFlags';
+import { IOS_REGISTER, IOS_RADIUS, IOS_SHADOWS, IOS_TOUCH } from '@/lib/design-tokens-ios';
+
+/**
+ * Phone breakpoint. Below this the fixed 248px rail collapses into a top bar
+ * + slide-over drawer and `main` goes full-width. 600 cleanly splits phones
+ * (≤440pt portrait) from iPad portrait (≥744pt), so iPad keeps two-pane density.
+ */
+export const STUDIO_COMPACT_BREAKPOINT = 600;
 
 export type StudioAccent = 'purple' | 'navy' | 'drawing';
 export type StudioCtxLens = 'practice' | 'studio' | 'mentor';
@@ -82,7 +95,18 @@ const MONO_BG: Record<StudioShellProps['org']['monoColor'], string> = {
   solo: '#8E8E93',
 };
 
-export function StudioShell({
+export function StudioShell(props: StudioShellProps) {
+  const { width } = useWindowDimensions();
+  const compact =
+    FEATURE_FLAGS.ADMIN_PHONE_PARITY && width < STUDIO_COMPACT_BREAKPOINT;
+  if (compact) {
+    return <StudioShellCompact {...props} />;
+  }
+  return <StudioShellRegular {...props} />;
+}
+
+/** ≥600pt — the original 248px rail + main, unchanged. */
+function StudioShellRegular({
   accent = 'purple',
   org,
   ctxLens,
@@ -97,72 +121,16 @@ export function StudioShell({
   return (
     <View style={s.shell}>
       <View style={s.sidebar}>
-        <View style={s.orgCard}>
-          <View style={[s.orgMono, { backgroundColor: MONO_BG[org.monoColor] }]}>
-            <Text style={s.orgMonoText}>{org.mono}</Text>
-          </View>
-          <View style={s.orgInfo}>
-            <Text style={s.orgName} numberOfLines={1}>
-              {org.name}
-            </Text>
-            <Text style={s.orgRole} numberOfLines={1}>
-              {org.role}
-            </Text>
-          </View>
-          <Ionicons name="chevron-down" size={16} color="rgba(60, 60, 67, 0.3)" />
-        </View>
-
-        {ctxLens ? (
-          <View style={s.ctxSwitch}>
-            {(ctxLensOptions ?? (['practice', 'studio', 'mentor'] as StudioCtxLens[])).map((lens) => (
-              <Pressable
-                key={lens}
-                onPress={() => onCtxChange?.(lens)}
-                style={[s.ctxOpt, ctxLens === lens && s.ctxOptOn]}
-              >
-                <Text style={[s.ctxOptText, ctxLens === lens && s.ctxOptTextOn]}>
-                  {lens === 'practice' ? 'Practice' : lens === 'studio' ? 'Studio' : 'Mentor'}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
-        ) : null}
-
-        <ScrollView style={s.navScroll} showsVerticalScrollIndicator={false}>
-          {navSections.map((section, idx) => (
-            <View key={`${section.eyebrow}-${idx}`}>
-              <Text style={s.navEyebrow}>{section.eyebrow}</Text>
-              {section.items.map((item) => (
-                <NavItem
-                  key={item.key}
-                  item={item}
-                  accentColor={accentColor}
-                />
-              ))}
-              {section.footer ? <View style={s.navFooter}>{section.footer}</View> : null}
-            </View>
-          ))}
-          <View style={{ height: 12 }} />
-        </ScrollView>
-
-        <Pressable style={s.userCard} onPress={onUserCardPress}>
-          <View style={[s.userAvi, { backgroundColor: accentColor }]}>
-            <Text style={s.userAviText}>{user.initials}</Text>
-          </View>
-          <View style={s.userInfo}>
-            <Text style={s.userName} numberOfLines={1}>
-              {user.name}
-            </Text>
-            <Text style={s.userEmail} numberOfLines={1}>
-              {user.statusLine ?? user.email}
-            </Text>
-          </View>
-          <Ionicons
-            name="ellipsis-horizontal"
-            size={16}
-            color="rgba(60, 60, 67, 0.3)"
-          />
-        </Pressable>
+        <SidebarBody
+          accentColor={accentColor}
+          org={org}
+          ctxLens={ctxLens}
+          onCtxChange={onCtxChange}
+          ctxLensOptions={ctxLensOptions}
+          navSections={navSections}
+          user={user}
+          onUserCardPress={onUserCardPress}
+        />
       </View>
 
       <View style={s.main}>{children}</View>
@@ -170,12 +138,192 @@ export function StudioShell({
   );
 }
 
+/** <600pt — top bar + slide-over drawer (iOS register), full-width main. */
+function StudioShellCompact({
+  accent = 'purple',
+  org,
+  ctxLens,
+  onCtxChange,
+  ctxLensOptions,
+  navSections,
+  user,
+  onUserCardPress,
+  children,
+}: StudioShellProps) {
+  const accentColor = ACCENT_COLORS[accent];
+  const insets = useSafeAreaInsets();
+  const [drawerOpen, setDrawerOpen] = React.useState(false);
+  const activeLabel = React.useMemo(
+    () => navSections.flatMap((sec) => sec.items).find((it) => it.active)?.label,
+    [navSections],
+  );
+  const close = React.useCallback(() => setDrawerOpen(false), []);
+  return (
+    <View style={c.shell}>
+      <View style={[c.topBar, { paddingTop: insets.top + 8 }]}>
+        <View style={[c.topMono, { backgroundColor: MONO_BG[org.monoColor] }]}>
+          <Text style={c.topMonoText}>{org.mono}</Text>
+        </View>
+        <View style={c.topTitleCol}>
+          <Text style={c.topTitle} numberOfLines={1}>
+            {activeLabel ?? org.name}
+          </Text>
+          <Text style={c.topSub} numberOfLines={1}>
+            {org.name}
+          </Text>
+        </View>
+        <Pressable
+          onPress={() => setDrawerOpen(true)}
+          style={c.menuBtn}
+          hitSlop={8}
+          accessibilityRole="button"
+          accessibilityLabel="Open menu"
+        >
+          <Ionicons name="menu" size={24} color={IOS_REGISTER.label} />
+        </Pressable>
+      </View>
+
+      <View style={c.main}>{children}</View>
+
+      <Modal
+        visible={drawerOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={close}
+      >
+        <View style={c.drawerRoot}>
+          <Pressable style={c.scrim} onPress={close} accessibilityLabel="Close menu" />
+          <View style={c.drawerPanel}>
+            <SidebarBody
+              accentColor={accentColor}
+              org={org}
+              ctxLens={ctxLens}
+              onCtxChange={(lens) => {
+                onCtxChange?.(lens);
+                close();
+              }}
+              ctxLensOptions={ctxLensOptions}
+              navSections={navSections}
+              user={user}
+              onUserCardPress={onUserCardPress}
+              onItemPress={close}
+            />
+          </View>
+        </View>
+      </Modal>
+    </View>
+  );
+}
+
+/** Shared rail content — rendered in the regular sidebar and the compact drawer. */
+function SidebarBody({
+  accentColor,
+  org,
+  ctxLens,
+  onCtxChange,
+  ctxLensOptions,
+  navSections,
+  user,
+  onUserCardPress,
+  onItemPress,
+}: {
+  accentColor: string;
+  org: StudioShellProps['org'];
+  ctxLens?: StudioCtxLens;
+  onCtxChange?: (next: StudioCtxLens) => void;
+  ctxLensOptions?: StudioCtxLens[];
+  navSections: StudioNavSection[];
+  user: StudioShellProps['user'];
+  onUserCardPress?: () => void;
+  onItemPress?: () => void;
+}) {
+  return (
+    <>
+      <View style={s.orgCard}>
+        <View style={[s.orgMono, { backgroundColor: MONO_BG[org.monoColor] }]}>
+          <Text style={s.orgMonoText}>{org.mono}</Text>
+        </View>
+        <View style={s.orgInfo}>
+          <Text style={s.orgName} numberOfLines={1}>
+            {org.name}
+          </Text>
+          <Text style={s.orgRole} numberOfLines={1}>
+            {org.role}
+          </Text>
+        </View>
+        <Ionicons name="chevron-down" size={16} color="rgba(60, 60, 67, 0.3)" />
+      </View>
+
+      {ctxLens ? (
+        <View style={s.ctxSwitch}>
+          {(ctxLensOptions ?? (['practice', 'studio', 'mentor'] as StudioCtxLens[])).map((lens) => (
+            <Pressable
+              key={lens}
+              onPress={() => onCtxChange?.(lens)}
+              style={[s.ctxOpt, ctxLens === lens && s.ctxOptOn]}
+            >
+              <Text style={[s.ctxOptText, ctxLens === lens && s.ctxOptTextOn]}>
+                {lens === 'practice' ? 'Practice' : lens === 'studio' ? 'Studio' : 'Mentor'}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+      ) : null}
+
+      <ScrollView style={s.navScroll} showsVerticalScrollIndicator={false}>
+        {navSections.map((section, idx) => (
+          <View key={`${section.eyebrow}-${idx}`}>
+            <Text style={s.navEyebrow}>{section.eyebrow}</Text>
+            {section.items.map((item) => (
+              <NavItem
+                key={item.key}
+                item={item}
+                accentColor={accentColor}
+                onItemPress={onItemPress}
+              />
+            ))}
+            {section.footer ? <View style={s.navFooter}>{section.footer}</View> : null}
+          </View>
+        ))}
+        <View style={{ height: 12 }} />
+      </ScrollView>
+
+      <Pressable
+        style={s.userCard}
+        onPress={() => {
+          onUserCardPress?.();
+          onItemPress?.();
+        }}
+      >
+        <View style={[s.userAvi, { backgroundColor: accentColor }]}>
+          <Text style={s.userAviText}>{user.initials}</Text>
+        </View>
+        <View style={s.userInfo}>
+          <Text style={s.userName} numberOfLines={1}>
+            {user.name}
+          </Text>
+          <Text style={s.userEmail} numberOfLines={1}>
+            {user.statusLine ?? user.email}
+          </Text>
+        </View>
+        <Ionicons
+          name="ellipsis-horizontal"
+          size={16}
+          color="rgba(60, 60, 67, 0.3)"
+        />
+      </Pressable>
+    </>
+  );
+}
+
 function NavItem({
   item,
   accentColor,
+  onItemPress,
 }: {
   item: StudioNavItem;
   accentColor: string;
+  onItemPress?: () => void;
 }) {
   const isActive = !!item.active;
   const isCta = !!item.cta;
@@ -189,7 +337,10 @@ function NavItem({
   const countWeight = item.countTone === 'coral' ? '700' : '400';
   return (
     <Pressable
-      onPress={item.onPress}
+      onPress={() => {
+        item.onPress?.();
+        onItemPress?.();
+      }}
       style={[
         s.navItem,
         isActive && { backgroundColor: accentColor },
@@ -540,6 +691,76 @@ const s = StyleSheet.create({
     paddingHorizontal: 32,
     paddingVertical: 18,
     overflow: 'hidden',
+  },
+});
+
+// Compact (<600pt) chrome — iOS register top bar + slide-over drawer.
+const c = StyleSheet.create({
+  shell: {
+    flex: 1,
+    backgroundColor: IOS_REGISTER.groundBg,
+  },
+  topBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    minHeight: IOS_TOUCH.minHeight + 12,
+    backgroundColor: IOS_REGISTER.cardBg,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: IOS_REGISTER.separator,
+  },
+  topMono: {
+    width: 30,
+    height: 30,
+    borderRadius: IOS_RADIUS.sm,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  topMonoText: { color: '#FFFFFF', fontSize: 11, fontWeight: '700', letterSpacing: 0.4 },
+  topTitleCol: { flex: 1, minWidth: 0 },
+  topTitle: {
+    fontSize: 17,
+    fontWeight: '600',
+    color: IOS_REGISTER.label,
+    letterSpacing: -0.3,
+  },
+  topSub: {
+    fontSize: 12,
+    color: IOS_REGISTER.labelSecondary,
+    marginTop: 1,
+  },
+  menuBtn: {
+    width: IOS_TOUCH.minWidth,
+    height: IOS_TOUCH.minHeight,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  main: {
+    flex: 1,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+  },
+  drawerRoot: {
+    flex: 1,
+    flexDirection: 'row',
+  },
+  scrim: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.32)',
+  },
+  drawerPanel: {
+    width: 288,
+    maxWidth: '82%',
+    height: '100%',
+    paddingHorizontal: 10,
+    paddingTop: 56,
+    paddingBottom: 16,
+    backgroundColor: IOS_REGISTER.cardBg,
+    borderTopRightRadius: IOS_RADIUS.lg,
+    borderBottomRightRadius: IOS_RADIUS.lg,
+    ...IOS_SHADOWS.modal,
   },
 });
 
