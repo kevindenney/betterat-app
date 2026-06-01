@@ -228,17 +228,28 @@ export function SubStepEditor({ subSteps, onChange, readOnly }: SubStepEditorPro
   // In read-only mode, only show sub-steps with text
   const displaySteps = readOnly ? subSteps.filter((s) => s.text.trim()) : subSteps;
 
+  // Seeded / AI-generated sub-steps can arrive with missing or duplicate ids;
+  // derive a guaranteed-unique render key per row so React doesn't warn and
+  // mis-reconcile inputs on reorder. Stable ids pass through untouched.
+  const seenKeys = new Set<string>();
+  const rowKeyFor = (step: SubStep, index: number) => {
+    let key = step.id || `slot-${index}`;
+    while (seenKeys.has(key)) key = `${key}-${index}`;
+    seenKeys.add(key);
+    return key;
+  };
+
   return (
     <View style={styles.container}>
       {displaySteps.map((step, index) => (
         readOnly ? (
-          <View key={step.id} style={styles.row}>
+          <View key={rowKeyFor(step, index)} style={styles.row}>
             <Text style={{ fontSize: 13, color: STEP_COLORS.secondaryLabel, width: 18 }}>{index + 1}.</Text>
             <Text style={{ flex: 1, fontSize: 14, color: STEP_COLORS.label }}>{step.text}</Text>
           </View>
         ) : (
           <SubStepRow
-            key={step.id}
+            key={rowKeyFor(step, index)}
             step={step}
             index={index}
             total={displaySteps.length}

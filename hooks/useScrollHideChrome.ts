@@ -71,7 +71,9 @@ export function useScrollHideChrome({
 
   const chromeAnimStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: hidden.value * -hideDistance }],
-    opacity: 1 - hidden.value * 0.5,
+    // Fade fully out: a 0.5 floor left the row as a ghost translated up over
+    // the status-bar clock instead of disappearing.
+    opacity: 1 - hidden.value,
   }));
 
   return { onScroll, chromeAnimStyle };

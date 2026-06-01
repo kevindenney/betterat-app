@@ -182,24 +182,30 @@ export function VisionBlock({
     return (
       <Pressable
         onPress={onEdit}
-        style={({ pressed }) => [styles.empty, pressed && styles.pressed]}
         accessibilityRole="button"
         accessibilityLabel={`Add a vision for this ${periodNoun}`}
       >
-        <Ionicons
-          name="flag-outline"
-          size={16}
-          color={IOS_REGISTER.labelSecondary}
-        />
-        <Text style={styles.emptyText}>
-          Add a vision for this {periodNoun} — what would &ldquo;done&rdquo; look
-          like?
-        </Text>
-        <Ionicons
-          name="chevron-forward"
-          size={14}
-          color={IOS_REGISTER.labelTertiary}
-        />
+        {({ pressed }) => (
+          // Row layout lives on this View, not the Pressable: a function-form
+          // Pressable `style` silently drops flexDirection:'row', which stacked
+          // the flag / text / chevron vertically.
+          <View style={[styles.empty, pressed && styles.pressed]}>
+            <Ionicons
+              name="flag-outline"
+              size={16}
+              color={IOS_REGISTER.labelSecondary}
+            />
+            <Text style={styles.emptyText}>
+              Add a vision for this {periodNoun} — what would &ldquo;done&rdquo;
+              look like?
+            </Text>
+            <Ionicons
+              name="chevron-forward"
+              size={14}
+              color={IOS_REGISTER.labelTertiary}
+            />
+          </View>
+        )}
       </Pressable>
     );
   }
