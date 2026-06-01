@@ -186,7 +186,7 @@ export function useLibraryItemDetail(id: string | undefined) {
           title: s.title,
           subtitle: r.read_at
             ? `Read ${new Date(r.read_at).toLocaleDateString()}`
-            : 'Included as read before shift',
+            : 'Listed as pre-reading',
         });
       }
 
