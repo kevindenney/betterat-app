@@ -1385,7 +1385,7 @@ const TOOLS: TelegramToolDef[] = [
       const userIds = memberships.map((m: any) => m.user_id);
       const { data: profiles } = await supabase
         .from('profiles')
-        .select('id, display_name, avatar_emoji')
+        .select('id, full_name')
         .in('id', userIds);
 
       const profileMap = new Map((profiles ?? []).map((p: any) => [p.id, p]));
@@ -1394,7 +1394,7 @@ const TOOLS: TelegramToolDef[] = [
         role: m.role,
         status: m.status,
         joined_at: m.joined_at,
-        display_name: profileMap.get(m.user_id)?.display_name ?? null,
+        display_name: profileMap.get(m.user_id)?.full_name ?? null,
       }));
 
       return { organization_id: orgId, count: members.length, members };

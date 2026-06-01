@@ -41,26 +41,31 @@ export function registerOrganizationTools(
         return jsonResponse({ organization_id: orgId, count: 0, members: [] });
       }
 
-      // Fetch profiles for all members
+      // Names live on `profiles`; emoji-avatar styling on `sailor_profiles`.
       const userIds = memberships.map((m: any) => m.user_id);
-      const { data: profiles } = await supabase
-        .from('profiles')
-        .select('id, display_name, avatar_emoji, avatar_color')
-        .in('id', userIds);
+      const [{ data: profiles }, { data: sailorProfiles }] = await Promise.all([
+        supabase.from('profiles').select('id, full_name').in('id', userIds),
+        supabase
+          .from('sailor_profiles')
+          .select('user_id, avatar_emoji')
+          .in('user_id', userIds),
+      ]);
 
-      const profileMap = new Map(
-        (profiles ?? []).map((p: any) => [p.id, p]),
+      const profileMap = new Map((profiles ?? []).map((p: any) => [p.id, p]));
+      const sailorMap = new Map(
+        (sailorProfiles ?? []).map((sp: any) => [sp.user_id, sp]),
       );
 
       const members = memberships.map((m: any) => {
         const profile = profileMap.get(m.user_id);
+        const sailor = sailorMap.get(m.user_id);
         return {
           user_id: m.user_id,
           role: m.role,
           status: m.status,
           joined_at: m.joined_at,
-          display_name: profile?.display_name ?? null,
-          avatar_emoji: profile?.avatar_emoji ?? null,
+          display_name: profile?.full_name ?? null,
+          avatar_emoji: sailor?.avatar_emoji ?? null,
         };
       });
 
