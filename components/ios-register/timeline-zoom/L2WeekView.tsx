@@ -1570,7 +1570,9 @@ const styles = StyleSheet.create({
   },
   nowBarWrap: {
     position: 'absolute',
-    top: 24,
+    // Sit the NOW pill just below the floating contextCard (top:14, ~50px tall)
+    // instead of overlapping its lower half.
+    top: 72,
     width: NOW_BAR_WIDTH,
     borderRadius: NOW_BAR_WIDTH / 2,
     backgroundColor: 'rgba(210, 123, 84, 0.14)',
