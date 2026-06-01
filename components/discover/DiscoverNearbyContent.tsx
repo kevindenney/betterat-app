@@ -12,7 +12,7 @@
  */
 
 import React, { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -152,28 +152,38 @@ export function DiscoverNearbyContent({
               : `${visiblePeerSteps.length} ${vocab('Peers').toLowerCase()} working a step nearby`}
           </Text>
           <View style={styles.list}>
-            {visiblePeerSteps.slice(0, 12).map((step) => (
-              <Pressable
-                key={step.step_id}
-                style={styles.row}
-                onPress={() => router.push(`/step/${step.step_id}` as never)}
-              >
-                <View style={[styles.iconCircle, styles.iconCirclePerson]}>
-                  <Text style={styles.iconInitial}>
-                    {(step.preview_name?.[0] ?? '?').toUpperCase()}
-                  </Text>
-                </View>
-                <View style={styles.rowBody}>
-                  <Text style={styles.rowTitle} numberOfLines={1}>
-                    {step.preview_name ?? `A ${vocab('Peer').toLowerCase()} nearby`}
-                  </Text>
-                  <Text style={styles.rowMeta} numberOfLines={1}>
-                    {step.loc_precision ?? 'Nearby'} · {step.relationship}
-                  </Text>
-                </View>
-                <Ionicons name="chevron-forward" size={16} color={IOS_COLORS.tertiaryLabel} />
-              </Pressable>
-            ))}
+            {visiblePeerSteps.slice(0, 12).map((step) => {
+              const sailorName =
+                step.set_by_name?.trim() || `A ${vocab('Peer').toLowerCase()} nearby`;
+              const place = step.preview_name?.trim();
+              const meta = place ? `${place} · ${step.relationship}` : step.relationship;
+              return (
+                <Pressable
+                  key={step.step_id}
+                  style={styles.row}
+                  onPress={() => router.push(`/step/${step.step_id}` as never)}
+                >
+                  {step.set_by_avatar ? (
+                    <Image source={{ uri: step.set_by_avatar }} style={styles.avatar} />
+                  ) : (
+                    <View style={[styles.iconCircle, styles.iconCirclePerson]}>
+                      <Text style={styles.iconInitial}>
+                        {(sailorName[0] ?? '?').toUpperCase()}
+                      </Text>
+                    </View>
+                  )}
+                  <View style={styles.rowBody}>
+                    <Text style={styles.rowTitle} numberOfLines={1}>
+                      {sailorName}
+                    </Text>
+                    <Text style={styles.rowMeta} numberOfLines={1}>
+                      {meta}
+                    </Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={16} color={IOS_COLORS.tertiaryLabel} />
+                </Pressable>
+              );
+            })}
           </View>
         </View>
       ) : null}
@@ -231,6 +241,12 @@ const styles = StyleSheet.create({
   },
   iconCirclePerson: {
     backgroundColor: '#22A06B',
+  },
+  avatar: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: IOS_COLORS.separator,
   },
   iconInitial: {
     color: '#FFFFFF',

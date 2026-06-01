@@ -30,6 +30,8 @@ export interface AtlasPeerStep {
   loc_precision: string | null;
   poi_id: string | null;
   set_at: string;
+  set_by_name: string | null;
+  set_by_avatar: string | null;
 }
 
 interface UseAtlasPeerStepsArgs {
