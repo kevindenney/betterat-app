@@ -8,10 +8,13 @@
  * the first-person reflection surfaces (step detail, capture timeline, observation
  * log, review prompts, plan questions, race summary).
  *
- * Open design question (does not affect these values): whether the serif voice is
- * kept long-term or retired toward all-SF-Pro. If retired, consumers migrate to
- * IOS_REGISTER_TEXT and this file is eventually deleted; if kept, this is its
- * permanent home. See docs/redesign/TOKEN_CONSOLIDATION_PLAN.md §2.
+ * Design decision (2026-06-01): the serif voice is KEPT, permanently, scoped
+ * narrowly to first-person reflection content. The editorial register was
+ * superseded for chrome/UI, but "this is you thinking" is a different job than
+ * "this is the app's interface" — a distinct, warmer typographic voice earns its
+ * keep on reflection surfaces and is deliberately preserved here. This file is its
+ * permanent home, NOT a waystation to deletion. See
+ * docs/redesign/TOKEN_CONSOLIDATION_PLAN.md §2.
  */
 
 import { Platform } from 'react-native';

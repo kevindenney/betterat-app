@@ -96,14 +96,14 @@ contradict the `-ios` doctrine ("SF Pro throughout — no serif"), so they shoul
   file and an `export *` re-export around — doesn't actually "retire" it. Not
   recommended; defeats the goal.
 
-### One product decision to surface (does not block W1)
-Is the serif "first-person voice" register still endorsed, or slated for
-removal under the depersonification / SF-Pro direction? 
-- If **kept**: rehome as above (zero risk). ← assume this unless told otherwise.
-- If **being retired**: the 9 step/card surfaces should migrate from serif
-  `text`/`fontFamily` to `IOS_REGISTER_TEXT` (SF Pro) — but that **is** a visual
-  change needing eyes, and is a separate redesign task, not file-retirement
-  plumbing. Keep it out of W1 either way.
+### Product decision — RESOLVED (2026-06-01): serif is KEPT
+The serif "first-person voice" register is **kept permanently**, scoped narrowly
+to first-person reflection content. Rationale: the editorial register was
+superseded for chrome/UI, but "this is *you* thinking" is a different job than
+"this is the app's interface" — a distinct, warmer typographic voice earns its
+keep on reflection surfaces. `design-tokens-editorial.ts` is its permanent home,
+**not** a waystation. The "migrate the 9 surfaces to `IOS_REGISTER_TEXT` (SF Pro)"
+path is **off the table** — do not pursue it.
 
 ---
 
