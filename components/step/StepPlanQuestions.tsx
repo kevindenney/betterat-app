@@ -33,7 +33,6 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/providers/AuthProvider';
 import { useInterest } from '@/providers/InterestProvider';
 import { getResourcesByIds } from '@/services/LibraryService';
-import { NotificationService } from '@/services/NotificationService';
 import { gatherEnrichedContext, generatePlanFromResource, generateEnrichedPlanSuggestion, generateChatPlanSuggestion } from '@/services/ai/StepPlanAIService';
 import { getCompetencies } from '@/services/competencyService';
 import { getSkillGoalTitles } from '@/services/SkillGoalService';
@@ -408,20 +407,12 @@ export function StepPlanQuestions({
         collaborators: updated,
         who_collaborators: updated.map((c) => c.display_name),
       });
-      // Send notification for platform users
-      if (collaborator.type === 'platform' && collaborator.user_id && user?.id && step) {
-        const userName = (user as any).user_metadata?.full_name || (user as any).email || 'Someone';
-        NotificationService.notifyStepCollaboratorAdded({
-          targetUserId: collaborator.user_id,
-          actorId: user.id,
-          actorName: userName,
-          stepId: step.id,
-          stepTitle: step.title ?? 'Untitled step',
-        }).catch(() => {});
-      }
+      // The collaborator-added notification is fired centrally by
+      // syncStepCollaborators (via updateStepMetadata) so it can't be
+      // bypassed and won't double-fire across the picker entry points.
       return updated;
     });
-  }, [debouncedSave, user, step]);
+  }, [debouncedSave]);
 
   const handleRemoveCollaborator = useCallback((collaboratorId: string) => {
     setLocalCollaborators((prev) => {

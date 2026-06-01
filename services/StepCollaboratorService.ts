@@ -14,6 +14,7 @@
  */
 
 import { supabase } from '@/services/supabase';
+import { NotificationService } from '@/services/NotificationService';
 import type { StepCollaborator } from '@/types/step-detail';
 
 const TABLE_ROLES = new Set(['helm', 'crew', 'foredeck', 'coach', 'mentor']);
@@ -76,5 +77,45 @@ export async function syncStepCollaborators(
       .from('step_collaborators')
       .upsert(toUpsert, { onConflict: 'step_id,user_id' });
     if (upErr) throw upErr;
+  }
+
+  // Notify genuinely-new platform collaborators. Dedupe against existing
+  // step_collaborators rows so the Plan tab's debounced re-saves don't
+  // re-fire on every keystroke — only users absent from `current` get pinged.
+  // Without this the invitee sees the INVITED chip but nothing in their inbox.
+  const newlyAdded = desired.filter(
+    (d) => !currentByUser.has(d.user_id) && d.user_id !== addedBy,
+  );
+  if (newlyAdded.length > 0) {
+    void notifyNewCollaborators(stepId, addedBy, newlyAdded.map((d) => d.user_id));
+  }
+}
+
+async function notifyNewCollaborators(
+  stepId: string,
+  addedBy: string,
+  userIds: string[],
+): Promise<void> {
+  try {
+    const [{ data: step }, { data: actor }] = await Promise.all([
+      supabase.from('timeline_steps').select('title').eq('id', stepId).maybeSingle(),
+      supabase.from('profiles').select('full_name').eq('id', addedBy).maybeSingle(),
+    ]);
+    const stepTitle = (step?.title as string | null)?.trim() || 'a step';
+    const actorName = (actor?.full_name as string | null)?.trim() || 'Someone';
+    await Promise.allSettled(
+      userIds.map((uid) =>
+        NotificationService.notifyStepCollaboratorAdded({
+          targetUserId: uid,
+          actorId: addedBy,
+          actorName,
+          stepId,
+          stepTitle,
+        }),
+      ),
+    );
+  } catch {
+    // Non-fatal: the collaborator row is the source of truth; a failed
+    // notification shouldn't surface as a save error.
   }
 }

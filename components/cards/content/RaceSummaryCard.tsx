@@ -109,7 +109,6 @@ import { structureBrainDump } from '@/services/ai/StepPlanAIService';
 import { saveUrlsToLibrary } from '@/services/ai/BrainDumpAIService';
 import { resolveEntities, buildEntityInput } from '@/services/ai/EntityResolutionService';
 import { enrichDateForSailing } from '@/services/ai/DateEnrichmentService';
-import { NotificationService } from '@/services/NotificationService';
 import { enableStepSharing } from '@/services/TimelineStepService';
 import { sailorBoatService } from '@/services/SailorBoatService';
 import { equipmentService } from '@/services/EquipmentService';
@@ -1501,18 +1500,10 @@ function RaceSummaryCardImpl({
         who_collaborators: updated.map((c) => c.display_name),
       },
     });
-    // Notify the collaborator
-    if (collaborator.type === 'platform' && collaborator.user_id && userId) {
-      const userName = (user as any)?.user_metadata?.full_name || (user as any)?.email || 'Someone';
-      NotificationService.notifyStepCollaboratorAdded({
-        targetUserId: collaborator.user_id,
-        actorId: userId,
-        actorName: userName,
-        stepId: race.id,
-        stepTitle: race.name || 'Untitled step',
-      }).catch(() => {});
-    }
-  }, [stepCollaborators, metadata?.plan, updateStepMetadata, userId, user, race.id, race.name]);
+    // The collaborator-added notification is fired centrally by
+    // syncStepCollaborators (via updateStepMetadata) so it can't be
+    // bypassed and won't double-fire across the picker entry points.
+  }, [stepCollaborators, metadata?.plan, updateStepMetadata]);
 
   // Build menu items for card management - permission-aware
   const noun = isTimelineStep ? 'Step' : eventConfig.eventNoun;
