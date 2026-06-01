@@ -6,7 +6,7 @@
  * blueprint author adds new steps.
  */
 
-export type BlueprintAccessLevel = 'public' | 'org_members' | 'paid';
+export type BlueprintAccessLevel = 'public' | 'org_members' | 'paid' | 'fleet';
 export type BlueprintPricingType = 'one_time' | 'recurring';
 
 export interface BlueprintRecord {
@@ -21,6 +21,7 @@ export interface BlueprintRecord {
   subscriber_count: number;
   organization_id: string | null;
   program_id: string | null;
+  fleet_id: string | null;
   access_level: BlueprintAccessLevel;
   price_cents: number | null;
   currency: string;
@@ -43,6 +44,7 @@ export interface CreateBlueprintInput {
   is_published?: boolean;
   organization_id?: string | null;
   program_id?: string | null;
+  fleet_id?: string | null;
   access_level?: BlueprintAccessLevel;
   price_cents?: number | null;
   currency?: string;

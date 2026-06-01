@@ -7,6 +7,7 @@ import {
   FleetRosterEntry,
   fleetService,
 } from '../services/fleetService';
+import { getFleetPlans, type FleetPlanSummary } from '@/services/fleetPlanService';
 
 interface AsyncState<T> {
   data: T | null;
@@ -285,6 +286,67 @@ export function useFleetRoster(fleetId?: string | null) {
 
   return useMemo(() => ({
     roster: state.data ?? [],
+    loading: state.loading,
+    error: state.error,
+    refresh,
+  }), [state, refresh]);
+}
+
+export function useFleetPlans(fleetId?: string | null) {
+  const [state, setState] = useState<AsyncState<FleetPlanSummary[]>>({
+    data: null,
+    loading: Boolean(fleetId),
+    error: null,
+  });
+  const isMountedRef = useRef(true);
+  const fetchRunIdRef = useRef(0);
+  const activeFleetIdRef = useRef<string | null | undefined>(fleetId);
+
+  useEffect(() => {
+    activeFleetIdRef.current = fleetId;
+  }, [fleetId]);
+
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+      fetchRunIdRef.current += 1;
+    };
+  }, []);
+
+  const refresh = useCallback(async () => {
+    const runId = ++fetchRunIdRef.current;
+    const targetFleetId = fleetId;
+    const canCommit = () =>
+      isMountedRef.current &&
+      runId === fetchRunIdRef.current &&
+      activeFleetIdRef.current === targetFleetId;
+
+    if (!targetFleetId) {
+      if (!canCommit()) return;
+      setState(prev => ({ ...prev, loading: false }));
+      return;
+    }
+
+    if (!canCommit()) return;
+    setState(prev => ({ ...prev, loading: true, error: null }));
+
+    try {
+      const plans = await getFleetPlans(targetFleetId);
+      if (!canCommit()) return;
+      setState({ data: plans, loading: false, error: null });
+    } catch (error) {
+      if (!canCommit()) return;
+      logger.error('Failed to load fleet plans', error);
+      setState({ data: null, loading: false, error: error as Error });
+    }
+  }, [fleetId]);
+
+  useEffect(() => {
+    void refresh();
+  }, [refresh]);
+
+  return useMemo(() => ({
+    plans: state.data ?? [],
     loading: state.loading,
     error: state.error,
     refresh,

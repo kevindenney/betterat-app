@@ -52,6 +52,7 @@ export async function createBlueprint(
         is_published: input.is_published ?? false,
         organization_id: input.organization_id ?? null,
         program_id: input.program_id ?? null,
+        fleet_id: input.fleet_id ?? null,
         access_level: input.access_level ?? 'public',
         price_cents: input.price_cents ?? null,
         currency: input.currency ?? 'usd',
@@ -910,6 +911,23 @@ export async function checkBlueprintAccess(
     if (!blueprint.organization_id) return { allowed: true };
     if (isOrgMember) return { allowed: true };
     return { allowed: false, reason: 'You must be a member of this organization to subscribe.' };
+  }
+
+  if (blueprint.access_level === 'fleet') {
+    if (!blueprint.fleet_id) return { allowed: true };
+    try {
+      const { data } = await supabase
+        .from('fleet_members')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('fleet_id', blueprint.fleet_id)
+        .eq('status', 'active')
+        .maybeSingle();
+      if (data) return { allowed: true };
+    } catch (err) {
+      logger.error('Failed to check fleet membership', err);
+    }
+    return { allowed: false, reason: 'You must be a member of this fleet to subscribe.' };
   }
 
   if (blueprint.access_level === 'paid') {

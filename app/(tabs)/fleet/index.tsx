@@ -9,7 +9,7 @@
  */
 
 import React, { useState, useCallback, useEffect } from 'react';
-import { Link, useFocusEffect } from 'expo-router';
+import { Link, useFocusEffect, useRouter } from 'expo-router';
 import {
   ActivityIndicator,
   Linking,
@@ -21,7 +21,7 @@ import {
 } from 'react-native';
 import { showAlert, showConfirm } from '@/lib/utils/crossPlatformAlert';
 import { useAuth } from '@/providers/AuthProvider';
-import { useFleetOverview, useUserFleets } from '@/hooks/useFleetData';
+import { useFleetOverview, useFleetPlans, useUserFleets } from '@/hooks/useFleetData';
 import { useFleetPosts } from '@/hooks/useFleetSocial';
 import { fleetService, type FleetMembership } from '@/services/fleetService';
 import { TUFTE_BACKGROUND } from '@/components/cards/constants';
@@ -41,16 +41,11 @@ const COLORS = {
 
 export default function FleetOverviewScreen() {
   const { user } = useAuth();
+  const router = useRouter();
   const [selectedFleetIndex, setSelectedFleetIndex] = useState(0);
   const [leavingFleetId, setLeavingFleetId] = useState<string | null>(null);
 
   const { fleets, loading: fleetsLoading, refresh: refreshFleets } = useUserFleets(user?.id);
-
-  useFocusEffect(
-    useCallback(() => {
-      refreshFleets();
-    }, [refreshFleets])
-  );
 
   useEffect(() => {
     if (selectedFleetIndex >= fleets.length && fleets.length > 0) {
@@ -63,6 +58,18 @@ export default function FleetOverviewScreen() {
 
   const { overview } = useFleetOverview(activeFleet?.id);
   const { posts, loading: postsLoading } = useFleetPosts(activeFleet?.id, { limit: 10 });
+  const { plans, loading: plansLoading, refresh: refreshPlans } = useFleetPlans(activeFleet?.id);
+
+  const activeRole = activeFleetMembership?.role;
+  const canManagePlans =
+    activeRole === 'owner' || activeRole === 'captain' || activeRole === 'coach';
+
+  useFocusEffect(
+    useCallback(() => {
+      refreshFleets();
+      refreshPlans();
+    }, [refreshFleets, refreshPlans])
+  );
 
   const handleLeaveFleet = useCallback(async (fleetId: string, fleetName?: string) => {
     showConfirm(
@@ -227,6 +234,75 @@ export default function FleetOverviewScreen() {
             >
               <Text style={styles.linkText}>Open WhatsApp chat →</Text>
             </TouchableOpacity>
+          )}
+        </>
+      )}
+
+      {/* Season Plan */}
+      {summaryFleet && (
+        <>
+          <View style={styles.divider} />
+          <View style={styles.planHeader}>
+            <Text style={styles.sectionLabel}>SEASON PLAN</Text>
+            {canManagePlans && (
+              <TouchableOpacity
+                onPress={() =>
+                  router.push({
+                    pathname: '/(tabs)/fleet/plan/builder',
+                    params: { fleetId: summaryFleet.id, fleetName: summaryFleet.name },
+                  } as any)
+                }
+              >
+                <Text style={styles.linkText}>+ New plan</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+
+          {plansLoading ? (
+            <Text style={styles.loadingText}>Loading...</Text>
+          ) : plans.length === 0 ? (
+            <Text style={styles.emptyText}>
+              {canManagePlans
+                ? 'No plans yet. Author a season of races and prep steps for the fleet.'
+                : 'No season plan published yet.'}
+            </Text>
+          ) : (
+            <View style={styles.planList}>
+              {plans.map((plan, index) => (
+                <TouchableOpacity
+                  key={plan.id}
+                  style={[styles.planRow, index < plans.length - 1 && styles.planRowBorder]}
+                  onPress={() =>
+                    router.push({
+                      pathname: '/(tabs)/fleet/plan/[blueprintId]',
+                      params: {
+                        blueprintId: plan.id,
+                        fleetName: summaryFleet.name,
+                        title: plan.title,
+                        isAuthor: plan.viewer_is_author ? 'true' : 'false',
+                      },
+                    } as any)
+                  }
+                >
+                  <View style={styles.planRowLeft}>
+                    <Text style={styles.planTitle}>{plan.title}</Text>
+                    <Text style={styles.planMeta}>
+                      {[
+                        `${plan.step_count} step${plan.step_count === 1 ? '' : 's'}`,
+                        plan.is_published
+                          ? `${plan.subscriber_count} subscribed`
+                          : 'Draft',
+                      ].join(' · ')}
+                    </Text>
+                  </View>
+                  {!plan.is_published && plan.viewer_is_author && (
+                    <View style={styles.draftPill}>
+                      <Text style={styles.draftPillText}>Draft</Text>
+                    </View>
+                  )}
+                </TouchableOpacity>
+              ))}
+            </View>
           )}
         </>
       )}
@@ -411,6 +487,54 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: COLORS.activeBlue,
     fontWeight: '500',
+  },
+
+  // Season plan
+  planHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  planList: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 8,
+    overflow: 'hidden',
+  },
+  planRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    gap: 12,
+  },
+  planRowBorder: {
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: COLORS.hairline,
+  },
+  planRowLeft: {
+    flex: 1,
+    gap: 2,
+  },
+  planTitle: {
+    fontSize: 15,
+    fontWeight: '500',
+    color: COLORS.text,
+  },
+  planMeta: {
+    fontSize: 12,
+    color: COLORS.tertiaryText,
+  },
+  draftPill: {
+    backgroundColor: '#F3F4F6',
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    borderRadius: 999,
+  },
+  draftPillText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: COLORS.secondaryText,
   },
 
   // Activity feed

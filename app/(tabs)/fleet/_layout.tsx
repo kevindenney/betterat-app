@@ -9,6 +9,8 @@ export default function FleetStackLayout() {
       <Stack.Screen name="resources" />
       <Stack.Screen name="activity" />
       <Stack.Screen name="settings" />
+      <Stack.Screen name="plan/builder" />
+      <Stack.Screen name="plan/[blueprintId]" />
     </Stack>
   );
 }
