@@ -1,9 +1,10 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { Platform } from 'react-native';
+import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/providers/AuthProvider';
 import { supabase } from '@/services/supabase';
-import { isMissingSupabaseColumn } from '@/lib/utils/supabaseSchemaFallback';
+import { fetchOrgMembershipRows, orgMembershipsQueryKey } from '@/hooks/orgMembershipsQuery';
 import { createLogger } from '@/lib/utils/logger';
 import { isAbortError } from '@/lib/utils/fetchWithTimeout';
 import type { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
@@ -28,6 +29,7 @@ export type OrganizationRecord = {
   id: string;
   name: string;
   slug: string | null;
+  interest_slug?: string | null;
   organization_type: OrganizationType;
   verification_mode: string | null;
   allowed_email_domains: string[] | null;
@@ -44,6 +46,7 @@ export type OrganizationMembershipRecord = {
   is_verified: boolean;
   verification_source: string | null;
   joined_at: string | null;
+  created_at: string | null;
   organization: OrganizationRecord | null;
 };
 
@@ -103,7 +106,20 @@ type OrganizationContextValue = {
 };
 
 const ACTIVE_STATUSES = new Set(['active', 'verified']);
+// The provider's old DB filter was `.in('status', [...])` on the status
+// column. Re-applied client-side now that the shared read is unfiltered.
+const MEMBERSHIP_DB_STATUSES = new Set(['active', 'verified', 'pending', 'invited']);
 const MANAGER_ROLES = new Set(['owner', 'admin', 'manager', 'faculty', 'instructor']);
+
+// Mirrors the old DB `.order('created_at', { ascending: false })`. Stable
+// (Array.sort is stable in Hermes/V8) so equal-created_at rows keep input
+// order — the closest faithful match to Postgres' unspecified tie order.
+function byCreatedAtDesc(a: OrganizationMembershipRecord, b: OrganizationMembershipRecord): number {
+  const av = a.created_at ?? '';
+  const bv = b.created_at ?? '';
+  if (av === bv) return 0;
+  return av < bv ? 1 : -1;
+}
 const STORAGE_KEY = 'betterat.active_org_id';
 const LEGACY_STORAGE_KEY = 'rf_active_organization_id';
 let hasLoggedMissingOrganizationProvider = false;
@@ -272,6 +288,7 @@ function normalizeRealtimeMembershipRow(
     ),
     verification_source: row.verification_source ?? existing?.verification_source ?? null,
     joined_at: row.joined_at ?? existing?.joined_at ?? null,
+    created_at: row.created_at ?? existing?.created_at ?? null,
     organization: existing?.organization ?? null,
   };
 }
@@ -346,6 +363,7 @@ function defaultInterestSlugForDomain(domain: WorkspaceDomain): string | null {
 
 export function OrganizationProvider({ children }: { children: React.ReactNode }) {
   const { user, signedIn } = useAuth();
+  const queryClient = useQueryClient();
   const signedInRef = React.useRef(signedIn);
   const userIdRef = React.useRef<string | null>(user?.id ?? null);
   const [loading, setLoading] = useState(false);
@@ -365,11 +383,6 @@ export function OrganizationProvider({ children }: { children: React.ReactNode }
   // locks (the Nth call would otherwise exceed the 10s client timeout even
   // when the server responds quickly).
   const refreshInflightRef = React.useRef<Promise<void> | null>(null);
-
-  const membershipColumns =
-    'id, organization_id, role, status, membership_status, is_verified, verification_source, joined_at, organization:organizations(id, name, slug, organization_type, verification_mode, allowed_email_domains, metadata, is_active)';
-  const membershipColumnsLegacy =
-    'id, organization_id, role, status, is_verified, verification_source, joined_at, organization:organizations(id, name, slug, organization_type, verification_mode, allowed_email_domains, metadata, is_active)';
 
   useEffect(() => {
     signedInRef.current = signedIn;
@@ -515,46 +528,24 @@ export function OrganizationProvider({ children }: { children: React.ReactNode }
     setMembershipLoadError(null);
     setMembershipLoadErrorPayload(null);
     try {
-      const membershipsTimeout = new Promise<never>((_, reject) => {
-        setTimeout(() => {
-          reject(new Error('ORG_MEMBERSHIP_TIMEOUT'));
-        }, 10000);
+      // Shared cached read (key ['profile-menu-orgs', userId]) — the same
+      // query useProfileMenuData runs. fetchQuery dedupes the in-flight
+      // request on cold mount and force-refreshes on explicit refresh; no
+      // hand-rolled timeout race (the old ORG_MEMBERSHIP_TIMEOUT source).
+      const data = await queryClient.fetchQuery({
+        queryKey: orgMembershipsQueryKey(currentUserId),
+        queryFn: () => fetchOrgMembershipRows(currentUserId),
       });
-      const buildMembershipQuery = (columns: string) => supabase
-        .from('organization_memberships')
-        .select(columns)
-        .eq('user_id', currentUserId)
-        .in('status', ['active', 'verified', 'pending', 'invited'])
-        .order('created_at', { ascending: false });
 
-      let { data, error } = await Promise.race([
-        buildMembershipQuery(membershipColumns),
-        membershipsTimeout,
-      ]);
-
-      if (error && isMissingSupabaseColumn(error, 'organization_memberships.membership_status')) {
-        const legacyResult = await Promise.race([
-          buildMembershipQuery(membershipColumnsLegacy),
-          membershipsTimeout,
-        ]);
-        data = (legacyResult as any).data || [];
-        error = (legacyResult as any).error || null;
-      }
-
-      if (error) {
-        if (isOrgSchemaMissingError(error)) {
-          setMembershipLoadError(null);
-          setMembershipLoadErrorPayload(null);
-          setMemberships([]);
-          setActiveOrganizationIdState(null);
-          setReady(true);
-          return;
-        }
-        throw error;
-      }
-
-      const normalized = ((data || []) as unknown as RawOrganizationMembershipRecord[]).map(normalizeMembershipRow);
-      const rows = dedupeMemberships(normalized);
+      // The shared read applies NO status filter and NO ordering — re-apply
+      // the provider's old DB semantics client-side: status ∈ the 4-set,
+      // then created_at desc (stable), then dedupe (keeps newest per org).
+      const normalized = (data as unknown as RawOrganizationMembershipRecord[]).map(normalizeMembershipRow);
+      const filtered = normalized.filter((row) =>
+        MEMBERSHIP_DB_STATUSES.has(String(row.status || '').toLowerCase())
+      );
+      const sorted = [...filtered].sort(byCreatedAtDesc);
+      const rows = dedupeMemberships(sorted);
       membershipRealtimeCommitRef.current.clear();
       setMemberships(rows);
 
@@ -599,6 +590,15 @@ export function OrganizationProvider({ children }: { children: React.ReactNode }
         errorHint: null,
       });
     } catch (error) {
+      // Missing org schema (fresh DB / migrations not applied) is an empty
+      // state, not a load failure — keep it silent as the inline read did.
+      if (isOrgSchemaMissingError(error)) {
+        setMembershipLoadError(null);
+        setMembershipLoadErrorPayload(null);
+        setMemberships([]);
+        setActiveOrganizationIdState(null);
+        return;
+      }
       const rawMessage = error instanceof Error ? error.message : String(error ?? '');
       const timedOut = rawMessage === 'ORG_MEMBERSHIP_TIMEOUT';
       const { data: latestSessionData } = await supabase.auth.getSession();

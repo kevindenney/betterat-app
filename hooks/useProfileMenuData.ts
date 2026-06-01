@@ -10,10 +10,16 @@
  * we can wire them up as the surfaces around the dropdown ship.
  */
 
+import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/services/supabase';
 import { useAuth } from '@/providers/AuthProvider';
 import { useInterest } from '@/providers/InterestProvider';
+import {
+  fetchOrgMembershipRows,
+  orgMembershipsQueryKey,
+  type OrgMembershipEmbeddedOrg,
+} from '@/hooks/orgMembershipsQuery';
 
 export interface OrgMembership {
   org_id: string;
@@ -81,59 +87,43 @@ export function useProfileMenuData(): ProfileMenuData {
   const { user } = useAuth();
   const userId = user?.id;
 
-  const { data: memberships = [], isLoading } = useQuery({
-    queryKey: ['profile-menu-orgs', userId],
+  // Shared cached read — same query (key ['profile-menu-orgs', userId]) the
+  // OrganizationProvider now consumes. The shared read is unfiltered; we
+  // re-apply this surface's own active/verified client filter below.
+  const { data: rawRows = [], isLoading } = useQuery({
+    queryKey: orgMembershipsQueryKey(userId),
     enabled: !!userId,
     staleTime: 60_000,
-    queryFn: async (): Promise<OrgMembership[]> => {
-      if (!userId) return [];
-
-      const { data, error } = await supabase
-        .from('organization_memberships')
-        .select(
-          'organization_id, role, status, membership_status, organizations!inner(id, name, slug, interest_slug)',
-        )
-        .eq('user_id', userId);
-
-      if (error) {
-        console.warn('[useProfileMenuData] memberships query failed', error);
-        return [];
-      }
-
-      // Supabase typegen models the !inner join as an array; runtime is a
-      // single row because the inner-join hop is one-to-one. Cast through
-      // unknown to express that.
-      const rows = (data ?? []) as unknown as {
-        organization_id: string;
-        role: string | null;
-        status: string | null;
-        membership_status: string | null;
-        organizations: { id: string; name: string; slug: string | null; interest_slug: string | null } | null;
-      }[];
-
-      return rows
-        .filter((r) => {
-          // active per either column — see feedback_membership_status_split.md
-          const s1 = (r.status ?? '').toLowerCase();
-          const s2 = (r.membership_status ?? '').toLowerCase();
-          return s1 === 'active' || s2 === 'active' || s2 === 'verified';
-        })
-        .map((r) => {
-          const orgName = r.organizations?.name ?? 'Organization';
-          return {
-            org_id: r.organization_id,
-            org_slug: r.organizations?.slug ?? null,
-            org_name: orgName,
-            org_short_name: shortNameFor(orgName),
-            interest_slug: r.organizations?.interest_slug ?? null,
-            role: r.role,
-            is_admin: isAdminRole(r.role),
-            is_faculty: isFacultyRole(r.role),
-            is_author: isAuthorRole(r.role),
-          };
-        });
-    },
+    queryFn: () => fetchOrgMembershipRows(userId!),
   });
+
+  const memberships: OrgMembership[] = useMemo(() => {
+    return rawRows
+      .filter((r) => {
+        // active per either column — see feedback_membership_status_split.md
+        const s1 = (r.status ?? '').toLowerCase();
+        const s2 = (r.membership_status ?? '').toLowerCase();
+        return s1 === 'active' || s2 === 'active' || s2 === 'verified';
+      })
+      .map((r) => {
+        // LEFT join — org may be null; supabase typegen may model it as an array.
+        const org: OrgMembershipEmbeddedOrg | null = Array.isArray(r.organization)
+          ? (r.organization[0] ?? null)
+          : (r.organization ?? null);
+        const orgName = org?.name ?? 'Organization';
+        return {
+          org_id: r.organization_id,
+          org_slug: org?.slug ?? null,
+          org_name: orgName,
+          org_short_name: shortNameFor(orgName),
+          interest_slug: org?.interest_slug ?? null,
+          role: r.role,
+          is_admin: isAdminRole(r.role),
+          is_faculty: isFacultyRole(r.role),
+          is_author: isAuthorRole(r.role),
+        };
+      });
+  }, [rawRows]);
 
   // The active org follows the active interest: an org is "current" only
   // when its interest_slug matches the interest the user is viewing (e.g.
