@@ -42,16 +42,27 @@ import {
 import { StudioLoading } from '@/components/studio/StudioLoading';
 import { AddPersonSheet } from '@/components/admin/AddPersonSheet';
 import { PersonDetailDrawer } from '@/components/admin/PersonDetailDrawer';
+import { FEATURE_FLAGS } from '@/lib/featureFlags';
+import { DesktopOnlyGate, DESKTOP_GATE_MIN_WIDTH } from '@/components/ui/DesktopOnlyGate';
 
 type PeopleTab = 'all' | 'students' | 'authors' | 'mentors' | 'admins' | 'pending';
 
 export default function AdminPeoplePage() {
   const { orgId } = useLocalSearchParams<{ orgId: string }>();
   const { width } = useWindowDimensions();
+  // Gate BEFORE the data hooks mount: on a phone the admin people queries
+  // never reach a rendered surface, so render the gate instead of fetching.
+  if (FEATURE_FLAGS.DESKTOP_GATE_ON_REGISTER && width < DESKTOP_GATE_MIN_WIDTH) {
+    return <DesktopOnlyGate />;
+  }
+  return <AdminPeopleInner orgId={orgId as string} />;
+}
+
+function AdminPeopleInner({ orgId }: { orgId: string }) {
   const router = useRouter();
   const { user, userProfile } = useAuth();
   const menu = useProfileMenuData();
-  const data = useAdminPeople(orgId as string);
+  const data = useAdminPeople(orgId);
 
   const [tab, setTab] = useState<PeopleTab>('all');
   const [search, setSearch] = useState('');
@@ -74,10 +85,6 @@ export default function AdminPeoplePage() {
     }
     return rows;
   }, [data.rows, tab, search]);
-
-  if (width < 920) {
-    return <NarrowScreenGate onBack={() => router.back()} />;
-  }
 
   if (!user || menu.loading) {
     return <StudioLoading />;
@@ -450,23 +457,6 @@ function EmptyPeopleState({ search }: { search: string }) {
 }
 
 // ---------------------------------------------------------------------------
-// Narrow screen gate
-// ---------------------------------------------------------------------------
-
-function NarrowScreenGate({ onBack }: { onBack: () => void }) {
-  return (
-    <View style={styles.gate}>
-      <Ionicons name="desktop-outline" size={36} color="rgba(60, 60, 67, 0.4)" />
-      <Text style={styles.gateTitle}>Org admin is a writing-class surface</Text>
-      <Text style={styles.gateBody}>
-        Managing seats, roles, and SSO is not a phone-screen job. Open on iPad or desktop.
-      </Text>
-      <StudioButton variant="ghost" icon="arrow-back" label="Back" onPress={onBack} />
-    </View>
-  );
-}
-
-// ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
@@ -693,20 +683,4 @@ const styles = StyleSheet.create({
     maxWidth: 380,
   },
 
-  // Narrow gate
-  gate: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 36,
-    gap: 12,
-    backgroundColor: '#EFEAD8',
-  },
-  gateTitle: { fontSize: 22, fontWeight: '600', color: '#1C1C1E', textAlign: 'center' },
-  gateBody: {
-    fontSize: 14,
-    color: 'rgba(60, 60, 67, 0.6)',
-    textAlign: 'center',
-    maxWidth: 420,
-  },
 });

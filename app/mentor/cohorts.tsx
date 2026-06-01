@@ -14,6 +14,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -21,6 +22,8 @@ import { router, Stack } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
 import { IOS_REGISTER } from '@/lib/design-tokens-ios';
+import { FEATURE_FLAGS } from '@/lib/featureFlags';
+import { DesktopOnlyGate, DESKTOP_GATE_MIN_WIDTH } from '@/components/ui/DesktopOnlyGate';
 import { useOrganization } from '@/providers/OrganizationProvider';
 import { resolveActiveOrgId } from '@/lib/organizations/adminGate';
 import { isUuid } from '@/utils/uuid';
@@ -33,6 +36,16 @@ interface CohortRow {
 }
 
 export default function MentorCohortsIndex() {
+  const { width } = useWindowDimensions();
+  // Gate BEFORE the data-fetching inner mounts: on a phone the cohort
+  // queries never ran to a rendered surface, leaving the screen spinning.
+  if (FEATURE_FLAGS.DESKTOP_GATE_ON_REGISTER && width < DESKTOP_GATE_MIN_WIDTH) {
+    return <DesktopOnlyGate />;
+  }
+  return <MentorCohortsInner />;
+}
+
+function MentorCohortsInner() {
   const { activeOrganizationId, memberships, loading: orgLoading } = useOrganization();
   const orgId = useMemo(
     () =>

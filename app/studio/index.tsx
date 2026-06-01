@@ -46,19 +46,29 @@ import {
 } from '@/components/studio/StudioShell';
 import { StudioLoading } from '@/components/studio/StudioLoading';
 import { Gradient } from '@/components/studio/Gradient';
+import { FEATURE_FLAGS } from '@/lib/featureFlags';
+import { DesktopOnlyGate, DESKTOP_GATE_MIN_WIDTH } from '@/components/ui/DesktopOnlyGate';
 
 export default function StudioHomePage() {
   const { width } = useWindowDimensions();
+  // Gate BEFORE the data-fetching inner mounts (useStudioHomeData /
+  // useProfileMenuData) so a phone never kicks off the desktop queries.
+  if (FEATURE_FLAGS.DESKTOP_GATE_ON_REGISTER && width < DESKTOP_GATE_MIN_WIDTH) {
+    return (
+      <DesktopOnlyGate
+        title="Better on a bigger screen"
+        body="Authoring blueprints, mentoring cohorts, and managing pricing need more room than a phone gives — open Creator Studio on iPad or desktop."
+      />
+    );
+  }
+  return <StudioHomeInner />;
+}
+
+function StudioHomeInner() {
   const router = useRouter();
   const { user, userProfile } = useAuth();
   const menu = useProfileMenuData();
   const data = useStudioHomeData();
-
-  const isNarrow = width < 920;
-
-  if (isNarrow) {
-    return <NarrowScreenGate onBack={() => router.back()} />;
-  }
 
   if (!user || menu.loading) {
     return <StudioLoading />;
@@ -484,24 +494,6 @@ function ThreadsEmptyState() {
 }
 
 // ---------------------------------------------------------------------------
-// Narrow-screen gate
-// ---------------------------------------------------------------------------
-
-function NarrowScreenGate({ onBack }: { onBack: () => void }) {
-  return (
-    <View style={styles.gate}>
-      <Ionicons name="desktop-outline" size={36} color="rgba(60, 60, 67, 0.4)" />
-      <Text style={styles.gateTitle}>Creator Studio is a writing surface</Text>
-      <Text style={styles.gateBody}>
-        Authoring blueprints, mentoring cohorts, and managing pricing are not
-        phone-screen jobs. Open Creator Studio on iPad or desktop.
-      </Text>
-      <StudioButton variant="ghost" icon="arrow-back" label="Back" onPress={onBack} />
-    </View>
-  );
-}
-
-// ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
@@ -767,23 +759,4 @@ const styles = StyleSheet.create({
   // View-all
   viewAllRow: { paddingVertical: 12, alignItems: 'center' },
   viewAllText: { color: '#007AFF', fontSize: 12.5, fontWeight: '500' },
-
-  // Narrow-screen gate
-  gate: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 36,
-    gap: 12,
-    backgroundColor: '#EFEAD8',
-  },
-  gateTitle: { fontSize: 22, fontWeight: '600', color: '#1C1C1E', letterSpacing: -0.4, textAlign: 'center' },
-  gateBody: {
-    fontSize: 14,
-    color: 'rgba(60, 60, 67, 0.6)',
-    textAlign: 'center',
-    lineHeight: 20,
-    maxWidth: 420,
-    marginBottom: 8,
-  },
 });

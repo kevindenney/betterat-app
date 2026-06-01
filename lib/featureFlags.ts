@@ -668,6 +668,23 @@ export const FEATURE_FLAGS = {
    * Per docs/redesign/v3 · The reflecting & suggesting system, screen 04.
    */
   INBOX_TAB_V3: readBooleanEnv('EXPO_PUBLIC_FF_INBOX_TAB_V3', true),
+
+  /**
+   * On-register desktop gate for admin/studio management surfaces.
+   *
+   * When on: management-class surfaces that are not phone-screen jobs
+   * (Org admin / People, Creator Studio, Cohorts) render a single
+   * on-register gate card on narrow (phone) viewports BEFORE attempting
+   * any data fetch, and the real desktop surface only on iPad/desktop.
+   * Gating before the data hooks mount is what fixes the Cohorts
+   * infinite-spinner trap (it spun fetching cohort data on a viewport
+   * that never rendered it). Billing & seats is intentionally NOT gated —
+   * it's a quick transactional task.
+   *
+   * On by default. Flip EXPO_PUBLIC_FF_DESKTOP_GATE_ON_REGISTER=false to
+   * fall back to rendering the surfaces on phone (pre-gate behavior).
+   */
+  DESKTOP_GATE_ON_REGISTER: readBooleanEnv('EXPO_PUBLIC_FF_DESKTOP_GATE_ON_REGISTER', true),
 } as const;
 
 // =============================================================================
