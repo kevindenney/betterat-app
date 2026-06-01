@@ -19,7 +19,6 @@ import {
   StyleSheet,
   ScrollView,
   TextInput,
-  useWindowDimensions,
   Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -36,11 +35,6 @@ import { AdminShell } from '@/components/admin/AdminShell';
 type SitesTab = 'all' | 'hospital' | 'sim_lab' | 'club' | 'racing_area';
 
 export default function AdminSitesPage() {
-  const { width } = useWindowDimensions();
-  const router = useRouter();
-  if (width < 920) {
-    return <NarrowScreenGate onBack={() => router.back()} />;
-  }
   return (
     <AdminShell activeKey="sites">
       <AdminSitesBody />
@@ -267,19 +261,6 @@ function shortNameLabel(orgName: string): string {
   return tokens.map((t) => t[0]).join('').toUpperCase();
 }
 
-function NarrowScreenGate({ onBack }: { onBack: () => void }) {
-  return (
-    <View style={styles.gate}>
-      <Ionicons name="desktop-outline" size={36} color="rgba(60, 60, 67, 0.4)" />
-      <Text style={styles.gateTitle}>Sites is a desktop surface</Text>
-      <Text style={styles.gateBody}>
-        Managing curated sites is not a phone-screen job. Open on iPad or desktop.
-      </Text>
-      <StudioButton variant="ghost" icon="arrow-back" label="Back" onPress={onBack} />
-    </View>
-  );
-}
-
 // ---------------------------------------------------------------------------
 // Styles
 // ---------------------------------------------------------------------------
@@ -371,19 +352,4 @@ const styles = StyleSheet.create({
     maxWidth: 440,
   },
 
-  gate: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 36,
-    gap: 12,
-    backgroundColor: '#EFEAD8',
-  },
-  gateTitle: { fontSize: 22, fontWeight: '600', color: '#1C1C1E', textAlign: 'center' },
-  gateBody: {
-    fontSize: 14,
-    color: 'rgba(60, 60, 67, 0.6)',
-    textAlign: 'center',
-    maxWidth: 420,
-  },
 });

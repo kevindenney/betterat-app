@@ -23,11 +23,10 @@ import {
   StyleSheet,
   ScrollView,
   TextInput,
-  useWindowDimensions,
   Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import { useAuth } from '@/providers/AuthProvider';
 import { useProfileMenuData } from '@/hooks/useProfileMenuData';
 import {
@@ -67,8 +66,6 @@ type EditorTab =
 export default function BlueprintEditorPage() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const blueprintId = typeof id === 'string' ? id : 'new';
-  const { width } = useWindowDimensions();
-  const router = useRouter();
   const { user, userProfile } = useAuth();
   const menu = useProfileMenuData();
   const { blueprint, isInstitutional } = useStudioBlueprint(blueprintId);
@@ -98,10 +95,6 @@ export default function BlueprintEditorPage() {
     blueprint.durationLabel,
     blueprint.accessMode,
   ]);
-
-  if (width < 920) {
-    return <NarrowScreenGate onBack={() => router.back()} />;
-  }
 
   if (!user || menu.loading) {
     return <StudioLoading />;
@@ -759,23 +752,6 @@ function StubTabBody({ tab }: { tab: EditorTab }) {
 }
 
 // ---------------------------------------------------------------------------
-// Narrow-screen gate
-// ---------------------------------------------------------------------------
-
-function NarrowScreenGate({ onBack }: { onBack: () => void }) {
-  return (
-    <View style={styles.gate}>
-      <Ionicons name="desktop-outline" size={36} color="rgba(60, 60, 67, 0.4)" />
-      <Text style={styles.gateTitle}>Open the editor on iPad or desktop</Text>
-      <Text style={styles.gateBody}>
-        Authoring a blueprint is a writing job — not a phone-screen job.
-      </Text>
-      <StudioButton variant="ghost" icon="arrow-back" label="Back" onPress={onBack} />
-    </View>
-  );
-}
-
-// ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
@@ -862,22 +838,6 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
 
-  // Narrow gate
-  gate: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 36,
-    gap: 12,
-    backgroundColor: '#EFEAD8',
-  },
-  gateTitle: { fontSize: 22, fontWeight: '600', color: '#1C1C1E', textAlign: 'center' },
-  gateBody: {
-    fontSize: 14,
-    color: 'rgba(60, 60, 67, 0.6)',
-    textAlign: 'center',
-    maxWidth: 420,
-  },
 });
 
 const cover = StyleSheet.create({

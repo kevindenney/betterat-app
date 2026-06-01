@@ -18,7 +18,6 @@ import {
   Pressable,
   StyleSheet,
   ScrollView,
-  useWindowDimensions,
   Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -41,15 +40,10 @@ import {
 import { StudioLoading } from '@/components/studio/StudioLoading';
 
 export default function StudioPayoutsPage() {
-  const { width } = useWindowDimensions();
   const router = useRouter();
   const { user, userProfile } = useAuth();
   const menu = useProfileMenuData();
   const data = useStudioPayouts();
-
-  if (width < 920) {
-    return <NarrowScreenGate onBack={() => router.back()} />;
-  }
 
   if (!user || menu.loading) {
     return <StudioLoading />;
@@ -563,24 +557,6 @@ function TransactionRow({
 }
 
 // ---------------------------------------------------------------------------
-// Narrow gate
-// ---------------------------------------------------------------------------
-
-function NarrowScreenGate({ onBack }: { onBack: () => void }) {
-  return (
-    <View style={styles.gate}>
-      <Ionicons name="desktop-outline" size={36} color="rgba(60, 60, 67, 0.4)" />
-      <Text style={styles.gateTitle}>Open Payouts on iPad or desktop</Text>
-      <Text style={styles.gateBody}>
-        Earnings charts, transactions, and Stripe Connect settings aren't a
-        phone-screen job.
-      </Text>
-      <StudioButton variant="ghost" icon="arrow-back" label="Back" onPress={onBack} />
-    </View>
-  );
-}
-
-// ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
@@ -793,21 +769,4 @@ const styles = StyleSheet.create({
   // View all
   viewAllRow: { paddingVertical: 12, alignItems: 'center' },
   viewAllText: { color: '#007AFF', fontSize: 12.5, fontWeight: '500' },
-
-  // Narrow gate
-  gate: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 36,
-    gap: 12,
-    backgroundColor: '#EFEAD8',
-  },
-  gateTitle: { fontSize: 22, fontWeight: '600', color: '#1C1C1E', textAlign: 'center' },
-  gateBody: {
-    fontSize: 14,
-    color: 'rgba(60, 60, 67, 0.6)',
-    textAlign: 'center',
-    maxWidth: 420,
-  },
 });

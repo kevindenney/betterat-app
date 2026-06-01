@@ -14,7 +14,6 @@ import {
   StyleSheet,
   ScrollView,
   ActivityIndicator,
-  useWindowDimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -25,7 +24,6 @@ import {
   StudioShell,
   StudioHeader,
   StudioNavSection,
-  StudioButton,
 } from '@/components/studio/StudioShell';
 import { StudioLoading } from '@/components/studio/StudioLoading';
 
@@ -50,21 +48,10 @@ function getInitials(name: string): string {
 }
 
 export default function StudioEarningsPage() {
-  const { width } = useWindowDimensions();
   const router = useRouter();
   const { user, userProfile } = useAuth();
   const menu = useProfileMenuData();
   const { stats, loading } = useAuthorMarketplaceStats();
-
-  if (width < 920) {
-    return (
-      <View style={s.gate}>
-        <Ionicons name="desktop-outline" size={36} color="rgba(60, 60, 67, 0.4)" />
-        <Text style={s.gateTitle}>Open Earnings on iPad or desktop</Text>
-        <StudioButton variant="ghost" icon="arrow-back" label="Back" onPress={() => router.back()} />
-      </View>
-    );
-  }
 
   if (!user || menu.loading) {
     return <StudioLoading />;
@@ -246,15 +233,6 @@ function StatCard({
 
 const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#F5F4EE' },
-  gate: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 14,
-    padding: 32,
-    backgroundColor: '#F5F4EE',
-  },
-  gateTitle: { fontSize: 16, fontWeight: '600', color: '#1C1C1E' },
   body: { flex: 1, backgroundColor: '#F5F4EE' },
   bodyInner: {
     paddingHorizontal: 24,
