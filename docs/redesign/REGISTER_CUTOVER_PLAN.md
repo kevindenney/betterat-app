@@ -89,8 +89,12 @@ or "brown → keep" codemod would be wrong in two-thirds of cases.
 2. **Brown collides with itself inside `payouts.tsx`** — identity accent and the
    lightest chart bar are the *same* `#B8855A`. This is the one case a careless
    sweep would visibly break; the §8 batch order isolates payouts for eyes-on.
-3. **Purple has a possible third role (co-author)** that the Studio agent folded
-   into section-identity. Surfaced as its own ambiguous row — your call.
+3. **Purple is SETTLED (2026-06-01):** two distinct tokens, **never collapsed.**
+   (a) **People/author marker** `REGISTER_ROLE_AUTHOR` `#6B5BBF` — tags Author /
+   Co-author / Faculty person-roles across the 6 surfaces in row 75; KEEP. (b)
+   **Studio section-identity** purple `#6B5BBF` (shell accent / spinner / `accent="purple"`)
+   maps **separately** under D1. Same hex, two roles, two tokens — do not merge
+   them into one. The co-author chip is (a), not section identity.
 4. **Everything else is consistent across the three agents** — coral, cream,
    legacy `C`, and the data-viz tone families were categorized the same way
    wherever they were seen. No reconciliation conflict there; the work is just
@@ -369,8 +373,9 @@ questions are just its unresolved cells:
    "identity" row for navy/purple/brown in §0.
 2. **New-blueprint button (purple, action role):** under (A) it's a user action
    → iosBlue. Confirm, or is it a deliberate distinct "create" accent to keep?
-3. **Co-author purple (the §0 ⚠️ row):** keep as Studio identity, → iosBlue, or
-   → neutral `labelSecondary`? It may be a *people* marker, not section identity.
+3. ~~**Co-author purple:**~~ **SETTLED 2026-06-01** — it's a *people/author marker*
+   (`REGISTER_ROLE_AUTHOR`), KEPT, distinct from Studio section-identity purple;
+   the two are not collapsed. See §0 note 3.
 4. **D4:** defer the legacy bespoke-palette views to their own batch? (recommended)
 5. **CAT_TONES** in the blueprint editor — deliberate competency-category
    encoding to KEEP, or normalize?
