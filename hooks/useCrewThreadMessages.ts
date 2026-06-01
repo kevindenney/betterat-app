@@ -64,19 +64,26 @@ async function enrichWithProfile(msg: CrewThreadMessage): Promise<CrewThreadMess
   if (!msg.userId) return msg;
 
   try {
-    const { data } = await supabase
-      .from('profiles')
-      .select('full_name, avatar_emoji, avatar_color')
-      .eq('id', msg.userId)
-      .maybeSingle();
+    // Name lives on `profiles`; the emoji-avatar styling lives on
+    // `sailor_profiles` (keyed by user_id). They must be read separately —
+    // selecting avatar_emoji/avatar_color off `profiles` 42703s the whole
+    // query, which made senders render as "Unknown" with no avatar.
+    const [{ data: prof }, { data: sailor }] = await Promise.all([
+      supabase.from('profiles').select('full_name').eq('id', msg.userId).maybeSingle(),
+      supabase
+        .from('sailor_profiles')
+        .select('avatar_emoji, avatar_color')
+        .eq('user_id', msg.userId)
+        .maybeSingle(),
+    ]);
 
-    if (data) {
+    if (prof || sailor) {
       return {
         ...msg,
         profile: {
-          fullName: data.full_name,
-          avatarEmoji: data.avatar_emoji,
-          avatarColor: data.avatar_color,
+          fullName: prof?.full_name ?? null,
+          avatarEmoji: sailor?.avatar_emoji ?? null,
+          avatarColor: sailor?.avatar_color ?? null,
         },
       };
     }
