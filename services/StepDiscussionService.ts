@@ -479,9 +479,14 @@ export async function toggleStepReaction(input: {
 }): Promise<void> {
   const { discussionId, userId, kind, shouldSet } = input;
   if (shouldSet) {
+    // ignoreDuplicates → ON CONFLICT DO NOTHING. The DO UPDATE form an
+    // ordinary upsert generates re-plans the table's RLS policies on the
+    // conflict path, which balloons (461 InitPlans) and hits the statement
+    // timeout → 500. A reaction toggle never needs to mutate an existing
+    // row, so DO NOTHING is both correct and ~100x faster.
     const { error } = await supabase.from('step_discussion_reactions').upsert(
       { discussion_id: discussionId, user_id: userId, kind },
-      { onConflict: 'discussion_id,user_id,kind' },
+      { onConflict: 'discussion_id,user_id,kind', ignoreDuplicates: true },
     );
     if (error && error.code !== '23505') {
       logger.error('Failed to add step reaction', error);
