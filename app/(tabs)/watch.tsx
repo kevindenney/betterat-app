@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   Image,
   Pressable,
@@ -24,6 +24,7 @@ import {
 } from '@/hooks/useFollowedStepsFeed';
 import { useFleetStepFeed } from '@/hooks/useFleetStepFeed';
 import { useUserFleets } from '@/hooks/useFleetData';
+import { useBlueprintTitles } from '@/hooks/useBlueprintTitles';
 import { useCohortStream, type CohortStreamItem } from '@/hooks/useCohortStream';
 import { useFollowedPeopleForLibrary } from '@/hooks/useFollowedPeopleForLibrary';
 import { WatchNearbySection } from '@/components/watch/WatchNearbySection';
@@ -68,7 +69,7 @@ const GROUPING_CHIPS: { id: GroupingId; label: string; ready: boolean }[] = [
   { id: 'all', label: 'Following', ready: true },
   { id: 'location', label: 'Nearby', ready: true },
   { id: 'fleet', label: 'By group', ready: true },
-  { id: 'blueprint', label: 'By blueprint', ready: false },
+  { id: 'blueprint', label: 'By blueprint', ready: true },
 ];
 
 function formatRelativeTime(iso: string): string {
@@ -130,6 +131,30 @@ export default function WatchScreen() {
   const { data: cohortStream = [] } = useCohortStream(currentInterest?.id);
   const { data: followedPeople = [] } = useFollowedPeopleForLibrary();
   const followingCount = followedPeople.length;
+
+  // "By blueprint" — group the followed feed by the blueprint each step was
+  // adopted from, with a trailing bucket for steps not from a blueprint.
+  const blueprintGroups = useMemo(() => {
+    const groups = new Map<string, FollowedStepItem[]>();
+    const other: FollowedStepItem[] = [];
+    for (const item of feed) {
+      if (item.sourceBlueprintId) {
+        const list = groups.get(item.sourceBlueprintId);
+        if (list) list.push(item);
+        else groups.set(item.sourceBlueprintId, [item]);
+      } else {
+        other.push(item);
+      }
+    }
+    return { groups, other };
+  }, [feed]);
+  const blueprintIds = useMemo(
+    () => Array.from(blueprintGroups.groups.keys()),
+    [blueprintGroups],
+  );
+  const { data: blueprintTitles } = useBlueprintTitles(
+    grouping === 'blueprint' ? blueprintIds : [],
+  );
 
   const hasFeed = feed.length > 0;
   const hasCohort = cohortStream.length > 0;
@@ -283,6 +308,46 @@ export default function WatchScreen() {
                 </View>
               )}
             </>
+          )
+        ) : grouping === 'blueprint' ? (
+          isLoading ? (
+            <Text style={styles.emptyCopy}>Loading…</Text>
+          ) : !hasFeed ? (
+            <View style={styles.emptyCard}>
+              <Ionicons name="documents-outline" size={28} color={IOS_COLORS.tertiaryLabel} />
+              <Text style={styles.emptyTitle}>Nothing to watch yet</Text>
+              <Text style={styles.emptyCopy}>
+                Follow people and their steps will appear here, grouped by the blueprint they
+                came from.
+              </Text>
+            </View>
+          ) : (
+            <View>
+              {blueprintIds.map((bpId) => {
+                const items = blueprintGroups.groups.get(bpId) ?? [];
+                const title = blueprintTitles?.get(bpId)?.title ?? 'From a blueprint';
+                return (
+                  <View key={bpId} style={styles.section}>
+                    <Text style={styles.sectionEyebrow}>{title}</Text>
+                    <View style={styles.feed}>
+                      {items.map((item) => (
+                        <WatchCard key={item.id} item={item} />
+                      ))}
+                    </View>
+                  </View>
+                );
+              })}
+              {blueprintGroups.other.length > 0 ? (
+                <View style={styles.section}>
+                  <Text style={styles.sectionEyebrow}>Not from a blueprint</Text>
+                  <View style={styles.feed}>
+                    {blueprintGroups.other.map((item) => (
+                      <WatchCard key={item.id} item={item} />
+                    ))}
+                  </View>
+                </View>
+              ) : null}
+            </View>
           )
         ) : isLoading ? (
           <Text style={styles.emptyCopy}>Loading…</Text>

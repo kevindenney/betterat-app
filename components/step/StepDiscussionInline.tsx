@@ -1058,6 +1058,11 @@ const styles = StyleSheet.create({
     paddingVertical: 24,
     paddingHorizontal: 24,
     gap: 6,
+    // Reserve vertical room so the composer below sits near the bottom of
+    // the screenful rather than mid-screen, where it would collide with the
+    // vertically-centered ZoomLevelPicker rail (whose collapsed L1 pill is
+    // designed to clear a bottom-anchored composer, not a centered one).
+    minHeight: 260,
   },
   emptyTitle: {
     fontSize: 15,
