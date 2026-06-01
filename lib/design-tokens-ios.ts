@@ -304,6 +304,35 @@ export const IOS_REGISTER = {
 } as const;
 
 /**
+ * Register section-identity accents (2026-06) — the "whose surface is this"
+ * wayfinding hue, NOT an action color. Distinct from IOS_REGISTER.accentUserAction
+ * (#007AFF), which is reserved for buttons/checkboxes/interactive controls.
+ *
+ * Per the register-cutover D1 decision (Option A): a navy/purple element doing a
+ * state/location/identity job KEEPS its identity hue; an element doing an action
+ * job → accentUserAction. These tokens name the identity half of that split so
+ * shells stop hardcoding the hexes.
+ *
+ *   purple   — Creator Studio section identity
+ *   navy     — Org Admin / institutional section identity
+ *   drawing  — solo-author (brown) section identity
+ */
+export const REGISTER_SECTION_ACCENT = {
+  purple: '#6B5BBF',
+  navy: '#28406B',
+  drawing: '#B8855A',
+} as const;
+
+/**
+ * Register people/author role marker (2026-06) — the badge hue for
+ * Author / Co-author / Faculty across org+studio surfaces. Deliberately the
+ * same value as REGISTER_SECTION_ACCENT.purple but a SEPARATE token: one marks
+ * a person's role, the other marks a section's identity. They must never be
+ * collapsed (see docs/redesign/REGISTER_CUTOVER_PLAN.md §0).
+ */
+export const REGISTER_ROLE_AUTHOR = '#6B5BBF' as const;
+
+/**
  * iOS Register text recipes — SF Pro Display/Text sizes pulled from the
  * Race Prep iOS register HTML. These are register-specific (more opinionated
  * than the generic IOS_TYPOGRAPHY) and intended for the 12 iOS-register

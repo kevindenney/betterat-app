@@ -29,7 +29,13 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { FEATURE_FLAGS } from '@/lib/featureFlags';
-import { IOS_REGISTER, IOS_RADIUS, IOS_SHADOWS, IOS_TOUCH } from '@/lib/design-tokens-ios';
+import {
+  IOS_REGISTER,
+  IOS_RADIUS,
+  IOS_SHADOWS,
+  IOS_TOUCH,
+  REGISTER_SECTION_ACCENT,
+} from '@/lib/design-tokens-ios';
 
 /**
  * Phone breakpoint. Below this the fixed 248px rail collapses into a top bar
@@ -83,16 +89,18 @@ export interface StudioShellProps {
   children: React.ReactNode;
 }
 
+// Section-identity hues (wayfinding) come from the named register token; `blue`
+// is the additive action accent (#007AFF) for primary controls — see D1 decision.
 const ACCENT_COLORS: Record<StudioAccent, string> = {
-  purple: '#6B5BBF',
-  navy: '#28406B',
-  drawing: '#B8855A',
-  blue: '#007AFF',
+  purple: REGISTER_SECTION_ACCENT.purple,
+  navy: REGISTER_SECTION_ACCENT.navy,
+  drawing: REGISTER_SECTION_ACCENT.drawing,
+  blue: IOS_REGISTER.accentUserAction,
 };
 
 const MONO_BG: Record<StudioShellProps['org']['monoColor'], string> = {
-  navy: '#28406B',
-  drawing: '#B8855A',
+  navy: REGISTER_SECTION_ACCENT.navy,
+  drawing: REGISTER_SECTION_ACCENT.drawing,
   solo: '#8E8E93',
 };
 
@@ -831,8 +839,8 @@ const h = StyleSheet.create({
   pillAmber: { backgroundColor: 'rgba(201, 150, 50, 0.14)' },
   pillGreen: { backgroundColor: 'rgba(52, 199, 89, 0.14)' },
   pillText: { fontSize: 11, fontWeight: '600', color: 'rgba(60, 60, 67, 0.85)', letterSpacing: -0.05 },
-  pillTextPurple: { color: '#6B5BBF' },
-  pillTextNavy: { color: '#28406B' },
+  pillTextPurple: { color: REGISTER_SECTION_ACCENT.purple },
+  pillTextNavy: { color: REGISTER_SECTION_ACCENT.navy },
   pillTextAmber: { color: '#C99632' },
   pillTextGreen: { color: '#1E8F47' },
   actions: {
