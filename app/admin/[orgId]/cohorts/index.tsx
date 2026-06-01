@@ -53,7 +53,7 @@ export default function AdminCohortsListPage() {
             <StudioButton variant="ghost" icon="download-outline" label="Export · CSV" />
             <StudioButton
               variant="primary"
-              accent="navy"
+              accent="blue"
               icon="add"
               label={`New ${av.Cohort.toLowerCase()}`}
             />

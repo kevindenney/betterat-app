@@ -25,7 +25,7 @@ export default function AdminPayoutsPage() {
           <>
             <StudioButton variant="ghost" icon="time-outline" label="Payout history" />
             <StudioButton variant="ghost" icon="download-outline" label="1099 exports" />
-            <StudioButton variant="primary" accent="navy" icon="send" label="Send next batch" />
+            <StudioButton variant="primary" accent="blue" icon="send" label="Send next batch" />
           </>
         }
       />

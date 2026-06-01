@@ -161,7 +161,7 @@ export default function AdminSiteDetailPage() {
               onPress={() => router.push(`/admin/${orgId}/sites`)}
             />
             <StudioButton variant="ghost" icon="time-outline" label="Hours & access" />
-            <StudioButton variant="primary" accent="navy" icon="person-add-outline" label="Add preceptor" />
+            <StudioButton variant="primary" accent="blue" icon="person-add-outline" label="Add preceptor" />
           </>
         }
       />

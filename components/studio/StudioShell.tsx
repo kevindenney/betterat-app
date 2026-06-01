@@ -38,7 +38,7 @@ import { IOS_REGISTER, IOS_RADIUS, IOS_SHADOWS, IOS_TOUCH } from '@/lib/design-t
  */
 export const STUDIO_COMPACT_BREAKPOINT = 600;
 
-export type StudioAccent = 'purple' | 'navy' | 'drawing';
+export type StudioAccent = 'purple' | 'navy' | 'drawing' | 'blue';
 export type StudioCtxLens = 'practice' | 'studio' | 'mentor';
 
 export interface StudioNavItem {
@@ -87,6 +87,7 @@ const ACCENT_COLORS: Record<StudioAccent, string> = {
   purple: '#6B5BBF',
   navy: '#28406B',
   drawing: '#B8855A',
+  blue: '#007AFF',
 };
 
 const MONO_BG: Record<StudioShellProps['org']['monoColor'], string> = {

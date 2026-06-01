@@ -87,7 +87,7 @@ export default function AdminBulkCsvPage() {
             <StudioButton variant="ghost" icon="download-outline" label="Download template" />
             <StudioButton
               variant="primary"
-              accent="navy"
+              accent="blue"
               icon="mail"
               label="Send 28 invites · skip 4 errors"
             />

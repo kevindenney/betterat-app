@@ -115,7 +115,7 @@ export default function AdminInsightsPage() {
             <StudioButton variant="ghost" icon="download-outline" label="Export · CSV" />
             <StudioButton
               variant="primary"
-              accent="navy"
+              accent="blue"
               icon="document-text-outline"
               label="Accreditation report"
               onPress={() => router.push(`/admin/${orgId}/accreditation`)}

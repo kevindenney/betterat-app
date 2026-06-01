@@ -23,7 +23,7 @@ export default function AdminSSOPage() {
         actions={
           <>
             <StudioButton variant="ghost" icon="flask-outline" label="Test login" />
-            <StudioButton variant="primary" accent="navy" icon="arrow-up-circle" label="Save changes" />
+            <StudioButton variant="primary" accent="blue" icon="arrow-up-circle" label="Save changes" />
           </>
         }
       />

@@ -341,7 +341,7 @@ const s = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 7,
     borderRadius: 8,
-    backgroundColor: '#28406B',
+    backgroundColor: '#007AFF',
   },
   enrollBtnDisabled: { opacity: 0.5 },
   enrollBtnText: { fontSize: 12.5, fontWeight: '600', color: '#FFFFFF' },

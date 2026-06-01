@@ -70,7 +70,7 @@ export default function AdminCohortDetailPage() {
             />
             <StudioButton
               variant="primary"
-              accent="navy"
+              accent="blue"
               icon="add"
               label={`Assign ${av.Members.toLowerCase()}`}
             />

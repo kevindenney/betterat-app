@@ -129,7 +129,7 @@ function AdminPeopleBody() {
               <StudioButton variant="ghost" icon="mail-outline" label="Bulk invite" />
               <StudioButton
                 variant="primary"
-                accent="navy"
+                accent="blue"
                 icon="person-add-outline"
                 label="Add person"
                 onPress={() => setShowAddSheet(true)}

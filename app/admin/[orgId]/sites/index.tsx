@@ -103,7 +103,7 @@ function AdminSitesBody() {
               <StudioButton variant="ghost" icon="download-outline" label="Export · CSV" />
               <StudioButton
                 variant="primary"
-                accent="navy"
+                accent="blue"
                 icon="add"
                 label="Claim a site"
               />

@@ -337,7 +337,7 @@ const s = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 7,
-    backgroundColor: '#28406B',
+    backgroundColor: '#007AFF',
   },
   btnSmPrimaryText: { fontSize: 11.5, fontWeight: '600', color: '#FFFFFF' },
 

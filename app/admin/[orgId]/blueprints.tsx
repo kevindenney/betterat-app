@@ -83,7 +83,7 @@ export default function AdminBlueprintsPage() {
             <StudioButton variant="ghost" icon="download-outline" label="Export · CSV" />
             <StudioButton
               variant="primary"
-              accent="navy"
+              accent="blue"
               icon="add"
               label="New blueprint"
               onPress={() => router.push('/studio')}
