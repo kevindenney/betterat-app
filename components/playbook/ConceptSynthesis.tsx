@@ -1,6 +1,46 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
+// The synthesis body is AI-drafted Markdown using a narrow subset — ATX
+// headings (#/##/###), inline **bold**, and blank-line-separated paragraphs.
+// We render that subset inline rather than pull in a full Markdown engine.
+
+function renderInline(text: string, keyPrefix: string) {
+  // Split on ** pairs; odd segments are bold.
+  return text.split('**').map((segment, i) =>
+    i % 2 === 1 ? (
+      <Text key={`${keyPrefix}-b${i}`} style={styles.bold}>
+        {segment}
+      </Text>
+    ) : (
+      <Text key={`${keyPrefix}-t${i}`}>{segment}</Text>
+    ),
+  );
+}
+
+function renderMarkdown(body: string) {
+  if (!body) return null;
+  return body
+    .split(/\n{2,}/)
+    .map((block) => block.trim())
+    .filter(Boolean)
+    .map((block, i) => {
+      const heading = block.match(/^(#{1,6})\s+(.*)$/);
+      if (heading) {
+        return (
+          <Text key={`blk-${i}`} style={styles.heading}>
+            {renderInline(heading[2], `blk-${i}`)}
+          </Text>
+        );
+      }
+      return (
+        <Text key={`blk-${i}`} style={styles.body}>
+          {renderInline(block, `blk-${i}`)}
+        </Text>
+      );
+    });
+}
+
 export function ConceptSynthesis({
   body,
   draftedAtLabel,
@@ -11,7 +51,7 @@ export function ConceptSynthesis({
   return (
     <View style={styles.card}>
       <Text style={styles.eye}>Synthesis</Text>
-      <Text style={styles.body}>{body}</Text>
+      {renderMarkdown(body)}
       {draftedAtLabel ? <Text style={styles.meta}>Synthesized from your quotes · drafted {draftedAtLabel}</Text> : null}
     </View>
   );
@@ -38,6 +78,16 @@ const styles = StyleSheet.create({
     lineHeight: 26,
     color: '#1C1C1E',
     fontFamily: 'Georgia',
+  },
+  heading: {
+    fontSize: 19,
+    lineHeight: 26,
+    fontWeight: '700',
+    color: '#1C1C1E',
+    fontFamily: 'Georgia',
+  },
+  bold: {
+    fontWeight: '700',
   },
   meta: {
     fontSize: 12,

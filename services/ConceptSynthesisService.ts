@@ -12,11 +12,11 @@ export interface ConceptSynthesisDraftInput {
   quotes: string[];
 }
 
-export async function draftConceptSynthesis({
+export function draftConceptSynthesis({
   title,
   body,
   quotes,
-}: ConceptSynthesisDraftInput): Promise<string> {
+}: ConceptSynthesisDraftInput): string {
   const cleanBody = body.trim();
   const firstQuote = quotes.find((quote) => quote.trim().length > 0)?.trim();
 
