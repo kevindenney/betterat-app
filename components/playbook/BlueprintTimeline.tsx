@@ -139,7 +139,9 @@ export function BlueprintTimeline({ blueprintId }: { blueprintId: string }) {
   }
 
   const authorName = blueprint?.author_name ?? 'Author';
-  const subscriberCount = subscribers.length;
+  // Prefer the denormalized count (authoritative, ranks the catalog) — the
+  // subscribers list is RLS-gated so a non-owner viewer sees zero rows.
+  const subscriberCount = blueprint?.subscriber_count ?? subscribers.length;
   const adoptionPct =
     counts.all > 0 ? Math.min(100, Math.round((counts.adopted / counts.all) * 100)) : 0;
 
