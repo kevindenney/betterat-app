@@ -24,28 +24,34 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useAuth } from '@/providers/AuthProvider';
 import { useProfileMenuData } from '@/hooks/useProfileMenuData';
 import { useAdminOrgSites, AdminOrgSite } from '@/hooks/useAdminOrgSites';
-import { useAdminPeople } from '@/hooks/useAdminPeople';
 import {
-  StudioShell,
   StudioHeader,
   StudioButton,
   StudioTabs,
-  StudioNavSection,
 } from '@/components/studio/StudioShell';
-import { StudioLoading } from '@/components/studio/StudioLoading';
+import { AdminShell } from '@/components/admin/AdminShell';
 
 type SitesTab = 'all' | 'hospital' | 'sim_lab' | 'club' | 'racing_area';
 
 export default function AdminSitesPage() {
-  const { orgId } = useLocalSearchParams<{ orgId: string }>();
   const { width } = useWindowDimensions();
   const router = useRouter();
-  const { user, userProfile } = useAuth();
+  if (width < 920) {
+    return <NarrowScreenGate onBack={() => router.back()} />;
+  }
+  return (
+    <AdminShell activeKey="sites">
+      <AdminSitesBody />
+    </AdminShell>
+  );
+}
+
+function AdminSitesBody() {
+  const { orgId } = useLocalSearchParams<{ orgId: string }>();
+  const router = useRouter();
   const menu = useProfileMenuData();
-  const people = useAdminPeople(orgId as string);
   const data = useAdminOrgSites(orgId as string);
 
   const [tab, setTab] = useState<SitesTab>('all');
@@ -66,81 +72,9 @@ export default function AdminSitesPage() {
     return rows;
   }, [data.sites, tab, search]);
 
-  if (width < 920) {
-    return <NarrowScreenGate onBack={() => router.back()} />;
-  }
-  if (!user || menu.loading) {
-    return <StudioLoading />;
-  }
-
-  const displayName =
-    userProfile?.full_name || userProfile?.display_name || user?.email || 'You';
-  const initials = getInitials(displayName);
   const activeOrg = menu.memberships.find((m) => m.org_id === orgId) ?? menu.activeOrg;
   const orgName = activeOrg?.org_name ?? 'Organization';
-  const orgMono = activeOrg?.org_short_name ?? '·';
   const orgShortLabel = shortNameLabel(orgName);
-
-  const seatsAvailable = people.seats.total - people.seats.used;
-  const seatsPct = Math.round((people.seats.used / people.seats.total) * 100);
-
-  const goAdmin = (key: string) => router.push(`/admin/${orgId}/${key}` as any);
-  const navSections: StudioNavSection[] = [
-    {
-      eyebrow: orgShortLabel,
-      items: [
-        { key: 'overview', icon: 'grid-outline', label: 'Overview', onPress: () => goAdmin('overview') },
-        {
-          key: 'people',
-          icon: 'people-outline',
-          label: 'People',
-          count: people.totalRows,
-          onPress: () => goAdmin('people'),
-        },
-        { key: 'cohorts', icon: 'school-outline', label: 'Cohorts', count: 14, onPress: () => goAdmin('cohorts') },
-        { key: 'blueprints', icon: 'git-branch-outline', label: 'Blueprints', count: 7, onPress: () => goAdmin('blueprints') },
-        {
-          key: 'sites',
-          icon: 'map-outline',
-          label: 'Sites',
-          count: data.total,
-          active: true,
-        },
-        { key: 'insights', icon: 'pie-chart-outline', label: 'Insights', onPress: () => goAdmin('insights') },
-      ],
-    },
-    {
-      eyebrow: 'Plan',
-      items: [
-        { key: 'billing', icon: 'card-outline', label: 'Billing & seats', onPress: () => goAdmin('billing') },
-        { key: 'invoices', icon: 'document-text-outline', label: 'Invoices', onPress: () => goAdmin('invoices') },
-        { key: 'payouts', icon: 'receipt-outline', label: 'Author payouts', count: '$0', onPress: () => goAdmin('payouts') },
-      ],
-    },
-    {
-      eyebrow: 'Security',
-      items: [
-        { key: 'sso', icon: 'shield-half-outline', label: 'SSO & SAML', onPress: () => goAdmin('sso') },
-        { key: 'domain', icon: 'key-outline', label: 'Domain claim', onPress: () => goAdmin('domain') },
-        { key: 'audit', icon: 'time-outline', label: 'Audit log', onPress: () => goAdmin('audit') },
-      ],
-      footer: (
-        <View>
-          <Text style={styles.seatsLabel}>Seats</Text>
-          <Text style={styles.seatsValue}>
-            {people.seats.used}{' '}
-            <Text style={styles.seatsValueSub}>of {people.seats.total}</Text>
-          </Text>
-          <View style={styles.seatsBar}>
-            <View style={[styles.seatsBarFill, { width: `${seatsPct}%` }]} />
-          </View>
-          <Text style={styles.seatsFoot}>
-            {seatsAvailable} seats available · renews {people.seats.renewsAt}
-          </Text>
-        </View>
-      ),
-    },
-  ];
 
   const tabs = [
     { key: 'all', label: 'All', count: String(data.total) },
@@ -152,28 +86,7 @@ export default function AdminSitesPage() {
   ];
 
   return (
-    <View style={styles.root}>
-      <StudioShell
-        accent="navy"
-        org={{
-          name: orgName,
-          role: `Admin · ${displayName.split(' ').slice(0, 2).join(' ')}`,
-          mono: orgMono,
-          monoColor: 'navy',
-        }}
-        ctxLens="studio"
-        ctxLensOptions={['practice', 'studio']}
-        onCtxChange={(lens) => {
-          if (lens === 'practice') router.push('/');
-        }}
-        navSections={navSections}
-        user={{
-          name: displayName,
-          email: user?.email ?? '',
-          initials,
-          statusLine: 'Administrator',
-        }}
-      >
+    <>
         <StudioHeader
           crumbs={[orgShortLabel, 'Sites']}
           title="Sites"
@@ -249,8 +162,7 @@ export default function AdminSitesPage() {
             ))
           )}
         </ScrollView>
-      </StudioShell>
-    </View>
+    </>
   );
 }
 
@@ -348,13 +260,6 @@ function kindBadgeBg(kind: string) {
   }
 }
 
-function getInitials(name: string): string {
-  const parts = name.trim().split(/\s+/);
-  if (parts.length === 0) return '?';
-  if (parts.length === 1) return parts[0][0]?.toUpperCase() ?? '?';
-  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-}
-
 function shortNameLabel(orgName: string): string {
   if (orgName.includes(' · ')) return orgName.split(' · ').slice(0, 2).join(' ');
   const tokens = orgName.split(/\s+/).filter(Boolean);
@@ -380,11 +285,6 @@ function NarrowScreenGate({ onBack }: { onBack: () => void }) {
 // ---------------------------------------------------------------------------
 
 const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-    backgroundColor: '#EFEAD8',
-    ...(Platform.OS === 'web' ? ({ minHeight: '100vh' } as any) : {}),
-  },
   subText: { fontSize: 13.5, color: 'rgba(60, 60, 67, 0.6)' },
   subPillWrap: {},
   subPill: {
@@ -395,36 +295,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(40, 64, 107, 0.12)',
   },
   subPillText: { fontSize: 11, fontWeight: '600', color: '#28406B' },
-
-  seatsLabel: {
-    fontSize: 10,
-    color: '#28406B',
-    letterSpacing: 0.5,
-    fontWeight: '700',
-    textTransform: 'uppercase',
-  },
-  seatsValue: {
-    marginTop: 5,
-    fontSize: 18,
-    color: '#1C1C1E',
-    fontWeight: '600',
-    letterSpacing: -0.3,
-    fontVariant: ['tabular-nums'],
-  },
-  seatsValueSub: {
-    fontSize: 11,
-    color: 'rgba(60, 60, 67, 0.6)',
-    fontWeight: '500',
-  },
-  seatsBar: {
-    marginTop: 6,
-    height: 4,
-    backgroundColor: 'rgba(40, 64, 107, 0.15)',
-    borderRadius: 2,
-    overflow: 'hidden',
-  },
-  seatsBarFill: { height: '100%', backgroundColor: '#28406B' },
-  seatsFoot: { marginTop: 5, fontSize: 10.5, color: 'rgba(60, 60, 67, 0.6)', lineHeight: 14 },
 
   filterRow: { flexDirection: 'row', gap: 8, marginBottom: 12, alignItems: 'center' },
   searchInput: {
