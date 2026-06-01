@@ -13,6 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { AdminShell } from '@/components/admin/AdminShell';
 import { StudioHeader, StudioButton } from '@/components/studio/StudioShell';
+import { StatRow } from '@/components/studio/StatRow';
 import { useAdminPeople } from '@/hooks/useAdminPeople';
 import { useAdminPersonPractice, PersonPracticeStep } from '@/hooks/useAdminPersonPractice';
 
@@ -79,7 +80,7 @@ export default function AdminPersonDetailPage() {
 
       <ScrollView style={s.body} contentContainerStyle={s.bodyInner}>
         {/* Summary cards */}
-        <View style={s.summaryRow}>
+        <StatRow>
           <SummaryCard
             label="Steps logged"
             value={loading ? '—' : String(steps.length)}
@@ -99,7 +100,7 @@ export default function AdminPersonDetailPage() {
             value={loading ? '—' : String(siteCoverage.length)}
             sub={siteCoverage.length > 0 ? siteCoverage[0].label : 'none yet'}
           />
-        </View>
+        </StatRow>
 
         {/* Coverage chips */}
         {competencyCoverage.length > 0 ? (
@@ -228,7 +229,6 @@ const s = StyleSheet.create({
   subEmail: { fontSize: 12.5, color: 'rgba(60, 60, 67, 0.6)' },
   subMeta: { fontSize: 12.5, color: 'rgba(60, 60, 67, 0.85)' },
 
-  summaryRow: { flexDirection: 'row', gap: 12 },
   summaryCard: {
     flex: 1,
     paddingHorizontal: 16,

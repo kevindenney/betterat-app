@@ -25,6 +25,7 @@ import {
   formatLongPeriod,
   formatScheduledFor,
 } from '@/hooks/useAdminOrgPayouts';
+import { StatRow } from '@/components/studio/StatRow';
 
 export function AdminPayoutsSurface() {
   const { orgId } = useLocalSearchParams<{ orgId: string }>();
@@ -47,7 +48,7 @@ export function AdminPayoutsSurface() {
   return (
     <ScrollView style={s.body} contentContainerStyle={s.bodyInner}>
       {/* Stat strip */}
-      <View style={s.statRow}>
+      <StatRow>
         <StatCard
           k="Paid YTD"
           v={`$${Math.round(data.paidYtdCents / 100).toLocaleString()}`}
@@ -80,7 +81,7 @@ export function AdminPayoutsSurface() {
               : 'no prior batches'
           }
         />
-      </View>
+      </StatRow>
 
       {/* Author table */}
       <View style={s.card}>
@@ -399,7 +400,6 @@ const s = StyleSheet.create({
   loadingCard: { padding: 32, alignItems: 'center' },
   loadingText: { fontSize: 13, color: 'rgba(60, 60, 67, 0.6)' },
 
-  statRow: { flexDirection: 'row', gap: 12 },
   statCard: {
     flex: 1,
     paddingHorizontal: 16,

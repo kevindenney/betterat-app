@@ -18,6 +18,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { AdminShell } from '@/components/admin/AdminShell';
 import { StudioHeader, StudioButton } from '@/components/studio/StudioShell';
+import { StatRow } from '@/components/studio/StatRow';
 import { useAdminCohorts } from '@/hooks/useAdminCohorts';
 import { useAdminPeople } from '@/hooks/useAdminPeople';
 import { useAdminCompetencyEvidence } from '@/hooks/useAdminCompetencyEvidence';
@@ -126,7 +127,7 @@ export default function AdminOverviewPage() {
 
       <ScrollView style={s.body} contentContainerStyle={s.bodyInner}>
         {/* Stats row */}
-        <View style={s.statsRow}>
+        <StatRow>
           <StatCard
             label={av.Members}
             value={people.loading ? '—' : String(people.counts.students)}
@@ -161,10 +162,10 @@ export default function AdminOverviewPage() {
             }
             tone="green"
           />
-        </View>
+        </StatRow>
 
         {/* Spotlight row */}
-        <View style={s.spotlightRow}>
+        <StatRow compactColumns={1}>
           <SpotlightCard
             tone="ok"
             eyebrow="Strongest competency"
@@ -195,9 +196,9 @@ export default function AdminOverviewPage() {
             actionLabel="See gap"
             onAction={() => router.push(`/admin/${orgId}/insights`)}
           />
-        </View>
+        </StatRow>
 
-        <View style={s.spotlightRow}>
+        <StatRow compactColumns={1}>
           <SpotlightCard
             tone="ok"
             eyebrow={`Busiest ${av.Site.toLowerCase()}`}
@@ -216,7 +217,7 @@ export default function AdminOverviewPage() {
             actionLabel={`Open ${av.Sites}`}
             onAction={() => router.push(`/admin/${orgId}/sites`)}
           />
-        </View>
+        </StatRow>
 
         {/* Recent activity feed */}
         <View style={s.feedCard}>
@@ -372,7 +373,6 @@ const s = StyleSheet.create({
 
   sub: { fontSize: 12.5, color: 'rgba(60, 60, 67, 0.85)' },
 
-  statsRow: { flexDirection: 'row', gap: 12 },
   statCard: {
     flex: 1,
     paddingHorizontal: 16,
@@ -399,7 +399,6 @@ const s = StyleSheet.create({
   },
   statSub: { marginTop: 2, fontSize: 11.5, color: 'rgba(60, 60, 67, 0.6)' },
 
-  spotlightRow: { flexDirection: 'row', gap: 12 },
   spotCard: {
     flex: 1,
     paddingHorizontal: 18,

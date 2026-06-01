@@ -15,6 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { AdminShell } from '@/components/admin/AdminShell';
 import { StudioHeader, StudioButton } from '@/components/studio/StudioShell';
+import { StatRow } from '@/components/studio/StatRow';
 
 interface CompetencyBar {
   label: string;
@@ -210,12 +211,12 @@ export default function AdminSiteDetailPage() {
         </View>
 
         {/* Stat strip */}
-        <View style={s.statRow}>
+        <StatRow>
           <StatCard k="Students rotating" v="18" d="12 BSN · 6 MSN this week" />
           <StatCard k="Preceptors" v="7" d="2 added this term" />
           <StatCard k="Steps evidenced · 30d" v="214" d="+34 vs prior 30d" />
           <StatCard k="Settled rate" v="82" vSuffix="%" d="of steps marked settled" />
-        </View>
+        </StatRow>
 
         {/* Two-col row · top competencies + roster */}
         <View style={s.twoCol}>
@@ -441,7 +442,6 @@ const s = StyleSheet.create({
   chipText: { fontSize: 11, fontWeight: '600' },
 
   // Stat strip
-  statRow: { flexDirection: 'row', gap: 12 },
   statCard: {
     flex: 1,
     paddingHorizontal: 16,

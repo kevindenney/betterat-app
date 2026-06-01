@@ -45,6 +45,7 @@ import {
 } from '@/components/studio/StudioShell';
 import { StudioLoading } from '@/components/studio/StudioLoading';
 import { Gradient } from '@/components/studio/Gradient';
+import { StatRow } from '@/components/studio/StatRow';
 
 export default function StudioHomePage() {
   const router = useRouter();
@@ -171,7 +172,7 @@ export default function StudioHomePage() {
           }
         />
 
-        <View style={styles.kpiStrip}>
+        <StatRow style={styles.kpiStrip}>
           <KpiCard
             label="Active subscribers"
             value={String(data.kpis.activeSubscribers)}
@@ -202,7 +203,7 @@ export default function StudioHomePage() {
             }
             footnote="Per active day"
           />
-        </View>
+        </StatRow>
 
         <View style={styles.twoCol}>
           <StudioPanel
@@ -533,8 +534,6 @@ const styles = StyleSheet.create({
 
   // KPI strip
   kpiStrip: {
-    flexDirection: 'row',
-    gap: 12,
     marginTop: 18,
     marginBottom: 18,
   },

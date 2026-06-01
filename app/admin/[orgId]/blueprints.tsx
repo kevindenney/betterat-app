@@ -12,6 +12,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { AdminShell } from '@/components/admin/AdminShell';
 import { StudioHeader, StudioButton } from '@/components/studio/StudioShell';
+import { StatRow } from '@/components/studio/StatRow';
 import {
   useAdminOrgBlueprints,
   AdminBlueprintRow,
@@ -93,7 +94,7 @@ export default function AdminBlueprintsPage() {
 
       <ScrollView style={s.body} contentContainerStyle={s.bodyInner}>
         {/* Stat strip */}
-        <View style={s.statRow}>
+        <StatRow>
           <StatCard k="Live" v={loading ? '—' : String(stats.live)} d="published to a cohort" />
           <StatCard k="Draft" v={loading ? '—' : String(stats.draft)} d="in active editing" />
           <StatCard k="In review" v={loading ? '—' : String(stats.review)} d="awaiting publish sign-off" />
@@ -103,7 +104,7 @@ export default function AdminBlueprintsPage() {
             d={stats.topAuthor ? `${stats.topAuthor[0]} · ${stats.topAuthor[1]} blueprints` : 'no authors yet'}
             short
           />
-        </View>
+        </StatRow>
 
         {/* Blueprint list */}
         {loading ? (
@@ -203,7 +204,6 @@ const s = StyleSheet.create({
   body: { flex: 1, backgroundColor: '#F5F4EE' },
   bodyInner: { paddingHorizontal: 32, paddingTop: 18, paddingBottom: 40, gap: 18 },
 
-  statRow: { flexDirection: 'row', gap: 12 },
   statCard: {
     flex: 1,
     paddingHorizontal: 16,
