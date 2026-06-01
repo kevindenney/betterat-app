@@ -42,6 +42,7 @@ import { triggerHaptic } from '@/lib/haptics';
 import { FEATURE_FLAGS } from '@/lib/featureFlags';
 import { useUserHomeVenue } from '@/hooks/useUserHomeVenue';
 import { HomeVenuePickerSheet } from '@/components/discover/HomeVenuePickerSheet';
+import { showAlert } from '@/lib/utils/crossPlatformAlert';
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
@@ -141,6 +142,10 @@ export function ProfileDropdown({
     setOpen(false);
     await signOut();
   };
+  const handleHelp = () => {
+    setOpen(false);
+    showAlert('Support', 'Email us at info@better.at');
+  };
   // Switch the active context to an org by switching to that org's interest
   // (active-org is derived from the active interest; see useProfileMenuData).
   // An org with no interest mapping can't be switched-to, so fall back to
@@ -186,6 +191,7 @@ export function ProfileDropdown({
       onNavigate={navigate}
       onOpenVenuePicker={openVenuePicker}
       onSignOut={handleSignOut}
+      onHelp={handleHelp}
       onSwitchToOrg={handleSwitchToOrg}
       onSwitchToPersonal={handleSwitchToPersonal}
     />
@@ -351,6 +357,7 @@ function LoggedInMenu({
   onNavigate,
   onOpenVenuePicker,
   onSignOut,
+  onHelp,
   onSwitchToOrg,
   onSwitchToPersonal,
 }: {
@@ -364,6 +371,7 @@ function LoggedInMenu({
   onNavigate: (path: string) => void;
   onOpenVenuePicker: () => void;
   onSignOut: () => void;
+  onHelp: () => void;
   onSwitchToOrg: (org: OrgMembership) => void;
   onSwitchToPersonal: () => void;
 }) {
@@ -457,7 +465,7 @@ function LoggedInMenu({
         <DropdownItem
           icon="help-circle-outline"
           label="Help & feedback"
-          onPress={() => onNavigate('/help')}
+          onPress={onHelp}
           trailing="chevron"
         />
         <DropdownItem
@@ -693,7 +701,7 @@ function RoleShortcuts({
             <DropdownItem
               icon="shield-half-outline"
               label="SSO & security"
-              onPress={() => onNavigate(`/admin/${menu.activeOrg!.org_id}/security`)}
+              onPress={() => onNavigate(`/admin/${menu.activeOrg!.org_id}/sso`)}
               trailing="chevron"
             />
             <SectionDivider />
@@ -724,7 +732,7 @@ function RoleShortcuts({
                 <DropdownItem
                   icon="chatbubbles-outline"
                   label="Subscriber threads"
-                  onPress={() => onNavigate('/studio/threads')}
+                  onPress={() => onNavigate('/studio')}
                   trailing="count"
                   count={menu.counts.subscriberThreads}
                   countTone={menu.counts.subscriberThreads > 0 ? 'coral' : 'neutral'}
