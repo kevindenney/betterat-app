@@ -1,9 +1,12 @@
 # Token Consolidation Plan (P-6)
 
-**Status:** PLAN ONLY — no code changed. Review before executing.
+**Status:** W1 DONE (commit `16c26065`, 2026-06-01) — `design-tokens.ts` retired,
+serif/editorial recipes rehomed to `design-tokens-editorial.ts`, 9 imports
+repointed, typecheck/lint clean. **W2 is no longer a standalone stream** — it is
+folded into the per-surface register cutover (see §4 / §5 below).
 **Goal:** Make `lib/design-tokens-ios.ts` the canonical spacing/visual scale,
-retire `lib/design-tokens.ts`, and normalize hardcoded off-grid values to the
-8pt grid.
+retire `lib/design-tokens.ts` (✅ done), and normalize hardcoded off-grid values
+to the 8pt grid (now part of the register cutover, not its own pass).
 
 ---
 
@@ -28,12 +31,18 @@ risk profiles:
 
 | Workstream | What | Risk | Visual change |
 | --- | --- | --- | --- |
-| **W1 — Retire the file** | Rehome `text`+`fontFamily`, delete dead exports, repoint 9 imports, delete `design-tokens.ts` | **Near-zero** | None (same recipe objects, new path) |
-| **W2 — Normalize off-grid values** | Snap hardcoded 6/7/9/10/14/17/18/22 spacing+radius to the 8pt grid | **Real — needs eyes** | Yes, by design |
+| **W1 — Retire the file** ✅ DONE | Rehome `text`+`fontFamily`, delete dead exports, repoint 9 imports, delete `design-tokens.ts` | **Near-zero** | None (same recipe objects, new path) |
+| **W2 — Normalize off-grid values** (now folded into register cutover) | Snap hardcoded 6/7/9/10/14/17/18/22 spacing+radius to the 8pt grid | **Real — needs eyes** | Yes, by design |
 
-Recommendation: do **W1 first** (mechanical, safe, kills the latent conflict and
-retires the file), then **W2 as per-surface eyes-on batches**. W1 does not depend
-on W2 and delivers the "retire the conflicting file" goal on its own.
+W1 is complete (commit `16c26065`). **W2 is no longer run as its own stream.**
+The register cutover already goes surface-by-surface with eyes on every screen,
+and snapping off-grid spacing to the 8pt grid is the same motion on the same
+surfaces — so off-grid normalization is done *as part of* each surface's register
+pass, not as a separate sweep. The mid-grid values (`6`/`10`/`14`) still need
+per-surface before/after screenshots, **not** a codemod (see §4). The parked L1
+`PhaseTabs` check folds into that cutover too. Font-size / type-scale
+consolidation (`10.5`/`11`/`13.5`) remains a **separate future item** — out of
+scope for both W1 and the register cutover.
 
 ---
 
@@ -153,34 +162,35 @@ type-scale concern** and should NOT be lumped into the spacing pass.
 
 ## §5 — Build order (lowest blast radius first)
 
-**W1 — retire the file (do first; 2 small commits)**
-1. **W1a** — create `lib/design-tokens-editorial.ts` exporting `text` +
-   `fontFamily`; repoint the 9 imports (§1 table) to it. `typecheck` + `lint`.
-   One commit. No visual change.
-2. **W1b** — delete the dead exports and the `export *` line, then delete
-   `design-tokens.ts` entirely. `typecheck` + `lint` (catches any missed
-   importer). One commit. The `md:16` latent conflict is now gone.
-   - Confirming sim glance: one serif surface (StepDetailContent) renders
-     unchanged.
+**W1 — retire the file ✅ DONE (commit `16c26065`, 2026-06-01)**
+1. **W1a** — created `lib/design-tokens-editorial.ts` exporting `text` +
+   `fontFamily`; repointed the 9 imports (§1 table) to it. No visual change.
+2. **W1b** — deleted `design-tokens.ts` entirely (all exports dead once the 9
+   were repointed; nothing relied on the `export *` re-export). The `md:16`
+   latent conflict is gone.
+   - *Note:* the `git rm` of the old file was already staged when W1a was
+     committed, so W1a + W1b landed as **one atomic commit** (`16c26065`) rather
+     than two. Functionally clean — no broken intermediate state.
+   - typecheck + lint clean.
 
-**W2 — normalize off-grid (after W1; per-surface, eyes-on)**
-3. **W2 step 1** — full-repo off-grid inventory (extend §4 beyond the two known
-   offenders) → a value→token mapping table, splitting "clear snaps" from
-   "⚠️ mid-grid, needs eyes." Report before touching code.
-4. **W2 step 2** — prove the mapping on **one small, low-traffic surface** first
-   (candidate: `PlansZone`/`PeopleZone` — already mostly on grid, smallest diff)
-   to validate the snap conventions, with before/after screenshots.
-5. **W2 step 3** — `AllZone` (Library) as its own commit + sim check.
-6. **W2 step 4** — the `timeline-zoom/` dir, **broken into sub-batches** (it's the
-   biggest and most mid-grid-heavy); each batch its own commit + sim check.
-   - **Folds in the parked L1 `PhaseTabs` check**: if any `IOS_SPACING`-fed value
-     in the embedded L1 step-detail changes here, verify the L1 row (needs an
-     account with a granular step) at that point.
-7. Type scale (`10.5/11/13.5` font sizes) handled **separately** from spacing —
-   not in this plan's scope.
+**Off-grid normalization (formerly "W2") — folded into the register cutover**
+No longer a standalone stream. The register cutover already walks every surface
+with eyes on the screen; snapping off-grid spacing to the 8pt grid is the same
+motion on the same surface, so do it *there*, per surface, in the same commit as
+that surface's register pass. Guidance carried forward:
+- **Mid-grid `6`/`10`/`14`** (the most common off-grid values) sit between grid
+  steps — no "correct" snap; up vs down is a per-surface density call needing a
+  **before/after screenshot, not a codemod** (see §4).
+- **Clear snaps** (`7`→8, `9`→8, `5`→4, `17`→16) can go inline with the surface
+  pass; hairline `2`/`3` and `borderRadius:999` pills are intentional — keep.
+- **L1 `PhaseTabs` check folds in**: if any `IOS_SPACING`-fed value in the
+  embedded L1 step-detail changes during a `timeline-zoom/` surface pass, verify
+  the L1 row then (needs an account with a granular step).
+- **Type scale** (`10.5`/`11`/`13.5` font sizes) stays a **separate future
+  item** — not part of the register cutover or the spacing snap.
 
-**Verification standard throughout:** typecheck + lint on every commit; for W2,
-observed-over-reasoned (before/after sim screenshots), per
+**Verification standard:** typecheck + lint on every commit; for any surface that
+changes spacing, observed-over-reasoned (before/after sim screenshots), per
 `feedback_observed_over_reasoned_ui.md`. Stage by explicit path; never `git add -u`.
 
 ---
