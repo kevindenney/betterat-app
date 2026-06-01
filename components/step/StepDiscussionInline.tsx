@@ -119,6 +119,31 @@ function fallbackAvatarColor(seed: string): string {
   return AVATAR_COLORS[Math.abs(h) % AVATAR_COLORS.length] as string;
 }
 
+function toggleReactionInTree(
+  rows: StepDiscussionRow[],
+  noteId: string,
+  kind: StepDiscussionReactionKind,
+  shouldSet: boolean,
+): StepDiscussionRow[] {
+  const apply = (note: StepDiscussionRow): StepDiscussionRow => {
+    if (note.id === noteId) {
+      const already = note.viewer_reactions.includes(kind);
+      if (already === shouldSet) return note;
+      const counts = { ...note.reaction_counts };
+      counts[kind] = Math.max(0, (counts[kind] ?? 0) + (shouldSet ? 1 : -1));
+      const viewer = shouldSet
+        ? [...note.viewer_reactions, kind]
+        : note.viewer_reactions.filter((k) => k !== kind);
+      return { ...note, reaction_counts: counts, viewer_reactions: viewer };
+    }
+    if (note.replies?.length) {
+      return { ...note, replies: note.replies.map(apply) };
+    }
+    return note;
+  };
+  return rows.map(apply);
+}
+
 const REACTION_GLYPH: Record<StepDiscussionReactionKind, string> = {
   fire: '👍',
   insight: '💩',
@@ -265,8 +290,30 @@ export function StepDiscussionInline({
         shouldSet: input.shouldSet,
       });
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['phase10-step-discussion', stepId] });
+    onMutate: async (input) => {
+      const key =
+        effectiveScope === 'cohort'
+          ? ['phase10-blueprint-step-discussion', blueprintStepId, user?.id]
+          : ['phase10-step-discussion', stepId, user?.id];
+      await queryClient.cancelQueries({ queryKey: key });
+      const previous = queryClient.getQueryData<StepDiscussionRow[]>(key);
+      if (previous) {
+        queryClient.setQueryData<StepDiscussionRow[]>(
+          key,
+          toggleReactionInTree(previous, input.discussionId, input.kind, input.shouldSet),
+        );
+      }
+      return { key, previous };
+    },
+    onError: (_err, _input, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(context.key, context.previous);
+      }
+    },
+    onSettled: (_data, _err, _input, context) => {
+      queryClient.invalidateQueries({
+        queryKey: context?.key ?? ['phase10-step-discussion', stepId],
+      });
     },
   });
 
