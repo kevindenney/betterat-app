@@ -14,6 +14,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/services/supabase';
+import { coarseLocationLabel } from '@/hooks/useNearestNamedPlace';
 
 export type FollowedStepStatus = 'planning' | 'doing' | 'reflected' | 'completed';
 
@@ -178,7 +179,7 @@ export function useFollowedStepsFeed(
           organizationName: s.organization_id
             ? orgById.get(s.organization_id) ?? null
             : null,
-          locationName: s.location_name,
+          locationName: coarseLocationLabel(s.location_name),
           updatedAt: s.updated_at,
           sourceBlueprintId: s.source_blueprint_id,
           interestId: s.interest_id,

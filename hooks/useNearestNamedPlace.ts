@@ -69,3 +69,20 @@ export function isCoordOnlyLabel(name: string | null | undefined): boolean {
   const trimmed = name.trim().toLowerCase();
   return trimmed.startsWith('dropped pin') || /^\(?\s*-?\d+\.\d+\s*,/.test(trimmed);
 }
+
+/**
+ * Strip exact coordinates out of an auto-stamped pin label so surfaces that
+ * can't resolve a venue name (e.g. a social feed) never expose a precise
+ * lat/lng. "Pinned location (22.33, 114.26)" → "Pinned location", bare
+ * "22.33, 114.26" → "Pinned location". Any human-written name is returned
+ * unchanged. Returns null for empty/missing input.
+ */
+export function coarseLocationLabel(name: string | null | undefined): string | null {
+  if (name == null) return null;
+  const trimmed = name.trim();
+  if (!trimmed) return null;
+  const prefixed = trimmed.match(/^(dropped pin|pinned location)\b/i);
+  if (prefixed) return prefixed[0];
+  if (/^\(?\s*-?\d+\.\d+\s*,\s*-?\d+\.\d+\s*\)?$/.test(trimmed)) return 'Pinned location';
+  return trimmed;
+}
