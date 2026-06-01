@@ -887,6 +887,7 @@ const heroStyles = StyleSheet.create({
   rel: {
     marginTop: 14,
     flexDirection: 'row',
+    flexWrap: 'wrap',
     alignItems: 'center',
     gap: 10,
   },
