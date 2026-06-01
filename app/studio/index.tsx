@@ -26,6 +26,7 @@ import {
   StyleSheet,
   ScrollView,
   Platform,
+  useWindowDimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -42,6 +43,7 @@ import {
   StudioPanel,
   StudioButton,
   StudioNavSection,
+  STUDIO_COMPACT_BREAKPOINT,
 } from '@/components/studio/StudioShell';
 import { StudioLoading } from '@/components/studio/StudioLoading';
 import { Gradient } from '@/components/studio/Gradient';
@@ -52,6 +54,8 @@ export default function StudioHomePage() {
   const { user, userProfile } = useAuth();
   const menu = useProfileMenuData();
   const data = useStudioHomeData();
+  const { width } = useWindowDimensions();
+  const compact = width < STUDIO_COMPACT_BREAKPOINT;
 
   if (!user || menu.loading) {
     return <StudioLoading />;
@@ -205,7 +209,7 @@ export default function StudioHomePage() {
           />
         </StatRow>
 
-        <View style={styles.twoCol}>
+        <View style={[styles.twoCol, compact && styles.twoColStacked]}>
           <StudioPanel
             title="Your blueprints"
             meta={
@@ -251,7 +255,7 @@ export default function StudioHomePage() {
                 {data.threadAwaitingCount > 0 ? data.threadAwaitingCount : '0'}
               </Text>
             }
-            width={360}
+            width={compact ? undefined : 360}
           >
             <ScrollView>
               {data.threads.length === 0 ? (
@@ -577,6 +581,8 @@ const styles = StyleSheet.create({
     gap: 16,
     minHeight: 0,
   },
+  // <600pt — stack the two panels vertically so neither is squeezed to ~190pt.
+  twoColStacked: { flexDirection: 'column' },
 
   // Panel meta
   panelMeta: { fontSize: 12, color: 'rgba(60, 60, 67, 0.6)' },
