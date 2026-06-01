@@ -422,6 +422,8 @@ export function TimelineZoomCanvas({
                       nextStep={nextStep}
                       onScroll={onInnerScroll}
                       onStepDeleted={() => setLevel(2)}
+                      allSteps={flatSteps}
+                      onJumpToStep={(id) => setFocusStepId(id)}
                     />
                   ) : (
                     <ZoomEmptyState

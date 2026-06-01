@@ -9,7 +9,7 @@
  * Pinch out → L2. Tap the right-rail pill → jump.
  */
 
-import React, { useCallback } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
   Dimensions,
   Platform,
@@ -32,6 +32,7 @@ import * as Haptics from 'expo-haptics';
 
 import { IOS_REGISTER } from '@/lib/design-tokens-ios';
 import { StepDetailContent } from '@/components/step/StepDetailContent';
+import { PickerListSheet } from './PickerListSheet';
 import type { TimelineDataset, TimelineStep } from './types';
 
 const SERIF_FAMILY = Platform.select({
@@ -90,6 +91,14 @@ interface L1StepViewProps {
    * The canvas passes a handler that zooms out one level instead.
    */
   onStepDeleted?: () => void;
+  /**
+   * Ordered flat list of sibling steps (same list the canvas swipes
+   * through). Drives the "Step N of M ⌄" switcher chip + its jump sheet.
+   * Omit on preview routes with no real steps.
+   */
+  allSteps?: TimelineStep[];
+  /** Jump to an arbitrary sibling step from the switcher sheet. */
+  onJumpToStep?: (stepId: string) => void;
 }
 
 const PHASES = ['Plan', 'Do', 'Reflect', 'Discuss'] as const;
@@ -115,9 +124,18 @@ export function L1StepView({
   nextStep,
   onScroll,
   onStepDeleted,
+  allSteps,
+  onJumpToStep,
 }: L1StepViewProps) {
   const hasPrev = prevStep != null;
   const hasNext = nextStep != null;
+  const [stepPickerOpen, setStepPickerOpen] = useState(false);
+  const stepOrdinal =
+    allSteps && allSteps.length > 0
+      ? allSteps.findIndex((s) => s.id === step.id) + 1
+      : 0;
+  const showStepSwitcher =
+    Boolean(onJumpToStep) && (allSteps?.length ?? 0) > 1 && stepOrdinal > 0;
   // NOW indicator only on the canonical "current" step. The user can
   // swipe to past/future steps; those are not "now".
   const isNowStep = step.id === dataset.focusStepId;
@@ -202,6 +220,22 @@ export function L1StepView({
   if (embedFullDetail) {
     return (
       <View style={styles.embedHost}>
+        {showStepSwitcher ? (
+          <View style={styles.switcherBar}>
+            <Pressable
+              style={({ pressed }) => [styles.switcherChip, pressed && styles.switcherChipPressed]}
+              onPress={() => setStepPickerOpen(true)}
+              hitSlop={8}
+              accessibilityRole="button"
+              accessibilityLabel={`Step ${stepOrdinal} of ${allSteps?.length ?? 0}. Jump to another step`}
+            >
+              <Text style={styles.switcherChipText}>
+                Step {stepOrdinal} of {allSteps?.length ?? 0}
+              </Text>
+              <Ionicons name="chevron-down" size={13} color={IOS_REGISTER.labelSecondary} />
+            </Pressable>
+          </View>
+        ) : null}
         {hasPrev ? <View style={styles.peekLeft} pointerEvents="none" /> : null}
         {hasNext ? <View style={styles.peekRight} pointerEvents="none" /> : null}
         {prevStep ? (
@@ -258,6 +292,35 @@ export function L1StepView({
             </View>
           </Animated.View>
         </GestureDetector>
+        {showStepSwitcher && allSteps ? (
+          <PickerListSheet<TimelineStep>
+            visible={stepPickerOpen}
+            title="Jump to step"
+            items={allSteps}
+            keyExtractor={(s) => s.id}
+            isSelected={(s) => s.id === step.id}
+            onSelect={(s) => {
+              setStepPickerOpen(false);
+              if (s.id !== step.id) onJumpToStep?.(s.id);
+            }}
+            onClose={() => setStepPickerOpen(false)}
+            renderRow={(s) => {
+              const ordinal = allSteps.findIndex((x) => x.id === s.id) + 1;
+              return (
+                <>
+                  <Text style={styles.pickerPrimary} numberOfLines={1}>
+                    {ordinal}. {s.title}
+                  </Text>
+                  {s.preTitle ? (
+                    <Text style={styles.pickerSecondary} numberOfLines={1}>
+                      {s.preTitle}
+                    </Text>
+                  ) : null}
+                </>
+              );
+            }}
+          />
+        ) : null}
       </View>
     );
   }
@@ -915,5 +978,42 @@ const styles = StyleSheet.create({
   },
   fromSuggested: {
     color: IOS_REGISTER.labelSecondary,
+  },
+  switcherBar: {
+    paddingHorizontal: CARD_INSET,
+    paddingTop: 6,
+    paddingBottom: 2,
+    backgroundColor: IOS_REGISTER.groundBg,
+    zIndex: 5,
+  },
+  switcherChip: {
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: IOS_REGISTER.fillPill,
+  },
+  switcherChipPressed: {
+    opacity: 0.6,
+  },
+  switcherChipText: {
+    fontSize: 13,
+    fontWeight: '600',
+    letterSpacing: -0.1,
+    color: IOS_REGISTER.label,
+  },
+  pickerPrimary: {
+    fontSize: 15,
+    fontWeight: '500',
+    color: IOS_REGISTER.label,
+    letterSpacing: -0.2,
+  },
+  pickerSecondary: {
+    fontSize: 12,
+    color: IOS_REGISTER.labelSecondary,
+    marginTop: 2,
   },
 });
