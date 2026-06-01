@@ -432,12 +432,15 @@ async function fetchResults(regattaId: string, division?: string, raceNumber?: n
 }
 
 async function fetchSchedule(regattaId: string, dateFilter?: string) {
+  // race_events does not model per-race scheduling fields (race_number,
+  // division, warning_signal, postponement_reason, new_start_time); selecting
+  // them 42703s and empties the whole schedule. Pull only real columns and
+  // fill the typed-but-unmodeled fields below.
   let racesQuery = supabase
     .from('race_events')
     .select(`
-      id, race_number, division, event_date, start_time,
-      warning_signal, course_type, course_description,
-      status, postponement_reason, new_start_time
+      id, event_date, start_time,
+      course_type, course_description, status
     `)
     .eq('regatta_id', regattaId)
     .order('event_date', { ascending: true })
@@ -467,17 +470,18 @@ async function fetchSchedule(regattaId: string, dateFilter?: string) {
         special_notices: [],
       });
     }
-    dateMap.get(dateKey)!.races.push({
+    const day = dateMap.get(dateKey)!;
+    day.races.push({
       id: race.id,
-      race_number: race.race_number,
-      division: race.division,
-      scheduled_start: race.start_time || race.warning_signal,
-      warning_signal: race.warning_signal,
-      course_type: race.course_type,
-      course_description: race.course_description,
+      race_number: day.races.length + 1,
+      division: null,
+      scheduled_start: race.start_time || race.event_date || '',
+      warning_signal: null,
+      course_type: race.course_type ?? null,
+      course_description: race.course_description ?? null,
       status: race.status || 'scheduled',
-      postponement_reason: race.postponement_reason,
-      new_start_time: race.new_start_time,
+      postponement_reason: null,
+      new_start_time: null,
     });
   });
 
