@@ -185,9 +185,13 @@ export function DoTabInterior({
     ) : null;
   // Sailing-only race start sequence + GPS track capture. Self-gates to the
   // sailing persona (returns null otherwise), so it can render in pre_activity
-  // for every interest without leaking into non-sailing surfaces.
+  // for every interest without leaking into non-sailing surfaces. Also gated
+  // on `isTimed` — the 5-4-1-0 sequence is timed machinery, so it follows the
+  // same per-step signal as the live timer (a non-race prep step like "compare
+  // rig dimensions" shouldn't lead with a race start). When the per-step-timing
+  // flag is off, isTimed defaults true and this is unchanged.
   const raceStartCard =
-    stepId && !readOnly ? (
+    stepId && !readOnly && isTimed ? (
       <RaceStartGpsCard
         stepId={stepId}
         interestId={interestId}
