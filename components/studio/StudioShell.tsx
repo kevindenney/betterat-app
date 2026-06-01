@@ -118,9 +118,19 @@ function StudioShellRegular({
   children,
 }: StudioShellProps) {
   const accentColor = ACCENT_COLORS[accent];
+  // The route group hides the native Stack header, so the shell owns the
+  // safe-area: without this the sidebar org card + page header collide with
+  // the status bar / clock (notably on iPad) and the bottom user card with
+  // the home indicator.
+  const insets = useSafeAreaInsets();
   return (
     <View style={s.shell}>
-      <View style={s.sidebar}>
+      <View
+        style={[
+          s.sidebar,
+          { paddingTop: insets.top + 14, paddingBottom: insets.bottom + 14 },
+        ]}
+      >
         <SidebarBody
           accentColor={accentColor}
           org={org}
@@ -133,7 +143,14 @@ function StudioShellRegular({
         />
       </View>
 
-      <View style={s.main}>{children}</View>
+      <View
+        style={[
+          s.main,
+          { paddingTop: insets.top + 18, paddingBottom: insets.bottom + 18 },
+        ]}
+      >
+        {children}
+      </View>
     </View>
   );
 }
@@ -183,7 +200,7 @@ function StudioShellCompact({
         </View>
       </View>
 
-      <View style={c.main}>{children}</View>
+      <View style={[c.main, { paddingBottom: insets.bottom + 14 }]}>{children}</View>
 
       <Modal
         visible={drawerOpen}
