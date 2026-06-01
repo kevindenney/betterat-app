@@ -27,7 +27,6 @@ import { CapabilityMix } from './CapabilityMix';
 import type { CapabilityMixMarker } from './CapabilityMix';
 import { PeerJourneyChart } from './PeerJourneyChart';
 import { SeasonLibrarianPrompt } from './SeasonLibrarianPrompt';
-import { ZOOM_RAIL_RESERVED_WIDTH } from './ZoomLevelPicker';
 import {
   detectMilestoneTitles,
   detectPhaseLabelFromTitles,
@@ -183,9 +182,9 @@ export function L4YearsView({
   const [chartWidth, setChartWidth] = useState(0);
 
   const onAnalysisLayout = useCallback((e: LayoutChangeEvent) => {
-    // Reserve the floating zoom rail's lane so full-bleed charts/sparklines
-    // never render their right edge (axis labels, last column) under it.
-    const w = Math.max(0, e.nativeEvent.layout.width - ZOOM_RAIL_RESERVED_WIDTH);
+    // The rail's lane is now reserved by the canvas container (paddingRight),
+    // so this measured width already excludes it — use it as-is.
+    const w = Math.max(0, e.nativeEvent.layout.width);
     if (w !== chartWidth) setChartWidth(w);
   }, [chartWidth]);
 

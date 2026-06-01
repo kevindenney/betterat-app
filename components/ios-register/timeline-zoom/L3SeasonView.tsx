@@ -67,7 +67,6 @@ import {
 } from './interestMoney';
 import { HeadlineMetric } from './HeadlineMetric';
 import { hasHeadlineMetric, resolveHeadlineMetric } from './interestHeadline';
-import { ZOOM_RAIL_RESERVED_WIDTH } from './ZoomLevelPicker';
 import type {
   SeasonFinance,
   TimelineDataset,
@@ -156,9 +155,9 @@ export function L3SeasonView({
   }, []);
 
   const onAnalysisLayout = useCallback((e: LayoutChangeEvent) => {
-    // Reserve the floating zoom rail's lane so full-bleed charts/sparklines
-    // never render their right edge (axis labels, last column) under it.
-    const w = Math.max(0, e.nativeEvent.layout.width - ZOOM_RAIL_RESERVED_WIDTH);
+    // The rail's lane is now reserved by the canvas container (paddingRight),
+    // so this measured width already excludes it — use it as-is.
+    const w = Math.max(0, e.nativeEvent.layout.width);
     if (w !== chartWidth) setChartWidth(w);
   }, [chartWidth]);
 

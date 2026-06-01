@@ -26,6 +26,7 @@ import { StepDigestCard } from './StepDigestCard';
 import { SeasonLibrarianPrompt } from './SeasonLibrarianPrompt';
 import { useDragReorder } from './useDragReorder';
 import { resolveInterestVocab } from './interestVocab';
+import { ZOOM_RAIL_RESERVED_WIDTH } from './ZoomLevelPicker';
 import { useUniversalPlus } from '@/components/capture/UniversalPlusProvider';
 import { useAuth } from '@/providers/AuthProvider';
 import { useInterest } from '@/providers/InterestProvider';
@@ -150,14 +151,20 @@ export function L2WeekView({
   // Compact density relaxes centering — at 5–6 cards visible we don't
   // need to pin the centred card to the viewport midpoint; let the
   // strip start from the leading edge with a small inset.
+  // The canvas reserves the floating zoom rail's lane via paddingRight, so
+  // the NOW field's usable width is the window minus that gutter. Centering
+  // and the NOW-bar clamp must reason in this reduced width, otherwise the
+  // centered card pins right-of-center and the NOW bar can slide under the
+  // rail.
+  const usableWidth = viewportWidth - ZOOM_RAIL_RESERVED_WIDTH;
   const sideInset =
     effectiveDensity === 'compact'
       ? 16
-      : Math.max(16, (viewportWidth - cardWidth) / 2);
+      : Math.max(16, (usableWidth - cardWidth) / 2);
   const nowBarLeft = Math.max(
     8,
     Math.min(
-      viewportWidth - NOW_BAR_WIDTH - 8,
+      usableWidth - NOW_BAR_WIDTH - 8,
       sideInset +
         Math.max(0, nowSplitIndex) * (cardWidth + CARD_GAP) -
         CARD_GAP / 2 -

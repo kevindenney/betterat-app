@@ -49,7 +49,7 @@ import { L4YearsView } from './L4YearsView';
 import { ZoomEmptyState } from './EmptyStates';
 import { SelectActionBar } from './SelectActionBar';
 import { useSelectMode } from './useSelectMode';
-import { ZoomLevelPicker } from './ZoomLevelPicker';
+import { ZoomLevelPicker, ZOOM_RAIL_RESERVED_WIDTH } from './ZoomLevelPicker';
 import { resolveInterestVocab } from './interestVocab';
 import {
   ZOOM_LEVEL_SCOPE_LABELS,
@@ -575,6 +575,13 @@ const styles = StyleSheet.create({
   },
   canvas: {
     flex: 1,
+    // Reserve the floating ZoomLevelPicker's lane so no level's content
+    // (L1 step-detail sub-step rows, L3/L4 toolbars) can render — or be
+    // tapped — under the rail. The rail is an absolutely-positioned sibling
+    // at right:10, so it floats inside this gutter. Charts inside L3/L4 used
+    // to subtract this width themselves; with the lane reserved here they no
+    // longer do.
+    paddingRight: ZOOM_RAIL_RESERVED_WIDTH,
   },
   canvasInner: {
     flex: 1,

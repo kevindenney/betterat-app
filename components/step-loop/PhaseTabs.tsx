@@ -22,7 +22,7 @@
  */
 
 import React from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import {
   GRAY_3,
   GRAY_5,
@@ -111,8 +111,13 @@ export function PhaseTabs({
   }
 
   return (
-    <View style={styles.row} testID={testID}>
-      {specs.map((tab) => {
+    <View style={styles.rail} testID={testID}>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.row}
+      >
+        {specs.map((tab) => {
         const isActive = tab.id === active;
         return (
           <Pressable
@@ -149,18 +154,21 @@ export function PhaseTabs({
             ) : null}
           </Pressable>
         );
-      })}
+        })}
+      </ScrollView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  rail: {
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: GRAY_5,
+  },
   row: {
     flexDirection: 'row',
     gap: 4,
     paddingHorizontal: 16,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: GRAY_5,
   },
   tab: {
     flexDirection: 'row',
