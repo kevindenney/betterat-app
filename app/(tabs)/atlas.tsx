@@ -17,7 +17,7 @@
  */
 
 import React, { useCallback, useMemo, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -35,6 +35,7 @@ import { getAtlasStepData } from '@/lib/atlasRaceStep';
 import { showAlert } from '@/lib/utils/crossPlatformAlert';
 import { useAuth } from '@/providers/AuthProvider';
 import { useInterest } from '@/providers/InterestProvider';
+import { useWebDrawer } from '@/providers/WebDrawerProvider';
 import { useAtlasNextEvent } from '@/hooks/useAtlasNextEvent';
 import { AtlasPickerBus } from '@/services/AtlasPickerBus';
 import {
@@ -400,6 +401,12 @@ export default function AtlasTab() {
   const { user } = useAuth();
   const { currentInterest, userInterests, switchInterest } = useInterest();
   const homeVenue = useUserHomeVenue();
+  const { isDrawerOpen, openDrawer } = useWebDrawer();
+  // On web the global nav lives in each screen's toolbar; Atlas renders
+  // edge-to-edge with no toolbar, so when the sidebar drawer is collapsed
+  // there's no way back out. Surface a floating menu affordance that
+  // reopens the drawer. Native ignores this (drawer is a web-only concept).
+  const showWebNavButton = Platform.OS === 'web' && !isDrawerOpen;
   const avatarInitial = deriveAvatarInitial(user as any);
   // Nearby list-sheet — the optional list affordance over Atlas's pins.
   // Atlas already plots nearby orgs + peer-steps as map pins; this opens
@@ -887,6 +894,21 @@ export default function AtlasTab() {
           bottomSheetOffset={tabBarSpace}
         />
 
+        {/* Web nav escape hatch — Atlas hides the sidebar toolbar, so when
+            the drawer is collapsed this is the only way back to the rest of
+            the app. Top-left, mirrors where a hamburger normally sits. */}
+        {showWebNavButton && !nearbyOpen ? (
+          <Pressable
+            style={[styles.navPill, { top: insets.top + 12 }]}
+            onPress={openDrawer}
+            accessibilityRole="button"
+            accessibilityLabel="Open navigation menu"
+          >
+            <Ionicons name="menu" size={18} color={IOS_COLORS.label} />
+            <Text style={styles.navPillText}>Menu</Text>
+          </Pressable>
+        ) : null}
+
         {/* Nearby list entry — a right-edge pill below the Atlas top chrome
             (aligns with the top-chrome-consolidation direction rather than
             competing with the bottom sheet). Hidden while open. */}
@@ -953,6 +975,31 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 2 },
     elevation: 3,
+  },
+  navPill: {
+    position: 'absolute',
+    left: IOS_SPACING.md,
+    zIndex: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.94)',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: IOS_COLORS.separator,
+    shadowColor: '#000',
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 3,
+  },
+  navPillText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: IOS_COLORS.label,
+    letterSpacing: -0.2,
   },
   nearbyPillText: {
     fontSize: 14,
