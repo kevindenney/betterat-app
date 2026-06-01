@@ -10,9 +10,11 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/services/supabase';
+import { useAuth } from '@/providers/AuthProvider';
 
 export interface StepDiscussionPeekData {
   noteCount: number;
+  unreadCount: number;
   latest: {
     id: string;
     body: string;
@@ -35,8 +37,10 @@ function initialsFrom(name: string | null): string | null {
 }
 
 export function useStepDiscussionPeek(stepId: string | null | undefined) {
+  const { user } = useAuth();
+  const viewerId = user?.id ?? null;
   return useQuery<StepDiscussionPeekData | null>({
-    queryKey: ['step-discussion-peek', stepId],
+    queryKey: ['step-discussion-peek', stepId, viewerId],
     queryFn: async () => {
       try {
         if (!stepId) return null;
@@ -48,6 +52,27 @@ export function useStepDiscussionPeek(stepId: string | null | undefined) {
           .is('parent_id', null);
 
         if (!count || count === 0) return null;
+
+        let unreadCount = 0;
+        if (viewerId) {
+          const { data: viewRow } = await supabase
+            .from('step_discussion_views')
+            .select('last_seen_at')
+            .eq('step_id', stepId)
+            .eq('user_id', viewerId)
+            .maybeSingle();
+          const lastSeenAt =
+            (viewRow as { last_seen_at?: string } | null)?.last_seen_at ?? null;
+
+          let unreadQuery = supabase
+            .from('step_discussions')
+            .select('id', { count: 'exact', head: true })
+            .eq('step_id', stepId)
+            .neq('user_id', viewerId);
+          if (lastSeenAt) unreadQuery = unreadQuery.gt('created_at', lastSeenAt);
+          const { count: unread } = await unreadQuery;
+          unreadCount = unread ?? 0;
+        }
 
         const { data: latestRow } = await supabase
           .from('step_discussions')
@@ -76,6 +101,7 @@ export function useStepDiscussionPeek(stepId: string | null | undefined) {
 
         return {
           noteCount: count,
+          unreadCount,
           latest: {
             id: row.id,
             body: row.body,

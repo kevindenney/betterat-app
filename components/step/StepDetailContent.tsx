@@ -33,6 +33,7 @@ import { useInterest } from '@/providers/InterestProvider';
 import { structureBrainDump } from '@/services/ai/StepPlanAIService';
 import { saveUrlsToLibrary } from '@/services/ai/BrainDumpAIService';
 import { dropInsight } from '@/services/QuickCaptureService';
+import { markStepDiscussionSeen } from '@/services/StepDiscussionService';
 import { getSkillGoalTitles } from '@/services/SkillGoalService';
 import { resolveEntities, buildEntityInput } from '@/services/ai/EntityResolutionService';
 import { enrichDateForSailing } from '@/services/ai/DateEnrichmentService';
@@ -343,6 +344,21 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, 
   const goDiscussion = useCallback(() => {
     setActiveTab('discussion');
   }, [setActiveTab]);
+
+  // Clear the unread Discuss badge when the viewer opens the Discussion tab:
+  // bump their last_seen_at marker, then refetch the peek so the count drops
+  // to zero. Fire-and-forget — a failed marker just leaves the badge as-is.
+  useEffect(() => {
+    if (activeTab !== 'discussion' || !stepId || !user?.id) return;
+    if ((discussionPeek?.unreadCount ?? 0) === 0) return;
+    void markStepDiscussionSeen(stepId, user.id)
+      .then(() => {
+        queryClient.invalidateQueries({
+          queryKey: ['step-discussion-peek', stepId],
+        });
+      })
+      .catch(() => {});
+  }, [activeTab, stepId, user?.id, discussionPeek?.unreadCount, queryClient]);
 
   const metadata = (step?.metadata ?? {}) as StepMetadata;
   const serverPlanData: StepPlanData = useMemo(() => metadata.plan ?? {}, [metadata.plan]);
@@ -1449,7 +1465,7 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, 
                     ? 'ready'
                     : 'pending'
               }
-              discussionCount={discussionPeek?.noteCount}
+              discussionCount={discussionPeek?.unreadCount}
               active={activePhase}
               onTabPress={(tab) => handleNextTab(PHASE_TO_TAB[tab])}
               labels={{

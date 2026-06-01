@@ -500,3 +500,21 @@ export async function toggleStepReaction(input: {
     }
   }
 }
+
+/**
+ * Record that a user just opened a step's Discussion thread, so the unread
+ * badge clears. Bumps last_seen_at to now() for this (step, user) pair.
+ */
+export async function markStepDiscussionSeen(
+  stepId: string,
+  userId: string,
+): Promise<void> {
+  const { error } = await supabase.from('step_discussion_views').upsert(
+    { step_id: stepId, user_id: userId, last_seen_at: new Date().toISOString() },
+    { onConflict: 'step_id,user_id' },
+  );
+  if (error) {
+    logger.error('Failed to mark step discussion seen', error);
+    throw error;
+  }
+}
