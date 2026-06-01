@@ -11,7 +11,7 @@ import { openInterestSwitcher } from '@/components/InterestSwitcher';
 import { useQueryClient } from '@tanstack/react-query';
 import { IOS_COLORS as _IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
 import { STEP_COLORS, STEP_PALETTE } from '@/lib/step-theme';
-import { text } from '@/lib/design-tokens';
+import { text } from '@/lib/design-tokens-editorial';
 import { getStepCategoryLabels } from '@/lib/step-category-config';
 import { IOSPillTabs, usePillTabs } from '@/components/ui/ios/IOSPillTabs';
 import { useVocabulary } from '@/hooks/useVocabulary';

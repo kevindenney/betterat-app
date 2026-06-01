@@ -7,7 +7,7 @@
 import React, { useState, useCallback } from 'react';
 import { View, TextInput, Pressable, StyleSheet, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { fontFamily } from '@/lib/design-tokens';
+import { fontFamily } from '@/lib/design-tokens-editorial';
 import { STEP_PALETTE } from '@/lib/step-theme';
 import type { Observation } from '@/types/step-detail';
 

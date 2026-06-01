@@ -7,7 +7,7 @@
 
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { fontFamily, text } from '@/lib/design-tokens';
+import { fontFamily, text } from '@/lib/design-tokens-editorial';
 import { STEP_PALETTE } from '@/lib/step-theme';
 
 interface PastContextCardProps {

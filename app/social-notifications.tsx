@@ -39,7 +39,7 @@ import {
   IOS_SPACING,
   IOS_RADIUS,
 } from '@/lib/design-tokens-ios';
-import { fontFamily } from '@/lib/design-tokens';
+import { fontFamily } from '@/lib/design-tokens-editorial';
 import { STEP_PALETTE } from '@/lib/step-theme';
 
 // =============================================================================

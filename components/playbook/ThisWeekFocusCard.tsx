@@ -9,7 +9,7 @@ import { ActivityIndicator, View, Text, Pressable, StyleSheet } from 'react-nati
 import { Ionicons } from '@expo/vector-icons';
 import { useQueryClient } from '@tanstack/react-query';
 import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
-import { fontFamily } from '@/lib/design-tokens';
+import { fontFamily } from '@/lib/design-tokens-editorial';
 import { STEP_PALETTE } from '@/lib/step-theme';
 import { showAlertWithButtons } from '@/lib/utils/crossPlatformAlert';
 import { usePlaybookSuggestions, useAcceptSuggestion, useRejectSuggestion } from '@/hooks/usePlaybook';

@@ -24,7 +24,7 @@ import { ActionSheetIOS, LayoutAnimation, NativeScrollEvent, NativeSyntheticEven
 import { Ionicons } from '@expo/vector-icons';
 import { ScrollView } from 'react-native-gesture-handler';
 import { IOSSegmentedControl, PhaseTabsCanonical, type PhaseTabItem } from '@/components/ui/ios';
-import { text } from '@/lib/design-tokens';
+import { text } from '@/lib/design-tokens-editorial';
 import { STEP_PALETTE } from '@/lib/step-theme';
 import { showAlertWithButtons } from '@/lib/utils/crossPlatformAlert';
 import { AddToBlueprintSheet } from '@/components/blueprint/AddToBlueprintSheet';

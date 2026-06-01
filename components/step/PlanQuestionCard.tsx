@@ -8,7 +8,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { IOS_COLORS as _IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
 import { STEP_COLORS as _STEP_COLORS, STEP_PALETTE } from '@/lib/step-theme';
-import { text } from '@/lib/design-tokens';
+import { text } from '@/lib/design-tokens-editorial';
 
 interface PlanQuestionCardProps {
   icon: string;

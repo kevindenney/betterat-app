@@ -15,7 +15,7 @@ import { View, Text, TextInput, StyleSheet, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { formatRelativeTime } from '@/lib/i18n/formatters';
 import { STEP_PALETTE } from '@/lib/step-theme';
-import { text } from '@/lib/design-tokens';
+import { text } from '@/lib/design-tokens-editorial';
 import type {
   NormalizedReviewSection,
   ReviewSectionPrompt,
