@@ -145,9 +145,15 @@ function toggleReactionInTree(
 }
 
 const REACTION_GLYPH: Record<StepDiscussionReactionKind, string> = {
-  fire: '👍',
-  insight: '💩',
-  question: '🙏',
+  fire: '🔥',
+  insight: '💡',
+  question: '❓',
+};
+
+const REACTION_LABEL: Record<StepDiscussionReactionKind, string> = {
+  fire: 'Fire',
+  insight: 'Insight',
+  question: 'Question',
 };
 
 type DiscussionScope = 'private' | 'cohort';
@@ -808,6 +814,7 @@ function NoteCard({
           <ReactionChip
             key={kind}
             glyph={REACTION_GLYPH[kind]}
+            label={REACTION_LABEL[kind]}
             count={note.reaction_counts[kind]}
             on={isViewerReacted(kind)}
             onPress={() => onReact(kind, isViewerReacted(kind))}
@@ -831,11 +838,13 @@ function NoteCard({
 
 function ReactionChip({
   glyph,
+  label,
   count,
   on,
   onPress,
 }: {
   glyph: string;
+  label: string;
   count: number;
   on: boolean;
   onPress: () => void;
@@ -845,6 +854,11 @@ function ReactionChip({
       style={[styles.reactionChip, on && styles.reactionChipOn]}
       onPress={onPress}
       hitSlop={4}
+      accessibilityRole="button"
+      accessibilityState={{ selected: on }}
+      accessibilityLabel={
+        count > 0 ? `${label}, ${count}${on ? ', selected' : ''}` : label
+      }
     >
       <Text style={styles.reactionGlyph}>{glyph}</Text>
       {count > 0 ? (
