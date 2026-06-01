@@ -25,6 +25,7 @@ import Animated, {
   useAnimatedStyle,
   useSharedValue,
   withSpring,
+  withTiming,
 } from 'react-native-reanimated';
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
 
@@ -47,6 +48,11 @@ interface ZoomLevelPickerProps {
    *  — substituted into the L3 screen-reader label so it matches the
    *  visible header vocab. */
   periodNoun?: string;
+  /** Fade + lift the rail off-axis (and disable its touches) while a text
+   *  input / composer is focused, so it never collides with a send button
+   *  or the rising keyboard. Mirrors Apple Photos hiding its toolbar when
+   *  an input takes over. */
+  hidden?: boolean;
 }
 
 const RAIL_ORDER: ZoomLevel[] = [4, 3, 2, 1];
@@ -163,7 +169,18 @@ export function ZoomLevelPicker({
   onSnapToCurrent,
   rightOffset = DEFAULT_RIGHT_OFFSET,
   periodNoun = 'arc',
+  hidden = false,
 }: ZoomLevelPickerProps) {
+  const hideProgress = useSharedValue(hidden ? 1 : 0);
+  useEffect(() => {
+    hideProgress.value = withTiming(hidden ? 1 : 0, { duration: 180 });
+  }, [hidden, hideProgress]);
+
+  const hostAnimStyle = useAnimatedStyle(() => ({
+    opacity: 1 - hideProgress.value,
+    transform: [{ translateX: hideProgress.value * 24 }],
+  }));
+
   const scopeLabelFor = (l: ZoomLevel) =>
     l === 3 ? `Current ${periodNoun}` : ZOOM_LEVEL_SCOPE_LABELS[l];
   const labelFor = (l: ZoomLevel) =>
@@ -181,10 +198,12 @@ export function ZoomLevelPicker({
   };
 
   return (
-    <View
-      pointerEvents="box-none"
-      style={[styles.host, { right: rightOffset }]}
+    <Animated.View
+      pointerEvents={hidden ? 'none' : 'box-none'}
+      style={[styles.host, { right: rightOffset }, hostAnimStyle]}
       accessibilityRole="tablist"
+      accessibilityElementsHidden={hidden}
+      importantForAccessibility={hidden ? 'no-hide-descendants' : 'auto'}
     >
       <View style={styles.rail}>
         {RAIL_ORDER.map((l) => (
@@ -198,7 +217,7 @@ export function ZoomLevelPicker({
           />
         ))}
       </View>
-    </View>
+    </Animated.View>
   );
 }
 

@@ -20,7 +20,7 @@
  */
 
 import React, { useCallback, useMemo, useRef, useState } from 'react';
-import { Platform, StyleSheet, Text, View } from 'react-native';
+import { Keyboard, Platform, StyleSheet, Text, View } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import {
   Gesture,
@@ -222,6 +222,21 @@ export function TimelineZoomCanvas({
     );
   }, [dataset.focusStepId]);
   const select = useSelectMode();
+  // Hide the floating zoom rail while a text input / composer is focused so
+  // it never collides with a send button or the rising keyboard. Keyboard
+  // events are the most reliable cross-input signal (Discuss composer, any
+  // inline TextInput) and mirror Apple Photos hiding its toolbar on edit.
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
+  React.useEffect(() => {
+    const showEvt = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvt = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+    const showSub = Keyboard.addListener(showEvt, () => setKeyboardVisible(true));
+    const hideSub = Keyboard.addListener(hideEvt, () => setKeyboardVisible(false));
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
   const isFocusedStepSurface = level === 1;
   const periodNoun = resolveInterestVocab(dataset.interest.label).periodNoun;
   useHideTabBar(embedFullDetailAtL1 && isFocusedStepSurface);
@@ -517,6 +532,7 @@ export function TimelineZoomCanvas({
             onChange={setLevel}
             onSnapToCurrent={handleSnapToCurrent}
             periodNoun={periodNoun}
+            hidden={keyboardVisible}
           />
         )}
       </View>
