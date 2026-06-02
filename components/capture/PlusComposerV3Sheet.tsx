@@ -345,22 +345,20 @@ export function PlusComposerV3Sheet({
               </View>
               <Text style={styles.footerLabel}>Photo</Text>
             </View>
-            <View style={styles.micWrap}>
-              <View style={styles.footerAffordance}>
-                <Pressable
-                  style={styles.mic}
-                  accessibilityLabel={
-                    voiceEnabled
-                      ? 'Open voice composer'
-                      : 'Voice input — coming soon'
-                  }
-                  onPress={voiceEnabled ? () => setVoiceVisible(true) : undefined}
-                >
-                  <Ionicons name="mic" size={22} color="#FFFFFF" />
-                </Pressable>
-                <Text style={styles.footerLabel}>Voice</Text>
+            {voiceEnabled ? (
+              <View style={styles.micWrap}>
+                <View style={styles.footerAffordance}>
+                  <Pressable
+                    style={styles.mic}
+                    accessibilityLabel="Open voice composer"
+                    onPress={() => setVoiceVisible(true)}
+                  >
+                    <Ionicons name="mic" size={22} color="#FFFFFF" />
+                  </Pressable>
+                  <Text style={styles.footerLabel}>Voice</Text>
+                </View>
               </View>
-            </View>
+            ) : null}
             <Pressable
               style={styles.footerAffordance}
               accessibilityLabel="Start from a link"

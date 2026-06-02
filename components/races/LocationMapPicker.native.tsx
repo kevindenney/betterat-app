@@ -73,15 +73,6 @@ interface VenueLocation {
 const DEFAULT_CENTER = { lat: 22.3193, lng: 114.1694 }; // Hong Kong
 const RECENT_VENUES_KEY = 'regattaflow_recent_venues';
 
-// Common fallback venues
-const FALLBACK_VENUES: VenueLocation[] = [
-  { name: 'Victoria Harbour, Hong Kong', lat: 22.3193, lng: 114.1694 },
-  { name: 'Sydney Harbour, Australia', lat: -33.8688, lng: 151.2093 },
-  { name: 'San Francisco Bay, USA', lat: 37.7749, lng: -122.4194 },
-  { name: 'Solent, UK', lat: 50.7772, lng: -1.2924 },
-  { name: 'Mediterranean, France', lat: 43.2965, lng: 5.3698 },
-];
-
 // =============================================================================
 // COMPONENT
 // =============================================================================
@@ -133,12 +124,11 @@ export function LocationMapPicker({
       if (stored) {
         const venues = JSON.parse(stored) as VenueLocation[];
         setRecentVenues(venues.slice(0, 5));
-      } else {
-        // Use fallback venues if no recent
-        setRecentVenues(FALLBACK_VENUES.slice(0, 3));
       }
+      // No hardcoded defaults: Quick Select stays empty until the user has
+      // actually picked somewhere. Search + map-tap cover first-time discovery.
     } catch (e) {
-      setRecentVenues(FALLBACK_VENUES.slice(0, 3));
+      setRecentVenues([]);
     }
   };
 
@@ -190,23 +180,10 @@ export function LocationMapPicker({
           lng: v.coordinates_lng,
         }));
 
-      // Add fallback matches
-      const queryLower = query.toLowerCase();
-      const fallbackMatches = FALLBACK_VENUES.filter(
-        (v) =>
-          v.name.toLowerCase().includes(queryLower) &&
-          !dbResults.some((db) => db.name.toLowerCase() === v.name.toLowerCase())
-      );
-
-      setSearchResults([...dbResults, ...fallbackMatches].slice(0, 8));
+      setSearchResults(dbResults.slice(0, 8));
     } catch (e) {
       logger.warn('Venue search failed:', e);
-      // Use fallback only
-      const queryLower = query.toLowerCase();
-      const matches = FALLBACK_VENUES.filter((v) =>
-        v.name.toLowerCase().includes(queryLower)
-      );
-      setSearchResults(matches);
+      setSearchResults([]);
     } finally {
       setSearching(false);
     }
@@ -263,6 +240,27 @@ export function LocationMapPicker({
       duration: 600,
     });
   }, []);
+
+  // Press "search" on the keyboard to commit. If a known venue matched, take
+  // the top hit; otherwise forward-geocode the free text so any place the user
+  // names resolves to a pin (and enables Done) without a manual map tap.
+  const handleSearchSubmit = useCallback(async () => {
+    const query = searchText.trim();
+    if (!query) return;
+    if (searchResults.length > 0) {
+      handleSelectVenue(searchResults[0]);
+      return;
+    }
+    setSearching(true);
+    try {
+      const coords = await GeocodingService.geocode(query);
+      if (coords) {
+        handleSelectVenue({ name: query, lat: coords.lat, lng: coords.lng });
+      }
+    } finally {
+      setSearching(false);
+    }
+  }, [searchText, searchResults, handleSelectVenue]);
 
   const handleConfirm = useCallback(() => {
     if (selectedLocation) {
@@ -334,8 +332,7 @@ export function LocationMapPicker({
             </View>
 
             <View style={styles.fallbackVenueList}>
-              {/* Deduplicate venues by name */}
-              {[...recentVenues, ...FALLBACK_VENUES]
+              {recentVenues
                 .filter((venue, index, self) =>
                   index === self.findIndex(v => v.name.toLowerCase() === venue.name.toLowerCase())
                 )
@@ -400,6 +397,7 @@ export function LocationMapPicker({
               placeholder="Search venues..."
               placeholderTextColor={IOS_COLORS.gray}
               returnKeyType="search"
+              onSubmitEditing={handleSearchSubmit}
               onFocus={() => searchText.length >= 2 && setShowSearchResults(true)}
             />
             {searching && <ActivityIndicator size="small" color={IOS_COLORS.blue} />}
@@ -474,7 +472,7 @@ export function LocationMapPicker({
         </View>
 
         {/* Quick Select */}
-        {!showSearchResults && (
+        {!showSearchResults && recentVenues.length > 0 && (
           <View style={styles.quickSelectContainer}>
             <Text style={styles.quickSelectTitle}>QUICK SELECT</Text>
             <FlatList
@@ -513,7 +511,7 @@ export function LocationMapPicker({
         {/* Tap Hint */}
         <View style={styles.hintContainer}>
           <Text style={styles.hintText}>
-            Tap on the map to select a racing area center
+            Search, or tap the map to drop a pin
           </Text>
         </View>
       </View>
