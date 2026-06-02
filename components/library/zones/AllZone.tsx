@@ -32,7 +32,10 @@ import { useLifecycleConcepts } from '@/hooks/usePlaybook';
 import { useLibraryResourcesPreview } from '@/hooks/useLibraryResourcesPreview';
 import { useDiscoverBlueprints } from '@/hooks/useBlueprint';
 import { useTopOrgsForInterest } from '@/hooks/useTopOrgsForInterest';
+import { useUserFleets } from '@/hooks/useFleetData';
 import { useInterest } from '@/providers/InterestProvider';
+import { useAuth } from '@/providers/AuthProvider';
+import { groupRoleDescriptor } from '@/components/library/zones/GroupsZone';
 import { PlanRowCard } from '@/components/library/plans/PlanRowCard';
 import { ConceptCard } from '@/components/playbook/ConceptCard';
 import { RecentItemRow } from '@/components/library/resources/RecentItemRow';
@@ -141,8 +144,14 @@ function FollowPlanRow({ bp }: { bp: DiscoveredBlueprint }) {
 
 export function AllZone({ counts, onJumpToZone, librarianSlot }: AllZoneProps) {
   const { currentInterest, allInterests, userInterests } = useInterest();
+  const { user } = useAuth();
   const interestId = currentInterest?.id;
   const interestSlug = currentInterest?.slug;
+
+  // Groups are interest-agnostic — getFleetsForUser is global, not
+  // interest-scoped — so this preview is the same in every craft.
+  const { fleets, loading: groupsLoading } = useUserFleets(user?.id);
+  const groupPreview = fleets.slice(0, PREVIEW_LIMIT);
 
   const { data: plans, isLoading: plansLoading } =
     useSubscribedPlansForLibrary(interestId);
@@ -276,6 +285,36 @@ export function AllZone({ counts, onJumpToZone, librarianSlot }: AllZoneProps) {
               />
             ))}
           </View>
+        )}
+      </View>
+
+      <View style={styles.section}>
+        <SectionHeader
+          title="GROUPS"
+          dotColor="#14B8A6"
+          count={fleets.length || undefined}
+          onSeeAll={() => onJumpToZone('groups')}
+        />
+        {groupsLoading && fleets.length === 0 ? (
+          <LoadingRow />
+        ) : groupPreview.length === 0 ? (
+          <EmptyHint>
+            Fleets, clubs, and cohorts you belong to show up here.
+          </EmptyHint>
+        ) : (
+          <CanonicalList>
+            {groupPreview.map((m, idx) => (
+              <CanonicalOrgRow
+                key={m.fleet.id}
+                first={idx === 0}
+                initials={initialsForName(m.fleet.name)}
+                markColor={pickSquareMarkColor(m.fleet.id)}
+                name={m.fleet.name}
+                descriptor={groupRoleDescriptor(m)}
+                onPress={() => router.push('/(tabs)/fleet' as never)}
+              />
+            ))}
+          </CanonicalList>
         )}
       </View>
 

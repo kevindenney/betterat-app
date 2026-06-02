@@ -51,6 +51,7 @@ import { InterestSwitcher } from '@/components/InterestSwitcher';
 import { useUniversalPlus } from '@/components/capture/UniversalPlusProvider';
 import { LocationAnchor } from '@/components/ui/LocationAnchor';
 import { ProfileDropdown } from '@/components/ui/ProfileDropdown';
+import { useToast } from '@/components/ui/AppToast';
 import { useUserHomeVenue, isSailingInterest } from '@/hooks/useUserHomeVenue';
 import { useInterest } from '@/providers/InterestProvider';
 import { Ionicons } from '@expo/vector-icons';
@@ -63,6 +64,7 @@ const LILAC = '#AF52DE'; // reflection / AI border-left
 export default function InboxTabScreen() {
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
+  const toast = useToast();
   const [segment, setSegment] = useState<Segment>('act');
 
   // Deep-link tap on a cohort_discussion_post notification — resolve
@@ -209,11 +211,13 @@ export default function InboxTabScreen() {
   const respondToInvite = (
     invite: FleetInvite,
     respond: (fleetId: string) => Promise<void>,
+    onResolved?: () => void,
   ) => {
     optimisticHide(invite.membershipId);
     respond(invite.fleetId)
       .then(() => {
         void queryClient.invalidateQueries({ queryKey: FLEET_INVITES_QUERY_KEY });
+        onResolved?.();
       })
       .catch(() => {
         setDismissedIds((prev) => {
@@ -224,7 +228,13 @@ export default function InboxTabScreen() {
       });
   };
   const handleAcceptInvite = (invite: FleetInvite) =>
-    respondToInvite(invite, (id) => fleetService.acceptFleetInvite(id));
+    respondToInvite(invite, (id) => fleetService.acceptFleetInvite(id), () => {
+      // Accepting silently empties the Act panel, which reads as "nothing
+      // happened." Drop the user into Library › Groups — the joined group's
+      // durable home — and back it with a success toast.
+      toast.show(`You joined ${invite.fleetName}`, 'success');
+      router.push('/(tabs)/library?zone=groups');
+    });
   const handleDeclineInvite = (invite: FleetInvite) =>
     respondToInvite(invite, (id) => fleetService.declineFleetInvite(id));
 

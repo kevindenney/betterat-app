@@ -9,6 +9,9 @@ export type LibraryZone =
   | 'people'
   | 'concepts'
   | 'resources'
+  // Groups you belong to (fleets / clubs / cohorts — one primitive, the
+  // generic name is "Groups"). A "yours" zone, reached from the feed.
+  | 'groups'
   // "Stacks" zones — reached from the curated feed's See-all links.
   // These fold what used to be separate Discover segments into Library.
   | 'follow'

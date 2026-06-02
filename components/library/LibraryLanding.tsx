@@ -32,6 +32,7 @@ import { AllZone } from '@/components/library/zones/AllZone';
 import { PlansZone } from '@/components/library/zones/PlansZone';
 import { PeopleZone } from '@/components/library/zones/PeopleZone';
 import { ResourcesZone } from '@/components/library/zones/ResourcesZone';
+import { GroupsZone } from '@/components/library/zones/GroupsZone';
 import { DiscoverPlansContent } from '@/components/discover/DiscoverPlansContent';
 import { DiscoverOrgsContent } from '@/components/discover/DiscoverOrgsContent';
 import { DiscoverInterestsContent } from '@/components/discover/DiscoverInterestsContent';
@@ -53,6 +54,7 @@ const VALID_ZONES: LibraryZone[] = [
   'people',
   'concepts',
   'resources',
+  'groups',
   'follow',
   'orgs',
   'interests',
@@ -72,6 +74,7 @@ const ZONE_TITLE: Record<LibraryZone, string> = {
   concepts: 'Concepts',
   resources: 'Resources',
   people: 'People',
+  groups: 'Groups',
   follow: 'Plans to follow',
   orgs: 'Orgs',
   interests: 'Interests',
@@ -86,6 +89,7 @@ const ZONE_DESCRIPTION: Record<LibraryZone, string> = {
   concepts: "Mental models you're forming, refining, or have settled.",
   resources: 'Saved articles, docs, and references.',
   people: 'People shaping your practice.',
+  groups: 'Fleets, clubs, and cohorts you belong to.',
   follow: 'Published Plans you can follow and pull into your own.',
   orgs: 'Clubs, schools, and programs you can join.',
   interests: 'Adjacent crafts you could add.',
@@ -234,6 +238,8 @@ export function LibraryLanding({ conceptsBody, librarianSlot }: Props) {
           <PeopleZone />
         ) : zone === 'resources' ? (
           <ResourcesZone onOpenCapture={() => setCaptureOpen(true)} />
+          ) : zone === 'groups' ? (
+            <GroupsZone />
           ) : (
             conceptsBody
           )}
