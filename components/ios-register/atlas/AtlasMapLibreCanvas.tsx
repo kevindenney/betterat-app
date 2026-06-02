@@ -61,6 +61,7 @@ import {
 import { ensureMapLibreCss, ensureMapLibreScript } from '@/lib/maplibreWeb';
 import { windColorForKnots } from '@/lib/wind-color';
 import { useAtlasRacingAreas } from '@/hooks/useAtlasRacingAreas';
+import { useAtlasRaceCourses } from '@/hooks/useAtlasRaceCourses';
 import { useUserBoatClasses } from '@/hooks/useUserBoatClasses';
 import { useVocabulary } from '@/hooks/useVocabulary';
 
@@ -184,6 +185,73 @@ const FRAME_CAMERA: Record<AtlasFrameId, CameraPreset> = {
   f6: { center: [114.182, 22.286], zoom: 13.4 },       // Commit-mode at Victoria Harbour
   f7: { center: [85.45, 23.27], zoom: 9.8 },           // Ranchi · Jharkhand · entrepreneur network
 };
+
+/**
+ * Race-course geometry (laylines, start box, marks) is illegible at
+ * country/region zoom — below this level the overlay is suppressed via
+ * each layer's minZoomLevel so it doesn't smear the map.
+ */
+const COURSE_MIN_ZOOM = 13;
+
+/**
+ * Web (maplibre-gl) race-course layer specs — the imperative twin of the
+ * native MLLayer tree. Each is added off the shared `atlas-web-course`
+ * source with `minzoom: COURSE_MIN_ZOOM` + a `properties.type` filter.
+ */
+const COURSE_WEB_LAYERS: {
+  id: string;
+  type: 'fill' | 'line' | 'circle';
+  filter: unknown[];
+  paint: Record<string, unknown>;
+}[] = [
+  {
+    id: 'atlas-web-course-start-box',
+    type: 'fill',
+    filter: ['==', ['get', 'type'], 'start-box'],
+    paint: { 'fill-color': 'rgba(20, 33, 61, 0.12)' },
+  },
+  {
+    id: 'atlas-web-course-laylines',
+    type: 'line',
+    filter: ['==', ['get', 'type'], 'layline'],
+    paint: {
+      'line-color': 'rgba(20, 33, 61, 0.55)',
+      'line-width': 1,
+      'line-dasharray': [3, 3],
+    },
+  },
+  {
+    id: 'atlas-web-course-start-line',
+    type: 'line',
+    filter: ['==', ['get', 'type'], 'start-line'],
+    paint: { 'line-color': 'rgb(20, 33, 61)', 'line-width': 2 },
+  },
+  {
+    id: 'atlas-web-course-finish-line',
+    type: 'line',
+    filter: ['==', ['get', 'type'], 'finish-line'],
+    paint: { 'line-color': 'rgb(20, 33, 61)', 'line-width': 2 },
+  },
+  {
+    id: 'atlas-web-course-marks',
+    type: 'circle',
+    filter: ['==', ['get', 'type'], 'course-mark'],
+    paint: {
+      'circle-radius': 5,
+      'circle-color': [
+        'match',
+        ['get', 'markType'],
+        'committee', 'rgb(231, 137, 60)',
+        'finish', 'rgb(255, 255, 255)',
+        'rgb(20, 33, 61)',
+      ],
+      'circle-stroke-color': 'rgb(20, 33, 61)',
+      'circle-stroke-width': 1.5,
+    },
+  },
+];
+
+const COURSE_WEB_LAYER_IDS = COURSE_WEB_LAYERS.map((l) => l.id);
 
 export interface AtlasPinSpec {
   id: string;
@@ -357,6 +425,13 @@ interface AtlasMapLibreCanvasProps {
    */
   showRaceAreas?: boolean;
   /**
+   * F1/F6/F2 "Race course" toggle. When on, the canvas fetches the venue
+   * race courses in view (useAtlasRaceCourses) and paints start/finish
+   * lines, laylines, start box and marks — but only at zoom ≥ 13
+   * (COURSE_MIN_ZOOM), since the geometry is illegible at country zoom.
+   */
+  showCourse?: boolean;
+  /**
    * Fires when the user long-presses the map. Atlas uses this to open
    * the racing-area create sheet — the user marks where racing happens
    * even when their club isn't yet in BetterAt.
@@ -423,6 +498,7 @@ export function AtlasMapLibreCanvas({
   onPinPress,
   onRacingAreaPress,
   showRaceAreas = false,
+  showCourse = false,
   onNextEventPress,
   onMapLongPress,
   racingAreaPreviewPolygon = null,
@@ -462,6 +538,9 @@ export function AtlasMapLibreCanvas({
     centerLat: baseCamera.center[1],
     enabled: showRaceAreas,
     userClasses: userBoatClasses,
+  });
+  const { featureCollection: courseCollection } = useAtlasRaceCourses({
+    enabled: showCourse,
   });
   // Cluster pill noun varies by interest — sailors read "session", nurses
   // "shift", generic users "log". Default ("step") is platform jargon.
@@ -635,6 +714,8 @@ export function AtlasMapLibreCanvas({
         onPinPress={onPinPress}
         onRacingAreaPress={onRacingAreaPress}
         showRaceAreas={showRaceAreas}
+        courseCollection={courseCollection}
+        showCourse={showCourse}
         onNextEventPress={onNextEventPress}
         onMapCenterChange={onMapCenterChange}
         basemap={basemap}
@@ -731,6 +812,66 @@ export function AtlasMapLibreCanvas({
               </MLMarker>
             ))
           : null}
+
+        {/* Race-course overlay — one source, layers filtered by
+            properties.type and gated at zoom ≥ COURSE_MIN_ZOOM. Start/finish
+            lines read as solid brand ink; laylines are dashed + dimmer; the
+            start box is a soft fill with no harsh stroke; marks are small
+            circles (committee distinct from buoys). */}
+        {showCourse && courseCollection && courseCollection.features.length > 0 ? (
+          <MLGeoJSONSource id="atlas-race-course" data={courseCollection}>
+            <MLLayer
+              id="atlas-course-start-box"
+              type="fill"
+              minZoomLevel={COURSE_MIN_ZOOM}
+              filter={['==', ['get', 'type'], 'start-box']}
+              style={{ fillColor: 'rgba(20, 33, 61, 0.12)' }}
+            />
+            <MLLayer
+              id="atlas-course-laylines"
+              type="line"
+              minZoomLevel={COURSE_MIN_ZOOM}
+              filter={['==', ['get', 'type'], 'layline']}
+              style={{
+                lineColor: 'rgba(20, 33, 61, 0.55)',
+                lineWidth: 1,
+                lineDasharray: [3, 3],
+              }}
+            />
+            <MLLayer
+              id="atlas-course-start-line"
+              type="line"
+              minZoomLevel={COURSE_MIN_ZOOM}
+              filter={['==', ['get', 'type'], 'start-line']}
+              style={{ lineColor: 'rgb(20, 33, 61)', lineWidth: 2 }}
+            />
+            <MLLayer
+              id="atlas-course-finish-line"
+              type="line"
+              minZoomLevel={COURSE_MIN_ZOOM}
+              filter={['==', ['get', 'type'], 'finish-line']}
+              style={{ lineColor: 'rgb(20, 33, 61)', lineWidth: 2 }}
+            />
+            <MLLayer
+              id="atlas-course-marks"
+              type="circle"
+              minZoomLevel={COURSE_MIN_ZOOM}
+              filter={['==', ['get', 'type'], 'course-mark']}
+              style={{
+                circleRadius: 5,
+                circleColor: [
+                  'match',
+                  ['get', 'markType'],
+                  'committee', 'rgb(231, 137, 60)',
+                  'finish', 'rgb(255, 255, 255)',
+                  'rgb(20, 33, 61)',
+                ],
+                circleStrokeColor: 'rgb(20, 33, 61)',
+                circleStrokeWidth: 1.5,
+              }}
+            />
+          </MLGeoJSONSource>
+        ) : null}
 
         {racingAreaPreviewCollection ? (
           <MLGeoJSONSource
@@ -848,17 +989,20 @@ function WebAtlasMapLibreCanvas({
   onPinPress,
   onRacingAreaPress,
   showRaceAreas,
+  showCourse = false,
   onNextEventPress,
   onMapCenterChange,
   basemap = 'map',
   baseCamera,
   walkLineCollection,
   raceAreasCollection,
+  courseCollection,
 }: AtlasMapLibreCanvasProps & {
   pins: AtlasPinSpec[];
   baseCamera: CameraPreset;
   walkLineCollection: GeoJSON.FeatureCollection;
   raceAreasCollection: GeoJSON.FeatureCollection;
+  courseCollection: GeoJSON.FeatureCollection;
 }) {
   const containerRef = useRef<any>(null);
   const mapRef = useRef<any>(null);
@@ -1058,6 +1202,34 @@ function WebAtlasMapLibreCanvas({
         .addTo(map),
     );
   }, [isLoaded, raceAreasCollection, showRaceAreas]);
+
+  // Race-course overlay (web) — mirrors the native layer set: one source,
+  // five layers filtered by properties.type, each gated at zoom ≥
+  // COURSE_MIN_ZOOM. Painted to match native (solid lines, dashed
+  // laylines, soft start box, circle marks).
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !isLoaded) return;
+
+    const show = showCourse && courseCollection && courseCollection.features.length > 0;
+    if (!show) {
+      for (const id of COURSE_WEB_LAYER_IDS) {
+        if (map.getLayer(id)) map.removeLayer(id);
+      }
+      if (map.getSource('atlas-web-course')) map.removeSource('atlas-web-course');
+      return;
+    }
+
+    const source = map.getSource('atlas-web-course');
+    if (source?.setData) {
+      source.setData(courseCollection);
+    } else {
+      map.addSource('atlas-web-course', { type: 'geojson', data: courseCollection });
+      for (const layer of COURSE_WEB_LAYERS) {
+        map.addLayer({ ...layer, source: 'atlas-web-course', minzoom: COURSE_MIN_ZOOM });
+      }
+    }
+  }, [isLoaded, courseCollection, showCourse]);
 
   useEffect(() => {
     const map = mapRef.current;

@@ -838,6 +838,7 @@ function LayersFab({
 export type AtlasLayerKey =
   | 'sailing.race_marks'
   | 'sailing.race_areas'
+  | 'sailing.course'
   | 'sailing.wind'
   | 'sailing.tide'
   | 'sailing.marinas'
@@ -886,6 +887,7 @@ function getLayersForFrame(frame: AtlasFrameId): LayerItem[] {
       { key: 'sailing.wind', label: 'Wind forecast', sub: 'Direction + speed for next race day', defaultOn: true },
       { key: 'sailing.tide', label: 'Tidal current', sub: 'Set + drift around the course', defaultOn: true },
       { key: 'sailing.race_areas', label: 'Race areas', sub: 'Highlighted racing zones', defaultOn: true },
+      { key: 'sailing.course', label: 'Race course', sub: 'Marks, laylines, start box · zoom ≥ 13', defaultOn: true },
       { key: 'sailing.race_marks', label: 'Race marks', sub: 'Visible at zoom ≥ 14', defaultOn: false },
       { key: 'sailing.marinas', label: 'Marinas & clubs', sub: 'Sailing venues nearby', defaultOn: true },
       { key: 'sailing.sail_services', label: 'Sail services', sub: 'Lofts, chandlers, repair · zoom ≥ 13', defaultOn: false },
@@ -895,6 +897,7 @@ function getLayersForFrame(frame: AtlasFrameId): LayerItem[] {
   if (frame === 'f2') {
     return [
       { key: 'sailing.race_marks', label: 'Race marks', sub: 'Renders at zoom ≥ 14', defaultOn: true },
+      { key: 'sailing.course', label: 'Race course', sub: 'Marks, laylines, start box · zoom ≥ 13', defaultOn: true },
       { key: 'sailing.wind', label: 'Wind forecast', sub: 'Direction + speed', defaultOn: true },
       { key: 'sailing.tide', label: 'Tidal current', sub: 'Set + drift', defaultOn: true },
       peerSteps,
@@ -1573,6 +1576,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
   const [showTide, setShowTide] = useState(false);
   const [scrubIndex, setScrubIndex] = useState(0);
   const [showRaceAreas, setShowRaceAreas] = useState(true);
+  const [showCourse, setShowCourse] = useState(true);
   const [basemap, setBasemap] = useState<AtlasBasemap>('map');
   const [peerRelationshipFilter, setPeerRelationshipFilter] = useState<Set<string> | null>(null);
   // Institution POIs + peer step pins for the "near me" bbox. Center on the
@@ -1801,8 +1805,9 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
     if (showWind) out.add('sailing.wind');
     if (showTide) out.add('sailing.tide');
     if (showRaceAreas) out.add('sailing.race_areas');
+    if (showCourse) out.add('sailing.course');
     return out;
-  }, [showRaceMarks, showMarinas, showSailServices, showWind, showTide, showRaceAreas]);
+  }, [showRaceMarks, showMarinas, showSailServices, showWind, showTide, showRaceAreas, showCourse]);
   const handleLayerToggle = useCallback((key: string, on: boolean) => {
     if (key === 'sailing.race_marks') setShowRaceMarks(on);
     if (key === 'sailing.marinas') setShowMarinas(on);
@@ -1810,6 +1815,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
     if (key === 'sailing.wind') setShowWind(on);
     if (key === 'sailing.tide') setShowTide(on);
     if (key === 'sailing.race_areas') setShowRaceAreas(on);
+    if (key === 'sailing.course') setShowCourse(on);
   }, []);
   // Map-center-following wind & tide. The user pans, MapLibre's
   // onRegionDidChange updates `mapCenter`, Open-Meteo returns the
@@ -2167,6 +2173,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
             onPinPress={handlePinPress}
             onRacingAreaPress={handleRacingAreaPress}
             showRaceAreas={showRaceAreas}
+            showCourse={showCourse}
             basemap={basemap}
           />
         ) : (
@@ -2910,6 +2917,7 @@ function FrameF2({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
   const [showWaves, setShowWaves] = useState(false);
   const [showCrew, setShowCrew] = useState(true);
   const [showFleet, setShowFleet] = useState(true);
+  const [showCourse, setShowCourse] = useState(true);
   const [scrubIndex, setScrubIndex] = useState(3);
   const next = handlers.nextEvent ?? null;
   const raceStart = { lat: 22.2838, lng: 114.1779 };
@@ -3212,12 +3220,14 @@ function FrameF2({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
     if (showRaceMarks) out.add('sailing.race_marks');
     if (showWind) out.add('sailing.wind');
     if (showTide) out.add('sailing.tide');
+    if (showCourse) out.add('sailing.course');
     return out;
-  }, [showRaceMarks, showTide, showWind]);
+  }, [showRaceMarks, showTide, showWind, showCourse]);
   const handleLayerToggle = useCallback((key: string, on: boolean) => {
     if (key === 'sailing.race_marks') setShowRaceMarks(on);
     if (key === 'sailing.wind') setShowWind(on);
     if (key === 'sailing.tide') setShowTide(on);
+    if (key === 'sailing.course') setShowCourse(on);
   }, []);
   const handleChipChange = useCallback((activeIds: string[]) => {
     setShowRaceMarks(activeIds.includes('race-marks'));
@@ -3264,7 +3274,12 @@ function FrameF2({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
         </View>
 
         {handlers.useMapLibre ? (
-          <AtlasMapLibreCanvas frame="f2" pins={visiblePins} onPinPress={handlePinPress} />
+          <AtlasMapLibreCanvas
+            frame="f2"
+            pins={visiblePins}
+            onPinPress={handlePinPress}
+            showCourse={showCourse}
+          />
         ) : (
           <RaceMarksZoomMap />
         )}
