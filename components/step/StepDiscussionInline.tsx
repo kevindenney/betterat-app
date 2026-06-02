@@ -388,7 +388,9 @@ export function StepDiscussionInline({
 
   const handleSubmit = useCallback(async () => {
     const body = draft.trim();
-    if (!body) return;
+    // A note needs either typed text or an attached quote. A quote-only
+    // post (body '') is valid — the quote carries the content.
+    if (!body && !pendingQuote) return;
     await postMutation.mutateAsync({
       body,
       parentId: replyingTo?.noteId ?? null,
@@ -601,10 +603,11 @@ export function StepDiscussionInline({
         <Pressable
           style={[
             styles.sendButton,
-            (!draft.trim() || postMutation.isPending) && styles.sendButtonDisabled,
+            ((!draft.trim() && !pendingQuote) || postMutation.isPending) &&
+              styles.sendButtonDisabled,
           ]}
           onPress={handleSubmit}
-          disabled={!draft.trim() || postMutation.isPending}
+          disabled={(!draft.trim() && !pendingQuote) || postMutation.isPending}
           accessibilityRole="button"
           accessibilityLabel="Post"
           hitSlop={6}
@@ -778,9 +781,9 @@ function NoteCard({
             </Pressable>
           </View>
         </View>
-      ) : (
+      ) : note.body.trim().length > 0 ? (
         <Text style={styles.noteBody}>{note.body}</Text>
-      )}
+      ) : null}
 
       {note.replies && note.replies.length > 0 ? (
         <View style={styles.replies}>
