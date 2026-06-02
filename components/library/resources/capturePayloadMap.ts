@@ -114,7 +114,7 @@ export function mapCapturePayloadToLibraryItem(
   return null;
 }
 
-function kindFromMime(mime: string, mode: 'upload' | 'photo'): LibraryFormat {
+export function kindFromMime(mime: string, mode: 'upload' | 'photo'): LibraryFormat {
   if (mode === 'photo') return 'image';
   if (mime === 'application/pdf') return 'pdf';
   if (mime.startsWith('image/')) return 'image';

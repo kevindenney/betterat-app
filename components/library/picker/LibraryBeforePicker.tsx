@@ -24,6 +24,10 @@ import { IOS_COLORS } from '@/lib/design-tokens-ios';
 import { useLibraryItemsForBeforePicker } from '@/hooks/useLibraryItemsForBeforePicker';
 import { useCreateLibraryItem } from '@/hooks/useCreateLibraryItem';
 import { FORMAT_ICON, FORMAT_TINT } from '@/components/library/resources/formatStyles';
+import { kindFromMime } from '@/components/library/resources/capturePayloadMap';
+import { pickFile, uploadFile } from '@/services/LibraryUploadService';
+import { useAuth } from '@/providers/AuthProvider';
+import { showAlert } from '@/lib/utils/crossPlatformAlert';
 import type { LibraryFormat } from '@/components/library/resources/types';
 import type { PickerLibraryItem } from '@/hooks/useLibraryItemsForBeforePicker';
 
@@ -72,6 +76,8 @@ export function LibraryBeforePicker({
   interestId,
 }: LibraryBeforePickerProps) {
   const [query, setQuery] = useState('');
+  const [uploading, setUploading] = useState(false);
+  const { user } = useAuth();
   const { data: allItems = [], isLoading } =
     useLibraryItemsForBeforePicker(interestId);
   const createItem = useCreateLibraryItem();
@@ -117,6 +123,32 @@ export function LibraryBeforePicker({
     });
     onSelect(id);
     setQuery('');
+  };
+
+  const handleUpload = async () => {
+    if (uploading || !user?.id) return;
+    setUploading(true);
+    try {
+      const file = await pickFile();
+      if (!file) return; // user cancelled the picker
+      const uploaded = await uploadFile(user.id, file);
+      const { id } = await createItem.mutateAsync({
+        kind: kindFromMime(uploaded.metadata.mime_type, 'upload'),
+        title: uploaded.suggestedTitle || file.name,
+        source_label: 'Uploaded file',
+        url_or_blob_id: uploaded.metadata.public_url ?? uploaded.metadata.storage_path,
+        interest_id: interestId ?? null,
+      });
+      onSelect(id);
+      setQuery('');
+    } catch (err) {
+      showAlert(
+        'Upload failed',
+        err instanceof Error ? err.message : 'Could not upload that file.',
+      );
+    } finally {
+      setUploading(false);
+    }
   };
 
   return (
@@ -188,6 +220,30 @@ export function LibraryBeforePicker({
                 </View>
               </Pressable>
             ) : null}
+            <Pressable
+              style={styles.createRow}
+              onPress={handleUpload}
+              disabled={uploading}
+              accessibilityRole="button"
+              accessibilityLabel="Upload a PDF or file to your library"
+              accessibilityState={{ disabled: uploading }}
+            >
+              <View style={styles.createGlyph}>
+                {uploading ? (
+                  <ActivityIndicator size="small" color={IOS_COLORS.systemBlue} />
+                ) : (
+                  <Ionicons name="cloud-upload-outline" size={18} color={IOS_COLORS.systemBlue} />
+                )}
+              </View>
+              <View style={styles.rowBody}>
+                <Text style={styles.createTitle} numberOfLines={1}>
+                  {uploading ? 'Uploading…' : 'Upload a PDF or file'}
+                </Text>
+                <Text style={styles.createMeta}>
+                  PDF, image, or document · up to 20MB
+                </Text>
+              </View>
+            </Pressable>
             {isLoading ? (
               <View style={styles.loading}>
                 <ActivityIndicator color={IOS_COLORS.systemBlue} />
@@ -207,7 +263,7 @@ export function LibraryBeforePicker({
                     ? 'Try a different term, or capture something new from the Library tab.'
                     : excludeSet.size > 0
                       ? 'Capture more from the Library tab to attach more items.'
-                      : 'Paste a link or type a note in the field above to add your first item and pin it here.'}
+                      : 'Paste a link, type a note, or upload a file above to add your first item and pin it here.'}
                 </Text>
               </View>
             ) : (

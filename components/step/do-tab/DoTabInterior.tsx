@@ -53,7 +53,6 @@ export interface DoTabInteriorProps {
   onQuickNote?: () => void;
   /** Direct text-submit for the inline quick-note composer. */
   onQuickNoteSubmit?: (text: string) => void;
-  onAutoSummarizePlan?: () => void;
   /** Toggle a "how" sub-step's completed flag — renders the plan's How list as a checklist. */
   onToggleSubStep?: (subStepId: string, completed: boolean) => void;
   /** Log an observation / photo / voice note against a specific How sub-step. */
@@ -107,7 +106,6 @@ export function DoTabInterior({
   onPhotoOrVideo,
   onQuickNote,
   onQuickNoteSubmit,
-  onAutoSummarizePlan,
   onToggleSubStep,
   onSubStepCapture,
   subStepCaptures,
@@ -205,8 +203,6 @@ export function DoTabInterior({
   const howChecklist = (
     <PlanStartingFrameRow
       planData={planData}
-      onPress={readOnly ? undefined : onAutoSummarizePlan}
-      disabled={readOnly}
       readOnly={readOnly}
       onToggleSubStep={onToggleSubStep}
       subStepRefs={library.itemsBySubStep}

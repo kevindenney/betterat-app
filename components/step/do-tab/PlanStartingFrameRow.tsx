@@ -11,8 +11,6 @@ export type { SubStepCaptureKind };
 
 interface PlanStartingFrameRowProps {
   planData: StepPlanData;
-  onPress?: () => void;
-  disabled?: boolean;
   readOnly?: boolean;
   /** When provided, the How list renders as a tap-to-check checklist. */
   onToggleSubStep?: (subStepId: string, completed: boolean) => void;
@@ -46,8 +44,6 @@ function compactList(items: string[], fallback: string): string[] {
 
 export function PlanStartingFrameRow({
   planData,
-  onPress,
-  disabled,
   readOnly,
   onToggleSubStep,
   subStepRefs,
@@ -58,8 +54,6 @@ export function PlanStartingFrameRow({
   subStepCaptures,
   showWhoWhy = true,
 }: PlanStartingFrameRowProps) {
-  const hasContent = hasPlanStartingFrameContent(planData);
-  const isDisabled = disabled || !hasContent;
   const realSubSteps = (planData.how_sub_steps ?? []).filter((s) => s.text?.trim());
   const asChecklist = Boolean(onToggleSubStep) && realSubSteps.length > 0;
   // Rich mode: each How row carries pinned library items + per-row capture
@@ -189,23 +183,6 @@ export function PlanStartingFrameRow({
           <Text style={styles.body}>{why}</Text>
         </View>
       ) : null}
-
-      <Pressable
-        style={({ pressed }) => [
-          styles.action,
-          pressed && !isDisabled && styles.rowPressed,
-          isDisabled && styles.rowDisabled,
-        ]}
-        onPress={isDisabled ? undefined : onPress}
-        disabled={isDisabled}
-        accessibilityRole="button"
-        accessibilityLabel="Summarize the plan as a starting frame"
-        accessibilityState={{ disabled: isDisabled }}
-      >
-        <Ionicons name="sparkles" size={13} color={IOS_COLORS.systemBlue} />
-        <Text style={styles.actionText}>Summarize as starting note</Text>
-        <Ionicons name="chevron-forward" size={14} color={IOS_COLORS.tertiaryLabel} />
-      </Pressable>
     </View>
   );
 }
@@ -291,12 +268,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: IOS_SPACING.sm,
-  },
-  rowPressed: {
-    opacity: 0.7,
-  },
-  rowDisabled: {
-    opacity: 0.5,
   },
   glyph: {
     width: 22,
@@ -384,17 +355,5 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: 6,
-  },
-  action: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    alignSelf: 'flex-start',
-    paddingTop: 2,
-  },
-  actionText: {
-    fontSize: 12.5,
-    fontWeight: '700',
-    color: IOS_COLORS.systemBlue,
   },
 });

@@ -36,11 +36,6 @@ describe('Phase B.7 Frame 1 contract', () => {
   });
 
   describe('PlanStartingFrameRow', () => {
-    it('contains the canonical auto-summarize copy', () => {
-      expect(planRowSource).toContain('Auto-summarize my Plan as a starting frame');
-      expect(planRowSource).toContain('What · How · Why');
-    });
-
     it('exports a hasPlanStartingFrameContent predicate', () => {
       expect(planRowSource).toMatch(/export function hasPlanStartingFrameContent/);
     });

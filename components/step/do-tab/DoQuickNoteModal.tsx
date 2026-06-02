@@ -159,6 +159,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   kbWrap: {
+    flex: 1,
     justifyContent: 'flex-end',
   },
   sheet: {
