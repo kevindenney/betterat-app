@@ -111,12 +111,28 @@ function buildSubtitle(slug: string | null, name: string | null): string | undef
   return `${name ?? 'Atlas'} · places where practice is happening`;
 }
 
+function isSailingInterestSlug(slug: string | null): boolean {
+  const s = (slug ?? '').toLowerCase();
+  return s === 'sailing' || s === 'sail-racing' || s === 'sail';
+}
+
 function atlasInterestSlugForFrame(
   frame: AtlasFrameId,
   currentInterestSlug: string | null,
 ): string | null {
-  if (frame === 'f1' || frame === 'f2' || frame === 'f3' || frame === 'f6') {
+  // f2/f3/f6 are explicit sailing entry points (race-course planning + the
+  // from-plan handoff), reached via requestedFrame/isFromPlan — always sailing.
+  if (frame === 'f2' || frame === 'f3' || frame === 'f6') {
     return 'sail-racing';
+  }
+  // f1 is the sailor first-run *shape*, but pickFrameForInterest also routes
+  // interests without a curated frame (drawing, fitness, default) here. Only
+  // claim sail-racing when the active interest is actually sailing, or when
+  // none is resolved (guest first-run keeps the showcase). Otherwise a Drawing
+  // user inherited the sailing next-event banner + a sail-racing step on drop.
+  if (frame === 'f1') {
+    if (!currentInterestSlug) return 'sail-racing';
+    return isSailingInterestSlug(currentInterestSlug) ? 'sail-racing' : currentInterestSlug;
   }
   if (frame === 'f4' || frame === 'f5') {
     return 'nursing';
