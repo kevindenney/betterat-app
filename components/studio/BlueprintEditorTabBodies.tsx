@@ -39,6 +39,7 @@ const CAT_TONES: Record<string, { bg: string; fg: string; label: string }> = {
   rsn: { bg: 'rgba(122, 90, 139, 0.14)', fg: '#7A5A8B', label: 'Clinical reasoning' },
   proc: { bg: 'rgba(139, 90, 60, 0.12)', fg: '#8B5A3C', label: 'Procedural' },
   comm: { bg: 'rgba(110, 139, 90, 0.14)', fg: '#6E8B5A', label: 'Communication' },
+  gen: { bg: 'rgba(60, 60, 67, 0.10)', fg: 'rgba(60, 60, 67, 0.7)', label: 'General' },
 };
 
 export function StepsTabBody({
@@ -146,7 +147,7 @@ export function StepsTabBody({
   );
 }
 
-function categoryToCatKey(cat: StepCategory): 'asmt' | 'rsn' | 'proc' | 'comm' {
+function categoryToCatKey(cat: StepCategory): 'asmt' | 'rsn' | 'proc' | 'comm' | 'gen' {
   switch (cat) {
     case 'assessment':
       return 'asmt';
@@ -157,7 +158,7 @@ function categoryToCatKey(cat: StepCategory): 'asmt' | 'rsn' | 'proc' | 'comm' {
     case 'communication':
       return 'comm';
     default:
-      return 'comm';
+      return 'gen';
   }
 }
 
