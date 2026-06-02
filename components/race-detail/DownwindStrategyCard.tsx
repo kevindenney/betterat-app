@@ -35,8 +35,6 @@ interface DownwindStrategyCardProps {
 
 export function DownwindStrategyCard({
   raceId,
-  raceName,
-  sailorId,
   raceEventId
 }: DownwindStrategyCardProps) {
   const { user } = useAuth();
@@ -153,6 +151,7 @@ export function DownwindStrategyCard({
           event: '*',
           schema: 'public',
           table: 'race_strategies',
+          filter: `regatta_id=eq.${raceId}`,
         },
         (payload) => {
           const payloadRaceId =

@@ -36,8 +36,6 @@ interface MarkRoundingCardProps {
 
 export function MarkRoundingCard({
   raceId,
-  raceName,
-  sailorId,
   raceEventId
 }: MarkRoundingCardProps) {
   const { user } = useAuth();
@@ -148,6 +146,7 @@ export function MarkRoundingCard({
           event: '*',
           schema: 'public',
           table: 'race_strategies',
+          filter: `regatta_id=eq.${raceId}`,
         },
         (payload) => {
           const payloadRaceId =

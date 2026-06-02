@@ -204,6 +204,7 @@ export function DistanceRacingStrategyCard({
           event: '*',
           schema: 'public',
           table: 'race_strategies',
+          filter: `regatta_id=eq.${raceId}`,
         },
         (payload) => {
           const payloadRaceId =

@@ -60,8 +60,6 @@ const extractSideFromBias = (favoredEnd: string): 'left' | 'right' | 'middle' | 
 
 export function UpwindStrategyCard({
   raceId,
-  raceName,
-  sailorId,
   raceEventId,
   venueId,
   venueName
@@ -199,6 +197,7 @@ export function UpwindStrategyCard({
           event: '*',
           schema: 'public',
           table: 'race_strategies',
+          filter: `regatta_id=eq.${raceId}`,
         },
         (payload) => {
           const payloadRaceId =
