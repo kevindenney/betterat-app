@@ -112,6 +112,52 @@ export default function FleetMembersScreen() {
     [fleetId, refresh],
   );
 
+  const handleMakeOwner = useCallback(
+    (target: FleetRosterEntry) => {
+      if (!fleetId || !target.userId) return;
+      setManageTarget(null);
+      const transferAction = async () => {
+        setBusy(true);
+        try {
+          await fleetService.transferFleetOwnership(fleetId, target.userId!);
+          await refresh();
+          showAlert('Ownership transferred', `${target.displayName} now owns this fleet. You're a captain.`);
+        } catch (e: any) {
+          showAlert('Could not transfer ownership', e?.message ?? 'Please try again.');
+        } finally {
+          setBusy(false);
+        }
+      };
+      showConfirm(
+        `Make ${target.displayName} the owner?`,
+        "You'll step down to captain and they'll control this fleet, including the ability to delete it. You can't undo this yourself.",
+        transferAction,
+        { destructive: true, confirmText: 'Transfer' },
+      );
+    },
+    [fleetId, refresh],
+  );
+
+  const handleDeleteFleet = useCallback(() => {
+    if (!fleetId) return;
+    const deleteAction = async () => {
+      setBusy(true);
+      try {
+        await fleetService.deleteFleet(fleetId);
+        router.back();
+      } catch (e: any) {
+        setBusy(false);
+        showAlert('Could not delete fleet', e?.message ?? 'Please try again.');
+      }
+    };
+    showConfirm(
+      `Delete ${fleetName}?`,
+      'This permanently removes the fleet, its roster, invites, plans, and posts for everyone. This cannot be undone.',
+      deleteAction,
+      { destructive: true, confirmText: 'Delete fleet' },
+    );
+  }, [fleetId, fleetName, router]);
+
   const handleRemove = useCallback(
     (target: FleetRosterEntry) => {
       if (!fleetId) return;
@@ -214,6 +260,20 @@ export default function FleetMembersScreen() {
               );
             })}
           </View>
+
+          {isOwner ? (
+            <View style={styles.dangerZone}>
+              <Text style={styles.sectionLabel}>DANGER ZONE</Text>
+              <Pressable style={styles.dangerButton} onPress={handleDeleteFleet}>
+                <Ionicons name="trash-outline" size={17} color={COLORS.destructive} />
+                <Text style={styles.dangerButtonText}>Delete this fleet</Text>
+              </Pressable>
+              <Text style={styles.dangerHint}>
+                Permanently removes the fleet for all members. To keep it running, transfer
+                ownership to another member instead.
+              </Text>
+            </View>
+          ) : null}
         </ScrollView>
       )}
 
@@ -255,6 +315,13 @@ export default function FleetMembersScreen() {
                       onPress={() => handleRoleChange(manageTarget, 'captain')}
                     />
                   )
+                ) : null}
+                {isOwner && manageTarget && !manageTarget.isEmailInvite && manageTarget.status === 'active' ? (
+                  <SheetAction
+                    label="Make owner"
+                    hint="Hands over the fleet — you become a captain"
+                    onPress={() => handleMakeOwner(manageTarget)}
+                  />
                 ) : null}
                 <SheetAction
                   label={manageTarget?.isEmailInvite ? 'Cancel invite' : 'Remove from fleet'}
@@ -426,4 +493,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   sheetCancelText: { fontSize: 15, fontWeight: '600', color: COLORS.text },
+  dangerZone: { marginTop: 32 },
+  dangerButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: COLORS.surface,
+    paddingVertical: 12,
+    borderRadius: 12,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: COLORS.destructive,
+  },
+  dangerButtonText: { fontSize: 15, fontWeight: '600', color: COLORS.destructive },
+  dangerHint: { fontSize: 12, color: COLORS.secondaryText, marginTop: 8, lineHeight: 17 },
 });

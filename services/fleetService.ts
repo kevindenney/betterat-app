@@ -369,6 +369,29 @@ class FleetService {
     }
   }
 
+  /** Owner: hand the fleet to an active member. Caller steps down to captain. */
+  async transferFleetOwnership(fleetId: string, newOwnerId: string): Promise<void> {
+    const { error } = await supabase.rpc('transfer_fleet_ownership', {
+      p_fleet_id: fleetId,
+      p_new_owner_id: newOwnerId,
+    });
+    if (error) {
+      logger.error('Error transferring fleet ownership:', error);
+      throw error;
+    }
+  }
+
+  /** Owner: permanently delete the fleet (children cascade). */
+  async deleteFleet(fleetId: string): Promise<void> {
+    const { error } = await supabase.rpc('delete_fleet', {
+      p_fleet_id: fleetId,
+    });
+    if (error) {
+      logger.error('Error deleting fleet:', error);
+      throw error;
+    }
+  }
+
   /**
    * Invite by email. If the address already has an account they get an
    * 'invited' membership immediately; otherwise a pending fleet_invite is
