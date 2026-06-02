@@ -346,7 +346,7 @@ function BlueprintRow({ bp, onPress }: { bp: StudioBlueprint; onPress?: () => vo
           {isDraft ? (
             <View style={[styles.bpPill, styles.bpPillAmber]}>
               <Text style={[styles.bpPillText, styles.bpPillTextAmber]}>
-                Draft · {bp.stepCount} of {bp.totalSteps} steps
+                Draft · {bp.totalSteps ? `${bp.stepCount} of ${bp.totalSteps}` : bp.stepCount} steps
               </Text>
             </View>
           ) : (

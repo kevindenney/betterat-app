@@ -24,6 +24,7 @@ import {
   ScrollView,
   TextInput,
   Platform,
+  useWindowDimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -46,6 +47,7 @@ import {
   StudioButton,
   StudioTabs,
   StudioNavSection,
+  STUDIO_COMPACT_BREAKPOINT,
 } from '@/components/studio/StudioShell';
 import { StudioLoading } from '@/components/studio/StudioLoading';
 import { Gradient } from '@/components/studio/Gradient';
@@ -434,40 +436,68 @@ function OverviewBody({
   onCoverGradient: (i: number) => void;
 }) {
   const gradient = COVER_GRADIENT_OPTIONS[coverGradientIdx];
+  const { width } = useWindowDimensions();
+  const compact = width < STUDIO_COMPACT_BREAKPOINT;
+
+  const coverCard = (
+    <CoverCard
+      gradient={gradient}
+      orgShort={blueprint.orgShort}
+      orgName={blueprint.orgName}
+      title={title}
+      onPickGradient={onCoverGradient}
+      selectedIdx={coverGradientIdx}
+    />
+  );
+  const aboutCard = (
+    <AboutCard
+      title={title}
+      onTitle={onTitle}
+      subtitle={subtitle}
+      onSubtitle={onSubtitle}
+      description={description}
+      onDescription={onDescription}
+      duration={duration}
+      onDuration={onDuration}
+    />
+  );
+  const pricingCard = (
+    <PricingCard
+      accessMode={accessMode}
+      onAccessMode={onAccessMode}
+      priceText={priceText}
+      onPriceText={onPriceText}
+      isInstitutional={isInstitutional}
+      orgShortName={orgShortName}
+      authors={blueprint.authors}
+    />
+  );
+  const cohortsCard = <CohortsCard cohorts={blueprint.cohorts} />;
+
+  // Below the Studio compact breakpoint the two-column row crushes each
+  // column to ~135pt, which wraps the access-mode cards one char per line.
+  // Stack everything into one scroll on phones instead.
+  if (compact) {
+    return (
+      <ScrollView style={styles.editorBodyCompact} contentContainerStyle={styles.colInner}>
+        {coverCard}
+        {aboutCard}
+        {pricingCard}
+        {cohortsCard}
+      </ScrollView>
+    );
+  }
+
   return (
     <View style={styles.editorBody}>
       <ScrollView style={styles.leftCol} contentContainerStyle={styles.colInner}>
-        <CoverCard
-          gradient={gradient}
-          orgShort={blueprint.orgShort}
-          orgName={blueprint.orgName}
-          title={title}
-          onPickGradient={onCoverGradient}
-          selectedIdx={coverGradientIdx}
-        />
-        <AboutCard
-          title={title}
-          onTitle={onTitle}
-          subtitle={subtitle}
-          onSubtitle={onSubtitle}
-          description={description}
-          onDescription={onDescription}
-          duration={duration}
-          onDuration={onDuration}
-        />
+        {coverCard}
+        {aboutCard}
       </ScrollView>
 
       <ScrollView style={styles.rightCol} contentContainerStyle={styles.colInner}>
-        <PricingCard
-          accessMode={accessMode}
-          onAccessMode={onAccessMode}
-          priceText={priceText}
-          onPriceText={onPriceText}
-          isInstitutional={isInstitutional}
-          orgShortName={orgShortName}
-          authors={blueprint.authors}
-        />
-        <CohortsCard cohorts={blueprint.cohorts} />
+        {pricingCard}
+        {cohortsCard}
       </ScrollView>
     </View>
   );
@@ -898,6 +928,7 @@ const styles = StyleSheet.create({
   },
   leftCol: { flex: 1.3, minWidth: 0 },
   rightCol: { flex: 1, minWidth: 0 },
+  editorBodyCompact: { flex: 1 },
   colInner: { gap: 14, paddingRight: 4, paddingBottom: 12 },
 
   // Stub

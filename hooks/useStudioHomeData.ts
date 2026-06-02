@@ -99,14 +99,19 @@ export function useStudioHomeData(): StudioHomeData {
     staleTime: 30_000,
     queryFn: async (): Promise<StudioBlueprint[]> => {
       if (!userId) return [];
+      // System B — the real authored catalog (public.blueprints), the same
+      // table the editor and marketplace use. Studio Home previously read the
+      // legacy timeline_blueprints, so a creator's actual authored Plans (and
+      // their drafts) never showed here. blueprints_author_read RLS lets an
+      // author read their own rows regardless of org (incl. null-org solo).
       const { data, error } = await supabase
-        .from('timeline_blueprints')
+        .from('blueprints')
         .select(
-          'id, title, tagline, description, is_published, subscriber_count, ' +
-            'duration_weeks, updated_at, organization_id',
+          'id, title, description, status, version, step_count, ' +
+            'org_id, last_edited_at, published_at',
         )
-        .eq('user_id', userId)
-        .order('updated_at', { ascending: false });
+        .eq('author_user_id', userId)
+        .order('last_edited_at', { ascending: false });
       if (error) {
         console.warn('[useStudioHomeData] blueprints query failed', error);
         return [];
@@ -114,32 +119,54 @@ export function useStudioHomeData(): StudioHomeData {
       type Row = {
         id: string;
         title: string | null;
-        tagline: string | null;
         description: string | null;
-        is_published: boolean | null;
-        subscriber_count: number | null;
-        duration_weeks: number | null;
-        updated_at: string | null;
-        organization_id: string | null;
+        status: string | null;
+        version: string | null;
+        step_count: number | null;
+        org_id: string | null;
+        last_edited_at: string | null;
+        published_at: string | null;
       };
-      return ((data ?? []) as Row[]).map((r): StudioBlueprint => {
-        const status: BlueprintStatus = r.is_published ? 'live' : 'draft';
+      const rows = (data ?? []) as Row[];
+
+      // Active-subscriber counts per blueprint. marketplace_subscriptions is
+      // author-readable (mps_author_self_read); count active + trialing only.
+      const subCountById = new Map<string, number>();
+      const { data: subs, error: subsError } = await supabase
+        .from('marketplace_subscriptions')
+        .select('blueprint_id')
+        .eq('author_user_id', userId)
+        .in('status', ['active', 'trialing']);
+      if (subsError) {
+        console.warn('[useStudioHomeData] subscriber count query failed', subsError);
+      } else {
+        for (const s of (subs ?? []) as { blueprint_id: string }[]) {
+          subCountById.set(s.blueprint_id, (subCountById.get(s.blueprint_id) ?? 0) + 1);
+        }
+      }
+
+      return rows.map((r): StudioBlueprint => {
+        const status: BlueprintStatus = r.status === 'live' ? 'live' : 'draft';
+        // Avoid surfacing the 'v0.1 draft' default on a live pill.
+        const version =
+          status === 'live'
+            ? r.version && !/draft/i.test(r.version)
+              ? r.version
+              : 'v1.0'
+            : null;
         return {
           id: r.id,
           title: r.title ?? 'Untitled blueprint',
-          subtitle:
-            r.tagline?.trim() ||
-            r.description?.trim() ||
-            (r.duration_weeks ? `${r.duration_weeks}-week module` : '—'),
+          subtitle: r.description?.trim() || '—',
           status,
-          version: r.is_published ? 'v1.0' : null,
-          subscriberCount: r.subscriber_count ?? 0,
-          stepCount: 0,             // TODO: count from timeline_steps when wired
+          version,
+          subscriberCount: subCountById.get(r.id) ?? 0,
+          stepCount: r.step_count ?? 0,
           totalSteps: null,
-          coAuthors: [],            // TODO: blueprint_authors table doesn't exist yet
+          coAuthors: [],            // TODO: blueprint co-authors table not wired yet
           coverGradient: gradientFor(r.id),
-          orgShort: r.organization_id && activeOrgShort ? activeOrgShort : null,
-          lastEditLabel: relativeEdit(r.updated_at),
+          orgShort: r.org_id && activeOrgShort ? activeOrgShort : null,
+          lastEditLabel: relativeEdit(r.last_edited_at ?? r.published_at),
         };
       });
     },
