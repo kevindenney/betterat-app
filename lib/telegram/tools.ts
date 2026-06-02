@@ -1306,7 +1306,7 @@ const TOOLS: TelegramToolDef[] = [
       // 3. Fetch user's progress on this competency
       const { data: progress } = await supabase
         .from('betterat_competency_progress')
-        .select('status, attempts_count, last_assessed_at')
+        .select('status, attempts_count, last_attempt_at')
         .eq('user_id', auth.userId)
         .eq('competency_id', comp.id)
         .maybeSingle();
@@ -1352,7 +1352,7 @@ const TOOLS: TelegramToolDef[] = [
         user_progress: {
           status: progress?.status ?? 'not_started',
           attempts: progress?.attempts_count ?? 0,
-          last_assessed: progress?.last_assessed_at ?? null,
+          last_assessed: progress?.last_attempt_at ?? null,
         },
         related_past_steps: relatedSteps,
       };

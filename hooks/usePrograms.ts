@@ -197,6 +197,17 @@ export interface ProgramCompetencyProgress {
   evidence_count: number;
 }
 
+// betterat_competency_progress is status-based (no level columns); derive a
+// numeric level from the status rank. checkoff_ready is the program target bar.
+const COMPETENCY_STATUS_LEVEL: Record<string, number> = {
+  not_started: 0,
+  learning: 1,
+  practicing: 2,
+  checkoff_ready: 3,
+  validated: 4,
+  competent: 5,
+};
+
 async function getProgramCompetencyProgress(
   programId: string,
   userId: string,
@@ -222,7 +233,7 @@ async function getProgramCompetencyProgress(
   // Get user's progress on these competencies
   const { data: progress } = await supabase
     .from('betterat_competency_progress')
-    .select('competency_id, current_level, target_level, evidence_count')
+    .select('competency_id, status, attempts_count')
     .eq('user_id', userId)
     .in('competency_id', compIds);
   const progressMap = new Map(
@@ -235,9 +246,9 @@ async function getProgramCompetencyProgress(
       competency_id: pc.competency_id,
       competency_title: titleMap.get(pc.competency_id) ?? 'Unknown',
       is_required: pc.is_required ?? true,
-      current_level: prog?.current_level ?? 0,
-      target_level: prog?.target_level ?? 3,
-      evidence_count: prog?.evidence_count ?? 0,
+      current_level: COMPETENCY_STATUS_LEVEL[prog?.status] ?? 0,
+      target_level: COMPETENCY_STATUS_LEVEL.checkoff_ready,
+      evidence_count: prog?.attempts_count ?? 0,
     };
   });
 }
