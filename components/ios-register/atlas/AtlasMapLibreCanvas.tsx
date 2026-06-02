@@ -432,6 +432,14 @@ interface AtlasMapLibreCanvasProps {
    */
   showCourse?: boolean;
   /**
+   * Transient overlay rendered while the course-authoring sheet is open.
+   * Unlike `showCourse` (the saved courses, zoom-gated at COURSE_MIN_ZOOM),
+   * the in-progress preview is painted UNGATED so the author sees their
+   * course as they dial in geometry regardless of zoom. Null when not
+   * authoring.
+   */
+  coursePreviewCollection?: GeoJSON.FeatureCollection | null;
+  /**
    * Fires when the user long-presses the map. Atlas uses this to open
    * the racing-area create sheet — the user marks where racing happens
    * even when their club isn't yet in BetterAt.
@@ -499,6 +507,7 @@ export function AtlasMapLibreCanvas({
   onRacingAreaPress,
   showRaceAreas = false,
   showCourse = false,
+  coursePreviewCollection = null,
   onNextEventPress,
   onMapLongPress,
   racingAreaPreviewPolygon = null,
@@ -715,6 +724,7 @@ export function AtlasMapLibreCanvas({
         onRacingAreaPress={onRacingAreaPress}
         showRaceAreas={showRaceAreas}
         courseCollection={courseCollection}
+        coursePreviewCollection={coursePreviewCollection}
         showCourse={showCourse}
         onNextEventPress={onNextEventPress}
         onMapCenterChange={onMapCenterChange}
@@ -873,6 +883,59 @@ export function AtlasMapLibreCanvas({
           </MLGeoJSONSource>
         ) : null}
 
+        {/* In-progress course preview — same styling as the saved overlay
+            but UNGATED (no minZoomLevel) so the author sees their course at
+            any zoom while the create sheet is open. */}
+        {coursePreviewCollection && coursePreviewCollection.features.length > 0 ? (
+          <MLGeoJSONSource id="atlas-course-preview" data={coursePreviewCollection}>
+            <MLLayer
+              id="atlas-course-preview-start-box"
+              type="fill"
+              filter={['==', ['get', 'type'], 'start-box']}
+              style={{ fillColor: 'rgba(20, 33, 61, 0.12)' }}
+            />
+            <MLLayer
+              id="atlas-course-preview-laylines"
+              type="line"
+              filter={['==', ['get', 'type'], 'layline']}
+              style={{
+                lineColor: 'rgba(20, 33, 61, 0.55)',
+                lineWidth: 1,
+                lineDasharray: [3, 3],
+              }}
+            />
+            <MLLayer
+              id="atlas-course-preview-start-line"
+              type="line"
+              filter={['==', ['get', 'type'], 'start-line']}
+              style={{ lineColor: 'rgb(20, 33, 61)', lineWidth: 2 }}
+            />
+            <MLLayer
+              id="atlas-course-preview-finish-line"
+              type="line"
+              filter={['==', ['get', 'type'], 'finish-line']}
+              style={{ lineColor: 'rgb(20, 33, 61)', lineWidth: 2 }}
+            />
+            <MLLayer
+              id="atlas-course-preview-marks"
+              type="circle"
+              filter={['==', ['get', 'type'], 'course-mark']}
+              style={{
+                circleRadius: 5,
+                circleColor: [
+                  'match',
+                  ['get', 'markType'],
+                  'committee', 'rgb(231, 137, 60)',
+                  'finish', 'rgb(255, 255, 255)',
+                  'rgb(20, 33, 61)',
+                ],
+                circleStrokeColor: 'rgb(20, 33, 61)',
+                circleStrokeWidth: 1.5,
+              }}
+            />
+          </MLGeoJSONSource>
+        ) : null}
+
         {racingAreaPreviewCollection ? (
           <MLGeoJSONSource
             id="atlas-race-area-preview"
@@ -997,6 +1060,7 @@ function WebAtlasMapLibreCanvas({
   walkLineCollection,
   raceAreasCollection,
   courseCollection,
+  coursePreviewCollection = null,
 }: AtlasMapLibreCanvasProps & {
   pins: AtlasPinSpec[];
   baseCamera: CameraPreset;
@@ -1230,6 +1294,44 @@ function WebAtlasMapLibreCanvas({
       }
     }
   }, [isLoaded, courseCollection, showCourse]);
+
+  // In-progress course preview (web) — same layer set as above but on a
+  // separate source/ids and UNGATED (no minzoom) so the author sees their
+  // course at any zoom while the create sheet is open.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !isLoaded) return;
+
+    const show =
+      coursePreviewCollection && coursePreviewCollection.features.length > 0;
+    if (!show) {
+      for (const layer of COURSE_WEB_LAYERS) {
+        const id = `${layer.id}-preview`;
+        if (map.getLayer(id)) map.removeLayer(id);
+      }
+      if (map.getSource('atlas-web-course-preview')) {
+        map.removeSource('atlas-web-course-preview');
+      }
+      return;
+    }
+
+    const source = map.getSource('atlas-web-course-preview');
+    if (source?.setData) {
+      source.setData(coursePreviewCollection);
+    } else {
+      map.addSource('atlas-web-course-preview', {
+        type: 'geojson',
+        data: coursePreviewCollection,
+      });
+      for (const layer of COURSE_WEB_LAYERS) {
+        map.addLayer({
+          ...layer,
+          id: `${layer.id}-preview`,
+          source: 'atlas-web-course-preview',
+        });
+      }
+    }
+  }, [isLoaded, coursePreviewCollection]);
 
   useEffect(() => {
     const map = mapRef.current;

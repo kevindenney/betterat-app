@@ -57,6 +57,7 @@ import {
   type AtlasRacingAreaPressTarget,
 } from './AtlasMapLibreCanvas';
 import { CreateRacingAreaSheet } from './CreateRacingAreaSheet';
+import { CreateRaceCourseSheet } from './CreateRaceCourseSheet';
 import { ProfileDropdown } from '@/components/ui/ProfileDropdown';
 import { NotificationBell } from '@/components/social/NotificationBell';
 import { AtlasSearchSheet, type AtlasSearchResult } from './AtlasSearchSheet';
@@ -1554,6 +1555,28 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
   // Mirrors the create-sheet's current shape polygon (circle, rectangle, …)
   // so the canvas can paint a live preview as the user adjusts.
   const [areaSheetPolygon, setAreaSheetPolygon] = useState<GeoJSON.Polygon | null>(null);
+  // Race-course authoring: opened from a racing area the user owns. Holds
+  // the anchor area (id + center) and the live overlay preview the sheet
+  // emits as the author dials in geometry.
+  const [courseSheetArea, setCourseSheetArea] = useState<{
+    id: string;
+    lat: number;
+    lng: number;
+    defaultClass: string | null;
+  } | null>(null);
+  const [coursePreview, setCoursePreview] = useState<GeoJSON.FeatureCollection | null>(null);
+  const handleAddCourse = useCallback((target: EditingRacingArea) => {
+    // Hand off from the area edit sheet to the course sheet, anchored to
+    // the area's center as the start-line seed.
+    setEditingArea(null);
+    setAreaSheetCenter(null);
+    setCourseSheetArea({
+      id: target.id,
+      lat: target.centerLat,
+      lng: target.centerLng,
+      defaultClass: target.classesUsed[0] ?? null,
+    });
+  }, []);
   // Reverse-geocode the active commit-mode candidate so the "Pin
   // dropped" sheet reads "Near Hebe Haven" instead of raw coords.
   const { data: candidateNearest } = useNearestPlace({
@@ -2174,6 +2197,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
             onRacingAreaPress={handleRacingAreaPress}
             showRaceAreas={showRaceAreas}
             showCourse={showCourse}
+            coursePreviewCollection={coursePreview}
             basemap={basemap}
           />
         ) : (
@@ -2793,6 +2817,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
         editingArea={editingArea}
         onMoveOnMap={handleMoveOnMap}
         onRetraceOnMap={handleRetraceOnMap}
+        onAddCourse={handleAddCourse}
         onClose={() => {
           // Lock searchFocus to the area's coords before clearing the
           // sheet center. Otherwise focusLocation falls through to a
@@ -2808,6 +2833,24 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
         }}
         bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
         onShapeChange={setAreaSheetPolygon}
+      />
+
+      <CreateRaceCourseSheet
+        visible={courseSheetArea !== null}
+        center={
+          courseSheetArea ? { lat: courseSheetArea.lat, lng: courseSheetArea.lng } : null
+        }
+        racingAreaId={courseSheetArea?.id ?? null}
+        defaultBoatClass={courseSheetArea?.defaultClass}
+        bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
+        onPreviewChange={setCoursePreview}
+        onClose={() => {
+          if (courseSheetArea) {
+            setSearchFocus({ lat: courseSheetArea.lat, lng: courseSheetArea.lng });
+          }
+          setCourseSheetArea(null);
+          setCoursePreview(null);
+        }}
       />
 
       {repositionTarget ? (

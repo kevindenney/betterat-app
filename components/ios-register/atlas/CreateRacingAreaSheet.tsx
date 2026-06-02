@@ -77,6 +77,12 @@ interface CreateRacingAreaSheetProps {
    */
   onRetraceOnMap?: (target: EditingRacingArea) => void;
   /**
+   * Edit mode only: open the race-course authoring sheet anchored to
+   * this area. Lets a sailor add a reusable W/L course inside an area
+   * they own without leaving the Atlas.
+   */
+  onAddCourse?: (target: EditingRacingArea) => void;
+  /**
    * Pixels to push the sheet up from the bottom edge to clear floating
    * chrome like a tab bar. Matches the `bottomOffset` prop on Atlas's
    * other BottomSheet variants. Defaults to a safe iOS tab-bar height.
@@ -156,6 +162,7 @@ export function CreateRacingAreaSheet({
   editingArea,
   onMoveOnMap,
   onRetraceOnMap,
+  onAddCourse,
   bottomOffset = DEFAULT_BOTTOM_OFFSET,
   onShapeChange,
   onClose,
@@ -455,6 +462,17 @@ export function CreateRacingAreaSheet({
               >
                 <Ionicons name="create-outline" size={14} color={IOS_REGISTER.accentUserAction} />
                 <Text style={styles.moveOnMapLinkText}>Trace actual shape</Text>
+              </Pressable>
+            ) : null}
+            {onAddCourse ? (
+              <Pressable
+                onPress={() => onAddCourse(editingArea)}
+                style={({ pressed }) => [styles.moveOnMapLink, pressed && { opacity: 0.6 }]}
+                accessibilityRole="button"
+                accessibilityLabel="Add a race course in this area"
+              >
+                <Ionicons name="flag-outline" size={14} color={IOS_REGISTER.accentUserAction} />
+                <Text style={styles.moveOnMapLinkText}>Add race course</Text>
               </Pressable>
             ) : null}
           </View>
