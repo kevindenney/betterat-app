@@ -115,13 +115,14 @@ export function useCoachRecruitment() {
     queryFn: async () => {
       if (!user?.id) return { boatClasses: [], seasonCount: 0, raceCount: 0 };
 
-      // Get user's boat classes and race history
-      const [profileResult, seasonsResult, racesResult] = await Promise.all([
+      // Get user's boat classes and race history. Boat classes live in the
+      // canonical sailor_classes -> boat_classes relation (sailor_profiles has
+      // no boat-class columns), primary first.
+      const [classesResult, seasonsResult, racesResult] = await Promise.all([
         supabase
-          .from('sailor_profiles')
-          .select('primary_boat_class, secondary_boat_classes')
-          .eq('user_id', user.id)
-          .maybeSingle(),
+          .from('sailor_classes')
+          .select('is_primary, boat_classes(name)')
+          .eq('sailor_id', user.id),
         supabase
           .from('user_seasons')
           .select('id')
@@ -132,9 +133,9 @@ export function useCoachRecruitment() {
           .eq('user_id', user.id),
       ]);
 
-      if (profileResult.error) {
-        logger.error('Failed to load sailor profile for recruitment', profileResult.error);
-        throw new Error(profileResult.error.message || 'Failed to load sailor profile');
+      if (classesResult.error) {
+        logger.error('Failed to load sailor classes for recruitment', classesResult.error);
+        throw new Error(classesResult.error.message || 'Failed to load sailor classes');
       }
       if (seasonsResult.error) {
         logger.error('Failed to load user seasons for recruitment', seasonsResult.error);
@@ -145,12 +146,19 @@ export function useCoachRecruitment() {
         throw new Error(racesResult.error.message || 'Failed to load race history');
       }
 
+      type SailorClassRow = {
+        is_primary: boolean | null;
+        boat_classes: { name: string | null } | { name: string | null }[] | null;
+      };
+      const classRows = (classesResult.data ?? []) as SailorClassRow[];
       const boatClasses: string[] = [];
-      if (profileResult.data?.primary_boat_class) {
-        boatClasses.push(profileResult.data.primary_boat_class);
-      }
-      if (profileResult.data?.secondary_boat_classes) {
-        boatClasses.push(...(profileResult.data.secondary_boat_classes || []));
+      const orderedClasses = [...classRows].sort(
+        (a, b) => Number(b.is_primary ?? false) - Number(a.is_primary ?? false),
+      );
+      for (const row of orderedClasses) {
+        const embed = row.boat_classes;
+        const name = Array.isArray(embed) ? embed[0]?.name : embed?.name;
+        if (name && !boatClasses.includes(name)) boatClasses.push(name);
       }
 
       return {
