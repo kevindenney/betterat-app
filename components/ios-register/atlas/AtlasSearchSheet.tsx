@@ -281,12 +281,11 @@ async function fetchSearchResults(
     peopleRes,
     ownStepsRes,
     peerStepsRes,
-    blueprintStepsRes,
+    blueprintsRes,
     orgsRes,
     orgMemberIds,
     groupsRes,
     groupMemberIds,
-    clubsRes,
     sailingRes,
   ] = await Promise.all([
     supabase
@@ -312,8 +311,8 @@ async function fetchSearchResults(
           .limit(10)
       : Promise.resolve({ data: null, error: null } as { data: null; error: null }),
     supabase
-      .from('blueprint_steps')
-      .select('id, blueprint_id, title, description')
+      .from('blueprints')
+      .select('id, title, description, slug')
       .or(`title.ilike.${like},description.ilike.${like}`)
       .limit(10),
     supabase
@@ -458,18 +457,16 @@ async function fetchSearchResults(
     }
   }
 
-  if (!blueprintStepsRes.error && blueprintStepsRes.data) {
-    for (const s of blueprintStepsRes.data as Record<string, unknown>[]) {
-      const stepId = String(s.id);
-      const blueprintId = s.blueprint_id ? String(s.blueprint_id) : undefined;
-      const title = String(s.title ?? 'Blueprint step');
-      const desc = s.description ? String(s.description) : null;
+  if (!blueprintsRes.error && blueprintsRes.data) {
+    for (const b of blueprintsRes.data as Record<string, unknown>[]) {
+      const blueprintId = String(b.id);
+      const title = String(b.title ?? 'Blueprint');
+      const desc = b.description ? String(b.description) : null;
       out.push({
-        id: `blueprint_step:${stepId}`,
+        id: `blueprint:${blueprintId}`,
         kind: 'blueprint_step',
         name: title,
-        detail: desc ? desc.slice(0, 80) : 'Blueprint step',
-        stepId,
+        detail: desc ? desc.slice(0, 80) : 'Blueprint',
         blueprintId,
       });
     }
@@ -547,23 +544,6 @@ async function fetchSearchResults(
               : undefined,
         groupId,
         isMember,
-      });
-    }
-  }
-
-  if (!clubsRes.error && clubsRes.data) {
-    for (const club of clubsRes.data as Record<string, unknown>[]) {
-      const lat = Number(club.latitude);
-      const lng = Number(club.longitude);
-      if (!Number.isFinite(lat) || !Number.isFinite(lng)) continue;
-      if (countryCode && club.country_code && club.country_code !== countryCode) continue;
-      out.push({
-        id: `club:${club.id}`,
-        kind: 'club',
-        name: String(club.short_name ?? club.name ?? 'Club'),
-        detail: [club.city, club.country].filter(Boolean).join(' · ') || undefined,
-        lat,
-        lng,
       });
     }
   }
