@@ -564,33 +564,14 @@ export function AtlasMapLibreCanvas({
   // iOS rejected the symbol layer (see feedback_maplibre_native_strict_expressions),
   // and overlay text bypasses that path entirely while still reading
   // correctly over the tan fill thanks to the white-pill background.
-  const racingAreaLabels = useMemo<
-    { id: string; name: string; lng: number; lat: number }[]
-  >(() => {
-    const out: { id: string; name: string; lng: number; lat: number }[] = [];
-    for (const feature of raceAreasCollection.features) {
-      const geom = feature.geometry;
-      if (!geom || geom.type !== 'Polygon') continue;
-      const ring = geom.coordinates[0];
-      if (!ring || ring.length === 0) continue;
-      let lngSum = 0;
-      let latSum = 0;
-      for (const [lng, lat] of ring) {
-        lngSum += lng;
-        latSum += lat;
-      }
-      const name = (feature.properties as { id?: string; name?: string } | null)?.name;
-      const id = (feature.properties as { id?: string } | null)?.id;
-      if (!name || !id) continue;
-      out.push({
-        id,
-        name,
-        lng: lngSum / ring.length,
-        lat: latSum / ring.length,
-      });
-    }
-    return out;
-  }, [raceAreasCollection]);
+  // Shared builder with the web path — crucially carries the full `area`
+  // payload (createdBy, classesUsed, polygon) the onPress handler needs.
+  // The earlier inline version omitted `area`, so tapping a label on
+  // native threw "Cannot read property 'createdBy' of undefined".
+  const racingAreaLabels = useMemo(
+    () => getRacingAreaLabels(raceAreasCollection),
+    [raceAreasCollection],
+  );
   const racingAreaPreviewCollection = useMemo<GeoJSON.FeatureCollection | null>(() => {
     if (!racingAreaPreviewPolygon) return null;
     return {
