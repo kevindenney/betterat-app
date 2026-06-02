@@ -1117,38 +1117,67 @@ export async function fetchUserResults(userId: string, regattaIds: string[]): Pr
     }
 
     if (!raceResultsError && raceResults) {
+      // First-wins dedup of the results we still need (mirrors the old
+      // `!resultsMap.has(regattaId)` guard, which also skipped duplicates).
+      const pending = new Map<string, (typeof raceResults)[number]>();
       for (const result of raceResults) {
         const regattaId = result.regatta_id || result.race_id;
+        if (
+          regattaId &&
+          validRegattaIds.includes(regattaId) &&
+          !resultsMap.has(regattaId) &&
+          !pending.has(regattaId)
+        ) {
+          pending.set(regattaId, result);
+        }
+      }
 
-        if (regattaId && validRegattaIds.includes(regattaId) && !resultsMap.has(regattaId)) {
-          // Count fleet size for this regatta + race_number
-          let count = 0;
-          const primaryCount = await supabase
-            .from('race_results')
-            .select('*', { count: 'exact', head: true })
-            .eq('regatta_id', regattaId)
-            .eq('race_number', result.race_number);
-          count = primaryCount.count || 0;
+      if (pending.size > 0) {
+        const pendingRegattaIds = [...pending.keys()];
 
-          if (
-            primaryCount.error &&
-            isMissingIdColumn(primaryCount.error, 'race_results', 'regatta_id')
-          ) {
-            const fallbackCount = await supabase
-              .from('race_results')
-              .select('*', { count: 'exact', head: true })
-              .eq('race_id', regattaId)
-              .eq('race_number', result.race_number);
-            count = fallbackCount.count || 0;
+        // One batched read of every fleet row for the regattas we care about,
+        // then count (regatta_id, race_number) client-side — replaces the
+        // per-result count query (N+1).
+        const fleetCounts = new Map<string, number>();
+        const tallyRows = (
+          rows: { regatta_id?: string | null; race_id?: string | null; race_number?: number | null }[] | null,
+          idKey: 'regatta_id' | 'race_id'
+        ) => {
+          for (const row of rows ?? []) {
+            const rid = row[idKey];
+            if (!rid) continue;
+            const key = `${rid}:${row.race_number ?? ''}`;
+            fleetCounts.set(key, (fleetCounts.get(key) ?? 0) + 1);
           }
+        };
 
+        const primaryFleet = await supabase
+          .from('race_results')
+          .select('regatta_id, race_number')
+          .in('regatta_id', pendingRegattaIds);
+
+        if (
+          primaryFleet.error &&
+          isMissingIdColumn(primaryFleet.error, 'race_results', 'regatta_id')
+        ) {
+          const fallbackFleet = await supabase
+            .from('race_results')
+            .select('race_id, race_number')
+            .in('race_id', pendingRegattaIds);
+          tallyRows(fallbackFleet.data as any, 'race_id');
+        } else {
+          tallyRows(primaryFleet.data as any, 'regatta_id');
+        }
+
+        for (const [regattaId, result] of pending) {
+          const count = fleetCounts.get(`${regattaId}:${result.race_number ?? ''}`) ?? 0;
           const normalizedPosition = result.position ?? 0;
           const normalizedPoints = result.points ?? normalizedPosition;
           resultsMap.set(regattaId, {
             regattaId,
             position: normalizedPosition,
             points: normalizedPoints,
-            fleetSize: count || 0,
+            fleetSize: count,
             status: (result.status_code?.toLowerCase() || 'finished') as UserRaceResult['status'],
           });
         }

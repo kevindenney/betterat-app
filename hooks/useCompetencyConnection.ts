@@ -123,45 +123,43 @@ export function useCompetencyConnection(
     staleTime: 0, // Always re-fetch (competency progress can change any time)
   })
 
-  const connections = data ?? []
+  const connections = useMemo(() => data ?? [], [data])
 
   // Sync: ensure competency progress exists at "learning" when student has rated steps
   const syncToCompetency = useCallback(async () => {
     if (!userId || !interestId || connections.length === 0) return
     if (annotationStats.ratedCount === 0) return
 
-    for (const conn of connections) {
-      if (conn.progress !== null) continue // Already has a progress row
+    const newRows = connections
+      .filter((conn) => conn.progress === null)
+      .map((conn) => ({
+        user_id: userId,
+        competency_id: conn.competency.id,
+        status: 'learning' as CompetencyStatus,
+        attempts_count: 0,
+        notes: 'Started from lesson study — self-rating step annotations.',
+      }))
 
-      // Create progress at "learning"
-      const { error } = await supabase
-        .from('betterat_competency_progress')
-        .insert({
-          user_id: userId,
-          competency_id: conn.competency.id,
-          status: 'learning' as CompetencyStatus,
-          attempts_count: 0,
-          notes: 'Started from lesson study — self-rating step annotations.',
-        })
+    if (newRows.length === 0) return
 
-      if (error) {
-        // Unique constraint violation = another process created it, that's fine
-        if (!error.message.includes('duplicate key')) {
-          console.warn('[useCompetencyConnection] sync error:', error.message)
-        }
-      } else {
-        // Invalidate queries so the UI updates
-        queryClient.invalidateQueries({
-          queryKey: ['competency-connection', interestId],
-        })
-        queryClient.invalidateQueries({
-          queryKey: ['competency-progress', userId, interestId],
-        })
-        queryClient.invalidateQueries({
-          queryKey: ['competency-summary', userId, interestId],
-        })
-      }
+    // Single batch insert; ignoreDuplicates tolerates rows another process
+    // created (the (user_id, competency_id) unique constraint).
+    const { error } = await supabase
+      .from('betterat_competency_progress')
+      .upsert(newRows, {
+        onConflict: 'user_id,competency_id',
+        ignoreDuplicates: true,
+      })
+
+    if (error) {
+      console.warn('[useCompetencyConnection] sync error:', error.message)
+      return
     }
+
+    // Invalidate once after the batch so the UI updates
+    queryClient.invalidateQueries({ queryKey: ['competency-connection', interestId] })
+    queryClient.invalidateQueries({ queryKey: ['competency-progress', userId, interestId] })
+    queryClient.invalidateQueries({ queryKey: ['competency-summary', userId, interestId] })
   }, [userId, interestId, connections, annotationStats.ratedCount, queryClient])
 
   // Auto-sync when rated count changes (debounced by the confidence setter)
