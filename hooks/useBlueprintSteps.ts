@@ -156,6 +156,33 @@ export function useBlueprintSteps(blueprintId: string, orgId?: string | null) {
     },
   });
 
+  const importTimelineSteps = useMutation({
+    mutationFn: async (picks: { title: string; description: string | null }[]) => {
+      if (picks.length === 0) return { count: 0 };
+      const base = steps[steps.length - 1]?.sortOrder ?? 0;
+      const rows = picks.map((p, i) => ({
+        blueprint_id: blueprintId,
+        sort_order: base + i + 1,
+        title: p.title.trim() || 'Untitled step',
+        description: p.description,
+        category: 'other' as StepCategory,
+      }));
+      const { error } = await supabase.from('blueprint_step_templates').insert(rows);
+      if (error) throw error;
+      return { count: rows.length };
+    },
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey });
+      if (result && result.count > 0) {
+        emitActivity(
+          'Imported steps',
+          `Imported ${result.count} step${result.count !== 1 ? 's' : ''} from timeline.`,
+          { count: result.count },
+        );
+      }
+    },
+  });
+
   const deleteStep = useMutation({
     mutationFn: async (id: string) => {
       const existing = steps.find((s) => s.id === id);
@@ -197,6 +224,7 @@ export function useBlueprintSteps(blueprintId: string, orgId?: string | null) {
     loading: isLoading,
     updateStep,
     addStep,
+    importTimelineSteps,
     deleteStep,
     reorder,
   };

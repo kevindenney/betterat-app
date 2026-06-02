@@ -28,6 +28,7 @@ import { useBlueprintPricing } from '@/hooks/useBlueprintPricing';
 import { useBlueprintCohorts } from '@/hooks/useBlueprintCohorts';
 import { useBlueprintActivity } from '@/hooks/useBlueprintActivity';
 import { useBlueprintMentorSettings, MentorSettings } from '@/hooks/useBlueprintMentorSettings';
+import { ImportTimelineStepsSheet } from '@/components/studio/ImportTimelineStepsSheet';
 
 // =============================================================================
 // FRAME 18 · STEPS
@@ -47,11 +48,10 @@ export function StepsTabBody({
   blueprintId: string;
   orgId: string | null;
 }) {
-  const { steps, loading, addStep, deleteStep, updateStep } = useBlueprintSteps(
-    blueprintId,
-    orgId,
-  );
+  const { steps, loading, addStep, importTimelineSteps, deleteStep, updateStep } =
+    useBlueprintSteps(blueprintId, orgId);
   const [expandedId, setExpandedId] = React.useState<string | null>(null);
+  const [importVisible, setImportVisible] = React.useState(false);
 
   // Auto-expand the second step (or first if there's only one) for visual
   // continuity with the design canonical — shows an in-line editor for at
@@ -123,6 +123,25 @@ export function StepsTabBody({
         <View style={{ flex: 1 }} />
         <Text style={s.addStepTempl}>Start from template ›</Text>
       </Pressable>
+
+      <Pressable style={s.addStep} onPress={() => setImportVisible(true)}>
+        <View style={s.addStepPlus}>
+          <Ionicons name="albums-outline" size={15} color="#28406B" />
+        </View>
+        <Text style={s.addStepLabel}>
+          <Text style={{ fontWeight: '600' }}>Add from my timeline</Text> — pull in steps
+          you&apos;ve already done
+        </Text>
+      </Pressable>
+
+      <ImportTimelineStepsSheet
+        visible={importVisible}
+        importing={importTimelineSteps.isPending}
+        onClose={() => setImportVisible(false)}
+        onConfirm={(picks) =>
+          importTimelineSteps.mutate(picks, { onSuccess: () => setImportVisible(false) })
+        }
+      />
     </ScrollView>
   );
 }
