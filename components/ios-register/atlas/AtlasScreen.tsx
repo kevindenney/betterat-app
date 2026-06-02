@@ -883,8 +883,8 @@ function getLayersForFrame(frame: AtlasFrameId): LayerItem[] {
     // can't render at the current zoom is honest about it via the
     // sub-label rather than silently no-op'ing.
     return [
-      { key: 'sailing.wind', label: 'Wind forecast', sub: 'Direction + speed for next race day', defaultOn: false },
-      { key: 'sailing.tide', label: 'Tidal current', sub: 'Set + drift around the course', defaultOn: false },
+      { key: 'sailing.wind', label: 'Wind forecast', sub: 'Direction + speed for next race day', defaultOn: true },
+      { key: 'sailing.tide', label: 'Tidal current', sub: 'Set + drift around the course', defaultOn: true },
       { key: 'sailing.race_areas', label: 'Race areas', sub: 'Highlighted racing zones', defaultOn: true },
       { key: 'sailing.race_marks', label: 'Race marks', sub: 'Visible at zoom ≥ 14', defaultOn: false },
       { key: 'sailing.marinas', label: 'Marinas & clubs', sub: 'Sailing venues nearby', defaultOn: true },
