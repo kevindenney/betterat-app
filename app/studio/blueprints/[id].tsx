@@ -26,7 +26,7 @@ import {
   Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useAuth } from '@/providers/AuthProvider';
 import { useProfileMenuData } from '@/hooks/useProfileMenuData';
 import {
@@ -65,6 +65,7 @@ type EditorTab =
 
 export default function BlueprintEditorPage() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const router = useRouter();
   const blueprintId = typeof id === 'string' ? id : 'new';
   const { user, userProfile } = useAuth();
   const menu = useProfileMenuData();
@@ -214,6 +215,11 @@ export default function BlueprintEditorPage() {
           role: `Studio · ${displayName.split(' ').slice(0, 2).join(' ')}`,
           mono: activeOrg ? activeOrg.org_short_name : initials,
           monoColor: activeOrg ? 'navy' : 'solo',
+        }}
+        ctxLens="studio"
+        ctxLensOptions={['practice', 'studio']}
+        onCtxChange={(lens) => {
+          if (lens === 'practice') router.push('/');
         }}
         navSections={navSections}
         user={{
