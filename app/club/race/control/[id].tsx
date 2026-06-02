@@ -101,8 +101,7 @@ export default function RaceControlScreen() {
   // UI State
   const [activeTab, setActiveTab] = useState<'timer' | 'finishes' | 'flags' | 'protests' | 'crew'>('timer');
   const [showProtestModal, setShowProtestModal] = useState(false);
-  const [selectedEntry, setSelectedEntry] = useState<RaceEntry | null>(null);
-  const [finishQueue, setFinishQueue] = useState<string[]>([]); // Entry IDs in finish order
+  const [, setFinishQueue] = useState<string[]>([]); // Entry IDs in finish order
 
   // Sound
   const [sound, setSound] = useState<Audio.Sound | null>(null);
@@ -145,6 +144,7 @@ export default function RaceControlScreen() {
         sound.unloadAsync();
       }
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, raceNumber, clubId]);
 
   // Realtime subscription for results
@@ -159,6 +159,7 @@ export default function RaceControlScreen() {
           event: '*',
           schema: 'public',
           table: 'race_results',
+          filter: `regatta_id=eq.${id}`,
         },
         () => {
           loadResults();
@@ -169,6 +170,7 @@ export default function RaceControlScreen() {
     return () => {
       supabase.removeChannel(channel);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, raceNumber, clubId]);
 
   const loadRegattaData = async () => {
@@ -673,6 +675,7 @@ export default function RaceControlScreen() {
       return () => {
         supabase.removeChannel(channel);
       };
+      // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [regattaId, raceNumber]);
 
     const loadProtests = async () => {
