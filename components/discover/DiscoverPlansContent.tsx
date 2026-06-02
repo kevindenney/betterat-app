@@ -30,6 +30,7 @@ import {
   useDiscoverBlueprints,
   useSubscribe,
 } from '@/hooks/useBlueprint';
+import { useMarketplaceBlueprints, type MarketplaceBlueprint } from '@/hooks/useMarketplaceBlueprints';
 import { NotificationService } from '@/services/NotificationService';
 import type { DiscoveredBlueprint } from '@/services/BlueprintService';
 
@@ -44,11 +45,32 @@ export function DiscoverPlansContent({ toolbarOffset }: DiscoverPlansContentProp
 
   const { data: subscribed = [] } = useSubscribedBlueprints(interestId);
   const { data: catalog = [], isLoading } = useDiscoverBlueprints(interestId);
+  const { blueprints: marketPlans, loading: marketLoading } =
+    useMarketplaceBlueprints(interestId ?? null);
   const subscribeMutation = useSubscribe();
   const [subscribingId, setSubscribingId] = useState<string | null>(null);
 
   const subscribedIds = new Set(subscribed.map((s) => s.blueprint_id));
   const available = catalog.filter((bp) => !subscribedIds.has(bp.id));
+
+  // Real authored catalog (System B). These subscribe via Stripe on the
+  // marketplace detail page, so they route there rather than using the
+  // System-A follow mutation. Dedupe against System-A titles.
+  const marketAvailable = React.useMemo(() => {
+    const systemATitles = new Set(
+      [...available, ...subscribed.map((s) => ({ title: s.blueprint_title }))].map((b) =>
+        b.title.trim().toLowerCase(),
+      ),
+    );
+    return marketPlans.filter((p) => !systemATitles.has(p.title.trim().toLowerCase()));
+  }, [marketPlans, available, subscribed]);
+
+  const marketBadge = (p: MarketplaceBlueprint): string => {
+    if (p.pricePerSeatCents <= 0) return 'Free';
+    const cadence =
+      p.billingCadence === 'monthly' ? '/mo' : p.billingCadence === 'annual' ? '/yr' : '';
+    return `$${Math.round(p.pricePerSeatCents / 100)}${cadence}`;
+  };
 
   const handleSubscribe = async (bp: DiscoveredBlueprint) => {
     if (!user) return;
@@ -119,11 +141,44 @@ export function DiscoverPlansContent({ toolbarOffset }: DiscoverPlansContentProp
       <View style={styles.section}>
         <Text style={styles.eyebrow}>Plans you can follow</Text>
 
-        {isLoading ? (
+        {marketAvailable.map((p) => (
+          <Pressable
+            key={`market:${p.id}`}
+            style={styles.catalogCard}
+            onPress={() => router.push(`/marketplace/${p.id}` as never)}
+          >
+            <View style={styles.catalogMain}>
+              <View style={styles.catalogTextWrap}>
+                <Text style={styles.catalogTitle} numberOfLines={2}>
+                  {p.title}
+                </Text>
+                <Text style={styles.catalogMeta} numberOfLines={1}>
+                  {p.orgName ?? p.authorName}
+                  {p.activeSubscriberCount > 0
+                    ? ` · ${p.activeSubscriberCount} follower${p.activeSubscriberCount !== 1 ? 's' : ''}`
+                    : ''}
+                </Text>
+                {p.description ? (
+                  <Text style={styles.catalogDesc} numberOfLines={2}>
+                    {p.description}
+                  </Text>
+                ) : null}
+              </View>
+              <View style={styles.accessBadge}>
+                <Text style={styles.accessBadgeText}>{marketBadge(p)}</Text>
+              </View>
+            </View>
+            <View style={styles.subscribeBtn}>
+              <Text style={styles.subscribeBtnText}>View plan</Text>
+            </View>
+          </Pressable>
+        ))}
+
+        {isLoading || marketLoading ? (
           <View style={styles.loadingBox}>
             <ActivityIndicator color={IOS_COLORS.systemBlue} />
           </View>
-        ) : available.length === 0 ? (
+        ) : available.length === 0 && marketAvailable.length === 0 ? (
           <View style={styles.emptyCard}>
             <Ionicons name="reader-outline" size={26} color={IOS_COLORS.systemBlue} />
             <Text style={styles.emptyTitle}>No published plans here yet</Text>
