@@ -1565,6 +1565,15 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
     defaultClass: string | null;
   } | null>(null);
   const [coursePreview, setCoursePreview] = useState<GeoJSON.FeatureCollection | null>(null);
+  // Stabilize the `center` reference handed to CreateRaceCourseSheet, keyed
+  // on the raw lat/lng. A fresh {lat,lng} literal each render re-fired the
+  // sheet's previewCollection memo → onPreviewChange → setCoursePreview →
+  // re-render, looping until "Maximum update depth exceeded" — the same
+  // identity-churn trap CreateRacingAreaSheet solved with areaSheetCenterForSheet.
+  const courseSheetCenter = useMemo(
+    () => (courseSheetArea ? { lat: courseSheetArea.lat, lng: courseSheetArea.lng } : null),
+    [courseSheetArea],
+  );
   const handleAddCourse = useCallback((target: EditingRacingArea) => {
     // Hand off from the area edit sheet to the course sheet, anchored to
     // the area's center as the start-line seed.
@@ -2837,9 +2846,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
 
       <CreateRaceCourseSheet
         visible={courseSheetArea !== null}
-        center={
-          courseSheetArea ? { lat: courseSheetArea.lat, lng: courseSheetArea.lng } : null
-        }
+        center={courseSheetCenter}
         racingAreaId={courseSheetArea?.id ?? null}
         defaultBoatClass={courseSheetArea?.defaultClass}
         bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
