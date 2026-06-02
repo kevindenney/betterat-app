@@ -29,6 +29,7 @@ export interface FleetMembership {
 
 export interface FleetMetrics {
   members: number;
+  invited: number;
   followers: number;
   documents: number;
 }
@@ -245,6 +246,7 @@ class FleetService {
 
     const metrics = await Promise.all([
       this.countMembers(fleetId),
+      this.countInvited(fleetId),
       this.countFollowers(fleetId),
       this.countDocuments(fleetId),
     ]);
@@ -253,8 +255,9 @@ class FleetService {
       fleet: this.mapFleet(data),
       metrics: {
         members: metrics[0],
-        followers: metrics[1],
-        documents: metrics[2],
+        invited: metrics[1],
+        followers: metrics[2],
+        documents: metrics[3],
       },
     };
   }
@@ -714,6 +717,20 @@ class FleetService {
     }
 
     return count ?? 0;
+  }
+
+  /**
+   * Count of outstanding invites (in-app `invited`/`pending` memberships plus
+   * pending email invites), derived from the same roster RPC the members
+   * screen uses so the hub's "· N invited" can't drift from that header.
+   */
+  private async countInvited(fleetId: string): Promise<number> {
+    try {
+      const roster = await this.getFleetRoster(fleetId);
+      return roster.filter(r => r.isEmailInvite || r.status !== 'active').length;
+    } catch {
+      return 0;
+    }
   }
 
   private async countFollowers(fleetId: string): Promise<number> {

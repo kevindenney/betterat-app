@@ -39,6 +39,9 @@ const COLORS = {
   successGreen: '#16A34A',
 };
 
+const pluralize = (count: number, noun: string): string =>
+  `${count} ${noun}${count === 1 ? '' : 's'}`;
+
 export default function FleetOverviewScreen() {
   const { user } = useAuth();
   const router = useRouter();
@@ -63,6 +66,7 @@ export default function FleetOverviewScreen() {
   const activeRole = activeFleetMembership?.role;
   const canManagePlans =
     activeRole === 'owner' || activeRole === 'captain' || activeRole === 'coach';
+  const canManageMembers = activeRole === 'owner' || activeRole === 'captain';
 
   useFocusEffect(
     useCallback(() => {
@@ -200,7 +204,7 @@ export default function FleetOverviewScreen() {
                 {[
                   summaryFleet.region,
                   summaryFleet.boat_classes?.name,
-                  `${overview?.metrics?.members ?? 0} members`,
+                  pluralize(overview?.metrics?.members ?? 0, 'member'),
                 ].filter(Boolean).join(' · ')}
               </Text>
             </View>
@@ -219,12 +223,30 @@ export default function FleetOverviewScreen() {
           {/* Stats Line */}
           <Text style={styles.statsLine}>
             {[
-              `${overview?.metrics?.members ?? 0} members`,
-              `${overview?.metrics?.documents ?? 0} resources`,
+              pluralize(overview?.metrics?.members ?? 0, 'member'),
+              (overview?.metrics?.invited ?? 0) > 0
+                ? `${overview?.metrics?.invited} invited`
+                : null,
+              pluralize(overview?.metrics?.documents ?? 0, 'resource'),
               summaryFleet.visibility ?? 'private',
               summaryFleet.whatsappLink ? 'WhatsApp linked' : null,
             ].filter(Boolean).join(' · ')}
           </Text>
+
+          {/* Manage / view members */}
+          <TouchableOpacity
+            style={styles.quickAction}
+            onPress={() =>
+              router.push({
+                pathname: '/(tabs)/fleet/members',
+                params: { fleetId: summaryFleet.id },
+              } as any)
+            }
+          >
+            <Text style={styles.linkText}>
+              {canManageMembers ? 'Manage members →' : 'View members →'}
+            </Text>
+          </TouchableOpacity>
 
           {/* Quick Actions */}
           {summaryFleet.whatsappLink && (
