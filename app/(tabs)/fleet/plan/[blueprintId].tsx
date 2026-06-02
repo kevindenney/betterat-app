@@ -87,13 +87,16 @@ export default function FleetPlanDetailScreen() {
         isSubscribedToFleetPlan(user.id, blueprintId),
       ]);
       setSteps(rows);
-      setSubscribed(sub || canEdit);
+      // Subscription is orthogonal to edit-rights: a captain authors the plan
+      // but still subscribes (like any member) to pull its steps into their own
+      // timeline. Don't treat editors as auto-subscribed.
+      setSubscribed(sub);
     } catch (err: any) {
       showAlert('Could not load plan', err?.message ?? 'Please try again.');
     } finally {
       setLoading(false);
     }
-  }, [blueprintId, user?.id, canEdit]);
+  }, [blueprintId, user?.id]);
 
   useEffect(() => {
     void load();
@@ -167,7 +170,7 @@ export default function FleetPlanDetailScreen() {
           </TouchableOpacity>
         )}
 
-        {!subscribed && !canEdit && (
+        {!subscribed && (
           <TouchableOpacity
             style={[styles.primaryButton, subscribing && styles.buttonDisabled]}
             onPress={handleSubscribe}
@@ -210,7 +213,7 @@ export default function FleetPlanDetailScreen() {
                         <View style={styles.adoptedPill}>
                           <Text style={styles.adoptedPillText}>✓ In your timeline</Text>
                         </View>
-                      ) : (
+                      ) : subscribed ? (
                         <TouchableOpacity
                           style={[
                             styles.adoptButton,
@@ -225,7 +228,7 @@ export default function FleetPlanDetailScreen() {
                             <Text style={styles.adoptButtonText}>+ Add to my timeline</Text>
                           )}
                         </TouchableOpacity>
-                      )}
+                      ) : null}
                       {subscribed && (
                         <TouchableOpacity onPress={() => openDiscussion(step.step_id)}>
                           <Text style={styles.discussText}>Discuss</Text>
