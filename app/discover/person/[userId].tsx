@@ -37,6 +37,7 @@ import {
   TrophyRow,
   InCommonRow,
   ConceptCard,
+  WebDetailContainer,
   IOS_DETAIL_GROUND_BG,
   pickAvatarMarkColor,
 } from '@/components/discover/detail';
@@ -195,18 +196,20 @@ function PersonDetailScreenInner() {
   return (
     <SafeAreaView style={styles.ground} edges={['top']}>
       <Stack.Screen options={{ headerShown: false }} />
-      <IOSDetailNavBar
-        backLabel={backLabel}
-        contextLabel="Person"
-        dockedName={displayName}
-        docked={docked && !isFollowing}
-        trailingAction={
-          docked && !isFollowing
-            ? { label: 'Follow', icon: 'add', onPress: handleFollow }
-            : undefined
-        }
-        onBack={onBack}
-      />
+      <WebDetailContainer>
+        <IOSDetailNavBar
+          backLabel={backLabel}
+          contextLabel="Person"
+          dockedName={displayName}
+          docked={docked && !isFollowing}
+          trailingAction={
+            docked && !isFollowing
+              ? { label: 'Follow', icon: 'add', onPress: handleFollow }
+              : undefined
+          }
+          onBack={onBack}
+        />
+      </WebDetailContainer>
 
       <ScrollView
         style={styles.scroll}
@@ -215,6 +218,7 @@ function PersonDetailScreenInner() {
         scrollEventThrottle={16}
         showsVerticalScrollIndicator={false}
       >
+        <WebDetailContainer>
         <IOSDetailHero
           markShape="circle"
           markText={initials}
@@ -360,6 +364,7 @@ function PersonDetailScreenInner() {
         </IOSDetailSection>
 
         <View style={styles.bottomPad} />
+        </WebDetailContainer>
       </ScrollView>
 
       {FEATURE_FLAGS.SUGGEST_VERB_V3 ? (

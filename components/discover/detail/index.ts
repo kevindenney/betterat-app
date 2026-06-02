@@ -1,4 +1,5 @@
 export { IOSOnlyNotice } from './IOSOnlyNotice';
+export { WebDetailContainer } from './WebDetailContainer';
 export {
   IOSDetailNavBar,
   IOSDetailHero,

@@ -43,6 +43,7 @@ import {
   IOSDetailSection,
   RelationshipButton,
   RelationshipMinePill,
+  WebDetailContainer,
 } from '@/components/discover/detail';
 import { initialsForName } from '@/components/discover/canonical';
 import { showAlert, showConfirm } from '@/lib/utils/crossPlatformAlert';
@@ -156,18 +157,20 @@ function PublicFaceScreenInner({ userId }: { userId: string }) {
   return (
     <SafeAreaView style={styles.ground} edges={['top']}>
       <Stack.Screen options={{ headerShown: false }} />
-      <IOSDetailNavBar
-        backLabel="Back"
-        contextLabel="Public face"
-        dockedName={displayName}
-        docked={docked && !profile.isFollowing}
-        trailingAction={
-          docked && !profile.isFollowing
-            ? { label: 'Follow', icon: 'add', onPress: handleFollow }
-            : undefined
-        }
-        onBack={onBack}
-      />
+      <WebDetailContainer>
+        <IOSDetailNavBar
+          backLabel="Back"
+          contextLabel="Public face"
+          dockedName={displayName}
+          docked={docked && !profile.isFollowing}
+          trailingAction={
+            docked && !profile.isFollowing
+              ? { label: 'Follow', icon: 'add', onPress: handleFollow }
+              : undefined
+          }
+          onBack={onBack}
+        />
+      </WebDetailContainer>
 
       <ScrollView
         style={styles.scroll}
@@ -176,6 +179,7 @@ function PublicFaceScreenInner({ userId }: { userId: string }) {
         scrollEventThrottle={16}
         showsVerticalScrollIndicator={false}
       >
+        <WebDetailContainer>
         {/* 01 · HERO — bigger mark + name. Identity, descriptor, meta. */}
         <PublicFaceHero
           markText={initials}
@@ -414,6 +418,7 @@ function PublicFaceScreenInner({ userId }: { userId: string }) {
         ) : null}
 
         <View style={styles.bottomPad} />
+        </WebDetailContainer>
       </ScrollView>
 
       {FEATURE_FLAGS.SUGGEST_VERB_V3 ? (
