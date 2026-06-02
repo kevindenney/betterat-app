@@ -77,6 +77,8 @@ interface StepDigestCardProps {
    * the how-sub-steps as a checkable checklist; tapping a row toggles it.
    */
   onToggleHowItem?: (subStepId: string, completed: boolean) => void;
+  /** Unread Discuss notes on this step — lights a dot on the cover when > 0. */
+  discussUnread?: number;
   onPress?: () => void;
 }
 
@@ -87,6 +89,7 @@ export function StepDigestCard({
   variant = 'default',
   showRelevantSnippet = false,
   onToggleHowItem,
+  discussUnread = 0,
   onPress,
 }: StepDigestCardProps) {
   const status = STATUS_VISUAL[step.status];
@@ -151,6 +154,15 @@ export function StepDigestCard({
     >
       {isNearby ? (
         <View style={[styles.originAccent, { backgroundColor: origin.color }]} />
+      ) : null}
+
+      {discussUnread > 0 ? (
+        <View style={styles.discussBadge} pointerEvents="none">
+          <Ionicons name="chatbubble-ellipses" size={10} color="#FFFFFF" />
+          <Text style={styles.discussBadgeCount}>
+            {discussUnread > 9 ? '9+' : discussUnread}
+          </Text>
+        </View>
       ) : null}
 
       {(isNearby || compact) && primaryCapability ? (
@@ -584,6 +596,25 @@ const styles = StyleSheet.create({
     right: 24,
     height: 3,
     borderRadius: 999,
+  },
+  discussBadge: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    zIndex: 2,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    paddingLeft: 5,
+    paddingRight: 6,
+    paddingVertical: 2.5,
+    borderRadius: 999,
+    backgroundColor: '#FF3B30',
+  },
+  discussBadgeCount: {
+    fontSize: 9.5,
+    fontWeight: '800',
+    color: '#FFFFFF',
   },
   originPill: {
     alignSelf: 'flex-start',

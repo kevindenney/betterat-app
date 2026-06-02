@@ -34,6 +34,7 @@ import { showAlert } from '@/lib/utils/crossPlatformAlert';
 import { createStep, resequenceTimelineSortOrders } from '@/services/TimelineStepService';
 import { useInboxItems } from '@/hooks/useInboxItems';
 import { useInboxActions } from '@/hooks/useInboxActions';
+import { useStepsDiscussionUnread } from '@/hooks/useStepsDiscussionUnread';
 import { useCrossInterestSuggestions } from '@/hooks/useCrossInterestSuggestions';
 import { ANALYSIS_MIN_STEPS } from './realDataAdapter';
 import {
@@ -139,6 +140,10 @@ export function L2WeekView({
     () => getNowSplitIndex(steps),
     [steps],
   );
+  // One batched query for the whole nearby set lights an unread Discuss dot on
+  // each step cover without a per-card peek storm.
+  const stepIds = useMemo(() => steps.map((step) => step.id), [steps]);
+  const { data: discussUnreadByStep } = useStepsDiscussionUnread(stepIds);
   const defaultFocusIndex =
     nowSplitIndex < steps.length ? nowSplitIndex : Math.max(0, steps.length - 1);
 
@@ -558,6 +563,7 @@ export function L2WeekView({
                       liftedTranslateX={drag.liftedTranslate}
                       highlighted={index === centerIndex}
                       cardWidth={cardWidth}
+                      discussUnread={discussUnreadByStep?.[step.id] ?? 0}
                       onOpen={() => onOpenStep(step.id)}
                       onInsertAfter={() => handleOpenInsertSheet(step.id, steps[index + 1]?.id ?? null)}
                       buildGesture={drag.buildItemGesture}
@@ -880,6 +886,11 @@ function L2SuggestedSteps({
     }
   };
 
+  const viewBlueprintPlan = (suggestion: BlueprintSuggestedNextStep) => {
+    setSelectedSuggestion(null);
+    router.push(`/practice/blueprint/${suggestion.blueprint_id}` as never);
+  };
+
   const adoptSuggestedBlueprintStep = async (suggestion: BlueprintSuggestedNextStep) => {
     if (!resolvedInterestId) return;
     setAdoptingId(suggestion.next_step_id);
@@ -1008,6 +1019,7 @@ function L2SuggestedSteps({
         creating={creatingId}
         onClose={() => setSelectedSuggestion(null)}
         onAddBlueprint={(suggestion) => void adoptSuggestedBlueprintStep(suggestion)}
+        onViewBlueprintPlan={viewBlueprintPlan}
         onAddCrossInterest={(suggestion, targetMode) => void createSuggestedStep(suggestion, targetMode)}
         currentInterestName={currentInterest?.name}
       />
@@ -1029,6 +1041,8 @@ interface DraggableCarouselSlotProps {
   highlighted: boolean;
   /** Density-resolved card width — overrides the static cardSlot style. */
   cardWidth: number;
+  /** Unread Discuss notes on this step's cover (lights a dot when > 0). */
+  discussUnread?: number;
   onOpen: () => void;
   onInsertAfter?: () => void;
   buildGesture: ReturnType<typeof useDragReorder>['buildItemGesture'];
@@ -1048,6 +1062,7 @@ function DraggableCarouselSlot({
   liftedTranslateX,
   highlighted,
   cardWidth,
+  discussUnread,
   onOpen,
   onInsertAfter,
   buildGesture,
@@ -1108,6 +1123,7 @@ function DraggableCarouselSlot({
             variant="nearby"
             highlighted={highlighted}
             showRelevantSnippet={highlighted}
+            discussUnread={discussUnread}
             onToggleHowItem={onToggleHowItem}
           />
           {willComplete ? (
@@ -1151,6 +1167,7 @@ function SuggestionDetailSheet({
   creating,
   onClose,
   onAddBlueprint,
+  onViewBlueprintPlan,
   onAddCrossInterest,
   currentInterestName,
 }: {
@@ -1159,6 +1176,7 @@ function SuggestionDetailSheet({
   creating: string | null;
   onClose: () => void;
   onAddBlueprint: (suggestion: BlueprintSuggestedNextStep) => void;
+  onViewBlueprintPlan: (suggestion: BlueprintSuggestedNextStep) => void;
   onAddCrossInterest: (suggestion: CrossInterestSuggestion, targetMode: 'source' | 'current') => void;
   currentInterestName?: string;
 }) {
@@ -1194,6 +1212,19 @@ function SuggestionDetailSheet({
                 {blueprintSuggestion.next_step_description?.trim() ||
                   'Adopt this step from a subscribed blueprint into your nearby run.'}
               </Text>
+              <Pressable
+                style={styles.sheetLinkButton}
+                onPress={() => onViewBlueprintPlan(blueprintSuggestion)}
+              >
+                <Ionicons name="list-outline" size={15} color={IOS_REGISTER.accentUserAction} />
+                <Text style={styles.sheetLinkButtonText}>
+                  View full plan
+                  {blueprintSuggestion.total_steps
+                    ? ` · ${blueprintSuggestion.total_steps} steps`
+                    : ''}
+                </Text>
+                <Ionicons name="chevron-forward" size={15} color={IOS_REGISTER.accentUserAction} />
+              </Pressable>
               <View style={styles.sheetActions}>
                 <Pressable style={styles.sheetSecondaryButton} onPress={onClose}>
                   <Text style={styles.sheetSecondaryButtonText}>Not now</Text>
@@ -1807,5 +1838,20 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 20,
     color: IOS_REGISTER.label,
+  },
+  sheetLinkButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    minHeight: 44,
+    paddingHorizontal: 14,
+    borderRadius: 12,
+    backgroundColor: IOS_REGISTER.fillPill,
+  },
+  sheetLinkButtonText: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: '600',
+    color: IOS_REGISTER.accentUserAction,
   },
 });
