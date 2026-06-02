@@ -72,7 +72,7 @@ export default function DeleteAccountScreen() {
             .update({
               deleted_at: new Date().toISOString(),
               email: `deleted_${Date.now()}@deleted.com`,
-              name: 'Deleted User',
+              full_name: 'Deleted User',
             })
             .eq('id', user?.id);
 
