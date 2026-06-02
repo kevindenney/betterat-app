@@ -622,7 +622,10 @@ export function L3SeasonView({
             <Ionicons name="close" size={13} color={IOS_REGISTER.labelSecondary} />
           </Pressable>
           <Text style={styles.filterCount}>
-            {visibleWeeks.reduce((n, w) => n + w.steps.length, 0)} steps
+            {(() => {
+              const n = visibleWeeks.reduce((acc, w) => acc + w.steps.length, 0);
+              return `${n} ${n === 1 ? 'step' : 'steps'}`;
+            })()}
           </Text>
         </View>
       ) : (
